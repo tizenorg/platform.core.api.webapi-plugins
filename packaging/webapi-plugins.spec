@@ -3,6 +3,8 @@
 %define _manifestdir %{TZ_SYS_RW_PACKAGES}
 %define _desktop_icondir %{TZ_SYS_SHARE}/icons/default/small
 
+%define crosswalk_extensions tizen-extensions-crosswalk
+
 Name:       webapi-plugins
 Version:    0.1
 Release:    0
@@ -49,9 +51,9 @@ ninja -C out/Default %{?_smp_mflags}
 %install
 
 # Extensions.
-mkdir -p %{buildroot}%{_libdir}/%{name}
-install -p -m 644 out/Default/libtizen*.so %{buildroot}%{_libdir}/%{name}
+mkdir -p %{buildroot}%{_libdir}/%{crosswalk_extensions}
+install -p -m 644 out/Default/libtizen*.so %{buildroot}%{_libdir}/%{crosswalk_extensions}
 
 %files
-%{_libdir}/%{name}/libtizen*.so
+%{_libdir}/%{crosswalk_extensions}/libtizen*.so
 
