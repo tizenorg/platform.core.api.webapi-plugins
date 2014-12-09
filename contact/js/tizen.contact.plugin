@@ -1,0 +1,131 @@
+/*
+ * Copyright (c) 2014 Samsung Electronics Co., Ltd All Rights Reserved
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ */
+
+(function () {
+    'use strict';
+
+    // Import auxiliary classes for Contact
+    var _dataStructures = require('./tizen.contact.ContactDataStructures');
+    var ContactRef = _dataStructures.ref;
+    var ContactGroup = _dataStructures.group;
+    var ContactEmailAddress = _dataStructures.emailAddress;
+    var ContactPhoneNumber = _dataStructures.phoneNumber;
+    var ContactAddress = _dataStructures.address;
+    var ContactAnniversary = _dataStructures.anniversary;
+    var ContactWebSite = _dataStructures.webSite;
+    var ContactOrganization = _dataStructures.organization;
+    var ContactName = _dataStructures.name;
+    var ContactRelationship = _dataStructures.relationship;
+    var ContactInstantMessenger = _dataStructures.instantMessenger;
+    var ContactRelationshipType = _dataStructures.relationshipType;
+    var ContactInstantMessengerType = _dataStructures.instantMessengerType;
+    _dataStructures = undefined;
+
+    // Import Contact and ContactInit class
+    var _contact = require('./tizen.contact.Contact');
+    var Contact = _contact.Contact;
+    _contact = undefined;
+
+    // Import ContactManager class
+    var ContactManager = require('./tizen.contact.ContactManager');
+
+    // Import Person class
+    var Person = require('./tizen.contact.Person');
+
+    // Import AddressBook class
+    var AddressBook = require('./tizen.contact.AddressBook');
+
+    // exports /////////////////////////////////////////////////////////////////
+
+    module.exports = {
+        contact: {
+            value: new ContactManager(),
+            writable: false,
+            enumerable: true
+        },
+        Contact: {
+            value: Contact,
+            writable: false,
+            enumerable: true
+        },
+        ContactRef: {
+            value: ContactRef,
+            writable: false,
+            enumerable: true
+        },
+        ContactName: {
+            value: ContactName,
+            writable: false,
+            enumerable: true
+        },
+        ContactOrganization: {
+            value: ContactOrganization,
+            writable: false,
+            enumerable: true
+        },
+        ContactWebSite: {
+            value: ContactWebSite,
+            writable: false,
+            enumerable: true
+        },
+        ContactAnniversary: {
+            value: ContactAnniversary,
+            writable: false,
+            enumerable: true
+        },
+        ContactAddress: {
+            value: ContactAddress,
+            writable: false,
+            enumerable: true
+        },
+        ContactPhoneNumber: {
+            value: ContactPhoneNumber,
+            writable: false,
+            enumerable: true
+        },
+        ContactEmailAddress: {
+            value: ContactEmailAddress,
+            writable: false,
+            enumerable: true
+        },
+        ContactGroup: {
+            value: ContactGroup,
+            writable: false,
+            enumerable: true
+        },
+        ContactRelationship: {
+            value: ContactRelationship,
+            writable: false,
+            enumerable: true
+        },
+        ContactInstantMessenger: {
+            value: ContactInstantMessenger,
+            writable: false,
+            enumerable: true
+        },
+        ContactRelationshipType: {
+            value: ContactRelationshipType,
+            writable: false,
+            enumerable: true
+        },
+        ContactInstantMessengerType: {
+            value: ContactInstantMessengerType,
+            writable: false,
+            enumerable: true
+        }
+    };
+
+})();
