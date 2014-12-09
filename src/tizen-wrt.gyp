@@ -14,7 +14,8 @@
         'power/power.gyp:*',
         'messageport/messageport.gyp:*',
         'bookmark/bookmark.gyp:*',
-        'archive/archive.gyp:*'
+        'archive/archive.gyp:*',
+        'exif/exif.gyp:*',
       ],
       'conditions': [
         [ 'extension_host_os == "mobile"', {
