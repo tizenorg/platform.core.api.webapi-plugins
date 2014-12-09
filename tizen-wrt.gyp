@@ -14,6 +14,7 @@
         'power/power.gyp:*',
         'messageport/messageport.gyp:*',
         #'calendar/calendar.gyp:*',
+        'bookmark/bookmark.gyp:*',
       ],
     },
   ],
