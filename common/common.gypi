@@ -58,6 +58,8 @@
       '<(SHARED_INTERMEDIATE_DIR)',
     ],
     'sources': [
+      'converter.cc',
+      'converter.h',
       'extension.cc',
       'extension.h',
       'picojson.h',
