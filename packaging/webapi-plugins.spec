@@ -204,7 +204,7 @@ export GYP_GENERATORS='ninja'
 GYP_OPTIONS="--depth=. -Dtizen=1 -Dextension_build_type=Debug -Dextension_host_os=%{profile}"
 GYP_OPTIONS="$GYP_OPTIONS -Ddisplay_type=x11"
 
-./tools/gyp/gyp $GYP_OPTIONS tizen-wrt.gyp
+./tools/gyp/gyp $GYP_OPTIONS src/tizen-wrt.gyp
 
 ninja -C out/Default %{?_smp_mflags}
 
