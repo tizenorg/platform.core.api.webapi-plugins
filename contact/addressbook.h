@@ -14,38 +14,37 @@
  *    limitations under the License.
  */
 
-#ifndef WEBAPI_PLUGINS_CONTACT_ADDRESSBOOK_H_
-#define WEBAPI_PLUGINS_CONTACT_ADDRESSBOOK_H_
+#ifndef CONTACT_ADDRESSBOOK_H_
+#define CONTACT_ADDRESSBOOK_H_
 
-#include "common/json-parser.h"
+#include "common/picojson.h"
 #include "common/native-plugin.h"
+#include "contact/contact_util.h"
 
-namespace webapi {
+namespace extension {
 namespace contact {
 namespace AddressBook {
 
-void AddressBook_get(const common::json::Object& args, common::json::Object& out);
-void AddressBook_add(const common::json::Object& args, common::json::Object& out);
-void AddressBook_update(const common::json::Object& args, common::json::Object& out);
-void AddressBook_remove(const common::json::Object& args, common::json::Object& out);
-void AddressBook_find(const common::json::Object& args, common::json::Object& out);
-void AddressBook_addGroup(const common::json::Object& args, common::json::Object& out);
-void AddressBook_getGroup(const common::json::Object& args, common::json::Object& out);
-void AddressBook_updateGroup(const common::json::Object& args, common::json::Object& out);
-void AddressBook_removeGroup(const common::json::Object& args, common::json::Object& out);
-void AddressBook_getGroups(const common::json::Object& args, common::json::Object& out);
-void AddressBook_startListening(int* current_state, const common::json::Object& args,
-                                common::json::Object& out);
-void AddressBook_stopListening(int* current_state, const common::json::Object& args,
-                               common::json::Object& out);
+void AddressBook_get(const JsonObject& args, JsonObject& out);
+void AddressBook_add(const JsonObject& args, JsonObject& out);
+void AddressBook_update(const JsonObject& args, JsonObject& out);
+void AddressBook_remove(const JsonObject& args, JsonObject& out);
+void AddressBook_find(const JsonObject& args, JsonObject& out);
+void AddressBook_addGroup(const JsonObject& args, JsonObject& out);
+void AddressBook_getGroup(const JsonObject& args, JsonObject& out);
+void AddressBook_updateGroup(const JsonObject& args, JsonObject& out);
+void AddressBook_removeGroup(const JsonObject& args, JsonObject& out);
+void AddressBook_getGroups(const JsonObject& args, JsonObject& out);
+void AddressBook_startListening(int* current_state, const JsonObject& args, JsonObject& out);
+void AddressBook_stopListening(int* current_state, const JsonObject& args, JsonObject& out);
 
 void AddressBook_batchFunc(common::NativeFunction impl, const char* single_arg_name,
-                           const common::json::Object& args, common::json::Object& out);
+                           const JsonObject& args, JsonObject& out);
 
-void AddressBook_addBatch(const common::json::Object& args, common::json::Object& out);
+void AddressBook_addBatch(const JsonObject& args, JsonObject& out);
 
 }  // AddressBook
 }  // contact
-}  // webapi
+}  // extension
 
-#endif  // WEBAPI_PLUGINS_CONTACT_ADDRESSBOOK_H_
+#endif  // CONTACT_ADDRESSBOOK_H_

@@ -14,22 +14,27 @@
  *    limitations under the License.
  */
 
-#ifndef WEBAPI_PLUGINS_CONTACT_CONTACT_UTIL_H_
-#define WEBAPI_PLUGINS_CONTACT_CONTACT_UTIL_H_
+#ifndef CONTACT_CONTACT_UTIL_H_
+#define CONTACT_CONTACT_UTIL_H_
 
 #include <ctime>
 #include <memory>
 #include <string>
 #include <contacts.h>
-#include "common/json-parser.h"
-#include "common/platform-exception.h"
+#include "common/picojson.h"
+#include "common/platform_exception.h"
 
-namespace webapi {
+namespace extension {
 namespace contact {
+
+typedef picojson::value JsonValue;
+typedef picojson::object JsonObject;
+typedef picojson::array JsonArray;
+
 namespace ContactUtil {
 
-extern const char* kContactReadPrivileges;
-extern const char* kContactWritePrivileges;
+extern const char *kContactReadPrivileges;
+extern const char *kContactWritePrivileges;
 
 void ContactsDeleter(contacts_record_h *contacts_record);
 typedef std::unique_ptr<contacts_record_h, void (*)(contacts_record_h *)> ContactsRecordHPtr;
@@ -38,7 +43,8 @@ void ContactsListDeleter(contacts_list_h *contacts_list);
 typedef std::unique_ptr<contacts_list_h, void (*)(contacts_list_h *)> ContactsListHPtr;
 
 void ContactsFilterDeleter(contacts_filter_h contacts_filter);
-typedef std::unique_ptr<std::remove_pointer<contacts_filter_h>::type, void(*)(contacts_filter_h)> ContactsFilterPtr;
+typedef std::unique_ptr<std::remove_pointer<contacts_filter_h>::type, void (*)(contacts_filter_h)>
+        ContactsFilterPtr;
 
 void ContactsQueryDeleter(contacts_query_h *contacts_query);
 typedef std::unique_ptr<contacts_query_h, void (*)(contacts_query_h *)> ContactsQueryHPtr;
@@ -61,76 +67,59 @@ void ClearAllContactRecord(contacts_record_h contacts_record, unsigned int prope
 
 unsigned int GetNumberOfChildRecord(contacts_record_h contacts_record, unsigned int property_id);
 
-void UpdateAdditionalInformation(const ContactsRecordHPtr &contacts_record_ptr,
-                                 webapi::common::json::Object *out);
+void UpdateAdditionalInformation(const ContactsRecordHPtr &contacts_record_ptr, JsonObject *out);
 
-webapi::common::json::Value ImportBirthdayFromContactsRecord(contacts_record_h contacts_record,
-                                                             unsigned int index);
+JsonValue ImportBirthdayFromContactsRecord(contacts_record_h contacts_record, unsigned int index);
 void ExportBirthdayToContactsRecord(contacts_record_h contacts_record, int date);
-bool ImportContactNameFromContactsRecord(contacts_record_h contacts_record,
-                                         webapi::common::json::Object *out);
-void ExportContactNameToContactsRecord(contacts_record_h contacts_record,
-                                       const webapi::common::json::Object &in);
+bool ImportContactNameFromContactsRecord(contacts_record_h contacts_record, JsonObject *out);
+void ExportContactNameToContactsRecord(contacts_record_h contacts_record, const JsonObject &in);
 void ImportContactEmailAddressFromContactsRecord(contacts_record_h contacts_record,
-                                                 unsigned int index,
-                                                 webapi::common::json::Object *out);
+                                                 unsigned int index, JsonObject *out);
 void ExportContactEmailAddressToContactsRecord(contacts_record_h contacts_record,
-                                               const webapi::common::json::Object &in);
+                                               const JsonObject &in);
 
 void ImportContactAddressFromContactsRecord(contacts_record_h contacts_record, unsigned int index,
-                                            webapi::common::json::Object *out);
-void ExportContactAddressToContactsRecord(contacts_record_h contacts_record,
-                                          const webapi::common::json::Object &in);
+                                            JsonObject *out);
+void ExportContactAddressToContactsRecord(contacts_record_h contacts_record, const JsonObject &in);
 void ImportContactPhoneNumberFromContactsRecord(contacts_record_h contacts_record,
-                                                unsigned int index,
-                                                webapi::common::json::Object *out);
+                                                unsigned int index, JsonObject *out);
 void ExportContactPhoneNumberToContactsRecord(contacts_record_h contacts_record,
-                                              const webapi::common::json::Object &in);
+                                              const JsonObject &in);
 void ImportContactOrganizationFromContactsRecord(contacts_record_h contacts_record,
-                                                 unsigned int index,
-                                                 webapi::common::json::Object *out);
+                                                 unsigned int index, JsonObject *out);
 void ExportContactOrganizationToContactsRecord(contacts_record_h contacts_record,
-                                               const webapi::common::json::Object &in);
+                                               const JsonObject &in);
 void ImportContactWebSiteFromContactsRecord(contacts_record_h contacts_record, unsigned int index,
-                                            webapi::common::json::Object *out);
-void ExportContactWebSiteToContactsRecord(contacts_record_h contacts_record,
-                                          const webapi::common::json::Object &in);
+                                            JsonObject *out);
+void ExportContactWebSiteToContactsRecord(contacts_record_h contacts_record, const JsonObject &in);
 bool ImportContactAnniversariesFromContactsRecord(contacts_record_h contacts_record,
-                                                  unsigned int index,
-                                                  webapi::common::json::Object *out);
+                                                  unsigned int index, JsonObject *out);
 void ExportContactAnniversariesToContactsRecord(contacts_record_h contacts_record,
-                                                const webapi::common::json::Object &in);
+                                                const JsonObject &in);
 void ImportContactRelationshipFromContactsRecord(contacts_record_h contacts_record,
-                                                 unsigned int index,
-                                                 webapi::common::json::Object *out);
+                                                 unsigned int index, JsonObject *out);
 void ExportContactRelationshipToContactsRecord(contacts_record_h contacts_record,
-                                               const webapi::common::json::Object &in);
+                                               const JsonObject &in);
 void ImportContactInstantMessengerFromContactsRecord(contacts_record_h contacts_record,
-                                                     unsigned int index,
-                                                     webapi::common::json::Object *out);
+                                                     unsigned int index, JsonObject *out);
 void ExportContactInstantMessengerToContactsRecord(contacts_record_h contacts_record,
-                                                   const webapi::common::json::Object &in);
+                                                   const JsonObject &in);
 
-webapi::common::json::Value ImportContactNotesFromContactsRecord(contacts_record_h contacts_record,
-                                                                 unsigned int index);
-webapi::common::json::Value ImportContactNotesFromContactsRecord(contacts_record_h contacts_record,
-                                                                 unsigned int index);
+JsonValue ImportContactNotesFromContactsRecord(contacts_record_h contacts_record,
+                                               unsigned int index);
+JsonValue ImportContactNotesFromContactsRecord(contacts_record_h contacts_record,
+                                               unsigned int index);
 void ExportNotesToContactsRecord(contacts_record_h contacts_record, const std::string &value);
-void ImportContactFromContactsRecord(contacts_record_h contacts_record,
-                                     webapi::common::json::Object *out);
-void ExportPersonToContactsRecord(contacts_record_h record, const webapi::common::json::Object& args);
+void ImportContactFromContactsRecord(contacts_record_h contacts_record, JsonObject *out);
+void ExportPersonToContactsRecord(contacts_record_h record, const JsonObject &args);
 
-void ExportContactToContactsRecord(contacts_record_h contacts_record,
-                                   const webapi::common::json::Object &in);
-void ImportContactGroupFromContactsRecord(contacts_record_h contacts_record,
-                                          webapi::common::json::Object *out);
-void ExportContactGroupToContactsRecord(contacts_record_h contacts_record,
-                                        const webapi::common::json::Object &in);
-void ImportPersonFromContactsRecord(contacts_record_h contacts_record,
-                                    webapi::common::json::Object *out);
+void ExportContactToContactsRecord(contacts_record_h contacts_record, const JsonObject &in);
+void ImportContactGroupFromContactsRecord(contacts_record_h contacts_record, JsonObject *out);
+void ExportContactGroupToContactsRecord(contacts_record_h contacts_record, const JsonObject &in);
+void ImportPersonFromContactsRecord(contacts_record_h contacts_record, JsonObject *out);
 
 }  // ContactUtil
 }  // contact
-}  // webapi
+}  // extension
 
-#endif  // WEBAPI_PLUGINS_CONTACT_CONTACT_UTIL_H_
+#endif  // CONTACT_CONTACT_UTIL_H_

@@ -15,43 +15,48 @@
  */
 
 #include "contact/addressbook.h"
+
 #include <wrt-common/native-context.h>
 #include "common/converter.h"
 #include "common/native-plugin.h"
-#include "common/platform-exception.h"
+#include "common/platform_exception.h"
 #include "common/logger.h"
 #include "common/task-queue.h"
-#include "contact/contact-util.h"
+
 #include <contacts.h>
 
-namespace webapi {
+namespace extension {
 namespace contact {
 namespace AddressBook {
 
 using namespace common;
 using namespace wrt::common;
 
-typedef std::shared_ptr<common::json::Value> shared_json_value;
+typedef std::shared_ptr<JsonValue> shared_json_value;
 
 namespace {
 static const long kUnifiedAddressBookId = -1;
 const char* kContactListenerId = "ContactChangeListener";
 
-inline long AddressBookId(const webapi::common::json::Object& obj) {
+inline long AddressBookId(const JsonObject& obj)
+{
     return common::stol(FromJson<json::String>(obj, "addressBook", "id"));
 }
 
-inline bool IsUnified(const webapi::common::json::Object& args) {
+inline bool IsUnified(const JsonObject& args)
+{
     return AddressBookId(args) == kUnifiedAddressBookId;
 }
 
-inline bool IsUnified(long id) {
+inline bool IsUnified(long id)
+{
     return id == kUnifiedAddressBookId;
 }
 
-} // anonymous namespace
+}  // anonymous namespace
 
-void AddressBook_get(const webapi::common::json::Object& args, webapi::common::json::Object& out) {
+void AddressBook_get(const JsonObject& args, JsonObject& out)
+{
     NativePlugin::CheckAccess(ContactUtil::kContactReadPrivileges);
 
     int contact_id = common::stol(FromJson<json::String>(args, "id"));
@@ -66,7 +71,7 @@ void AddressBook_get(const webapi::common::json::Object& args, webapi::common::j
     ContactUtil::ContactsRecordHPtr contacts_record_ptr(&contacts_record,
                                                         ContactUtil::ContactsDeleter);
 
-    webapi::common::json::Value result{json::Object{}};
+    JsonValue result{json::Object{}};
     auto& result_obj = result.get<json::Object>();
     result_obj.insert(std::make_pair("id", std::to_string(contact_id)));
     ContactUtil::ImportContactFromContactsRecord(*contacts_record_ptr, &result_obj);
@@ -75,7 +80,8 @@ void AddressBook_get(const webapi::common::json::Object& args, webapi::common::j
     NativePlugin::ReportSuccess(result, out);
 }
 
-void AddressBook_add(const webapi::common::json::Object& args, webapi::common::json::Object& out) {
+void AddressBook_add(const JsonObject& args, JsonObject& out)
+{
     NativePlugin::CheckAccess(ContactUtil::kContactWritePrivileges);
 
     const json::Object& contact = FromJson<json::Object>(args, "contact");
@@ -125,8 +131,8 @@ void AddressBook_add(const webapi::common::json::Object& args, webapi::common::j
     NativePlugin::ReportSuccess(result, out);
 }
 
-void AddressBook_update(const webapi::common::json::Object& args,
-                        webapi::common::json::Object& out) {
+void AddressBook_update(const JsonObject& args, JsonObject& out)
+{
     NativePlugin::CheckAccess(ContactUtil::kContactWritePrivileges);
 
     const json::Object& contact = FromJson<json::Object>(args, "contact");
@@ -172,8 +178,8 @@ void AddressBook_update(const webapi::common::json::Object& args,
     NativePlugin::ReportSuccess(result, out);
 }
 
-void AddressBook_remove(const webapi::common::json::Object& args,
-                        webapi::common::json::Object& out) {
+void AddressBook_remove(const JsonObject& args, JsonObject& out)
+{
     NativePlugin::CheckAccess(ContactUtil::kContactWritePrivileges);
 
     long contact_id = common::stol(FromJson<json::String>(args, "id"));
@@ -202,7 +208,7 @@ void AddressBook_addBatch(const json::Object& args, json::Object& out)
     addressBookId = common::stol(FromJson<json::String>(args, "addressBookId"));
     addressBookId = addressBookId == -1 ? 0 : addressBookId;
 
-    auto batch_func = [addressBookId, batch_args](const shared_json_value & response)->void
+    auto batch_func = [ addressBookId, batch_args ](const shared_json_value & response)->void
     {
         NativePlugin::CheckAccess(ContactUtil::kContactWritePrivileges);
         json::Object& response_obj = response->get<json::Object>();
@@ -299,16 +305,19 @@ void AddressBook_addBatch(const json::Object& args, json::Object& out)
 }
 
 void AddressBook_batchFunc(NativeFunction impl, const char* single_arg_name,
-                           const json::Object& args, json::Object& out) {
+                           const json::Object& args, json::Object& out)
+{
     const json::Array& batch_args = FromJson<json::Array>(args, "batchArgs");
     const json::Object& address_book = FromJson<json::Object>(args, "addressBook");
 
-    auto work_func = [=](const shared_json_value& response)->void {
+    auto work_func = [=](const shared_json_value & response)->void
+    {
         json::Object& response_obj = response->get<json::Object>();
         json::Array& batch_result =
                 response_obj.insert(std::make_pair("result", json::Value{json::Array{}}))
                         .first->second.get<json::Array>();
-        try {
+        try
+        {
             for (auto& item : batch_args) {
                 json::Object single_args{};
 
@@ -320,7 +329,9 @@ void AddressBook_batchFunc(NativeFunction impl, const char* single_arg_name,
                 batch_result.push_back(json::Value{single_out});
             }
             NativePlugin::ReportSuccess(response_obj);
-        } catch (const BasePlatformException& e) {
+        }
+        catch (const BasePlatformException& e)
+        {
             NativePlugin::ReportError(e, response_obj);
         }
     };
@@ -331,14 +342,14 @@ void AddressBook_batchFunc(NativeFunction impl, const char* single_arg_name,
                                                                   response->serialize());
     };
 
-    TaskQueue::GetInstance().Queue<json::Value>(
-            work_func, after_work_func,
-            shared_json_value{new json::Value{json::Object{}}});
+    TaskQueue::GetInstance().Queue<json::Value>(work_func, after_work_func,
+                                                shared_json_value{new json::Value{json::Object{}}});
 
     NativePlugin::ReportSuccess(out);
 }
 
-void AddressBook_find(const webapi::common::json::Object& args, webapi::common::json::Object& out) {
+void AddressBook_find(const JsonObject& args, JsonObject& out)
+{
     NativePlugin::CheckAccess(ContactUtil::kContactReadPrivileges);
 
     // TODO implement contact filter and sorting.
@@ -347,9 +358,11 @@ void AddressBook_find(const webapi::common::json::Object& args, webapi::common::
 
     int callback_handle = NativePlugin::GetAsyncCallbackHandle(args);
 
-    auto get = [address_book](const shared_json_value & response)->void {
+    auto get = [address_book](const shared_json_value & response)->void
+    {
         LoggerD("Entered");
-        try {
+        try
+        {
             long addressbook_id = common::stol(FromJson<json::String>(address_book, "id"));
             // Read calendar by ID
             int error_code = 0;
@@ -393,25 +406,27 @@ void AddressBook_find(const webapi::common::json::Object& args, webapi::common::
 
             NativePlugin::ReportSuccess(result, response->get<json::Object>());
         }
-        catch (const BasePlatformException& e) {
+        catch (const BasePlatformException& e)
+        {
             LoggerE("error: %s: %s", e.name().c_str(), e.message().c_str());
             NativePlugin::ReportError(e, response->get<json::Object>());
         }
     };
 
-    auto get_response = [callback_handle](const shared_json_value & response)->void {
+    auto get_response = [callback_handle](const shared_json_value & response)->void
+    {
         wrt::common::NativeContext::GetInstance()->InvokeCallback(callback_handle,
                                                                   response->serialize());
     };
 
-    TaskQueue::GetInstance().Queue<json::Value>(
-            get, get_response, shared_json_value(new json::Value(json::Object())));
+    TaskQueue::GetInstance().Queue<json::Value>(get, get_response,
+                                                shared_json_value(new json::Value(json::Object())));
 
     NativePlugin::ReportSuccess(out);
 }
 
-void AddressBook_addGroup(const webapi::common::json::Object& args,
-                          webapi::common::json::Object& out) {
+void AddressBook_addGroup(const JsonObject& args, JsonObject& out)
+{
     NativePlugin::CheckAccess(ContactUtil::kContactWritePrivileges);
     const json::Object& group = FromJson<json::Object>(args, "group");
     if (!IsNull(group, "id") || !IsNull(group, "addressBookId")) {
@@ -442,8 +457,8 @@ void AddressBook_addGroup(const webapi::common::json::Object& args,
     NativePlugin::ReportSuccess(result, out);
 }
 
-void AddressBook_getGroup(const webapi::common::json::Object& args,
-                          webapi::common::json::Object& out) {
+void AddressBook_getGroup(const JsonObject& args, JsonObject& out)
+{
     NativePlugin::CheckAccess(ContactUtil::kContactReadPrivileges);
 
     long id = common::stol(FromJson<json::String>(args, "id"));
@@ -461,8 +476,7 @@ void AddressBook_getGroup(const webapi::common::json::Object& args,
 
     ContactUtil::ContactsRecordHPtr record(&contacts_record, ContactUtil::ContactsDeleter);
 
-    long addressbook_id =
-            common::stol(FromJson<json::String>(args, "addressBook", "id"));
+    long addressbook_id = common::stol(FromJson<json::String>(args, "addressBook", "id"));
     if (IsUnified(addressbook_id)) {
         int address_book_id = 0;
         ContactUtil::GetIntFromRecord(contacts_record, _contacts_group.address_book_id,
@@ -478,8 +492,8 @@ void AddressBook_getGroup(const webapi::common::json::Object& args,
     NativePlugin::ReportSuccess(result, out);
 }
 
-void AddressBook_updateGroup(const webapi::common::json::Object& args,
-                             webapi::common::json::Object& out) {
+void AddressBook_updateGroup(const JsonObject& args, JsonObject& out)
+{
     NativePlugin::CheckAccess(ContactUtil::kContactWritePrivileges);
 
     const json::Object& group = FromJson<json::Object>(args, "group");
@@ -531,8 +545,8 @@ void AddressBook_updateGroup(const webapi::common::json::Object& args,
     NativePlugin::ReportSuccess(out);
 }
 
-void AddressBook_removeGroup(const webapi::common::json::Object& args,
-                             webapi::common::json::Object& out) {
+void AddressBook_removeGroup(const JsonObject& args, JsonObject& out)
+{
     NativePlugin::CheckAccess(ContactUtil::kContactWritePrivileges);
 
     long id = common::stol(FromJson<json::String>(args, "id"));
@@ -568,8 +582,8 @@ void AddressBook_removeGroup(const webapi::common::json::Object& args,
     NativePlugin::ReportSuccess(out);
 }
 
-void AddressBook_getGroups(const webapi::common::json::Object& args,
-                           webapi::common::json::Object& out) {
+void AddressBook_getGroups(const JsonObject& args, JsonObject& out)
+{
     NativePlugin::CheckAccess(ContactUtil::kContactReadPrivileges);
 
     int err = CONTACTS_ERROR_NONE;
@@ -622,9 +636,9 @@ void AddressBook_getGroups(const webapi::common::json::Object& args,
             throw common::UnknownException("Fail to get group record");
         }
 
-        webapi::common::json::Value group{json::Object{}};
+        JsonValue group{json::Object{}};
         ContactUtil::ImportContactGroupFromContactsRecord(contacts_record,
-                                                          &group.get<webapi::common::json::Object>());
+                                                          &group.get<JsonObject>());
         array.push_back(group);
 
         err = contacts_list_next(groups_list);
@@ -638,7 +652,8 @@ void AddressBook_getGroups(const webapi::common::json::Object& args,
 }
 
 namespace {
-void AddressBook_listenerCallback(const char* view_uri, void* user_data) {
+void AddressBook_listenerCallback(const char* view_uri, void* user_data)
+{
     (void)view_uri;
     (void)user_data;
 
@@ -693,7 +708,8 @@ void AddressBook_listenerCallback(const char* view_uri, void* user_data) {
             int changed_ab_id = 0;
             int changed_type = 0;
 
-            try {
+            try
+            {
                 ContactUtil::GetIntFromRecord(contact_updated_record,
                                               _contacts_contact_updated_info.contact_id,
                                               &changed_id);
@@ -705,7 +721,8 @@ void AddressBook_listenerCallback(const char* view_uri, void* user_data) {
                 ContactUtil::GetIntFromRecord(contact_updated_record,
                                               _contacts_contact_updated_info.type, &changed_type);
             }
-            catch (const BasePlatformException&) {
+            catch (const BasePlatformException&)
+            {
                 LOGE("failt to get int from record");
                 return;
             }
@@ -750,8 +767,8 @@ void AddressBook_listenerCallback(const char* view_uri, void* user_data) {
 }
 }
 
-void AddressBook_startListening(int* current_state, const common::json::Object&,
-                                common::json::Object& out) {
+void AddressBook_startListening(int* current_state, const JsonObject&, JsonObject& out)
+{
     // Set the initial latest version before registering the callback.
     // The callback should only be registered once so no race can occur.
     int error_code = contacts_db_get_current_version(current_state);
@@ -770,8 +787,8 @@ void AddressBook_startListening(int* current_state, const common::json::Object&,
     NativePlugin::ReportSuccess(out);
 }
 
-void AddressBook_stopListening(int* current_state, const common::json::Object&,
-                               common::json::Object& out) {
+void AddressBook_stopListening(int* current_state, const JsonObject&, JsonObject& out)
+{
     int error_code = contacts_db_remove_changed_cb(_contacts_contact._uri,
                                                    AddressBook_listenerCallback, current_state);
 
@@ -785,4 +802,4 @@ void AddressBook_stopListening(int* current_state, const common::json::Object&,
 
 }  // AddressBook
 }  // contact
-}  // webapi
+}  // extension

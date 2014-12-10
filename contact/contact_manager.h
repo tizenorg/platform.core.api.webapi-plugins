@@ -14,12 +14,13 @@
  *    limitations under the License.
  */
 
-#ifndef WEBAPI_PLUGINS_CONTACT_CONTACT_MANAGER_H__
-#define WEBAPI_PLUGINS_CONTACT_CONTACT_MANAGER_H__
+#ifndef CONTACT_CONTACT_MANAGER_H__
+#define CONTACT_CONTACT_MANAGER_H__
 
-#include "common/json-parser.h"
+#include "common/picojson.h"
+#include "contact/contact_util.h"
 
-namespace webapi {
+namespace extension {
 namespace contact {
 namespace ContactManager {
 
@@ -38,8 +39,7 @@ namespace ContactManager {
  * {status: 'success', result: {addressbooks}}
  * @endcode
  */
-void ContactManager_getAddressBooks(const common::json::Object& /*args*/,
-                                    common::json::Object& /*out*/);
+void ContactManager_getAddressBooks(const JsonObject& /*args*/, JsonObject& /*out*/);
 
 /**
  * Signature: @code AddressBook getAddressBook(addressBookId); @endcode
@@ -52,7 +52,7 @@ void ContactManager_getAddressBooks(const common::json::Object& /*args*/,
  * {status: 'success'}
  * @endcode
  */
-void ContactManager_getAddressBook(const common::json::Object& args, common::json::Object& out);
+void ContactManager_getAddressBook(const JsonObject& args, JsonObject& out);
 
 /**
  * Signature: @code Person get(personId); @endcode
@@ -65,7 +65,7 @@ void ContactManager_getAddressBook(const common::json::Object& args, common::jso
  * {status: 'success'}
  * @endcode
  */
-void ContactManager_get(const common::json::Object& args, common::json::Object& out);
+void ContactManager_get(const JsonObject& args, JsonObject& out);
 
 /**
  * Signature: @code void update(person); @endcode
@@ -78,7 +78,7 @@ void ContactManager_get(const common::json::Object& args, common::json::Object& 
  * {status: 'success'}
  * @endcode
  */
-void ContactManager_update(const common::json::Object& args, common::json::Object& out);
+void ContactManager_update(const JsonObject& args, JsonObject& out);
 
 /**
  * Signature: @code void updateBatch(persons, successCallback, errorCallback); @endcode
@@ -96,8 +96,7 @@ void ContactManager_update(const common::json::Object& args, common::json::Objec
  * {status: 'success', result: {persons}}
  * @endcode
  */
-void ContactManager_updateBatch(const common::json::Object& /*args*/,
-                                common::json::Object& /*out*/);
+void ContactManager_updateBatch(const JsonObject& /*args*/, JsonObject& /*out*/);
 
 /**
  * Signature: @code void remove(personId); @endcode
@@ -110,7 +109,7 @@ void ContactManager_updateBatch(const common::json::Object& /*args*/,
  * {status: 'success'}
  * @endcode
  */
-void ContactManager_remove(const common::json::Object& args, common::json::Object& out);
+void ContactManager_remove(const JsonObject& args, JsonObject& out);
 
 /**
  * Signature: @code void removeBatch(personIds, successCallback, errorCallback); @endcode
@@ -128,8 +127,7 @@ void ContactManager_remove(const common::json::Object& args, common::json::Objec
  * {status: 'success'}
  * @endcode
  */
-void ContactManager_removeBatch(const common::json::Object& /*args*/,
-                                common::json::Object& /*out*/);
+void ContactManager_removeBatch(const JsonObject& /*args*/, JsonObject& /*out*/);
 
 /**
  * Signature: @code void find(successCallback, errorCallback, filter, sortMode); @endcode
@@ -147,7 +145,7 @@ void ContactManager_removeBatch(const common::json::Object& /*args*/,
  * {status: 'success', result: {persons}}
  * @endcode
  */
-void ContactManager_find(const common::json::Object& /*args*/, common::json::Object& /*out*/);
+void ContactManager_find(const JsonObject& /*args*/, JsonObject& /*out*/);
 
 /**
  * Signature: @code void getAddressBook(contactString); @endcode
@@ -160,7 +158,7 @@ void ContactManager_find(const common::json::Object& /*args*/, common::json::Obj
  * {status: 'success', result: {contact}}
  * @endcode
  */
-void ContactManager_importFromVCard(const common::json::Object& args, common::json::Object& out);
+void ContactManager_importFromVCard(const JsonObject& args, JsonObject& out);
 
 /**
  * Signature: @code void getAddressBook(contactString); @endcode
@@ -173,7 +171,7 @@ void ContactManager_importFromVCard(const common::json::Object& args, common::js
  * {status: 'success'}
  * @endcode
  */
-void ContactManager_startListening(const common::json::Object& args, common::json::Object& out);
+void ContactManager_startListening(const JsonObject& args, JsonObject& out);
 
 /**
  * Signature: @code void getAddressBook(contactString); @endcode
@@ -186,10 +184,10 @@ void ContactManager_startListening(const common::json::Object& args, common::jso
  * {status: 'success'}
  * @endcode
  */
-void ContactManager_stopListening(const common::json::Object& args, common::json::Object& out);
+void ContactManager_stopListening(const JsonObject& args, JsonObject& out);
 
 }  // namespace ContactManager
 }  // namespace contact
-}  // namespace webapi
+}  // namespace extension
 
-#endif  // WEBAPI_PLUGINS_CONTACT_CONTACT_MANAGER_H__
+#endif  // CONTACT_CONTACT_MANAGER_H__

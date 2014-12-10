@@ -14,20 +14,21 @@
  *    limitations under the License.
  */
 
-#include "contact/contact-manager.h"
+#include "contact/contact_manager.h"
 #include <memory>
-#include <contacts.h>
+
 #include <wrt-common/native-context.h>
 #include "common/converter.h"
-#include "common/json-parser.h"
+#include "common/picojson.h"
 #include "common/logger.h"
 #include "common/native-plugin.h"
 #include "common/task-queue.h"
 #include "common/filter-utils.h"
-#include "contact/contact-util.h"
+
+#include <contacts.h>
 #include "contact/person.h"
 
-namespace webapi {
+namespace extension {
 namespace contact {
 namespace ContactManager {
 
@@ -36,18 +37,21 @@ const char* kContactPersonListenerId = "ContactPersonChangeListener";
 const char* kTokenDelimiter = " ,:";
 }
 
-using namespace webapi::common;
+using namespace extension::common;
 using namespace wrt::common;
 
-void ContactManager_getAddressBooks(const json::Object& args, json::Object& out) {
+void ContactManager_getAddressBooks(const json::Object& args, json::Object& out)
+{
     NativePlugin::CheckAccess(ContactUtil::kContactReadPrivileges);
     typedef std::shared_ptr<json::Value> shared_json_value;
-    auto work_func = [=](const shared_json_value& response)->void {
+    auto work_func = [=](const shared_json_value & response)->void
+    {
         json::Object& response_obj = response->get<json::Object>();
         json::Array& batch_result =
                 response_obj.insert(std::make_pair("result", json::Value{json::Array{}}))
                         .first->second.get<json::Array>();
-        try {
+        try
+        {
             contacts_list_h address_book_list = nullptr;
 
             int error_code = contacts_db_get_all_records(_contacts_address_book._uri, 0, 0,
@@ -86,7 +90,8 @@ void ContactManager_getAddressBooks(const json::Object& args, json::Object& out)
                 int id = 0;
                 int mode = 0;
                 char* name = nullptr;
-                try {
+                try
+                {
                     ContactUtil::GetIntFromRecord(contacts_record, _contacts_address_book.id, &id);
 
                     ContactUtil::GetIntFromRecord(contacts_record, _contacts_address_book.mode,
@@ -95,7 +100,8 @@ void ContactManager_getAddressBooks(const json::Object& args, json::Object& out)
                     ContactUtil::GetStrFromRecord(contacts_record, _contacts_address_book.name,
                                                   &name);
                 }
-                catch (...) {
+                catch (...)
+                {
                     LOGW("Fail to get data from address book");
                     continue;
                 }
@@ -112,7 +118,8 @@ void ContactManager_getAddressBooks(const json::Object& args, json::Object& out)
 
             NativePlugin::ReportSuccess(response_obj);
         }
-        catch (const BasePlatformException& e) {
+        catch (const BasePlatformException& e)
+        {
             NativePlugin::ReportError(e, response_obj);
         }
     };
@@ -130,12 +137,16 @@ void ContactManager_getAddressBooks(const json::Object& args, json::Object& out)
     NativePlugin::ReportSuccess(out);
 }
 
-void ContactManager_getAddressBook(const json::Object& args, json::Object& out) {
+void ContactManager_getAddressBook(const json::Object& args, json::Object& out)
+{
     NativePlugin::CheckAccess(ContactUtil::kContactReadPrivileges);
     long address_book_id;
-    try {
+    try
+    {
         address_book_id = common::stol(FromJson<json::String>(args, "addressBookID"));
-    } catch (const common::InvalidValuesException &) {
+    }
+    catch (const common::InvalidValuesException&)
+    {
         throw common::NotFoundException("Invalid id");
     }
 
@@ -165,7 +176,8 @@ void ContactManager_getAddressBook(const json::Object& args, json::Object& out) 
 }
 
 namespace {
-void ContactManager_get_internal(int person_id, webapi::common::json::Object* out) {
+void ContactManager_get_internal(int person_id, JsonObject* out)
+{
     int error_code = 0;
     contacts_record_h contacts_record = nullptr;
 
@@ -182,7 +194,8 @@ void ContactManager_get_internal(int person_id, webapi::common::json::Object* ou
 }
 }
 
-void ContactManager_get(const json::Object& args, json::Object& out) {
+void ContactManager_get(const json::Object& args, json::Object& out)
+{
     NativePlugin::CheckAccess(ContactUtil::kContactReadPrivileges);
     long person_id = common::stol(FromJson<json::String>(args, "personID"));
 
@@ -192,7 +205,8 @@ void ContactManager_get(const json::Object& args, json::Object& out) {
     NativePlugin::ReportSuccess(val, out);
 }
 
-void ContactManager_update(const json::Object& args, json::Object& out) {
+void ContactManager_update(const json::Object& args, json::Object& out)
+{
     NativePlugin::CheckAccess(ContactUtil::kContactWritePrivileges);
     const json::Object& person = FromJson<json::Object>(args, "person");
     long person_id = common::stol(FromJson<json::String>(person, "id"));
@@ -221,7 +235,8 @@ void ContactManager_update(const json::Object& args, json::Object& out) {
     NativePlugin::ReportSuccess(out);
 }
 
-void ContactManager_remove(const json::Object& args, json::Object& out) {
+void ContactManager_remove(const json::Object& args, json::Object& out)
+{
     NativePlugin::CheckAccess(ContactUtil::kContactWritePrivileges);
     long person_id = common::stol(FromJson<json::String>(args, "personId"));
 
@@ -238,7 +253,8 @@ void ContactManager_remove(const json::Object& args, json::Object& out) {
     NativePlugin::ReportSuccess(out);
 }
 
-void ContactManager_find(const json::Object& args, json::Object& out) {
+void ContactManager_find(const json::Object& args, json::Object& out)
+{
     NativePlugin::CheckAccess(ContactUtil::kContactReadPrivileges);
 
     // TODO implement contact sorting.
@@ -246,9 +262,11 @@ void ContactManager_find(const json::Object& args, json::Object& out) {
 
     int callback_handle = NativePlugin::GetAsyncCallbackHandle(args);
 
-    auto get = [args](const std::shared_ptr<json::Value> & response)->void {
+    auto get = [args](const std::shared_ptr<json::Value> & response)->void
+    {
         LoggerD("Entered");
-        try {
+        try
+        {
             int error_code = 0;
             contacts_query_h contacts_query = nullptr;
             error_code = contacts_query_create(_contacts_person._uri, &contacts_query);
@@ -509,11 +527,12 @@ void ContactManager_find(const json::Object& args, json::Object& out) {
                     if (intermediate_filters.size() == 0) {
                         throw UnknownException("Reached stack size equal to 0!");
                     }
-// TODO what is this supposed to do? Removing it fixes filtering without any apparent consequences.
-//                    if (intermediate_filters.back().size()) {
-//                        intermediate_filters.pop_back();
-//                        return;
-//                    }
+                    // TODO what is this supposed to do? Removing it fixes filtering without any
+                    // apparent consequences.
+                    //                    if (intermediate_filters.back().size()) {
+                    //                        intermediate_filters.pop_back();
+                    //                        return;
+                    //                    }
 
                     contacts_filter_h merged_filter = nullptr;
                     int error_code = 0;
@@ -594,13 +613,15 @@ void ContactManager_find(const json::Object& args, json::Object& out) {
 
             NativePlugin::ReportSuccess(result, response->get<json::Object>());
         }
-        catch (const BasePlatformException& e) {
+        catch (const BasePlatformException& e)
+        {
             LoggerE("error: %s: %s", e.name().c_str(), e.message().c_str());
             NativePlugin::ReportError(e, response->get<json::Object>());
         }
     };
 
-    auto get_response = [callback_handle](const std::shared_ptr<json::Value> & response)->void {
+    auto get_response = [callback_handle](const std::shared_ptr<json::Value> & response)->void
+    {
         wrt::common::NativeContext::GetInstance()->InvokeCallback(callback_handle,
                                                                   response->serialize());
     };
@@ -611,7 +632,8 @@ void ContactManager_find(const json::Object& args, json::Object& out) {
     NativePlugin::ReportSuccess(out);
 }
 
-void ContactManager_importFromVCard(const json::Object& args, json::Object& out) {
+void ContactManager_importFromVCard(const json::Object& args, json::Object& out)
+{
     // I'm not sure how to call it. Should it be 'Contact', 'vCard' or what?
     const char* vcard_char_ptr = FromJson<json::String>(args, "contact").c_str();
 
@@ -650,7 +672,8 @@ void ContactManager_importFromVCard(const json::Object& args, json::Object& out)
 }
 
 namespace {
-bool IsNumeric(const char* s) {
+bool IsNumeric(const char* s)
+{
     for (; *s; s++) {
         if (!isdigit(*s)) {
             return false;
@@ -659,7 +682,8 @@ bool IsNumeric(const char* s) {
     return true;
 }
 
-void ContactManager_listenerCallback(const char* view_uri, char* changes, void* user_data) {
+void ContactManager_listenerCallback(const char* view_uri, char* changes, void* user_data)
+{
     (void)view_uri;
     (void)user_data;
 
@@ -685,7 +709,8 @@ void ContactManager_listenerCallback(const char* view_uri, char* changes, void* 
 
     char* token = strtok(tmp.get(), kTokenDelimiter);
     while (token) {
-        try {
+        try
+        {
             if (IsNumeric(token)) {
                 int type = atoi(token);
                 token = strtok(nullptr, kTokenDelimiter);
@@ -712,11 +737,14 @@ void ContactManager_listenerCallback(const char* view_uri, char* changes, void* 
                             removed.push_back(json::Value{id_str.c_str()});
                             break;
                         }
-                        default: {}
+                        default: {
+                        }
                     }
                 }
             }
-        } catch (common::BasePlatformException &ex) {
+        }
+        catch (common::BasePlatformException& ex)
+        {
             LoggerE("Caught exception \"" << ex.name()
                                           << "\" in listener callback: " << ex.message());
         }
@@ -728,7 +756,8 @@ void ContactManager_listenerCallback(const char* view_uri, char* changes, void* 
 }
 }
 
-void ContactManager_startListening(const common::json::Object&, common::json::Object& out) {
+void ContactManager_startListening(const JsonObject&, JsonObject& out)
+{
     int error_code = contacts_db_add_changed_cb_with_info(_contacts_person._uri,
                                                           ContactManager_listenerCallback, nullptr);
 
@@ -740,7 +769,8 @@ void ContactManager_startListening(const common::json::Object&, common::json::Ob
     NativePlugin::ReportSuccess(out);
 }
 
-void ContactManager_stopListening(const common::json::Object&, common::json::Object& out) {
+void ContactManager_stopListening(const JsonObject&, JsonObject& out)
+{
     int error_code = contacts_db_remove_changed_cb_with_info(
             _contacts_person._uri, ContactManager_listenerCallback, nullptr);
 
@@ -754,4 +784,4 @@ void ContactManager_stopListening(const common::json::Object&, common::json::Obj
 
 }  // namespace ContactManager
 }  // namespace contact
-}  // namespace webapi
+}  // namespace extension

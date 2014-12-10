@@ -14,14 +14,14 @@
  *    limitations under the License.
  */
 
-#include "contact/contact-util.h"
+#include "contact/contact_util.h"
 #include <algorithm>
 #include <iomanip>
 #include <string>
 #include "common/converter.h"
 #include "common/logger.h"
 
-namespace webapi {
+namespace extension {
 namespace contact {
 namespace ContactUtil {
 
@@ -32,7 +32,7 @@ namespace {
 
 static const std::string kSchema("file://");
 
-std::string ConvertUriToPath(const std::string &str)
+std::string ConvertUriToPath(const std::string& str)
 {
     if (str.substr(0, kSchema.size()) == kSchema) {
         return str.substr(kSchema.size());
@@ -41,7 +41,8 @@ std::string ConvertUriToPath(const std::string &str)
     return str;
 }
 
-std::string ConvertPathToUri(const std::string& str) {
+std::string ConvertPathToUri(const std::string& str)
+{
     if (str.substr(0, kSchema.size()) == kSchema) {
         return str;
     }
@@ -50,25 +51,29 @@ std::string ConvertPathToUri(const std::string& str) {
 }
 }
 
-void ContactsDeleter(contacts_record_h* contacts_record) {
+void ContactsDeleter(contacts_record_h* contacts_record)
+{
     if (CONTACTS_ERROR_NONE != contacts_record_destroy(*contacts_record, true)) {
         LOGE("failed to destroy contacts_record_h");
     }
 }
 
-void ContactsListDeleter(contacts_list_h* contacts_list) {
+void ContactsListDeleter(contacts_list_h* contacts_list)
+{
     if (CONTACTS_ERROR_NONE != contacts_list_destroy(*contacts_list, true)) {
         LOGE("failed to destroy contacts_list_h");
     }
 }
 
-void ContactsFilterDeleter(contacts_filter_h contacts_filter) {
+void ContactsFilterDeleter(contacts_filter_h contacts_filter)
+{
     if (CONTACTS_ERROR_NONE != contacts_filter_destroy(contacts_filter)) {
         LOGE("failed to destroy contacts_filter_h");
     }
 }
 
-void ContactsQueryDeleter(contacts_query_h* contacts_query) {
+void ContactsQueryDeleter(contacts_query_h* contacts_query)
+{
     if (CONTACTS_ERROR_NONE != contacts_query_destroy(*contacts_query)) {
         LOGE("failed to destroy contacts_query_h");
     }
@@ -138,14 +143,16 @@ static const char kContactInstantMessageTypeIrc[] = "IRC";
 static const char kContactInstantMessageTypeCustom[] = "CUSTOM";
 }
 
-void ErrorChecker(int err, const char* message) {
+void ErrorChecker(int err, const char* message)
+{
     if (CONTACTS_ERROR_NONE != err) {
         LOGE("%s", message);
         throw common::UnknownException(message);
     }
 }
 
-void GetStrFromRecord(contacts_record_h record, unsigned int property_id, char** value) {
+void GetStrFromRecord(contacts_record_h record, unsigned int property_id, char** value)
+{
     int err = contacts_record_get_str_p(record, property_id, value);
     if (CONTACTS_ERROR_NONE != err) {
         LoggerE("Error during getting contact record, error code: " << err);
@@ -153,7 +160,8 @@ void GetStrFromRecord(contacts_record_h record, unsigned int property_id, char**
     }
 }
 
-void GetIntFromRecord(contacts_record_h record, unsigned int property_id, int* value) {
+void GetIntFromRecord(contacts_record_h record, unsigned int property_id, int* value)
+{
     int err = contacts_record_get_int(record, property_id, value);
     if (CONTACTS_ERROR_NONE != err) {
         LoggerE("Error during getting contact record, error code: " << err);
@@ -161,7 +169,8 @@ void GetIntFromRecord(contacts_record_h record, unsigned int property_id, int* v
     }
 }
 
-void GetBoolFromRecord(contacts_record_h record, unsigned int property_id, bool* value) {
+void GetBoolFromRecord(contacts_record_h record, unsigned int property_id, bool* value)
+{
     int err = contacts_record_get_bool(record, property_id, value);
     if (CONTACTS_ERROR_NONE != err) {
         LoggerE("Error during getting contact record, error code: " << err);
@@ -169,7 +178,8 @@ void GetBoolFromRecord(contacts_record_h record, unsigned int property_id, bool*
     }
 }
 
-void SetStrInRecord(contacts_record_h record, unsigned int property_id, const char* value) {
+void SetStrInRecord(contacts_record_h record, unsigned int property_id, const char* value)
+{
     int err = contacts_record_set_str(record, property_id, value);
     if (CONTACTS_ERROR_NONE != err) {
         LoggerE("Error during getting contact record, error code: " << err);
@@ -177,7 +187,8 @@ void SetStrInRecord(contacts_record_h record, unsigned int property_id, const ch
     }
 }
 
-void SetIntInRecord(contacts_record_h record, unsigned int property_id, int value) {
+void SetIntInRecord(contacts_record_h record, unsigned int property_id, int value)
+{
     int err = contacts_record_set_int(record, property_id, value);
     if (CONTACTS_ERROR_NONE != err) {
         LoggerE("Error during getting contact record, error code: " << err);
@@ -185,7 +196,8 @@ void SetIntInRecord(contacts_record_h record, unsigned int property_id, int valu
     }
 }
 
-void SetBoolInRecord(contacts_record_h record, unsigned int property_id, bool value) {
+void SetBoolInRecord(contacts_record_h record, unsigned int property_id, bool value)
+{
     int err = contacts_record_set_bool(record, property_id, value);
     if (CONTACTS_ERROR_NONE != err) {
         LoggerE("Error during getting contact record, error code: " << err);
@@ -193,7 +205,8 @@ void SetBoolInRecord(contacts_record_h record, unsigned int property_id, bool va
     }
 }
 
-void ClearAllContactRecord(contacts_record_h contacts_record, unsigned int property_id) {
+void ClearAllContactRecord(contacts_record_h contacts_record, unsigned int property_id)
+{
     // contacts_record is protected by unique_ptr and its ownership is not passed here
     if (!contacts_record) {
         LOGE("Contacts record is null");
@@ -214,7 +227,8 @@ void ClearAllContactRecord(contacts_record_h contacts_record, unsigned int prope
     }
 }
 
-unsigned int GetNumberOfChildRecord(contacts_record_h contacts_record, unsigned int property_id) {
+unsigned int GetNumberOfChildRecord(contacts_record_h contacts_record, unsigned int property_id)
+{
     int err = CONTACTS_ERROR_NONE;
     unsigned int child_count = 0;
     err = contacts_record_get_child_record_count(contacts_record, property_id, &child_count);
@@ -225,8 +239,8 @@ unsigned int GetNumberOfChildRecord(contacts_record_h contacts_record, unsigned 
     return child_count;
 }
 
-webapi::common::json::Value ImportBirthdayFromContactsRecord(contacts_record_h contacts_record,
-                                                             unsigned int index) {
+JsonValue ImportBirthdayFromContactsRecord(contacts_record_h contacts_record, unsigned int index)
+{
     // contacts_record is protected by unique_ptr and its ownership is not passed here
     if (!contacts_record) {
         LOGE("Contacts record is null");
@@ -247,7 +261,7 @@ webapi::common::json::Value ImportBirthdayFromContactsRecord(contacts_record_h c
     if (CONTACTS_EVENT_TYPE_BIRTH == value) {
         int date = 0;
         ContactUtil::GetIntFromRecord(child_record, _contacts_event.date, &date);
-        return webapi::common::json::Value{static_cast<double>(date)};
+        return JsonValue{static_cast<double>(date)};
     }
     return {};
 }
@@ -277,8 +291,8 @@ void ExportBirthdayToContactsRecord(contacts_record_h contacts_record, int date)
     record.release();
 }
 
-bool ImportContactNameFromContactsRecord(contacts_record_h contacts_record,
-                                         webapi::common::json::Object* out_ptr) {
+bool ImportContactNameFromContactsRecord(contacts_record_h contacts_record, JsonObject* out_ptr)
+{
     json::Object& out = *out_ptr;
     if (!contacts_record) {
         LOGW("Contacts record is null");
@@ -311,46 +325,38 @@ bool ImportContactNameFromContactsRecord(contacts_record_h contacts_record,
 
     char* char_value = nullptr;
     ContactUtil::GetStrFromRecord(contact_name, _contacts_name.prefix, &char_value);
-    out.insert(std::make_pair("prefix", char_value ? webapi::common::json::Value{char_value}
-                                                   : webapi::common::json::Value{}));
+    out.insert(std::make_pair("prefix", char_value ? JsonValue{char_value} : JsonValue{}));
 
     ContactUtil::GetStrFromRecord(contact_name, _contacts_name.suffix, &char_value);
 
-    out.insert(std::make_pair("suffix", char_value ? webapi::common::json::Value{char_value}
-                                                   : webapi::common::json::Value{}));
+    out.insert(std::make_pair("suffix", char_value ? JsonValue{char_value} : JsonValue{}));
 
     ContactUtil::GetStrFromRecord(contact_name, _contacts_name.first, &char_value);
 
-    out.insert(std::make_pair("firstName", char_value ? webapi::common::json::Value{char_value}
-                                                      : webapi::common::json::Value{}));
+    out.insert(std::make_pair("firstName", char_value ? JsonValue{char_value} : JsonValue{}));
 
     ContactUtil::GetStrFromRecord(contact_name, _contacts_name.addition, &char_value);
 
-    out.insert(std::make_pair("middleName", char_value ? webapi::common::json::Value{char_value}
-                                                       : webapi::common::json::Value{}));
+    out.insert(std::make_pair("middleName", char_value ? JsonValue{char_value} : JsonValue{}));
 
     ContactUtil::GetStrFromRecord(contact_name, _contacts_name.last, &char_value);
 
-    out.insert(std::make_pair("lastName", char_value ? webapi::common::json::Value{char_value}
-                                                     : webapi::common::json::Value{}));
+    out.insert(std::make_pair("lastName", char_value ? JsonValue{char_value} : JsonValue{}));
 
     ContactUtil::GetStrFromRecord(contact_name, _contacts_name.phonetic_first, &char_value);
 
-    out.insert(std::make_pair("phoneticFirstName", char_value
-                                                           ? webapi::common::json::Value{char_value}
-                                                           : webapi::common::json::Value{}));
+    out.insert(
+            std::make_pair("phoneticFirstName", char_value ? JsonValue{char_value} : JsonValue{}));
 
     ContactUtil::GetStrFromRecord(contact_name, _contacts_name.phonetic_middle, &char_value);
 
-    out.insert(std::make_pair(
-            "phoneticMiddleName",
-            char_value ? webapi::common::json::Value{char_value} : webapi::common::json::Value{}));
+    out.insert(
+            std::make_pair("phoneticMiddleName", char_value ? JsonValue{char_value} : JsonValue{}));
 
     ContactUtil::GetStrFromRecord(contact_name, _contacts_name.phonetic_last, &char_value);
 
-    out.insert(std::make_pair("phoneticLastName", char_value
-                                                          ? webapi::common::json::Value{char_value}
-                                                          : webapi::common::json::Value{}));
+    out.insert(
+            std::make_pair("phoneticLastName", char_value ? JsonValue{char_value} : JsonValue{}));
 
     err = contacts_record_get_child_record_count(contacts_record, _contacts_contact.nickname,
                                                  &count);
@@ -366,14 +372,15 @@ bool ImportContactNameFromContactsRecord(contacts_record_h contacts_record,
         ContactUtil::GetStrFromRecord(nickname, _contacts_nickname.name, &char_value);
 
         if (char_value) {
-            nicknames.push_back(webapi::common::json::Value{char_value});
+            nicknames.push_back(JsonValue{char_value});
         }
     }
 
     return true;
 }
 
-void ExportContactNameToContactsRecord(contacts_record_h contacts_record, const json::Object& in) {
+void ExportContactNameToContactsRecord(contacts_record_h contacts_record, const json::Object& in)
+{
     // contacts_record is protected by unique_ptr and its ownership is not passed here
     if (!contacts_record) {
         LOGW("Contacts record is null");
@@ -465,8 +472,8 @@ void ExportContactNameToContactsRecord(contacts_record_h contacts_record, const 
 }
 
 void ImportContactEmailAddressFromContactsRecord(contacts_record_h contacts_record,
-                                                 unsigned int index,
-                                                 webapi::common::json::Object* out_ptr) {
+                                                 unsigned int index, JsonObject* out_ptr)
+{
     json::Object& out = *out_ptr;
     // contacts_record is protected by unique_ptr and its ownership is not passed here
     if (!contacts_record) {
@@ -487,11 +494,11 @@ void ImportContactEmailAddressFromContactsRecord(contacts_record_h contacts_reco
     if (!email) {
         return;
     }
-    out.insert(std::make_pair("email", webapi::common::json::Value{email}));
+    out.insert(std::make_pair("email", JsonValue{email}));
 
     bool is_default = false;
     ContactUtil::GetBoolFromRecord(child_record, _contacts_email.is_default, &is_default);
-    out.insert(std::make_pair("isDefault", webapi::common::json::Value{is_default}));
+    out.insert(std::make_pair("isDefault", JsonValue{is_default}));
 
     char* label = nullptr;
     ContactUtil::GetStrFromRecord(child_record, _contacts_email.label, &label);
@@ -500,29 +507,30 @@ void ImportContactEmailAddressFromContactsRecord(contacts_record_h contacts_reco
     int type = 0;
     ContactUtil::GetIntFromRecord(child_record, _contacts_email.type, &type);
 
-    webapi::common::json::Array types;
+    JsonArray types;
     if (type & CONTACTS_EMAIL_TYPE_HOME) {
-        types.push_back(webapi::common::json::Value{kContactEmailAddressTypeHome});
+        types.push_back(JsonValue{kContactEmailAddressTypeHome});
     }
     if (type & CONTACTS_EMAIL_TYPE_WORK) {
-        types.push_back(webapi::common::json::Value{kContactEmailAddressTypeWork});
+        types.push_back(JsonValue{kContactEmailAddressTypeWork});
     }
     if (type & CONTACTS_EMAIL_TYPE_OTHER) {
-        types.push_back(webapi::common::json::Value{kContactEmailAddressTypeOther});
+        types.push_back(JsonValue{kContactEmailAddressTypeOther});
     }
     if (type & CONTACTS_EMAIL_TYPE_CUSTOM) {
-        types.push_back(webapi::common::json::Value{kContactEmailAddressTypeCustom});
+        types.push_back(JsonValue{kContactEmailAddressTypeCustom});
     }
 
     if (0 == types.size()) {
-        types.push_back(webapi::common::json::Value{kContactEmailAddressTypeHome});
+        types.push_back(JsonValue{kContactEmailAddressTypeHome});
     }
 
-    out.insert(std::make_pair("types", webapi::common::json::Value{types}));
+    out.insert(std::make_pair("types", JsonValue{types}));
 }
 
 void ExportContactEmailAddressToContactsRecord(contacts_record_h contacts_record,
-                                               const json::Object& in) {
+                                               const json::Object& in)
+{
     contacts_record_h c_email_record_h = nullptr;
     // contacts_record is protected by unique_ptr and its ownership is not passed here
     if (!contacts_record) {
@@ -569,8 +577,8 @@ void ExportContactEmailAddressToContactsRecord(contacts_record_h contacts_record
 }
 
 void ImportContactPhoneNumberFromContactsRecord(contacts_record_h contacts_record,
-                                                unsigned int index,
-                                                webapi::common::json::Object* out_ptr) {
+                                                unsigned int index, JsonObject* out_ptr)
+{
     json::Object& out = *out_ptr;
     int err = CONTACTS_ERROR_NONE;
     contacts_record_h child_record = nullptr;
@@ -589,76 +597,76 @@ void ImportContactPhoneNumberFromContactsRecord(contacts_record_h contacts_recor
     char* phone = nullptr;
     ContactUtil::GetStrFromRecord(child_record, _contacts_number.number, &phone);
 
-    out.insert(std::make_pair("number", webapi::common::json::Value{phone}));
+    out.insert(std::make_pair("number", JsonValue{phone}));
 
     bool is_default = false;
     ContactUtil::GetBoolFromRecord(child_record, _contacts_number.is_default, &is_default);
-    out.insert(std::make_pair("isDefault", webapi::common::json::Value{is_default}));
+    out.insert(std::make_pair("isDefault", JsonValue{is_default}));
     int type = 0;
     ContactUtil::GetIntFromRecord(child_record, _contacts_number.type, &type);
 
-    webapi::common::json::Array types;
+    JsonArray types;
     if (type & CONTACTS_NUMBER_TYPE_HOME) {
-        types.push_back(webapi::common::json::Value{kContactPhoneTypeHome});
+        types.push_back(JsonValue{kContactPhoneTypeHome});
     }
     if (type & CONTACTS_NUMBER_TYPE_WORK) {
-        types.push_back(webapi::common::json::Value{kContactPhoneTypeWork});
+        types.push_back(JsonValue{kContactPhoneTypeWork});
     }
     if (type & CONTACTS_NUMBER_TYPE_VOICE) {
-        types.push_back(webapi::common::json::Value{kContactPhoneTypeVoice});
+        types.push_back(JsonValue{kContactPhoneTypeVoice});
     }
     if (type & CONTACTS_NUMBER_TYPE_FAX) {
-        types.push_back(webapi::common::json::Value{kContactPhoneTypeFax});
+        types.push_back(JsonValue{kContactPhoneTypeFax});
     }
     if (type & CONTACTS_NUMBER_TYPE_MSG) {
-        types.push_back(webapi::common::json::Value{kContactPhoneTypeMsg});
+        types.push_back(JsonValue{kContactPhoneTypeMsg});
     }
     if (type & CONTACTS_NUMBER_TYPE_CELL) {
-        types.push_back(webapi::common::json::Value{kContactPhoneTypeCell});
+        types.push_back(JsonValue{kContactPhoneTypeCell});
     }
     if (type & CONTACTS_NUMBER_TYPE_PAGER) {
-        types.push_back(webapi::common::json::Value{kContactPhoneTypePager});
+        types.push_back(JsonValue{kContactPhoneTypePager});
     }
     if (type & CONTACTS_NUMBER_TYPE_BBS) {
-        types.push_back(webapi::common::json::Value{kContactPhoneTypeBbs});
+        types.push_back(JsonValue{kContactPhoneTypeBbs});
     }
     if (type & CONTACTS_NUMBER_TYPE_MODEM) {
-        types.push_back(webapi::common::json::Value{kContactPhoneTypeModem});
+        types.push_back(JsonValue{kContactPhoneTypeModem});
     }
     if (type & CONTACTS_NUMBER_TYPE_CAR) {
-        types.push_back(webapi::common::json::Value{kContactPhoneTypeCar});
+        types.push_back(JsonValue{kContactPhoneTypeCar});
     }
     if (type & CONTACTS_NUMBER_TYPE_ISDN) {
-        types.push_back(webapi::common::json::Value{kContactPhoneTypeIsdn});
+        types.push_back(JsonValue{kContactPhoneTypeIsdn});
     }
     if (type & CONTACTS_NUMBER_TYPE_VIDEO) {
-        types.push_back(webapi::common::json::Value{kContactPhoneTypeVideo});
+        types.push_back(JsonValue{kContactPhoneTypeVideo});
     }
     if (type & CONTACTS_NUMBER_TYPE_PCS) {
-        types.push_back(webapi::common::json::Value{kContactPhoneTypePcs});
+        types.push_back(JsonValue{kContactPhoneTypePcs});
     }
     if (type & CONTACTS_NUMBER_TYPE_ASSISTANT) {
-        types.push_back(webapi::common::json::Value{kContactPhoneTypeAssistant});
+        types.push_back(JsonValue{kContactPhoneTypeAssistant});
     }
     if (type & CONTACTS_NUMBER_TYPE_OTHER) {
-        types.push_back(webapi::common::json::Value{kContactPhoneTypeOther});
+        types.push_back(JsonValue{kContactPhoneTypeOther});
     }
     if (type & CONTACTS_NUMBER_TYPE_CUSTOM) {
-        types.push_back(webapi::common::json::Value{kContactPhoneTypeCustom});
+        types.push_back(JsonValue{kContactPhoneTypeCustom});
     }
     if (0 == types.size()) {
-        types.push_back(webapi::common::json::Value{kContactPhoneTypeVoice});
+        types.push_back(JsonValue{kContactPhoneTypeVoice});
     }
     out.insert(std::make_pair("types", types));
 
     char* label = nullptr;
     ContactUtil::GetStrFromRecord(child_record, _contacts_number.label, &label);
-    out.insert(std::make_pair(
-            "label", label ? webapi::common::json::Value{label} : webapi::common::json::Value{}));
+    out.insert(std::make_pair("label", label ? JsonValue{label} : JsonValue{}));
 }
 
 void ExportContactPhoneNumberToContactsRecord(contacts_record_h contacts_record,
-                                              const json::Object& in) {
+                                              const json::Object& in)
+{
     contacts_record_h phone_record = nullptr;
     // contacts_record is protected by unique_ptr and its ownership is not passed here
     if (!contacts_record) {
@@ -731,8 +739,8 @@ void ExportContactPhoneNumberToContactsRecord(contacts_record_h contacts_record,
 }
 
 void ImportContactOrganizationFromContactsRecord(contacts_record_h contacts_record,
-                                                 unsigned int index,
-                                                 webapi::common::json::Object* out_ptr) {
+                                                 unsigned int index, JsonObject* out_ptr)
+{
     json::Object& out = *out_ptr;
     // contacts_record is protected by unique_ptr and its ownership is not passed here
     if (!contacts_record) {
@@ -750,28 +758,24 @@ void ImportContactOrganizationFromContactsRecord(contacts_record_h contacts_reco
 
     char* char_value = nullptr;
     ContactUtil::GetStrFromRecord(child_record, _contacts_company.name, &char_value);
-    out.insert(std::make_pair("name", char_value ? webapi::common::json::Value{char_value}
-                                                 : webapi::common::json::Value{}));
+    out.insert(std::make_pair("name", char_value ? JsonValue{char_value} : JsonValue{}));
 
     ContactUtil::GetStrFromRecord(child_record, _contacts_company.department, &char_value);
-    out.insert(std::make_pair("department", char_value ? webapi::common::json::Value{char_value}
-                                                       : webapi::common::json::Value{}));
+    out.insert(std::make_pair("department", char_value ? JsonValue{char_value} : JsonValue{}));
 
     ContactUtil::GetStrFromRecord(child_record, _contacts_company.job_title, &char_value);
-    out.insert(std::make_pair("title", char_value ? webapi::common::json::Value{char_value}
-                                                  : webapi::common::json::Value{}));
+    out.insert(std::make_pair("title", char_value ? JsonValue{char_value} : JsonValue{}));
 
     ContactUtil::GetStrFromRecord(child_record, _contacts_company.role, &char_value);
-    out.insert(std::make_pair("role", char_value ? webapi::common::json::Value{char_value}
-                                                 : webapi::common::json::Value{}));
+    out.insert(std::make_pair("role", char_value ? JsonValue{char_value} : JsonValue{}));
 
     ContactUtil::GetStrFromRecord(child_record, _contacts_company.logo, &char_value);
-    out.insert(std::make_pair("logoURI", char_value ? webapi::common::json::Value{char_value}
-                                                    : webapi::common::json::Value{}));
+    out.insert(std::make_pair("logoURI", char_value ? JsonValue{char_value} : JsonValue{}));
 }
 
 void ExportContactOrganizationToContactsRecord(contacts_record_h contacts_record,
-                                               const json::Object& in) {
+                                               const json::Object& in)
+{
     // contacts_record is protected by unique_ptr and its ownership is not passed here
     if (!contacts_record) {
         LOGE("Contacts record is null");
@@ -813,7 +817,8 @@ void ExportContactOrganizationToContactsRecord(contacts_record_h contacts_record
 }
 
 void ImportContactWebSiteFromContactsRecord(contacts_record_h contacts_record, unsigned int index,
-                                            webapi::common::json::Object* out_ptr) {
+                                            JsonObject* out_ptr)
+{
     json::Object& out = *out_ptr;
     // contacts_record is protected by unique_ptr and its ownership is not passed here
     if (!contacts_record) {
@@ -841,7 +846,7 @@ void ImportContactWebSiteFromContactsRecord(contacts_record_h contacts_record, u
                                                  : kContactWebSiteTypeBlog));
 }
 
-void ExportContactWebSiteToContactsRecord(contacts_record_h contacts_record, const json::Object &in)
+void ExportContactWebSiteToContactsRecord(contacts_record_h contacts_record, const json::Object& in)
 {
     // contacts_record is protected by unique_ptr and its ownership is not passed here
     if (!contacts_record) {
@@ -882,8 +887,8 @@ void ExportContactWebSiteToContactsRecord(contacts_record_h contacts_record, con
 }
 
 bool ImportContactAnniversariesFromContactsRecord(contacts_record_h contacts_record,
-                                                  unsigned int index,
-                                                  webapi::common::json::Object* out_ptr) {
+                                                  unsigned int index, JsonObject* out_ptr)
+{
     json::Object& out = *out_ptr;
     // contacts_record is protected by unique_ptr and its ownership is not passed here
     if (!contacts_record) {
@@ -908,7 +913,7 @@ bool ImportContactAnniversariesFromContactsRecord(contacts_record_h contacts_rec
 
     if (CONTACTS_EVENT_TYPE_ANNIVERSARY == value) {
         ContactUtil::GetIntFromRecord(child_record, _contacts_event.date, &value);
-        out.insert(std::make_pair("date", webapi::common::json::Value{static_cast<double>(value)}));
+        out.insert(std::make_pair("date", JsonValue{static_cast<double>(value)}));
 
         char* label = nullptr;
         ContactUtil::GetStrFromRecord(child_record, _contacts_event.label, &label);
@@ -918,9 +923,10 @@ bool ImportContactAnniversariesFromContactsRecord(contacts_record_h contacts_rec
     return true;
 }
 
-void ExportContactAnniversariesToContactsRecord(contacts_record_h contacts_record, const json::Object &in)
+void ExportContactAnniversariesToContactsRecord(contacts_record_h contacts_record,
+                                                const json::Object& in)
 {
-    //contacts_record is protected by unique_ptr and its ownership is not passed here
+    // contacts_record is protected by unique_ptr and its ownership is not passed here
     if (!contacts_record) {
         LOGE("Contacts record is null");
         throw common::UnknownException("Contacts record is null");
@@ -928,7 +934,7 @@ void ExportContactAnniversariesToContactsRecord(contacts_record_h contacts_recor
 
     int date = static_cast<int>(FromJson<double>(in, "date"));
     if (date == 0) {
-            return;
+        return;
     }
 
     int err = CONTACTS_ERROR_NONE;
@@ -937,27 +943,26 @@ void ExportContactAnniversariesToContactsRecord(contacts_record_h contacts_recor
     ContactUtil::ErrorChecker(err, "Failed to create anniversary record in database");
     ContactsRecordHPtr record(&anniversary_record, ContactsDeleter);
 
-    ContactUtil::SetIntInRecord(anniversary_record,
-            _contacts_event.type, CONTACTS_EVENT_TYPE_ANNIVERSARY);
+    ContactUtil::SetIntInRecord(anniversary_record, _contacts_event.type,
+                                CONTACTS_EVENT_TYPE_ANNIVERSARY);
 
-    ContactUtil::SetIntInRecord(anniversary_record,
-            _contacts_event.date, date);
+    ContactUtil::SetIntInRecord(anniversary_record, _contacts_event.date, date);
 
-
-    if(!IsNull(in, "label")){
-        ContactUtil::SetStrInRecord(anniversary_record,
-                _contacts_event.label, FromJson<json::String>(in, "label").c_str());
+    if (!IsNull(in, "label")) {
+        ContactUtil::SetStrInRecord(anniversary_record, _contacts_event.label,
+                                    FromJson<json::String>(in, "label").c_str());
     }
 
-    err = contacts_record_add_child_record(contacts_record,
-            _contacts_contact.event, anniversary_record);
+    err = contacts_record_add_child_record(contacts_record, _contacts_contact.event,
+                                           anniversary_record);
     ContactUtil::ErrorChecker(err, "Fail to save anniversary record in database");
     // Do not delete record, it is passed to the platform
     record.release();
 }
 
 void ImportContactRelationshipFromContactsRecord(contacts_record_h contacts_record,
-                                                 unsigned int index, json::Object* out_ptr) {
+                                                 unsigned int index, json::Object* out_ptr)
+{
     json::Object& out = *out_ptr;
     // contacts_record is protected by unique_ptr and its ownership is not passed here
     if (!contacts_record) {
@@ -1044,7 +1049,8 @@ void ImportContactRelationshipFromContactsRecord(contacts_record_h contacts_reco
 }
 
 void ExportContactRelationshipToContactsRecord(contacts_record_h contacts_record,
-                                               const json::Object& in) {
+                                               const json::Object& in)
+{
     // contacts_record is protected by unique_ptr and its ownership is not passed here
     if (!contacts_record) {
         LOGE("Contacts record is null");
@@ -1110,7 +1116,8 @@ void ExportContactRelationshipToContactsRecord(contacts_record_h contacts_record
 }
 
 void ImportContactInstantMessengerFromContactsRecord(contacts_record_h contacts_record,
-                                                     unsigned int index, json::Object* out_ptr) {
+                                                     unsigned int index, json::Object* out_ptr)
+{
     json::Object& out = *out_ptr;
     // contacts_record is protected by unique_ptr and its ownership is not passed here
     if (!contacts_record) {
@@ -1186,7 +1193,8 @@ void ImportContactInstantMessengerFromContactsRecord(contacts_record_h contacts_
 }
 
 void ExportContactInstantMessengerToContactsRecord(contacts_record_h contacts_record,
-                                                   const json::Object& in) {
+                                                   const json::Object& in)
+{
     // contacts_record is protected by unique_ptr and its ownership is not passed here
     if (!contacts_record) {
         LOGE("Contacts record is null");
@@ -1244,7 +1252,8 @@ void ExportContactInstantMessengerToContactsRecord(contacts_record_h contacts_re
 }
 
 void ImportContactAddressFromContactsRecord(contacts_record_h contacts_record, unsigned int index,
-                                            webapi::common::json::Object* out_ptr) {
+                                            JsonObject* out_ptr)
+{
     json::Object& out = *out_ptr;
     // contacts_record is protected by unique_ptr and its ownership is not passed here
     if (!contacts_record) {
@@ -1262,56 +1271,49 @@ void ImportContactAddressFromContactsRecord(contacts_record_h contacts_record, u
 
     char* value = nullptr;
     ContactUtil::GetStrFromRecord(child_record, _contacts_address.country, &value);
-    out.insert(std::make_pair(
-            "country", value ? webapi::common::json::Value{value} : webapi::common::json::Value{}));
+    out.insert(std::make_pair("country", value ? JsonValue{value} : JsonValue{}));
     ContactUtil::GetStrFromRecord(child_record, _contacts_address.region, &value);
-    out.insert(std::make_pair(
-            "region", value ? webapi::common::json::Value{value} : webapi::common::json::Value{}));
+    out.insert(std::make_pair("region", value ? JsonValue{value} : JsonValue{}));
     ContactUtil::GetStrFromRecord(child_record, _contacts_address.locality, &value);
-    out.insert(std::make_pair(
-            "city", value ? webapi::common::json::Value{value} : webapi::common::json::Value{}));
+    out.insert(std::make_pair("city", value ? JsonValue{value} : JsonValue{}));
     ContactUtil::GetStrFromRecord(child_record, _contacts_address.street, &value);
-    out.insert(std::make_pair("streetAddress", value ? webapi::common::json::Value{value}
-                                                     : webapi::common::json::Value{}));
+    out.insert(std::make_pair("streetAddress", value ? JsonValue{value} : JsonValue{}));
     ContactUtil::GetStrFromRecord(child_record, _contacts_address.extended, &value);
-    out.insert(std::make_pair("additionalInformation", value ? webapi::common::json::Value{value}
-                                                             : webapi::common::json::Value{}));
+    out.insert(std::make_pair("additionalInformation", value ? JsonValue{value} : JsonValue{}));
     ContactUtil::GetStrFromRecord(child_record, _contacts_address.postal_code, &value);
-    out.insert(std::make_pair("postalCode", value ? webapi::common::json::Value{value}
-                                                  : webapi::common::json::Value{}));
+    out.insert(std::make_pair("postalCode", value ? JsonValue{value} : JsonValue{}));
     ContactUtil::GetStrFromRecord(child_record, _contacts_address.label, &value);
-    out.insert(std::make_pair(
-            "label", value ? webapi::common::json::Value{value} : webapi::common::json::Value{}));
+    out.insert(std::make_pair("label", value ? JsonValue{value} : JsonValue{}));
 
     bool bool_value = false;
     ContactUtil::GetBoolFromRecord(child_record, _contacts_address.is_default, &bool_value);
-    out.insert(std::make_pair("isDefault", webapi::common::json::Value{bool_value}));
+    out.insert(std::make_pair("isDefault", JsonValue{bool_value}));
 
     int int_value = 0;
     ContactUtil::GetIntFromRecord(child_record, _contacts_address.type, &int_value);
 
-    webapi::common::json::Array types;
+    JsonArray types;
     if (int_value & CONTACTS_ADDRESS_TYPE_HOME) {
-        types.push_back(webapi::common::json::Value{kContactAddressTypeHome});
+        types.push_back(JsonValue{kContactAddressTypeHome});
     }
     if (int_value & CONTACTS_ADDRESS_TYPE_WORK) {
-        types.push_back(webapi::common::json::Value{kContactAddressTypeWork});
+        types.push_back(JsonValue{kContactAddressTypeWork});
     }
     if (int_value & CONTACTS_ADDRESS_TYPE_OTHER) {
-        types.push_back(webapi::common::json::Value{kContactAddressTypeOther});
+        types.push_back(JsonValue{kContactAddressTypeOther});
     }
     if (int_value & CONTACTS_ADDRESS_TYPE_CUSTOM) {
-        types.push_back(webapi::common::json::Value{kContactAddressTypeCustom});
+        types.push_back(JsonValue{kContactAddressTypeCustom});
     }
 
     if (0 == types.size()) {
-        types.push_back(webapi::common::json::Value{kContactAddressTypeHome});
+        types.push_back(JsonValue{kContactAddressTypeHome});
     }
     out.insert(std::make_pair("types", types));
 }
 
-void ExportContactAddressToContactsRecord(contacts_record_h contacts_record,
-                                          const json::Object& in) {
+void ExportContactAddressToContactsRecord(contacts_record_h contacts_record, const json::Object& in)
+{
     // contacts_record is protected by unique_ptr and its ownership is not passed here
     if (!contacts_record) {
         LOGE("Contacts record is null");
@@ -1380,8 +1382,9 @@ void ExportContactAddressToContactsRecord(contacts_record_h contacts_record,
     record.release();
 }
 
-webapi::common::json::Value ImportContactNotesFromContactsRecord(contacts_record_h contacts_record,
-                                                                 unsigned int index) {
+JsonValue ImportContactNotesFromContactsRecord(contacts_record_h contacts_record,
+                                               unsigned int index)
+{
     // contacts_record is protected by unique_ptr and its ownership is not passed here
     if (!contacts_record) {
         LOGE("Contacts record is null");
@@ -1400,15 +1403,15 @@ webapi::common::json::Value ImportContactNotesFromContactsRecord(contacts_record
     ContactUtil::GetStrFromRecord(notes_record, _contacts_note.note, &note);
 
     if (note) {
-        return webapi::common::json::Value{note};
+        return JsonValue{note};
     }
     return {};
 }
 
-void ExportNotesToContactsRecord(contacts_record_h contacts_record, const std::string &value)
+void ExportNotesToContactsRecord(contacts_record_h contacts_record, const std::string& value)
 {
     contacts_record_h notes_record = nullptr;
-    //contacts_record is protected by unique_ptr and its ownership is not passed here
+    // contacts_record is protected by unique_ptr and its ownership is not passed here
     if (!contacts_record) {
         LOGE("Contacts record is null");
         throw common::UnknownException("Contacts record is null");
@@ -1419,19 +1422,17 @@ void ExportNotesToContactsRecord(contacts_record_h contacts_record, const std::s
     ContactUtil::ErrorChecker(err, "Fail to create note record in database");
     ContactsRecordHPtr record(&notes_record, ContactsDeleter);
 
-    ContactUtil::SetStrInRecord(notes_record,
-            _contacts_note.note, value.c_str());
+    ContactUtil::SetStrInRecord(notes_record, _contacts_note.note, value.c_str());
 
-    err = contacts_record_add_child_record(contacts_record,
-            _contacts_contact.note, notes_record);
+    err = contacts_record_add_child_record(contacts_record, _contacts_contact.note, notes_record);
     ContactUtil::ErrorChecker(err, "Fail to save note record in database");
 
     // Do not delete record, it is passed to the platform
     record.release();
 }
 
-void ImportContactFromContactsRecord(contacts_record_h contacts_record,
-                                     webapi::common::json::Object* out_ptr) {
+void ImportContactFromContactsRecord(contacts_record_h contacts_record, JsonObject* out_ptr)
+{
     json::Object& out = *out_ptr;
     // contacts_record is protected by unique_ptr and its ownership is not passed here
     if (!contacts_record) {
@@ -1441,29 +1442,29 @@ void ImportContactFromContactsRecord(contacts_record_h contacts_record,
 
     int id = 0;
     ContactUtil::GetIntFromRecord(contacts_record, _contacts_contact.id, &id);
-    out.insert(std::make_pair("id", webapi::common::json::Value{std::to_string(id)}));
+    out.insert(std::make_pair("id", JsonValue{std::to_string(id)}));
     ContactUtil::GetIntFromRecord(contacts_record, _contacts_contact.address_book_id, &id);
-    out.insert(std::make_pair("addressBookId", webapi::common::json::Value{std::to_string(id)}));
+    out.insert(std::make_pair("addressBookId", JsonValue{std::to_string(id)}));
     ContactUtil::GetIntFromRecord(contacts_record, _contacts_contact.person_id, &id);
-    out.insert(std::make_pair("personId", webapi::common::json::Value{std::to_string(id)}));
+    out.insert(std::make_pair("personId", JsonValue{std::to_string(id)}));
 
     bool is_favorite = false;
     ContactUtil::GetBoolFromRecord(contacts_record, _contacts_contact.is_favorite, &is_favorite);
-    out.insert(std::make_pair("isFavorite", webapi::common::json::Value{is_favorite}));
+    out.insert(std::make_pair("isFavorite", JsonValue{is_favorite}));
 
     int last_update = 0;
     ContactUtil::GetIntFromRecord(contacts_record, _contacts_contact.changed_time, &last_update);
-    out.insert(std::make_pair("lastUpdated", webapi::common::json::Value{static_cast<double>(last_update)}));
+    out.insert(std::make_pair("lastUpdated", JsonValue{static_cast<double>(last_update)}));
 
     //### ContactName: ###
-    webapi::common::json::Object name;
+    JsonObject name;
     if (ImportContactNameFromContactsRecord(contacts_record, &name)) {
         out.insert(std::make_pair("name", name));
     } else {
         out.insert(std::make_pair("name", json::Value{}));
     }
 
-    typedef void (*ImportFunc)(contacts_record_h, unsigned int, webapi::common::json::Object*);
+    typedef void (*ImportFunc)(contacts_record_h, unsigned int, JsonObject*);
     struct ImportData {
         const char* name;
         unsigned int property_id;
@@ -1482,14 +1483,14 @@ void ImportContactFromContactsRecord(contacts_record_h contacts_record,
              ImportContactRelationshipFromContactsRecord}, };
 
     for (auto& data : imports) {
-        json::Array& array =
-                out.insert(std::make_pair(data.name, json::Array())).first->second.get<json::Array>();
+        json::Array& array = out.insert(std::make_pair(data.name, json::Array()))
+                                     .first->second.get<json::Array>();
 
-        for (unsigned int i = 0,
-                          n = ContactUtil::GetNumberOfChildRecord(contacts_record, data.property_id);
+        for (unsigned int i = 0, n = ContactUtil::GetNumberOfChildRecord(contacts_record,
+                                                                         data.property_id);
              i < n; ++i) {
-            webapi::common::json::Value val{json::Object{}};
-            data.import_func(contacts_record, i, &val.get<webapi::common::json::Object>());
+            JsonValue val{json::Object{}};
+            data.import_func(contacts_record, i, &val.get<JsonObject>());
             array.push_back(val);
         }
     }
@@ -1500,9 +1501,9 @@ void ImportContactFromContactsRecord(contacts_record_h contacts_record,
     for (unsigned int i = 0, n = ContactUtil::GetNumberOfChildRecord(contacts_record,
                                                                      _contacts_contact.event);
          i < n; ++i) {
-        webapi::common::json::Value anniversary{json::Object{}};
-        if (ImportContactAnniversariesFromContactsRecord(
-                    contacts_record, i, &anniversary.get<webapi::common::json::Object>())) {
+        JsonValue anniversary{json::Object{}};
+        if (ImportContactAnniversariesFromContactsRecord(contacts_record, i,
+                                                         &anniversary.get<JsonObject>())) {
             anniversaries.push_back(anniversary);
         } else {
             out.insert(std::make_pair("birthday", anniversaries));
@@ -1525,12 +1526,10 @@ void ImportContactFromContactsRecord(contacts_record_h contacts_record,
         ContactUtil::GetStrFromRecord(contacts_record, _contacts_contact.image_thumbnail_path,
                                       &value);
 
-        std::make_pair("photoURI",
-                       value ? webapi::common::json::Value{value} : webapi::common::json::Value{});
+        std::make_pair("photoURI", value ? JsonValue{value} : JsonValue{});
 
         ContactUtil::GetStrFromRecord(contacts_record, _contacts_contact.ringtone_path, &value);
-        std::make_pair("ringtoneURI",
-                       value ? webapi::common::json::Value{value} : webapi::common::json::Value{});
+        std::make_pair("ringtoneURI", value ? JsonValue{value} : JsonValue{});
         value = nullptr;
         ContactUtil::GetStrFromRecord(contacts_record, _contacts_contact.message_alert, &value);
         out.insert(std::make_pair("messageAlertURI",
@@ -1542,19 +1541,20 @@ void ImportContactFromContactsRecord(contacts_record_h contacts_record,
     }
 }
 
-void ExportContactToContactsRecord(contacts_record_h contacts_record, const json::Object& in) {
-    //contacts_record is protected by unique_ptr and its ownership is not passed here
+void ExportContactToContactsRecord(contacts_record_h contacts_record, const json::Object& in)
+{
+    // contacts_record is protected by unique_ptr and its ownership is not passed here
     if (!contacts_record) {
         LOGW("Contacts record is null");
         throw common::UnknownException("Contacts record is null");
     }
 
     //### ContactName: ###
-    if(!IsNull(in, "name")) {
+    if (!IsNull(in, "name")) {
         ExportContactNameToContactsRecord(contacts_record, FromJson<json::Object>(in, "name"));
     }
 
-    typedef void (*ExportFunc)(contacts_record_h,const json::Object&);
+    typedef void (*ExportFunc)(contacts_record_h, const json::Object&);
     struct ExportDataHelper {
         unsigned int property_id;
         const char* name;
@@ -1656,8 +1656,8 @@ void ExportContactToContactsRecord(contacts_record_h contacts_record, const json
     }
 }
 
-void ImportContactGroupFromContactsRecord(contacts_record_h contacts_record,
-                                          json::Object* out_ptr) {
+void ImportContactGroupFromContactsRecord(contacts_record_h contacts_record, json::Object* out_ptr)
+{
     json::Object& out = *out_ptr;
     // contacts_record is protected by unique_ptr and its ownership is not passed here
     if (!contacts_record) {
@@ -1677,20 +1677,17 @@ void ImportContactGroupFromContactsRecord(contacts_record_h contacts_record,
     // name
     char* value = nullptr;
     ContactUtil::GetStrFromRecord(contacts_record, _contacts_group.name, &value);
-    out.insert(std::make_pair(
-            "name", value ? webapi::common::json::Value{value} : webapi::common::json::Value{}));
+    out.insert(std::make_pair("name", value ? JsonValue{value} : JsonValue{}));
 
     // photoURI
     value = nullptr;
     ContactUtil::GetStrFromRecord(contacts_record, _contacts_group.image_path, &value);
-    out.insert(std::make_pair("photoURI", value ? webapi::common::json::Value{value}
-                                                : webapi::common::json::Value{}));
+    out.insert(std::make_pair("photoURI", value ? JsonValue{value} : JsonValue{}));
 
     // ringtoneURI
     value = nullptr;
     ContactUtil::GetStrFromRecord(contacts_record, _contacts_group.ringtone_path, &value);
-    out.insert(std::make_pair("ringtoneURI", value ? webapi::common::json::Value{value}
-                                                   : webapi::common::json::Value{}));
+    out.insert(std::make_pair("ringtoneURI", value ? JsonValue{value} : JsonValue{}));
 
     // is_read_only
     bool bool_value = false;
@@ -1698,7 +1695,8 @@ void ImportContactGroupFromContactsRecord(contacts_record_h contacts_record,
     out.insert(std::make_pair("readOnly", json::Value{bool_value}));
 }
 
-void ExportContactGroupToContactsRecord(contacts_record_h contacts_record, const json::Object& in) {
+void ExportContactGroupToContactsRecord(contacts_record_h contacts_record, const json::Object& in)
+{
     // name
     ContactUtil::SetStrInRecord(contacts_record, _contacts_group.name,
                                 FromJson<json::String>(in, "name").c_str());
@@ -1722,7 +1720,8 @@ void ExportContactGroupToContactsRecord(contacts_record_h contacts_record, const
  * @brief   Fills Person object with values from record
  * @param[in]   contacts_record_h  Record which is used to fill Person
  */
-void ImportPersonFromContactsRecord(contacts_record_h record, json::Object* out_ptr) {
+void ImportPersonFromContactsRecord(contacts_record_h record, json::Object* out_ptr)
+{
     if (nullptr == record) {
         LoggerW("Platform person record did not set");
         throw InvalidValuesException("Platform person record did not set");
@@ -1778,7 +1777,8 @@ void ImportPersonFromContactsRecord(contacts_record_h record, json::Object* out_
  * @brief   Updates contacts_record_h with values from Person object
  * @param[out]   contacts_record_h  Record which is updated
  */
-void ExportPersonToContactsRecord(contacts_record_h record, const json::Object& args) {
+void ExportPersonToContactsRecord(contacts_record_h record, const json::Object& args)
+{
     if (nullptr == record) {
         LoggerE("Platform person object did not set");
         throw UnknownException("Platform person object did not set");
@@ -1786,14 +1786,17 @@ void ExportPersonToContactsRecord(contacts_record_h record, const json::Object& 
 
     ContactUtil::SetBoolInRecord(record, _contacts_person.is_favorite,
                                  FromJson<bool>(args, "isFavorite"));
-    try {
+    try
+    {
         if (!IsNull(args, "photoURI") && !FromJson<json::String>(args, "photoURI").empty()) {
             ContactUtil::SetStrInRecord(record, _contacts_person.image_thumbnail_path,
                                         FromJson<json::String>(args, "photoURI").c_str());
         } else {
             ContactUtil::SetStrInRecord(record, _contacts_person.image_thumbnail_path, "");
         }
-    } catch (const BasePlatformException& ex) {
+    }
+    catch (const BasePlatformException& ex)
+    {
         LoggerD("Platform field is readonly. " << ex.message());
     }
     if (!IsNull(args, "ringtoneURI")) {
@@ -1808,8 +1811,8 @@ void ExportPersonToContactsRecord(contacts_record_h record, const json::Object& 
     }
 }
 
-void UpdateAdditionalInformation(const ContactsRecordHPtr& contacts_record_ptr,
-                                 webapi::common::json::Object* out_ptr) {
+void UpdateAdditionalInformation(const ContactsRecordHPtr& contacts_record_ptr, JsonObject* out_ptr)
+{
     json::Object& out = *out_ptr;
     int int_value = -1;
     ContactUtil::GetIntFromRecord(*contacts_record_ptr, _contacts_contact.person_id, &int_value);
@@ -1827,4 +1830,4 @@ void UpdateAdditionalInformation(const ContactsRecordHPtr& contacts_record_ptr,
 
 }  // ContactUtil
 }  // contact
-}  // webapi
+}  // extension

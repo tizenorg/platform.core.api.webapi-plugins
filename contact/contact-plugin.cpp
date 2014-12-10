@@ -18,44 +18,49 @@
 #include <contacts.h>
 #include "common/native-plugin.h"
 #include "common/logger.h"
-#include "contact/contact-util.h"
+#include "contact/contact_util.h"
 #include "contact/addressbook.h"
-#include "contact/contact-manager.h"
+#include "contact/contact_manager.h"
 #include "contact/person.h"
 
-namespace webapi {
+namespace extension {
 namespace contact {
 
 namespace {
-    void CheckReadPrivileges(const common::json::Object& /*args*/, common::json::Object& /*out*/) {
-        common::NativePlugin::CheckAccess(ContactUtil::kContactReadPrivileges);
-    }
+void CheckReadPrivileges(const JsonObject& /*args*/, JsonObject& /*out*/)
+{
+    common::NativePlugin::CheckAccess(ContactUtil::kContactReadPrivileges);
+}
 }
 
 class ContactPlugin : public webapi::common::NativePlugin {
-  public:
+public:
     ContactPlugin();
     ~ContactPlugin();
     virtual void OnLoad();
 
-  private:
+private:
     bool connected_;
     int contact_listener_current_state_;
 };
 
-EXPORT_NATIVE_PLUGIN(webapi::contact::ContactPlugin);
+EXPORT_NATIVE_PLUGIN(extension::contact::ContactPlugin);
 
-using namespace webapi::common;
+using namespace extension::common;
 
-ContactPlugin::ContactPlugin() : connected_{false}, contact_listener_current_state_{0} {}
+ContactPlugin::ContactPlugin() : connected_{false}, contact_listener_current_state_{0}
+{
+}
 
-ContactPlugin::~ContactPlugin() {
+ContactPlugin::~ContactPlugin()
+{
     if (connected_) {
         contacts_disconnect();
     }
 }
 
-void ContactPlugin::OnLoad() {
+void ContactPlugin::OnLoad()
+{
 
     using namespace AddressBook;
     using namespace Person;
@@ -91,8 +96,9 @@ void ContactPlugin::OnLoad() {
 #undef DISPATCHER_ADDFUNCTION
 
     using namespace std::placeholders;
-    dispatcher_.AddFunction("AddressBook_updateBatch",
-                            std::bind(AddressBook_batchFunc, AddressBook_update, "contact", _1, _2));
+    dispatcher_.AddFunction(
+            "AddressBook_updateBatch",
+            std::bind(AddressBook_batchFunc, AddressBook_update, "contact", _1, _2));
     dispatcher_.AddFunction("AddressBook_removeBatch",
                             std::bind(AddressBook_batchFunc, AddressBook_remove, "id", _1, _2));
 
@@ -121,4 +127,4 @@ void ContactPlugin::OnLoad() {
 }
 
 }  // namespace contact
-}  // namespace webapi
+}  // namespace extension

@@ -17,11 +17,10 @@
 #include "contact/person.h"
 #include "common/converter.h"
 #include "common/native-plugin.h"
-#include "common/platform-exception.h"
+#include "common/platform_exception.h"
 #include "common/logger.h"
-#include "contact/contact-util.h"
 
-namespace webapi {
+namespace extension {
 namespace contact {
 namespace Person {
 
@@ -39,7 +38,8 @@ static const PersonPropertyMap personPropertyMap = {
     {"displayContactId",        { _contacts_person.display_contact_id,  kPrimitiveTypeId } },
 };
 
-void Person_link(const webapi::common::json::Object& args, webapi::common::json::Object& out) {
+void Person_link(const JsonObject& args, JsonObject& out)
+{
     NativePlugin::CheckAccess(ContactUtil::kContactWritePrivileges);
 
     long id = common::stol(FromJson<json::String>(args, "id"));
@@ -47,8 +47,7 @@ void Person_link(const webapi::common::json::Object& args, webapi::common::json:
 
     contacts_record_h contacts_record = nullptr;
 
-    int err = contacts_db_get_record(_contacts_person._uri, id,
-            &contacts_record);
+    int err = contacts_db_get_record(_contacts_person._uri, id, &contacts_record);
     contacts_record_destroy(contacts_record, true);
     contacts_record = nullptr;
 
@@ -67,14 +66,15 @@ void Person_link(const webapi::common::json::Object& args, webapi::common::json:
     NativePlugin::ReportSuccess(out);
 }
 
-void Person_unlink(const webapi::common::json::Object& args, webapi::common::json::Object& out) {
+void Person_unlink(const JsonObject& args, JsonObject& out)
+{
     NativePlugin::CheckAccess(ContactUtil::kContactWritePrivileges);
 
     long contact_id = common::stol(FromJson<json::String>(args, "id"));
 
     contacts_record_h contacts_record = nullptr;
-    int error_code = contacts_db_get_record(_contacts_simple_contact._uri,
-            contact_id, &contacts_record);
+    int error_code =
+            contacts_db_get_record(_contacts_simple_contact._uri, contact_id, &contacts_record);
 
     if (CONTACTS_ERROR_NONE != error_code) {
         contacts_record_destroy(contacts_record, true);
@@ -84,8 +84,8 @@ void Person_unlink(const webapi::common::json::Object& args, webapi::common::jso
     }
 
     int contacts_person_id = 0;
-    error_code = contacts_record_get_int(contacts_record,
-            _contacts_simple_contact.person_id, &contacts_person_id);
+    error_code = contacts_record_get_int(contacts_record, _contacts_simple_contact.person_id,
+                                         &contacts_person_id);
     contacts_record_destroy(contacts_record, true);
     contacts_record = nullptr;
 
@@ -108,8 +108,7 @@ void Person_unlink(const webapi::common::json::Object& args, webapi::common::jso
         throw common::UnknownException("Error during executing unlink()");
     }
 
-    error_code = contacts_db_get_record(_contacts_person._uri, new_person_id,
-            &contacts_record);
+    error_code = contacts_db_get_record(_contacts_person._uri, new_person_id, &contacts_record);
     if (CONTACTS_ERROR_NONE != error_code) {
         contacts_record_destroy(contacts_record, true);
         contacts_record = nullptr;
@@ -126,7 +125,7 @@ void Person_unlink(const webapi::common::json::Object& args, webapi::common::jso
     NativePlugin::ReportSuccess(person, out);
 }
 
-const PersonProperty &PersonProperty_fromString(const std::string &name)
+const PersonProperty& PersonProperty_fromString(const std::string& name)
 {
     auto iter = personPropertyMap.find(name);
     if (iter == personPropertyMap.end()) {
@@ -138,4 +137,4 @@ const PersonProperty &PersonProperty_fromString(const std::string &name)
 
 }  // Person
 }  // contact
-}  // webapi
+}  // extension

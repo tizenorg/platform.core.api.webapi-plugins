@@ -14,13 +14,13 @@
  *    limitations under the License.
  */
 
-#ifndef WEBAPI_PLUGINS_CONTACT_PERSON_H_
-#define WEBAPI_PLUGINS_CONTACT_PERSON_H_
+#ifndef CONTACT_PERSON_H_
+#define CONTACT_PERSON_H_
 
-#include "common/json-parser.h"
+#include "common/picojson.h"
 #include "common/filter-utils.h"
 
-namespace webapi {
+namespace extension {
 namespace contact {
 namespace Person {
 
@@ -33,11 +33,11 @@ typedef std::map<std::string, PersonProperty> PersonPropertyMap;
 
 const PersonProperty& PersonProperty_fromString(const std::string& name);
 
-void Person_link(const common::json::Object& args, common::json::Object& out);
-void Person_unlink(const common::json::Object& args, common::json::Object& out);
+void Person_link(const JsonObject& args, JsonObject& out);
+void Person_unlink(const JsonObject& args, JsonObject& out);
 
 }  // Person
 }  // contact
-}  // webapi
+}  // extension
 
-#endif // PERSON_H
+#endif  // CONTACT_PERSON_H
