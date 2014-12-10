@@ -1,0 +1,22 @@
+<?xml version="1.0" ?>
+<!DOCTYPE plugin-properties SYSTEM "/usr/etc/tizen-apis/config.dtd">
+<plugin-properties>
+    <library-name>libwrt-plugins-tizen-messaging.so</library-name>
+    <feature-install-uri>messaging.install.uri</feature-install-uri>
+
+    <api-feature>
+        <name>http://tizen.org/privilege/messaging.read</name>
+        <device-capability>messaging.read</device-capability>
+    </api-feature>
+
+    <api-feature>
+        <name>http://tizen.org/privilege/messaging.send</name>
+        <device-capability>messaging.send</device-capability>
+    </api-feature>
+
+     <api-feature>
+        <name>http://tizen.org/privilege/messaging.write</name>
+        <device-capability>messaging.write</device-capability>
+    </api-feature>
+
+</plugin-properties>
