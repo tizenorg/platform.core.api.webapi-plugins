@@ -4,6 +4,9 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+var validator_ = xwalk.utils.validator;
+var types_ = validator_.Types;
+
 var listener_ = undefined;
 
 function throwException_(err) {
@@ -71,9 +74,9 @@ function PowerManager() {
  *     is desired to be.
  */
 PowerManager.prototype.request = function() {
-    var args = xwalk.utils.validator.validateArgs(arguments, [
-        {name: 'resource', type: 'string'},
-        {name: 'state', type: 'string'}
+    var args = validator_.validateArgs(arguments, [
+        {name: 'resource', type: types_.STRING},
+        {name: 'state', type: types_.STRING}
     ]);
 
     if (!PowerResource.hasOwnProperty(args.resource))
@@ -98,8 +101,8 @@ PowerManager.prototype.request = function() {
  *     be removed.
  */
 PowerManager.prototype.release = function() {
-    var args = xwalk.utils.validator.validateArgs(arguments, [
-        {name: 'resource', type: 'string'}
+    var args = validator_.validateArgs(arguments, [
+        {name: 'resource', type: types_.STRING}
     ]);
 
     if (!PowerResource.hasOwnProperty(args.resource))
@@ -116,8 +119,8 @@ PowerManager.prototype.release = function() {
  * @param {!function} listener The screen state change callback.
  */
 PowerManager.prototype.setScreenStateChangeListener = function() {
-    var args = xwalk.utils.validator.validateArgs(arguments, [
-        {name: 'listener', type: 'function'}
+    var args = validator_.validateArgs(arguments, [
+        {name: 'listener', type: types_.FUNCTION}
     ]);
 
     listener_ = args.listener;
@@ -147,11 +150,11 @@ PowerManager.prototype.getScreenBrightness = function() {
  * @param {!number} brightness The screen brightness value to set.
  */
 PowerManager.prototype.setScreenBrightness = function() {
-    var args = xwalk.utils.validator.validateArgs([
-        {name: 'brightness', type: 'double'}
+    var args = validator_.validateArgs(arguments, [
+        {name: 'brightness', type: types_.DOUBLE}
     ]);
 
-    if (brightness < 0 || brightness > 1)
+    if (args.brightness < 0 || args.brightness > 1)
         throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
 
     callSync_({
