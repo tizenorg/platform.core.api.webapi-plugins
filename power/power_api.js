@@ -1,3 +1,5 @@
+/* global xwalk, extension, tizen */
+
 // Copyright 2014 Samsung Electronics Co, Ltd. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -69,7 +71,7 @@ function PowerManager() {
  *     is desired to be.
  */
 PowerManager.prototype.request = function() {
-    var args = xwalk.utils.validateArguments(arguments, [
+    var args = xwalk.utils.validator.validateArgs(arguments, [
         {name: 'resource', type: 'string'},
         {name: 'state', type: 'string'}
     ]);
@@ -96,7 +98,7 @@ PowerManager.prototype.request = function() {
  *     be removed.
  */
 PowerManager.prototype.release = function() {
-    var args = xwalk.utils.validateArguments(arguments, [
+    var args = xwalk.utils.validator.validateArgs(arguments, [
         {name: 'resource', type: 'string'}
     ]);
 
@@ -114,7 +116,7 @@ PowerManager.prototype.release = function() {
  * @param {!function} listener The screen state change callback.
  */
 PowerManager.prototype.setScreenStateChangeListener = function() {
-    var args = xwalk.utils.validateArguments(arguments, [
+    var args = xwalk.utils.validator.validateArgs(arguments, [
         {name: 'listener', type: 'function'}
     ]);
 
@@ -145,7 +147,7 @@ PowerManager.prototype.getScreenBrightness = function() {
  * @param {!number} brightness The screen brightness value to set.
  */
 PowerManager.prototype.setScreenBrightness = function() {
-    var args = xwalk.validateArguments([
+    var args = xwalk.utils.validator.validateArgs([
         {name: 'brightness', type: 'double'}
     ]);
 
