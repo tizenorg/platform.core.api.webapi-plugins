@@ -25,8 +25,8 @@ namespace contact {
 namespace Person {
 
 struct PersonProperty {
-    const unsigned int propertyId;
-    const webapi::common::PrimitiveType type;
+  const unsigned int propertyId;
+  const webapi::common::PrimitiveType type;
 };
 
 typedef std::map<std::string, PersonProperty> PersonPropertyMap;

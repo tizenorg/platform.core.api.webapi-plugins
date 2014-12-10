@@ -38,101 +38,101 @@ static const PersonPropertyMap personPropertyMap = {
     {"displayContactId",        { _contacts_person.display_contact_id,  kPrimitiveTypeId } },
 };
 
-void Person_link(const JsonObject& args, JsonObject& out)
-{
-    NativePlugin::CheckAccess(ContactUtil::kContactWritePrivileges);
+void Person_link(const JsonObject& args, JsonObject& out) {
+  NativePlugin::CheckAccess(ContactUtil::kContactWritePrivileges);
 
-    long id = common::stol(FromJson<json::String>(args, "id"));
-    long person_id = common::stol(FromJson<json::String>(args, "person", "id"));
+  long id = common::stol(FromJson<json::String>(args, "id"));
+  long person_id = common::stol(FromJson<json::String>(args, "person", "id"));
 
-    contacts_record_h contacts_record = nullptr;
+  contacts_record_h contacts_record = nullptr;
 
-    int err = contacts_db_get_record(_contacts_person._uri, id, &contacts_record);
-    contacts_record_destroy(contacts_record, true);
-    contacts_record = nullptr;
+  int err = contacts_db_get_record(_contacts_person._uri, id, &contacts_record);
+  contacts_record_destroy(contacts_record, true);
+  contacts_record = nullptr;
 
-    if (CONTACTS_ERROR_NONE != err) {
-        LOGW("Person was not found, error code: %d", err);
-        throw common::NotFoundException("Person not found");
-    }
+  if (CONTACTS_ERROR_NONE != err) {
+    LOGW("Person was not found, error code: %d", err);
+    throw common::NotFoundException("Person not found");
+  }
 
-    err = contacts_person_link_person(person_id, id);
+  err = contacts_person_link_person(person_id, id);
 
-    if (CONTACTS_ERROR_NONE != err) {
-        LOGW("person link fails, error code: %d", err);
-        throw common::UnknownException("Error during executing person link()");
-    }
+  if (CONTACTS_ERROR_NONE != err) {
+    LOGW("person link fails, error code: %d", err);
+    throw common::UnknownException("Error during executing person link()");
+  }
 
-    NativePlugin::ReportSuccess(out);
+  NativePlugin::ReportSuccess(out);
 }
 
-void Person_unlink(const JsonObject& args, JsonObject& out)
-{
-    NativePlugin::CheckAccess(ContactUtil::kContactWritePrivileges);
+void Person_unlink(const JsonObject& args, JsonObject& out) {
+  NativePlugin::CheckAccess(ContactUtil::kContactWritePrivileges);
 
-    long contact_id = common::stol(FromJson<json::String>(args, "id"));
+  long contact_id = common::stol(FromJson<json::String>(args, "id"));
 
-    contacts_record_h contacts_record = nullptr;
-    int error_code =
-            contacts_db_get_record(_contacts_simple_contact._uri, contact_id, &contacts_record);
+  contacts_record_h contacts_record = nullptr;
+  int error_code = contacts_db_get_record(_contacts_simple_contact._uri,
+                                          contact_id, &contacts_record);
 
-    if (CONTACTS_ERROR_NONE != error_code) {
-        contacts_record_destroy(contacts_record, true);
-        contacts_record = nullptr;
-        LOGW("Contact not found, error code: %d", error_code);
-        throw common::InvalidValuesException("Contact not found");
-    }
-
-    int contacts_person_id = 0;
-    error_code = contacts_record_get_int(contacts_record, _contacts_simple_contact.person_id,
-                                         &contacts_person_id);
+  if (CONTACTS_ERROR_NONE != error_code) {
     contacts_record_destroy(contacts_record, true);
     contacts_record = nullptr;
+    LOGW("Contact not found, error code: %d", error_code);
+    throw common::InvalidValuesException("Contact not found");
+  }
 
-    if (CONTACTS_ERROR_NONE != error_code) {
-        LOGW("Contact is not a member of person, error code: %d", error_code);
-        throw common::UnknownException("Contact is not a member of person");
-    }
+  int contacts_person_id = 0;
+  error_code = contacts_record_get_int(
+      contacts_record, _contacts_simple_contact.person_id, &contacts_person_id);
+  contacts_record_destroy(contacts_record, true);
+  contacts_record = nullptr;
 
-    long person_id = common::stol(FromJson<json::String>(args, "person", "id"));
-    if (contacts_person_id != person_id) {
-        LOGW("Contact is not a member of person (wrong id's)");
-        throw common::InvalidValuesException("Contact is not a member of person");
-    }
+  if (CONTACTS_ERROR_NONE != error_code) {
+    LOGW("Contact is not a member of person, error code: %d", error_code);
+    throw common::UnknownException("Contact is not a member of person");
+  }
 
-    int new_person_id = 0;
+  long person_id = common::stol(FromJson<json::String>(args, "person", "id"));
+  if (contacts_person_id != person_id) {
+    LOGW("Contact is not a member of person (wrong id's)");
+    throw common::InvalidValuesException("Contact is not a member of person");
+  }
 
-    error_code = contacts_person_unlink_contact(person_id, contact_id, &new_person_id);
-    if (CONTACTS_ERROR_NONE != error_code) {
-        LOGW("Error during executing unlink(), error code: %d", error_code);
-        throw common::UnknownException("Error during executing unlink()");
-    }
+  int new_person_id = 0;
 
-    error_code = contacts_db_get_record(_contacts_person._uri, new_person_id, &contacts_record);
-    if (CONTACTS_ERROR_NONE != error_code) {
-        contacts_record_destroy(contacts_record, true);
-        contacts_record = nullptr;
-        LOGW("Person not found, error code: %d", error_code);
-        throw common::UnknownException("Person not found");
-    }
+  error_code =
+      contacts_person_unlink_contact(person_id, contact_id, &new_person_id);
+  if (CONTACTS_ERROR_NONE != error_code) {
+    LOGW("Error during executing unlink(), error code: %d", error_code);
+    throw common::UnknownException("Error during executing unlink()");
+  }
 
-    json::Value person{json::Object{}};
-    ContactUtil::ImportPersonFromContactsRecord(contacts_record, &person.get<json::Object>());
-
+  error_code = contacts_db_get_record(_contacts_person._uri, new_person_id,
+                                      &contacts_record);
+  if (CONTACTS_ERROR_NONE != error_code) {
     contacts_record_destroy(contacts_record, true);
     contacts_record = nullptr;
+    LOGW("Person not found, error code: %d", error_code);
+    throw common::UnknownException("Person not found");
+  }
 
-    NativePlugin::ReportSuccess(person, out);
+  json::Value person{json::Object{}};
+  ContactUtil::ImportPersonFromContactsRecord(contacts_record,
+                                              &person.get<json::Object>());
+
+  contacts_record_destroy(contacts_record, true);
+  contacts_record = nullptr;
+
+  NativePlugin::ReportSuccess(person, out);
 }
 
-const PersonProperty& PersonProperty_fromString(const std::string& name)
-{
-    auto iter = personPropertyMap.find(name);
-    if (iter == personPropertyMap.end()) {
-        LoggerE("Invalid property name (not in map): %s", name.c_str());
-        throw InvalidValuesException("Invalid property name");
-    }
-    return iter->second;
+const PersonProperty& PersonProperty_fromString(const std::string& name) {
+  auto iter = personPropertyMap.find(name);
+  if (iter == personPropertyMap.end()) {
+    LoggerE("Invalid property name (not in map): %s", name.c_str());
+    throw InvalidValuesException("Invalid property name");
+  }
+  return iter->second;
 }
 
 }  // Person

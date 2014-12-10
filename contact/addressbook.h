@@ -35,11 +35,14 @@ void AddressBook_getGroup(const JsonObject& args, JsonObject& out);
 void AddressBook_updateGroup(const JsonObject& args, JsonObject& out);
 void AddressBook_removeGroup(const JsonObject& args, JsonObject& out);
 void AddressBook_getGroups(const JsonObject& args, JsonObject& out);
-void AddressBook_startListening(int* current_state, const JsonObject& args, JsonObject& out);
-void AddressBook_stopListening(int* current_state, const JsonObject& args, JsonObject& out);
+void AddressBook_startListening(int* current_state, const JsonObject& args,
+                                JsonObject& out);
+void AddressBook_stopListening(int* current_state, const JsonObject& args,
+                               JsonObject& out);
 
-void AddressBook_batchFunc(common::NativeFunction impl, const char* single_arg_name,
-                           const JsonObject& args, JsonObject& out);
+void AddressBook_batchFunc(common::NativeFunction impl,
+                           const char* single_arg_name, const JsonObject& args,
+                           JsonObject& out);
 
 void AddressBook_addBatch(const JsonObject& args, JsonObject& out);
 

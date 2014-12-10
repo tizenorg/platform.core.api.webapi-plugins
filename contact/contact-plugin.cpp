@@ -27,103 +27,100 @@ namespace extension {
 namespace contact {
 
 namespace {
-void CheckReadPrivileges(const JsonObject& /*args*/, JsonObject& /*out*/)
-{
-    common::NativePlugin::CheckAccess(ContactUtil::kContactReadPrivileges);
+void CheckReadPrivileges(const JsonObject& /*args*/, JsonObject& /*out*/) {
+  common::NativePlugin::CheckAccess(ContactUtil::kContactReadPrivileges);
 }
 }
 
 class ContactPlugin : public webapi::common::NativePlugin {
-public:
-    ContactPlugin();
-    ~ContactPlugin();
-    virtual void OnLoad();
+ public:
+  ContactPlugin();
+  ~ContactPlugin();
+  virtual void OnLoad();
 
-private:
-    bool connected_;
-    int contact_listener_current_state_;
+ private:
+  bool connected_;
+  int contact_listener_current_state_;
 };
 
 EXPORT_NATIVE_PLUGIN(extension::contact::ContactPlugin);
 
 using namespace extension::common;
 
-ContactPlugin::ContactPlugin() : connected_{false}, contact_listener_current_state_{0}
-{
+ContactPlugin::ContactPlugin()
+    : connected_{false}, contact_listener_current_state_{0} {}
+
+ContactPlugin::~ContactPlugin() {
+  if (connected_) {
+    contacts_disconnect();
+  }
 }
 
-ContactPlugin::~ContactPlugin()
-{
-    if (connected_) {
-        contacts_disconnect();
-    }
-}
+void ContactPlugin::OnLoad() {
 
-void ContactPlugin::OnLoad()
-{
-
-    using namespace AddressBook;
-    using namespace Person;
-    using namespace ContactManager;
+  using namespace AddressBook;
+  using namespace Person;
+  using namespace ContactManager;
 
 #define DISPATCHER_ADDFUNCTION(N) dispatcher_.AddFunction(#N, N);
-    DISPATCHER_ADDFUNCTION(AddressBook_get);
-    DISPATCHER_ADDFUNCTION(AddressBook_add);
-    DISPATCHER_ADDFUNCTION(AddressBook_update);
-    DISPATCHER_ADDFUNCTION(AddressBook_remove);
-    DISPATCHER_ADDFUNCTION(AddressBook_find);
-    DISPATCHER_ADDFUNCTION(AddressBook_getGroup);
-    DISPATCHER_ADDFUNCTION(AddressBook_addGroup);
-    DISPATCHER_ADDFUNCTION(AddressBook_updateGroup);
-    DISPATCHER_ADDFUNCTION(AddressBook_removeGroup);
-    DISPATCHER_ADDFUNCTION(AddressBook_getGroups);
-    DISPATCHER_ADDFUNCTION(AddressBook_addBatch);
+  DISPATCHER_ADDFUNCTION(AddressBook_get);
+  DISPATCHER_ADDFUNCTION(AddressBook_add);
+  DISPATCHER_ADDFUNCTION(AddressBook_update);
+  DISPATCHER_ADDFUNCTION(AddressBook_remove);
+  DISPATCHER_ADDFUNCTION(AddressBook_find);
+  DISPATCHER_ADDFUNCTION(AddressBook_getGroup);
+  DISPATCHER_ADDFUNCTION(AddressBook_addGroup);
+  DISPATCHER_ADDFUNCTION(AddressBook_updateGroup);
+  DISPATCHER_ADDFUNCTION(AddressBook_removeGroup);
+  DISPATCHER_ADDFUNCTION(AddressBook_getGroups);
+  DISPATCHER_ADDFUNCTION(AddressBook_addBatch);
 
-    DISPATCHER_ADDFUNCTION(ContactManager_getAddressBooks);
-    DISPATCHER_ADDFUNCTION(ContactManager_find);
-    DISPATCHER_ADDFUNCTION(ContactManager_get);
-    DISPATCHER_ADDFUNCTION(ContactManager_getAddressBook);
-    DISPATCHER_ADDFUNCTION(ContactManager_importFromVCard);
-    DISPATCHER_ADDFUNCTION(ContactManager_remove);
-    DISPATCHER_ADDFUNCTION(ContactManager_update);
-    DISPATCHER_ADDFUNCTION(ContactManager_startListening);
-    DISPATCHER_ADDFUNCTION(ContactManager_stopListening);
+  DISPATCHER_ADDFUNCTION(ContactManager_getAddressBooks);
+  DISPATCHER_ADDFUNCTION(ContactManager_find);
+  DISPATCHER_ADDFUNCTION(ContactManager_get);
+  DISPATCHER_ADDFUNCTION(ContactManager_getAddressBook);
+  DISPATCHER_ADDFUNCTION(ContactManager_importFromVCard);
+  DISPATCHER_ADDFUNCTION(ContactManager_remove);
+  DISPATCHER_ADDFUNCTION(ContactManager_update);
+  DISPATCHER_ADDFUNCTION(ContactManager_startListening);
+  DISPATCHER_ADDFUNCTION(ContactManager_stopListening);
 
-    DISPATCHER_ADDFUNCTION(CheckReadPrivileges);
+  DISPATCHER_ADDFUNCTION(CheckReadPrivileges);
 
-    DISPATCHER_ADDFUNCTION(Person_link);
-    DISPATCHER_ADDFUNCTION(Person_unlink);
+  DISPATCHER_ADDFUNCTION(Person_link);
+  DISPATCHER_ADDFUNCTION(Person_unlink);
 #undef DISPATCHER_ADDFUNCTION
 
-    using namespace std::placeholders;
-    dispatcher_.AddFunction(
-            "AddressBook_updateBatch",
-            std::bind(AddressBook_batchFunc, AddressBook_update, "contact", _1, _2));
-    dispatcher_.AddFunction("AddressBook_removeBatch",
-                            std::bind(AddressBook_batchFunc, AddressBook_remove, "id", _1, _2));
+  using namespace std::placeholders;
+  dispatcher_.AddFunction(
+      "AddressBook_updateBatch",
+      std::bind(AddressBook_batchFunc, AddressBook_update, "contact", _1, _2));
+  dispatcher_.AddFunction(
+      "AddressBook_removeBatch",
+      std::bind(AddressBook_batchFunc, AddressBook_remove, "id", _1, _2));
 
-    dispatcher_.AddFunction(
-            "ContactManager_updateBatch",
-            std::bind(AddressBook_batchFunc, ContactManager_update, "person", _1, _2));
-    dispatcher_.AddFunction(
-            "ContactManager_removeBatch",
-            std::bind(AddressBook_batchFunc, ContactManager_remove, "personId", _1, _2));
+  dispatcher_.AddFunction("ContactManager_updateBatch",
+                          std::bind(AddressBook_batchFunc,
+                                    ContactManager_update, "person", _1, _2));
+  dispatcher_.AddFunction("ContactManager_removeBatch",
+                          std::bind(AddressBook_batchFunc,
+                                    ContactManager_remove, "personId", _1, _2));
 
-    dispatcher_.AddFunction(
-            "AddressBook_startListening",
-            std::bind(AddressBook_startListening, &contact_listener_current_state_, _1, _2));
-    dispatcher_.AddFunction(
-            "AddressBook_stopListening",
-            std::bind(AddressBook_stopListening, &contact_listener_current_state_, _1, _2));
+  dispatcher_.AddFunction("AddressBook_startListening",
+                          std::bind(AddressBook_startListening,
+                                    &contact_listener_current_state_, _1, _2));
+  dispatcher_.AddFunction("AddressBook_stopListening",
+                          std::bind(AddressBook_stopListening,
+                                    &contact_listener_current_state_, _1, _2));
 
-    int err = contacts_connect();
-    // TODO maybe do something if it fails
-    connected_ = err == CONTACTS_ERROR_NONE;
-    if (connected_) {
-        LoggerI("Connection established!");
-    } else {
-        LoggerW("Connection error occured: " << err);
-    }
+  int err = contacts_connect();
+  // TODO maybe do something if it fails
+  connected_ = err == CONTACTS_ERROR_NONE;
+  if (connected_) {
+    LoggerI("Connection established!");
+  } else {
+    LoggerW("Connection error occured: " << err);
+  }
 }
 
 }  // namespace contact

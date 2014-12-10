@@ -25,8 +25,10 @@ namespace contact {
 namespace ContactManager {
 
 /**
- * Signature: @code void getAddressBooks(successCallback, errorCallback); @endcode
- * JSON: @code data: {method: 'ContactManager_getAddressBook', args: {}} @endcode
+ * Signature: @code void getAddressBooks(successCallback, errorCallback);
+ * @endcode
+ * JSON: @code data: {method: 'ContactManager_getAddressBook', args: {}}
+ * @endcode
  * Invocation: @code native.call(request, result_callback) @endcode
  * Return:
  * @code
@@ -39,7 +41,8 @@ namespace ContactManager {
  * {status: 'success', result: {addressbooks}}
  * @endcode
  */
-void ContactManager_getAddressBooks(const JsonObject& /*args*/, JsonObject& /*out*/);
+void ContactManager_getAddressBooks(const JsonObject& /*args*/,
+                                    JsonObject& /*out*/);
 
 /**
  * Signature: @code AddressBook getAddressBook(addressBookId); @endcode
@@ -81,7 +84,8 @@ void ContactManager_get(const JsonObject& args, JsonObject& out);
 void ContactManager_update(const JsonObject& args, JsonObject& out);
 
 /**
- * Signature: @code void updateBatch(persons, successCallback, errorCallback); @endcode
+ * Signature: @code void updateBatch(persons, successCallback, errorCallback);
+ * @endcode
  * JSON: @code data: {method: 'ContactManager_updateBatch',
  *                    args: {persons: persons}} @endcode
  * Invocation: @code native.call(request, result_callback); @endcode
@@ -96,7 +100,8 @@ void ContactManager_update(const JsonObject& args, JsonObject& out);
  * {status: 'success', result: {persons}}
  * @endcode
  */
-void ContactManager_updateBatch(const JsonObject& /*args*/, JsonObject& /*out*/);
+void ContactManager_updateBatch(const JsonObject& /*args*/,
+                                JsonObject& /*out*/);
 
 /**
  * Signature: @code void remove(personId); @endcode
@@ -112,7 +117,8 @@ void ContactManager_updateBatch(const JsonObject& /*args*/, JsonObject& /*out*/)
 void ContactManager_remove(const JsonObject& args, JsonObject& out);
 
 /**
- * Signature: @code void removeBatch(personIds, successCallback, errorCallback); @endcode
+ * Signature: @code void removeBatch(personIds, successCallback, errorCallback);
+ * @endcode
  * JSON: @code data: {method: 'ContactManager_removeBatch',
  *                    args: {personsIDs: personIds}} @endcode
  * Invocation: @code native.call(request, result_callback); @endcode
@@ -127,10 +133,12 @@ void ContactManager_remove(const JsonObject& args, JsonObject& out);
  * {status: 'success'}
  * @endcode
  */
-void ContactManager_removeBatch(const JsonObject& /*args*/, JsonObject& /*out*/);
+void ContactManager_removeBatch(const JsonObject& /*args*/,
+                                JsonObject& /*out*/);
 
 /**
- * Signature: @code void find(successCallback, errorCallback, filter, sortMode); @endcode
+ * Signature: @code void find(successCallback, errorCallback, filter, sortMode);
+ * @endcode
  * JSON: @code data: {method: 'ContactManager_find',
  *                    args: {filter: filter, sortMode: sortMode}} @endcode
  * Invocation: @code native.call(request, result_callback); @endcode
