@@ -17,6 +17,7 @@ BuildRequires: ninja
 BuildRequires: pkgconfig(appcore-common)
 BuildRequires: pkgconfig(capi-system-device)
 BuildRequires: pkgconfig(capi-system-power)
+#BuildRequires: pkgconfig(calendar-service2)
 BuildRequires: pkgconfig(libpcrecpp)
 BuildRequires: pkgconfig(dbus-1)
 BuildRequires: pkgconfig(dbus-glib-1)

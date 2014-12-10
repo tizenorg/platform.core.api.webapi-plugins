@@ -13,6 +13,7 @@
         'utils/utils.gyp:*',
         'power/power.gyp:*',
         'messageport/messageport.gyp:*',
+        #'calendar/calendar.gyp:*',
       ],
     },
   ],
