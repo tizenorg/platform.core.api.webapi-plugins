@@ -28,12 +28,12 @@ namespace AddressBook {
 void AddressBook_get(const JsonObject& args, JsonObject& out);
 void AddressBook_add(const JsonObject& args, JsonObject& out);
 void AddressBook_update(const JsonObject& args, JsonObject& out);
-void AddressBook_remove(const JsonObject& args, JsonObject& out);
-void AddressBook_find(const JsonObject& args, JsonObject& out);
+void AddressBook_remove(const JsonObject& args);
+void AddressBook_find(const JsonObject& args);
 void AddressBook_addGroup(const JsonObject& args, JsonObject& out);
 void AddressBook_getGroup(const JsonObject& args, JsonObject& out);
-void AddressBook_updateGroup(const JsonObject& args, JsonObject& out);
-void AddressBook_removeGroup(const JsonObject& args, JsonObject& out);
+void AddressBook_updateGroup(const JsonObject& args);
+void AddressBook_removeGroup(const JsonObject& args);
 void AddressBook_getGroups(const JsonObject& args, JsonObject& out);
 void AddressBook_startListening(int* current_state, const JsonObject& args,
                                 JsonObject& out);

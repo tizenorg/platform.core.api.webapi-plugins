@@ -24,148 +24,25 @@ namespace extension {
 namespace contact {
 namespace ContactManager {
 
-/**
- * Signature: @code void getAddressBooks(successCallback, errorCallback);
- * @endcode
- * JSON: @code data: {method: 'ContactManager_getAddressBook', args: {}}
- * @endcode
- * Invocation: @code native.call(request, result_callback) @endcode
- * Return:
- * @code
- * {status: 'error', error: {name, message}}
- * {status: 'success'}
- * @endcode
- * Result callback:
- * @code
- * {status: 'error', error: {name, message}}
- * {status: 'success', result: {addressbooks}}
- * @endcode
- */
-void ContactManager_getAddressBooks(const JsonObject& /*args*/,
-                                    JsonObject& /*out*/);
+void ContactManager_getAddressBooks(const JsonObject& args,
+                                    JsonObject& out);
 
-/**
- * Signature: @code AddressBook getAddressBook(addressBookId); @endcode
- * JSON: @code data: {method: 'ContactManager_getAddressBook',
- *                    args: {addressBookID: addressBookId}} @endcode
- * Invocation: @code native.callSync(request) @endcode
- * Return:
- * @code
- * {status: 'error', error: {name, message}}
- * {status: 'success'}
- * @endcode
- */
 void ContactManager_getAddressBook(const JsonObject& args, JsonObject& out);
 
-/**
- * Signature: @code Person get(personId); @endcode
- * JSON: @code data: {method: 'ContactManager_get',
- *                    args: {personID: personId}} @endcode
- * Invocation: @code native.callSync(request); @endcode
- * Return:
- * @code
- * {status: 'error', error: {name, message}}
- * {status: 'success'}
- * @endcode
- */
 void ContactManager_get(const JsonObject& args, JsonObject& out);
 
-/**
- * Signature: @code void update(person); @endcode
- * JSON: @code data: {method: 'ContactManager_update',
- *                    args: {person: person}} @endcode
- * Invocation: @code native.callSync(request); @endcode
- * Return:
- * @code
- * {status: 'error', error: {name, message}}
- * {status: 'success'}
- * @endcode
- */
-void ContactManager_update(const JsonObject& args, JsonObject& out);
+void ContactManager_update(const JsonObject& args);
 
-/**
- * Signature: @code void updateBatch(persons, successCallback, errorCallback);
- * @endcode
- * JSON: @code data: {method: 'ContactManager_updateBatch',
- *                    args: {persons: persons}} @endcode
- * Invocation: @code native.call(request, result_callback); @endcode
- * Return:
- * @code
- * {status: 'error', error: {name, message}}
- * {status: 'success'}
- * @endcode
- * Result callback:
- * @code
- * {status: 'error', error: {name, message}}
- * {status: 'success', result: {persons}}
- * @endcode
- */
 void ContactManager_updateBatch(const JsonObject& /*args*/,
                                 JsonObject& /*out*/);
 
-/**
- * Signature: @code void remove(personId); @endcode
- * JSON: @code data: {method: 'ContactManager_remove',
- *                    args: {personID: personId}} @endcode
- * Invocation: @code native.callSync(request); @endcode
- * Return:
- * @code
- * {status: 'error', error: {name, message}}
- * {status: 'success'}
- * @endcode
- */
-void ContactManager_remove(const JsonObject& args, JsonObject& out);
+void ContactManager_remove(const JsonObject& args);
 
-/**
- * Signature: @code void removeBatch(personIds, successCallback, errorCallback);
- * @endcode
- * JSON: @code data: {method: 'ContactManager_removeBatch',
- *                    args: {personsIDs: personIds}} @endcode
- * Invocation: @code native.call(request, result_callback); @endcode
- * Return:
- * @code
- * {status: 'error', error: {name, message}}
- * {status: 'success'}
- * @endcode
- * Result callback:
- * @code
- * {status: 'error', error: {name, message}}
- * {status: 'success'}
- * @endcode
- */
 void ContactManager_removeBatch(const JsonObject& /*args*/,
                                 JsonObject& /*out*/);
 
-/**
- * Signature: @code void find(successCallback, errorCallback, filter, sortMode);
- * @endcode
- * JSON: @code data: {method: 'ContactManager_find',
- *                    args: {filter: filter, sortMode: sortMode}} @endcode
- * Invocation: @code native.call(request, result_callback); @endcode
- * Return:
- * @code
- * {status: 'error', error: {name, message}}
- * {status: 'success'}
- * @endcode
- * Result callback:
- * @code
- * {status: 'error', error: {name, message}}
- * {status: 'success', result: {persons}}
- * @endcode
- */
 void ContactManager_find(const JsonObject& /*args*/, JsonObject& /*out*/);
 
-/**
- * Signature: @code void getAddressBook(contactString); @endcode
- * JSON: @code data: {method: 'ContactManager_importFromVCard',
- *                    args: {contact: contactString}} @endcode
- * Invocation: @code native.callSync(request); @endcode
- * Return:
- * @code
- * {status: 'error', error: {name, message}}
- * {status: 'success', result: {contact}}
- * @endcode
- */
 void ContactManager_importFromVCard(const JsonObject& args, JsonObject& out);
 
 /**
@@ -179,7 +56,7 @@ void ContactManager_importFromVCard(const JsonObject& args, JsonObject& out);
  * {status: 'success'}
  * @endcode
  */
-void ContactManager_startListening(const JsonObject& args, JsonObject& out);
+void ContactManager_startListening(/*const JsonObject& args, JsonObject& out*/);
 
 /**
  * Signature: @code void getAddressBook(contactString); @endcode
@@ -192,7 +69,7 @@ void ContactManager_startListening(const JsonObject& args, JsonObject& out);
  * {status: 'success'}
  * @endcode
  */
-void ContactManager_stopListening(const JsonObject& args, JsonObject& out);
+void ContactManager_stopListening(/*const JsonObject& args, JsonObject& out*/);
 
 }  // namespace ContactManager
 }  // namespace contact

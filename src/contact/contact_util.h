@@ -30,11 +30,9 @@ namespace contact {
 typedef picojson::value JsonValue;
 typedef picojson::object JsonObject;
 typedef picojson::array JsonArray;
+typedef std::string JsonString;
 
 namespace ContactUtil {
-
-extern const char *kContactReadPrivileges;
-extern const char *kContactWritePrivileges;
 
 void ContactsDeleter(contacts_record_h *contacts_record);
 typedef std::unique_ptr<contacts_record_h, void (*)(contacts_record_h *)>
@@ -144,6 +142,8 @@ void ExportContactGroupToContactsRecord(contacts_record_h contacts_record,
                                         const JsonObject &in);
 void ImportPersonFromContactsRecord(contacts_record_h contacts_record,
                                     JsonObject *out);
+
+void CheckDBConnection();
 
 }  // ContactUtil
 }  // contact

@@ -38,11 +38,11 @@ static const PersonPropertyMap personPropertyMap = {
     {"displayContactId",        { _contacts_person.display_contact_id,  kPrimitiveTypeId } },
 };
 
-void Person_link(const JsonObject& args, JsonObject& out) {
-  NativePlugin::CheckAccess(ContactUtil::kContactWritePrivileges);
+void Person_link(const JsonObject& args) {
+  ContactUtil::CheckDBConnection();
 
-  long id = common::stol(FromJson<json::String>(args, "id"));
-  long person_id = common::stol(FromJson<json::String>(args, "person", "id"));
+  long id = common::stol(FromJson<JsonString>(args, "id"));
+  long person_id = common::stol(FromJson<JsonString>(args, "person", "id"));
 
   contacts_record_h contacts_record = nullptr;
 
@@ -61,14 +61,12 @@ void Person_link(const JsonObject& args, JsonObject& out) {
     LOGW("person link fails, error code: %d", err);
     throw common::UnknownException("Error during executing person link()");
   }
-
-  NativePlugin::ReportSuccess(out);
 }
 
-void Person_unlink(const JsonObject& args, JsonObject& out) {
-  NativePlugin::CheckAccess(ContactUtil::kContactWritePrivileges);
+void Person_unlink(const JsonObject& args) {
+  ContactUtil::CheckDBConnection();
 
-  long contact_id = common::stol(FromJson<json::String>(args, "id"));
+  long contact_id = common::stol(FromJson<JsonString>(args, "id"));
 
   contacts_record_h contacts_record = nullptr;
   int error_code = contacts_db_get_record(_contacts_simple_contact._uri,
@@ -92,7 +90,7 @@ void Person_unlink(const JsonObject& args, JsonObject& out) {
     throw common::UnknownException("Contact is not a member of person");
   }
 
-  long person_id = common::stol(FromJson<json::String>(args, "person", "id"));
+  long person_id = common::stol(FromJson<JsonString>(args, "person", "id"));
   if (contacts_person_id != person_id) {
     LOGW("Contact is not a member of person (wrong id's)");
     throw common::InvalidValuesException("Contact is not a member of person");
@@ -116,14 +114,12 @@ void Person_unlink(const JsonObject& args, JsonObject& out) {
     throw common::UnknownException("Person not found");
   }
 
-  json::Value person{json::Object{}};
+  JsonValue person{JsonObject{}};
   ContactUtil::ImportPersonFromContactsRecord(contacts_record,
-                                              &person.get<json::Object>());
+                                              &person.get<JsonObject>());
 
   contacts_record_destroy(contacts_record, true);
   contacts_record = nullptr;
-
-  NativePlugin::ReportSuccess(person, out);
 }
 
 const PersonProperty& PersonProperty_fromString(const std::string& name) {

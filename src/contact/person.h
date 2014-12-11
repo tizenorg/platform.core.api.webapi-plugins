@@ -33,8 +33,8 @@ typedef std::map<std::string, PersonProperty> PersonPropertyMap;
 
 const PersonProperty& PersonProperty_fromString(const std::string& name);
 
-void Person_link(const JsonObject& args, JsonObject& out);
-void Person_unlink(const JsonObject& args, JsonObject& out);
+void Person_link(const JsonObject& args);
+void Person_unlink(const JsonObject& args);
 
 }  // Person
 }  // contact

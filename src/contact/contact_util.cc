@@ -25,10 +25,6 @@ namespace extension {
 namespace contact {
 namespace ContactUtil {
 
-const char* kContactReadPrivileges = "http://tizen.org/privilege/contact.read";
-const char* kContactWritePrivileges =
-    "http://tizen.org/privilege/contact.write";
-
 namespace {
 
 static const std::string kSchema("file://");
@@ -296,7 +292,7 @@ void ExportBirthdayToContactsRecord(contacts_record_h contacts_record,
 
 bool ImportContactNameFromContactsRecord(contacts_record_h contacts_record,
                                          JsonObject* out_ptr) {
-  json::Object& out = *out_ptr;
+  JsonObject& out = *out_ptr;
   if (!contacts_record) {
     LOGW("Contacts record is null");
     throw common::UnknownException("Contacts record is null");
@@ -378,9 +374,9 @@ bool ImportContactNameFromContactsRecord(contacts_record_h contacts_record,
       contacts_record, _contacts_contact.nickname, &count);
   ContactUtil::ErrorChecker(err, "Contacts child record get count error");
 
-  json::Array& nicknames =
-      out.insert(std::make_pair("nicknames", json::Array()))
-          .first->second.get<json::Array>();
+  JsonArray& nicknames =
+      out.insert(std::make_pair("nicknames", JsonArray()))
+          .first->second.get<JsonArray>();
   for (unsigned int i = 0; i < count; ++i) {
     contacts_record_h nickname = nullptr;
     err = contacts_record_get_child_record_at_p(
@@ -398,7 +394,7 @@ bool ImportContactNameFromContactsRecord(contacts_record_h contacts_record,
 }
 
 void ExportContactNameToContactsRecord(contacts_record_h contacts_record,
-                                       const json::Object& in) {
+                                       const JsonObject& in) {
   // contacts_record is protected by unique_ptr and its ownership is not passed
   // here
   if (!contacts_record) {
@@ -421,40 +417,40 @@ void ExportContactNameToContactsRecord(contacts_record_h contacts_record,
 
   if (!IsNull(in, "prefix")) {
     ContactUtil::SetStrInRecord(*contacts_name_ptr, _contacts_name.prefix,
-                                FromJson<json::String>(in, "prefix").c_str());
+                                FromJson<JsonString>(in, "prefix").c_str());
   }
   if (!IsNull(in, "suffix")) {
     ContactUtil::SetStrInRecord(*contacts_name_ptr, _contacts_name.suffix,
-                                FromJson<json::String>(in, "suffix").c_str());
+                                FromJson<JsonString>(in, "suffix").c_str());
   }
   if (!IsNull(in, "firstName")) {
     ContactUtil::SetStrInRecord(
         *contacts_name_ptr, _contacts_name.first,
-        FromJson<json::String>(in, "firstName").c_str());
+        FromJson<JsonString>(in, "firstName").c_str());
   }
   if (!IsNull(in, "middleName")) {
     ContactUtil::SetStrInRecord(
         *contacts_name_ptr, _contacts_name.addition,
-        FromJson<json::String>(in, "middleName").c_str());
+        FromJson<JsonString>(in, "middleName").c_str());
   }
   if (!IsNull(in, "lastName")) {
     ContactUtil::SetStrInRecord(*contacts_name_ptr, _contacts_name.last,
-                                FromJson<json::String>(in, "lastName").c_str());
+                                FromJson<JsonString>(in, "lastName").c_str());
   }
   if (!IsNull(in, "phoneticFirstName")) {
     ContactUtil::SetStrInRecord(
         *contacts_name_ptr, _contacts_name.phonetic_first,
-        FromJson<json::String>(in, "phoneticFirstName").c_str());
+        FromJson<JsonString>(in, "phoneticFirstName").c_str());
   }
   if (!IsNull(in, "phoneticMiddleName")) {
     ContactUtil::SetStrInRecord(
         *contacts_name_ptr, _contacts_name.phonetic_middle,
-        FromJson<json::String>(in, "phoneticMiddleName").c_str());
+        FromJson<JsonString>(in, "phoneticMiddleName").c_str());
   }
   if (!IsNull(in, "phoneticLastName")) {
     ContactUtil::SetStrInRecord(
         *contacts_name_ptr, _contacts_name.phonetic_last,
-        FromJson<json::String>(in, "phoneticLastName").c_str());
+        FromJson<JsonString>(in, "phoneticLastName").c_str());
   }
 
   // contact_name is being added as a child to contacts_record
@@ -468,7 +464,7 @@ void ExportContactNameToContactsRecord(contacts_record_h contacts_record,
   // by its parent (contacts_record)
   contacts_name_ptr.release();
 
-  const json::Array& nicknames = FromJson<json::Array>(in, "nicknames");
+  const JsonArray& nicknames = FromJson<JsonArray>(in, "nicknames");
 
   for (auto& nickname : nicknames) {
     contacts_record_h nickname_record = nullptr;
@@ -482,7 +478,7 @@ void ExportContactNameToContactsRecord(contacts_record_h contacts_record,
     ContactsRecordHPtr nickname_ptr(&nickname_record, ContactsDeleter);
 
     ContactUtil::SetStrInRecord(*nickname_ptr, _contacts_nickname.name,
-                                JsonCast<json::String>(nickname).c_str());
+                                JsonCast<JsonString>(nickname).c_str());
     if (!update) {
       err = contacts_record_add_child_record(
           contacts_record, _contacts_contact.nickname, *nickname_ptr);
@@ -498,7 +494,7 @@ void ExportContactNameToContactsRecord(contacts_record_h contacts_record,
 void ImportContactEmailAddressFromContactsRecord(
     contacts_record_h contacts_record, unsigned int index,
     JsonObject* out_ptr) {
-  json::Object& out = *out_ptr;
+  JsonObject& out = *out_ptr;
   // contacts_record is protected by unique_ptr and its ownership is not passed
   // here
   if (!contacts_record) {
@@ -529,7 +525,7 @@ void ImportContactEmailAddressFromContactsRecord(
   char* label = nullptr;
   ContactUtil::GetStrFromRecord(child_record, _contacts_email.label, &label);
   out.insert(
-      std::make_pair("label", label ? json::Value{label} : json::Value{}));
+      std::make_pair("label", label ? JsonValue{label} : JsonValue{}));
 
   int type = 0;
   ContactUtil::GetIntFromRecord(child_record, _contacts_email.type, &type);
@@ -556,7 +552,7 @@ void ImportContactEmailAddressFromContactsRecord(
 }
 
 void ExportContactEmailAddressToContactsRecord(
-    contacts_record_h contacts_record, const json::Object& in) {
+    contacts_record_h contacts_record, const JsonObject& in) {
   contacts_record_h c_email_record_h = nullptr;
   // contacts_record is protected by unique_ptr and its ownership is not passed
   // here
@@ -571,19 +567,19 @@ void ExportContactEmailAddressToContactsRecord(
   ContactsRecordHPtr record(&c_email_record_h, ContactsDeleter);
 
   ContactUtil::SetStrInRecord(c_email_record_h, _contacts_email.email,
-                              FromJson<json::String>(in, "email").c_str());
+                              FromJson<JsonString>(in, "email").c_str());
   ContactUtil::SetBoolInRecord(c_email_record_h, _contacts_email.is_default,
                                FromJson<bool>(in, "isDefault"));
   if (!IsNull(in, "label")) {
     ContactUtil::SetStrInRecord(c_email_record_h, _contacts_email.label,
-                                FromJson<json::String>(in, "label").c_str());
+                                FromJson<JsonString>(in, "label").c_str());
   }
 
   int type_to_set = 0;
 
-  auto& types = FromJson<json::Array>(in, "types");
+  auto& types = FromJson<JsonArray>(in, "types");
   for (auto& type : types) {
-    auto type_str = JsonCast<json::String>(type);
+    auto type_str = JsonCast<JsonString>(type);
     if (type_str == kContactEmailAddressTypeWork) {
       type_to_set |= CONTACTS_EMAIL_TYPE_WORK;
     } else if (type_str == kContactEmailAddressTypeOther) {
@@ -607,7 +603,7 @@ void ExportContactEmailAddressToContactsRecord(
 void ImportContactPhoneNumberFromContactsRecord(
     contacts_record_h contacts_record, unsigned int index,
     JsonObject* out_ptr) {
-  json::Object& out = *out_ptr;
+  JsonObject& out = *out_ptr;
   int err = CONTACTS_ERROR_NONE;
   contacts_record_h child_record = nullptr;
   // contacts_record is protected by unique_ptr and its ownership is not passed
@@ -695,7 +691,7 @@ void ImportContactPhoneNumberFromContactsRecord(
 }
 
 void ExportContactPhoneNumberToContactsRecord(contacts_record_h contacts_record,
-                                              const json::Object& in) {
+                                              const JsonObject& in) {
   contacts_record_h phone_record = nullptr;
   // contacts_record is protected by unique_ptr and its ownership is not passed
   // here
@@ -710,19 +706,19 @@ void ExportContactPhoneNumberToContactsRecord(contacts_record_h contacts_record,
   ContactsRecordHPtr record(&phone_record, ContactsDeleter);
 
   ContactUtil::SetStrInRecord(phone_record, _contacts_number.number,
-                              FromJson<json::String>(in, "number").c_str());
+                              FromJson<JsonString>(in, "number").c_str());
 
   ContactUtil::SetBoolInRecord(phone_record, _contacts_number.is_default,
                                FromJson<bool>(in, "isDefault"));
   if (!IsNull(in, "label")) {
     ContactUtil::SetStrInRecord(phone_record, _contacts_address.label,
-                                FromJson<json::String>(in, "label").c_str());
+                                FromJson<JsonString>(in, "label").c_str());
   }
 
   int type_to_set = 0;
-  const json::Array& types = FromJson<json::Array>(in, "types");
+  const JsonArray& types = FromJson<JsonArray>(in, "types");
   for (auto& type : types) {
-    auto& type_str = JsonCast<json::String>(type);
+    auto& type_str = JsonCast<JsonString>(type);
     if (type_str == kContactPhoneTypeHome) {
       type_to_set |= CONTACTS_NUMBER_TYPE_HOME;
     } else if (type_str == kContactPhoneTypeWork) {
@@ -772,7 +768,7 @@ void ExportContactPhoneNumberToContactsRecord(contacts_record_h contacts_record,
 void ImportContactOrganizationFromContactsRecord(
     contacts_record_h contacts_record, unsigned int index,
     JsonObject* out_ptr) {
-  json::Object& out = *out_ptr;
+  JsonObject& out = *out_ptr;
   // contacts_record is protected by unique_ptr and its ownership is not passed
   // here
   if (!contacts_record) {
@@ -816,7 +812,7 @@ void ImportContactOrganizationFromContactsRecord(
 }
 
 void ExportContactOrganizationToContactsRecord(
-    contacts_record_h contacts_record, const json::Object& in) {
+    contacts_record_h contacts_record, const JsonObject& in) {
   // contacts_record is protected by unique_ptr and its ownership is not passed
   // here
   if (!contacts_record) {
@@ -833,25 +829,25 @@ void ExportContactOrganizationToContactsRecord(
 
   if (!IsNull(in, "name")) {
     ContactUtil::SetStrInRecord(organization_record, _contacts_company.name,
-                                FromJson<json::String>(in, "name").c_str());
+                                FromJson<JsonString>(in, "name").c_str());
   }
   if (!IsNull(in, "department")) {
     ContactUtil::SetStrInRecord(
         organization_record, _contacts_company.department,
-        FromJson<json::String>(in, "department").c_str());
+        FromJson<JsonString>(in, "department").c_str());
   }
   if (!IsNull(in, "title")) {
     ContactUtil::SetStrInRecord(organization_record,
                                 _contacts_company.job_title,
-                                FromJson<json::String>(in, "title").c_str());
+                                FromJson<JsonString>(in, "title").c_str());
   }
   if (!IsNull(in, "role")) {
     ContactUtil::SetStrInRecord(organization_record, _contacts_company.role,
-                                FromJson<json::String>(in, "role").c_str());
+                                FromJson<JsonString>(in, "role").c_str());
   }
   if (!IsNull(in, "logoURI")) {
     std::string path =
-        ContactUtil::ConvertUriToPath(FromJson<json::String>(in, "logoURI"));
+        ContactUtil::ConvertUriToPath(FromJson<JsonString>(in, "logoURI"));
     ContactUtil::SetStrInRecord(organization_record, _contacts_company.logo,
                                 path.c_str());
   }
@@ -866,7 +862,7 @@ void ExportContactOrganizationToContactsRecord(
 void ImportContactWebSiteFromContactsRecord(contacts_record_h contacts_record,
                                             unsigned int index,
                                             JsonObject* out_ptr) {
-  json::Object& out = *out_ptr;
+  JsonObject& out = *out_ptr;
   // contacts_record is protected by unique_ptr and its ownership is not passed
   // here
   if (!contacts_record) {
@@ -895,7 +891,7 @@ void ImportContactWebSiteFromContactsRecord(contacts_record_h contacts_record,
 }
 
 void ExportContactWebSiteToContactsRecord(contacts_record_h contacts_record,
-                                          const json::Object& in) {
+                                          const JsonObject& in) {
   // contacts_record is protected by unique_ptr and its ownership is not passed
   // here
   if (!contacts_record) {
@@ -908,7 +904,7 @@ void ExportContactWebSiteToContactsRecord(contacts_record_h contacts_record,
     return;
   }
 
-  const std::string& url = FromJson<json::String>(in, "url");
+  const std::string& url = FromJson<JsonString>(in, "url");
   if (url.empty()) {
     LOGD("WebSite urls are not set");
     return;
@@ -923,7 +919,7 @@ void ExportContactWebSiteToContactsRecord(contacts_record_h contacts_record,
   ContactUtil::SetStrInRecord(website_record_h, _contacts_url.url, url.c_str());
 
   int type_to_set =
-      (FromJson<json::String>(in, "type") == kContactWebSiteTypeHomePage)
+      (FromJson<JsonString>(in, "type") == kContactWebSiteTypeHomePage)
           ? CONTACTS_URL_TYPE_HOME
           : CONTACTS_URL_TYPE_WORK;
 
@@ -941,7 +937,7 @@ void ExportContactWebSiteToContactsRecord(contacts_record_h contacts_record,
 bool ImportContactAnniversariesFromContactsRecord(
     contacts_record_h contacts_record, unsigned int index,
     JsonObject* out_ptr) {
-  json::Object& out = *out_ptr;
+  JsonObject& out = *out_ptr;
   // contacts_record is protected by unique_ptr and its ownership is not passed
   // here
   if (!contacts_record) {
@@ -972,13 +968,13 @@ bool ImportContactAnniversariesFromContactsRecord(
     ContactUtil::GetStrFromRecord(child_record, _contacts_event.label, &label);
 
     out.insert(
-        std::make_pair("label", label ? json::Value{label} : json::Value{}));
+        std::make_pair("label", label ? JsonValue{label} : JsonValue{}));
   }
   return true;
 }
 
 void ExportContactAnniversariesToContactsRecord(
-    contacts_record_h contacts_record, const json::Object& in) {
+    contacts_record_h contacts_record, const JsonObject& in) {
   // contacts_record is protected by unique_ptr and its ownership is not passed
   // here
   if (!contacts_record) {
@@ -1005,7 +1001,7 @@ void ExportContactAnniversariesToContactsRecord(
 
   if (!IsNull(in, "label")) {
     ContactUtil::SetStrInRecord(anniversary_record, _contacts_event.label,
-                                FromJson<json::String>(in, "label").c_str());
+                                FromJson<JsonString>(in, "label").c_str());
   }
 
   err = contacts_record_add_child_record(
@@ -1017,8 +1013,8 @@ void ExportContactAnniversariesToContactsRecord(
 
 void ImportContactRelationshipFromContactsRecord(
     contacts_record_h contacts_record, unsigned int index,
-    json::Object* out_ptr) {
-  json::Object& out = *out_ptr;
+    JsonObject* out_ptr) {
+  JsonObject& out = *out_ptr;
   // contacts_record is protected by unique_ptr and its ownership is not passed
   // here
   if (!contacts_record) {
@@ -1041,7 +1037,7 @@ void ImportContactRelationshipFromContactsRecord(
     return;
   }
 
-  out.insert(std::make_pair("relativeName", json::String{relative}));
+  out.insert(std::make_pair("relativeName", JsonString{relative}));
 
   int type = 0;
   ContactUtil::GetIntFromRecord(child_record, _contacts_relationship.type,
@@ -1051,68 +1047,68 @@ void ImportContactRelationshipFromContactsRecord(
   switch (type) {
     case CONTACTS_RELATIONSHIP_TYPE_CUSTOM:
       out.insert(
-          std::make_pair("type", json::String{kContactRelationshipTypeCustom}));
+          std::make_pair("type", JsonString{kContactRelationshipTypeCustom}));
       break;
     case CONTACTS_RELATIONSHIP_TYPE_ASSISTANT:
       out.insert(std::make_pair(
-          "type", json::String{kContactRelationshipTypeAssistant}));
+          "type", JsonString{kContactRelationshipTypeAssistant}));
       break;
     case CONTACTS_RELATIONSHIP_TYPE_BROTHER:
       out.insert(std::make_pair("type",
-                                json::String{kContactRelationshipTypeBrother}));
+                                JsonString{kContactRelationshipTypeBrother}));
       break;
     case CONTACTS_RELATIONSHIP_TYPE_CHILD:
       out.insert(
-          std::make_pair("type", json::String{kContactRelationshipTypeChild}));
+          std::make_pair("type", JsonString{kContactRelationshipTypeChild}));
       break;
     case CONTACTS_RELATIONSHIP_TYPE_DOMESTIC_PARTNER:
       out.insert(std::make_pair(
-          "type", json::String{kContactRelationshipTypeDomesticPartner}));
+          "type", JsonString{kContactRelationshipTypeDomesticPartner}));
       break;
     case CONTACTS_RELATIONSHIP_TYPE_FATHER:
       out.insert(
-          std::make_pair("type", json::String{kContactRelationshipTypeFather}));
+          std::make_pair("type", JsonString{kContactRelationshipTypeFather}));
       break;
     case CONTACTS_RELATIONSHIP_TYPE_FRIEND:
       out.insert(
-          std::make_pair("type", json::String{kContactRelationshipTypeFriend}));
+          std::make_pair("type", JsonString{kContactRelationshipTypeFriend}));
       break;
     case CONTACTS_RELATIONSHIP_TYPE_MANAGER:
       out.insert(std::make_pair("type",
-                                json::String{kContactRelationshipTypeManager}));
+                                JsonString{kContactRelationshipTypeManager}));
       break;
     case CONTACTS_RELATIONSHIP_TYPE_MOTHER:
       out.insert(
-          std::make_pair("type", json::String{kContactRelationshipTypeMother}));
+          std::make_pair("type", JsonString{kContactRelationshipTypeMother}));
       break;
     case CONTACTS_RELATIONSHIP_TYPE_PARENT:
       out.insert(
-          std::make_pair("type", json::String{kContactRelationshipTypeParent}));
+          std::make_pair("type", JsonString{kContactRelationshipTypeParent}));
       break;
     case CONTACTS_RELATIONSHIP_TYPE_PARTNER:
       out.insert(std::make_pair("type",
-                                json::String{kContactRelationshipTypePartner}));
+                                JsonString{kContactRelationshipTypePartner}));
       break;
     case CONTACTS_RELATIONSHIP_TYPE_REFERRED_BY:
       out.insert(std::make_pair(
-          "type", json::String{kContactRelationshipTypeReferredBy}));
+          "type", JsonString{kContactRelationshipTypeReferredBy}));
       break;
     case CONTACTS_RELATIONSHIP_TYPE_RELATIVE:
       out.insert(std::make_pair(
-          "type", json::String{kContactRelationshipTypeRelative}));
+          "type", JsonString{kContactRelationshipTypeRelative}));
       break;
     case CONTACTS_RELATIONSHIP_TYPE_SISTER:
       out.insert(
-          std::make_pair("type", json::String{kContactRelationshipTypeSister}));
+          std::make_pair("type", JsonString{kContactRelationshipTypeSister}));
       break;
     case CONTACTS_RELATIONSHIP_TYPE_SPOUSE:
       out.insert(
-          std::make_pair("type", json::String{kContactRelationshipTypeSpouse}));
+          std::make_pair("type", JsonString{kContactRelationshipTypeSpouse}));
       break;
     case CONTACTS_RELATIONSHIP_TYPE_OTHER:
     default:
       out.insert(
-          std::make_pair("type", json::String{kContactRelationshipTypeOther}));
+          std::make_pair("type", JsonString{kContactRelationshipTypeOther}));
       break;
   }
 
@@ -1120,11 +1116,11 @@ void ImportContactRelationshipFromContactsRecord(
   ContactUtil::GetStrFromRecord(child_record, _contacts_relationship.label,
                                 &label);
   out.insert(
-      std::make_pair("label", label ? json::Value{label} : json::Value{}));
+      std::make_pair("label", label ? JsonValue{label} : JsonValue{}));
 }
 
 void ExportContactRelationshipToContactsRecord(
-    contacts_record_h contacts_record, const json::Object& in) {
+    contacts_record_h contacts_record, const JsonObject& in) {
   // contacts_record is protected by unique_ptr and its ownership is not passed
   // here
   if (!contacts_record) {
@@ -1140,9 +1136,9 @@ void ExportContactRelationshipToContactsRecord(
 
   ContactUtil::SetStrInRecord(
       child_record, _contacts_relationship.name,
-      FromJson<json::String>(in, "relativeName").c_str());
+      FromJson<JsonString>(in, "relativeName").c_str());
 
-  const json::String& type = FromJson<json::String>(in, "type");
+  const JsonString& type = FromJson<JsonString>(in, "type");
   int type_to_set;
   if (type == kContactRelationshipTypeAssistant) {
     type_to_set = CONTACTS_RELATIONSHIP_TYPE_ASSISTANT;
@@ -1183,7 +1179,7 @@ void ExportContactRelationshipToContactsRecord(
 
   if (!IsNull(in, "label")) {
     ContactUtil::SetStrInRecord(child_record, _contacts_relationship.label,
-                                FromJson<json::String>(in, "label").c_str());
+                                FromJson<JsonString>(in, "label").c_str());
   }
 
   err = contacts_record_add_child_record(
@@ -1194,8 +1190,8 @@ void ExportContactRelationshipToContactsRecord(
 
 void ImportContactInstantMessengerFromContactsRecord(
     contacts_record_h contacts_record, unsigned int index,
-    json::Object* out_ptr) {
-  json::Object& out = *out_ptr;
+    JsonObject* out_ptr) {
+  JsonObject& out = *out_ptr;
   // contacts_record is protected by unique_ptr and its ownership is not passed
   // here
   if (!contacts_record) {
@@ -1220,7 +1216,7 @@ void ImportContactInstantMessengerFromContactsRecord(
     return;
   }
 
-  out.insert(std::make_pair("imAddress", json::Value{im_address}));
+  out.insert(std::make_pair("imAddress", JsonValue{im_address}));
 
   int type = 0;
   ContactUtil::GetIntFromRecord(child_record, _contacts_messenger.type, &type);
@@ -1229,52 +1225,52 @@ void ImportContactInstantMessengerFromContactsRecord(
   switch (type) {
     case CONTACTS_MESSENGER_TYPE_CUSTOM:
       out.insert(std::make_pair("type",
-                                json::Value{kContactInstantMessageTypeCustom}));
+                                JsonValue{kContactInstantMessageTypeCustom}));
       break;
     case CONTACTS_MESSENGER_TYPE_GOOGLE:
       out.insert(std::make_pair("type",
-                                json::Value{kContactInstantMessageTypeGoogle}));
+                                JsonValue{kContactInstantMessageTypeGoogle}));
       break;
     case CONTACTS_MESSENGER_TYPE_WLM:
       out.insert(
-          std::make_pair("type", json::Value{kContactInstantMessageTypeWlm}));
+          std::make_pair("type", JsonValue{kContactInstantMessageTypeWlm}));
       break;
     case CONTACTS_MESSENGER_TYPE_YAHOO:
       out.insert(
-          std::make_pair("type", json::Value{kContactInstantMessageTypeYahoo}));
+          std::make_pair("type", JsonValue{kContactInstantMessageTypeYahoo}));
       break;
     case CONTACTS_MESSENGER_TYPE_FACEBOOK:
       out.insert(std::make_pair(
-          "type", json::Value{kContactInstantMessageTypeFacebook}));
+          "type", JsonValue{kContactInstantMessageTypeFacebook}));
       break;
     case CONTACTS_MESSENGER_TYPE_ICQ:
       out.insert(
-          std::make_pair("type", json::Value{kContactInstantMessageTypeIcq}));
+          std::make_pair("type", JsonValue{kContactInstantMessageTypeIcq}));
       break;
     case CONTACTS_MESSENGER_TYPE_AIM:
       out.insert(
-          std::make_pair("type", json::Value{kContactInstantMessageTypeAim}));
+          std::make_pair("type", JsonValue{kContactInstantMessageTypeAim}));
       break;
     case CONTACTS_MESSENGER_TYPE_QQ:
       out.insert(
-          std::make_pair("type", json::Value{kContactInstantMessageTypeQq}));
+          std::make_pair("type", JsonValue{kContactInstantMessageTypeQq}));
       break;
     case CONTACTS_MESSENGER_TYPE_JABBER:
       out.insert(std::make_pair("type",
-                                json::Value{kContactInstantMessageTypeJabber}));
+                                JsonValue{kContactInstantMessageTypeJabber}));
       break;
     case CONTACTS_MESSENGER_TYPE_SKYPE:
       out.insert(
-          std::make_pair("type", json::Value{kContactInstantMessageTypeSkype}));
+          std::make_pair("type", JsonValue{kContactInstantMessageTypeSkype}));
       break;
     case CONTACTS_MESSENGER_TYPE_IRC:
       out.insert(
-          std::make_pair("type", json::Value{kContactInstantMessageTypeIrc}));
+          std::make_pair("type", JsonValue{kContactInstantMessageTypeIrc}));
       break;
     case CONTACTS_MESSENGER_TYPE_OTHER:
     default:
       out.insert(
-          std::make_pair("type", json::Value{kContactInstantMessageTypeOther}));
+          std::make_pair("type", JsonValue{kContactInstantMessageTypeOther}));
       break;
   }
 
@@ -1282,11 +1278,11 @@ void ImportContactInstantMessengerFromContactsRecord(
   ContactUtil::GetStrFromRecord(child_record, _contacts_messenger.label,
                                 &label);
   out.insert(
-      std::make_pair("label", label ? json::Value{label} : json::Value{}));
+      std::make_pair("label", label ? JsonValue{label} : JsonValue{}));
 }
 
 void ExportContactInstantMessengerToContactsRecord(
-    contacts_record_h contacts_record, const json::Object& in) {
+    contacts_record_h contacts_record, const JsonObject& in) {
   // contacts_record is protected by unique_ptr and its ownership is not passed
   // here
   if (!contacts_record) {
@@ -1301,10 +1297,10 @@ void ExportContactInstantMessengerToContactsRecord(
   ContactsRecordHPtr record(&child_record, ContactsDeleter);
 
   ContactUtil::SetStrInRecord(child_record, _contacts_messenger.im_id,
-                              FromJson<json::String>(in, "imAddress").c_str());
+                              FromJson<JsonString>(in, "imAddress").c_str());
 
   int type_to_set = 0;
-  const json::String& type = FromJson<json::String>(in, "type");
+  const JsonString& type = FromJson<JsonString>(in, "type");
   if (type == kContactInstantMessageTypeGoogle) {
     type_to_set = CONTACTS_MESSENGER_TYPE_GOOGLE;
   } else if (type == kContactInstantMessageTypeWlm) {
@@ -1336,7 +1332,7 @@ void ExportContactInstantMessengerToContactsRecord(
 
   if (!IsNull(in, "label")) {
     ContactUtil::SetStrInRecord(child_record, _contacts_messenger.label,
-                                FromJson<json::String>(in, "label").c_str());
+                                FromJson<JsonString>(in, "label").c_str());
   }
 
   err = contacts_record_add_child_record(
@@ -1348,7 +1344,7 @@ void ExportContactInstantMessengerToContactsRecord(
 void ImportContactAddressFromContactsRecord(contacts_record_h contacts_record,
                                             unsigned int index,
                                             JsonObject* out_ptr) {
-  json::Object& out = *out_ptr;
+  JsonObject& out = *out_ptr;
   // contacts_record is protected by unique_ptr and its ownership is not passed
   // here
   if (!contacts_record) {
@@ -1417,7 +1413,7 @@ void ImportContactAddressFromContactsRecord(contacts_record_h contacts_record,
 }
 
 void ExportContactAddressToContactsRecord(contacts_record_h contacts_record,
-                                          const json::Object& in) {
+                                          const JsonObject& in) {
   // contacts_record is protected by unique_ptr and its ownership is not passed
   // here
   if (!contacts_record) {
@@ -1433,43 +1429,43 @@ void ExportContactAddressToContactsRecord(contacts_record_h contacts_record,
 
   if (!IsNull(in, "country")) {
     ContactUtil::SetStrInRecord(address_record, _contacts_address.country,
-                                FromJson<json::String>(in, "country").c_str());
+                                FromJson<JsonString>(in, "country").c_str());
   }
   if (!IsNull(in, "region")) {
     ContactUtil::SetStrInRecord(address_record, _contacts_address.region,
-                                FromJson<json::String>(in, "region").c_str());
+                                FromJson<JsonString>(in, "region").c_str());
   }
   if (!IsNull(in, "city")) {
     ContactUtil::SetStrInRecord(address_record, _contacts_address.locality,
-                                FromJson<json::String>(in, "city").c_str());
+                                FromJson<JsonString>(in, "city").c_str());
   }
   if (!IsNull(in, "streetAddress")) {
     ContactUtil::SetStrInRecord(
         address_record, _contacts_address.street,
-        FromJson<json::String>(in, "streetAddress").c_str());
+        FromJson<JsonString>(in, "streetAddress").c_str());
   }
   if (!IsNull(in, "additionalInformation")) {
     ContactUtil::SetStrInRecord(
         address_record, _contacts_address.extended,
-        FromJson<json::String>(in, "additionalInformation").c_str());
+        FromJson<JsonString>(in, "additionalInformation").c_str());
   }
   if (!IsNull(in, "postalCode")) {
     ContactUtil::SetStrInRecord(
         address_record, _contacts_address.postal_code,
-        FromJson<json::String>(in, "postalCode").c_str());
+        FromJson<JsonString>(in, "postalCode").c_str());
   }
   if (!IsNull(in, "label")) {
     ContactUtil::SetStrInRecord(address_record, _contacts_address.label,
-                                FromJson<json::String>(in, "label").c_str());
+                                FromJson<JsonString>(in, "label").c_str());
   }
 
   ContactUtil::SetBoolInRecord(address_record, _contacts_address.is_default,
                                FromJson<bool>(in, "isDefault"));
 
   int type_to_set = 0;
-  const json::Array& types = FromJson<json::Array>(in, "types");
+  const JsonArray& types = FromJson<JsonArray>(in, "types");
   for (auto& type : types) {
-    auto& type_str = JsonCast<json::String>(type);
+    auto& type_str = JsonCast<JsonString>(type);
     if (type_str == kContactAddressTypeWork) {
       type_to_set |= CONTACTS_ADDRESS_TYPE_WORK;
     } else if (type_str == kContactAddressTypeOther) {
@@ -1544,7 +1540,7 @@ void ExportNotesToContactsRecord(contacts_record_h contacts_record,
 
 void ImportContactFromContactsRecord(contacts_record_h contacts_record,
                                      JsonObject* out_ptr) {
-  json::Object& out = *out_ptr;
+  JsonObject& out = *out_ptr;
   // contacts_record is protected by unique_ptr and its ownership is not passed
   // here
   if (!contacts_record) {
@@ -1578,7 +1574,7 @@ void ImportContactFromContactsRecord(contacts_record_h contacts_record,
   if (ImportContactNameFromContactsRecord(contacts_record, &name)) {
     out.insert(std::make_pair("name", name));
   } else {
-    out.insert(std::make_pair("name", json::Value{}));
+    out.insert(std::make_pair("name", JsonValue{}));
   }
 
   typedef void (*ImportFunc)(contacts_record_h, unsigned int, JsonObject*);
@@ -1603,26 +1599,26 @@ void ImportContactFromContactsRecord(contacts_record_h contacts_record,
        ImportContactRelationshipFromContactsRecord}, };
 
   for (auto& data : imports) {
-    json::Array& array = out.insert(std::make_pair(data.name, json::Array()))
-                             .first->second.get<json::Array>();
+    JsonArray& array = out.insert(std::make_pair(data.name, JsonArray()))
+                             .first->second.get<JsonArray>();
 
     for (unsigned int i = 0, n = ContactUtil::GetNumberOfChildRecord(
                                  contacts_record, data.property_id);
          i < n; ++i) {
-      JsonValue val{json::Object{}};
+      JsonValue val{JsonObject{}};
       data.import_func(contacts_record, i, &val.get<JsonObject>());
       array.push_back(val);
     }
   }
 
   //### ContactAnniversary: ###
-  json::Array& anniversaries =
-      out.insert(std::make_pair("anniversaries", json::Array()))
-          .first->second.get<json::Array>();
+  JsonArray& anniversaries =
+      out.insert(std::make_pair("anniversaries", JsonArray()))
+          .first->second.get<JsonArray>();
   for (unsigned int i = 0, n = ContactUtil::GetNumberOfChildRecord(
                                contacts_record, _contacts_contact.event);
        i < n; ++i) {
-    JsonValue anniversary{json::Object{}};
+    JsonValue anniversary{JsonObject{}};
     if (ImportContactAnniversariesFromContactsRecord(
             contacts_record, i, &anniversary.get<JsonObject>())) {
       anniversaries.push_back(anniversary);
@@ -1632,8 +1628,8 @@ void ImportContactFromContactsRecord(contacts_record_h contacts_record,
   }
 
   //### m_notes: ###
-  json::Array& notes = out.insert(std::make_pair("notes", json::Array()))
-                           .first->second.get<json::Array>();
+  JsonArray& notes = out.insert(std::make_pair("notes", JsonArray()))
+                           .first->second.get<JsonArray>();
   for (unsigned int i = 0, n = ContactUtil::GetNumberOfChildRecord(
                                contacts_record, _contacts_contact.note);
        i < n; ++i) {
@@ -1657,18 +1653,18 @@ void ImportContactFromContactsRecord(contacts_record_h contacts_record,
                                   _contacts_contact.message_alert, &value);
     out.insert(std::make_pair(
         "messageAlertURI",
-        value ? json::Value{ConvertPathToUri(value)} : json::Value{}));
+        value ? JsonValue{ConvertPathToUri(value)} : JsonValue{}));
     value = nullptr;
     ContactUtil::GetStrFromRecord(contacts_record, _contacts_contact.vibration,
                                   &value);
     out.insert(std::make_pair(
         "vibrationURI",
-        value ? json::Value{ConvertPathToUri(value)} : json::Value{}));
+        value ? JsonValue{ConvertPathToUri(value)} : JsonValue{}));
   }
 }
 
 void ExportContactToContactsRecord(contacts_record_h contacts_record,
-                                   const json::Object& in) {
+                                   const JsonObject& in) {
   // contacts_record is protected by unique_ptr and its ownership is not passed
   // here
   if (!contacts_record) {
@@ -1679,10 +1675,10 @@ void ExportContactToContactsRecord(contacts_record_h contacts_record,
   //### ContactName: ###
   if (!IsNull(in, "name")) {
     ExportContactNameToContactsRecord(contacts_record,
-                                      FromJson<json::Object>(in, "name"));
+                                      FromJson<JsonObject>(in, "name"));
   }
 
-  typedef void (*ExportFunc)(contacts_record_h, const json::Object&);
+  typedef void (*ExportFunc)(contacts_record_h, const JsonObject&);
   struct ExportDataHelper {
     unsigned int property_id;
     const char* name;
@@ -1707,18 +1703,18 @@ void ExportContactToContactsRecord(contacts_record_h contacts_record,
 
   for (auto& data : exports) {
     ContactUtil::ClearAllContactRecord(contacts_record, data.property_id);
-    const json::Array& elements = FromJson<json::Array>(in, data.name);
+    const JsonArray& elements = FromJson<JsonArray>(in, data.name);
     for (auto& element : elements) {
-      data.export_func(contacts_record, JsonCast<json::Object>(element));
+      data.export_func(contacts_record, JsonCast<JsonObject>(element));
     }
   }
 
   {
     //### m_notes: ###
     ContactUtil::ClearAllContactRecord(contacts_record, _contacts_contact.note);
-    const json::Array& elements = FromJson<json::Array>(in, "notes");
+    const JsonArray& elements = FromJson<JsonArray>(in, "notes");
     for (auto& element : elements) {
-      auto& str = JsonCast<json::String>(element);
+      auto& str = JsonCast<JsonString>(element);
       if (str.empty()) {
         continue;
       }
@@ -1758,7 +1754,7 @@ void ExportContactToContactsRecord(contacts_record_h contacts_record,
     std::string real_path;
     if (!IsNull(in, "photoURI")) {
       real_path =
-          ContactUtil::ConvertUriToPath(FromJson<json::String>(in, "photoURI"));
+          ContactUtil::ConvertUriToPath(FromJson<JsonString>(in, "photoURI"));
       ContactUtil::SetStrInRecord(child_record, _contacts_image.path,
                                   real_path.c_str());
     }
@@ -1776,14 +1772,14 @@ void ExportContactToContactsRecord(contacts_record_h contacts_record,
   // Contact.ringtoneURI
   if (!IsNull(in, "ringtoneURI")) {
     real_path = ContactUtil::ConvertUriToPath(
-        FromJson<json::String>(in, "ringtoneURI"));
+        FromJson<JsonString>(in, "ringtoneURI"));
     ContactUtil::SetStrInRecord(
         contacts_record, _contacts_contact.ringtone_path, real_path.c_str());
   }
   // Contact.messageAlertURI
   if (!IsNull(in, "messageAlertURI")) {
     real_path = ContactUtil::ConvertUriToPath(
-        FromJson<json::String>(in, "messageAlertURI"));
+        FromJson<JsonString>(in, "messageAlertURI"));
     ContactUtil::SetStrInRecord(
         contacts_record, _contacts_contact.message_alert, real_path.c_str());
   }
@@ -1791,15 +1787,15 @@ void ExportContactToContactsRecord(contacts_record_h contacts_record,
   // Contact.vibrationURI
   if (!IsNull(in, "vibrationURI")) {
     real_path = ContactUtil::ConvertUriToPath(
-        FromJson<json::String>(in, "vibrationURI"));
+        FromJson<JsonString>(in, "vibrationURI"));
     ContactUtil::SetStrInRecord(contacts_record, _contacts_contact.vibration,
                                 real_path.c_str());
   }
 }
 
 void ImportContactGroupFromContactsRecord(contacts_record_h contacts_record,
-                                          json::Object* out_ptr) {
-  json::Object& out = *out_ptr;
+                                          JsonObject* out_ptr) {
+  JsonObject& out = *out_ptr;
   // contacts_record is protected by unique_ptr and its ownership is not passed
   // here
   if (!contacts_record) {
@@ -1810,13 +1806,13 @@ void ImportContactGroupFromContactsRecord(contacts_record_h contacts_record,
   // id
   int int_val = 0;
   ContactUtil::GetIntFromRecord(contacts_record, _contacts_group.id, &int_val);
-  out.insert(std::make_pair("id", json::Value{std::to_string(int_val)}));
+  out.insert(std::make_pair("id", JsonValue{std::to_string(int_val)}));
 
   // addressBookId
   ContactUtil::GetIntFromRecord(contacts_record,
                                 _contacts_group.address_book_id, &int_val);
   out.insert(
-      std::make_pair("addressBookId", json::Value{std::to_string(int_val)}));
+      std::make_pair("addressBookId", JsonValue{std::to_string(int_val)}));
 
   // name
   char* value = nullptr;
@@ -1841,26 +1837,26 @@ void ImportContactGroupFromContactsRecord(contacts_record_h contacts_record,
   bool bool_value = false;
   ContactUtil::GetBoolFromRecord(contacts_record, _contacts_group.is_read_only,
                                  &bool_value);
-  out.insert(std::make_pair("readOnly", json::Value{bool_value}));
+  out.insert(std::make_pair("readOnly", JsonValue{bool_value}));
 }
 
 void ExportContactGroupToContactsRecord(contacts_record_h contacts_record,
-                                        const json::Object& in) {
+                                        const JsonObject& in) {
   // name
   ContactUtil::SetStrInRecord(contacts_record, _contacts_group.name,
-                              FromJson<json::String>(in, "name").c_str());
+                              FromJson<JsonString>(in, "name").c_str());
 
   std::string real_path;
   // photoURI
   if (!IsNull(in, "photoURI")) {
-    real_path = ConvertUriToPath(FromJson<json::String>(in, "photoURI"));
+    real_path = ConvertUriToPath(FromJson<JsonString>(in, "photoURI"));
     ContactUtil::SetStrInRecord(contacts_record, _contacts_group.image_path,
                                 real_path.c_str());
   }
   // ringtoneURI
   if (!IsNull(in, "ringtoneURI")) {
     real_path = ContactUtil::ConvertUriToPath(
-        FromJson<json::String>(in, "ringtoneURI"));
+        FromJson<JsonString>(in, "ringtoneURI"));
     // NOTE in the original code real path was not read
     ContactUtil::SetStrInRecord(contacts_record, _contacts_group.ringtone_path,
                                 real_path.c_str());
@@ -1872,61 +1868,61 @@ void ExportContactGroupToContactsRecord(contacts_record_h contacts_record,
  * @param[in]   contacts_record_h  Record which is used to fill Person
  */
 void ImportPersonFromContactsRecord(contacts_record_h record,
-                                    json::Object* out_ptr) {
+                                    JsonObject* out_ptr) {
   if (nullptr == record) {
     LoggerW("Platform person record did not set");
     throw InvalidValuesException("Platform person record did not set");
   }
 
-  json::Object& arguments_obj = *out_ptr;
+  JsonObject& arguments_obj = *out_ptr;
 
   int int_value = 0;
   // id
   ContactUtil::GetIntFromRecord(record, _contacts_person.id, &int_value);
   arguments_obj.insert(
-      std::make_pair("id", json::Value(std::to_string(int_value))));
+      std::make_pair("id", JsonValue(std::to_string(int_value))));
 
   char* char_value = nullptr;
   // displayName
   ContactUtil::GetStrFromRecord(record, _contacts_person.display_name,
                                 &char_value);
   arguments_obj.insert(std::make_pair(
-      "displayName", char_value ? json::Value(char_value) : json::Value{}));
+      "displayName", char_value ? JsonValue(char_value) : JsonValue{}));
 
   // contactCount
   ContactUtil::GetIntFromRecord(record, _contacts_person.link_count,
                                 &int_value);
   arguments_obj.insert(std::make_pair(
-      "contactCount", json::Value(static_cast<double>(int_value))));
+      "contactCount", JsonValue(static_cast<double>(int_value))));
 
   bool bool_value = false;
   // hasPhoneNumber
   ContactUtil::GetBoolFromRecord(record, _contacts_person.has_phonenumber,
                                  &bool_value);
   arguments_obj.insert(
-      std::make_pair("hasPhoneNumber", json::Value(bool_value)));
+      std::make_pair("hasPhoneNumber", JsonValue(bool_value)));
 
   // hasEmail
   ContactUtil::GetBoolFromRecord(record, _contacts_person.has_email,
                                  &bool_value);
-  arguments_obj.insert(std::make_pair("hasEmail", json::Value(bool_value)));
+  arguments_obj.insert(std::make_pair("hasEmail", JsonValue(bool_value)));
 
   // isFavorite
   ContactUtil::GetBoolFromRecord(record, _contacts_person.is_favorite,
                                  &bool_value);
-  arguments_obj.insert(std::make_pair("isFavorite", json::Value(bool_value)));
+  arguments_obj.insert(std::make_pair("isFavorite", JsonValue(bool_value)));
 
   // photoURI
   ContactUtil::GetStrFromRecord(record, _contacts_person.image_thumbnail_path,
                                 &char_value);
   arguments_obj.insert(std::make_pair(
-      "photoURI", char_value ? json::Value(char_value) : json::Value{}));
+      "photoURI", char_value ? JsonValue(char_value) : JsonValue{}));
 
   // ringtoneURI
   ContactUtil::GetStrFromRecord(record, _contacts_person.ringtone_path,
                                 &char_value);
   arguments_obj.insert(std::make_pair(
-      "ringtoneURI", char_value ? json::Value(char_value) : json::Value{}));
+      "ringtoneURI", char_value ? JsonValue(char_value) : JsonValue{}));
 
   // displayContactId
   ContactUtil::GetIntFromRecord(record, _contacts_person.display_contact_id,
@@ -1940,7 +1936,7 @@ void ImportPersonFromContactsRecord(contacts_record_h record,
  * @param[out]   contacts_record_h  Record which is updated
  */
 void ExportPersonToContactsRecord(contacts_record_h record,
-                                  const json::Object& args) {
+                                  const JsonObject& args) {
   if (nullptr == record) {
     LoggerE("Platform person object did not set");
     throw UnknownException("Platform person object did not set");
@@ -1950,10 +1946,10 @@ void ExportPersonToContactsRecord(contacts_record_h record,
                                FromJson<bool>(args, "isFavorite"));
   try {
     if (!IsNull(args, "photoURI") &&
-        !FromJson<json::String>(args, "photoURI").empty()) {
+        !FromJson<JsonString>(args, "photoURI").empty()) {
       ContactUtil::SetStrInRecord(
           record, _contacts_person.image_thumbnail_path,
-          FromJson<json::String>(args, "photoURI").c_str());
+          FromJson<JsonString>(args, "photoURI").c_str());
     } else {
       ContactUtil::SetStrInRecord(record, _contacts_person.image_thumbnail_path,
                                   "");
@@ -1965,37 +1961,52 @@ void ExportPersonToContactsRecord(contacts_record_h record,
   if (!IsNull(args, "ringtoneURI")) {
     ContactUtil::SetStrInRecord(
         record, _contacts_person.ringtone_path,
-        FromJson<json::String>(args, "ringtoneURI").c_str());
+        FromJson<JsonString>(args, "ringtoneURI").c_str());
   } else {
     ContactUtil::SetStrInRecord(record, _contacts_person.ringtone_path, "");
   }
   if (!IsNull(args, "displayContactId")) {
     ContactUtil::SetIntInRecord(
         record, _contacts_person.display_contact_id,
-        common::stol(FromJson<json::String>(args, "displayContactId")));
+        common::stol(FromJson<JsonString>(args, "displayContactId")));
   }
 }
 
 void UpdateAdditionalInformation(const ContactsRecordHPtr& contacts_record_ptr,
                                  JsonObject* out_ptr) {
-  json::Object& out = *out_ptr;
+  JsonObject& out = *out_ptr;
   int int_value = -1;
   ContactUtil::GetIntFromRecord(*contacts_record_ptr,
                                 _contacts_contact.person_id, &int_value);
   out.insert(
-      std::make_pair("personId", json::Value{std::to_string(int_value)}));
+      std::make_pair("personId", JsonValue{std::to_string(int_value)}));
   ContactUtil::GetIntFromRecord(*contacts_record_ptr,
                                 _contacts_contact.address_book_id, &int_value);
   out.insert(
-      std::make_pair("addressBookId", json::Value{std::to_string(int_value)}));
+      std::make_pair("addressBookId", JsonValue{std::to_string(int_value)}));
   ContactUtil::GetIntFromRecord(*contacts_record_ptr,
                                 _contacts_contact.changed_time, &int_value);
   out.insert(std::make_pair("lastUpdated",
-                            json::Value{static_cast<double>(int_value)}));
+                            JsonValue{static_cast<double>(int_value)}));
   bool bool_value = false;
   ContactUtil::GetBoolFromRecord(*contacts_record_ptr,
                                  _contacts_contact.is_favorite, &bool_value);
-  out.insert(std::make_pair("isFavorite", json::Value{bool_value}));
+  out.insert(std::make_pair("isFavorite", JsonValue{bool_value}));
+}
+
+void CheckDBConnection()
+{
+    static bool _connected = false;
+    if(_connected)
+      return;
+
+    int err = contacts_connect();
+    if (err == CONTACTS_ERROR_NONE) {
+        LoggerI("Connection established!");
+    } else {
+        LoggerE("DB connection error occured: " << err);
+        throw UnknownException("DB connection error occured: " << err);
+    }
 }
 
 }  // ContactUtil
