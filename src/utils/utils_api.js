@@ -5,7 +5,10 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-/** @deprecated */
+
+/**
+ * @deprecated Used only by validateArguments()
+ */
 var signature_to_type = {
   'n': 'number',
   'f': 'function',
@@ -14,13 +17,16 @@ var signature_to_type = {
   'o': 'object'
 };
 
+
+
 /** @constructor */
 function Utils() {}
+
 
 /**
  * @deprecated You should use xwalk.utils.validator.validateMethod() instead.
  */
-Utils.prototype.validateArguments = function (signature, args) {
+Utils.prototype.validateArguments = function(signature, args) {
   var full_args = Array.prototype.slice.call(args);
 
   // After '?' everything is optional.
@@ -44,10 +50,10 @@ Utils.prototype.validateArguments = function (signature, args) {
   return true;
 };
 
-Utils.prototype.validateObject = function (object, signature, attributes) {
+Utils.prototype.validateObject = function(object, signature, attributes) {
   for (var i = 0; i < signature.length; i++) {
     if (object.hasOwnProperty(attributes[i]) &&
-      typeof object[attributes[i]] !== signature_to_type[signature[i]]) {
+        typeof object[attributes[i]] !== signature_to_type[signature[i]]) {
       return false;
     }
   }
@@ -55,56 +61,58 @@ Utils.prototype.validateObject = function (object, signature, attributes) {
   return true;
 };
 
+
+
 /////////////////////////////////////////////////////////////////////////////
 /** @constructor */
-var Type = function () {};
+var Type = function() {};
 
-Type.prototype.isBoolean = function (obj) {
+Type.prototype.isBoolean = function(obj) {
   return typeof obj === 'boolean';
 };
 
-Type.prototype.isObject = function (obj) {
+Type.prototype.isObject = function(obj) {
   return obj instanceof Object;
 };
 
-Type.prototype.isArray = function (obj) {
+Type.prototype.isArray = function(obj) {
   return Array.isArray(obj);
 };
 
-Type.prototype.isFunction = function (obj) {
+Type.prototype.isFunction = function(obj) {
   return typeof obj === 'function';
 };
 
-Type.prototype.isNumber = function (obj) {
+Type.prototype.isNumber = function(obj) {
   return typeof obj === 'number';
 };
 
-Type.prototype.isString = function (obj) {
+Type.prototype.isString = function(obj) {
   return typeof obj === 'string';
 };
 
-Type.prototype.isDate = function (obj) {
+Type.prototype.isDate = function(obj) {
   return obj instanceof Date;
 };
 
-Type.prototype.isNull = function (obj) {
+Type.prototype.isNull = function(obj) {
   return obj === null;
 };
 
-Type.prototype.isNullOrUndefined = function (obj) {
+Type.prototype.isNullOrUndefined = function(obj) {
   return (obj === null || obj === undefined);
 };
 
-Type.prototype.isUndefined = function (obj) {
+Type.prototype.isUndefined = function(obj) {
   return obj === void 0;
 };
 
-Type.prototype.isA = function (obj, type) {
+Type.prototype.isA = function(obj, type) {
   var clas = Object.prototype.toString.call(obj).slice(8, -1);
   return (obj !== undefined) && (obj !== null) && (clas === type);
 };
 
-Type.prototype.isEmptyObject = function (obj) {
+Type.prototype.isEmptyObject = function(obj) {
   for (var property in obj) {
     if (obj.hasOwnProperty(property)) {
       return false;
@@ -113,15 +121,15 @@ Type.prototype.isEmptyObject = function (obj) {
   return true;
 };
 
-Type.prototype.hasProperty = function (obj, prop) {
+Type.prototype.hasProperty = function(obj, prop) {
   return prop in obj;
 };
 
-Type.prototype.arrayContains = function (arr, value) {
+Type.prototype.arrayContains = function(arr, value) {
   return (arr.indexOf(value) > -1);
 };
 
-Type.prototype.getValues = function (obj) {
+Type.prototype.getValues = function(obj) {
   var ret = [];
   for (var key in obj) {
     if (obj.hasOwnProperty(key)) {
@@ -133,9 +141,11 @@ Type.prototype.getValues = function (obj) {
 
 var _type = new Type();
 
+
+
 /////////////////////////////////////////////////////////////////////////////
 /** @constructor */
-var Converter = function () {};
+var Converter = function() {};
 
 function _nullableGeneric(func, nullable, val) {
   if (_type.isNull(val) && nullable === true) {
@@ -149,7 +159,7 @@ function _toBoolean(val) {
   return Boolean(val);
 }
 
-Converter.prototype.toBoolean = function (val, nullable) {
+Converter.prototype.toBoolean = function(val, nullable) {
   return _nullableGeneric(_toBoolean, nullable, val);
 };
 
@@ -158,7 +168,7 @@ function _toLong(val) {
   return isNaN(ret) ? (val === true ? 1 : 0) : ret;
 }
 
-Converter.prototype.toLong = function (val, nullable) {
+Converter.prototype.toLong = function(val, nullable) {
   return _nullableGeneric(_toLong, nullable, val);
 };
 
@@ -167,7 +177,7 @@ function _toLongLong(val) {
   return _toLong(val);
 }
 
-Converter.prototype.toLongLong = function (val, nullable) {
+Converter.prototype.toLongLong = function(val, nullable) {
   return _nullableGeneric(_toLongLong, nullable, val);
 };
 
@@ -175,7 +185,7 @@ function _toUnsignedLong(val) {
   return _toLong(val) >>> 0;
 }
 
-Converter.prototype.toUnsignedLong = function (val, nullable) {
+Converter.prototype.toUnsignedLong = function(val, nullable) {
   return _nullableGeneric(_toUnsignedLong, nullable, val);
 };
 
@@ -184,7 +194,7 @@ function _toUnsignedLongLong(val) {
   return _toUnsignedLong(val);
 }
 
-Converter.prototype.toUnsignedLongLong = function (val, nullable) {
+Converter.prototype.toUnsignedLongLong = function(val, nullable) {
   return _nullableGeneric(_toUnsignedLongLong, nullable, val);
 };
 
@@ -192,7 +202,7 @@ function _toByte(val) {
   return ((_toLong(val) + 128) & 0xFF) - 128;
 }
 
-Converter.prototype.toByte = function (val, nullable) {
+Converter.prototype.toByte = function(val, nullable) {
   return _nullableGeneric(_toByte, nullable, val);
 };
 
@@ -200,7 +210,7 @@ function _toOctet(val) {
   return _toLong(val) & 0xFF;
 }
 
-Converter.prototype.toOctet = function (val, nullable) {
+Converter.prototype.toOctet = function(val, nullable) {
   return _nullableGeneric(_toOctet, nullable, val);
 };
 
@@ -208,12 +218,12 @@ function _toDouble(val) {
   var ret = Number(val);
   if (isNaN(ret) || !isFinite(ret)) {
     throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
-        'Cannot convert ' + String(val) + ' to double.')
+        'Cannot convert ' + String(val) + ' to double.');
   }
   return ret;
 }
 
-Converter.prototype.toDouble = function (val, nullable) {
+Converter.prototype.toDouble = function(val, nullable) {
   return _nullableGeneric(_toDouble, nullable, val);
 };
 
@@ -221,7 +231,7 @@ function _toString(val) {
   return String(val);
 }
 
-Converter.prototype.toString = function (val, nullable) {
+Converter.prototype.toString = function(val, nullable) {
   return _nullableGeneric(_toString, nullable, val);
 };
 
@@ -244,7 +254,7 @@ function _toPlatformObject(val, types) {
       'Cannot convert ' + String(val) + ' to ' + String(t[0].name) + '.');
 }
 
-Converter.prototype.toPlatformObject = function (val, types, nullable) {
+Converter.prototype.toPlatformObject = function(val, types, nullable) {
   return _nullableGeneric(_toPlatformObject, nullable, val, types);
 };
 
@@ -257,7 +267,7 @@ function _toFunction(val) {
       'Cannot convert ' + String(val) + ' to function.');
 }
 
-Converter.prototype.toFunction = function (val, nullable) {
+Converter.prototype.toFunction = function(val, nullable) {
   return _nullableGeneric(_toFunction, nullable, val);
 };
 
@@ -270,7 +280,7 @@ function _toArray(val) {
       'Cannot convert ' + String(val) + ' to array.');
 }
 
-Converter.prototype.toArray = function (val, nullable) {
+Converter.prototype.toArray = function(val, nullable) {
   return _nullableGeneric(_toArray, nullable, val);
 };
 
@@ -283,7 +293,7 @@ function _toDictionary(val) {
       'Cannot convert ' + String(val) + ' to dictionary.');
 }
 
-Converter.prototype.toDictionary = function (val, nullable) {
+Converter.prototype.toDictionary = function(val, nullable) {
   return _nullableGeneric(_toDictionary, nullable, val);
 };
 
@@ -297,137 +307,143 @@ function _toEnum(val, e) {
       'Cannot convert ' + v + ' to enum.');
 }
 
-Converter.prototype.toEnum = function (val, e, nullable) {
+Converter.prototype.toEnum = function(val, e, nullable) {
   return _nullableGeneric(_toEnum, nullable, val, e);
 };
 
 var _converter = new Converter();
 
+
+
 /////////////////////////////////////////////////////////////////////////////
 /** @constructor */
-var Validator = function () {};
-
-Validator.prototype.Types = {
-  BOOLEAN: 'BOOLEAN',
-  LONG: 'LONG',
-  LONG_LONG: 'LONG_LONG',
-  UNSIGNED_LONG: 'UNSIGNED_LONG',
-  UNSIGNED_LONG_LONG: 'UNSIGNED_LONG_LONG',
-  BYTE: 'BYTE',
-  OCTET: 'OCTET',
-  DOUBLE: 'DOUBLE',
-  STRING: 'STRING',
-  FUNCTION: 'FUNCTION',
-  DICTIONARY: 'DICTIONARY',
-  PLATFORM_OBJECT: 'PLATFORM_OBJECT',
-  LISTENER: 'LISTENER',
-  ARRAY: 'ARRAY',
-  ENUM: 'ENUM'
+var Validator = function() {
+  this.Types = {
+    BOOLEAN: 'BOOLEAN',
+    LONG: 'LONG',
+    LONG_LONG: 'LONG_LONG',
+    UNSIGNED_LONG: 'UNSIGNED_LONG',
+    UNSIGNED_LONG_LONG: 'UNSIGNED_LONG_LONG',
+    BYTE: 'BYTE',
+    OCTET: 'OCTET',
+    DOUBLE: 'DOUBLE',
+    STRING: 'STRING',
+    FUNCTION: 'FUNCTION',
+    DICTIONARY: 'DICTIONARY',
+    PLATFORM_OBJECT: 'PLATFORM_OBJECT',
+    LISTENER: 'LISTENER',
+    ARRAY: 'ARRAY',
+    ENUM: 'ENUM'
+  };
 };
+
 
 /**
  * Verifies if arguments passed to function are valid.
- * @param a - @code arguments @endcode of a method
- * @param d - description of expected arguments
- * @returns Object which holds all available arguments.
- * @throws 'TypeMismatchError' if arguments are not valid
- * @details Description of expected arguments.
- *          This is an array of objects, each object represents one argument.
- *          First object in this array describes first argument, second object describes second
- *          argument, and so on.
- *          Object describing an argument needs to have two properties:
- *          - @code name @endcode - name of the argument,
- *          - @code type @endcode - type of the argument, only values specified in
- *                                   Validator.Types are allowed.
- *          Other properties, which may appear:
- *          - @code optional @endcode - if set to value which evaluates to true, argument is
- *                                      optional
- *          - @code nullable @endcode - if set to to true, argument may be set to null
- *          - @code values @endcode - required in case of some objects, value depends on type
- *          - @code validator @endcode - function which accepts a single parameter and returns
- *                                        true or false; if this property is present, this
- *                                        function will be executed, argument converted to
- *                                        expected type is going to be passed to this function
- *          Examples:
- *          @code [
- *                  {
- *                    name: 'first',
- *                    type: 'aType'
- *                  }
- *                ] @endcode
- *          @code [
- *                  {
- *                    name: 'first',
- *                    type: 'aType',
- *                    optional: true
- *                  }
- *                ] @endcode
- *          @code [
- *                  {
- *                    name: 'first',
- *                    type: 'aType',
- *                    nullable: true
- *                  }
- *                ] @endcode
- *          @code [
- *                  {
- *                    name: 'first',
- *                    type: 'aType',
- *                    optional: true,
- *                    nullable: true
- *                  }
- *                ] @endcode
  *
- *          @code [
- *                  {
- *                    name: 'first',
- *                    type: Validator.Types.PLATFORM_OBJECT,
- *                    values: ApplicationControl // type of platform object
- *                  }
- *                ] @endcode
+ * Description of expected arguments.
+ * This is an array of objects, each object represents one argument.
+ * First object in this array describes first argument, second object describes second
+ * argument, and so on.
+ * Object describing an argument needs to have two properties:
+ *   - name - name of the argument,
+ *   - type - type of the argument, only values specified in Validator.Types are allowed.
+ * Other properties, which may appear:
+ *   - optional - if set to value which evaluates to true, argument is optional
+ *   - nullable - if set to to true, argument may be set to null
+ *   - values - required in case of some objects, value depends on type
+ *   - validator - function which accepts a single parameter and returns true or false;
+ *                 if this property is present, this function will be executed,
+ *                 argument converted to expected type is going to be passed to this function
  *
- *          @code [
- *                  {
- *                    name: 'first',
- *                    type: Validator.Types.PLATFORM_OBJECT,
- *                    values: [Alarm, AlarmRelative, AlarmAbsolute] // accepted types
- *                  }
- *                ] @endcode
+ * @param {Array} a - arguments of a method
+ * @param {Array} d - description of expected arguments
+ * @return {Object} which holds all available arguments.
+ * @throws TypeMismatchError if arguments are not valid
  *
- *          @code [
- *                  {
- *                    name: 'first',
- *                    type: Validator.Types.LISTENER,
- *                    values: ['onsuccess', 'onfailure'] // array of callbacks' names
- *                  }
- *                ] @endcode
- *          @code [
- *                  {
- *                    name: 'first',
- *                    type: Validator.Types.ARRAY,
- *                    values: ApplicationControlData // type of each element in array,
- *                                                   // tested with instanceof
- *                  }
- *                ] @endcode
- *          @code [
- *                  {
- *                    name: 'first',
- *                    type: Validator.Types.ARRAY,
- *                    values: Validator.Types.DOUBLE // converts elements,
- *                                                   // only primitive types
- *                                                   // are supported
- *                   }
- *                ] @endcode
- *          @code [
- *                  {
- *                    name: 'first',
- *                    type: Validator.Types.ENUM,
- *                    values: ['SCREEN_DIM', 'SCREEN_NORMAL', 'CPU_AWAKE'] // array of
- *                                                                         // allowed values
- *                  }
- *                ] @endcode
+ * @code
+ * [
+ *   {
+ *     name: 'first',
+ *     type: 'aType'
+ *   }
+ * ]
+ * @code
+ * [
+ *   {
+ *     name: 'first',
+ *     type: 'aType',
+ *     optional: true
+ *   }
+ * ]
+ * @code
+ * [
+ *   {
+ *     name: 'first',
+ *     type: 'aType',
+ *     nullable: true
+ *   }
+ * ]
+ * @code
+ * [
+ *   {
+ *     name: 'first',
+ *     type: 'aType',
+ *     optional: true,
+ *     nullable: true
+ *   }
+ * ]
+ * @code
+ * [
+ *   {
+ *     name: 'first',
+ *     type: Validator.Types.PLATFORM_OBJECT,
+ *     values: ApplicationControl // type of platform object
+ *   }
+ * ]
+ * @code
+ * [
+ *   {
+ *     name: 'first',
+ *     type: Validator.Types.PLATFORM_OBJECT,
+ *     values: [Alarm, AlarmRelative, AlarmAbsolute] // accepted types
+ *   }
+ * ]
+ * @code
+ * [
+ *   {
+ *     name: 'first',
+ *     type: Validator.Types.LISTENER,
+ *     values: ['onsuccess', 'onfailure'] // array of callbacks' names
+ *   }
+ * ]
+ * @code
+ * [
+ *   {
+ *     name: 'first',
+ *     type: Validator.Types.ARRAY,
+ *     values: ApplicationControlData // type of each element in array,
+ *                                    // tested with instanceof
+ *   }
+ * ]
+ * @code
+ * [
+ *   {
+ *     name: 'first',
+ *     type: Validator.Types.ARRAY,
+ *     values: Validator.Types.DOUBLE // converts elements, only primitive types are supported
+ *   }
+ * ]
+ * @code
+ * [
+ *   {
+ *     name: 'first',
+ *     type: Validator.Types.ENUM,
+ *     values: ['SCREEN_DIM', 'SCREEN_NORMAL', 'CPU_AWAKE'] // array of allowed values
+ *   }
+ * ]
  */
-Validator.prototype.validateArgs = function (a, d) {
+Validator.prototype.validateArgs = function(a, d) {
   var args = {has: {}};
 
   for (var i = 0; i < d.length; ++i) {
@@ -443,138 +459,138 @@ Validator.prototype.validateArgs = function (a, d) {
       var values = d[i].values;
 
       switch (type) {
-      case this.Types.BOOLEAN:
-        val = _converter.toBoolean(val, nullable);
-        break;
+        case this.Types.BOOLEAN:
+          val = _converter.toBoolean(val, nullable);
+          break;
 
-      case this.Types.LONG:
-        val = _converter.toLong(val, nullable);
-        break;
+        case this.Types.LONG:
+          val = _converter.toLong(val, nullable);
+          break;
 
-      case this.Types.LONG_LONG:
-        val = _converter.toLongLong(val, nullable);
-        break;
+        case this.Types.LONG_LONG:
+          val = _converter.toLongLong(val, nullable);
+          break;
 
-      case this.Types.UNSIGNED_LONG:
-        val = _converter.toUnsignedLong(val, nullable);
-        break;
+        case this.Types.UNSIGNED_LONG:
+          val = _converter.toUnsignedLong(val, nullable);
+          break;
 
-      case this.Types.UNSIGNED_LONG_LONG:
-        val = _converter.toUnsignedLongLong(val, nullable);
-        break;
+        case this.Types.UNSIGNED_LONG_LONG:
+          val = _converter.toUnsignedLongLong(val, nullable);
+          break;
 
-      case this.Types.BYTE:
-        val = _converter.toByte(val, nullable);
-        break;
+        case this.Types.BYTE:
+          val = _converter.toByte(val, nullable);
+          break;
 
-      case this.Types.OCTET:
-        val = _converter.toOctet(val, nullable);
-        break;
+        case this.Types.OCTET:
+          val = _converter.toOctet(val, nullable);
+          break;
 
-      case this.Types.DOUBLE:
-        val = _converter.toDouble(val, nullable);
-        break;
+        case this.Types.DOUBLE:
+          val = _converter.toDouble(val, nullable);
+          break;
 
-      case this.Types.STRING:
-        val = _converter.toString(val, nullable);
-        break;
+        case this.Types.STRING:
+          val = _converter.toString(val, nullable);
+          break;
 
-      case this.Types.FUNCTION:
-        val = _converter.toFunction(val, nullable);
-        break;
+        case this.Types.FUNCTION:
+          val = _converter.toFunction(val, nullable);
+          break;
 
-      case this.Types.DICTIONARY:
-        val = _converter.toDictionary(val, nullable);
-        break;
+        case this.Types.DICTIONARY:
+          val = _converter.toDictionary(val, nullable);
+          break;
 
-      case this.Types.PLATFORM_OBJECT:
-        val = _converter.toPlatformObject(val, values, nullable);
-        break;
+        case this.Types.PLATFORM_OBJECT:
+          val = _converter.toPlatformObject(val, values, nullable);
+          break;
 
-      case this.Types.LISTENER:
-        if (_type.isNull(val)) {
-          if (!nullable) {
-            throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
-                'Argument "' + name + '" cannot be null.');
-          }
-        } else {
-          if (!_type.isObject(val)) {
-            throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
-                'Argument "' + name + '" should be an object.');
-          }
-          for (var ii = 0; ii < values.length; ++ii) {
-            if (_type.hasProperty(val, values[ii])) {
-              val[values[ii]] = _converter.toFunction(val[values[ii]], false);
+        case this.Types.LISTENER:
+          if (_type.isNull(val)) {
+            if (!nullable) {
+              throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
+                  'Argument "' + name + '" cannot be null.');
+            }
+          } else {
+            if (!_type.isObject(val)) {
+              throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
+                  'Argument "' + name + '" should be an object.');
+            }
+            for (var ii = 0; ii < values.length; ++ii) {
+              if (_type.hasProperty(val, values[ii])) {
+                val[values[ii]] = _converter.toFunction(val[values[ii]], false);
+              }
             }
           }
-        }
-        break;
+          break;
 
-      case this.Types.ARRAY:
-        val = _converter.toArray(val, nullable);
-        if (!_type.isNull(val) && values) {
-          var func;
+        case this.Types.ARRAY:
+          val = _converter.toArray(val, nullable);
+          if (!_type.isNull(val) && values) {
+            var func;
 
-          switch (values) {
-          case this.Types.BOOLEAN:
-            func = _converter.toBoolean;
-            break;
+            switch (values) {
+              case this.Types.BOOLEAN:
+                func = _converter.toBoolean;
+                break;
 
-          case this.Types.LONG:
-            func = _converter.toLong;
-            break;
+              case this.Types.LONG:
+                func = _converter.toLong;
+                break;
 
-          case this.Types.LONG_LONG:
-            func = _converter.toLongLong;
-            break;
+              case this.Types.LONG_LONG:
+                func = _converter.toLongLong;
+                break;
 
-          case this.Types.UNSIGNED_LONG:
-            func = _converter.toUnsignedLong;
-            break;
+              case this.Types.UNSIGNED_LONG:
+                func = _converter.toUnsignedLong;
+                break;
 
-          case this.Types.UNSIGNED_LONG_LONG:
-            func = _converter.toUnsignedLongLong;
-            break;
+              case this.Types.UNSIGNED_LONG_LONG:
+                func = _converter.toUnsignedLongLong;
+                break;
 
-          case this.Types.BYTE:
-            func = _converter.toByte;
-            break;
+              case this.Types.BYTE:
+                func = _converter.toByte;
+                break;
 
-          case this.Types.OCTET:
-            func = _converter.toOctet;
-            break;
+              case this.Types.OCTET:
+                func = _converter.toOctet;
+                break;
 
-          case this.Types.DOUBLE:
-            func = _converter.toDouble;
-            break;
+              case this.Types.DOUBLE:
+                func = _converter.toDouble;
+                break;
 
-          case this.Types.STRING:
-            func = _converter.toString;
-            break;
+              case this.Types.STRING:
+                func = _converter.toString;
+                break;
 
-          default:
-            func = function (val) {
-              if (!(val instanceof values)) {
-                throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
-                    'Items of array "' + name + '" should be of type: ' + values + '.');
-              }
-              return val;
-            };
+              default:
+                func = function(val) {
+                  if (!(val instanceof values)) {
+                    throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
+                        'Items of array "' + name + '" should be of type: ' + values + '.');
+                  }
+                  return val;
+                };
+            }
+
+            for (var j = 0; j < val.length; ++j) {
+              val[j] = func(val[j]);
+            }
           }
+          break;
 
-          for (var j = 0; j < val.length; ++j) {
-            val[j] = func(val[j]);
-          }
-        }
-        break;
+        case this.Types.ENUM:
+          val = _converter.toEnum(val, values, nullable);
+          break;
 
-      case this.Types.ENUM:
-        val = _converter.toEnum(val, values, nullable);
-        break;
-
-      default:
-        throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
-            'Unknown type: "' + type + '".');
+        default:
+          throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
+              'Unknown type: "' + type + '".');
       }
 
       var _validator = d[i].validator;
@@ -591,20 +607,22 @@ Validator.prototype.validateArgs = function (a, d) {
   return args;
 };
 
+
 /**
  * @deprecated Use validateArgs() instead.
  */
-Validator.prototype.validateMethod = function (a, d) {
+Validator.prototype.validateMethod = function(a, d) {
   return this.validateArgs(a, d);
 };
+
 
 /**
  * Use this helper to ensure that constructor is invoked by "new" operator.
  *
- * @param obj
- * @param instance
+ * @param {Object} obj
+ * @param {Function} instance
  */
-Validator.prototype.isConstructorCall = function (obj, instance) {
+Validator.prototype.isConstructorCall = function(obj, instance) {
   if (!(obj instanceof instance) || obj._previouslyConstructed) {
     throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
         'Constructor cannot be called as function.');
@@ -617,10 +635,11 @@ Validator.prototype.isConstructorCall = function (obj, instance) {
   });
 };
 
+
 /**
  * @deprecated Use isConstructorCall() instead.
  */
-Validator.prototype.validateConstructorCall = function (obj, instance) {
+Validator.prototype.validateConstructorCall = function(obj, instance) {
   this.isConstructorCall(obj, instance);
 };
 
