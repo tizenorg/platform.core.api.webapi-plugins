@@ -2,6 +2,9 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+
+// File copied from Crosswalk
+
 #ifndef DATASYNC_SYNC_STATISTICS_H_
 #define DATASYNC_SYNC_STATISTICS_H_
 
