@@ -5,27 +5,39 @@
 #ifndef BOOKMARK_BOOKMARK_INSTANCE_H_
 #define BOOKMARK_BOOKMARK_INSTANCE_H_
 
+#include <web/web_bookmark.h>
+#include <vector>
+
 #include "common/extension.h"
 #include "common/picojson.h"
 
 namespace extension {
 namespace bookmark {
 
-class BookmarkInstance : public common::Instance {
+struct BookmarkObject {
+  int id;
+  bp_bookmark_info_fmt bookmark_info;
+};
+
+struct Context {
+  int id;
+  int shouldGetItems;
+  std::vector<BookmarkObject> folders;
+};
+
+class BookmarkInstance : public common::ParsedInstance {
  public:
   BookmarkInstance();
   virtual ~BookmarkInstance();
 
  private:
-  virtual void HandleMessage(const char* msg);
-  virtual void HandleSyncMessage(const char* msg);
-
-  void HandleGet(const picojson::value& arg, picojson::value::object& o);
-  void HandleAdd(const picojson::value& arg, picojson::value::object& o);
-  void HandleRemove(const picojson::value& arg, picojson::value::object& o);
+  bool bookmark_foreach(Context& ctx, bp_bookmark_info_fmt& info);
+  void Bookmark_get(const picojson::value& arg, picojson::object& o);
+  void Bookmark_add(const picojson::value& arg, picojson::object& o);
+  void Bookmark_remove(const picojson::value& arg, picojson::object& o);
+  void Bookmark_removeAll(const picojson::value& msg, picojson::object& o);
+  void Bookmark_getRootId(const picojson::value& msg, picojson::object& o);
 };
-
-} // namespace bookmark
-} // namespace extension
-
+}  // namespace bookmark
+}  // namespace extension
 #endif  // BOOKMARK_BOOKMARK_INSTANCE_H_

@@ -6,9 +6,9 @@
 #include "bookmark/bookmark_instance.h"
 
 namespace {
-  const char* kBookmark = "tizen.bookmark";
-  const char* kBookmarkItem = "tizen.BookmarkItem";
-  const char* kBookmarkFolder = "tizen.BookmarkFolder";
+  const char kBookmark[] = "tizen.bookmark";
+  const char kBookmarkItem[] = "tizen.BookmarkItem";
+  const char kBookmarkFolder[] = "tizen.BookmarkFolder";
 }
 
 // This will be generated from bookmark_api.js.

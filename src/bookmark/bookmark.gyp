@@ -14,12 +14,12 @@
         'bookmark_instance.h',
       ],
       'conditions': [
-        [ 'tizen == 1', {
-            'variables': {
-              'packages': [
-                'bookmark-adaptor',
-              ]
-            },
+        ['tizen == 1', {
+          'variables': {
+            'packages': [
+              'bookmark-adaptor',
+            ]
+          },
         }],
       ],
     },
