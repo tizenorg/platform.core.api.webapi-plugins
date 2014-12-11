@@ -375,7 +375,7 @@ void PowerManager::BroadcastScreenState(PowerState current){
       try {
         RestoreSettedBrightness();
       } catch (const PlatformException& err) {
-        LoggerE("Error restore custom brightness %s", err.getMessage().c_str());
+        LoggerE("Error restore custom brightness %s", err.message().c_str());
       }
     } else if (prev_state == POWER_STATE_SCREEN_OFF) {
       should_be_read_from_cache_ = false;

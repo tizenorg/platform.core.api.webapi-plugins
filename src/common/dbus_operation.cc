@@ -32,12 +32,9 @@
 namespace common {
 
 DBusOperationArguments::DBusOperationArguments() {
-    LoggerD("Entered");
 }
 
 DBusOperationArguments::~DBusOperationArguments() {
-    LoggerD("Entered");
-
     for (auto iter = arguments_.begin(); iter != arguments_.end(); ++iter) {
         ArgType type = iter->first;
         void* p_val = iter->second;
@@ -70,8 +67,6 @@ DBusOperationArguments::~DBusOperationArguments() {
 }
 
 void DBusOperationArguments::AddArgumentBool(bool val) {
-    LoggerD("Entered");
-
     int32_t* p_val = new int32_t;
     *p_val = val;
 
@@ -79,8 +74,6 @@ void DBusOperationArguments::AddArgumentBool(bool val) {
 }
 
 void DBusOperationArguments::AddArgumentInt32(int val) {
-    LoggerD("Entered");
-
     int32_t* p_val = new int32_t;
     *p_val = val;
 
@@ -88,8 +81,6 @@ void DBusOperationArguments::AddArgumentInt32(int val) {
 }
 
 void DBusOperationArguments::AddArgumentUInt32(unsigned int val) {
-    LoggerD("Entered");
-
     uint32_t* p_val = new uint32_t;
     *p_val = val;
 
@@ -97,8 +88,6 @@ void DBusOperationArguments::AddArgumentUInt32(unsigned int val) {
 }
 
 void DBusOperationArguments::AddArgumentUInt64(uint64_t val) {
-    LoggerD("Entered");
-
     uint64_t* p_val = new uint64_t;
     *p_val = val;
 
@@ -106,8 +95,6 @@ void DBusOperationArguments::AddArgumentUInt64(uint64_t val) {
 }
 
 void DBusOperationArguments::AddArgumentString(const std::string& val) {
-    LoggerD("Entered");
-
     const int length = val.length();
 
     char* p_val = new char[length * 2];
@@ -117,8 +104,6 @@ void DBusOperationArguments::AddArgumentString(const std::string& val) {
 }
 
 void DBusOperationArguments::AppendVariant(DBusMessageIter* bus_msg_iter) {
-    LoggerD("Entered");
-
     for (auto iter = arguments_.begin(); iter != arguments_.end(); ++iter) {
         ArgType type = iter->first;
         void *p_val = iter->second;
@@ -151,11 +136,9 @@ void DBusOperationArguments::AppendVariant(DBusMessageIter* bus_msg_iter) {
 }
 
 DBusOperationListener::DBusOperationListener() {
-    LoggerD("Entered");
 }
 
 DBusOperationListener::~DBusOperationListener() {
-    LoggerD("Entered");
 }
 
 std::set<DBusOperation*> DBusOperation::s_objects_;
@@ -167,16 +150,10 @@ DBusOperation::DBusOperation(const std::string& destination,
                              path_(path),
                              interface_(interface),
                              connection_(nullptr) {
-    LoggerD("Created DBusOperator \"" << destination_ << "\" \""
-                                      << path_ << "\":\""
-                                      << interface_ << "\"");
-
     s_objects_.insert(this);
 }
 
 DBusOperation::~DBusOperation() {
-    LoggerD("Entered");
-
     if (connection_) {
         dbus_connection_close(connection_);
         dbus_connection_unref(connection_);
@@ -193,7 +170,6 @@ DBusOperation::~DBusOperation() {
 
 int DBusOperation::InvokeSyncGetInt(const std::string& method,
                                     DBusOperationArguments* args) {
-    LoggerD("Entered");
 
     if (!connection_) {
         connection_ = dbus_bus_get_private(DBUS_BUS_SYSTEM, nullptr);
@@ -236,8 +212,7 @@ int DBusOperation::InvokeSyncGetInt(const std::string& method,
     dbus_message_unref(msg);
 
     if (!reply) {
-        LoggerE("dbus_connection_send_with_reply_and_block error " << err.name << ": "
-                                                                   << err.message);
+        LoggerE("dbus_connection_send_with_reply_and_block error %s: %s", err.name, err.message);
         dbus_error_free(&err);
         throw UnknownException("Failed to send request via dbus");
     }
@@ -251,8 +226,7 @@ int DBusOperation::InvokeSyncGetInt(const std::string& method,
     dbus_message_unref(reply);
 
     if (!ret) {
-        LoggerE("dbus_message_get_args error " << err.name << ": "
-                                               << err.message);
+        LoggerE("dbus_message_get_args error %s: %s", err.name, err.message);
         dbus_error_free(&err);
         throw UnknownException("Failed to get reply from dbus");
     }
@@ -262,8 +236,6 @@ int DBusOperation::InvokeSyncGetInt(const std::string& method,
 
 void DBusOperation::RegisterSignalListener(const std::string& signal_name,
                                            DBusOperationListener* listener) {
-    LoggerD("Entered");
-
     AddDBusSignalFilter();
 
     listeners_.insert(std::make_pair(signal_name, listener));
@@ -271,9 +243,6 @@ void DBusOperation::RegisterSignalListener(const std::string& signal_name,
 
 void DBusOperation::UnregisterSignalListener(const std::string& signal_name,
                                              DBusOperationListener* listener) {
-    LoggerD("Entered");
-    LoggerD("unregister signal listener : " << signal_name);
-
     bool signal_found = false;
 
     for (auto iter = listeners_.begin(); iter != listeners_.end(); ++iter) {
@@ -297,8 +266,6 @@ void DBusOperation::UnregisterSignalListener(const std::string& signal_name,
 }
 
 void DBusOperation::AddDBusSignalFilter() {
-    LoggerD("Entered");
-
     if (!connection_) {
         connection_ = dbus_bus_get_private(DBUS_BUS_SYSTEM, nullptr);
     }
@@ -323,29 +290,24 @@ void DBusOperation::AddDBusSignalFilter() {
     dbus_bus_add_match(connection_, rule_.c_str(), &err);
 
     if (dbus_error_is_set(&err)) {
-        LoggerE("dbus_bus_add_match error " << err.name << ": "
-                                            << err.message);
+        LoggerE("dbus_bus_add_match error %s: %s", err.name, err.message);
         dbus_error_free(&err);
         throw UnknownException("Failed to set rule for dbus signal");
     }
 
     if (dbus_connection_add_filter(connection_, DBusSignalFilterHandler, this, nullptr) == FALSE) {
-        LoggerE("dbus_connection_add_filter error " << err.name << ": "
-                                                    << err.message);
+        LoggerE("dbus_connection_add_filter error %s: %s", err.name, err.message);
         throw UnknownException("Failed to set handler for dbus signal");
     }
 }
 
 void DBusOperation::RemoveDBusSignalFilter() {
-    LoggerD("Entered");
-
     DBusError err;
     dbus_error_init(&err);
     dbus_bus_remove_match(connection_, rule_.c_str(), &err);
 
     if (dbus_error_is_set(&err)) {
-        LoggerE("dbus_bus_remove_match error " << err.name << ": "
-                                               << err.message);
+        LoggerE("dbus_bus_remove_match error %s: %s", err.name, err.message);
         dbus_error_free(&err);
         throw UnknownException("Failed to remove rule for dbus signal");
     }
@@ -355,21 +317,17 @@ void DBusOperation::RemoveDBusSignalFilter() {
 
 DBusHandlerResult DBusOperation::DBusSignalFilter(DBusConnection* /* conn */,
                                                   DBusMessage* message) {
-    LoggerD("Entered");
-
     DBusError err;
     dbus_error_init(&err);
 
     int val = 0;
     if (dbus_message_get_args(message, &err, DBUS_TYPE_INT32, &val, DBUS_TYPE_INVALID) == FALSE) {
-        LoggerE("dbus_message_get_args error " << err.name << ": "
-                                               << err.message);
+        LoggerE("dbus_message_get_args error %s: %s", err.name, err.message);
         return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
     }
 
     for (auto iter = listeners_.begin(); iter != listeners_.end(); ++iter) {
         if (dbus_message_is_signal(message, interface_.c_str(), iter->first.c_str())) {
-            LoggerD("Found to call : " << iter->first);
             iter->second->OnDBusSignal(val);
         }
     }
@@ -380,8 +338,6 @@ DBusHandlerResult DBusOperation::DBusSignalFilter(DBusConnection* /* conn */,
 DBusHandlerResult DBusOperation::DBusSignalFilterHandler(DBusConnection* conn,
                                                          DBusMessage* message,
                                                          void* user_data) {
-    LoggerD("invoked callback from dbus");
-
     DBusOperation* that = static_cast<DBusOperation *>(user_data);
 
     if (s_objects_.end() == s_objects_.find(that)) {
