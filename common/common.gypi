@@ -74,6 +74,7 @@
       'XW_Extension_Permissions.h',
       'XW_Extension_Runtime.h',
       'XW_Extension_SyncMessage.h',
+      'scope_exit.h',
     ],
     'cflags': [
       '-std=c++0x',

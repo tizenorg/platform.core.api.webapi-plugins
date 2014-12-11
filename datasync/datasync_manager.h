@@ -20,7 +20,7 @@ namespace datasync {
 
 class DatasyncInstance;
 
-class DataSyncManager final {
+class DataSyncManager {
  public:
   typedef std::pair<int, DatasyncInstance*> CallbackPair;
   typedef std::map<int, CallbackPair> ProfileIdToCallbackMap;
