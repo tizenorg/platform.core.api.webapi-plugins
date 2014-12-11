@@ -34,7 +34,7 @@
         [
           'extension_host_os == "tv"', {
             'dependencies': [
-              # 'tvdisplay/tvdisplay.gyp:*',
+              'tvdisplay/tvdisplay.gyp:*',
               # 'tvchannel/tvchannel.gyp:*',
               # 'tvaudio/tvaudio.gyp:*',
             ],
