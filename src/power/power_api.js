@@ -6,29 +6,15 @@
 
 var validator_ = xwalk.utils.validator;
 var types_ = validator_.Types;
+var native_ = new xwalk.utils.NativeManager(extension);
 
-var listener_ = undefined;
 
-function throwException_(err) {
-    throw new tizen.WebAPIException(err.code, err.name, err.message);
-}
+/**
+ * @type {string}
+ * @const
+ */
+var SCREEN_STATE_LISTENER = 'ScreenStateChanged';
 
-function callSync_(msg) {
-    var ret = extension.internal.sendSyncMessage(JSON.stringify(msg));
-    var obj = JSON.parse(ret);
-    if (obj.error)
-        throwException_(obj.error);
-    return obj.result;
-}
-
-extension.setMessageListener(function(msg) {
-    var m = JSON.parse(msg);
-    if (m.cmd == 'ScreenStateChanged') {
-        if (listener_) {
-            listener_(m.prev_state, m.new_state);
-        }
-    }
-});
 
 /**
  * An enumerator that defines power resources with values aligned with
@@ -88,10 +74,9 @@ PowerManager.prototype.request = function() {
     if (args.resource == 'CPU' && !PowerCpuState.hasOwnProperty(args.state))
         throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
 
-    callSync_({
-        'cmd': 'PowerManager_request',
-        'resource': args.resource,
-        'state': args.state
+    native_.callSync('PowerManager_request', {
+        resource: args.resource,
+        state: args.state
     });
 };
 
@@ -108,9 +93,8 @@ PowerManager.prototype.release = function() {
     if (!PowerResource.hasOwnProperty(args.resource))
         throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR);
 
-    callSync_({
-        'cmd': 'PowerManager_release',
-        'resource': args.resource
+    native_.callSync('PowerManager_release', {
+        resource: args.resource
     });
 };
 
@@ -123,14 +107,14 @@ PowerManager.prototype.setScreenStateChangeListener = function() {
         {name: 'listener', type: types_.FUNCTION}
     ]);
 
-    listener_ = args.listener;
+    native_.addListener(SCREEN_STATE_LISTENER, args.listener);
 };
 
 /**
  * Unsets the screen state change callback and stop monitoring it.
  */
 PowerManager.prototype.unsetScreenStateChangeListener = function() {
-    listener_ = undefined;
+    native_.removeListener(SCREEN_STATE_LISTENER);
 };
 
 /**
@@ -138,11 +122,13 @@ PowerManager.prototype.unsetScreenStateChangeListener = function() {
  * @return {number} Current screen brightness value.
  */
 PowerManager.prototype.getScreenBrightness = function() {
-    var ret = callSync_({
-        'cmd': 'PowerManager_getScreenBrightness'
-    });
+    var ret = native_.callSync('PowerManager_getScreenBrightness');
 
-    return ret;
+    if (native_.isFailure(ret)) {
+        throw native_.getErrorObject(ret);
+    }
+
+    return native_.getResultObject(ret);
 };
 
 /**
@@ -157,9 +143,8 @@ PowerManager.prototype.setScreenBrightness = function() {
     if (args.brightness < 0 || args.brightness > 1)
         throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
 
-    callSync_({
-        'cmd': 'PowerManager_setScreenBrightness',
-        'brightness': args.brightness
+    native_.callSync('PowerManager_setScreenBrightness', {
+        brightness: args.brightness
     });
 };
 
@@ -168,41 +153,50 @@ PowerManager.prototype.setScreenBrightness = function() {
  * @return {boolean} true if screen is on.
  */
 PowerManager.prototype.isScreenOn = function() {
-    var ret = callSync_({
-        'cmd': 'PowerManager_isScreenOn'
-    });
+    var ret = native_.callSync('PowerManager_isScreenOn');
 
-    return ret;
+    if (native_.isFailure(ret)) {
+        throw native_.getErrorObject(ret);
+    }
+
+    return native_.getResultObject(ret);
 };
 
 /**
  * Restores the screen brightness to the system default setting value.
  */
 PowerManager.prototype.restoreScreenBrightness = function() {
-    callSync_({
-        'cmd': 'PowerManager_restoreScreenBrightness'
-    });
+    var ret = native_.callSync('PowerManager_restoreScreenBrightness');
+
+    if (native_.isFailure(ret)) {
+        throw native_.getErrorObject(ret);
+    }
 };
 
 /**
  * Turns on the screen.
  */
 PowerManager.prototype.turnScreenOn = function() {
-    callSync_({
-        'cmd': 'PowerManager_setScreenState',
-        'on': true
+    var ret = native_.callSync('PowerManager_setScreenState', {
+        on: true
     });
+
+    if (native_.isFailure(ret)) {
+        throw native_.getErrorObject(ret);
+    }
 };
 
 /**
  * Turns off the screen.
  */
 PowerManager.prototype.turnScreenOff = function() {
-    callSync_({
-        'cmd': 'PowerManager_setScreenState',
-        'on': false
+    var ret = native_.callSync('PowerManager_setScreenState', {
+        on: false
     });
+
+    if (native_.isFailure(ret)) {
+        throw native_.getErrorObject(ret);
+    }
 };
 
-// Exports
 exports = new PowerManager();
