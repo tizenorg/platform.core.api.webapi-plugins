@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 
 import sys
+import subprocess
 
 TEMPLATE = """\
 extern const char %s[];
@@ -10,7 +11,8 @@ const char %s[] = { %s, 0 };
 """
 
 js_code = sys.argv[1]
-lines = file(js_code).read()
+cmd = "python ../../tools/mergejs.py -f" + js_code
+lines = subprocess.check_output(cmd, shell=True)
 c_code = ', '.join(str(ord(c)) for c in lines)
 
 symbol_name = sys.argv[2]
