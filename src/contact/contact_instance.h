@@ -171,8 +171,8 @@ class ContactInstance : public common::ParsedInstance {
    */
   void ContactManager_importFromVCard(const JsonValue& args, JsonObject& out);
 
-  void Person_link(const JsonValue& args, JsonObject& out) {}
-  void Person_unlink(const JsonValue& args, JsonObject& out) {}
+  void Person_link(const JsonValue& args, JsonObject& out);
+  void Person_unlink(const JsonValue& args, JsonObject& out);
 };
 }  // namespace contact
 }  // namespace extension

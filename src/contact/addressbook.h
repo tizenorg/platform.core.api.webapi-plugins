@@ -18,7 +18,6 @@
 #define CONTACT_ADDRESSBOOK_H_
 
 #include "common/picojson.h"
-#include "common/native-plugin.h"
 #include "contact/contact_util.h"
 
 namespace extension {
@@ -40,9 +39,9 @@ void AddressBook_startListening(int* current_state, const JsonObject& args,
 void AddressBook_stopListening(int* current_state, const JsonObject& args,
                                JsonObject& out);
 
-void AddressBook_batchFunc(common::NativeFunction impl,
-                           const char* single_arg_name, const JsonObject& args,
-                           JsonObject& out);
+void AddressBook_batchFunc(/*common::NativeFunction impl,*/
+                           const char* single_arg_name, const JsonObject& args/*,
+                           JsonObject& out*/);
 
 void AddressBook_addBatch(const JsonObject& args, JsonObject& out);
 

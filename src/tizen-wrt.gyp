@@ -16,6 +16,7 @@
         #'calendar/calendar.gyp:*',
         'bookmark/bookmark.gyp:*',
         #'datasync/datasync.gyp:*',
+        'contact/contact.gyp:*',
         'messaging/messaging.gyp:*',
         'archive/archive.gyp:*'
       ],

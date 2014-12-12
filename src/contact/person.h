@@ -18,15 +18,23 @@
 #define CONTACT_PERSON_H_
 
 #include "common/picojson.h"
-#include "common/filter-utils.h"
+#include "contact/contact_util.h"
 
 namespace extension {
 namespace contact {
+
+enum PrimitiveType {
+    kPrimitiveTypeBoolean,
+    kPrimitiveTypeString,
+    kPrimitiveTypeLong,
+    kPrimitiveTypeId
+};
+
 namespace Person {
 
 struct PersonProperty {
   const unsigned int propertyId;
-  const webapi::common::PrimitiveType type;
+  const PrimitiveType type;
 };
 
 typedef std::map<std::string, PersonProperty> PersonPropertyMap;

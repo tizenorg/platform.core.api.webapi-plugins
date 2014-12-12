@@ -16,7 +16,6 @@
 
 #include "contact/person.h"
 #include "common/converter.h"
-#include "common/native-plugin.h"
 #include "common/platform_exception.h"
 #include "common/logger.h"
 
@@ -51,16 +50,13 @@ void Person_link(const JsonObject& args) {
   contacts_record = nullptr;
 
   if (CONTACTS_ERROR_NONE != err) {
-    LOGW("Person was not found, error code: %d", err);
+    LoggerW("Person was not found, error code: %d", err);
     throw common::NotFoundException("Person not found");
   }
 
   err = contacts_person_link_person(person_id, id);
 
-  if (CONTACTS_ERROR_NONE != err) {
-    LOGW("person link fails, error code: %d", err);
-    throw common::UnknownException("Error during executing person link()");
-  }
+  ContactUtil::ErrorChecker(err, "Error during executing person link()");
 }
 
 void Person_unlink(const JsonObject& args) {
@@ -75,7 +71,7 @@ void Person_unlink(const JsonObject& args) {
   if (CONTACTS_ERROR_NONE != error_code) {
     contacts_record_destroy(contacts_record, true);
     contacts_record = nullptr;
-    LOGW("Contact not found, error code: %d", error_code);
+    LoggerW("Contact not found, error code: %d", error_code);
     throw common::InvalidValuesException("Contact not found");
   }
 
@@ -85,14 +81,11 @@ void Person_unlink(const JsonObject& args) {
   contacts_record_destroy(contacts_record, true);
   contacts_record = nullptr;
 
-  if (CONTACTS_ERROR_NONE != error_code) {
-    LOGW("Contact is not a member of person, error code: %d", error_code);
-    throw common::UnknownException("Contact is not a member of person");
-  }
+  ContactUtil::ErrorChecker(error_code, "Contact is not a member of person");
 
   long person_id = common::stol(FromJson<JsonString>(args, "person", "id"));
   if (contacts_person_id != person_id) {
-    LOGW("Contact is not a member of person (wrong id's)");
+    LoggerW("Contact is not a member of person (wrong id's)");
     throw common::InvalidValuesException("Contact is not a member of person");
   }
 
@@ -100,17 +93,15 @@ void Person_unlink(const JsonObject& args) {
 
   error_code =
       contacts_person_unlink_contact(person_id, contact_id, &new_person_id);
-  if (CONTACTS_ERROR_NONE != error_code) {
-    LOGW("Error during executing unlink(), error code: %d", error_code);
-    throw common::UnknownException("Error during executing unlink()");
-  }
+
+  ContactUtil::ErrorChecker(error_code, "Error during executing unlink()");
 
   error_code = contacts_db_get_record(_contacts_person._uri, new_person_id,
                                       &contacts_record);
   if (CONTACTS_ERROR_NONE != error_code) {
     contacts_record_destroy(contacts_record, true);
     contacts_record = nullptr;
-    LOGW("Person not found, error code: %d", error_code);
+    LoggerW("Person not found, error code: %d", error_code);
     throw common::UnknownException("Person not found");
   }
 
