@@ -17,7 +17,14 @@
         'includes/': [['exclude', '_desktop\\.gypi$|desktop/']],
       }],
       ['tizen == 1', {
-        'defines': ['TIZEN']
+        'defines': ['TIZEN'],
+        'variables': {
+          'packages': [
+            'dbus-1',
+            'dlog',
+            'glib-2.0',
+          ]
+        },
       }, {
         'sources/': [['exclude', '_tizen\\.cc$|tizen/']],
         'includes/': [['exclude', '_tizen\\.gypi$|tizen/']],
@@ -80,17 +87,6 @@
       '-std=c++0x',
       '-fPIC',
       '-fvisibility=hidden',
-    ],
-    'conditions': [
-      ['tizen == 1', {
-        'variables': {
-          'packages': [
-            'dbus-1',
-            'dlog',
-            'glib-2.0',
-          ]
-        },
-      }],
     ],
   },
 }

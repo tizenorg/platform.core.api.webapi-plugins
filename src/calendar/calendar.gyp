@@ -13,9 +13,6 @@
         'calendar_instance.cc',
         'calendar_instance.h'
       ],
-      'includes': [
-        '../common/pkg-config.gypi',
-      ],
       'conditions': [
         ['tizen == 1', {
           'variables': {

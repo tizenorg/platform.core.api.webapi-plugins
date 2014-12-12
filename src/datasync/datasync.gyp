@@ -14,9 +14,6 @@
       'dependencies': [
         '../tizen/tizen.gyp:tizen',
       ],
-      'includes': [
-        '../common/pkg-config.gypi',
-      ],
       'sources': [
         'datasync_api.js',
         'datasync_error.h',

@@ -17,14 +17,10 @@
         'power_platform_proxy.cc',
         'power_platform_proxy.h'
       ],
-      'includes': [
-        '../common/pkg-config.gypi',
-      ],
       'conditions': [
         ['tizen == 1', {
           'variables': {
             'packages': [
-              'glib-2.0',
               'capi-system-device',
               'capi-system-power',
               'vconf',

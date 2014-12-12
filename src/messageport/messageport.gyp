@@ -12,9 +12,6 @@
           'message-port',
         ],
       },
-      'includes': [
-        '../common/pkg-config.gypi',
-      ],
       'sources': [
         'messageport_api.js',
         'messageport_extension.cc',

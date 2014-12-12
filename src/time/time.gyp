@@ -11,9 +11,6 @@
           'icu-i18n',
         ],
       },
-      'includes': [
-        '../common/pkg-config.gypi',
-      ],
       'sources': [
         'time_api.js',
         'time_extension.cc',
