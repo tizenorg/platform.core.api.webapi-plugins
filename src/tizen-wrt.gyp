@@ -49,6 +49,7 @@
               'tvaudio/tvaudio.gyp:*',
               'tvchannel/tvchannel.gyp:*',
               'tvinputdevice/tvinputdevice.gyp:*',
+              'tvwindow/tvwindow.gyp:*',
             ],
           },
         ], # end tv
