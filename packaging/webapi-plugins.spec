@@ -48,7 +48,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_se_support                  1
 %define tizen_feature_sensor_support              0
 %define tizen_feature_sound_support               0
-%define tizen_feature_system_setting_support      0
+%define tizen_feature_system_setting_support      1
 %define tizen_feature_telephony_support           0
 %define tizen_feature_web_setting_support         0
 %define tizen_feature_wi_fi_support               0
@@ -147,6 +147,7 @@ BuildRequires: ninja
 BuildRequires: pkgconfig(appcore-common)
 BuildRequires: pkgconfig(capi-system-device)
 BuildRequires: pkgconfig(capi-system-info)
+BuildRequires: pkgconfig(capi-system-system-settings)
 BuildRequires: pkgconfig(libpcrecpp)
 BuildRequires: pkgconfig(dbus-1)
 BuildRequires: pkgconfig(dbus-glib-1)
