@@ -8,7 +8,9 @@
   },
   'target_defaults': {
     'conditions': [
-      ['extension_host_os != "mobile"', {
+      ['extension_host_os != "mobile"' and
+       'extension_host_os != "wearable"' and
+       'extension_host_os != "tv"', {
         'sources/': [['exclude', '_mobile\\.cc$|mobile/']],
         'includes/': [['exclude', '_mobile\\.gypi$|mobile/']],
       }],
@@ -29,6 +31,8 @@
         'sources/': [['exclude', '_tizen\\.cc$|tizen/']],
         'includes/': [['exclude', '_tizen\\.gypi$|tizen/']],
       }],
+      ['extension_host_os == "tv"', { 'defines': ['TIZEN_TV'] } ],
+      ['extension_host_os == "wearable"', { 'defines': ['TIZEN_WEARABLE'] } ],
       ['extension_host_os == "mobile"', { 'defines': ['TIZEN_MOBILE'] } ],
       ['extension_host_os == "ivi"', { 'defines': ['TIZEN_IVI'] } ],
       ['extension_host_os == "desktop"', { 'defines': ['GENERIC_DESKTOP'] } ],

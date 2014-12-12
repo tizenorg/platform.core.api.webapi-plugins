@@ -13,14 +13,21 @@
         'utils/utils.gyp:*',
         'power/power.gyp:*',
         'messageport/messageport.gyp:*',
-        #'calendar/calendar.gyp:*',
-        'callhistory/callhistory.gyp:*',
         'bookmark/bookmark.gyp:*',
-        #'datasync/datasync.gyp:*',
-        'contact/contact.gyp:*',
-        'messaging/messaging.gyp:*',
         'archive/archive.gyp:*'
       ],
+      'conditions': [
+        [ 'extension_host_os == "mobile"', {
+          'dependencies': [
+            'callhistory/callhistory.gyp:*',
+            'contact/contact.gyp:*',
+            'calendar/calendar.gyp:*',
+            'datasync/datasync.gyp:*',
+            'messaging/messaging.gyp:*',
+          ],
+        },
+       ],
+     ],
     },
   ],
 }

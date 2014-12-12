@@ -13,17 +13,10 @@ Group:      Development/Libraries
 Summary:    Tizen Web APIs implemented
 Source0:    %{name}-%{version}.tar.gz
 
-
-
-# These should be provided by platform
-%define tizen_profile_mobile   1
-%define tizen_profile_wearable 0
-%define tizen_profile_tv       0
-
 ####################################################################
 #       Mobile Profile :  Kiran(SM-Z130H), Redwood(SM-Z910F)       #
 ####################################################################
-%if 0%{?tizen_profile_mobile}
+%if "%{?profile}" == "mobile"
 
 %define tizen_feature_account_support             0
 %define tizen_feature_archive_support             0
@@ -43,8 +36,8 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_fm_radio_support            0
 %define tizen_feature_gamepad_support             0
 %define tizen_feature_ham_support                 0
-%define tizen_feature_messaging_email_support     0
-%define tizen_feature_messaging_support           0
+%define tizen_feature_messaging_email_support     1
+%define tizen_feature_messaging_support           1
 %define tizen_feature_nbs_support                 0
 %define tizen_feature_nfc_emulation_support       0
 %define tizen_feature_nfc_support                 0
@@ -64,7 +57,7 @@ Source0:    %{name}-%{version}.tar.gz
 ####################################################################
 #       Wearable Profile :  Gear3(Ponte)                           #
 ####################################################################
-%if 0%{?tizen_profile_wearable}
+%if "%{?profile}" == "wearable"
 
 %define tizen_feature_account_support             0
 %define tizen_feature_archive_support             0
@@ -105,7 +98,7 @@ Source0:    %{name}-%{version}.tar.gz
 ####################################################################
 #       TV Profile                                                 #
 ####################################################################
-%if 0%{?tizen_profile_tv}
+%if "%{?profile}" == "tv"
 
 %define tizen_feature_account_support             0
 %define tizen_feature_archive_support             0
@@ -154,7 +147,6 @@ BuildRequires: pkgconfig(capi-system-power)
 BuildRequires: pkgconfig(libpcrecpp)
 BuildRequires: pkgconfig(dbus-1)
 BuildRequires: pkgconfig(dbus-glib-1)
-BuildRequires: pkgconfig(email-service)
 BuildRequires: pkgconfig(evas)
 BuildRequires: pkgconfig(gio-2.0)
 BuildRequires: pkgconfig(glib-2.0)
@@ -170,7 +162,10 @@ BuildRequires: pkgconfig(xrandr)
 BuildRequires: python
 BuildRequires: pkgconfig(tapi)
 BuildRequires: pkgconfig(libpcrecpp)
-BuildRequires: pkgconfig(contacts-service2)
+
+%if 0%{?tizen_feature_messaging_support}
+BuildRequires:  pkgconfig(email-service)
+%endif
 
 %if 0%{?tizen_feature_badge_support}
 BuildRequires:  pkgconfig(badge)
