@@ -1,0 +1,17 @@
+<?xml version="1.0" ?>
+<!DOCTYPE plugin-properties SYSTEM "/usr/etc/tizen-apis/config.dtd">
+<plugin-properties>
+  <library-name>libwrt-plugins-tizen-exif.so</library-name>
+  <feature-install-uri>exif.install.uri</feature-install-uri>
+
+  <api-feature>
+      <name>http://tizen.org/privilege/exif.read</name>
+      <device-capability>exif.read</device-capability>
+  </api-feature>
+
+  <api-feature>
+      <name>http://tizen.org/privilege/exif.write</name>
+      <device-capability>exif.write</device-capability>
+  </api-feature>
+
+</plugin-properties>
