@@ -9,6 +9,8 @@
       'sources': [
         'addressbook.cc',
         'addressbook.h',
+        'contact_extension.cc',
+        'contact_extension.h',
         'contact_instance.cc',
         'contact_instance.h',
         'contact_manager.cc',
