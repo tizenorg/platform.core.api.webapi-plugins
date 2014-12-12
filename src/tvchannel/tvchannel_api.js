@@ -2,9 +2,18 @@
 //Use of this source code is governed by a BSD-style license that can be
 //found in the LICENSE file.
 
-extension.setMessageListener(function(msg) {
+var native = new xwalk.utils.NativeManager(extension);
+var validator = xwalk.utils.validator;
+var validatorType = xwalk.utils.type;
 
-});
+
+/**
+ * An enumerator that defines window types.
+ * @enum {string}
+ */
+var WindowType = {
+  MAIN: 'MAIN'
+};
 
 // TVChannelManager interface
 function TVChannelManager() {
@@ -37,7 +46,22 @@ TVChannelManager.prototype.getChannelList = function(successCallback,
 };
 
 TVChannelManager.prototype.getCurrentChannel = function(windowType) {
-  return undefined;
+  var args = validator.validateArgs(arguments, [
+    {
+      name: 'windowType',
+      optional: true,
+      nullable: true,
+      type: validator.Types.ENUM,
+      values: validatorType.getValues(WindowType)
+    }
+  ]);
+  var ret = native.callSync('TVChannelManager_getCurrentChannel', {
+    windowType: args.windowType ? args.windowType : WindowType.MAIN
+  });
+  if (native.isFailure(ret)) {
+    throw native.getErrorObject(ret);
+  }
+  return native.getResultObject(ret);
 };
 
 TVChannelManager.prototype.getProgramList = function(channelInfo,
@@ -46,7 +70,22 @@ TVChannelManager.prototype.getProgramList = function(channelInfo,
 };
 
 TVChannelManager.prototype.getCurrentProgram = function(windowType) {
-  return undefined;
+  var args = validator.validateArgs(arguments, [
+    {
+      name: 'windowType',
+      optional: true,
+      nullable: true,
+      type: validator.Types.ENUM,
+      values: validatorType.getValues(WindowType)
+    }
+  ]);
+  var ret = native.callSync('TVChannelManager_getCurrentProgram', {
+    windowType: args.windowType ? args.windowType : WindowType.MAIN
+  });
+  if (native.isFailure(ret)) {
+    throw native.getErrorObject(ret);
+  }
+  return native.getResultObject(ret);
 };
 
 TVChannelManager.prototype.addChannelChangeListener = function(successCallback, windowType) {
@@ -65,8 +104,13 @@ TVChannelManager.prototype.removeProgramChangeListener = function(listenerId) {
   return undefined;
 };
 
-TVChannelManager.prototype.getNumOfAvailableTuner = function() {
-  return undefined;
+TVChannelManager.prototype.getNumOfAvailableTuner = function()
+    {
+  var ret = native.callSync('TVChannelManager_getNumOfAvailableTuner');
+  if (native.isFailure(ret)) {
+    throw native.getErrorObject(ret);
+  }
+  return native.getResultObject(ret);
 };
 
 exports = new TVChannelManager();
