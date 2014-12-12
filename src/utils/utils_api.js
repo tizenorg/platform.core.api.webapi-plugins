@@ -645,8 +645,174 @@ Validator.prototype.validateConstructorCall = function(obj, instance) {
 
 var _validator = new Validator();
 
+
+
+/////////////////////////////////////////////////////////////////////////////
+/** @constructor */
+var NativeManager = function(extension) {
+
+  /**
+   * @type {string}
+   * @const
+   */
+  this.CALLBACK_ID_KEY = 'callbackId';
+
+  /**
+   * @type {string}
+   * @const
+   */
+  this.LISTENER_ID_KEY = 'listenerId';
+
+  /**
+   * @type {Object}
+   * @private
+   */
+  var extension_ = extension;
+
+  /**
+   * @type {number}
+   * @private
+   */
+  var replyId_ = 0;
+
+  /**
+   * Map of async reply callbacks.
+   *
+   * @type {Object.<number, function>}
+   * @protected
+   */
+  this.callbacks_ = {};
+
+  /**
+   * Map of registered listeners.
+   *
+   * @type {Object.<string, function>}
+   * @protected
+   */
+  this.listeners_ = {};
+
+  _validator.isConstructorCall(this, NativeManager);
+
+  // check extension prototype
+  if (!extension || !extension.internal ||
+      !_type.isFunction(extension.postMessage) ||
+      !_type.isFunction(extension.internal.sendSyncMessage) ||
+      !_type.isFunction(extension.setMessageListener)) {
+    throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
+      'Wrong extension object passed');
+  }
+
+  Object.defineProperties(this, {
+    nextReplyId: {
+      get: function() {
+        return ++replyId_;
+      },
+      enumerable: false
+    },
+    extension: {
+      get: function() {
+        return extension_;
+      },
+      enumerable: true
+    }
+  });
+
+  extension_.setMessageListener(function(json) {
+    var msg = JSON.parse(json);
+    var id;
+
+    if (msg.hasOwnProperty(this.CALLBACK_ID_KEY)) {
+      id = msg[this.CALLBACK_ID_KEY];
+      delete msg[this.CALLBACK_ID_KEY];
+
+      if (!_type.isFunction(this.callbacks_[id])) {
+        console.error('Wrong callback identifier. Ignoring message.');
+        return;
+      }
+
+      this.callbacks_[id](msg);
+      delete this.callbacks_[id];
+
+      return;
+    }
+
+    if (msg.hasOwnProperty(this.LISTENER_ID_KEY)) {
+      id = msg[this.LISTENER_ID_KEY];
+      delete msg[this.LISTENER_ID_KEY];
+
+      if (!_type.isFunction(this.listeners_[id])) {
+        console.error('Wrong listener identifier. Ignoring message.');
+        return;
+      }
+
+      this.listeners_[id](msg);
+
+      return;
+    }
+
+    console.error('Missing callback or listener identifier. Ignoring message.');
+
+  }.bind(this));
+};
+
+NativeManager.prototype.call = function(cmd, args, callback) {
+  args = args || {};
+
+  var replyId = this.nextReplyId;
+  args[this.CALLBACK_ID_KEY] = replyId;
+  this.callbacks_[replyId] = callback;
+
+  var request = JSON.stringify({
+    cmd: cmd,
+    args: args
+  });
+
+  this.extension.postMessage(request);
+};
+
+NativeManager.prototype.callSync = function(cmd, args) {
+  var request = JSON.stringify({
+    cmd: cmd,
+    args: args || {}
+  });
+
+  return JSON.parse(this.extension.internal.sendSyncMessage(request));
+};
+
+NativeManager.prototype.addListener = function(name, callback) {
+  if (!_type.isString(name) || !name.length) {
+    throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR);
+  }
+
+  this.listeners_[name] = callback;
+};
+
+NativeManager.prototype.removeListener = function(name) {
+  if (this.listeners_.hasOwnProperty(name)) {
+    delete this.listeners_[name];
+  }
+};
+
+NativeManager.prototype.isSuccess = function(result) {
+  return (result.status !== 'error');
+};
+
+NativeManager.prototype.isFailure = function(result) {
+  return !this.isSuccess(result);
+};
+
+NativeManager.prototype.getResultObject = function(result) {
+  return result.result;
+};
+
+NativeManager.prototype.getErrorObject = function(result) {
+  return new tizen.WebAPIException(result.error.code, result.error.message, result.error.name);
+};
+
+
 Utils.prototype.type = _type;
 Utils.prototype.converter = _converter;
 Utils.prototype.validator = _validator;
+Utils.prototype.NativeManager = NativeManager;
 
 exports = new Utils();

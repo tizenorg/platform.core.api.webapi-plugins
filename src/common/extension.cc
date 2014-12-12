@@ -264,6 +264,7 @@ void ParsedInstance::HandleMessage(const char* msg, bool is_sync) {
 
     if (!value.is<picojson::object>()) {
       std::cerr << "Ignoring message. It is not an object.";
+      return;
     }
 
     std::string cmd = (is_sync ? "#SYNC#" : "") + value.get("cmd").to_str();
@@ -275,8 +276,14 @@ void ParsedInstance::HandleMessage(const char* msg, bool is_sync) {
 
     NativeHandler func = it->second;
 
+    // check for args in JSON message
+    const picojson::value& args = value.get("args");
+    if (!args.is<picojson::object>()) {
+      throw InvalidValuesException("No \"args\" field in message");
+    }
+
     picojson::value result = picojson::value(picojson::object());
-    func(value, result.get<picojson::object>());
+    func(args, result.get<picojson::object>());
 
     if (is_sync)
       SendSyncReply(result.serialize().c_str());
