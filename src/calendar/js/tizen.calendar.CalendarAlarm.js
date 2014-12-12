@@ -14,69 +14,60 @@
  *    limitations under the License.
  */
 
-(function () {
-    'use strict';
+var AlarmMethod = {
+  SOUND: 'SOUND',
+  DISPLAY: 'DISPLAY'
+};
 
-    var _common = require('./tizen.Common');
-    var Converter = _common.Converter;
-    var AV = _common.ArgumentValidator;
-    _common = undefined;
+var CalendarAlarm = function(time, method, description) {
+  AV.validateConstructorCall(this, CalendarAlarm);
 
-    var AlarmMethod = {
-        SOUND: 'SOUND',
-        DISPLAY: 'DISPLAY'
-    };
+  var _absoluteDate = time instanceof tizen.TZDate && !this.before ? time : null;
+  var _before = time instanceof tizen.TimeDuration && !this.absoluteDate ? time : null;
+  var _method = Converter.toEnum(method, Object.keys(AlarmMethod), false);
+  var _description = (description) ? Converter.toString(description, true) : '';
 
-    var CalendarAlarm = function (time, method, description) {
-        AV.validateConstructorCall(this, CalendarAlarm);
+  Object.defineProperties(this, {
+    absoluteDate: {
+      get: function() {
+        return _absoluteDate;
+      },
+      set: function(v) {
+        _absoluteDate = v instanceof tizen.TZDate && !this.before ? v : null;
+      },
+      enumerable: true
+    },
+    before: {
+      get: function() {
+        return _before;
+      },
+      set: function(v) {
+        _before = v instanceof tizen.TimeDuration && !this.absoluteDate ? v : null;
+      },
+      enumerable: true
+    },
+    method: {
+      get: function() {
+        return _method;
+      },
+      set: function(v) {
+        if (v === null) {
+          return;
+        }
+        _method = Converter.toEnum(v, Object.keys(AlarmMethod), false);
+      },
+      enumerable: true
+    },
+    description: {
+      get: function() {
+        return _description;
+      },
+      set: function(v) {
+        _description = Converter.toString(v, true);
+      },
+      enumerable: true
+    }
+  });
+};
 
-        var _absoluteDate = time instanceof tizen.TZDate && !this.before ? time : null;
-        var _before = time instanceof tizen.TimeDuration && !this.absoluteDate ? time : null;
-        var _method = Converter.toEnum(method, Object.keys(AlarmMethod), false);
-        var _description = (description) ? Converter.toString(description, true) : '';
-
-        Object.defineProperties(this, {
-            absoluteDate: {
-                get: function () {
-                    return _absoluteDate;
-                },
-                set: function (v) {
-                    _absoluteDate = v instanceof tizen.TZDate && !this.before ? v : null;
-                },
-                enumerable: true
-            },
-            before: {
-                get: function () {
-                    return _before;
-                },
-                set: function (v) {
-                    _before = v instanceof tizen.TimeDuration && !this.absoluteDate ? v : null;
-                },
-                enumerable: true
-            },
-            method: {
-                get: function () {
-                    return _method;
-                },
-                set: function (v) {
-                    if (v === null) {
-                        return;
-                    }
-                    _method = Converter.toEnum(v, Object.keys(AlarmMethod), false);
-                },
-                enumerable: true
-            },
-            description: {
-                get: function () {
-                    return _description;
-                },
-                set: function (v) {
-                    _description = Converter.toString(v, true);
-                },
-                enumerable: true
-            }
-        });
-    };
-
-    module.exports = CalendarAlarm;
-})();
+tizen.CalendarAlarm = CalendarAlarm;

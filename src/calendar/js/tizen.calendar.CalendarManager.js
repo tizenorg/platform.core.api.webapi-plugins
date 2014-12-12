@@ -14,175 +14,160 @@
  *    limitations under the License.
  */
 
-(function () {
-    'use strict';
+// class CalendarManager
+var CalendarManager = function() {};
 
-    var _common = require('./tizen.Common');
-    var Cal = require('./tizen.calendar.Calendar');
-    var Calendar = Cal.Calendar;
-    var InternalCalendar = Cal.InternalCalendar;
-    var AV = _common.ArgumentValidator;
-    var C = _common.Common;
-    var _callSync = C.getCallSync('calendar');
-    var _call = C.getCall('calendar');
-    _common = undefined;
+var CalendarType = {
+  EVENT: 'EVENT',
+  TASK: 'TASK'
+};
 
-    // class CalendarManager
-    var CalendarManager = function () {};
+// IDs defined in C-API calendar_types2.h
+var DefaultCalendarId = {
+  EVENT: 1, // DEFAULT_EVENT_CALENDAR_BOOK_ID
+  TASK: 2 // DEFAULT_TODO_CALENDAR_BOOK_ID
+};
 
-    var CalendarType = {
-        EVENT: 'EVENT',
-        TASK: 'TASK'
-    };
+CalendarManager.prototype.getCalendars = function() {
+  var args = AV.validateMethod(arguments, [{
+    name: 'type',
+    type: AV.Types.ENUM,
+    values: Object.keys(CalendarType)
+  },
+  {
+    name: 'successCallback',
+    type: AV.Types.FUNCTION
+  },
+  {
+    name: 'errorCallback',
+    type: AV.Types.FUNCTION,
+    optional: true,
+    nullable: true
+  }]);
 
-    // IDs defined in C-API calendar_types2.h
-    var DefaultCalendarId = {
-        EVENT: 1, // DEFAULT_EVENT_CALENDAR_BOOK_ID
-        TASK: 2 // DEFAULT_TODO_CALENDAR_BOOK_ID
-    };
+  var callArgs = {
+    type: args.type
+  };
 
-    CalendarManager.prototype.getCalendars = function () {
-        var args = AV.validateMethod(arguments, [{
-            name: 'type',
-            type: AV.Types.ENUM,
-            values: Object.keys(CalendarType)
-        },
-        {
-            name: 'successCallback',
-            type: AV.Types.FUNCTION
-        },
-        {
-            name: 'errorCallback',
-            type: AV.Types.FUNCTION,
-            optional: true,
-            nullable: true
-        }]);
+  var callback = function(result) {
+    if (C.isFailure(result)) {
+      C.callIfPossible(args.errorCallback, C.getErrorObject(result));
+    } else {
+      var calendars = C.getResultObject(result);
+      var c = [];
+      calendars.forEach(function(i) {
+        c.push(new Calendar(new InternalCalendar(i)));
+      });
+      args.successCallback(c);
+    }
+  };
 
-        var callArgs = {
-            type: args.type
-        };
+  var result = _call('CalendarManager_getCalendars', callArgs, callback);
 
-        var callback = function (result) {
-            if (C.isFailure(result)) {
-                C.callIfPossible(args.errorCallback, C.getErrorObject(result));
-            } else {
-                var calendars = C.getResultObject(result);
-                var c = [];
-                calendars.forEach(function (i) {
-                    c.push(new Calendar(new InternalCalendar(i)));
-                });
-                args.successCallback(c);
-            }
-        };
+  if (C.isFailure(result)) {
+    throw C.getErrorObject(result);
+  }
+};
 
-        var result = _call('CalendarManager_getCalendars', callArgs, callback);
+CalendarManager.prototype.getUnifiedCalendar = function() {
 
-        if (C.isFailure(result)) {
-            throw C.getErrorObject(result);
-        }
-    };
+  var args = AV.validateMethod(arguments, [{
+    name: 'type',
+    type: AV.Types.ENUM,
+    values: Object.keys(CalendarType)
+  }]);
 
-    CalendarManager.prototype.getUnifiedCalendar = function () {
+  return new Calendar(new InternalCalendar({
+    type: args.type,
+    isUnified: true
+  }));
+};
 
-        var args = AV.validateMethod(arguments, [{
-            name: 'type',
-            type: AV.Types.ENUM,
-            values: Object.keys(CalendarType)
-        }]);
+CalendarManager.prototype.getDefaultCalendar = function() {
 
-        return new Calendar(new InternalCalendar({
-            type: args.type,
-            isUnified: true
-        }));
-    };
+  var args = AV.validateMethod(arguments, [{
+    name: 'type',
+    type: AV.Types.ENUM,
+    values: Object.keys(CalendarType)
+  }
+  ]);
 
-    CalendarManager.prototype.getDefaultCalendar = function () {
+  return this.getCalendar(args.type, DefaultCalendarId[args.type]);
+};
 
-        var args = AV.validateMethod(arguments, [{
-                name: 'type',
-                type: AV.Types.ENUM,
-                values: Object.keys(CalendarType)
-            }
-        ]);
+CalendarManager.prototype.getCalendar = function() {
 
-        return this.getCalendar(args.type, DefaultCalendarId[args.type]);
-    };
+  var args = AV.validateMethod(arguments, [{
+    name: 'type',
+    type: AV.Types.ENUM,
+    values: Object.keys(CalendarType)
+  },
+  {
+    name: 'id',
+    type: AV.Types.STRING
+  }
+  ]);
 
-    CalendarManager.prototype.getCalendar = function () {
+  var callArgs = {
+    type: args.type,
+    id: args.id
+  };
 
-        var args = AV.validateMethod(arguments, [{
-                name: 'type',
-                type: AV.Types.ENUM,
-                values: Object.keys(CalendarType)
-            },
-            {
-                name: 'id',
-                type: AV.Types.STRING
-            }
-        ]);
+  var result = _callSync('CalendarManager_getCalendar', callArgs);
 
-        var callArgs = {
-            type: args.type,
-            id: args.id
-        };
+  if (C.isFailure(result)) {
+    throw C.getErrorObject(result);
+  }
 
-        var result = _callSync('CalendarManager_getCalendar', callArgs);
+  return new Calendar(new InternalCalendar(C.getResultObject(result)));
+};
 
-        if (C.isFailure(result)) {
-            throw C.getErrorObject(result);
-        }
+CalendarManager.prototype.addCalendar = function() {
 
-        return new Calendar(new InternalCalendar(C.getResultObject(result)));
-    };
+  var args = AV.validateMethod(arguments, [{
+    name: 'calendar',
+    type: AV.Types.PLATFORM_OBJECT,
+    values: Calendar
+  }]);
 
-    CalendarManager.prototype.addCalendar = function () {
+  var callArgs = {
+    calendar: args.calendar
+  };
 
-        var args = AV.validateMethod(arguments, [{
-            name: 'calendar',
-            type: AV.Types.PLATFORM_OBJECT,
-            values: Calendar
-        }]);
+  var result = _callSync('CalendarManager_addCalendar', callArgs);
 
-        var callArgs = {
-            calendar: args.calendar
-        };
+  if (C.isFailure(result)) {
+    throw C.getErrorObject(result);
+  }
 
-        var result = _callSync('CalendarManager_addCalendar', callArgs);
+  args.calendar.id = new InternalCalendar({
+    id: C.getResultObject(result)
+  });
+};
 
-        if (C.isFailure(result)) {
-            throw C.getErrorObject(result);
-        }
+CalendarManager.prototype.removeCalendar = function() {
 
-        args.calendar.id = new InternalCalendar({
-            id: C.getResultObject(result)
-        });
-    };
+  var args = AV.validateMethod(arguments, [{
+    name: 'type',
+    type: AV.Types.ENUM,
+    values: Object.keys(CalendarType)
+  },
+  {
+    name: 'id',
+    type: AV.Types.STRING
+  }
+  ]);
 
-    CalendarManager.prototype.removeCalendar = function () {
+  var callArgs = {
+    type: args.type,
+    id: args.id
+  };
 
-        var args = AV.validateMethod(arguments, [{
-                name: 'type',
-                type: AV.Types.ENUM,
-                values: Object.keys(CalendarType)
-            },
-            {
-                name: 'id',
-                type: AV.Types.STRING
-            }
-        ]);
+  var result = _callSync('CalendarManager_removeCalendar', callArgs);
 
-        var callArgs = {
-            type: args.type,
-            id: args.id
-        };
+  if (C.isFailure(result)) {
+    throw C.getErrorObject(result);
+  }
+};
 
-        var result = _callSync('CalendarManager_removeCalendar', callArgs);
-
-        if (C.isFailure(result)) {
-            throw C.getErrorObject(result);
-        }
-    };
-
-    module.exports = CalendarManager;
-
-})();
+exports = new CalendarManager();
