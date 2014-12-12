@@ -14,291 +14,302 @@
  *    limitations under the License.
  */
 
-(function () {
-    'use strict';
+var _common = xwalk.utils;
+var T = _common.type;
+var Converter = _common.converter;
+var AV = _common.validator;
+var C = _common.Common;
+var _call = function() {}; //@TODO C.getCall('calendar');
+//var _callSync = C.getCallSync('calendar');
 
-    var EditManager = function () {
-        this.canEdit = false;
-    };
+function _callSync(cmd, msg) {
+  var msg = msg || {};
+  msg.cmd = cmd;
+  var ret = extension.internal.sendSyncMessage(JSON.stringify(msg));
+  var obj = JSON.parse(ret);
+  if (obj.error)
+    throwException_(obj.error);
+  return obj.result;
+}
 
-    EditManager.prototype.allow = function () {
-        this.canEdit = true;
-    };
+var EditManager = function() {
+  this.canEdit = false;
+};
 
-    EditManager.prototype.disallow = function () {
-        this.canEdit = false;
-    };
+EditManager.prototype.allow = function() {
+  this.canEdit = true;
+};
 
-    var _edit = new EditManager();
+EditManager.prototype.disallow = function() {
+  this.canEdit = false;
+};
 
-    var DateConverter = function () {};
+var _edit = new EditManager();
 
-    DateConverter.prototype.toTZDate = function (v, isAllDay) {
-        if (typeof v === 'number') {
-            v = {
-                UTCTimestamp: v
-            };
-            isAllDay = false;
-        }
+var DateConverter = function() {};
 
-        if (!(v instanceof Object)) {
-            return v;
-        }
-
-        if (isAllDay) {
-            return new tizen.TZDate(v.year, v.month, v.day,
-                                    null, null, null, null, v.timezone || null);
-        } else {
-            return new tizen.TZDate(new Date(v.UTCTimestamp * 1000), 'UTC').toLocalTimezone();
-        }
-    };
-
-    DateConverter.prototype.fromTZDate = function (v) {
-        if (!(v instanceof tizen.TZDate)) {
-            return v;
-        }
-
-        var utc = v.toUTC();
-        var timestamp = new Date(utc.getFullYear(), utc.getMonth(), utc.getDate(), utc.getHours(),
-            utc.getMinutes(), utc.getSeconds()) / 1000;
-
-        return {
-            year: v.getFullYear(),
-            month: v.getMonth(),
-            day: v.getDate(),
-            timezone: v.getTimezone(),
-            UTCTimestamp: timestamp
+DateConverter.prototype.toTZDate = function(v, isAllDay) {
+  if (typeof v === 'number') {
+    v = {
+      UTCTimestamp: v
         };
+    isAllDay = false;
+  }
 
-    };
+  if (!(v instanceof Object)) {
+    return v;
+  }
 
-    var _dateConverter = new DateConverter();
+  if (isAllDay) {
+    return new tizen.TZDate(v.year, v.month, v.day,
+        null, null, null, null, v.timezone || null);
+  } else {
+    return new tizen.TZDate(new Date(v.UTCTimestamp * 1000), 'UTC').toLocalTimezone();
+  }
+};
 
-    var ItemConverter = function () {};
+DateConverter.prototype.fromTZDate = function(v) {
+  if (!(v instanceof tizen.TZDate)) {
+    return v;
+  }
 
-    ItemConverter.prototype.toTizenObject = function (item) {
-        var tmp = {};
-        for (var prop in item) {
-            if (prop === 'startDate' ||
-                prop === 'endDate' ||
-                prop === 'dueDate' ||
-                prop === 'completedDate' ||
-                prop === 'lastModificationDate') {
-                tmp[prop] = _dateConverter.toTZDate(item[prop], item.isAllDay);
+  var utc = v.toUTC();
+  var timestamp = new Date(utc.getFullYear(), utc.getMonth(), utc.getDate(), utc.getHours(),
+      utc.getMinutes(), utc.getSeconds()) / 1000;
+
+  return {
+    year: v.getFullYear(),
+    month: v.getMonth(),
+    day: v.getDate(),
+    timezone: v.getTimezone(),
+    UTCTimestamp: timestamp
+  };
+
+};
+
+var _dateConverter = new DateConverter();
+
+var ItemConverter = function() {};
+
+ItemConverter.prototype.toTizenObject = function(item) {
+  var tmp = {};
+  for (var prop in item) {
+    if (prop === 'startDate' ||
+            prop === 'endDate' ||
+            prop === 'dueDate' ||
+            prop === 'completedDate' ||
+            prop === 'lastModificationDate') {
+      tmp[prop] = _dateConverter.toTZDate(item[prop], item.isAllDay);
+    } else {
+      tmp[prop] = item[prop];
+    }
+  }
+
+  var alarms = [];
+  var alarm, time;
+  for (var i = 0; i < tmp.alarms.length; i++) {
+    alarm = tmp.alarms[i];
+    if (alarm.absoluteDate) {
+      time = _dateConverter.toTZDate(alarm.absoluteDate, tmp.isAllDay);
+    } else if (alarm.before) {
+      time = new tizen.TimeDuration(alarm.before.length, alarm.before.unit);
+    }
+    alarms.push(new tizen.CalendarAlarm(time, alarm.method, alarm.description));
+  }
+  tmp.alarms = alarms;
+
+  var attendees = [];
+  for (var i = 0; i < tmp.attendees.length; i++) {
+    if (tmp.attendees[i].contactRef) {
+      var contactRef = new tizen.ContactRef(tmp.attendees[i].contactRef.addressBookId,
+                                                  tmp.attendees[i].contactRef.contactId);
+      tmp.attendees[i].contactRef = contactRef;
+    }
+    if (tmp.attendees[i].uri) {
+      attendees.push(new tizen.CalendarAttendee(tmp.attendees[i].uri, tmp.attendees[i]));
+    }
+  }
+  tmp.attendees = attendees;
+
+  var untilDate;
+  var exceptions = [];
+  if (tmp.recurrenceRule) {
+    untilDate = _dateConverter.toTZDate(tmp.recurrenceRule.untilDate, tmp.isAllDay);
+    tmp.recurrenceRule.untilDate = untilDate;
+
+    for (var i = 0; i < tmp.recurrenceRule.exceptions.length; i++) {
+      exceptions.push(_dateConverter.toTZDate(tmp.recurrenceRule.exceptions[i], tmp.isAllDay));
+    }
+    tmp.recurrenceRule.exceptions = exceptions;
+
+    var recurrenceRule = new tizen.CalendarRecurrenceRule(tmp.recurrenceRule.frequency, tmp.recurrenceRule);
+    tmp.recurrenceRule = recurrenceRule;
+  }
+
+  if (tmp.duration) {
+    var duration = new tizen.TimeDuration(tmp.duration.length, tmp.duration.unit);
+    tmp.duration = duration;
+  }
+
+  if (tmp.geolocation) {
+    var geolocation = new tizen.SimpleCoordinates(tmp.geolocation.latitude, tmp.geolocation.longitude);
+    tmp.geolocation = geolocation;
+  }
+
+  return tmp;
+};
+
+ItemConverter.prototype.fromTizenObject = function(item) {
+  var tmp = {};
+  for (var prop in item) {
+    if (item[prop] instanceof tizen.TZDate) {
+      tmp[prop] = _dateConverter.fromTZDate(item[prop]);
+    } else if (item[prop] instanceof Array) {
+      tmp[prop] = [];
+      for (var i = 0, length = item[prop].length; i < length; i++) {
+        if (item[prop][i] instanceof Object) {
+          tmp[prop][i] = {};
+          for (var p in item[prop][i]) {
+            if (item[prop][i][p] instanceof tizen.TZDate) {
+              tmp[prop][i][p] = _dateConverter.fromTZDate(item[prop][i][p]);
             } else {
-                tmp[prop] = item[prop];
+              tmp[prop][i][p] = item[prop][i][p];
             }
+          }
+        } else {
+          tmp[prop] = item[prop];
         }
-
-        var alarms = [];
-        var alarm, time;
-        for (var i = 0; i < tmp.alarms.length; i++) {
-            alarm = tmp.alarms[i];
-            if (alarm.absoluteDate) {
-                time = _dateConverter.toTZDate(alarm.absoluteDate, tmp.isAllDay);
-            } else if (alarm.before) {
-                time = new tizen.TimeDuration(alarm.before.length, alarm.before.unit);
-            }
-            alarms.push(new tizen.CalendarAlarm(time, alarm.method, alarm.description));
+      }
+    } else if (item[prop] instanceof Object) {
+      tmp[prop] = {};
+      for (var p in item[prop]) {
+        if (item[prop][p] instanceof tizen.TZDate) {
+          tmp[prop][p] = _dateConverter.fromTZDate(item[prop][p]);
+        } else if (item[prop][p] instanceof Array) {
+          tmp[prop][p] = [];
+          for (var j = 0, l = item[prop][p].length; j < l; j++) {
+            tmp[prop][p].push(_dateConverter.fromTZDate(item[prop][p][j]));
+          }
+        } else {
+          tmp[prop][p] = item[prop][p];
         }
-        tmp.alarms = alarms;
+      }
+    } else {
+      tmp[prop] = item[prop];
+    }
+  }
 
-        var attendees = [];
-        for (var i = 0; i < tmp.attendees.length; i++) {
-            if (tmp.attendees[i].contactRef) {
-                var contactRef = new tizen.ContactRef(tmp.attendees[i].contactRef.addressBookId,
-                                                      tmp.attendees[i].contactRef.contactId);
-                tmp.attendees[i].contactRef = contactRef;
-            }
-            if (tmp.attendees[i].uri) {
-                attendees.push(new tizen.CalendarAttendee(tmp.attendees[i].uri, tmp.attendees[i]));
-            }
-        }
-        tmp.attendees = attendees;
+  return tmp;
+};
 
-        var untilDate;
-        var exceptions = [];
-        if (tmp.recurrenceRule) {
-            untilDate = _dateConverter.toTZDate(tmp.recurrenceRule.untilDate, tmp.isAllDay);
-            tmp.recurrenceRule.untilDate = untilDate;
+var _itemConverter = new ItemConverter();
 
-            for (var i = 0; i < tmp.recurrenceRule.exceptions.length; i++) {
-                exceptions.push(_dateConverter.toTZDate(tmp.recurrenceRule.exceptions[i], tmp.isAllDay));
-            }
-            tmp.recurrenceRule.exceptions = exceptions;
+function _daysInYear(y) {
+  if ((y % 4 === 0 && y % 100) || y % 400 === 0) {
+    return 366;
+  }
+  return 365;
+}
 
-            var recurrenceRule = new tizen.CalendarRecurrenceRule(tmp.recurrenceRule.frequency, tmp.recurrenceRule);
-            tmp.recurrenceRule = recurrenceRule;
-        }
+function _daysInMonth(m, y) {
+  switch (m) {
+    case 1 :
+      return _daysInYear(y) === 366 ? 29 : 28;
+    case 3 :
+    case 5 :
+    case 8 :
+    case 10 :
+      return 30;
+    default :
+      return 31;
+  }
+}
 
-        if (tmp.duration) {
-            var duration = new tizen.TimeDuration(tmp.duration.length, tmp.duration.unit);
-            tmp.duration = duration;
-        }
+var RecurrenceManager = function() {};
 
-        if (tmp.geolocation) {
-            var geolocation = new tizen.SimpleCoordinates(tmp.geolocation.latitude, tmp.geolocation.longitude);
-            tmp.geolocation = geolocation;
-        }
+RecurrenceManager.prototype.get = function(event, startDate, endDate) {
+  var events = [];
+  var frequency = event.recurrenceRule.frequency;
+  var interval = event.recurrenceRule.interval;
+  var untilDate = event.recurrenceRule.untilDate;
+  var occurrenceCount = event.recurrenceRule.occurrenceCount;
+  var exceptions = event.recurrenceRule.exceptions;
+  var isDetached = event.isDetached;
+  var startEvent = event.startDate;
+  var startDate = startDate;
+  var endDate = endDate;
 
-        return tmp;
-    };
+  if (isDetached) {
+    return 'The event is detached.';
+  }
 
-    ItemConverter.prototype.fromTizenObject = function (item) {
-        var tmp = {};
-        for (var prop in item) {
-            if (item[prop] instanceof tizen.TZDate) {
-                tmp[prop] = _dateConverter.fromTZDate(item[prop]);
-            } else if (item[prop] instanceof Array) {
-                tmp[prop] = [];
-                for (var i = 0, length = item[prop].length; i < length; i++) {
-                    if (item[prop][i] instanceof Object) {
-                        tmp[prop][i] = {};
-                        for (var p in item[prop][i]) {
-                            if (item[prop][i][p] instanceof tizen.TZDate) {
-                                tmp[prop][i][p] = _dateConverter.fromTZDate(item[prop][i][p]);
-                            } else {
-                                tmp[prop][i][p] = item[prop][i][p];
-                            }
-                        }
-                    } else {
-                        tmp[prop] = item[prop];
-                    }
-                }
-            } else if (item[prop] instanceof Object) {
-                tmp[prop] = {};
-                for (var p in item[prop]) {
-                    if (item[prop][p] instanceof tizen.TZDate) {
-                        tmp[prop][p] = _dateConverter.fromTZDate(item[prop][p]);
-                    } else if (item[prop][p] instanceof Array) {
-                        tmp[prop][p] = [];
-                        for (var j = 0, l = item[prop][p].length; j < l; j++) {
-                            tmp[prop][p].push(_dateConverter.fromTZDate(item[prop][p][j]));
-                        }
-                    } else {
-                        tmp[prop][p] = item[prop][p];
-                    }
-                }
-            } else {
-                tmp[prop] = item[prop];
-            }
-        }
+  if (startEvent.laterThan(startDate)) {
+    startDate = startEvent;
+  }
 
-        return tmp;
-    };
+  if (untilDate) {
+    endDate = untilDate.laterThan(endDate) ? endDate : untilDate;
+  }
 
-    function _daysInYear(y) {
-        if ((y % 4 === 0 && y % 100) || y % 400 === 0) {
-            return 366;
-        }
-        return 365;
+  var timeDifference = endDate.difference(startDate);
+  var daysDifference = timeDifference.length;
+
+  function checkDays(date) {
+    switch (frequency) {
+      case 'DAILY' :
+        return 1;
+      case 'WEEKLY' :
+        return 7;
+      case 'MONTHLY' :
+        return _daysInMonth(date.getMonth(), date.getFullYear());
+      case 'YEARLY' :
+        return _daysInYear(date.getFullYear());
+    }
+  }
+
+  function checkException(date) {
+    for (var j = 0; j < exceptions.length; j++) {
+      if (exceptions[j].equalsTo(date)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  var dates = [];
+  var date = startDate;
+  var push = true;
+  var _interval = occurrenceCount >= 0 ? occurrenceCount :
+      (daysDifference + 1) / checkDays(startDate);
+
+  for (var i = 0; i < _interval; ++i) {
+    if (exceptions) {
+      checkException(date) ? push = false : null;
     }
 
-    function _daysInMonth(m, y) {
-        switch (m) {
-            case 1 :
-                return _daysInYear(y) === 366 ? 29 : 28;
-            case 3 :
-            case 5 :
-            case 8 :
-            case 10 :
-                return 30;
-            default :
-                return 31;
-        }
+    if (push) {
+      if (endDate.laterThan(date) || endDate.equalsTo(date)) {
+        dates.push(date);
+      }
     }
+    date = date.addDuration(new tizen.TimeDuration((checkDays(date) * interval), 'DAYS'));
+  }
 
-    var RecurrenceManager = function() {};
+  var tmp;
+  for (var i = 0; i < dates.length; i++) {
+    tmp = event.clone();
+    _edit.allow();
+    tmp.startDate = dates[i];
+    if (event.id instanceof tizen.CalendarEventId) {
+      tmp.id = new tizen.CalendarEventId(event.id.uid, +new Date());
+      tmp.isDetached = true;
+    }
+    _edit.disallow();
 
-    RecurrenceManager.prototype.get = function(event, startDate, endDate) {
-        var events = [];
-        var frequency = event.recurrenceRule.frequency;
-        var interval = event.recurrenceRule.interval;
-        var untilDate = event.recurrenceRule.untilDate;
-        var occurrenceCount = event.recurrenceRule.occurrenceCount;
-        var exceptions = event.recurrenceRule.exceptions;
-        var isDetached = event.isDetached;
-        var startEvent = event.startDate;
-        var startDate = startDate;
-        var endDate = endDate;
+    events.push(tmp);
+  }
 
-        if (isDetached) {
-            return 'The event is detached.';
-        }
+  return events;
+};
 
-        if (startEvent.laterThan(startDate)) {
-            startDate = startEvent;
-        }
-
-        if (untilDate) {
-            endDate = untilDate.laterThan(endDate) ? endDate : untilDate;
-        }
-
-        var timeDifference = endDate.difference(startDate);
-        var daysDifference = timeDifference.length;
-
-        function checkDays(date) {
-            switch (frequency) {
-                case 'DAILY' :
-                    return 1;
-                case 'WEEKLY' :
-                    return 7;
-                case 'MONTHLY' :
-                    return _daysInMonth(date.getMonth(), date.getFullYear());
-                case 'YEARLY' :
-                    return _daysInYear(date.getFullYear());
-            }
-        }
-
-        function checkException(date) {
-            for (var j = 0; j < exceptions.length; j++) {
-                if (exceptions[j].equalsTo(date)) {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        var dates = [];
-        var date = startDate;
-        var push = true;
-        var _interval = occurrenceCount >= 0 ? occurrenceCount :
-                (daysDifference + 1) / checkDays(startDate);
-
-        for (var i = 0; i < _interval; ++i) {
-            if (exceptions) {
-                checkException(date) ? push = false : null;
-            }
-
-            if (push) {
-                if (endDate.laterThan(date) || endDate.equalsTo(date)) {
-                    dates.push(date);
-                }
-            }
-            date = date.addDuration(new tizen.TimeDuration((checkDays(date) * interval), "DAYS"));
-        }
-
-        var tmp;
-        for (var i = 0; i < dates.length; i++) {
-            tmp = event.clone();
-            _edit.allow();
-            tmp.startDate = dates[i];
-            if (event.id instanceof tizen.CalendarEventId) {
-                tmp.id = new tizen.CalendarEventId(event.id.uid, +new Date());
-                tmp.isDetached = true;
-            }
-            _edit.disallow();
-
-            events.push(tmp);
-        }
-
-        return events;
-    };
-
-    module.exports = {
-        _edit: _edit,
-        _dateConverter: _dateConverter,
-        _itemConverter: new ItemConverter(),
-        _recurrenceManager: new RecurrenceManager()
-    };
-})();
+var _recurrenceManager = new RecurrenceManager();

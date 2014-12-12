@@ -14,181 +14,170 @@
  *    limitations under the License.
  */
 
-(function () {
-    'use strict';
+var AttendeeType = {
+  INDIVIDUAL: 'INDIVIDUAL',
+  GROUP: 'GROUP',
+  RESOURCE: 'RESOURCE',
+  ROOM: 'ROOM',
+  UNKNOWN: 'UNKNOWN'
+};
 
-    var _common = require('./tizen.Common');
-    var T = _common.Type;
-    var Converter = _common.Converter;
-    var AV = _common.ArgumentValidator;
-    var C = _common.Common;
-    _common = undefined;
+var AttendeeStatus = {
+  PENDING: 'PENDING',
+  ACCEPTED: 'ACCEPTED',
+  DECLINED: 'DECLINED',
+  TENTATIVE: 'TENTATIVE',
+  DELEGATED: 'DELEGATED',
+  COMPLETED: 'COMPLETED',
+  IN_PROCESS: 'IN_PROCESS'
+};
 
-    var AttendeeType = {
-        INDIVIDUAL: 'INDIVIDUAL',
-        GROUP: 'GROUP',
-        RESOURCE: 'RESOURCE',
-        ROOM: 'ROOM',
-        UNKNOWN: 'UNKNOWN'
-    };
+var AttendeeRole = {
+  REQ_PARTICIPANT: 'REQ_PARTICIPANT',
+  OPT_PARTICIPANT: 'OPT_PARTICIPANT',
+  NON_PARTICIPANT: 'NON_PARTICIPANT',
+  CHAIR: 'CHAIR'
+};
 
-    var AttendeeStatus = {
-        PENDING: 'PENDING',
-        ACCEPTED: 'ACCEPTED',
-        DECLINED: 'DECLINED',
-        TENTATIVE: 'TENTATIVE',
-        DELEGATED: 'DELEGATED',
-        COMPLETED: 'COMPLETED',
-        IN_PROCESS: 'IN_PROCESS'
-    };
+var CalendarAttendeeInit = function(data) {
+  var _name = null;
+  var _role = 'REQ_PARTICIPANT';
+  var _status = 'PENDING';
+  var _RSVP = false;
+  var _type = 'INDIVIDUAL';
+  var _group = null;
+  var _delegatorURI = null;
+  var _delegateURI = null;
+  var _contactRef = null;
 
-    var AttendeeRole = {
-        REQ_PARTICIPANT: 'REQ_PARTICIPANT',
-        OPT_PARTICIPANT: 'OPT_PARTICIPANT',
-        NON_PARTICIPANT: 'NON_PARTICIPANT',
-        CHAIR: 'CHAIR'
-    };
-
-    var CalendarAttendeeInit = function (data) {
-        var _name = null;
-        var _role = 'REQ_PARTICIPANT';
-        var _status = 'PENDING';
-        var _RSVP = false;
-        var _type = 'INDIVIDUAL';
-        var _group = null;
-        var _delegatorURI = null;
-        var _delegateURI = null;
-        var _contactRef = null;
-
-        Object.defineProperties(this, {
-            name: {
-                get: function () {
-                    return _name;
-                },
-                set: function (v) {
-                    _name = Converter.toString(v, true);
-                },
-                enumerable: true
-            },
-            role: {
-                get: function () {
-                    return _role;
-                },
-                set: function (v) {
-                    if (v === null) {
-                        return;
-                    }
-                    _role = Converter.toEnum(v, Object.keys(AttendeeRole), false);
-                },
-                enumerable: true
-            },
-            status: {
-                get: function () {
-                    return _status;
-                },
-                set: function (v) {
-                    if (v === null) {
-                        return;
-                    }
-                    _status = Converter.toEnum(v, Object.keys(AttendeeStatus), false);
-                },
-                enumerable: true
-            },
-            RSVP: {
-                get: function () {
-                    return _RSVP;
-                },
-                set: function (v) {
-                    _RSVP = Converter.toBoolean(v);
-                },
-                enumerable: true
-            },
-            type: {
-                get: function () {
-                    return _type;
-                },
-                set: function (v) {
-                    if (v === null) {
-                        return;
-                    }
-                    _type = Converter.toEnum(v, Object.keys(AttendeeType), false);
-                },
-                enumerable: true
-            },
-            group: {
-                get: function () {
-                    return _group;
-                },
-                set: function (v) {
-                    _group = Converter.toString(v, true);
-                },
-                enumerable: true
-            },
-            delegatorURI: {
-                get: function () {
-                    return _delegatorURI;
-                },
-                set: function (v) {
-                    _delegatorURI = Converter.toString(v, true);
-                },
-                enumerable: true
-            },
-            delegateURI: {
-                get: function () {
-                    return _delegateURI;
-                },
-                set: function (v) {
-                    _delegateURI = Converter.toString(v, true);
-                },
-                enumerable: true
-            },
-            contactRef: {
-                get: function () {
-                    return _contactRef;
-                },
-                set: function (v) {
-                    _contactRef = v instanceof tizen.ContactRef ? v : _contactRef;
-                },
-                enumerable: true
-            }
-        });
-
-        if (data instanceof Object) {
-            for (var prop in data) {
-                if (this.hasOwnProperty(prop)) {
-                    this[prop] = data[prop];
-                }
-            }
+  Object.defineProperties(this, {
+    name: {
+      get: function() {
+        return _name;
+      },
+      set: function(v) {
+        _name = Converter.toString(v, true);
+      },
+      enumerable: true
+    },
+    role: {
+      get: function() {
+        return _role;
+      },
+      set: function(v) {
+        if (v === null) {
+          return;
         }
-    };
+        _role = Converter.toEnum(v, Object.keys(AttendeeRole), false);
+      },
+      enumerable: true
+    },
+    status: {
+      get: function() {
+        return _status;
+      },
+      set: function(v) {
+        if (v === null) {
+          return;
+        }
+        _status = Converter.toEnum(v, Object.keys(AttendeeStatus), false);
+      },
+      enumerable: true
+    },
+    RSVP: {
+      get: function() {
+        return _RSVP;
+      },
+      set: function(v) {
+        _RSVP = Converter.toBoolean(v);
+      },
+      enumerable: true
+    },
+    type: {
+      get: function() {
+        return _type;
+      },
+      set: function(v) {
+        if (v === null) {
+          return;
+        }
+        _type = Converter.toEnum(v, Object.keys(AttendeeType), false);
+      },
+      enumerable: true
+    },
+    group: {
+      get: function() {
+        return _group;
+      },
+      set: function(v) {
+        _group = Converter.toString(v, true);
+      },
+      enumerable: true
+    },
+    delegatorURI: {
+      get: function() {
+        return _delegatorURI;
+      },
+      set: function(v) {
+        _delegatorURI = Converter.toString(v, true);
+      },
+      enumerable: true
+    },
+    delegateURI: {
+      get: function() {
+        return _delegateURI;
+      },
+      set: function(v) {
+        _delegateURI = Converter.toString(v, true);
+      },
+      enumerable: true
+    },
+    contactRef: {
+      get: function() {
+        return _contactRef;
+      },
+      set: function(v) {
+        _contactRef = v instanceof tizen.ContactRef ? v : _contactRef;
+      },
+      enumerable: true
+    }
+  });
 
-    var CalendarAttendee = function (uri, attendeeInitDict) {
-        AV.validateConstructorCall(this, CalendarAttendee);
+  if (data instanceof Object) {
+    for (var prop in data) {
+      if (this.hasOwnProperty(prop)) {
+        this[prop] = data[prop];
+      }
+    }
+  }
+};
 
-        CalendarAttendeeInit.call(this, attendeeInitDict);
+var CalendarAttendee = function(uri, attendeeInitDict) {
+  AV.validateConstructorCall(this, CalendarAttendee);
 
-        var _uri = null;
+  CalendarAttendeeInit.call(this, attendeeInitDict);
 
-        Object.defineProperties(this, {
-            uri: {
-                get: function () {
-                    return _uri;
-                },
-                set: function (v) {
-                    if (v === null) {
-                        return;
-                    }
-                    _uri = Converter.toString(v, true);
-                },
-                enumerable: true
-            }
-        });
+  var _uri = null;
 
-        this.uri = uri;
-    };
+  Object.defineProperties(this, {
+    uri: {
+      get: function() {
+        return _uri;
+      },
+      set: function(v) {
+        if (v === null) {
+          return;
+        }
+        _uri = Converter.toString(v, true);
+      },
+      enumerable: true
+    }
+  });
 
-    CalendarAttendee.prototype = new CalendarAttendeeInit();
-    CalendarAttendee.prototype.constructor = CalendarAttendee;
+  this.uri = uri;
+};
 
-    module.exports = CalendarAttendee;
-})();
+CalendarAttendee.prototype = new CalendarAttendeeInit();
+CalendarAttendee.prototype.constructor = CalendarAttendee;
+
+tizen.CalendarAttendee = CalendarAttendee;
