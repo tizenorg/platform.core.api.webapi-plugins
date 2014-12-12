@@ -82,6 +82,8 @@
       'XW_Extension_Runtime.h',
       'XW_Extension_SyncMessage.h',
       'scope_exit.h',
+      'task-queue.cpp',
+      'task-queue.h',
     ],
     'cflags': [
       '-std=c++0x',
