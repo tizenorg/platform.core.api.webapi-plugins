@@ -475,7 +475,11 @@ Messaging.prototype.getMessageServices = function () {
         }
     }).then({
         success: function (data) {
-            args.successCallback.call(null, new MessageService(data));
+            var servicesArr = [];
+            data.forEach(function(e){
+                servicesArr.push(new MessageService(e));
+            });
+            args.successCallback.call(null, servicesArr);
         },
         error: function (e) {
             if (args.errorCallback) {
@@ -487,7 +491,7 @@ Messaging.prototype.getMessageServices = function () {
         }
     });
 }
-
+function MessageStorage(){};
 function MessageService(data) {
     propertyFactory_(this, 'id', data.id, Property.E);
     propertyFactory_(this, 'type', data.type, Property.E);

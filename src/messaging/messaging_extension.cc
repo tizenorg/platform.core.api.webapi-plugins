@@ -31,5 +31,5 @@ MessagingExtension::MessagingExtension() {
 MessagingExtension::~MessagingExtension() {}
 
 common::Instance* MessagingExtension::CreateInstance() {
-  return new extension::messaging::MessagingInstance;
+  return &extension::messaging::MessagingInstance::getInstance();
 }

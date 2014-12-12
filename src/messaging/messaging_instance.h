@@ -12,6 +12,9 @@ namespace messaging {
 
 class MessagingInstance : public common::ParsedInstance {
     public:
+        static MessagingInstance& getInstance();
+    private:
+        void GetMessageServices(const picojson::value& args, picojson::object& out);
         MessagingInstance();
         virtual ~MessagingInstance();
 };
