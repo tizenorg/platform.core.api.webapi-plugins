@@ -19,19 +19,24 @@ const std::string kPrivilegeCallHistoryWrite = "http://tizen.org/privilege/callh
 
 using namespace common;
 
+CallHistoryInstance& CallHistoryInstance::getInstance() {
+    static CallHistoryInstance instance;
+    return instance;
+}
+
 CallHistoryInstance::CallHistoryInstance() {
     using namespace std::placeholders;
 #define REGISTER_SYNC(c,x) \
         RegisterSyncHandler(c, std::bind(&CallHistoryInstance::x, this, _1, _2));
-    REGISTER_SYNC("remove", Remove);
-    REGISTER_SYNC("addChangeListener", AddChangeListener);
-    REGISTER_SYNC("removeChangeListener", RemoveChangeListener);
+    REGISTER_SYNC("CallHistory_remove", Remove);
+    REGISTER_SYNC("CallHistory_addChangeListener", AddChangeListener);
+    REGISTER_SYNC("CallHistory_removeChangeListener", RemoveChangeListener);
 #undef REGISTER_SYNC
 #define REGISTER_ASYNC(c,x) \
         RegisterHandler(c, std::bind(&CallHistoryInstance::x, this, _1, _2));
-    REGISTER_ASYNC("find", Find);
-    REGISTER_ASYNC("removeBatch", RemoveBatch);
-    REGISTER_ASYNC("removeAll", RemoveAll);
+    REGISTER_ASYNC("CallHistory_find", Find);
+    REGISTER_ASYNC("CallHistory_removeBatch", RemoveBatch);
+    REGISTER_ASYNC("CallHistory_removeAll", RemoveAll);
 #undef REGISTER_ASYNC
 }
 
@@ -55,11 +60,24 @@ void CallHistoryInstance::RemoveAll(const picojson::value& args, picojson::objec
 }
 
 void CallHistoryInstance::AddChangeListener(const picojson::value& args, picojson::object& out) {
-
+    LoggerD("Entered");
+    CallHistory::getInstance()->startCallHistoryChangeListener();
+    ReportSuccess(out);
 }
 
 void CallHistoryInstance::RemoveChangeListener(const picojson::value& args, picojson::object& out) {
+    LoggerD("Entered");
+    CallHistory::getInstance()->stopCallHistoryChangeListener();
+    ReportSuccess(out);
+}
 
+void CallHistoryInstance::CallHistoryChange(picojson::object& data) {
+    LoggerD("Entered");
+    picojson::value event = picojson::value(data);
+    picojson::object& obj = event.get<picojson::object>();
+    obj["cmd"] = picojson::value("CallHistoryChangeCallback");
+
+    PostMessage(event.serialize().c_str());
 }
 
 } // namespace callhistory

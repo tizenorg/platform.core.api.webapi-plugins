@@ -4,7 +4,7 @@
 
 var Common = function() {
 function _getException(type, msg) {
-    return new WebAPIException(type, msg || 'Unexpected exception');
+    return new tizen.WebAPIException(type, msg || 'Unexpected exception');
 }
 
 function _getTypeMismatch(msg) {
@@ -22,22 +22,21 @@ var _validator = xwalk.utils.validator;
 
 function Common() {}
 
-function _prepareRequest(module, method, args) {
+function _prepareRequest(cmd, args) {
     var request = {
-            module : module
+            cmd : cmd,
+            args : args || {}
     };
-    request.data = {
-            method : method,
-            args : args
-    };
+
     return request;
 }
 
-Common.prototype.getCallSync = function (msg) {
-    var ret = extension.internal.sendSyncMessage(JSON.stringify(msg));
+Common.prototype.callSync = function (cmd, args) {
+    var request = _prepareRequest(cmd, args);
+    var ret = extension.internal.sendSyncMessage(JSON.stringify(request));
     var obj = JSON.parse(ret);
     if (obj.error) {
-        throwException_(obj.error);
+        throw new tizen.throwException(obj.error);
     }
 
     return obj.result;
@@ -62,7 +61,7 @@ Common.prototype.isFailure = function (result) {
 };
 
 Common.prototype.getErrorObject = function (result) {
-    return new WebAPIException(result.error);
+    return new tizen.WebAPIException(0, result.error.message, result.error.name);
 };
 
 Common.prototype.getResultObject = function (result) {
@@ -218,53 +217,170 @@ var AV = _common.ArgumentValidator;
 var C = _common.Common;
 
 var _listeners = {};
-var _nextId = 0;
+var _listenersId = 0;
+
+function _createCallHistoryEntries(e) {
+    var entries_array = [];
+    var entries = e.data;
+
+    entries.forEach(function (data) {
+        entries_array.push(new CallHistoryEntry(data));
+    });
+
+    return entries_array;
+};
 
 extension.setMessageListener(function(msg) {
+    var m = JSON.parse(msg);
+    if (m.cmd == 'CallHistoryChangeCallback') {
+        var d = null;
 
+        switch (m.action) {
+        case 'onadded':
+        case 'onchanged':
+            d = _createCallHistoryEntries(m);
+            break;
+
+        case 'onremoved':
+            d = m.data;
+            break;
+
+        default:
+            console.log('Unknown mode: ' + m.action);
+            return;
+        }
+
+        for (var watchId in _listeners) {
+            if (_listeners.hasOwnProperty(watchId) && _listeners[watchId][m.action]) {
+                _listeners[watchId][m.action](d);
+            }
+        }
+    }
 });
 
 function CallHistory() {
-}
+};
 
 CallHistory.prototype.find = function() {
 
-}
+};
 
 CallHistory.prototype.remove = function() {
 
-}
+};
 
 CallHistory.prototype.removeBatch = function() {
 
-}
+};
 
 CallHistory.prototype.removeAll = function() {
 
-}
+};
 
-CallHistory.prototype.addChangeListener  = function() {
+CallHistory.prototype.addChangeListener = function() {
+    var args = AV.validateArgs(arguments, [
+        {
+            name : 'eventCallback',
+            type : AV.Types.LISTENER,
+            values : ['onadded', 'onchanged', 'onremoved']
+        }
+    ]);
 
-}
+    if (T.isEmptyObject(_listeners)) {
+        C.callSync('CallHistory_addChangeListener');
+    }
+
+    var watchId = ++_listenersId;
+    _listeners[watchId] = args.eventCallback;
+
+     return watchId;
+};
 
 CallHistory.prototype.removeChangeListener = function() {
+    var args = AV.validateArgs(arguments, [
+        {
+            name : 'watchId',
+            type : AV.Types.LONG
+        }
+    ]);
 
-}
+    var id = args.watchId;
+
+    if (T.isNullOrUndefined(_listeners[id])) {
+        throw new tizen.WebAPIException(0, 'NotFoundError', 'Watch id not found.');
+    }
+
+    delete _listeners[id];
+
+    if (T.isEmptyObject(_listeners)) {
+       C.callSync('CallHistory_removeChangeListener');
+    }
+};
 
 function RemoteParty(data) {
-
-}
+    Object.defineProperties(this, {
+        remoteParty: {
+            value: data.remoteParty ? data.remoteParty : null,
+            writable: false,
+            enumerable: true
+        },
+        personId: {
+            value: data.personId ? Converter.toString(data.personId) : null,
+            writable: false,
+            enumerable: true
+        }
+    });
+};
 
 function CallHistoryEntry(data) {
 
-}
+    function directionSetter(val) {
+        direction = Converter.toString(val, false);
+    }
+
+    function createRemoteParties(parties) {
+        var parties_array = [];
+        parties.forEach(function (data) {
+            parties_array.push(new RemoteParty(data));
+        });
+        return parties_array;
+    }
+
+    var direction;
+    if (data) {
+        directionSetter(data.direction);
+    }
+
+    Object.defineProperties(this, {
+        uid: {value: Converter.toString(data.uid), writable: false, enumerable: true},
+        type: {value: data.type, writable: false, enumerable: true},
+        features : {
+            value: data.features ? data.features : null,
+            writable: false,
+            enumerable: true
+        },
+        remoteParties : {
+            value : createRemoteParties(data.remoteParties),
+            writable: false,
+            enumerable: true
+        },
+        startTime: {value: new Date(Number(data.startTime) * 1000),
+            writable: false,
+            enumerable: true
+        },
+        duration: {value: data.duration, writable: false, enumerable: true},
+        direction: {
+            enumerable: true,
+            set : directionSetter,
+            get : function() { return direction; }
+        },
+        callingParty: {
+            value: data.callingParty ? data.callingParty : null,
+            writable: false,
+            enumerable: true
+        },
+    });
+};
 
 // Exports
-var CallHistoryObject = new CallHistory();
-
-exports.find = CallHistoryObject.find;
-exports.remove = CallHistoryObject.remove;
-exports.removeBatch = CallHistoryObject.removeBatch;
-exports.removeAll = CallHistoryObject.removeAll;
-exports.addChangeListener = CallHistoryObject.addChangeListener;
-exports.removeChangeListener = CallHistoryObject.removeChangeListener;
+exports = new CallHistory();
