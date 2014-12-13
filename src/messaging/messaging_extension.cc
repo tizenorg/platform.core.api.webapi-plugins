@@ -3,10 +3,14 @@
 // found in the LICENSE file.
 
 #include "messaging_extension.h"
-
 #include "messaging_instance.h"
 
-// This will be generated from time_api.js.
+namespace {
+  const char* kMessaging = "tizen.messaging";
+  const char* kMessage = "tizen.Message";
+  const char* kMessageAttachment = "tizen.MessageAttachment";
+}
+// This will be generated from messaging_api.js.
 extern const char kSource_messaging_api[];
 
 common::Extension* CreateExtension() {
@@ -14,8 +18,14 @@ common::Extension* CreateExtension() {
 }
 
 MessagingExtension::MessagingExtension() {
-  SetExtensionName("tizen.messaging");
+  SetExtensionName(kMessaging);
   SetJavaScriptAPI(kSource_messaging_api);
+  const char* entry_points[] = {
+    kMessage,
+    kMessageAttachment,
+    NULL
+  };
+  SetExtraJSEntryPoints(entry_points);
 }
 
 MessagingExtension::~MessagingExtension() {}
