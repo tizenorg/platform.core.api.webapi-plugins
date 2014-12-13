@@ -248,8 +248,13 @@ var Callbacks = (function () {
 extension.setMessageListener(function(json) {
     var msg = JSON.parse(json);
     var callbackId = msg.callbackId;
+    var propertyId = msg.propertyId;
     if (callbackId) {
+        //this is callback response
         Callbacks.getInstance().call(callbackId, msg);
+    } else if (propertyId) {
+        //this is listener response
+        _propertyContainer[propertyId].broadcastFunction(json);
     }
 }
 );
@@ -818,7 +823,6 @@ var SystemInfo = function() {
 };
 
 SystemInfo.prototype.getCapabilities = function() {
-    console.log('Entered getCapabilities');
     var result = _callSync('SystemInfo_getCapabilities', {});
     if (C.isFailure(result)) {
         throw C.getErrorObject(result);
@@ -828,7 +832,6 @@ SystemInfo.prototype.getCapabilities = function() {
 };
 
 SystemInfo.prototype.getCapability = function() {
-    console.log('Entered getCapability');
     var args = AV.validateMethod(arguments, [
                                              {
                                                  name : 'key',
@@ -849,7 +852,6 @@ SystemInfo.prototype.getCapability = function() {
 };
 
 SystemInfo.prototype.getPropertyValue = function() {
-    console.log('Entered getPropertyValue');
     var args = AV.validateMethod(arguments, [
                                              {
                                                  name : 'property',
@@ -912,7 +914,6 @@ var _createProperty = function (property, data) {
 };
 
 function _systeminfoBatteryListenerCallback(event) {
-    console.log('Entered _systeminfoBatteryListenerCallback');
     var property = _batteryStr;
     var eventObj = JSON.parse(event);
     var propObj = _createProperty(property, eventObj.result);
@@ -933,7 +934,6 @@ function _systeminfoBatteryListenerCallback(event) {
 }
 
 function _systeminfoCpuListenerCallback(event) {
-    console.log('Entered _systeminfoCpuListenerCallback');
     var property = _cpuStr;
     var eventObj = JSON.parse(event);
     var propObj = _createProperty(property, eventObj.result);
@@ -954,7 +954,6 @@ function _systeminfoCpuListenerCallback(event) {
 }
 
 function _systeminfoStorageListenerCallback(event) {
-    console.log('Entered _systeminfoStorageListenerCallback');
     var property = _storageStr;
     var eventObj = JSON.parse(event);
     var propObj = _createProperty(property, eventObj.result);
@@ -968,7 +967,6 @@ function _systeminfoStorageListenerCallback(event) {
 }
 
 function _systeminfoDisplayListenerCallback(event) {
-    console.log('Entered _systeminfoDisplayListenerCallback');
     var property = _displayStr;
     var eventObj = JSON.parse(event);
     var propObj = _createProperty(property, eventObj.result);
@@ -989,7 +987,6 @@ function _systeminfoDisplayListenerCallback(event) {
 }
 
 function _systeminfoDeviceOrientationListenerCallback(event) {
-    console.log('Entered _systeminfoDeviceOrientationListenerCallback');
     var property = _deviceOrientationStr;
     var eventObj = JSON.parse(event);
     var propObj = _createProperty(property, eventObj.result);
@@ -1003,7 +1000,6 @@ function _systeminfoDeviceOrientationListenerCallback(event) {
 }
 
 function _systeminfoLocaleListenerCallback(event) {
-    console.log('Entered _systeminfoLocaleListenerCallback');
     var property = _localeStr;
     var eventObj = JSON.parse(event);
     var propObj = _createProperty(property, eventObj.result);
@@ -1017,7 +1013,6 @@ function _systeminfoLocaleListenerCallback(event) {
 }
 
 function _systeminfoNetworkListenerCallback(event) {
-    console.log('Entered _systeminfoNetworkListenerCallback');
     var property = _networkStr;
     var eventObj = JSON.parse(event);
     var propObj = _createProperty(property, eventObj.result);
@@ -1031,7 +1026,6 @@ function _systeminfoNetworkListenerCallback(event) {
 }
 
 function _systeminfoWifiNetworkListenerCallback(event) {
-    console.log('Entered _systeminfoWifiNetworkListenerCallback');
     var property = _wifiNetworkStr;
     var eventObj = JSON.parse(event);
     var propObj = _createProperty(property, eventObj.result);
@@ -1045,7 +1039,6 @@ function _systeminfoWifiNetworkListenerCallback(event) {
 }
 
 function _systeminfoCellularNetworkListenerCallback(event) {
-    console.log('Entered _systeminfoCellularNetworkListenerCallback');
     var property = _cellularNetworkStr;
     var eventObj = JSON.parse(event);
     var propObj = _createProperty(property, eventObj.result);
@@ -1059,7 +1052,6 @@ function _systeminfoCellularNetworkListenerCallback(event) {
 }
 
 function _systeminfoSimListenerCallback(event) {
-    console.log('Entered _systeminfoSimListenerCallback');
     var property = _simStr;
     var eventObj = JSON.parse(event);
     var propObj = _createProperty(property, eventObj.result);
@@ -1073,7 +1065,6 @@ function _systeminfoSimListenerCallback(event) {
 }
 
 function _systeminfoPeripheralListenerCallback(event) {
-    console.log('Entered _systeminfoPeripheralListenerCallback');
     var property = _peripheralStr;
     var eventObj = JSON.parse(event);
     var propObj = _createProperty(property, eventObj.result);
@@ -1162,7 +1153,6 @@ var _propertyContainer = {
 };
 
 var _registerListener = function (property, listener, errorCallback) {
-    console.log('Entered registerListener');
     var watchId;
     var result={};
 
@@ -1181,9 +1171,7 @@ var _registerListener = function (property, listener, errorCallback) {
                 'SystemInfo_addPropertyValueChangeListener',
                 {property: Converter.toString(property)});
         fail = C.isFailure(result);
-        if (!fail) {
-            native.addListener(signalLabel, callbackBroadcastFunction);
-        } else {
+        if (fail) {
             setTimeout(function() {
                 C.callIfPossible(errorCallback, C.getErrorObject(result));
             }, 0);
@@ -1198,8 +1186,6 @@ var _registerListener = function (property, listener, errorCallback) {
 };
 
 var _identifyListener = function (watchId) {
-    console.log('Entered _identifyListener');
-
     for (var p in _propertyContainer) {
         if (_propertyContainer[p].callbacks[watchId]) {
             return p;
@@ -1209,7 +1195,6 @@ var _identifyListener = function (watchId) {
 };
 
 var _unregisterListener = function (watchId, isTimeout) {
-    console.log('Entered _unregisterListener');
     var property = {};
     try {
         property = _identifyListener(watchId);
@@ -1231,7 +1216,6 @@ var _unregisterListener = function (watchId, isTimeout) {
 
     delete callbacksMap[Number(watchId)];
     if (T.isEmptyObject(callbacksMap)) {
-        native.removeListener(signalLabel, callbackBroadcastFunction);
         //unregistration in C++ layer
         result = _callSync(
                 'SystemInfo_removePropertyValueChangeListener',
@@ -1243,7 +1227,6 @@ var _unregisterListener = function (watchId, isTimeout) {
 };
 
 SystemInfo.prototype.addPropertyValueChangeListener = function() {
-    console.log('Entered addPropertyVaueChangeListener');
     var args = AV.validateMethod(arguments, [
                                              {
                                                  name : 'property',
@@ -1286,7 +1269,6 @@ SystemInfo.prototype.addPropertyValueChangeListener = function() {
 };
 
 SystemInfo.prototype.removePropertyValueChangeListener = function() {
-    console.log('Entered removePropertyValueChangeListener');
     var args = AV.validateMethod(arguments, [
                                              {
                                                  name : 'watchId',
