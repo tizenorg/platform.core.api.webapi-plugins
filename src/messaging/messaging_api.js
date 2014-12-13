@@ -356,11 +356,29 @@ function MessageBody(data) {
     propertyFactory_(this, 'inlineAttachments', data.inlineAttachments, Property.E | Property.W); // TODO: setraises
 };
 
+function MessageAttachment_(data) {
+    if (!(this instanceof MessageAttachment_)) return new MessageAttachment_(data);
+    propertyFactory_(this, 'id'       , data.id       , Property.E);
+    propertyFactory_(this, 'messageId', data.messageId, Property.E);
+
+    var attachment = MessageAttachment.apply(this, [data.filePath, data.mimeType]);
+    attachment.constructor = MessageAttachment;
+
+    return attachment;
+}
+
 function MessageAttachment(filePath, mimeType) {
-    propertyFactory_(this, 'id'       , null     , Property.E); // TODO
-    propertyFactory_(this, 'messageId', null     , Property.E); // TODO
-    propertyFactory_(this, 'mimeType' , mimeType , Property.E);
-    propertyFactory_(this, 'filePath' , filePath , Property.E);
+    console.dir(this);
+    if (!this.id) {
+        propertyFactory_(this, 'id', null, Property.E);
+    }
+    if (!this.messageId) {
+        propertyFactory_(this, 'messageId', null, Property.E);
+    }
+    propertyFactory_(this, 'mimeType', mimeType, Property.E);
+    propertyFactory_(this, 'filePath', filePath, Property.E);
+
+    return this;
 };
 
 function Messaging() {};
