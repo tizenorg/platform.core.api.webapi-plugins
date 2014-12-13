@@ -14,6 +14,7 @@
         'power/power.gyp:*',
         'messageport/messageport.gyp:*',
         #'calendar/calendar.gyp:*',
+        'callhistory/callhistory.gyp:*',
         'bookmark/bookmark.gyp:*',
         #'datasync/datasync.gyp:*',
         'contact/contact.gyp:*',
