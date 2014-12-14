@@ -6,6 +6,7 @@
 #define MESSAGING_MESSAGING_UTIL_H_
 
 #include <string>
+#include <vector>
 
 namespace extension {
 namespace messaging {
@@ -39,6 +40,10 @@ class MessagingUtil {
 public:
     static MessageType stringToMessageType(std::string);
     static std::string messageTypeToString(MessageType);
+    static std::string ltrim(const std::string& input);
+    static std::string extractSingleEmailAddress(const std::string& address);
+    static std::vector<std::string> extractEmailAddresses(
+            const std::vector<std::string>& addresses);
 };
 
 } // messaging

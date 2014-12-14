@@ -12,7 +12,9 @@
             'msg-service',
             'email-service',
             'dbus-1',
-            'dbus-glib-1'
+            'dbus-glib-1',
+            'capi-system-info',
+            'tapi'
         ],
       },
       'sources': [
@@ -32,7 +34,9 @@
         'message_storage.cc',
         'message_storage.h',
         'message_storage_email.cc',
-        'message_storage_email.h'
+        'message_storage_email.h',
+        'message.cc',
+        'message.h'
       ],
       'includes': [
         '../common/pkg-config.gypi',

@@ -64,5 +64,50 @@ std::string MessagingUtil::messageTypeToString(MessageType type)
     }
 }
 
+std::string MessagingUtil::ltrim(const std::string& input)
+{
+    std::string str = input;
+    std::string::iterator i;
+    for (i = str.begin(); i != str.end(); i++) {
+        if (!isspace(*i)) {
+            break;
+        }
+    }
+    if (i == str.end()) {
+        str.clear();
+    } else {
+        str.erase(str.begin(), i);
+    }
+    return str;
+}
+
+std::string MessagingUtil::extractSingleEmailAddress(const std::string& address)
+{
+    std::size_t found_begin = address.rfind('<');
+    std::size_t found_end = address.rfind('>');
+    // if both '<' and '>' bracket found and '<' is before '>'
+    // then extract email address from the inside
+    if(found_begin != std::string::npos &&
+            found_end != std::string::npos &&
+            found_begin < found_end) {
+        return address.substr(found_begin+1, found_end-found_begin-1);
+    }
+    else {
+        // return unmodified source string
+        return address;
+    }
+}
+
+std::vector<std::string> MessagingUtil::extractEmailAddresses(
+        const std::vector<std::string>& addresses)
+{
+    std::vector<std::string> extractedAddresses;
+    for(auto it = addresses.begin(); it != addresses.end(); ++it) {
+        extractedAddresses.push_back(MessagingUtil::extractSingleEmailAddress(*it));
+    }
+
+    return extractedAddresses;
+}
+
 } // messaging
 } // extension
