@@ -36,7 +36,9 @@
         'message_storage_email.cc',
         'message_storage_email.h',
         'message.cc',
-        'message.h'
+        'message.h',
+        'message_email.cc',
+        'message_email.h'
       ],
       'includes': [
         '../common/pkg-config.gypi',
