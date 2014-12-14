@@ -1,3 +1,5 @@
+//@ sourceURL=messaging_api.js
+
 // Copyright 2014 Samsung Electronics Co, Ltd. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -22,6 +24,7 @@ var Property = {
  *     propertyFactory_(this, 'name', 'Name', Property.E);
  *     propertyFactory_(this, 'age', 25, Property.W);
  *     propertyFactory_(this, 'something', 1);
+ *     propertyFactory_(this, 'getSomething', Property.E, {get: function(){return 100;}});
  * }
  * Will produce:
  * var m = new Messaging();
@@ -34,13 +37,17 @@ var Property = {
  * m.name = 'A brand new name';
  * console.log(m.name); // Name
  */
-function propertyFactory_(that, name, value, flags) {
+function propertyFactory_(that, name, value, flags, options) {
     flags = flags || 0;
-    var options = {value: value, writable: false, enumerable: false, configurable: false};
-    if ((flags & Property.W) === Property.W) options.writable = true;
-    if ((flags & Property.E) === Property.E) options.enumerable = true;
-    if ((flags & Property.C) === Property.C) options.configurable = true;
-
+    if (options === null || typeof options !== 'object') {
+        options = {};
+    }
+    if (!(options.get) && !(options.set)) {
+        options.value = value;
+    }
+    if ((flags & Property.W) != 0) { options.writable     = true; }
+    if ((flags & Property.E) != 0) { options.enumerable   = true; }
+    if ((flags & Property.C) != 0) { options.configurable = true; }
     Object.defineProperty(
         that,
         name,
@@ -261,7 +268,7 @@ var bridge = (function (extension) {
 var MessageServiceTag = ['messaging.sms', 'messaging.mms', 'messaging.email'];
 
 function Message(type, data) {
-    if (!this instanceof Message) {
+    if (!(this instanceof Message)) {
         return new Message(type, data);
     }
     if (MessageServiceTag.indexOf(type) === -1) {
@@ -270,76 +277,140 @@ function Message(type, data) {
     if (data === null || typeof data !== 'object') { // 'data' is optional
         data = {};
     }
+    // set initial data from internal MessageInit_ object or to default values
     var internal       = data instanceof MessageInit_,
-        id             = internal ? data.id             : undefined,
-        conversationId = internal ? data.conversationId : undefined,
-        folderId       = internal ? data.folderId       : undefined,
-        timestamp      = internal ? data.timestamp      : undefined,
-        from           = internal ? data.from           : undefined,
-        isRead         = internal ? data.isRead         : undefined,
-        hasAttachment  = internal ? data.hasAttachment  : undefined,
-        inResponseTo   = internal ? data.inResponseTo   : undefined,
-        messageStatus  = internal ? data.messageStatus  : undefined,
-        attachments    = internal ? data.attachments    : [];
+        id             = internal ? data.id             : null,
+        conversationId = internal ? data.conversationId : null,
+        folderId       = internal ? data.folderId       : null,
+        timestamp      = internal ? data.timestamp      : null,
+        from           = internal ? data.from           : null,
+        isRead         = internal ? data.isRead         : false,
+        inResponseTo   = internal ? data.inResponseTo   : null,
+        messageStatus  = internal ? data.messageStatus  : '';
+    // create MessageBody object
     var body = new MessageBody({messageId: id, plainBody: data.plainBody, htmlBody: data.htmlBody});
-    propertyFactory_(this, 'id'            , id                 , Property.E             );
-    propertyFactory_(this, 'conversationId', conversationId     , Property.E             );
-    propertyFactory_(this, 'folderId'      , folderId           , Property.E             );
-    propertyFactory_(this, 'type'          , type               , Property.E             );
-    propertyFactory_(this, 'timestamp'     , timestamp          , Property.E             );
-    propertyFactory_(this, 'from'          , from               , Property.E             );
-    propertyFactory_(this, 'to'            , data.to            , Property.E | Property.W); // TODO: setraises
-    propertyFactory_(this, 'cc'            , data.cc            , Property.E | Property.W); // TODO: setraises
-    propertyFactory_(this, 'bcc'           , data.bcc           , Property.E | Property.W); // TODO: setraises
-    propertyFactory_(this, 'body'          , body               , Property.E | Property.W); // TODO: setraises
-    propertyFactory_(this, 'isRead'        , isRead             , Property.E | Property.W); // TODO: setraises
-    propertyFactory_(this, 'hasAttachment' , hasAttachment      , Property.E             );
-    propertyFactory_(this, 'isHighPriority', data.isHighPriority, Property.E | Property.W); // TODO: setraises
-    propertyFactory_(this, 'subject'       , data.subject       , Property.E | Property.W); // TODO: setraises
-    propertyFactory_(this, 'inResponseTo'  , inResponseTo       , Property.E             ); // TODO: setraises
-    propertyFactory_(this, 'messageStatus' , messageStatus      , Property.E             );
-    propertyFactory_(this, 'attachments'   , attachments        , Property.E | Property.W); // TODO: setraises
+    // check 'to', 'cc' and 'bcc' fields
+    var to = data.to;
+    if (!(to instanceof Array)) {
+        to = [];
+    }
+    var cc = data.cc;
+    if (!(cc instanceof Array)) {
+        cc = [];
+    }
+    var bcc = data.bcc;
+    if (!(bcc instanceof Array)) {
+        bcc = [];
+    }
+    // set properties
+    propertyFactory_(this, 'id'            , id                  || null , Property.E             );
+    propertyFactory_(this, 'conversationId', conversationId      || null , Property.E             );
+    propertyFactory_(this, 'folderId'      , folderId            || null , Property.E             );
+    propertyFactory_(this, 'type'          , type                || null , Property.E             );
+    propertyFactory_(this, 'timestamp'     , timestamp           || null , Property.E             );
+    propertyFactory_(this, 'from'          , from                || null , Property.E             );
+    propertyFactory_(this, 'to'            , to                  || []   , Property.E | Property.W); // TODO: setraises
+    propertyFactory_(this, 'cc'            , cc                  || []   , Property.E | Property.W); // TODO: setraises
+    propertyFactory_(this, 'bcc'           , bcc                 || []   , Property.E | Property.W); // TODO: setraises
+    propertyFactory_(this, 'body'          , body                        , Property.E | Property.W); // TODO: setraises
+    propertyFactory_(this, 'isRead'        , isRead              || false, Property.E | Property.W); // TODO: setraises
+    propertyFactory_(this, 'isHighPriority', data.isHighPriority || false, Property.E | Property.W); // TODO: setraises
+    propertyFactory_(this, 'inResponseTo'  , inResponseTo        || null , Property.E             ); // TODO: setraises
+    propertyFactory_(this, 'messageStatus' , messageStatus       || ''   , Property.E             );
+    // 'attachments' private variable, getter and setter
+    var attachments = (internal ? data.attachments : []) || [];
+    propertyFactory_(
+        this,
+        'attachments',
+        undefined,
+        Property.E,
+        {
+            get: function() {
+                return attachments;
+            },
+            set: function(newattachments) {
+                for (var k = 0; k < newattachments.length; ++k) {
+                    if (!(newattachments[k] instanceof tizen.MessageAttachment)) {
+                        return;
+                    }
+                }
+                attachments = newattachments;
+            }
+        }
+    );
+    // 'subject' private variable, getter and setter
+    var subject = data.subject || '';
+    propertyFactory_(
+        this,
+        'subject',
+        undefined,
+        Property.E,
+        {
+            get: function() {
+                return subject;
+            },
+            set: function(newsubject) {
+                if (typeof newsubject !== 'string') {
+                    subject = '';
+                    return;
+                }
+                subject = newsubject;
+            }
+        }
+    );
+    // 'hasAttachment' getter
+    propertyFactory_(
+        this,
+        'hasAttachment',
+        undefined,
+        Property.E,
+        {
+            get: function() {
+                return this.attachments.length > 0;
+            }
+        }
+    );
 };
 
 function MessageInit(data) {
-    if (!this instanceof MessageInit) {
+    if (!(this instanceof MessageInit)) {
         return new MessageInit(data);
     }
     if (data === null || typeof data !== 'object') {
         data = {};
     }
-    propertyFactory_(this, 'subject'       , data.subject       , Property.E | Property.W);
-    propertyFactory_(this, 'to'            , data.to            , Property.E | Property.W);
-    propertyFactory_(this, 'cc'            , data.cc            , Property.E | Property.W);
-    propertyFactory_(this, 'bcc'           , data.bcc           , Property.E | Property.W);
-    propertyFactory_(this, 'plainBody'     , data.plainBody     , Property.E | Property.W);
-    propertyFactory_(this, 'htmlBody'      , data.htmlBody      , Property.E | Property.W);
-    propertyFactory_(this, 'isHighPriority', data.isHighPriority, Property.E | Property.W);
+    propertyFactory_(this, 'subject'       , data.subject        || ''   , Property.E | Property.W);
+    propertyFactory_(this, 'to'            , data.to             || []   , Property.E | Property.W);
+    propertyFactory_(this, 'cc'            , data.cc             || []   , Property.E | Property.W);
+    propertyFactory_(this, 'bcc'           , data.bcc            || []   , Property.E | Property.W);
+    propertyFactory_(this, 'plainBody'     , data.plainBody      || ''   , Property.E | Property.W);
+    propertyFactory_(this, 'htmlBody'      , data.htmlBody       || ''   , Property.E | Property.W);
+    propertyFactory_(this, 'isHighPriority', data.isHighPriority || false, Property.E | Property.W);
 };
 
 function MessageInit_(data) {
-    if (!this instanceof MessageInit_) {
+    if (!(this instanceof MessageInit_)) {
         return new MessageInit_(data);
     }
     if (data === null || typeof data !== 'object') {
         data = {};
     }
-    this.messaging      = data.messaging;
-    this.conversationId = data.conversationId;
-    this.folderId       = data.folderId;
-    this.timestamp      = data.timestamp;
-    this.from           = data.from;
-    this.to             = data.to;
-    this.cc             = data.cc;
-    this.bcc            = data.bcc;
-    this.body           = data.body;
-    this.isRead         = data.isRead;
-    this.hasAttachment  = data.hasAttachment;
-    this.isHighPriority = data.isHighPriority;
-    this.subject        = data.subject;
-    this.inResponseTo   = data.inResponseTo;
-    this.messageStatus  = data.messageStatus;
-    this.attachments    = data.attachments;
+    this.id             = data.id             || null;
+    this.conversationId = data.conversationId || null;
+    this.folderId       = data.folderId       || null;
+    this.timestamp      = data.timestamp      || null;
+    this.from           = data.from           || null;
+    this.to             = data.to             || [];
+    this.cc             = data.cc             || [];
+    this.bcc            = data.bcc            || [];
+    this.body           = data.body           || new MessageBody();
+    this.isRead         = data.isRead         || false;
+    this.hasAttachment  = data.hasAttachment  || null;
+    this.isHighPriority = data.isHighPriority || false;
+    this.subject        = data.subject        || '';
+    this.inResponseTo   = data.inResponseTo   || null;
+    this.messageStatus  = data.messageStatus  || '';
+    this.attachments    = data.attachments    || [];
 };
 
 function MessageBody(data) {
@@ -349,11 +420,11 @@ function MessageBody(data) {
     if (data === null || typeof data !== 'object') {
         data = {};
     }
-    propertyFactory_(this, 'messageId'        , data.messageId        , Property.E             );
-    propertyFactory_(this, 'loaded'           , data.loaded           , Property.E             );
-    propertyFactory_(this, 'plainBody'        , data.plainBody        , Property.E | Property.W); // TODO: setraises
-    propertyFactory_(this, 'htmlBody'         , data.htmlBody         , Property.E | Property.W); // TODO: setraises
-    propertyFactory_(this, 'inlineAttachments', data.inlineAttachments, Property.E | Property.W); // TODO: setraises
+    propertyFactory_(this, 'messageId'        , data.messageId         || null , Property.E             );
+    propertyFactory_(this, 'loaded'           , data.loaded            || false, Property.E             );
+    propertyFactory_(this, 'plainBody'        , data.plainBody         || ''   , Property.E | Property.W); // TODO: setraises
+    propertyFactory_(this, 'htmlBody'         , data.htmlBody          || ''   , Property.E | Property.W); // TODO: setraises
+    propertyFactory_(this, 'inlineAttachments', data.inlineAttachments || []   , Property.E | Property.W); // TODO: setraises
 };
 
 function MessageAttachment_(data) {
@@ -375,8 +446,8 @@ function MessageAttachment(filePath, mimeType) {
     if (!this.messageId) {
         propertyFactory_(this, 'messageId', null, Property.E);
     }
-    propertyFactory_(this, 'mimeType', mimeType, Property.E);
-    propertyFactory_(this, 'filePath', filePath, Property.E);
+    propertyFactory_(this, 'mimeType', mimeType || '', Property.E);
+    propertyFactory_(this, 'filePath', filePath || '', Property.E);
 
     return this;
 };
@@ -690,30 +761,30 @@ MessageStorage.prototype.removeChangeListener = function () {
 };
 
 function MessageConversation(data) {
-    propertyFactory_(this, 'id'            , data.id            , Property.E);
-    propertyFactory_(this, 'type'          , data.type          , Property.E);
-    propertyFactory_(this, 'timestamp'     , data.timestamp     , Property.E);
-    propertyFactory_(this, 'messageCount'  , data.messageCount  , Property.E);
-    propertyFactory_(this, 'unreadMessages', data.unreadMessages, Property.E);
-    propertyFactory_(this, 'preview'       , data.preview       , Property.E);
-    propertyFactory_(this, 'subject'       , data.subject       , Property.E);
-    propertyFactory_(this, 'isRead'        , data.isRead        , Property.E);
-    propertyFactory_(this, 'from'          , data.from          , Property.E);
-    propertyFactory_(this, 'to'            , data.to            , Property.E);
-    propertyFactory_(this, 'cc'            , data.cc            , Property.E);
-    propertyFactory_(this, 'bcc'           , data.bcc           , Property.E);
-    propertyFactory_(this, 'lastMessageId' , data.lastMessageId , Property.E);
+    propertyFactory_(this, 'id'            , data.id             || null , Property.E);
+    propertyFactory_(this, 'type'          , data.type           || ''   , Property.E);
+    propertyFactory_(this, 'timestamp'     , data.timestamp      || null , Property.E);
+    propertyFactory_(this, 'messageCount'  , data.messageCount   || 0    , Property.E);
+    propertyFactory_(this, 'unreadMessages', data.unreadMessages || 0    , Property.E);
+    propertyFactory_(this, 'preview'       , data.preview        || ''   , Property.E);
+    propertyFactory_(this, 'subject'       , data.subject        || ''   , Property.E);
+    propertyFactory_(this, 'isRead'        , data.isRead         || false, Property.E);
+    propertyFactory_(this, 'from'          , data.from           || null , Property.E);
+    propertyFactory_(this, 'to'            , data.to             || []   , Property.E);
+    propertyFactory_(this, 'cc'            , data.cc             || []   , Property.E);
+    propertyFactory_(this, 'bcc'           , data.bcc            || []   , Property.E);
+    propertyFactory_(this, 'lastMessageId' , data.lastMessageId  || null , Property.E);
 };
 
 function MessageFolder(data) {
-    propertyFactory_(this, 'id'            , data.id            , Property.E             );
-    propertyFactory_(this, 'parentId'      , data.parentId      , Property.E             );
-    propertyFactory_(this, 'serviceId'     , data.serviceId     , Property.E             );
-    propertyFactory_(this, 'contentType'   , data.contentType   , Property.E             );
-    propertyFactory_(this, 'name'          , data.name          , Property.E | Property.W); // TODO: setraises
-    propertyFactory_(this, 'path'          , data.path          , Property.E             );
-    propertyFactory_(this, 'type'          , data.type          , Property.E             );
-    propertyFactory_(this, 'synchronizable', data.synchronizable, Property.E | Property.W); // TODO: setraises
+    propertyFactory_(this, 'id'            , data.id             || null , Property.E             );
+    propertyFactory_(this, 'parentId'      , data.parentId       || null , Property.E             );
+    propertyFactory_(this, 'serviceId'     , data.serviceId      || ''   , Property.E             );
+    propertyFactory_(this, 'contentType'   , data.contentType    || ''   , Property.E             );
+    propertyFactory_(this, 'name'          , data.name           || ''   , Property.E | Property.W); // TODO: setraises
+    propertyFactory_(this, 'path'          , data.path           || ''   , Property.E             );
+    propertyFactory_(this, 'type'          , data.type           || ''   , Property.E             );
+    propertyFactory_(this, 'synchronizable', data.synchronizable || false, Property.E | Property.W); // TODO: setraises
 };
 
 tizen.Message = Message;
