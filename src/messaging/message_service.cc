@@ -10,6 +10,7 @@
 #include "common/platform_exception.h"
 
 #include "messaging_util.h"
+#include "message_storage_email.h"
 
 namespace extension {
 namespace messaging {
@@ -29,14 +30,14 @@ MessageService::MessageService(int id,
         m_name(name)
 {
     LoggerD("Entered");
-    //FIXME MessageStorage
     switch (msgType) {
         case MessageType::SMS:
         case MessageType::MMS:
-            // m_storage.reset(new MessageStorageShortMsg(id, msgType));
+            // TODO need to add class representing message storage for short messages
+            //m_storage.reset(new MessageStorageShortMsg(id, msgType));
             break;
         case MessageType::EMAIL:
-            // m_storage.reset(new MessageStorageEmail(id));
+            m_storage.reset(new MessageStorageEmail(id));
             break;
         default:
             LoggerE("Undefined message type");
@@ -55,8 +56,6 @@ picojson::object MessageService::toPicoJS() const
     picojs[JSON_SERVICE_ID] = picojson::value(static_cast<double>(m_id));
     picojs[JSON_SERVICE_TYPE] = picojson::value(MessagingUtil::messageTypeToString(m_msg_type));
     picojs[JSON_SERVICE_NAME] = picojson::value(m_name);
-    //TODO fix when service storage object will be defined
-    picojs[JSON_SERVICE_STORAGE] = picojson::value("undefined");
     return picojs;
 }
 
@@ -80,11 +79,10 @@ std::string MessageService::getMsgServiceName() const
     return m_name;
 }
 
-// FIXME MessageStorage
-//std::shared_ptr<MessageStorage> MessageService::getMsgStorage() const
-//{
-//    return m_storage;
-//}
+MessageStoragePtr MessageService::getMsgStorage() const
+{
+    return m_storage;
+}
 
 void MessageService::sendMessage()
 {

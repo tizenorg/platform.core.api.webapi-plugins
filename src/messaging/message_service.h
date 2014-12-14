@@ -12,6 +12,7 @@
 #include "common/picojson.h"
 
 #include "messaging_util.h"
+#include "message_storage.h"
 
 namespace extension {
 namespace messaging {
@@ -32,8 +33,8 @@ public:
     virtual std::string getMsgServiceIdStr() const;
     virtual MessageType getMsgServiceType() const;
     virtual std::string getMsgServiceName() const;
-    // FIXME MessageStorage
-    // virtual std::shared_ptr<MessageStorage> getMsgStorage() const;
+
+    virtual MessageStoragePtr getMsgStorage() const;
 
     virtual void sendMessage();
     virtual void loadMessageBody();
@@ -56,8 +57,7 @@ protected:
     int m_id;
     MessageType m_msg_type;
     std::string m_name;
-    //FIXME
-    //std::shared_ptr<MessageStorage> m_storage;
+    MessageStoragePtr m_storage;
 };
 
 } // messaging
