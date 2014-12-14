@@ -661,103 +661,394 @@ MessageService.prototype.stopSync = function () {
 function MessageStorage() {};
 
 MessageStorage.prototype.addDraftMessage = function () {
-    var args = xwalk.utils.validateArguments(arguments, [
-        {name: 'message', type: 'Message'},
-        {name: 'successCallback', type: 'function', optional: true, nullable: true},
-        {name: 'errorCallback', type: 'function', optional: true, nullable: true}
+    var args = validator_.validateArgs(arguments, [
+        {name: 'message', type: types_.PLATFORM_OBJECT, values: tizen.Message},
+        {name: 'successCallback', type: types_.FUNCTION, optional: true, nullable: true},
+        {name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true}
     ]);
-    // TODO: STUB
+
+    bridge.async({
+        cmd: 'MessageStorage_addDraftMessage',
+        data: {
+            message: args.message
+        }
+    }).then({
+        success: function () {
+            if (args.successCallback) {
+                args.successCallback.call(null);
+            }
+        },
+        error: function (e) {
+            if (args.errorCallback) {
+                args.errorCallback.call(
+                    null,
+                    new tizen.WebAPIException(e.code, e.name, e.message)
+                )
+            }
+        }
+    });
 };
 
 MessageStorage.prototype.findMessages = function () {
-    var args = xwalk.utils.validateArguments(arguments, [
-        {name: 'filter', type: 'AbstractFilter'},
-        {name: 'successCallback', type: 'function'},
-        {name: 'errorCallback', type: 'function', optional: true, nullable: true},
-        {name: 'sort', type: 'SortMode', optional: true, nullable: true},
-        {name: 'limit', type: 'number', optional: true, nullable: true},
-        {name: 'offset', type: 'number', optional: true, nullable: true}
+    var args = validator_.validateArgs(arguments, [
+        {name: 'filter', type: types_.PLATFORM_OBJECT, values: tizen.AbstractFilter},
+        {name: 'successCallback', type: types_.FUNCTION},
+        {name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true},
+        {name: 'sort', type: types_.PLATFORM_OBJECT, values: tizen.SortMode, optional: true,
+                nullable: true},
+        {name: 'limit', type: types_.UNSIGNED_LONG, optional: true, nullable: true},
+        {name: 'offset', type: types_.UNSIGNED_LONG, optional: true, nullable: true}
     ]);
-    // TODO: STUB
+
+    bridge.async({
+        cmd: 'MessageStorage_findMessages',
+        data: {
+            filter: args.filter,
+            sort: args.sort,
+            limit: args.limit,
+            offset: args.offset
+        }
+    }).then({
+        success: function (data) {
+            var messages = [];
+            data.forEach(function (el) {
+                messages.push(new tizen.Message(el));
+            });
+            args.successCallback.call(null, messages);
+        },
+        error: function (e) {
+            if (args.errorCallback) {
+                args.errorCallback.call(
+                    null,
+                    new tizen.WebAPIException(e.code, e.name, e.message)
+                )
+            }
+        }
+    });
 };
 
 MessageStorage.prototype.removeMessages = function () {
-    var args = xwalk.utils.validateArguments(arguments, [
-        {name: 'messages', type: 'array'},
-        {name: 'successCallback', type: 'function', optional: true, nullable: true},
-        {name: 'errorCallback', type: 'function', optional: true, nullable: true}
+    var args = validator_.validateArgs(arguments, [
+        {name: 'messages', type: types_.ARRAY},
+        {name: 'successCallback', type: types_.FUNCTION, optional: true, nullable: true},
+        {name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true}
     ]);
-    // TODO: STUB
+
+    bridge.async({
+        cmd: 'MessageStorage_removeMessages',
+        data: {
+            messages: args.messages
+        }
+    }).then({
+        success: function () {
+            if (args.successCallback) {
+                args.successCallback.call(null);
+            }
+        },
+        error: function (e) {
+            if (args.errorCallback) {
+                args.errorCallback.call(
+                    null,
+                    new tizen.WebAPIException(e.code, e.name, e.message)
+                )
+            }
+        }
+    });
 };
 
 MessageStorage.prototype.updateMessages = function () {
-    var args = xwalk.utils.validateArguments(arguments, [
-        {name: 'messages', type: 'array'},
-        {name: 'successCallback', type: 'function', optional: true, nullable: true},
-        {name: 'errorCallback', type: 'function', optional: true, nullable: true}
+    var args = validator_.validateArgs(arguments, [
+        {name: 'messages', type: types_.ARRAY},
+        {name: 'successCallback', type: types_.FUNCTION, optional: true, nullable: true},
+        {name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true}
     ]);
-    // TODO: STUB
+
+    bridge.async({
+        cmd: 'MessageStorage_updateMessages',
+        data: {
+            messages: args.messages
+        }
+    }).then({
+        success: function () {
+            if (args.successCallback) {
+                args.successCallback.call(null);
+            }
+        },
+        error: function (e) {
+            if (args.errorCallback) {
+                args.errorCallback.call(
+                    null,
+                    new tizen.WebAPIException(e.code, e.name, e.message)
+                )
+            }
+        }
+    });
 };
 
 MessageStorage.prototype.findConversations = function () {
-    var args = xwalk.utils.validateArguments(arguments, [
-        {name: 'filter', type: 'AbstractFilter'},
-        {name: 'successCallback', type: 'function'},
-        {name: 'errorCallback', type: 'function', optional: true, nullable: true},
-        {name: 'sort', type: 'SortMode', optional: true, nullable: true},
-        {name: 'limit', type: 'number', optional: true, nullable: true},
-        {name: 'offset', type: 'number', optional: true, nullable: true}
+    var args = validator_.validateArgs(arguments, [
+        {name: 'filter', type: types_.PLATFORM_OBJECT, values: tizen.AbstractFilter},
+        {name: 'successCallback', type: types_.FUNCTION},
+        {name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true},
+        {name: 'sort', type: types_.PLATFORM_OBJECT, values: tizen.SortMode, optional: true,
+                nullable: true},
+        {name: 'limit', type: types_.UNSIGNED_LONG, optional: true, nullable: true},
+        {name: 'offset', type: types_.UNSIGNED_LONG, optional: true, nullable: true}
     ]);
-    // TODO: STUB
+
+    bridge.async({
+        cmd: 'MessageStorage_findConversations',
+        data: {
+            filter: args.filter,
+            sort: args.sort,
+            limit: args.limit,
+            offset: args.offset
+        }
+    }).then({
+        success: function (data) {
+            var conversations = [];
+            data.forEach(function (el) {
+                conversations.push(new MessageConversation(el));
+            });
+            args.successCallback.call(null, messages);
+        },
+        error: function (e) {
+            if (args.errorCallback) {
+                args.errorCallback.call(
+                    null,
+                    new tizen.WebAPIException(e.code, e.name, e.message)
+                )
+            }
+        }
+    });
 };
 
 MessageStorage.prototype.removeConversations = function () {
-    var args = xwalk.utils.validateArguments(arguments, [
-        {name: 'conversations', type: 'array'},
-        {name: 'successCallback', type: 'function', optional: true, nullable: true},
-        {name: 'errorCallback', type: 'function', optional: true, nullable: true}
+    var args = validator_.validateArgs(arguments, [
+        {name: 'conversations', type: types_.ARRAY},
+        {name: 'successCallback', type: types_.FUNCTION, optional: true, nullable: true},
+        {name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true}
     ]);
-    // TODO: STUB
+
+    bridge.async({
+        cmd: 'MessageStorage_removeConversations',
+        data: {
+            conversations: args.conversations
+        }
+    }).then({
+        success: function () {
+            if (args.successCallback) {
+                args.successCallback.call(null);
+            }
+        },
+        error: function (e) {
+            if (args.errorCallback) {
+                args.errorCallback.call(
+                    null,
+                    new tizen.WebAPIException(e.code, e.name, e.message)
+                )
+            }
+        }
+    });
 };
 
 MessageStorage.prototype.findFolders = function () {
-    var args = xwalk.utils.validateArguments(arguments, [
-        {name: 'filter', type: 'AbstractFilter'},
-        {name: 'successCallback', type: 'function'},
-        {name: 'errorCallback', type: 'function', optional: true, nullable: true}
+    var args = validator_.validateArgs(arguments, [
+        {name: 'filter', type: types_.PLATFORM_OBJECT, values: tizen.AbstractFilter},
+        {name: 'successCallback', type: types_.FUNCTION},
+        {name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true}
     ]);
-    // TODO: STUB
+
+    bridge.async({
+        cmd: 'MessageStorage_findFolders',
+        data: {
+            filter: args.filter,
+            sort: args.sort,
+            limit: args.limit,
+            offset: args.offset
+        }
+    }).then({
+        success: function (data) {
+            var conversations = [];
+            data.forEach(function (el) {
+                conversations.push(new MessageConversation(el));
+            });
+            args.successCallback.call(null, messages);
+        },
+        error: function (e) {
+            if (args.errorCallback) {
+                args.errorCallback.call(
+                    null,
+                    new tizen.WebAPIException(e.code, e.name, e.message)
+                )
+            }
+        }
+    });
 };
 
 MessageStorage.prototype.addMessagesChangeListener = function () {
-    var args = xwalk.utils.validateArguments(arguments, [
-        {name: 'messagesChangeCallback', type: 'function'},
-        {name: 'filter', type: 'AbstractFilter', optional: true, nullable: true}
+    var args = validator_.validateArgs(arguments, [
+        {name: 'messagesChangeCallback', type: types_.LISTENER,
+                values: ['messagesadded', 'messagesupdated', 'messagesremoved']},
+        {name: 'filter', type: types_.PLATFORM_OBJECT, values: tizen.AbstractFilter,
+                optional: true, nullable: true}
     ]);
-    // TODO: STUB
+
+    var listeners = [];
+    if (args.messagesChangeCallback.messagesadded) listeners.push('messagesadded');
+    if (args.messagesChangeCallback.messagesupdated) listeners.push('messagesupdated');
+    if (args.messagesChangeCallback.messagesremoved) listeners.push('messagesremoved');
+
+    bridge({
+        cmd: 'MessageStorage_addMessagesChangeListener',
+        data: {
+            filter: args.filter,
+            listeners: listeners
+        }
+    }).then({
+        messagesadded: function (data) {
+            if (args.messagesChangeCallback.messagesadded) {
+                var messages = [];
+                data.forEach(function (el) {
+                    messages.push(new tizen.Message(el));
+                });
+                args.messagesChangeCallback.messagesadded.call(null, messages);
+            }
+        },
+        messagesupdated: function (data) {
+            if (args.messagesChangeCallback.messagesupdated) {
+                var messages = [];
+                data.forEach(function (el) {
+                    messages.push(new tizen.Message(el));
+                });
+                args.messagesChangeCallback.messagesupdated.call(null, messages);
+            }
+        },
+        messagesremoved: function (data) {
+            if (args.messagesChangeCallback.messagesremoved) {
+                var messages = [];
+                data.forEach(function (el) {
+                    messages.push(new tizen.Message(el));
+                });
+                args.messagesChangeCallback.messagesremoved.call(null, messages);
+            }
+        }
+    });
 };
 
 MessageStorage.prototype. addConversationsChangeListener = function () {
-    var args = xwalk.utils.validateArguments(arguments, [
-        {name: 'conversationsChangeCallback', type: 'function'},
-        {name: 'filter', type: 'AbstractFilter', optional: true, nullable: true}
+    var args = validator_.validateArgs(arguments, [
+        {name: 'conversationsChangeCallback', type: types_.LISTENER,
+                values: ['conversationsadded', 'conversationsupdated', 'conversationsremoved']},
+        {name: 'filter', type: types_.PLATFORM_OBJECT, values: tizen.AbstractFilter,
+                optional: true, nullable: true}
     ]);
-    // TODO: STUB
+
+    var listeners = [];
+    if (args.conversationsChangeCallback.conversationsadded)
+            listeners.push('conversationsadded');
+    if (args.conversationsChangeCallback.conversationsupdated)
+            listeners.push('conversationsupdated');
+    if (args.conversationsChangeCallback.conversationsremoved)
+            listeners.push('conversationsremoved');
+
+    bridge({
+        cmd: 'MessageStorage_addConversationsChangeListener',
+        data: {
+            filter: args.filter,
+            listeners: listeners
+        }
+    }).then({
+        conversationsadded: function (data) {
+            if (args.conversationsChangeCallback.conversationsadded) {
+                var conversations = [];
+                data.forEach(function (el) {
+                    conversations.push(new tizen.MessageConversation(el));
+                });
+                args.conversationsChangeCallback.conversationsadded.call(null, conversations);
+            }
+        },
+        conversationsupdated: function (data) {
+            if (args.conversationsChangeCallback.conversationsupdated) {
+                var conversations = [];
+                data.forEach(function (el) {
+                   conversations.push(new tizen.MessageConversation(el));
+                });
+                args.conversationsChangeCallback.conversationsupdated.call(null, conversations);
+            }
+        },
+        conversationsremoved: function (data) {
+            if (args.conversationsChangeCallback.conversationsremoved) {
+                var conversations = [];
+                data.forEach(function (el) {
+                    conversations.push(new tizen.MessageConversation(el));
+                });
+                args.conversationsChangeCallback.conversationsremoved.call(null, conversations);
+            }
+        }
+    });
 };
 
 MessageStorage.prototype. addFoldersChangeListener  = function () {
-    var args = xwalk.utils.validateArguments(arguments, [
-        {name: 'conversationsChangeCallback', type: 'function'},
-        {name: 'filter', type: 'AbstractFilter', optional: true, nullable: true}
+    var args = validator_.validateArgs(arguments, [
+        {name: 'foldersChangeCallback', type: types_.LISTENER,
+                values: ['foldersadded', 'foldersupdated', 'foldersremoved']},
+        {name: 'filter', type: types_.PLATFORM_OBJECT, values: tizen.AbstractFilter,
+                optional: true, nullable: true}
     ]);
-    // TODO: STUB
+    var listeners = [];
+    if (args.foldersChangeCallback.foldersadded) listeners.push('foldersadded');
+    if (args.foldersChangeCallback.foldersupdated) listeners.push('foldersupdated');
+    if (args.foldersChangeCallback.foldersremoved) listeners.push('foldersremoved');
+
+    bridge({
+        cmd: 'MessageStorage_addFoldersChangeListener',
+        data: {
+            filter: args.filter,
+            listeners: listeners
+        }
+    }).then({
+        foldersadded: function (data) {
+            if (args.foldersChangeCallback.foldersadded) {
+                var folders = [];
+                data.forEach(function (el) {
+                    folders.push(new tizen.MessageFolder(el));
+                });
+                args.foldersChangeCallback.foldersadded.call(null, folders);
+            }
+        },
+        foldersupdated: function (data) {
+            if (args.foldersChangeCallback.foldersupdated) {
+                var folders = [];
+                data.forEach(function (el) {
+                    folders.push(new tizen.MessageFolder(el));
+                });
+                args.foldersChangeCallback.foldersupdated.call(null, folders);
+            }
+        },
+        foldersremoved: function (data) {
+            if (args.foldersChangeCallback.foldersremoved) {
+                var folders = [];
+                data.forEach(function (el) {
+                    folders.push(new tizen.MessageFolder(el));
+                });
+                args.foldersChangeCallback.foldersremoved.call(null, folders);
+            }
+        }
+    });
 };
 
 MessageStorage.prototype.removeChangeListener = function () {
-    var args = xwalk.utils.validateArguments(arguments, [
-        {name: 'watchId', type: 'number'}
+    var args = validator_.validateArgs(arguments, [
+        {name: 'watchId', type: types_.LONG}
     ]);
-    // TODO: STUB
+
+    bridge.sync({
+        cmd: 'MessageStorage_removeChangeListener',
+        data: {
+            watchId: args.watchId
+        }
+    });
 };
 
 function MessageConversation(data) {
