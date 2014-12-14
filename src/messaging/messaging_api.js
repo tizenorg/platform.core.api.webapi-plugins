@@ -234,6 +234,7 @@ var bridge = (function (extension) {
             console.log('bridge', 'async');
             var l = new Listener();
             data.cid = Listeners.getInstance().add(l);
+            console.log('SENDING: ', JSON.stringify(data));
             setTimeout(function () {
                 extension.postMessage(JSON.stringify(data));
             });
@@ -598,10 +599,13 @@ MessageService.prototype.sync = function () {
         {name: 'limit', type: types_.UNSIGNED_LONG, optional: true, nullable: true}
     ]);
 
-    bridge({
+    var self = this;
+
+    bridge.async({
         cmd: 'MessageService_sync',
         data: {
-            limit: args.limit
+            id: self.id,
+            limit: args.limit || null
         }
     }).then({
         success: function () {

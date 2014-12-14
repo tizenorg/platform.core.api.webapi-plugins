@@ -108,7 +108,7 @@ void MessageService::loadMessageAttachment()
     throw common::NotSupportedException("Cannot load message attachment");
 }
 
-long MessageService::sync()
+long MessageService::sync(const double callbackId, long limit)
 {
     // this method should be overwritten by email service
     // for MMS and SMS this function is not supported

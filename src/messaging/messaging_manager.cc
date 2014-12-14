@@ -18,7 +18,6 @@
 #include "common/task-queue.h"
 
 #include "messaging_instance.h"
-#include "message_service_email.h"
 #include "messaging_util.h"
 
 namespace extension {
@@ -44,6 +43,13 @@ MessagingManager::~MessagingManager()
     if (ret != MSG_SUCCESS) {
         LoggerW("Cannot close message handle: %d", ret);
     }
+
+    std::for_each(m_email_services.begin(), m_email_services.end(),
+            [](std::pair<int, MessageService*> el) {
+                delete el.second;
+        }
+    );
+    m_email_services.clear();
 }
 
 MessagingManager& MessagingManager::getInstance()
@@ -53,18 +59,20 @@ MessagingManager& MessagingManager::getInstance()
     return instance;
 }
 
-static gboolean callbackCompleted(const std::shared_ptr<picojson::value>& response)
+static gboolean callbackCompleted(const std::shared_ptr<MsgManagerCallbackData>& user_data)
 {
     LoggerD("Entered");
+    std::shared_ptr<picojson::value> response = user_data->json;
     std::cout<<response->serialize()<< std::endl;
     MessagingInstance::getInstance().PostMessage(response->serialize().c_str());
     return false;
 }
 
-static void* getMsgServicesThread(const std::shared_ptr<picojson::value>& response)
+static void* getMsgServicesThread(const std::shared_ptr<MsgManagerCallbackData>& user_data)
 {
     LoggerD("Entered");
 
+    std::shared_ptr<picojson::value> response = user_data->json;
     picojson::object& obj = response->get<picojson::object>();
     obj[JSON_CMD] = picojson::value(CMD_GET_MSG_SERVICE);
     MessageType type = MessageType::UNDEFINED;
@@ -119,10 +127,22 @@ static void* getMsgServicesThread(const std::shared_ptr<picojson::value>& respon
                         stream_name.str("");
                     }
 
+                    std::map<int, MessageService*>& email_services = *(user_data->services_map);
+                    std::for_each(email_services.begin(), email_services.end(),
+                            [](std::pair<int, MessageService*> el) {
+                                delete el.second;
+                        }
+                    );
+                    email_services.clear();
+
                     std::vector<picojson::value> response;
                     std::for_each(msgServices.begin(), msgServices.end(),
-                        [&response](MessageService* service) {
+                        [&response, &email_services](MessageService* service) {
                               response.push_back(picojson::value(service->toPicoJS()));
+                              email_services.insert(
+                                      std::pair<int, MessageService*>(
+                                              service->getMsgServiceId(),
+                                              service));
                         }
                     );
                     obj[JSON_DATA] = picojson::value(response);
@@ -151,8 +171,17 @@ void MessagingManager::getMessageServices(const std::string& type, double callba
     obj[JSON_CALLBACK_ID] = picojson::value(callbackId);
     obj[JSON_DATA] = picojson::value(type);
 
-    common::TaskQueue::GetInstance().Queue<picojson::value>
-        (getMsgServicesThread, callbackCompleted, json);
+    auto user_data = std::shared_ptr<MsgManagerCallbackData>(new MsgManagerCallbackData());
+    user_data->json = json;
+    user_data->services_map = &m_email_services;
+
+    common::TaskQueue::GetInstance().Queue<MsgManagerCallbackData>
+        (getMsgServicesThread, callbackCompleted, user_data);
+}
+
+MessageService* MessagingManager::getMessageServiceEmail(int id){
+    LoggerD("Entered");
+    return m_email_services[id];
 }
 
 } // namespace messaging

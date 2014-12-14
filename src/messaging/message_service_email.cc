@@ -40,7 +40,7 @@ void MessageServiceEmail::loadMessageAttachment()
     //TODO add implementation
 }
 
-long MessageServiceEmail::sync()
+long MessageServiceEmail::sync(const double callbackId, long limit)
 {
     LoggerD("Entered");
     //TODO add implementation

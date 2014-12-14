@@ -7,14 +7,25 @@
 
 #include <msg.h>
 #include <string>
+#include <map>
+
+#include "message_service_email.h"
 
 namespace extension {
 namespace messaging {
+
+class MsgManagerCallbackData {
+public:
+    std::shared_ptr<picojson::value> json;
+    std::map<int, MessageService*>* services_map;
+};
 
 class MessagingManager {
 public:
     static MessagingManager& getInstance();
     void getMessageServices(const std::string& type, double callbackId);
+    MessageService* getMessageServiceEmail(int id);
+
 private:
     MessagingManager();
     MessagingManager(const MessagingManager &);
@@ -22,6 +33,7 @@ private:
     virtual ~MessagingManager();
 
     msg_handle_t m_msg_handle;
+    std::map<int, MessageService*> m_email_services;
 };
 
 } // namespace messaging
