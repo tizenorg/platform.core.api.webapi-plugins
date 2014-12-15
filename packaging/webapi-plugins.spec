@@ -40,7 +40,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_messaging_support           1
 %define tizen_feature_nbs_support                 0
 %define tizen_feature_nfc_emulation_support       0
-%define tizen_feature_nfc_support                 0
+%define tizen_feature_nfc_support                 1
 %define tizen_feature_notification_support        0
 %define tizen_feature_power_support               0
 %define tizen_feature_push_support                0
