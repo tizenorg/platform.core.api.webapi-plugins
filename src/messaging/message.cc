@@ -12,6 +12,7 @@
 #include "common/logger.h"
 #include "common/platform_exception.h"
 
+#include "message_email.h"
 #include "messaging_util.h"
 
 namespace extension {
@@ -1478,8 +1479,7 @@ std::shared_ptr<Message> Message::convertPlatformEmailToObject(
         email_mail_data_t& mail)
 {
     LOGD("Enter");
-//    FIXME when MessageEmail will be avalaible new Message() -> new MessageEmail()
-    std::shared_ptr<Message> message(new Message());
+    std::shared_ptr<Message> message(new MessageEmail());
     message->updateEmailMessage(mail);
     return message;
 }
