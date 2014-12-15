@@ -790,7 +790,7 @@ MessageStorage.prototype. addConversationsChangeListener = function () {
     });
 };
 
-MessageStorage.prototype. addFoldersChangeListener  = function () {
+MessageStorage.prototype.addFoldersChangeListener = function () {
     var args = validator_.validateArgs(arguments, [
         {name: 'foldersChangeCallback', type: types_.LISTENER,
                 values: ['foldersadded', 'foldersupdated', 'foldersremoved']},
