@@ -1,65 +1,64 @@
-
 // Copyright 2014 Samsung Electronics Co, Ltd. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
-#include "message_service_email.h"
 
-#include "common/logger.h"
+#include "message_storage_email.h"
 
 namespace extension {
 namespace messaging {
 
-MessageServiceEmail::MessageServiceEmail(int id, std::string name)
-        : MessageService(id,
-                MessageType::EMAIL,
-                name)
+MessageStorageEmail::MessageStorageEmail(int id) :
+        MessageStorage(id, MessageType::EMAIL)
 {
     LoggerD("Entered");
 }
 
-MessageServiceEmail::~MessageServiceEmail()
+MessageStorageEmail::~MessageStorageEmail()
 {
     LoggerD("Entered");
 }
 
-void MessageServiceEmail::sendMessage()
-{
-    LoggerD("Entered");
-    //TODO add implementation
-}
-
-void MessageServiceEmail::loadMessageBody()
+void MessageStorageEmail::addDraftMessage()
 {
     LoggerD("Entered");
     //TODO add implementation
 }
 
-void MessageServiceEmail::loadMessageAttachment()
+void MessageStorageEmail::removeMessages()
 {
     LoggerD("Entered");
     //TODO add implementation
 }
 
-long MessageServiceEmail::sync(const double callbackId, long limit)
-{
-    LoggerD("Entered");
-    //TODO add implementation
-    return 0;
-}
-
-long MessageServiceEmail::syncFolder()
-{
-    LoggerD("Entered");
-    //TODO add implementation
-    return 0;
-}
-
-void MessageServiceEmail::stopSync()
+void MessageStorageEmail::updateMessages()
 {
     LoggerD("Entered");
     //TODO add implementation
 }
 
-} // messaging
-} // extension
+void MessageStorageEmail::findMessages()
+{
+    LoggerD("Entered");
+    //TODO add implementation
+}
 
+void MessageStorageEmail::findConversations()
+{
+    LoggerD("Entered");
+    //TODO add implementation
+}
+
+void MessageStorageEmail::removeConversations()
+{
+    LoggerD("Entered");
+    //TODO add implementation
+}
+
+void MessageStorageEmail::findFolders()
+{
+    LoggerD("Entered");
+    //TODO add implementation
+}
+
+} //messaging
+} //extension
