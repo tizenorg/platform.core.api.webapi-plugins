@@ -164,6 +164,7 @@ BuildRequires: pkgconfig(xrandr)
 BuildRequires: python
 BuildRequires: pkgconfig(tapi)
 BuildRequires: pkgconfig(libpcrecpp)
+BuildRequires: pkgconfig(capi-appfw-application)
 
 %if 0%{?tizen_feature_messaging_support}
 BuildRequires:  pkgconfig(email-service)
@@ -193,6 +194,9 @@ BuildRequires: pkgconfig(sync-agent)
 BuildRequires:  pkgconfig(libexif)
 %endif
 
+%if 0%{?tizen_feature_nfc_support}
+BuildRequires:  pkgconfig(capi-network-nfc)
+%endif
 
 %description
 Tizen Web APIs implemented.

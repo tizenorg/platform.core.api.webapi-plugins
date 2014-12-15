@@ -20,6 +20,7 @@ NFCInstance::NFCInstance() {
         RegisterSyncHandler(c, std::bind(&NFCInstance::x, this, _1, _2));
     REGISTER_SYNC("NFCManager_getDefaultAdapter", GetDefaultAdapter);
     REGISTER_SYNC("NFCManager_setExclusiveMode", SetExclusiveMode);
+    REGISTER_SYNC("NFCAdapter_getPowered", GetPowered);
     REGISTER_SYNC("NFCAdapter_setPeerListener", SetPeerListener);
     REGISTER_SYNC("NFCAdapter_setTagListener", SetTagListener);
     REGISTER_SYNC("NFCAdapter_setPeerListener", SetPeerListener);
@@ -68,6 +69,12 @@ void NFCInstance::SetExclusiveMode(
 void NFCInstance::SetPowered(
         const picojson::value& args, picojson::object& out) {
 
+}
+
+void NFCInstance::GetPowered(
+        const picojson::value& args, picojson::object& out) {
+    bool ret = NFCAdapter::GetInstance()->GetPowered();
+    ReportSuccess(picojson::value(ret), out);
 }
 
 void NFCInstance::SetTagListener(

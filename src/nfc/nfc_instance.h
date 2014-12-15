@@ -7,7 +7,7 @@
 
 #include "common/extension.h"
 
-#include "nfc/nfc_extension.h"
+#include "nfc_adapter.h"
 
 namespace extension {
 namespace nfc {
@@ -21,6 +21,7 @@ private:
     void GetDefaultAdapter(const picojson::value& args, picojson::object& out);
     void SetExclusiveMode(const picojson::value& args, picojson::object& out);
     void SetPowered(const picojson::value& args, picojson::object& out);
+    void GetPowered(const picojson::value& args, picojson::object& out);
     void SetTagListener(const picojson::value& args, picojson::object& out);
     void SetPeerListener(const picojson::value& args, picojson::object& out);
     void UnsetTagListener(const picojson::value& args, picojson::object& out);

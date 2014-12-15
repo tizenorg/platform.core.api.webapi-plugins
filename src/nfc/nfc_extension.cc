@@ -6,7 +6,6 @@
 
 #include "nfc/nfc_instance.h"
 
-// This will be generated from messageport_api.js.
 extern const char kSource_nfc_api[];
 
 common::Extension* CreateExtension() {

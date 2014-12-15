@@ -11,7 +11,9 @@
         'nfc_extension.cc',
         'nfc_extension.h',
         'nfc_instance.cc',
-        'nfc_instance.h'
+        'nfc_instance.h',
+        'nfc_adapter.cc',
+        'nfc_adapter.h'
       ],
       'includes': [
         '../common/pkg-config.gypi',
@@ -20,7 +22,9 @@
         ['tizen == 1', {
           'variables': {
             'packages': [
-              
+                'capi-system-info',
+                'capi-network-nfc',
+                'capi-appfw-application'
             ]
           },
         }],

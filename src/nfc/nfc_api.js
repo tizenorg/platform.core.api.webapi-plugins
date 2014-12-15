@@ -69,16 +69,29 @@ NFCManager.prototype.setExclusiveMode = function() {
 //////////////////NFCAdapter /////////////////
 
 function NFCAdapter() {
+    function poweredGetter() {
+        var ret = native_.callSync('NFCAdapter_getPowered');
+
+        if (native_.isFailure(ret)) {
+            return '';
+        }
+
+        return native_.getResultObject(ret);
+    }
+
     Object.defineProperties(this, {
         powered:   {enumerable: true,
             set : function(){},
-            get : function(){}},
+            get : poweredGetter
+        },
         cardEmulationMode:   {enumerable: true,
             set : function(){},
-            get : function(){}},
+            get : function(){}
+        },
         activeSecureElement:   {enumerable: true,
             set : function(){},
-            get : function(){}}
+            get : function(){}
+        }
     });
 };
 
