@@ -25,9 +25,9 @@ namespace calendar {
 namespace Privilege {
 const std::string kCalendarRead = "http://tizen.org/privilege/calendar.read";
 const std::string kCalendarWrite = "http://tizen.org/privilege/calendar.write";
-} // namespace Privilege
+}  // namespace Privilege
 
-} // namespace calendar
-} // namespace webapi
+}  // namespace calendar
+}  // namespace webapi
 
-#endif //WEBAPI_PLUGINS_CALENDAR_PRIVILEGE_H__
+#endif  // WEBAPI_PLUGINS_CALENDAR_PRIVILEGE_H__

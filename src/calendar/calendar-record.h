@@ -27,53 +27,62 @@
 namespace webapi {
 namespace calendar {
 
-typedef std::unique_ptr<std::remove_pointer<calendar_query_h>::type, void(*)(calendar_query_h)> CalendarQueryPtr;
-typedef std::unique_ptr<std::remove_pointer<calendar_record_h>::type, void(*)(calendar_record_h)> CalendarRecordPtr;
-typedef std::unique_ptr<std::remove_pointer<calendar_list_h>::type, void(*)(calendar_list_h)> CalendarListPtr;
+typedef std::unique_ptr<std::remove_pointer<calendar_query_h>::type,
+                        void (*)(calendar_query_h)> CalendarQueryPtr;
+typedef std::unique_ptr<std::remove_pointer<calendar_record_h>::type,
+                        void (*)(calendar_record_h)> CalendarRecordPtr;
+typedef std::unique_ptr<std::remove_pointer<calendar_list_h>::type,
+                        void (*)(calendar_list_h)> CalendarListPtr;
 
 class CalendarRecord {
-public:
-    static void QueryDeleter(calendar_query_h handle);
-    static void Deleter(calendar_record_h handle);
-    static void ListDeleter(calendar_list_h handle);
+ public:
+  static void QueryDeleter(calendar_query_h handle);
+  static void Deleter(calendar_record_h handle);
+  static void ListDeleter(calendar_list_h handle);
 
-    static std::string GetString(calendar_record_h rec, unsigned int property,
-                                 bool throw_on_error = true);
-    static void SetString(calendar_record_h rec, unsigned int property, const std::string& value,
-                          bool throw_on_error = true);
+  static std::string GetString(calendar_record_h rec, unsigned int property,
+                               bool throw_on_error = true);
+  static void SetString(calendar_record_h rec, unsigned int property,
+                        const std::string& value, bool throw_on_error = true);
 
-    static int GetInt(calendar_record_h rec, unsigned int property, bool throw_on_error = true);
-    static void SetInt(calendar_record_h rec, unsigned int property, int value,
-                       bool throw_on_error = true);
+  static int GetInt(calendar_record_h rec, unsigned int property,
+                    bool throw_on_error = true);
+  static void SetInt(calendar_record_h rec, unsigned int property, int value,
+                     bool throw_on_error = true);
 
-    static std::string TypeToString(int type);
-    static std::string TypeToString(const char* view_uri);
-    static int TypeToInt(const std::string& type);
-    static int TypeToInt(const char* view_uri);
-    static const char* TypeToUri(const std::string& type);
-    static const char* TypeToUri(int type);
+  static std::string TypeToString(int type);
+  static std::string TypeToString(const char* view_uri);
+  static int TypeToInt(const std::string& type);
+  static int TypeToInt(const char* view_uri);
+  static const char* TypeToUri(const std::string& type);
+  static const char* TypeToUri(int type);
 
-    static int Insert(calendar_record_h rec);
+  static int Insert(calendar_record_h rec);
 
-    static void AddChildRecord(calendar_record_h rec, unsigned int property,
-                               calendar_record_h child);
-    static void RemoveChildRecords(calendar_record_h rec, unsigned int property_id);
-    static unsigned int GetChildRecordCount(calendar_record_h rec, unsigned int property,
-                                            bool throw_on_error = true);
-    static bool GetChildRecordAt(calendar_record_h rec, unsigned int property,
-                                 calendar_record_h* result, int index, bool throw_on_error = true);
+  static void AddChildRecord(calendar_record_h rec, unsigned int property,
+                             calendar_record_h child);
+  static void RemoveChildRecords(calendar_record_h rec,
+                                 unsigned int property_id);
+  static unsigned int GetChildRecordCount(calendar_record_h rec,
+                                          unsigned int property,
+                                          bool throw_on_error = true);
+  static bool GetChildRecordAt(calendar_record_h rec, unsigned int property,
+                               calendar_record_h* result, int index,
+                               bool throw_on_error = true);
 
-    static CalendarRecordPtr GetById(int id, const char* view_uri);
-    static CalendarRecordPtr GetCalendar(int id);
-    static CalendarRecordPtr GetItem(int id, const char* view_uri);
-    static CalendarRecordPtr Create(const char* view_uri);
-    static CalendarRecordPtr CreateCalendar();
+  static CalendarRecordPtr GetById(int id, const char* view_uri);
+  static CalendarRecordPtr GetCalendar(int id);
+  static CalendarRecordPtr GetItem(int id, const char* view_uri);
+  static CalendarRecordPtr Create(const char* view_uri);
+  static CalendarRecordPtr CreateCalendar();
 
-    static void CalendarToJson(calendar_record_h rec, common::json::Object* out_ptr);
-    static void CalendarFromJson(calendar_record_h rec, const common::json::Object& in);
+  static void CalendarToJson(calendar_record_h rec,
+                             common::json::Object* out_ptr);
+  static void CalendarFromJson(calendar_record_h rec,
+                               const common::json::Object& in);
 };
 
-} // namespace calendar
-} // namespace webapi
+}  // namespace calendar
+}  // namespace webapi
 
-#endif // WEBAPI_PLUGINS_CALENDAR_RECORD_H_
+#endif  // WEBAPI_PLUGINS_CALENDAR_RECORD_H_

@@ -23,38 +23,41 @@ namespace webapi {
 namespace calendar {
 
 class CalendarManager {
-public:
-    /**
-     * Signature: @code void getCalendars(type, successCallback, errorCallback); @endcode
-     * JSON: @code data: {method: 'CalendarManager_getCalendars',
-     *                    args: {type: type}} @endcode
-     * Invocation: @code native.call(request, result_callback); @endcode
-     * Return:
-     * @code
-     * {status: 'error', error: {name, message}}
-     * {status: 'success'}
-     * @endcode
-     * Result callback:
-     * @code
-     * {status: 'error', error: {name, message}}
-     * {status: 'success', result: {calendarsArray}}
-     * @endcode
-     */
-    void GetCalendars(const common::json::Object& args, common::json::Object& out);
-    void GetCalendar(const common::json::Object& args, common::json::Object& out);
-    void AddCalendar(const common::json::Object& args, common::json::Object& out);
-    void RemoveCalendar(const common::json::Object& args, common::json::Object& out);
+ public:
+  /**
+   * Signature: @code void getCalendars(type, successCallback, errorCallback);
+   * @endcode
+   * JSON: @code data: {method: 'CalendarManager_getCalendars',
+   *                    args: {type: type}} @endcode
+   * Invocation: @code native.call(request, result_callback); @endcode
+   * Return:
+   * @code
+   * {status: 'error', error: {name, message}}
+   * {status: 'success'}
+   * @endcode
+   * Result callback:
+   * @code
+   * {status: 'error', error: {name, message}}
+   * {status: 'success', result: {calendarsArray}}
+   * @endcode
+   */
+  void GetCalendars(const common::json::Object& args,
+                    common::json::Object& out);
+  void GetCalendar(const common::json::Object& args, common::json::Object& out);
+  void AddCalendar(const common::json::Object& args, common::json::Object& out);
+  void RemoveCalendar(const common::json::Object& args,
+                      common::json::Object& out);
 
-    static CalendarManager& GetInstance();
-    virtual ~CalendarManager();
-    bool IsConnected();
+  static CalendarManager& GetInstance();
+  virtual ~CalendarManager();
+  bool IsConnected();
 
-private:
-    CalendarManager();
-    bool is_connected_;
+ private:
+  CalendarManager();
+  bool is_connected_;
 };
 
-} // namespace calendar
-} // namespace webapi
+}  // namespace calendar
+}  // namespace webapi
 
-#endif	/* WEBAPI_PLUGINS_CALENDAR_MANAGER_H_ */
+#endif /* WEBAPI_PLUGINS_CALENDAR_MANAGER_H_ */

@@ -27,146 +27,157 @@ namespace calendar {
 typedef std::shared_ptr<common::json::Value> JsonValuePtr;
 
 class Calendar {
-public:
-    ~Calendar();
+ public:
+  ~Calendar();
 
-    /**
-     * Signature: @code CalendarItem get(id); @endcode
-     * JSON: @code data: {method: 'Calendar_get', args: {id, calendarId}} @endcode
-     * Invocation: @code native.callSync(request); @endcode
-     * Return:
-     * @code
-     * {status: 'error', error: {name, message}}
-     * {status: 'success', item: {}}
-     * @endcode
-     */
-    void Get(const common::json::Object& args, common::json::Object& out);
+  /**
+   * Signature: @code CalendarItem get(id); @endcode
+   * JSON: @code data: {method: 'Calendar_get', args: {id, calendarId}} @endcode
+   * Invocation: @code native.callSync(request); @endcode
+   * Return:
+   * @code
+   * {status: 'error', error: {name, message}}
+   * {status: 'success', item: {}}
+   * @endcode
+   */
+  void Get(const common::json::Object& args, common::json::Object& out);
 
-    /**
-     * Signature: @code void add(item); @endcode
-     * JSON: @code data: {method: 'Calendar_add', args: {item, type}} @endcode
-     * Invocation: @code native.callSync(request); @endcode
-     * Return:
-     * @code
-     * {status: 'error', error: {name, message}}
-     * {status: 'success'}
-     * @endcode
-     */
-    void Add(const common::json::Object& args, common::json::Object& out);
+  /**
+   * Signature: @code void add(item); @endcode
+   * JSON: @code data: {method: 'Calendar_add', args: {item, type}} @endcode
+   * Invocation: @code native.callSync(request); @endcode
+   * Return:
+   * @code
+   * {status: 'error', error: {name, message}}
+   * {status: 'success'}
+   * @endcode
+   */
+  void Add(const common::json::Object& args, common::json::Object& out);
 
-    /**
-     * Signature: @code void addBatch(items, successCallback, errorCallback); @endcode
-     * JSON: @code data: {method: 'Calendar_addBatch', args: {items, type}} @endcode
-     * Invocation: @code native.call(request); @endcode
-     * Return:
-     * @code
-     * {status: 'error', error: {name, message}}
-     * {status: 'success', result: items}
-     * @endcode
-     */
-    void AddBatch(const common::json::Object& args, common::json::Object& out);
+  /**
+   * Signature: @code void addBatch(items, successCallback, errorCallback);
+   * @endcode
+   * JSON: @code data: {method: 'Calendar_addBatch', args: {items, type}}
+   * @endcode
+   * Invocation: @code native.call(request); @endcode
+   * Return:
+   * @code
+   * {status: 'error', error: {name, message}}
+   * {status: 'success', result: items}
+   * @endcode
+   */
+  void AddBatch(const common::json::Object& args, common::json::Object& out);
 
-    /**
-     * Signature: @code void update(item, updateAllInstances); @endcode
-     * JSON: @code data: {method: 'Calendar_update', args: {item, type, updateAllInstances}} @endcode
-     * Invocation: @code native.callSync(request); @endcode
-     * Return:
-     * @code
-     * {status: 'error', error: {name, message}}
-     * {status: 'success'}
-     * @endcode
-     */
-    void Update(const common::json::Object& args, common::json::Object& out);
+  /**
+   * Signature: @code void update(item, updateAllInstances); @endcode
+   * JSON: @code data: {method: 'Calendar_update', args: {item, type,
+   * updateAllInstances}} @endcode
+   * Invocation: @code native.callSync(request); @endcode
+   * Return:
+   * @code
+   * {status: 'error', error: {name, message}}
+   * {status: 'success'}
+   * @endcode
+   */
+  void Update(const common::json::Object& args, common::json::Object& out);
 
-    /**
-     * Signature: @code void updateBatch(items, successCallback, errorCallback, updateAllInstances);
-     * @endcode
-     * JSON: @code data: {method: 'Calendar_updateBatch', args: {
-     * items, type, updateAllInstances}} @endcode
-     * Invocation: @code native.call(request); @endcode
-     * Return:
-     * @code
-     * {status: 'error', error: {name, message}}
-     * {status: 'success'}
-     * @endcode
-     */
-    void UpdateBatch(const common::json::Object& args, common::json::Object& out);
+  /**
+   * Signature: @code void updateBatch(items, successCallback, errorCallback,
+   * updateAllInstances);
+   * @endcode
+   * JSON: @code data: {method: 'Calendar_updateBatch', args: {
+   * items, type, updateAllInstances}} @endcode
+   * Invocation: @code native.call(request); @endcode
+   * Return:
+   * @code
+   * {status: 'error', error: {name, message}}
+   * {status: 'success'}
+   * @endcode
+   */
+  void UpdateBatch(const common::json::Object& args, common::json::Object& out);
 
-    /**
-     * Signature: @code void remove(item); @endcode
-     * JSON: @code data: {method: 'Calendar_remove', args: {type, id}} @endcode
-     * Invocation: @code native.callSync(request); @endcode
-     * Return:
-     * @code
-     * {status: 'error', error: {name, message}}
-     * {status: 'success'}
-     * @endcode
-     */
-    void Remove(const common::json::Object& args, common::json::Object& out);
+  /**
+   * Signature: @code void remove(item); @endcode
+   * JSON: @code data: {method: 'Calendar_remove', args: {type, id}} @endcode
+   * Invocation: @code native.callSync(request); @endcode
+   * Return:
+   * @code
+   * {status: 'error', error: {name, message}}
+   * {status: 'success'}
+   * @endcode
+   */
+  void Remove(const common::json::Object& args, common::json::Object& out);
 
-    /**
-     * Signature: @code void removeBatch(items, successCallback, errorCallback); @endcode
-     * JSON: @code data: {method: 'Calendar_removeBatch', args: {items, type}} @endcode
-     * Invocation: @code native.call(request); @endcode
-     * Return:
-     * @code
-     * {status: 'error', error: {name, message}}
-     * {status: 'success'}
-     * @endcode
-     */
-    void RemoveBatch(const common::json::Object& args, common::json::Object& out);
+  /**
+   * Signature: @code void removeBatch(items, successCallback, errorCallback);
+   * @endcode
+   * JSON: @code data: {method: 'Calendar_removeBatch', args: {items, type}}
+   * @endcode
+   * Invocation: @code native.call(request); @endcode
+   * Return:
+   * @code
+   * {status: 'error', error: {name, message}}
+   * {status: 'success'}
+   * @endcode
+   */
+  void RemoveBatch(const common::json::Object& args, common::json::Object& out);
 
-    /**
-     * Signature: @code void find(successCallback, errorCallback, filter, sortMode); @endcode
-     * JSON: @code data: {method: 'Calendar_find', args: {calendarId, filter, sortMode}} @endcode
-     * Invocation: @code native.call(request, result_callback); @endcode
-     * Return:
-     * @code
-     * {status: 'error', error: {name, message}}
-     * {status: 'success'}
-     * @endcode
-     * Result callback:
-     * @code
-     * {status: 'error', error: {name, message}}
-     * {status: 'success', result: {calendarItemsArray}}
-     * @endcode
-     */
-    void Find(const common::json::Object& args, common::json::Object& out);
+  /**
+   * Signature: @code void find(successCallback, errorCallback, filter,
+   * sortMode); @endcode
+   * JSON: @code data: {method: 'Calendar_find', args: {calendarId, filter,
+   * sortMode}} @endcode
+   * Invocation: @code native.call(request, result_callback); @endcode
+   * Return:
+   * @code
+   * {status: 'error', error: {name, message}}
+   * {status: 'success'}
+   * @endcode
+   * Result callback:
+   * @code
+   * {status: 'error', error: {name, message}}
+   * {status: 'success', result: {calendarItemsArray}}
+   * @endcode
+   */
+  void Find(const common::json::Object& args, common::json::Object& out);
 
-    /**
-     * Signature: @code void addChangeListener(successCallback); @endcode
-     * JSON: @code data: {method: 'Calendar_addChangeListener',
-     * args: {type, listenerId}} @endcode
-     * Invocation: @code native.callSync(request); @endcode
-     * Return:
-     * @code
-     * {status: 'error', error: {name, message}}
-     * {status: 'success'}
-     * @endcode
-     */
-    void AddChangeListener(const common::json::Object& args, common::json::Object& out);
+  /**
+   * Signature: @code void addChangeListener(successCallback); @endcode
+   * JSON: @code data: {method: 'Calendar_addChangeListener',
+   * args: {type, listenerId}} @endcode
+   * Invocation: @code native.callSync(request); @endcode
+   * Return:
+   * @code
+   * {status: 'error', error: {name, message}}
+   * {status: 'success'}
+   * @endcode
+   */
+  void AddChangeListener(const common::json::Object& args,
+                         common::json::Object& out);
 
-    /**
-     * Signature: @code void removeChangeListener(); @endcode
-     * JSON: @code data: {method: 'Calendar_removeChangeListener', args: {type}} @endcode
-     * Invocation: @code native.callSync(request); @endcode
-     * Return:
-     * @code
-     * {status: 'error', error: {name, message}}
-     * {status: 'success'}
-     * @endcode
-     */
-    void RemoveChangeListener(const common::json::Object& args, common::json::Object& out);
+  /**
+   * Signature: @code void removeChangeListener(); @endcode
+   * JSON: @code data: {method: 'Calendar_removeChangeListener', args: {type}}
+   * @endcode
+   * Invocation: @code native.callSync(request); @endcode
+   * Return:
+   * @code
+   * {status: 'error', error: {name, message}}
+   * {status: 'success'}
+   * @endcode
+   */
+  void RemoveChangeListener(const common::json::Object& args,
+                            common::json::Object& out);
 
-    static Calendar& GetInstance();
+  static Calendar& GetInstance();
 
-private:
-    static std::map<std::string, std::string> listeners_registered_;
-    static int current_db_version_;
-    static void ChangeCallback(const char* view_uri, void* user_data);
+ private:
+  static std::map<std::string, std::string> listeners_registered_;
+  static int current_db_version_;
+  static void ChangeCallback(const char* view_uri, void* user_data);
 };
 
-} // namespace calendar
-} // namespace webapi
+}  // namespace calendar
+}  // namespace webapi
 
-#endif // WEBAPI_PLUGINS_CALENDAR_H_
+#endif  // WEBAPI_PLUGINS_CALENDAR_H_

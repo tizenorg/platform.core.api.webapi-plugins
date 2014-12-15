@@ -24,73 +24,76 @@ namespace calendar {
 using namespace webapi::common;
 
 class CalendarPlugin : public NativePlugin {
-public:
-    CalendarPlugin();
-    ~CalendarPlugin();
-    virtual void OnLoad();
+ public:
+  CalendarPlugin();
+  ~CalendarPlugin();
+  virtual void OnLoad();
 
-private:
-    CalendarManager* manager_;
-    Calendar* calendar_;
+ private:
+  CalendarManager* manager_;
+  Calendar* calendar_;
 };
 
 EXPORT_NATIVE_PLUGIN(webapi::calendar::CalendarPlugin);
 
 CalendarPlugin::CalendarPlugin() {
-    manager_ = &CalendarManager::GetInstance();
-    calendar_ = &Calendar::GetInstance();
+  manager_ = &CalendarManager::GetInstance();
+  calendar_ = &Calendar::GetInstance();
 }
 
-CalendarPlugin::~CalendarPlugin() {
-    manager_ = nullptr;
-}
+CalendarPlugin::~CalendarPlugin() { manager_ = nullptr; }
 
 void CalendarPlugin::OnLoad() {
-    using namespace std::placeholders;
+  using namespace std::placeholders;
 
-    dispatcher_.AddFunction("CalendarManager_getCalendars",
-        std::bind(&CalendarManager::GetCalendars, manager_, _1, _2));
+  dispatcher_.AddFunction(
+      "CalendarManager_getCalendars",
+      std::bind(&CalendarManager::GetCalendars, manager_, _1, _2));
 
-    dispatcher_.AddFunction("CalendarManager_getCalendar",
-        std::bind(&CalendarManager::GetCalendar, manager_, _1, _2));
+  dispatcher_.AddFunction(
+      "CalendarManager_getCalendar",
+      std::bind(&CalendarManager::GetCalendar, manager_, _1, _2));
 
-    dispatcher_.AddFunction("CalendarManager_addCalendar",
-        std::bind(&CalendarManager::AddCalendar, manager_, _1, _2));
+  dispatcher_.AddFunction(
+      "CalendarManager_addCalendar",
+      std::bind(&CalendarManager::AddCalendar, manager_, _1, _2));
 
-    dispatcher_.AddFunction("CalendarManager_removeCalendar",
-        std::bind(&CalendarManager::RemoveCalendar, manager_, _1, _2));
+  dispatcher_.AddFunction(
+      "CalendarManager_removeCalendar",
+      std::bind(&CalendarManager::RemoveCalendar, manager_, _1, _2));
 
+  dispatcher_.AddFunction("Calendar_get",
+                          std::bind(&Calendar::Get, calendar_, _1, _2));
 
-    dispatcher_.AddFunction("Calendar_get",
-        std::bind(&Calendar::Get, calendar_, _1, _2));
+  dispatcher_.AddFunction("Calendar_add",
+                          std::bind(&Calendar::Add, calendar_, _1, _2));
 
-    dispatcher_.AddFunction("Calendar_add",
-        std::bind(&Calendar::Add, calendar_, _1, _2));
+  dispatcher_.AddFunction("Calendar_addBatch",
+                          std::bind(&Calendar::AddBatch, calendar_, _1, _2));
 
-    dispatcher_.AddFunction("Calendar_addBatch",
-        std::bind(&Calendar::AddBatch, calendar_, _1, _2));
+  dispatcher_.AddFunction("Calendar_update",
+                          std::bind(&Calendar::Update, calendar_, _1, _2));
 
-    dispatcher_.AddFunction("Calendar_update",
-        std::bind(&Calendar::Update, calendar_, _1, _2));
+  dispatcher_.AddFunction("Calendar_updateBatch",
+                          std::bind(&Calendar::UpdateBatch, calendar_, _1, _2));
 
-    dispatcher_.AddFunction("Calendar_updateBatch",
-        std::bind(&Calendar::UpdateBatch, calendar_, _1, _2));
+  dispatcher_.AddFunction("Calendar_remove",
+                          std::bind(&Calendar::Remove, calendar_, _1, _2));
 
-    dispatcher_.AddFunction("Calendar_remove",
-        std::bind(&Calendar::Remove, calendar_, _1, _2));
+  dispatcher_.AddFunction("Calendar_removeBatch",
+                          std::bind(&Calendar::RemoveBatch, calendar_, _1, _2));
 
-    dispatcher_.AddFunction("Calendar_removeBatch",
-        std::bind(&Calendar::RemoveBatch, calendar_, _1, _2));
+  dispatcher_.AddFunction("Calendar_find",
+                          std::bind(&Calendar::Find, calendar_, _1, _2));
 
-    dispatcher_.AddFunction("Calendar_find",
-        std::bind(&Calendar::Find, calendar_, _1, _2));
+  dispatcher_.AddFunction(
+      "Calendar_addChangeListener",
+      std::bind(&Calendar::AddChangeListener, calendar_, _1, _2));
 
-    dispatcher_.AddFunction("Calendar_addChangeListener",
-        std::bind(&Calendar::AddChangeListener, calendar_, _1, _2));
-
-    dispatcher_.AddFunction("Calendar_removeChangeListener",
-        std::bind(&Calendar::RemoveChangeListener, calendar_, _1, _2));
+  dispatcher_.AddFunction(
+      "Calendar_removeChangeListener",
+      std::bind(&Calendar::RemoveChangeListener, calendar_, _1, _2));
 }
 
-} // namespace calendar
-} // namespace webapi
+}  // namespace calendar
+}  // namespace webapi
