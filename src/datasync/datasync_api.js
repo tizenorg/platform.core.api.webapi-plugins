@@ -9,6 +9,7 @@
 var callbackId = 0;
 var callbacks = {};
 var hideProtectedProporties = true;
+var native_ = new xwalk.utils.NativeManager(extension);
 
 // for the time of serialization 'write-only' and 'read-only' properties
 // should be able to run with correct value
@@ -453,12 +454,14 @@ DataSynchronizationManager.prototype.add = function(profile) {
   if (!(profile instanceof tizen.SyncProfileInfo)) {
     throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR);
   }
-  var msg = {
-    cmd: 'add',
+  var msg = native_.callSync('Datasync_add', {
     arg: profile
-  };
+  });
 
-  var id = sendSyncMessage(msg);
+  if (native_.isFailure(msg)) {
+      throw native_.getErrorObject(msg);
+  }
+  var id = native_.getResultObject(msg);
   executeUnrestricted(function() {
     profile.profileId = id;
   });
@@ -468,56 +471,69 @@ DataSynchronizationManager.prototype.update = function(profile) {
   if (!(profile instanceof tizen.SyncProfileInfo)) {
     throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR);
   }
-  var msg = {
-    cmd: 'update',
+  var msg = native_.callSync('Datasync_update', {
     arg: profile
-  };
-  return sendSyncMessage(msg);
+  });
+
+  if (native_.isFailure(msg)) {
+      throw native_.getErrorObject(msg);
+  }
+  return native_.getResultObject(msg);
 };
 
 DataSynchronizationManager.prototype.remove = function(profileId) {
   if (typeof profileId !== 'string') {
     throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR);
   }
-  var msg = {
-    cmd: 'remove',
+  var msg = native_.callSync('Datasync_remove', {
     arg: profileId
-  };
-  return sendSyncMessage(msg);
+  });
+
+  if (native_.isFailure(msg)) {
+      throw native_.getErrorObject(msg);
+  }
+  return native_.getResultObject(msg);
 };
 
 DataSynchronizationManager.prototype.getMaxProfilesNum = function() {
-  var msg = {
-    cmd: 'getMaxProfilesNum'
-  };
-  return sendSyncMessage(msg);
+  var ret = native_.callSync("Datasync_getMaxProfilesNum");
+  if (native_.isFailure(ret)) {
+    throw native_.getErrorObject(ret);
+  }
+  return native_.getResultObject(ret);
 };
 
 DataSynchronizationManager.prototype.getProfilesNum = function() {
-  var msg = {
-    cmd: 'getProfilesNum'
-  };
-  return sendSyncMessage(msg);
+   var msg = native_.callSync()'Datasync_getProfilesNum');
+
+   if (native_.isFailure(msg)) {
+     throw native_.getErrorObject(msg);
+   }
+   return native_.getResultObject(msg);
 };
 
 DataSynchronizationManager.prototype.get = function(profileId) {
   if (typeof profileId !== 'string') {
     throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR);
   }
-  var msg = {
-    cmd: 'get',
+  var msg = native_.callSync('Datasync_get', {
     arg: profileId
-  };
+  });
 
-  return convertToProfileInfo(sendSyncMessage(msg));
+  if (native_.isFailure(msg)) {
+    throw native_.getErrorObject(msg);
+  }
+  return convertToProfileInfo(native_.getResultObject(msg));
 };
 
 DataSynchronizationManager.prototype.getAll = function() {
-  var msg = {
-    cmd: 'getAll'
-  };
+  var msg = native_.callSync('Datasync_getAll');
 
-  var result = sendSyncMessage(msg);
+  if (native_.isFailure(msg)) {
+    throw native_.getErrorObject(msg);
+  }
+  var result = native_getResultObject(msg);
+
   if (!(result instanceof Array)) {
     throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_UNKNOWN_ERR);
   }
@@ -545,10 +561,9 @@ DataSynchronizationManager.prototype.startSync = function(profileId, progressCal
     }
   }
 
-  var msg = {
-    cmd: 'startSync',
+  var msg = native_.callSync('Datasync_startSync',{
     arg: profileId
-  };
+  });
 
   return postSyncMessageWithCallback(msg, progressCallback);
 };
@@ -557,22 +572,23 @@ DataSynchronizationManager.prototype.stopSync = function(profileId) {
   if (typeof profileId !== 'string') {
     throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR);
   }
-  var msg = {
-    cmd: 'stopSync',
+  var msg = native_.callSync('Datasync_stopSync',{
     arg: profileId
-  };
-  return sendSyncMessage(msg);
+  });
+  if (native_.isFailure(msg)) {
+      throw native_.getErrorObject(msg);
+  }
+  return native_.getResultObject(msg);
 };
 
 DataSynchronizationManager.prototype.getLastSyncStatistics = function(profileId) {
   if (typeof profileId !== 'string') {
     throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR);
   }
-  var msg = {
-    cmd: 'getLastSyncStatistics',
+  var msg = native_.callSync('Datasync_getLastSyncStatistics', {
     arg: profileId
-  };
-  var result = sendSyncMessage(msg);
+  });
+  var result = native_.getResultObject(msg);
   return convertToSyncStatistics(result);
 };
 
