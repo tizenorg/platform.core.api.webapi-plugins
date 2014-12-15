@@ -168,7 +168,9 @@ BuildRequires: pkgconfig(vconf)
 BuildRequires: pkgconfig(x11)
 BuildRequires: pkgconfig(xrandr)
 BuildRequires: python
-
+BuildRequires: pkgconfig(tapi)
+BuildRequires: pkgconfig(libpcrecpp)
+BuildRequires: pkgconfig(contacts-service2)
 
 %if 0%{?tizen_feature_badge_support}
 BuildRequires:  pkgconfig(badge)
