@@ -88,6 +88,10 @@
       'scope_exit.h',
       'task-queue.cpp',
       'task-queue.h',
+      'callback_user_data.cc',
+      'callback_user_data.h',
+      #'multi_callback_user_data.cc',
+      #'multi_callback_user_data.h',
     ],
     'cflags': [
       '-std=c++0x',

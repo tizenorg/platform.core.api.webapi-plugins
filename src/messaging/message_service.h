@@ -10,6 +10,7 @@
 #include <string>
 
 #include "common/picojson.h"
+#include "common/callback_user_data.h"
 
 #include "messaging_util.h"
 #include "message_storage.h"
@@ -22,6 +23,61 @@ enum MessageServiceAccountId
     UNKNOWN_ACCOUNT_ID = 0,
     SMS_ACCOUNT_ID = 101,
     MMS_ACCOUNT_ID = 102
+};
+
+class BaseMessageServiceCallbackData : public common::CallbackUserData {
+public:
+    BaseMessageServiceCallbackData();
+    virtual ~BaseMessageServiceCallbackData();
+
+    void setError(const std::string& err_name,
+            const std::string& err_message);
+    bool isError() const;
+    std::string getErrorName() const;
+    std::string getErrorMessage() const;
+
+    /**
+     * This handle is returned from various native API functions:
+     *   int email_sync_header(..., int *handle);
+     *   int email_download_body(..., int *handle);
+     *   int email_download_attachment(..., int *handle);
+     *
+     * It is used to stop and identify request.
+     */
+    void setOperationHandle(const int op_handle);
+    int getOperationHandle() const;
+    void setCallbackId(const double callback_id);
+    double getCallbackId() const;
+
+protected:
+    bool m_is_error;
+    std::string m_err_name;
+    std::string m_err_message;
+
+    int m_op_handle;
+    double m_callback_id;
+};
+
+class SyncCallbackData : public BaseMessageServiceCallbackData {
+public:
+    SyncCallbackData();
+    virtual ~SyncCallbackData();
+
+    void setLimit(const unsigned long limit);
+    bool isLimit() const;
+    unsigned long getLimit() const;
+
+    void setOpId(long op_id);
+    long getOpId();
+    void setAccountId(int account_id);
+    int getAccountId() const;
+
+protected:
+    bool m_is_limit;
+    unsigned long m_limit;
+
+    long m_op_id;
+    int m_account_id;
 };
 
 class MessageService

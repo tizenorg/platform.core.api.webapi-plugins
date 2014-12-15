@@ -22,6 +22,121 @@ const char* JSON_SERVICE_NAME = "name";
 const char* JSON_SERVICE_STORAGE = "messageStorage";
 }
 
+//#################### BaseMessageServiceCallbackData ####################
+
+BaseMessageServiceCallbackData::BaseMessageServiceCallbackData():
+//        CallbackUserData(globalCtx),
+        m_is_error(false),
+        m_op_handle(-1)
+{
+    LOGD("Entered");
+}
+
+BaseMessageServiceCallbackData::~BaseMessageServiceCallbackData()
+{
+    LOGD("Entered");
+}
+
+void BaseMessageServiceCallbackData::setError(const std::string& err_name,
+        const std::string& err_message)
+{
+    // keep only first error in chain
+    if (!m_is_error) {
+        m_is_error = true;
+        m_err_name = err_name;
+        m_err_message = err_message;
+    }
+}
+
+bool BaseMessageServiceCallbackData::isError() const
+{
+    return m_is_error;
+}
+
+std::string BaseMessageServiceCallbackData::getErrorName() const
+{
+    return m_err_name;
+}
+
+std::string BaseMessageServiceCallbackData::getErrorMessage() const
+{
+    return m_err_message;
+}
+
+void BaseMessageServiceCallbackData::setOperationHandle(const int op_handle)
+{
+    m_op_handle = op_handle;
+}
+
+int BaseMessageServiceCallbackData::getOperationHandle() const
+{
+    return m_op_handle;
+}
+
+void BaseMessageServiceCallbackData::setCallbackId(const double callback_id)
+{
+    m_callback_id = callback_id;
+}
+
+double BaseMessageServiceCallbackData::getCallbackId() const
+{
+    return m_callback_id;
+}
+
+//#################### SyncCallbackData ####################
+
+SyncCallbackData::SyncCallbackData():
+//        BaseMessageServiceCallbackData(globalCtx),
+        m_is_limit(false),
+        m_limit(0),
+        m_account_id(-1)
+{
+    LOGD("Entered");
+}
+
+SyncCallbackData::~SyncCallbackData()
+{
+    LOGD("Entered");
+}
+
+void SyncCallbackData::setLimit(const unsigned long limit)
+{
+    m_is_limit = true;
+    m_limit = limit;
+}
+
+bool SyncCallbackData::isLimit() const
+{
+    return m_is_limit;
+}
+
+unsigned long SyncCallbackData::getLimit() const
+{
+    return m_limit;
+}
+
+void SyncCallbackData::setOpId(long op_id)
+{
+    m_op_id = op_id;
+}
+
+long SyncCallbackData::getOpId()
+{
+    return m_op_id;
+}
+
+void SyncCallbackData::setAccountId(int account_id)
+{
+    m_account_id = account_id;
+}
+
+int SyncCallbackData::getAccountId() const
+{
+    return m_account_id;
+}
+
+
+
 MessageService::MessageService(int id,
                     MessageType msgType,
                     std::string name):
