@@ -7,6 +7,9 @@
 
 #include <string>
 #include <vector>
+#include <memory>
+#include "common/logger.h"
+#include "common/picojson.h"
 
 namespace extension {
 namespace messaging {
@@ -19,6 +22,24 @@ extern const char* JSON_CALLBACK_ERROR;
 extern const char* JSON_CALLBACK_PROGRESS;
 extern const char* JSON_CALLBACK_KEEP;
 extern const char* JSON_DATA;
+
+extern const char* MESSAGE_ATTRIBUTE_ID;
+extern const char* MESSAGE_ATTRIBUTE_CONVERSATION_ID;
+extern const char* MESSAGE_ATTRIBUTE_FOLDER_ID;
+extern const char* MESSAGE_ATTRIBUTE_TYPE;
+extern const char* MESSAGE_ATTRIBUTE_TIMESTAMP;
+extern const char* MESSAGE_ATTRIBUTE_FROM;
+extern const char* MESSAGE_ATTRIBUTE_TO; // used also in dictionary
+extern const char* MESSAGE_ATTRIBUTE_CC; // used also in dictionary
+extern const char* MESSAGE_ATTRIBUTE_BCC; // used also in dictionary
+extern const char* MESSAGE_ATTRIBUTE_BODY;
+extern const char* MESSAGE_ATTRIBUTE_IS_READ;
+extern const char* MESSAGE_ATTRIBUTE_IS_HIGH_PRIORITY; // used also in dictionary
+extern const char* MESSAGE_ATTRIBUTE_SUBJECT; // used also in dictionary
+extern const char* MESSAGE_ATTRIBUTE_IN_RESPONSE_TO;
+extern const char* MESSAGE_ATTRIBUTE_MESSAGE_STATUS;
+extern const char* MESSAGE_ATTRIBUTE_ATTACHMENTS;
+extern const char* MESSAGE_ATTRIBUTE_HAS_ATTACHMENT;
 
 enum MessageType {
     UNDEFINED = 0,
@@ -36,6 +57,8 @@ enum MessageStatus {
     STATUS_FAILED
 };
 
+class Message;
+
 class MessagingUtil {
 public:
     static MessageType stringToMessageType(std::string);
@@ -45,6 +68,17 @@ public:
     static std::vector<std::string> extractEmailAddresses(
             const std::vector<std::string>& addresses);
 
+    static std::shared_ptr<Message> jsonToMessage(const picojson::value& json);
+
+    template <class T>
+    static T getValueFromJSONObject(const picojson::object& v, const std::string& key)
+    {
+        if (v.at(key).is<T>()) {
+            return v.at(key).get<T>();
+        } else {
+            return T();
+        }
+    }
     /**
     * Throws Common::IOException when file cannot be opened.
     *

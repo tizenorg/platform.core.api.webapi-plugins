@@ -18,26 +18,6 @@
 namespace extension {
 namespace messaging {
 
-namespace{
-const char* MESSAGE_ATTRIBUTE_ID = "id";
-const char* MESSAGE_ATTRIBUTE_CONVERSATION_ID = "conversationId";
-const char* MESSAGE_ATTRIBUTE_FOLDER_ID = "folderId";
-const char* MESSAGE_ATTRIBUTE_TYPE = "type";
-const char* MESSAGE_ATTRIBUTE_TIMESTAMP = "timestamp";
-const char* MESSAGE_ATTRIBUTE_FROM = "from";
-const char* MESSAGE_ATTRIBUTE_TO = "to"; // used also in dictionary
-const char* MESSAGE_ATTRIBUTE_CC = "cc"; // used also in dictionary
-const char* MESSAGE_ATTRIBUTE_BCC = "bcc"; // used also in dictionary
-const char* MESSAGE_ATTRIBUTE_BODY = "body";
-const char* MESSAGE_ATTRIBUTE_IS_READ = "isRead";
-const char* MESSAGE_ATTRIBUTE_IS_HIGH_PRIORITY = "isHighPriority"; // used also in dictionary
-const char* MESSAGE_ATTRIBUTE_SUBJECT = "subject"; // used also in dictionary
-const char* MESSAGE_ATTRIBUTE_IN_RESPONSE_TO = "inResponseTo";
-const char* MESSAGE_ATTRIBUTE_MESSAGE_STATUS = "messageStatus";
-const char* MESSAGE_ATTRIBUTE_ATTACHMENTS = "attachments";
-const char* MESSAGE_ATTRIBUTE_HAS_ATTACHMENT = "hasAttachment";
-}
-
 // *** constructor
 Message::Message():
     m_id(-1), m_id_set(false), m_conversation_id(-1),
