@@ -809,10 +809,222 @@ NativeManager.prototype.getErrorObject = function(result) {
   return new tizen.WebAPIException(result.error.code, result.error.message, result.error.name);
 };
 
+/*
+ *bridge is a two way communication interface
+ *Example usage:
+ *var bridge = new NativeBridge(extension);
+ *    To send sync method:
+ *    var result = bridge.sync({
+ *        cmd: 'my_cpp_function_symbol',
+ *        args: {
+ *            name: 'My name',
+ *            age: 28
+ *        }
+ *    });
+ *    console.log(result);
+ *
+ *    To send async method and handle response:
+ *    bridge.async({
+ *        cmd: 'my_cpp_function_symbol',
+ *        args: {
+ *            name: 'My name'
+ *        }
+ *    }).then({
+ *        success: function (data) {
+ *            var age = data.age;
+ *            args.successCallback(age);
+ *        },
+ *        error: function (e) {...},
+ *        someCallback: function (data) {...}
+ *    });
+ *bridge.async will add special param to passed data called cid
+ *that param need to be kept and returned with respons
+ *To determine which callback should be invoked, response should
+ *contain "action" param. Value of "action" param indicates name of
+ *triggered callback.
+ *Callbask are removed from listenr by defoult to prevent that behaviour
+ *param "keep" should be assigned to value true
+ *Example of c++ async response:
+ *    Simple succes with data:
+ *    {
+ *        cid: 23,
+ *        action: 'success',
+ *        args: {
+ *            age: 23
+ *        }
+ *    }
+ *    More complicated example:
+ *    {
+ *        cid: 23,
+ *        action: 'progress',
+ *        keep: true,
+ *        args: {
+ *            age: 23
+ *        }
+ *    }
+ */
+var NativeBridge = (function (extension, debug) {
+    debug = !!debug;
+    var Callbacks = (function () {
+        var _collection = {};
+        var _cid = 0;
+        var _next = function () {
+            return (_cid += 1);
+        };
+
+        var CallbackManager = function () {};
+
+        CallbackManager.prototype = {
+            add: function (/*callbacks, cid?*/) {
+                if (debug) console.log('bridge', 'CallbackManager', 'add');
+                var args = Array.prototype.slice.call(arguments);
+                var c = args.shift();
+                var cid = args.pop();
+                if (cid) {
+                    if (c !== null && typeof c === 'object') {
+                        for (var key in c) {
+                            if (c.hasOwnProperty(key)) _collection[cid][key] = c[key];
+                        }
+                    }
+                } else {
+                    cid = _next();
+                    _collection[cid] = c;
+                }
+                return cid;
+            },
+            remove: function (cid) {
+                if (debug)  console.log('bridge', 'CallbackManager', 'remove', cid);
+                if (_collection[cid]) delete _collection[cid];
+            },
+            call: function (cid, key, args, keep) {
+                if (debug) console.log('bridge', 'CallbackManager', 'call', cid, key);
+                var callbacks = _collection[cid];
+                keep = !!keep;
+                if (callbacks) {
+                    var fn = callbacks[key];
+                    if (fn) {
+                        fn.apply(null, args);
+                        if (!keep) this.remove(cid)
+                    }
+                }
+            }
+        };
+
+        return {
+            getInstance: function () {
+                return this.instance || (this.instance = new CallbackManager);
+            }
+        };
+    })();
+
+
+    var Listeners = (function () {
+        var _listeners = {};
+        var _id = 0;
+        var _next = function () {
+            return (_id += 1);
+        };
+
+        var ListenerManager = function () {};
+
+        ListenerManager.prototype = {
+            add: function (l) {
+                if (debug) console.log('bridge', 'ListenerManager', 'add');
+                var id = _next();
+                _listeners[id] = l;
+                return id;
+            },
+            resolve: function (id, action, data, keep) {
+                if (debug) console.log('bridge', 'ListenerManager', 'resolve', id, action);
+                keep = !!keep;
+                var l = _listeners[id];
+                if (l) {
+                    var cm = Callbacks.getInstance();
+                    cm.call(l.cid, action, [data], keep);
+                }
+                return l;
+            },
+            remove: function (id) {
+                if (debug) console.log('bridge', 'ListenerManager', 'remove', id);
+                var l = _listeners[id];
+                if (l) {
+                    var cm = Callbacks.getInstance();
+                    if (l.cid) cm.remove(l.cid);
+                    delete _listeners[id];
+                }
+            }
+        }
+
+        return {
+            getInstance: function () {
+                return this.instance || (this.instance = new ListenerManager);
+            }
+        };
+    })();
+
+    var Listener = function () {
+        if (debug) console.log('bridge', 'Listener constructor');
+        this.cid = null;
+    };
+    Listener.prototype = {
+        then: function (c) {
+            if (debug) console.log('bridge', 'Listener', 'then');
+            var cm = Callbacks.getInstance();
+            this.cid = cm.add(c, this.cid);
+            return this;
+        }
+    };
+
+    var Bridge = function () {};
+    Bridge.prototype = {
+        sync: function (data) {
+            var json = JSON.stringify(data);
+            if (debug) console.log('bridge', 'sync', json);
+            var result = extension.internal.sendSyncMessage(json);
+            var obj = JSON.parse(result);
+            if (obj.error)
+                throw new tizen.WebAPIException(obj.code, obj.name, obj.message);
+            return obj.result;
+        },
+        async: function (data) {
+            var l = new Listener();
+            data.cid = Listeners.getInstance().add(l);
+            var json = JSON.stringify(data);
+            if (debug) console.log('bridge', 'async', json);
+            setTimeout(function () {
+                extension.postMessage(json);
+            });
+            return l;
+        }
+    };
+
+    extension.setMessageListener(function (json) {
+        /*
+         *Expected response:
+         *{
+         *    cid: 23,                        // callback id
+         *    action: 'success',              // expected callback action
+         *    keep: false                     // optional param
+         *    args: {...}                     // data pased to callback
+         *}
+         */
+
+        if (debug) console.log('bridge', 'setMessageListener', json);
+        var data = JSON.parse(json);
+        if (data.cid && data.action) {
+            Listeners.getInstance().resolve(data.cid, data.action, data.args, data.keep);
+        }
+    });
+
+    return new Bridge;
+});
+
+
 
 Utils.prototype.type = _type;
 Utils.prototype.converter = _converter;
 Utils.prototype.validator = _validator;
 Utils.prototype.NativeManager = NativeManager;
+Utils.prototype.NativeBridge = NativeBridge;
 
 exports = new Utils();
