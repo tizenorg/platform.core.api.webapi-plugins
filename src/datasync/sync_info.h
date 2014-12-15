@@ -11,6 +11,7 @@
 #include <memory>
 #include <string>
 
+namespace extension {
 namespace datasync {
 
 /**
@@ -90,5 +91,6 @@ class SyncInfo {
 typedef std::shared_ptr<SyncInfo> SyncInfoPtr;
 
 }  // namespace datasync
+}  // namespace extension
 
 #endif  // DATASYNC_SYNC_INFO_H_

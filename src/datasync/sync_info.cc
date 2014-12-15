@@ -7,6 +7,7 @@
 
 #include "datasync/sync_info.h"
 
+namespace extension {
 namespace datasync {
 
 std::string SyncInfo::SyncModeToString(SyncMode mode) {
@@ -170,3 +171,4 @@ void SyncInfo::set_sync_interval(SyncInfo::SyncInterval syncInterval) {
 }
 
 }  // namespace datasync
+}  // namespace extension

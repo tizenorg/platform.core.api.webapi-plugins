@@ -12,6 +12,7 @@
 #include <functional>
 #include <string>
 
+namespace extension {
 namespace datasync {
 
 class Error {
@@ -122,5 +123,6 @@ template<> class ResultOrError<void> {
 };
 
 }  // namespace datasync
+}  // namespace extension
 
 #endif  // DATASYNC_DATASYNC_ERROR_H_

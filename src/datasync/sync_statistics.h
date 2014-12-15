@@ -13,6 +13,7 @@
 
 #include "datasync/sync_service_info.h"
 
+namespace extension {
 namespace datasync {
 
 /**
@@ -96,5 +97,6 @@ typedef std::vector<SyncStatisticsPtr> SyncStatisticsList;
 typedef std::shared_ptr<SyncStatisticsList> SyncStatisticsListPtr;
 
 }  // namespace datasync
+}  // namespace extension
 
 #endif  // DATASYNC_SYNC_STATISTICS_H_

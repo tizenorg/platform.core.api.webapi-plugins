@@ -11,7 +11,9 @@
 // This will be generated from datasync_api.js.
 extern const char kSource_datasync_api[];
 
-namespace datasync {
+
+using namespace extension::datasync;
+
 
 DatasyncExtension::DatasyncExtension() {
   SetExtensionName("tizen.datasync");
@@ -30,12 +32,10 @@ DataSyncManager& DatasyncExtension::manager() {
 }
 
 common::Instance* DatasyncExtension::CreateInstance() {
-  return new DatasyncInstance(*this);
+  return new DatasyncInstance;
 }
-
-}  // namespace datasync
 
 // entry point
 common::Extension* CreateExtension() {
-  return new datasync::DatasyncExtension;
+  return new DatasyncExtension;
 }

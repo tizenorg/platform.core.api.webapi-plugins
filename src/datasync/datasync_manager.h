@@ -19,6 +19,7 @@
 #include "datasync/sync_profile_info.h"
 #include "datasync/sync_statistics.h"
 
+namespace extension {
 namespace datasync {
 
 class DatasyncInstance;
@@ -65,5 +66,6 @@ class DataSyncManager {
 };
 
 }  // namespace datasync
+}  // namespace extension
 
 #endif  // DATASYNC_DATASYNC_MANAGER_H_

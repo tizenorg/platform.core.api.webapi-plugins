@@ -19,6 +19,7 @@
 #include "datasync/sync_service_info.h"
 #include "datasync/sync_statistics.h"
 
+namespace extension {
 namespace datasync {
 namespace serialization {
 namespace detail {
@@ -477,5 +478,6 @@ std::unique_ptr<T> FromJson(const picojson::value& value) {
 
 }  // namespace serialization
 }  // namespace datasync
+}  // namespace extension
 
 #endif  // DATASYNC_DATASYNC_SERIALIZATION_H_

@@ -13,6 +13,7 @@ const int kUndefinedTime = -1;
 
 }
 
+namespace extension {
 namespace datasync {
 
 SyncStatistics::SyncStatus SyncStatistics::ConvertToSyncStatus(
@@ -167,3 +168,4 @@ void SyncStatistics::set_client_to_server_removed(unsigned value) {
 }
 
 }  // namespace datasync
+}  // namespace extension

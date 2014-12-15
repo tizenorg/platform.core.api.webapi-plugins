@@ -7,6 +7,7 @@
 
 #include "datasync/sync_service_info.h"
 
+namespace extension {
 namespace datasync {
 
 SyncServiceInfo::SyncServiceType SyncServiceInfo::ConvertToSyncServiceType(
@@ -80,3 +81,4 @@ void SyncServiceInfo::set_password(const std::string &password) {
 }
 
 }  // namespace datasync
+}  // namespace extension

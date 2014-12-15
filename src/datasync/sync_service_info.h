@@ -12,6 +12,7 @@
 #include <string>
 #include <vector>
 
+namespace extension {
 namespace datasync {
 
 /**
@@ -62,5 +63,6 @@ typedef std::vector<SyncServiceInfoPtr> SyncServiceInfoList;
 typedef std::shared_ptr<SyncServiceInfoList> SyncServiceInfoListPtr;
 
 }  // namespace datasync
+}  // namespace extension
 
 #endif  // DATASYNC_SYNC_SERVICE_INFO_H_

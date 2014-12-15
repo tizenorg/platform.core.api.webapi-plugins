@@ -11,20 +11,17 @@
 #include "common/extension.h"
 #include "datasync/datasync_manager.h"
 
-namespace datasync {
 
 class DatasyncExtension : public common::Extension {
  public:
   DatasyncExtension();
   virtual ~DatasyncExtension();
 
-  DataSyncManager& manager();
+  extension::datasync::DataSyncManager& manager();
 
  private:
   // common::Extension implementation.
   virtual common::Instance* CreateInstance();
 };
-
-}  // namespace datasync
 
 #endif  // DATASYNC_DATASYNC_EXTENSION_H_

@@ -16,7 +16,8 @@
 
 #include "tizen/tizen.h"
 
-namespace {
+namespace extension {
+namespace datasync {
 
 const int MAX_PROFILES_NUM = 5;
 
@@ -998,22 +999,16 @@ int DataSyncManager::StateChangedCallback(sync_agent_event_data_s* request) {
 
       if (!progress) {
         LogWarning("nullptr status.");
-        instance->ReplyAsyncOnFailed(callback_id, profile_dir_name_str,
-                                     UNKNOWN_ERR, "Exception",
-                                     "nullptr status");
+//  TODO: implementation
       } else if (0 == strncmp(progress, "DONE", 4)) {
-        instance->ReplyAsyncOnCompleted(callback_id, profile_dir_name_str);
+//  TODO: implementation
       } else if (0 == strncmp(progress, "CANCEL", 6)) {
-        instance->ReplyAsyncOnStopped(callback_id, profile_dir_name_str);
+//  TODO: implementation
       } else if (0 == strncmp(progress, "ERROR", 5)) {
-        instance->ReplyAsyncOnFailed(callback_id, profile_dir_name_str,
-                                     UNKNOWN_ERR, "Exception",
-                                     "Datasync failed");
+//  TODO: implementation
       } else {
         LogInfo("Undefined status");
-        instance->ReplyAsyncOnFailed(callback_id, profile_dir_name_str,
-                                     UNKNOWN_ERR, "Exception",
-                                     "Undefined status");
+//  TODO: implementation
       }
     }
   }
@@ -1077,20 +1072,12 @@ int DataSyncManager::ProgressCallback(sync_agent_event_data_s* request) {
       DatasyncInstance* instance = it->second.second;
 
       if (SYNC_AGENT_SRC_URI_CONTACT == uri) {
-        instance->ReplyAsyncOnProgress(callback_id, profile_dir_name_str,
-                                       is_from_server, synced_per_db,
-                                       total_per_db,
-                                       SyncServiceInfo::CONTACT_SERVICE_TYPE);
+//  TODO: implementation
       } else if (SYNC_AGENT_SRC_URI_CALENDAR == uri) {
-        instance->ReplyAsyncOnProgress(callback_id, profile_dir_name_str,
-                                       is_from_server, synced_per_db,
-                                       total_per_db,
-                                       SyncServiceInfo::EVENT_SERVICE_TYPE);
+//  TODO: implementation
       } else {
         LogWarning("Wrong service type");
-        instance->ReplyAsyncOnFailed(callback_id, profile_dir_name_str,
-                                     UNKNOWN_ERR, "Exception",
-                                     "Wrong service type");
+//  TODO: implementation
       }
     }
   }
@@ -1110,3 +1097,4 @@ int DataSyncManager::ProgressCallback(sync_agent_event_data_s* request) {
 }
 
 }  // namespace datasync
+}  // namespace extension

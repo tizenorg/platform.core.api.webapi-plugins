@@ -14,6 +14,7 @@
 #include "datasync/sync_info.h"
 #include "datasync/sync_service_info.h"
 
+namespace extension {
 namespace datasync {
 
 /**
@@ -49,5 +50,6 @@ typedef std::vector<SyncProfileInfoPtr> SyncProfileInfoList;
 typedef std::shared_ptr<SyncProfileInfoList> SyncProfileInfoListPtr;
 
 }  // namespace datasync
+}  // namespace extension
 
 #endif  // DATASYNC_SYNC_PROFILE_INFO_H_

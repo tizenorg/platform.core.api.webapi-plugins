@@ -7,6 +7,7 @@
 
 #include "datasync/sync_profile_info.h"
 
+namespace extension {
 namespace datasync {
 
 SyncProfileInfo::SyncProfileInfo()
@@ -51,3 +52,4 @@ void SyncProfileInfo::set_service_info(SyncServiceInfoListPtr serviceInfo) {
 }
 
 }  // namespace datasync
+}  // namespace extension
