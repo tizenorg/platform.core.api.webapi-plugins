@@ -4,7 +4,10 @@
 
 #include "bookmark/bookmark_instance.h"
 
+#include <web/web_bookmark.h>
 #include <string>
+
+#include "common/logger.h"
 
 namespace extension {
 namespace bookmark {
@@ -20,9 +23,17 @@ namespace {
   const char* kNotImplemented = "Not implemented";
 }
 
-BookmarkInstance::BookmarkInstance() {}
+BookmarkInstance::BookmarkInstance() {
+  int ret = bp_bookmark_adaptor_initialize();
+  if (ret)
+    LoggerE("bp_bookmark_adaptor_initialize failed (%d)", ret);
+}
 
-BookmarkInstance::~BookmarkInstance() {}
+BookmarkInstance::~BookmarkInstance() {
+  int ret = bp_bookmark_adaptor_deinitialize();
+  if (ret)
+    LoggerE("bp_bookmark_adaptor_deinitialize failed (%d)", ret);
+}
 
 void BookmarkInstance::HandleMessage(const char* msg) {}
 

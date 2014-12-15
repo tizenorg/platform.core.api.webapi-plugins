@@ -15,7 +15,11 @@
       ],
       'conditions': [
         [ 'tizen == 1', {
-            'variables': { },
+            'variables': {
+              'packages': [
+                'bookmark-adaptor',
+              ]
+            },
         }],
       ],
     },
