@@ -31,6 +31,7 @@
 #include <ITapiModem.h>
 #include <ITapiSim.h>
 #include <ITapiSim_product.h>
+#include <device.h>
 
 #include "common/logger.h"
 #include "common/platform_exception.h"
@@ -48,6 +49,9 @@
 #define SEED_LENGTH 16
 #define CRYPT_KEY_SIZE 8
 
+#define TAPI_HANDLE_MAX 2
+#define DEFAULT_PROPERTY_COUNT 1
+
 #ifdef FEATURE_OPTIONAL_WI_FI
 #include <wifi.h>
 #endif
@@ -64,6 +68,9 @@
 namespace extension {
 namespace systeminfo {
 
+namespace {
+const int MEMORY_TO_BYTE = 1024;
+}
 using namespace common;
 
 //Callback functions declarations
@@ -251,6 +258,7 @@ private:
     unsigned short to_process_;
     std::mutex sim_to_process_mutex_;
     std::mutex sim_info_mutex_;
+    long sim_count_;
 
     void ResetSimHolder(picojson::object* out);
     void FetchSimState(TapiHandle *tapi_handle);
@@ -261,6 +269,7 @@ public:
     SimDetailsManager();
 
     void GatherSimInformation(TapiHandle* handle, picojson::object* out);
+    long GetSimCount(TapiHandle **tapi_handle);
     void TryReturn();
 
     void set_operator_name(const std::string& name)
@@ -296,7 +305,8 @@ SimDetailsManager::SimDetailsManager():
         iccid_(""),
         spn_(""),
         sim_result_obj_(nullptr),
-        to_process_(0)
+        to_process_(0),
+        sim_count_(0)
 {
 }
 
@@ -445,6 +455,31 @@ void SimDetailsManager::ReturnSimToJS(){
     } else {
         LOGE("No sim returned JSON object pointer is null");
     }
+}
+
+long SimDetailsManager::GetSimCount(TapiHandle **tapi_handle){
+    if (0 != sim_count_){
+        LOGD("Sim counted already");
+    } else {
+        LOGD("Gathering sim count");
+        char **cp_list = tel_get_cp_name_list();
+        if (cp_list != NULL) {
+            while (cp_list[sim_count_]) {
+                tapi_handle[sim_count_] = tel_init(cp_list[sim_count_]);
+                if (tapi_handle[sim_count_] == NULL) {
+                    LOGE("Failed to connect with tapi, handle is null");
+                    break;
+                }
+                sim_count_++;
+                LOGD("%d modem: %s", sim_count_, cp_list[sim_count_]);
+            }
+        } else {
+            LOGE("Failed to get cp list");
+            sim_count_ = TAPI_HANDLE_MAX;
+        }
+        g_strfreev(cp_list);
+    }
+    return sim_count_;
 }
 
 void SimDetailsManager::TryReturn(){
@@ -704,12 +739,14 @@ public:
     void OnPeripheralChangedCallback(keynode_t* node, void* event_ptr);
 
     TapiHandle* GetTapiHandle();
+    TapiHandle** GetTapiHandles();
     connection_h GetConnectionHandle();
 private:
     static void RegisterVconfCallback(const char *in_key, vconf_callback_fn cb);
     static void UnregisterVconfCallback(const char *in_key, vconf_callback_fn cb);
     void RegisterIpChangeCallback();
     void UnregisterIpChangeCallback();
+    void InitTapiHandles();
 
     SystemInfoDeviceOrientationPtr m_orientation;
     guint m_cpu_event_id;
@@ -733,7 +770,7 @@ private:
     SysteminfoUtilsCallback m_cellular_network_listener;
     SysteminfoUtilsCallback m_peripheral_listener;
 
-    TapiHandle *m_tapi_handle;
+    TapiHandle *m_tapi_handles[TAPI_HANDLE_MAX+1];
     //for ip change callback
     connection_h m_connection_handle;
 };
@@ -757,7 +794,6 @@ SystemInfoListeners::SystemInfoListeners():
         m_wifi_network_listener(nullptr),
         m_cellular_network_listener(nullptr),
         m_peripheral_listener(nullptr),
-        m_tapi_handle(nullptr),
         m_connection_handle(nullptr)
 {
     LOGD("Entered");
@@ -774,8 +810,11 @@ SystemInfoListeners::~SystemInfoListeners(){
     UnregisterWifiNetworkListener();
     UnregisterCellularNetworkListener();
     UnregisterPeripheralListener();
-    if (nullptr != m_tapi_handle) {
-        tel_deinit(m_tapi_handle);
+
+    unsigned int i = 0;
+    while(m_tapi_handles[i]) {
+        tel_deinit(m_tapi_handles[i]);
+        i++;
     }
     if (nullptr != m_connection_handle) {
         connection_destroy(m_connection_handle);
@@ -1195,17 +1234,44 @@ void SystemInfoListeners::OnPeripheralChangedCallback(keynode_t* /*node*/, void*
     }
 }
 
-TapiHandle* SystemInfoListeners::GetTapiHandle()
+void SystemInfoListeners::InitTapiHandles()
 {
-    if (nullptr == m_tapi_handle){
-        m_tapi_handle = tel_init(0);
-        if (nullptr == m_tapi_handle) {
-            LOGE("Failed to connect with tapi, handle is null");
+    LOGD("Entered");
+    int sim_count = 0;
+    if (nullptr == m_tapi_handles){
+        char **cp_list = tel_get_cp_name_list();
+        *m_tapi_handles = nullptr;
+        if (nullptr != cp_list) {
+            while (cp_list[sim_count]) {
+                m_tapi_handles[sim_count] = tel_init(cp_list[sim_count]);
+                if (nullptr == m_tapi_handles[sim_count]) {
+                    LOGE("Failed to connect with tapi, handle is null");
+                    break;
+                }
+                sim_count++;
+                LOGD("%d modem: %s", sim_count, cp_list[sim_count]);
+            }
+        } else {
+            LOGE("Failed to get cp list");
+            sim_count = TAPI_HANDLE_MAX;
         }
+        g_strfreev(cp_list);
     }
-    return m_tapi_handle;
 }
 
+TapiHandle* SystemInfoListeners::GetTapiHandle()
+{
+
+    LOGD("Entered");
+    InitTapiHandles();
+    return m_tapi_handles[0];
+}
+
+TapiHandle** SystemInfoListeners::GetTapiHandles()
+{
+    InitTapiHandles();
+    return m_tapi_handles;
+}
 
 connection_h SystemInfoListeners::GetConnectionHandle()
 {
@@ -1444,6 +1510,59 @@ int GetVconfInt(const char *key) {
     return value;
 }
 
+long long SysteminfoUtils::GetTotalMemory()
+{
+    LOGD("Entered");
+
+    unsigned int value = 0;
+
+    int ret = device_memory_get_total(&value);
+    if (ret != DEVICE_ERROR_NONE) {
+        std::string log_msg = "Failed to get total memory: " + std::to_string(ret);
+        LOGE("%s", log_msg.c_str());
+        throw UnknownException(log_msg.c_str());
+    }
+
+    return static_cast<long long>(value*MEMORY_TO_BYTE);
+}
+
+long long SysteminfoUtils::GetAvailableMemory()
+{
+    LOGD("Entered");
+
+    unsigned int value = 0;
+
+    int ret = device_memory_get_available(&value);
+    if (ret != DEVICE_ERROR_NONE) {
+        std::string log_msg = "Failed to get total memory: " + std::to_string(ret);
+        LOGE("%s", log_msg.c_str());
+        throw UnknownException(log_msg.c_str());
+    }
+
+    return static_cast<long long>(value*MEMORY_TO_BYTE);
+}
+
+unsigned long SysteminfoUtils::GetCount(const std::string& property)
+{
+    LOGD("Enter");
+
+    unsigned long count = 0;
+
+    if ("BATTERY" == property || "CPU" == property || "STORAGE" == property ||
+            "DISPLAY" == property || "DEVICE_ORIENTATION" == property ||
+            "BUILD" == property || "LOCALE" == property || "NETWORK" == property ||
+            "WIFI_NETWORK" == property || "CELLULAR_NETWORK" == property ||
+            "PERIPHERAL" == property) {
+        count = DEFAULT_PROPERTY_COUNT;
+    } else if ("SIM" == property) {
+        count = sim_mgr.GetSimCount(system_info_listeners.GetTapiHandles());
+    } else {
+        LOGD("Property with given id is not supported");
+        throw NotSupportedException("Property with given id is not supported");
+    }
+    return count;
+}
+
 picojson::value SysteminfoUtils::GetPropertyValue(const std::string& property)
 {
     LOGD("Entered getPropertyValue");
@@ -1501,7 +1620,7 @@ void SysteminfoUtils::ReportBattery(picojson::object& out) {
 }
 //TODO maybe make two functions later onGSourceFunc
 void SysteminfoUtils::ReportCpu(picojson::object& out) {
-    LOGD("enter");
+    LOGD("Entered");
     static CpuInfo cpu_info;
     FILE *fp = nullptr;
     fp = fopen("/proc/stat", "r");
@@ -2808,7 +2927,7 @@ std::string SystemInfoDeviceCapability::GetNativeAPIVersion()
 //all flags are hardcoded for Kiran on top of this file
 std::string SystemInfoDeviceCapability::GenerateDuid()
 {
-    LOGD("Enter");
+    LOGD("Entered");
 
     bool supported = false;
     std::string duid = "";
@@ -2983,7 +3102,7 @@ std::string SystemInfoDeviceCapability::GenerateDuid()
 
 std::string SystemInfoDeviceCapability::GenerateId(char* pDeviceString)
 {
-    LOGD("Enter");
+    LOGD("Entered");
     unsigned long long value = 0;
     byte result[8]  {0,};
 
@@ -3005,7 +3124,7 @@ std::string SystemInfoDeviceCapability::GenerateId(char* pDeviceString)
 
 void SystemInfoDeviceCapability::GenerateCrc64(char* device_string, unsigned long long int* value)
 {
-    LOGD("Enter");
+    LOGD("Entered");
 
     byte first_crypt[SEED_LENGTH + 1] = {0,};
 
@@ -3104,7 +3223,7 @@ void SystemInfoDeviceCapability::GenerateCrc64(char* device_string, unsigned lon
 
 std::string SystemInfoDeviceCapability::Base32Encode(byte* value)
 {
-    LOGD("Enter");
+    LOGD("Entered");
 
     byte* encoding_pointer = nullptr;
     byte* src_pointer = nullptr;
