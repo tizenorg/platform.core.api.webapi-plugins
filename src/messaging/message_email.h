@@ -21,10 +21,10 @@ public:
     void setBCC(std::vector<std::string> &bcc);
     void setSubject(std::string subject);
     void setIsHighPriority(bool highpriority);
-//  FIXME when attachment class will be avalaible
-//  void setMessageAttachments(AttachmentPtrVector &attachments);
-//
-//  bool getHasAttachment() const;
+
+    void setMessageAttachments(AttachmentPtrVector &attachments);
+
+    bool getHasAttachment() const;
     /**
      * Updates message with data from email_mail_data_t structure.
      * @param mail

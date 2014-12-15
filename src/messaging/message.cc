@@ -94,35 +94,20 @@ std::vector<std::string> Message::getTO() const
     return m_to;
 }
 
-//JSObjectRef Message::getJSTO(JSContextRef global_ctx)
-//{
-//    return m_to.getJSArray(global_ctx);
-//}
-
 std::vector<std::string> Message::getCC() const
 {
     return m_cc;
 }
 
-//JSObjectRef Message::getJSCC(JSContextRef global_ctx)
-//{
-//    return m_cc.getJSArray(global_ctx);
-//}
-//
 std::vector<std::string> Message::getBCC() const
 {
     return m_bcc;
 }
 
-//JSObjectRef Message::getJSBCC(JSContextRef global_ctx)
-//{
-//    return m_bcc.getJSArray(global_ctx);
-//}
-//
-//std::shared_ptr<MessageBody> Message::getBody() const
-//{
-//    return m_body;
-//}
+std::shared_ptr<MessageBody> Message::getBody() const
+{
+    return m_body;
+}
 
 bool Message::getIsRead() const
 {
@@ -155,15 +140,10 @@ MessageStatus Message::getMessageStatus() const
     return m_status;
 }
 
-//AttachmentPtrVector Message::getMessageAttachments() const
-//{
-//    return m_attachments;
-//}
-//
-//JSObjectRef Message::getJSMessageAttachments(JSContextRef global_ctx)
-//{
-//    return m_attachments.getJSArray(global_ctx);
-//}
+AttachmentPtrVector Message::getMessageAttachments() const
+{
+    return m_attachments;
+}
 
 int Message::getServiceId() const
 {
@@ -230,15 +210,15 @@ void Message::setBCC(std::vector<std::string> &bcc)
     // implementation (address/number format checking) is message specific
 }
 
-//void Message::setBody(std::shared_ptr<MessageBody>& body)
-//{
-//    // while replacing message body old body should have some invalid id mark
-//    m_body->setMessageId(-1);
-//    m_body = body;
-//    if(m_id_set) {
-//        m_body->setMessageId(m_id);
-//    }
-//}
+void Message::setBody(std::shared_ptr<MessageBody>& body)
+{
+    // while replacing message body old body should have some invalid id mark
+    m_body->setMessageId(-1);
+    m_body = body;
+    if(m_id_set) {
+        m_body->setMessageId(m_id);
+    }
+}
 
 void Message::setIsRead(bool read)
 {
@@ -269,11 +249,10 @@ void Message::setMessageStatus(MessageStatus status)
     m_status = status;
 }
 
-//void Message::setMessageAttachments(AttachmentPtrVector &attachments)
-//{
-//    // implementation provided only for MMS and email
-//}
-
+void Message::setMessageAttachments(AttachmentPtrVector &attachments)
+{
+    // implementation provided only for MMS and email
+}
 
 void Message::setServiceId(int service_id)
 {
@@ -361,21 +340,22 @@ std::string saveToTempFile(const std::string &data)
     return fileName;
 }
 
-//std::string copyFileToTemp(const std::string& sourcePath)
-//{
-//    LOGD("Entered");
-//    char buf[] = "XXXXXX";
-//    std::string dirPath, fileName, attPath, tmpPath;
-//
-//    mode_t mask = umask(S_IWGRP | S_IWOTH);
-//    int err = mkstemp(buf);
-//    if (-1 == err) {
-//        LOGW("Failed to create unique filename");
-//    }
-//
-//    umask(mask);
-//    dirPath = "/tmp/" + std::string(buf);
-//
+std::string copyFileToTemp(const std::string& sourcePath)
+{
+    LOGD("Entered");
+    char buf[] = "XXXXXX";
+    std::string dirPath, fileName, attPath, tmpPath;
+
+    mode_t mask = umask(S_IWGRP | S_IWOTH);
+    int err = mkstemp(buf);
+    if (-1 == err) {
+        LOGW("Failed to create unique filename");
+    }
+
+    umask(mask);
+    dirPath = "/tmp/" + std::string(buf);
+
+//  FIXME filesystem is unavalaible
 //    if ( sourcePath[0] != '/' ) {
 //        attPath = Filesystem::External::fromVirtualPath(sourcePath);
 //    } else { // Assuming that the path is a real path
@@ -400,16 +380,17 @@ std::string saveToTempFile(const std::string &data)
 //    if(EINA_TRUE != ecore_file_cp(attPath.c_str(), tmpPath.c_str())) {
 //        throw common::UnknownException("Unknown error while copying file to temp.");
 //    }
-//
-//    return dirPath;
-//}
 
-//void removeDirFromTemp(const std::string& dirPath)
-//{
+    return dirPath;
+}
+
+void removeDirFromTemp(const std::string& dirPath)
+{
+//    FIXME Eina_File is unavalaible
 //    if(EINA_TRUE != ecore_file_rmdir(dirPath.c_str())) {
 //        throw common::UnknownException("Unknown error while deleting temp directory.");
 //    }
-//}
+}
 
 email_mail_data_t* Message::convertPlatformEmail(std::shared_ptr<Message> message)
 {
@@ -433,64 +414,64 @@ email_mail_data_t* Message::convertPlatformEmail(std::shared_ptr<Message> messag
         mail_data->full_address_from = strdup(from.c_str());
     }
 
-//    if(!message->getTO().empty()) {
-//        std::string to = Message::convertEmailRecipients(message->getTO());
-//        mail_data->full_address_to = strdup(to.c_str());
-//    }
-//
-//    if(!message->getCC().empty()) {
-//        std::string cc = Message::convertEmailRecipients(message->getCC());
-//        mail_data->full_address_cc = strdup(cc.c_str());
-//    }
-//
-//    if(!message->getBCC().empty()) {
-//        std::string bcc = Message::convertEmailRecipients(message->getBCC());
-//        mail_data->full_address_bcc = strdup(bcc.c_str());
-//    }
+    if(!message->getTO().empty()) {
+        std::string to = Message::convertEmailRecipients(message->getTO());
+        mail_data->full_address_to = strdup(to.c_str());
+    }
+
+    if(!message->getCC().empty()) {
+        std::string cc = Message::convertEmailRecipients(message->getCC());
+        mail_data->full_address_cc = strdup(cc.c_str());
+    }
+
+    if(!message->getBCC().empty()) {
+        std::string bcc = Message::convertEmailRecipients(message->getBCC());
+        mail_data->full_address_bcc = strdup(bcc.c_str());
+    }
 
     if(!message->getSubject().empty()) {
         std::string subject = message->getSubject();
         mail_data->subject = strdup(subject.c_str());
     }
 
-//    if(message->getBody()) {
-//        std::shared_ptr<MessageBody> body;
-//        body = message->getBody();
-//        if(!body->getPlainBody().empty()) {
-//            std::string body_file_path = saveToTempFile(body->getPlainBody());
-//            mail_data->file_path_plain = strdup(body_file_path.c_str());
-//            if(!mail_data->file_path_plain)
-//            {
-//                LOGE("Plain Body file is NULL.");
-//                free(mail_data);
-//                mail_data = NULL;
-//                throw common::UnknownException("Plain Body file is NULL.");
-//            }
-//        }
-//
-//        if(!body->getHtmlBody().empty()) {
-//            std::string html_file_path = saveToTempFile(body->getHtmlBody());
-//            mail_data->file_path_html = strdup(html_file_path.c_str());
-//            if(!mail_data->file_path_html)
-//            {
-//                LOGE("Html Body file is NULL.");
-//                free(mail_data);
-//                mail_data = NULL;
-//                throw common::UnknownException("Html Body file is NULL.");
-//            }
-//        } else if(!body->getPlainBody().empty()) {
-//            // check html data is exist if not exist copy plain body to html body
-//            std::string html_file_path = saveToTempFile(body->getPlainBody());
-//            mail_data->file_path_html = strdup(html_file_path.c_str());
-//            if(!mail_data->file_path_html)
-//            {
-//                LOGE("Plain Body file is NULL.");
-//                free(mail_data);
-//                mail_data = NULL;
-//                throw common::UnknownException("Plain Body file is NULL.");
-//            }
-//        }
-//    }
+    if(message->getBody()) {
+        std::shared_ptr<MessageBody> body;
+        body = message->getBody();
+        if(!body->getPlainBody().empty()) {
+            std::string body_file_path = saveToTempFile(body->getPlainBody());
+            mail_data->file_path_plain = strdup(body_file_path.c_str());
+            if(!mail_data->file_path_plain)
+            {
+                LOGE("Plain Body file is NULL.");
+                free(mail_data);
+                mail_data = NULL;
+                throw common::UnknownException("Plain Body file is NULL.");
+            }
+        }
+
+        if(!body->getHtmlBody().empty()) {
+            std::string html_file_path = saveToTempFile(body->getHtmlBody());
+            mail_data->file_path_html = strdup(html_file_path.c_str());
+            if(!mail_data->file_path_html)
+            {
+                LOGE("Html Body file is NULL.");
+                free(mail_data);
+                mail_data = NULL;
+                throw common::UnknownException("Html Body file is NULL.");
+            }
+        } else if(!body->getPlainBody().empty()) {
+            // check html data is exist if not exist copy plain body to html body
+            std::string html_file_path = saveToTempFile(body->getPlainBody());
+            mail_data->file_path_html = strdup(html_file_path.c_str());
+            if(!mail_data->file_path_html)
+            {
+                LOGE("Plain Body file is NULL.");
+                free(mail_data);
+                mail_data = NULL;
+                throw common::UnknownException("Plain Body file is NULL.");
+            }
+        }
+    }
 
     mail_data->flags_seen_field = message->getIsRead()?1:0;
 
@@ -503,111 +484,111 @@ email_mail_data_t* Message::convertPlatformEmail(std::shared_ptr<Message> messag
     return mail_data;
 }
 
-//void addSingleEmailAttachment(std::shared_ptr<Message> message,
-//        std::shared_ptr<MessageAttachment> att, AttachmentType attType)
-//{
-//    std::string dirPath = copyFileToTemp(att->getFilePath());
-//
-//    email_attachment_data_t* tmp = new email_attachment_data_t();
-//    tmp->attachment_name = strdup(att->getShortFileName().c_str());
-//    tmp->attachment_path  = strdup(std::string(dirPath + "/"
-//            + att->getShortFileName()).c_str());
-//    tmp->save_status = 1;
-//    tmp->inline_content_status = attType;
-//
-//    int id = message->getId();
-//    int err = email_add_attachment(id, tmp);
-//    if(EMAIL_ERROR_NONE != err) {
-//        LOGE("Error while adding attachment %d", err);
-//        err = email_free_attachment_data(&tmp, 1);
-//        if (EMAIL_ERROR_NONE != err) {
-//            LOGW("Failed to free attachment data");
-//        }
-//        throw common::UnknownException("Unknown error while adding attachment");
-//    }
-//
-//    att->setId(tmp->attachment_id);
-//    att->setMessageId(id);
-//    err = email_free_attachment_data(&tmp, 1);
-//    if (EMAIL_ERROR_NONE != err) {
-//        LOGW("Failed to free attachment data");
-//    }
-//
-//    removeDirFromTemp(dirPath);
-//}
-//
-//void Message::addEmailAttachments(std::shared_ptr<Message> message)
-//{
-//    LOGD("Entered");
-//
-//    int attachment_data_count = 0, error;
-//    email_mail_data_t *mail = NULL;
-//    email_attachment_data_t *attachment_data_list = NULL;
-//    email_meeting_request_t *meeting_req = NULL;
-//
-//
-//    AttachmentPtrVector attachments = message->getMessageAttachments();
-//    AttachmentPtrVector inlineAttachments = message->getBody()->getInlineAttachments();
-//    LOGD("Attachments size: %d", attachments.size());
-//    LOGD("Inline attachments size: %d", inlineAttachments.size());
-//    LOGD("Adding attachments for mail id = [%d]\n", message->getId());
-//    for (auto it = attachments.begin(); it != attachments.end(); ++it) {
-//        addSingleEmailAttachment(message, *it, AttachmentType::EXTERNAL);
-//    }
-//    for (auto it = inlineAttachments.begin(); it != inlineAttachments.end(); ++it) {
-//        addSingleEmailAttachment(message, *it, AttachmentType::INLINE);
-//    }
-//
-//    //Update of mail on server using function email_update_mail() is not possible.
-//    //Attachment is updated only locally, so there is need to use workaround:
-//    //1. add new mail with null attachments list
-//    //2. add attachments to mail (locally)
-//    //3. create new email with attachments and add it to server
-//    //4. delete mail without attachments
-//
-//    //getting mail and attachments data
-//    mail = Message::convertPlatformEmail(message);
-//    error = email_get_attachment_data_list(mail->mail_id, &attachment_data_list, &attachment_data_count);
-//    if (EMAIL_ERROR_NONE != error) {
-//        email_free_mail_data(&mail, 1);
-//        email_free_attachment_data(&attachment_data_list,attachment_data_count);
-//        LOGE("Error while adding attachments. Failed to get attachment list.");
-//        throw common::UnknownException("Error while adding attachments. Failed to get attachment list.");
-//    }
-//
-//    //save mail without attachments id
-//    int tmp_id = mail->mail_id;
-//
-//    //adding new mail with attachments
-//    error = email_add_mail(mail, attachment_data_list, attachment_data_count, meeting_req, 0);
-//    if (EMAIL_ERROR_NONE != error) {
-//        email_free_mail_data(&mail, 1);
-//        email_free_attachment_data(&attachment_data_list,attachment_data_count);
-//        LOGE("Error while re-adding mail: %d", error);
-//        throw common::UnknownException("Error while re-adding mail");
-//    }
-//    LOGD("mail added - new id = [%d]\n", mail->mail_id);
-//
-//    //refresh message object
-//    message->setId(mail->mail_id);
-//    message->setMessageStatus(MessageStatus::STATUS_DRAFT);
-//    for (auto it = attachments.begin(); it != attachments.end(); ++it) {
-//        (*it)->setMessageId(mail->mail_id);
-//    }
-//    for (auto it = inlineAttachments.begin(); it != inlineAttachments.end(); ++it) {
-//        (*it)->setMessageId(mail->mail_id);
-//    }
-//    email_free_attachment_data(&attachment_data_list,attachment_data_count);
-//
-//    //deleting mail without attachments
-//    error = email_delete_mail(mail->mailbox_id,&tmp_id,1,1);
-//    if (EMAIL_ERROR_NONE != error) {
-//        email_free_mail_data(&mail, 1);
-//        LOGE("Error while deleting mail from server: %d", error);
-//        throw common::UnknownException("Error while deleting mail from server");
-//    }
-//    email_free_mail_data(&mail, 1);
-//}
+void addSingleEmailAttachment(std::shared_ptr<Message> message,
+        std::shared_ptr<MessageAttachment> att, AttachmentType attType)
+{
+    std::string dirPath = copyFileToTemp(att->getFilePath());
+
+    email_attachment_data_t* tmp = new email_attachment_data_t();
+    tmp->attachment_name = strdup(att->getShortFileName().c_str());
+    tmp->attachment_path  = strdup(std::string(dirPath + "/"
+            + att->getShortFileName()).c_str());
+    tmp->save_status = 1;
+    tmp->inline_content_status = attType;
+
+    int id = message->getId();
+    int err = email_add_attachment(id, tmp);
+    if(EMAIL_ERROR_NONE != err) {
+        LOGE("Error while adding attachment %d", err);
+        err = email_free_attachment_data(&tmp, 1);
+        if (EMAIL_ERROR_NONE != err) {
+            LOGW("Failed to free attachment data");
+        }
+        throw common::UnknownException("Unknown error while adding attachment");
+    }
+
+    att->setId(tmp->attachment_id);
+    att->setMessageId(id);
+    err = email_free_attachment_data(&tmp, 1);
+    if (EMAIL_ERROR_NONE != err) {
+        LOGW("Failed to free attachment data");
+    }
+
+    removeDirFromTemp(dirPath);
+}
+
+void Message::addEmailAttachments(std::shared_ptr<Message> message)
+{
+    LOGD("Entered");
+
+    int attachment_data_count = 0, error;
+    email_mail_data_t *mail = NULL;
+    email_attachment_data_t *attachment_data_list = NULL;
+    email_meeting_request_t *meeting_req = NULL;
+
+
+    AttachmentPtrVector attachments = message->getMessageAttachments();
+    AttachmentPtrVector inlineAttachments = message->getBody()->getInlineAttachments();
+    LOGD("Attachments size: %d", attachments.size());
+    LOGD("Inline attachments size: %d", inlineAttachments.size());
+    LOGD("Adding attachments for mail id = [%d]\n", message->getId());
+    for (auto it = attachments.begin(); it != attachments.end(); ++it) {
+        addSingleEmailAttachment(message, *it, AttachmentType::EXTERNAL);
+    }
+    for (auto it = inlineAttachments.begin(); it != inlineAttachments.end(); ++it) {
+        addSingleEmailAttachment(message, *it, AttachmentType::INLINE);
+    }
+
+    //Update of mail on server using function email_update_mail() is not possible.
+    //Attachment is updated only locally, so there is need to use workaround:
+    //1. add new mail with null attachments list
+    //2. add attachments to mail (locally)
+    //3. create new email with attachments and add it to server
+    //4. delete mail without attachments
+
+    //getting mail and attachments data
+    mail = Message::convertPlatformEmail(message);
+    error = email_get_attachment_data_list(mail->mail_id, &attachment_data_list, &attachment_data_count);
+    if (EMAIL_ERROR_NONE != error) {
+        email_free_mail_data(&mail, 1);
+        email_free_attachment_data(&attachment_data_list,attachment_data_count);
+        LOGE("Error while adding attachments. Failed to get attachment list.");
+        throw common::UnknownException("Error while adding attachments. Failed to get attachment list.");
+    }
+
+    //save mail without attachments id
+    int tmp_id = mail->mail_id;
+
+    //adding new mail with attachments
+    error = email_add_mail(mail, attachment_data_list, attachment_data_count, meeting_req, 0);
+    if (EMAIL_ERROR_NONE != error) {
+        email_free_mail_data(&mail, 1);
+        email_free_attachment_data(&attachment_data_list,attachment_data_count);
+        LOGE("Error while re-adding mail: %d", error);
+        throw common::UnknownException("Error while re-adding mail");
+    }
+    LOGD("mail added - new id = [%d]\n", mail->mail_id);
+
+    //refresh message object
+    message->setId(mail->mail_id);
+    message->setMessageStatus(MessageStatus::STATUS_DRAFT);
+    for (auto it = attachments.begin(); it != attachments.end(); ++it) {
+        (*it)->setMessageId(mail->mail_id);
+    }
+    for (auto it = inlineAttachments.begin(); it != inlineAttachments.end(); ++it) {
+        (*it)->setMessageId(mail->mail_id);
+    }
+    email_free_attachment_data(&attachment_data_list,attachment_data_count);
+
+    //deleting mail without attachments
+    error = email_delete_mail(mail->mailbox_id,&tmp_id,1,1);
+    if (EMAIL_ERROR_NONE != error) {
+        email_free_mail_data(&mail, 1);
+        LOGE("Error while deleting mail from server: %d", error);
+        throw common::UnknownException("Error while deleting mail from server");
+    }
+    email_free_mail_data(&mail, 1);
+}
 
 void Message::addSMSRecipientsToStruct(const std::vector<std::string> &recipients,
         msg_struct_t &msg)
@@ -922,14 +903,14 @@ msg_struct_t Message::convertPlatformShortMessageToStruct(Message* message,
         // Reset MMS recipients
         msg_list_clear(msg, MSG_MESSAGE_ADDR_LIST_HND);
 
-//        std::vector<std::string> recp_list = message->getTO();
-//        message->addMMSRecipientsToStruct(recp_list, msg, MSG_RECIPIENTS_TYPE_TO);
-//
-//        recp_list = message->getCC();
-//        message->addMMSRecipientsToStruct(recp_list, msg, MSG_RECIPIENTS_TYPE_CC);
-//
-//        recp_list = message->getBCC();
-//        message->addMMSRecipientsToStruct(recp_list, msg, MSG_RECIPIENTS_TYPE_BCC);
+        std::vector<std::string> recp_list = message->getTO();
+        message->addMMSRecipientsToStruct(recp_list, msg, MSG_RECIPIENTS_TYPE_TO);
+
+        recp_list = message->getCC();
+        message->addMMSRecipientsToStruct(recp_list, msg, MSG_RECIPIENTS_TYPE_CC);
+
+        recp_list = message->getBCC();
+        message->addMMSRecipientsToStruct(recp_list, msg, MSG_RECIPIENTS_TYPE_BCC);
     }
     else {
         msg_release_struct(&msg);
@@ -1119,57 +1100,57 @@ void Message::setMMSBodyAndAttachmentsFromStruct(Message* message,
 
                     msg_get_int_value(media, MSG_MMS_MEDIA_TYPE_INT, &tempInt);
                     const int msg_media_type = tempInt;
-//                    std::string msg_media_type_str =
-//                            MessageAttachment::MIMETypeEnumToString(msg_media_type);
-//
-//                    LOGD("[p:%d, m:%d] MSG_MMS_MEDIA_TYPE: %d (%s)", p, m, msg_media_type,
-//                            msg_media_type_str.c_str());
+                    std::string msg_media_type_str =
+                            MessageAttachment::MIMETypeEnumToString(msg_media_type);
+
+                    LOGD("[p:%d, m:%d] MSG_MMS_MEDIA_TYPE: %d (%s)", p, m, msg_media_type,
+                            msg_media_type_str.c_str());
 
                     //According to old implementation
                     // "text value on first page goes to body attribute"
                     if ((0 == p) && (MMS_SMIL_MEDIA_TEXT == msg_media_type)) {
                         LOGD("Loading body from file: %s ", infoStr);
 
-//                        try {
-//                            message->getBody()->setPlainBody(
-//                                    MessagingUtil::loadFileContentToString(infoStr));
-//                            body_has_been_set = true;
-//
-//                            LOGD("Loaded body: %s",
-//                                    message->getBody()->getPlainBody().c_str());
-//
-//                        } catch(const common::BasePlatformException& exception) {
-//                            LOGE("Unhandled exception: %s (%s)!",
-//                                 (exception.getName()).c_str(),
-//                                 (exception.getMessage()).c_str());
-//                            LOGD("[p:%d, m:%d] body is not set", p, m);
-//                        }
-//                        catch (...) {
-//                            LOGE("Unknown exception occured during plain body loading");
-//                            LOGD("[p:%d, m:%d] body is not set", p, m);
-//                        }
+                        try {
+                            message->getBody()->setPlainBody(
+                                    MessagingUtil::loadFileContentToString(infoStr));
+                            body_has_been_set = true;
+
+                            LOGD("Loaded body: %s",
+                                    message->getBody()->getPlainBody().c_str());
+
+                        } catch(const common::PlatformException& exception) {
+                            LOGE("Unhandled exception: %s (%s)!",
+                                 (exception.name()).c_str(),
+                                 (exception.message()).c_str());
+                            LOGD("[p:%d, m:%d] body is not set", p, m);
+                        }
+                        catch (...) {
+                            LOGE("Unknown exception occured during plain body loading");
+                            LOGD("[p:%d, m:%d] body is not set", p, m);
+                        }
 
                     } else {
-//                        std::shared_ptr<MessageAttachment> ma (new MessageAttachment());
-//                        ma->setFilePath(infoStr);
-//
-//                        //set message id
-//                        msg_get_int_value(msg, MSG_MESSAGE_STORAGE_ID_INT, &tempInt);
-//                        ma->setMessageId(tempInt);
-//
-//                        //set id
-//                        ma->setId(message->m_attachments.size() + 1);
-//                        message->m_attachments.push_back(ma);
-//                        message->m_has_attachment = true;
-//
-//                        //set mime type
-//                        ma->setMimeType(msg_media_type_str);
+                        std::shared_ptr<MessageAttachment> ma (new MessageAttachment());
+                        ma->setFilePath(infoStr);
 
-//                        MessageAttachment* att = ma.get();
-//                        LOGD("[p:%d, m:%d] added attachment: %p "
-//                                "(mime:0x%x mime:%s messageId:%d)", p, m, att,
-//                                msg_media_type, msg_media_type_str.c_str(),
-//                                ma->getMessageId());
+                        //set message id
+                        msg_get_int_value(msg, MSG_MESSAGE_STORAGE_ID_INT, &tempInt);
+                        ma->setMessageId(tempInt);
+
+                        //set id
+                        ma->setId(message->m_attachments.size() + 1);
+                        message->m_attachments.push_back(ma);
+                        message->m_has_attachment = true;
+
+                        //set mime type
+                        ma->setMimeType(msg_media_type_str);
+
+                        MessageAttachment* att = ma.get();
+                        LOGD("[p:%d, m:%d] added attachment: %p "
+                                "(mime:0x%x mime:%s messageId:%d)", p, m, att,
+                                msg_media_type, msg_media_type_str.c_str(),
+                                ma->getMessageId());
                     }
 
                     msg_release_struct(&media);
@@ -1191,8 +1172,8 @@ void Message::setMMSBodyAndAttachmentsFromStruct(Message* message,
         LOGW("Warning: body has not been set!");
     }
 
-//    LOGD("after MSG_MMS_PAGE_LIST attachments count is:%d",
-//            message->m_attachments.size());
+    LOGD("after MSG_MMS_PAGE_LIST attachments count is:%d",
+            message->m_attachments.size());
 
     // if there are some other attachments add it to attachments vector
     msg_list_handle_t attach_list = NULL;
@@ -1211,31 +1192,31 @@ void Message::setMMSBodyAndAttachmentsFromStruct(Message* message,
                 continue;
             }
 
-//            std::shared_ptr<MessageAttachment> ma (new MessageAttachment());
-//
-//            //set message id
-//            msg_get_int_value(msg, MSG_MESSAGE_ID_INT, &tempInt);
-//            ma->setMessageId(tempInt);
-//
-//            //set file path
-//            msg_get_str_value(attach_info, MSG_MMS_ATTACH_FILEPATH_STR, infoStr,
-//                    MSG_FILEPATH_LEN_MAX);
-//            ma->setFilePath(infoStr);
-//
-//            //set attachment id
-//            ma->setId(message->m_attachments.size() + 1);
-//
-//            //set mime type
-//            msg_get_int_value(attach_info, MSG_MMS_ATTACH_MIME_TYPE_INT, &tempInt);
-//            std::string type = MessageAttachment::MIMETypeEnumToString(tempInt);
-//            ma->setMimeType(type);
-//
-//            MessageAttachment* att = ma.get();
-//            LOGD("[att:%d] added attachement: %p (mime:0x%x mime:%s path:%s id:%d)",
-//                i, att, tempInt, type.c_str(), infoStr, ma->getId());
-//
-//            message->m_attachments.push_back(ma);
-//            message->m_has_attachment = true;
+            std::shared_ptr<MessageAttachment> ma (new MessageAttachment());
+
+            //set message id
+            msg_get_int_value(msg, MSG_MESSAGE_ID_INT, &tempInt);
+            ma->setMessageId(tempInt);
+
+            //set file path
+            msg_get_str_value(attach_info, MSG_MMS_ATTACH_FILEPATH_STR, infoStr,
+                    MSG_FILEPATH_LEN_MAX);
+            ma->setFilePath(infoStr);
+
+            //set attachment id
+            ma->setId(message->m_attachments.size() + 1);
+
+            //set mime type
+            msg_get_int_value(attach_info, MSG_MMS_ATTACH_MIME_TYPE_INT, &tempInt);
+            std::string type = MessageAttachment::MIMETypeEnumToString(tempInt);
+            ma->setMimeType(type);
+
+            MessageAttachment* att = ma.get();
+            LOGD("[att:%d] added attachement: %p (mime:0x%x mime:%s path:%s id:%d)",
+                i, att, tempInt, type.c_str(), infoStr, ma->getId());
+
+            message->m_attachments.push_back(ma);
+            message->m_has_attachment = true;
 
             msg_release_struct(&attach_info);
         }
@@ -1252,12 +1233,12 @@ void Message::setMMSBodyAndAttachmentsFromStruct(Message* message,
 
 Message* Message::convertPlatformShortMessageToObject(msg_struct_t msg){
     Message *message = NULL;
-//    int infoInt;
-//    bool infoBool;
-//    char infoStr[MAX_ADDRESS_VAL_LEN + 1];
-//    //get type
-//    msg_get_int_value(msg, MSG_MESSAGE_TYPE_INT, &infoInt);
-//    if (infoInt == MSG_TYPE_SMS) {
+    int infoInt;
+    bool infoBool;
+    char infoStr[MAX_ADDRESS_VAL_LEN + 1];
+    //get type
+    msg_get_int_value(msg, MSG_MESSAGE_TYPE_INT, &infoInt);
+    if (infoInt == MSG_TYPE_SMS) {
 //        message = new MessageSMS();
 //        // get SMS body
 //        std::shared_ptr<MessageBody> body(new MessageBody());
@@ -1268,7 +1249,7 @@ Message* Message::convertPlatformShortMessageToObject(msg_struct_t msg){
 //        // get recipients
 //        std::vector<std::string> recp_list = message->getSMSRecipientsFromStruct(msg);
 //        message->setTO(recp_list);
-//    } else if (infoInt == MSG_TYPE_MMS) {
+    } else if (infoInt == MSG_TYPE_MMS) {
 //        message = new MessageMMS();
 //
 //        // get MMS body
@@ -1320,89 +1301,89 @@ Message* Message::convertPlatformShortMessageToObject(msg_struct_t msg){
 //        message->setSubject(infoStr);
 //        //set attachments
 //        setMMSBodyAndAttachmentsFromStruct(message, msg);
-//    } else {
-//        LOGE("Invalid Message type: %d", infoInt);
-//        throw common::InvalidValuesException("Invalid Message type");
-//    }
-//
-//    // get id
-//    msg_get_int_value(msg, MSG_MESSAGE_ID_INT, &infoInt);
-//    message->setId(infoInt);
-//    // get conversation id
-//    msg_get_int_value(msg, MSG_MESSAGE_THREAD_ID_INT, &infoInt);
-//    message->setConversationId(infoInt);
-//    // get folder id
-//    msg_get_int_value(msg, MSG_MESSAGE_FOLDER_ID_INT, &infoInt);
-//    message->setFolderId(infoInt);
-//    // get timestamp
-//    msg_get_int_value(msg, MSG_MESSAGE_DISPLAY_TIME_INT, &infoInt);
-//    message->setTimeStamp(infoInt);
-//    // get from
-//    const std::string& from = Message::getShortMsgSenderFromStruct(msg);
-//    message->setFrom(from);
-//    LOGD("Message(%p) from is: %s", message, message->getFrom().c_str());
-//    // get if is in response
-//    msg_get_int_value(msg, MSG_MESSAGE_DIRECTION_INT, &infoInt);
-//    LOGD("Message(%p) direction is: %d", message, infoInt);
-//    message->setInResponseTo(infoInt);
-//    // get is read
-//    msg_get_bool_value(msg, MSG_MESSAGE_READ_BOOL, &infoBool);
-//    message->setIsRead(infoBool);
-//
-//    // get status
-//
-//    // This "strange" fix has been taken from old implementation:
-//    // void Mms::readMessageStatus(msg_struct_t& messageData)
-//    //
-//    int error = msg_get_int_value(msg, MSG_MESSAGE_FOLDER_ID_INT, &infoInt);
-//    if(MSG_SUCCESS == error) {
-//        MessageStatus msg_status;
-//        switch (infoInt) {
-//            case MSG_INBOX_ID: msg_status = MessageStatus::STATUS_LOADED; break;
-//            case MSG_OUTBOX_ID: msg_status = MessageStatus::STATUS_SENDING; break;
-//            case MSG_SENTBOX_ID: msg_status = MessageStatus::STATUS_SENT; break;
-//            case MSG_DRAFT_ID: msg_status = MessageStatus::STATUS_DRAFT; break;
-//            default: msg_status = MessageStatus::STATUS_LOADED; break;
-//        }
-//        message->setMessageStatus(msg_status);
-//
-//        LOGD("MSG_MESSAGE_FOLDER_ID:%d -> messageStatus:%s", infoInt,
-//                MessagingUtil::messageStatusToString(msg_status).c_str());
-//    }
-//    else
-//    {
-//        LOGE("Couldn't get MSG_MESSAGE_FOLDER_ID_INT, error:%d", error);
-//        error = msg_get_int_value(msg, MSG_SENT_STATUS_NETWORK_STATUS_INT, &infoInt);
-//
-//        if(MSG_SUCCESS == error) {
-//            MessageStatus msg_status;
-//            if (infoInt == MSG_NETWORK_SEND_SUCCESS) {
-//                msg_status = MessageStatus::STATUS_SENT;
-//            } else if (infoInt == MSG_NETWORK_SENDING) {
-//                msg_status = MessageStatus::STATUS_SENDING;
-//            } else if (infoInt == MSG_NETWORK_SEND_FAIL) {
-//                msg_status = MessageStatus::STATUS_FAILED;
-//            } else if (infoInt == MSG_NETWORK_NOT_SEND) {
-//                msg_status = MessageStatus::STATUS_DRAFT;
-//            } else {
-//                LOGW("warning undefined messageStatus: %d!", infoInt);
-//                msg_status = MessageStatus::STATUS_UNDEFINED;
-//            }
-//            message->setMessageStatus(msg_status);
-//
-//            LOGD("MSG_SENT_STATUS_NETWORK_STATUS:%d MessageStatus:%s", infoInt,
-//                MessagingUtil::messageStatusToString(msg_status).c_str());
-//        } else {
-//            LOGE("Couldn't get MSG_SENT_STATUS_NETWORK_STATUS_INT, error:%d", error);
-//
-//            if(0 == message->getId()) {
-//                LOGW("Both MSG_SENT_STATUS_NETWORK_STATUS_INT and "
-//                        "MSG_MESSAGE_FOLDER_ID_INT failed, messageId == 0 ASSUMING that"
-//                        "this message is in DRAFT");
-//                message->setMessageStatus(MessageStatus::STATUS_DRAFT);
-//            }
-//        }
-//    }
+    } else {
+        LOGE("Invalid Message type: %d", infoInt);
+        throw common::InvalidValuesException("Invalid Message type");
+    }
+
+    // get id
+    msg_get_int_value(msg, MSG_MESSAGE_ID_INT, &infoInt);
+    message->setId(infoInt);
+    // get conversation id
+    msg_get_int_value(msg, MSG_MESSAGE_THREAD_ID_INT, &infoInt);
+    message->setConversationId(infoInt);
+    // get folder id
+    msg_get_int_value(msg, MSG_MESSAGE_FOLDER_ID_INT, &infoInt);
+    message->setFolderId(infoInt);
+    // get timestamp
+    msg_get_int_value(msg, MSG_MESSAGE_DISPLAY_TIME_INT, &infoInt);
+    message->setTimeStamp(infoInt);
+    // get from
+    const std::string& from = Message::getShortMsgSenderFromStruct(msg);
+    message->setFrom(from);
+    LOGD("Message(%p) from is: %s", message, message->getFrom().c_str());
+    // get if is in response
+    msg_get_int_value(msg, MSG_MESSAGE_DIRECTION_INT, &infoInt);
+    LOGD("Message(%p) direction is: %d", message, infoInt);
+    message->setInResponseTo(infoInt);
+    // get is read
+    msg_get_bool_value(msg, MSG_MESSAGE_READ_BOOL, &infoBool);
+    message->setIsRead(infoBool);
+
+    // get status
+
+    // This "strange" fix has been taken from old implementation:
+    // void Mms::readMessageStatus(msg_struct_t& messageData)
+    //
+    int error = msg_get_int_value(msg, MSG_MESSAGE_FOLDER_ID_INT, &infoInt);
+    if(MSG_SUCCESS == error) {
+        MessageStatus msg_status;
+        switch (infoInt) {
+            case MSG_INBOX_ID: msg_status = MessageStatus::STATUS_LOADED; break;
+            case MSG_OUTBOX_ID: msg_status = MessageStatus::STATUS_SENDING; break;
+            case MSG_SENTBOX_ID: msg_status = MessageStatus::STATUS_SENT; break;
+            case MSG_DRAFT_ID: msg_status = MessageStatus::STATUS_DRAFT; break;
+            default: msg_status = MessageStatus::STATUS_LOADED; break;
+        }
+        message->setMessageStatus(msg_status);
+
+        LOGD("MSG_MESSAGE_FOLDER_ID:%d -> messageStatus:%s", infoInt,
+                MessagingUtil::messageStatusToString(msg_status).c_str());
+    }
+    else
+    {
+        LOGE("Couldn't get MSG_MESSAGE_FOLDER_ID_INT, error:%d", error);
+        error = msg_get_int_value(msg, MSG_SENT_STATUS_NETWORK_STATUS_INT, &infoInt);
+
+        if(MSG_SUCCESS == error) {
+            MessageStatus msg_status;
+            if (infoInt == MSG_NETWORK_SEND_SUCCESS) {
+                msg_status = MessageStatus::STATUS_SENT;
+            } else if (infoInt == MSG_NETWORK_SENDING) {
+                msg_status = MessageStatus::STATUS_SENDING;
+            } else if (infoInt == MSG_NETWORK_SEND_FAIL) {
+                msg_status = MessageStatus::STATUS_FAILED;
+            } else if (infoInt == MSG_NETWORK_NOT_SEND) {
+                msg_status = MessageStatus::STATUS_DRAFT;
+            } else {
+                LOGW("warning undefined messageStatus: %d!", infoInt);
+                msg_status = MessageStatus::STATUS_UNDEFINED;
+            }
+            message->setMessageStatus(msg_status);
+
+            LOGD("MSG_SENT_STATUS_NETWORK_STATUS:%d MessageStatus:%s", infoInt,
+                MessagingUtil::messageStatusToString(msg_status).c_str());
+        } else {
+            LOGE("Couldn't get MSG_SENT_STATUS_NETWORK_STATUS_INT, error:%d", error);
+
+            if(0 == message->getId()) {
+                LOGW("Both MSG_SENT_STATUS_NETWORK_STATUS_INT and "
+                        "MSG_MESSAGE_FOLDER_ID_INT failed, messageId == 0 ASSUMING that"
+                        "this message is in DRAFT");
+                message->setMessageStatus(MessageStatus::STATUS_DRAFT);
+            }
+        }
+    }
 
     LOGD("End");
     return message;
@@ -1442,38 +1423,38 @@ std::vector<std::string> Message::getEmailRecipientsFromStruct(const char *recip
     return tmp;
 }
 
-//std::shared_ptr<MessageBody> Message::convertEmailToMessageBody(
-//        email_mail_data_t& mail)
-//{
-//    LOGD("Enter");
-//    std::shared_ptr<MessageBody> body (new MessageBody());
-//    body->updateBody(mail);
-//    return body;
-//}
+std::shared_ptr<MessageBody> Message::convertEmailToMessageBody(
+        email_mail_data_t& mail)
+{
+    LOGD("Enter");
+    std::shared_ptr<MessageBody> body (new MessageBody());
+    body->updateBody(mail);
+    return body;
+}
 
-//AttachmentPtrVector Message::convertEmailToMessageAttachment(email_mail_data_t& mail)
-//{
-//    LOGD("Enter");
-//    email_attachment_data_t* attachment = NULL;
-//    int attachmentCount = 0;
-//
-//    AttachmentPtrVector att;
-//
-//    if (EMAIL_ERROR_NONE != email_get_attachment_data_list(mail.mail_id,
-//            &attachment, &attachmentCount)) {
-//        throw common::UnknownException("Couldn't get attachment.");
-//    }
-//    if ( attachment && attachmentCount > 0) {
-//        for (int i = 0; i < attachmentCount; i++) {
-//            std::shared_ptr<MessageAttachment> tmp_att (new MessageAttachment());
-//            tmp_att->updateWithAttachmentData(attachment[i]);
-//            att.push_back(tmp_att);
-//        }
-//    }
-//
-//    email_free_attachment_data(&attachment, attachmentCount);
-//    return att;
-//}
+AttachmentPtrVector Message::convertEmailToMessageAttachment(email_mail_data_t& mail)
+{
+    LOGD("Enter");
+    email_attachment_data_t* attachment = NULL;
+    int attachmentCount = 0;
+
+    AttachmentPtrVector att;
+
+    if (EMAIL_ERROR_NONE != email_get_attachment_data_list(mail.mail_id,
+            &attachment, &attachmentCount)) {
+        throw common::UnknownException("Couldn't get attachment.");
+    }
+    if ( attachment && attachmentCount > 0) {
+        for (int i = 0; i < attachmentCount; i++) {
+            std::shared_ptr<MessageAttachment> tmp_att (new MessageAttachment());
+            tmp_att->updateWithAttachmentData(attachment[i]);
+            att.push_back(tmp_att);
+        }
+    }
+
+    email_free_attachment_data(&attachment, attachmentCount);
+    return att;
+}
 
 std::shared_ptr<Message> Message::convertPlatformEmailToObject(
         email_mail_data_t& mail)

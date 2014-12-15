@@ -3,8 +3,11 @@
 // found in the LICENSE file.
 #include "messaging_util.h"
 
+#include <fstream>
 #include <map>
 #include <stdexcept>
+#include <streambuf>
+#include <sstream>
 
 #include "common/logger.h"
 #include "common/platform_exception.h"
@@ -25,6 +28,10 @@ namespace {
 const std::string TYPE_SMS = "messaging.sms";
 const std::string TYPE_MMS = "messaging.mms";
 const std::string TYPE_EMAIL = "messaging.email";
+const std::string SENT = "SENT";
+const std::string SENDING = "SENDING";
+const std::string FAILED = "FAILED";
+const std::string DRAFT = "DRAFT";
 
 const std::map<std::string, MessageType> stringToTypeMap = {
     {TYPE_SMS, MessageType::SMS},
@@ -107,6 +114,48 @@ std::vector<std::string> MessagingUtil::extractEmailAddresses(
     }
 
     return extractedAddresses;
+}
+
+std::string MessagingUtil::loadFileContentToString(const std::string& file_path)
+{
+    std::ifstream input_file;
+    input_file.open(file_path, std::ios::in);
+
+    if (input_file.is_open()) {
+        std::string outString;
+        input_file.seekg(0, std::ios::end);
+        outString.reserve(input_file.tellg());
+        input_file.seekg(0, std::ios::beg);
+
+        outString.assign((std::istreambuf_iterator<char>(input_file)),
+                std::istreambuf_iterator<char>());
+        input_file.close();
+        return outString;
+    } else {
+        std::stringstream ss_error_msg;
+        ss_error_msg << "Failed to open file: " << file_path;
+        throw common::IOException(ss_error_msg.str().c_str());
+    }
+}
+
+std::string MessagingUtil::messageStatusToString(MessageStatus status) {
+    LOGD("Converting MessageStatus %d to string.", (int)status);
+    switch(status) {
+        case STATUS_SENT:
+            return SENT;
+        case STATUS_SENDING:
+            return SENDING;
+        case STATUS_FAILED:
+            return FAILED;
+        case STATUS_DRAFT:
+            return DRAFT;
+        default:
+        // According to Web API documentation: If the status of the current
+        // message does not correspond to any item from the list, an empty
+        // value is returned.
+            LOGD("Unsupported or undefined MessageStatus");
+            return "";
+    }
 }
 
 } // messaging

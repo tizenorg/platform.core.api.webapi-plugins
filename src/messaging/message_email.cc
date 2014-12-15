@@ -54,22 +54,22 @@ void MessageEmail::setIsHighPriority(bool highpriority)
     m_high_priority = highpriority;
 }
 
-//void MessageEmail::setMessageAttachments(AttachmentPtrVector &attachments)
-//{
-//    m_attachments = attachments;
-//
-//    m_has_attachment = true;
-//    if(m_attachments.empty()) {
-//        LOGD("Recipient's list cleared");
-//        m_has_attachment = false;
-//    }
-//}
-//
-//bool MessageEmail::getHasAttachment() const
-//{
-//    LOGD("MessageEmail::getHasAttachment()");
-//    return m_has_attachment || !m_body->getInlineAttachments().empty();
-//}
+void MessageEmail::setMessageAttachments(AttachmentPtrVector &attachments)
+{
+    m_attachments = attachments;
+
+    m_has_attachment = true;
+    if(m_attachments.empty()) {
+        LOGD("Recipient's list cleared");
+        m_has_attachment = false;
+    }
+}
+
+bool MessageEmail::getHasAttachment() const
+{
+    LOGD("MessageEmail::getHasAttachment()");
+    return m_has_attachment || !m_body->getInlineAttachments().empty();
+}
 
 void MessageEmail::updateEmailMessage(email_mail_data_t& mail)
 {
@@ -114,8 +114,7 @@ void MessageEmail::updateEmailMessage(email_mail_data_t& mail)
         setSubject(mail.subject);
     }
 
-//    TODO getBody
-//    getBody()->updateBody(mail);
+    getBody()->updateBody(mail);
 
     if (mail.mail_id != mail.thread_id) {
         setInResponseTo(mail.thread_id);
@@ -139,10 +138,10 @@ void MessageEmail::updateEmailMessage(email_mail_data_t& mail)
             setMessageStatus(MessageStatus::STATUS_UNDEFINED);
         break;
     }
-//    TODO EmailAttachment
-//    AttachmentPtrVector att = convertEmailToMessageAttachment(mail);
-//
-//    setMessageAttachments(att);
+
+    AttachmentPtrVector att = convertEmailToMessageAttachment(mail);
+
+    setMessageAttachments(att);
 }
 
 } // messaging
