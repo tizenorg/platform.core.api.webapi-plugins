@@ -15,6 +15,18 @@ var WindowType = {
   MAIN: 'MAIN'
 };
 
+
+/**
+ * An enumerator to indicate the tune mode.
+ * @enum {string}
+ */
+var TuneMode = {
+  ALL: 'ALL',
+  DIGITAL: 'DIGITAL',
+  ANALOG: 'ANALOG',
+  FAVORITE: 'FAVORITE'
+};
+
 function ListenerManager(native, listenerName) {
   this.listeners = {};
   this.nextId = 1;
@@ -51,6 +63,13 @@ var CHANNEL_CHANGE_LISTENER = 'ChannelChanged';
 
 var channelListener = new ListenerManager(native, CHANNEL_CHANGE_LISTENER);
 
+
+/**
+ * @const
+ * @type {string}
+ */
+var PROGRAMINFO_LISTENER = 'ProgramInfoReceived';
+
 //TVChannelManager interface
 function TVChannelManager() {
   if (!(this instanceof TVChannelManager)) {
@@ -60,16 +79,115 @@ function TVChannelManager() {
 
 
 TVChannelManager.prototype.tune = function(tuneOption, successCallback, errorCallback, windowType) {
-  return undefined;
+  var data = validator.validateArgs(arguments, [
+    {
+      name: 'tuneOption',
+      type: validator.Types.DICTIONARY
+    },
+    {
+      name: 'callback',
+      type: validator.Types.LISTENER,
+      values: ['onsuccess', 'onnosignal', 'onprograminforeceived']
+    },
+    {
+      name: 'errorCallback',
+      type: validator.Types.FUNCTION,
+      optional: true,
+      nullable: true
+    },
+    {
+      name: 'windowType',
+      optional: true,
+      nullable: true,
+      type: validator.Types.ENUM,
+      values: validatorType.getValues(WindowType)
+    }
+  ]);
+  native.addListener(PROGRAMINFO_LISTENER, function(msg) {
+    if (validatorType.isFunction(data.callback.onprograminforeceived)) {
+      data.callback.onprograminforeceived(msg.program, msg.type);
+    }
+  });
+  native.call('TVChannelManager_tune', {
+    tuneOption: data.tuneOption,
+    windowType: data.windowType
+  }, function(msg) {
+    if (msg.error) {
+      if (validatorType.isFunction(data.errorCallback)) {
+        data.errorCallback(native.getErrorObject(msg.error));
+      }
+    } else if (msg.nosignal) {
+      if (validatorType.isFunction(data.callback.onnosignal)) {
+        data.callback.onnosignal();
+      }
+    } else if (msg.success) {
+      if (validatorType.isFunction(data.callback.onsuccess)) {
+        data.callback.onsuccess(msg.channel, msg.type);
+      }
+    }
+  });
 };
 
-TVChannelManager.prototype.tuneUp = function(successCallback, errorCallback, tuneMode, windowType) {
-  return undefined;
+function tuneUpDown(args, methodName) {
+  var data = validator.validateArgs(args, [
+    {
+      name: 'callback',
+      type: validator.Types.LISTENER,
+      values: ['onsuccess', 'onnosignal', 'onprograminforeceived']
+    },
+    {
+      name: 'errorCallback',
+      type: validator.Types.FUNCTION,
+      optional: true,
+      nullable: true
+    },
+    {
+      name: 'tuneMode',
+      optional: true,
+      nullable: true,
+      type: validator.Types.ENUM,
+      values: validatorType.getValues(TuneMode)
+    },
+    {
+      name: 'windowType',
+      optional: true,
+      nullable: true,
+      type: validator.Types.ENUM,
+      values: validatorType.getValues(WindowType)
+    }
+  ]);
+  native.addListener(PROGRAMINFO_LISTENER, function(msg) {
+    if (validatorType.isFunction(data.callback.onprograminforeceived)) {
+      data.callback.onprograminforeceived(msg.program, msg.type);
+    }
+  });
+  native.call(methodName, {
+    tuneMode: data.tuneMode,
+    windowType: data.windowType
+  }, function(msg) {
+    if (msg.error) {
+      if (validatorType.isFunction(data.errorCallback)) {
+        data.errorCallback(native.getErrorObject(msg.error));
+      }
+    } else if (msg.nosignal) {
+      if (validatorType.isFunction(data.callback.onnosignal)) {
+        data.callback.onnosignal();
+      }
+    } else if (msg.success) {
+      if (validatorType.isFunction(data.callback.onsuccess)) {
+        data.callback.onsuccess(msg.channel, msg.type);
+      }
+    }
+  });
+}
+
+TVChannelManager.prototype.tuneUp = function(callback, errorCallback, tuneMode, windowType) {
+  tuneUpDown(arguments, 'TVChannelManager_tuneUp');
 };
 
 TVChannelManager.prototype.tuneDown = function(successCallback,
     errorCallback, tuneMode, windowType) {
-  return undefined;
+  tuneUpDown(arguments, 'TVChannelManager_tuneDown');
 };
 
 TVChannelManager.prototype.findChannel = function(major, minor, successCallback, errorCallback) {
