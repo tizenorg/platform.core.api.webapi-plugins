@@ -31,12 +31,12 @@ void ContactManager_getAddressBook(const JsonObject& args, JsonObject& out);
 
 void ContactManager_get(const JsonObject& args, JsonObject& out);
 
-void ContactManager_update(const JsonObject& args);
+void ContactManager_update(const JsonObject& args, JsonObject&);
 
 void ContactManager_updateBatch(const JsonObject& /*args*/,
                                 JsonObject& /*out*/);
 
-void ContactManager_remove(const JsonObject& args);
+void ContactManager_remove(const JsonObject& args, JsonObject&);
 
 void ContactManager_removeBatch(const JsonObject& /*args*/,
                                 JsonObject& /*out*/);

@@ -54,64 +54,78 @@ ContactInstance::~ContactInstance() {}
 
 void ContactInstance::AddressBook_get(const JsonValue& args, JsonObject& out) {
   JsonValue val{JsonObject{}};
-  AddressBook::AddressBook_get(common::JsonCast<JsonObject>(args), val);
+  AddressBook::AddressBook_get(common::JsonCast<JsonObject>(args),
+                               val.get<JsonObject>());
   ReportSuccess(val, out);
 }
 
 void ContactInstance::AddressBook_add(const JsonValue& args, JsonObject& out) {
   JsonValue val{JsonObject{}};
-  AddressBook::AddressBook_add(common::JsonCast<JsonObject>(args), val);
+  AddressBook::AddressBook_add(common::JsonCast<JsonObject>(args),
+                               val.get<JsonObject>());
   ReportSuccess(val, out);
 }
 
 void ContactInstance::AddressBook_update(const JsonValue& args,
                                          JsonObject& out) {
   JsonValue val{JsonObject{}};
-  AddressBook::AddressBook_update(common::JsonCast<JsonObject>(args), val);
+  AddressBook::AddressBook_update(common::JsonCast<JsonObject>(args),
+                                  val.get<JsonObject>());
   ReportSuccess(val, out);
 }
 
 void ContactInstance::AddressBook_remove(const JsonValue& args,
                                          JsonObject& out) {
-  AddressBook::AddressBook_remove(common::JsonCast<JsonObject>(args));
+  JsonValue val{JsonObject{}};
+  AddressBook::AddressBook_remove(common::JsonCast<JsonObject>(args),
+                                  val.get<JsonObject>());
   ReportSuccess(out);
 }
 
 void ContactInstance::AddressBook_find(const JsonValue& args, JsonObject& out) {
-  AddressBook::AddressBook_find(common::JsonCast<JsonObject>(args));
+  JsonValue val{JsonObject{}};
+  AddressBook::AddressBook_find(common::JsonCast<JsonObject>(args),
+                                val.get<JsonObject>());
   ReportSuccess(out);
 }
 
 void ContactInstance::AddressBook_addGroup(const JsonValue& args,
                                            JsonObject& out) {
   JsonValue val{JsonObject{}};
-  AddressBook::AddressBook_addGroup(common::JsonCast<JsonObject>(args), val);
+  AddressBook::AddressBook_addGroup(common::JsonCast<JsonObject>(args),
+                                    val.get<JsonObject>());
   ReportSuccess(val, out);
 }
 
 void ContactInstance::AddressBook_getGroup(const JsonValue& args,
                                            JsonObject& out) {
   JsonValue val{JsonObject{}};
-  AddressBook::AddressBook_getGroup(common::JsonCast<JsonObject>(args), val);
+  AddressBook::AddressBook_getGroup(common::JsonCast<JsonObject>(args),
+                                    val.get<JsonObject>());
   ReportSuccess(val, out);
 }
 
 void ContactInstance::AddressBook_updateGroup(const JsonValue& args,
                                               JsonObject& out) {
-  AddressBook::AddressBook_updateGroup(common::JsonCast<JsonObject>(args));
+  JsonValue val{JsonObject{}};
+  AddressBook::AddressBook_updateGroup(common::JsonCast<JsonObject>(args),
+                                       val.get<JsonObject>());
   ReportSuccess(out);
 }
 
 void ContactInstance::AddressBook_removeGroup(const JsonValue& args,
                                               JsonObject& out) {
-  AddressBook::AddressBook_removeGroup(common::JsonCast<JsonObject>(args));
+  JsonValue val{JsonObject{}};
+  AddressBook::AddressBook_removeGroup(common::JsonCast<JsonObject>(args),
+                                       val.get<JsonObject>());
   ReportSuccess(out);
 }
 
 void ContactInstance::AddressBook_getGroups(const JsonValue& args,
                                             JsonObject& out) {
   JsonValue val{JsonObject{}};
-  AddressBook::AddressBook_getGroups(common::JsonCast<JsonObject>(args), val);
+  AddressBook::AddressBook_getGroups(common::JsonCast<JsonObject>(args),
+                                     val.get<JsonObject>());
   ReportSuccess(val, out);
 }
 
@@ -124,20 +138,23 @@ void ContactInstance::ContactManager_getAddressBook(const JsonValue& args,
                                                     JsonObject& out) {
   JsonValue val{JsonObject{}};
   ContactManager::ContactManager_getAddressBook(
-      common::JsonCast<JsonObject>(args), val);
+      common::JsonCast<JsonObject>(args), val.get<JsonObject>());
   ReportSuccess(val, out);
 }
 
 void ContactInstance::ContactManager_get(const JsonValue& args,
                                          JsonObject& out) {
   JsonValue val{JsonObject{}};
-  ContactManager::ContactManager_get(common::JsonCast<JsonObject>(args), val);
+  ContactManager::ContactManager_get(common::JsonCast<JsonObject>(args),
+                                     val.get<JsonObject>());
   ReportSuccess(val, out);
 }
 
 void ContactInstance::ContactManager_update(const JsonValue& args,
                                             JsonObject& out) {
-  ContactManager::ContactManager_update(common::JsonCast<JsonObject>(args));
+  JsonValue val{JsonObject{}};
+  ContactManager::ContactManager_update(common::JsonCast<JsonObject>(args),
+                                        val.get<JsonObject>());
   ReportSuccess(out);
 }
 
@@ -148,7 +165,9 @@ void ContactInstance::ContactManager_updateBatch(const JsonValue& args,
 
 void ContactInstance::ContactManager_remove(const JsonValue& args,
                                             JsonObject& out) {
-  ContactManager::ContactManager_remove(common::JsonCast<JsonObject>(args));
+  JsonValue val{JsonObject{}};
+  ContactManager::ContactManager_remove(common::JsonCast<JsonObject>(args),
+                                        val.get<JsonObject>());
   ReportSuccess(out);
 }
 
@@ -166,17 +185,21 @@ void ContactInstance::ContactManager_importFromVCard(const JsonValue& args,
                                                      JsonObject& out) {
   JsonValue val{JsonObject{}};
   ContactManager::ContactManager_importFromVCard(
-      common::JsonCast<JsonObject>(args), val);
+      common::JsonCast<JsonObject>(args), val.get<JsonObject>());
   ReportSuccess(val, out);
 }
 
 void ContactInstance::Person_link(const JsonValue& args, JsonObject& out) {
-  Person::Person_link(common::JsonCast<JsonObject>(args));
+  JsonValue val{JsonObject{}};
+  Person::Person_link(common::JsonCast<JsonObject>(args),
+                      val.get<JsonObject>());
   ReportSuccess(out);
 }
 
 void ContactInstance::Person_unlink(const JsonValue& args, JsonObject& out) {
-  Person::Person_unlink(common::JsonCast<JsonObject>(args));
+  JsonValue val{JsonObject{}};
+  Person::Person_unlink(common::JsonCast<JsonObject>(args),
+                        val.get<JsonObject>());
   ReportSuccess(out);
 }
 

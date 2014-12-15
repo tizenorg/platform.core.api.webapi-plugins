@@ -37,7 +37,7 @@ static const PersonPropertyMap personPropertyMap = {
     {"displayContactId",        { _contacts_person.display_contact_id,  kPrimitiveTypeId } },
 };
 
-void Person_link(const JsonObject& args) {
+void Person_link(const JsonObject& args, JsonObject&) {
   ContactUtil::CheckDBConnection();
 
   long id = common::stol(FromJson<JsonString>(args, "id"));
@@ -59,7 +59,7 @@ void Person_link(const JsonObject& args) {
   ContactUtil::ErrorChecker(err, "Error during executing person link()");
 }
 
-void Person_unlink(const JsonObject& args) {
+void Person_unlink(const JsonObject& args, JsonObject&) {
   ContactUtil::CheckDBConnection();
 
   long contact_id = common::stol(FromJson<JsonString>(args, "id"));

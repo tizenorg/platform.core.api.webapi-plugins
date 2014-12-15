@@ -162,7 +162,7 @@ void AddressBook_update(const JsonObject& args, JsonObject& out) {
   ContactUtil::UpdateAdditionalInformation(contacts_record_ptr, &out);
 }
 
-void AddressBook_remove(const JsonObject& args) {
+void AddressBook_remove(const JsonObject& args, JsonObject&) {
   ContactUtil::CheckDBConnection();
 
   long contact_id = common::stol(FromJson<JsonString>(args, "id"));
@@ -195,7 +195,7 @@ void AddressBook_batchFunc(/*NativeFunction impl, */const char* single_arg_name,
   throw common::NotFoundException("Not implemented");
 }
 
-void AddressBook_find(const JsonObject& args) {
+void AddressBook_find(const JsonObject& args, JsonObject&) {
   ContactUtil::CheckDBConnection();
 
   // @todo implement
@@ -268,7 +268,7 @@ void AddressBook_getGroup(const JsonObject& args, JsonObject& out) {
   ContactUtil::ImportContactGroupFromContactsRecord(contacts_record, &out);
 }
 
-void AddressBook_updateGroup(const JsonObject& args) {
+void AddressBook_updateGroup(const JsonObject& args, JsonObject&) {
   ContactUtil::CheckDBConnection();
 
   const JsonObject& group = FromJson<JsonObject>(args, "group");
@@ -322,7 +322,7 @@ void AddressBook_updateGroup(const JsonObject& args) {
   ContactUtil::ErrorChecker(err, "Problem during db_update_record");
 }
 
-void AddressBook_removeGroup(const JsonObject& args) {
+void AddressBook_removeGroup(const JsonObject& args, JsonObject&) {
   ContactUtil::CheckDBConnection();
 
   long id = common::stol(FromJson<JsonString>(args, "id"));

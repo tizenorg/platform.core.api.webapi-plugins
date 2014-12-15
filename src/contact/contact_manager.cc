@@ -107,7 +107,7 @@ void ContactManager_get(const JsonObject& args, JsonObject& out) {
   ContactManager_get_internal(person_id, &out);
 }
 
-void ContactManager_update(const JsonObject& args) {
+void ContactManager_update(const JsonObject& args, JsonObject&) {
   ContactUtil::CheckDBConnection();
   const JsonObject& person = FromJson<JsonObject>(args, "person");
   long person_id = common::stol(FromJson<JsonString>(person, "id"));
@@ -136,7 +136,7 @@ void ContactManager_update(const JsonObject& args) {
   }
 }
 
-void ContactManager_remove(const JsonObject& args) {
+void ContactManager_remove(const JsonObject& args, JsonObject&) {
   ContactUtil::CheckDBConnection();
   long person_id = common::stol(FromJson<JsonString>(args, "personId"));
 
