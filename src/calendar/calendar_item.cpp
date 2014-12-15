@@ -14,7 +14,7 @@
  *    limitations under the License.
  */
 
-#include "calendar-item.h"
+#include "calendar_item.h"
 
 #include <calendar_view.h>
 #include <unicode/ucal.h>

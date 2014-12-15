@@ -14,7 +14,7 @@
  *    limitations under the License.
  */
 
-#include "calendar-record.h"
+#include "calendar_record.h"
 
 #include <calendar-service2/calendar.h>
 

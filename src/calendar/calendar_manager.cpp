@@ -14,9 +14,9 @@
  *    limitations under the License.
  */
 
-#include "calendar-manager.h"
-#include "calendar-record.h"
-#include "calendar-privilege.h"
+#include "calendar_manager.h"
+#include "calendar_record.h"
+#include "calendar_privilege.h"
 
 #include <memory>
 #include <map>

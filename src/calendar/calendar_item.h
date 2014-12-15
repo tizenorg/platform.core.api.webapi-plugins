@@ -19,7 +19,7 @@
 
 #include <string>
 
-#include "calendar-record.h"
+#include "calendar_record.h"
 #include "json-parser.h"
 
 namespace webapi {

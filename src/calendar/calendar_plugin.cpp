@@ -15,7 +15,7 @@
  */
 
 #include "native-plugin.h"
-#include "calendar-manager.h"
+#include "calendar_manager.h"
 #include "calendar.h"
 
 namespace webapi {
