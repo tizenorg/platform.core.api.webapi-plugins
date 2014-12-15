@@ -15,7 +15,43 @@ var WindowType = {
   MAIN: 'MAIN'
 };
 
-// TVChannelManager interface
+function ListenerManager(native, listenerName) {
+  this.listeners = {};
+  this.nextId = 1;
+  native.addListener(listenerName, this.onListenerCalled.bind(this));
+}
+
+ListenerManager.prototype.onListenerCalled = function(msg) {
+  for (var key in this.listeners) {
+    if (this.listeners.hasOwnProperty(key)) {
+      this.listeners[key](msg.channel);
+    }
+  }
+};
+
+ListenerManager.prototype.addListener = function(callback) {
+  var id = this.nextId;
+  this.listeners[id] = callback;
+  ++this.nextId;
+  return id;
+};
+
+ListenerManager.prototype.removeListener = function(watchId) {
+  if (this.listeners.hasOwnProperty(watchId)) {
+    delete this.listeners[watchId];
+  }
+};
+
+
+/**
+ * @const
+ * @type {string}
+ */
+var CHANNEL_CHANGE_LISTENER = 'ChannelChanged';
+
+var channelListener = new ListenerManager(native, CHANNEL_CHANGE_LISTENER);
+
+//TVChannelManager interface
 function TVChannelManager() {
   if (!(this instanceof TVChannelManager)) {
     throw new TypeError;
@@ -88,12 +124,26 @@ TVChannelManager.prototype.getCurrentProgram = function(windowType) {
   return native.getResultObject(ret);
 };
 
-TVChannelManager.prototype.addChannelChangeListener = function(successCallback, windowType) {
-  return undefined;
+TVChannelManager.prototype.addChannelChangeListener = function(callback, windowType) {
+  var args = validator.validateArgs(arguments, [
+    {
+      name: 'callback',
+      type: validator.Types.FUNCTION
+    },
+    {
+      name: 'windowType',
+      optional: true,
+      nullable: true,
+      type: validator.Types.ENUM,
+      values: validatorType.getValues(WindowType)
+    }
+  ]);
+
+  return channelListener.addListener(args.callback);
 };
 
 TVChannelManager.prototype.removeChannelChangeListener = function(listenerId) {
-  return undefined;
+  channelListener.removeListener(listenerId);
 };
 
 TVChannelManager.prototype.addProgramChangeListener = function(successCallback, windowType) {
