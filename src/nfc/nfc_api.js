@@ -64,6 +64,25 @@ NFCManager.prototype.getDefaultAdapter = function() {
 
 NFCManager.prototype.setExclusiveMode = function() {
 
+    var args = validator_.validateArgs(arguments, [
+        {name: 'exclusiveMode', type: types_.BOOLEAN}
+    ]);
+
+    var result = native_.callSync(
+        'NFCManager_setExclusiveMode',
+        { 'exclusiveMode': args.exclusiveMode}
+    );
+
+    // If failed then exception should be thrown.
+    if(native_.isFailure(result)) {
+        throw new tizen.WebAPIException(0, result.error.message, result.error.name);
+        // Uncoment line below (and remove line above) when problem
+        // with error conversion is fixed:
+        //
+        //throw native_.getErrorObject(result);
+    }
+    // Otherwise just return
+    return;
 };
 
 //////////////////NFCAdapter /////////////////
@@ -230,7 +249,4 @@ tizen.NDEFRecordMedia = function(mimeType, data) {
 };
 
 //Exports
-var NFCManagerObject = new NFCManager();
-
-exports.getDefaultAdapter = NFCManagerObject.getDefaultAdapter;
-exports.setExclusiveMode = NFCManagerObject.setExclusiveMode;
+exports = new NFCManager();
