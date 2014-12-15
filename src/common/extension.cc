@@ -283,7 +283,7 @@ void ParsedInstance::HandleMessage(const char* msg, bool is_sync) {
     }
 
     picojson::value result = picojson::value(picojson::object());
-    func(value, result.get<picojson::object>());
+    func(args, result.get<picojson::object>());
 
     if (is_sync)
       SendSyncReply(result.serialize().c_str());

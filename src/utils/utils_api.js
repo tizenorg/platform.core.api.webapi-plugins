@@ -978,7 +978,10 @@ var NativeBridge = (function (extension, debug) {
     var Bridge = function () {};
     Bridge.prototype = {
         sync: function (data) {
-            var json = JSON.stringify(data);
+            var json = JSON.stringify({
+              cmd: data.cmd,
+              args: data
+            });
             if (debug) console.log('bridge', 'sync', json);
             var result = extension.internal.sendSyncMessage(json);
             var obj = JSON.parse(result);
@@ -989,7 +992,10 @@ var NativeBridge = (function (extension, debug) {
         async: function (data) {
             var l = new Listener();
             data.cid = Listeners.getInstance().add(l);
-            var json = JSON.stringify(data);
+            var json = JSON.stringify({
+                cmd: data.cmd,
+                args: data
+            });
             if (debug) console.log('bridge', 'async', json);
             setTimeout(function () {
                 extension.postMessage(json);
