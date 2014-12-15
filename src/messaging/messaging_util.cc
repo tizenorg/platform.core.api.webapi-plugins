@@ -19,7 +19,7 @@ const char* JSON_CALLBACK_SUCCCESS = "success";
 const char* JSON_CALLBACK_ERROR = "error";
 const char* JSON_CALLBACK_PROGRESS = "progress";
 const char* JSON_CALLBACK_KEEP = "keep";
-const char* JSON_DATA = "data";
+const char* JSON_DATA = "args";
 
 namespace {
 const std::string TYPE_SMS = "messaging.sms";
