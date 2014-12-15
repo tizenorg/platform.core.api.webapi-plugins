@@ -17,9 +17,9 @@
 #include <email-api.h>
 #include <TelNetwork.h>
 
+#include "message_attachment.h"
 #include "messaging_util.h"
-//#include "MessageAttachment.h"
-//#include "MessageBody.h"
+#include "message_body.h"
 
 namespace extension {
 namespace messaging {
@@ -34,8 +34,7 @@ typedef std::shared_ptr<Message> MessagePtr;
 typedef std::vector<MessagePtr> MessagePtrVector;
 
 enum AttachmentType {
-    EXTERNAL = 0,
-    INLINE = 1
+    EXTERNAL = 0, INLINE = 1
 };
 
 class Message { //TODO : public Tizen::FilterableObject {
@@ -52,12 +51,9 @@ public:
     time_t getTimestamp() const;
     std::string getFrom() const;
     std::vector<std::string> getTO() const;
-//  JSObjectRef getJSTO(JSContextRef global_ctx);
     std::vector<std::string> getCC() const;
-//  JSObjectRef getJSCC(JSContextRef global_ctx);
     std::vector<std::string> getBCC() const;
-//  JSObjectRef getJSBCC(JSContextRef global_ctx);
-//  std::shared_ptr<MessageBody> getBody() const;
+    std::shared_ptr<MessageBody> getBody() const;
     bool getIsRead() const;
     // getHasAttachment() is virtual to support MMS and email differently
     virtual bool getHasAttachment() const;
@@ -65,8 +61,7 @@ public:
     std::string getSubject() const;
     int getInResponseTo() const;
     MessageStatus getMessageStatus() const;
-//  AttachmentPtrVector getMessageAttachments() const;
-//  JSObjectRef getJSMessageAttachments(JSContextRef global_ctx);
+    AttachmentPtrVector getMessageAttachments() const;
     int getServiceId() const;
     TelNetworkDefaultDataSubs_t getSimIndex() const;
 
@@ -80,17 +75,16 @@ public:
     virtual void setTO(std::vector<std::string> &to);
     virtual void setCC(std::vector<std::string> &cc);
     virtual void setBCC(std::vector<std::string> &bcc);
-//  virtual void setBody(std::shared_ptr<MessageBody>& body);
+    virtual void setBody(std::shared_ptr<MessageBody>& body);
     virtual void setIsRead(bool read);
     // has attachment can't be set explicity -> no setter for this flag
     virtual void setIsHighPriority(bool highpriority);
     virtual void setSubject(std::string subject);
     virtual void setInResponseTo(int inresp);
     virtual void setMessageStatus(MessageStatus status);
-//  virtual void setMessageAttachments(AttachmentPtrVector &attachments);
+    virtual void setMessageAttachments(AttachmentPtrVector &attachments);
     virtual void setServiceId(int service_id);
     virtual void setSimIndex(TelNetworkDefaultDataSubs_t sim_index);
-
 
 // support for optional, nullable (at JS layer) attibutes
     // message id
@@ -112,7 +106,8 @@ public:
             msg_struct_t &msg);
     // gets recipients list for SMS message
     void addMMSRecipientsToStruct(const std::vector<std::string> &recipients,
-            msg_struct_t &msg, int type);
+            msg_struct_t &msg,
+            int type);
     /**
      * Updates message with data from email_mail_data_t structure.
      * @param mail
@@ -127,20 +122,23 @@ public:
     // gets recipients list for SMS message
     std::vector<std::string> getSMSRecipientsFromStruct(msg_struct_t &msg);
     // gets recipients list for MMS message
-    static std::vector<std::string> getMMSRecipientsFromStruct(msg_struct_t &msg, int type);
+    static std::vector<std::string> getMMSRecipientsFromStruct(msg_struct_t &msg,
+            int type);
     // function for filling Message attributes
     static Message* convertPlatformShortMessageToObject(msg_struct_t msg);
-//  static void addMMSBodyAndAttachmentsToStruct(const AttachmentPtrVector attach,
-//          msg_struct_t &mms_struct, Message* message);
-    static void setMMSBodyAndAttachmentsFromStruct(Message *message, msg_struct_t &msg);
+    static void addMMSBodyAndAttachmentsToStruct(const AttachmentPtrVector attach,
+            msg_struct_t &mms_struct,
+            Message* message);
+    static void setMMSBodyAndAttachmentsFromStruct(Message *message,
+            msg_struct_t &msg);
 
     static email_mail_data_t* convertPlatformEmail(std::shared_ptr<Message> message);
     static void addEmailAttachments(std::shared_ptr<Message> message);
     static std::string convertEmailRecipients(const std::vector<std::string> &recipients);
     static std::vector<std::string> getEmailRecipientsFromStruct(const char *recipients);
     static std::shared_ptr<Message> convertPlatformEmailToObject(email_mail_data_t& mail);
-//  static std::shared_ptr<MessageBody> convertEmailToMessageBody(email_mail_data_t& mail);
-//  static AttachmentPtrVector convertEmailToMessageAttachment(email_mail_data_t& mail);
+    static std::shared_ptr<MessageBody> convertEmailToMessageBody(email_mail_data_t& mail);
+    static AttachmentPtrVector convertEmailToMessageAttachment(email_mail_data_t& mail);
 
 //  // Tizen::FilterableObject
 //  virtual bool isMatchingAttribute(const std::string& attribute_name,
@@ -180,7 +178,7 @@ protected:
     //! Message BlindCarbonCopy recipients (used only for email)
     std::vector<std::string> m_bcc;
 //  //! MessageBody (object containg plainBody and htmlBody for emails)
-//  std::shared_ptr<MessageBody> m_body;
+    std::shared_ptr<MessageBody> m_body;
     //! Service id
     int m_service_id;
     //! Message isRead flag
@@ -200,7 +198,7 @@ protected:
     //! Outgoing Message status (SENT, SENDING, DRAFT etc)
     MessageStatus m_status;
     //! Attachments attached to this message
-//  JSAttachmentsVector m_attachments;
+    AttachmentPtrVector m_attachments;
     //! SIM index which indicate a sim to send message.
     TelNetworkDefaultDataSubs_t m_sim_index;
 private:

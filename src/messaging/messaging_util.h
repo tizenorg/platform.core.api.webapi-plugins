@@ -44,6 +44,16 @@ public:
     static std::string extractSingleEmailAddress(const std::string& address);
     static std::vector<std::string> extractEmailAddresses(
             const std::vector<std::string>& addresses);
+
+    /**
+    * Throws Common::IOException when file cannot be opened.
+    *
+    * To increase performance invoke this function this way:
+    * std::string result = loadFileContentToString(...);
+    * Reason: no copy constructor will be invoked on return.
+    */
+    static std::string loadFileContentToString(const std::string& file_path);
+    static std::string messageStatusToString(MessageStatus status);
 };
 
 } // messaging

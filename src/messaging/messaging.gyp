@@ -38,7 +38,11 @@
         'message.cc',
         'message.h',
         'message_email.cc',
-        'message_email.h'
+        'message_email.h',
+        'message_attachment.cc',
+        'message_attachment.h',
+        'message_body.cc',
+        'message_body.h'
       ],
       'includes': [
         '../common/pkg-config.gypi',
