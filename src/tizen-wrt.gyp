@@ -24,6 +24,7 @@
             'calendar/calendar.gyp:*',
             'datasync/datasync.gyp:*',
             'messaging/messaging.gyp:*',
+            'nfc/nfc.gyp:*'
           ],
         },
        ],
