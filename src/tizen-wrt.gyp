@@ -16,6 +16,7 @@
         'bookmark/bookmark.gyp:*',
         'archive/archive.gyp:*',
         'exif/exif.gyp:*',
+        'systeminfo/systeminfo.gyp:*',
       ],
       'conditions': [
         [ 'extension_host_os == "mobile"', {
