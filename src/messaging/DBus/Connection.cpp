@@ -17,7 +17,7 @@
 
 #include "Connection.h"
 #include "common/logger.h"
-//#include <PlatformException.h>
+#include "common/platform_exception.h"
 #include <cstring>
 #include <email-types.h>
 #include "../message_service.h"
@@ -45,9 +45,9 @@ Connection::Connection()
 
     m_dbus = g_bus_get_sync(G_BUS_TYPE_SYSTEM, NULL, &m_error);
     if (!m_dbus || m_error) {
-        LOGE("Could not get connection");
+        LoggerE("Could not get connection");
     }
-    LOGD("Connection set");
+    LoggerD("Connection set");
 }
 
 Connection::~Connection()

@@ -24,7 +24,7 @@
 //#include <JSUtil.h>
 #include "common/logger.h"
 #include <memory>
-//#include <PlatformException.h>
+#include "common/platform_exception.h"
 #include <sstream>
 //#include <GlobalContextManager.h>
 
@@ -87,12 +87,12 @@ EmailManager::EmailManager()
     const int non_err = EMAIL_ERROR_NONE;
 
     if(non_err != email_service_begin()){
-        LOGE("Email service failed to begin");
-        //TODO throw Common::UnknownException("Email service failed to begin");
+        LoggerE("Email service failed to begin");
+        throw common::UnknownException("Email service failed to begin");
     }
     if(non_err != email_open_db()){
-        LOGE("Email DB failed to open");
-        //TODO throw Common::UnknownException("Email DB failed to open");
+        LoggerE("Email DB failed to open");
+        throw common::UnknownException("Email DB failed to open");
     }
 
     int slot_size = -1;
@@ -105,8 +105,8 @@ EmailManager::EmailManager()
                                       DBus::Proxy::DBUS_PATH_NETWORK_STATUS,
                                       DBus::Proxy::DBUS_IFACE_NETWORK_STATUS);
     if (!m_proxy_sync) {
-        LOGE("Sync proxy is null");
-        //TODO throw Common::UnknownException("Sync proxy is null");
+        LoggerE("Sync proxy is null");
+        throw common::UnknownException("Sync proxy is null");
     }
     m_proxy_sync->signalSubscribe();
 
@@ -649,11 +649,11 @@ void EmailManager::sync(void* data)
     LoggerD("Entered");
     SyncCallbackData* callback = static_cast<SyncCallbackData*>(data);
     if(!callback){
-        LOGE("Callback is null");
+        LoggerE("Callback is null");
         return;
     }
     long op_id = callback->getOpId();
-    //TODO m_proxy_sync->addCallback(op_id, callback);
+    m_proxy_sync->addCallback(op_id, callback);
 
     int err = EMAIL_ERROR_NONE;
     int limit = callback->getLimit();
@@ -669,16 +669,16 @@ void EmailManager::sync(void* data)
 
     err = email_set_mail_slot_size(0, 0, slot_size);
     if(EMAIL_ERROR_NONE != err){
-        LOGE("Email set slot size failed, %d", err);
-        //TODO m_proxy_sync->removeCallback(op_id);
+        LoggerE("Email set slot size failed, %d", err);
+        m_proxy_sync->removeCallback(op_id);
         return;
     }
 
     int op_handle = -1;
     err = email_sync_header(account_id, 0, &op_handle);
     if(EMAIL_ERROR_NONE != err){
-        LOGE("Email sync header failed, %d", err);
-        //TODO m_proxy_sync->removeCallback(op_id);
+        LoggerE("Email sync header failed, %d", err);
+        m_proxy_sync->removeCallback(op_id);
     }
     callback->setOperationHandle(op_handle);
 }

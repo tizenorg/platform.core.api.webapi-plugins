@@ -22,7 +22,7 @@
 #include "EmailSignalProxy.h"
 #include "common/logger.h"
 #include <cstring>
-//#include <PlatformException.h>
+#include "common/platform_exception.h"
 
 namespace extension {
 namespace messaging {
@@ -70,11 +70,11 @@ void EmailSignalProxy::signalCallback(GDBusConnection* connection,
 
         handleEmailSignal(status, mail_id, source, op_handle, error_code);
 
-//    } catch(const Common::BasePlatformException& exception) {
-//        LOGE("Unhandled exception: %s (%s)!", (exception.getName()).c_str(),
-//             (exception.getMessage()).c_str());
+    } catch(const common::PlatformException& exception) {
+        LoggerE("Unhandled exception: %s (%s)!", (exception.name()).c_str(),
+             (exception.message()).c_str());
     } catch(...) {
-        LOGE("Unhandled exception!");
+        LoggerE("Unhandled exception!");
     }
 
     g_free(source);

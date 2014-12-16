@@ -21,7 +21,7 @@
 
 #include "Proxy.h"
 #include "common/logger.h"
-//#include <PlatformException.h>
+#include "common/platform_exception.h"
 #include <cstring>
 #include <email-types.h>
 #include "../message_service.h"
@@ -51,14 +51,14 @@ Proxy::Proxy(const std::string& proxy_path,
                 m_error(NULL),
                 m_dbus_signal_subscribed(false)
 {
-    LOGD("Proxy:\n"
+    LoggerD("Proxy:\n"
             "  proxy_path: %s\n  proxy_iface: %s"
             "  signal_name: %s\n signal_path:%s\n signal_iface:%s",
             m_path.c_str(), m_iface.c_str(),
             m_signal_name.c_str(), m_signal_path.c_str(), m_signal_iface.c_str());
 
     const gchar* unique_name = g_dbus_connection_get_unique_name(m_conn.getDBus());
-    LOGD("Generated unique name: %d", unique_name);
+    LoggerD("Generated unique name: %d", unique_name);
 
     // path and interface are not obligatory to receive, but
     // they should be set to send the signals.
@@ -66,8 +66,8 @@ Proxy::Proxy(const std::string& proxy_path,
             G_DBUS_PROXY_FLAGS_DO_NOT_LOAD_PROPERTIES,
             NULL, unique_name, m_path.c_str(), m_iface.c_str(), NULL, &m_error);
     if (!m_proxy || m_error) {
-        LOGE("Could not get proxy");
-        //TODO throw Common::UnknownException("Could not get proxy");
+        LoggerE("Could not get proxy");
+        throw common::UnknownException("Could not get proxy");
     }
 }
 
@@ -86,7 +86,7 @@ void Proxy::signalCallbackProxy(GDBusConnection *connection,
 {
     Proxy* this_ptr = static_cast<Proxy*>(user_data);
     if (!this_ptr) {
-        LOGW("Proxy is null, nothing to do");
+        LoggerW("Proxy is null, nothing to do");
         return;
     }
 
@@ -99,18 +99,18 @@ void Proxy::signalCallbackProxy(GDBusConnection *connection,
         this_ptr->signalCallback(connection, sender_name, object_path, interface_name,
                 signal_name, parameters);
 
-//    } catch(const Common::BasePlatformException& exception) {
-//        LOGE("Unhandled exception: %s (%s)!", (exception.getName()).c_str(),
-//             (exception.getMessage()).c_str());
+    } catch(const common::PlatformException& exception) {
+        LoggerE("Unhandled exception: %s (%s)!", (exception.name()).c_str(),
+             (exception.message()).c_str());
     } catch(...) {
-        LOGE("Unhandled exception!");
+        LoggerE("Unhandled exception!");
     }
 }
 
 void Proxy::signalSubscribe()
 {
     if(m_dbus_signal_subscribed) {
-        LOGW("Proxy has already subscribed for listening DBus signal");
+        LoggerW("Proxy has already subscribed for listening DBus signal");
         return;
     }
 
@@ -125,7 +125,7 @@ void Proxy::signalSubscribe()
             signalCallbackProxy,
             static_cast<gpointer>(this),
             NULL);
-    LOGD("g_dbus_connection_signal_subscribe returned id: %d", m_sub_id);
+    LoggerD("g_dbus_connection_signal_subscribe returned id: %d", m_sub_id);
 
     m_dbus_signal_subscribed = true;
 }
@@ -133,12 +133,12 @@ void Proxy::signalSubscribe()
 void Proxy::signalUnsubscribe()
 {
     if (!m_dbus_signal_subscribed) {
-        LOGW("Proxy hasn't subscribed for listening DBus signal");
+        LoggerW("Proxy hasn't subscribed for listening DBus signal");
         return;
     }
 
     g_dbus_connection_signal_unsubscribe(m_conn.getDBus(), m_sub_id);
-    LOGD("g_dbus_connection_signal_unsubscribe finished");
+    LoggerD("g_dbus_connection_signal_unsubscribe finished");
 
     m_dbus_signal_subscribed = false;
 }
