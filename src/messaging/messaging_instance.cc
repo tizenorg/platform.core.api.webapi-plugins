@@ -107,7 +107,6 @@ MessagingInstance::MessagingInstance()
       REGISTER_ASYNC(FUN_MESSAGE_SERVICE_SEND_MESSAGE, MessageServiceSendMessage);
       REGISTER_ASYNC(FUN_MESSAGE_SERVICE_LOAD_MESSAGE_BODY, MessageServiceLoadMessageBody);
       REGISTER_ASYNC(FUN_MESSAGE_SERVICE_LOAD_MESSAGE_ATTACHMENT, MessageServiceLoadMessageAttachment);
-      REGISTER_ASYNC(FUN_MESSAGE_SERVICE_SYNC, MessageServiceSync);
       REGISTER_ASYNC(FUN_MESSAGE_SERVICE_SYNC_FOLDER, MessageServiceSyncFolder);
       REGISTER_ASYNC(FUN_MESSAGE_STORAGE_ADD_DRAFT_MESSAGE, MessageStorageAddDraft);
       REGISTER_ASYNC(FUN_MESSAGE_STORAGE_FIND_MESSAGES, MessageStorageFindMessages);
@@ -121,6 +120,7 @@ MessagingInstance::MessagingInstance()
     #undef REGISTER_ASYNC
     #define REGISTER_SYNC(c,x) \
       RegisterSyncHandler(c, std::bind(&MessagingInstance::x, this, _1, _2));
+      REGISTER_SYNC(FUN_MESSAGE_SERVICE_SYNC, MessageServiceSync);
       REGISTER_SYNC(FUN_MESSAGE_SERVICE_STOP_SYNC, MessageServiceStopSync);
       REGISTER_SYNC(FUN_MESSAGE_STORAGE_REMOVE_CHANGE_LISTENER, MessageStorageRemoveChangeListener);
     #undef REGISTER_SYNC
@@ -188,7 +188,10 @@ void MessagingInstance::MessageServiceSync(const picojson::value& args,
     callback->setAccountId(id);
     callback->setLimit(limit);
 
-    MessagingManager::getInstance().getMessageServiceEmail(id)->sync(callback);
+    long op_id = MessagingManager::getInstance().getMessageServiceEmail(id)->sync(callback);
+
+    picojson::value v_op_id(static_cast<double>(op_id));
+    ReportSuccess(v_op_id, out);
 }
 
 void MessagingInstance::MessageServiceSyncFolder(const picojson::value& args,
