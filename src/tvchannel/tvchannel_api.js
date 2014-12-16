@@ -27,6 +27,50 @@ var TuneMode = {
   FAVORITE: 'FAVORITE'
 };
 
+function ChannelInfo(dict) {
+  for (var key in dict) {
+    if (dict.hasOwnProperty(key)) {
+      Object.defineProperty(this, key, {
+        value: dict[key],
+        enumerable: true
+      });
+    }
+  }
+  Object.freeze(this);
+}
+
+function dictListToChannelList(list) {
+  var result = [],
+      i = 0,
+      il = list.length;
+  for (; i < il; ++i) {
+    result.push(new ChannelInfo(list[i]));
+  }
+  return result;
+}
+
+function ProgramInfo(dict) {
+  for (var key in dict) {
+    if (dict.hasOwnProperty(key)) {
+      Object.defineProperty(this, key, {
+        value: key === 'startTime' ? new tizen.TZDate(new Date(dict[key])) : dict[key],
+        enumerable: true
+      });
+    }
+  }
+  Object.freeze(this);
+}
+
+function dictListToProgramList(list) {
+  var result = [],
+      i = 0,
+      il = list.length;
+  for (; i < il; ++i) {
+    result.push(new ProgramInfo(list[i]));
+  }
+  return result;
+}
+
 function ListenerManager(native, listenerName) {
   this.listeners = {};
   this.nextId = 1;
@@ -34,9 +78,10 @@ function ListenerManager(native, listenerName) {
 }
 
 ListenerManager.prototype.onListenerCalled = function(msg) {
+  var channel = new ChannelInfo(msg.channel);
   for (var key in this.listeners) {
     if (this.listeners.hasOwnProperty(key)) {
-      this.listeners[key](msg.channel);
+      this.listeners[key](channel);
     }
   }
 };
@@ -105,7 +150,7 @@ TVChannelManager.prototype.tune = function(tuneOption, successCallback, errorCal
   ]);
   native.addListener(PROGRAMINFO_LISTENER, function(msg) {
     if (validatorType.isFunction(data.callback.onprograminforeceived)) {
-      data.callback.onprograminforeceived(msg.program, msg.type);
+      data.callback.onprograminforeceived(new ProgramInfo(msg.program), msg.type);
     }
   });
   native.call('TVChannelManager_tune', {
@@ -122,7 +167,7 @@ TVChannelManager.prototype.tune = function(tuneOption, successCallback, errorCal
       }
     } else if (msg.success) {
       if (validatorType.isFunction(data.callback.onsuccess)) {
-        data.callback.onsuccess(msg.channel, msg.type);
+        data.callback.onsuccess(new ChannelInfo(msg.channel), msg.type);
       }
     }
   });
@@ -158,7 +203,7 @@ function tuneUpDown(args, methodName) {
   ]);
   native.addListener(PROGRAMINFO_LISTENER, function(msg) {
     if (validatorType.isFunction(data.callback.onprograminforeceived)) {
-      data.callback.onprograminforeceived(msg.program, msg.type);
+      data.callback.onprograminforeceived(new ProgramInfo(msg.program), msg.type);
     }
   });
   native.call(methodName, {
@@ -175,7 +220,7 @@ function tuneUpDown(args, methodName) {
       }
     } else if (msg.success) {
       if (validatorType.isFunction(data.callback.onsuccess)) {
-        data.callback.onsuccess(msg.channel, msg.type);
+        data.callback.onsuccess(new ChannelInfo(msg.channel), msg.type);
       }
     }
   });
@@ -226,7 +271,7 @@ TVChannelManager.prototype.findChannel = function(major, minor, successCallback,
         args.errorCallback(native.getErrorObject(msg.error));
       }
     } else {
-      args.successCallback(msg.channelInfos);
+      args.successCallback(dictListToChannelList(msg.channelInfos));
     }
   });
 };
@@ -276,7 +321,7 @@ TVChannelManager.prototype.getChannelList = function(successCallback,
         args.errorCallback(native.getErrorObject(msg.error));
       }
     } else {
-      args.successCallback(msg.channelInfos);
+      args.successCallback(dictListToChannelList(msg.channelInfos));
     }
   });
 };
@@ -297,12 +342,54 @@ TVChannelManager.prototype.getCurrentChannel = function(windowType) {
   if (native.isFailure(ret)) {
     throw native.getErrorObject(ret);
   }
-  return native.getResultObject(ret);
+  return new ChannelInfo(native.getResultObject(ret));
 };
 
 TVChannelManager.prototype.getProgramList = function(channelInfo,
     startTime, successCallback, errorCallback, duration) {
-  return undefined;
+  var args = validator.validateArgs(arguments, [
+    {
+      name: 'channelInfo',
+      type: validator.Types.PLATFORM_OBJECT,
+      values: ChannelInfo
+    },
+    {
+      name: 'startTime',
+      type: validator.Types.PLATFORM_OBJECT,
+      values: tizen.TZDate
+    },
+    {
+      name: 'successCallback',
+      type: validator.Types.FUNCTION,
+      optional: false,
+      nullable: false
+    },
+    {
+      name: 'errorCallback',
+      type: validator.Types.FUNCTION,
+      optional: true,
+      nullable: true
+    },
+    {
+      name: 'duration',
+      optional: true,
+      nullable: true,
+      type: validator.Types.LONG
+    }
+  ]);
+  native.call('TVChannelManager_getProgramList', {
+    channelInfo: args.channelInfo,
+    startTime: args.startTime,
+    duration: args.duration
+  }, function(msg) {
+    if (msg.error) {
+      if (validatorType.isFunction(args.errorCallback)) {
+        args.errorCallback(native.getErrorObject(msg.error));
+      }
+    } else {
+      args.successCallback(dictListToProgramList(msg.programInfos));
+    }
+  });
 };
 
 TVChannelManager.prototype.getCurrentProgram = function(windowType) {
@@ -321,7 +408,7 @@ TVChannelManager.prototype.getCurrentProgram = function(windowType) {
   if (native.isFailure(ret)) {
     throw native.getErrorObject(ret);
   }
-  return native.getResultObject(ret);
+  return new ProgramInfo(native.getResultObject(ret));
 };
 
 TVChannelManager.prototype.addChannelChangeListener = function(callback, windowType) {
