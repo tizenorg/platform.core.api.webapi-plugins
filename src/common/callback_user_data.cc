@@ -110,5 +110,15 @@ bool CallbackUserData::isActive() const
     return m_is_act;
 }
 
+void CallbackUserData::setJson(std::shared_ptr<picojson::value> json)
+{
+    m_json = json;
+}
+
+std::shared_ptr<picojson::value> CallbackUserData::getJson() const
+{
+    return m_json;
+}
+
 } // Common
 //} // DeviceAPI

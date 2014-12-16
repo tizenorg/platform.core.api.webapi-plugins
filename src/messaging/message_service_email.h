@@ -19,7 +19,7 @@ public:
     virtual void sendMessage();
     virtual void loadMessageBody();
     virtual void loadMessageAttachment();
-    virtual long sync(const double callbackId, long limit = 0);
+    virtual long sync(SyncCallbackData *callback);
     virtual long syncFolder();
     virtual void stopSync();
 };
