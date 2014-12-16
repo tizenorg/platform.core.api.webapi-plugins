@@ -17,27 +17,23 @@
 (function () {
     'use strict';
 
-    // Import auxiliary classes for Contact
-    var _dataStructures = require('./tizen.contact.ContactDataStructures');
-    var ContactRef = _dataStructures.ref;
-    var ContactGroup = _dataStructures.group;
-    var ContactEmailAddress = _dataStructures.emailAddress;
-    var ContactPhoneNumber = _dataStructures.phoneNumber;
-    var ContactAddress = _dataStructures.address;
-    var ContactAnniversary = _dataStructures.anniversary;
-    var ContactWebSite = _dataStructures.webSite;
-    var ContactOrganization = _dataStructures.organization;
-    var ContactName = _dataStructures.name;
-    var ContactRelationship = _dataStructures.relationship;
-    var ContactInstantMessenger = _dataStructures.instantMessenger;
-    var ContactRelationshipType = _dataStructures.relationshipType;
-    var ContactInstantMessengerType = _dataStructures.instantMessengerType;
-    _dataStructures = undefined;
+    // Import ContactDataStructures class
+    var ContactRef = require('./tizen.contact.ContactDataStructures.ref');
+    var ContactGroup = require('./tizen.contact.ContactDataStructures.group');
+    var ContactEmailAddress = require('./tizen.contact.ContactDataStructures.emailAddress');
+    var ContactPhoneNumber = require('./tizen.contact.ContactDataStructures.phoneNumber');
+    var ContactAddress = require('./tizen.contact.ContactDataStructures.address');
+    var ContactAnniversary = require('./tizen.contact.ContactDataStructures.anniversary');
+    var ContactWebSite = require('./tizen.contact.ContactDataStructures.webSite');
+    var ContactOrganization = require('./tizen.contact.ContactDataStructures.organization');
+    var ContactName = require('./tizen.contact.ContactDataStructures.name');
+    var ContactRelationship = require('./tizen.contact.ContactDataStructures.relationship');
+    var ContactInstantMessenger = require('./tizen.contact.ContactDataStructures.instantMessenger');
+    var ContactRelationshipType = require('./tizen.contact.ContactDataStructures.relationshipType');
+    var ContactInstantMessengerType = require('./tizen.contact.ContactDataStructures.instantMessengerType');
 
     // Import Contact and ContactInit class
-    var _contact = require('./tizen.contact.Contact');
-    var Contact = _contact.Contact;
-    _contact = undefined;
+    var Contact = require('./tizen.contact.Contact.Contact');
 
     // Import ContactManager class
     var ContactManager = require('./tizen.contact.ContactManager');
@@ -47,85 +43,5 @@
 
     // Import AddressBook class
     var AddressBook = require('./tizen.contact.AddressBook');
-
-    // exports /////////////////////////////////////////////////////////////////
-
-    module.exports = {
-        contact: {
-            value: new ContactManager(),
-            writable: false,
-            enumerable: true
-        },
-        Contact: {
-            value: Contact,
-            writable: false,
-            enumerable: true
-        },
-        ContactRef: {
-            value: ContactRef,
-            writable: false,
-            enumerable: true
-        },
-        ContactName: {
-            value: ContactName,
-            writable: false,
-            enumerable: true
-        },
-        ContactOrganization: {
-            value: ContactOrganization,
-            writable: false,
-            enumerable: true
-        },
-        ContactWebSite: {
-            value: ContactWebSite,
-            writable: false,
-            enumerable: true
-        },
-        ContactAnniversary: {
-            value: ContactAnniversary,
-            writable: false,
-            enumerable: true
-        },
-        ContactAddress: {
-            value: ContactAddress,
-            writable: false,
-            enumerable: true
-        },
-        ContactPhoneNumber: {
-            value: ContactPhoneNumber,
-            writable: false,
-            enumerable: true
-        },
-        ContactEmailAddress: {
-            value: ContactEmailAddress,
-            writable: false,
-            enumerable: true
-        },
-        ContactGroup: {
-            value: ContactGroup,
-            writable: false,
-            enumerable: true
-        },
-        ContactRelationship: {
-            value: ContactRelationship,
-            writable: false,
-            enumerable: true
-        },
-        ContactInstantMessenger: {
-            value: ContactInstantMessenger,
-            writable: false,
-            enumerable: true
-        },
-        ContactRelationshipType: {
-            value: ContactRelationshipType,
-            writable: false,
-            enumerable: true
-        },
-        ContactInstantMessengerType: {
-            value: ContactInstantMessengerType,
-            writable: false,
-            enumerable: true
-        }
-    };
 
 })();
