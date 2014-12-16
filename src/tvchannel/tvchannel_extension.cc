@@ -8,27 +8,20 @@
 // This will be generated from datasync_api.js.
 extern const char kSource_tvchannel_api[];
 
-namespace tvchannel {
-
 TVChannelExtension::TVChannelExtension() {
-  SetExtensionName("tizen.tvchannel");
-  SetJavaScriptAPI(kSource_tvchannel_api);
+    SetExtensionName("tizen.tvchannel");
+    SetJavaScriptAPI(kSource_tvchannel_api);
 }
 
-TVChannelExtension::~TVChannelExtension() {}
-
-TVChannelManager& TVChannelExtension::manager() {
-  // Initialize API on first request
-  return TVChannelManager::getInstance();
+TVChannelExtension::~TVChannelExtension() {
 }
 
 common::Instance* TVChannelExtension::CreateInstance() {
-  return new TVChannelInstance(*this);
+    return new extension::tvchannel::TVChannelInstance();
 }
-
-}  // namespace tvchannel
 
 // entry point
 common::Extension* CreateExtension() {
-  return new tvchannel::TVChannelExtension;
+    return new TVChannelExtension();
 }
+

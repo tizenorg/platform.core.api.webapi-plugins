@@ -12,18 +12,19 @@
 
 #include "tvchannel/tvchannel_extension.h"
 
+namespace extension {
 namespace tvchannel {
 
-class TVChannelInstance : public common::Instance {
+class TVChannelInstance: public common::ParsedInstance {
  public:
-  explicit TVChannelInstance(TVChannelExtension const& extension);
-  virtual ~TVChannelInstance();
+    TVChannelInstance();
+    virtual ~TVChannelInstance();
 
  private:
-  virtual void HandleMessage(const char* msg);
-  virtual void HandleSyncMessage(const char* msg);
+    void getCurrentChannel(const picojson::value& args, picojson::object& out);
 };
 
 }  // namespace tvchannel
+}  // namespace extension
 
 #endif  // SRC_TVCHANNEL_TVCHANNEL_INSTANCE_H_

@@ -17,6 +17,16 @@
       'includes': [
         '../common/pkg-config.gypi',
       ],
+      'conditions': [
+       ['tizen == 1', {
+        'variables': {
+            'packages': [
+             'tvs-api'
+            ],
+        },
+       },
+      ],
+      ],
       'sources': [
         'tvchannel_api.js',
         'tvchannel_error.h',
@@ -24,6 +34,12 @@
         'tvchannel_extension.h',
         'tvchannel_instance.cc',
         'tvchannel_instance.h',
+        'channel_info.cc',
+        'channel_info.h',
+        'tvchannel_manager.h',
+        'tvchannel_manager.cc',
+        'types.h',
+        'types.cc'
       ],
     },
   ],

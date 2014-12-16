@@ -6,22 +6,13 @@
 #define SRC_TVCHANNEL_TVCHANNEL_EXTENSION_H_
 
 #include "common/extension.h"
-#include "tvchannel/tvchannel_manager.h"
 
-namespace tvchannel {
-
-class TVChannelExtension : public common::Extension {
+class TVChannelExtension: public common::Extension {
  public:
     TVChannelExtension();
     virtual ~TVChannelExtension();
-
-    TVChannelManager& manager();
-
  private:
-    // common::Extension implementation.
     virtual common::Instance* CreateInstance();
 };
-
-}  // namespace tvchannel
 
 #endif  // SRC_TVCHANNEL_TVCHANNEL_EXTENSION_H_
