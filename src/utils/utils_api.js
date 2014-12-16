@@ -1007,6 +1007,11 @@ var NativeBridge = (function (extension, debug) {
                 extension.postMessage(json);
             });
             return l;
+        },
+        listener: function (c) {
+            var l = (new Listener()).then(c);
+            var cid = Listeners.getInstance().add(l);
+            return cid;
         }
     };
 
