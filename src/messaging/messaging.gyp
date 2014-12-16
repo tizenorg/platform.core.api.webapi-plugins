@@ -14,11 +14,14 @@
             'dbus-1',
             'dbus-glib-1',
             'capi-system-info',
-            'tapi'
+            'tapi',
+            'vconf'
         ],
       },
       'sources': [
         'messaging_api.js',
+        'email_manager.cc',
+        'email_manager.h',
         'messaging_instance.cc',
         'messaging_instance.h',
         'messaging_extension.cc',

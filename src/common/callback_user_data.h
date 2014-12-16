@@ -22,6 +22,9 @@
 #define __TIZEN_COMMON_CALLBACK_USER_DATA_H__
 
 //#include <JavaScriptCore/JavaScript.h>
+#include "common/picojson.h"
+
+#include <memory>
 
 //namespace DeviceAPI {
 namespace common {
@@ -47,10 +50,14 @@ public:
 
     void setActive(bool act);
     bool isActive() const;
+    void setJson(std::shared_ptr<picojson::value> json);
+    std::shared_ptr<picojson::value> getJson() const;
+
 private:
 //    JSContextRef m_context;
 //    MultiCallbackUserData* m_impl;
     bool m_is_act;
+    std::shared_ptr<picojson::value> m_json;
 };
 
 } // Common

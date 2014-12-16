@@ -176,7 +176,18 @@ void MessagingInstance::MessageServiceSync(const picojson::value& args,
     if (v_limit.is<double>()) {
         limit = static_cast<long>(v_limit.get<double>());
     }
-    MessagingManager::getInstance().getMessageServiceEmail(id)->sync(callbackId, limit);
+
+    auto json = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
+    picojson::object& obj = json->get<picojson::object>();
+    obj[JSON_CALLBACK_ID] = picojson::value(callbackId);
+    //obj[JSON_DATA] = picojson::value( TODO );
+
+    SyncCallbackData *callback = new SyncCallbackData();
+    callback->setJson(json);
+    callback->setAccountId(id);
+    callback->setLimit(limit);
+
+    MessagingManager::getInstance().getMessageServiceEmail(id)->sync(callback);
 }
 
 void MessagingInstance::MessageServiceSyncFolder(const picojson::value& args,
