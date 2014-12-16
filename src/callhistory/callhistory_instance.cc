@@ -44,7 +44,8 @@ CallHistoryInstance::~CallHistoryInstance() {
 }
 
 void CallHistoryInstance::Find(const picojson::value& args, picojson::object& out) {
-
+    LoggerD("Entered");
+    CallHistory::getInstance()->find(args.get<picojson::object>());
 }
 
 void CallHistoryInstance::Remove(const picojson::value& args, picojson::object& out) {

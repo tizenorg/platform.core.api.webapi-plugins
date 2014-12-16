@@ -38,6 +38,18 @@ namespace callhistory {
 #define STR_REMOTE_PARTY "remoteParty"
 #define STR_PERSON_ID "personId"
 
+#define STR_RP_REMOTEPARTY "remoteParties.remoteParty"
+#define STR_RP_PERSONID "remoteParties.personId"
+
+#define STR_ORDER_ASC "ASC"
+
+#define STR_FILTER_EXACTLY "EXACTLY"
+#define STR_FILTER_FULLSTRING "FULLSTRING"
+#define STR_FILTER_CONTAINS "CONTAINS"
+#define STR_FILTER_STARTSWITH "STARTSWITH"
+#define STR_FILTER_ENDSWITH "ENDSWITH"
+#define STR_FILTER_EXISTS "EXISTS"
+
 } // namespace callhistory
 } // namespace extension
 

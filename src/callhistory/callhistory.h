@@ -23,7 +23,7 @@ public:
     static CallHistory* getInstance();
     std::vector<std::string>& getPhoneNumbers();
 
-    void find();
+    void find(const picojson::object& args);
     void remove(const picojson::object& args);
     void removeBatch(const picojson::object& args);
     void removeAll(const picojson::object& args);
