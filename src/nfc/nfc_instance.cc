@@ -2,7 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "nfc/nfc_instance.h"
+#include "nfc_instance.h"
+#include "nfc_util.h"
 
 #include "common/picojson.h"
 #include "common/logger.h"
@@ -30,6 +31,8 @@ NFCInstance::NFCInstance() {
     REGISTER_SYNC("NFCManager_getDefaultAdapter", GetDefaultAdapter);
     REGISTER_SYNC("NFCManager_setExclusiveMode", SetExclusiveMode);
     REGISTER_SYNC("NFCAdapter_getPowered", GetPowered);
+    REGISTER_SYNC("NFCAdapter_cardEmulationModeSetter", CardEmulationModeSetter);
+    REGISTER_SYNC("NFCAdapter_cardEmulationModeGetter", CardEmulationModeGetter);
     REGISTER_SYNC("NFCAdapter_setPeerListener", SetPeerListener);
     REGISTER_SYNC("NFCAdapter_setTagListener", SetTagListener);
     REGISTER_SYNC("NFCAdapter_setPeerListener", SetPeerListener);
@@ -112,31 +115,11 @@ void NFCInstance::SetExclusiveMode(
     }
 
     if (NFC_ERROR_NONE != ret) {
-        LoggerE("setExclusiveModeForTransaction failed: %d", ret);
-        switch(ret) {
-            case NFC_ERROR_SECURITY_RESTRICTED:
-            {
-                auto ex = common::SecurityException("Not allowed to set exclusive mode");
-                ReportError(ex, out);
-                break;
-            }
-            case NFC_ERROR_OPERATION_FAILED:
-            {
-                auto ex = common::UnknownException("Setting exclusive mode failed (IPC fail)");
-                ReportError(ex, out);
-                break;
-            }
-            default:
-            {
-                auto ex = common::UnknownException("Unkown error");
-                ReportError(ex, out);
-                break;
-            }
-        }
+        LoggerE("setExclusiveMode() failed: %d", ret);
+        NFCUtil::throwNFCException(ret, "Failed to set exclusie mode");
     }
-    else {
-        ReportSuccess(out);
-    }
+    ReportSuccess(out);
+
 }
 
 void NFCInstance::SetPowered(
@@ -148,6 +131,32 @@ void NFCInstance::GetPowered(
         const picojson::value& args, picojson::object& out) {
     bool ret = NFCAdapter::GetInstance()->GetPowered();
     ReportSuccess(picojson::value(ret), out);
+}
+
+void NFCInstance::CardEmulationModeSetter(
+        const picojson::value& args, picojson::object& out) {
+
+    std::string mode = args.get("emulationMode").get<std::string>();
+    try {
+        NFCAdapter::GetInstance()->SetCardEmulationMode(mode);
+    }
+    catch(const common::PlatformException& ex) {
+        ReportError(ex, out);
+    }
+    ReportSuccess(out);
+}
+
+void NFCInstance::CardEmulationModeGetter(
+        const picojson::value& args, picojson::object& out) {
+
+    std::string mode;
+    try {
+        mode = NFCAdapter::GetInstance()->GetCardEmulationMode();
+    }
+    catch(const common::PlatformException& ex) {
+        ReportError(ex, out);
+    }
+    ReportSuccess(picojson::value(mode), out);
 }
 
 void NFCInstance::SetTagListener(

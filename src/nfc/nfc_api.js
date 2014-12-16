@@ -98,14 +98,42 @@ function NFCAdapter() {
         return native_.getResultObject(ret);
     }
 
+    function cardEmulationModeGetter() {
+        var result = native_.callSync('NFCAdapter_cardEmulationModeGetter');
+
+        if (native_.isFailure(result)) {
+            throw new tizen.WebAPIException(0, result.error.message, result.error.name);
+        }
+
+        return native_.getResultObject(result);
+    }
+
+    function cardEmulationModeSetter(cem) {
+        // "NFCAdapter_cardEmulationModeSetter"
+
+        var args = validator_.validateArgs(arguments, [
+            {name: 'emulationMode', type: types_.STRING}
+        ]);
+
+        var result = native_.callSync(
+            'NFCAdapter_cardEmulationModeSetter',
+            { 'emulationMode': args.emulationMode}
+        );
+
+        if(native_.isFailure(result)) {
+            throw new tizen.WebAPIException(0, result.error.message, result.error.name);
+        }
+        return;
+    }
+
     Object.defineProperties(this, {
         powered:   {enumerable: true,
             set : function(){},
             get : poweredGetter
         },
         cardEmulationMode:   {enumerable: true,
-            set : function(){},
-            get : function(){}
+            set : cardEmulationModeSetter,
+            get : cardEmulationModeGetter
         },
         activeSecureElement:   {enumerable: true,
             set : function(){},

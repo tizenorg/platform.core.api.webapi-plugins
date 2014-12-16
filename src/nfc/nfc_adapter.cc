@@ -188,5 +188,56 @@ void NFCAdapter::SetPowered(const picojson::value& args) {
 }
 
 
+std::string NFCAdapter::GetCardEmulationMode() {
+
+    LoggerD("Entered");
+
+    nfc_se_card_emulation_mode_type_e mode;
+    int ret = nfc_se_get_card_emulation_mode(&mode);
+
+    if (NFC_ERROR_NONE != ret) {
+        LoggerE("Failed to get card emulation mode %d", ret);
+        NFCUtil::throwNFCException(ret, "Failed to get card emulation mode");
+    }
+
+    return NFCUtil::toStringCardEmulationMode(mode);
+}
+
+void NFCAdapter::SetCardEmulationMode(std::string mode) {
+
+    LoggerD("Entered");
+
+    nfc_se_card_emulation_mode_type_e newmode =
+            NFCUtil::toCardEmulationMode(mode);
+    std::string current_mode = GetCardEmulationMode();
+
+    if (mode.compare(current_mode) == 0) {
+        LoggerD("Card emulation mode already set to given value (%s)",
+                mode.c_str());
+        return;
+    }
+
+    int ret = NFC_ERROR_NONE;
+    switch (newmode) {
+        case NFC_SE_CARD_EMULATION_MODE_OFF:
+            ret = nfc_se_disable_card_emulation();
+            break;
+        case NFC_SE_CARD_EMULATION_MODE_ON:
+            ret = nfc_se_enable_card_emulation();
+            break;
+        default:
+            // Should never go here - in case of invalid mode
+            // exception is thrown from convertert few lines above
+            LoggerE("Invalid card emulation mode: %s", mode.c_str());
+            throw InvalidValuesException("Invalid card emulation mode given");
+    }
+
+    if (NFC_ERROR_NONE != ret) {
+        LoggerE("Failed to set card emulation mode %d", ret);
+        NFCUtil::throwNFCException(ret, "Failed to set card emulation mode");
+    }
+}
+
+
 }// nfc
 }// extension
