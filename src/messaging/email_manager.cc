@@ -74,7 +74,7 @@ const std::string FIND_FOLDERS_ATTRIBUTE_ACCOUNTID_NAME  = "serviceId";
 
 EmailManager& EmailManager::getInstance()
 {
-    LOGD("Entered");
+    LoggerD("Entered");
 
     static EmailManager instance;
     return instance;
@@ -82,7 +82,7 @@ EmailManager& EmailManager::getInstance()
 
 EmailManager::EmailManager()
 {
-    LOGD("Entered");
+    LoggerD("Entered");
     getUniqueOpId();
     const int non_err = EMAIL_ERROR_NONE;
 
@@ -101,15 +101,15 @@ EmailManager::EmailManager()
         m_slot_size = slot_size;
     }
 
-//    m_proxy_sync = std::make_shared<DBus::SyncProxy>(
-//                                      DBus::Proxy::DBUS_PATH_NETWORK_STATUS,
-//                                      DBus::Proxy::DBUS_IFACE_NETWORK_STATUS);
-//    if (!m_proxy_sync) {
-//        LOGE("Sync proxy is null");
-//        throw Common::UnknownException("Sync proxy is null");
-//    }
-//    m_proxy_sync->signalSubscribe();
-//
+    m_proxy_sync = std::make_shared<DBus::SyncProxy>(
+                                      DBus::Proxy::DBUS_PATH_NETWORK_STATUS,
+                                      DBus::Proxy::DBUS_IFACE_NETWORK_STATUS);
+    if (!m_proxy_sync) {
+        LOGE("Sync proxy is null");
+        //TODO throw Common::UnknownException("Sync proxy is null");
+    }
+    m_proxy_sync->signalSubscribe();
+
 //    m_proxy_load_body = std::make_shared<DBus::LoadBodyProxy>(
 //                                        DBus::Proxy::DBUS_PATH_NETWORK_STATUS,
 //                                        DBus::Proxy::DBUS_IFACE_NETWORK_STATUS);
@@ -145,7 +145,7 @@ EmailManager::EmailManager()
 
 EmailManager::~EmailManager()
 {
-    LOGD("Entered");
+    LoggerD("Entered");
 }
 
 //void EmailManager::addDraftMessagePlatform(int account_id,
@@ -646,7 +646,7 @@ EmailManager::~EmailManager()
 
 void EmailManager::sync(void* data)
 {
-    LOGD("Entered");
+    LoggerD("Entered");
     SyncCallbackData* callback = static_cast<SyncCallbackData*>(data);
     if(!callback){
         LOGE("Callback is null");

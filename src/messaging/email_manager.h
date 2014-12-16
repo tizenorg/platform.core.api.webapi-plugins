@@ -39,8 +39,8 @@
 #include "messaging_util.h"
 #include "message_service.h"
 
-//#include "DBus/Connection.h"
-//#include "DBus/SyncProxy.h"
+#include "DBus/Connection.h"
+#include "DBus/SyncProxy.h"
 //#include "DBus/LoadBodyProxy.h"
 //#include "DBus/LoadAttachmentProxy.h"
 //#include "DBus/MessageProxy.h"
@@ -120,7 +120,7 @@ private:
 
     int m_slot_size;
 
-//    DBus::SyncProxyPtr m_proxy_sync;
+    DBus::SyncProxyPtr m_proxy_sync;
 //    DBus::LoadBodyProxyPtr m_proxy_load_body;
 //    DBus::LoadAttachmentProxyPtr m_proxy_load_attachment;
 //    DBus::MessageProxyPtr m_proxy_messageStorage;
