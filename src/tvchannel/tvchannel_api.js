@@ -191,12 +191,94 @@ TVChannelManager.prototype.tuneDown = function(successCallback,
 };
 
 TVChannelManager.prototype.findChannel = function(major, minor, successCallback, errorCallback) {
-  return undefined;
+  var args = validator.validateArgs(arguments, [
+    {
+      name: 'major',
+      optional: false,
+      nullable: false,
+      type: validator.Types.LONG
+    },
+    {
+      name: 'minor',
+      optional: false,
+      nullable: false,
+      type: validator.Types.LONG
+    },
+    {
+      name: 'successCallback',
+      type: validator.Types.FUNCTION,
+      optional: false,
+      nullable: false
+    },
+    {
+      name: 'errorCallback',
+      type: validator.Types.FUNCTION,
+      optional: true,
+      nullable: true
+    }
+  ]);
+  native.call('TVChannelManager_findChannel', {
+    major: args.major,
+    minor: args.minor
+  }, function(msg) {
+    if (msg.error) {
+      if (validatorType.isFunction(args.errorCallback)) {
+        args.errorCallback(native.getErrorObject(msg.error));
+      }
+    } else {
+      args.successCallback(msg.channelInfos);
+    }
+  });
 };
 
 TVChannelManager.prototype.getChannelList = function(successCallback,
     errorCallback, tuneMode, start, number) {
-  return undefined;
+  var args = validator.validateArgs(arguments, [
+    {
+      name: 'successCallback',
+      type: validator.Types.FUNCTION,
+      optional: false,
+      nullable: false
+    },
+    {
+      name: 'errorCallback',
+      type: validator.Types.FUNCTION,
+      optional: true,
+      nullable: true
+    },
+    {
+      name: 'tuneMode',
+      optional: true,
+      nullable: true,
+      type: validator.Types.ENUM,
+      values: validatorType.getValues(TuneMode)
+    },
+    {
+      name: 'nStart',
+      optional: true,
+      nullable: true,
+      type: validator.Types.LONG
+    },
+    {
+      name: 'number',
+      optional: true,
+      nullable: true,
+      type: validator.Types.LONG
+    }
+  ]);
+  native.call('TVChannelManager_getChannelList', {
+    tuneMode: args.tuneMode,
+    nStart: args.nStart,
+    number: args.number
+  }, function(msg) {
+    if (msg.error) {
+      if (validatorType.isFunction(args.errorCallback)) {
+        args.errorCallback(native.getErrorObject(msg.error));
+      }
+    } else {
+      args.successCallback(msg.channelInfos);
+    }
+  });
 };
 
 TVChannelManager.prototype.getCurrentChannel = function(windowType) {
