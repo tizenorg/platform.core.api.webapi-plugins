@@ -809,6 +809,12 @@ NativeManager.prototype.getErrorObject = function(result) {
   return new tizen.WebAPIException(result.error.code, result.error.message, result.error.name);
 };
 
+NativeManager.prototype.callIfPossible = function(callback) {
+  if (!_type.isNullOrUndefined(callback)) {
+    callback.apply(callback, [].slice.call(arguments, 1));
+  }
+};
+
 /*
  *bridge is a two way communication interface
  *Example usage:
