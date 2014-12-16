@@ -23,7 +23,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_badge_support               0
 %define tizen_feature_bluetooth_support           0
 %define tizen_feature_bluetooth_health_support    0
-%define tizen_feature_bookmark_support            0
+%define tizen_feature_bookmark_support            1
 %define tizen_feature_calendar_support            1
 %define tizen_feature_callhistory_support         0
 %define tizen_feature_contact_support             1
@@ -42,7 +42,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_nfc_emulation_support       0
 %define tizen_feature_nfc_support                 1
 %define tizen_feature_notification_support        0
-%define tizen_feature_power_support               0
+%define tizen_feature_power_support               1
 %define tizen_feature_push_support                0
 %define tizen_feature_sap_support                 0
 %define tizen_feature_se_support                  0
@@ -94,7 +94,10 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_web_setting_support         0
 %define tizen_feature_wi_fi_support               0
 
-%else
+%endif # tizen_profile_wearable
+%endif # tizen_profile_mobile
+
+
 ####################################################################
 #       TV Profile                                                 #
 ####################################################################
@@ -136,16 +139,11 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_wi_fi_support               0
 
 %endif # tizen_profile_tv
-%endif # tizen_profile_wearable
-%endif # tizen_profile_mobile
-
 
 BuildRequires: ninja
 BuildRequires: pkgconfig(appcore-common)
 BuildRequires: pkgconfig(capi-system-device)
 BuildRequires: pkgconfig(capi-system-info)
-BuildRequires: pkgconfig(capi-system-power)
-BuildRequires: pkgconfig(bookmark-adaptor)
 BuildRequires: pkgconfig(libpcrecpp)
 BuildRequires: pkgconfig(dbus-1)
 BuildRequires: pkgconfig(dbus-glib-1)
@@ -174,6 +172,14 @@ BuildRequires: pkgconfig(tapi)
 BuildRequires: pkgconfig(libpcrecpp)
 BuildRequires: pkgconfig(capi-appfw-application)
 
+%if 0%{?tizen_feature_power_support}
+BuildRequires: pkgconfig(capi-system-power)
+%endif
+
+%if 0%{?tizen_feature_bookmark_support}
+BuildRequires: pkgconfig(bookmark-adaptor)
+%endif
+
 %if 0%{?tizen_feature_messaging_support}
 BuildRequires:  pkgconfig(email-service)
 %endif
@@ -184,6 +190,7 @@ BuildRequires:  pkgconfig(badge)
 
 %if 0%{?tizen_feature_bookmark_support}
 BuildRequires:  pkgconfig(capi-web-bookmark)
+BuildRequires: pkgconfig(bookmark-adaptor)
 %endif
 
 %if 0%{?tizen_feature_calendar_support}
