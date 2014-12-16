@@ -1,4 +1,5 @@
 // Copyright (c) 2013 Intel Corporation. All rights reserved.
+// Copyright (c) 2014 Samsung Electronics Co., Ltd All Rights Reserved
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -47,6 +48,12 @@ var errors = {
   '104': { type: 'DATABASE_ERR', name: 'DATABASE_ERR', message: '' }
 };
 
+/**
+ * Generic exception interface.
+ * @param {number} 16-bit error code.
+ * @param {string} An error message that describes the details of an encountered error.
+ * @param {string} An error type.
+ */
 exports.WebAPIException = function(code, message, name) {
   var _code, _message, _name;
 
@@ -75,6 +82,12 @@ exports.WebAPIException = function(code, message, name) {
 for (var value in errors)
   Object.defineProperty(exports.WebAPIException, errors[value].type, { value: parseInt(value) });
 
+/**
+ * Generic error interface.
+ * @param {number} 16-bit error code.
+ * @param {string} An error message that describes the details of an encountered error.
+ * @param {string} An error type.
+ */
 exports.WebAPIError = function(code, message, name) {
   var _code, _message, _name;
 
@@ -103,27 +116,38 @@ exports.WebAPIError = function(code, message, name) {
 for (var value in errors)
   Object.defineProperty(exports.WebAPIError, errors[value].type, { value: value });
 
-// NOTE: Stubs for Application. These are needed for running TCT until
-// we have a proper Application API implementation.
-exports.application = {
-  getAppInfo: function() { return { id: 0 } }
+/**
+ * Filter match flags.
+ * @enum {string}
+ */
+var FilterMatchFlag = {
+    EXACTLY : 'EXACTLY',
+    FULLSTRING : 'FULLSTRING',
+    CONTAINS : 'CONTAINS',
+    STARTSWITH : 'STARTSWITH',
+    ENDSWITH : 'ENDSWITH',
+    EXISTS : 'EXISTS'
 };
 
-exports.ApplicationControlData = function(key, value) {
-  this.key = key;
-  this.value = value;
+/**
+ * An enumerator that indicates the sorting order.
+ * @enum {string}
+ */
+var SortModeOrder = {
+    ASC : 'ASC',
+    DESC : 'DESC'
 };
 
-exports.ApplicationControl = function(operation, uri, mime, category, data) {
-  this.operation = operation;
-  this.uri = uri;
-  this.mime = mime;
-  this.category = category;
-  this.data = data || [];
+/**
+ * An enumerator that indicates the type of composite filter.
+ * @enum {string}
+ */
+var CompositeFilterType = {
+    UNION : 'UNION',
+    INTERSECTION : 'INTERSECTION'
 };
 
 // Tizen Filters
-
 // either AttributeFilter, AttributeRangeFilter, or CompositeFilter
 function is_tizen_filter(f) {
   return (f instanceof tizen.AttributeFilter) ||
@@ -131,45 +155,14 @@ function is_tizen_filter(f) {
          (f instanceof tizen.CompositeFilter);
 }
 
-// AbstractFilter (abstract base class)
+/**
+ * This is a common interface used by different types of object filters.
+ */
 exports.AbstractFilter = function() {};
 
-// SortMode
-// [Constructor(DOMString attributeName, optional SortModeOrder? order)]
-// interface SortMode {
-//   attribute DOMString attributeName;
-//   attribute SortModeOrder order;
-// };
-exports.SortMode = function(attrName, order) {
-  if (!(typeof(attrName) === 'string' || attrname instanceof String) ||
-      order && (order != 'DESC' && order != 'ASC'))
-    throw new exports.WebAPIException(exports.WebAPIException.TYPE_MISMATCH_ERR);
-
-  Object.defineProperties(this, {
-    'attributeName': { writable: false, enumerable: true, value: attrName },
-    'order': { writable: false, enumerable: true, value: order || 'ASC' }
-  });
-};
-exports.SortMode.prototype.constructor = exports.SortMode;
-
-// AttributeFilter
-// [Constructor(DOMString attributeName, optional FilterMatchFlag? matchFlag,
-//              optional any matchValue)]
-// interface AttributeFilter : AbstractFilter {
-//   attribute DOMString attributeName;
-//   attribute FilterMatchFlag matchFlag;
-//   attribute any matchValue;
-// };
-
-var FilterMatchFlag = {
-  EXACTLY: 0,
-  FULLSTRING: 1,
-  CONTAINS: 2,
-  STARTSWITH: 3,
-  ENDSWITH: 4,
-  EXISTS: 5
-};
-
+/**
+ * Represents a set of filters.
+ */
 exports.AttributeFilter = function(attrName, matchFlag, matchValue) {
   if (this && this.constructor == exports.AttributeFilter &&
       (typeof(attrName) === 'string' || attrname instanceof String) &&
@@ -194,15 +187,10 @@ exports.AttributeFilter = function(attrName, matchFlag, matchValue) {
 exports.AttributeFilter.prototype = new exports.AbstractFilter();
 exports.AttributeFilter.prototype.constructor = exports.AttributeFilter;
 
-
-// AttributeRangeFilter
-// [Constructor(DOMString attributeName, optional any initialValue,
-//              optional any endValue)]
-// interface AttributeRangeFilter : AbstractFilter {
-//   attribute DOMString attributeName;
-//   attribute any initialValue;
-//   attribute any endValue;
-// };
+/**
+ * Represents a filter based on an object attribute which has values that are 
+ * within a particular range.
+ */
 exports.AttributeRangeFilter = function(attrName, start, end) {
   if (!this || this.constructor != exports.AttributeRangeFilter ||
       !(typeof(attrName) === 'string' || attrname instanceof String)) {
@@ -221,16 +209,9 @@ exports.AttributeRangeFilter = function(attrName, start, end) {
 exports.AttributeRangeFilter.prototype = new exports.AbstractFilter();
 exports.AttributeRangeFilter.prototype.constructor = exports.AttributeRangeFilter;
 
-
-// CompositeFilter
-// [Constructor(CompositeFilterType type, optional AbstractFilter[]? filters)]
-// interface CompositeFilter : AbstractFilter {
-//   attribute CompositeFilterType type;
-//   attribute AbstractFilter[] filters;
-// };
-
-var CompositeFilterType = { UNION: 0, INTERSECTION: 1 };
-
+/**
+ * Represents a set of filters.
+ */
 exports.CompositeFilter = function(type, filters) {
   if (!this || this.constructor != exports.CompositeFilter ||
       !(type in CompositeFilterType) ||
@@ -250,14 +231,24 @@ exports.CompositeFilter = function(type, filters) {
 exports.CompositeFilter.prototype = new exports.AbstractFilter();
 exports.CompositeFilter.prototype.constructor = exports.CompositeFilter;
 
-// end of Tizen filters
+/**
+ * SortMode is a common interface used for sorting of queried data.
+ */
+exports.SortMode = function(attrName, order) {
+  if (!(typeof(attrName) === 'string' || attrname instanceof String) ||
+      order && (order != 'DESC' && order != 'ASC'))
+    throw new exports.WebAPIException(exports.WebAPIException.TYPE_MISMATCH_ERR);
 
-// SimpleCoordinates
-// [Constructor(double latitude, double longitude)]
-// interface SimpleCoordinates {
-//   attribute double latitude;
-//   attribute double longitude;
-// };
+  Object.defineProperties(this, {
+    'attributeName': { writable: false, enumerable: true, value: attrName },
+    'order': { writable: false, enumerable: true, value: order || 'ASC' }
+  });
+};
+exports.SortMode.prototype.constructor = exports.SortMode;
+
+/**
+ * Represents a point (latitude and longitude) in the map coordinate system.
+ */
 exports.SimpleCoordinates = function(latitude, longitude) {
   if (!(typeof(latitude) === 'number' || typeof(longitude) === 'number'))
     throw new exports.WebAPIException(exports.WebAPIException.TYPE_MISMATCH_ERR);
