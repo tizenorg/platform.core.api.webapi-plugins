@@ -10,6 +10,7 @@
 #include "common/picojson.h"
 #include "tvchannel/tvchannel_manager.h"
 #include "tvchannel/channel_info.h"
+#include "tvchannel/program_info.h"
 
 namespace extension {
 namespace tvchannel {
@@ -18,6 +19,10 @@ TVChannelInstance::TVChannelInstance() {
     LOGE("Entered");
     RegisterSyncHandler("TVChannelManager_getCurrentChannel",
         std::bind(&TVChannelInstance::getCurrentChannel, this,
+            std::placeholders::_1,
+            std::placeholders::_2));
+    RegisterSyncHandler("TVChannelManager_getCurrentProgram",
+        std::bind(&TVChannelInstance::getCurrentProgram, this,
             std::placeholders::_1,
             std::placeholders::_2));
 }
@@ -70,6 +75,35 @@ void TVChannelInstance::getCurrentChannel(picojson::value const& args,
 
     ReportSuccess(v, out);
 }
+
+void TVChannelInstance::getCurrentProgram(const picojson::value& args,
+    picojson::object& out) {
+    std::unique_ptr<ProgramInfo> pInfo(TVChannelManager::getInstance()
+        ->getCurrentProgram(args.get("windowType").get<std::string>()));
+    picojson::value::object program;
+    program.insert(
+        std::make_pair("title",
+            picojson::value(pInfo->getTitle())));
+    program.insert(
+        std::make_pair("startTime",
+            picojson::value(static_cast<double>(pInfo->getStartTimeMs()))));
+    program.insert(
+        std::make_pair("duration",
+            picojson::value(static_cast<double>(pInfo->getDuration()))));
+    program.insert(
+        std::make_pair("detailedDescription",
+            picojson::value(pInfo->getDetailedDescription())));
+    program.insert(
+        std::make_pair("language",
+            picojson::value(pInfo->getLanguage())));
+    program.insert(
+        std::make_pair("rating",
+            picojson::value(pInfo->getRating())));
+
+    picojson::value result(program);
+    ReportSuccess(result, out);
+}
+
 
 }  // namespace tvchannel
 }  // namespace extension

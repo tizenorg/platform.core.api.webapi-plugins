@@ -36,6 +36,8 @@
         'tvchannel_instance.h',
         'channel_info.cc',
         'channel_info.h',
+        'program_info.cc',
+        'program_info.h',
         'tvchannel_manager.h',
         'tvchannel_manager.cc',
         'types.h',

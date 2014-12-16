@@ -22,6 +22,7 @@ class TVChannelInstance: public common::ParsedInstance {
 
  private:
     void getCurrentChannel(const picojson::value& args, picojson::object& out);
+    void getCurrentProgram(const picojson::value& args, picojson::object& out);
 };
 
 }  // namespace tvchannel

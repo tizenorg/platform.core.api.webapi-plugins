@@ -5,11 +5,14 @@
 #include "tvchannel/tvchannel_manager.h"
 #include <iconv.h>
 #include "tvchannel/channel_info.h"
+#include "tvchannel/program_info.h"
 #include "common/logger.h"
 #include "common/platform_exception.h"
 
 namespace extension {
 namespace tvchannel {
+
+using common::UnknownException;
 
 TVChannelManager* TVChannelManager::getInstance() {
     static TVChannelManager manager;
@@ -75,6 +78,57 @@ EProfile TVChannelManager::getProfile(WindowType windowType) {
     default:
         LOGE("Unsupported window type: %d", windowType);
     }
+}
+
+TCServiceId TVChannelManager::getCurrentChannelId(
+    const std::string& _windowType) {
+    TCServiceData serviceData;
+    TCCriteriaHelper criteria;
+    criteria.Fetch(SERVICE_ID);
+    //  Navigation
+    IServiceNavigation* navigation;
+    int ret = TVServiceAPI::CreateServiceNavigation(
+            getProfile(stringToWindowType(_windowType)), 0, &navigation);
+    if (TV_SERVICE_API_SUCCESS != ret) {
+        LOGE("Failed to create service navigation: %d", ret);
+        throw UnknownException("Failed to create service navigation");
+    }
+
+    struct TSTvMode tvMode;
+    ret = navigation->GetTvMode(tvMode);
+    if (TV_SERVICE_API_METHOD_SUCCESS != ret) {
+        LOGE("Failed to get current tv mode: %d", ret);
+        throw UnknownException("Failed to get current tv mode");
+    }
+
+    ret = navigation->GetCurrentServiceInfo(tvMode, criteria, serviceData);
+    if (TV_SERVICE_API_METHOD_SUCCESS != ret) {
+        LOGE("Failed to get current service info: %d", ret);
+        throw UnknownException("Failed to get current service info");
+    }
+    return serviceData.Get<TCServiceId>(SERVICE_ID);
+}
+
+ProgramInfo* TVChannelManager::getCurrentProgram(
+    const std::string& _windowType) {
+
+    IServiceGuide* guide;
+    int ret = TVServiceAPI::CreateServiceGuide(&guide);
+    if (TV_SERVICE_API_SUCCESS != ret) {
+        LOGE("Failed to create service guide: %d", ret);
+        throw UnknownException("Failed to create service guide");
+    }
+
+    TCProgramData programData;
+    ret = guide->GetPresentProgram(getCurrentChannelId(_windowType),
+        programData);
+    if (TV_SERVICE_API_METHOD_SUCCESS != ret) {
+        LOGE("Failed to get current program: %d", ret);
+        throw UnknownException("Failed to get current program");
+    }
+    ProgramInfo* program = new ProgramInfo();
+    program->fromApiData(programData);
+    return program;
 }
 
 void TVChannelManager::ucs2utf8(char *out, size_t out_len, char *in,

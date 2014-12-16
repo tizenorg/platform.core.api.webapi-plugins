@@ -14,6 +14,7 @@ namespace extension {
 namespace tvchannel {
 
 class ChannelInfo;
+class ProgramInfo;
 //  TVServiceAPI static methods returns 0 on success
 static const int TV_SERVICE_API_SUCCESS = 0;
 //  TVServiceAPI object methods return 1 on success
@@ -27,6 +28,7 @@ class TVChannelManager {
  public:
     static TVChannelManager* getInstance();
     std::unique_ptr<ChannelInfo> getCurrentChannel(std::string const& _windowType);
+    ProgramInfo* getCurrentProgram(std::string const& _windowType);
     static void ucs2utf8(char *out, size_t out_len, char *in, size_t in_len);
  private:
     //  Not copyable, assignable, movable
@@ -37,6 +39,7 @@ class TVChannelManager {
     TVChannelManager(TVChannelManager &&) = delete;
 
     EProfile getProfile(WindowType windowType);
+    TCServiceId getCurrentChannelId(std::string const& _windowType);
 };
 
 }  // namespace tvchannel
