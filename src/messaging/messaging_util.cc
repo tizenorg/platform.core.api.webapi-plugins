@@ -45,6 +45,11 @@ const char* MESSAGE_ATTRIBUTE_IN_RESPONSE_TO = "inResponseTo";
 const char* MESSAGE_ATTRIBUTE_MESSAGE_STATUS = "messageStatus";
 const char* MESSAGE_ATTRIBUTE_ATTACHMENTS = "attachments";
 const char* MESSAGE_ATTRIBUTE_HAS_ATTACHMENT = "hasAttachment";
+const char* MESSAGE_ATTRIBUTE_MESSAGE_BODY = "body";
+
+const char* MESSAGE_BODY_ATTRIBUTE_LOADED = "loaded";
+const char* MESSAGE_BODY_ATTRIBUTE_PLAIN_BODY = "plainBody";
+const char* MESSAGE_BODY_ATTRIBUTE_HTML_BODY = "htmlBody";
 
 namespace {
 const std::string TYPE_SMS = "messaging.sms";
@@ -248,7 +253,25 @@ std::shared_ptr<Message> MessagingUtil::jsonToMessage(const picojson::value& jso
             MESSAGE_ATTRIBUTE_IS_HIGH_PRIORITY);
     message->setIsHighPriority(priority);
 
-    // TODO MessageBody
+    std::shared_ptr<MessageBody> body = std::shared_ptr<MessageBody>(new MessageBody());
+    picojson::object mb = MessagingUtil::getValueFromJSONObject<picojson::object>(
+            data, MESSAGE_ATTRIBUTE_MESSAGE_BODY);
+
+    bool loaded = MessagingUtil::getValueFromJSONObject<bool>(mb,
+            MESSAGE_BODY_ATTRIBUTE_LOADED);
+    body->setLoaded(loaded);
+
+    std::string html = MessagingUtil::getValueFromJSONObject<std::string>(mb,
+            MESSAGE_BODY_ATTRIBUTE_HTML_BODY);
+    body->setHtmlBody(html);
+
+    std::string plain = MessagingUtil::getValueFromJSONObject<std::string>(mb,
+            MESSAGE_BODY_ATTRIBUTE_PLAIN_BODY);
+    body->setPlainBody(plain);
+
+    message->setBody(body);
+
+    // TODO MessageAttachments
 
     return message;
 

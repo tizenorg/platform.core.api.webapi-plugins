@@ -23,7 +23,7 @@ Message::Message():
     m_id(-1), m_id_set(false), m_conversation_id(-1),
     m_conversation_id_set(false), m_folder_id(-1), m_folder_id_set(false),
     m_type(UNDEFINED), m_timestamp_set(false), m_from_set(false),
-    //m_body(new(std::nothrow) MessageBody()),
+    m_body(new(std::nothrow) MessageBody()),
     m_service_id(0), m_is_read(false), m_has_attachment(false),
     m_high_priority(false), m_in_response(-1), m_in_response_set(false),
     m_service_id_set(false), m_status(STATUS_UNDEFINED),
@@ -194,6 +194,7 @@ void Message::setBody(std::shared_ptr<MessageBody>& body)
 {
     // while replacing message body old body should have some invalid id mark
     m_body->setMessageId(-1);
+
     m_body = body;
     if(m_id_set) {
         m_body->setMessageId(m_id);

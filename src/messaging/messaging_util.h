@@ -40,6 +40,11 @@ extern const char* MESSAGE_ATTRIBUTE_IN_RESPONSE_TO;
 extern const char* MESSAGE_ATTRIBUTE_MESSAGE_STATUS;
 extern const char* MESSAGE_ATTRIBUTE_ATTACHMENTS;
 extern const char* MESSAGE_ATTRIBUTE_HAS_ATTACHMENT;
+extern const char* MESSAGE_ATTRIBUTE_MESSAGE_BODY;
+
+extern const char* MESSAGE_BODY_ATTRIBUTE_LOADED;
+extern const char* MESSAGE_BODY_ATTRIBUTE_PLAIN_BODY;
+extern const char* MESSAGE_BODY_ATTRIBUTE_HTML_BODY;
 
 enum MessageType {
     UNDEFINED = 0,
