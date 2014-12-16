@@ -34,7 +34,7 @@
 #include "email-api-mailbox.h"
 
 #include "common/callback_user_data.h"
-//#include <PlatformException.h>
+#include "common/platform_exception.h"
 
 #include "messaging_util.h"
 #include "message_service.h"

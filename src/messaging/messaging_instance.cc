@@ -32,6 +32,7 @@ const char* LOAD_MESSAGE_ATTACHMENT_ARGS_ATTACHMENT = "attachment";
 const char* FUN_MESSAGE_SERVICE_SYNC = "MessageService_sync";
 const char* SERVICE_SYNC_ARGS_ID = "id";
 const char* SERVICE_SYNC_ARGS_LIMIT = "limit";
+const char* CMD_MESSAGE_SERVICE_SYNC = "sync";
 
 const char* FUN_MESSAGE_SERVICE_SYNC_FOLDER = "MessageService_syncFolder";
 const char* SYNC_FOLDER_ARGS_FOLDER = "folder";
@@ -180,7 +181,7 @@ void MessagingInstance::MessageServiceSync(const picojson::value& args,
     auto json = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
     picojson::object& obj = json->get<picojson::object>();
     obj[JSON_CALLBACK_ID] = picojson::value(callbackId);
-    //obj[JSON_DATA] = picojson::value( TODO );
+    obj[JSON_CMD] = picojson::value(CMD_MESSAGE_SERVICE_SYNC);
 
     SyncCallbackData *callback = new SyncCallbackData();
     callback->setJson(json);

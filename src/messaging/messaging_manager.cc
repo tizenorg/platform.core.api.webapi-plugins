@@ -63,7 +63,6 @@ static gboolean callbackCompleted(const std::shared_ptr<MsgManagerCallbackData>&
 {
     LoggerD("Entered");
     std::shared_ptr<picojson::value> response = user_data->json;
-    std::cout<<response->serialize()<< std::endl;
     MessagingInstance::getInstance().PostMessage(response->serialize().c_str());
     return false;
 }

@@ -21,7 +21,7 @@
 
 #include "SyncProxy.h"
 #include "common/logger.h"
-//#include <PlatformException.h>
+#include "common/platform_exception.h"
 #include <cstring>
 #include <email-types.h>
 #include "../message_service.h"
@@ -55,8 +55,8 @@ common::CallbackUserData* SyncProxy::getCallback(long op_id)
         cb = it->second;
         return cb;
     }
-    LOGE("Could not find callback");
-    //TODO throw Common::UnknownException("Could not find callback");
+    LoggerE("Could not find callback");
+    throw common::UnknownException("Could not find callback");
     return cb;
 }
 
@@ -69,8 +69,8 @@ void SyncProxy::removeCallback(long op_id){
         m_callback_map.erase(it);
     }
     else {
-        LOGE("Could not find callback");
-        //TODO throw Common::UnknownException("Could not find callback");
+        LoggerE("Could not find callback");
+        throw common::UnknownException("Could not find callback");
     }
 }
 
@@ -87,12 +87,12 @@ void SyncProxy::handleEmailSignal(const int status,
         return;
     }
 
-    LOGD("received email signal with:\n  status: %d\n  mail_id: %d\n  "
+    LoggerD("received email signal with:\n  status: %d\n  mail_id: %d\n  "
             "source: %s\n  op_handle: %d\n  error_code: %d",
             status, mail_id, source.c_str(), op_handle, error_code);
 
     if (NOTI_DOWNLOAD_START == status) {
-        LOGD("Sync started...");
+        LoggerD("Sync started...");
         // There is nothing more to do so we can return now.
         return;
     }
@@ -105,34 +105,38 @@ void SyncProxy::handleEmailSignal(const int status,
         callback = callback_it->second;
         if (!callback) {
             LOGE("Callback is null");
-            //TODO throw Common::UnknownException("Callback is null");
+            throw common::UnknownException("Callback is null");
         }
 
+        std::shared_ptr<picojson::value> response = callback->getJson();
+        picojson::object& obj = response->get<picojson::object>();
         switch (status) {
             case NOTI_DOWNLOAD_FINISH:
                 LoggerD("Sync finished!");
-                //TODO callback->callSuccessCallback();
+                obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
+                MessagingInstance::getInstance().PostMessage(response->serialize().c_str());
                 break;
 
             case NOTI_DOWNLOAD_FAIL:
                 LoggerD("Sync failed!");
-                //TODO callback->callErrorCallback();
+                obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_ERROR);
+                MessagingInstance::getInstance().PostMessage(response->serialize().c_str());
                 break;
 
             default:
                 break;
         }
     }
-//    catch (const Common::BasePlatformException& e) {
-//        // this situation may occur when there is no callback in the
-//        // map with specified opId (for example stopSync() has
-//        // removed it), but sync() was already started - only
-//        // warning here:
-//        LOGE("Exception in signal callback");
-//    }
+    catch (const common::PlatformException& e) {
+        // this situation may occur when there is no callback in the
+        // map with specified opId (for example stopSync() has
+        // removed it), but sync() was already started - only
+        // warning here:
+        LoggerE("Exception in signal callback");
+    }
     catch(...)
     {
-        LOGE("Exception in signal callback");
+        LoggerE("Exception in signal callback");
     }
 
     if(callback) {
@@ -157,8 +161,8 @@ SyncProxy::CallbackMap::iterator SyncProxy::findSyncCallbackByOpHandle(
     // map with specified opId (for example stopSync() has
     // removed it), but sync() was already started - only
     // warning here:
-    LOGW("Could not find callback with op_handle: %d", op_handle);
-    //TODO throw Common::UnknownException("Could not find callback");
+    LoggerW("Could not find callback with op_handle: %d", op_handle);
+    throw common::UnknownException("Could not find callback");
 }
 
 } //namespace DBus
