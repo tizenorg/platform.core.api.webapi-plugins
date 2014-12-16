@@ -44,6 +44,8 @@ DEFINE_EXCEPTION(NotFound)
 DEFINE_EXCEPTION(InvalidAccess)
 DEFINE_EXCEPTION(Abort)
 DEFINE_EXCEPTION(QuotaExceeded)
+DEFINE_EXCEPTION(InvalidState)
+DEFINE_EXCEPTION(InvalidModification)
 #undef DEFINE_EXCEPTION
 
 } // namespace common
