@@ -10,10 +10,10 @@
 #include "common/logger.h"
 
 #include "messaging_util.h"
+#include "message_callback_user_data.h"
 
 namespace extension {
 namespace messaging {
-
 
 class MessageStorage;
 typedef std::shared_ptr<MessageStorage> MessageStoragePtr;
@@ -26,7 +26,7 @@ public:
     virtual int getMsgServiceId() const;
     virtual MessageType getMsgServiceType() const;
 
-    virtual void addDraftMessage() = 0;
+    virtual void addDraftMessage(MessageCallbackUserData* callback) = 0;
     virtual void removeMessages() = 0;
     virtual void updateMessages() = 0;
     virtual void findMessages() = 0;

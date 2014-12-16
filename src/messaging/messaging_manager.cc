@@ -23,10 +23,6 @@
 namespace extension {
 namespace messaging {
 
-namespace{
-const char* CMD_GET_MSG_SERVICE = "getMessageServices";
-}
-
 MessagingManager::MessagingManager()
 {
     LoggerD("Entered");
@@ -73,7 +69,6 @@ static void* getMsgServicesThread(const std::shared_ptr<MsgManagerCallbackData>&
 
     std::shared_ptr<picojson::value> response = user_data->json;
     picojson::object& obj = response->get<picojson::object>();
-    obj[JSON_CMD] = picojson::value(CMD_GET_MSG_SERVICE);
     MessageType type = MessageType::UNDEFINED;
     try {
         type = MessagingUtil::stringToMessageType(response->get(JSON_DATA).get<std::string>());

@@ -53,11 +53,13 @@ public:
     void setJson(std::shared_ptr<picojson::value> json);
     std::shared_ptr<picojson::value> getJson() const;
 
+protected:
+    std::shared_ptr<picojson::value> m_json;
+
 private:
 //    JSContextRef m_context;
 //    MultiCallbackUserData* m_impl;
     bool m_is_act;
-    std::shared_ptr<picojson::value> m_json;
 };
 
 } // Common

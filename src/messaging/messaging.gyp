@@ -62,6 +62,8 @@
         #'DBus/SendProxy.h',
         'DBus/SyncProxy.cpp',
         'DBus/SyncProxy.h',
+        'message_callback_user_data.cc',
+        'message_callback_user_data.h'
       ],
       'includes': [
         '../common/pkg-config.gypi',

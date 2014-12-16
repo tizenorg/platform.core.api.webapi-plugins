@@ -11,6 +11,8 @@
 
 #include "messaging_manager.h"
 #include "messaging_util.h"
+#include "message_storage.h"
+#include "message.h"
 
 namespace extension {
 namespace messaging {
@@ -32,7 +34,6 @@ const char* LOAD_MESSAGE_ATTACHMENT_ARGS_ATTACHMENT = "attachment";
 const char* FUN_MESSAGE_SERVICE_SYNC = "MessageService_sync";
 const char* SERVICE_SYNC_ARGS_ID = "id";
 const char* SERVICE_SYNC_ARGS_LIMIT = "limit";
-const char* CMD_MESSAGE_SERVICE_SYNC = "sync";
 
 const char* FUN_MESSAGE_SERVICE_SYNC_FOLDER = "MessageService_syncFolder";
 const char* SYNC_FOLDER_ARGS_FOLDER = "folder";
@@ -89,6 +90,8 @@ const char* ADD_FOLDER_CHANGE_LISTENER_ARGS_FILTER = "filter";
 
 const char* FUN_MESSAGE_STORAGE_REMOVE_CHANGE_LISTENER = "MessageStorage_removeChangeListener";
 const char* REMOVE_CHANGE_LISTENER_ARGS_WATCHID = "watchId";
+
+const char* FUNCTIONS_HIDDEN_ARGS_SERVICE_ID = "serviceId";
 }
 
 MessagingInstance& MessagingInstance::getInstance()
@@ -181,7 +184,6 @@ void MessagingInstance::MessageServiceSync(const picojson::value& args,
     auto json = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
     picojson::object& obj = json->get<picojson::object>();
     obj[JSON_CALLBACK_ID] = picojson::value(callbackId);
-    obj[JSON_CMD] = picojson::value(CMD_MESSAGE_SERVICE_SYNC);
 
     SyncCallbackData *callback = new SyncCallbackData();
     callback->setJson(json);
@@ -234,7 +236,21 @@ void MessagingInstance::MessageStorageAddDraft(const picojson::value& args,
 
     picojson::object data = args.get(JSON_DATA).get<picojson::object>();
     picojson::value v_message = data.at(ADD_DRAFT_MESSAGE_ARGS_MESSAGE);
-    LoggerD("%s", v_message.serialize().c_str());
+    const double callbackId = args.get(JSON_CALLBACK_ID).get<double>();
+
+    MessageCallbackUserData* callback = new MessageCallbackUserData();
+    callback->setMessage(MessagingUtil::jsonToMessage(v_message));
+
+    auto serviceId = static_cast<int>(data.at(FUNCTIONS_HIDDEN_ARGS_SERVICE_ID).get<double>());
+    callback->setAccountId(serviceId);
+
+    auto json = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
+    picojson::object& obj = json->get<picojson::object>();
+    obj[JSON_CALLBACK_ID] = picojson::value(callbackId);
+    callback->setJson(json);
+
+    auto service = MessagingManager::getInstance().getMessageServiceEmail(serviceId);
+    service->getMsgStorage()->addDraftMessage(callback);
 }
 
 void MessagingInstance::MessageStorageFindMessages(const picojson::value& args,
