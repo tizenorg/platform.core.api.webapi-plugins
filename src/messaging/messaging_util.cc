@@ -8,6 +8,10 @@
 #include <stdexcept>
 #include <streambuf>
 #include <sstream>
+#include <cstdlib>
+
+#include <email-api-account.h>
+#include "message_email.h"
 
 #include "common/logger.h"
 #include "common/platform_exception.h"
@@ -23,6 +27,24 @@ const char* JSON_CALLBACK_ERROR = "error";
 const char* JSON_CALLBACK_PROGRESS = "progress";
 const char* JSON_CALLBACK_KEEP = "keep";
 const char* JSON_DATA = "args";
+
+const char* MESSAGE_ATTRIBUTE_ID = "id";
+const char* MESSAGE_ATTRIBUTE_CONVERSATION_ID = "conversationId";
+const char* MESSAGE_ATTRIBUTE_FOLDER_ID = "folderId";
+const char* MESSAGE_ATTRIBUTE_TYPE = "type";
+const char* MESSAGE_ATTRIBUTE_TIMESTAMP = "timestamp";
+const char* MESSAGE_ATTRIBUTE_FROM = "from";
+const char* MESSAGE_ATTRIBUTE_TO = "to"; // used also in dictionary
+const char* MESSAGE_ATTRIBUTE_CC = "cc"; // used also in dictionary
+const char* MESSAGE_ATTRIBUTE_BCC = "bcc"; // used also in dictionary
+const char* MESSAGE_ATTRIBUTE_BODY = "body";
+const char* MESSAGE_ATTRIBUTE_IS_READ = "isRead";
+const char* MESSAGE_ATTRIBUTE_IS_HIGH_PRIORITY = "isHighPriority"; // used also in dictionary
+const char* MESSAGE_ATTRIBUTE_SUBJECT = "subject"; // used also in dictionary
+const char* MESSAGE_ATTRIBUTE_IN_RESPONSE_TO = "inResponseTo";
+const char* MESSAGE_ATTRIBUTE_MESSAGE_STATUS = "messageStatus";
+const char* MESSAGE_ATTRIBUTE_ATTACHMENTS = "attachments";
+const char* MESSAGE_ATTRIBUTE_HAS_ATTACHMENT = "hasAttachment";
 
 namespace {
 const std::string TYPE_SMS = "messaging.sms";
@@ -45,7 +67,7 @@ const std::map<MessageType, std::string> typeToStringMap = {
     {MessageType::EMAIL, TYPE_EMAIL}
 };
 
-}
+} // namespace
 
 MessageType MessagingUtil::stringToMessageType(std::string str)
 {
@@ -158,5 +180,78 @@ std::string MessagingUtil::messageStatusToString(MessageStatus status) {
     }
 }
 
+std::shared_ptr<Message> MessagingUtil::jsonToMessage(const picojson::value& json)
+{
+    LoggerD("Entered");
+    std::shared_ptr<Message> message;
+    picojson::object data = json.get<picojson::object>();
+    std::string type = data.at("type").get<std::string>();
+
+    MessageType mtype = MessagingUtil::stringToMessageType(type);
+
+    switch (mtype) {
+    case MessageType::SMS:
+        LoggerD("Currently unsupported");
+        // TODO add class which will extended message_service and call message_service_short_msg
+        break;
+    case MessageType::MMS:
+        LoggerD("Currently unsupported");
+        // TODO add class which will extended message_service and call message_service_short_msg
+        break;
+    case MessageType::EMAIL:
+
+        if (!data.at(MESSAGE_ATTRIBUTE_ID).is<picojson::null>()) {
+            std::string mid = data.at(MESSAGE_ATTRIBUTE_ID).get<std::string>();
+            int mail_id = std::atoi(mid.c_str());
+            email_mail_data_t* mail = NULL;
+            if (EMAIL_ERROR_NONE != email_get_mail_data(mail_id, &mail)) {
+                // TODO what should happen?
+            } else {
+                message = Message::convertPlatformEmailToObject(*mail);
+                email_free_mail_data(&mail,1);
+                return message;
+            }
+        } else {
+            message = std::shared_ptr<Message>(new MessageEmail());
+        }
+        break;
+    }
+
+    std::vector<std::string> result;
+    auto arrayVectorStringConverter = [&result] (picojson::value& v)->void {
+        result.push_back(v.get<std::string>());
+    };
+
+    auto subject = MessagingUtil::getValueFromJSONObject<std::string>(data,
+            MESSAGE_ATTRIBUTE_SUBJECT);
+    message->setSubject(subject);
+
+    auto toJS = MessagingUtil::getValueFromJSONObject<std::vector<picojson::value>>(data,
+            MESSAGE_ATTRIBUTE_TO);
+    for_each(toJS.begin(), toJS.end(), arrayVectorStringConverter);
+    message->setTO(result);
+    result.clear();
+
+    auto ccJS = MessagingUtil::getValueFromJSONObject<std::vector<picojson::value>>(data,
+            MESSAGE_ATTRIBUTE_CC);
+    for_each(ccJS.begin(), ccJS.end(), arrayVectorStringConverter);
+    message->setCC(result);
+    result.clear();
+
+    auto bccJS = MessagingUtil::getValueFromJSONObject<std::vector<picojson::value>>(data,
+            MESSAGE_ATTRIBUTE_BCC);
+    for_each(bccJS.begin(), bccJS.end(), arrayVectorStringConverter);
+    message->setBCC(result);
+    result.clear();
+
+    auto priority = MessagingUtil::getValueFromJSONObject<bool>(data,
+            MESSAGE_ATTRIBUTE_IS_HIGH_PRIORITY);
+    message->setIsHighPriority(priority);
+
+    // TODO MessageBody
+
+    return message;
+
+}
 } // messaging
 } // extension
