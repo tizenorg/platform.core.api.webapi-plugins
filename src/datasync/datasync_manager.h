@@ -35,7 +35,7 @@ class DataSyncManager {
   ResultOrError<void> Update(SyncProfileInfo& profile_info);
   ResultOrError<void> Remove(const std::string& id);
 
-  ResultOrError<unsigned> GetMaxProfilesNum() const;
+  int GetMaxProfilesNum() const;
   ResultOrError<unsigned> GetProfilesNum() const;
 
   ResultOrError<SyncProfileInfoPtr> Get(

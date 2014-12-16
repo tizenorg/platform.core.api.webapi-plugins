@@ -14,6 +14,7 @@
 
 #include "tizen/tizen.h"
 
+
 namespace extension {
 namespace datasync {
 
@@ -38,11 +39,8 @@ DatasyncInstance::~DatasyncInstance() {
 }
 
 void DatasyncInstance::GetMaxProfilesNum(const picojson::value &args, picojson::object &out) {
-//  TODO: implementation
-
-    picojson::value val{picojson::object{}};
-
-    ReportSuccess(val, out);
+  ReportSuccess(
+      picojson::value(static_cast<double>(DataSyncManager::Instance().GetMaxProfilesNum())), out);
 }
 
 void DatasyncInstance::GetProfilesNum(const picojson::value &args, picojson::object &out) {

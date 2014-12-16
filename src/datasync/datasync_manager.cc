@@ -540,7 +540,7 @@ ResultOrError<void> DataSyncManager::Remove(const std::string& id) {
   return {};
 }
 
-ResultOrError<unsigned> DataSyncManager::GetMaxProfilesNum() const {
+int DataSyncManager::GetMaxProfilesNum() const {
   return MAX_PROFILES_NUM;
 }
 
