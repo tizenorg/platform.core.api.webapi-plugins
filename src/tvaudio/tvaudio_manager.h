@@ -34,6 +34,8 @@ class AudioControlManager {
 
     static AudioControlManager& getInstance();
  private:
+    u_int16_t m_volume_step;
+
     AudioControlManager();
     virtual ~AudioControlManager();
 };

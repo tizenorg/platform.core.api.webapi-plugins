@@ -74,7 +74,7 @@ void TVAudioInstance::setVolumeDown(const picojson::value& args,
 
 void TVAudioInstance::getVolume(const picojson::value& args,
         picojson::object& out) {
-    unsigned short volume = AudioControlManager::getInstance().getVolume();
+    u_int16_t volume = AudioControlManager::getInstance().getVolume();
     ReportSuccess(picojson::value(static_cast<double>(volume)), out);
 }
 
