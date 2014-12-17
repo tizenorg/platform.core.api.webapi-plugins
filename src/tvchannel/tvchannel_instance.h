@@ -29,6 +29,9 @@ class TVChannelInstance:
     virtual void onChannelChange(double callbackId);
     virtual void onEPGReceived(double callbackId);
     virtual void onNoSignal(double callbackId);
+    void findChannel(const picojson::value& args, picojson::object& out);
+    void findChannelResult(
+        const std::shared_ptr<TVChannelManager::FindChannelData>& data);
     picojson::value channelInfoToJson(
         const std::unique_ptr<ChannelInfo> &pChannel);
     picojson::value programInfoToJson(

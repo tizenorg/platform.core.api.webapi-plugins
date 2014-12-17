@@ -9,7 +9,8 @@
 #include "tvchannel/channel_info.h"
 #include "tvchannel/program_info.h"
 #include "common/logger.h"
-#include "common/platform_exception.h"
+#include "common/task-queue.h"
+#include <NavigationModeHelper.h>
 
 namespace extension {
 namespace tvchannel {
@@ -330,6 +331,57 @@ void TVChannelManager::ucs2utf8(char *out, size_t out_len, char *in,
 
     iconv_close(cd);
 }
+
+void TVChannelManager::findChannel(
+    const std::shared_ptr<FindChannelData>& data) {
+    LOGD("Enter");
+    try {
+        IServiceNavigation* navigation =
+            getNavigation(getProfile(WindowType::MAIN), 0);
+
+        std::unique_ptr<TCCriteriaHelper> criteria = getBasicCriteria(
+            getTvMode(navigation), NAVIGATION_MODE_ALL);
+        criteria->Fetch(SERVICE_ID);
+        criteria->Fetch(MAJOR);
+        criteria->Fetch(MINOR);
+        criteria->Fetch(PROGRAM_NUMBER);
+        criteria->Fetch(CHANNEL_NUMBER);
+        criteria->Fetch(CHANNEL_TYPE);
+        criteria->Fetch(SERVICE_NAME);
+        criteria->Fetch(SOURCE_ID);
+        criteria->Fetch(TRANSPORT_STREAM_ID);
+        criteria->Fetch(ORIGINAL_NETWORK_ID);
+        criteria->Fetch(LCN);
+        criteria->Where(MAJOR, static_cast<int>(data->major));
+        criteria->Where(MINOR, static_cast<int>(data->minor));
+
+        std::list<TCServiceData*> resultServices;
+        int ret = m_pService->FindServiceList(*criteria, resultServices);
+        if (TV_SERVICE_API_METHOD_FAILURE == ret) {
+            LOGE("Failed to find channel: %d", ret);
+            throw common::NotFoundException("Failed to find channel");
+        }
+        LOGD("Found channels: %d", resultServices.size());
+        auto it = resultServices.begin();
+        for (; it != resultServices.end(); ++it) {
+            ChannelInfo *channelInfo = new ChannelInfo();
+            channelInfo->fromApiData(*(*it));
+            data->channels.push_back(channelInfo);
+            delete (*it);
+        }
+        resultServices.clear();
+    } catch (common::PlatformException& e) {
+        data->error.reset(new common::PlatformException(e.name(), e.message()));
+    } catch (...) {
+        data->error.reset(
+            new common::UnknownException("Couldn't find channels"));
+    }
+}
+
+TVChannelManager::~TVChannelManager() {
+    TVServiceAPI::Destroy();
+}
+
 
 }  // namespace tvchannel
 }  // namespace extension

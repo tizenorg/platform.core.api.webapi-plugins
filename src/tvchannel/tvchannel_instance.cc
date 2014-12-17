@@ -23,6 +23,10 @@ TVChannelInstance::TVChannelInstance() {
     RegisterSyncHandler("TVChannelManager_getCurrentProgram",
         std::bind(&TVChannelInstance::getCurrentProgram, this,
             std::placeholders::_1, std::placeholders::_2));
+    RegisterHandler("TVChannelManager_findChannel",
+        std::bind(&TVChannelInstance::findChannel, this,
+            std::placeholders::_1,
+            std::placeholders::_2));
     RegisterHandler("TVChannelManager_tune",
         std::bind(&TVChannelInstance::tune, this, std::placeholders::_1,
             std::placeholders::_2));
@@ -225,5 +229,52 @@ void TVChannelInstance::onNoSignal(double callbackId) {
     }
 }
 
-}  //  namespace tvchannel
-}  //  namespace extension
+void TVChannelInstance::findChannel(const picojson::value& args,
+    picojson::object& out) {
+    LOGD("Enter");
+    std::function<void(std::shared_ptr<TVChannelManager::FindChannelData>)>
+        asyncWork = std::bind(
+            &TVChannelManager::findChannel,
+            TVChannelManager::getInstance(),
+            std::placeholders::_1);
+    std::function<void(std::shared_ptr<TVChannelManager::FindChannelData>)>
+        afterWork = std::bind(
+            &TVChannelInstance::findChannelResult,
+            this,
+            std::placeholders::_1);
+    std::shared_ptr<TVChannelManager::FindChannelData> data(
+        new TVChannelManager::FindChannelData());
+    data->major = static_cast<int32_t>(args.get("major").get<double>());
+    data->minor = static_cast<int32_t>(args.get("minor").get<double>());
+    data->callbackId = args.get("callbackId").get<double>();
+    common::TaskQueue::GetInstance().Queue<TVChannelManager::FindChannelData>(
+        asyncWork,
+        afterWork,
+        data);
+    picojson::value result;
+    ReportSuccess(result, out);
+}
+
+void TVChannelInstance::findChannelResult(
+    const std::shared_ptr<TVChannelManager::FindChannelData>& data) {
+    LOGD("Enter");
+    picojson::value::object dict;
+    dict["callbackId"] = picojson::value(data->callbackId);
+    if (data->error) {
+        dict["error"] = data->error->ToJSON();
+    } else {
+        picojson::value::array channels;
+        auto it = data->channels.begin();
+        for (; it != data->channels.end(); ++it) {
+            channels.push_back(channelInfoToJson(
+                std::unique_ptr<ChannelInfo>(*it)));
+        }
+        data->channels.clear();
+        dict["channelInfos"] = picojson::value(channels);
+    }
+    picojson::value result(dict);
+    PostMessage(result.serialize().c_str());
+}
+
+}  // namespace tvchannel
+}  // namespace extension

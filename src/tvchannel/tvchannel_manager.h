@@ -9,11 +9,13 @@
 #include <memory>
 #include <mutex>
 #include <map>
+#include <list>
 #include <TVServiceAPI.h>
 #include <ServiceNavigationDataType.h>
 #include <NavigationModeHelper.h>
 #include "tvchannel/types.h"
 #include "tvchannel/tune_option.h"
+#include "common/platform_exception.h"
 
 namespace common {
 class PlatformException;
@@ -76,10 +78,21 @@ class TVChannelManager {
 
     IService* getService();
 
+    struct FindChannelData {
+        std::shared_ptr<common::PlatformException> error;
+        int32_t major;
+        int32_t minor;
+        double callbackId;
+        std::list<ChannelInfo*> channels;
+    };
+
+    void findChannel(const std::shared_ptr<FindChannelData>& data);
+
  private:
     EventListener* m_listener;
     //  Not copyable, assignable, movable
     TVChannelManager();
+    ~TVChannelManager();
     TVChannelManager(TVChannelManager const&) = delete;
     void operator=(TVChannelManager const&) = delete;
     TVChannelManager(TVChannelManager &&) = delete;
