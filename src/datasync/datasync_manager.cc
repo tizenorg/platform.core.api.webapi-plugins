@@ -9,7 +9,7 @@
 
 #include "common/scope_exit.h"
 #include "datasync/datasync_instance.h"
-#include "datasync/datasync_log.h"
+#include "common/logger.h"
 #include "datasync/sync_info.h"
 #include "datasync/sync_service_info.h"
 #include "datasync/sync_profile_info.h"
@@ -34,7 +34,7 @@ sync_agent_ds_sync_mode_e ConvertToPlatformSyncMode(
       return SYNC_AGENT_SYNC_MODE_PUSH;
     }
     default: {
-      LogWarning("Error while converting a sync mode.");
+      LoggerW("Error while converting a sync mode.");
       return SYNC_AGENT_SYNC_MODE_MANUAL;
     }
   }
@@ -53,7 +53,7 @@ datasync::SyncInfo::SyncMode ConvertToSyncMode(
       return datasync::SyncInfo::PUSH_MODE;
     }
     default: {
-      LogWarning("Error while converting a sync mode.");
+      LoggerW("Error while converting a sync mode.");
       return datasync::SyncInfo::UNDEFINED_MODE;
     }
   }
@@ -81,7 +81,7 @@ sync_agent_ds_sync_type_e ConvertToPlatformSyncType(
       return SYNC_AGENT_SYNC_TYPE_REFRESH_FROM_SERVER;
     }
     default: {
-      LogWarning("Error while converting a sync type.");
+      LoggerW("Error while converting a sync type.");
       return SYNC_AGENT_SYNC_TYPE_UPDATE_BOTH;
     }
   }
@@ -97,7 +97,7 @@ sync_agent_ds_src_uri_e ConvertToPlatformSourceUri(
       return SYNC_AGENT_SRC_URI_CALENDAR;
     }
     default: {
-      LogWarning("Error while converting a sync service.");
+      LoggerW("Error while converting a sync service.");
       return SYNC_AGENT_SRC_URI_CONTACT;
     }
   }
@@ -113,7 +113,7 @@ datasync::SyncStatistics::SyncStatus ConvertToSyncStatus(char* status) {
   } else if (0 == strncmp(status, "No", 2)) {
     return datasync::SyncStatistics::NONE_STATUS;
   } else {
-    LogWarning("Error while converting a sync status.");
+    LoggerW("Error while converting a sync status.");
   }
 
   return datasync::SyncStatistics::NONE_STATUS;
@@ -141,7 +141,7 @@ datasync::SyncInfo::SyncType ConvertToSyncType(
       return datasync::SyncInfo::REFRESH_FROM_SERVER_TYPE;
     }
     default: {
-      LogWarning("Error while converting a sync type.");
+      LoggerW("Error while converting a sync type.");
       return datasync::SyncInfo::UNDEFINED_TYPE;
     }
   }
@@ -178,7 +178,7 @@ sync_agent_ds_sync_interval_e ConvertToPlatformSyncInterval(
       return SYNC_AGENT_SYNC_INTERVAL_NONE;
     }
     default: {
-      LogWarning("Error while converting a JS sync interval.");
+      LoggerW("Error while converting a JS sync interval.");
       return SYNC_AGENT_SYNC_INTERVAL_1_WEEK;
     }
   }
@@ -215,7 +215,7 @@ datasync::SyncInfo::SyncInterval ConvertToSyncInterval(
       return datasync::SyncInfo::INTERVAL_UNDEFINED;
     }
     default: {
-      LogWarning("Error while converting a platform sync interval.");
+      LoggerW("Error while converting a platform sync interval.");
       return datasync::SyncInfo::INTERVAL_UNDEFINED;
     }
   }
@@ -231,7 +231,7 @@ sync_agent_ds_service_type_e ConvertToPlatformSyncServiceType(
       return SYNC_AGENT_CALENDAR;
     }
     default: {
-      LogWarning("Error while converting a sync service type.");
+      LoggerW("Error while converting a sync service type.");
       return SYNC_AGENT_CONTACT;
     }
   }
@@ -247,7 +247,7 @@ datasync::SyncServiceInfo::SyncServiceType ConvertToSyncServiceType(
       return datasync::SyncServiceInfo::EVENT_SERVICE_TYPE;
     }
     default: {
-      LogWarning("Error while converting a sync service type.");
+      LoggerW("Error while converting a sync service type.");
       return datasync::SyncServiceInfo::UNDEFINED_SERVICE_TYPE;
     }
   }
@@ -263,10 +263,10 @@ DataSyncManager::DataSyncManager() {
   // initialize sync agent once per process
   sync_agent_ds_error_e ds_err = SYNC_AGENT_DS_SUCCESS;
   if (!sync_agent_initialized_) {
-    LogInfo("Initialize the datasync manager");
+    LoggerI("Initialize the datasync manager");
     ds_err = sync_agent_ds_init();
     if (SYNC_AGENT_DS_SUCCESS != ds_err) {
-      LogError("Failed to init oma ds.");
+      LoggerE("Failed to init oma ds.");
       return;
     }
   }
@@ -279,7 +279,7 @@ DataSyncManager::DataSyncManager() {
          },
       static_cast<void*>(this));
   if (err != SYNC_AGENT_EVENT_SUCCESS) {
-    LogError("Platform error while setting state changed cb");
+    LoggerE("Platform error while setting state changed cb");
     return;
   }
 
@@ -289,7 +289,7 @@ DataSyncManager::DataSyncManager() {
         },
       static_cast<void*>(this));
   if (err != SYNC_AGENT_EVENT_SUCCESS) {
-    LogError("Platform error while setting progress cb");
+    LoggerE("Platform error while setting progress cb");
   }
 }
 
@@ -331,7 +331,7 @@ ResultOrError<std::string> DataSyncManager::Add(SyncProfileInfo& profile_info) {
   if (profile_list) {
     g_list_free(profile_list);
   }
-  LogDebug("numProfiles: " << num_profiles);
+  LoggerD("numProfiles: %d", num_profiles);
   if (MAX_PROFILES_NUM == num_profiles) {
     return Error("OutOfRangeException",
         "There are already maximum number of profiles!");
@@ -365,8 +365,7 @@ ResultOrError<std::string> DataSyncManager::Add(SyncProfileInfo& profile_info) {
       ConvertToPlatformSyncType(profile_info.sync_info()->sync_type());
   sync_agent_ds_sync_interval_e sync_interval =
       ConvertToPlatformSyncInterval(profile_info.sync_info()->sync_interval());
-  LogDebug("syncMode: " << sync_mode << ", syncType: " << sync_type
-                        << ", syncInterval: " << sync_interval);
+  LoggerD("syncMode: %d, syncType: %d, syncInterval: %d", sync_mode, sync_type, sync_interval);
 
   ret = sync_agent_ds_set_sync_info(profile_h, sync_mode, sync_type,
                                     sync_interval);
@@ -388,8 +387,8 @@ ResultOrError<std::string> DataSyncManager::Add(SyncProfileInfo& profile_info) {
     std::string password = categories->at(i)->password();
     bool enable = categories->at(i)->enable();
 
-    LogInfo("serviceType: " << service_type << ", tgtURI: " << tgt_uri
-                            << ", enable: " << enable << " for index: " << i);
+    LoggerI("serviceType: %d, tgtURI: %s, enable: %d for index: %d",
+            service_type, tgt_uri.c_str(), enable, i);
 
     ret = sync_agent_ds_set_sync_service_info(
         profile_h, service_type, enable, src_uri,
@@ -409,7 +408,7 @@ ResultOrError<std::string> DataSyncManager::Add(SyncProfileInfo& profile_info) {
         "Platform error while adding a profile");
   }
 
-  LogDebug("profileId from platform: " << profile_id);
+  LoggerD("profileId from platform: %d", profile_id);
 
   ret = sync_agent_ds_get_profile_name(profile_h, &profile_name);
   if (SYNC_AGENT_DS_SUCCESS != ret) {
@@ -417,7 +416,7 @@ ResultOrError<std::string> DataSyncManager::Add(SyncProfileInfo& profile_info) {
         "Platform error while getting a profile name");
   }
 
-  LogDebug("profileName: " << profile_name << ", profileId: " << profile_id);
+  LoggerD("profileName: %s, profileId: %d", profile_name, profile_id);
 
   profile_info.set_profile_id(std::to_string(profile_id));
 
@@ -436,7 +435,7 @@ ResultOrError<void> DataSyncManager::Update(SyncProfileInfo& profile_info) {
   sync_agent_ds_error_e ret = SYNC_AGENT_DS_FAIL;
 
   int profile_id = std::stoi(profile_info.profile_id());
-  LogDebug("profileId: " << profile_id);
+  LoggerD("profileId: %d", profile_id);
 
   ret = sync_agent_ds_get_profile(profile_id, &profile_h);
   if (SYNC_AGENT_DS_SUCCESS != ret) {
@@ -466,8 +465,7 @@ ResultOrError<void> DataSyncManager::Update(SyncProfileInfo& profile_info) {
       ConvertToPlatformSyncType(profile_info.sync_info()->sync_type());
   sync_agent_ds_sync_interval_e sync_interval =
       ConvertToPlatformSyncInterval(profile_info.sync_info()->sync_interval());
-  LogDebug("syncMode: " << sync_mode << ", syncType: " << sync_type
-                        << ", syncInterval: " << sync_interval);
+  LoggerD("syncMode: %d, syncType: %d, syncInterval: %d", sync_mode, sync_type, sync_interval);
 
   ret = sync_agent_ds_set_sync_info(profile_h, sync_mode, sync_type,
                                     sync_interval);
@@ -489,8 +487,7 @@ ResultOrError<void> DataSyncManager::Update(SyncProfileInfo& profile_info) {
     std::string password = categories->at(i)->password();
     bool enable = categories->at(i)->enable();
 
-    LogDebug("serviceType: " << service_type << ", tgtURI: " << tgt_uri
-                             << " for index: " << i);
+    LoggerD("serviceType: %d, tgtURI: %s for index: %d", service_type, tgt_uri.c_str(), i);
 
     ret = sync_agent_ds_set_sync_service_info(
         profile_h, service_type, enable, src_uri,
@@ -523,7 +520,7 @@ ResultOrError<void> DataSyncManager::Remove(const std::string& id) {
   sync_agent_ds_error_e ret = SYNC_AGENT_DS_FAIL;
 
   int profile_id = std::stoi(id);
-  LogDebug("profileId: " << profile_id);
+  LoggerD("profileId: %d", profile_id);
 
   ret = sync_agent_ds_get_profile(profile_id, &profile_h);
   if (SYNC_AGENT_DS_SUCCESS != ret) {
@@ -560,10 +557,10 @@ ResultOrError<unsigned> DataSyncManager::GetProfilesNum() const {
   for (iter = profile_list; iter != nullptr; iter = g_list_next(iter)) {
     sync_agent_ds_free_profile_info((ds_profile_h)iter->data);
     num_profiles++;
-    LogDebug("Free sync_agent_ds_profile_info for index: " << num_profiles);
+    LoggerD("Free sync_agent_ds_profile_info for index: %d", num_profiles);
   }
 
-  LogDebug("numProfiles: " << num_profiles);
+  LoggerD("numProfiles: %d", num_profiles);
 
   return num_profiles;
 }
@@ -588,7 +585,7 @@ ResultOrError<SyncProfileInfoPtr> DataSyncManager::Get(
   sync_agent_ds_error_e ret = SYNC_AGENT_DS_FAIL;
 
   int profile_id_str = std::stoi(profile_id);
-  LogDebug("profileId: " << profile_id_str);
+  LoggerD("profileId: %d", profile_id_str);
 
   ret = sync_agent_ds_get_profile(profile_id_str, &profile_h);
   if (SYNC_AGENT_DS_SUCCESS != ret) {
@@ -627,9 +624,8 @@ ResultOrError<SyncProfileInfoPtr> DataSyncManager::Get(
   profile->sync_info()->set_sync_interval(
       ConvertToSyncInterval(sync_info.interval));
 
-  LogDebug("Sync mode: " << sync_info.sync_mode
-                         << ", type: " << sync_info.sync_type
-                         << ", interval: " << sync_info.interval);
+  LoggerD("Sync mode: %d, type: %d, interval: %d",
+          sync_info.sync_mode, sync_info.sync_type, sync_info.interval);
 
   sync_agent_ds_service_info* category_info = nullptr;
   ret = sync_agent_ds_get_sync_service_info(profile_h, &category_list);
@@ -638,13 +634,12 @@ ResultOrError<SyncProfileInfoPtr> DataSyncManager::Get(
         "Platform error while gettting sync categories");
   }
   int category_count = g_list_length(category_list);
-  LogDebug("category_count: " << category_count);
+  LoggerD("category_count: %d", category_count);
   while (category_count--) {
     category_info = static_cast<sync_agent_ds_service_info*>(
         g_list_nth_data(category_list, category_count));
     if (SYNC_AGENT_CALENDAR < category_info->service_type) {
-      LogDebug("Skip unsupported sync service type: "
-               << category_info->service_type);
+      LoggerD("Skip unsupported sync service type: %d", category_info->service_type);
       continue;
     }
 
@@ -662,7 +657,7 @@ ResultOrError<SyncProfileInfoPtr> DataSyncManager::Get(
       service_info->set_server_database_uri(category_info->tgt_uri);
     }
 
-    LogDebug("Service type: " << service_info->sync_service_type());
+    LoggerD("Service type: %d", service_info->sync_service_type());
     profile->service_info()->push_back(service_info);
   }
 
@@ -676,7 +671,7 @@ ResultOrError<SyncProfileInfoListPtr> DataSyncManager::GetAll() const {
   ds_profile_h profile_h = nullptr;
 
   auto exit = common::MakeScopeExit([&profile_list, &profile_h, &iter]() {
-    LogDebug("Free profiles list.");
+    LoggerD("Free profiles list.");
     for (iter = profile_list; iter != nullptr; iter = g_list_next(iter)) {
       sync_agent_ds_free_profile_info((ds_profile_h)iter->data);
     }
@@ -697,7 +692,7 @@ ResultOrError<SyncProfileInfoListPtr> DataSyncManager::GetAll() const {
   }
 
   int profile_id;
-  LogDebug("Number of profiles: " << g_list_length(profile_list));
+  LoggerD("Number of profiles: %d", g_list_length(profile_list));
   for (iter = profile_list; iter != nullptr; iter = g_list_next(iter)) {
     profile_h = (ds_profile_h)iter->data;
     SyncProfileInfoPtr profile(new SyncProfileInfo());
@@ -710,7 +705,7 @@ ResultOrError<SyncProfileInfoListPtr> DataSyncManager::GetAll() const {
 
     profile->set_profile_id(std::to_string(profile_id));
 
-    LogDebug("Processing a profile with id: " << profile->profile_id());
+    LoggerD("Processing a profile with id: %s", profile->profile_id().c_str());
 
     char* profile_name = nullptr;
     ret = sync_agent_ds_get_profile_name(profile_h, &profile_name);
@@ -743,9 +738,8 @@ ResultOrError<SyncProfileInfoListPtr> DataSyncManager::GetAll() const {
     profile->sync_info()->set_sync_interval(
         ConvertToSyncInterval(sync_info.interval));
 
-    LogDebug("Sync mode: " << sync_info.sync_mode
-                           << ", type: " << sync_info.sync_type
-                           << ", interval: " << sync_info.interval);
+    LoggerD("Sync mode: %d, type: %d, interval: %d",
+            sync_info.sync_mode, sync_info.sync_type, sync_info.interval);
 
     GList* category_list = nullptr;
     sync_agent_ds_service_info* category_info = nullptr;
@@ -756,13 +750,12 @@ ResultOrError<SyncProfileInfoListPtr> DataSyncManager::GetAll() const {
           "Platform error while gettting sync categories");
     }
     int category_count = g_list_length(category_list);
-    LogDebug("category_count: " << category_count);
+    LoggerD("category_count: %d", category_count);
     while (category_count--) {
       category_info = static_cast<sync_agent_ds_service_info*>(
           g_list_nth_data(category_list, category_count));
       if (SYNC_AGENT_CALENDAR < category_info->service_type) {
-        LogDebug("Skip unsupported sync service type: "
-            << category_info->service_type);
+        LoggerD("Skip unsupported sync service type: %d", category_info->service_type);
         continue;
       }
 
@@ -780,14 +773,14 @@ ResultOrError<SyncProfileInfoListPtr> DataSyncManager::GetAll() const {
         service_info->set_server_database_uri(category_info->tgt_uri);
       }
 
-      LogDebug("Service type: " << service_info->sync_service_type());
+      LoggerD("Service type: %d", service_info->sync_service_type());
       profile->service_info()->push_back(service_info);
     }
     if (category_list) {
       g_list_free(category_list);
     }
 
-    LogDebug("Adding a profile to the list.");
+    LoggerD("Adding a profile to the list.");
     profiles->push_back(profile);
   }
 
@@ -809,7 +802,7 @@ ResultOrError<void> DataSyncManager::StartSync(
   sync_agent_event_error_e err = SYNC_AGENT_EVENT_FAIL;
 
   int profile_id = std::stoi(profile_id_str);
-  LogDebug("profileId: " << profile_id);
+  LoggerD("profileId: %d", profile_id);
 
   ret = sync_agent_ds_get_profile(profile_id, &profile_h);
   if (SYNC_AGENT_DS_SUCCESS != ret) {
@@ -843,7 +836,7 @@ ResultOrError<void> DataSyncManager::StopSync(
   sync_agent_ds_error_e ret = SYNC_AGENT_DS_FAIL;
 
   int profile_id = std::stoi(profile_id_str.c_str());
-  LogDebug("profileId: " << profile_id);
+  LoggerD("profileId: %d", profile_id);
 
   ret = sync_agent_ds_get_profile(profile_id, &profile_h);
   if (SYNC_AGENT_DS_SUCCESS != ret) {
@@ -894,7 +887,7 @@ ResultOrError<SyncStatisticsListPtr> DataSyncManager::GetLastSyncStatistics(
   sync_agent_ds_error_e ret = SYNC_AGENT_DS_FAIL;
 
   int profile_id = std::stoi(profile_str_id);
-  LogDebug("profileId: " << profile_id);
+  LoggerD("profileId: %d", profile_id);
   ret = sync_agent_ds_get_profile(profile_id, &profile_h);
   if (SYNC_AGENT_DS_SUCCESS != ret) {
     return Error("NotFoundException",
@@ -908,7 +901,7 @@ ResultOrError<SyncStatisticsListPtr> DataSyncManager::GetLastSyncStatistics(
   }
 
   int statistics_count = g_list_length(statistics_list);
-  LogDebug("statistics_count: " << statistics_count);
+  LoggerD("statistics_count: %d", statistics_count);
   sync_agent_ds_statistics_info* statistics = nullptr;
   for (int i = 0; i < statistics_count; i++) {
     statistics = static_cast<sync_agent_ds_statistics_info*>(
@@ -917,19 +910,19 @@ ResultOrError<SyncStatisticsListPtr> DataSyncManager::GetLastSyncStatistics(
     SyncStatisticsPtr statistics_ptr(new SyncStatistics());
 
     if (0 == i) {
-      LogDebug("Statistics for contact.");
+      LoggerD("Statistics for contact.");
       statistics_ptr->set_service_type(
           ConvertToSyncServiceType(SYNC_AGENT_CONTACT));
     } else if (1 == i) {
-      LogDebug("Statistics for event.");
+      LoggerD("Statistics for event.");
       statistics_ptr->set_service_type(
           ConvertToSyncServiceType(SYNC_AGENT_CALENDAR));
     } else {
-      LogWarning("Unsupported category for statistics: " << i);
+      LoggerW("Unsupported category for statistics: %d", i);
       continue;
     }
 
-    LogDebug("dbsynced: " << statistics->dbsynced);
+    LoggerD("dbsynced: %d", statistics->dbsynced);
     if (statistics->dbsynced) {
       statistics_ptr->set_sync_status(
           ConvertToSyncStatus(statistics->dbsynced));
@@ -954,10 +947,8 @@ ResultOrError<SyncStatisticsListPtr> DataSyncManager::GetLastSyncStatistics(
           static_cast<unsigned>(statistics->last_session_time));
     }
 
-    LogDebug(
-        "ClientToServerTotal: " << statistics_ptr->client_to_server_total()
-                                << ", ServerToClientTotal: "
-                                << statistics_ptr->server_to_client_total());
+    LoggerD("ClientToServerTotal: %d, ServerToClientTotal: %d",
+            statistics_ptr->client_to_server_total(), statistics_ptr->server_to_client_total());
 
     statistics_list_ptr->push_back(statistics_ptr);
   }
@@ -966,23 +957,21 @@ ResultOrError<SyncStatisticsListPtr> DataSyncManager::GetLastSyncStatistics(
 }
 
 int DataSyncManager::StateChangedCallback(sync_agent_event_data_s* request) {
-  LogDebug("DataSync session state changed.");
+  LoggerD("DataSync session state changed.");
 
   char* profile_dir_name = nullptr;
   int sync_type = 0;
   char* progress = nullptr;
   char* error = nullptr;
 
-  LogDebug("Get state info.");
+  LoggerD("Get state info.");
   sync_agent_get_event_data_param(request, &profile_dir_name);
   sync_agent_get_event_data_param(request, &sync_type);
   sync_agent_get_event_data_param(request, &progress);
   sync_agent_get_event_data_param(request, &error);
 
-  LogInfo("profileDirName: " << profile_dir_name
-                             << ", sync_type: " << sync_type
-                             << ", progress: " << progress
-                             << ", error: " << error);
+  LoggerI("profileDirName: %s, sync_type: %d, progress: %s, error: %s",
+          profile_dir_name, sync_type, progress,error);
 
   if (profile_dir_name) {
     std::string profile_dir_name_str(profile_dir_name);
@@ -998,7 +987,7 @@ int DataSyncManager::StateChangedCallback(sync_agent_event_data_s* request) {
       callbacks_.erase(it);
 
       if (!progress) {
-        LogWarning("nullptr status.");
+        LoggerW("nullptr status.");
 //  TODO: implementation
       } else if (0 == strncmp(progress, "DONE", 4)) {
 //  TODO: implementation
@@ -1007,7 +996,7 @@ int DataSyncManager::StateChangedCallback(sync_agent_event_data_s* request) {
       } else if (0 == strncmp(progress, "ERROR", 5)) {
 //  TODO: implementation
       } else {
-        LogInfo("Undefined status");
+        LoggerI("Undefined status");
 //  TODO: implementation
       }
     }
@@ -1026,7 +1015,7 @@ int DataSyncManager::StateChangedCallback(sync_agent_event_data_s* request) {
 }
 
 int DataSyncManager::ProgressCallback(sync_agent_event_data_s* request) {
-  LogDebug("DataSync progress called.");
+  LoggerD("DataSync progress called.");
 
   char* profile_dir_name = nullptr;
   int sync_type = 0;
@@ -1037,17 +1026,15 @@ int DataSyncManager::ProgressCallback(sync_agent_event_data_s* request) {
   int is_from_server, total_per_operation, synced_per_operation, total_per_db,
       synced_per_db;
 
-  LogDebug("Get progress info.");
+  LoggerD("Get progress info.");
   sync_agent_get_event_data_param(request, &profile_dir_name);
   sync_agent_get_event_data_param(request, &sync_type);
   sync_agent_get_event_data_param(request, &uri);
   sync_agent_get_event_data_param(request, &progress_status);
   sync_agent_get_event_data_param(request, &operation_type);
 
-  LogInfo("profileDirName: " << profile_dir_name << ", syncType: " << sync_type
-                             << ", uri: " << uri
-                             << ", progressStatus: " << progress_status
-                             << ", operationType " << operation_type);
+  LoggerI("profileDirName: %s, syncType: %d, uri: %d, progressStatus: %s, operationType %s",
+          profile_dir_name, sync_type, uri, progress_status, operation_type);
 
   sync_agent_get_event_data_param(request, &is_from_server);
   sync_agent_get_event_data_param(request, &total_per_operation);
@@ -1055,11 +1042,9 @@ int DataSyncManager::ProgressCallback(sync_agent_event_data_s* request) {
   sync_agent_get_event_data_param(request, &total_per_db);
   sync_agent_get_event_data_param(request, &synced_per_db);
 
-  LogInfo("isFromServer: " << is_from_server
-                           << ", totalPerOperation: " << total_per_operation
-                           << ", syncedPerOperation: " << synced_per_operation
-                           << ", totalPerDb: " << total_per_db
-                           << ", syncedPerDb " << synced_per_db);
+  LoggerI("isFromServer: %d, totalPerOperation: %d, syncedPerOperation: %d, totalPerDb: %d,\
+          syncedPerDb %d",
+          is_from_server, total_per_operation, synced_per_operation, total_per_db, synced_per_db);
 
   if (profile_dir_name) {
     std::string profile_dir_name_str(profile_dir_name);
@@ -1076,7 +1061,7 @@ int DataSyncManager::ProgressCallback(sync_agent_event_data_s* request) {
       } else if (SYNC_AGENT_SRC_URI_CALENDAR == uri) {
 //  TODO: implementation
       } else {
-        LogWarning("Wrong service type");
+        LoggerW("Wrong service type");
 //  TODO: implementation
       }
     }

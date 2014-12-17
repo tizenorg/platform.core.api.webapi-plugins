@@ -21,7 +21,6 @@
         'datasync_extension.h',
         'datasync_instance.cc',
         'datasync_instance.h',
-        'datasync_log.h',
         'datasync_manager.cc',
         'datasync_manager.h',
         'datasync_scoped_exit.h',

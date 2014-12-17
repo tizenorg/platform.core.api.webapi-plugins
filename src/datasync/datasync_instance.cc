@@ -8,10 +8,7 @@
 #include <memory>
 
 #include "datasync/datasync_instance.h"
-
-#include "datasync/datasync_log.h"
 #include "datasync/datasync_serialization.h"
-
 #include "tizen/tizen.h"
 
 
