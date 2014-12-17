@@ -359,7 +359,7 @@ void AddressBook_removeGroup(const JsonObject& args, JsonObject&) {
   ContactUtil::ErrorChecker(err, "Problem during db_delete_record");
 }
 
-void AddressBook_getGroups(const JsonObject& args, JsonObject& out) {
+void AddressBook_getGroups(const JsonObject& args, JsonArray& out) {
   ContactUtil::CheckDBConnection();
 
   int err = CONTACTS_ERROR_NONE;
@@ -402,29 +402,26 @@ void AddressBook_getGroups(const JsonObject& args, JsonObject& out) {
 
   contacts_list_first(groups_list);
 
-  JsonValue result{JsonArray{}};
-  JsonArray& array = result.get<JsonArray>();
-
   for (unsigned int i = 0; i < record_count; i++) {
     contacts_record_h contacts_record;
     err = contacts_list_get_current_record_p(groups_list, &contacts_record);
     if (CONTACTS_ERROR_NONE != err || nullptr == contacts_record) {
-      LoggerE("Fail to get group record ");
+      LoggerE("Fail to get group record");
       throw common::UnknownException("Fail to get group record");
     }
 
     JsonValue group{JsonObject{}};
-    ContactUtil::ImportContactGroupFromContactsRecord(contacts_record,
-                                                      &group.get<JsonObject>());
-    array.push_back(group);
+    ContactUtil::ImportContactGroupFromContactsRecord(contacts_record, &group.get<JsonObject>());
+    out.push_back(group);
 
-    err = contacts_list_next(groups_list);
-    if (CONTACTS_ERROR_NONE != err) {
-      LoggerE("Fail to get next address book ");
-      break;
+    if (i < record_count - 1) {
+      err = contacts_list_next(groups_list);
+      if (CONTACTS_ERROR_NONE != err) {
+        LoggerE("Fail to get next address book, error %d", err);
+        break;
+      }
     }
   }
-  out.insert(std::make_pair("result", result));
 }
 
 namespace {

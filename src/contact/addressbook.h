@@ -33,7 +33,7 @@ void AddressBook_addGroup(const JsonObject& args, JsonObject& out);
 void AddressBook_getGroup(const JsonObject& args, JsonObject& out);
 void AddressBook_updateGroup(const JsonObject& args, JsonObject&);
 void AddressBook_removeGroup(const JsonObject& args, JsonObject&);
-void AddressBook_getGroups(const JsonObject& args, JsonObject& out);
+void AddressBook_getGroups(const JsonObject& args, JsonArray& out);
 void AddressBook_startListening(int* current_state, const JsonObject& args,
                                 JsonObject& out);
 void AddressBook_stopListening(int* current_state, const JsonObject& args,

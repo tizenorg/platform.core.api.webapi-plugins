@@ -121,11 +121,10 @@ void ContactInstance::AddressBook_removeGroup(const JsonValue& args,
   ReportSuccess(out);
 }
 
-void ContactInstance::AddressBook_getGroups(const JsonValue& args,
-                                            JsonObject& out) {
-  JsonValue val{JsonObject{}};
+void ContactInstance::AddressBook_getGroups(const JsonValue& args, JsonObject& out) {
+  JsonValue val{JsonArray{}};
   AddressBook::AddressBook_getGroups(common::JsonCast<JsonObject>(args),
-                                     val.get<JsonObject>());
+                                     val.get<JsonArray>());
   ReportSuccess(val, out);
 }
 
