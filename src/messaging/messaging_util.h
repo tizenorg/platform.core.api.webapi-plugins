@@ -21,6 +21,8 @@ extern const char* JSON_CALLBACK_ERROR;
 extern const char* JSON_CALLBACK_PROGRESS;
 extern const char* JSON_CALLBACK_KEEP;
 extern const char* JSON_DATA;
+extern const char* JSON_ERROR_MESSAGE;
+extern const char* JSON_ERROR_NAME;
 
 extern const char* MESSAGE_ATTRIBUTE_ID;
 extern const char* MESSAGE_ATTRIBUTE_CONVERSATION_ID;

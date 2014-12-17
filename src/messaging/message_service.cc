@@ -45,6 +45,14 @@ void BaseMessageServiceCallbackData::setError(const std::string& err_name,
         m_is_error = true;
         m_err_name = err_name;
         m_err_message = err_message;
+
+        picojson::object& obj = m_json->get<picojson::object>();
+        obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_ERROR);
+
+        auto obj_error = picojson::object();
+        obj_error[JSON_ERROR_NAME] = picojson::value(err_name);
+        obj_error[JSON_ERROR_MESSAGE] = picojson::value(err_message);
+        obj[JSON_DATA] = picojson::value(obj_error);
     }
 }
 

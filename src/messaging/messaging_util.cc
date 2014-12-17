@@ -26,10 +26,8 @@ const char* JSON_CALLBACK_ERROR = "error";
 const char* JSON_CALLBACK_PROGRESS = "progress";
 const char* JSON_CALLBACK_KEEP = "keep";
 const char* JSON_DATA = "args";
-
-const char* JSON_RET_DATA = "data";
-const char* JSON_RET_ERR_MESSAGE = "message";
-const char* JSON_RET_ERR_NAME = "name";
+const char* JSON_ERROR_MESSAGE = "message";
+const char* JSON_ERROR_NAME = "name";
 
 const char* MESSAGE_ATTRIBUTE_ID = "id";
 const char* MESSAGE_ATTRIBUTE_CONVERSATION_ID = "conversationId";

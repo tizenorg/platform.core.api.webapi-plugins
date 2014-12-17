@@ -43,10 +43,10 @@ void MessageCallbackUserData::setError(const std::string& err_name,
         obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_ERROR);
         auto objData = picojson::object();
 
-        objData[JSON_RET_ERR_NAME] = picojson::value(err_name);
-        objData[JSON_RET_ERR_MESSAGE] = picojson::value(err_message);
+        objData[JSON_ERROR_NAME] = picojson::value(err_name);
+        objData[JSON_ERROR_MESSAGE] = picojson::value(err_message);
 
-        obj[JSON_RET_DATA] = picojson::value(objData);
+        obj[JSON_DATA] = picojson::value(objData);
 
         m_is_error = true;
         m_err_name = err_name;

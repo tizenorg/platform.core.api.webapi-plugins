@@ -118,10 +118,13 @@ void SyncProxy::handleEmailSignal(const int status,
                 break;
 
             case NOTI_DOWNLOAD_FAIL:
+            {
                 LoggerD("Sync failed!");
-                obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_ERROR);
+                common::UnknownException err("Sync failed!");
+                callback->setError(err.name(), err.message());
                 MessagingInstance::getInstance().PostMessage(response->serialize().c_str());
-                break;
+            }
+            break;
 
             default:
                 break;

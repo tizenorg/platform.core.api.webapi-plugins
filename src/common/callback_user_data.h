@@ -53,6 +53,9 @@ public:
     void setJson(std::shared_ptr<picojson::value> json);
     std::shared_ptr<picojson::value> getJson() const;
 
+    virtual void setError(const std::string& err_name,
+            const std::string& err_message) = 0;
+
 protected:
     std::shared_ptr<picojson::value> m_json;
 
