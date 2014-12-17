@@ -10,6 +10,7 @@ var callbackId = 0;
 var callbacks = {};
 var hideProtectedProporties = true;
 var native_ = new xwalk.utils.NativeManager(extension);
+var validator_ = new xwalk.utils.validator;
 
 // for the time of serialization 'write-only' and 'read-only' properties
 // should be able to run with correct value
@@ -482,11 +483,11 @@ DataSynchronizationManager.prototype.update = function(profile) {
 };
 
 DataSynchronizationManager.prototype.remove = function(profileId) {
-  if (typeof profileId !== 'string') {
-    throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR);
-  }
+  var args = validator_.validateArgs(arguments, [
+    {name: 'profileId', type: types_.STRING}
+  ]);
   var msg = native_.callSync('Datasync_remove', {
-    arg: profileId
+    profileId: args.profileId
   });
 
   if (native_.isFailure(msg)) {
@@ -513,11 +514,11 @@ DataSynchronizationManager.prototype.getProfilesNum = function() {
 };
 
 DataSynchronizationManager.prototype.get = function(profileId) {
-  if (typeof profileId !== 'string') {
-    throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR);
-  }
+  var args = validator_.validateArgs(arguments, [
+    {name: 'profileId', type: types_.STRING}
+  ]);
   var msg = native_.callSync('Datasync_get', {
-    arg: profileId
+    profileId: args.profileId
   });
 
   if (native_.isFailure(msg)) {
@@ -545,9 +546,9 @@ DataSynchronizationManager.prototype.getAll = function() {
 };
 
 DataSynchronizationManager.prototype.startSync = function(profileId, progressCallback) {
-  if (typeof profileId !== 'string') {
-    throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR);
-  }
+  var args = validator_.validateArgs(arguments, [
+    {name: 'profileId', type: types_.STRING}
+  ]);
   if (arguments.length > 1) {
     // Array is an object, should not accept Array
     if (progressCallback instanceof Array) {
@@ -562,18 +563,21 @@ DataSynchronizationManager.prototype.startSync = function(profileId, progressCal
   }
 
   var msg = native_.callSync('Datasync_startSync',{
-    arg: profileId
+    profileId: args.profileId
   });
+  if (native_.isFailure(msg)) {
+      throw native_.getErrorObject(msg);
+  }
 
   return postSyncMessageWithCallback(msg, progressCallback);
 };
 
 DataSynchronizationManager.prototype.stopSync = function(profileId) {
-  if (typeof profileId !== 'string') {
-    throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR);
-  }
+  var args = validator_.validateArgs(arguments, [
+    {name: 'profileId', type: types_.STRING}
+  ]);
   var msg = native_.callSync('Datasync_stopSync',{
-    arg: profileId
+    profileId: args.profileId
   });
   if (native_.isFailure(msg)) {
       throw native_.getErrorObject(msg);
@@ -582,11 +586,11 @@ DataSynchronizationManager.prototype.stopSync = function(profileId) {
 };
 
 DataSynchronizationManager.prototype.getLastSyncStatistics = function(profileId) {
-  if (typeof profileId !== 'string') {
-    throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR);
-  }
+  var args = validator_.validateArgs(arguments, [
+    {name: 'profileId', type: types_.STRING}
+  ]);
   var msg = native_.callSync('Datasync_getLastSyncStatistics', {
-    arg: profileId
+    profileId: args.profileId
   });
   var result = native_.getResultObject(msg);
   return convertToSyncStatistics(result);
