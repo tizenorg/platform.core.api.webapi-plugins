@@ -2,27 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-// import ContactClass /////////////////////////////////////////////////////
-var _contact = require('./tizen.contact.Contact');
-var Contact = _contact.Contact;
-_contact = undefined;
-
-// Import auxiliary classes for Contact
-var _dataStructures = require('./tizen.contact.ContactDataStructures');
-var ContactGroup = _dataStructures.group;
-var ContactName = _dataStructures.name;
-_dataStructures = undefined;
-
-// import flag /////////////////////////////////////////////////////////////
-var _struct = require('./tizen.contact.ContactDataStructures');
-var _editGuard = _struct.editGuard;
-var _toJsonObject = _struct.toJsonObject;
-var _getNextWatchId = _struct.getNextWatchId;
-var _promote = _struct.promote;
-_struct = undefined;
-
-var _registered = false;
-var _listenerId = 'ContactChangeListener';
+var _contactListenerRegistered = false;
 var _contactCallbackMap = {};
 
 var _filterById = function(array, id) {
@@ -46,24 +26,19 @@ var _contactChangeListener = function(result) {
   if (_contactCallbackMap.hasOwnProperty(unifiedId)) {
     for (watchId in _contactCallbackMap[unifiedId]) {
       if (_contactCallbackMap[unifiedId].hasOwnProperty(watchId)) {
+        var callback = _contactCallbackMap[unifiedId][watchId].successCallback;
         if (result.added.length) {
-          Common.callIfPossible(_contactCallbackMap[unifiedId][watchId]
-                                                  .successCallback.oncontactsadded,
-              _promote(result.added, Contact));
+          native_.callIfPossible(callback.oncontactsadded, _promote(result.added, Contact));
         }
         if (result.updated.length) {
-          Common.callIfPossible(_contactCallbackMap[unifiedId][watchId]
-                                                  .successCallback.oncontactsupdated,
-              _promote(result.updated, Contact));
+          native_.callIfPossible(callback.oncontactsupdated, _promote(result.updated, Contact));
         }
         if (result.removed.length) {
           var allRemoved = [];
           for (i = 0; i < result.removed.length; ++i) {
             allRemoved.push(result.removed[i].id);
           }
-          Common.callIfPossible(_contactCallbackMap[unifiedId][watchId]
-                                                  .successCallback.oncontactsremoved,
-              result.allRemoved);
+          native_.callIfPossible(callback.oncontactsremoved, result.allRemoved);
         }
       }
     }
@@ -93,23 +68,15 @@ var _contactChangeListener = function(result) {
 
       for (watchId in _contactCallbackMap[callbackAddressbookId]) {
         if (_contactCallbackMap[callbackAddressbookId].hasOwnProperty(watchId)) {
+          var callback = _contactCallbackMap[callbackAddressbookId][watchId].successCallback;
           if (filteredAdded.length) {
-            Common.callIfPossible(
-                _contactCallbackMap[callbackAddressbookId][watchId]
-                                            .successCallback.oncontactsadded,
-                filteredAdded);
+            native_.callIfPossible(callback.oncontactsadded, filteredAdded);
           }
           if (filteredUpdated.length) {
-            Common.callIfPossible(
-                _contactCallbackMap[callbackAddressbookId][watchId]
-                                            .successCallback.oncontactsupdated,
-                filteredUpdated);
+            native_.callIfPossible(callback.oncontactsupdated, filteredUpdated);
           }
           if (filteredRemoved.length) {
-            Common.callIfPossible(
-                _contactCallbackMap[callbackAddressbookId][watchId]
-                                            .successCallback.oncontactsremoved,
-                filteredRemoved);
+            native_.callIfPossible(callback.oncontactsremoved, filteredRemoved);
           }
         }
       }
@@ -117,10 +84,9 @@ var _contactChangeListener = function(result) {
   }
 };
 
-// class AddressBook ///////////////////////////////////////////////////////
 
 var AddressBook = function(id, name, readOnly) {
-  AV.validateConstructorCall(this, AddressBook);
+  AV.isConstructorCall(this, AddressBook);
 
   var _id = '';
   var _name = '';
@@ -174,7 +140,7 @@ var AddressBook = function(id, name, readOnly) {
 };
 
 AddressBook.prototype.get = function() {
-  var args = AV.validateMethod(arguments, [
+  var args = AV.validateArgs(arguments, [
     {
       name: 'id',
       type: AV.Types.STRING,
@@ -183,18 +149,18 @@ AddressBook.prototype.get = function() {
     }
   ]);
 
-  var result = _callSync('AddressBook_get', {
+  var result = native_.callSync('AddressBook_get', {
     // TODO move to only sending the address book id (in all functions)
     addressBook: this,
     id: args.id
   });
 
-  if (Common.isFailure(result)) {
-    throw Common.getErrorObject(result);
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
   }
 
   return _editGuard.run(function() {
-    var contact = new Contact(Common.getResultObject(result));
+    var contact = new Contact(native_.getResultObject(result));
 
     if (contact.name instanceof ContactName) {
       contact.name.displayName = '';
@@ -218,7 +184,7 @@ AddressBook.prototype.get = function() {
 };
 
 AddressBook.prototype.add = function() {
-  var args = AV.validateMethod(arguments, [
+  var args = AV.validateArgs(arguments, [
     {
       name: 'contact',
       type: AV.Types.PLATFORM_OBJECT,
@@ -228,17 +194,17 @@ AddressBook.prototype.add = function() {
     }
   ]);
 
-  var result = _callSync('AddressBook_add', {
+  var result = native_.callSync('AddressBook_add', {
     // TODO move to only sending the address book id (in all functions)
     addressBook: this,
     contact: _toJsonObject(args.contact)
   });
 
-  if (Common.isFailure(result)) {
-    throw Common.getErrorObject(result);
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
   }
 
-  var _updatedContact = Common.getResultObject(result);
+  var _updatedContact = native_.getResultObject(result);
   _editGuard.run(function() {
     for (var prop in _updatedContact) {
       if (args.contact.hasOwnProperty(prop)) {
@@ -264,7 +230,7 @@ AddressBook.prototype.add = function() {
 };
 
 AddressBook.prototype.addBatch = function() {
-  var args = AV.validateMethod(arguments, [
+  var args = AV.validateArgs(arguments, [
     {
       name: 'contacts',
       type: AV.Types.ARRAY,
@@ -288,13 +254,13 @@ AddressBook.prototype.addBatch = function() {
   ]);
 
   var callback = function(result) {
-    if (Common.isFailure(result)) {
-      Common.callIfPossible(args.errorCallback, Common.getErrorObject(result));
+    if (native_.isFailure(result)) {
+      native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));
       return;
     }
 
     _editGuard.run(function() {
-      var _result = Common.getResultObject(result);
+      var _result = native_.getResultObject(result);
       for (var i = 0; i < _result.length; ++i) {
         for (var prop in _result[i]) {
           if (args.contacts[i].hasOwnProperty(prop)) {
@@ -304,20 +270,20 @@ AddressBook.prototype.addBatch = function() {
       }
     });
 
-    Common.callIfPossible(args.successCallback, args.contacts);
+    native_.callIfPossible(args.successCallback, args.contacts);
   };
 
-  var result = _call('AddressBook_addBatch',
+  var result = native_.call('AddressBook_addBatch',
       {addressBookId: this.id, batchArgs: _toJsonObject(args.contacts) },
       callback);
 
-  if (Common.isFailure(result)) {
-    throw Common.getErrorObject(result);
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
   }
 };
 
 AddressBook.prototype.update = function() {
-  var args = AV.validateMethod(arguments, [
+  var args = AV.validateArgs(arguments, [
     {
       name: 'contact',
       type: AV.Types.PLATFORM_OBJECT,
@@ -327,16 +293,16 @@ AddressBook.prototype.update = function() {
     }
   ]);
 
-  var result = _callSync('AddressBook_update', {
+  var result = native_.callSync('AddressBook_update', {
     addressBook: this,
     contact: _toJsonObject(args.contact)
   });
 
-  if (Common.isFailure(result)) {
-    throw Common.getErrorObject(result);
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
   }
 
-  var _updatedContact = Common.getResultObject(result);
+  var _updatedContact = native_.getResultObject(result);
   _editGuard.run(function() {
     for (var prop in _updatedContact) {
       if (args.contact.hasOwnProperty(prop)) {
@@ -347,7 +313,7 @@ AddressBook.prototype.update = function() {
 };
 
 AddressBook.prototype.updateBatch = function() {
-  var args = AV.validateMethod(arguments, [
+  var args = AV.validateArgs(arguments, [
     {
       name: 'contacts',
       type: AV.Types.ARRAY,
@@ -370,13 +336,13 @@ AddressBook.prototype.updateBatch = function() {
   ]);
 
   var callback = function(result) {
-    if (Common.isFailure(result)) {
-      Common.callIfPossible(args.errorCallback, Common.getErrorObject(result));
+    if (native_.isFailure(result)) {
+      native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));
       return;
     }
 
     _editGuard.run(function() {
-      var _result = Common.getResultObject(result);
+      var _result = native_.getResultObject(result);
       for (var i = 0; i < _result.length; ++i) {
         for (var prop in _result[i].result) {
           if (args.contacts[i].hasOwnProperty(prop)) {
@@ -386,20 +352,20 @@ AddressBook.prototype.updateBatch = function() {
       }
     });
 
-    Common.callIfPossible(args.successCallback);
+    native_.callIfPossible(args.successCallback);
   };
 
-  var result = _call('AddressBook_updateBatch',
+  var result = native_.call('AddressBook_updateBatch',
       {addressBook: this, batchArgs: _toJsonObject(args.contacts) },
       callback);
 
-  if (Common.isFailure(result)) {
-    throw Common.getErrorObject(result);
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
   }
 };
 
 AddressBook.prototype.remove = function() {
-  var args = AV.validateMethod(arguments, [
+  var args = AV.validateArgs(arguments, [
     {
       name: 'id',
       type: AV.Types.STRING,
@@ -408,18 +374,18 @@ AddressBook.prototype.remove = function() {
     }
   ]);
 
-  var result = _callSync('AddressBook_remove', {
+  var result = native_.callSync('AddressBook_remove', {
     addressBook: this,
     id: args.id
   });
 
-  if (Common.isFailure(result)) {
-    throw Common.getErrorObject(result);
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
   }
 };
 
 AddressBook.prototype.removeBatch = function(ids, successCallback, errorCallback) {
-  var args = AV.validateMethod(arguments, [
+  var args = AV.validateArgs(arguments, [
     {
       name: 'ids',
       type: AV.Types.ARRAY,
@@ -442,25 +408,25 @@ AddressBook.prototype.removeBatch = function(ids, successCallback, errorCallback
   ]);
 
   var callback = function(result) {
-    if (Common.isFailure(result)) {
-      Common.callIfPossible(args.errorCallback, Common.getErrorObject(result));
+    if (native_.isFailure(result)) {
+      native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));
       return;
     }
 
-    Common.callIfPossible(args.successCallback);
+    native_.callIfPossible(args.successCallback);
   };
 
-  var result = _call('AddressBook_removeBatch',
+  var result = native_.call('AddressBook_removeBatch',
       {addressBook: this, batchArgs: args.ids },
       callback);
 
-  if (Common.isFailure(result)) {
-    throw Common.getErrorObject(result);
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
   }
 };
 
 AddressBook.prototype.find = function(successCallback, errorCallback, filter, sortMode) {
-  var args = AV.validateMethod(arguments, [
+  var args = AV.validateArgs(arguments, [
     {
       name: 'successCallback',
       type: AV.Types.FUNCTION,
@@ -493,12 +459,12 @@ AddressBook.prototype.find = function(successCallback, errorCallback, filter, so
 
   var self = this;
   var callback = function(result) {
-    if (Common.isFailure(result)) {
-      Common.callIfPossible(errorCallback, Common.getErrorObject(result));
+    if (native_.isFailure(result)) {
+      native_.callIfPossible(errorCallback, native_.getErrorObject(result));
     }
 
     var _contacts = [];
-    var _result = Common.getResultObject(result);
+    var _result = native_.getResultObject(result);
     _result.forEach(function(data) {
       try {
         _contacts.push(self.get(String(data)));
@@ -506,30 +472,30 @@ AddressBook.prototype.find = function(successCallback, errorCallback, filter, so
     });
 
     //TODO: Move filtering to native code
-    try {
-      _contacts = Common.filter(_contacts, args.filter);
-    } catch (e) {
-      Common.callIfPossible(errorCallback, e);
-      return;
-    }
+    //try {
+    //  _contacts = Common.filter(_contacts, args.filter);
+    //} catch (e) {
+    //  native_.callIfPossible(errorCallback, e);
+    //  return;
+    //}
 
     //TODO: Move sorting to native code
-    _contacts = Common.sort(_contacts, args.sortMode);
+    //_contacts = Common.sort(_contacts, args.sortMode);
 
-    Common.callIfPossible(successCallback, _contacts);
+    native_.callIfPossible(successCallback, _contacts);
   };
 
-  var result = _call('AddressBook_find',
+  var result = native_.call('AddressBook_find',
       {addressBook: this, filter: filter, sortMode: sortMode},
       callback);
 
-  if (Common.isFailure(result)) {
-    throw Common.getErrorObject(result);
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
   }
 };
 
 AddressBook.prototype.addChangeListener = function() {
-  var args = AV.validateMethod(arguments, [
+  var args = AV.validateArgs(arguments, [
     {
       name: 'successCallback',
       type: AV.Types.LISTENER,
@@ -546,16 +512,16 @@ AddressBook.prototype.addChangeListener = function() {
   ]);
 
   if (Type.isEmptyObject(_contactCallbackMap)) {
-    var result = _callSync('AddressBook_startListening', {});
+    var result = native_.callSync('AddressBook_startListening', {});
 
-    if (Common.isFailure(result)) {
-      throw Common.getErrorObject(result);
+    if (native_.isFailure(result)) {
+      throw native_.getErrorObject(result);
     }
   }
 
-  if (!_registered) {
-    native.addListener(_listenerId, _contactChangeListener);
-    _registered = true;
+  if (!_contactListenerRegistered) {
+    native_.addListener('ContactChangeListener', _contactChangeListener);
+    _contactListenerRegistered = true;
   }
 
   if (!_contactCallbackMap.hasOwnProperty(this.id)) {
@@ -573,7 +539,7 @@ AddressBook.prototype.addChangeListener = function() {
 };
 
 AddressBook.prototype.removeChangeListener = function(watchId) {
-  var args = AV.validateMethod(arguments, [
+  var args = AV.validateArgs(arguments, [
     {
       name: 'watchId',
       type: AV.Types.LONG,
@@ -583,16 +549,19 @@ AddressBook.prototype.removeChangeListener = function(watchId) {
   ]);
 
   if (args.watchId === 0) {
-    Common.throwInvalidValues('id is null or undefined');
+    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR,
+        'id is null or undefined');
   }
 
   if (args.watchId < 0) {
-    Common.throwInvalidValues('Negative watch id');
+    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR,
+        'Negative watch id');
   }
 
   if (!_contactCallbackMap.hasOwnProperty(this.id) ||
       !_contactCallbackMap[this.id].hasOwnProperty(args.watchId)) {
-    Common.throwNotFound('watch id not found for this address book');
+    throw new tizen.WebAPIException(tizen.WebAPIException.NOT_FOUND_ERR,
+        'watch id not found for this address book');
   }
 
   delete _contactCallbackMap[this.id][args.watchId];
@@ -602,19 +571,19 @@ AddressBook.prototype.removeChangeListener = function(watchId) {
   }
 
   if (Type.isEmptyObject(_contactCallbackMap)) {
-    native.removeListener(_listenerId, _contactChangeListener);
-    _registered = false;
+    native_.removeListener('ContactChangeListener', _contactChangeListener);
+    _contactListenerRegistered = false;
 
-    var result = _callSync('AddressBook_stopListening', {});
+    var result = native_.callSync('AddressBook_stopListening', {});
 
-    if (Common.isFailure(result)) {
-      throw Common.getErrorObject(result);
+    if (native_.isFailure(result)) {
+      throw native_.getErrorObject(result);
     }
   }
 };
 
 AddressBook.prototype.getGroup = function() {
-  var args = AV.validateMethod(arguments, [
+  var args = AV.validateArgs(arguments, [
     {
       name: 'groupId',
       type: AV.Types.STRING,
@@ -623,19 +592,19 @@ AddressBook.prototype.getGroup = function() {
     }
   ]);
 
-  var result = _callSync('AddressBook_getGroup',
+  var result = native_.callSync('AddressBook_getGroup',
       {addressBook: this, id: args.groupId});
-  if (Common.isFailure(result)) {
-    throw Common.getErrorObject(result);
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
   }
 
   return _editGuard.run(function() {
-    return new ContactGroup(Common.getResultObject(result));
+    return new ContactGroup(native_.getResultObject(result));
   });
 };
 
 AddressBook.prototype.addGroup = function() {
-  var args = AV.validateMethod(arguments, [
+  var args = AV.validateArgs(arguments, [
     {
       name: 'group',
       type: AV.Types.PLATFORM_OBJECT,
@@ -645,21 +614,21 @@ AddressBook.prototype.addGroup = function() {
     }
   ]);
 
-  var result = _callSync('AddressBook_addGroup',
+  var result = native_.callSync('AddressBook_addGroup',
       {addressBookId: this.id, group: args.group});
-  if (Common.isFailure(result)) {
-    throw Common.getErrorObject(result);
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
   }
 
   _editGuard.run(function() {
-    result = Common.getResultObject(result);
+    result = native_.getResultObject(result);
     args.group.id = result.id;
     args.group.addressBookId = result.addressBookId;
   });
 };
 
 AddressBook.prototype.updateGroup = function() {
-  var args = AV.validateMethod(arguments, [
+  var args = AV.validateArgs(arguments, [
     {
       name: 'group',
       type: AV.Types.PLATFORM_OBJECT,
@@ -669,15 +638,15 @@ AddressBook.prototype.updateGroup = function() {
     }
   ]);
 
-  var result = _callSync('AddressBook_updateGroup',
+  var result = native_.callSync('AddressBook_updateGroup',
       {addressBookId: this.id, group: args.group});
-  if (Common.isFailure(result)) {
-    throw Common.getErrorObject(result);
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
   }
 };
 
 AddressBook.prototype.removeGroup = function() {
-  var args = AV.validateMethod(arguments, [
+  var args = AV.validateArgs(arguments, [
     {
       name: 'groupId',
       type: AV.Types.STRING,
@@ -686,19 +655,19 @@ AddressBook.prototype.removeGroup = function() {
     }
   ]);
 
-  var result = _callSync('AddressBook_removeGroup',
+  var result = native_.callSync('AddressBook_removeGroup',
       {addressBook: this, id: args.groupId});
-  if (Common.isFailure(result)) {
-    throw Common.getErrorObject(result);
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
   }
 };
 
 AddressBook.prototype.getGroups = function() {
-  var result = _callSync('AddressBook_getGroups', {addressBook: this});
-  if (Common.isFailure(result)) {
-    throw Common.getErrorObject(result);
+  var result = native_.callSync('AddressBook_getGroups', {addressBook: this});
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
   }
-  result = Common.getResultObject(result);
+  result = native_.getResultObject(result);
   var _tab = [];
   _editGuard.run(function() {
     result.forEach(function(data) {

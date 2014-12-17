@@ -4,7 +4,7 @@
 
 //= require('tizen.contact.Common.js');
 //= require('tizen.contact.ContactDataStructures.js');
-//= require('tizen.contact.AddressBook.js');
 //= require('tizen.contact.Contact.js');
+//= require('tizen.contact.AddressBook.js');
 //= require('tizen.contact.Person.js');
 //= require('tizen.contact.ContactManager.js');

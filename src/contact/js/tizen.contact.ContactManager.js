@@ -2,55 +2,35 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-var _dataStructures = require('./tizen.contact.ContactDataStructures');
-var _editGuard = _dataStructures.editGuard;
-var _toJsonObject = _dataStructures.toJsonObject;
-var _getNextWatchId = _dataStructures.getNextWatchId;
-var _promote = _dataStructures.promote;
-_dataStructures = undefined;
 
-function _checkError(result) {
-  if (Common.isFailure(result)) {
-    throw Common.getErrorObject(result);
-  }
-}
-
-var _registered = false;
-var _listenerId = 'ContactPersonChangeListener';
+var _personListenerRegistered = false;
 var _personCallbackMap = {};
 var _personChangeListener = function(result) {
   result = JSON.parse(result);
   for (var key in _personCallbackMap) {
     if (_personCallbackMap.hasOwnProperty(key)) {
       if (result.added.length) {
-        Common.callIfPossible(_personCallbackMap[key].onpersonsadded,
+        native_.callIfPossible(_personCallbackMap[key].onpersonsadded,
             _promote(result.added, Person));
       }
       if (result.updated.length) {
-        Common.callIfPossible(_personCallbackMap[key].onpersonsupdated,
+        native_.callIfPossible(_personCallbackMap[key].onpersonsupdated,
             _promote(result.updated, Person));
       }
       if (result.removed.length) {
-        Common.callIfPossible(_personCallbackMap[key].onpersonsremoved,
+        native_.callIfPossible(_personCallbackMap[key].onpersonsremoved,
             result.removed);
       }
     }
   }
 };
 
-// import AddressBook class ////////////////////////////////////////////////
-var AddressBook = require('./tizen.contact.AddressBook');
-
-// import Person class /////////////////////////////////////////////////////
-var Person = require('./tizen.contact.Person');
-
-// class ContactManager ////////////////////////////////////////////////////
 
 var ContactManager = function() {};
 
 // Gets the available address books
 ContactManager.prototype.getAddressBooks = function() {
-  var args = AV.validateMethod(arguments, [
+  var args = AV.validateArgs(arguments, [
     {
       name: 'successCallback',
       type: AV.Types.FUNCTION,
@@ -66,32 +46,32 @@ ContactManager.prototype.getAddressBooks = function() {
   ]);
 
   var callback = function(result) {
-    if (Common.isFailure(result)) {
-      Common.callIfPossible(args.errorCallback, Common.getErrorObject(result));
+    if (native_.isFailure(result)) {
+      native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));
     } else {
-      var books = Common.getResultObject(result);
+      var books = native_.getResultObject(result);
       var tmp = [];
 
       books.forEach(function(data) {
         tmp.push(new AddressBook(data.id, data.name, data.readOnly));
       });
 
-      Common.callIfPossible(args.successCallback, tmp);
+      native_.callIfPossible(args.successCallback, tmp);
     }
   };
 
-  var result = _call('ContactManager_getAddressBooks', {}, callback);
+  var result = native_.call('ContactManager_getAddressBooks', {}, callback);
 
-  if (Common.isFailure(result)) {
-    throw Common.getErrorObject(result);
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
   }
 };
 
 // Gets the aggregation of all address books.
 ContactManager.prototype.getUnifiedAddressBook = function() {
   // validation
-  var result = _callSync('CheckReadPrivileges', {});
-  if (Common.isFailure(result)) {
+  var result = native_.callSync('CheckReadPrivileges', {});
+  if (native_.isFailure(result)) {
     throw new WebAPIException(WebAPIException.SECURITY_ERR,
         'You do not have privileges for this operation');
   }
@@ -108,7 +88,7 @@ ContactManager.prototype.getDefaultAddressBook = function() {
 // Gets the address book with the specified identifier.
 ContactManager.prototype.getAddressBook = function() {
   // validation
-  var args = AV.validateMethod(arguments, [
+  var args = AV.validateArgs(arguments, [
     {
       name: 'addressBookId',
       type: AV.Types.STRING,
@@ -117,18 +97,23 @@ ContactManager.prototype.getAddressBook = function() {
     }
   ]);
 
-  var result = _callSync('ContactManager_getAddressBook', {
+  var result = native_.callSync('ContactManager_getAddressBook', {
     addressBookID: args.addressBookId
   });
-  _checkError(result);
-  return new AddressBook(args.addressBookId, result.name,
-      Boolean(result.readOnly === 'true' ? true : false));
+
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
+  }
+
+  result = native_.getResultObject(result);
+
+  return new AddressBook(args.addressBookId, result.name, Boolean(result.readOnly === 'true'));
 };
 
 // Gets the person with the specified identifier.
 ContactManager.prototype.get = function() {
   // validation
-  var args = AV.validateMethod(arguments, [
+  var args = AV.validateArgs(arguments, [
     {
       name: 'personId',
       type: AV.Types.STRING,
@@ -137,20 +122,20 @@ ContactManager.prototype.get = function() {
     }
   ]);
 
-  var result = _callSync('ContactManager_get', {
+  var result = native_.callSync('ContactManager_get', {
     personID: args.personId
   });
   _checkError(result);
 
   return _editGuard.run(function() {
-    return new Person(Common.getResultObject(result));
+    return new Person(native_.getResultObject(result));
   });
 };
 
 // Updates a person in the address book synchronously.
 ContactManager.prototype.update = function() {
   // validation
-  var args = AV.validateMethod(arguments, [
+  var args = AV.validateArgs(arguments, [
     {
       name: 'person',
       type: AV.Types.PLATFORM_OBJECT,
@@ -159,10 +144,10 @@ ContactManager.prototype.update = function() {
       nullable: false
     }
   ]);
-  var result = _callSync('ContactManager_update', { person: args.person });
+  var result = native_.callSync('ContactManager_update', { person: args.person });
   _checkError(result);
 
-  result = Common.getResultObject(result);
+  result = native_.getResultObject(result);
   for (var prop in result) {
     if (args.person.hasOwnProperty(prop)) {
       args.person[prop] = result[prop];
@@ -172,7 +157,7 @@ ContactManager.prototype.update = function() {
 
 // Updates several existing persons in the contact DB asynchronously.
 ContactManager.prototype.updateBatch = function() {
-  var args = AV.validateMethod(arguments, [
+  var args = AV.validateArgs(arguments, [
     {
       name: 'persons',
       type: AV.Types.ARRAY,
@@ -195,27 +180,28 @@ ContactManager.prototype.updateBatch = function() {
   ]);
 
   var callback = function(result) {
-    if (Common.isFailure(result)) {
-      Common.callIfPossible(args.errorCallback, Common.getErrorObject(result));
+    if (native_.isFailure(result)) {
+      native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));
       return;
     }
 
-    Common.callIfPossible(args.successCallback);
+    native_.callIfPossible(args.successCallback);
   };
 
-  var result = _call('ContactManager_updateBatch',
-      {addressBook: {}, batchArgs: _toJsonObject(args.persons) },
-      callback);
+  var result = native_.call('ContactManager_updateBatch', {
+      addressBook: {},
+      batchArgs: _toJsonObject(args.persons)
+    }, callback);
 
-  if (Common.isFailure(result)) {
-    throw Common.getErrorObject(result);
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
   }
 };
 
 // Removes a person from the contact DB synchronously.
 ContactManager.prototype.remove = function() {
   // validation
-  var args = AV.validateMethod(arguments, [
+  var args = AV.validateArgs(arguments, [
     {
       name: 'personId',
       type: AV.Types.STRING,
@@ -224,13 +210,13 @@ ContactManager.prototype.remove = function() {
     }
   ]);
 
-  var result = _callSync('ContactManager_remove', {personId: args.personId});
+  var result = native_.callSync('ContactManager_remove', {personId: args.personId});
   _checkError(result);
 };
 
 // Removes persons from contact DB asynchronously.
 ContactManager.prototype.removeBatch = function() {
-  var args = AV.validateMethod(arguments, [
+  var args = AV.validateArgs(arguments, [
     {
       name: 'personIds',
       type: AV.Types.ARRAY,
@@ -253,27 +239,27 @@ ContactManager.prototype.removeBatch = function() {
   ]);
 
   var callback = function(result) {
-    if (Common.isFailure(result)) {
-      Common.callIfPossible(args.errorCallback, Common.getErrorObject(result));
+    if (native_.isFailure(result)) {
+      native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));
       return;
     }
 
-    Common.callIfPossible(args.successCallback);
+    native_.callIfPossible(args.successCallback);
   };
 
-  var result = _call('ContactManager_removeBatch',
+  var result = native_.call('ContactManager_removeBatch',
       {addressBook: {}, batchArgs: _toJsonObject(args.personIds) },
       callback);
 
-  if (Common.isFailure(result)) {
-    throw Common.getErrorObject(result);
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
   }
 };
 
 // Gets an array of all Person objects from the contact DB or the ones that match the
 // optionally supplied filter.
 ContactManager.prototype.find = function() {
-  var args = AV.validateMethod(arguments, [
+  var args = AV.validateArgs(arguments, [
     {
       name: 'successCallback',
       type: AV.Types.FUNCTION,
@@ -304,40 +290,39 @@ ContactManager.prototype.find = function() {
     }
   ]);
 
-  // TODO implement contact sorting.
-
+  // TODO implement contact filtering/sorting.
   var data = {
-    filter: Common.repackFilter(args.filter),
+    //filter: Common.repackFilter(args.filter),
     sortMode: args.sortMode
   };
 
   var self = this;
 
   var callback = function(result) {
-    if (Common.isSuccess(result)) {
-      var _result = Common.getResultObject(result);
+    if (native_.isSuccess(result)) {
+      var _result = native_.getResultObject(result);
       var retval = [];
       for (var i = 0; i < _result.length; ++i) {
         retval.push(self.get(String(_result[i])));
       }
       //TODO: Move sorting to native code
-      retval = Common.sort(retval, args.sortMode);
+      //retval = Common.sort(retval, args.sortMode);
       args.successCallback(retval);
     } else {
-      Common.callIfPossible(args.errorCallback, Common.getErrorObject(result));
+      native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));
     }
   };
 
-  var result = _call('ContactManager_find', data, callback);
+  var result = native_.call('ContactManager_find', data, callback);
 
-  if (Common.isFailure(result)) {
-    throw Common.getErrorObject(result);
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
   }
 };
 
 // Subscribes to receive notifications about persons' changes.
 ContactManager.prototype.addChangeListener = function() {
-  var args = AV.validateMethod(arguments, [
+  var args = AV.validateArgs(arguments, [
     {
       name: 'successCallback',
       type: AV.Types.LISTENER,
@@ -348,16 +333,16 @@ ContactManager.prototype.addChangeListener = function() {
   ]);
 
   if (Type.isEmptyObject(_personCallbackMap)) {
-    var result = _callSync('ContactManager_startListening', {});
+    var result = native_.callSync('ContactManager_startListening', {});
 
-    if (Common.isFailure(result)) {
-      throw Common.getErrorObject(result);
+    if (native_.isFailure(result)) {
+      throw native_.getErrorObject(result);
     }
   }
 
-  if (!_registered) {
-    native.addListener(_listenerId, _personChangeListener);
-    _registered = true;
+  if (!_personListenerRegistered) {
+    native_.addListener('ContactPersonChangeListener', _personChangeListener);
+    _personListenerRegistered = true;
   }
 
   var currentWatchId = _getNextWatchId();
@@ -369,7 +354,7 @@ ContactManager.prototype.addChangeListener = function() {
 
 // Unsubscribes a persons' changes watch operation.
 ContactManager.prototype.removeChangeListener = function() {
-  var args = AV.validateMethod(arguments, [
+  var args = AV.validateArgs(arguments, [
     {
       name: 'watchId',
       type: AV.Types.LONG,
@@ -381,30 +366,33 @@ ContactManager.prototype.removeChangeListener = function() {
   // This makes UTC_contact_removeChangeListenerPerson_N_001 pass.
   // watch id's start at 1
   if (args.watchId === 0) {
-    Common.throwInvalidValues('id is null or undefined');
+    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR,
+      'id is null or undefined');
   }
 
   if (args.watchId < 0) {
-    Common.throwInvalidValues('Negative watch id');
+    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR,
+        'Negative watch id');
   }
 
   if (!_personCallbackMap.hasOwnProperty(args.watchId)) {
-    Common.throwNotFound('watch id not found');
+    throw new tizen.WebAPIException(tizen.WebAPIException.NOT_FOUND_ERR,
+        'watch id not found');
   }
 
   delete _personCallbackMap[args.watchId];
 
   if (Type.isEmptyObject(_personCallbackMap)) {
-    native.removeListener(_listenerId, _personChangeListener);
-    _registered = false;
+    native_.removeListener('ContactPersonChangeListener', _personChangeListener);
+    _personListenerRegistered = false;
 
-    var result = _callSync('ContactManager_stopListening', {});
+    var result = native_.callSync('ContactManager_stopListening', {});
 
-    if (Common.isFailure(result)) {
-      throw Common.getErrorObject(result);
+    if (native_.isFailure(result)) {
+      throw native_.getErrorObject(result);
     }
   }
 };
 
 // exports /////////////////////////////////////////////////////////////////
-tizen.ContactManager = ContactManager;
+exports = new ContactManager();

@@ -1,4 +1,4 @@
-/* global xwalk */
+/* global xwalk, extension */
 
 // Copyright 2014 Samsung Electronics Co, Ltd. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
@@ -8,9 +8,8 @@ var _common = xwalk.utils;
 var Type = _common.type;
 var Converter = _common.converter;
 var AV = _common.validator;
-var Common = _common.Common;
-var _callSync = Common.getCallSync('contact');
-var _call = Common.getCall('contact');
+
+var native_ = new _common.NativeManager(extension);
 
 var _currentWatchId = 1;
 
@@ -69,8 +68,8 @@ var _promote = function(val, type) {
 };
 
 function _checkError(result) {
-  if (Common.isFailure(result)) {
-    throw Common.getErrorObject(result);
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
   }
 }
 
@@ -98,12 +97,10 @@ EditGuard.prototype.run = function(callback) {
 
 EditGuard.prototype.enable = function() {
   _canEdit++;
-  console.log('RAISING LEVEL TO ' + _canEdit);
 };
 
 EditGuard.prototype.disable = function() {
   _canEdit--;
-  console.log('LOWERING LEVEL TO ' + _canEdit);
 };
 
 EditGuard.prototype.isEditEnabled = function() {

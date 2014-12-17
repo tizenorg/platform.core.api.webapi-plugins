@@ -2,44 +2,17 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-function _checkError(result) {
-  if (Common.isFailure(result)) {
-    throw Common.getErrorObject(result);
-  }
-}
-
-var TypeEnum = ['VCARD_30'];
-
-// import flag and auxiliary Contact classes ///////////////////////////////
-var _dataStructures = require('./tizen.contact.ContactDataStructures');
-var ContactRef = _dataStructures.ref;
-var ContactGroup = _dataStructures.group;
-var ContactEmailAddress = _dataStructures.emailAddress;
-var ContactPhoneNumber = _dataStructures.phoneNumber;
-var ContactAddress = _dataStructures.address;
-var ContactAnniversary = _dataStructures.anniversary;
-var ContactRelationship = _dataStructures.relationship;
-var ContactInstantMessenger = _dataStructures.instantMessenger;
-var ContactWebSite = _dataStructures.webSite;
-var ContactOrganization = _dataStructures.organization;
-var ContactName = _dataStructures.name;
-var _editGuard = _dataStructures.editGuard;
-var _fromJsonDate = _dataStructures.fromJsonDate;
-_dataStructures = undefined;
-
-// class Contact ///////////////////////////////////////////////////////////
 var Contact = function(data) {
-  AV.validateConstructorCall(this, Contact);
+  AV.isConstructorCall(this, Contact);
 
-  var val;
   var _forceEditMode = false;
   if (Type.isString(data)) {
-    var result = _callSync('ContactManager_importFromVCard', {
+    var result = native_.callSync('ContactManager_importFromVCard', {
       'contact': data
     });
     _checkError(result);
 
-    data = Common.getResultObject(result);
+    data = native_.getResultObject(result);
     // These need to be forced to null as a contact created from a vcard is not added
     // to any address book
     data.id = null;
@@ -50,12 +23,11 @@ var Contact = function(data) {
     // Force edit mode so that anonymous objects can be promoted to their correct types.
     _forceEditMode = true;
   } else if (Type.isObject(data) || Type.isFunction(data)) {
-  // It's a dictionary
+    // It's a dictionary
   } else {
     // null or invalid types.
     data = {};
   }
-
 
   var _id = null;
   var _personId = null;
@@ -86,7 +58,7 @@ var Contact = function(data) {
     for (var i = 0; i < arr.length; ++i) {
       if (Type.isString(type)) {
         if (!Type.isString(arr[i])) {
-                        return previousValue;
+          return previousValue;
         }
       } else if (_editGuard.isEditEnabled()) {
         arr[i] = new type(arr[i]);
@@ -104,7 +76,7 @@ var Contact = function(data) {
       },
       set: function(v) {
         if (_editGuard.isEditEnabled()) {
-                        _id = Converter.toString(v, false);
+          _id = Converter.toString(v, false);
         }
       },
       enumerable: true
@@ -115,7 +87,7 @@ var Contact = function(data) {
       },
       set: function(v) {
         if (_editGuard.isEditEnabled()) {
-                        _personId = Converter.toString(v, false);
+          _personId = Converter.toString(v, false);
         }
       },
       enumerable: true
@@ -126,7 +98,7 @@ var Contact = function(data) {
       },
       set: function(v) {
         if (_editGuard.isEditEnabled()) {
-                        _addressBookId = Converter.toString(v, false);
+          _addressBookId = Converter.toString(v, false);
         }
       },
       enumerable: true
@@ -137,13 +109,13 @@ var Contact = function(data) {
       },
       set: function(v) {
         if (_editGuard.isEditEnabled()) {
-                        if (v instanceof Date || v === null) {
+          if (v instanceof Date || v === null) {
             _lastUpdate = v;
-                        } else if (Type.isString(v)) {
+          } else if (Type.isString(v)) {
             _lastUpdate = new Date(v);
-                        } else {
+          } else {
             _lastUpdate = _fromJsonDate(v);
-                        }
+          }
         }
       },
       enumerable: true
@@ -154,7 +126,7 @@ var Contact = function(data) {
       },
       set: function(v) {
         if (_editGuard.isEditEnabled()) {
-                        _isFavorite = Converter.toBoolean(v, false);
+          _isFavorite = Converter.toBoolean(v, false);
         }
       },
       enumerable: true
@@ -165,9 +137,9 @@ var Contact = function(data) {
       },
       set: function(v) {
         if (_editGuard.isEditEnabled()) {
-                        _name = new ContactName(v);
+          _name = new ContactName(v);
         } else {
-                        _name = (v instanceof ContactName || v === null) ? v : _name;
+          _name = (v instanceof ContactName || v === null) ? v : _name;
         }
       },
       enumerable: true
@@ -232,11 +204,11 @@ var Contact = function(data) {
       },
       set: function(v) {
         if (v instanceof Date || v === null) {
-                        _birthday = v;
+          _birthday = v;
         } else if (Type.isString(v)) {
-                        _birthday = new Date(v);
+          _birthday = new Date(v);
         } else if (_editGuard.isEditEnabled()) {
-                        _birthday = _fromJsonDate(v);
+          _birthday = _fromJsonDate(v);
         }
       },
       enumerable: true
@@ -376,7 +348,7 @@ var _contactEmailToString = function(obj) {
   var str = '';
   for (var mail in obj.emails) {
     if (!mail instanceof ContactEmailAddress || !Type.isArray(mail.types) ||
-        mail.types.length === 0) {
+      mail.types.length === 0) {
       console.log('Incorrect email type');
       continue;
     }
@@ -398,7 +370,7 @@ var _contactEmailToString = function(obj) {
 // Convert organizations info from Contact object to string
 var _contactOrganizationToString = function(obj) {
   if (obj.organizations.length === 0 ||
-      !obj.organizations[0] instanceof ContactOrganization) {
+    !obj.organizations[0] instanceof ContactOrganization) {
     return '';
   }
   var str = '';
@@ -415,7 +387,7 @@ var _contactOrganizationToString = function(obj) {
 // Convert organizations roles from Contact object to string
 var _contactRoleToString = function(obj) {
   if (obj.organizations.length === 0 ||
-      !obj.organizations[0] instanceof ContactOrganization) {
+    !obj.organizations[0] instanceof ContactOrganization) {
     return '';
   }
   var str = '';
@@ -482,14 +454,14 @@ var _contactAnniversaryToString = function(obj) {
 // Convert relationships to string
 var _contactRelationshipsToString = function(obj) {
   if (obj.relationships.length === 0 ||
-      !obj.relationships[0] instanceof ContactRelationship) {
+    !obj.relationships[0] instanceof ContactRelationship) {
     return '';
   }
   var str = '';
   for (var rel in obj.relationships) {
     if (rel instanceof ContactRelationship) {
       str += 'X-RELATIONSHIP;' + rel.relativeName + ':' + rel.type +
-          ':' + rel.label + ';\n';
+      ':' + rel.label + ';\n';
     }
   }
   return str;
@@ -504,7 +476,7 @@ var _contactInstantMessengeToString = function(obj) {
   for (var messenger in obj.messengers) {
     if (messenger instanceof ContactInstantMessenger) {
       str += 'X-MESSANGER;' + messenger.imAddress + ':' + messenger.type +
-          ':' + messenger.label + ';\n';
+      ':' + messenger.label + ';\n';
     }
   }
   return str;
@@ -531,30 +503,33 @@ var _JSONToContactType = function(type, obj) {
 Contact.prototype.convertToString = function(format) {
   if (arguments.length) {
     if (!Type.isString(format)) {
-      Common.throwTypeMismatch('Invalid format type');
+      throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
+        'Invalid format type');
     }
 
     if (TypeEnum.indexOf(format) < 0) {
-      Common.throwTypeMismatch('Invalid format');
+      throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
+        'Invalid format');
     }
   } else {
     console.logd('No format selected. Default VCARD 3.0 has been set');
   }
 
   if (this.id === '') {
-    Common.throwTypeMismatch('Contact ID is empty.');
+    throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
+      'Contact ID is empty.');
   }
 
   var str = 'BEGIN:VCARD\nVERSION:3.0\n';
 
   // set contact name
   str += 'N:' + this.name.lastName + ';' + this.name.firstName + ';' +
-      this.name.middleName + ';' + this.name.prefix + ';' + this.name.suffix + '\n';
+  this.name.middleName + ';' + this.name.prefix + ';' + this.name.suffix + '\n';
   str += 'FN' + this.name.displayName + '\n';
 
   // set phonetic names
   str += 'X-PHONETIC-FIRST-NAME' + this.name.phoneticFirstName + '\n' +
-      'X-PHONETIC-LAST-NAME' + this.name.phoneticLastName + '\n';
+  'X-PHONETIC-LAST-NAME' + this.name.phoneticLastName + '\n';
 
   // set contact address
   str += _contactAddressToString(this);
@@ -562,7 +537,7 @@ Contact.prototype.convertToString = function(format) {
   // set Birthday
   if (this.birthday) {
     str += 'BDAY:' + this.birthday.getYear() + '-' + this.birthday.getMonth() +
-        '-' + this.birthday.getDay() + '\n';
+    '-' + this.birthday.getDay() + '\n';
   }
 
   // set anniversary
@@ -597,8 +572,8 @@ Contact.prototype.convertToString = function(format) {
 
   // set last revision
   str += 'REV:' + this.lastUpdated.getYear() + '-' + this.lastUpdated.getMonth() +
-      '-' + this.lastUpdated.getDay() + 'T' + this.lastUpdated.getHours() + ':' +
-      this.lastUpdated.getMinutes() + ':' + this.lastUpdated.getSeconds() + 'Z\n';
+  '-' + this.lastUpdated.getDay() + 'T' + this.lastUpdated.getHours() + ':' +
+  this.lastUpdated.getMinutes() + ':' + this.lastUpdated.getSeconds() + 'Z\n';
 
   str += 'END:VCARD\n';
 

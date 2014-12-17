@@ -41,7 +41,7 @@ var ContactInstantMessengerType = {
 // class ContactRef ////////////////////////////////////////////////////////
 
 var ContactRef = function(data) {
-  AV.validateConstructorCall(this, ContactRef);
+  AV.isConstructorCall(this, ContactRef);
   var _contactId = '';
   var _addressBookId = '';
   Object.defineProperties(this, {
@@ -70,7 +70,7 @@ var ContactRef = function(data) {
     this.contactId = data.contactId;
   } else {
     try {
-      var args = AV.validateMethod(arguments, [
+      var args = AV.validateArgs(arguments, [
         {
           name: 'addressBookId',
           type: AV.Types.STRING,
@@ -95,7 +95,7 @@ var ContactRef = function(data) {
 // class ContactGroup //////////////////////////////////////////////////
 
 var ContactGroup = function(name, ringtone, photo) {
-  AV.validateConstructorCall(this, ContactGroup);
+  AV.isConstructorCall(this, ContactGroup);
 
   var _id = null;
   var _address = null;
@@ -194,7 +194,7 @@ var ContactGroup = function(name, ringtone, photo) {
 // class ContactEmailAddress ///////////////////////////////////////////
 
 var ContactEmailAddress = function(address, types, isDefault) {
-  AV.validateConstructorCall(this, ContactEmailAddress);
+  AV.isConstructorCall(this, ContactEmailAddress);
 
   var _email = '';
   var _label = '';
@@ -286,7 +286,7 @@ var ContactEmailAddress = function(address, types, isDefault) {
 // class ContactPhoneNumber ////////////////////////////////////////////
 
 var ContactPhoneNumber = function(number, type, isDefault) {
-  AV.validateConstructorCall(this, ContactPhoneNumber);
+  AV.isConstructorCall(this, ContactPhoneNumber);
 
   var _isDefault = false;
   var _number = '';
@@ -369,7 +369,7 @@ var ContactPhoneNumber = function(number, type, isDefault) {
 // class ContactAddress ////////////////////////////////////////////////
 
 var ContactAddress = function(data) {
-  AV.validateConstructorCall(this, ContactAddress);
+  AV.isConstructorCall(this, ContactAddress);
 
   var _isDefault = false;
   var _types = ['HOME'];
@@ -452,7 +452,7 @@ var ContactAddress = function(data) {
 // class ContactAnniversary ////////////////////////////////////////////////
 
 var ContactAnniversary = function(anniversary_date, anniversary_label) {
-  AV.validateConstructorCall(this, ContactAnniversary);
+  AV.isConstructorCall(this, ContactAnniversary);
 
   var _anniversary_date = new Date();
   var _anniversary_label = null;
@@ -494,7 +494,7 @@ var ContactAnniversary = function(anniversary_date, anniversary_label) {
 // class ContactWebSite ////////////////////////////////////////////////////
 
 var ContactWebSite = function(contact_url, contact_type) {
-  AV.validateConstructorCall(this, ContactWebSite);
+  AV.isConstructorCall(this, ContactWebSite);
 
   var _url = '';
   var _type = 'HOMEPAGE';
@@ -531,7 +531,7 @@ var ContactWebSite = function(contact_url, contact_type) {
 // class ContactOrganization ///////////////////////////////////////////////
 
 var ContactOrganization = function(data) {
-  AV.validateConstructorCall(this, ContactOrganization);
+  AV.isConstructorCall(this, ContactOrganization);
   Object.defineProperties(this, {
     name: {
       value: null,
@@ -572,7 +572,7 @@ var ContactOrganization = function(data) {
 // class ContactName ///////////////////////////////////////////////////////
 
 var ContactName = function(data) {
-  AV.validateConstructorCall(this, ContactName);
+  AV.isConstructorCall(this, ContactName);
 
   var _displayName = null;
 
@@ -645,7 +645,7 @@ var ContactName = function(data) {
 };
 
 var ContactRelationship = function(relativeName, type) {
-  AV.validateConstructorCall(this, ContactRelationship);
+  AV.isConstructorCall(this, ContactRelationship);
 
   Object.defineProperties(this, {
     relativeName: {
@@ -675,7 +675,7 @@ var ContactRelationship = function(relativeName, type) {
 };
 
 var ContactInstantMessenger = function(imAddress, type) {
-  AV.validateConstructorCall(this, ContactInstantMessenger);
+  AV.isConstructorCall(this, ContactInstantMessenger);
 
   Object.defineProperties(this, {
     imAddress: {
@@ -716,11 +716,3 @@ tizen.ContactEmailAddress = ContactEmailAddress;
 tizen.ContactGroup = ContactGroup;
 tizen.ContactRelationship = ContactRelationship;
 tizen.ContactInstantMessenger = ContactInstantMessenger;
-tizen.ContactRelationshipType = ContactRelationshipType;
-tizen.ContactInstantMessengerType = ContactInstantMessengerType;
-tizen.ContactRef = ContactRef;
-tizen.ContactRef = ContactRef;
-tizen.ContactRef = ContactRef;
-tizen.ContactRef = ContactRef;
-tizen.ContactRef = ContactRef;
-tizen.ContactRef = ContactRef;

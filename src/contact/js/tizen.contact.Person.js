@@ -2,15 +2,9 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-// import flag /////////////////////////////////////////////////////////////
-var _struct = require('./tizen.contact.ContactDataStructures');
-var _editGuard = _struct.editGuard;
-_struct = undefined;
-
-// class Person ////////////////////////////////////////////////////////////
 
 var Person = function(data) {
-  AV.validateConstructorCall(this, Person);
+  AV.isConstructorCall(this, Person);
 
   var _id = '';
   var _displayName = '';
@@ -132,7 +126,7 @@ var Person = function(data) {
 
 // Aggregates another person to this person.
 Person.prototype.link = function() {
-  var args = AV.validateMethod(arguments, [
+  var args = AV.validateArgs(arguments, [
     {
       name: 'personId',
       type: AV.Types.STRING,
@@ -141,13 +135,13 @@ Person.prototype.link = function() {
     }
   ]);
 
-  var result = _callSync('Person_link', {
+  var result = native_.callSync('Person_link', {
     // TODO move to only sending the person id (in all functions)
     person: this,
     id: args.personId
   });
-  if (Common.isFailure(result)) {
-    throw Common.getErrorObject(result);
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
   }
   var _this = this;
   _editGuard.run(function() {
@@ -157,7 +151,7 @@ Person.prototype.link = function() {
 
 // Separates a contact from this person.
 Person.prototype.unlink = function(contactId) {
-  var args = AV.validateMethod(arguments, [
+  var args = AV.validateArgs(arguments, [
     {
       name: 'contactId',
       type: AV.Types.STRING,
@@ -166,18 +160,18 @@ Person.prototype.unlink = function(contactId) {
     }
   ]);
 
-  var result = _callSync('Person_unlink', {
+  var result = native_.callSync('Person_unlink', {
     // TODO move to only sending the person id (in all functions)
     person: this,
     id: args.contactId
   });
-  if (Common.isFailure(result)) {
-    throw Common.getErrorObject(result);
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
   }
   var _this = this;
   return _editGuard.run(function() {
     _this.contactCount = _this.contactCount - 1;
-    return new Person(Common.getResultObject(result));
+    return new Person(native_.getResultObject(result));
   });
 };
 
