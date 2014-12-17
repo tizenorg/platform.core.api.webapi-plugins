@@ -7,8 +7,17 @@
 
 #include <string>
 #include <memory>
+#include <mutex>
+#include <map>
 #include <TVServiceAPI.h>
+#include <ServiceNavigationDataType.h>
+#include <NavigationModeHelper.h>
 #include "tvchannel/types.h"
+#include "tvchannel/tune_option.h"
+
+namespace common {
+class PlatformException;
+}
 
 namespace extension {
 namespace tvchannel {
@@ -26,29 +35,64 @@ static const int TV_SERVICE_API_METHOD_FAILURE = -1;
 
 class EventListener {
  public:
-    virtual void onChannelChange() = 0;
+    virtual void onChannelChange(double callbackId) = 0;
+    virtual void onEPGReceived(double callbackId) = 0;
+    virtual void onNoSignal(double callbackId) = 0;
+    virtual ~EventListener() {
+    }
 };
 
 class TVChannelManager {
  public:
+    struct TuneData {
+        TuneData(TuneOption _tuneOption, WindowType _windowType,
+            double _callbackId) :
+            tuneOption(_tuneOption), windowType(_windowType),
+                callbackId(_callbackId) {
+        }
+        TuneOption tuneOption;
+        WindowType windowType;
+        double callbackId;
+        u_int64_t serviceId;
+        std::shared_ptr<common::PlatformException> pError;
+    };
+
     static TVChannelManager* getInstance();
-    std::unique_ptr<ChannelInfo> getCurrentChannel(std::string const& _windowType);
-    ProgramInfo* getCurrentProgram(std::string const& _windowType);
     static void ucs2utf8(char *out, size_t out_len, char *in, size_t in_len);
-    void registerListener(EventListener* listener);
+    void registerListener(ISignalSubscriber* pSubscriber);
+    ISignalSubscriber* createSubscriber(EventListener* pListener);
+    std::unique_ptr<ChannelInfo> getCurrentChannel(WindowType _windowType);
+    ProgramInfo* getCurrentProgram(WindowType _windowType);
+
+    void tune(std::shared_ptr<TuneData> const& _pTuneData);
+
+    EProfile getProfile(WindowType windowType);
+    IServiceNavigation* getNavigation(EProfile profileId, u_int16_t screenId);
+    TSTvMode getTvMode(IServiceNavigation* _pNavigation);
+    std::unique_ptr<TCCriteriaHelper> getBasicCriteria(TSTvMode tvMode,
+        ENavigationMode naviMode);
+    TCServiceData getCurrentServiceInfo(IServiceNavigation* _pNavigation,
+        TSTvMode _mode, std::unique_ptr<TCCriteriaHelper> const& _pCriteria);
+
+    IService* getService();
+
  private:
     EventListener* m_listener;
     //  Not copyable, assignable, movable
-    TVChannelManager():
-        m_listener(NULL) {
-    }
+    TVChannelManager();
     TVChannelManager(TVChannelManager const&) = delete;
     void operator=(TVChannelManager const&) = delete;
     TVChannelManager(TVChannelManager &&) = delete;
 
-    EProfile getProfile(WindowType windowType);
-    TCServiceId getCurrentChannelId(std::string const& _windowType);
-    static int signalListener(ESignalType type, TSSignalData data, void*);
+    TCServiceId getCurrentChannelId(WindowType _windowType);
+    static int signalListener(ESignalType type, EProfile _profile,
+        u_int16_t _screenID, TSSignalData data, void*);
+    IService* m_pService;
+
+    static const int SCREENID = 0;
+
+    std::mutex tuneMutex;
+    std::map<u_int64_t, double> m_callbackTuneMap;
 };
 
 }  // namespace tvchannel

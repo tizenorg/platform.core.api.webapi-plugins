@@ -41,7 +41,9 @@
         'tvchannel_manager.h',
         'tvchannel_manager.cc',
         'types.h',
-        'types.cc'
+        'types.cc',
+        'tune_option.h',
+        'tune_option.cc'
       ],
     },
   ],

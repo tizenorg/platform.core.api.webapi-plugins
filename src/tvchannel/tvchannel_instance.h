@@ -10,8 +10,8 @@
 
 #include "common/extension.h"
 #include "common/picojson.h"
-#include "tvchannel/tvchannel_manager.h"
 #include "tvchannel/tvchannel_extension.h"
+#include "tvchannel/tvchannel_manager.h"
 
 namespace extension {
 namespace tvchannel {
@@ -26,9 +26,20 @@ class TVChannelInstance:
  private:
     void getCurrentChannel(const picojson::value& args, picojson::object& out);
     void getCurrentProgram(const picojson::value& args, picojson::object& out);
-    virtual void onChannelChange();
+    virtual void onChannelChange(double callbackId);
+    virtual void onEPGReceived(double callbackId);
+    virtual void onNoSignal(double callbackId);
     picojson::value channelInfoToJson(
         const std::unique_ptr<ChannelInfo> &pChannel);
+    picojson::value programInfoToJson(
+        const std::unique_ptr<ProgramInfo> &pProgram);
+    void tune(picojson::value const& args,
+        picojson::object& out);
+    void tuneTask(std::shared_ptr<TVChannelManager::TuneData> const& _tuneData);
+    void tuneTaskAfter(
+        std::shared_ptr<TVChannelManager::TuneData> const& _pTuneData);
+
+    ISignalSubscriber* m_pSubscriber;
 };
 
 }  // namespace tvchannel

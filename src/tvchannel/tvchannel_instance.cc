@@ -9,31 +9,89 @@
 #include "common/picojson.h"
 #include "tvchannel/channel_info.h"
 #include "tvchannel/program_info.h"
+#include "tvchannel/types.h"
+#include "common/task-queue.h"
 
 namespace extension {
 namespace tvchannel {
 
 TVChannelInstance::TVChannelInstance() {
-    LOGE("Entered");
+    LOGD("Entered");
     RegisterSyncHandler("TVChannelManager_getCurrentChannel",
         std::bind(&TVChannelInstance::getCurrentChannel, this,
-            std::placeholders::_1,
-            std::placeholders::_2));
+            std::placeholders::_1, std::placeholders::_2));
     RegisterSyncHandler("TVChannelManager_getCurrentProgram",
         std::bind(&TVChannelInstance::getCurrentProgram, this,
-            std::placeholders::_1,
+            std::placeholders::_1, std::placeholders::_2));
+    RegisterHandler("TVChannelManager_tune",
+        std::bind(&TVChannelInstance::tune, this, std::placeholders::_1,
             std::placeholders::_2));
-    TVChannelManager::getInstance()->registerListener(this);
+
+    m_pSubscriber = TVChannelManager::getInstance()->createSubscriber(this);
+    TVChannelManager::getInstance()->registerListener(m_pSubscriber);
 }
 
 TVChannelInstance::~TVChannelInstance() {
-    LOGE("Entered");
+    LOGD("Entered");
+}
+
+void TVChannelInstance::tune(picojson::value const& args,
+    picojson::object& out) {
+    LOGD("Enter");
+    picojson::object tuneOption =
+        args.get("tuneOption").get<picojson::object>();
+    double callbackId = args.get("callbackId").get<double>();
+    std::string windowType;
+    if (args.contains("windowType")) {
+        windowType = args.get("windowType").get<std::string>();
+    } else {
+        windowType = "MAIN";
+    }
+
+    LOGD("CallbackID %f", callbackId);
+    std::shared_ptr<TVChannelManager::TuneData> pTuneData(
+        new TVChannelManager::TuneData(TuneOption(tuneOption),
+            stringToWindowType(windowType), callbackId));
+
+    std::function<void(std::shared_ptr<
+        TVChannelManager::TuneData> const&)> task = std::bind(
+            &TVChannelInstance::tuneTask, this, std::placeholders::_1);
+    std::function<void(std::shared_ptr<
+            TVChannelManager::TuneData> const&)> taskAfter = std::bind(
+                &TVChannelInstance::tuneTaskAfter, this, std::placeholders::_1);
+
+    common::TaskQueue::GetInstance().Queue<TVChannelManager::TuneData>(task,
+        taskAfter, pTuneData);
+
+    picojson::value v;
+    ReportSuccess(v, out);
+}
+
+void TVChannelInstance::tuneTaskAfter(
+    std::shared_ptr<TVChannelManager::TuneData> const& _tuneData) {
+    LOGD("Enter");
+    if (_tuneData->pError) {
+        picojson::value event = picojson::value(picojson::object());
+        picojson::object& obj = event.get<picojson::object>();
+        obj.insert(std::make_pair("callbackId", picojson::value(
+            _tuneData->callbackId)));
+        obj.insert(std::make_pair("error", _tuneData->pError->ToJSON()));
+        PostMessage(event.serialize().c_str());
+    }
+}
+
+void TVChannelInstance::tuneTask(
+    std::shared_ptr<TVChannelManager::TuneData> const& _tuneData) {
+    LOGD("Enter");
+    TVChannelManager::getInstance()->tune(_tuneData);
 }
 
 void TVChannelInstance::getCurrentChannel(picojson::value const& args,
     picojson::object& out) {
-    std::unique_ptr< ChannelInfo > pChannel = TVChannelManager::getInstance()->getCurrentChannel(
-        args.get("windowType").get<std::string>());
+
+    std::unique_ptr<ChannelInfo> pChannel =
+        TVChannelManager::getInstance()->getCurrentChannel(
+            stringToWindowType(args.get("windowType").get<std::string>()));
 
     picojson::value v = channelInfoToJson(pChannel);
     ReportSuccess(v, out);
@@ -79,15 +137,10 @@ picojson::value TVChannelInstance::channelInfoToJson(
     return picojson::value(channel);
 }
 
-
-void TVChannelInstance::getCurrentProgram(const picojson::value& args,
-    picojson::object& out) {
-    std::unique_ptr<ProgramInfo> pInfo(TVChannelManager::getInstance()
-        ->getCurrentProgram(args.get("windowType").get<std::string>()));
+picojson::value TVChannelInstance::programInfoToJson(
+    const std::unique_ptr<ProgramInfo>& pInfo) {
     picojson::value::object program;
-    program.insert(
-        std::make_pair("title",
-            picojson::value(pInfo->getTitle())));
+    program.insert(std::make_pair("title", picojson::value(pInfo->getTitle())));
     program.insert(
         std::make_pair("startTime",
             picojson::value(static_cast<double>(pInfo->getStartTimeMs()))));
@@ -98,25 +151,71 @@ void TVChannelInstance::getCurrentProgram(const picojson::value& args,
         std::make_pair("detailedDescription",
             picojson::value(pInfo->getDetailedDescription())));
     program.insert(
-        std::make_pair("language",
-            picojson::value(pInfo->getLanguage())));
+        std::make_pair("language", picojson::value(pInfo->getLanguage())));
     program.insert(
-        std::make_pair("rating",
-            picojson::value(pInfo->getRating())));
+        std::make_pair("rating", picojson::value(pInfo->getRating())));
 
     picojson::value result(program);
-    ReportSuccess(result, out);
+    return result;
 }
 
-void TVChannelInstance::onChannelChange() {
+void TVChannelInstance::getCurrentProgram(const picojson::value& args,
+    picojson::object& out) {
+    std::unique_ptr<ProgramInfo> pInfo(
+        TVChannelManager::getInstance()->getCurrentProgram(
+            stringToWindowType(args.get("windowType").get<std::string>())));
+    ReportSuccess(programInfoToJson(pInfo), out);
+}
+
+void TVChannelInstance::onChannelChange(double callbackId) {
     LOGD("Enter");
     try {
+        WindowType windowType = stringToWindowType("MAIN");
+
         picojson::value::object dict;
-        std::unique_ptr<ChannelInfo> pChannel = TVChannelManager::getInstance()
-            ->getCurrentChannel("MAIN");
+        std::unique_ptr<ChannelInfo> pChannel =
+            TVChannelManager::getInstance()->getCurrentChannel(windowType);
         dict["listenerId"] = picojson::value("ChannelChanged");
         dict["channel"] = channelInfoToJson(pChannel);
         dict["windowType"] = picojson::value("MAIN");
+        dict["success"] = picojson::value(true);
+        picojson::value resultListener(dict);
+        PostMessage(resultListener.serialize().c_str());
+        if (callbackId !=- 1) {
+            dict.erase("listenerId");
+            dict["callbackId"] = picojson::value(callbackId);
+            picojson::value resultCallback(dict);
+            PostMessage(resultCallback.serialize().c_str());
+        }
+    } catch (common::PlatformException& e) {
+        LOGW("Failed to post message: %s", e.message().c_str());
+    } catch (...) {
+        LOGW("Failed to post message, unknown error");
+    }
+}
+
+void TVChannelInstance::onEPGReceived(double callbackId) {
+    try {
+        picojson::value::object dict;
+        dict["listenerId"] = picojson::value("ProgramInfoReceived");
+        dict["windowType"] = picojson::value("MAIN");
+        std::unique_ptr<ProgramInfo> pInfo(
+            TVChannelManager::getInstance()->getCurrentProgram(MAIN));
+        dict["program"] = programInfoToJson(pInfo);
+        picojson::value result(dict);
+        PostMessage(result.serialize().c_str());
+    } catch (common::PlatformException& e) {
+        LOGW("Failed to post message: %s", e.message().c_str());
+    } catch (...) {
+        LOGW("Failed to post message, unknown error");
+    }
+}
+void TVChannelInstance::onNoSignal(double callbackId) {
+    try {
+        picojson::value::object dict;
+        dict["windowType"] = picojson::value("MAIN");
+        dict["callbackId"] = picojson::value(callbackId);
+        dict["nosignal"] = picojson::value(true);
         picojson::value result(dict);
         PostMessage(result.serialize().c_str());
     } catch (common::PlatformException& e) {
@@ -126,5 +225,5 @@ void TVChannelInstance::onChannelChange() {
     }
 }
 
-}  // namespace tvchannel
-}  // namespace extension
+}  //  namespace tvchannel
+}  //  namespace extension
