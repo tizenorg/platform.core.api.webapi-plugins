@@ -1,18 +1,6 @@
-/*
- * Copyright (c) 2014 Samsung Electronics Co., Ltd All Rights Reserved
- *
- *    Licensed under the Apache License, Version 2.0 (the "License");
- *    you may not use this file except in compliance with the License.
- *    You may obtain a copy of the License at
- *
- *        http://www.apache.org/licenses/LICENSE-2.0
- *
- *    Unless required by applicable law or agreed to in writing, software
- *    distributed under the License is distributed on an "AS IS" BASIS,
- *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *    See the License for the specific language governing permissions and
- *    limitations under the License.
- */
+// Copyright 2014 Samsung Electronics Co, Ltd. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
 
 var CalendarTextFormat = {
   ICALENDAR_20: 'ICALENDAR_20',
@@ -46,7 +34,7 @@ var EventAvailability = {
 };
 
 var CalendarEventId = function(uid, rid) {
-  AV.validateConstructorCall(this, CalendarEventId);
+  AV.isConstructorCall(this, CalendarEventId);
 
   var _uid = null;
 
@@ -344,7 +332,7 @@ var CalendarItem = function(data) {
 };
 
 CalendarItem.prototype.convertToString = function() {
-  var args = AV.validateMethod(arguments, [
+  var args = AV.validateArgs(arguments, [
     {
       name: 'format',
       type: AV.Types.ENUM,
@@ -576,7 +564,7 @@ var CalendarTaskInit = function(data) {
 };
 
 var CalendarTask = function(taskInitDict, format) {
-  AV.validateConstructorCall(this, CalendarTask);
+  AV.isConstructorCall(this, CalendarTask);
 
   if (T.isString(taskInitDict) && Object.keys(CalendarTextFormat).indexOf(format) > -1) {
     CalendarTaskInit.call(this, _convertFromStringToItem(taskInitDict));
@@ -601,7 +589,8 @@ var CalendarEventInit = function(data) {
 
   var _validateReccurence = function(v) {
     if (_isDetached && v !== null) {
-      C.throwNotSupported('Recurrence can\'t be set because event is detached');
+      throw new tizen.WebAPIException(tizen.WebAPIException.NOT_SUPPORTED_ERR,
+        'Recurrence can\'t be set because event is detached');
     }
 
     if (v === null || v instanceof tizen.CalendarRecurrenceRule) {
@@ -667,7 +656,7 @@ var CalendarEventInit = function(data) {
 };
 
 var CalendarEvent = function(eventInitDict, format) {
-  AV.validateConstructorCall(this, CalendarEvent);
+  AV.isConstructorCall(this, CalendarEvent);
 
   if (T.isString(eventInitDict) && Object.keys(CalendarTextFormat).indexOf(format) > -1) {
     CalendarEventInit.call(this, _convertFromStringToItem(eventInitDict));
@@ -681,27 +670,28 @@ CalendarEvent.prototype.constructor = CalendarEvent;
 
 CalendarEvent.prototype.expandRecurrence = function(startDate, endDate, successCallback, errorCallback) {
   if (arguments.length < 3) {
-    C.throwTypeMismatch();
+    throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR);
   }
   if (!(startDate instanceof tizen.TZDate)) {
-    C.throwTypeMismatch();
+    throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR);
   }
   if (!(endDate instanceof tizen.TZDate)) {
-    C.throwTypeMismatch();
+    throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR);
   }
   if (typeof successCallback !== 'function') {
-    C.throwTypeMismatch();
+    throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR);
   }
   if (errorCallback) {
     if (typeof errorCallback !== 'function') {
-      C.throwTypeMismatch();
+      throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR);
     }
   }
   if (!(this.recurrenceRule instanceof tizen.CalendarRecurrenceRule)) {
-    C.throwInvalidValues('The event is not recurring.');
+    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR,
+      'The event is not recurring.');
   }
 
-  var args = AV.validateMethod(arguments, [
+  var args = AV.validateArgs(arguments, [
     {
       name: 'startDate',
       type: AV.Types.PLATFORM_OBJECT,

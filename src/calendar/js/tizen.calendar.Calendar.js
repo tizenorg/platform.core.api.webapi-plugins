@@ -1,24 +1,11 @@
-/*
- * Copyright (c) 2014 Samsung Electronics Co., Ltd All Rights Reserved
- *
- *    Licensed under the Apache License, Version 2.0 (the "License");
- *    you may not use this file except in compliance with the License.
- *    You may obtain a copy of the License at
- *
- *        http://www.apache.org/licenses/LICENSE-2.0
- *
- *    Unless required by applicable law or agreed to in writing, software
- *    distributed under the License is distributed on an "AS IS" BASIS,
- *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *    See the License for the specific language governing permissions and
- *    limitations under the License.
- */
+// Copyright 2014 Samsung Electronics Co, Ltd. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
 
 var CalendarType = {
   EVENT: 'EVENT',
   TASK: 'TASK'
 };
-
 
 /**
  * For internal use only.
@@ -66,7 +53,7 @@ var InternalCalendar = function(data) {
 var Calendar = function(accountId, name, type) {
   var _data;
 
-  AV.validateConstructorCall(this, Calendar);
+  AV.isConstructorCall(this, Calendar);
 
   if (arguments[0] instanceof InternalCalendar) {
     _data = arguments[0];
@@ -125,32 +112,32 @@ Calendar.prototype.get = function(id) {
   var args;
   if (this.type === CalendarType.TASK) {
     if (!parseInt(id) || parseInt(id) <= 0) {
-      throw C.throwNotFound();
+      throw new tizen.WebAPIException(tizen.WebAPIException.NOT_FOUND_ERR);
     }
-    args = AV.validateMethod(arguments, [{
+    args = AV.validateArgs(arguments, [{
       name: 'id',
       type: AV.Types.STRING
     }]);
   } else {
-    args = AV.validateMethod(arguments, [{
+    args = AV.validateArgs(arguments, [{
       name: 'id',
       type: AV.Types.PLATFORM_OBJECT,
       values: tizen.CalendarEventId
     }]);
   }
 
-  var result = _callSync('Calendar_get', {
+  var result = native_.callSync('Calendar_get', {
     calendarId: this.id,
     id: args.id
   });
 
-  if (C.isFailure(result)) {
-    throw C.getErrorObject(result);
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
   }
 
   _edit.allow();
   var item;
-  var _item = C.getResultObject(result);
+  var _item = native_.getResultObject(result);
 
   if (this.type === CalendarType.TASK) {
     item = new CalendarTask(_itemConverter.toTizenObject(_item, _item.isAllDay));
@@ -163,7 +150,7 @@ Calendar.prototype.get = function(id) {
 };
 
 Calendar.prototype.add = function() {
-  var args = AV.validateMethod(arguments, [
+  var args = AV.validateArgs(arguments, [
     {
       name: 'item',
       type: AV.Types.PLATFORM_OBJECT,
@@ -173,22 +160,23 @@ Calendar.prototype.add = function() {
 
   if ((this.type === CalendarType.EVENT && !(args.item instanceof CalendarEvent)) ||
       (this.type === CalendarType.TASK && !(args.item instanceof CalendarTask))) {
-    C.throwTypeMismatch('Invalid item type.');
+    throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
+        'Invalid item type.');
   }
 
   var tmp = _itemConverter.fromTizenObject(args.item);
   tmp.calendarId = this.id;
 
-  var result = _callSync('Calendar_add', {
+  var result = native_.callSync('Calendar_add', {
     item: tmp,
     type: this.type
   });
 
-  if (C.isFailure(result)) {
-    throw C.getErrorObject(result);
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
   }
 
-  var _id = C.getResultObject(result);
+  var _id = native_.getResultObject(result);
 
   _edit.allow();
   args.item.calendarId = this.id;
@@ -205,7 +193,7 @@ Calendar.prototype.add = function() {
 };
 
 Calendar.prototype.addBatch = function() {
-  var args = AV.validateMethod(arguments, [
+  var args = AV.validateArgs(arguments, [
     {
       name: 'items',
       type: AV.Types.ARRAY,
@@ -225,11 +213,11 @@ Calendar.prototype.addBatch = function() {
   ]);
 
   var callback = function(result) {
-    if (C.isFailure(result)) {
-      C.callIfPossible(args.errorCallback, C.getErrorObject(result));
+    if (native_.isFailure(result)) {
+      native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));
     } else {
       _edit.allow();
-      var _ids = C.getResultObject(result);
+      var _ids = native_.getResultObject(result);
       for (var i = 0; i < args.items.length; i++) {
         args.items[i].calendarId = this.id;
         switch (this.type) {
@@ -242,7 +230,7 @@ Calendar.prototype.addBatch = function() {
         }
       }
       _edit.disallow();
-      C.callIfPossible(args.successCallback, args.items);
+      native_.callIfPossible(args.successCallback, args.items);
     }
   }.bind(this);
 
@@ -251,25 +239,26 @@ Calendar.prototype.addBatch = function() {
   for (var i = 0; i < args.items.length; i++) {
     if ((this.type === CalendarType.EVENT && !(args.items[i] instanceof CalendarEvent)) ||
             (this.type === CalendarType.TASK && !(args.items[i] instanceof CalendarTask))) {
-      C.throwTypeMismatch('Invalid item type.');
+      throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
+        'Invalid item type.');
     }
     tmpItem = _itemConverter.fromTizenObject(args.items[i]);
     tmpItem.calendarId = this.id;
     tmp.push(tmpItem);
   }
 
-  var result = _call('Calendar_addBatch', {
+  var result = native_.call('Calendar_addBatch', {
     type: this.type,
     items: tmp
   }, callback);
 
-  if (C.isFailure(result)) {
-    throw C.getErrorObject(result);
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
   }
 };
 
 Calendar.prototype.update = function() {
-  var args = AV.validateMethod(arguments, [
+  var args = AV.validateArgs(arguments, [
     {
       name: 'item',
       type: AV.Types.PLATFORM_OBJECT,
@@ -285,13 +274,14 @@ Calendar.prototype.update = function() {
 
   if ((this.type === CalendarType.EVENT && !(args.item instanceof CalendarEvent)) ||
       (this.type === CalendarType.TASK && !(args.item instanceof CalendarTask))) {
-    C.throwTypeMismatch('Invalid item type.');
+    throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
+      'Invalid item type.');
   }
 
   var tmp = _itemConverter.fromTizenObject(args.item);
   tmp.calendarId = this.id;
 
-  var result = _callSync('Calendar_update', {
+  var result = native_.callSync('Calendar_update', {
     item: tmp,
     type: this.type,
     updateAllInstances: (args.has.updateAllInstances)
@@ -299,11 +289,11 @@ Calendar.prototype.update = function() {
             : true
   });
 
-  if (C.isFailure(result)) {
-    throw C.getErrorObject(result);
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
   }
 
-  var _item = C.getResultObject(result);
+  var _item = native_.getResultObject(result);
   _edit.allow();
   for (var prop in _item) {
     if (args.item.hasOwnProperty(prop)) {
@@ -315,7 +305,7 @@ Calendar.prototype.update = function() {
 };
 
 Calendar.prototype.updateBatch = function() {
-  var args = AV.validateMethod(arguments, [
+  var args = AV.validateArgs(arguments, [
     {
       name: 'items',
       type: AV.Types.ARRAY,
@@ -345,12 +335,12 @@ Calendar.prototype.updateBatch = function() {
   var calendarType = this.type;
 
   var callback = function(result) {
-    if (C.isFailure(result)) {
-      C.callIfPossible(args.errorCallback, C.getErrorObject(result));
+    if (native_.isFailure(result)) {
+      native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));
       return;
     }
 
-    C.callIfPossible(args.successCallback);
+    native_.callIfPossible(args.successCallback);
   }.bind(this);
 
   var tmp = [];
@@ -358,13 +348,14 @@ Calendar.prototype.updateBatch = function() {
   for (var i = 0; i < args.items.length; i++) {
     if ((calendarType === CalendarType.EVENT && !(args.items[i] instanceof CalendarEvent)) ||
             (calendarType === CalendarType.TASK && !(args.items[i] instanceof CalendarTask))) {
-      C.throwTypeMismatch('Invalid item type.');
+      throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
+        'Invalid item type.');
     }
     tmpItem = _itemConverter.fromTizenObject(args.items[i]);
     tmp.push(tmpItem);
   }
 
-  var result = _call('Calendar_updateBatch', {
+  var result = native_.call('Calendar_updateBatch', {
     type: this.type,
     items: tmp,
     updateAllInstances: (args.has.updateAllInstances)
@@ -372,8 +363,8 @@ Calendar.prototype.updateBatch = function() {
             : true
   }, callback);
 
-  if (C.isFailure(result)) {
-    throw C.getErrorObject(result);
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
   }
 };
 
@@ -381,32 +372,32 @@ Calendar.prototype.remove = function(id) {
   var args;
   if (this.type === CalendarType.TASK) {
     if (!parseInt(id) || parseInt(id) <= 0) {
-      throw C.throwNotFound();
+      throw new tizen.WebAPIException(tizen.WebAPIException.NOT_FOUND_ERR);
     }
-    args = AV.validateMethod(arguments, [{
+    args = AV.validateArgs(arguments, [{
       name: 'id',
       type: AV.Types.STRING
     }]);
   } else {
-    args = AV.validateMethod(arguments, [{
+    args = AV.validateArgs(arguments, [{
       name: 'id',
       type: AV.Types.PLATFORM_OBJECT,
       values: tizen.CalendarEventId
     }]);
   }
 
-  var result = _callSync('Calendar_remove', {
+  var result = native_.callSync('Calendar_remove', {
     type: this.type,
     id: args.id
   });
 
-  if (C.isFailure(result)) {
-    throw C.getErrorObject(result);
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
   }
 };
 
 Calendar.prototype.removeBatch = function() {
-  var args = AV.validateMethod(arguments, [
+  var args = AV.validateArgs(arguments, [
     {
       name: 'ids',
       type: AV.Types.ARRAY,
@@ -428,25 +419,25 @@ Calendar.prototype.removeBatch = function() {
   ]);
 
   var callback = function(result) {
-    if (C.isFailure(result)) {
-      C.callIfPossible(args.errorCallback, C.getErrorObject(result));
+    if (native_.isFailure(result)) {
+      native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));
     } else {
-      C.callIfPossible(args.successCallback);
+      native_.callIfPossible(args.successCallback);
     }
   };
 
-  var result = _call('Calendar_removeBatch', {
+  var result = native_.call('Calendar_removeBatch', {
     type: this.type,
     ids: args.ids
   }, callback);
 
-  if (C.isFailure(result)) {
-    throw C.getErrorObject(result);
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
   }
 };
 
 Calendar.prototype.find = function(successCallback, errorCallback, filter, sortMode) {
-  var args = AV.validateMethod(arguments, [
+  var args = AV.validateArgs(arguments, [
     {
       name: 'successCallback',
       type: AV.Types.FUNCTION
@@ -476,10 +467,10 @@ Calendar.prototype.find = function(successCallback, errorCallback, filter, sortM
   var calendarType = this.type;
 
   var callback = function(result) {
-    if (C.isFailure(result)) {
-      C.callIfPossible(args.errorCallback, C.getErrorObject(result));
+    if (native_.isFailure(result)) {
+      native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));
     } else {
-      var _items = C.getResultObject(result);
+      var _items = native_.getResultObject(result);
       var c = [];
       _edit.allow();
       _items.forEach(function(i) {
@@ -498,14 +489,14 @@ Calendar.prototype.find = function(successCallback, errorCallback, filter, sortM
     }
   };
 
-  var result = _call('Calendar_find', {
+  var result = native_.call('Calendar_find', {
     calendarId: this.id,
     filter: args.filter,
     sortMode: args.sortMode
   }, callback);
 
-  if (C.isFailure(result)) {
-    throw C.getErrorObject(result);
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
   }
 
 };
@@ -549,7 +540,7 @@ function _CalendarChangeCallback(type, event) {
 
     for (var watchId in listeners) {
       if (listeners.hasOwnProperty(watchId)) {
-        C.callIfPossible(listeners[watchId][callbackName], result);
+        native_.callIfPossible(listeners[watchId][callbackName], result);
       }
     }
   }.bind(this);
@@ -598,7 +589,7 @@ function _CalendarChangeCallback(type, event) {
 }
 
 Calendar.prototype.addChangeListener = function() {
-  var args = AV.validateMethod(arguments, [{
+  var args = AV.validateArgs(arguments, [{
     name: 'successCallback',
     type: AV.Types.LISTENER,
     values: ['onitemsadded', 'onitemsupdated', 'onitemsremoved']
@@ -607,15 +598,15 @@ Calendar.prototype.addChangeListener = function() {
   var listenerId = 'CalendarChangeCallback_' + this.type;
 
   if (!_nativeListeners.hasOwnProperty(listenerId)) {
-    var result = _callSync('Calendar_addChangeListener', {
+    var result = native_.callSync('Calendar_addChangeListener', {
       type: this.type,
       listenerId: listenerId
     });
-    if (C.isFailure(result)) {
-      throw C.getErrorObject(result);
+    if (native_.isFailure(result)) {
+      throw native_.getErrorObject(result);
     }
 
-    native.addListener(listenerId, (this.type === 'EVENT')
+    native_.addListener(listenerId, (this.type === 'EVENT')
             ? _CalendarEventChangeCallback
             : _CalendarTaskChangeCallback);
     _nativeListeners[listenerId] = this.type;
@@ -634,7 +625,7 @@ Calendar.prototype.addChangeListener = function() {
 };
 
 Calendar.prototype.removeChangeListener = function() {
-  var args = AV.validateMethod(arguments, [
+  var args = AV.validateArgs(arguments, [
     {
       name: 'watchId',
       type: AV.Types.LONG
@@ -661,13 +652,13 @@ Calendar.prototype.removeChangeListener = function() {
     var fail = false;
     for (var listenerId in _nativeListeners) {
       if (_nativeListeners.hasOwnProperty(listenerId)) {
-        result = _callSync('Calendar_removeChangeListener', {
+        result = native_.callSync('Calendar_removeChangeListener', {
           type: _nativeListeners[listenerId]
         });
-        if (C.isFailure(result)) {
-          fail = C.getErrorObject(result);
+        if (native_.isFailure(result)) {
+          fail = native_.getErrorObject(result);
         }
-        native.removeListener(listenerId, (this.type === 'EVENT')
+        native_.removeListener(listenerId, (this.type === 'EVENT')
                     ? _CalendarEventChangeCallback
                     : _CalendarTaskChangeCallback);
 

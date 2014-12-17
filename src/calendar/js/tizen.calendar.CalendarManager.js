@@ -1,26 +1,9 @@
-/*
- * Copyright (c) 2014 Samsung Electronics Co., Ltd All Rights Reserved
- *
- *    Licensed under the Apache License, Version 2.0 (the "License");
- *    you may not use this file except in compliance with the License.
- *    You may obtain a copy of the License at
- *
- *        http://www.apache.org/licenses/LICENSE-2.0
- *
- *    Unless required by applicable law or agreed to in writing, software
- *    distributed under the License is distributed on an "AS IS" BASIS,
- *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *    See the License for the specific language governing permissions and
- *    limitations under the License.
- */
+// Copyright 2014 Samsung Electronics Co, Ltd. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
 
 // class CalendarManager
 var CalendarManager = function() {};
-
-var CalendarType = {
-  EVENT: 'EVENT',
-  TASK: 'TASK'
-};
 
 // IDs defined in C-API calendar_types2.h
 var DefaultCalendarId = {
@@ -29,7 +12,7 @@ var DefaultCalendarId = {
 };
 
 CalendarManager.prototype.getCalendars = function() {
-  var args = AV.validateMethod(arguments, [{
+  var args = AV.validateArgs(arguments, [{
     name: 'type',
     type: AV.Types.ENUM,
     values: Object.keys(CalendarType)
@@ -50,10 +33,10 @@ CalendarManager.prototype.getCalendars = function() {
   };
 
   var callback = function(result) {
-    if (C.isFailure(result)) {
-      C.callIfPossible(args.errorCallback, C.getErrorObject(result));
+    if (native_.isFailure(result)) {
+      native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));
     } else {
-      var calendars = C.getResultObject(result);
+      var calendars = native_.getResultObject(result);
       var c = [];
       calendars.forEach(function(i) {
         c.push(new Calendar(new InternalCalendar(i)));
@@ -62,16 +45,16 @@ CalendarManager.prototype.getCalendars = function() {
     }
   };
 
-  var result = _call('CalendarManager_getCalendars', callArgs, callback);
+  var result = native_.call('CalendarManager_getCalendars', callArgs, callback);
 
-  if (C.isFailure(result)) {
-    throw C.getErrorObject(result);
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
   }
 };
 
 CalendarManager.prototype.getUnifiedCalendar = function() {
 
-  var args = AV.validateMethod(arguments, [{
+  var args = AV.validateArgs(arguments, [{
     name: 'type',
     type: AV.Types.ENUM,
     values: Object.keys(CalendarType)
@@ -85,7 +68,7 @@ CalendarManager.prototype.getUnifiedCalendar = function() {
 
 CalendarManager.prototype.getDefaultCalendar = function() {
 
-  var args = AV.validateMethod(arguments, [{
+  var args = AV.validateArgs(arguments, [{
     name: 'type',
     type: AV.Types.ENUM,
     values: Object.keys(CalendarType)
@@ -97,7 +80,7 @@ CalendarManager.prototype.getDefaultCalendar = function() {
 
 CalendarManager.prototype.getCalendar = function() {
 
-  var args = AV.validateMethod(arguments, [{
+  var args = AV.validateArgs(arguments, [{
     name: 'type',
     type: AV.Types.ENUM,
     values: Object.keys(CalendarType)
@@ -113,18 +96,18 @@ CalendarManager.prototype.getCalendar = function() {
     id: args.id
   };
 
-  var result = _callSync('CalendarManager_getCalendar', callArgs);
+  var result = native_.callSync('CalendarManager_getCalendar', callArgs);
 
-  if (C.isFailure(result)) {
-    throw C.getErrorObject(result);
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
   }
 
-  return new Calendar(new InternalCalendar(C.getResultObject(result)));
+  return new Calendar(new InternalCalendar(native_.getResultObject(result)));
 };
 
 CalendarManager.prototype.addCalendar = function() {
 
-  var args = AV.validateMethod(arguments, [{
+  var args = AV.validateArgs(arguments, [{
     name: 'calendar',
     type: AV.Types.PLATFORM_OBJECT,
     values: Calendar
@@ -134,20 +117,20 @@ CalendarManager.prototype.addCalendar = function() {
     calendar: args.calendar
   };
 
-  var result = _callSync('CalendarManager_addCalendar', callArgs);
+  var result = native_.callSync('CalendarManager_addCalendar', callArgs);
 
-  if (C.isFailure(result)) {
-    throw C.getErrorObject(result);
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
   }
 
   args.calendar.id = new InternalCalendar({
-    id: C.getResultObject(result)
+    id: native_.getResultObject(result)
   });
 };
 
 CalendarManager.prototype.removeCalendar = function() {
 
-  var args = AV.validateMethod(arguments, [{
+  var args = AV.validateArgs(arguments, [{
     name: 'type',
     type: AV.Types.ENUM,
     values: Object.keys(CalendarType)
@@ -163,10 +146,10 @@ CalendarManager.prototype.removeCalendar = function() {
     id: args.id
   };
 
-  var result = _callSync('CalendarManager_removeCalendar', callArgs);
+  var result = native_.callSync('CalendarManager_removeCalendar', callArgs);
 
-  if (C.isFailure(result)) {
-    throw C.getErrorObject(result);
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
   }
 };
 
