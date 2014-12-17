@@ -18,6 +18,30 @@ AudioControlManager& AudioControlManager::getInstance() {
   return instance;
 }
 
+void AudioControlManager::setMute(bool mute) {
+}
+
+bool AudioControlManager::isMute() {
+    return true;
+}
+
+void AudioControlManager::setVolume(u_int16_t volume) {
+}
+
+void AudioControlManager::setVolumeUp() {
+}
+
+void AudioControlManager::setVolumeDown() {
+}
+
+u_int16_t AudioControlManager::getVolume() {
+    return 10;
+}
+
+AudioOutputMode AudioControlManager::getOutputMode() {
+    return PCM;
+}
+
 }  // namespace tvaudio
 }  // namespace extension
 

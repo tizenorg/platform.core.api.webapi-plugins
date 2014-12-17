@@ -6,6 +6,12 @@
 
 
 
+var native = new xwalk.utils.NativeManager(extension);
+var validator = xwalk.utils.validator;
+var types = validator.Types;
+
+
+
 /**
  * This class provides access to the API functionalities through the tizen.tvaudiocontrol interface.
  * @constructor
@@ -22,8 +28,19 @@ function AudioControlManager() {
  * @param {!boolean} mute  The mute state
  *     (true = turn on the silent mode, false = turn off the silent mode)
  */
+
 AudioControlManager.prototype.setMute = function(mute) {
-  return undefined;
+  var args = validator.validateArgs(arguments, [
+    {name: 'mute', type: types.BOOLEAN}
+  ]);
+
+  var ret = native.callSync('AudioControlManager_setMute', {
+    mute: args.mute
+  });
+
+  if (native.isFailure(ret)) {
+    throw native.getErrorObject(ret);
+  }
 };
 
 
@@ -31,7 +48,13 @@ AudioControlManager.prototype.setMute = function(mute) {
  * Gets the mute state.
  */
 AudioControlManager.prototype.isMute = function() {
-  return undefined;
+  var ret = native.callSync('AudioControlManager_isMute');
+
+  if (native.isFailure(ret)) {
+    throw native.getErrorObject(ret);
+  }
+
+  return native.getResultObject(ret);
 };
 
 
@@ -41,7 +64,23 @@ AudioControlManager.prototype.isMute = function() {
  *     (the available volume range is 0 ~ 100)
  */
 AudioControlManager.prototype.setVolume = function(volume) {
-  return undefined;
+
+  var args = validator.validateArgs(arguments, [
+    {name: 'volume', type: types.UNSIGNED_LONG}
+  ]);
+
+  if (args.volume < 0 || args.volume > 100) {
+    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR,
+        'Volume is out of range: ' + args.volume, 'InvalidValuesError');
+  }
+
+  var ret = native.callSync('AudioControlManager_setVolume', {
+    volume: args.volume
+  });
+
+  if (native.isFailure(ret)) {
+    throw native.getErrorObject(ret);
+  }
 };
 
 
@@ -49,7 +88,11 @@ AudioControlManager.prototype.setVolume = function(volume) {
  * Increases the volume by 1 level.
  */
 AudioControlManager.prototype.setVolumeUp = function() {
-  return undefined;
+  var ret = native.callSync('AudioControlManager_setVolumeUp');
+
+  if (native.isFailure(ret)) {
+    throw native.getErrorObject(ret);
+  }
 };
 
 
@@ -57,7 +100,11 @@ AudioControlManager.prototype.setVolumeUp = function() {
  * Decreases the volume by 1 level.
  */
 AudioControlManager.prototype.setVolumeDown = function() {
-  return undefined;
+  var ret = native.callSync('AudioControlManager_setVolumeDown');
+
+  if (native.isFailure(ret)) {
+    throw native.getErrorObject(ret);
+  }
 };
 
 
@@ -66,7 +113,11 @@ AudioControlManager.prototype.setVolumeDown = function() {
  * @return {number} The current volume (the volume range is 0 ~ 100)
  */
 AudioControlManager.prototype.getVolume = function() {
-  return undefined;
+  var ret = native.callSync('AudioControlManager_getVolume');
+  if (native.isFailure(ret)) {
+    throw native.getErrorObject(ret);
+  }
+  return native.getResultObject(ret);
 };
 
 
@@ -92,6 +143,18 @@ AudioControlManager.prototype.unsetVolumeChangeListener = function() {
  * @return {AudioOutputMode} The current audio output mode
  */
 AudioControlManager.prototype.getOutputMode = function() {
+  var ret = native.callSync('AudioControlManager_getOutputMode');
+  if (native.isFailure(ret)) {
+    throw native.getErrorObject(ret);
+  }
+  return native.getResultObject(ret);
+};
+
+
+/**
+ * Plays the sound of a specific beep.
+ */
+AudioControlManager.prototype.playSound = function() {
   return undefined;
 };
 
