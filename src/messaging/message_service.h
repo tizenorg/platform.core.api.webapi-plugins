@@ -6,6 +6,7 @@
 #ifndef MESSAGING_MESSAGE_SERVICE_H_
 #define MESSAGING_MESSAGE_SERVICE_H_
 
+#include <ITapiNetwork.h>
 #include <memory>
 #include <string>
 
@@ -14,6 +15,7 @@
 
 #include "messaging_util.h"
 #include "message_storage.h"
+#include "message.h"
 
 namespace extension {
 namespace messaging {
@@ -23,6 +25,41 @@ enum MessageServiceAccountId
     UNKNOWN_ACCOUNT_ID = 0,
     SMS_ACCOUNT_ID = 101,
     MMS_ACCOUNT_ID = 102
+};
+
+class MessageRecipientsCallbackData : public common::CallbackUserData {
+public:
+    MessageRecipientsCallbackData();
+    virtual ~MessageRecipientsCallbackData();
+
+    void setMessage(std::shared_ptr<Message> message);
+    std::shared_ptr<Message> getMessage() const;
+
+    void setMessageRecipients(const std::vector<std::string>& msgRecipients);
+    const std::vector<std::string>& getMessageRecipients() const;
+
+    void setError(const std::string& err_name,
+            const std::string& err_message);
+    bool isError() const;
+
+    void setAccountId(int account_id);
+    int getAccountId() const;
+
+    bool setSimIndex(int sim_index);
+    TelNetworkDefaultDataSubs_t getSimIndex() const;
+    void setDefaultSimIndex(TelNetworkDefaultDataSubs_t sim_index);
+    TelNetworkDefaultDataSubs_t getDefaultSimIndex() const;
+    bool isSetSimIndex() const;
+
+private:
+    std::shared_ptr<Message> m_message;
+    bool m_is_error;
+    std::string m_err_name;
+    std::string m_err_message;
+    std::vector<std::string> m_msg_recipients;
+    int m_account_id;
+    TelNetworkDefaultDataSubs_t m_sim_index;
+    TelNetworkDefaultDataSubs_t m_default_sim_index;
 };
 
 class BaseMessageServiceCallbackData : public common::CallbackUserData {
@@ -92,7 +129,7 @@ public:
 
     virtual MessageStoragePtr getMsgStorage() const;
 
-    virtual void sendMessage();
+    virtual void sendMessage(MessageRecipientsCallbackData *callback);
     virtual void loadMessageBody();
     virtual void loadMessageAttachment();
     virtual long sync(SyncCallbackData *callback);

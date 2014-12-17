@@ -148,10 +148,63 @@ void MessagingInstance::GetMessageServices(const picojson::value& args,
     MessagingManager::getInstance().getMessageServices(serviceTag.to_str(), callbackId);
 }
 
+/*  Code used to testing in node.js console
+    // Define the success callback.
+    function serviceListCB(services) {
+         if (services.length > 0) {
+             var initDictionary = {
+                 subject: "Testing subject",
+                 to: ["r.klepaczko.testmail@gmail.com"],
+                 cc: ["r.klepaczko.testmail@gmail.com"],
+                 bcc: ["r.klepaczko.testmail@gmail.com"],
+                 plainBody: "simple plain body",
+                 htmlBody: "simle html body",
+                 isHightPriority: false
+             }
+             msg = new tizen.Message("messaging.email", initDictionary);
+             msg.attachments = [new tizen.MessageAttachment("images/myimage.png", "image/png")];
+             services[0].sendMessage(msg, function(data){
+                 console.log("Send email success");
+             }, function(){
+                 console.log("Send email failed");
+             });
+         }
+     }
+     tizen.messaging.getMessageServices("messaging.email", serviceListCB);
+ */
 void MessagingInstance::MessageServiceSendMessage(const picojson::value& args,
         picojson::object& out)
 {
     LoggerD("Entered");
+
+    picojson::object data = args.get(JSON_DATA).get<picojson::object>();
+    picojson::value v_message = data.at(SEND_MESSAGE_ARGS_MESSAGE);
+    const double callbackId = args.get(JSON_CALLBACK_ID).get<double>();
+
+    MessageRecipientsCallbackData* callback = new MessageRecipientsCallbackData();
+    callback->setMessage(MessagingUtil::jsonToMessage(v_message));
+    auto serviceId = static_cast<int>
+            (MessagingUtil::getValueFromJSONObject<double>(data,FUNCTIONS_HIDDEN_ARGS_SERVICE_ID));
+    callback->setAccountId(serviceId);
+
+    auto json = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
+    picojson::object& obj = json->get<picojson::object>();
+    obj[JSON_CALLBACK_ID] = picojson::value(callbackId);
+
+    auto simIndex = static_cast<long>
+            (MessagingUtil::getValueFromJSONObject<double>(data,SEND_MESSAGE_ARGS_SIMINDEX));
+
+    if (!callback->setSimIndex(simIndex)) {
+        PostMessage(json->serialize().c_str());
+        delete callback;
+        callback = NULL;
+        return;
+    }
+
+    callback->setJson(json);
+
+    auto service = MessagingManager::getInstance().getMessageServiceEmail(serviceId);
+    service->sendMessage(callback);
 }
 
 void MessagingInstance::MessageServiceLoadMessageBody(const picojson::value& args,

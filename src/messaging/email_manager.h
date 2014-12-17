@@ -44,7 +44,7 @@
 //#include "DBus/LoadBodyProxy.h"
 //#include "DBus/LoadAttachmentProxy.h"
 //#include "DBus/MessageProxy.h"
-//#include "DBus/SendProxy.h"
+#include "DBus/SendProxy.h"
 
 namespace extension {
 namespace messaging {
@@ -66,9 +66,9 @@ public:
 //    void findFolders(FoldersCallbackData* callback);
 //    void removeConversations(ConversationCallbackData* callback);
 //
-//    void sendMessage(MessageRecipientsCallbackData* callback);
-//    void sendStatusCallback(int mail_id, email_noti_on_network_event status,
-//            int error_code);
+    void sendMessage(MessageRecipientsCallbackData* callback);
+    void sendStatusCallback(int mail_id, email_noti_on_network_event status,
+            int error_code);
 //    void removeStatusCallback(const std::vector<int> &ids,
 //            email_noti_on_storage_event status);
 //
@@ -96,15 +96,15 @@ private:
     virtual ~EmailManager();
     void addDraftMessagePlatform(int account_id,
         std::shared_ptr<Message> message);
-//    void addOutboxMessagePlatform(int account_id,
-//        std::shared_ptr<Message> message);
+    void addOutboxMessagePlatform(int account_id,
+        std::shared_ptr<Message> message);
     void addMessagePlatform(int account_id, std::shared_ptr<Message> message,
         email_mailbox_type_e mailbox_type);
-//
-//    typedef std::map<int, MessageRecipientsCallbackData*> SendReqMap;
-//    typedef SendReqMap::iterator SendReqMapIterator;
-//    SendReqMapIterator getSendRequest(int mail_id);
-//    SendReqMap m_sendRequests;
+
+    typedef std::map<int, MessageRecipientsCallbackData*> SendReqMap;
+    typedef SendReqMap::iterator SendReqMapIterator;
+    SendReqMapIterator getSendRequest(int mail_id);
+    SendReqMap m_sendRequests;
 //    struct DeleteReq {
 //        MessagesCallbackUserData* callback;
 //        int messagesDeleted;
@@ -124,7 +124,7 @@ private:
 //    DBus::LoadBodyProxyPtr m_proxy_load_body;
 //    DBus::LoadAttachmentProxyPtr m_proxy_load_attachment;
 //    DBus::MessageProxyPtr m_proxy_messageStorage;
-//    DBus::SendProxyPtr m_proxy_send;
+    DBus::SendProxyPtr m_proxy_send;
 
     std::mutex m_mutex;
 };

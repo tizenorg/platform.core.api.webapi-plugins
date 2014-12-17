@@ -20,8 +20,8 @@
 
 #include "EmailSignalProxy.h"
 
-namespace DeviceAPI {
-namespace Messaging {
+namespace extension {
+namespace messaging {
 namespace DBus {
 
 class SendProxy: public EmailSignalProxy {
@@ -40,8 +40,8 @@ protected:
 typedef std::shared_ptr<SendProxy> SendProxyPtr;
 
 } //DBus
-} //Messaging
-} //DeviceAPI
+} //messaging
+} //extension
 
 #endif /* __TIZEN_SEND_PROXY_H */
 

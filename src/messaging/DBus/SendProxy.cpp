@@ -17,12 +17,13 @@
 
 #include "SendProxy.h"
 
-#include <Logger.h>
-#include <email-types.h>
-#include <EmailManager.h>
+#include "common/logger.h"
 
-namespace DeviceAPI {
-namespace Messaging {
+#include <email-types.h>
+#include "../email_manager.h"
+
+namespace extension {
+namespace messaging {
 namespace DBus {
 
 SendProxy::SendProxy():
@@ -41,12 +42,12 @@ void SendProxy::handleEmailSignal(const int status,
             const int mail_id,
             const int error_code)
 {
-    LOGD("Enter");
+    LoggerD("Enter");
     switch (status) {
         case NOTI_SEND_FINISH:
         case NOTI_SEND_FAIL:
-            LOGD("Recognized status for email send");
-            LOGD("received email signal with:\n  status: %d\n  account_id: %d\n  "
+            LoggerD("Recognized status for email send");
+            LoggerD("received email signal with:\n  status: %d\n  account_id: %d\n  "
                 "source: %s\n  mail_id: %d\n  error_code: %d",
                 status, account_id, source.c_str(), mail_id, error_code);
             EmailManager::getInstance().sendStatusCallback(mail_id,
@@ -54,11 +55,11 @@ void SendProxy::handleEmailSignal(const int status,
                     error_code);
             break;
         default:
-            LOGD("Unrecognized status %d, ignoring", status);
+            LoggerD("Unrecognized status %d, ignoring", status);
     }
 }
 
 
 } //DBus
-} //Messaging
-} //DeviceAPI
+} //messaging
+} //extension
