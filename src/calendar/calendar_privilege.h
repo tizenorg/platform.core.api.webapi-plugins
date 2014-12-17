@@ -14,8 +14,8 @@
  *    limitations under the License.
  */
 
-#ifndef WEBAPI_PLUGINS_CALENDAR_PRIVILEGE_H__
-#define WEBAPI_PLUGINS_CALENDAR_PRIVILEGE_H__
+#ifndef CALENDAR_CALENDAR_PRIVILEGE_H__
+#define CALENDAR_CALENDAR_PRIVILEGE_H__
 
 #include <string>
 
@@ -30,4 +30,4 @@ const std::string kCalendarWrite = "http://tizen.org/privilege/calendar.write";
 }  // namespace calendar
 }  // namespace webapi
 
-#endif  // WEBAPI_PLUGINS_CALENDAR_PRIVILEGE_H__
+#endif  // CALENDAR_CALENDAR_PRIVILEGE_H__

@@ -3,7 +3,6 @@
 // found in the LICENSE file.
 
 #include "calendar/calendar_extension.h"
-
 #include "calendar/calendar_instance.h"
 
 // This will be generated from calendar_api.js
@@ -33,5 +32,5 @@ CalendarExtension::CalendarExtension() {
 CalendarExtension::~CalendarExtension() {}
 
 common::Instance* CalendarExtension::CreateInstance() {
-//  return new CalendarInstance;
+  return new extension::calendar::CalendarInstance;
 }

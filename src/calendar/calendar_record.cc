@@ -18,11 +18,11 @@
 
 #include <calendar-service2/calendar.h>
 
-#include "logger.h"
-#include "platform-exception.h"
-#include "converter.h"
+#include "common/logger.h"
+//#include "common/platform-exception.h"
+#include "common/converter.h"
 
-namespace webapi {
+namespace extension {
 namespace calendar {
 
 namespace {
@@ -30,7 +30,7 @@ const std::string kCalendarTypeEvent = "EVENT";
 const std::string kCalendarTypeTask = "TASK";
 }
 
-using namespace webapi::common;
+using namespace common;
 
 inline void CheckReturn(int ret, const std::string& error_name) {
   if (CALENDAR_ERROR_NONE != ret) {
@@ -71,7 +71,7 @@ std::string CalendarRecord::GetString(calendar_record_h rec,
   if (CALENDAR_ERROR_NONE != ret) {
     LoggerW("Can't get string value form record: %d", ret);
     if (throw_on_error) {
-      throw common::UnknownException("Get string from record failed.");
+      throw UnknownException("Get string from record failed.");
     }
   }
 
@@ -95,7 +95,7 @@ void CalendarRecord::SetString(calendar_record_h record, unsigned int property,
     LoggerW("Can't set string value to record: %d", ret);
 
     if (throw_on_error) {
-      throw common::UnknownException("Set string to record failed.");
+      throw UnknownException("Set string to record failed.");
     }
   }
 }
@@ -107,7 +107,7 @@ int CalendarRecord::GetInt(calendar_record_h rec, unsigned int property,
   if (CALENDAR_ERROR_NONE != ret) {
     LoggerW("Can't get int value form record: %d", ret);
     if (throw_on_error) {
-      throw common::UnknownException("Get int from record failed.");
+      throw UnknownException("Get int from record failed.");
     }
   }
 
@@ -124,7 +124,7 @@ void CalendarRecord::SetInt(calendar_record_h record, unsigned int property,
     LoggerW("Can't set int value to record: %d", ret);
 
     if (throw_on_error) {
-      throw common::UnknownException("Set int to record failed.");
+      throw UnknownException("Set int to record failed.");
     }
   }
 }
@@ -182,7 +182,7 @@ const char* CalendarRecord::TypeToUri(const std::string& type) {
     return _calendar_todo._uri;
   }
 
-  throw common::UnknownException("Undefined record type");
+  throw UnknownException("Undefined record type");
 }
 
 const char* CalendarRecord::TypeToUri(int type) {
@@ -194,7 +194,7 @@ const char* CalendarRecord::TypeToUri(int type) {
     return _calendar_todo._uri;
   }
 
-  throw common::UnknownException("Undefined record type");
+  throw UnknownException("Undefined record type");
 }
 
 CalendarRecordPtr CalendarRecord::Create(const char* view_uri) {
@@ -297,7 +297,7 @@ unsigned int CalendarRecord::GetChildRecordCount(calendar_record_h rec,
   if (CALENDAR_ERROR_NONE != ret) {
     LoggerW("Can't get child record count: %d", ret);
     if (throw_on_error) {
-      throw common::UnknownException("Get child record count failed.");
+      throw UnknownException("Get child record count failed.");
     }
   }
 
@@ -312,7 +312,7 @@ bool CalendarRecord::GetChildRecordAt(calendar_record_h rec,
   if (CALENDAR_ERROR_NONE != ret) {
     LoggerW("Can't get child record at: %d", ret);
     if (throw_on_error) {
-      throw common::UnknownException("Get child record at failed.");
+      throw UnknownException("Get child record at failed.");
     }
 
     return false;
@@ -322,8 +322,8 @@ bool CalendarRecord::GetChildRecordAt(calendar_record_h rec,
 }
 
 void CalendarRecord::CalendarToJson(calendar_record_h rec,
-                                    json::Object* out_ptr) {
-  json::Object& out = *out_ptr;
+                                    picojson::object* out_ptr) {
+  picojson::object& out = *out_ptr;
 
   if (NULL == rec) {
     LoggerE("Calendar record is null");
@@ -335,15 +335,15 @@ void CalendarRecord::CalendarToJson(calendar_record_h rec,
   std::string name = GetString(rec, _calendar_book.name);
   std::string type = TypeToString(GetInt(rec, _calendar_book.store_type));
 
-  out.insert(std::make_pair("id", json::Value(std::to_string(id))));
+  out.insert(std::make_pair("id", picojson::value(std::to_string(id))));
   out.insert(
-      std::make_pair("accountId", json::Value(std::to_string(account_id))));
-  out.insert(std::make_pair("name", json::Value(name)));
-  out.insert(std::make_pair("type", json::Value(type)));
+      std::make_pair("accountId", picojson::value(std::to_string(account_id))));
+  out.insert(std::make_pair("name", picojson::value(name)));
+  out.insert(std::make_pair("type", picojson::value(type)));
 }
 
 void CalendarRecord::CalendarFromJson(calendar_record_h rec,
-                                      const json::Object& in) {
+                                      const picojson::object &in) {
   if (in.empty()) {
     LoggerE("Empty Calendar object.");
     throw InvalidValuesException("Empty Calendar object.");

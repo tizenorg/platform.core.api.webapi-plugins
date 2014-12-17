@@ -14,17 +14,22 @@
  *    limitations under the License.
  */
 
-#ifndef WEBAPI_PLUGINS_CALENDAR_H_
-#define WEBAPI_PLUGINS_CALENDAR_H_
+#ifndef CALENDAR_CALENDAR_H_
+#define CALENDAR_CALENDAR_H_
 
 #include <memory>
 
-#include "json-parser.h"
+#include "common/picojson.h"
 
-namespace webapi {
+namespace extension {
 namespace calendar {
 
-typedef std::shared_ptr<common::json::Value> JsonValuePtr;
+typedef picojson::value JsonValue;
+typedef picojson::object JsonObject;
+typedef picojson::array JsonArray;
+typedef std::string JsonString;
+
+typedef std::shared_ptr<JsonValue> JsonValuePtr;
 
 class Calendar {
  public:
@@ -40,7 +45,7 @@ class Calendar {
    * {status: 'success', item: {}}
    * @endcode
    */
-  void Get(const common::json::Object& args, common::json::Object& out);
+  void Get(const JsonObject& args, JsonObject& out);
 
   /**
    * Signature: @code void add(item); @endcode
@@ -52,7 +57,7 @@ class Calendar {
    * {status: 'success'}
    * @endcode
    */
-  void Add(const common::json::Object& args, common::json::Object& out);
+  void Add(const JsonObject& args, JsonObject& out);
 
   /**
    * Signature: @code void addBatch(items, successCallback, errorCallback);
@@ -66,7 +71,7 @@ class Calendar {
    * {status: 'success', result: items}
    * @endcode
    */
-  void AddBatch(const common::json::Object& args, common::json::Object& out);
+  void AddBatch(const JsonObject& args, JsonObject& out);
 
   /**
    * Signature: @code void update(item, updateAllInstances); @endcode
@@ -79,7 +84,7 @@ class Calendar {
    * {status: 'success'}
    * @endcode
    */
-  void Update(const common::json::Object& args, common::json::Object& out);
+  void Update(const JsonObject& args, JsonObject& out);
 
   /**
    * Signature: @code void updateBatch(items, successCallback, errorCallback,
@@ -94,7 +99,7 @@ class Calendar {
    * {status: 'success'}
    * @endcode
    */
-  void UpdateBatch(const common::json::Object& args, common::json::Object& out);
+  void UpdateBatch(const JsonObject& args, JsonObject& out);
 
   /**
    * Signature: @code void remove(item); @endcode
@@ -106,7 +111,7 @@ class Calendar {
    * {status: 'success'}
    * @endcode
    */
-  void Remove(const common::json::Object& args, common::json::Object& out);
+  void Remove(const JsonObject& args, JsonObject& out);
 
   /**
    * Signature: @code void removeBatch(items, successCallback, errorCallback);
@@ -120,7 +125,7 @@ class Calendar {
    * {status: 'success'}
    * @endcode
    */
-  void RemoveBatch(const common::json::Object& args, common::json::Object& out);
+  void RemoveBatch(const JsonObject& args, JsonObject& out);
 
   /**
    * Signature: @code void find(successCallback, errorCallback, filter,
@@ -139,7 +144,7 @@ class Calendar {
    * {status: 'success', result: {calendarItemsArray}}
    * @endcode
    */
-  void Find(const common::json::Object& args, common::json::Object& out);
+  void Find(const JsonObject& args, JsonObject& out);
 
   /**
    * Signature: @code void addChangeListener(successCallback); @endcode
@@ -152,8 +157,8 @@ class Calendar {
    * {status: 'success'}
    * @endcode
    */
-  void AddChangeListener(const common::json::Object& args,
-                         common::json::Object& out);
+  void AddChangeListener(const JsonObject& args,
+                         JsonObject& out);
 
   /**
    * Signature: @code void removeChangeListener(); @endcode
@@ -166,8 +171,8 @@ class Calendar {
    * {status: 'success'}
    * @endcode
    */
-  void RemoveChangeListener(const common::json::Object& args,
-                            common::json::Object& out);
+  void RemoveChangeListener(const JsonObject& args,
+                            JsonObject& out);
 
   static Calendar& GetInstance();
 
@@ -180,4 +185,4 @@ class Calendar {
 }  // namespace calendar
 }  // namespace webapi
 
-#endif  // WEBAPI_PLUGINS_CALENDAR_H_
+#endif  // CALENDAR_CALENDAR_H_

@@ -16,20 +16,18 @@
 
 #include "calendar.h"
 
-#include <native-context.h>
+#include "common/platform_exception.h"
+#include "common/logger.h"
+#include "common/converter.h"
+#include "common/task-queue.h"
+#include "calendar/calendar_manager.h"
+#include "calendar/calendar_privilege.h"
+#include "calendar/calendar_item.h"
 
-#include "logger.h"
-#include "converter.h"
-#include "native-plugin.h"
-#include "task-queue.h"
-#include "calendar-manager.h"
-#include "calendar-privilege.h"
-#include "calendar-item.h"
-
-namespace webapi {
+namespace extension {
 namespace calendar {
 
-using namespace webapi::common;
+using namespace common;
 
 int Calendar::current_db_version_ = 0;
 std::map<std::string, std::string> Calendar::listeners_registered_;
@@ -59,10 +57,10 @@ Calendar::~Calendar() {
   }
 }
 
-void Calendar::Get(const json::Object& args, json::Object& out) {
+void Calendar::Get(const picojson::object& args, picojson::object& out) {
   LoggerD("enter");
 
-  NativePlugin::CheckAccess(Privilege::kCalendarRead);
+//  NativePlugin::CheckAccess(Privilege::kCalendarRead);
 
   if (!CalendarManager::GetInstance().IsConnected()) {
     throw UnknownException("DB Connection failed.");
@@ -83,56 +81,51 @@ void Calendar::Get(const json::Object& args, json::Object& out) {
 
   CalendarRecordPtr record_ptr =
       CalendarRecord::GetById(id, CalendarRecord::TypeToUri(type));
-  json::Value record_obj = json::Value(json::Object());
-  CalendarItem::ToJson(type, record_ptr.get(), &record_obj.get<json::Object>());
+  picojson::value record_obj = picojson::value(picojson::object());
+  CalendarItem::ToJson(type, record_ptr.get(), &record_obj.get<picojson::object>());
 
-  NativePlugin::ReportSuccess(record_obj, out);
 }
 
-void Calendar::Add(const json::Object& args, json::Object& out) {
+void Calendar::Add(const picojson::object& args, picojson::object& out) {
   LoggerD("enter");
-
-  NativePlugin::CheckAccess(Privilege::kCalendarWrite);
 
   if (!CalendarManager::GetInstance().IsConnected()) {
     throw UnknownException("DB Connection failed.");
   }
 
-  const auto& item = FromJson<json::Object>(args, "item");
-  int type = CalendarRecord::TypeToInt(FromJson<json::String>(args, "type"));
+  const auto& item = FromJson<picojson::object>(args, "item");
+  int type = CalendarRecord::TypeToInt(FromJson<std::string>(args, "type"));
 
   CalendarRecordPtr item_ptr = CalendarItem::Create(type);
   CalendarItem::FromJson(type, item_ptr.get(), item);
   int record_id = CalendarRecord::Insert(item_ptr.get());
 
-  json::Value result = json::Value(json::Object());
-  json::Object& result_obj = result.get<json::Object>();
+  picojson::value result = picojson::value(picojson::object());
+  picojson::object& result_obj = result.get<picojson::object>();
   result_obj.insert(std::make_pair("uid", std::to_string(record_id)));
 
   if (type == CALENDAR_BOOK_TYPE_EVENT) {
     std::string rid = CalendarRecord::GetString(item_ptr.get(),
                                                 _calendar_event.recurrence_id);
     if (!rid.empty()) {
-      result_obj["rid"] = json::Value(rid);
+      result_obj["rid"] = picojson::value(rid);
     } else {
-      result_obj["rid"] = json::Value();
+      result_obj["rid"] = picojson::value();
     }
   }
 
-  NativePlugin::ReportSuccess(result, out);
 }
 
-void Calendar::AddBatch(const common::json::Object& args,
-                        common::json::Object& out) {
+void Calendar::AddBatch(const picojson::object& args,
+                        picojson::object& out) {
   LoggerD("enter");
 
-  NativePlugin::CheckAccess(Privilege::kCalendarWrite);
 
   if (!CalendarManager::GetInstance().IsConnected()) {
     throw UnknownException("DB Connection failed.");
   }
 
-  auto& items = FromJson<json::Array>(args, "items");
+  auto& items = FromJson<picojson::array>(args, "items");
   if (items.empty()) {
     throw InvalidValuesException("No items");
   }
@@ -141,7 +134,7 @@ void Calendar::AddBatch(const common::json::Object& args,
   const char* view_uri = CalendarRecord::TypeToUri(type);
 
   auto batch_func = [=](const JsonValuePtr & response)->void {
-    json::Object& response_obj = response->get<json::Object>();
+    picojson::object& response_obj = response->get<picojson::object>();
 
     try {
       calendar_list_h list = NULL;
@@ -161,7 +154,7 @@ void Calendar::AddBatch(const common::json::Object& args,
           LoggerW("Can't create platform record %d", ret);
           throw UnknownException("Can't create platform record");
         }
-        CalendarItem::FromJson(type, record, item.get<json::Object>());
+        CalendarItem::FromJson(type, record, item.get<picojson::object>());
 
         if (CALENDAR_ERROR_NONE != calendar_list_add(list_ptr.get(), record)) {
           LoggerE("Could not add record to list events");
@@ -183,55 +176,47 @@ void Calendar::AddBatch(const common::json::Object& args,
         }
       }
 
-      json::Value result = json::Value(json::Array());
-      json::Array& array = result.get<json::Array>();
+      picojson::value result = picojson::value(picojson::array());
+      picojson::array& array = result.get<picojson::array>();
 
       for (int i = 0; i < count; i++) {
-        json::Value id = json::Value(json::Object());
-        json::Object& id_obj = id.get<json::Object>();
+        picojson::value id = picojson::value(picojson::object());
+        picojson::object& id_obj = id.get<picojson::object>();
 
         id_obj.insert(std::make_pair("uid", std::to_string(ids[i])));
 
         if (type == CALENDAR_BOOK_TYPE_EVENT) {
-          id_obj.insert(std::make_pair("rid", json::Value()));
+          id_obj.insert(std::make_pair("rid", picojson::value()));
         }
 
         array.push_back(id);
       }
       free(ids);
 
-      NativePlugin::ReportSuccess(result, response_obj);
     }
-    catch (const BasePlatformException& e) {
-      NativePlugin::ReportError(e, response_obj);
+    catch(...) {//(const BasePlatformException& e) {
     }
   };
 
-  int callback_handle = NativePlugin::GetAsyncCallbackHandle(args);
+  int callback_handle;// = NativePlugin::GetAsyncCallbackHandle(args);
   auto after_batch_func = [callback_handle](const JsonValuePtr& response) {
-    wrt::common::NativeContext::GetInstance()->InvokeCallback(
-        callback_handle, response->serialize());
   };
 
-  TaskQueue::GetInstance().Queue<json::Value>(
+  TaskQueue::GetInstance().Queue<picojson::value>(
       batch_func, after_batch_func,
-      JsonValuePtr(new json::Value(json::Object())));
-
-  NativePlugin::ReportSuccess(out);
+      JsonValuePtr(new picojson::value(picojson::object())));
 }
 
-void Calendar::Update(const common::json::Object& args,
-                      common::json::Object& /*out*/) {
+void Calendar::Update(const picojson::object& args,
+                      picojson::object& /*out*/) {
   LoggerD("enter");
-
-  NativePlugin::CheckAccess(Privilege::kCalendarWrite);
 
   if (!CalendarManager::GetInstance().IsConnected()) {
     throw UnknownException("DB Connection failed.");
   }
 
-  const auto& item = FromJson<json::Object>(args, "item");
-  int type = CalendarRecord::TypeToInt(FromJson<json::String>(args, "type"));
+  const auto& item = FromJson<picojson::object>(args, "item");
+  int type = CalendarRecord::TypeToInt(FromJson<std::string>(args, "type"));
 
   bool update_all = true;
 
@@ -258,8 +243,8 @@ void Calendar::Update(const common::json::Object& args,
   } else {
     // first update the parent event
     std::string exdate = CalendarItem::ExceptionsFromJson(
-        common::FromJson<json::Array>(item, "recurrenceRule", "exceptions"));
-    if (!common::IsNull(common::FromJson<json::Object>(item, "id"), "rid")) {
+        common::FromJson<picojson::array>(item, "recurrenceRule", "exceptions"));
+    if (!common::IsNull(common::FromJson<picojson::object>(item, "id"), "rid")) {
       exdate.append(common::FromJson<std::string>(item, "id", "rid"));
     }
     CalendarRecord::SetString(record_ptr.get(), _calendar_event.exdate, exdate);
@@ -280,17 +265,15 @@ void Calendar::Update(const common::json::Object& args,
   }
 }
 
-void Calendar::UpdateBatch(const common::json::Object& args,
-                           common::json::Object& out) {
+void Calendar::UpdateBatch(const picojson::object& args,
+                           picojson::object& out) {
   LoggerD("enter");
-
-  NativePlugin::CheckAccess(Privilege::kCalendarWrite);
 
   if (!CalendarManager::GetInstance().IsConnected()) {
     throw UnknownException("DB Connection failed.");
   }
 
-  auto& items = FromJson<json::Array>(args, "items");
+  auto& items = FromJson<picojson::array>(args, "items");
   if (items.empty()) {
     throw InvalidValuesException("No items");
   }
@@ -304,7 +287,7 @@ void Calendar::UpdateBatch(const common::json::Object& args,
   const char* view_uri = CalendarRecord::TypeToUri(type);
 
   auto batch_func = [=](const JsonValuePtr & response)->void {
-    json::Object& response_obj = response->get<json::Object>();
+    picojson::object& response_obj = response->get<picojson::object>();
 
     try {
       calendar_list_h list = NULL;
@@ -319,7 +302,7 @@ void Calendar::UpdateBatch(const common::json::Object& args,
       calendar_record_h record;
 
       for (auto& item : items) {
-        const json::Object& item_obj = item.get<json::Object>();
+        const picojson::object& item_obj = item.get<picojson::object>();
         if (type == CALENDAR_BOOK_TYPE_EVENT) {
           id = common::stol(FromJson<std::string>(item_obj, "id", "uid"));
         } else {
@@ -331,7 +314,7 @@ void Calendar::UpdateBatch(const common::json::Object& args,
           LoggerW("Can't get platform record %d", ret);
           throw UnknownException("Can't get platform record");
         }
-        CalendarItem::FromJson(type, record, item.get<json::Object>());
+        CalendarItem::FromJson(type, record, item.get<picojson::object>());
 
         if (CALENDAR_ERROR_NONE != calendar_list_add(list_ptr.get(), record)) {
           LoggerE("Could not add record to list events");
@@ -349,37 +332,29 @@ void Calendar::UpdateBatch(const common::json::Object& args,
         // child event
       }
 
-      NativePlugin::ReportSuccess(response_obj);
     }
-    catch (const BasePlatformException& e) {
-      NativePlugin::ReportError(e, response_obj);
+    catch (...) {//const BasePlatformException& e) {
     }
   };
 
-  int callback_handle = NativePlugin::GetAsyncCallbackHandle(args);
+  int callback_handle; //= NativePlugin::GetAsyncCallbackHandle(args);
   auto after_batch_func = [callback_handle](const JsonValuePtr& response) {
-    wrt::common::NativeContext::GetInstance()->InvokeCallback(
-        callback_handle, response->serialize());
   };
 
-  TaskQueue::GetInstance().Queue<json::Value>(
+  TaskQueue::GetInstance().Queue<picojson::value>(
       batch_func, after_batch_func,
-      JsonValuePtr(new json::Value(json::Object())));
-
-  NativePlugin::ReportSuccess(out);
+      JsonValuePtr(new picojson::value(picojson::object())));
 }
 
-void Calendar::Remove(const common::json::Object& args,
-                      common::json::Object& out) {
+void Calendar::Remove(const picojson::object& args,
+                      picojson::object& out) {
   LoggerD("enter");
-
-  NativePlugin::CheckAccess(Privilege::kCalendarWrite);
 
   if (!CalendarManager::GetInstance().IsConnected()) {
     throw UnknownException("DB Connection failed.");
   }
 
-  int type = CalendarRecord::TypeToInt(FromJson<json::String>(args, "type"));
+  int type = CalendarRecord::TypeToInt(FromJson<std::string>(args, "type"));
 
   int id;
   if (type == CALENDAR_BOOK_TYPE_EVENT) {
@@ -389,14 +364,10 @@ void Calendar::Remove(const common::json::Object& args,
   }
 
   CalendarItem::Remove(type, id);
-
-  NativePlugin::ReportSuccess(out);
 }
 
-void Calendar::Find(const json::Object& args, json::Object& out) {
+void Calendar::Find(const picojson::object& args, picojson::object& out) {
   LoggerD("enter");
-
-  NativePlugin::CheckAccess(Privilege::kCalendarWrite);
 
   if (!CalendarManager::GetInstance().IsConnected()) {
     throw UnknownException("DB Connection failed.");
@@ -404,9 +375,9 @@ void Calendar::Find(const json::Object& args, json::Object& out) {
 
   // TODO implement calendar filter and sorting in native code.
   int calendar_id = common::stol(FromJson<std::string>(args, "calendarId"));
-  int callback_handle = NativePlugin::GetAsyncCallbackHandle(args);
+  int callback_handle;  //=NativePlugin::GetAsyncCallbackHandle(args);
 
-  auto get = [calendar_id](const std::shared_ptr<json::Value> & response)
+  auto get = [calendar_id](const std::shared_ptr<picojson::value> & response)
       ->void {
     LoggerD("Entered");
     try {
@@ -448,8 +419,8 @@ void Calendar::Find(const json::Object& args, json::Object& out) {
         throw UnknownException("calendar_list_first failed");
       }
 
-      json::Value result{json::Array{}};
-      json::Array& calendarItems = result.get<json::Array>();
+      picojson::value result{picojson::array{}};
+      picojson::array& calendarItems = result.get<picojson::array>();
       calendarItems.reserve(record_count);
       for (int i = 0; i < record_count; ++i) {
         calendar_record_h current_record = NULL;
@@ -458,9 +429,9 @@ void Calendar::Find(const json::Object& args, json::Object& out) {
         if (CALENDAR_ERROR_NONE != error_code) {
           throw UnknownException("calendar_list_get_current_record_p failed");
         }
-        json::Value record_obj = json::Value(json::Object());
+        picojson::value record_obj = picojson::value(picojson::object());
         CalendarItem::ToJson(type, current_record,
-                             &record_obj.get<json::Object>());
+                             &record_obj.get<picojson::object>());
         calendarItems.push_back(record_obj);
 
         error_code = calendar_list_next(record_list);
@@ -469,39 +440,32 @@ void Calendar::Find(const json::Object& args, json::Object& out) {
           break;
         }
       }
-
-      NativePlugin::ReportSuccess(result, response->get<json::Object>());
     }
-    catch (const BasePlatformException& e) {
-      LoggerE("error: %s: %s", e.name().c_str(), e.message().c_str());
-      NativePlugin::ReportError(e, response->get<json::Object>());
+    catch (...) {//const BasePlatformException& e) {
+   //   LoggerE("error: %s: %s", e.name().c_str(), e.message().c_str());
     }
   };
 
-  auto get_response = [callback_handle](const std::shared_ptr<json::Value> &
+  auto get_response = [callback_handle](const std::shared_ptr<picojson::value> &
                                         response)->void {
-    wrt::common::NativeContext::GetInstance()->InvokeCallback(
-        callback_handle, response->serialize());
   };
 
-  TaskQueue::GetInstance().Queue<json::Value>(
+  TaskQueue::GetInstance().Queue<picojson::value>(
       get, get_response,
-      std::shared_ptr<json::Value>(new json::Value(json::Object())));
+      std::shared_ptr<picojson::value>(new picojson::value(picojson::object())));
 
-  NativePlugin::ReportSuccess(out);
+//  NativePlugin::ReportSuccess(out);
 }
 
-void Calendar::RemoveBatch(const common::json::Object& args,
-                           common::json::Object& out) {
+void Calendar::RemoveBatch(const picojson::object& args,
+                           picojson::object& out) {
   LoggerD("enter");
-
-  NativePlugin::CheckAccess(Privilege::kCalendarWrite);
 
   if (!CalendarManager::GetInstance().IsConnected()) {
     throw UnknownException("DB Connection failed.");
   }
 
-  auto& ids = FromJson<json::Array>(args, "ids");
+  auto& ids = FromJson<picojson::array>(args, "ids");
   if (ids.empty()) {
     throw InvalidValuesException("No items");
   }
@@ -510,7 +474,7 @@ void Calendar::RemoveBatch(const common::json::Object& args,
   const char* view_uri = CalendarRecord::TypeToUri(type);
 
   auto batch_func = [=](const JsonValuePtr & response)->void {
-    json::Object& response_obj = response->get<json::Object>();
+    picojson::object& response_obj = response->get<picojson::object>();
 
     try {
       std::vector<int> ids_to_remove;
@@ -518,7 +482,7 @@ void Calendar::RemoveBatch(const common::json::Object& args,
       for (int i = 0, size = ids.size(); i < size; i++) {
         if (type == CALENDAR_BOOK_TYPE_EVENT) {
           id = common::stol(
-              FromJson<std::string>(ids.at(i).get<json::Object>(), "uid"));
+              FromJson<std::string>(ids.at(i).get<picojson::object>(), "uid"));
         } else {
           id = common::stol(ids.at(i).get<std::string>());
         }
@@ -554,31 +518,23 @@ void Calendar::RemoveBatch(const common::json::Object& args,
           }
         }
       }
-
-      NativePlugin::ReportSuccess(response_obj);
     }
-    catch (const BasePlatformException& e) {
-      NativePlugin::ReportError(e, response_obj);
+    catch(...) { //(const BasePlatformException& e) {
     }
   };
 
-  int callback_handle = NativePlugin::GetAsyncCallbackHandle(args);
+  int callback_handle;// = NativePlugin::GetAsyncCallbackHandle(args);
   auto after_batch_func = [callback_handle](const JsonValuePtr& response) {
-    wrt::common::NativeContext::GetInstance()->InvokeCallback(
-        callback_handle, response->serialize());
   };
 
-  TaskQueue::GetInstance().Queue<json::Value>(
+  TaskQueue::GetInstance().Queue<picojson::value>(
       batch_func, after_batch_func,
-      JsonValuePtr(new json::Value(json::Object())));
+      JsonValuePtr(new picojson::value(picojson::object())));
 
-  NativePlugin::ReportSuccess(out);
 }
 
-void Calendar::AddChangeListener(const json::Object& args, json::Object& out) {
+void Calendar::AddChangeListener(const picojson::object& args, picojson::object& out) {
   LoggerD("enter");
-
-  NativePlugin::CheckAccess(Privilege::kCalendarRead);
 
   if (!CalendarManager::GetInstance().IsConnected()) {
     throw UnknownException("DB Connection failed.");
@@ -605,15 +561,11 @@ void Calendar::AddChangeListener(const json::Object& args, json::Object& out) {
 
     listeners_registered_[type] = listener_id;
   }
-
-  NativePlugin::ReportSuccess(out);
 }
 
-void Calendar::RemoveChangeListener(const json::Object& args,
-                                    json::Object& out) {
+void Calendar::RemoveChangeListener(const picojson::object& args,
+                                    picojson::object& out) {
   LoggerD("enter");
-
-  NativePlugin::CheckAccess(Privilege::kCalendarRead);
 
   if (!CalendarManager::GetInstance().IsConnected()) {
     throw UnknownException("DB Connection failed.");
@@ -633,7 +585,6 @@ void Calendar::RemoveChangeListener(const json::Object& args,
     listeners_registered_.erase(type);
   }
 
-  NativePlugin::ReportSuccess(out);
 }
 
 void Calendar::ChangeCallback(const char* view_uri, void*) {
@@ -666,18 +617,18 @@ void Calendar::ChangeCallback(const char* view_uri, void*) {
   int type = CalendarRecord::TypeToInt(view_uri);
 
   // prepare response object
-  json::Value response = json::Value(json::Object());
-  json::Object& response_obj = response.get<json::Object>();
+  picojson::value response = picojson::value(picojson::object());
+  picojson::object& response_obj = response.get<picojson::object>();
 
-  json::Array& added =
-      response_obj.insert(std::make_pair("added", json::Array()))
-          .first->second.get<json::Array>();
-  json::Array& updated =
-      response_obj.insert(std::make_pair("updated", json::Array()))
-          .first->second.get<json::Array>();
-  json::Array& removed =
-      response_obj.insert(std::make_pair("removed", json::Array()))
-          .first->second.get<json::Array>();
+  picojson::array& added =
+      response_obj.insert(std::make_pair("added", picojson::array()))
+          .first->second.get<picojson::array>();
+  picojson::array& updated =
+      response_obj.insert(std::make_pair("updated", picojson::array()))
+          .first->second.get<picojson::array>();
+  picojson::array& removed =
+      response_obj.insert(std::make_pair("removed", picojson::array()))
+          .first->second.get<picojson::array>();
 
   while (count-- > 0) {
     ret = calendar_list_get_current_record_p(list, &update_info);
@@ -694,11 +645,11 @@ void Calendar::ChangeCallback(const char* view_uri, void*) {
       calendar_id = CalendarRecord::GetInt(
           update_info, _calendar_updated_info.calendar_book_id);
 
-      json::Value removed_row = json::Value(json::Object());
-      json::Object& removed_obj = removed_row.get<json::Object>();
-      removed_obj.insert(std::make_pair("id", json::Value(std::to_string(id))));
+      picojson::value removed_row = picojson::value(picojson::object());
+      picojson::object& removed_obj = removed_row.get<picojson::object>();
+      removed_obj.insert(std::make_pair("id", picojson::value(std::to_string(id))));
       removed_obj.insert(std::make_pair(
-          "calendarId", json::Value(std::to_string(calendar_id))));
+          "calendarId", picojson::value(std::to_string(calendar_id))));
 
       removed.push_back(removed_row);
 
@@ -708,17 +659,16 @@ void Calendar::ChangeCallback(const char* view_uri, void*) {
 
     try {
       CalendarRecordPtr record_ptr = CalendarRecord::GetById(id, view_uri);
-      json::Value record_obj = json::Value(json::Object());
+      picojson::value record_obj = picojson::value(picojson::object());
       CalendarItem::ToJson(type, record_ptr.get(),
-                           &record_obj.get<json::Object>());
+                           &record_obj.get<picojson::object>());
       if (status == CALENDAR_RECORD_MODIFIED_STATUS_INSERTED) {
         added.push_back(record_obj);
       } else {
         updated.push_back(record_obj);
       }
     }
-    catch (BasePlatformException& ex) {
-      LoggerD("Can't get changed calendar item: %s", ex.message().c_str());
+    catch(...) {//(BasePlatformException& ex) {
     }
 
     calendar_list_next(list);
@@ -741,9 +691,9 @@ void Calendar::ChangeCallback(const char* view_uri, void*) {
   }
   current_db_version_ = updated_version;
 
-  wrt::common::NativeContext::GetInstance()->FireEvent(
-      listeners_registered_[CalendarRecord::TypeToString(type)],
-      response.serialize());
+//  wrt::common::NativeContext::GetInstance()->FireEvent(
+//      listeners_registered_[CalendarRecord::TypeToString(type)],
+//      response.serialize());
 }
 
 }  // namespace calendar

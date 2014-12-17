@@ -14,17 +14,16 @@
  *    limitations under the License.
  */
 
-#ifndef WEBAPI_PLUGINS_CALENDAR_ITEM_H_
-#define WEBAPI_PLUGINS_CALENDAR_ITEM_H_
+#ifndef CALENDAR_CALENDAR_ITEM_H_
+#define CALENDAR_CALENDAR_ITEM_H_
 
 #include <string>
 
 #include "calendar_record.h"
-#include "json-parser.h"
+#include "common/picojson.h"
 
-namespace webapi {
+namespace extension {
 namespace calendar {
-
 struct Date {
   long long int utc_timestamp_;
   int year_;
@@ -52,7 +51,7 @@ class CalendarItem : public CalendarRecord {
   // string
   static void SetString(int type, calendar_record_h rec,
                         const std::string& property,
-                        const common::json::Object& in, bool optional = false);
+                        const  picojson::object& in, bool optional = false);
   static void SetString(int type, calendar_record_h rec,
                         const std::string& property, const std::string& value);
   static std::string GetString(int type, calendar_record_h rec,
@@ -61,7 +60,7 @@ class CalendarItem : public CalendarRecord {
   // int
   static void SetInt(int type, calendar_record_h rec,
                      const std::string& property,
-                     const common::json::Object& in, bool optional = false);
+                     const  picojson::object& in, bool optional = false);
   static void SetInt(int type, calendar_record_h rec,
                      const std::string& property, int value);
   static int GetInt(int type, calendar_record_h rec,
@@ -70,7 +69,7 @@ class CalendarItem : public CalendarRecord {
   // enum
   static void SetEnum(int type, calendar_record_h rec,
                       const std::string& property,
-                      const common::json::Object& in,
+                      const  picojson::object& in,
                       const std::string& enum_name);
   static void SetEnum(calendar_record_h rec, unsigned int property,
                       const std::string& enum_name, const std::string& value);
@@ -109,40 +108,40 @@ class CalendarItem : public CalendarRecord {
 
   // conversions
   static void FromJson(int type, calendar_record_h record,
-                       const common::json::Object& in);
+                       const  picojson::object& in);
   static void ToJson(int type, calendar_record_h record,
-                     common::json::Object* out_ptr);
+                      picojson::object* out_ptr);
 
-  static std::string ExceptionsFromJson(const common::json::Array& exceptions);
+  static std::string ExceptionsFromJson(const picojson::array& exceptions);
 
  private:
   // from JSON to platform
-  static Date DateFromJson(const common::json::Object& in);
-  static Date DateFromJson(const common::json::Object& in,
+  static Date DateFromJson(const  picojson::object& in);
+  static Date DateFromJson(const  picojson::object& in,
                            const char* obj_name);
   static void CategoriesFromJson(int type, calendar_record_h rec,
-                                 const common::json::Array& value);
+                                 const picojson::array& value);
   static void AttendeesFromJson(int type, calendar_record_h rec,
-                                const common::json::Array& value);
+                                const picojson::array& value);
   static void AlarmsFromJson(int type, calendar_record_h rec,
-                             const common::json::Array& alarms);
+                             const picojson::array& alarms);
   static void RecurrenceRuleFromJson(calendar_record_h rec,
-                                     const common::json::Object& rrule);
+                                     const  picojson::object& rrule);
 
   static calendar_time_s DateToPlatform(const Date& date, bool is_all_day);
 
   // from platform to JSON
-  static common::json::Value DateToJson(Date date);
-  static common::json::Array CategoriesToJson(int type, calendar_record_h rec);
-  static common::json::Array AttendeesToJson(int type, calendar_record_h rec);
-  static common::json::Array AlarmsToJson(int type, calendar_record_h rec);
-  static common::json::Object RecurrenceRuleToJson(calendar_record_h rec);
+  static picojson::value DateToJson(Date date);
+  static picojson::array CategoriesToJson(int type, calendar_record_h rec);
+  static picojson::array AttendeesToJson(int type, calendar_record_h rec);
+  static picojson::array AlarmsToJson(int type, calendar_record_h rec);
+  static  picojson::object RecurrenceRuleToJson(calendar_record_h rec);
 
   static Date DateFromPlatform(int type, calendar_record_h rec,
                                const std::string& property);
   static Date DateFromPlatform(calendar_record_h rec, unsigned int property);
 
-  static common::json::Array StringToArray(const std::string& string);
+  static picojson::array StringToArray(const std::string& string);
 
   static const PlatformPropertyMap platform_property_map_;
   static const PlatformEnumMap platform_enum_map_;
@@ -153,4 +152,4 @@ class CalendarItem : public CalendarRecord {
 }  // namespace calendar
 }  // namespace webapi
 
-#endif  // WEBAPI_PLUGINS_CALENDAR_ITEM_H_
+#endif  // CALENDAR_CALENDAR_ITEM_H_

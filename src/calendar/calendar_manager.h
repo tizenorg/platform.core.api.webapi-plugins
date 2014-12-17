@@ -14,13 +14,18 @@
  *    limitations under the License.
  */
 
-#ifndef WEBAPI_PLUGINS_CALENDAR_MANAGER_H_
-#define WEBAPI_PLUGINS_CALENDAR_MANAGER_H_
+#ifndef CALENDAR_CALENDAR_MANAGER_H_
+#define CALENDAR_CALENDAR_MANAGER_H_
 
-#include "json-parser.h"
+#include "common/picojson.h"
 
-namespace webapi {
+namespace extension {
 namespace calendar {
+
+typedef picojson::value JsonValue;
+typedef picojson::object JsonObject;
+typedef picojson::array JsonArray;
+typedef std::string JsonString;
 
 class CalendarManager {
  public:
@@ -41,12 +46,12 @@ class CalendarManager {
    * {status: 'success', result: {calendarsArray}}
    * @endcode
    */
-  void GetCalendars(const common::json::Object& args,
-                    common::json::Object& out);
-  void GetCalendar(const common::json::Object& args, common::json::Object& out);
-  void AddCalendar(const common::json::Object& args, common::json::Object& out);
-  void RemoveCalendar(const common::json::Object& args,
-                      common::json::Object& out);
+  void GetCalendars(const JsonObject& args,
+                    JsonObject& out);
+  void GetCalendar(const JsonObject& args, JsonObject& out);
+  void AddCalendar(const JsonObject& args, JsonObject& out);
+  void RemoveCalendar(const JsonObject& args,
+                      JsonObject& out);
 
   static CalendarManager& GetInstance();
   virtual ~CalendarManager();
@@ -60,4 +65,4 @@ class CalendarManager {
 }  // namespace calendar
 }  // namespace webapi
 
-#endif /* WEBAPI_PLUGINS_CALENDAR_MANAGER_H_ */
+#endif /* CALENDAR_CALENDAR_MANAGER_H_ */

@@ -11,15 +11,22 @@
         'calendar_extension.cc',
         'calendar_extension.h',
         'calendar_instance.cc',
-        'calendar_instance.h'
+        'calendar_instance.h',
+        'calendar.cc',
+        'calendar.h',
+        'calendar_item.cc',
+        'calendar_item.h',
+        'calendar_manager.cc',
+        'calendar_manager.h',
+        'calendar_privilege.h',
+        'calendar_record.cc',
+        'calendar_record.h'
       ],
       'conditions': [
         ['tizen == 1', {
           'variables': {
             'packages': [
-              'glib-2.0',
               'calendar-service2',
-              'vconf',
             ]
           },
         }],

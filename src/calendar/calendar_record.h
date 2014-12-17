@@ -22,9 +22,8 @@
 #include <memory>
 #include <calendar-service2/calendar.h>
 
-#include "json-parser.h"
-
-namespace webapi {
+#include "common/picojson.h"
+namespace extension {
 namespace calendar {
 
 typedef std::unique_ptr<std::remove_pointer<calendar_query_h>::type,
@@ -77,9 +76,9 @@ class CalendarRecord {
   static CalendarRecordPtr CreateCalendar();
 
   static void CalendarToJson(calendar_record_h rec,
-                             common::json::Object* out_ptr);
+                             picojson::object* out_ptr);
   static void CalendarFromJson(calendar_record_h rec,
-                               const common::json::Object& in);
+                               const picojson::object& in);
 };
 
 }  // namespace calendar

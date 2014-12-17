@@ -21,21 +21,20 @@
 #include <memory>
 #include <map>
 #include <calendar-service2/calendar.h>
-#include <native-context.h>
+#include "calendar_record.h"
 
-#include "native-plugin.h"
-#include "task-queue.h"
-#include "converter.h"
-#include "logger.h"
+#include "common/task-queue.h"
+#include "common/converter.h"
+#include "common/logger.h"
 
-namespace webapi {
+namespace extension {
 namespace calendar {
 
 namespace {
 const int kUnifiedCalendardId = 0;
 }
 
-using namespace webapi::common;
+using namespace common;
 
 inline void CheckReturn(int ret, const std::string& error_name) {
   if (CALENDAR_ERROR_NONE != ret) {
@@ -70,27 +69,27 @@ CalendarManager& CalendarManager::GetInstance() {
 
 bool CalendarManager::IsConnected() { return is_connected_; }
 
-void CalendarManager::GetCalendars(const json::Object& args,
-                                   json::Object& out) {
+void CalendarManager::GetCalendars(const JsonObject& args,
+                                   JsonObject& out) {
   LoggerD("enter");
 
-  NativePlugin::CheckAccess(Privilege::kCalendarRead);
+//  NativePlugin::CheckAccess(Privilege::kCalendarRead);
 
   if (!is_connected_) {
     throw UnknownException("DB Connection failed.");
   }
 
-  int callback_handle = NativePlugin::GetAsyncCallbackHandle(args);
+//  int callback_handle = NativePlugin::GetAsyncCallbackHandle(args);
 
   const std::string& type = FromJson<std::string>(args, "type");
 
   LoggerD("calendar type: %s", type.c_str());
 
-  auto get = [type](const std::shared_ptr<json::Value> & response)->void {
+  auto get = [type](const std::shared_ptr<JsonValue> & response)->void {
 
-    json::Object& response_obj = response->get<json::Object>();
-    json::Value result = json::Value(json::Array());
-    json::Array& array = result.get<json::Array>();
+    JsonObject& response_obj = response->get<JsonObject>();
+    JsonValue result = JsonValue(JsonArray());
+    JsonArray& array = result.get<JsonArray>();
 
     calendar_list_h list = NULL;
 
@@ -124,10 +123,10 @@ void CalendarManager::GetCalendars(const json::Object& args,
           continue;
         }
 
-        array.push_back(json::Value(json::Object()));
+        array.push_back(JsonValue(JsonObject()));
 
         CalendarRecord::CalendarToJson(calendar,
-                                       &array.back().get<json::Object>());
+                                       &array.back().get<JsonObject>());
 
         calendar_list_next(list);
       }
@@ -136,34 +135,34 @@ void CalendarManager::GetCalendars(const json::Object& args,
         calendar_list_destroy(list, true);
       }
 
-      NativePlugin::ReportSuccess(result, response_obj);
+ //     NativePlugin::ReportSuccess(result, response_obj);
     }
-    catch (const BasePlatformException& e) {
+    catch (...) {//const BasePlatformException& e) {
       if (list) {
         calendar_list_destroy(list, false);
       }
 
-      NativePlugin::ReportError(e, response_obj);
+ //     NativePlugin::ReportError(e, response_obj);
     }
   };
 
-  auto get_response = [callback_handle](const std::shared_ptr<json::Value> &
-                                        response)->void {
-    wrt::common::NativeContext::GetInstance()->InvokeCallback(
-        callback_handle, response->serialize());
-  };
+//  auto get_response = [callback_handle](const std::shared_ptr<JsonValue> &
+//                                        response)->void {
+//    wrt::common::NativeContext::GetInstance()->InvokeCallback(
+//        callback_handle, response->serialize());
+//  };
 
-  TaskQueue::GetInstance().Queue<json::Value>(
-      get, get_response,
-      std::shared_ptr<json::Value>(new json::Value(json::Object())));
+//  TaskQueue::GetInstance().Queue<JsonValue>(
+//      get, get_response,
+//      std::shared_ptr<JsonValue>(new JsonValue(JsonObject())));
 
-  NativePlugin::ReportSuccess(out);
+//  NativePlugin::ReportSuccess(out);
 }
 
-void CalendarManager::GetCalendar(const json::Object& args, json::Object& out) {
+void CalendarManager::GetCalendar(const JsonObject& args, JsonObject& out) {
   LoggerD("enter");
 
-  NativePlugin::CheckAccess(Privilege::kCalendarRead);
+ // NativePlugin::CheckAccess(Privilege::kCalendarRead);
 
   if (!is_connected_) {
     throw UnknownException("DB Connection failed.");
@@ -182,23 +181,22 @@ void CalendarManager::GetCalendar(const json::Object& args, json::Object& out) {
     throw NotFoundException("Calendar not found");
   }
 
-  json::Value result = json::Value(json::Object());
+  JsonValue result = JsonValue(JsonObject());
 
-  CalendarRecord::CalendarToJson(record_ptr.get(), &result.get<json::Object>());
-
-  NativePlugin::ReportSuccess(result, out);
+  CalendarRecord::CalendarToJson(record_ptr.get(), &out);
+//  NativePlugin::ReportSuccess(result, out);
 }
 
-void CalendarManager::AddCalendar(const json::Object& args, json::Object& out) {
+void CalendarManager::AddCalendar(const JsonObject& args, JsonObject& out) {
   LoggerD("enter");
 
-  NativePlugin::CheckAccess(Privilege::kCalendarWrite);
+//  NativePlugin::CheckAccess(Privilege::kCalendarWrite);
 
   if (!is_connected_) {
     throw UnknownException("DB Connection failed.");
   }
 
-  const json::Object& calendar = FromJson<json::Object>(args, "calendar");
+  const JsonObject& calendar = FromJson<JsonObject>(args, "calendar");
 
   CalendarRecordPtr record_ptr = CalendarRecord::CreateCalendar();
   CalendarRecord::CalendarFromJson(record_ptr.get(), calendar);
@@ -207,14 +205,14 @@ void CalendarManager::AddCalendar(const json::Object& args, json::Object& out) {
   ret = calendar_db_insert_record(record_ptr.get(), &record_id);
   CheckReturn(ret, "Failed to insert calendar record into db");
 
-  NativePlugin::ReportSuccess(json::Value(static_cast<double>(record_id)), out);
+//  NativePlugin::ReportSuccess(JsonValue(static_cast<double>(record_id)), out);
 }
 
-void CalendarManager::RemoveCalendar(const json::Object& args,
-                                     json::Object& out) {
+void CalendarManager::RemoveCalendar(const JsonObject& args,
+                                     JsonObject& out) {
   LoggerD("enter");
 
-  NativePlugin::CheckAccess(Privilege::kCalendarWrite);
+//  NativePlugin::CheckAccess(Privilege::kCalendarWrite);
 
   if (!is_connected_) {
     throw UnknownException("DB Connection failed.");
@@ -236,7 +234,7 @@ void CalendarManager::RemoveCalendar(const json::Object& args,
   int ret = calendar_db_delete_record(_calendar_book._uri, id);
   CheckReturn(ret, "Failed to delete record from db");
 
-  NativePlugin::ReportSuccess(out);
+ // NativePlugin::ReportSuccess(out);
 }
 }
 }
