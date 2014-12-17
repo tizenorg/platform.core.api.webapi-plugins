@@ -109,8 +109,7 @@ void MessageEmail::updateEmailMessage(email_mail_data_t& mail)
         setSubject(mail.subject);
     }
 
-//    TODO fix when MesageBody will be available
-//    getBody()->updateBody(mail);
+    getBody()->updateBody(mail);
 
     if (mail.mail_id != mail.thread_id) {
         setInResponseTo(mail.thread_id);
@@ -134,10 +133,10 @@ void MessageEmail::updateEmailMessage(email_mail_data_t& mail)
             setMessageStatus(MessageStatus::STATUS_UNDEFINED);
         break;
     }
-//    TODO fix when Attachment will be available
-//    AttachmentPtrVector att = convertEmailToMessageAttachment(mail);
-//
-//    setMessageAttachments(att);
+
+    AttachmentPtrVector att = convertEmailToMessageAttachment(mail);
+
+    setMessageAttachments(att);
 }
 
 } // messaging

@@ -236,8 +236,8 @@ void MessagingInstance::MessageServiceStopSync(const picojson::value& args,
                  htmlBody: "simle html body",
                  isHightPriority: false
              }
-
-             var msg = new tizen.Message("messaging.email", initDictionary);
+             msg = new tizen.Message("messaging.email", initDictionary);
+             msg.attachments = [new tizen.MessageAttachment("images/myimage.png", "image/png")];
              services[0].messageStorage.addDraftMessage(msg, function(){
                  console.log("Add draft success");
              }, function(){

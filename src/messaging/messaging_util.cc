@@ -52,6 +52,12 @@ const char* MESSAGE_BODY_ATTRIBUTE_LOADED = "loaded";
 const char* MESSAGE_BODY_ATTRIBUTE_PLAIN_BODY = "plainBody";
 const char* MESSAGE_BODY_ATTRIBUTE_HTML_BODY = "htmlBody";
 
+const char* MESSAGE_ATTRIBUTE_MESSAGE_ATTACHMENTS = "attachments";
+const char* MESSAGE_ATTACHMENT_ATTRIBUTE_ID = "id";
+const char* MESSAGE_ATTACHMENT_ATTRIBUTE_MESSAGE_ID = "messageId";
+const char* MESSAGE_ATTACHMENT_ATTRIBUTE_MIME_TYPE = "mimeType";
+const char* MESSAGE_ATTACHMENT_ATTRIBUTE_FILE_PATH = "filePath";
+
 namespace {
 const std::string TYPE_SMS = "messaging.sms";
 const std::string TYPE_MMS = "messaging.mms";
@@ -272,7 +278,36 @@ std::shared_ptr<Message> MessagingUtil::jsonToMessage(const picojson::value& jso
 
     message->setBody(body);
 
-    // TODO MessageAttachments
+    AttachmentPtrVector attachments;
+    auto ma = data.at(MESSAGE_ATTRIBUTE_MESSAGE_ATTACHMENTS).get<std::vector<picojson::value>>();
+
+    auto arrayVectorAttachmentConverter = [&attachments] (picojson::value& v)->void
+    {
+        std::shared_ptr<MessageAttachment> attachment =
+                std::shared_ptr<MessageAttachment>(new MessageAttachment());
+
+        auto obj = v.get<picojson::object>();
+        int messageAttachmentId = std::atoi(MessagingUtil::getValueFromJSONObject<std::string>(obj,
+                MESSAGE_ATTACHMENT_ATTRIBUTE_ID).c_str());
+        attachment->setId(messageAttachmentId);
+
+        int messageId = std::atoi(MessagingUtil::getValueFromJSONObject<std::string>(obj,
+                MESSAGE_ATTACHMENT_ATTRIBUTE_MESSAGE_ID).c_str());
+        attachment->setMessageId(messageId);
+
+        std::string mimeType = MessagingUtil::getValueFromJSONObject<std::string>(obj,
+                MESSAGE_ATTACHMENT_ATTRIBUTE_MIME_TYPE);
+        attachment->setMimeType(mimeType);
+
+        std::string filePath = MessagingUtil::getValueFromJSONObject<std::string>(obj,
+                MESSAGE_ATTACHMENT_ATTRIBUTE_FILE_PATH);
+        attachment->setFilePath(filePath);
+
+        attachments.push_back(attachment);
+    };
+
+    for_each(ma.begin(), ma.end(), arrayVectorAttachmentConverter);
+    message->setMessageAttachments(attachments);
 
     return message;
 

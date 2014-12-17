@@ -240,10 +240,9 @@ void EmailManager::addMessagePlatform(int account_id,
     message->setId(mail_data->mail_id);
     message->setMessageStatus(MessageStatus::STATUS_DRAFT);
 
-//    TODO Adding attachments
-//    if (message->getHasAttachment()){
-//        Message::addEmailAttachments(message);
-//    }
+    if (message->getHasAttachment()){
+        Message::addEmailAttachments(message);
+    }
 
     err = email_get_mail_data(message->getId(), &mail_data_final);
     if(EMAIL_ERROR_NONE != err) {

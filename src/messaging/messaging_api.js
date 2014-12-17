@@ -17,6 +17,42 @@ var Property = {
     E: 1 << 1,   // ENUMERABLE
     C: 1 << 2    // CONFIGURABLE
 }
+//TODO remove CommonFS when C++ filesystem will be available
+function CommonFS(){};
+CommonFS.cacheVirtualToReal = {
+        'downloads' : { path: '/opt/usr/media/Downloads'},
+        'documents' : { path: '/opt/usr/media/Documents'},
+        'music'     : { path: '/opt/usr/media/Sounds'},
+        'images'    : { path: '/opt/usr/media/Images'},
+        'videos'    : { path: '/opt/usr/media/Videos'},
+        'ringtones' : { path: '/opt/usr/share/settings/Ringtones'}
+};
+
+CommonFS.toRealPath = function (aPath) {
+    var _fileRealPath = '',
+        _uriPrefix = 'file://',
+        i;
+    if (aPath.indexOf(_uriPrefix) === 0) {
+        _fileRealPath = aPath.substr(_uriPrefix.length);
+    } else if (aPath[0] != '/') {
+        //virtual path$
+        var _pathTokens = aPath.split('/');
+        if (this.cacheVirtualToReal[_pathTokens[0]] && (
+                this.cacheVirtualToReal[_pathTokens[0]].state === undefined ||
+                this.cacheVirtualToReal[_pathTokens[0]].state === 'MOUNTED')) {
+            _fileRealPath = this.cacheVirtualToReal[_pathTokens[0]].path;
+            for (i = 1; i < _pathTokens.length; ++i) {
+                _fileRealPath += '/' + _pathTokens[i];
+            }
+        } else {
+            _fileRealPath = aPath;
+        }
+    } else {
+        _fileRealPath = aPath;
+    }
+    console.log("REAL PATH:"+_fileRealPath);
+    return _fileRealPath;
+};
 
 /**
  * Example usage:
@@ -234,6 +270,9 @@ function MessageAttachment_(data) {
 
 function MessageAttachment(filePath, mimeType) {
     console.dir(this);
+
+    //TODO remove CommonFS.toRealPath function when C++ filesystem will be available
+    filePath = CommonFS.toRealPath(filePath);
     if (!this.id) {
         propertyFactory_(this, 'id', null, Property.E);
     }
