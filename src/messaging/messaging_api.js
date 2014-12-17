@@ -393,14 +393,7 @@ MessageService.prototype.sync = function () {
     ]);
 
     var self = this;
-
-    bridge.async({
-        cmd: 'MessageService_sync',
-        args: {
-            id: self.id,
-            limit: args.limit || null
-        }
-    }).then({
+    var cid = bridge.listener({
         success: function () {
             if (args.successCallback) {
                 args.successCallback.call(null);
@@ -415,6 +408,17 @@ MessageService.prototype.sync = function () {
             }
         }
     });
+
+    var result = bridge.sync({
+        cmd: 'MessageService_sync',
+        cid: cid,
+        args: {
+            id: self.id,
+            limit: args.limit || null
+        }
+    });
+
+    return result;
 };
 MessageService.prototype.syncFolder = function () {
     var args = validator_.validateArgs(arguments, [
