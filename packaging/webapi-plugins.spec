@@ -135,6 +135,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_sound_support               0
 %define tizen_feature_system_setting_support      0
 %define tizen_feature_telephony_support           0
+%define tizen_feature_tvaudio_support             1
 %define tizen_feature_web_setting_support         1
 %define tizen_feature_wi_fi_support               0
 %define tizen_feature_tv_display_support          1
@@ -226,6 +227,11 @@ BuildRequires:  pkgconfig(capi-network-nfc)
 
 %if 0%{?tizen_feature_fm_radio_support}
 BuildRequires: pkgconfig(capi-media-radio)
+%endif
+
+%if 0%{?tizen_feature_tvaudio_support}
+BuildRequires:  pkgconfig(libavoc)
+BuildRequires:  pkgconfig(capi-media-audio-io)
 %endif
 
 %description
