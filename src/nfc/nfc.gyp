@@ -13,7 +13,9 @@
         'nfc_instance.cc',
         'nfc_instance.h',
         'nfc_adapter.cc',
-        'nfc_adapter.h'
+        'nfc_adapter.h',
+        'nfc_util.cc',
+        'nfc_util.h'
       ],
       'includes': [
         '../common/pkg-config.gypi',
