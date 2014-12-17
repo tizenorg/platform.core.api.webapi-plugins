@@ -496,15 +496,15 @@ DataSynchronizationManager.prototype.remove = function(profileId) {
 };
 
 DataSynchronizationManager.prototype.getMaxProfilesNum = function() {
-  var ret = native_.callSync("Datasync_getMaxProfilesNum");
-  if (native_.isFailure(ret)) {
-    throw native_.getErrorObject(ret);
+  var msg = native_.callSync("Datasync_getMaxProfilesNum");
+  if (native_.isFailure(msg)) {
+    throw native_.getErrorObject(msg);
   }
-  return native_.getResultObject(ret);
+  return native_.getResultObject(msg);
 };
 
 DataSynchronizationManager.prototype.getProfilesNum = function() {
-   var msg = native_.callSync()'Datasync_getProfilesNum');
+   var msg = native_.callSync('Datasync_getProfilesNum');
 
    if (native_.isFailure(msg)) {
      throw native_.getErrorObject(msg);
