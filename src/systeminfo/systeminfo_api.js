@@ -213,7 +213,7 @@ var _call = C.getCall('SystemInfo');
 
 /**
  * It is singleton object to keep and invoke callbacks.
- * 
+ *
  */
 var Callbacks = (function () {
     var _collection = {};
@@ -851,43 +851,76 @@ SystemInfo.prototype.getCapability = function() {
     }
 };
 
-SystemInfo.prototype.getPropertyValue = function() {
-    var args = AV.validateMethod(arguments, [
-             {
-                 name : 'property',
-                 type : AV.Types.ENUM,
-                 values : T.getValues(SystemInfoPropertyId)
-             },
-             {
-                 name : 'successCallback',
-                 type : AV.Types.FUNCTION
-             },
-             {
-                 name : 'errorCallback',
-                 type : AV.Types.FUNCTION,
-                 optional : true,
-                 nullable : true
-             }
-             ]);
 
-    var propObject = _propertyContainer[args.property];
-    if (!propObject) {
-        C.throwTypeMismatch('Property with id: ' + args.property + ' is not supported.');
+var _createProperty = function (property, data) {
+    if (_propertyContainer[property]){
+        return new _propertyContainer[property].constructor(data);
+    } else {
+        C.throwTypeMismatch('Property with id: ' + property + ' is not supported.');
     }
-
-    var callback = function(result) {
-        if (C.isFailure(result)) {
-            setTimeout(function() {
-                C.callIfPossible(args.errorCallback, C.getErrorObject(result));
-            }, 0);
-        } else {
-            var resultProp = _createProperty(args.property, C.getResultObject(result));
-            args.successCallback(resultProp);
-        }
-    };
-
-    _call('SystemInfo_getPropertyValue', {property: args.property}, callback);
 };
+
+var _createPropertyArray = function (property, data) {
+    var jsonArray = data.array;
+    var propertyArray = [];
+    if (_propertyContainer[property]){
+        var arrayLength = jsonArray.length;
+        for (var i = 0; i < arrayLength; i++) {
+            propertyArray.push(new _propertyContainer[property].constructor(jsonArray[i]));
+        }
+    } else {
+        C.throwTypeMismatch('Property with id: ' + property + ' is not supported.');
+    }
+    return propertyArray;
+};
+
+
+var getPropertyFunction = function(cppLabel, objectCreateFunction) {
+    return function() {
+        var args = AV.validateMethod(arguments, [
+                 {
+                     name : 'property',
+                     type : AV.Types.ENUM,
+                     values : T.getValues(SystemInfoPropertyId)
+                 },
+                 {
+                     name : 'successCallback',
+                     type : AV.Types.FUNCTION
+                 },
+                 {
+                     name : 'errorCallback',
+                     type : AV.Types.FUNCTION,
+                     optional : true,
+                     nullable : true
+                 }
+                 ]);
+
+        var propObject = _propertyContainer[args.property];
+        if (!propObject) {
+            C.throwTypeMismatch('Property with id: ' + args.property + ' is not supported.');
+        }
+
+        var callback = function(result) {
+            if (C.isFailure(result)) {
+                setTimeout(function() {
+                    C.callIfPossible(args.errorCallback, C.getErrorObject(result));
+                }, 0);
+            } else {
+                var resultProp = objectCreateFunction(args.property, C.getResultObject(result));
+                args.successCallback(resultProp);
+            }
+        };
+
+        _call(cppLabel, {property: args.property}, callback);
+    };
+}
+
+SystemInfo.prototype.getPropertyValue =
+    getPropertyFunction('SystemInfo_getPropertyValue', _createProperty);
+
+SystemInfo.prototype.getPropertyValueArray =
+    getPropertyFunction('SystemInfo_getPropertyValueArray', _createPropertyArray);
+
 
 //SystemInfo helpers ///////////////////////////////////////////////////
 var _batteryStr = SystemInfoPropertyId.BATTERY;
@@ -905,18 +938,10 @@ var _peripheralStr = SystemInfoPropertyId.PERIPHERAL;
 
 var _nextId = 0;
 
-var _createProperty = function (property, data) {
-    if (_propertyContainer[property]){
-        return new _propertyContainer[property].constructor(data);
-    } else {
-        C.throwTypeMismatch('Property with id: ' + property + ' is not supported.');
-    }
-};
 
 function _systeminfoBatteryListenerCallback(event) {
     var property = _batteryStr;
     var eventObj = JSON.parse(event);
-    var propObj = _createProperty(property, eventObj.result);
     var callbacks = _propertyContainer[property].callbacks;
 
     for (var watchId in callbacks) {
@@ -926,6 +951,9 @@ function _systeminfoBatteryListenerCallback(event) {
                     (propObj.level <= listener.lowThreshold)) ||
                     (T.isUndefined(listener.highThreshold) ||
                             (propObj.level >= listener.highThreshold));
+            var propObj = !listener.isArrayType ?
+                    _createProperty(property, eventObj.result.array[0]) :
+                        _createPropertyArray(property, eventObj.result);
             if (executeCall) {
                 listener.callback(propObj);
             }
@@ -936,7 +964,6 @@ function _systeminfoBatteryListenerCallback(event) {
 function _systeminfoCpuListenerCallback(event) {
     var property = _cpuStr;
     var eventObj = JSON.parse(event);
-    var propObj = _createProperty(property, eventObj.result);
     var callbacks = _propertyContainer[property].callbacks;
 
     for (var watchId in callbacks) {
@@ -946,6 +973,9 @@ function _systeminfoCpuListenerCallback(event) {
                     (propObj.load <= listener.lowThreshold)) ||
                     (T.isUndefined(listener.highThreshold) ||
                             (propObj.load >= listener.highThreshold));
+            var propObj = !listener.isArrayType ?
+                    _createProperty(property, eventObj.result.array[0]) :
+                        _createPropertyArray(property, eventObj.result);
             if (executeCall) {
                 listener.callback(propObj);
             }
@@ -956,11 +986,14 @@ function _systeminfoCpuListenerCallback(event) {
 function _systeminfoStorageListenerCallback(event) {
     var property = _storageStr;
     var eventObj = JSON.parse(event);
-    var propObj = _createProperty(property, eventObj.result);
     var callbacks = _propertyContainer[property].callbacks;
 
     for (var watchId in callbacks) {
         if (callbacks.hasOwnProperty(watchId)) {
+            var listener = callbacks[watchId];
+            var propObj = !listener.isArrayType ?
+                    _createProperty(property, eventObj.result.array[0]) :
+                        _createPropertyArray(property, eventObj.result);
             callbacks[watchId].callback(propObj);
         }
     }
@@ -969,7 +1002,6 @@ function _systeminfoStorageListenerCallback(event) {
 function _systeminfoDisplayListenerCallback(event) {
     var property = _displayStr;
     var eventObj = JSON.parse(event);
-    var propObj = _createProperty(property, eventObj.result);
     var callbacks = _propertyContainer[property].callbacks;
 
     for (var watchId in callbacks) {
@@ -979,6 +1011,9 @@ function _systeminfoDisplayListenerCallback(event) {
                     (propObj.brightness <= listener.lowThreshold)) ||
                     (T.isUndefined(listener.highThreshold) ||
                             (propObj.brightness >= listener.highThreshold));
+            var propObj = !listener.isArrayType ?
+                    _createProperty(property, eventObj.result.array[0]) :
+                        _createPropertyArray(property, eventObj.result);
             if (executeCall) {
                 listener.callback(propObj);
             }
@@ -989,11 +1024,14 @@ function _systeminfoDisplayListenerCallback(event) {
 function _systeminfoDeviceOrientationListenerCallback(event) {
     var property = _deviceOrientationStr;
     var eventObj = JSON.parse(event);
-    var propObj = _createProperty(property, eventObj.result);
     var callbacks = _propertyContainer[property].callbacks;
 
     for (var watchId in callbacks) {
         if (callbacks.hasOwnProperty(watchId)) {
+            var listener = callbacks[watchId];
+            var propObj = !listener.isArrayType ?
+                    _createProperty(property, eventObj.result.array[0]) :
+                        _createPropertyArray(property, eventObj.result);
             callbacks[watchId].callback(propObj);
         }
     }
@@ -1002,11 +1040,14 @@ function _systeminfoDeviceOrientationListenerCallback(event) {
 function _systeminfoLocaleListenerCallback(event) {
     var property = _localeStr;
     var eventObj = JSON.parse(event);
-    var propObj = _createProperty(property, eventObj.result);
     var callbacks = _propertyContainer[property].callbacks;
 
     for (var watchId in callbacks) {
         if (callbacks.hasOwnProperty(watchId)) {
+            var listener = callbacks[watchId];
+            var propObj = !listener.isArrayType ?
+                    _createProperty(property, eventObj.result.array[0]) :
+                        _createPropertyArray(property, eventObj.result);
             callbacks[watchId].callback(propObj);
         }
     }
@@ -1015,11 +1056,14 @@ function _systeminfoLocaleListenerCallback(event) {
 function _systeminfoNetworkListenerCallback(event) {
     var property = _networkStr;
     var eventObj = JSON.parse(event);
-    var propObj = _createProperty(property, eventObj.result);
     var callbacks = _propertyContainer[property].callbacks;
 
     for (var watchId in callbacks) {
         if (callbacks.hasOwnProperty(watchId)) {
+            var listener = callbacks[watchId];
+            var propObj = !listener.isArrayType ?
+                    _createProperty(property, eventObj.result.array[0]) :
+                        _createPropertyArray(property, eventObj.result);
             callbacks[watchId].callback(propObj);
         }
     }
@@ -1028,11 +1072,14 @@ function _systeminfoNetworkListenerCallback(event) {
 function _systeminfoWifiNetworkListenerCallback(event) {
     var property = _wifiNetworkStr;
     var eventObj = JSON.parse(event);
-    var propObj = _createProperty(property, eventObj.result);
     var callbacks = _propertyContainer[property].callbacks;
 
     for (var watchId in callbacks) {
         if (callbacks.hasOwnProperty(watchId)) {
+            var listener = callbacks[watchId];
+            var propObj = !listener.isArrayType ?
+                    _createProperty(property, eventObj.result.array[0]) :
+                        _createPropertyArray(property, eventObj.result);
             callbacks[watchId].callback(propObj);
         }
     }
@@ -1041,11 +1088,14 @@ function _systeminfoWifiNetworkListenerCallback(event) {
 function _systeminfoCellularNetworkListenerCallback(event) {
     var property = _cellularNetworkStr;
     var eventObj = JSON.parse(event);
-    var propObj = _createProperty(property, eventObj.result);
     var callbacks = _propertyContainer[property].callbacks;
 
     for (var watchId in callbacks) {
         if (callbacks.hasOwnProperty(watchId)) {
+            var listener = callbacks[watchId];
+            var propObj = !listener.isArrayType ?
+                    _createProperty(property, eventObj.result.array[0]) :
+                        _createPropertyArray(property, eventObj.result);
             callbacks[watchId].callback(propObj);
         }
     }
@@ -1054,11 +1104,14 @@ function _systeminfoCellularNetworkListenerCallback(event) {
 function _systeminfoSimListenerCallback(event) {
     var property = _simStr;
     var eventObj = JSON.parse(event);
-    var propObj = _createProperty(property, eventObj.result);
     var callbacks = _propertyContainer[property].callbacks;
 
     for (var watchId in callbacks) {
         if (callbacks.hasOwnProperty(watchId)) {
+            var listener = callbacks[watchId];
+            var propObj = !listener.isArrayType ?
+                    _createProperty(property, eventObj.result.array[0]) :
+                        _createPropertyArray(property, eventObj.result);
             callbacks[watchId].callback(propObj);
         }
     }
@@ -1067,11 +1120,14 @@ function _systeminfoSimListenerCallback(event) {
 function _systeminfoPeripheralListenerCallback(event) {
     var property = _peripheralStr;
     var eventObj = JSON.parse(event);
-    var propObj = _createProperty(property, eventObj.result);
     var callbacks = _propertyContainer[property].callbacks;
 
     for (var watchId in callbacks) {
         if (callbacks.hasOwnProperty(watchId)) {
+            var listener = callbacks[watchId];
+            var propObj = !listener.isArrayType ?
+                    _createProperty(property, eventObj.result.array[0]) :
+                        _createPropertyArray(property, eventObj.result);
             callbacks[watchId].callback(propObj);
         }
     }
@@ -1226,47 +1282,54 @@ var _unregisterListener = function (watchId, isTimeout) {
     }
 };
 
-SystemInfo.prototype.addPropertyValueChangeListener = function() {
-    var args = AV.validateMethod(arguments, [
-             {
-                 name : 'property',
-                 type : AV.Types.ENUM,
-                 values : T.getValues(SystemInfoPropertyId)
-             },
-             {
-                 name : 'successCallback',
-                 type : AV.Types.FUNCTION
-             },
-             {
-                 name : 'options',
-                 type : AV.Types.DICTIONARY,
-                 optional : true,
-                 nullable : true
-             },
-             {
-                 name : 'errorCallback',
-                 type : AV.Types.FUNCTION,
-                 optional : true,
-                 nullable : true
-             }
-             ]);
+var getListenerFunction = function (isArray) {
+    return function() {
+        var args = AV.validateMethod(arguments, [
+                 {
+                     name : 'property',
+                     type : AV.Types.ENUM,
+                     values : T.getValues(SystemInfoPropertyId)
+                 },
+                 {
+                     name : 'successCallback',
+                     type : AV.Types.FUNCTION
+                 },
+                 {
+                     name : 'options',
+                     type : AV.Types.DICTIONARY,
+                     optional : true,
+                     nullable : true
+                 },
+                 {
+                     name : 'errorCallback',
+                     type : AV.Types.FUNCTION,
+                     optional : true,
+                     nullable : true
+                 }
+                 ]);
 
-    var listener = {
-            callback      : args.successCallback,
-            highThreshold : !T.isNullOrUndefined(args.options) ?
-                    args.options.highThreshold : undefined,
-                    lowThreshold  : !T.isNullOrUndefined(args.options) ?
-                            args.options.lowThreshold : undefined
+        var listener = {
+                callback      : args.successCallback,
+                isArrayType     : isArray,
+                highThreshold : !T.isNullOrUndefined(args.options) ?
+                        args.options.highThreshold : undefined,
+                        lowThreshold  : !T.isNullOrUndefined(args.options) ?
+                                args.options.lowThreshold : undefined
+        };
+        var watchId = _registerListener(args.property, listener, args.errorCallback);
+
+        var timeout = !T.isNullOrUndefined(args.options) ? args.options.timeout : undefined;
+        if (!T.isUndefined(timeout) ){
+            setTimeout(function(){_unregisterListener(watchId, true);}, timeout);
+        }
+
+        return watchId;
     };
-    var watchId = _registerListener(args.property, listener, args.errorCallback);
-
-    var timeout = !T.isNullOrUndefined(args.options) ? args.options.timeout : undefined;
-    if (!T.isUndefined(timeout) ){
-        setTimeout(function(){_unregisterListener(watchId, true);}, timeout);
-    }
-
-    return watchId;
 };
+
+SystemInfo.prototype.addPropertyValueChangeListener = getListenerFunction(false);
+
+SystemInfo.prototype.addPropertyValueArrayChangeListener = getListenerFunction(true);
 
 SystemInfo.prototype.removePropertyValueChangeListener = function() {
     var args = AV.validateMethod(arguments, [

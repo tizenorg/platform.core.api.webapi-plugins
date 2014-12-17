@@ -1133,7 +1133,7 @@ void SystemInfoListeners::OnBatteryChangedCallback(keynode_t* /*node*/, void* /*
 void SystemInfoListeners::OnCpuChangedCallback(void* /*event_ptr*/)
 {
     LOGD("");
-    picojson::value result = SysteminfoUtils::GetPropertyValue(kPropertyIdCpu);
+    picojson::value result = SysteminfoUtils::GetPropertyValue(kPropertyIdCpu, false);
 
     if (m_cpu_load == m_last_cpu_load) {
         return;
@@ -1147,7 +1147,7 @@ void SystemInfoListeners::OnCpuChangedCallback(void* /*event_ptr*/)
 void SystemInfoListeners::OnStorageChangedCallback(void* /*event_ptr*/)
 {
     LOGD("");
-    picojson::value result = SysteminfoUtils::GetPropertyValue(kPropertyIdStorage);
+    picojson::value result = SysteminfoUtils::GetPropertyValue(kPropertyIdStorage, false);
 
     if (m_available_capacity_internal == m_last_available_capacity_internal) {
         return;
@@ -1162,7 +1162,7 @@ void SystemInfoListeners::OnStorageChangedCallback(void* /*event_ptr*/)
 void SystemInfoListeners::OnMmcChangedCallback(keynode_t* /*node*/, void* /*event_ptr*/)
 {
     LOGD("");
-    picojson::value result = SysteminfoUtils::GetPropertyValue(kPropertyIdStorage);
+    picojson::value result = SysteminfoUtils::GetPropertyValue(kPropertyIdStorage, false);
 
     if (m_available_capacity_mmc == m_last_available_capacity_mmc) {
         return;
@@ -1563,40 +1563,57 @@ unsigned long SysteminfoUtils::GetCount(const std::string& property)
     return count;
 }
 
-picojson::value SysteminfoUtils::GetPropertyValue(const std::string& property)
+picojson::value SysteminfoUtils::GetPropertyValue(const std::string& property, bool is_array_type)
 {
     LOGD("Entered getPropertyValue");
-    picojson::value result = picojson::value(picojson::object());
-    picojson::object& result_obj = result.get<picojson::object>();
-    if ("BATTERY" == property){
-        ReportBattery(result_obj);
-    } else if ("CPU" == property) {
-        ReportCpu(result_obj);
-    } else if ("STORAGE" == property) {
-        ReportStorage(result_obj);
-    } else if ("DISPLAY" == property) {
-        ReportDisplay(result_obj);
-    } else if ("DEVICE_ORIENTATION" == property) {
-        ReportDeviceOrientation(result_obj);
-    } else if ("BUILD" == property) {
-        ReportBuild(result_obj);
-    } else if ("LOCALE" == property) {
-        ReportLocale(result_obj);
-    } else if ("NETWORK" == property) {
-        ReportNetwork(result_obj);
-    } else if ("WIFI_NETWORK" == property) {
-        ReportWifiNetwork(result_obj);
-    } else if ("CELLULAR_NETWORK" == property) {
-        ReportCellularNetwork(result_obj);
-    } else if ("SIM" == property) {
-        ReportSim(result_obj);
-    } else if ("PERIPHERAL" == property) {
-        ReportPeripheral(result_obj);
-    } else {
-        LOGD("Property with given id is not supported");
-        throw NotSupportedException("Property with given id is not supported");
+
+    picojson::value array_result = picojson::value(picojson::object());
+    picojson::object& array_result_obj = array_result.get<picojson::object>();
+    picojson::array& array = array_result_obj.insert(
+            std::make_pair("array", picojson::value(picojson::array()))).
+                    first->second.get<picojson::array>();
+
+    unsigned long property_count = SysteminfoUtils::GetCount(property);
+
+    for (int i = 0; i < property_count; i++) {
+        picojson::value result = picojson::value(picojson::object());
+        picojson::object& result_obj = result.get<picojson::object>();
+
+        if ("BATTERY" == property){
+            ReportBattery(result_obj);
+        } else if ("CPU" == property) {
+            ReportCpu(result_obj);
+        } else if ("STORAGE" == property) {
+            ReportStorage(result_obj);
+        } else if ("DISPLAY" == property) {
+            ReportDisplay(result_obj);
+        } else if ("DEVICE_ORIENTATION" == property) {
+            ReportDeviceOrientation(result_obj);
+        } else if ("BUILD" == property) {
+            ReportBuild(result_obj);
+        } else if ("LOCALE" == property) {
+            ReportLocale(result_obj);
+        } else if ("NETWORK" == property) {
+            ReportNetwork(result_obj);
+        } else if ("WIFI_NETWORK" == property) {
+            ReportWifiNetwork(result_obj);
+        } else if ("CELLULAR_NETWORK" == property) {
+            ReportCellularNetwork(result_obj);
+        } else if ("SIM" == property) {
+            ReportSim(result_obj, i);
+        } else if ("PERIPHERAL" == property) {
+            ReportPeripheral(result_obj);
+        } else {
+            LOGD("Property with given id is not supported");
+            throw NotSupportedException("Property with given id is not supported");
+        }
+        if (!is_array_type) {
+            return result;
+        } else {
+            array.push_back(result);
+        }
     }
-    return result;
+    return array_result;
 }
 
 void SysteminfoUtils::ReportBattery(picojson::object& out) {
@@ -2180,9 +2197,9 @@ void SimSpnValueCallback(TapiHandle */*handle*/, int result, void *data, void */
     sim_mgr.TryReturn();
 }
 
-void SysteminfoUtils::ReportSim(picojson::object& out) {
+void SysteminfoUtils::ReportSim(picojson::object& out, unsigned long count) {
 
-    sim_mgr.GatherSimInformation(system_info_listeners.GetTapiHandle(), &out);
+    sim_mgr.GatherSimInformation(system_info_listeners.GetTapiHandles()[count], &out);
 }
 
 void SysteminfoUtils::ReportPeripheral(picojson::object& out) {
