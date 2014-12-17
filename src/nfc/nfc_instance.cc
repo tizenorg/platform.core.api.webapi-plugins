@@ -8,11 +8,15 @@
 #include "common/logger.h"
 #include "common/platform_exception.h"
 
+// platform header
+#include <nfc.h>
+
 
 namespace extension {
 namespace nfc {
 
 using namespace common;
+using namespace extension::nfc;
 
 NFCInstance::NFCInstance() {
     using namespace std::placeholders;
@@ -51,9 +55,18 @@ NFCInstance::NFCInstance() {
     REGISTER("NFCPeer_setReceiveNDEFListener", SetReceiveNDEFListener);
     REGISTER("NFCPeer_sendNDEF", SendNDEF);
 #undef REGISTER
+    // NFC library initialization
+    int result = nfc_manager_initialize();
+    if (NFC_ERROR_NONE != result) {
+        LoggerE("Could not initialize NFC Manager.");
+    }
 }
 
 NFCInstance::~NFCInstance() {
+    int result = nfc_manager_deinitialize();
+    if (NFC_ERROR_NONE != result) {
+        LoggerE("NFC Manager deinitialization failed.");
+    }
 }
 
 void NFCInstance::GetDefaultAdapter(
@@ -64,6 +77,42 @@ void NFCInstance::GetDefaultAdapter(
 void NFCInstance::SetExclusiveMode(
         const picojson::value& args, picojson::object& out) {
 
+    bool exmode = args.get("exclusiveMode").get<bool>();
+    int ret = NFC_ERROR_NONE;
+
+    if(exmode) {
+        ret = nfc_manager_enable_transaction_fg_dispatch();
+    }
+    else {
+        ret = nfc_manager_disable_transaction_fg_dispatch();
+    }
+
+    if (NFC_ERROR_NONE != ret) {
+        LoggerE("setExclusiveModeForTransaction failed: %d", ret);
+        switch(ret) {
+            case NFC_ERROR_SECURITY_RESTRICTED:
+            {
+                auto ex = common::SecurityException("Not allowed to set exclusive mode");
+                ReportError(ex, out);
+                break;
+            }
+            case NFC_ERROR_OPERATION_FAILED:
+            {
+                auto ex = common::UnknownException("Setting exclusive mode failed (IPC fail)");
+                ReportError(ex, out);
+                break;
+            }
+            default:
+            {
+                auto ex = common::UnknownException("Unkown error");
+                ReportError(ex, out);
+                break;
+            }
+        }
+    }
+    else {
+        ReportSuccess(out);
+    }
 }
 
 void NFCInstance::SetPowered(
