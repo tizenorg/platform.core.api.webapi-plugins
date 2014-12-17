@@ -12,13 +12,13 @@ namespace messaging {
 MessageEmail::MessageEmail():
     Message()
 {
-    LOGD("MessageEmail constructor.");
+    LoggerD("MessageEmail constructor.");
     this->m_type = MessageType(EMAIL);
 }
 
 MessageEmail::~MessageEmail()
 {
-    LOGD("MessageEmail destructor.");
+    LoggerD("MessageEmail destructor.");
 }
 
 // *** overrided methods
@@ -28,7 +28,7 @@ void MessageEmail::setCC(std::vector<std::string> &cc)
     m_cc = cc;
 
     if(m_cc.empty()) {
-        LOGD("Recipient's list cleared");
+        LoggerD("Recipient's list cleared");
         return;
     }
 }
@@ -39,7 +39,7 @@ void MessageEmail::setBCC(std::vector<std::string> &bcc)
     m_bcc = bcc;
 
     if(m_bcc.empty()) {
-        LOGD("Recipient's list cleared");
+        LoggerD("Recipient's list cleared");
         return;
     }
 }
@@ -60,28 +60,25 @@ void MessageEmail::setMessageAttachments(AttachmentPtrVector &attachments)
 
     m_has_attachment = true;
     if(m_attachments.empty()) {
-        LOGD("Recipient's list cleared");
+        LoggerD("Recipient's list cleared");
         m_has_attachment = false;
     }
 }
 
 bool MessageEmail::getHasAttachment() const
 {
-    LOGD("MessageEmail::getHasAttachment()");
+    LoggerD("MessageEmail::getHasAttachment()");
     return m_has_attachment || !m_body->getInlineAttachments().empty();
 }
 
 void MessageEmail::updateEmailMessage(email_mail_data_t& mail)
 {
-    LOGD("Enter");
+    LoggerD("Enter");
+
     std::vector<std::string> recp_list;
-
     setId(mail.mail_id);
-
     setFolderId(mail.mailbox_id);
-
     setConversationId(mail.thread_id);
-
     if(mail.full_address_from) {
         setFrom(MessagingUtil::extractSingleEmailAddress(mail.full_address_from));
     }
@@ -102,19 +99,18 @@ void MessageEmail::updateEmailMessage(email_mail_data_t& mail)
     }
 
     setTimeStamp(mail.date_time);
-
     setIsRead(mail.flags_seen_field);
-
     setIsHighPriority((EMAIL_MAIL_PRIORITY_HIGH == mail.priority) ? true : false);
 
     if (mail.subject == NULL) {
         LOGW("Subject is null");
     } else {
-        LOGD("Subject: %s", mail.subject);
+        LoggerD("Subject: %s", mail.subject);
         setSubject(mail.subject);
     }
 
-    getBody()->updateBody(mail);
+//    TODO fix when MesageBody will be available
+//    getBody()->updateBody(mail);
 
     if (mail.mail_id != mail.thread_id) {
         setInResponseTo(mail.thread_id);
@@ -138,10 +134,10 @@ void MessageEmail::updateEmailMessage(email_mail_data_t& mail)
             setMessageStatus(MessageStatus::STATUS_UNDEFINED);
         break;
     }
-
-    AttachmentPtrVector att = convertEmailToMessageAttachment(mail);
-
-    setMessageAttachments(att);
+//    TODO fix when Attachment will be available
+//    AttachmentPtrVector att = convertEmailToMessageAttachment(mail);
+//
+//    setMessageAttachments(att);
 }
 
 } // messaging

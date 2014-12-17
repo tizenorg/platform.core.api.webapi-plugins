@@ -15,7 +15,7 @@ public:
     MessageStorageEmail(int id);
     virtual ~MessageStorageEmail();
 
-    virtual void addDraftMessage();
+    virtual void addDraftMessage(MessageCallbackUserData* callback);
     virtual void removeMessages();
     virtual void updateMessages();
     virtual void findMessages();

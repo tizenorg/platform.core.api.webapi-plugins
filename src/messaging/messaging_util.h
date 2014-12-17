@@ -14,7 +14,6 @@
 namespace extension {
 namespace messaging {
 
-extern const char* JSON_CMD;
 extern const char* JSON_ACTION;
 extern const char* JSON_CALLBACK_ID;
 extern const char* JSON_CALLBACK_SUCCCESS;
@@ -40,6 +39,10 @@ extern const char* MESSAGE_ATTRIBUTE_IN_RESPONSE_TO;
 extern const char* MESSAGE_ATTRIBUTE_MESSAGE_STATUS;
 extern const char* MESSAGE_ATTRIBUTE_ATTACHMENTS;
 extern const char* MESSAGE_ATTRIBUTE_HAS_ATTACHMENT;
+
+extern const char* JSON_RET_DATA;
+extern const char* JSON_RET_ERR_MESSAGE;
+extern const char* JSON_RET_ERR_NAME;
 
 enum MessageType {
     UNDEFINED = 0,

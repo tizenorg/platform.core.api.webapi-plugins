@@ -58,7 +58,7 @@ class EmailManager {
 public:
     static EmailManager& getInstance();
 
-//    void addDraftMessage(MessageCallbackUserData* callback);
+    void addDraftMessage(MessageCallbackUserData* callback);
 //    void removeMessages(MessagesCallbackUserData* callback);
 //    void updateMessages(MessagesCallbackUserData* callback);
 //    void findMessages(FindMsgCallbackUserData* callback);
@@ -94,12 +94,12 @@ private:
     EmailManager(const EmailManager &);
     void operator=(const EmailManager &);
     virtual ~EmailManager();
-//    void addDraftMessagePlatform(int account_id,
-//        std::shared_ptr<Message> message);
+    void addDraftMessagePlatform(int account_id,
+        std::shared_ptr<Message> message);
 //    void addOutboxMessagePlatform(int account_id,
 //        std::shared_ptr<Message> message);
-//    void addMessagePlatform(int account_id, std::shared_ptr<Message> message,
-//        email_mailbox_type_e mailbox_type);
+    void addMessagePlatform(int account_id, std::shared_ptr<Message> message,
+        email_mailbox_type_e mailbox_type);
 //
 //    typedef std::map<int, MessageRecipientsCallbackData*> SendReqMap;
 //    typedef SendReqMap::iterator SendReqMapIterator;

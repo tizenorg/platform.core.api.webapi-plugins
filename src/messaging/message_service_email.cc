@@ -68,7 +68,6 @@ long MessageServiceEmail::sync(SyncCallbackData *callback)
 
     long op_id = EmailManager::getInstance().getUniqueOpId();
     callback->setOpId(op_id);
-    //callback->setAccountId(m_id);
 
     guint id = g_idle_add(syncTask, static_cast<void*>(callback));
     if (!id) {

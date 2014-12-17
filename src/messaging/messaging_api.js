@@ -290,7 +290,7 @@ function MessageService(data) {
     propertyFactory_(this, 'id', data.id, Property.E);
     propertyFactory_(this, 'type', data.type, Property.E);
     propertyFactory_(this, 'name', data.name, Property.E);
-    propertyFactory_(this, 'messageStorage', new MessageStorage(data.messageStorage), Property.E);
+    propertyFactory_(this, 'messageStorage', new MessageStorage(this), Property.E);
 };
 
 MessageService.prototype.sendMessage = function () {
@@ -463,7 +463,9 @@ MessageService.prototype.stopSync = function () {
     });
 };
 
-function MessageStorage() {};
+function MessageStorage(service) {
+    propertyFactory_(this, 'service', service);
+};
 
 MessageStorage.prototype.addDraftMessage = function () {
     var args = validator_.validateArgs(arguments, [
@@ -475,7 +477,8 @@ MessageStorage.prototype.addDraftMessage = function () {
     bridge.async({
         cmd: 'MessageStorage_addDraftMessage',
         args: {
-            message: args.message
+            message: args.message,
+            serviceId: this.service.id
         }
     }).then({
         success: function () {
