@@ -6,16 +6,19 @@
 #define SRC_TVCHANNEL_TVCHANNEL_INSTANCE_H_
 
 #include <string>
+#include <memory>
 
 #include "common/extension.h"
 #include "common/picojson.h"
-
+#include "tvchannel/tvchannel_manager.h"
 #include "tvchannel/tvchannel_extension.h"
 
 namespace extension {
 namespace tvchannel {
 
-class TVChannelInstance: public common::ParsedInstance {
+class TVChannelInstance:
+        public common::ParsedInstance,
+        public EventListener {
  public:
     TVChannelInstance();
     virtual ~TVChannelInstance();
@@ -23,6 +26,9 @@ class TVChannelInstance: public common::ParsedInstance {
  private:
     void getCurrentChannel(const picojson::value& args, picojson::object& out);
     void getCurrentProgram(const picojson::value& args, picojson::object& out);
+    virtual void onChannelChange();
+    picojson::value channelInfoToJson(
+        const std::unique_ptr<ChannelInfo> &pChannel);
 };
 
 }  // namespace tvchannel

@@ -4,11 +4,9 @@
 
 #include "tvchannel/tvchannel_instance.h"
 #include <functional>
-#include <memory>
 #include "common/logger.h"
 #include "tizen/tizen.h"
 #include "common/picojson.h"
-#include "tvchannel/tvchannel_manager.h"
 #include "tvchannel/channel_info.h"
 #include "tvchannel/program_info.h"
 
@@ -25,6 +23,7 @@ TVChannelInstance::TVChannelInstance() {
         std::bind(&TVChannelInstance::getCurrentProgram, this,
             std::placeholders::_1,
             std::placeholders::_2));
+    TVChannelManager::getInstance()->registerListener(this);
 }
 
 TVChannelInstance::~TVChannelInstance() {
@@ -36,6 +35,12 @@ void TVChannelInstance::getCurrentChannel(picojson::value const& args,
     std::unique_ptr< ChannelInfo > pChannel = TVChannelManager::getInstance()->getCurrentChannel(
         args.get("windowType").get<std::string>());
 
+    picojson::value v = channelInfoToJson(pChannel);
+    ReportSuccess(v, out);
+}
+
+picojson::value TVChannelInstance::channelInfoToJson(
+    const std::unique_ptr<ChannelInfo> &pChannel) {
     picojson::value::object channel;
     channel.insert(
         std::make_pair("major",
@@ -71,10 +76,9 @@ void TVChannelInstance::getCurrentChannel(picojson::value const& args,
         std::make_pair("serviceName",
             picojson::value(pChannel->getServiceName())));
 
-    picojson::value v(channel);
-
-    ReportSuccess(v, out);
+    return picojson::value(channel);
 }
+
 
 void TVChannelInstance::getCurrentProgram(const picojson::value& args,
     picojson::object& out) {
@@ -104,6 +108,23 @@ void TVChannelInstance::getCurrentProgram(const picojson::value& args,
     ReportSuccess(result, out);
 }
 
+void TVChannelInstance::onChannelChange() {
+    LOGD("Enter");
+    try {
+        picojson::value::object dict;
+        std::unique_ptr<ChannelInfo> pChannel = TVChannelManager::getInstance()
+            ->getCurrentChannel("MAIN");
+        dict["listenerId"] = picojson::value("ChannelChanged");
+        dict["channel"] = channelInfoToJson(pChannel);
+        dict["windowType"] = picojson::value("MAIN");
+        picojson::value result(dict);
+        PostMessage(result.serialize().c_str());
+    } catch (common::PlatformException& e) {
+        LOGW("Failed to post message: %s", e.message().c_str());
+    } catch (...) {
+        LOGW("Failed to post message, unknown error");
+    }
+}
 
 }  // namespace tvchannel
 }  // namespace extension

@@ -131,6 +131,38 @@ ProgramInfo* TVChannelManager::getCurrentProgram(
     return program;
 }
 
+void TVChannelManager::registerListener(EventListener* listener) {
+    LOGD("Enter");
+    m_listener = listener;
+    ISignalSubscriber* subscriber;
+    int ret = TVServiceAPI::CreateSignalSubscriber(signalListener, &subscriber);
+    if (TV_SERVICE_API_SUCCESS != ret) {
+        LOGW("Failed to create tvs-api SignalSubscriber");
+        return;
+    }
+    ret = subscriber->Subscribe(SIGNAL_TUNE_SUCCESS);
+    if (TV_SERVICE_API_METHOD_SUCCESS != ret) {
+        LOGW("Failed to add listener: SIGNAL_TUNE_SUCCESS");
+    }
+}
+
+int TVChannelManager::signalListener(ESignalType type,
+    TSSignalData data, void*) {
+    LOGD("Enter: %d", type);
+    if (!getInstance()->m_listener) {
+        LOGE("Listener is empty, ignoring message");
+        return 0;
+    }
+    switch (type) {
+        case SIGNAL_TUNE_SUCCESS:
+            getInstance()->m_listener->onChannelChange();
+            break;
+        default:
+            LOGW("Unrecognized event type");
+    }
+    return 0;
+}
+
 void TVChannelManager::ucs2utf8(char *out, size_t out_len, char *in,
         size_t in_len) {
     iconv_t cd;

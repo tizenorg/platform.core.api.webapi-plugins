@@ -81,7 +81,7 @@ ListenerManager.prototype.onListenerCalled = function(msg) {
   var channel = new ChannelInfo(msg.channel);
   for (var key in this.listeners) {
     if (this.listeners.hasOwnProperty(key)) {
-      this.listeners[key](channel);
+      this.listeners[key](channel, msg.windowType);
     }
   }
 };
