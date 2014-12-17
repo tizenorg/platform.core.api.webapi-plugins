@@ -207,8 +207,10 @@ void NFCAdapter::SetCardEmulationMode(std::string mode) {
 
     LoggerD("Entered");
 
-    nfc_se_card_emulation_mode_type_e newmode =
+    nfc_se_card_emulation_mode_type_e new_mode =
             NFCUtil::toCardEmulationMode(mode);
+    LoggerD("Card emulation mode value: %x", (int)new_mode);
+
     std::string current_mode = GetCardEmulationMode();
 
     if (mode.compare(current_mode) == 0) {
@@ -218,7 +220,7 @@ void NFCAdapter::SetCardEmulationMode(std::string mode) {
     }
 
     int ret = NFC_ERROR_NONE;
-    switch (newmode) {
+    switch (new_mode) {
         case NFC_SE_CARD_EMULATION_MODE_OFF:
             ret = nfc_se_disable_card_emulation();
             break;
@@ -238,6 +240,41 @@ void NFCAdapter::SetCardEmulationMode(std::string mode) {
     }
 }
 
+std::string NFCAdapter::GetActiveSecureElement() {
+
+    LoggerD("Entered");
+
+    nfc_se_type_e type;
+    int ret = nfc_manager_get_se_type(&type);
+    if (NFC_ERROR_NONE != ret) {
+        LoggerE("Failed to get active secure element type: %d", ret);
+        NFCUtil::throwNFCException(ret, "Unable to get active secure element type");
+    }
+
+    return NFCUtil::toStringSecureElementType(type);
+}
+
+void NFCAdapter::SetActiveSecureElement(std::string element) {
+
+    LoggerD("Entered");
+
+    // if given value is not correct secure element type then
+    // there's no sense to get current value for comparison
+    nfc_se_type_e new_type = NFCUtil::toSecureElementType(element);
+    LoggerD("Secure element type value: %x", (int)new_type);
+
+    std::string current_type = GetActiveSecureElement();
+    if (element == current_type) {
+        LoggerD("Active secure element type already set to: %s", element.c_str());
+        return;
+    }
+
+    int ret = nfc_manager_set_se_type(new_type);
+    if (NFC_ERROR_NONE != ret) {
+        LoggerE("Failed to set active secure element type: %d", ret);
+        NFCUtil::throwNFCException(ret, "Unable to set active secure element type");
+    }
+}
 
 }// nfc
 }// extension

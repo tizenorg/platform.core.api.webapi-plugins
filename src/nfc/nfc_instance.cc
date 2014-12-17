@@ -33,6 +33,8 @@ NFCInstance::NFCInstance() {
     REGISTER_SYNC("NFCAdapter_getPowered", GetPowered);
     REGISTER_SYNC("NFCAdapter_cardEmulationModeSetter", CardEmulationModeSetter);
     REGISTER_SYNC("NFCAdapter_cardEmulationModeGetter", CardEmulationModeGetter);
+    REGISTER_SYNC("NFCAdapter_activeSecureElementSetter", ActiveSecureElementSetter);
+    REGISTER_SYNC("NFCAdapter_activeSecureElementGetter", ActiveSecureElementGetter);
     REGISTER_SYNC("NFCAdapter_setPeerListener", SetPeerListener);
     REGISTER_SYNC("NFCAdapter_setTagListener", SetTagListener);
     REGISTER_SYNC("NFCAdapter_setPeerListener", SetPeerListener);
@@ -157,6 +159,32 @@ void NFCInstance::CardEmulationModeGetter(
         ReportError(ex, out);
     }
     ReportSuccess(picojson::value(mode), out);
+}
+
+void NFCInstance::ActiveSecureElementSetter(
+        const picojson::value& args, picojson::object& out) {
+
+    std::string ase = args.get("secureElement").get<std::string>();
+    try {
+        NFCAdapter::GetInstance()->SetActiveSecureElement(ase);
+    }
+    catch(const common::PlatformException& ex) {
+        ReportError(ex, out);
+    }
+    ReportSuccess(out);
+}
+
+void NFCInstance::ActiveSecureElementGetter(
+        const picojson::value& args, picojson::object& out) {
+
+    std::string ase;
+    try {
+        ase = NFCAdapter::GetInstance()->GetActiveSecureElement();
+    }
+    catch(const common::PlatformException& ex) {
+        ReportError(ex, out);
+    }
+    ReportSuccess(picojson::value(ase), out);
 }
 
 void NFCInstance::SetTagListener(
