@@ -35,6 +35,7 @@ SystemSettingInstance::SystemSettingInstance()
 RegisterHandler(c, std::bind(&SystemSettingInstance::x, this, _1, _2));
 
     REGISTER("SystemSettingManager_getProperty", getProperty);
+    REGISTER("SystemSettingManager_setProperty", setProperty);
 
 #undef REGISTER
 }
@@ -59,41 +60,41 @@ void SystemSettingInstance::getProperty(const picojson::value& args, picojson::o
             ReportSuccess(result, response->get<picojson::object>());
         } catch (const PlatformException& e) {
             ReportError(e, response->get<picojson::object>());
-        }   
-    };  
+        }
+    };
 
     auto get_response = [this, callback_id](const std::shared_ptr<picojson::value>& response) -> void {
         LoggerD("Getting response");
         picojson::object& obj = response->get<picojson::object>();
         obj.insert(std::make_pair("callbackId", callback_id));
         PostMessage(response->serialize().c_str());
-    };  
+    };
 
     TaskQueue::GetInstance().Queue<picojson::value>
         (get, get_response, std::shared_ptr<picojson::value>(new picojson::value(picojson::object())));
 }
 
 picojson::value SystemSettingInstance::getPlatformPropertyValue(
-    const std::string &valueType, int &platformResult)
+    const std::string &settingType, int &platformResult)
 {
     int ret;
     char *value = NULL;
     picojson::value result = picojson::value(picojson::object());
     picojson::object& result_obj = result.get<picojson::object>();
 
-    if (valueType == SETTING_HOME_SCREEN) {
+    if (settingType == SETTING_HOME_SCREEN) {
         ret = system_settings_get_value_string(
             SYSTEM_SETTINGS_KEY_WALLPAPER_HOME_SCREEN, &value);
     }
-    else if (valueType == SETTING_LOCK_SCREEN) {
+    else if (settingType == SETTING_LOCK_SCREEN) {
         ret = system_settings_get_value_string(
             SYSTEM_SETTINGS_KEY_WALLPAPER_LOCK_SCREEN, &value);
     }
-    else if (valueType == SETTING_INCOMING_CALL) {
+    else if (settingType == SETTING_INCOMING_CALL) {
         ret = system_settings_get_value_string(
             SYSTEM_SETTINGS_KEY_INCOMING_CALL_RINGTONE, &value);
     }
-    else if (valueType == SETTING_NOTIFICATION_EMAIL) {
+    else if (settingType == SETTING_NOTIFICATION_EMAIL) {
         ret = system_settings_get_value_string(
             SYSTEM_SETTINGS_KEY_EMAIL_ALERT_RINGTONE, &value);
     }
@@ -105,6 +106,81 @@ picojson::value SystemSettingInstance::getPlatformPropertyValue(
         LoggerD("ret == SYSTEM_SETTINGS_ERROR_NONE");
         result_obj.insert(std::make_pair("value", value));
         free(value);
+    }
+    else if (ret == SYSTEM_SETTINGS_ERROR_CALL_UNSUPPORTED_API) {
+        LoggerD("ret == SYSTEM_SETTINGS_ERROR_CALL_UNSUPPORTED_API");
+        throw NotSupportedException("This property is not supported.");
+    }
+    else {
+        LoggerD("Other error");
+        throw UnknownException("Unknown error");
+    }
+
+    return result;
+}
+
+void SystemSettingInstance::setProperty(const picojson::value& args, picojson::object& out)
+{
+    LoggerD("");
+    const double callback_id = args.get("callbackId").get<double>();
+
+    const std::string& type = args.get("type").get<std::string>();
+    LoggerD("Type to set: %s ", type.c_str());
+
+    const std::string& value = args.get("value").get<std::string>();
+    LoggerD("Value to set: %s ", value.c_str());
+
+    auto get = [this, type, value](const std::shared_ptr<picojson::value>& response) -> void {
+        LoggerD("Setting platform value");
+        try {
+            int platformResult;
+            picojson::value result = setPlatformPropertyValue(type, value, platformResult);
+            ReportSuccess(result, response->get<picojson::object>());
+        } catch (const PlatformException& e) {
+            ReportError(e, response->get<picojson::object>());
+        }
+    };
+
+    auto get_response = [this, callback_id](const std::shared_ptr<picojson::value>& response) -> void {
+        LoggerD("Getting response");
+        picojson::object& obj = response->get<picojson::object>();
+        obj.insert(std::make_pair("callbackId", callback_id));
+        PostMessage(response->serialize().c_str());
+    };
+
+    TaskQueue::GetInstance().Queue<picojson::value>
+        (get, get_response, std::shared_ptr<picojson::value>(new picojson::value(picojson::object())));
+}
+
+picojson::value SystemSettingInstance::setPlatformPropertyValue(
+    const std::string &settingType, const std::string &settingValue, int &platformResult)
+{
+    int ret;
+    picojson::value result = picojson::value(picojson::object());
+    picojson::object& result_obj = result.get<picojson::object>();
+
+    if (settingType == SETTING_HOME_SCREEN) {
+        ret = system_settings_set_value_string(
+            SYSTEM_SETTINGS_KEY_WALLPAPER_HOME_SCREEN, settingValue.c_str());
+    }
+    else if (settingType == SETTING_LOCK_SCREEN) {
+        ret = system_settings_set_value_string(
+            SYSTEM_SETTINGS_KEY_WALLPAPER_LOCK_SCREEN, settingValue.c_str());
+    }
+    else if (settingType == SETTING_INCOMING_CALL) {
+        ret = system_settings_set_value_string(
+            SYSTEM_SETTINGS_KEY_INCOMING_CALL_RINGTONE, settingValue.c_str());
+    }
+    else if (settingType == SETTING_NOTIFICATION_EMAIL) {
+        ret = system_settings_set_value_string(
+            SYSTEM_SETTINGS_KEY_EMAIL_ALERT_RINGTONE, settingValue.c_str());
+    }
+    // other values (not specified in the documentation) are handled in JS
+
+    platformResult = ret;
+
+    if (ret == SYSTEM_SETTINGS_ERROR_NONE) {
+        LoggerD("ret == SYSTEM_SETTINGS_ERROR_NONE");
     }
     else if (ret == SYSTEM_SETTINGS_ERROR_CALL_UNSUPPORTED_API) {
         LoggerD("ret == SYSTEM_SETTINGS_ERROR_CALL_UNSUPPORTED_API");
