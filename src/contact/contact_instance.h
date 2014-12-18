@@ -21,6 +21,7 @@ class ContactInstance : public common::ParsedInstance {
  private:
   void AddressBook_get(const JsonValue& args, JsonObject& out);
   void AddressBook_add(const JsonValue& args, JsonObject& out);
+  void AddressBook_addBatch(const JsonValue& args, JsonObject& out);
   void AddressBook_update(const JsonValue& args, JsonObject& out);
   void AddressBook_remove(const JsonValue& args, JsonObject& out);
   void AddressBook_find(const JsonValue& args, JsonObject& out);

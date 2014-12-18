@@ -38,6 +38,7 @@ ContactInstance::ContactInstance() {
   REGISTER_SYNC("ContactManager_importFromVCard", ContactManager_importFromVCard);
 
   // AddressBook
+  REGISTER_ASYNC("AddressBook_addBatch", AddressBook_addBatch);
   REGISTER_SYNC("AddressBook_get", AddressBook_get);
   REGISTER_SYNC("AddressBook_add", AddressBook_add);
   REGISTER_SYNC("AddressBook_update", AddressBook_update);
@@ -71,6 +72,33 @@ void ContactInstance::AddressBook_add(const JsonValue& args, JsonObject& out) {
   AddressBook::AddressBook_add(common::JsonCast<JsonObject>(args),
                                val.get<JsonObject>());
   ReportSuccess(val, out);
+}
+
+void ContactInstance::AddressBook_addBatch(const JsonValue &args, JsonObject &out) {
+  LoggerD("entered");
+  // TODO check privileges
+
+  const double callback_id = args.get("callbackId").get<double>();
+
+  auto get = [=](const std::shared_ptr<JsonValue>& response)->void {
+      try {
+        JsonValue result = JsonValue(JsonArray());
+        AddressBook::AddressBook_addBatch(common::JsonCast<JsonObject>(args),
+            result.get<JsonArray>());
+        ReportSuccess(result, response->get<JsonObject>());
+      } catch (const PlatformException& e) {
+        ReportError(e, response->get<JsonObject>());
+      }
+  };
+
+  auto get_response = [this, callback_id](const std::shared_ptr<JsonValue>& response) {
+      JsonObject& obj = response->get<JsonObject>();
+      obj.insert(std::make_pair("callbackId", callback_id));
+      PostMessage(response->serialize().c_str());
+  };
+
+  TaskQueue::GetInstance().Queue<JsonValue>(get, get_response,
+      std::shared_ptr<JsonValue>(new JsonValue(JsonObject())));
 }
 
 void ContactInstance::AddressBook_update(const JsonValue& args,

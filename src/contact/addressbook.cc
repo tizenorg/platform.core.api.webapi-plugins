@@ -182,11 +182,83 @@ void AddressBook_remove(const JsonObject& args, JsonObject&) {
   }
 }
 
-void AddressBook_addBatch(const JsonObject& args, JsonObject& out) {
+void AddressBook_addBatch(const JsonObject& args, JsonArray& out) {
   LoggerD("Enter");
+
   ContactUtil::CheckDBConnection();
-  // @todo implement
-  throw common::NotFoundException("Not implemented");
+
+  long addressBookId = -1;
+  const JsonArray& batch_args = FromJson<JsonArray>(args, "batchArgs");
+  addressBookId = common::stol(FromJson<JsonString>(args, "addressBookId"));
+  addressBookId = addressBookId == -1 ? 0 : addressBookId;
+
+  unsigned length = batch_args.size();
+  int error_code = 0;
+  contacts_list_h contacts_list = NULL;
+  error_code = contacts_list_create(&contacts_list);
+  if (CONTACTS_ERROR_NONE != error_code) {
+    LoggerE("list creation failed, code: %d", error_code);
+    throw new common::UnknownException("list creation failed");
+  }
+  ContactUtil::ContactsListHPtr contacts_list_ptr(
+      &contacts_list, ContactUtil::ContactsListDeleter);
+
+  for (auto& item : batch_args) {
+    contacts_record_h contacts_record = nullptr;
+    int err = 0;
+    err = contacts_record_create(_contacts_contact._uri, &contacts_record);
+    if (CONTACTS_ERROR_NONE != err) {
+      LoggerW("Contacts record create error, error code: %d", err);
+      throw common::UnknownException("Contacts record create error");
+    }
+    ContactUtil::ContactsRecordHPtr x(&contacts_record,
+                                      ContactUtil::ContactsDeleter);
+    ContactUtil::ExportContactToContactsRecord(contacts_record,
+                                               JsonCast<JsonObject>(item));
+    ContactUtil::SetIntInRecord(
+        contacts_record, _contacts_contact.address_book_id, addressBookId);
+    error_code = contacts_list_add(*contacts_list_ptr, *(x.release()));
+    if (CONTACTS_ERROR_NONE != error_code) {
+      LoggerE("error during add record to list, code: %d", error_code);
+      throw new common::UnknownException("error during add record to list");
+    }
+  }
+
+  int* ids;
+  int count;
+  error_code = contacts_db_insert_records(*contacts_list_ptr, &ids, &count);
+  if (CONTACTS_ERROR_NONE != error_code) {
+    if (ids) {
+      free(ids);
+      ids = NULL;
+    }
+    LoggerE("inserting contacts to db fails, code: %d", error_code);
+    throw new common::UnknownException("inserting contacts to db fails");
+  }
+  if (length != count) {
+    LoggerW("Added different number of contacts");
+  }
+
+  for (unsigned int i = 0; i < count; i++) {
+    JsonObject out_object;
+    contacts_record_h contact_record = nullptr;
+    error_code =
+        contacts_db_get_record(_contacts_contact._uri, ids[i], &contact_record);
+    if (CONTACTS_ERROR_NONE != error_code) {
+      if (ids) {
+        free(ids);
+        ids = NULL;
+      }
+      LoggerW("Contacts record get error, error code: %d", error_code);
+      throw common::UnknownException("Contacts record get error");
+    }
+    ContactUtil::ImportContactFromContactsRecord(contact_record, &out_object);
+    out.push_back(JsonValue{out_object});
+  }
+  if (ids) {
+    free(ids);
+    ids = NULL;
+  }
 }
 
 void AddressBook_batchFunc(/*NativeFunction impl, */const char* single_arg_name,

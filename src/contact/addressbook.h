@@ -43,7 +43,7 @@ void AddressBook_batchFunc(/*common::NativeFunction impl,*/
                            const char* single_arg_name, const JsonObject& args/*,
                            JsonObject& out*/);
 
-void AddressBook_addBatch(const JsonObject& args, JsonObject& out);
+void AddressBook_addBatch(const JsonObject& args, JsonArray& out);
 
 }  // AddressBook
 }  // contact
