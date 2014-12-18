@@ -15,6 +15,8 @@
 namespace extension {
 namespace tvchannel {
 
+using common::TaskQueue;
+
 TVChannelInstance::TVChannelInstance() {
     LOGD("Entered");
     RegisterSyncHandler("TVChannelManager_getCurrentChannel",
@@ -25,6 +27,10 @@ TVChannelInstance::TVChannelInstance() {
             std::placeholders::_1, std::placeholders::_2));
     RegisterHandler("TVChannelManager_findChannel",
         std::bind(&TVChannelInstance::findChannel, this,
+            std::placeholders::_1,
+            std::placeholders::_2));
+    RegisterHandler("TVChannelManager_getChannelList",
+        std::bind(&TVChannelInstance::getChannelList, this,
             std::placeholders::_1,
             std::placeholders::_2));
     RegisterHandler("TVChannelManager_tune",
@@ -247,7 +253,7 @@ void TVChannelInstance::findChannel(const picojson::value& args,
     data->major = static_cast<int32_t>(args.get("major").get<double>());
     data->minor = static_cast<int32_t>(args.get("minor").get<double>());
     data->callbackId = args.get("callbackId").get<double>();
-    common::TaskQueue::GetInstance().Queue<TVChannelManager::FindChannelData>(
+    TaskQueue::GetInstance().Queue<TVChannelManager::FindChannelData>(
         asyncWork,
         afterWork,
         data);
@@ -268,6 +274,71 @@ void TVChannelInstance::findChannelResult(
         for (; it != data->channels.end(); ++it) {
             channels.push_back(channelInfoToJson(
                 std::unique_ptr<ChannelInfo>(*it)));
+        }
+        data->channels.clear();
+        dict["channelInfos"] = picojson::value(channels);
+    }
+    picojson::value result(dict);
+    PostMessage(result.serialize().c_str());
+}
+
+void TVChannelInstance::getChannelList(const picojson::value& args,
+    picojson::object& out) {
+    LOGD("Enter");
+    std::function<void(std::shared_ptr<TVChannelManager::GetChannelListData>)>
+        asyncWork = std::bind(
+            &TVChannelManager::getChannelList,
+            TVChannelManager::getInstance(),
+            std::placeholders::_1);
+    std::function<void(std::shared_ptr<TVChannelManager::GetChannelListData>)>
+        afterWork = std::bind(
+            &TVChannelInstance::getChannelListResult,
+            this,
+            std::placeholders::_1);
+    std::shared_ptr<TVChannelManager::GetChannelListData> data(
+        new TVChannelManager::GetChannelListData());
+    if (args.contains("tuneMode")) {
+        data->tuneMode = stringToNavigatorMode(
+            args.get("tuneMode").get<std::string>());
+    }
+    if (args.contains("nStart")) {
+        data->nStart = static_cast<int32_t>(args.get("nStart").get<double>());
+        data->nStartSet = true;
+    }
+    if (args.contains("number")) {
+        data->number = static_cast<int32_t>(args.get("number").get<double>());
+        data->numberSet = true;
+    }
+    data->callbackId = args.get("callbackId").get<double>();
+    TaskQueue::GetInstance().Queue<TVChannelManager::GetChannelListData>(
+        asyncWork,
+        afterWork,
+        data);
+    picojson::value result;
+    ReportSuccess(result, out);
+}
+
+void TVChannelInstance::getChannelListResult(
+    const std::shared_ptr<TVChannelManager::GetChannelListData>& data) {
+    picojson::value::object dict;
+    dict["callbackId"] = picojson::value(data->callbackId);
+    if (data->error) {
+        dict["error"] = data->error->ToJSON();
+    } else {
+        picojson::value::array channels;
+        int32_t start = data->nStartSet ? data->nStart : 0;
+        int32_t number = data->numberSet ? data->number : data->channels.size();
+        int32_t i = 0;
+        auto it = data->channels.begin();
+        for (; it != data->channels.end(); ++it) {
+            // add only limited rows by start and number
+            if (i >= start && i < start + number) {
+                channels.push_back(channelInfoToJson(
+                    std::unique_ptr<ChannelInfo>(*it)));
+            } else {
+                delete *it;
+            }
+            ++i;
         }
         data->channels.clear();
         dict["channelInfos"] = picojson::value(channels);

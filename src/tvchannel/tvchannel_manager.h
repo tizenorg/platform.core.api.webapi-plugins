@@ -88,6 +88,25 @@ class TVChannelManager {
 
     void findChannel(const std::shared_ptr<FindChannelData>& data);
 
+    struct GetChannelListData {
+        NavigatorMode tuneMode;
+        bool nStartSet;
+        bool numberSet;
+        std::shared_ptr<common::PlatformException> error;
+        int32_t nStart;
+        int32_t number;
+        double callbackId;
+        std::list<ChannelInfo*> channels;
+
+        GetChannelListData() :
+            tuneMode(NOT_DEFINED),
+            nStartSet(false),
+            numberSet(false) {
+        }
+    };
+
+    void getChannelList(const std::shared_ptr<GetChannelListData>& data);
+
  private:
     EventListener* m_listener;
     //  Not copyable, assignable, movable

@@ -378,6 +378,67 @@ void TVChannelManager::findChannel(
     }
 }
 
+void TVChannelManager::getChannelList(
+    const std::shared_ptr<GetChannelListData>& data) {
+    LOGD("Enter");
+    try {
+        IServiceNavigation* navigation =
+            getNavigation(getProfile(WindowType::MAIN), 0);
+
+        ENavigationMode naviMode = NAVIGATION_MODE_ALL;
+        switch (data->tuneMode) {
+            case DIGITAL:
+                naviMode = NAVIGATION_MODE_DIGITAL;
+                break;
+            case ANALOG:
+                naviMode = NAVIGATION_MODE_ANALOG;
+                break;
+            case FAVORITE:
+                naviMode = NAVIGATION_MODE_FAVORITES;
+                break;
+            default:
+                naviMode = NAVIGATION_MODE_ALL;
+        }
+        std::unique_ptr<TCCriteriaHelper> criteria = getBasicCriteria(
+            getTvMode(navigation), naviMode);
+        criteria->Fetch(SERVICE_ID);
+        criteria->Fetch(MAJOR);
+        criteria->Fetch(MINOR);
+        criteria->Fetch(PROGRAM_NUMBER);
+        criteria->Fetch(CHANNEL_NUMBER);
+        criteria->Fetch(CHANNEL_TYPE);
+        criteria->Fetch(SERVICE_NAME);
+        criteria->Fetch(SOURCE_ID);
+        criteria->Fetch(TRANSPORT_STREAM_ID);
+        criteria->Fetch(ORIGINAL_NETWORK_ID);
+        criteria->Fetch(LCN);
+        if (NAVIGATION_MODE_FAVORITES == naviMode) {
+            criteria->WhereNot(FAVORITE_ID, 0);
+        }
+
+        std::list<TCServiceData*> resultServices;
+        int ret = m_pService->FindServiceList(*criteria, resultServices);
+        if (TV_SERVICE_API_METHOD_FAILURE == ret) {
+            LOGE("Failed to find channels: %d", ret);
+            throw common::NotFoundException("Failed to find channels");
+        }
+        LOGD("Found channels: %d", resultServices.size());
+        auto it = resultServices.begin();
+        for (; it != resultServices.end(); ++it) {
+            ChannelInfo *channelInfo = new ChannelInfo();
+            channelInfo->fromApiData(*(*it));
+            data->channels.push_back(channelInfo);
+            delete (*it);
+        }
+        resultServices.clear();
+    } catch (common::PlatformException& e) {
+        data->error.reset(new common::PlatformException(e.name(), e.message()));
+    } catch (...) {
+        data->error.reset(
+            new common::UnknownException("Couldn't find channels"));
+    }
+}
+
 TVChannelManager::~TVChannelManager() {
     TVServiceAPI::Destroy();
 }

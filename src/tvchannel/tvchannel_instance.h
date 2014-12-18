@@ -32,6 +32,9 @@ class TVChannelInstance:
     void findChannel(const picojson::value& args, picojson::object& out);
     void findChannelResult(
         const std::shared_ptr<TVChannelManager::FindChannelData>& data);
+    void getChannelList(const picojson::value& args, picojson::object& out);
+    void getChannelListResult(
+        const std::shared_ptr<TVChannelManager::GetChannelListData>& data);
     picojson::value channelInfoToJson(
         const std::unique_ptr<ChannelInfo> &pChannel);
     picojson::value programInfoToJson(
