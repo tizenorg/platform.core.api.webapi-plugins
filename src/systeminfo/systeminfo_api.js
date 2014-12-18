@@ -833,11 +833,11 @@ SystemInfo.prototype.getCapabilities = function() {
 
 SystemInfo.prototype.getCapability = function() {
     var args = AV.validateMethod(arguments, [
-                                             {
-                                                 name : 'key',
-                                                 type : AV.Types.STRING
-                                             }
-                                             ]);
+             {
+                 name : 'key',
+                 type : AV.Types.STRING
+             }
+             ]);
 
     var result = _callSync('SystemInfo_getCapability', {key: args.key});
     if (C.isFailure(result)) {
@@ -853,22 +853,22 @@ SystemInfo.prototype.getCapability = function() {
 
 SystemInfo.prototype.getPropertyValue = function() {
     var args = AV.validateMethod(arguments, [
-                                             {
-                                                 name : 'property',
-                                                 type : AV.Types.ENUM,
-                                                 values : T.getValues(SystemInfoPropertyId)
-                                             },
-                                             {
-                                                 name : 'successCallback',
-                                                 type : AV.Types.FUNCTION
-                                             },
-                                             {
-                                                 name : 'errorCallback',
-                                                 type : AV.Types.FUNCTION,
-                                                 optional : true,
-                                                 nullable : true
-                                             }
-                                             ]);
+             {
+                 name : 'property',
+                 type : AV.Types.ENUM,
+                 values : T.getValues(SystemInfoPropertyId)
+             },
+             {
+                 name : 'successCallback',
+                 type : AV.Types.FUNCTION
+             },
+             {
+                 name : 'errorCallback',
+                 type : AV.Types.FUNCTION,
+                 optional : true,
+                 nullable : true
+             }
+             ]);
 
     var propObject = _propertyContainer[args.property];
     if (!propObject) {
@@ -1228,28 +1228,28 @@ var _unregisterListener = function (watchId, isTimeout) {
 
 SystemInfo.prototype.addPropertyValueChangeListener = function() {
     var args = AV.validateMethod(arguments, [
-                                             {
-                                                 name : 'property',
-                                                 type : AV.Types.ENUM,
-                                                 values : T.getValues(SystemInfoPropertyId)
-                                             },
-                                             {
-                                                 name : 'successCallback',
-                                                 type : AV.Types.FUNCTION
-                                             },
-                                             {
-                                                 name : 'options',
-                                                 type : AV.Types.DICTIONARY,
-                                                 optional : true,
-                                                 nullable : true
-                                             },
-                                             {
-                                                 name : 'errorCallback',
-                                                 type : AV.Types.FUNCTION,
-                                                 optional : true,
-                                                 nullable : true
-                                             }
-                                             ]);
+             {
+                 name : 'property',
+                 type : AV.Types.ENUM,
+                 values : T.getValues(SystemInfoPropertyId)
+             },
+             {
+                 name : 'successCallback',
+                 type : AV.Types.FUNCTION
+             },
+             {
+                 name : 'options',
+                 type : AV.Types.DICTIONARY,
+                 optional : true,
+                 nullable : true
+             },
+             {
+                 name : 'errorCallback',
+                 type : AV.Types.FUNCTION,
+                 optional : true,
+                 nullable : true
+             }
+             ]);
 
     var listener = {
             callback      : args.successCallback,
@@ -1270,24 +1270,46 @@ SystemInfo.prototype.addPropertyValueChangeListener = function() {
 
 SystemInfo.prototype.removePropertyValueChangeListener = function() {
     var args = AV.validateMethod(arguments, [
-                                             {
-                                                 name : 'watchId',
-                                                 type : AV.Types.UNSIGNED_LONG
-                                             }
-                                             ]);
+             {
+                 name : 'watchId',
+                 type : AV.Types.UNSIGNED_LONG
+             }
+             ]);
 
     _unregisterListener(args.watchId, false);
 };
 
+SystemInfo.prototype.getTotalMemory = function() {
+    var result = _callSync('SystemInfo_getTotalMemory', {});
+    if (C.isFailure(result)) {
+        throw C.getErrorObject(result);
+    }
+    return C.getResultObject(result).totalMemory;
+};
+
+SystemInfo.prototype.getAvailableMemory = function() {
+    var result = _callSync('SystemInfo_getAvailableMemory', {});
+    if (C.isFailure(result)) {
+        throw C.getErrorObject(result);
+    }
+    return C.getResultObject(result).availableMemory;
+};
+
+SystemInfo.prototype.getCount = function() {
+    var args = AV.validateMethod(arguments, [
+             {
+                 name : 'key',
+                 type : AV.Types.STRING
+             }
+             ]);
+
+    var result = _callSync('SystemInfo_getCount', {key: args.key});
+    if (C.isFailure(result)) {
+        throw C.getErrorObject(result);
+    }
+    var res = C.getResultObject(result);
+    return Number(res.count);
+};
+
 //Exports
-var systeminfoObject = new SystemInfo();
-//exports.getTotalMemory = systeminfoObject.getTotalMemory;
-//exports.getAvailableMemory = systeminfoObject.getAvailableMemory;
-exports.getCapabilities = systeminfoObject.getCapabilities;
-exports.getCapability = systeminfoObject.getCapability;
-//exports.getCount = systeminfoObject.getCount;
-exports.getPropertyValue = systeminfoObject.getPropertyValue;
-//exports.getPropertyValueArray = systeminfoObject.getPropertyValueArray;
-exports.addPropertyValueChangeListener = systeminfoObject.addPropertyValueChangeListener;
-//exports.addPropertyValueArrayChangeListener = systeminfoObject.addPropertyValueArrayChangeListener;
-exports.removePropertyValueChangeListener = systeminfoObject.removePropertyValueChangeListener;
+exports = new SystemInfo();

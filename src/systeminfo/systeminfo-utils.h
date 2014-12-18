@@ -36,6 +36,9 @@ typedef std::function<void(void)> SysteminfoUtilsCallback;
 
 class SysteminfoUtils {
 public:
+    static long long GetTotalMemory();
+    static long long GetAvailableMemory();
+    static unsigned long GetCount(const std::string& property);
     static picojson::value GetPropertyValue(const std::string& prop);
 
     static void RegisterBatteryListener(const SysteminfoUtilsCallback& callback);

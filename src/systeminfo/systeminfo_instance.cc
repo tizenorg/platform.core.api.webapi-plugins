@@ -60,6 +60,9 @@ SysteminfoInstance::SysteminfoInstance() {
   REGISTER_SYNC("SystemInfo_getCapability", GetCapability);
   REGISTER_SYNC("SystemInfo_addPropertyValueChangeListener", AddPropertyValueChangeListener);
   REGISTER_SYNC("SystemInfo_removePropertyValueChangeListener", RemovePropertyValueChangeListener);
+  REGISTER_SYNC("SystemInfo_getTotalMemory", GetTotalMemory);
+  REGISTER_SYNC("SystemInfo_getAvailableMemory", GetAvailableMemory);
+  REGISTER_SYNC("SystemInfo_getCount", GetCount);
   #undef REGISTER_SYNC
   #define REGISTER_ASYNC(c,x) \
     RegisterHandler(c, std::bind(&SysteminfoInstance::x, this, _1, _2));
@@ -298,6 +301,44 @@ void SysteminfoInstance::AddPropertyValueChangeListener(const picojson::value& a
         ReportError(e, out);
     }
 
+}
+
+void SysteminfoInstance::GetTotalMemory(const picojson::value& args, picojson::object& out) {
+    LoggerD("");
+    picojson::value result = picojson::value(picojson::object());
+    picojson::object& result_obj = result.get<picojson::object>();
+
+    result_obj.insert(std::make_pair("totalMemory",
+            static_cast<double>(SysteminfoUtils::GetTotalMemory()) ));
+
+    ReportSuccess(result, out);
+    LoggerD("Success");
+}
+
+void SysteminfoInstance::GetAvailableMemory(const picojson::value& args, picojson::object& out) {
+    LoggerD("");
+    picojson::value result = picojson::value(picojson::object());
+    picojson::object& result_obj = result.get<picojson::object>();
+
+    result_obj.insert(std::make_pair("availableMemory",
+            static_cast<double>(SysteminfoUtils::GetAvailableMemory()) ));
+
+    ReportSuccess(result, out);
+    LoggerD("Success");
+}
+
+void SysteminfoInstance::GetCount(const picojson::value& args, picojson::object& out) {
+
+    const std::string& key = args.get("key").get<std::string>();
+    LoggerD("Getting capability with key: %s ", key.c_str());
+
+    picojson::value result = picojson::value(picojson::object());
+    picojson::object& result_obj = result.get<picojson::object>();
+    result_obj.insert(std::make_pair("count",
+            static_cast<double>(SysteminfoUtils::GetCount(key)) ));
+
+    ReportSuccess(result, out);
+    LoggerD("Success");
 }
 
 void SysteminfoInstance::RemovePropertyValueChangeListener(const picojson::value& args, picojson::object& out) {
