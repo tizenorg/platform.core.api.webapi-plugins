@@ -273,13 +273,10 @@ AddressBook.prototype.addBatch = function() {
     native_.callIfPossible(args.successCallback, args.contacts);
   };
 
-  var result = native_.call('AddressBook_addBatch',
-      {addressBookId: this.id, batchArgs: _toJsonObject(args.contacts) },
-      callback);
-
-  if (native_.isFailure(result)) {
-    throw native_.getErrorObject(result);
-  }
+  native_.call('AddressBook_addBatch', {
+    addressBookId: this.id,
+    batchArgs: _toJsonObject(args.contacts)
+  }, callback);
 };
 
 AddressBook.prototype.update = function() {
@@ -355,13 +352,10 @@ AddressBook.prototype.updateBatch = function() {
     native_.callIfPossible(args.successCallback);
   };
 
-  var result = native_.call('AddressBook_updateBatch',
-      {addressBook: this, batchArgs: _toJsonObject(args.contacts) },
-      callback);
-
-  if (native_.isFailure(result)) {
-    throw native_.getErrorObject(result);
-  }
+  native_.call('AddressBook_updateBatch', {
+    addressBook: this,
+    batchArgs: _toJsonObject(args.contacts)
+  }, callback);
 };
 
 AddressBook.prototype.remove = function() {
@@ -416,13 +410,10 @@ AddressBook.prototype.removeBatch = function(ids, successCallback, errorCallback
     native_.callIfPossible(args.successCallback);
   };
 
-  var result = native_.call('AddressBook_removeBatch',
-      {addressBook: this, batchArgs: args.ids },
-      callback);
-
-  if (native_.isFailure(result)) {
-    throw native_.getErrorObject(result);
-  }
+  native_.call('AddressBook_removeBatch', {
+    addressBook: this,
+    batchArgs: args.ids
+  }, callback);
 };
 
 AddressBook.prototype.find = function(successCallback, errorCallback, filter, sortMode) {
@@ -485,13 +476,11 @@ AddressBook.prototype.find = function(successCallback, errorCallback, filter, so
     native_.callIfPossible(successCallback, _contacts);
   };
 
-  var result = native_.call('AddressBook_find',
-      {addressBook: this, filter: filter, sortMode: sortMode},
-      callback);
-
-  if (native_.isFailure(result)) {
-    throw native_.getErrorObject(result);
-  }
+  native_.call('AddressBook_find', {
+    addressBook: this,
+    filter: filter,
+    sortMode: sortMode
+  }, callback);
 };
 
 AddressBook.prototype.addChangeListener = function() {

@@ -184,14 +184,10 @@ ContactManager.prototype.updateBatch = function() {
     native_.callIfPossible(args.successCallback);
   };
 
-  var result = native_.call('ContactManager_updateBatch', {
-      addressBook: {},
-      batchArgs: _toJsonObject(args.persons)
-    }, callback);
-
-  if (native_.isFailure(result)) {
-    throw native_.getErrorObject(result);
-  }
+  native_.call('ContactManager_updateBatch', {
+    addressBook: {},
+    batchArgs: _toJsonObject(args.persons)
+  }, callback);
 };
 
 // Removes a person from the contact DB synchronously.
@@ -243,13 +239,10 @@ ContactManager.prototype.removeBatch = function() {
     native_.callIfPossible(args.successCallback);
   };
 
-  var result = native_.call('ContactManager_removeBatch',
-      {addressBook: {}, batchArgs: _toJsonObject(args.personIds) },
-      callback);
-
-  if (native_.isFailure(result)) {
-    throw native_.getErrorObject(result);
-  }
+  native_.call('ContactManager_removeBatch', {
+    addressBook: {},
+    batchArgs: _toJsonObject(args.personIds)
+  }, callback);
 };
 
 // Gets an array of all Person objects from the contact DB or the ones that match the
@@ -309,11 +302,7 @@ ContactManager.prototype.find = function() {
     }
   };
 
-  var result = native_.call('ContactManager_find', data, callback);
-
-  if (native_.isFailure(result)) {
-    throw native_.getErrorObject(result);
-  }
+  native_.call('ContactManager_find', data, callback);
 };
 
 // Subscribes to receive notifications about persons' changes.
