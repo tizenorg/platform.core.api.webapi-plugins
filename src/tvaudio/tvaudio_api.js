@@ -30,6 +30,7 @@ function AudioControlManager() {
 }
 
 
+
 /**
  * Turns on or off the silent mode.
  * @param {!boolean} mute  The mute state
@@ -181,12 +182,47 @@ AudioControlManager.prototype.getOutputMode = function() {
 
 
 /**
- * Plays the sound of a specific beep.
+ * Allowed types of sound
+ * They should correspond to values in native layer and .pcm files
  */
-AudioControlManager.prototype.playSound = function() {
+var AudioBeepType = [
+  'MOVE', // indented use the same sound
+    'UP',
+    'DOWN',
+    'LEFT',
+    'RIGHT',
+    'PAGE_LEFT',
+    'PAGE_RIGHT',
+  'BACK',
+  'SELECT',
+  'CANCEL',
+  'WARNING',
+  'KEYPAD',
+  'KEYPAD_ENTER',
+  'KEYPAD_DEL',
+  'PREPARING'
+];
+Object.freeze(AudioBeepType);
+
+
+/**
+ * Plays one of specific sounds.
+ * @param {!AudioBeepType} beep The Sound to play.
+ */
+AudioControlManager.prototype.playSound = function(beep) {
+  var args = validator.validateArgs(arguments, [{
+    name: 'type',
+    type: validator.Types.ENUM,
+    values: AudioBeepType // AudioBeepType
+  }]);
+
+  var ret = native.callSync('AudioControlManager_playSound',
+                            {type: args.type});
+  if (native.isFailure(ret)) {
+    throw native.getErrorObject(ret);
+  }
   return;
 };
-
 
 // Exports
 exports = new AudioControlManager();

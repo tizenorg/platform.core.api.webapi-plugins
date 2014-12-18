@@ -29,8 +29,8 @@ class TVAudioInstance :
     void getOutputMode(const picojson::value& args, picojson::object& out);
     void setVolumeChangeListener(const picojson::value& args, picojson::object& out);
     void unsetVolumeChangeListener(const picojson::value& args, picojson::object& out);
-
     virtual void onVolumeChangeCallback(u_int16_t volume);
+    void playSound(const picojson::value& args, picojson::object& out);
 };
 
 }  // namespace tvaudio

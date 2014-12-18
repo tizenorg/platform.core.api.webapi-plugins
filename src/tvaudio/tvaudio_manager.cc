@@ -2,15 +2,25 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include <avoc_defs.h>
+#include "tvaudio/tvaudio_manager.h"
+
 #include <avoc.h>
+#include <avoc_defs.h>
+#include <audio_io.h>
 #include <sound_manager.h>
 #include <sound_manager_product.h>
+
+#include <glib.h>
+
+#include <fstream> // NOLINT (readability/streams)
+// this flag is no longer enforced in the newest cpplint.py
+
+#include <string>
+#include <vector>
 
 #include "common/logger.h"
 #include "common/platform_exception.h"
 
-#include "tvaudio/tvaudio_manager.h"
 
 namespace extension {
 namespace tvaudio {
@@ -28,9 +38,11 @@ VolumeChangeListener::~VolumeChangeListener() {
 }
 
 AudioControlManager::AudioControlManager() :
-        m_volume_step(VOLUME_STEP),
-        m_volume_change_listener(NULL) {
+    m_volume_step(VOLUME_STEP),
+    m_volume_change_listener(NULL),
+    m_playThreadIdInit(false) {
     LOGD("Enter");
+    m_playData.stopSound = false;
 }
 
 AudioControlManager::~AudioControlManager() {
@@ -178,6 +190,134 @@ void AudioControlManager::volumeChangeCallback(
     } catch (...) {
         LOGE("Failed to call callback");
     }
+}
+
+/**
+ * Play one of predefined sounds
+ *
+ * If sound is already played it is replaced by the new sound
+ *
+ * @return {bool} true if successful, false otherwise
+ */
+bool AudioControlManager::playSound(const std::string &type) {
+    LOGD("Enter");
+    const auto beep = SoundMap.find(type);
+    if (beep == SoundMap.end()) {
+        throw UnknownException("Unknown beep type: " + type);
+    }
+
+    void *status;
+    if (m_playThreadIdInit) {
+        m_playData.stopSound = true;
+        pthread_join(m_playThreadId, &status);
+        m_playData.stopSound = false;
+    }
+    pthread_attr_t attr;
+    pthread_attr_init(&attr);
+    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+
+    m_playData.beep_type = beep->first;
+    m_playData.filename = beep->second;
+
+    if (0 == pthread_create(&m_playThreadId, &attr, play, &m_playData )) {
+        m_playThreadIdInit = true;
+    } else {
+        LOGE("Failed to create pthread");
+        throw UnknownException("Failed to create pthread to play sound");
+    }
+    return true;
+}
+
+void* AudioControlManager::play(void* play_data) {
+    LOGD("Enter");
+    PlayData* pData = static_cast<PlayData*>(play_data);
+
+    LOGD("Beep type: %d", pData->beep_type.c_str());
+
+    const std::string& filename = pData->filename;
+    std::unique_ptr <std::vector <char>> pBuffer =
+            AudioControlManager::loadFile(filename);
+
+    audio_out_h handle;
+    int error = audio_out_create(SAMPLING_FREQ,
+                                AUDIO_CHANNEL_STEREO,
+                                AUDIO_SAMPLE_TYPE_S16_LE,
+                                SOUND_TYPE_NOTIFICATION,
+                                &handle);
+    if (AUDIO_IO_ERROR_NONE != error) {
+        LOGE("Failed to open audio output: %d", error);
+        return NULL;
+    }
+
+    error = audio_out_prepare(handle);
+    if (AUDIO_IO_ERROR_NONE != error) {
+        LOGE("Failed to open audio output: %d", error);
+        audio_out_destroy(handle);
+        return NULL;
+    }
+
+    int counter = 0;
+    int dataLeftSize = pBuffer->size();
+    while ((!pData->stopSound) && (dataLeftSize > 0)) {
+        if ((dataLeftSize - AudioControlManager::CHUNK) < 0) {
+            dataLeftSize = dataLeftSize;
+            error = audio_out_write(handle,
+                                    &(*pBuffer)[counter],
+                                    dataLeftSize);
+            if (dataLeftSize != error) {
+                LOGE("Failed to write to audio output: %d", error);
+                audio_out_destroy(handle);
+                return NULL;
+            }
+            break;
+        } else {
+            dataLeftSize = dataLeftSize - AudioControlManager::CHUNK;
+            error = audio_out_write(handle,
+                                    &(*pBuffer)[counter],
+                                    AudioControlManager::CHUNK);
+            if (AudioControlManager::CHUNK != error) {
+                LOGE("Failed to write to audio output: %d", error);
+                audio_out_destroy(handle);
+                return NULL;
+            }
+        }
+        counter += AudioControlManager::CHUNK;
+    }  // while
+    audio_out_destroy(handle);
+    return NULL;
+}
+
+std::unique_ptr <std::vector<char>>
+AudioControlManager::loadFile(const std::string& filename) {
+    LOGD("Enter");
+    std::unique_ptr<std::vector<char>> pBuffer(new std::vector<char>());
+    std::ifstream file(filename.c_str(),
+                    (std::ios::binary | std::ios::in | std::ios::ate));
+    if (!file.is_open()) {
+        LOGE("Could not open file %s", filename.c_str());
+        return std::unique_ptr< std::vector<char>>();
+    }
+
+    std::ifstream::pos_type size = file.tellg();
+    if (size < 0) {
+        file.close();
+        LOGE("Failed to open file %s - incorrect size", filename.c_str());
+        return std::unique_ptr<std::vector<char>>();
+    }
+
+    LOGD("resizing");
+    pBuffer->resize(size);
+    LOGD("resized");
+    file.seekg(0, std::ios::beg);
+    if (!file.read(&(*pBuffer)[0], size)) {
+        file.close();
+        LOGE("Failed to read audio file %s", filename.c_str());
+        return std::unique_ptr <std::vector <char>>();
+    }
+    file.close();
+
+    LOGD("Got buffer");
+    return pBuffer;
 }
 
 }  // namespace tvaudio
