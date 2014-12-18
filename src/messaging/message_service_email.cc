@@ -85,10 +85,42 @@ long MessageServiceEmail::syncFolder()
     return 0;
 }
 
-void MessageServiceEmail::stopSync()
+static gboolean stopSyncTask(void* data)
 {
     LoggerD("Entered");
-    //TODO add implementation
+
+    try {
+        if (!data) {
+            LoggerE("opId is null");
+            return FALSE;
+        }
+
+        const long op_id = *(static_cast<long*>(data));
+        delete static_cast<long*>(data);
+        data = NULL;
+        EmailManager::getInstance().stopSync(op_id);
+
+    } catch(const common::PlatformException& exception) {
+        LoggerE("Unhandled exception: %s (%s)!", (exception.name()).c_str(),
+             (exception.message()).c_str());
+    } catch(...) {
+        LoggerE("Unhandled exception!");
+    }
+
+    return FALSE;
+}
+
+void MessageServiceEmail::stopSync(long op_id)
+{
+    LoggerD("Entered");
+    long* data = new long(op_id);
+    guint id = g_idle_add(stopSyncTask, static_cast<void*>(data));
+    if (!id) {
+        LOGE("g_idle_add failed");
+        delete data;
+        data = NULL;
+        throw common::UnknownException("Could not add task");
+    }
 }
 
 } // messaging

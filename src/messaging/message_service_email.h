@@ -21,7 +21,7 @@ public:
     virtual void loadMessageAttachment();
     virtual long sync(SyncCallbackData *callback);
     virtual long syncFolder();
-    virtual void stopSync();
+    virtual void stopSync(long op_id);
 };
 
 } // messaging
