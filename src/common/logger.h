@@ -11,7 +11,7 @@
 #include <dlog.h>
 
 #undef LOGGER_TAG
-#define LOGGER_TAG "WEBAPI-PLUGINS"
+#define LOGGER_TAG "WEBAPI_PLUGINS"
 
 #define _LOGGER_LOG(prio, fmt, args...) \
   LOG_(LOG_ID_MAIN, prio, LOGGER_TAG, fmt, ##args)
