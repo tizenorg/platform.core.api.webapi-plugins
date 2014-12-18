@@ -6,6 +6,7 @@
 #include <iconv.h>
 #include <stdint.h>
 #include <functional>
+#include <map>
 #include "tvchannel/channel_info.h"
 #include "tvchannel/program_info.h"
 #include "common/logger.h"
@@ -438,6 +439,43 @@ void TVChannelManager::getChannelList(
             new common::UnknownException("Couldn't find channels"));
     }
 }
+
+void TVChannelManager::getProgramList(
+    const std::shared_ptr<GetProgramListData>& data) {
+    LOGD("Enter");
+    try {
+        IServiceGuide* guide;
+        int ret = TVServiceAPI::CreateServiceGuide(&guide);
+        if (TV_SERVICE_API_SUCCESS != ret) {
+            LOGE("Failed to create service guide: %d", ret);
+            throw common::UnknownException("Failed to create service guide");
+        }
+
+        std::map<unsigned int, TCProgramData*> programList;
+        ret = guide->GetProgramList(data->channelId,
+            data->startTime, data->duration, programList);
+        if (TV_SERVICE_API_METHOD_FAILURE == ret) {
+            LOGE("Failed to get program list.");
+            throw common::NotFoundException("Failed to get program list.");
+        }
+        LOGD("Found programs: %d", programList.size());
+
+        auto it = programList.begin();
+        for (; it != programList.end(); ++it) {
+            ProgramInfo *programInfo = new ProgramInfo();
+            programInfo->fromApiData(*(it->second));
+            data->programs.push_back(programInfo);
+            delete it->second;
+        }
+        programList.clear();
+    } catch (common::PlatformException& e) {
+        data->error.reset(new common::PlatformException(e.name(), e.message()));
+    } catch (...) {
+        data->error.reset(
+            new common::UnknownException("Couldn't find channels"));
+    }
+}
+
 
 TVChannelManager::~TVChannelManager() {
     TVServiceAPI::Destroy();

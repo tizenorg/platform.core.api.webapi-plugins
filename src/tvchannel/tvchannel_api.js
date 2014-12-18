@@ -378,8 +378,8 @@ TVChannelManager.prototype.getProgramList = function(channelInfo,
     }
   ]);
   native.call('TVChannelManager_getProgramList', {
-    channelInfo: args.channelInfo,
-    startTime: args.startTime,
+    channelId: args.channelInfo._serviceId,
+    startTime: args.startTime.getTime(),
     duration: args.duration
   }, function(msg) {
     if (msg.error) {

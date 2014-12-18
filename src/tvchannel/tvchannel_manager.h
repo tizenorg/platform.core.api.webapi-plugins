@@ -16,6 +16,7 @@
 #include "tvchannel/types.h"
 #include "tvchannel/tune_option.h"
 #include "common/platform_exception.h"
+#include "tvchannel/program_info.h"
 
 namespace common {
 class PlatformException;
@@ -106,6 +107,17 @@ class TVChannelManager {
     };
 
     void getChannelList(const std::shared_ptr<GetChannelListData>& data);
+
+    struct GetProgramListData {
+        TCServiceId channelId;
+        u_int32_t startTime;
+        u_int32_t duration;
+        std::shared_ptr<common::PlatformException> error;
+        double callbackId;
+        std::list<ProgramInfo*> programs;
+    };
+
+    void getProgramList(const std::shared_ptr<GetProgramListData>& data);
 
  private:
     EventListener* m_listener;

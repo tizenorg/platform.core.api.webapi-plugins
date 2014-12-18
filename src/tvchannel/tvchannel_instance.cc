@@ -33,6 +33,10 @@ TVChannelInstance::TVChannelInstance() {
         std::bind(&TVChannelInstance::getChannelList, this,
             std::placeholders::_1,
             std::placeholders::_2));
+    RegisterHandler("TVChannelManager_getProgramList",
+        std::bind(&TVChannelInstance::getProgramList, this,
+            std::placeholders::_1,
+            std::placeholders::_2));
     RegisterHandler("TVChannelManager_tune",
         std::bind(&TVChannelInstance::tune, this, std::placeholders::_1,
             std::placeholders::_2));
@@ -143,7 +147,11 @@ picojson::value TVChannelInstance::channelInfoToJson(
     channel.insert(
         std::make_pair("serviceName",
             picojson::value(pChannel->getServiceName())));
-
+    // internal property
+    channel.insert(
+        std::make_pair("_serviceId",
+            picojson::value(
+                static_cast<double>(pChannel->getServiceID()))));
     return picojson::value(channel);
 }
 
@@ -342,6 +350,60 @@ void TVChannelInstance::getChannelListResult(
         }
         data->channels.clear();
         dict["channelInfos"] = picojson::value(channels);
+    }
+    picojson::value result(dict);
+    PostMessage(result.serialize().c_str());
+}
+
+void TVChannelInstance::getProgramList(
+    const picojson::value& args, picojson::object& out) {
+    LOGD("Enter");
+    std::function<void(std::shared_ptr<TVChannelManager::GetProgramListData>)>
+        asyncWork = std::bind(
+            &TVChannelManager::getProgramList,
+            TVChannelManager::getInstance(),
+            std::placeholders::_1);
+    std::function<void(std::shared_ptr<TVChannelManager::GetProgramListData>)>
+        afterWork = std::bind(
+            &TVChannelInstance::getProgramListResult,
+            this,
+            std::placeholders::_1);
+    std::shared_ptr<TVChannelManager::GetProgramListData> data(
+        new TVChannelManager::GetProgramListData());
+    data->channelId = static_cast<u_int64_t>(
+        args.get("channelId").get<double>());
+    data->startTime = static_cast<u_int32_t>(
+        args.get("startTime").get<double>());
+    if (args.contains("duration")) {
+        data->duration =
+            static_cast<u_int32_t>(args.get("duration").get<double>());
+    } else {
+         data->duration = UINT32_MAX;
+    }
+    data->callbackId = args.get("callbackId").get<double>();
+    TaskQueue::GetInstance().Queue<TVChannelManager::GetProgramListData>(
+        asyncWork,
+        afterWork,
+        data);
+    picojson::value result;
+    ReportSuccess(result, out);
+}
+
+void TVChannelInstance::getProgramListResult(
+    const std::shared_ptr<TVChannelManager::GetProgramListData>& data) {
+    picojson::value::object dict;
+    dict["callbackId"] = picojson::value(data->callbackId);
+    if (data->error) {
+        dict["error"] = data->error->ToJSON();
+    } else {
+        picojson::value::array programs;
+        auto it = data->programs.begin();
+        for (; it != data->programs.end(); ++it) {
+            programs.push_back(programInfoToJson(
+                std::unique_ptr<ProgramInfo>(*it)));
+        }
+        data->programs.clear();
+        dict["programInfos"] = picojson::value(programs);
     }
     picojson::value result(dict);
     PostMessage(result.serialize().c_str());
