@@ -32,14 +32,15 @@ const char* FUN_MESSAGE_SERVICE_LOAD_MESSAGE_ATTACHMENT = "MessageService_loadMe
 const char* LOAD_MESSAGE_ATTACHMENT_ARGS_ATTACHMENT = "attachment";
 
 const char* FUN_MESSAGE_SERVICE_SYNC = "MessageService_sync";
-const char* SERVICE_SYNC_ARGS_ID = "id";
-const char* SERVICE_SYNC_ARGS_LIMIT = "limit";
+const char* SYNC_ARGS_ID = "id";
+const char* SYNC_ARGS_LIMIT = "limit";
 
 const char* FUN_MESSAGE_SERVICE_SYNC_FOLDER = "MessageService_syncFolder";
 const char* SYNC_FOLDER_ARGS_FOLDER = "folder";
 const char* SYNC_FOLDER_ARGS_LIMIT = "limit";
 
 const char* FUN_MESSAGE_SERVICE_STOP_SYNC = "MessageService_stopSync";
+const char* STOP_SYNC_ARGS_ID = "id";
 const char* STOP_SYNC_ARGS_OPID = "opId";
 
 const char* FUN_MESSAGE_STORAGE_ADD_DRAFT_MESSAGE = "MessageStorage_addDraftMessage";
@@ -171,8 +172,8 @@ void MessagingInstance::MessageServiceSync(const picojson::value& args,
     LoggerD("Entered");
 
     picojson::object data = args.get(JSON_DATA).get<picojson::object>();
-    picojson::value v_id = data.at(SERVICE_SYNC_ARGS_ID);
-    picojson::value v_limit = data.at(SERVICE_SYNC_ARGS_LIMIT);
+    picojson::value v_id = data.at(SYNC_ARGS_ID);
+    picojson::value v_limit = data.at(SYNC_ARGS_LIMIT);
     const double callbackId = args.get(JSON_CALLBACK_ID).get<double>();
 
     int id = static_cast<int>(v_id.get<double>());
@@ -206,6 +207,20 @@ void MessagingInstance::MessageServiceStopSync(const picojson::value& args,
         picojson::object& out)
 {
     LoggerD("Entered");
+
+    picojson::object data = args.get(JSON_DATA).get<picojson::object>();
+    picojson::value v_id = data.at(STOP_SYNC_ARGS_ID);
+    picojson::value v_op_id = data.at(STOP_SYNC_ARGS_OPID);
+
+    int id = static_cast<int>(v_id.get<double>());
+    long op_id = 0;
+    if (v_op_id.is<double>()) {
+        op_id = static_cast<long>(v_op_id.get<double>());
+    }
+
+    MessagingManager::getInstance().getMessageServiceEmail(id)->stopSync(op_id);
+
+    ReportSuccess(out);
 }
 
 /*  Code used to testing in node.js console

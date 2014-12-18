@@ -245,7 +245,7 @@ long MessageService::syncFolder()
     throw common::NotSupportedException("Cannot sync folder with external server");
 }
 
-void MessageService::stopSync()
+void MessageService::stopSync(long op_id)
 {
     // this method should be overwritten by email service
     // for MMS and SMS this function is not supported

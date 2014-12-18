@@ -753,41 +753,42 @@ void EmailManager::sync(void* data)
 //}
 //
 ////#################################### ^syncFolder #############################
-//
-////################################## stopSync: #################################
-//
-//void EmailManager::stopSync(long op_id)
-//{
-//    LoggerD("Entered");
-//    SyncCallbackData* callback = NULL;
-//    try {
-//        callback = dynamic_cast<SyncCallbackData*>(
-//                m_proxy_sync->getCallback(op_id));
-//    }
-//    catch (const BasePlatformException& e) {
-//        LoggerE("Could not get callback");
-//    }
-//    if(!callback){
-//        LoggerE("Callback is null");
-//        return;
-//    }
-//
-//    int err = EMAIL_ERROR_NONE;
-//    err = email_cancel_job(callback->getAccountId(), callback->getOperationHandle(),
-//            EMAIL_CANCELED_BY_USER);
-//    if(EMAIL_ERROR_NONE != err){
-//        LoggerE("Email cancel job failed, %d", err);
-//    }
-//    JSObjectRef err_obj =
-//            JSWebAPIErrorFactory::makeErrorObject(callback->getContext(),
-//                    JSWebAPIErrorFactory::ABORT_ERROR,
-//                    "Sync aborted by user");
-//    callback->callErrorCallback(err_obj);
-//    m_proxy_sync->removeCallback(op_id);
-//}
-//
-////################################## ^stopSync #################################
-//
+
+//################################## stopSync: #################################
+
+void EmailManager::stopSync(long op_id)
+{
+    LoggerD("Entered");
+    SyncCallbackData* callback = NULL;
+    try {
+        callback = dynamic_cast<SyncCallbackData*>(
+                m_proxy_sync->getCallback(op_id));
+    }
+    catch (const common::PlatformException& e) {
+        LoggerE("Could not get callback");
+    }
+    if(!callback){
+        LoggerE("Callback is null");
+        return;
+    }
+
+    int err = EMAIL_ERROR_NONE;
+    err = email_cancel_job(callback->getAccountId(), callback->getOperationHandle(),
+            EMAIL_CANCELED_BY_USER);
+    if(EMAIL_ERROR_NONE != err){
+        LoggerE("Email cancel job failed, %d", err);
+    }
+
+    std::shared_ptr<picojson::value> response = callback->getJson();
+    picojson::object& obj = response->get<picojson::object>();
+    common::AbortException error("Sync aborted by user");
+    callback->setError(error.name(), error.message());
+    MessagingInstance::getInstance().PostMessage(response->serialize().c_str());
+    m_proxy_sync->removeCallback(op_id);
+}
+
+//################################## ^stopSync #################################
+
 //void removeEmailCompleteCB(MessagesCallbackUserData* callback)
 //{
 //    LoggerD("Entered");

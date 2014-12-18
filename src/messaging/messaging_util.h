@@ -47,10 +47,6 @@ extern const char* MESSAGE_BODY_ATTRIBUTE_LOADED;
 extern const char* MESSAGE_BODY_ATTRIBUTE_PLAIN_BODY;
 extern const char* MESSAGE_BODY_ATTRIBUTE_HTML_BODY;
 
-extern const char* JSON_RET_DATA;
-extern const char* JSON_RET_ERR_MESSAGE;
-extern const char* JSON_RET_ERR_NAME;
-
 enum MessageType {
     UNDEFINED = 0,
     SMS,

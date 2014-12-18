@@ -279,7 +279,7 @@ Messaging.prototype.getMessageServices = function () {
             if (args.errorCallback) {
                 args.errorCallback.call(
                     null,
-                    new tizen.WebAPIException(e.code, e.name, e.message)
+                    new tizen.WebAPIException(e.code, e.message, e.name)
                 )
             }
         }
@@ -317,7 +317,7 @@ MessageService.prototype.sendMessage = function () {
             if (args.errorCallback) {
                 args.errorCallback.call(
                     null,
-                    new tizen.WebAPIException(e.code, e.name, e.message)
+                    new tizen.WebAPIException(e.code, e.message, e.name)
                 )
             }
         }
@@ -347,7 +347,7 @@ MessageService.prototype.loadMessageBody = function () {
             if (args.errorCallback) {
                 args.errorCallback.call(
                     null,
-                    new tizen.WebAPIException(e.code, e.name, e.message)
+                    new tizen.WebAPIException(e.code, e.message, e.name)
                 )
             }
         }
@@ -379,7 +379,7 @@ MessageService.prototype.loadMessageAttachment = function () {
             if (args.errorCallback) {
                 args.errorCallback.call(
                     null,
-                    new tizen.WebAPIException(e.code, e.name, e.message)
+                    new tizen.WebAPIException(e.code, e.message, e.name)
                 )
             }
         }
@@ -403,7 +403,7 @@ MessageService.prototype.sync = function () {
             if (args.errorCallback) {
                 args.errorCallback.call(
                     null,
-                    new tizen.WebAPIException(e.code, e.name, e.message)
+                    new tizen.WebAPIException(e.code, e.message, e.name)
                 )
             }
         }
@@ -444,7 +444,7 @@ MessageService.prototype.syncFolder = function () {
             if (args.errorCallback) {
                 args.errorCallback.call(
                     null,
-                    new tizen.WebAPIException(e.code, e.name, e.message)
+                    new tizen.WebAPIException(e.code, e.message, e.name)
                 )
             }
         }
@@ -455,9 +455,11 @@ MessageService.prototype.stopSync = function () {
         {name: 'opId', type: types_.LONG}
     ]);
 
+    var self = this;
     bridge.sync({
         cmd: 'MessageService_stopSync',
         args: {
+            id: self.id,
             opId: args.opId
         }
     });
@@ -490,7 +492,7 @@ MessageStorage.prototype.addDraftMessage = function () {
             if (args.errorCallback) {
                 args.errorCallback.call(
                     null,
-                    new tizen.WebAPIException(e.code, e.name, e.message)
+                    new tizen.WebAPIException(e.code, e.message, e.name)
                 )
             }
         }
@@ -528,7 +530,7 @@ MessageStorage.prototype.findMessages = function () {
             if (args.errorCallback) {
                 args.errorCallback.call(
                     null,
-                    new tizen.WebAPIException(e.code, e.name, e.message)
+                    new tizen.WebAPIException(e.code, e.message, e.name)
                 )
             }
         }
@@ -557,7 +559,7 @@ MessageStorage.prototype.removeMessages = function () {
             if (args.errorCallback) {
                 args.errorCallback.call(
                     null,
-                    new tizen.WebAPIException(e.code, e.name, e.message)
+                    new tizen.WebAPIException(e.code, e.message, e.name)
                 )
             }
         }
@@ -586,7 +588,7 @@ MessageStorage.prototype.updateMessages = function () {
             if (args.errorCallback) {
                 args.errorCallback.call(
                     null,
-                    new tizen.WebAPIException(e.code, e.name, e.message)
+                    new tizen.WebAPIException(e.code, e.message, e.name)
                 )
             }
         }
@@ -624,7 +626,7 @@ MessageStorage.prototype.findConversations = function () {
             if (args.errorCallback) {
                 args.errorCallback.call(
                     null,
-                    new tizen.WebAPIException(e.code, e.name, e.message)
+                    new tizen.WebAPIException(e.code, e.message, e.name)
                 )
             }
         }
@@ -653,7 +655,7 @@ MessageStorage.prototype.removeConversations = function () {
             if (args.errorCallback) {
                 args.errorCallback.call(
                     null,
-                    new tizen.WebAPIException(e.code, e.name, e.message)
+                    new tizen.WebAPIException(e.code, e.message, e.name)
                 )
             }
         }
@@ -687,7 +689,7 @@ MessageStorage.prototype.findFolders = function () {
             if (args.errorCallback) {
                 args.errorCallback.call(
                     null,
-                    new tizen.WebAPIException(e.code, e.name, e.message)
+                    new tizen.WebAPIException(e.code, e.message, e.name)
                 )
             }
         }
