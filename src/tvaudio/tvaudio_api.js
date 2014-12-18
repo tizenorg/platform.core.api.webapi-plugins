@@ -19,7 +19,8 @@ var VOLUME_CHANGE_LISTENER = 'VolumeChangeCallback';
 
 
 /**
- * This class provides access to the API functionalities through the tizen.tvaudiocontrol interface.
+ * This class provides access to the API functionalities through
+ * the tizen.tvaudiocontrol interface.
  * @constructor
  */
 function AudioControlManager() {
@@ -52,6 +53,7 @@ AudioControlManager.prototype.setMute = function(mute) {
 
 /**
  * Gets the mute state.
+ * @return {boolean} 'true' if sound is muted else 'false'
  */
 AudioControlManager.prototype.isMute = function() {
   var ret = native.callSync('AudioControlManager_isMute');
@@ -128,8 +130,11 @@ AudioControlManager.prototype.getVolume = function() {
 
 
 /**
- * Registers a volume change callback for getting notified when TV volume has been changed.
- * @param {!function} listener The method to invoke when the volume has been changed.
+ * Registers a volume change callback for getting notified
+ * when TV volume has been changed.
+ *
+ * @param {!function} listener The method to invoke
+ *                    when the volume has been changed.
  */
 AudioControlManager.prototype.setVolumeChangeListener = function(listener) {
   var args = validator.validateArgs(arguments, [
@@ -179,7 +184,7 @@ AudioControlManager.prototype.getOutputMode = function() {
  * Plays the sound of a specific beep.
  */
 AudioControlManager.prototype.playSound = function() {
-  return undefined;
+  return;
 };
 
 
