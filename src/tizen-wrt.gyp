@@ -38,7 +38,7 @@
             'dependencies': [
               'tvdisplay/tvdisplay.gyp:*',
               # 'tvchannel/tvchannel.gyp:*',
-              # 'tvaudio/tvaudio.gyp:*',
+              'tvaudio/tvaudio.gyp:*',
             ],
           },
         ], # end tv
