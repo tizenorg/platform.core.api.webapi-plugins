@@ -4,7 +4,44 @@
 
 var validator_ = xwalk.utils.validator;
 var types_ = validator_.Types;
+var T_ = xwalk.utils.type;
 var native_ = new xwalk.utils.NativeManager(extension);
+
+function ListenerManager(native, listenerName) {
+    this.listeners = {};
+    this.nextId = 1;
+    this.nativeSet = false;
+    this.native = native;
+    this.listenerName = listenerName;
+}
+
+ListenerManager.prototype.onListenerCalled = function(msg) {
+    for (var key in this.listeners) {
+        if (this.listeners.hasOwnProperty(key)) {
+            this.listeners[key](msg.mode);
+      }
+    }
+};
+
+ListenerManager.prototype.addListener = function(callback) {
+    var id = this.nextId;
+    if (!this.nativeSet) {
+      this.native.addListener(this.listenerName, this.onListenerCalled.bind(this));
+      this.nativeSet = true;
+    }
+    this.listeners[id] = callback;
+    ++this.nextId;
+    return id;
+};
+
+ListenerManager.prototype.removeListener = function(watchId) {
+    if (this.listeners.hasOwnProperty(watchId)) {
+        delete this.listeners[watchId];
+    }
+};
+
+var CARD_EMULATION_MODE_LISTENER = 'CardEmulationModeChanged';
+var cardEmulationModeListener = new ListenerManager(native_, CARD_EMULATION_MODE_LISTENER);
 
 //enumeration NDEFRecordTextEncoding ////////////////////////////////////////////////////
 var NDEFRecordTextEncoding = {
@@ -217,11 +254,33 @@ NFCAdapter.prototype.unsetPeerListener = function() {
 };
 
 NFCAdapter.prototype.addCardEmulationModeChangeListener = function() {
+    var args = validator_.validateArgs(arguments, [
+        {
+            name: 'callback',
+            type: types_.LISTENER,
+            values: ['onchanged']
+        }
+    ]);
 
+    if (T_.isEmptyObject(cardEmulationModeListener.listeners)) {
+        native_.callSync('NFCAdapter_addCardEmulationModeChangeListener');
+    }
+
+    return cardEmulationModeListener.addListener(args.callback);
 };
 
 NFCAdapter.prototype.removeCardEmulationModeChangeListener = function() {
+    var args = validator_.validateArgs(arguments, [
+        {
+            name: 'listenerId',
+            type: types_.LONG
+        }
+    ]);
+    cardEmulationModeListener.removeListener(args.listenerId);
 
+    if (T_.isEmptyObject(cardEmulationModeListener.listeners)) {
+        native_.callSync('NFCAdapter_removeCardEmulationModeChangeListener');
+    }
 };
 
 NFCAdapter.prototype.addTransactionEventListener = function() {

@@ -17,12 +17,15 @@ using namespace std;
 namespace extension {
 namespace nfc {
 
-NFCAdapter::NFCAdapter() {
-
+NFCAdapter::NFCAdapter():
+        m_is_listener_set(false)
+{
 }
 
 NFCAdapter::~NFCAdapter() {
-
+    if (m_is_listener_set) {
+        nfc_manager_unset_se_event_cb();
+    }
 }
 
 static picojson::value createEventError(double callbackId, PlatformException ex) {
@@ -87,6 +90,30 @@ static void NFCSetActivationCompletedCallback(nfc_error_e error, void *user_data
 }
 
 #endif
+
+static void se_event_callback(nfc_se_event_e se_event, void *user_data) {
+
+    picojson::value event = picojson::value(picojson::object());
+    picojson::object& obj = event.get<picojson::object>();
+    NFCInstance::getInstance().InstanceReportSuccess(obj);
+
+    string result;
+    switch (se_event) {
+        case NFC_SE_EVENT_SE_TYPE_CHANGED:
+            // TODO: fill when addActiveSecureElementChangeListener will be added
+            break;
+        case NFC_SE_EVENT_CARD_EMULATION_CHANGED:
+            result = NFCAdapter::GetInstance()->GetCardEmulationMode();
+            obj.insert(make_pair("mode", result));
+            obj.insert(make_pair("listenerId", "CardEmulationModeChanged"));
+            break;
+        default:
+            LOGD("se_event_occured: %d", se_event);
+            break;
+    }
+
+    NFCInstance::getInstance().PostMessage(event.serialize().c_str());
+}
 
 void NFCAdapter::SetPowered(const picojson::value& args) {
 
@@ -175,7 +202,7 @@ void NFCAdapter::SetPowered(const picojson::value& args) {
         throw UnknownException("app_control_destroy failed");
     }
 #else
-    int ret = nfc_manager_set_activation(args.get("powered").get<bool>(),
+    int ret = nfc_manager_set_activation(powered,
                 NFCSetActivationCompletedCallback, static_cast<void *>(callbackId));
 
     if (NFC_ERROR_NONE != ret) {
@@ -293,6 +320,30 @@ void NFCAdapter::SetExclusiveModeForTransaction(bool exmode) {
         NFCUtil::throwNFCException(ret,
                 "Setting exclusive mode for transaction failed.");
     }
+}
+
+void NFCAdapter::AddCardEmulationModeChangeListener() {
+    if (!m_is_listener_set) {
+        int ret = nfc_manager_set_se_event_cb(se_event_callback, NULL);
+        if (NFC_ERROR_NONE != ret) {
+            LOGE("addCardEmulationModeChangeListener failed: %d", ret);
+            NFCUtil::throwNFCException(ret,
+                NFCUtil::getNFCErrorMessage(ret).c_str());
+        }
+    }
+
+    m_is_listener_set = true;
+}
+
+void NFCAdapter::RemoveCardEmulationModeChangeListener() {
+    if (!nfc_manager_is_supported()) {
+        throw NotSupportedException("NFC Not Supported");
+    }
+
+    if (m_is_listener_set) {
+        nfc_manager_unset_se_event_cb();
+    }
+    m_is_listener_set = false;
 }
 
 }// nfc
