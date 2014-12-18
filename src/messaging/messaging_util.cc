@@ -186,6 +186,93 @@ std::string MessagingUtil::messageStatusToString(MessageStatus status) {
     }
 }
 
+picojson::value MessagingUtil::messageToJson(std::shared_ptr<Message> message)
+{
+    picojson::object o;
+
+    std::vector<picojson::value> array;
+    auto vectorToArray = [&array] (std::string& s)->void {
+        array.push_back(picojson::value(s));
+    };
+
+    switch (message->getType()) {
+    case MessageType::SMS:
+        LoggerD("Currently unsupported");
+        // TODO add class which will extended message_service and call message_service_short_msg
+        break;
+    case MessageType::MMS:
+        LoggerD("Currently unsupported");
+        // TODO add class which will extended message_service and call message_service_short_msg
+        o[MESSAGE_ATTRIBUTE_HAS_ATTACHMENT] = picojson::value(message->getHasAttachment());
+        o[MESSAGE_ATTRIBUTE_SUBJECT] = picojson::value(message->getSubject());
+        break;
+    case MessageType::EMAIL:
+
+        std::vector<std::string> cc = message->getCC();
+        for_each(cc.begin(), cc.end(), vectorToArray);
+        o[MESSAGE_ATTRIBUTE_CC] = picojson::value(array);
+        array.clear();
+
+        std::vector<std::string> bcc = message->getBCC();
+        for_each(bcc.begin(), bcc.end(), vectorToArray);
+        o[MESSAGE_ATTRIBUTE_BCC] = picojson::value(array);
+        array.clear();
+
+        o[MESSAGE_ATTRIBUTE_HAS_ATTACHMENT] = picojson::value(message->getHasAttachment());
+        o[MESSAGE_ATTRIBUTE_IS_HIGH_PRIORITY] = picojson::value(message->getIsHighPriority());
+        o[MESSAGE_ATTRIBUTE_SUBJECT] = picojson::value(message->getSubject());
+
+        break;
+    }
+
+    o[MESSAGE_ATTRIBUTE_ID] =
+            message->is_id_set()
+            ? picojson::value(std::to_string(message->getId()))
+            : picojson::value();
+    o[MESSAGE_ATTRIBUTE_CONVERSATION_ID]=
+            message->is_conversation_id_set()
+            ? picojson::value(std::to_string(message->getConversationId()))
+            : picojson::value();
+    o[MESSAGE_ATTRIBUTE_FOLDER_ID] =
+            message->is_folder_id_set()
+            ? picojson::value(std::to_string(message->getFolderId()))
+            : picojson::value();
+    o[MESSAGE_ATTRIBUTE_TYPE] =
+            picojson::value(MessagingUtil::messageTypeToString(message->getType()));
+    o[MESSAGE_ATTRIBUTE_TIMESTAMP] =
+            message->is_timestamp_set()
+            ? picojson::value(static_cast<double>(message->getTimestamp()))
+            : picojson::value();
+    o[MESSAGE_ATTRIBUTE_FROM] =
+            message->is_from_set()
+            ? picojson::value(message->getFrom())
+            : picojson::value();
+
+    std::vector<std::string> to = message->getTO();
+    for_each(to.begin(), to.end(), vectorToArray);
+    o[MESSAGE_ATTRIBUTE_TO] = picojson::value(array);
+    array.clear();
+
+    o[MESSAGE_ATTRIBUTE_IS_READ] = picojson::value(message->getIsRead());
+    o[MESSAGE_ATTRIBUTE_IN_RESPONSE_TO] =
+            message->is_in_response_set()
+            ? picojson::value(std::to_string(message->getInResponseTo()))
+            : picojson::value();
+
+
+    // TODO MessageBody
+
+    // TODO MessageStatus has type MessageStatus
+    //o[MESSAGE_ATTRIBUTE_MESSAGE_STATUS] = picojson::value(message->getMessageStatus());
+
+    // TODO attachments
+    //o[MESSAGE_ATTRIBUTE_ATTACHMENTS] = picojson::value(array);
+
+
+    picojson::value v(o);
+    return v;
+}
+
 std::shared_ptr<Message> MessagingUtil::jsonToMessage(const picojson::value& json)
 {
     LoggerD("Entered");

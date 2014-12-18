@@ -74,6 +74,7 @@ public:
     static std::vector<std::string> extractEmailAddresses(
             const std::vector<std::string>& addresses);
 
+    static picojson::value messageToJson(std::shared_ptr<Message> message);
     static std::shared_ptr<Message> jsonToMessage(const picojson::value& json);
 
     template <class T>
