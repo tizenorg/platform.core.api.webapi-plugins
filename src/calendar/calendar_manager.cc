@@ -70,93 +70,54 @@ CalendarManager& CalendarManager::GetInstance() {
 bool CalendarManager::IsConnected() { return is_connected_; }
 
 void CalendarManager::GetCalendars(const JsonObject& args,
-                                   JsonObject& out) {
+                                   JsonArray& array) {
   LoggerD("enter");
-
-//  NativePlugin::CheckAccess(Privilege::kCalendarRead);
 
   if (!is_connected_) {
     throw UnknownException("DB Connection failed.");
   }
 
-//  int callback_handle = NativePlugin::GetAsyncCallbackHandle(args);
-
   const std::string& type = FromJson<std::string>(args, "type");
 
   LoggerD("calendar type: %s", type.c_str());
 
-  auto get = [type](const std::shared_ptr<JsonValue> & response)->void {
+  calendar_list_h list = NULL;
+  CalendarListPtr list_ptr = CalendarListPtr(list, CalendarRecord::ListDeleter);
+  int ret = calendar_db_get_all_records(_calendar_book._uri, 0, 0, &list);
+  CheckReturn(ret, "Failed to get list");
 
-    JsonObject& response_obj = response->get<JsonObject>();
-    JsonValue result = JsonValue(JsonArray());
-    JsonArray& array = result.get<JsonArray>();
+  int count = 0;
+  ret = calendar_list_get_count(list, &count);
+  CheckReturn(ret, "Failed to get list size");
 
-    calendar_list_h list = NULL;
+  LoggerD("Calendar list count: %d", count);
 
-    try {
-      int ret = calendar_db_get_all_records(_calendar_book._uri, 0, 0, &list);
-      CheckReturn(ret, "Failed to get list");
+  ret = calendar_list_first(list);
+  CheckReturn(ret, "Failed to move list to the first position");
 
-      int count = 0;
-      ret = calendar_list_get_count(list, &count);
-      CheckReturn(ret, "Failed to get list size");
+  int current_calendar_type = CalendarRecord::TypeToInt(type);
+  calendar_record_h calendar = NULL;
+  int store_type;
 
-      LoggerD("Calendar list count: %d", count);
+  while (count-- > 0) {
+    ret = calendar_list_get_current_record_p(list, &calendar);
+    CheckReturn(ret, "Failed to get current record");
 
-      ret = calendar_list_first(list);
-      CheckReturn(ret, "Failed to move list to the first position");
-
-      int current_calendar_type = CalendarRecord::TypeToInt(type);
-      calendar_record_h calendar = NULL;
-      int store_type;
-
-      while (count-- > 0) {
-        ret = calendar_list_get_current_record_p(list, &calendar);
-        CheckReturn(ret, "Failed to get current record");
-
-        store_type =
-            CalendarRecord::GetInt(calendar, _calendar_book.store_type);
-        if (current_calendar_type != store_type) {
-          LoggerD("Different store type %d, requested: %d. Skipping...",
-                  store_type, current_calendar_type);
-          calendar_list_next(list);
-          continue;
-        }
-
-        array.push_back(JsonValue(JsonObject()));
-
-        CalendarRecord::CalendarToJson(calendar,
-                                       &array.back().get<JsonObject>());
-
-        calendar_list_next(list);
-      }
-
-      if (list) {
-        calendar_list_destroy(list, true);
-      }
-
- //     NativePlugin::ReportSuccess(result, response_obj);
+    store_type =
+        CalendarRecord::GetInt(calendar, _calendar_book.store_type);
+    if (current_calendar_type != store_type) {
+      LoggerD("Different store type %d, requested: %d. Skipping...",
+              store_type, current_calendar_type);
+      calendar_list_next(list);
+      continue;
     }
-    catch (...) {//const BasePlatformException& e) {
-      if (list) {
-        calendar_list_destroy(list, false);
-      }
 
- //     NativePlugin::ReportError(e, response_obj);
-    }
-  };
+    array.push_back(JsonValue(JsonObject()));
 
-//  auto get_response = [callback_handle](const std::shared_ptr<JsonValue> &
-//                                        response)->void {
-//    wrt::common::NativeContext::GetInstance()->InvokeCallback(
-//        callback_handle, response->serialize());
-//  };
-
-//  TaskQueue::GetInstance().Queue<JsonValue>(
-//      get, get_response,
-//      std::shared_ptr<JsonValue>(new JsonValue(JsonObject())));
-
-//  NativePlugin::ReportSuccess(out);
+    CalendarRecord::CalendarToJson(calendar,
+                                   &array.back().get<JsonObject>());
+    calendar_list_next(list);
+  }
 }
 
 void CalendarManager::GetCalendar(const JsonObject& args, JsonObject& out) {

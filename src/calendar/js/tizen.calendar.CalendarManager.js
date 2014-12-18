@@ -45,11 +45,7 @@ CalendarManager.prototype.getCalendars = function() {
     }
   };
 
-  var result = native_.call('CalendarManager_getCalendars', callArgs, callback);
-
-  if (native_.isFailure(result)) {
-    throw native_.getErrorObject(result);
-  }
+  native_.call('CalendarManager_getCalendars', callArgs, callback);
 };
 
 CalendarManager.prototype.getUnifiedCalendar = function() {

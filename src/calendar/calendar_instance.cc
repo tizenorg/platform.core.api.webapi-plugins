@@ -8,6 +8,12 @@
 
 #include "calendar/calendar_manager.h"
 #include "calendar/calendar.h"
+#include "common/task-queue.h"
+
+#include <memory>
+#include <map>
+#include <calendar-service2/calendar.h>
+#include "calendar_record.h"
 
 namespace extension {
 namespace calendar {
@@ -35,11 +41,16 @@ CalendarInstance::CalendarInstance() {
   // Calendar Manager
   REGISTER_SYNC("CalendarManager_addCalendar", CalendarManager_addCalendar);
   REGISTER_SYNC("CalendarManager_getCalendar", CalendarManager_getCalendar);
-  REGISTER_SYNC("CalendarManager_getCalendars", CalendarManager_getCalendars);
+  //  REGISTER_SYNC("CalendarManager_getCalendars",
+  //  CalendarManager_getCalendars);
   REGISTER_SYNC("CalendarManager_removeCalendar",
                 CalendarManager_removeCalendar);
 
 #undef REGISTER_SYNC
+#define REGISTER_ASYNC(c, x) \
+  RegisterHandler(c, std::bind(&CalendarInstance::x, this, _1, _2));
+  REGISTER_ASYNC("CalendarManager_getCalendars", CalendarManager_getCalendars);
+#undef REGISTER_ASYNC
 }
 
 CalendarInstance::~CalendarInstance() {}
@@ -138,10 +149,29 @@ void CalendarInstance::CalendarManager_getCalendar(const JsonValue& args,
 
 void CalendarInstance::CalendarManager_getCalendars(const JsonValue& args,
                                                     JsonObject& out) {
-  JsonValue val{JsonObject{}};
-  CalendarManager::GetInstance().GetCalendars(
-      common::JsonCast<JsonObject>(args), val.get<JsonObject>());
-  ReportSuccess(val, out);
+  const double callback_id = args.get("callbackId").get<double>();
+  auto get = [=](const std::shared_ptr<JsonValue>& response) -> void {
+    try {
+      JsonValue result = JsonValue(JsonArray());
+      CalendarManager::GetInstance().GetCalendars(
+          common::JsonCast<JsonObject>(args), result.get<JsonArray>());
+      ReportSuccess(result, response->get<picojson::object>());
+    } catch (const PlatformException& e) {
+      ReportError(e, response->get<picojson::object>());
+    }
+  };
+
+  auto get_response =
+      [callback_id, this](const std::shared_ptr<JsonValue>& response) -> void {
+        picojson::object& obj = response->get<picojson::object>();
+        obj.insert(std::make_pair("callbackId", callback_id));
+        LoggerD("callback isssssss %s", response->serialize().c_str());
+        PostMessage(response->serialize().c_str());
+      };
+
+  TaskQueue::GetInstance().Queue<JsonValue>(
+      get, get_response,
+      std::shared_ptr<JsonValue>(new JsonValue(JsonObject())));
 }
 
 void CalendarInstance::CalendarManager_removeCalendar(const JsonValue& args,

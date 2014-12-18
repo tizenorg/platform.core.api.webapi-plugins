@@ -47,7 +47,7 @@ class CalendarManager {
    * @endcode
    */
   void GetCalendars(const JsonObject& args,
-                    JsonObject& out);
+                    JsonArray& array);
   void GetCalendar(const JsonObject& args, JsonObject& out);
   void AddCalendar(const JsonObject& args, JsonObject& out);
   void RemoveCalendar(const JsonObject& args,
