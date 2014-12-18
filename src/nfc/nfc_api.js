@@ -115,7 +115,34 @@ function NFCAdapter() {
 };
 
 NFCAdapter.prototype.setPowered = function() {
+    var args = validator_.validateArgs(arguments, [
+        {
+            name : 'powered',
+            type : types_.BOOLEAN
+        },
+        {
+            name : 'successCallback',
+            type : types_.FUNCTION,
+            optional : true,
+            nullable : true
+        },
+        {
+            name : 'errorCallback',
+            type : types_.FUNCTION,
+            optional : true,
+            nullable : true
+        }
+    ]);
 
+    native_.call('NFCAdapter_setPowered', {
+        powered: args.powered
+    }, function(result) {
+        if (native_.isFailure(result)) {
+            args.errorCallback(result.error);
+        } else {
+            args.successCallback();
+        }
+    });
 };
 
 NFCAdapter.prototype.setTagListener  = function() {

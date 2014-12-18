@@ -18,6 +18,11 @@ namespace nfc {
 using namespace common;
 using namespace extension::nfc;
 
+NFCInstance& NFCInstance::getInstance() {
+    static NFCInstance instance;
+    return instance;
+}
+
 NFCInstance::NFCInstance() {
     using namespace std::placeholders;
 #define REGISTER_SYNC(c,x) \
@@ -69,6 +74,25 @@ NFCInstance::~NFCInstance() {
     }
 }
 
+void NFCInstance::InstanceReportSuccess(picojson::object& out) {
+    out.insert(std::make_pair("status", picojson::value("success")));
+}
+
+void NFCInstance::InstanceReportSuccess(const picojson::value& result, picojson::object& out) {
+    out.insert(std::make_pair("status", picojson::value("success")));
+    out.insert(std::make_pair("result", result));
+}
+
+void NFCInstance::InstanceReportError(picojson::object& out) {
+    out.insert(std::make_pair("status", picojson::value("error")));
+}
+
+void NFCInstance::InstanceReportError(const PlatformException& ex, picojson::object& out) {
+    out.insert(std::make_pair("status", picojson::value("error")));
+    out.insert(std::make_pair("error", ex.ToJSON()));
+}
+
+
 void NFCInstance::GetDefaultAdapter(
         const picojson::value& args, picojson::object& out) {
 
@@ -117,7 +141,7 @@ void NFCInstance::SetExclusiveMode(
 
 void NFCInstance::SetPowered(
         const picojson::value& args, picojson::object& out) {
-
+    NFCAdapter::GetInstance()->SetPowered(args);
 }
 
 void NFCInstance::GetPowered(

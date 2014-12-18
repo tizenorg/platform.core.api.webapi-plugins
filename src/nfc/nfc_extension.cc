@@ -20,5 +20,5 @@ NFCExtension::NFCExtension() {
 NFCExtension::~NFCExtension() {}
 
 common::Instance* NFCExtension::CreateInstance() {
-    return new extension::nfc::NFCInstance;
+    return &extension::nfc::NFCInstance::getInstance();;
 }
