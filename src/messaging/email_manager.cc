@@ -55,7 +55,7 @@
 #include <vconf.h>
 
 //#include "DBus/SyncProxy.h"
-//#include "DBus/LoadBodyProxy.h"
+#include "DBus/LoadBodyProxy.h"
 //#include "DBus/LoadAttachmentProxy.h"
 
 #include <sstream>
@@ -110,15 +110,15 @@ EmailManager::EmailManager()
     }
     m_proxy_sync->signalSubscribe();
 
-//    m_proxy_load_body = std::make_shared<DBus::LoadBodyProxy>(
-//                                        DBus::Proxy::DBUS_PATH_NETWORK_STATUS,
-//                                        DBus::Proxy::DBUS_IFACE_NETWORK_STATUS);
-//    if (!m_proxy_load_body) {
-//        LoggerE("Load body proxy is null");
-//        throw Common::UnknownException("Load body proxy is null");
-//    }
-//    m_proxy_load_body->signalSubscribe();
-//
+    m_proxy_load_body = std::make_shared<DBus::LoadBodyProxy>(
+                                        DBus::Proxy::DBUS_PATH_NETWORK_STATUS,
+                                        DBus::Proxy::DBUS_IFACE_NETWORK_STATUS);
+    if (!m_proxy_load_body) {
+        LoggerE("Load body proxy is null");
+        throw common::UnknownException("Load body proxy is null");
+    }
+    m_proxy_load_body->signalSubscribe();
+
 //    m_proxy_load_attachment = std::make_shared<DBus::LoadAttachmentProxy>(
 //                                        DBus::Proxy::DBUS_PATH_NETWORK_STATUS,
 //                                        DBus::Proxy::DBUS_IFACE_NETWORK_STATUS);
@@ -287,6 +287,11 @@ static gboolean addDraftMessageCompleteCB(void *data)
             auto json = callback->getJson();
             picojson::object& obj = json->get<picojson::object>();
             obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
+
+            picojson::object args;
+            args[JSON_DATA_MESSAGE] = MessagingUtil::messageToJson(callback->getMessage());
+            obj[JSON_DATA] = picojson::value(args);
+
             MessagingInstance::getInstance().PostMessage(json->serialize().c_str());
         }
     } catch (const PlatformException& err) {
@@ -508,18 +513,18 @@ void EmailManager::sendStatusCallback(int mail_id,
     }
 }
 
-//email_mail_data_t* EmailManager::loadMessage(int msg_id)
-//{
-//    email_mail_data_t* mail_data = NULL;
-//    int err = EMAIL_ERROR_NONE;
-//    err = email_get_mail_data(msg_id, &mail_data);
-//    if (EMAIL_ERROR_NONE != err) {
-//        LoggerE("email_get_mail_data failed. [%d]", err);
-//    } else {
-//        LoggerD("email_get_mail_data success.");
-//    }
-//    return mail_data;
-//}
+email_mail_data_t* EmailManager::loadMessage(int msg_id)
+{
+    email_mail_data_t* mail_data = NULL;
+    int err = EMAIL_ERROR_NONE;
+    err = email_get_mail_data(msg_id, &mail_data);
+    if (EMAIL_ERROR_NONE != err) {
+        LoggerE("email_get_mail_data failed. [%d]", err);
+    } else {
+        LoggerD("email_get_mail_data success.");
+    }
+    return mail_data;
+}
 
 EmailManager::SendReqMapIterator EmailManager::getSendRequest(int mail_id)
 {
@@ -530,46 +535,46 @@ EmailManager::SendReqMapIterator EmailManager::getSendRequest(int mail_id)
     }
     return m_sendRequests.end();
 }
-//
-//void EmailManager::freeMessage(email_mail_data_t* mail_data)
-//{
-//    if(!mail_data) {
-//        return;
-//    }
-//
-//    int err = email_free_mail_data(&mail_data,1);
-//    if(EMAIL_ERROR_NONE != err) {
-//        LoggerE("Could not free mail data!");
-//    }
-//}
-//
-//void EmailManager::loadMessageBody(MessageBodyCallbackData* callback)
-//{
-//    LoggerD("Entered");
-//    if(!callback){
-//        LoggerE("Callback is null");
-//        return;
-//    }
-//
-//    if(!callback->getMessage()) {
-//        LoggerE("Callback's message is null");
-//        return;
-//    }
-//
-//    m_proxy_load_body->addCallback(callback);
-//
-//    const int mailId = callback->getMessage()->getId();
-//    int err = EMAIL_ERROR_NONE;
-//
-//    int op_handle = -1;
-//    err = email_download_body(mailId, 0, &op_handle);
-//    if(EMAIL_ERROR_NONE != err){
-//        LoggerE("Email download body failed, %d", err);
-//        m_proxy_load_body->removeCallback(callback);
-//        return;
-//    }
-//    callback->setOperationHandle(op_handle);
-//}
+
+void EmailManager::freeMessage(email_mail_data_t* mail_data)
+{
+    if(!mail_data) {
+        return;
+    }
+
+    int err = email_free_mail_data(&mail_data, 1);
+    if(EMAIL_ERROR_NONE != err) {
+        LoggerE("Could not free mail data!");
+    }
+}
+
+void EmailManager::loadMessageBody(MessageBodyCallbackData* callback)
+{
+    LoggerD("Entered");
+    if(!callback){
+        LoggerE("Callback is null");
+        return;
+    }
+
+    if(!callback->getMessage()) {
+        LoggerE("Callback's message is null");
+        return;
+    }
+
+    m_proxy_load_body->addCallback(callback);
+
+    const int mailId = callback->getMessage()->getId();
+    int err = EMAIL_ERROR_NONE;
+
+    int op_handle = -1;
+    err = email_download_body(mailId, 0, &op_handle);
+    if(EMAIL_ERROR_NONE != err){
+        LoggerE("Email download body failed, %d", err);
+        m_proxy_load_body->removeCallback(callback);
+        return;
+    }
+    callback->setOperationHandle(op_handle);
+}
 //
 //void EmailManager::loadMessageAttachment(MessageAttachmentCallbackData* callback)
 //{

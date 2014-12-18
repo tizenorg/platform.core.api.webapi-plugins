@@ -25,8 +25,8 @@
 #include "EmailSignalProxy.h"
 #include <set>
 
-namespace DeviceAPI {
-namespace Messaging {
+namespace extension {
+namespace messaging {
 
 class MessageBodyCallbackData;
 
@@ -67,7 +67,7 @@ private:
 };
 
 } //namespace DBus
-} //namespace Messaging
-} //namespace DeviceAPI
+} //namespace messaging
+} //namespace extension
 
 #endif // __TIZEN_DBUS_LOAD_BODY_PROXY_H__

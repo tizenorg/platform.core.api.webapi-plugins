@@ -17,7 +17,7 @@ public:
     virtual ~MessageServiceEmail();
 
     virtual void sendMessage(MessageRecipientsCallbackData *callback);
-    virtual void loadMessageBody();
+    virtual void loadMessageBody(MessageBodyCallbackData* callback);
     virtual void loadMessageAttachment();
     virtual long sync(SyncCallbackData *callback);
     virtual long syncFolder();

@@ -95,6 +95,18 @@ protected:
     double m_callback_id;
 };
 
+class MessageBodyCallbackData : public BaseMessageServiceCallbackData {
+public:
+    MessageBodyCallbackData();
+    virtual ~MessageBodyCallbackData();
+
+    void setMessage(std::shared_ptr<Message> message);
+    std::shared_ptr<Message> getMessage() const;
+
+private:
+    std::shared_ptr<Message> m_message;
+};
+
 class SyncCallbackData : public BaseMessageServiceCallbackData {
 public:
     SyncCallbackData();
@@ -130,7 +142,7 @@ public:
     virtual MessageStoragePtr getMsgStorage() const;
 
     virtual void sendMessage(MessageRecipientsCallbackData *callback);
-    virtual void loadMessageBody();
+    virtual void loadMessageBody(MessageBodyCallbackData* callback);
     virtual void loadMessageAttachment();
     virtual long sync(SyncCallbackData *callback);
     virtual long syncFolder();

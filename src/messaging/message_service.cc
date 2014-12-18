@@ -11,6 +11,7 @@
 
 #include "messaging_util.h"
 #include "message_storage_email.h"
+#include "message.h"
 
 namespace extension {
 namespace messaging {
@@ -160,12 +161,12 @@ BaseMessageServiceCallbackData::BaseMessageServiceCallbackData():
         m_is_error(false),
         m_op_handle(-1)
 {
-    LOGD("Entered");
+    LoggerD("Entered");
 }
 
 BaseMessageServiceCallbackData::~BaseMessageServiceCallbackData()
 {
-    LOGD("Entered");
+    LoggerD("Entered");
 }
 
 void BaseMessageServiceCallbackData::setError(const std::string& err_name,
@@ -222,6 +223,28 @@ double BaseMessageServiceCallbackData::getCallbackId() const
     return m_callback_id;
 }
 
+//#################### MessageBodyCallbackData ####################
+
+MessageBodyCallbackData::MessageBodyCallbackData()
+{
+    LoggerD("Entered");
+}
+
+MessageBodyCallbackData::~MessageBodyCallbackData()
+{
+    LoggerD("Entered");
+}
+
+void MessageBodyCallbackData::setMessage(std::shared_ptr<Message> message)
+{
+    m_message = message;
+}
+
+std::shared_ptr<Message> MessageBodyCallbackData::getMessage() const
+{
+    return m_message;
+}
+
 //#################### SyncCallbackData ####################
 
 SyncCallbackData::SyncCallbackData():
@@ -230,12 +253,12 @@ SyncCallbackData::SyncCallbackData():
         m_limit(0),
         m_account_id(-1)
 {
-    LOGD("Entered");
+    LoggerD("Entered");
 }
 
 SyncCallbackData::~SyncCallbackData()
 {
-    LOGD("Entered");
+    LoggerD("Entered");
 }
 
 void SyncCallbackData::setLimit(const unsigned long limit)
@@ -345,7 +368,7 @@ void MessageService::sendMessage(MessageRecipientsCallbackData *callback)
     throw common::NotSupportedException("Cannot send message");
 }
 
-void MessageService::loadMessageBody()
+void MessageService::loadMessageBody(MessageBodyCallbackData* callback)
 {
     // this method should be overwritten by specific services
     LoggerE("Cannot load message body");

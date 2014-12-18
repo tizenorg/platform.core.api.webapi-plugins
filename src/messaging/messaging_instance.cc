@@ -211,6 +211,24 @@ void MessagingInstance::MessageServiceLoadMessageBody(const picojson::value& arg
         picojson::object& out)
 {
     LoggerD("Entered");
+
+    picojson::object data = args.get(JSON_DATA).get<picojson::object>();
+    picojson::value message = data.at(ADD_DRAFT_MESSAGE_ARGS_MESSAGE);
+    const double callbackId = args.get(JSON_CALLBACK_ID).get<double>();
+
+    MessageBodyCallbackData* callback = new MessageBodyCallbackData();
+    callback->setMessage(MessagingUtil::jsonToMessage(message));
+
+    auto serviceId = static_cast<int>(
+            MessagingUtil::getValueFromJSONObject<double>(data, FUNCTIONS_HIDDEN_ARGS_SERVICE_ID));
+
+    auto json = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
+    picojson::object& obj = json->get<picojson::object>();
+    obj[JSON_CALLBACK_ID] = picojson::value(callbackId);
+    callback->setJson(json);
+
+    auto service = MessagingManager::getInstance().getMessageServiceEmail(serviceId);
+    service->loadMessageBody(callback);
 }
 
 void MessagingInstance::MessageServiceLoadMessageAttachment(const picojson::value& args,

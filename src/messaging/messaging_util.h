@@ -21,6 +21,8 @@ extern const char* JSON_CALLBACK_ERROR;
 extern const char* JSON_CALLBACK_PROGRESS;
 extern const char* JSON_CALLBACK_KEEP;
 extern const char* JSON_DATA;
+extern const char* JSON_DATA_MESSAGE;
+extern const char* JSON_DATA_MESSAGE_BODY;
 extern const char* JSON_ERROR_MESSAGE;
 extern const char* JSON_ERROR_NAME;
 
@@ -43,6 +45,7 @@ extern const char* MESSAGE_ATTRIBUTE_ATTACHMENTS;
 extern const char* MESSAGE_ATTRIBUTE_HAS_ATTACHMENT;
 extern const char* MESSAGE_ATTRIBUTE_MESSAGE_BODY;
 
+extern const char* MESSAGE_BODY_ATTRIBUTE_MESSAGE_ID;
 extern const char* MESSAGE_BODY_ATTRIBUTE_LOADED;
 extern const char* MESSAGE_BODY_ATTRIBUTE_PLAIN_BODY;
 extern const char* MESSAGE_BODY_ATTRIBUTE_HTML_BODY;
@@ -71,6 +74,7 @@ enum MessageStatus {
 };
 
 class Message;
+class MessageBody;
 
 class MessagingUtil {
 public:
@@ -81,6 +85,7 @@ public:
     static std::vector<std::string> extractEmailAddresses(
             const std::vector<std::string>& addresses);
 
+    static picojson::value messageBodyToJson(std::shared_ptr<MessageBody> body);
     static picojson::value messageToJson(std::shared_ptr<Message> message);
     static std::shared_ptr<Message> jsonToMessage(const picojson::value& json);
 

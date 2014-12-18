@@ -26,6 +26,8 @@ const char* JSON_CALLBACK_ERROR = "error";
 const char* JSON_CALLBACK_PROGRESS = "progress";
 const char* JSON_CALLBACK_KEEP = "keep";
 const char* JSON_DATA = "args";
+const char* JSON_DATA_MESSAGE = "message";
+const char* JSON_DATA_MESSAGE_BODY = "messageBody";
 const char* JSON_ERROR_MESSAGE = "message";
 const char* JSON_ERROR_NAME = "name";
 
@@ -48,6 +50,7 @@ const char* MESSAGE_ATTRIBUTE_ATTACHMENTS = "attachments";
 const char* MESSAGE_ATTRIBUTE_HAS_ATTACHMENT = "hasAttachment";
 const char* MESSAGE_ATTRIBUTE_MESSAGE_BODY = "body";
 
+const char* MESSAGE_BODY_ATTRIBUTE_MESSAGE_ID = "messageId";
 const char* MESSAGE_BODY_ATTRIBUTE_LOADED = "loaded";
 const char* MESSAGE_BODY_ATTRIBUTE_PLAIN_BODY = "plainBody";
 const char* MESSAGE_BODY_ATTRIBUTE_HTML_BODY = "htmlBody";
@@ -192,6 +195,17 @@ std::string MessagingUtil::messageStatusToString(MessageStatus status) {
     }
 }
 
+picojson::value MessagingUtil::messageBodyToJson(std::shared_ptr<MessageBody> body)
+{
+    picojson::object b;
+    b[MESSAGE_BODY_ATTRIBUTE_MESSAGE_ID] = picojson::value(std::to_string(body->getMessageId()));
+    b[MESSAGE_BODY_ATTRIBUTE_LOADED] = picojson::value(body->getLoaded());
+    b[MESSAGE_BODY_ATTRIBUTE_PLAIN_BODY] = picojson::value(body->getPlainBody());
+    b[MESSAGE_BODY_ATTRIBUTE_HTML_BODY] = picojson::value(body->getHtmlBody());
+    picojson::value v(b);
+    return v;
+}
+
 picojson::value MessagingUtil::messageToJson(std::shared_ptr<Message> message)
 {
     picojson::object o;
@@ -265,15 +279,15 @@ picojson::value MessagingUtil::messageToJson(std::shared_ptr<Message> message)
             ? picojson::value(std::to_string(message->getInResponseTo()))
             : picojson::value();
 
-
-    // TODO MessageBody
-
     // TODO MessageStatus has type MessageStatus
     //o[MESSAGE_ATTRIBUTE_MESSAGE_STATUS] = picojson::value(message->getMessageStatus());
 
+    std::shared_ptr<MessageBody> body = message->getBody();
+    o[MESSAGE_ATTRIBUTE_BODY] = MessagingUtil::messageBodyToJson(body);
+
+
     // TODO attachments
     //o[MESSAGE_ATTRIBUTE_ATTACHMENTS] = picojson::value(array);
-
 
     picojson::value v(o);
     return v;

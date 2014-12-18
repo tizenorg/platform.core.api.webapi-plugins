@@ -92,6 +92,26 @@ function propertyFactory_(that, name, value, flags, options) {
     );
 }
 
+function InternalValues_(data) {
+    if (!(this instanceof InternalValues_)) {
+        return new InternalValues_(data);
+    }
+    for(var key in data) {
+        if (data.hasOwnProperty(key)) {
+            this[key] = data[key];
+        }
+    }
+}
+
+function updateInternal_(internal, data) {
+    var values = new InternalValues_(data);
+    for(var key in data) {
+        if (data.hasOwnProperty(key) && internal.hasOwnProperty(key)) {
+            internal[key] = values;
+        }
+    }
+}
+
 /**
  * Specifies the Messaging service tags.
  */
@@ -107,6 +127,7 @@ function Message(type, data) {
     if (data === null || typeof data !== 'object') { // 'data' is optional
         data = {};
     }
+
     // set initial data from internal MessageInit_ object or to default values
     var internal       = data instanceof MessageInit_,
         id             = internal ? data.id             : null,
@@ -114,9 +135,9 @@ function Message(type, data) {
         folderId       = internal ? data.folderId       : null,
         timestamp      = internal ? data.timestamp      : null,
         from           = internal ? data.from           : null,
+        hasAttachment  = internal ? data.hasAttachment  : false,
         isRead         = internal ? data.isRead         : false,
-        inResponseTo   = internal ? data.inResponseTo   : null,
-        messageStatus  = internal ? data.messageStatus  : '';
+        inResponseTo   = internal ? data.inResponseTo   : null;
     // create MessageBody object
     var body = new MessageBody({messageId: id, plainBody: data.plainBody, htmlBody: data.htmlBody});
     // check 'to', 'cc' and 'bcc' fields
@@ -132,72 +153,271 @@ function Message(type, data) {
     if (!(bcc instanceof Array)) {
         bcc = [];
     }
-    // set properties
-    propertyFactory_(this, 'id'            , id                  || null , Property.E             );
-    propertyFactory_(this, 'conversationId', conversationId      || null , Property.E             );
-    propertyFactory_(this, 'folderId'      , folderId            || null , Property.E             );
-    propertyFactory_(this, 'type'          , type                || null , Property.E             );
-    propertyFactory_(this, 'timestamp'     , timestamp           || null , Property.E             );
-    propertyFactory_(this, 'from'          , from                || null , Property.E             );
-    propertyFactory_(this, 'to'            , to                  || []   , Property.E | Property.W); // TODO: setraises
-    propertyFactory_(this, 'cc'            , cc                  || []   , Property.E | Property.W); // TODO: setraises
-    propertyFactory_(this, 'bcc'           , bcc                 || []   , Property.E | Property.W); // TODO: setraises
-    propertyFactory_(this, 'body'          , body                        , Property.E | Property.W); // TODO: setraises
-    propertyFactory_(this, 'isRead'        , isRead              || false, Property.E | Property.W); // TODO: setraises
-    propertyFactory_(this, 'isHighPriority', data.isHighPriority || false, Property.E | Property.W); // TODO: setraises
-    propertyFactory_(this, 'inResponseTo'  , inResponseTo        || null , Property.E             ); // TODO: setraises
-    propertyFactory_(this, 'messageStatus' , messageStatus       || ''   , Property.E             );
     // 'attachments' private variable, getter and setter
     var attachments = (internal ? data.attachments : []) || [];
-    propertyFactory_(
+
+    var _internal = {
+        id: id || null,
+        conversationId: conversationId || null,
+        folderId: folderId || null,
+        type: type,
+        timestamp: timestamp || null,
+        from: from || null,
+        to: to || [],
+        cc: cc || [],
+        bcc: bcc || [],
+        body: body,
+        isRead: isRead || false,
+        hasAttachment: hasAttachment || false,
+        isHighPriority: data.isHighPriority || false,
+        subject: data.subject || '',
+        inResponseTo: inResponseTo || '',
+        attachments: attachments
+    }
+
+    // id
+    Object.defineProperty(
+        this,
+        'id',
+        {
+            get: function () {return _internal.id;},
+            set: function (value) { if (value instanceof InternalValues_) _internal.id = value.id;},
+            enumerable: true
+        }
+    );
+
+    //conversationId
+    Object.defineProperty(
+        this,
+        'conversationId',
+        {
+            get: function () {return _internal.conversationId;},
+            set: function (value) {
+                if (value instanceof InternalValues_)
+                    _internal.conversationId = value.conversationId;
+            },
+            enumerable: true
+        }
+    );
+
+    // folderId
+    Object.defineProperty(
+        this,
+        'folderId',
+        {
+            get: function () {return _internal.folderId;},
+            set: function (value) {
+                if (value instanceof InternalValues_) _internal.folderId = value.folderId;
+            },
+            enumerable: true
+        }
+    );
+
+    // type
+    Object.defineProperty(
+        this,
+        'type',
+        {
+            get: function () {return _internal.type;},
+            set: function (value) {return;},
+            enumerable: true
+        }
+    );
+
+    // timestamp
+    Object.defineProperty(
+        this,
+        'timestamp',
+        {
+            get: function () {return _internal.timestamp;},
+            set: function (value) {
+                if (value instanceof InternalValues_) _internal.timestamp = value.timestamp;
+            },
+            enumerable: true
+        }
+    );
+
+    // from
+    Object.defineProperty(
+        this,
+        'from',
+        {
+            get: function () {return _internal.from;},
+            set: function (value) {
+                if (value instanceof InternalValues_) _internal.from = value.from;
+            },
+            enumerable: true
+        }
+    );
+
+    // to
+    Object.defineProperty(
+        this,
+        'to',
+        {
+            get: function () {return _internal.to;},
+            set: function (value) {
+                if (value instanceof InternalValues_) value = value.to;
+                if (value instanceof Array) _internal.to = value;
+            },
+            enumerable: true
+        }
+    );
+
+    // cc
+    Object.defineProperty(
+        this,
+        'cc',
+        {
+            get: function () {return _internal.cc;},
+            set: function (value) {
+                if (value instanceof InternalValues_) value = value.cc;
+                if (value instanceof Array) _internal.cc = value;
+            },
+            enumerable: true
+        }
+    );
+
+    // bcc
+    Object.defineProperty(
+        this,
+        'bcc',
+        {
+            get: function () {return _internal.bcc;},
+            set: function (value) {
+                if (value instanceof InternalValues_) value = value.bcc;
+                if (value instanceof Array) _internal.bcc = value;
+            },
+            enumerable: true
+        }
+    );
+
+    // body
+    Object.defineProperty(
+        this,
+        'body',
+        {
+            get: function () {return _internal.body;},
+            set: function (value) {
+                if (value instanceof InternalValues_) value = value.body;
+                if (value instanceof MessageBody) _internal.body = value;
+            },
+            enumerable: true
+        }
+    );
+
+    // isRead
+    Object.defineProperty(
+        this,
+        'isRead',
+        {
+            get: function () {return _internal.isRead;},
+            set: function (value) {
+                if (value instanceof InternalValues_) value = value.isRead;
+                _internal.isRead = value;
+            },
+            enumerable: true
+        }
+    );
+
+    // hasAttachment
+    Object.defineProperty(
+        this,
+        'hasAttachment',
+        {
+            get: function () {return _internal.attachments.length > 0;},
+            set: function (value) {
+                if (value instanceof InternalValues_)
+                    _internal.hasAttachment = value.hasAttachment;
+            },
+            enumerable: true
+        }
+    );
+
+    // isHighPriority
+    Object.defineProperty(
+        this,
+        'isHighPriority',
+        {
+            get: function () {return _internal.isHighPriority;},
+            set: function (value) {
+                if (value instanceof InternalValues_) value = value.isHighPriority;
+                _internal.isHighPriority = value;
+            },
+            enumerable: true
+        }
+    );
+
+    // subject
+    Object.defineProperty(
+        this,
+        'subject',
+        {
+            get: function () {return _internal.subject;},
+            set: function (value) {
+                if (value instanceof InternalValues_) value = value.subject;
+                if (typeof value !== 'string') return;
+                _internal.subject = value;
+            },
+            enumerable: true
+        }
+    );
+
+    // inResponseTo
+    Object.defineProperty(
+        this,
+        'inResponseTo',
+        {
+            get: function () {return _internal.inResponseTo;},
+            set: function (value) {
+                if (value instanceof InternalValues_) _internal.inResponseTo = value.inResponseTo;
+            },
+            enumerable: true
+        }
+    );
+
+    // messageStatus
+    Object.defineProperty(
+        this,
+        'messageStatus',
+        {
+            get: function () {
+                if (_internal.id) {
+                    // TODO create CPP layer
+                    /*
+                     *return bridge.sync({
+                     *    cmd: 'Message_messageStatus',
+                     *    args: {
+                     *        id: _internal.id
+                     *    }
+                     *});
+                     */
+                    return _internal.messageStatus;
+                } else {
+                    return '';
+                }
+            },
+            set: function (value) {return;},
+            enumerable: true
+        }
+    );
+
+    // attachments
+    Object.defineProperty(
         this,
         'attachments',
-        undefined,
-        Property.E,
         {
-            get: function() {
-                return attachments;
-            },
-            set: function(newattachments) {
-                for (var k = 0; k < newattachments.length; ++k) {
-                    if (!(newattachments[k] instanceof tizen.MessageAttachment)) {
+            get: function () {return _internal.attachments;},
+            set: function(value) {
+                if (value instanceof InternalValues_) value = value.attachments;
+                for (var k = 0; k < value.length; ++k) {
+                    if (!(value[k] instanceof tizen.MessageAttachment)) {
                         return;
                     }
                 }
-                attachments = newattachments;
-            }
-        }
-    );
-    // 'subject' private variable, getter and setter
-    var subject = data.subject || '';
-    propertyFactory_(
-        this,
-        'subject',
-        undefined,
-        Property.E,
-        {
-            get: function() {
-                return subject;
+                _internal.attachments = value;
             },
-            set: function(newsubject) {
-                if (typeof newsubject !== 'string') {
-                    subject = '';
-                    return;
-                }
-                subject = newsubject;
-            }
-        }
-    );
-    // 'hasAttachment' getter
-    propertyFactory_(
-        this,
-        'hasAttachment',
-        undefined,
-        Property.E,
-        {
-            get: function() {
-                return this.attachments.length > 0;
-            }
+            enumerable: true
         }
     );
 };
@@ -239,7 +459,6 @@ function MessageInit_(data) {
     this.isHighPriority = data.isHighPriority || false;
     this.subject        = data.subject        || '';
     this.inResponseTo   = data.inResponseTo   || null;
-    this.messageStatus  = data.messageStatus  || '';
     this.attachments    = data.attachments    || [];
 };
 
@@ -372,16 +591,24 @@ MessageService.prototype.loadMessageBody = function () {
         {name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true}
     ]);
 
+    var self = this;
+
     bridge.async({
         cmd: 'MessageService_loadMessageBody',
         args: {
-            message: args.message
+            message: args.message,
+            serviceId: self.id
         }
     }).then({
         success: function (data) {
+            var body = data.messageBody;
+            if (body) {
+                args.message.body = new MessageBody(data.messageBody);
+            }
+
             args.successCallback.call(
                 null,
-                new tizen.Message(data.type, new MessageInit_(data.messageInit))
+                args.message
             );
         },
         error: function (e) {
@@ -524,7 +751,12 @@ MessageStorage.prototype.addDraftMessage = function () {
             serviceId: this.service.id
         }
     }).then({
-        success: function () {
+        success: function (data) {
+            var message = data.message;
+            if (message) {
+                updateInternal_(args.message, message);
+            }
+
             if (args.successCallback) {
                 args.successCallback.call(null);
             }

@@ -66,10 +66,36 @@ void MessageServiceEmail::sendMessage(MessageRecipientsCallbackData *callback)
     }
 }
 
-void MessageServiceEmail::loadMessageBody()
+static gboolean loadMessageBodyTask(void* data)
 {
     LoggerD("Entered");
-    //TODO add implementation
+    try {
+        EmailManager::getInstance().loadMessageBody(static_cast<MessageBodyCallbackData*>(data));
+
+    } catch(const common::PlatformException& exception) {
+        LoggerE("Unhandled exception: %s (%s)!", (exception.name()).c_str(),
+             (exception.message()).c_str());
+    } catch(...) {
+        LoggerE("Unhandled exception!");
+    }
+
+    return FALSE;
+}
+
+void MessageServiceEmail::loadMessageBody(MessageBodyCallbackData* callback)
+{
+    LoggerD("Entered");
+    if (!callback) {
+        LoggerE("Callback is null");
+        throw common::UnknownException("Callback is null");
+    }
+
+    guint id = g_idle_add(loadMessageBodyTask, static_cast<void*>(callback));
+    if (!id) {
+        LoggerE("g_idle_add failed");
+        delete callback;
+        throw common::UnknownException("Could not add task");
+    }
 }
 
 void MessageServiceEmail::loadMessageAttachment()
