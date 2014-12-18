@@ -274,7 +274,8 @@ var SystemInfoPropertyId = {
         WIFI_NETWORK : 'WIFI_NETWORK',
         CELLULAR_NETWORK : 'CELLULAR_NETWORK',
         SIM : 'SIM',
-        PERIPHERAL : 'PERIPHERAL'
+        PERIPHERAL : 'PERIPHERAL',
+        MEMORY : 'MEMORY'
 };
 
 //class SystemInfoDeviceCapability ////////////////////////////////////////////////////
@@ -818,6 +819,13 @@ function SystemInfoPeripheral(data) {
     });
 }
 
+//class SystemInfoMemory ////////////////////////////////////////////////////
+function SystemInfoMemory(data) {
+    Object.defineProperties(this, {
+        state : {value: data.state, writable: false, enumerable: true}
+    });
+}
+
 //class SystemInfo ////////////////////////////////////////////////////
 var SystemInfo = function() {
 };
@@ -935,6 +943,7 @@ var _wifiNetworkStr = SystemInfoPropertyId.WIFI_NETWORK;
 var _cellularNetworkStr = SystemInfoPropertyId.CELLULAR_NETWORK;
 var _simStr = SystemInfoPropertyId.SIM;
 var _peripheralStr = SystemInfoPropertyId.PERIPHERAL;
+var _memoryStr = SystemInfoPropertyId.MEMORY;
 
 var _nextId = 0;
 
@@ -1133,6 +1142,22 @@ function _systeminfoPeripheralListenerCallback(event) {
     }
 }
 
+function _systeminfoMemoryListenerCallback(event) {
+    var property = _memoryStr;
+    var eventObj = JSON.parse(event);
+    var callbacks = _propertyContainer[property].callbacks;
+
+    for (var watchId in callbacks) {
+        if (callbacks.hasOwnProperty(watchId)) {
+            var listener = callbacks[watchId];
+            var propObj = !listener.isArrayType ?
+                    _createProperty(property, eventObj.result.array[0]) :
+                        _createPropertyArray(property, eventObj.result);
+            callbacks[watchId].callback(propObj);
+        }
+    }
+}
+
 var _propertyContainer = {
         'BATTERY' : {
             callbacks : {},
@@ -1205,6 +1230,12 @@ var _propertyContainer = {
             constructor : SystemInfoPeripheral,
             broadcastFunction : _systeminfoPeripheralListenerCallback,
             signalLabel : 'SystemInfoPeripheralChangeBroadcast'
+        },
+        'MEMORY' : {
+            callbacks : {},
+            constructor : SystemInfoMemory,
+            broadcastFunction : _systeminfoMemoryListenerCallback,
+            signalLabel : 'SystemInfoMemoryChangeBroadcast'
         }
 };
 

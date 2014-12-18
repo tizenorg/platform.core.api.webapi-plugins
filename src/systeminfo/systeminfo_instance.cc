@@ -31,6 +31,7 @@ static void OnNetworkChangedCallback();
 static void OnWifiNetworkChangedCallback();
 static void OnCellularNetworkChangedCallback();
 static void OnPeripheralChangedCallback();
+static void OnMemoryChangedCallback();
 
 namespace {
 const std::string kPropertyIdBattery = "BATTERY";
@@ -45,6 +46,7 @@ const std::string kPropertyIdWifiNetwork = "WIFI_NETWORK";
 const std::string kPropertyIdCellularNetwork = "CELLULAR_NETWORK";
 const std::string kPropertyIdSim = "SIM";
 const std::string kPropertyIdPeripheral = "PERIPHERAL";
+const std::string kPropertyIdMemory= "MEMORY";
 }
 
 SysteminfoInstance& SysteminfoInstance::getInstance() {
@@ -320,6 +322,8 @@ void SysteminfoInstance::AddPropertyValueChangeListener(const picojson::value& a
             LoggerW("SIM listener is not supported by Core API - ignoring");
         } else if (property_name == kPropertyIdPeripheral) {
             SysteminfoUtils::RegisterPeripheralListener(OnPeripheralChangedCallback);
+        } else if (property_name == kPropertyIdMemory) {
+            SysteminfoUtils::RegisterMemoryListener(OnMemoryChangedCallback);
         } else {
             LoggerE("Not supported property");
             throw InvalidValuesException("Not supported property");
@@ -404,6 +408,8 @@ void SysteminfoInstance::RemovePropertyValueChangeListener(const picojson::value
             LoggerW("SIM listener is not supported by Core API - ignoring");
         } else if (property_name == kPropertyIdPeripheral) {
             SysteminfoUtils::UnregisterPeripheralListener();
+        } else if (property_name == kPropertyIdMemory) {
+            SysteminfoUtils::UnregisterMemoryListener();
         } else {
             LoggerE("Not supported property");
             throw InvalidValuesException("Not supported property");
@@ -548,6 +554,19 @@ void OnPeripheralChangedCallback()
     response->get<picojson::object>()["propertyId"] = picojson::value(kPropertyIdPeripheral);
 
     picojson::value result = SysteminfoUtils::GetPropertyValue(kPropertyIdPeripheral, true);
+    ReportSuccess(result,response->get<picojson::object>());
+
+    SysteminfoInstance::getInstance().PostMessage(response->serialize().c_str());
+}
+
+void OnMemoryChangedCallback()
+{
+    LoggerD("");
+    const std::shared_ptr<picojson::value>& response =
+            std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
+    response->get<picojson::object>()["propertyId"] = picojson::value(kPropertyIdMemory);
+
+    picojson::value result = SysteminfoUtils::GetPropertyValue(kPropertyIdMemory, true);
     ReportSuccess(result,response->get<picojson::object>());
 
     SysteminfoInstance::getInstance().PostMessage(response->serialize().c_str());
