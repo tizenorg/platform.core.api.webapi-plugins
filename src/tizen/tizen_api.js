@@ -59,8 +59,8 @@ exports.WebAPIException = function(code, message, name) {
 
   if (typeof code !== 'number') {
     _code = 0;
-    _message = errors[0].message;
-    _name = errors[0].name;
+    _message = message || errors[0].message;
+    _name = name || errors[0].name;
   } else {
     _code = code;
     if (typeof message === 'string') {
