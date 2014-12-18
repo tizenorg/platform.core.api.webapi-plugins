@@ -246,6 +246,23 @@ NFCAdapter.prototype.getCachedMessage = function() {
 
 NFCAdapter.prototype.setExclusiveModeForTransaction = function() {
 
+    var args = validator_.validateArgs(arguments, [
+        {
+            name : 'transactionMode',
+            type : types_.BOOLEAN
+        }
+    ]);
+
+    var result = native_.callSync(
+        'NFCAdapter_setExclusiveModeForTransaction',
+        { 'transactionMode': args.transactionMode}
+    );
+
+    if(native_.isFailure(result)) {
+        throw new tizen.WebAPIException(0, result.error.message, result.error.name);
+        // throw native_.getErrorObject(result);
+    }
+    return;
 };
 
 //////////////////NFCTag /////////////////
