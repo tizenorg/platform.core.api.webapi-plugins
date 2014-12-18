@@ -21,5 +21,5 @@ SysteminfoExtension::SysteminfoExtension() {
 SysteminfoExtension::~SysteminfoExtension() {}
 
 common::Instance* SysteminfoExtension::CreateInstance() {
-  return new extension::systeminfo::SysteminfoInstance;
+  return &extension::systeminfo::SysteminfoInstance::getInstance();
 }

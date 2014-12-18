@@ -13,15 +13,17 @@ namespace systeminfo {
 class SysteminfoInstance
     : public common::ParsedInstance
 {
- public:
-  SysteminfoInstance();
-  virtual ~SysteminfoInstance();
+public:
+    static SysteminfoInstance& getInstance();
 
- private:
-  void GetCapabilities(const picojson::value& args, picojson::object& out);
-  void GetCapability(const picojson::value& args, picojson::object& out);
-  void GetPropertyValue(const picojson::value& args, picojson::object& out);
-
+private:
+    SysteminfoInstance();
+    virtual ~SysteminfoInstance();
+    void GetCapabilities(const picojson::value& args, picojson::object& out);
+    void GetCapability(const picojson::value& args, picojson::object& out);
+    void GetPropertyValue(const picojson::value& args, picojson::object& out);
+    void AddPropertyValueChangeListener(const picojson::value& args, picojson::object& out);
+    void RemovePropertyValueChangeListener(const picojson::value& args, picojson::object& out);
 };
 
 } // namespace systeminfo
