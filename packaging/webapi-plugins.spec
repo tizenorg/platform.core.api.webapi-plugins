@@ -256,5 +256,17 @@ ninja -C out/Default %{?_smp_mflags}
 mkdir -p %{buildroot}%{_libdir}/%{crosswalk_extensions}
 install -p -m 644 out/Default/libtizen*.so %{buildroot}%{_libdir}/%{crosswalk_extensions}
 
+%if 0%{?tizen_feature_tvaudio_support}
+# tv audio beep files:
+%define ringtones_directory /opt/usr/share/settings/Ringtones/
+mkdir -p %{buildroot}%{ringtones_directory}
+cp res/tvsounds/*.pcm %{buildroot}%{ringtones_directory}
+%endif
+
+
 %files
 %{_libdir}/%{crosswalk_extensions}/libtizen*.so
+%if 0%{?tizen_feature_tvaudio_support}
+# tv audio beep files:
+%{ringtones_directory}/*.pcm
+%endif
