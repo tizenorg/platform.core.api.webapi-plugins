@@ -82,7 +82,7 @@ void Calendar::Get(const picojson::object& args, picojson::object& out) {
   CalendarRecordPtr record_ptr =
       CalendarRecord::GetById(id, CalendarRecord::TypeToUri(type));
   picojson::value record_obj = picojson::value(picojson::object());
-  CalendarItem::ToJson(type, record_ptr.get(), &record_obj.get<picojson::object>());
+  CalendarItem::ToJson(type, record_ptr.get(), &out);
 
 }
 
@@ -100,17 +100,15 @@ void Calendar::Add(const picojson::object& args, picojson::object& out) {
   CalendarItem::FromJson(type, item_ptr.get(), item);
   int record_id = CalendarRecord::Insert(item_ptr.get());
 
-  picojson::value result = picojson::value(picojson::object());
-  picojson::object& result_obj = result.get<picojson::object>();
-  result_obj.insert(std::make_pair("uid", std::to_string(record_id)));
+  out.insert(std::make_pair("uid", std::to_string(record_id)));
 
   if (type == CALENDAR_BOOK_TYPE_EVENT) {
     std::string rid = CalendarRecord::GetString(item_ptr.get(),
                                                 _calendar_event.recurrence_id);
     if (!rid.empty()) {
-      result_obj["rid"] = picojson::value(rid);
+      out["rid"] = picojson::value(rid);
     } else {
-      result_obj["rid"] = picojson::value();
+      out["rid"] = picojson::value();
     }
   }
 
