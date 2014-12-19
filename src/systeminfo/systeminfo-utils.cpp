@@ -69,6 +69,8 @@ namespace extension {
 namespace systeminfo {
 
 namespace {
+const std::string MEMORY_STATE_NORMAL = "NORMAL";
+const std::string MEMORY_STATE_WARNING = "WARNING";
 const int MEMORY_TO_BYTE = 1024;
 }
 using namespace common;
@@ -87,6 +89,7 @@ static void OnNetworkValueChangedCb(const char* ipv4_address,
         const char* ipv6_address, void* event_ptr);
 static void OnCellularNetworkValueChangedCb(keynode_t *node, void *event_ptr);
 static void OnPeripheralChangedCb(keynode_t* node, void* event_ptr);
+static void OnMemoryChangedCb(keynode_t* node, void* event_ptr);
 
 static void SimCphsValueCallback(TapiHandle *handle, int result, void *data, void *user_data);
 static void SimMsisdnValueCallback(TapiHandle *handle, int result, void *data, void *user_data);
@@ -719,6 +722,8 @@ public:
     void UnregisterCellularNetworkListener();
     void RegisterPeripheralListener(const SysteminfoUtilsCallback& callback);
     void UnregisterPeripheralListener();
+    void RegisterMemoryListener(const SysteminfoUtilsCallback& callback);
+    void UnregisterMemoryListener();
 
     void SetCpuInfoLoad(double load);
     void SetAvailableCapacityInternal(unsigned long long capacity);
@@ -737,6 +742,7 @@ public:
             const char* ipv6_address, void* event_ptr);
     void OnCellularNetworkValueCallback(keynode_t *node, void *event_ptr);
     void OnPeripheralChangedCallback(keynode_t* node, void* event_ptr);
+    void OnMemoryChangedCallback(keynode_t* node, void* event_ptr);
 
     TapiHandle* GetTapiHandle();
     TapiHandle** GetTapiHandles();
@@ -769,6 +775,7 @@ private:
     SysteminfoUtilsCallback m_wifi_network_listener;
     SysteminfoUtilsCallback m_cellular_network_listener;
     SysteminfoUtilsCallback m_peripheral_listener;
+    SysteminfoUtilsCallback m_memory_listener;
 
     TapiHandle *m_tapi_handles[TAPI_HANDLE_MAX+1];
     //for ip change callback
@@ -794,6 +801,7 @@ SystemInfoListeners::SystemInfoListeners():
         m_wifi_network_listener(nullptr),
         m_cellular_network_listener(nullptr),
         m_peripheral_listener(nullptr),
+        m_memory_listener(nullptr),
         m_connection_handle(nullptr)
 {
     LOGD("Entered");
@@ -810,6 +818,7 @@ SystemInfoListeners::~SystemInfoListeners(){
     UnregisterWifiNetworkListener();
     UnregisterCellularNetworkListener();
     UnregisterPeripheralListener();
+    UnregisterMemoryListener();
 
     unsigned int i = 0;
     while(m_tapi_handles[i]) {
@@ -1108,6 +1117,35 @@ void SystemInfoListeners::UnregisterPeripheralListener()
     }
 }
 
+void SystemInfoListeners::RegisterMemoryListener(const SysteminfoUtilsCallback& callback)
+{
+    if (nullptr == m_memory_listener) {
+        try {
+            int value = 0;
+            if (-1 != vconf_get_int(VCONFKEY_SYSMAN_LOW_MEMORY, &value)) {
+                RegisterVconfCallback(VCONFKEY_SYSMAN_LOW_MEMORY, OnMemoryChangedCb);
+            }
+        } catch (const PlatformException& e) {
+            // empty on purpose
+        }
+        LOGD("Added callback for MEMORY");
+        m_memory_listener = callback;
+    }
+}
+
+void SystemInfoListeners::UnregisterMemoryListener()
+{
+    if (nullptr != m_memory_listener) {
+        try {
+            UnregisterVconfCallback(VCONFKEY_SYSMAN_LOW_MEMORY, OnMemoryChangedCb);
+        } catch (const PlatformException& e) {
+            // empty on purpose
+        }
+        LOGD("Removed callback for MEMORY");
+        m_memory_listener = nullptr;
+    }
+}
+
 void SystemInfoListeners::SetCpuInfoLoad(double load)
 {
     m_cpu_load = load;
@@ -1231,6 +1269,13 @@ void SystemInfoListeners::OnPeripheralChangedCallback(keynode_t* /*node*/, void*
 {
     if (nullptr != m_peripheral_listener) {
         m_peripheral_listener();
+    }
+}
+
+void SystemInfoListeners::OnMemoryChangedCallback(keynode_t* /*node*/, void* /*event_ptr*/)
+{
+    if (nullptr != m_memory_listener) {
+        m_memory_listener();
     }
 }
 
@@ -1409,6 +1454,12 @@ void OnPeripheralChangedCb(keynode_t* node, void* event_ptr)
     system_info_listeners.OnPeripheralChangedCallback(node, event_ptr);
 }
 
+void OnMemoryChangedCb(keynode_t* node, void* event_ptr)
+{
+    LOGD("");
+    system_info_listeners.OnMemoryChangedCallback(node, event_ptr);
+}
+
 /////////////////////////// SysteminfoUtils ////////////////////////////////
 
 static bool GetValueBool(const char *key) {
@@ -1552,7 +1603,7 @@ unsigned long SysteminfoUtils::GetCount(const std::string& property)
             "DISPLAY" == property || "DEVICE_ORIENTATION" == property ||
             "BUILD" == property || "LOCALE" == property || "NETWORK" == property ||
             "WIFI_NETWORK" == property || "CELLULAR_NETWORK" == property ||
-            "PERIPHERAL" == property) {
+            "PERIPHERAL" == property || "MEMORY" == property) {
         count = DEFAULT_PROPERTY_COUNT;
     } else if ("SIM" == property) {
         count = sim_mgr.GetSimCount(system_info_listeners.GetTapiHandles());
@@ -1603,6 +1654,8 @@ picojson::value SysteminfoUtils::GetPropertyValue(const std::string& property, b
             ReportSim(result_obj, i);
         } else if ("PERIPHERAL" == property) {
             ReportPeripheral(result_obj);
+        } else if ("MEMORY" == property) {
+            ReportMemory(result_obj);
         } else {
             LOGD("Property with given id is not supported");
             throw NotSupportedException("Property with given id is not supported");
@@ -2236,6 +2289,26 @@ void SysteminfoUtils::ReportPeripheral(picojson::object& out) {
     out.insert(std::make_pair(kVideoOutputString, false));
 }
 
+void SysteminfoUtils::ReportMemory(picojson::object& out) {
+    std::string state = MEMORY_STATE_NORMAL;
+    try {
+        int status = GetVconfInt(VCONFKEY_SYSMAN_LOW_MEMORY);
+        switch (status) {
+        case VCONFKEY_SYSMAN_LOW_MEMORY_SOFT_WARNING:
+        case VCONFKEY_SYSMAN_LOW_MEMORY_HARD_WARNING:
+            state = MEMORY_STATE_WARNING;
+            break;
+        case VCONFKEY_SYSMAN_LOW_MEMORY_NORMAL:
+        default:
+            state = MEMORY_STATE_NORMAL;
+        }
+    } catch (const PlatformException& e) {
+        // empty on purpose
+    }
+
+    out.insert(std::make_pair("state", state));
+}
+
 static void CreateStorageInfo(const std::string& type, struct statfs& fs, picojson::object* out) {
     out->insert(std::make_pair("type", type));
     out->insert(std::make_pair("capacity", std::to_string(
@@ -2382,6 +2455,17 @@ void SysteminfoUtils::UnregisterPeripheralListener()
 {
     system_info_listeners.UnregisterPeripheralListener();
 }
+
+void SysteminfoUtils::RegisterMemoryListener(const SysteminfoUtilsCallback& callback)
+{
+    system_info_listeners.RegisterMemoryListener(callback);
+}
+
+void SysteminfoUtils::UnregisterMemoryListener()
+{
+    system_info_listeners.UnregisterMemoryListener();
+}
+
 
 static bool CheckStringCapability(const std::string& key, std::string* value)
 {

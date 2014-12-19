@@ -61,6 +61,8 @@ public:
     static void UnregisterCellularNetworkListener();
     static void RegisterPeripheralListener(const SysteminfoUtilsCallback& callback);
     static void UnregisterPeripheralListener();
+    static void RegisterMemoryListener(const SysteminfoUtilsCallback& callback);
+    static void UnregisterMemoryListener();
 
 private:
     static void ReportBattery(picojson::object& out);
@@ -76,6 +78,7 @@ private:
     static void ReportCellularNetwork(picojson::object& out);
     static void ReportSim(picojson::object& out, unsigned long count);
     static void ReportPeripheral(picojson::object& out);
+    static void ReportMemory(picojson::object& out);
 
     static void ReportStorage(picojson::object& out);
 };
