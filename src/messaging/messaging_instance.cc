@@ -11,6 +11,7 @@
 
 #include "MsgCommon/AbstractFilter.h"
 #include "messages_change_callback.h"
+#include "messages_callback_user_data.h"
 #include "messaging_manager.h"
 #include "messaging_util.h"
 #include "message_storage.h"
@@ -117,9 +118,11 @@ MessagingInstance::MessagingInstance()
       REGISTER_ASYNC(FUN_MESSAGE_STORAGE_ADD_DRAFT_MESSAGE, MessageStorageAddDraft);
       REGISTER_ASYNC(FUN_MESSAGE_STORAGE_FIND_MESSAGES, MessageStorageFindMessages);
       REGISTER_ASYNC(FUN_MESSAGE_STORAGE_REMOVE_MESSAGES, MessageStorageRemoveMessages);
+      REGISTER_ASYNC(FUN_MESSAGE_STORAGE_UPDATE_MESSAGES, MessageStorageUpdateMessages);
       REGISTER_ASYNC(FUN_MESSAGE_STORAGE_FIND_CONVERSATIONS, MessageStorageFindConversations);
       REGISTER_ASYNC(FUN_MESSAGE_STORAGE_REMOVE_CONVERSATIONS, MessageStorageRemoveConversations);
       REGISTER_ASYNC(FUN_MESSAGE_STORAGE_FIND_FOLDERS, MessageStorageFindFolders);
+      REGISTER_ASYNC(FUN_MESSAGE_STORAGE_ADD_MESSAGES_CHANGE_LISTENER, MessageStorageAddMessagesChangeListener);
       REGISTER_ASYNC(FUN_MESSAGE_STORAGE_ADD_CONVERSATIONS_CHANGE_LISTENER, MessageStorageAddConversationsChangeListener);
       REGISTER_ASYNC(FUN_MESSAGE_STORAGE_ADD_FOLDER_CHANGE_LISTENER, MessageStorageAddFolderChangeListener);
     #undef REGISTER_ASYNC
@@ -167,6 +170,7 @@ void MessagingInstance::GetMessageServices(const picojson::value& args,
              msg.attachments = [new tizen.MessageAttachment("images/myimage.png", "image/png")];
              services[0].sendMessage(msg, function(data){
                  console.log("Send email success");
+                 console.dir(data);
              }, function(){
                  console.log("Send email failed");
              });
@@ -381,6 +385,29 @@ void MessagingInstance::MessageStorageUpdateMessages(const picojson::value& args
         picojson::object& out)
 {
     LoggerD("Entered");
+
+    picojson::object data = args.get(JSON_DATA).get<picojson::object>();
+    picojson::value pico_messages = data.at(UPDATE_MESSAGES_ARGS_MESSAGES);
+    auto pico_array = pico_messages.get<picojson::array>();
+    const double callbackId = args.get(JSON_CALLBACK_ID).get<double>();
+
+    auto callback = new MessagesCallbackUserData();
+
+    std::vector<std::shared_ptr<Message>> messages;
+    std::for_each(pico_array.begin(), pico_array.end(), [&callback](picojson::value& v)->void {
+       callback->addMessage(MessagingUtil::jsonToMessage(v));
+    });
+
+    auto json = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
+    picojson::object& obj = json->get<picojson::object>();
+    obj[JSON_CALLBACK_ID] = picojson::value(callbackId);
+    callback->setJson(json);
+
+    int serviceId = static_cast<int>
+            (MessagingUtil::getValueFromJSONObject<double>(data,FUNCTIONS_HIDDEN_ARGS_SERVICE_ID));
+    auto service = MessagingManager::getInstance().getMessageServiceEmail(serviceId);
+
+    service->getMsgStorage()->updateMessages(callback);
 }
 
 void MessagingInstance::MessageStorageFindConversations(const picojson::value& args,

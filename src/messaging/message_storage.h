@@ -31,7 +31,7 @@ public:
 
     virtual void addDraftMessage(MessageCallbackUserData* callback) = 0;
     virtual void removeMessages(MessagesCallbackUserData* callback) = 0;
-    virtual void updateMessages() = 0;
+    virtual void updateMessages(MessagesCallbackUserData* callback) = 0;
     virtual void findMessages() = 0;
     virtual void findConversations() = 0;
     virtual void removeConversations() = 0;

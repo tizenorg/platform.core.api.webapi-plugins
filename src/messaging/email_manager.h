@@ -61,7 +61,7 @@ public:
 
     void addDraftMessage(MessageCallbackUserData* callback);
     void removeMessages(MessagesCallbackUserData* callback);
-//    void updateMessages(MessagesCallbackUserData* callback);
+    void updateMessages(MessagesCallbackUserData* callback);
     void findMessages(FindMsgCallbackUserData* callback);
 //    void findConversations(ConversationCallbackData* callback);
 //    void findFolders(FoldersCallbackData* callback);

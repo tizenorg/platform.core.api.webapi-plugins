@@ -17,7 +17,7 @@ public:
 
     virtual void addDraftMessage(MessageCallbackUserData* callback);
     virtual void removeMessages(MessagesCallbackUserData* callback);
-    virtual void updateMessages();
+    virtual void updateMessages(MessagesCallbackUserData* callback);
     virtual void findMessages();
     virtual void findConversations();
     virtual void removeConversations();

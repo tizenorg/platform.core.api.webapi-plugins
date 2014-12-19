@@ -134,35 +134,32 @@ void MessageProxy::handleEmailEvent(int account_id, int mail_id, int thread_id, 
         throw common::UnknownException("Failed to load email");
     }
     std::shared_ptr<Message> msg = Message::convertPlatformEmailToObject(*mail_data);
-    // TODO
-    //ConversationPtr conv = MessageConversation::convertEmailConversationToObject(
-            //thread_id);
+//    TODO uncomment when conversations will be available
+//    ConversationPtr conv = MessageConversation::convertEmailConversationToObject(
+//            thread_id);
 
     EventMessages* eventMsg = new EventMessages();
     eventMsg->service_type = MessageType::EMAIL;
     eventMsg->service_id = account_id;
     eventMsg->items.push_back(msg);
-    // TODO
-    //EventConversations* eventConv = new EventConversations();
-    //eventConv->service_type = MessageType::EMAIL;
-    //eventConv->service_id = account_id;
-    //eventConv->items.push_back(conv);
+//    EventConversations* eventConv = new EventConversations();
+//    eventConv->service_type = MessageType::EMAIL;
+//    eventConv->service_id = account_id;
+//    eventConv->items.push_back(conv);
     switch (event) {
         case NOTI_MAIL_ADD:
             ChangeListenerContainer::getInstance().callMessageAdded(eventMsg);
-            // TODO
-            //if (conv->getMessageCount() == 1) {
-                //LoggerD("This thread is new, triggering conversationAdded");
-                //ChangeListenerContainer::getInstance().callConversationAdded(eventConv);
-            //} else {
-                //LoggerD("This thread is not new, but it's updated");
-                //ChangeListenerContainer::getInstance().callConversationUpdated(eventConv);
-            //}
+//            if (conv->getMessageCount() == 1) { TODO
+//                LoggerD("This thread is new, triggering conversationAdded");
+//                ChangeListenerContainer::getInstance().callConversationAdded(eventConv);
+//            } else {
+//                LoggerD("This thread is not new, but it's updated");
+//                ChangeListenerContainer::getInstance().callConversationUpdated(eventConv);
+//            }
             break;
         case NOTI_MAIL_UPDATE:
             ChangeListenerContainer::getInstance().callMessageUpdated(eventMsg);
-            // TODO
-            //ChangeListenerContainer::getInstance().callConversationUpdated(eventConv);
+//            ChangeListenerContainer::getInstance().callConversationUpdated(eventConv);
             break;
         default:
             LoggerW("Unknown event type: %d", event);
@@ -170,8 +167,7 @@ void MessageProxy::handleEmailEvent(int account_id, int mail_id, int thread_id, 
 
     }
     delete eventMsg;
-    // TODO
-    //delete eventConv;
+//    delete eventConv;
 
     EmailManager::getInstance().freeMessage(mail_data);
 }
@@ -232,9 +228,8 @@ void MessageProxy::notifyEmailManager(const std::string& idsString,
 
 void MessageProxy::handleThreadRemoveEvent(int account_id, int thread_id)
 {
-/*
- *    LoggerD("Enter");
- *    //event is called after thread is removed, so we just set thread id
+    LoggerD("Enter");
+/*    //event is called after thread is removed, so we just set thread id
  *    ConversationPtr conv = std::make_shared<MessageConversation>();
  *    conv->setConversationId(thread_id);
  *
@@ -250,9 +245,8 @@ void MessageProxy::handleThreadRemoveEvent(int account_id, int thread_id)
 
 void MessageProxy::handleMailboxEvent(int account_id, int mailbox_id, int event)
 {
-/*
- *    LoggerD("Enter");
- *
+    LoggerD("Enter");
+ /*
  *    EventFolders* eventFolder = new EventFolders();
  *    eventFolder->service_type = MessageType::EMAIL;
  *    eventFolder->service_id = account_id;

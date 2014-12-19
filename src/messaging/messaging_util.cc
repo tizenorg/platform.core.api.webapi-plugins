@@ -336,7 +336,6 @@ std::shared_ptr<Message> MessagingUtil::jsonToMessage(const picojson::value& jso
             } else {
                 message = Message::convertPlatformEmailToObject(*mail);
                 email_free_mail_data(&mail,1);
-                return message;
             }
         } else {
             message = std::shared_ptr<Message>(new MessageEmail());

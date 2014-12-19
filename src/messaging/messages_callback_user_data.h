@@ -6,10 +6,11 @@
 #define MESSAGING_MESSAGES_CALLBACK_USER_DATA_H_
 
 #include "common/callback_user_data.h"
-#include "messaging_util.h"
 
 #include <memory>
 #include <string>
+
+#include "messaging_util.h"
 
 namespace extension {
 namespace messaging {
@@ -46,4 +47,3 @@ private:
 }//extension
 
 #endif /* MESSAGING_MESSAGES_CALLBACK_USER_DATA_H_ */
-

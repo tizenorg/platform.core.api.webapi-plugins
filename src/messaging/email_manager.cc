@@ -942,105 +942,96 @@ void EmailManager::removeMessages(MessagesCallbackUserData* callback)
     }
 }
 
-//void EmailManager::updateMessages(MessagesCallbackUserData* callback)
-//{
-//    LoggerD("Entered");
-//
-//    if (!callback){
-//        LoggerE("Callback is null");
-//        return;
-//    }
-//
-//    int error;
-//    email_mail_data_t *mail = NULL;
-//
-//    try {
-//        std::lock_guard<std::mutex> lock(m_mutex);
-//        std::vector<std::shared_ptr<Message>> messages = callback->getMessages();
-//        MessageType type = callback->getMessageServiceType();
-//        for (auto it = messages.begin() ; it != messages.end(); ++it) {
-//            if ((*it)->getType() != type) {
-//                LoggerE("Invalid message type");
-//                throw TypeMismatchException("Error while updating message");
-//            }
-//        }
-//        for (auto it = messages.begin() ; it != messages.end(); ++it) {
-//
-//            mail = Message::convertPlatformEmail((*it));
-//
-//            if((*it)->getHasAttachment())
-//            {
-//                LoggerD("Message has attachments. Workaround need to be used.");
-//                //Update of mail on server using function email_update_mail() is not possible.
-//                //Attachment is updated only locally (can't be later loaded from server),
-//                //so use of workaround is needed:
-//                //1. add new mail
-//                //2. delete old mail
-//
-//                //adding message again after changes
-//                addDraftMessagePlatform(mail->account_id, (*it));
-//                LoggerD("mail added - new id = [%d]\n", (*it)->getId());
-//
-//                //deleting old mail
-//                LoggerD("mail deleted = [%d]\n", mail->mail_id);
-//                error = email_delete_mail(mail->mailbox_id,&mail->mail_id,1,1);
-//                if (EMAIL_ERROR_NONE != error) {
-//                    email_free_mail_data(&mail, 1);
-//                    LoggerE("Error while deleting old mail on update: %d", error);
-//                    throw Common::UnknownException("Error while deleting old mail on update");
-//                }
-//            } else {
-//                LoggerD("There are no attachments, updating only email data.");
-//                error = email_update_mail(mail, NULL, 0, NULL, 0);
-//                if (EMAIL_ERROR_NONE != error) {
-//                    email_free_mail_data(&mail, 1);
-//                    LoggerE("Error while updating mail");
-//                    throw UnknownException("Error while updating mail");
-//                }
-//            }
-//
-//            email_free_mail_data(&mail, 1);
-//        }
-//
-//    } catch (const BasePlatformException& err) {
-//        LoggerE("%s (%s)", (err.getName()).c_str(), (err.getMessage()).c_str());
-//        callback->setError(err.getName(), err.getMessage());
-//    } catch (...) {
-//        LoggerE("Messages update failed");
-//        callback->setError(JSWebAPIErrorFactory::UNKNOWN_ERROR, "Messages update failed");
-//    }
-//
-//    //Complete task
-//    JSContextRef context = callback->getContext();
-//    if (!GlobalContextManager::getInstance()->isAliveGlobalContext(context)) {
-//        LoggerE("context was closed");
-//        delete callback;
-//        callback = NULL;
-//        return;
-//    }
-//
-//    try {
-//        if (callback->isError()) {
-//            LoggerD("Calling error callback");
-//            JSObjectRef errobj = JSWebAPIErrorFactory::makeErrorObject(context,
-//                    callback->getErrorName(),
-//                    callback->getErrorMessage());
-//            callback->callErrorCallback(errobj);
-//        } else {
-//            LoggerD("Calling success callback");
-//            callback->callSuccessCallback();
-//        }
-//    } catch (const BasePlatformException& err) {
-//        LoggerE("Error while calling updateEmail callback: %s (%s)",
-//                (err.getName()).c_str(), (err.getMessage()).c_str());
-//    } catch (...) {
-//        LoggerE("Unknown error when calling updateEmail callback.");
-//    }
-//
-//    delete callback;
-//    callback = NULL;
-//}
+void EmailManager::updateMessages(MessagesCallbackUserData* callback)
+{
+    LoggerD("Entered");
 
+    if (!callback){
+        LoggerE("Callback is null");
+        return;
+    }
+
+    int error;
+    email_mail_data_t *mail = NULL;
+
+    try {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        std::vector<std::shared_ptr<Message>> messages = callback->getMessages();
+        MessageType type = callback->getMessageServiceType();
+        for (auto it = messages.begin() ; it != messages.end(); ++it) {
+            if ((*it)->getType() != type) {
+                LoggerE("Invalid message type");
+                throw TypeMismatchException("Error while updating message");
+            }
+        }
+        for (auto it = messages.begin() ; it != messages.end(); ++it) {
+
+            mail = Message::convertPlatformEmail((*it));
+
+            if((*it)->getHasAttachment())
+            {
+                LoggerD("Message has attachments. Workaround need to be used.");
+                //Update of mail on server using function email_update_mail() is not possible.
+                //Attachment is updated only locally (can't be later loaded from server),
+                //so use of workaround is needed:
+                //1. add new mail
+                //2. delete old mail
+
+                //adding message again after changes
+                addDraftMessagePlatform(mail->account_id, (*it));
+                LoggerD("mail added - new id = [%d]\n", (*it)->getId());
+
+                //deleting old mail
+                LoggerD("mail deleted = [%d]\n", mail->mail_id);
+                error = email_delete_mail(mail->mailbox_id,&mail->mail_id,1,1);
+                if (EMAIL_ERROR_NONE != error) {
+                    email_free_mail_data(&mail, 1);
+                    LoggerE("Error while deleting old mail on update: %d", error);
+                    throw UnknownException("Error while deleting old mail on update");
+                }
+            } else {
+                LoggerD("There are no attachments, updating only email data.");
+                error = email_update_mail(mail, NULL, 0, NULL, 0);
+                if (EMAIL_ERROR_NONE != error) {
+                    email_free_mail_data(&mail, 1);
+                    LoggerE("Error while updating mail");
+                    throw UnknownException("Error while updating mail");
+                }
+            }
+
+            email_free_mail_data(&mail, 1);
+        }
+
+    } catch (const PlatformException& err) {
+        LoggerE("%s (%s)", (err.name()).c_str(), (err.message()).c_str());
+        callback->setError(err.name(), err.message());
+    } catch (...) {
+        LoggerE("Messages update failed");
+        UnknownException ex("Messages update failed");
+        callback->setError(ex.name(), ex.message());
+    }
+
+    try {
+        if (callback->isError()) {
+            LoggerD("Calling error callback");
+            MessagingInstance::getInstance().PostMessage(callback->getJson()->serialize().c_str());
+        } else {
+            LoggerD("Calling success callback");
+            auto json = callback->getJson();
+            picojson::object& obj = json->get<picojson::object>();
+            obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
+            MessagingInstance::getInstance().PostMessage(json->serialize().c_str());
+        }
+    } catch (const PlatformException& err) {
+        LoggerE("Error while calling updateEmail callback: %s (%s)",
+                (err.name()).c_str(), (err.message()).c_str());
+    } catch (...) {
+        LoggerE("Unknown error when calling updateEmail callback.");
+    }
+
+    delete callback;
+    callback = NULL;
+}
 
 void EmailManager::findMessages(FindMsgCallbackUserData* callback)
 {

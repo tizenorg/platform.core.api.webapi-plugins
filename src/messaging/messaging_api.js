@@ -850,10 +850,13 @@ MessageStorage.prototype.updateMessages = function () {
         {name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true}
     ]);
 
+    var self = this;
+
     bridge.async({
         cmd: 'MessageStorage_updateMessages',
         args: {
-            messages: args.messages
+            messages: args.messages,
+            serviceId: self.service.id
         }
     }).then({
         success: function () {
