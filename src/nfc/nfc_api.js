@@ -41,7 +41,9 @@ ListenerManager.prototype.removeListener = function(watchId) {
 };
 
 var CARD_EMULATION_MODE_LISTENER = 'CardEmulationModeChanged';
+var ACTIVE_SECURE_ELEMENT_LISTENER = 'ActiveSecureElementChanged';
 var cardEmulationModeListener = new ListenerManager(native_, CARD_EMULATION_MODE_LISTENER);
+var activeSecureElementChangeListener = new ListenerManager(native_, ACTIVE_SECURE_ELEMENT_LISTENER);
 
 //enumeration NDEFRecordTextEncoding ////////////////////////////////////////////////////
 var NDEFRecordTextEncoding = {
@@ -274,7 +276,8 @@ NFCAdapter.prototype.addCardEmulationModeChangeListener = function() {
         }
     ]);
 
-    if (T_.isEmptyObject(cardEmulationModeListener.listeners)) {
+    if (T_.isEmptyObject(cardEmulationModeListener.listeners) &&
+            T_.isEmptyObject(activeSecureElementChangeListener.listeners)) {
         native_.callSync('NFCAdapter_addCardEmulationModeChangeListener');
     }
 
@@ -290,7 +293,8 @@ NFCAdapter.prototype.removeCardEmulationModeChangeListener = function() {
     ]);
     cardEmulationModeListener.removeListener(args.listenerId);
 
-    if (T_.isEmptyObject(cardEmulationModeListener.listeners)) {
+    if (T_.isEmptyObject(cardEmulationModeListener.listeners) &&
+            T_.isEmptyObject(activeSecureElementChangeListener.listeners)) {
         native_.callSync('NFCAdapter_removeCardEmulationModeChangeListener');
     }
 };
@@ -304,11 +308,35 @@ NFCAdapter.prototype.removeTransactionEventListener = function() {
 };
 
 NFCAdapter.prototype.addActiveSecureElementChangeListener = function() {
+    var args = validator_.validateArgs(arguments, [
+       {
+           name: 'callback',
+           type: types_.LISTENER,
+           values: ['onchanged']
+       }
+   ]);
 
+    if (T_.isEmptyObject(cardEmulationModeListener.listeners) &&
+            T_.isEmptyObject(activeSecureElementChangeListener.listeners)) {
+        native_.callSync('NFCAdapter_addActiveSecureElementChangeListener ');
+    }
+
+   return activeSecureElementChangeListener.addListener(args.callback);
 };
 
 NFCAdapter.prototype.removeActiveSecureElementChangeListener = function() {
+    var args = validator_.validateArgs(arguments, [
+        {
+            name: 'listenerId',
+            type: types_.LONG
+        }
+    ]);
+    activeSecureElementChangeListener.removeListener(args.listenerId);
 
+    if (T_.isEmptyObject(cardEmulationModeListener.listeners) &&
+            T_.isEmptyObject(activeSecureElementChangeListener.listeners)) {
+        native_.callSync('NFCAdapter_removeCardEmulationModeChangeListener');
+    }
 };
 
 NFCAdapter.prototype.getCachedMessage = function() {

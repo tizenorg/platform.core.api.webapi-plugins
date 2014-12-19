@@ -229,12 +229,12 @@ void NFCInstance::AddTransactionEventListener(
 
 void NFCInstance::AddActiveSecureElementChangeListener(
         const picojson::value& args, picojson::object& out) {
-
+    NFCAdapter::GetInstance()->AddActiveSecureElementChangeListener();
 }
 
 void NFCInstance::RemoveActiveSecureElementChangeListener(
         const picojson::value& args, picojson::object& out) {
-
+    NFCAdapter::GetInstance()->RemoveActiveSecureElementChangeListener();
 }
 
 void NFCInstance::GetCachedMessage(

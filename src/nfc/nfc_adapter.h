@@ -36,6 +36,8 @@ public:
 
     void AddCardEmulationModeChangeListener();
     void RemoveCardEmulationModeChangeListener();
+    void AddActiveSecureElementChangeListener();
+    void RemoveActiveSecureElementChangeListener();
 
     static NFCAdapter* GetInstance();
 private:
