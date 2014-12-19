@@ -48,15 +48,19 @@ void CallHistoryInstance::Find(const picojson::value& args, picojson::object& ou
 }
 
 void CallHistoryInstance::Remove(const picojson::value& args, picojson::object& out) {
-
+    LoggerD("Entered");
+    CallHistory::getInstance()->remove(args.get<picojson::object>());
+    ReportSuccess(out);
 }
 
 void CallHistoryInstance::RemoveBatch(const picojson::value& args, picojson::object& out) {
-
+    LoggerD("Entered");
+    CallHistory::getInstance()->removeBatch(args.get<picojson::object>());
 }
 
 void CallHistoryInstance::RemoveAll(const picojson::value& args, picojson::object& out) {
-
+    LoggerD("Entered");
+    CallHistory::getInstance()->removeAll(args.get<picojson::object>());
 }
 
 void CallHistoryInstance::AddChangeListener(const picojson::value& args, picojson::object& out) {

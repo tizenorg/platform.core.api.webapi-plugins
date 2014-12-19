@@ -42,14 +42,9 @@ Common.prototype.callSync = function (cmd, args) {
     return obj.result;
 };
 
-Common.prototype.getCall = function (module) {
-    return function _call(method, args, callback) {
-        return JSON.parse(native.call(_prepareRequest(module, method, args), function (result) {
-            if (typeof callback === 'function') {
-                callback(JSON.parse(result));
-            }
-        }));
-    };
+Common.prototype.call = function (cmd, args, callback) {
+    var request = _prepareRequest(cmd, args, callback);
+    extension.postMessage(JSON.stringify(request));
 };
 
 Common.prototype.isSuccess = function (result) {
@@ -218,6 +213,8 @@ var C = _common.Common;
 
 var _listeners = {};
 var _listenersId = 0;
+var _callbacks = {};
+var _callbackId = 0;
 
 function _createCallHistoryEntries(e) {
     var entries_array = [];
@@ -228,6 +225,16 @@ function _createCallHistoryEntries(e) {
     });
 
     return entries_array;
+};
+
+function _getUidFromCallHistoryEntry(entries) {
+    var uid = [];
+
+    entries.forEach(function (data) {
+        uid.push(data.uid);
+    });
+
+    return uid;
 };
 
 extension.setMessageListener(function(msg) {
@@ -255,6 +262,9 @@ extension.setMessageListener(function(msg) {
                 _listeners[watchId][m.action](d);
             }
         }
+    } else if (m.hasOwnProperty('callbackId')) {
+       _callbacks[m.callbackId](m);
+       delete _callbacks[m.callbackId];
     }
 });
 
@@ -266,15 +276,93 @@ CallHistory.prototype.find = function() {
 };
 
 CallHistory.prototype.remove = function() {
+    var args = AV.validateArgs(arguments, [
+        {
+            name : 'entry',
+            type : AV.Types.PLATFORM_OBJECT,
+            values : CallHistoryEntry
+        }
+    ]);
 
+    var callArgs = {};
+    callArgs.uid = args.entry.uid;
+
+    C.callSync('CallHistory_remove', callArgs);
 };
 
 CallHistory.prototype.removeBatch = function() {
+    console.log('removeBatch');
+    var args = AV.validateArgs(arguments, [
+        {
+            name : 'entries',
+            type : AV.Types.ARRAY,
+            values : CallHistoryEntry
+        },
+        {
+            name : 'successCallback',
+            type : AV.Types.FUNCTION,
+            optional : true,
+            nullable : true
+        },
+        {
+            name : 'errorCallback',
+            type : AV.Types.FUNCTION,
+            optional : true,
+            nullable : true
+        }
+    ]);
 
+    var callback = function(result) {
+        if (C.isFailure(result)) {
+            C.callIfPossible(args.errorCallback, C.getErrorObject(result));
+        } else {
+            C.callIfPossible(args.successCallback);
+        }
+    };
+
+    var callbackId = ++_callbackId;
+    _callbacks[callbackId] = callback;
+
+    var uid = _getUidFromCallHistoryEntry(args.entries);
+    var callArgs = {};
+
+    callArgs.uid = uid;
+    callArgs.callbackId = callbackId;
+
+    C.call('CallHistory_removeBatch', callArgs, callback);
 };
 
 CallHistory.prototype.removeAll = function() {
+    var args = AV.validateArgs(arguments, [
+        {
+            name : 'successCallback',
+            type : AV.Types.FUNCTION,
+            optional : true,
+            nullable : true
+        },
+        {
+            name : 'errorCallback',
+            type : AV.Types.FUNCTION,
+            optional : true,
+            nullable : true
+        }
+    ]);
 
+    var callback = function(result) {
+        if (C.isFailure(result)) {
+            C.callIfPossible(args.errorCallback, C.getErrorObject(result));
+        } else {
+            C.callIfPossible(args.successCallback);
+        }
+    };
+
+    var callbackId = ++_callbackId;
+    _callbacks[callbackId] = callback;
+
+    var callArgs = {};
+    callArgs.callbackId = callbackId;
+
+    C.call('CallHistory_removeAll', callArgs, callback);
 };
 
 CallHistory.prototype.addChangeListener = function() {

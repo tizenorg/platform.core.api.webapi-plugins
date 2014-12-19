@@ -9,6 +9,7 @@
 
 #include "common/logger.h"
 #include "common/platform_exception.h"
+#include "common/task-queue.h"
 #include "callhistory_instance.h"
 #include "callhistory_types.h"
 #include "callhistory_utils.h"
@@ -40,6 +41,16 @@ static void get_sim_msisdn_cb(TapiHandle *handle, int result, void *data, void *
     std::string n = number ? std::string(number) : "";
     prom->set_value(n);
 }
+
+void ReportSuccess(picojson::object& out) {
+  out.insert(std::make_pair("status", picojson::value("success")));
+}
+
+void ReportError(const PlatformException& ex, picojson::object& out) {
+  out.insert(std::make_pair("status", picojson::value("error")));
+  out.insert(std::make_pair("error", ex.ToJSON()));
+}
+
 }
 
 CallHistory::CallHistory():
@@ -85,19 +96,177 @@ void CallHistory::find()
 
 }
 
-void CallHistory::remove()
+void CallHistory::remove(const picojson::object& args)
 {
+    LoggerD("Entered");
 
+    const auto it_uid = args.find("uid");
+    const auto it_args_end = args.end();
+
+    if (it_uid == it_args_end ||
+        !it_uid->second.is<std::string>()) {
+        LoggerE("Invalid parameter was passed.");
+        throw InvalidValuesException("Invalid parameter was passed.");
+    }
+
+    int uid = atoi((it_uid->second.get<std::string>()).c_str());
+    int ret = contacts_db_delete_record(_contacts_phone_log._uri, (int)uid);
+    if (CONTACTS_ERROR_NONE != ret) {
+        LoggerE("Failed to delete log record [%d] with error: %d", uid, ret);
+        throw UnknownException("Failed to delete log record.");
+    }
 }
 
-void CallHistory::removeBatch()
+void CallHistory::removeBatch(const picojson::object& args)
 {
+    LoggerD("Entered");
 
+    const auto it_uid = args.find("uid");
+    const auto it_args_end = args.end();
+
+    if (it_uid == it_args_end ||
+        !it_uid->second.is<picojson::array>()) {
+        throw InvalidValuesException("Invalid parameter was passed.");
+    }
+    const picojson::array& uids = it_uid->second.get<picojson::array>();
+    const double callback_id = args.find("callbackId")->second.get<double>();
+
+    auto remove_batch = [uids](const std::shared_ptr<picojson::value>& response) -> void {
+        try {
+            if (uids.size() == 0) {
+                throw UnknownException("Object is null.");
+            }
+
+            int uid;
+            int ret = CONTACTS_ERROR_NONE;
+            for (unsigned int i = 0; i < uids.size(); ++i) {
+                uid = atoi(uids[i].get<std::string>().c_str());
+                ret = contacts_db_delete_record(_contacts_phone_log._uri, (int)uid);
+                if (CONTACTS_ERROR_NONE != ret) {
+                    LoggerE("Failed to delete log [%d] with code %d", uid, ret);
+                    throw UnknownException("contacts_db_delete_record failed");
+                }
+            }
+            ReportSuccess(response->get<picojson::object>());
+        } catch (const PlatformException& err) {
+            ReportError(err, response->get<picojson::object>());
+        }
+    };
+
+    auto remove_batch_response = [callback_id](const std::shared_ptr<picojson::value>& response) -> void {
+        picojson::object& obj = response->get<picojson::object>();
+        obj.insert(std::make_pair("callbackId", callback_id));
+        CallHistoryInstance::getInstance().PostMessage(response->serialize().c_str());
+    };
+
+    TaskQueue::GetInstance().Queue<picojson::value>(
+            remove_batch,
+            remove_batch_response,
+            std::shared_ptr<picojson::value>(new picojson::value(picojson::object())));
 }
 
-void CallHistory::removeAll()
+void CallHistory::removeAll(const picojson::object& args)
 {
+    LoggerD("Entered");
 
+    const double callback_id = args.find("callbackId")->second.get<double>();
+
+    auto remove_all = [](const std::shared_ptr<picojson::value>& response) -> void {
+        contacts_list_h record_list = NULL;
+        int* list = NULL;
+
+        try {
+            contacts_record_h record = NULL;
+            int ret = CONTACTS_ERROR_NONE;
+            int total = 0;
+            int value;
+            unsigned int cnt = 0;
+
+            ret = contacts_connect_on_thread();
+            if (CONTACTS_ERROR_NONE != ret) {
+                LoggerW("contacts_connect_on_thread failed");
+            }
+
+            ret = contacts_db_get_all_records(_contacts_phone_log._uri, 0, 0, &record_list);
+            if (CONTACTS_ERROR_NONE != ret || !record_list) {
+                LoggerE("Failed to get all records list");
+                throw UnknownException("Failed to get all records list");
+            }
+
+            ret = contacts_list_get_count(record_list, &total);
+            if (CONTACTS_ERROR_NONE != ret) {
+                LoggerW("Failed to get count");
+            }
+
+            list = new int[total];
+            for (int i = 0; i < total; i++) {
+                LoggerD("Record number: %d", i);
+                ret = contacts_list_get_current_record_p(record_list, &record);
+                if (CONTACTS_ERROR_NONE != ret) {
+                    LoggerW("contacts_list_get_current_record_p function failed");
+                }
+
+                if (!record) {
+                    ret = contacts_list_next(record_list);
+                    if (CONTACTS_ERROR_NONE != ret && CONTACTS_ERROR_NO_DATA != ret) {
+                        LoggerE("contacts_list_next function failed");
+                        throw UnknownException("contacts_list_next function failed");
+                    }
+                    continue;
+                }
+
+                if (CONTACTS_ERROR_NONE == ret) {
+                    ret = contacts_record_get_int(record, _contacts_phone_log.id , &value);
+                    if (CONTACTS_ERROR_NONE == ret) {
+                        list[cnt++] = value;
+                    }
+                }
+
+                value = 0;
+                ret = contacts_list_next(record_list);
+                if (CONTACTS_ERROR_NONE != ret && CONTACTS_ERROR_NO_DATA != ret) {
+                    LoggerE("contacts_list_next function failed");
+                    throw UnknownException("contacts_list_next function failed");
+                }
+            }
+
+            if (cnt > 0) {
+                ret = contacts_db_delete_records(_contacts_phone_log._uri, list, cnt);
+                if (CONTACTS_ERROR_NONE != ret) {
+                    LoggerE("contacts_db_delete_records function failed");
+                    throw UnknownException("contacts_db_delete_records function failed");
+                }
+            }
+
+            delete[] list;
+            ret = contacts_list_destroy(record_list, true);
+            if (CONTACTS_ERROR_NONE != ret) {
+                LoggerW("contacts_list_destroy failed");
+            }
+
+            ret = contacts_disconnect_on_thread();
+            if (CONTACTS_ERROR_NONE != ret) {
+                LoggerW("contacts_disconnect_on_thread failed");
+            }
+
+            ReportSuccess(response->get<picojson::object>());
+        } catch (const PlatformException& err) {
+            contacts_list_destroy(record_list, true);
+            delete[] list;
+            ReportError(err, response->get<picojson::object>());
+        }
+    };
+
+    auto remove_all_response = [callback_id](const std::shared_ptr<picojson::value>& response) -> void {
+        picojson::object& obj = response->get<picojson::object>();
+        obj.insert(std::make_pair("callbackId", callback_id));
+        CallHistoryInstance::getInstance().PostMessage(response->serialize().c_str());
+    };
+
+    TaskQueue::GetInstance().Queue<picojson::value>(
+            remove_all,
+            remove_all_response,
+            std::shared_ptr<picojson::value>(new picojson::value(picojson::object())));
 }
 
 std::vector<std::string>& CallHistory::getPhoneNumbers()
