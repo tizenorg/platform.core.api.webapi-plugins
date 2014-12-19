@@ -3,96 +3,43 @@
 // found in the LICENSE file.
 
 /**
- * @author  Marcin Wasowski (m.wasowski2@samsung.com)
+ * @author m.wasowski2@samsung.com (Marcin Wasowski)
  */
 
 function TVDisplay() {}
 
+var native = new xwalk.utils.NativeManager(extension);
+var validator = xwalk.utils.validator;
+var validatorTypes = xwalk.utils.validator.Types;
+
 var UNKNOWN_ERROR = 'UnknownError';
+
+
+/**
+ * Allowed values for is3DModeEnabled return value
+ * @type {Display3DModeState}
+ */
+var Display3DModeState = {
+  NOT_CONNECTED: 'NOT_CONNECTED',
+  NOT_SUPPORTED: 'NOT_SUPPORTED',
+  READY: 'READY'
+};
+Object.freeze(Display3DModeState);
+
 
 /**
  * Check if 3D mode is enabled
- * @return {boolean} true if enabled else false
+ * @return {Display3DModeState} mode String informing if 3D content
+ *                                   is supported and ready
  */
 TVDisplay.prototype.is3DModeEnabled = function() {
-  var msg = {
-    cmd: 'TVDisplay_is3DModeEnabled',
-    args: {},
-    arg: ''
-  };
-  var reply = sendSyncMessage(msg);
-  if (reply.error) {
-    throw new tizen.WebAPIException(0, UNKNOWN_ERROR, reply.error);
+  var ret = native.callSync('TVDisplay_is3DModeEnabled', {});
+  if (native.isFailure(ret)) {
+    throw native.getErrorObject(ret);
   }
-  return reply.result;
+  return native.getResultObject(ret);
 };
 
-/**
- * Get current 3D effect mode or 'OFF' if no 3D enabled
- * @return {string} current mode name
- */
-TVDisplay.prototype.get3DEffectMode = function() {
-  var msg = {
-    cmd: 'TVDisplay_get3DEffectMode',  // returns index
-    args: {},
-    arg: ''
-  };
-  var reply = sendSyncMessage(msg);
-  if (reply.error) {
-    throw new tizen.WebAPIException(0, reply.error, UNKNOWN_ERROR);
-  }
-  var mode = Display3DEffectMode[reply.result];
-  if (!mode) {
-    throw new tizen.WebAPIException(
-      0,
-      'Unknown 3D effect mode (' + reply.result + ')',
-      UNKNOWN_ERROR);
-  }
-  return mode;
-};
-
-/**
- * Get list of supported 3D effects
- *
- * @param {!Mode3DEffectListSupportCallback} successCallback
- * @param {?ErrorCallback} errorCallback
- * @return {Display3DEffectMode[]} mode3DEffects
- */
-TVDisplay.prototype.getSupported3DEffectModeList =
-function(successCallback, errorCallback) {
-
-
-  var Types = xwalk.utils.validator.Types;
-  var successCallback = {
-    name: 'successCallback',
-    type: Types.FUNCTION,
-    optional: false,
-    nullable: false
-  };
-  var errorCallback = {
-    name: 'errorCallback',
-    type: Types.FUNCTION,
-    optional: true,
-    nullable: false
-  };
-
-  var msg = {
-    cmd: 'TVDisplay_getSupported3DEffectModeList',
-    args: {},
-    arg: {}  // TODO: here callback id should be passed
-  };
-
-  var args = xwalk.utils.validator.validateArgs(
-      arguments,
-      [successCallback, errorCallback]);
-  return sendSyncMessage(msg);  // undefined
-};
-
-function sendSyncMessage(msg) {
-  var serialized = null;
-  serialized = JSON.stringify(msg);
-  return JSON.parse(extension.internal.sendSyncMessage(serialized));
-}
 
 /**
  *  Allowed values for 3D effect modes mapped to return values from C API
@@ -120,11 +67,67 @@ var Display3DEffectMode = [
 ];
 Object.freeze(Display3DEffectMode);
 
-var Display3DModeState = {
-  NOT_CONNECTED: 'NOT_CONNECTED',
-  NOT_SUPPORTED: 'NOT_SUPPORTED',
-  READY: 'READY'
+
+/**
+ * Get current 3D effect mode or 'OFF' if no 3D enabled
+ * @return {string} current mode name
+ */
+TVDisplay.prototype.get3DEffectMode = function() {
+  var ret = native.callSync('TVDisplay_get3DEffectMode', {});
+  if (native.isFailure(ret)) {
+    throw native.getErrorObject(ret);
+  }
+  var mode = Display3DEffectMode[native.getResultObject(ret)];
+  if (!mode) {
+    var error_msg = 'Unknown 3D effect mode (' + reply.result + ')';
+    throw new tizen.WebAPIException(0, error_msg, UNKNOWN_ERROR);
+  }
+  return mode;
 };
-Object.freeze(Display3DModeState);
+
+
+/**
+ * Get list of supported 3D effects
+ *
+ * @param {!Mode3DEffectListSupportCallback} successCallback
+ * @param {?ErrorCallback} errorCallback
+ */
+TVDisplay.prototype.getSupported3DEffectModeList = function(
+    successCallback,
+    errorCallback) {
+
+  var successCallback = {
+    name: 'successCallback',
+    type: validatorTypes.FUNCTION,
+    optional: false,
+    nullable: false
+  };
+  var errorCallback = {
+    name: 'errorCallback',
+    type: validatorTypes.FUNCTION,
+    optional: true,
+    nullable: true
+  };
+
+  var args = validator.validateArgs(
+      arguments,
+      [successCallback, errorCallback]);
+
+  native.call(
+      'TVDisplay_getSupported3DEffectModeList',
+      {},
+      function(msg) {
+        if (msg && !msg.error) {
+          args.successCallback(msg.result);
+        } else if (msg && validatorTypes.isFunction(args.errorCallback)) {
+          args.errorCallback(native.getErrorObject(msg.error));
+        } else {
+          return;
+        }
+      }
+  );
+
+};
+
 
 exports = new TVDisplay();

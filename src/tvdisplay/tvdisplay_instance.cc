@@ -48,11 +48,6 @@ TVDisplayInstance::TVDisplayInstance() {
 
 TVDisplayInstance::~TVDisplayInstance() {}
 
-// TVDisplayInstance* getInstance() {
-//     static TVDisplayInstance instance;
-//     return &instance;
-// }
-
 void TVDisplayInstance::Is3DModeEnabled(
         const picojson::value& value,
         picojson::object& out) {
@@ -60,19 +55,20 @@ void TVDisplayInstance::Is3DModeEnabled(
     bool is_supported = true;
     picojson::value::object o;
 
-    // auto intance = getInstance();
-
-    int result = system_info_get_value_bool(
+    int ret = system_info_get_value_bool(
             SYSTEM_INFO_KEY_3D_EFFECT_SUPPORTED,
             &is_supported);
-    if (SYSTEM_INFO_ERROR_NONE != result) {
+
+    if (SYSTEM_INFO_ERROR_NONE != ret) {
         std::string err =
             "'system_info' error while getting 3d mode details: "
-            + std::to_string(result);
+            + std::to_string(ret);
         LoggerE("%s", err.c_str());
         ReportError(common::UnknownException(err), out);
     }
-    ReportSuccess(picojson::value(is_supported), out);
+    std::string mode = is_supported ? "READY" : "NOT_SUPPORTED";
+    LoggerD("3D Mode is: %s", mode.c_str());
+    ReportSuccess(picojson::value(mode), out);
 }
 
 void TVDisplayInstance::Get3DEffectMode(
