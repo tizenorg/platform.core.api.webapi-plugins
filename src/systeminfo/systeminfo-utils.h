@@ -39,7 +39,7 @@ public:
     static long long GetTotalMemory();
     static long long GetAvailableMemory();
     static unsigned long GetCount(const std::string& property);
-    static picojson::value GetPropertyValue(const std::string& prop);
+    static picojson::value GetPropertyValue(const std::string& prop, bool is_array_type);
 
     static void RegisterBatteryListener(const SysteminfoUtilsCallback& callback);
     static void UnregisterBatteryListener();
@@ -74,7 +74,7 @@ private:
     static void ReportNetwork(picojson::object& out);
     static void ReportWifiNetwork(picojson::object& out);
     static void ReportCellularNetwork(picojson::object& out);
-    static void ReportSim(picojson::object& out);
+    static void ReportSim(picojson::object& out, unsigned long count);
     static void ReportPeripheral(picojson::object& out);
 
     static void ReportStorage(picojson::object& out);
