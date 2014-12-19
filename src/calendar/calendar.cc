@@ -117,9 +117,8 @@ void Calendar::Add(const picojson::object& args, picojson::object& out) {
 }
 
 void Calendar::AddBatch(const picojson::object& args,
-                        picojson::object& out) {
+                        picojson::array& array) {
   LoggerD("enter");
-
 
   if (!CalendarManager::GetInstance().IsConnected()) {
     throw UnknownException("DB Connection failed.");
@@ -132,79 +131,58 @@ void Calendar::AddBatch(const picojson::object& args,
 
   int type = CalendarRecord::TypeToInt(FromJson<std::string>(args, "type"));
   const char* view_uri = CalendarRecord::TypeToUri(type);
+  calendar_list_h list = NULL;
+  if (CALENDAR_ERROR_NONE != calendar_list_create(&list)) {
+    LoggerE("Could not create list for batch operation");
+    throw UnknownException("Could not create list for batch operation");
+  }
+  CalendarListPtr list_ptr =
+      CalendarListPtr(list, CalendarRecord::ListDeleter);
 
-  auto batch_func = [=](const JsonValuePtr & response)->void {
-    picojson::object& response_obj = response->get<picojson::object>();
+  int ret;
+  calendar_record_h record;
 
-    try {
-      calendar_list_h list = NULL;
-      if (CALENDAR_ERROR_NONE != calendar_list_create(&list)) {
-        LoggerE("Could not create list for batch operation");
-        throw UnknownException("Could not create list for batch operation");
-      }
-      CalendarListPtr list_ptr =
-          CalendarListPtr(list, CalendarRecord::ListDeleter);
-
-      int ret;
-      calendar_record_h record;
-
-      for (auto& item : items) {
-        ret = calendar_record_create(view_uri, &record);
-        if (CALENDAR_ERROR_NONE != ret) {
-          LoggerW("Can't create platform record %d", ret);
-          throw UnknownException("Can't create platform record");
-        }
-        CalendarItem::FromJson(type, record, item.get<picojson::object>());
-
-        if (CALENDAR_ERROR_NONE != calendar_list_add(list_ptr.get(), record)) {
-          LoggerE("Could not add record to list events");
-          throw InvalidValuesException("Could not add record to list");
-        }
-      }
-
-      int* ids;
-      int count;
-      ret = calendar_db_insert_records(list_ptr.get(), &ids, &count);
-      if (CALENDAR_ERROR_NONE != ret) {
-        LoggerE("calendar_db_insert_records failed.");
-        if (CALENDAR_ERROR_INVALID_PARAMETER == ret) {
-          LoggerE("CALENDAR_ERROR_INVALID_PARAMETER.");
-          throw InvalidValuesException("Parameter is invalid");
-        } else {
-          LoggerE("CALENDAR_ERROR_DB_FAILED");
-          throw UnknownException("CALENDAR_ERROR_DB_FAILED occurred");
-        }
-      }
-
-      picojson::value result = picojson::value(picojson::array());
-      picojson::array& array = result.get<picojson::array>();
-
-      for (int i = 0; i < count; i++) {
-        picojson::value id = picojson::value(picojson::object());
-        picojson::object& id_obj = id.get<picojson::object>();
-
-        id_obj.insert(std::make_pair("uid", std::to_string(ids[i])));
-
-        if (type == CALENDAR_BOOK_TYPE_EVENT) {
-          id_obj.insert(std::make_pair("rid", picojson::value()));
-        }
-
-        array.push_back(id);
-      }
-      free(ids);
-
+  for (auto& item : items) {
+    ret = calendar_record_create(view_uri, &record);
+    if (CALENDAR_ERROR_NONE != ret) {
+      LoggerW("Can't create platform record %d", ret);
+      throw UnknownException("Can't create platform record");
     }
-    catch(...) {//(const BasePlatformException& e) {
+    CalendarItem::FromJson(type, record, item.get<picojson::object>());
+
+    if (CALENDAR_ERROR_NONE != calendar_list_add(list_ptr.get(), record)) {
+      LoggerE("Could not add record to list events");
+      throw InvalidValuesException("Could not add record to list");
     }
-  };
+  }
 
-  int callback_handle;// = NativePlugin::GetAsyncCallbackHandle(args);
-  auto after_batch_func = [callback_handle](const JsonValuePtr& response) {
-  };
+  int* ids;
+  int count;
+  ret = calendar_db_insert_records(list_ptr.get(), &ids, &count);
+  if (CALENDAR_ERROR_NONE != ret) {
+    LoggerE("calendar_db_insert_records failed.");
+    if (CALENDAR_ERROR_INVALID_PARAMETER == ret) {
+      LoggerE("CALENDAR_ERROR_INVALID_PARAMETER.");
+      throw InvalidValuesException("Parameter is invalid");
+    } else {
+      LoggerE("CALENDAR_ERROR_DB_FAILED");
+      throw UnknownException("CALENDAR_ERROR_DB_FAILED occurred");
+    }
+  }
 
-  TaskQueue::GetInstance().Queue<picojson::value>(
-      batch_func, after_batch_func,
-      JsonValuePtr(new picojson::value(picojson::object())));
+  for (int i = 0; i < count; i++) {
+    picojson::value id = picojson::value(picojson::object());
+    picojson::object& id_obj = id.get<picojson::object>();
+
+    id_obj.insert(std::make_pair("uid", std::to_string(ids[i])));
+
+    if (type == CALENDAR_BOOK_TYPE_EVENT) {
+      id_obj.insert(std::make_pair("rid", picojson::value()));
+    }
+
+    array.push_back(id);
+  }
+  free(ids);
 }
 
 void Calendar::Update(const picojson::object& args,
@@ -266,7 +244,7 @@ void Calendar::Update(const picojson::object& args,
 }
 
 void Calendar::UpdateBatch(const picojson::object& args,
-                           picojson::object& out) {
+                           picojson::array& array) {
   LoggerD("enter");
 
   if (!CalendarManager::GetInstance().IsConnected()) {
@@ -285,65 +263,47 @@ void Calendar::UpdateBatch(const picojson::object& args,
 
   int type = CalendarRecord::TypeToInt(FromJson<std::string>(args, "type"));
   const char* view_uri = CalendarRecord::TypeToUri(type);
+  calendar_list_h list = NULL;
+  if (CALENDAR_ERROR_NONE != calendar_list_create(&list)) {
+    LoggerE("Could not create list for batch operation");
+    throw UnknownException("Could not create list for batch operation");
+  }
+  CalendarListPtr list_ptr =
+      CalendarListPtr(list, CalendarRecord::ListDeleter);
 
-  auto batch_func = [=](const JsonValuePtr & response)->void {
-    picojson::object& response_obj = response->get<picojson::object>();
+  int ret, id;
+  calendar_record_h record;
 
-    try {
-      calendar_list_h list = NULL;
-      if (CALENDAR_ERROR_NONE != calendar_list_create(&list)) {
-        LoggerE("Could not create list for batch operation");
-        throw UnknownException("Could not create list for batch operation");
-      }
-      CalendarListPtr list_ptr =
-          CalendarListPtr(list, CalendarRecord::ListDeleter);
-
-      int ret, id;
-      calendar_record_h record;
-
-      for (auto& item : items) {
-        const picojson::object& item_obj = item.get<picojson::object>();
-        if (type == CALENDAR_BOOK_TYPE_EVENT) {
-          id = common::stol(FromJson<std::string>(item_obj, "id", "uid"));
-        } else {
-          id = common::stol(FromJson<std::string>(item_obj, "id"));
-        }
-
-        ret = calendar_db_get_record(view_uri, id, &record);
-        if (CALENDAR_ERROR_NONE != ret) {
-          LoggerW("Can't get platform record %d", ret);
-          throw UnknownException("Can't get platform record");
-        }
-        CalendarItem::FromJson(type, record, item.get<picojson::object>());
-
-        if (CALENDAR_ERROR_NONE != calendar_list_add(list_ptr.get(), record)) {
-          LoggerE("Could not add record to list events");
-          throw InvalidValuesException("Could not add record to list");
-        }
-      }
-
-      if (type == CALENDAR_BOOK_TYPE_TODO || update_all) {
-        if (CALENDAR_ERROR_NONE != calendar_db_update_records(list_ptr.get())) {
-          LoggerE("Can't update calendar items");
-          throw UnknownException("Can't update calendar items");
-        }
-      } else {
-        // @todo update the exdate for a recurring parent event and add a new
-        // child event
-      }
-
+  for (auto& item : items) {
+    const picojson::object& item_obj = item.get<picojson::object>();
+    if (type == CALENDAR_BOOK_TYPE_EVENT) {
+      id = common::stol(FromJson<std::string>(item_obj, "id", "uid"));
+    } else {
+      id = common::stol(FromJson<std::string>(item_obj, "id"));
     }
-    catch (...) {//const BasePlatformException& e) {
+
+    ret = calendar_db_get_record(view_uri, id, &record);
+    if (CALENDAR_ERROR_NONE != ret) {
+      LoggerW("Can't get platform record %d", ret);
+      throw UnknownException("Can't get platform record");
     }
-  };
+    CalendarItem::FromJson(type, record, item.get<picojson::object>());
 
-  int callback_handle; //= NativePlugin::GetAsyncCallbackHandle(args);
-  auto after_batch_func = [callback_handle](const JsonValuePtr& response) {
-  };
+    if (CALENDAR_ERROR_NONE != calendar_list_add(list_ptr.get(), record)) {
+      LoggerE("Could not add record to list events");
+      throw InvalidValuesException("Could not add record to list");
+    }
+  }
 
-  TaskQueue::GetInstance().Queue<picojson::value>(
-      batch_func, after_batch_func,
-      JsonValuePtr(new picojson::value(picojson::object())));
+  if (type == CALENDAR_BOOK_TYPE_TODO || update_all) {
+    if (CALENDAR_ERROR_NONE != calendar_db_update_records(list_ptr.get())) {
+      LoggerE("Can't update calendar items");
+      throw UnknownException("Can't update calendar items");
+    }
+  } else {
+    // @todo update the exdate for a recurring parent event and add a new
+    // child event
+  }
 }
 
 void Calendar::Remove(const picojson::object& args,
@@ -366,7 +326,7 @@ void Calendar::Remove(const picojson::object& args,
   CalendarItem::Remove(type, id);
 }
 
-void Calendar::Find(const picojson::object& args, picojson::object& out) {
+void Calendar::Find(const picojson::object& args, picojson::array& array) {
   LoggerD("enter");
 
   if (!CalendarManager::GetInstance().IsConnected()) {
@@ -375,90 +335,67 @@ void Calendar::Find(const picojson::object& args, picojson::object& out) {
 
   // TODO implement calendar filter and sorting in native code.
   int calendar_id = common::stol(FromJson<std::string>(args, "calendarId"));
-  int callback_handle;  //=NativePlugin::GetAsyncCallbackHandle(args);
+  int error_code = 0;
+  CalendarRecordPtr calendar_ptr =
+      CalendarRecord::GetById(calendar_id, _calendar_book._uri);
+  int type =
+      CalendarRecord::GetInt(calendar_ptr.get(), _calendar_book.store_type);
+  calendar_query_h calendar_query = nullptr;
+  if (type == CALENDAR_BOOK_TYPE_EVENT) {
+    error_code =
+        calendar_query_create(_calendar_event._uri, &calendar_query);
+  } else {
+    error_code =
+        calendar_query_create(_calendar_todo._uri, &calendar_query);
+  }
+  if (CALENDAR_ERROR_NONE != error_code) {
+    throw UnknownException("calendar_query_create failed");
+  }
 
-  auto get = [calendar_id](const std::shared_ptr<picojson::value> & response)
-      ->void {
-    LoggerD("Entered");
-    try {
-      int error_code = 0;
-      CalendarRecordPtr calendar_ptr =
-          CalendarRecord::GetById(calendar_id, _calendar_book._uri);
-      int type =
-          CalendarRecord::GetInt(calendar_ptr.get(), _calendar_book.store_type);
-      calendar_query_h calendar_query = nullptr;
-      if (type == CALENDAR_BOOK_TYPE_EVENT) {
-        error_code =
-            calendar_query_create(_calendar_event._uri, &calendar_query);
-      } else {
-        error_code =
-            calendar_query_create(_calendar_todo._uri, &calendar_query);
-      }
-      if (CALENDAR_ERROR_NONE != error_code) {
-        throw UnknownException("calendar_query_create failed");
-      }
+  CalendarQueryPtr calendar_query_ptr(calendar_query,
+                                      CalendarRecord::QueryDeleter);
 
-      CalendarQueryPtr calendar_query_ptr(calendar_query,
-                                          CalendarRecord::QueryDeleter);
+  calendar_list_h record_list = nullptr;
+  error_code = calendar_db_get_records_with_query(calendar_query, 0, 0,
+                                                  &record_list);
+  if (CALENDAR_ERROR_NONE != error_code) {
+    throw UnknownException("calendar_db_get_records_with_query failed");
+  }
+  CalendarListPtr record_list_ptr(record_list, CalendarRecord::ListDeleter);
 
-      calendar_list_h record_list = nullptr;
-      error_code = calendar_db_get_records_with_query(calendar_query, 0, 0,
-                                                      &record_list);
-      if (CALENDAR_ERROR_NONE != error_code) {
-        throw UnknownException("calendar_db_get_records_with_query failed");
-      }
-      CalendarListPtr record_list_ptr(record_list, CalendarRecord::ListDeleter);
+  int record_count = 0;
+  error_code = calendar_list_get_count(record_list, &record_count);
+  if (CALENDAR_ERROR_NONE != error_code) {
+    throw UnknownException("calendar_list_get_count failed");
+  }
+  error_code = calendar_list_first(record_list);
+  if (CALENDAR_ERROR_NONE != error_code) {
+    throw UnknownException("calendar_list_first failed");
+  }
 
-      int record_count = 0;
-      error_code = calendar_list_get_count(record_list, &record_count);
-      if (CALENDAR_ERROR_NONE != error_code) {
-        throw UnknownException("calendar_list_get_count failed");
-      }
-      error_code = calendar_list_first(record_list);
-      if (CALENDAR_ERROR_NONE != error_code) {
-        throw UnknownException("calendar_list_first failed");
-      }
-
-      picojson::value result{picojson::array{}};
-      picojson::array& calendarItems = result.get<picojson::array>();
-      calendarItems.reserve(record_count);
-      for (int i = 0; i < record_count; ++i) {
-        calendar_record_h current_record = NULL;
-        error_code =
-            calendar_list_get_current_record_p(record_list, &current_record);
-        if (CALENDAR_ERROR_NONE != error_code) {
-          throw UnknownException("calendar_list_get_current_record_p failed");
-        }
-        picojson::value record_obj = picojson::value(picojson::object());
-        CalendarItem::ToJson(type, current_record,
-                             &record_obj.get<picojson::object>());
-        calendarItems.push_back(record_obj);
-
-        error_code = calendar_list_next(record_list);
-        if (CALENDAR_ERROR_NONE != error_code) {
-          LoggerE("calendar_list_next failed (%i/%i)", i, record_count);
-          break;
-        }
-      }
+  array.reserve(record_count);
+  for (int i = 0; i < record_count; ++i) {
+    calendar_record_h current_record = NULL;
+    error_code =
+        calendar_list_get_current_record_p(record_list, &current_record);
+    if (CALENDAR_ERROR_NONE != error_code) {
+      throw UnknownException("calendar_list_get_current_record_p failed");
     }
-    catch (...) {//const BasePlatformException& e) {
-   //   LoggerE("error: %s: %s", e.name().c_str(), e.message().c_str());
+    picojson::value record_obj = picojson::value(picojson::object());
+    CalendarItem::ToJson(type, current_record,
+                         &record_obj.get<picojson::object>());
+    array.push_back(record_obj);
+
+    error_code = calendar_list_next(record_list);
+    if (CALENDAR_ERROR_NONE != error_code) {
+      LoggerE("calendar_list_next failed (%i/%i)", i, record_count);
+      break;
     }
-  };
-
-  auto get_response = [callback_handle](const std::shared_ptr<picojson::value> &
-                                        response)->void {
-  };
-
-  TaskQueue::GetInstance().Queue<picojson::value>(
-      get, get_response,
-      std::shared_ptr<picojson::value>(new picojson::value(picojson::object())));
-
-//  NativePlugin::ReportSuccess(out);
+  }
 }
 
 void Calendar::RemoveBatch(const picojson::object& args,
-                           picojson::object& out) {
+                           picojson::array& array) {
   LoggerD("enter");
 
   if (!CalendarManager::GetInstance().IsConnected()) {
@@ -473,64 +410,47 @@ void Calendar::RemoveBatch(const picojson::object& args,
   int type = CalendarRecord::TypeToInt(FromJson<std::string>(args, "type"));
   const char* view_uri = CalendarRecord::TypeToUri(type);
 
-  auto batch_func = [=](const JsonValuePtr & response)->void {
-    picojson::object& response_obj = response->get<picojson::object>();
+  std::vector<int> ids_to_remove;
+  int id;
+  for (int i = 0, size = ids.size(); i < size; i++) {
+    if (type == CALENDAR_BOOK_TYPE_EVENT) {
+      id = common::stol(
+          FromJson<std::string>(ids.at(i).get<picojson::object>(), "uid"));
+    } else {
+      id = common::stol(ids.at(i).get<std::string>());
+    }
 
-    try {
-      std::vector<int> ids_to_remove;
-      int id;
-      for (int i = 0, size = ids.size(); i < size; i++) {
-        if (type == CALENDAR_BOOK_TYPE_EVENT) {
-          id = common::stol(
-              FromJson<std::string>(ids.at(i).get<picojson::object>(), "uid"));
-        } else {
-          id = common::stol(ids.at(i).get<std::string>());
-        }
+    CalendarRecordPtr record_ptr = CalendarItem::GetById(id, view_uri);
 
-        CalendarRecordPtr record_ptr = CalendarItem::GetById(id, view_uri);
-
-        if (type == CALENDAR_BOOK_TYPE_EVENT) {
-          const std::string& rid = CalendarRecord::GetString(
-              record_ptr.get(), _calendar_event.recurrence_id);
-          if (rid.empty()) {
-            ids_to_remove.push_back(id);
-          } else {
-            // @todo handle recurrence_id
-          }
-        } else {
-          ids_to_remove.push_back(id);
-        }
+    if (type == CALENDAR_BOOK_TYPE_EVENT) {
+      const std::string& rid = CalendarRecord::GetString(
+          record_ptr.get(), _calendar_event.recurrence_id);
+      if (rid.empty()) {
+        ids_to_remove.push_back(id);
+      } else {
+        // @todo handle recurrence_id
       }
+    } else {
+      ids_to_remove.push_back(id);
+    }
+  }
 
-      int ret;
-      if (ids_to_remove.size() > 0) {
-        ret = calendar_db_delete_records(view_uri, &ids_to_remove[0],
-                                         ids_to_remove.size());
+  int ret;
+  if (ids_to_remove.size() > 0) {
+    ret = calendar_db_delete_records(view_uri, &ids_to_remove[0],
+                                     ids_to_remove.size());
 
-        if (CALENDAR_ERROR_NONE != ret) {
-          LoggerE("calendar_db_delete_records failed.");
-          if (CALENDAR_ERROR_INVALID_PARAMETER == ret) {
-            LoggerE("CALENDAR_ERROR_INVALID_PARAMETER");
-            throw InvalidValuesException("Parameter is invalid");
-          } else {
-            LoggerE("CALENDAR_ERROR_DB_FAILED");
-            throw UnknownException("UnknownError");
-          }
-        }
+    if (CALENDAR_ERROR_NONE != ret) {
+      LoggerE("calendar_db_delete_records failed.");
+      if (CALENDAR_ERROR_INVALID_PARAMETER == ret) {
+        LoggerE("CALENDAR_ERROR_INVALID_PARAMETER");
+        throw InvalidValuesException("Parameter is invalid");
+      } else {
+        LoggerE("CALENDAR_ERROR_DB_FAILED");
+        throw UnknownException("UnknownError");
       }
     }
-    catch(...) { //(const BasePlatformException& e) {
-    }
-  };
-
-  int callback_handle;// = NativePlugin::GetAsyncCallbackHandle(args);
-  auto after_batch_func = [callback_handle](const JsonValuePtr& response) {
-  };
-
-  TaskQueue::GetInstance().Queue<picojson::value>(
-      batch_func, after_batch_func,
-      JsonValuePtr(new picojson::value(picojson::object())));
-
+  }
 }
 
 void Calendar::AddChangeListener(const picojson::object& args, picojson::object& out) {
@@ -690,10 +610,6 @@ void Calendar::ChangeCallback(const char* view_uri, void*) {
     throw UnknownException("Can't get new version");
   }
   current_db_version_ = updated_version;
-
-//  wrt::common::NativeContext::GetInstance()->FireEvent(
-//      listeners_registered_[CalendarRecord::TypeToString(type)],
-//      response.serialize());
 }
 
 }  // namespace calendar

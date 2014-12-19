@@ -71,7 +71,7 @@ class Calendar {
    * {status: 'success', result: items}
    * @endcode
    */
-  void AddBatch(const JsonObject& args, JsonObject& out);
+  void AddBatch(const JsonObject& args, JsonArray& array);
 
   /**
    * Signature: @code void update(item, updateAllInstances); @endcode
@@ -99,7 +99,7 @@ class Calendar {
    * {status: 'success'}
    * @endcode
    */
-  void UpdateBatch(const JsonObject& args, JsonObject& out);
+  void UpdateBatch(const JsonObject& args, JsonArray& array);
 
   /**
    * Signature: @code void remove(item); @endcode
@@ -125,7 +125,7 @@ class Calendar {
    * {status: 'success'}
    * @endcode
    */
-  void RemoveBatch(const JsonObject& args, JsonObject& out);
+  void RemoveBatch(const JsonObject& args, JsonArray& array);
 
   /**
    * Signature: @code void find(successCallback, errorCallback, filter,
@@ -144,7 +144,7 @@ class Calendar {
    * {status: 'success', result: {calendarItemsArray}}
    * @endcode
    */
-  void Find(const JsonObject& args, JsonObject& out);
+  void Find(const JsonObject& args, JsonArray& array);
 
   /**
    * Signature: @code void addChangeListener(successCallback); @endcode
