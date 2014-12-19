@@ -272,7 +272,26 @@ void NFCAdapter::SetActiveSecureElement(std::string element) {
     int ret = nfc_manager_set_se_type(new_type);
     if (NFC_ERROR_NONE != ret) {
         LoggerE("Failed to set active secure element type: %d", ret);
-        NFCUtil::throwNFCException(ret, "Unable to set active secure element type");
+        NFCUtil::throwNFCException(ret,
+                "Unable to set active secure element type");
+    }
+}
+
+void NFCAdapter::SetExclusiveModeForTransaction(bool exmode) {
+
+    LoggerD("Entered");
+
+    int ret = NFC_ERROR_NONE;
+    if (exmode) {
+        ret = nfc_manager_enable_transaction_fg_dispatch();
+    } else {
+        ret = nfc_manager_disable_transaction_fg_dispatch();
+    }
+
+    if (NFC_ERROR_NONE != ret) {
+        LoggerE("Failed to set exclusive mode for transaction: %d", ret);
+        NFCUtil::throwNFCException(ret,
+                "Setting exclusive mode for transaction failed.");
     }
 }
 

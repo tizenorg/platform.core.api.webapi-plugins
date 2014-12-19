@@ -31,6 +31,9 @@ public:
     std::string GetActiveSecureElement();
     void SetActiveSecureElement(std::string element);
 
+// Adapter methods
+    void SetExclusiveModeForTransaction(bool exmode);
+
     static NFCAdapter* GetInstance();
     NFCInstance *xwalk_instance;
 private:

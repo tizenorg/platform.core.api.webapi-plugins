@@ -109,19 +109,11 @@ void NFCInstance::SetExclusiveMode(
     bool exmode = args.get("exclusiveMode").get<bool>();
     int ret = NFC_ERROR_NONE;
 
-    if(exmode) {
-        ret = nfc_manager_enable_transaction_fg_dispatch();
-    }
-    else {
-        ret = nfc_manager_disable_transaction_fg_dispatch();
-    }
-
-    if (NFC_ERROR_NONE != ret) {
-        LoggerE("setExclusiveMode() failed: %d", ret);
-        NFCUtil::throwNFCException(ret, "Failed to set exclusie mode");
+    int result = nfc_manager_set_system_handler_enable(!exmode);
+    if (NFC_ERROR_NONE != result) {
+        NFCUtil::throwNFCException(result, "Failed to set exclusive mode.");
     }
     ReportSuccess(out);
-
 }
 
 void NFCInstance::SetPowered(
@@ -141,11 +133,11 @@ void NFCInstance::CardEmulationModeSetter(
     std::string mode = args.get("emulationMode").get<std::string>();
     try {
         NFCAdapter::GetInstance()->SetCardEmulationMode(mode);
+        ReportSuccess(out);
     }
     catch(const common::PlatformException& ex) {
         ReportError(ex, out);
     }
-    ReportSuccess(out);
 }
 
 void NFCInstance::CardEmulationModeGetter(
@@ -154,11 +146,11 @@ void NFCInstance::CardEmulationModeGetter(
     std::string mode;
     try {
         mode = NFCAdapter::GetInstance()->GetCardEmulationMode();
+        ReportSuccess(picojson::value(mode), out);
     }
     catch(const common::PlatformException& ex) {
         ReportError(ex, out);
     }
-    ReportSuccess(picojson::value(mode), out);
 }
 
 void NFCInstance::ActiveSecureElementSetter(
@@ -167,11 +159,11 @@ void NFCInstance::ActiveSecureElementSetter(
     std::string ase = args.get("secureElement").get<std::string>();
     try {
         NFCAdapter::GetInstance()->SetActiveSecureElement(ase);
+        ReportSuccess(out);
     }
     catch(const common::PlatformException& ex) {
         ReportError(ex, out);
     }
-    ReportSuccess(out);
 }
 
 void NFCInstance::ActiveSecureElementGetter(
@@ -180,11 +172,11 @@ void NFCInstance::ActiveSecureElementGetter(
     std::string ase;
     try {
         ase = NFCAdapter::GetInstance()->GetActiveSecureElement();
+        ReportSuccess(picojson::value(ase), out);
     }
     catch(const common::PlatformException& ex) {
         ReportError(ex, out);
     }
-    ReportSuccess(picojson::value(ase), out);
 }
 
 void NFCInstance::SetTagListener(
@@ -240,6 +232,17 @@ void NFCInstance::GetCachedMessage(
 void NFCInstance::SetExclusiveModeForTransaction(
         const picojson::value& args, picojson::object& out) {
 
+    bool transaction_mode = args.get("transactionMode").get<bool>();
+    int ret = NFC_ERROR_NONE;
+
+    try {
+        NFCAdapter::GetInstance()->SetExclusiveModeForTransaction(
+                transaction_mode);
+        ReportSuccess(out);
+    }
+    catch(const common::PlatformException& ex) {
+        ReportError(ex, out);
+    }
 }
 
 void NFCInstance::ReadNDEF(
