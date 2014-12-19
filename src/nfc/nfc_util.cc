@@ -30,6 +30,7 @@ void NFCUtil::throwNFCException(const int errorCode, const char* message)
             throw InvalidValuesException(message);
             break;
         case NFC_ERROR_SECURITY_RESTRICTED:
+        case NFC_ERROR_PERMISSION_DENIED:
             throw SecurityException(message);
             break;
         case NFC_ERROR_NOT_ACTIVATED:

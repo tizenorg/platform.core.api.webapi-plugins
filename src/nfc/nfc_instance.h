@@ -28,6 +28,8 @@ private:
     void SetExclusiveMode(const picojson::value& args, picojson::object& out);
     void SetPowered(const picojson::value& args, picojson::object& out);
     void GetPowered(const picojson::value& args, picojson::object& out);
+    void CardEmulationModeSetter(const picojson::value& args, picojson::object& out);
+    void CardEmulationModeGetter(const picojson::value& args, picojson::object& out);
     void SetTagListener(const picojson::value& args, picojson::object& out);
     void SetPeerListener(const picojson::value& args, picojson::object& out);
     void UnsetTagListener(const picojson::value& args, picojson::object& out);
