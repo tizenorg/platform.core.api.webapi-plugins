@@ -201,12 +201,12 @@ void NFCInstance::UnsetPeerListener(
 
 void NFCInstance::AddCardEmulationModeChangeListener(
         const picojson::value& args, picojson::object& out) {
-
+    NFCAdapter::GetInstance()->AddCardEmulationModeChangeListener();
 }
 
 void NFCInstance::RemoveCardEmulationModeChangeListener(
         const picojson::value& args, picojson::object& out) {
-
+    NFCAdapter::GetInstance()->RemoveCardEmulationModeChangeListener();
 }
 
 void NFCInstance::AddTransactionEventListener(

@@ -34,11 +34,15 @@ public:
 // Adapter methods
     void SetExclusiveModeForTransaction(bool exmode);
 
+    void AddCardEmulationModeChangeListener();
+    void RemoveCardEmulationModeChangeListener();
+
     static NFCAdapter* GetInstance();
-    NFCInstance *xwalk_instance;
 private:
     NFCAdapter();
     virtual ~NFCAdapter();
+
+    bool m_is_listener_set;
 };
 
 } // nfc
