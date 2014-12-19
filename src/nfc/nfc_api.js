@@ -96,6 +96,17 @@ function NFCManager() {
 }
 
 NFCManager.prototype.getDefaultAdapter = function() {
+    // First check NFC suppor on C++ level
+    var result = native_.callSync(
+        'NFCManager_getDefaultAdapter',
+        {}
+    );
+    if(native_.isFailure(result)) {
+        throw new tizen.WebAPIException(0, result.error.message,
+                result.error.name);
+    }
+
+    // If NFC is supported then return new NFCAdapter instance
     return new NFCAdapter();
 };
 
@@ -112,7 +123,8 @@ NFCManager.prototype.setExclusiveMode = function() {
 
     // If failed then exception should be thrown.
     if(native_.isFailure(result)) {
-        throw new tizen.WebAPIException(0, result.error.message, result.error.name);
+        throw new tizen.WebAPIException(0, result.error.message,
+                result.error.name);
         // Uncoment line below (and remove line above) when problem
         // with error conversion is fixed:
         //

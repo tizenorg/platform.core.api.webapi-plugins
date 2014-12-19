@@ -101,6 +101,19 @@ void NFCInstance::InstanceReportError(const PlatformException& ex, picojson::obj
 void NFCInstance::GetDefaultAdapter(
         const picojson::value& args, picojson::object& out) {
 
+    // Default NFC adapter is created at JS level
+    // Here there's only check for NFC support
+    LoggerD("Entered");
+    if(!nfc_manager_is_supported()) {
+        LoggerE("NFC manager is not supported");
+        // According to API reference only Security and Unknown
+        // exceptions are allowed here
+        auto ex = common::UnknownException("NFC manager not supported");
+        ReportError(ex, out);
+    }
+    else {
+        ReportSuccess(out);
+    }
 }
 
 void NFCInstance::SetExclusiveMode(
