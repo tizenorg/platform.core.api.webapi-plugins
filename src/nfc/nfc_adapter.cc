@@ -100,18 +100,19 @@ static void se_event_callback(nfc_se_event_e se_event, void *user_data) {
     string result;
     switch (se_event) {
         case NFC_SE_EVENT_SE_TYPE_CHANGED:
-            // TODO: fill when addActiveSecureElementChangeListener will be added
+            result = NFCAdapter::GetInstance()->GetActiveSecureElement();
+            obj.insert(make_pair("listenerId", "ActiveSecureElementChanged"));
             break;
         case NFC_SE_EVENT_CARD_EMULATION_CHANGED:
             result = NFCAdapter::GetInstance()->GetCardEmulationMode();
-            obj.insert(make_pair("mode", result));
             obj.insert(make_pair("listenerId", "CardEmulationModeChanged"));
             break;
         default:
             LOGD("se_event_occured: %d", se_event);
-            break;
+            return;
     }
 
+    obj.insert(make_pair("mode", result));
     NFCInstance::getInstance().PostMessage(event.serialize().c_str());
 }
 
@@ -326,7 +327,7 @@ void NFCAdapter::AddCardEmulationModeChangeListener() {
     if (!m_is_listener_set) {
         int ret = nfc_manager_set_se_event_cb(se_event_callback, NULL);
         if (NFC_ERROR_NONE != ret) {
-            LOGE("addCardEmulationModeChangeListener failed: %d", ret);
+            LOGE("AddCardEmulationModeChangeListener failed: %d", ret);
             NFCUtil::throwNFCException(ret,
                 NFCUtil::getNFCErrorMessage(ret).c_str());
         }
@@ -336,6 +337,30 @@ void NFCAdapter::AddCardEmulationModeChangeListener() {
 }
 
 void NFCAdapter::RemoveCardEmulationModeChangeListener() {
+    if (!nfc_manager_is_supported()) {
+        throw NotSupportedException("NFC Not Supported");
+    }
+
+    if (m_is_listener_set) {
+        nfc_manager_unset_se_event_cb();
+    }
+    m_is_listener_set = false;
+}
+
+void NFCAdapter::AddActiveSecureElementChangeListener() {
+    if (!m_is_listener_set) {
+        int ret = nfc_manager_set_se_event_cb(se_event_callback, NULL);
+        if (NFC_ERROR_NONE != ret) {
+            LOGE("AddActiveSecureElementChangeListener failed: %d", ret);
+            NFCUtil::throwNFCException(ret,
+                NFCUtil::getNFCErrorMessage(ret).c_str());
+        }
+    }
+
+    m_is_listener_set = true;
+}
+
+void NFCAdapter::RemoveActiveSecureElementChangeListener() {
     if (!nfc_manager_is_supported()) {
         throw NotSupportedException("NFC Not Supported");
     }
