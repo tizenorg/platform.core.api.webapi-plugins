@@ -409,7 +409,6 @@ function convertToProfileInfo(data) {
 }
 
 function convertToSyncInfo(data) {
-  try {
     var mode = data['mode'];
     var type = data['type'];
     var interval = data['interval'];
@@ -423,26 +422,11 @@ function convertToSyncInfo(data) {
 
     return new tizen.SyncInfo(data['url'], data['id'], data['password'],
         mode, typeorinterval);
-  } catch (e) {
-    if (e instanceof tizen.WebAPIException) {
-      throw tizen.WebAPIException(tizen.WebAPIException.TYPE_UNKNOWN_ERR);
-    } else {
-      throw e;
-    }
-  }
 }
 
 function convertToServiceInfo(data) {
-  try {
     return new tizen.SyncServiceInfo(data['enable'], data['serviceType'],
         data['serverDatabaseUri'], data['id'], data['password']);
-  } catch (e) {
-    if (e instanceof tizen.WebAPIException) {
-      throw tizen.WebAPIException(tizen.WebAPIException.TYPE_UNKNOWN_ERR);
-    } else {
-      throw e;
-    }
-  }
 }
 
 // DataSynchronizationManager interface
