@@ -793,6 +793,10 @@ NativeManager.prototype.removeListener = function(name) {
   }
 };
 
+NativeManager.prototype.isListenerSet = function(name) {
+  return this.listeners_.hasOwnProperty(name);
+};
+
 NativeManager.prototype.isSuccess = function(result) {
   return (result.status !== 'error');
 };
