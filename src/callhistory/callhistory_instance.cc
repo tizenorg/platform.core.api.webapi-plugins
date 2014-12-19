@@ -67,20 +67,18 @@ void CallHistoryInstance::RemoveAll(const picojson::value& args, picojson::objec
 void CallHistoryInstance::AddChangeListener(const picojson::value& args, picojson::object& out) {
     LoggerD("Entered");
     CallHistory::getInstance()->startCallHistoryChangeListener();
-    ReportSuccess(out);
 }
 
 void CallHistoryInstance::RemoveChangeListener(const picojson::value& args, picojson::object& out) {
     LoggerD("Entered");
     CallHistory::getInstance()->stopCallHistoryChangeListener();
-    ReportSuccess(out);
 }
 
 void CallHistoryInstance::CallHistoryChange(picojson::object& data) {
     LoggerD("Entered");
     picojson::value event = picojson::value(data);
     picojson::object& obj = event.get<picojson::object>();
-    obj["cmd"] = picojson::value("CallHistoryChangeCallback");
+    obj["listenerId"] = picojson::value("CallHistoryChangeCallback");
 
     PostMessage(event.serialize().c_str());
 }
