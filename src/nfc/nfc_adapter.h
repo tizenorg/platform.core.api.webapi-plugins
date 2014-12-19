@@ -24,10 +24,12 @@ public:
     bool GetPowered();
     void SetPowered(const picojson::value& args);
 
-// cardEmulationModer getter and setter
+// cardEmulationMode getter and setter
     std::string GetCardEmulationMode();
     void SetCardEmulationMode(std::string mode);
-
+// activeSecureElement getter and setter
+    std::string GetActiveSecureElement();
+    void SetActiveSecureElement(std::string element);
 
     static NFCAdapter* GetInstance();
     NFCInstance *xwalk_instance;
