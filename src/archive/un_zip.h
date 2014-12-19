@@ -27,8 +27,8 @@
 #include "archive_callback_data.h"
 #include "archive_file_entry.h"
 
-namespace DeviceAPI {
-namespace Archive {
+namespace extension {
+namespace archive {
 
 class UnZipExtractRequest;
 
@@ -93,7 +93,7 @@ private:
     friend class UnZipExtractRequest;
 };
 
-} //namespace Archive
-} //namespace DeviceAPI
+} //namespace archive
+} //namespace extension
 
 #endif // __TIZEN_ARCHIVE_ZIP_H__

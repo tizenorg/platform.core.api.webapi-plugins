@@ -25,8 +25,8 @@
 #include "filesystem_file.h"
 #include "archive_file.h"
 
-namespace DeviceAPI {
-namespace Archive {
+namespace extension {
+namespace archive {
 
 std::string bytesToReadableString(const size_t num_bytes);
 std::string fileModeToString(FileMode fm);
@@ -119,7 +119,7 @@ void throwArchiveException(const int errorCode, const std::string &hint)
     throw T(log.c_str());
 }
 
-} //namespace Archive
-} //namespace DeviceAPI
+} //namespace archive
+} //namespace extension
 
 #endif // __TIZEN_ARCHIVE_ARCHIVE_UTILS_H__

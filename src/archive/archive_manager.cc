@@ -19,31 +19,34 @@
 #include <mutex>
 
 #include "common/logger.h"
+#include "filesystem_file.h"
 
-namespace DeviceAPI {
-namespace Archive {
+namespace extension {
+namespace archive {
+
+using namespace filesystem;
 
 ArchiveManager::ArchiveManager():
     m_next_unique_id(0)
 {
-    LOGD("Initialize ArchiveManager");
+    LoggerD("Initialize ArchiveManager");
 }
 
 ArchiveManager::~ArchiveManager()
 {
-    LOGD("Deinitialize ArchiveManager");
+    LoggerD("Deinitialize ArchiveManager");
 }
 
 ArchiveManager& ArchiveManager::getInstance()
 {
-    LOGD("Entered");
+    LoggerD("Entered");
     static ArchiveManager instance;
     return instance;
 }
 
 void ArchiveManager::abort(long operation_id)
 {
-    LOGD("Entered");
+    LoggerD("Entered");
 
     ArchiveFileMap::iterator it = m_archive_file_map.find(operation_id);
     if (it != m_archive_file_map.end()) {
@@ -58,12 +61,19 @@ void ArchiveManager::abort(long operation_id)
             }
         }
     }
-    LOGD("The Operation Identifier not found");
+    LoggerD("The Operation Identifier not found");
 }
 
 long ArchiveManager::open(OpenCallbackData* callback)
 {
-    LOGD("Entered");
+    LoggerD("Entered");
+
+    //ArchiveFilePtr a_ptr = callback->getArchiveFile();
+//    std::string filename = callback->getFile();
+//
+//    NodePtr node = Node::resolve(Path::create(filename));
+//    FilePtr file_ptr = FilePtr(new File(node, std::vector<int>(), filename));
+//    ArchiveFilePtr a_ptr = ArchiveFilePtr(new ArchiveFile(FileMode::READ));
 
     ArchiveFilePtr a_ptr = callback->getArchiveFile();
     return a_ptr->addOperation(callback);
@@ -71,7 +81,7 @@ long ArchiveManager::open(OpenCallbackData* callback)
 
 long ArchiveManager::getNextOperationId(ArchiveFilePtr archive_file_ptr)
 {
-    LOGD("Entered");
+    LoggerD("Entered");
     long op_id = ++m_next_unique_id;
     m_archive_file_map.insert(ArchiveFilePair(op_id, archive_file_ptr));
     return op_id;
@@ -79,12 +89,12 @@ long ArchiveManager::getNextOperationId(ArchiveFilePtr archive_file_ptr)
 
 void ArchiveManager::eraseElementFromArchiveFileMap(long operation_id)
 {
-    LOGD("Entered");
+    LoggerD("Entered");
     ArchiveFileMap::iterator it = m_archive_file_map.find(operation_id);
     if (it != m_archive_file_map.end()) {
         m_archive_file_map.erase(it);
     }
 }
 
-} // Archive
-} // DeviceAPI
+} // archive
+} // extension

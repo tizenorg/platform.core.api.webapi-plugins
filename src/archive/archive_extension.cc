@@ -2,9 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "archive/archive_extension.h"
-
-#include "archive/archive_instance.h"
+#include "archive_extension.h"
+#include "archive_instance.h"
 
 // This will be generated from archive_api.js
 extern const char kSource_archive_api[];
@@ -26,5 +25,5 @@ ArchiveExtension::~ArchiveExtension()
 
 common::Instance* ArchiveExtension::CreateInstance()
 {
-    return new extension::archive::ArchiveInstance;
+    return &extension::archive::ArchiveInstance::getInstance();
 }

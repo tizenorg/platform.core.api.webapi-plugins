@@ -22,8 +22,8 @@
 #include <string>
 #include "un_zip.h"
 
-namespace DeviceAPI {
-namespace Archive {
+namespace extension {
+namespace archive {
 
 enum FilePathStatus {
     FPS_NOT_EXIST = 0,
@@ -79,7 +79,7 @@ private:
     std::string m_new_dir_path;
 };
 
-} //namespace Archive
-} //namespace DeviceAPI
+} //namespace archive
+} //namespace extension
 
 #endif // __TIZEN_ARCHIVE_UNZIP_EXTRACT_REQUEST_H__

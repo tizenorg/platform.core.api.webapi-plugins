@@ -382,11 +382,11 @@ ArchiveManager.prototype.open = function () {
         }
     }).then({
         success: function (data) {
-            args.successCallback.call(null, new ArchiveFile(data));
+            args.onsuccess.call(null, new ArchiveFile(data));
         },
         error: function (e) {
-            if (args.errorCallback) {
-                args.errorCallback.call(
+            if (args.onerror) {
+                args.onerror.call(
                     null,
                     new tizen.WebAPIException(e.code, e.name, e.message)
                 );

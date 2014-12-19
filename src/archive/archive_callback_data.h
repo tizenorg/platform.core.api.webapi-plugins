@@ -26,12 +26,16 @@
 #include <memory>
 #include <glib.h>
 
+#include "common/platform_exception.h"
 #include "filesystem_file.h"
-
 #include "archive_file_entry.h"
 
-namespace DeviceAPI {
-namespace Archive {
+
+namespace extension {
+namespace archive {
+
+using namespace common;
+using namespace filesystem;
 
 class ArchiveFileEntry;
 typedef std::shared_ptr<ArchiveFileEntry> ArchiveFileEntryPtr;
@@ -53,15 +57,8 @@ typedef std::shared_ptr<ArchiveFile> ArchiveFilePtr;
 class OperationCallbackData
 {
 public:
-    OperationCallbackData(ArchiveCallbackType callback_type = OPERATION_CALLBACK_DATA);
+    OperationCallbackData(ArchiveCallbackType callback_type);
     virtual ~OperationCallbackData();
-
-    //void setSuccessCallback(JSValueRef on_success);
-    //void setErrorCallback(JSValueRef on_error);
-
-    void callSuccessCallback();
-    //void callSuccessCallback(JSValueRef err);
-    //void callErrorCallback(JSValueRef err);
 
     void setError(const std::string &err_name,
             const std::string &err_message);
@@ -71,20 +68,23 @@ public:
 
     void setOperationId(long op_id);
     long getOperationId() const;
+    void setCallbackId(double cid);
+    double getCallbackId() const;
 
     ArchiveCallbackType getCallbackType() const;
 
-    virtual void executeOperation(ArchiveFilePtr archive_file_ptr);
-
-    bool isCanceled() const;
-    void setIsCanceled(bool is_cancel);
+    virtual void executeOperation(ArchiveFilePtr archive_file_ptr) = 0;
 
     ArchiveFilePtr getArchiveFile() const;
     void setArchiveFile(ArchiveFilePtr caller);
 
+    bool isCanceled() const;
+    void setIsCanceled(bool canceled);
+
 protected:
     ArchiveCallbackType m_callback_type;
     long m_op_id;
+    double m_cid;
 
 private:
     bool m_is_error;
@@ -101,7 +101,15 @@ public:
     OpenCallbackData(ArchiveCallbackType callback_type = OPEN_CALLBACK_DATA);
     virtual ~OpenCallbackData();
 
+    void setFile(std::string file);
+    const std::string& getFile() const;
+    //void setMode(FileMode mode);
+    //FileMode getMode() const;
+
     virtual void executeOperation(ArchiveFilePtr archive_file_ptr);
+
+private:
+    std::string m_filename;
 };
 
 class GetEntriesCallbackData : public OperationCallbackData
@@ -195,8 +203,8 @@ public:
     ExtractAllProgressCallback(ArchiveCallbackType callback_type = EXTRACT_ALL_PROGRESS_CALLBACK);
     virtual ~ExtractAllProgressCallback();
 
-    Filesystem::FilePtr getDirectory() const;
-    void setDirectory(Filesystem::FilePtr directory);
+    filesystem::FilePtr getDirectory() const;
+    void setDirectory(filesystem::FilePtr directory);
 
     void startedExtractingFile(unsigned long current_file_size);
     void extractedPartOfFile(unsigned long bytes_decompressed);
@@ -216,7 +224,7 @@ public:
 private:
     void updateOverallProgress(unsigned long bytes_decompressed);
 
-    Filesystem::FilePtr m_directory;
+    filesystem::FilePtr m_directory;
 
     //
     // Constant values set before extracting entries:

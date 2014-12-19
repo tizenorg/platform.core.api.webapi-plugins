@@ -25,8 +25,8 @@
 
 #include "archive_callback_data.h"
 
-namespace DeviceAPI {
-namespace Archive {
+namespace extension {
+namespace archive {
 
 
 class ZipAddRequest;
@@ -70,7 +70,7 @@ private:
     friend class ZipAddRequest;
 };
 
-} //namespace Archive
-} //namespace DeviceAPI
+} //namespace archive
+} //namespace extension
 
 #endif // __TIZEN_ARCHIVE_ZIP_H__

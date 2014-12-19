@@ -21,16 +21,16 @@
 #include <memory>
 #include <mutex>
 #include <string>
+#include <map>
 
 #include "archive_callback_data.h"
-#include "archive_manager.h"
 #include "filesystem_file.h"
 #include "un_zip.h"
 #include "zip.h"
+#include "archive_file_entry.h"
 
-
-namespace DeviceAPI {
-namespace Archive {
+namespace extension {
+namespace archive {
 
 class ArchiveFile;
 class ArchiveManager;
@@ -85,8 +85,8 @@ public:
     long add(AddProgressCallback *callback);
     void close();
 
-    Filesystem::FilePtr getFile() const;
-    void setFile(Filesystem::FilePtr file);
+    filesystem::FilePtr getFile() const;
+    void setFile(filesystem::FilePtr file);
     bool isOverwrite() const;
     void setOverwrite(bool overwrite);
     unsigned long getDecompressedSize() const;
@@ -125,7 +125,7 @@ private:
     std::deque<CallbackPair> m_task_queue;
     std::mutex m_mutex;
 
-    Filesystem::FilePtr m_file;
+    filesystem::FilePtr m_file;
 
     FileMode m_file_mode;
     static PermissionMap s_permission_map;
@@ -183,7 +183,7 @@ private:
     friend class BaseProgressCallback;
 };
 
-} // Archive
-} // DeviceAPI
+} // archive
+} // extension
 
 #endif /* _TIZEN_ARCHIVE_FILE_ENTRY_H_ */

@@ -16,6 +16,7 @@
 //
 #include "archive_file.h"
 
+#include "common/picojson.h"
 #include "common/logger.h"
 #include "common/platform_exception.h"
 
@@ -24,12 +25,12 @@
 #include "defs.h"
 #include "un_zip.h"
 #include "zip.h"
-
+#include "archive_instance.h"
 
 using namespace common;
 
-namespace DeviceAPI {
-namespace Archive {
+namespace extension {
+namespace archive {
 
 Permission::Permission(bool r, bool w, bool rw, bool a){
     permission[0] = r;
@@ -56,7 +57,7 @@ ArchiveFile::ArchiveFile() :
         m_overwrite(false),
         m_created_as_new_empty_archive(false)
 {
-    LOGD("Entered");
+    LoggerD("Entered");
 }
 
 ArchiveFile::ArchiveFile(FileMode file_mode) :
@@ -70,10 +71,10 @@ ArchiveFile::ArchiveFile(FileMode file_mode) :
 
 ArchiveFile::~ArchiveFile()
 {
-    LOGD("Entered");
+    LoggerD("Entered");
 
     if(m_entry_map) {
-        LOGD("Unlinking old m_entry_map: %d ArchiveFileEntries", m_entry_map->size());
+        LoggerD("Unlinking old m_entry_map: %d ArchiveFileEntries", m_entry_map->size());
         for(auto it = m_entry_map->begin(); it != m_entry_map->end(); ++it) {
             if(it->second) {
                 it->second->setArchiveFileNonProtectPtr(NULL);
@@ -84,18 +85,30 @@ ArchiveFile::~ArchiveFile()
 
 gboolean ArchiveFile::openTaskCompleteCB(void *data)
 {
-    LOGD("Entered");
-    LOGW("STUB Not calling success/error callback");
+    LoggerD("Entered");
 
     auto callback = static_cast<OperationCallbackData*>(data);
     if (!callback) {
-        LOGE("callback is null");
+        LoggerE("callback is null");
         return false;
     }
 
+    picojson::value val = picojson::value(picojson::object());
+    picojson::object& obj = val.get<picojson::object>();
+
+    obj["action"] = picojson::value("success");
+    obj["cid"] = picojson::value(callback->getCallbackId());
+    obj["args"] = picojson::value(picojson::object());
+    picojson::object& obj1 = obj["args"].get<picojson::object>();
+    obj1["mode"] = picojson::value("r");
+
+    LoggerD("%s", val.serialize().c_str());
+
+    ArchiveInstance::getInstance().PostMessage(val.serialize().c_str());
+
 //     JSContextRef context = callback->getContext();
 //     if (!GlobalContextManager::getInstance()->isAliveGlobalContext(context)) {
-//         LOGE("context was closed");
+//         LoggerE("context was closed");
 //         delete callback;
 //         callback = NULL;
 //         return false;
@@ -114,10 +127,10 @@ gboolean ArchiveFile::openTaskCompleteCB(void *data)
 //         }
 //     }
 //     catch (const PlatformException &err) {
-//         LOGE("%s (%s)", err.name().c_str(), err.message().c_str());
+//         LoggerE("%s (%s)", err.name().c_str(), err.message().c_str());
 //     }
 //     catch (...) {
-//         LOGE("Unknown error occurs");
+//         LoggerE("Unknown error occurs");
 //     }
 
     delete callback;
@@ -128,23 +141,23 @@ gboolean ArchiveFile::openTaskCompleteCB(void *data)
 
 gboolean ArchiveFile::callErrorCallback(void* data)
 {
-    LOGD("Entered");
-    LOGW("STUB Not calling success/error callback");
+    LoggerD("Entered");
+    LoggerW("STUB Not calling success/error callback");
 
     auto callback = static_cast<OperationCallbackData*>(data);
     if (!callback) {
-        LOGE("callback is null");
+        LoggerE("callback is null");
         return false;
     }
 
 //     JSContextRef context = callback->getContext();
 //     if (!GlobalContextManager::getInstance()->isAliveGlobalContext(context)) {
-//         LOGE("context was closed");
+//         LoggerE("context was closed");
 //         delete callback;
 //         callback = NULL;
 //         return false;
 //     }
-// 
+//
 //     try {
 //         if (callback->isError()) {
 //             JSObjectRef errobj = JSWebAPIErrorFactory::makeErrorObject(context,
@@ -153,14 +166,14 @@ gboolean ArchiveFile::callErrorCallback(void* data)
 //             callback->callErrorCallback(errobj);
 //         }
 //         else {
-//             LOGW("The success callback should be not be called in this case");
+//             LoggerW("The success callback should be not be called in this case");
 //         }
 //     }
 //     catch (const PlatformException &err) {
-//         LOGE("%s (%s)", err.name().c_str(), err.message().c_str());
+//         LoggerE("%s (%s)", err.name().c_str(), err.message().c_str());
 //     }
 //     catch (...) {
-//         LOGE("Unknown error occurs");
+//         LoggerE("Unknown error occurs");
 //     }
 
     delete callback;
@@ -171,15 +184,15 @@ gboolean ArchiveFile::callErrorCallback(void* data)
 
 void* ArchiveFile::taskManagerThread(void *data)
 {
-    LOGD("Entered");
+    LoggerD("Entered");
     ArchiveFileHolder* archive_file_holder = static_cast<ArchiveFileHolder*>(data);
     if (!archive_file_holder) {
-        LOGE("archive_file_holder is null");
+        LoggerE("archive_file_holder is null");
         return NULL;
     }
 
     if (!archive_file_holder->ptr){
-        LOGE("archive_file is null");
+        LoggerE("archive_file is null");
         delete archive_file_holder;
         archive_file_holder = NULL;
         return NULL;
@@ -211,12 +224,12 @@ void* ArchiveFile::taskManagerThread(void *data)
             delete callback;
             callback = NULL;
         } catch (const PlatformException &err) {
-            LOGE("taskManagerThread fails, %s: %s", err.name().c_str(),
+            LoggerE("taskManagerThread fails, %s: %s", err.name().c_str(),
                     err.message().c_str());
             callback->setError(err.name().c_str(), err.message().c_str());
             call_error_callback = true;
         } catch (...) {
-            LOGE("taskManagerThread fails");
+            LoggerE("taskManagerThread fails");
             callback->setError("UnknownError", "UnknownError");
             call_error_callback = true;
         }
@@ -226,7 +239,7 @@ void* ArchiveFile::taskManagerThread(void *data)
                 archive_file_holder->ptr->m_task_queue.pop_back();
             }
             if (!g_idle_add(callErrorCallback, static_cast<void*>(callback))) {
-                LOGE("g_idle_add fails");
+                LoggerE("g_idle_add fails");
                 delete callback;
                 callback = NULL;
             }
@@ -241,12 +254,9 @@ void* ArchiveFile::taskManagerThread(void *data)
 
 long ArchiveFile::addOperation(OperationCallbackData* callback)
 {
-    LOGD("Entered callback type:%d", callback->getCallbackType());
+    LoggerD("Entered callback type:%d", callback->getCallbackType());
 
-    const long operation_id =
-            ArchiveManager::getInstance().getNextOperationId(shared_from_this());
-    callback->setOperationId(operation_id);
-    callback->setArchiveFile(shared_from_this());
+    const long operation_id = callback->getOperationId();
     std::size_t size = 0;
     {
         std::lock_guard<std::mutex> lock(m_mutex);
@@ -257,20 +267,20 @@ long ArchiveFile::addOperation(OperationCallbackData* callback)
         pthread_t thread;
         ArchiveFileHolder* holder = new(std::nothrow) ArchiveFileHolder();
         if(!holder) {
-            LOGE("Memory allocation error");
+            LoggerE("Memory allocation error");
             throw UnknownException("Memory allocation error");
         }
         holder->ptr = shared_from_this();
         if (pthread_create(&thread, NULL, taskManagerThread,
                 static_cast<void*>(holder))) {
-            LOGE("Thread creation failed");
+            LoggerE("Thread creation failed");
             delete holder;
             holder = NULL;
             throw UnknownException("Thread creation failed");
         }
 
         if (pthread_detach(thread)) {
-            LOGE("Thread detachment failed");
+            LoggerE("Thread detachment failed");
         }
     }
     return operation_id;
@@ -278,24 +288,24 @@ long ArchiveFile::addOperation(OperationCallbackData* callback)
 
 void ArchiveFile::extractAllTask(ExtractAllProgressCallback* callback)
 {
-    Filesystem::FilePtr directory = callback->getDirectory();
+    filesystem::FilePtr directory = callback->getDirectory();
 
     if(!directory) {
-        LOGE("Directory is null");
+        LoggerE("Directory is null");
         throw UnknownException("Directory is null");
     } else {
         if(!directory->getNode()){
-            LOGE("Node in directory is null");
+            LoggerE("Node in directory is null");
             throw UnknownException("Node is null");
         }
     }
 
     if(!m_file) {
-        LOGE("File is null");
+        LoggerE("File is null");
         throw UnknownException("File is null");
     } else {
         if(!m_file->getNode()){
-            LOGE("Node in file is null");
+            LoggerE("Node in file is null");
             throw UnknownException("Node in file is null");
         }
     }
@@ -303,9 +313,9 @@ void ArchiveFile::extractAllTask(ExtractAllProgressCallback* callback)
     // For explanation please see:
     //    ArchiveFile.h m_created_as_new_empty_archive description
     //
-    if(m_file->getSize() == 0) {
-        LOGD("Zip file: %s is empty",
-                m_file->getFullPath().c_str());
+    if(m_file->getNode()->getSize() == 0) {
+        LoggerD("Zip file: %s is empty",
+                m_file->getNode()->getPath()->getFullPath().c_str());
 
         if(m_created_as_new_empty_archive) {
             //We do not call progress callback since we do not have any ArchiveFileEntry
@@ -314,21 +324,21 @@ void ArchiveFile::extractAllTask(ExtractAllProgressCallback* callback)
             return;
         }
         else {
-            LOGW("m_created_as_new_empty_archive is false");
-            LOGE("Throwing InvalidStateException: File is not valid ZIP archive");
+            LoggerW("m_created_as_new_empty_archive is false");
+            LoggerE("Throwing InvalidStateException: File is not valid ZIP archive");
             throw InvalidStateException("File is not valid ZIP archive");
         }
     }
 
     UnZipPtr unzip = createUnZipObject();
-    unzip->extractAllFilesTo(directory->getFullPath(), callback);
+    unzip->extractAllFilesTo(directory->getNode()->getPath()->getFullPath(), callback);
 }
 
 long ArchiveFile::getEntries(GetEntriesCallbackData* callback)
 {
-    LOGD("Entered");
+    LoggerD("Entered");
     if(!callback) {
-        LOGE("callback is NULL");
+        LoggerE("callback is NULL");
         throw UnknownException("Could not get list of files in archive");
     }
 
@@ -339,18 +349,18 @@ long ArchiveFile::getEntries(GetEntriesCallbackData* callback)
 
 gboolean ArchiveFile::getEntriesTaskCompleteCB(void *data)
 {
-    LOGD("Entered");
-    LOGW("STUB Not calling success/error callback");
+    LoggerD("Entered");
+    LoggerW("STUB Not calling success/error callback");
 
     auto callback = static_cast<GetEntriesCallbackData*>(data);
     if (!callback) {
-        LOGE("callback is null");
+        LoggerE("callback is null");
         return false;
     }
 
 //     JSContextRef context = callback->getContext();
 //     if (!GlobalContextManager::getInstance()->isAliveGlobalContext(context)) {
-//         LOGE("context was closed");
+//         LoggerE("context was closed");
 //         delete callback;
 //         callback = NULL;
 //         return false;
@@ -377,10 +387,10 @@ gboolean ArchiveFile::getEntriesTaskCompleteCB(void *data)
 //         callback->callSuccessCallback(jsResult);
 //     }
 //     catch (const PlatformException &err) {
-//         LOGE("%s (%s)", err.name().c_str(), err.message().c_str());
+//         LoggerE("%s (%s)", err.name().c_str(), err.message().c_str());
 //     }
 //     catch (...) {
-//         LOGE("Unknown error occurs");
+//         LoggerE("Unknown error occurs");
 //     }
 
     delete callback;
@@ -391,9 +401,9 @@ gboolean ArchiveFile::getEntriesTaskCompleteCB(void *data)
 
 long ArchiveFile::extractAll(ExtractAllProgressCallback *callback)
 {
-    LOGD("Entered");
+    LoggerD("Entered");
     if(!callback) {
-        LOGE("callback is NULL");
+        LoggerE("callback is NULL");
         throw UnknownException("Could not extract all files from archive");
     }
 
@@ -404,9 +414,9 @@ long ArchiveFile::extractAll(ExtractAllProgressCallback *callback)
 
 long ArchiveFile::extractEntryTo(ExtractEntryProgressCallback* callback)
 {
-    LOGD("Entered");
+    LoggerD("Entered");
     if(!callback) {
-        LOGE("callback is NULL");
+        LoggerE("callback is NULL");
         throw UnknownException("Could not extract archive file entry");
     }
 
@@ -417,7 +427,7 @@ long ArchiveFile::extractEntryTo(ExtractEntryProgressCallback* callback)
     // uncomment in case when this method have permission to throwing InvalidStateError
     // throwInvalidStateErrorIfArchiveFileisClosed();
     if(!m_is_open) {
-        LOGE("Archive is not opened");
+        LoggerE("Archive is not opened");
         throw UnknownException("Archive is not opened");
     }
 
@@ -427,13 +437,13 @@ long ArchiveFile::extractEntryTo(ExtractEntryProgressCallback* callback)
 
 long ArchiveFile::add(AddProgressCallback *callback)
 {
-    LOGD("Entered");
+    LoggerD("Entered");
     if(!callback) {
-        LOGE("callback is NULL");
+        LoggerE("callback is NULL");
         throw UnknownException("Could not add file to archive");
     }
     if(FileMode::READ == m_file_mode) {
-        LOGE("Trying to add file when READ access mode selected");
+        LoggerE("Trying to add file when READ access mode selected");
         throw InvalidAccessException("Add not allowed for \"r\" access mode");
     }
 
@@ -444,10 +454,10 @@ long ArchiveFile::add(AddProgressCallback *callback)
 
 void ArchiveFile::close()
 {
-    LOGD("Entered");
+    LoggerD("Entered");
 
     if(!m_is_open){
-        LOGD("Archive already closed");
+        LoggerD("Archive already closed");
     }
     m_is_open = false;
 
@@ -456,9 +466,9 @@ void ArchiveFile::close()
 
 long ArchiveFile::getEntryByName(GetEntryByNameCallbackData* callback)
 {
-    LOGD("Entered");
+    LoggerD("Entered");
     if(!callback) {
-        LOGE("callback is NULL");
+        LoggerE("callback is NULL");
         throw UnknownException("Could not get archive file entries by name");
     }
 
@@ -469,18 +479,18 @@ long ArchiveFile::getEntryByName(GetEntryByNameCallbackData* callback)
 
 gboolean ArchiveFile::getEntryByNameTaskCompleteCB(void *data)
 {
-    LOGD("Entered");
-    LOGW("STUB Not calling success/error callback");
+    LoggerD("Entered");
+    LoggerW("STUB Not calling success/error callback");
 
     auto callback = static_cast<GetEntryByNameCallbackData*>(data);
     if (!callback) {
-        LOGE("callback is null");
+        LoggerE("callback is null");
         return false;
     }
 
 //     JSContextRef context = callback->getContext();
 //     if (!GlobalContextManager::getInstance()->isAliveGlobalContext(context)) {
-//         LOGE("context was closed");
+//         LoggerE("context was closed");
 //         delete callback;
 //         callback = NULL;
 //         return false;
@@ -499,10 +509,10 @@ gboolean ArchiveFile::getEntryByNameTaskCompleteCB(void *data)
 //         }
 //     }
 //     catch (const PlatformException &err) {
-//         LOGE("%s (%s)", err.name().c_str(), err.message().c_str());
+//         LoggerE("%s (%s)", err.name().c_str(), err.message().c_str());
 //     }
 //     catch (...) {
-//         LOGE("Unknown error occurs");
+//         LoggerE("Unknown error occurs");
 //     }
 
     delete callback;
@@ -511,15 +521,15 @@ gboolean ArchiveFile::getEntryByNameTaskCompleteCB(void *data)
     return false;
 }
 
-Filesystem::FilePtr ArchiveFile::getFile() const
+filesystem::FilePtr ArchiveFile::getFile() const
 {
-    LOGD("Entered");
+    LoggerD("Entered");
     return m_file;
 }
 
-void ArchiveFile::setFile(Filesystem::FilePtr file)
+void ArchiveFile::setFile(filesystem::FilePtr file)
 {
-    LOGD("Entered");
+    LoggerD("Entered");
     m_file = file;
 }
 
@@ -530,31 +540,31 @@ bool ArchiveFile::isOverwrite() const
 
 void ArchiveFile::setOverwrite(bool overwrite)
 {
-    LOGD("Entered");
+    LoggerD("Entered");
     m_overwrite = overwrite;
 }
 
 unsigned long ArchiveFile::getDecompressedSize() const
 {
-    LOGD("Entered");
+    LoggerD("Entered");
     return m_decompressed_size;
 }
 
 void ArchiveFile::setDecompressedSize(unsigned long decompressed_size)
 {
-    LOGD("Entered");
+    LoggerD("Entered");
     m_decompressed_size = decompressed_size;
 }
 
 bool ArchiveFile::isOpen() const
 {
-    LOGD("Entered");
+    LoggerD("Entered");
     return m_is_open;
 }
 
 void ArchiveFile::setIsOpen(bool is_open)
 {
-    LOGD("Entered");
+    LoggerD("Entered");
     m_is_open = is_open;
 }
 
@@ -565,10 +575,10 @@ ArchiveFileEntryPtrMapPtr ArchiveFile::getEntryMap() const
 
 void ArchiveFile::setEntryMap(ArchiveFileEntryPtrMapPtr entries)
 {
-    LOGD("Entered");
+    LoggerD("Entered");
 
     if(m_entry_map) {
-        LOGD("Unlinking old m_entry_map: %d ArchiveFileEntries", m_entry_map->size());
+        LoggerD("Unlinking old m_entry_map: %d ArchiveFileEntries", m_entry_map->size());
         for(auto it = m_entry_map->begin(); it != m_entry_map->end(); ++it) {
             if(it->second) {
                 it->second->setArchiveFileNonProtectPtr(NULL);
@@ -578,7 +588,7 @@ void ArchiveFile::setEntryMap(ArchiveFileEntryPtrMapPtr entries)
 
     m_entry_map = entries;
 
-    LOGD("Linking new m_entry_map ArchiveFileEntries (%d) with ArchiveFile object",
+    LoggerD("Linking new m_entry_map ArchiveFileEntries (%d) with ArchiveFile object",
             m_entry_map->size());
     for(auto it = m_entry_map->begin(); it != m_entry_map->end(); ++it) {
         if(it->second) {
@@ -589,54 +599,54 @@ void ArchiveFile::setEntryMap(ArchiveFileEntryPtrMapPtr entries)
 
 UnZipPtr ArchiveFile::createUnZipObject()
 {
-    LOGD("Entered");
+    LoggerD("Entered");
     if(!m_is_open) {
-        LOGE("File is not opened");
+        LoggerE("File is not opened");
         throw UnknownException("File is not opened");
     }
 
     if (!m_file) {
-        LOGE("m_file is null");
+        LoggerE("m_file is null");
         throw UnknownException("File is null");
     }
 
-//     Filesystem::NodePtr node = m_file->getNode();
+//     filesystem::NodePtr node = m_file->getNode();
 //     if(!node) {
-//         LOGE("Node is null");
+//         LoggerE("Node is null");
 //         throw UnknownException("Node is null");
 //     }
 
-    UnZipPtr unzip = UnZip::open(m_file->getFullPath());
+    UnZipPtr unzip = UnZip::open(m_file->getNode()->getPath()->getFullPath());
     return unzip;
 }
 
 ZipPtr ArchiveFile::createZipObject()
 {
-    LOGD("Entered");
+    LoggerD("Entered");
     if(!m_is_open) {
-        LOGE("File is not opened");
+        LoggerE("File is not opened");
         throw UnknownException("File is not opened");
     }
 
     if (!m_file) {
-        LOGE("m_file is null");
+        LoggerE("m_file is null");
         throw UnknownException("File is null");
     }
 
-//     Filesystem::NodePtr node = m_file->getNode();
+//     filesystem::NodePtr node = m_file->getNode();
 //     if(!node) {
-//         LOGE("Node is null");
+//         LoggerE("Node is null");
 //         throw UnknownException("Node is null");
 //     }
 
-    ZipPtr zip = Zip::open(m_file->getFullPath());
+    ZipPtr zip = Zip::open(m_file->getNode()->getPath()->getFullPath());
     return zip;
 
 }
 
 bool ArchiveFile::isAllowedOperation(const std::string& method_name)
 {
-    LOGD("Entered");
+    LoggerD("Entered");
     PermissionMap::iterator it = s_permission_map.find(method_name);
     if (it != s_permission_map.end()) {
         return it->second.permission[m_file_mode];
@@ -646,20 +656,20 @@ bool ArchiveFile::isAllowedOperation(const std::string& method_name)
 
 FileMode ArchiveFile::getFileMode() const
 {
-   LOGD("Entered");
+   LoggerD("Entered");
    return m_file_mode;
 }
 
 void ArchiveFile::setFileMode(FileMode file_mode)
 {
-    LOGD("Entered");
+    LoggerD("Entered");
     m_file_mode = file_mode;
 }
 
 void ArchiveFile::throwInvalidStateErrorIfArchiveFileIsClosed() const
 {
     if(!m_is_open){
-        LOGE("ArchiveFile closed - operation not permitted");
+        LoggerE("ArchiveFile closed - operation not permitted");
         throw InvalidStateException(
             "ArchiveFile closed - operation not permitted");
     }
@@ -680,17 +690,17 @@ void ArchiveFile::updateListOfEntries()
     // For explanation please see:
     //    ArchiveFile.h m_created_as_new_empty_archive description
     //
-    if(m_file->getSize() == 0) {
-        LOGD("Zip file: %s is empty",
-                m_file->getFullPath().c_str());
+    if(m_file->getNode()->getSize() == 0) {
+        LoggerD("Zip file: %s is empty",
+                m_file->getNode()->getPath()->getFullPath().c_str());
 
         if(m_created_as_new_empty_archive) {
-            LOGD("OK this is empty archive = nothing to do yet");
+            LoggerD("OK this is empty archive = nothing to do yet");
             return;
         }
         else {
-            LOGW("m_created_as_new_empty_archive is false");
-            LOGE("Throwing InvalidStateException: File is not valid ZIP archive");
+            LoggerW("m_created_as_new_empty_archive is false");
+            LoggerE("Throwing InvalidStateException: File is not valid ZIP archive");
             throw InvalidStateException("File is not valid ZIP archive");
         }
     }
@@ -707,7 +717,7 @@ bool ArchiveFile::isEntryWithNameInArchive(const std::string& name_in_zip,
         std::string* out_matching_name)
 {
     if(!m_entry_map) {
-        LOGW("m_entry_map is NULL");
+        LoggerW("m_entry_map is NULL");
         return false;
     }
 
@@ -751,5 +761,5 @@ bool ArchiveFile::isEntryWithNameInArchive(const std::string& name_in_zip,
     return true;
 }
 
-} // Archive
-} // DeviceAPI
+} // archive
+} // extension

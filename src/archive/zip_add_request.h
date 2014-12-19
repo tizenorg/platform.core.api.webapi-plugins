@@ -26,8 +26,8 @@
 #include "archive_callback_data.h"
 #include "zip.h"
 
-namespace DeviceAPI {
-namespace Archive {
+namespace extension {
+namespace archive {
 
 class ZipAddRequest
 {
@@ -45,13 +45,13 @@ private:
     ZipAddRequest(Zip& owner, AddProgressCallback*& callback);
     void run();
 
-    void addNodeAndSubdirsToList(Filesystem::NodePtr src_node,
-            Filesystem::NodeList& out_list_of_child_nodes);
+    void addNodeAndSubdirsToList(filesystem::NodePtr src_node,
+            filesystem::NodeList& out_list_of_child_nodes);
 
     void addEmptyDirectoryToZipArchive(std::string name_in_zip);
-    void addToZipArchive(Filesystem::NodePtr src_file_node);
+    void addToZipArchive(filesystem::NodePtr src_file_node);
 
-    std::string getNameInZipArchiveFor(Filesystem::NodePtr node, bool strip);
+    std::string getNameInZipArchiveFor(filesystem::NodePtr node, bool strip);
 
     //-----------------------------------------------------------------------------
     //Input request variables
@@ -70,8 +70,8 @@ private:
     unsigned long m_files_compressed;
     unsigned long long m_bytes_compressed;
 
-    Filesystem::FilePtr m_root_src_file;
-    Filesystem::NodePtr m_root_src_file_node;
+    filesystem::FilePtr m_root_src_file;
+    filesystem::NodePtr m_root_src_file_node;
     std::string m_absoulte_path_to_extract;
     std::string m_destination_path_in_zip;
 
@@ -80,7 +80,7 @@ private:
     bool m_new_file_in_zip_opened;
 };
 
-} //namespace Archive
-} //namespace DeviceAPI
+} //namespace archive
+} //namespace extension
 
 #endif // __TIZEN_ARCHIVE_ZIP_ADD_REQUEST_H__

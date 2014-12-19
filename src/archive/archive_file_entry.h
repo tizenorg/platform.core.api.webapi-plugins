@@ -18,13 +18,12 @@
 #ifndef _TIZEN_ARCHIVE_ARCHIVE_FILE_ENTRY_H_
 #define _TIZEN_ARCHIVE_ARCHIVE_FILE_ENTRY_H_
 
-#include <map>
 #include <memory>
 
 #include "filesystem_file.h"
 
-namespace DeviceAPI {
-namespace Archive {
+namespace extension {
+namespace archive {
 
 class ArchiveFile;
 
@@ -38,13 +37,13 @@ typedef std::shared_ptr<ArchiveFileEntryPtrMap> ArchiveFileEntryPtrMapPtr;
 
 class ArchiveFileEntry :  public std::enable_shared_from_this<ArchiveFileEntry> {
 public:
-    ArchiveFileEntry(Filesystem::FilePtr file = Filesystem::FilePtr());
+    ArchiveFileEntry(filesystem::FilePtr file = filesystem::FilePtr());
     ~ArchiveFileEntry();
 
     unsigned long getCompressedSize() const;
     void setCompressedSize(unsigned long compressedSize);
-    Filesystem::FilePtr getFile() const;
-    void setFile(Filesystem::FilePtr file);
+    filesystem::FilePtr getFile() const;
+    void setFile(filesystem::FilePtr file);
     unsigned long getSize() const;
     void setSize(unsigned long size);
     const std::string& getName() const;
@@ -64,7 +63,7 @@ public:
     long extractTo(ExtractEntryProgressCallback* callback);
 
 private:
-    Filesystem::FilePtr m_file;
+    filesystem::FilePtr m_file;
     ArchiveFile* m_archive;
     std::string m_name;
     std::string m_destination;
@@ -75,7 +74,7 @@ private:
     unsigned int m_compression_level;
 };
 
-} // Archive
-} // DeviceAPI
+} // archive
+} // extension
 
 #endif /* _TIZEN_ARCHIVE_FILE_ENTRY_H_ */

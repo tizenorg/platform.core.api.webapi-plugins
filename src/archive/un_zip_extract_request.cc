@@ -34,10 +34,10 @@
 #include "archive_utils.h"
 #include "un_zip.h"
 
-using namespace common;
+namespace extension {
+namespace archive {
 
-namespace DeviceAPI {
-namespace Archive {
+using namespace common;
 
 FilePathStatus getPathStatus(const std::string& path)
 {
@@ -92,7 +92,7 @@ void createMissingDirectories(const std::string& path, bool check_first = true)
             //LOGD("left_part: [%s] status:%d", left_part.c_str(), status);
 
             if(FPS_DIRECTORY != status) {
-                //TODO investigate 0775 (mode) - Filesystem assumed that file should have parent mode
+                //TODO investigate 0775 (mode) - filesystem assumed that file should have parent mode
                 if(mkdir(left_part.c_str(), 0775) == -1) {
                     LOGE("Couldn't create new directory: %s errno:%s",
                             left_part.c_str(), strerror(errno));
@@ -326,7 +326,7 @@ bool UnZipExtractRequest::prepareOutputSubdirectory()
         }
 
         //Try to create new directory in output directory
-        //TODO investigate 0775 (mode) - Filesystem assumed that file should have parent mode
+        //TODO investigate 0775 (mode) - filesystem assumed that file should have parent mode
         if(mkdir(m_new_dir_path.c_str(), 0775) == -1) {
             LOGW("couldn't create new directory: %s errno:%s",
                     m_new_dir_path.c_str(), strerror(errno));
@@ -354,10 +354,10 @@ bool UnZipExtractRequest::prepareOutputSubdirectory()
             if(FPS_DIRECTORY == output_fstatus) {
                 try {
                     LOGW("STUB Not removing directory");
-                    //Filesystem::PathPtr path = Filesystem::Path::create(m_output_filepath);
-                    //Filesystem::NodePtr node = Filesystem::Node::resolve(path);
-                    //node->remove(Filesystem::OPT_RECURSIVE);
-                    Filesystem::External::removeDirectoryRecursive(m_output_filepath);
+                    //filesystem::PathPtr path = filesystem::Path::create(m_output_filepath);
+                    //filesystem::NodePtr node = filesystem::Node::resolve(path);
+                    //node->remove(filesystem::OPT_RECURSIVE);
+                    filesystem::External::removeDirectoryRecursive(m_output_filepath);
 
                     LOGD("Removed directory: [%s]", m_output_filepath.c_str());
                 } catch(PlatformException& ex) {
@@ -504,5 +504,5 @@ void UnZipExtractRequest::handleFileEntry()
     changeFileAccessAndModifyDate(m_output_filepath, m_file_info.tmu_date);
 }
 
-} //namespace Archive
-} //namespace DeviceAPI
+} //namespace archive
+} //namespace extension
