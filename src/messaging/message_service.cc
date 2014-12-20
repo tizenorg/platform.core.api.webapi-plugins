@@ -22,6 +22,137 @@ const char* JSON_SERVICE_NAME = "name";
 const char* JSON_SERVICE_STORAGE = "messageStorage";
 }
 
+//#################### MessageRecipientsCallbackData ####################
+
+MessageRecipientsCallbackData::MessageRecipientsCallbackData():
+        m_is_error(false),
+        m_sim_index(TAPI_NETWORK_DEFAULT_DATA_SUBS_UNKNOWN),
+        m_default_sim_index(TAPI_NETWORK_DEFAULT_DATA_SUBS_UNKNOWN)
+{
+    LoggerD("Entered");
+    m_msg_recipients = std::vector<std::string>();
+}
+
+MessageRecipientsCallbackData::~MessageRecipientsCallbackData()
+{
+    LoggerD("Entered");
+}
+
+void MessageRecipientsCallbackData::setMessage(std::shared_ptr<Message> message)
+{
+    m_message = message;
+}
+
+std::shared_ptr<Message> MessageRecipientsCallbackData::getMessage() const
+{
+    return m_message;
+}
+
+void MessageRecipientsCallbackData::setMessageRecipients(
+        const std::vector<std::string>& msgRecipients)
+{
+    m_msg_recipients = msgRecipients;
+}
+
+const std::vector<std::string>& MessageRecipientsCallbackData::getMessageRecipients() const
+{
+    return m_msg_recipients;
+}
+
+void MessageRecipientsCallbackData::setError(const std::string& err_name,
+        const std::string& err_message)
+{
+    // keep only first error in chain
+    if (!m_is_error) {
+        m_is_error = true;
+        m_err_name = err_name;
+        m_err_message = err_message;
+        if (m_message) {
+            m_err_message += " for: ";
+            // platform issue: we cannot get error per recipient
+            // so all recipients are added to error message
+            std::vector<std::string> recp_list = m_message->getTO();
+            unsigned int count = recp_list.size();
+            for (unsigned int i = 0; i < count; ++i) {
+                m_err_message += recp_list.at(i) + ", ";
+            }
+            recp_list = m_message->getCC();
+            count = recp_list.size();
+            for (unsigned int i = 0; i < count; ++i) {
+                m_err_message += recp_list.at(i) + ", ";
+            }
+            recp_list = m_message->getBCC();
+            count = recp_list.size();
+            for (unsigned int i = 0; i < count; ++i) {
+                m_err_message += recp_list.at(i) + ", ";
+            }
+
+        }
+    }
+}
+
+bool MessageRecipientsCallbackData::isError() const
+{
+    return m_is_error;
+}
+
+void MessageRecipientsCallbackData::setAccountId(int account_id){
+    m_account_id = account_id;
+}
+
+int MessageRecipientsCallbackData::getAccountId() const
+{
+    return m_account_id;
+}
+
+bool MessageRecipientsCallbackData::setSimIndex(
+    int sim_index)
+{
+    char **cp_list = tel_get_cp_name_list();
+    int sim_count = 0;
+    if (cp_list) {
+        while (cp_list[sim_count]) {
+            sim_count++;
+        }
+        g_strfreev(cp_list);
+    } else {
+        LoggerD("Empty cp name list");
+    }
+
+    sim_index--;
+    if (sim_index >= sim_count || sim_index < -1) {
+        LoggerE("Sim index out of bound %d : %d", sim_index, sim_count);
+        common::InvalidValuesException err("The index of sim is out of bound");
+        this->setError(err.name(), err.message());
+        return false;
+    }
+
+    m_sim_index = static_cast<TelNetworkDefaultDataSubs_t>(sim_index);
+
+    return true;
+}
+
+TelNetworkDefaultDataSubs_t MessageRecipientsCallbackData::getSimIndex() const
+{
+    return m_sim_index;
+}
+
+bool MessageRecipientsCallbackData::isSetSimIndex() const
+{
+    return m_sim_index != TAPI_NETWORK_DEFAULT_DATA_SUBS_UNKNOWN;
+}
+
+void MessageRecipientsCallbackData::setDefaultSimIndex(
+    TelNetworkDefaultDataSubs_t sim_index)
+{
+    m_default_sim_index = sim_index;
+}
+
+TelNetworkDefaultDataSubs_t MessageRecipientsCallbackData::getDefaultSimIndex() const
+{
+    return m_default_sim_index;
+}
+
 //#################### BaseMessageServiceCallbackData ####################
 
 BaseMessageServiceCallbackData::BaseMessageServiceCallbackData():
@@ -207,7 +338,7 @@ MessageStoragePtr MessageService::getMsgStorage() const
     return m_storage;
 }
 
-void MessageService::sendMessage()
+void MessageService::sendMessage(MessageRecipientsCallbackData *callback)
 {
     // this method should be overwritten be specific services
     LoggerE("Cannot send message");

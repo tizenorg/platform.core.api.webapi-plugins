@@ -340,16 +340,18 @@ MessageService.prototype.sendMessage = function () {
         {name: 'simIndex', type: types_.LONG, optional: true, nullable: true}
     ]);
 
+    var self = this;
     bridge.async({
         cmd: 'MessageService_sendMessage',
         args: {
             message: args.message,
-            simIndex: args.simIndex
+            simIndex: args.simIndex || 1,
+            serviceId: self.id
         }
     }).then({
         success: function (data) {
             if (args.successCallback) {
-                args.successCallback.call(null, data.recipients);
+                args.successCallback.call(null, data);
             }
         },
         error: function (e) {

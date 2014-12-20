@@ -285,7 +285,6 @@ std::shared_ptr<Message> MessagingUtil::jsonToMessage(const picojson::value& jso
     std::shared_ptr<Message> message;
     picojson::object data = json.get<picojson::object>();
     std::string type = data.at("type").get<std::string>();
-
     MessageType mtype = MessagingUtil::stringToMessageType(type);
 
     switch (mtype) {
@@ -298,7 +297,6 @@ std::shared_ptr<Message> MessagingUtil::jsonToMessage(const picojson::value& jso
         // TODO add class which will extended message_service and call message_service_short_msg
         break;
     case MessageType::EMAIL:
-
         if (!data.at(MESSAGE_ATTRIBUTE_ID).is<picojson::null>()) {
             std::string mid = data.at(MESSAGE_ATTRIBUTE_ID).get<std::string>();
             int mail_id = std::atoi(mid.c_str());
@@ -331,14 +329,15 @@ std::shared_ptr<Message> MessagingUtil::jsonToMessage(const picojson::value& jso
     message->setTO(result);
     result.clear();
 
-    auto ccJS = MessagingUtil::getValueFromJSONObject<std::vector<picojson::value>>(data,
-            MESSAGE_ATTRIBUTE_CC);
+
+    auto ccJS = MessagingUtil::getValueFromJSONObject<
+            std::vector<picojson::value>>(data, MESSAGE_ATTRIBUTE_CC);
     for_each(ccJS.begin(), ccJS.end(), arrayVectorStringConverter);
     message->setCC(result);
     result.clear();
 
-    auto bccJS = MessagingUtil::getValueFromJSONObject<std::vector<picojson::value>>(data,
-            MESSAGE_ATTRIBUTE_BCC);
+    auto bccJS = MessagingUtil::getValueFromJSONObject<
+            std::vector<picojson::value>>(data, MESSAGE_ATTRIBUTE_BCC);
     for_each(bccJS.begin(), bccJS.end(), arrayVectorStringConverter);
     message->setBCC(result);
     result.clear();

@@ -16,7 +16,7 @@ public:
     MessageServiceEmail(int id, std::string name);
     virtual ~MessageServiceEmail();
 
-    virtual void sendMessage();
+    virtual void sendMessage(MessageRecipientsCallbackData *callback);
     virtual void loadMessageBody();
     virtual void loadMessageAttachment();
     virtual long sync(SyncCallbackData *callback);

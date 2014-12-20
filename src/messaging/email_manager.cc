@@ -134,13 +134,13 @@ EmailManager::EmailManager()
 //        throw Common::UnknownException("Message proxy is null");
 //    }
 //    m_proxy_messageStorage->signalSubscribe();
-//
-//    m_proxy_send = std::make_shared<DBus::SendProxy>();
-//    if (!m_proxy_send) {
-//        LoggerE("Send proxy is null");
-//        throw Common::UnknownException("Send proxy is null");
-//    }
-//    m_proxy_send->signalSubscribe();
+
+    m_proxy_send = std::make_shared<DBus::SendProxy>();
+    if (!m_proxy_send) {
+        LoggerE("Send proxy is null");
+        throw common::UnknownException("Send proxy is null");
+    }
+    m_proxy_send->signalSubscribe();
 }
 
 EmailManager::~EmailManager()
@@ -154,13 +154,13 @@ void EmailManager::addDraftMessagePlatform(int account_id,
     LoggerD("Entered");
     addMessagePlatform(account_id, message, EMAIL_MAILBOX_TYPE_DRAFT);
 }
-//
-//void EmailManager::addOutboxMessagePlatform(int account_id,
-//    std::shared_ptr<Message> message)
-//{
-//    addMessagePlatform(account_id, message, EMAIL_MAILBOX_TYPE_OUTBOX);
-//}
-//
+
+void EmailManager::addOutboxMessagePlatform(int account_id,
+    std::shared_ptr<Message> message)
+{
+    addMessagePlatform(account_id, message, EMAIL_MAILBOX_TYPE_OUTBOX);
+}
+
 void EmailManager::addMessagePlatform(int account_id,
     std::shared_ptr<Message> message, email_mailbox_type_e mailbox_type)
 {
@@ -333,171 +333,181 @@ void EmailManager::addDraftMessage(MessageCallbackUserData* callback)
     }
 }
 
-////**** sending email ****
-//static gboolean sendEmailCompleteCB(void* data)
-//{
-//    LoggerD("Entered");
-//
-//    MessageRecipientsCallbackData* callback =
-//            static_cast<MessageRecipientsCallbackData*>(data);
-//    if (!callback) {
-//        LoggerE("Callback is null");
-//        return false;
-//    }
-//
-//    JSContextRef context = callback->getContext();
-//    if (!GlobalContextManager::getInstance()->isAliveGlobalContext(context)) {
-//        LoggerE("context was closed");
-//        delete callback;
-//        callback = NULL;
-//        return false;
-//    }
-//
-//    try {
-//        if (callback->isError()) {
-//            JSObjectRef errobj = JSWebAPIErrorFactory::makeErrorObject(context,
-//                    callback->getErrorName(),
-//                    callback->getErrorMessage());
-//            callback->callErrorCallback(errobj);
-//            callback->getMessage()->setMessageStatus(MessageStatus::STATUS_FAILED);
-//        }
-//        else {
-//            std::shared_ptr<Message> message = callback->getMessage();
-//            callback->callSuccessCallback(
-//                    JSUtil::toJSValueRef(context, message->getTO()));
-//            callback->getMessage()->setMessageStatus(MessageStatus::STATUS_SENT);
-//        }
-//    }
-//    catch (const BasePlatformException& err) {
-//        LoggerE("%s (%s)", (err.getName()).c_str(), (err.getMessage()).c_str());
-//    }
-//    catch (...) {
-//        LoggerE("Unknown error when calling send message callback");
-//    }
-//
-//    delete callback;
-//    callback = NULL;
-//
-//    return false;
-//}
-//
-//void EmailManager::sendMessage(MessageRecipientsCallbackData* callback)
-//{
-//    LoggerD("Entered");
-//    int err = EMAIL_ERROR_NONE;
-//    email_mail_data_t *mail_data = NULL;
-//
-//    try{
-//        if(!callback){
-//            LoggerE("Callback is null");
-//            throw UnknownException("Callback is null");
-//        }
-//
-//        std::shared_ptr<Message> message = callback->getMessage();
-//        if(!message) {
-//            LoggerE("Message is null");
-//            throw UnknownException("Message is null");
-//        }
-//
-//        if(!(message->is_id_set())) {
-//            addOutboxMessagePlatform(callback->getAccountId(),message);
-//        }
-//
-//        err = email_get_mail_data(message->getId(),&mail_data);
-//        if(EMAIL_ERROR_NONE != err) {
-//            LoggerE("email_get_mail_data failed. [%d]\n",err);
-//            throw UnknownException("Failed to get platform email structure");
-//        }
-//
-//        LoggerD("email_get_mail_data success.\n");
-//
-//        //Sending EMAIL
-//        mail_data->save_status = EMAIL_MAIL_STATUS_SENDING;
-//
-//        int req_id = 0;
-//        err = email_send_mail(mail_data->mail_id, &req_id);
-//        if (EMAIL_ERROR_NONE != err) {
-//            LoggerE("Failed to send message %d", err);
-//            throw UnknownException("Failed to send message");
-//        }
-//        LoggerD("req_id: %d", req_id);
-//        callback->getMessage()->setMessageStatus(MessageStatus::STATUS_SENDING);
-//        m_sendRequests[req_id] = callback;
-//
-//    } catch (const BasePlatformException& ex) {
-//         LoggerE("%s (%s)", (ex.getName()).c_str(), (ex.getMessage()).c_str());
-//         callback->setError(ex.getName(), ex.getMessage());
-//         if (!g_idle_add(sendEmailCompleteCB, static_cast<void*>(callback))) {
-//             LoggerE("g_idle addition failed");
-//             delete callback;
-//             callback = NULL;
-//         }
-//    }catch (...) {
-//        LoggerE("Message send failed");
-//        callback->setError(JSWebAPIErrorFactory::UNKNOWN_ERROR, "Message send failed");
-//        if (!g_idle_add(sendEmailCompleteCB, static_cast<void*>(callback))) {
-//            LoggerE("g_idle addition failed");
-//            delete callback;
-//            callback = NULL;
-//        }
-//    }
-//
-//    err = email_free_mail_data(&mail_data,1);
-//    if(EMAIL_ERROR_NONE != err) {
-//        LoggerE("Failed to free mail data memory");
-//    }
-//
-//    return;
-//}
-//
-//void EmailManager::sendStatusCallback(int mail_id,
-//        email_noti_on_network_event status,
-//        int error_code)
-//{
-//    LoggerD("Enter");
-//
-//    std::lock_guard<std::mutex> lock(m_mutex);
-//    //find first request for this mail_id
-//    SendReqMapIterator it = getSendRequest(mail_id);
-//    if (it != m_sendRequests.end()) {
-//        LoggerD("Found request");
-//        MessageRecipientsCallbackData* callback = it->second;
-//        m_sendRequests.erase(it);
-//
-//        if (NOTI_SEND_FAIL == status) {
-//            LoggerD("Failed to send message, set proper error");
-//            switch (error_code) {
-//                case EMAIL_ERROR_NO_SIM_INSERTED:
-//                case EMAIL_ERROR_SOCKET_FAILURE:
-//                case EMAIL_ERROR_CONNECTION_FAILURE:
-//                case EMAIL_ERROR_CONNECTION_BROKEN:
-//                case EMAIL_ERROR_NO_SUCH_HOST:
-//                case EMAIL_ERROR_NETWORK_NOT_AVAILABLE:
-//                case EMAIL_ERROR_INVALID_STREAM:
-//                case EMAIL_ERROR_NO_RESPONSE:
-//                    LoggerE("Network error %d", error_code);
-//                    callback->setError(JSWebAPIErrorFactory::NETWORK_ERROR,
-//                            "Failed to send message");
-//                    break;
-//                default:
-//                    LoggerE("Unknown error %d", error_code);
-//                    callback->setError(JSWebAPIErrorFactory::UNKNOWN_ERROR,
-//                            "Failed to send message");
-//            }
-//        } else if (NOTI_SEND_FINISH == status) {
-//            LoggerD("Message sent successfully");
-//        }
-//
-//        if (!g_idle_add(sendEmailCompleteCB, static_cast<void*>(callback))) {
-//            LoggerE("g_idle addition failed");
-//            delete callback;
-//            callback = NULL;
-//        }
-//    } else {
-//        LoggerW("No matching request found");
-//    }
-//}
-//
+//**** sending email ****
+static gboolean sendEmailCompleteCB(void* data)
+{
+    LoggerD("Entered");
+
+    MessageRecipientsCallbackData* callback =
+            static_cast<MessageRecipientsCallbackData*>(data);
+    if (!callback) {
+        LoggerE("Callback is null");
+        return false;
+    }
+
+    try {
+        if (callback->isError()) {
+            MessagingInstance::getInstance().PostMessage(callback->getJson()->serialize().c_str());
+            callback->getMessage()->setMessageStatus(MessageStatus::STATUS_FAILED);
+        }
+        else {
+            auto json = callback->getJson();
+            picojson::object& obj = json->get<picojson::object>();
+            obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
+
+            std::vector<picojson::value> recipients;
+            auto addToRecipients = [&recipients](std::string& e)->void {
+                recipients.push_back(picojson::value(e));
+            };
+
+            auto toVect = callback->getMessage()->getTO();
+            std::for_each(toVect.begin(), toVect.end(), addToRecipients);
+
+            auto ccVect = callback->getMessage()->getCC();
+            std::for_each(ccVect.begin(), ccVect.end(), addToRecipients);
+
+            auto bccVect = callback->getMessage()->getBCC();
+            std::for_each(bccVect.begin(), bccVect.end(), addToRecipients);
+
+            obj[JSON_DATA] = picojson::value(recipients);
+
+            MessagingInstance::getInstance().PostMessage(json->serialize().c_str());
+            callback->getMessage()->setMessageStatus(MessageStatus::STATUS_SENT);
+        }
+    }
+    catch (const common::PlatformException& err) {
+        LoggerE("%s (%s)", (err.name()).c_str(), (err.message()).c_str());
+    }
+    catch (...) {
+        LoggerE("Unknown error when calling send message callback");
+    }
+
+    delete callback;
+    callback = NULL;
+
+    return false;
+}
+
+void EmailManager::sendMessage(MessageRecipientsCallbackData* callback)
+{
+    LoggerD("Entered");
+    int err = EMAIL_ERROR_NONE;
+    email_mail_data_t *mail_data = NULL;
+
+    try{
+        if(!callback){
+            LoggerE("Callback is null");
+            throw common::UnknownException("Callback is null");
+        }
+
+        std::shared_ptr<Message> message = callback->getMessage();
+        if(!message) {
+            LoggerE("Message is null");
+            throw common::UnknownException("Message is null");
+        }
+
+        if(!(message->is_id_set())) {
+            addOutboxMessagePlatform(callback->getAccountId(),message);
+        }
+
+        err = email_get_mail_data(message->getId(),&mail_data);
+        if(EMAIL_ERROR_NONE != err) {
+            LoggerE("email_get_mail_data failed. [%d]\n",err);
+            throw common::UnknownException("Failed to get platform email structure");
+        }
+
+        LoggerD("email_get_mail_data success.\n");
+
+        //Sending EMAIL
+        mail_data->save_status = EMAIL_MAIL_STATUS_SENDING;
+
+        int req_id = 0;
+        err = email_send_mail(mail_data->mail_id, &req_id);
+        if (EMAIL_ERROR_NONE != err) {
+            LoggerE("Failed to send message %d", err);
+            throw common::UnknownException("Failed to send message");
+        }
+        LoggerD("req_id: %d", req_id);
+        callback->getMessage()->setMessageStatus(MessageStatus::STATUS_SENDING);
+        m_sendRequests[req_id] = callback;
+
+    } catch (const common::PlatformException& ex) {
+         LoggerE("%s (%s)", (ex.name()).c_str(), (ex.message()).c_str());
+         callback->setError(ex.name(), ex.message());
+         if (!g_idle_add(sendEmailCompleteCB, static_cast<void*>(callback))) {
+             LoggerE("g_idle addition failed");
+             delete callback;
+             callback = NULL;
+         }
+    }catch (...) {
+        LoggerE("Message send failed");
+        common::UnknownException ex("Message send failed");
+        callback->setError(ex.name(), ex.message());
+        if (!g_idle_add(sendEmailCompleteCB, static_cast<void*>(callback))) {
+            LoggerE("g_idle addition failed");
+            delete callback;
+            callback = NULL;
+        }
+    }
+
+    err = email_free_mail_data(&mail_data,1);
+    if(EMAIL_ERROR_NONE != err) {
+        LoggerE("Failed to free mail data memory");
+    }
+
+    return;
+}
+
+void EmailManager::sendStatusCallback(int mail_id,
+        email_noti_on_network_event status,
+        int error_code)
+{
+    LoggerD("Enter");
+
+    std::lock_guard<std::mutex> lock(m_mutex);
+    //find first request for this mail_id
+    SendReqMapIterator it = getSendRequest(mail_id);
+    if (it != m_sendRequests.end()) {
+        LoggerD("Found request");
+        MessageRecipientsCallbackData* callback = it->second;
+        m_sendRequests.erase(it);
+
+        if (NOTI_SEND_FAIL == status) {
+            LoggerD("Failed to send message, set proper error");
+            switch (error_code) {
+                case EMAIL_ERROR_NO_SIM_INSERTED:
+                case EMAIL_ERROR_SOCKET_FAILURE:
+                case EMAIL_ERROR_CONNECTION_FAILURE:
+                case EMAIL_ERROR_CONNECTION_BROKEN:
+                case EMAIL_ERROR_NO_SUCH_HOST:
+                case EMAIL_ERROR_NETWORK_NOT_AVAILABLE:
+                case EMAIL_ERROR_INVALID_STREAM:
+                case EMAIL_ERROR_NO_RESPONSE:
+                {
+                    LoggerE("Network error %d", error_code);
+                    common::NetworkException e("Failed to send message");
+                    callback->setError(e.name(), e.message());
+                    break;
+                }
+                default:
+                    LoggerE("Unknown error %d", error_code);
+                    common::UnknownException ex("Failed to send message");
+                    callback->setError(ex.name(),ex.message());
+            }
+        } else if (NOTI_SEND_FINISH == status) {
+            LoggerD("Message sent successfully");
+        }
+
+        if (!g_idle_add(sendEmailCompleteCB, static_cast<void*>(callback))) {
+            LoggerE("g_idle addition failed");
+            delete callback;
+            callback = NULL;
+        }
+    } else {
+        LoggerW("No matching request found");
+    }
+}
+
 //email_mail_data_t* EmailManager::loadMessage(int msg_id)
 //{
 //    email_mail_data_t* mail_data = NULL;
@@ -510,16 +520,16 @@ void EmailManager::addDraftMessage(MessageCallbackUserData* callback)
 //    }
 //    return mail_data;
 //}
-//
-//EmailManager::SendReqMapIterator EmailManager::getSendRequest(int mail_id)
-//{
-//    for (auto it = m_sendRequests.begin(); it != m_sendRequests.end(); it++) {
-//        if (it->second->getMessage()->getId() == mail_id) {
-//            return it;
-//        }
-//    }
-//    return m_sendRequests.end();
-//}
+
+EmailManager::SendReqMapIterator EmailManager::getSendRequest(int mail_id)
+{
+    for (auto it = m_sendRequests.begin(); it != m_sendRequests.end(); it++) {
+        if (it->second->getMessage()->getId() == mail_id) {
+            return it;
+        }
+    }
+    return m_sendRequests.end();
+}
 //
 //void EmailManager::freeMessage(email_mail_data_t* mail_data)
 //{
