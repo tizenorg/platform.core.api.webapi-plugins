@@ -20,6 +20,7 @@
 #include "message_attachment.h"
 #include "messaging_util.h"
 #include "message_body.h"
+#include "MsgCommon/AbstractFilter.h"
 
 namespace extension {
 namespace messaging {
@@ -37,7 +38,9 @@ enum AttachmentType {
     EXTERNAL = 0, INLINE = 1
 };
 
-class Message { //TODO : public Tizen::FilterableObject {
+using namespace tizen;
+
+class Message : public FilterableObject {
 public:
 // constructor
     Message();
@@ -65,7 +68,7 @@ public:
     int getServiceId() const;
     TelNetworkDefaultDataSubs_t getSimIndex() const;
 
-    // attributes setters (virtual because some of them can be overriden in sub classes)
+// attributes setters (virtual because some of them can be overriden in sub classes)
     virtual void setId(int id);
     virtual void setConversationId(int id);
     virtual void setFolderId(int id);
@@ -140,14 +143,15 @@ public:
     static std::shared_ptr<MessageBody> convertEmailToMessageBody(email_mail_data_t& mail);
     static AttachmentPtrVector convertEmailToMessageAttachment(email_mail_data_t& mail);
 
-//  // Tizen::FilterableObject
-//  virtual bool isMatchingAttribute(const std::string& attribute_name,
-//          const Tizen::FilterMatchFlag match_flag,
-//          Tizen::AnyPtr match_value) const;
+    // tizen::FilterableObject
+    virtual bool isMatchingAttribute(const std::string& attribute_name,
+          const FilterMatchFlag match_flag,
+          AnyPtr match_value) const;
 
-//  virtual bool isMatchingAttributeRange(const std::string& attribute_name,
-//          Tizen::AnyPtr initial_value,
-//          Tizen::AnyPtr end_value) const;
+    virtual bool isMatchingAttributeRange(const std::string& attribute_name,
+          AnyPtr initial_value,
+          AnyPtr end_value) const;
+
 protected:
     //! Message id
     int m_id;
@@ -177,7 +181,7 @@ protected:
     std::vector<std::string> m_cc;
     //! Message BlindCarbonCopy recipients (used only for email)
     std::vector<std::string> m_bcc;
-//  //! MessageBody (object containg plainBody and htmlBody for emails)
+    //! MessageBody (object containg plainBody and htmlBody for emails)
     std::shared_ptr<MessageBody> m_body;
     //! Service id
     int m_service_id;
@@ -201,6 +205,7 @@ protected:
     AttachmentPtrVector m_attachments;
     //! SIM index which indicate a sim to send message.
     TelNetworkDefaultDataSubs_t m_sim_index;
+
 private:
     static std::vector<std::string> split(const std::string& input,
             char delimiter);

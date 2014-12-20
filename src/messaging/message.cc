@@ -1494,94 +1494,94 @@ const std::string SUBJECT = MESSAGE_ATTRIBUTE_SUBJECT;
 
 } //namespace MESSAGE_FILTER_ATTRIBUTE
 
-//bool Message::isMatchingAttribute(const std::string& attribute_name,
-//            const FilterMatchFlag match_flag,
-//            AnyPtr match_value) const
-//{
-//    LoggerD("Entered");
-//    auto key = match_value->toString();
-//    LoggerD("attribute_name:%s match_flag:%d matchValue:%s", attribute_name.c_str(),
-//            match_flag, key.c_str());
-//
-//    using namespace MESSAGE_FILTER_ATTRIBUTE;
-//
-//    if (ID == attribute_name) {
-//        return FilterUtils::isStringMatching(key, std::to_string(getId()),
-//                match_flag);
-//    }
-//    else if (SERVICE_ID == attribute_name) {
-//        if(is_service_is_set()) {
-//            return FilterUtils::isStringMatching(key, std::to_string(getServiceId()),
-//                    match_flag);
-//        }
-//    }
-//    else if (FOLDER_ID == attribute_name) {
-//        return FilterUtils::isStringMatching(key, std::to_string(getFolderId()),
-//                match_flag);
-//    }
-//    else if (TYPE == attribute_name) {
-//        const std::string msgTypeStr = MessagingUtil::messageTypeToString(getType());
-//        return FilterUtils::isStringMatching(key, msgTypeStr, match_flag);
-//    }
-//    else if (FROM == attribute_name) {
-//        return FilterUtils::isStringMatching(key, getFrom() , match_flag);
-//    }
-//    else if (TO == attribute_name) {
-//        return FilterUtils::isAnyStringMatching(key, getTO(), match_flag);
-//    }
-//    else if (CC == attribute_name) {
-//        return FilterUtils::isAnyStringMatching(key, getCC(), match_flag);
-//    }
-//    else if (BCC == attribute_name) {
-//        return FilterUtils::isAnyStringMatching(key, getBCC(), match_flag);
-//    }
-//    else if (BODY_PLAIN_BODY == attribute_name) {
-//        if(getBody()) {
-//            return FilterUtils::isStringMatching(key, getBody()->getPlainBody(),
-//                    match_flag);
-//        }
-//    }
-//    else if (IS_READ == attribute_name) {
-//        return FilterUtils::isStringMatching(key, FilterUtils::boolToString(getIsRead()),
-//                match_flag);
-//    }
-//    else if (HAS_ATTACHMENT == attribute_name) {
-//        return FilterUtils::isStringMatching(key,
-//                FilterUtils::boolToString(getHasAttachment()),
-//                match_flag);
-//    }
-//    else if (IS_HIGH_PRIORITY == attribute_name) {
-//        return FilterUtils::isStringMatching(key,
-//                FilterUtils::boolToString(getIsHighPriority()),
-//                match_flag);
-//    }
-//    else if (SUBJECT == attribute_name) {
-//        return FilterUtils::isStringMatching(key, getSubject(), match_flag);
-//    }
-//    else {
-//        LoggerD("attribute:%s is NOT SUPPORTED", attribute_name.c_str());
-//    }
-//
-//    return false;
-//}
+bool Message::isMatchingAttribute(const std::string& attribute_name,
+            const FilterMatchFlag match_flag,
+            AnyPtr match_value) const
+{
+    LoggerD("Entered");
+    auto key = match_value->toString();
+    LoggerD("attribute_name:%s match_flag:%d matchValue:%s", attribute_name.c_str(),
+            match_flag, key.c_str());
 
-//bool Message::isMatchingAttributeRange(const std::string& attribute_name,
-//            AnyPtr initial_value,
-//            AnyPtr end_value) const
-//{
-//    LoggerD("Entered attribute_name: %s", attribute_name.c_str());
-//
-//    using namespace MESSAGE_FILTER_ATTRIBUTE;
-//    if(TIMESTAMP == attribute_name) {
-//        return FilterUtils::isTimeStampInRange(getTimestamp(), initial_value,
-//                end_value);
-//    }
-//    else {
-//        LoggerD("attribute:%s is NOT SUPPORTED", attribute_name.c_str());
-//    }
-//
-//    return false;
-//}
+    using namespace MESSAGE_FILTER_ATTRIBUTE;
+
+    if (ID == attribute_name) {
+        return FilterUtils::isStringMatching(key, std::to_string(getId()),
+                match_flag);
+    }
+    else if (SERVICE_ID == attribute_name) {
+        if(is_service_is_set()) {
+            return FilterUtils::isStringMatching(key, std::to_string(getServiceId()),
+                    match_flag);
+        }
+    }
+    else if (FOLDER_ID == attribute_name) {
+        return FilterUtils::isStringMatching(key, std::to_string(getFolderId()),
+                match_flag);
+    }
+    else if (TYPE == attribute_name) {
+        const std::string msgTypeStr = MessagingUtil::messageTypeToString(getType());
+        return FilterUtils::isStringMatching(key, msgTypeStr, match_flag);
+    }
+    else if (FROM == attribute_name) {
+        return FilterUtils::isStringMatching(key, getFrom() , match_flag);
+    }
+    else if (TO == attribute_name) {
+        return FilterUtils::isAnyStringMatching(key, getTO(), match_flag);
+    }
+    else if (CC == attribute_name) {
+        return FilterUtils::isAnyStringMatching(key, getCC(), match_flag);
+    }
+    else if (BCC == attribute_name) {
+        return FilterUtils::isAnyStringMatching(key, getBCC(), match_flag);
+    }
+    else if (BODY_PLAIN_BODY == attribute_name) {
+        if(getBody()) {
+            return FilterUtils::isStringMatching(key, getBody()->getPlainBody(),
+                    match_flag);
+        }
+    }
+    else if (IS_READ == attribute_name) {
+        return FilterUtils::isStringMatching(key, FilterUtils::boolToString(getIsRead()),
+                match_flag);
+    }
+    else if (HAS_ATTACHMENT == attribute_name) {
+        return FilterUtils::isStringMatching(key,
+                FilterUtils::boolToString(getHasAttachment()),
+                match_flag);
+    }
+    else if (IS_HIGH_PRIORITY == attribute_name) {
+        return FilterUtils::isStringMatching(key,
+                FilterUtils::boolToString(getIsHighPriority()),
+                match_flag);
+    }
+    else if (SUBJECT == attribute_name) {
+        return FilterUtils::isStringMatching(key, getSubject(), match_flag);
+    }
+    else {
+        LoggerD("attribute:%s is NOT SUPPORTED", attribute_name.c_str());
+    }
+
+    return false;
+}
+
+bool Message::isMatchingAttributeRange(const std::string& attribute_name,
+            AnyPtr initial_value,
+            AnyPtr end_value) const
+{
+    LoggerD("Entered attribute_name: %s", attribute_name.c_str());
+
+    using namespace MESSAGE_FILTER_ATTRIBUTE;
+    if(TIMESTAMP == attribute_name) {
+        return FilterUtils::isTimeStampInRange(getTimestamp(), initial_value,
+                end_value);
+    }
+    else {
+        LoggerD("attribute:%s is NOT SUPPORTED", attribute_name.c_str());
+    }
+
+    return false;
+}
 
 } //messaging
 } //extension
