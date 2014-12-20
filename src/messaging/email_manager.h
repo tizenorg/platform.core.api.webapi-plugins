@@ -51,7 +51,7 @@ namespace messaging {
 
 //class Message;
 //class MessageCallbackUserData;
-//class FindMsgCallbackUserData;
+class FindMsgCallbackUserData;
 //class SyncFolderCallbackData;
 
 class EmailManager {
@@ -61,7 +61,7 @@ public:
     void addDraftMessage(MessageCallbackUserData* callback);
 //    void removeMessages(MessagesCallbackUserData* callback);
 //    void updateMessages(MessagesCallbackUserData* callback);
-//    void findMessages(FindMsgCallbackUserData* callback);
+    void findMessages(FindMsgCallbackUserData* callback);
 //    void findConversations(ConversationCallbackData* callback);
 //    void findFolders(FoldersCallbackData* callback);
 //    void removeConversations(ConversationCallbackData* callback);
