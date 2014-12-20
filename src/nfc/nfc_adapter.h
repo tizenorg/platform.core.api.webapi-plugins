@@ -52,11 +52,16 @@ public:
     void UnsetReceiveNDEFListener(int peer_id);
     bool IsNDEFListenerSet();
 
+// NFCTag related methods
+    bool IsTagConnected(int tag_id);
+
     static NFCAdapter* GetInstance();
 private:
     NFCAdapter();
     virtual ~NFCAdapter();
 
+    nfc_tag_h m_last_tag_handle;
+    int m_latest_tag_id;
     bool m_is_listener_set;
     bool m_is_transaction_ese_listener_set;
     bool m_is_transaction_uicc_listener_set;
