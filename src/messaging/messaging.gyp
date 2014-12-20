@@ -14,6 +14,7 @@
             'dbus-1',
             'dbus-glib-1',
             'capi-system-info',
+            'ecore',
             'tapi',
             'vconf'
         ],

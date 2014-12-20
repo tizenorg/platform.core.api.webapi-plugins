@@ -4,7 +4,6 @@
 
 #include "message.h"
 
-//#include "Ecore_File.h"
 #include <time.h>
 #include <sys/stat.h>
 #include <sstream>
@@ -12,6 +11,7 @@
 #include "common/logger.h"
 #include "common/platform_exception.h"
 
+#include "Ecore_File.h"
 #include "message_email.h"
 #include "messaging_util.h"
 
@@ -336,41 +336,41 @@ std::string copyFileToTemp(const std::string& sourcePath)
     umask(mask);
     dirPath = "/tmp/" + std::string(buf);
 
-//  FIXME filesystem is unavalaible
-//    if ( sourcePath[0] != '/' ) {
-//        attPath = Filesystem::External::fromVirtualPath(sourcePath);
-//    } else { // Assuming that the path is a real path
-//        attPath = sourcePath;
-//    }
-//
-//    // Looking for the last occurrence of slash in source path
-//    std::size_t slashPos;
-//    if ((slashPos = attPath.find_last_of('/')) == std::string::npos) {
-//        throw common::UnknownException(
-//                "Error while copying file to temp: the source path is invalid.");
-//    }
-//
-//    fileName = attPath.substr(slashPos + 1);
-//    tmpPath = dirPath + "/" + fileName;
-//
-//    LoggerD("attPath: %s, tmpPath: %s", attPath.c_str(), tmpPath.c_str());
-//    if(EINA_TRUE != ecore_file_mkdir(dirPath.c_str())) {
-//        throw common::UnknownException("Unknown error while creating temp directory.");
-//    }
-//
-//    if(EINA_TRUE != ecore_file_cp(attPath.c_str(), tmpPath.c_str())) {
-//        throw common::UnknownException("Unknown error while copying file to temp.");
-//    }
+    if ( sourcePath[0] != '/' ) {
+//  FIXME When filesystem will be available
+//         attPath = sourcePath; change to attPath = Filesystem::External::fromVirtualPath(sourcePath);
+        attPath = sourcePath;
+    } else { // Assuming that the path is a real path
+        attPath = sourcePath;
+    }
+
+    // Looking for the last occurrence of slash in source path
+    std::size_t slashPos;
+    if ((slashPos = attPath.find_last_of('/')) == std::string::npos) {
+        throw common::UnknownException(
+                "Error while copying file to temp: the source path is invalid.");
+    }
+
+    fileName = attPath.substr(slashPos + 1);
+    tmpPath = dirPath + "/" + fileName;
+
+    LoggerD("attPath: %s, tmpPath: %s", attPath.c_str(), tmpPath.c_str());
+    if(EINA_TRUE != ecore_file_mkdir(dirPath.c_str())) {
+        throw common::UnknownException("Unknown error while creating temp directory.");
+    }
+
+    if(EINA_TRUE != ecore_file_cp(attPath.c_str(), tmpPath.c_str())) {
+        throw common::UnknownException("Unknown error while copying file to temp.");
+    }
 
     return dirPath;
 }
 
 void removeDirFromTemp(const std::string& dirPath)
 {
-//    FIXME Eina_File is unavalaible
-//    if(EINA_TRUE != ecore_file_rmdir(dirPath.c_str())) {
-//        throw common::UnknownException("Unknown error while deleting temp directory.");
-//    }
+    if(EINA_TRUE != ecore_file_rmdir(dirPath.c_str())) {
+        throw common::UnknownException("Unknown error while deleting temp directory.");
+    }
 }
 
 email_mail_data_t* Message::convertPlatformEmail(std::shared_ptr<Message> message)
@@ -752,12 +752,12 @@ msg_struct_t Message::convertPlatformShortMessageToStruct(Message* message,
 
     if (type == MSG_TYPE_SMS) {
         // Set SMS message body text
-//        std::shared_ptr<MessageBody> body;
-//        body = message->getBody();
-//        if (!body->getPlainBody().empty()) {
-//            msg_set_str_value(msg, MSG_MESSAGE_SMS_DATA_STR, const_cast<char*>
-//                    (body->getPlainBody().c_str()), body->getPlainBody().size());
-//        }
+        std::shared_ptr<MessageBody> body;
+        body = message->getBody();
+        if (!body->getPlainBody().empty()) {
+            msg_set_str_value(msg, MSG_MESSAGE_SMS_DATA_STR, const_cast<char*>
+                    (body->getPlainBody().c_str()), body->getPlainBody().size());
+        }
 
         // Reset SMS recipients
         int error = msg_list_clear(msg, MSG_MESSAGE_ADDR_LIST_HND);
@@ -1207,8 +1207,8 @@ void Message::setMMSBodyAndAttachmentsFromStruct(Message* message,
         throw common::UnknownException("failed to add attachment");
     }
 
-//    LoggerD("after MSG_MMS_ATTACH_LIST attachments count is:%d",
-//            message->m_attachments.size());
+    LoggerD("after MSG_MMS_ATTACH_LIST attachments count is:%d",
+            message->m_attachments.size());
     msg_release_struct(&mms_struct);
 }
 

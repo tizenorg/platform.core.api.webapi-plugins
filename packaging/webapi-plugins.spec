@@ -160,6 +160,7 @@ BuildRequires: pkgconfig(tapi)
 BuildRequires: pkgconfig(vconf)
 BuildRequires: pkgconfig(x11)
 BuildRequires: pkgconfig(xrandr)
+BuildRequires: pkgconfig(ecore)
 BuildRequires: python
 BuildRequires: pkgconfig(capi-system-info)
 BuildRequires: pkgconfig(capi-system-runtime-info)
