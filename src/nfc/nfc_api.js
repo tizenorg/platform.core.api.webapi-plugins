@@ -5,6 +5,7 @@
 var validator_ = xwalk.utils.validator;
 var types_ = validator_.Types;
 var T_ = xwalk.utils.type;
+var Converter_ = xwalk.utils.converter;
 var native_ = new xwalk.utils.NativeManager(extension);
 
 function ListenerManager(native, listenerName) {
@@ -412,39 +413,260 @@ NFCPeer.prototype.sendNDEF = function() {
 
 };
 
+
+var toByteArray = function(array, max_size, nullable) {
+    var resultArray = [];
+    if (T_.isNullOrUndefined(array) && nullable === true)
+        return resultArray;
+
+    var convertedArray = Converter_.toArray(array);
+    var len = convertedArray.length;
+
+    if (len > max_size)
+        throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
+    for (var i = 0; i < len; i++){
+        resultArray.push(Converter_.toByte(convertedArray[i]));
+    }
+    return resultArray;
+}
+
+var isArrayOfType = function(array, type) {
+    for (var i = 0; i < array.length; i++) {
+        if (!(array[i] instanceof type))
+            return false;
+    }
+    return true;
+}
+
 //////////////////NDEFMessage /////////////////
+//[Constructor(),
+// Constructor(NDEFRecord[] ndefRecords),
+// Constructor(byte[] rawData)]
+//interface NDEFMessage {
+//  readonly attribute long recordCount;
+//
+//  attribute NDEFRecord[] records;
+//
+//  byte[] toByte() raises(WebAPIException);
+//};
 
 tizen.NDEFMessage = function(data) {
+    var records_ = [];
+    var recordCount_ = 0;
 
+    try {
+        if (arguments.length >= 1) {
+            if (T_.isArray(data)) {
+                if ( isArrayOfType(data, tizen.NDEFRecord) ) {
+                    records_ = data;
+                    recordCount_ = data.length;
+                } else {
+                    var raw_data_ = toByteArray(data);
+//                  var result = native_.callSync(
+//                  'NDEFMessage_constructor', {
+//                  'rawData': raw_data_,
+//                  'rawDataSize' : raw_data_.length
+//                  }
+//                  );
+//                  //set all needed fields here basing on result object
+                }
+            } else {
+                throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
+            }
+        }
+    } catch (e) {
+        //constructor call failed - empty object should be created
+        records_ = undefined;
+        recordCount_ = undefined;
+    }
+
+    var recordsSetter = function(data){
+        if (T_.isArray(data)) {
+            if ( isArrayOfType(data, tizen.NDEFRecord) ) {
+                recordCount_ = data.length;
+                records_ = data;
+            }
+        }
+    }
+
+    Object.defineProperties(this, {
+        recordCount:   { enumerable: true,
+            set : function(){},
+            get : function(){return recordCount_;}},
+        records:   { enumerable: true,
+            set : recordsSetter,
+            get : function(){return records_;}}
+    });
 };
 
 tizen.NDEFMessage.prototype.toByte = function() {
 
 };
 
+//helper for inherited object constructors /////////////////////////////////////////////
+function InternalData() {
+}
+
 //////////////////NDEFRecord /////////////////
+tizen.NDEFRecord = function(first, type, payload, id) {
+    var tnf_ = undefined;
+    var type_ = undefined;
+    var payload_ = undefined;
+    var id_ = undefined;
+    //if it is inherited call, then ignore validation
+    if ( !(first instanceof InternalData) ){
+        try {
+            if (arguments.length >= 1) {
+                if (T_.isArray(first)) {
+                    var raw_data_ = toByteArray(first);
+//                  var result = native_.callSync(
+//                  'NDEFRecord_constructor', {
+//                  'rawData': raw_data_,
+//                  'rawDataSize' : raw_data_.length
+//                  }
+//                  );
+//                  //set all needed fields here basing on result object
+                } else if (arguments.length >= 3){
+                    tnf_ = Converter_.toLong(first);
+                    type_ = toByteArray(type, 255);
+                    payload_ = toByteArray(payload, Math.pow(2, 32)-1);
+                    id_ = toByteArray(id, 255, true, []);
+                }
+            } else {
+                throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
+            }
+        } catch (e) {
+            //constructor call failed - empty object should be created
+            tnf_ = undefined;
+            type_ = undefined;
+            payload_ = undefined;
+            id_ = undefined;
+        }
+    }
 
-tizen.NDEFRecord = function(data, type, payload, id) {
-
+    Object.defineProperties(this, {
+        tnf:   {value: tnf_, writable: false, enumerable: true},
+        type:   {value: type_, writable: false, enumerable: true},
+        id:   {value: id_, writable: false, enumerable: true},
+        payload:   {value: payload_, writable: false, enumerable: true},
+    });
 };
 
 //////////////////NDEFRecordText /////////////////
+var ENCODING = ["UTF8", "UTF16"];
 
 tizen.NDEFRecordText = function(text, languageCode, encoding) {
+    var text_ = undefined;
+    var languageCode_ = undefined;
+    var encoding_ = ENCODING[0];
+    try {
+        if (arguments.length >= 2) {
+            text_ = Converter_.toString(text);
+            languageCode_ = Converter_.toString(languageCode);
 
+            if (!T_.isNullOrUndefined(encoding)) {
+                encoding_ = Converter_.toEnum(encoding, ENCODING, true);
+            }
+
+//          call parent constructor
+//          var result = native_.callSync(
+//          'NDEFRecordText_constructor', {
+//          'text': text_,
+//          'languageCode' : languageCode_,
+//          'encoding' : encoding_,
+//          }
+//          );
+//          //set all needed fields here basing on result object
+            tizen.NDEFRecord.call(this, 1, [1,2,3], [1,2,3], [1,2,3]);
+        } else {
+            throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
+        }
+    } catch (e) {
+        //constructor call failed - empty object should be created
+        tizen.NDEFRecord.call(this);
+        text_ = undefined;
+        languageCode_ = undefined;
+        encoding_ = undefined;
+    }
+
+    Object.defineProperties(this, {
+        text:   {value: text_, writable: false, enumerable: true},
+        languageCode:   {value: languageCode_, writable: false, enumerable: true},
+        encoding:   {value: encoding_, writable: false, enumerable: true},
+    });
 };
+
+tizen.NDEFRecordText.prototype = new tizen.NDEFRecord(new InternalData());
+
+tizen.NDEFRecordText.prototype.constructor = tizen.NDEFRecordText;
 
 //////////////////NDEFRecordURI /////////////////
-
 tizen.NDEFRecordURI = function(uri) {
+    var uri_ = undefined;
+    try {
+        if (arguments.length >= 1) {
+            uri_ = Converter_.toString(uri);
 
+//          call parent constructor
+//          var result = native_.callSync(
+//          'NDEFRecordURI_constructor', {
+//          'uri': uri_
+//          }
+//          );
+//          //set all needed fields here basing on result object
+            tizen.NDEFRecord.call(this, 1, [1,2,3], [1,2,3], [1,2,3]);
+        } else {
+            throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
+        }
+    } catch (e) {
+        //constructor call failed - empty object should be created
+        tizen.NDEFRecord.call(this);
+        uri_ = undefined;
+    }
+
+    Object.defineProperties(this, {
+        uri:   {value: uri_, writable: false, enumerable: true}
+    });
 };
+
+tizen.NDEFRecordURI.prototype = new tizen.NDEFRecord(new InternalData());
+
+tizen.NDEFRecordURI.prototype.constructor = tizen.NDEFRecordURI;
 
 //////////////////NDEFRecordMedia /////////////////
-
 tizen.NDEFRecordMedia = function(mimeType, data) {
+    var mimeType_ = undefined;
+    var data_ = undefined;
+    try {
+        if (arguments.length >= 2) {
+            miemType_ = Converter_.toString(mimeType);
+            data_ = toByteArray(data, Math.pow(2, 32)-1);
 
+//          call parent constructor
+//          var result = native_.callSync(
+//          'NDEFRecordMedia_constructor', {
+//          'mimeType': mimeType_,
+//            'data': data_,
+//          }
+//          );
+//          //set all needed fields here basing on result object
+            tizen.NDEFRecord.call(this, 1, [1,2,3], [1,2,3], [1,2,3]);
+        } else {
+            throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
+        }
+    } catch (e) {
+        //constructor call failed - empty object should be created
+        tizen.NDEFRecord.call(this);
+        mimeType_ = undefined;
+    }
+
+    Object.defineProperties(this, {
+        mimeType:   {value: mimeType_, writable: false, enumerable: true}
+    });
 };
 
+tizen.NDEFRecordMedia.prototype = new tizen.NDEFRecord(new InternalData());
+
+tizen.NDEFRecordMedia.prototype.constructor = tizen.NDEFRecordMedia;
 //Exports
 exports = new NFCManager();
