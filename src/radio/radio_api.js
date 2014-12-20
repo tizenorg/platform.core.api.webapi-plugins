@@ -37,19 +37,22 @@ function FMRadioManager() {
             }
         },
         'signalStrength' : {
-            value : 'TEST',
-            writable : false,
-            enumerable : true
+            enumerable : true,
+            get : signalStrengthGetter,
+            set : function() {
+            }
         },
         'state' : {
-            value : 'READY',
-            writable : false,
-            enumerable : true
+            enumerable : true,
+            get : radioStateGetter,
+            set : function() {
+            }
         },
         'isAntennaConnected' : {
-            value : 'TEST',
-            writable : false,
-            enumerable : true
+            enumerable : true,
+            get : isAntennaConnectedGetter,
+            set : function() {
+            }
         },
         'mute' : {
             value : 'TEST',
@@ -58,9 +61,25 @@ function FMRadioManager() {
         }
     });
 
+    function radioStateGetter() {
+        var ret = native_.callSync('FMRadio_RadioStateGetter');
+        return native_.getResultObject(ret);
+    }
+
+    function isAntennaConnectedGetter() {
+        var ret = native_.callSync('FMRadio_IsAntennaConnectedGetter');
+        return native_.getResultObject(ret);
+    }
+
+    function signalStrengthGetter() {
+        var ret = native_.callSync('FMRadio_SignalStrengthGetter');
+        return native_.getResultObject(ret);
+    }
+
     function frequencyGetter() {
-        // TODO
-        return 1000;
+
+        var ret = native_.callSync('FMRadio_FrequencyGetter');
+        return native_.getResultObject(ret);
     }
 
     function frequencyUpperGetter() {
@@ -108,8 +127,9 @@ FMRadioManager.prototype.start = function() {
     if (args.frequency) {
         if (args.frequency < this.frequencyLowerBound
                 || args.frequency > this.frequencyUpperBound)
-            throw new tizen.WebAPIException(
-                    tizen.WebAPIException.INVALID_VALUES_ERR);
+            throw new tizen.WebAPIException(0,
+                    tizen.WebAPIException.INVALID_VALUES_ERR,
+                    'Frequency out of bounds');
     }
     var result = native_.callSync('FMRadio_Start', {
         'frequency' : args.frequency ? args.frequency

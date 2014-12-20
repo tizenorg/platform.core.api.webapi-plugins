@@ -28,6 +28,10 @@ namespace radio {
             REGISTER_SYNC("FMRadio_UnsetFMRadioInterruptedListener", UnsetFMRadioInterruptedListener);
             REGISTER_SYNC("FMRadio_SetAntennaChangeListener", SetAntennaChangeListener);
             REGISTER_SYNC("FMRadio_UnsetAntennaChangeListener", UnsetAntennaChangeListener);
+            REGISTER_SYNC("FMRadio_FrequencyGetter", FrequencyGetter);
+            REGISTER_SYNC("FMRadio_SignalStrengthGetter", SignalStrengthGetter);
+            REGISTER_SYNC("FMRadio_IsAntennaConnectedGetter", AntenaGetter);
+            REGISTER_SYNC("FMRadio_RadioStateGetter", StateGetter);
         #undef REGISTER_SYNC
         #define REGISTER_ASYNC(c,x) \
             RegisterHandler(c, std::bind(&RadioInstance::x, this, _1, _2));
@@ -47,6 +51,30 @@ namespace radio {
             static RadioInstance instance;
             return instance;
     }
+
+    void RadioInstance::AntenaGetter(const picojson::value& args,
+   picojson::object& out){
+   }
+
+   void RadioInstance::StateGetter(const picojson::value& args,
+   picojson::object& out){
+   }
+
+    void RadioInstance::FrequencyGetter(const picojson::value& args,
+            picojson::object& out)
+    {
+        LoggerD(".cc FrequencyGetter()");
+        double freq = FMRadioManager::GetInstance()->FrequencyGetter();
+        ReportSuccess(picojson::value(freq),out);
+    }
+
+    void RadioInstance::SignalStrengthGetter(const picojson::value& args,
+              picojson::object& out)
+      {
+          LoggerD(".cc SignalStrengthGetter()");
+          double strength = FMRadioManager::GetInstance()->SignalStrengthGetter();
+          ReportSuccess(picojson::value(strength),out);
+      }
 
     void RadioInstance::InstanceReportSuccess(picojson::object& out) {
         LoggerD(".cc InstanceReportSuccess()");
@@ -71,15 +99,19 @@ namespace radio {
             FMRadioManager::GetInstance()->Start(args.get("frequency").get<double>());
         }
         catch(const PlatformException& e){
-            LoggerE(".cc RadioInstance::Start() CATCH");
             ReportError(e,out);
         }
     }
 
     void RadioInstance::Stop(const picojson::value& args,
             picojson::object& out) {
+        try{
           LoggerD(".cc Stop()");
           FMRadioManager::GetInstance()->Stop();
+        }
+        catch(const PlatformException& e){
+            ReportError(e,out);
+        }
     }
 
     void RadioInstance::ScanStart(const picojson::value& args,

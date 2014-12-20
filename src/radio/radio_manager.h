@@ -34,6 +34,9 @@ public:
     void SetAntennaChangeListener();
     void UnsetAntennaChangeListener();
 
+    double FrequencyGetter();
+    double SignalStrengthGetter();
+
 private:
 
     static common::PlatformException GetException(char * name,int err);

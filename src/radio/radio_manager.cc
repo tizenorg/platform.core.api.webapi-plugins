@@ -23,6 +23,8 @@ using namespace std;
 namespace extension {
 namespace radio {
 
+static const double FREQ_LOWER = 87.5;
+
 typedef struct RadioSeekCBstruct_
 {
     double cbid;
@@ -72,6 +74,33 @@ int FMRadioManager::Create()
 
     }
     return 0;
+}
+
+double FMRadioManager::FrequencyGetter()
+{
+    int freq;
+    LoggerD("FMRadioManager::FrequencyGetter()");
+    int err = radio_get_frequency(radio_instance,&freq);
+
+    if (RADIO_ERROR_NONE != err)
+    {
+        LoggerE("radio_get_frequency() error %d",err);
+        return FREQ_LOWER;
+    }
+    return static_cast<double>(freq/1000);
+}
+double FMRadioManager::SignalStrengthGetter()
+{
+    int stren;
+
+    LoggerD("FMRadioManager::SignalStrengthGetter()");
+    int err = radio_get_signal_strength(radio_instance,&stren);
+    if (RADIO_ERROR_NONE != err)
+    {
+        LoggerE("radio_get_signal_strength()");
+        return 0;
+    }
+    return static_cast<double>(stren);
 }
 
 FMRadioManager::FMRadioManager() : radio_instance(NULL)
