@@ -71,7 +71,7 @@ Zip::Zip(const std::string& filename, ZipOpenMode open_mode) :
         m_zip(NULL),
         m_default_buffer_size(1024 * 1024)
 {
-    LOGD("Entered");
+    LoggerD("Entered");
 
     int append_mode = APPEND_STATUS_CREATE;
     if(ZOM_CREATEAFTER == open_mode) {
@@ -79,11 +79,11 @@ Zip::Zip(const std::string& filename, ZipOpenMode open_mode) :
     } else if(ZOM_ADDINZIP == open_mode) {
         append_mode = APPEND_STATUS_ADDINZIP;
     }
-    LOGD("append_mode: %d", append_mode);
+    LoggerD("append_mode: %d", append_mode);
 
     m_zip = zipOpen(filename.c_str(), append_mode);
     if(!m_zip) {
-        LOGE("zipOpen returned NULL!");
+        LoggerE("zipOpen returned NULL!");
         throw UnknownException("Opening/creating zip file failed");
     }
     m_is_open = true;
@@ -96,9 +96,9 @@ Zip::~Zip()
 
 void Zip::close()
 {
-    LOGD("Entered");
+    LoggerD("Entered");
     if(!m_is_open) {
-        LOGD("Already closed - exiting.");
+        LoggerD("Already closed - exiting.");
         return;
     }
 
@@ -106,7 +106,7 @@ void Zip::close()
     m_zip = NULL;
 
     if (errclose != ZIP_OK) {
-        LOGE("ret: %d", errclose);
+        LoggerE("ret: %d", errclose);
         throwArchiveException(errclose, "zipClose()");
     }
     m_is_open = false;
@@ -114,25 +114,25 @@ void Zip::close()
 
 ZipPtr Zip::createNew(const std::string& filename)
 {
-    LOGD("Entered");
+    LoggerD("Entered");
     return ZipPtr(new Zip(filename, ZOM_CREATE));
 }
 
 ZipPtr Zip::open(const std::string& filename)
 {
-    LOGD("Entered");
+    LoggerD("Entered");
     return ZipPtr(new Zip(filename, ZOM_ADDINZIP));
 }
 
 void Zip::addFile(AddProgressCallback*& callback)
 {
-    LOGD("Entered");
+    LoggerD("Entered");
     if(!callback) {
-        LOGE("callback is NULL!");
+        LoggerE("callback is NULL!");
         throw UnknownException("Could not add file(-s) to archive");
     }
     if(!m_is_open) {
-        LOGE("Zip file not opened - exiting");
+        LoggerE("Zip file not opened - exiting");
         throw UnknownException("Could not add file(-s) to archive - zip file closed");
     }
 

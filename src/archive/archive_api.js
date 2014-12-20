@@ -6,9 +6,51 @@ var validator_ = xwalk.utils.validator;
 var types_ = validator_.Types;
 var bridge = xwalk.utils.NativeBridge(extension, true);
 
-function throwException_(err) {
-    throw new tizen.WebAPIException(err.code, err.name, err.message);
-}
+function CommonFS() {};
+
+CommonFS.cacheVirtualToReal = {
+    'downloads' : {
+        path : '/opt/usr/media/Downloads'
+    },
+    'documents' : {
+        path : '/opt/usr/media/Documents'
+    },
+    'music' : {
+        path : '/opt/usr/media/Sounds'
+    },
+    'images' : {
+        path : '/opt/usr/media/Images'
+    },
+    'videos' : {
+        path : '/opt/usr/media/Videos'
+    },
+    'ringtones' : {
+        path : '/opt/usr/share/settings/Ringtones'
+    }
+};
+
+CommonFS.toRealPath = function(aPath) {
+    var _fileRealPath = '', _uriPrefix = 'file://', i;
+    if (aPath.indexOf(_uriPrefix) === 0) {
+        _fileRealPath = aPath.substr(_uriPrefix.length);
+    } else if (aPath[0] != '/') {
+        // virtual path$
+        var _pathTokens = aPath.split('/');
+        if (this.cacheVirtualToReal[_pathTokens[0]]
+                && (this.cacheVirtualToReal[_pathTokens[0]].state === undefined || this.cacheVirtualToReal[_pathTokens[0]].state === 'MOUNTED')) {
+            _fileRealPath = this.cacheVirtualToReal[_pathTokens[0]].path;
+            for (i = 1; i < _pathTokens.length; ++i) {
+                _fileRealPath += '/' + _pathTokens[i];
+            }
+        } else {
+            _fileRealPath = aPath;
+        }
+    } else {
+        _fileRealPath = aPath;
+    }
+    console.log("REAL PATH:" + _fileRealPath);
+    return _fileRealPath;
+};
 
 /**
  * Returns new unique opId
@@ -90,11 +132,11 @@ function ArchiveFileEntry(data) {
         throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR);
     }
 
-    propertyFactory_(this, 'name',           data.name           || "",    Property.E);
-    propertyFactory_(this, 'size',           data.size           || 0,     Property.E);
-    propertyFactory_(this, 'compressedSize', data.compressedSize || 0,     Property.E);
-    propertyFactory_(this, 'modified',       data.modified       || null , Property.E);
-    propertyFactory_(this, '_handle',        data.handle         || -1 );
+    propertyFactory_(this, 'name',           data.name                      || "",    Property.E);
+    propertyFactory_(this, 'size',           data.size                      || 0,     Property.E);
+    propertyFactory_(this, 'compressedSize', data.compressedSize            || 0,     Property.E);
+    propertyFactory_(this, 'modified',       new Date(data.modified * 1000) || null , Property.E);
+    propertyFactory_(this, '_handle',        data.handle                    || -1 );
 }
 
 /**
@@ -102,7 +144,7 @@ function ArchiveFileEntry(data) {
  */
 ArchiveFileEntry.prototype.extract = function () {
     var args = validator_.validateArgs(arguments, [
-        { name: "destDir", type: types_.STRING }, //TODO: add FileReferece validation
+        { name: "destinationDirectory", type: types_.STRING }, //TODO: add FileReferece validation
         { name: "onsuccess", type: types_.FUNCTION, optional: true, nullable: true },
         { name: "onerror", type: types_.FUNCTION, optional: true, nullable: true },
         { name: "onprogress", type: types_.FUNCTION, optional: true, nullable: true },
@@ -114,11 +156,12 @@ ArchiveFileEntry.prototype.extract = function () {
     bridge.async({
         cmd: 'ArchiveFileEntry_extract',
         args: {
-            destDir: args.destDir,
-            stripName: args.stripName,
-            overwrite: args.overwrite,
+            destinationDirectory: CommonFS.toRealPath(args.destinationDirectory),
+            stripName: args.stripName || null,
+            overwrite: args.overwrite || null,
             opId: opId,
-            handle: this._handle
+            handle: this._handle,
+            name: this.name
         }
     }).then({
         success: function () {
@@ -185,11 +228,20 @@ ArchiveFile.prototype.add = function () {
     ]),
     opId = getNextOpId();
 
+    var optionsAttributes = ["destination", "stripSourceDirectory", "compressionLevel"],
+        options = args.options || {};
+
+    for(var i in optionsAttributes) {
+        if (!options[optionsAttributes[i]]) {
+            options[optionsAttributes[i]] = null;
+        }
+    }
+
     bridge.async({
         cmd: 'ArchiveFile_add',
         args: {
-            sourceFile: args.sourceFile,
-            options: args.options || null,
+            sourceFile: CommonFS.toRealPath(args.sourceFile),
+            options: options,
             opId: opId,
             handle: this._handle
         }
@@ -227,19 +279,19 @@ ArchiveFile.prototype.add = function () {
  */
 ArchiveFile.prototype.extractAll = function () {
     var args = validator_.validateArgs(arguments, [
-        { name: "destDir", type: types_.STRING }, //TODO: add FileReferece validation
+        { name: "destinationDirectory", type: types_.STRING }, //TODO: add FileReferece validation
         { name: "onsuccess", type: types_.FUNCTION, optional: true, nullable: true },
         { name: "onerror", type: types_.FUNCTION, optional: true, nullable: true },
         { name: "onprogress", type: types_.FUNCTION, optional: true, nullable: true },
-        { name: "options", type: types_.DICTIONARY, optional: true, nullable: true }
+        { name: "overwrite", type: types_.BOOLEAN, optional: true, nullable: true }
     ]),
     opId = getNextOpId();
 
     bridge.async({
         cmd: 'ArchiveFile_extractAll',
         args: {
-            destDir: args.destDir,
-            options: args.options || null,
+            destinationDirectory: CommonFS.toRealPath(args.destinationDirectory),
+            overwrite: args.overwrite || null,
             opId: opId,
             handle: this._handle
         }
@@ -372,12 +424,21 @@ ArchiveManager.prototype.open = function () {
     ]),
     opId = getNextOpId();
 
+    var optionsAttributes = ["overwrite"],
+        options = args.options || {};
+
+    for(var i in optionsAttributes) {
+        if (!options[optionsAttributes[i]]) {
+            options[optionsAttributes[i]] = null;
+        }
+    }
+
     bridge.async({
         cmd: 'ArchiveManager_open',
         args: {
-            file: args.file,
+            file: CommonFS.toRealPath(args.file),
             mode: args.mode,
-            options: args.options || null,
+            options: options,
             opId: opId
         }
     }).then({

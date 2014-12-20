@@ -40,12 +40,28 @@
 #define JSON_CALLBACK_KEEP                                      "keep"
 #define JSON_DATA                                               "args"
 
+#define PARAM_FILE                                              "file"
+#define PARAM_MODE                                              "mode"
+#define PARAM_OPTIONS                                           "options"
+#define PARAM_SOURCE_FILE                                       "sourceFile"
+#define PARAM_DESTINATION_DIR                                   "destinationDirectory"
+#define PARAM_OVERWRITE                                         "overwrite"
+#define PARAM_NAME                                              "name"
+#define PARAM_STRIP_NAME                                        "stripName"
+#define PARAM_OPERATION_ID                                      "opId"
+#define PARAM_VALUE                                             "value"
+#define PARAM_FILENAME                                          "filename"
+
 #define ARCHIVE_FILE_ATTR_MODE                                  "mode"
 #define ARCHIVE_FILE_ATTR_DECOMPRESSED_SIZE                     "decompressedSize"
+#define ARCHIVE_FILE_HANDLE                                     "handle"
 
 #define ARCHIVE_FILE_ENTRY_ATTR_NAME                            "name"
 #define ARCHIVE_FILE_ENTRY_ATTR_SIZE                            "size"
 #define ARCHIVE_FILE_ENTRY_ATTR_COMPRESSED_SIZE                 "compressedSize"
 #define ARCHIVE_FILE_ENTRY_ATTR_MODIFIED                        "modified"
+
+#define ERROR_CALLBACK_NAME                                     "name"
+#define ERROR_CALLBACK_MESSAGE                                  "message"
 
 #endif // _ARCHIVE_PLUGIN_DEFS_H_

@@ -37,8 +37,10 @@ public:
     ~ArchiveManager();
 
     void abort(long operation_id);
-    long getNextOperationId(ArchiveFilePtr archive_file_ptr);
     void eraseElementFromArchiveFileMap(long operation_id);
+    void erasePrivData(long handle);
+    long addPrivData(ArchiveFilePtr archive_file_ptr);
+    ArchiveFilePtr getPrivData(long handle);
     long open(OpenCallbackData* callback);
 
 private:
@@ -47,9 +49,9 @@ private:
     void operator=(ArchiveManager const&);
 
     ArchiveFileMap m_archive_file_map;
+    ArchiveFileMap m_priv_map;
 
     long m_next_unique_id;
-
 };
 
 } // archive

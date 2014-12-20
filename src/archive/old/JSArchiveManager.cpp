@@ -188,7 +188,7 @@ JSValueRef JSArchiveManager::open(JSContextRef context,
             file_ptr.reset();
         }
 
-        if(!file_ptr) {
+        if (!file_ptr) {
             NodePtr node_ptr;
 
             if(FileMode::WRITE == fm ||

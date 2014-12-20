@@ -60,7 +60,7 @@ public:
     void setArchiveFileNonProtectPtr(ArchiveFile* ptr);
     ArchiveFile* getArchiveFileNonProtectPtr();
 
-    long extractTo(ExtractEntryProgressCallback* callback);
+    void extractTo(ExtractEntryProgressCallback* callback);
 
 private:
     filesystem::FilePtr m_file;

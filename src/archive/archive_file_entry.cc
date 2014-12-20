@@ -137,7 +137,7 @@ ArchiveFile* ArchiveFileEntry::getArchiveFileNonProtectPtr()
     return m_archive;
 }
 
-long ArchiveFileEntry::extractTo(ExtractEntryProgressCallback* callback)
+void ArchiveFileEntry::extractTo(ExtractEntryProgressCallback* callback)
 {
     if(!m_archive) {
         LOGE("m_archive is NULL");
@@ -165,7 +165,7 @@ long ArchiveFileEntry::extractTo(ExtractEntryProgressCallback* callback)
         callback->setStripBasePath(base_path_name);
     }
 
-    return m_archive->extractEntryTo(callback);
+    m_archive->extractEntryTo(callback);
 }
 
 } // archive

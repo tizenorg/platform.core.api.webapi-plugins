@@ -93,45 +93,42 @@ gboolean ArchiveFile::openTaskCompleteCB(void *data)
         return false;
     }
 
-    picojson::value val = picojson::value(picojson::object());
-    picojson::object& obj = val.get<picojson::object>();
+    try {
+        auto archive_file = callback->getArchiveFile();
 
-    obj["action"] = picojson::value("success");
-    obj["cid"] = picojson::value(callback->getCallbackId());
-    obj["args"] = picojson::value(picojson::object());
-    picojson::object& obj1 = obj["args"].get<picojson::object>();
-    obj1["mode"] = picojson::value("r");
+        picojson::value val = picojson::value(picojson::object());
+        picojson::object& obj = val.get<picojson::object>();
+        obj[JSON_CALLBACK_ID] = picojson::value(callback->getCallbackId());
+        obj[JSON_DATA] = picojson::value(picojson::object());
 
-    LoggerD("%s", val.serialize().c_str());
+        picojson::object& args = obj[JSON_DATA].get<picojson::object>();
 
-    ArchiveInstance::getInstance().PostMessage(val.serialize().c_str());
+        if (!callback->isError()) {
+            long handle = ArchiveManager::getInstance().addPrivData(archive_file);
 
-//     JSContextRef context = callback->getContext();
-//     if (!GlobalContextManager::getInstance()->isAliveGlobalContext(context)) {
-//         LoggerE("context was closed");
-//         delete callback;
-//         callback = NULL;
-//         return false;
-//     }
-//     try {
-//         if (callback->isError()) {
-//             JSObjectRef errobj = JSWebAPIErrorFactory::makeErrorObject(context,
-//                     callback->getErrorName(),
-//                     callback->getErrorMessage());
-//             callback->callErrorCallback(errobj);
-//         }
-//         else {
-//             JSObjectRef result = JSArchiveFile::makeJSObject(context,
-//                     callback->getArchiveFile());
-//             callback->callSuccessCallback(result);
-//         }
-//     }
-//     catch (const PlatformException &err) {
-//         LoggerE("%s (%s)", err.name().c_str(), err.message().c_str());
-//     }
-//     catch (...) {
-//         LoggerE("Unknown error occurs");
-//     }
+            obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
+
+            args[ARCHIVE_FILE_ATTR_MODE] = picojson::value(
+                    fileModeToString(archive_file->getFileMode()));
+            args[ARCHIVE_FILE_ATTR_DECOMPRESSED_SIZE] = picojson::value();
+            args[ARCHIVE_FILE_HANDLE] = picojson::value(static_cast<double>(handle));
+        } else {
+            obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_ERROR);
+
+            args[ERROR_CALLBACK_NAME] = picojson::value(callback->getErrorName());
+            args[ERROR_CALLBACK_MESSAGE] = picojson::value(callback->getErrorMessage());
+        }
+
+        LoggerD("%s", val.serialize().c_str());
+
+        ArchiveInstance::getInstance().PostMessage(val.serialize().c_str());
+    }
+    catch (const PlatformException& ex) {
+        LoggerE("%s (%s)", ex.name().c_str(), ex.message().c_str());
+    }
+    catch (...) {
+        LoggerE("Unknown error occurred");
+    }
 
     delete callback;
     callback = NULL;
@@ -142,7 +139,6 @@ gboolean ArchiveFile::openTaskCompleteCB(void *data)
 gboolean ArchiveFile::callErrorCallback(void* data)
 {
     LoggerD("Entered");
-    LoggerW("STUB Not calling success/error callback");
 
     auto callback = static_cast<OperationCallbackData*>(data);
     if (!callback) {
@@ -150,31 +146,33 @@ gboolean ArchiveFile::callErrorCallback(void* data)
         return false;
     }
 
-//     JSContextRef context = callback->getContext();
-//     if (!GlobalContextManager::getInstance()->isAliveGlobalContext(context)) {
-//         LoggerE("context was closed");
-//         delete callback;
-//         callback = NULL;
-//         return false;
-//     }
-//
-//     try {
-//         if (callback->isError()) {
-//             JSObjectRef errobj = JSWebAPIErrorFactory::makeErrorObject(context,
-//                     callback->getErrorName(),
-//                     callback->getErrorMessage());
-//             callback->callErrorCallback(errobj);
-//         }
-//         else {
-//             LoggerW("The success callback should be not be called in this case");
-//         }
-//     }
-//     catch (const PlatformException &err) {
-//         LoggerE("%s (%s)", err.name().c_str(), err.message().c_str());
-//     }
-//     catch (...) {
-//         LoggerE("Unknown error occurs");
-//     }
+    try {
+        picojson::value val = picojson::value(picojson::object());
+        picojson::object& obj = val.get<picojson::object>();
+        obj[JSON_CALLBACK_ID] = picojson::value(callback->getCallbackId());
+        obj[JSON_DATA] = picojson::value(picojson::object());
+
+        picojson::object& args = obj[JSON_DATA].get<picojson::object>();
+
+        if (!callback->isError()) {
+            LoggerW("The success callback should be not be called in this case");
+        } else {
+            obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_ERROR);
+
+            args[ERROR_CALLBACK_NAME] = picojson::value(callback->getErrorName());
+            args[ERROR_CALLBACK_MESSAGE] = picojson::value(callback->getErrorMessage());
+        }
+
+        LoggerD("%s", val.serialize().c_str());
+
+        ArchiveInstance::getInstance().PostMessage(val.serialize().c_str());
+    }
+    catch (const PlatformException& ex) {
+        LoggerE("%s (%s)", ex.name().c_str(), ex.message().c_str());
+    }
+    catch (...) {
+        LoggerE("Unknown error occured");
+    }
 
     delete callback;
     callback = NULL;
@@ -252,11 +250,12 @@ void* ArchiveFile::taskManagerThread(void *data)
     return NULL;
 }
 
-long ArchiveFile::addOperation(OperationCallbackData* callback)
+void ArchiveFile::addOperation(OperationCallbackData* callback)
 {
     LoggerD("Entered callback type:%d", callback->getCallbackType());
 
     const long operation_id = callback->getOperationId();
+    callback->setArchiveFile(shared_from_this());
     std::size_t size = 0;
     {
         std::lock_guard<std::mutex> lock(m_mutex);
@@ -283,7 +282,6 @@ long ArchiveFile::addOperation(OperationCallbackData* callback)
             LoggerE("Thread detachment failed");
         }
     }
-    return operation_id;
 }
 
 void ArchiveFile::extractAllTask(ExtractAllProgressCallback* callback)
@@ -334,7 +332,7 @@ void ArchiveFile::extractAllTask(ExtractAllProgressCallback* callback)
     unzip->extractAllFilesTo(directory->getNode()->getPath()->getFullPath(), callback);
 }
 
-long ArchiveFile::getEntries(GetEntriesCallbackData* callback)
+void ArchiveFile::getEntries(GetEntriesCallbackData* callback)
 {
     LoggerD("Entered");
     if(!callback) {
@@ -344,7 +342,7 @@ long ArchiveFile::getEntries(GetEntriesCallbackData* callback)
 
     throwInvalidStateErrorIfArchiveFileIsClosed();
 
-    return addOperation(callback);
+    addOperation(callback);
 }
 
 gboolean ArchiveFile::getEntriesTaskCompleteCB(void *data)
@@ -358,40 +356,53 @@ gboolean ArchiveFile::getEntriesTaskCompleteCB(void *data)
         return false;
     }
 
-//     JSContextRef context = callback->getContext();
-//     if (!GlobalContextManager::getInstance()->isAliveGlobalContext(context)) {
-//         LoggerE("context was closed");
-//         delete callback;
-//         callback = NULL;
-//         return false;
-//     }
-//
-//     try {
-//         ArchiveFileEntryPtrMapPtr entries = callback->getEntries();
-//         unsigned int size = entries->size();
-// 
-//         JSObjectRef objArray[size];
-//         int i = 0;
-//         for(auto it = entries->begin(); it != entries->end(); it++) {
-//             objArray[i] = JSArchiveFileEntry::makeJSObject(context, it->second);
-//             i++;
-//         }
-// 
-//         JSValueRef exception = NULL;
-//         JSObjectRef jsResult = JSObjectMakeArray(context, size,
-//                 size > 0 ? objArray : NULL, &exception);
-//         if (exception != NULL) {
-//             throw Common::UnknownException(context, exception);
-//         }
-// 
-//         callback->callSuccessCallback(jsResult);
-//     }
-//     catch (const PlatformException &err) {
-//         LoggerE("%s (%s)", err.name().c_str(), err.message().c_str());
-//     }
-//     catch (...) {
-//         LoggerE("Unknown error occurs");
-//     }
+    try {
+        picojson::value val = picojson::value(picojson::object());
+        picojson::object& obj = val.get<picojson::object>();
+        obj[JSON_CALLBACK_ID] = picojson::value(callback->getCallbackId());
+
+        if (!callback->isError()) {
+            obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
+            obj[JSON_DATA] = picojson::value(picojson::array());
+            picojson::array &arr = obj[JSON_DATA].get<picojson::array>();
+
+            ArchiveFileEntryPtrMapPtr entries = callback->getEntries();
+            for(auto it = entries->begin(); it != entries->end(); it++) {
+                picojson::value val = picojson::value(picojson::object());
+                picojson::object& obj = val.get<picojson::object>();
+
+                obj[ARCHIVE_FILE_ENTRY_ATTR_NAME] = picojson::value(
+                        it->second->getName());
+                obj[ARCHIVE_FILE_ENTRY_ATTR_SIZE] = picojson::value(
+                        static_cast<double>(it->second->getSize()));
+                obj[ARCHIVE_FILE_ENTRY_ATTR_MODIFIED] = picojson::value(
+                        static_cast<double>(it->second->getModified()));
+                obj[ARCHIVE_FILE_ENTRY_ATTR_COMPRESSED_SIZE] = picojson::value(
+                        static_cast<double>(it->second->getCompressedSize()));
+                obj[ARCHIVE_FILE_HANDLE] = picojson::value(
+                        static_cast<double>(callback->getHandle()));
+
+                arr.push_back(val);
+            }
+        } else {
+            obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_ERROR);
+            obj[JSON_DATA] = picojson::value(picojson::object());
+            picojson::object& args = obj[JSON_DATA].get<picojson::object>();
+
+            args[ERROR_CALLBACK_NAME] = picojson::value(callback->getErrorName());
+            args[ERROR_CALLBACK_MESSAGE] = picojson::value(callback->getErrorMessage());
+        }
+
+        LoggerD("%s", val.serialize().c_str());
+
+        ArchiveInstance::getInstance().PostMessage(val.serialize().c_str());
+    }
+    catch (const PlatformException& ex) {
+        LoggerE("%s (%s)", ex.name().c_str(), ex.message().c_str());
+    }
+    catch (...) {
+        LoggerE("Unknown error occured");
+    }
 
     delete callback;
     callback = NULL;
@@ -399,7 +410,7 @@ gboolean ArchiveFile::getEntriesTaskCompleteCB(void *data)
     return false;
 }
 
-long ArchiveFile::extractAll(ExtractAllProgressCallback *callback)
+void ArchiveFile::extractAll(ExtractAllProgressCallback *callback)
 {
     LoggerD("Entered");
     if(!callback) {
@@ -409,10 +420,10 @@ long ArchiveFile::extractAll(ExtractAllProgressCallback *callback)
 
     throwInvalidStateErrorIfArchiveFileIsClosed();
 
-    return addOperation(callback);
+    addOperation(callback);
 }
 
-long ArchiveFile::extractEntryTo(ExtractEntryProgressCallback* callback)
+void ArchiveFile::extractEntryTo(ExtractEntryProgressCallback* callback)
 {
     LoggerD("Entered");
     if(!callback) {
@@ -431,11 +442,11 @@ long ArchiveFile::extractEntryTo(ExtractEntryProgressCallback* callback)
         throw UnknownException("Archive is not opened");
     }
 
-    return addOperation(callback);
+    addOperation(callback);
 }
 
 
-long ArchiveFile::add(AddProgressCallback *callback)
+void ArchiveFile::add(AddProgressCallback *callback)
 {
     LoggerD("Entered");
     if(!callback) {
@@ -449,7 +460,7 @@ long ArchiveFile::add(AddProgressCallback *callback)
 
     throwInvalidStateErrorIfArchiveFileIsClosed();
 
-    return addOperation(callback);
+    addOperation(callback);
 }
 
 void ArchiveFile::close()
@@ -464,7 +475,7 @@ void ArchiveFile::close()
     return;
 }
 
-long ArchiveFile::getEntryByName(GetEntryByNameCallbackData* callback)
+void ArchiveFile::getEntryByName(GetEntryByNameCallbackData* callback)
 {
     LoggerD("Entered");
     if(!callback) {
@@ -474,13 +485,12 @@ long ArchiveFile::getEntryByName(GetEntryByNameCallbackData* callback)
 
     throwInvalidStateErrorIfArchiveFileIsClosed();
 
-    return addOperation(callback);
+    addOperation(callback);
 }
 
 gboolean ArchiveFile::getEntryByNameTaskCompleteCB(void *data)
 {
     LoggerD("Entered");
-    LoggerW("STUB Not calling success/error callback");
 
     auto callback = static_cast<GetEntryByNameCallbackData*>(data);
     if (!callback) {
@@ -488,32 +498,44 @@ gboolean ArchiveFile::getEntryByNameTaskCompleteCB(void *data)
         return false;
     }
 
-//     JSContextRef context = callback->getContext();
-//     if (!GlobalContextManager::getInstance()->isAliveGlobalContext(context)) {
-//         LoggerE("context was closed");
-//         delete callback;
-//         callback = NULL;
-//         return false;
-//     }
-//     try {
-//         if (callback->isError()) {
-//             JSObjectRef errobj = JSWebAPIErrorFactory::makeErrorObject(context,
-//                     callback->getErrorName(),
-//                     callback->getErrorMessage());
-//             callback->callErrorCallback(errobj);
-//         }
-//         else {
-//             JSObjectRef entry = JSArchiveFileEntry::makeJSObject(context,
-//                     callback->getFileEntry());
-//             callback->callSuccessCallback(entry);
-//         }
-//     }
-//     catch (const PlatformException &err) {
-//         LoggerE("%s (%s)", err.name().c_str(), err.message().c_str());
-//     }
-//     catch (...) {
-//         LoggerE("Unknown error occurs");
-//     }
+    try {
+        picojson::value val = picojson::value(picojson::object());
+        picojson::object& obj = val.get<picojson::object>();
+        obj[JSON_CALLBACK_ID] = picojson::value(callback->getCallbackId());
+        obj[JSON_DATA] = picojson::value(picojson::object());
+        picojson::object& args = obj[JSON_DATA].get<picojson::object>();
+
+        if (!callback->isError()) {
+            obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
+
+            ArchiveFileEntryPtr ent = callback->getFileEntry();
+
+            args[ARCHIVE_FILE_ENTRY_ATTR_NAME] = picojson::value(ent->getName());
+            args[ARCHIVE_FILE_ENTRY_ATTR_SIZE] = picojson::value(
+                    static_cast<double>(ent->getSize()));
+            args[ARCHIVE_FILE_ENTRY_ATTR_MODIFIED] = picojson::value(
+                    static_cast<double>(ent->getModified()));
+            args[ARCHIVE_FILE_ENTRY_ATTR_COMPRESSED_SIZE] = picojson::value(
+                    static_cast<double>(ent->getCompressedSize()));
+            args[ARCHIVE_FILE_HANDLE] = picojson::value(
+                    static_cast<double>(callback->getHandle()));
+        } else {
+            obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_ERROR);
+
+            args[ERROR_CALLBACK_NAME] = picojson::value(callback->getErrorName());
+            args[ERROR_CALLBACK_MESSAGE] = picojson::value(callback->getErrorMessage());
+        }
+
+        LoggerD("%s", val.serialize().c_str());
+
+        ArchiveInstance::getInstance().PostMessage(val.serialize().c_str());
+    }
+    catch (const PlatformException& ex) {
+        LoggerE("%s (%s)", ex.name().c_str(), ex.message().c_str());
+    }
+    catch (...) {
+        LoggerE("Unknown error occured");
+    }
 
     delete callback;
     callback = NULL;
@@ -610,11 +632,11 @@ UnZipPtr ArchiveFile::createUnZipObject()
         throw UnknownException("File is null");
     }
 
-//     filesystem::NodePtr node = m_file->getNode();
-//     if(!node) {
-//         LoggerE("Node is null");
-//         throw UnknownException("Node is null");
-//     }
+    filesystem::NodePtr node = m_file->getNode();
+    if(!node) {
+        LoggerE("Node is null");
+        throw UnknownException("Node is null");
+    }
 
     UnZipPtr unzip = UnZip::open(m_file->getNode()->getPath()->getFullPath());
     return unzip;
@@ -633,11 +655,11 @@ ZipPtr ArchiveFile::createZipObject()
         throw UnknownException("File is null");
     }
 
-//     filesystem::NodePtr node = m_file->getNode();
-//     if(!node) {
-//         LoggerE("Node is null");
-//         throw UnknownException("Node is null");
-//     }
+    filesystem::NodePtr node = m_file->getNode();
+    if(!node) {
+        LoggerE("Node is null");
+        throw UnknownException("Node is null");
+    }
 
     ZipPtr zip = Zip::open(m_file->getNode()->getPath()->getFullPath());
     return zip;

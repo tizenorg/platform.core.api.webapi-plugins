@@ -70,6 +70,8 @@ public:
     long getOperationId() const;
     void setCallbackId(double cid);
     double getCallbackId() const;
+    void setHandle(long handle);
+    long getHandle() const;
 
     ArchiveCallbackType getCallbackType() const;
 
@@ -85,6 +87,7 @@ protected:
     ArchiveCallbackType m_callback_type;
     long m_op_id;
     double m_cid;
+    long m_handle;
 
 private:
     bool m_is_error;
@@ -100,11 +103,6 @@ class OpenCallbackData : public OperationCallbackData
 public:
     OpenCallbackData(ArchiveCallbackType callback_type = OPEN_CALLBACK_DATA);
     virtual ~OpenCallbackData();
-
-    void setFile(std::string file);
-    const std::string& getFile() const;
-    //void setMode(FileMode mode);
-    //FileMode getMode() const;
 
     virtual void executeOperation(ArchiveFilePtr archive_file_ptr);
 
@@ -161,12 +159,13 @@ public:
             ArchiveFileEntryPtr current_entry);
     void callSuccessCallbackOnMainThread();
 
-    virtual void executeOperation(ArchiveFilePtr archive_file_ptr);
+    virtual void executeOperation(ArchiveFilePtr archive_file_ptr) = 0;
 
 protected:
     void callProgressCallback(long operationId,
             double value,
-            const std::string& filename);
+            const std::string& filename,
+            double callbackId);
 
 private:
     static gboolean callProgressCallbackCB(void* data);

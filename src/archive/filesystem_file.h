@@ -59,7 +59,6 @@ private:
 class External {
 public:
     static std::string toVirtualPath(const std::string& path);
-    static void removeDirectoryRecursive(const std::string& fullpath);
 };
 
 

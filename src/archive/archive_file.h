@@ -79,10 +79,10 @@ public:
     ArchiveFile(FileMode file_mode);
     virtual ~ArchiveFile();
 
-    long getEntries(GetEntriesCallbackData* callback);
-    long getEntryByName(GetEntryByNameCallbackData* callback);
-    long extractAll(ExtractAllProgressCallback *callback);
-    long add(AddProgressCallback *callback);
+    void getEntries(GetEntriesCallbackData* callback);
+    void getEntryByName(GetEntryByNameCallbackData* callback);
+    void extractAll(ExtractAllProgressCallback *callback);
+    void add(AddProgressCallback *callback);
     void close();
 
     filesystem::FilePtr getFile() const;
@@ -102,7 +102,7 @@ public:
 
 
     //Used by ArchiveFileEntry
-    long extractEntryTo(ExtractEntryProgressCallback* callback);
+    void extractEntryTo(ExtractEntryProgressCallback* callback);
 
     bool isAllowedOperation(const std::string& method_name);
     FileMode getFileMode() const;
@@ -165,7 +165,7 @@ private:
     static gboolean getEntryByNameTaskCompleteCB(void *data);
 
     static void* taskManagerThread(void *data);
-    long addOperation(OperationCallbackData* callback);
+    void addOperation(OperationCallbackData* callback);
     static gboolean callErrorCallback(void* data);
 
     void extractAllTask(ExtractAllProgressCallback* callback);

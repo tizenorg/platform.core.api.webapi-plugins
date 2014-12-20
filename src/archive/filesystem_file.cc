@@ -67,5 +67,12 @@ const std::string& File::getOriginalFullPath() const
     return m_original_fullpath;
 }
 
+std::string External::toVirtualPath(const std::string& path)
+{
+    //TODO::implement this method
+    LoggerW("Just STUB");
+    return path;
+}
+
 } // filesystem
 } // extension

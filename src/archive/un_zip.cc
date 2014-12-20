@@ -43,11 +43,11 @@ UnZip::UnZip(const std::string& filename) :
         m_unzip(NULL),
         m_default_buffer_size(1024 * 1024)
 {
-    LOGD("Entered");
+    LoggerD("Entered");
 
     m_unzip = unzOpen(filename.c_str());
     if(!m_unzip) {
-        LOGE("unzOpen returned NULL : It means the file is invalid.");
+        LoggerE("unzOpen returned NULL : It means the file is invalid.");
         throw InvalidValuesException("Failed to open zip file");
     }
     m_is_open = true;
@@ -60,9 +60,9 @@ UnZip::~UnZip()
 
 void UnZip::close()
 {
-    LOGD("Entered");
+    LoggerD("Entered");
     if(!m_is_open) {
-        LOGD("Unzip already closed - exiting");
+        LoggerD("Unzip already closed - exiting");
         return;
     }
 
@@ -70,7 +70,7 @@ void UnZip::close()
     m_unzip = NULL;
 
     if (errclose != UNZ_OK) {
-        LOGE("ret: %d",errclose);
+        LoggerE("ret: %d",errclose);
         throwArchiveException(errclose, "unzClose()");
     }
     m_is_open = false;
@@ -78,20 +78,20 @@ void UnZip::close()
 
 UnZipPtr UnZip::open(const std::string& filename)
 {
-    LOGD("Entered");
+    LoggerD("Entered");
     return UnZipPtr(new UnZip(filename));
 }
 
 ArchiveFileEntryPtrMapPtr UnZip::listEntries(unsigned long *decompressedSize)
 {
     if(!m_is_open) {
-        LOGE("Failed to get list of entries - UnZip closed");
+        LoggerE("Failed to get list of entries - UnZip closed");
         throw UnknownException("Failed to get list of files in zip archive");
     }
     unz_global_info gi;
     int err = unzGetGlobalInfo (m_unzip, &gi);
     if (UNZ_OK != err) {
-        LOGE("ret: %d",err);
+        LoggerE("ret: %d",err);
         throwArchiveException(err, "unzGetGlobalInfo()");
     }
 
@@ -105,7 +105,7 @@ ArchiveFileEntryPtrMapPtr UnZip::listEntries(unsigned long *decompressedSize)
 
     err = unzGoToFirstFile(m_unzip);
     if (err != UNZ_OK) {
-        LOGW("%s",getArchiveLogMessage(err, "unzGoToFirstFile()").c_str());
+        LoggerW("%s",getArchiveLogMessage(err, "unzGoToFirstFile()").c_str());
     }
 
     for (uLong i = 0; i < gi.number_entry; i++) {
@@ -113,11 +113,11 @@ ArchiveFileEntryPtrMapPtr UnZip::listEntries(unsigned long *decompressedSize)
         err = unzGetCurrentFileInfo(m_unzip, &file_info,
                 filename_inzip, sizeof(filename_inzip), NULL, 0, NULL, 0);
         if (err != UNZ_OK) {
-            LOGE("ret: %d",err);
+            LoggerE("ret: %d",err);
             throwArchiveException(err, "unzGetCurrentFileInfo()");
         }
 
-        LOGD("file: %s | unc size: %d | comp size: %d", filename_inzip,
+        LoggerD("file: %s | unc size: %d | comp size: %d", filename_inzip,
                 file_info.uncompressed_size, file_info.compressed_size);
 
         ArchiveFileEntryPtr entry = ArchiveFileEntryPtr(new ArchiveFileEntry());
@@ -137,7 +137,7 @@ ArchiveFileEntryPtrMapPtr UnZip::listEntries(unsigned long *decompressedSize)
         date.tm_wday = 0;
         date.tm_yday = 0;
         date.tm_isdst = 0;
-        LOGD("%d, %d, %d, %d, %d, %d", date.tm_hour, date.tm_min, date.tm_sec, date.tm_mday, date.tm_mon, date.tm_year);
+        LoggerD("%d, %d, %d, %d, %d, %d", date.tm_hour, date.tm_min, date.tm_sec, date.tm_mday, date.tm_mon, date.tm_year);
         entry->setModified(mktime(&date));
 
         map->insert(std::make_pair(filename_inzip, entry));
@@ -146,7 +146,7 @@ ArchiveFileEntryPtrMapPtr UnZip::listEntries(unsigned long *decompressedSize)
 
             err = unzGoToNextFile(m_unzip);
             if (UNZ_OK != err) {
-                LOGE("ret: %d",err);
+                LoggerE("ret: %d",err);
                 throwArchiveException(err, "unzGoToNextFile()");
             }
         }
@@ -161,7 +161,7 @@ void UnZip::extractAllFilesTo(const std::string& extract_path,
         ExtractAllProgressCallback* callback)
 {
     if(!m_is_open) {
-        LOGE("Failed to extract files - UnZip closed");
+        LoggerE("Failed to extract files - UnZip closed");
         throw UnknownException("Failed to extract zip archive");
     }
 
@@ -176,13 +176,13 @@ void UnZip::extractAllFilesTo(const std::string& extract_path,
     //
     int err = unzGoToFirstFile(m_unzip);
     if (err != UNZ_OK) {
-        LOGW("%s",getArchiveLogMessage(err, "unzGoToFirstFile()").c_str());
+        LoggerW("%s",getArchiveLogMessage(err, "unzGoToFirstFile()").c_str());
     }
 
     for (uLong i = 0; i < gi.number_entry; i++) {
 
         if (callback->isCanceled()) {
-            LOGD("Operation cancelled");
+            LoggerD("Operation cancelled");
             throw OperationCanceledException();
         }
 
@@ -191,7 +191,7 @@ void UnZip::extractAllFilesTo(const std::string& extract_path,
         if ((i + 1) < gi.number_entry) {
             err = unzGoToNextFile(m_unzip);
             if (UNZ_OK != err) {
-                LOGE("ret: %d",err);
+                LoggerE("ret: %d",err);
                 throwArchiveException(err, "unzGoToNextFile()");
             }
         }
@@ -211,41 +211,41 @@ struct ExtractDataHolder
 void UnZip::extractTo(ExtractEntryProgressCallback* callback)
 {
     if(!m_is_open) {
-        LOGE("Extract archive file entry failed - UnZip closed");
+        LoggerE("Extract archive file entry failed - UnZip closed");
         throw UnknownException("Extract archive file entry failed");
     }
 
     if(!callback) {
-        LOGE("callback is NULL");
+        LoggerE("callback is NULL");
         throw UnknownException("Extract archive file entry failed");
     }
 
     if(!callback->getArchiveFileEntry()) {
-        LOGE("callback->getArchiveFileEntry() is NULL");
+        LoggerE("callback->getArchiveFileEntry() is NULL");
         throw UnknownException("Extract archive file entry failed");
     }
 
     filesystem::FilePtr out_dir = callback->getDirectory();
     if(!out_dir) {
-        LOGE("Output directory is not valid");
+        LoggerE("Output directory is not valid");
         throw InvalidValuesException("Output directory is not correct");
     }
 
-//     filesystem::NodePtr out_node = out_dir->getNode();
-//     if(!out_node) {
-//         LOGE("Output directory is not valid");
-//         throw InvalidValuesException("Output directory is not correct");
-//     }
-//
-//     filesystem::PathPtr out_path = out_node->getPath();
-//     if(!out_path) {
-//         LOGE("Output directory is not valid");
-//         throw InvalidValuesException("Output directory is not correct");
-//     }
+    NodePtr out_node = out_dir->getNode();
+    if(!out_node) {
+        LoggerE("Output directory is not valid");
+        throw InvalidValuesException("Output directory is not correct");
+    }
+
+    PathPtr out_path = out_node->getPath();
+    if(!out_path) {
+        LoggerE("Output directory is not valid");
+        throw InvalidValuesException("Output directory is not correct");
+    }
 
     auto entry_name_in_zip = callback->getArchiveFileEntry()->getName();
     auto root_output_path = out_dir->getNode()->getPath()->getFullPath();
-    LOGD("Extract: [%s] to root output directory: [%s] (stripBasePath: [%s])",
+    LoggerD("Extract: [%s] to root output directory: [%s] (stripBasePath: [%s])",
             entry_name_in_zip.c_str(),
             root_output_path.c_str(),
             callback->getStripBasePath().c_str());
@@ -279,7 +279,7 @@ void UnZip::extractItFunction(const std::string& file_name, unz_file_info& file_
 {
     ExtractDataHolder* h = static_cast<ExtractDataHolder*>(user_data);
     if(!h) {
-        LOGE("ExtractDataHolder is NULL!");
+        LoggerE("ExtractDataHolder is NULL!");
         throw UnknownException("Could not list content of zip archive");
     }
 
@@ -296,7 +296,7 @@ unsigned int UnZip::IterateFilesInZip(unz_global_info& gi,
 {
     int err = unzGoToFirstFile(m_unzip);
     if (UNZ_OK != err) {
-        LOGW("%s",getArchiveLogMessage(err, "unzGoToFirstFile()").c_str());
+        LoggerW("%s",getArchiveLogMessage(err, "unzGoToFirstFile()").c_str());
     }
 
     unsigned int num_file_or_folder_matched = 0;
@@ -308,14 +308,14 @@ unsigned int UnZip::IterateFilesInZip(unz_global_info& gi,
     for (uLong i = 0; i < gi.number_entry; i++) {
 
         if (callback->isCanceled()) {
-            LOGD("Operation cancelled");
+            LoggerD("Operation cancelled");
             throw OperationCanceledException();
         }
 
         err = unzGetCurrentFileInfo(m_unzip, &cur_file_info,
                 tmp_fname, sizeof(tmp_fname), NULL, 0, NULL, 0);
         if (UNZ_OK != err) {
-            LOGE("ret: %d",err);
+            LoggerE("ret: %d",err);
             throwArchiveException(err, "unzGetCurrentFileInfo()");
         }
 
@@ -341,7 +341,7 @@ unsigned int UnZip::IterateFilesInZip(unz_global_info& gi,
         if ((i + 1) < gi.number_entry) {
             err = unzGoToNextFile(m_unzip);
             if (UNZ_OK != err) {
-                LOGE("ret: %d",err);
+                LoggerE("ret: %d",err);
                 throwArchiveException(err, "unzGoToNextFile()");
             }
         }
@@ -354,14 +354,14 @@ void UnZip::extractCurrentFile(const std::string& extract_path,
         const std::string& base_strip_path,
         BaseProgressCallback* callback)
 {
-    LOGD("Entered");
+    LoggerD("Entered");
 
     if (callback->isCanceled()) {
-        LOGD("Operation cancelled");
+        LoggerD("Operation cancelled");
         throw OperationCanceledException();
     }
 
-    LOGD("extract_path: [%s] base_strip_path: [%s] ", extract_path.c_str(),
+    LoggerD("extract_path: [%s] base_strip_path: [%s] ", extract_path.c_str(),
             base_strip_path.c_str());
     UnZipExtractRequest::execute(*this, extract_path, base_strip_path, callback);
 }
@@ -399,7 +399,7 @@ void UnZip::updateCallbackWithArchiveStatistics(ExtractAllProgressCallback* call
 {
     int err = unzGetGlobalInfo(m_unzip, &out_global_info);
     if (UNZ_OK != err) {
-        LOGE("ret: %d",err);
+        LoggerE("ret: %d",err);
         throwArchiveException(err, "unzGetGlobalInfo()");
     }
 
@@ -407,18 +407,18 @@ void UnZip::updateCallbackWithArchiveStatistics(ExtractAllProgressCallback* call
     const auto num_matched = IterateFilesInZip(out_global_info, optional_filter,
             callback, generateArchiveStatistics, &astats);
     if(0 == num_matched) {
-        LOGE("No matching file/directory: [%s] has been found in zip archive",
+        LoggerE("No matching file/directory: [%s] has been found in zip archive",
                 optional_filter.c_str());
-        LOGE("Throwing NotFoundException - Could not extract file from archive");
+        LoggerE("Throwing NotFoundException - Could not extract file from archive");
         throw NotFoundException("Could not extract file from archive");
     }
 
     callback->setExpectedDecompressedSize(astats.uncompressed_size);
-    LOGD("Expected uncompressed size: %s",
+    LoggerD("Expected uncompressed size: %s",
             bytesToReadableString(astats.uncompressed_size).c_str());
 
     callback->setNumberOfFilesToExtract(astats.number_of_files);
-    LOGD("Number entries to extract: files: %d folders: %d", astats.number_of_files,
+    LoggerD("Number entries to extract: files: %d folders: %d", astats.number_of_files,
             astats.number_of_folders);
 }
 

@@ -27,7 +27,7 @@ namespace archive {
 using namespace filesystem;
 
 ArchiveManager::ArchiveManager():
-    m_next_unique_id(0)
+        m_next_unique_id(0)
 {
     LoggerD("Initialize ArchiveManager");
 }
@@ -64,6 +64,34 @@ void ArchiveManager::abort(long operation_id)
     LoggerD("The Operation Identifier not found");
 }
 
+void ArchiveManager::erasePrivData(long handle)
+{
+    LoggerD("Entered");
+
+    ArchiveFileMap::iterator it = m_priv_map.find(handle);
+    if (it != m_priv_map.end()) {
+        m_priv_map.erase(it);
+    }
+}
+
+long ArchiveManager::addPrivData(ArchiveFilePtr archive_file_ptr)
+{
+    LoggerD("Entered");
+
+    long handle = ++m_next_unique_id;
+    m_priv_map.insert(ArchiveFilePair(handle, archive_file_ptr));
+    return handle;
+}
+
+ArchiveFilePtr ArchiveManager::getPrivData(long handle)
+{
+    ArchiveFileMap::iterator it = m_priv_map.find(handle);
+    if (it != m_priv_map.end()) {
+        return it->second;
+    }
+    throw UnknownException("Priv is null");
+}
+
 long ArchiveManager::open(OpenCallbackData* callback)
 {
     LoggerD("Entered");
@@ -76,15 +104,7 @@ long ArchiveManager::open(OpenCallbackData* callback)
 //    ArchiveFilePtr a_ptr = ArchiveFilePtr(new ArchiveFile(FileMode::READ));
 
     ArchiveFilePtr a_ptr = callback->getArchiveFile();
-    return a_ptr->addOperation(callback);
-}
-
-long ArchiveManager::getNextOperationId(ArchiveFilePtr archive_file_ptr)
-{
-    LoggerD("Entered");
-    long op_id = ++m_next_unique_id;
-    m_archive_file_map.insert(ArchiveFilePair(op_id, archive_file_ptr));
-    return op_id;
+    a_ptr->addOperation(callback);
 }
 
 void ArchiveManager::eraseElementFromArchiveFileMap(long operation_id)
