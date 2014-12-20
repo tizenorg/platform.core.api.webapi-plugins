@@ -16,7 +16,8 @@
             'capi-system-info',
             'ecore',
             'tapi',
-            'vconf'
+            'vconf',
+            'db-util'
         ],
       },
       'sources': [
@@ -49,6 +50,10 @@
         'message_body.h',
         'message_callback_user_data.cc',
         'message_callback_user_data.h',
+        'find_msg_callback_user_data.cc',
+        'find_msg_callback_user_data.h',
+        'messaging_database_manager.cc',
+        'messaging_databese_manager.h',
         'DBus/Connection.cpp',
         'DBus/Connection.h',
         'DBus/EmailSignalProxy.cpp',

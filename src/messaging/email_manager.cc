@@ -28,7 +28,7 @@
 #include <sstream>
 //#include <GlobalContextManager.h>
 
-//#include <AbstractFilter.h>
+#include "MsgCommon/AbstractFilter.h"
 
 #include <email-api-network.h>
 #include <email-api-account.h>
@@ -42,10 +42,10 @@
 //#include "MessageConversation.h"
 //#include "MessageCallbackUserData.h"
 //#include "MessagesCallbackUserData.h"
-//#include "FindMsgCallbackUserData.h"
+#include "find_msg_callback_user_data.h"
 //#include "ConversationCallbackData.h"
 #include "message_email.h"
-//#include "MessagingDatabaseManager.h"
+#include "messaging_database_manager.h"
 
 //#include "JSMessage.h"
 //#include "JSMessageConversation.h"
@@ -59,10 +59,10 @@
 //#include "DBus/LoadAttachmentProxy.h"
 
 #include <sstream>
-//#include <FilterIterator.h>
+#include "MsgCommon/FilterIterator.h"
 
-//using namespace DeviceAPI::Common;
-//using namespace DeviceAPI::Tizen;
+using namespace common;
+using namespace extension::tizen;
 
 namespace extension {
 namespace messaging {
@@ -88,11 +88,11 @@ EmailManager::EmailManager()
 
     if(non_err != email_service_begin()){
         LoggerE("Email service failed to begin");
-        throw common::UnknownException("Email service failed to begin");
+        throw UnknownException("Email service failed to begin");
     }
     if(non_err != email_open_db()){
         LoggerE("Email DB failed to open");
-        throw common::UnknownException("Email DB failed to open");
+        throw UnknownException("Email DB failed to open");
     }
 
     int slot_size = -1;
@@ -106,7 +106,7 @@ EmailManager::EmailManager()
                                       DBus::Proxy::DBUS_IFACE_NETWORK_STATUS);
     if (!m_proxy_sync) {
         LoggerE("Sync proxy is null");
-        throw common::UnknownException("Sync proxy is null");
+        throw UnknownException("Sync proxy is null");
     }
     m_proxy_sync->signalSubscribe();
 
@@ -182,7 +182,7 @@ void EmailManager::addMessagePlatform(int account_id,
         if(EMAIL_ERROR_NONE != err) {
             LoggerE("Failed to free mail data memory");
         }
-        throw common::UnknownException("Cannot retrieve email account information");
+        throw UnknownException("Cannot retrieve email account information");
     }
     LoggerE("FROM %s", account->user_email_address);
     std::stringstream ss;
@@ -205,7 +205,7 @@ void EmailManager::addMessagePlatform(int account_id,
         if(EMAIL_ERROR_NONE != err) {
             LoggerE("Failed to free mail data memory");
         }
-        throw common::UnknownException("Cannot retrieve draft mailbox");
+        throw UnknownException("Cannot retrieve draft mailbox");
     }
     else {
         LoggerD("email_get_mailbox_by_mailbox_type success.\n");
@@ -229,7 +229,7 @@ void EmailManager::addMessagePlatform(int account_id,
         if (EMAIL_ERROR_NONE != err) {
             LoggerE("Failed to destroy mailbox");
         }
-        throw common::UnknownException("Couldn't add message to draft mailbox");
+        throw UnknownException("Couldn't add message to draft mailbox");
     }
     else {
         LoggerD("email_add_mail success.\n");
@@ -247,7 +247,7 @@ void EmailManager::addMessagePlatform(int account_id,
     err = email_get_mail_data(message->getId(), &mail_data_final);
     if(EMAIL_ERROR_NONE != err) {
         LoggerE("Failed to retrieve added mail data");
-        throw common::UnknownException("Couldn't retrieve added mail data");
+        throw UnknownException("Couldn't retrieve added mail data");
     }
 
     message->updateEmailMessage(*mail_data_final);
@@ -289,7 +289,7 @@ static gboolean addDraftMessageCompleteCB(void *data)
             obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
             MessagingInstance::getInstance().PostMessage(json->serialize().c_str());
         }
-    } catch (const common::PlatformException& err) {
+    } catch (const PlatformException& err) {
         LoggerE("%s (%s)", (err.name()).c_str(), (err.message()).c_str());
         callback->getMessage()->setMessageStatus(MessageStatus::STATUS_FAILED);
     } catch (...) {
@@ -316,12 +316,13 @@ void EmailManager::addDraftMessage(MessageCallbackUserData* callback)
         std::lock_guard<std::mutex> lock(m_mutex);
         std::shared_ptr<Message> message = callback->getMessage();
         addDraftMessagePlatform(callback->getAccountId(), message);
-    } catch (const common::PlatformException& err) {
+    } catch (const PlatformException& err) {
         LoggerE("%s (%s)", (err.name()).c_str(), (err.message()).c_str());
         callback->setError(err.name(), err.message());
     } catch (...) {
         LoggerE("Message add draft failed");
-        callback->setError("UnknownError", "Message add draft failed");
+        UnknownException err("Message add draft failed");
+        callback->setError(err.name(), err.message());
     }
 
     //Complete task
@@ -763,7 +764,7 @@ void EmailManager::stopSync(long op_id)
         callback = dynamic_cast<SyncCallbackData*>(
                 m_proxy_sync->getCallback(op_id));
     }
-    catch (const common::PlatformException& e) {
+    catch (const PlatformException& e) {
         LoggerE("Could not get callback");
     }
     if(!callback){
@@ -780,7 +781,7 @@ void EmailManager::stopSync(long op_id)
 
     std::shared_ptr<picojson::value> response = callback->getJson();
     picojson::object& obj = response->get<picojson::object>();
-    common::AbortException error("Sync aborted by user");
+    AbortException error("Sync aborted by user");
     callback->setError(error.name(), error.message());
     MessagingInstance::getInstance().PostMessage(response->serialize().c_str());
     m_proxy_sync->removeCallback(op_id);
@@ -1028,53 +1029,54 @@ void EmailManager::stopSync(long op_id)
 //    delete callback;
 //    callback = NULL;
 //}
-//
-//
-//void EmailManager::findMessages(FindMsgCallbackUserData* callback)
-//{
-//    LoggerD("Entered");
-//
-//    if(!callback){
-//        LoggerE("Callback is null");
-//        return;
-//    }
-//
-//    email_mail_data_t* mailList = NULL;
-//    int mailListCount = 0;
-//    try {
-//        std::lock_guard<std::mutex> lock(m_mutex);
-//        std::pair<int, email_mail_data_t*> emails =
-//                MessagingDatabaseManager::getInstance().findEmails(callback);
-//        mailListCount = emails.first;
-//        LoggerD("Found %d mails", mailListCount);
-//
-//        mailList = emails.second;
-//        email_mail_data_t* nth_email = mailList;
-//
-//        for (int i = 0; i < mailListCount; ++i) {
-//            std::shared_ptr<Message> email =
-//                    Message::convertPlatformEmailToObject(*nth_email);
-//            callback->addMessage(email);
-//            nth_email++;
-//        }
-//    } catch (const BasePlatformException& err) {
-//        LoggerE("%s (%s)", (err.getName()).c_str(), (err.getMessage()).c_str());
-//        callback->setError(err.getName(), err.getMessage());
-//    } catch (...) {
-//        LoggerE("Message find failed");
-//        callback->setError(JSWebAPIErrorFactory::UNKNOWN_ERROR, "Message find failed");
-//    }
-//
-//    if (mailListCount > 0 && mailList != NULL) {
-//        if (EMAIL_ERROR_NONE != email_free_mail_data(&mailList, mailListCount)) {
-//            LoggerW("Failed to free mailList");
-//        }
-//    }
-//
-//    //Complete task
-//    LoggerD("callback: %p error:%d messages.size()=%d", callback, callback->isError(),
-//            callback->getMessages().size());
-//
+
+
+void EmailManager::findMessages(FindMsgCallbackUserData* callback)
+{
+    LoggerD("Entered");
+
+    if(!callback){
+        LoggerE("Callback is null");
+        return;
+    }
+
+    email_mail_data_t* mailList = NULL;
+    int mailListCount = 0;
+    try {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        std::pair<int, email_mail_data_t*> emails =
+                MessagingDatabaseManager::getInstance().findEmails(callback);
+        mailListCount = emails.first;
+        LoggerD("Found %d mails", mailListCount);
+
+        mailList = emails.second;
+        email_mail_data_t* nth_email = mailList;
+
+        for (int i = 0; i < mailListCount; ++i) {
+            std::shared_ptr<Message> email =
+                    Message::convertPlatformEmailToObject(*nth_email);
+            callback->addMessage(email);
+            nth_email++;
+        }
+    } catch (const PlatformException& err) {
+        LoggerE("%s (%s)", (err.name()).c_str(), (err.message()).c_str());
+        callback->setError(err.name(), err.message());
+    } catch (...) {
+        LoggerE("Message find failed");
+        UnknownException err("Message find failed");
+        callback->setError(err.name(), err.message());
+    }
+
+    if (mailListCount > 0 && mailList != NULL) {
+        if (EMAIL_ERROR_NONE != email_free_mail_data(&mailList, mailListCount)) {
+            LoggerW("Failed to free mailList");
+        }
+    }
+
+    //Complete task
+    LoggerD("callback: %p error: %d messages.size() = %d", callback, callback->isError(),
+            callback->getMessages().size());
+
 //    JSContextRef context = callback->getContext();
 //    if (!GlobalContextManager::getInstance()->isAliveGlobalContext(context)) {
 //        LoggerE("context was closed");
@@ -1082,30 +1084,30 @@ void EmailManager::stopSync(long op_id)
 //        callback = NULL;
 //        return;
 //    }
-//
-//    try {
-//        if (callback->isError()) {
-//            LoggerD("Calling error callback");
-//            JSObjectRef errobj = JSWebAPIErrorFactory::makeErrorObject(context,
+
+    try {
+        if (callback->isError()) {
+            LoggerD("Calling error callback");
+//            JSObjectRef errobj = JSWebAPIErrorFactory::makeErrorObject(context, TODO
 //                    callback->getErrorName(),
 //                    callback->getErrorMessage());
 //            callback->callErrorCallback(errobj);
-//        } else {
-//            LoggerD("Calling success callback");
-//            callback->callSuccessCallback(JSMessage::messageVectorToJSObjectArray(context,
+        } else {
+            LoggerD("Calling success callback");
+//            callback->callSuccessCallback(JSMessage::messageVectorToJSObjectArray(context, TODO
 //                    callback->getMessages()));
-//        }
-//    } catch (const BasePlatformException& err) {
-//        LoggerE("Error while calling findMessages callback: %s (%s)",
-//                (err.getName()).c_str(), (err.getMessage()).c_str());
-//    } catch (...) {
-//        LoggerE("Failed to call findMessages callback.");
-//    }
-//
-//    delete callback;
-//    callback = NULL;
-//}
-//
+        }
+    } catch (const PlatformException& err) {
+        LoggerE("Error while calling findMessages callback: %s (%s)",
+                (err.name()).c_str(), (err.message()).c_str());
+    } catch (...) {
+        LoggerE("Failed to call findMessages callback.");
+    }
+
+    delete callback;
+    callback = NULL;
+}
+
 //void EmailManager::findConversations(ConversationCallbackData* callback)
 //{
 //    LoggerE("Entered");
