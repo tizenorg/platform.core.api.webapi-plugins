@@ -352,6 +352,27 @@ void MessagingInstance::MessageStorageRemoveMessages(const picojson::value& args
         picojson::object& out)
 {
     LoggerD("Entered");
+    picojson::object data = args.get(JSON_DATA).get<picojson::object>();
+    picojson::array messages = data.at(REMOVE_MESSAGES_ARGS_MESSAGES).get<picojson::array>();
+    const double callbackId = args.get(JSON_CALLBACK_ID).get<double>();
+
+    MessagesCallbackUserData* callback = new MessagesCallbackUserData();
+
+    auto each = [callback] (picojson::value& v)->void {
+        callback->addMessage(MessagingUtil::jsonToMessage(v));
+    };
+
+    for_each(messages.begin(), messages.end(), each);
+
+    auto json = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
+    picojson::object& obj = json->get<picojson::object>();
+    obj[JSON_CALLBACK_ID] = picojson::value(callbackId);
+    callback->setJson(json);
+
+    int serviceId = static_cast<int>(data.at(FUNCTIONS_HIDDEN_ARGS_SERVICE_ID).get<double>());
+    auto service = MessagingManager::getInstance().getMessageServiceEmail(serviceId);
+
+    service->getMsgStorage()->removeMessages(callback);
 }
 
 void MessagingInstance::MessageStorageUpdateMessages(const picojson::value& args,

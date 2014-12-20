@@ -43,7 +43,7 @@
 #include "DBus/SyncProxy.h"
 #include "DBus/LoadBodyProxy.h"
 //#include "DBus/LoadAttachmentProxy.h"
-//#include "DBus/MessageProxy.h"
+#include "DBus/MessageProxy.h"
 #include "DBus/SendProxy.h"
 
 namespace extension {
@@ -60,7 +60,7 @@ public:
     static EmailManager& getInstance();
 
     void addDraftMessage(MessageCallbackUserData* callback);
-//    void removeMessages(MessagesCallbackUserData* callback);
+    void removeMessages(MessagesCallbackUserData* callback);
 //    void updateMessages(MessagesCallbackUserData* callback);
     void findMessages(FindMsgCallbackUserData* callback);
 //    void findConversations(ConversationCallbackData* callback);
@@ -70,9 +70,9 @@ public:
     void sendMessage(MessageRecipientsCallbackData* callback);
     void sendStatusCallback(int mail_id, email_noti_on_network_event status,
             int error_code);
-//    void removeStatusCallback(const std::vector<int> &ids,
-//            email_noti_on_storage_event status);
-//
+    void removeStatusCallback(const std::vector<int> &ids,
+            email_noti_on_storage_event status);
+
     void loadMessageBody(MessageBodyCallbackData* callback);
 //    void loadMessageAttachment(MessageAttachmentCallbackData* callback);
 
@@ -106,25 +106,25 @@ private:
     typedef SendReqMap::iterator SendReqMapIterator;
     SendReqMapIterator getSendRequest(int mail_id);
     SendReqMap m_sendRequests;
-//    struct DeleteReq {
-//        MessagesCallbackUserData* callback;
-//        int messagesDeleted;
-//    };
-//    typedef std::vector<DeleteReq> DeleteReqVector;
-//    /**
-//     * Find first request containing at least one message id
-//     * @param ids
-//     * @return
-//     */
-//    DeleteReqVector::iterator getDeleteRequest(const std::vector<int> &ids);
-//    DeleteReqVector m_deleteRequests;
+    struct DeleteReq {
+        MessagesCallbackUserData* callback;
+        int messagesDeleted;
+    };
+    typedef std::vector<DeleteReq> DeleteReqVector;
+    /**
+     * Find first request containing at least one message id
+     * @param ids
+     * @return
+     */
+    DeleteReqVector::iterator getDeleteRequest(const std::vector<int> &ids);
+    DeleteReqVector m_deleteRequests;
 
     int m_slot_size;
 
     DBus::SyncProxyPtr m_proxy_sync;
     DBus::LoadBodyProxyPtr m_proxy_load_body;
 //    DBus::LoadAttachmentProxyPtr m_proxy_load_attachment;
-//    DBus::MessageProxyPtr m_proxy_messageStorage;
+    DBus::MessageProxyPtr m_proxy_messageStorage;
     DBus::SendProxyPtr m_proxy_send;
 
     std::mutex m_mutex;

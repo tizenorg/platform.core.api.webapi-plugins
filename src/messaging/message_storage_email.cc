@@ -79,10 +79,33 @@ void MessageStorageEmail::addDraftMessage(MessageCallbackUserData* callback) {
     }
 }
 
-void MessageStorageEmail::removeMessages()
+static gboolean removeMessagesTask(void* data)
 {
     LoggerD("Entered");
-    //TODO add implementation
+
+    MessagesCallbackUserData *callback = static_cast<MessagesCallbackUserData*>(data);
+    EmailManager::getInstance().removeMessages(callback);
+
+    return FALSE;
+}
+
+void MessageStorageEmail::removeMessages(MessagesCallbackUserData* callback)
+{
+    LoggerD("Entered");
+
+    if (!callback) {
+        LoggerE("Callback is null");
+        throw common::UnknownException("Callback is null");
+    }
+
+    callback->setMessageServiceType(m_msg_type);
+
+    guint id = g_idle_add(removeMessagesTask, static_cast<void*>(callback));
+    if (!id) {
+        LoggerE("g_idle_add failed");
+        delete callback;
+        callback = NULL;
+    }
 }
 
 void MessageStorageEmail::updateMessages()

@@ -17,17 +17,22 @@
 
 #include "MessageProxy.h"
 #include "Connection.h"
-#include <Logger.h>
-#include <Message.h>
-#include <MessageEmail.h>
-#include <MessageConversation.h>
-#include <MessageFolder.h>
-#include <ChangeListenerContainer.h>
-#include <EmailManager.h>
-#include <PlatformException.h>
 
-namespace DeviceAPI {
-namespace Messaging {
+#include "common/logger.h"
+#include "common/platform_exception.h"
+
+#include "../message.h"
+#include "../message_email.h"
+
+//#include <MessageConversation.h>
+//#include <MessageFolder.h>
+
+#include "../change_listener_container.h"
+
+#include "../email_manager.h"
+
+namespace extension {
+namespace messaging {
 namespace DBus {
 
 MessageProxy::MessageProxy():
@@ -50,7 +55,7 @@ void MessageProxy::signalCallback(GDBusConnection *connection,
             const gchar *signal_name,
             GVariant *parameters)
 {
-    LOGD("Enter");
+    LoggerD("Enter");
     int status, account_id, object_id, thread_id;
     char* name;
     g_variant_get(parameters, "(iiisi)",
@@ -59,11 +64,11 @@ void MessageProxy::signalCallback(GDBusConnection *connection,
             &object_id,
             &name,
             &thread_id);
-    LOGD("status: %d", status);
-    LOGD("account_id: %d", account_id);
-    LOGD("object_id: %d", object_id);
-    LOGD("name: %s", name);
-    LOGD("thread_id: %d", thread_id);
+    LoggerD("status: %d", status);
+    LoggerD("account_id: %d", account_id);
+    LoggerD("object_id: %d", object_id);
+    LoggerD("name: %s", name);
+    LoggerD("thread_id: %d", thread_id);
 
     try {
         switch (status) {
@@ -92,78 +97,80 @@ void MessageProxy::signalCallback(GDBusConnection *connection,
                 handleMailboxEvent(account_id, object_id, status);
                 break;
             default:
-                LOGD("Unrecognized status: %d", status);
+                LoggerD("Unrecognized status: %d", status);
         }
-    } catch (const Common::BasePlatformException& err) {
-        LOGE("%s (%s)", (err.getName()).c_str(), (err.getMessage()).c_str());
+    } catch (const common::PlatformException& err) {
+        LoggerE("%s (%s)", (err.name()).c_str(), (err.message()).c_str());
     } catch (...) {
-        LOGE("Failed to call callback");
+        LoggerE("Failed to call callback");
     }
     g_free(name);
 }
 
 void MessageProxy::handleEmailEvent(int account_id, int mail_id, int thread_id, int event)
 {
-    LOGD("Enter");
-
-    if(NOTI_MAIL_UPDATE == event) {
-        //getting thread_id from message
-        email_mail_data_t *mail_data = NULL;
-
-        if(EMAIL_ERROR_NONE != email_get_mail_data(mail_id, &mail_data)) {
-            if (mail_data) email_free_mail_data(&mail_data, 1);
-
-            LOGE("Failed to get mail data during setting conversation id in MessageProxy.");
-            return;
-        }
-
-        thread_id = mail_data->thread_id;
-
-        if(EMAIL_ERROR_NONE != email_free_mail_data(&mail_data,1)) {
-            LOGE("Failed to free mail data memory");
-        }
-    }
-
-    email_mail_data_t* mail_data = EmailManager::getInstance().loadMessage(mail_id);
-    if (mail_data == NULL) {
-        throw Common::UnknownException("Failed to load email");
-    }
-    std::shared_ptr<Message> msg = Message::convertPlatformEmailToObject(*mail_data);
-    ConversationPtr conv = MessageConversation::convertEmailConversationToObject(
-            thread_id);
-
-    EventMessages* eventMsg = new EventMessages();
-    eventMsg->service_type = MessageType::EMAIL;
-    eventMsg->service_id = account_id;
-    eventMsg->items.push_back(msg);
-    EventConversations* eventConv = new EventConversations();
-    eventConv->service_type = MessageType::EMAIL;
-    eventConv->service_id = account_id;
-    eventConv->items.push_back(conv);
-    switch (event) {
-        case NOTI_MAIL_ADD:
-            ChangeListenerContainer::getInstance().callMessageAdded(eventMsg);
-            if (conv->getMessageCount() == 1) {
-                LOGD("This thread is new, triggering conversationAdded");
-                ChangeListenerContainer::getInstance().callConversationAdded(eventConv);
-            } else {
-                LOGD("This thread is not new, but it's updated");
-                ChangeListenerContainer::getInstance().callConversationUpdated(eventConv);
-            }
-            break;
-        case NOTI_MAIL_UPDATE:
-            ChangeListenerContainer::getInstance().callMessageUpdated(eventMsg);
-            ChangeListenerContainer::getInstance().callConversationUpdated(eventConv);
-            break;
-        default:
-            LOGW("Unknown event type: %d", event);
-            break;
-
-    }
-    delete eventMsg;
-    delete eventConv;
-
-    EmailManager::getInstance().freeMessage(mail_data);
+/*
+ *    LoggerD("Enter");
+ *
+ *    if(NOTI_MAIL_UPDATE == event) {
+ *        //getting thread_id from message
+ *        email_mail_data_t *mail_data = NULL;
+ *
+ *        if(EMAIL_ERROR_NONE != email_get_mail_data(mail_id, &mail_data)) {
+ *            if (mail_data) email_free_mail_data(&mail_data, 1);
+ *
+ *            LoggerE("Failed to get mail data during setting conversation id in MessageProxy.");
+ *            return;
+ *        }
+ *
+ *        thread_id = mail_data->thread_id;
+ *
+ *        if(EMAIL_ERROR_NONE != email_free_mail_data(&mail_data,1)) {
+ *            LoggerE("Failed to free mail data memory");
+ *        }
+ *    }
+ *
+ *    email_mail_data_t* mail_data = EmailManager::getInstance().loadMessage(mail_id);
+ *    if (mail_data == NULL) {
+ *        throw common::UnknownException("Failed to load email");
+ *    }
+ *    std::shared_ptr<Message> msg = Message::convertPlatformEmailToObject(*mail_data);
+ *    ConversationPtr conv = MessageConversation::convertEmailConversationToObject(
+ *            thread_id);
+ *
+ *    EventMessages* eventMsg = new EventMessages();
+ *    eventMsg->service_type = MessageType::EMAIL;
+ *    eventMsg->service_id = account_id;
+ *    eventMsg->items.push_back(msg);
+ *    EventConversations* eventConv = new EventConversations();
+ *    eventConv->service_type = MessageType::EMAIL;
+ *    eventConv->service_id = account_id;
+ *    eventConv->items.push_back(conv);
+ *    switch (event) {
+ *        case NOTI_MAIL_ADD:
+ *            ChangeListenerContainer::getInstance().callMessageAdded(eventMsg);
+ *            if (conv->getMessageCount() == 1) {
+ *                LoggerD("This thread is new, triggering conversationAdded");
+ *                ChangeListenerContainer::getInstance().callConversationAdded(eventConv);
+ *            } else {
+ *                LoggerD("This thread is not new, but it's updated");
+ *                ChangeListenerContainer::getInstance().callConversationUpdated(eventConv);
+ *            }
+ *            break;
+ *        case NOTI_MAIL_UPDATE:
+ *            ChangeListenerContainer::getInstance().callMessageUpdated(eventMsg);
+ *            ChangeListenerContainer::getInstance().callConversationUpdated(eventConv);
+ *            break;
+ *        default:
+ *            LoggerW("Unknown event type: %d", event);
+ *            break;
+ *
+ *    }
+ *    delete eventMsg;
+ *    delete eventConv;
+ *
+ *    EmailManager::getInstance().freeMessage(mail_data);
+ */
 }
 
 std::vector<int> getMailIds(const std::string& idsString)
@@ -177,7 +184,7 @@ std::vector<int> getMailIds(const std::string& idsString)
             std::stringstream stream(item);
             stream >> id;
             if (stream) {
-                LOGD("Mail delete id: %d", id);
+                LoggerD("Mail delete id: %d", id);
                 ids.push_back(id);
             }
         }
@@ -187,10 +194,10 @@ std::vector<int> getMailIds(const std::string& idsString)
 
 void MessageProxy::handleEmailRemoveEvent(int account_id, const std::string& idsString)
 {
-    LOGD("Enter");
+    LoggerD("Enter");
     std::vector<int> ids = getMailIds(idsString);
     if (ids.empty()) {
-        LOGD("Mail id list is empty.");
+        LoggerD("Mail id list is empty.");
         return;
     }
     EventMessages* eventMsg = new EventMessages();
@@ -211,10 +218,10 @@ void MessageProxy::handleEmailRemoveEvent(int account_id, const std::string& ids
 void MessageProxy::notifyEmailManager(const std::string& idsString,
         email_noti_on_storage_event status)
 {
-    LOGD("Enter");
+    LoggerD("Enter");
     std::vector<int> ids = getMailIds(idsString);
     if (ids.empty()) {
-        LOGD("Mail id list is empty.");
+        LoggerD("Mail id list is empty.");
         return;
     }
     EmailManager::getInstance().removeStatusCallback(ids, status);
@@ -222,69 +229,73 @@ void MessageProxy::notifyEmailManager(const std::string& idsString,
 
 void MessageProxy::handleThreadRemoveEvent(int account_id, int thread_id)
 {
-    LOGD("Enter");
-    //event is called after thread is removed, so we just set thread id
-    ConversationPtr conv = std::make_shared<MessageConversation>();
-    conv->setConversationId(thread_id);
-
-    EventConversations* eventConv = new EventConversations();
-    eventConv->service_type = MessageType::EMAIL;
-    eventConv->service_id = account_id;
-    eventConv->items.push_back(conv);
-    ChangeListenerContainer::getInstance().callConversationRemoved(eventConv);
-    delete eventConv;
-    eventConv = NULL;
+/*
+ *    LoggerD("Enter");
+ *    //event is called after thread is removed, so we just set thread id
+ *    ConversationPtr conv = std::make_shared<MessageConversation>();
+ *    conv->setConversationId(thread_id);
+ *
+ *    EventConversations* eventConv = new EventConversations();
+ *    eventConv->service_type = MessageType::EMAIL;
+ *    eventConv->service_id = account_id;
+ *    eventConv->items.push_back(conv);
+ *    ChangeListenerContainer::getInstance().callConversationRemoved(eventConv);
+ *    delete eventConv;
+ *    eventConv = NULL;
+ */
 }
 
 void MessageProxy::handleMailboxEvent(int account_id, int mailbox_id, int event)
 {
-    LOGD("Enter");
-
-    EventFolders* eventFolder = new EventFolders();
-    eventFolder->service_type = MessageType::EMAIL;
-    eventFolder->service_id = account_id;
-    FolderPtr folder;
-    if (event == NOTI_MAILBOX_DELETE) {
-        //this event is triggered after mailbox is removed
-        //so we just create folder with id
-        folder.reset(new MessageFolder(std::to_string(mailbox_id),
-                "", //parent_id
-                "", //service_id
-                "", //content_type
-                "", //name
-                "", //path
-                MessageFolderType::MESSAGE_FOLDER_TYPE_NOTSTANDARD,
-                false));
-    } else {
-        email_mailbox_t* mail_box = NULL;
-        if (EMAIL_ERROR_NONE != email_get_mailbox_by_mailbox_id(mailbox_id, &mail_box)) {
-            LOGE("Mailbox not retrieved");
-            delete eventFolder;
-            throw Common::UnknownException("Failed to load mailbox");
-        }
-        folder.reset(new MessageFolder(*mail_box));
-        if (EMAIL_ERROR_NONE != email_free_mailbox(&mail_box, 1)) {
-            LOGD("Failed to free email_free_mailbox");
-        }
-    }
-    eventFolder->items.push_back(folder);
-    switch (event) {
-        case NOTI_MAILBOX_ADD:
-            ChangeListenerContainer::getInstance().callFolderAdded(eventFolder);
-            break;
-        case NOTI_MAILBOX_UPDATE:
-        case NOTI_MAILBOX_FIELD_UPDATE:
-            ChangeListenerContainer::getInstance().callFolderUpdated(eventFolder);
-            break;
-        case NOTI_MAILBOX_DELETE:
-            ChangeListenerContainer::getInstance().callFolderRemoved(eventFolder);
-            break;
-        default:
-            LOGW("Unknown event type: %d", event);
-    }
-    delete eventFolder;
+/*
+ *    LoggerD("Enter");
+ *
+ *    EventFolders* eventFolder = new EventFolders();
+ *    eventFolder->service_type = MessageType::EMAIL;
+ *    eventFolder->service_id = account_id;
+ *    FolderPtr folder;
+ *    if (event == NOTI_MAILBOX_DELETE) {
+ *        //this event is triggered after mailbox is removed
+ *        //so we just create folder with id
+ *        folder.reset(new MessageFolder(std::to_string(mailbox_id),
+ *                "", //parent_id
+ *                "", //service_id
+ *                "", //content_type
+ *                "", //name
+ *                "", //path
+ *                MessageFolderType::MESSAGE_FOLDER_TYPE_NOTSTANDARD,
+ *                false));
+ *    } else {
+ *        email_mailbox_t* mail_box = NULL;
+ *        if (EMAIL_ERROR_NONE != email_get_mailbox_by_mailbox_id(mailbox_id, &mail_box)) {
+ *            LoggerE("Mailbox not retrieved");
+ *            delete eventFolder;
+ *            throw common::UnknownException("Failed to load mailbox");
+ *        }
+ *        folder.reset(new MessageFolder(*mail_box));
+ *        if (EMAIL_ERROR_NONE != email_free_mailbox(&mail_box, 1)) {
+ *            LoggerD("Failed to free email_free_mailbox");
+ *        }
+ *    }
+ *    eventFolder->items.push_back(folder);
+ *    switch (event) {
+ *        case NOTI_MAILBOX_ADD:
+ *            ChangeListenerContainer::getInstance().callFolderAdded(eventFolder);
+ *            break;
+ *        case NOTI_MAILBOX_UPDATE:
+ *        case NOTI_MAILBOX_FIELD_UPDATE:
+ *            ChangeListenerContainer::getInstance().callFolderUpdated(eventFolder);
+ *            break;
+ *        case NOTI_MAILBOX_DELETE:
+ *            ChangeListenerContainer::getInstance().callFolderRemoved(eventFolder);
+ *            break;
+ *        default:
+ *            LoggerW("Unknown event type: %d", event);
+ *    }
+ *    delete eventFolder;
+ */
 }
 
-} //DBus
-} //Messaging
-} //DeviceAPI
+} //namespace DBus
+} //namespace messaging
+} //namespace extension

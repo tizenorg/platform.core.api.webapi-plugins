@@ -23,11 +23,12 @@
 #include <gio/gio.h>
 #include <memory>
 #include <string>
+#include <sstream>
 #include <email-types.h>
 #include "Proxy.h"
 
-namespace DeviceAPI {
-namespace Messaging {
+namespace extension {
+namespace messaging {
 namespace DBus {
 
 class MessageProxy: public Proxy {
@@ -57,9 +58,9 @@ protected:
 
 typedef std::shared_ptr<MessageProxy> MessageProxyPtr;
 
-} //DBus
-} //Messaging
-} //DeviceAPI
+} //namespace DBus
+} //namespace messaging
+} //namespace extension
 
 #endif /* __TIZEN_MESSAGE_PROXY_H */
 

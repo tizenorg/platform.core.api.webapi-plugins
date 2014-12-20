@@ -11,6 +11,7 @@
 
 #include "messaging_util.h"
 #include "message_callback_user_data.h"
+#include "messages_callback_user_data.h"
 
 namespace extension {
 namespace messaging {
@@ -27,7 +28,7 @@ public:
     virtual MessageType getMsgServiceType() const;
 
     virtual void addDraftMessage(MessageCallbackUserData* callback) = 0;
-    virtual void removeMessages() = 0;
+    virtual void removeMessages(MessagesCallbackUserData* callback) = 0;
     virtual void updateMessages() = 0;
     virtual void findMessages() = 0;
     virtual void findConversations() = 0;

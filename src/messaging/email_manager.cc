@@ -115,7 +115,7 @@ EmailManager::EmailManager()
                                         DBus::Proxy::DBUS_IFACE_NETWORK_STATUS);
     if (!m_proxy_load_body) {
         LoggerE("Load body proxy is null");
-        throw common::UnknownException("Load body proxy is null");
+        throw UnknownException("Load body proxy is null");
     }
     m_proxy_load_body->signalSubscribe();
 
@@ -127,18 +127,18 @@ EmailManager::EmailManager()
 //        throw Common::UnknownException("Load attachment proxy is null");
 //    }
 //    m_proxy_load_attachment->signalSubscribe();
-//
-//    m_proxy_messageStorage = std::make_shared<DBus::MessageProxy>();
-//    if (!m_proxy_messageStorage) {
-//        LoggerE("Message proxy is null");
-//        throw Common::UnknownException("Message proxy is null");
-//    }
-//    m_proxy_messageStorage->signalSubscribe();
+
+    m_proxy_messageStorage = std::make_shared<DBus::MessageProxy>();
+    if (!m_proxy_messageStorage) {
+        LoggerE("Message proxy is null");
+        throw UnknownException("Message proxy is null");
+    }
+    m_proxy_messageStorage->signalSubscribe();
 
     m_proxy_send = std::make_shared<DBus::SendProxy>();
     if (!m_proxy_send) {
         LoggerE("Send proxy is null");
-        throw common::UnknownException("Send proxy is null");
+        throw UnknownException("Send proxy is null");
     }
     m_proxy_send->signalSubscribe();
 }
@@ -804,148 +804,144 @@ void EmailManager::stopSync(long op_id)
 
 //################################## ^stopSync #################################
 
-//void removeEmailCompleteCB(MessagesCallbackUserData* callback)
-//{
-//    LoggerD("Entered");
-//    if (!callback) {
-//        LoggerE("Callback is null");
-//        return;
-//    }
-//
-//    JSContextRef context = callback->getContext();
-//    if (!GlobalContextManager::getInstance()->isAliveGlobalContext(context)) {
-//        LoggerE("context was closed");
-//        delete callback;
-//        callback = NULL;
-//        return;
-//    }
-//
-//    try {
-//        if (callback->isError()) {
-//            LoggerD("Calling error callback");
-//            JSObjectRef errobj = JSWebAPIErrorFactory::makeErrorObject(context,
-//                    callback->getErrorName(),
-//                    callback->getErrorMessage());
-//            callback->callErrorCallback(errobj);
-//        } else {
-//            LoggerD("Calling success callback");
-//            callback->callSuccessCallback();
-//        }
-//    } catch (const BasePlatformException& err) {
-//        LoggerE("Error while calling removeEmail callback: %s (%s)",
-//                (err.getName()).c_str(), (err.getMessage()).c_str());
-//    } catch (...) {
-//        LoggerE("Unknown error when calling removeEmail callback.");
-//    }
-//
-//    delete callback;
-//    callback = NULL;
-//}
-//
-//EmailManager::DeleteReqVector::iterator EmailManager::getDeleteRequest(
-//        const std::vector<int> &ids)
-//{
-//    for (auto idIt = ids.begin(); idIt != ids.end(); ++idIt) {
-//        for (auto reqIt = m_deleteRequests.begin(); reqIt != m_deleteRequests.end(); ++reqIt) {
-//            MessagePtrVector msgs = reqIt->callback->getMessages();
-//            for (auto msgIt = msgs.begin(); msgIt != msgs.end(); ++msgIt) {
-//                if ((*msgIt)->getId() == *idIt) {
-//                    return reqIt;
-//                }
-//            }
-//        }
-//    }
-//    return m_deleteRequests.end();
-//}
-//
-//void EmailManager::removeStatusCallback(const std::vector<int> &ids,
-//            email_noti_on_storage_event status)
-//{
-//    LoggerD("Enter");
-//    std::lock_guard<std::mutex> lock(m_mutex);
-//    DeleteReqVector::iterator it = getDeleteRequest(ids);
-//    if (it != m_deleteRequests.end()) {
-//        LoggerD("Found request");
-//        if (NOTI_MAIL_DELETE_FINISH == status) {
-//            LoggerD("Successfully removed %d mails", ids.size());
-//            it->messagesDeleted += ids.size();
-//        }
-//        MessagesCallbackUserData* callback = it->callback;
-//        if (NOTI_MAIL_DELETE_FAIL == status) {
-//            LoggerD("Failed to remove mail");
-//            callback->setError(JSWebAPIErrorFactory::UNKNOWN_ERROR, "Messages remove failed");
-//        }
-//        //if one of mails failed, call error callback
-//        //if all mails are deleted, call success.
-//        // >= is used in case of duplicated dbus messages
-//        if (NOTI_MAIL_DELETE_FAIL == status ||
-//                static_cast<unsigned int>(it->messagesDeleted) >= it->callback->getMessages().size()) {
-//            LoggerD("Calling callback");
-//            m_deleteRequests.erase(it);
-//            m_mutex.unlock();
-//            removeEmailCompleteCB(callback);
-//        } else {
-//            LoggerD("Not all messages are removed, waiting for next callback");
-//        }
-//    } else {
-//        LoggerD("Request not found, ignoring");
-//    }
-//}
-//
-//void EmailManager::removeMessages(MessagesCallbackUserData* callback)
-//{
-//    LoggerD("Entered");
-//
-//    if (!callback){
-//        LoggerE("Callback is null");
-//        return;
-//    }
-//
-//    int error;
-//    email_mail_data_t *mail = NULL;
-//
-//    try {
-//        std::lock_guard<std::mutex> lock(m_mutex);
-//        std::vector<std::shared_ptr<Message>> messages = callback->getMessages();
-//        MessageType type = callback->getMessageServiceType();
-//        for(auto it = messages.begin() ; it != messages.end(); ++it) {
-//            if((*it)->getType() != type) {
-//                LoggerE("Invalid message type");
-//                throw TypeMismatchException("Error while deleting email");
-//            }
-//        }
-//        for (auto it = messages.begin() ; it != messages.end(); ++it) {
-//            error = email_get_mail_data((*it)->getId(), &mail);
-//            if (EMAIL_ERROR_NONE != error) {
-//                LoggerE("Couldn't retrieve mail data");
-//                throw UnknownException("Error while deleting mail");
-//            }
-//
-//            //This task (_EMAIL_API_DELETE_MAIL) is for async
-//            error = email_delete_mail(mail->mailbox_id, &mail->mail_id, 1, 0);
-//            if (EMAIL_ERROR_NONE != error) {
-//                email_free_mail_data(&mail, 1);
-//                LoggerE("Error while deleting mail");
-//                throw UnknownException("Error while deleting mail");
-//            }
-//            email_free_mail_data(&mail, 1);
-//        }
-//        //store delete request and wait for dbus response
-//        DeleteReq request;
-//        request.callback = callback;
-//        request.messagesDeleted = 0;
-//        m_deleteRequests.push_back(request);
-//    } catch (const BasePlatformException& err) {
-//        LoggerE("%s (%s)", (err.getName()).c_str(), (err.getMessage()).c_str());
-//        callback->setError(err.getName(), err.getMessage());
-//        removeEmailCompleteCB(callback);
-//    } catch (...) {
-//        LoggerE("Messages remove failed");
-//        callback->setError(JSWebAPIErrorFactory::UNKNOWN_ERROR, "Messages remove failed");
-//        removeEmailCompleteCB(callback);
-//    }
-//}
-//
+void removeEmailCompleteCB(MessagesCallbackUserData* callback)
+{
+    LoggerD("Entered");
+    if (!callback) {
+        LoggerE("Callback is null");
+        return;
+    }
+
+    try {
+        if (callback->isError()) {
+            LoggerD("Calling error callback");
+            MessagingInstance::getInstance().PostMessage(
+                    callback->getJson()->serialize().c_str());
+        } else {
+            LoggerD("Calling success callback");
+
+            auto json = callback->getJson();
+            picojson::object& obj = json->get<picojson::object>();
+            obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
+            MessagingInstance::getInstance().PostMessage(json->serialize().c_str());
+        }
+    } catch (const PlatformException& err) {
+        LoggerE("Error while calling removeEmail callback: %s (%s)",
+                (err.name()).c_str(), (err.message()).c_str());
+    } catch (...) {
+        LoggerE("Unknown error when calling removeEmail callback.");
+    }
+
+    delete callback;
+    callback = NULL;
+}
+
+EmailManager::DeleteReqVector::iterator EmailManager::getDeleteRequest(
+        const std::vector<int> &ids)
+{
+    for (auto idIt = ids.begin(); idIt != ids.end(); ++idIt) {
+        for (auto reqIt = m_deleteRequests.begin(); reqIt != m_deleteRequests.end(); ++reqIt) {
+            MessagePtrVector msgs = reqIt->callback->getMessages();
+            for (auto msgIt = msgs.begin(); msgIt != msgs.end(); ++msgIt) {
+                if ((*msgIt)->getId() == *idIt) {
+                    return reqIt;
+                }
+            }
+        }
+    }
+    return m_deleteRequests.end();
+}
+
+void EmailManager::removeStatusCallback(const std::vector<int> &ids,
+            email_noti_on_storage_event status)
+{
+    LoggerD("Enter");
+    std::lock_guard<std::mutex> lock(m_mutex);
+    DeleteReqVector::iterator it = getDeleteRequest(ids);
+    if (it != m_deleteRequests.end()) {
+        LoggerD("Found request");
+        if (NOTI_MAIL_DELETE_FINISH == status) {
+            LoggerD("Successfully removed %d mails", ids.size());
+            it->messagesDeleted += ids.size();
+        }
+        MessagesCallbackUserData* callback = it->callback;
+        if (NOTI_MAIL_DELETE_FAIL == status) {
+            LoggerD("Failed to remove mail");
+            UnknownException e("Messages remove failed");
+            callback->setError(e.name(), e.message());
+        }
+        //if one of mails failed, call error callback
+        //if all mails are deleted, call success.
+        // >= is used in case of duplicated dbus messages
+        if (NOTI_MAIL_DELETE_FAIL == status ||
+                static_cast<unsigned int>(it->messagesDeleted) >= it->callback->getMessages().size()) {
+            LoggerD("Calling callback");
+            m_deleteRequests.erase(it);
+            m_mutex.unlock();
+            removeEmailCompleteCB(callback);
+        } else {
+            LoggerD("Not all messages are removed, waiting for next callback");
+        }
+    } else {
+        LoggerD("Request not found, ignoring");
+    }
+}
+
+void EmailManager::removeMessages(MessagesCallbackUserData* callback)
+{
+    LoggerD("Entered");
+
+    if (!callback){
+        LoggerE("Callback is null");
+        return;
+    }
+
+    int error;
+    email_mail_data_t *mail = NULL;
+
+    try {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        std::vector<std::shared_ptr<Message>> messages = callback->getMessages();
+        MessageType type = callback->getMessageServiceType();
+        for(auto it = messages.begin() ; it != messages.end(); ++it) {
+            if((*it)->getType() != type) {
+                LoggerE("Invalid message type");
+                throw TypeMismatchException("Error while deleting email");
+            }
+        }
+        for (auto it = messages.begin() ; it != messages.end(); ++it) {
+            error = email_get_mail_data((*it)->getId(), &mail);
+            if (EMAIL_ERROR_NONE != error) {
+                LoggerE("Couldn't retrieve mail data");
+                throw UnknownException("Error while deleting mail");
+            }
+
+            //This task (_EMAIL_API_DELETE_MAIL) is for async
+            error = email_delete_mail(mail->mailbox_id, &mail->mail_id, 1, 0);
+            if (EMAIL_ERROR_NONE != error) {
+                email_free_mail_data(&mail, 1);
+                LoggerE("Error while deleting mail");
+                throw UnknownException("Error while deleting mail");
+            }
+            email_free_mail_data(&mail, 1);
+        }
+        //store delete request and wait for dbus response
+        DeleteReq request;
+        request.callback = callback;
+        request.messagesDeleted = 0;
+        m_deleteRequests.push_back(request);
+    } catch (const PlatformException& err) {
+        LoggerE("%s (%s)", (err.name()).c_str(), (err.message()).c_str());
+        callback->setError(err.name(), err.message());
+        removeEmailCompleteCB(callback);
+    } catch (...) {
+        LoggerE("Messages remove failed");
+        UnknownException e("Messages remove failed");
+        callback->setError(e.name(), e.message());
+        removeEmailCompleteCB(callback);
+    }
+}
+
 //void EmailManager::updateMessages(MessagesCallbackUserData* callback)
 //{
 //    LoggerD("Entered");
