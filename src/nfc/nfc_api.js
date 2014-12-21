@@ -18,7 +18,11 @@ function ListenerManager(native, listenerName) {
 ListenerManager.prototype.onListenerCalled = function(msg) {
     for (var key in this.listeners) {
         if (this.listeners.hasOwnProperty(key)) {
-            this.listeners[key](msg.mode);
+            if ('CardElement' == msg.type) {
+                this.listeners[key](msg.mode);
+            } else if ('Transaction' == msg.type) {
+                this.listeners[key](msg.aid, msg.data);
+            }
       }
     }
 };
@@ -42,8 +46,12 @@ ListenerManager.prototype.removeListener = function(watchId) {
 
 var CARD_EMULATION_MODE_LISTENER = 'CardEmulationModeChanged';
 var ACTIVE_SECURE_ELEMENT_LISTENER = 'ActiveSecureElementChanged';
+var TRANSACTION_EVENT_ESE_LISTENER = 'TransactionEventListener_ESE';
+var TRANSACTION_EVENT_UICC_LISTENER = 'TransactionEventListener_UICC';
 var cardEmulationModeListener = new ListenerManager(native_, CARD_EMULATION_MODE_LISTENER);
 var activeSecureElementChangeListener = new ListenerManager(native_, ACTIVE_SECURE_ELEMENT_LISTENER);
+var transactionEventListenerEse = new ListenerManager(native_, TRANSACTION_EVENT_ESE_LISTENER);
+var transactionEventListenerUicc = new ListenerManager(native_, TRANSACTION_EVENT_UICC_LISTENER);
 
 //enumeration NDEFRecordTextEncoding ////////////////////////////////////////////////////
 var NDEFRecordTextEncoding = {
@@ -278,7 +286,12 @@ NFCAdapter.prototype.addCardEmulationModeChangeListener = function() {
 
     if (T_.isEmptyObject(cardEmulationModeListener.listeners) &&
             T_.isEmptyObject(activeSecureElementChangeListener.listeners)) {
-        native_.callSync('NFCAdapter_addCardEmulationModeChangeListener');
+        var result = native_.callSync(
+                'NFCAdapter_addCardEmulationModeChangeListener');
+        if (native_.isFailure(result)) {
+            throw new tizen.WebAPIException(0, result.error.message,
+                    result.error.name);
+        }
     }
 
     return cardEmulationModeListener.addListener(args.callback);
@@ -300,10 +313,68 @@ NFCAdapter.prototype.removeCardEmulationModeChangeListener = function() {
 };
 
 NFCAdapter.prototype.addTransactionEventListener = function() {
+    var args = validator_.validateArgs(arguments, [
+        {
+            name: 'type',
+            type: types_.ENUM,
+            values: T_.getValues(SecureElementType)
+        },
+        {
+            name: 'callback',
+            type: types_.LISTENER,
+            values: ['ondetected']
+        }
+    ]);
 
+    var result;
+
+    if (SecureElementType.ESE == args.type) {
+        if (T_.isEmptyObject(transactionEventListenerEse.listeners)) {
+            result = native_.callSync('NFCAdapter_addTransactionEventListener',{
+                type: args.type});
+            if (native_.isFailure(result)) {
+                throw new tizen.WebAPIException(0, result.error.message,
+                        result.error.name);
+            }
+        }
+        return transactionEventListenerEse.addListener(args.callback);
+    } else {
+        if (T_.isEmptyObject(transactionEventListenerUicc.listeners)) {
+            result = native_.callSync('NFCAdapter_addTransactionEventListener',{
+                type: args.type});
+            if (native_.isFailure(result)) {
+                throw new tizen.WebAPIException(0, result.error.message,
+                        result.error.name);
+            }
+        }
+        return transactionEventListenerUicc.addListener(args.callback);
+    }
 };
 
 NFCAdapter.prototype.removeTransactionEventListener = function() {
+    var args = validator_.validateArgs(arguments, [
+        {
+            name: 'watchId',
+            type: types_.LONG
+        }
+    ]);
+
+    var ese_empty = T_.isEmptyObject(transactionEventListenerEse.listeners)
+    var uicc_empty = T_.isEmptyObject(transactionEventListenerUicc.listeners)
+
+    transactionEventListenerEse.removeListener(args.watchId);
+    transactionEventListenerUicc.removeListener(args.watchId);
+
+    if (T_.isEmptyObject(transactionEventListenerEse.listeners) && !ese_empty) {
+        native_.callSync('NFCAdapter_removeTransactionEventListener',{
+            type: SecureElementType.ESE});
+    }
+
+    if (T_.isEmptyObject(transactionEventListenerUicc.listeners)
+            && !uicc_empty) {
+        native_.callSync('NFCAdapter_removeTransactionEventListener',{
+            type: SecureElementType.UICC});
+    }
 
 };
 
@@ -318,7 +389,12 @@ NFCAdapter.prototype.addActiveSecureElementChangeListener = function() {
 
     if (T_.isEmptyObject(cardEmulationModeListener.listeners) &&
             T_.isEmptyObject(activeSecureElementChangeListener.listeners)) {
-        native_.callSync('NFCAdapter_addActiveSecureElementChangeListener ');
+        var result = native_.callSync(
+                'NFCAdapter_addActiveSecureElementChangeListener ');
+        if (native_.isFailure(result)) {
+            throw new tizen.WebAPIException(0, result.error.message,
+                    result.error.name);
+        }
     }
 
    return activeSecureElementChangeListener.addListener(args.callback);

@@ -36,6 +36,8 @@ public:
 
     void AddCardEmulationModeChangeListener();
     void RemoveCardEmulationModeChangeListener();
+    void AddTransactionEventListener(const picojson::value& args);
+    void RemoveTransactionEventListener(const picojson::value& args);
     void AddActiveSecureElementChangeListener();
     void RemoveActiveSecureElementChangeListener();
 
@@ -45,6 +47,8 @@ private:
     virtual ~NFCAdapter();
 
     bool m_is_listener_set;
+    bool m_is_transaction_ese_listener_set;
+    bool m_is_transaction_uicc_listener_set;
 };
 
 } // nfc

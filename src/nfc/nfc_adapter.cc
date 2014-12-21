@@ -17,14 +17,37 @@ using namespace std;
 namespace extension {
 namespace nfc {
 
+namespace {
+const std::string CALLBACK_ID = "callbackId";
+const std::string LISTENER_ID = "listenerId";
+const std::string TYPE = "type";
+const std::string MODE = "mode";
+
+const std::string CARD_ELEMENT = "CardElement";
+const std::string TRANSACTION = "Transaction";
+
+const std::string ACTIVE_SECURE_ELEMENT_CHANGED = "ActiveSecureElementChanged";
+const std::string CARD_EMULATION_MODE_CHANGED = "CardEmulationModeChanged";
+const std::string TRANSACTION_EVENT_LISTENER_ESE = "TransactionEventListener_ESE";
+const std::string TRANSACTION_EVENT_LISTENER_UICC = "TransactionEventListener_UICC";
+}
+
 NFCAdapter::NFCAdapter():
-        m_is_listener_set(false)
+        m_is_listener_set(false),
+        m_is_transaction_ese_listener_set(false),
+        m_is_transaction_uicc_listener_set(false)
 {
 }
 
 NFCAdapter::~NFCAdapter() {
     if (m_is_listener_set) {
         nfc_manager_unset_se_event_cb();
+    }
+    if (m_is_transaction_ese_listener_set) {
+        nfc_manager_unset_se_transaction_event_cb(NFC_SE_TYPE_ESE);
+    }
+    if (m_is_transaction_uicc_listener_set) {
+        nfc_manager_unset_se_transaction_event_cb(NFC_SE_TYPE_UICC);
     }
 }
 
@@ -33,7 +56,7 @@ static picojson::value createEventError(double callbackId, PlatformException ex)
     picojson::value event = picojson::value(picojson::object());
     picojson::object& obj = event.get<picojson::object>();
     NFCInstance::getInstance().InstanceReportError(ex, obj);
-    obj.insert(std::make_pair("callbackId", callbackId));
+    obj.insert(std::make_pair(CALLBACK_ID, callbackId));
 
     return event;
 }
@@ -42,7 +65,7 @@ static picojson::value createEventSuccess(double callbackId) {
     picojson::value event = picojson::value(picojson::object());
     picojson::object& obj = event.get<picojson::object>();
     NFCInstance::getInstance().InstanceReportSuccess(obj);
-    obj.insert(std::make_pair("callbackId", callbackId));
+    obj.insert(std::make_pair(CALLBACK_ID, callbackId));
 
     return event;
 }
@@ -101,24 +124,58 @@ static void se_event_callback(nfc_se_event_e se_event, void *user_data) {
     switch (se_event) {
         case NFC_SE_EVENT_SE_TYPE_CHANGED:
             result = NFCAdapter::GetInstance()->GetActiveSecureElement();
-            obj.insert(make_pair("listenerId", "ActiveSecureElementChanged"));
+            obj.insert(make_pair(LISTENER_ID, ACTIVE_SECURE_ELEMENT_CHANGED));
             break;
         case NFC_SE_EVENT_CARD_EMULATION_CHANGED:
             result = NFCAdapter::GetInstance()->GetCardEmulationMode();
-            obj.insert(make_pair("listenerId", "CardEmulationModeChanged"));
+            obj.insert(make_pair(LISTENER_ID, CARD_EMULATION_MODE_CHANGED));
             break;
         default:
             LOGD("se_event_occured: %d", se_event);
             return;
     }
 
-    obj.insert(make_pair("mode", result));
+    obj.insert(make_pair(TYPE, CARD_ELEMENT));
+    obj.insert(make_pair(MODE, result));
     NFCInstance::getInstance().PostMessage(event.serialize().c_str());
+}
+
+static void transaction_event_callback(nfc_se_type_e type,
+                                       unsigned char *_aid,
+                                       int aid_size,
+                                       unsigned char *param,
+                                       int param_size,
+                                       void *user_data)
+{
+    picojson::value response = picojson::value(picojson::object());
+    picojson::object& response_obj = response.get<picojson::object>();
+    NFCInstance::getInstance().InstanceReportSuccess(response_obj);
+    picojson::array& aid_array = response_obj.insert(std::make_pair("aid",
+            picojson::value(picojson::array()))).first->second.get<picojson::array>();
+    picojson::array& data_array = response_obj.insert(std::make_pair("data",
+            picojson::value(picojson::array()))).first->second.get<picojson::array>();
+
+    for (unsigned int i = 0; i < aid_size; i++) {
+        aid_array.push_back(picojson::value(static_cast<double>(_aid[i])));
+    }
+
+    for (unsigned int i = 0; i < param_size; i++) {
+        aid_array.push_back(picojson::value(static_cast<double>(param[i])));
+    }
+
+    if (NFC_SE_TYPE_ESE == type) {
+        response_obj.insert(make_pair(LISTENER_ID, TRANSACTION_EVENT_LISTENER_ESE));
+    } else {
+        response_obj.insert(make_pair(LISTENER_ID, TRANSACTION_EVENT_LISTENER_UICC));
+    }
+
+    response_obj.insert(make_pair(TYPE, TRANSACTION));
+    NFCInstance::getInstance().PostMessage(response.serialize().c_str());
 }
 
 void NFCAdapter::SetPowered(const picojson::value& args) {
 
-    double* callbackId = new double(args.get("callbackId").get<double>());
+    double* callbackId = new double(args.get(CALLBACK_ID).get<double>());
     bool powered = args.get("powered").get<bool>();
 
     if (nfc_manager_is_activated() == powered) {
@@ -345,6 +402,47 @@ void NFCAdapter::RemoveCardEmulationModeChangeListener() {
         nfc_manager_unset_se_event_cb();
     }
     m_is_listener_set = false;
+}
+
+void NFCAdapter::AddTransactionEventListener(const picojson::value& args) {
+
+    nfc_se_type_e se_type = NFCUtil::toSecureElementType(
+            args.get("type").get<string>());
+    int ret = NFC_ERROR_NONE;
+
+    if (NFC_SE_TYPE_ESE == se_type) {
+        if (m_is_transaction_ese_listener_set) {
+            ret = nfc_manager_set_se_transaction_event_cb(se_type,
+                transaction_event_callback, NULL);
+        }
+        m_is_transaction_ese_listener_set = true;
+    } else {
+        if (m_is_transaction_uicc_listener_set) {
+            ret = nfc_manager_set_se_transaction_event_cb(se_type,
+                transaction_event_callback, NULL);
+        }
+        m_is_transaction_uicc_listener_set = true;
+    }
+
+    if (NFC_ERROR_NONE != ret) {
+        LOGE("AddTransactionEventListener failed: %d", ret);
+        NFCUtil::throwNFCException(ret,
+            NFCUtil::getNFCErrorMessage(ret).c_str());
+    }
+}
+
+void NFCAdapter::RemoveTransactionEventListener(const picojson::value& args) {
+
+    nfc_se_type_e se_type = NFCUtil::toSecureElementType(
+                args.get("type").get<string>());
+
+    nfc_manager_unset_se_transaction_event_cb(se_type);
+
+    if (se_type == NFC_SE_TYPE_ESE) {
+        m_is_transaction_ese_listener_set = false;
+    } else {
+        m_is_transaction_uicc_listener_set = false;
+    }
 }
 
 void NFCAdapter::AddActiveSecureElementChangeListener() {

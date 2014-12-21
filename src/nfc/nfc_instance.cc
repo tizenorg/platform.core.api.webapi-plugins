@@ -46,6 +46,8 @@ NFCInstance::NFCInstance() {
             RemoveCardEmulationModeChangeListener);
     REGISTER_SYNC("NFCAdapter_addTransactionEventListener",
             AddTransactionEventListener);
+    REGISTER_SYNC("NFCAdapter_removeTransactionEventListener",
+            RemoveTransactionEventListener);
     REGISTER_SYNC("NFCAdapter_addActiveSecureElementChangeListener",
             AddActiveSecureElementChangeListener);
     REGISTER_SYNC("NFCAdapter_removeActiveSecureElementChangeListener",
@@ -214,7 +216,12 @@ void NFCInstance::UnsetPeerListener(
 
 void NFCInstance::AddCardEmulationModeChangeListener(
         const picojson::value& args, picojson::object& out) {
-    NFCAdapter::GetInstance()->AddCardEmulationModeChangeListener();
+    try {
+        NFCAdapter::GetInstance()->AddCardEmulationModeChangeListener();
+        ReportSuccess(out);
+    } catch(const common::PlatformException& ex) {
+        ReportError(ex, out);
+    }
 }
 
 void NFCInstance::RemoveCardEmulationModeChangeListener(
@@ -224,12 +231,27 @@ void NFCInstance::RemoveCardEmulationModeChangeListener(
 
 void NFCInstance::AddTransactionEventListener(
         const picojson::value& args, picojson::object& out) {
+    try {
+        NFCAdapter::GetInstance()->AddTransactionEventListener(args);
+        ReportSuccess(out);
+    } catch(const common::PlatformException& ex) {
+        ReportError(ex, out);
+    }
+}
 
+void NFCInstance::RemoveTransactionEventListener(
+        const picojson::value& args, picojson::object& out) {
+    NFCAdapter::GetInstance()->RemoveTransactionEventListener(args);
 }
 
 void NFCInstance::AddActiveSecureElementChangeListener(
         const picojson::value& args, picojson::object& out) {
-    NFCAdapter::GetInstance()->AddActiveSecureElementChangeListener();
+    try {
+        NFCAdapter::GetInstance()->AddActiveSecureElementChangeListener();
+        ReportSuccess(out);
+    } catch(const common::PlatformException& ex) {
+        ReportError(ex, out);
+    }
 }
 
 void NFCInstance::RemoveActiveSecureElementChangeListener(
