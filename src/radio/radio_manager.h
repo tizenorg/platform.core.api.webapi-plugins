@@ -10,10 +10,11 @@
 #include <device/callback.h>
 #include "common/picojson.h"
 #include "common/platform_exception.h"
+#include <vector>
+#include <runtime_info.h>
+#include <radio.h>
 
 #include "radio_instance.h"
-
-#include <radio.h>
 
 namespace extension {
 namespace radio {
@@ -21,7 +22,10 @@ namespace radio {
 class FMRadioManager {
 public:
 
-    static FMRadioManager* GetInstance();
+    static FMRadioManager* GetInstance(bool safe  = true);
+
+    radio_h * GetRadioInstance();
+    std::vector<double> * GetFreqs();
 
     void Start(double freq);
     void Stop();
@@ -34,22 +38,29 @@ public:
     void SetAntennaChangeListener();
     void UnsetAntennaChangeListener();
 
+    bool MuteGetter();
+    void MuteSetter(const picojson::value& args);
     double FrequencyGetter();
     double SignalStrengthGetter();
+    bool AntennaGetter();
+    char* StateGetter();
 
 private:
+    std::vector<double> freqs;
+    radio_h radio_instance;
 
+    static std::string TranslateCode(int err);
+    static void RadioAntennaCB(runtime_info_key_e key, void *user_data);
+    static void RadioInterruptedCB(radio_interrupted_code_e code, void *user_data);
     static common::PlatformException GetException(char * name,int err);
     static void RadioSeekCB(int frequency, void *user_data);
     static void CheckErr(std::string str,int err);
-
-    radio_h radio_instance;
-
+    static void ScanStartCB(int frequency, void *user_data);
+    static void ScanStopCB(void *user_data);
+    static void ScanCompleteCB(void *user_data);
     int Create();
-
     FMRadioManager();
     ~FMRadioManager();
-
 
 };
 

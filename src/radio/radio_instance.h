@@ -24,9 +24,11 @@ class RadioInstance
   void InstanceReportSuccess(picojson::object& out);
 
  private:
+  void MuteGetter(const picojson::value& args,picojson::object& out);
+  void MuteSetter(const picojson::value& args,picojson::object& out);
   void FrequencyGetter(const picojson::value& args,picojson::object& out);
   void SignalStrengthGetter(const picojson::value& args,picojson::object& out);
-  void AntenaGetter(const picojson::value& args,picojson::object& out);
+  void AntennaGetter(const picojson::value& args,picojson::object& out);
   void StateGetter(const picojson::value& args,picojson::object& out);
   void SeekUp(const picojson::value& args, picojson::object& out);
   void SeekDown(const picojson::value& args, picojson::object& out);

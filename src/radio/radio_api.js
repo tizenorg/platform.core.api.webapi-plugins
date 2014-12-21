@@ -16,6 +16,74 @@ var RadioState = {
     READY : 'READY'
 };
 
+function FMRadioInterruptCallbackManager() {
+
+    this.oninterrupted;
+    this.oninterruptfinished;
+};
+
+FMRadioInterruptCallbackManager.prototype.FMRadioInterruptedCBSwitch = function(args) {
+    if (args.action == 'oninterrupted')
+        this.oninterrupted(args.reason);
+    else
+        this.oninterruptfinished();
+};
+
+FMRadioInterruptCallbackManager.prototype.FMRadioInterruptedSet = function(oi, oif) {
+    this.oninterrupted = oi;
+    this.oninterruptfinished = oif;
+    native_.addListener('FMRadio_Interrupted', this.FMRadioInterruptedCBSwitch
+            .bind(this));
+};
+
+FMRadioInterruptCallbackManager.prototype.FMRadioInterruptedUnset = function() {
+    native_.removeListener('FMRadio_Interrupted');
+};
+
+function FMRadioScanCallbackManager() {
+
+    this.radioScanCallback;
+
+};
+
+FMRadioScanCallbackManager.prototype.FMRadioScanCBSwitch = function(args) {
+    this.radioScanCallback(args.frequency);
+};
+
+FMRadioScanCallbackManager.prototype.FMRadioScanSet = function(cb) {
+    this.radioScanCallback = cb;
+    native_.addListener('FMRadio_Onfrequencyfound',
+            this.FMRadioScanCBSwitch.bind(this));
+};
+
+FMRadioScanCallbackManager.prototype.FMRadioScanUnset = function() {
+    native_.removeListener('FMRadio_Onfrequencyfound');
+};
+
+function FMRadioAntennaChangeCallbackManager() {
+
+    this.onchange;
+
+};
+
+FMRadioAntennaChangeCallbackManager.prototype.FMRadioAntennaCBSwitch = function(args) {
+    this.onchange(args.connected);
+};
+
+FMRadioAntennaChangeCallbackManager.prototype.FMRadioAntennaChangeSet = function(cb) {
+    this.onchange = cb;
+    native_.addListener('FMRadio_Antenna', this.FMRadioAntennaCBSwitch
+            .bind(this));
+};
+
+FMRadioAntennaChangeCallbackManager.prototype.FMRadioAntennaUnset = function() {
+    native_.removeListener('FMRadio_Antenna');
+};
+
+var antennaCBmanager = new FMRadioAntennaChangeCallbackManager();
+var interruptedCBmanager = new FMRadioInterruptCallbackManager();
+var scanCBmanager = new FMRadioScanCallbackManager();
+
 function FMRadioManager() {
     Object.defineProperties(this, {
         'frequency' : {
@@ -55,30 +123,48 @@ function FMRadioManager() {
             }
         },
         'mute' : {
-            value : 'TEST',
-            writable : false,
-            enumerable : true
+            enumerable : true,
+            get : muteGetter,
+            set : muteSetter
         }
     });
 
+    function muteGetter() {
+        var ret = native_.callSync('FMRadio_MuteGetter');
+        return native_.getResultObject(ret);
+    }
+
+    function muteSetter() {
+
+        var args = validator_.validateArgs(arguments, [ {
+            name : 'mute',
+            type : types_.BOOLEAN
+        } ]);
+        var ret = native_.callSync('FMRadio_MuteSetter', args);
+    }
+
     function radioStateGetter() {
         var ret = native_.callSync('FMRadio_RadioStateGetter');
+
         return native_.getResultObject(ret);
     }
 
     function isAntennaConnectedGetter() {
         var ret = native_.callSync('FMRadio_IsAntennaConnectedGetter');
+
         return native_.getResultObject(ret);
     }
 
     function signalStrengthGetter() {
         var ret = native_.callSync('FMRadio_SignalStrengthGetter');
+
         return native_.getResultObject(ret);
     }
 
     function frequencyGetter() {
 
         var ret = native_.callSync('FMRadio_FrequencyGetter');
+
         return native_.getResultObject(ret);
     }
 
@@ -127,7 +213,7 @@ FMRadioManager.prototype.start = function() {
     if (args.frequency) {
         if (args.frequency < this.frequencyLowerBound
                 || args.frequency > this.frequencyUpperBound)
-            throw new tizen.WebAPIException(0,
+            throw new tizen.WebAPIException(
                     tizen.WebAPIException.INVALID_VALUES_ERR,
                     'Frequency out of bounds');
     }
@@ -165,7 +251,29 @@ FMRadioManager.prototype.seekDown = function() {
 };
 
 FMRadioManager.prototype.scanStart = function() {
+    var args = validator_.validateArgs(arguments, [ {
+        name : 'radioScanCallback',
+        type : types_.LISTENER,
+        values : [ 'onfrequencyfound', 'onfinished' ]
+    }, {
+        name : 'errorCallback',
+        type : types_.FUNCTION,
+        optional : true,
+        nullable : true
+    } ]);
 
+    scanCBmanager.FMRadioScanSet(args.radioScanCallback.onfrequencyfound);
+
+    var ret = native_.call('FMRadio_ScanStart', {}, function(result) {
+        if (native_.isFailure(result)) {
+            if (args.errorCallback)
+                args.errorCallback(native_.getErrorObject(result));
+
+        } else {
+            scanCBmanager.FMRadioScanUnset();
+            args.radioScanCallback.onfinished(result.frequencies);
+        }
+    });
 };
 
 FMRadioManager.prototype.stop = function() {
@@ -173,46 +281,39 @@ FMRadioManager.prototype.stop = function() {
 };
 
 FMRadioManager.prototype.scanStop = function() {
+    var args = validator_.validateArgs(arguments, [ {
+        name : 'successCallback',
+        type : types_.FUNCTION,
+        optional : true,
+        nullable : true
+    }, {
+        name : 'errorCallback',
+        type : types_.FUNCTION,
+        optional : true,
+        nullable : true
+    } ]);
 
-};
+    var ret = native_.call('FMRadio_ScanStop', {}, function(result) {
+        if (native_.isFailure(result)) {
+            if (args.errorCallback)
+                args.errorCallback(native_.getErrorObject(result));
+        } else {
 
-function FMRadioInterruptManager() {
+            args.successCallback();
 
-    this.oninterrupted;
-    this.oninterruptfinished;
-};
-
-FMRadioInterruptManager.prototype.FMRadioInterruptedCBSwitch = function(args) {
-    if (args.action == 'oninterrupted') {
-        if (this.oninterrupted) {
-            this.oninterrupted();
         }
-    } else {
-
-        if (this.oninterruptfinished) {
-            this.oninterruptfinished();
-        }
-    }
+    });
 };
-
-FMRadioInterruptManager.prototype.FMRadioInterruptedSet = function(oi, oif) {
-    this.oninterrupted = oi;
-    this.oninterruptfinished = oif;
-    native_.addListener('FMRadio_Interrupted', this.FMRadioInterruptedCBSwitch
-            .bind(this));
-};
-
-var intmgr = new FMRadioInterruptManager();
 
 FMRadioManager.prototype.setFMRadioInterruptedListener = function() {
 
     var args = validator_.validateArgs(arguments, [ {
-        name : 'eventCallback',
+        name : 'interruptCallback',
         type : types_.LISTENER,
         values : [ 'oninterrupted', 'oninterruptfinished' ]
     } ]);
-    intmgr.FMRadioInterruptedSet(args.eventCallback.oninterrupted,
-            args.eventCallback.oninterruptfinished)
+    interruptedCBmanager.FMRadioInterruptedSet(args.interruptCallback.oninterrupted,
+            args.interruptCallback.oninterruptfinished)
 
     var ret = native_.callSync('FMRadio_SetFMRadioInterruptedListener');
 
@@ -220,25 +321,25 @@ FMRadioManager.prototype.setFMRadioInterruptedListener = function() {
 
 FMRadioManager.prototype.unsetFMRadioInterruptedListener = function() {
 
-    // TODO intmgr unset
+    interruptedCBmanager.FMRadioInterruptedUnset();
     var ret = native_.callSync('FMRadio_UnsetFMRadioInterruptedListener');
 };
 
 FMRadioManager.prototype.setAntennaChangeListener = function() {
     var args = validator_.validateArgs(arguments, [ {
-        name : 'eventCallback',
+        name : 'changeCallback',
         type : types_.LISTENER,
         values : [ 'onchange' ]
     } ]);
 
-    // TODO listener manager
+    antennaCBmanager.FMRadioAntennaChangeSet(args.changeCallback);
     var ret = native_.callSync('FMRadio_SetAntennaChangeListener');
 
 };
 
 FMRadioManager.prototype.unsetAntennaChangeListener = function() {
 
-    // TODO listener manager
+    antennaCBmanager.FMRadioAntennaUnset();
     var ret = native_.callSync('FMRadio_UnsetAntennaChangeListener');
 
 };

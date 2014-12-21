@@ -30,8 +30,10 @@ namespace radio {
             REGISTER_SYNC("FMRadio_UnsetAntennaChangeListener", UnsetAntennaChangeListener);
             REGISTER_SYNC("FMRadio_FrequencyGetter", FrequencyGetter);
             REGISTER_SYNC("FMRadio_SignalStrengthGetter", SignalStrengthGetter);
-            REGISTER_SYNC("FMRadio_IsAntennaConnectedGetter", AntenaGetter);
+            REGISTER_SYNC("FMRadio_IsAntennaConnectedGetter", AntennaGetter);
             REGISTER_SYNC("FMRadio_RadioStateGetter", StateGetter);
+            REGISTER_SYNC("FMRadio_MuteSetter", MuteSetter);
+            REGISTER_SYNC("FMRadio_MuteGetter", MuteGetter);
         #undef REGISTER_SYNC
         #define REGISTER_ASYNC(c,x) \
             RegisterHandler(c, std::bind(&RadioInstance::x, this, _1, _2));
@@ -52,29 +54,50 @@ namespace radio {
             return instance;
     }
 
-    void RadioInstance::AntenaGetter(const picojson::value& args,
-   picojson::object& out){
-   }
+    void RadioInstance::MuteGetter(const picojson::value& args,
+                  picojson::object& out)
+    {
+        bool mute = FMRadioManager::GetInstance(0)->MuteGetter();
+        ReportSuccess(picojson::value(mute),out);
+    }
 
-   void RadioInstance::StateGetter(const picojson::value& args,
-   picojson::object& out){
-   }
+    void RadioInstance::MuteSetter(const picojson::value& args,
+                  picojson::object& out)
+    {
+        FMRadioManager::GetInstance(0)->MuteSetter(args);
+    }
+
+    void RadioInstance::AntennaGetter(const picojson::value& args,
+               picojson::object& out)
+    {
+        LoggerD(".cc AntennaGetter()");
+        bool Antenna = FMRadioManager::GetInstance(0)->AntennaGetter();
+        ReportSuccess(picojson::value(Antenna),out);
+    }
+
+    void RadioInstance::StateGetter(const picojson::value& args,
+               picojson::object& out)
+    {
+        LoggerD(".cc StateGetter()");
+        std::string state = FMRadioManager::GetInstance(0)->StateGetter();
+        ReportSuccess(picojson::value(state),out);
+    }
 
     void RadioInstance::FrequencyGetter(const picojson::value& args,
             picojson::object& out)
     {
         LoggerD(".cc FrequencyGetter()");
-        double freq = FMRadioManager::GetInstance()->FrequencyGetter();
+        double freq = FMRadioManager::GetInstance(0)->FrequencyGetter();
         ReportSuccess(picojson::value(freq),out);
     }
 
     void RadioInstance::SignalStrengthGetter(const picojson::value& args,
               picojson::object& out)
-      {
-          LoggerD(".cc SignalStrengthGetter()");
-          double strength = FMRadioManager::GetInstance()->SignalStrengthGetter();
-          ReportSuccess(picojson::value(strength),out);
-      }
+    {
+        LoggerD(".cc SignalStrengthGetter()");
+        double strength = FMRadioManager::GetInstance(0)->SignalStrengthGetter();
+        ReportSuccess(picojson::value(strength),out);
+    }
 
     void RadioInstance::InstanceReportSuccess(picojson::object& out) {
         LoggerD(".cc InstanceReportSuccess()");
@@ -83,13 +106,13 @@ namespace radio {
     void RadioInstance::SeekUp(const picojson::value& args,
             picojson::object& out) {
         LoggerD(".cc SeekUp()");
-        FMRadioManager::GetInstance()->SeekUp(args);
+        FMRadioManager::GetInstance(0)->SeekUp(args);
     }
 
     void RadioInstance::SeekDown(const picojson::value& args,
             picojson::object& out) {
         LoggerD(".cc SeekDown()");
-        FMRadioManager::GetInstance()->SeekDown(args);
+        FMRadioManager::GetInstance(0)->SeekDown(args);
     }
 
     void RadioInstance::Start(const picojson::value& args,
@@ -116,36 +139,36 @@ namespace radio {
 
     void RadioInstance::ScanStart(const picojson::value& args,
             picojson::object& out) {
-          FMRadioManager::GetInstance()->ScanStart(args);
+          FMRadioManager::GetInstance(0)->ScanStart(args);
     }
 
     void RadioInstance::ScanStop(const picojson::value& args,
             picojson::object& out) {
-        FMRadioManager::GetInstance()->ScanStop(args);
+        FMRadioManager::GetInstance(0)->ScanStop(args);
     }
 
     void RadioInstance::SetFMRadioInterruptedListener(const picojson::value& args,
             picojson::object& out) {
         LoggerD(".cc SetFMRadioInterruptedListener()");
-        FMRadioManager::GetInstance()->SetFMRadioInterruptedListener();
+        FMRadioManager::GetInstance(0)->SetFMRadioInterruptedListener();
     }
 
     void RadioInstance::UnsetFMRadioInterruptedListener(const picojson::value& args,
             picojson::object& out) {
         LoggerD(".cc UnsetFMRadioInterruptedListener()");
-        FMRadioManager::GetInstance()->UnsetFMRadioInterruptedListener();
+        FMRadioManager::GetInstance(0)->UnsetFMRadioInterruptedListener();
     }
 
     void RadioInstance::SetAntennaChangeListener(const picojson::value& args,
             picojson::object& out) {
         LoggerD(".cc SetAntennaChangeListener()");
-        FMRadioManager::GetInstance()->SetAntennaChangeListener();
+        FMRadioManager::GetInstance(0)->SetAntennaChangeListener();
     }
 
     void RadioInstance::UnsetAntennaChangeListener(const picojson::value& args,
             picojson::object& out) {
         LoggerD(".cc UnsetAntennaChangeListener()");
-        FMRadioManager::GetInstance()->UnsetAntennaChangeListener();
+        FMRadioManager::GetInstance(0)->UnsetAntennaChangeListener();
     }
 
 }

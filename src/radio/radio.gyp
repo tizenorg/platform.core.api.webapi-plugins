@@ -24,6 +24,7 @@
             'packages': [
                 'vconf',
                 'capi-media-radio',
+                'capi-system-runtime-info',
             ]
           },
         }],
