@@ -152,7 +152,7 @@ function NFCAdapter() {
         var ret = native_.callSync('NFCAdapter_getPowered');
 
         if (native_.isFailure(ret)) {
-            return '';
+            return false;
         }
 
         return native_.getResultObject(ret);
@@ -391,7 +391,7 @@ NFCAdapter.prototype.addActiveSecureElementChangeListener = function() {
     if (T_.isEmptyObject(cardEmulationModeListener.listeners) &&
             T_.isEmptyObject(activeSecureElementChangeListener.listeners)) {
         var result = native_.callSync(
-                'NFCAdapter_addActiveSecureElementChangeListener ');
+                'NFCAdapter_addActiveSecureElementChangeListener');
         if (native_.isFailure(result)) {
             throw new tizen.WebAPIException(0, result.error.message,
                     result.error.name);
