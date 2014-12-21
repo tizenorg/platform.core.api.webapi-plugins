@@ -93,7 +93,9 @@
         'messages_change_callback.cc',
         'messages_change_callback.h',
         'message_folder.cc',
-        'message_folder.h'
+        'message_folder.h',
+        'message_conversation.cc',
+        'message_conversation.h'
       ],
       'includes': [
         '../common/pkg-config.gypi',

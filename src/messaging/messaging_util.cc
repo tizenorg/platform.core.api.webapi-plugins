@@ -63,6 +63,20 @@ const char* MESSAGE_ATTACHMENT_ATTRIBUTE_FILE_PATH = "filePath";
 
 const char* MESSAGE_FOLDER_ATTRIBUTE_SERVICE_ID = "serviceId";
 
+const char* MESSAGE_CONVERSATION_ATTRIBUTE_ID = "id";
+const char* MESSAGE_CONVERSATION_ATTRIBUTE_TYPE = "type";
+const char* MESSAGE_CONVERSATION_ATTRIBUTE_TIMESTAMP = "timestamp";
+const char* MESSAGE_CONVERSATION_ATTRIBUTE_MESSAGE_COUNT = "messageCount";
+const char* MESSAGE_CONVERSATION_ATTRIBUTE_UNREAD_MESSAGES = "unreadMessages";
+const char* MESSAGE_CONVERSATION_ATTRIBUTE_PREVIEW = "preview";
+const char* MESSAGE_CONVERSATION_ATTRIBUTE_SUBJECT = "subject";
+const char* MESSAGE_CONVERSATION_ATTRIBUTE_IS_READ = "isRead";
+const char* MESSAGE_CONVERSATION_ATTRIBUTE_FROM = "from";
+const char* MESSAGE_CONVERSATION_ATTRIBUTE_TO = "to";
+const char* MESSAGE_CONVERSATION_ATTRIBUTE_CC = "cc";
+const char* MESSAGE_CONVERSATION_ATTRIBUTE_BCC = "bcc";
+const char* MESSAGE_CONVERSATION_ATTRIBUTE_LAST_MESSAGE_ID = "lastMessageId";
+
 namespace {
 const std::string TYPE_SMS = "messaging.sms";
 const std::string TYPE_MMS = "messaging.mms";
