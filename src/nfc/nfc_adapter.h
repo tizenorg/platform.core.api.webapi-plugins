@@ -54,6 +54,10 @@ public:
 
 // NFCTag related methods
     bool IsTagConnected(int tag_id);
+    void SetTagListener();
+    void UnsetTagListener();
+    int GetNextTagId();
+    void SetTagHandle(nfc_tag_h tag);
 
     static NFCAdapter* GetInstance();
 private:
@@ -61,6 +65,7 @@ private:
     virtual ~NFCAdapter();
 
     nfc_tag_h m_last_tag_handle;
+    bool m_is_tag_listener_set;
     int m_latest_tag_id;
     bool m_is_listener_set;
     bool m_is_transaction_ese_listener_set;

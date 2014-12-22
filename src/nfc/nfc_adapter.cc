@@ -61,6 +61,9 @@ NFCAdapter::~NFCAdapter() {
     if (m_is_ndef_listener_set) {
         nfc_p2p_unset_data_received_cb(m_peer_handle);
     }
+    if (m_is_tag_listener_set) {
+        nfc_manager_unset_tag_discovered_cb();
+    }
 }
 
 static picojson::value createEventError(double callbackId, PlatformException ex) {
@@ -646,17 +649,115 @@ bool NFCAdapter::IsTagConnected(int tag_id) {
 
     LoggerD("Entered");
 
-    if(tag_id != m_latest_tag_id) {
+    if(tag_id != m_latest_tag_id || NULL == m_last_tag_handle) {
         // internaly stored tag id changed -> new tag has been already connected
-        LoggerD("NFCTag () not connected. Latest tag id: %d",
-                tag_id, m_latest_tag_id);
+        // internaly stored tag handle NULL -> tag has been disconnected
+        LoggerD("NFCTag () not connected (id differs or invalid handle)");
         return false;
     }
 
-    // TODO: implement checking if stored handle is still connected
-    LoggerW("This function is only a stub!");
+    nfc_tag_h handle = NULL;
+    int result = nfc_manager_get_connected_tag(&handle);
+    if(NFC_ERROR_NONE != result) {
+        LOGE("Failed to get connected tag: %s",
+            NFCUtil::getNFCErrorMessage(result).c_str());
+        // exception is thrown here to return undefined in JS layer
+        // instead of false
+        NFCUtil::throwNFCException(result, "Failed to get connected tag");
+    }
+
+    if(m_last_tag_handle != handle) {
+        LoggerD("Last known handle and current handle differs");
+        return false;
+    }
+
     return true;
 }
+
+
+int NFCAdapter::GetNextTagId() {
+
+    LoggerD("Entered");
+    return ++m_latest_tag_id;
+}
+
+
+static void tagEventCallback(nfc_discovered_type_e type, nfc_tag_h tag, void *data)
+{
+    LoggerD("Entered");
+
+    picojson::value event = picojson::value(picojson::object());
+    picojson::object& obj = event.get<picojson::object>();
+    obj.insert(make_pair("listenerId", "TagListener"));
+
+    NFCAdapter* adapter = NFCAdapter::GetInstance();
+    // Tag detected event
+    if (NFC_DISCOVERED_TYPE_ATTACHED == type) {
+        nfc_tag_type_e tag_type;
+
+        int result;
+        result = nfc_tag_get_type(tag, &tag_type);
+        if(NFC_ERROR_NONE != result) {
+            LoggerE("setTagListener failed %d",result);
+            return;
+        }
+        // Fetch new id and set detected tag handle in NFCAdapter
+        int generated_id = adapter->GetNextTagId();
+        adapter->SetTagHandle(tag);
+
+        obj.insert(make_pair("action", "onattach"));
+        obj.insert(make_pair("id", static_cast<double>(generated_id)));
+        obj.insert(make_pair("type", NFCUtil::toStringNFCTag(tag_type)));
+
+        NFCInstance::getInstance().PostMessage(event.serialize().c_str());
+    }
+    // Tag disconnected event
+    else if (NFC_DISCOVERED_TYPE_DETACHED == type) {
+        // Set stored tag handle to NULL
+        adapter->SetTagHandle(NULL);
+
+        obj.insert(make_pair("action", "ondetach"));
+        NFCInstance::getInstance().PostMessage(event.serialize().c_str());
+    }
+    // ERROR - should never happen
+    else {
+        LoggerE("Invalid NFC discovered type: %d (%x)", type, type);
+    }
+
+}
+
+void NFCAdapter::SetTagListener(){
+
+    LoggerD("Entered");
+
+    if(!m_is_tag_listener_set) {
+        nfc_manager_set_tag_filter(NFC_TAG_FILTER_ALL_ENABLE);
+        int result = nfc_manager_set_tag_discovered_cb (tagEventCallback, NULL);
+        if (NFC_ERROR_NONE != result) {
+            LoggerE("Failed to register tag listener: %d", result);
+            NFCUtil::throwNFCException(result, "Failed to register tag listene");
+        }
+        m_is_tag_listener_set = true;
+    }
+}
+
+void NFCAdapter::UnsetTagListener(){
+
+    LoggerD("Entered");
+
+    if(m_is_tag_listener_set) {
+        nfc_manager_unset_tag_discovered_cb();
+        m_is_tag_listener_set = false;
+    }
+}
+
+void NFCAdapter::SetTagHandle(nfc_tag_h tag) {
+
+    LoggerD("Entered");
+
+    m_last_tag_handle = tag;
+}
+
 
 }// nfc
 }// extension

@@ -38,7 +38,6 @@ NFCInstance::NFCInstance() {
     REGISTER_SYNC("NFCAdapter_activeSecureElementGetter", ActiveSecureElementGetter);
     REGISTER_SYNC("NFCAdapter_setPeerListener", SetPeerListener);
     REGISTER_SYNC("NFCAdapter_setTagListener", SetTagListener);
-    REGISTER_SYNC("NFCAdapter_setPeerListener", SetPeerListener);
     REGISTER_SYNC("NFCAdapter_PeerIsConnectedGetter", PeerIsConnectedGetter);
     REGISTER_SYNC("NFCAdapter_unsetTagListener", UnsetTagListener);
     REGISTER_SYNC("NFCAdapter_unsetPeerListener", UnsetPeerListener);
@@ -212,6 +211,13 @@ void NFCInstance::ActiveSecureElementGetter(
 void NFCInstance::SetTagListener(
         const picojson::value& args, picojson::object& out) {
 
+    try {
+        NFCAdapter::GetInstance()->SetTagListener();
+        ReportSuccess(out);
+    }
+    catch(const common::PlatformException& ex) {
+        ReportError(ex, out);
+    }
 }
 
 void NFCInstance::PeerIsConnectedGetter(
@@ -242,6 +248,8 @@ void NFCInstance::SetPeerListener(
 void NFCInstance::UnsetTagListener(
         const picojson::value& args, picojson::object& out) {
 
+    NFCAdapter::GetInstance()->UnsetTagListener();
+    ReportSuccess(out);
 }
 
 void NFCInstance::UnsetPeerListener(
@@ -448,10 +456,26 @@ void NFCInstance::TagTypeGetter(
     int tag_id = (int)args.get("id").get<double>();
     LoggerD("Tag id: %d", tag_id);
 
-    // TODO: implement this stub
-    LoggerW("Stub function used!");
-    std::string tag_type = NFCUtil::toStringNFCTag(NFC_UNKNOWN_TARGET);
-    ReportSuccess(picojson::value(tag_type), out);
+    try {
+        // Function below throws exception if core API call fails
+        if (!NFCAdapter::GetInstance()->IsTagConnected(tag_id)) {
+            LoggerE("Tag with id %d is not connected anymore", tag_id);
+            // If tag is not connected then attribute's value
+            // should be undefined
+            ReportError(out);
+            return;
+        }
+
+        // TODO: implement this stub
+        LoggerW("Stub function used!");
+        std::string tag_type = NFCUtil::toStringNFCTag(NFC_UNKNOWN_TARGET);
+
+        ReportSuccess(picojson::value(tag_type), out);
+    }
+    catch(const PlatformException& ex) {
+        LoggerE("Failed to check tag connection");
+        ReportError(ex, out);
+    }
 }
 
 void NFCInstance::TagIsSupportedNDEFGetter(
@@ -462,10 +486,27 @@ void NFCInstance::TagIsSupportedNDEFGetter(
     int tag_id = (int)args.get("id").get<double>();
     LoggerD("Tag id: %d", tag_id);
 
-    // TODO: implement this stub
-    LoggerW("Stub function used!");
-    bool is_supported = true;
-    ReportSuccess(picojson::value(is_supported), out);
+    try {
+        // Function below throws exception if core API call fails
+        if (!NFCAdapter::GetInstance()->IsTagConnected(tag_id)) {
+            LoggerE("Tag with id %d is not connected anymore", tag_id);
+            // If tag is not connected then attribute's value
+            // should be undefined
+            ReportError(out);
+            return;
+        }
+
+        // TODO: implement this stub
+        LoggerW("Stub function used!");
+        bool is_supported = true;
+
+        ReportSuccess(picojson::value(is_supported), out);
+    }
+    catch(const PlatformException& ex) {
+        LoggerE("Failed to check tag connection");
+        ReportError(ex, out);
+    }
+
 }
 
 void NFCInstance::TagNDEFSizeGetter(
@@ -476,10 +517,27 @@ void NFCInstance::TagNDEFSizeGetter(
     int tag_id = (int)args.get("id").get<double>();
     LoggerD("Tag id: %d", tag_id);
 
-    // TODO: implement this stub
-    LoggerW("Stub function used!");
-    int ndef_size = 1234;
-    ReportSuccess(picojson::value((double)ndef_size), out);
+    try {
+        // Function below throws exception if core API call fails
+        if (!NFCAdapter::GetInstance()->IsTagConnected(tag_id)) {
+            LoggerE("Tag with id %d is not connected anymore", tag_id);
+            // If tag is not connected then attribute's value
+            // should be undefined
+            ReportError(out);
+            return;
+        }
+
+        // TODO: implement this stub
+        LoggerW("Stub function used!");
+        int ndef_size = 1234;
+
+        ReportSuccess(picojson::value((double)ndef_size), out);
+    }
+    catch(const PlatformException& ex) {
+        LoggerE("Failed to check tag connection");
+        ReportError(ex, out);
+    }
+
 }
 
 void NFCInstance::TagPropertiesGetter(
@@ -489,10 +547,24 @@ void NFCInstance::TagPropertiesGetter(
 
     int tag_id = (int)args.get("id").get<double>();
     LoggerD("Tag id: %d", tag_id);
+    try {
+        // Function below throws exception if core API call fails
+        if (!NFCAdapter::GetInstance()->IsTagConnected(tag_id)) {
+            LoggerE("Tag with id %d is not connected anymore", tag_id);
+            // If tag is not connected then attribute's value
+            // should be undefined
+            ReportError(out);
+            return;
+        }
 
-    // TODO: implement this stub
-    LoggerW("Stub function used!");
-    ReportSuccess(out);
+        // TODO: implement this stub
+        LoggerW("Stub function used!");
+        ReportSuccess(out);
+    }
+    catch(const PlatformException& ex) {
+        LoggerE("Failed to check tag connection");
+        ReportError(ex, out);
+    }
 }
 
 void NFCInstance::TagIsConnectedGetter(

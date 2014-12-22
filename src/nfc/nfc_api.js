@@ -51,6 +51,7 @@ var CARD_EMULATION_MODE_LISTENER = 'CardEmulationModeChanged';
 var ACTIVE_SECURE_ELEMENT_LISTENER = 'ActiveSecureElementChanged';
 var TRANSACTION_EVENT_ESE_LISTENER = 'TransactionEventListener_ESE';
 var TRANSACTION_EVENT_UICC_LISTENER = 'TransactionEventListener_UICC';
+var TAG_LISTENER = 'TagListener';
 var cardEmulationModeListener = new ListenerManager(native_, CARD_EMULATION_MODE_LISTENER);
 var activeSecureElementChangeListener = new ListenerManager(native_, ACTIVE_SECURE_ELEMENT_LISTENER);
 var transactionEventListenerEse = new ListenerManager(native_, TRANSACTION_EVENT_ESE_LISTENER);
@@ -264,6 +265,49 @@ NFCAdapter.prototype.setPowered = function() {
 
 NFCAdapter.prototype.setTagListener  = function() {
 
+    var args = validator_.validateArgs(arguments, [
+        {
+            name: 'listener',
+            type: types_.LISTENER,
+            values: ['onattach', 'ondetach']
+        },
+        {
+            name : 'tagType',
+            type : types_.STRING,
+            optional : true,
+            nullable : true
+        }
+    ]);
+
+    // TODO: NFCTag type value validation needed here
+
+    // Listener object creation
+    var listenerCallback = function(message) {
+        var tagObject = undefined;
+
+        if('onattach' === message.action) {
+            tagObject = new NFCTag(message.id);
+
+            if(!types_.isNullOrUndefined(args.tagType)) {
+                // If filter set for listener then check tag type
+                if(tagObject.type !== args.tagType) {
+                    return;
+                }
+            }
+        }
+        args.listener[message.action](tagObject);
+    }
+
+    // Register (acivate) core listener if not done yet
+    if(!native_.isListenerSet(TAG_LISTENER)) {
+        var result = native_.callSync('NFCAdapter_setTagListener');
+        if (native_.isFailure(result)) {
+            throw new tizen.WebAPIException(0, result.error.message, result.error.name);
+        }
+    }
+
+    native_.addListener(TAG_LISTENER, listenerCallback);
+    return;
 };
 
 NFCAdapter.prototype.setPeerListener = function() {
@@ -296,6 +340,14 @@ NFCAdapter.prototype.setPeerListener = function() {
 
 NFCAdapter.prototype.unsetTagListener = function() {
 
+    native_.removeListener(TAG_LISTENER);
+
+    var result = native_.callSync('NFCAdapter_unsetTagListener');
+    if (native_.isFailure(result)) {
+        throw new tizen.WebAPIException(0, result.error.message, result.error.name);
+    }
+
+    return;
 };
 
 NFCAdapter.prototype.unsetPeerListener = function() {
