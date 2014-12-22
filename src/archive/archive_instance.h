@@ -33,6 +33,9 @@ private:
 
     /* ArchiveFileEntry methods */
     void Extract(const picojson::value& args, picojson::object& out);
+
+    /* Filesystem related method */
+    void GetWidgetPaths(const picojson::value& args, picojson::object& out);
 };
 
 } // namespace archive

@@ -10,6 +10,9 @@
 #include <functional>
 #include <memory>
 
+#include <pkgmgr-info.h>
+
+#include "common/current_application.h"
 #include "common/picojson.h"
 #include "common/logger.h"
 #include "common/platform_exception.h"
@@ -23,6 +26,7 @@ namespace extension {
 namespace archive {
 
 using namespace common;
+
 
 ArchiveInstance& ArchiveInstance::getInstance()
 {
@@ -49,6 +53,8 @@ ArchiveInstance::ArchiveInstance() {
     REGISTER_SYNC("ArchiveFile_close", Close);
 
     REGISTER_ASYNC("ArchiveFileEntry_extract", Extract);
+
+    REGISTER_SYNC("Filesystem_getWidgetPaths", GetWidgetPaths);
 
     #undef REGISTER_ASYNC
     #undef REGISTER_SYNC
@@ -409,6 +415,34 @@ void ArchiveInstance::Extract(const picojson::value& args, picojson::object& out
         callback = NULL;
         throw;
     }
+}
+
+void ArchiveInstance::GetWidgetPaths(const picojson::value& args, picojson::object& out) {
+    char *root_path = NULL;
+    std::string pkg_id = CurrentApplication::GetInstance().GetPackageId();
+
+    pkgmgrinfo_pkginfo_h handle = NULL;
+    if (PMINFO_R_OK != pkgmgrinfo_pkginfo_get_pkginfo(pkg_id.c_str(), &handle)) {
+        throw UnknownException("Error while getting package info");
+    }
+
+    if (PMINFO_R_OK != pkgmgrinfo_pkginfo_get_root_path(handle, &root_path)) {
+        throw UnknownException("Error while getting package info");
+    }
+
+    // Construction of the response
+    std::string root(root_path);
+    LoggerD("root path: %s", root_path);
+
+    pkgmgrinfo_pkginfo_destroy_pkginfo(handle);
+
+    picojson::value result{picojson::object()};
+    auto& result_obj = result.get<picojson::object>();
+    result_obj.insert(std::make_pair("wgt-package", root + "/res/wgt"));
+    result_obj.insert(std::make_pair("wgt-private", root + "/data"));
+    result_obj.insert(std::make_pair("wgt-private-tmp", root + "/tmp"));
+
+    ReportSuccess(result, out);
 }
 
 } // namespace archive

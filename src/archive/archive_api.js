@@ -29,6 +29,23 @@ CommonFS.cacheVirtualToReal = {
     }
 };
 
+function _initializeCache() {
+    var result = bridge.sync({
+        cmd: 'Filesystem_getWidgetPaths'
+    });
+    CommonFS.cacheVirtualToReal['wgt-package'] = {
+            path: result['wgt-package']
+    };
+    CommonFS.cacheVirtualToReal['wgt-private'] = {
+            path: result['wgt-private']
+    };
+    CommonFS.cacheVirtualToReal['wgt-private-tmp'] = {
+            path: result['wgt-private-tmp']
+    };
+}
+
+_initializeCache();
+
 CommonFS.toRealPath = function(aPath) {
     var _fileRealPath = '', _uriPrefix = 'file://', i;
     if (aPath.indexOf(_uriPrefix) === 0) {
