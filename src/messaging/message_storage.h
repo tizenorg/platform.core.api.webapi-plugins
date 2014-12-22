@@ -47,7 +47,7 @@ public:
     long addMessagesChangeListener(std::shared_ptr<MessagesChangeCallback> callback);
     long addConversationsChangeListener(std::shared_ptr<ConversationsChangeCallback> callback);
     long addFoldersChangeListener(std::shared_ptr<FoldersChangeCallback> callback);
-    void removeChangeListener();
+    void removeChangeListener(long watchId);
 
 protected:
     int m_id;

@@ -1054,6 +1054,7 @@ MessageStorage.prototype.addMessagesChangeListener = function () {
         }
     });
 
+    bridge.attach(cid, 'watchId', result);
     return result;
 };
 
@@ -1106,6 +1107,7 @@ MessageStorage.prototype.addConversationsChangeListener = function () {
         }
     });
 
+    bridge.attach(cid, 'watchId', result);
     return result;
 };
 
@@ -1158,6 +1160,7 @@ MessageStorage.prototype.addFoldersChangeListener = function () {
         }
     });
 
+    bridge.attach(cid, 'watchId', result);
     return result;
 };
 
@@ -1166,12 +1169,20 @@ MessageStorage.prototype.removeChangeListener = function () {
         {name: 'watchId', type: types_.LONG}
     ]);
 
-    bridge.sync({
+    var self = this;
+
+    var result = bridge.sync({
         cmd: 'MessageStorage_removeChangeListener',
         args: {
-            watchId: args.watchId
+            watchId: args.watchId,
+            serviceId: self.service.id
         }
     });
+
+    bridge.find('watchId', args.watchId).forEach(function (e) {
+        bridge.remove(e.id);
+    });
+    return result;
 };
 
 function MessageConversation(data) {

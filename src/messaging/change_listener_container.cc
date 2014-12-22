@@ -139,10 +139,10 @@ void ChangeListenerContainer::removeChangeListener(long id)
             m_email_conversation_callbacks, id)) {
         LoggerD("Email conversation listener with id: %d removed", id);
     }
-    //else if (removeCallbackIfExists<FoldersChangeCallback>(
-            //context, m_email_folder_callbacks,id)) {
-        //LoggerD("Email folder listener with id: %d removed", id);
-    //}
+    else if (removeCallbackIfExists<FoldersChangeCallback>(
+            m_email_folder_callbacks,id)) {
+        LoggerD("Email folder listener with id: %d removed", id);
+    }
     else {
         LoggerW("WatchId %d not found", id);
     }
