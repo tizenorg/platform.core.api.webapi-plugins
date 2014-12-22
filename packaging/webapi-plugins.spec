@@ -33,7 +33,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_datasync_support            1
 %define tizen_feature_download_support            0
 %define tizen_feature_exif_support                0
-%define tizen_feature_fm_radio_support            0
+%define tizen_feature_fm_radio_support            1
 %define tizen_feature_gamepad_support             0
 %define tizen_feature_ham_support                 0
 %define tizen_feature_messaging_email_support     1
@@ -212,6 +212,10 @@ BuildRequires:  pkgconfig(libexif)
 
 %if 0%{?tizen_feature_nfc_support}
 BuildRequires:  pkgconfig(capi-network-nfc)
+%endif
+
+%if 0%{?tizen_feature_fm_radio_support}
+BuildRequires: pkgconfig(capi-media-radio)
 %endif
 
 %description
