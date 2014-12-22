@@ -91,8 +91,8 @@ class ChangeListenerContainer {
         void removeChangeListener(long id);
 
         // Methods used to invoke registered listeners
-        //void callMessageAdded(EventMessages* event);
-        //void callMessageUpdated(EventMessages* event);
+        void callMessageAdded(EventMessages* event);
+        void callMessageUpdated(EventMessages* event);
         void callMessageRemoved(EventMessages* event);
         //void callConversationAdded(EventConversations* event);
         //void callConversationUpdated(EventConversations* event);
@@ -151,63 +151,59 @@ class ChangeListenerContainer {
          * Template function for calling "added" callback for all listeners
          * from given collection with given event.
          * */
-        /*
-         *template<class T, class U> void callAdded(
-         *        std::map<long,std::shared_ptr<T>>& collection,
-         *        U* event) {
-         *    typename std::map<long,std::shared_ptr<T>>::iterator itstart = collection.begin();
-         *    typename std::map<long,std::shared_ptr<T>>::iterator itend = collection.end();
-         *    try {
-         *        for (; itstart != itend; ++itstart) {
-         *            auto callback = (*itstart).second;
-         *            if (callback->getServiceType() == event->service_type
-         *                    && callback->getServiceId() == event->service_id) {
-         *                LoggerD("Found callback for given service id (%d) and type (%d)",
-         *                        event->service_id, event->service_type);
-         *                //@todo filter msgs
-         *                callback->added(event->items);
-         *            }
-         *        }
-         *    }catch (const Common::BasePlatformException &err) {
-         *        LoggerE("callAdded failed, %s: %s", err.getName().c_str(),
-         *                err.getMessage().c_str());
-         *    }
-         *    catch (...) {
-         *        LoggerE("callAdded failed");
-         *    }
-         *}
-         */
+        template<class T, class U> void callAdded(
+                std::map<long,std::shared_ptr<T>>& collection,
+                U* event) {
+            typename std::map<long,std::shared_ptr<T>>::iterator itstart = collection.begin();
+            typename std::map<long,std::shared_ptr<T>>::iterator itend = collection.end();
+            try {
+                for (; itstart != itend; ++itstart) {
+                    auto callback = (*itstart).second;
+                    if (callback->getServiceType() == event->service_type
+                            && callback->getServiceId() == event->service_id) {
+                        LoggerD("Found callback for given service id (%d) and type (%d)",
+                                event->service_id, event->service_type);
+                        //@todo filter msgs
+                        callback->added(event->items);
+                    }
+                }
+            }catch (const common::PlatformException &err) {
+                LoggerE("callAdded failed, %s: %s", err.name().c_str(),
+                        err.message().c_str());
+            }
+            catch (...) {
+                LoggerE("callAdded failed");
+            }
+        }
 
         /**
          * Template function for calling "updated" callback for all listeners
          * from given collection with given event.
          * */
-        /*
-         *template<class T, class U> void callUpdated(
-         *        std::map<long,std::shared_ptr<T>>& collection,
-         *        U* event) {
-         *    typename std::map<long,std::shared_ptr<T>>::iterator itstart = collection.begin();
-         *    typename std::map<long,std::shared_ptr<T>>::iterator itend = collection.end();
-         *    try {
-         *        for (; itstart != itend; ++itstart) {
-         *            auto callback = (*itstart).second;
-         *            if (callback->getServiceType() == event->service_type
-         *                    && callback->getServiceId() == event->service_id) {
-         *                LoggerD("Found callback for given service id (%d) and type (%d)",
-         *                        event->service_id, event->service_type);
-         *                //@todo filter msgs
-         *                callback->updated(event->items);
-         *            }
-         *        }
-         *    }catch (const Common::BasePlatformException &err) {
-         *        LoggerE("callUpdated failed, %s: %s", err.getName().c_str(),
-         *                err.getMessage().c_str());
-         *    }
-         *    catch (...) {
-         *        LoggerE("callUpdated failed");
-         *    }
-         *}
-         */
+        template<class T, class U> void callUpdated(
+                std::map<long,std::shared_ptr<T>>& collection,
+                U* event) {
+            typename std::map<long,std::shared_ptr<T>>::iterator itstart = collection.begin();
+            typename std::map<long,std::shared_ptr<T>>::iterator itend = collection.end();
+            try {
+                for (; itstart != itend; ++itstart) {
+                    auto callback = (*itstart).second;
+                    if (callback->getServiceType() == event->service_type
+                            && callback->getServiceId() == event->service_id) {
+                        LoggerD("Found callback for given service id (%d) and type (%d)",
+                                event->service_id, event->service_type);
+                        //@todo filter msgs
+                        callback->updated(event->items);
+                    }
+                }
+            }catch (const common::PlatformException &err) {
+                LoggerE("callUpdated failed, %s: %s", err.name().c_str(),
+                        err.message().c_str());
+            }
+            catch (...) {
+                LoggerE("callUpdated failed");
+            }
+        }
 
         /**
          * Template function for calling "removed" callback for all listeners

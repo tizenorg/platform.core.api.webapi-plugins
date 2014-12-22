@@ -30,8 +30,8 @@ public:
             MessageType service_type);
     virtual ~MessagesChangeCallback();
 
-    //void added(const MessagePtrVector& messages);
-    //void updated(const MessagePtrVector& messages);
+    void added(const MessagePtrVector& messages);
+    void updated(const MessagePtrVector& messages);
     void removed(const MessagePtrVector& messages);
 
     void setFilter(tizen::AbstractFilterPtr filter);

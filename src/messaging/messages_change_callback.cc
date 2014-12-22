@@ -97,53 +97,67 @@ MessagePtrVector MessagesChangeCallback::filterMessages(
     }
 }
 
-/*
- *void MessagesChangeCallback::added(const MessagePtrVector& msgs)
- *{
- *    LoggerD("Entered num messages: %d", msgs.size());
- *    if (!m_is_act) {
- *        return;
- *    }
- *    JSContextRef ctx = m_callback_data.getContext();
- *    CHECK_CURRENT_CONTEXT_ALIVE(ctx)
- *    MessagePtrVector filtered_msgs = filterMessages(m_filter, msgs, m_service_id);
- *    //cancel callback only if filter did remove all messages
- *    //if callback was called with empty msgs list, call it
- *    if (msgs.size() > 0 && filtered_msgs.size() == 0) {
- *        LoggerD("All messages were filtered out, not calling callback");
- *        return;
- *    }
- *    JSObjectRef js_obj = JSMessage::messageVectorToJSObjectArray(
- *            ctx, filtered_msgs);
- *
- *    LoggerD("Calling:%s with:%d added messages", MESSAGESADDED,
- *        filtered_msgs.size());
- *    m_callback_data.invokeCallback(MESSAGESADDED, js_obj);
- *}
- *
- *void MessagesChangeCallback::updated(const MessagePtrVector& msgs)
- *{
- *    LoggerD("Entered num messages: %d", msgs.size());
- *    if (!m_is_act) {
- *        return;
- *    }
- *    JSContextRef ctx = m_callback_data.getContext();
- *    CHECK_CURRENT_CONTEXT_ALIVE(ctx)
- *    MessagePtrVector filtered_msgs = filterMessages(m_filter, msgs, m_service_id);
- *    //cancel callback only if filter did remove all messages
- *    //if callback was called with empty msgs list, call it
- *    if (msgs.size() > 0 && filtered_msgs.size() == 0) {
- *        LoggerD("All messages were filtered out, not calling callback");
- *        return;
- *    }
- *    JSObjectRef js_obj = JSMessage::messageVectorToJSObjectArray(
- *            ctx, filtered_msgs);
- *
- *    LoggerD("Calling:%s with:%d updated messages", MESSAGESUPDATED,
- *        filtered_msgs.size());
- *    m_callback_data.invokeCallback(MESSAGESUPDATED, js_obj);
- *}
- */
+void MessagesChangeCallback::added(const MessagePtrVector& msgs)
+{
+    LoggerD("Entered num messages: %d", msgs.size());
+    if (!m_is_act) {
+        return;
+    }
+    MessagePtrVector filtered_msgs = filterMessages(m_filter, msgs, m_service_id);
+    //cancel callback only if filter did remove all messages
+    //if callback was called with empty msgs list, call it
+    if (msgs.size() > 0 && filtered_msgs.size() == 0) {
+        LoggerD("All messages were filtered out, not calling callback");
+        return;
+    }
+
+    picojson::array array;
+    auto each = [&array] (std::shared_ptr<Message> m)->void {
+        array.push_back(MessagingUtil::messageToJson(m));
+    };
+
+    for_each(filtered_msgs.begin(), filtered_msgs.end(), each);
+
+    LoggerD("Calling:%s with:%d added messages", MESSAGESADDED,
+        filtered_msgs.size());
+
+    auto json = m_callback_data.getJson();
+    picojson::object& obj = json->get<picojson::object>();
+    obj[JSON_ACTION] = picojson::value(MESSAGESADDED);
+    obj[JSON_DATA] = picojson::value(array);
+    MessagingInstance::getInstance().PostMessage(json->serialize().c_str());
+}
+
+void MessagesChangeCallback::updated(const MessagePtrVector& msgs)
+{
+    LoggerD("Entered num messages: %d", msgs.size());
+    if (!m_is_act) {
+        return;
+    }
+    MessagePtrVector filtered_msgs = filterMessages(m_filter, msgs, m_service_id);
+    //cancel callback only if filter did remove all messages
+    //if callback was called with empty msgs list, call it
+    if (msgs.size() > 0 && filtered_msgs.size() == 0) {
+        LoggerD("All messages were filtered out, not calling callback");
+        return;
+    }
+
+    picojson::array array;
+    auto each = [&array] (std::shared_ptr<Message> m)->void {
+        array.push_back(MessagingUtil::messageToJson(m));
+    };
+
+    for_each(filtered_msgs.begin(), filtered_msgs.end(), each);
+
+    LoggerD("Calling:%s with:%d updated messages", MESSAGESUPDATED,
+        filtered_msgs.size());
+
+    auto json = m_callback_data.getJson();
+    picojson::object& obj = json->get<picojson::object>();
+    obj[JSON_ACTION] = picojson::value(MESSAGESUPDATED);
+    obj[JSON_DATA] = picojson::value(array);
+    MessagingInstance::getInstance().PostMessage(json->serialize().c_str());
+}
 
 void MessagesChangeCallback::removed(const MessagePtrVector& msgs)
 {

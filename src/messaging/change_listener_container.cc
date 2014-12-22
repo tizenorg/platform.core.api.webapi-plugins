@@ -158,69 +158,65 @@ void ChangeListenerContainer::removeChangeListener(long id)
 
 // --- Callback invoking functions ---
 // -- for message --
-/*
- *void ChangeListenerContainer::callMessageAdded(EventMessages* event)
- *{
- *    LoggerD("Entered");
- *
- *    if(MessageType(SMS) == event->service_type ||
- *            MessageType(MMS) == event->service_type) {
- *        LoggerD("Calling messageadded for ShortMessage");
- *        MCLmap callbacksCopy;
- *        {
- *            std::lock_guard<std::mutex> shortlock(m_short_lock);
- *            callbacksCopy = m_short_message_callbacks;
- *        }
- *        callAdded<MessagesChangeCallback, EventMessages>(
- *                callbacksCopy, event);
- *    }
- *    else if(MessageType(EMAIL) == event->service_type) {
- *        LoggerD("Calling messageadded for Email");
- *        MCLmap callbacksCopy;
- *        {
- *            std::lock_guard<std::mutex> maillock(m_email_lock);
- *            callbacksCopy = m_email_message_callbacks;
- *        }
- *        callAdded<MessagesChangeCallback, EventMessages>(
- *                callbacksCopy, event);
- *    }
- *    else {
- *        LoggerW("Invalid event type (%d) - no callback called.", event->service_type);
- *    }
- *}
- */
+void ChangeListenerContainer::callMessageAdded(EventMessages* event)
+{
+    LoggerD("Entered");
 
-/*
- *void ChangeListenerContainer::callMessageUpdated(EventMessages* event)
- *{
- *    LoggerD("Entered");
- *
- *    if(MessageType(SMS) == event->service_type ||
- *            MessageType(MMS) == event->service_type) {
- *        LoggerD("Calling messageupdated for ShortMessage");
- *        MCLmap callbacksCopy;
- *        {
- *            std::lock_guard<std::mutex> shortlock(m_short_lock);
- *            callbacksCopy = m_short_message_callbacks;
- *        }
- *        callUpdated<MessagesChangeCallback, EventMessages>(
- *                callbacksCopy, event);
- *    }
- *    else if(MessageType(EMAIL) == event->service_type) {
- *        LoggerD("Calling messageupdated for Email");
- *        MCLmap callbacksCopy;
- *        {
- *            std::lock_guard<std::mutex> maillock(m_email_lock);
- *            callbacksCopy = m_email_message_callbacks;
- *        }
- *        callUpdated<MessagesChangeCallback, EventMessages>(
- *                callbacksCopy, event);
- *    }
- *    else {
- *        LoggerW("Invalid event type (%d) - no callback called.", event->service_type);
- *    }
- *}
- */
+    if(MessageType(SMS) == event->service_type ||
+            MessageType(MMS) == event->service_type) {
+        //LoggerD("Calling messageadded for ShortMessage");
+        //MCLmap callbacksCopy;
+        //{
+            //std::lock_guard<std::mutex> shortlock(m_short_lock);
+            //callbacksCopy = m_short_message_callbacks;
+        //}
+        //callAdded<MessagesChangeCallback, EventMessages>(
+                //callbacksCopy, event);
+    }
+    else if(MessageType(EMAIL) == event->service_type) {
+        LoggerD("Calling messageadded for Email");
+        MCLmap callbacksCopy;
+        {
+            std::lock_guard<std::mutex> maillock(m_email_lock);
+            callbacksCopy = m_email_message_callbacks;
+        }
+        callAdded<MessagesChangeCallback, EventMessages>(
+                callbacksCopy, event);
+    }
+    else {
+        LoggerW("Invalid event type (%d) - no callback called.", event->service_type);
+    }
+}
+
+void ChangeListenerContainer::callMessageUpdated(EventMessages* event)
+{
+    LoggerD("Entered");
+
+    if(MessageType(SMS) == event->service_type ||
+            MessageType(MMS) == event->service_type) {
+        //LoggerD("Calling messageupdated for ShortMessage");
+        //MCLmap callbacksCopy;
+        //{
+            //std::lock_guard<std::mutex> shortlock(m_short_lock);
+            //callbacksCopy = m_short_message_callbacks;
+        //}
+        //callUpdated<MessagesChangeCallback, EventMessages>(
+                //callbacksCopy, event);
+    }
+    else if(MessageType(EMAIL) == event->service_type) {
+        LoggerD("Calling messageupdated for Email");
+        MCLmap callbacksCopy;
+        {
+            std::lock_guard<std::mutex> maillock(m_email_lock);
+            callbacksCopy = m_email_message_callbacks;
+        }
+        callUpdated<MessagesChangeCallback, EventMessages>(
+                callbacksCopy, event);
+    }
+    else {
+        LoggerW("Invalid event type (%d) - no callback called.", event->service_type);
+    }
+}
 
 void ChangeListenerContainer::callMessageRemoved(EventMessages* event)
 {

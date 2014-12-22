@@ -109,68 +109,71 @@ void MessageProxy::signalCallback(GDBusConnection *connection,
 
 void MessageProxy::handleEmailEvent(int account_id, int mail_id, int thread_id, int event)
 {
-/*
- *    LoggerD("Enter");
- *
- *    if(NOTI_MAIL_UPDATE == event) {
- *        //getting thread_id from message
- *        email_mail_data_t *mail_data = NULL;
- *
- *        if(EMAIL_ERROR_NONE != email_get_mail_data(mail_id, &mail_data)) {
- *            if (mail_data) email_free_mail_data(&mail_data, 1);
- *
- *            LoggerE("Failed to get mail data during setting conversation id in MessageProxy.");
- *            return;
- *        }
- *
- *        thread_id = mail_data->thread_id;
- *
- *        if(EMAIL_ERROR_NONE != email_free_mail_data(&mail_data,1)) {
- *            LoggerE("Failed to free mail data memory");
- *        }
- *    }
- *
- *    email_mail_data_t* mail_data = EmailManager::getInstance().loadMessage(mail_id);
- *    if (mail_data == NULL) {
- *        throw common::UnknownException("Failed to load email");
- *    }
- *    std::shared_ptr<Message> msg = Message::convertPlatformEmailToObject(*mail_data);
- *    ConversationPtr conv = MessageConversation::convertEmailConversationToObject(
- *            thread_id);
- *
- *    EventMessages* eventMsg = new EventMessages();
- *    eventMsg->service_type = MessageType::EMAIL;
- *    eventMsg->service_id = account_id;
- *    eventMsg->items.push_back(msg);
- *    EventConversations* eventConv = new EventConversations();
- *    eventConv->service_type = MessageType::EMAIL;
- *    eventConv->service_id = account_id;
- *    eventConv->items.push_back(conv);
- *    switch (event) {
- *        case NOTI_MAIL_ADD:
- *            ChangeListenerContainer::getInstance().callMessageAdded(eventMsg);
- *            if (conv->getMessageCount() == 1) {
- *                LoggerD("This thread is new, triggering conversationAdded");
- *                ChangeListenerContainer::getInstance().callConversationAdded(eventConv);
- *            } else {
- *                LoggerD("This thread is not new, but it's updated");
- *                ChangeListenerContainer::getInstance().callConversationUpdated(eventConv);
- *            }
- *            break;
- *        case NOTI_MAIL_UPDATE:
- *            ChangeListenerContainer::getInstance().callMessageUpdated(eventMsg);
- *            ChangeListenerContainer::getInstance().callConversationUpdated(eventConv);
- *            break;
- *        default:
- *            LoggerW("Unknown event type: %d", event);
- *            break;
- *
- *    }
- *    delete eventMsg;
- *    delete eventConv;
- *
- *    EmailManager::getInstance().freeMessage(mail_data);
- */
+    LoggerD("Enter");
+
+    if(NOTI_MAIL_UPDATE == event) {
+        //getting thread_id from message
+        email_mail_data_t *mail_data = NULL;
+
+        if(EMAIL_ERROR_NONE != email_get_mail_data(mail_id, &mail_data)) {
+            if (mail_data) email_free_mail_data(&mail_data, 1);
+
+            LoggerE("Failed to get mail data during setting conversation id in MessageProxy.");
+            return;
+        }
+
+        thread_id = mail_data->thread_id;
+
+        if(EMAIL_ERROR_NONE != email_free_mail_data(&mail_data,1)) {
+            LoggerE("Failed to free mail data memory");
+        }
+    }
+
+    email_mail_data_t* mail_data = EmailManager::getInstance().loadMessage(mail_id);
+    if (mail_data == NULL) {
+        throw common::UnknownException("Failed to load email");
+    }
+    std::shared_ptr<Message> msg = Message::convertPlatformEmailToObject(*mail_data);
+    // TODO
+    //ConversationPtr conv = MessageConversation::convertEmailConversationToObject(
+            //thread_id);
+
+    EventMessages* eventMsg = new EventMessages();
+    eventMsg->service_type = MessageType::EMAIL;
+    eventMsg->service_id = account_id;
+    eventMsg->items.push_back(msg);
+    // TODO
+    //EventConversations* eventConv = new EventConversations();
+    //eventConv->service_type = MessageType::EMAIL;
+    //eventConv->service_id = account_id;
+    //eventConv->items.push_back(conv);
+    switch (event) {
+        case NOTI_MAIL_ADD:
+            ChangeListenerContainer::getInstance().callMessageAdded(eventMsg);
+            // TODO
+            //if (conv->getMessageCount() == 1) {
+                //LoggerD("This thread is new, triggering conversationAdded");
+                //ChangeListenerContainer::getInstance().callConversationAdded(eventConv);
+            //} else {
+                //LoggerD("This thread is not new, but it's updated");
+                //ChangeListenerContainer::getInstance().callConversationUpdated(eventConv);
+            //}
+            break;
+        case NOTI_MAIL_UPDATE:
+            ChangeListenerContainer::getInstance().callMessageUpdated(eventMsg);
+            // TODO
+            //ChangeListenerContainer::getInstance().callConversationUpdated(eventConv);
+            break;
+        default:
+            LoggerW("Unknown event type: %d", event);
+            break;
+
+    }
+    delete eventMsg;
+    // TODO
+    //delete eventConv;
+
+    EmailManager::getInstance().freeMessage(mail_data);
 }
 
 std::vector<int> getMailIds(const std::string& idsString)
