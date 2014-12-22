@@ -514,6 +514,12 @@ Validator.prototype.validateArgs = function(a, d) {
                   'Argument "' + name + '" cannot be null.');
             }
           } else {
+            if (!_type.isFunction(val)) {
+                if (_type.isEmptyObject(val)) {
+                    throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
+                        'Argument "' + name + '" shouldn\'t be an empty object.');
+                }
+            }
             if (!_type.isObject(val)) {
               throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
                   'Argument "' + name + '" should be an object.');
