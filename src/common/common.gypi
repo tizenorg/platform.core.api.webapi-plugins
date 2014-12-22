@@ -25,6 +25,8 @@
             'dbus-1',
             'dlog',
             'glib-2.0',
+            'capi-appfw-app-manager',
+            'capi-appfw-package-manager'
           ]
         },
       }, {
@@ -71,6 +73,8 @@
     'sources': [
       'converter.cc',
       'converter.h',
+      'current_application.cc',
+      'current_application.h',
       'extension.cc',
       'extension.h',
       'picojson.h',

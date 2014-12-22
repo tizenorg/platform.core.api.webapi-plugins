@@ -173,6 +173,8 @@ BuildRequires: pkgconfig(capi-network-wifi)
 BuildRequires: pkgconfig(tapi)
 BuildRequires: pkgconfig(libpcrecpp)
 BuildRequires: pkgconfig(capi-appfw-application)
+BuildRequires: pkgconfig(capi-appfw-app-manager)
+BuildRequires: pkgconfig(capi-appfw-package-manager)
 
 %if 0%{?tizen_feature_power_support}
 BuildRequires: pkgconfig(capi-system-power)
