@@ -24,8 +24,7 @@ namespace extension {
 namespace contact {
 namespace ContactManager {
 
-void ContactManager_getAddressBooks(const JsonObject& args,
-                                    JsonObject& out);
+void ContactManager_getAddressBooks(const JsonObject& args, JsonArray& out);
 
 void ContactManager_getAddressBook(const JsonObject& args, JsonObject& out);
 

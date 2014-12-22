@@ -60,11 +60,7 @@ ContactManager.prototype.getAddressBooks = function() {
     }
   };
 
-  var result = native_.call('ContactManager_getAddressBooks', {}, callback);
-
-  if (native_.isFailure(result)) {
-    throw native_.getErrorObject(result);
-  }
+  native_.call('ContactManager_getAddressBooks', {}, callback);
 };
 
 // Gets the aggregation of all address books.

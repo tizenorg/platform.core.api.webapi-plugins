@@ -34,22 +34,75 @@ const char* kTokenDelimiter = " ,:";
 }
 
 using namespace common;
-// @todo fix me
-//using namespace wrt::common;
 
-void ContactManager_getAddressBooks(const JsonObject& args,
-                                    JsonObject& out) {
+void ContactManager_getAddressBooks(const JsonObject &args, JsonArray &out) {
+  LoggerD("entered");
+
   ContactUtil::CheckDBConnection();
-  // @todo implement
-  throw common::NotFoundException("Not implemented");
+
+  contacts_list_h address_book_list = nullptr;
+
+  int error_code = contacts_db_get_all_records(_contacts_address_book._uri, 0, 0,
+      &address_book_list);
+  if (CONTACTS_ERROR_NONE != error_code) {
+    LoggerE("Fail to get address book list, error: %d", error_code);
+    throw UnknownException("Fail to get address book list");
+  }
+
+  ContactUtil::ContactsListHPtr contacts_list_ptr(&address_book_list,
+      ContactUtil::ContactsListDeleter);
+
+  int record_count = 0;
+  error_code = contacts_list_get_count(*contacts_list_ptr, &record_count);
+  if (CONTACTS_ERROR_NONE != error_code) {
+    LoggerE("Fail to get address book list count, error: %d", error_code);
+    throw UnknownException("Fail to get address book list count");
+  }
+
+  error_code = contacts_list_first(*contacts_list_ptr);
+  if (CONTACTS_ERROR_NONE != error_code) {
+    LoggerE("Fail to get address book from list, error: %d", error_code);
+    throw UnknownException("Fail to get address book from list");
+  }
+
+  for (unsigned int i = 0; i < record_count; i++) {
+    contacts_record_h contacts_record = nullptr;
+    error_code = contacts_list_get_current_record_p(*contacts_list_ptr, &contacts_record);
+
+    if (CONTACTS_ERROR_NONE != error_code) {
+      LoggerW("Fail to get address book record");
+      continue;
+    }
+
+    int id = 0;
+    int mode = 0;
+    char *name = nullptr;
+    try {
+      ContactUtil::GetIntFromRecord(contacts_record, _contacts_address_book.id, &id);
+      ContactUtil::GetIntFromRecord(contacts_record, _contacts_address_book.mode, &mode);
+      ContactUtil::GetStrFromRecord(contacts_record, _contacts_address_book.name, &name);
+    }
+    catch (...) {
+      LoggerW("Fail to get data from address book");
+      continue;
+    }
+
+    JsonValue single = JsonValue(JsonObject());
+    JsonObject &single_obj = single.get<JsonObject>();
+    single_obj["id"] = JsonValue(std::to_string(id));
+    single_obj["name"] = JsonValue(name);
+    single_obj["readOnly"] = JsonValue(CONTACTS_ADDRESS_BOOK_MODE_READONLY == mode);
+    out.push_back(single);
+
+    contacts_list_next(*contacts_list_ptr);
+  }
 }
 
 void ContactManager_getAddressBook(const JsonObject& args, JsonObject& out) {
   ContactUtil::CheckDBConnection();
   long address_book_id;
   try {
-    address_book_id =
-        common::stol(FromJson<JsonString>(args, "addressBookID"));
+    address_book_id = common::stol(FromJson<JsonString>(args, "addressBookID"));
   }
   catch (const common::InvalidValuesException&) {
     throw common::NotFoundException("Invalid id");
@@ -269,8 +322,8 @@ void ContactManager_listenerCallback(const char* view_uri, char* changes,
       }
     }
     catch (common::PlatformException& ex) {
-      LoggerE("Caught exception \%s\" in listener callback: %s",
-                                    ex.name().c_str(), ex.message().c_str());
+      LoggerE("Caught exception %s\" in listener callback: %s",
+              ex.name().c_str(), ex.message().c_str());
     }
 
     token = strtok(nullptr, kTokenDelimiter);
@@ -287,7 +340,7 @@ void ContactManager_startListening(/*const JsonObject&, JsonObject& out*/) {
 
   if (CONTACTS_ERROR_NONE != error_code) {
     LoggerE("contacts_db_add_changed_cb(_contacts_person._uri) error: %d",
-         error_code);
+            error_code);
     throw UnknownException("Failed to start listening");
   }
 }
@@ -299,7 +352,7 @@ void ContactManager_stopListening(/*const JsonObject&, JsonObject& out*/) {
 
   if (CONTACTS_ERROR_NONE != error_code) {
     LoggerE("contacts_db_remove_changed_cb(_contacts_person._uri) error: %d",
-         error_code);
+            error_code);
     throw UnknownException("Failed to stop listening");
   }
 }

@@ -5,6 +5,9 @@
 #include "contact/contact_instance.h"
 
 #include "common/converter.h"
+#include "common/task-queue.h"
+#include "common/logger.h"
+#include "common/platform_exception.h"
 
 #include "contact/addressbook.h"
 #include "contact/contact_manager.h"
@@ -13,10 +16,26 @@
 namespace extension {
 namespace contact {
 
+using namespace common;
+
 ContactInstance::ContactInstance() {
   using namespace std::placeholders;
+
 #define REGISTER_SYNC(c, x) \
   RegisterSyncHandler(c, std::bind(&ContactInstance::x, this, _1, _2));
+#define REGISTER_ASYNC(c, x) \
+  RegisterHandler(c, std::bind(&ContactInstance::x, this, _1, _2));
+
+  // Contact Manager
+  REGISTER_ASYNC("ContactManager_getAddressBooks", ContactManager_getAddressBooks);
+  REGISTER_SYNC("ContactManager_getAddressBook", ContactManager_getAddressBook);
+  REGISTER_SYNC("ContactManager_get", ContactManager_get);
+  REGISTER_SYNC("ContactManager_update", ContactManager_update);
+  REGISTER_SYNC("ContactManager_updateBatch", ContactManager_updateBatch);
+  REGISTER_SYNC("ContactManager_remove", ContactManager_remove);
+  REGISTER_SYNC("ContactManager_removeBatch", ContactManager_removeBatch);
+  REGISTER_SYNC("ContactManager_find", ContactManager_find);
+  REGISTER_SYNC("ContactManager_importFromVCard", ContactManager_importFromVCard);
 
   // AddressBook
   REGISTER_SYNC("AddressBook_get", AddressBook_get);
@@ -30,24 +49,12 @@ ContactInstance::ContactInstance() {
   REGISTER_SYNC("AddressBook_removeGroup", AddressBook_removeGroup);
   REGISTER_SYNC("AddressBook_getGroups", AddressBook_getGroups);
 
-  // Contact Manager
-  REGISTER_SYNC("ContactManager_getAddressBooks",
-                ContactManager_getAddressBooks);
-  REGISTER_SYNC("ContactManager_getAddressBook", ContactManager_getAddressBook);
-  REGISTER_SYNC("ContactManager_get", ContactManager_get);
-  REGISTER_SYNC("ContactManager_update", ContactManager_update);
-  REGISTER_SYNC("ContactManager_updateBatch", ContactManager_updateBatch);
-  REGISTER_SYNC("ContactManager_remove", ContactManager_remove);
-  REGISTER_SYNC("ContactManager_removeBatch", ContactManager_removeBatch);
-  REGISTER_SYNC("ContactManager_find", ContactManager_find);
-  REGISTER_SYNC("ContactManager_importFromVCard",
-                ContactManager_importFromVCard);
-
   // Person
   REGISTER_SYNC("Person_link", Person_link);
   REGISTER_SYNC("Person_unlink", Person_unlink);
 
 #undef REGISTER_SYNC
+#undef REGISTER_ASYNC
 }
 
 ContactInstance::~ContactInstance() {}
@@ -128,9 +135,32 @@ void ContactInstance::AddressBook_getGroups(const JsonValue& args, JsonObject& o
   ReportSuccess(val, out);
 }
 
-void ContactInstance::ContactManager_getAddressBooks(const JsonValue& args,
-                                                     JsonObject& out) {
-  // @todo implement
+void ContactInstance::ContactManager_getAddressBooks(const JsonValue& args, JsonObject& out) {
+  LoggerD("entered");
+
+  // TODO check privileges
+
+  const double callback_id = args.get("callbackId").get<double>();
+
+  auto get = [=](const std::shared_ptr<JsonValue> &response) -> void {
+    try {
+      JsonValue result = JsonValue(JsonArray());
+      ContactManager::ContactManager_getAddressBooks(common::JsonCast<JsonObject>(args),
+          result.get<JsonArray>());
+      ReportSuccess(result, response->get<picojson::object>());
+    } catch (const PlatformException &e) {
+      ReportError(e, response->get<picojson::object>());
+    }
+  };
+
+  auto get_response = [this, callback_id](const std::shared_ptr<JsonValue> &response) {
+    picojson::object &obj = response->get<picojson::object>();
+    obj.insert(std::make_pair("callbackId", callback_id));
+    PostMessage(response->serialize().c_str());
+  };
+
+  TaskQueue::GetInstance().Queue<JsonValue>(get, get_response,
+      std::shared_ptr<JsonValue>(new JsonValue(JsonObject())));
 }
 
 void ContactInstance::ContactManager_getAddressBook(const JsonValue& args,
