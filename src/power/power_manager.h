@@ -28,7 +28,7 @@ enum PowerState {
 
 class PowerManagerListener {
  public:
-  void OnScreenStateChanged(PowerState prev_state, PowerState new_state);
+  virtual void OnScreenStateChanged(PowerState prev_state, PowerState new_state)=0;
 };
 
 class PowerManager {
