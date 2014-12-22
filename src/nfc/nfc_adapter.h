@@ -42,10 +42,15 @@ public:
     void AddActiveSecureElementChangeListener();
     void RemoveActiveSecureElementChangeListener();
     void SetPeerHandle(nfc_p2p_target_h handle);
+    nfc_p2p_target_h GetPeerHandle();
     int GetPeerId();
+    void IncreasePeerId();
     bool IsPeerConnected(int peer_id);
     void SetPeerListener();
     void UnsetPeerListener();
+    void SetReceiveNDEFListener(int peer_id);
+    void UnsetReceiveNDEFListener(int peer_id);
+    bool IsNDEFListenerSet();
 
     static NFCAdapter* GetInstance();
 private:
@@ -58,6 +63,7 @@ private:
     bool m_is_peer_listener_set;
     int m_latest_peer_id;
     nfc_p2p_target_h m_peer_handle;
+    bool m_is_ndef_listener_set;
 };
 
 } // nfc

@@ -37,7 +37,8 @@ NFCAdapter::NFCAdapter():
         m_is_transaction_uicc_listener_set(false),
         m_is_peer_listener_set(false),
         m_latest_peer_id(0),
-        m_peer_handle(NULL)
+        m_peer_handle(NULL),
+        m_is_ndef_listener_set(false)
 {
 }
 
@@ -54,6 +55,9 @@ NFCAdapter::~NFCAdapter() {
     }
     if (m_is_transaction_uicc_listener_set) {
         nfc_manager_unset_se_transaction_event_cb(NFC_SE_TYPE_UICC);
+    }
+    if (m_is_ndef_listener_set) {
+        nfc_p2p_unset_data_received_cb(m_peer_handle);
     }
 }
 
@@ -94,13 +98,21 @@ static void targetDetectedCallback(nfc_discovered_type_e type,
     picojson::object& obj = event.get<picojson::object>();
     obj.insert(make_pair("listenerId", "PeerListener"));
 
+    NFCAdapter* adapter = NFCAdapter::GetInstance();
+
+    //unregister previous NDEF listener
+    if (adapter->IsNDEFListenerSet()) {
+        adapter->UnsetReceiveNDEFListener(adapter->GetPeerId());
+    }
+
     if (NFC_DISCOVERED_TYPE_ATTACHED == type) {
-        NFCAdapter::GetInstance()->SetPeerHandle(target);
+        adapter->SetPeerHandle(target);
         obj.insert(make_pair("action", "onattach"));
-        obj.insert(make_pair("id", static_cast<double>(NFCAdapter::GetInstance()->GetPeerId())));
+        adapter->IncreasePeerId();
+        obj.insert(make_pair("id", static_cast<double>(adapter->GetPeerId())));
         NFCInstance::getInstance().PostMessage(event.serialize().c_str());
     } else {
-        NFCAdapter::GetInstance()->SetPeerHandle(NULL);
+        adapter->SetPeerHandle(NULL);
         obj.insert(make_pair("action", "ondetach"));
         NFCInstance::getInstance().PostMessage(event.serialize().c_str());
     }
@@ -499,8 +511,16 @@ void NFCAdapter::SetPeerHandle(nfc_p2p_target_h handle) {
     m_peer_handle = handle;
 }
 
+nfc_p2p_target_h NFCAdapter::GetPeerHandle() {
+    return m_peer_handle;
+}
+
 int NFCAdapter::GetPeerId() {
-    return ++m_latest_peer_id;
+    return m_latest_peer_id;
+}
+
+void NFCAdapter::IncreasePeerId() {
+    m_latest_peer_id++;
 }
 
 bool NFCAdapter::IsPeerConnected(int peer_id) {
@@ -549,5 +569,74 @@ void NFCAdapter::UnsetPeerListener() {
 
     m_is_peer_listener_set = false;
 }
+
+static void targetReceivedCallback(nfc_p2p_target_h target, nfc_ndef_message_h message, void *data)
+{
+    unsigned char *raw_data = NULL;
+    unsigned int size;
+    if (NFC_ERROR_NONE != nfc_ndef_message_get_rawdata(message, &raw_data, &size)) {
+        LOGE("Unknown error while getting raw data of message.");
+        free(raw_data);
+        return;
+    }
+
+    picojson::value event = picojson::value(picojson::object());
+    picojson::object& obj = event.get<picojson::object>();
+    obj.insert(make_pair("listenerId", "ReceiveNDEFListener"));
+    obj.insert(make_pair("id", static_cast<double>(NFCAdapter::GetInstance()->GetPeerId())));
+
+    //TODO call function which create NDEFMessage object (from nfc_message_utils)
+
+    NFCInstance::getInstance().PostMessage(event.serialize().c_str());
+    free(raw_data);
+}
+
+void NFCAdapter::SetReceiveNDEFListener(int peer_id) {
+
+    //unregister previous NDEF listener
+    if (m_is_ndef_listener_set) {
+        int ret = nfc_p2p_unset_data_received_cb(m_peer_handle);
+        if (NFC_ERROR_NONE != ret) {
+            LOGW("Unregister ReceiveNDEFListener error: %d", ret);
+        }
+        m_is_ndef_listener_set = false;
+    }
+
+    //check if peer object is still connected
+    if (!IsPeerConnected(peer_id)) {
+        LOGE("Target is not connected");
+        throw UnknownException("Target is not connected");
+    }
+
+    int ret = nfc_p2p_set_data_received_cb(m_peer_handle, targetReceivedCallback, NULL);
+    if (NFC_ERROR_NONE != ret) {
+        LOGE("Failed to set NDEF listener: %d", ret);
+        NFCUtil::throwNFCException(ret, "Failed to set NDEF listener");
+    }
+
+    m_is_ndef_listener_set = true;
+}
+
+void NFCAdapter::UnsetReceiveNDEFListener(int peer_id) {
+    if (m_is_ndef_listener_set) {
+        //check if peer object is still connected
+        if (!IsPeerConnected(peer_id)) {
+            LOGE("Target is not connected");
+        }
+
+        int ret = nfc_p2p_unset_data_received_cb(m_peer_handle);
+        if (NFC_ERROR_NONE != ret) {
+            LOGE("Unregister ReceiveNDEFListener error: %d", ret);
+            NFCUtil::throwNFCException(ret, "Unregister ReceiveNDEFListener error");
+        }
+
+        m_is_ndef_listener_set = false;
+    }
+}
+
+bool NFCAdapter::IsNDEFListenerSet() {
+    return m_is_ndef_listener_set;
+}
+
 }// nfc
 }// extension
