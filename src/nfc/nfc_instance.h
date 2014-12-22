@@ -59,6 +59,14 @@ private:
     void NDEFRecordTextContructor(const picojson::value& args, picojson::object& out);
     void NDEFRecordURIContructor(const picojson::value& args, picojson::object& out);
     void NDEFRecordMediaContructor(const picojson::value& args, picojson::object& out);
+
+    // NFCTag attributes getters
+    void TagTypeGetter(const picojson::value& args, picojson::object& out);
+    void TagIsSupportedNDEFGetter(const picojson::value& args, picojson::object& out);
+    void TagNDEFSizeGetter(const picojson::value& args, picojson::object& out);
+    void TagPropertiesGetter(const picojson::value& args, picojson::object& out);
+    void TagIsConnectedGetter(const picojson::value& args, picojson::object& out);
+
 };
 
 } // namespace nfc

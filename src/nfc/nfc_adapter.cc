@@ -38,7 +38,9 @@ NFCAdapter::NFCAdapter():
         m_is_peer_listener_set(false),
         m_latest_peer_id(0),
         m_peer_handle(NULL),
-        m_is_ndef_listener_set(false)
+        m_is_ndef_listener_set(false),
+        m_latest_tag_id(0),
+        m_last_tag_handle(NULL)
 {
 }
 
@@ -636,6 +638,24 @@ void NFCAdapter::UnsetReceiveNDEFListener(int peer_id) {
 
 bool NFCAdapter::IsNDEFListenerSet() {
     return m_is_ndef_listener_set;
+}
+
+
+// NFCTag related functions
+bool NFCAdapter::IsTagConnected(int tag_id) {
+
+    LoggerD("Entered");
+
+    if(tag_id != m_latest_tag_id) {
+        // internaly stored tag id changed -> new tag has been already connected
+        LoggerD("NFCTag () not connected. Latest tag id: %d",
+                tag_id, m_latest_tag_id);
+        return false;
+    }
+
+    // TODO: implement checking if stored handle is still connected
+    LoggerW("This function is only a stub!");
+    return true;
 }
 
 }// nfc

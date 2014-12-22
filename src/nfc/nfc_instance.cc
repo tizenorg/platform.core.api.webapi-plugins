@@ -67,6 +67,12 @@ NFCInstance::NFCInstance() {
     REGISTER_SYNC("NDEFRecordURI_constructor", NDEFRecordURIContructor);
     REGISTER_SYNC("NDEFRecordMedia_constructor", NDEFRecordMediaContructor);
 
+    // NFCTag attributes getters
+    REGISTER_SYNC("NFCTag_typeGetter", TagTypeGetter);
+    REGISTER_SYNC("NFCTag_isSupportedNDEFGetter", TagIsSupportedNDEFGetter);
+    REGISTER_SYNC("NFCTag_NDEFSizeGetter", TagNDEFSizeGetter);
+    REGISTER_SYNC("NFCTag_propertiesGetter", TagPropertiesGetter);
+    REGISTER_SYNC("NFCTag_isConnectedGetter", TagIsConnectedGetter);
 #undef REGISTER_SYNC
 #define REGISTER(c,x) \
     RegisterHandler(c, std::bind(&NFCInstance::x, this, _1, _2));
@@ -431,6 +437,80 @@ void NFCInstance::NDEFRecordMediaContructor(const picojson::value& args, picojso
         ReportError(ex, out);
     }
 }
+
+// NFCTag attributes getters
+void NFCInstance::TagTypeGetter(
+        const picojson::value& args, picojson::object& out) {
+
+    LoggerD("Entered");
+
+    int tag_id = (int)args.get("id").get<double>();
+    LoggerD("Tag id: %d", tag_id);
+
+    // TODO: implement this stub
+    LoggerW("Stub function used!");
+    std::string tag_type = NFCUtil::toStringNFCTag(NFC_UNKNOWN_TARGET);
+    ReportSuccess(picojson::value(tag_type), out);
+}
+
+void NFCInstance::TagIsSupportedNDEFGetter(
+        const picojson::value& args, picojson::object& out) {
+
+    LoggerD("Entered");
+
+    int tag_id = (int)args.get("id").get<double>();
+    LoggerD("Tag id: %d", tag_id);
+
+    // TODO: implement this stub
+    LoggerW("Stub function used!");
+    bool is_supported = true;
+    ReportSuccess(picojson::value(is_supported), out);
+}
+
+void NFCInstance::TagNDEFSizeGetter(
+        const picojson::value& args, picojson::object& out) {
+
+    LoggerD("Entered");
+
+    int tag_id = (int)args.get("id").get<double>();
+    LoggerD("Tag id: %d", tag_id);
+
+    // TODO: implement this stub
+    LoggerW("Stub function used!");
+    int ndef_size = 1234;
+    ReportSuccess(picojson::value((double)ndef_size), out);
+}
+
+void NFCInstance::TagPropertiesGetter(
+        const picojson::value& args, picojson::object& out) {
+
+    LoggerD("Entered");
+
+    int tag_id = (int)args.get("id").get<double>();
+    LoggerD("Tag id: %d", tag_id);
+
+    // TODO: implement this stub
+    LoggerW("Stub function used!");
+    ReportSuccess(out);
+}
+
+void NFCInstance::TagIsConnectedGetter(
+        const picojson::value& args, picojson::object& out) {
+
+    LoggerD("Entered");
+
+    int tag_id = (int)args.get("id").get<double>();
+    LoggerD("Tag id: %d", tag_id);
+    try {
+        bool connected = NFCAdapter::GetInstance()->IsTagConnected(tag_id);
+        ReportSuccess(picojson::value(connected), out);
+    }
+    catch(const PlatformException& ex) {
+        LoggerE("Failed to check tag connection");
+        ReportError(ex, out);
+    }
+}
+
 
 } // namespace nfc
 } // namespace extension

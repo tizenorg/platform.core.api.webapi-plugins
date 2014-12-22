@@ -476,16 +476,86 @@ NFCAdapter.prototype.setExclusiveModeForTransaction = function() {
 
 //////////////////NFCTag /////////////////
 
-function NFCTag(data) {
+function NFCTag(tagid) {
+
+    var _my_id = tagid;
+
+    function TypeGetter() {
+
+        var result = native_.callSync('NFCTag_typeGetter', {'id' : _my_id});
+
+        if (native_.isFailure(result)) {
+            return;
+        }
+        return native_.getResultObject(result);
+    }
+
+    function IsSupportedNDEFGetter() {
+
+        var result = native_.callSync('NFCTag_isSupportedNDEFGetter', {'id' : _my_id});
+
+        if (native_.isFailure(result)) {
+            return;
+        }
+        return native_.getResultObject(result);
+    }
+
+    function NDEFSizeGetter() {
+
+        var result = native_.callSync('NFCTag_NDEFSizeGetter', {'id' : _my_id});
+
+        if (native_.isFailure(result)) {
+            return;
+        }
+        return native_.getResultObject(result);
+    }
+
+    function PropertiesGetter() {
+
+        var result = native_.callSync('NFCTag_propertiesGetter', {'id' : _my_id});
+
+        if (native_.isFailure(result)) {
+            return;
+        }
+        return native_.getResultObject(result);
+    }
+
+    function IsConnectedGetter() {
+
+        var result = native_.callSync('NFCTag_isConnectedGetter', {'id' : _my_id});
+
+        if (native_.isFailure(result)) {
+            return;
+        }
+        return native_.getResultObject(result);
+    }
+
     Object.defineProperties(this, {
-        type:   {value: data.type, writable: false, enumerable: true},
-        isSupportedNDEF:   {value: data.isSupportedNDEF,
-            writable: true, enumerable: true},
-        ndefSize:   {value: data.ndefSize,
-            writable: true, enumerable: true},
-        properties:   {value: data.properties, writable: true, enumerable: true},
-        isConnected:   {value: data.isConnected,
-            writable: true, enumerable: true}
+        type:   {
+            set: function() {},
+            get: TypeGetter,
+            enumerable: true
+        },
+        isSupportedNDEF:   {
+            set: function() {},
+            get: IsSupportedNDEFGetter,
+            enumerable: true
+        },
+        ndefSize:   {
+            set: function() {},
+            get: NDEFSizeGetter,
+            enumerable: true
+        },
+        properties:   {
+            set: function() {},
+            get: PropertiesGetter,
+            enumerable: true
+        },
+        isConnected:   {
+            set: function() {},
+            get: IsConnectedGetter,
+            enumerable: true
+        }
     });
 }
 
