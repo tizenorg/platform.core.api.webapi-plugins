@@ -32,5 +32,5 @@ CalendarExtension::CalendarExtension() {
 CalendarExtension::~CalendarExtension() {}
 
 common::Instance* CalendarExtension::CreateInstance() {
-  return new extension::calendar::CalendarInstance;
+  return &extension::calendar::CalendarInstance::GetInstance();
 }

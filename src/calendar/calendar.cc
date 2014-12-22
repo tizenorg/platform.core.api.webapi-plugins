@@ -23,6 +23,7 @@
 #include "calendar/calendar_manager.h"
 #include "calendar/calendar_privilege.h"
 #include "calendar/calendar_item.h"
+#include "calendar/calendar_instance.h"
 
 namespace extension {
 namespace calendar {
@@ -537,6 +538,10 @@ void Calendar::ChangeCallback(const char* view_uri, void*) {
   // prepare response object
   picojson::value response = picojson::value(picojson::object());
   picojson::object& response_obj = response.get<picojson::object>();
+  if (listeners_registered_.find("EVENT") != listeners_registered_.end())
+    response_obj.insert(std::make_pair("listenerId", listeners_registered_["EVENT"]));
+  else
+    response_obj.insert(std::make_pair("listenerId", listeners_registered_["TASK"]));
 
   picojson::array& added =
       response_obj.insert(std::make_pair("added", picojson::array()))
@@ -586,7 +591,8 @@ void Calendar::ChangeCallback(const char* view_uri, void*) {
         updated.push_back(record_obj);
       }
     }
-    catch(...) {//(BasePlatformException& ex) {
+    catch(PlatformException& ex) {
+        LoggerE("error occured");
     }
 
     calendar_list_next(list);
@@ -608,6 +614,7 @@ void Calendar::ChangeCallback(const char* view_uri, void*) {
     throw UnknownException("Can't get new version");
   }
   current_db_version_ = updated_version;
+  CalendarInstance::GetInstance().PostMessage(response.serialize().c_str());
 }
 
 }  // namespace calendar

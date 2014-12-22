@@ -591,20 +591,19 @@ function _CalendarChangeCallback(type, event) {
     return grouped;
   }.bind(this);
 
-  var e = JSON.parse(event);
   var actions = ['added', 'updated', 'removed'];
   for (var i = 0; i < actions.length; i++) {
     var action = actions[i];
     var callback = 'onitems' + action;
 
-    if (e.hasOwnProperty(action) && T.isArray(e[action]) && e[action].length) {
+    if (event.hasOwnProperty(action) && T.isArray(event[action]) && event[action].length) {
 
       // invoke listeners for unified calendars
       if (_listeners.hasOwnProperty(type)) {
-        invokeListeners(_listeners[type], callback, e[action]);
+        invokeListeners(_listeners[type], callback, event[action]);
       }
 
-      var groupedItems = groupItemsByCalendar(e[action]);
+      var groupedItems = groupItemsByCalendar(event[action]);
       for (var calendarId in groupedItems) {
         if (groupedItems.hasOwnProperty(calendarId)) {
           invokeListeners(_listeners[calendarId], callback, groupedItems[calendarId]);

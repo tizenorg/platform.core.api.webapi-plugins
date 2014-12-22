@@ -15,6 +15,7 @@ class CalendarInstance : public common::ParsedInstance {
  public:
   CalendarInstance();
   virtual ~CalendarInstance();
+  static CalendarInstance& GetInstance();
 
  private:
   void Calendar_get(const picojson::value& args, picojson::object& out);

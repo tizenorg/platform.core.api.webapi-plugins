@@ -21,6 +21,11 @@ namespace calendar {
 using namespace common;
 using namespace extension::calendar;
 
+CalendarInstance& CalendarInstance::GetInstance() {
+  static CalendarInstance instance;
+  return instance;
+}
+
 CalendarInstance::CalendarInstance() {
   using namespace std::placeholders;
 #define REGISTER_SYNC(c, x) \
@@ -37,12 +42,10 @@ CalendarInstance::CalendarInstance() {
   // Calendar Manager
   REGISTER_SYNC("CalendarManager_addCalendar", CalendarManager_addCalendar);
   REGISTER_SYNC("CalendarManager_getCalendar", CalendarManager_getCalendar);
-  //  REGISTER_SYNC("CalendarManager_getCalendars",
-  //  CalendarManager_getCalendars);
   REGISTER_SYNC("CalendarManager_removeCalendar",
                 CalendarManager_removeCalendar);
-
 #undef REGISTER_SYNC
+
 #define REGISTER_ASYNC(c, x) \
   RegisterHandler(c, std::bind(&CalendarInstance::x, this, _1, _2));
   REGISTER_ASYNC("Calendar_addBatch", Calendar_addBatch);
