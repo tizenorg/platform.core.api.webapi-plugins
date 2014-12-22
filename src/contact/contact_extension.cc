@@ -38,5 +38,5 @@ ContactExtension::ContactExtension() {
 ContactExtension::~ContactExtension() {}
 
 common::Instance* ContactExtension::CreateInstance() {
-  return new extension::contact::ContactInstance;
+  return &extension::contact::ContactInstance::GetInstance();
 }

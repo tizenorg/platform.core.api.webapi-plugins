@@ -16,8 +16,6 @@ var _filterById = function(array, id) {
 };
 
 var _contactChangeListener = function(result) {
-  result = JSON.parse(result);
-
   var unifiedId = -1;
   var watchId;
   var i;

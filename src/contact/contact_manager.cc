@@ -22,6 +22,7 @@
 #include "common/logger.h"
 
 #include <contacts.h>
+#include "contact/contact_instance.h"
 #include "contact/person.h"
 
 namespace extension {
@@ -275,6 +276,7 @@ void ContactManager_listenerCallback(const char* view_uri, char* changes,
 
   JsonValue result{JsonObject{}};
   JsonObject& result_obj = result.get<JsonObject>();
+  result_obj.insert(std::make_pair("listenerId", kContactPersonListenerId));
   JsonArray& added = result_obj.insert(std::make_pair("added", JsonArray{}))
                            .first->second.get<JsonArray>();
   JsonArray& updated =
@@ -329,7 +331,7 @@ void ContactManager_listenerCallback(const char* view_uri, char* changes,
     token = strtok(nullptr, kTokenDelimiter);
   }
 
-  // @todo implement fire event
+  ContactInstance::GetInstance().PostMessage(result.serialize().c_str());
 }
 }
 

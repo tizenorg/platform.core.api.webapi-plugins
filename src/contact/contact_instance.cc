@@ -18,6 +18,13 @@ namespace contact {
 
 using namespace common;
 
+ContactInstance& ContactInstance::GetInstance() {
+    static ContactInstance instance;
+    return instance;
+}
+
+int ContactInstance::current_state = 0;
+
 ContactInstance::ContactInstance() {
   using namespace std::placeholders;
 
@@ -49,6 +56,8 @@ ContactInstance::ContactInstance() {
   REGISTER_SYNC("AddressBook_updateGroup", AddressBook_updateGroup);
   REGISTER_SYNC("AddressBook_removeGroup", AddressBook_removeGroup);
   REGISTER_SYNC("AddressBook_getGroups", AddressBook_getGroups);
+  REGISTER_SYNC("AddressBook_startListening", AddressBook_startListening);
+  REGISTER_SYNC("AddressBook_stopListening", AddressBook_stopListening);
 
   // Person
   REGISTER_SYNC("Person_link", Person_link);
@@ -196,6 +205,20 @@ void ContactInstance::ContactManager_getAddressBook(const JsonValue& args,
   JsonValue val{JsonObject{}};
   ContactManager::ContactManager_getAddressBook(
       common::JsonCast<JsonObject>(args), val.get<JsonObject>());
+  ReportSuccess(val, out);
+}
+
+void ContactInstance::AddressBook_startListening(const JsonValue& args, JsonObject& out) {
+  JsonValue val{JsonObject{}};
+  AddressBook::AddressBook_startListening(common::JsonCast<JsonObject>(args),
+                               val.get<JsonObject>());
+  ReportSuccess(val, out);
+}
+
+void ContactInstance::AddressBook_stopListening(const JsonValue& args, JsonObject& out) {
+  JsonValue val{JsonObject{}};
+  AddressBook::AddressBook_stopListening(common::JsonCast<JsonObject>(args),
+                               val.get<JsonObject>());
   ReportSuccess(val, out);
 }
 

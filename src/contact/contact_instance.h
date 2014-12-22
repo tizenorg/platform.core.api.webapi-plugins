@@ -16,6 +16,8 @@ namespace contact {
 class ContactInstance : public common::ParsedInstance {
  public:
   ContactInstance();
+  static ContactInstance& GetInstance();
+  static int current_state;
   virtual ~ContactInstance();
 
  private:
@@ -30,6 +32,8 @@ class ContactInstance : public common::ParsedInstance {
   void AddressBook_updateGroup(const JsonValue& args, JsonObject& out);
   void AddressBook_removeGroup(const JsonValue& args, JsonObject& out);
   void AddressBook_getGroups(const JsonValue& args, JsonObject& out);
+  void AddressBook_startListening(const JsonValue& args, JsonObject& out);
+  void AddressBook_stopListening(const JsonValue& args,JsonObject& out);
 
   /**
    * Signature: @code void getAddressBooks(successCallback, errorCallback);

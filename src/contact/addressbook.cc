@@ -22,6 +22,7 @@
 #include "common/logger.h"
 
 #include <contacts.h>
+#include "contact/contact_instance.h"
 
 namespace extension {
 namespace contact {
@@ -533,6 +534,7 @@ void AddressBook_listenerCallback(const char* view_uri, void* user_data) {
 
     JsonValue result{JsonObject{}};
     JsonObject& result_obj = result.get<JsonObject>();
+    result_obj.insert(std::make_pair("listenerId", kContactListenerId));
     JsonArray& added = result_obj.insert(std::make_pair("added", JsonArray{}))
                            .first->second.get<JsonArray>();
     JsonArray& updated =
@@ -610,23 +612,22 @@ void AddressBook_listenerCallback(const char* view_uri, void* user_data) {
         removed.push_back(std::move(removed_data));
       }
     }
-
-    // @todo implement fire event
+    ContactInstance::GetInstance().PostMessage(result.serialize().c_str());
   }
 }
 }
 
-void AddressBook_startListening(int* current_state, const JsonObject&) {
+void AddressBook_startListening(const JsonObject& args, JsonObject& out) {
   ContactUtil::CheckDBConnection();
   // Set the initial latest version before registering the callback.
   // The callback should only be registered once so no race can occur.
-  int error_code = contacts_db_get_current_version(current_state);
+  int error_code = contacts_db_get_current_version(&ContactInstance::current_state);
   if (CONTACTS_ERROR_NONE != error_code) {
     LoggerW("get current version returns error, code: %d", error_code);
   }
 
   error_code = contacts_db_add_changed_cb(
-      _contacts_contact._uri, AddressBook_listenerCallback, current_state);
+      _contacts_contact._uri, AddressBook_listenerCallback, &ContactInstance::current_state);
 
   if (CONTACTS_ERROR_NONE != error_code) {
     LoggerE("Error while registering listener to contacts db, code: %d",
@@ -635,10 +636,10 @@ void AddressBook_startListening(int* current_state, const JsonObject&) {
   }
 }
 
-void AddressBook_stopListening(int* current_state, const JsonObject&) {
+void AddressBook_stopListening(const JsonObject& args, JsonObject& out) {
   ContactUtil::CheckDBConnection();
   int error_code = contacts_db_remove_changed_cb(
-      _contacts_contact._uri, AddressBook_listenerCallback, current_state);
+      _contacts_contact._uri, AddressBook_listenerCallback, &ContactInstance::current_state);
 
   if (CONTACTS_ERROR_NONE != error_code) {
     LoggerE("Error while removing listener");
