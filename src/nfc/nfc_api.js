@@ -546,7 +546,7 @@ var toByteArray = function(array, max_size, nullable) {
     if (len > max_size)
         throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
     for (var i = 0; i < len; i++){
-        resultArray.push(Converter_.toByte(convertedArray[i]));
+        resultArray.push(Converter_.toOctet(convertedArray[i]));
     }
     return resultArray;
 }
@@ -583,13 +583,13 @@ tizen.NDEFMessage = function(data) {
                     recordCount_ = data.length;
                 } else {
                     var raw_data_ = toByteArray(data);
-//                  var result = native_.callSync(
-//                  'NDEFMessage_constructor', {
-//                  'rawData': raw_data_,
-//                  'rawDataSize' : raw_data_.length
-//                  }
-//                  );
-//                  //set all needed fields here basing on result object
+                    var result = native_.callSync(
+                            'NDEFMessage_constructor', {
+                                'rawData': raw_data_,
+                                'rawDataSize' : raw_data_.length
+                            }
+                    );
+//TODO              //set all needed fields here basing on result object
                 }
             } else {
                 throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
@@ -640,13 +640,21 @@ tizen.NDEFRecord = function(first, type, payload, id) {
             if (arguments.length >= 1) {
                 if (T_.isArray(first)) {
                     var raw_data_ = toByteArray(first);
-//                  var result = native_.callSync(
-//                  'NDEFRecord_constructor', {
-//                  'rawData': raw_data_,
-//                  'rawDataSize' : raw_data_.length
-//                  }
-//                  );
-//                  //set all needed fields here basing on result object
+                    var result = native_.callSync(
+                            'NDEFRecord_constructor', {
+                                'rawData': raw_data_,
+                                'rawDataSize' : raw_data_.length
+                            }
+                    );
+                    if(native_.isFailure(result)) {
+                        throw new tizen.WebAPIException(0, result.error.message,
+                                result.error.name);
+                        // throw native_.getErrorObject(result);
+                    }
+                    tnf_ = Converter_.toLong(result.result.tnf);
+                    type_ = toByteArray(result.result.type, 255);
+                    payload_ = toByteArray(result.result.payload, Math.pow(2, 32)-1);
+                    id_ = toByteArray(result.result.id, 255);
                 } else if (arguments.length >= 3){
                     tnf_ = Converter_.toLong(first);
                     type_ = toByteArray(type, 255);
@@ -689,16 +697,20 @@ tizen.NDEFRecordText = function(text, languageCode, encoding) {
                 encoding_ = Converter_.toEnum(encoding, ENCODING, true);
             }
 
-//          call parent constructor
-//          var result = native_.callSync(
-//          'NDEFRecordText_constructor', {
-//          'text': text_,
-//          'languageCode' : languageCode_,
-//          'encoding' : encoding_,
-//          }
-//          );
-//          //set all needed fields here basing on result object
-            tizen.NDEFRecord.call(this, 1, [1,2,3], [1,2,3], [1,2,3]);
+            var result = native_.callSync(
+                    'NDEFRecordText_constructor', {
+                        'text': text_,
+                        'languageCode' : languageCode_,
+                        'encoding' : encoding_
+                    }
+            );
+            if(native_.isFailure(result)) {
+                throw new tizen.WebAPIException(0, result.error.message,
+                        result.error.name);
+                // throw native_.getErrorObject(result);
+            }
+            tizen.NDEFRecord.call(this, result.result.tnf, result.result.type,
+                    result.result.payload, result.result.id);
         } else {
             throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
         }
@@ -728,14 +740,18 @@ tizen.NDEFRecordURI = function(uri) {
         if (arguments.length >= 1) {
             uri_ = Converter_.toString(uri);
 
-//          call parent constructor
-//          var result = native_.callSync(
-//          'NDEFRecordURI_constructor', {
-//          'uri': uri_
-//          }
-//          );
-//          //set all needed fields here basing on result object
-            tizen.NDEFRecord.call(this, 1, [1,2,3], [1,2,3], [1,2,3]);
+            var result = native_.callSync(
+                    'NDEFRecordURI_constructor', {
+                        'uri': uri_
+                    }
+            );
+            if(native_.isFailure(result)) {
+                throw new tizen.WebAPIException(0, result.error.message,
+                        result.error.name);
+                // throw native_.getErrorObject(result);
+            }
+            tizen.NDEFRecord.call(this, result.result.tnf, result.result.type,
+                    result.result.payload, result.result.id);
         } else {
             throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
         }
@@ -760,18 +776,23 @@ tizen.NDEFRecordMedia = function(mimeType, data) {
     var data_ = undefined;
     try {
         if (arguments.length >= 2) {
-            miemType_ = Converter_.toString(mimeType);
+            mimeType_ = Converter_.toString(mimeType);
             data_ = toByteArray(data, Math.pow(2, 32)-1);
 
-//          call parent constructor
-//          var result = native_.callSync(
-//          'NDEFRecordMedia_constructor', {
-//          'mimeType': mimeType_,
-//            'data': data_,
-//          }
-//          );
-//          //set all needed fields here basing on result object
-            tizen.NDEFRecord.call(this, 1, [1,2,3], [1,2,3], [1,2,3]);
+            var result = native_.callSync(
+                    'NDEFRecordMedia_constructor', {
+                        'mimeType': mimeType_,
+                        'data': data_,
+                        'dataSize': data_.length
+                    }
+            );
+            if(native_.isFailure(result)) {
+                throw new tizen.WebAPIException(0, result.error.message,
+                        result.error.name);
+                // throw native_.getErrorObject(result);
+            }
+            tizen.NDEFRecord.call(this, result.result.tnf, result.result.type,
+                    result.result.payload, result.result.id);
         } else {
             throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
         }

@@ -53,6 +53,12 @@ private:
     void SendNDEF(const picojson::value& args, picojson::object& out);
     void ToByte(const picojson::value& args, picojson::object& out);
 
+    //Message related methods
+    void NDEFMessageContructor(const picojson::value& args, picojson::object& out);
+    void NDEFRecordContructor(const picojson::value& args, picojson::object& out);
+    void NDEFRecordTextContructor(const picojson::value& args, picojson::object& out);
+    void NDEFRecordURIContructor(const picojson::value& args, picojson::object& out);
+    void NDEFRecordMediaContructor(const picojson::value& args, picojson::object& out);
 };
 
 } // namespace nfc

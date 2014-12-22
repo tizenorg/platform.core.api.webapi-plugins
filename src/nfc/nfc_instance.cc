@@ -4,6 +4,7 @@
 
 #include "nfc_instance.h"
 #include "nfc_util.h"
+#include "nfc_message_utils.h"
 
 #include "common/picojson.h"
 #include "common/logger.h"
@@ -58,6 +59,13 @@ NFCInstance::NFCInstance() {
             SetExclusiveModeForTransaction);
     REGISTER_SYNC("NFCPeer_unsetReceiveNDEFListener", UnsetReceiveNDEFListener);
     REGISTER_SYNC("NDEFMessage_toByte", ToByte);
+    //Message related methods
+    REGISTER_SYNC("NDEFMessage_constructor", NDEFMessageContructor);
+    REGISTER_SYNC("NDEFRecord_constructor", NDEFRecordContructor);
+    REGISTER_SYNC("NDEFRecordText_constructor", NDEFRecordTextContructor);
+    REGISTER_SYNC("NDEFRecordURI_constructor", NDEFRecordURIContructor);
+    REGISTER_SYNC("NDEFRecordMedia_constructor", NDEFRecordMediaContructor);
+
 #undef REGISTER_SYNC
 #define REGISTER(c,x) \
     RegisterHandler(c, std::bind(&NFCInstance::x, this, _1, _2));
@@ -341,6 +349,71 @@ void NFCInstance::SendNDEF(
 void NFCInstance::ToByte(
         const picojson::value& args, picojson::object& out) {
 
+}
+
+//Message related methods
+void NFCInstance::NDEFMessageContructor(const picojson::value& args, picojson::object& out) {
+    LoggerD("Entered");
+    try {
+//        ase = NFCAdapter::GetInstance()->GetActiveSecureElement();
+//        ReportSuccess(picojson::value(ase), out);
+        ReportSuccess(out);
+    }
+    catch(const common::PlatformException& ex) {
+        ReportError(ex, out);
+    }
+}
+
+void NFCInstance::NDEFRecordContructor(const picojson::value& args, picojson::object& out) {
+    LoggerD("Entered");
+    try {
+        picojson::value result = picojson::value(picojson::object());
+        picojson::object& result_obj = result.get<picojson::object>();
+        NFCMessageUtils::ReportNDEFRecord(args, result_obj);
+        ReportSuccess(result, out);
+    }
+    catch(const common::PlatformException& ex) {
+        ReportError(ex, out);
+    }
+}
+
+void NFCInstance::NDEFRecordTextContructor(const picojson::value& args, picojson::object& out) {
+    LoggerD("Entered");
+    try {
+        picojson::value result = picojson::value(picojson::object());
+        picojson::object& result_obj = result.get<picojson::object>();
+        NFCMessageUtils::ReportNDEFRecordText(args, result_obj);
+        ReportSuccess(result, out);
+    }
+    catch(const common::PlatformException& ex) {
+        ReportError(ex, out);
+    }
+}
+
+void NFCInstance::NDEFRecordURIContructor(const picojson::value& args, picojson::object& out) {
+    LoggerD("Entered");
+    try {
+        picojson::value result = picojson::value(picojson::object());
+        picojson::object& result_obj = result.get<picojson::object>();
+        NFCMessageUtils::ReportNDEFRecordURI(args, result_obj);
+        ReportSuccess(result, out);
+    }
+    catch(const common::PlatformException& ex) {
+        ReportError(ex, out);
+    }
+}
+
+void NFCInstance::NDEFRecordMediaContructor(const picojson::value& args, picojson::object& out) {
+    LoggerD("Entered");
+    try {
+        picojson::value result = picojson::value(picojson::object());
+        picojson::object& result_obj = result.get<picojson::object>();
+        NFCMessageUtils::ReportNDEFRecordMedia(args, result_obj);
+        ReportSuccess(result, out);
+    }
+    catch(const common::PlatformException& ex) {
+        ReportError(ex, out);
+    }
 }
 
 } // namespace nfc
