@@ -28,7 +28,7 @@
               'power/power.gyp:*',
               'bookmark/bookmark.gyp:*',
               'systeminfo/systeminfo.gyp:*',
-              'radio/radio.gyp:*',
+              #'radio/radio.gyp:*',
             ],
           },
         ], # end mobile
