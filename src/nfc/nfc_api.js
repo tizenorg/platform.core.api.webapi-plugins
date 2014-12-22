@@ -46,6 +46,7 @@ ListenerManager.prototype.removeListener = function(watchId) {
 };
 
 var PEER_LISTENER = 'PeerListener';
+var RECEIVE_NDEF_LISTENER = 'ReceiveNDEFListener';
 var CARD_EMULATION_MODE_LISTENER = 'CardEmulationModeChanged';
 var ACTIVE_SECURE_ELEMENT_LISTENER = 'ActiveSecureElementChanged';
 var TRANSACTION_EVENT_ESE_LISTENER = 'TransactionEventListener_ESE';
@@ -275,7 +276,7 @@ NFCAdapter.prototype.setPeerListener = function() {
     ]);
 
     var listener = function(msg) {
-        var data = null;
+        var data = undefined;
         if ('onattach' === msg.action) {
             data = new NFCPeer(msg.id);
         }
@@ -523,11 +524,40 @@ function NFCPeer(peerid) {
 }
 
 NFCPeer.prototype.setReceiveNDEFListener = function() {
+    var args = validator_.validateArgs(arguments, [
+        {
+            name: 'listener',
+            type: types_.LISTENER,
+            values: ['onsuccess']
+        }
+    ]);
 
+    var listener = function(msg) {
+        var data = undefined;
+        if ('onsuccess' === msg.action && this._my_id === msg.id) {
+            data = new NDEFMessage(msg);
+        }
+        args.listener[msg.action](data);
+    }
+
+    var result = native_.callSync('NFCPeer_setReceiveNDEFListener', {'id' : this._my_id});
+    if (native_.isFailure(result)) {
+        throw new tizen.WebAPIException(0, result.error.message, result.error.name);
+    }
+
+    native_.addListener(RECEIVE_NDEF_LISTENER, listener);
+    return;
 };
 
 NFCPeer.prototype.unsetReceiveNDEFListener = function() {
+    native_.removeListener(RECEIVE_NDEF_LISTENER);
 
+    var result = native_.callSync('NFCPeer_unsetReceiveNDEFListener', {'id' : this._my_id});
+    if (native_.isFailure(result)) {
+        throw new tizen.WebAPIException(0, result.error.message, result.error.name);
+    }
+
+    return;
 };
 
 NFCPeer.prototype.sendNDEF = function() {

@@ -57,6 +57,7 @@ NFCInstance::NFCInstance() {
     REGISTER_SYNC("NFCAdapter_getCachedMessage", GetCachedMessage);
     REGISTER_SYNC("NFCAdapter_setExclusiveModeForTransaction",
             SetExclusiveModeForTransaction);
+    REGISTER_SYNC("NFCPeer_setReceiveNDEFListener", SetReceiveNDEFListener);
     REGISTER_SYNC("NFCPeer_unsetReceiveNDEFListener", UnsetReceiveNDEFListener);
     REGISTER_SYNC("NDEFMessage_toByte", ToByte);
     //Message related methods
@@ -73,7 +74,6 @@ NFCInstance::NFCInstance() {
     REGISTER("NFCTag_readNDEF", ReadNDEF);
     REGISTER("NFCTag_writeNDEF", WriteNDEF);
     REGISTER("NFCTag_transceive ", Transceive );
-    REGISTER("NFCPeer_setReceiveNDEFListener", SetReceiveNDEFListener);
     REGISTER("NFCPeer_sendNDEF", SendNDEF);
 #undef REGISTER
     // NFC library initialization
@@ -334,11 +334,27 @@ void NFCInstance::Transceive(
 void NFCInstance::SetReceiveNDEFListener(
         const picojson::value& args, picojson::object& out) {
 
+    try {
+        int peer_id = (int)args.get("id").get<double>();
+        NFCAdapter::GetInstance()->SetReceiveNDEFListener(peer_id);
+        ReportSuccess(out);
+    }
+    catch(const common::PlatformException& ex) {
+        ReportError(ex, out);
+    }
 }
 
 void NFCInstance::UnsetReceiveNDEFListener(
         const picojson::value& args, picojson::object& out) {
 
+    try {
+        int peer_id = (int)args.get("id").get<double>();
+        NFCAdapter::GetInstance()->UnsetReceiveNDEFListener(peer_id);
+        ReportSuccess(out);
+    }
+    catch(const common::PlatformException& ex) {
+        ReportError(ex, out);
+    }
 }
 
 void NFCInstance::SendNDEF(
