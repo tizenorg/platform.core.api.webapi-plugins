@@ -61,6 +61,8 @@ const char* MESSAGE_ATTACHMENT_ATTRIBUTE_MESSAGE_ID = "messageId";
 const char* MESSAGE_ATTACHMENT_ATTRIBUTE_MIME_TYPE = "mimeType";
 const char* MESSAGE_ATTACHMENT_ATTRIBUTE_FILE_PATH = "filePath";
 
+const char* MESSAGE_FOLDER_ATTRIBUTE_SERVICE_ID = "serviceId";
+
 namespace {
 const std::string TYPE_SMS = "messaging.sms";
 const std::string TYPE_MMS = "messaging.mms";

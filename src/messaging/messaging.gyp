@@ -91,7 +91,9 @@
         'change_listener_container.cc',
         'change_listener_container.h',
         'messages_change_callback.cc',
-        'messages_change_callback.h'
+        'messages_change_callback.h',
+        'message_folder.cc',
+        'message_folder.h'
       ],
       'includes': [
         '../common/pkg-config.gypi',
