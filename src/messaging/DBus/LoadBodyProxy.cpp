@@ -20,19 +20,29 @@
  */
 
 #include "LoadBodyProxy.h"
-#include <Logger.h>
-#include <PlatformException.h>
-#include <cstring>
-#include <email-types.h>
-#include "MessageService.h"
-#include "Message.h"
-#include "MessageBody.h"
-#include "EmailManager.h"
-#include "JSMessage.h"
-#include <JSWebAPIErrorFactory.h>
 
-namespace DeviceAPI {
-namespace Messaging {
+//#include <Logger.h>
+//#include <PlatformException.h>
+//#include <cstring>
+#include <email-types.h>
+
+//#include "MessageService.h"
+//#include "Message.h"
+//#include "MessageBody.h"
+//#include "EmailManager.h"
+//#include "JSMessage.h"
+//#include <JSWebAPIErrorFactory.h>
+
+#include "common/logger.h"
+#include <cstring>
+#include "common/platform_exception.h"
+
+#include "../message.h"
+#include "../message_body.h"
+#include "../email_manager.h"
+
+namespace extension {
+namespace messaging {
 namespace DBus {
 
 LoadBodyProxy::LoadBodyProxy(const std::string& path,
@@ -68,7 +78,7 @@ MessageBodyCallbackData* LoadBodyProxy::findCallbackByOpHandle(const int op_hand
         }
     }
 
-    LOGW("Could not find callback with op_handle: %d", op_handle);
+    LoggerW("Could not find callback with op_handle: %d", op_handle);
     return NULL;
 }
 
@@ -104,12 +114,12 @@ void LoadBodyProxy::handleEmailSignal(const int status,
         } break;
     }
 
-    LOGD("received email signal with:\n  status: %d\n  mail_id: %d\n  "
+    LoggerD("received email signal with:\n  status: %d\n  mail_id: %d\n  "
         "source: %s\n  op_handle: %d\n  error_code: %d",
         status, mail_id, source.c_str(), op_handle, error_code);
 
     if(NOTI_DOWNLOAD_BODY_START == status) {
-        LOGD("Download message body started ...");
+        LoggerD("Download message body started ...");
         // There is nothing more to do so we can return now.
         return;
     }
@@ -118,7 +128,7 @@ void LoadBodyProxy::handleEmailSignal(const int status,
     try {
         callback = findCallbackByOpHandle(op_handle);
         if (!callback) {
-            LOGE("Callback is null");
+            LoggerE("Callback is null");
         } else {
             if( (NOTI_DOWNLOAD_BODY_FINISH == status) ||
                 (NOTI_DOWNLOAD_BODY_FAIL == status &&
@@ -158,41 +168,48 @@ void LoadBodyProxy::handleEmailSignal(const int status,
                     */
                 }
 
-                LOGD("Message body downloaded!");
+                LoggerD("Message body downloaded!");
                 try {
-                    JSContextRef context = callback->getContext();
-                    JSObjectRef jsMessage = JSMessage::makeJSObject(context,
-                             callback->getMessage());
-                    callback->callSuccessCallback(jsMessage);
+                    LoggerD("Calling success callback");
+
+                    auto json = callback->getJson();
+                    picojson::object& obj = json->get<picojson::object>();
+                    obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
+
+                    picojson::object args;
+                    args[JSON_DATA_MESSAGE_BODY] = MessagingUtil::messageBodyToJson(
+                            callback->getMessage()->getBody());
+                    obj[JSON_DATA] = picojson::value(args);
+
+                    MessagingInstance::getInstance().PostMessage(json->serialize().c_str());
                 } catch (...) {
-                    LOGW("Couldn't create JSMessage object!");
-                    throw Common::UnknownException(
+                    LoggerW("Couldn't create JSMessage object!");
+                    throw common::UnknownException(
                             "Couldn't create JSMessage object!");
                 }
 
             } else if(NOTI_DOWNLOAD_BODY_FAIL == status) {
-                LOGD("Load message body failed!");
-                JSObjectRef errobj = Common::JSWebAPIErrorFactory::makeErrorObject(
-                        callback->getContext(),
-                        callback->getErrorName(),
-                        callback->getErrorMessage());
-                callback->callErrorCallback(errobj);
+                LoggerD("Load message body failed!");
+
+                common::UnknownException e("Load message body failed!");
+                callback->setError(e.name(), e.message());
+                MessagingInstance::getInstance().PostMessage(
+                        callback->getJson()->serialize().c_str());
             }
         }
     }
-    catch (const Common::BasePlatformException& e) {
-        LOGE("Exception in signal callback");
-        JSObjectRef errobj = Common::JSWebAPIErrorFactory::makeErrorObject(
-                callback->getContext(), e);
-        callback->callErrorCallback(errobj);
+    catch (const common::PlatformException& e) {
+        LoggerE("Exception in signal callback");
+
+        callback->setError(e.name(), e.message());
+        MessagingInstance::getInstance().PostMessage(callback->getJson()->serialize().c_str());
     }
     catch (...) {
-        LOGE("Exception in signal callback");
-        JSObjectRef errobj = Common::JSWebAPIErrorFactory::makeErrorObject(
-                callback->getContext(),
-                Common::JSWebAPIErrorFactory::UNKNOWN_ERROR,
-                "Handling signal callback failed");
-        callback->callErrorCallback(errobj);
+        LoggerE("Exception in signal callback");
+
+        common::UnknownException e("Load message body failed!");
+        callback->setError(e.name(), e.message());
+        MessagingInstance::getInstance().PostMessage(callback->getJson()->serialize().c_str());
     }
 
     if(callback) {
@@ -202,5 +219,5 @@ void LoadBodyProxy::handleEmailSignal(const int status,
 }
 
 } //namespace DBus
-} //namespace Messaging
-} //namespace DeviceAPI
+} //namespace messaging
+} //namespace extension
