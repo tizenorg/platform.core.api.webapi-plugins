@@ -227,21 +227,19 @@ void ParsedInstance::RegisterSyncHandler(const std::string& name, const NativeHa
 }
 
 void ParsedInstance::ReportSuccess(picojson::object& out) {
-  out.insert(std::make_pair("status", picojson::value("success")));
+  tools::ReportSuccess(out);
 }
 
 void ParsedInstance::ReportSuccess(const picojson::value& result, picojson::object& out) {
-  out.insert(std::make_pair("status", picojson::value("success")));
-  out.insert(std::make_pair("result", result));
+  tools::ReportSuccess(result, out);
 }
 
 void ParsedInstance::ReportError(picojson::object& out) {
-  out.insert(std::make_pair("status", picojson::value("error")));
+  tools::ReportError(out);
 }
 
 void ParsedInstance::ReportError(const PlatformException& ex, picojson::object& out) {
-  out.insert(std::make_pair("status", picojson::value("error")));
-  out.insert(std::make_pair("error", ex.ToJSON()));
+  tools::ReportError(ex, out);
 }
 
 void ParsedInstance::HandleMessage(const char* msg) {
@@ -307,5 +305,25 @@ void ParsedInstance::HandleException(const PlatformException& ex) {
   ReportError(ex, result.get<picojson::object>());
   SendSyncReply(result.serialize().c_str());
 }
+
+namespace tools {
+void ReportSuccess(picojson::object& out) {
+  out.insert(std::make_pair("status", picojson::value("success")));
+}
+
+void ReportSuccess(const picojson::value& result, picojson::object& out) {
+  out.insert(std::make_pair("status", picojson::value("success")));
+  out.insert(std::make_pair("result", result));
+}
+
+void ReportError(picojson::object& out) {
+  out.insert(std::make_pair("status", picojson::value("error")));
+}
+
+void ReportError(const PlatformException& ex, picojson::object& out) {
+  out.insert(std::make_pair("status", picojson::value("error")));
+  out.insert(std::make_pair("error", ex.ToJSON()));
+}
+}  // namespace tools
 
 }  // namespace common

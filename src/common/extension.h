@@ -121,6 +121,13 @@ class ParsedInstance : public Instance {
   std::map<std::string, NativeHandler> handler_map_;
 };
 
+namespace tools {
+void ReportSuccess(picojson::object& out);
+void ReportSuccess(const picojson::value& result, picojson::object& out);
+void ReportError(picojson::object& out);
+void ReportError(const PlatformException& ex, picojson::object& out);
+}  // namespace tools
+
 }  // namespace common
 
 #endif  // COMMON_EXTENSION_H_
