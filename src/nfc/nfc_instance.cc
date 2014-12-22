@@ -38,6 +38,7 @@ NFCInstance::NFCInstance() {
     REGISTER_SYNC("NFCAdapter_setPeerListener", SetPeerListener);
     REGISTER_SYNC("NFCAdapter_setTagListener", SetTagListener);
     REGISTER_SYNC("NFCAdapter_setPeerListener", SetPeerListener);
+    REGISTER_SYNC("NFCAdapter_PeerIsConnectedGetter", PeerIsConnectedGetter);
     REGISTER_SYNC("NFCAdapter_unsetTagListener", UnsetTagListener);
     REGISTER_SYNC("NFCAdapter_unsetPeerListener", UnsetPeerListener);
     REGISTER_SYNC("NFCAdapter_addCardEmulationModeChangeListener",
@@ -199,9 +200,29 @@ void NFCInstance::SetTagListener(
 
 }
 
+void NFCInstance::PeerIsConnectedGetter(
+        const picojson::value& args, picojson::object& out) {
+
+    try {
+        int peer_id = (int)args.get("id").get<double>();
+        bool ret = NFCAdapter::GetInstance()->IsPeerConnected(peer_id);
+        ReportSuccess(picojson::value(ret), out);
+    }
+    catch(const common::PlatformException& ex) {
+        ReportError(ex, out);
+    }
+}
+
 void NFCInstance::SetPeerListener(
         const picojson::value& args, picojson::object& out) {
 
+    try {
+        NFCAdapter::GetInstance()->SetPeerListener();
+        ReportSuccess(out);
+    }
+    catch(const common::PlatformException& ex) {
+        ReportError(ex, out);
+    }
 }
 
 void NFCInstance::UnsetTagListener(
@@ -212,6 +233,13 @@ void NFCInstance::UnsetTagListener(
 void NFCInstance::UnsetPeerListener(
         const picojson::value& args, picojson::object& out) {
 
+    try {
+        NFCAdapter::GetInstance()->UnsetPeerListener();
+        ReportSuccess(out);
+    }
+    catch(const common::PlatformException& ex) {
+        ReportError(ex, out);
+    }
 }
 
 void NFCInstance::AddCardEmulationModeChangeListener(

@@ -33,6 +33,7 @@ private:
     void ActiveSecureElementSetter(const picojson::value& args, picojson::object& out);
     void ActiveSecureElementGetter(const picojson::value& args, picojson::object& out);
     void SetTagListener(const picojson::value& args, picojson::object& out);
+    void PeerIsConnectedGetter(const picojson::value& args, picojson::object& out);
     void SetPeerListener(const picojson::value& args, picojson::object& out);
     void UnsetTagListener(const picojson::value& args, picojson::object& out);
     void UnsetPeerListener(const picojson::value& args, picojson::object& out);

@@ -45,6 +45,7 @@ ListenerManager.prototype.removeListener = function(watchId) {
     }
 };
 
+var PEER_LISTENER = 'PeerListener';
 var CARD_EMULATION_MODE_LISTENER = 'CardEmulationModeChanged';
 var ACTIVE_SECURE_ELEMENT_LISTENER = 'ActiveSecureElementChanged';
 var TRANSACTION_EVENT_ESE_LISTENER = 'TransactionEventListener_ESE';
@@ -265,7 +266,31 @@ NFCAdapter.prototype.setTagListener  = function() {
 };
 
 NFCAdapter.prototype.setPeerListener = function() {
+    var args = validator_.validateArgs(arguments, [
+        {
+            name: 'listener',
+            type: types_.LISTENER,
+            values: ['onattach', 'ondetach']
+        }
+    ]);
 
+    var listener = function(msg) {
+        var data = null;
+        if ('onattach' === msg.action) {
+            data = new NFCPeer(msg.id);
+        }
+        args.listener[msg.action](data);
+    }
+
+    if (!native_.isListenerSet(PEER_LISTENER)) {
+        var result = native_.callSync('NFCAdapter_setPeerListener');
+        if (native_.isFailure(result)) {
+            throw new tizen.WebAPIException(0, result.error.message, result.error.name);
+        }
+    }
+
+    native_.addListener(PEER_LISTENER, listener);
+    return;
 };
 
 NFCAdapter.prototype.unsetTagListener = function() {
@@ -273,7 +298,14 @@ NFCAdapter.prototype.unsetTagListener = function() {
 };
 
 NFCAdapter.prototype.unsetPeerListener = function() {
+    native_.removeListener(PEER_LISTENER);
 
+    var result = native_.callSync('NFCAdapter_unsetPeerListener');
+    if (native_.isFailure(result)) {
+        throw new tizen.WebAPIException(0, result.error.message, result.error.name);
+    }
+
+    return;
 };
 
 NFCAdapter.prototype.addCardEmulationModeChangeListener = function() {
@@ -470,10 +502,23 @@ NFCTag.prototype.transceive = function() {
 
 //////////////////NFCPeer /////////////////
 
-function NFCPeer(data) {
+function NFCPeer(peerid) {
+    var _my_id = peerid;
+
+    function isConnectedGetter() {
+        var ret = native_.callSync('NFCAdapter_PeerIsConnectedGetter', {'id' : _my_id});
+        if (native_.isFailure(ret)) {
+            return false;
+        }
+        return native_.getResultObject(ret);
+    }
+
     Object.defineProperties(this, {
-        isConnected:   {value: data.isConnected,
-            writable: true, enumerable: true}
+        isConnected: {
+            enumerable: true,
+            set : function(){},
+            get : isConnectedGetter
+        }
     });
 }
 

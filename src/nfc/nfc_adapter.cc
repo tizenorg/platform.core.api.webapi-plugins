@@ -5,7 +5,6 @@
 #include "nfc_adapter.h"
 #include "nfc_util.h"
 
-#include <nfc.h>
 #include <glib.h>
 
 #include "common/logger.h"
@@ -35,13 +34,20 @@ const std::string TRANSACTION_EVENT_LISTENER_UICC = "TransactionEventListener_UI
 NFCAdapter::NFCAdapter():
         m_is_listener_set(false),
         m_is_transaction_ese_listener_set(false),
-        m_is_transaction_uicc_listener_set(false)
+        m_is_transaction_uicc_listener_set(false),
+        m_is_peer_listener_set(false),
+        m_latest_peer_id(0),
+        m_peer_handle(NULL)
 {
 }
 
 NFCAdapter::~NFCAdapter() {
     if (m_is_listener_set) {
         nfc_manager_unset_se_event_cb();
+    }
+
+    if (m_is_peer_listener_set) {
+        nfc_manager_unset_p2p_target_discovered_cb();
     }
     if (m_is_transaction_ese_listener_set) {
         nfc_manager_unset_se_transaction_event_cb(NFC_SE_TYPE_ESE);
@@ -79,6 +85,25 @@ static gboolean setPoweredCompleteCB(void * user_data) {
     delete callbackId;
     callbackId = NULL;
     return false;
+}
+
+static void targetDetectedCallback(nfc_discovered_type_e type,
+        nfc_p2p_target_h target, void *data) {
+
+    picojson::value event = picojson::value(picojson::object());
+    picojson::object& obj = event.get<picojson::object>();
+    obj.insert(make_pair("listenerId", "PeerListener"));
+
+    if (NFC_DISCOVERED_TYPE_ATTACHED == type) {
+        NFCAdapter::GetInstance()->SetPeerHandle(target);
+        obj.insert(make_pair("action", "onattach"));
+        obj.insert(make_pair("id", static_cast<double>(NFCAdapter::GetInstance()->GetPeerId())));
+        NFCInstance::getInstance().PostMessage(event.serialize().c_str());
+    } else {
+        NFCAdapter::GetInstance()->SetPeerHandle(NULL);
+        obj.insert(make_pair("action", "ondetach"));
+        NFCInstance::getInstance().PostMessage(event.serialize().c_str());
+    }
 }
 
 NFCAdapter* NFCAdapter::GetInstance() {
@@ -404,6 +429,7 @@ void NFCAdapter::RemoveCardEmulationModeChangeListener() {
     m_is_listener_set = false;
 }
 
+
 void NFCAdapter::AddTransactionEventListener(const picojson::value& args) {
 
     nfc_se_type_e se_type = NFCUtil::toSecureElementType(
@@ -469,5 +495,59 @@ void NFCAdapter::RemoveActiveSecureElementChangeListener() {
     m_is_listener_set = false;
 }
 
+void NFCAdapter::SetPeerHandle(nfc_p2p_target_h handle) {
+    m_peer_handle = handle;
+}
+
+int NFCAdapter::GetPeerId() {
+    return ++m_latest_peer_id;
+}
+
+bool NFCAdapter::IsPeerConnected(int peer_id) {
+    if (m_latest_peer_id != peer_id || !m_peer_handle) {
+        return false;
+    }
+
+    nfc_p2p_target_h handle = NULL;
+    int ret = nfc_manager_get_connected_target(&handle);
+    if (NFC_ERROR_NONE != ret) {
+        LOGE("Failed to get connected target handle: %d", ret);
+        NFCUtil::throwNFCException(ret, "Failed to get connected target handle.");
+    }
+
+    if (m_peer_handle == handle) {
+        return true;
+    }
+
+    return false;
+}
+
+void NFCAdapter::SetPeerListener() {
+    if (!nfc_manager_is_supported()) {
+        throw NotSupportedException("NFC Not Supported");
+    }
+
+    if (!m_is_peer_listener_set) {
+        int ret = nfc_manager_set_p2p_target_discovered_cb (targetDetectedCallback, NULL);
+        if (NFC_ERROR_NONE != ret) {
+            LOGE("Failed to set listener: %d", ret);
+            NFCUtil::throwNFCException(ret, "setPeerListener failed");
+        }
+    }
+
+    m_is_peer_listener_set = true;
+}
+
+void NFCAdapter::UnsetPeerListener() {
+    if (!nfc_manager_is_supported()) {
+        throw NotSupportedException("NFC Not Supported");
+    }
+
+    if (m_is_peer_listener_set) {
+        nfc_manager_unset_p2p_target_discovered_cb();
+    }
+
+    m_is_peer_listener_set = false;
+}
 }// nfc
 }// extension

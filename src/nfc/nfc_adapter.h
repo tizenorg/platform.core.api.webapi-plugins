@@ -9,6 +9,7 @@
 
 #include "common/picojson.h"
 #include <memory>
+#include <nfc.h>
 
 #ifdef APP_CONTROL_SETTING_SUPPORT
 #include <app_control.h>
@@ -40,6 +41,11 @@ public:
     void RemoveTransactionEventListener(const picojson::value& args);
     void AddActiveSecureElementChangeListener();
     void RemoveActiveSecureElementChangeListener();
+    void SetPeerHandle(nfc_p2p_target_h handle);
+    int GetPeerId();
+    bool IsPeerConnected(int peer_id);
+    void SetPeerListener();
+    void UnsetPeerListener();
 
     static NFCAdapter* GetInstance();
 private:
@@ -49,6 +55,9 @@ private:
     bool m_is_listener_set;
     bool m_is_transaction_ese_listener_set;
     bool m_is_transaction_uicc_listener_set;
+    bool m_is_peer_listener_set;
+    int m_latest_peer_id;
+    nfc_p2p_target_h m_peer_handle;
 };
 
 } // nfc

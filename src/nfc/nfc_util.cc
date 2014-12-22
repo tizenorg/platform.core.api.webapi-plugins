@@ -40,6 +40,7 @@ void NFCUtil::throwNFCException(const int errorCode, const char* message)
         case NFC_ERROR_NO_DEVICE:
         case NFC_ERROR_TIMED_OUT:
         case NFC_ERROR_OUT_OF_MEMORY:
+        case NFC_ERROR_NOT_INITIALIZED:
         default:
             throw UnknownException(message);
             break;
