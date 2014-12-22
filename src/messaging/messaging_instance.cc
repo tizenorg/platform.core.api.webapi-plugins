@@ -352,6 +352,31 @@ void MessagingInstance::MessageStorageFindMessages(const picojson::value& args,
         picojson::object& out)
 {
     LoggerD("Entered");
+
+    picojson::object data = args.get(JSON_DATA).get<picojson::object>();
+    const double callbackId = args.get(JSON_CALLBACK_ID).get<double>();
+
+    LoggerD("Received: %s", args.serialize().c_str());
+    // get filter object - platform object
+    // FIND_FOLDERS_ARGS_FILTER
+
+    auto filter = MessagingUtil::jsonToAttributeFilter(data);
+
+    // get sort object - platform object
+    // FIND_FOLDERS_ARGS_SORT
+    auto sortMode = MessagingUtil::jsonToSortMode(data);
+
+    // get limit object - unsigned long
+    unsigned long limit = static_cast<unsigned long>
+            (MessagingUtil::getValueFromJSONObject<double>(data, FIND_FOLDERS_ARGS_LIMIT));
+
+    LoggerD("Limit: %u", limit);
+
+    // get offset object - unsigned long
+    unsigned long offset = static_cast<unsigned long>
+            (MessagingUtil::getValueFromJSONObject<double>(data, FIND_FOLDERS_ARGS_OFFSET));
+
+    LoggerD("Offset: %u", offset);
 }
 
 void MessagingInstance::MessageStorageRemoveMessages(const picojson::value& args,

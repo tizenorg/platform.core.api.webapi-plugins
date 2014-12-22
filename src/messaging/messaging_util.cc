@@ -13,6 +13,7 @@
 #include <email-api-account.h>
 #include "message_email.h"
 
+#include "tizen/tizen.h"
 #include "common/logger.h"
 #include "common/platform_exception.h"
 
@@ -85,6 +86,13 @@ const std::string SENT = "SENT";
 const std::string SENDING = "SENDING";
 const std::string FAILED = "FAILED";
 const std::string DRAFT = "DRAFT";
+
+const std::string JSON_TO_ATTRIBUTE_NAME = "attributeName";
+const std::string JSON_TO_ORDER = "order";
+const std::string JSON_TO_SORT = "sort";
+const std::string JSON_TO_FILTER = "filter";
+const std::string JSON_TO_MATCH_FLAG = "matchFlag";
+const std::string JSON_TO_MATCH_VALUE = "matchValue";
 
 const std::map<std::string, MessageType> stringToTypeMap = {
     {TYPE_SMS, MessageType::SMS},
@@ -427,5 +435,60 @@ std::shared_ptr<Message> MessagingUtil::jsonToMessage(const picojson::value& jso
     return message;
 
 }
+
+tizen::SortModePtr MessagingUtil::jsonToSortMode(const picojson::object& json)
+{
+    LoggerD("Entered");
+    using namespace tizen;
+
+    auto dataSort = getValueFromJSONObject<picojson::object>(json, JSON_TO_SORT);
+    auto name = getValueFromJSONObject<std::string>(dataSort, JSON_TO_ATTRIBUTE_NAME);
+    auto ord = getValueFromJSONObject<std::string>(dataSort, JSON_TO_ORDER);
+    SortModeOrder order = ( ord == STR_SORT_DESC) ? SortModeOrder::DESC : SortModeOrder::ASC;
+    return SortModePtr(new SortMode(name, order));
+}
+
+tizen::AttributeFilterPtr MessagingUtil::jsonToAttributeFilter(const picojson::object& json)
+{
+    LoggerD("Entered");
+
+    using namespace tizen;
+
+    auto filter = getValueFromJSONObject<picojson::object>(json, JSON_TO_FILTER);
+    auto name = getValueFromJSONObject<std::string>(filter, JSON_TO_ATTRIBUTE_NAME);
+    auto matchFlagStr = getValueFromJSONObject<std::string>(filter, JSON_TO_MATCH_FLAG);
+
+    FilterMatchFlag filterMatch;
+
+    if (STR_MATCH_EXACTLY == matchFlagStr) {
+        filterMatch = FilterMatchFlag::EXACTLY;
+    }
+    else if (STR_MATCH_FULLSTRING == matchFlagStr) {
+        filterMatch = FilterMatchFlag::FULLSTRING;
+    }
+    else if (STR_MATCH_CONTAINS == matchFlagStr) {
+        filterMatch = FilterMatchFlag::CONTAINS;
+    }
+    else if (STR_MATCH_STARTSWITH == matchFlagStr) {
+        filterMatch = FilterMatchFlag::STARTSWITH;
+    }
+    else if (STR_MATCH_ENDSWITH == matchFlagStr) {
+        filterMatch = FilterMatchFlag::ENDSWITH;
+    }
+    else if (STR_MATCH_EXISTS == matchFlagStr) {
+        filterMatch = FilterMatchFlag::EXISTS;
+    }
+    else {
+        LoggerE("Filter name is not recognized: %s", matchFlagStr.c_str());
+        throw common::TypeMismatchException("Filter name is not recognized");
+    }
+
+    auto attributePtr = AttributeFilterPtr(new AttributeFilter(name));
+    attributePtr->setMatchFlag(filterMatch);
+    attributePtr->setMatchValue(AnyPtr(new Any(filter.at(JSON_TO_MATCH_VALUE))));
+
+    return attributePtr;
+}
+
 } // messaging
 } // extension

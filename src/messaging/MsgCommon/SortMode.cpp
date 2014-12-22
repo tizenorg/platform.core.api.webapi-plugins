@@ -16,6 +16,8 @@
 //
 #include "SortMode.h"
 
+#include "common/logger.h";
+
 namespace extension {
 namespace tizen {
 
@@ -23,7 +25,8 @@ SortMode::SortMode(const std::string &attribute_name, SortModeOrder order) :
         m_attribute_name(attribute_name),
         m_order(order)
 {
-
+    LoggerD("SortMode attributeName: %s, SortMode order: %s",
+            attribute_name.c_str(), (order == SortModeOrder::DESC) ? "DESC" : "ASC");
 }
 
 SortMode::~SortMode()

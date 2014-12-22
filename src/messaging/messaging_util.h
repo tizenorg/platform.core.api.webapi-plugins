@@ -11,6 +11,9 @@
 #include "common/logger.h"
 #include "common/picojson.h"
 
+#include "MsgCommon/SortMode.h";
+#include "MsgCommon/AttributeFilter.h"
+
 namespace extension {
 namespace messaging {
 
@@ -104,6 +107,8 @@ public:
     static picojson::value messageBodyToJson(std::shared_ptr<MessageBody> body);
     static picojson::value messageToJson(std::shared_ptr<Message> message);
     static std::shared_ptr<Message> jsonToMessage(const picojson::value& json);
+    static tizen::SortModePtr jsonToSortMode(const picojson::object& json);
+    static tizen::AttributeFilterPtr jsonToAttributeFilter(const picojson::object& json);
 
     template <class T>
     static T getValueFromJSONObject(const picojson::object& v, const std::string& key)
