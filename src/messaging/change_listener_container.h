@@ -85,7 +85,7 @@ class ChangeListenerContainer {
 
 
         // Interface for listener's manipulation (registration and removal).
-        //long addMessageChangeListener(std::shared_ptr<MessagesChangeCallback> callback);
+        long addMessageChangeListener(std::shared_ptr<MessagesChangeCallback> callback);
         //long addConversationChangeListener(std::shared_ptr<ConversationsChangeCallback> callback);
         //long addFolderChangeListener(std::shared_ptr<FoldersChangeCallback> callback);
         void removeChangeListener(long id);

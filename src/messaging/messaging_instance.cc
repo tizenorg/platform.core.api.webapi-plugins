@@ -9,6 +9,8 @@
 
 #include "common/logger.h"
 
+#include "MsgCommon/AbstractFilter.h"
+#include "messages_change_callback.h"
 #include "messaging_manager.h"
 #include "messaging_util.h"
 #include "message_storage.h"
@@ -118,7 +120,6 @@ MessagingInstance::MessagingInstance()
       REGISTER_ASYNC(FUN_MESSAGE_STORAGE_FIND_CONVERSATIONS, MessageStorageFindConversations);
       REGISTER_ASYNC(FUN_MESSAGE_STORAGE_REMOVE_CONVERSATIONS, MessageStorageRemoveConversations);
       REGISTER_ASYNC(FUN_MESSAGE_STORAGE_FIND_FOLDERS, MessageStorageFindFolders);
-      REGISTER_ASYNC(FUN_MESSAGE_STORAGE_ADD_MESSAGES_CHANGE_LISTENER, MessageStorageAddMessagesChangeListener);
       REGISTER_ASYNC(FUN_MESSAGE_STORAGE_ADD_CONVERSATIONS_CHANGE_LISTENER, MessageStorageAddConversationsChangeListener);
       REGISTER_ASYNC(FUN_MESSAGE_STORAGE_ADD_FOLDER_CHANGE_LISTENER, MessageStorageAddFolderChangeListener);
     #undef REGISTER_ASYNC
@@ -126,6 +127,7 @@ MessagingInstance::MessagingInstance()
       RegisterSyncHandler(c, std::bind(&MessagingInstance::x, this, _1, _2));
       REGISTER_SYNC(FUN_MESSAGE_SERVICE_SYNC, MessageServiceSync);
       REGISTER_SYNC(FUN_MESSAGE_SERVICE_STOP_SYNC, MessageServiceStopSync);
+      REGISTER_SYNC(FUN_MESSAGE_STORAGE_ADD_MESSAGES_CHANGE_LISTENER, MessageStorageAddMessagesChangeListener);
       REGISTER_SYNC(FUN_MESSAGE_STORAGE_REMOVE_CHANGE_LISTENER, MessageStorageRemoveChangeListener);
     #undef REGISTER_SYNC
 }
@@ -403,6 +405,22 @@ void MessagingInstance::MessageStorageAddMessagesChangeListener(const picojson::
         picojson::object& out)
 {
     LoggerD("Entered");
+    picojson::object data = args.get(JSON_DATA).get<picojson::object>();
+    const long callbackId = static_cast<long>(args.get(JSON_CALLBACK_ID).get<double>());
+
+    int serviceId = static_cast<int>(data.at(FUNCTIONS_HIDDEN_ARGS_SERVICE_ID).get<double>());
+    auto service = MessagingManager::getInstance().getMessageServiceEmail(serviceId);
+
+    std::shared_ptr<MessagesChangeCallback> callback(new MessagesChangeCallback(
+                callbackId, serviceId, service->getMsgServiceType()));
+
+    // TODO filter
+    // callback->setFilter(tizen::AbstractFilterPtr(new tizen::AbstractFilter()));
+
+    long op_id = service->getMsgStorage()->addMessagesChangeListener(callback);
+
+    picojson::value v(static_cast<double>(op_id));
+    ReportSuccess(v, out);
 }
 
 void MessagingInstance::MessageStorageAddConversationsChangeListener(const picojson::value& args,

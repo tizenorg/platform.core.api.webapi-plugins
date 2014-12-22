@@ -27,33 +27,31 @@ ChangeListenerContainer::ChangeListenerContainer():
 }
 
 // --- Listeners registration functions ---
-/*
- *long ChangeListenerContainer::addMessageChangeListener(
- *        std::shared_ptr<MessagesChangeCallback> callback)
- *{
- *    LoggerD("Entered");
- *    // Check type of service for which listener should be registered
- *    // and lock appropriate mutex
- *    MessageType mtype = callback->getServiceType();
- *    if (MessageType(SMS) == mtype || MessageType(MMS) == mtype)
- *    {
- *        std::lock_guard<std::mutex> lock(m_short_lock);
- *        int new_id = getNextId();
- *        m_short_message_callbacks.insert(std::make_pair(new_id, callback));
- *        LoggerD("Added callback for ShortMessage, watchId: %d", new_id);
- *        return new_id;
- *    }
- *    else if (MessageType(EMAIL) == mtype) {
- *        std::lock_guard<std::mutex> lock(m_email_lock);
- *        int new_id = getNextId();
- *        m_email_message_callbacks.insert(std::make_pair(new_id, callback));
- *        LoggerD("Added callback for Email, watchId: %d", new_id);
- *        return new_id;
- *    }
- *    LoggerE("Listener with invalid MessageService type - failed to register");
- *    return -1;
- *}
- */
+long ChangeListenerContainer::addMessageChangeListener(
+        std::shared_ptr<MessagesChangeCallback> callback)
+{
+    LoggerD("Entered");
+    // Check type of service for which listener should be registered
+    // and lock appropriate mutex
+    MessageType mtype = callback->getServiceType();
+    if (MessageType(SMS) == mtype || MessageType(MMS) == mtype)
+    {
+        //std::lock_guard<std::mutex> lock(m_short_lock);
+        //int new_id = getNextId();
+        //m_short_message_callbacks.insert(std::make_pair(new_id, callback));
+        //LoggerD("Added callback for ShortMessage, watchId: %d", new_id);
+        //return new_id;
+    }
+    else if (MessageType(EMAIL) == mtype) {
+        std::lock_guard<std::mutex> lock(m_email_lock);
+        int new_id = getNextId();
+        m_email_message_callbacks.insert(std::make_pair(new_id, callback));
+        LoggerD("Added callback for Email, watchId: %d", new_id);
+        return new_id;
+    }
+    LoggerE("Listener with invalid MessageService type - failed to register");
+    return -1;
+}
 
 /*
  *long ChangeListenerContainer::addConversationChangeListener(

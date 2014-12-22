@@ -981,23 +981,14 @@ MessageStorage.prototype.addMessagesChangeListener = function () {
                 optional: true, nullable: true}
     ]);
 
-    var listeners = [];
-    if (args.messagesChangeCallback.messagesadded) listeners.push('messagesadded');
-    if (args.messagesChangeCallback.messagesupdated) listeners.push('messagesupdated');
-    if (args.messagesChangeCallback.messagesremoved) listeners.push('messagesremoved');
+    var self = this;
 
-    bridge({
-        cmd: 'MessageStorage_addMessagesChangeListener',
-        args: {
-            filter: args.filter,
-            listeners: listeners
-        }
-    }).then({
+    var cid = bridge.listener({
         messagesadded: function (data) {
             if (args.messagesChangeCallback.messagesadded) {
                 var messages = [];
                 data.forEach(function (el) {
-                    messages.push(new tizen.Message(el));
+                    messages.push(new tizen.Message(el.type, new MessageInit_(el)));
                 });
                 args.messagesChangeCallback.messagesadded.call(null, messages);
             }
@@ -1006,7 +997,7 @@ MessageStorage.prototype.addMessagesChangeListener = function () {
             if (args.messagesChangeCallback.messagesupdated) {
                 var messages = [];
                 data.forEach(function (el) {
-                    messages.push(new tizen.Message(el));
+                    messages.push(new tizen.Message(el.type, new MessageInit_(el)));
                 });
                 args.messagesChangeCallback.messagesupdated.call(null, messages);
             }
@@ -1015,12 +1006,23 @@ MessageStorage.prototype.addMessagesChangeListener = function () {
             if (args.messagesChangeCallback.messagesremoved) {
                 var messages = [];
                 data.forEach(function (el) {
-                    messages.push(new tizen.Message(el));
+                    messages.push(new tizen.Message(el.type, new MessageInit_(el)));
                 });
                 args.messagesChangeCallback.messagesremoved.call(null, messages);
             }
         }
     });
+
+    var result = bridge.sync({
+        cmd: 'MessageStorage_addMessagesChangeListener',
+        cid: cid,
+        args: {
+            filter: args.filter || null,
+            serviceId: self.service.id
+        }
+    });
+
+    return result;
 };
 
 MessageStorage.prototype. addConversationsChangeListener = function () {

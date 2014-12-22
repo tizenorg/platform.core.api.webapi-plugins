@@ -3,6 +3,8 @@
 // found in the LICENSE file.
 
 #include "message_storage.h"
+#include "messages_change_callback.h"
+#include "change_listener_container.h"
 
 #include "common/logger.h"
 
@@ -32,9 +34,10 @@ MessageType MessageStorage::getMsgServiceType() const
     return m_msg_type;
 }
 
-long MessageStorage::addMessagesChangeListener()
+long MessageStorage::addMessagesChangeListener(std::shared_ptr<MessagesChangeCallback> callback)
 {
     LoggerD("Entered");
+    return ChangeListenerContainer::getInstance().addMessageChangeListener(callback);
 }
 
 long MessageStorage::addConversationsChangeListener()

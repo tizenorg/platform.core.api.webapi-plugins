@@ -16,6 +16,8 @@
 namespace extension {
 namespace messaging {
 
+class MessagesChangeCallback;
+
 class MessageStorage;
 typedef std::shared_ptr<MessageStorage> MessageStoragePtr;
 
@@ -37,7 +39,7 @@ public:
 
     // Listeners registration/removal is common for all types of storage
     // and does not have to be overwritten in derived classes.
-    long addMessagesChangeListener();
+    long addMessagesChangeListener(std::shared_ptr<MessagesChangeCallback> callback);
     long addConversationsChangeListener();
     long addFoldersChangeListener();
     void removeChangeListener();

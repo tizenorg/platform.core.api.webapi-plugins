@@ -19,6 +19,7 @@ class Message;
 class MessagesCallbackUserData: public common::CallbackUserData {
 public:
     MessagesCallbackUserData();
+    MessagesCallbackUserData(long cid, bool keep = false);
     virtual ~MessagesCallbackUserData();
 
     void addMessage(std::shared_ptr<Message> msg);

@@ -15,6 +15,18 @@ MessagesCallbackUserData::MessagesCallbackUserData():
 {
 }
 
+MessagesCallbackUserData::MessagesCallbackUserData(long cid, bool keep):
+        common::CallbackUserData(),
+        m_is_error(false),
+        m_service_type(MessageType::UNDEFINED)
+{
+    auto json = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
+    picojson::object& o = json->get<picojson::object>();
+    o[JSON_CALLBACK_ID] = picojson::value(static_cast<double>(cid));
+    o[JSON_CALLBACK_KEEP] = picojson::value(keep);
+    setJson(json);
+}
+
 MessagesCallbackUserData::~MessagesCallbackUserData() {
 }
 
