@@ -4,117 +4,179 @@
 // found in the LICENSE file.
 
 // Tizen API Specification:
-// https://developer.tizen.org/dev-guide/2.2.1/org.tizen.web.device.apireference/tizen/tizen.html
+// https://developer.tizen.org/dev-guide/2.3.0/org.tizen.mobile.web.device.apireference/tizen/tizen.html
 
+function __isObject(object) {
+  return object instanceof Object;
+}
+
+function __isUndefined(object) {
+  return object === void 0;
+}
+
+function __isNumber(object) {
+  return typeof object === 'number';
+}
 
 // WARNING! This list should be in sync with the equivalent enum
 // located at tizen.h. Remember to update tizen.h if you change
 // something here.
 var errors = {
-  '-1': { type: 'NO_ERROR', name: 'NoError', message: '' },
+  NO_ERROR: -1,
+  UNKNOWN_ERR: 0,
 
-  '0': { type: 'UNKNOWN_ERR', name: 'UnknownError', message: '' },
-  '1': { type: 'INDEX_SIZE_ERR', name: 'IndexSizeError', message: '' },
-  '2': { type: 'DOMSTRING_SIZE_ERR', name: 'DOMStringSizeError', message: '' },
-  '3': { type: 'HIERARCHY_REQUEST_ERR', name: 'HierarchyRequestError', message: '' },
-  '4': { type: 'WRONG_DOCUMENT_ERR', name: 'WrongDocumentError', message: '' },
-  '5': { type: 'INVALID_CHARACTER_ERR', name: 'InvalidCharacterError', message: '' },
-  '6': { type: 'NO_DATA_ALLOWED_ERR', name: 'NoDataAllowedError', message: '' },
-  '7': { type: 'NO_MODIFICATION_ALLOWED_ERR', name: 'NoModificationAllowedError', message: '' },
-  '8': { type: 'NOT_FOUND_ERR', name: 'NotFoundError', message: '' },
-  '9': { type: 'NOT_SUPPORTED_ERR', name: 'Not_supportedError', message: '' },
-  '10': { type: 'INUSE_ATTRIBUTE_ERR', name: 'InuseAttributeError', message: '' },
-  '11': { type: 'INVALID_STATE_ERR', name: 'InvalidStateError', message: '' },
-  '12': { type: 'SYNTAX_ERR', name: 'SyntaxError', message: '' },
-  '13': { type: 'INVALID_MODIFICATION_ERR', name: 'InvalidModificationError', message: '' },
-  '14': { type: 'NAMESPACE_ERR', name: 'NamespaceError', message: '' },
-  '15': { type: 'INVALID_ACCESS_ERR', name: 'InvalidAccessError', message: '' },
-  '16': { type: 'VALIDATION_ERR', name: 'ValidationError', message: '' },
-  '17': { type: 'TYPE_MISMATCH_ERR', name: 'TypeMismatchError', message: '' },
-  '18': { type: 'SECURITY_ERR', name: 'SecurityError', message: '' },
-  '19': { type: 'NETWORK_ERR', name: 'NetworkError', message: '' },
-  '20': { type: 'ABORT_ERR', name: 'AbortError', message: '' },
-  '21': { type: 'URL_MISMATCH_ERR', name: 'UrlMismatchError', message: '' },
-  '22': { type: 'QUOTA_EXCEEDED_ERR', name: 'QuotaExceededError', message: '' },
-  '23': { type: 'TIMEOUT_ERR', name: 'TimeoutError', message: '' },
-  '24': { type: 'INVALID_NODE_TYPE_ERR', name: 'InvalidNodeTypeError', message: '' },
-  '25': { type: 'DATA_CLONE_ERR', name: 'DataCloneError', message: '' },
+  INDEX_SIZE_ERR: 1,
+  DOMSTRING_SIZE_ERR: 2,
+  HIERARCHY_REQUEST_ERR: 3,
+  WRONG_DOCUMENT_ERR: 4,
+  INVALID_CHARACTER_ERR: 5,
+  NO_DATA_ALLOWED_ERR: 6,
+  NO_MODIFICATION_ALLOWED_ERR: 7,
+  NOT_FOUND_ERR: 8,
+  NOT_SUPPORTED_ERR: 9,
+  INUSE_ATTRIBUTE_ERR: 10,
+  INVALID_STATE_ERR: 11,
+  SYNTAX_ERR: 12,
+  INVALID_MODIFICATION_ERR: 13,
+  NAMESPACE_ERR: 14,
+  INVALID_ACCESS_ERR: 15,
+  VALIDATION_ERR: 16,
+  TYPE_MISMATCH_ERR: 17,
+  SECURITY_ERR: 18,
+  NETWORK_ERR: 19,
+  ABORT_ERR: 20,
+  URL_MISMATCH_ERR: 21,
+  QUOTA_EXCEEDED_ERR: 22,
+  TIMEOUT_ERR: 23,
+  INVALID_NODE_TYPE_ERR: 24,
+  DATA_CLONE_ERR: 25,
 
   // Error codes for these errors are not really defined anywhere.
-  '100': { type: 'INVALID_VALUES_ERR', name: 'InvalidValuesError', message: '' },
-  '101': { type: 'IO_ERR', name: 'IOError', message: 'IOError' },
-  '102': { type: 'PERMISSION_DENIED_ERR', name: 'Permission_deniedError', message: '' },
-  '103': { type: 'SERVICE_NOT_AVAILABLE_ERR', name: 'ServiceNotAvailableError', message: '' },
-  '104': { type: 'DATABASE_ERR', name: 'DATABASE_ERR', message: '' }
+  INVALID_VALUES_ERR: 100,
+  IO_ERR: 101,
+  PERMISSION_DENIED_ERR: 102,
+  SERVICE_NOT_AVAILABLE_ERR: 103,
+  DATABASE_ERR: 104
 };
+
+var code_to_name = {};
+code_to_name[errors['NO_ERROR']] = 'NoError';
+code_to_name[errors['UNKNOWN_ERR']] = 'UnknownError';
+code_to_name[errors['INDEX_SIZE_ERR']] = 'IndexSizeError';
+code_to_name[errors['DOMSTRING_SIZE_ERR']] = 'DOMStringSizeError';
+code_to_name[errors['HIERARCHY_REQUEST_ERR']] = 'HierarchyRequestError';
+code_to_name[errors['WRONG_DOCUMENT_ERR']] = 'WrongDocumentError';
+code_to_name[errors['INVALID_CHARACTER_ERR']] = 'InvalidCharacterError';
+code_to_name[errors['NO_DATA_ALLOWED_ERR']] = 'NoDataAllowedError';
+code_to_name[errors['NO_MODIFICATION_ALLOWED_ERR']] = 'NoModificationAllowedError';
+code_to_name[errors['NOT_FOUND_ERR']] = 'NotFoundError';
+code_to_name[errors['NOT_SUPPORTED_ERR']] = 'NotSupportedError';
+code_to_name[errors['INUSE_ATTRIBUTE_ERR']] = 'InuseAttributeError';
+code_to_name[errors['INVALID_STATE_ERR']] = 'InvalidStateError';
+code_to_name[errors['SYNTAX_ERR']] = 'SyntaxError';
+code_to_name[errors['INVALID_MODIFICATION_ERR']] = 'InvalidModificationError';
+code_to_name[errors['NAMESPACE_ERR']] = 'NamespaceError';
+code_to_name[errors['INVALID_ACCESS_ERR']] = 'InvalidAccessError';
+code_to_name[errors['VALIDATION_ERR']] = 'ValidationError';
+code_to_name[errors['TYPE_MISMATCH_ERR']] = 'TypeMismatchError';
+code_to_name[errors['SECURITY_ERR']] = 'SecurityError';
+code_to_name[errors['NETWORK_ERR']] = 'NetworkError';
+code_to_name[errors['ABORT_ERR']] = 'AbortError';
+code_to_name[errors['URL_MISMATCH_ERR']] = 'URLMismatchError';
+code_to_name[errors['QUOTA_EXCEEDED_ERR']] = 'QuotaExceededError';
+code_to_name[errors['TIMEOUT_ERR']] = 'TimeoutError';
+code_to_name[errors['INVALID_NODE_TYPE_ERR']] = 'InvalidNodeTypeError';
+code_to_name[errors['DATA_CLONE_ERR']] = 'DataCloneError';
+
+code_to_name[errors['INVALID_VALUES_ERR']] = 'InvalidValuesError';
+code_to_name[errors['IO_ERR']] = 'IOError';
+code_to_name[errors['PERMISSION_DENIED_ERR']] = 'PermissionDeniedError';
+code_to_name[errors['SERVICE_NOT_AVAILABLE_ERR']] = 'ServiceNotAvailableError';
+code_to_name[errors['DATABASE_ERR']] = 'DatabaseError';
+
+var name_to_code = {};
+Object.keys(errors).forEach(function(key) {
+  name_to_code[code_to_name[errors[key]]] = errors[key];
+});
+
 
 /**
  * Generic exception interface.
- * @param {number} 16-bit error code.
- * @param {string} An error message that describes the details of an encountered error.
- * @param {string} An error type.
+ *
+ * @param {number} code 16-bit error code.
+ * @param {string} message An error message that describes the details of an encountered error.
+ * @param {string} name An error type.
  */
-exports.WebAPIException = function(code, message, name) {
-  var _code, _message, _name;
+var WebAPIException = function(code, message, name) {
+  var code_ = 0;
+  var name_ = code_to_name[code];
+  var message_ = 'Unknown error';
 
-  if (typeof code !== 'number') {
-    _code = 0;
-    _message = message || errors[0].message;
-    _name = name || errors[0].name;
-  } else {
-    _code = code;
-    if (typeof message === 'string') {
-      _message = message;
-    } else {
-      _message = errors[_code].message;
-    } if (typeof name === 'string') {
-      _name = name;
-    } else {
-      _name = errors[_code].name;
-    }
+  switch (arguments.length) {
+    case 1:
+      var error = arguments[0];
+      if (__isObject(error)) {
+        name_ = error['name'];
+        message_ = error['message'];
+        if (!__isUndefined(name_to_code[name_])) {
+          code_ = name_to_code[name_];
+        }
+      } else if (__isNumber(error)) {
+        // backward compatibility with crosswalk implementation
+        code_ = error;
+        name_ = code_to_name[code];
+        message_ = name_;
+      }
+      break;
+    case 2:
+      if (__isNumber(arguments[0])) {
+        code_ = arguments[0];
+        if (!__isUndefined(code_to_name[code_])) {
+          name_ = code_to_name[code_];
+        }
+      } else {
+        name_ = String(arguments[0]);
+        if (!__isUndefined(name_to_code[name_])) {
+          code_ = name_to_code[name_];
+        }
+      }
+      message_ = String(arguments[1]);
+      break;
+    case 3:
+      // backward compatibility with crosswalk implementation
+      code_ = Number(arguments[0]);
+      message_ = String(arguments[1]);
+      name_ = String(arguments[2]);
+      break;
+    default:
+      return;
   }
 
-  this.__defineGetter__('code', function() { return _code; });
-  this.__defineGetter__('message', function() { return _message; });
-  this.__defineGetter__('name', function() { return _name; });
+  // attributes
+  Object.defineProperties(this, {
+    code: {value: code_, writable: false, enumerable: true},
+    name: {value: name_, writable: false, enumerable: true},
+    message: {value: message_, writable: false, enumerable: true}
+  });
+
+  this.constructor.prototype.__proto__ = Error.prototype;
+  Error.captureStackTrace(this, this.constructor);
 };
 
-for (var value in errors)
-  Object.defineProperty(exports.WebAPIException, errors[value].type, { value: parseInt(value) });
-
-/**
- * Generic error interface.
- * @param {number} 16-bit error code.
- * @param {string} An error message that describes the details of an encountered error.
- * @param {string} An error type.
- */
-exports.WebAPIError = function(code, message, name) {
-  var _code, _message, _name;
-
-  if (typeof code !== 'number') {
-    _code = errors[0].value;
-    _message = errors[0].message;
-    _name = errors[0].name;
-  } else {
-    _code = code;
-    if (typeof message === 'string') {
-      _message = message;
-    } else {
-      _message = errors[_code].message;
-    } if (typeof name === 'string') {
-      _name = name;
-    } else {
-      _name = errors[_code].name;
-    }
-  }
-
-  this.__defineGetter__('code', function() { return _code; });
-  this.__defineGetter__('message', function() { return _message; });
-  this.__defineGetter__('name', function() { return _name; });
+WebAPIException.prototype.toString = function() {
+  return this.name + ': ' + this.message;
 };
 
-for (var value in errors)
-  Object.defineProperty(exports.WebAPIError, errors[value].type, { value: value });
+
+var error_constants = {};
+for (var prop in errors) {
+  error_constants[prop] = {value: errors[prop], writable: false, enumerable: true};
+}
+Object.defineProperties(WebAPIException, error_constants);
+
+exports.WebAPIException = WebAPIException;
+exports.WebAPIError = WebAPIException;
+
 
 /**
  * Filter match flags.
@@ -188,7 +250,7 @@ exports.AttributeFilter.prototype = new exports.AbstractFilter();
 exports.AttributeFilter.prototype.constructor = exports.AttributeFilter;
 
 /**
- * Represents a filter based on an object attribute which has values that are 
+ * Represents a filter based on an object attribute which has values that are
  * within a particular range.
  */
 exports.AttributeRangeFilter = function(attrName, start, end) {

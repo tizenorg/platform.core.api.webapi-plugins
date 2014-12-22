@@ -624,8 +624,9 @@ Validator.prototype.validateMethod = function(a, d) {
  */
 Validator.prototype.isConstructorCall = function(obj, instance) {
   if (!(obj instanceof instance) || obj._previouslyConstructed) {
-    throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
-        'Constructor cannot be called as function.');
+    // There is no TypeError exception in Tizen 2.3.0 API spec but it's required by current TCTs.
+    // For Tizen compliance it's wrapped into WebAPIException.
+    throw new tizen.WebAPIException('TypeError', 'Constructor cannot be called as function.');
   }
 
   Object.defineProperty(obj, '_previouslyConstructed', {
@@ -810,7 +811,7 @@ NativeManager.prototype.getResultObject = function(result) {
 };
 
 NativeManager.prototype.getErrorObject = function(result) {
-  return new tizen.WebAPIException(result.error.code, result.error.message, result.error.name);
+  return new tizen.WebAPIException(result.error);
 };
 
 NativeManager.prototype.callIfPossible = function(callback) {
