@@ -308,7 +308,8 @@ void SysteminfoInstance::AddPropertyValueChangeListener(const picojson::value& a
             SysteminfoUtils::RegisterDeviceOrientationListener(OnDeviceOrientationChangedCallback);
         } else if (property_name == kPropertyIdBuild) {
             LoggerW("BUILD property's value is a fixed value");
-            throw NotSupportedException("BUILD property's value is a fixed value");
+            //should be accepted, but no registration is needed
+            //throw NotSupportedException("BUILD property's value is a fixed value");
         } else if (property_name == kPropertyIdLocale) {
             SysteminfoUtils::RegisterLocaleListener(OnLocaleChangedCallback);
         } else if (property_name == kPropertyIdNetwork) {
@@ -363,13 +364,13 @@ void SysteminfoInstance::GetAvailableMemory(const picojson::value& args, picojso
 
 void SysteminfoInstance::GetCount(const picojson::value& args, picojson::object& out) {
 
-    const std::string& key = args.get("key").get<std::string>();
-    LoggerD("Getting capability with key: %s ", key.c_str());
+    const std::string& property = args.get("property").get<std::string>();
+    LoggerD("Getting count of property with id: %s ", property.c_str());
 
     picojson::value result = picojson::value(picojson::object());
     picojson::object& result_obj = result.get<picojson::object>();
     result_obj.insert(std::make_pair("count",
-            static_cast<double>(SysteminfoUtils::GetCount(key)) ));
+            static_cast<double>(SysteminfoUtils::GetCount(property)) ));
 
     ReportSuccess(result, out);
     LoggerD("Success");
@@ -394,7 +395,8 @@ void SysteminfoInstance::RemovePropertyValueChangeListener(const picojson::value
             SysteminfoUtils::UnregisterDeviceOrientationListener();
         } else if (property_name == kPropertyIdBuild) {
             LoggerW("BUILD property's value is a fixed value");
-            throw NotSupportedException("BUILD property's value is a fixed value");
+            //should be accepted, but no unregistration is needed
+            //throw NotSupportedException("BUILD property's value is a fixed value");
         } else if (property_name == kPropertyIdLocale) {
             SysteminfoUtils::UnregisterLocaleListener();
         } else if (property_name == kPropertyIdNetwork) {

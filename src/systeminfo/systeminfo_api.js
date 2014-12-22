@@ -67,7 +67,8 @@ var Common = function(){
     };
 
     Common.prototype.getTypeMismatch = function(msg) {
-        _getTypeMismatch(msg);
+        return _getException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
+                msg || 'Provided arguments are not valid.');
     };
 
     Common.prototype.throwTypeMismatch = function(msg) {
@@ -75,7 +76,7 @@ var Common = function(){
     };
 
     Common.prototype.getInvalidValues = function(msg) {
-        return _getException('InvalidValuesError',
+        return _getException(tizen.WebAPIException.INVALID_VALUES_ERR,
                 msg || 'There\'s a problem with input value.');
     };
 
@@ -84,7 +85,7 @@ var Common = function(){
     };
 
     Common.prototype.getIOError = function (msg) {
-        return _getException('IOError', msg || 'Unexpected IO error.');
+        return _getException(tizen.WebAPIException.IO_ERR, msg || 'Unexpected IO error.');
     };
 
     Common.prototype.throwIOError = function (msg) {
@@ -100,7 +101,7 @@ var Common = function(){
     };
 
     Common.prototype.getNotFound = function (msg) {
-        return _getException('NotFoundError', msg || 'Not found.');
+        return _getException(tizen.WebAPIException.NOT_FOUND_ERR, msg || 'Not found.');
     };
 
     Common.prototype.throwNotFound = function (msg) {
@@ -108,7 +109,7 @@ var Common = function(){
     };
 
     Common.prototype.getUnknownError = function (msg) {
-        return _getException('UnknownError', msg || 'Unknown error.');
+        return _getException(tizen.WebAPIException.UNKNOWN_ERR, msg || 'Unknown error.');
     };
 
     Common.prototype.throwUnknownError = function (msg) {
@@ -777,6 +778,7 @@ function SystemInfoWifiNetwork(data) {
         ssid : {value: data.ssid, writable: false, enumerable: true},
         ipAddress : {value: data.ipAddress, writable: false, enumerable: true},
         ipv6Address : {value: data.ipv6Address, writable: false, enumerable: true},
+        macAddress : {value: data.macAddress, writable: false, enumerable: true},
         signalStrength : {value: Number(data.signalStrength), writable: false, enumerable: true}
     });
 }
@@ -822,7 +824,7 @@ function SystemInfoPeripheral(data) {
 //class SystemInfoMemory ////////////////////////////////////////////////////
 function SystemInfoMemory(data) {
     Object.defineProperties(this, {
-        state : {value: data.state, writable: false, enumerable: true}
+        status : {value: data.state, writable: false, enumerable: true}
     });
 }
 
@@ -978,13 +980,13 @@ function _systeminfoCpuListenerCallback(event) {
     for (var watchId in callbacks) {
         if (callbacks.hasOwnProperty(watchId)) {
             var listener = callbacks[watchId];
+            var propObj = !listener.isArrayType ?
+                    _createProperty(property, eventObj.result.array[0]) :
+                        _createPropertyArray(property, eventObj.result);
             var executeCall = (T.isUndefined(listener.lowThreshold) ||
                     (propObj.load <= listener.lowThreshold)) ||
                     (T.isUndefined(listener.highThreshold) ||
                             (propObj.load >= listener.highThreshold));
-            var propObj = !listener.isArrayType ?
-                    _createProperty(property, eventObj.result.array[0]) :
-                        _createPropertyArray(property, eventObj.result);
             if (executeCall) {
                 listener.callback(propObj);
             }
@@ -1016,13 +1018,13 @@ function _systeminfoDisplayListenerCallback(event) {
     for (var watchId in callbacks) {
         if (callbacks.hasOwnProperty(watchId)) {
             var listener = callbacks[watchId];
+            var propObj = !listener.isArrayType ?
+                    _createProperty(property, eventObj.result.array[0]) :
+                        _createPropertyArray(property, eventObj.result);
             var executeCall = (T.isUndefined(listener.lowThreshold) ||
                     (propObj.brightness <= listener.lowThreshold)) ||
                     (T.isUndefined(listener.highThreshold) ||
                             (propObj.brightness >= listener.highThreshold));
-            var propObj = !listener.isArrayType ?
-                    _createProperty(property, eventObj.result.array[0]) :
-                        _createPropertyArray(property, eventObj.result);
             if (executeCall) {
                 listener.callback(propObj);
             }
@@ -1258,7 +1260,7 @@ var _registerListener = function (property, listener, errorCallback) {
                 'SystemInfo_addPropertyValueChangeListener',
                 {property: Converter.toString(property)});
         fail = C.isFailure(result);
-        if (fail) {
+        if (C.isFailure(result)) {
             setTimeout(function() {
                 C.callIfPossible(errorCallback, C.getErrorObject(result));
             }, 0);
@@ -1344,8 +1346,8 @@ var getListenerFunction = function (isArray) {
                 isArrayType     : isArray,
                 highThreshold : !T.isNullOrUndefined(args.options) ?
                         args.options.highThreshold : undefined,
-                        lowThreshold  : !T.isNullOrUndefined(args.options) ?
-                                args.options.lowThreshold : undefined
+                lowThreshold  : !T.isNullOrUndefined(args.options) ?
+                        args.options.lowThreshold : undefined
         };
         var watchId = _registerListener(args.property, listener, args.errorCallback);
 
@@ -1392,12 +1394,13 @@ SystemInfo.prototype.getAvailableMemory = function() {
 SystemInfo.prototype.getCount = function() {
     var args = AV.validateMethod(arguments, [
              {
-                 name : 'key',
-                 type : AV.Types.STRING
+                 name : 'property',
+                 type : AV.Types.ENUM,
+                 values : T.getValues(SystemInfoPropertyId)
              }
              ]);
 
-    var result = _callSync('SystemInfo_getCount', {key: args.key});
+    var result = _callSync('SystemInfo_getCount', {property: args.property});
     if (C.isFailure(result)) {
         throw C.getErrorObject(result);
     }

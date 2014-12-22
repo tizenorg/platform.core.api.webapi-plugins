@@ -1777,7 +1777,8 @@ void SysteminfoUtils::ReportDisplay(picojson::object& out) {
     if (SYSTEM_INFO_ERROR_NONE != system_info_get_value_int(
             SYSTEM_INFO_KEY_PHYSICAL_SCREEN_WIDTH, &physicalWidth)) {
         LOGE("Cannot get value of phisical screen width");
-        throw UnknownException("Cannot get value of phisical screen width");
+        //TODO uncomment when api would support this key
+        //throw UnknownException("Cannot get value of phisical screen width");
     }
     out.insert(std::make_pair("physicalWidth", std::to_string(physicalWidth)));
 
@@ -1785,7 +1786,8 @@ void SysteminfoUtils::ReportDisplay(picojson::object& out) {
     if (SYSTEM_INFO_ERROR_NONE != system_info_get_value_int(
             SYSTEM_INFO_KEY_PHYSICAL_SCREEN_HEIGHT, &physicalHeight)) {
         LOGE("Cannot get value of phisical screen height");
-        throw UnknownException("Cannot get value of phisical screen height");
+        //TODO uncomment when api would support this key
+        //throw UnknownException("Cannot get value of phisical screen height");
     }
     out.insert(std::make_pair("physicalHeight", std::to_string(physicalHeight)));
 
@@ -1947,6 +1949,7 @@ void SysteminfoUtils::ReportWifiNetwork(picojson::object& out) {
     std::string result_ssid;
     std::string result_ip_address;
     std::string result_ipv6_address;
+    std::string result_mac_address;
     double result_signal_strength = 0;
 
     connection_h connection_handle = nullptr;
@@ -1963,6 +1966,18 @@ void SysteminfoUtils::ReportWifiNetwork(picojson::object& out) {
     std::unique_ptr<std::remove_pointer<connection_h>::type, int(*)(connection_h)>
             connection_handle_ptr(connection_handle, &connection_destroy);
             // automatically release the memory
+
+    char* mac = NULL;
+    error = wifi_get_mac_address(&mac);
+    if(WIFI_ERROR_NONE == error) {
+        LOGD("macAddress fetched: %s", mac);
+        result_mac_address = mac;
+        free(mac);
+    } else {
+        std::string log_msg = "Failed to get mac address: " + std::to_string(error);
+        LOGE("%s", log_msg.c_str());
+        throw UnknownException(log_msg.c_str());
+    }
 
     error = connection_get_type(connection_handle, &connection_type);
     if (CONNECTION_ERROR_NONE != error) {
@@ -2020,6 +2035,7 @@ void SysteminfoUtils::ReportWifiNetwork(picojson::object& out) {
     out.insert(std::make_pair("ssid", result_ssid));
     out.insert(std::make_pair("ipAddress", result_ip_address));
     out.insert(std::make_pair("ipv6Address", result_ipv6_address));
+    out.insert(std::make_pair("macAddress", result_mac_address));
     out.insert(std::make_pair("signalStrength", std::to_string(result_signal_strength)));
 }
 
@@ -2482,18 +2498,12 @@ static bool CheckStringCapability(const std::string& key, std::string* value)
         *value = SystemInfoDeviceCapability::GetProfile();
     } else if (key == kTizenSystemDuid) {
         *value = SystemInfoDeviceCapability::GetDuid();
-    } else if (key == kTizenFeatureInputKeyboardLayout ||
-            key == kTizenFeatureNativeApiVersion ||
-            key == kTizenSystemPlatformVersion ||
-            key == kTizenSystemPlatformWebApiVersion ||
-            key == kTizenSystemPlatformName) {
+    } else {
         try {
             *value = GetValueString(key.substr(strlen("http://")).c_str());
         } catch (...){
             return false;
         }
-    } else {
-        return false;
     }
     return true;
 }
@@ -2612,18 +2622,12 @@ static bool CheckBoolCapability(const std::string& key, bool* bool_value)
 static bool CheckIntCapability(const std::string& key, std::string* value)
 {
     LOGD("Entered CheckIntCapability");
-    if (key == kTizenFeatureMultitouchCount ||
-            key == kTizenFeatureScreenBpp ||
-            key == kTizenFeatureScreenDpi ||
-            key == kTizenFeatureScreenHeight ||
-            key == kTizenFeatureScreenWidth) {
         try {
             *value = std::to_string(GetValueInt(key.substr(strlen("http://")).c_str()));
             return true;
         } catch (...) {
             //empty for purpose - ignore that key was not found
         }
-    }
     return false;
 }
 
@@ -2650,7 +2654,7 @@ picojson::value SystemInfoDeviceCapability::GetCapability(const std::string& key
         result_obj.insert(std::make_pair("value", value));
     } else {
         LOGD("Value for given key was not found");
-        throw UnknownException("Value for given key was not found");
+        throw NotSupportedException("Value for given key was not found");
     }
     result_obj.insert(std::make_pair("type", type));
 
