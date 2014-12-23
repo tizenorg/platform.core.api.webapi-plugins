@@ -502,7 +502,17 @@ NFCAdapter.prototype.removeActiveSecureElementChangeListener = function() {
 };
 
 NFCAdapter.prototype.getCachedMessage = function() {
+    var result = native_.callSync('NFCAdapter_getCachedMessage');
 
+    if (native_.isFailure(result)) {
+        throw new tizen.WebAPIException(0, result.error.message, result.error.name);
+    }
+
+    if (!result.records) {
+        return new tizen.NDEFMessage();
+    }
+
+    return new tizen.NDEFMessage(result.records);
 };
 
 NFCAdapter.prototype.setExclusiveModeForTransaction = function() {

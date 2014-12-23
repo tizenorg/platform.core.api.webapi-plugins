@@ -593,7 +593,7 @@ static void targetReceivedCallback(nfc_p2p_target_h target, nfc_ndef_message_h m
     obj.insert(make_pair("listenerId", "ReceiveNDEFListener"));
     obj.insert(make_pair("id", static_cast<double>(NFCAdapter::GetInstance()->GetPeerId())));
 
-    //TODO call function which create NDEFMessage object (from nfc_message_utils)
+    NFCMessageUtils::ReportNdefMessageFromData(raw_data, size, obj);
 
     NFCInstance::getInstance().PostMessage(event.serialize().c_str());
     free(raw_data);
@@ -870,7 +870,7 @@ static void tagReadNDEFCb(nfc_error_e result , nfc_ndef_message_h message , void
         free(raw_data);
 
         // create exception and post error message (call error callback)
-        UnknownException ex("Failed to retrieve NDEF message data");
+        auto ex = UnknownException("Failed to retrieve NDEF message data");
         picojson::value event = createEventError(callbackId, ex);
         NFCInstance::getInstance().PostMessage(event.serialize().c_str());
         return;
@@ -1085,6 +1085,42 @@ void NFCAdapter::TagTransceive(int tag_id, const picojson::value& args) {
     }
 
 }
+
+void NFCAdapter::GetCachedMessage(picojson::object& out) {
+
+    nfc_ndef_message_h message_handle = NULL;
+    int result = nfc_manager_get_cached_message(&message_handle);
+    if (NFC_ERROR_INVALID_NDEF_MESSAGE == result ||
+            NFC_ERROR_NO_NDEF_MESSAGE == result) {
+        if (NULL != message_handle) {
+            int err = nfc_ndef_message_destroy(message_handle);
+            if (NFC_ERROR_NONE != err) {
+                LOGE("Failed to free cached message: %d", err);
+            }
+        }
+
+        return;
+    }
+    if (NFC_ERROR_NONE != result) {
+        LOGE("Failed to get cached message: %d", result);
+        NFCUtil::throwNFCException(result, "Failed to get cached message");
+    }
+    unsigned char *raw_data = NULL;
+    unsigned int size;
+    if (NFC_ERROR_NONE != nfc_ndef_message_get_rawdata(message_handle,
+            &raw_data, &size)) {
+        LOGE("Unknown error while getting message.");
+        free(raw_data);
+        return;
+    }
+    NFCMessageUtils::ReportNdefMessageFromData(raw_data, size, out);
+    result = nfc_ndef_message_destroy(message_handle);
+    if (NFC_ERROR_NONE != result) {
+        LOGE("Failed to destroy message: %d", result);
+    }
+    free(raw_data);
+}
+
 
 }// nfc
 }// extension

@@ -312,7 +312,17 @@ void NFCInstance::RemoveActiveSecureElementChangeListener(
 
 void NFCInstance::GetCachedMessage(
         const picojson::value& args, picojson::object& out) {
+    LoggerD("Entered");
+    try {
+        picojson::value result = picojson::value(picojson::object());
+        picojson::object& result_obj = result.get<picojson::object>();
 
+        NFCAdapter::GetInstance()->GetCachedMessage(result_obj);
+        ReportSuccess(result, out);
+    }
+    catch(const common::PlatformException& ex) {
+        ReportError(ex, out);
+    }
 }
 
 void NFCInstance::SetExclusiveModeForTransaction(

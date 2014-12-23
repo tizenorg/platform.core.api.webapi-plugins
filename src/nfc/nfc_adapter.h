@@ -45,6 +45,8 @@ public:
     void RemoveTransactionEventListener(const picojson::value& args);
     void AddActiveSecureElementChangeListener();
     void RemoveActiveSecureElementChangeListener();
+    void GetCachedMessage(picojson::object& out);
+
     void SetPeerHandle(nfc_p2p_target_h handle);
     nfc_p2p_target_h GetPeerHandle();
     int GetPeerId();
