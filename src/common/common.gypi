@@ -77,6 +77,8 @@
       'current_application.h',
       'extension.cc',
       'extension.h',
+      'filter-utils.cc',
+      'filter-utils.h',
       'picojson.h',
       'utils.h',
       'logger.h',
