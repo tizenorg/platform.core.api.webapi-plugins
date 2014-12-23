@@ -377,9 +377,10 @@ void NFCInstance::ToByte(
 void NFCInstance::NDEFMessageContructor(const picojson::value& args, picojson::object& out) {
     LoggerD("Entered");
     try {
-//        ase = NFCAdapter::GetInstance()->GetActiveSecureElement();
-//        ReportSuccess(picojson::value(ase), out);
-        ReportSuccess(out);
+        picojson::value result = picojson::value(picojson::object());
+        picojson::object& result_obj = result.get<picojson::object>();
+        NFCMessageUtils::ReportNDEFMessage(args, result_obj);
+        ReportSuccess(result, out);
     }
     catch(const common::PlatformException& ex) {
         ReportError(ex, out);

@@ -20,10 +20,23 @@ typedef std::vector<unsigned char> UCharVector;
 class NFCMessageUtils
 {
 public:
+    static void ToNdefRecords(const nfc_ndef_message_h message, picojson::array& array);
+    static void ReportNdefMessageFromData(unsigned char* data, unsigned long size,
+            picojson::object& out);
     static void ReportNDEFMessage(const picojson::value& args, picojson::object& out);
+    static void ConstructNdefRecordFromRecordHandle(nfc_ndef_record_h record_handle,
+            picojson::object& out);
+    static void ReportNdefRecordFromMessage(nfc_ndef_message_h message_handle,
+                const int index, picojson::object& out);
     static void ReportNDEFRecord(const picojson::value& args, picojson::object& out);
+    static void ReportNdefRecordTextFromMessage(nfc_ndef_message_h message_handle,
+                const int index, picojson::object& out);
     static void ReportNDEFRecordText(const picojson::value& args, picojson::object& out);
+    static void ReportNdefRecordURIFromMessage(nfc_ndef_message_h message_handle,
+                const int index, picojson::object& out);
     static void ReportNDEFRecordURI(const picojson::value& args, picojson::object& out);
+    static void ReportNdefRecordMediaFromMessage(nfc_ndef_message_h message_handle,
+                const int index, picojson::object& out);
     static void ReportNDEFRecordMedia(const picojson::value& args, picojson::object& out);
 };
 
