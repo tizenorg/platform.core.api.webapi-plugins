@@ -217,6 +217,30 @@ function is_tizen_filter(f) {
          (f instanceof tizen.CompositeFilter);
 }
 
+//Extract property by string
+function _extractProperty(obj, attributeName) {
+  var props = attributeName.split('.');
+  for (var i = 0; i < props.length; ++i) {
+    if (obj instanceof Array) {
+      var ret = [];
+      for (var j = 0; j < obj.length; ++j)
+      {
+        ret.push(_extractProperty(obj[j], props.slice(i).join('.')));
+      }
+      return ret;
+    }
+    if (!obj.hasOwnProperty(props[i])) {
+      if (i === props.length - 1) {
+        throw new tizen.WebAPIException('InvalidValuesError', 'Property "' + attributeName +
+                '" is not valid');
+      }
+      return null;
+    }
+    obj = obj[props[i]];
+  }
+  return obj;
+}
+
 /**
  * This is a common interface used by different types of object filters.
  */
@@ -226,7 +250,7 @@ exports.AbstractFilter = function() {};
  * Represents a set of filters.
  */
 exports.AttributeFilter = function(attrName, matchFlag, matchValue) {
-  if (this && this.constructor == exports.AttributeFilter &&
+  if (this && this.constructor === exports.AttributeFilter &&
       (typeof(attrName) === 'string' || attrname instanceof String) &&
       matchFlag && matchFlag in FilterMatchFlag) {
     Object.defineProperties(this, {
@@ -247,6 +271,49 @@ exports.AttributeFilter = function(attrName, matchFlag, matchValue) {
   }
 };
 exports.AttributeFilter.prototype = new exports.AbstractFilter();
+
+//TODO: Move filtering to native code
+exports.AttributeFilter.prototype._filter = function (element) {
+  var elemValue = _extractProperty(element, this.attributeName);
+
+  if (!(elemValue instanceof Array)) {
+    elemValue = [elemValue];
+  }
+
+  var ret = false;
+  for (var i = 0; i < elemValue.length; ++i) {
+    var elemValueStr = String(elemValue[i]);
+    var elemValueStrU = elemValueStr.toUpperCase();
+    var matchValueStr = String(this.matchValue);
+    var matchValueStrU = matchValueStr.toUpperCase();
+
+    switch (this.matchFlag) {
+      case "EXACTLY":
+        ret = elemValue[i] === this.matchValue;
+        break;
+      case "FULLSTRING":
+        ret = elemValueStrU === matchValueStrU;
+        break;
+      case "CONTAINS":
+        ret = elemValueStrU.indexOf(matchValueStrU) > -1;
+        break;
+      case "STARTSWITH":
+        ret = elemValueStrU.indexOf(matchValueStrU) === 0;
+        break;
+      case "ENDSWITH":
+        ret = elemValueStrU.lastIndexOf(matchValueStrU) +
+                matchValueStrU.length === elemValueStrU.length;
+        break;
+      case "EXISTS":
+        ret = elemValue[i] !== undefined;
+        break;
+    }
+    if (ret) {
+      return ret;
+    }
+  }
+  return ret;
+};
 exports.AttributeFilter.prototype.constructor = exports.AttributeFilter;
 
 /**
@@ -254,7 +321,7 @@ exports.AttributeFilter.prototype.constructor = exports.AttributeFilter;
  * within a particular range.
  */
 exports.AttributeRangeFilter = function(attrName, start, end) {
-  if (!this || this.constructor != exports.AttributeRangeFilter ||
+  if (!this || this.constructor !== exports.AttributeRangeFilter ||
       !(typeof(attrName) === 'string' || attrname instanceof String)) {
     throw new exports.WebAPIException(exports.WebAPIException.TYPE_MISMATCH_ERR);
   }
@@ -268,14 +335,65 @@ exports.AttributeRangeFilter = function(attrName, start, end) {
     'endValue': { writable: true, enumerable: true, value: end === undefined ? null : end }
   });
 };
+
 exports.AttributeRangeFilter.prototype = new exports.AbstractFilter();
+
+//TODO: Move filtering to native code
+exports.AttributeRangeFilter.prototype._filter = function (element) {
+  var elemValue = _extractProperty(element, this.attributeName);
+
+  if (!(elemValue instanceof Array)) {
+    elemValue = [elemValue];
+  }
+
+  for (var i = 0; i < elemValue.length; ++i) {
+    var value = elemValue[i];
+
+    if ((this.initialValue !== undefined && this.initialValue !== null) &&
+            (this.endValue !== undefined && this.endValue !== null)) {
+      if (value instanceof tizen.TZDate) {
+        if (this.initialValue.earlierThan(value) && this.endValue.laterThan(value)) {
+          return true;
+        }
+      } else {
+        if (this.initialValue <= value && this.endValue > value) {
+          return true;
+        }
+      }
+    } else if ((this.initialValue !== undefined && this.initialValue !== null) &&
+            (this.endValue === undefined || this.endValue === null)) {
+      if (value instanceof tizen.TZDate) {
+        if (this.initialValue.earlierThan(value)) {
+          return true;
+        }
+      } else {
+        if (this.initialValue <= value) {
+          return true;
+        }
+      }
+    } else if ((this.initialValue === undefined || this.initialValue === null) &&
+            (this.endValue !== undefined && this.endValue !== null)) {
+      if (value instanceof tizen.TZDate) {
+        if (this.endValue.laterThan(value)) {
+          return true;
+        }
+      } else {
+        if (this.endValue > value) {
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+};
+
 exports.AttributeRangeFilter.prototype.constructor = exports.AttributeRangeFilter;
 
 /**
  * Represents a set of filters.
  */
 exports.CompositeFilter = function(type, filters) {
-  if (!this || this.constructor != exports.CompositeFilter ||
+  if (!this || this.constructor !== exports.CompositeFilter ||
       !(type in CompositeFilterType) ||
       filters && !(filters instanceof Array)) {
     throw new exports.WebAPIException(exports.WebAPIException.TYPE_MISMATCH_ERR);
@@ -290,7 +408,31 @@ exports.CompositeFilter = function(type, filters) {
     }
   });
 };
+
 exports.CompositeFilter.prototype = new exports.AbstractFilter();
+
+//TODO: Move filtering to native code
+exports.CompositeFilter.prototype._filter = function (element) {
+  var filters = this.filters;
+  if (this.type === "UNION") {
+    for (var i = 0; i < filters.length; ++i) {
+      if (filters[i]._filter(element)) {
+        return true;
+      }
+    }
+    return false;
+  } else if (this.type === "INTERSECTION") {
+    if (filters.length === 0)
+      return false;
+    for (var i = 0; i < filters.length; ++i) {
+      if (!filters[i]._filter(element)) {
+        return false;
+      }
+    }
+    return true;
+  }
+};
+
 exports.CompositeFilter.prototype.constructor = exports.CompositeFilter;
 
 /**

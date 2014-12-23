@@ -247,14 +247,11 @@ Calendar.prototype.addBatch = function() {
     tmp.push(tmpItem);
   }
 
-  var result = native_.call('Calendar_addBatch', {
+  native_.call('Calendar_addBatch', {
     type: this.type,
     items: tmp
   }, callback);
 
-  if (native_.isFailure(result)) {
-    throw native_.getErrorObject(result);
-  }
 };
 
 Calendar.prototype.update = function() {
@@ -355,7 +352,7 @@ Calendar.prototype.updateBatch = function() {
     tmp.push(tmpItem);
   }
 
-  var result = native_.call('Calendar_updateBatch', {
+  native_.call('Calendar_updateBatch', {
     type: this.type,
     items: tmp,
     updateAllInstances: (args.has.updateAllInstances)
@@ -363,9 +360,6 @@ Calendar.prototype.updateBatch = function() {
             : true
   }, callback);
 
-  if (native_.isFailure(result)) {
-    throw native_.getErrorObject(result);
-  }
 };
 
 Calendar.prototype.remove = function(id) {
@@ -426,14 +420,11 @@ Calendar.prototype.removeBatch = function() {
     }
   };
 
-  var result = native_.call('Calendar_removeBatch', {
+  native_.call('Calendar_removeBatch', {
     type: this.type,
     ids: args.ids
   }, callback);
 
-  if (native_.isFailure(result)) {
-    throw native_.getErrorObject(result);
-  }
 };
 
 Calendar.prototype.find = function(successCallback, errorCallback, filter, sortMode) {
@@ -463,6 +454,46 @@ Calendar.prototype.find = function(successCallback, errorCallback, filter, sortM
       nullable: true
     }
   ]);
+  //TODO: Move sorting and filtering to native code
+  var C = {};
+  C.sort = function (arr, sortMode) {
+    var _getSortProperty = function (obj, props) {
+      for (var i = 0; i < props.length; ++i) {
+        if (!obj.hasOwnProperty(props[i])) {
+          return null;
+        }
+        obj = obj[props[i]];
+      }
+      return obj;
+    };
+
+    if (sortMode instanceof tizen.SortMode) {
+      var props = sortMode.attributeName.split('.');
+      arr.sort(function (a, b) {
+        var aValue = _getSortProperty(a, props);
+        var bValue = _getSortProperty(b, props);
+
+        if (sortMode.order === 'DESC') {
+          return aValue < bValue;
+        }
+        return bValue < aValue;
+      });
+    }
+    return arr;
+  };
+
+  C.filter = function (arr, filter) {
+    if (T.isNullOrUndefined(arr))
+      return arr;
+    if (filter instanceof tizen.AttributeFilter ||
+            filter instanceof tizen.AttributeRangeFilter ||
+            filter instanceof tizen.CompositeFilter) {
+      arr = arr.filter(function (element) {
+          return filter._filter(element);
+      });
+    }
+    return arr;
+  };
 
   var calendarType = this.type;
 
@@ -488,16 +519,11 @@ Calendar.prototype.find = function(successCallback, errorCallback, filter, sortM
 
     }
   };
-
-  var result = native_.call('Calendar_find', {
+  native_.call('Calendar_find', {
     calendarId: this.id,
     filter: args.filter,
     sortMode: args.sortMode
   }, callback);
-
-  if (native_.isFailure(result)) {
-    throw native_.getErrorObject(result);
-  }
 
 };
 
