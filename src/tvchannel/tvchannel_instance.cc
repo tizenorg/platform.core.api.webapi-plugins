@@ -40,6 +40,12 @@ TVChannelInstance::TVChannelInstance() {
     RegisterHandler("TVChannelManager_tune",
         std::bind(&TVChannelInstance::tune, this, std::placeholders::_1,
             std::placeholders::_2));
+    RegisterHandler("TVChannelManager_tuneUp",
+        std::bind(&TVChannelInstance::tuneUp, this, std::placeholders::_1,
+            std::placeholders::_2));
+    RegisterHandler("TVChannelManager_tuneDown",
+        std::bind(&TVChannelInstance::tuneDown, this, std::placeholders::_1,
+            std::placeholders::_2));
 
     m_pSubscriber = TVChannelManager::getInstance()->createSubscriber(this);
     TVChannelManager::getInstance()->registerListener(m_pSubscriber);
@@ -98,6 +104,94 @@ void TVChannelInstance::tuneTask(
     std::shared_ptr<TVChannelManager::TuneData> const& _tuneData) {
     LOGD("Enter");
     TVChannelManager::getInstance()->tune(_tuneData);
+}
+
+void TVChannelInstance::tuneUp(picojson::value const& args,
+    picojson::object& out) {
+    LOGD("Enter");
+
+    NavigatorMode navMode;
+    if (args.contains("tuneMode")) {
+        navMode = stringToNavigatorMode(
+                args.get("tuneMode").get<std::string>());
+    } else {
+        navMode = NavigatorMode::ALL;
+    }
+
+    double callbackId = args.get("callbackId").get<double>();
+    std::string windowType;
+    if (args.contains("windowType")) {
+        windowType = args.get("windowType").get<std::string>();
+    } else {
+        windowType = "MAIN";
+    }
+
+    LOGD("CallbackID %f", callbackId);
+    std::shared_ptr<TVChannelManager::TuneData> pTuneData(
+        new TVChannelManager::TuneData(navMode,
+            stringToWindowType(windowType), callbackId));
+
+    std::function<void(std::shared_ptr<
+        TVChannelManager::TuneData> const&)> task = std::bind(
+            &TVChannelInstance::tuneUpTask, this, std::placeholders::_1);
+    std::function<void(std::shared_ptr<
+            TVChannelManager::TuneData> const&)> taskAfter = std::bind(
+                &TVChannelInstance::tuneTaskAfter, this, std::placeholders::_1);
+
+    common::TaskQueue::GetInstance().Queue<TVChannelManager::TuneData>(task,
+        taskAfter, pTuneData);
+
+    picojson::value v;
+    ReportSuccess(v, out);
+}
+
+void TVChannelInstance::tuneUpTask(
+    std::shared_ptr<TVChannelManager::TuneData> const& _tuneData) {
+    TVChannelManager::getInstance()->tuneUp(_tuneData);
+}
+
+void TVChannelInstance::tuneDown(picojson::value const& args,
+    picojson::object& out) {
+    LOGD("Enter");
+
+    NavigatorMode navMode;
+    if (args.contains("tuneMode")) {
+        navMode = stringToNavigatorMode(
+                args.get("tuneMode").get<std::string>());
+    } else {
+        navMode = NavigatorMode::ALL;
+    }
+
+    double callbackId = args.get("callbackId").get<double>();
+    std::string windowType;
+    if (args.contains("windowType")) {
+        windowType = args.get("windowType").get<std::string>();
+    } else {
+        windowType = "MAIN";
+    }
+
+    LOGD("CallbackID %f", callbackId);
+    std::shared_ptr<TVChannelManager::TuneData> pTuneData(
+        new TVChannelManager::TuneData(navMode,
+            stringToWindowType(windowType), callbackId));
+
+    std::function<void(std::shared_ptr<
+        TVChannelManager::TuneData> const&)> task = std::bind(
+            &TVChannelInstance::tuneUpTask, this, std::placeholders::_1);
+    std::function<void(std::shared_ptr<
+            TVChannelManager::TuneData> const&)> taskAfter = std::bind(
+                &TVChannelInstance::tuneTaskAfter, this, std::placeholders::_1);
+
+    common::TaskQueue::GetInstance().Queue<TVChannelManager::TuneData>(task,
+        taskAfter, pTuneData);
+
+    picojson::value v;
+    ReportSuccess(v, out);
+}
+
+void TVChannelInstance::tuneDownTask(
+    std::shared_ptr<TVChannelManager::TuneData> const& _tuneData) {
+    TVChannelManager::getInstance()->tuneDown(_tuneData);
 }
 
 void TVChannelInstance::getCurrentChannel(picojson::value const& args,

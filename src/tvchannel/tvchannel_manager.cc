@@ -106,10 +106,112 @@ void TVChannelManager::tune(std::shared_ptr<TuneData> const& _pTuneData) {
         ret = getNavigation(getProfile(windowType), 0)->SetService(serviceId);
         if (TV_SERVICE_API_METHOD_SUCCESS != ret) {
             LOGE("Failed to set selected channel: %d", ret);
-            throw new common::UnknownException(
+            throw common::UnknownException(
                 "Failed to set selected channel");
         }
         _pTuneData->serviceId = serviceId;
+        m_callbackTuneMap[serviceId] = _pTuneData->callbackId;
+    } catch (common::PlatformException const& _error) {
+        _pTuneData->pError.reset(
+            new common::PlatformException(_error.name(), _error.message()));
+        LOGE("Some exception caught");
+    }
+}
+
+void TVChannelManager::tuneUp(std::shared_ptr<TuneData> const& _pTuneData) {
+    LOGD("Enter");
+    try {
+        std::unique_lock<std::mutex> lock(tuneMutex);
+
+        WindowType windowType = _pTuneData->windowType;
+
+        TCServiceId currentServiceId =
+            getCurrentChannel(windowType)->getServiceID();
+
+        TSTvMode tvMode = getTvMode(
+            getNavigation(getProfile(windowType), SCREENID));
+
+        ENavigationMode naviMode = NAVIGATION_MODE_ALL;
+        std::unique_ptr < TCCriteriaHelper > pCriteria = getBasicCriteria(
+            tvMode, naviMode);
+        pCriteria->Fetch(SERVICE_ID);
+        pCriteria->Fetch(SERVICE_NAME);
+        pCriteria->Fetch(CHANNEL_TYPE);
+        pCriteria->Fetch(CHANNEL_NUMBER);
+        TCServiceData previousService;
+        int ret = getNavigation(
+            getProfile(windowType), SCREENID)->GetPreviousService(*pCriteria,
+                currentServiceId,
+                previousService);
+        if (TV_SERVICE_API_METHOD_SUCCESS != ret) {
+            LOGE("Failed to find previous channel: %d", ret);
+            throw common::NotFoundException("Failed to find previous channel");
+        }
+        TCServiceId serviceId = previousService.Get<TCServiceId>(SERVICE_ID);
+
+        // if GetNextService's result is same with current service id,
+        // it means failure to find previous channel.
+        if (currentServiceId == serviceId) {
+            LOGE("Failed to find previous channel: %d", ret);
+            throw common::NotFoundException("Failed to find next channel");
+        }
+        ret = getNavigation(getProfile(windowType), 0)->SetService(serviceId);
+        if (TV_SERVICE_API_METHOD_SUCCESS != ret) {
+            LOGE("Failed to set selected channel: %d", ret);
+            throw common::UnknownException(
+                "Failed to set selected channel");
+        }
+        m_callbackTuneMap[serviceId] = _pTuneData->callbackId;
+    } catch (common::PlatformException const& _error) {
+        _pTuneData->pError.reset(
+            new common::PlatformException(_error.name(), _error.message()));
+        LOGE("Some exception caught");
+    }
+}
+
+void TVChannelManager::tuneDown(std::shared_ptr<TuneData> const& _pTuneData) {
+    LOGD("Enter");
+    try {
+        std::unique_lock<std::mutex> lock(tuneMutex);
+
+        WindowType windowType = _pTuneData->windowType;
+
+        TCServiceId currentServiceId =
+            getCurrentChannel(windowType)->getServiceID();
+
+        TSTvMode tvMode = getTvMode(
+            getNavigation(getProfile(windowType), SCREENID));
+
+        ENavigationMode naviMode = NAVIGATION_MODE_ALL;
+        std::unique_ptr < TCCriteriaHelper > pCriteria = getBasicCriteria(
+            tvMode, naviMode);
+        pCriteria->Fetch(SERVICE_ID);
+        pCriteria->Fetch(SERVICE_NAME);
+        pCriteria->Fetch(CHANNEL_TYPE);
+        pCriteria->Fetch(CHANNEL_NUMBER);
+        TCServiceData nextService;
+        int ret = getNavigation(
+            getProfile(windowType), SCREENID)->GetNextService(*pCriteria,
+                currentServiceId,
+                nextService);
+        if (TV_SERVICE_API_METHOD_SUCCESS != ret) {
+            LOGE("Failed to find previous channel: %d", ret);
+            throw common::NotFoundException("Failed to find previous channel");
+        }
+        TCServiceId serviceId = nextService.Get<TCServiceId>(SERVICE_ID);
+
+        // if GetNextService's result is same with current service id,
+        // it means failure to find previous channel.
+        if (currentServiceId == serviceId) {
+            LOGE("Failed to find previous channel: %d", ret);
+            throw common::NotFoundException("Failed to find previous channel");
+        }
+        ret = getNavigation(getProfile(windowType), 0)->SetService(serviceId);
+        if (TV_SERVICE_API_METHOD_SUCCESS != ret) {
+            LOGE("Failed to set selected channel: %d", ret);
+            throw common::UnknownException(
+                "Failed to set selected channel");
+        }
         m_callbackTuneMap[serviceId] = _pTuneData->callbackId;
     } catch (common::PlatformException const& _error) {
         _pTuneData->pError.reset(

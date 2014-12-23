@@ -44,9 +44,18 @@ class TVChannelInstance:
         const std::shared_ptr<TVChannelManager::GetProgramListData>& data);
     void tune(picojson::value const& args,
         picojson::object& out);
-    void tuneTask(std::shared_ptr<TVChannelManager::TuneData> const& _tuneData);
+    void tuneUp(picojson::value const& args,
+        picojson::object& out);
+    void tuneDown(picojson::value const& args,
+        picojson::object& out);
+    void tuneTask(std::shared_ptr<
+        TVChannelManager::TuneData> const& _tuneData);
     void tuneTaskAfter(
         std::shared_ptr<TVChannelManager::TuneData> const& _pTuneData);
+    void tuneUpTask(std::shared_ptr<
+        TVChannelManager::TuneData> const& _tuneData);
+    void tuneDownTask(
+        std::shared_ptr<TVChannelManager::TuneData> const& _tuneData);
 
     ISignalSubscriber* m_pSubscriber;
 };

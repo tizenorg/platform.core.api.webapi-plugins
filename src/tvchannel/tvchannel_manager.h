@@ -53,6 +53,12 @@ class TVChannelManager {
             tuneOption(_tuneOption), windowType(_windowType),
                 callbackId(_callbackId) {
         }
+        TuneData(NavigatorMode _navMode, WindowType _windowType,
+                    double _callbackId) :
+                        navMode(_navMode), windowType(_windowType),
+                        callbackId(_callbackId) {
+                }
+        NavigatorMode navMode;
         TuneOption tuneOption;
         WindowType windowType;
         double callbackId;
@@ -68,6 +74,8 @@ class TVChannelManager {
     ProgramInfo* getCurrentProgram(WindowType _windowType);
 
     void tune(std::shared_ptr<TuneData> const& _pTuneData);
+    void tuneUp(std::shared_ptr<TuneData> const& _pTuneData);
+    void tuneDown(std::shared_ptr<TuneData> const& _pTuneData);
 
     EProfile getProfile(WindowType windowType);
     IServiceNavigation* getNavigation(EProfile profileId, u_int16_t screenId);
