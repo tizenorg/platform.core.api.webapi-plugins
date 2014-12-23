@@ -617,7 +617,7 @@ void AddressBook_listenerCallback(const char* view_uri, void* user_data) {
 }
 }
 
-void AddressBook_startListening(const JsonObject& args, JsonObject& out) {
+void AddressBook_startListening(const JsonObject&, JsonObject& out) {
   ContactUtil::CheckDBConnection();
   // Set the initial latest version before registering the callback.
   // The callback should only be registered once so no race can occur.
@@ -636,7 +636,7 @@ void AddressBook_startListening(const JsonObject& args, JsonObject& out) {
   }
 }
 
-void AddressBook_stopListening(const JsonObject& args, JsonObject& out) {
+void AddressBook_stopListening(const JsonObject&, JsonObject& out) {
   ContactUtil::CheckDBConnection();
   int error_code = contacts_db_remove_changed_cb(
       _contacts_contact._uri, AddressBook_listenerCallback, &ContactInstance::current_state);

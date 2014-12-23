@@ -335,7 +335,7 @@ void ContactManager_listenerCallback(const char* view_uri, char* changes,
 }
 }
 
-void ContactManager_startListening(/*const JsonObject&, JsonObject& out*/) {
+void ContactManager_startListening(const JsonObject& /*args*/, JsonObject& /*out*/) {
   ContactUtil::CheckDBConnection();
   int error_code = contacts_db_add_changed_cb_with_info(
       _contacts_person._uri, ContactManager_listenerCallback, nullptr);
@@ -347,7 +347,7 @@ void ContactManager_startListening(/*const JsonObject&, JsonObject& out*/) {
   }
 }
 
-void ContactManager_stopListening(/*const JsonObject&, JsonObject& out*/) {
+void ContactManager_stopListening(const JsonObject& /*args*/, JsonObject& /*out*/) {
   ContactUtil::CheckDBConnection();
   int error_code = contacts_db_remove_changed_cb_with_info(
       _contacts_person._uri, ContactManager_listenerCallback, nullptr);

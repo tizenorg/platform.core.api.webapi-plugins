@@ -43,6 +43,8 @@ ContactInstance::ContactInstance() {
   REGISTER_SYNC("ContactManager_removeBatch", ContactManager_removeBatch);
   REGISTER_SYNC("ContactManager_find", ContactManager_find);
   REGISTER_SYNC("ContactManager_importFromVCard", ContactManager_importFromVCard);
+  REGISTER_SYNC("ContactManager_startListening", ContactManager_startListening);
+  REGISTER_SYNC("ContactManager_stopListening", ContactManager_stopListening);
 
   // AddressBook
   REGISTER_ASYNC("AddressBook_addBatch", AddressBook_addBatch);
@@ -266,6 +268,20 @@ void ContactInstance::ContactManager_importFromVCard(const JsonValue& args,
   JsonValue val{JsonObject{}};
   ContactManager::ContactManager_importFromVCard(
       common::JsonCast<JsonObject>(args), val.get<JsonObject>());
+  ReportSuccess(val, out);
+}
+
+void ContactInstance::ContactManager_startListening(const JsonValue& args, JsonObject& out) {
+  JsonValue val{JsonObject{}};
+  ContactManager::ContactManager_startListening(common::JsonCast<JsonObject>(args),
+                               val.get<JsonObject>());
+  ReportSuccess(val, out);
+}
+
+void ContactInstance::ContactManager_stopListening(const JsonValue& args, JsonObject& out) {
+  JsonValue val{JsonObject{}};
+  ContactManager::ContactManager_stopListening(common::JsonCast<JsonObject>(args),
+                               val.get<JsonObject>());
   ReportSuccess(val, out);
 }
 

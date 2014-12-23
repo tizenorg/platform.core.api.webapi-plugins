@@ -176,6 +176,33 @@ class ContactInstance : public common::ParsedInstance {
    */
   void ContactManager_importFromVCard(const JsonValue& args, JsonObject& out);
 
+  /**
+   * Signature: @code void getAddressBook(contactString); @endcode
+   * JSON: @code data: {method: 'ContactManager_startListening',
+   *                    args: {}} @endcode
+   * Invocation: @code native.callSync(request); @endcode
+   * Return:
+   * @code
+   * {status: 'error', error: {name, message}}
+   * {status: 'success'}
+   * @endcode
+   */
+  void ContactManager_startListening(const JsonValue& args, JsonObject& out);
+
+  /**
+   * Signature: @code void getAddressBook(contactString); @endcode
+   * JSON: @code data: {method: 'ContactManager_stopListening',
+   *                    args: {}} @endcode
+   * Invocation: @code native.callSync(request); @endcode
+   * Return:
+   * @code
+   * {status: 'error', error: {name, message}}
+   * {status: 'success'}
+   * @endcode
+   */
+  void ContactManager_stopListening(const JsonValue& args, JsonObject& out);
+
+
   void Person_link(const JsonValue& args, JsonObject& out);
   void Person_unlink(const JsonValue& args, JsonObject& out);
 };

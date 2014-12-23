@@ -55,7 +55,7 @@ void ContactManager_importFromVCard(const JsonObject& args, JsonObject& out);
  * {status: 'success'}
  * @endcode
  */
-void ContactManager_startListening(/*const JsonObject& args, JsonObject& out*/);
+void ContactManager_startListening(const JsonObject& args, JsonObject& out);
 
 /**
  * Signature: @code void getAddressBook(contactString); @endcode
@@ -68,7 +68,7 @@ void ContactManager_startListening(/*const JsonObject& args, JsonObject& out*/);
  * {status: 'success'}
  * @endcode
  */
-void ContactManager_stopListening(/*const JsonObject& args, JsonObject& out*/);
+void ContactManager_stopListening(const JsonObject& args, JsonObject& out);
 
 }  // namespace ContactManager
 }  // namespace contact

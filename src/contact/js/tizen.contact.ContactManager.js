@@ -6,7 +6,6 @@
 var _personListenerRegistered = false;
 var _personCallbackMap = {};
 var _personChangeListener = function(result) {
-  result = JSON.parse(result);
   for (var key in _personCallbackMap) {
     if (_personCallbackMap.hasOwnProperty(key)) {
       if (result.added.length) {
