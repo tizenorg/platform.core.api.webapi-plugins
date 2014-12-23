@@ -62,6 +62,7 @@ NFCInstance::NFCInstance() {
     REGISTER_SYNC("NDEFMessage_toByte", ToByte);
     //Message related methods
     REGISTER_SYNC("NDEFMessage_constructor", NDEFMessageContructor);
+    REGISTER_SYNC("NDEFMessage_toByte", ToByte);
     REGISTER_SYNC("NDEFRecord_constructor", NDEFRecordContructor);
     REGISTER_SYNC("NDEFRecordText_constructor", NDEFRecordTextContructor);
     REGISTER_SYNC("NDEFRecordURI_constructor", NDEFRecordURIContructor);
@@ -370,7 +371,16 @@ void NFCInstance::SendNDEF(
 
 void NFCInstance::ToByte(
         const picojson::value& args, picojson::object& out) {
-
+    LoggerD("Entered");
+    try {
+        picojson::value result = picojson::value(picojson::object());
+        picojson::object& result_obj = result.get<picojson::object>();
+        NFCMessageUtils::NDEFMessageToByte(args, result_obj);
+        ReportSuccess(result, out);
+    }
+    catch(const common::PlatformException& ex) {
+        ReportError(ex, out);
+    }
 }
 
 //Message related methods
