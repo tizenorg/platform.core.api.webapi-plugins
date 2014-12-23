@@ -548,7 +548,7 @@ var CalendarTaskInit = function(data) {
         if (v === null) {
           return;
         }
-        _progress = (T.isNumber(v) && v >= 0 || v <= 100) ? v : _progress;
+        _progress = (T.isNumber(v) && (v >= 0 || v <= 100)) ? v : _progress;
       },
       enumerable: true
     }

@@ -75,7 +75,7 @@ var Calendar = function(accountId, name, type) {
 
   Object.defineProperties(this, {
     accountId: {
-      value: _data.accountId,
+      value: Converter.toLong(_data.accountId),
       writable: false,
       enumerable: true
     },
