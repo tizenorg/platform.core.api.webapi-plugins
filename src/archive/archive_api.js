@@ -66,6 +66,9 @@ CommonFS.toRealPath = function(aPath) {
         _fileRealPath = aPath;
     }
     console.log("REAL PATH:" + _fileRealPath);
+    if (_fileRealPath === "undefined" || _fileRealPath === "null") {
+        throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR);
+    }
     return _fileRealPath;
 };
 
@@ -190,7 +193,7 @@ ArchiveFileEntry.prototype.extract = function () {
             if (args.onerror) {
                 args.onerror.call(
                     null,
-                    new tizen.WebAPIException(e.code, e.name, e.message)
+                    new tizen.WebAPIException(e.code, e.message, e.name)
                 );
             }
         },
@@ -272,7 +275,7 @@ ArchiveFile.prototype.add = function () {
             if (args.onerror) {
                 args.onerror.call(
                     null,
-                    new tizen.WebAPIException(e.code, e.name, e.message)
+                    new tizen.WebAPIException(e.code, e.message, e.name)
                 );
             }
         },
@@ -322,7 +325,7 @@ ArchiveFile.prototype.extractAll = function () {
             if (args.onerror) {
                 args.onerror.call(
                     null,
-                    new tizen.WebAPIException(e.code, e.name, e.message)
+                    new tizen.WebAPIException(e.code, e.message, e.name)
                 );
             }
         },
@@ -369,7 +372,7 @@ ArchiveFile.prototype.getEntries = function () {
             if (args.onerror) {
                 args.onerror.call(
                     null,
-                    new tizen.WebAPIException(e.code, e.name, e.message)
+                    new tizen.WebAPIException(e.code, e.message, e.name)
                 );
             }
         }
@@ -404,7 +407,7 @@ ArchiveFile.prototype.getEntryByName = function () {
             if (args.onerror) {
                 args.onerror.call(
                     null,
-                    new tizen.WebAPIException(e.code, e.name, e.message)
+                    new tizen.WebAPIException(e.code, e.message, e.name)
                 );
             }
         }
@@ -466,7 +469,7 @@ ArchiveManager.prototype.open = function () {
             if (args.onerror) {
                 args.onerror.call(
                     null,
-                    new tizen.WebAPIException(e.code, e.name, e.message)
+                    new tizen.WebAPIException(e.code, e.message, e.name)
                 );
             }
         }
