@@ -204,6 +204,7 @@ BuildRequires:  pkgconfig(contacts-service2)
 
 %if 0%{?tizen_feature_datasync_support}
 BuildRequires: pkgconfig(sync-agent)
+Requires: sync-agent
 %endif
 
 %if 0%{?tizen_feature_exif_support}
