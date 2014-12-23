@@ -287,16 +287,14 @@ void ContactInstance::ContactManager_stopListening(const JsonValue& args, JsonOb
 
 void ContactInstance::Person_link(const JsonValue& args, JsonObject& out) {
   JsonValue val{JsonObject{}};
-  Person::Person_link(common::JsonCast<JsonObject>(args),
-                      val.get<JsonObject>());
+  Person::Person_link(common::JsonCast<JsonObject>(args), val.get<JsonObject>());
   ReportSuccess(out);
 }
 
 void ContactInstance::Person_unlink(const JsonValue& args, JsonObject& out) {
   JsonValue val{JsonObject{}};
-  Person::Person_unlink(common::JsonCast<JsonObject>(args),
-                        val.get<JsonObject>());
-  ReportSuccess(out);
+  Person::Person_unlink(common::JsonCast<JsonObject>(args), val.get<JsonObject>());
+  ReportSuccess(val, out);
 }
 
 }  // namespace contact

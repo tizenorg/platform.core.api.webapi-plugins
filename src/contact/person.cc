@@ -59,7 +59,7 @@ void Person_link(const JsonObject& args, JsonObject&) {
   ContactUtil::ErrorChecker(err, "Error during executing person link()");
 }
 
-void Person_unlink(const JsonObject& args, JsonObject&) {
+void Person_unlink(const JsonObject& args, JsonObject& out) {
   ContactUtil::CheckDBConnection();
 
   long contact_id = common::stol(FromJson<JsonString>(args, "id"));
@@ -105,9 +105,7 @@ void Person_unlink(const JsonObject& args, JsonObject&) {
     throw common::UnknownException("Person not found");
   }
 
-  JsonValue person{JsonObject{}};
-  ContactUtil::ImportPersonFromContactsRecord(contacts_record,
-                                              &person.get<JsonObject>());
+  ContactUtil::ImportPersonFromContactsRecord(contacts_record, &out);
 
   contacts_record_destroy(contacts_record, true);
   contacts_record = nullptr;

@@ -312,15 +312,11 @@ var ContactPhoneNumber = function(number, type, isDefault) {
 
   Object.defineProperties(this, {
     number: {
-      get: function()
-      {
+      get: function() {
         return _number;
       },
-      set: function(v)
-      {
-        // @todo normalization should be done by platform, but for some reason
-        // it doesn't works, so for now, we decided to do it here
-        _number = Converter.toString(v, false).split('-').join('');
+      set: function(v) {
+        _number = Converter.toString(v, false);
       },
       enumerable: true
     },

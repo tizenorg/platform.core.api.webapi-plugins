@@ -29,7 +29,6 @@ ContactExtension::ContactExtension() {
       "tizen.ContactInstantMessenger",
       "tizen.Contact",
       "tizen.AddressBook",
-      "tizen.Person",
       NULL
     };
     SetExtraJSEntryPoints(entry_points);

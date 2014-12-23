@@ -137,7 +137,7 @@ static const char kContactInstantMessageTypeCustom[] = "CUSTOM";
 
 void ErrorChecker(int err, const char* message) {
   if (CONTACTS_ERROR_NONE != err) {
-    LoggerE("%s", message);
+    LoggerE("%s, error code: %i", message, err);
     throw common::UnknownException(message);
   }
 }
@@ -596,20 +596,17 @@ void ExportContactEmailAddressToContactsRecord(
   record.release();
 }
 
-void ImportContactPhoneNumberFromContactsRecord(
-    contacts_record_h contacts_record, unsigned int index,
-    JsonObject* out_ptr) {
+void ImportContactPhoneNumberFromContactsRecord(contacts_record_h contacts_record,
+                                                unsigned int index, JsonObject* out_ptr) {
   JsonObject& out = *out_ptr;
-  int err = CONTACTS_ERROR_NONE;
   contacts_record_h child_record = nullptr;
-  // contacts_record is protected by unique_ptr and its ownership is not passed
-  // here
+  // contacts_record is protected by unique_ptr and its ownership is not passed here
   if (!contacts_record) {
     LoggerE("Contacts record is null");
     throw common::UnknownException("Contacts record is null");
   }
 
-  err = contacts_record_get_child_record_at_p(
+  int err = contacts_record_get_child_record_at_p(
       contacts_record, _contacts_contact.number, index, &child_record);
   if (CONTACTS_ERROR_NONE != err && CONTACTS_ERROR_NO_DATA != err) {
     return;
@@ -689,15 +686,13 @@ void ImportContactPhoneNumberFromContactsRecord(
 void ExportContactPhoneNumberToContactsRecord(contacts_record_h contacts_record,
                                               const JsonObject& in) {
   contacts_record_h phone_record = nullptr;
-  // contacts_record is protected by unique_ptr and its ownership is not passed
-  // here
+  // contacts_record is protected by unique_ptr and its ownership is not passed here
   if (!contacts_record) {
     LoggerE("Contacts record is null");
     throw common::UnknownException("Contacts record is null");
   }
 
-  int err = CONTACTS_ERROR_NONE;
-  err = contacts_record_create(_contacts_number._uri, &phone_record);
+  int err = contacts_record_create(_contacts_number._uri, &phone_record);
   ContactUtil::ErrorChecker(err, "Fail to create phone_record in database");
   ContactsRecordHPtr record(&phone_record, ContactsDeleter);
 

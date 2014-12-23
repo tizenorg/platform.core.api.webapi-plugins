@@ -174,6 +174,3 @@ Person.prototype.unlink = function(contactId) {
     return new Person(native_.getResultObject(result));
   });
 };
-
-// exports /////////////////////////////////////////////////////////////////
-tizen.Person = Person;

@@ -246,7 +246,6 @@ void ContactManager_importFromVCard(const JsonObject& args, JsonObject& out) {
     throw UnknownException("Invalid vCard string.");
   }
 
-  JsonValue result{JsonObject{}};
   ContactUtil::ImportContactFromContactsRecord(contacts_record, &out);
 }
 

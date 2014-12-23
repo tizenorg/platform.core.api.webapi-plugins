@@ -64,12 +64,12 @@ ContactManager.prototype.getAddressBooks = function() {
 
 // Gets the aggregation of all address books.
 ContactManager.prototype.getUnifiedAddressBook = function() {
-  // validation
-  var result = native_.callSync('CheckReadPrivileges', {});
-  if (native_.isFailure(result)) {
-    throw new WebAPIException(WebAPIException.SECURITY_ERR,
-        'You do not have privileges for this operation');
-  }
+  // TODO check privileges
+  //var result = native_.callSync('CheckReadPrivileges', {});
+  //if (native_.isFailure(result)) {
+  //  throw new tizen.WebAPIException(WebAPIException.SECURITY_ERR,
+  //      'You do not have privileges for this operation');
+  //}
 
   return new AddressBook(-1, 'Unified address book', false);
 };
