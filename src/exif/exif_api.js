@@ -115,9 +115,7 @@ ExifManager.prototype.getThumbnail = function() {
 
 // this function passes ExifInformation_exposureProgram_attribute test:
 tizen.ExifInformation = function() {
-  if (!this || this.constructor !== tizen.ExifInformation) {
-    throw new TypeError;
-  }
+  validator_.isConstructorCall(this, tizen.ExifInformation);
 
   var args = validator_.validateArgs(arguments, [
     {
@@ -127,8 +125,6 @@ tizen.ExifInformation = function() {
       nullable: false
     }
   ]);
-
-  var exifInitDict = args.ExifInitDict;
 
   var uri_ = null;
   var width_ = null;
@@ -150,6 +146,7 @@ tizen.ExifInformation = function() {
   var gpsTime_ = null;
   var userComment_ = null;
 
+  var exifInitDict = args.ExifInitDict;
   if (exifInitDict) {
     if (exifInitDict['uri'] == null) {
       throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR,
