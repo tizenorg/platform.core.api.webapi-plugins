@@ -57,11 +57,15 @@ public:
     bool IsNDEFListenerSet();
 
 // NFCTag related methods
+    // attributes
     std::string TagTypeGetter(int tag_id);
     bool TagIsSupportedNDEFGetter(int tag_id);
     unsigned int TagNDEFSizeGetter(int tag_id);
     NFCTagPropertiesT TagPropertiesGetter(int tag_id);
     bool TagIsConnectedGetter(int tag_id);
+    // methods
+    void TagReadNDEF(int tag_id, const picojson::value& args);
+    // listeners
     void SetTagListener();
     void UnsetTagListener();
     int GetNextTagId();

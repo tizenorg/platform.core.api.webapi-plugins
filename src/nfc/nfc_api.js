@@ -593,6 +593,37 @@ function NFCTag(tagid) {
         return native_.getResultObject(result);
     }
 
+    // Function defined here (not outside Tag "constructor"
+    // because access to internal _my_id variable is needed)
+    NFCTag.prototype.readNDEF = function() {
+
+        var args = validator_.validateArgs(arguments, [
+            {
+                name : 'readCallback',
+                type : types_.FUNCTION
+            },
+            {
+                name : 'errorCallback',
+                type : types_.FUNCTION,
+                optional : true,
+                nullable : true
+            }
+        ]);
+
+        native_.call('NFCTag_readNDEF', {'id' : _my_id},
+        function(result) {
+            if (native_.isFailure(result)) {
+                if(!T_.isNullOrUndefined(args.errorCallback)) {
+                    args.errorCallback(result.error);
+                }
+            } else {
+                var message = new tizen.NDEFMessage(result.records);
+                args.readCallback(message);
+            }
+        });
+
+    };
+
     Object.defineProperties(this, {
         type:   {
             set: function() {},
@@ -621,10 +652,6 @@ function NFCTag(tagid) {
         }
     });
 }
-
-NFCTag.prototype.readNDEF = function() {
-
-};
 
 NFCTag.prototype.writeNDEF = function() {
 

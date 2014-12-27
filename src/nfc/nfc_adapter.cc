@@ -4,6 +4,7 @@
 
 #include "nfc_adapter.h"
 #include "nfc_util.h"
+#include "nfc_message_utils.h"
 
 #include <glib.h>
 
@@ -835,6 +836,93 @@ void NFCAdapter::SetTagHandle(nfc_tag_h tag) {
     m_last_tag_handle = tag;
 }
 
+static void tagReadNDEFCb(nfc_error_e result , nfc_ndef_message_h message , void *data)
+{
+    LoggerD("Entered");
+
+    if(!data) {
+        // Can not continue if unable to get callbackId
+        LoggerE("NULL callback id given");
+    }
+
+    double callbackId = *((double*)data);
+    delete (double*)data;
+    data = NULL;
+
+    if(NFC_ERROR_NONE != result) {
+        // create exception and post error message (call error callback)
+        auto ex = UnknownException("Failed to read NDEF message");
+        picojson::value event = createEventError(callbackId, ex);
+        NFCInstance::getInstance().PostMessage(event.serialize().c_str());
+        return;
+    }
+
+    unsigned char *raw_data = NULL;
+    unsigned int size = 0;
+
+    int ret = nfc_ndef_message_get_rawdata(message, &raw_data, &size);
+    if(NFC_ERROR_NONE != ret) {
+        LoggerE("Failed to get message data: %d", ret);
+
+        // release data if any allocated
+        free(raw_data);
+
+        // create exception and post error message (call error callback)
+        auto ex = UnknownException("Failed to retrieve NDEF message data");
+        picojson::value event = createEventError(callbackId, ex);
+        NFCInstance::getInstance().PostMessage(event.serialize().c_str());
+        return;
+    }
+
+    // create success event, fill it with data and call success callback
+    picojson::value event = createEventSuccess(callbackId);
+    picojson::object& obj = event.get<picojson::object>();
+
+    NFCMessageUtils::ReportNdefMessageFromData(raw_data, size, obj);
+
+    NFCInstance::getInstance().PostMessage(event.serialize().c_str());
+    free(raw_data);
+}
+
+void NFCAdapter::TagReadNDEF(int tag_id, const picojson::value& args) {
+
+    LoggerD("Entered");
+    double callbackId = args.get(CALLBACK_ID).get<double>();
+    LoggerD("Received callback id: %f", callbackId);
+
+    if(!TagIsConnectedGetter(tag_id)) {
+        auto ex = UnknownException("Tag is no more connected");
+
+        picojson::value event = createEventError(callbackId, ex);
+        NFCInstance::getInstance().PostMessage(event.serialize().c_str());
+        return;
+    }
+
+    double* callbackIdPointer = new double(callbackId);
+    int result = nfc_tag_read_ndef(m_last_tag_handle, tagReadNDEFCb,
+            (void*)(callbackIdPointer));
+    if(NFC_ERROR_NONE != result) {
+        LoggerE("Failed to read NDEF message from tag: %d", result);
+        delete callbackIdPointer;
+        callbackIdPointer = NULL;
+
+        // for permission related error throw exception ...
+        if(NFC_ERROR_SECURITY_RESTRICTED == result ||
+                NFC_ERROR_PERMISSION_DENIED == result) {
+            throw SecurityException("Failed to read NDEF - permission denied");
+        }
+
+        LoggerE("Preparing error callback to call");
+        // ... otherwise call error callback
+        std::string errName = NFCUtil::getNFCErrorString(result);
+        std::string errMessage = NFCUtil::getNFCErrorMessage(result);
+        auto ex = PlatformException(errName, errMessage);
+
+        picojson::value event = createEventError(callbackId, ex);
+        NFCInstance::getInstance().PostMessage(event.serialize().c_str());
+    }
+
+}
 
 }// nfc
 }// extension
