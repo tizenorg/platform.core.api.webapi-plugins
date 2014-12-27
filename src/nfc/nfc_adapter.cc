@@ -645,7 +645,84 @@ bool NFCAdapter::IsNDEFListenerSet() {
 
 
 // NFCTag related functions
-bool NFCAdapter::IsTagConnected(int tag_id) {
+std::string NFCAdapter::TagTypeGetter(int tag_id) {
+
+    LoggerD("Entered");
+
+    nfc_tag_type_e type = NFC_UNKNOWN_TARGET;
+
+    int err = nfc_tag_get_type(m_last_tag_handle, &type);
+    if(NFC_ERROR_NONE != err) {
+        LOGE("Failed to get tag type: %d", err);
+        NFCUtil::throwNFCException(err, "Failed to get tag type");
+    }
+
+    return NFCUtil::toStringNFCTag(type);
+}
+
+bool NFCAdapter::TagIsSupportedNDEFGetter(int tag_id) {
+
+    LoggerD("Entered");
+
+    bool result = false;
+
+    int err = nfc_tag_is_support_ndef(m_last_tag_handle, &result);
+    if(NFC_ERROR_NONE != err) {
+        LOGE("Failed to check if NDEF is supported %d", err);
+        NFCUtil::throwNFCException(err,
+                "Failed to check if NDEF is supported");
+    }
+
+    return result;
+}
+
+unsigned int NFCAdapter::TagNDEFSizeGetter(int tag_id) {
+
+    LoggerD("Entered");
+
+    unsigned int result = 0;
+
+    int err = nfc_tag_get_ndef_size(m_last_tag_handle, &result);
+    if(NFC_ERROR_NONE != err) {
+        LOGE("Failed to get tag NDEF size: %d, %s", err);
+        NFCUtil::throwNFCException(err,
+                "Failed to get tag NDEF size");
+    }
+    return result;
+}
+
+static bool tagPropertiesGetterCb(const char *key,
+        const unsigned char *value,
+        int value_size,
+        void *user_data)
+{
+    if (user_data) {
+        UCharVector tag_info = NFCUtil::toVector(value, value_size);
+        (static_cast<NFCTagPropertiesT*>(user_data))->push_back(
+                std::make_pair(key, tag_info));
+        return true;
+    }
+    return false;
+}
+
+NFCTagPropertiesT NFCAdapter::TagPropertiesGetter(int tag_id) {
+
+    LoggerD("Entered");
+
+    NFCTagPropertiesT result;
+
+    int err = nfc_tag_foreach_information(m_last_tag_handle,
+            tagPropertiesGetterCb, (void*)&result);
+    if(NFC_ERROR_NONE != err) {
+        LoggerE("Error occured while getting NFC properties: %d", err);
+        NFCUtil::throwNFCException(err,
+                "Error occured while getting NFC properties");
+    }
+
+    return result;
+}
+
+bool NFCAdapter::TagIsConnectedGetter(int tag_id) {
 
     LoggerD("Entered");
 

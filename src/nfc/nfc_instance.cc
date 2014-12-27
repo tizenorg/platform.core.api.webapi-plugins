@@ -458,7 +458,7 @@ void NFCInstance::TagTypeGetter(
 
     try {
         // Function below throws exception if core API call fails
-        if (!NFCAdapter::GetInstance()->IsTagConnected(tag_id)) {
+        if (!NFCAdapter::GetInstance()->TagIsConnectedGetter(tag_id)) {
             LoggerE("Tag with id %d is not connected anymore", tag_id);
             // If tag is not connected then attribute's value
             // should be undefined
@@ -466,9 +466,8 @@ void NFCInstance::TagTypeGetter(
             return;
         }
 
-        // TODO: implement this stub
-        LoggerW("Stub function used!");
-        std::string tag_type = NFCUtil::toStringNFCTag(NFC_UNKNOWN_TARGET);
+        std::string tag_type =
+                NFCAdapter::GetInstance()->TagTypeGetter(tag_id);
 
         ReportSuccess(picojson::value(tag_type), out);
     }
@@ -488,7 +487,7 @@ void NFCInstance::TagIsSupportedNDEFGetter(
 
     try {
         // Function below throws exception if core API call fails
-        if (!NFCAdapter::GetInstance()->IsTagConnected(tag_id)) {
+        if (!NFCAdapter::GetInstance()->TagIsConnectedGetter(tag_id)) {
             LoggerE("Tag with id %d is not connected anymore", tag_id);
             // If tag is not connected then attribute's value
             // should be undefined
@@ -496,14 +495,13 @@ void NFCInstance::TagIsSupportedNDEFGetter(
             return;
         }
 
-        // TODO: implement this stub
-        LoggerW("Stub function used!");
-        bool is_supported = true;
+        bool is_supported =
+                NFCAdapter::GetInstance()->TagIsSupportedNDEFGetter(tag_id);
 
         ReportSuccess(picojson::value(is_supported), out);
     }
     catch(const PlatformException& ex) {
-        LoggerE("Failed to check tag connection");
+        LoggerE("Failed to check is NDEF supported");
         ReportError(ex, out);
     }
 
@@ -519,7 +517,7 @@ void NFCInstance::TagNDEFSizeGetter(
 
     try {
         // Function below throws exception if core API call fails
-        if (!NFCAdapter::GetInstance()->IsTagConnected(tag_id)) {
+        if (!NFCAdapter::GetInstance()->TagIsConnectedGetter(tag_id)) {
             LoggerE("Tag with id %d is not connected anymore", tag_id);
             // If tag is not connected then attribute's value
             // should be undefined
@@ -527,14 +525,13 @@ void NFCInstance::TagNDEFSizeGetter(
             return;
         }
 
-        // TODO: implement this stub
-        LoggerW("Stub function used!");
-        int ndef_size = 1234;
+        unsigned int ndef_size =
+                NFCAdapter::GetInstance()->TagNDEFSizeGetter(tag_id);
 
         ReportSuccess(picojson::value((double)ndef_size), out);
     }
     catch(const PlatformException& ex) {
-        LoggerE("Failed to check tag connection");
+        LoggerE("Failed to get tag NDEF size");
         ReportError(ex, out);
     }
 
@@ -549,7 +546,7 @@ void NFCInstance::TagPropertiesGetter(
     LoggerD("Tag id: %d", tag_id);
     try {
         // Function below throws exception if core API call fails
-        if (!NFCAdapter::GetInstance()->IsTagConnected(tag_id)) {
+        if (!NFCAdapter::GetInstance()->TagIsConnectedGetter(tag_id)) {
             LoggerE("Tag with id %d is not connected anymore", tag_id);
             // If tag is not connected then attribute's value
             // should be undefined
@@ -557,12 +554,30 @@ void NFCInstance::TagPropertiesGetter(
             return;
         }
 
-        // TODO: implement this stub
-        LoggerW("Stub function used!");
-        ReportSuccess(out);
+        NFCTagPropertiesT result =
+                NFCAdapter::GetInstance()->TagPropertiesGetter(tag_id);
+
+        picojson::value properties = picojson::value(picojson::array());
+        picojson::array& properties_array = properties.get<picojson::array>();
+        for (auto it = result.begin() ; it != result.end(); it++) {
+            picojson::value val = picojson::value(picojson::object());
+            picojson::object& obj = val.get<picojson::object>();
+
+            picojson::value value_vector = picojson::value(picojson::array());
+            picojson::array& value_vector_obj = value_vector.get<picojson::array>();
+
+            for (size_t i = 0 ; i < it->second.size(); i++) {
+                value_vector_obj.push_back(picojson::value(
+                        std::to_string(it->second[i])));
+            }
+
+            obj.insert(std::make_pair(it->first, value_vector));
+            properties_array.push_back(val);
+        }
+        ReportSuccess(properties, out);
     }
     catch(const PlatformException& ex) {
-        LoggerE("Failed to check tag connection");
+        LoggerE("Failed to tag properties");
         ReportError(ex, out);
     }
 }
@@ -575,7 +590,7 @@ void NFCInstance::TagIsConnectedGetter(
     int tag_id = (int)args.get("id").get<double>();
     LoggerD("Tag id: %d", tag_id);
     try {
-        bool connected = NFCAdapter::GetInstance()->IsTagConnected(tag_id);
+        bool connected = NFCAdapter::GetInstance()->TagIsConnectedGetter(tag_id);
         ReportSuccess(picojson::value(connected), out);
     }
     catch(const PlatformException& ex) {

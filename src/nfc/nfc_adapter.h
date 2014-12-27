@@ -6,10 +6,12 @@
 #define NFC_NFC_ADAPTER_H_
 
 #include "nfc/nfc_instance.h"
+#include "nfc/nfc_util.h"
 
 #include "common/picojson.h"
 #include <memory>
 #include <nfc.h>
+#include <list>
 
 #ifdef APP_CONTROL_SETTING_SUPPORT
 #include <app_control.h>
@@ -19,6 +21,8 @@ namespace extension {
 namespace nfc {
 
 class NFCInstance;
+
+typedef std::list<std::pair<std::string, UCharVector>> NFCTagPropertiesT;
 
 class NFCAdapter {
 public:
@@ -53,7 +57,11 @@ public:
     bool IsNDEFListenerSet();
 
 // NFCTag related methods
-    bool IsTagConnected(int tag_id);
+    std::string TagTypeGetter(int tag_id);
+    bool TagIsSupportedNDEFGetter(int tag_id);
+    unsigned int TagNDEFSizeGetter(int tag_id);
+    NFCTagPropertiesT TagPropertiesGetter(int tag_id);
+    bool TagIsConnectedGetter(int tag_id);
     void SetTagListener();
     void UnsetTagListener();
     int GetNextTagId();
