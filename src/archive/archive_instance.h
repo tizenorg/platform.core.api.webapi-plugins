@@ -6,6 +6,7 @@
 #define ARCHIVE_ARCHIVE_INSTANCE_H_
 
 #include "common/extension.h"
+#include "common/platform_exception.h"
 
 namespace extension {
 namespace archive {
@@ -36,6 +37,8 @@ private:
 
     /* Filesystem related method */
     void GetWidgetPaths(const picojson::value& args, picojson::object& out);
+
+    void PostError(const common::PlatformException& e, double callback_id);
 };
 
 } // namespace archive
