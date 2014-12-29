@@ -21,8 +21,51 @@
 
 using namespace common;
 
-namespace DeviceAPI {
-namespace Filesystem {
+namespace extension {
+namespace filesystem {
 
-} // Filesystem
-} // DeviceAPI
+File::File(NodePtr node, const File::PermissionList &parentPermissions,
+        const std::string original_location) :
+    m_node(node),
+    m_parentPerms(parentPermissions)
+{
+    LoggerD("original_location is fullPath: %s", original_location.c_str());
+    m_original_fullpath = original_location;
+}
+
+File::~File()
+{
+}
+
+NodePtr File::getNode() const
+{
+    return m_node;
+}
+
+File::PermissionList File::getParentPermissions() const
+{
+    return m_parentPerms;
+}
+
+void File::setParentPermissions(const PermissionList &permissions)
+{
+    m_parentPerms = permissions;
+}
+
+void File::pushParentPermissions(int permissions)
+{
+    m_parentPerms.push_back(permissions);
+}
+
+const std::string& File::getOriginalURI() const
+{
+    return m_original_URI;
+}
+
+const std::string& File::getOriginalFullPath() const
+{
+    return m_original_fullpath;
+}
+
+} // filesystem
+} // extension

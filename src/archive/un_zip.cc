@@ -33,10 +33,10 @@
 #include "archive_utils.h"
 #include "un_zip_extract_request.h"
 
-using namespace common;
+namespace extension {
+namespace archive {
 
-namespace DeviceAPI {
-namespace Archive {
+using namespace common;
 
 UnZip::UnZip(const std::string& filename) :
         m_zipfile_name(filename),
@@ -225,26 +225,26 @@ void UnZip::extractTo(ExtractEntryProgressCallback* callback)
         throw UnknownException("Extract archive file entry failed");
     }
 
-    Filesystem::FilePtr out_dir = callback->getDirectory();
+    filesystem::FilePtr out_dir = callback->getDirectory();
     if(!out_dir) {
         LOGE("Output directory is not valid");
         throw InvalidValuesException("Output directory is not correct");
     }
 
-//     Filesystem::NodePtr out_node = out_dir->getNode();
+//     filesystem::NodePtr out_node = out_dir->getNode();
 //     if(!out_node) {
 //         LOGE("Output directory is not valid");
 //         throw InvalidValuesException("Output directory is not correct");
 //     }
 //
-//     Filesystem::PathPtr out_path = out_node->getPath();
+//     filesystem::PathPtr out_path = out_node->getPath();
 //     if(!out_path) {
 //         LOGE("Output directory is not valid");
 //         throw InvalidValuesException("Output directory is not correct");
 //     }
 
     auto entry_name_in_zip = callback->getArchiveFileEntry()->getName();
-    auto root_output_path = out_dir->getFullPath();
+    auto root_output_path = out_dir->getNode()->getPath()->getFullPath();
     LOGD("Extract: [%s] to root output directory: [%s] (stripBasePath: [%s])",
             entry_name_in_zip.c_str(),
             root_output_path.c_str(),
@@ -422,5 +422,5 @@ void UnZip::updateCallbackWithArchiveStatistics(ExtractAllProgressCallback* call
             astats.number_of_folders);
 }
 
-} //namespace Archive
-} //namespace DeviceAPI
+} //namespace archive
+} //namespace extension

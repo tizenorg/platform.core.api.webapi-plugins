@@ -32,10 +32,10 @@
 #include "crypt.h"
 #include "zip_add_request.h"
 
-using namespace common;
+namespace extension {
+namespace archive {
 
-namespace DeviceAPI {
-namespace Archive {
+using namespace common;
 
 void Zip::generateZipFileInfo(const std::string& filename, zip_fileinfo& out_zi)
 {
@@ -139,5 +139,5 @@ void Zip::addFile(AddProgressCallback*& callback)
     ZipAddRequest::execute(*this, callback);
 }
 
-} //namespace Archive
-} //namespace DeviceAPI
+} //namespace archive
+} //namespace extension

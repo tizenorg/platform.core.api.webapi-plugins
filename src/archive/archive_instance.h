@@ -12,10 +12,14 @@ namespace archive {
 
 class ArchiveInstance: public common::ParsedInstance {
 public:
-    ArchiveInstance();
-    virtual ~ArchiveInstance();
+    static ArchiveInstance& getInstance();
 
 private:
+    ArchiveInstance();
+    ArchiveInstance(ArchiveInstance const&);
+    void operator=(ArchiveInstance const&);
+    virtual ~ArchiveInstance();
+
     /* ArchiveManager methods */
     void Open(const picojson::value& args, picojson::object& out);
     void Abort(const picojson::value& args, picojson::object& out);

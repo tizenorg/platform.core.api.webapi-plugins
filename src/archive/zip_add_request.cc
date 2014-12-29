@@ -26,8 +26,8 @@
 
 using namespace common;
 
-namespace DeviceAPI {
-namespace Archive {
+namespace extension {
+namespace archive {
 
 ZipAddRequest::ZipAddRequest(Zip& owner, AddProgressCallback*& callback) :
         m_owner(owner),
@@ -92,10 +92,10 @@ void ZipAddRequest::run()
 
     //We just need read permission to list files in subdirectories
     LOGW("STUB Not setting PERM_READ permissions");
-    //m_root_src_file_node->setPermissions(Filesystem::PERM_READ);
+    //m_root_src_file_node->setPermissions(filesystem::PERM_READ);
 
     std::string src_basepath, src_name;
-    getBasePathAndName(m_root_src_file_node->getFullPath(), src_basepath,
+    getBasePathAndName(m_root_src_file_node->getPath()->getFullPath(), src_basepath,
             src_name);
 
     m_absoulte_path_to_extract = src_basepath;
@@ -127,7 +127,7 @@ void ZipAddRequest::run()
 
     // Generate list of files and all subdirectories
     //
-    Filesystem::NodeList all_sub_nodes;
+    filesystem::NodeList all_sub_nodes;
     addNodeAndSubdirsToList(m_root_src_file_node, all_sub_nodes);
 
     if(m_callback->isCanceled()) {
@@ -144,13 +144,13 @@ void ZipAddRequest::run()
     for(auto it = all_sub_nodes.begin(); it != all_sub_nodes.end(); ++it, ++i) {
 
         unsigned long long size = 0;
-        if((*it)->getType() == Filesystem::NT_FILE) {
+        if((*it)->getType() == filesystem::NT_FILE) {
             size = (*it)->getSize();
             m_bytes_to_compress += size;
             ++m_files_to_compress;
         }
 
-        LOGD("[%d] : [%s] --zip--> [%s] | size: %s", i, (*it)->getFullPath().c_str(),
+        LOGD("[%d] : [%s] --zip--> [%s] | size: %s", i, (*it)->getPath()->getFullPath().c_str(),
                 getNameInZipArchiveFor(*it, m_callback->getFileEntry()->getStriped()).c_str(),
                 bytesToReadableString(size).c_str());
     }
@@ -174,12 +174,12 @@ void ZipAddRequest::run()
     m_callback = NULL;
 }
 
-void ZipAddRequest::addNodeAndSubdirsToList(Filesystem::NodePtr src_node,
-        Filesystem::NodeList& out_list_of_child_nodes)
+void ZipAddRequest::addNodeAndSubdirsToList(filesystem::NodePtr src_node,
+        filesystem::NodeList& out_list_of_child_nodes)
 {
     out_list_of_child_nodes.push_back(src_node);
 
-    if(Filesystem::NT_DIRECTORY == src_node->getType()) {
+    if(filesystem::NT_DIRECTORY == src_node->getType()) {
         LOGW("STUB Not generating recursive list of files in directory");
         //auto child_nodes = src_node->getChildNodes();
         //for(auto it = child_nodes.begin(); it != child_nodes.end(); ++it) {
@@ -273,11 +273,11 @@ void ZipAddRequest::addEmptyDirectoryToZipArchive(std::string name_in_zip)
     m_new_file_in_zip_opened = false;
 }
 
-void ZipAddRequest::addToZipArchive(Filesystem::NodePtr src_file_node)
+void ZipAddRequest::addToZipArchive(filesystem::NodePtr src_file_node)
 {
     const std::string name_in_zip = getNameInZipArchiveFor(src_file_node,
             m_callback->getFileEntry()->getStriped());
-    const std::string src_file_path = src_file_node->getFullPath();
+    const std::string src_file_path = src_file_node->getPath()->getFullPath();
 
     LOGD("Compress: [%s] to zip archive as: [%s]", src_file_path.c_str(),
             name_in_zip.c_str());
@@ -289,7 +289,7 @@ void ZipAddRequest::addToZipArchive(Filesystem::NodePtr src_file_node)
         LOGE("WARNING: Previous new file in zip archive is opened!");
         int err = zipCloseFileInZip(m_owner.m_zip);
         if (ZIP_OK != err) {
-            LOGE("%s",getArchiveLogMessage(err, "zipCloseFileInZip()").c_str());
+            LOGE("zipCloseFileInZip failed with error: %d", err);
         }
     }
 
@@ -318,8 +318,8 @@ void ZipAddRequest::addToZipArchive(Filesystem::NodePtr src_file_node)
             NULL, 0);
 
     if (err != ZIP_OK) {
-        LOGE("ret: %d", err);
-        throwArchiveException(err, "zipOpenNewFileInZip3()");
+        LOGE("Error opening new file: [%s] in zipfile", name_in_zip.c_str());
+        throw UnknownException("Could not add new file to zip archive");
     }
 
     m_new_file_in_zip_opened = true;
@@ -330,17 +330,12 @@ void ZipAddRequest::addToZipArchive(Filesystem::NodePtr src_file_node)
         m_input_file = NULL;
     }
 
-    //Filesystem::File::PermissionList perm_list;
-    //Filesystem::FilePtr cur_file(new Filesystem::File(src_file_node, perm_list));
-
-    LOGW("STUB ignore src_file_node and PermissionList");
-    Filesystem::FilePtr cur_file(new Filesystem::File(src_file_path));
+    filesystem::File::PermissionList perm_list;
+    filesystem::FilePtr cur_file(new filesystem::File(src_file_node, perm_list));
     ArchiveFileEntryPtr cur_afentry(new ArchiveFileEntry(cur_file));
     cur_afentry->setCompressionLevel(m_compression_level);
     cur_afentry->setName(name_in_zip);
-
-    LOGW("STUB Not setting Modified");
-    //cur_afentry->setModified(src_file_node->getModified());
+    cur_afentry->setModified(src_file_node->getModified());
 
     auto entry = m_callback->getFileEntry();
     cur_afentry->setDestination(entry->getDestination());
@@ -353,7 +348,7 @@ void ZipAddRequest::addToZipArchive(Filesystem::NodePtr src_file_node)
     LOGD("m_files_compressed:%d / m_files_to_compress: %d",
             m_files_compressed, m_files_to_compress);
 
-    if(src_file_node->getType() == Filesystem::NT_FILE) {
+    if(src_file_node->getType() == filesystem::NT_FILE) {
         m_input_file = fopen(src_file_path.c_str(), "rb");
         if (!m_input_file) {
             LOGE("Error opening source file:%s", src_file_path.c_str());
@@ -444,7 +439,7 @@ void ZipAddRequest::addToZipArchive(Filesystem::NodePtr src_file_node)
 
     err = zipCloseFileInZip(m_owner.m_zip);
     if (ZIP_OK != err) {
-        LOGE("%s",getArchiveLogMessage(err, "zipCloseFileInZip()").c_str());
+        LOGE("Error in closing added file:%s in zipfile", src_file_path.c_str());
     }
 
     m_new_file_in_zip_opened = false;
@@ -497,7 +492,7 @@ std::string generateFullPathForZip(const std::string& path)
     return out;
 }
 
-std::string ZipAddRequest::getNameInZipArchiveFor(Filesystem::NodePtr node, bool strip)
+std::string ZipAddRequest::getNameInZipArchiveFor(filesystem::NodePtr node, bool strip)
 {
     const std::string node_full_path = node->getPath()->getFullPath();
     std::string cut_path;
@@ -518,7 +513,7 @@ std::string ZipAddRequest::getNameInZipArchiveFor(Filesystem::NodePtr node, bool
     }
 
     std::string name = generateFullPathForZip(m_destination_path_in_zip + "/" + cut_path);
-    if(node->getType() == Filesystem::NT_DIRECTORY) {
+    if(node->getType() == filesystem::NT_DIRECTORY) {
         if(name.length() > 0
                 && name[name.length()-1] != '/'
                 && name[name.length()-1] != '\\') {
@@ -530,5 +525,5 @@ std::string ZipAddRequest::getNameInZipArchiveFor(Filesystem::NodePtr node, bool
     return name;
 }
 
-} //namespace Archive
-} //namespace DeviceAPI
+} //namespace archive
+} //namespace extension

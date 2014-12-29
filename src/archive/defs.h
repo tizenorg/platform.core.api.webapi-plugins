@@ -31,6 +31,21 @@
 
 #define ARCHIVE_FUNCTION_API_ARCHIVE_FILE_ENTRY_EXTRACT         "extract"
 
+#define JSON_CMD                                                "cmd"
+#define JSON_ACTION                                             "action"
+#define JSON_CALLBACK_ID                                        "cid"
+#define JSON_CALLBACK_SUCCCESS                                  "success"
+#define JSON_CALLBACK_ERROR                                     "error"
+#define JSON_CALLBACK_PROGRESS                                  "progress"
+#define JSON_CALLBACK_KEEP                                      "keep"
+#define JSON_DATA                                               "args"
 
+#define ARCHIVE_FILE_ATTR_MODE                                  "mode"
+#define ARCHIVE_FILE_ATTR_DECOMPRESSED_SIZE                     "decompressedSize"
+
+#define ARCHIVE_FILE_ENTRY_ATTR_NAME                            "name"
+#define ARCHIVE_FILE_ENTRY_ATTR_SIZE                            "size"
+#define ARCHIVE_FILE_ENTRY_ATTR_COMPRESSED_SIZE                 "compressedSize"
+#define ARCHIVE_FILE_ENTRY_ATTR_MODIFIED                        "modified"
 
 #endif // _ARCHIVE_PLUGIN_DEFS_H_

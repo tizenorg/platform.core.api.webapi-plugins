@@ -22,97 +22,48 @@
 #include <vector>
 
 #include "common/logger.h"
+#include "filesystem_node.h"
+#include "filesystem_path.h"
 
-namespace DeviceAPI {
-namespace Filesystem {
-
-enum NodeType
-{
-    NT_DIRECTORY,
-    NT_FILE
-};
+namespace extension {
+namespace filesystem {
 
 class File;
 typedef std::shared_ptr<File> FilePtr;
-typedef std::shared_ptr<File> NodePtr;  //STUB bad trick
-typedef std::vector<NodePtr> NodeList;  //STUB bad trick
 
 class File : public std::enable_shared_from_this<File>
 {
 public:
-    File()
-    {
-    }
+    typedef std::vector<int> PermissionList;
 
-    File(const std::string& fname) :
-            m_full_path(fname)
-    {
-    }
+    File(NodePtr node,
+            const PermissionList &parentPermissions,
+            const std::string original_location = std::string());
+    virtual ~File();
 
-    FilePtr getNode()
-    {
-        LOGW("STUB");
-        return shared_from_this();
-    }
+    NodePtr getNode() const;
+    PermissionList getParentPermissions() const;
+    void setParentPermissions(const PermissionList &permissions);
+    void pushParentPermissions(int permissions);
 
-    size_t getSize()
-    {
-        LOGW("STUB");
-        return 0;
-    }
+    const std::string& getOriginalURI() const;
+    const std::string& getOriginalFullPath() const;
+private:
+    NodePtr m_node;
+    PermissionList m_parentPerms;
 
-    FilePtr getPath()
-    {
-        LOGW("STUB");
-        return shared_from_this();
-    }
-
-    //! \brief Gets type of current node.
-    //! @return Node's type.
-    NodeType getType() const
-    {
-        LOGW("STUB");
-        return NT_FILE;
-    }
-
-    const std::string& getFullPath() const
-    {
-        return m_full_path;
-    }
-
-    std::string m_full_path;
-};
-
-class Path;
-typedef std::shared_ptr<Path> PathPtr;
-
-class Path : public std::enable_shared_from_this<Path>
-{
-public:
-    typedef char SeparatorType;
-    static Path::SeparatorType getSeparator()
-    {
-        LOGW("STUB");
-        return '/';
-    }
+    std::string m_original_URI;
+    std::string m_original_fullpath;
 };
 
 class External {
 public:
-    static std::string toVirtualPath(const std::string& path)
-    {
-        LOGW("STUB Not implemented path -> virtual path. Return not changed path");
-        return path;
-    }
-
-    static void removeDirectoryRecursive(const std::string& fullpath)
-    {
-        LOGW("STUB Not implemented. Directory: [%s] will not be removed!", fullpath.c_str());
-    }
+    static std::string toVirtualPath(const std::string& path);
+    static void removeDirectoryRecursive(const std::string& fullpath);
 };
 
 
-} // Filesystem
-} // DeviceAPI
+} // filesystem
+} // extension
 
 #endif /* _TIZEN_FILESYSTEM_FILE_H_ */

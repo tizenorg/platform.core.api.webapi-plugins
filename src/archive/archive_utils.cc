@@ -27,10 +27,10 @@
 
 using namespace common;
 
-namespace DeviceAPI {
-namespace Archive {
+namespace extension {
+namespace archive {
 
-using namespace DeviceAPI::Filesystem;
+using namespace filesystem;
 
 std::string bytesToReadableString(const size_t num_bytes)
 {
@@ -254,5 +254,5 @@ std::string getArchiveLogMessage(const int errorCode, const std::string &hint)
     return std::string(ss.str());
 }
 
-} //namespace Archive
-} //namespace DeviceAPI
+} //namespace archive
+} //namespace extension

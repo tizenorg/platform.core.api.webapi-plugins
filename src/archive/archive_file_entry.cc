@@ -25,12 +25,12 @@
 
 using namespace common;
 
-namespace DeviceAPI {
-namespace Archive {
+namespace extension {
+namespace archive {
 
 static const unsigned int s_default_compression_level = 5;
 
-ArchiveFileEntry::ArchiveFileEntry(Filesystem::FilePtr file) :
+ArchiveFileEntry::ArchiveFileEntry(filesystem::FilePtr file) :
         std::enable_shared_from_this<ArchiveFileEntry>(),
         m_file(file),
         m_archive(NULL),
@@ -58,12 +58,12 @@ void ArchiveFileEntry::setCompressedSize(unsigned long compressed_size)
     m_compressed_size = compressed_size;
 }
 
-Filesystem::FilePtr ArchiveFileEntry::getFile() const
+filesystem::FilePtr ArchiveFileEntry::getFile() const
 {
     return m_file;
 }
 
-void ArchiveFileEntry::setFile(Filesystem::FilePtr file)
+void ArchiveFileEntry::setFile(filesystem::FilePtr file)
 {
     m_file = file;
 }
@@ -168,5 +168,5 @@ long ArchiveFileEntry::extractTo(ExtractEntryProgressCallback* callback)
     return m_archive->extractEntryTo(callback);
 }
 
-} // Archive
-} // DeviceAPI
+} // archive
+} // extension

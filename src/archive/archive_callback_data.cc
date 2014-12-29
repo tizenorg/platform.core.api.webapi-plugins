@@ -23,215 +23,181 @@
 
 #include "common/logger.h"
 
-//#include <FilesystemExternalUtils.h>
+//#include <filesystemExternalUtils.h>
 #include "archive_file.h"
 #include "archive_utils.h"
 #include "un_zip.h"
 #include "zip.h"
+#include "archive_manager.h"
+
+namespace extension {
+namespace archive {
 
 using namespace common;
 
-namespace DeviceAPI {
-namespace Archive {
+//----------------------------------------------------------------------------------------
+//OperationCallbackData
+//----------------------------------------------------------------------------------------
 
-//namespace {
-//const char* CALLBACK_SUCCESS = "success";
-//const char* CALLBACK_ERROR = "error";
-//const char* CALLBACK_PROGRESS = "progress";
-//} //anonymous namespace
-//
-////----------------------------------------------------------------------------------------
-////OperationCallbackData
-////----------------------------------------------------------------------------------------
-//
-//OperationCallbackData::OperationCallbackData(ArchiveCallbackType callback_type) :
-//    m_callback_type(callback_type),
-//    m_op_id(0),
-//    m_is_error(false),
-//    m_is_canceled(false)
-//{
-//    LOGD("Entered");
-//}
-//
-//OperationCallbackData::~OperationCallbackData()
-//{
-//    LOGD("Entered");
-//    if(m_op_id > 0){
-//        ArchiveManager::getInstance().eraseElementFromArchiveFileMap(m_op_id);
-//    }
-//}
-//
-//void OperationCallbackData::setError(const std::string &err_name,
-//        const std::string &err_message)
-//{
-//    LOGD("Entered");
-//    //store only first error
-//    if (!m_is_error) {
-//        m_err_name = err_name;
-//        m_err_message = err_message;
-//        m_is_error = true;
-//    }
-//}
-//
-//bool OperationCallbackData::isError() const
-//{
-//    LOGD("Entered");
-//    return m_is_error;
-//}
-//
-//bool OperationCallbackData::isCanceled() const
-//{
-//    return m_is_canceled;
-//}
-//
-//void OperationCallbackData::setOperationId(long op_id)
-//{
-//    LOGD("Entered");
-//    m_op_id = op_id;
-//}
-//
-//long OperationCallbackData::getOperationId() const
-//{
-//    LOGD("Entered");
-//    return m_op_id;
-//}
-//
-//void OperationCallbackData::setIsCanceled(bool canceled)
-//{
-//    m_is_canceled = canceled;
-//}
-//
-//const std::string& OperationCallbackData::getErrorName() const
-//{
-//    LOGD("Entered");
-//    return m_err_name;
-//}
-//
-//const std::string& OperationCallbackData::getErrorMessage() const
-//{
-//    LOGD("Entered");
-//    return m_err_message;
-//}
-//
-//ArchiveCallbackType OperationCallbackData::getCallbackType() const
-//{
-//    LOGD("Entered");
-//    return m_callback_type;
-//}
-//
-//ArchiveFilePtr OperationCallbackData::getArchiveFile() const
-//{
-//    return m_caller_instance;
-//}
-//
-//void OperationCallbackData::setArchiveFile(ArchiveFilePtr caller)
-//{
-//    m_caller_instance = caller;
-//}
-//
-//
-////void OperationCallbackData::setSuccessCallback(JSValueRef on_success)
-////{
-////    LOGD("Entered");
-////    auto ctx = getContext();
-////    if(on_success && JSValueIsObject(ctx, on_success)) {
-////        JSObjectRef success = JSValueToObject(ctx, on_success, NULL);
-////        this->setCallback(CALLBACK_SUCCESS, success);
-////    }
-////}
-//
-////void OperationCallbackData::setErrorCallback(JSValueRef on_error)
-////{
-////    LOGD("Entered");
-////    auto ctx = getContext();
-////    if(on_error && JSValueIsObject(ctx, on_error)) {
-////        JSObjectRef error = JSValueToObject(ctx, on_error, NULL);
-////        this->setCallback(CALLBACK_ERROR, error);
-////    }
-////}
-//
-//void OperationCallbackData::callSuccessCallback()
-//{
-//    LOGD("Entered");
-//    LOGW("STUB Not calling success callback");
-//    //this->invokeCallback(CALLBACK_SUCCESS, 0, NULL);
-//}
-//
-////void OperationCallbackData::callSuccessCallback(JSValueRef success)
-////{
-////    LOGD("Entered");
-////    this->invokeCallback(CALLBACK_SUCCESS, success);
-////}
-//
-////void OperationCallbackData::callErrorCallback(JSValueRef err)
-////{
-////    LOGD("Entered");
-////    this->invokeCallback(CALLBACK_ERROR, err);
-////}
-//
-////----------------------------------------------------------------------------------------
-////OpenCallbackData
-////----------------------------------------------------------------------------------------
-//
-//OpenCallbackData::OpenCallbackData(ArchiveCallbackType callback_type):
-//    OperationCallbackData(callback_type)
-//{
-//    LOGD("Entered");
-//}
-//
-//OpenCallbackData::~OpenCallbackData()
-//{
-//    LOGD("Entered");
-//}
-//
-//void OpenCallbackData::executeOperation(ArchiveFilePtr archive_file_ptr)
-//{
-//    LOGE("Entered");
-//
-//    Filesystem::FilePtr file = archive_file_ptr->getFile();
-//    if (!file) {
-//        LOGE("File is null");
-//        throw UnknownException("File is null");
-//    }
-//    Filesystem::NodePtr node = file->getNode();
-//    if(!node) {
-//        LOGE("Node is null");
-//        throw UnknownException("Node is null");
-//    }
-//    const FileMode fm = archive_file_ptr->m_file_mode;
-//    if (0 == node->getSize()) {
-//        if(FileMode::READ_WRITE == fm ||
-//                FileMode::WRITE == fm ||
-//                FileMode::ADD == fm) {
-//            LOGD("Empty file obtained for writing/appending");
-//
-//            // Do not create empty archive with minizip library - it will not be loaded
-//            // by unzip.
-//            //
-//            // For explanation please see:
-//            //    ArchiveFile.h m_created_as_new_empty_archive description
-//            //
-//            archive_file_ptr->setCreatedAsNewEmptyArchive(true);
-//            archive_file_ptr->setEntryMap(ArchiveFileEntryPtrMapPtr(
-//                    new ArchiveFileEntryPtrMap()));
-//            archive_file_ptr->setIsOpen(true);
-//        }
-//        else {
-//            LOGE("The file is empty throwing: InvalidValuesException - Invalid ZIP archive");
-//            throw InvalidValuesException("Invalid ZIP archive");
-//        }
-//    }
-//    else {
-//        archive_file_ptr->setIsOpen(true);
-//        archive_file_ptr->updateListOfEntries();
-//    }
-//
-//    guint id = g_idle_add(ArchiveFile::openTaskCompleteCB, this);
-//    if (!id) {
-//        LOGE("g_idle_add fails");
-//        throw UnknownException("g_idle_add fails");
-//    }
-//}
+OperationCallbackData::OperationCallbackData(ArchiveCallbackType callback_type) :
+    m_callback_type(callback_type),
+    m_op_id(0),
+    m_cid(-1),
+    m_is_error(false),
+    m_is_canceled(false)
+{
+    LoggerD("Entered");
+}
+
+OperationCallbackData::~OperationCallbackData()
+{
+    LoggerD("Entered");
+    if(m_op_id > 0){
+        //ArchiveManager::getInstance().eraseElementFromArchiveFileMap(m_op_id);
+    }
+}
+
+void OperationCallbackData::setError(const std::string &err_name,
+        const std::string &err_message)
+{
+    LoggerD("Entered");
+    //store only first error
+    if (!m_is_error) {
+        m_err_name = err_name;
+        m_err_message = err_message;
+        m_is_error = true;
+    }
+}
+
+bool OperationCallbackData::isError() const
+{
+    LoggerD("Entered");
+    return m_is_error;
+}
+
+bool OperationCallbackData::isCanceled() const
+{
+    return m_is_canceled;
+}
+
+void OperationCallbackData::setOperationId(long op_id)
+{
+    LoggerD("Entered");
+    m_op_id = op_id;
+}
+
+long OperationCallbackData::getOperationId() const
+{
+    LoggerD("Entered");
+    return m_op_id;
+}
+
+void OperationCallbackData::setCallbackId(double cid)
+{
+    m_cid = cid;
+}
+
+double OperationCallbackData::getCallbackId() const
+{
+    return m_cid;
+}
+
+void OperationCallbackData::setIsCanceled(bool canceled)
+{
+    m_is_canceled = canceled;
+}
+
+const std::string& OperationCallbackData::getErrorName() const
+{
+    LoggerD("Entered");
+    return m_err_name;
+}
+
+const std::string& OperationCallbackData::getErrorMessage() const
+{
+    LoggerD("Entered");
+    return m_err_message;
+}
+
+ArchiveCallbackType OperationCallbackData::getCallbackType() const
+{
+    LoggerD("Entered");
+    return m_callback_type;
+}
+
+ArchiveFilePtr OperationCallbackData::getArchiveFile() const
+{
+    return m_caller_instance;
+}
+
+void OperationCallbackData::setArchiveFile(ArchiveFilePtr caller)
+{
+    m_caller_instance = caller;
+}
+
+//----------------------------------------------------------------------------------------
+//OpenCallbackData
+//----------------------------------------------------------------------------------------
+
+OpenCallbackData::OpenCallbackData(ArchiveCallbackType callback_type):
+    OperationCallbackData(callback_type)
+{
+    LoggerD("Entered");
+}
+
+OpenCallbackData::~OpenCallbackData()
+{
+    LoggerD("Entered");
+}
+
+void OpenCallbackData::executeOperation(ArchiveFilePtr archive_file_ptr)
+{
+    LoggerE("Entered");
+
+    filesystem::FilePtr file = archive_file_ptr->getFile();
+    if (!file) {
+        LoggerE("File is null");
+        throw UnknownException("File is null");
+    }
+    filesystem::NodePtr node = file->getNode();
+    if(!node) {
+        LoggerE("Node is null");
+        throw UnknownException("Node is null");
+    }
+    const FileMode fm = archive_file_ptr->m_file_mode;
+    if (0 == node->getSize()) {
+        if(FileMode::READ_WRITE == fm ||
+                FileMode::WRITE == fm ||
+                FileMode::ADD == fm) {
+            LoggerD("Empty file obtained for writing/appending");
+
+            // Do not create empty archive with minizip library - it will not be loaded
+            // by unzip.
+            //
+            // For explanation please see:
+            //    ArchiveFile.h m_created_as_new_empty_archive description
+            //
+            archive_file_ptr->setCreatedAsNewEmptyArchive(true);
+            archive_file_ptr->setEntryMap(ArchiveFileEntryPtrMapPtr(
+                    new ArchiveFileEntryPtrMap()));
+            archive_file_ptr->setIsOpen(true);
+        }
+        else {
+            LoggerE("The file is empty throwing: InvalidValuesException - Invalid ZIP archive");
+            throw InvalidValuesException("Invalid ZIP archive");
+        }
+    }
+    else {
+        archive_file_ptr->setIsOpen(true);
+        archive_file_ptr->updateListOfEntries();
+    }
+
+    guint id = g_idle_add(ArchiveFile::openTaskCompleteCB, this);
+    if (!id) {
+        LoggerE("g_idle_add fails");
+        throw UnknownException("g_idle_add fails");
+    }
+}
 //
 ////----------------------------------------------------------------------------------------
 ////GetEntriesCallbackData
@@ -240,11 +206,11 @@ namespace Archive {
 //GetEntriesCallbackData::GetEntriesCallbackData(ArchiveCallbackType callback_type):
 //    OperationCallbackData(callback_type)
 //{
-//    LOGD("Entered");
+//    LoggerD("Entered");
 //}
 //GetEntriesCallbackData::~GetEntriesCallbackData()
 //{
-//    LOGD("Entered");
+//    LoggerD("Entered");
 //}
 //
 //ArchiveFileEntryPtrMapPtr GetEntriesCallbackData::getEntries() const
@@ -259,13 +225,13 @@ namespace Archive {
 //
 //void GetEntriesCallbackData::executeOperation(ArchiveFilePtr archive_file_ptr)
 //{
-//    LOGD("Entered");
+//    LoggerD("Entered");
 //
 //    setEntries(archive_file_ptr->getEntryMap());
 //
 //    guint id = g_idle_add(ArchiveFile::getEntriesTaskCompleteCB, this);
 //    if (!id) {
-//        LOGE("g_idle_add fails");
+//        LoggerE("g_idle_add fails");
 //        throw UnknownException("g_idle_add fails");
 //    }
 //}
@@ -277,23 +243,23 @@ namespace Archive {
 //GetEntryByNameCallbackData::GetEntryByNameCallbackData(ArchiveCallbackType callback_type):
 //    OperationCallbackData(callback_type)
 //{
-//    LOGD("Entered");
+//    LoggerD("Entered");
 //}
 //
 //GetEntryByNameCallbackData::~GetEntryByNameCallbackData()
 //{
-//    LOGD("Entered");
+//    LoggerD("Entered");
 //}
 //
 //const std::string& GetEntryByNameCallbackData::getName() const
 //{
-//    LOGD("Entered");
+//    LoggerD("Entered");
 //    return m_name;
 //}
 //
 //void GetEntryByNameCallbackData::setName(const std::string& name)
 //{
-//    LOGD("Entered");
+//    LoggerD("Entered");
 //    m_name = name;
 //}
 //
@@ -309,7 +275,7 @@ namespace Archive {
 //
 //void GetEntryByNameCallbackData::executeOperation(ArchiveFilePtr archive_file_ptr)
 //{
-//    LOGD("Entered");
+//    LoggerD("Entered");
 //
 //    ArchiveFileEntryPtrMapPtr entries = archive_file_ptr->getEntryMap();
 //    auto it = entries->find(getName());
@@ -319,13 +285,13 @@ namespace Archive {
 //    //
 //    if (it == entries->end() && !isDirectoryPath(getName())) {
 //        const std::string try_directory = getName() + "/";
-//        LOGD("GetEntryByName Trying directory: [%s]", try_directory.c_str());
+//        LoggerD("GetEntryByName Trying directory: [%s]", try_directory.c_str());
 //        it = entries->find(try_directory);
 //    }
 //
 //    if (it == entries->end()) {
-//        LOGE("GetEntryByName Entry with name: [%s] not found", getName().c_str());
-//        LOGE("Throwing NotFoundException - Entry not found");
+//        LoggerE("GetEntryByName Entry with name: [%s] not found", getName().c_str());
+//        LoggerE("Throwing NotFoundException - Entry not found");
 //        throw NotFoundException("Entry not found");
 //    }
 //
@@ -333,7 +299,7 @@ namespace Archive {
 //
 //    guint id = g_idle_add(ArchiveFile::getEntryByNameTaskCompleteCB, this);
 //    if (!id) {
-//        LOGE("g_idle_add fails");
+//        LoggerE("g_idle_add fails");
 //        throw UnknownException("g_idle_add fails");
 //    }
 //}
@@ -346,30 +312,31 @@ namespace Archive {
 //    OperationCallbackData(callback_type),
 //    m_overwrite(false)
 //{
-//    LOGD("Entered");
+//    LoggerD("Entered");
 //}
 //
 //BaseProgressCallback::~BaseProgressCallback()
 //{
-//    LOGD("Entered");
+//    LoggerD("Entered");
 //}
 //
 //bool BaseProgressCallback::getOverwrite() const
 //{
-//    LOGD("Entered");
+//    LoggerD("Entered");
 //    return m_overwrite;
 //}
 //
 //void BaseProgressCallback::setOverwrite(bool overwrite)
 //{
-//    LOGD("Entered");
+//    LoggerD("Entered");
 //    m_overwrite = overwrite;
 //}
 //
 //struct ProgressHolder
 //{
 //    ProgressHolder() :
-//            callback(NULL)
+//        overall_progress(0.0),
+//        callback(NULL)
 //    {
 //    };
 //
@@ -383,7 +350,7 @@ namespace Archive {
 //    guint id = g_idle_add(BaseProgressCallback::callSuccessCallbackCB,
 //            static_cast<void*>(this));
 //    if (!id) {
-//        LOGE("g_idle_add fails - success callback will not be called");
+//        LoggerE("g_idle_add fails - success callback will not be called");
 //    }
 //}
 //
@@ -391,28 +358,28 @@ namespace Archive {
 //{
 //    BaseProgressCallback* callback = static_cast<BaseProgressCallback*>(data);
 //    if (!callback) {
-//        LOGE("callback pointer is NULL");
+//        LoggerE("callback pointer is NULL");
 //        return false;
 //    }
 //
 //    std::unique_ptr<BaseProgressCallback> cb_ptr(callback);
 //
-//    LOGW("STUB Not checking if context is still alive");
+//    LoggerW("STUB Not checking if context is still alive");
 //    //JSContextRef context = callback->getContext();
 //    //if (!GlobalContextManager::getInstance()->isAliveGlobalContext(context)) {
-//    //    LOGE("context closed - unable to call success callback");
+//    //    LoggerE("context closed - unable to call success callback");
 //    //    return false;
 //    //}
 //
-//    try {
-//        callback->callSuccessCallback();
-//    }
-//    catch (const PlatformException &err) {
-//        LOGE("%s (%s)", err.name().c_str(), err.message().c_str());
-//    }
-//    catch (...) {
-//        LOGE("Unknown error occurs");
-//    }
+////    try {
+////        callback->callSuccessCallback();
+////    }
+////    catch (const PlatformException &err) {
+////        LoggerE("%s (%s)", err.name().c_str(), err.message().c_str());
+////    }
+////    catch (...) {
+////        LoggerE("Unknown error occurs");
+////    }
 //
 //    callback->setArchiveFile(ArchiveFilePtr());
 //    ArchiveManager::getInstance().eraseElementFromArchiveFileMap(callback->m_op_id);
@@ -422,7 +389,7 @@ namespace Archive {
 //
 ////void BaseProgressCallback::setProgressCallback(JSValueRef on_progress)
 ////{
-////    LOGD("Entered");
+////    LoggerD("Entered");
 ////    auto ctx = getContext();
 ////    if(on_progress && JSValueIsObject(ctx, on_progress)) {
 ////        JSObjectRef progress = JSValueToObject(ctx, on_progress, NULL);
@@ -434,8 +401,8 @@ namespace Archive {
 //        double value,
 //        const std::string& filename)
 //{
-//    LOGD("Entered");
-//    LOGW("STUB calling progress callback");
+//    LoggerD("Entered");
+//    LoggerW("STUB calling progress callback");
 //
 //    //auto ctx = getContext();
 //    //const int SIZE = 3;
@@ -461,12 +428,12 @@ namespace Archive {
 //        guint id = g_idle_add(BaseProgressCallback::callProgressCallbackCB,
 //                static_cast<void*>(ph));
 //        if (!id) {
-//            LOGE("g_idle_add fails");
+//            LoggerE("g_idle_add fails");
 //            delete ph;
 //            ph = NULL;
 //        }
 //    } else {
-//        LOGE("Couldn't allocate ProgressHolder");
+//        LoggerE("Couldn't allocate ProgressHolder");
 //    }
 //}
 //
@@ -474,20 +441,20 @@ namespace Archive {
 //{
 //    ProgressHolder* ph = static_cast<ProgressHolder*>(data);
 //    if (!ph) {
-//        LOGE("ph is null");
+//        LoggerE("ph is null");
 //        return false;
 //    }
 //
 //    std::unique_ptr<ProgressHolder> ph_ptr(ph);
 //    if (!ph->callback) {
-//        LOGE("ph->callback is null");
+//        LoggerE("ph->callback is null");
 //        return false;
 //    }
 //
-//    LOGW("STUB Not checking if context is still alive");
+//    LoggerW("STUB Not checking if context is still alive");
 //    //JSContextRef context = ph->callback->getContext();
 //    //if (!GlobalContextManager::getInstance()->isAliveGlobalContext(context)) {
-//    //    LOGE("context was closed");
+//    //    LoggerE("context was closed");
 //    //    return false;
 //    //}
 //
@@ -501,10 +468,10 @@ namespace Archive {
 //                ph->currently_processed_entry->getName());
 //    }
 //    catch (const PlatformException &err) {
-//        LOGE("%s (%s)", err.name().c_str(), err.message().c_str());
+//        LoggerE("%s (%s)", err.name().c_str(), err.message().c_str());
 //    }
 //    catch (...) {
-//        LOGE("Unknown error occurs");
+//        LoggerE("Unknown error occurs");
 //    }
 //
 //    return false;
@@ -517,32 +484,32 @@ namespace Archive {
 //AddProgressCallback::AddProgressCallback(ArchiveCallbackType callback_type):
 //    BaseProgressCallback(callback_type)
 //{
-//    LOGD("Entered");
+//    LoggerD("Entered");
 //}
 //
 //AddProgressCallback::~AddProgressCallback()
 //{
-//    LOGD("Entered");
+//    LoggerD("Entered");
 //}
 //
 //ArchiveFileEntryPtr AddProgressCallback::getFileEntry() const
 //{
-//    LOGD("Entered");
+//    LoggerD("Entered");
 //    return m_file_entry;
 //}
 //
 //void AddProgressCallback::setFileEntry(ArchiveFileEntryPtr file_entry)
 //{
-//    LOGD("Entered");
+//    LoggerD("Entered");
 //    m_file_entry = file_entry;
 //}
 //
 //void AddProgressCallback::setBasePath(const std::string& path)
 //{
-//    LOGD("Entered");
+//    LoggerD("Entered");
 //    m_base_path = path;
-//    m_base_virt_path = Filesystem::External::toVirtualPath(m_base_path);
-//    std::string::size_type pos = m_base_virt_path.find(Filesystem::Path::getSeparator());
+//    m_base_virt_path = filesystem::External::toVirtualPath(m_base_path);
+//    std::string::size_type pos = m_base_virt_path.find(filesystem::Path::getSeparator());
 //    if (pos != std::string::npos)
 //    {
 //        m_base_virt_path = m_base_virt_path.substr(pos + 1);
@@ -555,27 +522,27 @@ namespace Archive {
 //
 //const std::string& AddProgressCallback::getBasePath()
 //{
-//    LOGD("Entered");
+//    LoggerD("Entered");
 //    return m_base_path;
 //}
 //
 //const std::string& AddProgressCallback::getBaseVirtualPath()
 //{
-//    LOGD("Entered");
+//    LoggerD("Entered");
 //    return m_base_virt_path;
 //}
 //
 //void AddProgressCallback::executeOperation(ArchiveFilePtr archive_file_ptr)
 //{
-//    LOGD("Entered");
+//    LoggerD("Entered");
 //
 //    if(!m_file_entry) {
-//        LOGE("ArchiveFileEntry is not set in callback");
+//        LoggerE("ArchiveFileEntry is not set in callback");
 //        throw UnknownException("Could not add file to archive");
 //    }
 //
 //    if(!archive_file_ptr) {
-//        LOGE("archive_file_ptr is NULL");
+//        LoggerE("archive_file_ptr is NULL");
 //        throw UnknownException("Could not extract archive file entry");
 //    }
 //
@@ -592,14 +559,14 @@ namespace Archive {
 //    //we can remove CreatedAsNewEmptyArchive flag
 //    archive_file_ptr->setCreatedAsNewEmptyArchive(false);
 //
-//    LOGD("Update decompressed size and entry list");
+//    LoggerD("Update decompressed size and entry list");
 //    // update informations about decompressed size and entry list
 //    // TODO FIXME need to resolve problem with access to file by
 //    // more than one thread
 //    try{
 //        archive_file_ptr->updateListOfEntries();
 //    } catch(...){
-//        LOGD("Unknown error during updating entries list inside archive");
+//        LoggerD("Unknown error during updating entries list inside archive");
 //    }
 //}
 //
@@ -610,26 +577,27 @@ namespace Archive {
 //ExtractAllProgressCallback::ExtractAllProgressCallback(ArchiveCallbackType callback_type):
 //    BaseProgressCallback(callback_type),
 //    m_files_to_extract(0),
+//    m_expected_decompressed_size(0),
 //    m_files_extracted(0),
 //    m_current_file_size(0),
 //    m_current_file_extracted_bytes(0),
 //    m_progress_overall(0),
 //    m_overall_decompressed(0)
 //{
-//    LOGD("Entered");
+//    LoggerD("Entered");
 //}
 //
 //ExtractAllProgressCallback::~ExtractAllProgressCallback()
 //{
-//    LOGD("Entered");
+//    LoggerD("Entered");
 //}
 //
-//Filesystem::FilePtr ExtractAllProgressCallback::getDirectory() const
+//filesystem::FilePtr ExtractAllProgressCallback::getDirectory() const
 //{
 //    return m_directory;
 //}
 //
-//void ExtractAllProgressCallback::setDirectory(Filesystem::FilePtr directory)
+//void ExtractAllProgressCallback::setDirectory(filesystem::FilePtr directory)
 //{
 //    m_directory = directory;
 //}
@@ -661,7 +629,7 @@ namespace Archive {
 //            static_cast<double>(m_overall_decompressed + m_files_extracted) /
 //            static_cast<double>(m_expected_decompressed_size + m_files_to_extract);
 //
-//    LOGD("%s of %s - %f%% (%d/%d files)",
+//    LoggerD("%s of %s - %f%% (%d/%d files)",
 //            bytesToReadableString(m_overall_decompressed).c_str(),
 //            bytesToReadableString(m_expected_decompressed_size).c_str(),
 //            m_progress_overall * 100.0,
@@ -686,7 +654,7 @@ namespace Archive {
 //
 //void ExtractAllProgressCallback::executeOperation(ArchiveFilePtr archive_file_ptr)
 //{
-//    LOGD("Entered");
+//    LoggerD("Entered");
 //    archive_file_ptr->extractAllTask(this);
 //}
 //
@@ -718,7 +686,7 @@ namespace Archive {
 //
 //OperationCanceledException::OperationCanceledException(const char* message)
 //{
-//    LOGD("Entered");
+//    LoggerD("Entered");
 //}
 //
 ////----------------------------------------------------------------------------------------
@@ -729,13 +697,13 @@ namespace Archive {
 //        ExtractAllProgressCallback(),
 //        m_strip_name(false)
 //{
-//    LOGD("Entered");
+//    LoggerD("Entered");
 //    m_callback_type = EXTRACT_ENTRY_PROGRESS_CALLBACK;
 //}
 //
 //ExtractEntryProgressCallback::~ExtractEntryProgressCallback()
 //{
-//    LOGD("Entered");
+//    LoggerD("Entered");
 //}
 //
 //ArchiveFileEntryPtr ExtractEntryProgressCallback::getArchiveFileEntry()
@@ -771,15 +739,15 @@ namespace Archive {
 //
 //void ExtractEntryProgressCallback::executeOperation(ArchiveFilePtr archive_file_ptr)
 //{
-//    LOGD("Entered");
+//    LoggerD("Entered");
 //
 //    if(!m_archive_file_entry) {
-//        LOGE("ArchiveFileEntry is not set in callback");
+//        LoggerE("ArchiveFileEntry is not set in callback");
 //        throw UnknownException("Could not extract archive file entry");
 //    }
 //
 //    if(!archive_file_ptr) {
-//        LOGE("archive_file_ptr is NULL");
+//        LoggerE("archive_file_ptr is NULL");
 //        throw UnknownException("Could not extract archive file entry");
 //    }
 //
@@ -787,5 +755,5 @@ namespace Archive {
 //    unzip->extractTo(this);
 //}
 
-} //namespace Archive
-} //namespace DeviceAPI
+} //namespace archive
+} //namespace extension

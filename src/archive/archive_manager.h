@@ -25,8 +25,8 @@
 #include "archive_file.h"
 #include "archive_callback_data.h"
 
-namespace DeviceAPI {
-namespace Archive {
+namespace extension {
+namespace archive {
 
 typedef std::map<long, ArchiveFilePtr> ArchiveFileMap;
 typedef std::pair<long, ArchiveFilePtr> ArchiveFilePair;
@@ -52,7 +52,7 @@ private:
 
 };
 
-} // Archive
-} // DeviceAPI
+} // archive
+} // extension
 
 #endif /* _TIZEN_ARCHIVE_ARCHIVE_MANAGER_H_ */
