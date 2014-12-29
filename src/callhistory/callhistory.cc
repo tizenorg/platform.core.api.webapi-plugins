@@ -153,7 +153,7 @@ void CallHistory::find(const picojson::object& args)
         try {
             if (phone_numbers == 0) {
                 LoggerE("Phone numbers list is empty.");
-                //Uncomment below line if gettin sim info will be possible (loadPhonesNumbers)
+                //Uncomment below line if getting sim info will be possible (loadPhonesNumbers)
                 //throw UnknownException("Phone numbers list is empty.");
             }
 
@@ -283,6 +283,7 @@ void CallHistory::removeBatch(const picojson::object& args)
 
     if (it_uid == it_args_end ||
         !it_uid->second.is<picojson::array>()) {
+        LoggerE("Invalid parameter was passed.");
         throw InvalidValuesException("Invalid parameter was passed.");
     }
     const picojson::array& uids = it_uid->second.get<picojson::array>();

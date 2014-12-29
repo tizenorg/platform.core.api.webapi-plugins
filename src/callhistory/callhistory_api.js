@@ -2,219 +2,11 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-var Common = function() {
-function _getException(type, msg) {
-    return new tizen.WebAPIException(type, msg || 'Unexpected exception');
-}
-
-function _getTypeMismatch(msg) {
-    return _getException(WebAPIException.TYPE_MISMATCH_ERR,
-            msg || 'Provided arguments are not valid.');
-}
-
-function _throwTypeMismatch(msg) {
-    throw _getTypeMismatch(msg);
-}
-
-var _type = xwalk.utils.type;
-var _converter = xwalk.utils.converter;
-var _validator = xwalk.utils.validator;
-
-function Common() {}
-
-function _prepareRequest(cmd, args) {
-    var request = {
-            cmd : cmd,
-            args : args || {}
-    };
-
-    return request;
-}
-
-Common.prototype.callSync = function (cmd, args) {
-    var request = _prepareRequest(cmd, args);
-    var ret = extension.internal.sendSyncMessage(JSON.stringify(request));
-    var obj = JSON.parse(ret);
-    if (obj.error) {
-        throw new tizen.throwException(obj.error);
-    }
-
-    return obj.result;
-};
-
-Common.prototype.call = function (cmd, args, callback) {
-    var request = _prepareRequest(cmd, args, callback);
-    extension.postMessage(JSON.stringify(request));
-};
-
-Common.prototype.isSuccess = function (result) {
-    return (result.status !== 'error');
-};
-
-Common.prototype.isFailure = function (result) {
-    return !this.isSuccess(result);
-};
-
-Common.prototype.getErrorObject = function (result) {
-    return new tizen.WebAPIException(0, result.error.message, result.error.name);
-};
-
-Common.prototype.getResultObject = function (result) {
-    return result.result;
-};
-
-Common.prototype.callIfPossible = function(callback) {
-    if (!_type.isNullOrUndefined(callback)) {
-        callback.apply(callback, [].slice.call(arguments, 1));
-    }
-};
-
-Common.prototype.getTypeMismatch = function(msg) {
-    _getTypeMismatch(msg);
-};
-
-Common.prototype.throwTypeMismatch = function(msg) {
-    _throwTypeMismatch(msg);
-};
-
-Common.prototype.getInvalidValues = function(msg) {
-    return _getException('InvalidValuesError',
-            msg || 'There\'s a problem with input value.');
-};
-
-Common.prototype.throwInvalidValues = function(msg) {
-    throw this.getInvalidValues(msg);
-};
-
-Common.prototype.getIOError = function (msg) {
-    return _getException('IOError', msg || 'Unexpected IO error.');
-};
-
-Common.prototype.throwIOError = function (msg) {
-    throw this.getIOError(msg);
-};
-
-Common.prototype.getNotSupported = function (msg) {
-    return _getException(WebAPIException.NOT_SUPPORTED_ERR, msg || 'Not supported.');
-};
-
-Common.prototype.throwNotSupported = function (msg) {
-    throw this.getNotSupported(msg);
-};
-
-Common.prototype.getNotFound = function (msg) {
-    return _getException('NotFoundError', msg || 'Not found.');
-};
-
-Common.prototype.throwNotFound = function (msg) {
-    throw this.getNotFound(msg);
-};
-
-Common.prototype.getUnknownError = function (msg) {
-    return _getException('UnknownError', msg || 'Unknown error.');
-};
-
-Common.prototype.throwUnknownError = function (msg) {
-    throw this.getUnknownError(msg);
-};
-
-Common.prototype.throwTypeMismatch = function(msg) {
-    _throwTypeMismatch(msg);
-};
-
-Common.prototype.sort = function (arr, sortMode) {
-    var _getSortProperty = function (obj, props) {
-        for (var i = 0; i < props.length; ++i) {
-            if (!obj.hasOwnProperty(props[i])) {
-                return null;
-            }
-            obj = obj[props[i]];
-        }
-        return obj;
-    };
-
-    if (sortMode instanceof tizen.SortMode) {
-        var props = sortMode.attributeName.split('.');
-        arr.sort(function (a, b) {
-            var aValue = _getSortProperty(a, props);
-            var bValue = _getSortProperty(b, props);
-
-            if (sortMode.order === 'DESC') {
-                return aValue < bValue;
-            }
-            return bValue < aValue;
-        });
-    }
-    return arr;
-};
-
-Common.prototype.filter = function (arr, filter) {
-    if (_type.isNullOrUndefined(arr))
-        return arr;
-    if (filter instanceof tizen.AttributeFilter ||
-            filter instanceof tizen.AttributeRangeFilter ||
-            filter instanceof tizen.CompositeFilter) {
-        arr = arr.filter(function(element) {
-            return filter._filter(element);
-        });
-    }
-    return arr;
-};
-
-Common.prototype.repackFilter = function (filter) {
-    if (filter instanceof tizen.AttributeFilter) {
-        return {
-            filterType: "AttributeFilter",
-            attributeName: filter.attributeName,
-            matchFlag: filter.matchFlag,
-            matchValue: filter.matchValue,
-        };
-    }
-    if (filter instanceof tizen.AttributeRangeFilter) {
-        return {
-            filterType: "AttributeRangeFilter",
-            attributeName: filter.attributeName,
-            initialValue: _type.isNullOrUndefined(filter.initialValue) ? null : filter.initialValue,
-                    endValue: _type.isNullOrUndefined(filter.endValue) ? null : filter.endValue
-        };
-    }
-    if (filter instanceof tizen.CompositeFilter) {
-        var _f = [];
-        var filters = filter.filters;
-
-        for (var i = 0; i < filters.length; ++i) {
-            _f.push(this.repackFilter(filters[i]));
-        }
-
-        return {
-            filterType: "CompositeFilter",
-            type: filter.type,
-            filters: _f
-        };
-    }
-
-    return null;
-}
-    var _common = new Common();
-
-    return {
-        Type : _type,
-        Converter : _converter,
-        ArgumentValidator : _validator,
-        Common : _common
-    };
-};
-
-var _common = new Common();
-var T = _common.Type;
-var Converter = _common.Converter;
-var AV = _common.ArgumentValidator;
-var C = _common.Common;
-
-var _listeners = {};
-var _listenersId = 0;
-var _callbacks = {};
-var _callbackId = 0;
+var validator_ = xwalk.utils.validator;
+var converter_ = xwalk.utils.converter;
+var types_ = validator_.Types;
+var T_ = xwalk.utils.type;
+var native_ = new xwalk.utils.NativeManager(extension);
 
 function _createCallHistoryEntries(e) {
     var entries_array = [];
@@ -237,55 +29,80 @@ function _getUidFromCallHistoryEntry(entries) {
     return uid;
 };
 
-extension.setMessageListener(function(msg) {
-    var m = JSON.parse(msg);
-    if (m.cmd == 'CallHistoryChangeCallback') {
-        var d = null;
+function ListenerManager(native, listenerName) {
+    this.listeners = {};
+    this.nextId = 1;
+    this.nativeSet = false;
+    this.native = native;
+    this.listenerName = listenerName;
+};
 
-        switch (m.action) {
-        case 'onadded':
-        case 'onchanged':
-            d = _createCallHistoryEntries(m);
-            break;
+ListenerManager.prototype.onListenerCalled = function(msg) {
+    var d = undefined;
+    switch (msg.action) {
+    case 'onadded':
+    case 'onchanged':
+        d = _createCallHistoryEntries(msg);
+        break;
 
-        case 'onremoved':
-            d = m.data;
-            break;
+    case 'onremoved':
+        d = msg.data;
+        break;
 
-        default:
-            console.log('Unknown mode: ' + m.action);
-            return;
-        }
-
-        for (var watchId in _listeners) {
-            if (_listeners.hasOwnProperty(watchId) && _listeners[watchId][m.action]) {
-                _listeners[watchId][m.action](d);
-            }
-        }
-    } else if (m.hasOwnProperty('callbackId')) {
-       _callbacks[m.callbackId](m);
-       delete _callbacks[m.callbackId];
+    default:
+        console.log('Unknown mode: ' + msg.action);
+        return;
     }
-});
+
+    for (var watchId in this.listeners) {
+        if (this.listeners.hasOwnProperty(watchId) && this.listeners[watchId][msg.action]) {
+            this.listeners[watchId][msg.action](d);
+        }
+    }
+};
+
+ListenerManager.prototype.addListener = function(callback) {
+    var id = this.nextId;
+    if (!this.nativeSet) {
+      this.native.addListener(this.listenerName, this.onListenerCalled.bind(this));
+      this.nativeSet = true;
+    }
+    this.listeners[id] = callback;
+    ++this.nextId;
+    return id;
+};
+
+ListenerManager.prototype.removeListener = function(watchId) {
+    if (this.listeners[watchId] === null || this.listeners[watchId] === undefined) {
+        throw new tizen.WebAPIException(0, 'Watch id not found.', 'InvalidValuesError');
+    }
+
+    if (this.listeners.hasOwnProperty(watchId)) {
+        delete this.listeners[watchId];
+    }
+};
+
+var CALL_HISTORY_CHANGE_LISTENER = 'CallHistoryChangeCallback';
+var callHistoryChangeListener = new ListenerManager(native_, CALL_HISTORY_CHANGE_LISTENER);
 
 function CallHistory() {
 };
 
 CallHistory.prototype.find = function() {
-    var args = AV.validateArgs(arguments, [
+    var args = validator_.validateArgs(arguments, [
         {
             name : 'successCallback',
-            type : AV.Types.FUNCTION,
+            type : types_.FUNCTION,
         },
         {
             name : 'errorCallback',
-            type : AV.Types.FUNCTION,
+            type : types_.FUNCTION,
             optional : true,
             nullable : true
         },
         {
             name : 'filter',
-            type : AV.Types.PLATFORM_OBJECT,
+            type : types_.PLATFORM_OBJECT,
             optional : true,
             nullable : true,
             values : [tizen.AttributeFilter,
@@ -294,52 +111,48 @@ CallHistory.prototype.find = function() {
         },
         {
             name : 'sortMode',
-            type : AV.Types.PLATFORM_OBJECT,
+            type : types_.PLATFORM_OBJECT,
             optional : true,
             nullable : true,
             values : tizen.SortMode
         },
         {
             name : 'limit',
-            type : AV.Types.UNSIGNED_LONG,
+            type : types_.UNSIGNED_LONG,
             optional : true,
             nullable : true
         },
         {
             name : 'offset',
-            type : AV.Types.UNSIGNED_LONG,
+            type : types_.UNSIGNED_LONG,
             optional : true,
             nullable : true
         }
     ]);
 
     var callback = function(result) {
-        if (C.isFailure(result)) {
-            C.callIfPossible(args.errorCallback, C.getErrorObject(result));
+        if (native_.isFailure(result)) {
+            native_.callIfPossible(args.errorCallback(result.error));
         } else {
             var entries = _createCallHistoryEntries(result);
-            C.callIfPossible(args.successCallback(entries));
+            args.successCallback(entries);
         }
     };
 
-    var callbackId = ++_callbackId;
-    _callbacks[callbackId] = callback;
-
     var callArgs = {};
-    callArgs.callbackId = callbackId;
     callArgs.filter = args.filter;
     callArgs.sortMode = args.sortMode;
     callArgs.limit = args.limit;
     callArgs.offset = args.offset;
 
-    C.call('CallHistory_find', callArgs, callback);
+    native_.call('CallHistory_find', callArgs, callback);
 };
 
 CallHistory.prototype.remove = function() {
-    var args = AV.validateArgs(arguments, [
+    var args = validator_.validateArgs(arguments, [
         {
             name : 'entry',
-            type : AV.Types.PLATFORM_OBJECT,
+            type : types_.PLATFORM_OBJECT,
             values : CallHistoryEntry
         }
     ]);
@@ -347,122 +160,106 @@ CallHistory.prototype.remove = function() {
     var callArgs = {};
     callArgs.uid = args.entry.uid;
 
-    C.callSync('CallHistory_remove', callArgs);
-};
-
-CallHistory.prototype.removeBatch = function() {
-    console.log('removeBatch');
-    var args = AV.validateArgs(arguments, [
-        {
-            name : 'entries',
-            type : AV.Types.ARRAY,
-            values : CallHistoryEntry
-        },
-        {
-            name : 'successCallback',
-            type : AV.Types.FUNCTION,
-            optional : true,
-            nullable : true
-        },
-        {
-            name : 'errorCallback',
-            type : AV.Types.FUNCTION,
-            optional : true,
-            nullable : true
-        }
-    ]);
-
-    var callback = function(result) {
-        if (C.isFailure(result)) {
-            C.callIfPossible(args.errorCallback, C.getErrorObject(result));
-        } else {
-            C.callIfPossible(args.successCallback);
-        }
-    };
-
-    var callbackId = ++_callbackId;
-    _callbacks[callbackId] = callback;
-
-    var uid = _getUidFromCallHistoryEntry(args.entries);
-    var callArgs = {};
-
-    callArgs.uid = uid;
-    callArgs.callbackId = callbackId;
-
-    C.call('CallHistory_removeBatch', callArgs, callback);
-};
-
-CallHistory.prototype.removeAll = function() {
-    var args = AV.validateArgs(arguments, [
-        {
-            name : 'successCallback',
-            type : AV.Types.FUNCTION,
-            optional : true,
-            nullable : true
-        },
-        {
-            name : 'errorCallback',
-            type : AV.Types.FUNCTION,
-            optional : true,
-            nullable : true
-        }
-    ]);
-
-    var callback = function(result) {
-        if (C.isFailure(result)) {
-            C.callIfPossible(args.errorCallback, C.getErrorObject(result));
-        } else {
-            C.callIfPossible(args.successCallback);
-        }
-    };
-
-    var callbackId = ++_callbackId;
-    _callbacks[callbackId] = callback;
-
-    var callArgs = {};
-    callArgs.callbackId = callbackId;
-
-    C.call('CallHistory_removeAll', callArgs, callback);
-};
-
-CallHistory.prototype.addChangeListener = function() {
-    var args = AV.validateArgs(arguments, [
-        {
-            name : 'eventCallback',
-            type : AV.Types.LISTENER,
-            values : ['onadded', 'onchanged', 'onremoved']
-        }
-    ]);
-
-    if (T.isEmptyObject(_listeners)) {
-        C.callSync('CallHistory_addChangeListener');
-    }
-
-    var watchId = ++_listenersId;
-    _listeners[watchId] = args.eventCallback;
-
-     return watchId;
-};
-
-CallHistory.prototype.removeChangeListener = function() {
-    var args = AV.validateArgs(arguments, [
-        {
-            name : 'watchId',
-            type : AV.Types.LONG
-        }
-    ]);
-
-    var id = args.watchId;
-
-    if (T.isNullOrUndefined(_listeners[id])) {
+    var result = native_.callSync('CallHistory_remove', callArgs);
+    if (native_.isFailure(result)) {
         throw new tizen.WebAPIException(
                 tizen.WebAPIException.INVALID_VALUES_ERR, 'Watch id not found.');
     }
 
-    delete _listeners[id];
+    return;
+};
 
-    if (T.isEmptyObject(_listeners)) {
-       C.callSync('CallHistory_removeChangeListener');
+CallHistory.prototype.removeBatch = function() {
+    var args = validator_.validateArgs(arguments, [
+        {
+            name : 'entries',
+            type : types_.ARRAY,
+            values : CallHistoryEntry
+        },
+        {
+            name : 'successCallback',
+            type : types_.FUNCTION,
+            optional : true,
+            nullable : true
+        },
+        {
+            name : 'errorCallback',
+            type : types_.FUNCTION,
+            optional : true,
+            nullable : true
+        }
+    ]);
+
+    var callback = function(result) {
+        if (native_.isFailure(result)) {
+            native_.callIfPossible(args.errorCallback(result.error));
+        } else {
+            native_.callIfPossible(args.successCallback());
+        }
+    };
+
+    var uid = _getUidFromCallHistoryEntry(args.entries);
+    var callArgs = {};
+    callArgs.uid = uid;
+
+    native_.call('CallHistory_removeBatch', callArgs, callback);
+};
+
+CallHistory.prototype.removeAll = function() {
+    var args = validator_.validateArgs(arguments, [
+        {
+            name : 'successCallback',
+            type : types_.FUNCTION,
+            optional : true,
+            nullable : true
+        },
+        {
+            name : 'errorCallback',
+            type : types_.FUNCTION,
+            optional : true,
+            nullable : true
+        }
+    ]);
+
+    var callback = function(result) {
+        if (native_.isFailure(result)) {
+            native_.callIfPossible(args.errorCallback(result.error));
+        } else {
+            native_.callIfPossible(args.successCallback());
+        }
+    };
+
+    native_.call('CallHistory_removeAll', {}, callback);
+};
+
+CallHistory.prototype.addChangeListener = function() {
+    var args = validator_.validateArgs(arguments, [
+        {
+            name : 'eventCallback',
+            type : types_.LISTENER,
+            values : ['onadded', 'onchanged', 'onremoved']
+        }
+    ]);
+
+    if (T_.isEmptyObject(callHistoryChangeListener.listeners)) {
+        native_.callSync('CallHistory_addChangeListener');
+    }
+
+    return callHistoryChangeListener.addListener(args.eventCallback);
+};
+
+CallHistory.prototype.removeChangeListener = function() {
+    var args = validator_.validateArgs(arguments, [
+        {
+            name : 'watchId',
+            type : types_.LONG
+        }
+    ]);
+
+    callHistoryChangeListener.removeListener(args.watchId);
+
+    if (T_.isEmptyObject(callHistoryChangeListener.listeners)) {
+        native_.callSync('CallHistory_removeChangeListener');
     }
 };
 
@@ -474,7 +271,7 @@ function RemoteParty(data) {
             enumerable: true
         },
         personId: {
-            value: data.personId ? Converter.toString(data.personId) : null,
+            value: data.personId ? converter_.toString(data.personId) : null,
             writable: false,
             enumerable: true
         }
@@ -484,7 +281,7 @@ function RemoteParty(data) {
 function CallHistoryEntry(data) {
 
     function directionSetter(val) {
-        direction = Converter.toString(val, false);
+        direction = converter_.toString(val, false);
     }
 
     function createRemoteParties(parties) {
@@ -501,7 +298,7 @@ function CallHistoryEntry(data) {
     }
 
     Object.defineProperties(this, {
-        uid: {value: Converter.toString(data.uid), writable: false, enumerable: true},
+        uid: {value: converter_.toString(data.uid), writable: false, enumerable: true},
         type: {value: data.type, writable: false, enumerable: true},
         features : {
             value: data.features ? data.features : null,
