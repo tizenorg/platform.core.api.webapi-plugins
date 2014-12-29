@@ -19,10 +19,13 @@
 
 #include "common/picojson.h"
 #include "contact/contact_util.h"
+#include "functional"
 
 namespace extension {
 namespace contact {
 namespace AddressBook {
+
+typedef std::function<void(const JsonObject&, JsonObject&)> NativeFunction;
 
 void AddressBook_get(const JsonObject& args, JsonObject& out);
 void AddressBook_add(const JsonObject& args, JsonObject& out);
@@ -37,10 +40,10 @@ void AddressBook_getGroups(const JsonObject& args, JsonArray& out);
 void AddressBook_startListening(const JsonObject& args, JsonObject& out);
 void AddressBook_stopListening(const JsonObject& args, JsonObject& out);
 
-void AddressBook_batchFunc(/*common::NativeFunction impl,*/
-                           const char* single_arg_name, const JsonObject& args/*,
-                           JsonObject& out*/);
+void AddressBook_batchFunc(NativeFunction impl, const char *single_arg_name,
+                           const JsonObject &args, JsonArray &out);
 
+// TODO all batch operations should be implemented using CAPI batch functions
 void AddressBook_addBatch(const JsonObject& args, JsonArray& out);
 
 }  // AddressBook

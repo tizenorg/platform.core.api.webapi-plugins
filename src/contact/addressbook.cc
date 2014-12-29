@@ -164,21 +164,19 @@ void AddressBook_update(const JsonObject& args, JsonObject& out) {
 }
 
 void AddressBook_remove(const JsonObject& args, JsonObject&) {
+  LoggerE("entered");
   ContactUtil::CheckDBConnection();
 
-  long contact_id = common::stol(FromJson<JsonString>(args, "id"));
+  int contact_id = common::stol(FromJson<JsonString>(args, "id"));
 
   if (contact_id < 0) {
     throw common::InvalidValuesException("Nagative contact id");
   }
 
-  int err = CONTACTS_ERROR_NONE;
-  err = contacts_db_delete_record(_contacts_contact._uri, contact_id);
+  int err = contacts_db_delete_record(_contacts_contact._uri, contact_id);
   if (CONTACTS_ERROR_NO_DATA == err) {
-    LoggerW("Remove failed: contact not found, error code: %d", err);
     throw common::NotFoundException("Remove failed: contact not found");
   } else if (CONTACTS_ERROR_NONE != err) {
-    LoggerW("Contacts record delete error, error code: %d", err);
     throw common::UnknownException("Contacts record delete error");
   }
 }
@@ -188,21 +186,18 @@ void AddressBook_addBatch(const JsonObject& args, JsonArray& out) {
 
   ContactUtil::CheckDBConnection();
 
-  long addressBookId = -1;
   const JsonArray& batch_args = FromJson<JsonArray>(args, "batchArgs");
-  addressBookId = common::stol(FromJson<JsonString>(args, "addressBookId"));
+  long addressBookId = common::stol(FromJson<JsonString>(args, "addressBookId"));
   addressBookId = addressBookId == -1 ? 0 : addressBookId;
 
   unsigned length = batch_args.size();
-  int error_code = 0;
   contacts_list_h contacts_list = NULL;
-  error_code = contacts_list_create(&contacts_list);
+  int error_code = contacts_list_create(&contacts_list);
   if (CONTACTS_ERROR_NONE != error_code) {
     LoggerE("list creation failed, code: %d", error_code);
     throw new common::UnknownException("list creation failed");
   }
-  ContactUtil::ContactsListHPtr contacts_list_ptr(
-      &contacts_list, ContactUtil::ContactsListDeleter);
+  ContactUtil::ContactsListHPtr contacts_list_ptr(&contacts_list, ContactUtil::ContactsListDeleter);
 
   for (auto& item : batch_args) {
     contacts_record_h contacts_record = nullptr;
@@ -212,12 +207,9 @@ void AddressBook_addBatch(const JsonObject& args, JsonArray& out) {
       LoggerW("Contacts record create error, error code: %d", err);
       throw common::UnknownException("Contacts record create error");
     }
-    ContactUtil::ContactsRecordHPtr x(&contacts_record,
-                                      ContactUtil::ContactsDeleter);
-    ContactUtil::ExportContactToContactsRecord(contacts_record,
-                                               JsonCast<JsonObject>(item));
-    ContactUtil::SetIntInRecord(
-        contacts_record, _contacts_contact.address_book_id, addressBookId);
+    ContactUtil::ContactsRecordHPtr x(&contacts_record, ContactUtil::ContactsDeleter);
+    ContactUtil::ExportContactToContactsRecord(contacts_record, JsonCast<JsonObject>(item));
+    ContactUtil::SetIntInRecord(contacts_record, _contacts_contact.address_book_id, addressBookId);
     error_code = contacts_list_add(*contacts_list_ptr, *(x.release()));
     if (CONTACTS_ERROR_NONE != error_code) {
       LoggerE("error during add record to list, code: %d", error_code);
@@ -243,8 +235,7 @@ void AddressBook_addBatch(const JsonObject& args, JsonArray& out) {
   for (unsigned int i = 0; i < count; i++) {
     JsonObject out_object;
     contacts_record_h contact_record = nullptr;
-    error_code =
-        contacts_db_get_record(_contacts_contact._uri, ids[i], &contact_record);
+    error_code = contacts_db_get_record(_contacts_contact._uri, ids[i], &contact_record);
     if (CONTACTS_ERROR_NONE != error_code) {
       if (ids) {
         free(ids);
@@ -262,10 +253,26 @@ void AddressBook_addBatch(const JsonObject& args, JsonArray& out) {
   }
 }
 
-void AddressBook_batchFunc(/*NativeFunction impl, */const char* single_arg_name,
-                           const JsonObject& args/*, JsonObject& out*/) {
-  // @todo implement
-  throw common::NotFoundException("Not implemented");
+// TODO all batch operations should be implemented using CAPI batch functions
+void AddressBook_batchFunc(NativeFunction impl, const char *single_arg_name,
+                           const JsonObject &args, JsonArray &out) {
+  const JsonArray &batch_args = FromJson<JsonArray>(args, "batchArgs");
+  const JsonObject &address_book = FromJson<JsonObject>(args, "addressBook");
+
+  int i = 0;
+  for (auto &item : batch_args) {
+    ++i;
+    JsonObject single_args{};
+
+    single_args.insert(std::make_pair("addressBook", address_book));
+    single_args.insert(std::make_pair(single_arg_name, item));
+
+    JsonObject single_out;
+    impl(single_args, single_out);
+    if (!single_out.empty()) {
+      out.push_back(JsonValue{single_out});
+    }
+  }
 }
 
 void AddressBook_find(const JsonObject& args, JsonArray& array) {

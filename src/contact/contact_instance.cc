@@ -38,9 +38,9 @@ ContactInstance::ContactInstance() {
   REGISTER_SYNC("ContactManager_getAddressBook", ContactManager_getAddressBook);
   REGISTER_SYNC("ContactManager_get", ContactManager_get);
   REGISTER_SYNC("ContactManager_update", ContactManager_update);
-  REGISTER_SYNC("ContactManager_updateBatch", ContactManager_updateBatch);
+  REGISTER_ASYNC("ContactManager_updateBatch", ContactManager_updateBatch);
   REGISTER_SYNC("ContactManager_remove", ContactManager_remove);
-  REGISTER_SYNC("ContactManager_removeBatch", ContactManager_removeBatch);
+  REGISTER_ASYNC("ContactManager_removeBatch", ContactManager_removeBatch);
   REGISTER_ASYNC("ContactManager_find", ContactManager_find);
   REGISTER_SYNC("ContactManager_importFromVCard", ContactManager_importFromVCard);
   REGISTER_SYNC("ContactManager_startListening", ContactManager_startListening);
@@ -48,6 +48,8 @@ ContactInstance::ContactInstance() {
 
   // AddressBook
   REGISTER_ASYNC("AddressBook_addBatch", AddressBook_addBatch);
+  REGISTER_ASYNC("AddressBook_updateBatch", AddressBook_updateBatch);
+  REGISTER_ASYNC("AddressBook_removeBatch", AddressBook_removeBatch);
   REGISTER_SYNC("AddressBook_get", AddressBook_get);
   REGISTER_SYNC("AddressBook_add", AddressBook_add);
   REGISTER_SYNC("AddressBook_update", AddressBook_update);
@@ -91,21 +93,83 @@ void ContactInstance::AddressBook_addBatch(const JsonValue &args, JsonObject &ou
 
   const double callback_id = args.get("callbackId").get<double>();
 
-  auto get = [=](const std::shared_ptr<JsonValue>& response)->void {
-      try {
-        JsonValue result = JsonValue(JsonArray());
-        AddressBook::AddressBook_addBatch(common::JsonCast<JsonObject>(args),
-            result.get<JsonArray>());
-        ReportSuccess(result, response->get<JsonObject>());
-      } catch (const PlatformException& e) {
-        ReportError(e, response->get<JsonObject>());
-      }
+  auto get = [=](const std::shared_ptr <JsonValue> &response) -> void {
+    try {
+      JsonValue result = JsonValue(JsonArray());
+      AddressBook::AddressBook_addBatch(common::JsonCast<JsonObject>(args),
+          result.get<JsonArray>());
+      ReportSuccess(result, response->get<JsonObject>());
+    } catch (const PlatformException &e) {
+      ReportError(e, response->get<JsonObject>());
+    }
   };
 
-  auto get_response = [this, callback_id](const std::shared_ptr<JsonValue>& response) {
-      JsonObject& obj = response->get<JsonObject>();
-      obj.insert(std::make_pair("callbackId", callback_id));
-      PostMessage(response->serialize().c_str());
+  auto get_response = [this, callback_id](const std::shared_ptr <JsonValue> &response) {
+    JsonObject &obj = response->get<JsonObject>();
+    obj.insert(std::make_pair("callbackId", callback_id));
+    PostMessage(response->serialize().c_str());
+  };
+
+  TaskQueue::GetInstance().Queue<JsonValue>(get, get_response,
+      std::shared_ptr<JsonValue>(new JsonValue(JsonObject())));
+}
+
+void ContactInstance::AddressBook_removeBatch(const JsonValue &args, JsonObject &out) {
+  LoggerD("entered");
+  // TODO check privileges
+
+  const double callback_id = args.get("callbackId").get<double>();
+
+  auto get = [=](const std::shared_ptr<JsonValue> &response) -> void {
+    try {
+      JsonValue result = JsonValue(JsonArray());
+      // TODO all batch operations should be implemented using CAPI batch functions
+      AddressBook::AddressBook_batchFunc(AddressBook::AddressBook_remove, "id",
+          common::JsonCast<JsonObject>(args),
+          result.get<JsonArray>());
+
+      ReportSuccess(result, response->get<JsonObject>());
+    }
+    catch (const PlatformException &e) {
+      ReportError(e, response->get<JsonObject>());
+    }
+  };
+
+  auto get_response = [this, callback_id](const std::shared_ptr<JsonValue> &response) {
+    JsonObject &obj = response->get<JsonObject>();
+    obj.insert(std::make_pair("callbackId", callback_id));
+    PostMessage(response->serialize().c_str());
+  };
+
+  TaskQueue::GetInstance().Queue<JsonValue>(get, get_response,
+      std::shared_ptr<JsonValue>(new JsonValue(JsonObject())));
+}
+
+void ContactInstance::AddressBook_updateBatch(const JsonValue& args, JsonObject& out) {
+  LoggerD("entered");
+  // TODO check privileges
+
+  const double callback_id = args.get("callbackId").get<double>();
+
+  auto get = [=](const std::shared_ptr<JsonValue> &response) -> void {
+    try {
+      JsonValue result = JsonValue(JsonArray());
+      // TODO all batch operations should be implemented using CAPI batch functions
+      AddressBook::AddressBook_batchFunc(AddressBook::AddressBook_update, "contact",
+          common::JsonCast<JsonObject>(args),
+          result.get<JsonArray>());
+
+      ReportSuccess(result, response->get<JsonObject>());
+    }
+    catch (const PlatformException &e) {
+      ReportError(e, response->get<JsonObject>());
+    }
+  };
+
+  auto get_response = [this, callback_id](const std::shared_ptr<JsonValue> &response) {
+    JsonObject &obj = response->get<JsonObject>();
+    obj.insert(std::make_pair("callbackId", callback_id));
+    PostMessage(response->serialize().c_str());
   };
 
   TaskQueue::GetInstance().Queue<JsonValue>(get, get_response,
@@ -132,22 +196,20 @@ void ContactInstance::AddressBook_find(const JsonValue& args, JsonObject& out) {
   LoggerD("entered");
   const double callback_id = args.get("callbackId").get<double>();
 
-  auto get = [=](const std::shared_ptr <JsonValue>& response) -> void {
+  auto get = [=](const std::shared_ptr<JsonValue> &response) -> void {
     try {
       JsonValue result = JsonValue(JsonArray());
-      AddressBook::AddressBook_find(common::JsonCast<JsonObject>(args),
-          result.get<JsonArray>());
-      ReportSuccess(result, response->get<picojson::object>());
-    } catch (const PlatformException& e) {
-      ReportError(e, response->get<picojson::object>());
+      AddressBook::AddressBook_find(JsonCast<JsonObject>(args), result.get<JsonArray>());
+      ReportSuccess(result, response->get<JsonObject>());
+    } catch (const PlatformException &e) {
+      ReportError(e, response->get<JsonObject>());
     }
   };
 
-  auto get_response = [this, callback_id](const std::shared_ptr <JsonValue>& response) {
-    picojson::object& obj = response->get<picojson::object>();
+  auto get_response = [this, callback_id](const std::shared_ptr<JsonValue> &response) {
+    JsonObject &obj = response->get<JsonObject>();
     obj.insert(std::make_pair("callbackId", callback_id));
     PostMessage(response->serialize().c_str());
-
   };
 
   TaskQueue::GetInstance().Queue<JsonValue>(get, get_response,
@@ -205,14 +267,14 @@ void ContactInstance::ContactManager_getAddressBooks(const JsonValue& args, Json
       JsonValue result = JsonValue(JsonArray());
       ContactManager::ContactManager_getAddressBooks(common::JsonCast<JsonObject>(args),
           result.get<JsonArray>());
-      ReportSuccess(result, response->get<picojson::object>());
+      ReportSuccess(result, response->get<JsonObject>());
     } catch (const PlatformException &e) {
-      ReportError(e, response->get<picojson::object>());
+      ReportError(e, response->get<JsonObject>());
     }
   };
 
   auto get_response = [this, callback_id](const std::shared_ptr<JsonValue> &response) {
-    picojson::object &obj = response->get<picojson::object>();
+    JsonObject &obj = response->get<JsonObject>();
     obj.insert(std::make_pair("callbackId", callback_id));
     PostMessage(response->serialize().c_str());
   };
@@ -257,8 +319,35 @@ void ContactInstance::ContactManager_update(const JsonValue& args, JsonObject& o
   ReportSuccess(out);
 }
 
-void ContactInstance::ContactManager_updateBatch(const JsonValue& args, JsonObject& out) {
-  // @todo implement
+void ContactInstance::ContactManager_updateBatch(const JsonValue &args, JsonObject &out) {
+  LoggerD("entered");
+  // TODO check privileges
+
+  const double callback_id = args.get("callbackId").get<double>();
+
+  auto get = [=](const std::shared_ptr<JsonValue> &response) -> void {
+    try {
+      JsonValue result = JsonValue(JsonArray());
+      // TODO all batch operations should be implemented using CAPI batch functions
+      AddressBook::AddressBook_batchFunc(ContactManager::ContactManager_update, "person",
+          common::JsonCast<JsonObject>(args),
+          result.get<JsonArray>());
+
+      ReportSuccess(result, response->get<JsonObject>());
+    }
+    catch (const PlatformException &e) {
+      ReportError(e, response->get<JsonObject>());
+    }
+  };
+
+  auto get_response = [this, callback_id](const std::shared_ptr<JsonValue> &response) {
+    JsonObject &obj = response->get<JsonObject>();
+    obj.insert(std::make_pair("callbackId", callback_id));
+    PostMessage(response->serialize().c_str());
+  };
+
+  TaskQueue::GetInstance().Queue<JsonValue>(get, get_response,
+      std::shared_ptr<JsonValue>(new JsonValue(JsonObject())));
 }
 
 void ContactInstance::ContactManager_remove(const JsonValue& args, JsonObject& out) {
@@ -267,8 +356,35 @@ void ContactInstance::ContactManager_remove(const JsonValue& args, JsonObject& o
   ReportSuccess(out);
 }
 
-void ContactInstance::ContactManager_removeBatch(const JsonValue& args, JsonObject& out) {
-  // @todo implement
+void ContactInstance::ContactManager_removeBatch(const JsonValue &args, JsonObject &out) {
+  LoggerD("entered");
+  // TODO check privileges
+
+  const double callback_id = args.get("callbackId").get<double>();
+
+  auto get = [=](const std::shared_ptr<JsonValue> &response) -> void {
+    try {
+      JsonValue result = JsonValue(JsonArray());
+      // TODO all batch operations should be implemented using CAPI batch functions
+      AddressBook::AddressBook_batchFunc(ContactManager::ContactManager_remove, "personId",
+          common::JsonCast<JsonObject>(args),
+          result.get<JsonArray>());
+
+      ReportSuccess(result, response->get<JsonObject>());
+    }
+    catch (const PlatformException &e) {
+      ReportError(e, response->get<JsonObject>());
+    }
+  };
+
+  auto get_response = [this, callback_id](const std::shared_ptr<JsonValue> &response) {
+    JsonObject &obj = response->get<JsonObject>();
+    obj.insert(std::make_pair("callbackId", callback_id));
+    PostMessage(response->serialize().c_str());
+  };
+
+  TaskQueue::GetInstance().Queue<JsonValue>(get, get_response,
+      std::shared_ptr<JsonValue>(new JsonValue(JsonObject())));
 }
 
 void ContactInstance::ContactManager_find(const JsonValue &args, JsonObject &out) {
@@ -281,14 +397,14 @@ void ContactInstance::ContactManager_find(const JsonValue &args, JsonObject &out
       JsonValue result = JsonValue(JsonArray());
       ContactManager::ContactManager_find(common::JsonCast<JsonObject>(args),
           result.get<JsonArray>());
-      ReportSuccess(result, response->get<picojson::object>());
+      ReportSuccess(result, response->get<JsonObject>());
     } catch (const PlatformException &e) {
-      ReportError(e, response->get<picojson::object>());
+      ReportError(e, response->get<JsonObject>());
     }
   };
 
   auto get_response = [this, callback_id](const std::shared_ptr <JsonValue> &response) {
-    picojson::object &obj = response->get<picojson::object>();
+    JsonObject &obj = response->get<JsonObject>();
     obj.insert(std::make_pair("callbackId", callback_id));
     PostMessage(response->serialize().c_str());
   };

@@ -25,13 +25,17 @@ class ContactInstance : public common::ParsedInstance {
   void AddressBook_add(const JsonValue& args, JsonObject& out);
   void AddressBook_addBatch(const JsonValue& args, JsonObject& out);
   void AddressBook_update(const JsonValue& args, JsonObject& out);
+  void AddressBook_updateBatch(const JsonValue& args, JsonObject& out);
   void AddressBook_remove(const JsonValue& args, JsonObject& out);
+  void AddressBook_removeBatch(const JsonValue& args, JsonObject& out);
   void AddressBook_find(const JsonValue& args, JsonObject& out);
-  void AddressBook_addGroup(const JsonValue& args, JsonObject& out);
+
   void AddressBook_getGroup(const JsonValue& args, JsonObject& out);
+  void AddressBook_getGroups(const JsonValue& args, JsonObject& out);
+  void AddressBook_addGroup(const JsonValue& args, JsonObject& out);
   void AddressBook_updateGroup(const JsonValue& args, JsonObject& out);
   void AddressBook_removeGroup(const JsonValue& args, JsonObject& out);
-  void AddressBook_getGroups(const JsonValue& args, JsonObject& out);
+
   void AddressBook_startListening(const JsonValue& args, JsonObject& out);
   void AddressBook_stopListening(const JsonValue& args,JsonObject& out);
 
@@ -110,7 +114,7 @@ class ContactInstance : public common::ParsedInstance {
    * {status: 'success', result: {persons}}
    * @endcode
    */
-  void ContactManager_updateBatch(const JsonValue& args, JsonObject& out);
+  void ContactManager_updateBatch(const JsonValue &args, JsonObject &out);
 
   /**
    * Signature: @code void remove(personId); @endcode
@@ -142,7 +146,7 @@ class ContactInstance : public common::ParsedInstance {
    * {status: 'success'}
    * @endcode
    */
-  void ContactManager_removeBatch(const JsonValue& args, JsonObject& out);
+  void ContactManager_removeBatch(const JsonValue &args, JsonObject &out);
 
   /**
    * Signature: @code void find(successCallback, errorCallback, filter, sortMode);
