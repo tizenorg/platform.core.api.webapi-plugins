@@ -92,6 +92,8 @@ enum MessageStatus {
     STATUS_FAILED
 };
 
+class Conversation;
+class MessageConversation;
 class Message;
 class MessageBody;
 
@@ -109,6 +111,7 @@ public:
     static std::shared_ptr<Message> jsonToMessage(const picojson::value& json);
     static tizen::SortModePtr jsonToSortMode(const picojson::object& json);
     static tizen::AttributeFilterPtr jsonToAttributeFilter(const picojson::object& json);
+    static std::shared_ptr<MessageConversation> jsonToMessageConversation(const picojson::value& json);
 
     template <class T>
     static T getValueFromJSONObject(const picojson::object& v, const std::string& key)

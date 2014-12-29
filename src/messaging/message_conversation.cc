@@ -393,14 +393,65 @@ void MessageConversation::setConversationId(int id)
 {
     m_conversation_id = id;
 }
+
+void MessageConversation::setType(MessageType type)
+{
+    m_conversation_type = type;
+}
+
+void MessageConversation::setTimestamp(time_t timestamp)
+{
+    m_timestamp = timestamp;
+}
+
 void MessageConversation::setMessageCount(int count)
 {
     m_count = count;
 }
 
-void MessageConversation::setUnreadMessages(int count)
+void MessageConversation::setUnreadMessages(int unread_messages)
 {
-    m_unread_messages = count;
+    m_unread_messages = unread_messages;
+}
+
+void MessageConversation::setPreview(std::string preview)
+{
+    m_preview = preview;
+}
+
+void MessageConversation::setSubject(std::string conversation_subject)
+{
+    m_conversation_subject = conversation_subject;
+}
+
+void MessageConversation::setIsRead(bool is_read)
+{
+    m_is_read = is_read;
+}
+
+void MessageConversation::setFrom(std::string from)
+{
+    m_from = from;
+}
+
+void MessageConversation::setTo(std::vector<std::string> &to)
+{
+    m_to = to;
+}
+
+void MessageConversation::setCC(std::vector<std::string> &cc)
+{
+    m_cc = cc;
+}
+
+void MessageConversation::setBCC(std::vector<std::string> &bcc)
+{
+    m_bcc = bcc;
+}
+
+void MessageConversation::setLastMessageId(int last_message_id)
+{
+    m_last_message_id = last_message_id;
 }
 
 /**

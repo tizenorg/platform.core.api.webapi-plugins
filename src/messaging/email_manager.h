@@ -65,8 +65,8 @@ public:
     void findMessages(FindMsgCallbackUserData* callback);
 //    void findConversations(ConversationCallbackData* callback);
 //    void findFolders(FoldersCallbackData* callback);
-//    void removeConversations(ConversationCallbackData* callback);
-//
+    void removeConversations(ConversationCallbackData* callback);
+
     void sendMessage(MessageRecipientsCallbackData* callback);
     void sendStatusCallback(int mail_id, email_noti_on_network_event status,
             int error_code);

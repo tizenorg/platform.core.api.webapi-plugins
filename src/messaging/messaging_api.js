@@ -920,10 +920,14 @@ MessageStorage.prototype.removeConversations = function () {
         {name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true}
     ]);
 
+    var self = this;
+
     bridge.async({
         cmd: 'MessageStorage_removeConversations',
         args: {
-            conversations: args.conversations
+            conversations: args.conversations,
+            serviceId: self.service.id,
+            type: self.service.type
         }
     }).then({
         success: function () {

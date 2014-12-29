@@ -148,10 +148,33 @@ void MessageStorageEmail::findConversations()
     //TODO add implementation
 }
 
-void MessageStorageEmail::removeConversations()
+static gboolean removeConversationsTask(void* data)
 {
     LoggerD("Entered");
-    //TODO add implementation
+
+    ConversationCallbackData *callback = static_cast<ConversationCallbackData*>(data);
+    EmailManager::getInstance().removeConversations(callback);
+
+    return FALSE;
+}
+
+void MessageStorageEmail::removeConversations(ConversationCallbackData* callback)
+{
+    LoggerD("Entered");
+
+    if (!callback) {
+        LoggerE("Callback is null");
+        throw common::UnknownException("Callback is null");
+    }
+
+    callback->setMessageServiceType(m_msg_type);
+
+    guint id = g_idle_add(removeConversationsTask, static_cast<void*>(callback));
+    if (!id) {
+        LoggerE("g_idle_add failed");
+        delete callback;
+        callback = NULL;
+    }
 }
 
 void MessageStorageEmail::findFolders()
