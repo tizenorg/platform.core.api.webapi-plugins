@@ -783,6 +783,8 @@ MessageStorage.prototype.findMessages = function () {
         {name: 'offset', type: types_.UNSIGNED_LONG, optional: true, nullable: true}
     ]);
 
+    var self = this;
+
     bridge.async({
         cmd: 'MessageStorage_findMessages',
         args: {
@@ -790,7 +792,7 @@ MessageStorage.prototype.findMessages = function () {
             sort: args.sort,
             limit: args.limit,
             offset: args.offset,
-            serviceId: this.service.id
+            type: self.service.type
         }
     }).then({
         success: function (data) {
@@ -887,13 +889,16 @@ MessageStorage.prototype.findConversations = function () {
         {name: 'offset', type: types_.UNSIGNED_LONG, optional: true, nullable: true}
     ]);
 
+    var self = this;
+
     bridge.async({
         cmd: 'MessageStorage_findConversations',
         args: {
             filter: args.filter,
             sort: args.sort,
             limit: args.limit,
-            offset: args.offset
+            offset: args.offset,
+            serviceId: self.service.id
         }
     }).then({
         success: function (data) {
@@ -901,7 +906,7 @@ MessageStorage.prototype.findConversations = function () {
             data.forEach(function (el) {
                 conversations.push(new MessageConversation(el));
             });
-            args.successCallback.call(null, messages);
+            args.successCallback.call(null, conversations);
         },
         error: function (e) {
             if (args.errorCallback) {

@@ -19,7 +19,7 @@ public:
     virtual void removeMessages(MessagesCallbackUserData* callback);
     virtual void updateMessages(MessagesCallbackUserData* callback);
     virtual void findMessages(FindMsgCallbackUserData* callback);
-    virtual void findConversations();
+    virtual void findConversations(ConversationCallbackData* callback);
     virtual void removeConversations(ConversationCallbackData* callback);
     virtual void findFolders();
 };

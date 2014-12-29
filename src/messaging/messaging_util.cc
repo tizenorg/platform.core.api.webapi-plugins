@@ -318,6 +318,70 @@ picojson::value MessagingUtil::messageToJson(std::shared_ptr<Message> message)
     return v;
 }
 
+picojson::value MessagingUtil::conversationToJson(std::shared_ptr<MessageConversation> conversation)
+{
+    picojson::object o;
+
+    o[MESSAGE_CONVERSATION_ATTRIBUTE_ID] = picojson::value(std::to_string(conversation->getConversationId()));
+
+    o[MESSAGE_CONVERSATION_ATTRIBUTE_TYPE] =
+            picojson::value(MessagingUtil::messageTypeToString(conversation->getType()));
+
+    o[MESSAGE_CONVERSATION_ATTRIBUTE_TIMESTAMP] =
+            picojson::value(static_cast<double>(conversation->getTimestamp()));
+
+    o[MESSAGE_CONVERSATION_ATTRIBUTE_MESSAGE_COUNT] =
+            picojson::value(static_cast<double>(conversation->getMessageCount()));
+
+    o[MESSAGE_CONVERSATION_ATTRIBUTE_UNREAD_MESSAGES] =
+            picojson::value(static_cast<double>(conversation->getUnreadMessages()));
+
+    o[MESSAGE_CONVERSATION_ATTRIBUTE_PREVIEW] =
+            picojson::value(conversation->getPreview());
+
+    o[MESSAGE_CONVERSATION_ATTRIBUTE_IS_READ] =
+            picojson::value(conversation->getIsRead());
+
+    o[MESSAGE_CONVERSATION_ATTRIBUTE_FROM] =
+            picojson::value(conversation->getFrom());
+
+    o[MESSAGE_CONVERSATION_ATTRIBUTE_LAST_MESSAGE_ID] =
+            picojson::value(std::to_string(conversation->getLastMessageId()));
+
+    std::vector<picojson::value> array;
+    auto vectorToArray = [&array] (std::string& s)->void {
+        array.push_back(picojson::value(s));
+    };
+
+    switch (conversation->getType()) {
+        case MessageType::SMS:
+            break;
+        case MessageType::MMS:
+        case MessageType::EMAIL:
+
+            std::vector<std::string> to = conversation->getTo();
+            for_each(to.begin(), to.end(), vectorToArray);
+            o[MESSAGE_ATTRIBUTE_IN_RESPONSE_TO] = picojson::value(array);
+            array.clear();
+
+            std::vector<std::string> cc = conversation->getCC();
+            for_each(cc.begin(), cc.end(), vectorToArray);
+            o[MESSAGE_ATTRIBUTE_CC] = picojson::value(array);
+            array.clear();
+
+            std::vector<std::string> bcc = conversation->getBCC();
+            for_each(bcc.begin(), bcc.end(), vectorToArray);
+            o[MESSAGE_ATTRIBUTE_BCC] = picojson::value(array);
+            array.clear();
+
+            o[MESSAGE_ATTRIBUTE_SUBJECT] = picojson::value(conversation->getSubject());
+            break;
+        }
+
+    picojson::value v(o);
+    return v;
+}
+
 std::shared_ptr<Message> MessagingUtil::jsonToMessage(const picojson::value& json)
 {
     LoggerD("Entered");

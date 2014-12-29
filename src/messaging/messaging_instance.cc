@@ -441,6 +441,31 @@ void MessagingInstance::MessageStorageFindConversations(const picojson::value& a
         picojson::object& out)
 {
     LoggerD("Entered");
+
+    picojson::object data = args.get(JSON_DATA).get<picojson::object>();
+    const double callbackId = args.get(JSON_CALLBACK_ID).get<double>();
+
+    auto filter = MessagingUtil::jsonToAttributeFilter(data);
+    auto sortMode = MessagingUtil::jsonToSortMode(data);
+    long limit = static_cast<long>
+            (MessagingUtil::getValueFromJSONObject<double>(data, FIND_CONVERSATIONS_ARGS_LIMIT));
+    long offset = static_cast<long>
+            (MessagingUtil::getValueFromJSONObject<double>(data, FIND_CONVERSATIONS_ARGS_OFFSET));
+    int serviceId = static_cast<int>(data.at(FUNCTIONS_HIDDEN_ARGS_SERVICE_ID).get<double>());
+
+    ConversationCallbackData* callback = new ConversationCallbackData();
+    callback->setFilter(filter);
+    callback->setLimit(limit);
+    callback->setOffset(offset);
+    callback->setAccountId(serviceId);
+
+    auto json = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
+    picojson::object& obj = json->get<picojson::object>();
+    obj[JSON_CALLBACK_ID] = picojson::value(callbackId);
+    callback->setJson(json);
+
+    auto storage = MessagingManager::getInstance().getMessageServiceEmail(serviceId)->getMsgStorage();
+    storage->findConversations(callback);
 }
 
 void MessagingInstance::MessageStorageRemoveConversations(const picojson::value& args,
