@@ -28,7 +28,7 @@ void AddressBook_get(const JsonObject& args, JsonObject& out);
 void AddressBook_add(const JsonObject& args, JsonObject& out);
 void AddressBook_update(const JsonObject& args, JsonObject& out);
 void AddressBook_remove(const JsonObject& args, JsonObject&);
-void AddressBook_find(const JsonObject& args, JsonObject&);
+void AddressBook_find(const JsonObject& args, JsonArray& array);
 void AddressBook_addGroup(const JsonObject& args, JsonObject& out);
 void AddressBook_getGroup(const JsonObject& args, JsonObject& out);
 void AddressBook_updateGroup(const JsonObject& args, JsonObject&);

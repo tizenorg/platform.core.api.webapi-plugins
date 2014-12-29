@@ -52,7 +52,7 @@ ContactInstance::ContactInstance() {
   REGISTER_SYNC("AddressBook_add", AddressBook_add);
   REGISTER_SYNC("AddressBook_update", AddressBook_update);
   REGISTER_SYNC("AddressBook_remove", AddressBook_remove);
-  REGISTER_SYNC("AddressBook_find", AddressBook_find);
+  REGISTER_ASYNC("AddressBook_find", AddressBook_find);
   REGISTER_SYNC("AddressBook_addGroup", AddressBook_addGroup);
   REGISTER_SYNC("AddressBook_getGroup", AddressBook_getGroup);
   REGISTER_SYNC("AddressBook_updateGroup", AddressBook_updateGroup);
@@ -129,10 +129,30 @@ void ContactInstance::AddressBook_remove(const JsonValue& args,
 }
 
 void ContactInstance::AddressBook_find(const JsonValue& args, JsonObject& out) {
-  JsonValue val{JsonObject{}};
-  AddressBook::AddressBook_find(common::JsonCast<JsonObject>(args),
-                                val.get<JsonObject>());
-  ReportSuccess(out);
+  LoggerD("entered");
+  const double callback_id = args.get("callbackId").get<double>();
+
+  auto get = [=](const std::shared_ptr <JsonValue>& response) -> void {
+    try {
+      JsonValue result = JsonValue(JsonArray());
+      AddressBook::AddressBook_find(common::JsonCast<JsonObject>(args),
+          result.get<JsonArray>());
+      ReportSuccess(result, response->get<picojson::object>());
+    } catch (const PlatformException& e) {
+      ReportError(e, response->get<picojson::object>());
+    }
+  };
+
+  auto get_response = [this, callback_id](const std::shared_ptr <JsonValue>& response) {
+    picojson::object& obj = response->get<picojson::object>();
+    obj.insert(std::make_pair("callbackId", callback_id));
+    LoggerD("response is %s", response->serialize().c_str());
+    PostMessage(response->serialize().c_str());
+
+  };
+
+  TaskQueue::GetInstance().Queue<JsonValue>(get, get_response,
+      std::shared_ptr<JsonValue>(new JsonValue(JsonObject())));
 }
 
 void ContactInstance::AddressBook_addGroup(const JsonValue& args,

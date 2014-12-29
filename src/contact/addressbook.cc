@@ -268,11 +268,50 @@ void AddressBook_batchFunc(/*NativeFunction impl, */const char* single_arg_name,
   throw common::NotFoundException("Not implemented");
 }
 
-void AddressBook_find(const JsonObject& args, JsonObject&) {
+void AddressBook_find(const JsonObject& args, JsonArray& array) {
   ContactUtil::CheckDBConnection();
 
-  // @todo implement
-  throw common::NotFoundException("Not implemented");
+  // TODO implement contact filter and sorting.
+  const JsonObject& address_book = FromJson<JsonObject>(args, "addressBook");
+  long addressbook_id = common::stol(FromJson<std::string>(address_book, "id"));
+  // Read calendar by ID
+  int error_code = 0;
+
+  contacts_query_h query = nullptr;
+  contacts_filter_h filter = nullptr;
+  contacts_list_h list = nullptr;
+
+  error_code = contacts_query_create(_contacts_contact._uri, &query);
+  ContactUtil::ErrorChecker(error_code, "Failed contacts_query_create");
+  ContactUtil::ContactsQueryHPtr query_ptr(&query, ContactUtil::ContactsQueryDeleter);
+  error_code = contacts_filter_create(_contacts_contact._uri, &filter);
+  ContactUtil::ErrorChecker(error_code, "Failed contacts_filter_create");
+  ContactUtil::ContactsFilterPtr filter_ptr(filter, ContactUtil::ContactsFilterDeleter);
+  error_code = contacts_filter_add_int(filter, _contacts_contact.address_book_id,
+                                       CONTACTS_MATCH_EQUAL, addressbook_id);
+  ContactUtil::ErrorChecker(error_code, "Failed contacts_filter_add_int");
+  error_code = contacts_query_set_filter(query, filter);
+  ContactUtil::ErrorChecker(error_code, "Failed contacts_query_set_filter");
+  error_code = contacts_db_get_records_with_query(query, 0, 0, &list);
+  ContactUtil::ErrorChecker(error_code, "Failed contacts_db_get_records_with_query");
+  ContactUtil::ContactsListHPtr list_ptr(&list, ContactUtil::ContactsListDeleter);
+
+  int record_count = 0;
+  error_code = contacts_list_get_count(list, &record_count);
+
+  contacts_list_first(list);
+  for (unsigned int i = 0; i < record_count; i++) {
+    contacts_record_h record;
+    error_code = contacts_list_get_current_record_p(list, &record);
+    ContactUtil::ErrorChecker(error_code, "Failed contacts_list_get_current_record_p");
+
+    int id_value = 0;
+    error_code = contacts_record_get_int(record, _contacts_contact.id, &id_value);
+    ContactUtil::ErrorChecker(error_code, "Failed contacts_record_get_int");
+
+    array.push_back(JsonValue(static_cast<double>(id_value)));
+    contacts_list_next(list);
+  }
 }
 
 void AddressBook_addGroup(const JsonObject& args, JsonObject& out) {
