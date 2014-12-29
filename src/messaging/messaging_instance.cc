@@ -12,6 +12,7 @@
 #include "MsgCommon/AbstractFilter.h"
 #include "messages_change_callback.h"
 #include "messages_callback_user_data.h"
+#include "find_msg_callback_user_data.h"
 #include "messaging_manager.h"
 #include "messaging_util.h"
 #include "message_storage.h"
@@ -356,27 +357,28 @@ void MessagingInstance::MessageStorageFindMessages(const picojson::value& args,
     picojson::object data = args.get(JSON_DATA).get<picojson::object>();
     const double callbackId = args.get(JSON_CALLBACK_ID).get<double>();
 
-    LoggerD("Received: %s", args.serialize().c_str());
-    // get filter object - platform object
-    // FIND_FOLDERS_ARGS_FILTER
-
     auto filter = MessagingUtil::jsonToAttributeFilter(data);
-
-    // get sort object - platform object
-    // FIND_FOLDERS_ARGS_SORT
     auto sortMode = MessagingUtil::jsonToSortMode(data);
-
-    // get limit object - unsigned long
-    unsigned long limit = static_cast<unsigned long>
+    long limit = static_cast<long>
             (MessagingUtil::getValueFromJSONObject<double>(data, FIND_FOLDERS_ARGS_LIMIT));
-
-    LoggerD("Limit: %u", limit);
-
-    // get offset object - unsigned long
-    unsigned long offset = static_cast<unsigned long>
+    long offset = static_cast<long>
             (MessagingUtil::getValueFromJSONObject<double>(data, FIND_FOLDERS_ARGS_OFFSET));
 
-    LoggerD("Offset: %u", offset);
+    int serviceId = static_cast<int>(data.at(FUNCTIONS_HIDDEN_ARGS_SERVICE_ID).get<double>());
+    auto storage = MessagingManager::getInstance().getMessageServiceEmail(serviceId)->getMsgStorage();
+
+    FindMsgCallbackUserData* callback = new FindMsgCallbackUserData();
+    callback->setFilter(filter);
+    callback->setLimit(limit);
+    callback->setOffset(offset);
+    callback->setAccountId(serviceId);
+
+    auto json = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
+    picojson::object& obj = json->get<picojson::object>();
+    obj[JSON_CALLBACK_ID] = picojson::value(callbackId);
+    callback->setJson(json);
+
+    storage->findMessages(callback);
 }
 
 void MessagingInstance::MessageStorageRemoveMessages(const picojson::value& args,

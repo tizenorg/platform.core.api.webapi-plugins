@@ -789,13 +789,14 @@ MessageStorage.prototype.findMessages = function () {
             filter: args.filter,
             sort: args.sort,
             limit: args.limit,
-            offset: args.offset
+            offset: args.offset,
+            serviceId: this.service.id
         }
     }).then({
         success: function (data) {
             var messages = [];
             data.forEach(function (el) {
-                messages.push(new tizen.Message(el));
+                messages.push(new tizen.Message(el.type, new MessageInit_(el)));
             });
             args.successCallback.call(null, messages);
         },
