@@ -137,6 +137,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_telephony_support           0
 %define tizen_feature_web_setting_support         1
 %define tizen_feature_wi_fi_support               0
+%define tizen_feature_tv_display_support          1
 
 %endif # tizen_profile_tv
 
@@ -178,6 +179,11 @@ BuildRequires: pkgconfig(capi-appfw-package-manager)
 
 %if 0%{?tizen_feature_power_support}
 BuildRequires: pkgconfig(capi-system-power)
+%endif
+
+%if 0%{?tizen_feature_tv_display_support}
+BuildRequires: pkgconfig(capi-system-info)
+BuildRequires: pkgconfig(vconf)
 %endif
 
 %if 0%{?tizen_feature_bookmark_support}
@@ -246,4 +252,3 @@ install -p -m 644 out/Default/libtizen*.so %{buildroot}%{_libdir}/%{crosswalk_ex
 
 %files
 %{_libdir}/%{crosswalk_extensions}/libtizen*.so
-
