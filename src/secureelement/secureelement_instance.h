@@ -6,6 +6,7 @@
 #define SECUREELEMENT_SECUREELEMENT_INSTANCE_H_
 
 #include "common/extension.h"
+#include "secureelement_seservice.h"
 
 namespace extension {
 namespace secureelement {
@@ -39,6 +40,8 @@ private:
     void Transmit(const picojson::value& args, picojson::object& out);
     void GetSelectResponse(const picojson::value& args, picojson::object& out);
 
+    /* SEService object */
+    Service m_service;
 };
 
 } // namespace secureelement

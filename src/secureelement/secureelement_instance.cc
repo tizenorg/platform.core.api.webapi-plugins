@@ -4,6 +4,7 @@
 
 #include "secureelement/secureelement_instance.h"
 
+#include <SEService.h>
 #include "common/picojson.h"
 #include "common/logger.h"
 #include "common/platform_exception.h"
@@ -104,7 +105,6 @@ void SecureElementInstance::OpenSession(
 
 void SecureElementInstance::OpenBasicChannel(
         const picojson::value& args, picojson::object& out) {
-
 }
 
 void SecureElementInstance::OpenLogicalChannel(
