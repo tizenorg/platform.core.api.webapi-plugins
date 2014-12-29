@@ -4,11 +4,18 @@
 
 #include "archive/archive_instance.h"
 
+
+//#include "archive_manager.h"
+
 #include <functional>
 
 #include "common/picojson.h"
 #include "common/logger.h"
 #include "common/platform_exception.h"
+
+
+//using namespace DeviceAPI;
+//using namespace DeviceAPI::Archive;
 
 namespace extension {
 namespace archive {
