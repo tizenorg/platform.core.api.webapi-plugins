@@ -280,7 +280,7 @@ ContactManager.prototype.find = function() {
 
   // TODO implement contact filtering/sorting.
   var data = {
-    //filter: Common.repackFilter(args.filter),
+    filter: null, //Common.repackFilter(args.filter),
     sortMode: args.sortMode
   };
 

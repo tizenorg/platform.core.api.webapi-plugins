@@ -161,7 +161,7 @@ class ContactInstance : public common::ParsedInstance {
    * {status: 'success', result: {persons}}
    * @endcode
    */
-  void ContactManager_find(const JsonValue& args, JsonObject& out);
+  void ContactManager_find(const JsonValue &args, JsonObject &out);
 
   /**
    * Signature: @code void getAddressBook(contactString); @endcode

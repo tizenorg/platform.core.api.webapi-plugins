@@ -41,7 +41,7 @@ ContactInstance::ContactInstance() {
   REGISTER_SYNC("ContactManager_updateBatch", ContactManager_updateBatch);
   REGISTER_SYNC("ContactManager_remove", ContactManager_remove);
   REGISTER_SYNC("ContactManager_removeBatch", ContactManager_removeBatch);
-  REGISTER_SYNC("ContactManager_find", ContactManager_find);
+  REGISTER_ASYNC("ContactManager_find", ContactManager_find);
   REGISTER_SYNC("ContactManager_importFromVCard", ContactManager_importFromVCard);
   REGISTER_SYNC("ContactManager_startListening", ContactManager_startListening);
   REGISTER_SYNC("ContactManager_stopListening", ContactManager_stopListening);
@@ -146,7 +146,6 @@ void ContactInstance::AddressBook_find(const JsonValue& args, JsonObject& out) {
   auto get_response = [this, callback_id](const std::shared_ptr <JsonValue>& response) {
     picojson::object& obj = response->get<picojson::object>();
     obj.insert(std::make_pair("callbackId", callback_id));
-    LoggerD("response is %s", response->serialize().c_str());
     PostMessage(response->serialize().c_str());
 
   };
@@ -252,39 +251,53 @@ void ContactInstance::ContactManager_get(const JsonValue& args,
   ReportSuccess(val, out);
 }
 
-void ContactInstance::ContactManager_update(const JsonValue& args,
-                                            JsonObject& out) {
+void ContactInstance::ContactManager_update(const JsonValue& args, JsonObject& out) {
   JsonValue val{JsonObject{}};
-  ContactManager::ContactManager_update(common::JsonCast<JsonObject>(args),
-                                        val.get<JsonObject>());
+  ContactManager::ContactManager_update(common::JsonCast<JsonObject>(args), val.get<JsonObject>());
   ReportSuccess(out);
 }
 
-void ContactInstance::ContactManager_updateBatch(const JsonValue& args,
-                                                 JsonObject& out) {
+void ContactInstance::ContactManager_updateBatch(const JsonValue& args, JsonObject& out) {
   // @todo implement
 }
 
-void ContactInstance::ContactManager_remove(const JsonValue& args,
-                                            JsonObject& out) {
+void ContactInstance::ContactManager_remove(const JsonValue& args, JsonObject& out) {
   JsonValue val{JsonObject{}};
-  ContactManager::ContactManager_remove(common::JsonCast<JsonObject>(args),
-                                        val.get<JsonObject>());
+  ContactManager::ContactManager_remove(common::JsonCast<JsonObject>(args), val.get<JsonObject>());
   ReportSuccess(out);
 }
 
-void ContactInstance::ContactManager_removeBatch(const JsonValue& args,
-                                                 JsonObject& out) {
+void ContactInstance::ContactManager_removeBatch(const JsonValue& args, JsonObject& out) {
   // @todo implement
 }
 
-void ContactInstance::ContactManager_find(const JsonValue& args,
-                                          JsonObject& out) {
-  // @todo implement
+void ContactInstance::ContactManager_find(const JsonValue &args, JsonObject &out) {
+  LoggerD("entered");
+
+  const double callback_id = args.get("callbackId").get<double>();
+
+  auto get = [this, args](const std::shared_ptr <JsonValue> &response) -> void {
+    try {
+      JsonValue result = JsonValue(JsonArray());
+      ContactManager::ContactManager_find(common::JsonCast<JsonObject>(args),
+          result.get<JsonArray>());
+      ReportSuccess(result, response->get<picojson::object>());
+    } catch (const PlatformException &e) {
+      ReportError(e, response->get<picojson::object>());
+    }
+  };
+
+  auto get_response = [this, callback_id](const std::shared_ptr <JsonValue> &response) {
+    picojson::object &obj = response->get<picojson::object>();
+    obj.insert(std::make_pair("callbackId", callback_id));
+    PostMessage(response->serialize().c_str());
+  };
+
+  TaskQueue::GetInstance().Queue<JsonValue>(get, get_response,
+      std::shared_ptr<JsonValue>(new JsonValue(JsonObject())));
 }
 
-void ContactInstance::ContactManager_importFromVCard(const JsonValue& args,
-                                                     JsonObject& out) {
+void ContactInstance::ContactManager_importFromVCard(const JsonValue& args, JsonObject& out) {
   JsonValue val{JsonObject{}};
   ContactManager::ContactManager_importFromVCard(
       common::JsonCast<JsonObject>(args), val.get<JsonObject>());
