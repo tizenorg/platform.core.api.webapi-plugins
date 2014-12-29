@@ -108,3 +108,81 @@ EditGuard.prototype.isEditEnabled = function() {
 };
 
 var _editGuard = new EditGuard();
+
+//TODO: Move sorting and filtering to native code
+var Common = function() {};
+Common.prototype.sort = function(arr, sortMode) {
+  var _getSortProperty = function(obj, props) {
+    for (var i = 0; i < props.length; ++i) {
+      if (!obj.hasOwnProperty(props[i])) {
+        return null;
+      }
+      obj = obj[props[i]];
+    }
+    return obj;
+  };
+
+  if (sortMode instanceof tizen.SortMode) {
+    var props = sortMode.attributeName.split('.');
+    arr.sort(function(a, b) {
+      var aValue = _getSortProperty(a, props);
+      var bValue = _getSortProperty(b, props);
+
+      if (sortMode.order === 'DESC') {
+        return aValue < bValue;
+      }
+      return bValue < aValue;
+    });
+  }
+  return arr;
+};
+
+Common.prototype.filter = function(arr, filter) {
+  if (Type.isNullOrUndefined(arr))
+    return arr;
+  if (filter instanceof tizen.AttributeFilter ||
+      filter instanceof tizen.AttributeRangeFilter ||
+      filter instanceof tizen.CompositeFilter) {
+    arr = arr.filter(function(element) {
+      return filter._filter(element);
+    });
+  }
+  return arr;
+};
+
+Common.prototype.repackFilter = function (filter) {
+  if (filter instanceof tizen.AttributeFilter) {
+    return {
+      filterType: 'AttributeFilter',
+      attributeName: filter.attributeName,
+      matchFlag: filter.matchFlag,
+      matchValue: filter.matchValue
+    };
+  }
+  if (filter instanceof tizen.AttributeRangeFilter) {
+    return {
+      filterType: 'AttributeRangeFilter',
+      attributeName: filter.attributeName,
+      initialValue: Type.isNullOrUndefined(filter.initialValue) ? null : filter.initialValue,
+      endValue: Type.isNullOrUndefined(filter.endValue) ? null : filter.endValue
+    };
+  }
+  if (filter instanceof tizen.CompositeFilter) {
+    var _f = [];
+    var filters = filter.filters;
+
+    for (var i = 0; i < filters.length; ++i) {
+      _f.push(this.repackFilter(filters[i]));
+    }
+
+    return {
+      filterType: 'CompositeFilter',
+      type: filter.type,
+      filters: _f
+    };
+  }
+
+  return null;
+};
+
+var C = new Common();

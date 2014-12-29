@@ -280,7 +280,7 @@ ContactManager.prototype.find = function() {
 
   // TODO implement contact filtering/sorting.
   var data = {
-    filter: null, //Common.repackFilter(args.filter),
+    filter: C.repackFilter(args.filter),
     sortMode: args.sortMode
   };
 
@@ -294,7 +294,7 @@ ContactManager.prototype.find = function() {
         retval.push(self.get(String(_result[i])));
       }
       //TODO: Move sorting to native code
-      //retval = Common.sort(retval, args.sortMode);
+      retval = C.sort(retval, args.sortMode);
       args.successCallback(retval);
     } else {
       native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));

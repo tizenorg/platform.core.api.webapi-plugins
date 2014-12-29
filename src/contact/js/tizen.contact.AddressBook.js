@@ -431,9 +431,11 @@ AddressBook.prototype.find = function(successCallback, errorCallback, filter, so
     {
       name: 'filter',
       type: AV.Types.PLATFORM_OBJECT,
-      values: [tizen.AttributeFilter,
+      values: [
+        tizen.AttributeFilter,
         tizen.AttributeRangeFilter,
-        tizen.CompositeFilter],
+        tizen.CompositeFilter
+      ],
       optional: true,
       nullable: true
     },
@@ -461,15 +463,15 @@ AddressBook.prototype.find = function(successCallback, errorCallback, filter, so
     });
 
     //TODO: Move filtering to native code
-    //try {
-    //  _contacts = Common.filter(_contacts, args.filter);
-    //} catch (e) {
-    //  native_.callIfPossible(errorCallback, e);
-    //  return;
-    //}
+    try {
+      _contacts = C.filter(_contacts, args.filter);
+    } catch (e) {
+      native_.callIfPossible(errorCallback, e);
+      return;
+    }
 
     //TODO: Move sorting to native code
-    //_contacts = Common.sort(_contacts, args.sortMode);
+    _contacts = C.sort(_contacts, args.sortMode);
 
     native_.callIfPossible(successCallback, _contacts);
   };
