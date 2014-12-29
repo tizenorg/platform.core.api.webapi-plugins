@@ -569,7 +569,18 @@ function NFCTag(tagid) {
         if (native_.isFailure(result)) {
             return;
         }
-        return native_.getResultObject(result);
+
+        console.log("Current result: " + result);
+
+        var result_array = new Object();
+        for (var i in result.result) {
+            var current = result.result[i];
+            var keys = Object.keys(current);
+            for (var x in keys) {
+                result_array[keys[x]] = current[keys[x]];
+            }
+        }
+        return result_array;
     }
 
     function IsConnectedGetter() {
