@@ -959,21 +959,24 @@ MessageStorage.prototype.findFolders = function () {
         {name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true}
     ]);
 
+    var self = this;
+
     bridge.async({
         cmd: 'MessageStorage_findFolders',
         args: {
             filter: args.filter,
             sort: args.sort,
             limit: args.limit,
-            offset: args.offset
+            offset: args.offset,
+            serviceId: self.service.id
         }
     }).then({
         success: function (data) {
-            var conversations = [];
+            var folders = [];
             data.forEach(function (el) {
-                conversations.push(new MessageConversation(el));
+                folders.push(new MessageFolder(el));
             });
-            args.successCallback.call(null, messages);
+            args.successCallback.call(null, folders);
         },
         error: function (e) {
             if (args.errorCallback) {
@@ -1114,7 +1117,7 @@ MessageStorage.prototype.addFoldersChangeListener = function () {
             if (args.foldersChangeCallback.foldersadded) {
                 var folders = [];
                 data.forEach(function (el) {
-                    folders.push(new tizen.MessageFolder(el));
+                    folders.push(new MessageFolder(el));
                 });
                 args.foldersChangeCallback.foldersadded.call(null, folders);
             }
@@ -1123,7 +1126,7 @@ MessageStorage.prototype.addFoldersChangeListener = function () {
             if (args.foldersChangeCallback.foldersupdated) {
                 var folders = [];
                 data.forEach(function (el) {
-                    folders.push(new tizen.MessageFolder(el));
+                    folders.push(new MessageFolder(el));
                 });
                 args.foldersChangeCallback.foldersupdated.call(null, folders);
             }
@@ -1132,7 +1135,7 @@ MessageStorage.prototype.addFoldersChangeListener = function () {
             if (args.foldersChangeCallback.foldersremoved) {
                 var folders = [];
                 data.forEach(function (el) {
-                    folders.push(new tizen.MessageFolder(el));
+                    folders.push(new MessageFolder(el));
                 });
                 args.foldersChangeCallback.foldersremoved.call(null, folders);
             }
