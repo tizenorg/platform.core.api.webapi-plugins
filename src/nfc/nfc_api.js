@@ -614,11 +614,52 @@ function NFCTag(tagid) {
         function(result) {
             if (native_.isFailure(result)) {
                 if(!T_.isNullOrUndefined(args.errorCallback)) {
-                    args.errorCallback(result.error);
+                    args.errorCallback(native_.getErrorObject(result));
                 }
             } else {
                 var message = new tizen.NDEFMessage(result.records);
                 args.readCallback(message);
+            }
+        });
+
+    };
+
+    NFCTag.prototype.writeNDEF = function() {
+        var args = validator_.validateArgs(arguments, [
+            {
+                name: 'message',
+                type : types_.PLATFORM_OBJECT,
+                values : tizen.NDEFMessage
+            },
+            {
+                name : 'successCallback',
+                type : types_.FUNCTION,
+                optional : true,
+                nullable : true
+            },
+            {
+                name : 'errorCallback',
+                type : types_.FUNCTION,
+                optional : true,
+                nullable : true
+            }
+        ]);
+
+        native_.call('NFCTag_writeNDEF',
+        {
+            'id' : _my_id,
+            'records' : args.message.records,
+            'recordsSize' : args.message.recordCount
+        },
+        function(result) {
+            if (native_.isFailure(result)) {
+                if(!T_.isNullOrUndefined(args.errorCallback)) {
+                    args.errorCallback(native_.getErrorObject(result));
+                }
+            } else {
+                if(!T_.isNullOrUndefined(args.successCallback)) {
+                    args.successCallback();
+                }
             }
         });
 
@@ -652,10 +693,6 @@ function NFCTag(tagid) {
         }
     });
 }
-
-NFCTag.prototype.writeNDEF = function() {
-
-};
 
 NFCTag.prototype.transceive = function() {
 

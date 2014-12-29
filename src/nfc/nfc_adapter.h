@@ -65,6 +65,7 @@ public:
     bool TagIsConnectedGetter(int tag_id);
     // methods
     void TagReadNDEF(int tag_id, const picojson::value& args);
+    void TagWriteNDEF(int tag_id, const picojson::value& args);
     // listeners
     void SetTagListener();
     void UnsetTagListener();

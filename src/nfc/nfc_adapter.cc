@@ -10,6 +10,7 @@
 
 #include "common/logger.h"
 #include "common/platform_exception.h"
+#include "common/converter.h"
 
 using namespace common;
 using namespace std;
@@ -654,7 +655,7 @@ std::string NFCAdapter::TagTypeGetter(int tag_id) {
 
     int err = nfc_tag_get_type(m_last_tag_handle, &type);
     if(NFC_ERROR_NONE != err) {
-        LOGE("Failed to get tag type: %d", err);
+        LoggerE("Failed to get tag type: %d", err);
         NFCUtil::throwNFCException(err, "Failed to get tag type");
     }
 
@@ -669,7 +670,7 @@ bool NFCAdapter::TagIsSupportedNDEFGetter(int tag_id) {
 
     int err = nfc_tag_is_support_ndef(m_last_tag_handle, &result);
     if(NFC_ERROR_NONE != err) {
-        LOGE("Failed to check if NDEF is supported %d", err);
+        LoggerE("Failed to check if NDEF is supported %d", err);
         NFCUtil::throwNFCException(err,
                 "Failed to check if NDEF is supported");
     }
@@ -685,7 +686,7 @@ unsigned int NFCAdapter::TagNDEFSizeGetter(int tag_id) {
 
     int err = nfc_tag_get_ndef_size(m_last_tag_handle, &result);
     if(NFC_ERROR_NONE != err) {
-        LOGE("Failed to get tag NDEF size: %d, %s", err);
+        LoggerE("Failed to get tag NDEF size: %d, %s", err);
         NFCUtil::throwNFCException(err,
                 "Failed to get tag NDEF size");
     }
@@ -737,7 +738,7 @@ bool NFCAdapter::TagIsConnectedGetter(int tag_id) {
     nfc_tag_h handle = NULL;
     int result = nfc_manager_get_connected_tag(&handle);
     if(NFC_ERROR_NONE != result) {
-        LOGE("Failed to get connected tag: %s",
+        LoggerE("Failed to get connected tag: %s",
             NFCUtil::getNFCErrorMessage(result).c_str());
         // exception is thrown here to return undefined in JS layer
         // instead of false
@@ -891,7 +892,7 @@ void NFCAdapter::TagReadNDEF(int tag_id, const picojson::value& args) {
     LoggerD("Received callback id: %f", callbackId);
 
     if(!TagIsConnectedGetter(tag_id)) {
-        auto ex = UnknownException("Tag is no more connected");
+        UnknownException ex("Tag is no more connected");
 
         picojson::value event = createEventError(callbackId, ex);
         NFCInstance::getInstance().PostMessage(event.serialize().c_str());
@@ -916,12 +917,72 @@ void NFCAdapter::TagReadNDEF(int tag_id, const picojson::value& args) {
         // ... otherwise call error callback
         std::string errName = NFCUtil::getNFCErrorString(result);
         std::string errMessage = NFCUtil::getNFCErrorMessage(result);
-        auto ex = PlatformException(errName, errMessage);
+        PlatformException ex(errName, errMessage);
 
         picojson::value event = createEventError(callbackId, ex);
         NFCInstance::getInstance().PostMessage(event.serialize().c_str());
     }
 
+}
+
+void NFCAdapter::TagWriteNDEF(int tag_id, const picojson::value& args) {
+
+    LoggerD("Entered");
+
+    double callbackId = args.get(CALLBACK_ID).get<double>();
+    LoggerD("Received callback id: %f", callbackId);
+
+    if(!TagIsConnectedGetter(tag_id)) {
+        UnknownException ex("Tag is no more connected");
+
+        picojson::value event = createEventError(callbackId, ex);
+        NFCInstance::getInstance().PostMessage(event.serialize().c_str());
+        return;
+    }
+
+    const picojson::array& records_array = FromJson<picojson::array>(
+            args.get<picojson::object>(), "records");
+
+    const int size = static_cast<int>(args.get("recordsSize").get<double>());
+
+    nfc_ndef_message_h message = NFCMessageUtils::NDEFMessageToStruct(records_array, size);
+
+    if(message){
+        int result = nfc_tag_write_ndef(m_last_tag_handle, message, NULL, NULL);
+
+        // Message is no more needed - can be removed
+        // TODO: uncomment line below after merging commit
+        // that adds this function
+        //NFCMessageUtils::removeMessageHandle(message)
+        if (NFC_ERROR_NONE != result){
+
+            // for permission related error throw exception
+            if(NFC_ERROR_SECURITY_RESTRICTED == result ||
+                    NFC_ERROR_PERMISSION_DENIED == result) {
+                throw SecurityException("Failed to read NDEF - permission denied");
+            }
+
+            LoggerE("Error occured when sending message: %d", result);
+            std::string errName = NFCUtil::getNFCErrorString(result);
+            std::string errMessage = NFCUtil::getNFCErrorMessage(result);
+            LoggerE("%s: %s", errName.c_str(), errMessage.c_str());
+
+            // create and post error message
+            PlatformException ex(errName, errMessage);
+            picojson::value event = createEventError(callbackId, ex);
+            NFCInstance::getInstance().PostMessage(event.serialize().c_str());
+        }
+        else {
+            // create and post success message
+            picojson::value event = createEventSuccess(callbackId);
+            NFCInstance::getInstance().PostMessage(event.serialize().c_str());
+        }
+    } else {
+        LoggerE("Invalid message handle");
+        InvalidValuesException ex("Message is not valid");
+        picojson::value event = createEventError(callbackId, ex);
+        NFCInstance::getInstance().PostMessage(event.serialize().c_str());
+    }
 }
 
 }// nfc
