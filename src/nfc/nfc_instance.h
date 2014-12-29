@@ -55,6 +55,7 @@ private:
 
     //Message related methods
     void NDEFMessageContructor(const picojson::value& args, picojson::object& out);
+    void NDEFMessageToByte(const picojson::value& args, picojson::object& out);
     void NDEFRecordContructor(const picojson::value& args, picojson::object& out);
     void NDEFRecordTextContructor(const picojson::value& args, picojson::object& out);
     void NDEFRecordURIContructor(const picojson::value& args, picojson::object& out);

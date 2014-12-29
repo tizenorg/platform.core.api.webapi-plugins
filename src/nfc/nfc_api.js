@@ -741,7 +741,12 @@ tizen.NDEFMessage = function(data) {
                                 'rawDataSize' : raw_data_.length
                             }
                     );
-//TODO              //set all needed fields here basing on result object
+                    var records_array = result.result.records;
+                    for (var i = 0; i < records_array.length; i++) {
+                        records_.push(new tizen.NDEFRecord(records_array[i].tnf,
+                                records_array[i].type, records_array[i].payload,
+                                records_array[i].id));
+                    }
                 }
             } else {
                 throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
@@ -773,7 +778,18 @@ tizen.NDEFMessage = function(data) {
 };
 
 tizen.NDEFMessage.prototype.toByte = function() {
+    var result = native_.callSync(
+            'NDEFMessage_toByte', {
+                'records' : this.records,
+                'recordsSize' : this.recordCount
+            }
+    );
+    if(native_.isFailure(result)) {
+        throw new tizen.WebAPIException(0, result.error.message,
+                result.error.name);
+    }
 
+    return toByteArray(result.result.bytes);
 };
 
 //helper for inherited object constructors /////////////////////////////////////////////

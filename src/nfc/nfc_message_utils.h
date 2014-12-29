@@ -24,6 +24,9 @@ public:
     static void ReportNdefMessageFromData(unsigned char* data, unsigned long size,
             picojson::object& out);
     static void ReportNDEFMessage(const picojson::value& args, picojson::object& out);
+    static nfc_ndef_message_h NDEFMessageToStruct(const picojson::array& records_array,
+            const int size);
+    static void NDEFMessageToByte(const picojson::value& args, picojson::object& out);
     static void ConstructNdefRecordFromRecordHandle(nfc_ndef_record_h record_handle,
             picojson::object& out);
     static void ReportNdefRecordFromMessage(nfc_ndef_message_h message_handle,
