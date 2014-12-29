@@ -281,8 +281,7 @@ void AddressBook_find(const JsonObject& args, JsonArray& array) {
   // TODO implement contact filter and sorting.
   const JsonObject& address_book = FromJson<JsonObject>(args, "addressBook");
   long addressbook_id = common::stol(FromJson<std::string>(address_book, "id"));
-  // Read calendar by ID
-  int error_code = 0;
+  int error_code;
 
   contacts_query_h query = nullptr;
   contacts_filter_h filter = nullptr;
@@ -305,6 +304,7 @@ void AddressBook_find(const JsonObject& args, JsonArray& array) {
 
   int record_count = 0;
   error_code = contacts_list_get_count(list, &record_count);
+  ContactUtil::ErrorChecker(error_code, "Failed contacts_list_get_count");
 
   contacts_list_first(list);
   for (unsigned int i = 0; i < record_count; i++) {
@@ -332,17 +332,13 @@ void AddressBook_addGroup(const JsonObject& args, JsonObject& out) {
   int err = CONTACTS_ERROR_NONE;
   contacts_record_h contacts_record = nullptr;
   err = contacts_record_create(_contacts_group._uri, &contacts_record);
-  ContactUtil::ErrorChecker(err,
-                            "Error during executing contacts_record_create()");
+  ContactUtil::ErrorChecker(err, "Error during executing contacts_record_create()");
 
-  ContactUtil::ContactsRecordHPtr record(&contacts_record,
-                                         ContactUtil::ContactsDeleter);
+  ContactUtil::ContactsRecordHPtr record(&contacts_record, ContactUtil::ContactsDeleter);
 
-  long addressbook_id =
-      common::stol(FromJson<JsonString>(args, "addressBookId"));
+  long addressbook_id = common::stol(FromJson<JsonString>(args, "addressBookId"));
   addressbook_id = (IsUnified(addressbook_id)) ? 0 : addressbook_id;
-  ContactUtil::SetIntInRecord(contacts_record, _contacts_group.address_book_id,
-                              addressbook_id);
+  ContactUtil::SetIntInRecord(contacts_record, _contacts_group.address_book_id, addressbook_id);
 
   ContactUtil::ExportContactGroupToContactsRecord(contacts_record, group);
   int groupId = 0;
@@ -350,8 +346,7 @@ void AddressBook_addGroup(const JsonObject& args, JsonObject& out) {
   ContactUtil::ErrorChecker(err, "Error during insert group record");
 
   out.insert(std::make_pair("id", std::to_string(groupId)));
-  out.insert(
-      std::make_pair("addressBookId", std::to_string(addressbook_id)));
+  out.insert(std::make_pair("addressBookId", std::to_string(addressbook_id)));
 }
 
 void AddressBook_getGroup(const JsonObject& args, JsonObject& out) {
@@ -367,14 +362,13 @@ void AddressBook_getGroup(const JsonObject& args, JsonObject& out) {
   contacts_record_h contacts_record = nullptr;
   err = contacts_db_get_record(_contacts_group._uri, id, &contacts_record);
   if (CONTACTS_ERROR_NONE != err || nullptr == contacts_record) {
-    throw common::NotFoundException("Don't find group with this id");
+    LoggerE("Group not exist");
+    throw common::NotFoundException("Group not exist");
   }
 
-  ContactUtil::ContactsRecordHPtr record(&contacts_record,
-                                         ContactUtil::ContactsDeleter);
+  ContactUtil::ContactsRecordHPtr record(&contacts_record, ContactUtil::ContactsDeleter);
 
-  long addressbook_id =
-      common::stol(FromJson<JsonString>(args, "addressBook", "id"));
+  long addressbook_id = common::stol(FromJson<JsonString>(args, "addressBook", "id"));
   if (IsUnified(addressbook_id)) {
     int address_book_id = 0;
     ContactUtil::GetIntFromRecord(
@@ -397,10 +391,8 @@ void AddressBook_updateGroup(const JsonObject& args, JsonObject&) {
     throw common::InvalidValuesException("Group object is not added");
   }
 
-  long addressbook_id =
-      common::stol(FromJson<JsonString>(args, "addressBookId"));
-  long group_addressbook_id =
-      common::stol(FromJson<JsonString>(group, "addressBookId"));
+  long addressbook_id = common::stol(FromJson<JsonString>(args, "addressBookId"));
+  long group_addressbook_id = common::stol(FromJson<JsonString>(group, "addressBookId"));
   if (IsUnified(addressbook_id) && (addressbook_id != group_addressbook_id)) {
     LoggerE("Wrong address book");
     throw common::InvalidValuesException("Wrong address book");
@@ -416,14 +408,11 @@ void AddressBook_updateGroup(const JsonObject& args, JsonObject&) {
     throw common::InvalidValuesException("Incorrect group id");
   }
 
-  int err = CONTACTS_ERROR_NONE;
   contacts_record_h contacts_record = nullptr;
-  err =
-      contacts_db_get_record(_contacts_group._uri, group_id, &contacts_record);
-  if (CONTACTS_ERROR_INVALID_PARAMETER == err) {
-    LoggerE("Error during executing contacts_db_get_record()");
-    throw common::NotFoundException(
-        "Error during executing contacts_db_get_record()");
+  int err = contacts_db_get_record(_contacts_group._uri, group_id, &contacts_record);
+  if (CONTACTS_ERROR_NONE != err || nullptr == contacts_record) {
+    LoggerE("Group not exist");
+    throw common::NotFoundException("Group not exist");
   }
 
   ContactUtil::ErrorChecker(err,
@@ -449,14 +438,13 @@ void AddressBook_removeGroup(const JsonObject& args, JsonObject&) {
     throw common::InvalidValuesException("Incorrect group id");
   }
 
-  int err = CONTACTS_ERROR_NONE;
+  int err;
   long addressbook_id = AddressBookId(args);
   if (!IsUnified(addressbook_id)) {
     contacts_record_h contacts_record = nullptr;
     err = contacts_db_get_record(_contacts_group._uri, id, &contacts_record);
     if (CONTACTS_ERROR_NONE != err || contacts_record == nullptr) {
-      LoggerE("No group");
-      throw common::UnknownException("No group");
+      throw common::NotFoundException("Group not exist");
     }
 
     int group_addressbook_id = 0;
@@ -465,15 +453,13 @@ void AddressBook_removeGroup(const JsonObject& args, JsonObject&) {
                                   &group_addressbook_id);
 
     if (group_addressbook_id != addressbook_id) {
-      throw common::UnknownException(
-          "Contact is not a member of this address book");
+      throw common::UnknownException("Contact is not a member of this address book");
     }
   }
 
   err = contacts_db_delete_record(_contacts_group._uri, id);
   if (CONTACTS_ERROR_INVALID_PARAMETER == err) {
-    LoggerE("Problem during db_update_record");
-    throw common::NotFoundException("Problem during db_delete_record");
+    throw common::UnknownException("Problem during db_delete_record");
   }
   ContactUtil::ErrorChecker(err, "Problem during db_delete_record");
 }

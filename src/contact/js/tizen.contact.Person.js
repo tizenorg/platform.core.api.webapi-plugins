@@ -126,14 +126,17 @@ var Person = function(data) {
 
 // Aggregates another person to this person.
 Person.prototype.link = function() {
-  var args = AV.validateArgs(arguments, [
-    {
-      name: 'personId',
-      type: AV.Types.STRING,
-      optional: false,
-      nullable: false
-    }
-  ]);
+  var args = AV.validateArgs(arguments, [{
+    name: 'personId',
+    type: AV.Types.STRING,
+    optional: false,
+    nullable: false
+  }]);
+
+  if (String(Converter.toLong(args.personId)) !== args.personId) {
+    // TCT: Person_link_personId_invalid
+    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
+  }
 
   var result = native_.callSync('Person_link', {
     // TODO move to only sending the person id (in all functions)
@@ -151,14 +154,17 @@ Person.prototype.link = function() {
 
 // Separates a contact from this person.
 Person.prototype.unlink = function(contactId) {
-  var args = AV.validateArgs(arguments, [
-    {
-      name: 'contactId',
-      type: AV.Types.STRING,
-      optional: false,
-      nullable: false
-    }
-  ]);
+  var args = AV.validateArgs(arguments, [{
+    name: 'contactId',
+    type: AV.Types.STRING,
+    optional: false,
+    nullable: false
+  }]);
+
+  if (String(Converter.toLong(args.contactId)) !== args.contactId) {
+    // TCT: Person_unlink_contactId_invalid
+    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
+  }
 
   var result = native_.callSync('Person_unlink', {
     // TODO move to only sending the person id (in all functions)

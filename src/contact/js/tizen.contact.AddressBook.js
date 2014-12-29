@@ -138,14 +138,17 @@ var AddressBook = function(id, name, readOnly) {
 };
 
 AddressBook.prototype.get = function() {
-  var args = AV.validateArgs(arguments, [
-    {
-      name: 'id',
-      type: AV.Types.STRING,
-      optional: false,
-      nullable: false
-    }
-  ]);
+  var args = AV.validateArgs(arguments, [{
+    name: 'id',
+    type: AV.Types.STRING,
+    optional: false,
+    nullable: false
+  }]);
+
+  if (String(Converter.toLong(args.id)) !== args.id) {
+    // TCT: AddressBook_get_id_invalid
+    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
+  }
 
   var result = native_.callSync('AddressBook_get', {
     // TODO move to only sending the address book id (in all functions)
@@ -357,14 +360,17 @@ AddressBook.prototype.updateBatch = function() {
 };
 
 AddressBook.prototype.remove = function() {
-  var args = AV.validateArgs(arguments, [
-    {
-      name: 'id',
-      type: AV.Types.STRING,
-      optional: false,
-      nullable: false
-    }
-  ]);
+  var args = AV.validateArgs(arguments, [{
+    name: 'id',
+    type: AV.Types.STRING,
+    optional: false,
+    nullable: false
+  }]);
+
+  if (String(Converter.toLong(args.id)) !== args.id) {
+    // TCT: AddressBook_remove_id_invalid
+    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
+  }
 
   var result = native_.callSync('AddressBook_remove', {
     addressBook: this,
@@ -572,17 +578,22 @@ AddressBook.prototype.removeChangeListener = function(watchId) {
 };
 
 AddressBook.prototype.getGroup = function() {
-  var args = AV.validateArgs(arguments, [
-    {
-      name: 'groupId',
-      type: AV.Types.STRING,
-      optional: false,
-      nullable: false
-    }
-  ]);
+  var args = AV.validateArgs(arguments, [{
+    name: 'groupId',
+    type: AV.Types.STRING,
+    optional: false,
+    nullable: false
+  }]);
 
-  var result = native_.callSync('AddressBook_getGroup',
-      {addressBook: this, id: args.groupId});
+  if (String(Converter.toLong(args.groupId)) !== args.groupId) {
+    // TCT: AddressBook_getGroup_groupId_invalid
+    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
+  }
+
+  var result = native_.callSync('AddressBook_getGroup', {
+    addressBook: this,
+    id: args.groupId
+  });
   if (native_.isFailure(result)) {
     throw native_.getErrorObject(result);
   }
@@ -635,14 +646,17 @@ AddressBook.prototype.updateGroup = function() {
 };
 
 AddressBook.prototype.removeGroup = function() {
-  var args = AV.validateArgs(arguments, [
-    {
-      name: 'groupId',
-      type: AV.Types.STRING,
-      optional: false,
-      nullable: false
-    }
-  ]);
+  var args = AV.validateArgs(arguments, [{
+    name: 'groupId',
+    type: AV.Types.STRING,
+    optional: false,
+    nullable: false
+  }]);
+
+  if (String(Converter.toLong(args.groupId)) !== args.groupId) {
+    // TCT: AddressBook_removeGroup_groupId_invalid
+    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
+  }
 
   var result = native_.callSync('AddressBook_removeGroup',
       {addressBook: this, id: args.groupId});

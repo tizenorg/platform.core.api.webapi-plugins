@@ -82,15 +82,17 @@ ContactManager.prototype.getDefaultAddressBook = function() {
 
 // Gets the address book with the specified identifier.
 ContactManager.prototype.getAddressBook = function() {
-  // validation
-  var args = AV.validateArgs(arguments, [
-    {
-      name: 'addressBookId',
-      type: AV.Types.STRING,
-      optional: false,
-      nullable: false
-    }
-  ]);
+  var args = AV.validateArgs(arguments, [{
+    name: 'addressBookId',
+    type: AV.Types.STRING,
+    optional: false,
+    nullable: false
+  }]);
+
+  if (String(Converter.toLong(args.addressBookId)) !== args.addressBookId) {
+    // TCT: ContactManager_getAddressBook_addressBookId_invalid
+    throw new tizen.WebAPIException(tizen.WebAPIException.NOT_FOUND_ERR);
+  }
 
   var result = native_.callSync('ContactManager_getAddressBook', {
     addressBookID: args.addressBookId
@@ -117,8 +119,13 @@ ContactManager.prototype.get = function() {
     }
   ]);
 
+  if (String(Converter.toLong(args.personId)) !== args.personId) {
+    // TCT: ContactManager_get_personId_invalid
+    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
+  }
+
   var result = native_.callSync('ContactManager_get', {
-    personID: args.personId
+    personId: args.personId
   });
   _checkError(result);
 
@@ -130,15 +137,13 @@ ContactManager.prototype.get = function() {
 // Updates a person in the address book synchronously.
 ContactManager.prototype.update = function() {
   // validation
-  var args = AV.validateArgs(arguments, [
-    {
-      name: 'person',
-      type: AV.Types.PLATFORM_OBJECT,
-      values: Person,
-      optional: false,
-      nullable: false
-    }
-  ]);
+  var args = AV.validateArgs(arguments, [{
+    name: 'person',
+    type: AV.Types.PLATFORM_OBJECT,
+    values: Person,
+    optional: false,
+    nullable: false
+  }]);
   var result = native_.callSync('ContactManager_update', { person: args.person });
   _checkError(result);
 
@@ -192,14 +197,17 @@ ContactManager.prototype.updateBatch = function() {
 // Removes a person from the contact DB synchronously.
 ContactManager.prototype.remove = function() {
   // validation
-  var args = AV.validateArgs(arguments, [
-    {
-      name: 'personId',
-      type: AV.Types.STRING,
-      optional: false,
-      nullable: false
-    }
-  ]);
+  var args = AV.validateArgs(arguments, [{
+    name: 'personId',
+    type: AV.Types.STRING,
+    optional: false,
+    nullable: false
+  }]);
+
+  if (String(Converter.toLong(args.personId)) !== args.personId) {
+    // TCT: ContactManager_remove_personId_invalid
+    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
+  }
 
   var result = native_.callSync('ContactManager_remove', {personId: args.personId});
   _checkError(result);

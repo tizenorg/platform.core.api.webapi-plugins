@@ -137,18 +137,16 @@ void ContactManager_getAddressBook(const JsonObject& args, JsonObject& out) {
 
 namespace {
 void ContactManager_get_internal(int person_id, JsonObject* out) {
-  int error_code = 0;
   contacts_record_h contacts_record = nullptr;
 
-  error_code = contacts_db_get_record(_contacts_person._uri, person_id,
-                                      &contacts_record);
+  int error_code = contacts_db_get_record(_contacts_person._uri, person_id, &contacts_record);
   if (CONTACTS_ERROR_NONE != error_code) {
     LoggerE("Person with id: %d, not found, error: %d", person_id, error_code);
     throw NotFoundException("Person not found");
   }
 
-  ContactUtil::ContactsRecordHPtr contacts_record_ptr(
-      &contacts_record, ContactUtil::ContactsDeleter);
+  ContactUtil::ContactsRecordHPtr contacts_record_ptr(&contacts_record,
+      ContactUtil::ContactsDeleter);
 
   ContactUtil::ImportPersonFromContactsRecord(contacts_record, out);
 }
@@ -156,9 +154,8 @@ void ContactManager_get_internal(int person_id, JsonObject* out) {
 
 void ContactManager_get(const JsonObject& args, JsonObject& out) {
   ContactUtil::CheckDBConnection();
-  long person_id = common::stol(FromJson<JsonString>(args, "personID"));
+  long person_id = common::stol(FromJson<JsonString>(args, "personId"));
 
-  JsonValue val{JsonObject{}};
   ContactManager_get_internal(person_id, &out);
 }
 
@@ -166,16 +163,13 @@ void ContactManager_update(const JsonObject& args, JsonObject&) {
   ContactUtil::CheckDBConnection();
   const JsonObject& person = FromJson<JsonObject>(args, "person");
   long person_id = common::stol(FromJson<JsonString>(person, "id"));
-  int error_code = 0;
 
   contacts_record_h contacts_record = nullptr;
 
-  error_code = contacts_db_get_record(_contacts_person._uri, person_id,
-                                      &contacts_record);
+  int error_code = contacts_db_get_record(_contacts_person._uri, person_id, &contacts_record);
 
   if (CONTACTS_ERROR_NONE != error_code) {
-    LoggerE("Error during updating person, error code: %d", error_code);
-    throw UnknownException("Error during updating person");
+    throw NotFoundException("Person not found");
   }
 
   ContactUtil::ExportPersonToContactsRecord(contacts_record, person);
