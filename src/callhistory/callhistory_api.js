@@ -272,7 +272,67 @@ function CallHistory() {
 };
 
 CallHistory.prototype.find = function() {
+    var args = AV.validateArgs(arguments, [
+        {
+            name : 'successCallback',
+            type : AV.Types.FUNCTION,
+        },
+        {
+            name : 'errorCallback',
+            type : AV.Types.FUNCTION,
+            optional : true,
+            nullable : true
+        },
+        {
+            name : 'filter',
+            type : AV.Types.PLATFORM_OBJECT,
+            optional : true,
+            nullable : true,
+            values : [tizen.AttributeFilter,
+                      tizen.AttributeRangeFilter,
+                      tizen.CompositeFilter]
+        },
+        {
+            name : 'sortMode',
+            type : AV.Types.PLATFORM_OBJECT,
+            optional : true,
+            nullable : true,
+            values : tizen.SortMode
+        },
+        {
+            name : 'limit',
+            type : AV.Types.UNSIGNED_LONG,
+            optional : true,
+            nullable : true
+        },
+        {
+            name : 'offset',
+            type : AV.Types.UNSIGNED_LONG,
+            optional : true,
+            nullable : true
+        }
+    ]);
 
+    var callback = function(result) {
+        if (C.isFailure(result)) {
+            C.callIfPossible(args.errorCallback, C.getErrorObject(result));
+        } else {
+            var entries = _createCallHistoryEntries(result);
+            C.callIfPossible(args.successCallback(entries));
+        }
+    };
+
+    var callbackId = ++_callbackId;
+    _callbacks[callbackId] = callback;
+
+    var callArgs = {};
+    callArgs.callbackId = callbackId;
+    callArgs.filter = args.filter;
+    callArgs.sortMode = args.sortMode;
+    callArgs.limit = args.limit;
+    callArgs.offset = args.offset;
+
+    C.call('CallHistory_find', callArgs, callback);
 };
 
 CallHistory.prototype.remove = function() {
@@ -395,7 +455,8 @@ CallHistory.prototype.removeChangeListener = function() {
     var id = args.watchId;
 
     if (T.isNullOrUndefined(_listeners[id])) {
-        throw new tizen.WebAPIException(0, 'NotFoundError', 'Watch id not found.');
+        throw new tizen.WebAPIException(
+                tizen.WebAPIException.INVALID_VALUES_ERR, 'Watch id not found.');
     }
 
     delete _listeners[id];

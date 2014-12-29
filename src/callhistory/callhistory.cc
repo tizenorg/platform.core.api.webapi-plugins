@@ -62,8 +62,8 @@ CallHistory::CallHistory():
     } else {
         LoggerD("Failed to connect Call history DB");
     }
-
-    loadPhoneNumbers();
+    //TODO Uncomment below line if getting sim info will be possible
+    //loadPhoneNumbers();
 }
 
 CallHistory::~CallHistory()
@@ -91,9 +91,166 @@ CallHistory* CallHistory::getInstance(){
     return &instance;
 }
 
-void CallHistory::find()
+void CallHistory::find(const picojson::object& args)
 {
+    LoggerD("Entered");
 
+    const auto it_args_end = args.end();
+    const auto it_filter = args.find("filter");
+    picojson::object filter_obj;
+    if (it_filter != it_args_end &&
+            it_filter->second.is<picojson::object>()) {
+        filter_obj = it_filter->second.get<picojson::object>();
+    }
+
+    const auto it_sort_mode = args.find("sortMode");
+    picojson::object sort_mode;
+    if (it_sort_mode != it_args_end &&
+            it_sort_mode->second.is<picojson::object>()) {
+        sort_mode = it_sort_mode->second.get<picojson::object>();
+    }
+
+    std::string sort_attr_name;
+    std::string sort_order;
+    if (!sort_mode.empty()) {
+        const auto it_sort_end = sort_mode.end();
+        const auto it_sort_attr_name = sort_mode.find("attributeName");
+        if (it_sort_attr_name != it_sort_end &&
+            it_sort_attr_name->second.is<std::string>()) {
+            sort_attr_name = it_sort_attr_name->second.get<std::string>();
+        }
+
+        const auto it_sort_order = sort_mode.find("order");
+        if (it_sort_order != it_sort_end &&
+            it_sort_order->second.is<std::string>()) {
+            sort_order = it_sort_order->second.get<std::string>();
+        }
+    }
+
+    const auto it_limit = args.find("limit");
+    int limit = 0;
+    if (it_limit != it_args_end &&
+        it_limit->second.is<double>()) {
+        limit = static_cast<int>(it_limit->second.get<double>());
+    }
+
+    const auto it_offset = args.find("offset");
+    int offset = 0;
+    if (it_offset != it_args_end &&
+        it_offset->second.is<double>()) {
+        offset = static_cast<int>(it_offset->second.get<double>());
+    }
+
+    const double callback_id = args.find("callbackId")->second.get<double>();
+    int phone_numbers = m_phone_numbers.size();
+
+    auto find = [filter_obj, sort_attr_name, sort_order, limit, offset, phone_numbers](
+            const std::shared_ptr<picojson::value>& response) -> void {
+        contacts_query_h query = NULL;
+        contacts_filter_h filter = NULL;
+        contacts_list_h record_list = NULL;
+
+        try {
+            if (phone_numbers == 0) {
+                LoggerE("Phone numbers list is empty.");
+                //Uncomment below line if gettin sim info will be possible (loadPhonesNumbers)
+                //throw UnknownException("Phone numbers list is empty.");
+            }
+
+            int ret = CONTACTS_ERROR_NONE;
+            ret = contacts_connect_on_thread();
+            if (CONTACTS_ERROR_NONE != ret) {
+                LoggerW("contacts_connect_on_thread failed");
+            }
+
+            ret = contacts_query_create(_contacts_phone_log._uri, &query);
+            if (CONTACTS_ERROR_NONE != ret) {
+                LoggerW("contacts_query_create failed");
+            }
+
+            ret = contacts_filter_create(_contacts_phone_log._uri, &filter);
+            if (CONTACTS_ERROR_NONE != ret) {
+                LoggerW("contacts_filter_create failed");
+            }
+
+            //filter
+            if (!filter_obj.empty()) {
+                LoggerD("Filter is set");
+                CallHistoryUtils::createFilter(filter, filter_obj);
+                ret = contacts_filter_add_operator(filter, CONTACTS_FILTER_OPERATOR_AND);
+                if (CONTACTS_ERROR_NONE != ret) {
+                    LoggerW("contacts_filter_add_operator failed");
+                }
+            }
+
+            ret = contacts_filter_add_int(filter, _contacts_phone_log.log_type,
+                    CONTACTS_MATCH_LESS_THAN_OR_EQUAL, CONTACTS_PLOG_TYPE_VIDEO_BLOCKED);
+            if (CONTACTS_ERROR_NONE != ret) {
+                LoggerW("contacts_filter_add_int failed");
+            }
+
+            ret = contacts_query_set_filter(query, filter);
+            if (CONTACTS_ERROR_NONE != ret) {
+                LoggerW("contacts_query_set_filter failed");
+            }
+
+            //sort mode
+            bool is_asc = false;
+            if (!sort_order.empty()) {
+                if (STR_ORDER_ASC == sort_order) {
+                    is_asc = true;
+                }
+                unsigned int attribute = CallHistoryUtils::convertAttributeName(sort_attr_name);
+                ret = contacts_query_set_sort(query, attribute, is_asc);
+            } else {
+                ret = contacts_query_set_sort(query, _contacts_phone_log.id, is_asc);
+            }
+
+            if (CONTACTS_ERROR_NONE != ret) {
+                LoggerW("contacts_query_set_sort failed");
+            }
+
+            //get records with limit and offset
+            ret = contacts_db_get_records_with_query(query, offset, limit, &record_list);
+            if (CONTACTS_ERROR_NONE != ret) {
+                LoggerW("contacts_db_get_records_with_query failed");
+            }
+
+            picojson::object& obj = response->get<picojson::object>();
+            picojson::array& array = obj.insert(std::make_pair(STR_DATA, picojson::value(
+                                     picojson::array()))).first->second.get<picojson::array>();
+            if (record_list) {
+                CallHistoryUtils::parseRecordList(&record_list, array);
+            }
+
+            contacts_list_destroy(record_list, true);
+            contacts_query_destroy(query);
+            contacts_filter_destroy(filter);
+
+            ret = contacts_disconnect_on_thread();
+            if (CONTACTS_ERROR_NONE != ret) {
+                LoggerW("contacts_disconnect_on_thread failed");
+            }
+
+            ReportSuccess(response->get<picojson::object>());
+        } catch (const PlatformException& err) {
+            contacts_list_destroy(record_list, true);
+            contacts_query_destroy(query);
+            contacts_filter_destroy(filter);
+            ReportError(err, response->get<picojson::object>());
+        }
+    };
+
+    auto find_response = [callback_id](const std::shared_ptr<picojson::value>& response) -> void {
+        picojson::object& obj = response->get<picojson::object>();
+        obj.insert(std::make_pair("callbackId", callback_id));
+        CallHistoryInstance::getInstance().PostMessage(response->serialize().c_str());
+    };
+
+    TaskQueue::GetInstance().Queue<picojson::value>(
+            find,
+            find_response,
+            std::shared_ptr<picojson::value>(new picojson::value(picojson::object())));
 }
 
 void CallHistory::remove(const picojson::object& args)
