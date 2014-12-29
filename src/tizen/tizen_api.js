@@ -183,12 +183,12 @@ exports.WebAPIError = WebAPIException;
  * @enum {string}
  */
 var FilterMatchFlag = {
-    EXACTLY : 'EXACTLY',
-    FULLSTRING : 'FULLSTRING',
-    CONTAINS : 'CONTAINS',
-    STARTSWITH : 'STARTSWITH',
-    ENDSWITH : 'ENDSWITH',
-    EXISTS : 'EXISTS'
+  EXACTLY: 'EXACTLY',
+  FULLSTRING: 'FULLSTRING',
+  CONTAINS: 'CONTAINS',
+  STARTSWITH: 'STARTSWITH',
+  ENDSWITH: 'ENDSWITH',
+  EXISTS: 'EXISTS'
 };
 
 /**
@@ -196,8 +196,8 @@ var FilterMatchFlag = {
  * @enum {string}
  */
 var SortModeOrder = {
-    ASC : 'ASC',
-    DESC : 'DESC'
+  ASC: 'ASC',
+  DESC: 'DESC'
 };
 
 /**
@@ -205,8 +205,8 @@ var SortModeOrder = {
  * @enum {string}
  */
 var CompositeFilterType = {
-    UNION : 'UNION',
-    INTERSECTION : 'INTERSECTION'
+  UNION: 'UNION',
+  INTERSECTION: 'INTERSECTION'
 };
 
 // Tizen Filters
@@ -250,25 +250,58 @@ exports.AbstractFilter = function() {};
  * Represents a set of filters.
  */
 exports.AttributeFilter = function(attrName, matchFlag, matchValue) {
-  if (this && this.constructor === exports.AttributeFilter &&
-      (typeof(attrName) === 'string' || attrname instanceof String) &&
-      matchFlag && matchFlag in FilterMatchFlag) {
-    Object.defineProperties(this, {
-      'attributeName': { writable: false, enumerable: true, value: attrName },
-      'matchFlag': {
-        writable: false,
-        enumerable: true,
-        value: matchValue !== undefined ? (matchFlag ? matchFlag : 'EXACTLY') : 'EXISTS'
-      },
-      'matchValue': {
-        writable: false,
-        enumerable: true,
-        value: matchValue === undefined ? null : matchValue
-      }
-    });
-  } else {
-    throw new exports.WebAPIException(exports.WebAPIException.TYPE_MISMATCH_ERR);
+  var name_ = '';
+  var flag_ = 'EXACTLY';
+  var value_ = null;
+
+  function attributeNameSetter(name) {
+    name_ = String(name);
   }
+
+  if (arguments.length > 0)
+    attributeNameSetter(attrName);
+
+  function matchFlagSetter(flag) {
+    if (Object.keys(FilterMatchFlag).indexOf(flag) >= 0)
+      flag_ = flag;
+  }
+
+  if (arguments.length > 1)
+    matchFlagSetter(matchFlag);
+
+  function matchValueSetter(value) {
+    value_ = value;
+  }
+
+  if (arguments.length > 2) {
+    matchValueSetter(matchValue);
+  } else {
+    matchFlagSetter('EXISTS'); // if matchValue is not used then matchFlag is set to 'EXISTS'.
+  }
+
+  Object.defineProperties(this, {
+    attributeName: {
+      enumerable: true,
+      set: attributeNameSetter,
+      get: function() {
+        return name_;
+      }
+    },
+    matchFlag: {
+      enumerable: true,
+      set: matchFlagSetter,
+      get: function() {
+        return flag_;
+      }
+    },
+    matchValue: {
+      enumerable: true,
+      set: matchValueSetter,
+      get: function() {
+        return value_;
+      }
+    }
+  });
 };
 exports.AttributeFilter.prototype = new exports.AbstractFilter();
 
@@ -321,18 +354,53 @@ exports.AttributeFilter.prototype.constructor = exports.AttributeFilter;
  * within a particular range.
  */
 exports.AttributeRangeFilter = function(attrName, start, end) {
-  if (!this || this.constructor !== exports.AttributeRangeFilter ||
-      !(typeof(attrName) === 'string' || attrname instanceof String)) {
-    throw new exports.WebAPIException(exports.WebAPIException.TYPE_MISMATCH_ERR);
+  var name_ = "";
+  var start_ = null;
+  var end_ = null;
+
+  function attributeNameSetter(name) {
+    name_ = String(name);
   }
 
+  if (arguments.length > 0)
+    attributeNameSetter(attrName);
+
+  function initSetter(init) {
+    start_ = init;
+  }
+
+  if (arguments.length > 1)
+    initSetter(start);
+
+  function endSetter(end) {
+    end_ = end;
+  }
+
+  if (arguments.length > 2)
+    endSetter(end);
+
   Object.defineProperties(this, {
-    'attributeName': { writable: true, enumerable: true, value: attrName },
-    'initialValue': {
-      writable: true,
+    attributeName: {
       enumerable: true,
-      value: start === undefined ? null : start },
-    'endValue': { writable: true, enumerable: true, value: end === undefined ? null : end }
+      set: attributeNameSetter,
+      get: function() {
+        return name_;
+      }
+    },
+    initialValue: {
+      enumerable: true,
+      set: initSetter,
+      get: function() {
+        return start_;
+      }
+    },
+    endValue: {
+      enumerable: true,
+      set: endSetter,
+      get: function() {
+        return end_;
+      }
+    }
   });
 };
 
@@ -393,18 +461,49 @@ exports.AttributeRangeFilter.prototype.constructor = exports.AttributeRangeFilte
  * Represents a set of filters.
  */
 exports.CompositeFilter = function(type, filters) {
-  if (!this || this.constructor !== exports.CompositeFilter ||
-      !(type in CompositeFilterType) ||
-      filters && !(filters instanceof Array)) {
-    throw new exports.WebAPIException(exports.WebAPIException.TYPE_MISMATCH_ERR);
+  var filterTypes = Object.keys(CompositeFilterType);
+
+  var type_ = filterTypes[0];
+  var filters_ = [];
+
+  function typeSetter(filterType) {
+    if (filterTypes.indexOf(filterType) >= 0)
+      type_ = filterType;
   }
 
+  if (arguments.length > 0)
+    typeSetter(type);
+
+  function filtersSetter(filterList) {
+    if (!(filterList instanceof Array))
+      return;
+
+    for (var i in filterList) {
+      var valid = (filterList[i] instanceof tizen.AbstractFilter);
+      if (!valid)
+        return;
+    }
+
+    filters_ = filterList.slice(0);
+  }
+
+  if (arguments.length > 1)
+    filtersSetter(filters);
+
   Object.defineProperties(this, {
-    'type': { writable: false, enumerable: true, value: type },
-    'filters': {
-      writable: false,
+    type: {
       enumerable: true,
-      value: filters === undefined ? null : filters
+      set: typeSetter,
+      get: function() {
+        return type_;
+      }
+    },
+    filters: {
+      enumerable: true,
+      set: filtersSetter,
+      get: function() {
+        return filters_;
+      }
     }
   });
 };
@@ -439,13 +538,37 @@ exports.CompositeFilter.prototype.constructor = exports.CompositeFilter;
  * SortMode is a common interface used for sorting of queried data.
  */
 exports.SortMode = function(attrName, order) {
-  if (!(typeof(attrName) === 'string' || attrname instanceof String) ||
-      order && (order != 'DESC' && order != 'ASC'))
-    throw new exports.WebAPIException(exports.WebAPIException.TYPE_MISMATCH_ERR);
+  var sortModeOrder = Object.keys(SortModeOrder);
+
+  var attributeName_ = '';
+  var order_ = 'ASC';
+
+  function nameSetter(name) {
+    attributeName_ = String(name);
+  }
+
+  if (arguments.length > 0)
+    nameSetter(attrName);
+
+  function orderSetter(sortOrder) {
+    if (sortModeOrder.indexOf(sortOrder) >= 0)
+      order_ = sortOrder;
+  }
+
+  if (arguments.length > 1)
+    orderSetter(order);
 
   Object.defineProperties(this, {
-    'attributeName': { writable: false, enumerable: true, value: attrName },
-    'order': { writable: false, enumerable: true, value: order || 'ASC' }
+    attributeName: {
+      enumerable: true, set: nameSetter, get: function() {
+        return attributeName_;
+      }
+    },
+    order: {
+      enumerable: true, set: orderSetter, get: function() {
+        return order_;
+      }
+    }
   });
 };
 exports.SortMode.prototype.constructor = exports.SortMode;
@@ -453,13 +576,45 @@ exports.SortMode.prototype.constructor = exports.SortMode;
 /**
  * Represents a point (latitude and longitude) in the map coordinate system.
  */
-exports.SimpleCoordinates = function(latitude, longitude) {
-  if (!(typeof(latitude) === 'number' || typeof(longitude) === 'number'))
-    throw new exports.WebAPIException(exports.WebAPIException.TYPE_MISMATCH_ERR);
+exports.SimpleCoordinates = function(lat, lng) {
+  var latitude = 0;
+  var longitude = 0;
+
+  function latSetter(lat) {
+    var tmp = Number(lat);
+    if (!isNaN(tmp)) {
+      if (tmp > 90) tmp = 90;
+      else if (tmp < 0) tmp = 0;
+
+      latitude = tmp;
+    }
+  }
+
+  latSetter(lat);
+
+  function lonSetter(lon) {
+    var tmp = Number(lon);
+    if (!isNaN(tmp)) {
+      if (tmp > 180) tmp = 180;
+      else if (tmp < 0) tmp = 0;
+
+      longitude = tmp;
+    }
+  }
+
+  lonSetter(lng);
 
   Object.defineProperties(this, {
-    'latitude': { writable: false, enumerable: true, value: latitude },
-    'longitude': { writable: false, enumerable: true, value: longitude }
+    latitude: {
+      enumerable: true, set: latSetter, get: function() {
+        return latitude;
+      }
+    },
+    longitude: {
+      enumerable: true, set: lonSetter, get: function() {
+        return longitude;
+      }
+    }
   });
 };
 exports.SimpleCoordinates.prototype.constructor = exports.SimpleCoordinates;
