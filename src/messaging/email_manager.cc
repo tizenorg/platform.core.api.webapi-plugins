@@ -39,11 +39,11 @@
 #include "messaging_util.h"
 #include "message_service.h"
 #include "message.h"
-//#include "MessageConversation.h"
+#include "message_conversation.h"
 //#include "MessageCallbackUserData.h"
 //#include "MessagesCallbackUserData.h"
 #include "find_msg_callback_user_data.h"
-//#include "ConversationCallbackData.h"
+#include "conversation_callback_data.h"
 #include "message_email.h"
 #include "messaging_database_manager.h"
 
@@ -1313,91 +1313,90 @@ long EmailManager::getUniqueOpId()
 //    delete callback;
 //    callback = NULL;
 //}
-//
-//void EmailManager::removeConversations(ConversationCallbackData* callback)
-//{
-//    LoggerD("Entered");
-//
-//    if (!callback){
-//        LoggerE("Callback is null");
-//        return;
-//    }
-//
-//    int error;
-//    try {
-//        std::lock_guard<std::mutex> lock(m_mutex);
-//        std::vector<std::shared_ptr<MessageConversation>> conversations =
-//                callback->getConversations();
-//        MessageType type = callback->getMessageServiceType();
-//
-//        int thread_id = 0;
-//        for(auto it = conversations.begin() ; it != conversations.end(); ++it) {
-//            if((*it)->getType() != type) {
-//                LoggerE("Invalid message type");
-//                throw TypeMismatchException("Error while deleting email conversation");
-//            }
-//        }
-//
-//        for (auto it = conversations.begin() ; it != conversations.end(); ++it) {
-//            thread_id = (*it)->getConversationId();
-//            error = email_delete_thread(thread_id, false);
-//            if (EMAIL_ERROR_NONE != error) {
-//                LoggerE("Couldn't delete conversation data");
-//                throw UnknownException("Error while deleting mail conversation");
-//            }
-//
-//            // for now, there is no way to recognize deleting email thread job is completed.
-//            // so use polling to wait the thread is removed.
-//            email_mail_data_t *thread_info = NULL;
-//            do {
-//                usleep(300 * 1000);
-//                LoggerD("Waiting to delete this email thread...");
-//                error = email_get_thread_information_by_thread_id(
-//                    thread_id, &thread_info);
-//
-//                if (thread_info != NULL) {
-//                    free(thread_info);
-//                    thread_info = NULL;
-//                }
-//            } while (error != EMAIL_ERROR_MAIL_NOT_FOUND);
-//        }
-//    } catch (const BasePlatformException& err) {
-//        LoggerE("%s (%s)", (err.getName()).c_str(), (err.getMessage()).c_str());
-//        callback->setError(err.getName(), err.getMessage());
-//    } catch (...) {
-//        LoggerE("Messages remove failed");
-//        callback->setError(JSWebAPIErrorFactory::UNKNOWN_ERROR, "Messages remove failed");
-//    }
-//
-//    JSContextRef context = callback->getContext();
-//    if (!GlobalContextManager::getInstance()->isAliveGlobalContext(context)) {
-//        LoggerE("context was closed");
-//        delete callback;
-//        callback = NULL;
-//        return;
-//    }
-//
-//    try {
-//        if (callback->isError()) {
-//            LoggerD("Calling error callback");
-//            JSObjectRef errobj = JSWebAPIErrorFactory::makeErrorObject(context,
-//                    callback->getErrorName(),
-//                    callback->getErrorMessage());
-//            callback->callErrorCallback(errobj);
-//        } else {
-//            LoggerD("Calling success callback");
-//            callback->callSuccessCallback();
-//        }
-//    } catch (const BasePlatformException& err) {
-//        LoggerE("Error while calling removeConversations callback: %s (%s)",
-//                (err.getName()).c_str(), (err.getMessage()).c_str());
-//    } catch (...) {
-//        LoggerE("Unknown error when calling removeConversations callback.");
-//    }
-//
-//    delete callback;
-//    callback = NULL;
-//}
+
+void EmailManager::removeConversations(ConversationCallbackData* callback)
+{
+    LoggerD("Entered");
+
+    if (!callback){
+        LoggerE("Callback is null");
+        return;
+    }
+
+    int error;
+    try
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        std::vector<std::shared_ptr<MessageConversation>> conversations =
+                callback->getConversations();
+        MessageType type = callback->getMessageServiceType();
+
+        int thread_id = 0;
+        for(auto it = conversations.begin() ; it != conversations.end(); ++it) {
+            if((*it)->getType() != type) {
+                LoggerE("Invalid message type");
+                throw TypeMismatchException("Error while deleting email conversation");
+            }
+        }
+
+        for (auto it = conversations.begin() ; it != conversations.end(); ++it) {
+            thread_id = (*it)->getConversationId();
+            error = email_delete_thread(thread_id, false);
+            if (EMAIL_ERROR_NONE != error) {
+                LoggerE("Couldn't delete email conversation data");
+                throw UnknownException("Error while deleting email conversation");
+            }
+
+            // for now, there is no way to recognize deleting email thread job is completed.
+            // so use polling to wait the thread is removed.
+            email_mail_data_t *thread_info = NULL;
+            do {
+                usleep(300 * 1000);
+                LoggerD("Waiting to delete this email thread...");
+                error = email_get_thread_information_by_thread_id(
+                    thread_id, &thread_info);
+
+                if (thread_info != NULL) {
+                    free(thread_info);
+                    thread_info = NULL;
+                }
+            } while (error != EMAIL_ERROR_MAIL_NOT_FOUND);
+        }
+    }
+    catch (const PlatformException& err)
+    {
+        LoggerE("%s (%s)", (err.name()).c_str(), (err.message()).c_str());
+        callback->setError(err.name(), err.message());
+    }
+    catch (...)
+    {
+        LoggerE("Email conversation remove failed");
+        callback->setError("UnknownError", "Email conversation remove failed");
+    }
+
+    try {
+        if (callback->isError()) {
+            LoggerD("Calling error callback");
+            MessagingInstance::getInstance().PostMessage(
+                    callback->getJson()->serialize().c_str());
+        } else {
+            LoggerD("Calling success callback");
+
+            auto json = callback->getJson();
+            picojson::object& obj = json->get<picojson::object>();
+            obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
+            MessagingInstance::getInstance().PostMessage(json->serialize().c_str());
+        }
+    } catch (const PlatformException& err) {
+        LoggerE("Error while calling removeConversations callback: %s (%s)",
+                (err.name()).c_str(), (err.message()).c_str());
+    } catch (...) {
+        LoggerE("Unknown error when calling removeConversations callback.");
+    }
+
+    delete callback;
+    callback = NULL;
+}
 
 } // Messaging
 } // DeviceAPI

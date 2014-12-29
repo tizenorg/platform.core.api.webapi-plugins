@@ -63,8 +63,18 @@ public:
         unsigned int threadId, msg_handle_t handle);
 
     virtual void setConversationId(int id);
+    virtual void setType(MessageType type);
+    virtual void setTimestamp(time_t timestamp);
     virtual void setMessageCount(int count);
-    virtual void setUnreadMessages(int count);
+    virtual void setUnreadMessages(int unread_messages);
+    virtual void setPreview(std::string preview);
+    virtual void setSubject(std::string conversation_subject);
+    virtual void setIsRead(bool is_read);
+    virtual void setFrom(std::string from);
+    virtual void setTo(std::vector<std::string> &to);
+    virtual void setCC(std::vector<std::string> &cc);
+    virtual void setBCC(std::vector<std::string> &bcc);
+    virtual void setLastMessageId(int last_message_id);
 
     // tizen::FilterableObject
     virtual bool isMatchingAttribute(const std::string& attribute_name,

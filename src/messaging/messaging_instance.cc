@@ -445,6 +445,26 @@ void MessagingInstance::MessageStorageRemoveConversations(const picojson::value&
         picojson::object& out)
 {
     LoggerD("Entered");
+    picojson::object data = args.get(JSON_DATA).get<picojson::object>();
+    picojson::array conversations = data.at(REMOVE_CONVERSATIONS_ARGS_CONVERSATIONS).get<picojson::array>();
+    const double callbackId = args.get(JSON_CALLBACK_ID).get<double>();
+
+    ConversationCallbackData* callback = new ConversationCallbackData();
+
+    auto each = [callback] (picojson::value& v)->void {
+        callback->addConversation(MessagingUtil::jsonToMessageConversation(v));
+    };
+    for_each(conversations.begin(), conversations.end(), each);
+
+    auto json = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
+    picojson::object& obj = json->get<picojson::object>();
+    obj[JSON_CALLBACK_ID] = picojson::value(callbackId);
+    callback->setJson(json);
+
+    int serviceId = static_cast<int>(data.at(FUNCTIONS_HIDDEN_ARGS_SERVICE_ID).get<double>());
+    auto service = MessagingManager::getInstance().getMessageServiceEmail(serviceId);
+
+    service->getMsgStorage()->removeConversations(callback);
 }
 
 void MessagingInstance::MessageStorageFindFolders(const picojson::value& args,

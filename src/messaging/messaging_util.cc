@@ -12,6 +12,7 @@
 
 #include <email-api-account.h>
 #include "message_email.h"
+#include "message_conversation.h"
 
 #include "tizen/tizen.h"
 #include "common/logger.h"
@@ -488,6 +489,76 @@ tizen::AttributeFilterPtr MessagingUtil::jsonToAttributeFilter(const picojson::o
     attributePtr->setMatchValue(AnyPtr(new Any(filter.at(JSON_TO_MATCH_VALUE))));
 
     return attributePtr;
+}
+
+std::shared_ptr<MessageConversation> MessagingUtil::jsonToMessageConversation(const picojson::value& json)
+{
+    LoggerD("Entered");
+    std::shared_ptr<MessageConversation> conversation;
+    picojson::object data = json.get<picojson::object>();
+    std::string type = data.at("type").get<std::string>();
+    MessageType mtype = MessagingUtil::stringToMessageType(type);
+
+    conversation = std::shared_ptr<MessageConversation>(new MessageConversation());
+
+    conversation->setType(mtype);
+
+    int id = std::atoi(MessagingUtil::getValueFromJSONObject<std::string>(data,
+        MESSAGE_CONVERSATION_ATTRIBUTE_ID).c_str());
+    conversation->setConversationId(id);
+
+    /// MESSAGE_CONVERSATION_ATTRIBUTE_TIMESTAMP ?
+
+    int messageCount = std::atoi(MessagingUtil::getValueFromJSONObject<std::string>(data,
+        MESSAGE_CONVERSATION_ATTRIBUTE_MESSAGE_COUNT).c_str());
+    conversation->setMessageCount(messageCount);
+
+    int unreadMessages = std::atoi(MessagingUtil::getValueFromJSONObject<std::string>(data,
+        MESSAGE_CONVERSATION_ATTRIBUTE_UNREAD_MESSAGES).c_str());
+    conversation->setUnreadMessages(unreadMessages);
+
+    auto preview = MessagingUtil::getValueFromJSONObject<std::string>(data,
+        MESSAGE_CONVERSATION_ATTRIBUTE_PREVIEW).c_str();
+    conversation->setPreview(preview);
+
+    auto subject = MessagingUtil::getValueFromJSONObject<std::string>(data,
+        MESSAGE_CONVERSATION_ATTRIBUTE_SUBJECT).c_str();
+    conversation->setSubject(subject);
+
+    /// MESSAGE_CONVERSATION_ATTRIBUTE_IS_READ ?
+
+    std::vector<std::string> result;
+    auto arrayVectorStringConverter = [&result] (picojson::value& v)->void {
+        result.push_back(v.get<std::string>());
+    };
+
+    auto from = MessagingUtil::getValueFromJSONObject<std::string>(data,
+        MESSAGE_CONVERSATION_ATTRIBUTE_FROM).c_str();
+    conversation->setFrom(from);
+
+    auto toJS = MessagingUtil::getValueFromJSONObject<std::vector<picojson::value>>(
+        data, MESSAGE_CONVERSATION_ATTRIBUTE_TO);
+    for_each(toJS.begin(), toJS.end(), arrayVectorStringConverter);
+    conversation->setTo(result);
+    result.clear();
+
+    auto ccJS = MessagingUtil::getValueFromJSONObject<
+            std::vector<picojson::value>>(data, MESSAGE_ATTRIBUTE_CC);
+    for_each(ccJS.begin(), ccJS.end(), arrayVectorStringConverter);
+    conversation->setCC(result);
+    result.clear();
+
+    auto bccJS = MessagingUtil::getValueFromJSONObject<
+            std::vector<picojson::value>>(data, MESSAGE_ATTRIBUTE_BCC);
+    for_each(bccJS.begin(), bccJS.end(), arrayVectorStringConverter);
+    conversation->setBCC(result);
+    result.clear();
+
+    int lastMessageId = std::atoi(MessagingUtil::getValueFromJSONObject<std::string>(data,
+        MESSAGE_CONVERSATION_ATTRIBUTE_LAST_MESSAGE_ID).c_str());
+    conversation->setLastMessageId(lastMessageId);
+
+    return conversation;
 }
 
 } // messaging
