@@ -23,11 +23,18 @@ const int AVOC_SUCCESS = 0;
 const u_int16_t VOLUME_STEP = 1;
 }
 
-AudioControlManager::AudioControlManager() {
-    m_volume_step = VOLUME_STEP;
+VolumeChangeListener::~VolumeChangeListener() {
+    LOGD("Enter");
+}
+
+AudioControlManager::AudioControlManager() :
+        m_volume_step(VOLUME_STEP),
+        m_volume_change_listener(NULL) {
+    LOGD("Enter");
 }
 
 AudioControlManager::~AudioControlManager() {
+    LOGD("Enter");
 }
 
 AudioControlManager& AudioControlManager::getInstance() {
@@ -126,6 +133,50 @@ AudioOutputMode AudioControlManager::getOutputMode() {
         default:
             LOGE("Unexpected audio output type: %d", type);
             throw UnknownException("Unexecpted audio output type");
+    }
+}
+
+void AudioControlManager::registerVolumeChangeListener(
+            VolumeChangeListener* listener) {
+    LOGD("Enter");
+    unregisterVolumeChangeListener();
+    int r = sound_manager_set_master_volume_changed_cb(
+            volumeChangeCallback, NULL);
+    if (SOUND_MANAGER_ERROR_NONE != r) {
+        LOGE("Failed to add listener: %d", r);
+        throw UnknownException("Failed to add listener");
+    }
+    m_volume_change_listener = listener;
+    LOGD("Added listener");
+}
+
+void AudioControlManager::unregisterVolumeChangeListener() {
+    LOGD("Enter");
+    int r = sound_manager_unset_master_volume_changed_cb();
+    if (SOUND_MANAGER_ERROR_NONE != r) {
+        LOGW("Failed to remove listener: %d", r);
+    }
+    m_volume_change_listener = NULL;
+}
+
+void AudioControlManager::volumeChangeCallback(
+        unsigned int /*volume*/,
+        void* /*user_data*/) {
+    LOGD("Enter");
+    try {
+        if (!getInstance().m_volume_change_listener) {
+            LOGD("Listener is null. Ignoring");
+            return;
+        }
+        u_int16_t val;
+        try {
+            val = getInstance().getVolume();
+        } catch (...) {
+            LOGE("Failed to retrieve volume level");
+        }
+        getInstance().m_volume_change_listener->onVolumeChangeCallback(val);
+    } catch (...) {
+        LOGE("Failed to call callback");
     }
 }
 

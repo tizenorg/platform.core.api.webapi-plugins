@@ -5,10 +5,16 @@
 // found in the LICENSE file.
 
 
-
 var native = new xwalk.utils.NativeManager(extension);
 var validator = xwalk.utils.validator;
 var types = validator.Types;
+
+
+/**
+ * @type {string}
+ * @const
+ */
+var VOLUME_CHANGE_LISTENER = 'VolumeChangeCallback';
 
 
 
@@ -126,7 +132,19 @@ AudioControlManager.prototype.getVolume = function() {
  * @param {!function} listener The method to invoke when the volume has been changed.
  */
 AudioControlManager.prototype.setVolumeChangeListener = function(listener) {
-  return undefined;
+  var args = validator.validateArgs(arguments, [
+    {name: 'listener', type: types.FUNCTION}
+  ]);
+
+  native.removeListener(VOLUME_CHANGE_LISTENER);
+
+  var ret = native.callSync('AudioControlManager_setVolumeChangeListener');
+
+  if (native.isFailure(ret)) {
+    throw native.getErrorObject(ret);
+  }
+
+  native.addListener(VOLUME_CHANGE_LISTENER, args.listener);
 };
 
 
@@ -134,7 +152,13 @@ AudioControlManager.prototype.setVolumeChangeListener = function(listener) {
  * Unregisters the volume change callback for detecting the volume changes.
  */
 AudioControlManager.prototype.unsetVolumeChangeListener = function() {
-  return undefined;
+    var ret = native.callSync('AudioControlManager_unsetVolumeChangeListener');
+
+    if (native.isFailure(ret)) {
+      throw native.getErrorObject(ret);
+    }
+
+  native.removeListener(VOLUME_CHANGE_LISTENER);
 };
 
 

@@ -17,6 +17,12 @@ enum AudioOutputMode {
   AAC
 };
 
+class VolumeChangeListener {
+ public:
+    virtual void onVolumeChangeCallback(u_int16_t volume) = 0;
+    virtual ~VolumeChangeListener();
+};
+
 class AudioControlManager {
  public:
     void setMute(bool mute);
@@ -26,6 +32,9 @@ class AudioControlManager {
     void setVolumeDown();
     u_int16_t getVolume();
     AudioOutputMode getOutputMode();
+    void registerVolumeChangeListener(VolumeChangeListener* listener);
+    void unregisterVolumeChangeListener();
+    static void volumeChangeCallback(unsigned int volume, void* user_data);
 
     // Not copyable, assignable, movable
     AudioControlManager(AudioControlManager const&) = delete;
@@ -33,8 +42,10 @@ class AudioControlManager {
     AudioControlManager(AudioControlManager &&) = delete;
 
     static AudioControlManager& getInstance();
+
  private:
     u_int16_t m_volume_step;
+    VolumeChangeListener* m_volume_change_listener;
 
     AudioControlManager();
     virtual ~AudioControlManager();

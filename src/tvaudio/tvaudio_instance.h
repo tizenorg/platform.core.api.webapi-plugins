@@ -7,10 +7,14 @@
 
 #include "common/extension.h"
 
+#include "tvaudio/tvaudio_manager.h"
+
 namespace extension {
 namespace tvaudio {
 
-class TVAudioInstance : public common::ParsedInstance {
+class TVAudioInstance :
+        public common::ParsedInstance,
+        public VolumeChangeListener {
  public:
     TVAudioInstance();
     virtual ~TVAudioInstance();
@@ -23,6 +27,10 @@ class TVAudioInstance : public common::ParsedInstance {
     void setVolumeDown(const picojson::value& args, picojson::object& out);
     void getVolume(const picojson::value& args, picojson::object& out);
     void getOutputMode(const picojson::value& args, picojson::object& out);
+    void setVolumeChangeListener(const picojson::value& args, picojson::object& out);
+    void unsetVolumeChangeListener(const picojson::value& args, picojson::object& out);
+
+    virtual void onVolumeChangeCallback(u_int16_t volume);
 };
 
 }  // namespace tvaudio
