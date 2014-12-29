@@ -14,7 +14,6 @@
         'time/time.gyp:*',
         'utils/utils.gyp:*',
         'messageport/messageport.gyp:*',
-        #'datasync/datasync.gyp:*',
         'archive/archive.gyp:*',
         'exif/exif.gyp:*',
         'websetting/websetting.gyp:*',
@@ -49,6 +48,7 @@
               'tvdisplay/tvdisplay.gyp:*',
               'tvaudio/tvaudio.gyp:*',
               'tvchannel/tvchannel.gyp:*',
+              'tvinputdevice/tvinputdevice.gyp:*',
             ],
           },
         ], # end tv
