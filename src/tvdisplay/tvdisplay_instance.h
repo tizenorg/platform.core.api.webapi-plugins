@@ -5,6 +5,10 @@
 #ifndef SRC_TVDISPLAY_TVDISPLAY_INSTANCE_H_
 #define SRC_TVDISPLAY_TVDISPLAY_INSTANCE_H_
 
+#include <memory>
+#include <string>
+#include <vector>
+
 #include "common/extension.h"
 #include "common/picojson.h"
 
@@ -28,6 +32,12 @@ class TVDisplayInstance : public common::ParsedInstance {
     void GetSupported3DEffectModeList(
         const picojson::value& value,
         picojson::object& out);
+
+    void GetSupported3DEffectModeListTask(
+        std::shared_ptr<picojson::object> const& data);
+
+    void GetSupported3DEffectModeListTaskAfter(
+        std::shared_ptr<picojson::object> const& data);
 
  public:
     static TVDisplayInstance* getInstance();

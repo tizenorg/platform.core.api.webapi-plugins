@@ -9,21 +9,54 @@
 
 #include <common/logger.h>
 #include <common/platform_exception.h>
+#include <common/task-queue.h>
 
 #include <cstdio>
-#include <string>
 #include <functional>
+#include <map>
+#include <memory>
+#include <string>
+#include <vector>
 
 
 namespace {
-  const char* kCmd = "cmd";
-  const char* kArg = "arg";
-  const char* kError = "error";
-  const char* kValue = "value";
-  const char* kNotImplemented = "Not implemented";
+    const char* kCmd = "cmd";
+    const char* kArg = "arg";
+    const char* kError = "error";
+    const char* kValue = "value";
+    const char* kResult = "result";
+    const char* kSuccess = "success";
+    const char* kNotImplemented = "Not implemented";
+    const char *kID = "callbackId";
 
-  const int kVCONF_SUCCESS = 0;
-  const char* kVCONF_3D_MODE_KEY = "db/menu/picture/3d/3dmode";
+    const int kVCONF_SUCCESS = 0;
+    const char* kVCONF_3D_MODE_KEY = "db/menu/picture/3d/3dmode";
+
+    const std::map<const int, const std::string> supported_3D_modes {
+        {SYSTEM_INFO_3D_MODE_OFF, "OFF"},
+        {SYSTEM_INFO_3D_MODE_TOP_BOTTOM, "TOP_BOTTOM"},
+        {SYSTEM_INFO_3D_MODE_SIDE_BY_SIDE, "SIDE_BY_SIDE"},
+        {SYSTEM_INFO_3D_MODE_CHECKER_BOARD, "CHECKER_BD"},
+        {SYSTEM_INFO_3D_MODE_LINE_BY_LINE, "LINE_BY_LINE"},
+        {SYSTEM_INFO_3D_MODE_VERTICAL_STRIPE, "VERTICAL_STRIPE"},
+        {SYSTEM_INFO_3D_MODE_FRAME_SEQUENTIAL, "FRAME_SEQUENCE"},
+        {SYSTEM_INFO_3D_MODE_2D_3D_CONVERSION, "FROM_2D_TO_3D"}
+    };
+
+    bool is_3D_enabled() {
+        LOGD("Enter");
+        bool is_supported = true;
+        int ret = system_info_get_value_bool(
+                SYSTEM_INFO_KEY_3D_EFFECT_SUPPORTED,
+                &is_supported);
+        if (SYSTEM_INFO_ERROR_NONE != ret) {
+            std::string message = "'system_info' error while "
+                    "getting 3d mode details: " + std::to_string(ret);
+            LOGE("%s", message.c_str());
+            throw common::UnknownException(message);
+        }
+        return is_supported;
+    }
 }  // namespace
 
 namespace extension {
@@ -40,7 +73,7 @@ TVDisplayInstance::TVDisplayInstance() {
         "TVDisplay_get3DEffectMode",
         std::bind(&TVDisplayInstance::Get3DEffectMode,
                 this, _1, _2));
-    RegisterSyncHandler(
+    RegisterHandler(
         "TVDisplay_getSupported3DEffectModeList",
         std::bind(&TVDisplayInstance::GetSupported3DEffectModeList,
                 this, _1, _2));
@@ -48,55 +81,126 @@ TVDisplayInstance::TVDisplayInstance() {
 
 TVDisplayInstance::~TVDisplayInstance() {}
 
+
 void TVDisplayInstance::Is3DModeEnabled(
         const picojson::value& value,
         picojson::object& out) {
-    LoggerD("Enter");
-    bool is_supported = true;
+    LOGD("Enter");
     picojson::value::object o;
-
-    int ret = system_info_get_value_bool(
-            SYSTEM_INFO_KEY_3D_EFFECT_SUPPORTED,
-            &is_supported);
-
-    if (SYSTEM_INFO_ERROR_NONE != ret) {
-        std::string err =
-            "'system_info' error while getting 3d mode details: "
-            + std::to_string(ret);
-        LoggerE("%s", err.c_str());
-        ReportError(common::UnknownException(err), out);
+    std::string mode = "NOT_SUPPORTED";
+    try {
+        if (is_3D_enabled()) {
+            mode = "READY";
+        }
+    } catch (const common::PlatformException & error) {
+        ReportError(error, out);
+        return;
     }
-    std::string mode = is_supported ? "READY" : "NOT_SUPPORTED";
-    LoggerD("3D Mode is: %s", mode.c_str());
+    LOGD("3D Mode is: %s", mode.c_str());
     ReportSuccess(picojson::value(mode), out);
 }
 
 void TVDisplayInstance::Get3DEffectMode(
         const picojson::value& value,
         picojson::object& out) {
-  LoggerD("Enter");
+    LOGD("Enter");
 
-  int mode = 0;
-  int ret = vconf_get_int(kVCONF_3D_MODE_KEY, &mode);
+    int mode = 0;
+    int ret = vconf_get_int(kVCONF_3D_MODE_KEY, &mode);
 
-  if (kVCONF_SUCCESS != ret) {
-      std::string err
-          = "Platform error while getting 3d mode details: "
-          + std::to_string(ret);
-      LoggerE("%s", err.c_str());
-      ReportError(common::UnknownException(err), out);
-  }
-  ReportSuccess(picojson::value(mode * 1.0), out);
+    if (kVCONF_SUCCESS != ret) {
+        std::string err
+            = "Platform error while getting 3d mode details: "
+            + std::to_string(ret);
+        LOGE("%s", err.c_str());
+        ReportError(common::UnknownException(err), out);
+    }
+    ReportSuccess(picojson::value(mode * 1.0), out);
 }
 
 void TVDisplayInstance::GetSupported3DEffectModeList(
         const picojson::value& value,
         picojson::object& out) {
-    LoggerD("Enter");
-    picojson::value::object o;
+    LOGD("Enter");
 
-    // TODO(m.wasowski2): temporary, should be made async
-    ReportSuccess(picojson::value(kNotImplemented), out);
+    std::shared_ptr <picojson::value::object> reply
+            = std::shared_ptr <picojson::value::object>(
+                    new picojson::value::object());
+
+    (*reply)[kID] = value.get(kID);
+
+    std::function <void(std::shared_ptr <picojson::object> const&)> task =
+            std::bind(
+                    &TVDisplayInstance::GetSupported3DEffectModeListTask,
+                    this,
+                    std::placeholders::_1);
+    std::function <void(std::shared_ptr <picojson::object> const&) > taskAfter =
+            std::bind(
+                    &TVDisplayInstance::GetSupported3DEffectModeListTaskAfter,
+                    this,
+                    std::placeholders::_1);
+    common::TaskQueue::GetInstance()
+            .Queue <picojson::object>(
+                    task,
+                    taskAfter,
+                    reply);
+    ReportSuccess(out);
+}
+
+void TVDisplayInstance::GetSupported3DEffectModeListTask(
+        std::shared_ptr<picojson::object> const& data) {
+    LOGD("Enter");
+
+    picojson::object & reply = (*data);
+    try {
+        std::vector <picojson::value> modes;
+        if (!is_3D_enabled()) {
+            LOGD("3D is disabled");
+            reply[kResult] = picojson::value(modes);
+            reply[kSuccess] = picojson::value(true);
+            return;
+        }
+        int flags = -1;
+        int result =  system_info_get_value_int(
+                SYSTEM_INFO_KEY_3D_EFFECT_MODE,
+                &flags);
+        if (SYSTEM_INFO_ERROR_NONE != result) {
+            const char * kMessage =
+                    "Fetching SYSTEM_INFO_KEY_3D_EFFECT_MODE failed";
+            LOGE("%s: %d", kMessage, result);
+            throw common::UnknownException(kMessage);
+        }
+
+        auto it = supported_3D_modes.begin();
+        for (it; it != supported_3D_modes.end(); ++it) {
+            if (it->first & flags) {
+                modes.push_back(picojson::value(it->second));
+            }
+        }
+
+        if (flags & SYSTEM_INFO_3D_MODE_FRAME_PACKING) {
+            LOGD("There is no FRAME_PACKING mode in TIZEN");
+        }
+        if (flags & SYSTEM_INFO_3D_MODE_FRAME_DUAL) {
+            LOGD("There is no FRAME_DUAL mode in TIZEN");
+        }
+
+        reply[kResult] = picojson::value(modes);
+        reply[kSuccess] = picojson::value(true);
+    } catch (common::PlatformException const& error) {
+        reply[kError] = error.ToJSON();
+        reply[kSuccess] = picojson::value(false);
+    } catch (...) {
+        LOGE("Unknown exception caught");
+    }
+}
+
+void TVDisplayInstance::GetSupported3DEffectModeListTaskAfter(
+        std::shared_ptr<picojson::object> const& data) {
+    LOGD("Enter");
+    picojson::value out(*data);
+    std::string serialized(out.serialize());
+    PostMessage(serialized.c_str());
 }
 
 }  // namespace tvdisplay
