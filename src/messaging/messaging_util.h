@@ -11,7 +11,7 @@
 #include "common/logger.h"
 #include "common/picojson.h"
 
-#include "MsgCommon/SortMode.h";
+#include "MsgCommon/SortMode.h"
 #include "MsgCommon/AttributeFilter.h"
 #include "MsgCommon/AbstractFilter.h"
 
