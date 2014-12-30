@@ -21,7 +21,7 @@ var CalendarAlarm = function(time, method, description) {
         return _absoluteDate;
       },
       set: function(v) {
-        _absoluteDate = v instanceof tizen.TZDate && !this.before ? v : null;
+        _absoluteDate = v instanceof tizen.TZDate && !_before ? v : null;
       },
       enumerable: true
     },
@@ -30,7 +30,7 @@ var CalendarAlarm = function(time, method, description) {
         return _before;
       },
       set: function(v) {
-        _before = v instanceof tizen.TimeDuration && !this.absoluteDate ? v : null;
+        _before = v instanceof tizen.TimeDuration && !_absoluteDate ? v : null;
       },
       enumerable: true
     },
