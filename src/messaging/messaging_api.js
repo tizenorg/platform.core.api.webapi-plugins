@@ -920,6 +920,12 @@ MessageStorage.prototype.removeConversations = function () {
         {name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true}
     ]);
 
+    args.conversations.forEach(function (el) {
+        if (!el || el.constructor !== MessageConversation) {
+            throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR);
+        }
+    });
+
     var self = this;
 
     bridge.async({
