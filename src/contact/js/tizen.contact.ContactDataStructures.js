@@ -643,31 +643,41 @@ var ContactName = function(data) {
 var ContactRelationship = function(relativeName, type) {
   AV.isConstructorCall(this, ContactRelationship);
 
+  var _relativeName = Converter.toString(relativeName, false);
+  var _type = type ? Converter.toEnum(type, Object.keys(ContactRelationshipType), false)
+            : ContactRelationshipType.OTHER;
+  var _label = null;
+
   Object.defineProperties(this, {
     relativeName: {
-      value: Type.isString(relativeName) ? relativeName : null,
-      writable: true,
+      get: function () {
+        return _relativeName;
+      },
+      set: function (v) {
+        _relativeName = Converter.toString(v, false);
+      },
       enumerable: true
     },
     type: {
-      value: (Type.isNullOrUndefined(type) ? ContactRelationshipType.OTHER : type),
-      writable: true,
+      get: function () {
+        return _type;
+      },
+      set: function (v) {
+        _type = v ? Converter.toEnum(v, Object.keys(ContactRelationshipType), false)
+                  : _type;
+      },
       enumerable: true
     },
     label: {
-      value: null,
-      writable: true,
+      get: function () {
+        return _label;
+      },
+      set: function (v) {
+        _label = Converter.toString(v, true);
+      },
       enumerable: true
     }
   });
-
-  if (_editGuard.isEditEnabled()) {
-    for (var prop in arguments[0]) {
-      if (this.hasOwnProperty(prop)) {
-        this[prop] = arguments[0][prop];
-      }
-    }
-  }
 };
 
 var ContactInstantMessenger = function(imAddress, type) {
