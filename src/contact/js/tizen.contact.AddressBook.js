@@ -2,6 +2,9 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+var DEFAULT_ADDRESSBOOK_ID = '0';
+var UNIFIED_ADDRESSBOOK_ID = '-1';
+
 var _contactListenerRegistered = false;
 var _contactCallbackMap = {};
 
@@ -16,7 +19,7 @@ var _filterById = function(array, id) {
 };
 
 var _contactChangeListener = function(result) {
-  var unifiedId = -1;
+  var unifiedId = UNIFIED_ADDRESSBOOK_ID;
   var watchId;
   var i;
 
@@ -43,7 +46,7 @@ var _contactChangeListener = function(result) {
   }
 
   for (var callbackAddressbookId in _contactCallbackMap) {
-    if (callbackAddressbookId !== -1 &&
+    if (callbackAddressbookId !== UNIFIED_ADDRESSBOOK_ID &&
         _contactCallbackMap.hasOwnProperty(callbackAddressbookId)) {
 
       var filteredAdded = [];
@@ -83,53 +86,62 @@ var _contactChangeListener = function(result) {
 };
 
 
-var AddressBook = function(id, name, readOnly) {
+var AddressBook = function(accountId, name) {
   AV.isConstructorCall(this, AddressBook);
 
-  var _id = '';
-  var _name = '';
-  var _readOnly = false;
+  var id_ = null;
+  var name_ = '';
+  var readOnly_ = false;
+  var accountId_ = null;
 
-  if (Type.isString(id)) {
-    _id = id;
+  if (Type.isNumber(accountId)) {
+    accountId_ = accountId;
   }
   if (Type.isString(name)) {
-    _name = name;
-  }
-  if (Type.isBoolean(readOnly)) {
-    _readOnly = readOnly;
+    name_ = name;
   }
 
   Object.defineProperties(this, {
     id: {
       get: function() {
-        return _id;
+        return id_;
       },
       set: function(v) {
         if (_editGuard.isEditEnabled()) {
-          _id = Converter.toString(v, false);
+          id_ = Converter.toString(v, false);
+        }
+      },
+      enumerable: true
+    },
+    accountId: {
+      get: function() {
+        return accountId_;
+      },
+      set: function(v) {
+        if (_editGuard.isEditEnabled()) {
+          accountId_ = Converter.toLong(v, true);
         }
       },
       enumerable: true
     },
     name: {
       get: function() {
-        return _name;
+        return name_;
       },
       set: function(v) {
         if (_editGuard.isEditEnabled()) {
-          _name = Converter.toString(v, false);
+          name_ = Converter.toString(v, false);
         }
       },
       enumerable: true
     },
     readOnly: {
       get: function() {
-        return _readOnly;
+        return readOnly_;
       },
       set: function(v) {
         if (_editGuard.isEditEnabled()) {
-          _readOnly = Converter.toBoolean(v, false);
+          readOnly_ = Converter.toBoolean(v, false);
         }
       },
       enumerable: true

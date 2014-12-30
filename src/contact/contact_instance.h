@@ -71,6 +71,9 @@ class ContactInstance : public common::ParsedInstance {
    */
   void ContactManager_getAddressBook(const JsonValue& args, JsonObject& out);
 
+  void ContactManager_addAddressBook(const JsonValue& args, JsonObject& out);
+  void ContactManager_removeAddressBook(const JsonValue& args, JsonObject& out);
+
   /**
    * Signature: @code Person get(personId); @endcode
    * JSON: @code data: {method: 'ContactManager_get',

@@ -36,6 +36,8 @@ ContactInstance::ContactInstance() {
   // Contact Manager
   REGISTER_ASYNC("ContactManager_getAddressBooks", ContactManager_getAddressBooks);
   REGISTER_SYNC("ContactManager_getAddressBook", ContactManager_getAddressBook);
+  REGISTER_SYNC("ContactManager_addAddressBook", ContactManager_addAddressBook);
+  REGISTER_SYNC("ContactManager_removeAddressBook", ContactManager_removeAddressBook);
   REGISTER_SYNC("ContactManager_get", ContactManager_get);
   REGISTER_SYNC("ContactManager_update", ContactManager_update);
   REGISTER_ASYNC("ContactManager_updateBatch", ContactManager_updateBatch);
@@ -283,10 +285,23 @@ void ContactInstance::ContactManager_getAddressBooks(const JsonValue& args, Json
       std::shared_ptr<JsonValue>(new JsonValue(JsonObject())));
 }
 
-void ContactInstance::ContactManager_getAddressBook(const JsonValue& args,
-                                                    JsonObject& out) {
+void ContactInstance::ContactManager_getAddressBook(const JsonValue& args, JsonObject& out) {
   JsonValue val{JsonObject{}};
   ContactManager::ContactManager_getAddressBook(
+      common::JsonCast<JsonObject>(args), val.get<JsonObject>());
+  ReportSuccess(val, out);
+}
+
+void ContactInstance::ContactManager_addAddressBook(const JsonValue& args, JsonObject& out) {
+  JsonValue val{JsonObject{}};
+  ContactManager::ContactManager_addAddressBook(
+      common::JsonCast<JsonObject>(args), val.get<JsonObject>());
+  ReportSuccess(val, out);
+}
+
+void ContactInstance::ContactManager_removeAddressBook(const JsonValue& args, JsonObject& out) {
+  JsonValue val{JsonObject{}};
+  ContactManager::ContactManager_removeAddressBook(
       common::JsonCast<JsonObject>(args), val.get<JsonObject>());
   ReportSuccess(val, out);
 }

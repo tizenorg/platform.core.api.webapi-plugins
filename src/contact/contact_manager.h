@@ -28,6 +28,10 @@ void ContactManager_getAddressBooks(const JsonObject& args, JsonArray& out);
 
 void ContactManager_getAddressBook(const JsonObject& args, JsonObject& out);
 
+void ContactManager_addAddressBook(const JsonObject& args, JsonObject& out);
+
+void ContactManager_removeAddressBook(const JsonObject& args, JsonObject& out);
+
 void ContactManager_get(const JsonObject& args, JsonObject& out);
 
 void ContactManager_update(const JsonObject& args, JsonObject&);

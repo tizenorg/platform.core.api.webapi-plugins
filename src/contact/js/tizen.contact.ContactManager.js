@@ -52,7 +52,13 @@ ContactManager.prototype.getAddressBooks = function() {
       var tmp = [];
 
       books.forEach(function(data) {
-        tmp.push(new AddressBook(data.id, data.name, data.readOnly));
+        return _editGuard.run(function() {
+          var addressBook = new AddressBook(result.accountId, result.name);
+          addressBook.id = data.id;
+          addressBook.readOnly = result.readOnly;
+
+          tmp.push(addressBook);
+        });
       });
 
       native_.callIfPossible(args.successCallback, tmp);
@@ -71,13 +77,19 @@ ContactManager.prototype.getUnifiedAddressBook = function() {
   //      'You do not have privileges for this operation');
   //}
 
-  return new AddressBook(-1, 'Unified address book', false);
+  return _editGuard.run(function() {
+    var addressBook = new AddressBook(0, 'Unified address book');
+    addressBook.id = UNIFIED_ADDRESSBOOK_ID;
+    addressBook.readOnly = false;
+
+    return addressBook;
+  });
 };
 
 // Gets the default address book.
 ContactManager.prototype.getDefaultAddressBook = function() {
   //privileges are checked in getAddressBook function
-  return this.getAddressBook(0);
+  return this.getAddressBook(DEFAULT_ADDRESSBOOK_ID);
 };
 
 // Gets the address book with the specified identifier.
@@ -95,7 +107,7 @@ ContactManager.prototype.getAddressBook = function() {
   }
 
   var result = native_.callSync('ContactManager_getAddressBook', {
-    addressBookID: args.addressBookId
+    addressBookId: args.addressBookId
   });
 
   if (native_.isFailure(result)) {
@@ -104,7 +116,72 @@ ContactManager.prototype.getAddressBook = function() {
 
   result = native_.getResultObject(result);
 
-  return new AddressBook(args.addressBookId, result.name, Boolean(result.readOnly === 'true'));
+  return _editGuard.run(function() {
+    var addressBook = new AddressBook(result.accountId, result.name);
+    addressBook.id = args.addressBookId;
+    addressBook.readOnly = result.readOnly;
+
+    return addressBook;
+  });
+};
+
+ContactManager.prototype.addAddressBook = function() {
+  var args = AV.validateArgs(arguments, [{
+    name: 'addressBook',
+    type: AV.Types.PLATFORM_OBJECT,
+    values: tizen.AddressBook,
+    optional: false,
+    nullable: false
+  }]);
+
+  var result = native_.callSync('ContactManager_addAddressBook', {
+    addressBook: args.addressBook
+  });
+
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
+  }
+
+  var data = native_.getResultObject(result);
+  _editGuard.run(function() {
+    for (var prop in data) {
+      if (args.addressBook.hasOwnProperty(prop)) {
+        args.addressBook[prop] = data[prop];
+      }
+    }
+  });
+};
+
+ContactManager.prototype.removeAddressBook = function() {
+  // TCT: ContactManager_removeAddressBook_misarg
+  if (Type.isNullOrUndefined(arguments[0])) {
+    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
+  }
+
+  var args = AV.validateArgs(arguments, [{
+    name: 'addressBookId',
+    type: AV.Types.STRING,
+    optional: false,
+    nullable: false
+  }]);
+
+  if (args.addressBookId === UNIFIED_ADDRESSBOOK_ID) {
+    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR,
+        'Unified address book can not be deleted');
+  }
+
+  if (args.addressBookId === DEFAULT_ADDRESSBOOK_ID) {
+    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR,
+        'Default address book can not be deleted');
+  }
+
+  var result = native_.callSync('ContactManager_removeAddressBook', {
+    addressBookId: args.addressBookId
+  });
+
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
+  }
 };
 
 // Gets the person with the specified identifier.

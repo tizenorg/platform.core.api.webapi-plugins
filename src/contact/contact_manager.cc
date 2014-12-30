@@ -77,21 +77,19 @@ void ContactManager_getAddressBooks(const JsonObject &args, JsonArray &out) {
     }
 
     int id = 0;
+    int account_id = 0;
     int mode = 0;
     char *name = nullptr;
-    try {
-      ContactUtil::GetIntFromRecord(contacts_record, _contacts_address_book.id, &id);
-      ContactUtil::GetIntFromRecord(contacts_record, _contacts_address_book.mode, &mode);
-      ContactUtil::GetStrFromRecord(contacts_record, _contacts_address_book.name, &name);
-    }
-    catch (...) {
-      LoggerW("Fail to get data from address book");
-      continue;
-    }
+    ContactUtil::GetIntFromRecord(contacts_record, _contacts_address_book.id, &id);
+    ContactUtil::GetIntFromRecord(contacts_record, _contacts_address_book.account_id, &account_id);
+    ContactUtil::GetIntFromRecord(contacts_record, _contacts_address_book.mode, &mode);
+    ContactUtil::GetStrFromRecord(contacts_record, _contacts_address_book.name, &name);
 
     JsonValue single = JsonValue(JsonObject());
     JsonObject &single_obj = single.get<JsonObject>();
+
     single_obj["id"] = JsonValue(std::to_string(id));
+    single_obj["accountId"] = JsonValue(static_cast<double>(account_id));
     single_obj["name"] = JsonValue(name);
     single_obj["readOnly"] = JsonValue(CONTACTS_ADDRESS_BOOK_MODE_READONLY == mode);
     out.push_back(single);
@@ -104,35 +102,34 @@ void ContactManager_getAddressBook(const JsonObject& args, JsonObject& out) {
   ContactUtil::CheckDBConnection();
   long address_book_id;
   try {
-    address_book_id = common::stol(FromJson<JsonString>(args, "addressBookID"));
-  }
-  catch (const common::InvalidValuesException&) {
+    address_book_id = common::stol(FromJson<JsonString>(args, "addressBookId"));
+  } catch (const common::InvalidValuesException&) {
     throw common::NotFoundException("Invalid id");
   }
 
   contacts_record_h contacts_record;
   int error_code = contacts_db_get_record(_contacts_address_book._uri,
-                                          address_book_id, &contacts_record);
+      static_cast<int>(address_book_id), &contacts_record);
   if (CONTACTS_ERROR_NONE != error_code || nullptr == contacts_record) {
     LoggerE("Fail to get addressbook record, error code: %d", error_code);
     throw NotFoundException("Fail to get address book with given id");
   }
 
-  ContactUtil::ContactsRecordHPtr contacts_record_ptr(
-      &contacts_record, ContactUtil::ContactsDeleter);
+  ContactUtil::ContactsRecordHPtr contacts_record_ptr(&contacts_record,
+      ContactUtil::ContactsDeleter);
 
-  int mode = 0;
-  ContactUtil::GetIntFromRecord(contacts_record, _contacts_address_book.mode,
-                                &mode);
+  int account_id;
+  ContactUtil::GetIntFromRecord(contacts_record, _contacts_address_book.account_id, &account_id);
 
-  char* name = nullptr;
-  ContactUtil::GetStrFromRecord(contacts_record, _contacts_address_book.name,
-                                &name);
+  int mode;
+  ContactUtil::GetIntFromRecord(contacts_record, _contacts_address_book.mode, &mode);
 
+  char* name;
+  ContactUtil::GetStrFromRecord(contacts_record, _contacts_address_book.name, &name);
+
+  out.insert(std::make_pair("accountId", static_cast<double>(account_id)));
   out.insert(std::make_pair("name", std::string(name)));
-  out.insert(std::make_pair(
-      "readOnly",
-      ((CONTACTS_ADDRESS_BOOK_MODE_READONLY == mode) ? "true" : "false")));
+  out.insert(std::make_pair("readOnly", (CONTACTS_ADDRESS_BOOK_MODE_READONLY == mode)));
 }
 
 namespace {
@@ -150,6 +147,72 @@ void ContactManager_get_internal(int person_id, JsonObject* out) {
 
   ContactUtil::ImportPersonFromContactsRecord(contacts_record, out);
 }
+}
+
+void ContactManager_addAddressBook(const JsonObject &args, JsonObject &out) {
+  ContactUtil::CheckDBConnection();
+
+  const JsonObject &addressBook = FromJson<JsonObject>(args, "addressBook");
+
+  if (!IsNull(addressBook, "id")) {
+    LoggerW("AddressBook already exists");
+    throw common::UnknownException("AddressBook already exists");
+  }
+
+  contacts_record_h contacts_record;
+  int ret = contacts_record_create(_contacts_address_book._uri, &contacts_record);
+  if (CONTACTS_ERROR_NONE != ret) {
+    LoggerE("Failed to create address book record, error code : %d", ret);
+    throw UnknownException("Failed to create address book record");
+  }
+  ContactUtil::ContactsRecordHPtr contacts_record_ptr(&contacts_record,
+      ContactUtil::ContactsDeleter);
+
+  ContactUtil::SetStrInRecord(contacts_record, _contacts_address_book.name,
+      FromJson<JsonString>(addressBook, "name").c_str());
+
+  contacts_address_book_mode_e mode = FromJson<bool>(addressBook, "readOnly") ?
+      CONTACTS_ADDRESS_BOOK_MODE_READONLY : CONTACTS_ADDRESS_BOOK_MODE_NONE;
+  ContactUtil::SetIntInRecord(contacts_record, _contacts_address_book.mode,
+      static_cast<int>(mode));
+
+  double account_id = FromJson<double>(addressBook, "accountId");
+  ContactUtil::SetIntInRecord(contacts_record, _contacts_address_book.account_id,
+      static_cast<int>(account_id));
+
+  int address_book_id;
+  ret = contacts_db_insert_record(*contacts_record_ptr, &address_book_id);
+  if (CONTACTS_ERROR_NONE != ret) {
+    LoggerE("Failed to insert address book record, error code: %d", ret);
+    throw UnknownException("Failed to insert address book record");
+  }
+
+  out.insert(std::make_pair("id", std::to_string(address_book_id)));
+}
+
+void ContactManager_removeAddressBook(const JsonObject &args, JsonObject &out) {
+  ContactUtil::CheckDBConnection();
+  long address_book_id;
+  try {
+    address_book_id = common::stol(FromJson<JsonString>(args, "addressBookId"));
+  } catch (const common::InvalidValuesException&) {
+    throw common::NotFoundException("Invalid id");
+  }
+
+  contacts_record_h contacts_record;
+  int error_code = contacts_db_get_record(_contacts_address_book._uri,
+      static_cast<int>(address_book_id), &contacts_record);
+  if (CONTACTS_ERROR_NONE != error_code || nullptr == contacts_record) {
+    LoggerE("Fail to get addressbook record, error code: %d", error_code);
+    throw NotFoundException("Fail to get address book with given id");
+  }
+
+  int ret = contacts_db_delete_record(_contacts_address_book._uri,
+      static_cast<int>(address_book_id));
+  if (CONTACTS_ERROR_NONE != ret) {
+    LOGE("Failed to delete address book record, error code : %d", ret);
+    throw UnknownException("Failed to delete address book record");
+  }
 }
 
 void ContactManager_get(const JsonObject& args, JsonObject& out) {
