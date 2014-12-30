@@ -33,6 +33,7 @@
 #include "common/logger.h"
 #include "common/platform_exception.h"
 
+#include "conversation_callback_data.h"
 #include "messaging_database_manager.h"
 #include "messaging_manager.h"
 
@@ -809,65 +810,65 @@ std::pair<int, email_mail_data_t*> MessagingDatabaseManager::findEmails(
 //    freeTable(&results);
 //    return conversationsIds;
 //}
-//
-//std::vector<EmailConversationInfo> MessagingDatabaseManager::findEmailConversations(
-//        ConversationCallbackData* callback)
-//{
-//    LOGD("Entered");
-//    std::ostringstream sqlWhereClause;
-//    int resultsCount;
-//    email_mail_data_t* results;
-//    std::map<int, int> conversationsBag;
-//    std::vector<EmailConversationInfo> conversationsInfo;
-//
-//    // Adding filters query
-//    AbstractFilterPtr filter = callback->getFilter();
-//    SortModePtr sortMode = callback->getSortMode();
-//    long limit = callback->getLimit();
-//    long offset = callback->getOffset();
-//    MessageType msgType = callback->getMessageServiceType();
-//    int accountId = callback->getAccountId();
-//
-//    sqlWhereClause << "WHERE "
-//            << m_email_conv_attr_map["serviceId"].sql_name << " = " << accountId << " AND "
-//            << addFilters(filter, sortMode, limit, offset, m_email_conv_attr_map, msgType);
-//    LOGD("%s", sqlWhereClause.str().c_str());
-//
-//    // Getting results from database
-//    msg_error_t err = email_query_mails(const_cast<char*>(sqlWhereClause.str().c_str()),
-//                &results, &resultsCount);
-//    if (EMAIL_ERROR_NONE != err) {
-//        LOGE("Getting mail list fail [%d]", err);
-//
-//        if (EMAIL_ERROR_MAIL_NOT_FOUND == err) {
-//            resultsCount = 0;
-//        } else {
-//            throw UnknownException("Error while getting data from database.");
-//        }
-//    }
-//
-//    // Assigning found emails to conversation
-//    for (int i = 0; i < resultsCount; ++i) {
-//        if (conversationsBag.find(results[i].thread_id) == conversationsBag.end()) {
-//            EmailConversationInfo info;
-//            info.id = results[i].thread_id;
-//            conversationsInfo.push_back(info);
-//            conversationsBag.insert(std::make_pair(results[i].thread_id, 0));
-//        }
-//
-//        if (!(static_cast<bool>(results[i].flags_seen_field))) {
-//            ++conversationsBag[results[i].thread_id];
-//        }
-//    }
-//
-//    for (std::vector<EmailConversationInfo>::iterator it = conversationsInfo.begin();
-//            it != conversationsInfo.end(); ++it) {
-//        (*it).unreadMessages = conversationsBag[(*it).id];
-//    }
-//
-//    email_free_mail_data(&results, resultsCount);
-//    return conversationsInfo;
-//}
+
+std::vector<EmailConversationInfo> MessagingDatabaseManager::findEmailConversations(
+        ConversationCallbackData* callback)
+{
+    LoggerD("Entered");
+    std::ostringstream sqlWhereClause;
+    int resultsCount;
+    email_mail_data_t* results;
+    std::map<int, int> conversationsBag;
+    std::vector<EmailConversationInfo> conversationsInfo;
+
+    // Adding filters query
+    AbstractFilterPtr filter = callback->getFilter();
+    SortModePtr sortMode = callback->getSortMode();
+    long limit = callback->getLimit();
+    long offset = callback->getOffset();
+    MessageType msgType = callback->getMessageServiceType();
+    int accountId = callback->getAccountId();
+
+    sqlWhereClause << "WHERE "
+            << m_email_conv_attr_map["serviceId"].sql_name << " = " << accountId << " AND "
+            << addFilters(filter, sortMode, limit, offset, m_email_conv_attr_map, msgType);
+    LoggerD("%s", sqlWhereClause.str().c_str());
+
+    // Getting results from database
+    msg_error_t err = email_query_mails(const_cast<char*>(sqlWhereClause.str().c_str()),
+                &results, &resultsCount);
+    if (EMAIL_ERROR_NONE != err) {
+        LoggerE("Getting mail list fail [%d]", err);
+
+        if (EMAIL_ERROR_MAIL_NOT_FOUND == err) {
+            resultsCount = 0;
+        } else {
+            throw UnknownException("Error while getting data from database.");
+        }
+    }
+
+    // Assigning found emails to conversation
+    for (int i = 0; i < resultsCount; ++i) {
+        if (conversationsBag.find(results[i].thread_id) == conversationsBag.end()) {
+            EmailConversationInfo info;
+            info.id = results[i].thread_id;
+            conversationsInfo.push_back(info);
+            conversationsBag.insert(std::make_pair(results[i].thread_id, 0));
+        }
+
+        if (!(static_cast<bool>(results[i].flags_seen_field))) {
+            ++conversationsBag[results[i].thread_id];
+        }
+    }
+
+    for (std::vector<EmailConversationInfo>::iterator it = conversationsInfo.begin();
+            it != conversationsInfo.end(); ++it) {
+        (*it).unreadMessages = conversationsBag[(*it).id];
+    }
+
+    email_free_mail_data(&results, resultsCount);
+    return conversationsInfo;
+}
 
 } // Messaging
 } // DeviceAPI

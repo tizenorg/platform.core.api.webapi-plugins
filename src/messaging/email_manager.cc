@@ -1108,73 +1108,73 @@ void EmailManager::findMessages(FindMsgCallbackUserData* callback)
     callback = NULL;
 }
 
-//void EmailManager::findConversations(ConversationCallbackData* callback)
-//{
-//    LoggerE("Entered");
-//
-//    if(!callback){
-//        LoggerE("Callback is null");
-//        return;
-//    }
-//
-//    int convListCount = 0;
-//    try {
-//        std::lock_guard<std::mutex> lock(m_mutex);
-//        std::vector<EmailConversationInfo> conversationsInfo =
-//                MessagingDatabaseManager::getInstance().findEmailConversations(callback);
-//        convListCount = conversationsInfo.size();
-//        LoggerD("Found %d conversations", convListCount);
-//
-//        for (int i = 0; i < convListCount; ++i) {
-//            std::shared_ptr<MessageConversation> conversation =
-//                    MessageConversation::convertEmailConversationToObject(conversationsInfo.at(i).id);
-//            conversation->setUnreadMessages(conversationsInfo.at(i).unreadMessages);
-//            callback->addConversation(conversation);
-//        }
-//    } catch (const BasePlatformException& err) {
-//        LoggerE("%s (%s)", (err.getName()).c_str(), (err.getMessage()).c_str());
-//        callback->setError(err.getName(), err.getMessage());
-//    } catch (...) {
-//        LoggerE("Conversation find failed");
-//        callback->setError(JSWebAPIErrorFactory::UNKNOWN_ERROR, "Conversation find failed");
-//    }
-//
-//    //Complete task
-//    LoggerD("callback: %p error:%d conversations.size()=%d", callback, callback->isError(),
-//            callback->getConversations().size());
-//
-//    JSContextRef context = callback->getContext();
-//    if (!GlobalContextManager::getInstance()->isAliveGlobalContext(context)) {
-//        LoggerE("context was closed");
-//        delete callback;
-//        callback = NULL;
-//        return;
-//    }
-//
-//    try {
-//        if (callback->isError()) {
-//            LoggerD("Calling error callback");
-//            JSObjectRef errobj = JSWebAPIErrorFactory::makeErrorObject(context,
-//                    callback->getErrorName(),
-//                    callback->getErrorMessage());
-//            callback->callErrorCallback(errobj);
-//        } else {
-//            LoggerD("Calling success callback");
-//            callback->callSuccessCallback(
-//                    MessagingUtil::vectorToJSObjectArray<ConversationPtr,
-//                    JSMessageConversation>(context,
-//                            callback->getConversations()));
-//        }
-//    } catch (const BasePlatformException& err) {
-//        LoggerE("Error while calling findConversations callback: %s (%s)",
-//                (err.getName()).c_str(), (err.getMessage()).c_str());
-//    } catch (...) {
-//        LoggerE("Failed to call findConversations callback.");
-//    }
-//
-//    delete callback;
-//    callback = NULL;
-//}
+void EmailManager::findConversations(ConversationCallbackData* callback)
+{
+    LoggerE("Entered");
+
+    if(!callback){
+        LoggerE("Callback is null");
+        return;
+    }
+
+    int convListCount = 0;
+    try {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        std::vector<EmailConversationInfo> conversationsInfo =
+                MessagingDatabaseManager::getInstance().findEmailConversations(callback);
+        convListCount = conversationsInfo.size();
+        LoggerD("Found %d conversations", convListCount);
+
+        for (int i = 0; i < convListCount; ++i) {
+            std::shared_ptr<MessageConversation> conversation =
+                    MessageConversation::convertEmailConversationToObject(conversationsInfo.at(i).id);
+            conversation->setUnreadMessages(conversationsInfo.at(i).unreadMessages);
+            callback->addConversation(conversation);
+        }
+
+    } catch (const PlatformException& err) {
+        LoggerE("%s (%s)", (err.name()).c_str(), (err.message()).c_str());
+        callback->setError(err.name(), err.message());
+    } catch (...) {
+        LoggerE("Conversation find failed");
+        UnknownException ex("Conversation find failed");
+        callback->setError(ex.name(), ex.message());
+    }
+
+    //Complete task
+    LoggerD("callback: %p error:%d conversations.size()=%d", callback, callback->isError(),
+            callback->getConversations().size());
+
+    try {
+        if (callback->isError()) {
+            LoggerD("Calling error callback");
+            MessagingInstance::getInstance().PostMessage(callback->getJson()->serialize().c_str());
+        } else {
+            LoggerD("Calling success callback");
+            auto json = callback->getJson();
+            picojson::object& obj = json->get<picojson::object>();
+
+            std::vector<picojson::value> response;
+            auto messages = callback->getConversations();
+            std::for_each(messages.begin(), messages.end(),
+                    [&response](std::shared_ptr<MessageConversation> &conversation) {
+                        response.push_back(MessagingUtil::conversationToJson(conversation));
+                    }
+            );
+            obj[JSON_DATA] = picojson::value(response);
+            obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
+            MessagingInstance::getInstance().PostMessage(json->serialize().c_str());
+        }
+    } catch (const common::PlatformException& err) {
+        LoggerE("Error while calling findConversations callback: %s (%s)",
+                (err.name()).c_str(), (err.message()).c_str());
+    } catch (...) {
+        LoggerE("Failed to call findConversations callback.");
+    }
+
+    delete callback;
+    callback = NULL;
+}
 
 long EmailManager::getUniqueOpId()
 {

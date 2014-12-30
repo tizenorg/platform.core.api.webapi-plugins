@@ -63,7 +63,7 @@ public:
     void removeMessages(MessagesCallbackUserData* callback);
     void updateMessages(MessagesCallbackUserData* callback);
     void findMessages(FindMsgCallbackUserData* callback);
-//    void findConversations(ConversationCallbackData* callback);
+    void findConversations(ConversationCallbackData* callback);
 //    void findFolders(FoldersCallbackData* callback);
     void removeConversations(ConversationCallbackData* callback);
 
