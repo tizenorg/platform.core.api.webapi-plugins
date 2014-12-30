@@ -15,7 +15,6 @@
 #include "common/current_application.h"
 #include "common/picojson.h"
 #include "common/logger.h"
-#include "common/platform_exception.h"
 #include "archive_callback_data.h"
 #include "archive_manager.h"
 #include "archive_utils.h"
@@ -26,7 +25,6 @@ namespace extension {
 namespace archive {
 
 using namespace common;
-
 
 ArchiveInstance& ArchiveInstance::getInstance()
 {
@@ -64,6 +62,22 @@ ArchiveInstance::~ArchiveInstance() {
     LoggerD("Entered");
 }
 
+
+void ArchiveInstance::PostError(const PlatformException& e, double callback_id) {
+    picojson::value val = picojson::value(picojson::object());
+    picojson::object& obj = val.get<picojson::object>();
+    obj[JSON_CALLBACK_ID] = picojson::value(callback_id);
+    obj[JSON_DATA] = picojson::value(picojson::object());
+
+    picojson::object& args = obj[JSON_DATA].get<picojson::object>();
+    obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_ERROR);
+
+    args[ERROR_CALLBACK_NAME] = picojson::value(e.name());
+    args[ERROR_CALLBACK_MESSAGE] = picojson::value(e.message());
+
+    ArchiveInstance::getInstance().PostMessage(val.serialize().c_str());
+}
+
 void ArchiveInstance::Open(const picojson::value& args, picojson::object& out) {
     LoggerD("Entered");
     LoggerD("%s", args.serialize().c_str());
@@ -93,8 +107,17 @@ void ArchiveInstance::Open(const picojson::value& args, picojson::object& out) {
 
         std::string location_full_path = v_file.get<std::string>();
 
+        NodePtr node;
         try {
-            NodePtr node = Node::resolve(Path::create(location_full_path));
+            node = Node::resolve(Path::create(location_full_path));
+        } catch (PlatformException& e) {
+            LoggerE("Filesystem exception - calling error callback");
+            PostError(e, callbackId);
+            delete callback;
+            callback = NULL;
+            return;
+        }
+        try {
             file_ptr = FilePtr(new File(node, File::PermissionList()));
             LoggerD("open: %s mode: 0x%x overwrite: %d", location_full_path.c_str(), fm, overwrite);
 
@@ -195,10 +218,18 @@ void ArchiveInstance::Add(const picojson::value& args, picojson::object& out)
 
     AddProgressCallback *callback = new AddProgressCallback();
 
+    NodePtr node;
     try {
-        NodePtr node = Node::resolve(Path::create(v_source.get<std::string>()));
+        node = Node::resolve(Path::create(v_source.get<std::string>()));
+    } catch (PlatformException& e) {
+        LoggerE("Filesystem exception - calling error callback");
+        PostError(e, callbackId);
+        delete callback;
+        callback = NULL;
+        return;
+    }
+    try {
         FilePtr file_ptr = FilePtr(new File(node, File::PermissionList()));
-
         ArchiveFileEntryPtr afep = ArchiveFileEntryPtr(
                 new ArchiveFileEntry(file_ptr));
 
@@ -243,8 +274,17 @@ void ArchiveInstance::ExtractAll(const picojson::value& args, picojson::object& 
 
     ExtractAllProgressCallback *callback = new ExtractAllProgressCallback();
 
+    NodePtr node;
     try {
-        NodePtr node = Node::resolve(Path::create(v_dest_dir.get<std::string>()));
+        node = Node::resolve(Path::create(v_dest_dir.get<std::string>()));
+    } catch (PlatformException& e) {
+        LoggerE("Filesystem exception - calling error callback");
+        PostError(e, callbackId);
+        delete callback;
+        callback = NULL;
+        return;
+    }
+    try {
         FilePtr file_ptr = FilePtr(new File(node, File::PermissionList()));
 
         callback->setDirectory(file_ptr);
@@ -380,8 +420,17 @@ void ArchiveInstance::Extract(const picojson::value& args, picojson::object& out
 
     ExtractEntryProgressCallback *callback = new ExtractEntryProgressCallback();
 
+    NodePtr node;
     try {
-        NodePtr node = Node::resolve(Path::create(v_dest_dir.get<std::string>()));
+        node = Node::resolve(Path::create(v_dest_dir.get<std::string>()));
+    } catch (PlatformException& e) {
+        LoggerE("Filesystem exception - calling error callback");
+        PostError(e, callbackId);
+        delete callback;
+        callback = NULL;
+        return;
+    }
+    try {
         FilePtr file_ptr = FilePtr(new File(node, File::PermissionList()));
 
         callback->setDirectory(file_ptr);
