@@ -77,25 +77,33 @@ tizen.TimeDuration = function(length, unit) {
   if (!this || this.constructor != tizen.TimeDuration)
     throw new TypeError;
 
-  var length_ = Math.floor(length) || 0;
-  var unit_ = unit || 'MSECS';
+  var length_ = length !== null ? Math.floor(length) : 0;
+  var unit_ = TimeDurationUnit.indexOf(unit) >= 0 ? unit : 'MSECS';
 
-  Object.defineProperty(this, 'length', {
-    get: function() {
-      return length_; },
-    set: function(NewValue) {
-      if (NewValue != null)
-        length_ = Math.floor(NewValue); }});
-
-  Object.defineProperty(this, 'unit', {
-    get: function() {
-      return unit_; },
-    set: function(NewValue) {
-      if (TimeDurationUnit.indexOf(NewValue) >= 0)
-        unit_ = NewValue; }});
-
-  if (TimeDurationUnit.indexOf(this.unit) == -1)
-    this.unit = 'MSECS';
+  Object.defineProperties(this, {
+    length: {
+      get: function () {
+        return length_;
+      },
+      set: function (v) {
+        if (v !== null) {
+          length_ = Math.floor(v);
+        }
+      },
+      enumerable: true
+    },
+    unit: {
+      get: function () {
+        return unit_;
+      },
+      set: function (v) {
+        if (TimeDurationUnit.indexOf(v) >= 0) {
+          unit_ = v;
+        }
+      },
+      enumerable: true
+    }
+  });
 };
 
 function getMultiplier(unit) {
