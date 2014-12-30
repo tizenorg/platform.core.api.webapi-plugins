@@ -63,7 +63,14 @@ const char* MESSAGE_ATTACHMENT_ATTRIBUTE_MESSAGE_ID = "messageId";
 const char* MESSAGE_ATTACHMENT_ATTRIBUTE_MIME_TYPE = "mimeType";
 const char* MESSAGE_ATTACHMENT_ATTRIBUTE_FILE_PATH = "filePath";
 
+const char* MESSAGE_FOLDER_ATTRIBUTE_ID = "id";
+const char* MESSAGE_FOLDER_ATTRIBUTE_PARENT_ID = "parentId";
 const char* MESSAGE_FOLDER_ATTRIBUTE_SERVICE_ID = "serviceId";
+const char* MESSAGE_FOLDER_ATTRIBUTE_CONTENT_TYPE = "contentType";
+const char* MESSAGE_FOLDER_ATTRIBUTE_NAME = "name";
+const char* MESSAGE_FOLDER_ATTRIBUTE_PATH = "path";
+const char* MESSAGE_FOLDER_ATTRIBUTE_TYPE = "type";
+const char* MESSAGE_FOLDER_ATTRIBUTE_SYNCHRONIZABLE = "synchronizable";
 
 const char* MESSAGE_CONVERSATION_ATTRIBUTE_ID = "id";
 const char* MESSAGE_CONVERSATION_ATTRIBUTE_TYPE = "type";
@@ -107,7 +114,28 @@ const std::map<MessageType, std::string> typeToStringMap = {
     {MessageType::EMAIL, TYPE_EMAIL}
 };
 
+const std::string FOLDER_TYPE_INBOX = "INBOX";
+const std::string FOLDER_TYPE_OUTBOX = "OUTBOX";
+const std::string FOLDER_TYPE_DRAFTS = "DRAFTS";
+const std::string FOLDER_TYPE_SENTBOX = "SENTBOX";
+
 } // namespace
+
+std::string MessagingUtil::messageFolderTypeToString(MessageFolderType type)
+{
+    switch(type) {
+        case MessageFolderType::MESSAGE_FOLDER_TYPE_INBOX:
+            return FOLDER_TYPE_INBOX;
+        case MessageFolderType::MESSAGE_FOLDER_TYPE_OUTBOX:
+            return FOLDER_TYPE_OUTBOX;
+        case MessageFolderType::MESSAGE_FOLDER_TYPE_DRAFTS:
+            return FOLDER_TYPE_DRAFTS;
+        case MessageFolderType::MESSAGE_FOLDER_TYPE_SENTBOX:
+            return FOLDER_TYPE_SENTBOX;
+        default:
+            return "";
+    }
+}
 
 MessageType MessagingUtil::stringToMessageType(std::string str)
 {
@@ -377,6 +405,29 @@ picojson::value MessagingUtil::conversationToJson(std::shared_ptr<MessageConvers
             o[MESSAGE_ATTRIBUTE_SUBJECT] = picojson::value(conversation->getSubject());
             break;
         }
+
+    picojson::value v(o);
+    return v;
+}
+
+picojson::value MessagingUtil::folderToJson(std::shared_ptr<MessageFolder> folder)
+{
+    LoggerD("Entered");
+
+    picojson::object o;
+
+    o[MESSAGE_FOLDER_ATTRIBUTE_ID] = picojson::value(folder->getId());
+    o[MESSAGE_FOLDER_ATTRIBUTE_PARENT_ID] =
+            folder->isParentIdSet()
+            ? picojson::value(folder->getParentId())
+            : picojson::value();
+    o[MESSAGE_FOLDER_ATTRIBUTE_SERVICE_ID] =  picojson::value(folder->getServiceId());
+    o[MESSAGE_FOLDER_ATTRIBUTE_CONTENT_TYPE] = picojson::value(folder->getContentType());
+    o[MESSAGE_FOLDER_ATTRIBUTE_NAME] = picojson::value(folder->getName());
+    o[MESSAGE_FOLDER_ATTRIBUTE_PATH] = picojson::value(folder->getPath());
+    o[MESSAGE_FOLDER_ATTRIBUTE_TYPE] =
+            picojson::value(MessagingUtil::messageFolderTypeToString(folder->getType()));
+    o[MESSAGE_FOLDER_ATTRIBUTE_SYNCHRONIZABLE] = picojson::value(folder->getSynchronizable());
 
     picojson::value v(o);
     return v;

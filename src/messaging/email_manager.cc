@@ -1165,7 +1165,7 @@ void EmailManager::findConversations(ConversationCallbackData* callback)
             obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
             MessagingInstance::getInstance().PostMessage(json->serialize().c_str());
         }
-    } catch (const common::PlatformException& err) {
+    } catch (const PlatformException& err) {
         LoggerE("Error while calling findConversations callback: %s (%s)",
                 (err.name()).c_str(), (err.message()).c_str());
     } catch (...) {
@@ -1186,131 +1186,129 @@ long EmailManager::getUniqueOpId()
     return op_id++;
 }
 
-//void EmailManager::findFolders(FoldersCallbackData* callback)
-//{
-//    LoggerD("Entered");
-//
-//    if (!callback){
-//        LoggerE("Callback is null");
-//        return;
-//    }
-//
-//    int ret = EMAIL_ERROR_UNKNOWN;
-//    int account_id = ACCOUNT_ID_NOT_INITIALIZED;
-//    email_mailbox_t* mailboxes = NULL;
-//    email_mailbox_t* nth_mailbox = NULL;
-//    int mailboxes_count;
-//
-//    try {
-//        std::lock_guard<std::mutex> lock(m_mutex);
-//
-//        Tizen::AbstractFilterPtr filter = callback->getFilter();
-//        if (!filter) {
-//            LoggerE("Filter not provided");
-//            throw UnknownException("Filter not provided");
-//        }
-//
-//        for(FilterIterator it(filter); false == it.isEnd(); it++) {
-//
-//            if(FIS_COMPOSITE_START == it.getState()) {
-//                CompositeFilterPtr cf = castToCompositeFilter((*it));
-//                if(cf && INTERSECTION != cf->getType()) {
-//                    LoggerE("[ERROR] >>> invalid Filter type: %d", cf->getType());
-//                    throw TypeMismatchException("Invalid Filter Type");
-//                }
-//            }
-//            else if(FIS_ATTRIBUTE_FILTER == it.getState()) {
-//                AttributeFilterPtr attrf = castToAttributeFilter((*it));
-//                if(attrf) {
-//                    const std::string attr_name = attrf->getAttributeName();
-//                    if (FIND_FOLDERS_ATTRIBUTE_ACCOUNTID_NAME == attr_name) {
-//                        account_id = static_cast<int>(attrf->getMatchValue()->toLong());
-//                    } else {
-//                        LoggerE("The attribute name: %s is invalid", attr_name.c_str());
-//                        throw InvalidValuesException("The attribute name is invalid");
-//                    }
-//                }
-//            }
-//        }
-//
-//        LoggerD("Listing folders for account ID: %d", account_id);
-//        if (account_id > 0) {
-//            ret = email_get_mailbox_list(account_id,
-//                    -1,
-//                    &mailboxes,
-//                    &mailboxes_count);
-//            if (EMAIL_ERROR_NONE != ret || !mailboxes) {
-//                LoggerE("Cannot get folders: %d", ret);
-//                throw Common::UnknownException(
-//                        "Platform error, cannot get folders");
-//            }
-//
-//            if (mailboxes_count <= 0) {
-//                LoggerD("Empty mailboxes");
-//            }
-//            else {
-//                LoggerD("Founded mailboxes: %d", mailboxes_count);
-//
-//                nth_mailbox = mailboxes;
-//                for (int i = 0; i < mailboxes_count; ++i) {
-//                    std::shared_ptr<MessageFolder> fd;
-//                    fd = std::make_shared<MessageFolder>(*nth_mailbox);
-//                    callback->addFolder(fd);
-//                    nth_mailbox++;
-//                }
-//            }
-//        }
-//    } catch (const BasePlatformException& err) {
-//        LoggerE("%s (%s)", (err.getName()).c_str(), (err.getMessage()).c_str());
-//        callback->setError(err.getName(), err.getMessage());
-//    } catch (...) {
-//        LoggerE("Messages update failed");
-//        callback->setError(JSWebAPIErrorFactory::UNKNOWN_ERROR,
-//                "Messages update failed");
-//    }
-//
-//    if (mailboxes != NULL) {
-//        if (EMAIL_ERROR_NONE != email_free_mailbox(&mailboxes,
-//                mailboxes_count)) {
-//            LoggerW("Free mailboxes failed: %d", ret);
-//        }
-//    }
-//
-//    //Complete task
-//    LoggerD("callback: %p error:%d folders.size()=%d", callback, callback->isError(),
-//            callback->getFolders().size());
-//
-//    JSContextRef context = callback->getContext();
-//    if (!GlobalContextManager::getInstance()->isAliveGlobalContext(context)) {
-//        LoggerE("context was closed");
-//        delete callback;
-//        callback = NULL;
-//        return;
-//    }
-//
-//    try {
-//        if (callback->isError()) {
-//            LoggerD("Calling error callback");
-//            JSObjectRef errobj = JSWebAPIErrorFactory::makeErrorObject(context,
-//                    callback->getErrorName(),
-//                    callback->getErrorMessage());
-//            callback->callErrorCallback(errobj);
-//        } else {
-//            LoggerD("Calling success callback");
-//            JSObjectRef js_obj = MessagingUtil::vectorToJSObjectArray<FolderPtr,
-//                    JSMessageFolder>(context, callback->getFolders());
-//            callback->callSuccessCallback(js_obj);
-//        }
-//    } catch (const BasePlatformException& err) {
-//        LoggerE("Error while calling findFolders callback: %s (%s)",
-//                (err.getName()).c_str(), (err.getMessage()).c_str());
-//    } catch (...) {
-//        LoggerE("Unknown error when calling findFolders callback.");
-//    }
-//
-//    delete callback;
-//    callback = NULL;
-//}
+void EmailManager::findFolders(FoldersCallbackData* callback)
+{
+    LoggerD("Entered");
+
+    if (!callback){
+        LoggerE("Callback is null");
+        return;
+    }
+
+    int ret = EMAIL_ERROR_UNKNOWN;
+    int account_id = ACCOUNT_ID_NOT_INITIALIZED;
+    email_mailbox_t* mailboxes = NULL;
+    email_mailbox_t* nth_mailbox = NULL;
+    int mailboxes_count;
+
+    try {
+        std::lock_guard<std::mutex> lock(m_mutex);
+
+        tizen::AbstractFilterPtr filter = callback->getFilter();
+        if (!filter) {
+            LoggerE("Filter not provided");
+            throw UnknownException("Filter not provided");
+        }
+
+        for(FilterIterator it(filter); false == it.isEnd(); it++) {
+
+            if(FIS_COMPOSITE_START == it.getState()) {
+                CompositeFilterPtr cf = castToCompositeFilter((*it));
+                if(cf && INTERSECTION != cf->getType()) {
+                    LoggerE("[ERROR] >>> invalid Filter type: %d", cf->getType());
+                    throw TypeMismatchException("Invalid Filter Type");
+                }
+            }
+            else if(FIS_ATTRIBUTE_FILTER == it.getState()) {
+                AttributeFilterPtr attrf = castToAttributeFilter((*it));
+                if(attrf) {
+                    const std::string attr_name = attrf->getAttributeName();
+                    if (FIND_FOLDERS_ATTRIBUTE_ACCOUNTID_NAME == attr_name) {
+                        account_id = static_cast<int>(attrf->getMatchValue()->toLong());
+                    } else {
+                        LoggerE("The attribute name: %s is invalid", attr_name.c_str());
+                        throw InvalidValuesException("The attribute name is invalid");
+                    }
+                }
+            }
+        }
+
+        LoggerD("Listing folders for account ID: %d", account_id);
+        if (account_id > 0) {
+            ret = email_get_mailbox_list(account_id,
+                    -1,
+                    &mailboxes,
+                    &mailboxes_count);
+            if (EMAIL_ERROR_NONE != ret || !mailboxes) {
+                LoggerE("Cannot get folders: %d", ret);
+                throw UnknownException("Platform error, cannot get folders");
+            }
+
+            if (mailboxes_count <= 0) {
+                LoggerD("Empty mailboxes");
+            }
+            else {
+                LoggerD("Founded mailboxes: %d", mailboxes_count);
+
+                nth_mailbox = mailboxes;
+                for (int i = 0; i < mailboxes_count; ++i) {
+                    std::shared_ptr<MessageFolder> fd;
+                    fd = std::make_shared<MessageFolder>(*nth_mailbox);
+                    callback->addFolder(fd);
+                    nth_mailbox++;
+                }
+            }
+        }
+    } catch (const PlatformException& err) {
+        LoggerE("%s (%s)", (err.name()).c_str(), (err.message()).c_str());
+        callback->setError(err.name(), err.message());
+    } catch (...) {
+        LoggerE("Messages update failed");
+        UnknownException ex("Messages update failed");
+        callback->setError(ex.name(), ex.message());
+    }
+
+    if (mailboxes != NULL) {
+        if (EMAIL_ERROR_NONE != email_free_mailbox(&mailboxes,
+                mailboxes_count)) {
+            LoggerW("Free mailboxes failed: %d", ret);
+        }
+    }
+
+    //Complete task
+    LoggerD("callback: %p error:%d folders.size()=%d", callback, callback->isError(),
+            callback->getFolders().size());
+
+    try {
+        if (callback->isError()) {
+            LoggerD("Calling error callback");
+            MessagingInstance::getInstance().PostMessage(callback->getJson()->serialize().c_str());
+        } else {
+            LoggerD("Calling success callback");
+            auto json = callback->getJson();
+            picojson::object& obj = json->get<picojson::object>();
+
+            std::vector<picojson::value> response;
+            auto folders = callback->getFolders();
+            std::for_each(folders.begin(), folders.end(),
+                    [&response](std::shared_ptr<MessageFolder> &folder) {
+                        response.push_back(MessagingUtil::folderToJson(folder));
+                    }
+            );
+            obj[JSON_DATA] = picojson::value(response);
+            obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
+            MessagingInstance::getInstance().PostMessage(json->serialize().c_str());
+        }
+    } catch (const PlatformException& err) {
+        LoggerE("Error while calling findFolders callback: %s (%s)",
+                (err.name()).c_str(), (err.message()).c_str());
+    } catch (...) {
+        LoggerE("Unknown error when calling findFolders callback.");
+    }
+
+    delete callback;
+    callback = NULL;
+}
 
 void EmailManager::removeConversations(ConversationCallbackData* callback)
 {

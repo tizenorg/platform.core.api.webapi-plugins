@@ -97,7 +97,9 @@
         'message_conversation.cc',
         'message_conversation.h',
         'conversation_callback_data.cc',
-        'conversation_callback_data.h'
+        'conversation_callback_data.h',
+        'folders_callback_data.cc',
+        'folders_callback_data.h'
       ],
       'includes': [
         '../common/pkg-config.gypi',

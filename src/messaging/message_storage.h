@@ -14,6 +14,7 @@
 #include "messages_callback_user_data.h"
 #include "conversation_callback_data.h"
 #include "find_msg_callback_user_data.h"
+#include "folders_callback_data.h"
 
 namespace extension {
 namespace messaging {
@@ -37,7 +38,7 @@ public:
     virtual void findMessages(FindMsgCallbackUserData* callback) = 0;
     virtual void findConversations(ConversationCallbackData* callback) = 0;
     virtual void removeConversations(ConversationCallbackData* callback) = 0;
-    virtual void findFolders() = 0;
+    virtual void findFolders(FoldersCallbackData* callback) = 0;
 
     // Listeners registration/removal is common for all types of storage
     // and does not have to be overwritten in derived classes.

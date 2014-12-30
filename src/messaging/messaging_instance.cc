@@ -13,6 +13,7 @@
 #include "messages_change_callback.h"
 #include "messages_callback_user_data.h"
 #include "find_msg_callback_user_data.h"
+#include "folders_callback_data.h"
 #include "messaging_manager.h"
 #include "messaging_util.h"
 #include "message_storage.h"
@@ -357,6 +358,7 @@ void MessagingInstance::MessageStorageFindMessages(const picojson::value& args,
     picojson::object data = args.get(JSON_DATA).get<picojson::object>();
     const double callbackId = args.get(JSON_CALLBACK_ID).get<double>();
 
+    // TODO add support to AttributeRangeFilter
     auto filter = MessagingUtil::jsonToAttributeFilter(data);
     auto sortMode = MessagingUtil::jsonToSortMode(data);
     long limit = static_cast<long>
@@ -445,6 +447,7 @@ void MessagingInstance::MessageStorageFindConversations(const picojson::value& a
     picojson::object data = args.get(JSON_DATA).get<picojson::object>();
     const double callbackId = args.get(JSON_CALLBACK_ID).get<double>();
 
+    // TODO add support to AttributeRangeFilter
     auto filter = MessagingUtil::jsonToAttributeFilter(data);
     auto sortMode = MessagingUtil::jsonToSortMode(data);
     long limit = static_cast<long>
@@ -498,6 +501,24 @@ void MessagingInstance::MessageStorageFindFolders(const picojson::value& args,
         picojson::object& out)
 {
     LoggerD("Entered");
+
+    picojson::object data = args.get(JSON_DATA).get<picojson::object>();
+    const double callbackId = args.get(JSON_CALLBACK_ID).get<double>();
+
+    // TODO add support to AttributeRangeFilter
+    auto filter = MessagingUtil::jsonToAttributeFilter(data);
+    int serviceId = static_cast<int>(data.at(FUNCTIONS_HIDDEN_ARGS_SERVICE_ID).get<double>());
+
+    FoldersCallbackData* callback = new FoldersCallbackData();
+    callback->setFilter(filter);
+
+    auto json = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
+    picojson::object& obj = json->get<picojson::object>();
+    obj[JSON_CALLBACK_ID] = picojson::value(callbackId);
+    callback->setJson(json);
+
+    auto storage = MessagingManager::getInstance().getMessageServiceEmail(serviceId)->getMsgStorage();
+    storage->findFolders(callback);
 }
 
 void MessagingInstance::MessageStorageAddMessagesChangeListener(const picojson::value& args,
