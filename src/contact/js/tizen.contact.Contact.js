@@ -263,7 +263,7 @@ var Contact = function(data) {
         return _messageAlertURI;
       },
       set: function(v) {
-        _photoURI = Converter.toString(v, true);
+        _messageAlertURI = Converter.toString(v, true);
       },
       enumerable: true
     },
@@ -272,7 +272,7 @@ var Contact = function(data) {
         return _vibrationURI;
       },
       set: function(v) {
-        _photoURI = Converter.toString(v, true);
+        _vibrationURI = Converter.toString(v, true);
       },
       enumerable: true
     },
