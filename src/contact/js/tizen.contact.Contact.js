@@ -501,18 +501,14 @@ var _JSONToContactType = function(type, obj) {
 
 // Converts the Contact item to a string format.
 Contact.prototype.convertToString = function(format) {
-  if (arguments.length) {
-    if (!Type.isString(format)) {
-      throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
-        'Invalid format type');
-    }
+  format = format || TypeEnum[0];
 
-    if (TypeEnum.indexOf(format) < 0) {
-      throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
-        'Invalid format');
-    }
-  } else {
-    console.logd('No format selected. Default VCARD 3.0 has been set');
+  if (!Type.isString(format)) {
+    throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR, 'Invalid format');
+  }
+
+  if (TypeEnum.indexOf(format) < 0) {
+    throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR, 'Invalid format');
   }
 
   if (this.id === '') {

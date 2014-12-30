@@ -197,7 +197,7 @@ var ContactEmailAddress = function(address, types, isDefault) {
   AV.isConstructorCall(this, ContactEmailAddress);
 
   var _email = '';
-  var _label = '';
+  var _label = null;
   var _isDefault = false;
   var _types = ['WORK'];
 
@@ -268,7 +268,7 @@ var ContactEmailAddress = function(address, types, isDefault) {
         return _label;
       },
       set: function(v) {
-        _label = Converter.toString(v, false);
+        _label = Converter.toString(v, true);
       },
       enumerable: true
     }
@@ -571,6 +571,7 @@ var ContactName = function(data) {
   AV.isConstructorCall(this, ContactName);
 
   var _displayName = null;
+  var _nicknames = [];
 
   Object.defineProperties(this, {
     prefix: {
@@ -599,8 +600,14 @@ var ContactName = function(data) {
       enumerable: true
     },
     nicknames: {
-      value: [],
-      writable: true,
+      get: function() {
+        return _nicknames;
+      },
+      set: function(nicknames) {
+        if (Type.isArray(nicknames)) {
+          _nicknames = nicknames;
+        }
+      },
       enumerable: true
     },
     phoneticFirstName: {
@@ -683,15 +690,32 @@ var ContactRelationship = function(relativeName, type) {
 var ContactInstantMessenger = function(imAddress, type) {
   AV.isConstructorCall(this, ContactInstantMessenger);
 
+  var imAddress_ = '';
+  var type_ = 'OTHER';
+
   Object.defineProperties(this, {
     imAddress: {
-      value: Type.isString(imAddress) ? imAddress : null,
-      writable: true,
+      get: function() {
+        return imAddress_;
+      },
+      set: function(v) {
+        if (Type.isNullOrUndefined(v)) {
+          return;
+        }
+        imAddress_ = Converter.toString(v, false);
+      },
       enumerable: true
     },
     type: {
-      value: (Type.isNullOrUndefined(type) ? ContactInstantMessengerType.OTHER : type),
-      writable: true,
+      get: function() {
+        return type_;
+      },
+      set: function(v) {
+        if (Type.isNullOrUndefined(v)) {
+          return;
+        }
+        type_ = Converter.toEnum(v, Object.keys(ContactInstantMessengerType), false);
+      },
       enumerable: true
     },
     label: {
@@ -701,13 +725,8 @@ var ContactInstantMessenger = function(imAddress, type) {
     }
   });
 
-  if (_editGuard.isEditEnabled()) {
-    for (var prop in arguments[0]) {
-      if (this.hasOwnProperty(prop)) {
-        this[prop] = arguments[0][prop];
-      }
-    }
-  }
+  this.imAddress = imAddress;
+  this.type = type;
 };
 
 // exports /////////////////////////////////////////////////////////////////
