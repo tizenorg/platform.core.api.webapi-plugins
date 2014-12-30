@@ -8,6 +8,7 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <stdexcept>
 #include "common/logger.h"
 #include "common/picojson.h"
 
@@ -122,8 +123,15 @@ public:
     template <class T>
     static T getValueFromJSONObject(const picojson::object& v, const std::string& key)
     {
-        if (v.at(key).is<T>()) {
-            return v.at(key).get<T>();
+        picojson::value value;
+        try{
+            value = v.at(key);
+        } catch(const std::out_of_range& e){
+            return T();
+        }
+
+        if (value.is<T>()) {
+            return value.get<T>();
         } else {
             return T();
         }
