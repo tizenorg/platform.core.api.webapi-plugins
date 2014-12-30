@@ -394,10 +394,13 @@ void ArchiveInstance::Close(const picojson::value& args, picojson::object& out)
 
     const long handle = static_cast<long>(v_handle.get<double>());
 
-    ArchiveFilePtr priv = ArchiveManager::getInstance().getPrivData(handle);
-    priv->close();
-    ArchiveManager::getInstance().erasePrivData(handle);
-
+    try {
+        ArchiveFilePtr priv = ArchiveManager::getInstance().getPrivData(handle);
+        priv->close();
+        ArchiveManager::getInstance().erasePrivData(handle);
+    } catch (...) {
+        LoggerD("Close method was called on already closed archive. Just end execution");
+    }
     ReportSuccess(out);
 }
 

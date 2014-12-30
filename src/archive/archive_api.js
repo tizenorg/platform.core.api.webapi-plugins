@@ -72,6 +72,12 @@ CommonFS.toRealPath = function(aPath) {
     return _fileRealPath;
 };
 
+CommonFS.isVirtualPath = function(aPath) {
+    var root = aPath.split("/")[0];
+
+    return this.cacheVirtualToReal[root] != undefined;
+};
+
 /**
  * Returns new unique opId
  */
@@ -173,6 +179,9 @@ ArchiveFileEntry.prototype.extract = function () {
     ]),
     opId = getNextOpId();
 
+    if (!CommonFS.isVirtualPath(args.destinationDirectory)) //TODO: add FileReferece validation
+        throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
+                "Destination directory should be virtual path or file.");
     bridge.async({
         cmd: 'ArchiveFileEntry_extract',
         args: {
@@ -248,6 +257,10 @@ ArchiveFile.prototype.add = function () {
     ]),
     opId = getNextOpId();
 
+    if (!CommonFS.isVirtualPath(args.sourceFile)) //TODO: add FileReferece validation
+        throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
+                "sourceFile should be virtual path or file.");
+
     var optionsAttributes = ["destination", "stripSourceDirectory", "compressionLevel"],
         options = args.options || {};
 
@@ -306,6 +319,10 @@ ArchiveFile.prototype.extractAll = function () {
         { name: "overwrite", type: types_.BOOLEAN, optional: true, nullable: true }
     ]),
     opId = getNextOpId();
+
+    if (!CommonFS.isVirtualPath(args.destinationDirectory)) //TODO: add FileReferece validation
+        throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
+                "destinationDirectory should be virtual path or file.");
 
     bridge.async({
         cmd: 'ArchiveFile_extractAll',
@@ -452,6 +469,10 @@ ArchiveManager.prototype.open = function () {
             options[optionsAttributes[i]] = null;
         }
     }
+
+    if (!CommonFS.isVirtualPath(args.file)) //TODO: add FileReferece validation
+        throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
+                "file should be virtual path or file.");
 
     bridge.async({
         cmd: 'ArchiveManager_open',
