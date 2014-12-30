@@ -21,6 +21,7 @@
 
 #include "common/logger.h"
 #include "common/converter.h"
+#include <sstream>
 using namespace common;
 namespace extension {
 namespace calendar {
@@ -705,7 +706,7 @@ void CalendarItem::AlarmsFromJson(int type, calendar_record_h rec,
     if (!common::IsNull(obj, "absoluteDate")) {
       Date absolute = DateFromJson(obj, "absoluteDate");
       calendar_time_s absolute_date = DateToPlatform(absolute, false);
-     // SetLli(alarm, _calendar_alarm.time, absolute_date.time.utime);
+      SetCaltime(alarm, _calendar_alarm.alarm_time, absolute_date);
       CalendarRecord::SetInt(alarm, _calendar_alarm.tick_unit, tick_unit);
     }
 
@@ -791,10 +792,10 @@ picojson::array CalendarItem::AlarmsToJson(int type, calendar_record_h rec) {
     tick_unit = CalendarRecord::GetInt(alarm, _calendar_alarm.tick_unit, false);
 
     if (tick_unit == CALENDAR_ALARM_TIME_UNIT_SPECIFIC) {
-   //   long long int time = GetLli(alarm, _calendar_alarm.time, false);
-    //  alarm_obj["absoluteDate"] = picojson::value(static_cast<double>(time));
+      calendar_time_s result = GetCaltime(alarm, _calendar_alarm.alarm_time);
+      alarm_obj["absoluteDate"] = picojson::value(static_cast<double>(result.time.utime));
     } else {
-   //   tick = CalendarRecord::GetInt(alarm, _calendar_alarm.tick, false);
+      tick = CalendarRecord::GetInt(alarm, _calendar_alarm.tick, false);
 
       int length = 0;
       std::string unit = kTimeDurationUnitSeconds;
@@ -893,14 +894,14 @@ std::string CalendarItem::ExceptionsFromJson(const picojson::array &exceptions) 
   for (auto iter = exceptions.begin(); iter != exceptions.end(); ++iter) {
     date = DateFromJson(iter->get<picojson::object>());
     calendar_time_s exception_date = DateToPlatform(date, false);
- //   std::stringstream ss;
-//    ss << exception_date.time.utime;
+    std::stringstream ss;
+    ss << exception_date.time.utime;
 
-//    if (iter == exceptions.begin()) {
-//      result.append(ss.str());
-//    } else {
-//      result.append("," + ss.str());
-//    }
+    if (iter == exceptions.begin()) {
+      result.append(ss.str());
+    } else {
+      result.append("," + ss.str());
+    }
   }
 
   return result;
