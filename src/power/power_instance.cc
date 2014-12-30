@@ -104,6 +104,7 @@ void PowerInstance::OnScreenStateChanged(PowerState prev_state, PowerState new_s
   picojson::value event = picojson::value(picojson::object());
   picojson::object& obj = event.get<picojson::object>();
   obj["cmd"] = picojson::value("ScreenStateChanged");
+  obj["listenerId"] = picojson::value("ScreenStateChanged");
 
   for (auto it = kPowerStateMap.begin(); it != kPowerStateMap.end(); ++it) {
     if (it->second == prev_state) {
