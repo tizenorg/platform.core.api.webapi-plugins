@@ -653,6 +653,7 @@ MessageService.prototype.loadMessageAttachment = function () {
         }
     });
 };
+
 MessageService.prototype.sync = function () {
     var args = validator_.validateArgs(arguments, [
         {name: 'successCallback', type: types_.FUNCTION, optional: true, nullable: true},
@@ -688,6 +689,7 @@ MessageService.prototype.sync = function () {
 
     return result;
 };
+
 MessageService.prototype.syncFolder = function () {
     var args = validator_.validateArgs(arguments, [
         {name: 'folder', type: types_.PLATFORM_OBJECT, values: MessageFolder},
@@ -722,7 +724,10 @@ MessageService.prototype.syncFolder = function () {
             limit: args.limit || null
         }
     });
+
+    return result;
 };
+
 MessageService.prototype.stopSync = function () {
     var args = validator_.validateArgs(arguments, [
         {name: 'opId', type: types_.LONG}
