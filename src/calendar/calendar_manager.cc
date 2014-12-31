@@ -123,8 +123,6 @@ void CalendarManager::GetCalendars(const JsonObject& args,
 void CalendarManager::GetCalendar(const JsonObject& args, JsonObject& out) {
   LoggerD("enter");
 
- // NativePlugin::CheckAccess(Privilege::kCalendarRead);
-
   if (!is_connected_) {
     throw UnknownException("DB Connection failed.");
   }
@@ -145,13 +143,10 @@ void CalendarManager::GetCalendar(const JsonObject& args, JsonObject& out) {
   JsonValue result = JsonValue(JsonObject());
 
   CalendarRecord::CalendarToJson(record_ptr.get(), &out);
-//  NativePlugin::ReportSuccess(result, out);
 }
 
 void CalendarManager::AddCalendar(const JsonObject& args, JsonObject& out) {
   LoggerD("enter");
-
-//  NativePlugin::CheckAccess(Privilege::kCalendarWrite);
 
   if (!is_connected_) {
     throw UnknownException("DB Connection failed.");
@@ -173,8 +168,6 @@ void CalendarManager::RemoveCalendar(const JsonObject& args,
                                      JsonObject& out) {
   LoggerD("enter");
 
-//  NativePlugin::CheckAccess(Privilege::kCalendarWrite);
-
   if (!is_connected_) {
     throw UnknownException("DB Connection failed.");
   }
@@ -195,7 +188,6 @@ void CalendarManager::RemoveCalendar(const JsonObject& args,
   int ret = calendar_db_delete_record(_calendar_book._uri, id);
   CheckReturn(ret, "Failed to delete record from db");
 
- // NativePlugin::ReportSuccess(out);
 }
 }
 }
