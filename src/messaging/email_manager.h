@@ -77,7 +77,7 @@ public:
 //    void loadMessageAttachment(MessageAttachmentCallbackData* callback);
 
     void sync(void* data);
-//    void syncFolder(SyncFolderCallbackData* callback);
+    void syncFolder(SyncFolderCallbackData* callback);
     void stopSync(long op_id);
 
 //    void registerStatusCallback(msg_handle_t msg_handle);

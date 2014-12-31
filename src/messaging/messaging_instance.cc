@@ -41,6 +41,7 @@ const char* SYNC_ARGS_ID = "id";
 const char* SYNC_ARGS_LIMIT = "limit";
 
 const char* FUN_MESSAGE_SERVICE_SYNC_FOLDER = "MessageService_syncFolder";
+const char* SYNC_FOLDER_ARGS_ID = "id";
 const char* SYNC_FOLDER_ARGS_FOLDER = "folder";
 const char* SYNC_FOLDER_ARGS_LIMIT = "limit";
 
@@ -116,7 +117,6 @@ MessagingInstance::MessagingInstance()
       REGISTER_ASYNC(FUN_MESSAGE_SERVICE_SEND_MESSAGE, MessageServiceSendMessage);
       REGISTER_ASYNC(FUN_MESSAGE_SERVICE_LOAD_MESSAGE_BODY, MessageServiceLoadMessageBody);
       REGISTER_ASYNC(FUN_MESSAGE_SERVICE_LOAD_MESSAGE_ATTACHMENT, MessageServiceLoadMessageAttachment);
-      REGISTER_ASYNC(FUN_MESSAGE_SERVICE_SYNC_FOLDER, MessageServiceSyncFolder);
       REGISTER_ASYNC(FUN_MESSAGE_STORAGE_ADD_DRAFT_MESSAGE, MessageStorageAddDraft);
       REGISTER_ASYNC(FUN_MESSAGE_STORAGE_FIND_MESSAGES, MessageStorageFindMessages);
       REGISTER_ASYNC(FUN_MESSAGE_STORAGE_REMOVE_MESSAGES, MessageStorageRemoveMessages);
@@ -132,6 +132,7 @@ MessagingInstance::MessagingInstance()
       RegisterSyncHandler(c, std::bind(&MessagingInstance::x, this, _1, _2));
       REGISTER_SYNC(FUN_MESSAGE_SERVICE_SYNC, MessageServiceSync);
       REGISTER_SYNC(FUN_MESSAGE_SERVICE_STOP_SYNC, MessageServiceStopSync);
+      REGISTER_SYNC(FUN_MESSAGE_SERVICE_SYNC_FOLDER, MessageServiceSyncFolder);
       REGISTER_SYNC(FUN_MESSAGE_STORAGE_ADD_MESSAGES_CHANGE_LISTENER, MessageStorageAddMessagesChangeListener);
       REGISTER_SYNC(FUN_MESSAGE_STORAGE_REMOVE_CHANGE_LISTENER, MessageStorageRemoveChangeListener);
     #undef REGISTER_SYNC
@@ -280,6 +281,33 @@ void MessagingInstance::MessageServiceSyncFolder(const picojson::value& args,
         picojson::object& out)
 {
     LoggerD("Entered");
+
+    picojson::object data = args.get(JSON_DATA).get<picojson::object>();
+    picojson::value v_id = data.at(SYNC_FOLDER_ARGS_ID);
+    picojson::value v_folder = data.at(SYNC_FOLDER_ARGS_FOLDER);
+    picojson::value v_limit = data.at(SYNC_FOLDER_ARGS_LIMIT);
+    const double callbackId = args.get(JSON_CALLBACK_ID).get<double>();
+
+    int id = static_cast<int>(v_id.get<double>());
+    long limit = 0;
+    if (v_limit.is<double>()) {
+        limit = static_cast<long>(v_limit.get<double>());
+    }
+
+    auto json = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
+    picojson::object& obj = json->get<picojson::object>();
+    obj[JSON_CALLBACK_ID] = picojson::value(callbackId);
+
+    SyncFolderCallbackData *callback = new SyncFolderCallbackData();
+    callback->setJson(json);
+    callback->setAccountId(id);
+    callback->setMessageFolder(MessagingUtil::jsonToMessageFolder(v_folder));
+    callback->setLimit(limit);
+
+    long op_id = MessagingManager::getInstance().getMessageServiceEmail(id)->syncFolder(callback);
+
+    picojson::value v_op_id(static_cast<double>(op_id));
+    ReportSuccess(v_op_id, out);
 }
 
 void MessagingInstance::MessageServiceStopSync(const picojson::value& args,

@@ -20,7 +20,7 @@ public:
     virtual void loadMessageBody(MessageBodyCallbackData* callback);
     virtual void loadMessageAttachment();
     virtual long sync(SyncCallbackData *callback);
-    virtual long syncFolder();
+    virtual long syncFolder(SyncFolderCallbackData *callback);
     virtual void stopSync(long op_id);
 };
 

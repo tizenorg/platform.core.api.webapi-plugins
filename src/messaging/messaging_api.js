@@ -696,13 +696,8 @@ MessageService.prototype.syncFolder = function () {
         {name: 'limit', type: types_.UNSIGNED_LONG, optional: true, nullable: true}
     ]);
 
-    bridge.async({
-        cmd: 'MessageService_syncFolder',
-        args: {
-            folder: args.folder,
-            limit: args.limit
-        }
-    }).then({
+    var self = this;
+    var cid = bridge.listener({
         success: function () {
             if (args.successCallback) {
                 args.successCallback.call(null);
@@ -715,6 +710,16 @@ MessageService.prototype.syncFolder = function () {
                     new tizen.WebAPIException(e.code, e.message, e.name)
                 )
             }
+        }
+    });
+
+    var result = bridge.sync({
+        cmd: 'MessageService_syncFolder',
+        cid: cid,
+        args: {
+            id: self.id,
+            folder: args.folder,
+            limit: args.limit || null
         }
     });
 };
