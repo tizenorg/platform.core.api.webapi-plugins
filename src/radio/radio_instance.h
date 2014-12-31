@@ -6,7 +6,8 @@
 #define RADIO_RADIO_INSTANCE_H_
 
 #include "common/extension.h"
-
+#include "radio_manager.h"
+#include "common/picojson.h"
 
 namespace extension {
 namespace radio {
@@ -18,15 +19,17 @@ class RadioInstance
   RadioInstance();
   virtual ~RadioInstance();
 
+  static RadioInstance& getInstance();
 
+  void InstanceReportSuccess(picojson::object& out);
 
  private:
-  void Start(const picojson::value& args, picojson::object& out);
-  void Stop(const picojson::value& args, picojson::object& out);
   void SeekUp(const picojson::value& args, picojson::object& out);
   void SeekDown(const picojson::value& args, picojson::object& out);
   void ScanStart(const picojson::value& args, picojson::object& out);
   void ScanStop(const picojson::value& args, picojson::object& out);
+  void Start(const picojson::value& args, picojson::object& out);
+  void Stop(const picojson::value& args, picojson::object& out);
   void SetFMRadioInterruptedListener(const picojson::value& args, picojson::object& out);
   void UnsetFMRadioInterruptedListener(const picojson::value& args, picojson::object& out);
   void SetAntennaChangeListener(const picojson::value& args, picojson::object& out);

@@ -7,14 +7,15 @@
 
 #include "common/extension.h"
 
-class RadioExtension : public common::Extension {
- public:
-  RadioExtension();
-  virtual ~RadioExtension();
+class RadioExtension : public common::Extension
+{
+    public:
+    RadioExtension();
+    virtual ~RadioExtension();
 
- private:
-  virtual common::Instance* CreateInstance();
+    private:
+    virtual common::Instance* CreateInstance();
 };
 
-#endif
+#endif //RADIO_RADIO_EXTENSION_H_
 
