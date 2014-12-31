@@ -107,6 +107,29 @@ private:
     std::shared_ptr<Message> m_message;
 };
 
+class MessageAttachmentCallbackData : public BaseMessageServiceCallbackData {
+public:
+    MessageAttachmentCallbackData();
+    virtual ~MessageAttachmentCallbackData();
+
+    void setMessageAttachment(std::shared_ptr<MessageAttachment> messageAttachment);
+    std::shared_ptr<MessageAttachment> getMessageAttachment() const;
+
+    /**
+     * nth is used in native api call:
+     * int email_download_attachment(int mail_id, int nth, int *handle);
+     *
+     * nth is equal to attachment index+1 (starts from 1 not 0) see
+     * email-api-network.h for details.
+     * */
+    void setNth(const int nth);
+    int getNth() const;
+
+private:
+    std::shared_ptr<MessageAttachment> m_message_attachment;
+    int m_nth;
+};
+
 class SyncCallbackData : public BaseMessageServiceCallbackData {
 public:
     SyncCallbackData();
@@ -155,7 +178,7 @@ public:
 
     virtual void sendMessage(MessageRecipientsCallbackData *callback);
     virtual void loadMessageBody(MessageBodyCallbackData* callback);
-    virtual void loadMessageAttachment();
+    virtual void loadMessageAttachment(MessageAttachmentCallbackData* callback);
     virtual long sync(SyncCallbackData *callback);
     virtual long syncFolder(SyncFolderCallbackData *callback);
     virtual void stopSync(long op_id);

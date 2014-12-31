@@ -18,7 +18,7 @@ public:
 
     virtual void sendMessage(MessageRecipientsCallbackData *callback);
     virtual void loadMessageBody(MessageBodyCallbackData* callback);
-    virtual void loadMessageAttachment();
+    virtual void loadMessageAttachment(MessageAttachmentCallbackData* callback);
     virtual long sync(SyncCallbackData *callback);
     virtual long syncFolder(SyncFolderCallbackData *callback);
     virtual void stopSync(long op_id);

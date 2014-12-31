@@ -368,8 +368,8 @@ std::string MessagingDatabaseManager::getAttributeFilterQuery(AbstractFilterPtr 
     }
 
     const std::string attribute_name = attr_filter->getAttributeName();
-
     AttributeInfoMap::iterator it = attribute_map.find(attribute_name);
+
     if (it != attribute_map.end()) {
         sqlQuery << "(" << attribute_map[attribute_name].sql_name << " ";
     } else {

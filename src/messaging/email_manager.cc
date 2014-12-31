@@ -575,78 +575,78 @@ void EmailManager::loadMessageBody(MessageBodyCallbackData* callback)
     }
     callback->setOperationHandle(op_handle);
 }
-//
-//void EmailManager::loadMessageAttachment(MessageAttachmentCallbackData* callback)
-//{
-//    LoggerD("Entered");
-//    if(!callback) {
-//        LoggerE("Callback is null");
-//        throw Common::InvalidValuesException("Callback is null");
-//    }
-//    if(!callback->getMessageAttachment()) {
-//        LoggerE("Callback's message attachment is null");
-//        throw Common::InvalidValuesException("Callback's message attachment is null");
-//    }
-//
-//    std::shared_ptr<MessageAttachment> msgAttachment = callback->getMessageAttachment();
-//    LoggerD("attachmentId:%d mailId:%d", msgAttachment->getId(),
-//            msgAttachment->getMessageId());
-//
-//    struct ScopedEmailMailData {
-//        ScopedEmailMailData() : data(NULL) { }
-//        ~ScopedEmailMailData() { EmailManager::freeMessage(data); }
-//        email_mail_data_t* data;
-//    } mail_data_holder;
-//
-//    mail_data_holder.data = EmailManager::loadMessage(msgAttachment->getMessageId());
-//    if(!mail_data_holder.data) {
-//        std::stringstream err_ss;
-//        err_ss << "Couldn't get email_mail_data_t for messageId:"
-//                << msgAttachment->getMessageId();
-//        LoggerE("%s",err_ss.str().c_str());
-//        throw Common::UnknownException(err_ss.str().c_str());
-//    }
-//
-//    AttachmentPtrVector attachments = Message::convertEmailToMessageAttachment(
-//            *mail_data_holder.data);
-//    LoggerD("Mail:%d contain:%d attachments", msgAttachment->getMessageId(),
-//        attachments.size());
-//
-//    AttachmentPtrVector::iterator it = attachments.begin();
-//    int attachmentIndex = -1;
-//    for(int i = 0; it != attachments.end(); ++i, ++it) {
-//        if((*it)->getId() == msgAttachment->getId()) {
-//            attachmentIndex = i;
-//            break;
-//        }
-//    }
-//
-//    if(attachmentIndex < 0) {
-//        std::stringstream err_ss;
-//        err_ss << "Attachment with id:" << msgAttachment->getId() << "not found";
-//        LoggerE("%s",err_ss.str().c_str());
-//        throw Common::UnknownException(err_ss.str().c_str());
-//    }
-//
-//    LoggerD("Attachment with id:%d is located at index:%d", msgAttachment->getId(),
-//            attachmentIndex);
-//
-//    int op_handle = -1;
-//    const int nth = attachmentIndex + 1; //in documentation: the minimum number is "1"
-//    callback->setNth(nth);
-//
-//    int err = email_download_attachment(msgAttachment->getMessageId(), nth, &op_handle);
-//    if (EMAIL_ERROR_NONE != err) {
-//        std::stringstream err_ss;
-//        err_ss << "Download email attachment failed with error: " << err;
-//        LoggerE("%s",err_ss.str().c_str());
-//        throw Common::UnknownException(err_ss.str().c_str());
-//    } else  {
-//        LoggerD("email_download_attachment returned handle:%d",op_handle);
-//        callback->setOperationHandle(op_handle);
-//        m_proxy_load_attachment->addCallback(callback);
-//    }
-//}
+
+void EmailManager::loadMessageAttachment(MessageAttachmentCallbackData* callback)
+{
+    LoggerD("Entered");
+    if(!callback) {
+        LoggerE("Callback is null");
+        throw common::InvalidValuesException("Callback is null");
+    }
+    if(!callback->getMessageAttachment()) {
+        LoggerE("Callback's message attachment is null");
+        throw common::InvalidValuesException("Callback's message attachment is null");
+    }
+
+    std::shared_ptr<MessageAttachment> msgAttachment = callback->getMessageAttachment();
+    LoggerD("attachmentId:%d mailId:%d", msgAttachment->getId(),
+            msgAttachment->getMessageId());
+
+    struct ScopedEmailMailData {
+        ScopedEmailMailData() : data(NULL) { }
+        ~ScopedEmailMailData() { EmailManager::freeMessage(data); }
+        email_mail_data_t* data;
+    } mail_data_holder;
+
+    mail_data_holder.data = EmailManager::loadMessage(msgAttachment->getMessageId());
+    if(!mail_data_holder.data) {
+        std::stringstream err_ss;
+        err_ss << "Couldn't get email_mail_data_t for messageId:"
+                << msgAttachment->getMessageId();
+        LoggerE("%s",err_ss.str().c_str());
+        throw common::UnknownException(err_ss.str().c_str());
+    }
+
+    AttachmentPtrVector attachments = Message::convertEmailToMessageAttachment(
+            *mail_data_holder.data);
+    LoggerD("Mail:%d contain:%d attachments", msgAttachment->getMessageId(),
+        attachments.size());
+
+    AttachmentPtrVector::iterator it = attachments.begin();
+    int attachmentIndex = -1;
+    for(int i = 0; it != attachments.end(); ++i, ++it) {
+        if((*it)->getId() == msgAttachment->getId()) {
+            attachmentIndex = i;
+            break;
+        }
+    }
+
+    if(attachmentIndex < 0) {
+        std::stringstream err_ss;
+        err_ss << "Attachment with id:" << msgAttachment->getId() << "not found";
+        LoggerE("%s",err_ss.str().c_str());
+        throw common::UnknownException(err_ss.str().c_str());
+    }
+
+    LoggerD("Attachment with id:%d is located at index:%d", msgAttachment->getId(),
+            attachmentIndex);
+
+    int op_handle = -1;
+    const int nth = attachmentIndex + 1; //in documentation: the minimum number is "1"
+    callback->setNth(nth);
+
+    int err = email_download_attachment(msgAttachment->getMessageId(), nth, &op_handle);
+    if (EMAIL_ERROR_NONE != err) {
+        std::stringstream err_ss;
+        err_ss << "Download email attachment failed with error: " << err;
+        LoggerE("%s",err_ss.str().c_str());
+        throw common::UnknownException(err_ss.str().c_str());
+    } else  {
+        LoggerD("email_download_attachment returned handle:%d",op_handle);
+        callback->setOperationHandle(op_handle);
+        m_proxy_load_attachment->addCallback(callback);
+    }
+}
 
 //#################################### sync: ###################################
 

@@ -50,7 +50,6 @@ CommonFS.toRealPath = function (aPath) {
     } else {
         _fileRealPath = aPath;
     }
-    console.log("REAL PATH:"+_fileRealPath);
     return _fileRealPath;
 };
 
@@ -124,7 +123,7 @@ function Message(type, data) {
     if (MessageServiceTag.indexOf(type) === -1) {
         throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR);
     }
-    if (data === null || typeof data !== 'object') { // 'data' is optional
+    if ( !data || typeof data !== 'object') { // 'data' is optional
         data = {};
     }
 
@@ -173,8 +172,7 @@ function Message(type, data) {
         subject: data.subject || '',
         inResponseTo: inResponseTo || '',
         attachments: attachments
-    }
-
+    };
     // id
     Object.defineProperty(
         this,
@@ -442,7 +440,7 @@ function MessageInit_(data) {
     if (!(this instanceof MessageInit_)) {
         return new MessageInit_(data);
     }
-    if (data === null || typeof data !== 'object') {
+    if ( !data || typeof data !== 'object') {
         data = {};
     }
     this.id             = data.id             || null;
@@ -459,7 +457,20 @@ function MessageInit_(data) {
     this.isHighPriority = data.isHighPriority || false;
     this.subject        = data.subject        || '';
     this.inResponseTo   = data.inResponseTo   || null;
-    this.attachments    = data.attachments    || [];
+    this.attachments = [];
+
+    var self = this;
+    if (data.attachments && data.attachments.constructor === Array) {
+        data.attachments.forEach(function(el) {
+           if (!el) return;
+
+           if (el.constructor === MessageAttachment) {
+               self.attachments.push(el);
+           } else {
+               self.attachments.push(new MessageAttachment_(el));
+           }
+        });
+    }
 };
 
 function MessageBody(data) {
@@ -488,8 +499,6 @@ function MessageAttachment_(data) {
 }
 
 function MessageAttachment(filePath, mimeType) {
-    console.dir(this);
-
     //TODO remove CommonFS.toRealPath function when C++ filesystem will be available
     filePath = CommonFS.toRealPath(filePath);
     if (!this.id) {
@@ -623,15 +632,20 @@ MessageService.prototype.loadMessageBody = function () {
 };
 MessageService.prototype.loadMessageAttachment = function () {
     var args = validator_.validateArgs(arguments, [
-        {name: 'attachment', type: types_.PLATFORM_OBJECT, values: tizen.MessageAttachment},
+        //TODO FIXME something wrong with MessageAttachment object constructor
+        // fix validation of first argument
+        {name: 'attachment', type: types_.PLATFORM_OBJECT, values: Object},
         {name: 'successCallback', type: types_.FUNCTION},
         {name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true}
     ]);
 
+    var self = this;
+
     bridge.async({
         cmd: 'MessageService_loadMessageAttachment',
         args: {
-            attachment: args.attachment
+            attachment: args.attachment,
+            serviceId: self.id
         }
     }).then({
         success: function (data) {
@@ -639,7 +653,7 @@ MessageService.prototype.loadMessageAttachment = function () {
                 // TODO problem with MessageAttachment Constructor need to be investigated
                 args.successCallback.call(
                     null,
-                    new MessageAttachment(data.filePath, data.mimeType)
+                    new MessageAttachment_(data.messageAttachment)
                 );
             }
         },
@@ -802,6 +816,7 @@ MessageStorage.prototype.findMessages = function () {
             sort: args.sort,
             limit: args.limit,
             offset: args.offset,
+            serviceId: self.service.id,
             type: self.service.type
         }
     }).then({

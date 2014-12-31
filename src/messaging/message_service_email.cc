@@ -98,10 +98,57 @@ void MessageServiceEmail::loadMessageBody(MessageBodyCallbackData* callback)
     }
 }
 
-void MessageServiceEmail::loadMessageAttachment()
+static gboolean loadMessageAttachmentTask(void* data)
 {
     LoggerD("Entered");
-    //TODO add implementation
+
+    try {
+        MessageAttachmentCallbackData *callback =
+                static_cast<MessageAttachmentCallbackData *>(data);
+        if (!callback) {
+            LoggerE("Callback is null");
+            throw common::UnknownException("Callback is null");
+        }
+
+        std::shared_ptr<MessageAttachment> att =  callback->getMessageAttachment();
+
+        // if the attachment is already saved, then it doesn't need to load again.
+        if (att->isFilePathSet() && att->isSaved()){
+            auto json = callback->getJson();
+            picojson::object& obj = json->get<picojson::object>();
+            obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
+
+            picojson::object args;
+            args[JSON_DATA_MESSAGE_ATTACHMENT] = MessagingUtil::messageAttachmentToJson(
+                    callback->getMessageAttachment());
+            obj[JSON_DATA] = picojson::value(args);
+
+            MessagingInstance::getInstance().PostMessage(json->serialize().c_str());
+            delete callback;
+            callback = NULL;
+            return FALSE;
+        }
+
+        EmailManager::getInstance().loadMessageAttachment(
+                static_cast<MessageAttachmentCallbackData*>(data));
+    } catch(const common::PlatformException& exception) {
+        LoggerE("Unhandled exception: %s (%s)!", (exception.name()).c_str(),
+                (exception.message()).c_str());
+    } catch(...) {
+        LoggerE("Unhandled exception!");
+    }
+    return FALSE;
+}
+
+void MessageServiceEmail::loadMessageAttachment(MessageAttachmentCallbackData *callback)
+{
+    LoggerD("Entered");
+    guint id = g_idle_add(loadMessageAttachmentTask, static_cast<void*>(callback));
+    if (!id) {
+        LoggerE("g_idle_add failed");
+        delete callback;
+        throw common::UnknownException("Could not add task");
+    }
 }
 
 static gboolean syncTask(void* data)

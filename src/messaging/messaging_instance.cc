@@ -248,6 +248,22 @@ void MessagingInstance::MessageServiceLoadMessageAttachment(const picojson::valu
         picojson::object& out)
 {
     LoggerD("Entered");
+
+    picojson::object data = args.get(JSON_DATA).get<picojson::object>();
+    picojson::value attachment = data.at(LOAD_MESSAGE_ATTACHMENT_ARGS_ATTACHMENT);
+    const double callbackId = args.get(JSON_CALLBACK_ID).get<double>();
+    MessageAttachmentCallbackData* callback = new MessageAttachmentCallbackData();
+    callback->setMessageAttachment(MessagingUtil::jsonToMessageAttachment(attachment));
+
+    int serviceId = static_cast<int>(
+            MessagingUtil::getValueFromJSONObject<double>(data, FUNCTIONS_HIDDEN_ARGS_SERVICE_ID));
+    auto json = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
+    picojson::object& obj = json->get<picojson::object>();
+    obj[JSON_CALLBACK_ID] = picojson::value(callbackId);
+    callback->setJson(json);
+
+    auto service = MessagingManager::getInstance().getMessageServiceEmail(serviceId);
+    service->loadMessageAttachment(callback);
 }
 
 void MessagingInstance::MessageServiceSync(const picojson::value& args,
@@ -393,8 +409,10 @@ void MessagingInstance::MessageStorageFindMessages(const picojson::value& args,
     // TODO add support to AttributeRangeFilter
     auto filter = MessagingUtil::jsonToAttributeFilter(data);
     auto sortMode = MessagingUtil::jsonToSortMode(data);
+
     long limit = static_cast<long>
             (MessagingUtil::getValueFromJSONObject<double>(data, FIND_FOLDERS_ARGS_LIMIT));
+
     long offset = static_cast<long>
             (MessagingUtil::getValueFromJSONObject<double>(data, FIND_FOLDERS_ARGS_OFFSET));
 

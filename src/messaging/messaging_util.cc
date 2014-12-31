@@ -30,6 +30,7 @@ const char* JSON_CALLBACK_KEEP = "keep";
 const char* JSON_DATA = "args";
 const char* JSON_DATA_MESSAGE = "message";
 const char* JSON_DATA_MESSAGE_BODY = "messageBody";
+const char* JSON_DATA_MESSAGE_ATTACHMENT = "messageAttachment";
 const char* JSON_ERROR_MESSAGE = "message";
 const char* JSON_ERROR_NAME = "name";
 
@@ -356,8 +357,13 @@ picojson::value MessagingUtil::messageToJson(std::shared_ptr<Message> message)
     o[MESSAGE_ATTRIBUTE_BODY] = MessagingUtil::messageBodyToJson(body);
 
 
-    // TODO attachments
-    //o[MESSAGE_ATTRIBUTE_ATTACHMENTS] = picojson::value(array);
+    auto vectorToAttachmentArray = [&array] (std::shared_ptr<MessageAttachment>& a)->void {
+        array.push_back(MessagingUtil::messageAttachmentToJson(a));
+    };
+    auto attachments = message->getMessageAttachments();
+    for_each(attachments.begin(), attachments.end(), vectorToAttachmentArray);
+    o[MESSAGE_ATTRIBUTE_ATTACHMENTS] = picojson::value(array);
+    array.clear();
 
     picojson::value v(o);
     return v;
@@ -672,6 +678,57 @@ tizen::AttributeFilterPtr MessagingUtil::jsonToAttributeFilter(const picojson::o
     attributePtr->setMatchFlag(filterMatch);
     attributePtr->setMatchValue(AnyPtr(new Any(filter.at(JSON_TO_MATCH_VALUE))));
     return attributePtr;
+}
+
+std::shared_ptr<MessageAttachment> MessagingUtil::jsonToMessageAttachment(const picojson::value& json)
+{
+    LoggerD("Entered");
+
+    picojson::object data = json.get<picojson::object>();
+    int attachmentId =
+            static_cast<int>(getValueFromJSONObject<double>(data, MESSAGE_ATTACHMENT_ATTRIBUTE_ID));
+    int messageId = static_cast<int>(
+            getValueFromJSONObject<double>(data, MESSAGE_ATTACHMENT_ATTRIBUTE_MESSAGE_ID));
+    std::string mimeType =
+            getValueFromJSONObject<std::string>(data, MESSAGE_ATTACHMENT_ATTRIBUTE_MIME_TYPE);
+    std::string filePath =
+            getValueFromJSONObject<std::string>(data, MESSAGE_ATTACHMENT_ATTRIBUTE_FILE_PATH);
+    auto attachmentPtr = std::shared_ptr<MessageAttachment>(new MessageAttachment());
+
+    attachmentPtr->setId(attachmentId);
+    attachmentPtr->setMessageId(messageId);
+    attachmentPtr->setMimeType(mimeType);
+    attachmentPtr->setFilePath(filePath);
+
+    return attachmentPtr;
+}
+
+picojson::value MessagingUtil::messageAttachmentToJson(std::shared_ptr<MessageAttachment> attachment)
+{
+    LoggerD("Entered");
+
+    picojson::object o;
+    o[MESSAGE_ATTACHMENT_ATTRIBUTE_ID] =
+            attachment->isIdSet()
+            ? picojson::value(static_cast<double>(attachment->getId()))
+            : picojson::value();
+
+    o[MESSAGE_ATTACHMENT_ATTRIBUTE_MESSAGE_ID] =
+            attachment->isMessageIdSet()
+            ? picojson::value(static_cast<double>(attachment->getMessageId()))
+            : picojson::value();
+
+    o[MESSAGE_ATTACHMENT_ATTRIBUTE_MIME_TYPE] =
+            attachment->isMimeTypeSet()
+            ? picojson::value(attachment->getMimeType())
+            : picojson::value();
+
+    o[MESSAGE_ATTACHMENT_ATTRIBUTE_FILE_PATH] =
+            attachment->isFilePathSet()
+            ? picojson::value(attachment->getFilePath())
+            : picojson::value();
+
+    return picojson::value(o);
 }
 
 std::shared_ptr<MessageConversation> MessagingUtil::jsonToMessageConversation(const picojson::value& json)

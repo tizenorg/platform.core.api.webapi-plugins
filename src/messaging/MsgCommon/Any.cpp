@@ -89,7 +89,12 @@ double Any::toDouble() const
 
 std::string Any::toString() const
 {
-    return m_value.get<std::string>();
+    std::string str = "";
+    if (m_value.is<std::string>()) {
+        str = m_value.get<std::string>();
+        return str;
+    }
+    return str;
 }
 
 std::tm* Any::toDateTm() const

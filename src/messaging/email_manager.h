@@ -42,7 +42,7 @@
 #include "DBus/Connection.h"
 #include "DBus/SyncProxy.h"
 #include "DBus/LoadBodyProxy.h"
-//#include "DBus/LoadAttachmentProxy.h"
+#include "DBus/LoadAttachmentProxy.h"
 #include "DBus/MessageProxy.h"
 #include "DBus/SendProxy.h"
 
@@ -74,7 +74,7 @@ public:
             email_noti_on_storage_event status);
 
     void loadMessageBody(MessageBodyCallbackData* callback);
-//    void loadMessageAttachment(MessageAttachmentCallbackData* callback);
+    void loadMessageAttachment(MessageAttachmentCallbackData* callback);
 
     void sync(void* data);
     void syncFolder(SyncFolderCallbackData* callback);
@@ -123,7 +123,7 @@ private:
 
     DBus::SyncProxyPtr m_proxy_sync;
     DBus::LoadBodyProxyPtr m_proxy_load_body;
-//    DBus::LoadAttachmentProxyPtr m_proxy_load_attachment;
+    DBus::LoadAttachmentProxyPtr m_proxy_load_attachment;
     DBus::MessageProxyPtr m_proxy_messageStorage;
     DBus::SendProxyPtr m_proxy_send;
 

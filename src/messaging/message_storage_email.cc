@@ -157,6 +157,7 @@ void MessageStorageEmail::findMessages(FindMsgCallbackUserData* callback)
 
     callback->setAccountId(m_id);
     callback->setMessageServiceType(m_msg_type);
+
     guint id = g_idle_add(findMessagesTask, static_cast<void*>(callback));
     if (!id) {
         LoggerE("g_idle_add failed");

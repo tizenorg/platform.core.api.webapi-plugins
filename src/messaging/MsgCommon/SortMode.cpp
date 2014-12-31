@@ -16,7 +16,7 @@
 //
 #include "SortMode.h"
 
-#include "common/logger.h";
+#include "common/logger.h"
 
 namespace extension {
 namespace tizen {

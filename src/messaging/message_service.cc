@@ -255,6 +255,41 @@ std::shared_ptr<Message> MessageBodyCallbackData::getMessage() const
     return m_message;
 }
 
+//#################### MessageAttachmentCallbackData ####################
+
+MessageAttachmentCallbackData::MessageAttachmentCallbackData():
+        m_nth(0)
+{
+    LoggerD("Entered");
+}
+
+MessageAttachmentCallbackData::~MessageAttachmentCallbackData()
+{
+    LoggerD("Entered");
+}
+
+void MessageAttachmentCallbackData::setMessageAttachment(
+        std::shared_ptr<MessageAttachment> messageAttachment)
+{
+    m_message_attachment = messageAttachment;
+}
+
+std::shared_ptr<MessageAttachment> MessageAttachmentCallbackData::
+    getMessageAttachment() const
+{
+    return m_message_attachment;
+}
+
+void MessageAttachmentCallbackData::setNth(const int nth)
+{
+    m_nth = nth;
+}
+
+int MessageAttachmentCallbackData::getNth() const
+{
+    return m_nth;
+}
+
 //#################### SyncCallbackData ####################
 
 SyncCallbackData::SyncCallbackData():
@@ -408,7 +443,7 @@ void MessageService::loadMessageBody(MessageBodyCallbackData* callback)
     throw common::NotSupportedException("Cannot load message body");
 }
 
-void MessageService::loadMessageAttachment()
+void MessageService::loadMessageAttachment(MessageAttachmentCallbackData* callback)
 {
     // this method should be overwritten by email service
     // for MMS and SMS this function is not supported

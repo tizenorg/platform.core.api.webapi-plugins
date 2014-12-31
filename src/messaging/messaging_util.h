@@ -17,6 +17,7 @@
 #include "MsgCommon/AbstractFilter.h"
 
 #include "message_folder.h"
+#include "message_attachment.h"
 
 namespace extension {
 namespace messaging {
@@ -30,6 +31,7 @@ extern const char* JSON_CALLBACK_KEEP;
 extern const char* JSON_DATA;
 extern const char* JSON_DATA_MESSAGE;
 extern const char* JSON_DATA_MESSAGE_BODY;
+extern const char* JSON_DATA_MESSAGE_ATTACHMENT;
 extern const char* JSON_ERROR_MESSAGE;
 extern const char* JSON_ERROR_NAME;
 
@@ -114,6 +116,7 @@ public:
 
     static picojson::value messageBodyToJson(std::shared_ptr<MessageBody> body);
     static picojson::value messageToJson(std::shared_ptr<Message> message);
+    static picojson::value messageAttachmentToJson(std::shared_ptr<MessageAttachment> attachment);
     static picojson::value conversationToJson(std::shared_ptr<MessageConversation> conversation);
     static picojson::value folderToJson(std::shared_ptr<MessageFolder> folder);
     static std::shared_ptr<Message> jsonToMessage(const picojson::value& json);
@@ -121,6 +124,7 @@ public:
     static tizen::SortModePtr jsonToSortMode(const picojson::object& json);
     static tizen::AttributeFilterPtr jsonToAttributeFilter(const picojson::object& json);
     static std::shared_ptr<MessageConversation> jsonToMessageConversation(const picojson::value& json);
+    static std::shared_ptr<MessageAttachment> jsonToMessageAttachment(const picojson::value& json);
 
     template <class T>
     static T getValueFromJSONObject(const picojson::object& v, const std::string& key)

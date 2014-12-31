@@ -20,20 +20,21 @@
  */
 
 #include "LoadAttachmentProxy.h"
-#include <Logger.h>
-#include <PlatformException.h>
+
+#include "common/logger.h"
+#include "common/platform_exception.h"
+
 #include <cstring>
 #include <email-types.h>
-#include "MessageService.h"
-#include "Message.h"
-#include "MessageBody.h"
-#include "EmailManager.h"
-#include "JSMessageAttachment.h"
-#include <email-api.h>
-#include <JSWebAPIErrorFactory.h>
+#include "../message_service.h"
+#include "../message.h"
+#include "../message_body.h"
+#include "../email_manager.h"
 
-namespace DeviceAPI {
-namespace Messaging {
+#include <email-api.h>
+
+namespace extension {
+namespace messaging {
 namespace DBus {
 
 /**
@@ -54,7 +55,7 @@ void updateAttachmentDataWithEmailGetAttachmentData(
         email_attachment_data_t* data;
     } attachment_data_holder;
 
-    LOGD("attachmentId = %d", attachment->getId());
+    LoggerD("attachmentId = %d", attachment->getId());
 
     /*
      * WARNING: email_get_attachment_data seems to be getting NOT COMPLETE
@@ -70,11 +71,11 @@ void updateAttachmentDataWithEmailGetAttachmentData(
     int err = email_get_attachment_data(attachment->getId(), &attachment_data_holder.data);
     if (EMAIL_ERROR_NONE != err ||
         NULL == attachment_data_holder.data) {
-        LOGE("Couldn't get attachment data for attachmentId:%d", attachment->getId());
-        throw Common::UnknownException("Couldn't get attachment.");
+        LoggerE("Couldn't get attachment data for attachmentId:%d", attachment->getId());
+        throw common::UnknownException("Couldn't get attachment.");
     }
 
-    LOGD("attachment name : %s", attachment_data_holder->attachment_name);
+    LoggerD("attachment name : %s", attachment_data_holder->attachment_name);
 
     if(attachment_data_holder->attachment_mime_type) {
         attachment->setMimeType(attachment_data_holder->attachment_mime_type);
@@ -82,11 +83,11 @@ void updateAttachmentDataWithEmailGetAttachmentData(
 
     bool isSaved = false;
     if (attachment_data_holder->attachment_path) {
-        LOGD("set attachment path: %s", attachment_data_holder->attachment_path);
+        LoggerD("set attachment path: %s", attachment_data_holder->attachment_path);
         attachment->setFilePath(attachment_data_holder->attachment_path);
 
-        LOGD("save_status: %d", attachment_data_holder->save_status);
-        LOGD("attachment_size : %d", attachment_data_holder->attachment_size);
+        LoggerD("save_status: %d", attachment_data_holder->save_status);
+        LoggerD("attachment_size : %d", attachment_data_holder->attachment_size);
     }
     isSaved = attachment_data_holder->save_status;
     attachment->setIsSaved(isSaved);
@@ -105,7 +106,7 @@ LoadAttachmentProxy::~LoadAttachmentProxy()
 void LoadAttachmentProxy::addCallback(MessageAttachmentCallbackData* callbackOwned)
 {
     if(callbackOwned->getMessageAttachment()) {
-        LOGD("Registered callback for attachment_id: %d mail_id:%d op_handle:%d nth:%d",
+        LoggerD("Registered callback for attachment_id: %d mail_id:%d op_handle:%d nth:%d",
             callbackOwned->getMessageAttachment()->getId(),
             callbackOwned->getMessageAttachment()->getMessageId(),
             callbackOwned->getOperationHandle(),
@@ -118,7 +119,7 @@ void LoadAttachmentProxy::addCallback(MessageAttachmentCallbackData* callbackOwn
 void LoadAttachmentProxy::removeCallback(MessageAttachmentCallbackData* callback)
 {
     if(callback->getMessageAttachment()) {
-        LOGD("Removed callback for attachment_id: %d mail_id:%d op_handle:%d nth:%d",
+        LoggerD("Removed callback for attachment_id: %d mail_id:%d op_handle:%d nth:%d",
             callback->getMessageAttachment()->getId(),
             callback->getMessageAttachment()->getMessageId(),
             callback->getOperationHandle(),
@@ -140,7 +141,7 @@ MessageAttachmentCallbackData* LoadAttachmentProxy::findCallback(const int nth,
         }
     }
 
-    LOGW("Could not find callback with nth: %d and mail_id: %d", nth, mail_id);
+    LoggerW("Could not find callback with nth: %d and mail_id: %d", nth, mail_id);
     return NULL;
 }
 
@@ -155,7 +156,7 @@ void LoadAttachmentProxy::handleEmailSignal(const int status,
         return;
     }
 
-    LOGD("received email signal with:\n  status: %d\n  mail_id: %d\n  "
+    LoggerD("received email signal with:\n  status: %d\n  mail_id: %d\n  "
             "source: %s\n  op_handle(nth): %d\n  error_code: %d",
             status, mail_id, source.c_str(), op_handle, error_code);
 
@@ -179,45 +180,47 @@ void LoadAttachmentProxy::handleEmailSignal(const int status,
             return;
         }
 
-        LOGD("Found callback for pair mailId:%d nth:%d", mail_id, nth);
+        LoggerD("Found callback for pair mailId:%d nth:%d", mail_id, nth);
 
         if(NOTI_DOWNLOAD_ATTACH_FINISH == status) {
-            LOGD("Message attachment downloaded!");
+            LoggerD("Message attachment downloaded!");
 
             std::shared_ptr<MessageAttachment> att = callback->getMessageAttachment();
             updateAttachmentDataWithEmailGetAttachmentData(att);
-            LOGD("Updated Message attachment object");
+            LoggerD("Updated Message attachment object");
 
             try {
-                JSContextRef context = callback->getContext();
-                JSObjectRef jsMessageAtt = JSMessageAttachment::makeJSObject(context, att);
-                callback->callSuccessCallback(jsMessageAtt);
+                auto json = callback->getJson();
+                picojson::object& obj = json->get<picojson::object>();
+                obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
+
+                picojson::object args;
+                args[JSON_DATA_MESSAGE_ATTACHMENT] = MessagingUtil::messageAttachmentToJson(
+                        callback->getMessageAttachment());
+                obj[JSON_DATA] = picojson::value(args);
+
+                MessagingInstance::getInstance().PostMessage(json->serialize().c_str());
             } catch (...) {
-                LOGW("Couldn't create JSMessageAttachment object!");
-                throw Common::UnknownException(
+                LoggerW("Couldn't create JSMessageAttachment object!");
+                throw common::UnknownException(
                         "Couldn't create JSMessageAttachment object!");
             }
 
         } else if(NOTI_DOWNLOAD_ATTACH_FAIL) {
-            LOGD("Load message attachment failed!");
-            JSObjectRef errobj = Common::JSWebAPIErrorFactory::makeErrorObject(
-                    callback->getContext(),
-                    callback->getErrorName(),
-                    callback->getErrorMessage());
-            callback->callErrorCallback(errobj);
+            LoggerD("Load message attachment failed!");
+            common::UnknownException e("Load message attachment failed!");
+            callback->setError(e.name(), e.message());
+            MessagingInstance::getInstance().PostMessage(callback->getJson()->serialize().c_str());
         }
-    } catch (const Common::BasePlatformException& e) {
-        LOGE("Exception in signal callback");
-        JSObjectRef errobj = Common::JSWebAPIErrorFactory::makeErrorObject(
-                callback->getContext(), e);
-        callback->callErrorCallback(errobj);
+    } catch (const common::PlatformException& e) {
+        LoggerE("Exception in signal callback");
+        callback->setError(e.name(), e.message());
+        MessagingInstance::getInstance().PostMessage(callback->getJson()->serialize().c_str());
     } catch (...) {
-        LOGE("Exception in signal callback");
-        JSObjectRef errobj = Common::JSWebAPIErrorFactory::makeErrorObject(
-                callback->getContext(),
-                Common::JSWebAPIErrorFactory::UNKNOWN_ERROR,
-                "Handling signal callback failed");
-        callback->callErrorCallback(errobj);
+        LoggerE("Exception in signal callback");
+        common::UnknownException e("Exception in signal callback");
+        callback->setError(e.name(), e.message());
+        MessagingInstance::getInstance().PostMessage(callback->getJson()->serialize().c_str());
     }
 
     if(callback) {
@@ -227,5 +230,5 @@ void LoadAttachmentProxy::handleEmailSignal(const int status,
 }
 
 } //namespace DBus
-} //namespace Messaging
-} //namespace DeviceAPI
+} //namespace messaging
+} //namespace extension
