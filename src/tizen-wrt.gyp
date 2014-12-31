@@ -28,7 +28,6 @@
               'calendar/calendar.gyp:*',
               'datasync/datasync.gyp:*',
               'messaging/messaging.gyp:*',
-              'radio/radio.gyp:*',
               'nfc/nfc.gyp:*',
               'power/power.gyp:*',
               'bookmark/bookmark.gyp:*',
