@@ -374,6 +374,7 @@ void MessagingInstance::MessageStorageFindMessages(const picojson::value& args,
     callback->setLimit(limit);
     callback->setOffset(offset);
     callback->setAccountId(serviceId);
+    callback->setSortMode(sortMode);
 
     auto json = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
     picojson::object& obj = json->get<picojson::object>();
@@ -461,6 +462,7 @@ void MessagingInstance::MessageStorageFindConversations(const picojson::value& a
     callback->setLimit(limit);
     callback->setOffset(offset);
     callback->setAccountId(serviceId);
+    callback->setSortMode(sortMode);
 
     auto json = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
     picojson::object& obj = json->get<picojson::object>();

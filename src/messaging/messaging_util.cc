@@ -557,6 +557,13 @@ tizen::SortModePtr MessagingUtil::jsonToSortMode(const picojson::object& json)
     LoggerD("Entered");
     using namespace tizen;
 
+    picojson::value value;
+    try{
+        value = json.at(JSON_TO_SORT);
+    } catch(const std::out_of_range& e){
+        return SortModePtr();
+    }
+
     auto dataSort = getValueFromJSONObject<picojson::object>(json, JSON_TO_SORT);
     auto name = getValueFromJSONObject<std::string>(dataSort, JSON_TO_ATTRIBUTE_NAME);
     auto ord = getValueFromJSONObject<std::string>(dataSort, JSON_TO_ORDER);
@@ -602,7 +609,6 @@ tizen::AttributeFilterPtr MessagingUtil::jsonToAttributeFilter(const picojson::o
     auto attributePtr = AttributeFilterPtr(new AttributeFilter(name));
     attributePtr->setMatchFlag(filterMatch);
     attributePtr->setMatchValue(AnyPtr(new Any(filter.at(JSON_TO_MATCH_VALUE))));
-
     return attributePtr;
 }
 
