@@ -691,83 +691,83 @@ void EmailManager::sync(void* data)
 
 //#################################### ^sync ###################################
 
-////################################## syncFolder: ###############################
-//
-//void EmailManager::syncFolder(SyncFolderCallbackData* callback)
-//{
-//    LoggerD("Entered");
-//    if(!callback){
-//        LoggerE("Callback is null");
-//        return;
-//    }
-//
-//    const long op_id = callback->getOpId();
-//    m_proxy_sync->addCallback(op_id, callback);
-//
-//    if(!callback->getMessageFolder())
-//    {
-//        LoggerE("Callback's messageFolder is null");
-//        m_proxy_sync->removeCallback(op_id);
-//        return;
-//    }
-//
-//    int err = EMAIL_ERROR_NONE;
-//
-//    email_mailbox_t* mailbox = NULL;
-//
-//    const std::string folder_id_str = callback->getMessageFolder()->getId();
-//    int folder_id = 0;
-//    std::istringstream(folder_id_str) >> folder_id;
-//
-//    err = email_get_mailbox_by_mailbox_id(folder_id, &mailbox);
-//    if (EMAIL_ERROR_NONE != err || NULL == mailbox) {
-//        LoggerE("Couldn't get mailbox, error code: %d", err);
-//        m_proxy_sync->removeCallback(op_id);
-//        return;
-//    }
-//
-//    try {
-//        const int limit = callback->getLimit();
-//        int slot_size = -1;
-//
-//        if (limit < 0) {
-//            slot_size = m_slot_size;
-//        }
-//        else {
-//            slot_size = limit;
-//        }
-//
-//        err = email_set_mail_slot_size(0, 0, slot_size);
-//        if(EMAIL_ERROR_NONE != err){
-//            LoggerE("Email set slot size failed, %d", err);
-//            throw UnknownException("Email set slot size failed");
-//        }
-//
-//        int op_handle = -1;
-//        const int account_id = callback->getAccountId();
-//        err = email_sync_header(account_id, mailbox->mailbox_id, &op_handle);
-//        if(EMAIL_ERROR_NONE != err) {
-//            LoggerE("Email sync header failed, %d", err);
-//            m_proxy_sync->removeCallback(op_id);
-//            throw UnknownException("Email sync header failed");
-//        }
-//        callback->setOperationHandle(op_handle);
-//    }
-//    catch (const BasePlatformException& e) {
-//        LoggerE("Exception in syncFolder");
-//    }
-//
-//    if (NULL != mailbox)
-//    {
-//        err = email_free_mailbox(&mailbox , 1);
-//        if  (EMAIL_ERROR_NONE !=  err) {
-//            LoggerD("Failed to email_free_mailbox - err:%d ", err);
-//        }
-//        mailbox = NULL;
-//    }
-//}
-//
-////#################################### ^syncFolder #############################
+//################################## syncFolder: ###############################
+
+void EmailManager::syncFolder(SyncFolderCallbackData* callback)
+{
+    LoggerD("Entered");
+    if(!callback){
+        LoggerE("Callback is null");
+        return;
+    }
+
+    const long op_id = callback->getOpId();
+    m_proxy_sync->addCallback(op_id, callback);
+
+    if(!callback->getMessageFolder())
+    {
+        LoggerE("Callback's messageFolder is null");
+        m_proxy_sync->removeCallback(op_id);
+        return;
+    }
+
+    int err = EMAIL_ERROR_NONE;
+
+    email_mailbox_t* mailbox = NULL;
+
+    const std::string folder_id_str = callback->getMessageFolder()->getId();
+    int folder_id = 0;
+    std::istringstream(folder_id_str) >> folder_id;
+
+    err = email_get_mailbox_by_mailbox_id(folder_id, &mailbox);
+    if (EMAIL_ERROR_NONE != err || NULL == mailbox) {
+        LoggerE("Couldn't get mailbox, error code: %d", err);
+        m_proxy_sync->removeCallback(op_id);
+        return;
+    }
+
+    try {
+        const int limit = callback->getLimit();
+        int slot_size = -1;
+
+        if (limit < 0) {
+            slot_size = m_slot_size;
+        }
+        else {
+            slot_size = limit;
+        }
+
+        err = email_set_mail_slot_size(0, 0, slot_size);
+        if(EMAIL_ERROR_NONE != err){
+            LoggerE("Email set slot size failed, %d", err);
+            throw UnknownException("Email set slot size failed");
+        }
+
+        int op_handle = -1;
+        const int account_id = callback->getAccountId();
+        err = email_sync_header(account_id, mailbox->mailbox_id, &op_handle);
+        if(EMAIL_ERROR_NONE != err) {
+            LoggerE("Email sync header failed, %d", err);
+            m_proxy_sync->removeCallback(op_id);
+            throw UnknownException("Email sync header failed");
+        }
+        callback->setOperationHandle(op_handle);
+    }
+    catch (const PlatformException& e) {
+        LoggerE("Exception in syncFolder");
+    }
+
+    if (NULL != mailbox)
+    {
+        err = email_free_mailbox(&mailbox , 1);
+        if  (EMAIL_ERROR_NONE !=  err) {
+            LoggerD("Failed to email_free_mailbox - err:%d ", err);
+        }
+        mailbox = NULL;
+    }
+}
+
+//#################################### ^syncFolder #############################
 
 //################################## stopSync: #################################
 

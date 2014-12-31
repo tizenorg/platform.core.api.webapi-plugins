@@ -137,6 +137,23 @@ std::string MessagingUtil::messageFolderTypeToString(MessageFolderType type)
     }
 }
 
+MessageFolderType MessagingUtil::stringToMessageFolderType(std::string type)
+{
+    if (FOLDER_TYPE_INBOX == type) {
+        return MessageFolderType::MESSAGE_FOLDER_TYPE_INBOX;
+    }
+    if (FOLDER_TYPE_OUTBOX == type) {
+        return MessageFolderType::MESSAGE_FOLDER_TYPE_OUTBOX;
+    }
+    if (FOLDER_TYPE_DRAFTS == type) {
+        return MessageFolderType::MESSAGE_FOLDER_TYPE_DRAFTS;
+    }
+    if (FOLDER_TYPE_SENTBOX == type) {
+        return MessageFolderType::MESSAGE_FOLDER_TYPE_SENTBOX;
+    }
+    return MessageFolderType::MESSAGE_FOLDER_TYPE_NOTSTANDARD;
+}
+
 MessageType MessagingUtil::stringToMessageType(std::string str)
 {
     try {
@@ -550,6 +567,51 @@ std::shared_ptr<Message> MessagingUtil::jsonToMessage(const picojson::value& jso
 
     return message;
 
+}
+
+std::shared_ptr<MessageFolder> MessagingUtil::jsonToMessageFolder(const picojson::value& json)
+{
+    LoggerD("Entered");
+
+    picojson::object data = json.get<picojson::object>();
+
+    std::string id = MessagingUtil::getValueFromJSONObject<std::string>(data,
+            MESSAGE_FOLDER_ATTRIBUTE_ID).c_str();
+
+    std::string parent_id = MessagingUtil::getValueFromJSONObject<std::string>(data,
+            MESSAGE_FOLDER_ATTRIBUTE_PARENT_ID).c_str();
+
+    std::string service_id = MessagingUtil::getValueFromJSONObject<std::string>(data,
+            MESSAGE_FOLDER_ATTRIBUTE_SERVICE_ID).c_str();
+
+    std::string content_type = MessagingUtil::getValueFromJSONObject<std::string>(data,
+            MESSAGE_FOLDER_ATTRIBUTE_CONTENT_TYPE).c_str();
+
+    std::string name = MessagingUtil::getValueFromJSONObject<std::string>(data,
+            MESSAGE_FOLDER_ATTRIBUTE_NAME).c_str();
+
+    std::string path = MessagingUtil::getValueFromJSONObject<std::string>(data,
+            MESSAGE_FOLDER_ATTRIBUTE_PATH).c_str();
+
+    std::string type_str = MessagingUtil::getValueFromJSONObject<std::string>(data,
+            MESSAGE_FOLDER_ATTRIBUTE_TYPE).c_str();
+    MessageFolderType type = MessagingUtil::stringToMessageFolderType(type_str);
+
+    bool synchronizable = MessagingUtil::getValueFromJSONObject<bool>(data,
+            MESSAGE_FOLDER_ATTRIBUTE_SYNCHRONIZABLE);
+
+    std::shared_ptr<MessageFolder> folder = std::shared_ptr<MessageFolder>(
+            new MessageFolder(
+                    id,
+                    parent_id,
+                    service_id,
+                    content_type,
+                    name,
+                    path,
+                    type,
+                    synchronizable));
+
+    return folder;
 }
 
 tizen::SortModePtr MessagingUtil::jsonToSortMode(const picojson::object& json)

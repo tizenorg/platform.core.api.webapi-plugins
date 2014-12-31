@@ -141,11 +141,47 @@ long MessageServiceEmail::sync(SyncCallbackData *callback)
     return op_id;
 }
 
-long MessageServiceEmail::syncFolder()
+static gboolean syncFolderTask(void* data)
 {
     LoggerD("Entered");
-    //TODO add implementation
-    return 0;
+
+    try {
+        EmailManager::getInstance().syncFolder(
+                static_cast<SyncFolderCallbackData*>(data));
+
+    } catch(const common::PlatformException& exception) {
+        LoggerE("Unhandled exception: %s (%s)!", (exception.name()).c_str(),
+             (exception.message()).c_str());
+    } catch(...) {
+        LoggerE("Unhandled exception!");
+    }
+
+    return FALSE;
+}
+
+long MessageServiceEmail::syncFolder(SyncFolderCallbackData *callback)
+{
+    LoggerD("Entered");
+    if(!callback){
+        LoggerE("Callback is null");
+        throw common::UnknownException("Callback is null");
+    }
+
+    if(!callback->getMessageFolder()) {
+        LoggerE("Message folder is null");
+        throw common::TypeMismatchException("Message folder is null");
+    }
+
+    long op_id = EmailManager::getInstance().getUniqueOpId();
+    callback->setOpId(op_id);
+
+    guint id = g_idle_add(syncFolderTask, callback);
+    if (!id) {
+        LoggerE("g_idle_add fails");
+        delete callback;
+    }
+
+    return op_id;
 }
 
 static gboolean stopSyncTask(void* data)

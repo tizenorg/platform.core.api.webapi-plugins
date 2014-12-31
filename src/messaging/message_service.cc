@@ -307,7 +307,30 @@ int SyncCallbackData::getAccountId() const
     return m_account_id;
 }
 
+//#################### SyncFolderCallbackData ####################
 
+SyncFolderCallbackData::SyncFolderCallbackData()
+{
+    LoggerD("Entered");
+}
+
+SyncFolderCallbackData::~SyncFolderCallbackData()
+{
+    LoggerD("Entered");
+}
+
+void SyncFolderCallbackData::setMessageFolder(
+        std::shared_ptr<MessageFolder> message_folder)
+{
+    m_message_folder = message_folder;
+}
+
+std::shared_ptr<MessageFolder> SyncFolderCallbackData::getMessageFolder() const
+{
+    return m_message_folder;
+}
+
+//#################### MessageService ####################
 
 MessageService::MessageService(int id,
                     MessageType msgType,
@@ -401,7 +424,7 @@ long MessageService::sync(SyncCallbackData *callback)
     throw common::NotSupportedException("Cannot sync with external server");
 }
 
-long MessageService::syncFolder()
+long MessageService::syncFolder(SyncFolderCallbackData *callback)
 {
     // this method should be overwritten by email service
     // for MMS and SMS this function is not supported

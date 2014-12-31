@@ -129,6 +129,18 @@ protected:
     int m_account_id;
 };
 
+class SyncFolderCallbackData : public SyncCallbackData {
+public:
+    SyncFolderCallbackData();
+    virtual ~SyncFolderCallbackData();
+
+    void setMessageFolder(std::shared_ptr<MessageFolder> message_folder);
+    std::shared_ptr<MessageFolder> getMessageFolder() const;
+
+private:
+    std::shared_ptr<MessageFolder> m_message_folder;
+};
+
 class MessageService
 {
 public:
@@ -145,7 +157,7 @@ public:
     virtual void loadMessageBody(MessageBodyCallbackData* callback);
     virtual void loadMessageAttachment();
     virtual long sync(SyncCallbackData *callback);
-    virtual long syncFolder();
+    virtual long syncFolder(SyncFolderCallbackData *callback);
     virtual void stopSync(long op_id);
 
     picojson::object toPicoJS() const;
