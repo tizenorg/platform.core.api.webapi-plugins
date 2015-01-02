@@ -7,6 +7,7 @@
 #include "nfc_message_utils.h"
 
 #include <glib.h>
+#include <memory>
 
 #include "common/logger.h"
 #include "common/platform_exception.h"
@@ -852,7 +853,7 @@ static void tagReadNDEFCb(nfc_error_e result , nfc_ndef_message_h message , void
 
     if(NFC_ERROR_NONE != result) {
         // create exception and post error message (call error callback)
-        auto ex = UnknownException("Failed to read NDEF message");
+        UnknownException ex("Failed to read NDEF message");
         picojson::value event = createEventError(callbackId, ex);
         NFCInstance::getInstance().PostMessage(event.serialize().c_str());
         return;
@@ -869,7 +870,7 @@ static void tagReadNDEFCb(nfc_error_e result , nfc_ndef_message_h message , void
         free(raw_data);
 
         // create exception and post error message (call error callback)
-        auto ex = UnknownException("Failed to retrieve NDEF message data");
+        UnknownException ex("Failed to retrieve NDEF message data");
         picojson::value event = createEventError(callbackId, ex);
         NFCInstance::getInstance().PostMessage(event.serialize().c_str());
         return;
@@ -983,6 +984,106 @@ void NFCAdapter::TagWriteNDEF(int tag_id, const picojson::value& args) {
         picojson::value event = createEventError(callbackId, ex);
         NFCInstance::getInstance().PostMessage(event.serialize().c_str());
     }
+}
+
+static void tagTransceiveCb(nfc_error_e err, unsigned char *buffer,
+        int buffer_size, void* data) {
+
+    LoggerD("Entered");
+
+    if (!data) {
+        // no callback id - unable to report success, neither error
+        LoggerE("Unable to launch transceive callback");
+        return;
+    }
+
+    double callback_id = *((double*)data);
+    delete (double*)data;
+    data = NULL;
+
+    if (NFC_ERROR_NONE != err) {
+
+        LoggerE("NFCTag transceive failed: %d", err);
+
+        // create exception and post error message (call error callback)
+        std::string error_name = NFCUtil::getNFCErrorString(err);
+        std::string error_message = NFCUtil::getNFCErrorMessage(err);
+
+        PlatformException ex(error_name, error_message);
+        picojson::value event = createEventError(callback_id, ex);
+        NFCInstance::getInstance().PostMessage(event.serialize().c_str());
+        return;
+    }
+
+    // create result and push to JS layer
+    picojson::value response = createEventSuccess(callback_id);
+    picojson::object& response_obj = response.get<picojson::object>();
+    NFCInstance::getInstance().InstanceReportSuccess(response_obj);
+    picojson::array& callback_data_array = response_obj.insert(std::make_pair("data",
+            picojson::value(picojson::array()))).first->second.get<picojson::array>();
+
+    for (unsigned int i = 0; i < buffer_size; i++) {
+        callback_data_array.push_back(picojson::value(static_cast<double>(buffer[i])));
+    }
+
+    NFCInstance::getInstance().PostMessage(response.serialize().c_str());
+}
+
+void NFCAdapter::TagTransceive(int tag_id, const picojson::value& args) {
+
+    LoggerD("Entered");
+    double callback_id = args.get(CALLBACK_ID).get<double>();
+    LoggerD("Received callback id: %f", callback_id);
+
+    if(!TagIsConnectedGetter(tag_id)) {
+        UnknownException ex("Tag is no more connected");
+
+        picojson::value event = createEventError(callback_id, ex);
+        NFCInstance::getInstance().PostMessage(event.serialize().c_str());
+        return;
+    }
+
+    const picojson::array& data_array = FromJson<picojson::array>(
+            args.get<picojson::object>(), "data");
+
+    unsigned char *buffer = new unsigned char[data_array.size()];
+    // unique pointer used to automatically release memory when leaving scope
+    std::unique_ptr<unsigned char> buffer_ptr(buffer);
+    int i = 0;
+
+    for(auto it = data_array.begin(); it != data_array.end();
+            ++it, ++i) {
+
+        unsigned char val = (unsigned char)it->get<double>();
+        buffer[i] = val;
+    }
+
+    double* callback_id_pointer = new double(callback_id);
+
+    int result = nfc_tag_transceive(m_last_tag_handle, buffer, data_array.size(),
+            tagTransceiveCb, (void*) callback_id_pointer);
+
+    if (NFC_ERROR_NONE != result) {
+        delete callback_id_pointer;
+        callback_id_pointer = NULL;
+
+        // for permission related error throw exception
+        if(NFC_ERROR_SECURITY_RESTRICTED == result ||
+                NFC_ERROR_PERMISSION_DENIED == result) {
+            throw SecurityException("Failed to read NDEF - permission denied");
+        }
+
+        std::string error_name = NFCUtil::getNFCErrorString(result);
+        std::string error_message = NFCUtil::getNFCErrorMessage(result);
+
+        LoggerE("NFCTag transceive failed: %d", result);
+
+        PlatformException ex(error_name, error_message);
+        picojson::value event = createEventError(callback_id, ex);
+        NFCInstance::getInstance().PostMessage(event.serialize().c_str());
+        return;
+    }
+
 }
 
 }// nfc

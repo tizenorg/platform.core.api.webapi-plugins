@@ -665,6 +665,43 @@ function NFCTag(tagid) {
 
     };
 
+    NFCTag.prototype.transceive = function() {
+        var args = validator_.validateArgs(arguments, [
+            {
+                name: 'data',
+                type : types_.ARRAY
+            },
+            {
+                name : 'dataCallback',
+                type : types_.FUNCTION
+            },
+            {
+                name : 'errorCallback',
+                type : types_.FUNCTION,
+                optional : true,
+                nullable : true
+            }
+        ]);
+
+        native_.call('NFCTag_transceive',
+        {
+            'id' : _my_id,
+            'data' : args.data,
+        },
+        function(result) {
+            if (native_.isFailure(result)) {
+                if(!T_.isNullOrUndefined(args.errorCallback)) {
+                    args.errorCallback(result.error);
+                }
+            } else {
+                if(!T_.isNullOrUndefined(args.dataCallback)) {
+                    args.dataCallback(result.data);
+                }
+            }
+        });
+
+    };
+
     Object.defineProperties(this, {
         type:   {
             set: function() {},
@@ -694,9 +731,6 @@ function NFCTag(tagid) {
     });
 }
 
-NFCTag.prototype.transceive = function() {
-
-};
 
 //////////////////NFCPeer /////////////////
 
