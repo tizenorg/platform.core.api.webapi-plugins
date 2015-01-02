@@ -149,7 +149,7 @@ var ArchiveCompressionLevel = {
  * This constructor is for internal use only.
  * It should be prohibited to call this constructor by user.
  */
-function ArchiveFileEntry(data) {
+function ArchiveFileEntry(data, priv) {
     if (!(this instanceof ArchiveFileEntry)) {
         return new ArchiveFileEntry(data);
     }
@@ -162,64 +162,70 @@ function ArchiveFileEntry(data) {
     propertyFactory_(this, 'size',           data.size                      || 0,     Property.E);
     propertyFactory_(this, 'compressedSize', data.compressedSize            || 0,     Property.E);
     propertyFactory_(this, 'modified',       new Date(data.modified * 1000) || null , Property.E);
-    propertyFactory_(this, '_handle',        data.handle                    || -1 );
+
+    function getHandle() {
+        if(priv.handle)
+            return priv.handle;
+        else throw new tizen.WebAPIException(tizen.WebAPIException.UNKNOWN_ERR, 'Archive is not opened');
+    }
+
+    /**
+     * Extracts ArchiveFileEntry to the given location.
+     */
+    this.extract = function () {
+        var args = validator_.validateArgs(arguments, [
+            { name: "destinationDirectory", type: types_.STRING }, //TODO: add FileReferece validation
+            { name: "onsuccess", type: types_.FUNCTION, optional: true, nullable: true },
+            { name: "onerror", type: types_.FUNCTION, optional: true, nullable: true },
+            { name: "onprogress", type: types_.FUNCTION, optional: true, nullable: true },
+            { name: "stripName", type: types_.STRING, optional: true, nullable: true },
+            { name: "overwrite", type: types_.BOOLEAN, optional: true, nullable: true }
+        ]),
+        opId = getNextOpId();
+
+        if (!CommonFS.isVirtualPath(args.destinationDirectory)) //TODO: add FileReferece validation
+            throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
+                    "Destination directory should be virtual path or file.");
+        bridge.async({
+            cmd: 'ArchiveFileEntry_extract',
+            args: {
+                destinationDirectory: CommonFS.toRealPath(args.destinationDirectory),
+                stripName: args.stripName || null,
+                overwrite: args.overwrite || null,
+                opId: opId,
+                handle: getHandle(),
+                name: this.name
+            }
+        }).then({
+            success: function () {
+                if (args.onsuccess) {
+                    args.onsuccess.call(null);
+                }
+            },
+            error: function (e) {
+                if (args.onerror) {
+                    args.onerror.call(
+                        null,
+                        new tizen.WebAPIException(e.code, e.message, e.name)
+                    );
+                }
+            },
+            progress: function (data) {
+                if (args.onprogress) {
+                    args.onprogress.call(
+                        null,
+                        opId,
+                        data.value,
+                        data.filename
+                    );
+                }
+            }
+        });
+
+        return opId;
+    };
 }
 
-/**
- * Extracts ArchiveFileEntry to the given location.
- */
-ArchiveFileEntry.prototype.extract = function () {
-    var args = validator_.validateArgs(arguments, [
-        { name: "destinationDirectory", type: types_.STRING }, //TODO: add FileReferece validation
-        { name: "onsuccess", type: types_.FUNCTION, optional: true, nullable: true },
-        { name: "onerror", type: types_.FUNCTION, optional: true, nullable: true },
-        { name: "onprogress", type: types_.FUNCTION, optional: true, nullable: true },
-        { name: "stripName", type: types_.STRING, optional: true, nullable: true },
-        { name: "overwrite", type: types_.BOOLEAN, optional: true, nullable: true }
-    ]),
-    opId = getNextOpId();
-
-    if (!CommonFS.isVirtualPath(args.destinationDirectory)) //TODO: add FileReferece validation
-        throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
-                "Destination directory should be virtual path or file.");
-    bridge.async({
-        cmd: 'ArchiveFileEntry_extract',
-        args: {
-            destinationDirectory: CommonFS.toRealPath(args.destinationDirectory),
-            stripName: args.stripName || null,
-            overwrite: args.overwrite || null,
-            opId: opId,
-            handle: this._handle,
-            name: this.name
-        }
-    }).then({
-        success: function () {
-            if (args.onsuccess) {
-                args.onsuccess.call(null);
-            }
-        },
-        error: function (e) {
-            if (args.onerror) {
-                args.onerror.call(
-                    null,
-                    new tizen.WebAPIException(e.code, e.message, e.name)
-                );
-            }
-        },
-        progress: function (data) {
-            if (args.onprogress) {
-                args.onprogress.call(
-                    null,
-                    opId,
-                    data.value,
-                    data.filename
-                );
-            }
-        }
-    });
-
-    return opId;
-};
 
 /**
  * The ArchiveManager interface provides methods for global operations related to ArchiveFile.
@@ -241,209 +247,221 @@ function ArchiveFile(data) {
 
     propertyFactory_(this, 'mode'            , data.mode             || "r", Property.E);
     propertyFactory_(this, 'decompressedSize', data.decompressedSize || 0,   Property.E);
-    propertyFactory_(this, '_handle',          data.handle           || -1 );
-}
 
-/**
- * Adds a new member file to ArchiveFile.
- */
-ArchiveFile.prototype.add = function () {
-    var args = validator_.validateArgs(arguments, [
-        { name: "sourceFile", type: types_.STRING }, //TODO: add FileReferece validation
-        { name: "onsuccess", type: types_.FUNCTION, optional: true, nullable: true },
-        { name: "onerror", type: types_.FUNCTION, optional: true, nullable: true },
-        { name: "onprogress", type: types_.FUNCTION, optional: true, nullable: true },
-        { name: "options", type: types_.DICTIONARY, optional: true, nullable: true }
-    ]),
-    opId = getNextOpId();
+    var priv ={ handle: data.handle };
 
-    if (!CommonFS.isVirtualPath(args.sourceFile)) //TODO: add FileReferece validation
-        throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
-                "sourceFile should be virtual path or file.");
-
-    var optionsAttributes = ["destination", "stripSourceDirectory", "compressionLevel"],
-        options = args.options || {};
-
-    for(var i in optionsAttributes) {
-        if (!options[optionsAttributes[i]]) {
-            options[optionsAttributes[i]] = null;
-        }
+    function getHandle() {
+        if(priv.handle)
+            return priv.handle;
+        else throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_STATE_ERR, 'ArchiveFile closed - operation not permitted');
     }
 
-    bridge.async({
-        cmd: 'ArchiveFile_add',
-        args: {
-            sourceFile: CommonFS.toRealPath(args.sourceFile),
-            options: options,
-            opId: opId,
-            handle: this._handle
-        }
-    }).then({
-        success: function () {
-            if (args.onsuccess) {
-                args.onsuccess.call(null);
-            }
-        },
-        error: function (e) {
-            if (args.onerror) {
-                args.onerror.call(
-                    null,
-                    new tizen.WebAPIException(e.code, e.message, e.name)
-                );
-            }
-        },
-        progress: function (data) {
-            if (args.onprogress) {
-                args.onprogress.call(
-                    null,
-                    opId,
-                    data.value,
-                    data.filename
-                );
+    /**
+     * Adds a new member file to ArchiveFile.
+     */
+    this.add = function () {
+        var args = validator_.validateArgs(arguments, [
+            { name: "sourceFile", type: types_.STRING }, //TODO: add FileReferece validation
+            { name: "onsuccess", type: types_.FUNCTION, optional: true, nullable: true },
+            { name: "onerror", type: types_.FUNCTION, optional: true, nullable: true },
+            { name: "onprogress", type: types_.FUNCTION, optional: true, nullable: true },
+            { name: "options", type: types_.DICTIONARY, optional: true, nullable: true }
+        ]),
+        opId = getNextOpId();
+
+        if (!CommonFS.isVirtualPath(args.sourceFile)) //TODO: add FileReferece validation
+            throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
+                    "sourceFile should be virtual path or file.");
+
+        var optionsAttributes = ["destination", "stripSourceDirectory", "compressionLevel"],
+            options = args.options || {};
+
+        for(var i in optionsAttributes) {
+            if (!options[optionsAttributes[i]]) {
+                options[optionsAttributes[i]] = null;
             }
         }
-    });
 
-    return opId;
-};
-
-/**
- * Extracts every file from this ArchiveFile to a given directory.
- */
-ArchiveFile.prototype.extractAll = function () {
-    var args = validator_.validateArgs(arguments, [
-        { name: "destinationDirectory", type: types_.STRING }, //TODO: add FileReferece validation
-        { name: "onsuccess", type: types_.FUNCTION, optional: true, nullable: true },
-        { name: "onerror", type: types_.FUNCTION, optional: true, nullable: true },
-        { name: "onprogress", type: types_.FUNCTION, optional: true, nullable: true },
-        { name: "overwrite", type: types_.BOOLEAN, optional: true, nullable: true }
-    ]),
-    opId = getNextOpId();
-
-    if (!CommonFS.isVirtualPath(args.destinationDirectory)) //TODO: add FileReferece validation
-        throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
-                "destinationDirectory should be virtual path or file.");
-
-    bridge.async({
-        cmd: 'ArchiveFile_extractAll',
-        args: {
-            destinationDirectory: CommonFS.toRealPath(args.destinationDirectory),
-            overwrite: args.overwrite || null,
-            opId: opId,
-            handle: this._handle
-        }
-    }).then({
-        success: function () {
-            if (args.onsuccess) {
-                args.onsuccess.call(null);
+        bridge.async({
+            cmd: 'ArchiveFile_add',
+            args: {
+                sourceFile: CommonFS.toRealPath(args.sourceFile),
+                options: options,
+                opId: opId,
+                handle: getHandle()
             }
-        },
-        error: function (e) {
-            if (args.onerror) {
-                args.onerror.call(
-                    null,
-                    new tizen.WebAPIException(e.code, e.message, e.name)
-                );
+        }).then({
+            success: function () {
+                if (args.onsuccess) {
+                    args.onsuccess.call(null);
+                }
+            },
+            error: function (e) {
+                if (args.onerror) {
+                    args.onerror.call(
+                        null,
+                        new tizen.WebAPIException(e.code, e.message, e.name)
+                    );
+                }
+            },
+            progress: function (data) {
+                if (args.onprogress) {
+                    args.onprogress.call(
+                        null,
+                        opId,
+                        data.value,
+                        data.filename
+                    );
+                }
             }
-        },
-        progress: function (data) {
-            if (args.onprogress) {
-                args.onprogress.call(
-                    null,
-                    opId,
-                    data.value,
-                    data.filename
-                );
+        });
+
+        return opId;
+    };
+
+    /**
+     * Extracts every file from this ArchiveFile to a given directory.
+     */
+    this.extractAll = function () {
+        var args = validator_.validateArgs(arguments, [
+            { name: "destinationDirectory", type: types_.STRING }, //TODO: add FileReferece validation
+            { name: "onsuccess", type: types_.FUNCTION, optional: true, nullable: true },
+            { name: "onerror", type: types_.FUNCTION, optional: true, nullable: true },
+            { name: "onprogress", type: types_.FUNCTION, optional: true, nullable: true },
+            { name: "overwrite", type: types_.BOOLEAN, optional: true, nullable: true }
+        ]),
+        opId = getNextOpId();
+
+        if (!CommonFS.isVirtualPath(args.destinationDirectory)) //TODO: add FileReferece validation
+            throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
+                    "destinationDirectory should be virtual path or file.");
+
+        bridge.async({
+            cmd: 'ArchiveFile_extractAll',
+            args: {
+                destinationDirectory: CommonFS.toRealPath(args.destinationDirectory),
+                overwrite: args.overwrite || null,
+                opId: opId,
+                handle: getHandle()
             }
-        }
-    });
+        }).then({
+            success: function () {
+                if (args.onsuccess) {
+                    args.onsuccess.call(null);
+                }
+            },
+            error: function (e) {
+                if (args.onerror) {
+                    args.onerror.call(
+                        null,
+                        new tizen.WebAPIException(e.code, e.message, e.name)
+                    );
+                }
+            },
+            progress: function (data) {
+                if (args.onprogress) {
+                    args.onprogress.call(
+                        null,
+                        opId,
+                        data.value,
+                        data.filename
+                    );
+                }
+            }
+        });
 
-    return opId;
-};
+        return opId;
+    };
 
-/**
- * Retrieves information about the member files in ArchiveFile.
- */
-ArchiveFile.prototype.getEntries = function () {
-    var args = validator_.validateArgs(arguments, [
-        { name: "onsuccess", type: types_.FUNCTION },
-        { name: "onerror", type: types_.FUNCTION, optional: true, nullable: true }
-    ]),
-    opId = getNextOpId();
+    /**
+     * Retrieves information about the member files in ArchiveFile.
+     */
+    this.getEntries = function () {
+        var args = validator_.validateArgs(arguments, [
+            { name: "onsuccess", type: types_.FUNCTION },
+            { name: "onerror", type: types_.FUNCTION, optional: true, nullable: true }
+        ]),
+        opId = getNextOpId();
 
-    bridge.async({
-        cmd: 'ArchiveFile_getEntries',
-        args: {
-            opId: opId,
-            handle: this._handle
-        }
-    }).then({
-        success: function (data) {
-            var entries = [];
-            data.forEach(function (e) {
-                entries.push(new ArchiveFileEntry(e));
+        bridge.async({
+            cmd: 'ArchiveFile_getEntries',
+            args: {
+                opId: opId,
+                handle: getHandle()
+            }
+        }).then({
+            success: function (data) {
+                var entries = [];
+                data.forEach(function (e) {
+                    entries.push(new ArchiveFileEntry(e, priv));
+                });
+                args.onsuccess.call(null, entries);
+            },
+            error: function (e) {
+                if (args.onerror) {
+                    args.onerror.call(
+                        null,
+                        new tizen.WebAPIException(e.code, e.message, e.name)
+                    );
+                }
+            }
+        });
+
+        return opId;
+    };
+
+    /**
+     * Retrieves information about ArchiveFileEntry with the specified name in ArchiveFile.
+     */
+    this.getEntryByName = function () {
+        var args = validator_.validateArgs(arguments, [
+            { name: "name", type: types_.STRING },
+            { name: "onsuccess", type: types_.FUNCTION },
+            { name: "onerror", type: types_.FUNCTION, optional: true, nullable: true }
+        ]),
+        opId = getNextOpId();
+
+        bridge.async({
+            cmd: 'ArchiveFile_getEntryByName',
+            args: {
+                name: args.name,
+                opId: opId,
+                handle: getHandle()
+            }
+        }).then({
+            success: function (data) {
+                args.onsuccess.call(null, new ArchiveFileEntry(data, priv));
+            },
+            error: function (e) {
+                if (args.onerror) {
+                    args.onerror.call(
+                        null,
+                        new tizen.WebAPIException(e.code, e.message, e.name)
+                    );
+                }
+            }
+        });
+
+        return opId;
+    };
+
+    /**
+     * Closes the ArchiveFile.
+     */
+    this.close = function () {
+        var handle = priv.handle;
+        if(priv.handle) {
+            delete priv.handle;
+            bridge.sync({
+                cmd: 'ArchiveFile_close',
+                args: {
+                    handle: handle
+                }
             });
-            args.onsuccess.call(null, entries);
-        },
-        error: function (e) {
-            if (args.onerror) {
-                args.onerror.call(
-                    null,
-                    new tizen.WebAPIException(e.code, e.message, e.name)
-                );
-            }
         }
-    });
+    };
+}
 
-    return opId;
-};
-
-/**
- * Retrieves information about ArchiveFileEntry with the specified name in ArchiveFile.
- */
-ArchiveFile.prototype.getEntryByName = function () {
-    var args = validator_.validateArgs(arguments, [
-        { name: "name", type: types_.STRING },
-        { name: "onsuccess", type: types_.FUNCTION },
-        { name: "onerror", type: types_.FUNCTION, optional: true, nullable: true }
-    ]),
-    opId = getNextOpId();
-
-    bridge.async({
-        cmd: 'ArchiveFile_getEntryByName',
-        args: {
-            name: args.name,
-            opId: opId,
-            handle: this._handle
-        }
-    }).then({
-        success: function (data) {
-            args.onsuccess.call(null, new ArchiveFileEntry(data));
-        },
-        error: function (e) {
-            if (args.onerror) {
-                args.onerror.call(
-                    null,
-                    new tizen.WebAPIException(e.code, e.message, e.name)
-                );
-            }
-        }
-    });
-
-    return opId;
-};
-
-/**
- * Closes the ArchiveFile.
- */
-ArchiveFile.prototype.close = function () {
-    bridge.sync({
-        cmd: 'ArchiveFile_close',
-        args: {
-            handle: this._handle
-        }
-    });
-};
 
 function ArchiveManager() {
 }
