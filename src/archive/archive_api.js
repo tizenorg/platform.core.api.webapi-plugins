@@ -133,6 +133,12 @@ function propertyFactory_(that, name, value, flags, options) {
     );
 }
 
+function checkMode(mode, access)
+{   if(access.indexOf(mode) == -1) {
+        throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_ACCESS_ERR, 'Not allowed operation');
+    }
+}
+
 /**
  * Enumeration for the compression level.
  * @enum {string}
@@ -282,6 +288,7 @@ function ArchiveFile(data) {
             }
         }
 
+        checkMode(this.mode, ["w","rw", "a"]);
         bridge.async({
             cmd: 'ArchiveFile_add',
             args: {
@@ -336,6 +343,7 @@ function ArchiveFile(data) {
             throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
                     "destinationDirectory should be virtual path or file.");
 
+        checkMode(this.mode, ["r","rw"]);
         bridge.async({
             cmd: 'ArchiveFile_extractAll',
             args: {
@@ -383,6 +391,7 @@ function ArchiveFile(data) {
         ]),
         opId = getNextOpId();
 
+        checkMode(this.mode, ["r","rw"]);
         bridge.async({
             cmd: 'ArchiveFile_getEntries',
             args: {
@@ -421,6 +430,7 @@ function ArchiveFile(data) {
         ]),
         opId = getNextOpId();
 
+        checkMode(this.mode, ["r","rw"]);
         bridge.async({
             cmd: 'ArchiveFile_getEntryByName',
             args: {
