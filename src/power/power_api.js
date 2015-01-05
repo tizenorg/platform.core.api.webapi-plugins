@@ -69,10 +69,10 @@ PowerManager.prototype.request = function() {
         throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR);
 
     if (args.resource == 'SCREEN' && !PowerScreenState.hasOwnProperty(args.state))
-        throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
+        throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR);
 
     if (args.resource == 'CPU' && !PowerCpuState.hasOwnProperty(args.state))
-        throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
+        throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR);
 
     native_.callSync('PowerManager_request', {
         resource: args.resource,

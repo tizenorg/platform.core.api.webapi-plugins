@@ -81,6 +81,7 @@ void PowerInstance::GetScreenBrightness(const picojson::value& args, picojson::o
 
 void PowerInstance::SetScreenBrightness(const picojson::value& args, picojson::object& out) {
   double brightness = args.get("brightness").get<double>();
+  PowerManager::GetInstance()->SetScreenBrightness(brightness);
   ReportSuccess(out);
 }
 
