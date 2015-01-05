@@ -531,7 +531,7 @@ void NFCAdapter::IncreasePeerId() {
     m_latest_peer_id++;
 }
 
-bool NFCAdapter::IsPeerConnected(int peer_id) {
+bool NFCAdapter::PeerIsConnectedGetter(int peer_id) {
     if (m_latest_peer_id != peer_id || !m_peer_handle) {
         return false;
     }
@@ -628,7 +628,7 @@ void NFCAdapter::SetReceiveNDEFListener(int peer_id) {
 void NFCAdapter::UnsetReceiveNDEFListener(int peer_id) {
     if (m_is_ndef_listener_set) {
         //check if peer object is still connected
-        if (!IsPeerConnected(peer_id)) {
+        if (!PeerIsConnectedGetter(peer_id)) {
             LOGE("Target is not connected");
         }
 
@@ -1092,12 +1092,7 @@ void NFCAdapter::GetCachedMessage(picojson::object& out) {
     int result = nfc_manager_get_cached_message(&message_handle);
     if (NFC_ERROR_INVALID_NDEF_MESSAGE == result ||
             NFC_ERROR_NO_NDEF_MESSAGE == result) {
-        if (NULL != message_handle) {
-            int err = nfc_ndef_message_destroy(message_handle);
-            if (NFC_ERROR_NONE != err) {
-                LOGE("Failed to free cached message: %d", err);
-            }
-        }
+        NFCMessageUtils::RemoveMessageHandle(message_handle);
 
         return;
     }
@@ -1114,13 +1109,70 @@ void NFCAdapter::GetCachedMessage(picojson::object& out) {
         return;
     }
     NFCMessageUtils::ReportNdefMessageFromData(raw_data, size, out);
-    result = nfc_ndef_message_destroy(message_handle);
-    if (NFC_ERROR_NONE != result) {
-        LOGE("Failed to destroy message: %d", result);
-    }
+    NFCMessageUtils::RemoveMessageHandle(message_handle);
     free(raw_data);
 }
 
+static void peerSentCallback(nfc_error_e result, void *user_data) {
+    double* callbackId = static_cast<double*>(user_data);
 
+    if (NFC_ERROR_NONE != result){
+        auto ex = PlatformException(NFCUtil::getNFCErrorString(result),
+                NFCUtil::getNFCErrorMessage(result));
+
+        picojson::value event = createEventError(*callbackId, ex);
+
+        NFCInstance::getInstance().PostMessage(event.serialize().c_str());
+    } else {
+        picojson::value event = createEventSuccess(*callbackId);
+
+        NFCInstance::getInstance().PostMessage(event.serialize().c_str());
+    }
+
+    delete callbackId;
+    callbackId = NULL;
+}
+
+static gboolean sendNDEFErrorCB(void * user_data) {
+    peerSentCallback(NFC_ERROR_INVALID_NDEF_MESSAGE, user_data);
+    return false;
+}
+
+void NFCAdapter::sendNDEF(int peer_id, const picojson::value& args) {
+    double* callbackId = new double(args.get(CALLBACK_ID).get<double>());
+
+    if(!PeerIsConnectedGetter(peer_id)) {
+        UnknownException ex("Peer is no more connected");
+        picojson::value event = createEventError(*callbackId, ex);
+        NFCInstance::getInstance().PostMessage(event.serialize().c_str());
+        delete callbackId;
+        callbackId = NULL;
+        return;
+    }
+
+    const picojson::array& records_array =
+        FromJson<picojson::array>(args.get<picojson::object>(), "records");
+    const int size = static_cast<int>(args.get("recordsSize").get<double>());
+
+    nfc_ndef_message_h message = NFCMessageUtils::NDEFMessageToStruct(
+            records_array, size);
+    if (message) {
+        int ret = nfc_p2p_send(m_peer_handle, message,
+                peerSentCallback, static_cast<void *>(callbackId));
+        NFCMessageUtils::RemoveMessageHandle(message);
+        if (NFC_ERROR_NONE != ret) {
+            LOGE("sendNDEF failed %d",ret);
+            delete callbackId;
+            callbackId = NULL;
+            NFCUtil::throwNFCException(ret, "sendNDEF failed.");
+        }
+    } else {
+        if (!g_idle_add(sendNDEFErrorCB, static_cast<void*>(callbackId))) {
+            LOGE("g_idle addition failed");
+            delete callbackId;
+            callbackId = NULL;
+        }
+    }
+}
 }// nfc
 }// extension

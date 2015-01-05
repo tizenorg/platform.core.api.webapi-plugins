@@ -755,6 +755,40 @@ function NFCPeer(peerid) {
         return native_.getResultObject(ret);
     }
 
+    NFCPeer.prototype.sendNDEF = function() {
+        var args = validator_.validateArgs(arguments, [
+        {
+            name : 'message',
+            type : types_.PLATFORM_OBJECT,
+            values : tizen.NDEFMessage
+        },
+        {
+            name : 'successCallback',
+            type : types_.FUNCTION,
+            optional : true,
+            nullable : true
+        },
+        {
+            name : 'errorCallback',
+            type : types_.FUNCTION,
+            optional : true,
+            nullable : true
+            }
+        ]);
+
+        native_.call('NFCPeer_sendNDEF', {
+            'id' : _my_id,
+            'records' : args.message.records,
+            'recordsSize' : args.message.recordCount
+        }, function(result) {
+            if (native_.isFailure(result)) {
+                args.errorCallback(result.error);
+            } else {
+                args.successCallback();
+            }
+        });
+    };
+
     Object.defineProperties(this, {
         isConnected: {
             enumerable: true,
@@ -800,11 +834,6 @@ NFCPeer.prototype.unsetReceiveNDEFListener = function() {
 
     return;
 };
-
-NFCPeer.prototype.sendNDEF = function() {
-
-};
-
 
 var toByteArray = function(array, max_size, nullable) {
     var resultArray = [];

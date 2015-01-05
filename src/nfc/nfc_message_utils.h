@@ -41,6 +41,7 @@ public:
     static void ReportNdefRecordMediaFromMessage(nfc_ndef_message_h message_handle,
                 const int index, picojson::object& out);
     static void ReportNDEFRecordMedia(const picojson::value& args, picojson::object& out);
+    static void RemoveMessageHandle(nfc_ndef_message_h message_handle);
 };
 
 } // nfc

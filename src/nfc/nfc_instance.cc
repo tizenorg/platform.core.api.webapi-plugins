@@ -226,7 +226,7 @@ void NFCInstance::PeerIsConnectedGetter(
 
     try {
         int peer_id = (int)args.get("id").get<double>();
-        bool ret = NFCAdapter::GetInstance()->IsPeerConnected(peer_id);
+        bool ret = NFCAdapter::GetInstance()->PeerIsConnectedGetter(peer_id);
         ReportSuccess(picojson::value(ret), out);
     }
     catch(const common::PlatformException& ex) {
@@ -415,7 +415,16 @@ void NFCInstance::UnsetReceiveNDEFListener(
 
 void NFCInstance::SendNDEF(
         const picojson::value& args, picojson::object& out) {
+    int peer_id = static_cast<int>(args.get("id").get<double>());
+    LoggerD("Peer id: %d", peer_id);
 
+    try {
+        NFCAdapter::GetInstance()->sendNDEF(peer_id, args);
+        ReportSuccess(out);
+    }
+    catch(const common::PlatformException& ex) {
+        ReportError(ex, out);
+    }
 }
 
 void NFCInstance::ToByte(

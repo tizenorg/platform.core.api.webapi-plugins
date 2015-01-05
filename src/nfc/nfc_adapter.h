@@ -51,11 +51,12 @@ public:
     nfc_p2p_target_h GetPeerHandle();
     int GetPeerId();
     void IncreasePeerId();
-    bool IsPeerConnected(int peer_id);
+    bool PeerIsConnectedGetter(int peer_id);
     void SetPeerListener();
     void UnsetPeerListener();
     void SetReceiveNDEFListener(int peer_id);
     void UnsetReceiveNDEFListener(int peer_id);
+    void sendNDEF(int peer_id, const picojson::value& args);
     bool IsNDEFListenerSet();
 
 // NFCTag related methods
