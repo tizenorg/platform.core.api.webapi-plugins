@@ -39,7 +39,7 @@ exports.getAvailableTimezones = function() {
 
 exports.getDateFormat = function(shortformat) {
   if (shortformat)
-    return 'd/m/y';
+    return 'm/d/y';
   return 'D, M d y';
 };
 
@@ -53,6 +53,8 @@ exports.getTimeFormat = function() {
 };
 
 exports.isLeapYear = function(year) {
+  if (year === undefined)
+    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
   if (!(year % 400))
     return true;
   if (!(year % 100))
