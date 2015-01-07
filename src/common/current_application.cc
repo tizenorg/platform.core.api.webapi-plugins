@@ -18,6 +18,7 @@
 
 #include <app_manager.h>
 #include <package_manager.h>
+#include <unistd.h>
 
 #include "common/logger.h"
 
