@@ -11,6 +11,7 @@ var callbacks = {};
 var hideProtectedProporties = true;
 var native_ = new xwalk.utils.NativeManager(extension);
 var validator_ = xwalk.utils.validator;
+var types_ = xwalk.utils.validator.Types;
 
 // for the time of serialization 'write-only' and 'read-only' properties
 // should be able to run with correct value
