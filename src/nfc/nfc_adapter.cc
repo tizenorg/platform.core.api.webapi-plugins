@@ -611,7 +611,7 @@ void NFCAdapter::SetReceiveNDEFListener(int peer_id) {
     }
 
     //check if peer object is still connected
-    if (!IsPeerConnected(peer_id)) {
+    if (!PeerIsConnectedGetter(peer_id)) {
         LOGE("Target is not connected");
         throw UnknownException("Target is not connected");
     }
