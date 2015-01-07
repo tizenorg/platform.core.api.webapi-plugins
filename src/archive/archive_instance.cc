@@ -490,9 +490,9 @@ void ArchiveInstance::GetWidgetPaths(const picojson::value& args, picojson::obje
 
     picojson::value result{picojson::object()};
     auto& result_obj = result.get<picojson::object>();
-    result_obj.insert(std::make_pair("wgt-package", root + "/res/wgt"));
-    result_obj.insert(std::make_pair("wgt-private", root + "/data"));
-    result_obj.insert(std::make_pair("wgt-private-tmp", root + "/tmp"));
+    result_obj.insert(std::make_pair("wgt-package", picojson::value(root + "/res/wgt")));
+    result_obj.insert(std::make_pair("wgt-private", picojson::value(root + "/data")));
+    result_obj.insert(std::make_pair("wgt-private-tmp", picojson::value(root + "/tmp")));
 
     ReportSuccess(result, out);
 }
