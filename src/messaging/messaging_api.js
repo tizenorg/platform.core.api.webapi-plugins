@@ -1057,7 +1057,7 @@ MessageStorage.prototype.addMessagesChangeListener = function () {
     return result;
 };
 
-MessageStorage.prototype. addConversationsChangeListener = function () {
+MessageStorage.prototype.addConversationsChangeListener = function () {
     var args = validator_.validateArgs(arguments, [
         {name: 'conversationsChangeCallback', type: types_.LISTENER,
                 values: ['conversationsadded', 'conversationsupdated', 'conversationsremoved']},
@@ -1065,26 +1065,14 @@ MessageStorage.prototype. addConversationsChangeListener = function () {
                 optional: true, nullable: true}
     ]);
 
-    var listeners = [];
-    if (args.conversationsChangeCallback.conversationsadded)
-            listeners.push('conversationsadded');
-    if (args.conversationsChangeCallback.conversationsupdated)
-            listeners.push('conversationsupdated');
-    if (args.conversationsChangeCallback.conversationsremoved)
-            listeners.push('conversationsremoved');
+    var self = this;
 
-    bridge({
-        cmd: 'MessageStorage_addConversationsChangeListener',
-        args: {
-            filter: args.filter,
-            listeners: listeners
-        }
-    }).then({
+    var cid = bridge.listener({
         conversationsadded: function (data) {
             if (args.conversationsChangeCallback.conversationsadded) {
                 var conversations = [];
                 data.forEach(function (el) {
-                    conversations.push(new tizen.MessageConversation(el));
+                    conversations.push(new MessageConversation(el));
                 });
                 args.conversationsChangeCallback.conversationsadded.call(null, conversations);
             }
@@ -1093,7 +1081,7 @@ MessageStorage.prototype. addConversationsChangeListener = function () {
             if (args.conversationsChangeCallback.conversationsupdated) {
                 var conversations = [];
                 data.forEach(function (el) {
-                   conversations.push(new tizen.MessageConversation(el));
+                   conversations.push(new MessageConversation(el));
                 });
                 args.conversationsChangeCallback.conversationsupdated.call(null, conversations);
             }
@@ -1102,12 +1090,23 @@ MessageStorage.prototype. addConversationsChangeListener = function () {
             if (args.conversationsChangeCallback.conversationsremoved) {
                 var conversations = [];
                 data.forEach(function (el) {
-                    conversations.push(new tizen.MessageConversation(el));
+                    conversations.push(new MessageConversation(el));
                 });
                 args.conversationsChangeCallback.conversationsremoved.call(null, conversations);
             }
         }
     });
+
+    var result = bridge.sync({
+        cmd: 'MessageStorage_addConversationsChangeListener',
+        cid: cid,
+        args: {
+            filter: args.filter || null,
+            serviceId: self.service.id
+        }
+    });
+
+    return result;
 };
 
 MessageStorage.prototype.addFoldersChangeListener = function () {

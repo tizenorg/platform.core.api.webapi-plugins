@@ -24,6 +24,7 @@ class MessageConversation;
 class ConversationCallbackData: public common::CallbackUserData {
 public:
     ConversationCallbackData();
+    ConversationCallbackData(long cid, bool keep = false);
     virtual ~ConversationCallbackData();
 
     void setFilter(AbstractFilterPtr filter);
