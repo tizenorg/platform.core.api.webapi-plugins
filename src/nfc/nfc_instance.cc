@@ -334,7 +334,7 @@ void NFCInstance::SetExclusiveModeForTransaction(
 void NFCInstance::ReadNDEF(
         const picojson::value& args, picojson::object& out) {
 
-    int tag_id = (int)args.get("id").get<double>();
+    int tag_id = static_cast<int>(args.get("id").get<double>());
     LoggerD("Tag id: %d", tag_id);
 
     try {
@@ -349,6 +349,16 @@ void NFCInstance::ReadNDEF(
 void NFCInstance::WriteNDEF(
         const picojson::value& args, picojson::object& out) {
 
+    int tag_id = static_cast<int>(args.get("id").get<double>());
+    LoggerD("Tag id: %d", tag_id);
+
+    try {
+        NFCAdapter::GetInstance()->TagWriteNDEF(tag_id, args);
+        ReportSuccess(out);
+    }
+    catch(const common::PlatformException& ex) {
+        ReportError(ex, out);
+    }
 }
 
 void NFCInstance::Transceive(
