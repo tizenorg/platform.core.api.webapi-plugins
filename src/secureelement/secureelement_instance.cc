@@ -12,6 +12,8 @@
 #include "common/task-queue.h"
 
 #include "secureelement_reader.h"
+#include "secureelement_session.h"
+#include "secureelement_channel.h"
 
 namespace extension {
 namespace secureelement {
@@ -37,6 +39,7 @@ SecureElementInstance::SecureElementInstance() {
     REGISTER_SYNC("SEReader_isPresent", IsPresent);
     REGISTER_SYNC("SEReader_closeSessions", CloseSessions);
     REGISTER_SYNC("SESession_getATR", GetATR);
+    REGISTER_SYNC("SESession_isClosed", IsSessionClosed);
     REGISTER_SYNC("SESession_close", CloseSession);
     REGISTER_SYNC("SESession_closeChannels", CloseChannels);
     REGISTER_SYNC("SEChannel_close", CloseChannel);
@@ -99,29 +102,26 @@ void SecureElementInstance::CloseSessions(
     ReportSuccess(out);
 }
 
-void SecureElementInstance::GetATR(
-        const picojson::value& args, picojson::object& out) {
-
+void SecureElementInstance::CloseChannel( const picojson::value& args, picojson::object& out) {
+    LoggerD("Enter");
+    ClientChannel* channel_ptr = (ClientChannel*) static_cast<long>(args.get("handle").get<double>());
+    SEChannel seChannel(channel_ptr);
+    seChannel.close();
+    ReportSuccess(out);
 }
 
-void SecureElementInstance::CloseSession(
-        const picojson::value& args, picojson::object& out) {
+void SecureElementInstance::GetSelectResponse( const picojson::value& args, picojson::object& out) {
+    LoggerD("Enter");
+    ClientChannel* channel_ptr = (ClientChannel*) static_cast<long>(args.get("handle").get<double>());
+    SEChannel seChannel(channel_ptr);
 
-}
-
-void SecureElementInstance::CloseChannels(
-        const picojson::value& args, picojson::object& out) {
-
-}
-
-void SecureElementInstance::CloseChannel(
-        const picojson::value& args, picojson::object& out) {
-
-}
-
-void SecureElementInstance::GetSelectResponse(
-        const picojson::value& args, picojson::object& out) {
-
+    ByteArray select_response = seChannel.getSelectResponse();
+    picojson::value result = picojson::value(picojson::array());
+    picojson::array& arr = result.get<picojson::array>();
+    for ( int i; i < select_response.size(); i++) {
+        arr.push_back(picojson::value(static_cast<double>(select_response[i])));
+    }
+    ReportSuccess( result, out);
 }
 
 void SecureElementInstance::GetReaders(
@@ -162,18 +162,138 @@ void SecureElementInstance::OpenSession(
             std::shared_ptr<picojson::value>(new picojson::value(picojson::object())));
 }
 
-void SecureElementInstance::OpenBasicChannel(
-        const picojson::value& args, picojson::object& out) {
+// Session functions
+
+void SecureElementInstance::OpenBasicChannel( const picojson::value& args, picojson::object& out) {
+    LoggerD("Enter");
+    const double callback_id = args.get("callbackId").get<double>();
+    const picojson::array v_aid = args.get("aid").get<picojson::value::array>();
+    Session* session_ptr = (Session*) static_cast<long>(args.get("handle").get<double>());
+
+    auto open = [this, v_aid, session_ptr](const std::shared_ptr<picojson::value>& response) -> void {
+        LoggerD("Opening basic channel");
+        try {
+            SESession seSession(session_ptr);
+            picojson::value result = seSession.openBasicChannel(v_aid);
+            ReportSuccess(result, response->get<picojson::object>());
+        } catch (const PlatformException& e) {
+            ReportError(e, response->get<picojson::object>());
+        }
+    };
+
+    auto get_response = [this, callback_id](const std::shared_ptr<picojson::value>& response) -> void {
+        LoggerD("Getting response");
+        picojson::object& obj = response->get<picojson::object>();
+        obj.insert(std::make_pair("callbackId", callback_id));
+        PostMessage(response->serialize().c_str());
+    };
+
+    TaskQueue::GetInstance().Queue<picojson::value>
+        ( open, get_response, std::shared_ptr<picojson::value>(new picojson::value(picojson::object())));
 }
 
-void SecureElementInstance::OpenLogicalChannel(
-        const picojson::value& args, picojson::object& out) {
 
+void SecureElementInstance::OpenLogicalChannel( const picojson::value& args, picojson::object& out) {
+    LoggerD("Enter");
+    const double callback_id = args.get("callbackId").get<double>();
+    const picojson::array v_aid = args.get("aid").get<picojson::value::array>();
+    Session* session_ptr = (Session*) static_cast<long>(args.get("handle").get<double>());
+
+    auto open = [this, v_aid, session_ptr](const std::shared_ptr<picojson::value>& response) -> void {
+        LoggerD("Opening basic channel");
+        try {
+            SESession seSession(session_ptr);
+            picojson::value result = seSession.openBasicChannel(v_aid);
+            ReportSuccess(result, response->get<picojson::object>());
+        } catch (const PlatformException& e) {
+            ReportError(e, response->get<picojson::object>());
+        }
+    };
+
+    auto get_response = [this, callback_id](const std::shared_ptr<picojson::value>& response) -> void {
+        LoggerD("Getting response");
+        picojson::object& obj = response->get<picojson::object>();
+        obj.insert(std::make_pair("callbackId", callback_id));
+        PostMessage(response->serialize().c_str());
+    };
+
+    TaskQueue::GetInstance().Queue<picojson::value>
+        ( open, get_response, std::shared_ptr<picojson::value>(new picojson::value(picojson::object())));
 }
 
-void SecureElementInstance::Transmit(
-        const picojson::value& args, picojson::object& out) {
 
+void SecureElementInstance::GetATR( const picojson::value& args, picojson::object& out) {
+    LoggerD("Enter");
+    Session* session_ptr = (Session*) static_cast<long>(args.get("handle").get<double>());
+    SESession seSession(session_ptr);
+
+    ByteArray atr_result = seSession.getATR();
+    picojson::value result = picojson::value(picojson::array());
+    picojson::array& arr = result.get<picojson::array>();
+    for ( int i; i < atr_result.size(); i++) {
+        arr.push_back(picojson::value(static_cast<double>(atr_result[i])));
+    }
+    ReportSuccess( result, out);
+}
+
+
+void SecureElementInstance::IsSessionClosed( const picojson::value& args, picojson::object& out) {
+    LoggerD("Enter");
+    Session* session_ptr = (Session*) static_cast<long>(args.get("handle").get<double>());
+    SESession seSession(session_ptr);
+    picojson::value result = seSession.isClosed();
+    ReportSuccess( result, out);
+}
+
+
+void SecureElementInstance::CloseSession( const picojson::value& args, picojson::object& out) {
+    LoggerD("Enter");
+    Session* session_ptr = (Session*) static_cast<long>(args.get("handle").get<double>());
+    SESession seSession(session_ptr);
+    seSession.close();
+    ReportSuccess(out);
+}
+
+
+void SecureElementInstance::CloseChannels( const picojson::value& args, picojson::object& out) {
+    LoggerD("Enter");
+    Session* session_ptr = (Session*) static_cast<long>(args.get("handle").get<double>());
+    SESession seSession(session_ptr);
+    seSession.closeChannels();
+    ReportSuccess(out);
+}
+
+void SecureElementInstance::Transmit( const picojson::value& args, picojson::object& out) {
+    LoggerD("Enter");
+    const double callback_id = args.get("callbackId").get<double>();
+    const picojson::array v_command = args.get("command").get<picojson::value::array>();
+    ClientChannel* channel_ptr = (ClientChannel*) static_cast<long>(args.get("handle").get<double>());
+
+    auto open = [this, v_command, channel_ptr](const std::shared_ptr<picojson::value>& response) -> void {
+        LoggerD("Transmit APDDU command to secure element");
+        try {
+            SEChannel seChannel(channel_ptr);
+            ByteArray transmit_response = seChannel.transmit(v_command);
+            picojson::value result = picojson::value(picojson::array());
+            picojson::array& arr = result.get<picojson::array>();
+            for ( int i; i < transmit_response.size(); i++) {
+                arr.push_back(picojson::value(static_cast<double>(transmit_response[i])));
+            }
+            ReportSuccess( result, response->get<picojson::object>());
+        } catch (const PlatformException& e) {
+            ReportError( e, response->get<picojson::object>());
+        }
+    };
+
+    auto get_response = [this, callback_id](const std::shared_ptr<picojson::value>& response) -> void {
+        LoggerD("Getting response");
+        picojson::object& obj = response->get<picojson::object>();
+        obj.insert(std::make_pair("callbackId", callback_id));
+        PostMessage(response->serialize().c_str());
+    };
+
+    TaskQueue::GetInstance().Queue<picojson::value>
+        ( open, get_response, std::shared_ptr<picojson::value>(new picojson::value(picojson::object())));
 }
 
 } // namespace secureelement

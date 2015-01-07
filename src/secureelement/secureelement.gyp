@@ -15,7 +15,11 @@
         'secureelement_seservice.cc',
         'secureelement_seservice.h',
         'secureelement_reader.cc',
-        'secureelement_reader.h'
+        'secureelement_reader.h',
+        'secureelement_session.cc',
+        'secureelement_session.h',
+        'secureelement_channel.cc',
+        'secureelement_channel.h',
       ],
       'includes': [
         '../common/pkg-config.gypi',

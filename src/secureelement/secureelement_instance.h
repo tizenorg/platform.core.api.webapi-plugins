@@ -35,6 +35,7 @@ private:
     void OpenBasicChannel(const picojson::value& args, picojson::object& out);
     void OpenLogicalChannel(const picojson::value& args, picojson::object& out);
     void GetATR(const picojson::value& args, picojson::object& out);
+    void IsSessionClosed(const picojson::value& args, picojson::object& out);
     void CloseSession(const picojson::value& args, picojson::object& out);
     void CloseChannels(const picojson::value& args, picojson::object& out);
 

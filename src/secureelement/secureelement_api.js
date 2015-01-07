@@ -90,12 +90,61 @@ Reader.prototype.closeSessions = function() {
     native_.call('SEReader_closeSessions', callArgs);
 };
 
+//////////////////Channel/////////////////
+
+function Channel( channel_handle, is_basic_channel) {
+    Object.defineProperties(this, {
+        _handle:    { enumerable: false, configurable: false, set: function() {}, get: function() { return channel_handle }},
+        isBasicChannel:   { enumerable: true, configurable: false, set: function() {}, get: function() { return is_basic_channel }}
+    });
+}
+
+Channel.prototype.close = function() {
+    var callArgs = { handle: this._handle };
+    native_.callSync('SEChannel_close', callArgs);
+};
+
+Channel.prototype.transmit = function() {
+    var args = validator_.validateArgs(arguments, [
+        { name: "command", type: types_.ARRAY, values: types_.BYTE },
+        { name: "successCallback", type: types_.FUNCTION },
+        { name: "errorCallback", type: types_.FUNCTION, optional: true, nullable: true }
+    ]);
+
+    var callback = function(result) {
+        if ( native_.isFailure(result)) {
+            native_.callIfPossible( args.errorCallback, native_.getErrorObject(result));
+        } else {
+            var result_obj = native_.getResultObject(result);
+            args.successCallback(result_obj.response);
+        }
+    }
+
+    var callArgs = {
+        handle: this._handle,
+        command: args.command
+    };
+
+    native_.call('SEChannel_transmit', callArgs, callback);
+}
+
+Channel.prototype.getSelectResponse = function() {
+    var callArgs = { handle: this._handle };
+    native_.callSync('SEChannel_getSelectResponse', callArgs);
+}
+
 //////////////////Session/////////////////
 
-function Session() {
-    var handle = null;
+function Session(session_handle) {
     Object.defineProperties(this, {
-        isClosed:   {value: false, writable: false, enumerable: true}
+        isClosed:   { configurable: false,
+                      enumerable: true,
+                      set: function() {},
+                      get: function() { var callArgs = { _handle: session_handle }; return native_.callSync('SESession_isClosed', callArgs); }},
+        _handle:    { enumerable: false,
+                      configurable: false,
+                      set: function() {},
+                      get: function() { return session_handle }}
     });
 }
 
@@ -105,6 +154,23 @@ Session.prototype.openBasicChannel = function() {
         { name: "successCallback", type: types_.FUNCTION },
         { name: "errorCallback", type: types_.FUNCTION, optional: true, nullable: true }
     ]);
+
+    var callback = function(result) {
+        if ( native_.isFailure(result)) {
+            native_.callIfPossible( args.errorCallback, native_.getErrorObject(result));
+        } else {
+            var result_obj = native_.getResultObject(result);
+            var channel = new Channel( result_obj.handle, result_obj.isBasicChannel);
+            args.successCallback(channel);
+        }
+    }
+
+    var callArgs = {
+        handle: this._handle,
+        aid: args.aid
+    };
+
+    native_.call('SESession_openBasicChannel', callArgs, callback);
 };
 
 Session.prototype.openLogicalChannel = function() {
@@ -113,38 +179,39 @@ Session.prototype.openLogicalChannel = function() {
         { name: "successCallback", type: types_.FUNCTION },
         { name: "errorCallback", type: types_.FUNCTION, optional: true, nullable: true }
     ]);
+
+    var callback = function(result) {
+        if ( native_.isFailure(result)) {
+            native_.callIfPossible( args.errorCallback, native_.getErrorObject(result));
+        } else {
+            var result_obj = native_.getResultObject(result);
+            var channel = new Channel( result_obj.handle, result_obj.isBasicChannel);
+            args.successCallback(channel);
+        }
+    }
+
+    var callArgs = {
+        handle: this._handle,
+        aid: args.aid
+    };
+
+    native_.call('SESession_openLogicalChannel', callArgs, callback);
 }
 
 Session.prototype.getATR = function() {
+    var callArgs = { handle: this._handle };
+    return native_.callSync('SESession_getATR', callArgs);
 }
 
 Session.prototype.close = function() {
+    var callArgs = { handle: this._handle };
+    native_.callSync('SESession_close', callArgs);
 }
 
 Session.prototype.closeChannels = function() {
+    var callArgs = { handle: this._handle };
+    native_.callSync('SESession_closeChannels', callArgs);
 }
 
-//////////////////Channel/////////////////
-
-function Channel() {
-    var handle = null;
-    Object.defineProperties(this, {
-        isBasicChannel:   {value: false, writable: false, enumerable: true}
-    });
-}
-
-Channel.prototype.close = function() {
-};
-
-Channel.prototype.transmit = function() {
-    var args = validator_.validateArgs(arguments, [
-        { name: "command", type: types_.ARRAY, values: types_.BYTE },
-        { name: "successCallback", type: types_.FUNCTION },
-        { name: "errorCallback", type: types_.FUNCTION, optional: true, nullable: true }
-    ]);
-}
-
-Channel.prototype.getSelectResponse = function() {
-}
 
 exports = new SEService();
