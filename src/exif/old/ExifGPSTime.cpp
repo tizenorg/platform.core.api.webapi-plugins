@@ -25,8 +25,8 @@
 #include <Logger.h>
 #include <PlatformException.h>
 
-namespace DeviceAPI {
-namespace Exif {
+namespace extension {
+namespace exif {
 
 bool isValidDateFormat(const std::string& date)
 {
@@ -271,5 +271,5 @@ void ExifGPSTime::setDateAndTime(Time::TZDatePtr new_time)
             m_time[2].toString().c_str());
 }
 
-} // Exif
-} // DeviceAPI
+} // exif
+} // extension

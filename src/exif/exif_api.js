@@ -59,8 +59,22 @@ ExifManager.prototype.getExifInfo = function() {
     }
   ]);
 
-  throw 'Not implemented';
+  var callArgs = {
+    uri: args.uri
+  };
+
+  var callback = function(result) {
+    if (native_.isFailure(result)) {
+      native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));
+    } else {
+      var exifInfo = native_.getResultObject(result);
+      args.successCallback(exifInfo);
+    }
+  };
+
+  native_.call('Exif_getExifInfo', callArgs, callback);
 };
+
 
 ExifManager.prototype.saveExifInfo = function() {
   var args = validator_.validateArgs(arguments, [

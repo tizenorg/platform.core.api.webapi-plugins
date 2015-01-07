@@ -24,8 +24,8 @@
 
 #include "ExifUtil.h"
 
-namespace DeviceAPI {
-namespace Exif {
+namespace extension {
+namespace exif {
 
 class ExifGPSTime
 {
@@ -78,7 +78,7 @@ private:
     time_t m_time_and_date;
 };
 
-} // Exif
-} // DeviceAPI
+} // exif
+} // extension
 
 #endif // __TIZEN_EXIF_EXIF_GPS_TIME_H_
