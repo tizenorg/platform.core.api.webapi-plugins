@@ -4,6 +4,7 @@
 
 #include "message_storage.h"
 #include "messages_change_callback.h"
+#include "conversations_change_callback.h"
 #include "change_listener_container.h"
 
 #include "common/logger.h"
@@ -40,9 +41,11 @@ long MessageStorage::addMessagesChangeListener(std::shared_ptr<MessagesChangeCal
     return ChangeListenerContainer::getInstance().addMessageChangeListener(callback);
 }
 
-long MessageStorage::addConversationsChangeListener()
+long MessageStorage::addConversationsChangeListener(
+        std::shared_ptr<ConversationsChangeCallback> callback)
 {
     LoggerD("Entered");
+    return ChangeListenerContainer::getInstance().addConversationChangeListener(callback);
 }
 
 long MessageStorage::addFoldersChangeListener()

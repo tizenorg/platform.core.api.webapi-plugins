@@ -1,0 +1,194 @@
+// Copyright 2014 Samsung Electronics Co, Ltd. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+//#include <JSWebAPIErrorFactory.h>
+//#include <PlatformException.h>
+//#include <JSUtil.h>
+//#include <GlobalContextManager.h>
+
+//#include "MessagingUtil.h"
+//#include "ConversationsChangeCallback.h"
+//#include "JSMessageConversation.h"
+//#include "MessagingUtil.h"
+
+#include "common/logger.h"
+#include "common/platform_exception.h"
+#include "messaging_instance.h"
+#include "messaging_util.h"
+
+#include "conversations_change_callback.h"
+
+namespace extension {
+namespace messaging {
+
+
+const char* CONVERSATIONSADDED = "conversationsadded";
+const char* CONVERSATIONSUPDATED = "conversationsupdated";
+const char* CONVERSATIONSREMOVED = "conversationsremoved";
+
+ConversationsChangeCallback::ConversationsChangeCallback(
+        long cid,
+        int service_id,
+        MessageType service_type) :
+        m_callback_data(cid, true),
+        m_id(service_id),
+        m_msg_type(service_type),
+        m_is_act(true)
+{
+    LoggerD("Entered");
+}
+
+ConversationsChangeCallback::~ConversationsChangeCallback()
+{
+    LoggerD("Entered");
+}
+
+ConversationPtrVector ConversationsChangeCallback::filterConversations(
+        AbstractFilterPtr filter,
+        const ConversationPtrVector& source_conversations)
+{
+    if (filter) {
+        ConversationPtrVector filtered_conversations;
+        ConversationPtrVector::const_iterator it = source_conversations.begin();
+        ConversationPtrVector::const_iterator end_it = source_conversations.end();
+
+        for(int i = 0; it != end_it; ++i, ++it) {
+            const ConversationPtr& conversation = *it;
+            const bool matched = filter->isMatching(conversation.get());
+            if(matched) {
+                filtered_conversations.push_back(conversation);
+            }
+
+            LoggerD("[%d] conversation id:%d", i, conversation->getConversationId());
+            LoggerD("[%d] conversation subject :%s", i, conversation->getSubject().c_str());
+            LoggerD("[%d] matched filter: %s", i, matched ? "YES" : "NO");
+        }
+
+        LoggerD("returning matching %d of %d conversations", filtered_conversations.size(),
+                source_conversations.size());
+
+        return filtered_conversations;
+    }
+    else {
+        return source_conversations;
+    }
+}
+
+void ConversationsChangeCallback::added(
+        const ConversationPtrVector& conversations)
+{
+    LoggerD("Entered conversations.size()=%d", conversations.size());
+    if (!m_is_act) {
+        return;
+    }
+
+    ConversationPtrVector filtered = filterConversations(m_filter, conversations);
+
+    picojson::array array;
+    auto each = [&array] (std::shared_ptr<MessageConversation> c)->void {
+        array.push_back(MessagingUtil::conversationToJson(c));
+    };
+    for_each(filtered.begin(), filtered.end(), each);
+
+    LoggerD("Calling:%s with:%d added conversations", CONVERSATIONSADDED,
+        filtered.size());
+
+    auto json = m_callback_data.getJson();
+    picojson::object& obj = json->get<picojson::object>();
+    obj[JSON_ACTION] = picojson::value(CONVERSATIONSADDED);
+    obj[JSON_DATA] = picojson::value(array);
+    MessagingInstance::getInstance().PostMessage(json->serialize().c_str());
+}
+
+void ConversationsChangeCallback::updated(
+        const ConversationPtrVector& conversations)
+{
+    LoggerD("Entered conversations.size()=%d", conversations.size());
+    if (!m_is_act) {
+        return;
+    }
+
+    ConversationPtrVector filtered = filterConversations(m_filter, conversations);
+
+    picojson::array array;
+    auto each = [&array] (std::shared_ptr<MessageConversation> c)->void {
+        array.push_back(MessagingUtil::conversationToJson(c));
+    };
+    for_each(filtered.begin(), filtered.end(), each);
+
+    LoggerD("Calling:%s with:%d added conversations", CONVERSATIONSUPDATED,
+        filtered.size());
+
+    auto json = m_callback_data.getJson();
+    picojson::object& obj = json->get<picojson::object>();
+    obj[JSON_ACTION] = picojson::value(CONVERSATIONSUPDATED);
+    obj[JSON_DATA] = picojson::value(array);
+    MessagingInstance::getInstance().PostMessage(json->serialize().c_str());
+}
+
+void ConversationsChangeCallback::removed(
+        const ConversationPtrVector& conversations)
+{
+    LoggerD("Entered conversations.size()=%d", conversations.size());
+    if (!m_is_act) {
+        return;
+    }
+
+    ConversationPtrVector filtered = filterConversations(m_filter, conversations);
+
+    picojson::array array;
+    auto each = [&array] (std::shared_ptr<MessageConversation> c)->void {
+        array.push_back(MessagingUtil::conversationToJson(c));
+    };
+    for_each(filtered.begin(), filtered.end(), each);
+
+    LoggerD("Calling:%s with:%d added conversations", CONVERSATIONSREMOVED,
+        filtered.size());
+
+    auto json = m_callback_data.getJson();
+    picojson::object& obj = json->get<picojson::object>();
+    obj[JSON_ACTION] = picojson::value(CONVERSATIONSREMOVED);
+    obj[JSON_DATA] = picojson::value(array);
+    MessagingInstance::getInstance().PostMessage(json->serialize().c_str());
+}
+
+void ConversationsChangeCallback::setFilter(tizen::AbstractFilterPtr filter)
+{
+    m_filter = filter;
+}
+
+tizen::AbstractFilterPtr ConversationsChangeCallback::getFilter() const
+{
+    return m_filter;
+}
+
+int ConversationsChangeCallback::getServiceId() const
+{
+    return m_id;
+}
+
+MessageType ConversationsChangeCallback::getServiceType() const
+{
+    return m_msg_type;
+}
+
+void ConversationsChangeCallback::setActive(bool act) {
+    m_is_act = act;
+}
+
+bool ConversationsChangeCallback::isActive() {
+    return m_is_act;
+}
+
+void ConversationsChangeCallback::setItems(ConversationPtrVector& items)
+{
+    m_items = items;
+}
+ConversationPtrVector ConversationsChangeCallback::getItems()
+{
+    return m_items;
+}
+
+} //namespace messaging
+} //namespace extension

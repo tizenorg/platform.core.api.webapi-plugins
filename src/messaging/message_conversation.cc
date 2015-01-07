@@ -314,7 +314,7 @@ std::shared_ptr<MessageConversation> MessageConversation::convertEmailConversati
 
         conversation->m_conversation_id = threadId;
 
-        conversation->m_conversation_type = EMAIL;
+        conversation->m_conversation_type = MessageType::EMAIL;
 
         conversation->m_timestamp = resultMail->date_time;
 
@@ -375,7 +375,7 @@ std::shared_ptr<MessageConversation> MessageConversation::convertConversationStr
 {
     std::shared_ptr<MessageConversation> conversation (new MessageConversation());
 
-    if (EMAIL == msgType) {
+    if (MessageType::EMAIL == msgType) {
         conversation = convertEmailConversationToObject(threadId);
     } else {
         if(handle != NULL) {

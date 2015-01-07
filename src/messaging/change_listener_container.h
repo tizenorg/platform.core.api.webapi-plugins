@@ -20,8 +20,8 @@
 
 #include "messaging_util.h"
 #include "messages_change_callback.h"
+#include "conversations_change_callback.h"
 
-//#include "ConversationsChangeCallback.h"
 //#include "FoldersChangeCallback.h"
 
 namespace extension {
@@ -38,14 +38,12 @@ struct EventMessages {
 };
 
 //! Data related to ConversationChange event passed to add/update/remove callbacks
-/*
- *struct EventConversations {
- *    int service_id;
- *    MessageType service_type;
- *    ConversationPtrVector items;
- *    // TODO: Filtering support
- *};
- */
+struct EventConversations {
+    int service_id;
+    MessageType service_type;
+    ConversationPtrVector items;
+    // TODO: Filtering support
+};
 
 //! Data related to FolderChange event passed to add/update/remove callbacks
 /*
@@ -65,7 +63,7 @@ template <class T > struct CallbackDataHolder {
 //! Map that stores MessageChangeListeners
 typedef std::map<long, std::shared_ptr<MessagesChangeCallback>> MCLmap;
 //! Map that stores ConversationsChangeListeners
-//typedef std::map<long, std::shared_ptr<ConversationsChangeCallback>> CCLmap;
+typedef std::map<long, std::shared_ptr<ConversationsChangeCallback>> CCLmap;
 //! Map that stores FoldersChangeListeners
 //typedef std::map<long, std::shared_ptr<FoldersChangeCallback>> FCLmap;
 
@@ -86,7 +84,7 @@ class ChangeListenerContainer {
 
         // Interface for listener's manipulation (registration and removal).
         long addMessageChangeListener(std::shared_ptr<MessagesChangeCallback> callback);
-        //long addConversationChangeListener(std::shared_ptr<ConversationsChangeCallback> callback);
+        long addConversationChangeListener(std::shared_ptr<ConversationsChangeCallback> callback);
         //long addFolderChangeListener(std::shared_ptr<FoldersChangeCallback> callback);
         void removeChangeListener(long id);
 
@@ -94,9 +92,9 @@ class ChangeListenerContainer {
         void callMessageAdded(EventMessages* event);
         void callMessageUpdated(EventMessages* event);
         void callMessageRemoved(EventMessages* event);
-        //void callConversationAdded(EventConversations* event);
-        //void callConversationUpdated(EventConversations* event);
-        //void callConversationRemoved(EventConversations* event);
+        void callConversationAdded(EventConversations* event);
+        void callConversationUpdated(EventConversations* event);
+        void callConversationRemoved(EventConversations* event);
         //void callFolderAdded(EventFolders* event);
         //void callFolderUpdated(EventFolders* event);
         //void callFolderRemoved(EventFolders* event);
@@ -122,7 +120,7 @@ class ChangeListenerContainer {
 
         // Callbacks for email service
         MCLmap m_email_message_callbacks;
-        //CCLmap m_email_conversation_callbacks;
+        CCLmap m_email_conversation_callbacks;
         //FCLmap m_email_folder_callbacks;
 
         ChangeListenerContainer();

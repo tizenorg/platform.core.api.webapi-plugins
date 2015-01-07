@@ -9,7 +9,6 @@ namespace extension {
 namespace messaging {
 
 ConversationCallbackData::ConversationCallbackData():
-        CallbackUserData(),
         m_filter(),
         m_sort(),
         m_limit(0),
@@ -18,6 +17,22 @@ ConversationCallbackData::ConversationCallbackData():
         m_account_id(0),
         m_service_type(UNDEFINED)
 {
+}
+
+ConversationCallbackData::ConversationCallbackData(long cid, bool keep):
+        m_filter(),
+        m_sort(),
+        m_limit(0),
+        m_offset(0),
+        m_is_error(false),
+        m_account_id(0),
+        m_service_type(UNDEFINED)
+{
+    auto json = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
+    picojson::object& o = json->get<picojson::object>();
+    o[JSON_CALLBACK_ID] = picojson::value(static_cast<double>(cid));
+    o[JSON_CALLBACK_KEEP] = picojson::value(keep);
+    setJson(json);
 }
 
 ConversationCallbackData::~ConversationCallbackData()
