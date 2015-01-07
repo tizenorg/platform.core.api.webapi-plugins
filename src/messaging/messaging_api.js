@@ -1116,18 +1116,10 @@ MessageStorage.prototype.addFoldersChangeListener = function () {
         {name: 'filter', type: types_.PLATFORM_OBJECT, values: tizen.AbstractFilter,
                 optional: true, nullable: true}
     ]);
-    var listeners = [];
-    if (args.foldersChangeCallback.foldersadded) listeners.push('foldersadded');
-    if (args.foldersChangeCallback.foldersupdated) listeners.push('foldersupdated');
-    if (args.foldersChangeCallback.foldersremoved) listeners.push('foldersremoved');
 
-    bridge({
-        cmd: 'MessageStorage_addFoldersChangeListener',
-        args: {
-            filter: args.filter,
-            listeners: listeners
-        }
-    }).then({
+    var self = this;
+
+    var cid = bridge.listener({
         foldersadded: function (data) {
             if (args.foldersChangeCallback.foldersadded) {
                 var folders = [];
@@ -1156,6 +1148,17 @@ MessageStorage.prototype.addFoldersChangeListener = function () {
             }
         }
     });
+
+    var result = bridge.sync({
+        cmd: 'MessageStorage_addFoldersChangeListener',
+        cid: cid,
+        args: {
+            filter: args.filter || null,
+            serviceId: self.service.id
+        }
+    });
+
+    return result;
 };
 
 MessageStorage.prototype.removeChangeListener = function () {

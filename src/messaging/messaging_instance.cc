@@ -12,6 +12,7 @@
 #include "MsgCommon/AbstractFilter.h"
 #include "messages_change_callback.h"
 #include "conversations_change_callback.h"
+#include "folders_change_callback.h"
 #include "messages_callback_user_data.h"
 #include "find_msg_callback_user_data.h"
 #include "folders_callback_data.h"
@@ -136,6 +137,7 @@ MessagingInstance::MessagingInstance()
       REGISTER_SYNC(FUN_MESSAGE_SERVICE_SYNC_FOLDER, MessageServiceSyncFolder);
       REGISTER_SYNC(FUN_MESSAGE_STORAGE_ADD_MESSAGES_CHANGE_LISTENER, MessageStorageAddMessagesChangeListener);
       REGISTER_SYNC(FUN_MESSAGE_STORAGE_ADD_CONVERSATIONS_CHANGE_LISTENER, MessageStorageAddConversationsChangeListener);
+      REGISTER_SYNC(FUN_MESSAGE_STORAGE_ADD_FOLDER_CHANGE_LISTENER, MessageStorageAddFolderChangeListener);
       REGISTER_SYNC(FUN_MESSAGE_STORAGE_REMOVE_CHANGE_LISTENER, MessageStorageRemoveChangeListener);
     #undef REGISTER_SYNC
 }
@@ -601,6 +603,22 @@ void MessagingInstance::MessageStorageAddFolderChangeListener(const picojson::va
         picojson::object& out)
 {
     LoggerD("Entered");
+    picojson::object data = args.get(JSON_DATA).get<picojson::object>();
+    const long callbackId = static_cast<long>(args.get(JSON_CALLBACK_ID).get<double>());
+
+    int serviceId = static_cast<int>(data.at(FUNCTIONS_HIDDEN_ARGS_SERVICE_ID).get<double>());
+    auto service = MessagingManager::getInstance().getMessageServiceEmail(serviceId);
+
+    std::shared_ptr<FoldersChangeCallback> callback(new FoldersChangeCallback(
+                callbackId, serviceId, service->getMsgServiceType()));
+
+    // TODO filter
+    // callback->setFilter(tizen::AbstractFilterPtr(new tizen::AbstractFilter()));
+
+    long op_id = service->getMsgStorage()->addFoldersChangeListener(callback);
+
+    picojson::value v(static_cast<double>(op_id));
+    ReportSuccess(v, out);
 }
 
 void MessagingInstance::MessageStorageRemoveChangeListener(const picojson::value& args,

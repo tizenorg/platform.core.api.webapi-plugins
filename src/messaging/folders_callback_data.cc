@@ -23,8 +23,20 @@ namespace messaging {
 
 
 FoldersCallbackData::FoldersCallbackData():
+        m_filter(),
         m_is_error(false)
 {
+}
+
+FoldersCallbackData::FoldersCallbackData(long cid, bool keep):
+        m_filter(),
+        m_is_error(false)
+{
+    auto json = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
+    picojson::object& o = json->get<picojson::object>();
+    o[JSON_CALLBACK_ID] = picojson::value(static_cast<double>(cid));
+    o[JSON_CALLBACK_KEEP] = picojson::value(keep);
+    setJson(json);
 }
 
 FoldersCallbackData::~FoldersCallbackData() {

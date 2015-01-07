@@ -245,51 +245,49 @@ void MessageProxy::handleThreadRemoveEvent(int account_id, int thread_id)
 void MessageProxy::handleMailboxEvent(int account_id, int mailbox_id, int event)
 {
     LoggerD("Enter");
- /*
- *    EventFolders* eventFolder = new EventFolders();
- *    eventFolder->service_type = MessageType::EMAIL;
- *    eventFolder->service_id = account_id;
- *    FolderPtr folder;
- *    if (event == NOTI_MAILBOX_DELETE) {
- *        //this event is triggered after mailbox is removed
- *        //so we just create folder with id
- *        folder.reset(new MessageFolder(std::to_string(mailbox_id),
- *                "", //parent_id
- *                "", //service_id
- *                "", //content_type
- *                "", //name
- *                "", //path
- *                MessageFolderType::MESSAGE_FOLDER_TYPE_NOTSTANDARD,
- *                false));
- *    } else {
- *        email_mailbox_t* mail_box = NULL;
- *        if (EMAIL_ERROR_NONE != email_get_mailbox_by_mailbox_id(mailbox_id, &mail_box)) {
- *            LoggerE("Mailbox not retrieved");
- *            delete eventFolder;
- *            throw common::UnknownException("Failed to load mailbox");
- *        }
- *        folder.reset(new MessageFolder(*mail_box));
- *        if (EMAIL_ERROR_NONE != email_free_mailbox(&mail_box, 1)) {
- *            LoggerD("Failed to free email_free_mailbox");
- *        }
- *    }
- *    eventFolder->items.push_back(folder);
- *    switch (event) {
- *        case NOTI_MAILBOX_ADD:
- *            ChangeListenerContainer::getInstance().callFolderAdded(eventFolder);
- *            break;
- *        case NOTI_MAILBOX_UPDATE:
- *        case NOTI_MAILBOX_FIELD_UPDATE:
- *            ChangeListenerContainer::getInstance().callFolderUpdated(eventFolder);
- *            break;
- *        case NOTI_MAILBOX_DELETE:
- *            ChangeListenerContainer::getInstance().callFolderRemoved(eventFolder);
- *            break;
- *        default:
- *            LoggerW("Unknown event type: %d", event);
- *    }
- *    delete eventFolder;
- */
+    EventFolders* eventFolder = new EventFolders();
+    eventFolder->service_type = MessageType::EMAIL;
+    eventFolder->service_id = account_id;
+    FolderPtr folder;
+    if (event == NOTI_MAILBOX_DELETE) {
+        //this event is triggered after mailbox is removed
+        //so we just create folder with id
+        folder.reset(new MessageFolder(std::to_string(mailbox_id),
+                "", //parent_id
+                "", //service_id
+                "", //content_type
+                "", //name
+                "", //path
+                MessageFolderType::MESSAGE_FOLDER_TYPE_NOTSTANDARD,
+                false));
+    } else {
+        email_mailbox_t* mail_box = NULL;
+        if (EMAIL_ERROR_NONE != email_get_mailbox_by_mailbox_id(mailbox_id, &mail_box)) {
+            LoggerE("Mailbox not retrieved");
+            delete eventFolder;
+            throw common::UnknownException("Failed to load mailbox");
+        }
+        folder.reset(new MessageFolder(*mail_box));
+        if (EMAIL_ERROR_NONE != email_free_mailbox(&mail_box, 1)) {
+            LoggerD("Failed to free email_free_mailbox");
+        }
+    }
+    eventFolder->items.push_back(folder);
+    switch (event) {
+        case NOTI_MAILBOX_ADD:
+            ChangeListenerContainer::getInstance().callFolderAdded(eventFolder);
+            break;
+        case NOTI_MAILBOX_UPDATE:
+        case NOTI_MAILBOX_FIELD_UPDATE:
+            ChangeListenerContainer::getInstance().callFolderUpdated(eventFolder);
+            break;
+        case NOTI_MAILBOX_DELETE:
+            ChangeListenerContainer::getInstance().callFolderRemoved(eventFolder);
+            break;
+        default:
+            LoggerW("Unknown event type: %d", event);
+    }
+    delete eventFolder;
 }
 
 } //namespace DBus
