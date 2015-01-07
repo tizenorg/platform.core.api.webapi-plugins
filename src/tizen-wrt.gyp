@@ -20,6 +20,7 @@
         [
           'extension_host_os == "mobile"', {
             'dependencies': [
+              'badge/badge.gyp:*',
               'callhistory/callhistory.gyp:*',
               'contact/contact.gyp:*',
               'calendar/calendar.gyp:*',
