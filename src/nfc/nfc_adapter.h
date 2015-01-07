@@ -66,6 +66,7 @@ public:
     // methods
     void TagReadNDEF(int tag_id, const picojson::value& args);
     void TagWriteNDEF(int tag_id, const picojson::value& args);
+    void TagTransceive(int tag_id, const picojson::value& args);
     // listeners
     void SetTagListener();
     void UnsetTagListener();

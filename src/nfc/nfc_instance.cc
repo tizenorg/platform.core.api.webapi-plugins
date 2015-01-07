@@ -79,7 +79,7 @@ NFCInstance::NFCInstance() {
     REGISTER("NFCAdapter_setPowered", SetPowered);
     REGISTER("NFCTag_readNDEF", ReadNDEF);
     REGISTER("NFCTag_writeNDEF", WriteNDEF);
-    REGISTER("NFCTag_transceive ", Transceive );
+    REGISTER("NFCTag_transceive", Transceive );
     REGISTER("NFCPeer_sendNDEF", SendNDEF);
 #undef REGISTER
     // NFC library initialization
@@ -364,6 +364,17 @@ void NFCInstance::WriteNDEF(
 void NFCInstance::Transceive(
         const picojson::value& args, picojson::object& out) {
 
+    LoggerD("Entered");
+    int tag_id = static_cast<int>(args.get("id").get<double>());
+    LoggerD("Tag id: %d", tag_id);
+
+    try {
+        NFCAdapter::GetInstance()->TagTransceive(tag_id, args);
+        ReportSuccess(out);
+    }
+    catch(const common::PlatformException& ex) {
+        ReportError(ex, out);
+    }
 }
 
 void NFCInstance::SetReceiveNDEFListener(
