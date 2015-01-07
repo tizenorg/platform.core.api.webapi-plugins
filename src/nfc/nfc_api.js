@@ -273,13 +273,21 @@ NFCAdapter.prototype.setTagListener  = function() {
         },
         {
             name : 'tagType',
-            type : types_.STRING,
+            type : types_.ARRAY,
+            values : types_.STRING,
             optional : true,
             nullable : true
         }
     ]);
 
-    // TODO: NFCTag type value validation needed here
+    if(!types_.isNullOrUndefined(args.tagType)) {
+        for (var i = 0; i < args.tagType.length; i++) {
+            if (NFCTagType[args.tagType[i]] === undefined) {
+                throw new tizen.WebAPIException(
+                        tizen.WebAPIException.TYPE_MISMATCH_ERR, 'Invalid tag type.');
+            }
+        }
+    }
 
     // Listener object creation
     var listenerCallback = function(message) {
@@ -288,11 +296,10 @@ NFCAdapter.prototype.setTagListener  = function() {
         if('onattach' === message.action) {
             tagObject = new NFCTag(message.id);
 
-            if(!types_.isNullOrUndefined(args.tagType)) {
-                // If filter set for listener then check tag type
-                if(tagObject.type !== args.tagType) {
-                    return;
-                }
+            // If filter is set for listener but tag type is not searched one
+            if(!types_.isNullOrUndefined(args.tagType) &&
+                    args.tagType.indexOf(tagObject.type) < 0) {
+                return;
             }
         }
         args.listener[message.action](tagObject);
