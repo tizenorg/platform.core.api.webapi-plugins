@@ -40,6 +40,7 @@ TVAudioInstance::TVAudioInstance() {
     REGISTER_SYNC("AudioControlManager_getOutputMode", getOutputMode);
     REGISTER_SYNC("AudioControlManager_setVolumeChangeListener", setVolumeChangeListener);
     REGISTER_SYNC("AudioControlManager_unsetVolumeChangeListener", unsetVolumeChangeListener);
+    REGISTER_SYNC("AudioControlManager_playSound", playSound);
     #undef REGISTER_SYNC
 }
 
@@ -123,6 +124,13 @@ void TVAudioInstance::onVolumeChangeCallback(u_int16_t volume) {
   } catch (...) {
     LOGW("Failed to post message, unknown error");
   }
+}
+
+void TVAudioInstance::playSound(const picojson::value& args,
+        picojson::object& out) {
+    const std::string& type = args.get("type").to_str();
+    AudioControlManager::getInstance().playSound(type);
+    ReportSuccess(picojson::value(true), out);
 }
 
 }  // namespace tvaudio
