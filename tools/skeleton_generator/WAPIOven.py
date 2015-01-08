@@ -1,6 +1,11 @@
+# Copyright 2015 Samsung Electronics Co, Ltd. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
 import WebIDL
 from collections import OrderedDict
 from Queue import Queue
+from datetime import date
 import jinja2
 
 cppPrimitiveMap = {
@@ -185,7 +190,8 @@ class Compiler(IndentPrintable):
             'callbacks':self.ctx['callback'],
             'tizen': self.ctx['Tizen'],
             'window': self.ctx['Window'],
-            'cmdtable' : self.ctx['cmdtable']})
+            'cmdtable' : self.ctx['cmdtable'],
+            'year' : date.today().year})
 
 
     TPL_EXTENSION_H = "tpl_extension.h"
@@ -221,6 +227,7 @@ class Compiler(IndentPrintable):
         vals['tizen'] = self.ctx['Tizen']
         vals['window'] = self.ctx['Window']
         vals['cmdtable'] = self.ctx['cmdtable']
+        vals['year'] = date.today().year
 
         return tpl.render(vals)
 

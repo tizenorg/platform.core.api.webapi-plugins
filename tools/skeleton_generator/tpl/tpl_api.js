@@ -1,5 +1,10 @@
+/* global tizen, xwalk, extension */
+
+// Copyright {{year}} Samsung Electronics Co, Ltd. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
 {% for module in modules %}
-// {{module.name}}
 
 var validator_ = xwalk.utils.validator;
 var types_ = validator_.Types;
