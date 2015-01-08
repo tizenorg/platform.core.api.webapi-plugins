@@ -41,11 +41,8 @@ void DatasyncInstance::GetMaxProfilesNum(const picojson::value &args, picojson::
 }
 
 void DatasyncInstance::GetProfilesNum(const picojson::value &args, picojson::object &out) {
-//  TODO: implementation
-
-    picojson::value val{picojson::object{}};
-
-    ReportSuccess(val, out);
+  ReportSuccess(
+      picojson::value(static_cast<double>(DataSyncManager::Instance().GetProfilesNum())), out);
 }
 
 void DatasyncInstance::Get(const picojson::value &args, picojson::object &out) {

@@ -541,28 +541,16 @@ int DataSyncManager::GetMaxProfilesNum() const {
   return MAX_PROFILES_NUM;
 }
 
-ResultOrError<unsigned> DataSyncManager::GetProfilesNum() const {
-  GList* profile_list = nullptr;
-  GList* iter = nullptr;
+int DataSyncManager::GetProfilesNum() const {
+  int profile_list_size = 0;
 
-  sync_agent_ds_error_e ret = SYNC_AGENT_DS_FAIL;
+  sync_agent_ds_error_e error_checker = sync_agent_ds_get_profile_count(&profile_list_size);
 
-  ret = sync_agent_ds_get_all_profile(&profile_list);
-  if (SYNC_AGENT_DS_SUCCESS != ret) {
-    return Error("Exception",
-        "Platform error while getting all profiles");
+  if (SYNC_AGENT_DS_SUCCESS  != error_checker) {
+    throw common::UnknownException("Error while getting number of profiles.");
   }
 
-  int num_profiles = 0;
-  for (iter = profile_list; iter != nullptr; iter = g_list_next(iter)) {
-    sync_agent_ds_free_profile_info((ds_profile_h)iter->data);
-    num_profiles++;
-    LoggerD("Free sync_agent_ds_profile_info for index: %d", num_profiles);
-  }
-
-  LoggerD("numProfiles: %d", num_profiles);
-
-  return num_profiles;
+  return profile_list_size;
 }
 
 ResultOrError<SyncProfileInfoPtr> DataSyncManager::Get(
