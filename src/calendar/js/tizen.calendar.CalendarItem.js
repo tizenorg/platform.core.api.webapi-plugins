@@ -195,6 +195,7 @@ var CalendarItem = function(data) {
       },
       set: function(v) {
         _startDate = v instanceof tizen.TZDate ? v : _startDate;
+        this.duration = _duration;
       },
       enumerable: true
     },
