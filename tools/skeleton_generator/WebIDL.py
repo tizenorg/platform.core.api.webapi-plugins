@@ -22,7 +22,7 @@ class XObject(object):
 
     def add(self, child):
         if isinstance(child, XObject):
-            type = child.type 
+            type = child.type
             child.parent = self
         else:
             type = 'string'
@@ -387,7 +387,7 @@ class Parser:
         z = 0
         if t.value[0] == '-':
             z = 1
-        
+
         if len(t.value) > 1 and t.value[z] == '0' and (t.value[z+1] == 'x' or t.value[z+1] == 'X'):
             if t.value[z+2:].find('8') and t.value[z+2:].find('9'):
                 t.value = int(t.value, 8)
@@ -490,7 +490,7 @@ class Parser:
 
     def p_PartialDefinition(self, p):
         '''
-        PartialDefinition : PartialInterface 
+        PartialDefinition : PartialInterface
                            | PartialDictionary
         '''
         p[0] = p[1]
@@ -595,7 +595,7 @@ class Parser:
         EnumValues : "," string EnumValues
                    | Empty
         '''
-        if len(p) > 2: 
+        if len(p) > 2:
             p[0] = [p[2]] + p[3]
         else:
             p[0] = []
@@ -894,19 +894,19 @@ class Parser:
     def p_Other(self, p):
         '''
         Other : integer
-              | float 
-              | identifier 
-              | string 
-              | other 
-              | "-" 
-              | "." 
+              | float
+              | identifier
+              | string
+              | other
+              | "-"
+              | "."
               | ellipsis
-              | ":" 
-              | ";" 
-              | "<" 
-              | "=" 
-              | ">" 
-              | "?" 
+              | ":"
+              | ";"
+              | "<"
+              | "="
+              | ">"
+              | "?"
               | Date
               | DOMString
               | Infinity
@@ -1088,7 +1088,7 @@ class Parser:
 
         typename = p[1] if p[1] != 'unsigned' else p[2]
         p[0] = XType(typename, None, 0, False, False, p[1] == 'unsigned')
-        
+
     def p_IntegerType(self, p):
         '''
         IntegerType : short

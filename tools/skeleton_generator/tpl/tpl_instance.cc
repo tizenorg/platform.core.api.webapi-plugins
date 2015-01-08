@@ -46,11 +46,11 @@ enum {{module.title}}Callbacks {
   {% endfor %}
 };
 
-static void ReplyAsync({{module.title}}Instance* instance, {{module.title}}Callbacks cbfunc, 
+static void ReplyAsync({{module.title}}Instance* instance, {{module.title}}Callbacks cbfunc,
                        int callbackId, bool isSuccess, picojson::object& param) {
   param["callbackId"] = picojson::value(static_cast<double>(callbackId));
   param["status"] = picojson::value(isSuccess ? "success" : "error");
-  
+
   // insert result for async callback to param
   switch(cbfunc) {
   {% for iface in moduleObj.getTypes('Interface') %}
@@ -70,7 +70,7 @@ static void ReplyAsync({{module.title}}Instance* instance, {{module.title}}Callb
   }
 
   picojson::value result = picojson::value(param);
-  
+
   instance->PostMessage(result.serialize().c_str());
 }
 {% endif %}

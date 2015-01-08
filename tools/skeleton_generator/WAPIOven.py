@@ -6,16 +6,16 @@ import jinja2
 cppPrimitiveMap = {
         'DOMString':'std::string',
         'object':'picojson::object',
-        'boolean':'bool', 
-        'byte':'double', 
-        'octet':'double', 
-        'short':'double', 
-        'long':'double', 
+        'boolean':'bool',
+        'byte':'double',
+        'octet':'double',
+        'short':'double',
+        'long':'double',
         'long long': 'double',
         'unsigned short': 'double',
         'unsigned long': 'double',
         'unsigned long long': 'double',
-        'float':'double', 
+        'float':'double',
         'double':'double'}
 
 class IndentPrintable(object):
@@ -113,10 +113,10 @@ class Compiler(IndentPrintable):
                             t = self.ctx['typedef'][arg.xtype.name]
                             if t.union:
                                 union_names = [t.name for t in t.union]
-                                arg.isEnum = reduce(lambda x, y: x & y, [ x in self.ctx['enum'] for x in union_names]) 
+                                arg.isEnum = reduce(lambda x, y: x & y, [ x in self.ctx['enum'] for x in union_names])
                                 if arg.isEnum :
                                     arg.enums = reduce(lambda x,y: x+y, [ self.ctx['enum'][x] for x in self.ctx['enum'] if x in union_names])
-                                arg.isTypes = reduce(lambda x, y: x & y, [ x in m.getTypes('Interface') for x in union_names]) 
+                                arg.isTypes = reduce(lambda x, y: x & y, [ x in m.getTypes('Interface') for x in union_names])
                         if arg.xtype.name in self.ctx['callback']:
                             arg.isListener = True
                             arg.listenerType = self.ctx['callback'][arg.xtype.name]
@@ -167,7 +167,7 @@ class Compiler(IndentPrintable):
 
         if isinstance(x, WebIDL.XTypedef):
             self.ctx['typedef'][x.name] = x.xtype
-        
+
         if isinstance(x, WebIDL.XEnum):
             self.ctx['enum'][x.name] = x.childs
 
@@ -181,8 +181,8 @@ class Compiler(IndentPrintable):
         self.prepare()
         tpl = self.tplEnv.get_template(Compiler.TPL_API_JS)
 
-        return tpl.render({'modules':self.tree, 
-            'callbacks':self.ctx['callback'], 
+        return tpl.render({'modules':self.tree,
+            'callbacks':self.ctx['callback'],
             'tizen': self.ctx['Tizen'],
             'window': self.ctx['Window'],
             'cmdtable' : self.ctx['cmdtable']})
@@ -200,9 +200,9 @@ class Compiler(IndentPrintable):
         instance_cc = self.makeCppStub(module, Compiler.TPL_INSTANCE_CC)
 
         return {
-                module+'_extension.h':extension_h, 
-                module+'_extension.cc':extension_cc, 
-                module+'_instance.h':instance_h, 
+                module+'_extension.h':extension_h,
+                module+'_extension.cc':extension_cc,
+                module+'_instance.h':instance_h,
                 module+'_instance.cc':instance_cc}
 
     def makeCppStub(self, module, tpl_file):
@@ -285,7 +285,7 @@ if __name__ == '__main__':
         if only != 'cpp':
             print jscode
             pass
-        
+
         if only != 'js':
             for cc in cppcode:
                 print cppcode[cc]

@@ -83,7 +83,8 @@ function SetReadOnlyProperty(obj, n, v){
 {% for enums in module.getTypes('Enum') %}
 var {{enums.name}} = {
     {% for e in enums.childs %}
-    '{{e}}': '{{e}}'{% if not loop.last %}, {% endif %} 
+    '{{e}}': '{{e}}'{% if not loop.last %}, {% endif %}
+
     {% endfor %}
 };
 {% endfor %}
@@ -103,7 +104,7 @@ function {{iface.name}}() {
 {{iface.name}}.prototype.{{operation.name}} = function(
         {%- for arg in operation.arguments -%}
             {%- if not arg.optional -%}
-                {%- if not loop.first %}, {% endif -%} 
+                {%- if not loop.first %}, {% endif -%}
                 {{arg.name}}
             {%- endif -%}
         {%- endfor %}) {
@@ -138,7 +139,8 @@ function {{iface.name}}() {
             {%- endif -%}
             {%- if arg.optional -%}, optional : true{% endif -%}
             {%- if arg.xtype.nullable -%}, nullable : true{% endif -%}
-        }{% if not loop.last %}, {% endif %} 
+        }{% if not loop.last %}, {% endif %}
+
         {% endfor %}
     ]);
     {% endif %}
@@ -202,19 +204,21 @@ function {{iface.name}}() {
                 {{attribute.name}}); // read only property
             {%- else -%}
                 null); // read only property
-            {%- endif %} 
+            {%- endif %}
+
     {% else %}
     returnObject.{{attribute.name}} = {% if attribute.name in operation.argnames -%}
                 {{attribute.name}};
             {%- else -%}
                 null;
-            {%- endif %} 
+            {%- endif %}
+
     {% endif %}
     {% endfor %}
 
     return returnObject;
     {% endif %}
-}
+};
 
 {% endfor %}
 
