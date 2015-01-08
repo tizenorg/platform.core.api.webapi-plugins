@@ -139,6 +139,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_web_setting_support         1
 %define tizen_feature_wi_fi_support               0
 %define tizen_feature_tv_display_support          1
+%define tizen_feature_tvchannel_support           1
 
 %endif # tizen_profile_tv
 
@@ -215,6 +216,10 @@ BuildRequires:  pkgconfig(contacts-service2)
 %if 0%{?tizen_feature_datasync_support}
 BuildRequires: pkgconfig(sync-agent)
 Requires: sync-agent
+%endif
+
+%if 0%{?tizen_feature_tvchannel_support}
+BuildRequires: pkgconfig(tvs-api)
 %endif
 
 %if 0%{?tizen_feature_exif_support}
