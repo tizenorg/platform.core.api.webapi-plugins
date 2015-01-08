@@ -1,4 +1,5 @@
 // Copyright (c) 2013 Intel Corporation. All rights reserved.
+// Copyright (c) 2015 Samsung Electronics Co, Ltd. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -9,16 +10,23 @@
 #include "common/picojson.h"
 #include "unicode/unistr.h"
 
-class TimeInstance : public common::Instance {
+#include <string>
+
+namespace extension {
+namespace time {
+
+typedef picojson::value JsonValue;
+typedef picojson::object JsonObject;
+typedef picojson::array JsonArray;
+typedef std::string JsonString;
+
+class TimeInstance : public common::ParsedInstance {
  public:
   TimeInstance();
+  static TimeInstance& GetInstance();
   virtual ~TimeInstance();
 
  private:
-  // common::Instance implementation.
-  virtual void HandleMessage(const char* msg);
-  virtual void HandleSyncMessage(const char* msg);
-
   enum DateTimeFormatType {
     TIME_FORMAT,
     DATE_FORMAT,
@@ -26,24 +34,22 @@ class TimeInstance : public common::Instance {
     DATETIME_FORMAT
   };
 
-  const picojson::value::object
-     HandleGetLocalTimeZone(const picojson::value& msg);
-  const picojson::value::object
-     HandleGetAvailableTimeZones(const picojson::value& msg);
-  const picojson::value::object
-     HandleGetTimeZoneOffset(const picojson::value& msg);
-  const picojson::value::object
-     HandleGetTimeZoneAbbreviation(const picojson::value& msg);
-  const picojson::value::object
-     HandleIsDST(const picojson::value& msg);
-  const picojson::value::object
-     HandleGetDSTTransition(const picojson::value& msg);
-  const picojson::value::object
-     HandleToString(const picojson::value& msg, DateTimeFormatType type);
-  const picojson::value::object
-     HandleGetTimeFormat(const picojson::value& msg);
+  void Time_getAvailableTimeZones(const JsonValue& args, JsonObject& out);
+  void Time_getDSTTransition(const JsonValue& args, JsonObject& out);
+  void Time_getLocalTimeZone(const JsonValue& args, JsonObject& out);
+  void Time_getTimeFormat(const JsonValue& args, JsonObject& out);
+  void Time_getTimeZoneOffset(const JsonValue& args, JsonObject& out);
+  void Time_getTimeZoneAbbreviation(const JsonValue& args, JsonObject& out);
+  void Time_isDST(const JsonValue& args, JsonObject& out);
+  void Time_toString(const JsonValue& args, JsonObject& out);
+  void Time_toDateString(const JsonValue& args, JsonObject& out);
+  void Time_toTimeString(const JsonValue& args, JsonObject& out);
 
   UnicodeString getDateTimeFormat(DateTimeFormatType type, bool bLocale);
+  bool toStringByFormat(const JsonValue& args, JsonValue& out,
+                        DateTimeFormatType format);
 };
+}  // namespace time
+}  // namespace extension
 
 #endif  // TIME_TIME_INSTANCE_H_

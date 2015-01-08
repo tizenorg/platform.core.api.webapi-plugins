@@ -1,9 +1,9 @@
 // Copyright (c) 2013 Intel Corporation. All rights reserved.
+// Copyright (c) 2015 Samsung Electronics Co, Ltd. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
 #include "time/time_extension.h"
-
 #include "time/time_instance.h"
 
 common::Extension* CreateExtension() {
@@ -28,5 +28,5 @@ TimeExtension::TimeExtension() {
 TimeExtension::~TimeExtension() {}
 
 common::Instance* TimeExtension::CreateInstance() {
-  return new TimeInstance;
+  return &extension::time::TimeInstance::GetInstance();
 }

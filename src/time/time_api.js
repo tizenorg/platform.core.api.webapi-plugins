@@ -1,16 +1,25 @@
 // Copyright (c) 2013 Intel Corporation. All rights reserved.
+// Copyright (c) 2015 Samsung Electronics Co, Ltd. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
 var _minuteInMilliseconds = 60 * 1000;
 var _hourInMilliseconds = _minuteInMilliseconds * 60;
 
+var _common = xwalk.utils;
+var native_ = new _common.NativeManager(extension);
+
 exports.getCurrentDateTime = function() {
   return new tizen.TZDate();
 };
 
 exports.getLocalTimezone = function() {
-  return _sendSyncMessage('GetLocalTimeZone').value;
+  var result = native_.callSync('Time_getLocalTimeZone');
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
+  }
+
+  return native_.getResultObject(result);
 };
 
 var _availableTimezonesCache = [];
@@ -18,7 +27,13 @@ var _availableTimezonesCache = [];
 exports.getAvailableTimezones = function() {
   if (_availableTimezonesCache.length)
     return _availableTimezonesCache;
-  _availableTimezonesCache = _sendSyncMessage('GetAvailableTimeZones').value;
+
+  var result = native_.callSync('Time_getAvailableTimeZones');
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
+  }
+
+  _availableTimezonesCache = native_.getResultObject(result);
   return _availableTimezonesCache;
 };
 
@@ -29,7 +44,12 @@ exports.getDateFormat = function(shortformat) {
 };
 
 exports.getTimeFormat = function() {
-  return _sendSyncMessage('GetTimeFormat').value;
+  var result = native_.callSync('Time_getTimeFormat');
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
+  }
+
+  return native_.getResultObject(result);
 };
 
 exports.isLeapYear = function(year) {
@@ -49,17 +69,6 @@ function _throwProperTizenException(e) {
     throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
   else
     throw new tizen.WebAPIException(tizen.WebAPIException.UNKNOWN_ERR);
-}
-
-function _sendSyncMessage(cmd, timezone, value, trans, locale) {
-  var msg = {
-    'cmd': cmd,
-    'timezone': timezone || '',
-    'value': value || '',
-    'trans': trans || '',
-    'locale': locale || false
-  };
-  return JSON.parse(extension.internal.sendSyncMessage(JSON.stringify(msg)));
 }
 
 var TimeDurationUnit = [
@@ -201,8 +210,16 @@ tizen.TZDate = function(year, month, day, hours, minutes, seconds, milliseconds,
     throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
 };
 
-function getTimezoneOffset(timezone, timeInMs) {
-  return _sendSyncMessage('GetTimeZoneOffset', timezone, timeInMs).value;
+function getTimezoneOffset(_timezone, _timeInMs) {
+  var result = native_.callSync('Time_getTimeZoneOffset', {
+    timezone: _timezone,
+    value: _timeInMs
+  });
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
+  }
+
+  return native_.getResultObject(result);
 }
 
 function _getTimeWithOffset(date) {
@@ -415,60 +432,99 @@ tizen.TZDate.prototype.addDuration = function(duration) {
 };
 
 tizen.TZDate.prototype.toLocaleDateString = function() {
-  var result = _sendSyncMessage('ToDateString', this.timezone_,
-                                this.date_.getTime(), '', true);
-  if (result.error)
+  var result = native_.callSync('Time_toDateString', {
+    timezone: this.timezone_,
+    value: this.date_.getTime(),
+    trans: '',
+    locale: true
+  });
+  if (native_.isFailure(result)) {
     return '';
-  return result.value;
+  }
+
+  return native_.getResultObject(result);
 };
 
 tizen.TZDate.prototype.toLocaleTimeString = function() {
-  var result = _sendSyncMessage('ToTimeString', this.timezone_,
-                                this.date_.getTime(), '', true);
-  if (result.error)
+  var result = native_.callSync('Time_toTimeString', {
+    timezone: this.timezone_,
+    value: this.date_.getTime(),
+    trans: '',
+    locale: true
+  });
+  if (native_.isFailure(result)) {
     return '';
-  return result.value;
+  }
+
+  return native_.getResultObject(result);
 };
 
 tizen.TZDate.prototype.toLocaleString = function() {
-  var result = _sendSyncMessage('ToString', this.timezone_,
-                                this.date_.getTime(), '', true);
-  if (result.error)
+  var result = native_.callSync('Time_toString', {
+    timezone: this.timezone_,
+    value: this.date_.getTime(),
+    trans: '',
+    locale: true
+  });
+  if (native_.isFailure(result)) {
     return '';
-  return result.value;
+  }
+
+  return native_.getResultObject(result);
 };
 
 tizen.TZDate.prototype.toDateString = function() {
-  var result = _sendSyncMessage('ToDateString', this.timezone_,
-                                this.date_.getTime(), '', false);
-  if (result.error)
+  var result = native_.callSync('Time_toDateString', {
+    timezone: this.timezone_,
+    value: this.date_.getTime(),
+    trans: '',
+    locale: false
+  });
+  if (native_.isFailure(result)) {
     return '';
-  return result.value;
+  }
+
+  return native_.getResultObject(result);
 };
 
 tizen.TZDate.prototype.toTimeString = function() {
-  var result = _sendSyncMessage('ToTimeString', this.timezone_,
-                                this.date_.getTime(), '', false);
-  if (result.error)
+  var result = native_.callSync('Time_toTimeString', {
+    timezone: this.timezone_,
+    value: this.date_.getTime(),
+    trans: '',
+    locale: false
+  });
+  if (native_.isFailure(result)) {
     return '';
-  return result.value;
+  }
+
+  return native_.getResultObject(result);
 };
 
 tizen.TZDate.prototype.toString = function() {
-  var result = _sendSyncMessage('ToString', this.timezone_,
-                                this.date_.getTime(), '', false);
-  if (result.error)
+  var result = native_.callSync('Time_toString', {
+    timezone: this.timezone_,
+    value: this.date_.getTime(),
+    trans: '',
+    locale: false
+  });
+  if (native_.isFailure(result)) {
     return '';
-  return result.value;
+  }
+
+  return native_.getResultObject(result);
 };
 
 tizen.TZDate.prototype.getTimezoneAbbreviation = function() {
-  var result = _sendSyncMessage('GetTimeZoneAbbreviation', this.timezone_,
-                                this.date_.getTime());
-
-  if (result.error)
+  var result = native_.callSync('Time_getTimeZoneAbbreviation', {
+    timezone: this.timezone_,
+    value: this.date_.getTime()
+  });
+  if (native_.isFailure(result)) {
     return '';
-  return result.value;
+  }
+
+  return native_.getResultObject(result);
 };
 
 tizen.TZDate.prototype.secondsFromUTC = function() {
@@ -476,30 +532,45 @@ tizen.TZDate.prototype.secondsFromUTC = function() {
 };
 
 tizen.TZDate.prototype.isDST = function() {
-  var result = _sendSyncMessage('IsDST', this.timezone_,
-                                _getTimeWithOffset(this.date_));
-
-  if (result.error)
+  var result = native_.callSync('Time_isDST', {
+    timezone: this.timezone_,
+    value: _getTimeWithOffset(this.date_)
+  });
+  if (native_.isFailure(result)) {
     return false;
-  return result.value;
+  }
+
+  return native_.getResultObject(result);
 };
 
 tizen.TZDate.prototype.getPreviousDSTTransition = function() {
-  var OffsetInMilliseconds = this.date_.getTimezoneOffset() * _minuteInMilliseconds * -1;
-  var result = _sendSyncMessage('GetDSTTransition', this.timezone_,
-                                _getTimeWithOffset(this.date_), 'NEXT_TRANSITION');
-
-  if (result.error || result.value == 0)
+  var result = native_.callSync('Time_getDSTTransition', {
+    "timezone": this.timezone_,
+    "value": _getTimeWithOffset(this.date_),
+    "trans": 'NEXT_TRANSITION'
+  });
+  if (native_.isFailure(result)) {
     return null;
-  return new tizen.TZDate(new Date(result.value - OffsetInMilliseconds), this.timezone_);
+  }
+  var _result = native_.getResultObject(result);
+  if (result.error || _result == 0)
+    return null;
+  var OffsetInMilliseconds = this.date_.getTimezoneOffset() * _minuteInMilliseconds * -1;
+  return new tizen.TZDate(new Date(_result - OffsetInMilliseconds), this.timezone_);
 };
 
 tizen.TZDate.prototype.getNextDSTTransition = function() {
-  var OffsetInMilliseconds = this.date_.getTimezoneOffset() * _minuteInMilliseconds * -1;
-  var result = _sendSyncMessage('GetDSTTransition', this.timezone_,
-                                _getTimeWithOffset(this.date_), 'PREV_TRANSITION');
-
-  if (result.error || result.value == 0)
+  var result = native_.callSync('Time_getDSTTransition', {
+    timezone: this.timezone_,
+    value: _getTimeWithOffset(this.date_),
+    trans: 'PREV_TRANSITION'
+  });
+  if (native_.isFailure(result)) {
     return null;
-  return new tizen.TZDate(new Date(result.value - OffsetInMilliseconds), this.timezone_);
+  }
+  var _result = native_.getResultObject(result);
+  if (result.error || _result == 0)
+    return null;
+  var OffsetInMilliseconds = this.date_.getTimezoneOffset() * _minuteInMilliseconds * -1;
+  return new tizen.TZDate(new Date(_result - OffsetInMilliseconds), this.timezone_);
 };

@@ -1,4 +1,5 @@
 // Copyright (c) 2013 Intel Corporation. All rights reserved.
+// Copyright (c) 2015 Samsung Electronics Co, Ltd. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -9,7 +10,6 @@
 #endif
 
 #include <sstream>
-#include <string>
 #include <memory>
 #include <cerrno>
 
@@ -22,120 +22,105 @@
 #include "unicode/smpdtfmt.h"
 #include "unicode/dtptngen.h"
 
+namespace extension {
+namespace time {
+
 namespace {
 
 const int _hourInMilliseconds = 3600000;
 
 }  // namespace
 
-TimeInstance::TimeInstance() {}
+TimeInstance& TimeInstance::GetInstance() {
+    static TimeInstance instance;
+    return instance;
+}
+
+TimeInstance::TimeInstance() {
+  using namespace std::placeholders;
+
+#define REGISTER_SYNC(c, x) \
+  RegisterSyncHandler(c, std::bind(&TimeInstance::x, this, _1, _2));
+#define REGISTER_ASYNC(c, x) \
+  RegisterHandler(c, std::bind(&TimeInstance::x, this, _1, _2));
+
+  REGISTER_SYNC("Time_getAvailableTimeZones", Time_getAvailableTimeZones);
+  REGISTER_SYNC("Time_getDSTTransition", Time_getDSTTransition);
+  REGISTER_SYNC("Time_getLocalTimeZone", Time_getLocalTimeZone);
+  REGISTER_SYNC("Time_getTimeFormat", Time_getTimeFormat);
+  REGISTER_SYNC("Time_getTimeZoneOffset", Time_getTimeZoneOffset);
+  REGISTER_SYNC("Time_getTimeZoneAbbreviation", Time_getTimeZoneAbbreviation);
+  REGISTER_SYNC("Time_isDST", Time_isDST);
+  REGISTER_SYNC("Time_toString", Time_toString);
+  REGISTER_SYNC("Time_toDateString", Time_toDateString);
+  REGISTER_SYNC("Time_toTimeString", Time_toTimeString);
+
+#undef REGISTER_SYNC
+#undef REGISTER_ASYNC
+}
 
 TimeInstance::~TimeInstance() {}
 
-void TimeInstance::HandleMessage(const char* message) {}
-
-void TimeInstance::HandleSyncMessage(const char* message) {
-  picojson::value v;
-
-  std::string err;
-  picojson::parse(v, message, message + strlen(message), &err);
-  if (!err.empty()) {
-    std::cout << "Ignoring Sync message.\n";
-    return;
-  }
-
-  std::string cmd = v.get("cmd").to_str();
-  picojson::value::object o;
-  if (cmd == "GetLocalTimeZone")
-    o = HandleGetLocalTimeZone(v);
-  else if (cmd == "GetAvailableTimeZones")
-    o = HandleGetAvailableTimeZones(v);
-  else if (cmd == "GetTimeZoneOffset")
-    o = HandleGetTimeZoneOffset(v);
-  else if (cmd == "GetTimeZoneAbbreviation")
-    o = HandleGetTimeZoneAbbreviation(v);
-  else if (cmd == "IsDST")
-    o = HandleIsDST(v);
-  else if (cmd == "GetDSTTransition")
-    o = HandleGetDSTTransition(v);
-  else if (cmd == "ToDateString")
-    o = HandleToString(v, TimeInstance::DATE_FORMAT);
-  else if (cmd == "ToTimeString")
-    o = HandleToString(v, TimeInstance::TIME_FORMAT);
-  else if (cmd == "ToString")
-    o = HandleToString(v, TimeInstance::DATETIME_FORMAT);
-  else if (cmd == "GetTimeFormat")
-    o = HandleGetTimeFormat(v);
-
-  if (o.empty())
-    o["error"] = picojson::value(true);
-
-  SendSyncReply(picojson::value(o).serialize().c_str());
-}
-
-const picojson::value::object TimeInstance::HandleGetLocalTimeZone(
-  const picojson::value& msg) {
-  picojson::value::object o;
-
+void TimeInstance::Time_getLocalTimeZone(const JsonValue& /*args*/,
+                                         JsonObject& out) {
   UnicodeString local_timezone;
   TimeZone::createDefault()->getID(local_timezone);
 
   std::string localtz;
   local_timezone.toUTF8String(localtz);
 
-  o["value"] = picojson::value(localtz);
-
-  return o;
+  ReportSuccess(JsonValue(localtz), out);
 }
 
-const picojson::value::object TimeInstance::HandleGetAvailableTimeZones(
-  const picojson::value& msg) {
-  picojson::value::object o;
-
+void TimeInstance::Time_getAvailableTimeZones(const JsonValue& /*args*/,
+                                              JsonObject& out) {
   UErrorCode ec = U_ZERO_ERROR;
   std::unique_ptr<StringEnumeration> timezones(TimeZone::createEnumeration());
   int32_t count = timezones->count(ec);
+  if (U_FAILURE(ec)) {
+    ReportError(out);
+    return;
+  }
 
-  if (U_FAILURE(ec))
-    return o;
-
-  picojson::value::array a;
+  JsonArray a;
   const char *timezone = NULL;
   int i = 0;
   do {
     int32_t resultLen = 0;
     timezone = timezones->next(&resultLen, ec);
     if (U_SUCCESS(ec)) {
-      a.push_back(picojson::value(timezone));
+      a.push_back(JsonValue(timezone));
       i++;
     }
   }while(timezone && i < count);
 
-  o["value"] = picojson::value(a);
-
-  return o;
+  ReportSuccess(JsonValue(a), out);
 }
 
-const picojson::value::object TimeInstance::HandleGetTimeZoneOffset(
-  const picojson::value& msg) {
-  picojson::value::object o;
-
+void TimeInstance::Time_getTimeZoneOffset(const JsonValue& args,
+                                          JsonObject& out) {
   std::unique_ptr<UnicodeString> id(
-    new UnicodeString(msg.get("timezone").to_str().c_str()));
-  UDate dateInMs = strtod(msg.get("value").to_str().c_str(), NULL);
+    new UnicodeString(args.get("timezone").to_str().c_str()));
+  UDate dateInMs = strtod(args.get("value").to_str().c_str(), NULL);
 
-  if (errno == ERANGE)
-    return o;
+  if (errno == ERANGE) {
+    ReportError(out);
+    return;
+  }
 
   UErrorCode ec = U_ZERO_ERROR;
   std::unique_ptr<TimeZone> timezone(TimeZone::createTimeZone(*id));
   std::unique_ptr<Calendar> cal(Calendar::createInstance(*timezone, ec));
-  if (U_FAILURE(ec))
-    return o;
+  if (U_FAILURE(ec)) {
+    ReportError(out);
+    return;
+  }
 
   cal->setTime(dateInMs, ec);
-  if (U_FAILURE(ec))
-    return o;
+  if (U_FAILURE(ec)) {
+    ReportError(out);
+    return;
+  }
 
   int32_t offset = timezone->getRawOffset();
 
@@ -145,152 +130,184 @@ const picojson::value::object TimeInstance::HandleGetTimeZoneOffset(
   std::stringstream offsetStr;
   offsetStr << offset;
 
-  o["value"] = picojson::value(offsetStr.str());
-
-  return o;
+  ReportSuccess(JsonValue(offsetStr.str()), out);
 }
 
-const picojson::value::object TimeInstance::HandleGetTimeZoneAbbreviation(
-  const picojson::value& msg) {
-  picojson::value::object o;
-
+void TimeInstance::Time_getTimeZoneAbbreviation(const JsonValue& args,
+                                                JsonObject& out) {
   std::unique_ptr<UnicodeString> id(
-    new UnicodeString(msg.get("timezone").to_str().c_str()));
-  UDate dateInMs = strtod(msg.get("value").to_str().c_str(), NULL);
+    new UnicodeString(args.get("timezone").to_str().c_str()));
+  UDate dateInMs = strtod(args.get("value").to_str().c_str(), NULL);
 
-  if (errno == ERANGE)
-    return o;
+  if (errno == ERANGE) {
+    ReportError(out);
+    return;
+  }
 
   UErrorCode ec = U_ZERO_ERROR;
   std::unique_ptr<Calendar> cal(
     Calendar::createInstance(TimeZone::createTimeZone(*id), ec));
-  if (U_FAILURE(ec))
-    return o;
+  if (U_FAILURE(ec)) {
+    ReportError(out);
+    return;
+  }
 
   cal->setTime(dateInMs, ec);
-  if (U_FAILURE(ec))
-    return o;
+  if (U_FAILURE(ec)) {
+    ReportError(out);
+    return;
+  }
 
   std::unique_ptr<DateFormat> fmt(
     new SimpleDateFormat(UnicodeString("z"), Locale::getEnglish(), ec));
-  if (U_FAILURE(ec))
-    return o;
+  if (U_FAILURE(ec)) {
+    ReportError(out);
+    return;
+  }
 
   UnicodeString uAbbreviation;
   fmt->setCalendar(*cal);
   fmt->format(cal->getTime(ec), uAbbreviation);
-  if (U_FAILURE(ec))
-    return o;
+  if (U_FAILURE(ec)) {
+    ReportError(out);
+    return;
+  }
 
   std::string abbreviation = "";
   uAbbreviation.toUTF8String(abbreviation);
 
-  o["value"] = picojson::value(abbreviation);
-
-  return o;
+  ReportSuccess(JsonValue(abbreviation), out);
 }
 
-const picojson::value::object TimeInstance::HandleIsDST(
-  const picojson::value& msg) {
-  picojson::value::object o;
-
+void TimeInstance::Time_isDST(const JsonValue& args, JsonObject& out) {
   std::unique_ptr<UnicodeString> id(
-    new UnicodeString(msg.get("timezone").to_str().c_str()));
-  UDate dateInMs = strtod(msg.get("value").to_str().c_str(), NULL);
+    new UnicodeString(args.get("timezone").to_str().c_str()));
+  UDate dateInMs = strtod(args.get("value").to_str().c_str(), NULL);
   dateInMs -= _hourInMilliseconds;
 
-  if (errno == ERANGE)
-    return o;
+  if (errno == ERANGE) {
+    ReportError(out);
+    return;
+  }
 
   UErrorCode ec = U_ZERO_ERROR;
   std::unique_ptr<Calendar> cal(
     Calendar::createInstance(TimeZone::createTimeZone(*id), ec));
-  if (U_FAILURE(ec))
-    return o;
+  if (U_FAILURE(ec)) {
+    ReportError(out);
+    return;
+  }
 
   cal->setTime(dateInMs, ec);
-  if (U_FAILURE(ec))
-    return o;
+  if (U_FAILURE(ec)) {
+    ReportError(out);
+    return;
+  }
 
-  o["value"] = picojson::value(static_cast<bool>(cal->inDaylightTime(ec)));
-
-  return o;
+  ReportSuccess(JsonValue{static_cast<bool>(cal->inDaylightTime(ec))}, out);
 }
 
-const picojson::value::object TimeInstance::HandleGetDSTTransition(
-  const picojson::value& msg) {
-  picojson::value::object o;
-
+void TimeInstance::Time_getDSTTransition(const JsonValue& args,
+                                         JsonObject& out) {
   std::unique_ptr<UnicodeString> id(
-    new UnicodeString(msg.get("timezone").to_str().c_str()));
-  std::string trans = msg.get("trans").to_str();
-  UDate dateInMs = strtod(msg.get("value").to_str().c_str(), NULL);
+    new UnicodeString(args.get("timezone").to_str().c_str()));
+  std::string trans = args.get("trans").to_str();
+  UDate dateInMs = strtod(args.get("value").to_str().c_str(), NULL);
 
-  if (errno == ERANGE)
-    return o;
+  if (errno == ERANGE) {
+    ReportError(out);
+    return;
+  }
 
   std::unique_ptr<VTimeZone> vtimezone(VTimeZone::createVTimeZoneByID(*id));
 
-  if (!vtimezone->useDaylightTime())
-    return o;
+  if (!vtimezone->useDaylightTime()) {
+    ReportError(out);
+    return;
+  }
 
   TimeZoneTransition tzTransition;
   if (trans.compare("NEXT_TRANSITION") &&
       vtimezone->getNextTransition(dateInMs, FALSE, tzTransition))
-    o["value"] = picojson::value(tzTransition.getTime());
+    ReportSuccess(JsonValue{tzTransition.getTime()}, out);
   else if (vtimezone->getPreviousTransition(dateInMs, FALSE, tzTransition))
-    o["value"] = picojson::value(tzTransition.getTime());
-
-  return o;
+    ReportSuccess(JsonValue{tzTransition.getTime()}, out);
+  else
+    ReportError(out);
 }
 
-const picojson::value::object TimeInstance::HandleToString(
-  const picojson::value& msg, DateTimeFormatType format) {
-  picojson::value::object o;
+void TimeInstance::Time_toString(const JsonValue& args, JsonObject& out) {
+  JsonValue val;
+  if (!this->toStringByFormat(args, val, TimeInstance::DATETIME_FORMAT)) {
+    ReportError(out);
+    return;
+  }
 
+  ReportSuccess(val, out);
+}
+
+void TimeInstance::Time_toDateString(const JsonValue& args, JsonObject& out) {
+  JsonValue val;
+  if (!this->toStringByFormat(args, val, TimeInstance::DATE_FORMAT)) {
+    ReportError(out);
+    return;
+  }
+
+  ReportSuccess(val, out);
+}
+
+void TimeInstance::Time_toTimeString(const JsonValue& args, JsonObject& out) {
+  JsonValue val;
+  if(!this->toStringByFormat(args, val, TimeInstance::TIME_FORMAT)) {
+    ReportError(out);
+    return;
+  }
+
+  ReportSuccess(val, out);
+}
+
+bool TimeInstance::toStringByFormat(const JsonValue& args, JsonValue& out,
+                                     DateTimeFormatType format) {
   std::unique_ptr<UnicodeString> id(
-    new UnicodeString(msg.get("timezone").to_str().c_str()));
-  bool bLocale = msg.get("locale").evaluate_as_boolean();
+    new UnicodeString(args.get("timezone").to_str().c_str()));
+  bool bLocale = args.get("locale").evaluate_as_boolean();
 
-  UDate dateInMs = strtod(msg.get("value").to_str().c_str(), NULL);
+  UDate dateInMs = strtod(args.get("value").to_str().c_str(), NULL);
   if (errno == ERANGE)
-    return o;
+    return false;
 
   UErrorCode ec = U_ZERO_ERROR;
   std::unique_ptr<Calendar> cal(
     Calendar::createInstance(TimeZone::createTimeZone(*id), ec));
   if (U_FAILURE(ec))
-    return o;
+    return false;
 
   cal->setTime(dateInMs, ec);
   if (U_FAILURE(ec))
-    return o;
+    return false;
 
   std::unique_ptr<DateFormat> fmt(
     new SimpleDateFormat(getDateTimeFormat(format, bLocale),
                         (bLocale ? Locale::getDefault() : Locale::getEnglish()),
                          ec));
   if (U_FAILURE(ec))
-    return o;
+    return false;
 
   UnicodeString uResult;
   fmt->setCalendar(*cal);
   fmt->format(cal->getTime(ec), uResult);
   if (U_FAILURE(ec))
-    return o;
+    return false;
 
   std::string result = "";
   uResult.toUTF8String(result);
 
-  o["value"] = picojson::value(result);
-
-  return o;
+  out = JsonValue(result);
+  return true;
 }
 
-const picojson::value::object TimeInstance::HandleGetTimeFormat(
-  const picojson::value& msg) {
-  picojson::value::object o;
-
+void TimeInstance::Time_getTimeFormat(const JsonValue& /*args*/,
+                                      JsonObject& out) {
   UnicodeString timeFormat = getDateTimeFormat(TimeInstance::TIME_FORMAT, true);
 
   timeFormat = timeFormat.findAndReplace("H", "h");
@@ -303,9 +320,7 @@ const picojson::value::object TimeInstance::HandleGetTimeFormat(
   std::string result = "";
   timeFormat.toUTF8String(result);
 
-  o["value"] = picojson::value(result);
-
-  return o;
+  ReportSuccess(JsonValue(result), out);
 }
 
 
@@ -350,3 +365,6 @@ UnicodeString TimeInstance::getDateTimeFormat(DateTimeFormatType type,
 
   return pattern;
 }
+
+}  // namespace time
+}  // namespace extension
