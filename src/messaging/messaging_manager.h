@@ -10,6 +10,7 @@
 #include <map>
 
 #include "message_service_email.h"
+#include "message_service_short_msg.h"
 
 namespace extension {
 namespace messaging {
