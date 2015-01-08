@@ -36,6 +36,7 @@ class MessageFolder;
 class FoldersCallbackData: public common::CallbackUserData {
 public:
     FoldersCallbackData();
+    FoldersCallbackData(long cid, bool keep = false);
     virtual ~FoldersCallbackData();
 
     void addFolder(std::shared_ptr<MessageFolder> folder);

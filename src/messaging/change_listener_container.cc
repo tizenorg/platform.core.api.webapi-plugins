@@ -79,33 +79,31 @@ long ChangeListenerContainer::addConversationChangeListener(
     return -1;
 }
 
-/*
- *long ChangeListenerContainer::addFolderChangeListener(
- *        std::shared_ptr<FoldersChangeCallback> callback)
- *{
- *    LoggerD("Entered");
- *    // Check type of service for which listener should be registered
- *    // and lock appropriate mutex
- *    MessageType mtype = callback->getServiceType();
- *    if (MessageType(SMS) == mtype || MessageType(MMS) == mtype)
- *    {
- *        std::lock_guard<std::mutex> lock(m_short_lock);
- *        int new_id = getNextId();
- *        m_short_folder_callbacks.insert(std::make_pair(new_id, callback));
- *        LoggerD("Added callback for ShortMessage, watchId: %d", new_id);
- *        return new_id;
- *    }
- *    else if (MessageType(EMAIL) == mtype) {
- *        std::lock_guard<std::mutex> lock(m_email_lock);
- *        int new_id = getNextId();
- *        m_email_folder_callbacks.insert(std::make_pair(new_id, callback));
- *        LoggerD("Added callback for Email, watchId: %d", new_id);
- *        return new_id;
- *    }
- *    LoggerE("Listener with invalid MessageService type - failed to register");
- *    return -1;
- *}
- */
+long ChangeListenerContainer::addFolderChangeListener(
+        std::shared_ptr<FoldersChangeCallback> callback)
+{
+    LoggerD("Entered");
+    // Check type of service for which listener should be registered
+    // and lock appropriate mutex
+    MessageType mtype = callback->getServiceType();
+    if (MessageType(SMS) == mtype || MessageType(MMS) == mtype)
+    {
+        //std::lock_guard<std::mutex> lock(m_short_lock);
+        //int new_id = getNextId();
+        //m_short_folder_callbacks.insert(std::make_pair(new_id, callback));
+        //LoggerD("Added callback for ShortMessage, watchId: %d", new_id);
+        //return new_id;
+    }
+    else if (MessageType(EMAIL) == mtype) {
+        std::lock_guard<std::mutex> lock(m_email_lock);
+        int new_id = getNextId();
+        m_email_folder_callbacks.insert(std::make_pair(new_id, callback));
+        LoggerD("Added callback for Email, watchId: %d", new_id);
+        return new_id;
+    }
+    LoggerE("Listener with invalid MessageService type - failed to register");
+    return -1;
+}
 
 // --- listeners removal ---
 void ChangeListenerContainer::removeChangeListener(long id)
@@ -342,102 +340,96 @@ void ChangeListenerContainer::callConversationRemoved(EventConversations* event)
 }
 
 // -- for folder --
-/*
- *void ChangeListenerContainer::callFolderAdded(EventFolders* event)
- *{
- *    LoggerD("Entered");
- *
- *    if(MessageType(SMS) == event->service_type ||
- *            MessageType(MMS) == event->service_type) {
- *        LoggerD("Calling folderadded for ShortMessage");
- *        FCLmap callbacksCopy;
- *        {
- *            std::lock_guard<std::mutex> shortlock(m_short_lock);
- *            callbacksCopy = m_short_folder_callbacks;
- *        }
- *        callAdded<FoldersChangeCallback, EventFolders>(
- *                m_short_folder_callbacks, event);
- *    }
- *    else if(MessageType(EMAIL) == event->service_type) {
- *        LoggerD("Calling folderadded for Email");
- *        FCLmap callbacksCopy;
- *        {
- *            std::lock_guard<std::mutex> maillock(m_email_lock);
- *            callbacksCopy = m_email_folder_callbacks;
- *        }
- *        callAdded<FoldersChangeCallback, EventFolders>(
- *                callbacksCopy, event);
- *    }
- *    else {
- *        LoggerW("Invalid event type (%d) - no callback called.", event->service_type);
- *    }
- *}
- */
+void ChangeListenerContainer::callFolderAdded(EventFolders* event)
+{
+    LoggerD("Entered");
+
+    if(MessageType(SMS) == event->service_type ||
+            MessageType(MMS) == event->service_type) {
+        //LoggerD("Calling folderadded for ShortMessage");
+        //FCLmap callbacksCopy;
+        //{
+            //std::lock_guard<std::mutex> shortlock(m_short_lock);
+            //callbacksCopy = m_short_folder_callbacks;
+        //}
+        //callAdded<FoldersChangeCallback, EventFolders>(
+                //m_short_folder_callbacks, event);
+    }
+    else if(MessageType(EMAIL) == event->service_type) {
+        LoggerD("Calling folderadded for Email");
+        FCLmap callbacksCopy;
+        {
+            std::lock_guard<std::mutex> maillock(m_email_lock);
+            callbacksCopy = m_email_folder_callbacks;
+        }
+        callAdded<FoldersChangeCallback, EventFolders>(
+                callbacksCopy, event);
+    }
+    else {
+        LoggerW("Invalid event type (%d) - no callback called.", event->service_type);
+    }
+}
 
 
-/*
- *void ChangeListenerContainer::callFolderUpdated(EventFolders* event)
- *{
- *    LoggerD("Entered");
- *
- *    if(MessageType(SMS) == event->service_type ||
- *            MessageType(MMS) == event->service_type) {
- *        LoggerD("Calling folderupdated for ShortFolder");
- *        FCLmap callbacksCopy;
- *        {
- *            std::lock_guard<std::mutex> shortlock(m_short_lock);
- *            callbacksCopy = m_short_folder_callbacks;
- *        }
- *        callUpdated<FoldersChangeCallback, EventFolders>(
- *                callbacksCopy, event);
- *    }
- *    else if(MessageType(EMAIL) == event->service_type) {
- *        LoggerD("Calling folderupdated for Email");
- *        FCLmap callbacksCopy;
- *        {
- *            std::lock_guard<std::mutex> maillock(m_email_lock);
- *            callbacksCopy = m_email_folder_callbacks;
- *        }
- *        callUpdated<FoldersChangeCallback, EventFolders>(
- *                callbacksCopy, event);
- *    }
- *    else {
- *        LoggerW("Invalid event type (%d) - no callback called.", event->service_type);
- *    }
- *}
- */
+void ChangeListenerContainer::callFolderUpdated(EventFolders* event)
+{
+    LoggerD("Entered");
 
-/*
- *void ChangeListenerContainer::callFolderRemoved(EventFolders* event)
- *{
- *    LoggerD("Entered");
- *
- *    if(MessageType(SMS) == event->service_type ||
- *            MessageType(MMS) == event->service_type) {
- *        LoggerD("Calling folderremoved for ShortFolder");
- *        FCLmap callbacksCopy;
- *        {
- *            std::lock_guard<std::mutex> shortlock(m_short_lock);
- *            callbacksCopy = m_short_folder_callbacks;
- *        }
- *        callRemoved<FoldersChangeCallback, EventFolders>(
- *                callbacksCopy, event);
- *    }
- *    else if(MessageType(EMAIL) == event->service_type) {
- *        LoggerD("Calling folderremoved for Email");
- *        FCLmap callbacksCopy;
- *        {
- *            std::lock_guard<std::mutex> maillock(m_email_lock);
- *            callbacksCopy = m_email_folder_callbacks;
- *        }
- *        callRemoved<FoldersChangeCallback, EventFolders>(
- *                callbacksCopy, event);
- *    }
- *    else {
- *        LoggerW("Invalid event type (%d) - no callback called.", event->service_type);
- *    }
- *}
- */
+    if(MessageType(SMS) == event->service_type ||
+            MessageType(MMS) == event->service_type) {
+        //LoggerD("Calling folderupdated for ShortFolder");
+        //FCLmap callbacksCopy;
+        //{
+            //std::lock_guard<std::mutex> shortlock(m_short_lock);
+            //callbacksCopy = m_short_folder_callbacks;
+        //}
+        //callUpdated<FoldersChangeCallback, EventFolders>(
+                //callbacksCopy, event);
+    }
+    else if(MessageType(EMAIL) == event->service_type) {
+        LoggerD("Calling folderupdated for Email");
+        FCLmap callbacksCopy;
+        {
+            std::lock_guard<std::mutex> maillock(m_email_lock);
+            callbacksCopy = m_email_folder_callbacks;
+        }
+        callUpdated<FoldersChangeCallback, EventFolders>(
+                callbacksCopy, event);
+    }
+    else {
+        LoggerW("Invalid event type (%d) - no callback called.", event->service_type);
+    }
+}
+
+void ChangeListenerContainer::callFolderRemoved(EventFolders* event)
+{
+    LoggerD("Entered");
+
+    if(MessageType(SMS) == event->service_type ||
+            MessageType(MMS) == event->service_type) {
+        //LoggerD("Calling folderremoved for ShortFolder");
+        //FCLmap callbacksCopy;
+        //{
+            //std::lock_guard<std::mutex> shortlock(m_short_lock);
+            //callbacksCopy = m_short_folder_callbacks;
+        //}
+        //callRemoved<FoldersChangeCallback, EventFolders>(
+                //callbacksCopy, event);
+    }
+    else if(MessageType(EMAIL) == event->service_type) {
+        LoggerD("Calling folderremoved for Email");
+        FCLmap callbacksCopy;
+        {
+            std::lock_guard<std::mutex> maillock(m_email_lock);
+            callbacksCopy = m_email_folder_callbacks;
+        }
+        callRemoved<FoldersChangeCallback, EventFolders>(
+                callbacksCopy, event);
+    }
+    else {
+        LoggerW("Invalid event type (%d) - no callback called.", event->service_type);
+    }
+}
 
 int ChangeListenerContainer::getNextId() {
     // mutex is created only on first call (first call added to constructor

@@ -21,6 +21,7 @@ namespace messaging {
 
 class MessagesChangeCallback;
 class ConversationsChangeCallback;
+class FoldersChangeCallback;
 
 class MessageStorage;
 typedef std::shared_ptr<MessageStorage> MessageStoragePtr;
@@ -45,7 +46,7 @@ public:
     // and does not have to be overwritten in derived classes.
     long addMessagesChangeListener(std::shared_ptr<MessagesChangeCallback> callback);
     long addConversationsChangeListener(std::shared_ptr<ConversationsChangeCallback> callback);
-    long addFoldersChangeListener();
+    long addFoldersChangeListener(std::shared_ptr<FoldersChangeCallback> callback);
     void removeChangeListener();
 
 protected:

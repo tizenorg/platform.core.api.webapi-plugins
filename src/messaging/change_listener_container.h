@@ -21,8 +21,7 @@
 #include "messaging_util.h"
 #include "messages_change_callback.h"
 #include "conversations_change_callback.h"
-
-//#include "FoldersChangeCallback.h"
+#include "folders_change_callback.h"
 
 namespace extension {
 namespace messaging {
@@ -46,14 +45,12 @@ struct EventConversations {
 };
 
 //! Data related to FolderChange event passed to add/update/remove callbacks
-/*
- *struct EventFolders {
- *    int service_id;
- *    MessageType service_type;
- *    FolderPtrVector items;
- *    // TODO: Filtering support
- *};
- */
+struct EventFolders {
+    int service_id;
+    MessageType service_type;
+    FolderPtrVector items;
+    // TODO: Filtering support
+};
 
 template <class T > struct CallbackDataHolder {
     std::shared_ptr<T> ptr;
@@ -65,7 +62,7 @@ typedef std::map<long, std::shared_ptr<MessagesChangeCallback>> MCLmap;
 //! Map that stores ConversationsChangeListeners
 typedef std::map<long, std::shared_ptr<ConversationsChangeCallback>> CCLmap;
 //! Map that stores FoldersChangeListeners
-//typedef std::map<long, std::shared_ptr<FoldersChangeCallback>> FCLmap;
+typedef std::map<long, std::shared_ptr<FoldersChangeCallback>> FCLmap;
 
 
 /**
@@ -85,7 +82,7 @@ class ChangeListenerContainer {
         // Interface for listener's manipulation (registration and removal).
         long addMessageChangeListener(std::shared_ptr<MessagesChangeCallback> callback);
         long addConversationChangeListener(std::shared_ptr<ConversationsChangeCallback> callback);
-        //long addFolderChangeListener(std::shared_ptr<FoldersChangeCallback> callback);
+        long addFolderChangeListener(std::shared_ptr<FoldersChangeCallback> callback);
         void removeChangeListener(long id);
 
         // Methods used to invoke registered listeners
@@ -95,9 +92,9 @@ class ChangeListenerContainer {
         void callConversationAdded(EventConversations* event);
         void callConversationUpdated(EventConversations* event);
         void callConversationRemoved(EventConversations* event);
-        //void callFolderAdded(EventFolders* event);
-        //void callFolderUpdated(EventFolders* event);
-        //void callFolderRemoved(EventFolders* event);
+        void callFolderAdded(EventFolders* event);
+        void callFolderUpdated(EventFolders* event);
+        void callFolderRemoved(EventFolders* event);
 
     private:
         //! Highest used id (in most cases id of last registered listener)
@@ -121,7 +118,7 @@ class ChangeListenerContainer {
         // Callbacks for email service
         MCLmap m_email_message_callbacks;
         CCLmap m_email_conversation_callbacks;
-        //FCLmap m_email_folder_callbacks;
+        FCLmap m_email_folder_callbacks;
 
         ChangeListenerContainer();
 
