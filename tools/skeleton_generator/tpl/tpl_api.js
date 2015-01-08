@@ -25,21 +25,6 @@ function nextCallbackId() {
     return callbackId++;
 }
 
-var ExceptionMap = {
-    'UnknownError' : tizen.WebAPIException.UNKNOWN_ERR ,
-    'TypeMismatchError' : tizen.WebAPIException.TYPE_MISMATCH_ERR ,
-    'InvalidValuesError' : tizen.WebAPIException.INVALID_VALUES_ERR ,
-    'IOError' : tizen.WebAPIException.IO_ERR ,
-    'ServiceNotAvailableError' : tizen.WebAPIException.SERVICE_NOT_AVAILABLE_ERR ,
-    'SecurityError' : tizen.WebAPIException.SECURITY_ERR ,
-    'NetworkError' : tizen.WebAPIException.NETWORK_ERR ,
-    'NotSupportedError' : tizen.WebAPIException.NOT_SUPPORTED_ERR ,
-    'NotFoundError' : tizen.WebAPIException.NOT_FOUND_ERR ,
-    'InvalidAccessError' : tizen.WebAPIException.INVALID_ACCESS_ERR ,
-    'AbortError' : tizen.WebAPIException.ABORT_ERR ,
-    'QuotaExceededError' : tizen.WebAPIException.QUOTA_EXCEEDED_ERR ,
-}
-
 function callNative(cmd, args) {
     var json = {'cmd':cmd, 'args':args};
     var argjson = JSON.stringify(json);
@@ -58,11 +43,7 @@ function callNative(cmd, args) {
     } else if (result['status'] == 'error') {
         var err = result['error'];
         if(err) {
-            if(ExceptionMap[err.name]) {
-                throw new tizen.WebAPIException(ExceptionMap[err.name], err.message);
-            } else {
-                throw new tizen.WebAPIException(tizen.WebAPIException.UNKNOWN_ERR, err.message);
-            }
+            throw new tizen.WebAPIException(err.name, err.message);
         }
         return false;
     }
