@@ -83,7 +83,7 @@ public:
     static MessagingDatabaseManager& getInstance();
     std::vector<int> findShortMessages(FindMsgCallbackUserData* callback);
     std::pair<int, email_mail_data_t*> findEmails(FindMsgCallbackUserData* callback);
-//    std::vector<int> findShortMessageConversations(ConversationCallbackData* callback);
+    std::vector<int> findShortMessageConversations(ConversationCallbackData* callback);
     std::vector<EmailConversationInfo> findEmailConversations(ConversationCallbackData* callback);
 
 private:
