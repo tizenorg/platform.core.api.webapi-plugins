@@ -951,10 +951,7 @@ void NFCAdapter::TagWriteNDEF(int tag_id, const picojson::value& args) {
     if(message){
         int result = nfc_tag_write_ndef(m_last_tag_handle, message, NULL, NULL);
 
-        // Message is no more needed - can be removed
-        // TODO: uncomment line below after merging commit
-        // that adds this function
-        //NFCMessageUtils::removeMessageHandle(message)
+        NFCMessageUtils::RemoveMessageHandle(message);
         if (NFC_ERROR_NONE != result){
 
             // for permission related error throw exception
