@@ -37,6 +37,51 @@ var WhiteBalanceMode = {
   MANUAL: 'MANUAL'
 };
 
+var propertiesList = {
+  URI: 'uri',
+  WIDTH: 'width',
+  HEIGHT: 'height',
+  DEVICE_MAKER: 'deviceMaker',
+  DEVICE_MODEL: 'deviceModel',
+  ORIGINAL_TIME: 'originalTime',
+  ORIENTATION: 'orientation',
+  FNUMBER: 'fNumber',
+  ISO_SPEED_RATINGS: 'isoSpeedRatings',
+  EXPOSURE_TIME: 'exposureTime',
+  EXPOSURE_PROGRAM: 'exposureProgram',
+  FLASH: 'flash',
+  FOCAL_LENGTH: 'focalLength',
+  WHITE_BALANCE: 'whiteBalance',
+  GPS_LOCATION: 'gpsLocation',
+  GPS_ALTITUDE: 'gpsAltitude',
+  GPS_PROCESSING_METHOD: 'gpsProcessingMethod',
+  GPS_TIME: 'gpsTime',
+  USER_COMMENT: 'userComment'
+};
+
+function _getJsonFromExifInformation(exifInfo) {
+  var json = {};
+
+  for (var prop in propertiesList) {
+    var propName = propertiesList[prop];
+
+    if (exifInfo[propName] !== null) {
+      if (propName === 'originalTime') {
+        json[propName] = Math.floor(exifInfo[propName].getTime() / 1000);
+      } else if (propName === 'gpsTime') {
+        var str = exifInfo[propName].toLocaleString().split(', ');
+        var res = str[1] + ', ' + str[2] + ', ' + str[3];
+
+        json[propName] = Math.floor(Date.parse(res) / 1000);
+      } else {
+        json[propName] = exifInfo[propName];
+      }
+    }
+  }
+
+  return json;
+}
+
 ExifManager.prototype.getExifInfo = function() {
   var args = validator_.validateArgs(arguments, [
     {
@@ -55,7 +100,7 @@ ExifManager.prototype.getExifInfo = function() {
       name: 'errorCallback',
       type: validator_.Types.FUNCTION,
       optional: true,
-      nullable: false
+      nullable: true
     }
   ]);
 
@@ -89,17 +134,28 @@ ExifManager.prototype.saveExifInfo = function() {
       name: 'successCallback',
       type: validator_.Types.FUNCTION,
       optional: true,
-      nullable: false
+      nullable: true
     },
     {
       name: 'errorCallback',
       type: validator_.Types.FUNCTION,
       optional: true,
-      nullable: false
+      nullable: true
     }
   ]);
 
-  throw 'Not implemented';
+  var json = _getJsonFromExifInformation(args.exifInfo);
+  var callback = function(result) {
+    if (native_.isFailure(result)) {
+      native_.callIfPossible(args.errorCallback,
+          native_.getErrorObject(result));
+    } else {
+      var exifInfo = native_.getResultObject(result);
+      args.successCallback(exifInfo);
+    }
+  };
+
+  native_.call('Exif_saveExifInfo', json, callback);
 };
 
 ExifManager.prototype.getThumbnail = function() {
@@ -120,7 +176,7 @@ ExifManager.prototype.getThumbnail = function() {
       name: 'errorCallback',
       type: validator_.Types.FUNCTION,
       optional: true,
-      nullable: false
+      nullable: true
     }
   ]);
 
@@ -162,9 +218,9 @@ tizen.ExifInformation = function() {
 
   var exifInitDict = args.ExifInitDict;
   if (exifInitDict) {
-    if (exifInitDict['uri'] == null) {
+    if (exifInitDict.uri === null) {
       throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR,
-        'Parameter "uri" is required.');
+          'Parameter "uri" is required.');
     }
   }
 
@@ -181,11 +237,11 @@ tizen.ExifInformation = function() {
     width: {
       get: function() {
         return width_;
-    },
-    set: function(v) {
-      width_ = v ? converter_.toLong(v, true) : width_;
-    },
-    enumerable: true
+      },
+      set: function(v) {
+        width_ = v ? converter_.toLong(v, true) : width_;
+      },
+      enumerable: true
     },
     height: {
       get: function() {
@@ -229,7 +285,7 @@ tizen.ExifInformation = function() {
       },
       set: function(v) {
         orientation_ = v ? converter_.toEnum(v, Object.keys(ImageContentOrientation), true) :
-          orientation_;
+            orientation_;
       },
       enumerable: true
     },
@@ -275,7 +331,7 @@ tizen.ExifInformation = function() {
         return flash_;
       },
       set: function(val) {
-        flash_ = val ? converter_.toBoolean(val, true) : flash_;
+        flash_ = converter_.toBoolean(val, true);
       },
       enumerable: true
     },
@@ -294,7 +350,7 @@ tizen.ExifInformation = function() {
       },
       set: function(v) {
         whiteBalance_ = v ? converter_.toEnum(v, Object.keys(WhiteBalanceMode), true) :
-           whiteBalance_;
+            whiteBalance_;
       },
       enumerable: true
     },

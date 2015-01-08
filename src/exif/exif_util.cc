@@ -15,7 +15,7 @@
 // limitations under the License.
 //
 
-#include "ExifUtil.h"
+#include "exif_util.h"
 
 #include <iomanip>
 #include <sstream>
@@ -73,16 +73,13 @@ const ExifByte ExifTypeInfo::UndefinedId = 7;
 const ExifByte ExifTypeInfo::SLongId = 9;
 const ExifByte ExifTypeInfo::SRationalId = 10;
 
-ExifUtil::ExifUtil()
-{
+ExifUtil::ExifUtil() {
 }
 
-ExifUtil::~ExifUtil()
-{
+ExifUtil::~ExifUtil() {
 }
 
-ImageOrientation ExifUtil::stringToOrientation(const std::string& orientation)
-{
+ImageOrientation ExifUtil::stringToOrientation(const std::string& orientation) {
   LoggerD("Entered");
   if (ORIENTATION_NORMAL == orientation) {
     return ImageOrientation::EXIF_ORIENTATION_NORMAL;
@@ -111,8 +108,7 @@ ImageOrientation ExifUtil::stringToOrientation(const std::string& orientation)
   return ImageOrientation::EXIF_ORIENTATION_NOT_VALID;
 }
 
-const std::string& ExifUtil::orientationToString(ImageOrientation orientation)
-{
+const std::string& ExifUtil::orientationToString(ImageOrientation orientation) {
   LoggerD("Entered");
   switch (orientation) {
     case ImageOrientation::EXIF_ORIENTATION_NORMAL:
@@ -136,8 +132,7 @@ const std::string& ExifUtil::orientationToString(ImageOrientation orientation)
   }
 }
 
-WhiteBalanceMode ExifUtil::stringToWhiteBalance(const std::string& white_balance)
-{
+WhiteBalanceMode ExifUtil::stringToWhiteBalance(const std::string& white_balance) {
   LoggerD("Entered");
   if (WHITE_BALANCE_MODE_AUTO == white_balance) {
     return WhiteBalanceMode::EXIF_WHITE_BALANCE_MODE_AUTO;
@@ -148,8 +143,7 @@ WhiteBalanceMode ExifUtil::stringToWhiteBalance(const std::string& white_balance
   return WhiteBalanceMode::EXIF_WHITE_BALANCE_MODE_NOT_VALID;
 }
 
-const std::string& ExifUtil::whiteBalanceToString(WhiteBalanceMode value)
-{
+const std::string& ExifUtil::whiteBalanceToString(WhiteBalanceMode value) {
   LoggerD("Entered");
   switch (value) {
     case WhiteBalanceMode::EXIF_WHITE_BALANCE_MODE_AUTO:
@@ -162,8 +156,7 @@ const std::string& ExifUtil::whiteBalanceToString(WhiteBalanceMode value)
 }
 
 ExposureProgram ExifUtil::stringToExposureProgram(
-    const std::string& exposure_program)
-{
+    const std::string& exposure_program) {
   LoggerD("Entered");
   if (EXPOSURE_PROGRAM_NOT_DEFINED == exposure_program) {
     return EXIF_EXPOSURE_PROGRAM_NOT_DEFINED;
@@ -195,8 +188,7 @@ ExposureProgram ExifUtil::stringToExposureProgram(
   return EXIF_EXPOSURE_PROGRAM_NOT_VALID;
 }
 
-const std::string& ExifUtil::exposureProgramToString(ExposureProgram value)
-{
+const std::string& ExifUtil::exposureProgramToString(ExposureProgram value) {
   LoggerD("Entered");
   switch (value) {
     case ExposureProgram::EXIF_EXPOSURE_PROGRAM_NOT_DEFINED:
@@ -222,8 +214,7 @@ const std::string& ExifUtil::exposureProgramToString(ExposureProgram value)
   }
 }
 
-bool ExifUtil::isValidAbsoluteURI(const std::string& uri)
-{
+bool ExifUtil::isValidAbsoluteURI(const std::string& uri) {
   return 0 == uri.find(URI_ABSOLUTE_PREFIX);
 }
 
@@ -232,8 +223,7 @@ void ExifUtil::getURIInfo(const std::string& uri,
     const std::string& required_permission,
     bool& out_exists,
     //Filesystem::NodeType& out_type,
-    bool& out_permission_granted)
-{
+    bool& out_permission_granted) {
   const std::string absolute_path = ExifUtil::convertUriToPath(uri);
   out_exists = false;
   out_permission_granted = false;
@@ -261,8 +251,7 @@ void ExifUtil::getURIInfo(const std::string& uri,
 // Example:
 // in: uri = file:///opt/usr/media/Images/exif.jpg
 // out: path = /opt/usr/media/Images/exif.jpg
-std::string ExifUtil::convertUriToPath(const std::string& str)
-{
+std::string ExifUtil::convertUriToPath(const std::string& str) {
   std::string path = ltrim(str);
   std::string prefix = path.substr(0, URI_PREFIX.size());
 
@@ -274,8 +263,7 @@ std::string ExifUtil::convertUriToPath(const std::string& str)
   }
 }
 
-std::string ExifUtil::ltrim(const std::string& s)
-{
+std::string ExifUtil::ltrim(const std::string& s) {
   std::string str = s;
   std::string::iterator i;
   for (i = str.begin(); i != str.end(); i++) {
@@ -292,8 +280,7 @@ std::string ExifUtil::ltrim(const std::string& s)
   return str;
 }
 
-time_t ExifUtil::exifDateTimeOriginalToTimeT(const char* string)
-{
+time_t ExifUtil::exifDateTimeOriginalToTimeT(const char* string) {
   int year, month, day, hour, min, sec;
   if (sscanf(string, "%d:%d:%d %d:%d:%d",
         &year, &month, &day, &hour, &min, &sec) >= 6) {
@@ -303,8 +290,7 @@ time_t ExifUtil::exifDateTimeOriginalToTimeT(const char* string)
   return 0;
 }
 
-std::string ExifUtil::timeTToExifDateTimeOriginal(time_t time)
-{
+std::string ExifUtil::timeTToExifDateTimeOriginal(time_t time) {
   int year, month, day, hour, min, sec;
   extractFromTimeT(time, year, month, day, hour, min, sec);
 
@@ -319,8 +305,42 @@ std::string ExifUtil::timeTToExifDateTimeOriginal(time_t time)
   return ss.str();
 }
 
-size_t  ExifUtil::getSizeOfExifFormatType(ExifFormat format)
-{
+const Rationals ExifUtil::timeTToExifGpsTimeStamp(time_t time) {
+  int year, month, day, hour, min, sec;
+  extractFromTimeT(time, year, month, day, hour, min, sec);
+
+  Rational hourRational = Rational::createFromDouble(static_cast<double>(hour));
+  Rational minRational = Rational::createFromDouble(static_cast<double>(min));
+  Rational secRational = Rational::createFromDouble(static_cast<double>(sec));
+
+  Rationals result;
+  result.push_back(hourRational);
+  result.push_back(minRational);
+  result.push_back(secRational);
+
+  return result;
+}
+
+
+std::string ExifUtil::timeTToExifGpsDateStamp(time_t time) {
+  int year, month, day, hour, min, sec;
+  extractFromTimeT(time, year, month, day, hour, min, sec);
+
+  LoggerD("year: %d", year);
+  LoggerD("month: %d", month);
+  LoggerD("day: %d", day);
+
+  std::ostringstream ss;
+  ss << std::setfill('0') << std::setw(4) << year << ':' ;
+  ss << std::setfill('0') << std::setw(2) << month << ':' ;
+  ss << std::setfill('0') << std::setw(2) << day;
+
+  LoggerD("SS: %s", ss.str().c_str());
+
+  return ss.str();
+}
+
+size_t  ExifUtil::getSizeOfExifFormatType(ExifFormat format) {
   size_t size_per_member = 0;
   switch (format) {
     case EXIF_FORMAT_BYTE:
@@ -350,8 +370,7 @@ size_t  ExifUtil::getSizeOfExifFormatType(ExifFormat format)
   return size_per_member;
 }
 
-void ExifUtil::printExifEntryInfo(ExifEntry* entry, ExifData* exif_data)
-{
+void ExifUtil::printExifEntryInfo(ExifEntry* entry, ExifData* exif_data) {
   char buf[2000];
   std::stringstream ss;
 
@@ -397,8 +416,7 @@ void ExifUtil::printExifEntryInfo(ExifEntry* entry, ExifData* exif_data)
 
 void ExifUtil::extractFromTimeT(const time_t time,
       int& out_year, int& out_month, int& out_day,
-      int& out_hour, int& out_min, int& out_sec)
-{
+      int& out_hour, int& out_min, int& out_sec) {
   struct tm* utc = gmtime(&time);
 
   out_year = utc->tm_year + 1900;
@@ -410,8 +428,7 @@ void ExifUtil::extractFromTimeT(const time_t time,
 }
 
 time_t ExifUtil::convertToTimeT(int year, int month, int day,
-      int hour, int min, int sec)
-{
+                                int hour, int min, int sec) {
   time_t tmp_time = 0;
   struct tm* timeinfo = localtime(&tmp_time);
   timeinfo->tm_year = year - 1900;
@@ -427,5 +444,5 @@ time_t ExifUtil::convertToTimeT(int year, int month, int day,
   return timegm(timeinfo);
 }
 
-} // exif
-} // extension
+}  // namespace exif
+}  // namespace extension

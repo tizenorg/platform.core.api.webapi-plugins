@@ -15,16 +15,14 @@
 // limitations under the License.
 //
 
-#ifndef __TIZEN_EXIF_EXIF_GPS_LOCATION_H_
-#define __TIZEN_EXIF_EXIF_GPS_LOCATION_H_
+#ifndef EXIF_EXIF_EXIFGPSLOCATION_H_
+#define EXIF_EXIF_EXIFGPSLOCATION_H_
 
 #include <string>
 #include <vector>
 
-//#include <SimpleCoordinates.h>
-
-#include "ExifUtil.h"
-#include "Rational.h"
+#include "exif_util.h"
+#include "rational.h"
 
 namespace extension {
 namespace exif {
@@ -51,8 +49,7 @@ enum ExifGPSLocationAttributes {
  * This class represents Global Coordinate System using
  * three Rational numbers (as stored in Exif)
  */
-struct GCSPosition
-{
+struct GCSPosition {
   GCSPosition();
   GCSPosition(Rational degrees, Rational minutes, Rational seconds);
 
@@ -88,10 +85,10 @@ struct GCSPosition
   Rational seconds;
 };
 
-class ExifGPSLocation
-{
-public:
+class ExifGPSLocation {
+ public:
   ExifGPSLocation();
+  ExifGPSLocation(double longitude, double latitude);
 
   void setLongitude(const GCSPosition& longitude);
   const GCSPosition& getLongitude() const;
@@ -119,18 +116,7 @@ public:
    */
   bool isValid() const;
 
-  /**
-   * Returns null pointer if any information is missing or incorrect
-   */
-  //Tizen::SimpleCoordinatesPtr getSimpleCoordinates() const;
-
-  /**
-   * Return true if scoords has been set
-   */
-  //bool set(Tizen::SimpleCoordinatesPtr scoords);
-
-private:
-
+ private:
   double getLongitudeValue() const;
   double getLatitudeValue() const;
 
@@ -143,7 +129,7 @@ private:
   bool m_is_set[EXIF_GPS_LOCATION_ATTRIBUTE_NUMBER_OF_ATTRIBUTES];
 };
 
-} // exif
-} // extension
+}  // namespace exif
+}  // namespace extension
 
-#endif // __TIZEN_EXIF_EXIF_GPS_LOCATION_H_
+#endif  // EXIF_EXIF_EXIFGPSLOCATION_H_

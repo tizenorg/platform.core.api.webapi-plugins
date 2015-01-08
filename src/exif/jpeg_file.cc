@@ -19,7 +19,7 @@
 // For details of JPEG file format see:
 // http://www.media.mit.edu/pia/Research/deepview/exif.html
 
-#include "JpegFile.h"
+#include "jpeg_file.h"
 
 #include <iomanip>
 #include <limits>
@@ -44,13 +44,11 @@ const unsigned int MAX_JPEG_SECTION_DATA_SIZE = 65535;
  */
 const unsigned int MAX_AVAILABLE_JPEG_SECTION_DATA_SIZE = MAX_JPEG_SECTION_DATA_SIZE - 2;
 
-bool isJpegMarker(const int value)
-{
+bool isJpegMarker(const int value) {
   return value >= JPEG_MARKER_LOWEST_ID && value <= JPEG_MARKER_HIGHEST_ID;
 }
 
-JpegMarker castToJpegMarker(const unsigned char byte)
-{
+JpegMarker castToJpegMarker(const unsigned char byte) {
   if (byte < JPEG_MARKER_LOWEST_ID || byte > JPEG_MARKER_HIGHEST_ID) {
     return JPEG_MARKER_UNKNOWN;
   }
@@ -58,13 +56,11 @@ JpegMarker castToJpegMarker(const unsigned char byte)
   return static_cast<JpegMarker>(byte);
 }
 
-long readUShortBE(unsigned char* src)
-{
+long readUShortBE(unsigned char* src) {
   return ((static_cast<long>(src[0]) << 8) | static_cast<long>(src[1]));
 }
 
-void writeUShortBE(unsigned short value, unsigned char* buffer)
-{
+void writeUShortBE(unsigned short value, unsigned char* buffer) {
   buffer[0] = static_cast<unsigned char>(value >> 8);
   buffer[1] = static_cast<unsigned char>(value);
 }
@@ -81,13 +77,10 @@ JpegFile::JpegFile() :
   m_padding_data(NULL),
   m_padding_data_size(0),
   m_in_file(NULL),
-  m_out_file(NULL)
-{
-
+  m_out_file(NULL) {
 }
 
-JpegFile::~JpegFile()
-{
+JpegFile::~JpegFile() {
   delete [] m_in_data;
   m_in_data = NULL;
   m_in_data_size = 0;
@@ -122,8 +115,7 @@ JpegFile::~JpegFile()
   }
 }
 
-JpegFilePtr JpegFile::loadFile(const std::string& path)
-{
+JpegFilePtr JpegFile::loadFile(const std::string& path) {
   JpegFile* new_jpg = new (std::nothrow) JpegFile();
   if (!new_jpg) {
     LoggerE("Couldn't allocate Jpegfile!");
@@ -135,8 +127,7 @@ JpegFilePtr JpegFile::loadFile(const std::string& path)
   return jpg_ptr;
 }
 
-void JpegFile::load(const std::string& path)
-{
+void JpegFile::load(const std::string& path) {
   LoggerD("Entered file:%s", path.c_str());
 
   m_source_file_path = path;
@@ -181,8 +172,7 @@ void JpegFile::load(const std::string& path)
 
 std::string JpegFile::getPartOfFile(const size_t offset,
     const size_t num_bytes_before,
-    const size_t num_bytes_after)
-{
+    const size_t num_bytes_after) {
   long long int start = static_cast<long long int>(offset) - num_bytes_before;
   if (start < 0) {
     start = 0;
@@ -202,8 +192,7 @@ std::string JpegFile::getPartOfFile(const size_t offset,
 }
 
 
-void JpegFile::generateListOfSections()
-{
+void JpegFile::generateListOfSections() {
   LoggerD("Entered");
 
   //JPEG starts with:
@@ -403,8 +392,7 @@ void JpegFile::generateListOfSections()
 bool JpegFile::searchForTagInBuffer(const unsigned char* buffer_start,
     const unsigned char* buffer_end,
     const JpegMarker marker,
-    size_t& out_index)
-{
+    size_t& out_index) {
   LoggerD("Entered start:%p end:%p marker:0x%x", buffer_start, buffer_end, marker);
 
   if(!buffer_start) {
@@ -439,8 +427,7 @@ bool JpegFile::searchForTagInBuffer(const unsigned char* buffer_start,
   return false;
 }
 
-void JpegFile::setNewExifData(ExifData* new_exif_data)
-{
+void JpegFile::setNewExifData(ExifData* new_exif_data) {
   if (!new_exif_data) {
     LoggerE("Trying to set NULL exif_data!");
     throw common::UnknownException("Could not save Exif in JPEG file");
@@ -497,8 +484,7 @@ void JpegFile::setNewExifData(ExifData* new_exif_data)
   exif->exif_data = new_exif_data;
 }
 
-ExifData* JpegFile::getExifData()
-{
+ExifData* JpegFile::getExifData() {
   JpegFileSectionPtr exif = getExifSection();
   if (!exif) {
     return NULL;
@@ -508,8 +494,7 @@ ExifData* JpegFile::getExifData()
   return exif->exif_data;
 }
 
-void JpegFile::saveToFile(const std::string& out_path)
-{
+void JpegFile::saveToFile(const std::string& out_path) {
   LoggerD("Entered out_path:%s", out_path.c_str());
   try {
     saveToFilePriv(out_path);
@@ -547,8 +532,7 @@ void JpegFile::saveToFile(const std::string& out_path)
   }
 }
 
-void JpegFile::saveToFilePriv(const std::string& out_path)
-{
+void JpegFile::saveToFilePriv(const std::string& out_path) {
   LoggerD("Entered out_path:%s", out_path.c_str());
 
   m_out_file = fopen(out_path.c_str(), "wb");
@@ -698,8 +682,7 @@ void JpegFile::saveToFilePriv(const std::string& out_path)
   }
 }
 
-JpegFileSectionPtr JpegFile::getExifSection()
-{
+JpegFileSectionPtr JpegFile::getExifSection() {
   size_t num_exif_sections = 0;
   JpegFileSectionPtr first_exif_section;
 
@@ -725,5 +708,5 @@ JpegFileSectionPtr JpegFile::getExifSection()
   return first_exif_section;
 }
 
-} // namespace exif
-} // namespace extension
+}  // namespace exif
+}  // namespace extension

@@ -4,20 +4,20 @@
 
 #include "exif/exif_instance.h"
 
-#include "common/task-queue.h"
-#include "common/logger.h"
-
-#include <string>
-#include <sstream>
-
 #include <libexif/exif-data.h>
 #include <libexif/exif-entry.h>
 #include <libexif/exif-utils.h>
 #include <libexif/exif-loader.h>
 
-#include "ExifUtil.h"
-#include "JpegFile.h"
-#include "ExifInformation.h"
+#include <string>
+#include <sstream>
+
+#include "common/task-queue.h"
+#include "common/logger.h"
+
+#include "exif_util.h"
+#include "jpeg_file.h"
+#include "exif_information.h"
 
 namespace extension {
 namespace exif {
@@ -46,7 +46,8 @@ ExifInstance::ExifInstance() {
 
 ExifInstance::~ExifInstance() { }
 
-void ExifInstance::getExifInfo(const picojson::value& args, picojson::object& out) {
+void ExifInstance::getExifInfo(const picojson::value& args,
+                               picojson::object& out) {
   LoggerD("ExifInstance::getExifInfo() in c++ A");
 
   const std::string& uri = args.get("uri").get<std::string>();
@@ -61,9 +62,9 @@ void ExifInstance::getExifInfo(const picojson::value& args, picojson::object& ou
 
       LoggerD("ExifInformation::loadFromURI... %s", file_path.c_str());
       ExifInformationPtr exif_info = ExifInformation::loadFromURI(uri);
-      if (!exif_info)
-      {
-          LoggerE("ExifInformation::loadFromURI failed for %s", file_path.c_str());
+      if (!exif_info) {
+        LoggerE("ExifInformation::loadFromURI failed for %s",
+            file_path.c_str());
       }
 
       unsigned long width = exif_info->getWidth();
@@ -77,9 +78,6 @@ void ExifInstance::getExifInfo(const picojson::value& args, picojson::object& ou
       const time_t original_time = exif_info->getOriginalTime();
       LoggerD("original_time = %s", asctime(localtime(&original_time)));
       //...
-
-
-
 
       /* todo: all fields that need to be implemented:
       DOMString uri;
@@ -103,8 +101,6 @@ void ExifInstance::getExifInfo(const picojson::value& args, picojson::object& ou
       DOMString userComment;
 */
 
-
-
       JsonValue result = JsonValue(JsonObject());
       JsonObject& result_obj = result.get<JsonObject>();
       std::ostringstream ss_width;
@@ -116,7 +112,8 @@ void ExifInstance::getExifInfo(const picojson::value& args, picojson::object& ou
       result_obj.insert(std::make_pair("device_maker", device_maker.c_str()));
       result_obj.insert(std::make_pair("device_model", device_model.c_str()));
       // todo: convert to js type: Date
-      result_obj.insert(std::make_pair("original_time", asctime(localtime(&original_time))));
+      result_obj.insert(std::make_pair("original_time",
+          asctime(localtime(&original_time))));
 
       // todo: implement remaining fields
 
@@ -141,11 +138,39 @@ void ExifInstance::getExifInfo(const picojson::value& args, picojson::object& ou
   LoggerD("ExifInstance::getExifInfo() END (c++)");
 }
 
-void ExifInstance::saveExifInfo(const picojson::value& args, picojson::object& out) {
-  LoggerE("saveExifInfo is not implemented (c++)");
+void ExifInstance::saveExifInfo(const picojson::value& args,
+    picojson::object& out) {
+  const std::string& uri = args.get("uri").get<std::string>();
+
+  const double callback_id = args.get("callbackId").get<double>();
+  auto get = [=](const std::shared_ptr<JsonValue>& response) -> void {
+    try {
+      ExifInformationPtr exifInfo(new ExifInformation(args));
+      std::string uri = exifInfo->getUri();
+      std::string path = ExifUtil::convertUriToPath(uri);
+      exifInfo->saveToFile(path);
+
+      ReportSuccess(args, response->get<picojson::object>());
+    } catch (const common::PlatformException& e) {
+      ReportError(e, response->get<picojson::object>());
+    }
+  };
+
+  auto get_response =
+  [callback_id, this](const std::shared_ptr<JsonValue>& response) -> void {
+    picojson::object& obj = response->get<picojson::object>();
+    obj.insert(std::make_pair("callbackId", callback_id));
+    LoggerD("callback is %s", response->serialize().c_str());
+    PostMessage(response->serialize().c_str());
+  };
+
+  common::TaskQueue::GetInstance().Queue<JsonValue>(
+      get, get_response,
+      std::shared_ptr<JsonValue>(new JsonValue(JsonObject())));
 }
 
-void ExifInstance::getThumbnail(const picojson::value& args, picojson::object& out) {
+void ExifInstance::getThumbnail(const picojson::value& args,
+    picojson::object& out) {
   LoggerE("getThumbnail is not implemented (c++)");
 }
 

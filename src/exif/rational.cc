@@ -15,12 +15,14 @@
 // limitations under the License.
 //
 
-#include "Rational.h"
+#include "rational.h"
 
 #include "math.h"
 
 #include "common/platform_exception.h"
 #include "common/logger.h"
+
+#include "exif_util.h"
 
 #include <sstream>
 
@@ -29,28 +31,24 @@ namespace exif {
 
 namespace {
 const double DOUBLE_ERROR_REPRESENTATION = static_cast<double>(0x7FFFFFFF);
-} //anonymous namespace
+}  // namespace
 
 Rational::Rational() :
     nominator(0),
-    denominator(0)
-{
+    denominator(0) {
 }
 
 Rational::Rational(ExifLong nom, ExifLong denom) :
     nominator(nom),
-    denominator(denom)
-{
+    denominator(denom) {
 }
 
 Rational::Rational(const ExifRational& exif_rational) :
     nominator(exif_rational.numerator),
-    denominator(exif_rational.denominator)
-{
+    denominator(exif_rational.denominator) {
 }
 
-Rational Rational::createFromDouble(const double value, const long precision)
-{
+Rational Rational::createFromDouble(const double value, const long precision) {
   LoggerD("Entered value:%f precision:%d", value, precision);
   if (value < 0.0) {
     LoggerW("Trying to create negative Rational: %f!", value);
@@ -140,13 +138,11 @@ Rational Rational::createFromDouble(const double value, const long precision)
   return Rational(numerator0, denominator0);
 }
 
-Rational Rational::createInvalid()
-{
+Rational Rational::createInvalid() {
   return Rational(0,0);
 }
 
-bool Rational::isValid() const
-{
+bool Rational::isValid() const {
   if (0 == denominator) {
     return false;
   }
@@ -155,8 +151,7 @@ bool Rational::isValid() const
   }
 }
 
-double Rational::toDouble() const
-{
+double Rational::toDouble() const {
   if (!isValid()) {
     return NAN;
   }
@@ -164,8 +159,7 @@ double Rational::toDouble() const
   return (double)nominator / (double)denominator;
 }
 
-Rational Rational::createFromExposureTimeString(const std::string& exp_time)
-{
+Rational Rational::createFromExposureTimeString(const std::string& exp_time) {
   LoggerD("Entered");
   if (exp_time.length() == 0) {
     return Rational::createInvalid();  //lets assume that empty string means 0,
@@ -233,15 +227,13 @@ Rational Rational::createFromExposureTimeString(const std::string& exp_time)
   return Rational(nominator, denominator);
 }
 
-std::string Rational::toString() const
-{
+std::string Rational::toString() const {
   std::stringstream ss;
   ss << nominator << "/" << denominator;
   return ss.str();
 }
 
-std::string Rational::toExposureTimeString() const
-{
+std::string Rational::toExposureTimeString() const {
   LoggerD("Entered");
   if (!isValid() || 0 == nominator) {
     return std::string();
@@ -271,5 +263,5 @@ std::string Rational::toExposureTimeString() const
   return output_str;
 }
 
-} // exif
-} // extension
+}  // namespace exif
+}  // namespace extension

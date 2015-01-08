@@ -15,7 +15,7 @@
 // limitations under the License.
 //
 
-#include "ExifTagSaver.h"
+#include "exif_tag_saver.h"
 
 #include <libexif/exif-format.h>
 #include <sstream>
@@ -24,13 +24,12 @@
 #include "common/platform_exception.h"
 #include "common/logger.h"
 
-#include "ExifUtil.h"
+#include "exif_util.h"
 
 namespace extension {
 namespace exif {
 
-void ExifTagSaver::removeExifEntryWithTag(const ExifTag tag, ExifData* exif_data)
-{
+void ExifTagSaver::removeExifEntryWithTag(const ExifTag tag, ExifData* exif_data) {
   LoggerD("Entered tag:%d (0x%x)", tag, tag);
   ExifEntry* exif_entry = exif_data_get_entry(exif_data, tag);
   if (!exif_entry) {
@@ -41,10 +40,12 @@ void ExifTagSaver::removeExifEntryWithTag(const ExifTag tag, ExifData* exif_data
   exif_content_remove_entry(exif_entry->parent, exif_entry);
 }
 
-void ExifTagSaver::saveToExif(long int value, ExifTag tag, ExifData* exif_data)
-{
+void ExifTagSaver::saveToExif(long int value, ExifTag tag, ExifData* exif_data) {
   ExifEntry* entry = prepareEntry(exif_data, tag);
   ExifByteOrder order = exif_data_get_byte_order(exif_data);
+
+  LoggerD("entry->format: %d", entry->format);
+  LoggerD("EXIF_FORMAT_BYTE: %d", EXIF_FORMAT_BYTE);
 
   switch (entry->format) {
     case EXIF_FORMAT_BYTE:
@@ -64,9 +65,9 @@ void ExifTagSaver::saveToExif(long int value, ExifTag tag, ExifData* exif_data)
   }
 }
 
-void ExifTagSaver::saveToExif(const std::string& value, ExifTag tag, ExifData* exif_data,
-    bool add_zero_character)
-{
+void ExifTagSaver::saveToExif(const std::string& value, ExifTag tag,
+                              ExifData* exif_data, ExifFormat format,
+                              bool add_zero_character) {
   ExifEntry* entry = prepareEntry(exif_data, tag);
   if (!value.empty()) {
 
@@ -80,6 +81,7 @@ void ExifTagSaver::saveToExif(const std::string& value, ExifTag tag, ExifData* e
       ++new_len;
     }
 
+    entry->format = format;
     entry->size = new_len;
     entry->components = new_len;
 
@@ -91,8 +93,7 @@ void ExifTagSaver::saveToExif(const std::string& value, ExifTag tag, ExifData* e
   }
 }
 
-void ExifTagSaver::saveToExif(const Rational& value, ExifTag tag, ExifData* exif_data)
-{
+void ExifTagSaver::saveToExif(const Rational& value, ExifTag tag, ExifData* exif_data) {
   ExifEntry* entry = prepareEntry(exif_data, tag);
   entry->format = EXIF_FORMAT_RATIONAL;
 
@@ -116,8 +117,7 @@ void ExifTagSaver::saveToExif(const Rational& value, ExifTag tag, ExifData* exif
   exif_set_rational(entry->data, order, r);
 }
 
-void ExifTagSaver::saveToExif(const Rationals& value, ExifTag tag, ExifData* exif_data)
-{
+void ExifTagSaver::saveToExif(const Rationals& value, ExifTag tag, ExifData* exif_data) {
   ExifEntry* entry = prepareEntry(exif_data, tag);
   ExifByteOrder order = exif_data_get_byte_order(exif_data);
   entry->format = EXIF_FORMAT_RATIONAL;
@@ -145,8 +145,7 @@ void ExifTagSaver::saveToExif(const Rationals& value, ExifTag tag, ExifData* exi
 }
 
 void ExifTagSaver::saveToExif(std::vector<long long int>& value, ExifFormat store_as,
-      ExifTag tag, ExifData* exif_data)
-{
+      ExifTag tag, ExifData* exif_data) {
   ExifEntry* entry = prepareEntry(exif_data, tag);
   const ExifByteOrder order = exif_data_get_byte_order(exif_data);
 
@@ -229,8 +228,7 @@ void ExifTagSaver::saveToExif(std::vector<long long int>& value, ExifFormat stor
 }
 
 void ExifTagSaver::saveGpsLocationToExif(const ExifGPSLocation& gps_info,
-    ExifData* exif_data)
-{
+    ExifData* exif_data) {
   if (gps_info.isSet(EXIF_GPS_LOCATION_ATTRIBUTE_LATITUDE)) {
     auto latitude = gps_info.getLatitude();
     LoggerD("Saving latitude: %s", latitude.toDebugString().c_str());
@@ -242,7 +240,8 @@ void ExifTagSaver::saveGpsLocationToExif(const ExifGPSLocation& gps_info,
     std::string lat_ref =
         (gps_info.getLatitudeRef() == GPS_LOCATION_NORTH) ? "N" : "S";
     LoggerD("Saving latitude ref: %s", lat_ref.c_str());
-    saveToExif(lat_ref, static_cast<ExifTag>(EXIF_TAG_GPS_LATITUDE_REF), exif_data);
+    saveToExif(lat_ref, static_cast<ExifTag>(EXIF_TAG_GPS_LATITUDE_REF),
+               exif_data, EXIF_FORMAT_ASCII, false);
   }
 
   if (gps_info.isSet(EXIF_GPS_LOCATION_ATTRIBUTE_LONGITUDE)) {
@@ -257,33 +256,12 @@ void ExifTagSaver::saveGpsLocationToExif(const ExifGPSLocation& gps_info,
     std::string long_ref =
         (gps_info.getLongitudeRef() == GPS_LOCATION_WEST) ? "W" : "E";
     LoggerD("Saving longitude ref: %s", long_ref.c_str());
-    saveToExif(long_ref, static_cast<ExifTag>(EXIF_TAG_GPS_LONGITUDE_REF), exif_data);
+    saveToExif(long_ref, static_cast<ExifTag>(EXIF_TAG_GPS_LONGITUDE_REF),
+               exif_data, EXIF_FORMAT_ASCII, false);
   }
 }
-/*
-void ExifTagSaver::saveGpsTimeToExif(const ExifGPSTime& gps_time,
-      ExifData* exif_data)
-{
-  if (gps_time.isTimeSet()) {
-    const Rationals& time = gps_time.getTime();
-    LoggerD("Saving gps time: [%s]h [%s]m [%s]d",
-        time[0].toString().c_str(),
-        time[1].toString().c_str(),
-        time[2].toString().c_str());
 
-    saveToExif(time, static_cast<ExifTag>(EXIF_TAG_GPS_TIME_STAMP), exif_data);
-  }
-
-  if (gps_time.isDateSet()) {
-    std::string date = gps_time.getDate();
-    LoggerD("Saving gps date: [%s]", date.c_str());
-
-    saveToExif(date, static_cast<ExifTag>(EXIF_TAG_GPS_DATE_STAMP), exif_data);
-  }
-}
-*/
-ExifEntry* ExifTagSaver::prepareEntry(ExifData* exif_data, ExifTag tag)
-{
+ExifEntry* ExifTagSaver::prepareEntry(ExifData* exif_data, ExifTag tag) {
   LoggerD("Entered m_tag:%d", tag);
 
   ExifEntry* exif_entry = exif_data_get_entry(exif_data, tag);
@@ -303,8 +281,7 @@ ExifEntry* ExifTagSaver::prepareEntry(ExifData* exif_data, ExifTag tag)
 }
 
 ExifEntry* ExifTagSaver::createNewTag(ExifData* exif_data, ExifIfd ifd,
-    ExifFormat format, ExifTag tag)
-{
+    ExifFormat format, ExifTag tag) {
   LoggerD("Creating new tag: %d", tag);
 
   ExifEntry* new_entry = exif_entry_new();
@@ -315,8 +292,7 @@ ExifEntry* ExifTagSaver::createNewTag(ExifData* exif_data, ExifIfd ifd,
   return new_entry;
 }
 
-ExifIfd ExifTagSaver::deduceIfdSection(ExifTag tag)
-{
+ExifIfd ExifTagSaver::deduceIfdSection(ExifTag tag) {
   switch (static_cast<unsigned int>(tag)) {
     //Tags in IFD_0 Section
     case EXIF_TAG_MAKE:
@@ -357,8 +333,7 @@ ExifIfd ExifTagSaver::deduceIfdSection(ExifTag tag)
   }
 }
 
-ExifFormat ExifTagSaver::deduceDataFormat(ExifTag tag)
-{
+ExifFormat ExifTagSaver::deduceDataFormat(ExifTag tag) {
   switch (static_cast<unsigned int>(tag)) {
     //Tags with byte type:
     case EXIF_TAG_GPS_ALTITUDE_REF:
@@ -408,5 +383,5 @@ ExifFormat ExifTagSaver::deduceDataFormat(ExifTag tag)
   }
 }
 
-} // exif
-} // extension
+}  // namespace exif
+}  // namespace extension

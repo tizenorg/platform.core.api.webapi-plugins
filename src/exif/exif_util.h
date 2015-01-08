@@ -16,8 +16,8 @@
 //
 
 
-#ifndef __TIZEN_EXIF_EXIFUTIL_H_
-#define __TIZEN_EXIF_EXIFUTIL_H_
+#ifndef EXIF_EXIF_UTIL_H_
+#define EXIF_EXIF_UTIL_H_
 
 #include <libexif/exif-data.h>
 #include <libexif/exif-entry.h>
@@ -25,11 +25,7 @@
 #include <string>
 #include <vector>
 
-//#include <Node.h>
-//#include <Path.h>
-//#include <TZDate.h>
-
-//#include "Rational.h"
+#include "rational.h"
 
 namespace extension {
 namespace exif {
@@ -81,53 +77,51 @@ enum ExposureProgram {
  *    denominator.
  */
 struct ExifTypeInfo {
-
   /**
    * Number of bytes used by each exif type
    */
-  static const size_t ByteSize;     //1 byte
-  static const size_t ASCIISize;    //1 byte (*N)
-  static const size_t ShortSize;    //2 bytes
-  static const size_t LongSize;     //4 bytes
-  static const size_t RationalSize;   //8 bytes
-  static const size_t UndefinedSize;  //1 byte (*N)
-  static const size_t SLongSize;    //4 bytes
-  static const size_t SRationalSize;  //8 bytes
+  static const size_t ByteSize;       // 1 byte
+  static const size_t ASCIISize;      // 1 byte (*N)
+  static const size_t ShortSize;      // 2 bytes
+  static const size_t LongSize;       // 4 bytes
+  static const size_t RationalSize;   // 8 bytes
+  static const size_t UndefinedSize;  // 1 byte (*N)
+  static const size_t SLongSize;      // 4 bytes
+  static const size_t SRationalSize;  // 8 bytes
 
   /**
    * Id values used by Exif to identify type
    */
-  static const ExifByte ByteId;     // 1
-  static const ExifByte ASCIIId;    // 2
-  static const ExifByte ShortId;    // 3
-  static const ExifByte LongId;     // 4
+  static const ExifByte ByteId;       // 1
+  static const ExifByte ASCIIId;      // 2
+  static const ExifByte ShortId;      // 3
+  static const ExifByte LongId;       // 4
   static const ExifByte RationalId;   // 5
   static const ExifByte UndefinedId;  // 7
-  static const ExifByte SLongId;    // 9
-  static const ExifByte SRationalId;  //10
+  static const ExifByte SLongId;      // 9
+  static const ExifByte SRationalId;  // 10
 };
 
-class ExifUtil
-{
-public:
+class ExifUtil {
+ public:
   ExifUtil();
   virtual ~ExifUtil();
 
   static ImageOrientation stringToOrientation(const std::string& orientation);
   static const std::string& orientationToString(ImageOrientation value);
 
-  static WhiteBalanceMode stringToWhiteBalance(const std::string& white_balance);
+  static WhiteBalanceMode stringToWhiteBalance(
+      const std::string& white_balance);
   static const std::string& whiteBalanceToString(WhiteBalanceMode value);
 
-  static ExposureProgram stringToExposureProgram(const std::string& exposure_program);
+  static ExposureProgram stringToExposureProgram(
+      const std::string& exposure_program);
   static const std::string& exposureProgramToString(ExposureProgram value);
 
   static bool isValidAbsoluteURI(const std::string& uri);
   static void getURIInfo(const std::string& uri,
-      //const Filesystem::NodeType expected_type,
       const std::string& required_permission,
       bool& out_exists,
-      //Filesystem::NodeType& out_type,
       bool& out_permission_granted);
 
   static std::string convertUriToPath(const std::string& str);
@@ -135,6 +129,8 @@ public:
 
   static time_t exifDateTimeOriginalToTimeT(const char* string);
   static std::string timeTToExifDateTimeOriginal(time_t time);
+  static const Rationals timeTToExifGpsTimeStamp(time_t time);
+  static std::string timeTToExifGpsDateStamp(time_t time);
 
   static size_t getSizeOfExifFormatType(ExifFormat format);
   static void  printExifEntryInfo(ExifEntry* entry, ExifData* exif_data);
@@ -147,7 +143,7 @@ public:
       int hour, int min, int sec);
 };
 
-} // exif
-} // extension
+}  // namespace exif
+}  // namespace extension
 
-#endif // __TIZEN_EXIF_EXIFUTIL_H_
+#endif  // EXIF_EXIF_UTIL_H_

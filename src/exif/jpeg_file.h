@@ -16,41 +16,41 @@
 //
 
 
-#ifndef __TIZEN_EXIF_JPEG_FILE_H_
-#define __TIZEN_EXIF_JPEG_FILE_H_
+#ifndef EXIF_EXIF_JPEG_FILE_H_
+#define EXIF_EXIF_JPEG_FILE_H_
+
+#include <libexif/exif-data.h>
+#include <libexif/exif-entry.h>
+#include <libexif/exif-utils.h>
 
 #include <memory>
 #include <string>
 #include <vector>
-#include <stdio.h>
+#include <cstdio>
 #include <map>
-#include <libexif/exif-data.h>
-#include <libexif/exif-entry.h>
-#include <libexif/exif-utils.h>
 
 namespace extension {
 namespace exif {
 
 enum JpegMarker{
-  JPEG_MARKER_UNKNOWN   = 0x00,
+  JPEG_MARKER_UNKNOWN     = 0x00,
   JPEG_MARKER_LOWEST_ID   = 0xc0,
-  JPEG_MARKER_SOI     = 0xd8, //Start Of Image
-  JPEG_MARKER_EOI     = 0xd9, //End Of Image
-  JPEG_MARKER_SOS     = 0xda, //Start Of Stream
-  JPEG_MARKER_APP1    = 0xe1, //Application Data 1 - for Exif
+  JPEG_MARKER_SOI         = 0xd8,  // Start Of Image
+  JPEG_MARKER_EOI         = 0xd9,  // End Of Image
+  JPEG_MARKER_SOS         = 0xda,  // Start Of Stream
+  JPEG_MARKER_APP1        = 0xe1,  // Application Data 1 - for Exif
   JPEG_MARKER_HIGHEST_ID  = 0xfe
 };
 
 struct JpegFileSection;
 typedef std::shared_ptr<JpegFileSection> JpegFileSectionPtr;
 
-struct JpegFileSection
-{
+struct JpegFileSection {
   JpegFileSection() :
     type(JPEG_MARKER_UNKNOWN),
     data_ptr(NULL),
     size(0),
-    exif_data(NULL) {};
+    exif_data(NULL) {}
 
   JpegMarker type;
   unsigned char* data_ptr;
@@ -64,7 +64,7 @@ class JpegFile;
 typedef std::shared_ptr<JpegFile> JpegFilePtr;
 
 class JpegFile {
-public:
+ public:
   static JpegFilePtr loadFile(const std::string& path);
   ~JpegFile();
 
@@ -83,7 +83,7 @@ public:
 
   void saveToFile(const std::string& out_path);
 
-private:
+ private:
   JpegFile();
   void load(const std::string& path);
   void generateListOfSections();
@@ -131,8 +131,7 @@ private:
   SectionsVec m_sections;
 };
 
+}  // namespace exif
+}  // namespace extension
 
-} // namespace exif
-} // namespace extension
-
-#endif // __TIZEN_EXIF_JPEG_FILE_H_
+#endif  // EXIF_EXIF_JPEG_FILE_H_

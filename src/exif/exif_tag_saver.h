@@ -16,39 +16,43 @@
 //
 
 /**
- * @file  ExifTagSaver.h
+ * @file  exif_tag_saver.h
  */
 
-#ifndef __TIZEN_EXIF_EXIF_TAG_SAVER_H__
-#define __TIZEN_EXIF_EXIF_TAG_SAVER_H__
+#ifndef EXIF_EXIF_TAG_SAVER_H__
+#define EXIF_EXIF_TAG_SAVER_H__
 
-#include <string>
 #include <libexif/exif-data.h>
 
+#include <string>
+#include <vector>
+
 #include "ExifGPSLocation.h"
-//#include "ExifGPSTime.h"
 
 namespace extension {
 namespace exif {
 
-class ExifTagSaver
-{
-public:
+class ExifTagSaver {
+ public:
   static void removeExifEntryWithTag(const ExifTag tag, ExifData* exif_data);
 
-  static void saveToExif(long int value, ExifTag tag, ExifData* exif_data);
-  static void saveToExif(const std::string& value, ExifTag tag, ExifData* exif_data,
-      bool add_zero_character = true);
-  static void saveToExif(const Rational& value, ExifTag tag, ExifData* exif_data);
-  static void saveToExif(const Rationals& value, ExifTag tag, ExifData* exif_data);
+  static void saveToExif(long int value,
+                         ExifTag tag,
+                         ExifData* exif_data);
+  static void saveToExif(const std::string& value, ExifTag tag,
+                         ExifData* exif_data,
+                         ExifFormat format = EXIF_FORMAT_ASCII,
+                         bool add_zero_character = true);
+  static void saveToExif(const Rational& value, ExifTag tag,
+                         ExifData* exif_data);
+  static void saveToExif(const Rationals& value, ExifTag tag,
+                         ExifData* exif_data);
   static void saveToExif(std::vector<long long int>& value, ExifFormat store_as,
       ExifTag tag, ExifData* exif_data);
   static void saveGpsLocationToExif(const ExifGPSLocation& gps_info,
       ExifData* exif_data);
-  //static void saveGpsTimeToExif(const ExifGPSTime& gps_time,
-      //ExifData* exif_data);
 
-private:
+ private:
   static ExifEntry* prepareEntry(ExifData* exif_data, ExifTag tag);
   static ExifIfd deduceIfdSection(ExifTag tag);
   static ExifFormat deduceDataFormat(ExifTag tag);
@@ -56,7 +60,7 @@ private:
     ExifFormat format, ExifTag tag);
 };
 
-} // exif
-} // extension
+}  // namespace exif
+}  // namespace extension
 
-#endif // __TIZEN_EXIF_EXIF_TAG_SAVER_H__
+#endif  // EXIF_EXIF_TAG_SAVER_H__
