@@ -969,6 +969,23 @@ var NativeBridge = (function (extension, debug) {
                     if (l.cid) cm.remove(l.cid);
                     delete _listeners[id];
                 }
+            },
+            attach: function (id, key, value) {
+                if (_listeners[id]) {
+                    _listeners[id][key] = value;
+                    return true;
+                }
+                return false;
+            },
+            find: function (key, value) {
+                var result = [];
+                for (var p in _listeners) {
+                    if (_listeners.hasOwnProperty(p)) {
+                        var l = _listeners[p];
+                        if (l[key] === value) result.push({id: p, listener: l});
+                    }
+                }
+                return result;
             }
         }
 
@@ -1023,6 +1040,15 @@ var NativeBridge = (function (extension, debug) {
             var l = (new Listener()).then(c);
             var cid = Listeners.getInstance().add(l);
             return cid;
+        },
+        attach: function (id, key, value) {
+            return Listeners.getInstance().attach(id, key, value);
+        },
+        find: function (key, value) {
+            return Listeners.getInstance().find(key, value);
+        },
+        remove: function (id) {
+            Listeners.getInstance().remove(id);
         }
     };
 
