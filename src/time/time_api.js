@@ -7,6 +7,7 @@ var _minuteInMilliseconds = 60 * 1000;
 var _hourInMilliseconds = _minuteInMilliseconds * 60;
 
 var _common = xwalk.utils;
+var AV = _common.validator;
 var native_ = new _common.NativeManager(extension);
 
 exports.getCurrentDateTime = function() {
@@ -82,11 +83,7 @@ var TimeDurationUnit = [
 ];
 
 tizen.TimeDuration = function(length, unit) {
-  // FIXME(cmarcelo): This is a best effort to ensure that this function is
-  // called as a constructor only. We may need to implement some native
-  // primitive to ensure that.
-  if (!this || this.constructor != tizen.TimeDuration)
-    throw new TypeError;
+  AV.isConstructorCall(this, tizen.TimeDuration);
 
   var length_ = length !== null ? Math.floor(length) : 0;
   var unit_ = TimeDurationUnit.indexOf(unit) >= 0 ? unit : 'MSECS';
@@ -143,34 +140,58 @@ tizen.TimeDuration.prototype.getMilliseconds = function() {
   return getMultiplier(this.unit) * this.length;
 };
 
-tizen.TimeDuration.prototype.difference = function(other) {
+tizen.TimeDuration.prototype.difference = function() {
+  var args = AV.validateArgs(arguments, [{
+    name: 'other',
+    type: AV.Types.PLATFORM_OBJECT,
+    values: tizen.TimeDuration
+  }]);
+
   try {
     return makeMillisecondsDurationObject(this.getMilliseconds() -
-                                          other.getMilliseconds());
+                                          args.other.getMilliseconds());
   } catch (e) {
     _throwProperTizenException(e);
   }
 };
 
-tizen.TimeDuration.prototype.equalsTo = function(other) {
+tizen.TimeDuration.prototype.equalsTo = function() {
+  var args = AV.validateArgs(arguments, [{
+    name: 'other',
+    type: AV.Types.PLATFORM_OBJECT,
+    values: tizen.TimeDuration
+  }]);
+
   try {
-    return this.getMilliseconds() == other.getMilliseconds();
+    return this.getMilliseconds() == args.other.getMilliseconds();
   } catch (e) {
     _throwProperTizenException(e);
   }
 };
 
-tizen.TimeDuration.prototype.lessThan = function(other) {
+tizen.TimeDuration.prototype.lessThan = function() {
+  var args = AV.validateArgs(arguments, [{
+    name: 'other',
+    type: AV.Types.PLATFORM_OBJECT,
+    values: tizen.TimeDuration
+  }]);
+
   try {
-    return this.getMilliseconds() < other.getMilliseconds();
+    return this.getMilliseconds() < args.other.getMilliseconds();
   } catch (e) {
     _throwProperTizenException(e);
   }
 };
 
-tizen.TimeDuration.prototype.greaterThan = function(other) {
+tizen.TimeDuration.prototype.greaterThan = function() {
+  var args = AV.validateArgs(arguments, [{
+    name: 'other',
+    type: AV.Types.PLATFORM_OBJECT,
+    values: tizen.TimeDuration
+  }]);
+
   try {
-    return this.getMilliseconds() > other.getMilliseconds();
+    return this.getMilliseconds() > args.other.getMilliseconds();
   } catch (e) {
     _throwProperTizenException(e);
   }
@@ -181,13 +202,8 @@ tizen.TimeDuration.prototype.toString = function() {
 };
 
 tizen.TZDate = function(year, month, day, hours, minutes, seconds, milliseconds, timezone) {
-  // FIXME(cmarcelo): This is a best effort to ensure that this function is
-  // called as a constructor only. We may need to implement some native
-  // primitive to ensure that.
-  if (!this || this.constructor != tizen.TZDate)
-    throw new TypeError;
+  AV.isConstructorCall(this, tizen.TZDate);
 
-  this.date_;
   this.timezone_ = timezone || tizen.time.getLocalTimezone();
 
   var hours = hours || 0;
@@ -233,8 +249,13 @@ tizen.TZDate.prototype.getDate = function() {
   return this.date_.getDate();
 };
 
-tizen.TZDate.prototype.setDate = function(date) {
-  this.date_.setDate(date);
+tizen.TZDate.prototype.setDate = function() {
+  var args = AV.validateArgs(arguments, [{
+    name: 'date',
+    type: AV.Types.LONG
+  }]);
+
+  this.date_.setDate(args.date);
 };
 
 tizen.TZDate.prototype.getDay = function() {
@@ -245,48 +266,78 @@ tizen.TZDate.prototype.getFullYear = function() {
   return this.date_.getFullYear();
 };
 
-tizen.TZDate.prototype.setFullYear = function(year) {
-  this.date_.setFullYear(year);
+tizen.TZDate.prototype.setFullYear = function() {
+  var args = AV.validateArgs(arguments, [{
+    name: 'year',
+    type: AV.Types.LONG
+  }]);
+
+  this.date_.setFullYear(args.year);
 };
 
 tizen.TZDate.prototype.getHours = function() {
   return this.date_.getHours();
 };
 
-tizen.TZDate.prototype.setHours = function(hours) {
-  this.date_.setHours(hours);
+tizen.TZDate.prototype.setHours = function() {
+  var args = AV.validateArgs(arguments, [{
+    name: 'hours',
+    type: AV.Types.LONG
+  }]);
+
+  this.date_.setHours(args.hours);
 };
 
 tizen.TZDate.prototype.getMilliseconds = function() {
   return this.date_.getMilliseconds();
 };
 
-tizen.TZDate.prototype.setMilliseconds = function(ms) {
-  this.date_.setMilliseconds(ms);
+tizen.TZDate.prototype.setMilliseconds = function() {
+  var args = AV.validateArgs(arguments, [{
+    name: 'ms',
+    type: AV.Types.LONG
+  }]);
+
+  this.date_.setMilliseconds(args.ms);
 };
 
 tizen.TZDate.prototype.getMonth = function() {
   return this.date_.getMonth();
 };
 
-tizen.TZDate.prototype.setMonth = function(month) {
-  this.date_.setMonth(month);
+tizen.TZDate.prototype.setMonth = function() {
+  var args = AV.validateArgs(arguments, [{
+    name: 'month',
+    type: AV.Types.LONG
+  }]);
+
+  this.date_.setMonth(args.month);
 };
 
 tizen.TZDate.prototype.getMinutes = function() {
   return this.date_.getMinutes();
 };
 
-tizen.TZDate.prototype.setMinutes = function(minutes) {
-  this.date_.setMinutes(minutes);
+tizen.TZDate.prototype.setMinutes = function() {
+  var args = AV.validateArgs(arguments, [{
+    name: 'minutes',
+    type: AV.Types.LONG
+  }]);
+
+  this.date_.setMinutes(args.minutes);
 };
 
 tizen.TZDate.prototype.getSeconds = function() {
   return this.date_.getSeconds();
 };
 
-tizen.TZDate.prototype.setSeconds = function(seconds) {
-  this.date_.setSeconds(seconds);
+tizen.TZDate.prototype.setSeconds = function() {
+  var args = AV.validateArgs(arguments, [{
+    name: 'seconds',
+    type: AV.Types.LONG
+  }]);
+
+  this.date_.setSeconds(args.seconds);
 };
 
 tizen.TZDate.prototype.getUTCDate = function() {
@@ -295,8 +346,13 @@ tizen.TZDate.prototype.getUTCDate = function() {
   return d.getDate();
 };
 
-tizen.TZDate.prototype.setUTCDate = function(date) {
-  this.date_.setUTCDate(date);
+tizen.TZDate.prototype.setUTCDate = function() {
+  var args = AV.validateArgs(arguments, [{
+    name: 'date',
+    type: AV.Types.LONG
+  }]);
+
+  this.date_.setUTCDate(args.date);
 };
 
 tizen.TZDate.prototype.getUTCDay = function() {
@@ -311,8 +367,13 @@ tizen.TZDate.prototype.getUTCFullYear = function() {
   return d.getFullYear();
 };
 
-tizen.TZDate.prototype.setUTCFullYear = function(year) {
-  this.date_.setUTCFullYear(year);
+tizen.TZDate.prototype.setUTCFullYear = function() {
+  var args = AV.validateArgs(arguments, [{
+    name: 'year',
+    type: AV.Types.LONG
+  }]);
+
+  this.date_.setUTCFullYear(args.year);
 };
 
 tizen.TZDate.prototype.getUTCHours = function() {
@@ -321,10 +382,15 @@ tizen.TZDate.prototype.getUTCHours = function() {
   return d.getHours();
 };
 
-tizen.TZDate.prototype.setUTCHours = function(hours) {
+tizen.TZDate.prototype.setUTCHours = function() {
+  var args = AV.validateArgs(arguments, [{
+    name: 'hours',
+    type: AV.Types.LONG
+  }]);
+
   var offset_hours = getTimezoneOffset(this.timezone_, _getTimeWithOffset(this.date_)) /
                      _hourInMilliseconds;
-  this.date_.setHours(hours + offset_hours);
+  this.date_.setHours(args.hours + offset_hours);
 };
 
 tizen.TZDate.prototype.getUTCMilliseconds = function() {
@@ -333,8 +399,13 @@ tizen.TZDate.prototype.getUTCMilliseconds = function() {
   return d.getMilliseconds();
 };
 
-tizen.TZDate.prototype.setUTCMilliseconds = function(ms) {
-  this.date_.setUTCMilliseconds(ms);
+tizen.TZDate.prototype.setUTCMilliseconds = function() {
+  var args = AV.validateArgs(arguments, [{
+    name: 'ms',
+    type: AV.Types.LONG
+  }]);
+
+  this.date_.setUTCMilliseconds(args.ms);
 };
 
 tizen.TZDate.prototype.getUTCMinutes = function() {
@@ -343,8 +414,13 @@ tizen.TZDate.prototype.getUTCMinutes = function() {
   return d.getMinutes();
 };
 
-tizen.TZDate.prototype.setUTCMinutes = function(minutes) {
-  this.date_.setUTCMinutes(minutes);
+tizen.TZDate.prototype.setUTCMinutes = function() {
+  var args = AV.validateArgs(arguments, [{
+    name: 'minutes',
+    type: AV.Types.LONG
+  }]);
+
+  this.date_.setUTCMinutes(args.minutes);
 };
 
 tizen.TZDate.prototype.getUTCMonth = function() {
@@ -353,8 +429,13 @@ tizen.TZDate.prototype.getUTCMonth = function() {
   return d.getMonth();
 };
 
-tizen.TZDate.prototype.setUTCMonth = function(month) {
-  this.date_.setUTCMonth(month);
+tizen.TZDate.prototype.setUTCMonth = function() {
+  var args = AV.validateArgs(arguments, [{
+    name: 'month',
+    type: AV.Types.LONG
+  }]);
+
+  this.date_.setUTCMonth(args.month);
 };
 
 tizen.TZDate.prototype.getUTCSeconds = function() {
@@ -363,8 +444,13 @@ tizen.TZDate.prototype.getUTCSeconds = function() {
   return d.getSeconds();
 };
 
-tizen.TZDate.prototype.setUTCSeconds = function(secs) {
-  this.date_.setUTCSeconds(secs);
+tizen.TZDate.prototype.setUTCSeconds = function() {
+  var args = AV.validateArgs(arguments, [{
+    name: 'secs',
+    type: AV.Types.LONG
+  }]);
+
+  this.date_.setUTCSeconds(args.secs);
 };
 
 tizen.TZDate.prototype.getTime = function() {
@@ -375,11 +461,16 @@ tizen.TZDate.prototype.getTimezone = function() {
   return this.timezone_;
 };
 
-tizen.TZDate.prototype.toTimezone = function(timezone) {
-  if (!timezone)
+tizen.TZDate.prototype.toTimezone = function() {
+  var args = AV.validateArgs(arguments, [{
+    name: 'timezone',
+    type: AV.Types.STRING
+  }]);
+
+  if (!args.timezone)
     throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
-  var d = new tizen.TZDate(new Date(this.date_.getTime()), timezone);
-  return d.addDuration(new tizen.TimeDuration((getTimezoneOffset(timezone) * 1) +
+  var d = new tizen.TZDate(new Date(this.date_.getTime()), args.timezone);
+  return d.addDuration(new tizen.TimeDuration((getTimezoneOffset(args.timezone) * 1) +
                                               (getTimezoneOffset(this.timezone_) * -1)));
 };
 
@@ -391,42 +482,72 @@ tizen.TZDate.prototype.toUTC = function() {
   return this.toTimezone('GMT');
 };
 
-tizen.TZDate.prototype.difference = function(other) {
+tizen.TZDate.prototype.difference = function() {
+  var args = AV.validateArgs(arguments, [{
+    name: 'other',
+    type: AV.Types.PLATFORM_OBJECT,
+    values: tizen.TZDate
+  }]);
+
   try {
-    return makeMillisecondsDurationObject(this.getTime() - other.getTime());
+    return makeMillisecondsDurationObject(this.getTime() - args.other.getTime());
   } catch (e) {
     _throwProperTizenException(e);
   }
 };
 
-tizen.TZDate.prototype.equalsTo = function(other) {
+tizen.TZDate.prototype.equalsTo = function() {
+  var args = AV.validateArgs(arguments, [{
+    name: 'other',
+    type: AV.Types.PLATFORM_OBJECT,
+    values: tizen.TZDate
+  }]);
+
   try {
-    return this.getTime() == other.getTime();
+    return this.getTime() == args.other.getTime();
   } catch (e) {
     _throwProperTizenException(e);
   }
 };
 
-tizen.TZDate.prototype.earlierThan = function(other) {
+tizen.TZDate.prototype.earlierThan = function() {
+  var args = AV.validateArgs(arguments, [{
+    name: 'other',
+    type: AV.Types.PLATFORM_OBJECT,
+    values: tizen.TZDate
+  }]);
+
   try {
-    return this.getTime() < other.getTime();
+    return this.getTime() < args.other.getTime();
   } catch (e) {
     _throwProperTizenException(e);
   }
 };
 
 tizen.TZDate.prototype.laterThan = function(other) {
+  var args = AV.validateArgs(arguments, [{
+    name: 'other',
+    type: AV.Types.PLATFORM_OBJECT,
+    values: tizen.TZDate
+  }]);
+
   try {
-    return this.getTime() > other.getTime();
+    return this.getTime() > args.other.getTime();
   } catch (e) {
     _throwProperTizenException(e);
   }
 };
 
-tizen.TZDate.prototype.addDuration = function(duration) {
+tizen.TZDate.prototype.addDuration = function() {
+  var args = AV.validateArgs(arguments, [{
+    name: 'duration',
+    type: AV.Types.PLATFORM_OBJECT,
+    values: tizen.TimeDuration
+  }]);
+
   try {
     var date = new tizen.TZDate(new Date(this.date_.getTime()), this.timezone_);
-    date.setMilliseconds(duration.getMilliseconds() + date.getMilliseconds());
+    date.setMilliseconds(args.duration.getMilliseconds() + date.getMilliseconds());
     return date;
   } catch (e) {
     _throwProperTizenException(e);
