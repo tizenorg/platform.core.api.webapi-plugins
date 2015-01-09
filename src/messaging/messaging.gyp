@@ -105,7 +105,13 @@
         'folders_change_callback.cc',
         'folders_change_callback.h',
         'message_service_short_msg.cc',
-        'message_service_short_msg.h'
+        'message_service_short_msg.h',
+        'message_sms.cc',
+        'message_sms.h',
+        'message_storage_short_msg.cc',
+        'message_storage_short_msg.h',
+        'short_message_manager.cc',
+        'short_message_manager.h'
       ],
       'includes': [
         '../common/pkg-config.gypi',

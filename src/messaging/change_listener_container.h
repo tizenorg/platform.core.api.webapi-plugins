@@ -31,8 +31,7 @@ struct EventMessages {
     int service_id;
     MessageType service_type;
     MessagePtrVector items;
-    // TODO Uncomment when removing conversations
-    // ConversationPtrVector removed_conversations;
+    ConversationPtrVector removed_conversations;
     // TODO: Filtering support
 };
 
