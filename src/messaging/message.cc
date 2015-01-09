@@ -13,6 +13,7 @@
 
 #include "Ecore_File.h"
 #include "message_email.h"
+#include "message_sms.h"
 #include "messaging_util.h"
 
 namespace extension {
@@ -767,10 +768,10 @@ msg_struct_t Message::convertPlatformShortMessageToStruct(Message* message,
         }
 
         // Set SMS recipients
-//        std::vector<std::string> recp_list = message->getTO();
-//        if (!recp_list.empty()) {
-//            message->addSMSRecipientsToStruct(recp_list, msg);
-//        }
+        std::vector<std::string> recp_list = message->getTO();
+        if (!recp_list.empty()) {
+            message->addSMSRecipientsToStruct(recp_list, msg);
+        }
 
     } else if (type == MSG_TYPE_MMS) {
         // Set message type to MMS
@@ -1220,16 +1221,16 @@ Message* Message::convertPlatformShortMessageToObject(msg_struct_t msg){
     //get type
     msg_get_int_value(msg, MSG_MESSAGE_TYPE_INT, &infoInt);
     if (infoInt == MSG_TYPE_SMS) {
-//        message = new MessageSMS();
-//        // get SMS body
-//        std::shared_ptr<MessageBody> body(new MessageBody());
-//        char msgInfoStr[MAX_MSG_TEXT_LEN + 1];
-//        msg_get_str_value(msg, MSG_MESSAGE_SMS_DATA_STR, msgInfoStr, MAX_MSG_TEXT_LEN);
-//        body->setPlainBody(std::string(msgInfoStr));
-//        message->setBody(body);
-//        // get recipients
-//        std::vector<std::string> recp_list = message->getSMSRecipientsFromStruct(msg);
-//        message->setTO(recp_list);
+        message = new MessageSMS();
+        // get SMS body
+        std::shared_ptr<MessageBody> body(new MessageBody());
+        char msgInfoStr[MAX_MSG_TEXT_LEN + 1];
+        msg_get_str_value(msg, MSG_MESSAGE_SMS_DATA_STR, msgInfoStr, MAX_MSG_TEXT_LEN);
+        body->setPlainBody(std::string(msgInfoStr));
+        message->setBody(body);
+        // get recipients
+        std::vector<std::string> recp_list = message->getSMSRecipientsFromStruct(msg);
+        message->setTO(recp_list);
     } else if (infoInt == MSG_TYPE_MMS) {
 //        message = new MessageMMS();
 //

@@ -12,6 +12,7 @@
 
 #include <email-api-account.h>
 #include "message_email.h"
+#include "message_sms.h"
 #include "message_conversation.h"
 
 #include "tizen/tizen.h"
@@ -288,8 +289,6 @@ picojson::value MessagingUtil::messageToJson(std::shared_ptr<Message> message)
 
     switch (message->getType()) {
     case MessageType::SMS:
-        LoggerD("Currently unsupported");
-        // TODO add class which will extended message_service and call message_service_short_msg
         break;
     case MessageType::MMS:
         LoggerD("Currently unsupported");
@@ -466,8 +465,9 @@ std::shared_ptr<Message> MessagingUtil::jsonToMessage(const picojson::value& jso
 
     switch (mtype) {
     case MessageType::SMS:
-        LoggerD("Currently unsupported");
-        // TODO add class which will extended message_service and call message_service_short_msg
+        LoggerD("SMS type");
+        message = std::shared_ptr<Message>(new MessageSMS());
+        // TODO check if id exists
         break;
     case MessageType::MMS:
         LoggerD("Currently unsupported");

@@ -18,10 +18,15 @@
 #include "common/task-queue.h"
 
 #include "messaging_instance.h"
+#include "short_message_manager.h"
 #include "messaging_util.h"
 
 namespace extension {
 namespace messaging {
+
+namespace {
+const int UNDEFINED_MESSAGE_SERVICE = -1;
+}
 
 MessagingManager::MessagingManager()
 {
@@ -29,7 +34,11 @@ MessagingManager::MessagingManager()
     int ret = msg_open_msg_handle(&m_msg_handle);
     if (ret != MSG_SUCCESS) {
         LoggerE("Cannot get message handle: %d", ret);
+    } else {
+        ShortMsgManager::getInstance().registerStatusCallback(m_msg_handle);
     }
+
+    m_sms_service = std::make_pair(UNDEFINED_MESSAGE_SERVICE, nullptr);
 }
 
 MessagingManager::~MessagingManager()
@@ -46,6 +55,10 @@ MessagingManager::~MessagingManager()
         }
     );
     m_email_services.clear();
+
+    if (m_sms_service.second) {
+        delete m_sms_service.second;
+    }
 }
 
 MessagingManager& MessagingManager::getInstance()
@@ -82,6 +95,8 @@ static void* getMsgServicesThread(const std::shared_ptr<MsgManagerCallbackData>&
         case MessageType::SMS:
             LoggerD("MessageService for SMS");
             {
+                if (user_data->sms_service->second) delete user_data->sms_service->second;
+
                 MessageService* service = new(std::nothrow) MessageServiceShortMsg(
                         MessageServiceAccountId::SMS_ACCOUNT_ID,
                         MessageType::SMS);
@@ -89,6 +104,7 @@ static void* getMsgServicesThread(const std::shared_ptr<MsgManagerCallbackData>&
                     LoggerE("MessageService for SMS creation failed");
                     throw common::UnknownException("MessageService for email creation failed");
                 }
+                *(user_data->sms_service) = std::make_pair(service->getMsgServiceId(), service);
 
                 // TODO FIXME
                 picojson::array array;
@@ -96,7 +112,6 @@ static void* getMsgServicesThread(const std::shared_ptr<MsgManagerCallbackData>&
                 obj[JSON_DATA] = picojson::value(array);
                 obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
 
-                delete service;
                 service = NULL;
             }
             break;
@@ -186,14 +201,18 @@ void MessagingManager::getMessageServices(const std::string& type, double callba
     auto user_data = std::shared_ptr<MsgManagerCallbackData>(new MsgManagerCallbackData());
     user_data->json = json;
     user_data->services_map = &m_email_services;
+    user_data->sms_service = &m_sms_service;
 
     common::TaskQueue::GetInstance().Queue<MsgManagerCallbackData>
         (getMsgServicesThread, callbackCompleted, user_data);
 }
 
-MessageService* MessagingManager::getMessageServiceEmail(int id){
-    LoggerD("Entered");
-    return m_email_services[id];
+MessageService* MessagingManager::getMessageService(const int id) {
+    if (id == m_sms_service.first) {
+        return m_sms_service.second;
+    } else {
+        return m_email_services[id];
+    }
 }
 
 } // namespace messaging

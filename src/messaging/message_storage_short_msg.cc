@@ -2,14 +2,12 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-//#include "JSMessageFolder.h"
-//#include "ShortMsgManager.h"
-
 #include "common/logger.h"
 #include "common/platform_exception.h"
 
 #include "messaging_util.h"
 #include "message_sms.h"
+#include "short_message_manager.h"
 #include "message_storage_short_msg.h"
 
 namespace extension {
@@ -28,8 +26,7 @@ static gboolean addDraftMessageTask(void* data) {
     LoggerD("Entered");
 
     MessageCallbackUserData *callback = static_cast<MessageCallbackUserData*>(data);
-    // TODO
-    //ShortMsgManager::getInstance().addDraftMessage(callback);
+    ShortMsgManager::getInstance().addDraftMessage(callback);
 
     return false;
 }

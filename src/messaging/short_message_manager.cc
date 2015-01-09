@@ -2,9 +2,6 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-//#include <JSWebAPIErrorFactory.h>
-//#include <JSWebAPIError.h>
-//#include <JSUtil.h>
 #include <msg.h>
 #include <msg_transport.h>
 #include <msg_storage.h>
@@ -14,10 +11,10 @@
 #include "common/logger.h"
 
 #include "messaging_util.h"
+#include "messaging_instance.h"
 #include "message_service.h"
 #include "message_sms.h"
 //#include "MessageMMS.h"
-//#include "JSMessage.h"
 //#include "JSMessageConversation.h"
 #include "messaging_database_manager.h"
 
@@ -96,15 +93,21 @@ static gboolean addDraftMessageCompleteCB(void *data)
     try {
         if (callback->isError()) {
             LoggerD("Calling error callback");
-            // TODO call error
-            //JSObjectRef errobj = JSWebAPIErrorFactory::makeErrorObject(context,
-                    //callback->getErrorName(), callback->getErrorMessage());
-            //callback->callErrorCallback(errobj);
-            //callback->getMessage()->setMessageStatus(MessageStatus::STATUS_FAILED);
+
+            MessagingInstance::getInstance().PostMessage(callback->getJson()->serialize().c_str());
+            callback->getMessage()->setMessageStatus(MessageStatus::STATUS_FAILED);
         } else {
             LoggerD("Calling success callback");
-            // TODO call success
-            //callback->callSuccessCallback();
+
+            auto json = callback->getJson();
+            picojson::object& obj = json->get<picojson::object>();
+            obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
+
+            picojson::object args;
+            args[JSON_DATA_MESSAGE] = MessagingUtil::messageToJson(callback->getMessage());
+            obj[JSON_DATA] = picojson::value(args);
+
+            MessagingInstance::getInstance().PostMessage(json->serialize().c_str());
         }
     } catch (const common::PlatformException& err) {
         LoggerE("Error while calling addDraftMessage callback: %s (%s)",
