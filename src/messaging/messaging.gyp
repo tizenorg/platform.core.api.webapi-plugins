@@ -103,7 +103,9 @@
         'conversations_change_callback.cc',
         'conversations_change_callback.h',
         'folders_change_callback.cc',
-        'folders_change_callback.h'
+        'folders_change_callback.h',
+        'message_service_short_msg.cc',
+        'message_service_short_msg.h'
       ],
       'includes': [
         '../common/pkg-config.gypi',

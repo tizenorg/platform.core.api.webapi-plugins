@@ -80,14 +80,32 @@ static void* getMsgServicesThread(const std::shared_ptr<MsgManagerCallbackData>&
         bool isSupported = false;
         switch (type) {
         case MessageType::SMS:
-            LoggerD("Currently unsupported");
-            // TODO add class which will extended message_service and call message_service_short_msg
+            LoggerD("MessageService for SMS");
+            {
+                MessageService* service = new(std::nothrow) MessageServiceShortMsg(
+                        MessageServiceAccountId::SMS_ACCOUNT_ID,
+                        MessageType::SMS);
+                if (!service) {
+                    LoggerE("MessageService for SMS creation failed");
+                    throw common::UnknownException("MessageService for email creation failed");
+                }
+
+                // TODO FIXME
+                picojson::array array;
+                array.push_back(picojson::value(service->toPicoJS()));
+                obj[JSON_DATA] = picojson::value(array);
+                obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
+
+                delete service;
+                service = NULL;
+            }
             break;
         case MessageType::MMS:
             LoggerD("Currently unsupported");
             // TODO add class which will extended message_service and call message_service_short_msg
             break;
         case MessageType::EMAIL:
+                // TODO FIXME need to work on readability of that case
                 if (email_get_account_list(&email_accounts, &count) != EMAIL_ERROR_NONE) {
                     LoggerE("Method failed: email_get_account_list()");
                     throw common::UnknownException("Error during getting account list");
