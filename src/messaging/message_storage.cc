@@ -55,9 +55,10 @@ long MessageStorage::addFoldersChangeListener(std::shared_ptr<FoldersChangeCallb
     return ChangeListenerContainer::getInstance().addFolderChangeListener(callback);
 }
 
-void MessageStorage::removeChangeListener()
+void MessageStorage::removeChangeListener(long watchId)
 {
     LoggerD("Entered");
+    return ChangeListenerContainer::getInstance().removeChangeListener(watchId);
 }
 
 } //messaging

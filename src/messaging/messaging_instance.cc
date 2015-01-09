@@ -625,6 +625,15 @@ void MessagingInstance::MessageStorageRemoveChangeListener(const picojson::value
         picojson::object& out)
 {
     LoggerD("Entered");
+    picojson::object data = args.get(JSON_DATA).get<picojson::object>();
+    const long watchId = static_cast<long>(
+            data.at(REMOVE_CHANGE_LISTENER_ARGS_WATCHID).get<double>());
+
+    int serviceId = static_cast<int>(data.at(FUNCTIONS_HIDDEN_ARGS_SERVICE_ID).get<double>());
+    auto service = MessagingManager::getInstance().getMessageServiceEmail(serviceId);
+
+    service->getMsgStorage()->removeChangeListener(watchId);
+    ReportSuccess(out);
 }
 
 } // namespace messaging
