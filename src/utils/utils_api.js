@@ -778,12 +778,7 @@ NativeManager.prototype.call = function(cmd, args, callback) {
   args[this.CALLBACK_ID_KEY] = replyId;
   this.callbacks_[replyId] = callback;
 
-  var request = JSON.stringify({
-    cmd: cmd,
-    args: args
-  });
-
-  this.extension.postMessage(request);
+  return this.callSync(cmd, args);
 };
 
 NativeManager.prototype.callSync = function(cmd, args) {
