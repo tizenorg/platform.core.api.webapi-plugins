@@ -45,26 +45,36 @@ static gboolean sendMessageCompleteCB(void* data)
 
     try {
         if (callback->isError()) {
-            // TODO call error callback
-            //JSObjectRef errobj = JSWebAPIErrorFactory::makeErrorObject(context,
-                    //callback->getErrorName(),
-                    //callback->getErrorMessage());
-
-            //LoggerD("Calling error callback with error:%s msg:%s",
-                    //callback->getErrorName().c_str(),
-                    //callback->getErrorMessage().c_str());
-
-            //callback->callErrorCallback(errobj);
-            //callback->getMessage()->setMessageStatus(MessageStatus::STATUS_FAILED);
+            MessagingInstance::getInstance().PostMessage(callback->getJson()->serialize().c_str());
+            callback->getMessage()->setMessageStatus(MessageStatus::STATUS_FAILED);
         }
         else {
             std::shared_ptr<Message> message = callback->getMessage();
 
             LoggerD("Calling success callback with: %d recipients", message->getTO().size());
-            // TODO call success callback
-            //callback->callSuccessCallback(
-                    //JSUtil::toJSValueRef(context, message->getTO()));
-            //callback->getMessage()->setMessageStatus(MessageStatus::STATUS_SENT);
+
+            auto json = callback->getJson();
+            picojson::object& obj = json->get<picojson::object>();
+            obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
+
+            std::vector<picojson::value> recipients;
+            auto addToRecipients = [&recipients](std::string& e)->void {
+                recipients.push_back(picojson::value(e));
+            };
+
+            auto toVect = callback->getMessage()->getTO();
+            std::for_each(toVect.begin(), toVect.end(), addToRecipients);
+
+            auto ccVect = callback->getMessage()->getCC();
+            std::for_each(ccVect.begin(), ccVect.end(), addToRecipients);
+
+            auto bccVect = callback->getMessage()->getBCC();
+            std::for_each(bccVect.begin(), bccVect.end(), addToRecipients);
+
+            obj[JSON_DATA] = picojson::value(recipients);
+
+            MessagingInstance::getInstance().PostMessage(json->serialize().c_str());
+            callback->getMessage()->setMessageStatus(MessageStatus::STATUS_SENT);
         }
     }
     catch (const common::PlatformException& err) {

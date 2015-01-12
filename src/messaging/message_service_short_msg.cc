@@ -5,6 +5,7 @@
 
 #include "message_service_short_msg.h"
 #include "messaging_instance.h"
+#include "short_message_manager.h"
 #include "common/logger.h"
 #include "common/platform_exception.h"
 
@@ -15,7 +16,6 @@
 //#include <JSWebAPIErrorFactory.h>
 //#include <JSWebAPIError.h>
 //#include <JSUtil.h>
-//#include "ShortMsgManager.h"
 //#include "JSMessage.h"
 
 //using namespace DeviceAPI::Common;
@@ -47,7 +47,7 @@ static gboolean sendMessageThread(void* data)
     }
 
     // TODO
-    //ShortMsgManager::getInstance().sendMessage(callback);
+    ShortMsgManager::getInstance().sendMessage(callback);
     return FALSE;
 }
 
