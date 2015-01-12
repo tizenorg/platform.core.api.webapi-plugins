@@ -19,6 +19,9 @@
         ['tizen == 1', {
           'variables': {
             'packages': [
+              'aul',
+              'badge',
+              'capi-appfw-package-manager',
               'vconf',
             ]
           },
