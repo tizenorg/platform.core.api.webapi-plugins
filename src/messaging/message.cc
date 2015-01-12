@@ -14,6 +14,7 @@
 #include "Ecore_File.h"
 #include "message_email.h"
 #include "message_sms.h"
+#include "short_message_manager.h"
 #include "messaging_util.h"
 
 namespace extension {
@@ -141,7 +142,7 @@ void Message::setId(int id)
 {
     m_id = id;
     m_id_set = true;
-//    m_body->setMessageId(m_id);
+    m_body->setMessageId(m_id);
 }
 
 void Message::setConversationId(int id)
@@ -1369,6 +1370,15 @@ Message* Message::convertPlatformShortMessageToObject(msg_struct_t msg){
 
     LoggerD("End");
     return message;
+}
+
+std::shared_ptr<Message> Message::findShortMessageById(const int id) {
+
+    msg_struct_t msg = ShortMsgManager::getInstance().getMessage(id);
+    std::shared_ptr<Message> message(
+            Message::convertPlatformShortMessageToObject(msg));
+
+   return message;
 }
 
 std::vector<std::string> Message::split(const std::string& input,

@@ -120,6 +120,7 @@ public:
     static picojson::value conversationToJson(std::shared_ptr<MessageConversation> conversation);
     static picojson::value folderToJson(std::shared_ptr<MessageFolder> folder);
     static std::shared_ptr<Message> jsonToMessage(const picojson::value& json);
+    static std::shared_ptr<MessageBody> jsonToMessageBody(const picojson::value& json);
     static std::shared_ptr<MessageFolder> jsonToMessageFolder(const picojson::value& json);
     static tizen::SortModePtr jsonToSortMode(const picojson::object& json);
     static tizen::AttributeFilterPtr jsonToAttributeFilter(const picojson::object& json);

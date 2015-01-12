@@ -297,7 +297,7 @@ function Message(type, data) {
         {
             get: function () {return _internal.body;},
             set: function (value) {
-                if (value instanceof InternalValues_) value = value.body;
+                if (value instanceof InternalValues_) _internal.body = new MessageBody(value.body);
                 if (value instanceof MessageBody) _internal.body = value;
             },
             enumerable: true
@@ -612,7 +612,7 @@ MessageService.prototype.loadMessageBody = function () {
         success: function (data) {
             var body = data.messageBody;
             if (body) {
-                args.message.body = new MessageBody(data.messageBody);
+                args.message.body = new MessageBody(body);
             }
 
             args.successCallback.call(
