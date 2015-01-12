@@ -5,15 +5,24 @@
 #include "secureelement/secureelement_instance.h"
 
 #include <SEService.h>
+#include <Reader.h>
 #include "common/picojson.h"
 #include "common/logger.h"
 #include "common/platform_exception.h"
+#include "common/task-queue.h"
 
+#include "secureelement_reader.h"
 
 namespace extension {
 namespace secureelement {
 
 using namespace common;
+using namespace smartcard_service_api;
+
+SecureElementInstance& SecureElementInstance::getInstance() {
+    static SecureElementInstance instance;
+    return instance;
+}
 
 SecureElementInstance::SecureElementInstance() {
     using namespace std::placeholders;
@@ -25,6 +34,7 @@ SecureElementInstance::SecureElementInstance() {
     REGISTER_SYNC("SEService_unregisterSEListener", UnregisterSEListener);
     REGISTER_SYNC("SEService_shutdown", Shutdown);
     REGISTER_SYNC("SEReader_getName", GetName);
+    REGISTER_SYNC("SEReader_isPresent", IsPresent);
     REGISTER_SYNC("SEReader_closeSessions", CloseSessions);
     REGISTER_SYNC("SESession_getATR", GetATR);
     REGISTER_SYNC("SESession_close", CloseSession);
@@ -61,11 +71,32 @@ void SecureElementInstance::Shutdown(
 
 void SecureElementInstance::GetName(
         const picojson::value& args, picojson::object& out) {
+    LoggerD("Entered");
+
+    Reader* reader_ptr = (Reader*) static_cast<long>(args.get("handle").get<double>());
+    SEReader seReader(reader_ptr);
+    picojson::value result = seReader.getName();
+    ReportSuccess(result, out);
+}
+
+void SecureElementInstance::IsPresent(
+        const picojson::value& args, picojson::object& out) {
+    LoggerD("Entered");
+
+    Reader* reader_ptr = (Reader*) static_cast<long>(args.get("handle").get<double>());
+    SEReader seReader(reader_ptr);
+    picojson::value result = seReader.isPresent();
+    ReportSuccess(result, out);
 }
 
 void SecureElementInstance::CloseSessions(
         const picojson::value& args, picojson::object& out) {
+    LoggerD("Entered");
 
+    Reader* reader_ptr = (Reader*) static_cast<long>(args.get("handle").get<double>());
+    SEReader seReader(reader_ptr);
+    seReader.closeSessions();
+    ReportSuccess(out);
 }
 
 void SecureElementInstance::GetATR(
@@ -100,7 +131,35 @@ void SecureElementInstance::GetReaders(
 
 void SecureElementInstance::OpenSession(
         const picojson::value& args, picojson::object& out) {
+    LoggerD("Entered");
 
+    const double callback_id = args.get("callbackId").get<double>();
+    Reader* reader_ptr = (Reader*) static_cast<long>(args.get("handle").get<double>());
+
+    auto open_session = [this, reader_ptr](const std::shared_ptr<picojson::value>& response) -> void {
+        LoggerD("Opening session");
+        try {
+            SEReader seReader(reader_ptr);
+            picojson::value result = seReader.openSession();
+            ReportSuccess(result, response->get<picojson::object>());
+        } catch (const PlatformException& err) {
+            LoggerD("Error occurred while opening session!");
+            ReportError(err, response->get<picojson::object>());
+        }
+    };
+
+    auto open_session_response = [this, callback_id](const std::shared_ptr<picojson::value>& response) -> void {
+        LoggerD("Getting response");
+
+        picojson::object& obj = response->get<picojson::object>();
+        obj.insert(std::make_pair("callbackId", callback_id));
+        PostMessage(response->serialize().c_str());
+    };
+
+    TaskQueue::GetInstance().Queue<picojson::value>(
+            open_session,
+            open_session_response,
+            std::shared_ptr<picojson::value>(new picojson::value(picojson::object())));
 }
 
 void SecureElementInstance::OpenBasicChannel(

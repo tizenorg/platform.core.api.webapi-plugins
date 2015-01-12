@@ -37,14 +37,31 @@ SEService.prototype.shutdown = function() {
 
 //////////////////Reader/////////////////
 
-function Reader() {
-    var handle = null;
+function Reader(reader_handle) {
     Object.defineProperties(this, {
-        isPresent:   {value: false, writable: false, enumerable: true}
+        isPresent:  {   configurable: false,
+                        enumerable: true,
+                        set: function() {},
+                        get: function() {
+                            var callArgs = { handle: reader_handle };
+                            return native_.callSync('SEReader_isPresent', callArgs);
+                        }},
+        _handle:    {   configurable: false,
+                        enumerable: false,
+                        set: function() {},
+                        get: function() { return reader_handle }}
     });
 }
 
 Reader.prototype.getName = function() {
+    var callArgs = { handle: this._handle };
+    var result = native_.callSync('SEReader_getName', callArgs);
+
+    if(native_.isFailure(result)) {
+        throw native_.getErrorObject(result);
+    }
+
+    return native_.getResultObject(result).name;
 };
 
 Reader.prototype.openSession = function() {
@@ -52,10 +69,26 @@ Reader.prototype.openSession = function() {
         { name: "successCallback", type: types_.FUNCTION },
         { name: "errorCallback", type: types_.FUNCTION, optional: true, nullable: true }
     ]);
-}
+
+    var callback = function(result) {
+        if(native_.isFailure(result)) {
+            native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));
+        } else {
+            var result_obj = native_.getResultObject(result);
+            var session = new Session(result_obj.handle);
+            args.successCallback(session);
+        }
+    };
+
+    var callArgs = { handle: this._handle };
+
+    native_.call('SEReader_openSession', callArgs, callback);
+};
 
 Reader.prototype.closeSessions = function() {
-}
+    var callArgs = { handle: this._handle };
+    native_.call('SEReader_closeSessions', callArgs);
+};
 
 //////////////////Session/////////////////
 

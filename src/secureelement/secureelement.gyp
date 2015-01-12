@@ -14,6 +14,8 @@
         'secureelement_instance.h',
         'secureelement_seservice.cc',
         'secureelement_seservice.h'
+        'secureelement_reader.cc',
+        'secureelement_reader.h',
       ],
       'includes': [
         '../common/pkg-config.gypi',

@@ -13,10 +13,12 @@ namespace secureelement {
 
 class SecureElementInstance: public common::ParsedInstance {
 public:
+    static SecureElementInstance& getInstance();
+
+private:
     SecureElementInstance();
     virtual ~SecureElementInstance();
 
-private:
     /* SEService methods */
     void GetReaders(const picojson::value& args, picojson::object& out);
     void RegisterSEListener(const picojson::value& args, picojson::object& out);
@@ -25,6 +27,7 @@ private:
 
     /* Reader methods */
     void GetName(const picojson::value& args, picojson::object& out);
+    void IsPresent(const picojson::value& args, picojson::object& out);
     void OpenSession(const picojson::value& args, picojson::object& out);
     void CloseSessions(const picojson::value& args, picojson::object& out);
 

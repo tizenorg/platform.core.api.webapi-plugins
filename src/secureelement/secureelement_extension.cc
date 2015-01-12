@@ -21,5 +21,5 @@ SecureElementExtension::SecureElementExtension() {
 SecureElementExtension::~SecureElementExtension() {}
 
 common::Instance* SecureElementExtension::CreateInstance() {
-  return new extension::secureelement::SecureElementInstance;
+  return &extension::secureelement::SecureElementInstance::getInstance();
 }
