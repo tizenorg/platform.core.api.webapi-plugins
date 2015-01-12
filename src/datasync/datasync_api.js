@@ -467,10 +467,16 @@ DataSynchronizationManager.prototype.update = function(profile) {
   return native_.getResultObject(msg);
 };
 
-DataSynchronizationManager.prototype.remove = function(profileId) {
+DataSynchronizationManager.prototype.remove = function() {
+  //TODO: delete if validator will throw exceptions
+  if (typeof(arguments[0]) !== 'string') {
+    throw new tizen.WebAPIException(tizen.WebAPIException.NOT_FOUND_ERR);
+  }
+
   var args = validator_.validateArgs(arguments, [
     {name: 'profileId', type: types_.STRING}
   ]);
+
   var msg = native_.callSync('Datasync_remove', {
     profileId: args.profileId
   });
@@ -490,18 +496,23 @@ DataSynchronizationManager.prototype.getMaxProfilesNum = function() {
 };
 
 DataSynchronizationManager.prototype.getProfilesNum = function() {
-   var msg = native_.callSync('Datasync_getProfilesNum');
+  var msg = native_.callSync('Datasync_getProfilesNum');
 
-   if (native_.isFailure(msg)) {
-     throw native_.getErrorObject(msg);
-   }
-   return native_.getResultObject(msg);
+  if (native_.isFailure(msg)) {
+    throw native_.getErrorObject(msg);
+  }
+  return native_.getResultObject(msg);
 };
 
-DataSynchronizationManager.prototype.get = function(profileId) {
+DataSynchronizationManager.prototype.get = function() {
   var args = validator_.validateArgs(arguments, [
     {name: 'profileId', type: types_.STRING}
   ]);
+
+  //TODO: delete if validator will throw exceptions
+  if (typeof(arguments[0]) !== 'string') {
+    throw new tizen.WebAPIException(tizen.WebAPIException.NOT_FOUND_ERR);
+  }
   var msg = native_.callSync('Datasync_get', {
     profileId: args.profileId
   });
@@ -530,19 +541,29 @@ DataSynchronizationManager.prototype.getAll = function() {
   return final;
 };
 
-DataSynchronizationManager.prototype.startSync = function(profileId, progressCallback) {
+DataSynchronizationManager.prototype.startSync = function() {
   var args = validator_.validateArgs(arguments, [
-    {name: 'profileId', type: types_.STRING}
-  ]);
+    {name: 'profileId', type: types_.STRING},
+    {name: 'progressCallback',
+     type: types_.FUNCTION,
+     optional: true,
+     nullable: true
+    }]);
+
+  //TODO: delete if validator will throw exceptions
+  if (typeof(arguments[0]) !== 'string') {
+    throw new tizen.WebAPIException(tizen.WebAPIException.NOT_FOUND_ERR);
+  }
+
   if (arguments.length > 1) {
     // Array is an object, should not accept Array
-    if (progressCallback instanceof Array) {
+    if (args.progressCallback instanceof Array) {
       throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR);
     }
-    if (typeof progressCallback !== 'object') {
+    if (typeof args.progressCallback !== 'object') {
       throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR);
     }
-    if (!validateCallbacks(progressCallback)) {
+    if (!validateCallbacks(args.progressCallback)) {
       throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR);
     }
   }
@@ -557,7 +578,12 @@ DataSynchronizationManager.prototype.startSync = function(profileId, progressCal
   return postSyncMessageWithCallback(msg, progressCallback);
 };
 
-DataSynchronizationManager.prototype.stopSync = function(profileId) {
+DataSynchronizationManager.prototype.stopSync = function() {
+  //TODO: delete if validator will throw exceptions
+  if (typeof(arguments[0]) !== 'string') {
+    throw new tizen.WebAPIException(tizen.WebAPIException.NOT_FOUND_ERR);
+  }
+
   var args = validator_.validateArgs(arguments, [
     {name: 'profileId', type: types_.STRING}
   ]);
@@ -570,10 +596,16 @@ DataSynchronizationManager.prototype.stopSync = function(profileId) {
   return native_.getResultObject(msg);
 };
 
-DataSynchronizationManager.prototype.getLastSyncStatistics = function(profileId) {
+DataSynchronizationManager.prototype.getLastSyncStatistics = function() {
+   //TODO: delete if validator will throw exceptions
+  if (typeof(arguments[0]) !== 'string') {
+    throw new tizen.WebAPIException(tizen.WebAPIException.NOT_FOUND_ERR);
+  }
+
   var args = validator_.validateArgs(arguments, [
     {name: 'profileId', type: types_.STRING}
   ]);
+
   var msg = native_.callSync('Datasync_getLastSyncStatistics', {
     profileId: args.profileId
   });
