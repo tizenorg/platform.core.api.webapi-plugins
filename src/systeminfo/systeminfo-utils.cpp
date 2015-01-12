@@ -30,7 +30,6 @@
 #include <tapi_common.h>
 #include <ITapiModem.h>
 #include <ITapiSim.h>
-#include <ITapiSim_product.h>
 #include <device.h>
 
 #include "common/logger.h"
@@ -415,18 +414,8 @@ void SimDetailsManager::FetchSimSyncProps(TapiHandle *tapi_handle)
         throw UnknownException("Failed to get sim imsi");
     }
 
-    TelSimResponseData_t outparam;
-    memset(&outparam, 0, sizeof (TelSimResponseData_t));
-    error = tel_request_sim_sync(tapi_handle, TAPI_SIM_GET_ICCID, nullptr,
-            &outparam);
-    if (TAPI_API_SUCCESS == error) {
-        iccid_ = outparam.iccid_info.icc_num;
-        LOGD("ICCID : %s", iccid_.c_str());
-    }
-    else {
-        LOGE("Failed to get iccid info: %d", error);
-        throw UnknownException("Failed to get iccid_ info");
-    }
+    //TODO add code for iccid value fetching, when proper API would be ready
+    iccid_ = "";
 }
 
 void SimDetailsManager::ResetSimHolder(picojson::object* out){
