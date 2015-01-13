@@ -109,8 +109,7 @@ static gboolean findMessagesTask(void* data) {
     LoggerD("Entered");
 
     FindMsgCallbackUserData *callback = static_cast<FindMsgCallbackUserData*>(data);
-    // TODO
-    //ShortMsgManager::getInstance().findMessages(callback);
+    ShortMsgManager::getInstance().findMessages(callback);
 
     return false;
 }

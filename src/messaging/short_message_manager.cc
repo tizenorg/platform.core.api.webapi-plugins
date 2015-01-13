@@ -962,16 +962,23 @@ void ShortMsgManager::findMessages(FindMsgCallbackUserData* callback)
     try {
         if (callback->isError()) {
             LoggerD("Calling error callback");
-            // TODO call error
-            //JSObjectRef errobj = JSWebAPIErrorFactory::makeErrorObject(context,
-                    //callback->getErrorName(), callback->getErrorMessage());
-            //callback->callErrorCallback(errobj);
+            MessagingInstance::getInstance().PostMessage(callback->getJson()->serialize().c_str());
         } else {
             LoggerD("Calling success callback with %d messages:",
                     callback->getMessages().size());
-            // TODO call success
-            //callback->callSuccessCallback(JSMessage::messageVectorToJSObjectArray(context,
-                    //callback->getMessages()));
+
+            auto json = callback->getJson();
+            picojson::object& obj = json->get<picojson::object>();
+
+            std::vector<picojson::value> response;
+            auto messages = callback->getMessages();
+            std::for_each(messages.begin(), messages.end(), [&response](MessagePtr &message){
+                response.push_back(MessagingUtil::messageToJson(message));
+            });
+
+            obj[JSON_DATA] = picojson::value(response);
+            obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
+            MessagingInstance::getInstance().PostMessage(json->serialize().c_str());
         }
     } catch (const common::PlatformException& err) {
         LoggerE("Error while calling findMessages callback: %s (%s)",

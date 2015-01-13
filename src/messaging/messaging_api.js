@@ -812,10 +812,10 @@ MessageStorage.prototype.findMessages = function () {
     bridge.async({
         cmd: 'MessageStorage_findMessages',
         args: {
-            filter: args.filter,
-            sort: args.sort,
-            limit: args.limit,
-            offset: args.offset,
+            filter: args.filter || null,
+            sort: args.sort || null,
+            limit: args.limit || null,
+            offset: args.offset || null,
             serviceId: self.service.id,
             type: self.service.type
         }

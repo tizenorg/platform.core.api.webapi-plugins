@@ -644,9 +644,10 @@ tizen::SortModePtr MessagingUtil::jsonToSortMode(const picojson::object& json)
     LoggerD("Entered");
     using namespace tizen;
 
-    picojson::value value;
     try{
-        value = json.at(JSON_TO_SORT);
+        if (json.at(JSON_TO_SORT).is<picojson::null>()) {
+            return SortModePtr();
+        }
     } catch(const std::out_of_range& e){
         return SortModePtr();
     }
