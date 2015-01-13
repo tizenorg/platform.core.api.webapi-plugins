@@ -2,9 +2,9 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-//= require('tizen.contact.Common.js');
-//= require('tizen.contact.ContactDataStructures.js');
-//= require('tizen.contact.Contact.js');
-//= require('tizen.contact.AddressBook.js');
-//= require('tizen.contact.Person.js');
-//= require('tizen.contact.ContactManager.js');
+//= require('common.js');
+//= require('contact_data_structures.js');
+//= require('contact.js');
+//= require('address_book.js');
+//= require('person.js');
+//= require('contact_manager.js');
