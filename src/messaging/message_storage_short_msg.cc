@@ -163,8 +163,7 @@ static gboolean removeConversationsTask(void* data) {
     LoggerD("Entered");
 
     ConversationCallbackData *callback = static_cast<ConversationCallbackData*>(data);
-    // TODO
-    //ShortMsgManager::getInstance().removeConversations(callback);
+    ShortMsgManager::getInstance().removeConversations(callback);
 
     return false;
 }
