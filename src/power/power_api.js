@@ -1,29 +1,84 @@
 /* global xwalk, extension, tizen */
-
 // Copyright 2014 Samsung Electronics Co, Ltd. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
-
 var validator_ = xwalk.utils.validator;
 var types_ = validator_.Types;
 var native_ = new xwalk.utils.NativeManager(extension);
 
+var callbackId = 0;
+var callbacks = {};
 
-/**
- * @type {string}
- * @const
- */
-var SCREEN_STATE_LISTENER = 'ScreenStateChanged';
+extension.setMessageListener(function(json) {
+    var result = JSON.parse(json);
+    var callback = callbacks[result['callbackId']];
+    callback(result);
+});
 
+function nextCallbackId() {
+    return callbackId++;
+}
 
-/**
- * An enumerator that defines power resources with values aligned with
- * SystemInfo property values.
- * @enum {string}
- */
+var ExceptionMap = {
+    'UnknownError' : tizen.WebAPIException.UNKNOWN_ERR ,
+    'TypeMismatchError' : tizen.WebAPIException.TYPE_MISMATCH_ERR ,
+    'InvalidValuesError' : tizen.WebAPIException.INVALID_VALUES_ERR ,
+    'IOError' : tizen.WebAPIException.IO_ERR ,
+    'ServiceNotAvailableError' : tizen.WebAPIException.SERVICE_NOT_AVAILABLE_ERR ,
+    'SecurityError' : tizen.WebAPIException.SECURITY_ERR ,
+    'NetworkError' : tizen.WebAPIException.NETWORK_ERR ,
+    'NotSupportedError' : tizen.WebAPIException.NOT_SUPPORTED_ERR ,
+    'NotFoundError' : tizen.WebAPIException.NOT_FOUND_ERR ,
+    'InvalidAccessError' : tizen.WebAPIException.INVALID_ACCESS_ERR ,
+    'AbortError' : tizen.WebAPIException.ABORT_ERR ,
+    'QuotaExceededError' : tizen.WebAPIException.QUOTA_EXCEEDED_ERR ,
+}
+
+function callNative(cmd, args) {
+    var json = {'cmd':cmd, 'args':args};
+    var argjson = JSON.stringify(json);
+    var resultString = extension.internal.sendSyncMessage(argjson);
+    var result = JSON.parse(resultString);
+
+    if (typeof result !== 'object') {
+        throw new tizen.WebAPIException(tizen.WebAPIException.UNKNOWN_ERR);
+    }
+
+    if (result['status'] == 'success') {
+        if(result['result']) {
+            return result['result'];
+        }
+        return true;
+    } else if (result['status'] == 'error') {
+        var err = result['error'];
+        if(err) {
+            if(ExceptionMap[err.name]) {
+                throw new tizen.WebAPIException(ExceptionMap[err.name], err.message);
+            } else {
+                throw new tizen.WebAPIException(tizen.WebAPIException.UNKNOWN_ERR, err.message);
+            }
+        }
+        return false;
+    }
+}
+
+function callNativeWithCallback(cmd, args, callback) {
+    if(callback) {
+        var id = nextCallbackId();
+        args['callbackId'] = id;
+        callbacks[id] = callback;
+    }
+
+    return callNative(cmd, args);
+}
+
+function SetReadOnlyProperty(obj, n, v){
+    Object.defineProperty(obj, n, {value:v, writable: false});
+}
+
 var PowerResource = {
-    SCREEN : 'SCREEN',
-    CPU : 'CPU'
+    'SCREEN': 'SCREEN',  
+    'CPU': 'CPU' 
 };
 
 /**
@@ -31,10 +86,10 @@ var PowerResource = {
  * @enum {string}
  */
 var PowerScreenState = {
-    SCREEN_OFF : 'SCREEN_OFF',
-    SCREEN_DIM : 'SCREEN_DIM',
-    SCREEN_NORMAL : 'SCREEN_NORMAL',
-    SCREEN_BRIGHT : 'SCREEN_BRIGHT'
+    'SCREEN_OFF': 'SCREEN_OFF',  
+    'SCREEN_DIM': 'SCREEN_DIM',  
+    'SCREEN_NORMAL': 'SCREEN_NORMAL',  
+    'SCREEN_BRIGHT': 'SCREEN_BRIGHT' 
 };
 
 /**
@@ -42,7 +97,7 @@ var PowerScreenState = {
  * @enum {string}
  */
 var PowerCpuState = {
-    CPU_AWAKE : 'CPU_AWAKE'
+    'CPU_AWAKE': 'CPU_AWAKE' 
 };
 
 /**
@@ -50,6 +105,7 @@ var PowerCpuState = {
  * @constructor
  */
 function PowerManager() {
+    // constructor of PowerManager
 }
 
 /**
@@ -59,25 +115,28 @@ function PowerManager() {
  * @param {!PowerState} state The minimal state in which the power resource
  *     is desired to be.
  */
-PowerManager.prototype.request = function() {
-    var args = validator_.validateArgs(arguments, [
-        {name: 'resource', type: types_.STRING},
-        {name: 'state', type: types_.STRING}
+PowerManager.prototype.request = function(resource, state) {
+   var args = validator_.validateArgs(arguments, [
+        {'name' : 'resource', 'type': types_.ENUM, 'values' : ['SCREEN', 'CPU']},  
+        {'name' : 'state', 'type': types_.ENUM, 'values' : ['SCREEN_OFF', 'SCREEN_DIM', 'SCREEN_NORMAL', 'SCREEN_BRIGHT', 'CPU_AWAKE']} 
     ]);
+	
+    var nativeParam = {
+    };
 
-    if (!PowerResource.hasOwnProperty(args.resource))
-        throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR);
-
-    if (args.resource == 'SCREEN' && !PowerScreenState.hasOwnProperty(args.state))
-        throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR);
-
-    if (args.resource == 'CPU' && !PowerCpuState.hasOwnProperty(args.state))
-        throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR);
-
-    native_.callSync('PowerManager_request', {
-        resource: args.resource,
-        state: args.state
-    });
+    if (args['resource']) {
+        nativeParam['resource'] = args.resource;
+    }
+    if (args['state']) {
+        nativeParam['state'] = args.state;
+    }
+	
+    try {
+        var syncResult = callNative('PowerManager_request', nativeParam);
+        // if you need synchronous result from native function using 'syncResult'.
+    } catch(e) {
+        throw e;
+    }
 };
 
 /**
@@ -85,36 +144,46 @@ PowerManager.prototype.request = function() {
  * @param {!PowerResource} resource The resource for which requests are to
  *     be removed.
  */
-PowerManager.prototype.release = function() {
+PowerManager.prototype.release = function(resource) {
     var args = validator_.validateArgs(arguments, [
-        {name: 'resource', type: types_.STRING}
+        {'name' : 'resource', 'type': types_.ENUM, 'values' : ['SCREEN', 'CPU']} 
     ]);
 
     if (!PowerResource.hasOwnProperty(args.resource))
         throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR);
+	
+    var nativeParam = {
+    };
 
-    native_.callSync('PowerManager_release', {
-        resource: args.resource
-    });
+    if (args['resource']) {
+        nativeParam['resource'] = args.resource;
+    }	
+    try {
+        var syncResult = callNative('PowerManager_release', nativeParam);
+        // if you need synchronous result from native function using 'syncResult'.
+    } catch(e) {
+        throw e;
+    }
+
 };
 
 /**
  * Sets the screen state change callback and monitors its state changes.
  * @param {!function} listener The screen state change callback.
  */
-PowerManager.prototype.setScreenStateChangeListener = function() {
+PowerManager.prototype.setScreenStateChangeListener = function(listener) {
     var args = validator_.validateArgs(arguments, [
         {name: 'listener', type: types_.FUNCTION}
     ]);
 
-    native_.addListener(SCREEN_STATE_LISTENER, args.listener);
+    native_.addListener("SCREEN_STATE_LISTENER", args.listener);
 };
 
 /**
  * Unsets the screen state change callback and stop monitoring it.
  */
 PowerManager.prototype.unsetScreenStateChangeListener = function() {
-    native_.removeListener(SCREEN_STATE_LISTENER);
+    native_.removeListener("SCREEN_STATE_LISTENER");
 };
 
 /**
@@ -122,81 +191,108 @@ PowerManager.prototype.unsetScreenStateChangeListener = function() {
  * @return {number} Current screen brightness value.
  */
 PowerManager.prototype.getScreenBrightness = function() {
-    var ret = native_.callSync('PowerManager_getScreenBrightness');
+    var nativeParam = {
+    };
+	var syncResult = 0;
+	
+    try {
+        syncResult = callNative('PowerManager_getScreenBrightness', nativeParam);
+        // if you need synchronous result from native function using 'syncResult'.
+    } catch(e) {
+        throw e;
+    }  
 
-    if (native_.isFailure(ret)) {
-        throw native_.getErrorObject(ret);
-    }
-
-    return native_.getResultObject(ret);
-};
+	return syncResult;
+}
 
 /**
  * Sets the screen brightness level for an application, from 0 to 1.
  * @param {!number} brightness The screen brightness value to set.
  */
-PowerManager.prototype.setScreenBrightness = function() {
+PowerManager.prototype.setScreenBrightness = function(brightness) {
     var args = validator_.validateArgs(arguments, [
-        {name: 'brightness', type: types_.DOUBLE}
+        {'name' : 'brightness', 'type': types_.DOUBLE} 
     ]);
 
     if (args.brightness < 0 || args.brightness > 1)
         throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
-
-    native_.callSync('PowerManager_setScreenBrightness', {
-        brightness: args.brightness
-    });
-};
+	
+    var nativeParam = {
+            'brightness': args.brightness
+    };
+    try {
+        var syncResult = callNative('PowerManager_setScreenBrightness', nativeParam);
+        // if you need synchronous result from native function using 'syncResult'.
+    } catch(e) {
+        throw e;
+    }
+}
 
 /**
  * Returns true if the screen is on.
  * @return {boolean} true if screen is on.
  */
 PowerManager.prototype.isScreenOn = function() {
-    var ret = native_.callSync('PowerManager_isScreenOn');
-
-    if (native_.isFailure(ret)) {
-        throw native_.getErrorObject(ret);
+    var nativeParam = {
+    };
+	var syncResult = 0;
+	
+    try {		
+        syncResult = callNative('PowerManager_isScreenOn', nativeParam);
+        // if you need synchronous result from native function using 'syncResult'.
+    } catch(e) {
+        throw e;
     }
 
-    return native_.getResultObject(ret);
-};
+	return syncResult;
+}
 
 /**
  * Restores the screen brightness to the system default setting value.
  */
 PowerManager.prototype.restoreScreenBrightness = function() {
-    var ret = native_.callSync('PowerManager_restoreScreenBrightness');
-
-    if (native_.isFailure(ret)) {
-        throw native_.getErrorObject(ret);
+    var nativeParam = {
+    };
+	
+    try {
+        var syncResult = callNative('PowerManager_restoreScreenBrightness', nativeParam);
+        // if you need synchronous result from native function using 'syncResult'.
+    } catch(e) {
+        throw e;
     }
-};
+}
 
 /**
  * Turns on the screen.
  */
 PowerManager.prototype.turnScreenOn = function() {
-    var ret = native_.callSync('PowerManager_setScreenState', {
-        on: true
-    });
-
-    if (native_.isFailure(ret)) {
-        throw native_.getErrorObject(ret);
+    var nativeParam = {
+    };
+	
+    try {
+        var syncResult = callNative('PowerManager_turnScreenOn', nativeParam);
+        // if you need synchronous result from native function using 'syncResult'.
+    } catch(e) {
+        throw e;
     }
-};
+}
 
 /**
  * Turns off the screen.
  */
 PowerManager.prototype.turnScreenOff = function() {
-    var ret = native_.callSync('PowerManager_setScreenState', {
-        on: false
-    });
+    var nativeParam = {
+    };
 
-    if (native_.isFailure(ret)) {
-        throw native_.getErrorObject(ret);
+    try {
+        var syncResult = callNative('PowerManager_turnScreenOff', nativeParam);
+        // if you need synchronous result from native function using 'syncResult'.
+    } catch(e) {
+        throw e;
     }
-};
+
+}
+
 
 exports = new PowerManager();
+

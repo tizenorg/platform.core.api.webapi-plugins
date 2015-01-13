@@ -387,8 +387,5 @@ void PowerManager::BroadcastScreenState(PowerState current){
   }
 }
 
-
-
 } // namespace power
 } // namespace extension
-

@@ -20,12 +20,14 @@ class PowerInstance
   virtual ~PowerInstance();
 
  private:
-  void Request(const picojson::value& args, picojson::object& out);
-  void Release(const picojson::value& args, picojson::object& out);
-  void GetScreenBrightness(const picojson::value& args, picojson::object& out);
-  void SetScreenBrightness(const picojson::value& args, picojson::object& out);
-  void IsScreenOn(const picojson::value& args, picojson::object& out);
-  void RestoreScreenBrightness(const picojson::value& args, picojson::object& out);
+  void PowerManagerRequest(const picojson::value& args, picojson::object& out);
+  void PowerManagerRelease(const picojson::value& args, picojson::object& out);
+  void PowerManagerGetscreenbrightness(const picojson::value& args, picojson::object& out);
+  void PowerManagerSetscreenbrightness(const picojson::value& args, picojson::object& out);
+  void PowerManagerIsscreenon(const picojson::value& args, picojson::object& out);
+  void PowerManagerRestorescreenbrightness(const picojson::value& args, picojson::object& out);
+  void PowerManagerTurnscreenon(const picojson::value& args, picojson::object& out);
+  void PowerManagerTurnscreenoff(const picojson::value& args, picojson::object& out);
   void SetScreenState(const picojson::value& args, picojson::object& out);
 
   // Override
