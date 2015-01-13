@@ -31,7 +31,7 @@ namespace {
 const char kGetExifInfoCmd[] = "Exif_getExifInfo";
 const char kSaveExifInfoCmd[] = "Exif_saveExifInfo";
 const char kGetThumbnailCmd[] = "Exif_getThumbnail";
-}
+}  // namespace
 
 ExifInstance::ExifInstance() {
   using namespace std::placeholders;
@@ -139,7 +139,7 @@ void ExifInstance::getExifInfo(const picojson::value& args,
 }
 
 void ExifInstance::saveExifInfo(const picojson::value& args,
-    picojson::object& out) {
+                                picojson::object& out) {
   const std::string& uri = args.get("uri").get<std::string>();
 
   const double callback_id = args.get("callbackId").get<double>();
@@ -157,12 +157,12 @@ void ExifInstance::saveExifInfo(const picojson::value& args,
   };
 
   auto get_response =
-  [callback_id, this](const std::shared_ptr<JsonValue>& response) -> void {
-    picojson::object& obj = response->get<picojson::object>();
-    obj.insert(std::make_pair("callbackId", callback_id));
-    LoggerD("callback is %s", response->serialize().c_str());
-    PostMessage(response->serialize().c_str());
-  };
+      [callback_id, this](const std::shared_ptr<JsonValue>& response) -> void {
+        picojson::object& obj = response->get<picojson::object>();
+        obj.insert(std::make_pair("callbackId", callback_id));
+        LoggerD("callback is %s", response->serialize().c_str());
+        PostMessage(response->serialize().c_str());
+      };
 
   common::TaskQueue::GetInstance().Queue<JsonValue>(
       get, get_response,
@@ -170,7 +170,7 @@ void ExifInstance::saveExifInfo(const picojson::value& args,
 }
 
 void ExifInstance::getThumbnail(const picojson::value& args,
-    picojson::object& out) {
+                                picojson::object& out) {
   LoggerE("getThumbnail is not implemented (c++)");
 }
 

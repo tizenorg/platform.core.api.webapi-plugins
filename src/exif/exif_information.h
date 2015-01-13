@@ -15,15 +15,15 @@
 // limitations under the License.
 //
 
-#ifndef EXIF_EXIF_EXIFINFORMATION_H_
-#define EXIF_EXIF_EXIFINFORMATION_H_
+#ifndef EXIF_EXIF_INFORMATION_H_
+#define EXIF_EXIF_INFORMATION_H_
 
 #include <libexif/exif-loader.h>
 #include <string>
 #include <vector>
 #include <map>
 
-#include "ExifGPSLocation.h"
+#include "exif_gps_location.h"
 #include "common/picojson.h"
 
 namespace extension {
@@ -253,4 +253,4 @@ class ExifInformation {
 }  // namespace exif
 }  // namespace extension
 
-#endif  // EXIF_EXIF_EXIFINFORMATION_H_
+#endif  // EXIF_EXIF_INFORMATION_H_

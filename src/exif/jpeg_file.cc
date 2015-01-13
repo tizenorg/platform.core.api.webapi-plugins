@@ -23,7 +23,7 @@
 
 #include <iomanip>
 #include <limits>
-#include <stdio.h>
+#include <cstdio>
 #include <sstream>
 
 #include "common/platform_exception.h"
@@ -42,7 +42,8 @@ const unsigned int MAX_JPEG_SECTION_DATA_SIZE = 65535;
  * JPEG's section data length includes 2 bytes for length therefore we need to
  * substract 2 from MAX_JPEG_SECTION_DATA_SIZE
  */
-const unsigned int MAX_AVAILABLE_JPEG_SECTION_DATA_SIZE = MAX_JPEG_SECTION_DATA_SIZE - 2;
+const unsigned int MAX_AVAILABLE_JPEG_SECTION_DATA_SIZE =
+    MAX_JPEG_SECTION_DATA_SIZE - 2;
 
 bool isJpegMarker(const int value) {
   return value >= JPEG_MARKER_LOWEST_ID && value <= JPEG_MARKER_HIGHEST_ID;
@@ -88,7 +89,8 @@ JpegFile::~JpegFile() {
   m_padding_data = NULL;
   m_padding_data_size = 0;
 
-  for(SectionsVec::iterator it = m_sections.begin(); it != m_sections.end(); ++it) {
+  for (SectionsVec::iterator it = m_sections.begin();
+      it != m_sections.end(); ++it) {
     JpegFileSectionPtr cur = *it;
 
     if (cur->exif_data) {
@@ -171,8 +173,8 @@ void JpegFile::load(const std::string& path) {
 }
 
 std::string JpegFile::getPartOfFile(const size_t offset,
-    const size_t num_bytes_before,
-    const size_t num_bytes_after) {
+                                    const size_t num_bytes_before,
+                                    const size_t num_bytes_after) {
   long long int start = static_cast<long long int>(offset) - num_bytes_before;
   if (start < 0) {
     start = 0;
@@ -185,7 +187,7 @@ std::string JpegFile::getPartOfFile(const size_t offset,
 
   std::stringstream ss;
   ss << std::setfill('0') << std::setw(2) << std::hex;
-  for(long long int i = start; i <= end; ++i) {
+  for (long long int i = start; i <= end; ++i) {
     ss << static_cast<int>(m_in_data[i]);
   }
   return ss.str();
@@ -195,33 +197,33 @@ std::string JpegFile::getPartOfFile(const size_t offset,
 void JpegFile::generateListOfSections() {
   LoggerD("Entered");
 
-  //JPEG starts with:
-  //FFD8 (2 bytes) - SOI Marker
+  // JPEG starts with:
+  // FFD8 (2 bytes) - SOI Marker
   //
-  //then:
-  //N sections - format of section:
-  //0xFF(1 byte) + Marker Number(1 byte) + Data size(2 bytes) + Data
+  // then:
+  // N sections - format of section:
+  // 0xFF(1 byte) + Marker Number(1 byte) + Data size(2 bytes) + Data
   //
-  //then:
-  //SOS 0xFF(1 byte) + Marker Number(1 byte) + Data size(2 bytes) + Data
+  // then:
+  // SOS 0xFF(1 byte) + Marker Number(1 byte) + Data size(2 bytes) + Data
   //
-  //Image data
+  // Image data
   //
-  //FFD9 (2 bytes) - EOI Marker
+  // FFD9 (2 bytes) - EOI Marker
   //
-  //Warning: some images taken on Android contains some extra data at the end
-  //we will keep it in m_padding_data
+  // Warning: some images taken on Android contains some extra data at the end
+  // we will keep it in m_padding_data
 
   m_padding_data = NULL;
   m_padding_data_size = 0;
 
-  for(size_t offset = 0, iterration = 0; offset < m_in_data_size;++iterration) {
-
+  for (size_t offset = 0, iterration = 0;
+      offset < m_in_data_size; ++iterration) {
     LoggerD("offset:%d | Starting iteration: %d", offset, iterration);
     const size_t search_len = 10;
     size_t search_offset = 0;
-    for(search_offset = 0; search_offset < search_len; ++search_offset) {
-      //Skip bytes until first no 0xff
+    for (search_offset = 0; search_offset < search_len; ++search_offset) {
+      // Skip bytes until first no 0xff
       unsigned char& tmp_marker = m_in_data[offset + search_offset];
       if (tmp_marker != 0xff) {
         break;
@@ -237,21 +239,21 @@ void JpegFile::generateListOfSections() {
     const size_t section_offset = offset + search_offset - 1;
     unsigned char* section_begin = m_in_data + section_offset;
 
-    offset = section_offset;  //Move to section begin
+    offset = section_offset;  // Move to section begin
     LoggerD("offset:%d | Moved to section begin", offset);
 
     if (!isJpegMarker(section_begin[1])) {
       LoggerE("offset:%d | Is not valid marker: 0x%x RAW DATA:{%s}", offset,
-          section_begin[1], getPartOfFile(section_offset,0,4).c_str());
+          section_begin[1], getPartOfFile(section_offset, 0, 4).c_str());
       throw common::UnknownException("JPEG file is invalid");
     }
 
     const JpegMarker cur_marker = castToJpegMarker(section_begin[1]);
     LoggerD("offset:%d | Found valid marker: 0x%x RAW DATA:{%s}", offset,
         cur_marker,
-        getPartOfFile(section_offset,0,4).c_str());
+        getPartOfFile(section_offset, 0, 4).c_str());
 
-    offset += 2;  //Read 0xffxx marker tag - 2 bytes
+    offset += 2;  // Read 0xffxx marker tag - 2 bytes
 
     JpegFileSectionPtr section;
     {
@@ -273,35 +275,36 @@ void JpegFile::generateListOfSections() {
           offset);
 
       if (cur_marker == JPEG_MARKER_EOI && m_padding_data != NULL) {
-        LoggerW("Padding data have been found - do not try to parse end of file");
+        LoggerW("Padding data have been found"
+            " - do not try to parse end of file");
         break;
       }
-    }
-    else {
-      //From JPEG/EXIF info:
+    } else {
+      // From JPEG/EXIF info:
       // Please notice that "Data" contains Data size descriptor, if there is
       // a Marker like this;
       //
       // FF C1 00 0C
       // It means this Marker(0xFFC1) has 0x000C(equal 12)bytes of data. But the
-      // data size '12' includes "Data size" descriptor, it follows only 10 bytes of
-      // data after 0x000C.
-      //
+      // data size '12' includes "Data size" descriptor,
+      // it follows only 10 bytes of data after 0x000C.
 
-      const long total_section_len = readUShortBE(section_begin + 2); //Include data
-                                      //size 2 bytes
+      // Include data
+      // size 2 bytes
+      const long total_section_len = readUShortBE(section_begin + 2);
 
-      const long section_data_len = total_section_len - 2;      //Exclude data
-                                      //size 2 bytes
+      // Exclude data
+      // size 2 bytes
+      const long section_data_len = total_section_len - 2;
 
       LoggerD("offset:%d tag:0x%x | Read total_section_len:%d (data len:%d)",
           section_offset, cur_marker, total_section_len, section_data_len);
 
-      offset += 2;  //Read data size - 2 bytes
+      offset += 2;  // Read data size - 2 bytes
 
       if (total_section_len < 0) {
-        LoggerE("offset:%d tag:0x%x | Error: total_section_len is: %d < 0", offset,
-            cur_marker, total_section_len);
+        LoggerE("offset:%d tag:0x%x | Error: total_section_len is: %d < 0",
+            offset, cur_marker, total_section_len);
         throw common::UnknownException("JPEG file is invalid");
       }
 
@@ -315,12 +318,12 @@ void JpegFile::generateListOfSections() {
       }
 
       if (JPEG_MARKER_APP1 == cur_marker) {
-        //TODO: verify this
-        //-4 --> 0xFF(1 byte)+Marker Number(1 byte)+Data size(2 bytes))
-        //const unsigned int exif_data_size = section_length - 4;
+        // TODO(Unknown): verify this
+        // -4 --> 0xFF(1 byte)+Marker Number(1 byte)+Data size(2 bytes))
+        // const unsigned int exif_data_size = section_length - 4;
 
         const unsigned int exif_data_size = total_section_len + 2;
-        section->exif_data = exif_data_new_from_data (section_begin,
+        section->exif_data = exif_data_new_from_data(section_begin,
             exif_data_size);
 
         LoggerD("offset:%d tag:0x%x | Loading exif from offset:%d"
@@ -329,23 +332,28 @@ void JpegFile::generateListOfSections() {
             section->exif_data);
 
         if (!section->exif_data) {
-          LoggerW("offset:%d tag:0x%x | Couldn't load Exif!", offset, cur_marker);
+          LoggerW("offset:%d tag:0x%x | Couldn't load Exif!",
+              offset, cur_marker);
         }
       }
 
-      //This just saves pointer not copying data
-      section->data_ptr = section_begin + 2 + 2; //2 bytes marker + 2 bytes data size
-      section->size = section_data_len;  //Exclude data size
+      // This just saves pointer not copying data
+      // 2 bytes marker + 2 bytes data size
+      section->data_ptr = section_begin + 2 + 2;
+      section->size = section_data_len;  // Exclude data size
 
       if (JPEG_MARKER_SOS == cur_marker) {
-        //Calculate offset of first image data which is just after this SOS section
+        // Calculate offset of first image data which
+        // is just after this SOS section
         const size_t image_data_offset = section_offset + 2 + total_section_len;
 
-        //Calculate size of image data from start to expected EOI at end of file.
+        // Calculate size of image data from start
+        // to expected EOI at end of file.
         //
-        //-2 (exclude ending EOI marker (2 bytes)
+        // -2 (exclude ending EOI marker (2 bytes)
         size_t image_size = m_in_data_size - image_data_offset - 2;
-        LoggerW("offset:%d tag:0x%x | Image data offset:%d Estimated image size:%d",
+        LoggerW("offset:%d tag:0x%x"
+            " | Image data offset:%d Estimated image size:%d",
             offset, cur_marker, image_data_offset, image_size);
 
         m_image_data = m_in_data + image_data_offset;
@@ -354,13 +362,14 @@ void JpegFile::generateListOfSections() {
         bool found_eoi_tag = searchForTagInBuffer(m_in_data + image_data_offset,
             m_in_data + m_in_data_size, JPEG_MARKER_EOI, eoi_tag_index);
         if (!found_eoi_tag) {
-          LoggerE("Could not find EOI tag! Assume that there is no EOI and rest of "
+          LoggerE("Could not find EOI tag!"
+              " Assume that there is no EOI and rest of "
               "JPEG file contains image data stream: image_size+= 2");
-          image_size += 2; //Skip expected EOI tag which is not present
+          image_size += 2;  // Skip expected EOI tag which is not present
         } else {
           LoggerD("EOI tag found at offset: %d from SOS data", eoi_tag_index);
 
-          if(eoi_tag_index != image_size) {
+          if (eoi_tag_index != image_size) {
             LoggerW("Estimated image size:%d doesn't match EOI tag index:%d"
                 " delta:%d", image_size, eoi_tag_index,
                 image_size - eoi_tag_index);
@@ -368,10 +377,10 @@ void JpegFile::generateListOfSections() {
             LoggerW("Setting image_size to EOI tag: %d", eoi_tag_index);
             image_size = eoi_tag_index;
 
-            m_padding_data = m_image_data + image_size + 2; //(skip EOI tag)
+            m_padding_data = m_image_data + image_size + 2;  // (skip EOI tag)
             m_padding_data_size = (m_in_data + m_in_data_size) - m_padding_data;
             LoggerW("Saving padding data from offset:%d with size:%d",
-              m_padding_data - m_in_data, m_padding_data_size);
+                m_padding_data - m_in_data, m_padding_data_size);
           }
         }
 
@@ -380,10 +389,10 @@ void JpegFile::generateListOfSections() {
         offset = image_data_offset + image_size;
         LoggerD("offset:%d tag:0x%x | SOS Offset moved to next marker", offset,
             cur_marker);
-      }
-      else {
+      } else {
         offset += section_data_len;
-        LoggerD("offset:%d tag:0x%x | Offset moved to next marker", offset, cur_marker);
+        LoggerD("offset:%d tag:0x%x | Offset moved to next marker",
+            offset, cur_marker);
       }
     }
   }
@@ -393,19 +402,20 @@ bool JpegFile::searchForTagInBuffer(const unsigned char* buffer_start,
     const unsigned char* buffer_end,
     const JpegMarker marker,
     size_t& out_index) {
-  LoggerD("Entered start:%p end:%p marker:0x%x", buffer_start, buffer_end, marker);
+  LoggerD("Entered start:%p end:%p marker:0x%x",
+      buffer_start, buffer_end, marker);
 
-  if(!buffer_start) {
+  if (!buffer_start) {
     LoggerE("buffer_start is NULL");
     return false;
   }
 
-  if(!buffer_end) {
+  if (!buffer_end) {
     LoggerE("buffer_end is NULL");
     return false;
   }
 
-  if(buffer_end <= buffer_start) {
+  if (buffer_end <= buffer_start) {
     LoggerE("buffer_end: %p <= buffer_start: %p", buffer_end, buffer_start);
     return false;
   }
@@ -413,10 +423,9 @@ bool JpegFile::searchForTagInBuffer(const unsigned char* buffer_start,
   LoggerD("Bytes to scan: %d", static_cast<size_t>(buffer_end - buffer_start));
   const unsigned char marker_uchar = static_cast<unsigned char>(marker);
 
-  for(const unsigned char* ptr = buffer_start; ptr < buffer_end; ++ptr) {
-
-    if((0xff == *ptr) && (ptr+1 < buffer_end)) {
-      if(marker_uchar == *(ptr+1)) {
+  for (const unsigned char* ptr = buffer_start; ptr < buffer_end; ++ptr) {
+    if ((0xff == *ptr) && (ptr+1 < buffer_end)) {
+      if (marker_uchar == *(ptr+1)) {
         out_index = static_cast<size_t>(ptr - buffer_start);
         return true;
       }
@@ -453,8 +462,7 @@ void JpegFile::setNewExifData(ExifData* new_exif_data) {
     if (insert_it != m_sections.end()) {
       if ((*insert_it)->type != JPEG_MARKER_SOI) {
         LoggerW("First section is not SOI - Start Of Image!");
-      }
-      else {
+      } else {
         soi_is_present = true;
       }
     }
@@ -464,23 +472,22 @@ void JpegFile::setNewExifData(ExifData* new_exif_data) {
       throw common::UnknownException("JPEG file is invalid");
     }
 
-    //Insert new Exif sections just after SOI
+    // Insert new Exif sections just after SOI
     ++insert_it;
     if (insert_it != m_sections.begin()) {
       m_sections.insert(insert_it, exif);
-    }
-    else {
-      //This shouldn't happen since we at lest need SOS and EOI sections
+    } else {
+      // This shouldn't happen since we at lest need SOS and EOI sections
       m_sections.push_back(exif);
     }
   }
 
-  //We don't want to save old data
+  // We don't want to save old data
   exif->data_ptr = NULL;
   exif->size = 0;
 
   exif_data_unref(exif->exif_data);
-  exif_data_ref (new_exif_data);
+  exif_data_ref(new_exif_data);
   exif->exif_data = new_exif_data;
 }
 
@@ -506,16 +513,15 @@ void JpegFile::saveToFile(const std::string& out_path) {
         out_path.c_str());
 
     if (out_path == m_source_file_path) {
-
       LoggerD("Trying to recover broken JPEG file: [%s]", out_path.c_str());
-      //We were writing to source file and since something went wrong let's
-      //restore old file - we have it in m_in_data
+      // We were writing to source file and since something went wrong let's
+      // restore old file - we have it in m_in_data
 
       FILE* outf = fopen(out_path.c_str(), "wb");
       if (!outf) {
-        LoggerE("Couldn't open output file: [%s] - JPEG file will not be restored!");
-      }
-      else {
+        LoggerE("Couldn't open output file:"
+            " [%s] - JPEG file will not be restored!", out_path.c_str());
+      } else {
         size_t bytes_wrote = fwrite(m_in_data, 1, m_in_data_size, outf);
         if (bytes_wrote != m_in_data_size) {
           LoggerE("Couldn't restore whole JPEG! "
@@ -545,14 +551,14 @@ void JpegFile::saveToFilePriv(const std::string& out_path) {
   size_t offset = 0;
 
   int section_index = 0;
-  for(SectionsVec::iterator it = m_sections.begin();
+  for (SectionsVec::iterator it = m_sections.begin();
       it != m_sections.end();
-      ++it, ++ section_index) {
-
+      ++it, ++section_index) {
     JpegFileSectionPtr cur = *it;
     const JpegMarker cur_marker = cur->type;
 
-    LoggerD("offset:%d | Section: %d marker 0x%x", offset, section_index, cur_marker);
+    LoggerD("offset:%d | Section: %d marker 0x%x",
+        offset, section_index, cur_marker);
 
     size_t bytes_to_write = 0;
     size_t bytes_wrote = 0;
@@ -570,12 +576,10 @@ void JpegFile::saveToFilePriv(const std::string& out_path) {
 
     if (cur_marker != JPEG_MARKER_SOI &&
         cur_marker != JPEG_MARKER_EOI) {
-
       unsigned short section_size = 2;
       if (JPEG_MARKER_APP1 && cur->exif_data) {
-
         unsigned char* tmp = NULL;
-        exif_data_save_data (cur->exif_data, &tmp, &exif_output_size);
+        exif_data_save_data(cur->exif_data, &tmp, &exif_output_size);
         if (!tmp || 0 == exif_output_size) {
           LoggerE("Couldn't generate RAW Exif data!");
           throw common::UnknownException("Could not save Exif in JPEG file");
@@ -590,12 +594,12 @@ void JpegFile::saveToFilePriv(const std::string& out_path) {
           LoggerE("exif_output_size:%d is greater then maximum JPEG section"
               "data block size: %d", exif_output_size,
               MAX_AVAILABLE_JPEG_SECTION_DATA_SIZE);
-          throw common::UnknownException("Exif data is to big to be saved in JPEG file");
+          throw common::UnknownException(
+              "Exif data is to big to be saved in JPEG file");
         }
         section_size += exif_output_size;
         write_exif_data = true;
-      }
-      else {
+      } else {
         section_size += cur->size;
         write_section_data = true;
       }
@@ -604,8 +608,8 @@ void JpegFile::saveToFilePriv(const std::string& out_path) {
       bytes_to_write += 2;
     }
 
-    LoggerD("offset:%d | Writing section: marker:0x%x size:%d", offset, cur_marker,
-        cur->size);
+    LoggerD("offset:%d | Writing section:"
+        " marker:0x%x size:%d", offset, cur_marker, cur->size);
 
     bytes_wrote = fwrite(tmp_buf, 1, bytes_to_write, m_out_file);
     offset += bytes_wrote;
@@ -635,7 +639,8 @@ void JpegFile::saveToFilePriv(const std::string& out_path) {
           exif_output_size);
 
       bytes_to_write = exif_output_size;
-      bytes_wrote = fwrite(exif_output_data.get(), 1, bytes_to_write, m_out_file);
+      bytes_wrote = fwrite(exif_output_data.get(), 1, bytes_to_write,
+          m_out_file);
       offset += bytes_wrote;
 
       if (bytes_wrote != bytes_to_write) {
@@ -667,8 +672,8 @@ void JpegFile::saveToFilePriv(const std::string& out_path) {
         m_out_file);
 
     if (bytes_wrote != m_padding_data_size) {
-      LoggerE("Couldn't wrote %d bytes! Only %d bytes wrote", m_padding_data_size,
-          bytes_wrote);
+      LoggerE("Couldn't wrote %d bytes! Only %d bytes wrote",
+          m_padding_data_size, bytes_wrote);
       throw common::UnknownException("Could not write JPEG file");
     }
   }
@@ -676,9 +681,10 @@ void JpegFile::saveToFilePriv(const std::string& out_path) {
   if (fclose(m_out_file) == EOF) {
     LoggerE("Couldn't close output file: %s", out_path.c_str());
     m_out_file = NULL;
-  }  else {
+  } else {
     m_out_file = NULL;
-    LoggerD("Closed output file: %s wrote:%d bytes: %d", out_path.c_str(), offset);
+    LoggerD("Closed output file: %s wrote:%d bytes: %d",
+        out_path.c_str(), offset);
   }
 }
 
@@ -686,21 +692,23 @@ JpegFileSectionPtr JpegFile::getExifSection() {
   size_t num_exif_sections = 0;
   JpegFileSectionPtr first_exif_section;
 
-  for (SectionsVec::iterator it = m_sections.begin(); it != m_sections.end(); ++it) {
+  for (SectionsVec::iterator it = m_sections.begin();
+      it != m_sections.end(); ++it) {
     JpegFileSectionPtr cur = *it;
 
     if (JPEG_MARKER_APP1 == cur->type) {
       if (!cur->exif_data) {
-        LoggerW("Warning: found APP1 section but exif_data is NULL (Not Exif?)");
+        LoggerW("Warning: found APP1 section but exif_data is NULL"
+            " (Not Exif?)");
         continue;
       }
 
       ++num_exif_sections;
       if (!first_exif_section) {
         first_exif_section = cur;
-      }
-      else {
-        LoggerW("Warning: found %d APP1/Exif sections - only first is currently supported!");
+      } else {
+        LoggerW("Warning: found %d APP1/Exif sections -"
+            " only first is currently supported!");
       }
     }
   }

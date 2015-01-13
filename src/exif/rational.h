@@ -36,7 +36,8 @@ typedef std::shared_ptr<Rationals> RationalsPtr;
 
 /**
  * This class represents fraction as nominator/denominator - two ExifLong values
- * Rational type is present in Exif specification - used for example in GPS coordinates
+ * Rational type is present in Exif specification - used for example
+ * in GPS coordinates
  */
 class Rational {
  public:
@@ -53,7 +54,8 @@ class Rational {
   static Rational createInvalid();
 
   /**
-   * Returns true if denominator is valid (!= 0) and therefore whole Rational is valid
+   * Returns true if denominator is valid (!= 0) and therefore whole Rational
+   * is valid
    */
   bool isValid() const;
 
@@ -62,7 +64,6 @@ class Rational {
   /**
    * Returns string in format: nominator/denominator,
    * for example: "1/4", "1/1", "5/3".
-   *
    */
   std::string toString() const;
 

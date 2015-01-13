@@ -8,7 +8,7 @@
 namespace {
 const char kExtensionName[] = "tizen.exif";
 const char kExifInformationEntryPoint[] = "tizen.ExifInformation";
-}
+}  // namespace
 
 common::Extension* CreateExtension() {
   return new ExifExtension;

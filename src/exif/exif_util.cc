@@ -49,11 +49,11 @@ const std::string EXPOSURE_PROGRAM_ACTION_PROGRAM = "ACTION_PROGRAM";
 const std::string EXPOSURE_PROGRAM_PORTRAIT_MODE = "PORTRAIT_MODE";
 const std::string EXPOSURE_PROGRAM_LANDSCAPE_MODE = "LANDSCAPE_MODE";
 
-const std::string DUMMY = ""; // For unexpected input handling
+const std::string DUMMY = "";  // For unexpected input handling
 
 const std::string URI_PREFIX = "file://";
 const std::string URI_ABSOLUTE_PREFIX = "file:///";
-}
+}  // namespace
 
 const size_t ExifTypeInfo::ByteSize = 1;
 const size_t ExifTypeInfo::ASCIISize = 1;
@@ -132,7 +132,8 @@ const std::string& ExifUtil::orientationToString(ImageOrientation orientation) {
   }
 }
 
-WhiteBalanceMode ExifUtil::stringToWhiteBalance(const std::string& white_balance) {
+WhiteBalanceMode ExifUtil::stringToWhiteBalance(
+    const std::string& white_balance) {
   LoggerD("Entered");
   if (WHITE_BALANCE_MODE_AUTO == white_balance) {
     return WhiteBalanceMode::EXIF_WHITE_BALANCE_MODE_AUTO;
@@ -219,30 +220,32 @@ bool ExifUtil::isValidAbsoluteURI(const std::string& uri) {
 }
 
 void ExifUtil::getURIInfo(const std::string& uri,
-    //const Filesystem::NodeType expected_type,
+    // const Filesystem::NodeType expected_type,
     const std::string& required_permission,
     bool& out_exists,
-    //Filesystem::NodeType& out_type,
+    // Filesystem::NodeType& out_type,
     bool& out_permission_granted) {
   const std::string absolute_path = ExifUtil::convertUriToPath(uri);
   out_exists = false;
   out_permission_granted = false;
 
   try {
-    //Filesystem::PathPtr path = Filesystem::Path::create(absolute_path);
-    //Filesystem::NodePtr node = Filesystem::Node::resolve(path);
-    //out_type = node->getType();
-    //out_exists = true;
+    // Filesystem::PathPtr path = Filesystem::Path::create(absolute_path);
+    // Filesystem::NodePtr node = Filesystem::Node::resolve(path);
+    // out_type = node->getType();
+    // out_exists = true;
 
-    //if (expected_type == out_type) {
-    //  out_permission_granted = node->checkPermission(path, required_permission,
+    // if (expected_type == out_type) {
+    //  out_permission_granted = node->checkPermission(path,
+    //      required_permission,
     //      expected_type);
-    //}
+    // }
   }
-  /*catch (const common::BasePlatformException &err) {
-    LoggerE("Couldn't resolve path: %s, got:%s (%s)", absolute_path.c_str(),
+  /* catch (const common::BasePlatformException &err) {
+     LoggerE("Couldn't resolve path: %s, got:%s (%s)", absolute_path.c_str(),
         (err.getName()).c_str(), (err.getMessage()).c_str());
-  }*/
+  }
+  */
   catch(...) {
     LoggerE("Couldn't resolve path: %s", absolute_path.c_str());
   }
@@ -257,8 +260,7 @@ std::string ExifUtil::convertUriToPath(const std::string& str) {
 
   if (prefix == URI_PREFIX) {
     return path.substr(URI_PREFIX.size());
-  }
-  else {
+  } else {
     return path;
   }
 }
@@ -271,10 +273,10 @@ std::string ExifUtil::ltrim(const std::string& s) {
       break;
     }
   }
+
   if (i == str.end()) {
     str.clear();
-  }
-  else {
+  } else {
     str.erase(str.begin(), i);
   }
   return str;
@@ -283,7 +285,7 @@ std::string ExifUtil::ltrim(const std::string& s) {
 time_t ExifUtil::exifDateTimeOriginalToTimeT(const char* string) {
   int year, month, day, hour, min, sec;
   if (sscanf(string, "%d:%d:%d %d:%d:%d",
-        &year, &month, &day, &hour, &min, &sec) >= 6) {
+      &year, &month, &day, &hour, &min, &sec) >= 6) {
     return convertToTimeT(year, month, day, hour, min, sec);
   }
 
@@ -295,12 +297,12 @@ std::string ExifUtil::timeTToExifDateTimeOriginal(time_t time) {
   extractFromTimeT(time, year, month, day, hour, min, sec);
 
   std::ostringstream ss;
-  ss << std::setfill('0') << std::setw(4) << year << ':' ;
-  ss << std::setfill('0') << std::setw(2) << month << ':' ;
-  ss << std::setfill('0') << std::setw(2) << day << ' ' ;
+  ss << std::setfill('0') << std::setw(4) << year << ':';
+  ss << std::setfill('0') << std::setw(2) << month << ':';
+  ss << std::setfill('0') << std::setw(2) << day << ' ';
 
-  ss << std::setfill('0') << std::setw(2) << hour << ':' ;
-  ss << std::setfill('0') << std::setw(2) << min << ':' ;
+  ss << std::setfill('0') << std::setw(2) << hour << ':';
+  ss << std::setfill('0') << std::setw(2) << min << ':';
   ss << std::setfill('0') << std::setw(2) << sec;
   return ss.str();
 }
@@ -331,8 +333,8 @@ std::string ExifUtil::timeTToExifGpsDateStamp(time_t time) {
   LoggerD("day: %d", day);
 
   std::ostringstream ss;
-  ss << std::setfill('0') << std::setw(4) << year << ':' ;
-  ss << std::setfill('0') << std::setw(2) << month << ':' ;
+  ss << std::setfill('0') << std::setw(4) << year << ':';
+  ss << std::setfill('0') << std::setw(2) << month << ':';
   ss << std::setfill('0') << std::setw(2) << day;
 
   LoggerD("SS: %s", ss.str().c_str());
@@ -388,16 +390,15 @@ void ExifUtil::printExifEntryInfo(ExifEntry* entry, ExifData* exif_data) {
 
   size_t size_per_member = getSizeOfExifFormatType(entry->format);
   if (0 == size_per_member) {
-    size_per_member = 1;  //display as array of bytes
+    size_per_member = 1;  // display as array of bytes
   }
 
-  for(unsigned long compi = 0; compi < entry->components; ++compi) {
-
+  for (unsigned long compi = 0; compi < entry->components; ++compi) {
     if (compi > 0) {
       ss << " ";
     }
 
-    for(size_t i = 0; i < size_per_member; ++i) {
+    for (size_t i = 0; i < size_per_member; ++i) {
       unsigned int value = read_buf_ptr[i];
       ss << std::hex << std::setw(2) << std::setfill('0') << value;
     }
@@ -408,15 +409,15 @@ void ExifUtil::printExifEntryInfo(ExifEntry* entry, ExifData* exif_data) {
   LoggerD("Entry{name:%s type:%s size:%d components:%d value:%s RAW DATA:[%s]}",
       exif_tag_get_name(entry->tag),
       exif_format_get_name(entry->format),
-      (int)entry->size,
-      (int)entry->components,
+      static_cast<int>(entry->size),
+      static_cast<int>(entry->components),
       exif_entry_get_value(entry, buf, sizeof(buf)),
       ss.str().c_str());
 }
 
 void ExifUtil::extractFromTimeT(const time_t time,
-      int& out_year, int& out_month, int& out_day,
-      int& out_hour, int& out_min, int& out_sec) {
+                                int& out_year, int& out_month, int& out_day,
+                                int& out_hour, int& out_min, int& out_sec) {
   struct tm* utc = gmtime(&time);
 
   out_year = utc->tm_year + 1900;
@@ -428,7 +429,7 @@ void ExifUtil::extractFromTimeT(const time_t time,
 }
 
 time_t ExifUtil::convertToTimeT(int year, int month, int day,
-                                int hour, int min, int sec) {
+      int hour, int min, int sec) {
   time_t tmp_time = 0;
   struct tm* timeinfo = localtime(&tmp_time);
   timeinfo->tm_year = year - 1900;
@@ -439,8 +440,8 @@ time_t ExifUtil::convertToTimeT(int year, int month, int day,
   timeinfo->tm_min = min;
   timeinfo->tm_sec = sec;
 
-  //From mktime documentation:
-  //"The values of the members tm_wday and tm_yday of timeptr are ignored"
+  // From mktime documentation:
+  // "The values of the members tm_wday and tm_yday of timeptr are ignored"
   return timegm(timeinfo);
 }
 

@@ -15,8 +15,8 @@
 // limitations under the License.
 //
 
-#ifndef EXIF_EXIF_EXIFGPSLOCATION_H_
-#define EXIF_EXIF_EXIFGPSLOCATION_H_
+#ifndef EXIF_EXIF_GPS_LOCATION_H_
+#define EXIF_EXIF_GPS_LOCATION_H_
 
 #include <string>
 #include <vector>
@@ -132,4 +132,4 @@ class ExifGPSLocation {
 }  // namespace exif
 }  // namespace extension
 
-#endif  // EXIF_EXIF_EXIFGPSLOCATION_H_
+#endif  // EXIF_EXIF_GPS_LOCATION_H_

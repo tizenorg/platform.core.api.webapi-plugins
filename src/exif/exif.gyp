@@ -26,8 +26,8 @@
         'jpeg_file.h',
         'rational.cc',
         'rational.h',
-        'ExifGPSLocation.cpp',
-        'ExifGPSLocation.h',
+        'exif_gps_location.cc',
+        'exif_gps_location.h',
       ],
       'conditions': [
         [ 'tizen == 1', {

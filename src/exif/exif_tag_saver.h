@@ -19,15 +19,15 @@
  * @file  exif_tag_saver.h
  */
 
-#ifndef EXIF_EXIF_TAG_SAVER_H__
-#define EXIF_EXIF_TAG_SAVER_H__
+#ifndef EXIF_EXIF_TAG_SAVER_H_
+#define EXIF_EXIF_TAG_SAVER_H_
 
 #include <libexif/exif-data.h>
 
 #include <string>
 #include <vector>
 
-#include "ExifGPSLocation.h"
+#include "exif_gps_location.h"
 
 namespace extension {
 namespace exif {
@@ -36,17 +36,14 @@ class ExifTagSaver {
  public:
   static void removeExifEntryWithTag(const ExifTag tag, ExifData* exif_data);
 
-  static void saveToExif(long int value,
-                         ExifTag tag,
-                         ExifData* exif_data);
+  static void saveToExif(long int value, ExifTag tag, ExifData* exif_data);
   static void saveToExif(const std::string& value, ExifTag tag,
-                         ExifData* exif_data,
-                         ExifFormat format = EXIF_FORMAT_ASCII,
-                         bool add_zero_character = true);
+      ExifData* exif_data, ExifFormat format = EXIF_FORMAT_ASCII,
+      bool add_zero_character = true);
   static void saveToExif(const Rational& value, ExifTag tag,
-                         ExifData* exif_data);
+      ExifData* exif_data);
   static void saveToExif(const Rationals& value, ExifTag tag,
-                         ExifData* exif_data);
+      ExifData* exif_data);
   static void saveToExif(std::vector<long long int>& value, ExifFormat store_as,
       ExifTag tag, ExifData* exif_data);
   static void saveGpsLocationToExif(const ExifGPSLocation& gps_info,
@@ -57,10 +54,10 @@ class ExifTagSaver {
   static ExifIfd deduceIfdSection(ExifTag tag);
   static ExifFormat deduceDataFormat(ExifTag tag);
   static ExifEntry* createNewTag(ExifData* exif_data, ExifIfd ifd,
-    ExifFormat format, ExifTag tag);
+      ExifFormat format, ExifTag tag);
 };
 
 }  // namespace exif
 }  // namespace extension
 
-#endif  // EXIF_EXIF_TAG_SAVER_H__
+#endif  // EXIF_EXIF_TAG_SAVER_H_

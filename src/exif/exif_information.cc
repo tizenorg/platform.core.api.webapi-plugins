@@ -18,15 +18,15 @@
 #include "exif_information.h"
 
 #include <memory>
-#include <math.h>
-
-#include "exif_tag_saver.h"
-#include "exif_util.h"
-#include "jpeg_file.h"
+#include <cmath>
 
 #include "common/platform_exception.h"
 #include "common/converter.h"
 #include "common/logger.h"
+
+#include "exif_tag_saver.h"
+#include "exif_util.h"
+#include "jpeg_file.h"
 
 namespace extension {
 namespace exif {
@@ -64,13 +64,15 @@ IsoSpeedRatingsVector jsonArray2vector(const picojson::value& a) {
 }  // namespace
 
 ExifInformation::ExifInformation() {
-  for (int attr = 0; attr < EXIF_INFORMATION_ATTRIBUTE_NUMBER_OF_ATTRIBUTES; attr++) {
+  for (int attr = 0;
+      attr < EXIF_INFORMATION_ATTRIBUTE_NUMBER_OF_ATTRIBUTES; attr++) {
     unset(static_cast<ExifInformationAttribute>(attr));
   }
 }
 
 ExifInformation::ExifInformation(const picojson::value& args) {
-  for (int attr = 0; attr < EXIF_INFORMATION_ATTRIBUTE_NUMBER_OF_ATTRIBUTES; attr++) {
+  for (int attr = 0;
+      attr < EXIF_INFORMATION_ATTRIBUTE_NUMBER_OF_ATTRIBUTES; attr++) {
     unset(static_cast<ExifInformationAttribute>(attr));
   }
 
@@ -258,8 +260,9 @@ const Rational& ExifInformation::getFocalLength() const {
 
 void ExifInformation::setFocalLength(Rational focal_length) {
   LoggerD("Entered");
-  if(!focal_length.isValid()) {
-    LoggerW("Trying to set invalid focal length: %s", focal_length.toString().c_str());
+  if (!focal_length.isValid()) {
+    LoggerW("Trying to set invalid focal length: %s",
+        focal_length.toString().c_str());
     return;
   }
 
@@ -313,7 +316,8 @@ const Rational& ExifInformation::getGpsAltitude() const {
 void ExifInformation::setGpsAltitude(Rational gps_altitude) {
   LoggerD("Entered");
   if (!gps_altitude.isValid()) {
-    LoggerW("Trying to set invalid gps altitude: %s", gps_altitude.toString().c_str());
+    LoggerW("Trying to set invalid gps altitude: %s",
+        gps_altitude.toString().c_str());
     return;
   }
 
@@ -336,7 +340,7 @@ void ExifInformation::setGpsAltitudeWithRef(double gps_altitude) {
   LoggerD("Entered");
   setGpsAltitude(Rational::createFromDouble(fabs(gps_altitude)));
 
-  if(gps_altitude >= 0.0) {
+  if (gps_altitude >= 0.0) {
     setGpsAltitudeRef(GPS_ALTITUDE_REF_ABOVE_SEA);
   } else {
     setGpsAltitudeRef(GPS_ALTITUDE_REF_BELOW_SEA);
@@ -509,72 +513,92 @@ void ExifInformation::set(std::string attributeName, const picojson::value& v) {
   LoggerD("Entered | name: %s", attributeName.c_str());
 
   switch (str2int(attributeName.c_str())) {
-    case str2int(EI_URI):
+    case str2int(EI_URI): {
       setUri(v.get<std::string>());
       break;
-    case str2int(EI_WIDTH):
+    }
+    case str2int(EI_WIDTH): {
       setWidth(static_cast<int>(v.get<double>()));
       break;
-    case str2int(EI_HEIGHT):
+    }
+    case str2int(EI_HEIGHT): {
       setHeight(static_cast<int>(v.get<double>()));
       break;
-    case str2int(EI_DEVICE_MAKER):
+    }
+    case str2int(EI_DEVICE_MAKER): {
       setDeviceMaker(v.get<std::string>());
       break;
-    case str2int(EI_DEVICE_MODEL):
+    }
+    case str2int(EI_DEVICE_MODEL): {
       setDeviceModel(v.get<std::string>());
       break;
-    case str2int(EI_ORIGINAL_TIME):
+    }
+    case str2int(EI_ORIGINAL_TIME): {
       setOriginalTime(static_cast<unsigned long long>(v.get<double>()));
     break;
-    case str2int(EI_ORIENTATION):
+    }
+    case str2int(EI_ORIENTATION): {
       setOrientation(v.get<std::string>());
       break;
-    case str2int(EI_FNUMBER):
+    }
+    case str2int(EI_FNUMBER): {
       setFNumber(Rational::createFromDouble(v.get<double>()));
       break;
-    case str2int(EI_ISO_SPEED_RATINGS):
+    }
+    case str2int(EI_ISO_SPEED_RATINGS): {
       setIsoSpeedRatings(jsonArray2vector(v));
       break;
-    case str2int(EI_EXPOSURE_TIME):
+    }
+    case str2int(EI_EXPOSURE_TIME): {
       setExposureTime(
         Rational::createFromExposureTimeString(v.get<std::string>()));
       break;
-    case str2int(EI_EXPOSURE_PROGRAM):
+    }
+    case str2int(EI_EXPOSURE_PROGRAM): {
       setExposureProgram(v.get<std::string>());
       break;
-    case str2int(EI_FLASH):
+    }
+    case str2int(EI_FLASH): {
       setFlash(v.get<bool>());
       break;
-    case str2int(EI_FOCAL_LENGTH):
+    }
+    case str2int(EI_FOCAL_LENGTH): {
       setFocalLength(Rational::createFromDouble(v.get<double>()));
       break;
-    case str2int(EI_WHITE_BALANCE):
+    }
+    case str2int(EI_WHITE_BALANCE): {
       setWhiteBalanceMode(v.get<std::string>());
       break;
-    case str2int(EI_GPS_LOCATION):
+    }
+    case str2int(EI_GPS_LOCATION): {
       setGPSLocation(ExifGPSLocation(v.get("longitude").get<double>(),
        v.get("latitude").get<double>()));
       break;
-    case str2int(EI_GPS_ALTITUDE):
+    }
+    case str2int(EI_GPS_ALTITUDE): {
       setGpsAltitudeWithRef(v.get<double>());
       break;
-    case str2int(EI_GPS_PROCESSING_METHOD):
+    }
+    case str2int(EI_GPS_PROCESSING_METHOD): {
       setGpsProcessingMethod(EXIF_UNDEFINED_TYPE_ASCII, v.get<std::string>());
       break;
-    case str2int(EI_GPS_TIME):
+    }
+    case str2int(EI_GPS_TIME): {
       setGpsTime(static_cast<unsigned long long>(v.get<double>()));
-    break;
-    case str2int(EI_USER_COMMENT):
+      break;
+    }
+    case str2int(EI_USER_COMMENT): {
       setUserComment(EXIF_UNDEFINED_TYPE_ASCII, v.get<std::string>());
       break;
+    }
     default:
       break;
   }
 }
 
-bool getGCSPositionFromEntry(ExifEntry *entry, ExifData* exif_data, GCSPosition& out_pos) {
-  //RATIONAL - 3
+bool getGCSPositionFromEntry(ExifEntry *entry, ExifData* exif_data,
+                             GCSPosition& out_pos) {
+  // RATIONAL - 3
   if (EXIF_FORMAT_RATIONAL == entry->format &&
       entry->components >= 3 &&
       entry->data) {
@@ -585,8 +609,7 @@ bool getGCSPositionFromEntry(ExifEntry *entry, ExifData* exif_data, GCSPosition&
     out_pos.seconds = Rational(exif_get_rational(
         entry->data + 2*ExifTypeInfo::RationalSize, order));
     return true;
-  }
-  else {
+  } else {
     return false;
   }
 }
@@ -600,36 +623,38 @@ bool getRationalsFromEntry(ExifEntry *entry, ExifData* exif_data,
     const ExifByteOrder order = exif_data_get_byte_order(exif_data);
     unsigned char* ptr = entry->data;
 
-    for(unsigned long i = 0; i < required_count; ++i) {
+    for (unsigned long i = 0; i < required_count; ++i) {
       out_rationals.push_back(Rational(exif_get_rational(ptr, order)));
       ptr += ExifTypeInfo::RationalSize;
     }
 
     return true;
-  }
-  else {
+  } else {
     return false;
   }
 }
 
 Rational getRationalFromEntry(ExifEntry *entry, ExifData* exif_data) {
-  if (EXIF_FORMAT_RATIONAL == entry->format && entry->components >= 1 && entry->data) {
+  if (EXIF_FORMAT_RATIONAL == entry->format &&
+      entry->components >= 1 &&
+      entry->data) {
     const ExifByteOrder order = exif_data_get_byte_order(exif_data);
     return Rational(exif_get_rational(entry->data, order));
-  }
-  else {
+  } else {
     return Rational::createInvalid();
   }
 }
 
-bool decomposeExifUndefined(ExifEntry* entry, std::string& type, std::string& value) {
-  if(!entry || !entry->data) {
+bool decomposeExifUndefined(ExifEntry* entry, std::string& type,
+                            std::string& value) {
+  if (!entry || !entry->data) {
     LoggerW("exif entry is NULL/empty");
     return false;
   }
 
-  if(entry->size < EXIF_UNDEFINED_TYPE_LENGTH) {
-    LoggerW("entry size is invalid %d < EXIF_UNDEFINED_TYPE_LENGTH", entry->size);
+  if (entry->size < EXIF_UNDEFINED_TYPE_LENGTH) {
+    LoggerW("entry size is invalid %d < EXIF_UNDEFINED_TYPE_LENGTH",
+        entry->size);
     return false;
   }
 
@@ -652,53 +677,53 @@ void ExifInformation::processEntry(ExifEntry* entry, ExifData* exif_data) {
 
   switch (static_cast<unsigned int>(entry->tag)) {
     case EXIF_TAG_IMAGE_WIDTH: {
-      //SHORT or LONG - 1
+      // SHORT or LONG - 1
       exif_entry_get_value(entry, buf, sizeof(buf));
-      LoggerD( "Setting ExifInformation width to: [%s]", buf );
+      LoggerD("Setting ExifInformation width to: [%s]", buf);
       setWidth(atol(buf));
       break;
     }
     case EXIF_TAG_IMAGE_LENGTH: {
-      //SHORT or LONG - 1
+      // SHORT or LONG - 1
       exif_entry_get_value(entry, buf, sizeof(buf));
-      LoggerD( "Setting ExifInformation height to: [%s]", buf );
+      LoggerD("Setting ExifInformation height to: [%s]", buf);
       setHeight(atol(buf));
       break;
     }
     case EXIF_TAG_MAKE: {
-      //ASCII - Any
+      // ASCII - Any
       exif_entry_get_value(entry, buf, sizeof(buf));
-      LoggerD( "Setting ExifInformation maker to: [%s]", buf );
+      LoggerD("Setting ExifInformation maker to: [%s]", buf);
       setDeviceMaker(std::string(buf));
       break;
     }
     case EXIF_TAG_MODEL: {
-      //ASCII - Any
+      // ASCII - Any
       exif_entry_get_value(entry, buf, sizeof(buf));
-      LoggerD( "Setting ExifInformation model to: [%s]", buf );
+      LoggerD("Setting ExifInformation model to: [%s]", buf);
       setDeviceModel(std::string(buf));
       break;
     }
     case EXIF_TAG_DATE_TIME_ORIGINAL: {
-      //ASCII - 20
+      // ASCII - 20
       exif_entry_get_value(entry, buf, sizeof(buf));
       const time_t time = ExifUtil::exifDateTimeOriginalToTimeT(
           reinterpret_cast<const char*>(entry->data));
-      LoggerD( "Setting ExifInformation time original to: [%s] time_t:%d", buf,
-          (int)time);
+      LoggerD("Setting ExifInformation time original to: [%s] time_t:%d", buf,
+          static_cast<int>(time));
       setOriginalTime(time);
     }
     case EXIF_TAG_ORIENTATION: {
-      //SHORT - 1
+      // SHORT - 1
       exif_entry_get_value(entry, buf, sizeof(buf));
       const ExifByteOrder order = exif_data_get_byte_order(exif_data);
       const ExifShort orient(exif_get_short(entry->data, order));
 
-      if(orient < EXIF_ORIENTATION_NORMAL || orient >= EXIF_ORIENTATION_NOT_VALID) {
-        LoggerW("Couldn't set ExifInformation - orientation is not valid: %d (%s)",
-            orient, buf);
-      }
-      else {
+      if (orient < EXIF_ORIENTATION_NORMAL ||
+          orient >= EXIF_ORIENTATION_NOT_VALID) {
+        LoggerW("Couldn't set ExifInformation - orientation"
+            " is not valid: %d (%s)", orient, buf);
+      } else {
         LoggerD("Setting ExifInformation orientation to: %d [%s]", orient, buf);
         setOrientation(static_cast<ImageOrientation>(orient));
       }
@@ -706,21 +731,21 @@ void ExifInformation::processEntry(ExifEntry* entry, ExifData* exif_data) {
     }
     case EXIF_TAG_FNUMBER:
     {
-      //RATIONAL - 1
+      // RATIONAL - 1
       Rational fnumber = getRationalFromEntry(entry, exif_data);
-      if(fnumber.isValid()) {
-        LOGD("Setting ExifInformation fnumber to: %f (%s)", fnumber.toDouble(),
-          fnumber.toString().c_str());
+      if (fnumber.isValid()) {
+        LoggerD("Setting ExifInformation fnumber to: %f (%s)",
+            fnumber.toDouble(),
+            fnumber.toString().c_str());
         setFNumber(fnumber);
-      }
-      else {
-        LOGW("Couldn't set ExifInformation - fnumber is not valid: %s",
+      } else {
+        LoggerW("Couldn't set ExifInformation - fnumber is not valid: %s",
             fnumber.toString().c_str());
       }
       break;
     }
     case EXIF_TAG_ISO_SPEED_RATINGS: {
-      //SHORT - Any
+      // SHORT - Any
       if (EXIF_FORMAT_SHORT == entry->format &&
           entry->components > 0 &&
           entry->data) {
@@ -729,7 +754,7 @@ void ExifInformation::processEntry(ExifEntry* entry, ExifData* exif_data) {
         const size_t size_per_member =
             ExifUtil::getSizeOfExifFormatType(entry->format);
 
-        for(unsigned long i = 0; i < entry->components; ++i) {
+        for (unsigned long i = 0; i < entry->components; ++i) {
           ExifShort iso_rating = exif_get_short(read_ptr, order);
 
           LoggerD("Appending ExifInformation speed ratings with: %d",
@@ -737,18 +762,16 @@ void ExifInformation::processEntry(ExifEntry* entry, ExifData* exif_data) {
 
           read_ptr += size_per_member;
         }
-      }
-      else {
+      } else {
         LoggerE("iso speed ratings: format or components count is invalid!");
       }
       break;
     }
     case EXIF_TAG_EXPOSURE_TIME: {
-      //RATIONAL - 1
+      // RATIONAL - 1
       if (EXIF_FORMAT_RATIONAL == entry->format &&
           entry->components > 0 &&
           entry->data) {
-
         const ExifByteOrder order = exif_data_get_byte_order(exif_data);
         const Rational exp_time(exif_get_rational(entry->data, order));
 
@@ -757,72 +780,68 @@ void ExifInformation::processEntry(ExifEntry* entry, ExifData* exif_data) {
               exp_time.toString().c_str(),
               exp_time.toExposureTimeString().c_str());
           setExposureTime(exp_time);
-        }
-        else {
-          LoggerD("Couldn't set ExifInformation - exposure time is not valid: %s",
+        } else {
+          LoggerD("Couldn't set ExifInformation"
+              " - exposure time is not valid: %s",
               exp_time.toString().c_str());
         }
-      }
-      else {
+      } else {
         LoggerE("exposure time: format or components count is invalid!");
       }
       break;
     }
     case EXIF_TAG_EXPOSURE_PROGRAM: {
-      //SHORT - 1
+      // SHORT - 1
       exif_entry_get_value(entry, buf, sizeof(buf));
 
       const ExifByteOrder order = exif_data_get_byte_order(exif_data);
       const ExifShort exp_program = exif_get_short(entry->data, order);
-      if(exp_program >= EXIF_EXPOSURE_PROGRAM_NOT_VALID) {
+      if (exp_program >= EXIF_EXPOSURE_PROGRAM_NOT_VALID) {
         LoggerW("ExposureProgram: %d (%s) is not valid!", exp_program, buf);
-      }
-      else {
+      } else {
         LoggerD("Setting ExifInformation exposure program to: %d [%s]",
-            exp_program, buf );
+            exp_program, buf);
         setExposureProgram(static_cast<ExposureProgram>(exp_program));
       }
       break;
     }
     case EXIF_TAG_FLASH: {
-      //SHORT - 1
+      // SHORT - 1
       exif_entry_get_value(entry, buf, sizeof(buf));
 
       const ExifByteOrder order = exif_data_get_byte_order(exif_data);
       const ExifShort flash = exif_get_short(entry->data, order);
 
-      LoggerD( "Setting ExifInformation flash to: [%s] flash=%d", buf, flash);
+      LoggerD("Setting ExifInformation flash to: [%s] flash=%d", buf, flash);
       setFlash(flash != 0);
       break;
     }
     case EXIF_TAG_FOCAL_LENGTH: {
-      //RATIONAL - 1
+      // RATIONAL - 1
       Rational flength = getRationalFromEntry(entry, exif_data);
-      if(flength.isValid()) {
+      if (flength.isValid()) {
         LoggerD("Setting ExifInformation focal length to: %f (%s)",
             flength.toDouble(), flength.toString().c_str());
         setFocalLength(flength);
-      }
-      else {
+      } else {
         LoggerW("Couldn't set ExifInformation - focal length is not valid: %s",
             flength.toString().c_str());
       }
       break;
     }
     case EXIF_TAG_WHITE_BALANCE: {
-      //SHORT - 1
+      // SHORT - 1
       exif_entry_get_value(entry, buf, sizeof(buf));
-      LoggerD( "Setting ExifInformation white balance to: [%s]", buf );
+      LoggerD("Setting ExifInformation white balance to: [%s]", buf);
       if (entry->data[0]) {
         setWhiteBalanceMode(EXIF_WHITE_BALANCE_MODE_MANUAL);
-      }
-      else {
+      } else {
         setWhiteBalanceMode(EXIF_WHITE_BALANCE_MODE_AUTO);
       }
       break;
     }
     case EXIF_TAG_GPS_LONGITUDE: {
-      //RATIONAL - 3
+      // RATIONAL - 3
       GCSPosition longitude;
       if (getGCSPositionFromEntry(entry, exif_data, longitude)) {
         m_gps_location.setLongitude(longitude);
@@ -831,38 +850,35 @@ void ExifInformation::processEntry(ExifEntry* entry, ExifData* exif_data) {
             longitude.minutes.toString().c_str(),
             longitude.seconds.toString().c_str(),
             longitude.isValid());
-      }
-      else {
+      } else {
         exif_entry_get_value(entry, buf, sizeof(buf));
         LoggerW("Couldn't set longitude pos - data is not valid: [%s]", buf);
       }
       break;
     }
     case EXIF_TAG_GPS_LONGITUDE_REF: {
-      //ASCII - 2
-      if(entry->size < 1) {
+      // ASCII - 2
+      if (entry->size < 1) {
         LoggerW("Longtitude ref entry do not contain enought data!");
         break;
       }
 
       const char ref = static_cast<char>(entry->data[0]);
-      if ('E' == ref || 'e' == ref) {      //East
+      if ('E' == ref || 'e' == ref) {      // East
         m_gps_location.setLongitudeRef(GPS_LOCATION_EAST);
         LoggerD("Setting ExifInformation gps longitude REF to: EAST");
-      }
-      else if ('W' == ref || 'w' == ref) {   //West
+      } else if ('W' == ref || 'w' == ref) {   // West
         m_gps_location.setLongitudeRef(GPS_LOCATION_WEST);
         LoggerD("Setting ExifInformation gps longitude REF to: WEST");
-      }
-      else {
+      } else {
         LoggerW("Unknown longitude ref: %c (0x%x)", ref, static_cast<int>(ref));
       }
       break;
     }
     case EXIF_TAG_GPS_LATITUDE: {
-      //RATIONAL - 3
+      // RATIONAL - 3
       exif_entry_get_value(entry, buf, sizeof(buf));
-      LoggerD( "Setting ExifInformation latitude to: [%s], tag->%s",
+      LoggerD("Setting ExifInformation latitude to: [%s], tag->%s",
           buf, exif_tag_get_name(entry->tag) );
 
       GCSPosition latitude;
@@ -873,54 +889,50 @@ void ExifInformation::processEntry(ExifEntry* entry, ExifData* exif_data) {
             latitude.minutes.toString().c_str(),
             latitude.seconds.toString().c_str(),
             latitude.isValid());
-      }
-      else {
+      } else {
         LoggerW("Couldn't set latitude pos - data is not valid!");
       }
       break;
     }
     case EXIF_TAG_GPS_LATITUDE_REF: {
-      //ASCII - 2
-      if(entry->size < 1) {
+      // ASCII - 2
+      if (entry->size < 1) {
         LoggerW("Latitude ref entry do not contain enought data!");
         break;
       }
 
       const char ref = static_cast<char>(entry->data[0]);
-      if ('N' == ref || 'n' == ref) {      //North
+      if ('N' == ref || 'n' == ref) {      // North
         m_gps_location.setLatitudeRef(GPS_LOCATION_NORTH);
         LoggerD("Setting ExifInformation gps latitude REF to: NORTH");
-      }
-      else if ('S' == ref || 's' == ref) {   //South
+      } else if ('S' == ref || 's' == ref) {   // South
         m_gps_location.setLatitudeRef(GPS_LOCATION_SOUTH);
         LoggerD("Setting ExifInformation gps latitude REF to: SOUTH");
-      }
-      else {
+      } else {
         LoggerW("Unknown latitude ref: %c (0x%x)", ref, static_cast<int>(ref));
       }
       break;
     }
     case EXIF_TAG_GPS_ALTITUDE: {
-      //RATIONAL - 1
+      // RATIONAL - 1
       Rational gps_altitude = getRationalFromEntry(entry, exif_data);
-      if(gps_altitude.isValid()) {
+      if (gps_altitude.isValid()) {
         LoggerD("Setting ExifInformation gps altitude to: %f (%s)",
             gps_altitude.toDouble(), gps_altitude.toString().c_str());
         setGpsAltitude(gps_altitude);
-      }
-      else {
+      } else {
         LoggerW("Couldn't set ExifInformation - gps altitude is not valid: %s",
             gps_altitude.toString().c_str());
       }
       break;
     }
     case EXIF_TAG_GPS_ALTITUDE_REF: {
-      //BYTE - 1
+      // BYTE - 1
       const ExifByte altitude_ref = static_cast<ExifByte>(entry->data[0]);
-      if(static_cast<ExifByte>(GPS_ALTITUDE_REF_ABOVE_SEA) == altitude_ref ||
+      if (static_cast<ExifByte>(GPS_ALTITUDE_REF_ABOVE_SEA) == altitude_ref ||
           static_cast<ExifByte>(GPS_ALTITUDE_REF_BELOW_SEA) == altitude_ref) {
         setGpsAltitudeRef(static_cast<GpsAltitudeRef>(altitude_ref));
-        LoggerD( "Setting ExifInformation gps altitude ref to: %d (%s)",
+        LoggerD("Setting ExifInformation gps altitude ref to: %d (%s)",
             static_cast<int>(altitude_ref),
             (altitude_ref > 0) ? "below sea" : "above sea");
       } else {
@@ -930,64 +942,66 @@ void ExifInformation::processEntry(ExifEntry* entry, ExifData* exif_data) {
       break;
     }
     case EXIF_TAG_GPS_PROCESSING_METHOD: {
-      //UNDEFINED - Any
+      // UNDEFINED - Any
       std::string type, value;
-      if(decomposeExifUndefined(entry, type, value)) {
+      if (decomposeExifUndefined(entry, type, value)) {
         LoggerD("Extracted GPSProcessingMethod: [%s], len:%d, type:%s",
             value.c_str(), value.length(), type.c_str());
         setGpsProcessingMethod(type, value);
 
-        LoggerD("Setting ExifInformation processing method to: [%s], len:%d, type:%s",
+        LoggerD("Setting ExifInformation processing method"
+            " to: [%s], len:%d, type:%s",
             m_gps_processing_method.c_str(),
             m_gps_processing_method.length(),
             m_gps_processing_method_type.c_str());
-      }
-      else {
+      } else {
         LoggerW("GPSProcessingMethod tag contains invalid values!");
       }
       break;
     }
     case EXIF_TAG_GPS_DATE_STAMP: {
-      //ASCII - 11
+      // ASCII - 11
       exif_entry_get_value(entry, buf, sizeof(buf));
-      LoggerD( "Setting ExifInformation gps date stamp to: [%s]", buf );
-      //m_exif_gps_time.setDate(buf);
+      LoggerD("Setting ExifInformation gps date stamp to: [%s]", buf);
+      // m_exif_gps_time.setDate(buf);
       break;
     }
     case EXIF_TAG_GPS_TIME_STAMP: {
-      //Rational - 3
+      // Rational - 3
       exif_entry_get_value(entry, buf, sizeof(buf));
-      LoggerD( "Setting ExifInformation gps time stamp to: [%s]", buf);
+      LoggerD("Setting ExifInformation gps time stamp to: [%s]", buf);
 
       Rationals time;
       if (getRationalsFromEntry(entry, exif_data, 3, time)) {
-        //m_exif_gps_time.setTime(time);
+        // m_exif_gps_time.setTime(time);
       }
       break;
     }
     case EXIF_TAG_USER_COMMENT: {
-      //UNDEFINED - Any
+      // UNDEFINED - Any
       std::string type, value;
-      if(decomposeExifUndefined(entry, type, value)) {
+      if (decomposeExifUndefined(entry, type, value)) {
         LoggerD("Extracted UserComment: [%s], len:%d, type:%s",
             value.c_str(), value.length(), type.c_str());
         setUserComment(type, value);
 
-        LoggerD("Setting ExifInformation user comment to: [%s], len:%d, type:%s",
+        LoggerD("Setting ExifInformation user comment"
+            " to: [%s], len:%d, type:%s",
             m_user_comment.c_str(),
             m_user_comment.length(),
             m_user_comment_type.c_str());
-      }
-      else {
+      } else {
         LoggerW("UserComment tag contains invalid values!");
       }
 
       break;
     }
-    default:
-      LoggerD("Field of tag:%x.H [%s] is not supported, value: [%s]", entry->tag,
+    default: {
+      LoggerD("Field of tag:%x.H [%s] is not supported, value: [%s]",
+          entry->tag,
           exif_tag_get_name_in_ifd(entry->tag, cur_ifd),
           exif_entry_get_value(entry, buf, sizeof(buf)));
+    }
   }
 }
 
@@ -996,8 +1010,10 @@ struct ExifInfoAndDataHolder {
   ExifData* exif_data;
 };
 
-void ExifInformation::contentForeachFunctionProxy(ExifEntry *entry, void *user_data) {
-  ExifInfoAndDataHolder* holder = static_cast<ExifInfoAndDataHolder*>(user_data);
+void ExifInformation::contentForeachFunctionProxy(ExifEntry *entry,
+                                                  void *user_data) {
+  ExifInfoAndDataHolder* holder =
+      static_cast<ExifInfoAndDataHolder*>(user_data);
   if (!holder) {
     LoggerE("holder is NULL");
   }
@@ -1024,7 +1040,8 @@ void ExifInformation::contentForeachFunctionProxy(ExifEntry *entry, void *user_d
   }
 }
 
-void ExifInformation::dataForeachFunction(ExifContent *content, void *user_data) {
+void ExifInformation::dataForeachFunction(ExifContent *content,
+                                          void *user_data) {
   exif_content_foreach_entry(content, contentForeachFunctionProxy, user_data);
 }
 
@@ -1034,11 +1051,10 @@ ExifInformationPtr ExifInformation::loadFromURI(const std::string& uri) {
   exif_info->setUri(uri);
 
   const std::string file_path = ExifUtil::convertUriToPath(uri);
-  ExifData* ed = exif_data_new_from_file (file_path.c_str());
+  ExifData* ed = exif_data_new_from_file(file_path.c_str());
   if (!ed) {
     LoggerE("Error reading exif from file %s", file_path.c_str());
-    LoggerE("Error reading exif from file %s", file_path.c_str());
-    //throw NotFoundException("Error reading exif from file");
+    // throw NotFoundException("Error reading exif from file");
   }
 
   LoggerD("exif_data_foreach_content START");
@@ -1046,7 +1062,8 @@ ExifInformationPtr ExifInformation::loadFromURI(const std::string& uri) {
   ExifInfoAndDataHolder holder;
   holder.exif_info = exif_info;
   holder.exif_data = ed;
-  exif_data_foreach_content(ed, dataForeachFunction, static_cast<void*>(&holder));
+  exif_data_foreach_content(ed, dataForeachFunction,
+      static_cast<void*>(&holder));
 
   LoggerD("exif_data_foreach_content END");
 
@@ -1058,8 +1075,8 @@ ExifInformationPtr ExifInformation::loadFromURI(const std::string& uri) {
 
 
 void ExifInformation::removeNulledAttributesFromExifData(ExifData* exif_data) {
-  LOGD("Entered");
-  if(!exif_data) {
+  LoggerD("Entered");
+  if (!exif_data) {
     LoggerE("exif_data is NULL");
     throw common::UnknownException("Invalid Exif provided");
   }
@@ -1098,7 +1115,8 @@ void ExifInformation::removeNulledAttributesFromExifData(ExifData* exif_data) {
   }
   if (!isSet(EXIF_INFORMATION_ATTRIBUTE_ORIGINAL_TIME)) {
     LoggerD("Removing original time");
-    ExifTagSaver::removeExifEntryWithTag(EXIF_TAG_DATE_TIME_ORIGINAL, exif_data);
+    ExifTagSaver::removeExifEntryWithTag(
+        EXIF_TAG_DATE_TIME_ORIGINAL, exif_data);
   }
   if (!isSet(EXIF_INFORMATION_ATTRIBUTE_EXPOSURE_TIME)) {
     LoggerD("Removing exposure time");
@@ -1124,7 +1142,7 @@ void ExifInformation::removeNulledAttributesFromExifData(ExifData* exif_data) {
   if (!isSet(EXIF_INFORMATION_ATTRIBUTE_GPS_ALTITUDE)) {
     LoggerD("Removing gps altitude");
     ExifTagSaver::removeExifEntryWithTag(
-      static_cast<ExifTag>(EXIF_TAG_GPS_ALTITUDE), exif_data);
+        static_cast<ExifTag>(EXIF_TAG_GPS_ALTITUDE), exif_data);
   }
   if (!isSet(EXIF_INFORMATION_ATTRIBUTE_GPS_ALTITUDE_REF)) {
     LoggerD("Removing gps altitude ref");
@@ -1164,7 +1182,7 @@ void ExifInformation::removeNulledAttributesFromExifData(ExifData* exif_data) {
 
 void ExifInformation::updateAttributesInExifData(ExifData* exif_data) {
   LoggerD("Entered");
-  if(!exif_data) {
+  if (!exif_data) {
     LoggerE("exif_data is NULL");
     throw common::UnknownException("Invalid Exif provided");
   }
@@ -1190,7 +1208,8 @@ void ExifInformation::updateAttributesInExifData(ExifData* exif_data) {
         EXIF_TAG_ORIENTATION, exif_data);
   }
   if (isSet(EXIF_INFORMATION_ATTRIBUTE_EXPOSURE_PROGRAM)) {
-    LoggerD("Saving exposure program: %d", static_cast<int>(getExposureProgram()));
+    LoggerD("Saving exposure program: %d",
+        static_cast<int>(getExposureProgram()));
     ExifTagSaver::saveToExif(getExposureProgram(),
         EXIF_TAG_EXPOSURE_PROGRAM, exif_data);
   }
@@ -1201,7 +1220,8 @@ void ExifInformation::updateAttributesInExifData(ExifData* exif_data) {
        EXIF_TAG_ISO_SPEED_RATINGS, exif_data);
   }
   if (isSet(EXIF_INFORMATION_ATTRIBUTE_WHITE_BALANCE)) {
-    LoggerD("Saving white balance: %d", static_cast<int>(getWhiteBalanceMode()));
+    LoggerD("Saving white balance: %d",
+        static_cast<int>(getWhiteBalanceMode()));
     ExifTagSaver::saveToExif(getWhiteBalanceMode(),
         EXIF_TAG_WHITE_BALANCE, exif_data);
   }
@@ -1212,9 +1232,10 @@ void ExifInformation::updateAttributesInExifData(ExifData* exif_data) {
   }
   if (isSet(EXIF_INFORMATION_ATTRIBUTE_ORIGINAL_TIME)) {
     const time_t o_time = getOriginalTime();
-    const std::string o_time_str = ExifUtil::timeTToExifDateTimeOriginal(o_time);
-    LoggerD("Saving original time time_t:%d, format:%s", static_cast<int>(o_time),
-        o_time_str.c_str());
+    const std::string o_time_str =
+        ExifUtil::timeTToExifDateTimeOriginal(o_time);
+    LoggerD("Saving original time time_t:%d, format:%s",
+        static_cast<int>(o_time), o_time_str.c_str());
 
     ExifTagSaver::saveToExif(o_time_str,
         EXIF_TAG_DATE_TIME_ORIGINAL, exif_data);
@@ -1260,9 +1281,9 @@ void ExifInformation::updateAttributesInExifData(ExifData* exif_data) {
         static_cast<ExifTag>(EXIF_TAG_GPS_ALTITUDE), exif_data);
   }
   if (isSet(EXIF_INFORMATION_ATTRIBUTE_GPS_ALTITUDE_REF)) {
-    //Exif spec:
-    //0 = Sea level
-    //1 = Sea level reference (negative value)
+    // Exif spec:
+    // 0 = Sea level
+    // 1 = Sea level reference (negative value)
     LoggerD("Saving gps altitude ref:%d (%s)",
         static_cast<int>(m_gps_altitude_ref),
         (static_cast<int>(m_gps_altitude_ref) > 0) ? "below sea" : "above sea");
@@ -1276,7 +1297,8 @@ void ExifInformation::updateAttributesInExifData(ExifData* exif_data) {
     LoggerD("Saving gps processing method: [%s] type:%s",
         getGpsProcessingMethod().c_str(), getGpsProcessingMethodType().c_str());
 
-    const std::string joined = getGpsProcessingMethodType() + getGpsProcessingMethod();
+    const std::string joined = getGpsProcessingMethodType() +
+        getGpsProcessingMethod();
     LoggerD("joined: [%s]", joined.c_str());
 
     ExifTagSaver::saveToExif(joined,
@@ -1287,20 +1309,21 @@ void ExifInformation::updateAttributesInExifData(ExifData* exif_data) {
     const time_t gps_time = getGpsTime();
     const Rationals gps_time_vec = ExifUtil::timeTToExifGpsTimeStamp(gps_time);
     const std::string gps_date_str =
-      ExifUtil::timeTToExifGpsDateStamp(gps_time);
+        ExifUtil::timeTToExifGpsDateStamp(gps_time);
     LoggerD("Saving gps time stamp time_t: %d", static_cast<int>(gps_time));
 
     ExifTagSaver::saveToExif(gps_time_vec,
-      static_cast<ExifTag>(EXIF_TAG_GPS_TIME_STAMP), exif_data);
+        static_cast<ExifTag>(EXIF_TAG_GPS_TIME_STAMP), exif_data);
 
     LoggerD("Saving gps date stamp: %s", gps_date_str.c_str());
 
     ExifTagSaver::saveToExif(gps_date_str,
-      static_cast<ExifTag>(EXIF_TAG_GPS_DATE_STAMP), exif_data, EXIF_FORMAT_ASCII, false);
+        static_cast<ExifTag>(EXIF_TAG_GPS_DATE_STAMP), exif_data,
+        EXIF_FORMAT_ASCII, false);
   }
   if (isSet(EXIF_INFORMATION_ATTRIBUTE_USER_COMMENT)) {
     LoggerD("Saving user comment: %s (type:%s)", getUserComment().c_str(),
-      getUserCommentType().c_str());
+        getUserCommentType().c_str());
 
     const std::string joined = getUserCommentType() + getUserComment();
     LoggerD("joined: [%s]", joined.c_str());
@@ -1312,15 +1335,17 @@ void ExifInformation::updateAttributesInExifData(ExifData* exif_data) {
 
 void ExifInformation::saveToFile(const std::string& file_path) {
   LoggerD("Entered");
-  LoggerD("Using JpegFile to read: [%s] and Exif if present", file_path.c_str());
+  LoggerD("Using JpegFile to read: [%s] and Exif if present",
+      file_path.c_str());
 
   bool exif_data_is_new = false;
   JpegFilePtr jpg_file = JpegFile::loadFile(file_path);
   ExifData* exif_data = jpg_file->getExifData();
 
-  //Exif is not present in file - create new ExifData
+  // Exif is not present in file - create new ExifData
   if (!exif_data) {
-    LoggerD("Exif is not present in file: [%s] creating new", file_path.c_str());
+    LoggerD("Exif is not present in file: [%s] creating new",
+        file_path.c_str());
 
     exif_data = exif_data_new();
     exif_data_set_option(exif_data, EXIF_DATA_OPTION_FOLLOW_SPECIFICATION);
@@ -1339,16 +1364,16 @@ void ExifInformation::saveToFile(const std::string& file_path) {
   exif_data_set_option(exif_data, EXIF_DATA_OPTION_FOLLOW_SPECIFICATION);
 
   try {
-    //If we have created new ExifData there is nothing to remove
-    if(!exif_data_is_new) {
-      //Remove attributes that have been nulled
+    // If we have created new ExifData there is nothing to remove
+    if (!exif_data_is_new) {
+      // Remove attributes that have been nulled
       removeNulledAttributesFromExifData(exif_data);
     }
 
     updateAttributesInExifData(exif_data);
 
-    LOGD("Using JpegFile to save new Exif in: [%s]", file_path.c_str());
-    if(exif_data_is_new) {
+    LoggerD("Using JpegFile to save new Exif in: [%s]", file_path.c_str());
+    if (exif_data_is_new) {
       jpg_file->setNewExifData(exif_data);
     }
 

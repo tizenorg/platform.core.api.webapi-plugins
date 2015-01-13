@@ -17,14 +17,13 @@
 
 #include "rational.h"
 
-#include "math.h"
+#include <cmath>
+#include <sstream>
 
 #include "common/platform_exception.h"
 #include "common/logger.h"
 
 #include "exif_util.h"
-
-#include <sstream>
 
 namespace extension {
 namespace exif {
@@ -57,7 +56,7 @@ Rational Rational::createFromDouble(const double value, const long precision) {
 
   if (value < 0.000000001) {
     LoggerD("Skipping calculation returning: Rational(0,1)");
-    return Rational(0,1);
+    return Rational(0, 1);
   }
 
   long m[2][2];
@@ -70,10 +69,10 @@ Rational Rational::createFromDouble(const double value, const long precision) {
   m[0][0] = m[1][1] = 1;
   m[0][1] = m[1][0] = 0;
 
-  //loop finding terms until daemon gets too big
+  // loop finding terms until daemon gets too big
   do {
     ai = static_cast<long>(x);
-    if(m[1][0] * ai + m[1][1] > precision) {
+    if (m[1][0] * ai + m[1][1] > precision) {
       break;
     }
 
@@ -93,12 +92,13 @@ Rational Rational::createFromDouble(const double value, const long precision) {
     if (x > DOUBLE_ERROR_REPRESENTATION) {
       break;  // AF: representation failure
     }
-  } while(1);
+  } while (1);
 
   // now remaining x is between 0 and 1/ai
   // approx as either 0 or 1/m where m is max that will fit in precision
   // first try zero
-  const double error0 = startx - ((double) m[0][0] / (double) m[1][0]);
+  const double error0 =
+      startx - (static_cast<double>(m[0][0]) / static_cast<double>(m[1][0]));
   const long numerator0 = m[0][0];
   const long denominator0 = m[1][0];
 
@@ -111,16 +111,15 @@ Rational Rational::createFromDouble(const double value, const long precision) {
 
   double error1m = startx -
       (static_cast<double>(m[0][0]) / static_cast<double>(m[1][0]));
-  LoggerD("%ld/%ld, error = %e\n", m[0][0], m[1][0], error1m );
+  LoggerD("%ld/%ld, error = %e\n", m[0][0], m[1][0], error1m);
 
   long result_numerator = 0;
   long result_denominator = 0;
 
-  if (error0 < error1m ) {
+  if (error0 < error1m) {
     result_numerator = numerator0;
     result_denominator = denominator0;
-  }
-  else {
+  } else {
     result_numerator = m[0][0];
     result_denominator = m[1][0];
   }
@@ -132,21 +131,20 @@ Rational Rational::createFromDouble(const double value, const long precision) {
     result_denominator *= -1;
   }
 
-  LoggerD("Rational(%d, %d) error0 < error1m:%d", result_numerator, result_denominator,
-      error0 < error1m);
+  LoggerD("Rational(%d, %d) error0 < error1m:%d",
+      result_numerator, result_denominator, error0 < error1m);
 
   return Rational(numerator0, denominator0);
 }
 
 Rational Rational::createInvalid() {
-  return Rational(0,0);
+  return Rational(0, 0);
 }
 
 bool Rational::isValid() const {
   if (0 == denominator) {
     return false;
-  }
-  else {
+  } else {
     return true;
   }
 }
@@ -156,14 +154,15 @@ double Rational::toDouble() const {
     return NAN;
   }
 
-  return (double)nominator / (double)denominator;
+  return static_cast<double>(nominator) / static_cast<double>(denominator);
 }
 
 Rational Rational::createFromExposureTimeString(const std::string& exp_time) {
   LoggerD("Entered");
   if (exp_time.length() == 0) {
-    return Rational::createInvalid();  //lets assume that empty string means 0,
-                       //however exposure time = 0 is not valid value
+    return Rational::createInvalid();  // lets assume that empty string means 0,
+                                       // however exposure time = 0 is
+                                       // not valid value
   }
 
   std::string integer_part;
@@ -172,8 +171,7 @@ Rational Rational::createFromExposureTimeString(const std::string& exp_time) {
   int first_space_at = -1;
   int first_slash_at = -1;
 
-  for(size_t i=0; i < exp_time.size(); ++i) {
-
+  for (size_t i = 0; i < exp_time.size(); ++i) {
     const char& cur = exp_time[i];
     if (first_space_at < 0 && ' ' == cur) {
       first_space_at = i;
@@ -185,20 +183,19 @@ Rational Rational::createFromExposureTimeString(const std::string& exp_time) {
 
   if (first_slash_at > 0) {
     if (first_space_at > 0) {
-      integer_part = exp_time.substr(0,first_space_at);
-      fraction_part = exp_time.substr(first_space_at+1,
-          exp_time.size() - (first_space_at+1));
-    }
-    else {
+      integer_part = exp_time.substr(0, first_space_at);
+      fraction_part = exp_time.substr(first_space_at + 1,
+          exp_time.size() - (first_space_at + 1));
+    } else {
       fraction_part = exp_time;
     }
-  }
-  else {
+  } else {
     integer_part = exp_time;
   }
 
   LoggerD("first_space_at: %d first_slash_at:%d int: [%s] , frac: [%s]",
-      first_space_at, first_slash_at, integer_part.c_str(), fraction_part.c_str());
+      first_space_at, first_slash_at,
+      integer_part.c_str(), fraction_part.c_str());
 
   long integer_value = 0;
   long nominator = 0;
@@ -209,7 +206,8 @@ Rational Rational::createFromExposureTimeString(const std::string& exp_time) {
   }
 
   if (fraction_part.length() > 0) {
-    if (sscanf(fraction_part.c_str(), "%ld/%ld", &nominator, &denominator) != 2) {
+    if (sscanf(
+          fraction_part.c_str(), "%ld/%ld", &nominator, &denominator) != 2) {
       LoggerD("Failed to parse nominator/denominator string: [%s]",
           fraction_part.c_str());
       return Rational::createInvalid();
@@ -217,10 +215,11 @@ Rational Rational::createFromExposureTimeString(const std::string& exp_time) {
   }
 
   nominator += denominator * integer_value;
-  LoggerD("%d/%d -> %f", nominator, denominator, (float)nominator / denominator);
+  LoggerD("%d/%d -> %f",
+      nominator, denominator, static_cast<float>(nominator) / denominator);
 
   if (0 == nominator) {
-    //Exposure time = 0 is invalid value
+    // Exposure time = 0 is invalid value
     return Rational::createInvalid();
   }
 
@@ -243,13 +242,11 @@ std::string Rational::toExposureTimeString() const {
 
   if (nominator < denominator) {
     output_str = toString();
-  }
-  else if (nominator % denominator == 0) {
+  } else if (nominator % denominator == 0) {
     std::stringstream ss;
     ss << nominator / denominator;
     output_str = ss.str();
-  }
-  else {
+  } else {
     ExifLong new_nominator = nominator % denominator;
     ExifLong new_denominator = denominator;
     ExifLong integer_value = nominator / denominator;
