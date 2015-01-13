@@ -1026,15 +1026,22 @@ void ShortMsgManager::findConversations(ConversationCallbackData* callback)
     try {
         if (callback->isError()) {
             LoggerD("Calling error callback");
-            // TODO call error
-            //JSObjectRef errobj = JSWebAPIErrorFactory::makeErrorObject(context,
-                    //callback->getErrorName(), callback->getErrorMessage());
-            //callback->callErrorCallback(errobj);
+            MessagingInstance::getInstance().PostMessage(callback->getJson()->serialize().c_str());
         } else {
             LoggerD("Calling success callback");
-            // TODO call success
-            //callback->callSuccessCallback(MessagingUtil::vectorToJSObjectArray<
-                    //ConversationPtr, JSMessageConversation>(context, callback->getConversations()));
+            auto json = callback->getJson();
+            picojson::object& obj = json->get<picojson::object>();
+
+            std::vector<picojson::value> response;
+            auto conversations = callback->getConversations();
+            std::for_each(conversations.begin(), conversations.end(),
+                    [&response](std::shared_ptr<MessageConversation> &conversation) {
+                        response.push_back(MessagingUtil::conversationToJson(conversation));
+                    }
+            );
+            obj[JSON_DATA] = picojson::value(response);
+            obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
+            MessagingInstance::getInstance().PostMessage(json->serialize().c_str());
         }
     } catch (const common::PlatformException& err) {
         LoggerE("Error while calling findConversations callback: %s (%s)",
