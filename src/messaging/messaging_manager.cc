@@ -39,6 +39,7 @@ MessagingManager::MessagingManager()
     }
 
     m_sms_service = std::make_pair(UNDEFINED_MESSAGE_SERVICE, nullptr);
+    m_mms_service = std::make_pair(UNDEFINED_MESSAGE_SERVICE, nullptr);
 }
 
 MessagingManager::~MessagingManager()
@@ -58,6 +59,9 @@ MessagingManager::~MessagingManager()
 
     if (m_sms_service.second) {
         delete m_sms_service.second;
+    }
+    if (m_mms_service.second) {
+        delete m_mms_service.second;
     }
 }
 
@@ -102,7 +106,7 @@ static void* getMsgServicesThread(const std::shared_ptr<MsgManagerCallbackData>&
                         MessageType::SMS);
                 if (!service) {
                     LoggerE("MessageService for SMS creation failed");
-                    throw common::UnknownException("MessageService for email creation failed");
+                    throw common::UnknownException("MessageService for SMS creation failed");
                 }
                 *(user_data->sms_service) = std::make_pair(service->getMsgServiceId(), service);
 
@@ -116,8 +120,28 @@ static void* getMsgServicesThread(const std::shared_ptr<MsgManagerCallbackData>&
             }
             break;
         case MessageType::MMS:
-            LoggerD("Currently unsupported");
-            // TODO add class which will extended message_service and call message_service_short_msg
+            LoggerD("MessageService for MMS");
+            {
+                if (user_data->mms_service->second) {
+                    delete user_data->mms_service->second;
+                }
+
+                MessageService* service = new(std::nothrow) MessageServiceShortMsg(
+                        MessageServiceAccountId::MMS_ACCOUNT_ID,
+                        MessageType::MMS);
+                if (!service) {
+                    LoggerE("MessageService for MMS creation failed");
+                    throw common::UnknownException("MessageService for MMS creation failed");
+                }
+                *(user_data->mms_service) = std::make_pair(service->getMsgServiceId(), service);
+
+                picojson::array array;
+                array.push_back(picojson::value(service->toPicoJS()));
+                obj[JSON_DATA] = picojson::value(array);
+                obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
+
+                service = NULL;
+            }
             break;
         case MessageType::EMAIL:
                 // TODO FIXME need to work on readability of that case
@@ -202,6 +226,7 @@ void MessagingManager::getMessageServices(const std::string& type, double callba
     user_data->json = json;
     user_data->services_map = &m_email_services;
     user_data->sms_service = &m_sms_service;
+    user_data->mms_service = &m_mms_service;
 
     common::TaskQueue::GetInstance().Queue<MsgManagerCallbackData>
         (getMsgServicesThread, callbackCompleted, user_data);
@@ -210,6 +235,8 @@ void MessagingManager::getMessageServices(const std::string& type, double callba
 MessageService* MessagingManager::getMessageService(const int id) {
     if (id == m_sms_service.first) {
         return m_sms_service.second;
+    } else if (id == m_mms_service.first) {
+        return m_mms_service.second;
     } else {
         return m_email_services[id];
     }

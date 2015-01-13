@@ -20,6 +20,7 @@ public:
     std::shared_ptr<picojson::value> json;
     std::map<int, MessageService*>* services_map;
     std::pair<int, MessageService*>* sms_service;
+    std::pair<int, MessageService*>* mms_service;
 };
 
 class MessagingManager {
@@ -37,6 +38,7 @@ private:
     msg_handle_t m_msg_handle;
     std::map<int, MessageService*> m_email_services;
     std::pair<int, MessageService*> m_sms_service;
+    std::pair<int, MessageService*> m_mms_service;
 };
 
 } // namespace messaging
