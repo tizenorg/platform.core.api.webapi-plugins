@@ -55,8 +55,7 @@ static gboolean removeMessagesTask(void* data) {
     LoggerD("Entered");
 
     MessagesCallbackUserData *callback = static_cast<MessagesCallbackUserData*>(data);
-    // TODO
-    //ShortMsgManager::getInstance().removeMessages(callback);
+    ShortMsgManager::getInstance().removeMessages(callback);
 
     return false;
 }
