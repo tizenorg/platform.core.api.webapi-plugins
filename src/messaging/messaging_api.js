@@ -1083,7 +1083,7 @@ MessageStorage.prototype.addMessagesChangeListener = function () {
         cmd: 'MessageStorage_addMessagesChangeListener',
         cid: cid,
         args: {
-            filter: addTypeToFilter_(args.filter) || null,
+            filter: args.filter ? addTypeToFilter_(args.filter) : null,
             serviceId: self.service.id
         }
     });
@@ -1136,7 +1136,7 @@ MessageStorage.prototype.addConversationsChangeListener = function () {
         cmd: 'MessageStorage_addConversationsChangeListener',
         cid: cid,
         args: {
-            filter: addTypeToFilter_(args.filter) || null,
+            filter: args.filter ? addTypeToFilter_(args.filter) : null,
             serviceId: self.service.id
         }
     });
@@ -1189,7 +1189,7 @@ MessageStorage.prototype.addFoldersChangeListener = function () {
         cmd: 'MessageStorage_addFoldersChangeListener',
         cid: cid,
         args: {
-            filter: args.filter || null,
+            filter: args.filter ? addTypeToFilter_(args.filter) : null,
             serviceId: self.service.id
         }
     });

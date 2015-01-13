@@ -669,6 +669,10 @@ tizen::AbstractFilterPtr MessagingUtil::jsonToAbstractFilter(const picojson::obj
 {
     LoggerD("Entered");
 
+    if (json.at(JSON_TO_FILTER).is<picojson::null>()) {
+        return AbstractFilterPtr();
+    }
+
     auto filter = getValueFromJSONObject<picojson::object>(json, JSON_TO_FILTER);
     std::string type = getValueFromJSONObject<std::string>(filter, "type");
 
