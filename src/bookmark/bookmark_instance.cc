@@ -6,6 +6,7 @@
 
 #include <web/bookmark-adaptor.h>
 #include <string>
+#include "common/logger.h"
 
 #include "common/platform_exception.h"
 #include "common/converter.h"
@@ -93,7 +94,8 @@ void BookmarkInstance::Bookmark_get(
     obj[kType] = picojson::value(std::to_string(entry.bookmark_info.type));
     obj[kParentId] = picojson::value(std::to_string(
         entry.bookmark_info.parent));
-    obj[kUrl] = picojson::value(entry.bookmark_info.url);
+    if (!entry.bookmark_info.type)
+      obj[kUrl] = picojson::value(entry.bookmark_info.url);
 
     arr.push_back(picojson::value(obj));
   }
@@ -105,11 +107,10 @@ void BookmarkInstance::Bookmark_add(
   int saved_id =-1;
   bp_bookmark_info_fmt data = {0};
 
-  data.title = const_cast<char*>(arg.get(kTitle).to_str().c_str());
+  data.title  = const_cast<char*>(arg.get(kTitle).to_str().c_str());
   data.parent = arg.get(kParentId).get<double>();
-  data.type = arg.get(kType).get<double>();
-  data.url = const_cast<char*>(arg.get(kUrl).to_str().c_str());
-
+  data.type   = arg.get(kType).get<double>();
+  data.url    = const_cast<char*>(arg.get(kUrl).to_str().c_str());
   if (bp_bookmark_adaptor_create(&saved_id) < 0) {
     ReportError(o);
     return;

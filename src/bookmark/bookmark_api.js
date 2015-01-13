@@ -181,10 +181,8 @@ BookmarkProvider.prototype.getFolder = function() {
     throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
 
   var obj = new tizen.BookmarkFolder(folder[0].title);
-  _edit.allow();
   obj.id = folder[0].id;
   obj.parent = this.getFolder(folder[0].parentId);
-  _edit.disallow();
   return obj;
 };
 
@@ -226,7 +224,6 @@ BookmarkProvider.prototype.getFolderItems = function() {
       obj = new tizen.BookmarkItem(item.title, item.url);
       _edit.allow();
       obj.id = item.id;
-      obj.url = item.url;
       obj.parent = this.getFolder(item.parentId);
       _edit.disallow();
       result.push(obj);
@@ -272,7 +269,6 @@ tizen.BookmarkItem = function() {
   ]);
   var parent_;
   var id_ = null;
-  var url_;
 
   Object.defineProperties(this, {
     parent: {
@@ -280,9 +276,8 @@ tizen.BookmarkItem = function() {
         return parent_;
       },
       set: function(new_parent) {
-        if (_edit.canEdit) {
+        if (_edit.canEdit)
           parent_ = new_parent;
-        }
       },
       enumerable: true,
       nullable: true
@@ -298,24 +293,16 @@ tizen.BookmarkItem = function() {
       get: function() {
         return args.url;
       },
-      set: function(new_url) {
-        if (_edit.canEdit) {
-          url_ = new_url;
-        }
-      },
       enumerable: true,
       nullable: false
     },
     id: {
       get: function() {
-        if (!id_)
-          return 0;
         return id_;
       },
       set: function(new_id) {
-        if (_edit.canEdit) {
+        if (_edit.canEdit)
           id_ = new_id;
-        }
       },
       enumerable: false,
       nullable: true
@@ -343,9 +330,8 @@ tizen.BookmarkFolder = function() {
         return parent_;
       },
       set: function(new_parent) {
-        if (_edit.canEdit) {
+        if (_edit.canEdit)
           parent_ = new_parent;
-        }
       },
       enumerable: true,
       nullable: true
@@ -359,14 +345,11 @@ tizen.BookmarkFolder = function() {
     },
     id: {
       get: function() {
-        if (!id_)
-          return 0;
         return id_;
       },
       set: function(new_id) {
-        if (_edit.canEdit) {
+        if (_edit.canEdit)
           id_ = new_id;
-        }
       },
       enumerable: false,
       nullable: true
