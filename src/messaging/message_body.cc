@@ -94,26 +94,26 @@ bool MessageBody::is_message_id_set() const
 
 void MessageBody::updateBody(email_mail_data_t& mail)
 {
-    LOGD("Enter");
+    LoggerD("Enter");
     setMessageId(mail.mail_id);
     setLoaded(mail.body_download_status);
 
     if (mail.file_path_plain) {
         try {
-            LOGD("Plain body");
+            LoggerD("Plain body");
             setPlainBody(MessagingUtil::loadFileContentToString(mail.file_path_plain));
         } catch (...) {
-            LOGE("Fail to open plain body.");
+            LoggerE("Fail to open plain body.");
             throw common::UnknownException("Fail to open plain body.");
         }
     }
 
     if (mail.file_path_html) {
         try {
-            LOGD("Html body");
+            LoggerD("Html body");
             setHtmlBody(MessagingUtil::loadFileContentToString(mail.file_path_html));
         } catch (...) {
-            LOGE("Fail to open html body.");
+            LoggerE("Fail to open html body.");
             throw common::UnknownException("Fail to open html body.");
         }
     }

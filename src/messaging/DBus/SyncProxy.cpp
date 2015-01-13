@@ -104,7 +104,7 @@ void SyncProxy::handleEmailSignal(const int status,
         callback_it =  findSyncCallbackByOpHandle(op_handle);
         callback = callback_it->second;
         if (!callback) {
-            LOGE("Callback is null");
+            LoggerE("Callback is null");
             throw common::UnknownException("Callback is null");
         }
 

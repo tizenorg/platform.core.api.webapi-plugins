@@ -103,7 +103,7 @@ void MessageEmail::updateEmailMessage(email_mail_data_t& mail)
     setIsHighPriority((EMAIL_MAIL_PRIORITY_HIGH == mail.priority) ? true : false);
 
     if (mail.subject == NULL) {
-        LOGW("Subject is null");
+        LoggerW("Subject is null");
     } else {
         LoggerD("Subject: %s", mail.subject);
         setSubject(mail.subject);

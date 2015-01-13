@@ -14,6 +14,7 @@
 #include "Ecore_File.h"
 #include "message_email.h"
 #include "message_sms.h"
+#include "message_mms.h"
 #include "short_message_manager.h"
 #include "messaging_util.h"
 
@@ -332,7 +333,7 @@ std::string copyFileToTemp(const std::string& sourcePath)
     mode_t mask = umask(S_IWGRP | S_IWOTH);
     int err = mkstemp(buf);
     if (-1 == err) {
-        LOGW("Failed to create unique filename");
+        LoggerW("Failed to create unique filename");
     }
 
     umask(mask);
@@ -485,7 +486,7 @@ void addSingleEmailAttachment(std::shared_ptr<Message> message,
         LoggerE("Error while adding attachment %d", err);
         err = email_free_attachment_data(&tmp, 1);
         if (EMAIL_ERROR_NONE != err) {
-            LOGW("Failed to free attachment data");
+            LoggerW("Failed to free attachment data");
         }
         throw common::UnknownException("Unknown error while adding attachment");
     }
@@ -494,7 +495,7 @@ void addSingleEmailAttachment(std::shared_ptr<Message> message,
     att->setMessageId(id);
     err = email_free_attachment_data(&tmp, 1);
     if (EMAIL_ERROR_NONE != err) {
-        LOGW("Failed to free attachment data");
+        LoggerW("Failed to free attachment data");
     }
 
     removeDirFromTemp(dirPath);
@@ -630,27 +631,28 @@ void Message::addMMSRecipientsToStruct(const std::vector<std::string> &recipient
     }
 }
 
-//void Message::addMMSBodyAndAttachmentsToStruct(const AttachmentPtrVector attach,
-//        msg_struct_t &mms_struct, Message* message)
-//{
-//    LoggerD("Entered with %d attachments", attach.size());
-//
-//    int size = attach.size();
-//    for (int i = 0; i < size; i++) {
-//
-//        msg_struct_t tmpAtt = NULL;
-//        int error = msg_list_add_item(mms_struct, MSG_STRUCT_MMS_ATTACH, &tmpAtt);
-//        if (MSG_SUCCESS == error) {
-//
-//            //Ensure we have right id set
-//            attach[i]->setId(i+1);
-//            attach[i]->setMessageId(message->getId());
-//
-//            //-------------------------------------------------------------------------
-//            // set file path, file name, file size
-//            if (attach.at(i)->isFilePathSet()) {
-//                std::string filepath = attach.at(i)->getFilePath();
-//                LoggerD("att[%d]: org filepath: %s", i, filepath.c_str());
+void Message::addMMSBodyAndAttachmentsToStruct(const AttachmentPtrVector attach,
+        msg_struct_t &mms_struct, Message* message)
+{
+    LoggerD("Entered with %d attachments", attach.size());
+
+    int size = attach.size();
+    for (int i = 0; i < size; i++) {
+
+        msg_struct_t tmpAtt = NULL;
+        int error = msg_list_add_item(mms_struct, MSG_STRUCT_MMS_ATTACH, &tmpAtt);
+        if (MSG_SUCCESS == error) {
+
+            //Ensure we have right id set
+            attach[i]->setId(i+1);
+            attach[i]->setMessageId(message->getId());
+
+            //-------------------------------------------------------------------------
+            // set file path, file name, file size
+            if (attach.at(i)->isFilePathSet()) {
+                std::string filepath = attach.at(i)->getFilePath();
+                LoggerD("att[%d]: org filepath: %s", i, filepath.c_str());
+// TODO uncomment when filesystem will be available
 //                if(Filesystem::External::isVirtualPath(filepath)) {
 //                    // TODO
 //                    // When introducing below line fromVirtualPath() function
@@ -660,45 +662,45 @@ void Message::addMMSRecipientsToStruct(const std::vector<std::string> &recipient
 //                    filepath = Filesystem::External::fromVirtualPath(filepath);
 //                    LoggerD("att[%d]: org virtual filepath: %s", i, filepath.c_str());
 //                }
-//                msg_set_str_value(tmpAtt, MSG_MMS_ATTACH_FILEPATH_STR,
-//                        const_cast<char*>(filepath.c_str()), filepath.size());
-//                const size_t last_slash_idx = filepath.find_last_of("\\/");
-//                if (std::string::npos != last_slash_idx) {
-//                    filepath.erase(0, last_slash_idx + 1);
-//                }
-//
-//                LoggerD("att[%d] filename: %s", i, filepath.c_str());
-//                msg_set_str_value(tmpAtt, MSG_MMS_ATTACH_FILENAME_STR,
-//                        const_cast<char*>(filepath.c_str()), filepath.size());
-//                struct stat st;
-//                if (stat(const_cast<char*>(filepath.c_str()), &st)) {
-//                    LoggerE("Stat error");
-//                }
-//                const int fsize = st.st_size;
-//                msg_set_int_value(tmpAtt, MSG_MMS_ATTACH_FILESIZE_INT, fsize);
-//                LoggerD("att[%d]: filesize: %d", i,fsize);
-//            }
-//
-//            //-------------------------------------------------------------------------
-//            //set mime type
-//            if (attach.at(i)->isMimeTypeSet()) {
-//                unsigned int type = MessageAttachment::MIMETypeStringToEnum(
-//                        attach.at(i)->getMimeType());
-//                msg_set_int_value(tmpAtt, MSG_MMS_ATTACH_MIME_TYPE_INT, type);
-//                msg_set_str_value(tmpAtt, MSG_MMS_ATTACH_CONTENT_TYPE_STR,
-//                                    const_cast<char*>(attach.at(i)->getMimeType().c_str()),
-//                                    MSG_MSG_ID_LEN);
-//
-//
-//                LoggerD("att[%d]: setting mime type:0x%x (orignal:%s)", i, type,
-//                    attach.at(i)->getMimeType().c_str());
-//            }
-//        } else {
-//            LoggerE("att[%d]: failed to add attachment");
-//            throw common::UnknownException("failed to add attachment");
-//        }
-//    }
-//}
+                msg_set_str_value(tmpAtt, MSG_MMS_ATTACH_FILEPATH_STR,
+                        const_cast<char*>(filepath.c_str()), filepath.size());
+                const size_t last_slash_idx = filepath.find_last_of("\\/");
+                if (std::string::npos != last_slash_idx) {
+                    filepath.erase(0, last_slash_idx + 1);
+                }
+
+                LoggerD("att[%d] filename: %s", i, filepath.c_str());
+                msg_set_str_value(tmpAtt, MSG_MMS_ATTACH_FILENAME_STR,
+                        const_cast<char*>(filepath.c_str()), filepath.size());
+                struct stat st;
+                if (stat(const_cast<char*>(filepath.c_str()), &st)) {
+                    LoggerE("Stat error");
+                }
+                const int fsize = st.st_size;
+                msg_set_int_value(tmpAtt, MSG_MMS_ATTACH_FILESIZE_INT, fsize);
+                LoggerD("att[%d]: filesize: %d", i,fsize);
+            }
+
+            //-------------------------------------------------------------------------
+            //set mime type
+            if (attach.at(i)->isMimeTypeSet()) {
+                unsigned int type = MessageAttachment::MIMETypeStringToEnum(
+                        attach.at(i)->getMimeType());
+                msg_set_int_value(tmpAtt, MSG_MMS_ATTACH_MIME_TYPE_INT, type);
+                msg_set_str_value(tmpAtt, MSG_MMS_ATTACH_CONTENT_TYPE_STR,
+                                    const_cast<char*>(attach.at(i)->getMimeType().c_str()),
+                                    MSG_MSG_ID_LEN);
+
+
+                LoggerD("att[%d]: setting mime type:0x%x (orignal:%s)", i, type,
+                    attach.at(i)->getMimeType().c_str());
+            }
+        } else {
+            LoggerE("att[%d]: failed to add attachment");
+            throw common::UnknownException("failed to add attachment");
+        }
+    }
+}
 
 msg_struct_t Message::convertPlatformShortMessageToStruct(Message* message,
         msg_handle_t handle)
@@ -798,83 +800,83 @@ msg_struct_t Message::convertPlatformShortMessageToStruct(Message* message,
             }
         }
         // Set MMS message text
-//        std::shared_ptr<MessageBody> body;
-//        body = message->getBody();
-//        if (!body->getPlainBody().empty()) {
-//            LoggerD("Message(%p): PlainBody is NOT empty", message);
-//
-//            static const int ROOT_LAYOUT_WIDTH = 100;
-//            static const int ROOT_LAYOUT_HEIGHT = 100;
-//            static const int WHITE_COLOR = 0xffffff;
-//            static const int BLACK_COLOR = 0x000000;
-//
-//            //----------------------------------------------------------------------------
-//            //Region
-//            msg_struct_t region;
-//            msg_list_add_item(mms_data, MSG_STRUCT_MMS_REGION, &region);
-//            msg_set_str_value(region, MSG_MMS_REGION_ID_STR, const_cast<char*>("Text"), 4);
-//
-//            msg_set_int_value(region, MSG_MMS_REGION_LENGTH_LEFT_INT, 0);
-//            msg_set_int_value(region, MSG_MMS_REGION_LENGTH_TOP_INT, 0);
-//            msg_set_int_value(region, MSG_MMS_REGION_LENGTH_WIDTH_INT,
-//                    ROOT_LAYOUT_WIDTH);
-//            msg_set_int_value(region, MSG_MMS_REGION_LENGTH_HEIGHT_INT,
-//                    ROOT_LAYOUT_HEIGHT);
-//            msg_set_int_value(region, MSG_MMS_REGION_BGCOLOR_INT, WHITE_COLOR);
-//
-//            msg_set_bool_value(region, MSG_MMS_REGION_LENGTH_LEFT_PERCENT_BOOL, true);
-//            msg_set_bool_value(region, MSG_MMS_REGION_LENGTH_TOP_PERCENT_BOOL, true);
-//            msg_set_bool_value(region, MSG_MMS_REGION_LENGTH_WIDTH_PERCENT_BOOL, true);
-//            msg_set_bool_value(region, MSG_MMS_REGION_LENGTH_HEIGHT_PERCENT_BOOL, true);
-//
-//            //----------------------------------------------------------------------------
-//            //Page
-//            msg_struct_t page;
-//            msg_list_add_item(mms_data, MSG_STRUCT_MMS_PAGE, &page);
-//            msg_set_int_value(page, MSG_MMS_PAGE_PAGE_DURATION_INT, 0);
-//
-//            //----------------------------------------------------------------------------
-//            //Media
-//            msg_struct_t media;
-//            msg_list_add_item(page, MSG_STRUCT_MMS_MEDIA, &media);
-//            msg_set_int_value(media, MSG_MMS_MEDIA_TYPE_INT, MMS_SMIL_MEDIA_TEXT);
-//            msg_set_str_value(media, MSG_MMS_MEDIA_REGION_ID_STR,
-//                    const_cast<char*>("Text"), 4);
-//
-//            std::string body_file_path = saveToTempFile(body->getPlainBody());
-//            int error = msg_set_str_value(media,
-//                    MSG_MMS_MEDIA_FILEPATH_STR,
-//                    const_cast<char*>(body_file_path.c_str()),
-//                    body_file_path.size());
-//            if (error != MSG_SUCCESS) {
-//                LoggerE("Message(%p): Failed to set mms body filepath", message);
-//                throw common::UnknownException("Failed to set mms body filepath");
-//            }
-//            msg_set_str_value(media, MSG_MMS_MEDIA_CONTENT_TYPE_STR,
-//                "text/plain", 10);
-//
-//            //----------------------------------------------------------------------------
-//            //Smile text
-//            msg_struct_t smil_text;
-//            msg_get_struct_handle(media, MSG_MMS_MEDIA_SMIL_TEXT_HND, &smil_text);
-//            msg_set_int_value(smil_text, MSG_MMS_SMIL_TEXT_COLOR_INT, BLACK_COLOR);
-//            msg_set_int_value(smil_text, MSG_MMS_SMIL_TEXT_SIZE_INT,
-//                    MMS_SMIL_FONT_SIZE_NORMAL);
-//            msg_set_bool_value(smil_text, MSG_MMS_SMIL_TEXT_BOLD_BOOL, true);
-//        } else {
-//            LoggerD("Message(%p): PlainBody is EMPTY", message);
-//        }
-//        // Set MMS attachments
-//        AttachmentPtrVector attach_list = message->getMessageAttachments();
-//        LoggerD("Message(%p): id:%d subject:[%s] plainBody:[%s] contains %d attachments",
-//                message, message->getId(), message->getSubject().c_str(),
-//                message->getBody()->getPlainBody().c_str(), attach_list.size());
-//
-//        msg_set_int_value(mms_data, MSG_MESSAGE_ATTACH_COUNT_INT,
-//                attach_list.size());
-//        if (!attach_list.empty()) {
-//            addMMSBodyAndAttachmentsToStruct(attach_list, mms_data, message);
-//        }
+        std::shared_ptr<MessageBody> body;
+        body = message->getBody();
+        if (!body->getPlainBody().empty()) {
+            LoggerD("Message(%p): PlainBody is NOT empty", message);
+
+            static const int ROOT_LAYOUT_WIDTH = 100;
+            static const int ROOT_LAYOUT_HEIGHT = 100;
+            static const int WHITE_COLOR = 0xffffff;
+            static const int BLACK_COLOR = 0x000000;
+
+            //----------------------------------------------------------------------------
+            //Region
+            msg_struct_t region;
+            msg_list_add_item(mms_data, MSG_STRUCT_MMS_REGION, &region);
+            msg_set_str_value(region, MSG_MMS_REGION_ID_STR, const_cast<char*>("Text"), 4);
+
+            msg_set_int_value(region, MSG_MMS_REGION_LENGTH_LEFT_INT, 0);
+            msg_set_int_value(region, MSG_MMS_REGION_LENGTH_TOP_INT, 0);
+            msg_set_int_value(region, MSG_MMS_REGION_LENGTH_WIDTH_INT,
+                    ROOT_LAYOUT_WIDTH);
+            msg_set_int_value(region, MSG_MMS_REGION_LENGTH_HEIGHT_INT,
+                    ROOT_LAYOUT_HEIGHT);
+            msg_set_int_value(region, MSG_MMS_REGION_BGCOLOR_INT, WHITE_COLOR);
+
+            msg_set_bool_value(region, MSG_MMS_REGION_LENGTH_LEFT_PERCENT_BOOL, true);
+            msg_set_bool_value(region, MSG_MMS_REGION_LENGTH_TOP_PERCENT_BOOL, true);
+            msg_set_bool_value(region, MSG_MMS_REGION_LENGTH_WIDTH_PERCENT_BOOL, true);
+            msg_set_bool_value(region, MSG_MMS_REGION_LENGTH_HEIGHT_PERCENT_BOOL, true);
+
+            //----------------------------------------------------------------------------
+            //Page
+            msg_struct_t page;
+            msg_list_add_item(mms_data, MSG_STRUCT_MMS_PAGE, &page);
+            msg_set_int_value(page, MSG_MMS_PAGE_PAGE_DURATION_INT, 0);
+
+            //----------------------------------------------------------------------------
+            //Media
+            msg_struct_t media;
+            msg_list_add_item(page, MSG_STRUCT_MMS_MEDIA, &media);
+            msg_set_int_value(media, MSG_MMS_MEDIA_TYPE_INT, MMS_SMIL_MEDIA_TEXT);
+            msg_set_str_value(media, MSG_MMS_MEDIA_REGION_ID_STR,
+                    const_cast<char*>("Text"), 4);
+
+            std::string body_file_path = saveToTempFile(body->getPlainBody());
+            int error = msg_set_str_value(media,
+                    MSG_MMS_MEDIA_FILEPATH_STR,
+                    const_cast<char*>(body_file_path.c_str()),
+                    body_file_path.size());
+            if (error != MSG_SUCCESS) {
+                LoggerE("Message(%p): Failed to set mms body filepath", message);
+                throw common::UnknownException("Failed to set mms body filepath");
+            }
+            msg_set_str_value(media, MSG_MMS_MEDIA_CONTENT_TYPE_STR,
+                "text/plain", 10);
+
+            //----------------------------------------------------------------------------
+            //Smile text
+            msg_struct_t smil_text;
+            msg_get_struct_handle(media, MSG_MMS_MEDIA_SMIL_TEXT_HND, &smil_text);
+            msg_set_int_value(smil_text, MSG_MMS_SMIL_TEXT_COLOR_INT, BLACK_COLOR);
+            msg_set_int_value(smil_text, MSG_MMS_SMIL_TEXT_SIZE_INT,
+                    MMS_SMIL_FONT_SIZE_NORMAL);
+            msg_set_bool_value(smil_text, MSG_MMS_SMIL_TEXT_BOLD_BOOL, true);
+        } else {
+            LoggerD("Message(%p): PlainBody is EMPTY", message);
+        }
+        // Set MMS attachments
+        AttachmentPtrVector attach_list = message->getMessageAttachments();
+        LoggerD("Message(%p): id:%d subject:[%s] plainBody:[%s] contains %d attachments",
+                message, message->getId(), message->getSubject().c_str(),
+                message->getBody()->getPlainBody().c_str(), attach_list.size());
+
+        msg_set_int_value(mms_data, MSG_MESSAGE_ATTACH_COUNT_INT,
+                attach_list.size());
+        if (!attach_list.empty()) {
+            addMMSBodyAndAttachmentsToStruct(attach_list, mms_data, message);
+        }
         // Set MMS body
         int r = msg_set_mms_struct(msg, mms_data);
         if (r != MSG_SUCCESS) {
@@ -1152,7 +1154,7 @@ void Message::setMMSBodyAndAttachmentsFromStruct(Message* message,
     }
 
     if(false == body_has_been_set) {
-        LOGW("Warning: body has not been set!");
+        LoggerW("Warning: body has not been set!");
     }
 
     LoggerD("after MSG_MMS_PAGE_LIST attachments count is:%d",
@@ -1171,7 +1173,7 @@ void Message::setMMSBodyAndAttachmentsFromStruct(Message* message,
             msg_struct_t attach_info = NULL;
             attach_info = (msg_struct_t) msg_list_nth_data(attach_list, i);
             if(!attach_info) {
-                LOGW("[att:%d] attach_info is NULL!", i);
+                LoggerW("[att:%d] attach_info is NULL!", i);
                 continue;
             }
 
@@ -1233,57 +1235,57 @@ Message* Message::convertPlatformShortMessageToObject(msg_struct_t msg){
         std::vector<std::string> recp_list = message->getSMSRecipientsFromStruct(msg);
         message->setTO(recp_list);
     } else if (infoInt == MSG_TYPE_MMS) {
-//        message = new MessageMMS();
-//
-//        // get MMS body
-//        msg_get_int_value(msg, MSG_MESSAGE_DATA_SIZE_INT, &infoInt);
-//        const int mms_body_length = infoInt;
-//
-//        if(mms_body_length > 0) {
-//            std::unique_ptr<char[]> mms_body_str(new char[mms_body_length + 1]);
-//            memset(mms_body_str.get(), 0, (mms_body_length + 1) * sizeof(char));
-//
-//            int error = msg_get_str_value(msg, MSG_MESSAGE_MMS_TEXT_STR,
-//                    mms_body_str.get(), mms_body_length);
-//            if(MSG_SUCCESS != error) {
-//                LoggerE("Error:%d occured during: "
-//                        "msg_get_str_value(...,MSG_MESSAGE_MMS_TEXT_STR,...)", error);
-//            } else {
-//                //Check if fetched string is not empty
-//                if((mms_body_str.get())[0] != 0) {
-//                    LoggerD("Fetched plain body (with MSG_MESSAGE_MMS_TEXT_STR):"
-//                            "[%s] length:%d", mms_body_str.get(), mms_body_length);
-//
-//                    std::shared_ptr<MessageBody> body (new MessageBody());
-//                    std::string infoString;
-//                    infoString.assign(mms_body_str.get());
-//                    body->setPlainBody(infoString);
-//                    message->setBody(body);
-//                } else {
-//                    LOGW("Warning: fetched plain body is empty "
-//                            "despite reported length is:%d!", mms_body_length);
-//                }
-//
-//                LoggerD("Set plain body: [%s]", message->getBody()->getPlainBody().c_str());
-//            }
-//        } else {
-//            LOGW("Warning: mms plain body length is 0!");
-//        }
-//
-//        // get recipients
-//        std::vector<std::string> recp_list = getMMSRecipientsFromStruct(msg,
-//                MSG_RECIPIENTS_TYPE_TO);
-//        message->setTO(recp_list);
-//        recp_list = getMMSRecipientsFromStruct(msg, MSG_RECIPIENTS_TYPE_CC);
-//        message->setCC(recp_list);
-//        recp_list = getMMSRecipientsFromStruct(msg, MSG_RECIPIENTS_TYPE_BCC);
-//        message->setBCC(recp_list);
-//        // get subject
-//        memset(infoStr, 0, MAX_ADDRESS_VAL_LEN + 1);
-//        msg_get_str_value(msg, MSG_MESSAGE_SUBJECT_STR, infoStr, MAX_SUBJECT_LEN);
-//        message->setSubject(infoStr);
-//        //set attachments
-//        setMMSBodyAndAttachmentsFromStruct(message, msg);
+        message = new MessageMMS();
+
+        // get MMS body
+        msg_get_int_value(msg, MSG_MESSAGE_DATA_SIZE_INT, &infoInt);
+        const int mms_body_length = infoInt;
+
+        if(mms_body_length > 0) {
+            std::unique_ptr<char[]> mms_body_str(new char[mms_body_length + 1]);
+            memset(mms_body_str.get(), 0, (mms_body_length + 1) * sizeof(char));
+
+            int error = msg_get_str_value(msg, MSG_MESSAGE_MMS_TEXT_STR,
+                    mms_body_str.get(), mms_body_length);
+            if(MSG_SUCCESS != error) {
+                LoggerE("Error:%d occured during: "
+                        "msg_get_str_value(...,MSG_MESSAGE_MMS_TEXT_STR,...)", error);
+            } else {
+                //Check if fetched string is not empty
+                if((mms_body_str.get())[0] != 0) {
+                    LoggerD("Fetched plain body (with MSG_MESSAGE_MMS_TEXT_STR):"
+                            "[%s] length:%d", mms_body_str.get(), mms_body_length);
+
+                    std::shared_ptr<MessageBody> body (new MessageBody());
+                    std::string infoString;
+                    infoString.assign(mms_body_str.get());
+                    body->setPlainBody(infoString);
+                    message->setBody(body);
+                } else {
+                    LoggerW("Warning: fetched plain body is empty "
+                            "despite reported length is:%d!", mms_body_length);
+                }
+
+                LoggerD("Set plain body: [%s]", message->getBody()->getPlainBody().c_str());
+            }
+        } else {
+            LoggerW("Warning: mms plain body length is 0!");
+        }
+
+        // get recipients
+        std::vector<std::string> recp_list = getMMSRecipientsFromStruct(msg,
+                MSG_RECIPIENTS_TYPE_TO);
+        message->setTO(recp_list);
+        recp_list = getMMSRecipientsFromStruct(msg, MSG_RECIPIENTS_TYPE_CC);
+        message->setCC(recp_list);
+        recp_list = getMMSRecipientsFromStruct(msg, MSG_RECIPIENTS_TYPE_BCC);
+        message->setBCC(recp_list);
+        // get subject
+        memset(infoStr, 0, MAX_ADDRESS_VAL_LEN + 1);
+        msg_get_str_value(msg, MSG_MESSAGE_SUBJECT_STR, infoStr, MAX_SUBJECT_LEN);
+        message->setSubject(infoStr);
+        //set attachments
+        setMMSBodyAndAttachmentsFromStruct(message, msg);
     } else {
         LoggerE("Invalid Message type: %d", infoInt);
         throw common::InvalidValuesException("Invalid Message type");
@@ -1349,7 +1351,7 @@ Message* Message::convertPlatformShortMessageToObject(msg_struct_t msg){
             } else if (infoInt == MSG_NETWORK_NOT_SEND) {
                 msg_status = MessageStatus::STATUS_DRAFT;
             } else {
-                LOGW("warning undefined messageStatus: %d!", infoInt);
+                LoggerW("warning undefined messageStatus: %d!", infoInt);
                 msg_status = MessageStatus::STATUS_UNDEFINED;
             }
             message->setMessageStatus(msg_status);
@@ -1360,7 +1362,7 @@ Message* Message::convertPlatformShortMessageToObject(msg_struct_t msg){
             LoggerE("Couldn't get MSG_SENT_STATUS_NETWORK_STATUS_INT, error:%d", error);
 
             if(0 == message->getId()) {
-                LOGW("Both MSG_SENT_STATUS_NETWORK_STATUS_INT and "
+                LoggerW("Both MSG_SENT_STATUS_NETWORK_STATUS_INT and "
                         "MSG_MESSAGE_FOLDER_ID_INT failed, messageId == 0 ASSUMING that"
                         "this message is in DRAFT");
                 message->setMessageStatus(MessageStatus::STATUS_DRAFT);
@@ -1459,7 +1461,7 @@ std::shared_ptr<Message> Message::convertPlatformEmailToObject(
 
 void Message::updateEmailMessage(email_mail_data_t& mail)
 {
-    LOGW("This should be called on MessageEmail instance");
+    LoggerW("This should be called on MessageEmail instance");
 }
 
 /**

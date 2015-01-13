@@ -4,9 +4,6 @@
 
 #include <iterator>
 
-#include "common/platform_exception.h"
-#include "common/logger.h"
-
 #include "message_sms.h"
 
 namespace extension {

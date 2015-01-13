@@ -111,7 +111,9 @@
         'message_storage_short_msg.cc',
         'message_storage_short_msg.h',
         'short_message_manager.cc',
-        'short_message_manager.h'
+        'short_message_manager.h',
+        'message_mms.cc',
+        'message_mms.h'
       ],
       'includes': [
         '../common/pkg-config.gypi',
