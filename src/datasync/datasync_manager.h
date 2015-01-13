@@ -18,9 +18,12 @@
 #include "datasync/datasync_error.h"
 #include "datasync/sync_profile_info.h"
 #include "datasync/sync_statistics.h"
+#include "common/picojson.h"
 
 namespace extension {
 namespace datasync {
+
+typedef std::map<std::string, std::map<std::string, int>> PlatformEnumMap;
 
 class DatasyncInstance;
 
@@ -31,7 +34,7 @@ class DataSyncManager {
 
   ~DataSyncManager();
 
-  ResultOrError<std::string> Add(SyncProfileInfo& profile_info);
+  int Add(const picojson::object &args);
   ResultOrError<void> Update(SyncProfileInfo& profile_info);
   ResultOrError<void> Remove(const std::string& id);
 
@@ -52,17 +55,22 @@ class DataSyncManager {
 
   static DataSyncManager& Instance();
 
+  static int StrToPlatformEnum(const std::string& field, const std::string& value);
+
  private:
   DataSyncManager();
 
   int StateChangedCallback(sync_agent_event_data_s* request);
   int ProgressCallback(sync_agent_event_data_s* request);
+  void Item(ds_profile_h *profile_h, const picojson::object &args);
 
   ProfileIdToCallbackMap callbacks_;
 
   static bool sync_agent_initialized_;
 
   DISALLOW_COPY_AND_ASSIGN(DataSyncManager);
+
+  static const PlatformEnumMap platform_enum_map_;
 };
 
 }  // namespace datasync
