@@ -996,9 +996,9 @@ MessageStorage.prototype.findFolders = function () {
         cmd: 'MessageStorage_findFolders',
         args: {
             filter: args.filter,
-            sort: args.sort,
-            limit: args.limit,
-            offset: args.offset,
+            sort: args.sort || null,
+            limit: args.limit || null,
+            offset: args.offset || null,
             serviceId: self.service.id
         }
     }).then({
