@@ -65,6 +65,71 @@ exports.isLeapYear = function(year) {
   return false;
 };
 
+var _timeUtilDateTimeChangeListener;
+
+function _timeUtilDateTimeChangeListenerCallback() {
+  native_.callIfPossible(_timeUtilDateTimeChangeListener);
+}
+
+exports.setDateTimeChangeListener = function() {
+  var args = AV.validateArgs(arguments, [
+    {
+      name: 'changeCallback',
+      type: AV.Types.FUNCTION
+    }
+  ]);
+  _timeUtilDateTimeChangeListener = args.changeCallback;
+  native_.addListener('DateTimeChangeListener',
+      _timeUtilDateTimeChangeListenerCallback);
+  var result = native_.callSync('Time_setDateTimeChangeListener', {});
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
+  }
+};
+
+exports.unsetDateTimeChangeListener = function() {
+  native_.removeListener('DateTimeChangeListener',
+      _timeUtilDateTimeChangeListenerCallback);
+  var result = native_.callSync('Time_unsetDateTimeChangeListener', {});
+  _timeUtilDateTimeChangeListener = undefined;
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
+  }
+};
+
+var _timeUtilTimezoneChangeListener;
+
+function _timeUtilTimezoneChangeListenerCallback() {
+  native_.callIfPossible(_timeUtilTimezoneChangeListener);
+}
+
+exports.setTimezoneChangeListener = function() {
+  var args = AV.validateArgs(arguments, [
+    {
+      name: 'changeCallback',
+      type: AV.Types.FUNCTION
+    }
+  ]);
+
+  _timeUtilTimezoneChangeListener = args.changeCallback;
+  native_.addListener('TimezoneChangeListener',
+      _timeUtilTimezoneChangeListenerCallback);
+  var result = native_.callSync('Time_setTimezoneChangeListener', {});
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
+  }
+};
+
+exports.unsetTimezoneChangeListener = function() {
+  native_.removeListener('TimezoneChangeListener',
+      _timeUtilTimezoneChangeListenerCallback);
+  var result = native_.callSync('Time_unsetTimezoneChangeListener', {});
+  _timeUtilTimezoneChangeListener = undefined;
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
+  }
+};
+
 function _throwProperTizenException(e) {
   if (e instanceof TypeError)
     throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR);
@@ -90,10 +155,10 @@ tizen.TimeDuration = function(length, unit) {
 
   Object.defineProperties(this, {
     length: {
-      get: function () {
+      get: function() {
         return length_;
       },
-      set: function (v) {
+      set: function(v) {
         if (v !== null) {
           length_ = Math.floor(v);
         }
@@ -101,10 +166,10 @@ tizen.TimeDuration = function(length, unit) {
       enumerable: true
     },
     unit: {
-      get: function () {
+      get: function() {
         return unit_;
       },
-      set: function (v) {
+      set: function(v) {
         if (TimeDurationUnit.indexOf(v) >= 0) {
           unit_ = v;
         }
@@ -668,9 +733,9 @@ tizen.TZDate.prototype.isDST = function() {
 
 tizen.TZDate.prototype.getPreviousDSTTransition = function() {
   var result = native_.callSync('Time_getDSTTransition', {
-    "timezone": this.timezone_,
-    "value": _getTimeWithOffset(this.date_),
-    "trans": 'NEXT_TRANSITION'
+    'timezone': this.timezone_,
+    'value': _getTimeWithOffset(this.date_),
+    'trans': 'NEXT_TRANSITION'
   });
   if (native_.isFailure(result)) {
     return null;

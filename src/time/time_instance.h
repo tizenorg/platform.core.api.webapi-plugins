@@ -44,6 +44,10 @@ class TimeInstance : public common::ParsedInstance {
   void Time_toString(const JsonValue& args, JsonObject& out);
   void Time_toDateString(const JsonValue& args, JsonObject& out);
   void Time_toTimeString(const JsonValue& args, JsonObject& out);
+  void Time_setDateTimeChangeListener(const JsonValue& args, JsonObject& out);
+  void Time_unsetDateTimeChangeListener(const JsonValue& args, JsonObject& out);
+  void Time_setTimezoneChangeListener(const JsonValue& args, JsonObject& out);
+  void Time_unsetTimezoneChangeListener(const JsonValue& args, JsonObject& out);
 
   UnicodeString getDateTimeFormat(DateTimeFormatType type, bool bLocale);
   bool toStringByFormat(const JsonValue& args, JsonValue& out,
