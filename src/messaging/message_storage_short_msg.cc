@@ -82,8 +82,7 @@ static gboolean updateMessagesTask(void* data) {
     LoggerD("Entered");
 
     MessagesCallbackUserData *callback = static_cast<MessagesCallbackUserData*>(data);
-    // TODO
-    //ShortMsgManager::getInstance().updateMessages(callback);
+    ShortMsgManager::getInstance().updateMessages(callback);
 
     return false;
 }
