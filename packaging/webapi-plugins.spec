@@ -178,6 +178,7 @@ BuildRequires: pkgconfig(libpcrecpp)
 BuildRequires: pkgconfig(capi-appfw-application)
 BuildRequires: pkgconfig(capi-appfw-app-manager)
 BuildRequires: pkgconfig(capi-appfw-package-manager)
+BuildRequires: pkgconfig(wrt-plugins-ipc-message)
 
 %if 0%{?tizen_feature_power_support}
 BuildRequires: pkgconfig(capi-system-power)

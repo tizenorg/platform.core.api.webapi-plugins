@@ -1,0 +1,41 @@
+{
+  'includes':[
+    '../common/common.gypi',
+  ],
+  'targets': [
+    {
+      'target_name': 'tizen_application',
+      'type': 'loadable_module',
+      'sources': [
+        'application_api.js',
+        'application_extension.cc',
+        'application_extension.h',
+        'application_instance.cc',
+        'application_instance.h',
+        'application.cc',
+        'application.h',
+        'application_information.cc',
+        'application_information.h',
+        'application_context.cc',
+        'application_context.h',
+      ],
+      'includes': [
+        '../common/pkg-config.gypi',
+      ],
+      'conditions': [
+        ['tizen == 1', {
+         'variables': {
+            'packages': [
+              'capi-appfw-app-manager',
+              'capi-appfw-application',
+              'capi-appfw-package-manager',
+              'pkgmgr',
+              'pkgmgr-info',
+              'wrt-plugins-ipc-message',
+            ]
+          },
+        }],
+      ],
+    },
+  ],
+}
