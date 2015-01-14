@@ -51,7 +51,7 @@ BookmarkInstance::~BookmarkInstance() {
 bool BookmarkInstance::bookmark_foreach(
     Context& ctx, bp_bookmark_info_fmt& info) {
   int ids_count = 0;
-  int *ids = NULL;
+  int* ids = NULL;
   BookmarkObject item;
   if (bp_bookmark_adaptor_get_full_ids_p(&ids, &ids_count) < 0)
     return false;
@@ -68,6 +68,64 @@ bool BookmarkInstance::bookmark_foreach(
   }
   free(ids);
   return true;
+}
+
+bool BookmarkInstance::bookmark_url_exists(const char* url) {
+  int ids_count = 0;
+  int* ids = NULL;
+  char* compare_url = NULL;
+
+  if (bp_bookmark_adaptor_get_full_ids_p(&ids, &ids_count) < 0)
+    return true;
+  if (ids_count > 0) {
+    for (int i = 0; i < ids_count; i++) {
+      if (bp_bookmark_adaptor_get_url(ids[i], &compare_url) < 0) {
+        free(ids);
+        return true;
+      }
+      if (strcmp(url, compare_url) == 0) {
+        free(compare_url);
+        free(ids);
+        return true;
+      }
+    }
+  }
+  free(compare_url);
+  free(ids);
+  return false;
+}
+
+bool BookmarkInstance::bookmark_title_exists_in_parent(
+    const char* title, int parent) {
+  int ids_count = 0;
+  int compare_parent = -1;
+  int* ids = NULL;
+  char* compare_title = NULL;
+
+  if (bp_bookmark_adaptor_get_full_ids_p(&ids, &ids_count) < 0)
+    return true;
+  if (ids_count > 0) {
+    for (int i = 0; i < ids_count; i++) {
+      if (bp_bookmark_adaptor_get_title(ids[i], &compare_title) < 0) {
+        free(ids);
+        return true;
+      }
+      if (bp_bookmark_adaptor_get_parent_id(ids[i], &compare_parent) < 0) {
+        free(compare_title);
+        free(ids);
+        return true;
+      }
+      if (strcmp(title, compare_title) == 0
+        && (parent == compare_parent)) {
+        free(compare_title);
+        free(ids);
+        return true;
+      }
+    }
+  }
+  free(compare_title);
+  free(ids);
+  return false;
 }
 
 void BookmarkInstance::Bookmark_get(
@@ -111,6 +169,16 @@ void BookmarkInstance::Bookmark_add(
   data.parent = arg.get(kParentId).get<double>();
   data.type   = arg.get(kType).get<double>();
   data.url    = const_cast<char*>(arg.get(kUrl).to_str().c_str());
+
+  if (!data.type && bookmark_url_exists(data.url)) {
+    ReportError(o);
+    return;
+  }
+  if (data.type && bookmark_title_exists_in_parent(data.title, data.parent)) {
+    ReportError(o);
+    return;
+  }
+
   if (bp_bookmark_adaptor_create(&saved_id) < 0) {
     ReportError(o);
     return;
