@@ -6,6 +6,7 @@
 #define BADGE_BADGE_MANAGER_H_
 
 #include <string>
+#include <set>
 
 #include "common/logger.h"
 #include "common/picojson.h"
@@ -24,17 +25,17 @@ class BadgeManager {
 
   void setBadgeCount(std::string appId, unsigned int count);
   unsigned int getBadgeCount(std::string appId);
+  void addChangeListener(const JsonObject& obj);
+  void removeChangeListener(const JsonObject& obj);
+  static void badge_changed_cb(unsigned int, const char*, unsigned int, void*);
 
  private:
   BadgeManager();
   virtual ~BadgeManager();
 
-  void CheckErrorCode(int err);
-  char* _badge_get_pkgname_by_appid(const char* appId);
-  bool checkPermisionForCreatingBadge(const char* appId);
-  char* _badge_get_pkgname_by_pid();
-  int _badge_is_same_certinfo(const char *caller, const char *pkgname);
-
+  bool isAppInstalled(const std::string& appId);
+  static bool is_cb_registered_;
+  static std::set<std::string> watched_applications_;
 };
 
 }  // namespace badge

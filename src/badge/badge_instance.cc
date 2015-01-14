@@ -18,6 +18,11 @@ const std::string kPrivilegeBadge = "http://tizen.org/privilege/badge";
 using namespace common;
 using namespace extension::badge;
 
+BadgeInstance& BadgeInstance::GetInstance() {
+  static BadgeInstance instance;
+  return instance;
+}
+
 BadgeInstance::BadgeInstance() {
   using namespace std::placeholders;
 #define REGISTER_SYNC(c, x) \
@@ -25,6 +30,8 @@ BadgeInstance::BadgeInstance() {
 
   REGISTER_SYNC("Badge_setBadgeCount", setBadgeCount);
   REGISTER_SYNC("Badge_getBadgeCount", getBadgeCount);
+  REGISTER_SYNC("Badge_addChangeListener", addChangeListener);
+  REGISTER_SYNC("Badge_removeChangeListener", removeChangeListener);
 
 #undef REGISTER_SYNC
 }
@@ -32,16 +39,27 @@ BadgeInstance::BadgeInstance() {
 BadgeInstance::~BadgeInstance() {}
 
 void BadgeInstance::setBadgeCount(const JsonValue& args, JsonObject& out) {
-  std::string appId = common::FromJson<std::string>(args.get<JsonObject>(), "appId");
+  std::string appId =
+      common::FromJson<std::string>(args.get<JsonObject>(), "appId");
   const double count = args.get("count").get<double>();
-  BadgeManager::GetInstance()->setBadgeCount(appId, (unsigned int)count);
+  BadgeManager::GetInstance()->setBadgeCount(appId, static_cast<unsigned int>(count));
   ReportSuccess(out);
 }
 
 void BadgeInstance::getBadgeCount(const JsonValue& args, JsonObject& out) {
-  std::string appId = common::FromJson<std::string>(args.get<JsonObject>(), "appId");
+  std::string appId =
+      common::FromJson<std::string>(args.get<JsonObject>(), "appId");
   unsigned int count = BadgeManager::GetInstance()->getBadgeCount(appId);
   ReportSuccess(JsonValue(std::to_string(count)), out);
+}
+
+void BadgeInstance::addChangeListener(const JsonValue& args, JsonObject& out) {
+  BadgeManager::GetInstance()->addChangeListener(args.get<JsonObject>());
+}
+
+void BadgeInstance::removeChangeListener(const JsonValue& args,
+                                         JsonObject& out) {
+  BadgeManager::GetInstance()->removeChangeListener(args.get<JsonObject>());
 }
 
 }  // namespace badge
