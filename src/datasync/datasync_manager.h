@@ -36,7 +36,7 @@ class DataSyncManager {
 
   int Add(const picojson::object &args);
   void Update(const picojson::object &args);
-  ResultOrError<void> Remove(const std::string& id);
+  void Remove(const std::string& id);
 
   int GetMaxProfilesNum() const;
   int GetProfilesNum() const;

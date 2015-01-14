@@ -360,33 +360,21 @@ void DataSyncManager::Update(const picojson::object& args) {
   }
 }
 
-ResultOrError<void> DataSyncManager::Remove(const std::string& id) {
+void DataSyncManager::Remove(const std::string& id) {
   ds_profile_h profile_h = nullptr;
-
-  auto exit = common::MakeScopeExit([&profile_h]() {
-    if (profile_h) {
-      sync_agent_ds_free_profile_info(profile_h);
-    }
-  });
-
-  sync_agent_ds_error_e ret = SYNC_AGENT_DS_FAIL;
 
   int profile_id = std::stoi(id);
   LoggerD("profileId: %d", profile_id);
 
-  ret = sync_agent_ds_get_profile(profile_id, &profile_h);
+  sync_agent_ds_error_e ret = sync_agent_ds_get_profile(profile_id, &profile_h);
   if (SYNC_AGENT_DS_SUCCESS != ret) {
-    return Error("Exception",
-        "Platform error while getting a profile");
+    throw UnknownException("Platform error while getting a profile");
   }
 
   ret = sync_agent_ds_delete_profile(profile_h);
   if (SYNC_AGENT_DS_SUCCESS != ret && SYNC_AGENT_DS_SYNCHRONISING != ret) {
-    return Error("Exception",
-        "Platform error while deleting a profile");
+    throw UnknownException("Platform error while deleting a profile");
   }
-
-  return {};
 }
 
 int DataSyncManager::GetMaxProfilesNum() const {

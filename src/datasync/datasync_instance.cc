@@ -85,11 +85,10 @@ void DatasyncInstance::Update(const picojson::value &args, picojson::object &out
 }
 
 void DatasyncInstance::Remove(const picojson::value &args, picojson::object &out) {
-//  TODO: implementation
+  DataSyncManager::Instance().Remove(args.get("profileId").get<std::string>());
 
-    picojson::value val{picojson::object{}};
-
-    ReportSuccess(val, out);
+  picojson::value val{picojson::object{}};
+  ReportSuccess(val, out);
 }
 
 void DatasyncInstance::StartSync(const picojson::value &args, picojson::object &out) {
