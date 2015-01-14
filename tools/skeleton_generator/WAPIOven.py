@@ -71,11 +71,12 @@ class Compiler(IndentPrintable):
     def todo(self, formatstring):
         self.dprint(("// %s " % Compiler.TODOSTR) +formatstring)
 
-    def prepare(self):
+    def prepare(self, module):
         self.ctx = dict()
+        self.ctx['interfaces'] = dict()
         self.ctx['modules'] = []
         self.ctx['implementedObject'] = None
-        self.ctx['implementedClass'] = None
+        self.ctx['implementedClass'] = []
         self.ctx['export'] = dict()
         self.ctx['callback'] = dict()
         self.ctx['dictionary'] = dict()
@@ -87,6 +88,7 @@ class Compiler(IndentPrintable):
         self.ctx['Tizen'] = []
         self.ctx['Window'] = []
         self.ctx['cmdtable'] = dict()
+        self.ctx['exportModule'] = module
 
         self.q = Queue()
 
@@ -98,17 +100,17 @@ class Compiler(IndentPrintable):
 
         for m in self.tree:
             for iface in m.getTypes('Interface'):
-                if iface.inherit in [x.name for x in self.ctx['exportedInterface']]:
-                    iface.exported = True
-                if iface.name in self.ctx['callback']:
-                    iface.isListener = True
+                #if iface.inherit in [x.name for x in self.ctx['exportedInterface']]:
+                #    iface.exported = True
+                #if iface.name in self.ctx['callback']:
+                    #iface.isListener = True
                 for operation in iface.getTypes('Operation'):
                     if hasattr(iface, 'exported') and iface.exported:
                         operation.native_cmd = iface.name+'_'+operation.name
                         operation.native_function = iface.name+(operation.name.title())
                         self.ctx['cmdtable'][operation.native_function] = operation.native_cmd
                     operation.argnames = [a.name for a in operation.arguments]
-                    operation.primitiveArgs = [x for x in operation.arguments if not x.optional and x.xtype.name in cppPrimitiveMap]
+                    operation.primitiveArgs = [x for x in operation.arguments if x.xtype.name in cppPrimitiveMap]
                     for arg in operation.arguments:
                         if arg.xtype.name in self.ctx['enum']:
                             arg.isEnum = True
@@ -123,6 +125,9 @@ class Compiler(IndentPrintable):
                                     arg.enums = reduce(lambda x,y: x+y, [ self.ctx['enum'][x] for x in self.ctx['enum'] if x in union_names])
                                 arg.isTypes = reduce(lambda x, y: x & y, [ x in m.getTypes('Interface') for x in union_names])
                         if arg.xtype.name in self.ctx['callback']:
+                            callback = self.ctx['callback'][arg.xtype.name]
+                            if callback.functionOnly:
+                                arg.functionOnly = True
                             arg.isListener = True
                             arg.listenerType = self.ctx['callback'][arg.xtype.name]
                             operation.async = True
@@ -138,31 +143,40 @@ class Compiler(IndentPrintable):
                             break
 
     def prepareX(self, x):
-        if isinstance(x, WebIDL.XImplements) and (x.name in ['Tizen', 'Window']):
-            self.ctx['implementedClass'] = x.impl
+        if isinstance(x, WebIDL.XImplements) and (x.name in ['Tizen', 'Window']) and x.parent.name.lower() == self.ctx['exportModule'].lower():
+            self.ctx['implementedClass'].append(x.impl)
             self.ctx[x.name].append(x.impl)
             impl = x.parent.get('Interface', x.impl)
             impl.implements = x.name
 
         if isinstance(x, WebIDL.XAttribute) and isinstance(x.parent, WebIDL.XInterface):
-            if x.parent.name == self.ctx['implementedClass']:
+            if x.parent.name in self.ctx['implementedClass']:
                 self.ctx['implementedObject'] = x.name
-                inheritIface = x.parent.parent.get('Interface', x.xtype.name)
+                #inheritIface = x.parent.parent.get('Interface', x.xtype.name)
+                inheritIface = self.ctx['interfaces'][x.xtype.name]
                 if inheritIface :
                     self.ctx[x.parent.implements] = inheritIface.name
                     inheritIface.exported = True
                     self.ctx['exportedInterface'].append(inheritIface)
 
         if isinstance(x, WebIDL.XInterface):
-            xattrs = [attr.name for attr in x.getTypes('ExtendedAttribute')]
-            if 'Callback' in xattrs:
+            xcallback = next((a for a in x.getTypes('ExtendedAttribute') if a.name == 'Callback'), None)
+            if xcallback:
                 self.ctx['callback'][x.name] = x
+            x.functionOnly = xcallback and xcallback.identity == 'FunctionOnly'
+            self.ctx['interfaces'][x.name] = x;
+
+            xctor = next((c for c in x.getTypes('ExtendedAttribute') if c.name == 'Constructor'), None)
+            if xctor:
+                x.constructor = xctor
 
         if isinstance(x, WebIDL.XOperation):
             module = x.parent.parent
-            if module.get('Interface', x.returnType.name):
+            #if module.get('Interface', x.returnType.name):
+            if x.returnType.name in self.ctx['interfaces']:
                 self.ctx['activeObjects'].add(x.returnType.name)
-                inheritIface = module.get('Interface', x.returnType.name)
+                #inheritIface = module.get('Interface', x.returnType.name)
+                inheritIface = self.ctx['interfaces'][x.returnType.name]
                 if inheritIface :
                     inheritIface.exported = True
                     self.ctx['exportedInterface'].append(inheritIface)
@@ -182,11 +196,12 @@ class Compiler(IndentPrintable):
 
     TPL_API_JS = "tpl_api.js"
 
-    def makeJSStub(self):
-        self.prepare()
+    def makeJSStub(self, module):
+        self.prepare(module)
         tpl = self.tplEnv.get_template(Compiler.TPL_API_JS)
 
-        return tpl.render({'modules':self.tree,
+        modules = self.tree if module == None else [m for m in self.tree if m.name.lower() == module.lower()]
+        return tpl.render({'modules':modules,
             'callbacks':self.ctx['callback'],
             'tizen': self.ctx['Tizen'],
             'window': self.ctx['Window'],
@@ -240,7 +255,7 @@ def printhelp():
 if __name__ == '__main__':
     argv = sys.argv[1:]
     try:
-        opts, args = getopt.getopt(argv, "ht:d:")
+        opts, args = getopt.getopt(argv, "htm:d:")
     except getopt.GetoptError:
         printhelp()
         sys.exit(2)
@@ -265,17 +280,21 @@ if __name__ == '__main__':
         sys.exit(2)
 
     if not moduleName:
-        moduleName = args[0][args[0].find('/')+1:args[0].find('.')]
+        import os
+        basename = os.path.basename(args[0])
+        moduleName = basename[0:basename.find('.')]
 
-    f = open(args[0])
-    widl = f.read()
-    f.close()
+    widl = ""
+    for arg in args:
+        f = open(arg)
+        widl += f.read()
+        f.close()
 
     p = WebIDL.Parser()
     tree = p.parse(widl)
     c = Compiler(tree)
 
-    jscode = c.makeJSStub()
+    jscode = c.makeJSStub(moduleName)
     cppcode = c.makeCppStubs(moduleName)
 
     if outDirectory:

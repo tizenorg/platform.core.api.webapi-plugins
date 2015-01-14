@@ -77,7 +77,12 @@ var {{enums.name}} = {
 
 {% for iface in module.getTypes('Interface') %}
 {% if iface.exported %}
-function {{iface.name}}() {
+function {{iface.name}}(
+        {%-if iface.constructor -%}
+        {%- for arg in iface.constructor.arguments -%}
+        {{arg.name}}{%- if not loop.last %}, {% endif -%}
+        {%- endfor -%}
+        {%- endif -%}) {
     // constructor of {{iface.name}}
 }
 
@@ -89,16 +94,16 @@ function {{iface.name}}() {
 {% for operation in iface.getTypes('Operation') %}
 {{iface.name}}.prototype.{{operation.name}} = function(
         {%- for arg in operation.arguments -%}
-            {%- if not arg.optional -%}
-                {%- if not loop.first %}, {% endif -%}
-                {{arg.name}}
-            {%- endif -%}
+            {%- if not loop.first %}, {% endif -%}
+            {{arg.name}}
         {%- endfor %}) {
     {% if operation.arguments %}
     var args = validator_.validateArgs(arguments, [
         {% for arg in operation.arguments %}
         {'name' : '{{arg.name}}', 'type': types_.
-            {%- if arg.isListener -%}
+            {%- if arg.functionOnly -%}
+                FUNCTION
+            {%- elif arg.isListener -%}
                 LISTENER, 'values' : [
                 {%- for listener in arg.listenerType.getTypes('Operation') -%}
                     '{{listener.name}}'{% if not loop.last %}, {% endif %}
@@ -133,17 +138,16 @@ function {{iface.name}}() {
 
     {% if operation.arguments %}
     var nativeParam = {
-        {% for arg in operation.primitiveArgs %}
-            '{{arg.name}}': args.{{arg.name}}{% if not loop.last %},{% endif %}
+        {% for arg in operation.primitiveArgs if not arg.optional %}
+        '{{arg.name}}': args.{{arg.name}}{% if not loop.last %},{% endif %}
 
         {% endfor %}
     };
-    {% for arg in operation.arguments %}
-    {% if arg.optional %}
+
+    {% for arg in operation.primitiveArgs if arg.optional %}
     if (args['{{arg.name}}']) {
         nativeParam['{{arg.name}}'] = args.{{arg.name}};
     }
-    {% endif %}
     {% endfor %}
     {% endif %}
     {% set successcbs = [] %}

@@ -221,7 +221,7 @@ class XExtendedAttribute(XDepthPrintable):
             s += " = %s" % self.identity
         if self.arguments and len(self.arguments)>0:
             s += " ("
-            s += ", ".join(self.arguments)
+            s += ", ".join([x.name for x in self.arguments])
             s += " )"
         return indent + "<X-Attr %s>"%s
 
