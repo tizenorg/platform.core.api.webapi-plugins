@@ -38,10 +38,23 @@ exports.getAvailableTimezones = function() {
   return _availableTimezonesCache;
 };
 
-exports.getDateFormat = function(shortformat) {
-  if (shortformat)
-    return 'm/d/y';
-  return 'D, M d y';
+exports.getDateFormat = function() {
+  var args = AV.validateArgs(arguments, [{
+    name : 'shortformat',
+    type : AV.Types.BOOLEAN,
+    optional : true,
+    nullable : true
+  }]);
+
+  if (!args.has.shortformat) {
+    args.shortformat = false;
+  }
+
+  var result = native_.callSync('Time_getDateFormat', {shortformat: args.shortformat});
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
+  }
+  return native_.getResultObject(result);
 };
 
 exports.getTimeFormat = function() {

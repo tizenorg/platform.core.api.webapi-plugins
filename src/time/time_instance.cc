@@ -59,6 +59,7 @@ TimeInstance::TimeInstance() {
   REGISTER_SYNC("Time_getDSTTransition", Time_getDSTTransition);
   REGISTER_SYNC("Time_getLocalTimeZone", Time_getLocalTimeZone);
   REGISTER_SYNC("Time_getTimeFormat", Time_getTimeFormat);
+  REGISTER_SYNC("Time_getDateFormat", Time_getDateFormat);
   REGISTER_SYNC("Time_getTimeZoneOffset", Time_getTimeZoneOffset);
   REGISTER_SYNC("Time_getTimeZoneAbbreviation", Time_getTimeZoneAbbreviation);
   REGISTER_SYNC("Time_isDST", Time_isDST);
@@ -331,6 +332,40 @@ void TimeInstance::Time_getTimeFormat(const JsonValue& /*args*/,
   std::string result = "";
   timeFormat.toUTF8String(result);
 
+  ReportSuccess(JsonValue(result), out);
+}
+
+void TimeInstance::Time_getDateFormat(const JsonValue& args, JsonObject& out) {
+  bool shortformat = args.get("shortformat").evaluate_as_boolean();
+
+  UnicodeString time_format = getDateTimeFormat(
+      (shortformat ? DateTimeFormatType::DATE_SHORT_FORMAT :
+                     DateTimeFormatType::DATE_FORMAT),
+      true);
+
+  time_format = time_format.findAndReplace("E", "D");
+
+  if (time_format.indexOf("MMM") > 0) {
+    if (time_format.indexOf("MMMM") > 0) {
+      time_format = time_format.findAndReplace("MMMM", "M");
+    } else {
+      time_format = time_format.findAndReplace("MMM", "M");
+    }
+  } else {
+    time_format = time_format.findAndReplace("M", "m");
+  }
+
+  int i = 0;
+  while (i < time_format.length() - 1) {
+    if (time_format[i] == time_format[i + 1]) {
+      time_format.remove(i, 1);
+    } else {
+      ++i;
+    }
+  }
+
+  std::string result = "";
+  time_format.toUTF8String(result);
   ReportSuccess(JsonValue(result), out);
 }
 

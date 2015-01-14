@@ -38,6 +38,7 @@ class TimeInstance : public common::ParsedInstance {
   void Time_getDSTTransition(const JsonValue& args, JsonObject& out);
   void Time_getLocalTimeZone(const JsonValue& args, JsonObject& out);
   void Time_getTimeFormat(const JsonValue& args, JsonObject& out);
+  void Time_getDateFormat(const JsonValue& args, JsonObject& out);
   void Time_getTimeZoneOffset(const JsonValue& args, JsonObject& out);
   void Time_getTimeZoneAbbreviation(const JsonValue& args, JsonObject& out);
   void Time_isDST(const JsonValue& args, JsonObject& out);
