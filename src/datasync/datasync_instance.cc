@@ -78,11 +78,10 @@ void DatasyncInstance::Add(const picojson::value &args, picojson::object &out) {
 }
 
 void DatasyncInstance::Update(const picojson::value &args, picojson::object &out) {
-//  TODO: implementation
+  DataSyncManager::Instance().Update(args.get<picojson::object>());
 
-    picojson::value val{picojson::object{}};
-
-    ReportSuccess(val, out);
+  picojson::value val{picojson::object{}};
+  ReportSuccess(val, out);
 }
 
 void DatasyncInstance::Remove(const picojson::value &args, picojson::object &out) {

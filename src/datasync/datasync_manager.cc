@@ -459,89 +459,23 @@ int DataSyncManager::Add(const picojson::object& args) {
   return profile_id;
 }
 
-ResultOrError<void> DataSyncManager::Update(SyncProfileInfo& profile_info) {
+void DataSyncManager::Update(const picojson::object& args) {
   ds_profile_h profile_h = nullptr;
 
-  auto exit = common::MakeScopeExit([&profile_h]() {
-    if (profile_h) {
-      sync_agent_ds_free_profile_info(profile_h);
-    }
-  });
-
-  sync_agent_ds_error_e ret = SYNC_AGENT_DS_FAIL;
-
-  int profile_id = std::stoi(profile_info.profile_id());
+  int profile_id = std::stoi(FromJson<std::string>(args, "profileId"));
   LoggerD("profileId: %d", profile_id);
 
-  ret = sync_agent_ds_get_profile(profile_id, &profile_h);
+  sync_agent_ds_error_e ret = sync_agent_ds_get_profile(profile_id, &profile_h);
   if (SYNC_AGENT_DS_SUCCESS != ret) {
-    return Error("NotFoundException",
-        "Platform error while getting a profile");
+    throw NotFoundException("Platform error while getting a profile");
   }
 
-  ret = sync_agent_ds_set_profile_name(
-      profile_h, const_cast<char*>(profile_info.profile_name().c_str()));
-  if (SYNC_AGENT_DS_SUCCESS != ret) {
-    return Error("Exception",
-        "Platform error while settting a profile name");
-  }
-
-  ret = sync_agent_ds_set_server_info(
-      profile_h, const_cast<char*>(profile_info.sync_info()->url().c_str()),
-      const_cast<char*>(profile_info.sync_info()->id().c_str()),
-      const_cast<char*>(profile_info.sync_info()->password().c_str()));
-  if (SYNC_AGENT_DS_SUCCESS != ret) {
-    return Error("Exception",
-        "Platform error while settting a server info");
-  }
-
-  sync_agent_ds_sync_mode_e sync_mode =
-      ConvertToPlatformSyncMode(profile_info.sync_info()->sync_mode());
-  sync_agent_ds_sync_type_e sync_type =
-      ConvertToPlatformSyncType(profile_info.sync_info()->sync_type());
-  sync_agent_ds_sync_interval_e sync_interval =
-      ConvertToPlatformSyncInterval(profile_info.sync_info()->sync_interval());
-  LoggerD("syncMode: %d, syncType: %d, syncInterval: %d", sync_mode, sync_type, sync_interval);
-
-  ret = sync_agent_ds_set_sync_info(profile_h, sync_mode, sync_type,
-                                    sync_interval);
-  if (SYNC_AGENT_DS_SUCCESS != ret) {
-    return Error("Exception",
-        "Platform error while settting a sync info");
-  }
-
-  // Set the sync categories.
-  SyncServiceInfoListPtr categories = profile_info.service_info();
-  for (unsigned int i = 0; categories->size() < i; ++i) {
-    sync_agent_ds_service_type_e service_type =
-        ConvertToPlatformSyncServiceType(
-            categories->at(i)->sync_service_type());
-    std::string tgt_uri = categories->at(i)->server_database_uri();
-    sync_agent_ds_src_uri_e src_uri =
-        ConvertToPlatformSourceUri(categories->at(i)->sync_service_type());
-    std::string id = categories->at(i)->id();
-    std::string password = categories->at(i)->password();
-    bool enable = categories->at(i)->enable();
-
-    LoggerD("serviceType: %d, tgtURI: %s for index: %d", service_type, tgt_uri.c_str(), i);
-
-    ret = sync_agent_ds_set_sync_service_info(
-        profile_h, service_type, enable, src_uri,
-        const_cast<char*>(tgt_uri.c_str()),
-        0 == id.size() ? nullptr : const_cast<char*>(id.c_str()),
-        0 == password.size() ? nullptr : const_cast<char*>(password.c_str()));
-    if (SYNC_AGENT_DS_SUCCESS != ret) {
-      return Error("Exception",
-          "Platform error while settting a sync service info");
-    }
-  }
+  Item(&profile_h, args);
 
   ret = sync_agent_ds_update_profile(profile_h);
   if (SYNC_AGENT_DS_SUCCESS != ret && SYNC_AGENT_DS_SYNCHRONISING != ret) {
-    return Error("Exception",
-        "Platform error while updating a profile");
+    throw UnknownException("Platform error while updating a profile");
   }
-  return {};
 }
 
 ResultOrError<void> DataSyncManager::Remove(const std::string& id) {
