@@ -87,27 +87,6 @@ int DataSyncManager::StrToPlatformEnum(const std::string& field, const std::stri
   throw InvalidValuesException(message);
 }
 
-
-
-sync_agent_ds_sync_mode_e ConvertToPlatformSyncMode(
-    datasync::SyncInfo::SyncMode sync_mode) {
-  switch (sync_mode) {
-    case datasync::SyncInfo::MANUAL_MODE: {
-      return SYNC_AGENT_SYNC_MODE_MANUAL;
-    }
-    case datasync::SyncInfo::PERIODIC_MODE: {
-      return SYNC_AGENT_SYNC_MODE_PERIODIC;
-    }
-    case datasync::SyncInfo::PUSH_MODE: {
-      return SYNC_AGENT_SYNC_MODE_PUSH;
-    }
-    default: {
-      LoggerW("Error while converting a sync mode.");
-      return SYNC_AGENT_SYNC_MODE_MANUAL;
-    }
-  }
-}
-
 datasync::SyncInfo::SyncMode ConvertToSyncMode(
     sync_agent_ds_sync_mode_e sync_mode) {
   switch (sync_mode) {
@@ -123,50 +102,6 @@ datasync::SyncInfo::SyncMode ConvertToSyncMode(
     default: {
       LoggerW("Error while converting a sync mode.");
       return datasync::SyncInfo::UNDEFINED_MODE;
-    }
-  }
-}
-
-sync_agent_ds_sync_type_e ConvertToPlatformSyncType(
-    datasync::SyncInfo::SyncType syncType) {
-  switch (syncType) {
-    case datasync::SyncInfo::TWO_WAY_TYPE: {
-      return SYNC_AGENT_SYNC_TYPE_UPDATE_BOTH;
-    }
-    case datasync::SyncInfo::SLOW_TYPE: {
-      return SYNC_AGENT_SYNC_TYPE_FULL_SYNC;
-    }
-    case datasync::SyncInfo::ONE_WAY_FROM_CLIENT_TYPE: {
-      return SYNC_AGENT_SYNC_TYPE_UPDATE_TO_SERVER;
-    }
-    case datasync::SyncInfo::REFRESH_FROM_CLIENT_TYPE: {
-      return SYNC_AGENT_SYNC_TYPE_REFRESH_FROM_PHONE;
-    }
-    case datasync::SyncInfo::ONE_WAY_FROM_SERVER_TYPE: {
-      return SYNC_AGENT_SYNC_TYPE_UPDATE_TO_PHONE;
-    }
-    case datasync::SyncInfo::REFRESH_FROM_SERVER_TYPE: {
-      return SYNC_AGENT_SYNC_TYPE_REFRESH_FROM_SERVER;
-    }
-    default: {
-      LoggerW("Error while converting a sync type.");
-      return SYNC_AGENT_SYNC_TYPE_UPDATE_BOTH;
-    }
-  }
-}
-
-sync_agent_ds_src_uri_e ConvertToPlatformSourceUri(
-    datasync::SyncServiceInfo::SyncServiceType serviceType) {
-  switch (serviceType) {
-    case datasync::SyncServiceInfo::CONTACT_SERVICE_TYPE: {
-      return SYNC_AGENT_SRC_URI_CONTACT;
-    }
-    case datasync::SyncServiceInfo::EVENT_SERVICE_TYPE: {
-      return SYNC_AGENT_SRC_URI_CALENDAR;
-    }
-    default: {
-      LoggerW("Error while converting a sync service.");
-      return SYNC_AGENT_SRC_URI_CONTACT;
     }
   }
 }
@@ -215,43 +150,6 @@ datasync::SyncInfo::SyncType ConvertToSyncType(
   }
 }
 
-sync_agent_ds_sync_interval_e ConvertToPlatformSyncInterval(
-    datasync::SyncInfo::SyncInterval sync_interval) {
-  switch (sync_interval) {
-    case datasync::SyncInfo::INTERVAL_5_MINUTES: {
-      return SYNC_AGENT_SYNC_INTERVAL_5_MINUTES;
-    }
-    case datasync::SyncInfo::INTERVAL_15_MINUTES: {
-      return SYNC_AGENT_SYNC_INTERVAL_15_MINUTES;
-    }
-    case datasync::SyncInfo::INTERVAL_1_HOUR: {
-      return SYNC_AGENT_SYNC_INTERVAL_1_HOUR;
-    }
-    case datasync::SyncInfo::INTERVAL_4_HOURS: {
-      return SYNC_AGENT_SYNC_INTERVAL_4_HOURS;
-    }
-    case datasync::SyncInfo::INTERVAL_12_HOURS: {
-      return SYNC_AGENT_SYNC_INTERVAL_12_HOURS;
-    }
-    case datasync::SyncInfo::INTERVAL_1_DAY: {
-      return SYNC_AGENT_SYNC_INTERVAL_1_DAY;
-    }
-    case datasync::SyncInfo::INTERVAL_1_WEEK: {
-      return SYNC_AGENT_SYNC_INTERVAL_1_WEEK;
-    }
-    case datasync::SyncInfo::INTERVAL_1_MONTH: {
-      return SYNC_AGENT_SYNC_INTERVAL_1_MONTH;
-    }
-    case datasync::SyncInfo::INTERVAL_UNDEFINED: {
-      return SYNC_AGENT_SYNC_INTERVAL_NONE;
-    }
-    default: {
-      LoggerW("Error while converting a JS sync interval.");
-      return SYNC_AGENT_SYNC_INTERVAL_1_WEEK;
-    }
-  }
-}
-
 datasync::SyncInfo::SyncInterval ConvertToSyncInterval(
     sync_agent_ds_sync_interval_e sync_interval) {
   switch (sync_interval) {
@@ -285,22 +183,6 @@ datasync::SyncInfo::SyncInterval ConvertToSyncInterval(
     default: {
       LoggerW("Error while converting a platform sync interval.");
       return datasync::SyncInfo::INTERVAL_UNDEFINED;
-    }
-  }
-}
-
-sync_agent_ds_service_type_e ConvertToPlatformSyncServiceType(
-    datasync::SyncServiceInfo::SyncServiceType service_type) {
-  switch (service_type) {
-    case datasync::SyncServiceInfo::CONTACT_SERVICE_TYPE: {
-      return SYNC_AGENT_CONTACT;
-    }
-    case datasync::SyncServiceInfo::EVENT_SERVICE_TYPE: {
-      return SYNC_AGENT_CALENDAR;
-    }
-    default: {
-      LoggerW("Error while converting a sync service type.");
-      return SYNC_AGENT_CONTACT;
     }
   }
 }
