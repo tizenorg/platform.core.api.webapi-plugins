@@ -15,8 +15,6 @@
 namespace extension {
 namespace datasync {
 
-using namespace common;
-
 DatasyncInstance::DatasyncInstance() {
     using namespace std::placeholders;
     #define REGISTER_SYNC(c, x) \
@@ -72,9 +70,11 @@ void DatasyncInstance::GetLastSyncStatistics(const picojson::value &args, picojs
 }
 
 void DatasyncInstance::Add(const picojson::value &args, picojson::object &out) {
-  ReportSuccess(
-      picojson::value(static_cast<double>(DataSyncManager::Instance().Add(
-                                              args.get<picojson::object>()))), out);
+//  TODO: implementation
+
+    picojson::value val{picojson::object{}};
+
+    ReportSuccess(val, out);
 }
 
 void DatasyncInstance::Update(const picojson::value &args, picojson::object &out) {

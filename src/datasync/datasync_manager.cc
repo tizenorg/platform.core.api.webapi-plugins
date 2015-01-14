@@ -13,81 +13,13 @@
 #include "datasync/sync_info.h"
 #include "datasync/sync_service_info.h"
 #include "datasync/sync_profile_info.h"
-#include "common/converter.h"
 
 #include "tizen/tizen.h"
 
 namespace extension {
 namespace datasync {
 
-using namespace common;
-
 const int MAX_PROFILES_NUM = 5;
-
-const std::string kDefaultEnumKey = "_DEFAULT";
-const std::string kSyncMode = "SyncMode";
-const std::string kSyncType = "SyncType";
-const std::string kSyncInterval = "SyncInterval";
-const std::string kSyncServiceType = "SyncServiceType";
-const std::string kSyncServiceTypeToSrcUri = "SyncServiceTypeToSrcUri";
-const std::string kSyncStatus = "SyncStatus";
-
-const PlatformEnumMap platform_enum_map_ = {
-    {kSyncMode,
-     {{kDefaultEnumKey, SYNC_AGENT_SYNC_MODE_MANUAL},
-      {"MANUAL", SYNC_AGENT_SYNC_MODE_MANUAL},
-      {"PERIODIC", SYNC_AGENT_SYNC_MODE_PERIODIC},
-      {"PUSH", SYNC_AGENT_SYNC_MODE_PUSH}}},
-    {kSyncType,
-     {{kDefaultEnumKey, SYNC_AGENT_SYNC_TYPE_UPDATE_BOTH},
-      {"TWO_WAY", SYNC_AGENT_SYNC_TYPE_UPDATE_BOTH},
-      {"SLOW", SYNC_AGENT_SYNC_TYPE_FULL_SYNC},
-      {"ONE_WAY_FROM_CLIENT", SYNC_AGENT_SYNC_TYPE_UPDATE_TO_SERVER},
-      {"REFRESH_FROM_CLIENT", SYNC_AGENT_SYNC_TYPE_REFRESH_FROM_PHONE},
-      {"ONE_WAY_FROM_SERVER", SYNC_AGENT_SYNC_TYPE_UPDATE_TO_PHONE},
-      {"REFRESH_FROM_SERVER", SYNC_AGENT_SYNC_TYPE_REFRESH_FROM_SERVER}}},
-    {kSyncInterval,
-     {{kDefaultEnumKey, SYNC_AGENT_SYNC_INTERVAL_1_WEEK},
-      {"5_MINUTES", SYNC_AGENT_SYNC_INTERVAL_5_MINUTES},
-      {"15_MINUTES", SYNC_AGENT_SYNC_INTERVAL_15_MINUTES},
-      {"1_HOUR", SYNC_AGENT_SYNC_INTERVAL_1_HOUR},
-      {"4_HOURS", SYNC_AGENT_SYNC_INTERVAL_4_HOURS},
-      {"12_HOURS", SYNC_AGENT_SYNC_INTERVAL_12_HOURS},
-      {"1_DAY", SYNC_AGENT_SYNC_INTERVAL_1_DAY},
-      {"1_WEEK", SYNC_AGENT_SYNC_INTERVAL_1_WEEK},
-      {"1_MONTH", SYNC_AGENT_SYNC_INTERVAL_1_MONTH},
-      {"NONE", SYNC_AGENT_SYNC_INTERVAL_NONE}}},
-    {kSyncServiceType,
-     {{kDefaultEnumKey, SYNC_AGENT_CONTACT},
-      {"CONTACT", SYNC_AGENT_CONTACT},
-      {"EVENT", SYNC_AGENT_CALENDAR}}},
-    {kSyncServiceTypeToSrcUri,
-     {{kDefaultEnumKey, SYNC_AGENT_SRC_URI_CONTACT},
-      {"CONTACT", SYNC_AGENT_SRC_URI_CONTACT},
-      {"EVENT", SYNC_AGENT_SRC_URI_CALENDAR}}}};
-
-int DataSyncManager::StrToPlatformEnum(const std::string& field, const std::string& value) {
-  if (platform_enum_map_.find(field) == platform_enum_map_.end()) {
-      throw UnknownException(std::string("Undefined platform enum type ") + field);
-  }
-
-  auto def = platform_enum_map_.at(field);
-  auto def_iter = def.find(value);
-  if (def_iter != def.end()) {
-    return def_iter->second;
-  }
-
-  // default value - if any
-  def_iter = def.find("_DEFAULT");
-  if (def_iter != def.end()) {
-    return def_iter->second;
-  }
-
-  std::string message = "Platform enum value " + value + " not found for " + field;
-  throw InvalidValuesException(message);
-}
-
-
 
 sync_agent_ds_sync_mode_e ConvertToPlatformSyncMode(
     datasync::SyncInfo::SyncMode sync_mode) {
@@ -366,97 +298,129 @@ DataSyncManager::~DataSyncManager() {
   // sync-agent should fix it's deinitialization
 }
 
-void DataSyncManager::Item(ds_profile_h* profile_h, const picojson::object& args) {
-  sync_agent_ds_error_e ret;
+ResultOrError<std::string> DataSyncManager::Add(SyncProfileInfo& profile_info) {
+  ds_profile_h profile_h = nullptr;
+  char* profile_name = nullptr;
 
-  std::string profile_name = FromJson<std::string>(args, "profileName").c_str();
-  ret = sync_agent_ds_set_profile_name(profile_h, const_cast<char*>(profile_name.c_str()));
+  // Check if the quota is full first.
+  GList* profile_list = nullptr;
+  GList* iter = nullptr;
+
+  auto exit = common::MakeScopeExit([&profile_name, &profile_h](){
+    if (profile_name) {
+      free(profile_name);
+    }
+
+    if (profile_h) {
+      sync_agent_ds_free_profile_info(profile_h);
+    }
+  });
+
+  sync_agent_ds_error_e ret = SYNC_AGENT_DS_FAIL;
+
+  ret = sync_agent_ds_get_all_profile(&profile_list);
   if (SYNC_AGENT_DS_SUCCESS != ret) {
-    throw UnknownException("Platform error while settting a profile name");
+    return Error("Exception",
+        "Platform error while getting all profiles");
   }
 
-  const picojson::object& sync_info = FromJson<picojson::object>(args, "syncInfo");
-  std::string url = FromJson<std::string>(sync_info, "url").c_str();
-  std::string id = FromJson<std::string>(sync_info, "id").c_str();
-  std::string password = FromJson<std::string>(sync_info, "password").c_str();
-  ret = sync_agent_ds_set_server_info(profile_h, const_cast<char*>(url.c_str()),
-                                      const_cast<char*>(id.c_str()),
-                                      const_cast<char*>(password.c_str()));
-  if (SYNC_AGENT_DS_SUCCESS != ret) {
-    throw UnknownException("Platform error while settting a server info");
+  int num_profiles = g_list_length(profile_list);
+  for (iter = profile_list; iter != nullptr; iter = g_list_next(iter)) {
+    sync_agent_ds_free_profile_info((ds_profile_h)iter->data);
+  }
+  if (profile_list) {
+    g_list_free(profile_list);
+  }
+  LoggerD("numProfiles: %d", num_profiles);
+  if (MAX_PROFILES_NUM == num_profiles) {
+    return Error("OutOfRangeException",
+        "There are already maximum number of profiles!");
   }
 
-  int sync_mode = StrToPlatformEnum(kSyncMode, FromJson<std::string>(sync_info, "mode"));
-  int sync_type = StrToPlatformEnum(kSyncType, FromJson<std::string>(sync_info, "type"));
-  int sync_interval = StrToPlatformEnum(kSyncInterval,
-                                        FromJson<std::string>(sync_info, "interval"));
+  ret = sync_agent_ds_create_profile_info(&profile_h);
+  if (SYNC_AGENT_DS_SUCCESS != ret) {
+    return Error("Exception",
+        "Platform error while creating a profile");
+  }
+
+  ret = sync_agent_ds_set_profile_name(
+      profile_h, const_cast<char*>(profile_info.profile_name().c_str()));
+  if (SYNC_AGENT_DS_SUCCESS != ret) {
+    return Error("Exception",
+        "Platform error while settting a profile name");
+  }
+
+  ret = sync_agent_ds_set_server_info(
+      profile_h, const_cast<char*>(profile_info.sync_info()->url().c_str()),
+      const_cast<char*>(profile_info.sync_info()->id().c_str()),
+      const_cast<char*>(profile_info.sync_info()->password().c_str()));
+  if (SYNC_AGENT_DS_SUCCESS != ret) {
+    return Error("Exception",
+        "Platform error while settting a server info");
+  }
+
+  sync_agent_ds_sync_mode_e sync_mode =
+      ConvertToPlatformSyncMode(profile_info.sync_info()->sync_mode());
+  sync_agent_ds_sync_type_e sync_type =
+      ConvertToPlatformSyncType(profile_info.sync_info()->sync_type());
+  sync_agent_ds_sync_interval_e sync_interval =
+      ConvertToPlatformSyncInterval(profile_info.sync_info()->sync_interval());
   LoggerD("syncMode: %d, syncType: %d, syncInterval: %d", sync_mode, sync_type, sync_interval);
-  ret = sync_agent_ds_set_sync_info(profile_h, static_cast<sync_agent_ds_sync_mode_e>(sync_mode),
-                                    static_cast<sync_agent_ds_sync_type_e>(sync_type),
-                                    static_cast<sync_agent_ds_sync_interval_e>(sync_interval));
+
+  ret = sync_agent_ds_set_sync_info(profile_h, sync_mode, sync_type,
+                                    sync_interval);
   if (SYNC_AGENT_DS_SUCCESS != ret) {
-    throw UnknownException("Platform error while settting a sync info");
+    return Error("Exception",
+        "Platform error while settting a sync info");
   }
 
   // Set the sync categories.
-  if (IsNull(args, "serviceInfo")) return;
+  SyncServiceInfoListPtr categories = profile_info.service_info();
+  for (unsigned int i = 0; categories->size() < i; ++i) {
+    sync_agent_ds_service_type_e service_type =
+        ConvertToPlatformSyncServiceType(
+            categories->at(i)->sync_service_type());
+    std::string tgt_uri = categories->at(i)->server_database_uri();
+    sync_agent_ds_src_uri_e src_uri =
+        ConvertToPlatformSourceUri(categories->at(i)->sync_service_type());
+    std::string id = categories->at(i)->id();
+    std::string password = categories->at(i)->password();
+    bool enable = categories->at(i)->enable();
 
-  const picojson::array& service_info = FromJson<picojson::array>(args, "serviceInfo");
-
-  for (auto& item : service_info) {
-    const picojson::object& obj = JsonCast<picojson::object>(item);
-
-    bool enable = FromJson<bool>(obj, "enable");
-    int service_type =
-        StrToPlatformEnum(kSyncServiceType, FromJson<std::string>(obj, "serviceType"));
-    std::string tgt_uri = FromJson<std::string>(obj, "serverDatabaseUri");
-    int src_uri = StrToPlatformEnum(kSyncServiceType, FromJson<std::string>(obj, "serviceType"));
-
-    std::string id = "";
-    if (!IsNull(obj, "id")) id = FromJson<std::string>(obj, "id");
-
-    std::string password = "";
-    if (!IsNull(obj, "password")) password = FromJson<std::string>(obj, "password");
-
-    LoggerI("serviceType: %d, tgtURI: %s, enable: %d", service_type, tgt_uri.c_str(), enable);
+    LoggerI("serviceType: %d, tgtURI: %s, enable: %d for index: %d",
+            service_type, tgt_uri.c_str(), enable, i);
 
     ret = sync_agent_ds_set_sync_service_info(
-        profile_h, static_cast<sync_agent_ds_service_type_e>(service_type), enable,
-        static_cast<sync_agent_ds_src_uri_e>(src_uri), const_cast<char*>(tgt_uri.c_str()),
+        profile_h, service_type, enable, src_uri,
+        const_cast<char*>(tgt_uri.c_str()),
         0 == id.size() ? nullptr : const_cast<char*>(id.c_str()),
         0 == password.size() ? nullptr : const_cast<char*>(password.c_str()));
     if (SYNC_AGENT_DS_SUCCESS != ret) {
-      throw UnknownException("Platform error while settting a sync service info");
+      return Error("Exception",
+          "Platform error while settting a sync service info");
     }
   }
-}
-
-int DataSyncManager::Add(const picojson::object& args) {
-  ds_profile_h profile_h = nullptr;
-
-  int num_profiles = GetProfilesNum();
-  LoggerD("numProfiles: %d", num_profiles);
-
-  if (MAX_PROFILES_NUM == num_profiles) {
-    throw QuotaExceededException("There are already maximum number of profiles!");
-  }
-
-  sync_agent_ds_error_e ret = sync_agent_ds_create_profile_info(&profile_h);
-  if (SYNC_AGENT_DS_SUCCESS != ret) {
-    throw UnknownException("Platform error while creating a profile");
-  }
-
-  Item(&profile_h, args);
 
   int profile_id;
   ret = sync_agent_ds_add_profile(profile_h, &profile_id);
   if (SYNC_AGENT_DS_SUCCESS != ret) {
-    throw UnknownException("Platform error while adding a profile");
+    return Error("Exception",
+        "Platform error while adding a profile");
   }
 
   LoggerD("profileId from platform: %d", profile_id);
 
-  return profile_id;
+  ret = sync_agent_ds_get_profile_name(profile_h, &profile_name);
+  if (SYNC_AGENT_DS_SUCCESS != ret) {
+    return Error("Exception",
+        "Platform error while getting a profile name");
+  }
+
+  LoggerD("profileName: %s, profileId: %d", profile_name, profile_id);
+
+  profile_info.set_profile_id(std::to_string(profile_id));
+
+  return profile_info.profile_id();
 }
 
 ResultOrError<void> DataSyncManager::Update(SyncProfileInfo& profile_info) {
