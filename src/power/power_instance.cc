@@ -44,13 +44,14 @@ PowerInstance::PowerInstance() {
   using namespace std::placeholders;
   #define REGISTER_SYNC(c,x) \
     RegisterSyncHandler(c, std::bind(&PowerInstance::x, this, _1, _2));
-  REGISTER_SYNC("PowerManager_request", Request);
-  REGISTER_SYNC("PowerManager_release", Release);
-  REGISTER_SYNC("PowerManager_getScreenBrightness", GetScreenBrightness);
-  REGISTER_SYNC("PowerManager_setScreenBrightness", SetScreenBrightness);
-  REGISTER_SYNC("PowerManager_isScreenOn", IsScreenOn);
-  REGISTER_SYNC("PowerManager_restoreScreenBrightness", RestoreScreenBrightness);
-  REGISTER_SYNC("PowerManager_setScreenState", SetScreenState);
+  REGISTER_SYNC("PowerManager_turnScreenOff", PowerManagerTurnscreenoff);
+  REGISTER_SYNC("PowerManager_restoreScreenBrightness", PowerManagerRestorescreenbrightness);
+  REGISTER_SYNC("PowerManager_request", PowerManagerRequest);
+  REGISTER_SYNC("PowerManager_getScreenBrightness", PowerManagerGetscreenbrightness);
+  REGISTER_SYNC("PowerManager_release", PowerManagerRelease);
+  REGISTER_SYNC("PowerManager_isScreenOn", PowerManagerIsscreenon);
+  REGISTER_SYNC("PowerManager_turnScreenOn", PowerManagerTurnscreenon);
+  REGISTER_SYNC("PowerManager_setScreenBrightness", PowerManagerSetscreenbrightness);
   #undef REGISTER_SYNC
 
   PowerManager::GetInstance()->AddListener(this);
@@ -59,7 +60,84 @@ PowerInstance::PowerInstance() {
 PowerInstance::~PowerInstance() {
 }
 
-void PowerInstance::Request(const picojson::value& args, picojson::object& out) {
+enum PowerCallbacks {
+  PowerManagerTurnscreenoffCallback, 
+  PowerManagerRestorescreenbrightnessCallback, 
+  PowerManagerRequestCallback, 
+  PowerManagerGetscreenbrightnessCallback, 
+  PowerManagerReleaseCallback, 
+  PowerManagerUnsetscreenstatechangelistenerCallback, 
+  PowerManagerIsscreenonCallback, 
+  PowerManagerTurnscreenonCallback, 
+  PowerManagerSetscreenbrightnessCallback, 
+  PowerManagerSetscreenstatechangelistenerCallback
+};
+
+static void ReplyAsync(PowerInstance* instance, PowerCallbacks cbfunc, 
+                       int callbackId, bool isSuccess, picojson::object& param) {
+  param["callbackId"] = picojson::value(static_cast<double>(callbackId));
+  param["status"] = picojson::value(isSuccess ? "success" : "error");
+  
+  // insert result for async callback to param
+  switch(cbfunc) {
+    case PowerManagerRequestCallback: {
+      // do something...
+      break;
+    }
+    case PowerManagerReleaseCallback: {
+      // do something...
+      break;
+    }
+    case PowerManagerSetscreenstatechangelistenerCallback: {
+      // do something...
+      break;
+    }
+    case PowerManagerUnsetscreenstatechangelistenerCallback: {
+      // do something...
+      break;
+    }
+    case PowerManagerGetscreenbrightnessCallback: {
+      // do something...
+      break;
+    }
+    case PowerManagerSetscreenbrightnessCallback: {
+      // do something...
+      break;
+    }
+    case PowerManagerIsscreenonCallback: {
+      // do something...
+      break;
+    }
+    case PowerManagerRestorescreenbrightnessCallback: {
+      // do something...
+      break;
+    }
+    case PowerManagerTurnscreenonCallback: {
+      // do something...
+      break;
+    }
+    case PowerManagerTurnscreenoffCallback: {
+      // do something...
+      break;
+    }
+    default: {
+      LoggerE("Invalid Callback Type");
+      return;
+    }
+  }
+
+  picojson::value result = picojson::value(param);
+  
+  instance->PostMessage(result.serialize().c_str());
+}
+
+#define CHECK_EXIST(args, name, out) \
+    if (!args.contains(name)) {\
+      ReportError(TypeMismatchException(name" is required argument"), out);\
+      return;\
+    }
+    
+void PowerInstance::PowerManagerRequest(const picojson::value& args, picojson::object& out) {
   const std::string& resource = args.get("resource").get<std::string>();
   const std::string& state = args.get("state").get<std::string>();
 
@@ -68,35 +146,42 @@ void PowerInstance::Request(const picojson::value& args, picojson::object& out) 
   ReportSuccess(out);
 }
 
-void PowerInstance::Release(const picojson::value& args, picojson::object& out) {
+void PowerInstance::PowerManagerRelease(const picojson::value& args, picojson::object& out) {
   const std::string& resource = args.get("resource").get<std::string>();
   PowerManager::GetInstance()->Release(kPowerResourceMap.at(resource));
   ReportSuccess(out);
 }
 
-void PowerInstance::GetScreenBrightness(const picojson::value& args, picojson::object& out) {
+void PowerInstance::PowerManagerGetscreenbrightness(const picojson::value& args, picojson::object& out) {
   double brightness = PowerManager::GetInstance()->GetScreenBrightness();
   ReportSuccess(picojson::value(brightness), out);
 }
 
-void PowerInstance::SetScreenBrightness(const picojson::value& args, picojson::object& out) {
+void PowerInstance::PowerManagerSetscreenbrightness(const picojson::value& args, picojson::object& out) {
+  CHECK_EXIST(args, "brightness", out)
+
   double brightness = args.get("brightness").get<double>();
   PowerManager::GetInstance()->SetScreenBrightness(brightness);
   ReportSuccess(out);
 }
 
-void PowerInstance::IsScreenOn(const picojson::value& args, picojson::object& out) {
+void PowerInstance::PowerManagerIsscreenon(const picojson::value& args, picojson::object& out) {
   bool ret = PowerManager::GetInstance()->IsScreenOn();
   ReportSuccess(picojson::value(ret), out);
 }
-
-void PowerInstance::RestoreScreenBrightness(const picojson::value& args, picojson::object& out) {
+void PowerInstance::PowerManagerRestorescreenbrightness(const picojson::value& args, picojson::object& out) {
   PowerManager::GetInstance()->RestoreScreenBrightness();
   ReportSuccess(out);
 }
 
-void PowerInstance::SetScreenState(const picojson::value& args, picojson::object& out) {
-  bool onoff = args.get("on").get<bool>();
+void PowerInstance::PowerManagerTurnscreenon(const picojson::value& args, picojson::object& out) {
+  bool onoff = true;
+  PowerManager::GetInstance()->SetScreenState(onoff);
+  ReportSuccess(out);
+}
+
+void PowerInstance::PowerManagerTurnscreenoff(const picojson::value& args, picojson::object& out) {
+  bool onoff = false;
   PowerManager::GetInstance()->SetScreenState(onoff);
   ReportSuccess(out);
 }
@@ -119,5 +204,6 @@ void PowerInstance::OnScreenStateChanged(PowerState prev_state, PowerState new_s
   PostMessage(event.serialize().c_str());
 }
 
+#undef CHECK_EXIST
 } // namespace power
 } // namespace extension
