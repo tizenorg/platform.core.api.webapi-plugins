@@ -180,13 +180,13 @@ tizen.TimeDuration = function(length, unit) {
 };
 
 function getMultiplier(unit) {
-  if (unit == 'MSECS')
+  if (unit === 'MSECS')
     return 1.0;
-  if (unit == 'SECS')
+  if (unit === 'SECS')
     return 1.0 * 1000.0;
-  if (unit == 'MINS')
+  if (unit === 'MINS')
     return 60.0 * 1000.0;
-  if (unit == 'HOURS')
+  if (unit === 'HOURS')
     return 3600.0 * 1000.0;
   return 86400.0 * 1000.0;
 }
@@ -195,7 +195,7 @@ function makeMillisecondsDurationObject(length) {
   var dayInMsecs = _hourInMilliseconds * 24;
   length = Math.floor(length);
 
-  if ((length % dayInMsecs) == 0)
+  if ((length % dayInMsecs) === 0)
     return new tizen.TimeDuration(length / dayInMsecs, 'DAYS');
 
   return new tizen.TimeDuration(length, 'MSECS');
@@ -228,7 +228,7 @@ tizen.TimeDuration.prototype.equalsTo = function() {
   }]);
 
   try {
-    return this.getMilliseconds() == args.other.getMilliseconds();
+    return this.getMilliseconds() === args.other.getMilliseconds();
   } catch (e) {
     _throwProperTizenException(e);
   }
@@ -278,7 +278,7 @@ tizen.TZDate = function(year, month, day, hours, minutes, seconds, milliseconds,
 
   if (!arguments.length)
     this.date_ = new Date();
-  else if (arguments.length == 1 || arguments.length == 2) {
+  else if (arguments.length === 1 || arguments.length === 2) {
     if (arguments[0] instanceof Date)
       this.date_ = arguments[0];
     else
@@ -569,7 +569,7 @@ tizen.TZDate.prototype.equalsTo = function() {
   }]);
 
   try {
-    return this.getTime() == args.other.getTime();
+    return this.getTime() === args.other.getTime();
   } catch (e) {
     _throwProperTizenException(e);
   }
@@ -741,7 +741,7 @@ tizen.TZDate.prototype.getPreviousDSTTransition = function() {
     return null;
   }
   var _result = native_.getResultObject(result);
-  if (result.error || _result == 0)
+  if (result.error || _result === 0)
     return null;
   var OffsetInMilliseconds = this.date_.getTimezoneOffset() * _minuteInMilliseconds * -1;
   return new tizen.TZDate(new Date(_result - OffsetInMilliseconds), this.timezone_);
@@ -757,7 +757,7 @@ tizen.TZDate.prototype.getNextDSTTransition = function() {
     return null;
   }
   var _result = native_.getResultObject(result);
-  if (result.error || _result == 0)
+  if (result.error || _result === 0)
     return null;
   var OffsetInMilliseconds = this.date_.getTimezoneOffset() * _minuteInMilliseconds * -1;
   return new tizen.TZDate(new Date(_result - OffsetInMilliseconds), this.timezone_);
