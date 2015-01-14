@@ -180,7 +180,17 @@ ExifManager.prototype.getThumbnail = function() {
     }
   ]);
 
-  throw 'Not implemented';
+  var callback = function(result) {
+    if (native_.isFailure(result)) {
+      native_.callIfPossible(args.errorCallback,
+          native_.getErrorObject(result));
+    } else {
+      var thumb = native_.getResultObject(result);
+      args.successCallback(thumb.src);
+    }
+  };
+
+  native_.call('Exif_getThumbnail', {'uri': args.uri}, callback);
 };
 
 // this function passes ExifInformation_exposureProgram_attribute test:

@@ -764,6 +764,8 @@ void ExifInformation::processEntry(ExifEntry* entry, ExifData* exif_data) {
         }
       } else {
         LoggerE("iso speed ratings: format or components count is invalid!");
+        throw common::TypeMismatchException("iso speed ratings: format or"
+            " components count is invalid!");
       }
       break;
     }
@@ -787,6 +789,8 @@ void ExifInformation::processEntry(ExifEntry* entry, ExifData* exif_data) {
         }
       } else {
         LoggerE("exposure time: format or components count is invalid!");
+        throw common::TypeMismatchException("exposure time: format or"
+            " components count is invalid!");
       }
       break;
     }
