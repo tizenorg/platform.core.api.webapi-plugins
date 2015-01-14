@@ -21,13 +21,13 @@ var _filterById = function(array, id) {
 var _contactChangeListener = function(result) {
   var unifiedId = UNIFIED_ADDRESSBOOK_ID;
   var watchId;
-  var i;
+  var callback, i;
 
   // Unified address book case
   if (_contactCallbackMap.hasOwnProperty(unifiedId)) {
     for (watchId in _contactCallbackMap[unifiedId]) {
       if (_contactCallbackMap[unifiedId].hasOwnProperty(watchId)) {
-        var callback = _contactCallbackMap[unifiedId][watchId].successCallback;
+        callback = _contactCallbackMap[unifiedId][watchId].successCallback;
         if (result.added.length) {
           native_.callIfPossible(callback.oncontactsadded, _promote(result.added, Contact));
         }
@@ -69,7 +69,7 @@ var _contactChangeListener = function(result) {
 
       for (watchId in _contactCallbackMap[callbackAddressbookId]) {
         if (_contactCallbackMap[callbackAddressbookId].hasOwnProperty(watchId)) {
-          var callback = _contactCallbackMap[callbackAddressbookId][watchId].successCallback;
+          callback = _contactCallbackMap[callbackAddressbookId][watchId].successCallback;
           if (filteredAdded.length) {
             native_.callIfPossible(callback.oncontactsadded, filteredAdded);
           }
@@ -502,21 +502,18 @@ AddressBook.prototype.find = function(successCallback, errorCallback, filter, so
 };
 
 AddressBook.prototype.addChangeListener = function() {
-  var args = AV.validateArgs(arguments, [
-    {
-      name: 'successCallback',
-      type: AV.Types.LISTENER,
-      values: ['oncontactsadded', 'oncontactsupdated', 'oncontactsremoved'],
-      optional: false,
-      nullable: false
-    },
-    {
-      name: 'errorCallback',
-      type: AV.Types.FUNCTION,
-      optional: true,
-      nullable: true
-    }
-  ]);
+  var args = AV.validateArgs(arguments, [{
+    name: 'successCallback',
+    type: AV.Types.LISTENER,
+    values: ['oncontactsadded', 'oncontactsupdated', 'oncontactsremoved'],
+    optional: false,
+    nullable: false
+  }, {
+    name: 'errorCallback',
+    type: AV.Types.FUNCTION,
+    optional: true,
+    nullable: true
+  }]);
 
   if (Type.isEmptyObject(_contactCallbackMap)) {
     var result = native_.callSync('AddressBook_startListening', {});
@@ -555,14 +552,9 @@ AddressBook.prototype.removeChangeListener = function(watchId) {
     }
   ]);
 
-  if (args.watchId === 0) {
+  if (args.watchId <= 0) {
     throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR,
-        'id is null or undefined');
-  }
-
-  if (args.watchId < 0) {
-    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR,
-        'Negative watch id');
+        'Wrong watch id');
   }
 
   if (!_contactCallbackMap.hasOwnProperty(this.id) ||

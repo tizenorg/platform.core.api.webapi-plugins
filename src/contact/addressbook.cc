@@ -531,35 +531,43 @@ void AddressBook_getGroups(const JsonObject& args, JsonArray& out) {
 
 namespace {
 void AddressBook_listenerCallback(const char* view_uri, void* user_data) {
+  LoggerD("entered");
   (void)view_uri;
   (void)user_data;
   ContactUtil::CheckDBConnection();
 
-  int* last_database_version = static_cast<int*>(user_data);
-
   contacts_list_h contacts_list = nullptr;
 
-  int error_code = contacts_db_get_changes_by_version(
-      _contacts_contact_updated_info._uri, kUnifiedAddressBookId,
-      *last_database_version, &contacts_list, last_database_version);
-
-  ContactUtil::ContactsListHPtr contacts_list_ptr(
-      &contacts_list, ContactUtil::ContactsListDeleter);
-
+  int error_code;
+  int current_version = 0;
+  error_code = contacts_db_get_current_version(&current_version);
   if (CONTACTS_ERROR_NONE != error_code) {
-    LoggerE("cannot get changes by version, code: %d", error_code);
-  } else {
-    int count = 0;
+    LoggerW("get current version returns error, code: %d", error_code);
+  }
 
+  for (int version = ContactInstance::current_state; version < current_version; ++version) {
+    int latest_version = 0;
+    error_code = contacts_db_get_changes_by_version(
+        _contacts_contact_updated_info._uri, kUnifiedAddressBookId,
+        version, &contacts_list, &latest_version);
+    if (CONTACTS_ERROR_NONE != error_code) {
+      LoggerE("cannot get changes by version, code: %d", error_code);
+      continue;
+    }
+
+    ContactUtil::ContactsListHPtr contacts_list_ptr(
+        &contacts_list, ContactUtil::ContactsListDeleter);
+
+    int count = 0;
     error_code = contacts_list_get_count(contacts_list, &count);
     if (CONTACTS_ERROR_NONE != error_code) {
       LoggerW("Cannot get updated contact count, code: %d", error_code);
-      return;
+      continue;
     }
 
     if (!count) {
       LoggerW("No updated contacts");
-      return;
+      continue;
     }
 
     contacts_list_first(contacts_list);
@@ -568,22 +576,20 @@ void AddressBook_listenerCallback(const char* view_uri, void* user_data) {
     JsonObject& result_obj = result.get<JsonObject>();
     result_obj.insert(std::make_pair("listenerId", kContactListenerId));
     JsonArray& added = result_obj.insert(std::make_pair("added", JsonArray{}))
-                           .first->second.get<JsonArray>();
-    JsonArray& updated =
-        result_obj.insert(std::make_pair("updated", JsonArray{}))
-            .first->second.get<JsonArray>();
-    JsonArray& removed =
-        result_obj.insert(std::make_pair("removed", JsonArray{}))
-            .first->second.get<JsonArray>();
+        .first->second.get<JsonArray>();
+    JsonArray& updated = result_obj.insert(std::make_pair("updated", JsonArray{}))
+        .first->second.get<JsonArray>();
+    JsonArray& removed = result_obj.insert(std::make_pair("removed", JsonArray{}))
+        .first->second.get<JsonArray>();
 
     for (unsigned int i = 0; i < count; i++) {
       contacts_record_h contact_updated_record = nullptr;
 
       error_code = contacts_list_get_current_record_p(contacts_list,
-                                                      &contact_updated_record);
+          &contact_updated_record);
       if (CONTACTS_ERROR_NONE != error_code) {
         LoggerW("fail to get contact from list, code: %d", error_code);
-        return;
+        break;
       }
 
       int changed_id = 0;
@@ -592,20 +598,16 @@ void AddressBook_listenerCallback(const char* view_uri, void* user_data) {
 
       try {
         ContactUtil::GetIntFromRecord(contact_updated_record,
-                                      _contacts_contact_updated_info.contact_id,
-                                      &changed_id);
+            _contacts_contact_updated_info.contact_id, &changed_id);
 
-        ContactUtil::GetIntFromRecord(
-            contact_updated_record,
+        ContactUtil::GetIntFromRecord(contact_updated_record,
             _contacts_contact_updated_info.address_book_id, &changed_ab_id);
 
         ContactUtil::GetIntFromRecord(contact_updated_record,
-                                      _contacts_contact_updated_info.type,
-                                      &changed_type);
-      }
-      catch (const PlatformException&) {
-        LoggerE("failt to get int from record");
-        return;
+            _contacts_contact_updated_info.type, &changed_type);
+      } catch (const PlatformException &) {
+        LoggerE("fail to get int from record");
+        break;
       }
 
       if (CONTACTS_CHANGE_INSERTED == changed_type ||
@@ -613,19 +615,19 @@ void AddressBook_listenerCallback(const char* view_uri, void* user_data) {
         contacts_record_h contacts_record = nullptr;
 
         error_code = contacts_db_get_record(_contacts_contact._uri, changed_id,
-                                            &contacts_record);
+            &contacts_record);
 
         if (CONTACTS_ERROR_NONE != error_code) {
           LoggerW("fail to get contact from record");
-          return;
+          break;
         }
 
         ContactUtil::ContactsRecordHPtr contact_record_ptr(
             &contacts_record, ContactUtil::ContactsDeleter);
 
         JsonValue contact{JsonObject{}};
-        ContactUtil::ImportContactFromContactsRecord(
-            *contact_record_ptr, &contact.get<JsonObject>());
+        ContactUtil::ImportContactFromContactsRecord(contacts_record,
+            &contact.get<JsonObject>());
 
         if (CONTACTS_CHANGE_INSERTED == changed_type) {
           added.push_back(std::move(contact));
@@ -644,8 +646,11 @@ void AddressBook_listenerCallback(const char* view_uri, void* user_data) {
         removed.push_back(std::move(removed_data));
       }
     }
+
     ContactInstance::GetInstance().PostMessage(result.serialize().c_str());
   }
+
+  ContactInstance::current_state = current_version;
 }
 }
 
@@ -659,11 +664,10 @@ void AddressBook_startListening(const JsonObject&, JsonObject& out) {
   }
 
   error_code = contacts_db_add_changed_cb(
-      _contacts_contact._uri, AddressBook_listenerCallback, &ContactInstance::current_state);
+      _contacts_contact._uri, AddressBook_listenerCallback, NULL);
 
   if (CONTACTS_ERROR_NONE != error_code) {
-    LoggerE("Error while registering listener to contacts db, code: %d",
-         error_code);
+    LoggerE("Error while registering listener to contacts db, code: %d", error_code);
     throw UnknownException("Error while registering listener to contacts db");
   }
 }
@@ -671,7 +675,7 @@ void AddressBook_startListening(const JsonObject&, JsonObject& out) {
 void AddressBook_stopListening(const JsonObject&, JsonObject& out) {
   ContactUtil::CheckDBConnection();
   int error_code = contacts_db_remove_changed_cb(
-      _contacts_contact._uri, AddressBook_listenerCallback, &ContactInstance::current_state);
+      _contacts_contact._uri, AddressBook_listenerCallback, NULL);
 
   if (CONTACTS_ERROR_NONE != error_code) {
     LoggerE("Error while removing listener");
