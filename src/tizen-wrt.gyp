@@ -17,6 +17,7 @@
         #'datasync/datasync.gyp:*',
         'archive/archive.gyp:*',
         'exif/exif.gyp:*',
+        'websetting/websetting.gyp:*',
       ],
       'conditions': [
         [

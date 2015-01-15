@@ -2,13 +2,13 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "web_setting/web_setting.h"
+#include "websetting/websetting.h"
 
 #include <sys/types.h>
 #include <unistd.h>
 #include <utility>
 
-#include "web_setting/web_setting_extension_utils.h"
+#include "websetting/websetting_extension_utils.h"
 
 namespace {
 

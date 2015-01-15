@@ -2,13 +2,13 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef WEB_SETTING_WEB_SETTING_EXTENSION_H_
-#define WEB_SETTING_WEB_SETTING_EXTENSION_H_
+#ifndef WEBSETTING_WEBSETTING_EXTENSION_H_
+#define WEBSETTING_WEBSETTING_EXTENSION_H_
 
 #include <memory>
 #include <string>
 #include "common/extension.h"
-#include "web_setting/web_setting.h"
+#include "websetting/websetting.h"
 
 class WebSettingExtension : public common::Extension {
  public:
@@ -22,4 +22,4 @@ class WebSettingExtension : public common::Extension {
   std::unique_ptr<WebSetting> current_app_;
 };
 
-#endif  // WEB_SETTING_WEB_SETTING_EXTENSION_H_
+#endif  // WEBSETTING_WEBSETTING_EXTENSION_H_

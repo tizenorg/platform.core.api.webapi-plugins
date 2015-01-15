@@ -2,14 +2,14 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "web_setting/web_setting_extension.h"
+#include "websetting/websetting_extension.h"
 
 #include <string>
 
-#include "web_setting/web_setting.h"
-#include "web_setting/web_setting_instance.h"
+#include "websetting/websetting.h"
+#include "websetting/websetting_instance.h"
 
-extern const char kSource_web_setting_api[];
+extern const char kSource_websetting_api[];
 
 common::Extension* CreateExtension() {
   std::string env_app_id = common::Extension::GetRuntimeVariable("app_id", 64);
@@ -24,11 +24,11 @@ common::Extension* CreateExtension() {
 WebSettingExtension::WebSettingExtension(const std::string& app_id) {
   current_app_.reset(new WebSetting(app_id));
   SetExtensionName("tizen.websetting");
-  SetJavaScriptAPI(kSource_web_setting_api);
+  SetJavaScriptAPI(kSource_websetting_api);
 }
 
 WebSettingExtension::~WebSettingExtension() {}
 
 common::Instance* WebSettingExtension::CreateInstance() {
-  return new WebSettingInstance(this);
+  return new extension::websetting::WebSettingInstance(this);
 }

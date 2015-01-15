@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef WEB_SETTING_WEB_SETTING_EXTENSION_UTILS_H_
-#define WEB_SETTING_WEB_SETTING_EXTENSION_UTILS_H_
+#ifndef WEBSETTING_WEBSETTING_EXTENSION_UTILS_H_
+#define WEBSETTING_WEBSETTING_EXTENSION_UTILS_H_
 
 #include <memory>
 
@@ -44,4 +44,4 @@ std::unique_ptr<picojson::value> CreateResultMessage(
   return std::unique_ptr<picojson::value>(new picojson::value(obj));
 }
 
-#endif  // WEB_SETTING_WEB_SETTING_EXTENSION_UTILS_H_
+#endif  // WEBSETTING_WEBSETTING_EXTENSION_UTILS_H_

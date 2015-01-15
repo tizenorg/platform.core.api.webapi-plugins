@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef WEB_SETTING_WEB_SETTING_H_
-#define WEB_SETTING_WEB_SETTING_H_
+#ifndef WEBSETTING_WEBSETTING_H_
+#define WEBSETTING_WEBSETTING_H_
 
 #include <gio/gio.h>
 #include <memory>
@@ -25,4 +25,4 @@ class WebSetting {
   GDBusProxy* running_app_proxy_;
 };
 
-#endif  // WEB_SETTING_WEB_SETTING_H_
+#endif  // websetting_websetting_H_
