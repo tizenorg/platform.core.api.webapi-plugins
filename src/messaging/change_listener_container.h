@@ -130,10 +130,6 @@ class ChangeListenerContainer {
                 itr->second->setActive(false);
                 collection.erase(id);
                 return true;
-            } else {
-                LoggerE("Removing callback which does not belong to the current context is not allowed.");
-                throw common::NotFoundException(
-                        "Removing callback which does not belong to the current context is not allowed.");
             }
             return false;
         }

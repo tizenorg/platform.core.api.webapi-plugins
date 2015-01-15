@@ -180,7 +180,7 @@ function Message(type, data) {
         folderId: folderId || null,
         type: type,
         timestamp: timestamp || null,
-        from: from || '',
+        from: from,
         to: to || [],
         cc: cc || [],
         bcc: bcc || [],
@@ -250,8 +250,9 @@ function Message(type, data) {
                 return _internal.timestamp ? new Date(_internal.timestamp) : _internal.timestamp;
             },
             set: function (value) {
-                if (value instanceof InternalValues_) value = value.timestamp;
-                _internal.timestamp = value;
+                if (value instanceof InternalValues_) {
+                    _internal.timestamp = value.timestamp;
+                }
             },
             enumerable: true
         }
@@ -469,7 +470,7 @@ function MessageInit_(data) {
     this.conversationId = data.conversationId || null;
     this.folderId       = data.folderId       || null;
     this.timestamp      = data.timestamp      || null;
-    this.from           = data.from           || null;
+    this.from           = data.from           || '';
     this.to             = data.to             || [];
     this.cc             = data.cc             || [];
     this.bcc            = data.bcc            || [];
