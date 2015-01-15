@@ -180,7 +180,7 @@ function Message(type, data) {
         folderId: folderId || null,
         type: type,
         timestamp: timestamp || null,
-        from: from || null,
+        from: from || '',
         to: to || [],
         cc: cc || [],
         bcc: bcc || [],
@@ -189,7 +189,7 @@ function Message(type, data) {
         hasAttachment: hasAttachment || false,
         isHighPriority: data.isHighPriority || false,
         subject: data.subject || '',
-        inResponseTo: inResponseTo || '',
+        inResponseTo: inResponseTo || null,
         attachments: attachments
     };
     // id
@@ -246,9 +246,12 @@ function Message(type, data) {
         this,
         'timestamp',
         {
-            get: function () {return new Date(_internal.timestamp);},
+            get: function () {
+                return _internal.timestamp ? new Date(_internal.timestamp) : _internal.timestamp;
+            },
             set: function (value) {
-                if (value instanceof InternalValues_) _internal.timestamp = value.timestamp;
+                if (value instanceof InternalValues_) value = value.timestamp;
+                _internal.timestamp = value;
             },
             enumerable: true
         }
@@ -330,8 +333,8 @@ function Message(type, data) {
         {
             get: function () {return _internal.isRead;},
             set: function (value) {
-                if (value instanceof InternalValues_) value = value.isRead;
-                _internal.isRead = value;
+                if (value instanceof InternalValues_) {value = value.isRead;}
+                _internal.isRead = !!value;
             },
             enumerable: true
         }
@@ -678,8 +681,18 @@ MessageService.prototype.sendMessage = function () {
         }
     }).then({
         success: function (data) {
+            var message = data.message;
+            if (message) {
+                var body = message.body;
+                if (body) {
+                    updateInternal_(args.message.body, body)
+                    delete message.body;
+                }
+                updateInternal_(args.message, message);
+            }
+
             if (args.successCallback) {
-                args.successCallback.call(null, data);
+                args.successCallback.call(null, data.recipients);
             }
         },
         error: function (e) {
@@ -993,7 +1006,23 @@ MessageStorage.prototype.updateMessages = function () {
             serviceId: self.service.id
         }
     }).then({
-        success: function () {
+        success: function (data) {
+            var originals = {};
+            args.messages.forEach(function (m) {
+                if (m.id) {
+                    originals[m.id] = m;
+                }
+            });
+            data.forEach(function (message) {
+                if (!originals[message.id]) {return;}
+                var body = message.body;
+                if (body) {
+                    updateInternal_(originals[message.id].body, body)
+                    delete message.body;
+                }
+                updateInternal_(originals[message.id], message);
+            });
+
             if (args.successCallback) {
                 args.successCallback.call(null);
             }

@@ -374,7 +374,10 @@ static gboolean sendEmailCompleteCB(void* data)
             auto bccVect = callback->getMessage()->getBCC();
             std::for_each(bccVect.begin(), bccVect.end(), addToRecipients);
 
-            obj[JSON_DATA] = picojson::value(recipients);
+            picojson::object data;
+            data[JSON_DATA_RECIPIENTS] = picojson::value(recipients);
+            data[JSON_DATA_MESSAGE] = MessagingUtil::messageToJson(callback->getMessage());
+            obj[JSON_DATA] = picojson::value(data);
 
             MessagingInstance::getInstance().PostMessage(json->serialize().c_str());
             callback->getMessage()->setMessageStatus(MessageStatus::STATUS_SENT);

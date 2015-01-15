@@ -32,6 +32,7 @@ extern const char* JSON_DATA;
 extern const char* JSON_DATA_MESSAGE;
 extern const char* JSON_DATA_MESSAGE_BODY;
 extern const char* JSON_DATA_MESSAGE_ATTACHMENT;
+extern const char* JSON_DATA_RECIPIENTS;
 extern const char* JSON_ERROR_MESSAGE;
 extern const char* JSON_ERROR_NAME;
 

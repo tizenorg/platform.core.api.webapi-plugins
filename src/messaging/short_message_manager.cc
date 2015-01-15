@@ -65,13 +65,10 @@ static gboolean sendMessageCompleteCB(void* data)
             auto toVect = callback->getMessage()->getTO();
             std::for_each(toVect.begin(), toVect.end(), addToRecipients);
 
-            auto ccVect = callback->getMessage()->getCC();
-            std::for_each(ccVect.begin(), ccVect.end(), addToRecipients);
-
-            auto bccVect = callback->getMessage()->getBCC();
-            std::for_each(bccVect.begin(), bccVect.end(), addToRecipients);
-
-            obj[JSON_DATA] = picojson::value(recipients);
+            picojson::object data;
+            data[JSON_DATA_RECIPIENTS] = picojson::value(recipients);
+            data[JSON_DATA_MESSAGE] = MessagingUtil::messageToJson(message);
+            obj[JSON_DATA] = picojson::value(data);
 
             MessagingInstance::getInstance().PostMessage(json->serialize().c_str());
             callback->getMessage()->setMessageStatus(MessageStatus::STATUS_SENT);
@@ -849,6 +846,17 @@ void ShortMsgManager::updateMessages(MessagesCallbackUserData* callback)
 
             auto json = callback->getJson();
             picojson::object& obj = json->get<picojson::object>();
+
+            auto messages = callback->getMessages();
+            picojson::array array;
+            auto each = [&array] (std::shared_ptr<Message> m)->void {
+                array.push_back(MessagingUtil::messageToJson(m));
+            };
+
+            for_each(messages.begin(), messages.end(), each);
+
+            obj[JSON_DATA] = picojson::value(array);
+
             obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
             MessagingInstance::getInstance().PostMessage(json->serialize().c_str());
         }

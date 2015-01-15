@@ -33,6 +33,7 @@ const char* JSON_DATA = "args";
 const char* JSON_DATA_MESSAGE = "message";
 const char* JSON_DATA_MESSAGE_BODY = "messageBody";
 const char* JSON_DATA_MESSAGE_ATTACHMENT = "messageAttachment";
+const char* JSON_DATA_RECIPIENTS = "recipients";
 const char* JSON_ERROR_MESSAGE = "message";
 const char* JSON_ERROR_NAME = "name";
 
