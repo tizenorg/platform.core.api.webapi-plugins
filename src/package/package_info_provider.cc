@@ -1,0 +1,268 @@
+// Copyright 2014 Samsung Electronics Co, Ltd. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+#include "package/package_info_provider.h"
+
+#include <string.h>
+#include <glib.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <time.h>
+#include <app_manager.h>
+#include <package_manager.h>
+#include <package-manager.h>
+
+#include <functional>
+
+#include "common/logger.h"
+
+namespace extension {
+namespace package {
+
+using namespace common;
+using namespace extension::package;
+
+#define REPORT_ERROR(out, exception) \
+  out["status"] = picojson::value("error"); \
+  out["error"] = exception.ToJSON();
+
+static int PackageInfoGetListCb(const pkgmgrinfo_pkginfo_h info, void *user_data) {
+  picojson::array* array_data = static_cast<picojson::array*>(user_data);
+  if(!array_data) {
+    LoggerE("user_data is NULL");
+    return PMINFO_R_ERROR;
+  }
+
+  picojson::object object_info;
+  if(PackageInfoProvider::GetPackageInfo(info, object_info)) {
+    array_data->push_back(picojson::value(object_info));
+  }
+
+  return PMINFO_R_OK;
+}
+
+void PackageInfoProvider::GetPackagesInfo(picojson::object& out) {
+  LoggerD("Enter");
+
+  clock_t start_time, end_time;
+  start_time = clock();
+
+  picojson::array array_data;
+  if(pkgmgrinfo_pkginfo_get_list(PackageInfoGetListCb, &array_data) != PMINFO_R_OK) {
+    LoggerE("Failed to get package information");
+    REPORT_ERROR(out, UnknownException("Any other platform error occurs"));
+    return;
+  }
+
+  end_time = clock();
+  LoggerD(">>>>>>>>>>>>>>> GetPackagesInfo Time : %f s\n",((double)(end_time-start_time)) / CLOCKS_PER_SEC);
+
+  LoggerD("status: success");
+  out["status"] = picojson::value("success");
+  out["informationArray"] = picojson::value(array_data);
+}
+
+void PackageInfoProvider::GetPackageInfo(picojson::object& out) {
+  LoggerD("Enter");
+  
+  char* packageId = NULL;
+  if(GetCurrentPackageId(&packageId)) {
+    GetPackageInfo(packageId, out);
+    free(packageId);
+  } else {
+    LoggerE("Failed to get current package ID");
+    REPORT_ERROR(out, NotFoundException("The package with the specified ID is not found"));
+  }  
+}
+
+void PackageInfoProvider::GetPackageInfo(const char* packageId, picojson::object& out) {
+  LoggerD("Enter");
+
+  if(strlen(packageId) <= 0) {
+    LoggerE("Wrong Package ID");
+    REPORT_ERROR(out, NotFoundException("The package with the specified ID is not found"));
+    return;    
+  }
+
+  pkgmgrinfo_pkginfo_h info;
+  if (pkgmgrinfo_pkginfo_get_pkginfo(packageId, &info) != PMINFO_R_OK) {
+    LoggerE("Failed to get pkginfo");
+    REPORT_ERROR(out, NotFoundException("The package with the specified ID is not found"));
+    return;
+  }
+
+  picojson::object object_info;
+  if(!GetPackageInfo(info, object_info)) {
+    LoggerE("Failed to convert pkginfo to object");
+    REPORT_ERROR(out, UnknownException(
+      "The package information cannot be retrieved because of a platform error"));
+    return;
+  }
+
+  pkgmgrinfo_pkginfo_destroy_pkginfo(info);  
+  out["status"] = picojson::value("success");
+  out["result"] = picojson::value(object_info);
+}
+
+static bool PackageAppInfoCb(
+  package_info_app_component_type_e comp_type, const char *app_id, void *user_data) {
+  LoggerD("Enter");
+  
+  picojson::array* array_data = static_cast<picojson::array*>(user_data);
+  if(!array_data) {
+    LoggerE("user_data is NULL");
+    return false;
+  }
+
+  LoggerD("app_id: [%s]", app_id);
+  array_data->push_back(picojson::value(app_id));
+  return true;
+}
+
+bool PackageInfoProvider:: GetPackageInfo(const pkgmgrinfo_pkginfo_h info, picojson::object& out) {
+  int ret = 0;
+
+  char* id = NULL;
+  ret = pkgmgrinfo_pkginfo_get_pkgid(info, &id);
+  if((ret != PMINFO_R_OK) || (id == NULL)) {
+    LoggerE("Failed to get package id");
+    return false;
+  }
+  out["id"] = picojson::value(id);
+
+  char* name = NULL;
+  ret = pkgmgrinfo_pkginfo_get_label(info, &name);
+  if((ret != PMINFO_R_OK) || (name == NULL)) {
+    LoggerE("[%s] Failed to get package name", id);
+    return false;
+  }
+  out["name"] = picojson::value(name);
+
+  char* iconPath = NULL;
+  ret = pkgmgrinfo_pkginfo_get_icon(info, &iconPath);
+  if((ret != PMINFO_R_OK) || (iconPath == NULL)) {
+    LoggerE("[%s] Failed to get package iconPath", id);
+    return false;
+  }
+  out["iconPath"] = picojson::value(iconPath);
+
+  char* version = NULL;
+  ret = pkgmgrinfo_pkginfo_get_version(info, &version);
+  if((ret != PMINFO_R_OK) || (version == NULL)) {
+    LoggerE("[%s] Failed to get package version", id);
+    return false;
+  }
+  out["version"] = picojson::value(version);
+
+  int lastModified = 0;
+  ret = pkgmgrinfo_pkginfo_get_installed_time(info, &lastModified);
+  if((ret != PMINFO_R_OK)) {
+    LoggerE("[%s] Failed to get package lastModified", id);
+    return false;
+  }
+  // This value will be converted into JavaScript Date object in js file
+  double lastModified_double = lastModified * 1000.0;
+  out["lastModified"] = picojson::value(lastModified_double);
+
+  char* author = NULL;
+  ret = pkgmgrinfo_pkginfo_get_author_name(info, &author);
+  if((ret != PMINFO_R_OK) || (author == NULL)) {
+    LoggerE("[%s] Failed to get package author", id);
+    return false;
+  }
+  out["author"] = picojson::value(author);
+
+  char* description = NULL;
+  ret = pkgmgrinfo_pkginfo_get_description(info, &description);
+  if((ret != PMINFO_R_OK) || (description == NULL)) {
+    LoggerE("[%s] Failed to get package description", id);
+    return false;
+  }
+  out["description"] = picojson::value(description);
+
+  package_info_h package_info;
+  ret = package_info_create(id, &package_info);
+  if (ret != PACKAGE_MANAGER_ERROR_NONE) {
+    LoggerE("Failed to create package info");
+    return false;
+  }
+
+  pkgmgr_client *pc = pkgmgr_client_new(PC_REQUEST);
+  if (pc == NULL) {
+    LoggerE("Fail to create pkgmgr client");
+    return false;
+  } else {
+    int ret = pkgmgr_client_request_service(PM_REQUEST_GET_SIZE, PM_GET_TOTAL_SIZE, pc, NULL, id, NULL, NULL, NULL);
+    if (ret < 0) {
+      LoggerE("Fail to get total size");
+      return false;
+    } else {
+      LoggerD("totalSize: [%d]", ret);
+      out["totalSize"] = picojson::value(static_cast<double>(ret));
+    }
+
+    ret = pkgmgr_client_request_service(PM_REQUEST_GET_SIZE, PM_GET_DATA_SIZE, pc, NULL, id, NULL, NULL, NULL);
+    if (ret < 0) {
+      LoggerE("Fail to get data size");
+      return false;
+    } else {
+      LoggerD("dataSize: [%d]", ret);
+      out["dataSize"] = picojson::value(static_cast<double>(ret));
+    }
+  }
+
+  picojson::array array_data;
+  ret = package_info_foreach_app_from_package(package_info, PACKAGE_INFO_ALLAPP, PackageAppInfoCb, &array_data);
+  if (ret != PACKAGE_MANAGER_ERROR_NONE) {
+    LoggerE("Failed to get app info");
+    return false;
+  }
+  out["appIds"] = picojson::value(array_data);
+
+  ret = package_info_destroy(package_info);
+  if (ret != PACKAGE_MANAGER_ERROR_NONE) {
+    LoggerE("Failed to destroy package info");
+  }
+
+  return true;
+}
+
+bool PackageInfoProvider::GetCurrentPackageId(char** packageId) {
+  LoggerD("Enter");
+
+  int ret = 0;
+  char *app_id = NULL;
+
+  int pid = getpid();
+  LoggerD("pid: %d", pid);
+  ret = app_manager_get_app_id(pid, &app_id);
+  if (ret != APP_MANAGER_ERROR_NONE) {
+    LoggerE("Failed to get app id");
+    return false;
+  }
+
+  app_info_h handle;
+  ret = app_info_create(app_id, &handle);
+  free(app_id);
+  if (ret != APP_MANAGER_ERROR_NONE) {
+    LoggerE("Fail to get app info");    
+    return false;
+  }
+
+  ret = app_info_get_package(handle, packageId);
+  app_info_destroy(handle);
+  if ((ret != APP_MANAGER_ERROR_NONE) || (*packageId == NULL)) {
+    LoggerE("Fail to get pkg id");
+    return false;
+  }
+
+  return true;
+}
+
+
+
+#undef REPORT_ERROR
+
+} // namespace package
+} // namespace extension
