@@ -64,11 +64,12 @@ void DatasyncInstance::GetAll(const picojson::value &args, picojson::object &out
 }
 
 void DatasyncInstance::GetLastSyncStatistics(const picojson::value &args, picojson::object &out) {
-//  TODO: implementation
+  picojson::value result = picojson::value(picojson::array());
 
-    picojson::value val{picojson::object{}};
+  DataSyncManager::Instance().GetLastSyncStatistics(args.get("profileId").get<std::string>(),
+                                                    result.get<picojson::array>());
 
-    ReportSuccess(val, out);
+  ReportSuccess(result, out);
 }
 
 void DatasyncInstance::Add(const picojson::value &args, picojson::object &out) {

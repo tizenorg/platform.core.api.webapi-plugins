@@ -87,6 +87,21 @@ int DataSyncManager::StrToPlatformEnum(const std::string& field, const std::stri
   throw InvalidValuesException(message);
 }
 
+std::string DataSyncManager::PlatformEnumToStr(const std::string& field, const int value) {
+  if (platform_enum_map_.find(field) == platform_enum_map_.end()) {
+    throw UnknownException(std::string("Undefined platform enum type ") + field);
+  }
+
+  auto def = platform_enum_map_.at(field);
+
+  for (auto& item : def) {
+    if (item.second == value) return item.first;
+  }
+
+  std::string message = "Platform enum value " + std::to_string(value) + " not found for " + field;
+  throw InvalidValuesException(message);
+}
+
 datasync::SyncInfo::SyncMode ConvertToSyncMode(
     sync_agent_ds_sync_mode_e sync_mode) {
   switch (sync_mode) {
@@ -695,93 +710,76 @@ DataSyncManager& DataSyncManager::Instance() {
   return manager;
 }
 
-ResultOrError<SyncStatisticsListPtr> DataSyncManager::GetLastSyncStatistics(
-    const std::string& profile_str_id) const {
+void DataSyncManager::GetLastSyncStatistics(const std::string& id, picojson::array& out) {
   ds_profile_h profile_h = nullptr;
   GList* statistics_list = nullptr;
 
-  auto exit = common::MakeScopeExit([&statistics_list, &profile_h]() {
-    if (statistics_list) {
-      g_list_free(statistics_list);
-    }
-
-    if (profile_h) {
-      sync_agent_ds_free_profile_info(profile_h);
-    }
-  });
-
-  SyncStatisticsListPtr statistics_list_ptr(new SyncStatisticsList());
-
-  sync_agent_ds_error_e ret = SYNC_AGENT_DS_FAIL;
-
-  int profile_id = std::stoi(profile_str_id);
+  int profile_id = std::stoi(id);
   LoggerD("profileId: %d", profile_id);
-  ret = sync_agent_ds_get_profile(profile_id, &profile_h);
+
+  sync_agent_ds_error_e ret = sync_agent_ds_get_profile(profile_id, &profile_h);
   if (SYNC_AGENT_DS_SUCCESS != ret) {
-    return Error("NotFoundException",
-                            "Platform error while getting a profile");
+    throw NotFoundException("Platform error while getting a profile");
   }
 
   ret = sync_agent_ds_get_sync_statistics(profile_h, &statistics_list);
   if (SYNC_AGENT_DS_SUCCESS != ret) {
-    return Error("Exception",
-                            "Platform error while gettting sync statistics");
+    throw UnknownException("Platform error while gettting sync statistics");
   }
 
   int statistics_count = g_list_length(statistics_list);
   LoggerD("statistics_count: %d", statistics_count);
   sync_agent_ds_statistics_info* statistics = nullptr;
-  for (int i = 0; i < statistics_count; i++) {
-    statistics = static_cast<sync_agent_ds_statistics_info*>(
-        g_list_nth_data(statistics_list, i));
 
-    SyncStatisticsPtr statistics_ptr(new SyncStatistics());
+  for (int i = 0; i < statistics_count; i++) {
+    statistics = static_cast<sync_agent_ds_statistics_info*>(g_list_nth_data(statistics_list, i));
+
+    picojson::value item = picojson::value(picojson::object());
+    picojson::object& item_obj = item.get<picojson::object>();
 
     if (0 == i) {
       LoggerD("Statistics for contact.");
-      statistics_ptr->set_service_type(
-          ConvertToSyncServiceType(SYNC_AGENT_CONTACT));
+      item_obj["serviceType"] =
+          picojson::value(PlatformEnumToStr(kSyncServiceType, SYNC_AGENT_CONTACT));
     } else if (1 == i) {
       LoggerD("Statistics for event.");
-      statistics_ptr->set_service_type(
-          ConvertToSyncServiceType(SYNC_AGENT_CALENDAR));
+      item_obj["serviceType"] =
+          picojson::value(PlatformEnumToStr(kSyncServiceType, SYNC_AGENT_CALENDAR));
     } else {
       LoggerW("Unsupported category for statistics: %d", i);
       continue;
     }
 
+    out.push_back(item);
+
     LoggerD("dbsynced: %d", statistics->dbsynced);
-    if (statistics->dbsynced) {
-      statistics_ptr->set_sync_status(
-          ConvertToSyncStatus(statistics->dbsynced));
-      statistics_ptr->set_client_to_server_total(
-          statistics->client2server_total);
-      statistics_ptr->set_client_to_server_added(
-          statistics->client2server_nrofadd);
-      statistics_ptr->set_client_to_server_updated(
-          statistics->client2server_nrofreplace);
-      statistics_ptr->set_client_to_server_removed(
-          statistics->client2server_nrofdelete);
-      statistics_ptr->set_server_to_client_total(
-          statistics->server2client_total);
-      statistics_ptr->set_server_to_client_added(
-          statistics->server2client_nrofadd);
-      statistics_ptr->set_server_to_client_updated(
-          statistics->server2client_nrofreplace);
-      statistics_ptr->set_server_to_client_removed(
-          statistics->server2client_nrofdelete);
+    if (!statistics->dbsynced) continue;
 
-      statistics_ptr->set_last_sync_time(
-          static_cast<unsigned>(statistics->last_session_time));
-    }
+    std::string db_synced = statistics->dbsynced;
+    std::transform(db_synced.begin(), db_synced.end(), db_synced.begin(), ::toupper);
 
-    LoggerD("ClientToServerTotal: %d, ServerToClientTotal: %d",
-            statistics_ptr->client_to_server_total(), statistics_ptr->server_to_client_total());
+    item_obj["syncStatus"] = picojson::value(db_synced);
+    item_obj["clientToServerTotal"] =
+        picojson::value(static_cast<double>(statistics->client2server_total));
+    item_obj["clientToServerAdded"] =
+        picojson::value(static_cast<double>(statistics->client2server_nrofadd));
+    item_obj["clientToServerUpdated"] =
+        picojson::value(static_cast<double>(statistics->client2server_nrofreplace));
+    item_obj["clientToServerRemoved"] =
+        picojson::value(static_cast<double>(statistics->client2server_nrofdelete));
+    item_obj["serverToClientTotal"] =
+        picojson::value(static_cast<double>(statistics->server2client_total));
+    item_obj["serverToClientAdded"] =
+        picojson::value(static_cast<double>(statistics->server2client_nrofadd));
+    item_obj["serverToClientUpdated"] =
+        picojson::value(static_cast<double>(statistics->server2client_nrofreplace));
+    item_obj["serverToClientRemoved"] =
+        picojson::value(static_cast<double>(statistics->server2client_nrofdelete));
+    item_obj["lastSyncTime"] = picojson::value(static_cast<double>(statistics->last_session_time));
 
-    statistics_list_ptr->push_back(statistics_ptr);
+    LoggerD("ClientToServerTotal: %d, ServerToClientTotal: %d", statistics->client2server_total,
+            statistics->server2client_total);
   }
-
-  return statistics_list_ptr;
 }
 
 int DataSyncManager::StateChangedCallback(sync_agent_event_data_s* request) {

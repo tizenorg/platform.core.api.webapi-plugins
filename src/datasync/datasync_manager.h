@@ -44,8 +44,7 @@ class DataSyncManager {
   ResultOrError<SyncProfileInfoPtr> Get(
       const std::string& profile_id) const;
   ResultOrError<SyncProfileInfoListPtr> GetAll() const;
-  ResultOrError<SyncStatisticsListPtr> GetLastSyncStatistics(
-      const std::string& profile_str_id) const;
+  void GetLastSyncStatistics(const std::string& id, picojson::array &out);
 
   ResultOrError<void> StartSync(const std::string& profile_id_str,
       int callback_id, DatasyncInstance* instance);
@@ -56,6 +55,7 @@ class DataSyncManager {
   static DataSyncManager& Instance();
 
   static int StrToPlatformEnum(const std::string& field, const std::string& value);
+  static std::string PlatformEnumToStr(const std::string& field, const int value);
 
  private:
   DataSyncManager();
