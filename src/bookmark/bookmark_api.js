@@ -135,13 +135,13 @@ BookmarkProvider.prototype.addToFolder = function() {
       nullable: false}
   ]);
   var ret = native_.callSync('Bookmark_add',
-      {
-        title: args.bookmark.title,
-        url: args.bookmark.url || '/',
-        parentId: args.parentId,
-        type: args.bookmark instanceof tizen.BookmarkFolder ? 1 : 0
-      }
-      );
+    {
+      title: args.bookmark.title,
+      url: args.bookmark.url,
+      parentId: args.parentId,
+      type: args.bookmark instanceof tizen.BookmarkFolder ? 1 : 0
+    }
+  );
   if (native_.isFailure(ret)) {
     return false;
   }
@@ -234,9 +234,10 @@ BookmarkProvider.prototype.getFolderItems = function() {
       obj.parent = this.getFolder(item.parentId);
       _edit.disallow();
       result.push(obj);
-      if (args.recursive) {
-        result = result.concat(this.getFolderItems(item.id, true));
-      }
+    }
+
+    if (args.recursive) {
+      result = result.concat(this.getFolderItems(item.id, true));
     }
   }
   return result;
@@ -291,6 +292,8 @@ tizen.BookmarkItem = function() {
     },
     url: {
       get: function() {
+        if (args.url === "undefined")
+          args.url = undefined;
         return args.url;
       },
       enumerable: true,
