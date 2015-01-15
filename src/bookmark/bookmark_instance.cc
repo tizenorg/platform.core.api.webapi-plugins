@@ -6,7 +6,6 @@
 
 #include <web/bookmark-adaptor.h>
 #include <string>
-#include "common/logger.h"
 
 #include "common/platform_exception.h"
 #include "common/converter.h"

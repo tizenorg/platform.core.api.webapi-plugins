@@ -137,7 +137,7 @@ BookmarkProvider.prototype.addToFolder = function() {
   var ret = native_.callSync('Bookmark_add',
     {
       title: args.bookmark.title,
-      url: args.bookmark.url,
+      url: String(args.bookmark.url),
       parentId: args.parentId,
       type: args.bookmark instanceof tizen.BookmarkFolder ? 1 : 0
     }
@@ -219,26 +219,21 @@ BookmarkProvider.prototype.getFolderItems = function() {
   var obj;
   var result = [];
   var len = folder.length;
-  for (var i = 0; item = folder[i], i < len; i++) {
-    if (item.type !== 0) {
-      obj = new tizen.BookmarkItem(item.title, item.url);
-      _edit.allow();
-      obj.id = item.id;
-      obj.parent = this.getFolder(item.parentId);
-      _edit.disallow();
-      result.push(obj);
-    } else {
-      obj = new tizen.BookmarkFolder(item.title);
-      _edit.allow();
-      obj.id = item.id;
-      obj.parent = this.getFolder(item.parentId);
-      _edit.disallow();
-      result.push(obj);
-    }
 
-    if (args.recursive) {
+  for (var i = 0; item = folder[i], i < len; i++) {
+    if (Number(item.type) === 0)
+      obj = new tizen.BookmarkItem(item.title, item.url);
+    else
+      obj = new tizen.BookmarkFolder(item.title);
+
+    _edit.allow();
+    obj.id = item.id;
+    obj.parent = this.getFolder(item.parentId);
+    _edit.disallow();
+    result.push(obj);
+
+    if (args.recursive && Number(item.type) !== 0)
       result = result.concat(this.getFolderItems(item.id, true));
-    }
   }
   return result;
 };
