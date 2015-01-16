@@ -41,8 +41,7 @@ class DataSyncManager {
   int GetMaxProfilesNum() const;
   int GetProfilesNum() const;
 
-  ResultOrError<SyncProfileInfoPtr> Get(
-      const std::string& profile_id) const;
+  void Get(const std::string& id, picojson::object &out);
   ResultOrError<SyncProfileInfoListPtr> GetAll() const;
   void GetLastSyncStatistics(const std::string& id, picojson::array &out);
 
@@ -63,6 +62,7 @@ class DataSyncManager {
   int StateChangedCallback(sync_agent_event_data_s* request);
   int ProgressCallback(sync_agent_event_data_s* request);
   void Item(ds_profile_h *profile_h, const picojson::object &args);
+  void Item(const std::string& id, ds_profile_h *profile_h, picojson::object &out);
 
   ProfileIdToCallbackMap callbacks_;
 

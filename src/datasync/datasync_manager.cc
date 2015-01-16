@@ -328,6 +328,87 @@ void DataSyncManager::Item(ds_profile_h* profile_h, const picojson::object& args
   }
 }
 
+void DataSyncManager::Item(const std::string& id, ds_profile_h* profile_h, picojson::object& out) {
+  out["profileId"] = picojson::value(id);
+
+  char* profile_name = nullptr;
+  sync_agent_ds_error_e ret = sync_agent_ds_get_profile_name(profile_h, &profile_name);
+  if (SYNC_AGENT_DS_SUCCESS != ret) {
+    throw UnknownException("Platform error while gettting a profile name");
+  }
+  out["profileName"] = picojson::value(profile_name);
+
+  sync_agent_ds_server_info server_info = {nullptr};
+  ret = sync_agent_ds_get_server_info(profile_h, &server_info);
+  if (SYNC_AGENT_DS_SUCCESS != ret) {
+    throw UnknownException("Platform error while gettting a server info");
+  }
+  picojson::value sync_info_val = picojson::value(picojson::object());
+  picojson::object& sync_info_obj = sync_info_val.get<picojson::object>();
+  sync_info_obj["url"] = picojson::value(server_info.addr);
+  sync_info_obj["id"] = picojson::value(server_info.id);
+  sync_info_obj["password"] = picojson::value(server_info.password);
+
+  sync_agent_ds_sync_info sync_info;
+  ret = sync_agent_ds_get_sync_info(profile_h, &sync_info);
+  if (SYNC_AGENT_DS_SUCCESS != ret) {
+    throw UnknownException("Platform error while gettting a sync info");
+  }
+  sync_info_obj["mode"] = picojson::value(PlatformEnumToStr(kSyncMode, sync_info.sync_mode));
+  sync_info_obj["type"] = picojson::value(PlatformEnumToStr(kSyncType, sync_info.sync_type));
+  sync_info_obj["interval"] = picojson::value(PlatformEnumToStr(kSyncInterval, sync_info.interval));
+
+  out["syncInfo"] = sync_info_val;
+
+  LoggerD("Sync mode: %d, type: %d, interval: %d", sync_info.sync_mode, sync_info.sync_type,
+          sync_info.interval);
+
+  GList* category_list = nullptr;
+  ret = sync_agent_ds_get_sync_service_info(profile_h, &category_list);
+  if (SYNC_AGENT_DS_SUCCESS != ret) {
+    throw UnknownException("Platform error while gettting sync categories");
+  }
+  int category_count = g_list_length(category_list);
+  LoggerD("category_count: %d", category_count);
+
+  if (!category_count) return;
+
+  picojson::value service_info_val = picojson::value(picojson::object());
+  picojson::array& service_info_array = service_info_val.get<picojson::array>();
+
+  sync_agent_ds_service_info* category_info = nullptr;
+  while (category_count--) {
+    category_info =
+        static_cast<sync_agent_ds_service_info*>(g_list_nth_data(category_list, category_count));
+    if (SYNC_AGENT_CALENDAR < category_info->service_type) {
+      LoggerD("Skip unsupported sync service type: %d", category_info->service_type);
+      continue;
+    }
+
+    picojson::value item = picojson::value(picojson::object());
+    picojson::object& item_obj = item.get<picojson::object>();
+
+    item_obj["enable"] = picojson::value(static_cast<bool>(category_info->enabled));
+    if (category_info->id) {
+      item_obj["id"] = picojson::value(category_info->id);
+    }
+    if (category_info->password) {
+      item_obj["password"] = picojson::value(category_info->password);
+    }
+    sync_info_obj["serviceType"] =
+        picojson::value(PlatformEnumToStr(kSyncServiceType, category_info->service_type));
+    if (category_info->tgt_uri) {
+      item_obj["serverDatabaseUri"] = picojson::value(category_info->tgt_uri);
+    }
+
+    service_info_array.push_back(item);
+
+    LoggerD("Service type: %d", category_info->service_type);
+  }
+
+  out["serviceInfo"] = service_info_val;
+}
+
 int DataSyncManager::Add(const picojson::object& args) {
   ds_profile_h profile_h = nullptr;
 
@@ -408,103 +489,18 @@ int DataSyncManager::GetProfilesNum() const {
   return profile_list_size;
 }
 
-ResultOrError<SyncProfileInfoPtr> DataSyncManager::Get(
-    const std::string& profile_id) const {
+void DataSyncManager::Get(const std::string& id, picojson::object& out) {
   ds_profile_h profile_h = nullptr;
-  GList* category_list = nullptr;
 
-  auto exit = common::MakeScopeExit([&category_list, &profile_h]() {
-    if (category_list) {
-      g_list_free(category_list);
-    }
+  int profile_id = std::stoi(id);
+  LoggerD("profileId: %d", profile_id);
 
-    if (profile_h) {
-      sync_agent_ds_free_profile_info(profile_h);
-    }
-  });
-
-  SyncProfileInfoPtr profile(new SyncProfileInfo());
-
-  sync_agent_ds_error_e ret = SYNC_AGENT_DS_FAIL;
-
-  int profile_id_str = std::stoi(profile_id);
-  LoggerD("profileId: %d", profile_id_str);
-
-  ret = sync_agent_ds_get_profile(profile_id_str, &profile_h);
+  sync_agent_ds_error_e ret = sync_agent_ds_get_profile(profile_id, &profile_h);
   if (SYNC_AGENT_DS_SUCCESS != ret) {
-    return Error("NotFoundException",
-        "Platform error while getting a profile");
+    throw UnknownException("Platform error while getting a profile");
   }
 
-  profile->set_profile_id(profile_id);
-
-  char* profile_name = nullptr;
-  ret = sync_agent_ds_get_profile_name(profile_h, &profile_name);
-  if (SYNC_AGENT_DS_SUCCESS != ret) {
-    return Error("Exception",
-        "Platform error while gettting a profile name");
-  }
-  profile->set_profile_name(profile_name);
-
-  sync_agent_ds_server_info server_info = {nullptr};
-  ret = sync_agent_ds_get_server_info(profile_h, &server_info);
-  if (SYNC_AGENT_DS_SUCCESS != ret) {
-    return Error("Exception",
-        "Platform error while gettting a server info");
-  }
-  profile->sync_info()->set_url(server_info.addr);
-  profile->sync_info()->set_id(server_info.id);
-  profile->sync_info()->set_password(server_info.password);
-
-  sync_agent_ds_sync_info sync_info;
-  ret = sync_agent_ds_get_sync_info(profile_h, &sync_info);
-  if (SYNC_AGENT_DS_SUCCESS != ret) {
-    return Error("Exception",
-        "Platform error while gettting a sync info");
-  }
-  profile->sync_info()->set_sync_mode(ConvertToSyncMode(sync_info.sync_mode));
-  profile->sync_info()->set_sync_type(ConvertToSyncType(sync_info.sync_type));
-  profile->sync_info()->set_sync_interval(
-      ConvertToSyncInterval(sync_info.interval));
-
-  LoggerD("Sync mode: %d, type: %d, interval: %d",
-          sync_info.sync_mode, sync_info.sync_type, sync_info.interval);
-
-  sync_agent_ds_service_info* category_info = nullptr;
-  ret = sync_agent_ds_get_sync_service_info(profile_h, &category_list);
-  if (SYNC_AGENT_DS_SUCCESS != ret) {
-    return Error("Exception",
-        "Platform error while gettting sync categories");
-  }
-  int category_count = g_list_length(category_list);
-  LoggerD("category_count: %d", category_count);
-  while (category_count--) {
-    category_info = static_cast<sync_agent_ds_service_info*>(
-        g_list_nth_data(category_list, category_count));
-    if (SYNC_AGENT_CALENDAR < category_info->service_type) {
-      LoggerD("Skip unsupported sync service type: %d", category_info->service_type);
-      continue;
-    }
-
-    SyncServiceInfoPtr service_info(new SyncServiceInfo());
-    service_info->set_enable(category_info->enabled);
-    if (category_info->id) {
-      service_info->set_id(category_info->id);
-    }
-    if (category_info->password) {
-      service_info->set_password(category_info->password);
-    }
-    service_info->set_sync_service_type(
-        ConvertToSyncServiceType(category_info->service_type));
-    if (category_info->tgt_uri) {
-      service_info->set_server_database_uri(category_info->tgt_uri);
-    }
-
-    LoggerD("Service type: %d", service_info->sync_service_type());
-    profile->service_info()->push_back(service_info);
-  }
-
-  return profile;
+  Item(id, &profile_h, out);
 }
 
 ResultOrError<SyncProfileInfoListPtr> DataSyncManager::GetAll() const {

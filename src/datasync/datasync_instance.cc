@@ -48,11 +48,11 @@ void DatasyncInstance::GetProfilesNum(const picojson::value &args, picojson::obj
 }
 
 void DatasyncInstance::Get(const picojson::value &args, picojson::object &out) {
-//  TODO: implementation
+  picojson::value result = picojson::value(picojson::object());
 
-    picojson::value val{picojson::object{}};
-
-    ReportSuccess(val, out);
+  DataSyncManager::Instance().Get(args.get("profileId").get<std::string>(),
+                                  result.get<picojson::object>());
+  ReportSuccess(result, out);
 }
 
 void DatasyncInstance::GetAll(const picojson::value &args, picojson::object &out) {
