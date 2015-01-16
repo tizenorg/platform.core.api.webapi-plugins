@@ -16,6 +16,16 @@ common::Extension* CreateExtension() {
 {{module.title}}Extension::{{module.title}}Extension() {
   SetExtensionName("tizen.{{module.lower}}");
   SetJavaScriptAPI(kSource_{{module.lower}}_api);
+
+  const char* entry_points[] = {
+  {% for iface in moduleObj.getTypes('Interface') %}
+    {% if iface.exported and (iface.exported != 'Tizen' or iface.exported != 'Window') %}
+      "tizen.{{iface.name}}",
+    {% endif %}
+  {% endfor %}
+      NULL
+    };
+  SetExtraJSEntryPoints(entry_points);
 }
 
 {{module.title}}Extension::~{{module.title}}Extension() {}

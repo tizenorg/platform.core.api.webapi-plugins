@@ -16,12 +16,8 @@ class {{module.title}}Instance : public common::ParsedInstance {
   virtual ~{{module.title}}Instance();
 
  private:
-  {% for iface in moduleObj.getTypes('Interface') %}
-    {% if iface.exported %}
-      {% for operation in iface.getTypes('Operation') %}
-  void {{operation.native_function}}(const picojson::value& args, picojson::object& out);
-      {% endfor %}
-    {% endif %}
+  {% for func in cmdtable %}
+  void {{func}}(const picojson::value& args, picojson::object& out);
   {% endfor %}
 };
 

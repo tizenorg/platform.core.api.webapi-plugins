@@ -21,7 +21,8 @@ cppPrimitiveMap = {
         'unsigned long': 'double',
         'unsigned long long': 'double',
         'float':'double',
-        'double':'double'}
+        'double':'double'
+        }
 
 class IndentPrintable(object):
     def __init__(self, isIndent=True, tabstep=2, ignoreLF=False):
@@ -85,8 +86,8 @@ class Compiler(IndentPrintable):
         self.ctx['activeObjects'] = set()
         self.ctx['implementOperations'] = dict()
         self.ctx['exportedInterface'] = []
-        self.ctx['Tizen'] = []
-        self.ctx['Window'] = []
+        #self.ctx['Tizen'] = []
+        #self.ctx['Window'] = []
         self.ctx['cmdtable'] = dict()
         self.ctx['exportModule'] = module
 
@@ -98,20 +99,49 @@ class Compiler(IndentPrintable):
         while self.q.qsize()>0:
             self.prepareX(self.q.get())
 
-        for m in self.tree:
+        for m in [m for m in self.tree if m.name.lower() == module.lower()]:
             for iface in m.getTypes('Interface'):
-                #if iface.inherit in [x.name for x in self.ctx['exportedInterface']]:
-                #    iface.exported = True
+                xctor = iface.constructor if hasattr(iface, 'constructor') else None
+                if xctor:
+                    xctor.primitiveArgs = [x for x in xctor.arguments if x.xtype.name in cppPrimitiveMap]
+                    attributes = iface.getTypes('Attribute')
+                    ctorArgs = [arg.name for arg in xctor.arguments] if xctor else []
+                    for attr in attributes:
+                        if attr.name in ctorArgs:
+                            attr.existIn = 'ctor'
+                        if xctor:
+                            for x in xctor.arguments:
+                                if x.xtype.name in self.ctx['interfaces'] or x.xtype.name in self.ctx['dictionary']:
+                                    argtypes = dict(self.ctx['interfaces'].items() + self.ctx['dictionary'].items())
+                                    argtype = argtypes[x.xtype.name]
+                                    for child in argtype.childs:
+                                        if child.name == attr.name:
+                                            attr.existIn = x.name + "." + child.name
+                                    break
+                    if len([x for x in attributes if not hasattr(x, "existIn")]) > 0:
+                        native_function = iface.name + "Constructor"
+                        native_cmd = iface.name + "_constructor"
+                        self.ctx['cmdtable'][native_function] = native_cmd
+                if iface.inherit in [x.name for x in self.ctx['exportedInterface']]:
+                    iface.private = True
                 #if iface.name in self.ctx['callback']:
                     #iface.isListener = True
+
                 for operation in iface.getTypes('Operation'):
                     if hasattr(iface, 'exported') and iface.exported:
-                        operation.native_cmd = iface.name+'_'+operation.name
-                        operation.native_function = iface.name+(operation.name.title())
-                        self.ctx['cmdtable'][operation.native_function] = operation.native_cmd
+                        #operation.native_cmd = iface.name+'_'+operation.name
+                        #operation.native_function = iface.name+(operation.name.title())
+                        #self.ctx['cmdtable'][operation.native_function] = operation.native_cmd
+                        native_cmd = iface.name+'_'+operation.name
+                        native_function = iface.name+(operation.name.title())
+                        self.ctx['cmdtable'][native_function] = native_cmd
                     operation.argnames = [a.name for a in operation.arguments]
                     operation.primitiveArgs = [x for x in operation.arguments if x.xtype.name in cppPrimitiveMap]
                     for arg in operation.arguments:
+                        if arg.xtype.name in self.ctx['interfaces'] and \
+                            hasattr(self.ctx['interfaces'][arg.xtype.name], 'constructor'):
+                            arg.isPlatformObject = True
+
                         if arg.xtype.name in self.ctx['enum']:
                             arg.isEnum = True
                             arg.enums = self.ctx['enum'][arg.xtype.name]
@@ -145,7 +175,7 @@ class Compiler(IndentPrintable):
     def prepareX(self, x):
         if isinstance(x, WebIDL.XImplements) and (x.name in ['Tizen', 'Window']) and x.parent.name.lower() == self.ctx['exportModule'].lower():
             self.ctx['implementedClass'].append(x.impl)
-            self.ctx[x.name].append(x.impl)
+            #self.ctx[x.name].append(x.impl)
             impl = x.parent.get('Interface', x.impl)
             impl.implements = x.name
 
@@ -155,8 +185,8 @@ class Compiler(IndentPrintable):
                 #inheritIface = x.parent.parent.get('Interface', x.xtype.name)
                 inheritIface = self.ctx['interfaces'][x.xtype.name]
                 if inheritIface :
-                    self.ctx[x.parent.implements] = inheritIface.name
-                    inheritIface.exported = True
+                    #self.ctx[x.parent.implements] = inheritIface.name
+                    inheritIface.exported = x.parent.implements
                     self.ctx['exportedInterface'].append(inheritIface)
 
         if isinstance(x, WebIDL.XInterface):
@@ -169,6 +199,7 @@ class Compiler(IndentPrintable):
             xctor = next((c for c in x.getTypes('ExtendedAttribute') if c.name == 'Constructor'), None)
             if xctor:
                 x.constructor = xctor
+                x.exported = x.name
 
         if isinstance(x, WebIDL.XOperation):
             module = x.parent.parent
@@ -178,7 +209,7 @@ class Compiler(IndentPrintable):
                 #inheritIface = module.get('Interface', x.returnType.name)
                 inheritIface = self.ctx['interfaces'][x.returnType.name]
                 if inheritIface :
-                    inheritIface.exported = True
+                    inheritIface.exported = inheritIface.name
                     self.ctx['exportedInterface'].append(inheritIface)
 
         if isinstance(x, WebIDL.XDictionary):
@@ -189,6 +220,7 @@ class Compiler(IndentPrintable):
 
         if isinstance(x, WebIDL.XEnum):
             self.ctx['enum'][x.name] = x.childs
+            cppPrimitiveMap[x.name] = 'std::string'
 
         if isinstance(x, WebIDL.XObject):
             for child in x.childs:
@@ -203,8 +235,8 @@ class Compiler(IndentPrintable):
         modules = self.tree if module == None else [m for m in self.tree if m.name.lower() == module.lower()]
         return tpl.render({'modules':modules,
             'callbacks':self.ctx['callback'],
-            'tizen': self.ctx['Tizen'],
-            'window': self.ctx['Window'],
+            #'tizen': self.ctx['Tizen'],
+            #'window': self.ctx['Window'],
             'cmdtable' : self.ctx['cmdtable'],
             'year' : date.today().year})
 
@@ -239,8 +271,8 @@ class Compiler(IndentPrintable):
         #m = [m for m in self.tree if m.name.lower() == module.lower()]
         m = [m for m in self.tree]
         vals['moduleObj'] = m[0] if len(m)>0 else None
-        vals['tizen'] = self.ctx['Tizen']
-        vals['window'] = self.ctx['Window']
+        #vals['tizen'] = self.ctx['Tizen']
+        #vals['window'] = self.ctx['Window']
         vals['cmdtable'] = self.ctx['cmdtable']
         vals['year'] = date.today().year
 
