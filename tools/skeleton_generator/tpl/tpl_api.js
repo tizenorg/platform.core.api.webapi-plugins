@@ -49,12 +49,12 @@ function callNative(cmd, args) {
     throw new tizen.WebAPIException(tizen.WebAPIException.UNKNOWN_ERR);
   }
 
-  if (result['status'] == 'success') {
+  if (result['status'] === 'success') {
     if (result['result']) {
       return result['result'];
     }
     return true;
-  } else if (result['status'] == 'error') {
+  } else if (result['status'] === 'error') {
     var err = result['error'];
     if (err) {
       throw new tizen.WebAPIException(err.name, err.message);
@@ -203,7 +203,7 @@ function {{iface.name}}(
     {% if arg.isListener %}
     {% set cb = callbacks[arg.xtype.name] %}
     {% if cb.callbackType in ['success', 'error']  %}
-      if (result.status == '{{cb.callbackType}}') {
+      if (result.status === '{{cb.callbackType}}') {
     {% if arg.optional %}
         if (args.{{arg.name}}) {
           args.{{arg.name}}.on{{cb.callbackType}}(/* {{cb.callbackType}} argument */);
