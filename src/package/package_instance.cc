@@ -25,7 +25,7 @@ const std::string kPrivilegePackageInfo = "http://tizen.org/privilege/package.in
 using namespace common;
 using namespace extension::package;
 
-typedef enum PackageThreadWork {
+typedef enum _PackageThreadWorkType {
   PackageThreadWorkNone = 0, 
   PackageThreadWorkGetPackagesInfo, 
 } PackageThreadWorkType;
@@ -44,31 +44,6 @@ class PackageUserData {
   picojson::object data;
 };
 typedef std::shared_ptr<PackageUserData> PackageUserDataPtr;
-
-/*
-static void ReplyAsync(PackageInstance* instance, PackageThreadWorkType cbfunc, 
-                       int callbackId, picojson::object& param) {
-  LoggerD("Enter");
-  
-  param["callbackId"] = picojson::value(static_cast<double>(callbackId));
-  
-  picojson::value result = picojson::value(param);
-  instance->PostMessage(result.serialize().c_str());
-}
-*/
-
-/*
-static gboolean PackageIdleCb(gpointer data) {
-  LoggerD("Enter");
-  PackageUserData* userData = static_cast<PackageUserData*>(data);
-
-  picojson::object param;
-  ReplyAsync(userData->instance, PackageThreadWorkGetPackagesInfo, userData->callbackId, param);
-  delete userData;
-
-  return  G_SOURCE_REMOVE;
-}
-*/
 
 static void* PackageThreadWork(const PackageUserDataPtr& userData) {
   LoggerD("Enter");
@@ -138,6 +113,45 @@ static void PackageRequestCb(
   if(event_state == PACKAGE_MANAGER_EVENT_STATE_COMPLETED) {
     LoggerD("Request has been completed");
     instance->DeregisterCallback(id);
+  }
+}
+
+static void PackageListenerCb(
+    const char *type, const char *package, package_manager_event_type_e event_type, 
+    package_manager_event_state_e event_state, int progress, package_manager_error_e error, void *user_data) {
+  LoggerD("Enter");
+
+  PackageInstance* instance = static_cast<PackageInstance*>(user_data);
+  if(!instance) {
+    LoggerE("instance is NULL");
+    return;
+  }
+
+  if(error != PACKAGE_MANAGER_ERROR_NONE) {
+    LoggerE("Failed");
+    return;    
+  }
+
+  picojson::object param;
+  if(event_type == PACKAGE_MANAGER_EVENT_TYPE_INSTALL && event_state == PACKAGE_MANAGER_EVENT_STATE_COMPLETED) {
+    LoggerD("[Installed]");
+    param["status"] = picojson::value("installed");
+    picojson::object info;
+    PackageInfoProvider::GetPackageInfo(package, info);
+    param["info"] = picojson::value(info["result"]);
+    instance->InvokeListener(param);
+  } else if(event_type == PACKAGE_MANAGER_EVENT_TYPE_UNINSTALL && event_state == PACKAGE_MANAGER_EVENT_STATE_COMPLETED) {
+    LoggerD("[Uninstalled]");
+    param["status"] = picojson::value("uninstalled");
+    param["id"] = picojson::value(std::string(package));
+    instance->InvokeListener(param);
+  } else if(event_type == PACKAGE_MANAGER_EVENT_TYPE_UPDATE && event_state == PACKAGE_MANAGER_EVENT_STATE_COMPLETED) {
+    LoggerD("[Updated]");
+    param["status"] = picojson::value("updated");
+    picojson::object info;
+    PackageInfoProvider::GetPackageInfo(package, info);
+    param["info"] = picojson::value(info["result"]);
+    instance->InvokeListener(param);
   }
 }
 
@@ -312,45 +326,6 @@ void PackageInstance::PackageManagerGetpackageinfo(const picojson::value& args, 
     PackageInfoProvider::GetPackageInfo(id.c_str(), out);
   } else {
     PackageInfoProvider::GetPackageInfo(out);
-  }
-}
-
-static void PackageListenerCb(
-    const char *type, const char *package, package_manager_event_type_e event_type, 
-    package_manager_event_state_e event_state, int progress, package_manager_error_e error, void *user_data) {
-  LoggerD("Enter");
-
-  PackageInstance* instance = static_cast<PackageInstance*>(user_data);
-  if(!instance) {
-    LoggerE("instance is NULL");
-    return;
-  }
-
-  if(error != PACKAGE_MANAGER_ERROR_NONE) {
-    LoggerE("Failed");
-    return;    
-  }
-
-  picojson::object param;
-  if(event_type == PACKAGE_MANAGER_EVENT_TYPE_INSTALL && event_state == PACKAGE_MANAGER_EVENT_STATE_COMPLETED) {
-    LoggerD("[Installed]");
-    param["status"] = picojson::value("installed");
-    picojson::object info;
-    PackageInfoProvider::GetPackageInfo(package, info);
-    param["info"] = picojson::value(info["result"]);
-    instance->InvokeListener(param);
-  } else if(event_type == PACKAGE_MANAGER_EVENT_TYPE_UNINSTALL && event_state == PACKAGE_MANAGER_EVENT_STATE_COMPLETED) {
-    LoggerD("[Uninstalled]");
-    param["status"] = picojson::value("uninstalled");
-    param["id"] = picojson::value(std::string(package));
-    instance->InvokeListener(param);
-  } else if(event_type == PACKAGE_MANAGER_EVENT_TYPE_UPDATE && event_state == PACKAGE_MANAGER_EVENT_STATE_COMPLETED) {
-    LoggerD("[Updated]");
-    param["status"] = picojson::value("updated");
-    picojson::object info;
-    PackageInfoProvider::GetPackageInfo(package, info);
-    param["info"] = picojson::value(info["result"]);
-    instance->InvokeListener(param);
   }
 }
 

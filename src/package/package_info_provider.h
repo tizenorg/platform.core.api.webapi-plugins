@@ -19,7 +19,16 @@ class PackageInfoProvider {
   PackageInfoProvider();
   virtual ~PackageInfoProvider();
 
+  /* out["status"] = "success" or "error"
+  * If status is "success", then the result(picojson::value) will be stored in out["informationArray"].
+  * If status is "error", then the error(picojson::value) will be stored in out["error"].
+  */
   static void GetPackagesInfo(picojson::object& out);
+
+  /* out["status"] = "success" or "error"
+  * If status is "success", then the result(picojson::value) will be stored in out["result"].
+  * If status is "error", then the error(picojson::value) will be stored in out["error"].
+  */
   static void GetPackageInfo(picojson::object& out);  
   static void GetPackageInfo(const char* packageId, picojson::object& out);
   static bool GetPackageInfo(const pkgmgrinfo_pkginfo_h info, picojson::object& out);
