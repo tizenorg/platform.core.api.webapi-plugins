@@ -496,8 +496,10 @@ DataSynchronizationManager.prototype.getMaxProfilesNum = function() {
 };
 
 DataSynchronizationManager.prototype.getProfilesNum = function() {
+  if (arguments.length > 0) {
+    return;
+  }
   var msg = native_.callSync('Datasync_getProfilesNum');
-
   if (native_.isFailure(msg)) {
     throw native_.getErrorObject(msg);
   }
@@ -524,12 +526,14 @@ DataSynchronizationManager.prototype.get = function() {
 };
 
 DataSynchronizationManager.prototype.getAll = function() {
+  if (arguments.length > 0) {
+    return;
+  }
   var msg = native_.callSync('Datasync_getAll');
-
   if (native_.isFailure(msg)) {
     throw native_.getErrorObject(msg);
   }
-  var result = native_getResultObject(msg);
+  var result = native_.getResultObject(msg);
 
   if (!(result instanceof Array)) {
     throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_UNKNOWN_ERR);
