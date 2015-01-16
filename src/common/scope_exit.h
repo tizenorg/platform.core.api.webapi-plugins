@@ -72,6 +72,40 @@ ScopeExit<F> MakeScopeExit(F f) {
   return ScopeExit<F>(f);
 }
 
+// Internal use for macro SCOPE_EXIT
+template <typename F>
+ScopeExit<typename std::decay<F>::type>
+operator+(int, F&& f)
+{
+  return ScopeExit<typename std::decay<F>::type>
+  {std::forward<F>(f)};
+}
+
+/*
+ * This macro is for simple way to using ScopeExit
+ *
+ * Example:
+ *
+ *   struct unit;
+ *   struct unit* unit_new();
+ *   void unit_free(unit*);
+ *
+ *   void ExampleFunctionScope() {
+ *     struct unit* u = unit_new();
+ *
+ *     // automatic cleanup for all cases
+ *     SCOPE_EXIT {
+ *       unit_free(u);
+ *     };
+ *
+ *     // do 1st operation with unit and possibly quit function
+ *     // do 2nd operation with unit and possibly quit function
+ *     // do 3rd operation with unit and possibly quit function
+ *   }
+ */
+#define SCOPE_EXIT \
+    auto SCOPE_EXIT_##__LINE__ = 0 + [&]() noexcept
+
 }  // namespace common
 
 #endif  // COMMON_SCOPE_EXIT_H_
