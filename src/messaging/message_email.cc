@@ -24,6 +24,7 @@ MessageEmail::~MessageEmail()
 // *** overrided methods
 void MessageEmail::setCC(std::vector<std::string> &cc)
 {
+    LoggerD("Entered");
     // CC recipient's format validation should be done by email service
     m_cc = cc;
 
@@ -35,6 +36,7 @@ void MessageEmail::setCC(std::vector<std::string> &cc)
 
 void MessageEmail::setBCC(std::vector<std::string> &bcc)
 {
+    LoggerD("Entered");
     // BCC recipient's format validation should be done by email service
     m_bcc = bcc;
 
@@ -46,16 +48,19 @@ void MessageEmail::setBCC(std::vector<std::string> &bcc)
 
 void MessageEmail::setSubject(std::string subject)
 {
+    LoggerD("Entered");
     m_subject = subject;
 }
 
 void MessageEmail::setIsHighPriority(bool highpriority)
 {
+    LoggerD("Entered");
     m_high_priority = highpriority;
 }
 
 void MessageEmail::setMessageAttachments(AttachmentPtrVector &attachments)
 {
+    LoggerD("Entered");
     m_attachments = attachments;
 
     m_has_attachment = true;

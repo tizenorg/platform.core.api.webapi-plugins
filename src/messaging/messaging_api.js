@@ -363,7 +363,7 @@ function Message(type, data) {
             get: function () {return _internal.isHighPriority;},
             set: function (value) {
                 if (value instanceof InternalValues_) value = value.isHighPriority;
-                _internal.isHighPriority = value;
+                _internal.isHighPriority = !!value;
             },
             enumerable: true
         }
@@ -377,8 +377,7 @@ function Message(type, data) {
             get: function () {return _internal.subject;},
             set: function (value) {
                 if (value instanceof InternalValues_) value = value.subject;
-                if (typeof value !== 'string') return;
-                _internal.subject = value;
+                _internal.subject = String(value);
             },
             enumerable: true
         }
@@ -611,7 +610,7 @@ function MessageAttachment(filePath, mimeType) {
     if (!this.messageId) {
         propertyFactory_(this, 'messageId', null, Property.E);
     }
-    propertyFactory_(this, 'mimeType', mimeType || '', Property.E);
+    propertyFactory_(this, 'mimeType', mimeType || null, Property.E);
     propertyFactory_(this, 'filePath', filePath || '', Property.E);
 
     return this;
@@ -1353,14 +1352,90 @@ function MessageConversation(data) {
 };
 
 function MessageFolder(data) {
-    propertyFactory_(this, 'id'            , data.id             || null , Property.E             );
-    propertyFactory_(this, 'parentId'      , data.parentId       || null , Property.E             );
-    propertyFactory_(this, 'serviceId'     , data.serviceId      || ''   , Property.E             );
-    propertyFactory_(this, 'contentType'   , data.contentType    || ''   , Property.E             );
-    propertyFactory_(this, 'name'          , data.name           || ''   , Property.E | Property.W); // TODO: setraises
-    propertyFactory_(this, 'path'          , data.path           || ''   , Property.E             );
-    propertyFactory_(this, 'type'          , data.type           || ''   , Property.E             );
-    propertyFactory_(this, 'synchronizable', data.synchronizable || false, Property.E | Property.W); // TODO: setraises
+    var _internal = {
+            id: data.id || null,
+            parentId: data.parentId || null,
+            serviceId: data.serviceId || '',
+            contentType: data.contentType || '',
+            name: data.name || '',
+            path: data.path || '',
+            type: data.type || '',
+            synchronizable: data.synchronizable || false
+        };
+
+        Object.defineProperty(
+            this,
+            'id',
+            {
+                get: function () {return _internal.id;},
+                enumerable: true
+            }
+        );
+
+        Object.defineProperty(
+                this,
+                'parentId',
+                {
+                    get: function () {return _internal.parentId;},
+                    enumerable: true
+                }
+        );
+
+        Object.defineProperty(
+                this,
+                'serviceId',
+                {
+                    get: function () {return _internal.serviceId;},
+                    enumerable: true
+                }
+        );
+
+        Object.defineProperty(
+                this,
+                'contentType',
+                {
+                    get: function () {return _internal.contentType;},
+                    enumerable: true
+                }
+        );
+
+        Object.defineProperty(
+                this,
+                'name',
+                {
+                    get: function () {return _internal.name;},
+                    set: function (value) { if (value) _internal.name = value;},
+                    enumerable: true
+                }
+        );
+
+        Object.defineProperty(
+                this,
+                'path',
+                {
+                    get: function () {return _internal.path;},
+                    enumerable: true
+                }
+        );
+
+        Object.defineProperty(
+                this,
+                'type',
+                {
+                    get: function () {return _internal.type;},
+                    enumerable: true
+                }
+        );
+
+        Object.defineProperty(
+                this,
+                'synchronizable',
+                {
+                    get: function () {return _internal.synchronizable;},
+                    set: function (value) { if (value) _internal.synchronizable = value;},
+                    enumerable: true
+                }
+        );
 };
 
 tizen.Message = Message;

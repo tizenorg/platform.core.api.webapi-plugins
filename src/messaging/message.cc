@@ -141,6 +141,7 @@ TelNetworkDefaultDataSubs_t Message::getSimIndex() const
 // *** attributes setters
 void Message::setId(int id)
 {
+    LoggerD("Entered");
     m_id = id;
     m_id_set = true;
     m_body->setMessageId(m_id);
@@ -148,12 +149,14 @@ void Message::setId(int id)
 
 void Message::setConversationId(int id)
 {
+    LoggerD("Entered");
     m_conversation_id = id;
     m_conversation_id_set = true;
 }
 
 void Message::setFolderId(int id)
 {
+    LoggerD("Entered");
     m_folder_id = id;
     m_folder_id_set = true;
 }
@@ -162,18 +165,21 @@ void Message::setFolderId(int id)
 
 void Message::setTimeStamp(time_t timestamp)
 {
+    LoggerD("Entered");
     m_timestamp = timestamp;
     m_timestamp_set = true;
 }
 
 void Message::setFrom(std::string from)
 {
+    LoggerD("Entered");
     m_from = from;
     m_from_set = true;
 }
 
 void Message::setTO(std::vector<std::string> &to)
 {
+    LoggerD("Entered");
     // Recipient's format validation should be done by Core API service
     m_to = to;
 
@@ -195,6 +201,7 @@ void Message::setBCC(std::vector<std::string> &bcc)
 
 void Message::setBody(std::shared_ptr<MessageBody>& body)
 {
+    LoggerD("Entered");
     // while replacing message body old body should have some invalid id mark
     m_body->setMessageId(-1);
 
@@ -206,6 +213,7 @@ void Message::setBody(std::shared_ptr<MessageBody>& body)
 
 void Message::setIsRead(bool read)
 {
+    LoggerD("Entered");
     m_is_read = read;
 }
 
@@ -213,6 +221,7 @@ void Message::setIsRead(bool read)
 
 void Message::setIsHighPriority(bool highpriority)
 {
+    LoggerD("Entered");
     // High priority field is used only in MessageEmail
     m_high_priority = highpriority;
 }
@@ -224,12 +233,14 @@ void Message::setSubject(std::string subject)
 
 void Message::setInResponseTo(int inresp)
 {
+    LoggerD("Entered");
     m_in_response = inresp;
     m_in_response_set = true;
 }
 
 void Message::setMessageStatus(MessageStatus status)
 {
+    LoggerD("Entered");
     m_status = status;
 }
 
@@ -240,12 +251,14 @@ void Message::setMessageAttachments(AttachmentPtrVector &attachments)
 
 void Message::setServiceId(int service_id)
 {
+    LoggerD("Entered");
     m_service_id = service_id;
     m_service_id_set = true;
 }
 
 void Message::setSimIndex(TelNetworkDefaultDataSubs_t sim_index)
 {
+    LoggerD("Entered");
     m_sim_index = sim_index;
 }
 

@@ -66,7 +66,12 @@ bool Any::toBool() const
 
 long Any::toLong() const
 {
-    return static_cast<long>(m_value.get<double>());
+    if(m_value.is<double>()){
+        return static_cast<long>(m_value.get<double>());
+    } else {
+        std::string str = m_value.get<std::string>();
+        return strtoul (str.c_str(), NULL, 0);
+    }
 }
 
 unsigned long Any::toULong() const
