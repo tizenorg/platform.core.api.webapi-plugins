@@ -60,9 +60,9 @@ DatacontrolInstance::~DatacontrolInstance() {
 static void ReplyAsync(int callbackId, bool isSuccess, picojson::object& param) {
   param["callbackId"] = picojson::value(static_cast<double>(callbackId));
   param["status"] = picojson::value(isSuccess ? "success" : "error");
-  
+
   picojson::value result = picojson::value(param);
-  
+
   if(Self) {
     Self->PostMessage(result.serialize().c_str());
   } else {
@@ -229,7 +229,7 @@ static void MAPRemoveReponseCallback(int requestId, data_control_h handle,
 }
 
 
-static void SQLSelectResponseCallback(int requestId, data_control_h handle, 
+static void SQLSelectResponseCallback(int requestId, data_control_h handle,
                                       result_set_cursor cursor,
                                       bool providerResult,
                                       const char *error, void *user_data) {
@@ -269,13 +269,13 @@ static void SQLSelectResponseCallback(int requestId, data_control_h handle,
     }
     obj["result"] = picojson::value(result);
   }
-  ReplyAsync(info->callbackId, providerResult, obj); 
+  ReplyAsync(info->callbackId, providerResult, obj);
   delete info;
   IdMap.erase(requestId);
 }
 
 static void SQLInsertResponseCallback(int requestId, data_control_h handle,
-                                      long long inserted_row_id, 
+                                      long long inserted_row_id,
                                       bool providerResult,
                                       const char *error, void *user_data) {
   DatacontrolInformation *info = IdMap[requestId];
@@ -298,7 +298,7 @@ static void SQLInsertResponseCallback(int requestId, data_control_h handle,
 }
 
 static void SQLUpdateResponseCallback(int requestId, data_control_h handle,
-                                      bool providerResult, 
+                                      bool providerResult,
                                       const char *error, void *user_data) {
   DatacontrolInformation *info = IdMap[requestId];
   if (info == NULL) {
@@ -358,8 +358,10 @@ static data_control_map_response_cb mapResponseCallback = {
       }\
     } while (0)\
 
-int DatacontrolInstance::RunMAPDataControlJob(const std::string& providerId, const std::string& dataId, 
-                                              int callbackId, int userRequestId, DataControlJob job) {
+int DatacontrolInstance::RunMAPDataControlJob(const std::string& providerId,
+                                              const std::string& dataId,
+                                              int callbackId, int userRequestId,
+                                              DataControlJob job) {
   int result = DATA_CONTROL_ERROR_NONE;
   std::unique_ptr<DatacontrolInformation> info {new DatacontrolInformation()};
   info->callbackId = callbackId;
@@ -392,8 +394,10 @@ int DatacontrolInstance::RunMAPDataControlJob(const std::string& providerId, con
 
   return result;
 }
-int DatacontrolInstance::RunSQLDataControlJob(const std::string& providerId, const std::string& dataId, 
-                                               int callbackId, int userRequestId, DataControlJob job) {
+int DatacontrolInstance::RunSQLDataControlJob(const std::string& providerId,
+                                              const std::string& dataId,
+                                              int callbackId, int userRequestId,
+                                              DataControlJob job) {
   int result = DATA_CONTROL_ERROR_NONE;
   std::unique_ptr<DatacontrolInformation> info {new DatacontrolInformation()};
   info->callbackId = callbackId;
@@ -433,7 +437,8 @@ int DatacontrolInstance::RunSQLDataControlJob(const std::string& providerId, con
       return;\
     }
 
-void DatacontrolInstance::DataControlManagerGetdatacontrolconsumer(const picojson::value& args, picojson::object& out) {
+void DatacontrolInstance::DataControlManagerGetdatacontrolconsumer(const picojson::value& args,
+                                                                   picojson::object& out) {
   CHECK_EXIST(args, "providerId", out)
   CHECK_EXIST(args, "dataId", out)
 
@@ -448,7 +453,8 @@ void DatacontrolInstance::DataControlManagerGetdatacontrolconsumer(const picojso
   // if error
   // ReportError(out);
 }
-void DatacontrolInstance::SQLDataControlConsumerInsert(const picojson::value& args, picojson::object& out) {
+void DatacontrolInstance::SQLDataControlConsumerInsert(const picojson::value& args,
+                                                       picojson::object& out) {
   CHECK_EXIST(args, "callbackId", out)
   CHECK_EXIST(args, "reqId", out)
   CHECK_EXIST(args, "providerId", out)
@@ -462,16 +468,17 @@ void DatacontrolInstance::SQLDataControlConsumerInsert(const picojson::value& ar
   picojson::object insertionData = args.get("insertionData").get<picojson::object>();
 
   if (!insertionData.count("columns") || !insertionData.count("values")) {
-    ReportError(TypeMismatchException("columns and values is required insertionData argument"), out);
+    ReportError(TypeMismatchException(
+            "columns and values is required insertionData argument"), out);
     return;
   }
-  if (!insertionData["columns"].is<picojson::array>() || 
+  if (!insertionData["columns"].is<picojson::array>() ||
       !insertionData["values"].is<picojson::array>()) {
     ReportError(TypeMismatchException("columns and values type must be array"), out);
     return;
   }
 
-  int result = RunSQLDataControlJob(providerId, dataId, callbackId, reqId, 
+  int result = RunSQLDataControlJob(providerId, dataId, callbackId, reqId,
                                     [&](data_control_h& handle, int *requestId) -> int {
     picojson::array columns = insertionData["columns"].get<picojson::array>();
     picojson::array values = insertionData["values"].get<picojson::array>();
@@ -514,7 +521,8 @@ void DatacontrolInstance::SQLDataControlConsumerInsert(const picojson::value& ar
     }
   }
 }
-void DatacontrolInstance::SQLDataControlConsumerUpdate(const picojson::value& args, picojson::object& out) {
+void DatacontrolInstance::SQLDataControlConsumerUpdate(const picojson::value& args,
+                                                       picojson::object& out) {
   CHECK_EXIST(args, "callbackId", out)
   CHECK_EXIST(args, "reqId", out)
   CHECK_EXIST(args, "where", out)
@@ -584,7 +592,8 @@ void DatacontrolInstance::SQLDataControlConsumerUpdate(const picojson::value& ar
   }
 }
 
-void DatacontrolInstance::SQLDataControlConsumerRemove(const picojson::value& args, picojson::object& out) {
+void DatacontrolInstance::SQLDataControlConsumerRemove(const picojson::value& args,
+                                                       picojson::object& out) {
   CHECK_EXIST(args, "callbackId", out)
   CHECK_EXIST(args, "reqId", out)
   CHECK_EXIST(args, "where", out)
@@ -614,7 +623,8 @@ void DatacontrolInstance::SQLDataControlConsumerRemove(const picojson::value& ar
   }
 }
 
-void DatacontrolInstance::SQLDataControlConsumerSelect(const picojson::value& args, picojson::object& out) {
+void DatacontrolInstance::SQLDataControlConsumerSelect(const picojson::value& args,
+                                                       picojson::object& out) {
   CHECK_EXIST(args, "callbackId", out)
   CHECK_EXIST(args, "reqId", out)
   CHECK_EXIST(args, "columns", out)
@@ -639,17 +649,18 @@ void DatacontrolInstance::SQLDataControlConsumerSelect(const picojson::value& ar
     maxNumberPerPage = static_cast<int>(args.get("maxNumberPerPage").get<double>());
   }
 
-  int result = RunSQLDataControlJob(providerId, dataId, callbackId, reqId, [&](data_control_h& handle, int *requestId) -> int {
+  int result = RunSQLDataControlJob(providerId, dataId, callbackId, reqId,
+                                    [&](data_control_h& handle, int *requestId) -> int {
     std::vector<const char*> temp;
     for (auto& s: columns) temp.push_back(s.get<std::string>().c_str());
     int columnCount = static_cast<int>(temp.size());
     char** cColumns = const_cast<char**>(&*temp.begin());
 
     if (page > 0 && maxNumberPerPage > 0) {
-      return ::data_control_sql_select_with_page(handle, cColumns, columnCount, where.c_str(), 
+      return ::data_control_sql_select_with_page(handle, cColumns, columnCount, where.c_str(),
                                        "1 ASC", page, maxNumberPerPage, requestId);
     } else {
-      return ::data_control_sql_select(handle, cColumns, columnCount, where.c_str(), 
+      return ::data_control_sql_select(handle, cColumns, columnCount, where.c_str(),
                                        "1 ASC", requestId);
     }
   });
@@ -666,7 +677,8 @@ void DatacontrolInstance::SQLDataControlConsumerSelect(const picojson::value& ar
     }
   }
 }
-void DatacontrolInstance::MappedDataControlConsumerAddvalue(const picojson::value& args, picojson::object& out) {
+void DatacontrolInstance::MappedDataControlConsumerAddvalue(const picojson::value& args,
+                                                            picojson::object& out) {
   CHECK_EXIST(args, "callbackId", out)
   CHECK_EXIST(args, "reqId", out)
   CHECK_EXIST(args, "key", out)
@@ -698,7 +710,8 @@ void DatacontrolInstance::MappedDataControlConsumerAddvalue(const picojson::valu
     }
   }
 }
-void DatacontrolInstance::MappedDataControlConsumerRemovevalue(const picojson::value& args, picojson::object& out) {
+void DatacontrolInstance::MappedDataControlConsumerRemovevalue(const picojson::value& args,
+                                                               picojson::object& out) {
   CHECK_EXIST(args, "callbackId", out)
   CHECK_EXIST(args, "reqId", out)
   CHECK_EXIST(args, "key", out)
@@ -730,7 +743,8 @@ void DatacontrolInstance::MappedDataControlConsumerRemovevalue(const picojson::v
     }
   }
 }
-void DatacontrolInstance::MappedDataControlConsumerGetvalue(const picojson::value& args, picojson::object& out) {
+void DatacontrolInstance::MappedDataControlConsumerGetvalue(const picojson::value& args,
+                                                            picojson::object& out) {
   CHECK_EXIST(args, "callbackId", out)
   CHECK_EXIST(args, "reqId", out)
   CHECK_EXIST(args, "key", out)
@@ -760,7 +774,8 @@ void DatacontrolInstance::MappedDataControlConsumerGetvalue(const picojson::valu
     }
   }
 }
-void DatacontrolInstance::MappedDataControlConsumerUpdatevalue(const picojson::value& args, picojson::object& out) {
+void DatacontrolInstance::MappedDataControlConsumerUpdatevalue(const picojson::value& args,
+                                                               picojson::object& out) {
   CHECK_EXIST(args, "callbackId", out)
   CHECK_EXIST(args, "reqId", out)
   CHECK_EXIST(args, "key", out)
@@ -779,7 +794,8 @@ void DatacontrolInstance::MappedDataControlConsumerUpdatevalue(const picojson::v
 
   int result = RunMAPDataControlJob(providerId, dataId, callbackId, reqId,
                                     [&](data_control_h& handle, int *requestId) -> int {
-    return ::data_control_map_set(handle, key.c_str(), oldValue.c_str(), newValue.c_str(), requestId);
+    return ::data_control_map_set(handle, key.c_str(),
+                                  oldValue.c_str(), newValue.c_str(), requestId);
   });
 
   if(result == DATA_CONTROL_ERROR_NONE) {
