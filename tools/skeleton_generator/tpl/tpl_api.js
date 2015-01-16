@@ -90,7 +90,11 @@ var {{enums.name}} = {
 {% endfor %}
 
 {% for iface in module.getTypes('Interface') %}
-{% if iface.exported %}
+{% if iface.exported  or iface.private %}
+
+{% if iface.private %}
+// private constructor
+{% endif %}
 function {{iface.name}}(
     {%-if iface.constructor -%}
     {%- for arg in iface.constructor.arguments -%}
@@ -98,6 +102,30 @@ function {{iface.name}}(
     {%- endfor -%}
     {%- endif -%}) {
   // constructor of {{iface.name}}
+  {% if iface.constructor %}
+  var nativeParam = {
+    {% for arg in iface.constructor.primitiveArgs %}
+    '{{arg.name}}': args.{{arg.name}}{% if not loop.last %},{% endif %}
+
+    {% endfor %}
+  };
+  var syncResult = callNative('{{iface.name}}_constructor', nativeParam);
+
+  {% for attribute in iface.getTypes('Attribute') %}
+    {% if attribute.existIn == 'ctor' %}
+    {% set attrValue = attribute.name %}
+    {% elif attribute.existIn %}
+    {% set attrValue = attribute.existIn %}
+    {% else %}
+    {% set attrValue = "null" %}
+    {% endif %}
+    {% if attribute.readonly %}
+  SetReadOnlyProperty(this, '{{attribute.name}}', {{attrValue}}); // read only property
+    {% else %}
+  this.{{attribute.name}} = {{attrValue}};
+    {% endif %}
+  {% endfor %}
+  {% endif %}
 }
 
 {% if iface.inherit %}
@@ -139,6 +167,8 @@ function {{iface.name}}(
         ]
       {%- elif arg.xtype.name in type_map -%}
         {{type_map[arg.xtype.name]}}
+      {%- elif arg.isPlatformObject -%}
+        PLATFORM_OBJECT, 'values': tizen.{{arg.xtype.name}}
       {%- else -%}
         DICTIONARY
       {%- endif -%}
@@ -159,7 +189,7 @@ function {{iface.name}}(
   };
 
   {% for arg in operation.primitiveArgs if arg.optional %}
-  if (args['{{arg.name}}']){
+  if (args['{{arg.name}}']) {
     nativeParam['{{arg.name}}'] = args.{{arg.name}};
   }
   {% endfor %}
@@ -202,24 +232,6 @@ function {{iface.name}}(
 
   {% if operation.returnInternal %}
   var returnObject = new {{operation.returnInternal.name}}();
-  {% for attribute in operation.returnInternal.getTypes('Attribute') %}
-  {% if attribute.readonly %}
-  SetReadOnlyProperty(returnObject, '{{attribute.name}}', {% if attribute.name in operation.argnames -%}
-        {{attribute.name}}); // read only property
-      {%- else -%}
-        null); // read only property
-      {%- endif %}
-
-  {% else %}
-  returnObject.{{attribute.name}} = {% if attribute.name in operation.argnames -%}
-        {{attribute.name}};
-      {%- else -%}
-        null;
-      {%- endif %}
-
-  {% endif %}
-  {% endfor %}
-
   return returnObject;
   {% endif %}
 };
@@ -229,9 +241,14 @@ function {{iface.name}}(
 {% endif %}
 {% endfor %}
 
-exports = new {{tizen}}();
-{% if window %}
-window.{{window}} = new {{window}}();
-{% endif %}
+{% for iface in module.getTypes('Interface') %}
+    {% if iface.exported == 'Tizen' %}
+exports = new {{iface.name}}();
+    {% elif iface.exported == 'Window' %}
+window.{{iface.name}} = new {{iface.name}}();
+    {% elif iface.exported %}
+tizen.{{iface.name}} = {{iface.name}};
+    {% endif %}
+{% endfor %}
 
 {% endfor %}
