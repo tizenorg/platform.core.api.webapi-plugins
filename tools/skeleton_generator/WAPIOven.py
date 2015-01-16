@@ -129,8 +129,8 @@ class Compiler(IndentPrintable):
 
                 for operation in iface.getTypes('Operation'):
                     if hasattr(iface, 'exported') and iface.exported:
-                        #operation.native_cmd = iface.name+'_'+operation.name
-                        #operation.native_function = iface.name+(operation.name.title())
+                        operation.native_cmd = iface.name+'_'+operation.name
+                        operation.native_function = iface.name+(operation.name.title())
                         #self.ctx['cmdtable'][operation.native_function] = operation.native_cmd
                         native_cmd = iface.name+'_'+operation.name
                         native_function = iface.name+(operation.name.title())
