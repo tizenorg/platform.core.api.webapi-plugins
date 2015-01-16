@@ -2,14 +2,16 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "badge_manager.h"
+#include "badge/badge_manager.h"
 
+#include <aul.h>
 #include <badge.h>
 #include <badge_internal.h>
+#include <fcntl.h>
 #include <package_manager.h>
 #include <pkgmgr-info.h>
 
-#include "badge_instance.h"
+#include "badge/badge_instance.h"
 #include "common/logger.h"
 #include "common/converter.h"
 #include "common/platform_exception.h"
@@ -35,7 +37,7 @@ BadgeManager::~BadgeManager() {
   }
 }
 
-BadgeManager* BadgeManager::GetInstance() {
+BadgeManager *BadgeManager::GetInstance() {
   static BadgeManager instance;
   return &instance;
 }
@@ -43,7 +45,7 @@ BadgeManager* BadgeManager::GetInstance() {
 void BadgeManager::setBadgeCount(std::string appId, unsigned int count) {
   int ret = BADGE_ERROR_SERVICE_NOT_READY;
   bool badgeExist = false;
-  const char* app_id = appId.c_str();
+  const char *app_id = appId.c_str();
 
   if (!isAppInstalled(appId)) {
     LoggerE("fail to get pkgId");
@@ -57,6 +59,10 @@ void BadgeManager::setBadgeCount(std::string appId, unsigned int count) {
   }
 
   if (!badgeExist) {
+    if (!checkPermisionForCreatingBadge(app_id)) {
+      LoggerE("Security error - cannot create badge");
+      throw SecurityException("Security error - cannot create badge");
+    }
     ret = badge_create(app_id, app_id);
     LoggerD("badge create : %", ret);
 
@@ -137,9 +143,9 @@ unsigned int BadgeManager::getBadgeCount(std::string appId) {
   }
 }
 
-void BadgeManager::addChangeListener(const JsonObject& obj) {
+void BadgeManager::addChangeListener(const JsonObject &obj) {
   LoggerD("entered here");
-  auto& items = FromJson<picojson::array>(obj, "appIdList");
+  auto &items = FromJson<picojson::array>(obj, "appIdList");
   for (auto item : items) {
     watched_applications_.insert(common::JsonCast<std::string>(item));
   }
@@ -154,8 +160,8 @@ void BadgeManager::addChangeListener(const JsonObject& obj) {
   }
 }
 
-void BadgeManager::removeChangeListener(const JsonObject& obj) {
-  auto& items = FromJson<picojson::array>(obj, "appIdList");
+void BadgeManager::removeChangeListener(const JsonObject &obj) {
+  auto &items = FromJson<picojson::array>(obj, "appIdList");
   for (auto item : items) {
     watched_applications_.erase(common::JsonCast<std::string>(item));
   }
@@ -168,21 +174,20 @@ void BadgeManager::removeChangeListener(const JsonObject& obj) {
   }
 }
 
-void BadgeManager::badge_changed_cb(unsigned int action, const char* pkgname,
-                                    unsigned int count, void* user_data) {
+void BadgeManager::badge_changed_cb(unsigned int action, const char *pkgname, unsigned int count,
+                                    void *user_data) {
   if (action != BADGE_ACTION_SERVICE_READY &&
       watched_applications_.find(pkgname) != watched_applications_.end()) {
     picojson::value response = picojson::value(picojson::object());
-    picojson::object& response_obj = response.get<picojson::object>();
-    response_obj.insert(
-        std::make_pair("listenerId", std::string("BadgeChangeListener")));
+    picojson::object &response_obj = response.get<picojson::object>();
+    response_obj.insert(std::make_pair("listenerId", std::string("BadgeChangeListener")));
     response_obj.insert(std::make_pair("appId", pkgname));
     response_obj.insert(std::make_pair("count", std::to_string(count)));
     BadgeInstance::GetInstance().PostMessage(response.serialize().c_str());
   }
 }
 
-bool BadgeManager::isAppInstalled(const std::string& appId) {
+bool BadgeManager::isAppInstalled(const std::string &appId) {
   int ret = PACKAGE_MANAGER_ERROR_NONE;
   pkgmgrinfo_appinfo_h pkgmgrinfo_appinfo;
   if (appId.empty()) {
@@ -193,6 +198,148 @@ bool BadgeManager::isAppInstalled(const std::string& appId) {
     return false;
   }
   return true;
+}
+
+bool BadgeManager::checkPermisionForCreatingBadge(const char *appId) {
+  if (!appId) {
+    LoggerE("InvalidValues error : appId");
+    throw InvalidValuesException("InvalidValues error : appId");
+  }
+
+  char *caller_appid = NULL;
+  caller_appid = getPkgnameByPid();
+
+  if (!caller_appid) {
+    LoggerE("fail to get caller pkgId");
+    throw UnknownException("Platform error while getting caller pkgId.");
+  }
+
+  char *caller_pkgname = NULL;
+  caller_pkgname = getPkgnameByAppid(caller_appid);
+  if (!caller_pkgname) {
+    if (caller_appid) {
+      free(caller_appid);
+    }
+    LoggerE("fail to get caller pkgId");
+    throw UnknownException("Platform error while getting caller pkgId.");
+  }
+
+  char *pkgname = NULL;
+  pkgname = getPkgnameByAppid(appId);
+  if (!pkgname) {
+    if (caller_appid) {
+      free(caller_appid);
+    }
+    if (caller_pkgname) {
+      free(caller_pkgname);
+    }
+    LoggerE("fail to get pkgId");
+    throw InvalidValuesException("InvalidValues error : appId");
+  }
+
+  bool flag = false;
+  if (isSameCertInfo(caller_pkgname, pkgname) == 1) {
+    flag = true;
+  } else {
+    LoggerE("The author signature is not match");
+    flag = false;
+  }
+
+  if (caller_appid) {
+    free(caller_appid);
+  }
+  if (caller_pkgname) {
+    free(caller_pkgname);
+  }
+  if (pkgname) {
+    free(pkgname);
+  }
+
+  return flag;
+}
+
+char *BadgeManager::getPkgnameByAppid(const char *appId) {
+  char *pkgId = NULL;
+  int ret = PACKAGE_MANAGER_ERROR_NONE;
+  if (!appId) {
+    LoggerE("appId is null");
+    return NULL;
+  }
+
+  ret = package_manager_get_package_id_by_app_id(appId, &pkgId);
+  if (ret != PACKAGE_MANAGER_ERROR_NONE) {
+    LoggerE("fail to get caller pkgId : ", ret);
+    return NULL;
+  }
+  if (!pkgId) {
+    LoggerE("fail to get caller pkgId");
+    return NULL;
+  }
+
+  return pkgId;
+}
+
+char *BadgeManager::getPkgnameByPid() {
+  char *pkgname = NULL;
+  int pid = 0;
+  int ret = AUL_R_OK;
+  int fd = 0;
+  long max = 4096;
+
+  pid = getpid();
+  pkgname = static_cast<char *>(malloc(max));
+  if (!pkgname) {
+    LoggerE("fail to alloc memory");
+    return NULL;
+  }
+  memset(pkgname, 0x00, max);
+
+  ret = aul_app_get_pkgname_bypid(pid, pkgname, max);
+  if (ret != AUL_R_OK) {
+    fd = open("/proc/self/cmdline", O_RDONLY);
+    if (fd < 0) {
+      free(pkgname);
+      return NULL;
+    }
+
+    ret = read(fd, pkgname, max - 1);
+    if (ret <= 0) {
+      close(fd);
+      free(pkgname);
+      return NULL;
+    }
+
+    close(fd);
+  }
+
+  if (pkgname[0] == '\0') {
+    free(pkgname);
+    return NULL;
+  } else
+    return pkgname;
+}
+
+int BadgeManager::isSameCertInfo(const char *caller, const char *pkgname) {
+  int ret = PACKAGE_MANAGER_ERROR_NONE;
+  package_manager_compare_result_type_e compare_result = PACKAGE_MANAGER_COMPARE_MISMATCH;
+
+  if (!caller) {
+    return 0;
+  }
+  if (!pkgname) {
+    return 0;
+  }
+
+  LoggerE("pkgname : %d caller : ", pkgname, caller);
+
+  ret = package_manager_compare_package_cert_info(pkgname, caller, &compare_result);
+
+  LoggerE("result : %d %d", ret, compare_result);
+  if (ret == PACKAGE_MANAGER_ERROR_NONE && compare_result == PACKAGE_MANAGER_COMPARE_MATCH) {
+    return 1;
+  }
+
+  return 0;
 }
 
 }  // namespace badge

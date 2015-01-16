@@ -33,7 +33,12 @@ class BadgeManager {
   BadgeManager();
   virtual ~BadgeManager();
 
+  bool checkPermisionForCreatingBadge(const char* appId);
+  char* getPkgnameByAppid(const char* appId);
+  char* getPkgnameByPid();
+  int isSameCertInfo(const char *caller, const char *pkgname);
   bool isAppInstalled(const std::string& appId);
+
   static bool is_cb_registered_;
   static std::set<std::string> watched_applications_;
 };
