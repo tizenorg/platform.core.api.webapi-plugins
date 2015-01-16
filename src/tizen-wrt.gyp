@@ -10,6 +10,7 @@
       'dependencies': [
         'tizen/tizen.gyp:*',
         'application/application.gyp:*',
+	'package/package.gyp:*',
         'time/time.gyp:*',
         'utils/utils.gyp:*',
         'messageport/messageport.gyp:*',
