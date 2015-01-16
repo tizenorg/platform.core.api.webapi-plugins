@@ -81,8 +81,28 @@ static void ReplyAsync({{module.title}}Instance* instance, {{module.title}}Callb
       return;\
     }
 
+{% for func in cmdtable %}
+{% endfor %}
+
 {% for iface in moduleObj.getTypes('Interface') %}
   {% if iface.exported %}
+    {% if iface.native_function %}
+void {{module.title}}Instance::{{iface.native_function}}(const picojson::value& args, picojson::object& out) {
+      {% for arg in iface.constructor.arguments %}
+      {% if not arg.optional and type_map[arg.xtype.name] %}
+  CHECK_EXIST(args, "{{arg.name}}", out)
+      {% endif %}
+      {% endfor %}
+
+      {% for arg in iface.constructor.arguments %}
+      {% set type = type_map[arg.xtype.name] %}
+      {% if type %}
+  {%+ if type not in primitives %}const {% endif -%}
+  {{type}}{% if type == 'std::string' %}&{% endif %} {{arg.name}} = args.get("{{arg.name}}").get<{{type}}>();
+      {% endif %}
+      {% endfor %}
+}
+    {% endif %}
     {% for operation in iface.getTypes('Operation') %}
 void {{module.title}}Instance::{{operation.native_function}}(const picojson::value& args, picojson::object& out) {
   {% if operation.async %}
@@ -95,7 +115,7 @@ void {{module.title}}Instance::{{operation.native_function}}(const picojson::val
   {% endfor %}
 
   {% if operation.async %}
-  int callbackId = args.get("callbackId").get<int>();
+  int callbackId = static_cast<int>(args.get("callbackId").get<double>());
   {% endif %}
   {% for arg in operation.arguments %}
   {% set type = type_map[arg.xtype.name] %}
