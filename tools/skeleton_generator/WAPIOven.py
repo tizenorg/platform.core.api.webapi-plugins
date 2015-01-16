@@ -122,6 +122,8 @@ class Compiler(IndentPrintable):
                         native_function = iface.name + "Constructor"
                         native_cmd = iface.name + "_constructor"
                         self.ctx['cmdtable'][native_function] = native_cmd
+                        iface.native_function = native_function
+                        iface.native_cmd = native_cmd
                 if iface.inherit in [x.name for x in self.ctx['exportedInterface']]:
                     iface.private = True
                 #if iface.name in self.ctx['callback']:
