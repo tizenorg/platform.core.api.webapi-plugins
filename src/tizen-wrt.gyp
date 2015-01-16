@@ -26,6 +26,7 @@
               'callhistory/callhistory.gyp:*',
               'contact/contact.gyp:*',
               'calendar/calendar.gyp:*',
+              'datacontrol/datacontrol.gyp:*',
               'datasync/datasync.gyp:*',
               'messaging/messaging.gyp:*',
               'nfc/nfc.gyp:*',

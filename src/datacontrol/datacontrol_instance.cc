@@ -1,0 +1,802 @@
+// Copyright 2014 Samsung Electronics Co, Ltd. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+#include "datacontrol/datacontrol_instance.h"
+
+#include <functional>
+
+#include "common/picojson.h"
+#include "common/logger.h"
+#include "common/platform_exception.h"
+
+#include "common/scope_exit.h"
+#include <memory>
+
+#include <glib.h>
+
+namespace extension {
+namespace datacontrol {
+
+namespace {
+// The privileges that required in Datacontrol API
+const std::string kPrivilegeDatacontrol = "";
+
+} // namespace
+
+using namespace common;
+using namespace extension::datacontrol;
+
+struct DatacontrolInformation {
+  int callbackId;
+  int requestId;
+  int userDefinedRequestId;
+};
+static DatacontrolInstance *Self = NULL;
+static std::map<int, DatacontrolInformation*> IdMap;
+
+DatacontrolInstance::DatacontrolInstance() {
+  using namespace std::placeholders;
+  #define REGISTER_SYNC(c,x) \
+    RegisterSyncHandler(c, std::bind(&DatacontrolInstance::x, this, _1, _2));
+  REGISTER_SYNC("SQLDataControlConsumer_update", SQLDataControlConsumerUpdate);
+  REGISTER_SYNC("MappedDataControlConsumer_addValue", MappedDataControlConsumerAddvalue);
+  REGISTER_SYNC("SQLDataControlConsumer_select", SQLDataControlConsumerSelect);
+  REGISTER_SYNC("SQLDataControlConsumer_remove", SQLDataControlConsumerRemove);
+  REGISTER_SYNC("MappedDataControlConsumer_removeValue", MappedDataControlConsumerRemovevalue);
+  REGISTER_SYNC("MappedDataControlConsumer_updateValue", MappedDataControlConsumerUpdatevalue);
+  REGISTER_SYNC("DataControlManager_getDataControlConsumer", DataControlManagerGetdatacontrolconsumer);
+  REGISTER_SYNC("SQLDataControlConsumer_insert", SQLDataControlConsumerInsert);
+  REGISTER_SYNC("MappedDataControlConsumer_getValue", MappedDataControlConsumerGetvalue);
+  #undef REGISTER_SYNC
+
+  Self = this;
+}
+
+DatacontrolInstance::~DatacontrolInstance() {
+  Self = NULL;
+}
+
+static void ReplyAsync(int callbackId, bool isSuccess, picojson::object& param) {
+  param["callbackId"] = picojson::value(static_cast<double>(callbackId));
+  param["status"] = picojson::value(isSuccess ? "success" : "error");
+  
+  picojson::value result = picojson::value(param);
+  
+  if(Self) {
+    Self->PostMessage(result.serialize().c_str());
+  } else {
+    LoggerE("Current Instance is not registed");
+  }
+}
+
+static bool SQLColumnName(result_set_cursor cursor, int columnIndex, picojson::value& name) {
+  char buffer[4096];
+  int result = data_control_sql_get_column_name(cursor, columnIndex, buffer);
+  if (result != DATA_CONTROL_ERROR_NONE) {
+    LoggerE("Getting column item type is failed with error : %d", result);
+    return false;
+  }
+  name = picojson::value(buffer);
+  return true;
+}
+
+static bool SQLColumnValue(result_set_cursor cursor, int columnIndex, picojson::value& val) {
+  data_control_sql_column_type_e type = DATA_CONTROL_SQL_COLUMN_TYPE_UNDEFINED;
+  int result = data_control_sql_get_column_item_type(cursor, columnIndex, &type);
+  if (result != DATA_CONTROL_ERROR_NONE) {
+    LoggerE("Getting column item type is failed with error : %d", result);
+    return false;
+  }
+  switch (type) {
+    case DATA_CONTROL_SQL_COLUMN_TYPE_INT64: {
+      long long data = 0;
+      result = data_control_sql_get_int64_data(cursor, columnIndex, &data);
+      if (result != DATA_CONTROL_ERROR_NONE) break;
+      val = picojson::value(static_cast<double>(data));
+      break;
+    }
+    case DATA_CONTROL_SQL_COLUMN_TYPE_DOUBLE: {
+      double data = 0;
+      result = data_control_sql_get_double_data(cursor, columnIndex, &data);
+      if (result != DATA_CONTROL_ERROR_NONE) break;
+      val = picojson::value(data);
+      break;
+    }
+    case DATA_CONTROL_SQL_COLUMN_TYPE_TEXT: {
+      int size = data_control_sql_get_column_item_size(cursor, columnIndex);
+      char *buffer = new char[size];
+      result = data_control_sql_get_text_data(cursor, columnIndex, buffer);
+      if (result != DATA_CONTROL_ERROR_NONE) {
+        LoggerE("Getting Text value failed : %s", get_error_message(result));
+        break;
+      }
+      val = picojson::value(buffer);
+      delete[] buffer;
+      break;
+    }
+    case DATA_CONTROL_SQL_COLUMN_TYPE_BLOB: {
+      int size = data_control_sql_get_column_item_size(cursor, columnIndex);
+      char *buffer = new char[size];
+      result = data_control_sql_get_blob_data(cursor, columnIndex, buffer, size);
+      if (result != DATA_CONTROL_ERROR_NONE) break;
+      val = picojson::value(buffer);
+      delete[] buffer;
+      break;
+    }
+    case DATA_CONTROL_SQL_COLUMN_TYPE_NULL: {
+      val = picojson::value();
+      break;
+    }
+    default: {
+      LoggerE("%th column is undefined column type", columnIndex);
+      return false;
+    }
+  }
+  if (result != DATA_CONTROL_ERROR_NONE) {
+    LoggerE("Getting column item value is failed with error : %s", ::get_error_message(result));
+    return false;
+  } else {
+    return true;
+  }
+}
+
+static void MAPAddResponseCallback(int requestId, data_control_h handle,
+                                   bool providerResult,
+                                   const char *error, void *user_data) {
+  DatacontrolInformation *info = IdMap[requestId];
+  if (info == NULL) {
+    LoggerE("Invalid context");
+    return;
+  }
+
+  picojson::object obj;
+  obj["requestId"] = picojson::value(static_cast<double>(info->userDefinedRequestId));
+  if (!providerResult) {
+    obj["result"] = InvalidValuesException(error).ToJSON();
+  }
+
+  ReplyAsync(info->callbackId, providerResult, obj);
+  delete info;
+  IdMap.erase(requestId);
+}
+
+static void MAPSetResponseCallback(int requestId, data_control_h handle,
+                                   bool providerResult,
+                                   const char *error, void *user_data) {
+  DatacontrolInformation *info = IdMap[requestId];
+  if (info == NULL) {
+    LoggerE("Invalid context");
+    return;
+  }
+
+  picojson::object obj;
+  obj["requestId"] = picojson::value(static_cast<double>(info->userDefinedRequestId));
+  if (!providerResult) {
+    obj["result"] = InvalidValuesException(error).ToJSON();
+  }
+
+  ReplyAsync(info->callbackId, providerResult, obj);
+  delete info;
+  IdMap.erase(requestId);
+}
+
+static void MAPGetResponseCallback(int requestId, data_control_h handle,
+                                   char **result_value_list, int result_value_count,
+                                   bool providerResult,
+                                   const char *error, void *user_data) {
+  DatacontrolInformation *info = IdMap[requestId];
+  if (info == NULL) {
+    LoggerE("Invalid context");
+    return;
+  }
+
+  picojson::object obj;
+  obj["requestId"] = picojson::value(static_cast<double>(info->userDefinedRequestId));
+  if (!providerResult) {
+    obj["result"] = InvalidValuesException(error).ToJSON();
+  } else {
+    picojson::array result;
+    for (int i=0; i<result_value_count; i++) {
+      result.push_back(picojson::value(result_value_list[i]));
+    }
+    obj["result"] = picojson::value(result);
+  }
+
+  ReplyAsync(info->callbackId, providerResult, obj);
+  delete info;
+  IdMap.erase(requestId);
+}
+
+static void MAPRemoveReponseCallback(int requestId, data_control_h handle,
+                                     bool providerResult,
+                                     const char *error, void *user_data) {
+  DatacontrolInformation *info = IdMap[requestId];
+  if (info == NULL) {
+    LoggerE("Invalid context");
+    return;
+  }
+
+  picojson::object obj;
+  obj["requestId"] = picojson::value(static_cast<double>(info->userDefinedRequestId));
+  if (!providerResult) {
+    obj["result"] = InvalidValuesException(error).ToJSON();
+  }
+
+  ReplyAsync(info->callbackId, providerResult, obj);
+  delete info;
+  IdMap.erase(requestId);
+}
+
+
+static void SQLSelectResponseCallback(int requestId, data_control_h handle, 
+                                      result_set_cursor cursor,
+                                      bool providerResult,
+                                      const char *error, void *user_data) {
+  DatacontrolInformation *info = IdMap[requestId];
+  if (info == NULL) {
+    LoggerE("Invalid context");
+    return;
+  }
+
+  picojson::object obj;
+  obj["requestId"] = picojson::value(static_cast<double>(info->userDefinedRequestId));
+  if (!providerResult) {
+    obj["result"] = InvalidValuesException(error).ToJSON();
+  } else {
+    picojson::array result;
+
+    while (data_control_sql_step_next(cursor) == DATA_CONTROL_ERROR_NONE)
+    {
+      int columnSize = 0;
+      picojson::object rowData;
+      picojson::array columns;
+      picojson::array values;
+      int columnCount = data_control_sql_get_column_count(cursor);
+      for (int i=0; i<columnCount; i++) {
+        picojson::value column;
+        picojson::value value;
+        if (SQLColumnName(cursor, i, column) && SQLColumnValue(cursor, i, value)) {
+          std::string& name = column.get<std::string>();
+          std::string& val = value.get<std::string>();
+          columns.push_back(column);
+          values.push_back(value);
+        }
+      }
+      rowData["columns"] = picojson::value(columns);
+      rowData["values"] = picojson::value(values);
+      result.push_back(picojson::value(rowData));
+    }
+    obj["result"] = picojson::value(result);
+  }
+  ReplyAsync(info->callbackId, providerResult, obj); 
+  delete info;
+  IdMap.erase(requestId);
+}
+
+static void SQLInsertResponseCallback(int requestId, data_control_h handle,
+                                      long long inserted_row_id, 
+                                      bool providerResult,
+                                      const char *error, void *user_data) {
+  DatacontrolInformation *info = IdMap[requestId];
+  if (info == NULL) {
+    LoggerE("Invalid context");
+    return;
+  }
+
+  picojson::object obj;
+  obj["requestId"] = picojson::value(static_cast<double>(info->userDefinedRequestId));
+  if (!providerResult) {
+    obj["result"] = InvalidValuesException(error).ToJSON();
+  } else {
+    obj["result"] = picojson::value(static_cast<double>(inserted_row_id));
+  }
+
+  ReplyAsync(info->callbackId, providerResult, obj);
+  delete info;
+  IdMap.erase(requestId);
+}
+
+static void SQLUpdateResponseCallback(int requestId, data_control_h handle,
+                                      bool providerResult, 
+                                      const char *error, void *user_data) {
+  DatacontrolInformation *info = IdMap[requestId];
+  if (info == NULL) {
+    LoggerE("Invalid context");
+    return;
+  }
+
+  picojson::object obj;
+  obj["requestId"] = picojson::value(static_cast<double>(info->userDefinedRequestId));
+  if (!providerResult) {
+    obj["result"] = InvalidValuesException(error).ToJSON();
+  }
+
+  ReplyAsync(info->callbackId, providerResult, obj);
+  delete info;
+  IdMap.erase(requestId);
+}
+
+static void SQLDeleteResponseCallback(int requestId, data_control_h handle,
+                                      bool providerResult,
+                                      const char *error, void *user_data) {
+  DatacontrolInformation *info = IdMap[requestId];
+  if (info == NULL) {
+    LoggerE("Invalid context");
+    return;
+  }
+
+  picojson::object obj;
+  obj["requestId"] = picojson::value(static_cast<double>(info->userDefinedRequestId));
+  if (!providerResult) {
+    obj["result"] = InvalidValuesException(error).ToJSON();
+  }
+
+  ReplyAsync(info->callbackId, providerResult, obj);
+  delete info;
+  IdMap.erase(requestId);
+}
+
+static data_control_sql_response_cb sqlResponseCallback = {
+  SQLSelectResponseCallback,
+  SQLInsertResponseCallback,
+  SQLUpdateResponseCallback,
+  SQLDeleteResponseCallback
+};
+static data_control_map_response_cb mapResponseCallback = {
+  MAPGetResponseCallback,
+  MAPSetResponseCallback,
+  MAPAddResponseCallback,
+  MAPRemoveReponseCallback
+};
+
+#define RETURN_IF_FAIL(result, msg) \
+    do {\
+      if (result != DATA_CONTROL_ERROR_NONE) {\
+        LoggerE(msg" : %s", ::get_error_message(result));\
+        return result;\
+      }\
+    } while (0)\
+
+int DatacontrolInstance::RunMAPDataControlJob(const std::string& providerId, const std::string& dataId, 
+                                              int callbackId, int userRequestId, DataControlJob job) {
+  int result = DATA_CONTROL_ERROR_NONE;
+  std::unique_ptr<DatacontrolInformation> info {new DatacontrolInformation()};
+  info->callbackId = callbackId;
+  info->userDefinedRequestId = userRequestId;
+  data_control_h handle;
+
+  SCOPE_EXIT {
+    result = ::data_control_map_destroy(handle);
+    RETURN_IF_FAIL(result, "Destroying map data control handle is failed with error");
+  };
+
+  result = ::data_control_map_create(&handle);
+  RETURN_IF_FAIL(result, "Creating map data control handle is failed with error");
+
+  result = ::data_control_map_set_provider_id(handle, providerId.c_str());
+  RETURN_IF_FAIL(result, "Setting provider id is failed with error");
+
+  result = ::data_control_map_set_data_id(handle, dataId.c_str());
+  RETURN_IF_FAIL(result, "Setting data id is failed th error");
+
+  result = ::data_control_map_register_response_cb(handle, &mapResponseCallback, NULL);
+  RETURN_IF_FAIL(result, "Setting result Callback failed with error");
+
+  result = job(handle, &info->requestId);
+  RETURN_IF_FAIL(result, "Doing job failed with error");
+
+  IdMap[info->requestId] = info.get();
+
+  info.release();
+
+  return result;
+}
+int DatacontrolInstance::RunSQLDataControlJob(const std::string& providerId, const std::string& dataId, 
+                                               int callbackId, int userRequestId, DataControlJob job) {
+  int result = DATA_CONTROL_ERROR_NONE;
+  std::unique_ptr<DatacontrolInformation> info {new DatacontrolInformation()};
+  info->callbackId = callbackId;
+  info->userDefinedRequestId = userRequestId;
+  data_control_h handle;
+
+  SCOPE_EXIT {
+    result = ::data_control_sql_destroy(handle);
+    RETURN_IF_FAIL(result, "Destroying sql data control handle is failed with error");
+  };
+
+  result = ::data_control_sql_create(&handle);
+  RETURN_IF_FAIL(result, "Creating sql data control handle is failed with error");
+
+  result = ::data_control_sql_set_provider_id(handle, providerId.c_str());
+  RETURN_IF_FAIL(result, "Setting provider id is failed with error");
+
+  result = ::data_control_sql_set_data_id(handle, dataId.c_str());
+  RETURN_IF_FAIL(result, "Setting data id is failed th error");
+
+  result = ::data_control_sql_register_response_cb(handle, &sqlResponseCallback, NULL);
+  RETURN_IF_FAIL(result, "Setting result Callback failed with error");
+
+  result = job(handle, &info->requestId);
+  RETURN_IF_FAIL(result, "Doing job failed with error");
+
+  IdMap[info->requestId] = info.get();
+
+  info.release();
+
+  return result;
+}
+
+#define CHECK_EXIST(args, name, out) \
+    if (!args.contains(name)) {\
+      ReportError(TypeMismatchException(name" is required argument"), out);\
+      return;\
+    }
+
+void DatacontrolInstance::DataControlManagerGetdatacontrolconsumer(const picojson::value& args, picojson::object& out) {
+  CHECK_EXIST(args, "providerId", out)
+  CHECK_EXIST(args, "dataId", out)
+
+  const std::string& providerId = args.get("providerId").get<std::string>();
+  const std::string& dataId = args.get("dataId").get<std::string>();
+
+  // implement it
+
+
+  // if success
+  // ReportSuccess(out);
+  // if error
+  // ReportError(out);
+}
+void DatacontrolInstance::SQLDataControlConsumerInsert(const picojson::value& args, picojson::object& out) {
+  CHECK_EXIST(args, "callbackId", out)
+  CHECK_EXIST(args, "reqId", out)
+  CHECK_EXIST(args, "providerId", out)
+  CHECK_EXIST(args, "dataId", out)
+  CHECK_EXIST(args, "insertionData", out)
+
+  const std::string& providerId = args.get("providerId").get<std::string>();
+  const std::string& dataId = args.get("dataId").get<std::string>();
+  int callbackId = static_cast<int>(args.get("callbackId").get<double>());
+  int reqId = static_cast<int>(args.get("reqId").get<double>());
+  picojson::object insertionData = args.get("insertionData").get<picojson::object>();
+
+  if (!insertionData.count("columns") || !insertionData.count("values")) {
+    ReportError(TypeMismatchException("columns and values is required insertionData argument"), out);
+    return;
+  }
+  if (!insertionData["columns"].is<picojson::array>() || 
+      !insertionData["values"].is<picojson::array>()) {
+    ReportError(TypeMismatchException("columns and values type must be array"), out);
+    return;
+  }
+
+  int result = RunSQLDataControlJob(providerId, dataId, callbackId, reqId, 
+                                    [&](data_control_h& handle, int *requestId) -> int {
+    picojson::array columns = insertionData["columns"].get<picojson::array>();
+    picojson::array values = insertionData["values"].get<picojson::array>();
+
+    picojson::array::size_type columnsLength = columns.size();
+    picojson::array::size_type valuesLength = values.size();
+
+    picojson::array::size_type size = std::min(columnsLength, valuesLength);
+
+    bundle * b = ::bundle_create();
+    SCOPE_EXIT {
+      bundle_free(b);
+    };
+    for (unsigned i=0; i<size; i++) {
+      picojson::value& column = columns[i];
+      picojson::value& value = values[i];
+
+      if(!column.is<std::string>() || !value.is<std::string>()) {
+        break;
+      }
+
+      std::string& columnName = column.get<std::string>();
+      std::string valueString = "\""+value.get<std::string>()+"\"";
+
+      bundle_add_str(b, columnName.c_str(), valueString.c_str());
+    }
+
+    return ::data_control_sql_insert(handle, b, requestId);
+  });
+
+  if(result == DATA_CONTROL_ERROR_NONE) {
+    ReportSuccess(out);
+  } else {
+    if (result == DATA_CONTROL_ERROR_IO_ERROR) {
+      ReportError(IOException(get_error_message(result)), out);
+    } else if (result == DATA_CONTROL_ERROR_PERMISSION_DENIED) {
+      ReportError(SecurityException(get_error_message(result)), out);
+    } else {
+      ReportError(UnknownException(get_error_message(result)), out);
+    }
+  }
+}
+void DatacontrolInstance::SQLDataControlConsumerUpdate(const picojson::value& args, picojson::object& out) {
+  CHECK_EXIST(args, "callbackId", out)
+  CHECK_EXIST(args, "reqId", out)
+  CHECK_EXIST(args, "where", out)
+  CHECK_EXIST(args, "providerId", out)
+  CHECK_EXIST(args, "dataId", out)
+  CHECK_EXIST(args, "updateData", out)
+
+  const std::string& providerId = args.get("providerId").get<std::string>();
+  const std::string& dataId = args.get("dataId").get<std::string>();
+  int callbackId = static_cast<int>(args.get("callbackId").get<double>());
+  int reqId = static_cast<int>(args.get("reqId").get<double>());
+  const std::string& where = args.get("where").get<std::string>();
+  picojson::object updateData = args.get("updateData").get<picojson::object>();
+
+  if (!updateData.count("columns") || !updateData.count("values")) {
+    ReportError(TypeMismatchException("columns and values is required updateData argument"), out);
+    return;
+  }
+
+  if (!updateData["columns"].is<picojson::array>() ||
+      !updateData["values"].is<picojson::array>()) {
+    ReportError(TypeMismatchException("columns and values type must be array"), out);
+    return;
+  }
+
+  int result = RunSQLDataControlJob(providerId, dataId, callbackId, reqId,
+                                    [&](data_control_h& handle, int *requestId) -> int {
+    picojson::array columns = updateData["columns"].get<picojson::array>();
+    picojson::array values = updateData["values"].get<picojson::array>();
+
+    picojson::array::size_type columnsLength = columns.size();
+    picojson::array::size_type valuesLength = values.size();
+
+    picojson::array::size_type size = std::min(columnsLength, valuesLength);
+
+    bundle * b = ::bundle_create();
+    SCOPE_EXIT {
+      bundle_free(b);
+    };
+    for (unsigned i=0; i<size; i++) {
+      picojson::value& column = columns[i];
+      picojson::value& value = values[i];
+
+      if(!column.is<std::string>() || !value.is<std::string>()) {
+        break;
+      }
+
+      std::string& columnName = column.get<std::string>();
+      std::string valueString = "\""+value.get<std::string>()+"\"";
+
+      bundle_add_str(b, columnName.c_str(), valueString.c_str());
+    }
+
+    return ::data_control_sql_update(handle, b, where.c_str(), requestId);
+  });
+
+  if(result == DATA_CONTROL_ERROR_NONE) {
+    ReportSuccess(out);
+  } else {
+    if (result == DATA_CONTROL_ERROR_IO_ERROR) {
+      ReportError(IOException(get_error_message(result)), out);
+    } else if (result == DATA_CONTROL_ERROR_PERMISSION_DENIED) {
+      ReportError(SecurityException(get_error_message(result)), out);
+    } else {
+      ReportError(UnknownException(get_error_message(result)), out);
+    }
+  }
+}
+
+void DatacontrolInstance::SQLDataControlConsumerRemove(const picojson::value& args, picojson::object& out) {
+  CHECK_EXIST(args, "callbackId", out)
+  CHECK_EXIST(args, "reqId", out)
+  CHECK_EXIST(args, "where", out)
+  CHECK_EXIST(args, "providerId", out)
+  CHECK_EXIST(args, "dataId", out)
+
+  const std::string& providerId = args.get("providerId").get<std::string>();
+  const std::string& dataId = args.get("dataId").get<std::string>();
+  int callbackId = static_cast<int>(args.get("callbackId").get<double>());
+  int reqId = static_cast<int>(args.get("reqId").get<double>());
+  const std::string& where = args.get("where").get<std::string>();
+
+  int result = RunSQLDataControlJob(providerId, dataId, callbackId, reqId,
+                                    [&](data_control_h& handle, int *requestId) -> int {
+    return ::data_control_sql_delete(handle, where.c_str(), requestId);
+  });
+  if(result == DATA_CONTROL_ERROR_NONE) {
+    ReportSuccess(out);
+  } else {
+    if (result == DATA_CONTROL_ERROR_IO_ERROR) {
+      ReportError(IOException(get_error_message(result)), out);
+    } else if (result == DATA_CONTROL_ERROR_PERMISSION_DENIED) {
+      ReportError(SecurityException(get_error_message(result)), out);
+    } else {
+      ReportError(UnknownException(get_error_message(result)), out);
+    }
+  }
+}
+
+void DatacontrolInstance::SQLDataControlConsumerSelect(const picojson::value& args, picojson::object& out) {
+  CHECK_EXIST(args, "callbackId", out)
+  CHECK_EXIST(args, "reqId", out)
+  CHECK_EXIST(args, "columns", out)
+  CHECK_EXIST(args, "where", out)
+
+  CHECK_EXIST(args, "providerId", out)
+  CHECK_EXIST(args, "dataId", out)
+
+  const std::string& providerId = args.get("providerId").get<std::string>();
+  const std::string& dataId = args.get("dataId").get<std::string>();
+  const picojson::array columns = args.get("columns").get<picojson::array>();
+  const std::string& where = args.get("where").get<std::string>();
+
+  int callbackId = static_cast<int>(args.get("callbackId").get<double>());
+  int reqId = static_cast<int>(args.get("reqId").get<double>());
+
+  int page = 0, maxNumberPerPage = 0;
+  if (args.contains("page")) {
+    page = static_cast<int>(args.get("page").get<double>());
+  }
+  if (args.contains("maxNumberPerPage")) {
+    maxNumberPerPage = static_cast<int>(args.get("maxNumberPerPage").get<double>());
+  }
+
+  int result = RunSQLDataControlJob(providerId, dataId, callbackId, reqId, [&](data_control_h& handle, int *requestId) -> int {
+    std::vector<const char*> temp;
+    for (auto& s: columns) temp.push_back(s.get<std::string>().c_str());
+    int columnCount = static_cast<int>(temp.size());
+    char** cColumns = const_cast<char**>(&*temp.begin());
+
+    if (page > 0 && maxNumberPerPage > 0) {
+      return ::data_control_sql_select_with_page(handle, cColumns, columnCount, where.c_str(), 
+                                       "1 ASC", page, maxNumberPerPage, requestId);
+    } else {
+      return ::data_control_sql_select(handle, cColumns, columnCount, where.c_str(), 
+                                       "1 ASC", requestId);
+    }
+  });
+
+  if(result == DATA_CONTROL_ERROR_NONE) {
+    ReportSuccess(out);
+  } else {
+    if (result == DATA_CONTROL_ERROR_IO_ERROR) {
+      ReportError(IOException(get_error_message(result)), out);
+    } else if (result == DATA_CONTROL_ERROR_PERMISSION_DENIED) {
+      ReportError(SecurityException(get_error_message(result)), out);
+    } else {
+      ReportError(UnknownException(get_error_message(result)), out);
+    }
+  }
+}
+void DatacontrolInstance::MappedDataControlConsumerAddvalue(const picojson::value& args, picojson::object& out) {
+  CHECK_EXIST(args, "callbackId", out)
+  CHECK_EXIST(args, "reqId", out)
+  CHECK_EXIST(args, "key", out)
+  CHECK_EXIST(args, "value", out)
+  CHECK_EXIST(args, "providerId", out)
+  CHECK_EXIST(args, "dataId", out)
+
+  const std::string& providerId = args.get("providerId").get<std::string>();
+  const std::string& dataId = args.get("dataId").get<std::string>();
+  int callbackId = static_cast<int>(args.get("callbackId").get<double>());
+  int reqId = static_cast<int>(args.get("reqId").get<double>());
+  const std::string& key = args.get("key").get<std::string>();
+  const std::string& value = args.get("value").get<std::string>();
+
+  int result = RunMAPDataControlJob(providerId, dataId, callbackId, reqId,
+                                    [&](data_control_h& handle, int *requestId) -> int {
+    return ::data_control_map_add(handle, key.c_str() , value.c_str(), requestId);
+  });
+
+  if(result == DATA_CONTROL_ERROR_NONE) {
+    ReportSuccess(out);
+  } else {
+    if (result == DATA_CONTROL_ERROR_IO_ERROR) {
+      ReportError(IOException(get_error_message(result)), out);
+    } else if (result == DATA_CONTROL_ERROR_PERMISSION_DENIED) {
+      ReportError(SecurityException(get_error_message(result)), out);
+    } else {
+      ReportError(UnknownException(get_error_message(result)), out);
+    }
+  }
+}
+void DatacontrolInstance::MappedDataControlConsumerRemovevalue(const picojson::value& args, picojson::object& out) {
+  CHECK_EXIST(args, "callbackId", out)
+  CHECK_EXIST(args, "reqId", out)
+  CHECK_EXIST(args, "key", out)
+  CHECK_EXIST(args, "value", out)
+  CHECK_EXIST(args, "providerId", out)
+  CHECK_EXIST(args, "dataId", out)
+
+  const std::string& providerId = args.get("providerId").get<std::string>();
+  const std::string& dataId = args.get("dataId").get<std::string>();
+  int callbackId = static_cast<int>(args.get("callbackId").get<double>());
+  int reqId = static_cast<int>(args.get("reqId").get<double>());
+  const std::string& key = args.get("key").get<std::string>();
+  const std::string& value = args.get("value").get<std::string>();
+
+  int result = RunMAPDataControlJob(providerId, dataId, callbackId, reqId,
+                                    [&](data_control_h& handle, int *requestId) -> int {
+    return ::data_control_map_remove(handle, key.c_str(), value.c_str(), requestId);
+  });
+
+  if(result == DATA_CONTROL_ERROR_NONE) {
+    ReportSuccess(out);
+  } else {
+    if (result == DATA_CONTROL_ERROR_IO_ERROR) {
+      ReportError(IOException(get_error_message(result)), out);
+    } else if (result == DATA_CONTROL_ERROR_PERMISSION_DENIED) {
+      ReportError(SecurityException(get_error_message(result)), out);
+    } else {
+      ReportError(UnknownException(get_error_message(result)), out);
+    }
+  }
+}
+void DatacontrolInstance::MappedDataControlConsumerGetvalue(const picojson::value& args, picojson::object& out) {
+  CHECK_EXIST(args, "callbackId", out)
+  CHECK_EXIST(args, "reqId", out)
+  CHECK_EXIST(args, "key", out)
+  CHECK_EXIST(args, "providerId", out)
+  CHECK_EXIST(args, "dataId", out)
+
+  const std::string& providerId = args.get("providerId").get<std::string>();
+  const std::string& dataId = args.get("dataId").get<std::string>();
+  int callbackId = static_cast<int>(args.get("callbackId").get<double>());
+  int reqId = static_cast<int>(args.get("reqId").get<double>());
+  const std::string& key = args.get("key").get<std::string>();
+
+  int result = RunMAPDataControlJob(providerId, dataId, callbackId, reqId,
+                                    [&](data_control_h& handle, int *requestId) -> int {
+    return ::data_control_map_get(handle, key.c_str(), requestId);
+  });
+
+  if(result == DATA_CONTROL_ERROR_NONE) {
+    ReportSuccess(out);
+  } else {
+    if (result == DATA_CONTROL_ERROR_IO_ERROR) {
+      ReportError(IOException(get_error_message(result)), out);
+    } else if (result == DATA_CONTROL_ERROR_PERMISSION_DENIED) {
+      ReportError(SecurityException(get_error_message(result)), out);
+    } else {
+      ReportError(UnknownException(get_error_message(result)), out);
+    }
+  }
+}
+void DatacontrolInstance::MappedDataControlConsumerUpdatevalue(const picojson::value& args, picojson::object& out) {
+  CHECK_EXIST(args, "callbackId", out)
+  CHECK_EXIST(args, "reqId", out)
+  CHECK_EXIST(args, "key", out)
+  CHECK_EXIST(args, "oldValue", out)
+  CHECK_EXIST(args, "newValue", out)
+  CHECK_EXIST(args, "providerId", out)
+  CHECK_EXIST(args, "dataId", out)
+
+  const std::string& providerId = args.get("providerId").get<std::string>();
+  const std::string& dataId = args.get("dataId").get<std::string>();
+  int callbackId = static_cast<int>(args.get("callbackId").get<double>());
+  int reqId = static_cast<int>(args.get("reqId").get<double>());
+  const std::string& key = args.get("key").get<std::string>();
+  const std::string& oldValue = args.get("oldValue").get<std::string>();
+  const std::string& newValue = args.get("newValue").get<std::string>();
+
+  int result = RunMAPDataControlJob(providerId, dataId, callbackId, reqId,
+                                    [&](data_control_h& handle, int *requestId) -> int {
+    return ::data_control_map_set(handle, key.c_str(), oldValue.c_str(), newValue.c_str(), requestId);
+  });
+
+  if(result == DATA_CONTROL_ERROR_NONE) {
+    ReportSuccess(out);
+  } else {
+    if (result == DATA_CONTROL_ERROR_IO_ERROR) {
+      ReportError(IOException(get_error_message(result)), out);
+    } else if (result == DATA_CONTROL_ERROR_PERMISSION_DENIED) {
+      ReportError(SecurityException(get_error_message(result)), out);
+    } else {
+      ReportError(UnknownException(get_error_message(result)), out);
+    }
+  }
+}
+
+
+#undef CHECK_EXIST
+
+} // namespace datacontrol
+} // namespace extension
