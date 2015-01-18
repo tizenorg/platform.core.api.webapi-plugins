@@ -9,22 +9,6 @@
 var validator_ = xwalk.utils.validator;
 var types_ = validator_.Types;
 
-{% set type_map = {
-  'DOMString':'STRING',
-  'object':'DICTIONARY',
-  'Date':'PLATFORM_OBJECT',
-  'boolean':'BOOLEAN',
-  'byte':'BYTE',
-  'octet':'OCTET',
-  'short':'LONG',
-  'long':'LONG',
-  'long long': 'LONG_LONG',
-  'unsigned short':'UNSIGNED_LONG',
-  'unsigned long long':'UNSIGNED_LONG_LONG',
-  'float':'DOUBLE',
-  'double':'DOUBLE'
-} %}
-
 {% if module.async %}
 var callbackId = 0;
 var callbacks = {};
@@ -110,6 +94,7 @@ function {{iface.name}}(
     {% endfor %}
   };
   var syncResult = callNative('{{iface.name}}_constructor', nativeParam);
+  {% endif %}
 
   {% for attribute in iface.getTypes('Attribute') %}
     {% if attribute.existIn == 'ctor' %}
@@ -125,7 +110,6 @@ function {{iface.name}}(
   this.{{attribute.name}} = {{attrValue}};
     {% endif %}
   {% endfor %}
-  {% endif %}
 }
 
 {% if iface.inherit %}
@@ -142,39 +126,11 @@ function {{iface.name}}(
   {% if operation.arguments %}
   var args = validator_.validateArgs(arguments, [
     {% for arg in operation.arguments %}
-    {'name': '{{arg.name}}', 'type': types_.
-      {%- if arg.functionOnly -%}
-        FUNCTION
-      {%- elif arg.isListener -%}
-        LISTENER, 'values': [
-        {%- for listener in arg.listenerType.getTypes('Operation') -%}
-          '{{listener.name}}'{% if not loop.last %}, {% endif %}
-        {%- endfor -%}
-        ]
-      {%- elif arg.isEnum -%}
-        ENUM, 'values': [
-        {%- for e in arg.enums -%}
-        '{{e}}' {%- if not loop.last -%}, {% endif %}
-        {%- endfor -%}
-        ]
-      {%- elif arg.xtype.array > 0 -%}
-        ARRAY
-      {%- elif arg.xtype.unions or arg.isTypes -%}
-        PLATFORM_OBJECT, 'values': [
-        {%- for union in arg.xtype.unions -%}
-          {{union}} {%- if not loop.last -%}, {% endif -%}
-        {%- endfor -%}
-        ]
-      {%- elif arg.xtype.name in type_map -%}
-        {{type_map[arg.xtype.name]}}
-      {%- elif arg.isPlatformObject -%}
-        PLATFORM_OBJECT, 'values': tizen.{{arg.xtype.name}}
-      {%- else -%}
-        DICTIONARY
-      {%- endif -%}
-      {%- if arg.optional -%}, 'optional': true{% endif -%}
-      {%- if arg.xtype.nullable -%}, 'nullable': true{% endif -%}
-    }{% if not loop.last %},{% endif %}
+    {'name': '{{arg.name}}', 'type': types_.{{arg.validation[0]}}
+        {%- if arg.validation[1] -%}
+        , 'values': {{arg.validation[1]}} 
+        {%- endif -%} }
+        {%- if not loop.last %},{% endif %}
 
     {% endfor %}
   ]);

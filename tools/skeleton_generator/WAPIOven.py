@@ -24,6 +24,21 @@ cppPrimitiveMap = {
         'double':'double'
         }
 
+jsPrimitiveMap = {
+        'DOMString':'STRING',
+        'object':'DICTIONARY',
+        'boolean':'BOOLEAN',
+        'byte':'BYTE',
+        'octet':'OCTET',
+        'short':'LONG',
+        'long':'LONG',
+        'long long': 'LONG_LONG',
+        'unsigned short':'UNSIGNED_LONG',
+        'unsigned long long':'UNSIGNED_LONG_LONG',
+        'float':'DOUBLE',
+        'double':'DOUBLE'
+        }
+
 class IndentPrintable(object):
     def __init__(self, isIndent=True, tabstep=2, ignoreLF=False):
         self.moduleName = moduleName
@@ -71,6 +86,46 @@ class Compiler(IndentPrintable):
 
     def todo(self, formatstring):
         self.dprint(("// %s " % Compiler.TODOSTR) +formatstring)
+
+    def jstype(self, t):
+        if t.name in jsPrimitiveMap:
+            return [jsPrimitiveMap[t.name]]
+
+        elif t.name in self.ctx['enum']:
+            return ['ENUM', self.ctx['enum'][t.name]]
+        elif t.name in self.ctx['typedef']:
+            t2 = self.ctx['typedef'][t.name]
+            if t2.union:
+                union_names = [x.name for x in t2.union]
+                isEnum = reduce(lambda x, y: x & y, [ x in self.ctx['enum'] for x in union_names])
+                if isEnum :
+                    enums = reduce(lambda x,y: x+y, [ self.ctx['enum'][x] for x in self.ctx['enum'] if x in union_names])
+                    return ['ENUM', enums]
+                else:
+                    types = reduce(lambda x, y: x & y, [ x in m.getTypes('Interface') for x in union_names])
+                    return ['PLATFORM_OBJECT', types]
+            else:
+                return self.jstype(t2)
+        elif t.name in self.ctx['callback']:
+            cb = self.ctx['callback'][t.name]
+            if cb.functionOnly:
+                return ['FUNCTION']
+            else:
+                cb_ops = cb.getTypes('Operation')
+                if 'onsuccess' in cb_ops:
+                    cb.callbackType = 'success'
+                elif 'onerror' in cb_ops:
+                    cb.callbackType = 'error'
+                return ['LISTENER', [o.name for o in cb_ops]]
+        elif t.name in self.ctx['dictionary']:
+            return ['DICTIONARY']
+        elif t.name in self.ctx['interfaces']:
+            return ['PLATFORM_OBJECT', [t.name]]
+        else:
+            print "I think \"%s\" is in tizen module, generate with tizen.widl" % t.name
+            sys.exit(1)
+            return None
+
 
     def prepare(self, module):
         self.ctx = dict()
@@ -138,36 +193,15 @@ class Compiler(IndentPrintable):
                         native_function = iface.name+(operation.name.title())
                         self.ctx['cmdtable'][native_function] = native_cmd
                     operation.argnames = [a.name for a in operation.arguments]
-                    operation.primitiveArgs = [x for x in operation.arguments if x.xtype.name in cppPrimitiveMap]
+                    #operation.primitiveArgs = [x for x in operation.arguments if x.xtype.name in cppPrimitiveMap]
+                    operation.primitiveArgs = []
                     for arg in operation.arguments:
-                        if arg.xtype.name in self.ctx['interfaces'] and \
-                            hasattr(self.ctx['interfaces'][arg.xtype.name], 'constructor'):
-                            arg.isPlatformObject = True
-
-                        if arg.xtype.name in self.ctx['enum']:
-                            arg.isEnum = True
-                            arg.enums = self.ctx['enum'][arg.xtype.name]
-                        if arg.xtype.name in self.ctx['typedef']:
-                            arg.isTypedef = True
-                            t = self.ctx['typedef'][arg.xtype.name]
-                            if t.union:
-                                union_names = [t.name for t in t.union]
-                                arg.isEnum = reduce(lambda x, y: x & y, [ x in self.ctx['enum'] for x in union_names])
-                                if arg.isEnum :
-                                    arg.enums = reduce(lambda x,y: x+y, [ self.ctx['enum'][x] for x in self.ctx['enum'] if x in union_names])
-                                arg.isTypes = reduce(lambda x, y: x & y, [ x in m.getTypes('Interface') for x in union_names])
-                        if arg.xtype.name in self.ctx['callback']:
-                            callback = self.ctx['callback'][arg.xtype.name]
-                            if callback.functionOnly:
-                                arg.functionOnly = True
-                            arg.isListener = True
-                            arg.listenerType = self.ctx['callback'][arg.xtype.name]
-                            operation.async = True
-                            m.async = True
-                            if arg.listenerType.get('Operation', 'onsuccess'):
-                                arg.listenerType.callbackType = 'success'
-                            elif arg.listenerType.get('Operation', 'onerror'):
-                                arg.listenerType.callbackType = 'error'
+                        arg.validation = self.jstype(arg.xtype)
+                        if arg.validation:
+                            if arg.validation[0] in ['FUNCTION', 'LISTENER']:
+                                m.async = True
+                            elif arg.validation[0] in jsPrimitiveMap.values():
+                                operation.primitiveArgs.append(arg)
 
                     for xiface in self.ctx['exportedInterface']:
                         if operation.returnType.name == xiface.name:
