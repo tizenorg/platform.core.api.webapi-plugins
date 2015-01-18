@@ -180,7 +180,6 @@ function {{iface.name}}(
   ]);
   {% endif %}
 
-  {% if operation.arguments %}
   var nativeParam = {
     {% for arg in operation.primitiveArgs if not arg.optional %}
     '{{arg.name}}': args.{{arg.name}}{% if not loop.last %},{% endif %}
@@ -193,34 +192,32 @@ function {{iface.name}}(
     nativeParam['{{arg.name}}'] = args.{{arg.name}};
   }
   {% endfor %}
-  {% endif %}
-  {% set successcbs = [] %}
-  {% set errorcbs = [] %}
+
   try {
     {% if operation.async %}
     var syncResult = callNativeWithCallback('{{operation.native_cmd}}', nativeParam, function(result) {
-    {% for arg in operation.arguments %}
-    {% if arg.isListener %}
-    {% set cb = callbacks[arg.xtype.name] %}
-    {% if cb.callbackType in ['success', 'error']  %}
+      {% for arg in operation.arguments %}
+        {% if arg.isListener %}
+          {% set cb = callbacks[arg.xtype.name] %}
+          {% if cb.callbackType in ['success', 'error']  %}
       if (result.status === '{{cb.callbackType}}') {
-    {% if arg.optional %}
+            {% if arg.optional %}
         if (args.{{arg.name}}) {
           args.{{arg.name}}.on{{cb.callbackType}}(/* {{cb.callbackType}} argument */);
         }
-    {% else %}
+            {% else %}
         args.{{arg.name}}.on{{cb.callbackType}}(/* {{cb.callbackType}} argument */);
-    {% endif %}
+            {% endif %}
       }
-    {% else %}
-      {% for cbmethod in cb.getTypes('Operation') %}
+          {% else %}
+            {% for cbmethod in cb.getTypes('Operation') %}
       if ( /* put some condition and delete true -> */true) {
         args.{{arg.name}}.{{cbmethod.name}}(/* some argument for {{cbmethod.name}} */);
       }
+            {% endfor %}
+          {% endif %}
+        {% endif %}
       {% endfor %}
-      {% endif %}
-      {% endif %}
-    {% endfor %}
     });
     {% else %}
     var syncResult = callNative('{{operation.native_cmd}}', nativeParam);
