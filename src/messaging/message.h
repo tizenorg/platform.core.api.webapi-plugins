@@ -129,6 +129,7 @@ public:
             int type);
     // function for filling Message attributes
     static Message* convertPlatformShortMessageToObject(msg_struct_t msg);
+    static std::shared_ptr<Message> findShortMessageById(const int id);
     static void addMMSBodyAndAttachmentsToStruct(const AttachmentPtrVector attach,
             msg_struct_t &mms_struct,
             Message* message);

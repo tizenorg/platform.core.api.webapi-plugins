@@ -4,6 +4,8 @@
 //
 
 #include "message_service_short_msg.h"
+#include "messaging_instance.h"
+#include "short_message_manager.h"
 #include "common/logger.h"
 #include "common/platform_exception.h"
 
@@ -14,7 +16,6 @@
 //#include <JSWebAPIErrorFactory.h>
 //#include <JSWebAPIError.h>
 //#include <JSUtil.h>
-//#include "ShortMsgManager.h"
 //#include "JSMessage.h"
 
 //using namespace DeviceAPI::Common;
@@ -46,7 +47,7 @@ static gboolean sendMessageThread(void* data)
     }
 
     // TODO
-    //ShortMsgManager::getInstance().sendMessage(callback);
+    ShortMsgManager::getInstance().sendMessage(callback);
     return FALSE;
 }
 
@@ -123,14 +124,22 @@ static gboolean loadMessageBodyTask(void* data)
     }
 
     try {
-        // TODO call success callback
-        //JSContextRef context = callback->getContext();
-        //JSObjectRef jsMessage = JSMessage::makeJSObject(context, callback->getMessage());
-        //callback->callSuccessCallback(jsMessage);
+        std::shared_ptr<MessageBody> body = callback->getMessage()->getBody();
+        body->setLoaded(true);
+        auto json = callback->getJson();
+        picojson::object& obj = json->get<picojson::object>();
+        obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
+
+        picojson::object args;
+        args[JSON_DATA_MESSAGE_BODY] = MessagingUtil::messageBodyToJson(body);
+        obj[JSON_DATA] = picojson::value(args);
+
+        MessagingInstance::getInstance().PostMessage(json->serialize().c_str());
     } catch (...) {
         LoggerE("Couldn't create JSMessage object!");
-        // TODO call error callback
-        //callback->callErrorCallback();
+        common::UnknownException e("Loade message body failed");
+        callback->setError(e.name(), e.message());
+        MessagingInstance::getInstance().PostMessage(callback->getJson()->serialize().c_str());
     }
 
     return FALSE;

@@ -11,6 +11,7 @@
 
 #include "messaging_util.h"
 #include "message_storage_email.h"
+#include "message_storage_short_msg.h"
 #include "message.h"
 
 namespace extension {
@@ -378,8 +379,7 @@ MessageService::MessageService(int id,
     switch (msgType) {
         case MessageType::SMS:
         case MessageType::MMS:
-            // TODO need to add class representing message storage for short messages
-            //m_storage.reset(new MessageStorageShortMsg(id, msgType));
+            m_storage.reset(new MessageStorageShortMsg(id, msgType));
             break;
         case MessageType::EMAIL:
             m_storage.reset(new MessageStorageEmail(id));

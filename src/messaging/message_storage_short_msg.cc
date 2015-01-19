@@ -2,15 +2,14 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-//#include "JSMessageFolder.h"
-//#include "ShortMsgManager.h"
-
 #include "common/logger.h"
 #include "common/platform_exception.h"
 
 #include "messaging_util.h"
 #include "message_sms.h"
+#include "short_message_manager.h"
 #include "message_storage_short_msg.h"
+#include "messaging_instance.h"
 
 namespace extension {
 namespace messaging {
@@ -28,8 +27,7 @@ static gboolean addDraftMessageTask(void* data) {
     LoggerD("Entered");
 
     MessageCallbackUserData *callback = static_cast<MessageCallbackUserData*>(data);
-    // TODO
-    //ShortMsgManager::getInstance().addDraftMessage(callback);
+    ShortMsgManager::getInstance().addDraftMessage(callback);
 
     return false;
 }
@@ -58,8 +56,7 @@ static gboolean removeMessagesTask(void* data) {
     LoggerD("Entered");
 
     MessagesCallbackUserData *callback = static_cast<MessagesCallbackUserData*>(data);
-    // TODO
-    //ShortMsgManager::getInstance().removeMessages(callback);
+    ShortMsgManager::getInstance().removeMessages(callback);
 
     return false;
 }
@@ -86,8 +83,7 @@ static gboolean updateMessagesTask(void* data) {
     LoggerD("Entered");
 
     MessagesCallbackUserData *callback = static_cast<MessagesCallbackUserData*>(data);
-    // TODO
-    //ShortMsgManager::getInstance().updateMessages(callback);
+    ShortMsgManager::getInstance().updateMessages(callback);
 
     return false;
 }
@@ -114,8 +110,7 @@ static gboolean findMessagesTask(void* data) {
     LoggerD("Entered");
 
     FindMsgCallbackUserData *callback = static_cast<FindMsgCallbackUserData*>(data);
-    // TODO
-    //ShortMsgManager::getInstance().findMessages(callback);
+    ShortMsgManager::getInstance().findMessages(callback);
 
     return false;
 }
@@ -142,8 +137,7 @@ static gboolean findConversationsTask(void* data) {
     LoggerD("Entered");
 
     ConversationCallbackData *callback = static_cast<ConversationCallbackData*>(data);
-    // TODO
-    //ShortMsgManager::getInstance().findConversations(callback);
+    ShortMsgManager::getInstance().findConversations(callback);
 
     return false;
 }
@@ -170,8 +164,7 @@ static gboolean removeConversationsTask(void* data) {
     LoggerD("Entered");
 
     ConversationCallbackData *callback = static_cast<ConversationCallbackData*>(data);
-    // TODO
-    //ShortMsgManager::getInstance().removeConversations(callback);
+    ShortMsgManager::getInstance().removeConversations(callback);
 
     return false;
 }
@@ -200,12 +193,20 @@ static gboolean findFoldersCB(void* data)
 
     FoldersCallbackData *callback = static_cast<FoldersCallbackData*>(data);
 
-    // TODO create json array of folders
-    //JSObjectRef js_obj = MessagingUtil::vectorToJSObjectArray<FolderPtr,
-                //JSMessageFolder>(context, callback->getFolders());
+    auto json = callback->getJson();
+    picojson::object& obj = json->get<picojson::object>();
 
-    // TODO post success
-    //callback->callSuccessCallback(js_obj);
+    picojson::array array;
+    auto each = [&array](std::shared_ptr<MessageFolder> folder)->void {
+        array.push_back(MessagingUtil::folderToJson(folder));
+    };
+
+    auto folders = callback->getFolders();
+    for_each(folders.begin(), folders.end(), each);
+
+    obj[JSON_DATA] = picojson::value(array);
+    obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
+    MessagingInstance::getInstance().PostMessage(json->serialize().c_str());
 
     delete callback;
     callback = NULL;

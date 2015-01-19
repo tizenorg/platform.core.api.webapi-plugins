@@ -12,6 +12,7 @@
 
 #include <email-api-account.h>
 #include "message_email.h"
+#include "message_sms.h"
 #include "message_conversation.h"
 
 #include "tizen/tizen.h"
@@ -288,8 +289,6 @@ picojson::value MessagingUtil::messageToJson(std::shared_ptr<Message> message)
 
     switch (message->getType()) {
     case MessageType::SMS:
-        LoggerD("Currently unsupported");
-        // TODO add class which will extended message_service and call message_service_short_msg
         break;
     case MessageType::MMS:
         LoggerD("Currently unsupported");
@@ -466,8 +465,14 @@ std::shared_ptr<Message> MessagingUtil::jsonToMessage(const picojson::value& jso
 
     switch (mtype) {
     case MessageType::SMS:
-        LoggerD("Currently unsupported");
-        // TODO add class which will extended message_service and call message_service_short_msg
+        LoggerD("SMS type");
+        if (!data.at(MESSAGE_ATTRIBUTE_ID).is<picojson::null>()) {
+            std::string mid = data.at(MESSAGE_ATTRIBUTE_ID).get<std::string>();
+            int message_id = std::atoi(mid.c_str());
+            message = Message::findShortMessageById(message_id);
+        } else {
+            message = std::shared_ptr<Message>(new MessageSMS());
+        }
         break;
     case MessageType::MMS:
         LoggerD("Currently unsupported");
@@ -522,22 +527,8 @@ std::shared_ptr<Message> MessagingUtil::jsonToMessage(const picojson::value& jso
             MESSAGE_ATTRIBUTE_IS_HIGH_PRIORITY);
     message->setIsHighPriority(priority);
 
-    std::shared_ptr<MessageBody> body = std::shared_ptr<MessageBody>(new MessageBody());
-    picojson::object mb = MessagingUtil::getValueFromJSONObject<picojson::object>(
-            data, MESSAGE_ATTRIBUTE_MESSAGE_BODY);
-
-    bool loaded = MessagingUtil::getValueFromJSONObject<bool>(mb,
-            MESSAGE_BODY_ATTRIBUTE_LOADED);
-    body->setLoaded(loaded);
-
-    std::string html = MessagingUtil::getValueFromJSONObject<std::string>(mb,
-            MESSAGE_BODY_ATTRIBUTE_HTML_BODY);
-    body->setHtmlBody(html);
-
-    std::string plain = MessagingUtil::getValueFromJSONObject<std::string>(mb,
-            MESSAGE_BODY_ATTRIBUTE_PLAIN_BODY);
-    body->setPlainBody(plain);
-
+    std::shared_ptr<MessageBody> body = MessagingUtil::jsonToMessageBody(
+            data[MESSAGE_ATTRIBUTE_MESSAGE_BODY]);
     message->setBody(body);
 
     AttachmentPtrVector attachments;
@@ -573,6 +564,34 @@ std::shared_ptr<Message> MessagingUtil::jsonToMessage(const picojson::value& jso
 
     return message;
 
+}
+
+std::shared_ptr<MessageBody> MessagingUtil::jsonToMessageBody(const picojson::value& json)
+{
+    LoggerD("Entered");
+
+    std::shared_ptr<MessageBody> body = std::shared_ptr<MessageBody>(new MessageBody());
+    picojson::object data = json.get<picojson::object>();
+
+    bool loaded = MessagingUtil::getValueFromJSONObject<bool>(data,
+            MESSAGE_BODY_ATTRIBUTE_LOADED);
+    body->setLoaded(loaded);
+
+    std::string html = MessagingUtil::getValueFromJSONObject<std::string>(data,
+            MESSAGE_BODY_ATTRIBUTE_HTML_BODY);
+    body->setHtmlBody(html);
+
+    std::string plain = MessagingUtil::getValueFromJSONObject<std::string>(data,
+            MESSAGE_BODY_ATTRIBUTE_PLAIN_BODY);
+    body->setPlainBody(plain);
+
+    if (!data.at(MESSAGE_BODY_ATTRIBUTE_MESSAGE_ID).is<picojson::null>()) {
+        int messageId = std::atoi(MessagingUtil::getValueFromJSONObject<std::string>(data,
+                    MESSAGE_BODY_ATTRIBUTE_MESSAGE_ID).c_str());
+        body->setMessageId(messageId);
+    }
+
+    return body;
 }
 
 std::shared_ptr<MessageFolder> MessagingUtil::jsonToMessageFolder(const picojson::value& json)
@@ -625,9 +644,10 @@ tizen::SortModePtr MessagingUtil::jsonToSortMode(const picojson::object& json)
     LoggerD("Entered");
     using namespace tizen;
 
-    picojson::value value;
     try{
-        value = json.at(JSON_TO_SORT);
+        if (json.at(JSON_TO_SORT).is<picojson::null>()) {
+            return SortModePtr();
+        }
     } catch(const std::out_of_range& e){
         return SortModePtr();
     }

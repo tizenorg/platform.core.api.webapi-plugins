@@ -297,7 +297,7 @@ function Message(type, data) {
         {
             get: function () {return _internal.body;},
             set: function (value) {
-                if (value instanceof InternalValues_) value = value.body;
+                if (value instanceof InternalValues_) _internal.body = new MessageBody(value.body);
                 if (value instanceof MessageBody) _internal.body = value;
             },
             enumerable: true
@@ -612,7 +612,7 @@ MessageService.prototype.loadMessageBody = function () {
         success: function (data) {
             var body = data.messageBody;
             if (body) {
-                args.message.body = new MessageBody(data.messageBody);
+                args.message.body = new MessageBody(body);
             }
 
             args.successCallback.call(
@@ -812,10 +812,10 @@ MessageStorage.prototype.findMessages = function () {
     bridge.async({
         cmd: 'MessageStorage_findMessages',
         args: {
-            filter: args.filter,
-            sort: args.sort,
-            limit: args.limit,
-            offset: args.offset,
+            filter: args.filter || null,
+            sort: args.sort || null,
+            limit: args.limit || null,
+            offset: args.offset || null,
             serviceId: self.service.id,
             type: self.service.type
         }
@@ -920,9 +920,9 @@ MessageStorage.prototype.findConversations = function () {
         cmd: 'MessageStorage_findConversations',
         args: {
             filter: args.filter,
-            sort: args.sort,
-            limit: args.limit,
-            offset: args.offset,
+            sort: args.sort || null,
+            limit: args.limit || null,
+            offset: args.offset || null,
             serviceId: self.service.id
         }
     }).then({
@@ -996,9 +996,9 @@ MessageStorage.prototype.findFolders = function () {
         cmd: 'MessageStorage_findFolders',
         args: {
             filter: args.filter,
-            sort: args.sort,
-            limit: args.limit,
-            offset: args.offset,
+            sort: args.sort || null,
+            limit: args.limit || null,
+            offset: args.offset || null,
             serviceId: self.service.id
         }
     }).then({

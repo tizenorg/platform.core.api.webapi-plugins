@@ -2,9 +2,6 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-//#include <JSWebAPIErrorFactory.h>
-//#include <JSWebAPIError.h>
-//#include <JSUtil.h>
 #include <msg.h>
 #include <msg_transport.h>
 #include <msg_storage.h>
@@ -14,10 +11,10 @@
 #include "common/logger.h"
 
 #include "messaging_util.h"
+#include "messaging_instance.h"
 #include "message_service.h"
 #include "message_sms.h"
 //#include "MessageMMS.h"
-//#include "JSMessage.h"
 //#include "JSMessageConversation.h"
 #include "messaging_database_manager.h"
 
@@ -48,26 +45,36 @@ static gboolean sendMessageCompleteCB(void* data)
 
     try {
         if (callback->isError()) {
-            // TODO call error callback
-            //JSObjectRef errobj = JSWebAPIErrorFactory::makeErrorObject(context,
-                    //callback->getErrorName(),
-                    //callback->getErrorMessage());
-
-            //LoggerD("Calling error callback with error:%s msg:%s",
-                    //callback->getErrorName().c_str(),
-                    //callback->getErrorMessage().c_str());
-
-            //callback->callErrorCallback(errobj);
-            //callback->getMessage()->setMessageStatus(MessageStatus::STATUS_FAILED);
+            MessagingInstance::getInstance().PostMessage(callback->getJson()->serialize().c_str());
+            callback->getMessage()->setMessageStatus(MessageStatus::STATUS_FAILED);
         }
         else {
             std::shared_ptr<Message> message = callback->getMessage();
 
             LoggerD("Calling success callback with: %d recipients", message->getTO().size());
-            // TODO call success callback
-            //callback->callSuccessCallback(
-                    //JSUtil::toJSValueRef(context, message->getTO()));
-            //callback->getMessage()->setMessageStatus(MessageStatus::STATUS_SENT);
+
+            auto json = callback->getJson();
+            picojson::object& obj = json->get<picojson::object>();
+            obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
+
+            std::vector<picojson::value> recipients;
+            auto addToRecipients = [&recipients](std::string& e)->void {
+                recipients.push_back(picojson::value(e));
+            };
+
+            auto toVect = callback->getMessage()->getTO();
+            std::for_each(toVect.begin(), toVect.end(), addToRecipients);
+
+            auto ccVect = callback->getMessage()->getCC();
+            std::for_each(ccVect.begin(), ccVect.end(), addToRecipients);
+
+            auto bccVect = callback->getMessage()->getBCC();
+            std::for_each(bccVect.begin(), bccVect.end(), addToRecipients);
+
+            obj[JSON_DATA] = picojson::value(recipients);
+
+            MessagingInstance::getInstance().PostMessage(json->serialize().c_str());
+            callback->getMessage()->setMessageStatus(MessageStatus::STATUS_SENT);
         }
     }
     catch (const common::PlatformException& err) {
@@ -96,15 +103,21 @@ static gboolean addDraftMessageCompleteCB(void *data)
     try {
         if (callback->isError()) {
             LoggerD("Calling error callback");
-            // TODO call error
-            //JSObjectRef errobj = JSWebAPIErrorFactory::makeErrorObject(context,
-                    //callback->getErrorName(), callback->getErrorMessage());
-            //callback->callErrorCallback(errobj);
-            //callback->getMessage()->setMessageStatus(MessageStatus::STATUS_FAILED);
+
+            MessagingInstance::getInstance().PostMessage(callback->getJson()->serialize().c_str());
+            callback->getMessage()->setMessageStatus(MessageStatus::STATUS_FAILED);
         } else {
             LoggerD("Calling success callback");
-            // TODO call success
-            //callback->callSuccessCallback();
+
+            auto json = callback->getJson();
+            picojson::object& obj = json->get<picojson::object>();
+            obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
+
+            picojson::object args;
+            args[JSON_DATA_MESSAGE] = MessagingUtil::messageToJson(callback->getMessage());
+            obj[JSON_DATA] = picojson::value(args);
+
+            MessagingInstance::getInstance().PostMessage(json->serialize().c_str());
         }
     } catch (const common::PlatformException& err) {
         LoggerE("Error while calling addDraftMessage callback: %s (%s)",
@@ -758,14 +771,14 @@ void ShortMsgManager::removeMessages(MessagesCallbackUserData* callback)
     try {
         if (callback->isError()) {
             LoggerD("Calling error callback");
-            // TODO call error
-            //JSObjectRef errobj = JSWebAPIErrorFactory::makeErrorObject(context,
-                    //callback->getErrorName(), callback->getErrorMessage());
-            //callback->callErrorCallback(errobj);
+            MessagingInstance::getInstance().PostMessage(callback->getJson()->serialize().c_str());
         } else {
             LoggerD("Calling success callback");
-            // TODO call success
-            //callback->callSuccessCallback();
+
+            auto json = callback->getJson();
+            picojson::object& obj = json->get<picojson::object>();
+            obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
+            MessagingInstance::getInstance().PostMessage(json->serialize().c_str());
         }
     } catch (const common::PlatformException& err) {
         LoggerE("Error while calling removeShortMsg callback: %s (%s)",
@@ -829,14 +842,15 @@ void ShortMsgManager::updateMessages(MessagesCallbackUserData* callback)
     try {
         if (callback->isError()) {
             LoggerD("Calling error callback");
-            // TODO call error
-            //JSObjectRef errobj = JSWebAPIErrorFactory::makeErrorObject(context,
-                    //callback->getErrorName(), callback->getErrorMessage());
-            //callback->callErrorCallback(errobj);
+
+            MessagingInstance::getInstance().PostMessage(callback->getJson()->serialize().c_str());
         } else {
             LoggerD("Calling success callback");
-            // TODO call success
-            //callback->callSuccessCallback();
+
+            auto json = callback->getJson();
+            picojson::object& obj = json->get<picojson::object>();
+            obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
+            MessagingInstance::getInstance().PostMessage(json->serialize().c_str());
         }
     } catch (const common::PlatformException& err) {
         LoggerE("Error while calling updateShortMsg callback: %s (%s)",
@@ -948,16 +962,23 @@ void ShortMsgManager::findMessages(FindMsgCallbackUserData* callback)
     try {
         if (callback->isError()) {
             LoggerD("Calling error callback");
-            // TODO call error
-            //JSObjectRef errobj = JSWebAPIErrorFactory::makeErrorObject(context,
-                    //callback->getErrorName(), callback->getErrorMessage());
-            //callback->callErrorCallback(errobj);
+            MessagingInstance::getInstance().PostMessage(callback->getJson()->serialize().c_str());
         } else {
             LoggerD("Calling success callback with %d messages:",
                     callback->getMessages().size());
-            // TODO call success
-            //callback->callSuccessCallback(JSMessage::messageVectorToJSObjectArray(context,
-                    //callback->getMessages()));
+
+            auto json = callback->getJson();
+            picojson::object& obj = json->get<picojson::object>();
+
+            std::vector<picojson::value> response;
+            auto messages = callback->getMessages();
+            std::for_each(messages.begin(), messages.end(), [&response](MessagePtr &message){
+                response.push_back(MessagingUtil::messageToJson(message));
+            });
+
+            obj[JSON_DATA] = picojson::value(response);
+            obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
+            MessagingInstance::getInstance().PostMessage(json->serialize().c_str());
         }
     } catch (const common::PlatformException& err) {
         LoggerE("Error while calling findMessages callback: %s (%s)",
@@ -1005,15 +1026,22 @@ void ShortMsgManager::findConversations(ConversationCallbackData* callback)
     try {
         if (callback->isError()) {
             LoggerD("Calling error callback");
-            // TODO call error
-            //JSObjectRef errobj = JSWebAPIErrorFactory::makeErrorObject(context,
-                    //callback->getErrorName(), callback->getErrorMessage());
-            //callback->callErrorCallback(errobj);
+            MessagingInstance::getInstance().PostMessage(callback->getJson()->serialize().c_str());
         } else {
             LoggerD("Calling success callback");
-            // TODO call success
-            //callback->callSuccessCallback(MessagingUtil::vectorToJSObjectArray<
-                    //ConversationPtr, JSMessageConversation>(context, callback->getConversations()));
+            auto json = callback->getJson();
+            picojson::object& obj = json->get<picojson::object>();
+
+            std::vector<picojson::value> response;
+            auto conversations = callback->getConversations();
+            std::for_each(conversations.begin(), conversations.end(),
+                    [&response](std::shared_ptr<MessageConversation> &conversation) {
+                        response.push_back(MessagingUtil::conversationToJson(conversation));
+                    }
+            );
+            obj[JSON_DATA] = picojson::value(response);
+            obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
+            MessagingInstance::getInstance().PostMessage(json->serialize().c_str());
         }
     } catch (const common::PlatformException& err) {
         LoggerE("Error while calling findConversations callback: %s (%s)",
@@ -1133,14 +1161,15 @@ void ShortMsgManager::removeConversations(ConversationCallbackData* callback)
     try {
         if (callback->isError()) {
             LoggerD("Calling error callback");
-            // TODO call error
-            //JSObjectRef errobj = JSWebAPIErrorFactory::makeErrorObject(context,
-                    //callback->getErrorName(), callback->getErrorMessage());
-            //callback->callErrorCallback(errobj);
+            MessagingInstance::getInstance().PostMessage(
+                    callback->getJson()->serialize().c_str());
         } else {
             LoggerD("Calling success callback");
-            // TODO call success
-            //callback->callSuccessCallback();
+
+            auto json = callback->getJson();
+            picojson::object& obj = json->get<picojson::object>();
+            obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
+            MessagingInstance::getInstance().PostMessage(json->serialize().c_str());
         }
     } catch (const common::PlatformException& err) {
         LoggerE("Error while calling removeConversations callback: %s (%s)",
