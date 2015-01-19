@@ -470,13 +470,14 @@ function MessageInit_(data) {
     this.to             = data.to             || [];
     this.cc             = data.cc             || [];
     this.bcc            = data.bcc            || [];
-    this.body           = data.body           || new MessageBody();
     this.isRead         = data.isRead         || false;
     this.hasAttachment  = data.hasAttachment  || null;
     this.isHighPriority = data.isHighPriority || false;
     this.subject        = data.subject        || '';
     this.inResponseTo   = data.inResponseTo   || null;
     this.attachments = [];
+    this.plainBody      = data.body ? data.body.plainBody : '';
+    this.htmlBody       = data.body ? data.body.htmlBody : '';
 
     var self = this;
     if (data.attachments && data.attachments.constructor === Array) {
@@ -499,11 +500,91 @@ function MessageBody(data) {
     if (data === null || typeof data !== 'object') {
         data = {};
     }
-    propertyFactory_(this, 'messageId'        , data.messageId         || null , Property.E             );
-    propertyFactory_(this, 'loaded'           , data.loaded            || false, Property.E             );
-    propertyFactory_(this, 'plainBody'        , data.plainBody         || ''   , Property.E | Property.W); // TODO: setraises
-    propertyFactory_(this, 'htmlBody'         , data.htmlBody          || ''   , Property.E | Property.W); // TODO: setraises
-    propertyFactory_(this, 'inlineAttachments', data.inlineAttachments || []   , Property.E | Property.W); // TODO: setraises
+
+    var _internal = {
+        messageId: data.messageId || null,
+        loaded: data.loaded || false,
+        plainBody: data.plainBody || '',
+        htmlBody: data.htmlBody || '',
+        inlineAttachments: data.inlineAttachments || []
+    };
+
+    // messageId
+    Object.defineProperty(
+        this,
+        'messageId',
+        {
+            get: function () {return _internal.messageId;},
+            set: function (value) {
+                if (value instanceof InternalValues_) _internal.messageId = value.messageId;
+            },
+            enumerable: true
+        }
+    );
+
+    // loaded
+    Object.defineProperty(
+        this,
+        'loaded',
+        {
+            get: function () {return _internal.loaded;},
+            set: function (value) {
+                if (value instanceof InternalValues_) _internal.loaded = value.loaded;
+            },
+            enumerable: true
+        }
+    );
+
+    // plainBody
+    Object.defineProperty(
+        this,
+        'plainBody',
+        {
+            get: function () {return _internal.plainBody;},
+            set: function (value) {
+                if (value instanceof InternalValues_) {
+                    _internal.plainBody = String(value.plainBody);
+                } else {
+                    _internal.plainBody = String(value);
+                }
+            },
+            enumerable: true
+        }
+    );
+
+    // htmlBody
+    Object.defineProperty(
+        this,
+        'htmlBody',
+        {
+            get: function () {return _internal.htmlBody;},
+            set: function (value) {
+                if (value instanceof InternalValues_) {
+                    _internal.htmlBody = String(value.htmlBody);
+                } else {
+                    _internal.htmlBody = String(value);
+                }
+            },
+            enumerable: true
+        }
+    );
+
+    // inlineAttachments
+    Object.defineProperty(
+        this,
+        'inlineAttachments',
+        {
+            get: function () {return _internal.inlineAttachments;},
+            set: function (value) {
+                if (value instanceof InternalValues_) {
+                    _internal.inlineAttachments = value.inlineAttachments;
+                } else {
+                    _internal.inlineAttachments = value;
+                }
+            },
+            enumerable: true
+        }
+    );
 };
 
 function MessageAttachment_(data) {
@@ -631,7 +712,7 @@ MessageService.prototype.loadMessageBody = function () {
         success: function (data) {
             var body = data.messageBody;
             if (body) {
-                args.message.body = new MessageBody(body);
+                updateInternal_(args.message.body, body)
             }
 
             args.successCallback.call(
@@ -787,16 +868,22 @@ MessageStorage.prototype.addDraftMessage = function () {
         {name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true}
     ]);
 
+    var self = this;
     bridge.async({
         cmd: 'MessageStorage_addDraftMessage',
         args: {
             message: args.message,
-            serviceId: this.service.id
+            serviceId: self.service.id
         }
     }).then({
         success: function (data) {
             var message = data.message;
             if (message) {
+                var body = message.body;
+                if (body) {
+                    updateInternal_(args.message.body, body)
+                    delete message.body;
+                }
                 updateInternal_(args.message, message);
             }
 
