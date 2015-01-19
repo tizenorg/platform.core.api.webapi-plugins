@@ -125,7 +125,9 @@ void MessagesChangeCallback::added(const MessagePtrVector& msgs)
     picojson::object& obj = json->get<picojson::object>();
     obj[JSON_ACTION] = picojson::value(MESSAGESADDED);
     obj[JSON_DATA] = picojson::value(array);
-    MessagingInstance::getInstance().PostMessage(json->serialize().c_str());
+
+    PostQueue::getInstance().addAndResolve(obj.at(
+                JSON_CALLBACK_ID).get<double>(), PostPriority::MEDIUM, json->serialize());
 }
 
 void MessagesChangeCallback::updated(const MessagePtrVector& msgs)
@@ -156,7 +158,9 @@ void MessagesChangeCallback::updated(const MessagePtrVector& msgs)
     picojson::object& obj = json->get<picojson::object>();
     obj[JSON_ACTION] = picojson::value(MESSAGESUPDATED);
     obj[JSON_DATA] = picojson::value(array);
-    MessagingInstance::getInstance().PostMessage(json->serialize().c_str());
+
+    PostQueue::getInstance().addAndResolve(obj.at(
+                JSON_CALLBACK_ID).get<double>(), PostPriority::LOW, json->serialize());
 }
 
 void MessagesChangeCallback::removed(const MessagePtrVector& msgs)
@@ -189,8 +193,9 @@ void MessagesChangeCallback::removed(const MessagePtrVector& msgs)
     obj[JSON_ACTION] = picojson::value(MESSAGESREMOVED);
     LoggerD("MESSAGES: %s", picojson::value(array).serialize().c_str());
     obj[JSON_DATA] = picojson::value(array);
-    MessagingInstance::getInstance().PostMessage(json->serialize().c_str());
 
+    PostQueue::getInstance().addAndResolve(obj.at(
+                JSON_CALLBACK_ID).get<double>(), PostPriority::LAST, json->serialize());
 }
 
 void MessagesChangeCallback::setFilter(tizen::AbstractFilterPtr filter)

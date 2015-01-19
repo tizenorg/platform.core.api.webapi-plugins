@@ -98,7 +98,9 @@ void ConversationsChangeCallback::added(
     picojson::object& obj = json->get<picojson::object>();
     obj[JSON_ACTION] = picojson::value(CONVERSATIONSADDED);
     obj[JSON_DATA] = picojson::value(array);
-    MessagingInstance::getInstance().PostMessage(json->serialize().c_str());
+
+    PostQueue::getInstance().addAndResolve(obj.at(
+                JSON_CALLBACK_ID).get<double>(), PostPriority::MEDIUM, json->serialize());
 }
 
 void ConversationsChangeCallback::updated(
@@ -124,7 +126,9 @@ void ConversationsChangeCallback::updated(
     picojson::object& obj = json->get<picojson::object>();
     obj[JSON_ACTION] = picojson::value(CONVERSATIONSUPDATED);
     obj[JSON_DATA] = picojson::value(array);
-    MessagingInstance::getInstance().PostMessage(json->serialize().c_str());
+
+    PostQueue::getInstance().addAndResolve(obj.at(
+                JSON_CALLBACK_ID).get<double>(), PostPriority::LOW, json->serialize());
 }
 
 void ConversationsChangeCallback::removed(
@@ -150,7 +154,9 @@ void ConversationsChangeCallback::removed(
     picojson::object& obj = json->get<picojson::object>();
     obj[JSON_ACTION] = picojson::value(CONVERSATIONSREMOVED);
     obj[JSON_DATA] = picojson::value(array);
-    MessagingInstance::getInstance().PostMessage(json->serialize().c_str());
+
+    PostQueue::getInstance().addAndResolve(obj.at(
+                JSON_CALLBACK_ID).get<double>(), PostPriority::LAST, json->serialize());
 }
 
 void ConversationsChangeCallback::setFilter(tizen::AbstractFilterPtr filter)

@@ -4,7 +4,6 @@
 #include "messaging_util.h"
 
 #include <fstream>
-#include <map>
 #include <stdexcept>
 #include <streambuf>
 #include <sstream>
@@ -15,6 +14,7 @@
 #include "message_sms.h"
 #include "message_mms.h"
 #include "message_conversation.h"
+#include "messaging_instance.h"
 
 #include "tizen/tizen.h"
 #include "common/logger.h"
@@ -869,6 +869,167 @@ std::shared_ptr<MessageConversation> MessagingUtil::jsonToMessageConversation(co
 
     return conversation;
 }
+
+PostQueue& PostQueue::getInstance()
+{
+    LoggerD("Entered");
+    static PostQueue instance;
+    return instance;
+}
+
+PostQueue::PostQueue()
+{
+    LoggerD("Entered");
+}
+PostQueue::~PostQueue()
+{
+    LoggerD("Entered");
+}
+
+void PostQueue::addAndResolve(const long cid, PostPriority priority, const std::string json)
+{
+    LoggerD("Entered");
+
+    std::shared_ptr<PostTask> t(new PostTask(priority));
+    t->attach(json);
+    tasks_mutex_.lock();
+    tasks_.push_back(std::make_pair(cid, t));
+    tasks_mutex_.unlock();
+
+    resolve(PostPriority::HIGH);
+
+    return;
+}
+
+void PostQueue::add(const long cid, PostPriority priority)
+{
+    LoggerD("Entered");
+
+    tasks_mutex_.lock();
+    tasks_.push_back(std::make_pair(cid, std::shared_ptr<PostTask>(new PostTask(priority))));
+    tasks_mutex_.unlock();
+
+    return;
+}
+
+void PostQueue::resolve(const long cid, const std::string json)
+{
+    LoggerD("Entered");
+
+    tasks_mutex_.lock();
+
+    TasksCollection::iterator i;
+    i = std::find_if(tasks_.begin(), tasks_.end(), [&cid] (TasksCollectionItem item)->bool {
+        return (cid == item.first);
+    });
+
+    if (tasks_.end() == i) {
+        LoggerD("Not found cid");
+        tasks_mutex_.unlock();
+        return;
+    }
+
+    i->second->attach(json);
+    tasks_mutex_.unlock();
+
+    resolve(PostPriority::HIGH);
+    return;
+}
+
+void PostQueue::resolve(PostPriority p)
+{
+    LoggerD("Entered");
+
+    TasksCollection::iterator i;
+
+    tasks_mutex_.lock();
+    i = std::find_if(tasks_.begin(), tasks_.end(), [&p] (TasksCollectionItem item)->bool {
+        return (p == item.second->priority());
+    });
+
+    if (tasks_.end() == i) {
+        // not found
+        tasks_mutex_.unlock();
+
+        if (PostPriority::LAST != p) {
+            return resolve(static_cast<PostPriority>(p-1));
+        } else {
+            return;
+        }
+    }
+
+    if (TaskState::READY == i->second->state()) {
+        i->second->resolve();
+        std::string json = i->second->json();
+
+        i = tasks_.erase(i);
+        tasks_mutex_.unlock();
+
+        MessagingInstance::getInstance().PostMessage(json.c_str());
+    } else if (TaskState::NEW == i->second->state()) {
+        tasks_mutex_.unlock();
+
+        return;
+    } else if (TaskState::DONE == i->second->state()) {
+        i = tasks_.erase(i);
+        tasks_mutex_.unlock();
+    }
+
+    return resolve(static_cast<PostPriority>(p));
+}
+
+PostQueue::PostTask::PostTask()
+{
+    LoggerD("Entered");
+    priority_ = PostPriority::LOW;
+    state_ = TaskState::NEW;
+}
+PostQueue::PostTask::PostTask(PostPriority p)
+{
+    LoggerD("Entered");
+    priority_ = p;
+    state_ = TaskState::NEW;
+}
+PostQueue::PostTask::~PostTask()
+{
+    LoggerD("Entered");
+}
+
+void PostQueue::PostTask::attach(const std::string j)
+{
+    LoggerD("Entered");
+    if (TaskState::DONE == state_) {
+        return;
+    }
+    json_ = j;
+    state_ = TaskState::READY;
+    return;
+}
+
+PostPriority PostQueue::PostTask::priority()
+{
+    return priority_;
+}
+
+PostQueue::TaskState PostQueue::PostTask::state()
+{
+    return state_;
+}
+
+std::string PostQueue::PostTask::json()
+{
+    return json_;
+}
+
+void PostQueue::PostTask::resolve()
+{
+    LoggerD("Entered");
+    if (TaskState::READY == state_) {
+        state_ = TaskState::DONE;
+    }
+    return;
+}
+
 
 } // messaging
 } // extension
