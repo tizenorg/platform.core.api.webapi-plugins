@@ -388,11 +388,18 @@ UnicodeString TimeInstance::getDateTimeFormat(DateTimeFormatType type,
     if (type != TIME_FORMAT) skeleton = UDAT_YEAR_MONTH_WEEKDAY_DAY;
 
 #if defined(TIZEN)
+    int ret = 0;
     int value = 0;
-    if (vconf_get_int(VCONFKEY_REGIONFORMAT_TIME1224, &value) == -1)
+    ret = vconf_get_int(VCONFKEY_REGIONFORMAT_TIME1224, &value);
+    // if failed, set default time format
+    if (-1 == ret) {
+      value = VCONFKEY_TIME_FORMAT_12;
+    }
+    if (VCONFKEY_TIME_FORMAT_12 == value) {
       skeleton += "hhmmss";
-    else
+    } else {
       skeleton += "HHmmss";
+    }
 #else
     skeleton += "hhmmss";
 #endif
