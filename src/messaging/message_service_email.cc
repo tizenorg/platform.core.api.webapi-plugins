@@ -262,7 +262,7 @@ void MessageServiceEmail::stopSync(long op_id)
     long* data = new long(op_id);
     guint id = g_idle_add(stopSyncTask, static_cast<void*>(data));
     if (!id) {
-        LOGE("g_idle_add failed");
+        LoggerE("g_idle_add failed");
         delete data;
         data = NULL;
         throw common::UnknownException("Could not add task");

@@ -93,7 +93,7 @@ void Proxy::signalCallbackProxy(GDBusConnection *connection,
     try {
         //It is better to log this only when subclass is responsible of handling
         //passed signal. If you need it put it into your signalCallback(...) method
-        //LOGD("signal: %s from: %s path: %s interface: %s",
+        //LoggerD("signal: %s from: %s path: %s interface: %s",
         //        signal_name, sender_name, object_path, interface_name);
 
         this_ptr->signalCallback(connection, sender_name, object_path, interface_name,

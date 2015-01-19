@@ -13,6 +13,7 @@
 #include <email-api-account.h>
 #include "message_email.h"
 #include "message_sms.h"
+#include "message_mms.h"
 #include "message_conversation.h"
 
 #include "tizen/tizen.h"
@@ -254,7 +255,7 @@ std::string MessagingUtil::loadFileContentToString(const std::string& file_path)
 }
 
 std::string MessagingUtil::messageStatusToString(MessageStatus status) {
-    LOGD("Converting MessageStatus %d to string.", (int)status);
+    LoggerD("Converting MessageStatus %d to string.", (int)status);
     switch(status) {
         case STATUS_SENT:
             return SENT;
@@ -268,7 +269,7 @@ std::string MessagingUtil::messageStatusToString(MessageStatus status) {
         // According to Web API documentation: If the status of the current
         // message does not correspond to any item from the list, an empty
         // value is returned.
-            LOGD("Unsupported or undefined MessageStatus");
+            LoggerD("Unsupported or undefined MessageStatus");
             return "";
     }
 }
@@ -297,8 +298,6 @@ picojson::value MessagingUtil::messageToJson(std::shared_ptr<Message> message)
     case MessageType::SMS:
         break;
     case MessageType::MMS:
-        LoggerD("Currently unsupported");
-        // TODO add class which will extended message_service and call message_service_short_msg
         o[MESSAGE_ATTRIBUTE_HAS_ATTACHMENT] = picojson::value(message->getHasAttachment());
         o[MESSAGE_ATTRIBUTE_SUBJECT] = picojson::value(message->getSubject());
         break;
@@ -413,11 +412,14 @@ picojson::value MessagingUtil::conversationToJson(std::shared_ptr<MessageConvers
         case MessageType::SMS:
             break;
         case MessageType::MMS:
+            o[MESSAGE_ATTRIBUTE_SUBJECT] = picojson::value(conversation->getSubject());
+            break;
         case MessageType::EMAIL:
+            o[MESSAGE_ATTRIBUTE_SUBJECT] = picojson::value(conversation->getSubject());
 
             std::vector<std::string> to = conversation->getTo();
             for_each(to.begin(), to.end(), vectorToArray);
-            o[MESSAGE_ATTRIBUTE_IN_RESPONSE_TO] = picojson::value(array);
+            o[MESSAGE_ATTRIBUTE_TO] = picojson::value(array);
             array.clear();
 
             std::vector<std::string> cc = conversation->getCC();
@@ -430,7 +432,6 @@ picojson::value MessagingUtil::conversationToJson(std::shared_ptr<MessageConvers
             o[MESSAGE_ATTRIBUTE_BCC] = picojson::value(array);
             array.clear();
 
-            o[MESSAGE_ATTRIBUTE_SUBJECT] = picojson::value(conversation->getSubject());
             break;
         }
 
@@ -472,17 +473,19 @@ std::shared_ptr<Message> MessagingUtil::jsonToMessage(const picojson::value& jso
     switch (mtype) {
     case MessageType::SMS:
         LoggerD("SMS type");
-        if (!data.at(MESSAGE_ATTRIBUTE_ID).is<picojson::null>()) {
+        if(data.at(MESSAGE_ATTRIBUTE_ID).is<picojson::null>()) {
+            message = std::shared_ptr<Message>(new MessageSMS());
+            break;
+        }
+    case MessageType::MMS:
+        LoggerD("MMS type");
+        if(data.at(MESSAGE_ATTRIBUTE_ID).is<picojson::null>()) {
+            message = std::shared_ptr<Message>(new MessageMMS());
+        } else {
             std::string mid = data.at(MESSAGE_ATTRIBUTE_ID).get<std::string>();
             int message_id = std::atoi(mid.c_str());
             message = Message::findShortMessageById(message_id);
-        } else {
-            message = std::shared_ptr<Message>(new MessageSMS());
         }
-        break;
-    case MessageType::MMS:
-        LoggerD("Currently unsupported");
-        // TODO add class which will extended message_service and call message_service_short_msg
         break;
     case MessageType::EMAIL:
         if (!data.at(MESSAGE_ATTRIBUTE_ID).is<picojson::null>()) {

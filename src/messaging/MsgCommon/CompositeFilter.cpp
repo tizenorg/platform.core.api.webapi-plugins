@@ -70,7 +70,7 @@ const AbstractFilterPtrVector& CompositeFilter::getFilters() const
 //JSFilterArray CompositeFilter::getJSFilters(JSContextRef global_ctx)
 //{
 //    if (!m_context && !global_ctx) {
-//        LOGE("Context is not set");
+//        LoggerE("Context is not set");
 //        throw Common::UnknownException("Context is not set");
 //    }
 //    else if (!m_context && global_ctx) {
@@ -79,7 +79,7 @@ const AbstractFilterPtrVector& CompositeFilter::getFilters() const
 //
 //    if (!Common::GlobalContextManager::getInstance()->isAliveGlobalContext(
 //            m_context)) {
-//        LOGE("Context is not alive");
+//        LoggerE("Context is not alive");
 //        throw Common::UnknownException("Context is not alive");
 //    }
 //    else if (!m_js_filters) {

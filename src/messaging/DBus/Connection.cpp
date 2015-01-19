@@ -28,7 +28,7 @@ namespace DBus {
 
 Connection& Connection::getInstance()
 {
-    LOGD("Entered");
+    LoggerD("Entered");
     static Connection instance;
     return instance;
 }

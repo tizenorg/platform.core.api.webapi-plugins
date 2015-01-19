@@ -14,7 +14,7 @@ std::map<unsigned int, std::string>& MessageAttachment::MIMETypeEnumToStringMap 
 
 MessageAttachment::MessageAttachment()
 {
-    LOGD("MessageAttachment constructor (%p)", this);
+    LoggerD("MessageAttachment constructor (%p)", this);
     m_id = -1;
     m_isIdSet = false;
     m_messageId = -1;
@@ -28,7 +28,7 @@ MessageAttachment::MessageAttachment()
 
 MessageAttachment::~MessageAttachment()
 {
-    LOGD("MessageAttachment destructor (%p)", this);
+    LoggerD("MessageAttachment destructor (%p)", this);
 }
 
 // id
@@ -561,8 +561,8 @@ void MessageAttachment::updateWithAttachmentData(const email_attachment_data_t& 
     if (attachment_data.attachment_path) {
         setFilePath(attachment_data.attachment_path);
 
-        LOGD("save status: %d", attachment_data.save_status);
-        LOGD("attachment_size : %d", attachment_data.attachment_size);
+        LoggerD("save status: %d", attachment_data.save_status);
+        LoggerD("attachment_size : %d", attachment_data.attachment_size);
         isSaved = attachment_data.save_status;
     }
 

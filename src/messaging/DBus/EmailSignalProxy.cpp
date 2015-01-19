@@ -64,7 +64,7 @@ void EmailSignalProxy::signalCallback(GDBusConnection* connection,
         //It is better to log this only when subclass is responsible of handling
         //passed signal (usually determined by status value).
         //
-        //LOGD("email:\n  status: %d\n  mail_id: %d\n  "
+        //LoggerD("email:\n  status: %d\n  mail_id: %d\n  "
         //        "source: %s\n  op_handle: %d\n  error_code: %d",
         //        status, mail_id, source, op_handle, error_code);
 

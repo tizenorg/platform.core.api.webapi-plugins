@@ -43,56 +43,6 @@ FilterType AbstractFilter::getFilterType() const
     return m_filter_type;
 }
 
-//JSValueRef AbstractFilter::makeJSValue(JSContextRef context,
-//        AbstractFilterPtr native)
-//{
-//    LOGD("Entered");
-//
-//    if (!native) {
-//        LOGE("Native is null");
-//        throw UnknownException("Native is null");
-//    }
-//
-//    switch (native->getFilterType()) {
-//        case ATTRIBUTE_FILTER:
-//            return JSAttributeFilter::makeJSObject(context, native);
-//        case ATTRIBUTE_RANGE_FILTER:
-//            return JSAttributeRangeFilter::makeJSObject(context, native);
-//        case COMPOSITE_FILTER:
-//            return JSCompositeFilter::makeJSObject(context, native);
-//        default:
-//            LOGE("Unsupported filter type");
-//            throw UnknownException("Unsupported filter type");
-//    }
-//}
-//
-//AbstractFilterPtr AbstractFilter::getPrivateObject(JSContextRef context,
-//        JSValueRef value)
-//{
-//    JSObjectRef object = JSUtil::JSValueToObject(context, value);
-//
-//    if (!JSValueIsObjectOfClass(context, value, JSAttributeFilter::getClassRef()) &&
-//        !JSValueIsObjectOfClass(context, value, JSAttributeRangeFilter::getClassRef()) &&
-//        !JSValueIsObjectOfClass(context, value, JSCompositeFilter::getClassRef())) {
-//        LOGE("JSObjectRef:%p - Object type is not JSAttributeFilter, "
-//                "JSAttributeRangeFilter nor JSCompositeFilter", object);
-//        throw TypeMismatchException("Object type is not valid filter");
-//    }
-//
-//    AbstractFilterHolder* priv =
-//            static_cast<AbstractFilterHolder*>(JSObjectGetPrivate(object));
-//    if (!priv) {
-//        LOGE("Holder is null");
-//        throw UnknownException("Holder is null");
-//    }
-//    if (!(priv->ptr)) {
-//        LOGE("Priv is null");
-//        throw UnknownException("Priv is null");
-//    }
-//    return priv->ptr;
-//}
-
-
 bool AbstractFilter::isMatching(const FilterableObject* const tested_object) const
 {
     LoggerE("Calling isMatching on AbstractFilter!");
