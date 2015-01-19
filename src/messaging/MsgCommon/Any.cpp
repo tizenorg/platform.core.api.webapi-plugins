@@ -16,6 +16,8 @@
 //
 
 #include "Any.h"
+
+#include <stdexcept>
 //#include <JSUtil.h>
 
 namespace extension {
@@ -99,15 +101,18 @@ std::string Any::toString() const
 
 std::tm* Any::toDateTm() const
 {
-    //TODO is it ok?
-    std::time_t time = static_cast<std::time_t>(m_value.get<double>());
-    return gmtime(&time);
+    std::tm* tm = new std::tm();
+    strptime(toString().c_str(), "%Y-%m-%dT%H:%M:%S.%zZ", tm);
+    return tm;
 }
 
 std::time_t Any::toTimeT() const
 {
-    //TODO is it ok?
-    return static_cast<std::time_t>(m_value.get<double>());
+    std::time_t current_time;
+    std::time(&current_time);
+    std::tm* timeinfo = std::localtime(&current_time);
+    long offset = timeinfo->tm_gmtoff;
+    return (mktime(toDateTm()) + offset) * 1000;
 }
 
 } // Tizen

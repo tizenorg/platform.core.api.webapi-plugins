@@ -110,9 +110,9 @@ class ChangeListenerContainer {
          * collections to simplyfy adding ang searching on call */
 
         // Callbacks for short messages service
-        //MCLmap m_short_message_callbacks;
-        //CCLmap m_short_conversation_callbacks;
-        //FCLmap m_short_folder_callbacks;
+        MCLmap m_short_message_callbacks;
+        CCLmap m_short_conversation_callbacks;
+        FCLmap m_short_folder_callbacks;
 
         // Callbacks for email service
         MCLmap m_email_message_callbacks;

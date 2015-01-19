@@ -406,8 +406,8 @@ void MessagingInstance::MessageStorageFindMessages(const picojson::value& args,
     picojson::object data = args.get(JSON_DATA).get<picojson::object>();
     const double callbackId = args.get(JSON_CALLBACK_ID).get<double>();
 
-    // TODO add support to AttributeRangeFilter
-    auto filter = MessagingUtil::jsonToAttributeFilter(data);
+    // TODO add support to CompositeFilter
+    auto filter = MessagingUtil::jsonToAbstractFilter(data);
     auto sortMode = MessagingUtil::jsonToSortMode(data);
 
     long limit = static_cast<long>
@@ -498,8 +498,8 @@ void MessagingInstance::MessageStorageFindConversations(const picojson::value& a
     picojson::object data = args.get(JSON_DATA).get<picojson::object>();
     const double callbackId = args.get(JSON_CALLBACK_ID).get<double>();
 
-    // TODO add support to AttributeRangeFilter
-    auto filter = MessagingUtil::jsonToAttributeFilter(data);
+    // TODO add support to CompositeFilter
+    auto filter = MessagingUtil::jsonToAbstractFilter(data);
     auto sortMode = MessagingUtil::jsonToSortMode(data);
     long limit = static_cast<long>
             (MessagingUtil::getValueFromJSONObject<double>(data, FIND_CONVERSATIONS_ARGS_LIMIT));
@@ -557,8 +557,8 @@ void MessagingInstance::MessageStorageFindFolders(const picojson::value& args,
     picojson::object data = args.get(JSON_DATA).get<picojson::object>();
     const double callbackId = args.get(JSON_CALLBACK_ID).get<double>();
 
-    // TODO add support to AttributeRangeFilter
-    auto filter = MessagingUtil::jsonToAttributeFilter(data);
+    // TODO add support to CompositeFilter
+    auto filter = MessagingUtil::jsonToAbstractFilter(data);
     int serviceId = static_cast<int>(data.at(FUNCTIONS_HIDDEN_ARGS_SERVICE_ID).get<double>());
 
     FoldersCallbackData* callback = new FoldersCallbackData();
@@ -586,8 +586,7 @@ void MessagingInstance::MessageStorageAddMessagesChangeListener(const picojson::
     std::shared_ptr<MessagesChangeCallback> callback(new MessagesChangeCallback(
                 callbackId, serviceId, service->getMsgServiceType()));
 
-    // TODO filter
-    // callback->setFilter(tizen::AbstractFilterPtr(new tizen::AbstractFilter()));
+    callback->setFilter(MessagingUtil::jsonToAbstractFilter(data));
 
     long op_id = service->getMsgStorage()->addMessagesChangeListener(callback);
 
@@ -608,8 +607,7 @@ void MessagingInstance::MessageStorageAddConversationsChangeListener(const picoj
     std::shared_ptr<ConversationsChangeCallback> callback(new ConversationsChangeCallback(
                 callbackId, serviceId, service->getMsgServiceType()));
 
-    // TODO filter
-    // callback->setFilter(tizen::AbstractFilterPtr(new tizen::AbstractFilter()));
+    callback->setFilter(MessagingUtil::jsonToAbstractFilter(data));
 
     long op_id = service->getMsgStorage()->addConversationsChangeListener(callback);
 
@@ -630,8 +628,7 @@ void MessagingInstance::MessageStorageAddFolderChangeListener(const picojson::va
     std::shared_ptr<FoldersChangeCallback> callback(new FoldersChangeCallback(
                 callbackId, serviceId, service->getMsgServiceType()));
 
-    // TODO filter
-    // callback->setFilter(tizen::AbstractFilterPtr(new tizen::AbstractFilter()));
+    callback->setFilter(MessagingUtil::jsonToAbstractFilter(data));
 
     long op_id = service->getMsgStorage()->addFoldersChangeListener(callback);
 

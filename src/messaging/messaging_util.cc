@@ -103,6 +103,12 @@ const std::string JSON_TO_SORT = "sort";
 const std::string JSON_TO_FILTER = "filter";
 const std::string JSON_TO_MATCH_FLAG = "matchFlag";
 const std::string JSON_TO_MATCH_VALUE = "matchValue";
+const std::string JSON_TO_INITIAL_VALUE = "initialValue";
+const std::string JSON_TO_END_VALUE = "endValue";
+
+const char* JSON_FILTER_ATTRIBUTE_TYPE = "AttributeFilter";
+const char* JSON_FILTER_ATTRIBUTERANGE_TYPE = "AttributeRangeFilter";
+const char* JSON_FILTER_COMPOSITE_TYPE = "CompositeFilter";
 
 const std::map<std::string, MessageType> stringToTypeMap = {
     {TYPE_SMS, MessageType::SMS},
@@ -659,13 +665,39 @@ tizen::SortModePtr MessagingUtil::jsonToSortMode(const picojson::object& json)
     return SortModePtr(new SortMode(name, order));
 }
 
-tizen::AttributeFilterPtr MessagingUtil::jsonToAttributeFilter(const picojson::object& json)
+tizen::AbstractFilterPtr MessagingUtil::jsonToAbstractFilter(const picojson::object& json)
+{
+    LoggerD("Entered");
+
+    if (json.at(JSON_TO_FILTER).is<picojson::null>()) {
+        return AbstractFilterPtr();
+    }
+
+    auto filter = getValueFromJSONObject<picojson::object>(json, JSON_TO_FILTER);
+    std::string type = getValueFromJSONObject<std::string>(filter, "type");
+
+    if( JSON_FILTER_ATTRIBUTE_TYPE == type ){
+        return jsonFilterToAttributeFilter(filter);
+    }
+    if( JSON_FILTER_ATTRIBUTERANGE_TYPE == type ){
+        return jsonFilterToAttributeRangeFilter(filter);
+    }
+    if( JSON_FILTER_COMPOSITE_TYPE == type ) {
+        //TODO jsonToCompositeFilter
+        LoggerD("Composite filter currently not supported");
+    }
+
+    LoggerE("Unsupported filter type");
+    throw common::TypeMismatchException("Unsupported filter type");
+    return AbstractFilterPtr();
+}
+
+tizen::AttributeFilterPtr MessagingUtil::jsonFilterToAttributeFilter(const picojson::object& filter)
 {
     LoggerD("Entered");
 
     using namespace tizen;
 
-    auto filter = getValueFromJSONObject<picojson::object>(json, JSON_TO_FILTER);
     auto name = getValueFromJSONObject<std::string>(filter, JSON_TO_ATTRIBUTE_NAME);
     auto matchFlagStr = getValueFromJSONObject<std::string>(filter, JSON_TO_MATCH_FLAG);
 
@@ -698,6 +730,19 @@ tizen::AttributeFilterPtr MessagingUtil::jsonToAttributeFilter(const picojson::o
     attributePtr->setMatchFlag(filterMatch);
     attributePtr->setMatchValue(AnyPtr(new Any(filter.at(JSON_TO_MATCH_VALUE))));
     return attributePtr;
+}
+
+tizen::AttributeRangeFilterPtr MessagingUtil::jsonFilterToAttributeRangeFilter(const picojson::object& filter)
+{
+    LoggerD("Entered");
+
+    auto name = getValueFromJSONObject<std::string>(filter, JSON_TO_ATTRIBUTE_NAME);
+
+    auto attributeRangePtr = tizen::AttributeRangeFilterPtr(new tizen::AttributeRangeFilter(name));
+    attributeRangePtr->setInitialValue(AnyPtr(new Any(filter.at(JSON_TO_INITIAL_VALUE))));
+    attributeRangePtr->setEndValue(AnyPtr(new Any(filter.at(JSON_TO_END_VALUE))));
+
+    return  attributeRangePtr;
 }
 
 std::shared_ptr<MessageAttachment> MessagingUtil::jsonToMessageAttachment(const picojson::value& json)

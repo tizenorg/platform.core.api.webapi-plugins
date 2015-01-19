@@ -123,7 +123,7 @@ public:
     static std::shared_ptr<MessageBody> jsonToMessageBody(const picojson::value& json);
     static std::shared_ptr<MessageFolder> jsonToMessageFolder(const picojson::value& json);
     static tizen::SortModePtr jsonToSortMode(const picojson::object& json);
-    static tizen::AttributeFilterPtr jsonToAttributeFilter(const picojson::object& json);
+    static tizen::AbstractFilterPtr jsonToAbstractFilter(const picojson::object& json);
     static std::shared_ptr<MessageConversation> jsonToMessageConversation(const picojson::value& json);
     static std::shared_ptr<MessageAttachment> jsonToMessageAttachment(const picojson::value& json);
 
@@ -152,6 +152,10 @@ public:
     */
     static std::string loadFileContentToString(const std::string& file_path);
     static std::string messageStatusToString(MessageStatus status);
+
+private:
+    static tizen::AttributeFilterPtr jsonFilterToAttributeFilter(const picojson::object& json);
+    static tizen::AttributeRangeFilterPtr jsonFilterToAttributeRangeFilter(const picojson::object& json);
 };
 
 } // messaging

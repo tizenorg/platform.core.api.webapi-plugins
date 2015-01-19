@@ -17,6 +17,7 @@ var Property = {
     E: 1 << 1,   // ENUMERABLE
     C: 1 << 2    // CONFIGURABLE
 }
+
 //TODO remove CommonFS when C++ filesystem will be available
 function CommonFS(){};
 CommonFS.cacheVirtualToReal = {
@@ -33,7 +34,7 @@ CommonFS.toRealPath = function (aPath) {
         _uriPrefix = 'file://',
         i;
     if (aPath.indexOf(_uriPrefix) === 0) {
-        _fileRealPath = aPath.substr(_uriPrefix.length);
+        _fileRealPath = aPath; /*.substr(_uriPrefix.length);*/
     } else if (aPath[0] != '/') {
         //virtual path$
         var _pathTokens = aPath.split('/');
@@ -52,6 +53,24 @@ CommonFS.toRealPath = function (aPath) {
     }
     return _fileRealPath;
 };
+
+function addTypeToFilter_(data)
+{
+    var filter = {};
+
+    for(var field in data) {
+        filter[field] = data[field];
+    }
+
+    if (data instanceof tizen.AttributeFilter) {
+        filter.type = "AttributeFilter";
+    }
+    if (data instanceof tizen.AttributeRangeFilter) {
+        filter.type = "AttributeRangeFilter";
+    }
+
+    return filter;
+}
 
 /**
  * Example usage:
@@ -227,7 +246,7 @@ function Message(type, data) {
         this,
         'timestamp',
         {
-            get: function () {return _internal.timestamp;},
+            get: function () {return new Date(_internal.timestamp);},
             set: function (value) {
                 if (value instanceof InternalValues_) _internal.timestamp = value.timestamp;
             },
@@ -812,7 +831,7 @@ MessageStorage.prototype.findMessages = function () {
     bridge.async({
         cmd: 'MessageStorage_findMessages',
         args: {
-            filter: args.filter || null,
+            filter: addTypeToFilter_(args.filter) || null,
             sort: args.sort || null,
             limit: args.limit || null,
             offset: args.offset || null,
@@ -919,7 +938,7 @@ MessageStorage.prototype.findConversations = function () {
     bridge.async({
         cmd: 'MessageStorage_findConversations',
         args: {
-            filter: args.filter,
+            filter: addTypeToFilter_(args.filter),
             sort: args.sort || null,
             limit: args.limit || null,
             offset: args.offset || null,
@@ -995,7 +1014,7 @@ MessageStorage.prototype.findFolders = function () {
     bridge.async({
         cmd: 'MessageStorage_findFolders',
         args: {
-            filter: args.filter,
+            filter: addTypeToFilter_(args.filter),
             sort: args.sort || null,
             limit: args.limit || null,
             offset: args.offset || null,
@@ -1064,7 +1083,7 @@ MessageStorage.prototype.addMessagesChangeListener = function () {
         cmd: 'MessageStorage_addMessagesChangeListener',
         cid: cid,
         args: {
-            filter: args.filter || null,
+            filter: args.filter ? addTypeToFilter_(args.filter) : null,
             serviceId: self.service.id
         }
     });
@@ -1117,7 +1136,7 @@ MessageStorage.prototype.addConversationsChangeListener = function () {
         cmd: 'MessageStorage_addConversationsChangeListener',
         cid: cid,
         args: {
-            filter: args.filter || null,
+            filter: args.filter ? addTypeToFilter_(args.filter) : null,
             serviceId: self.service.id
         }
     });
@@ -1170,7 +1189,7 @@ MessageStorage.prototype.addFoldersChangeListener = function () {
         cmd: 'MessageStorage_addFoldersChangeListener',
         cid: cid,
         args: {
-            filter: args.filter || null,
+            filter: args.filter ? addTypeToFilter_(args.filter) : null,
             serviceId: self.service.id
         }
     });
