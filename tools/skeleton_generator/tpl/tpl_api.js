@@ -129,8 +129,10 @@ function {{iface.name}}(
     {'name': '{{arg.name}}', 'type': types_.{{arg.validation[0]}}
         {%- if arg.validation[1] -%}
         , 'values': {{arg.validation[1]}} 
-        {%- endif -%} }
-        {%- if not loop.last %},{% endif %}
+        {%- endif -%}
+        {%- if arg.optional -%}, 'optional': true{% endif -%}
+        {%- if arg.xtype.nullable -%}, 'nullable': true{% endif -%}
+    }{%- if not loop.last %},{% endif %}
 
     {% endfor %}
   ]);
