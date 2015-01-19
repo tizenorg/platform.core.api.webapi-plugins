@@ -180,7 +180,7 @@ function Message(type, data) {
         folderId: folderId || null,
         type: type,
         timestamp: timestamp || null,
-        from: from || null,
+        from: from,
         to: to || [],
         cc: cc || [],
         bcc: bcc || [],
@@ -189,7 +189,7 @@ function Message(type, data) {
         hasAttachment: hasAttachment || false,
         isHighPriority: data.isHighPriority || false,
         subject: data.subject || '',
-        inResponseTo: inResponseTo || '',
+        inResponseTo: inResponseTo || null,
         attachments: attachments
     };
     // id
@@ -246,9 +246,13 @@ function Message(type, data) {
         this,
         'timestamp',
         {
-            get: function () {return new Date(_internal.timestamp);},
+            get: function () {
+                return _internal.timestamp ? new Date(_internal.timestamp) : _internal.timestamp;
+            },
             set: function (value) {
-                if (value instanceof InternalValues_) _internal.timestamp = value.timestamp;
+                if (value instanceof InternalValues_) {
+                    _internal.timestamp = value.timestamp;
+                }
             },
             enumerable: true
         }
@@ -330,8 +334,8 @@ function Message(type, data) {
         {
             get: function () {return _internal.isRead;},
             set: function (value) {
-                if (value instanceof InternalValues_) value = value.isRead;
-                _internal.isRead = value;
+                if (value instanceof InternalValues_) {value = value.isRead;}
+                _internal.isRead = !!value;
             },
             enumerable: true
         }
@@ -359,7 +363,7 @@ function Message(type, data) {
             get: function () {return _internal.isHighPriority;},
             set: function (value) {
                 if (value instanceof InternalValues_) value = value.isHighPriority;
-                _internal.isHighPriority = value;
+                _internal.isHighPriority = !!value;
             },
             enumerable: true
         }
@@ -373,8 +377,7 @@ function Message(type, data) {
             get: function () {return _internal.subject;},
             set: function (value) {
                 if (value instanceof InternalValues_) value = value.subject;
-                if (typeof value !== 'string') return;
-                _internal.subject = value;
+                _internal.subject = String(value);
             },
             enumerable: true
         }
@@ -466,7 +469,7 @@ function MessageInit_(data) {
     this.conversationId = data.conversationId || null;
     this.folderId       = data.folderId       || null;
     this.timestamp      = data.timestamp      || null;
-    this.from           = data.from           || null;
+    this.from           = data.from           || '';
     this.to             = data.to             || [];
     this.cc             = data.cc             || [];
     this.bcc            = data.bcc            || [];
@@ -607,7 +610,7 @@ function MessageAttachment(filePath, mimeType) {
     if (!this.messageId) {
         propertyFactory_(this, 'messageId', null, Property.E);
     }
-    propertyFactory_(this, 'mimeType', mimeType || '', Property.E);
+    propertyFactory_(this, 'mimeType', mimeType || null, Property.E);
     propertyFactory_(this, 'filePath', filePath || '', Property.E);
 
     return this;
@@ -678,8 +681,18 @@ MessageService.prototype.sendMessage = function () {
         }
     }).then({
         success: function (data) {
+            var message = data.message;
+            if (message) {
+                var body = message.body;
+                if (body) {
+                    updateInternal_(args.message.body, body)
+                    delete message.body;
+                }
+                updateInternal_(args.message, message);
+            }
+
             if (args.successCallback) {
-                args.successCallback.call(null, data);
+                args.successCallback.call(null, data.recipients);
             }
         },
         error: function (e) {
@@ -993,7 +1006,23 @@ MessageStorage.prototype.updateMessages = function () {
             serviceId: self.service.id
         }
     }).then({
-        success: function () {
+        success: function (data) {
+            var originals = {};
+            args.messages.forEach(function (m) {
+                if (m.id) {
+                    originals[m.id] = m;
+                }
+            });
+            data.forEach(function (message) {
+                if (!originals[message.id]) {return;}
+                var body = message.body;
+                if (body) {
+                    updateInternal_(originals[message.id].body, body)
+                    delete message.body;
+                }
+                updateInternal_(originals[message.id], message);
+            });
+
             if (args.successCallback) {
                 args.successCallback.call(null);
             }
@@ -1323,14 +1352,90 @@ function MessageConversation(data) {
 };
 
 function MessageFolder(data) {
-    propertyFactory_(this, 'id'            , data.id             || null , Property.E             );
-    propertyFactory_(this, 'parentId'      , data.parentId       || null , Property.E             );
-    propertyFactory_(this, 'serviceId'     , data.serviceId      || ''   , Property.E             );
-    propertyFactory_(this, 'contentType'   , data.contentType    || ''   , Property.E             );
-    propertyFactory_(this, 'name'          , data.name           || ''   , Property.E | Property.W); // TODO: setraises
-    propertyFactory_(this, 'path'          , data.path           || ''   , Property.E             );
-    propertyFactory_(this, 'type'          , data.type           || ''   , Property.E             );
-    propertyFactory_(this, 'synchronizable', data.synchronizable || false, Property.E | Property.W); // TODO: setraises
+    var _internal = {
+            id: data.id || null,
+            parentId: data.parentId || null,
+            serviceId: data.serviceId || '',
+            contentType: data.contentType || '',
+            name: data.name || '',
+            path: data.path || '',
+            type: data.type || '',
+            synchronizable: data.synchronizable || false
+        };
+
+        Object.defineProperty(
+            this,
+            'id',
+            {
+                get: function () {return _internal.id;},
+                enumerable: true
+            }
+        );
+
+        Object.defineProperty(
+                this,
+                'parentId',
+                {
+                    get: function () {return _internal.parentId;},
+                    enumerable: true
+                }
+        );
+
+        Object.defineProperty(
+                this,
+                'serviceId',
+                {
+                    get: function () {return _internal.serviceId;},
+                    enumerable: true
+                }
+        );
+
+        Object.defineProperty(
+                this,
+                'contentType',
+                {
+                    get: function () {return _internal.contentType;},
+                    enumerable: true
+                }
+        );
+
+        Object.defineProperty(
+                this,
+                'name',
+                {
+                    get: function () {return _internal.name;},
+                    set: function (value) { if (value) _internal.name = value;},
+                    enumerable: true
+                }
+        );
+
+        Object.defineProperty(
+                this,
+                'path',
+                {
+                    get: function () {return _internal.path;},
+                    enumerable: true
+                }
+        );
+
+        Object.defineProperty(
+                this,
+                'type',
+                {
+                    get: function () {return _internal.type;},
+                    enumerable: true
+                }
+        );
+
+        Object.defineProperty(
+                this,
+                'synchronizable',
+                {
+                    get: function () {return _internal.synchronizable;},
+                    set: function (value) { if (value) _internal.synchronizable = value;},
+                    enumerable: true
+                }
+        );
 };
 
 tizen.Message = Message;

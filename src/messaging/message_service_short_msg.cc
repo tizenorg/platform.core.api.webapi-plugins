@@ -125,7 +125,6 @@ static gboolean loadMessageBodyTask(void* data)
 
     try {
         std::shared_ptr<MessageBody> body = callback->getMessage()->getBody();
-        body->setLoaded(true);
         auto json = callback->getJson();
         picojson::object& obj = json->get<picojson::object>();
         obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);

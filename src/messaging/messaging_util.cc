@@ -33,6 +33,7 @@ const char* JSON_DATA = "args";
 const char* JSON_DATA_MESSAGE = "message";
 const char* JSON_DATA_MESSAGE_BODY = "messageBody";
 const char* JSON_DATA_MESSAGE_ATTACHMENT = "messageAttachment";
+const char* JSON_DATA_RECIPIENTS = "recipients";
 const char* JSON_ERROR_MESSAGE = "message";
 const char* JSON_ERROR_NAME = "name";
 
@@ -341,7 +342,7 @@ picojson::value MessagingUtil::messageToJson(std::shared_ptr<Message> message)
     o[MESSAGE_ATTRIBUTE_FROM] =
             message->is_from_set()
             ? picojson::value(message->getFrom())
-            : picojson::value();
+            : picojson::value(std::string(""));
 
     std::vector<std::string> to = message->getTO();
     for_each(to.begin(), to.end(), vectorToArray);
@@ -408,6 +409,11 @@ picojson::value MessagingUtil::conversationToJson(std::shared_ptr<MessageConvers
         array.push_back(picojson::value(s));
     };
 
+    std::vector<std::string> to = conversation->getTo();
+    for_each(to.begin(), to.end(), vectorToArray);
+    o[MESSAGE_ATTRIBUTE_TO] = picojson::value(array);
+    array.clear();
+
     switch (conversation->getType()) {
         case MessageType::SMS:
             break;
@@ -416,11 +422,6 @@ picojson::value MessagingUtil::conversationToJson(std::shared_ptr<MessageConvers
             break;
         case MessageType::EMAIL:
             o[MESSAGE_ATTRIBUTE_SUBJECT] = picojson::value(conversation->getSubject());
-
-            std::vector<std::string> to = conversation->getTo();
-            for_each(to.begin(), to.end(), vectorToArray);
-            o[MESSAGE_ATTRIBUTE_TO] = picojson::value(array);
-            array.clear();
 
             std::vector<std::string> cc = conversation->getCC();
             for_each(cc.begin(), cc.end(), vectorToArray);

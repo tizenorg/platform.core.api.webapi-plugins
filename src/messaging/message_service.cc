@@ -398,7 +398,7 @@ MessageService::~MessageService()
 picojson::object MessageService::toPicoJS() const
 {
     picojson::object picojs = picojson::object();
-    picojs[JSON_SERVICE_ID] = picojson::value(static_cast<double>(m_id));
+    picojs[JSON_SERVICE_ID] = picojson::value(std::to_string(m_id));
     picojs[JSON_SERVICE_TYPE] = picojson::value(MessagingUtil::messageTypeToString(m_msg_type));
     picojs[JSON_SERVICE_NAME] = picojson::value(m_name);
     return picojs;
