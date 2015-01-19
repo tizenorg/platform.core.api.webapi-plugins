@@ -12,6 +12,8 @@
         'secureelement_extension.h',
         'secureelement_instance.cc',
         'secureelement_instance.h',
+        'secureelement_seservice.cc',
+        'secureelement_seservice.h'
       ],
       'includes': [
         '../common/pkg-config.gypi',
