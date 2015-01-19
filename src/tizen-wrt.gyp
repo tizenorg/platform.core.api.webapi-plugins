@@ -35,6 +35,7 @@
               'bookmark/bookmark.gyp:*',
               'systeminfo/systeminfo.gyp:*',
               #'radio/radio.gyp:*',
+              'secureelement/secureelement.gyp:*',
             ],
           },
         ], # end mobile

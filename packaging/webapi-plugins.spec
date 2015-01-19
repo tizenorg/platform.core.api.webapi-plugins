@@ -45,7 +45,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_power_support               1
 %define tizen_feature_push_support                0
 %define tizen_feature_sap_support                 0
-%define tizen_feature_se_support                  0
+%define tizen_feature_se_support                  1
 %define tizen_feature_sensor_support              0
 %define tizen_feature_sound_support               0
 %define tizen_feature_system_setting_support      0
@@ -240,6 +240,11 @@ BuildRequires: pkgconfig(capi-media-radio)
 %if 0%{?tizen_feature_tvaudio_support}
 BuildRequires:  pkgconfig(libavoc)
 BuildRequires:  pkgconfig(capi-media-audio-io)
+%endif
+
+%if 0%{?tizen_feature_se_support}
+BuildRequires:  pkgconfig(smartcard-service)
+BuildRequires:  pkgconfig(smartcard-service-common)
 %endif
 
 %description
