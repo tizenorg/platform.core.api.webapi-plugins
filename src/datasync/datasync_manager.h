@@ -16,8 +16,6 @@
 
 #include "common/utils.h"
 #include "datasync/datasync_error.h"
-#include "datasync/sync_profile_info.h"
-#include "datasync/sync_statistics.h"
 #include "common/picojson.h"
 
 namespace extension {
