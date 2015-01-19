@@ -503,127 +503,35 @@ void DataSyncManager::Get(const std::string& id, picojson::object& out) {
   Item(id, &profile_h, out);
 }
 
-ResultOrError<SyncProfileInfoListPtr> DataSyncManager::GetAll() const {
+void DataSyncManager::GetAll(picojson::array &out) {
   GList* profile_list = nullptr;
-  GList* iter = nullptr;
 
-  ds_profile_h profile_h = nullptr;
-
-  auto exit = common::MakeScopeExit([&profile_list, &profile_h, &iter]() {
-    LoggerD("Free profiles list.");
-    for (iter = profile_list; iter != nullptr; iter = g_list_next(iter)) {
-      sync_agent_ds_free_profile_info((ds_profile_h)iter->data);
-    }
-
-    if (profile_list) {
-      g_list_free(profile_list);
-    }
-  });
-
-  SyncProfileInfoListPtr profiles = std::make_shared<SyncProfileInfoList>();
-
-  sync_agent_ds_error_e ret = SYNC_AGENT_DS_FAIL;
-
-  ret = sync_agent_ds_get_all_profile(&profile_list);
+  sync_agent_ds_error_e ret = sync_agent_ds_get_all_profile(&profile_list);
   if (SYNC_AGENT_DS_SUCCESS != ret) {
-    return Error("Exception",
-        "Platform error while getting all profiles");
+    throw UnknownException("Platform error while getting all profiles");
   }
 
+  ds_profile_h profile_h = nullptr;
+  GList* iter = nullptr;
   int profile_id;
   LoggerD("Number of profiles: %d", g_list_length(profile_list));
+
   for (iter = profile_list; iter != nullptr; iter = g_list_next(iter)) {
-    profile_h = (ds_profile_h)iter->data;
-    SyncProfileInfoPtr profile(new SyncProfileInfo());
+    profile_h = iter->data;
 
     ret = sync_agent_ds_get_profile_id(profile_h, &profile_id);
     if (SYNC_AGENT_DS_SUCCESS != ret) {
-      return Error("Exception",
-          "Platform error while gettting a profile id");
+      throw UnknownException("Platform error while gettting a profile id");
     }
 
-    profile->set_profile_id(std::to_string(profile_id));
+    picojson::value profile = picojson::value(picojson::object());
+    picojson::object& profile_obj = profile.get<picojson::object>();
 
-    LoggerD("Processing a profile with id: %s", profile->profile_id().c_str());
-
-    char* profile_name = nullptr;
-    ret = sync_agent_ds_get_profile_name(profile_h, &profile_name);
-    if (SYNC_AGENT_DS_SUCCESS != ret) {
-      return Error("Exception",
-          "Platform error while gettting a profile name");
-    }
-    profile->set_profile_name(profile_name);
-
-    sync_agent_ds_server_info server_info = {nullptr};
-    ret = sync_agent_ds_get_server_info(profile_h, &server_info);
-    if (SYNC_AGENT_DS_SUCCESS != ret) {
-      return Error("Exception",
-          "Platform error while gettting a server info");
-    }
-    profile->sync_info()->set_url(server_info.addr);
-    profile->sync_info()->set_id(server_info.id);
-    profile->sync_info()->set_password(server_info.password);
-
-    sync_agent_ds_sync_info sync_info;
-    ret = sync_agent_ds_get_sync_info(profile_h, &sync_info);
-    if (SYNC_AGENT_DS_SUCCESS != ret) {
-      return Error("Exception",
-          "Platform error while gettting a sync info");
-    }
-    profile->sync_info()->set_sync_mode(
-        ConvertToSyncMode(sync_info.sync_mode));
-    profile->sync_info()->set_sync_type(
-        ConvertToSyncType(sync_info.sync_type));
-    profile->sync_info()->set_sync_interval(
-        ConvertToSyncInterval(sync_info.interval));
-
-    LoggerD("Sync mode: %d, type: %d, interval: %d",
-            sync_info.sync_mode, sync_info.sync_type, sync_info.interval);
-
-    GList* category_list = nullptr;
-    sync_agent_ds_service_info* category_info = nullptr;
-    ret = sync_agent_ds_get_sync_service_info(profile_h, &category_list);
-    if (SYNC_AGENT_DS_SUCCESS != ret) {
-      return Error(
-          "Exception",
-          "Platform error while gettting sync categories");
-    }
-    int category_count = g_list_length(category_list);
-    LoggerD("category_count: %d", category_count);
-    while (category_count--) {
-      category_info = static_cast<sync_agent_ds_service_info*>(
-          g_list_nth_data(category_list, category_count));
-      if (SYNC_AGENT_CALENDAR < category_info->service_type) {
-        LoggerD("Skip unsupported sync service type: %d", category_info->service_type);
-        continue;
-      }
-
-      SyncServiceInfoPtr service_info(new SyncServiceInfo());
-      service_info->set_enable(category_info->enabled);
-      if (category_info->id) {
-        service_info->set_id(category_info->id);
-      }
-      if (category_info->password) {
-        service_info->set_password(category_info->password);
-      }
-      service_info->set_sync_service_type(
-          ConvertToSyncServiceType(category_info->service_type));
-      if (category_info->tgt_uri) {
-        service_info->set_server_database_uri(category_info->tgt_uri);
-      }
-
-      LoggerD("Service type: %d", service_info->sync_service_type());
-      profile->service_info()->push_back(service_info);
-    }
-    if (category_list) {
-      g_list_free(category_list);
-    }
+    Item(std::to_string(profile_id), &profile_h, profile_obj);
 
     LoggerD("Adding a profile to the list.");
-    profiles->push_back(profile);
+    out.push_back(profile);
   }
-
-  return profiles;
 }
 
 ResultOrError<void> DataSyncManager::StartSync(

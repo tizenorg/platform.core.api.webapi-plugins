@@ -56,11 +56,10 @@ void DatasyncInstance::Get(const picojson::value &args, picojson::object &out) {
 }
 
 void DatasyncInstance::GetAll(const picojson::value &args, picojson::object &out) {
-//  TODO: implementation
+  picojson::value result = picojson::value(picojson::array());
 
-    picojson::value val{picojson::object{}};
-
-    ReportSuccess(val, out);
+  DataSyncManager::Instance().GetAll(result.get<picojson::array>());
+  ReportSuccess(result, out);
 }
 
 void DatasyncInstance::GetLastSyncStatistics(const picojson::value &args, picojson::object &out) {

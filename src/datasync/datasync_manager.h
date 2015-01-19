@@ -42,7 +42,7 @@ class DataSyncManager {
   int GetProfilesNum() const;
 
   void Get(const std::string& id, picojson::object &out);
-  ResultOrError<SyncProfileInfoListPtr> GetAll() const;
+  void GetAll(picojson::array &out);
   void GetLastSyncStatistics(const std::string& id, picojson::array &out);
 
   ResultOrError<void> StartSync(const std::string& profile_id_str,
