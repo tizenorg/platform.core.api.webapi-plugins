@@ -16,4 +16,4 @@ class DatacontrolExtension : public common::Extension {
   virtual common::Instance* CreateInstance();
 };
 
-#endif // DATACONTROL_DATACONTROL_EXTENSION_H_
+#endif  // DATACONTROL_DATACONTROL_EXTENSION_H_
