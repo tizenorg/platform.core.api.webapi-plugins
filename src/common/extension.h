@@ -63,7 +63,7 @@ class Extension {
   static std::string GetRuntimeVariable(const char* var_name, unsigned len);
 
  private:
-  friend int32_t ::XW_Initialize(XW_Extension extension,
+  friend int32_t (::XW_Initialize)(XW_Extension extension,
                                  XW_GetInterface get_interface);
 
   // XW_Extension callbacks.
