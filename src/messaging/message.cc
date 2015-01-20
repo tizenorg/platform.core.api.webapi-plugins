@@ -375,8 +375,33 @@ std::string copyFileToTemp(const std::string& sourcePath)
         throw common::UnknownException("Unknown error while creating temp directory.");
     }
 
-    if(EINA_TRUE != ecore_file_cp(attPath.c_str(), tmpPath.c_str())) {
-        throw common::UnknownException("Unknown error while copying file to temp.");
+    FILE *f1, *f2;
+    size_t num;
+    int ret = 1;
+
+    f1 = fopen(attPath.c_str(), "rb");
+    if (!f1) {
+        LoggerE("Fail open attPath");
+        return 0;
+    }
+    f2 = fopen(tmpPath.c_str(), "wb");
+    if (!f2) {
+        LoggerE("Fail open tmpPath");
+        fclose (f1);
+        return 0;
+    }
+
+    while ((num = fread(buf, 1, sizeof(buf), f1)) > 0) {
+        if (fwrite(buf, 1, num, f2) != num)
+            ret = 0;
+    }
+
+    fclose (f1);
+    fclose (f2);
+
+    if(EINA_TRUE != ret /*ecore_file_cp(attPath.c_str(), tmpPath.c_str())*/) {
+        std::string error = "Unknown error while copying file to temp. ";
+        throw common::UnknownException(error.c_str());
     }
 
     return dirPath;

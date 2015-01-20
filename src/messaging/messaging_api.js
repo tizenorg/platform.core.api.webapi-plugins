@@ -34,7 +34,7 @@ CommonFS.toRealPath = function (aPath) {
         _uriPrefix = 'file://',
         i;
     if (aPath.indexOf(_uriPrefix) === 0) {
-        _fileRealPath = aPath; /*.substr(_uriPrefix.length);*/
+        _fileRealPath = aPath.substr(_uriPrefix.length);
     } else if (aPath[0] != '/') {
         //virtual path$
         var _pathTokens = aPath.split('/');
@@ -137,7 +137,7 @@ var MessageServiceTag = ['messaging.sms', 'messaging.mms', 'messaging.email'];
 
 function Message(type, data) {
     if (!(this instanceof Message)) {
-        return new Message(type, data);
+        throw new TypeError("Constructor called like a function");
     }
     if (MessageServiceTag.indexOf(type) === -1) {
         throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR);
@@ -859,6 +859,10 @@ MessageService.prototype.stopSync = function () {
     var args = validator_.validateArgs(arguments, [
         {name: 'opId', type: types_.LONG}
     ]);
+
+    if(arguments.opId === undefined){
+        throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR);
+    }
 
     var self = this;
     bridge.sync({
