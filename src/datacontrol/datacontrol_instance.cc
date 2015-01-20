@@ -24,8 +24,14 @@ const std::string kPrivilegeDatacontrol = "";
 
 } // namespace
 
-using namespace common;
-using namespace extension::datacontrol;
+using common::InvalidValuesException;
+using common::TypeMismatchException;
+using common::IOException;
+using common::SecurityException;
+using common::UnknownException;
+
+using common::ScopeExit;
+using common::operator+;
 
 struct DatacontrolInformation {
   int callbackId;
@@ -36,7 +42,8 @@ static DatacontrolInstance *Self = NULL;
 static std::map<int, DatacontrolInformation*> IdMap;
 
 DatacontrolInstance::DatacontrolInstance() {
-  using namespace std::placeholders;
+  using std::placeholders::_1;
+  using std::placeholders::_2;
   #define REGISTER_SYNC(c,x) \
     RegisterSyncHandler(c, std::bind(&DatacontrolInstance::x, this, _1, _2));
   REGISTER_SYNC("SQLDataControlConsumer_update", SQLDataControlConsumerUpdate);
