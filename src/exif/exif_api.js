@@ -1,4 +1,4 @@
-// Copyright 2014 Samsung Electronics Co, Ltd. All rights reserved.
+// Copyright 2015 Samsung Electronics Co, Ltd. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -82,6 +82,74 @@ function _getJsonFromExifInformation(exifInfo) {
   return json;
 }
 
+function _calculateDegDecimal(degrees, minutes, seconds) {
+  return parseInt(degrees) + parseInt(minutes) / 60.0 + parseInt(seconds) / 3600.0;
+}
+
+function _calculateExifInfo(exifInfoNative) {
+  // copy all properties that share name from
+  // exifInfoNative to exifInfo
+  var exifInfo = new tizen.ExifInformation(exifInfoNative);
+
+  // copy all remaining properties that do not share name or need extra calculations
+  if (exifInfoNative.originalTimeSeconds) {
+    exifInfo.originalTime = new Date(exifInfoNative.originalTimeSeconds * 1000);
+  }
+
+  if (parseInt(exifInfoNative.whiteBalanceValue) === 0) {  // 0=AUTO
+    exifInfo.whiteBalance = WhiteBalanceMode.AUTO;
+  } else if (parseInt(exifInfoNative.whiteBalanceValue) === 1) {  // 1=MANUAL
+    exifInfo.whiteBalance = WhiteBalanceMode.MANUAL;
+  }
+
+  // gpsLocation
+  if (exifInfoNative.gpsLatitudeDegrees &&
+      exifInfoNative.gpsLongitudeDegrees &&
+      exifInfoNative.gpsLatitudeRef &&
+      exifInfoNative.gpsLongitudeRef) {
+    exifInfo.gpsLocation = new tizen.SimpleCoordinates();
+    exifInfo.gpsLocation.latitude = _calculateDegDecimal(exifInfoNative.gpsLatitudeDegrees,
+        exifInfoNative.gpsLatitudeMinutes, exifInfoNative.gpsLatitudeSeconds);
+    exifInfo.gpsLocation.longitude = _calculateDegDecimal(exifInfoNative.gpsLongitudeDegrees,
+        exifInfoNative.gpsLongitudeMinutes, exifInfoNative.gpsLongitudeSeconds);
+
+    if (exifInfoNative.gpsLatitudeRef === 'SOUTH') {
+      exifInfo.gpsLocation.latitude = -exifInfo.gpsLocation.latitude;
+    } else if (exifInfoNative.gpsLatitudeRef !== 'NORTH') {
+      exifInfo.gpsLocation.latitude = null;  // invalid gpsLatitudeRef
+    }
+
+    if (exifInfoNative.gpsLongitudeRef === 'WEST') {
+      exifInfo.gpsLocation.longitude = -exifInfo.gpsLocation.longitude;
+    } else if (exifInfoNative.gpsLongitudeRef !== 'EAST') {
+      exifInfo.gpsLocation.longitude = null;  // invalid gpsLongitudeRef
+    }
+  }
+
+  // gpsAltitude
+  if (exifInfoNative.gpsAltitude && exifInfoNative.gpsAltitudeRef) {
+    if (parseInt(exifInfoNative.gpsAltitudeRef) === 0) {  // 0=ABOVE SEA LEVEL
+      exifInfo.gpsAltitude = exifInfoNative.gpsAltitude;
+    } else if (parseInt(exifInfoNative.gpsAltitudeRef) === 1) {  // 1=BELOW SEA LEVEL
+      exifInfo.gpsAltitude = -exifInfoNative.gpsAltitude;
+    }
+  }
+
+  // gpsTime
+  if (exifInfoNative.gpsExifDate) {
+    var dateSplit = exifInfoNative.gpsExifDate.split(':');
+    exifInfo.gpsTime = new Date(
+        dateSplit[0],  // year
+        dateSplit[1],  // month
+        dateSplit[2],  // day
+        exifInfoNative.gpsExifTimeHours,
+        exifInfoNative.gpsExifTimeMinutes,
+        exifInfoNative.gpsExifTimeSeconds);
+  }
+
+  return exifInfo;
+}
+
 ExifManager.prototype.getExifInfo = function() {
   var args = validator_.validateArgs(arguments, [
     {
@@ -112,14 +180,21 @@ ExifManager.prototype.getExifInfo = function() {
     if (native_.isFailure(result)) {
       native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));
     } else {
-      var exifInfo = native_.getResultObject(result);
+
+      // call to c++ code. Fields that do not exist are undefined.
+      var exifInfoNative = native_.getResultObject(result);
+
+      // calculate ExifInformation struct. All fields are initially null.
+      // Fields that do not exist in jpg EXIF must remain null.
+      var exifInfo = _calculateExifInfo(exifInfoNative);
+
+      // make successCalback and pass exifInfo
       args.successCallback(exifInfo);
     }
   };
 
   native_.call('Exif_getExifInfo', callArgs, callback);
 };
-
 
 ExifManager.prototype.saveExifInfo = function() {
   var args = validator_.validateArgs(arguments, [
@@ -193,7 +268,6 @@ ExifManager.prototype.getThumbnail = function() {
   native_.call('Exif_getThumbnail', {'uri': args.uri}, callback);
 };
 
-// this function passes ExifInformation_exposureProgram_attribute test:
 tizen.ExifInformation = function() {
   validator_.isConstructorCall(this, tizen.ExifInformation);
 
@@ -206,25 +280,40 @@ tizen.ExifInformation = function() {
     }
   ]);
 
-  var uri_ = null;
-  var width_ = null;
-  var height_ = null;
-  var deviceMaker_ = null;
-  var deviceModel_ = null;
-  var originalTime_ = null;
-  var orientation_ = null;
-  var fNumber_ = null;
-  var isoSpeedRatings_ = null;
-  var exposureTime_ = null;
-  var exposureProgram_ = null;
-  var flash_ = null;
-  var focalLength_ = null;
-  var whiteBalance_ = null;
-  var gpsLocation_ = null;
-  var gpsAltitude_ = null;
-  var gpsProcessingMethod_ = null;
-  var gpsTime_ = null;
-  var userComment_ = null;
+  var uri_ = null,
+      width_ = null,
+      height_ = null,
+      deviceMaker_ = null,
+      deviceModel_ = null,
+      originalTime_ = null,
+      orientation_ = null,
+      fNumber_ = null,
+      isoSpeedRatings_ = null,
+      exposureTime_ = null,
+      exposureProgram_ = null,
+      flash_ = null,
+      focalLength_ = null,
+      whiteBalance_ = null,
+      gpsLocation_ = null,
+      gpsAltitude_ = null,
+      gpsProcessingMethod_ = null,
+      gpsTime_ = null,
+      userComment_ = null;
+
+  function _validateISOSpeedRatings(v) {
+    var valid = false;
+    if (type_.isArray(v)) {
+      for (var i = 0; i < v.length; i++) {
+        var data = v[i]; // todo: uncomment when array conversion is implemented.
+        //if (!type_.isNumber(data)) {
+        //  return false;
+        //}
+      }
+      valid = true;
+    }
+    return valid;
+  }
+
 
   var exifInitDict = args.ExifInitDict;
   if (exifInitDict) {
@@ -240,7 +329,7 @@ tizen.ExifInformation = function() {
         return uri_;
       },
       set: function(v) {
-        uri_ = v ? converter_.toString(v, true) : uri_;
+        uri_ = v ? converter_.toString(v) : uri_;
       },
       enumerable: true
     },
@@ -249,7 +338,7 @@ tizen.ExifInformation = function() {
         return width_;
       },
       set: function(v) {
-        width_ = v ? converter_.toLong(v, true) : width_;
+        width_ = (!type_.isUndefined(v)) ? converter_.toLong(v, true) : width_;
       },
       enumerable: true
     },
@@ -258,7 +347,7 @@ tizen.ExifInformation = function() {
         return height_;
       },
       set: function(v) {
-        height_ = v ? converter_.toLong(v, true) : height_;
+        height_ = (!type_.isUndefined(v)) ? converter_.toLong(v, true) : height_;
       },
       enumerable: true
     },
@@ -266,8 +355,9 @@ tizen.ExifInformation = function() {
       get: function() {
         return deviceMaker_;
       },
-      set: function(val) {
-        deviceMaker_ = val ? converter_.toString(val, true) : deviceMaker_;
+      set: function(v) {
+        deviceMaker_ = (!type_.isUndefined(v)) ?
+            converter_.toString(v, true) : deviceMaker_;
       },
       enumerable: true
     },
@@ -275,8 +365,9 @@ tizen.ExifInformation = function() {
       get: function() {
         return deviceModel_;
       },
-      set: function(val) {
-        deviceModel_ = val ? converter_.toString(val, true) : deviceModel_;
+      set: function(v) {
+        deviceModel_ = (!type_.isUndefined(v)) ?
+            converter_.toString(v, true) : deviceModel_;
       },
       enumerable: true
     },
@@ -284,8 +375,10 @@ tizen.ExifInformation = function() {
       get: function() {
         return originalTime_;
       },
-      set: function(val) {
-        originalTime_ = val instanceof Date ? val : originalTime_;
+      set: function(v) {
+        if (!type_.isUndefined(v)) {
+          if (v === null || v instanceof Date) originalTime_ = v;
+        }
       },
       enumerable: true
     },
@@ -294,8 +387,8 @@ tizen.ExifInformation = function() {
         return orientation_;
       },
       set: function(v) {
-        orientation_ = v ? converter_.toEnum(v, Object.keys(ImageContentOrientation), true) :
-            orientation_;
+        orientation_ = (!type_.isUndefined(v)) ?
+            converter_.toEnum(v, Object.keys(ImageContentOrientation), true) : orientation_;
       },
       enumerable: true
     },
@@ -303,8 +396,8 @@ tizen.ExifInformation = function() {
       get: function() {
         return fNumber_;
       },
-      set: function(val) {
-        fNumber_ = val ? converter_.toDouble(val, true) : fNumber_;
+      set: function(v) {
+        fNumber_ = (!type_.isUndefined(v)) ? converter_.toDouble(v, true) : fNumber_;
       },
       enumerable: true
     },
@@ -312,8 +405,11 @@ tizen.ExifInformation = function() {
       get: function() {
         return isoSpeedRatings_;
       },
-      set: function(val) {
-        isoSpeedRatings_ = type_.isArray(val) ? val : isoSpeedRatings_;
+      set: function(v) {
+        // todo: convert string array into unsigned short array
+        if (!type_.isUndefined(v)) {
+          if (v === null || _validateISOSpeedRatings(v)) isoSpeedRatings_ = v;
+        }
       },
       enumerable: true
     },
@@ -321,8 +417,9 @@ tizen.ExifInformation = function() {
       get: function() {
         return exposureTime_;
       },
-      set: function(val) {
-        exposureTime_ = val ? converter_.toString(val, true) : exposureTime_;
+      set: function(v) {
+        exposureTime_ = (!type_.isUndefined(v)) ?
+            converter_.toString(v, true) : exposureTime_;
       },
       enumerable: true
     },
@@ -331,8 +428,8 @@ tizen.ExifInformation = function() {
         return exposureProgram_;
       },
       set: function(v) {
-        exposureProgram_ = v ? converter_.toEnum(v, Object.keys(ExposureProgram), true) :
-            exposureProgram_;
+        exposureProgram_ = (!type_.isUndefined(v)) ?
+            converter_.toEnum(v, Object.keys(ExposureProgram), true) : exposureProgram_;
       },
       enumerable: true
     },
@@ -340,8 +437,8 @@ tizen.ExifInformation = function() {
       get: function() {
         return flash_;
       },
-      set: function(val) {
-        flash_ = converter_.toBoolean(val, true);
+      set: function(v) {
+        flash_ = (!type_.isUndefined(v)) ? converter_.toBoolean(v, true) : flash_;
       },
       enumerable: true
     },
@@ -349,8 +446,9 @@ tizen.ExifInformation = function() {
       get: function() {
         return focalLength_;
       },
-      set: function(val) {
-        focalLength_ = val ? converter_.toDouble(val, true) : focalLength_;
+      set: function(v) {
+        focalLength_ = (!type_.isUndefined(v)) ?
+            converter_.toDouble(v, true) : focalLength_;
       },
       enumerable: true
     },
@@ -359,8 +457,8 @@ tizen.ExifInformation = function() {
         return whiteBalance_;
       },
       set: function(v) {
-        whiteBalance_ = v ? converter_.toEnum(v, Object.keys(WhiteBalanceMode), true) :
-            whiteBalance_;
+        whiteBalance_ = (!type_.isUndefined(v)) ?
+            converter_.toEnum(v, Object.keys(WhiteBalanceMode), true) : whiteBalance_;
       },
       enumerable: true
     },
@@ -368,8 +466,10 @@ tizen.ExifInformation = function() {
       get: function() {
         return gpsLocation_;
       },
-      set: function(val) {
-        gpsLocation_ = val instanceof tizen.SimpleCoordinates ? val : gpsLocation_;
+      set: function(v) {
+        if (!type_.isUndefined(v)) {
+          if (v === null || v instanceof tizen.SimpleCoordinates) gpsLocation_ = v;
+        }
       },
       enumerable: true
     },
@@ -377,8 +477,9 @@ tizen.ExifInformation = function() {
       get: function() {
         return gpsAltitude_;
       },
-      set: function(val) {
-        gpsAltitude_ = val ? converter_.toDouble(val, true) : gpsAltitude_;
+      set: function(v) {
+        gpsAltitude_ = (!type_.isUndefined(v)) ?
+            converter_.toDouble(v, true) : gpsAltitude_;
       },
       enumerable: true
     },
@@ -386,8 +487,9 @@ tizen.ExifInformation = function() {
       get: function() {
         return gpsProcessingMethod_;
       },
-      set: function(val) {
-        gpsProcessingMethod_ = val ? converter_.toString(val, true) : gpsProcessingMethod_;
+      set: function(v) {
+        gpsProcessingMethod_ = (!type_.isUndefined(v)) ?
+            converter_.toString(v, true) : gpsProcessingMethod_;
       },
       enumerable: true
     },
@@ -396,8 +498,10 @@ tizen.ExifInformation = function() {
       get: function() {
         return gpsTime_;
       },
-      set: function(val) {
-        gpsTime_ = val instanceof tizen.TZDate ? val : gpsTime_;
+      set: function(v) {
+        if (!type_.isUndefined(v)) {
+          if (v === null || v instanceof Date) gpsTime_ = v;
+        }
       }
     },
     userComment: {
@@ -405,8 +509,9 @@ tizen.ExifInformation = function() {
       get: function() {
         return userComment_;
       },
-      set: function(val) {
-        userComment_ = val ? converter_.toString(val, true) : userComment_;
+      set: function(v) {
+        userComment_ = (!type_.isUndefined(v)) ?
+            converter_.toString(v, true) : userComment_;
       }
     }
   });

@@ -117,7 +117,6 @@ class ExifInformation {
   explicit ExifInformation(const picojson::value& args);
   ~ExifInformation();
 
-  static ExifInformationPtr loadFromURI(const std::string& uri);
   void saveToFile(const std::string& file_path);
 
   const std::string& getUri();
@@ -210,10 +209,6 @@ class ExifInformation {
   void set(std::string attributeName, const picojson::value& args);
 
  private:
-  void processEntry(ExifEntry* entry, ExifData* exif_data);
-  static void contentForeachFunctionProxy(ExifEntry* entry, void* user_data);
-  static void dataForeachFunction(ExifContent* content, void* user_data);
-
   void removeNulledAttributesFromExifData(ExifData* exif_data);
   void updateAttributesInExifData(ExifData* exif_data);
 

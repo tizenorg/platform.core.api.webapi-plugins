@@ -28,6 +28,8 @@
         'rational.h',
         'exif_gps_location.cc',
         'exif_gps_location.h',
+        'get_exif_info.cc',
+        'get_exif_info.h',
       ],
       'conditions': [
         [ 'tizen == 1', {

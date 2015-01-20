@@ -20,7 +20,7 @@ class ExifInstance : public common::ParsedInstance {
   void saveExifInfo(const picojson::value& args, picojson::object& out);
   void getThumbnail(const picojson::value& args, picojson::object& out);
 };
+
 }  // namespace exif
 }  // namespace extension
-
 #endif  // EXIF_EXIF_INSTANCE_H_

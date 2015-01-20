@@ -219,38 +219,6 @@ bool ExifUtil::isValidAbsoluteURI(const std::string& uri) {
   return 0 == uri.find(URI_ABSOLUTE_PREFIX);
 }
 
-void ExifUtil::getURIInfo(const std::string& uri,
-    // const Filesystem::NodeType expected_type,
-    const std::string& required_permission,
-    bool& out_exists,
-    // Filesystem::NodeType& out_type,
-    bool& out_permission_granted) {
-  const std::string absolute_path = ExifUtil::convertUriToPath(uri);
-  out_exists = false;
-  out_permission_granted = false;
-
-  try {
-    // Filesystem::PathPtr path = Filesystem::Path::create(absolute_path);
-    // Filesystem::NodePtr node = Filesystem::Node::resolve(path);
-    // out_type = node->getType();
-    // out_exists = true;
-
-    // if (expected_type == out_type) {
-    //  out_permission_granted = node->checkPermission(path,
-    //      required_permission,
-    //      expected_type);
-    // }
-  }
-  /* catch (const common::BasePlatformException &err) {
-     LoggerE("Couldn't resolve path: %s, got:%s (%s)", absolute_path.c_str(),
-        (err.getName()).c_str(), (err.getMessage()).c_str());
-  }
-  */
-  catch(...) {
-    LoggerE("Couldn't resolve path: %s", absolute_path.c_str());
-  }
-}
-
 // Example:
 // in: uri = file:///opt/usr/media/Images/exif.jpg
 // out: path = /opt/usr/media/Images/exif.jpg
@@ -322,7 +290,6 @@ const Rationals ExifUtil::timeTToExifGpsTimeStamp(time_t time) {
 
   return result;
 }
-
 
 std::string ExifUtil::timeTToExifGpsDateStamp(time_t time) {
   int year, month, day, hour, min, sec;
