@@ -73,9 +73,12 @@ ScopeExit<F> MakeScopeExit(F f) {
 }
 
 // Internal use for macro SCOPE_EXIT
+
+struct __dummy{};
+
 template <typename F>
 ScopeExit<typename std::decay<F>::type>
-operator+(int, F&& f)
+operator+(__dummy, F&& f)
 {
   return ScopeExit<typename std::decay<F>::type>
   {std::forward<F>(f)};
@@ -104,7 +107,7 @@ operator+(int, F&& f)
  *   }
  */
 #define SCOPE_EXIT \
-    auto SCOPE_EXIT_##__LINE__ = 0 + [&]() noexcept
+    auto SCOPE_EXIT_##__LINE__ = ::common::__dummy{} + [&]() noexcept
 
 }  // namespace common
 
