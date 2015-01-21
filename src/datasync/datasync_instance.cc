@@ -2,7 +2,6 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-
 // File copied from Crosswalk
 
 #include <memory>
@@ -11,36 +10,33 @@
 #include "tizen/tizen.h"
 #include "common/task-queue.h"
 
-
 namespace extension {
 namespace datasync {
 
 using namespace common;
 
-DatasyncInstance& DatasyncInstance::GetInstance() {
+DatasyncInstance &DatasyncInstance::GetInstance() {
   static DatasyncInstance instance;
   return instance;
 }
 
 DatasyncInstance::DatasyncInstance() {
-    using namespace std::placeholders;
-    #define REGISTER_SYNC(c, x) \
-        RegisterSyncHandler(c, std::bind(&DatasyncInstance::x, this, _1, _2));
-        REGISTER_SYNC("Datasync_add", Add);
-        REGISTER_SYNC("Datasync_update", Update);
-        REGISTER_SYNC("Datasync_remove", Remove);
-        REGISTER_SYNC("Datasync_getMaxProfilesNum", GetMaxProfilesNum);
-        REGISTER_SYNC("Datasync_getProfilesNum", GetProfilesNum);
-        REGISTER_SYNC("Datasync_get", Get);
-        REGISTER_SYNC("Datasync_getAll", GetAll);
-        REGISTER_SYNC("Datasync_startSync", StartSync);
-        REGISTER_SYNC("Datasync_stopSync", StopSync);
-        REGISTER_SYNC("Datasync_getLastSyncStatistics", GetLastSyncStatistics);
-    #undef REGISTER_SYNC
+  using namespace std::placeholders;
+#define REGISTER_SYNC(c, x) RegisterSyncHandler(c, std::bind(&DatasyncInstance::x, this, _1, _2));
+  REGISTER_SYNC("Datasync_add", Add);
+  REGISTER_SYNC("Datasync_update", Update);
+  REGISTER_SYNC("Datasync_remove", Remove);
+  REGISTER_SYNC("Datasync_getMaxProfilesNum", GetMaxProfilesNum);
+  REGISTER_SYNC("Datasync_getProfilesNum", GetProfilesNum);
+  REGISTER_SYNC("Datasync_get", Get);
+  REGISTER_SYNC("Datasync_getAll", GetAll);
+  REGISTER_SYNC("Datasync_startSync", StartSync);
+  REGISTER_SYNC("Datasync_stopSync", StopSync);
+  REGISTER_SYNC("Datasync_getLastSyncStatistics", GetLastSyncStatistics);
+#undef REGISTER_SYNC
 }
 
-DatasyncInstance::~DatasyncInstance() {
-}
+DatasyncInstance::~DatasyncInstance() {}
 
 void DatasyncInstance::GetMaxProfilesNum(const picojson::value &args, picojson::object &out) {
   ReportSuccess(
@@ -48,8 +44,8 @@ void DatasyncInstance::GetMaxProfilesNum(const picojson::value &args, picojson::
 }
 
 void DatasyncInstance::GetProfilesNum(const picojson::value &args, picojson::object &out) {
-  ReportSuccess(
-      picojson::value(static_cast<double>(DataSyncManager::Instance().GetProfilesNum())), out);
+  ReportSuccess(picojson::value(static_cast<double>(DataSyncManager::Instance().GetProfilesNum())),
+                out);
 }
 
 void DatasyncInstance::Get(const picojson::value &args, picojson::object &out) {
@@ -77,9 +73,9 @@ void DatasyncInstance::GetLastSyncStatistics(const picojson::value &args, picojs
 }
 
 void DatasyncInstance::Add(const picojson::value &args, picojson::object &out) {
-  ReportSuccess(
-      picojson::value(static_cast<double>(DataSyncManager::Instance().Add(
-                                              args.get<picojson::object>()))), out);
+  ReportSuccess(picojson::value(static_cast<double>(
+                    DataSyncManager::Instance().Add(args.get<picojson::object>()))),
+                out);
 }
 
 void DatasyncInstance::Update(const picojson::value &args, picojson::object &out) {

@@ -2,20 +2,17 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-
 // File copied from Crosswalk
 
 #ifndef DATASYNC_DATASYNC_MANAGER_H_
 #define DATASYNC_DATASYNC_MANAGER_H_
 
 #include <sync_agent.h>
-
 #include <map>
 #include <string>
 #include <utility>
 
 #include "common/utils.h"
-#include "datasync/datasync_error.h"
 #include "common/picojson.h"
 
 namespace extension {
@@ -29,16 +26,16 @@ class DataSyncManager {
  public:
   ~DataSyncManager();
 
-  int Add(const picojson::object &args);
-  void Update(const picojson::object &args);
+  int Add(const picojson::object& args);
+  void Update(const picojson::object& args);
   void Remove(const std::string& id);
 
   int GetMaxProfilesNum() const;
   int GetProfilesNum() const;
 
-  void Get(const std::string& id, picojson::object &out);
-  void GetAll(picojson::array &out);
-  void GetLastSyncStatistics(const std::string& id, picojson::array &out);
+  void Get(const std::string& id, picojson::object& out);
+  void GetAll(picojson::array& out);
+  void GetLastSyncStatistics(const std::string& id, picojson::array& out);
 
   void StartSync(const picojson::object& args);
   void StopSync(const std::string& id);

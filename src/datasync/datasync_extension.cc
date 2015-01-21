@@ -2,7 +2,6 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-
 // File copied from Crosswalk
 
 #include "datasync/datasync_extension.h"
@@ -11,16 +10,14 @@
 // This will be generated from datasync_api.js.
 extern const char kSource_datasync_api[];
 
-
 using namespace extension::datasync;
-
 
 DatasyncExtension::DatasyncExtension() {
   SetExtensionName("tizen.datasync");
   SetJavaScriptAPI(kSource_datasync_api);
 
-  const char* entry_points[] = {
-      "tizen.SyncInfo", "tizen.SyncProfileInfo", "tizen.SyncServiceInfo", NULL};
+  const char* entry_points[] = {"tizen.SyncInfo", "tizen.SyncProfileInfo", "tizen.SyncServiceInfo",
+                                NULL};
   SetExtraJSEntryPoints(entry_points);
 }
 
@@ -31,11 +28,7 @@ DataSyncManager& DatasyncExtension::manager() {
   return DataSyncManager::Instance();
 }
 
-common::Instance* DatasyncExtension::CreateInstance() {
-  return new DatasyncInstance;
-}
+common::Instance* DatasyncExtension::CreateInstance() { return new DatasyncInstance; }
 
 // entry point
-common::Extension* CreateExtension() {
-  return new DatasyncExtension;
-}
+common::Extension* CreateExtension() { return new DatasyncExtension; }

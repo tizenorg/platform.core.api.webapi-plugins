@@ -2,7 +2,6 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-
 // File copied from Crosswalk
 
 #include "datasync/datasync_manager.h"
@@ -65,7 +64,7 @@ const PlatformEnumMap DataSyncManager::platform_enum_map_ = {
 
 int DataSyncManager::StrToPlatformEnum(const std::string& field, const std::string& value) {
   if (platform_enum_map_.find(field) == platform_enum_map_.end()) {
-      throw UnknownException(std::string("Undefined platform enum type ") + field);
+    throw UnknownException(std::string("Undefined platform enum type ") + field);
   }
 
   auto def = platform_enum_map_.at(field);
@@ -98,10 +97,6 @@ std::string DataSyncManager::PlatformEnumToStr(const std::string& field, const i
   std::string message = "Platform enum value " + std::to_string(value) + " not found for " + field;
   throw InvalidValuesException(message);
 }
-
-}  // namespace
-
-namespace datasync {
 
 bool DataSyncManager::sync_agent_initialized_ = false;
 
@@ -147,8 +142,8 @@ void DataSyncManager::Item(ds_profile_h* profile_h, const picojson::object& args
 
   int sync_mode = StrToPlatformEnum(kSyncMode, FromJson<std::string>(sync_info, "mode"));
   int sync_type = StrToPlatformEnum(kSyncType, FromJson<std::string>(sync_info, "type"));
-  int sync_interval = StrToPlatformEnum(kSyncInterval,
-                                        FromJson<std::string>(sync_info, "interval"));
+  int sync_interval =
+      StrToPlatformEnum(kSyncInterval, FromJson<std::string>(sync_info, "interval"));
   LoggerD("syncMode: %d, syncType: %d, syncInterval: %d", sync_mode, sync_type, sync_interval);
   ret = sync_agent_ds_set_sync_info(profile_h, static_cast<sync_agent_ds_sync_mode_e>(sync_mode),
                                     static_cast<sync_agent_ds_sync_type_e>(sync_type),
@@ -335,16 +330,14 @@ void DataSyncManager::Remove(const std::string& id) {
   }
 }
 
-int DataSyncManager::GetMaxProfilesNum() const {
-  return MAX_PROFILES_NUM;
-}
+int DataSyncManager::GetMaxProfilesNum() const { return MAX_PROFILES_NUM; }
 
 int DataSyncManager::GetProfilesNum() const {
   int profile_list_size = 0;
 
   sync_agent_ds_error_e error_checker = sync_agent_ds_get_profile_count(&profile_list_size);
 
-  if (SYNC_AGENT_DS_SUCCESS  != error_checker) {
+  if (SYNC_AGENT_DS_SUCCESS != error_checker) {
     throw common::UnknownException("Error while getting number of profiles.");
   }
 
@@ -365,7 +358,7 @@ void DataSyncManager::Get(const std::string& id, picojson::object& out) {
   Item(id, &profile_h, out);
 }
 
-void DataSyncManager::GetAll(picojson::array &out) {
+void DataSyncManager::GetAll(picojson::array& out) {
   GList* profile_list = nullptr;
 
   sync_agent_ds_error_e ret = sync_agent_ds_get_all_profile(&profile_list);
@@ -593,8 +586,6 @@ int DataSyncManager::StateChangedCallback(sync_agent_event_data_s* request) {
 
   auto it = callbacks_.find(profile_id);
   if (it != callbacks_.end()) {
-    //      int callback_id = it->second.first;
-    //      DatasyncInstance* instance = it->second.second;
     callbacks_.erase(it);
 
     if (!progress) {
