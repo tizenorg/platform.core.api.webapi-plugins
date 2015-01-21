@@ -41,7 +41,7 @@ class DataSyncManager {
   void GetLastSyncStatistics(const std::string& id, picojson::array &out);
 
   void StartSync(const picojson::object& args);
-  ResultOrError<void> StopSync(const std::string& profile_id_str);
+  void StopSync(const std::string& id);
 
   static DataSyncManager& Instance();
 
@@ -62,7 +62,7 @@ class DataSyncManager {
                                  picojson::object& response_obj, picojson::value& answer,
                                  picojson::object& answer_obj);
 
-  static std::map<std::string, std::string> callbacks_;
+  std::map<std::string, std::string> callbacks_;
 
   static bool sync_agent_initialized_;
 

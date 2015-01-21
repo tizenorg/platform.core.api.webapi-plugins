@@ -104,11 +104,10 @@ void DatasyncInstance::StartSync(const picojson::value &args, picojson::object &
 }
 
 void DatasyncInstance::StopSync(const picojson::value &args, picojson::object &out) {
-//  TODO: implementation
+  DataSyncManager::Instance().StopSync(args.get("profileId").get<std::string>());
 
-    picojson::value val{picojson::object{}};
-
-    ReportSuccess(val, out);
+  picojson::value val{picojson::object{}};
+  ReportSuccess(val, out);
 }
 
 }  // namespace datasync

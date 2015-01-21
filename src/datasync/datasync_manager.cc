@@ -431,34 +431,23 @@ void DataSyncManager::StartSync(const picojson::object& args) {
   callbacks_[id] = listener_id;
 }
 
-ResultOrError<void> DataSyncManager::StopSync(
-    const std::string& profile_id_str) {
+void DataSyncManager::StopSync(const std::string& id) {
   ds_profile_h profile_h = nullptr;
 
-  auto exit = common::MakeScopeExit([&profile_h]() {
-    if (profile_h) {
-      sync_agent_ds_free_profile_info(profile_h);
-    }
-  });
-
-  sync_agent_ds_error_e ret = SYNC_AGENT_DS_FAIL;
-
-  int profile_id = std::stoi(profile_id_str.c_str());
+  int profile_id = std::stoi(id.c_str());
   LoggerD("profileId: %d", profile_id);
 
-  ret = sync_agent_ds_get_profile(profile_id, &profile_h);
+  sync_agent_ds_error_e ret = sync_agent_ds_get_profile(profile_id, &profile_h);
   if (SYNC_AGENT_DS_SUCCESS != ret) {
-    return Error("Exception",
-        "Platform error while getting a profile");
+    throw UnknownException("Platform error while getting a profile");
   }
 
   ret = sync_agent_ds_stop_sync(profile_h);
   if (SYNC_AGENT_DS_SUCCESS != ret) {
-    return Error("Exception",
-        "Platform error while stopping a profile");
+    throw UnknownException("Platform error while stopping a profile");
   }
 
-  return {};
+  callbacks_.erase(id);
 }
 
 DataSyncManager& DataSyncManager::Instance() {
