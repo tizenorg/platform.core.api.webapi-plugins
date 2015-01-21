@@ -191,6 +191,7 @@ var FilterMatchFlag = {
   EXISTS: 'EXISTS'
 };
 
+
 /**
  * An enumerator that indicates the sorting order.
  * @enum {string}
@@ -199,6 +200,7 @@ var SortModeOrder = {
   ASC: 'ASC',
   DESC: 'DESC'
 };
+
 
 /**
  * An enumerator that indicates the type of composite filter.
@@ -241,10 +243,12 @@ function _extractProperty(obj, attributeName) {
   return obj;
 }
 
+
 /**
  * This is a common interface used by different types of object filters.
  */
 exports.AbstractFilter = function() {};
+
 
 /**
  * Represents a set of filters.
@@ -306,7 +310,7 @@ exports.AttributeFilter = function(attrName, matchFlag, matchValue) {
 exports.AttributeFilter.prototype = new exports.AbstractFilter();
 
 //TODO: Move filtering to native code
-exports.AttributeFilter.prototype._filter = function (element) {
+exports.AttributeFilter.prototype._filter = function(element) {
   var elemValue = _extractProperty(element, this.attributeName);
 
   if (!(elemValue instanceof Array)) {
@@ -321,23 +325,23 @@ exports.AttributeFilter.prototype._filter = function (element) {
     var matchValueStrU = matchValueStr.toUpperCase();
 
     switch (this.matchFlag) {
-      case "EXACTLY":
+      case 'EXACTLY':
         ret = elemValue[i] === this.matchValue;
         break;
-      case "FULLSTRING":
+      case 'FULLSTRING':
         ret = elemValueStrU === matchValueStrU;
         break;
-      case "CONTAINS":
+      case 'CONTAINS':
         ret = elemValueStrU.indexOf(matchValueStrU) > -1;
         break;
-      case "STARTSWITH":
+      case 'STARTSWITH':
         ret = elemValueStrU.indexOf(matchValueStrU) === 0;
         break;
-      case "ENDSWITH":
+      case 'ENDSWITH':
         ret = elemValueStrU.lastIndexOf(matchValueStrU) +
                 matchValueStrU.length === elemValueStrU.length;
         break;
-      case "EXISTS":
+      case 'EXISTS':
         ret = elemValue[i] !== undefined;
         break;
     }
@@ -349,12 +353,13 @@ exports.AttributeFilter.prototype._filter = function (element) {
 };
 exports.AttributeFilter.prototype.constructor = exports.AttributeFilter;
 
+
 /**
  * Represents a filter based on an object attribute which has values that are
  * within a particular range.
  */
 exports.AttributeRangeFilter = function(attrName, start, end) {
-  var name_ = "";
+  var name_ = '';
   var start_ = null;
   var end_ = null;
 
@@ -407,7 +412,7 @@ exports.AttributeRangeFilter = function(attrName, start, end) {
 exports.AttributeRangeFilter.prototype = new exports.AbstractFilter();
 
 //TODO: Move filtering to native code
-exports.AttributeRangeFilter.prototype._filter = function (element) {
+exports.AttributeRangeFilter.prototype._filter = function(element) {
   var elemValue = _extractProperty(element, this.attributeName);
 
   if (!(elemValue instanceof Array)) {
@@ -456,6 +461,7 @@ exports.AttributeRangeFilter.prototype._filter = function (element) {
 };
 
 exports.AttributeRangeFilter.prototype.constructor = exports.AttributeRangeFilter;
+
 
 /**
  * Represents a set of filters.
@@ -511,16 +517,16 @@ exports.CompositeFilter = function(type, filters) {
 exports.CompositeFilter.prototype = new exports.AbstractFilter();
 
 //TODO: Move filtering to native code
-exports.CompositeFilter.prototype._filter = function (element) {
+exports.CompositeFilter.prototype._filter = function(element) {
   var filters = this.filters;
-  if (this.type === "UNION") {
+  if (this.type === 'UNION') {
     for (var i = 0; i < filters.length; ++i) {
       if (filters[i]._filter(element)) {
         return true;
       }
     }
     return false;
-  } else if (this.type === "INTERSECTION") {
+  } else if (this.type === 'INTERSECTION') {
     if (filters.length === 0)
       return false;
     for (var i = 0; i < filters.length; ++i) {
@@ -533,6 +539,7 @@ exports.CompositeFilter.prototype._filter = function (element) {
 };
 
 exports.CompositeFilter.prototype.constructor = exports.CompositeFilter;
+
 
 /**
  * SortMode is a common interface used for sorting of queried data.
@@ -572,6 +579,7 @@ exports.SortMode = function(attrName, order) {
   });
 };
 exports.SortMode.prototype.constructor = exports.SortMode;
+
 
 /**
  * Represents a point (latitude and longitude) in the map coordinate system.
