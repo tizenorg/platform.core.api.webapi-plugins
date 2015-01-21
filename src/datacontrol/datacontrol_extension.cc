@@ -23,3 +23,4 @@ DatacontrolExtension::~DatacontrolExtension() {}
 common::Instance* DatacontrolExtension::CreateInstance() {
   return new extension::datacontrol::DatacontrolInstance;
 }
+
