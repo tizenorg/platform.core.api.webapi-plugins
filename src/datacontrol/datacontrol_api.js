@@ -16,6 +16,7 @@ extension.setMessageListener(function(json) {
   var result = JSON.parse(json);
   var callback = callbacks[result['callbackId']];
   callback(result);
+  delete callbacks[result['callbackId']];
 });
 
 function nextCallbackId() {
