@@ -16,6 +16,9 @@ namespace application {
 class ApplicationInformation;
 typedef std::shared_ptr<ApplicationInformation> ApplicationInformationPtr;
 
+typedef std::vector<ApplicationInformationPtr> ApplicationInformationArray;
+typedef std::shared_ptr<ApplicationInformationArray> ApplicationInformationArrayPtr;
+
 class ApplicationInformation {
  public:
   ApplicationInformation();

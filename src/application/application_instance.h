@@ -16,6 +16,10 @@
 
 #include "application.h"
 #include "application_context.h"
+#include "application_metadata.h"
+#include "application_certificate.h"
+#include "application_control.h"
+
 
 namespace extension {
 namespace application {
@@ -50,23 +54,25 @@ class ApplicationInstance
 
   ApplicationPtr GetCurrentApplication(const std::string app_id);
   ApplicationInformationPtr GetAppInfo(const std::string app_id);
-  void Kill(const std::string contextId, int callbackId);
-  void Launch(const std::string appId, int callbackId);
-  ApplicationContextPtr GetAppContext(const std::string contextId);
+  void GetAppsInfo(const int& callback_id);
+  void Kill(const std::string context_id, int callback_id);
+  void Launch(const std::string app_id, int callback_id);
+  void LaunchAppControl(const ApplicationControlPtr& app_ctr_ptr, const std::string& app_id, const int& callback_id);
+  void FindAppControl(const ApplicationControlPtr& app_ctr_ptr, const int& callback_id);
+  void GetAppsContext(const int& callback_id);
+  ApplicationContextPtr GetAppContext(const std::string context_id);
+  ApplicationCertificateArrayPtr GetAppCertificate(const std::string app_id);
+  ApplicationMetaDataArrayPtr GetAppMetaData(const std::string app_id);
   std::string GetAppSharedURI(std::string app_id);
   int AddAppInfoEventListener(const int& callback_id);
   static bool app_callback(package_info_app_component_type_e comp_type, const char *app_id, void *user_data);
   static int app_list_changed_cb(int id, const char *type, const char *package, const char *key, const char *val, const void *msg, void *data);
   void ReplyAppListChangedCallback(app_info_event_e event_type, const char *pkg_id, void *user_data);
   void RemoveAppInfoEventListener(long watch_id);
-  int GetAppInstalledSize(const std::string& app_id);
 
-  int get_installed_size();
-  void set_installed_size(const int &installed_size);
   int get_watch_id_and_increase();
     
   std::string app_id_;
-  int installed_size_;
   pkgmgr_client* manager_handle_;
   std::vector<int> callback_id_list_;
   int watch_id_;

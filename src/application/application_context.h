@@ -17,6 +17,10 @@ namespace application {
 class ApplicationContext;
 typedef std::shared_ptr<ApplicationContext> ApplicationContextPtr;
 
+typedef std::vector<ApplicationContextPtr> ApplicationContextArray;
+typedef std::shared_ptr<ApplicationContextArray> ApplicationContextArrayPtr;
+
+
 class ApplicationContext {
  public:
   ApplicationContext();
