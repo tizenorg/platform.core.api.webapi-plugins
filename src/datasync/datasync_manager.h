@@ -27,9 +27,6 @@ class DatasyncInstance;
 
 class DataSyncManager {
  public:
-  typedef std::pair<int, DatasyncInstance*> CallbackPair;
-  typedef std::map<int, CallbackPair> ProfileIdToCallbackMap;
-
   ~DataSyncManager();
 
   int Add(const picojson::object &args);
@@ -43,11 +40,8 @@ class DataSyncManager {
   void GetAll(picojson::array &out);
   void GetLastSyncStatistics(const std::string& id, picojson::array &out);
 
-  ResultOrError<void> StartSync(const std::string& profile_id_str,
-      int callback_id, DatasyncInstance* instance);
+  void StartSync(const picojson::object& args);
   ResultOrError<void> StopSync(const std::string& profile_id_str);
-
-  void UnregisterInstanceCallbacks(DatasyncInstance* instance);
 
   static DataSyncManager& Instance();
 
@@ -59,10 +53,16 @@ class DataSyncManager {
 
   int StateChangedCallback(sync_agent_event_data_s* request);
   int ProgressCallback(sync_agent_event_data_s* request);
-  void Item(ds_profile_h *profile_h, const picojson::object &args);
-  void Item(const std::string& id, ds_profile_h *profile_h, picojson::object &out);
+  void Item(ds_profile_h* profile_h, const picojson::object& args);
+  void Item(const std::string& id, ds_profile_h* profile_h, picojson::object& out);
+  void GetProfileId(sync_agent_event_data_s* request, std::string& profile_id);
+  void Failed(picojson::object& response_obj, picojson::object& answer_obj, int code,
+              const std::string& name, const std::string& message);
+  inline void PrepareResponseObj(const std::string& profile_id, picojson::value& response,
+                                 picojson::object& response_obj, picojson::value& answer,
+                                 picojson::object& answer_obj);
 
-  ProfileIdToCallbackMap callbacks_;
+  static std::map<std::string, std::string> callbacks_;
 
   static bool sync_agent_initialized_;
 

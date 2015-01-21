@@ -22,6 +22,7 @@ class DatasyncInstance : public common::ParsedInstance {
  public:
   DatasyncInstance();
   virtual ~DatasyncInstance();
+  static DatasyncInstance& GetInstance();
 
  private:
   // Synchronous message handlers

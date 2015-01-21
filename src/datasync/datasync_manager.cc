@@ -118,25 +118,6 @@ DataSyncManager::DataSyncManager() {
   }
   // API was initialized and requires deinitialization
   sync_agent_initialized_ = true;
-
-  sync_agent_event_error_e err = sync_agent_set_noti_callback(
-      1, [](sync_agent_event_data_s* d, void* ud) {
-           return static_cast<DataSyncManager*>(ud)->StateChangedCallback(d);
-         },
-      static_cast<void*>(this));
-  if (err != SYNC_AGENT_EVENT_SUCCESS) {
-    LoggerE("Platform error while setting state changed cb");
-    return;
-  }
-
-  err = sync_agent_set_noti_callback(
-      2, [](sync_agent_event_data_s* d, void* ud) {
-          return static_cast<DataSyncManager*>(ud)->ProgressCallback(d);
-        },
-      static_cast<void*>(this));
-  if (err != SYNC_AGENT_EVENT_SUCCESS) {
-    LoggerE("Platform error while setting progress cb");
-  }
 }
 
 DataSyncManager::~DataSyncManager() {
@@ -415,40 +396,39 @@ void DataSyncManager::GetAll(picojson::array &out) {
   }
 }
 
-ResultOrError<void> DataSyncManager::StartSync(
-    const std::string& profile_id_str, int callback_id,
-    DatasyncInstance* instance) {
+void DataSyncManager::StartSync(const picojson::object& args) {
   ds_profile_h profile_h = nullptr;
 
-  auto exit = common::MakeScopeExit([&profile_h]() {
-    if (profile_h) {
-      sync_agent_ds_free_profile_info(profile_h);
-    }
-  });
+  const std::string& id = FromJson<std::string>(args, "profileId");
+  const std::string& listener_id = FromJson<std::string>(args, "listenerId");
 
-  sync_agent_ds_error_e ret = SYNC_AGENT_DS_FAIL;
-  sync_agent_event_error_e err = SYNC_AGENT_EVENT_FAIL;
-
-  int profile_id = std::stoi(profile_id_str);
+  int profile_id = std::stoi(id);
   LoggerD("profileId: %d", profile_id);
 
-  ret = sync_agent_ds_get_profile(profile_id, &profile_h);
-  if (SYNC_AGENT_DS_SUCCESS != ret) {
-    return Error("Exception",
-        "Platform error while getting a profile");
+  sync_agent_event_error_e err = sync_agent_set_noti_callback(
+      SYNC_AGENT_DS_SYNC_SESSION,
+      [](sync_agent_event_data_s* d,
+         void* ud) { return static_cast<DataSyncManager*>(ud)->StateChangedCallback(d); },
+      static_cast<void*>(this));
+  if (err != SYNC_AGENT_EVENT_SUCCESS) {
+    throw UnknownException("Platform error while setting state changed cb");
   }
 
-  ret = sync_agent_ds_start_sync(profile_h);
+  err = sync_agent_set_noti_callback(
+      SYNC_AGENT_DS_SYNC_PROCESS, [](sync_agent_event_data_s* d, void* ud) {
+                                    return static_cast<DataSyncManager*>(ud)->ProgressCallback(d);
+                                  },
+      static_cast<void*>(this));
+  if (err != SYNC_AGENT_EVENT_SUCCESS) {
+    throw UnknownException("Platform error while setting progress cb");
+  }
+
+  sync_agent_ds_error_e ret = sync_agent_ds_start_sync(profile_h);
   if (SYNC_AGENT_DS_SUCCESS != ret && SYNC_AGENT_DS_SYNCHRONISING != ret) {
-    return Error("Exception",
-        "Platform error while starting a profile");
+    throw UnknownException("Platform error while starting a profile");
   }
 
-  if (callback_id >= 0) {
-    callbacks_.insert({profile_id, std::make_pair(callback_id, instance)});
-  }
-
-  return {};
+  callbacks_[id] = listener_id;
 }
 
 ResultOrError<void> DataSyncManager::StopSync(
@@ -479,15 +459,6 @@ ResultOrError<void> DataSyncManager::StopSync(
   }
 
   return {};
-}
-
-void DataSyncManager::UnregisterInstanceCallbacks(DatasyncInstance* instance) {
-  for (auto it = callbacks_.begin(); it != callbacks_.end(); ) {
-    if (it->second.second == instance)
-      it = callbacks_.erase(it);
-    else
-      ++it;
-  }
 }
 
 DataSyncManager& DataSyncManager::Instance() {
@@ -567,60 +538,94 @@ void DataSyncManager::GetLastSyncStatistics(const std::string& id, picojson::arr
   }
 }
 
-int DataSyncManager::StateChangedCallback(sync_agent_event_data_s* request) {
-  LoggerD("DataSync session state changed.");
-
+void DataSyncManager::GetProfileId(sync_agent_event_data_s* request, std::string& profile_id) {
   char* profile_dir_name = nullptr;
-  int sync_type = 0;
-  char* progress = nullptr;
-  char* error = nullptr;
 
-  LoggerD("Get state info.");
   sync_agent_get_event_data_param(request, &profile_dir_name);
-  sync_agent_get_event_data_param(request, &sync_type);
-  sync_agent_get_event_data_param(request, &progress);
-  sync_agent_get_event_data_param(request, &error);
 
-  LoggerI("profileDirName: %s, sync_type: %d, progress: %s, error: %s",
-          profile_dir_name, sync_type, progress,error);
-
-  if (profile_dir_name) {
-    std::string profile_dir_name_str(profile_dir_name);
-
-    // truncate the rest
-    profile_dir_name_str.resize(4);
-    int profile_id = std::stoi(profile_dir_name_str);
-
-    auto it = callbacks_.find(profile_id);
-    if (it != callbacks_.end()) {
-      int callback_id = it->second.first;
-      DatasyncInstance* instance = it->second.second;
-      callbacks_.erase(it);
-
-      if (!progress) {
-        LoggerW("nullptr status.");
-//  TODO: implementation
-      } else if (0 == strncmp(progress, "DONE", 4)) {
-//  TODO: implementation
-      } else if (0 == strncmp(progress, "CANCEL", 6)) {
-//  TODO: implementation
-      } else if (0 == strncmp(progress, "ERROR", 5)) {
-//  TODO: implementation
-      } else {
-        LoggerI("Undefined status");
-//  TODO: implementation
-      }
-    }
+  // profile_dir_name is SyncXXX , XXX is profile id
+  if (strncmp(profile_dir_name, "Sync", 4) == 0) {
+    profile_id = profile_dir_name + 4;
+  } else {
+    g_free(profile_dir_name);
+    throw UnknownException("Invalid Sync dir name");
   }
 
   g_free(profile_dir_name);
-  g_free(progress);
-  g_free(error);
+}
 
-  if (request->size != nullptr) {
-    g_free(request->size);
+void DataSyncManager::Failed(picojson::object& response_obj, picojson::object& answer_obj, int code,
+                             const std::string& name, const std::string& message) {
+  LoggerE("%s", message.c_str());
+  response_obj["callback_name"] = picojson::value("onfailed");
+
+  picojson::value error = picojson::value(picojson::object());
+  picojson::object& error_obj = error.get<picojson::object>();
+
+  error_obj["code"] = picojson::value(static_cast<double>(code));
+  error_obj["name"] = picojson::value(name);
+  error_obj["message"] = picojson::value(message);
+
+  answer_obj["error"] = error;
+}
+
+void DataSyncManager::PrepareResponseObj(const std::string& profile_id, picojson::value& response,
+                                         picojson::object& response_obj, picojson::value& answer,
+                                         picojson::object& answer_obj) {
+  response = picojson::value(picojson::object());
+  response_obj = response.get<picojson::object>();
+
+  response_obj["callback_key"] = picojson::value(callbacks_[profile_id]);
+
+  answer = picojson::value(picojson::object());
+  answer_obj = answer.get<picojson::object>();
+
+  answer_obj["profileId"] = picojson::value(profile_id);
+}
+
+int DataSyncManager::StateChangedCallback(sync_agent_event_data_s* request) {
+  LoggerD("DataSync session state changed.");
+
+  char* progress = nullptr;
+  std::string profile_id;
+
+  LoggerD("Get state info.");
+  sync_agent_get_event_data_param(request, &progress);
+  GetProfileId(request, profile_id);
+
+  LoggerI("profileDirName: %s, progress: %s", profile_id.c_str(), progress);
+
+  // prepare response object
+  picojson::value response;
+  picojson::object response_obj;
+  picojson::value answer;
+  picojson::object answer_obj;
+  PrepareResponseObj(profile_id, response, response_obj, answer, answer_obj);
+
+  auto it = callbacks_.find(profile_id);
+  if (it != callbacks_.end()) {
+    //      int callback_id = it->second.first;
+    //      DatasyncInstance* instance = it->second.second;
+    callbacks_.erase(it);
+
+    if (!progress) {
+      Failed(response_obj, answer_obj, UNKNOWN_ERR, "Exception", "nullptr status");
+    } else if (0 == strncmp(progress, "DONE", 4)) {
+      response_obj["callback_name"] = picojson::value("oncompleted");
+    } else if (0 == strncmp(progress, "CANCEL", 6)) {
+      response_obj["callback_name"] = picojson::value("onstopped");
+    } else if (0 == strncmp(progress, "ERROR", 5)) {
+      Failed(response_obj, answer_obj, UNKNOWN_ERR, "Exception", "Datasync failed");
+    } else {
+      Failed(response_obj, answer_obj, UNKNOWN_ERR, "Exception", "Undefined status");
+    }
   }
-  g_free(request);
+
+  response_obj["answer"] = answer;
+
+  g_free(progress);
+
+  DatasyncInstance::GetInstance().PostMessage(response.serialize().c_str());
 
   return 0;
 }
@@ -628,24 +633,15 @@ int DataSyncManager::StateChangedCallback(sync_agent_event_data_s* request) {
 int DataSyncManager::ProgressCallback(sync_agent_event_data_s* request) {
   LoggerD("DataSync progress called.");
 
-  char* profile_dir_name = nullptr;
-  int sync_type = 0;
   int uri;
-  char* progress_status = nullptr;
-  char* operation_type = nullptr;
-
-  int is_from_server, total_per_operation, synced_per_operation, total_per_db,
-      synced_per_db;
+  int is_from_server, total_per_operation, synced_per_operation, total_per_db, synced_per_db;
+  std::string profile_id;
 
   LoggerD("Get progress info.");
-  sync_agent_get_event_data_param(request, &profile_dir_name);
-  sync_agent_get_event_data_param(request, &sync_type);
   sync_agent_get_event_data_param(request, &uri);
-  sync_agent_get_event_data_param(request, &progress_status);
-  sync_agent_get_event_data_param(request, &operation_type);
+  GetProfileId(request, profile_id);
 
-  LoggerI("profileDirName: %s, syncType: %d, uri: %d, progressStatus: %s, operationType %s",
-          profile_dir_name, sync_type, uri, progress_status, operation_type);
+  LoggerI("profileDirName: %s, uri: %d", profile_id.c_str(), uri);
 
   sync_agent_get_event_data_param(request, &is_from_server);
   sync_agent_get_event_data_param(request, &total_per_operation);
@@ -653,41 +649,35 @@ int DataSyncManager::ProgressCallback(sync_agent_event_data_s* request) {
   sync_agent_get_event_data_param(request, &total_per_db);
   sync_agent_get_event_data_param(request, &synced_per_db);
 
-  LoggerI("isFromServer: %d, totalPerOperation: %d, syncedPerOperation: %d, totalPerDb: %d,\
-          syncedPerDb %d",
-          is_from_server, total_per_operation, synced_per_operation, total_per_db, synced_per_db);
+  LoggerI(
+      "isFromServer: %d, totalPerOperation: %d, syncedPerOperation: %d, totalPerDb: %d, "
+      "syncedPerDb %d",
+      is_from_server, total_per_operation, synced_per_operation, total_per_db, synced_per_db);
 
-  if (profile_dir_name) {
-    std::string profile_dir_name_str(profile_dir_name);
-    profile_dir_name_str.resize(4);
-    int profile_id = std::stoi(profile_dir_name_str);
+  // prepare response object
+  picojson::value response;
+  picojson::object response_obj;
+  picojson::value answer;
+  picojson::object answer_obj;
+  PrepareResponseObj(profile_id, response, response_obj, answer, answer_obj);
 
-    auto it = callbacks_.find(profile_id);
-    if (it != callbacks_.end()) {
-      int callback_id = it->second.first;
-      DatasyncInstance* instance = it->second.second;
+  auto it = callbacks_.find(profile_id);
+  if (it != callbacks_.end()) {
 
-      if (SYNC_AGENT_SRC_URI_CONTACT == uri) {
-//  TODO: implementation
-      } else if (SYNC_AGENT_SRC_URI_CALENDAR == uri) {
-//  TODO: implementation
-      } else {
-        LoggerW("Wrong service type");
-//  TODO: implementation
-      }
+    if (SYNC_AGENT_SRC_URI_CONTACT == uri || SYNC_AGENT_SRC_URI_CALENDAR == uri) {
+      response_obj["callback_name"] = picojson::value("onprogress");
+      answer_obj["serviceType"] = picojson::value(PlatformEnumToStr(kSyncServiceTypeToSrcUri, uri));
+      answer_obj["isFromServer"] = picojson::value(static_cast<double>(is_from_server));
+      answer_obj["totalPerService"] = picojson::value(static_cast<double>(total_per_db));
+      answer_obj["syncedPerService"] = picojson::value(static_cast<double>(synced_per_db));
+    } else {
+      Failed(response_obj, answer_obj, UNKNOWN_ERR, "Exception", "Wrong service type");
     }
   }
 
-  g_free(profile_dir_name);
-  g_free(progress_status);
-  g_free(operation_type);
+  response_obj["answer"] = answer;
 
-  if (request != nullptr) {
-    if (request->size != nullptr) {
-      g_free(request->size);
-    }
-    g_free(request);
-  }
+  DatasyncInstance::GetInstance().PostMessage(response.serialize().c_str());
 
   return 0;
 }

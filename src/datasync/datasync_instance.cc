@@ -9,12 +9,18 @@
 
 #include "datasync/datasync_instance.h"
 #include "tizen/tizen.h"
+#include "common/task-queue.h"
 
 
 namespace extension {
 namespace datasync {
 
 using namespace common;
+
+DatasyncInstance& DatasyncInstance::GetInstance() {
+  static DatasyncInstance instance;
+  return instance;
+}
 
 DatasyncInstance::DatasyncInstance() {
     using namespace std::placeholders;
@@ -91,11 +97,10 @@ void DatasyncInstance::Remove(const picojson::value &args, picojson::object &out
 }
 
 void DatasyncInstance::StartSync(const picojson::value &args, picojson::object &out) {
-//  TODO: implementation
+  DataSyncManager::Instance().StartSync(args.get<picojson::object>());
 
-    picojson::value val{picojson::object{}};
-
-    ReportSuccess(val, out);
+  picojson::value val{picojson::object{}};
+  ReportSuccess(val, out);
 }
 
 void DatasyncInstance::StopSync(const picojson::value &args, picojson::object &out) {
