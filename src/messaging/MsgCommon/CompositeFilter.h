@@ -44,7 +44,8 @@ public:
     CompositeFilterType getType() const;
     void setType(CompositeFilterType type);
     const AbstractFilterPtrVector& getFilters() const;
-    void setFilters(const AbstractFilterPtrVector &filter);
+    void addFilter(const AbstractFilterPtr& filter);
+//    void setFilters(const AbstractFilterPtrVector &filter);
 //    JSFilterArray getJSFilters(JSContextRef ctx);
 //    JSContextRef getContext() const;
 

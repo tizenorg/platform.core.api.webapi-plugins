@@ -63,10 +63,18 @@ function addTypeToFilter_(data)
     }
 
     if (data instanceof tizen.AttributeFilter) {
-        filter.type = "AttributeFilter";
-    }
-    if (data instanceof tizen.AttributeRangeFilter) {
-        filter.type = "AttributeRangeFilter";
+        filter.filterType = "AttributeFilter";
+    } else if (data instanceof tizen.AttributeRangeFilter) {
+        filter.filterType = "AttributeRangeFilter";
+    } else if (data instanceof tizen.CompositeFilter) {
+        filter.filterType = "CompositeFilter";
+        // recursively convert all sub-filters
+        filter.filters = [];
+        for (var i = 0; i < data.filters.length; ++i) {
+            filter.filters[i] = addTypeToFilter_(data.filters[i]);
+        }
+    } else {
+        filter.filterType = "Unknown";
     }
 
     return filter;
