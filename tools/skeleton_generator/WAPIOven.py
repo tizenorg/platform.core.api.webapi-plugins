@@ -102,8 +102,8 @@ class Compiler(IndentPrintable):
                     enums = reduce(lambda x,y: x+y, [ self.ctx['enum'][x] for x in self.ctx['enum'] if x in union_names])
                     return ['ENUM', enums]
                 else:
-                    types = reduce(lambda x, y: x & y, [ x in m.getTypes('Interface') for x in union_names])
-                    return ['PLATFORM_OBJECT', types]
+                  types = reduce(lambda x, y: x & y, [ x in self.ctx['interfaces'] for x in union_names])
+                  return ['PLATFORM_OBJECT', types]
             else:
                 return self.jstype(t2)
         elif t.name in self.ctx['callback']:
