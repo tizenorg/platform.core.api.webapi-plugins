@@ -154,7 +154,7 @@ BuildRequires: pkgconfig(evas)
 BuildRequires: pkgconfig(gio-2.0)
 BuildRequires: pkgconfig(glib-2.0)
 BuildRequires: pkgconfig(libudev)
-BuildRequires: pkgconfig(message-port)
+BuildRequires: pkgconfig(capi-message-port)
 BuildRequires: pkgconfig(minizip)
 BuildRequires: pkgconfig(zlib)
 BuildRequires: pkgconfig(msg-service)
@@ -181,6 +181,7 @@ BuildRequires: pkgconfig(capi-appfw-application)
 BuildRequires: pkgconfig(capi-appfw-app-manager)
 BuildRequires: pkgconfig(capi-appfw-package-manager)
 BuildRequires: pkgconfig(wrt-plugins-ipc-message)
+
 
 %if 0%{?tizen_feature_power_support}
 BuildRequires: pkgconfig(capi-system-power)
