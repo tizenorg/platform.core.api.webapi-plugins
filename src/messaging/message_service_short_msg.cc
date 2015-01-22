@@ -133,12 +133,18 @@ static gboolean loadMessageBodyTask(void* data)
         args[JSON_DATA_MESSAGE_BODY] = MessagingUtil::messageBodyToJson(body);
         obj[JSON_DATA] = picojson::value(args);
 
-        MessagingInstance::getInstance().PostMessage(json->serialize().c_str());
+        PostQueue::getInstance().resolve(
+                obj.at(JSON_CALLBACK_ID).get<double>(),
+                json->serialize()
+        );
     } catch (...) {
         LoggerE("Couldn't create JSMessage object!");
         common::UnknownException e("Loade message body failed");
         callback->setError(e.name(), e.message());
-        MessagingInstance::getInstance().PostMessage(callback->getJson()->serialize().c_str());
+        PostQueue::getInstance().resolve(
+                callback->getJson()->get<picojson::object>().at(JSON_CALLBACK_ID).get<double>(),
+                callback->getJson()->serialize()
+        );
     }
 
     return FALSE;

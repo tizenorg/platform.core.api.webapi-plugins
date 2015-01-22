@@ -45,7 +45,10 @@ static gboolean sendMessageCompleteCB(void* data)
 
     try {
         if (callback->isError()) {
-            MessagingInstance::getInstance().PostMessage(callback->getJson()->serialize().c_str());
+            PostQueue::getInstance().resolve(
+                    callback->getJson()->get<picojson::object>().at(JSON_CALLBACK_ID).get<double>(),
+                    callback->getJson()->serialize()
+            );
             callback->getMessage()->setMessageStatus(MessageStatus::STATUS_FAILED);
         }
         else {
@@ -70,7 +73,10 @@ static gboolean sendMessageCompleteCB(void* data)
             data[JSON_DATA_MESSAGE] = MessagingUtil::messageToJson(message);
             obj[JSON_DATA] = picojson::value(data);
 
-            MessagingInstance::getInstance().PostMessage(json->serialize().c_str());
+            PostQueue::getInstance().resolve(
+                    obj.at(JSON_CALLBACK_ID).get<double>(),
+                    json->serialize()
+            );
             callback->getMessage()->setMessageStatus(MessageStatus::STATUS_SENT);
         }
     }
@@ -101,7 +107,10 @@ static gboolean addDraftMessageCompleteCB(void *data)
         if (callback->isError()) {
             LoggerD("Calling error callback");
 
-            MessagingInstance::getInstance().PostMessage(callback->getJson()->serialize().c_str());
+            PostQueue::getInstance().resolve(
+                    callback->getJson()->get<picojson::object>().at(JSON_CALLBACK_ID).get<long>(),
+                    callback->getJson()->serialize()
+            );
             callback->getMessage()->setMessageStatus(MessageStatus::STATUS_FAILED);
         } else {
             LoggerD("Calling success callback");
@@ -114,7 +123,10 @@ static gboolean addDraftMessageCompleteCB(void *data)
             args[JSON_DATA_MESSAGE] = MessagingUtil::messageToJson(callback->getMessage());
             obj[JSON_DATA] = picojson::value(args);
 
-            MessagingInstance::getInstance().PostMessage(json->serialize().c_str());
+            PostQueue::getInstance().resolve(
+                    obj.at(JSON_CALLBACK_ID).get<double>(),
+                    json->serialize()
+            );
         }
     } catch (const common::PlatformException& err) {
         LoggerE("Error while calling addDraftMessage callback: %s (%s)",
@@ -768,14 +780,21 @@ void ShortMsgManager::removeMessages(MessagesCallbackUserData* callback)
     try {
         if (callback->isError()) {
             LoggerD("Calling error callback");
-            MessagingInstance::getInstance().PostMessage(callback->getJson()->serialize().c_str());
+            PostQueue::getInstance().resolve(
+                    callback->getJson()->get<picojson::object>().at(JSON_CALLBACK_ID).get<double>(),
+                    callback->getJson()->serialize()
+            );
         } else {
             LoggerD("Calling success callback");
 
             auto json = callback->getJson();
             picojson::object& obj = json->get<picojson::object>();
             obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
-            MessagingInstance::getInstance().PostMessage(json->serialize().c_str());
+
+            PostQueue::getInstance().resolve(
+                    obj.at(JSON_CALLBACK_ID).get<double>(),
+                    json->serialize()
+            );
         }
     } catch (const common::PlatformException& err) {
         LoggerE("Error while calling removeShortMsg callback: %s (%s)",
@@ -840,7 +859,10 @@ void ShortMsgManager::updateMessages(MessagesCallbackUserData* callback)
         if (callback->isError()) {
             LoggerD("Calling error callback");
 
-            MessagingInstance::getInstance().PostMessage(callback->getJson()->serialize().c_str());
+            PostQueue::getInstance().resolve(
+                    callback->getJson()->get<picojson::object>().at(JSON_CALLBACK_ID).get<double>(),
+                    callback->getJson()->serialize()
+            );
         } else {
             LoggerD("Calling success callback");
 
@@ -858,7 +880,11 @@ void ShortMsgManager::updateMessages(MessagesCallbackUserData* callback)
             obj[JSON_DATA] = picojson::value(array);
 
             obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
-            MessagingInstance::getInstance().PostMessage(json->serialize().c_str());
+
+            PostQueue::getInstance().resolve(
+                    obj.at(JSON_CALLBACK_ID).get<double>(),
+                    json->serialize()
+            );
         }
     } catch (const common::PlatformException& err) {
         LoggerE("Error while calling updateShortMsg callback: %s (%s)",
@@ -970,7 +996,10 @@ void ShortMsgManager::findMessages(FindMsgCallbackUserData* callback)
     try {
         if (callback->isError()) {
             LoggerD("Calling error callback");
-            MessagingInstance::getInstance().PostMessage(callback->getJson()->serialize().c_str());
+            PostQueue::getInstance().resolve(
+                    callback->getJson()->get<picojson::object>().at(JSON_CALLBACK_ID).get<double>(),
+                    callback->getJson()->serialize()
+            );
         } else {
             LoggerD("Calling success callback with %d messages:",
                     callback->getMessages().size());
@@ -986,7 +1015,11 @@ void ShortMsgManager::findMessages(FindMsgCallbackUserData* callback)
 
             obj[JSON_DATA] = picojson::value(response);
             obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
-            MessagingInstance::getInstance().PostMessage(json->serialize().c_str());
+
+            PostQueue::getInstance().resolve(
+                    obj.at(JSON_CALLBACK_ID).get<double>(),
+                    json->serialize()
+            );
         }
     } catch (const common::PlatformException& err) {
         LoggerE("Error while calling findMessages callback: %s (%s)",
@@ -1034,7 +1067,10 @@ void ShortMsgManager::findConversations(ConversationCallbackData* callback)
     try {
         if (callback->isError()) {
             LoggerD("Calling error callback");
-            MessagingInstance::getInstance().PostMessage(callback->getJson()->serialize().c_str());
+            PostQueue::getInstance().resolve(
+                    callback->getJson()->get<picojson::object>().at(JSON_CALLBACK_ID).get<double>(),
+                    callback->getJson()->serialize()
+            );
         } else {
             LoggerD("Calling success callback");
             auto json = callback->getJson();
@@ -1049,7 +1085,11 @@ void ShortMsgManager::findConversations(ConversationCallbackData* callback)
             );
             obj[JSON_DATA] = picojson::value(response);
             obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
-            MessagingInstance::getInstance().PostMessage(json->serialize().c_str());
+
+            PostQueue::getInstance().resolve(
+                    obj.at(JSON_CALLBACK_ID).get<double>(),
+                    json->serialize()
+            );
         }
     } catch (const common::PlatformException& err) {
         LoggerE("Error while calling findConversations callback: %s (%s)",
@@ -1169,15 +1209,21 @@ void ShortMsgManager::removeConversations(ConversationCallbackData* callback)
     try {
         if (callback->isError()) {
             LoggerD("Calling error callback");
-            MessagingInstance::getInstance().PostMessage(
-                    callback->getJson()->serialize().c_str());
+            PostQueue::getInstance().resolve(
+                    callback->getJson()->get<picojson::object>().at(JSON_CALLBACK_ID).get<double>(),
+                    callback->getJson()->serialize()
+            );
         } else {
             LoggerD("Calling success callback");
 
             auto json = callback->getJson();
             picojson::object& obj = json->get<picojson::object>();
             obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
-            MessagingInstance::getInstance().PostMessage(json->serialize().c_str());
+
+            PostQueue::getInstance().resolve(
+                    obj.at(JSON_CALLBACK_ID).get<double>(),
+                    json->serialize()
+            );
         }
     } catch (const common::PlatformException& err) {
         LoggerE("Error while calling removeConversations callback: %s (%s)",

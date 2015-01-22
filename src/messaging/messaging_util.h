@@ -8,6 +8,8 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <mutex>
+#include <map>
 #include <stdexcept>
 #include "common/logger.h"
 #include "common/picojson.h"
@@ -157,6 +159,56 @@ public:
 private:
     static tizen::AttributeFilterPtr jsonFilterToAttributeFilter(const picojson::object& json);
     static tizen::AttributeRangeFilterPtr jsonFilterToAttributeRangeFilter(const picojson::object& json);
+};
+
+enum PostPriority {
+    LAST = 0,
+    LOW,
+    MEDIUM,
+    HIGH
+};
+
+class PostQueue {
+public:
+    static PostQueue& getInstance();
+    void addAndResolve(const long cid, PostPriority priority, const std::string json);
+    void add(const long cid, PostPriority priority = PostPriority::LAST);
+    void resolve(const long cid, const std::string json);
+
+    enum TaskState {
+        NEW = 0,
+        READY,
+        DONE
+    };
+
+private:
+    class PostTask;
+    typedef std::pair<long, std::shared_ptr<PostTask>> TasksCollectionItem;
+    typedef std::vector<TasksCollectionItem> TasksCollection;
+
+    PostQueue();
+    PostQueue(const PostQueue &);
+    ~PostQueue();
+    void operator=(const PostQueue &);
+    void resolve(PostPriority p);
+    TasksCollection tasks_;
+    std::mutex tasks_mutex_;
+
+    class PostTask {
+    public:
+        PostTask();
+        PostTask(PostPriority p);
+        ~PostTask();
+        void attach(const std::string j);
+        PostPriority priority();
+        TaskState state();
+        std::string json();
+        void resolve();
+    private:
+        std::string json_;
+        PostPriority priority_;
+        TaskState state_;
+    };
 };
 
 } // messaging

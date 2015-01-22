@@ -93,7 +93,9 @@ void FoldersChangeCallback::added(const FolderPtrVector& folders)
     picojson::object& obj = json->get<picojson::object>();
     obj[JSON_ACTION] = picojson::value(FOLDERSADDED);
     obj[JSON_DATA] = picojson::value(array);
-    MessagingInstance::getInstance().PostMessage(json->serialize().c_str());
+
+    PostQueue::getInstance().addAndResolve(obj.at(
+                JSON_CALLBACK_ID).get<double>(), PostPriority::MEDIUM, json->serialize());
 }
 
 void FoldersChangeCallback::updated(const FolderPtrVector& folders)
@@ -118,7 +120,9 @@ void FoldersChangeCallback::updated(const FolderPtrVector& folders)
     picojson::object& obj = json->get<picojson::object>();
     obj[JSON_ACTION] = picojson::value(FOLDERSUPDATED);
     obj[JSON_DATA] = picojson::value(array);
-    MessagingInstance::getInstance().PostMessage(json->serialize().c_str());
+
+    PostQueue::getInstance().addAndResolve(obj.at(
+                JSON_CALLBACK_ID).get<double>(), PostPriority::LOW, json->serialize());
 }
 
 void FoldersChangeCallback::removed(const FolderPtrVector& folders)
@@ -143,7 +147,9 @@ void FoldersChangeCallback::removed(const FolderPtrVector& folders)
     picojson::object& obj = json->get<picojson::object>();
     obj[JSON_ACTION] = picojson::value(FOLDERSREMOVED);
     obj[JSON_DATA] = picojson::value(array);
-    MessagingInstance::getInstance().PostMessage(json->serialize().c_str());
+
+    PostQueue::getInstance().addAndResolve(obj.at(
+                JSON_CALLBACK_ID).get<double>(), PostPriority::LAST, json->serialize());
 }
 
 void FoldersChangeCallback::setFilter(tizen::AbstractFilterPtr filter)

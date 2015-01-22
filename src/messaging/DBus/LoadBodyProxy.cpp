@@ -181,7 +181,10 @@ void LoadBodyProxy::handleEmailSignal(const int status,
                             callback->getMessage()->getBody());
                     obj[JSON_DATA] = picojson::value(args);
 
-                    MessagingInstance::getInstance().PostMessage(json->serialize().c_str());
+                    PostQueue::getInstance().resolve(
+                            obj.at(JSON_CALLBACK_ID).get<double>(),
+                            json->serialize()
+                    );
                 } catch (...) {
                     LoggerW("Couldn't create JSMessage object!");
                     throw common::UnknownException(
@@ -193,8 +196,10 @@ void LoadBodyProxy::handleEmailSignal(const int status,
 
                 common::UnknownException e("Load message body failed!");
                 callback->setError(e.name(), e.message());
-                MessagingInstance::getInstance().PostMessage(
-                        callback->getJson()->serialize().c_str());
+                PostQueue::getInstance().resolve(
+                        callback->getJson()->get<picojson::object>().at(JSON_CALLBACK_ID).get<double>(),
+                        callback->getJson()->serialize()
+                );
             }
         }
     }
@@ -202,14 +207,20 @@ void LoadBodyProxy::handleEmailSignal(const int status,
         LoggerE("Exception in signal callback");
 
         callback->setError(e.name(), e.message());
-        MessagingInstance::getInstance().PostMessage(callback->getJson()->serialize().c_str());
+        PostQueue::getInstance().resolve(
+                callback->getJson()->get<picojson::object>().at(JSON_CALLBACK_ID).get<double>(),
+                callback->getJson()->serialize()
+        );
     }
     catch (...) {
         LoggerE("Exception in signal callback");
 
         common::UnknownException e("Load message body failed!");
         callback->setError(e.name(), e.message());
-        MessagingInstance::getInstance().PostMessage(callback->getJson()->serialize().c_str());
+        PostQueue::getInstance().resolve(
+                callback->getJson()->get<picojson::object>().at(JSON_CALLBACK_ID).get<double>(),
+                callback->getJson()->serialize()
+        );
     }
 
     if(callback) {

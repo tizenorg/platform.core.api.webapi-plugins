@@ -196,7 +196,10 @@ void MessagingInstance::MessageServiceSendMessage(const picojson::value& args,
             (MessagingUtil::getValueFromJSONObject<double>(data,SEND_MESSAGE_ARGS_SIMINDEX));
 
     if (!callback->setSimIndex(simIndex)) {
-        PostMessage(json->serialize().c_str());
+        PostQueue::getInstance().resolve(
+                obj.at(JSON_CALLBACK_ID).get<double>(),
+                json->serialize()
+        );
         delete callback;
         callback = NULL;
         return;
@@ -204,6 +207,7 @@ void MessagingInstance::MessageServiceSendMessage(const picojson::value& args,
 
     callback->setJson(json);
 
+    PostQueue::getInstance().add(static_cast<long>(callbackId), PostPriority::HIGH);
     auto service = MessagingManager::getInstance().getMessageService(serviceId);
     service->sendMessage(callback);
 }
@@ -217,6 +221,7 @@ void MessagingInstance::MessageServiceLoadMessageBody(const picojson::value& arg
     picojson::value message = data.at(ADD_DRAFT_MESSAGE_ARGS_MESSAGE);
     const double callbackId = args.get(JSON_CALLBACK_ID).get<double>();
 
+
     MessageBodyCallbackData* callback = new MessageBodyCallbackData();
     callback->setMessage(MessagingUtil::jsonToMessage(message));
 
@@ -225,6 +230,7 @@ void MessagingInstance::MessageServiceLoadMessageBody(const picojson::value& arg
     obj[JSON_CALLBACK_ID] = picojson::value(callbackId);
     callback->setJson(json);
 
+    PostQueue::getInstance().add(static_cast<long>(callbackId), PostPriority::HIGH);
     auto service = MessagingManager::getInstance().getMessageService(getServiceIdFromJSON(data));
     service->loadMessageBody(callback);
 }
@@ -237,6 +243,7 @@ void MessagingInstance::MessageServiceLoadMessageAttachment(const picojson::valu
     picojson::object data = args.get(JSON_DATA).get<picojson::object>();
     picojson::value attachment = data.at(LOAD_MESSAGE_ATTACHMENT_ARGS_ATTACHMENT);
     const double callbackId = args.get(JSON_CALLBACK_ID).get<double>();
+
     MessageAttachmentCallbackData* callback = new MessageAttachmentCallbackData();
     callback->setMessageAttachment(MessagingUtil::jsonToMessageAttachment(attachment));
 
@@ -245,6 +252,7 @@ void MessagingInstance::MessageServiceLoadMessageAttachment(const picojson::valu
     obj[JSON_CALLBACK_ID] = picojson::value(callbackId);
     callback->setJson(json);
 
+    PostQueue::getInstance().add(static_cast<long>(callbackId), PostPriority::HIGH);
     auto service = MessagingManager::getInstance().getMessageService(getServiceIdFromJSON(data));
     service->loadMessageAttachment(callback);
 }
@@ -280,6 +288,7 @@ void MessagingInstance::MessageServiceSync(const picojson::value& args,
     callback->setAccountId(id);
     callback->setLimit(limit);
 
+    PostQueue::getInstance().add(static_cast<long>(callbackId), PostPriority::HIGH);
     long op_id = MessagingManager::getInstance().getMessageService(id)->sync(callback);
 
     picojson::value v_op_id(static_cast<double>(op_id));
@@ -320,6 +329,7 @@ void MessagingInstance::MessageServiceSyncFolder(const picojson::value& args,
     callback->setMessageFolder(MessagingUtil::jsonToMessageFolder(v_folder));
     callback->setLimit(limit);
 
+    PostQueue::getInstance().add(static_cast<long>(callbackId), PostPriority::HIGH);
     long op_id = MessagingManager::getInstance().getMessageService(id)->syncFolder(callback);
 
     picojson::value v_op_id(static_cast<double>(op_id));
@@ -377,6 +387,7 @@ void MessagingInstance::MessageStorageAddDraft(const picojson::value& args,
     obj[JSON_CALLBACK_ID] = picojson::value(callbackId);
     callback->setJson(json);
 
+    PostQueue::getInstance().add(static_cast<long>(callbackId), PostPriority::HIGH);
     auto service = MessagingManager::getInstance().getMessageService(serviceId);
     service->getMsgStorage()->addDraftMessage(callback);
 }
@@ -414,6 +425,7 @@ void MessagingInstance::MessageStorageFindMessages(const picojson::value& args,
     obj[JSON_CALLBACK_ID] = picojson::value(callbackId);
     callback->setJson(json);
 
+    PostQueue::getInstance().add(static_cast<long>(callbackId), PostPriority::HIGH);
     storage->findMessages(callback);
 }
 
@@ -440,6 +452,7 @@ void MessagingInstance::MessageStorageRemoveMessages(const picojson::value& args
 
     auto service = MessagingManager::getInstance().getMessageService(getServiceIdFromJSON(data));
 
+    PostQueue::getInstance().add(static_cast<long>(callbackId), PostPriority::HIGH);
     service->getMsgStorage()->removeMessages(callback);
 }
 
@@ -467,6 +480,7 @@ void MessagingInstance::MessageStorageUpdateMessages(const picojson::value& args
 
     auto service = MessagingManager::getInstance().getMessageService(getServiceIdFromJSON(data));
 
+    PostQueue::getInstance().add(static_cast<long>(callbackId), PostPriority::HIGH);
     service->getMsgStorage()->updateMessages(callback);
 }
 
@@ -500,6 +514,7 @@ void MessagingInstance::MessageStorageFindConversations(const picojson::value& a
     obj[JSON_CALLBACK_ID] = picojson::value(callbackId);
     callback->setJson(json);
 
+    PostQueue::getInstance().add(static_cast<long>(callbackId), PostPriority::HIGH);
     auto storage = MessagingManager::getInstance().getMessageService(serviceId)->getMsgStorage();
     storage->findConversations(callback);
 }
@@ -526,6 +541,7 @@ void MessagingInstance::MessageStorageRemoveConversations(const picojson::value&
 
     auto service = MessagingManager::getInstance().getMessageService(getServiceIdFromJSON(data));
 
+    PostQueue::getInstance().add(static_cast<long>(callbackId), PostPriority::HIGH);
     service->getMsgStorage()->removeConversations(callback);
 }
 
@@ -545,6 +561,8 @@ void MessagingInstance::MessageStorageFindFolders(const picojson::value& args,
     picojson::object& obj = json->get<picojson::object>();
     obj[JSON_CALLBACK_ID] = picojson::value(callbackId);
     callback->setJson(json);
+
+    PostQueue::getInstance().add(static_cast<long>(callbackId), PostPriority::HIGH);
     auto service = MessagingManager::getInstance().getMessageService(getServiceIdFromJSON(data));
     service->getMsgStorage()->findFolders(callback);
 }

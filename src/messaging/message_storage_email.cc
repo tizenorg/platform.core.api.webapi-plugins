@@ -44,7 +44,10 @@ static gboolean callError(void* data)
        return FALSE;
     }
 
-    MessagingInstance::getInstance().PostMessage(callback->getJson()->serialize().c_str());
+    PostQueue::getInstance().resolve(
+            callback->getJson()->get<picojson::object>().at(JSON_CALLBACK_ID).get<double>(),
+            callback->getJson()->serialize()
+    );
 
     return FALSE;
 }

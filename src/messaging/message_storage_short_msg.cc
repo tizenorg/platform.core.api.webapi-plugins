@@ -206,7 +206,11 @@ static gboolean findFoldersCB(void* data)
 
     obj[JSON_DATA] = picojson::value(array);
     obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
-    MessagingInstance::getInstance().PostMessage(json->serialize().c_str());
+
+    PostQueue::getInstance().resolve(
+            obj.at(JSON_CALLBACK_ID).get<double>(),
+            json->serialize()
+    );
 
     delete callback;
     callback = NULL;

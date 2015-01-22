@@ -123,7 +123,11 @@ static gboolean loadMessageAttachmentTask(void* data)
                     callback->getMessageAttachment());
             obj[JSON_DATA] = picojson::value(args);
 
-            MessagingInstance::getInstance().PostMessage(json->serialize().c_str());
+            PostQueue::getInstance().resolve(
+                    obj.at(JSON_CALLBACK_ID).get<double>(),
+                    json->serialize()
+            );
+
             delete callback;
             callback = NULL;
             return FALSE;
