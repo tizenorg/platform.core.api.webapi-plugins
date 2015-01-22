@@ -8,12 +8,12 @@ var AlarmMethod = {
 };
 
 var CalendarAlarm = function(time, method, description) {
-  AV.isConstructorCall(this, CalendarAlarm);
+  validator_.isConstructorCall(this, CalendarAlarm);
 
   var _absoluteDate = time instanceof tizen.TZDate && !this.before ? time : null;
   var _before = time instanceof tizen.TimeDuration && !this.absoluteDate ? time : null;
-  var _method = Converter.toEnum(method, Object.keys(AlarmMethod), false);
-  var _description = (description) ? Converter.toString(description, true) : '';
+  var _method = converter_.toEnum(method, Object.keys(AlarmMethod), false);
+  var _description = (description) ? converter_.toString(description, true) : '';
 
   Object.defineProperties(this, {
     absoluteDate: {
@@ -42,7 +42,7 @@ var CalendarAlarm = function(time, method, description) {
         if (v === null) {
           return;
         }
-        _method = Converter.toEnum(v, Object.keys(AlarmMethod), false);
+        _method = converter_.toEnum(v, Object.keys(AlarmMethod), false);
       },
       enumerable: true
     },
@@ -51,7 +51,7 @@ var CalendarAlarm = function(time, method, description) {
         return _description;
       },
       set: function(v) {
-        _description = Converter.toString(v, true);
+        _description = converter_.toString(v, true);
       },
       enumerable: true
     }

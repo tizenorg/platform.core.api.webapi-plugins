@@ -12,18 +12,18 @@ var DefaultCalendarId = {
 };
 
 CalendarManager.prototype.getCalendars = function() {
-  var args = AV.validateArgs(arguments, [{
+  var args = validator_.validateArgs(arguments, [{
     name: 'type',
-    type: AV.Types.ENUM,
+    type: types_.ENUM,
     values: Object.keys(CalendarType)
   },
   {
     name: 'successCallback',
-    type: AV.Types.FUNCTION
+    type: types_.FUNCTION
   },
   {
     name: 'errorCallback',
-    type: AV.Types.FUNCTION,
+    type: types_.FUNCTION,
     optional: true,
     nullable: true
   }]);
@@ -50,9 +50,9 @@ CalendarManager.prototype.getCalendars = function() {
 
 CalendarManager.prototype.getUnifiedCalendar = function() {
 
-  var args = AV.validateArgs(arguments, [{
+  var args = validator_.validateArgs(arguments, [{
     name: 'type',
-    type: AV.Types.ENUM,
+    type: types_.ENUM,
     values: Object.keys(CalendarType)
   }]);
 
@@ -64,9 +64,9 @@ CalendarManager.prototype.getUnifiedCalendar = function() {
 
 CalendarManager.prototype.getDefaultCalendar = function() {
 
-  var args = AV.validateArgs(arguments, [{
+  var args = validator_.validateArgs(arguments, [{
     name: 'type',
-    type: AV.Types.ENUM,
+    type: types_.ENUM,
     values: Object.keys(CalendarType)
   }
   ]);
@@ -76,14 +76,14 @@ CalendarManager.prototype.getDefaultCalendar = function() {
 
 CalendarManager.prototype.getCalendar = function() {
 
-  var args = AV.validateArgs(arguments, [{
+  var args = validator_.validateArgs(arguments, [{
     name: 'type',
-    type: AV.Types.ENUM,
+    type: types_.ENUM,
     values: Object.keys(CalendarType)
   },
   {
     name: 'id',
-    type: AV.Types.STRING
+    type: types_.STRING
   }
   ]);
 
@@ -103,9 +103,9 @@ CalendarManager.prototype.getCalendar = function() {
 
 CalendarManager.prototype.addCalendar = function() {
 
-  var args = AV.validateArgs(arguments, [{
+  var args = validator_.validateArgs(arguments, [{
     name: 'calendar',
-    type: AV.Types.PLATFORM_OBJECT,
+    type: types_.PLATFORM_OBJECT,
     values: Calendar
   }]);
 
@@ -126,14 +126,14 @@ CalendarManager.prototype.addCalendar = function() {
 
 CalendarManager.prototype.removeCalendar = function() {
 
-  var args = AV.validateArgs(arguments, [{
+  var args = validator_.validateArgs(arguments, [{
     name: 'type',
-    type: AV.Types.ENUM,
+    type: types_.ENUM,
     values: Object.keys(CalendarType)
   },
   {
     name: 'id',
-    type: AV.Types.STRING
+    type: types_.STRING
   }
   ]);
 

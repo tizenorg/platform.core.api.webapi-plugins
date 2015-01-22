@@ -44,7 +44,7 @@ var CalendarAttendeeInit = function(data) {
         return _name;
       },
       set: function(v) {
-        _name = Converter.toString(v, true);
+        _name = converter_.toString(v, true);
       },
       enumerable: true
     },
@@ -56,7 +56,7 @@ var CalendarAttendeeInit = function(data) {
         if (v === null) {
           return;
         }
-        _role = Converter.toEnum(v, Object.keys(AttendeeRole), false);
+        _role = converter_.toEnum(v, Object.keys(AttendeeRole), false);
       },
       enumerable: true
     },
@@ -68,7 +68,7 @@ var CalendarAttendeeInit = function(data) {
         if (v === null) {
           return;
         }
-        _status = Converter.toEnum(v, Object.keys(AttendeeStatus), false);
+        _status = converter_.toEnum(v, Object.keys(AttendeeStatus), false);
       },
       enumerable: true
     },
@@ -77,7 +77,7 @@ var CalendarAttendeeInit = function(data) {
         return _RSVP;
       },
       set: function(v) {
-        _RSVP = Converter.toBoolean(v);
+        _RSVP = converter_.toBoolean(v);
       },
       enumerable: true
     },
@@ -89,7 +89,7 @@ var CalendarAttendeeInit = function(data) {
         if (v === null) {
           return;
         }
-        _type = Converter.toEnum(v, Object.keys(AttendeeType), false);
+        _type = converter_.toEnum(v, Object.keys(AttendeeType), false);
       },
       enumerable: true
     },
@@ -98,7 +98,7 @@ var CalendarAttendeeInit = function(data) {
         return _group;
       },
       set: function(v) {
-        _group = Converter.toString(v, true);
+        _group = converter_.toString(v, true);
       },
       enumerable: true
     },
@@ -107,7 +107,7 @@ var CalendarAttendeeInit = function(data) {
         return _delegatorURI;
       },
       set: function(v) {
-        _delegatorURI = Converter.toString(v, true);
+        _delegatorURI = converter_.toString(v, true);
       },
       enumerable: true
     },
@@ -116,7 +116,7 @@ var CalendarAttendeeInit = function(data) {
         return _delegateURI;
       },
       set: function(v) {
-        _delegateURI = Converter.toString(v, true);
+        _delegateURI = converter_.toString(v, true);
       },
       enumerable: true
     },
@@ -141,7 +141,7 @@ var CalendarAttendeeInit = function(data) {
 };
 
 var CalendarAttendee = function(uri, attendeeInitDict) {
-  AV.isConstructorCall(this, CalendarAttendee);
+  validator_.isConstructorCall(this, CalendarAttendee);
 
   CalendarAttendeeInit.call(this, attendeeInitDict);
 
@@ -156,7 +156,7 @@ var CalendarAttendee = function(uri, attendeeInitDict) {
         if (v === null) {
           return;
         }
-        _uri = Converter.toString(v, true);
+        _uri = converter_.toString(v, true);
       },
       enumerable: true
     }

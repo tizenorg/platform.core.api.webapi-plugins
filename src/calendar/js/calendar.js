@@ -53,14 +53,14 @@ var InternalCalendar = function(data) {
 var Calendar = function(accountId, name, type) {
   var _data;
 
-  AV.isConstructorCall(this, Calendar);
+  validator_.isConstructorCall(this, Calendar);
 
   if (arguments[0] instanceof InternalCalendar) {
     _data = arguments[0];
   } else {
-    var _accountId = Converter.toLong(accountId);
-    var _name = Converter.toString(name);
-    var _type = Converter.toString(type);
+    var _accountId = converter_.toLong(accountId);
+    var _name = converter_.toString(name);
+    var _type = converter_.toString(type);
 
     if (arguments.length < 3) {
       _data = new InternalCalendar();
@@ -75,13 +75,13 @@ var Calendar = function(accountId, name, type) {
 
   Object.defineProperties(this, {
     accountId: {
-      value: Converter.toLong(_data.accountId),
+      value: converter_.toLong(_data.accountId),
       writable: false,
       enumerable: true
     },
     id: {
       get: function() {
-        return Converter.toString(_data.id, true);
+        return converter_.toString(_data.id, true);
       },
       set: function(v) {
         if (v instanceof InternalCalendar) {
@@ -114,14 +114,14 @@ Calendar.prototype.get = function(id) {
     if (!parseInt(id) || parseInt(id) <= 0) {
       throw new tizen.WebAPIException(tizen.WebAPIException.NOT_FOUND_ERR);
     }
-    args = AV.validateArgs(arguments, [{
+    args = validator_.validateArgs(arguments, [{
       name: 'id',
-      type: AV.Types.STRING
+      type: types_.STRING
     }]);
   } else {
-    args = AV.validateArgs(arguments, [{
+    args = validator_.validateArgs(arguments, [{
       name: 'id',
-      type: AV.Types.PLATFORM_OBJECT,
+      type: types_.PLATFORM_OBJECT,
       values: tizen.CalendarEventId
     }]);
   }
@@ -150,10 +150,10 @@ Calendar.prototype.get = function(id) {
 };
 
 Calendar.prototype.add = function() {
-  var args = AV.validateArgs(arguments, [
+  var args = validator_.validateArgs(arguments, [
     {
       name: 'item',
-      type: AV.Types.PLATFORM_OBJECT,
+      type: types_.PLATFORM_OBJECT,
       values: [CalendarEvent, CalendarTask]
     }
   ]);
@@ -193,20 +193,20 @@ Calendar.prototype.add = function() {
 };
 
 Calendar.prototype.addBatch = function() {
-  var args = AV.validateArgs(arguments, [
+  var args = validator_.validateArgs(arguments, [
     {
       name: 'items',
-      type: AV.Types.ARRAY,
+      type: types_.ARRAY,
       values: (this.type === CalendarType.EVENT)
                 ? tizen.CalendarEvent : tizen.CalendarTask
     }, {
       name: 'successCallback',
-      type: AV.Types.FUNCTION,
+      type: types_.FUNCTION,
       optional: true,
       nullable: true
     }, {
       name: 'errorCallback',
-      type: AV.Types.FUNCTION,
+      type: types_.FUNCTION,
       optional: true,
       nullable: true
     }
@@ -255,15 +255,15 @@ Calendar.prototype.addBatch = function() {
 };
 
 Calendar.prototype.update = function() {
-  var args = AV.validateArgs(arguments, [
+  var args = validator_.validateArgs(arguments, [
     {
       name: 'item',
-      type: AV.Types.PLATFORM_OBJECT,
+      type: types_.PLATFORM_OBJECT,
       values: [tizen.CalendarEvent, tizen.CalendarTask]
     },
     {
       name: 'updateAllInstances',
-      type: AV.Types.BOOLEAN,
+      type: types_.BOOLEAN,
       optional: true,
       nullable: true
     }
@@ -282,7 +282,7 @@ Calendar.prototype.update = function() {
     item: tmp,
     type: this.type,
     updateAllInstances: (args.has.updateAllInstances)
-            ? Converter.toBoolean(args.updateAllInstances, true)
+            ? converter_.toBoolean(args.updateAllInstances, true)
             : true
   });
 
@@ -302,28 +302,28 @@ Calendar.prototype.update = function() {
 };
 
 Calendar.prototype.updateBatch = function() {
-  var args = AV.validateArgs(arguments, [
+  var args = validator_.validateArgs(arguments, [
     {
       name: 'items',
-      type: AV.Types.ARRAY,
+      type: types_.ARRAY,
       values: (this.type === CalendarType.EVENT)
                 ? tizen.CalendarEvent : tizen.CalendarTask
     },
     {
       name: 'successCallback',
-      type: AV.Types.FUNCTION,
+      type: types_.FUNCTION,
       optional: true,
       nullable: true
     },
     {
       name: 'errorCallback',
-      type: AV.Types.FUNCTION,
+      type: types_.FUNCTION,
       optional: true,
       nullable: true
     },
     {
       name: 'updateAllInstances',
-      type: AV.Types.BOOLEAN,
+      type: types_.BOOLEAN,
       optional: true,
       nullable: true
     }
@@ -356,7 +356,7 @@ Calendar.prototype.updateBatch = function() {
     type: this.type,
     items: tmp,
     updateAllInstances: (args.has.updateAllInstances)
-            ? Converter.toBoolean(args.updateAllInstances, true)
+            ? converter_.toBoolean(args.updateAllInstances, true)
             : true
   }, callback);
 
@@ -368,14 +368,14 @@ Calendar.prototype.remove = function(id) {
     if (!parseInt(id) || parseInt(id) <= 0) {
       throw new tizen.WebAPIException(tizen.WebAPIException.NOT_FOUND_ERR);
     }
-    args = AV.validateArgs(arguments, [{
+    args = validator_.validateArgs(arguments, [{
       name: 'id',
-      type: AV.Types.STRING
+      type: types_.STRING
     }]);
   } else {
-    args = AV.validateArgs(arguments, [{
+    args = validator_.validateArgs(arguments, [{
       name: 'id',
-      type: AV.Types.PLATFORM_OBJECT,
+      type: types_.PLATFORM_OBJECT,
       values: tizen.CalendarEventId
     }]);
   }
@@ -391,22 +391,22 @@ Calendar.prototype.remove = function(id) {
 };
 
 Calendar.prototype.removeBatch = function() {
-  var args = AV.validateArgs(arguments, [
+  var args = validator_.validateArgs(arguments, [
     {
       name: 'ids',
-      type: AV.Types.ARRAY,
+      type: types_.ARRAY,
       values: (this.type === CalendarType.EVENT)
                 ? tizen.CalendarEventId : undefined
     },
     {
       name: 'successCallback',
-      type: AV.Types.FUNCTION,
+      type: types_.FUNCTION,
       optional: true,
       nullable: true
     },
     {
       name: 'errorCallback',
-      type: AV.Types.FUNCTION,
+      type: types_.FUNCTION,
       optional: true,
       nullable: true
     }
@@ -428,27 +428,27 @@ Calendar.prototype.removeBatch = function() {
 };
 
 Calendar.prototype.find = function(successCallback, errorCallback, filter, sortMode) {
-  var args = AV.validateArgs(arguments, [
+  var args = validator_.validateArgs(arguments, [
     {
       name: 'successCallback',
-      type: AV.Types.FUNCTION
+      type: types_.FUNCTION
     },
     {
       name: 'errorCallback',
-      type: AV.Types.FUNCTION,
+      type: types_.FUNCTION,
       optional: true,
       nullable: true
     },
     {
       name: 'filter',
-      type: AV.Types.PLATFORM_OBJECT,
+      type: types_.PLATFORM_OBJECT,
       values: [tizen.AttributeFilter, tizen.AttributeRangeFilter, tizen.CompositeFilter],
       optional: true,
       nullable: true
     },
     {
       name: 'sortMode',
-      type: AV.Types.PLATFORM_OBJECT,
+      type: types_.PLATFORM_OBJECT,
       values: tizen.SortMode,
       optional: true,
       nullable: true
@@ -483,7 +483,7 @@ Calendar.prototype.find = function(successCallback, errorCallback, filter, sortM
   };
 
   C.filter = function (arr, filter) {
-    if (T.isNullOrUndefined(arr))
+    if (type_.isNullOrUndefined(arr))
       return arr;
     if (filter instanceof tizen.AttributeFilter ||
             filter instanceof tizen.AttributeRangeFilter ||
@@ -549,7 +549,7 @@ function _CalendarChangeCallback(type, event) {
         if (type === 'EVENT') {
           item = new CalendarEventId(items[i].id, null);
         } else {
-          item = Converter.toString(items[i].id);
+          item = converter_.toString(items[i].id);
         }
       } else {
         item = _itemConverter.toTizenObject(items[i], items[i].isAllDay);
@@ -596,7 +596,7 @@ function _CalendarChangeCallback(type, event) {
     var action = actions[i];
     var callback = 'onitems' + action;
 
-    if (event.hasOwnProperty(action) && T.isArray(event[action]) && event[action].length) {
+    if (event.hasOwnProperty(action) && type_.isArray(event[action]) && event[action].length) {
 
       // invoke listeners for unified calendars
       if (_listeners.hasOwnProperty(type)) {
@@ -614,9 +614,9 @@ function _CalendarChangeCallback(type, event) {
 }
 
 Calendar.prototype.addChangeListener = function() {
-  var args = AV.validateArgs(arguments, [{
+  var args = validator_.validateArgs(arguments, [{
     name: 'successCallback',
-    type: AV.Types.LISTENER,
+    type: types_.LISTENER,
     values: ['onitemsadded', 'onitemsupdated', 'onitemsremoved']
   }]);
 
@@ -650,14 +650,14 @@ Calendar.prototype.addChangeListener = function() {
 };
 
 Calendar.prototype.removeChangeListener = function() {
-  var args = AV.validateArgs(arguments, [
+  var args = validator_.validateArgs(arguments, [
     {
       name: 'watchId',
-      type: AV.Types.LONG
+      type: types_.LONG
     }
   ]);
 
-  var watchId = Converter.toString(args.watchId);
+  var watchId = converter_.toString(args.watchId);
   var calendarId = (this.isUnified) ? this.type : this.id;
 
   if (!_listeners[calendarId] || !_listeners[calendarId][watchId]) {
@@ -666,11 +666,11 @@ Calendar.prototype.removeChangeListener = function() {
 
   delete _listeners[calendarId][watchId];
 
-  if (T.isEmptyObject(_listeners[calendarId])) {
+  if (type_.isEmptyObject(_listeners[calendarId])) {
     delete _listeners[calendarId];
   }
 
-  if (T.isEmptyObject(_listeners)) {
+  if (type_.isEmptyObject(_listeners)) {
 
     var result;
     // @todo consider listener unregister when we are not listening on this.type of calendar

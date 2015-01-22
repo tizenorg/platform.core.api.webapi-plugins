@@ -34,7 +34,7 @@ var EventAvailability = {
 };
 
 var CalendarEventId = function(uid, rid) {
-  AV.isConstructorCall(this, CalendarEventId);
+  validator_.isConstructorCall(this, CalendarEventId);
 
   var _uid = null;
 
@@ -47,12 +47,12 @@ var CalendarEventId = function(uid, rid) {
         if (v === null) {
           return;
         }
-        _uid = Converter.toString(v, true);
+        _uid = converter_.toString(v, true);
       },
       enumerable: true
     },
     rid: {
-      value: (rid) ? Converter.toString(rid, true) : null,
+      value: (rid) ? converter_.toString(rid, true) : null,
       writable: true,
       enumerable: true
     }
@@ -84,7 +84,7 @@ var CalendarItem = function(data) {
   function _validateAlarms(v) {
     var valid = false;
 
-    if (T.isArray(v)) {
+    if (type_.isArray(v)) {
       for (var i = 0; i < v.length; i++) {
         if (!(v[i] instanceof tizen.CalendarAlarm)) {
           return false;
@@ -98,7 +98,7 @@ var CalendarItem = function(data) {
   function _validateAttendees(v) {
     var valid = false;
 
-    if (T.isArray(v)) {
+    if (type_.isArray(v)) {
       for (var i = 0; i < v.length; i++) {
         if (!(v[i] instanceof tizen.CalendarAttendee)) {
           return false;
@@ -112,9 +112,9 @@ var CalendarItem = function(data) {
   function _validateCategories(v) {
     var valid = false;
 
-    if (T.isArray(v)) {
+    if (type_.isArray(v)) {
       for (var i = 0; i < v.length; i++) {
-        if (!(T.isString(v[i]))) {
+        if (!(type_.isString(v[i]))) {
           return false;
         }
       }
@@ -133,7 +133,7 @@ var CalendarItem = function(data) {
           if (v instanceof Object) {
             _id = new CalendarEventId(v.uid, v.rid);
           } else {
-            _id = Converter.toString(v, true);
+            _id = converter_.toString(v, true);
           }
         }
       },
@@ -167,7 +167,7 @@ var CalendarItem = function(data) {
         return _description;
       },
       set: function(v) {
-        _description = v ? Converter.toString(v, true) : _description;
+        _description = v ? converter_.toString(v, true) : _description;
       },
       enumerable: true
     },
@@ -176,7 +176,7 @@ var CalendarItem = function(data) {
         return _summary;
       },
       set: function(v) {
-        _summary = v ? Converter.toString(v, true) : _summary;
+        _summary = v ? converter_.toString(v, true) : _summary;
       },
       enumerable: true
     },
@@ -185,7 +185,7 @@ var CalendarItem = function(data) {
         return _isAllDay;
       },
       set: function(v) {
-        _isAllDay = v ? Converter.toBoolean(v) : _isAllDay;
+        _isAllDay = v ? converter_.toBoolean(v) : _isAllDay;
       },
       enumerable: true
     },
@@ -230,7 +230,7 @@ var CalendarItem = function(data) {
         return _location;
       },
       set: function(v) {
-        _location = v ? Converter.toString(v) : _location;
+        _location = v ? converter_.toString(v) : _location;
       },
       enumerable: true
     },
@@ -248,7 +248,7 @@ var CalendarItem = function(data) {
         return _organizer;
       },
       set: function(v) {
-        _organizer = v ? Converter.toString(v) : _organizer;
+        _organizer = v ? converter_.toString(v) : _organizer;
       },
       enumerable: true
     },
@@ -257,7 +257,7 @@ var CalendarItem = function(data) {
         return _visibility;
       },
       set: function(v) {
-        _visibility = v ? Converter.toEnum(v, Object.keys(CalendarItemVisibility), false) :
+        _visibility = v ? converter_.toEnum(v, Object.keys(CalendarItemVisibility), false) :
                 _visibility;
       },
       enumerable: true
@@ -271,10 +271,10 @@ var CalendarItem = function(data) {
           return;
         }
         if (this instanceof tizen.CalendarEvent) {
-          _status = v ? Converter.toEnum(v, Object.keys(CalendarItemStatus).slice(0, 3), false) :
+          _status = v ? converter_.toEnum(v, Object.keys(CalendarItemStatus).slice(0, 3), false) :
                         CalendarItemStatus.CONFIRMED;
         } else {
-          _status = v ? Converter.toEnum(v, Object.keys(CalendarItemStatus).slice(2), false) :
+          _status = v ? converter_.toEnum(v, Object.keys(CalendarItemStatus).slice(2), false) :
                         CalendarItemStatus.NEEDS_ACTION;
         }
       },
@@ -288,7 +288,7 @@ var CalendarItem = function(data) {
         if (v === null) {
           return;
         }
-        _priority = v ? Converter.toEnum(v, Object.keys(CalendarItemPriority), false) :
+        _priority = v ? converter_.toEnum(v, Object.keys(CalendarItemPriority), false) :
                     _status;
       },
       enumerable: true
@@ -333,10 +333,10 @@ var CalendarItem = function(data) {
 };
 
 CalendarItem.prototype.convertToString = function() {
-  var args = AV.validateArgs(arguments, [
+  var args = validator_.validateArgs(arguments, [
     {
       name: 'format',
-      type: AV.Types.ENUM,
+      type: types_.ENUM,
       values: Object.keys(CalendarTextFormat)
     }
   ]);
@@ -549,7 +549,7 @@ var CalendarTaskInit = function(data) {
         if (v === null) {
           return;
         }
-        _progress = (T.isNumber(v) && (v >= 0 || v <= 100)) ? v : _progress;
+        _progress = (type_.isNumber(v) && (v >= 0 || v <= 100)) ? v : _progress;
       },
       enumerable: true
     }
@@ -565,9 +565,9 @@ var CalendarTaskInit = function(data) {
 };
 
 var CalendarTask = function(taskInitDict, format) {
-  AV.isConstructorCall(this, CalendarTask);
+  validator_.isConstructorCall(this, CalendarTask);
 
-  if (T.isString(taskInitDict) && Object.keys(CalendarTextFormat).indexOf(format) > -1) {
+  if (type_.isString(taskInitDict) && Object.keys(CalendarTextFormat).indexOf(format) > -1) {
     CalendarTaskInit.call(this, _convertFromStringToItem(taskInitDict));
   } else {
     CalendarTaskInit.call(this, taskInitDict);
@@ -657,9 +657,9 @@ var CalendarEventInit = function(data) {
 };
 
 var CalendarEvent = function(eventInitDict, format) {
-  AV.isConstructorCall(this, CalendarEvent);
+  validator_.isConstructorCall(this, CalendarEvent);
 
-  if (T.isString(eventInitDict) && Object.keys(CalendarTextFormat).indexOf(format) > -1) {
+  if (type_.isString(eventInitDict) && Object.keys(CalendarTextFormat).indexOf(format) > -1) {
     CalendarEventInit.call(this, _convertFromStringToItem(eventInitDict));
   } else {
     CalendarEventInit.call(this, eventInitDict);
@@ -692,25 +692,25 @@ CalendarEvent.prototype.expandRecurrence = function(startDate, endDate, successC
       'The event is not recurring.');
   }
 
-  var args = AV.validateArgs(arguments, [
+  var args = validator_.validateArgs(arguments, [
     {
       name: 'startDate',
-      type: AV.Types.PLATFORM_OBJECT,
+      type: types_.PLATFORM_OBJECT,
       values: tizen.TZDate
     },
     {
       name: 'endDate',
-      type: AV.Types.PLATFORM_OBJECT,
+      type: types_.PLATFORM_OBJECT,
       values: tizen.TZDate
     },
     {
       name: 'successCallback',
-      type: AV.Types.FUNCTION,
+      type: types_.FUNCTION,
       nullable: true
     },
     {
       name: 'errorCallback',
-      type: AV.Types.FUNCTION,
+      type: types_.FUNCTION,
       optional: true,
       nullable: true
     }

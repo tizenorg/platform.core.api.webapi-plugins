@@ -28,7 +28,7 @@ var CalendarRecurrenceRuleInit = function(data) {
   var _exceptions = [];
 
   function _validateDaysOfTheWeek(v) {
-    if (T.isArray(v)) {
+    if (type_.isArray(v)) {
       var allowedValues = Object.keys(ByDayValue);
       for (var i = 0; i < v.length; ++i) {
         if (allowedValues.indexOf(v[i]) < 0) {
@@ -44,7 +44,7 @@ var CalendarRecurrenceRuleInit = function(data) {
   function _validateSetPositions(v) {
     var valid = false;
 
-    if (T.isArray(v)) {
+    if (type_.isArray(v)) {
       for (var i = 0; i < v.length; i++) {
         v[i] = parseInt(v[i]);
         if (isNaN(v[i]) || (v[i] < -366 || v[i] > 366 || v[i] === 0)) {
@@ -59,7 +59,7 @@ var CalendarRecurrenceRuleInit = function(data) {
   function _validateExceptions(v) {
     var valid = false;
 
-    if (T.isArray(v)) {
+    if (type_.isArray(v)) {
       for (var i = 0; i < v.length; i++) {
         if (!(v[i] instanceof tizen.TZDate)) {
           return false;
@@ -76,7 +76,7 @@ var CalendarRecurrenceRuleInit = function(data) {
         return _interval;
       },
       set: function(v) {
-        _interval = (T.isNumber(v) && v > 0) ? v : _interval;
+        _interval = (type_.isNumber(v) && v > 0) ? v : _interval;
       },
       enumerable: true
     },
@@ -96,7 +96,7 @@ var CalendarRecurrenceRuleInit = function(data) {
         return _occurrenceCount;
       },
       set: function(v) {
-        if (T.isNumber(v) && v >= -1) {
+        if (type_.isNumber(v) && v >= -1) {
           _occurrenceCount = v;
         }
       },
@@ -141,7 +141,7 @@ var CalendarRecurrenceRuleInit = function(data) {
 };
 
 var CalendarRecurrenceRule = function(frequency, ruleInitDict) {
-  AV.isConstructorCall(this, CalendarRecurrenceRule);
+  validator_.isConstructorCall(this, CalendarRecurrenceRule);
 
   CalendarRecurrenceRuleInit.call(this, ruleInitDict);
 
@@ -156,7 +156,7 @@ var CalendarRecurrenceRule = function(frequency, ruleInitDict) {
         if (v === null) {
           return;
         }
-        _frequency = Converter.toEnum(v, Object.keys(RecurrenceRuleFrequency), false);
+        _frequency = converter_.toEnum(v, Object.keys(RecurrenceRuleFrequency), false);
       },
       enumerable: true
     }

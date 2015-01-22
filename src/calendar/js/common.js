@@ -2,10 +2,11 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-var _common = xwalk.utils;
-var T = _common.type;
-var Converter = _common.converter;
-var AV = _common.validator;
+var utils_ = xwalk.utils;
+var type_ = utils_.type;
+var converter_ = utils_.converter;
+var validator_ = utils_.validator;
+var types_ = validator_.Types;
 var native_ = new xwalk.utils.NativeManager(extension);
 
 
