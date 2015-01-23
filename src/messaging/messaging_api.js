@@ -247,7 +247,7 @@ function Message(type, data) {
         'timestamp',
         {
             get: function () {
-                return _internal.timestamp ? new Date(_internal.timestamp) : _internal.timestamp;
+                return _internal.timestamp ? new Date(_internal.timestamp * 1000) : _internal.timestamp;
             },
             set: function (value) {
                 if (value instanceof InternalValues_) {
@@ -1342,7 +1342,7 @@ MessageStorage.prototype.removeChangeListener = function () {
 function MessageConversation(data) {
     propertyFactory_(this, 'id'            , data.id             || null , Property.E);
     propertyFactory_(this, 'type'          , data.type           || ''   , Property.E);
-    propertyFactory_(this, 'timestamp'     , data.timestamp      || null , Property.E);
+    propertyFactory_(this, 'timestamp'     , data.timestamp ? new Date(data.timestamp * 1000) : null , Property.E);
     propertyFactory_(this, 'messageCount'  , data.messageCount   || 0    , Property.E);
     propertyFactory_(this, 'unreadMessages', data.unreadMessages || 0    , Property.E);
     propertyFactory_(this, 'preview'       , data.preview        || ''   , Property.E);
