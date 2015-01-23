@@ -61,54 +61,103 @@ bool Any::isNullOrUndefined() const
 
 bool Any::toBool() const
 {
-    return m_value.get<bool>();
+    if (m_value.is<bool>()) {
+        return m_value.get<bool>();
+    } else {
+        return false;
+    }
 }
 
 long Any::toLong() const
 {
-    if(m_value.is<double>()){
+    if (m_value.is<double>()) {
         return static_cast<long>(m_value.get<double>());
+    } else if (m_value.is<std::string>()) {
+        try {
+            return std::stol(m_value.get<std::string>());
+        } catch (...) {
+            return static_cast<long>(0);
+        }
     } else {
-        std::string str = m_value.get<std::string>();
-        return strtoul (str.c_str(), NULL, 0);
+        return static_cast<long>(0);
     }
 }
 
 unsigned long Any::toULong() const
 {
-    return static_cast<unsigned long>(m_value.get<double>());
+    if (m_value.is<double>()) {
+        return static_cast<unsigned long>(m_value.get<double>());
+    } else if (m_value.is<std::string>()) {
+        try {
+            return std::stoul(m_value.get<std::string>());
+        } catch (...) {
+            return static_cast<unsigned long>(0);
+        }
+    } else {
+        return static_cast<unsigned long>(0);
+    }
 }
 
 long long Any::toLongLong() const
 {
-    return static_cast<long long>(m_value.get<double>());
+    if (m_value.is<double>()) {
+        return static_cast<long long>(m_value.get<double>());
+    } else if (m_value.is<std::string>()) {
+        try {
+            return std::stoll(m_value.get<std::string>());
+        } catch (...) {
+            return static_cast<long long>(0);
+        }
+    } else {
+        return static_cast<long long>(0);
+    }
 }
 
 unsigned long long Any::toULongLong() const
 {
-    return static_cast<unsigned long long>(m_value.get<double>());
+    if (m_value.is<double>()) {
+        return static_cast<unsigned long long>(m_value.get<double>());
+    } else if (m_value.is<std::string>()) {
+        try {
+            return std::stoull(m_value.get<std::string>());
+        } catch (...) {
+            return static_cast<unsigned long long>(0);
+        }
+    } else {
+        return static_cast<unsigned long long>(0);
+    }
 }
 
 double Any::toDouble() const
 {
-    return m_value.get<double>();
+    if (m_value.is<double>()) {
+        return m_value.get<double>();
+    } else if (m_value.is<std::string>()) {
+        try {
+            return std::stod(m_value.get<std::string>());
+        } catch (...) {
+            return 0.0;
+        }
+    } else {
+        return 0.0;
+    }
 }
 
 std::string Any::toString() const
 {
-    std::string str = "";
     if (m_value.is<std::string>()) {
-        str = m_value.get<std::string>();
-        return str;
+        return m_value.get<std::string>();
+    } else {
+        return "";
     }
-    return str;
 }
 
 std::tm* Any::toDateTm() const
 {
-    std::tm* tm = new std::tm();
-    strptime(toString().c_str(), "%Y-%m-%dT%H:%M:%S.%zZ", tm);
-    return tm;
+    static std::tm t;
+    memset(&t, 0, sizeof(std::tm));
+    strptime(toString().c_str(), "%Y-%m-%dT%H:%M:%S.%zZ", &t);
+    return &t;
 }
 
 std::time_t Any::toTimeT() const
@@ -116,8 +165,7 @@ std::time_t Any::toTimeT() const
     std::time_t current_time;
     std::time(&current_time);
     std::tm* timeinfo = std::localtime(&current_time);
-    long offset = timeinfo->tm_gmtoff;
-    return (mktime(toDateTm()) + offset) * 1000;
+    return mktime(toDateTm()) + timeinfo->tm_gmtoff;
 }
 
 } // Tizen
