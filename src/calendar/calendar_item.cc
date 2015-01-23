@@ -51,6 +51,9 @@ const PlatformPropertyMap CalendarItem::platform_property_map_ = {
     {"id", {
         {CALENDAR_BOOK_TYPE_EVENT, _calendar_event.id},
         {CALENDAR_BOOK_TYPE_TODO, _calendar_todo.id}}},
+    {"id.uid", {
+        {CALENDAR_BOOK_TYPE_EVENT, _calendar_event.id},
+        {CALENDAR_BOOK_TYPE_TODO, _calendar_todo.uid}}},
     {"calendar_id", {
         {CALENDAR_BOOK_TYPE_EVENT, _calendar_event.calendar_book_id},
         {CALENDAR_BOOK_TYPE_TODO, _calendar_todo.calendar_book_id}}},

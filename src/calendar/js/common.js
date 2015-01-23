@@ -291,3 +291,43 @@ RecurrenceManager.prototype.get = function(event, startDate, endDate) {
 };
 
 var _recurrenceManager = new RecurrenceManager();
+
+//TODO: Can be moved to utils
+var Common = function() {};
+
+Common.prototype.repackFilter = function(filter) {
+  if (filter instanceof tizen.AttributeFilter) {
+    return {
+      filterType: 'AttributeFilter',
+      attributeName: filter.attributeName,
+      matchFlag: filter.matchFlag,
+      matchValue: _dateConverter.fromTZDate(filter.matchValue)
+    };
+  }
+  if (filter instanceof tizen.AttributeRangeFilter) {
+    return {
+      filterType: 'AttributeRangeFilter',
+      attributeName: filter.attributeName,
+      initialValue: _dateConverter.fromTZDate(filter.initialValue),
+      endValue: _dateConverter.fromTZDate(filter.endValue)
+    };
+  }
+  if (filter instanceof tizen.CompositeFilter) {
+    var _f = [];
+    var filters = filter.filters;
+
+    for (var i = 0; i < filters.length; ++i) {
+      _f.push(this.repackFilter(filters[i]));
+    }
+
+    return {
+      filterType: 'CompositeFilter',
+      type: filter.type,
+      filters: _f
+    };
+  }
+
+  return null;
+};
+
+var C = new Common();

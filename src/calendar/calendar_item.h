@@ -113,12 +113,14 @@ class CalendarItem : public CalendarRecord {
                       picojson::object* out_ptr);
 
   static std::string ExceptionsFromJson(const picojson::array& exceptions);
-
- private:
-  // from JSON to platform
   static Date DateFromJson(const  picojson::object& in);
   static Date DateFromJson(const  picojson::object& in,
                            const char* obj_name);
+   static calendar_time_s DateToPlatform(const Date& date, bool is_all_day);
+
+ private:
+  // from JSON to platform
+
   static void CategoriesFromJson(int type, calendar_record_h rec,
                                  const picojson::array& value);
   static void AttendeesFromJson(int type, calendar_record_h rec,
@@ -127,8 +129,6 @@ class CalendarItem : public CalendarRecord {
                              const picojson::array& alarms);
   static void RecurrenceRuleFromJson(calendar_record_h rec,
                                      const  picojson::object& rrule);
-
-  static calendar_time_s DateToPlatform(const Date& date, bool is_all_day);
 
   // from platform to JSON
   static picojson::value DateToJson(Date date);

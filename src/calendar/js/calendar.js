@@ -454,47 +454,7 @@ Calendar.prototype.find = function(successCallback, errorCallback, filter, sortM
       nullable: true
     }
   ]);
-  //TODO: Move sorting and filtering to native code
-  var C = {};
-  C.sort = function (arr, sortMode) {
-    var _getSortProperty = function (obj, props) {
-      for (var i = 0; i < props.length; ++i) {
-        if (!obj.hasOwnProperty(props[i])) {
-          return null;
-        }
-        obj = obj[props[i]];
-      }
-      return obj;
-    };
-
-    if (sortMode instanceof tizen.SortMode) {
-      var props = sortMode.attributeName.split('.');
-      arr.sort(function (a, b) {
-        var aValue = _getSortProperty(a, props);
-        var bValue = _getSortProperty(b, props);
-
-        if (sortMode.order === 'DESC') {
-          return aValue < bValue;
-        }
-        return bValue < aValue;
-      });
-    }
-    return arr;
-  };
-
-  C.filter = function (arr, filter) {
-    if (type_.isNullOrUndefined(arr))
-      return arr;
-    if (filter instanceof tizen.AttributeFilter ||
-            filter instanceof tizen.AttributeRangeFilter ||
-            filter instanceof tizen.CompositeFilter) {
-      arr = arr.filter(function (element) {
-          return filter._filter(element);
-      });
-    }
-    return arr;
-  };
-
+  args.filter = C.repackFilter(args.filter);
   var calendarType = this.type;
 
   var callback = function(result) {
@@ -512,9 +472,6 @@ Calendar.prototype.find = function(successCallback, errorCallback, filter, sortM
         }
       });
       _edit.disallow();
-      //TODO: Move sorting and filtering to native code
-      c = C.filter(c, args.filter); // NYA: due to commit dependency
-      c = C.sort(c, args.sortMode);
       args.successCallback(c);
 
     }
@@ -522,7 +479,7 @@ Calendar.prototype.find = function(successCallback, errorCallback, filter, sortM
   native_.call('Calendar_find', {
     calendarId: this.id,
     filter: args.filter,
-    sortMode: args.sortMode
+    sortMode: args.sortMode || null
   }, callback);
 
 };

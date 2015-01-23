@@ -180,6 +180,7 @@ class Calendar {
   static std::map<std::string, std::string> listeners_registered_;
   static int current_db_version_;
   static void ChangeCallback(const char* view_uri, void* user_data);
+  void ErrorChecker(int errorCode);
 };
 
 }  // namespace calendar
