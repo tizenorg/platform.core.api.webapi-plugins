@@ -25,23 +25,30 @@ class PackageInstance : public common::ParsedInstance {
   void DeregisterCallback(int requestId);
 
  private:
-  package_manager_request_h pRequest;
-  package_manager_h pManager;
-  int listenerId;
-  std::map<int, int> callbacksMap;  // <requestId, callbackId>
+  package_manager_request_h request_;
+  package_manager_h manager_;
+  int listener_id_;
+  std::map<int, int> callbacks_map_;  // <requestId, callbackId>
 
-  void RegisterCallback(int requestId, int callbackId);
-  void InvokeErrorCallbackAsync(int callbackId, const common::PlatformException& ex);
-  
-  void PackageManagerInstall(const picojson::value& args, picojson::object& out);
-  void PackageManagerUninstall(const picojson::value& args, picojson::object& out);
-  void PackageManagerGetpackagesinfo(const picojson::value& args, picojson::object& out);
-  void PackageManagerGetpackageinfo(const picojson::value& args, picojson::object& out);
-  void PackageManagerSetpackageinfoeventlistener(const picojson::value& args, picojson::object& out);
-  void PackageManagerUnsetpackageinfoeventlistener(const picojson::value& args, picojson::object& out);
+  void RegisterCallback(int requestId, int callback_id);
+  void InvokeErrorCallbackAsync
+    (int callback_id, const common::PlatformException& ex);
+
+  void PackageManagerInstall
+    (const picojson::value& args, picojson::object& out);
+  void PackageManagerUninstall(
+    const picojson::value& args, picojson::object& out);
+  void PackageManagerGetpackagesinfo
+    (const picojson::value& args, picojson::object& out);
+  void PackageManagerGetpackageinfo
+    (const picojson::value& args, picojson::object& out);
+  void PackageManagerSetpackageinfoeventlistener
+    (const picojson::value& args, picojson::object& out);
+  void PackageManagerUnsetpackageinfoeventlistener
+    (const picojson::value& args, picojson::object& out);
 };
 
-} // namespace package
-} // namespace extension
+}  // namespace package
+}  // namespace extension
 
-#endif // PACKAGE_PACKAGE_INSTANCE_H_
+#endif  // PACKAGE_PACKAGE_INSTANCE_H_

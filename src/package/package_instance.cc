@@ -4,9 +4,8 @@
 
 #include "package/package_instance.h"
 
-#include <glib.h>
-
 #include <functional>
+#include <string>
 
 #include "package/package_info_provider.h"
 #include "common/logger.h"
@@ -16,46 +15,55 @@
 namespace extension {
 namespace package {
 
+using common::TaskQueue;
+using common::PlatformException;
+using common::UnknownException;
+using common::NotFoundException;
+using common::TypeMismatchException;
+using common::SecurityException;
+
 namespace {
 // The privileges that required in Package API
-const std::string kPrivilegePackageInstall = "http://tizen.org/privilege/packagemanager.install";
-const std::string kPrivilegePackageInfo = "http://tizen.org/privilege/package.info";
-} // namespace
-
-using namespace common;
-using namespace extension::package;
+const std::string kPrivilegePackageInstall =
+    "http://tizen.org/privilege/packagemanager.install";
+const std::string kPrivilegePackageInfo =
+    "http://tizen.org/privilege/package.info";
+}  // namespace
 
 typedef enum _PackageThreadWorkType {
-  PackageThreadWorkNone = 0, 
-  PackageThreadWorkGetPackagesInfo, 
+  PackageThreadWorkNone = 0,
+  PackageThreadWorkGetPackagesInfo,
 } PackageThreadWorkType;
 
 class PackageUserData {
  public:
-  PackageUserData(PackageInstance* ins, int id, PackageThreadWorkType task) {
-    instance = ins;
-    callbackId = id;
-    work = task;
-  }  
-  
-  PackageInstance* instance;
-  int callbackId;  
-  PackageThreadWorkType work;
-  picojson::object data;
+  PackageUserData(PackageInstance* ins,
+      int id,
+      PackageThreadWorkType task) {
+    instance_ = ins;
+    callback_id_ = id;
+    work_ = task;
+  }
+
+  PackageInstance* instance_;
+  int callback_id_;
+  PackageThreadWorkType work_;
+  picojson::object data_;
 };
 typedef std::shared_ptr<PackageUserData> PackageUserDataPtr;
 
-static void* PackageThreadWork(const PackageUserDataPtr& userData) {
+static void* PackageThreadWork(
+    const PackageUserDataPtr& userData) {
   LoggerD("Enter");
 
-  PackageInstance* instance = userData->instance;
+  PackageInstance* instance = userData->instance_;
 
-  switch(userData->work) {
+  switch ( userData->work_ ) {
     case PackageThreadWorkGetPackagesInfo: {
-      LoggerD("Start PackageThreadWorkGetPackagesInfo");      
+      LoggerD("Start PackageThreadWorkGetPackagesInfo");
       picojson::object output;
       PackageInfoProvider::GetPackagesInfo(output);
-      userData->data = output;
+      userData->data_ = output;
       break;
     }
     default: {
@@ -66,86 +74,96 @@ static void* PackageThreadWork(const PackageUserDataPtr& userData) {
   return NULL;
 }
 
-static gboolean PackageAfterWork(const PackageUserDataPtr& userData) {
+static gboolean PackageAfterWork(
+    const PackageUserDataPtr& userData) {
   LoggerD("Enter");
-  
-  userData->data["callbackId"] = picojson::value(static_cast<double>(userData->callbackId));  
-  picojson::value result = picojson::value(userData->data);
-  userData->instance->PostMessage(result.serialize().c_str());
+
+  userData->data_["callbackId"] =
+      picojson::value(static_cast<double>(userData->callback_id_));
+  picojson::value result = picojson::value(userData->data_);
+  userData->instance_->PostMessage(result.serialize().c_str());
 
   return FALSE;
 }
 
 static void PackageRequestCb(
-    int id, const char *type, const char *package, package_manager_event_type_e event_type, 
-    package_manager_event_state_e event_state, int progress, package_manager_error_e error, void *user_data) {
+    int id, const char *type, const char *package,
+    package_manager_event_type_e event_type,
+    package_manager_event_state_e event_state, int progress,
+    package_manager_error_e error, void *user_data) {
   LoggerD("Enter [%s]", package);
 
   PackageInstance* instance = static_cast<PackageInstance*>(user_data);
-  if(!instance) {
+  if ( !instance ) {
     LoggerE("instance is NULL");
     return;
   }
 
-  if(event_state == PACKAGE_MANAGER_EVENT_STATE_STARTED) {
+  if ( event_state == PACKAGE_MANAGER_EVENT_STATE_STARTED ) {
     LoggerD("[Started] Do not invoke JS callback");
     return;
   }
 
   picojson::object param;
-  if(event_state == PACKAGE_MANAGER_EVENT_STATE_FAILED) {
+  if ( event_state == PACKAGE_MANAGER_EVENT_STATE_FAILED ) {
     LoggerD("[Failed]");
     param["status"] = picojson::value("error");
     param["error"] = UnknownException(
-      "It is not allowed to install the package by the platform or any other platform error occurs").ToJSON();
-  } else if(event_state == PACKAGE_MANAGER_EVENT_STATE_PROCESSING) {
+        "It is not allowed to install the package by the platform or " \
+        "any other platform error occurs").ToJSON();
+  } else if ( event_state == PACKAGE_MANAGER_EVENT_STATE_PROCESSING ) {
     LoggerD("[Onprogress] %d %", progress);
     param["status"] = picojson::value("progress");
     param["progress"] = picojson::value(static_cast<double>(progress));
     param["id"] = picojson::value(std::string(package));
-  } else if(event_state == PACKAGE_MANAGER_EVENT_STATE_COMPLETED) {
+  } else if ( event_state == PACKAGE_MANAGER_EVENT_STATE_COMPLETED ) {
     LoggerD("[Oncomplete]");
     param["status"] = picojson::value("complete");
     param["id"] = picojson::value(std::string(package));
   }
 
   instance->InvokeCallback(id, param);
-  if(event_state == PACKAGE_MANAGER_EVENT_STATE_COMPLETED) {
+  if ( event_state == PACKAGE_MANAGER_EVENT_STATE_COMPLETED ) {
     LoggerD("Request has been completed");
     instance->DeregisterCallback(id);
   }
 }
 
 static void PackageListenerCb(
-    const char *type, const char *package, package_manager_event_type_e event_type, 
-    package_manager_event_state_e event_state, int progress, package_manager_error_e error, void *user_data) {
+    const char *type, const char *package,
+    package_manager_event_type_e event_type,
+    package_manager_event_state_e event_state, int progress,
+    package_manager_error_e error, void *user_data) {
   LoggerD("Enter");
 
   PackageInstance* instance = static_cast<PackageInstance*>(user_data);
-  if(!instance) {
+  if ( !instance ) {
     LoggerE("instance is NULL");
     return;
   }
 
-  if(error != PACKAGE_MANAGER_ERROR_NONE) {
+  if ( error != PACKAGE_MANAGER_ERROR_NONE ) {
     LoggerE("Failed");
-    return;    
+    return;
   }
 
   picojson::object param;
-  if(event_type == PACKAGE_MANAGER_EVENT_TYPE_INSTALL && event_state == PACKAGE_MANAGER_EVENT_STATE_COMPLETED) {
+  if ( event_type == PACKAGE_MANAGER_EVENT_TYPE_INSTALL
+      && event_state == PACKAGE_MANAGER_EVENT_STATE_COMPLETED ) {
     LoggerD("[Installed]");
     param["status"] = picojson::value("installed");
     picojson::object info;
     PackageInfoProvider::GetPackageInfo(package, info);
     param["info"] = picojson::value(info["result"]);
     instance->InvokeListener(param);
-  } else if(event_type == PACKAGE_MANAGER_EVENT_TYPE_UNINSTALL && event_state == PACKAGE_MANAGER_EVENT_STATE_COMPLETED) {
+  } else if ( event_type == PACKAGE_MANAGER_EVENT_TYPE_UNINSTALL
+      && event_state == PACKAGE_MANAGER_EVENT_STATE_COMPLETED ) {
     LoggerD("[Uninstalled]");
     param["status"] = picojson::value("uninstalled");
     param["id"] = picojson::value(std::string(package));
     instance->InvokeListener(param);
-  } else if(event_type == PACKAGE_MANAGER_EVENT_TYPE_UPDATE && event_state == PACKAGE_MANAGER_EVENT_STATE_COMPLETED) {
+  } else if ( event_type == PACKAGE_MANAGER_EVENT_TYPE_UPDATE
+      && event_state == PACKAGE_MANAGER_EVENT_STATE_COMPLETED ) {
     LoggerD("[Updated]");
     param["status"] = picojson::value("updated");
     picojson::object info;
@@ -155,172 +173,254 @@ static void PackageListenerCb(
   }
 }
 
+static std::string ltrim(const std::string& s) {
+    std::string str = s;
+    std::string::iterator i;
+    for (i = str.begin(); i != str.end(); i++) {
+        if ( !isspace(*i) ) {
+            break;
+        }
+    }
+    if ( i == str.end() ) {
+        str.clear();
+    } else {
+        str.erase(str.begin(), i);
+    }
+    return str;
+}
+
+static std::string convertUriToPath(const std::string& uri) {
+    std::string result;
+    std::string schema("file://");
+    std::string str = ltrim(uri);
+
+    std::string _schema = str.substr(0, schema.size());
+    if ( _schema == schema ) {
+        result = str.substr(schema.size());
+    } else {
+        result = str;
+    }
+
+    LoggerD("URI [%s]", result.c_str());
+    return result;
+}
+
 PackageInstance::PackageInstance() {
   LoggerD("Enter");
 
-  if(package_manager_request_create(&pRequest) != PACKAGE_MANAGER_ERROR_NONE) {
+  if ( package_manager_request_create(&request_)
+      != PACKAGE_MANAGER_ERROR_NONE ) {
     LoggerE("Failed to created package manager request");
-    pRequest = NULL;
-  } 
+    request_ = NULL;
+  }
 
-  if(package_manager_request_set_event_cb(pRequest, PackageRequestCb, static_cast<void*>(this))
-      != PACKAGE_MANAGER_ERROR_NONE) {
+  if ( package_manager_request_set_event_cb(request_, PackageRequestCb,
+      static_cast<void*>(this)) != PACKAGE_MANAGER_ERROR_NONE ) {
     LoggerE("Failed to set request event callback");
   }
 
-  if(package_manager_create(&pManager) != PACKAGE_MANAGER_ERROR_NONE) {
+  if ( package_manager_create(&manager_) != PACKAGE_MANAGER_ERROR_NONE ) {
     LoggerE("Failed to created package manager");
-    pManager = NULL;
+    manager_ = NULL;
   }
 
-  listenerId = -1;
-  
-  using namespace std::placeholders;
-  #define REGISTER_SYNC(c,x) \
+  listener_id_ = -1;
+
+  using std::placeholders::_1;
+  using std::placeholders::_2;
+  #define REGISTER_SYNC(c, x) \
     RegisterSyncHandler(c, std::bind(&PackageInstance::x, this, _1, _2));
-  REGISTER_SYNC("PackageManager_setPackageInfoEventListener", PackageManagerSetpackageinfoeventlistener);
-  REGISTER_SYNC("PackageManager_install", PackageManagerInstall);
-  REGISTER_SYNC("PackageManager_getPackagesInfo", PackageManagerGetpackagesinfo);
-  REGISTER_SYNC("PackageManager_uninstall", PackageManagerUninstall);
-  REGISTER_SYNC("PackageManager_unsetPackageInfoEventListener", PackageManagerUnsetpackageinfoeventlistener);
-  REGISTER_SYNC("PackageManager_getPackageInfo", PackageManagerGetpackageinfo);
+  REGISTER_SYNC("PackageManager_setPackageInfoEventListener",
+      PackageManagerSetpackageinfoeventlistener);
+  REGISTER_SYNC("PackageManager_install",
+      PackageManagerInstall);
+  REGISTER_SYNC("PackageManager_getPackagesInfo",
+      PackageManagerGetpackagesinfo);
+  REGISTER_SYNC("PackageManager_uninstall",
+      PackageManagerUninstall);
+  REGISTER_SYNC("PackageManager_unsetPackageInfoEventListener",
+      PackageManagerUnsetpackageinfoeventlistener);
+  REGISTER_SYNC("PackageManager_getPackageInfo",
+      PackageManagerGetpackageinfo);
   #undef REGISTER_SYNC
 }
 
 PackageInstance::~PackageInstance() {
   LoggerD("Enter");
-  package_manager_request_unset_event_cb(pRequest);
-  package_manager_request_destroy(pRequest);
-  package_manager_destroy(pManager);
+  package_manager_request_unset_event_cb(request_);
+  package_manager_request_destroy(request_);
+  package_manager_destroy(manager_);
 }
 
 #define CHECK_EXIST(args, name, out) \
-    if (!args.contains(name)) {\
+    if (  !args.contains(name) ) {\
       ReportError(TypeMismatchException(name" is required argument"), out);\
       return;\
     }
 
-void PackageInstance::RegisterCallback(int requestId, int callbackId) {
+void PackageInstance::RegisterCallback(
+    int requestId, int callback_id) {
   LoggerD("Enter");
-  callbacksMap[requestId] = callbackId;
+  callbacks_map_[requestId] = callback_id;
 }
 
 void PackageInstance::DeregisterCallback(int requestId) {
   LoggerD("Enter [%d]", requestId);
-  callbacksMap.erase(requestId);
+  callbacks_map_.erase(requestId);
 }
 
-void PackageInstance::InvokeCallback(int requestId, picojson::object& param) {
+void PackageInstance::InvokeCallback(
+    int requestId, picojson::object& param) {
   LoggerD("Enter [%d]", requestId);
 
-  int callbackId = callbacksMap[requestId];
-  LoggerD("callbackId: %d", callbackId);
+  int callback_id = callbacks_map_[requestId];
+  LoggerD("callbackId: %d", callback_id);
 
-  param["callbackId"] = picojson::value(static_cast<double>(callbackId));  
+  param["callbackId"] = picojson::value(
+      static_cast<double>(callback_id));
   picojson::value result = picojson::value(param);
   PostMessage(result.serialize().c_str());
 }
 
-void PackageInstance::PackageManagerInstall(const picojson::value& args, picojson::object& out) {
+void PackageInstance::PackageManagerInstall(
+    const picojson::value& args, picojson::object& out) {
   LoggerD("Enter");
-  
+
   CHECK_EXIST(args, "callbackId", out)
   CHECK_EXIST(args, "packageFileURI", out)
 
-  int callbackId = static_cast<int>(args.get("callbackId").get<double>());
-  LoggerD("callbackId: %d", callbackId);
-  const std::string& packageFileURI = args.get("packageFileURI").get<std::string>();
+  int callback_id = static_cast<int>(
+      args.get("callbackId").get<double>());
+  LoggerD("callbackId: %d", callback_id);
+  const std::string& packageFileURI =
+      convertUriToPath(args.get("packageFileURI").get<std::string>());
   LoggerD("packageFileURI: %s", packageFileURI.c_str());
-  
-  // Need to check privilege
-  // throw new SecurityException("This application does not have the privilege to call this method");
 
-  if(!pRequest) {
+  /* Need to check privilege
+  ReportError(
+      SecurityException("This application does not have " \
+      "the privilege to call this method"),
+      out);
+  return;
+  */
+
+  if ( !request_ ) {
     LoggerE("package_manager_request_h is NULL");
-    InvokeErrorCallbackAsync(callbackId, 
-      UnknownException("It is not allowed to install the package by the platform or any other platform error occurs"));
+    InvokeErrorCallbackAsync(callback_id,
+      UnknownException("It is not allowed to install the package by " \
+          "the platform or any other platform error occurs"));
     return;
   }
 
   int requestId = 0;
-  int ret = package_manager_request_install(pRequest, packageFileURI.c_str(), &requestId);
-  if(ret != PACKAGE_MANAGER_ERROR_NONE) {
-    if(ret == PACKAGE_MANAGER_ERROR_INVALID_PARAMETER) {
+  int ret = package_manager_request_install(
+      request_, packageFileURI.c_str(), &requestId);
+  if ( ret != PACKAGE_MANAGER_ERROR_NONE ) {
+    if ( ret == PACKAGE_MANAGER_ERROR_INVALID_PARAMETER ) {
       LoggerE("The package is not found at the specified location");
-      InvokeErrorCallbackAsync(callbackId, 
-        NotFoundException("The package is not found at the specified location"));
+      InvokeErrorCallbackAsync(callback_id,
+          NotFoundException(
+          "The package is not found at the specified location"));
     } else {
-      LoggerE("It is not allowed to install the package by the platform or any other platform error occurs");
-      InvokeErrorCallbackAsync(callbackId, 
-        UnknownException("It is not allowed to install the package by the platform or any other platform error occurs"));
+      LoggerE("It is not allowed to install the package by " \
+          "the platform or any other platform error occurs");
+      InvokeErrorCallbackAsync(callback_id,
+          UnknownException("It is not allowed to install the package by " \
+          "the platform or any other platform error occurs"));
     }
   } else {
-    RegisterCallback(requestId, callbackId);
+    RegisterCallback(requestId, callback_id);
   }
-  
+
   ReportSuccess(out);
 }
 
-void PackageInstance::PackageManagerUninstall(const picojson::value& args, picojson::object& out) {
+void PackageInstance::PackageManagerUninstall(
+    const picojson::value& args, picojson::object& out) {
   LoggerD("Enter");
-  
+
   CHECK_EXIST(args, "callbackId", out)
   CHECK_EXIST(args, "id", out)
-  
-  int callbackId = static_cast<int>(args.get("callbackId").get<double>());
-  LoggerD("callbackId: %d", callbackId);
+
+  int callback_id =
+      static_cast<int>(args.get("callbackId").get<double>());
+  LoggerD("callbackId: %d", callback_id);
   const std::string& id = args.get("id").get<std::string>();
   LoggerD("id: %s", id.c_str());
 
-  // Need to check privilege
-  // throw new SecurityException("This application does not have the privilege to call this method");
+  /* Need to check privilege
+  ReportError(
+      SecurityException("This application does not have " \
+      "the privilege to call this method"),
+      out);
+  return;
+  */
 
-  if(!pRequest) {
+  if ( !request_ ) {
     LoggerE("package_manager_request_h is NULL");
-    InvokeErrorCallbackAsync(callbackId, 
-      UnknownException("It is not allowed to install the package by the platform or any other platform error occurs"));
+    InvokeErrorCallbackAsync(callback_id,
+        UnknownException("It is not allowed to install the package by " \
+        "the platform or any other platform error occurs"));
     return;
   }
 
   int requestId = 0;
-  int ret = package_manager_request_uninstall(pRequest, id.c_str(), &requestId);
-  if(ret != PACKAGE_MANAGER_ERROR_NONE) {
-    if(ret == PACKAGE_MANAGER_ERROR_INVALID_PARAMETER) {
+  int ret = package_manager_request_uninstall(request_, id.c_str(), &requestId);
+  if ( ret != PACKAGE_MANAGER_ERROR_NONE ) {
+    if ( ret == PACKAGE_MANAGER_ERROR_INVALID_PARAMETER ) {
       LoggerE("The package is not found at the specified location");
-      InvokeErrorCallbackAsync(callbackId, 
-        NotFoundException("The package is not found at the specified location"));
+      InvokeErrorCallbackAsync(callback_id,
+        NotFoundException(
+            "The package is not found at the specified location"));
     } else {
-      LoggerE("It is not allowed to install the package by the platform or any other platform error occurs");
-      InvokeErrorCallbackAsync(callbackId, 
-        UnknownException("It is not allowed to install the package by the platform or any other platform error occurs"));
+      LoggerE("It is not allowed to install the package by the " \
+          "platform or any other platform error occurs");
+      InvokeErrorCallbackAsync(callback_id, UnknownException(
+          "It is not allowed to install the package by the platform or " \
+          "any other platform error occurs"));
     }
   } else {
-    RegisterCallback(requestId, callbackId);
+    RegisterCallback(requestId, callback_id);
   }
-  
+
   ReportSuccess(out);
 }
-void PackageInstance::PackageManagerGetpackagesinfo(const picojson::value& args, picojson::object& out) {
+void PackageInstance::PackageManagerGetpackagesinfo(
+    const picojson::value& args, picojson::object& out) {
   LoggerD("Enter");
 
   CHECK_EXIST(args, "callbackId", out)
-  int callbackId = static_cast<int>(args.get("callbackId").get<double>());
-  LoggerD("callbackId: %d", callbackId);
+  int callback_id =
+      static_cast<int>(args.get("callbackId").get<double>());
+  LoggerD("callbackId: %d", callback_id);
 
-  // Need to check privilege
-  // throw new SecurityException("This application does not have the privilege to call this method");
+  /* Need to check privilege
+  ReportError(
+      SecurityException("This application does not have " \
+      "the privilege to call this method"),
+      out);
+  return;
+  */
 
-  PackageUserDataPtr userData(new PackageUserData(this, callbackId, PackageThreadWorkGetPackagesInfo));
-  TaskQueue::GetInstance().Queue<PackageUserData>(PackageThreadWork, PackageAfterWork, userData);
+  PackageUserDataPtr userData(new PackageUserData(
+      this, callback_id, PackageThreadWorkGetPackagesInfo));
+  TaskQueue::GetInstance().Queue<PackageUserData>(
+      PackageThreadWork, PackageAfterWork, userData);
   ReportSuccess(out);
 }
-void PackageInstance::PackageManagerGetpackageinfo(const picojson::value& args, picojson::object& out) {
+void PackageInstance::PackageManagerGetpackageinfo(
+    const picojson::value& args, picojson::object& out) {
   LoggerD("Enter");
 
-  // Need to check privilege
-  // throw new SecurityException("This application does not have the privilege to call this method");
+  /* Need to check privilege
+  ReportError(
+      SecurityException("This application does not have " \
+      "the privilege to call this method"),
+      out);
+  return;
+  */
 
-  if(args.contains("id")) {
+  if ( args.contains("id") ) {
     std::string id = args.get("id").get<std::string>();
     LoggerD("package id : [%s]", id.c_str());
     PackageInfoProvider::GetPackageInfo(id.c_str(), out);
@@ -332,78 +432,109 @@ void PackageInstance::PackageManagerGetpackageinfo(const picojson::value& args, 
 void PackageInstance::InvokeListener(picojson::object& param) {
   LoggerD("Enter");
 
-  param["callbackId"] = picojson::value(static_cast<double>(listenerId));  
+  param["callbackId"] = picojson::value(static_cast<double>(listener_id_));
   picojson::value result = picojson::value(param);
   PostMessage(result.serialize().c_str());
 }
 
-void PackageInstance::PackageManagerSetpackageinfoeventlistener(const picojson::value& args, picojson::object& out) {
+void PackageInstance::
+    PackageManagerSetpackageinfoeventlistener(
+    const picojson::value& args, picojson::object& out) {
   LoggerD("Enter");
-  
+
   CHECK_EXIST(args, "callbackId", out)
-  int callbackId = static_cast<int>(args.get("callbackId").get<double>());
-  LoggerD("callbackId: %d", callbackId);
+  int callback_id =
+      static_cast<int>(args.get("callbackId").get<double>());
+  LoggerD("callbackId: %d", callback_id);
 
-  // Need to check privilege
-  // throw new SecurityException("This application does not have the privilege to call this method");
+  /* Need to check privilege
+  ReportError(
+      SecurityException("This application does not have " \
+      "the privilege to call this method"),
+      out);
+  return;
+  */
 
-  if(!pManager) {
+  if ( !manager_ ) {
     LoggerE("package_manager_h is NULL");
-    throw new UnknownException(
-      "The package list change event cannot be generated because of a platform error");
+    ReportError(
+        UnknownException("The package list change event cannot be " \
+        "generated because of a platform error"),
+        out);
+    return;
   }
 
-  if(package_manager_set_event_cb(pManager, PackageListenerCb, static_cast<void*>(this))
-      != PACKAGE_MANAGER_ERROR_NONE) {
+  if ( package_manager_set_event_cb(
+      manager_, PackageListenerCb, static_cast<void*>(this))
+      != PACKAGE_MANAGER_ERROR_NONE ) {
     LoggerE("Failed to set event callback");
-    throw new UnknownException(
-      "The package list change event cannot be generated because of a platform error");    
+    ReportError(
+        UnknownException("The package list change event cannot be " \
+        "generated because of a platform error"),
+        out);
+    return;
   }
 
-  listenerId = callbackId;  
+  listener_id_ = callback_id;
   ReportSuccess(out);
 }
 
-void PackageInstance::PackageManagerUnsetpackageinfoeventlistener(const picojson::value& args, picojson::object& out) {
+void PackageInstance::
+    PackageManagerUnsetpackageinfoeventlistener(
+    const picojson::value& args, picojson::object& out) {
   LoggerD("Enter");
 
-  // Need to check privilege
-  // throw new SecurityException("This application does not have the privilege to call this method");
+  /* Need to check privilege
+  ReportError(
+      SecurityException("This application does not have " \
+      "the privilege to call this method"),
+      out);
+  return;
+  */
 
-  if(listenerId == -1) {
+  if ( listener_id_ == -1 ) {
     LoggerD("Listener is not set");
     ReportSuccess(out);
     return;
   }
 
-  if(!pManager) {
+  if ( !manager_ ) {
     LoggerE("package_manager_h is NULL");
-    throw new UnknownException(
-      "Tthe listener removal request fails because of a platform error");
+    ReportError(
+        UnknownException("The listener removal request fails" \
+        "because of a platform error"),
+        out);
+    return;
   }
 
-  if(package_manager_unset_event_cb(pManager)
-      != PACKAGE_MANAGER_ERROR_NONE) {
+  if ( package_manager_unset_event_cb(manager_)
+      != PACKAGE_MANAGER_ERROR_NONE ) {
     LoggerE("Failed to unset event callback");
-    throw new UnknownException(
-      "Tthe listener removal request fails because of a platform error");    
+    ReportError(
+        UnknownException("The listener removal request fails" \
+        "because of a platform error"),
+        out);
+    return;
   }
 
-  ReportSuccess(picojson::value(static_cast<double>(listenerId)), out);
-  listenerId = -1;
+  ReportSuccess(picojson::value(static_cast<double>(listener_id_)), out);
+  listener_id_ = -1;
 }
 
-void PackageInstance::InvokeErrorCallbackAsync(int callbackId, const PlatformException& ex) {
+void PackageInstance::InvokeErrorCallbackAsync(
+    int callback_id, const PlatformException& ex) {
   LoggerD("Enter");
 
   picojson::object param;
   ReportError(ex, param);
-  PackageUserDataPtr userData(new PackageUserData(this, callbackId, PackageThreadWorkNone));
-  userData->data = param;
-  TaskQueue::GetInstance().Async<PackageUserData>(PackageAfterWork, userData);
+  PackageUserDataPtr userData(new PackageUserData(
+      this, callback_id, PackageThreadWorkNone));
+  userData->data_ = param;
+  TaskQueue::GetInstance().Async
+    <PackageUserData>(PackageAfterWork, userData);
 }
 
 #undef CHECK_EXIST
 
-} // namespace package
-} // namespace extension
+}  // namespace package
+}  // namespace extension

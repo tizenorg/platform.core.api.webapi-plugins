@@ -16,4 +16,4 @@ class PackageExtension : public common::Extension {
   virtual common::Instance* CreateInstance();
 };
 
-#endif // PACKAGE_PACKAGE_EXTENSION_H_
+#endif  // PACKAGE_PACKAGE_EXTENSION_H_
