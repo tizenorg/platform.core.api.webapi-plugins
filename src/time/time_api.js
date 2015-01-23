@@ -6,9 +6,10 @@
 var _minuteInMilliseconds = 60 * 1000;
 var _hourInMilliseconds = _minuteInMilliseconds * 60;
 
-var _common = xwalk.utils;
-var AV = _common.validator;
-var native_ = new _common.NativeManager(extension);
+var utils_ = xwalk.utils;
+var validator_ = utils_.validator;
+var types_ = validator_.Types;
+var native_ = new utils_.NativeManager(extension);
 
 exports.getCurrentDateTime = function() {
   return new tizen.TZDate();
@@ -39,11 +40,11 @@ exports.getAvailableTimezones = function() {
 };
 
 exports.getDateFormat = function() {
-  var args = AV.validateArgs(arguments, [{
-    name : 'shortformat',
-    type : AV.Types.BOOLEAN,
-    optional : true,
-    nullable : true
+  var args = validator_.validateArgs(arguments, [{
+    name: 'shortformat',
+    type: types_.BOOLEAN,
+    optional: true,
+    nullable: true
   }]);
 
   if (!args.has.shortformat) {
@@ -69,13 +70,8 @@ exports.getTimeFormat = function() {
 exports.isLeapYear = function(year) {
   if (year === undefined)
     throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
-  if (!(year % 400))
-    return true;
-  if (!(year % 100))
-    return false;
-  if (!(year % 4))
-    return true;
-  return false;
+
+  return ((year % 4 === 0) && (year % 100 !== 0)) || (year % 400 === 0);
 };
 
 var _timeUtilDateTimeChangeListener;
@@ -85,10 +81,10 @@ function _timeUtilDateTimeChangeListenerCallback() {
 }
 
 exports.setDateTimeChangeListener = function() {
-  var args = AV.validateArgs(arguments, [
+  var args = validator_.validateArgs(arguments, [
     {
       name: 'changeCallback',
-      type: AV.Types.FUNCTION
+      type: types_.FUNCTION
     }
   ]);
   _timeUtilDateTimeChangeListener = args.changeCallback;
@@ -117,10 +113,10 @@ function _timeUtilTimezoneChangeListenerCallback() {
 }
 
 exports.setTimezoneChangeListener = function() {
-  var args = AV.validateArgs(arguments, [
+  var args = validator_.validateArgs(arguments, [
     {
       name: 'changeCallback',
-      type: AV.Types.FUNCTION
+      type: types_.FUNCTION
     }
   ]);
 
@@ -152,19 +148,19 @@ function _throwProperTizenException(e) {
     throw new tizen.WebAPIException(tizen.WebAPIException.UNKNOWN_ERR);
 }
 
-var TimeDurationUnit = [
-  'MSECS',
-  'SECS',
-  'MINS',
-  'HOURS',
-  'DAYS'
-];
+var TimeDurationUnit = {
+  MSECS: 'MSECS',
+  SECS: 'SECS',
+  MINS: 'MINS',
+  HOURS: 'HOURS',
+  DAYS: 'DAYS'
+};
 
 tizen.TimeDuration = function(length, unit) {
-  AV.isConstructorCall(this, tizen.TimeDuration);
+  validator_.isConstructorCall(this, tizen.TimeDuration);
 
   var length_ = length !== null ? Math.floor(length) : 0;
-  var unit_ = TimeDurationUnit.indexOf(unit) >= 0 ? unit : 'MSECS';
+  var unit_ = Object.keys(TimeDurationUnit).indexOf(unit) >= 0 ? unit : TimeDurationUnit.MSECS;
 
   Object.defineProperties(this, {
     length: {
@@ -183,7 +179,7 @@ tizen.TimeDuration = function(length, unit) {
         return unit_;
       },
       set: function(v) {
-        if (TimeDurationUnit.indexOf(v) >= 0) {
+        if (Object.keys(TimeDurationUnit).indexOf(v) >= 0) {
           unit_ = v;
         }
       },
@@ -192,36 +188,42 @@ tizen.TimeDuration = function(length, unit) {
   });
 };
 
-function getMultiplier(unit) {
-  if (unit === 'MSECS')
-    return 1.0;
-  if (unit === 'SECS')
-    return 1.0 * 1000.0;
-  if (unit === 'MINS')
-    return 60.0 * 1000.0;
-  if (unit === 'HOURS')
-    return 3600.0 * 1000.0;
-  return 86400.0 * 1000.0;
-}
-
 function makeMillisecondsDurationObject(length) {
   var dayInMsecs = _hourInMilliseconds * 24;
   length = Math.floor(length);
 
   if ((length % dayInMsecs) === 0)
-    return new tizen.TimeDuration(length / dayInMsecs, 'DAYS');
+    return new tizen.TimeDuration(length / dayInMsecs, TimeDurationUnit.DAYS);
 
-  return new tizen.TimeDuration(length, 'MSECS');
+  return new tizen.TimeDuration(length, TimeDurationUnit.MSECS);
 }
 
 tizen.TimeDuration.prototype.getMilliseconds = function() {
-  return getMultiplier(this.unit) * this.length;
+  var m;
+  switch (this.unit) {
+    case TimeDurationUnit.MSECS:
+      m = 1;
+      break;
+    case TimeDurationUnit.SECS:
+      m = 1000;
+      break;
+    case TimeDurationUnit.MINS:
+      m = 60 * 1000;
+      break;
+    case TimeDurationUnit.HOURS:
+      m = 3600 * 1000;
+      break;
+    case TimeDurationUnit.DAYS:
+      m = 86400 * 1000;
+      break;
+  }
+  return m * this.length;
 };
 
 tizen.TimeDuration.prototype.difference = function() {
-  var args = AV.validateArgs(arguments, [{
+  var args = validator_.validateArgs(arguments, [{
     name: 'other',
-    type: AV.Types.PLATFORM_OBJECT,
+    type: types_.PLATFORM_OBJECT,
     values: tizen.TimeDuration
   }]);
 
@@ -234,9 +236,9 @@ tizen.TimeDuration.prototype.difference = function() {
 };
 
 tizen.TimeDuration.prototype.equalsTo = function() {
-  var args = AV.validateArgs(arguments, [{
+  var args = validator_.validateArgs(arguments, [{
     name: 'other',
-    type: AV.Types.PLATFORM_OBJECT,
+    type: types_.PLATFORM_OBJECT,
     values: tizen.TimeDuration
   }]);
 
@@ -248,9 +250,9 @@ tizen.TimeDuration.prototype.equalsTo = function() {
 };
 
 tizen.TimeDuration.prototype.lessThan = function() {
-  var args = AV.validateArgs(arguments, [{
+  var args = validator_.validateArgs(arguments, [{
     name: 'other',
-    type: AV.Types.PLATFORM_OBJECT,
+    type: types_.PLATFORM_OBJECT,
     values: tizen.TimeDuration
   }]);
 
@@ -262,9 +264,9 @@ tizen.TimeDuration.prototype.lessThan = function() {
 };
 
 tizen.TimeDuration.prototype.greaterThan = function() {
-  var args = AV.validateArgs(arguments, [{
+  var args = validator_.validateArgs(arguments, [{
     name: 'other',
-    type: AV.Types.PLATFORM_OBJECT,
+    type: types_.PLATFORM_OBJECT,
     values: tizen.TimeDuration
   }]);
 
@@ -280,7 +282,7 @@ tizen.TimeDuration.prototype.toString = function() {
 };
 
 tizen.TZDate = function(year, month, day, hours, minutes, seconds, milliseconds, timezone) {
-  AV.isConstructorCall(this, tizen.TZDate);
+  validator_.isConstructorCall(this, tizen.TZDate);
 
   this.timezone_ = timezone || tizen.time.getLocalTimezone();
 
@@ -328,9 +330,9 @@ tizen.TZDate.prototype.getDate = function() {
 };
 
 tizen.TZDate.prototype.setDate = function() {
-  var args = AV.validateArgs(arguments, [{
+  var args = validator_.validateArgs(arguments, [{
     name: 'date',
-    type: AV.Types.LONG
+    type: types_.LONG
   }]);
 
   this.date_.setDate(args.date);
@@ -345,9 +347,9 @@ tizen.TZDate.prototype.getFullYear = function() {
 };
 
 tizen.TZDate.prototype.setFullYear = function() {
-  var args = AV.validateArgs(arguments, [{
+  var args = validator_.validateArgs(arguments, [{
     name: 'year',
-    type: AV.Types.LONG
+    type: types_.LONG
   }]);
 
   this.date_.setFullYear(args.year);
@@ -358,9 +360,9 @@ tizen.TZDate.prototype.getHours = function() {
 };
 
 tizen.TZDate.prototype.setHours = function() {
-  var args = AV.validateArgs(arguments, [{
+  var args = validator_.validateArgs(arguments, [{
     name: 'hours',
-    type: AV.Types.LONG
+    type: types_.LONG
   }]);
 
   this.date_.setHours(args.hours);
@@ -371,9 +373,9 @@ tizen.TZDate.prototype.getMilliseconds = function() {
 };
 
 tizen.TZDate.prototype.setMilliseconds = function() {
-  var args = AV.validateArgs(arguments, [{
+  var args = validator_.validateArgs(arguments, [{
     name: 'ms',
-    type: AV.Types.LONG
+    type: types_.LONG
   }]);
 
   this.date_.setMilliseconds(args.ms);
@@ -384,9 +386,9 @@ tizen.TZDate.prototype.getMonth = function() {
 };
 
 tizen.TZDate.prototype.setMonth = function() {
-  var args = AV.validateArgs(arguments, [{
+  var args = validator_.validateArgs(arguments, [{
     name: 'month',
-    type: AV.Types.LONG
+    type: types_.LONG
   }]);
 
   this.date_.setMonth(args.month);
@@ -397,9 +399,9 @@ tizen.TZDate.prototype.getMinutes = function() {
 };
 
 tizen.TZDate.prototype.setMinutes = function() {
-  var args = AV.validateArgs(arguments, [{
+  var args = validator_.validateArgs(arguments, [{
     name: 'minutes',
-    type: AV.Types.LONG
+    type: types_.LONG
   }]);
 
   this.date_.setMinutes(args.minutes);
@@ -410,9 +412,9 @@ tizen.TZDate.prototype.getSeconds = function() {
 };
 
 tizen.TZDate.prototype.setSeconds = function() {
-  var args = AV.validateArgs(arguments, [{
+  var args = validator_.validateArgs(arguments, [{
     name: 'seconds',
-    type: AV.Types.LONG
+    type: types_.LONG
   }]);
 
   this.date_.setSeconds(args.seconds);
@@ -425,9 +427,9 @@ tizen.TZDate.prototype.getUTCDate = function() {
 };
 
 tizen.TZDate.prototype.setUTCDate = function() {
-  var args = AV.validateArgs(arguments, [{
+  var args = validator_.validateArgs(arguments, [{
     name: 'date',
-    type: AV.Types.LONG
+    type: types_.LONG
   }]);
 
   this.date_.setUTCDate(args.date);
@@ -446,9 +448,9 @@ tizen.TZDate.prototype.getUTCFullYear = function() {
 };
 
 tizen.TZDate.prototype.setUTCFullYear = function() {
-  var args = AV.validateArgs(arguments, [{
+  var args = validator_.validateArgs(arguments, [{
     name: 'year',
-    type: AV.Types.LONG
+    type: types_.LONG
   }]);
 
   this.date_.setUTCFullYear(args.year);
@@ -461,9 +463,9 @@ tizen.TZDate.prototype.getUTCHours = function() {
 };
 
 tizen.TZDate.prototype.setUTCHours = function() {
-  var args = AV.validateArgs(arguments, [{
+  var args = validator_.validateArgs(arguments, [{
     name: 'hours',
-    type: AV.Types.LONG
+    type: types_.LONG
   }]);
 
   var offset_hours = getTimezoneOffset(this.timezone_, _getTimeWithOffset(this.date_)) /
@@ -478,9 +480,9 @@ tizen.TZDate.prototype.getUTCMilliseconds = function() {
 };
 
 tizen.TZDate.prototype.setUTCMilliseconds = function() {
-  var args = AV.validateArgs(arguments, [{
+  var args = validator_.validateArgs(arguments, [{
     name: 'ms',
-    type: AV.Types.LONG
+    type: types_.LONG
   }]);
 
   this.date_.setUTCMilliseconds(args.ms);
@@ -493,9 +495,9 @@ tizen.TZDate.prototype.getUTCMinutes = function() {
 };
 
 tizen.TZDate.prototype.setUTCMinutes = function() {
-  var args = AV.validateArgs(arguments, [{
+  var args = validator_.validateArgs(arguments, [{
     name: 'minutes',
-    type: AV.Types.LONG
+    type: types_.LONG
   }]);
 
   this.date_.setUTCMinutes(args.minutes);
@@ -508,9 +510,9 @@ tizen.TZDate.prototype.getUTCMonth = function() {
 };
 
 tizen.TZDate.prototype.setUTCMonth = function() {
-  var args = AV.validateArgs(arguments, [{
+  var args = validator_.validateArgs(arguments, [{
     name: 'month',
-    type: AV.Types.LONG
+    type: types_.LONG
   }]);
 
   this.date_.setUTCMonth(args.month);
@@ -523,9 +525,9 @@ tizen.TZDate.prototype.getUTCSeconds = function() {
 };
 
 tizen.TZDate.prototype.setUTCSeconds = function() {
-  var args = AV.validateArgs(arguments, [{
+  var args = validator_.validateArgs(arguments, [{
     name: 'secs',
-    type: AV.Types.LONG
+    type: types_.LONG
   }]);
 
   this.date_.setUTCSeconds(args.secs);
@@ -540,9 +542,9 @@ tizen.TZDate.prototype.getTimezone = function() {
 };
 
 tizen.TZDate.prototype.toTimezone = function() {
-  var args = AV.validateArgs(arguments, [{
+  var args = validator_.validateArgs(arguments, [{
     name: 'timezone',
-    type: AV.Types.STRING
+    type: types_.STRING
   }]);
 
   if (!args.timezone)
@@ -561,9 +563,9 @@ tizen.TZDate.prototype.toUTC = function() {
 };
 
 tizen.TZDate.prototype.difference = function() {
-  var args = AV.validateArgs(arguments, [{
+  var args = validator_.validateArgs(arguments, [{
     name: 'other',
-    type: AV.Types.PLATFORM_OBJECT,
+    type: types_.PLATFORM_OBJECT,
     values: tizen.TZDate
   }]);
 
@@ -575,9 +577,9 @@ tizen.TZDate.prototype.difference = function() {
 };
 
 tizen.TZDate.prototype.equalsTo = function() {
-  var args = AV.validateArgs(arguments, [{
+  var args = validator_.validateArgs(arguments, [{
     name: 'other',
-    type: AV.Types.PLATFORM_OBJECT,
+    type: types_.PLATFORM_OBJECT,
     values: tizen.TZDate
   }]);
 
@@ -589,9 +591,9 @@ tizen.TZDate.prototype.equalsTo = function() {
 };
 
 tizen.TZDate.prototype.earlierThan = function() {
-  var args = AV.validateArgs(arguments, [{
+  var args = validator_.validateArgs(arguments, [{
     name: 'other',
-    type: AV.Types.PLATFORM_OBJECT,
+    type: types_.PLATFORM_OBJECT,
     values: tizen.TZDate
   }]);
 
@@ -603,9 +605,9 @@ tizen.TZDate.prototype.earlierThan = function() {
 };
 
 tizen.TZDate.prototype.laterThan = function(other) {
-  var args = AV.validateArgs(arguments, [{
+  var args = validator_.validateArgs(arguments, [{
     name: 'other',
-    type: AV.Types.PLATFORM_OBJECT,
+    type: types_.PLATFORM_OBJECT,
     values: tizen.TZDate
   }]);
 
@@ -617,9 +619,9 @@ tizen.TZDate.prototype.laterThan = function(other) {
 };
 
 tizen.TZDate.prototype.addDuration = function() {
-  var args = AV.validateArgs(arguments, [{
+  var args = validator_.validateArgs(arguments, [{
     name: 'duration',
-    type: AV.Types.PLATFORM_OBJECT,
+    type: types_.PLATFORM_OBJECT,
     values: tizen.TimeDuration
   }]);
 
