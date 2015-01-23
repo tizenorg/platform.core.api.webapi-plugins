@@ -22,7 +22,6 @@
               'capi-appfw-package-manager',
               'capi-appfw-app-manager',
               'pkgmgr-info',
-              'glib-2.0',
               'pkgmgr'
             ]
           },
