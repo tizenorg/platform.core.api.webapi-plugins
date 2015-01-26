@@ -427,7 +427,6 @@ CalendarItem.prototype.clone = function() {
 
 function _convertFromStringToItem(str) {
   if (str.indexOf('VCALENDAR') === -1) {
-    console.logd('Wrong format');
     return;
   }
 
@@ -449,7 +448,6 @@ function _convertFromStringToItem(str) {
   } else if (str.indexOf('\n') > -1) {
     sep = '\n';
   } else {
-    console.logd('Wrong separator');
     return;
   }
 
