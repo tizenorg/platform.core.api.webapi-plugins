@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef APPLICATION_APPLICATION_H_
-#define APPLICATION_APPLICATION_H_
+#ifndef SRC_APPLICATION_APPLICATION_H_
+#define SRC_APPLICATION_APPLICATION_H_
 
 #include <string>
 #include <memory>
@@ -19,20 +19,19 @@ typedef std::shared_ptr<Application> ApplicationPtr;
 class Application {
  public:
   Application();
-  Application(const ApplicationPtr);
   ~Application();
 
   void Hide();
   void Exit();
-  
+
   const picojson::value& Value();
   bool IsValid() const;
 
   std::string get_context_id();
   void set_context_id(const std::string& context_id);
-  
+
   ApplicationInformationPtr get_app_info() const;
-  void set_app_info(ApplicationInformationPtr &appInfo);
+  void set_app_info(const ApplicationInformationPtr &appInfo);
 
  private:
   std::string context_id_;
@@ -42,7 +41,8 @@ class Application {
   picojson::object error_;
   picojson::value value_;
 };
-} // namespace application
-} // namespace extension
 
-#endif  // APPLICATION_APPLICATION_H_
+}  // namespace application
+}  // namespace extension
+
+#endif  // SRC_APPLICATION_APPLICATION_H_

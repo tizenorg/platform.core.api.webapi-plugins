@@ -2,11 +2,12 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef APPLICATION_APPLICATION_CONTROLDATA_H_
-#define APPLICATION_APPLICATION_CONTROLDATA_H_
+#ifndef SRC_APPLICATION_APPLICATION_CONTROLDATA_H_
+#define SRC_APPLICATION_APPLICATION_CONTROLDATA_H_
 
 #include <string>
 #include <memory>
+#include <vector>
 
 #include "common/picojson.h"
 #include "tizen/tizen.h"
@@ -18,12 +19,12 @@ class ApplicationControlData;
 typedef std::shared_ptr<ApplicationControlData> ApplicationControlDataPtr;
 
 typedef std::vector<ApplicationControlDataPtr> ApplicationControlDataArray;
-typedef std::shared_ptr<ApplicationControlDataArray> ApplicationControlDataArrayPtr;
+typedef std::shared_ptr<ApplicationControlDataArray>
+  ApplicationControlDataArrayPtr;
 
 class ApplicationControlData {
  public:
   ApplicationControlData();
-  ApplicationControlData(const ApplicationControlDataPtr);
   ~ApplicationControlData();
 
   const picojson::value& Value();
@@ -31,7 +32,7 @@ class ApplicationControlData {
 
   std::string get_ctr_key() const;
   void set_ctr_key(const std::string& ctr_key);
- 
+
   std::vector<std::string> get_ctr_value() const;
   void set_ctr_value(const std::vector<std::string>& ctr_values);
   void add_ctr_value(const std::string& ctr_value);
@@ -44,7 +45,8 @@ class ApplicationControlData {
   picojson::object error_;
   picojson::value value_;
 };
-} // namespace application
-} // namespace extension
 
-#endif  // APPLICATION_APPLICATION_CONTROLDATA_H_
+}  // namespace application
+}  // namespace extension
+
+#endif  // SRC_APPLICATION_APPLICATION_CONTROLDATA_H_

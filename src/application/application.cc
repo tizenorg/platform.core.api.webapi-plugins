@@ -17,19 +17,13 @@ namespace application {
 Application::Application() {
 }
 
-Application::Application(const ApplicationPtr app) {
-  context_id_ = app->get_context_id();
-}
-
 Application::~Application() {
 }
 
 void Application::Hide() {
-
 }
 
 void Application::Exit() {
-
 }
 
 std::string Application::get_context_id() {
@@ -44,16 +38,16 @@ ApplicationInformationPtr Application::get_app_info() const {
   return app_info_;
 }
 
-void Application::set_app_info(ApplicationInformationPtr& app_info) {
+void Application::set_app_info(const ApplicationInformationPtr& app_info) {
   app_info_ = app_info;
 }
 
 const picojson::value& Application::Value() {
-  
   if (!app_info_->IsValid()) {
     LoggerD("WebApiAPIErrors::UNKNOWN_ERR");
     picojson::object obj;
-    obj["error"] = picojson::value(static_cast<double>(WebApiAPIErrors::UNKNOWN_ERR));
+    obj["error"] =
+      picojson::value(static_cast<double>(WebApiAPIErrors::UNKNOWN_ERR));
     value_ = picojson::value(obj);
   } else {
     picojson::object obj;
@@ -62,8 +56,9 @@ const picojson::value& Application::Value() {
     obj["contextId"] = picojson::value(context_id_);
     value_ = picojson::value(obj);
   }
-  return value_; 
+  return value_;
 }
 
-} // namespace application
-} // namespace extension
+
+}  // namespace application
+}  // namespace extension

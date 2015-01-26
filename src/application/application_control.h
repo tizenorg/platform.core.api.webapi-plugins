@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef APPLICATION_APPLICATION_CONTROL_H_
-#define APPLICATION_APPLICATION_CONTROL_H_
+#ifndef SRC_APPLICATION_APPLICATION_CONTROL_H_
+#define SRC_APPLICATION_APPLICATION_CONTROL_H_
 
 #include <string>
 #include <memory>
@@ -11,7 +11,7 @@
 #include "common/picojson.h"
 #include "tizen/tizen.h"
 
-#include "application_controldata.h"
+#include "application/application_controldata.h"
 
 namespace extension {
 namespace application {
@@ -22,7 +22,6 @@ typedef std::shared_ptr<ApplicationControl> ApplicationControlPtr;
 class ApplicationControl {
  public:
   ApplicationControl();
-  ApplicationControl(const ApplicationControlPtr);
   ~ApplicationControl();
 
   const picojson::value& Value();
@@ -51,7 +50,8 @@ class ApplicationControl {
   picojson::object error_;
   picojson::value value_;
 };
-} // namespace application
-} // namespace extension
 
-#endif  // APPLICATION_APPLICATION_CONTROL_H_
+}  // namespace application
+}  // namespace extension
+
+#endif  // SRC_APPLICATION_APPLICATION_CONTROL_H_

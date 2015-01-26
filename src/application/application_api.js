@@ -98,7 +98,8 @@ ApplicationManager.prototype.kill = function(contextId) {
     nativeParam['contextId'] = args.contextId;
 
     try {
-      var syncResult = callNativeWithCallback('ApplicationManager_kill', nativeParam, function(result) {
+      var syncResult =
+          callNativeWithCallback('ApplicationManager_kill', nativeParam, function(result) {
         if (result.status == 'success') {
           if (args.successCallback) {
             args.successCallback();
@@ -130,7 +131,8 @@ ApplicationManager.prototype.launch = function(id) {
   }
 
   try {
-    var syncResult = callNativeWithCallback('ApplicationManager_launch', nativeParam, function(result) {
+    var syncResult =
+        callNativeWithCallback('ApplicationManager_launch', nativeParam, function(result) {
       if (result.status == 'success') {
         if (args.successCallback) {
           args.successCallback();
@@ -153,39 +155,42 @@ ApplicationManager.prototype.launchAppControl = function(appControl) {
     {'name': 'id', 'type': types_.STRING, optional: true, nullable: true},
     {'name': 'successCallback', 'type': types_.FUNCTION, optional: true, nullable: true},
     {'name': 'errorCallback', 'type': types_.FUNCTION, optional: true, nullable: true},
-    {'name': 'replyCallback', 'type': types_.LISTENER, 'values': ['onsuccess', 'onfailure'], optional: true, nullable: true}
+    {'name': 'replyCallback', 'type': types_.LISTENER, 'values': ['onsuccess', 'onfailure'],
+      optional: true, nullable: true}
   ]);
 
   var nativeParam = {
   };
   if (args['id']) {
+    console.log(args.id);
     nativeParam['id'] = args.id;
   }
   if (args['appControl']) {
     nativeParam['appControl'] = args.appControl;
   }
   try {
-    var syncResult = callNativeWithCallback('ApplicationManager_launchAppControl', nativeParam, function(result) {
+    var syncResult =
+        callNativeWithCallback('ApplicationManager_launchAppControl', nativeParam, function(ret) {
       // In case of reply, can have onsuccess or onfailure with result.status
       // It should be checked first of all
-      if (result.type == 'onsuccess') {
+      if (ret.type == 'onsuccess') {
         if (args.replyCallback) {
-          args.replyCallback.onsuccess(result.data);
+          args.replyCallback.onsuccess(ret.data);
         }
       }
-      else if (result.type == 'onfailure') {
+      else if (ret.type == 'onfailure') {
         if (args.replyCallback) {
           args.replyCallback.onfailure();
         }
       }
-      else if (result.status == 'success') {
+      else if (ret.status == 'success') {
         if (args.successCallback) {
           args.successCallback();
         }
       }
-      else if (result.status == 'error') {
+      else if (ret.status == 'error') {
         if (args.errorCallback) {
-          args.errorCallback(result.error);
+          args.errorCallback(ret.error);
         }
       }
     });
@@ -207,7 +212,8 @@ ApplicationManager.prototype.findAppControl = function(appControl, successCallba
     nativeParam['appControl'] = args.appControl;
   }
   try {
-    var syncResult = callNativeWithCallback('ApplicationManager_findAppControl', nativeParam, function(result) {
+    var syncResult =
+        callNativeWithCallback('ApplicationManager_findAppControl', nativeParam, function(result) {
       if (result.status == 'success') {
         args.successCallback(result.informationArray, result.appControl);
       } else if (result.status == 'error') {
@@ -230,9 +236,17 @@ ApplicationManager.prototype.getAppsContext = function(successCallback) {
   var nativeParam = {
   };
   try {
-    var syncResult = callNativeWithCallback('ApplicationManager_getAppsContext', nativeParam, function(result) {
+    var syncResult =
+        callNativeWithCallback('ApplicationManager_getAppsContext', nativeParam, function(result) {
       if (result.status == 'success') {
-        args.successCallback(result.contexts);
+        var returnArray = new Array();
+        for (var index = 0; index < result.contexts.length; index++) {
+          var appContext = new ApplicationContext();
+          SetReadOnlyProperty(appContext, 'id', result.contexts[index].id);
+          SetReadOnlyProperty(appContext, 'appId', result.contexts[index].appId);
+          returnArray.push(appContext);
+        }
+        args.successCallback(returnArray);
       }
       else if (result.status == 'error') {
         if (args.errorCallback) {
@@ -277,9 +291,25 @@ ApplicationManager.prototype.getAppsInfo = function(successCallback) {
   var nativeParam = {
   };
   try {
-    var syncResult = callNativeWithCallback('ApplicationManager_getAppsInfo', nativeParam, function(result) {
+    var syncResult =
+        callNativeWithCallback('ApplicationManager_getAppsInfo', nativeParam, function(result) {
       if (result.status == 'success') {
-        args.successCallback(result.informationArray);
+        // args.successCallback(result.informationArray);
+        var returnArray = new Array();
+        for (var i = 0; i < result.informationArray.length; i++) {
+          var appInfo = new ApplicationInformation();
+          SetReadOnlyProperty(appInfo, 'id', result.informationArray[i].id);
+          SetReadOnlyProperty(appInfo, 'name', result.informationArray[i].name);
+          SetReadOnlyProperty(appInfo, 'iconPath', result.informationArray[i].iconPath);
+          SetReadOnlyProperty(appInfo, 'version', result.informationArray[i].version);
+          SetReadOnlyProperty(appInfo, 'show', result.informationArray[i].show);
+          SetReadOnlyProperty(appInfo, 'categories', result.informationArray[i].categories);
+          SetReadOnlyProperty(appInfo, 'installDate', result.informationArray[i].installDate);
+          SetReadOnlyProperty(appInfo, 'size', result.informationArray[i].size);
+          SetReadOnlyProperty(appInfo, 'packageId', result.informationArray[i].packageId);
+          returnArray.push(appInfo);
+        }
+        args.successCallback(returnArray);
       }
       else if (result.status == 'error') {
         if (args.errorCallback) {
@@ -397,21 +427,23 @@ ApplicationManager.prototype.getAppMetaData = function() {
 
 ApplicationManager.prototype.addAppInfoEventListener = function(eventCallback) {
   var args = validator_.validateArgs(arguments, [
-    {'name': 'eventCallback', 'type': types_.LISTENER, 'values': ['oninstalled', 'onupdated', 'onuninstalled']}
+    {'name': 'eventCallback', 'type': types_.LISTENER,
+      'values': ['oninstalled', 'onupdated', 'onuninstalled']}
   ]);
 
-  var nativeParam = {
+  var param = {
   };
   try {
-    var syncResult = callNativeWithCallback('ApplicationManager_addAppInfoEventListener', nativeParam, function(result) {
-      if (result.type == 'oninstalled') {
-        args.eventCallback.oninstalled(result.info);
+    var syncResult =
+        callNativeWithCallback('ApplicationManager_addAppInfoEventListener', param, function(ret) {
+      if (ret.type == 'oninstalled') {
+        args.eventCallback.oninstalled(ret.info);
       }
-      if (result.type == 'onupdated') {
-        args.eventCallback.onupdated(result.info);
+      if (ret.type == 'onupdated') {
+        args.eventCallback.onupdated(ret.info);
       }
-      if (result.type == 'onuninstalled') {
-        args.eventCallback.onuninstalled(result.id);
+      if (ret.type == 'onuninstalled') {
+        args.eventCallback.onuninstalled(ret.id);
       }
     });
   } catch (e) {
@@ -467,8 +499,8 @@ Application.prototype.getRequestedAppControl = function() {
   }
 
   var returnObject = new RequestedApplicationControl();
-  SetReadOnlyProperty(returnObject, 'appControl', returnObject.appControl); // read only property
-  SetReadOnlyProperty(returnObject, 'callerAppId', returnObject.callerAppId); // read only property
+  SetReadOnlyProperty(returnObject, 'appControl', syncResult.appControl); // read only property
+  SetReadOnlyProperty(returnObject, 'callerAppId', syncResult.callerAppId); // read only property
 
   return returnObject;
 };
@@ -506,7 +538,8 @@ tizen.ApplicationControl = function(operation, uri, mime, category, data) {
       'operation': { writable: true, enumerable: true, value: operation },
       'uri': { writable: true, enumerable: true, value: uri === undefined ? null : uri },
       'mime': { writable: true, enumerable: true, value: mime === undefined ? null : mime },
-      'category': { writable: true, enumerable: true, value: category === undefined ? null : category },
+      'category': { writable: true, enumerable: true,
+        value: category === undefined ? null : category },
       'data': { writable: true, enumerable: true, value: data }
     });
 
@@ -529,6 +562,8 @@ RequestedApplicationControl.prototype.replyResult = function() {
   if (args['data']) {
     nativeParam['data'] = args.data;
   }
+  if (this.callerAppId)
+    nativeParam['callerAppId'] = this.callerAppId;
   try {
     var syncResult = callNative('RequestedApplicationControl_replyResult', nativeParam);
   } catch (e) {
@@ -537,7 +572,10 @@ RequestedApplicationControl.prototype.replyResult = function() {
 };
 
 RequestedApplicationControl.prototype.replyFailure = function() {
-
+  var nativeParam = {
+  };
+  if (this.callerAppId)
+    nativeParam['callerAppId'] = this.callerAppId;
   try {
     var syncResult = callNative('RequestedApplicationControl_replyFailure', nativeParam);
   } catch (e) {

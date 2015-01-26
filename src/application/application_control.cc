@@ -13,11 +13,6 @@ namespace extension {
 namespace application {
 
 ApplicationControl::ApplicationControl() {
-
-}
-
-ApplicationControl::ApplicationControl(const ApplicationControlPtr app) {
-
 }
 
 ApplicationControl::~ApplicationControl() {
@@ -36,7 +31,7 @@ const picojson::value& ApplicationControl::Value() {
       datas_array.push_back((*it)->Value());
     }
     data_["data"] = datas;
- 
+
     value_ = picojson::value(data_);
   }
   return value_;
@@ -82,13 +77,15 @@ ApplicationControlDataArray ApplicationControl::get_data_array() const {
   return data_array_;
 }
 
-void ApplicationControl::set_data_array(const ApplicationControlDataArray& data_array) {
+void ApplicationControl::set_data_array
+  (const ApplicationControlDataArray& data_array) {
   data_array_ = data_array;
 }
 
-void ApplicationControl::add_data_array(const ApplicationControlDataPtr& data_ptr) {
+void ApplicationControl::add_data_array
+  (const ApplicationControlDataPtr& data_ptr) {
   data_array_.push_back(data_ptr);
 }
 
-} // namespace application
-} // namespace extension
+}  // namespace application
+}  // namespace extension

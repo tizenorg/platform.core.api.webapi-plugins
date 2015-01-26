@@ -2,11 +2,12 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef APPLICATION_APPLICATION_INFORMATION_H_
-#define APPLICATION_APPLICATION_INFORMATION_H_
+#ifndef SRC_APPLICATION_APPLICATION_INFORMATION_H_
+#define SRC_APPLICATION_APPLICATION_INFORMATION_H_
 
 #include <string>
 #include <memory>
+#include <vector>
 
 #include "common/picojson.h"
 
@@ -17,12 +18,12 @@ class ApplicationInformation;
 typedef std::shared_ptr<ApplicationInformation> ApplicationInformationPtr;
 
 typedef std::vector<ApplicationInformationPtr> ApplicationInformationArray;
-typedef std::shared_ptr<ApplicationInformationArray> ApplicationInformationArrayPtr;
+typedef std::shared_ptr<ApplicationInformationArray>
+  ApplicationInformationArrayPtr;
 
 class ApplicationInformation {
  public:
   ApplicationInformation();
-  ApplicationInformation(const ApplicationInformationPtr);
   ~ApplicationInformation();
 
   const picojson::value& Value();
@@ -47,7 +48,7 @@ class ApplicationInformation {
   void add_categories(const std::string &category);
   void set_size(const int& size);
   double get_size() const;
- 
+
  private:
   std::string app_id_;
   std::string name_;
@@ -64,7 +65,7 @@ class ApplicationInformation {
   picojson::value value_;
 };
 
-} // namespace application
-} // namespace extension
+}  // namespace application
+}  // namespace extension
 
-#endif  // APPLICATION_APPLICATION_INFORMATION_H_
+#endif  // SRC_APPLICATION_APPLICATION_INFORMATION_H_

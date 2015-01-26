@@ -26,6 +26,8 @@
         'application_control.h',
         'application_controldata.cc',
         'application_controldata.h',
+        'requested_application_control.cc',
+        'requested_application_control.h',
       ],
       'includes': [
         '../common/pkg-config.gypi',

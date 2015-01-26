@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef APPLICATION_APPLICATION_EXTENSION_H_
-#define APPLICATION_APPLICATION_EXTENSION_H_
+#ifndef SRC_APPLICATION_APPLICATION_EXTENSION_H_
+#define SRC_APPLICATION_APPLICATION_EXTENSION_H_
 
 #include <string>
 
@@ -20,4 +20,4 @@ class ApplicationExtension : public common::Extension {
   virtual common::Instance* CreateInstance();
 };
 
-#endif // APPLICATION_APPLICATION_EXTENSION_H_
+#endif  // SRC_APPLICATION_APPLICATION_EXTENSION_H_

@@ -13,11 +13,6 @@ namespace extension {
 namespace application {
 
 ApplicationCertificate::ApplicationCertificate() {
-
-}
-
-ApplicationCertificate::ApplicationCertificate(const ApplicationCertificatePtr app) {
-
 }
 
 ApplicationCertificate::~ApplicationCertificate() {
@@ -52,6 +47,6 @@ std::string ApplicationCertificate::get_cert_value() const {
 void ApplicationCertificate::set_cert_value(const std::string& cert_value) {
   cert_value_ = cert_value;
 }
- 
-} // namespace application
-} // namespace extension
+
+}  // namespace application
+}  // namespace extension

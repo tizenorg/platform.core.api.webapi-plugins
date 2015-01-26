@@ -13,11 +13,6 @@ namespace extension {
 namespace application {
 
 ApplicationMetaData::ApplicationMetaData() {
-
-}
-
-ApplicationMetaData::ApplicationMetaData(const ApplicationMetaDataPtr app) {
-
 }
 
 ApplicationMetaData::~ApplicationMetaData() {
@@ -52,6 +47,6 @@ std::string ApplicationMetaData::get_meta_value() const {
 void ApplicationMetaData::set_meta_value(const std::string& meta_value) {
   meta_value_ = meta_value;
 }
- 
-} // namespace application
-} // namespace extension
+
+}  // namespace application
+}  // namespace extension
