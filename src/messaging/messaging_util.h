@@ -157,8 +157,10 @@ public:
     static std::string messageStatusToString(MessageStatus status);
 
 private:
+    static tizen::AbstractFilterPtr jsonFilterToAbstractFilter(const picojson::object& json);
     static tizen::AttributeFilterPtr jsonFilterToAttributeFilter(const picojson::object& json);
     static tizen::AttributeRangeFilterPtr jsonFilterToAttributeRangeFilter(const picojson::object& json);
+    static tizen::CompositeFilterPtr jsonFilterToCompositeFilter(const picojson::object& json);
 };
 
 enum PostPriority {

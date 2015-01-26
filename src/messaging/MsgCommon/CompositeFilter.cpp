@@ -58,6 +58,11 @@ const AbstractFilterPtrVector& CompositeFilter::getFilters() const
     return m_filters;
 }
 
+void CompositeFilter::addFilter(const AbstractFilterPtr& filter)
+{
+    m_filters.push_back(filter);
+}
+
 //void CompositeFilter::setFilters(const AbstractFilterPtrVector &filters)
 //{
 //    if (Common::GlobalContextManager::getInstance()->isAliveGlobalContext(

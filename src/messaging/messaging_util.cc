@@ -107,9 +107,12 @@ const std::string JSON_TO_MATCH_FLAG = "matchFlag";
 const std::string JSON_TO_MATCH_VALUE = "matchValue";
 const std::string JSON_TO_INITIAL_VALUE = "initialValue";
 const std::string JSON_TO_END_VALUE = "endValue";
+const std::string JSON_TO_TYPE = "type";
+const std::string JSON_TO_FILTER_ARRAY = "filters";
 
+const char* JSON_FILTER_TYPE = "filterType";
 const char* JSON_FILTER_ATTRIBUTE_TYPE = "AttributeFilter";
-const char* JSON_FILTER_ATTRIBUTERANGE_TYPE = "AttributeRangeFilter";
+const char* JSON_FILTER_ATTRIBUTE_RANGE_TYPE = "AttributeRangeFilter";
 const char* JSON_FILTER_COMPOSITE_TYPE = "CompositeFilter";
 
 const std::map<std::string, MessageType> stringToTypeMap = {
@@ -673,25 +676,30 @@ tizen::AbstractFilterPtr MessagingUtil::jsonToAbstractFilter(const picojson::obj
 {
     LoggerD("Entered");
 
-    if (json.at(JSON_TO_FILTER).is<picojson::null>()) {
+    const auto it = json.find(JSON_TO_FILTER);
+
+    if (json.end() == it || it->second.is<picojson::null>()) {
         return AbstractFilterPtr();
     }
 
-    auto filter = getValueFromJSONObject<picojson::object>(json, JSON_TO_FILTER);
-    std::string type = getValueFromJSONObject<std::string>(filter, "type");
+    return jsonFilterToAbstractFilter(json.at(JSON_TO_FILTER).get<picojson::object>());
+}
 
-    if( JSON_FILTER_ATTRIBUTE_TYPE == type ){
+tizen::AbstractFilterPtr MessagingUtil::jsonFilterToAbstractFilter(const picojson::object& filter)
+{
+    const auto& type = filter.at(JSON_FILTER_TYPE).get<std::string>();
+
+    if (JSON_FILTER_ATTRIBUTE_TYPE == type) {
         return jsonFilterToAttributeFilter(filter);
     }
-    if( JSON_FILTER_ATTRIBUTERANGE_TYPE == type ){
+    if (JSON_FILTER_ATTRIBUTE_RANGE_TYPE == type) {
         return jsonFilterToAttributeRangeFilter(filter);
     }
-    if( JSON_FILTER_COMPOSITE_TYPE == type ) {
-        //TODO jsonToCompositeFilter
-        LoggerD("Composite filter currently not supported");
+    if (JSON_FILTER_COMPOSITE_TYPE == type) {
+        return jsonFilterToCompositeFilter(filter);
     }
 
-    LoggerE("Unsupported filter type");
+    LoggerE("Unsupported filter type: %s", type.c_str());
     throw common::TypeMismatchException("Unsupported filter type");
     return AbstractFilterPtr();
 }
@@ -747,6 +755,36 @@ tizen::AttributeRangeFilterPtr MessagingUtil::jsonFilterToAttributeRangeFilter(c
     attributeRangePtr->setEndValue(AnyPtr(new Any(filter.at(JSON_TO_END_VALUE))));
 
     return  attributeRangePtr;
+}
+
+tizen::CompositeFilterPtr MessagingUtil::jsonFilterToCompositeFilter(const picojson::object& filter)
+{
+    LoggerD("Entered");
+
+    using namespace tizen;
+
+    const auto& type = filter.at(JSON_TO_TYPE).get<std::string>();
+
+    CompositeFilterType filterType = CompositeFilterType::UNION;
+
+    if (STR_FILTEROP_OR == type) {
+        filterType = CompositeFilterType::UNION;
+    }
+    else if (STR_FILTEROP_AND == type) {
+        filterType = CompositeFilterType::INTERSECTION;
+    }
+    else {
+        LoggerE("Composite filter type is not recognized: %s", type.c_str());
+        throw common::TypeMismatchException("Composite filter type is not recognized");
+    }
+
+    CompositeFilterPtr compositeFilter{new CompositeFilter(filterType)};
+
+    for (const auto& a : filter.at(JSON_TO_FILTER_ARRAY).get<picojson::array>()) {
+        compositeFilter->addFilter(jsonFilterToAbstractFilter(a.get<picojson::object>()));
+    }
+
+    return compositeFilter;
 }
 
 std::shared_ptr<MessageAttachment> MessagingUtil::jsonToMessageAttachment(const picojson::value& json)
