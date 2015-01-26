@@ -75,11 +75,11 @@ DatacontrolInstance::~DatacontrolInstance() {
 }
 
 static void ReplyAsync(int callbackId, bool isSuccess,
-                       picojson::object& param) {
-  param["callbackId"] = picojson::value(static_cast<double>(callbackId));
-  param["status"] = picojson::value(isSuccess ? "success" : "error");
+                       picojson::object* param) {
+  *param["callbackId"] = picojson::value(static_cast<double>(callbackId));
+  *param["status"] = picojson::value(isSuccess ? "success" : "error");
 
-  picojson::value result = picojson::value(param);
+  picojson::value result = picojson::value(*param);
 
   if (Self) {
     Self->PostMessage(result.serialize().c_str());
@@ -180,7 +180,7 @@ static void MAPAddResponseCallback(int requestId, data_control_h handle,
     obj["result"] = InvalidValuesException(error).ToJSON();
   }
 
-  ReplyAsync(info->callbackId, providerResult, obj);
+  ReplyAsync(info->callbackId, providerResult, &obj);
   delete info;
   IdMap.erase(requestId);
 }
@@ -201,7 +201,7 @@ static void MAPSetResponseCallback(int requestId, data_control_h handle,
     obj["result"] = InvalidValuesException(error).ToJSON();
   }
 
-  ReplyAsync(info->callbackId, providerResult, obj);
+  ReplyAsync(info->callbackId, providerResult, &obj);
   delete info;
   IdMap.erase(requestId);
 }
@@ -230,7 +230,7 @@ static void MAPGetResponseCallback(int requestId, data_control_h handle,
     obj["result"] = picojson::value(result);
   }
 
-  ReplyAsync(info->callbackId, providerResult, obj);
+  ReplyAsync(info->callbackId, providerResult, &obj);
   delete info;
   IdMap.erase(requestId);
 }
@@ -251,7 +251,7 @@ static void MAPRemoveReponseCallback(int requestId, data_control_h handle,
     obj["result"] = InvalidValuesException(error).ToJSON();
   }
 
-  ReplyAsync(info->callbackId, providerResult, obj);
+  ReplyAsync(info->callbackId, providerResult, &obj);
   delete info;
   IdMap.erase(requestId);
 }
@@ -298,7 +298,7 @@ static void SQLSelectResponseCallback(int requestId, data_control_h handle,
     }
     obj["result"] = picojson::value(result);
   }
-  ReplyAsync(info->callbackId, providerResult, obj);
+  ReplyAsync(info->callbackId, providerResult, &obj);
   delete info;
   IdMap.erase(requestId);
 }
@@ -322,7 +322,7 @@ static void SQLInsertResponseCallback(int requestId, data_control_h handle,
     obj["result"] = picojson::value(static_cast<double>(inserted_row_id));
   }
 
-  ReplyAsync(info->callbackId, providerResult, obj);
+  ReplyAsync(info->callbackId, providerResult, &obj);
   delete info;
   IdMap.erase(requestId);
 }
@@ -343,7 +343,7 @@ static void SQLUpdateResponseCallback(int requestId, data_control_h handle,
     obj["result"] = InvalidValuesException(error).ToJSON();
   }
 
-  ReplyAsync(info->callbackId, providerResult, obj);
+  ReplyAsync(info->callbackId, providerResult, &obj);
   delete info;
   IdMap.erase(requestId);
 }
@@ -364,7 +364,7 @@ static void SQLDeleteResponseCallback(int requestId, data_control_h handle,
     obj["result"] = InvalidValuesException(error).ToJSON();
   }
 
-  ReplyAsync(info->callbackId, providerResult, obj);
+  ReplyAsync(info->callbackId, providerResult, &obj);
   delete info;
   IdMap.erase(requestId);
 }
