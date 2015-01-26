@@ -132,7 +132,7 @@ function InternalValues_(data) {
 function updateInternal_(internal, data) {
     var values = new InternalValues_(data);
     for(var key in data) {
-        if (data.hasOwnProperty(key) && internal.hasOwnProperty(key)) {
+        if (values.hasOwnProperty(key) && internal.hasOwnProperty(key)) {
             internal[key] = values;
         }
     }
@@ -437,10 +437,18 @@ function Message(type, data) {
         {
             get: function () {return _internal.attachments;},
             set: function(value) {
-                if (value instanceof InternalValues_) value = value.attachments;
-                for (var k = 0; k < value.length; ++k) {
-                    if (!(value[k] instanceof tizen.MessageAttachment)) {
-                        return;
+                if (value instanceof InternalValues_) {
+                    value = value.attachments;
+                    for (var k = 0; k < value.length; ++k) {
+                        if (!(value[k] instanceof tizen.MessageAttachment)) {
+                            value[k] = new MessageAttachment_(value[k]);
+                        }
+                    }
+                } else {
+                    for (var k = 0; k < value.length; ++k) {
+                        if (!(value[k] instanceof tizen.MessageAttachment)) {
+                            return;
+                        }
                     }
                 }
                 _internal.attachments = value;
