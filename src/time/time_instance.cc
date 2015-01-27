@@ -14,6 +14,7 @@
 #include <sstream>
 #include <memory>
 #include <cerrno>
+#include <unistd.h>
 
 #include "common/picojson.h"
 
@@ -531,7 +532,7 @@ static TimeUtilListeners g_time_util_listeners_obj;
 static void PostMessage(const char* message) {
   JsonValue result{JsonObject{}};
   JsonObject& result_obj = result.get<JsonObject>();
-  result_obj.insert(std::make_pair("listenerId", message));
+  result_obj.insert(std::make_pair("listenerId", picojson::value(message)));
   TimeInstance::GetInstance().PostMessage(result.serialize().c_str());
 }
 
