@@ -172,7 +172,6 @@ BuildRequires: pkgconfig(capi-system-info)
 BuildRequires: pkgconfig(capi-system-runtime-info)
 BuildRequires: pkgconfig(capi-network-connection)
 BuildRequires: pkgconfig(capi-system-device)
-BuildRequires: pkgconfig(capi-data-control)
 BuildRequires: pkgconfig(capi-system-system-settings)
 BuildRequires: pkgconfig(capi-network-bluetooth)
 BuildRequires: pkgconfig(capi-network-wifi)
@@ -183,6 +182,9 @@ BuildRequires: pkgconfig(capi-appfw-app-manager)
 BuildRequires: pkgconfig(capi-appfw-package-manager)
 BuildRequires: pkgconfig(wrt-plugins-ipc-message)
 
+%if 0%{?tizen_feature_datacontrol_support}
+BuildRequires: pkgconfig(capi-data-control)
+%endif
 
 %if 0%{?tizen_feature_power_support}
 BuildRequires: pkgconfig(capi-system-power)
