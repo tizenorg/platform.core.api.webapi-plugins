@@ -76,8 +76,8 @@ DatacontrolInstance::~DatacontrolInstance() {
 
 static void ReplyAsync(int callbackId, bool isSuccess,
                        picojson::object* param) {
-  *param["callbackId"] = picojson::value(static_cast<double>(callbackId));
-  *param["status"] = picojson::value(isSuccess ? "success" : "error");
+  (*param)["callbackId"] = picojson::value(static_cast<double>(callbackId));
+  (*param)["status"] = picojson::value(isSuccess ? "success" : "error");
 
   picojson::value result = picojson::value(*param);
 
