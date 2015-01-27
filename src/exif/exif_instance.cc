@@ -70,7 +70,7 @@ void ExifInstance::getExifInfo(const picojson::value& args,
   auto get_response =
       [callback_id, this](const std::shared_ptr<JsonValue>& response) -> void {
         picojson::object& obj = response->get<picojson::object>();
-        obj.insert(std::make_pair("callbackId", callback_id));
+        obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
         LoggerD("callback is %s", response->serialize().c_str());
         PostMessage(response->serialize().c_str());
       };
@@ -104,7 +104,7 @@ void ExifInstance::saveExifInfo(const picojson::value& args,
   auto get_response =
       [callback_id, this](const std::shared_ptr<JsonValue>& response) -> void {
         picojson::object& obj = response->get<picojson::object>();
-        obj.insert(std::make_pair("callbackId", callback_id));
+        obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
         LoggerD("callback is %s", response->serialize().c_str());
         PostMessage(response->serialize().c_str());
       };
@@ -148,8 +148,8 @@ void ExifInstance::getThumbnail(const picojson::value& args,
 
           exif_data_unref(exif_data);
 
-          std::pair<std::string, std::string> pair;
-          pair = std::make_pair("src", base64);
+          std::pair<std::string, picojson::value> pair;
+          pair = std::make_pair("src", picojson::value(base64));
           result_obj.insert(pair);
         } else {
           exif_data_unref(exif_data);
@@ -173,7 +173,7 @@ void ExifInstance::getThumbnail(const picojson::value& args,
   auto get_response =
       [callback_id, this](const std::shared_ptr<JsonValue>& response) -> void {
         picojson::object& obj = response->get<picojson::object>();
-        obj.insert(std::make_pair("callbackId", callback_id));
+        obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
         LoggerD("callback is %s", response->serialize().c_str());
         PostMessage(response->serialize().c_str());
       };
