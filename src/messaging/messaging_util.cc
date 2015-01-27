@@ -817,12 +817,12 @@ picojson::value MessagingUtil::messageAttachmentToJson(std::shared_ptr<MessageAt
     picojson::object o;
     o[MESSAGE_ATTACHMENT_ATTRIBUTE_ID] =
             attachment->isIdSet()
-            ? picojson::value(static_cast<double>(attachment->getId()))
+            ? picojson::value(std::to_string(attachment->getId()))
             : picojson::value();
 
     o[MESSAGE_ATTACHMENT_ATTRIBUTE_MESSAGE_ID] =
             attachment->isMessageIdSet()
-            ? picojson::value(static_cast<double>(attachment->getMessageId()))
+            ? picojson::value(std::to_string(attachment->getMessageId()))
             : picojson::value();
 
     o[MESSAGE_ATTACHMENT_ATTRIBUTE_MIME_TYPE] =

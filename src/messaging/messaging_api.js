@@ -33,9 +33,7 @@ CommonFS.toRealPath = function (aPath) {
     var _fileRealPath = '',
         _uriPrefix = 'file://',
         i;
-    if (aPath.indexOf(_uriPrefix) === 0) {
-        _fileRealPath = aPath.substr(_uriPrefix.length);
-    } else if (aPath[0] != '/') {
+    if (aPath[0] != '/' && aPath.indexOf(_uriPrefix) != 0) {
         //virtual path$
         var _pathTokens = aPath.split('/');
         if (this.cacheVirtualToReal[_pathTokens[0]] && (
@@ -46,7 +44,7 @@ CommonFS.toRealPath = function (aPath) {
                 _fileRealPath += '/' + _pathTokens[i];
             }
         } else {
-            _fileRealPath = aPath;
+            _fileRealPath = _uriPrefix + aPath;
         }
     } else {
         _fileRealPath = aPath;
@@ -441,8 +439,19 @@ function Message(type, data) {
                     value = value.attachments;
                     for (var k = 0; k < value.length; ++k) {
                         if (!(value[k] instanceof tizen.MessageAttachment)) {
-                            value[k] = new MessageAttachment_(value[k]);
+                            if (_internal.attachments[k]) {
+                                updateInternal_(_internal.attachments[k], value[k]);
+                            } else {
+                                _internal.attachments[k] = new MessageAttachment(
+                                        new InternalValues_(value[k]));
+                            }
+                        } else {
+                            _internal.attachments[k] = value[k];
                         }
+                    }
+                    // if new array is shorter than the old one, remove excess elements
+                    if (value.length < _internal.length) {
+                        _internal.splice(value.length, _internal.length - value.length);
                     }
                 } else {
                     for (var k = 0; k < value.length; ++k) {
@@ -450,8 +459,8 @@ function Message(type, data) {
                             return;
                         }
                     }
+                    _internal.attachments = value;
                 }
-                _internal.attachments = value;
             },
             enumerable: true
         }
@@ -506,7 +515,7 @@ function MessageInit_(data) {
            if (el.constructor === MessageAttachment) {
                self.attachments.push(el);
            } else {
-               self.attachments.push(new MessageAttachment_(el));
+               self.attachments.push(new MessageAttachment(new InternalValues_(el)));
            }
         });
     }
@@ -606,30 +615,68 @@ function MessageBody(data) {
     );
 };
 
-function MessageAttachment_(data) {
-    if (!(this instanceof MessageAttachment_)) return new MessageAttachment_(data);
-    propertyFactory_(this, 'id'       , data.id       , Property.E);
-    propertyFactory_(this, 'messageId', data.messageId, Property.E);
-
-    var attachment = MessageAttachment.apply(this, [data.filePath, data.mimeType]);
-    attachment.constructor = MessageAttachment;
-
-    return attachment;
-}
-
-function MessageAttachment(filePath, mimeType) {
-    //TODO remove CommonFS.toRealPath function when C++ filesystem will be available
-    filePath = CommonFS.toRealPath(filePath);
-    if (!this.id) {
-        propertyFactory_(this, 'id', null, Property.E);
+function MessageAttachment(first, second) {
+    validator_.isConstructorCall(this, MessageAttachment);
+    if (!this instanceof MessageAttachment) {
+        return new MessageAttachment(data);
     }
-    if (!this.messageId) {
-        propertyFactory_(this, 'messageId', null, Property.E);
-    }
-    propertyFactory_(this, 'mimeType', mimeType || null, Property.E);
-    propertyFactory_(this, 'filePath', filePath || '', Property.E);
 
-    return this;
+    var internalConstructor = first instanceof InternalValues_;
+    var _internal = {
+        messageId: internalConstructor ? first.messageId : null,
+        id: internalConstructor ? first.id : null,
+        mimeType: internalConstructor ? first.mimeType : (undefined == second ? null : second),
+        filePath: internalConstructor ? CommonFS.toRealPath(first.filePath) : CommonFS.toRealPath(first),
+    };
+
+    // messageId
+    Object.defineProperty(
+        this,
+        'messageId',
+        {
+            get: function () {return _internal.messageId;},
+            set: function (value) {
+                if (value instanceof InternalValues_) _internal.messageId = value.messageId;
+            },
+            enumerable: true
+        }
+    );
+    // id
+    Object.defineProperty(
+        this,
+        'id',
+        {
+            get: function () {return _internal.id;},
+            set: function (value) {
+                if (value instanceof InternalValues_) _internal.id = value.id;
+            },
+            enumerable: true
+        }
+    );
+    // mimeType
+    Object.defineProperty(
+        this,
+        'mimeType',
+        {
+            get: function () {return _internal.mimeType;},
+            set: function (value) {
+                if (value instanceof InternalValues_) _internal.mimeType = value.mimeType;
+            },
+            enumerable: true
+        }
+    );
+    // filePath
+    Object.defineProperty(
+        this,
+        'filePath',
+        {
+            get: function () {return _internal.filePath;},
+            set: function (value) {
+                if (value instanceof InternalValues_) _internal.filePath = value.filePath;
+            },
+            enumerable: true
+        }
+    );
 };
 
 function Messaging() {};
@@ -761,9 +808,7 @@ MessageService.prototype.loadMessageBody = function () {
 };
 MessageService.prototype.loadMessageAttachment = function () {
     var args = validator_.validateArgs(arguments, [
-        //TODO FIXME something wrong with MessageAttachment object constructor
-        // fix validation of first argument
-        {name: 'attachment', type: types_.PLATFORM_OBJECT, values: Object},
+        {name: 'attachment', type: types_.PLATFORM_OBJECT, values: MessageAttachment},
         {name: 'successCallback', type: types_.FUNCTION},
         {name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true}
     ]);
@@ -779,10 +824,9 @@ MessageService.prototype.loadMessageAttachment = function () {
     }).then({
         success: function (data) {
             if (args.successCallback) {
-                // TODO problem with MessageAttachment Constructor need to be investigated
                 args.successCallback.call(
                     null,
-                    new MessageAttachment_(data.messageAttachment)
+                    new MessageAttachment(new InternalValues_(data.messageAttachment))
                 );
             }
         },
