@@ -41,7 +41,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_nbs_support                 0
 %define tizen_feature_nfc_emulation_support       0
 %define tizen_feature_nfc_support                 1
-%define tizen_feature_notification_support        0
+%define tizen_feature_notification_support        1
 %define tizen_feature_power_support               1
 %define tizen_feature_push_support                0
 %define tizen_feature_sap_support                 0
@@ -247,6 +247,11 @@ BuildRequires:  pkgconfig(capi-media-audio-io)
 BuildRequires:  pkgconfig(smartcard-service)
 BuildRequires:  pkgconfig(smartcard-service-common)
 %endif
+
+%if 0%{?tizen_feature_notification_support}
+BuildRequires: pkgconfig(notification)
+%endif
+
 
 %description
 Tizen Web APIs implemented.

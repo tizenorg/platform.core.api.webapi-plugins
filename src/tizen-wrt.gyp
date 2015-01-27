@@ -36,6 +36,7 @@
               'systeminfo/systeminfo.gyp:*',
               #'radio/radio.gyp:*',
               'secureelement/secureelement.gyp:*',
+              'notification/notification.gyp:*',
             ],
           },
         ], # end mobile
