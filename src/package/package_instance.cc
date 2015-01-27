@@ -60,7 +60,6 @@ static void* PackageThreadWork(
 
   switch ( userData->work_ ) {
     case PackageThreadWorkGetPackagesInfo: {
-      LoggerD("Start PackageThreadWorkGetPackagesInfo");
       picojson::object output;
       PackageInfoProvider::GetPackagesInfo(output);
       userData->data_ = output;
@@ -91,7 +90,6 @@ static void PackageRequestCb(
     package_manager_event_type_e event_type,
     package_manager_event_state_e event_state, int progress,
     package_manager_error_e error, void *user_data) {
-  LoggerD("Enter [%s]", package);
 
   PackageInstance* instance = static_cast<PackageInstance*>(user_data);
   if ( !instance ) {
@@ -100,30 +98,28 @@ static void PackageRequestCb(
   }
 
   if ( event_state == PACKAGE_MANAGER_EVENT_STATE_STARTED ) {
-    LoggerD("[Started] Do not invoke JS callback");
     return;
   }
 
   picojson::object param;
   if ( event_state == PACKAGE_MANAGER_EVENT_STATE_FAILED ) {
-    LoggerD("[Failed]");
+    LoggerE("[Failed]");
     param["status"] = picojson::value("error");
     param["error"] = UnknownException(
         "It is not allowed to install the package by the platform or " \
         "any other platform error occurs").ToJSON();
   } else if ( event_state == PACKAGE_MANAGER_EVENT_STATE_PROCESSING ) {
-    LoggerD("[Onprogress] %d %", progress);
     param["status"] = picojson::value("progress");
     param["progress"] = picojson::value(static_cast<double>(progress));
     param["id"] = picojson::value(std::string(package));
   } else if ( event_state == PACKAGE_MANAGER_EVENT_STATE_COMPLETED ) {
-    LoggerD("[Oncomplete]");
     param["status"] = picojson::value("complete");
     param["id"] = picojson::value(std::string(package));
   }
 
   instance->InvokeCallback(id, param);
-  if ( event_state == PACKAGE_MANAGER_EVENT_STATE_COMPLETED ) {
+  if ( event_state == PACKAGE_MANAGER_EVENT_STATE_COMPLETED
+      || event_state == PACKAGE_MANAGER_EVENT_STATE_FAILED ) {
     LoggerD("Request has been completed");
     instance->DeregisterCallback(id);
   }
@@ -201,7 +197,6 @@ static std::string convertUriToPath(const std::string& uri) {
         result = str;
     }
 
-    LoggerD("URI [%s]", result.c_str());
     return result;
 }
 
@@ -259,22 +254,20 @@ PackageInstance::~PackageInstance() {
     }
 
 void PackageInstance::RegisterCallback(
-    int requestId, int callback_id) {
+    int request_id, int callback_id) {
   LoggerD("Enter");
-  callbacks_map_[requestId] = callback_id;
+  callbacks_map_[request_id] = callback_id;
 }
 
-void PackageInstance::DeregisterCallback(int requestId) {
-  LoggerD("Enter [%d]", requestId);
-  callbacks_map_.erase(requestId);
+void PackageInstance::DeregisterCallback(int request_id) {
+  callbacks_map_.erase(request_id);
 }
 
 void PackageInstance::InvokeCallback(
-    int requestId, picojson::object& param) {
-  LoggerD("Enter [%d]", requestId);
+    int request_id, picojson::object& param) {
+  LoggerD("Enter");
 
-  int callback_id = callbacks_map_[requestId];
-  LoggerD("callbackId: %d", callback_id);
+  int callback_id = callbacks_map_[request_id];
 
   param["callbackId"] = picojson::value(
       static_cast<double>(callback_id));
@@ -291,10 +284,8 @@ void PackageInstance::PackageManagerInstall(
 
   int callback_id = static_cast<int>(
       args.get("callbackId").get<double>());
-  LoggerD("callbackId: %d", callback_id);
   const std::string& packageFileURI =
       convertUriToPath(args.get("packageFileURI").get<std::string>());
-  LoggerD("packageFileURI: %s", packageFileURI.c_str());
 
   /* Need to check privilege
   ReportError(
@@ -312,9 +303,9 @@ void PackageInstance::PackageManagerInstall(
     return;
   }
 
-  int requestId = 0;
+  int request_id = 0;
   int ret = package_manager_request_install(
-      request_, packageFileURI.c_str(), &requestId);
+      request_, packageFileURI.c_str(), &request_id);
   if ( ret != PACKAGE_MANAGER_ERROR_NONE ) {
     if ( ret == PACKAGE_MANAGER_ERROR_INVALID_PARAMETER ) {
       LoggerE("The package is not found at the specified location");
@@ -329,7 +320,7 @@ void PackageInstance::PackageManagerInstall(
           "the platform or any other platform error occurs"));
     }
   } else {
-    RegisterCallback(requestId, callback_id);
+    RegisterCallback(request_id, callback_id);
   }
 
   ReportSuccess(out);
@@ -344,9 +335,7 @@ void PackageInstance::PackageManagerUninstall(
 
   int callback_id =
       static_cast<int>(args.get("callbackId").get<double>());
-  LoggerD("callbackId: %d", callback_id);
   const std::string& id = args.get("id").get<std::string>();
-  LoggerD("id: %s", id.c_str());
 
   /* Need to check privilege
   ReportError(
@@ -364,8 +353,8 @@ void PackageInstance::PackageManagerUninstall(
     return;
   }
 
-  int requestId = 0;
-  int ret = package_manager_request_uninstall(request_, id.c_str(), &requestId);
+  int request_id = 0;
+  int ret = package_manager_request_uninstall(request_, id.c_str(), &request_id);
   if ( ret != PACKAGE_MANAGER_ERROR_NONE ) {
     if ( ret == PACKAGE_MANAGER_ERROR_INVALID_PARAMETER ) {
       LoggerE("The package is not found at the specified location");
@@ -380,7 +369,7 @@ void PackageInstance::PackageManagerUninstall(
           "any other platform error occurs"));
     }
   } else {
-    RegisterCallback(requestId, callback_id);
+    RegisterCallback(request_id, callback_id);
   }
 
   ReportSuccess(out);
@@ -392,7 +381,6 @@ void PackageInstance::PackageManagerGetpackagesinfo(
   CHECK_EXIST(args, "callbackId", out)
   int callback_id =
       static_cast<int>(args.get("callbackId").get<double>());
-  LoggerD("callbackId: %d", callback_id);
 
   /* Need to check privilege
   ReportError(
@@ -422,7 +410,6 @@ void PackageInstance::PackageManagerGetpackageinfo(
 
   if ( args.contains("id") ) {
     std::string id = args.get("id").get<std::string>();
-    LoggerD("package id : [%s]", id.c_str());
     PackageInfoProvider::GetPackageInfo(id.c_str(), out);
   } else {
     PackageInfoProvider::GetPackageInfo(out);
@@ -445,7 +432,6 @@ void PackageInstance::
   CHECK_EXIST(args, "callbackId", out)
   int callback_id =
       static_cast<int>(args.get("callbackId").get<double>());
-  LoggerD("callbackId: %d", callback_id);
 
   /* Need to check privilege
   ReportError(

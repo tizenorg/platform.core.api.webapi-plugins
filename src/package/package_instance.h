@@ -20,17 +20,17 @@ class PackageInstance : public common::ParsedInstance {
   PackageInstance();
   virtual ~PackageInstance();
 
-  void InvokeCallback(int requestId, picojson::object& param);
+  void InvokeCallback(int request_id, picojson::object& param);
   void InvokeListener(picojson::object& param);
-  void DeregisterCallback(int requestId);
+  void DeregisterCallback(int request_id);
 
  private:
   package_manager_request_h request_;
   package_manager_h manager_;
   int listener_id_;
-  std::map<int, int> callbacks_map_;  // <requestId, callbackId>
+  std::map<int, int> callbacks_map_;  // <request_id, callbackId>
 
-  void RegisterCallback(int requestId, int callback_id);
+  void RegisterCallback(int request_id, int callback_id);
   void InvokeErrorCallbackAsync
     (int callback_id, const common::PlatformException& ex);
 

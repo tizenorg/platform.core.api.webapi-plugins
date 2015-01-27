@@ -8,7 +8,6 @@ var callbackId = 0;
 var callbacks = {};
 
 extension.setMessageListener(function(json) {
-  console.log('[Package][extension.setMessageListener] Enter');
   var result = JSON.parse(json);
   var callback = callbacks[result['callbackId']];
   callback(result);
@@ -19,13 +18,9 @@ function nextCallbackId() {
 }
 
 function callNative(cmd, args) {
-  console.log('[Package][callNative] Enter');
-
   var json = {'cmd': cmd, 'args': args};
   var argjson = JSON.stringify(json);
-  console.log('[Package][callNative] argjson: ' + argjson);
   var resultString = extension.internal.sendSyncMessage(argjson);
-  console.log('[Package][callNative] resultString: ' + resultString);
   var result = JSON.parse(resultString);
 
   if (typeof result !== 'object') {
@@ -48,13 +43,10 @@ function callNative(cmd, args) {
 
 
 function callNativeWithCallback(cmd, args, callback) {
-  console.log('[Package][callNativeWithCallback] Enter');
-
   if (callback) {
     var id = nextCallbackId();
     args['callbackId'] = id;
     callbacks[id] = callback;
-    console.log('[Package][callNativeWithCallback] callbackId: ' + id);
   }
 
   return callNative(cmd, args);
@@ -62,9 +54,10 @@ function callNativeWithCallback(cmd, args, callback) {
 
 function SetReadOnlyProperty(obj, n, v) {
   if (arguments.length > 2)
-    Object.defineProperty(obj, n, {value: v, writable: false, configurable: false});
+    Object.defineProperty(
+        obj, n, {value: v, writable: false, enumerable: true, configurable: true});
   else
-    Object.defineProperty(obj, n, {writable: false, configurable: false});
+    Object.defineProperty(obj, n, {writable: false, enumerable: true, configurable: true});
 }
 
 function PackageInformation(obj) {
@@ -90,8 +83,6 @@ function PackageManager() {
 
 
 PackageManager.prototype.install = function(packageFileURI, progressCallback) {
-  console.log('[Package][install] Enter');
-
   var args = validator_.validateArgs(arguments, [
     {'name' : 'packageFileURI', 'type' : types_.STRING},
     {'name' : 'progressCallback',
@@ -103,25 +94,17 @@ PackageManager.prototype.install = function(packageFileURI, progressCallback) {
   var nativeParam = {
     'packageFileURI': args.packageFileURI
   };
-  console.log('[Package][install] packageFileURI: [' + nativeParam.packageFileURI + ']');
 
   try {
     var syncResult = callNativeWithCallback(
         'PackageManager_install',
         nativeParam,
         function(result) {
-          console.log('[Package][installCB] Enter');
-          console.log('[Package][installCB] status: ' + result.status);
-
           if (result.status == 'progress') {
-            console.log('[Package][installCB] Call onprogress');
             args.progressCallback.onprogress(result.id, result.progress);
           } else if (result.status == 'complete') {
-            console.log('[Package][installCB] Call oncomplete');
             args.progressCallback.oncomplete(result.id);
           } else if (result.status == 'error') {
-            console.log('[Package][installCB] Call errorCallback');
-
             var err = result['error'];
             if (err) {
               args.errorCallback(new tizen.WebAPIError(err.name, err.message));
@@ -130,7 +113,6 @@ PackageManager.prototype.install = function(packageFileURI, progressCallback) {
           }
 
           if (result.status == 'complete' || result.status == 'error') {
-            console.log('[Package][installCB] Delete callback');
             delete callbacks[result['callbackId']];
           }
         });
@@ -140,8 +122,6 @@ PackageManager.prototype.install = function(packageFileURI, progressCallback) {
 };
 
 PackageManager.prototype.uninstall = function(id, progressCallback) {
-  console.log('[Package][uninstall] Enter');
-
   var args = validator_.validateArgs(arguments, [
     {'name' : 'id', 'type' : types_.STRING},
     {'name' : 'progressCallback',
@@ -153,25 +133,17 @@ PackageManager.prototype.uninstall = function(id, progressCallback) {
   var nativeParam = {
     'id': args.id
   };
-  console.log('[Package][uninstall] id: [' + nativeParam.id + ']');
 
   try {
     var syncResult = callNativeWithCallback(
         'PackageManager_uninstall',
         nativeParam,
         function(result) {
-          console.log('[Package][uninstallCB] Enter');
-          console.log('[Package][uninstallCB] status: ' + result.status);
-
           if (result.status == 'progress') {
-            console.log('[Package][uninstallCB] Call onprogress');
             args.progressCallback.onprogress(result.id, result.progress);
           } else if (result.status == 'complete') {
-            console.log('[Package][uninstallCB] Call oncomplete');
             args.progressCallback.oncomplete(result.id);
           } else if (result.status == 'error') {
-            console.log('[Package][uninstallCB] Call errorCallback');
-
             var err = result['error'];
             if (err) {
               args.errorCallback(new tizen.WebAPIError(err.name, err.message));
@@ -180,7 +152,6 @@ PackageManager.prototype.uninstall = function(id, progressCallback) {
           }
 
           if (result.status == 'complete' || result.status == 'error') {
-            console.log('[Package][uninstallCB] Delete callback');
             delete callbacks[result['callbackId']];
           }
         });
@@ -191,8 +162,6 @@ PackageManager.prototype.uninstall = function(id, progressCallback) {
 };
 
 PackageManager.prototype.getPackagesInfo = function(successCallback, errorCallback) {
-  console.log('[Package][getPackagesInfo] Enter');
-
   var args = validator_.validateArgs(arguments, [
     {'name' : 'successCallback', 'type' : types_.FUNCTION},
     {'name' : 'errorCallback', 'type' : types_.FUNCTION, 'optional' : true, 'nullable' : true}
@@ -206,20 +175,12 @@ PackageManager.prototype.getPackagesInfo = function(successCallback, errorCallba
         'PackageManager_getPackagesInfo',
         nativeParam,
         function(result) {
-          console.log('[Package][getPackagesInfoCB] Enter');
-          console.log('[Package][getPackagesInfoCB] status: ' + result.status);
-
           if (result.status == 'success') {
             for (var i = 0; i < result.informationArray.length; i++) {
               result.informationArray[i] = PackageInformation(result.informationArray[i]);
             }
-
-            console.log('[Package][getPackagesInfo] Call successCallback: ' +
-                result.informationArray.length);
             args.successCallback(result.informationArray);
           } else if (result.status == 'error') {
-            console.log('[Package][getPackagesInfo] Call errorCallback');
-
             var err = result['error'];
             if (err) {
               args.errorCallback(new tizen.WebAPIError(err.name, err.message));
@@ -227,7 +188,6 @@ PackageManager.prototype.getPackagesInfo = function(successCallback, errorCallba
             }
           }
 
-          console.log('[Package][getPackagesInfoCB] Delete callback');
           delete callbacks[result['callbackId']];
         });
   } catch (e) {
@@ -236,8 +196,6 @@ PackageManager.prototype.getPackagesInfo = function(successCallback, errorCallba
 };
 
 PackageManager.prototype.getPackageInfo = function() {
-  console.log('[Package][getPackageInfo] Enter');
-
   var args = validator_.validateArgs(arguments, [
     {'name': 'id', 'type': types_.STRING, 'optional' : true, 'nullable' : true}
   ]);
@@ -258,8 +216,6 @@ PackageManager.prototype.getPackageInfo = function() {
 };
 
 PackageManager.prototype.setPackageInfoEventListener = function(eventCallback) {
-  console.log('[Package][setPackageInfoEventListener] Enter');
-
   var args = validator_.validateArgs(
       arguments,
       [
@@ -276,9 +232,6 @@ PackageManager.prototype.setPackageInfoEventListener = function(eventCallback) {
         'PackageManager_setPackageInfoEventListener',
         nativeParam,
         function(result) {
-          console.log('[Package][PackageInfoEventListener] Enter');
-          console.log('[Package][PackageInfoEventListener] status: ' + result.status);
-
           if (result.status == 'installed') {
             args.eventCallback.oninstalled(PackageInformation(result.info));
           }
@@ -295,15 +248,12 @@ PackageManager.prototype.setPackageInfoEventListener = function(eventCallback) {
 };
 
 PackageManager.prototype.unsetPackageInfoEventListener = function() {
-  console.log('[Package][unsetPackageInfoEventListener] Enter');
-
   var nativeParam = {
   };
 
   try {
     var syncResult = callNative('PackageManager_unsetPackageInfoEventListener', nativeParam);
     if (typeof syncResult != 'boolean') {
-      console.log('[Package][unsetPackageInfoEventListenerCB] Delete callback ' + syncResult);
       delete callbacks[syncResult];
     }
   } catch (e) {

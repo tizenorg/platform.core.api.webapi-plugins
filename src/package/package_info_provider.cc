@@ -128,7 +128,6 @@ static bool PackageAppInfoCb(
     return false;
   }
 
-  LoggerD("app_id: [%s]", app_id);
   array_data->push_back(picojson::value(app_id));
   return true;
 }
@@ -253,7 +252,6 @@ bool PackageInfoProvider::GetCurrentPackageId(
   char *app_id = NULL;
 
   int pid = getpid();
-  LoggerD("pid: %d", pid);
   ret = app_manager_get_app_id(pid, &app_id);
   if ( ret != APP_MANAGER_ERROR_NONE ) {
     LoggerE("Failed to get app id");
