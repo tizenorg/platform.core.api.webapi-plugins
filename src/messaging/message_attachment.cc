@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+#include <ctype.h>
 #include "message_attachment.h"
 
 #include "common/logger.h"
@@ -124,7 +125,16 @@ std::string MessageAttachment::getShortFileName() const
 
 void MessageAttachment::setFilePath(const std::string &value)
 {
-    m_filePath = value;
+    std::string tmp = value;
+    // change to lower case
+    for (int i = 0; i < tmp.length() && i < 4; i++) {
+        tmp[i] = tolower(tmp[i]);
+    }
+    if (tmp.find("file://") != std::string::npos) {
+        m_filePath = value.substr(7);
+    } else {
+        m_filePath = value;
+    }
     m_isFilePathSet = true;
 }
 

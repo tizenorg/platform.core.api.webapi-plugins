@@ -6,6 +6,7 @@
 
 var validator_ = xwalk.utils.validator;
 var types_ = validator_.Types;
+var T_ = xwalk.utils.type;
 var bridge = xwalk.utils.NativeBridge(extension, true);
 
 function throwException_(err) {
@@ -453,7 +454,8 @@ function Message(type, data) {
                     if (value.length < _internal.length) {
                         _internal.splice(value.length, _internal.length - value.length);
                     }
-                } else {
+                    _internal.attachments = value;
+                } else if (T_.isArray(value)) {
                     for (var k = 0; k < value.length; ++k) {
                         if (!(value[k] instanceof tizen.MessageAttachment)) {
                             return;
@@ -919,10 +921,6 @@ MessageService.prototype.stopSync = function () {
     var args = validator_.validateArgs(arguments, [
         {name: 'opId', type: types_.LONG}
     ]);
-
-    if(arguments.opId === undefined){
-        throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR);
-    }
 
     var self = this;
     bridge.sync({
