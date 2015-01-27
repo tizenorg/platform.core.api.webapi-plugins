@@ -2,11 +2,12 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef APPLICATION_APPLICATION_CONTEXT_H_
-#define APPLICATION_APPLICATION_CONTEXT_H_
+#ifndef SRC_APPLICATION_APPLICATION_CONTEXT_H_
+#define SRC_APPLICATION_APPLICATION_CONTEXT_H_
 
 #include <string>
 #include <memory>
+#include <vector>
 
 #include "common/picojson.h"
 #include "tizen/tizen.h"
@@ -24,8 +25,7 @@ typedef std::shared_ptr<ApplicationContextArray> ApplicationContextArrayPtr;
 class ApplicationContext {
  public:
   ApplicationContext();
-  ApplicationContext(const std::string& context_id);
-  ApplicationContext(const ApplicationContextPtr);
+  explicit ApplicationContext(const std::string& context_id);
   ~ApplicationContext();
 
   const picojson::value& Value();
@@ -33,10 +33,9 @@ class ApplicationContext {
 
   std::string get_context_id();
   void set_context_id(const std::string& context_id);
- 
+
   std::string get_app_id();
   void set_app_id(const std::string& app_id);
- 
 
  private:
   std::string context_id_;
@@ -46,7 +45,8 @@ class ApplicationContext {
   picojson::object error_;
   picojson::value value_;
 };
-} // namespace application
-} // namespace extension
 
-#endif  // APPLICATION_APPLICATION_CONTEXT_H_
+}  // namespace application
+}  // namespace extension
+
+#endif  // SRC_APPLICATION_APPLICATION_CONTEXT_H_

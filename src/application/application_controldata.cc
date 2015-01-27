@@ -13,11 +13,6 @@ namespace extension {
 namespace application {
 
 ApplicationControlData::ApplicationControlData() {
-
-}
-
-ApplicationControlData::ApplicationControlData(const ApplicationControlDataPtr app) {
-
 }
 
 ApplicationControlData::~ApplicationControlData() {
@@ -32,7 +27,7 @@ const picojson::value& ApplicationControlData::Value() {
       values_array.push_back(picojson::value(*it));
     }
     data_["value"] = values;
- 
+
     value_ = picojson::value(data_);
   }
   return value_;
@@ -54,7 +49,8 @@ std::vector<std::string> ApplicationControlData::get_ctr_value() const {
   return ctr_value_;
 }
 
-void ApplicationControlData::set_ctr_value(const std::vector<std::string> &ctr_values) {
+void ApplicationControlData::set_ctr_value
+  (const std::vector<std::string> &ctr_values) {
   ctr_value_ = ctr_values;
 }
 
@@ -64,5 +60,5 @@ void ApplicationControlData::add_ctr_value(const std::string& ctr_value) {
 
 
 
-} // namespace application
-} // namespace extension
+}  // namespace application
+}  // namespace extension

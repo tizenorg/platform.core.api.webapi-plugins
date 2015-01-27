@@ -5,6 +5,7 @@
 #include "application/application_information.h"
 
 #include <sstream>
+#include <vector>
 
 #include "common/logger.h"
 #include "tizen/tizen.h"
@@ -13,15 +14,9 @@ namespace extension {
 namespace application {
 
 ApplicationInformation::ApplicationInformation() {
-
-}
-
-ApplicationInformation::ApplicationInformation(const ApplicationInformationPtr app) {
-
 }
 
 ApplicationInformation::~ApplicationInformation() {
-
 }
 
 std::string ApplicationInformation::get_app_id() const {
@@ -77,10 +72,10 @@ double ApplicationInformation::get_install_date() const {
 }
 
 void ApplicationInformation::set_install_date(const time_t &install_date) {
-  install_date_ = (double)(install_date);
+  install_date_ = static_cast<double>(install_date);
 
-  // pkgmgrinfo_pkginfo_get_installed_time() returns installed time by using int type
-  // but, it can't have millisecond value fully
+  // pkgmgrinfo_pkginfo_get_installed_time() returns installed time
+  // by using int type. but, it can't have millisecond value fully
   install_date_ = install_date_ * 1000;
 }
 
@@ -88,16 +83,17 @@ std::vector<std::string> ApplicationInformation::get_categories() const {
   return categories_;
 }
 
-void ApplicationInformation::set_categories(const std::vector<std::string> &categories) {
+void ApplicationInformation::set_categories
+  (const std::vector<std::string> &categories) {
   categories_ = categories;
 }
 
 void ApplicationInformation::add_categories(const std::string &category) {
-    categories_.push_back(category);
+  categories_.push_back(category);
 }
 
 void ApplicationInformation::set_size(const int &size) {
-  size_ = (double)size;
+  size_ = static_cast<double>(size);
 }
 
 double ApplicationInformation::get_size() const {
@@ -121,7 +117,7 @@ const picojson::value& ApplicationInformation::Value() {
     data_["categories"] = categories;
     LoggerD("size: %f", size_);
     data_["size"] = picojson::value(size_);
-    
+
     value_ = picojson::value(data_);
   }
   return value_;
@@ -131,5 +127,5 @@ bool ApplicationInformation::IsValid() const {
   return error_.empty();
 }
 
-} // namespace application
-} // namespace extension
+}  // namespace application
+}  // namespace extension

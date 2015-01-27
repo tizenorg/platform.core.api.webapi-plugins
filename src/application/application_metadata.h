@@ -2,11 +2,12 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef APPLICATION_APPLICATION_METADATA_H_
-#define APPLICATION_APPLICATION_METADATA_H_
+#ifndef SRC_APPLICATION_APPLICATION_METADATA_H_
+#define SRC_APPLICATION_APPLICATION_METADATA_H_
 
 #include <string>
 #include <memory>
+#include <vector>
 
 #include "common/picojson.h"
 #include "tizen/tizen.h"
@@ -23,7 +24,6 @@ typedef std::shared_ptr<ApplicationMetaDataArray> ApplicationMetaDataArrayPtr;
 class ApplicationMetaData {
  public:
   ApplicationMetaData();
-  ApplicationMetaData(const ApplicationMetaDataPtr);
   ~ApplicationMetaData();
 
   const picojson::value& Value();
@@ -31,10 +31,9 @@ class ApplicationMetaData {
 
   std::string get_meta_key() const;
   void set_meta_key(const std::string& meta_key);
- 
+
   std::string get_meta_value() const;
   void set_meta_value(const std::string& meta_value);
- 
 
  private:
   std::string meta_key_;
@@ -44,7 +43,8 @@ class ApplicationMetaData {
   picojson::object error_;
   picojson::value value_;
 };
-} // namespace application
-} // namespace extension
 
-#endif  // APPLICATION_APPLICATION_METADATA_H_
+}  // namespace application
+}  // namespace extension
+
+#endif  // SRC_APPLICATION_APPLICATION_METADATA_H_

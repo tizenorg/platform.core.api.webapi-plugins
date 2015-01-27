@@ -13,16 +13,10 @@ namespace extension {
 namespace application {
 
 ApplicationContext::ApplicationContext() {
-
-}
-
-ApplicationContext::ApplicationContext(const ApplicationContextPtr app) {
-
 }
 
 ApplicationContext::ApplicationContext(const std::string& context_id)
   : context_id_(context_id) {
-
 }
 
 ApplicationContext::~ApplicationContext() {
@@ -57,6 +51,6 @@ std::string ApplicationContext::get_app_id() {
 void ApplicationContext::set_app_id(const std::string& app_id) {
   app_id_ = app_id;
 }
- 
-} // namespace application
-} // namespace extension
+
+}  // namespace application
+}  // namespace extension
