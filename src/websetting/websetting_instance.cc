@@ -63,7 +63,7 @@ void WebSettingInstance::setUserAgentString(const picojson::value& args,
   auto get_response =
     [callback_id, this](const std::shared_ptr<JsonValue>& response) -> void {
       picojson::object& obj = response->get<picojson::object>();
-      obj.insert(std::make_pair("callbackId", callback_id));
+      obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
       LoggerD("callback is %s", response->serialize().c_str());
       PostMessage(response->serialize().c_str());
     };
@@ -96,7 +96,7 @@ void WebSettingInstance::removeAllCookies(const picojson::value& args,
   auto get_response =
       [callback_id, this](const std::shared_ptr<JsonValue>& response) -> void {
         picojson::object& obj = response->get<picojson::object>();
-        obj.insert(std::make_pair("callbackId", callback_id));
+        obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
         LoggerD("callback is %s", response->serialize().c_str());
         PostMessage(response->serialize().c_str());
       };
