@@ -22,25 +22,17 @@ function callSync_(msg) {
     return obj.result;
 }
 
-var SystemSettingType = {
-    HOME_SCREEN : 'HOME_SCREEN',
-    LOCK_SCREEN : 'LOCK_SCREEN',
-    INCOMING_CALL : 'INCOMING_CALL',
-    NOTIFICATION_EMAIL : 'NOTIFICATION_EMAIL'
-};
+var SystemSettingTypeValues = ['HOME_SCREEN', 'LOCK_SCREEN', 'INCOMING_CALL', 'NOTIFICATION_EMAIL'];
 
 function SystemSettingManager() {
 }
 
 SystemSettingManager.prototype.getProperty = function() {
     var args = validator_.validateArgs(arguments, [
-        {name: 'type', type: types_.STRING},
-        {name: 'successCallback', type: types_.FUNCTION},
-        {name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true}
+        { name: 'type', type: types_.ENUM, values: SystemSettingTypeValues },
+        { name: 'successCallback', type: types_.FUNCTION },
+        { name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true }
     ]);
-
-    if (!SystemSettingType.hasOwnProperty(args.type))
-        throw new tizen.WebAPIException(0, 'Invalid setting type', 'InvalidValuesError');
 
     var callback = function(result) {
         if (result.status === 'error') {
@@ -58,6 +50,33 @@ SystemSettingManager.prototype.getProperty = function() {
     };
 
     native_.call('SystemSettingManager_getProperty', callArgs, callback);
+};
+
+SystemSettingManager.prototype.setProperty = function() {
+    var args = validator_.validateArgs(arguments, [
+        { name: 'type', type: types_.ENUM, values: SystemSettingTypeValues },
+        { name: 'value', type: types_.STRING },
+        { name: 'successCallback', type: types_.FUNCTION },
+        { name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true }
+    ]);
+
+    var callback = function(result) {
+        if (result.status === 'error') {
+            if (!type_.isNullOrUndefined(args.errorCallback)) {
+                args.errorCallback(result.error);
+            }
+        }
+        else {
+            args.successCallback();
+        }
+    }
+
+    var callArgs = {
+        type: args.type,
+        value: args.value
+    };
+
+    native_.call('SystemSettingManager_setProperty', callArgs, callback);
 };
 
 // Exports
