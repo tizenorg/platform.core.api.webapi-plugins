@@ -41,7 +41,7 @@ var ContactInstantMessengerType = {
 // class ContactRef ////////////////////////////////////////////////////////
 
 var ContactRef = function(data) {
-  AV.isConstructorCall(this, ContactRef);
+  validator_.isConstructorCall(this, ContactRef);
   var _contactId = '';
   var _addressBookId = '';
   Object.defineProperties(this, {
@@ -50,7 +50,7 @@ var ContactRef = function(data) {
         return _addressBookId;
       },
       set: function(v) {
-        _addressBookId = Converter.toString(v, false);
+        _addressBookId = converter_.toString(v, false);
       },
       enumerable: true
     },
@@ -59,27 +59,27 @@ var ContactRef = function(data) {
         return _contactId;
       },
       set: function(v) {
-        _contactId = Converter.toString(v, false);
+        _contactId = converter_.toString(v, false);
       },
       enumerable: true
     }
   });
 
-  if (Type.isObject(data)) {
+  if (type_.isObject(data)) {
     this.addressBookId = data.addressBookId;
     this.contactId = data.contactId;
   } else {
     try {
-      var args = AV.validateArgs(arguments, [
+      var args = validator_.validateArgs(arguments, [
         {
           name: 'addressBookId',
-          type: AV.Types.STRING,
+          type: types_.STRING,
           optional: false,
           nullable: false
         },
         {
           name: 'contactId',
-          type: AV.Types.STRING,
+          type: types_.STRING,
           optional: false,
           nullable: false
         }
@@ -95,7 +95,7 @@ var ContactRef = function(data) {
 // class ContactGroup //////////////////////////////////////////////////
 
 var ContactGroup = function(name, ringtone, photo) {
-  AV.isConstructorCall(this, ContactGroup);
+  validator_.isConstructorCall(this, ContactGroup);
 
   var _id = null;
   var _address = null;
@@ -104,15 +104,15 @@ var ContactGroup = function(name, ringtone, photo) {
   var _ringtoneURI = null;
   var _photoURI = null;
 
-  if (name && Type.isString(name)) {
+  if (name && type_.isString(name)) {
     _name = name.length ? name : '';
   }
 
-  if (ringtone && Type.isString(ringtone)) {
+  if (ringtone && type_.isString(ringtone)) {
     _ringtoneURI = ringtone.length ? ringtone : null;
   }
 
-  if (photo && Type.isString(photo)) {
+  if (photo && type_.isString(photo)) {
     _photoURI = photo.length ? photo : null;
   }
 
@@ -123,7 +123,7 @@ var ContactGroup = function(name, ringtone, photo) {
       },
       set: function(v) {
         if (_editGuard.isEditEnabled()) {
-          _id = Converter.toString(v, true);
+          _id = converter_.toString(v, true);
         }
       },
       enumerable: true
@@ -134,7 +134,7 @@ var ContactGroup = function(name, ringtone, photo) {
       },
       set: function(v) {
         if (_editGuard.isEditEnabled()) {
-          _address = Converter.toString(v, true);
+          _address = converter_.toString(v, true);
         }
       },
       enumerable: true
@@ -144,7 +144,7 @@ var ContactGroup = function(name, ringtone, photo) {
         return _name;
       },
       set: function(v) {
-        _name = Converter.toString(v, false);
+        _name = converter_.toString(v, false);
       },
       enumerable: true
     },
@@ -153,7 +153,7 @@ var ContactGroup = function(name, ringtone, photo) {
         return _ringtoneURI;
       },
       set: function(v) {
-        _ringtoneURI = Converter.toString(v, true);
+        _ringtoneURI = converter_.toString(v, true);
       },
       enumerable: true
     },
@@ -162,7 +162,7 @@ var ContactGroup = function(name, ringtone, photo) {
         return _photoURI;
       },
       set: function(v) {
-        _photoURI = Converter.toString(v, true);
+        _photoURI = converter_.toString(v, true);
       },
       enumerable: true
     },
@@ -172,7 +172,7 @@ var ContactGroup = function(name, ringtone, photo) {
       },
       set: function(v) {
         if (_editGuard.isEditEnabled()) {
-          _readOnly = Converter.toBoolean(v, false);
+          _readOnly = converter_.toBoolean(v, false);
         }
       },
       enumerable: true
@@ -181,7 +181,7 @@ var ContactGroup = function(name, ringtone, photo) {
 
   if (_editGuard.isEditEnabled()) {
     var data = arguments[0];
-    if (Type.isObject(data)) {
+    if (type_.isObject(data)) {
       for (var prop in data) {
         if (this.hasOwnProperty(prop)) {
           this[prop] = data[prop];
@@ -194,30 +194,30 @@ var ContactGroup = function(name, ringtone, photo) {
 // class ContactEmailAddress ///////////////////////////////////////////
 
 var ContactEmailAddress = function(address, types, isDefault) {
-  AV.isConstructorCall(this, ContactEmailAddress);
+  validator_.isConstructorCall(this, ContactEmailAddress);
 
   var _email = '';
   var _label = null;
   var _isDefault = false;
   var _types = ['WORK'];
 
-  if (Type.isString(address) && address.indexOf('@') > 0 &&
+  if (type_.isString(address) && address.indexOf('@') > 0 &&
       address.indexOf('@') !== (address.length - 1)) {
     _email = address;
   }
 
-  if (Type.isBoolean(isDefault)) {
+  if (type_.isBoolean(isDefault)) {
     _isDefault = isDefault;
   }
 
-  if (Type.isArray(types)) {
+  if (type_.isArray(types)) {
     _types = [];
     for (var i = 0; i < types.length; ++i) {
-      if (Type.isString(types[i])) {
+      if (type_.isString(types[i])) {
         _types.push(types[i]);
       }
     }
-  } else if (Type.isString(types)) {
+  } else if (type_.isString(types)) {
     _types = [];
     _types.push(types);
   }
@@ -228,7 +228,7 @@ var ContactEmailAddress = function(address, types, isDefault) {
         return _email;
       },
       set: function(v) {
-        if (Type.isString(v) && v.indexOf('@') > 0 &&
+        if (type_.isString(v) && v.indexOf('@') > 0 &&
             v.indexOf('@') !== (v.length - 1)) {
           _email = v;
         }
@@ -240,7 +240,7 @@ var ContactEmailAddress = function(address, types, isDefault) {
         return _isDefault;
       },
       set: function(v) {
-        _isDefault = Converter.toBoolean(v, false);
+        _isDefault = converter_.toBoolean(v, false);
       },
       enumerable: true
     },
@@ -249,14 +249,14 @@ var ContactEmailAddress = function(address, types, isDefault) {
         return _types;
       },
       set: function(v) {
-        if (Type.isArray(v)) {
+        if (type_.isArray(v)) {
           _types = [];
           for (var i = 0; i < v.length; ++i) {
-            if (Type.isString(v[i])) {
+            if (type_.isString(v[i])) {
               _types.push(v[i]);
             }
           }
-        } else if (Type.isString(v)) {
+        } else if (type_.isString(v)) {
           _types = [];
           _types.push(v);
         }
@@ -268,7 +268,7 @@ var ContactEmailAddress = function(address, types, isDefault) {
         return _label;
       },
       set: function(v) {
-        _label = Converter.toString(v, true);
+        _label = converter_.toString(v, true);
       },
       enumerable: true
     }
@@ -286,27 +286,27 @@ var ContactEmailAddress = function(address, types, isDefault) {
 // class ContactPhoneNumber ////////////////////////////////////////////
 
 var ContactPhoneNumber = function(number, type, isDefault) {
-  AV.isConstructorCall(this, ContactPhoneNumber);
+  validator_.isConstructorCall(this, ContactPhoneNumber);
 
   var _isDefault = false;
   var _number = '';
   var _types = ['VOICE'];
 
-  if (Type.isString(number)) {
+  if (type_.isString(number)) {
     _number = number;
   }
 
-  if (Type.isArray(type)) {
+  if (type_.isArray(type)) {
     _types = [];
     for (var i = 0; i < type.length; ++i) {
-      _types.push(Converter.toString(type[i], false));
+      _types.push(converter_.toString(type[i], false));
     }
-  } else if (Type.isString(type)) {
+  } else if (type_.isString(type)) {
     _types = [];
     _types.push(type, false);
   }
 
-  if (Type.isBoolean(isDefault)) {
+  if (type_.isBoolean(isDefault)) {
     _isDefault = isDefault;
   }
 
@@ -316,7 +316,7 @@ var ContactPhoneNumber = function(number, type, isDefault) {
         return _number;
       },
       set: function(v) {
-        _number = Converter.toString(v, false);
+        _number = converter_.toString(v, false);
       },
       enumerable: true
     },
@@ -325,7 +325,7 @@ var ContactPhoneNumber = function(number, type, isDefault) {
         return _isDefault;
       },
       set: function(v) {
-        _isDefault = Converter.toBoolean(v, false);
+        _isDefault = converter_.toBoolean(v, false);
       },
       enumerable: true
     },
@@ -334,12 +334,12 @@ var ContactPhoneNumber = function(number, type, isDefault) {
         return _types;
       },
       set: function(v) {
-        if (Type.isArray(v)) {
+        if (type_.isArray(v)) {
           _types = [];
           for (var i = 0; i < v.length; ++i) {
-            _types.push(Converter.toString(v[i], false));
+            _types.push(converter_.toString(v[i], false));
           }
-        } else if (Type.isString(v)) {
+        } else if (type_.isString(v)) {
           _types = [];
           _types.push(v, false);
         }
@@ -365,7 +365,7 @@ var ContactPhoneNumber = function(number, type, isDefault) {
 // class ContactAddress ////////////////////////////////////////////////
 
 var ContactAddress = function(data) {
-  AV.isConstructorCall(this, ContactAddress);
+  validator_.isConstructorCall(this, ContactAddress);
 
   var _isDefault = false;
   var _types = ['HOME'];
@@ -406,7 +406,7 @@ var ContactAddress = function(data) {
         return _isDefault;
       },
       set: function(v) {
-        _isDefault = Converter.toBoolean(v, false);
+        _isDefault = converter_.toBoolean(v, false);
       },
       enumerable: true
     },
@@ -415,13 +415,13 @@ var ContactAddress = function(data) {
         return _types;
       },
       set: function(v) {
-        if (Type.isString(v)) {
+        if (type_.isString(v)) {
           _types = [];
           _types.push(v);
-        } else if (Type.isArray(v)) {
+        } else if (type_.isArray(v)) {
           _types = [];
           for (var i = 0; i < v.length; ++i) {
-            if (Type.isString(v[i])) {
+            if (type_.isString(v[i])) {
               _types.push(v[i]);
             }
           }
@@ -436,7 +436,7 @@ var ContactAddress = function(data) {
     }
   });
 
-  if (Type.isObject(data)) {
+  if (type_.isObject(data)) {
     for (var prop in data) {
       if (this.hasOwnProperty(prop)) {
         this[prop] = data[prop];
@@ -448,7 +448,7 @@ var ContactAddress = function(data) {
 // class ContactAnniversary ////////////////////////////////////////////////
 
 var ContactAnniversary = function(anniversary_date, anniversary_label) {
-  AV.isConstructorCall(this, ContactAnniversary);
+  validator_.isConstructorCall(this, ContactAnniversary);
 
   var _anniversary_date = new Date();
   var _anniversary_label = null;
@@ -468,7 +468,7 @@ var ContactAnniversary = function(anniversary_date, anniversary_label) {
         return _anniversary_label;
       },
       set: function(v) {
-        _anniversary_label = Converter.toString(v, true);
+        _anniversary_label = converter_.toString(v, true);
       },
       enumerable: true
     }
@@ -478,10 +478,10 @@ var ContactAnniversary = function(anniversary_date, anniversary_label) {
     _anniversary_date = _fromJsonDate(arguments[0].date);
     _anniversary_label = arguments[0].label;
   } else {
-    if (Type.isDate(anniversary_date)) {
+    if (type_.isDate(anniversary_date)) {
       _anniversary_date = anniversary_date;
     }
-    if (Type.isString(anniversary_label)) {
+    if (type_.isString(anniversary_label)) {
       _anniversary_label = anniversary_label;
     }
   }
@@ -490,15 +490,15 @@ var ContactAnniversary = function(anniversary_date, anniversary_label) {
 // class ContactWebSite ////////////////////////////////////////////////////
 
 var ContactWebSite = function(contact_url, contact_type) {
-  AV.isConstructorCall(this, ContactWebSite);
+  validator_.isConstructorCall(this, ContactWebSite);
 
   var _url = '';
   var _type = 'HOMEPAGE';
 
-  if (Type.isString(contact_url)) {
+  if (type_.isString(contact_url)) {
     _url = contact_url;
   }
-  if (Type.isString(contact_type)) {
+  if (type_.isString(contact_type)) {
     _type = contact_type;
   }
 
@@ -508,7 +508,7 @@ var ContactWebSite = function(contact_url, contact_type) {
         return _url;
       },
       set: function(v) {
-        _url = Converter.toString(v, false);
+        _url = converter_.toString(v, false);
       },
       enumerable: true
     },
@@ -517,7 +517,7 @@ var ContactWebSite = function(contact_url, contact_type) {
         return _type;
       },
       set: function(v) {
-        _type = Converter.toString(v, false);
+        _type = converter_.toString(v, false);
       },
       enumerable: true
     }
@@ -527,7 +527,7 @@ var ContactWebSite = function(contact_url, contact_type) {
 // class ContactOrganization ///////////////////////////////////////////////
 
 var ContactOrganization = function(data) {
-  AV.isConstructorCall(this, ContactOrganization);
+  validator_.isConstructorCall(this, ContactOrganization);
   Object.defineProperties(this, {
     name: {
       value: null,
@@ -556,7 +556,7 @@ var ContactOrganization = function(data) {
     }
   });
 
-  if (Type.isObject(data)) {
+  if (type_.isObject(data)) {
     for (var prop in data) {
       if (this.hasOwnProperty(prop)) {
         this[prop] = data[prop];
@@ -568,7 +568,7 @@ var ContactOrganization = function(data) {
 // class ContactName ///////////////////////////////////////////////////////
 
 var ContactName = function(data) {
-  AV.isConstructorCall(this, ContactName);
+  validator_.isConstructorCall(this, ContactName);
 
   var _displayName = null;
   var _nicknames = [];
@@ -604,7 +604,7 @@ var ContactName = function(data) {
         return _nicknames;
       },
       set: function(nicknames) {
-        if (Type.isArray(nicknames)) {
+        if (type_.isArray(nicknames)) {
           _nicknames = nicknames;
         }
       },
@@ -631,14 +631,14 @@ var ContactName = function(data) {
       },
       set: function(v) {
         if (_editGuard.isEditEnabled()) {
-          _displayName = Converter.toString(v, true);
+          _displayName = converter_.toString(v, true);
         }
       },
       enumerable: true
     }
   });
 
-  if (Type.isObject(data)) {
+  if (type_.isObject(data)) {
     for (var prop in data) {
       if (this.hasOwnProperty(prop)) {
         this[prop] = data[prop];
@@ -648,10 +648,10 @@ var ContactName = function(data) {
 };
 
 var ContactRelationship = function(relativeName, type) {
-  AV.isConstructorCall(this, ContactRelationship);
+  validator_.isConstructorCall(this, ContactRelationship);
 
-  var _relativeName = Converter.toString(relativeName, false);
-  var _type = type ? Converter.toEnum(type, Object.keys(ContactRelationshipType), false)
+  var _relativeName = converter_.toString(relativeName, false);
+  var _type = type ? converter_.toEnum(type, Object.keys(ContactRelationshipType), false)
             : ContactRelationshipType.OTHER;
   var _label = null;
 
@@ -661,7 +661,7 @@ var ContactRelationship = function(relativeName, type) {
         return _relativeName;
       },
       set: function (v) {
-        _relativeName = Converter.toString(v, false);
+        _relativeName = converter_.toString(v, false);
       },
       enumerable: true
     },
@@ -670,7 +670,7 @@ var ContactRelationship = function(relativeName, type) {
         return _type;
       },
       set: function (v) {
-        _type = v ? Converter.toEnum(v, Object.keys(ContactRelationshipType), false)
+        _type = v ? converter_.toEnum(v, Object.keys(ContactRelationshipType), false)
                   : _type;
       },
       enumerable: true
@@ -680,7 +680,7 @@ var ContactRelationship = function(relativeName, type) {
         return _label;
       },
       set: function (v) {
-        _label = Converter.toString(v, true);
+        _label = converter_.toString(v, true);
       },
       enumerable: true
     }
@@ -688,33 +688,33 @@ var ContactRelationship = function(relativeName, type) {
 };
 
 var ContactInstantMessenger = function(imAddress, type) {
-  AV.isConstructorCall(this, ContactInstantMessenger);
+  validator_.isConstructorCall(this, ContactInstantMessenger);
 
-  var imAddress_ = '';
-  var type_ = 'OTHER';
+  var _imAddress = '';
+  var _type = 'OTHER';
 
   Object.defineProperties(this, {
     imAddress: {
       get: function() {
-        return imAddress_;
+        return _imAddress;
       },
       set: function(v) {
-        if (Type.isNullOrUndefined(v)) {
+        if (type_.isNullOrUndefined(v)) {
           return;
         }
-        imAddress_ = Converter.toString(v, false);
+        _imAddress = converter_.toString(v, false);
       },
       enumerable: true
     },
     type: {
       get: function() {
-        return type_;
+        return _type;
       },
       set: function(v) {
-        if (Type.isNullOrUndefined(v)) {
+        if (type_.isNullOrUndefined(v)) {
           return;
         }
-        type_ = Converter.toEnum(v, Object.keys(ContactInstantMessengerType), false);
+        _type = converter_.toEnum(v, Object.keys(ContactInstantMessengerType), false);
       },
       enumerable: true
     },

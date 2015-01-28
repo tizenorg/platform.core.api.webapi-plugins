@@ -87,17 +87,17 @@ var _contactChangeListener = function(result) {
 
 
 var AddressBook = function(accountId, name) {
-  AV.isConstructorCall(this, AddressBook);
+  validator_.isConstructorCall(this, AddressBook);
 
   var id_ = null;
   var name_ = '';
   var readOnly_ = false;
   var accountId_ = null;
 
-  if (Type.isNumber(accountId)) {
+  if (type_.isNumber(accountId)) {
     accountId_ = accountId;
   }
-  if (Type.isString(name)) {
+  if (type_.isString(name)) {
     name_ = name;
   }
 
@@ -108,7 +108,7 @@ var AddressBook = function(accountId, name) {
       },
       set: function(v) {
         if (_editGuard.isEditEnabled()) {
-          id_ = Converter.toString(v, false);
+          id_ = converter_.toString(v, false);
         }
       },
       enumerable: true
@@ -119,7 +119,7 @@ var AddressBook = function(accountId, name) {
       },
       set: function(v) {
         if (_editGuard.isEditEnabled()) {
-          accountId_ = Converter.toLong(v, true);
+          accountId_ = converter_.toLong(v, true);
         }
       },
       enumerable: true
@@ -130,7 +130,7 @@ var AddressBook = function(accountId, name) {
       },
       set: function(v) {
         if (_editGuard.isEditEnabled()) {
-          name_ = Converter.toString(v, false);
+          name_ = converter_.toString(v, false);
         }
       },
       enumerable: true
@@ -141,7 +141,7 @@ var AddressBook = function(accountId, name) {
       },
       set: function(v) {
         if (_editGuard.isEditEnabled()) {
-          readOnly_ = Converter.toBoolean(v, false);
+          readOnly_ = converter_.toBoolean(v, false);
         }
       },
       enumerable: true
@@ -150,14 +150,14 @@ var AddressBook = function(accountId, name) {
 };
 
 AddressBook.prototype.get = function() {
-  var args = AV.validateArgs(arguments, [{
+  var args = validator_.validateArgs(arguments, [{
     name: 'id',
-    type: AV.Types.STRING,
+    type: types_.STRING,
     optional: false,
     nullable: false
   }]);
 
-  if (String(Converter.toLong(args.id)) !== args.id) {
+  if (String(converter_.toLong(args.id)) !== args.id) {
     // TCT: AddressBook_get_id_invalid
     throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
   }
@@ -177,15 +177,15 @@ AddressBook.prototype.get = function() {
 
     if (contact.name instanceof ContactName) {
       contact.name.displayName = '';
-      if (Type.isString(contact.name.firstName)) {
+      if (type_.isString(contact.name.firstName)) {
         contact.name.displayName = contact.name.firstName;
-        if (Type.isString(contact.name.lastName)) {
+        if (type_.isString(contact.name.lastName)) {
           contact.name.displayName += ' ' + contact.name.lastName;
         }
-      } else if (Type.isArray(contact.name.nicknames) &&
-          Type.isString(contact.name.nicknames[0])) {
+      } else if (type_.isArray(contact.name.nicknames) &&
+          type_.isString(contact.name.nicknames[0])) {
         contact.name.displayName = contact.name.nicknames[0];
-      } else if (Type.isString(contact.name.nicknames)) {
+      } else if (type_.isString(contact.name.nicknames)) {
         contact.name.displayName = contact.name.nicknames;
       }
     }
@@ -197,10 +197,10 @@ AddressBook.prototype.get = function() {
 };
 
 AddressBook.prototype.add = function() {
-  var args = AV.validateArgs(arguments, [
+  var args = validator_.validateArgs(arguments, [
     {
       name: 'contact',
-      type: AV.Types.PLATFORM_OBJECT,
+      type: types_.PLATFORM_OBJECT,
       values: Contact,
       optional: false,
       nullable: false
@@ -227,15 +227,15 @@ AddressBook.prototype.add = function() {
 
     if (args.contact.name instanceof ContactName) {
       args.contact.name.displayName = '';
-      if (Type.isString(args.contact.name.firstName)) {
+      if (type_.isString(args.contact.name.firstName)) {
         args.contact.name.displayName = args.contact.name.firstName;
-        if (Type.isString(args.contact.name.lastName)) {
+        if (type_.isString(args.contact.name.lastName)) {
           args.contact.name.displayName += ' ' + args.contact.name.lastName;
         }
-      } else if (Type.isArray(args.contact.name.nicknames) &&
-          Type.isString(args.contact.name.nicknames[0])) {
+      } else if (type_.isArray(args.contact.name.nicknames) &&
+          type_.isString(args.contact.name.nicknames[0])) {
         args.contact.name.displayName = args.contact.name.nicknames[0];
-      } else if (Type.isString(args.contact.name.nicknames)) {
+      } else if (type_.isString(args.contact.name.nicknames)) {
         args.contact.name.displayName = args.contact.name.nicknames;
       }
     }
@@ -243,23 +243,23 @@ AddressBook.prototype.add = function() {
 };
 
 AddressBook.prototype.addBatch = function() {
-  var args = AV.validateArgs(arguments, [
+  var args = validator_.validateArgs(arguments, [
     {
       name: 'contacts',
-      type: AV.Types.ARRAY,
+      type: types_.ARRAY,
       value: Contact,
       optional: false,
       nullable: false
     },
     {
       name: 'successCallback',
-      type: AV.Types.FUNCTION,
+      type: types_.FUNCTION,
       optional: true,
       nullable: true
     },
     {
       name: 'errorCallback',
-      type: AV.Types.FUNCTION,
+      type: types_.FUNCTION,
       optional: true,
       nullable: true
     }
@@ -293,10 +293,10 @@ AddressBook.prototype.addBatch = function() {
 };
 
 AddressBook.prototype.update = function() {
-  var args = AV.validateArgs(arguments, [
+  var args = validator_.validateArgs(arguments, [
     {
       name: 'contact',
-      type: AV.Types.PLATFORM_OBJECT,
+      type: types_.PLATFORM_OBJECT,
       values: Contact,
       optional: false,
       nullable: false
@@ -323,23 +323,23 @@ AddressBook.prototype.update = function() {
 };
 
 AddressBook.prototype.updateBatch = function() {
-  var args = AV.validateArgs(arguments, [
+  var args = validator_.validateArgs(arguments, [
     {
       name: 'contacts',
-      type: AV.Types.ARRAY,
+      type: types_.ARRAY,
       values: Contact,
       optional: false,
       nullable: false
     },
     {
       name: 'successCallback',
-      type: AV.Types.FUNCTION,
+      type: types_.FUNCTION,
       optional: true,
       nullable: true
     },
     {
       name: 'errorCallback',
-      type: AV.Types.FUNCTION,
+      type: types_.FUNCTION,
       optional: true,
       nullable: true
     }
@@ -372,14 +372,14 @@ AddressBook.prototype.updateBatch = function() {
 };
 
 AddressBook.prototype.remove = function() {
-  var args = AV.validateArgs(arguments, [{
+  var args = validator_.validateArgs(arguments, [{
     name: 'id',
-    type: AV.Types.STRING,
+    type: types_.STRING,
     optional: false,
     nullable: false
   }]);
 
-  if (String(Converter.toLong(args.id)) !== args.id) {
+  if (String(converter_.toLong(args.id)) !== args.id) {
     // TCT: AddressBook_remove_id_invalid
     throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
   }
@@ -395,23 +395,23 @@ AddressBook.prototype.remove = function() {
 };
 
 AddressBook.prototype.removeBatch = function(ids, successCallback, errorCallback) {
-  var args = AV.validateArgs(arguments, [
+  var args = validator_.validateArgs(arguments, [
     {
       name: 'ids',
-      type: AV.Types.ARRAY,
-      values: AV.Types.STRING,
+      type: types_.ARRAY,
+      values: types_.STRING,
       optional: false,
       nullable: false
     },
     {
       name: 'successCallback',
-      type: AV.Types.FUNCTION,
+      type: types_.FUNCTION,
       optional: true,
       nullable: true
     },
     {
       name: 'errorCallback',
-      type: AV.Types.FUNCTION,
+      type: types_.FUNCTION,
       optional: true,
       nullable: true
     }
@@ -433,22 +433,22 @@ AddressBook.prototype.removeBatch = function(ids, successCallback, errorCallback
 };
 
 AddressBook.prototype.find = function(successCallback, errorCallback, filter, sortMode) {
-  var args = AV.validateArgs(arguments, [
+  var args = validator_.validateArgs(arguments, [
     {
       name: 'successCallback',
-      type: AV.Types.FUNCTION,
+      type: types_.FUNCTION,
       optional: false,
       nullable: false
     },
     {
       name: 'errorCallback',
-      type: AV.Types.FUNCTION,
+      type: types_.FUNCTION,
       optional: true,
       nullable: true
     },
     {
       name: 'filter',
-      type: AV.Types.PLATFORM_OBJECT,
+      type: types_.PLATFORM_OBJECT,
       values: [
         tizen.AttributeFilter,
         tizen.AttributeRangeFilter,
@@ -459,7 +459,7 @@ AddressBook.prototype.find = function(successCallback, errorCallback, filter, so
     },
     {
       name: 'sortMode',
-      type: AV.Types.PLATFORM_OBJECT,
+      type: types_.PLATFORM_OBJECT,
       values: tizen.SortMode,
       optional: true,
       nullable: true
@@ -502,20 +502,20 @@ AddressBook.prototype.find = function(successCallback, errorCallback, filter, so
 };
 
 AddressBook.prototype.addChangeListener = function() {
-  var args = AV.validateArgs(arguments, [{
+  var args = validator_.validateArgs(arguments, [{
     name: 'successCallback',
-    type: AV.Types.LISTENER,
+    type: types_.LISTENER,
     values: ['oncontactsadded', 'oncontactsupdated', 'oncontactsremoved'],
     optional: false,
     nullable: false
   }, {
     name: 'errorCallback',
-    type: AV.Types.FUNCTION,
+    type: types_.FUNCTION,
     optional: true,
     nullable: true
   }]);
 
-  if (Type.isEmptyObject(_contactCallbackMap)) {
+  if (type_.isEmptyObject(_contactCallbackMap)) {
     var result = native_.callSync('AddressBook_startListening', {});
 
     if (native_.isFailure(result)) {
@@ -543,10 +543,10 @@ AddressBook.prototype.addChangeListener = function() {
 };
 
 AddressBook.prototype.removeChangeListener = function(watchId) {
-  var args = AV.validateArgs(arguments, [
+  var args = validator_.validateArgs(arguments, [
     {
       name: 'watchId',
-      type: AV.Types.LONG,
+      type: types_.LONG,
       optional: false,
       nullable: false
     }
@@ -565,11 +565,11 @@ AddressBook.prototype.removeChangeListener = function(watchId) {
 
   delete _contactCallbackMap[this.id][args.watchId];
 
-  if (Type.isEmptyObject(_contactCallbackMap[this.id])) {
+  if (type_.isEmptyObject(_contactCallbackMap[this.id])) {
     delete _contactCallbackMap[this.id];
   }
 
-  if (Type.isEmptyObject(_contactCallbackMap)) {
+  if (type_.isEmptyObject(_contactCallbackMap)) {
     native_.removeListener('ContactChangeListener', _contactChangeListener);
     _contactListenerRegistered = false;
 
@@ -582,14 +582,14 @@ AddressBook.prototype.removeChangeListener = function(watchId) {
 };
 
 AddressBook.prototype.getGroup = function() {
-  var args = AV.validateArgs(arguments, [{
+  var args = validator_.validateArgs(arguments, [{
     name: 'groupId',
-    type: AV.Types.STRING,
+    type: types_.STRING,
     optional: false,
     nullable: false
   }]);
 
-  if (String(Converter.toLong(args.groupId)) !== args.groupId) {
+  if (String(converter_.toLong(args.groupId)) !== args.groupId) {
     // TCT: AddressBook_getGroup_groupId_invalid
     throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
   }
@@ -608,10 +608,10 @@ AddressBook.prototype.getGroup = function() {
 };
 
 AddressBook.prototype.addGroup = function() {
-  var args = AV.validateArgs(arguments, [
+  var args = validator_.validateArgs(arguments, [
     {
       name: 'group',
-      type: AV.Types.PLATFORM_OBJECT,
+      type: types_.PLATFORM_OBJECT,
       values: ContactGroup,
       optional: false,
       nullable: false
@@ -632,10 +632,10 @@ AddressBook.prototype.addGroup = function() {
 };
 
 AddressBook.prototype.updateGroup = function() {
-  var args = AV.validateArgs(arguments, [
+  var args = validator_.validateArgs(arguments, [
     {
       name: 'group',
-      type: AV.Types.PLATFORM_OBJECT,
+      type: types_.PLATFORM_OBJECT,
       values: ContactGroup,
       optional: false,
       nullable: false
@@ -650,14 +650,14 @@ AddressBook.prototype.updateGroup = function() {
 };
 
 AddressBook.prototype.removeGroup = function() {
-  var args = AV.validateArgs(arguments, [{
+  var args = validator_.validateArgs(arguments, [{
     name: 'groupId',
-    type: AV.Types.STRING,
+    type: types_.STRING,
     optional: false,
     nullable: false
   }]);
 
-  if (String(Converter.toLong(args.groupId)) !== args.groupId) {
+  if (String(converter_.toLong(args.groupId)) !== args.groupId) {
     // TCT: AddressBook_removeGroup_groupId_invalid
     throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
   }

@@ -29,16 +29,16 @@ var ContactManager = function() {};
 
 // Gets the available address books
 ContactManager.prototype.getAddressBooks = function() {
-  var args = AV.validateArgs(arguments, [
+  var args = validator_.validateArgs(arguments, [
     {
       name: 'successCallback',
-      type: AV.Types.FUNCTION,
+      type: types_.FUNCTION,
       optional: false,
       nullable: false
     },
     {
       name: 'errorCallback',
-      type: AV.Types.FUNCTION,
+      type: types_.FUNCTION,
       optional: true,
       nullable: true
     }
@@ -94,14 +94,14 @@ ContactManager.prototype.getDefaultAddressBook = function() {
 
 // Gets the address book with the specified identifier.
 ContactManager.prototype.getAddressBook = function() {
-  var args = AV.validateArgs(arguments, [{
+  var args = validator_.validateArgs(arguments, [{
     name: 'addressBookId',
-    type: AV.Types.STRING,
+    type: types_.STRING,
     optional: false,
     nullable: false
   }]);
 
-  if (String(Converter.toLong(args.addressBookId)) !== args.addressBookId) {
+  if (String(converter_.toLong(args.addressBookId)) !== args.addressBookId) {
     // TCT: ContactManager_getAddressBook_addressBookId_invalid
     throw new tizen.WebAPIException(tizen.WebAPIException.NOT_FOUND_ERR);
   }
@@ -126,9 +126,9 @@ ContactManager.prototype.getAddressBook = function() {
 };
 
 ContactManager.prototype.addAddressBook = function() {
-  var args = AV.validateArgs(arguments, [{
+  var args = validator_.validateArgs(arguments, [{
     name: 'addressBook',
-    type: AV.Types.PLATFORM_OBJECT,
+    type: types_.PLATFORM_OBJECT,
     values: tizen.AddressBook,
     optional: false,
     nullable: false
@@ -154,13 +154,13 @@ ContactManager.prototype.addAddressBook = function() {
 
 ContactManager.prototype.removeAddressBook = function() {
   // TCT: ContactManager_removeAddressBook_misarg
-  if (Type.isNullOrUndefined(arguments[0])) {
+  if (type_.isNullOrUndefined(arguments[0])) {
     throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
   }
 
-  var args = AV.validateArgs(arguments, [{
+  var args = validator_.validateArgs(arguments, [{
     name: 'addressBookId',
-    type: AV.Types.STRING,
+    type: types_.STRING,
     optional: false,
     nullable: false
   }]);
@@ -187,16 +187,16 @@ ContactManager.prototype.removeAddressBook = function() {
 // Gets the person with the specified identifier.
 ContactManager.prototype.get = function() {
   // validation
-  var args = AV.validateArgs(arguments, [
+  var args = validator_.validateArgs(arguments, [
     {
       name: 'personId',
-      type: AV.Types.STRING,
+      type: types_.STRING,
       optional: false,
       nullable: false
     }
   ]);
 
-  if (String(Converter.toLong(args.personId)) !== args.personId) {
+  if (String(converter_.toLong(args.personId)) !== args.personId) {
     // TCT: ContactManager_get_personId_invalid
     throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
   }
@@ -214,9 +214,9 @@ ContactManager.prototype.get = function() {
 // Updates a person in the address book synchronously.
 ContactManager.prototype.update = function() {
   // validation
-  var args = AV.validateArgs(arguments, [{
+  var args = validator_.validateArgs(arguments, [{
     name: 'person',
-    type: AV.Types.PLATFORM_OBJECT,
+    type: types_.PLATFORM_OBJECT,
     values: Person,
     optional: false,
     nullable: false
@@ -234,23 +234,23 @@ ContactManager.prototype.update = function() {
 
 // Updates several existing persons in the contact DB asynchronously.
 ContactManager.prototype.updateBatch = function() {
-  var args = AV.validateArgs(arguments, [
+  var args = validator_.validateArgs(arguments, [
     {
       name: 'persons',
-      type: AV.Types.ARRAY,
+      type: types_.ARRAY,
       values: Person,
       optional: false,
       nullable: false
     },
     {
       name: 'successCallback',
-      type: AV.Types.FUNCTION,
+      type: types_.FUNCTION,
       optional: true,
       nullable: true
     },
     {
       name: 'errorCallback',
-      type: AV.Types.FUNCTION,
+      type: types_.FUNCTION,
       optional: true,
       nullable: true
     }
@@ -274,14 +274,14 @@ ContactManager.prototype.updateBatch = function() {
 // Removes a person from the contact DB synchronously.
 ContactManager.prototype.remove = function() {
   // validation
-  var args = AV.validateArgs(arguments, [{
+  var args = validator_.validateArgs(arguments, [{
     name: 'personId',
-    type: AV.Types.STRING,
+    type: types_.STRING,
     optional: false,
     nullable: false
   }]);
 
-  if (String(Converter.toLong(args.personId)) !== args.personId) {
+  if (String(converter_.toLong(args.personId)) !== args.personId) {
     // TCT: ContactManager_remove_personId_invalid
     throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
   }
@@ -292,23 +292,23 @@ ContactManager.prototype.remove = function() {
 
 // Removes persons from contact DB asynchronously.
 ContactManager.prototype.removeBatch = function() {
-  var args = AV.validateArgs(arguments, [
+  var args = validator_.validateArgs(arguments, [
     {
       name: 'personIds',
-      type: AV.Types.ARRAY,
-      values: AV.Types.STRING,
+      type: types_.ARRAY,
+      values: types_.STRING,
       optional: false,
       nullable: false
     },
     {
       name: 'successCallback',
-      type: AV.Types.FUNCTION,
+      type: types_.FUNCTION,
       optional: true,
       nullable: true
     },
     {
       name: 'errorCallback',
-      type: AV.Types.FUNCTION,
+      type: types_.FUNCTION,
       optional: true,
       nullable: true
     }
@@ -332,22 +332,22 @@ ContactManager.prototype.removeBatch = function() {
 // Gets an array of all Person objects from the contact DB or the ones that match the
 // optionally supplied filter.
 ContactManager.prototype.find = function() {
-  var args = AV.validateArgs(arguments, [
+  var args = validator_.validateArgs(arguments, [
     {
       name: 'successCallback',
-      type: AV.Types.FUNCTION,
+      type: types_.FUNCTION,
       optional: false,
       nullable: false
     },
     {
       name: 'errorCallback',
-      type: AV.Types.FUNCTION,
+      type: types_.FUNCTION,
       optional: true,
       nullable: true
     },
     {
       name: 'filter',
-      type: AV.Types.PLATFORM_OBJECT,
+      type: types_.PLATFORM_OBJECT,
       values: [tizen.AttributeFilter,
         tizen.AttributeRangeFilter,
         tizen.CompositeFilter],
@@ -356,7 +356,7 @@ ContactManager.prototype.find = function() {
     },
     {
       name: 'sortMode',
-      type: AV.Types.PLATFORM_OBJECT,
+      type: types_.PLATFORM_OBJECT,
       values: tizen.SortMode,
       optional: true,
       nullable: true
@@ -391,17 +391,17 @@ ContactManager.prototype.find = function() {
 
 // Subscribes to receive notifications about persons' changes.
 ContactManager.prototype.addChangeListener = function() {
-  var args = AV.validateArgs(arguments, [
+  var args = validator_.validateArgs(arguments, [
     {
       name: 'successCallback',
-      type: AV.Types.LISTENER,
+      type: types_.LISTENER,
       values: ['onpersonsadded', 'onpersonsupdated', 'onpersonsremoved'],
       optional: false,
       nullable: false
     }
   ]);
 
-  if (Type.isEmptyObject(_personCallbackMap)) {
+  if (type_.isEmptyObject(_personCallbackMap)) {
     var result = native_.callSync('ContactManager_startListening', {});
 
     if (native_.isFailure(result)) {
@@ -423,10 +423,10 @@ ContactManager.prototype.addChangeListener = function() {
 
 // Unsubscribes a persons' changes watch operation.
 ContactManager.prototype.removeChangeListener = function() {
-  var args = AV.validateArgs(arguments, [
+  var args = validator_.validateArgs(arguments, [
     {
       name: 'watchId',
-      type: AV.Types.LONG,
+      type: types_.LONG,
       optional: false,
       nullable: false
     }
@@ -451,7 +451,7 @@ ContactManager.prototype.removeChangeListener = function() {
 
   delete _personCallbackMap[args.watchId];
 
-  if (Type.isEmptyObject(_personCallbackMap)) {
+  if (type_.isEmptyObject(_personCallbackMap)) {
     native_.removeListener('ContactPersonChangeListener', _personChangeListener);
     _personListenerRegistered = false;
 

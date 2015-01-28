@@ -4,7 +4,7 @@
 
 
 var Person = function(data) {
-  AV.isConstructorCall(this, Person);
+  validator_.isConstructorCall(this, Person);
 
   var _id = '';
   var _displayName = '';
@@ -14,25 +14,25 @@ var Person = function(data) {
   var _isFavorite = false;
   var _displayContactId = '';
 
-  if (data.hasOwnProperty('id') && Type.isString(data.id)) {
+  if (data.hasOwnProperty('id') && type_.isString(data.id)) {
     _id = data.id;
   }
-  if (data.hasOwnProperty('displayName') && Type.isString(data.displayName)) {
+  if (data.hasOwnProperty('displayName') && type_.isString(data.displayName)) {
     _displayName = data.displayName;
   }
-  if (data.hasOwnProperty('contactCount') && Type.isNumber(data.contactCount)) {
+  if (data.hasOwnProperty('contactCount') && type_.isNumber(data.contactCount)) {
     _contactCount = data.contactCount;
   }
-  if (data.hasOwnProperty('hasPhoneNumber') && Type.isBoolean(data.hasPhoneNumber)) {
+  if (data.hasOwnProperty('hasPhoneNumber') && type_.isBoolean(data.hasPhoneNumber)) {
     _hasPhoneNumber = data.hasPhoneNumber;
   }
-  if (data.hasOwnProperty('hasEmail') && Type.isBoolean(data.hasEmail)) {
+  if (data.hasOwnProperty('hasEmail') && type_.isBoolean(data.hasEmail)) {
     _hasEmail = data.hasEmail;
   }
-  if (data.hasOwnProperty('displayContactId') && Type.isString(data.displayContactId)) {
+  if (data.hasOwnProperty('displayContactId') && type_.isString(data.displayContactId)) {
     _displayContactId = data.displayContactId;
   }
-  if (data.hasOwnProperty('isFavorite') && Type.isBoolean(data.isFavorite)) {
+  if (data.hasOwnProperty('isFavorite') && type_.isBoolean(data.isFavorite)) {
     _isFavorite = data.isFavorite;
   }
 
@@ -43,7 +43,7 @@ var Person = function(data) {
       },
       set: function(v) {
         if (_editGuard.isEditEnabled()) {
-          _id = Converter.toString(v, false);
+          _id = converter_.toString(v, false);
         }
       },
       enumerable: true
@@ -54,7 +54,7 @@ var Person = function(data) {
       },
       set: function(v) {
         if (_editGuard.isEditEnabled()) {
-          _displayName = Converter.toString(v, false);
+          _displayName = converter_.toString(v, false);
         }
       },
       enumerable: true
@@ -65,7 +65,7 @@ var Person = function(data) {
       },
       set: function(v) {
         if (_editGuard.isEditEnabled()) {
-          _contactCount = Converter.toLong(v, false);
+          _contactCount = converter_.toLong(v, false);
         }
       },
       enumerable: true
@@ -76,7 +76,7 @@ var Person = function(data) {
       },
       set: function(v) {
         if (_editGuard.isEditEnabled()) {
-          _hasPhoneNumber = Converter.toBoolean(v, false);
+          _hasPhoneNumber = converter_.toBoolean(v, false);
         }
       },
       enumerable: true
@@ -87,7 +87,7 @@ var Person = function(data) {
       },
       set: function(v) {
         if (_editGuard.isEditEnabled()) {
-          _hasEmail = Converter.toBoolean(v, false);
+          _hasEmail = converter_.toBoolean(v, false);
         }
       },
       enumerable: true
@@ -98,7 +98,7 @@ var Person = function(data) {
         return _isFavorite;
       },
       set: function(v) {
-        _isFavorite = Converter.toBoolean(v, false);
+        _isFavorite = converter_.toBoolean(v, false);
       },
       enumerable: true
     },
@@ -117,7 +117,7 @@ var Person = function(data) {
         return _displayContactId;
       },
       set: function(v) {
-        _displayContactId = Converter.toString(v, false);
+        _displayContactId = converter_.toString(v, false);
       },
       enumerable: true
     }
@@ -126,14 +126,14 @@ var Person = function(data) {
 
 // Aggregates another person to this person.
 Person.prototype.link = function() {
-  var args = AV.validateArgs(arguments, [{
+  var args = validator_.validateArgs(arguments, [{
     name: 'personId',
-    type: AV.Types.STRING,
+    type: types_.STRING,
     optional: false,
     nullable: false
   }]);
 
-  if (String(Converter.toLong(args.personId)) !== args.personId) {
+  if (String(converter_.toLong(args.personId)) !== args.personId) {
     // TCT: Person_link_personId_invalid
     throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
   }
@@ -154,14 +154,14 @@ Person.prototype.link = function() {
 
 // Separates a contact from this person.
 Person.prototype.unlink = function(contactId) {
-  var args = AV.validateArgs(arguments, [{
+  var args = validator_.validateArgs(arguments, [{
     name: 'contactId',
-    type: AV.Types.STRING,
+    type: types_.STRING,
     optional: false,
     nullable: false
   }]);
 
-  if (String(Converter.toLong(args.contactId)) !== args.contactId) {
+  if (String(converter_.toLong(args.contactId)) !== args.contactId) {
     // TCT: Person_unlink_contactId_invalid
     throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
   }

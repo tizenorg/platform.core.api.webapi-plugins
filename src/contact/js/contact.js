@@ -3,10 +3,10 @@
 // found in the LICENSE file.
 
 var Contact = function(data) {
-  AV.isConstructorCall(this, Contact);
+  validator_.isConstructorCall(this, Contact);
 
   var _forceEditMode = false;
-  if (Type.isString(data)) {
+  if (type_.isString(data)) {
     var result = native_.callSync('ContactManager_importFromVCard', {
       'contact': data
     });
@@ -22,7 +22,7 @@ var Contact = function(data) {
 
     // Force edit mode so that anonymous objects can be promoted to their correct types.
     _forceEditMode = true;
-  } else if (Type.isObject(data) || Type.isFunction(data)) {
+  } else if (type_.isObject(data) || type_.isFunction(data)) {
     // It's a dictionary
   } else {
     // null or invalid types.
@@ -52,12 +52,12 @@ var Contact = function(data) {
   var _groupIds = [];
 
   var _sanitizeArray = function(arr, type, previousValue) {
-    if (!Type.isArray(arr)) {
+    if (!type_.isArray(arr)) {
       return previousValue;
     }
     for (var i = 0; i < arr.length; ++i) {
-      if (Type.isString(type)) {
-        if (!Type.isString(arr[i])) {
+      if (type_.isString(type)) {
+        if (!type_.isString(arr[i])) {
           return previousValue;
         }
       } else if (_editGuard.isEditEnabled()) {
@@ -76,7 +76,7 @@ var Contact = function(data) {
       },
       set: function(v) {
         if (_editGuard.isEditEnabled()) {
-          _id = Converter.toString(v, false);
+          _id = converter_.toString(v, false);
         }
       },
       enumerable: true
@@ -87,7 +87,7 @@ var Contact = function(data) {
       },
       set: function(v) {
         if (_editGuard.isEditEnabled()) {
-          _personId = Converter.toString(v, false);
+          _personId = converter_.toString(v, false);
         }
       },
       enumerable: true
@@ -98,7 +98,7 @@ var Contact = function(data) {
       },
       set: function(v) {
         if (_editGuard.isEditEnabled()) {
-          _addressBookId = Converter.toString(v, false);
+          _addressBookId = converter_.toString(v, false);
         }
       },
       enumerable: true
@@ -111,7 +111,7 @@ var Contact = function(data) {
         if (_editGuard.isEditEnabled()) {
           if (v instanceof Date || v === null) {
             _lastUpdate = v;
-          } else if (Type.isString(v)) {
+          } else if (type_.isString(v)) {
             _lastUpdate = new Date(v);
           } else {
             _lastUpdate = _fromJsonDate(v);
@@ -126,7 +126,7 @@ var Contact = function(data) {
       },
       set: function(v) {
         if (_editGuard.isEditEnabled()) {
-          _isFavorite = Converter.toBoolean(v, false);
+          _isFavorite = converter_.toBoolean(v, false);
         }
       },
       enumerable: true
@@ -158,7 +158,7 @@ var Contact = function(data) {
         return _photoURI;
       },
       set: function(v) {
-        _photoURI = Converter.toString(v, true);
+        _photoURI = converter_.toString(v, true);
       },
       enumerable: true
     },
@@ -205,7 +205,7 @@ var Contact = function(data) {
       set: function(v) {
         if (v instanceof Date || v === null) {
           _birthday = v;
-        } else if (Type.isString(v)) {
+        } else if (type_.isString(v)) {
           _birthday = new Date(v);
         } else if (_editGuard.isEditEnabled()) {
           _birthday = _fromJsonDate(v);
@@ -254,7 +254,7 @@ var Contact = function(data) {
         return _ringtoneURI;
       },
       set: function(v) {
-        _ringtoneURI = Converter.toString(v, true);
+        _ringtoneURI = converter_.toString(v, true);
       },
       enumerable: true
     },
@@ -263,7 +263,7 @@ var Contact = function(data) {
         return _messageAlertURI;
       },
       set: function(v) {
-        _messageAlertURI = Converter.toString(v, true);
+        _messageAlertURI = converter_.toString(v, true);
       },
       enumerable: true
     },
@@ -272,7 +272,7 @@ var Contact = function(data) {
         return _vibrationURI;
       },
       set: function(v) {
-        _vibrationURI = Converter.toString(v, true);
+        _vibrationURI = converter_.toString(v, true);
       },
       enumerable: true
     },
@@ -319,7 +319,7 @@ var _contactAddressToString = function(obj) {
     }
     str += 'ADR;';
     for (var addType in it.types) {
-      if (Type.isString(addType)) {
+      if (type_.isString(addType)) {
         str += addType + ',';
       }
     }
@@ -341,13 +341,13 @@ var _contactAddressToString = function(obj) {
 
 // Convert email address from Contact object to string
 var _contactEmailToString = function(obj) {
-  if (!Type.isArray(obj.emails) || obj.emails.length === 0) {
+  if (!type_.isArray(obj.emails) || obj.emails.length === 0) {
     console.log('Empty email list');
     return '';
   }
   var str = '';
   for (var mail in obj.emails) {
-    if (!mail instanceof ContactEmailAddress || !Type.isArray(mail.types) ||
+    if (!mail instanceof ContactEmailAddress || !type_.isArray(mail.types) ||
       mail.types.length === 0) {
       console.log('Incorrect email type');
       continue;
@@ -355,14 +355,14 @@ var _contactEmailToString = function(obj) {
     str += 'EMAIL;';
     // set types
     for (var type in mail.types) {
-      if (Type.isString(type)) {
+      if (type_.isString(type)) {
         str += type + ',';
       }
     }
     if (str.charAt(str.length - 1) === ',') {
       str[str.length - 1] = ':';
     }
-    str += '=' + Converter.toString(mail.email) + '\n';
+    str += '=' + converter_.toString(mail.email) + '\n';
   }
   return str;
 };
@@ -413,7 +413,7 @@ var _contactPhoneNumbersToString = function(obj) {
     }
     str += 'TEL';
     for (var type in phone.types) {
-      if (Type.isString(type)) {
+      if (type_.isString(type)) {
         str += ';' + type;
       }
     }
@@ -488,7 +488,7 @@ var _JSONToContactType = function(type, obj) {
 
   for (var prop in obj) {
     if (contact.hasOwnProperty(prop)) {
-      if (contact[prop] instanceof Date && Type.isNumber(obj[prop])) {
+      if (contact[prop] instanceof Date && type_.isNumber(obj[prop])) {
         contact[prop] = new Date(1000 * obj[prop]);
       } else {
         contact[prop] = obj[prop];
@@ -503,7 +503,7 @@ var _JSONToContactType = function(type, obj) {
 Contact.prototype.convertToString = function(format) {
   format = format || TypeEnum[0];
 
-  if (!Type.isString(format)) {
+  if (!type_.isString(format)) {
     throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR, 'Invalid format');
   }
 

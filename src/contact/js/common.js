@@ -4,12 +4,12 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-var _common = xwalk.utils;
-var Type = _common.type;
-var Converter = _common.converter;
-var AV = _common.validator;
-
-var native_ = new _common.NativeManager(extension);
+var utils_ = xwalk.utils;
+var type_ = utils_.type;
+var converter_ = utils_.converter;
+var validator_ = utils_.validator;
+var types_ = validator_.Types;
+var native_ = new xwalk.utils.NativeManager(extension);
 
 var _currentWatchId = 1;
 
@@ -21,13 +21,13 @@ var _getNextWatchId = function() {
 // Currently only translates JS Date
 var _toJsonObject = function(obj) {
   var ret;
-  if (Type.isDate(obj)) {
+  if (type_.isDate(obj)) {
     var year = ('0000' + obj.getFullYear()).slice(-4);
     var month = ('00' + (obj.getMonth() + 1)).slice(-2);
     var day = ('00' + obj.getDate()).slice(-2);
     return Number(year + month + day);
   }
-  if (Type.isArray(obj)) {
+  if (type_.isArray(obj)) {
     ret = [];
     for (var i = 0; i < obj.length; ++i) {
       ret[i] = _toJsonObject(obj[i]);
@@ -56,7 +56,7 @@ var _fromJsonDate = function(date) {
 
 var _promote = function(val, type) {
   return _editGuard.run(function() {
-    if (Type.isArray(val)) {
+    if (type_.isArray(val)) {
       var ret = [];
       for (var i = 0; i < val.length; ++i) {
         ret.push(new type(val[i]));
@@ -138,7 +138,7 @@ Common.prototype.sort = function(arr, sortMode) {
 };
 
 Common.prototype.filter = function(arr, filter) {
-  if (Type.isNullOrUndefined(arr))
+  if (type_.isNullOrUndefined(arr))
     return arr;
   if (filter instanceof tizen.AttributeFilter ||
       filter instanceof tizen.AttributeRangeFilter ||
@@ -163,8 +163,8 @@ Common.prototype.repackFilter = function (filter) {
     return {
       filterType: 'AttributeRangeFilter',
       attributeName: filter.attributeName,
-      initialValue: Type.isNullOrUndefined(filter.initialValue) ? null : filter.initialValue,
-      endValue: Type.isNullOrUndefined(filter.endValue) ? null : filter.endValue
+      initialValue: type_.isNullOrUndefined(filter.initialValue) ? null : filter.initialValue,
+      endValue: type_.isNullOrUndefined(filter.endValue) ? null : filter.endValue
     };
   }
   if (filter instanceof tizen.CompositeFilter) {
