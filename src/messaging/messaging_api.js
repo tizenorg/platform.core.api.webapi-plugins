@@ -454,7 +454,6 @@ function Message(type, data) {
                     if (value.length < _internal.length) {
                         _internal.splice(value.length, _internal.length - value.length);
                     }
-                    _internal.attachments = value;
                 } else if (T_.isArray(value)) {
                     for (var k = 0; k < value.length; ++k) {
                         if (!(value[k] instanceof tizen.MessageAttachment)) {
