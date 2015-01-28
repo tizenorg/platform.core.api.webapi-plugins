@@ -9,6 +9,30 @@ var validator_ = xwalk.utils.validator;
 var types_ = validator_.Types;
 
 
+function callNative(cmd, args) {
+  var json = {'cmd': cmd, 'args': args};
+  var argjson = JSON.stringify(json);
+  var resultString = extension.internal.sendSyncMessage(argjson);
+  var result = JSON.parse(resultString);
+
+  if (typeof result !== 'object') {
+    throw new tizen.WebAPIException(tizen.WebAPIException.UNKNOWN_ERR);
+  }
+
+  if (result['status'] == 'success') {
+    if (result['result']) {
+      return result['result'];
+    }
+    return true;
+  } else if (result['status'] == 'error') {
+    var err = result['error'];
+    if (err) {
+      throw new tizen.WebAPIException(err.name, err.message);
+    }
+    return false;
+  }
+}
+
 function SetReadOnlyProperty(obj, n, v) {
   Object.defineProperty(obj, n, {'value': v, 'writable': false});
 }
@@ -36,23 +60,12 @@ function NotificationManager() {
 
 NotificationManager.prototype.post = function(notification) {
   var args = validator_.validateArgs(arguments, [
-    {'name': 'notification', 'type': types_.PLATFORM_OBJECT, 'values': ['Notification']}
+    {'name': 'notification', 'type': types_.PLATFORM_OBJECT, 'values': [StatusNotification]}
   ]);
 
   var nativeParam = notificationToNativeParam(notification);
-
-  var id = notification.id;
-  var type = notification.type;
-  var ptime = notification.postedTime;
-  var title = notification.title;
-  var content = notification.content;
-
-  var nativeParam = {
-    'type': notification.type,
-    'title' : notification.title,
-    'content' : notification.content
-  };
-
+  nativeParam['type'] = notification.type;
+  nativeParam['content'] = notification.content;
 
   try {
     var syncResult = callNative('NotificationManager_post', nativeParam);
@@ -202,8 +215,8 @@ function notificationToNativeParam(n) {
   }
 
   return {
-    'statusType': args.statusType,
-    'title': args.title,
+    'statusType': n.statusType,
+    'title': n.title,
     'content': n.content,
     'iconPath': n.iconPath,
     'soundPath': n.soundPath,
@@ -228,9 +241,9 @@ function notificationToNativeParam(n) {
 function StatusNotification(statusType, title, notificationInitDict) {
   // constructor of StatusNotification
 
-  SetHidedProperty(this, 'id', undefined);
+  SetReadOnlyProperty(this, 'id', undefined);
   SetReadOnlyProperty(this, 'type', 'STATUS');
-  SetHidedProperty(this, 'postedTime', undefined);
+  SetReadOnlyProperty(this, 'postedTime', undefined);
 
   this.title = title;
   this.content = notificationInitDict.content;
