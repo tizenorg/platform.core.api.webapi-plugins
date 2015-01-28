@@ -1,17 +1,24 @@
-// Copyright (c) 2014 Samsung Electronics Co., Ltd All Rights Reserved
+// Copyright 2015 Samsung Electronics Co, Ltd. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
 // File copied from Crosswalk
 
+#include "datasync/datasync_instance.h"
+
 #include <memory>
 
-#include "datasync/datasync_instance.h"
 #include "tizen/tizen.h"
 #include "common/task-queue.h"
 
 namespace extension {
 namespace datasync {
+
+namespace {
+// The privileges that required in Datasynchronization API
+const std::string kPrivilegeDatasynchronization = "http://tizen.org/privilege/datasync";
+
+}  // namespace
 
 using namespace common;
 
@@ -23,32 +30,38 @@ DatasyncInstance &DatasyncInstance::GetInstance() {
 DatasyncInstance::DatasyncInstance() {
   using namespace std::placeholders;
 #define REGISTER_SYNC(c, x) RegisterSyncHandler(c, std::bind(&DatasyncInstance::x, this, _1, _2));
-  REGISTER_SYNC("Datasync_add", Add);
-  REGISTER_SYNC("Datasync_update", Update);
-  REGISTER_SYNC("Datasync_remove", Remove);
-  REGISTER_SYNC("Datasync_getMaxProfilesNum", GetMaxProfilesNum);
-  REGISTER_SYNC("Datasync_getProfilesNum", GetProfilesNum);
-  REGISTER_SYNC("Datasync_get", Get);
-  REGISTER_SYNC("Datasync_getAll", GetAll);
-  REGISTER_SYNC("Datasync_startSync", StartSync);
-  REGISTER_SYNC("Datasync_stopSync", StopSync);
-  REGISTER_SYNC("Datasync_getLastSyncStatistics", GetLastSyncStatistics);
+  REGISTER_SYNC("DataSynchronizationManager_add", DataSynchronizationManagerAdd);
+  REGISTER_SYNC("DataSynchronizationManager_update", DataSynchronizationManagerUpdate);
+  REGISTER_SYNC("DataSynchronizationManager_remove", DataSynchronizationManagerRemove);
+  REGISTER_SYNC("DataSynchronizationManager_getMaxProfilesNum",
+                DataSynchronizationManagerGetMaxProfilesNum);
+  REGISTER_SYNC("DataSynchronizationManager_getProfilesNum",
+                DataSynchronizationManagerGetProfilesNum);
+  REGISTER_SYNC("DataSynchronizationManager_get", DataSynchronizationManagerGet);
+  REGISTER_SYNC("DataSynchronizationManager_getAll", DataSynchronizationManagerGetAll);
+  REGISTER_SYNC("DataSynchronizationManager_startSync", DataSynchronizationManagerStartSync);
+  REGISTER_SYNC("DataSynchronizationManager_stopSync", DataSynchronizationManagerStopSync);
+  REGISTER_SYNC("DataSynchronizationManager_getLastSyncStatistics",
+                DataSynchronizationManagerGetLastSyncStatistics);
 #undef REGISTER_SYNC
 }
 
 DatasyncInstance::~DatasyncInstance() {}
 
-void DatasyncInstance::GetMaxProfilesNum(const picojson::value &args, picojson::object &out) {
+void DatasyncInstance::DataSynchronizationManagerGetMaxProfilesNum(const picojson::value &args,
+                                                                   picojson::object &out) {
   ReportSuccess(
       picojson::value(static_cast<double>(DataSyncManager::Instance().GetMaxProfilesNum())), out);
 }
 
-void DatasyncInstance::GetProfilesNum(const picojson::value &args, picojson::object &out) {
+void DatasyncInstance::DataSynchronizationManagerGetProfilesNum(const picojson::value &args,
+                                                                picojson::object &out) {
   ReportSuccess(picojson::value(static_cast<double>(DataSyncManager::Instance().GetProfilesNum())),
                 out);
 }
 
-void DatasyncInstance::Get(const picojson::value &args, picojson::object &out) {
+void DatasyncInstance::DataSynchronizationManagerGet(const picojson::value &args,
+                                                     picojson::object &out) {
   picojson::value result = picojson::value(picojson::object());
 
   DataSyncManager::Instance().Get(args.get("profileId").get<std::string>(),
@@ -56,14 +69,16 @@ void DatasyncInstance::Get(const picojson::value &args, picojson::object &out) {
   ReportSuccess(result, out);
 }
 
-void DatasyncInstance::GetAll(const picojson::value &args, picojson::object &out) {
+void DatasyncInstance::DataSynchronizationManagerGetAll(const picojson::value &args,
+                                                        picojson::object &out) {
   picojson::value result = picojson::value(picojson::array());
 
   DataSyncManager::Instance().GetAll(result.get<picojson::array>());
   ReportSuccess(result, out);
 }
 
-void DatasyncInstance::GetLastSyncStatistics(const picojson::value &args, picojson::object &out) {
+void DatasyncInstance::DataSynchronizationManagerGetLastSyncStatistics(const picojson::value &args,
+                                                                       picojson::object &out) {
   picojson::value result = picojson::value(picojson::array());
 
   DataSyncManager::Instance().GetLastSyncStatistics(args.get("profileId").get<std::string>(),
@@ -72,34 +87,39 @@ void DatasyncInstance::GetLastSyncStatistics(const picojson::value &args, picojs
   ReportSuccess(result, out);
 }
 
-void DatasyncInstance::Add(const picojson::value &args, picojson::object &out) {
+void DatasyncInstance::DataSynchronizationManagerAdd(const picojson::value &args,
+                                                     picojson::object &out) {
   ReportSuccess(picojson::value(static_cast<double>(
                     DataSyncManager::Instance().Add(args.get<picojson::object>()))),
                 out);
 }
 
-void DatasyncInstance::Update(const picojson::value &args, picojson::object &out) {
+void DatasyncInstance::DataSynchronizationManagerUpdate(const picojson::value &args,
+                                                        picojson::object &out) {
   DataSyncManager::Instance().Update(args.get<picojson::object>());
 
   picojson::value val{picojson::object{}};
   ReportSuccess(val, out);
 }
 
-void DatasyncInstance::Remove(const picojson::value &args, picojson::object &out) {
+void DatasyncInstance::DataSynchronizationManagerRemove(const picojson::value &args,
+                                                        picojson::object &out) {
   DataSyncManager::Instance().Remove(args.get("profileId").get<std::string>());
 
   picojson::value val{picojson::object{}};
   ReportSuccess(val, out);
 }
 
-void DatasyncInstance::StartSync(const picojson::value &args, picojson::object &out) {
+void DatasyncInstance::DataSynchronizationManagerStartSync(const picojson::value &args,
+                                                           picojson::object &out) {
   DataSyncManager::Instance().StartSync(args.get<picojson::object>());
 
   picojson::value val{picojson::object{}};
   ReportSuccess(val, out);
 }
 
-void DatasyncInstance::StopSync(const picojson::value &args, picojson::object &out) {
+void DatasyncInstance::DataSynchronizationManagerStopSync(const picojson::value &args,
+                                                          picojson::object &out) {
   DataSyncManager::Instance().StopSync(args.get("profileId").get<std::string>());
 
   picojson::value val{picojson::object{}};

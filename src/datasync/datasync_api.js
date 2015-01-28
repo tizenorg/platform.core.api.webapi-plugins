@@ -440,7 +440,7 @@ DataSynchronizationManager.prototype.add = function(profile) {
   if (!(profile instanceof tizen.SyncProfileInfo)) {
     throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR);
   }
-  var msg = native_.callSync('Datasync_add', {
+  var msg = native_.callSync('DataSynchronizationManager_add', {
     arg: profile
   });
 
@@ -457,7 +457,7 @@ DataSynchronizationManager.prototype.update = function(profile) {
   if (!(profile instanceof tizen.SyncProfileInfo)) {
     throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR);
   }
-  var msg = native_.callSync('Datasync_update', {
+  var msg = native_.callSync('DataSynchronizationManager_update', {
     arg: profile
   });
 
@@ -477,7 +477,7 @@ DataSynchronizationManager.prototype.remove = function() {
     {name: 'profileId', type: types_.STRING}
   ]);
 
-  var msg = native_.callSync('Datasync_remove', {
+  var msg = native_.callSync('DataSynchronizationManager_remove', {
     profileId: args.profileId
   });
 
@@ -488,7 +488,7 @@ DataSynchronizationManager.prototype.remove = function() {
 };
 
 DataSynchronizationManager.prototype.getMaxProfilesNum = function() {
-  var msg = native_.callSync("Datasync_getMaxProfilesNum");
+  var msg = native_.callSync("DataSynchronizationManager_getMaxProfilesNum");
   if (native_.isFailure(msg)) {
     throw native_.getErrorObject(msg);
   }
@@ -499,7 +499,7 @@ DataSynchronizationManager.prototype.getProfilesNum = function() {
   if (arguments.length > 0) {
     return;
   }
-  var msg = native_.callSync('Datasync_getProfilesNum');
+  var msg = native_.callSync('DataSynchronizationManager_getProfilesNum');
   if (native_.isFailure(msg)) {
     throw native_.getErrorObject(msg);
   }
@@ -515,7 +515,7 @@ DataSynchronizationManager.prototype.get = function() {
   if (typeof(arguments[0]) !== 'string') {
     throw new tizen.WebAPIException(tizen.WebAPIException.NOT_FOUND_ERR);
   }
-  var msg = native_.callSync('Datasync_get', {
+  var msg = native_.callSync('DataSynchronizationManager_get', {
     profileId: args.profileId
   });
 
@@ -529,7 +529,7 @@ DataSynchronizationManager.prototype.getAll = function() {
   if (arguments.length > 0) {
     return;
   }
-  var msg = native_.callSync('Datasync_getAll');
+  var msg = native_.callSync('DataSynchronizationManager_getAll');
   if (native_.isFailure(msg)) {
     throw native_.getErrorObject(msg);
   }
@@ -572,7 +572,7 @@ DataSynchronizationManager.prototype.startSync = function() {
     }
   }
 
-  var msg = native_.callSync('Datasync_startSync',{
+  var msg = native_.callSync('DataSynchronizationManager_startSync',{
     profileId: args.profileId
   });
   if (native_.isFailure(msg)) {
@@ -591,7 +591,7 @@ DataSynchronizationManager.prototype.stopSync = function() {
   var args = validator_.validateArgs(arguments, [
     {name: 'profileId', type: types_.STRING}
   ]);
-  var msg = native_.callSync('Datasync_stopSync',{
+  var msg = native_.callSync('DataSynchronizationManager_stopSync',{
     profileId: args.profileId
   });
   if (native_.isFailure(msg)) {
@@ -610,7 +610,7 @@ DataSynchronizationManager.prototype.getLastSyncStatistics = function() {
     {name: 'profileId', type: types_.STRING}
   ]);
 
-  var msg = native_.callSync('Datasync_getLastSyncStatistics', {
+  var msg = native_.callSync('DataSynchronizationManager_getLastSyncStatistics', {
     profileId: args.profileId
   });
   var result = native_.getResultObject(msg);

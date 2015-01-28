@@ -1,4 +1,4 @@
-// Copyright (c) 2014 Samsung Electronics Co., Ltd All Rights Reserved
+// Copyright 2015 Samsung Electronics Co, Ltd. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -27,18 +27,20 @@ class DatasyncInstance : public common::ParsedInstance {
   // Synchronous message handlers
 
   // with result
-  void GetMaxProfilesNum(const picojson::value& args, picojson::object& out);
-  void GetProfilesNum(const picojson::value& args, picojson::object& out);
-  void Get(const picojson::value& args, picojson::object& out);
-  void GetAll(const picojson::value& args, picojson::object& out);
-  void GetLastSyncStatistics(const picojson::value& args, picojson::object& out);
+  void DataSynchronizationManagerGetMaxProfilesNum(const picojson::value& args,
+                                                   picojson::object& out);
+  void DataSynchronizationManagerGetProfilesNum(const picojson::value& args, picojson::object& out);
+  void DataSynchronizationManagerGet(const picojson::value& args, picojson::object& out);
+  void DataSynchronizationManagerGetAll(const picojson::value& args, picojson::object& out);
+  void DataSynchronizationManagerGetLastSyncStatistics(const picojson::value& args,
+                                                       picojson::object& out);
 
   // undefined result
-  void Add(const picojson::value& args, picojson::object& out);
-  void Update(const picojson::value& args, picojson::object& out);
-  void Remove(const picojson::value& args, picojson::object& out);
-  void StartSync(const picojson::value& args, picojson::object& out);
-  void StopSync(const picojson::value& args, picojson::object& out);
+  void DataSynchronizationManagerAdd(const picojson::value& args, picojson::object& out);
+  void DataSynchronizationManagerUpdate(const picojson::value& args, picojson::object& out);
+  void DataSynchronizationManagerRemove(const picojson::value& args, picojson::object& out);
+  void DataSynchronizationManagerStartSync(const picojson::value& args, picojson::object& out);
+  void DataSynchronizationManagerStopSync(const picojson::value& args, picojson::object& out);
 };
 
 }  // namespace datasync
