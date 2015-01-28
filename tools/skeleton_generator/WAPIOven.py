@@ -187,10 +187,10 @@ class Compiler(IndentPrintable):
                 for operation in iface.getTypes('Operation'):
                     if hasattr(iface, 'exported') and iface.exported:
                         operation.native_cmd = iface.name+'_'+operation.name
-                        operation.native_function = iface.name+(operation.name.title())
+                        native_function = iface.name + operation.name[0].upper() + operation.name[1:]
+                        operation.native_function = native_function
                         #self.ctx['cmdtable'][operation.native_function] = operation.native_cmd
                         native_cmd = iface.name+'_'+operation.name
-                        native_function = iface.name+(operation.name.title())
                         self.ctx['cmdtable'][native_function] = native_cmd
                     operation.argnames = [a.name for a in operation.arguments]
                     #operation.primitiveArgs = [x for x in operation.arguments if x.xtype.name in cppPrimitiveMap]
