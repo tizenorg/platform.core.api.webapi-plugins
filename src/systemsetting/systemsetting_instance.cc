@@ -1,0 +1,124 @@
+// Copyright 2014 Samsung Electronics Co, Ltd. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+#include "systemsetting/systemsetting_instance.h"
+
+#include <memory>
+
+#include "common/picojson.h"
+#include "common/logger.h"
+#include "common/platform_exception.h"
+#include "common/task-queue.h"
+
+#include <system_settings.h>
+
+
+namespace extension {
+namespace systemsetting {
+
+namespace {
+const std::string SETTING_HOME_SCREEN = "HOME_SCREEN";
+const std::string SETTING_LOCK_SCREEN = "LOCK_SCREEN";
+const std::string SETTING_INCOMING_CALL = "INCOMING_CALL";
+const std::string SETTING_NOTIFICATION_EMAIL = "NOTIFICATION_EMAIL";
+}
+
+using namespace common;
+using namespace extension::systemsetting;
+
+SystemSettingInstance::SystemSettingInstance()
+{
+    using namespace std::placeholders;
+
+#define REGISTER(c,x) \
+RegisterHandler(c, std::bind(&SystemSettingInstance::x, this, _1, _2));
+
+    REGISTER("SystemSettingManager_getProperty", getProperty);
+
+#undef REGISTER
+}
+
+SystemSettingInstance::~SystemSettingInstance()
+{
+}
+
+void SystemSettingInstance::getProperty(const picojson::value& args, picojson::object& out)
+{
+    LoggerD("");
+    const double callback_id = args.get("callbackId").get<double>();
+
+    const std::string& type = args.get("type").get<std::string>();
+    LoggerD("Getting property type: %s ", type.c_str());
+
+    auto get = [this, type](const std::shared_ptr<picojson::value>& response) -> void {
+        LoggerD("Getting platform value");
+        try {
+            int platformResult;
+            picojson::value result = getPlatformPropertyValue(type, platformResult);
+            ReportSuccess(result, response->get<picojson::object>());
+        } catch (const PlatformException& e) {
+            ReportError(e, response->get<picojson::object>());
+        }   
+    };  
+
+    auto get_response = [this, callback_id](const std::shared_ptr<picojson::value>& response) -> void {
+        LoggerD("Getting response");
+        picojson::object& obj = response->get<picojson::object>();
+        obj.insert(std::make_pair("callbackId", callback_id));
+        PostMessage(response->serialize().c_str());
+    };  
+
+    TaskQueue::GetInstance().Queue<picojson::value>
+        (get, get_response, std::shared_ptr<picojson::value>(new picojson::value(picojson::object())));
+}
+
+picojson::value SystemSettingInstance::getPlatformPropertyValue(
+    const std::string &valueType, int &platformResult)
+{
+    int ret;
+    char *value = NULL;
+    picojson::value result = picojson::value(picojson::object());
+    picojson::object& result_obj = result.get<picojson::object>();
+
+    if (valueType == SETTING_HOME_SCREEN) {
+        ret = system_settings_get_value_string(
+            SYSTEM_SETTINGS_KEY_WALLPAPER_HOME_SCREEN, &value);
+    }
+    else if (valueType == SETTING_LOCK_SCREEN) {
+        ret = system_settings_get_value_string(
+            SYSTEM_SETTINGS_KEY_WALLPAPER_LOCK_SCREEN, &value);
+    }
+    else if (valueType == SETTING_INCOMING_CALL) {
+        ret = system_settings_get_value_string(
+            SYSTEM_SETTINGS_KEY_INCOMING_CALL_RINGTONE, &value);
+    }
+    else if (valueType == SETTING_NOTIFICATION_EMAIL) {
+        ret = system_settings_get_value_string(
+            SYSTEM_SETTINGS_KEY_EMAIL_ALERT_RINGTONE, &value);
+    }
+    // other values (not specified in the documentation) are handled in JS
+
+    platformResult = ret;
+
+    if (ret == SYSTEM_SETTINGS_ERROR_NONE) {
+        LoggerD("ret == SYSTEM_SETTINGS_ERROR_NONE");
+        result_obj.insert(std::make_pair("value", value));
+        free(value);
+    }
+    else if (ret == SYSTEM_SETTINGS_ERROR_CALL_UNSUPPORTED_API) {
+        LoggerD("ret == SYSTEM_SETTINGS_ERROR_CALL_UNSUPPORTED_API");
+        throw NotSupportedException("This property is not supported.");
+    }
+    else {
+        LoggerD("Other error");
+        throw UnknownException("Unknown error");
+    }
+
+    return result;
+}
+
+
+} // namespace systemsetting
+} // namespace extension
+
