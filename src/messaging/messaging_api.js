@@ -922,6 +922,11 @@ MessageService.prototype.stopSync = function () {
         {name: 'opId', type: types_.LONG}
     ]);
 
+    // Additionally to pass the MessageService_email_stopSync_opId_TypeMismatch test
+    if (!isFinite(arguments[0])) {
+        throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR);
+    }
+
     var self = this;
     bridge.sync({
         cmd: 'MessageService_stopSync',
