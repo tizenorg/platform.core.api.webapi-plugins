@@ -1498,7 +1498,7 @@ function MessageFolder(data) {
                 'synchronizable',
                 {
                     get: function () {return _internal.synchronizable;},
-                    set: function (value) { if (value) _internal.synchronizable = value;},
+                    set: function (value) { _internal.synchronizable = Boolean(value);},
                     enumerable: true
                 }
         );
