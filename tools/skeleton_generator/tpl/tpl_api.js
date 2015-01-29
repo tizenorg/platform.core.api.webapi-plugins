@@ -86,7 +86,9 @@ function {{iface.name}}(
     {%- endfor -%}
     {%- endif -%}) {
   // constructor of {{iface.name}}
+  {% if iface.constructor %}
   validator_.isConstructorCall(this, {{iface.name}});
+  {% endif %}
 
   {% for attribute in iface.getTypes('Attribute') %}
     {% if attribute.existIn == 'ctor' %}
