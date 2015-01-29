@@ -552,6 +552,10 @@ std::shared_ptr<Message> MessagingUtil::jsonToMessage(const picojson::value& jso
             MESSAGE_ATTRIBUTE_IS_HIGH_PRIORITY);
     message->setIsHighPriority(priority);
 
+    auto isRead = MessagingUtil::getValueFromJSONObject<bool>(data,
+            MESSAGE_ATTRIBUTE_IS_READ);
+    message->setIsRead(isRead);
+
     std::shared_ptr<MessageBody> body = MessagingUtil::jsonToMessageBody(
             data[MESSAGE_ATTRIBUTE_MESSAGE_BODY]);
     message->setBody(body);

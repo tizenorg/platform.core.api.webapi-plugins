@@ -1024,7 +1024,6 @@ void EmailManager::updateMessages(MessagesCallbackUserData* callback)
 
             email_free_mail_data(&mail, 1);
         }
-
     } catch (const PlatformException& err) {
         LoggerE("%s (%s)", (err.name()).c_str(), (err.message()).c_str());
         callback->setError(err.name(), err.message());
@@ -1046,6 +1045,14 @@ void EmailManager::updateMessages(MessagesCallbackUserData* callback)
             auto json = callback->getJson();
             picojson::object& obj = json->get<picojson::object>();
             obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
+
+            picojson::array array;
+            auto messages = callback->getMessages();
+            for (int i = 0 ; i < messages.size(); ++i) {
+                array.push_back(MessagingUtil::messageToJson(messages[i]));
+            }
+            obj[JSON_DATA] = picojson::value(array);
+
             PostQueue::getInstance().resolve(
                     obj.at(JSON_CALLBACK_ID).get<double>(),
                     json->serialize()

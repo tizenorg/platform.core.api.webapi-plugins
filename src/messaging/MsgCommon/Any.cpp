@@ -64,7 +64,7 @@ bool Any::toBool() const
     if (m_value.is<bool>()) {
         return m_value.get<bool>();
     } else {
-        return false;
+        return ("true" == this->toString());
     }
 }
 
