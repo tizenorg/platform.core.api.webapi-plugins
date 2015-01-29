@@ -63,6 +63,8 @@ function addTypeToFilter_(data)
 
     if (data instanceof tizen.AttributeFilter) {
         filter.filterType = "AttributeFilter";
+        //convert to string
+        filter.matchValue = String(filter.matchValue);
     } else if (data instanceof tizen.AttributeRangeFilter) {
         filter.filterType = "AttributeRangeFilter";
     } else if (data instanceof tizen.CompositeFilter) {
