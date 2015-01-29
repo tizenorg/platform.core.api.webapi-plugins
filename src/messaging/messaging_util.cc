@@ -60,6 +60,7 @@ const char* MESSAGE_BODY_ATTRIBUTE_MESSAGE_ID = "messageId";
 const char* MESSAGE_BODY_ATTRIBUTE_LOADED = "loaded";
 const char* MESSAGE_BODY_ATTRIBUTE_PLAIN_BODY = "plainBody";
 const char* MESSAGE_BODY_ATTRIBUTE_HTML_BODY = "htmlBody";
+const char* MESSAGE_BODY_ATTRIBUTE_INLINE_ATTACHMENTS = "inlineAttachments";
 
 const char* MESSAGE_ATTRIBUTE_MESSAGE_ATTACHMENTS = "attachments";
 const char* MESSAGE_ATTACHMENT_ATTRIBUTE_ID = "id";
@@ -285,6 +286,18 @@ picojson::value MessagingUtil::messageBodyToJson(std::shared_ptr<MessageBody> bo
     b[MESSAGE_BODY_ATTRIBUTE_LOADED] = picojson::value(body->getLoaded());
     b[MESSAGE_BODY_ATTRIBUTE_PLAIN_BODY] = picojson::value(body->getPlainBody());
     b[MESSAGE_BODY_ATTRIBUTE_HTML_BODY] = picojson::value(body->getHtmlBody());
+
+    std::vector<picojson::value> array;
+
+    auto vectorToAttachmentArray = [&array] (std::shared_ptr<MessageAttachment>& a)->void {
+        array.push_back(MessagingUtil::messageAttachmentToJson(a));
+    };
+    auto inlineAttachments = body->getInlineAttachments();
+    for_each(inlineAttachments.begin(), inlineAttachments.end(), vectorToAttachmentArray);
+
+    b[MESSAGE_BODY_ATTRIBUTE_INLINE_ATTACHMENTS] = picojson::value(array);
+    array.clear();
+
     picojson::value v(b);
     return v;
 }
@@ -363,7 +376,6 @@ picojson::value MessagingUtil::messageToJson(std::shared_ptr<Message> message)
 
     std::shared_ptr<MessageBody> body = message->getBody();
     o[MESSAGE_ATTRIBUTE_BODY] = MessagingUtil::messageBodyToJson(body);
-
 
     auto vectorToAttachmentArray = [&array] (std::shared_ptr<MessageAttachment>& a)->void {
         array.push_back(MessagingUtil::messageAttachmentToJson(a));
@@ -603,6 +615,17 @@ std::shared_ptr<MessageBody> MessagingUtil::jsonToMessageBody(const picojson::va
                     MESSAGE_BODY_ATTRIBUTE_MESSAGE_ID).c_str());
         body->setMessageId(messageId);
     }
+
+    AttachmentPtrVector inlineAttachments;
+    auto ma = data.at(MESSAGE_BODY_ATTRIBUTE_INLINE_ATTACHMENTS ).get<picojson::array>();
+
+    auto arrayVectorAttachmentConverter = [&inlineAttachments] (picojson::value& v)->void
+    {
+        inlineAttachments.push_back(jsonToMessageAttachment(v));
+    };
+
+    for_each(ma.begin(), ma.end(), arrayVectorAttachmentConverter);
+    body->setInlineAttachments(inlineAttachments);
 
     return body;
 }

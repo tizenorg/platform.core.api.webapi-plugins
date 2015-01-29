@@ -609,7 +609,7 @@ function MessageBody(data) {
             set: function (value) {
                 if (value instanceof InternalValues_) {
                     _internal.inlineAttachments = value.inlineAttachments;
-                } else {
+                } else if (T_.isArray(value)) {
                     _internal.inlineAttachments = value;
                 }
             },
