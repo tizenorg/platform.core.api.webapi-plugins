@@ -680,7 +680,7 @@ class Parser:
             pass
 
     def p_Attribute(self, p):
-        'Attribute : Inherit ReadOnly attribute Type identifier GetRaises SetRaises ";"'
+        'Attribute : Inherit ReadOnly attribute Type identifier GetRaises SetRaises Raises ";"'
         p[0] = XAttribute(p[5], p[4], p[1], p[2])
 
     def p_Inherit(self, p):
