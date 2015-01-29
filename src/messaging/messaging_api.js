@@ -19,40 +19,6 @@ var Property = {
     C: 1 << 2    // CONFIGURABLE
 }
 
-//TODO remove CommonFS when C++ filesystem will be available
-function CommonFS(){};
-CommonFS.cacheVirtualToReal = {
-        'downloads' : { path: '/opt/usr/media/Downloads'},
-        'documents' : { path: '/opt/usr/media/Documents'},
-        'music'     : { path: '/opt/usr/media/Sounds'},
-        'images'    : { path: '/opt/usr/media/Images'},
-        'videos'    : { path: '/opt/usr/media/Videos'},
-        'ringtones' : { path: '/opt/usr/share/settings/Ringtones'}
-};
-
-CommonFS.toRealPath = function (aPath) {
-    var _fileRealPath = '',
-        _uriPrefix = 'file://',
-        i;
-    if (aPath[0] != '/' && aPath.indexOf(_uriPrefix) != 0) {
-        //virtual path$
-        var _pathTokens = aPath.split('/');
-        if (this.cacheVirtualToReal[_pathTokens[0]] && (
-                this.cacheVirtualToReal[_pathTokens[0]].state === undefined ||
-                this.cacheVirtualToReal[_pathTokens[0]].state === 'MOUNTED')) {
-            _fileRealPath = this.cacheVirtualToReal[_pathTokens[0]].path;
-            for (i = 1; i < _pathTokens.length; ++i) {
-                _fileRealPath += '/' + _pathTokens[i];
-            }
-        } else {
-            _fileRealPath = _uriPrefix + aPath;
-        }
-    } else {
-        _fileRealPath = aPath;
-    }
-    return _fileRealPath;
-};
-
 function addTypeToFilter_(data)
 {
     var filter = {};
@@ -629,7 +595,7 @@ function MessageAttachment(first, second) {
         messageId: internalConstructor ? first.messageId : null,
         id: internalConstructor ? first.id : null,
         mimeType: internalConstructor ? first.mimeType : (undefined == second ? null : second),
-        filePath: internalConstructor ? CommonFS.toRealPath(first.filePath) : CommonFS.toRealPath(first),
+        filePath: internalConstructor ? first.filePath : first,
     };
 
     // messageId

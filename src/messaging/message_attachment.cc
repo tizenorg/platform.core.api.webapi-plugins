@@ -3,6 +3,8 @@
 // found in the LICENSE file.
 
 #include <ctype.h>
+#include <unordered_map>
+
 #include "message_attachment.h"
 
 #include "common/logger.h"
@@ -123,6 +125,22 @@ std::string MessageAttachment::getShortFileName() const
     return m_filePath.substr(pos + 1);
 }
 
+namespace {
+
+const std::unordered_map<std::string, std::string> virtualToReal = {
+    { "downloads", "/opt/usr/media/Downloads" },
+    { "documents", "/opt/usr/media/Documents" },
+    { "music"    , "/opt/usr/media/Sounds" },
+    { "images"   , "/opt/usr/media/Images" },
+    { "videos"   , "/opt/usr/media/Videos" },
+    { "ringtones", "/opt/usr/share/settings/Ringtones" },
+    { "camera"   , "/opt/usr/media/DCIM/Camera" }
+};
+
+const char PATH_SEPARATOR = '/';
+
+} // namespace
+
 void MessageAttachment::setFilePath(const std::string &value)
 {
     std::string tmp = value;
@@ -135,6 +153,21 @@ void MessageAttachment::setFilePath(const std::string &value)
     } else {
         m_filePath = value;
     }
+
+    if (PATH_SEPARATOR != m_filePath[0]) {
+        auto pos = m_filePath.find(PATH_SEPARATOR);
+
+        if (pos == std::string::npos) {
+            pos = m_filePath.length();
+        }
+
+        auto path = virtualToReal.find(m_filePath.substr(0, pos));
+
+        if (virtualToReal.end() != path) {
+            m_filePath = path->second + m_filePath.substr(pos);
+        }
+    }
+
     m_isFilePathSet = true;
 }
 
