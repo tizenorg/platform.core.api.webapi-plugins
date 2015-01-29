@@ -43,7 +43,9 @@
         'types.h',
         'types.cc',
         'tune_option.h',
-        'tune_option.cc'
+        'tune_option.cc',
+        'criteria_filter.h',
+        'criteria_filter.cc'
       ],
     },
   ],

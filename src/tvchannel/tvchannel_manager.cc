@@ -12,6 +12,7 @@
 #include "common/logger.h"
 #include "common/task-queue.h"
 #include <NavigationModeHelper.h>
+#include "tvchannel/criteria_filter.h"
 
 namespace extension {
 namespace tvchannel {
@@ -56,39 +57,43 @@ void TVChannelManager::tune(std::shared_ptr<TuneData> const& _pTuneData) {
         pCriteria->Fetch(CHANNEL_TYPE);
         pCriteria->Fetch(CHANNEL_NUMBER);
 
+        CriteriaFilter filter = CriteriaFilter(tvMode.serviceMode);
+
         if (tuneOption.isMajorSet()) {
             LOGD("MAJOR: %d", tuneOption.getMajor());
-            pCriteria->Where(MAJOR, static_cast<int>(tuneOption.getMajor()));
+            filter.filterWhere(MAJOR, static_cast<int>(tuneOption.getMajor()));
         }
         if (tuneOption.isMinorSet()) {
             LOGD("MINOR: %d", tuneOption.getMinor());
-            pCriteria->Where(MINOR, static_cast<int>(tuneOption.getMinor()));
+            filter.filterWhere(MINOR, static_cast<int>(tuneOption.getMinor()));
         }
         if (tuneOption.isPtcSet()) {
             LOGD("PTC: %d", tuneOption.getPtc());
-            pCriteria->Where(CHANNEL_NUMBER,
+            filter.filterWhere(CHANNEL_NUMBER,
                 static_cast<int>(tuneOption.getPtc()));
         }
         if (tuneOption.isOriginalNetworkIDSet()) {
             LOGD("ORIGINAL_NETWORK_ID: %d", tuneOption.getOriginalNetworkID());
-            pCriteria->Where(ORIGINAL_NETWORK_ID,
+            filter.filterWhere(ORIGINAL_NETWORK_ID,
                 static_cast<int>(tuneOption.getOriginalNetworkID()));
         }
         if (tuneOption.isProgramNumberSet()) {
             LOGD("PROGRAM_NUMBER: %d", tuneOption.getProgramNumber());
-            pCriteria->Where(PROGRAM_NUMBER,
+            filter.filterWhere(PROGRAM_NUMBER,
                 static_cast<int>(tuneOption.getProgramNumber()));
         }
         if (tuneOption.isSourceIDSet()) {
             LOGD("SOURCE_ID: %d", tuneOption.getSourceID());
-            pCriteria->Where(SOURCE_ID,
+            filter.filterWhere(SOURCE_ID,
                 static_cast<int>(tuneOption.getSourceID()));
         }
         if (tuneOption.isTransportStreamIDSet()) {
             LOGD("TRANSPORT_STREAM_ID: %d", tuneOption.getTransportStreamID());
-            pCriteria->Where(TRANSPORT_STREAM_ID,
+            filter.filterWhere(TRANSPORT_STREAM_ID,
                 static_cast<int>(tuneOption.getTransportStreamID()));
         }
+
+        filter.getFilteredCriteria(pCriteria);
 
         TCServiceData foundService;
         int ret = getService()->FindService(*pCriteria, foundService);
@@ -455,8 +460,12 @@ void TVChannelManager::findChannel(
         criteria->Fetch(TRANSPORT_STREAM_ID);
         criteria->Fetch(ORIGINAL_NETWORK_ID);
         criteria->Fetch(LCN);
-        criteria->Where(MAJOR, static_cast<int>(data->major));
-        criteria->Where(MINOR, static_cast<int>(data->minor));
+
+        CriteriaFilter filter = CriteriaFilter(
+            getTvMode(navigation).serviceMode);
+        filter.filterWhere(MAJOR, static_cast<int>(data->major));
+        filter.filterWhere(MINOR, static_cast<int>(data->minor));
+        filter.getFilteredCriteria(criteria);
 
         std::list<TCServiceData*> resultServices;
         int ret = m_pService->FindServiceList(*criteria, resultServices);
