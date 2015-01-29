@@ -562,24 +562,7 @@ std::shared_ptr<Message> MessagingUtil::jsonToMessage(const picojson::value& jso
     auto arrayVectorAttachmentConverter = [&attachments] (picojson::value& v)->void
     {
         std::shared_ptr<MessageAttachment> attachment =
-                std::shared_ptr<MessageAttachment>(new MessageAttachment());
-
-        auto obj = v.get<picojson::object>();
-        int messageAttachmentId = std::atoi(MessagingUtil::getValueFromJSONObject<std::string>(obj,
-                MESSAGE_ATTACHMENT_ATTRIBUTE_ID).c_str());
-        attachment->setId(messageAttachmentId);
-
-        int messageId = std::atoi(MessagingUtil::getValueFromJSONObject<std::string>(obj,
-                MESSAGE_ATTACHMENT_ATTRIBUTE_MESSAGE_ID).c_str());
-        attachment->setMessageId(messageId);
-
-        std::string mimeType = MessagingUtil::getValueFromJSONObject<std::string>(obj,
-                MESSAGE_ATTACHMENT_ATTRIBUTE_MIME_TYPE);
-        attachment->setMimeType(mimeType);
-
-        std::string filePath = MessagingUtil::getValueFromJSONObject<std::string>(obj,
-                MESSAGE_ATTACHMENT_ATTRIBUTE_FILE_PATH);
-        attachment->setFilePath(filePath);
+                MessagingUtil::jsonToMessageAttachment(v);
 
         attachments.push_back(attachment);
     };
@@ -815,10 +798,10 @@ std::shared_ptr<MessageAttachment> MessagingUtil::jsonToMessageAttachment(const 
     LoggerD("Entered");
 
     picojson::object data = json.get<picojson::object>();
-    int attachmentId =
-            static_cast<int>(getValueFromJSONObject<double>(data, MESSAGE_ATTACHMENT_ATTRIBUTE_ID));
-    int messageId = static_cast<int>(
-            getValueFromJSONObject<double>(data, MESSAGE_ATTACHMENT_ATTRIBUTE_MESSAGE_ID));
+    int attachmentId = std::atoi(getValueFromJSONObject<std::string>(data,
+            MESSAGE_ATTACHMENT_ATTRIBUTE_ID).c_str());
+    int messageId = std::atoi(getValueFromJSONObject<std::string>(data,
+            MESSAGE_ATTACHMENT_ATTRIBUTE_MESSAGE_ID).c_str());
     std::string mimeType =
             getValueFromJSONObject<std::string>(data, MESSAGE_ATTACHMENT_ATTRIBUTE_MIME_TYPE);
     std::string filePath =

@@ -145,6 +145,9 @@ void Message::setId(int id)
     m_id = id;
     m_id_set = true;
     m_body->setMessageId(m_id);
+    for (auto& att : m_attachments) {
+        att->setMessageId(m_id);
+    }
 }
 
 void Message::setConversationId(int id)
@@ -515,6 +518,9 @@ void addSingleEmailAttachment(std::shared_ptr<Message> message,
     tmp->attachment_name = strdup(att->getShortFileName().c_str());
     tmp->attachment_path  = strdup(std::string(dirPath + "/"
             + att->getShortFileName()).c_str());
+    if (att->isMimeTypeSet()) {
+        tmp->attachment_mime_type = strdup(att->getMimeType().c_str());
+    }
     tmp->save_status = 1;
     tmp->inline_content_status = attType;
 
