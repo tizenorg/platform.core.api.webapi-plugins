@@ -86,15 +86,7 @@ function {{iface.name}}(
     {%- endfor -%}
     {%- endif -%}) {
   // constructor of {{iface.name}}
-  {% if iface.constructor %}
-  var nativeParam = {
-    {% for arg in iface.constructor.primitiveArgs %}
-    '{{arg.name}}': args.{{arg.name}}{% if not loop.last %},{% endif %}
-
-    {% endfor %}
-  };
-  var syncResult = callNative('{{iface.name}}_constructor', nativeParam);
-  {% endif %}
+  validator_.isConstructorCall(this, {{iface.name}});
 
   {% for attribute in iface.getTypes('Attribute') %}
     {% if attribute.existIn == 'ctor' %}
