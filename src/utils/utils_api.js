@@ -236,7 +236,14 @@ Converter.prototype.toString = function(val, nullable) {
 };
 
 function _toPlatformObject(val, types) {
+  var v;
   var t;
+  if (_type.isArray(val)) {
+    v = val;
+  } else {
+    v = [val];
+  }
+
   if (_type.isArray(types)) {
     t = types;
   } else {
@@ -244,7 +251,9 @@ function _toPlatformObject(val, types) {
   }
   var match = false;
   for (var i = 0; i < t.length; ++i) {
-    match = match || (val instanceof t[i]);
+    for (var j = 0; j < v.length; ++j) {
+      match = match || (v[j] instanceof t[i]);
+    }
   }
   if (match) {
     return val;
