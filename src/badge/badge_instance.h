@@ -31,7 +31,7 @@ class BadgeInstance : public common::ParsedInstance {
    * {status: 'success'}
    * @endcode
    */
-  void setBadgeCount(const JsonValue& args, JsonObject& out);
+  void BadgeManagerSetBadgeCount(const JsonValue& args, JsonObject& out);
 
   /**
    * Signature: @code void getBadgeCount(appId);
@@ -45,10 +45,9 @@ class BadgeInstance : public common::ParsedInstance {
    * {status: 'success', result: {count}}
    * @endcode
    */
-  void getBadgeCount(const JsonValue& args, JsonObject& out);
-  void addChangeListener(const JsonValue& args, JsonObject& out);
-  void removeChangeListener(const JsonValue& args, JsonObject& out);
-
+  void BadgeManagerGetBadgeCount(const JsonValue& args, JsonObject& out);
+  void BadgeManagerAddChangeListener(const JsonValue& args, JsonObject& out);
+  void BadgeManagerRemoveChangeListener(const JsonValue& args, JsonObject& out);
 };
 }  // namespace badge
 }  // namespace extension

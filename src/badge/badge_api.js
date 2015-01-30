@@ -17,7 +17,7 @@ var _badgeListenerRegistered = false;
 var _badgeCallbackMap = {};
 var _currentWatchId = 1;
 var _getNextWatchId = function() {
- return _currentWatchId++;
+  return _currentWatchId++;
 };
 
 var _badgeChangeListener = function(result) {
@@ -27,7 +27,9 @@ var _badgeChangeListener = function(result) {
                              result.appId, converter_.toLong(result.count));
     }
   }
-}
+};
+
+
 
 /**
  * This class provides functions to request and release badge resource.
@@ -39,26 +41,25 @@ function BadgeManager() {
   });
 }
 
+
 /**
  * Sets the badge count for the designated application.
- * @param {!ApplicationId} ID of the application to update the badge
- * @param {!number} Number to display as the badge on the application icon
  */
-BadgeManager.prototype.setBadgeCount = function () {
-  if(arguments.length < 2)
+BadgeManager.prototype.setBadgeCount = function() {
+  if (arguments.length < 2)
     throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR,
-                    'incorrect number of arguments');
+        'incorrect number of arguments');
 
   var args = validator_.validateArgs(arguments, [
     {name: 'appId', type: types_.STRING},
     {name: 'count', type: types_.LONG}
   ]);
 
-  if(args.count < 0)
+  if (args.count < 0)
     throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR,
                                     'Count parameter is negative!');
 
-  var ret = native_.callSync('Badge_setBadgeCount', {
+  var ret = native_.callSync('BadgeManager_setBadgeCount', {
     appId: args.appId,
     count: args.count
   });
@@ -66,23 +67,23 @@ BadgeManager.prototype.setBadgeCount = function () {
   if (native_.isFailure(ret)) {
     throw native_.getErrorObject(ret);
   }
-}
+};
+
 
 /**
  * Gets the badge count for the designated application.
- * @param {!ApplicationId} ID of the designated application
  * @return {number} long Count of the badge
  */
-BadgeManager.prototype.getBadgeCount = function () {
-  if(arguments.length < 1)
+BadgeManager.prototype.getBadgeCount = function() {
+  if (arguments.length < 1)
     throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR,
                                     'incorrect number of arguments');
   var args = validator_.validateArgs(arguments, [
     {name: 'appId', type: types_.STRING}
   ]);
 
-  var ret = native_.callSync('Badge_getBadgeCount', {
-    appId: args.appId,
+  var ret = native_.callSync('BadgeManager_getBadgeCount', {
+    appId: args.appId
   });
 
   if (native_.isFailure(ret)) {
@@ -90,17 +91,16 @@ BadgeManager.prototype.getBadgeCount = function () {
   }
 
   return parseInt(native_.getResultObject(ret));
-}
+};
+
 
 /**
  * Gets the badge count for the designated application.
- * @param {!ApplicationId} Array of the ID of the designated application
- * @param {!function} Callback method to be invoked when a badge number change notification is received
  */
-BadgeManager.prototype.addChangeListener = function () {
-  if(arguments.length < 2)
+BadgeManager.prototype.addChangeListener = function() {
+  if (arguments.length < 2)
     throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
-                    'incorrect number of arguments');
+        'incorrect number of arguments');
   var args = validator_.validateArgs(arguments, [
     {
       name: 'appIdList',
@@ -117,30 +117,30 @@ BadgeManager.prototype.addChangeListener = function () {
     }
   ]);
 
-  var result = native_.callSync('Badge_addChangeListener', args);
+  var result = native_.callSync('BadgeManager_addChangeListener', args);
 
   if (native_.isFailure(result)) {
     throw native_.getErrorObject(result);
   }
-  if(!_badgeListenerRegistered) {
+  if (!_badgeListenerRegistered) {
     _badgeListenerRegistered = true;
     native_.addListener('BadgeChangeListener', _badgeChangeListener);
   }
   for (var i = 0; i < args.appIdList.length; i++) {
     if (!_badgeCallbackMap.hasOwnProperty(args.appIdList[i])) {
       _badgeCallbackMap[args.appIdList[i]] = [];
-     }
+    }
     _badgeCallbackMap[args.appIdList[i]].push(args.successCallback);
   }
   return;
-}
+};
+
 
 /**
  * Gets the badge count for the designated application.
- * @param {!ApplicationId} Array of the ID of the designated application
  */
 BadgeManager.prototype.removeChangeListener = function() {
-  if(arguments.length < 1)
+  if (arguments.length < 1)
     throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
                                     'incorrect number of arguments');
 
@@ -164,9 +164,9 @@ BadgeManager.prototype.removeChangeListener = function() {
     _badgeListenerRegistered = false;
   }
 
-  var result = native_.callSync('Badge_removeChangeListener', args);
+  var result = native_.callSync('BadgeManager_removeChangeListener', args);
   if (native_.isFailure(result))
     throw native_.getErrorObject(result);
-}
+};
 
 exports = new BadgeManager();
