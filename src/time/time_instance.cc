@@ -56,21 +56,25 @@ TimeInstance::TimeInstance() {
 #define REGISTER_ASYNC(c, x) \
   RegisterHandler(c, std::bind(&TimeInstance::x, this, _1, _2));
 
-  REGISTER_SYNC("Time_getAvailableTimeZones", Time_getAvailableTimeZones);
-  REGISTER_SYNC("Time_getDSTTransition", Time_getDSTTransition);
-  REGISTER_SYNC("Time_getLocalTimeZone", Time_getLocalTimeZone);
-  REGISTER_SYNC("Time_getTimeFormat", Time_getTimeFormat);
-  REGISTER_SYNC("Time_getDateFormat", Time_getDateFormat);
-  REGISTER_SYNC("Time_getTimeZoneOffset", Time_getTimeZoneOffset);
-  REGISTER_SYNC("Time_getTimeZoneAbbreviation", Time_getTimeZoneAbbreviation);
-  REGISTER_SYNC("Time_isDST", Time_isDST);
-  REGISTER_SYNC("Time_toString", Time_toString);
-  REGISTER_SYNC("Time_toDateString", Time_toDateString);
-  REGISTER_SYNC("Time_toTimeString", Time_toTimeString);
-  REGISTER_SYNC("Time_setDateTimeChangeListener", Time_setDateTimeChangeListener);
-  REGISTER_SYNC("Time_unsetDateTimeChangeListener", Time_unsetDateTimeChangeListener);
-  REGISTER_SYNC("Time_setTimezoneChangeListener", Time_setTimezoneChangeListener);
-  REGISTER_SYNC("Time_unsetTimezoneChangeListener", Time_unsetTimezoneChangeListener);
+  REGISTER_SYNC("Time_getAvailableTimeZones", TimeGetAvailableTimeZones);
+  REGISTER_SYNC("Time_getDSTTransition", TimeGetDSTTransition);
+  REGISTER_SYNC("Time_getLocalTimeZone", TimeGetLocalTimeZone);
+  REGISTER_SYNC("Time_getTimeFormat", TimeGetTimeFormat);
+  REGISTER_SYNC("Time_getDateFormat", TimeGetDateFormat);
+  REGISTER_SYNC("Time_getTimeZoneOffset", TimeGetTimeZoneOffset);
+  REGISTER_SYNC("Time_getTimeZoneAbbreviation", TimeGetTimeZoneAbbreviation);
+  REGISTER_SYNC("Time_isDST", TimeIsDST);
+  REGISTER_SYNC("Time_toString", TimeToString);
+  REGISTER_SYNC("Time_toDateString", TimeToDateString);
+  REGISTER_SYNC("Time_toTimeString", TimeToTimeString);
+  REGISTER_SYNC("Time_setDateTimeChangeListener",
+                TimeSetDateTimeChangeListener);
+  REGISTER_SYNC("Time_unsetDateTimeChangeListener",
+                TimeUnsetDateTimeChangeListener);
+  REGISTER_SYNC("Time_setTimezoneChangeListener",
+                TimeSetTimezoneChangeListener);
+  REGISTER_SYNC("Time_unsetTimezoneChangeListener",
+                TimeUnsetTimezoneChangeListener);
 
 #undef REGISTER_SYNC
 #undef REGISTER_ASYNC
@@ -81,8 +85,8 @@ static std::string GetDefaultTimezone();
 
 TimeInstance::~TimeInstance() {}
 
-void TimeInstance::Time_getLocalTimeZone(const JsonValue& /*args*/,
-                                         JsonObject& out) {
+void TimeInstance::TimeGetLocalTimeZone(const JsonValue& /*args*/,
+                                        JsonObject& out) {
   UnicodeString local_timezone;
   TimeZone::createDefault()->getID(local_timezone);
 
@@ -92,8 +96,8 @@ void TimeInstance::Time_getLocalTimeZone(const JsonValue& /*args*/,
   ReportSuccess(JsonValue(localtz), out);
 }
 
-void TimeInstance::Time_getAvailableTimeZones(const JsonValue& /*args*/,
-                                              JsonObject& out) {
+void TimeInstance::TimeGetAvailableTimeZones(const JsonValue& /*args*/,
+                                             JsonObject& out) {
   UErrorCode ec = U_ZERO_ERROR;
   std::unique_ptr<StringEnumeration> timezones(TimeZone::createEnumeration());
   int32_t count = timezones->count(ec);
@@ -117,8 +121,8 @@ void TimeInstance::Time_getAvailableTimeZones(const JsonValue& /*args*/,
   ReportSuccess(JsonValue(a), out);
 }
 
-void TimeInstance::Time_getTimeZoneOffset(const JsonValue& args,
-                                          JsonObject& out) {
+void TimeInstance::TimeGetTimeZoneOffset(const JsonValue& args,
+                                         JsonObject& out) {
   std::unique_ptr<UnicodeString> id(
       new UnicodeString(args.get("timezone").to_str().c_str()));
   UDate dateInMs = strtod(args.get("value").to_str().c_str(), NULL);
@@ -152,8 +156,8 @@ void TimeInstance::Time_getTimeZoneOffset(const JsonValue& args,
   ReportSuccess(JsonValue(offsetStr.str()), out);
 }
 
-void TimeInstance::Time_getTimeZoneAbbreviation(const JsonValue& args,
-                                                JsonObject& out) {
+void TimeInstance::TimeGetTimeZoneAbbreviation(const JsonValue& args,
+                                               JsonObject& out) {
   std::unique_ptr<UnicodeString> id(
       new UnicodeString(args.get("timezone").to_str().c_str()));
   UDate dateInMs = strtod(args.get("value").to_str().c_str(), NULL);
@@ -198,7 +202,7 @@ void TimeInstance::Time_getTimeZoneAbbreviation(const JsonValue& args,
   ReportSuccess(JsonValue(abbreviation), out);
 }
 
-void TimeInstance::Time_isDST(const JsonValue& args, JsonObject& out) {
+void TimeInstance::TimeIsDST(const JsonValue& args, JsonObject& out) {
   std::unique_ptr<UnicodeString> id(
       new UnicodeString(args.get("timezone").to_str().c_str()));
   UDate dateInMs = strtod(args.get("value").to_str().c_str(), NULL);
@@ -226,8 +230,8 @@ void TimeInstance::Time_isDST(const JsonValue& args, JsonObject& out) {
   ReportSuccess(JsonValue{static_cast<bool>(cal->inDaylightTime(ec))}, out);
 }
 
-void TimeInstance::Time_getDSTTransition(const JsonValue& args,
-                                         JsonObject& out) {
+void TimeInstance::TimeGetDSTTransition(const JsonValue& args,
+                                        JsonObject& out) {
   std::unique_ptr<UnicodeString> id(
       new UnicodeString(args.get("timezone").to_str().c_str()));
   std::string trans = args.get("trans").to_str();
@@ -255,7 +259,7 @@ void TimeInstance::Time_getDSTTransition(const JsonValue& args,
     ReportError(out);
 }
 
-void TimeInstance::Time_toString(const JsonValue& args, JsonObject& out) {
+void TimeInstance::TimeToString(const JsonValue& args, JsonObject& out) {
   JsonValue val;
   if (!this->toStringByFormat(args, val, TimeInstance::DATETIME_FORMAT)) {
     ReportError(out);
@@ -265,7 +269,7 @@ void TimeInstance::Time_toString(const JsonValue& args, JsonObject& out) {
   ReportSuccess(val, out);
 }
 
-void TimeInstance::Time_toDateString(const JsonValue& args, JsonObject& out) {
+void TimeInstance::TimeToDateString(const JsonValue& args, JsonObject& out) {
   JsonValue val;
   if (!this->toStringByFormat(args, val, TimeInstance::DATE_FORMAT)) {
     ReportError(out);
@@ -275,7 +279,7 @@ void TimeInstance::Time_toDateString(const JsonValue& args, JsonObject& out) {
   ReportSuccess(val, out);
 }
 
-void TimeInstance::Time_toTimeString(const JsonValue& args, JsonObject& out) {
+void TimeInstance::TimeToTimeString(const JsonValue& args, JsonObject& out) {
   JsonValue val;
   if (!this->toStringByFormat(args, val, TimeInstance::TIME_FORMAT)) {
     ReportError(out);
@@ -319,8 +323,8 @@ bool TimeInstance::toStringByFormat(const JsonValue& args, JsonValue& out,
   return true;
 }
 
-void TimeInstance::Time_getTimeFormat(const JsonValue& /*args*/,
-                                      JsonObject& out) {
+void TimeInstance::TimeGetTimeFormat(const JsonValue& /*args*/,
+                                     JsonObject& out) {
   UnicodeString timeFormat = getDateTimeFormat(TimeInstance::TIME_FORMAT, true);
 
   timeFormat = timeFormat.findAndReplace("H", "h");
@@ -336,13 +340,13 @@ void TimeInstance::Time_getTimeFormat(const JsonValue& /*args*/,
   ReportSuccess(JsonValue(result), out);
 }
 
-void TimeInstance::Time_getDateFormat(const JsonValue& args, JsonObject& out) {
+void TimeInstance::TimeGetDateFormat(const JsonValue& args, JsonObject& out) {
   bool shortformat = args.get("shortformat").evaluate_as_boolean();
 
-  UnicodeString time_format = getDateTimeFormat(
-      (shortformat ? DateTimeFormatType::DATE_SHORT_FORMAT :
-                     DateTimeFormatType::DATE_FORMAT),
-      true);
+  UnicodeString time_format =
+      getDateTimeFormat((shortformat ? DateTimeFormatType::DATE_SHORT_FORMAT
+                                     : DateTimeFormatType::DATE_FORMAT),
+                        true);
 
   time_format = time_format.findAndReplace("E", "D");
 
@@ -547,26 +551,26 @@ static void OnTimeChangedCallback(keynode_t* /*node*/, void* /*event_ptr*/) {
   PostMessage(kDateTimeListenerId);
 }
 
-void TimeInstance::Time_setDateTimeChangeListener(const JsonValue& /*args*/,
-                                                  JsonObject& out) {
+void TimeInstance::TimeSetDateTimeChangeListener(const JsonValue& /*args*/,
+                                                 JsonObject& out) {
   g_time_util_listeners_obj.RegisterVconfCallback(kTimeChange);
   ReportSuccess(out);
 }
 
-void TimeInstance::Time_unsetDateTimeChangeListener(const JsonValue& /*args*/,
-                                                    JsonObject& out) {
+void TimeInstance::TimeUnsetDateTimeChangeListener(const JsonValue& /*args*/,
+                                                   JsonObject& out) {
   g_time_util_listeners_obj.UnregisterVconfCallback(kTimeChange);
   ReportSuccess(out);
 }
 
-void TimeInstance::Time_setTimezoneChangeListener(const JsonValue& /*args*/,
-                                                  JsonObject& out) {
+void TimeInstance::TimeSetTimezoneChangeListener(const JsonValue& /*args*/,
+                                                 JsonObject& out) {
   g_time_util_listeners_obj.RegisterVconfCallback(kTimezoneChange);
   ReportSuccess(out);
 }
 
-void TimeInstance::Time_unsetTimezoneChangeListener(const JsonValue& /*args*/,
-                                                    JsonObject& out) {
+void TimeInstance::TimeUnsetTimezoneChangeListener(const JsonValue& /*args*/,
+                                                   JsonObject& out) {
   g_time_util_listeners_obj.UnregisterVconfCallback(kTimezoneChange);
   ReportSuccess(out);
 }

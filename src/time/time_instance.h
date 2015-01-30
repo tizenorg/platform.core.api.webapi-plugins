@@ -34,21 +34,21 @@ class TimeInstance : public common::ParsedInstance {
     DATETIME_FORMAT
   };
 
-  void Time_getAvailableTimeZones(const JsonValue& args, JsonObject& out);
-  void Time_getDSTTransition(const JsonValue& args, JsonObject& out);
-  void Time_getLocalTimeZone(const JsonValue& args, JsonObject& out);
-  void Time_getTimeFormat(const JsonValue& args, JsonObject& out);
-  void Time_getDateFormat(const JsonValue& args, JsonObject& out);
-  void Time_getTimeZoneOffset(const JsonValue& args, JsonObject& out);
-  void Time_getTimeZoneAbbreviation(const JsonValue& args, JsonObject& out);
-  void Time_isDST(const JsonValue& args, JsonObject& out);
-  void Time_toString(const JsonValue& args, JsonObject& out);
-  void Time_toDateString(const JsonValue& args, JsonObject& out);
-  void Time_toTimeString(const JsonValue& args, JsonObject& out);
-  void Time_setDateTimeChangeListener(const JsonValue& args, JsonObject& out);
-  void Time_unsetDateTimeChangeListener(const JsonValue& args, JsonObject& out);
-  void Time_setTimezoneChangeListener(const JsonValue& args, JsonObject& out);
-  void Time_unsetTimezoneChangeListener(const JsonValue& args, JsonObject& out);
+  void TimeGetAvailableTimeZones(const JsonValue& args, JsonObject& out);
+  void TimeGetDSTTransition(const JsonValue& args, JsonObject& out);
+  void TimeGetLocalTimeZone(const JsonValue& args, JsonObject& out);
+  void TimeGetTimeFormat(const JsonValue& args, JsonObject& out);
+  void TimeGetDateFormat(const JsonValue& args, JsonObject& out);
+  void TimeGetTimeZoneOffset(const JsonValue& args, JsonObject& out);
+  void TimeGetTimeZoneAbbreviation(const JsonValue& args, JsonObject& out);
+  void TimeIsDST(const JsonValue& args, JsonObject& out);
+  void TimeToString(const JsonValue& args, JsonObject& out);
+  void TimeToDateString(const JsonValue& args, JsonObject& out);
+  void TimeToTimeString(const JsonValue& args, JsonObject& out);
+  void TimeSetDateTimeChangeListener(const JsonValue& args, JsonObject& out);
+  void TimeUnsetDateTimeChangeListener(const JsonValue& args, JsonObject& out);
+  void TimeSetTimezoneChangeListener(const JsonValue& args, JsonObject& out);
+  void TimeUnsetTimezoneChangeListener(const JsonValue& args, JsonObject& out);
 
   UnicodeString getDateTimeFormat(DateTimeFormatType type, bool bLocale);
   bool toStringByFormat(const JsonValue& args, JsonValue& out,
