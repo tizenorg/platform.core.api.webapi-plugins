@@ -26,18 +26,19 @@ namespace Person {
 using namespace common;
 
 static const PersonPropertyMap personPropertyMap = {
-    {"id",                      { _contacts_person.id,                  kPrimitiveTypeId } },
-    {"displayName",             { _contacts_person.display_name,        kPrimitiveTypeString } },
-    {"contactCount",            { _contacts_person.link_count,          kPrimitiveTypeLong } },
-    {"hasPhoneNumber",          { _contacts_person.has_phonenumber,     kPrimitiveTypeBoolean } },
-    {"hasEmail",                { _contacts_person.has_email,           kPrimitiveTypeBoolean } },
-    {"isFavorite",              { _contacts_person.is_favorite,         kPrimitiveTypeBoolean } },
-    {"photoURI",                { _contacts_person.image_thumbnail_path,kPrimitiveTypeString } },
-    {"ringtoneURI",             { _contacts_person.ringtone_path,       kPrimitiveTypeString } },
-    {"displayContactId",        { _contacts_person.display_contact_id,  kPrimitiveTypeId } },
-};
+    {"id", {_contacts_person.id, kPrimitiveTypeId}},
+    {"displayName", {_contacts_person.display_name, kPrimitiveTypeString}},
+    {"contactCount", {_contacts_person.link_count, kPrimitiveTypeLong}},
+    {"hasPhoneNumber",
+     {_contacts_person.has_phonenumber, kPrimitiveTypeBoolean}},
+    {"hasEmail", {_contacts_person.has_email, kPrimitiveTypeBoolean}},
+    {"isFavorite", {_contacts_person.is_favorite, kPrimitiveTypeBoolean}},
+    {"photoURI", {_contacts_person.image_thumbnail_path, kPrimitiveTypeString}},
+    {"ringtoneURI", {_contacts_person.ringtone_path, kPrimitiveTypeString}},
+    {"displayContactId",
+     {_contacts_person.display_contact_id, kPrimitiveTypeId}}, };
 
-void Person_link(const JsonObject& args, JsonObject&) {
+void PersonLink(const JsonObject& args, JsonObject&) {
   ContactUtil::CheckDBConnection();
 
   long id = common::stol(FromJson<JsonString>(args, "id"));
@@ -59,7 +60,7 @@ void Person_link(const JsonObject& args, JsonObject&) {
   ContactUtil::ErrorChecker(err, "Error during executing person link()");
 }
 
-void Person_unlink(const JsonObject& args, JsonObject& out) {
+void PersonUnlink(const JsonObject& args, JsonObject& out) {
   ContactUtil::CheckDBConnection();
 
   long contact_id = common::stol(FromJson<JsonString>(args, "id"));
@@ -111,7 +112,7 @@ void Person_unlink(const JsonObject& args, JsonObject& out) {
   contacts_record = nullptr;
 }
 
-const PersonProperty& PersonProperty_fromString(const std::string& name) {
+const PersonProperty& PersonPropertyFromString(const std::string& name) {
   auto iter = personPropertyMap.find(name);
   if (iter == personPropertyMap.end()) {
     LoggerE("Invalid property name (not in map): %s", name.c_str());

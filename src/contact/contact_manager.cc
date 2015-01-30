@@ -37,22 +37,22 @@ const char* kTokenDelimiter = " ,:";
 
 using namespace common;
 
-void ContactManager_getAddressBooks(const JsonObject &args, JsonArray &out) {
+void ContactManagerGetAddressBooks(const JsonObject& args, JsonArray& out) {
   LoggerD("entered");
 
   ContactUtil::CheckDBConnection();
 
   contacts_list_h address_book_list = nullptr;
 
-  int error_code = contacts_db_get_all_records(_contacts_address_book._uri, 0, 0,
-      &address_book_list);
+  int error_code = contacts_db_get_all_records(_contacts_address_book._uri, 0,
+                                               0, &address_book_list);
   if (CONTACTS_ERROR_NONE != error_code) {
     LoggerE("Fail to get address book list, error: %d", error_code);
     throw UnknownException("Fail to get address book list");
   }
 
-  ContactUtil::ContactsListHPtr contacts_list_ptr(&address_book_list,
-      ContactUtil::ContactsListDeleter);
+  ContactUtil::ContactsListHPtr contacts_list_ptr(
+      &address_book_list, ContactUtil::ContactsListDeleter);
 
   int record_count = 0;
   error_code = contacts_list_get_count(*contacts_list_ptr, &record_count);
@@ -69,7 +69,8 @@ void ContactManager_getAddressBooks(const JsonObject &args, JsonArray &out) {
 
   for (unsigned int i = 0; i < record_count; i++) {
     contacts_record_h contacts_record = nullptr;
-    error_code = contacts_list_get_current_record_p(*contacts_list_ptr, &contacts_record);
+    error_code = contacts_list_get_current_record_p(*contacts_list_ptr,
+                                                    &contacts_record);
 
     if (CONTACTS_ERROR_NONE != error_code) {
       LoggerW("Fail to get address book record");
@@ -79,80 +80,92 @@ void ContactManager_getAddressBooks(const JsonObject &args, JsonArray &out) {
     int id = 0;
     int account_id = 0;
     int mode = 0;
-    char *name = nullptr;
-    ContactUtil::GetIntFromRecord(contacts_record, _contacts_address_book.id, &id);
-    ContactUtil::GetIntFromRecord(contacts_record, _contacts_address_book.account_id, &account_id);
-    ContactUtil::GetIntFromRecord(contacts_record, _contacts_address_book.mode, &mode);
-    ContactUtil::GetStrFromRecord(contacts_record, _contacts_address_book.name, &name);
+    char* name = nullptr;
+    ContactUtil::GetIntFromRecord(contacts_record, _contacts_address_book.id,
+                                  &id);
+    ContactUtil::GetIntFromRecord(
+        contacts_record, _contacts_address_book.account_id, &account_id);
+    ContactUtil::GetIntFromRecord(contacts_record, _contacts_address_book.mode,
+                                  &mode);
+    ContactUtil::GetStrFromRecord(contacts_record, _contacts_address_book.name,
+                                  &name);
 
     JsonValue single = JsonValue(JsonObject());
-    JsonObject &single_obj = single.get<JsonObject>();
+    JsonObject& single_obj = single.get<JsonObject>();
 
     single_obj["id"] = JsonValue(std::to_string(id));
     single_obj["accountId"] = JsonValue(static_cast<double>(account_id));
     single_obj["name"] = JsonValue(name);
-    single_obj["readOnly"] = JsonValue(CONTACTS_ADDRESS_BOOK_MODE_READONLY == mode);
+    single_obj["readOnly"] =
+        JsonValue(CONTACTS_ADDRESS_BOOK_MODE_READONLY == mode);
     out.push_back(single);
 
     contacts_list_next(*contacts_list_ptr);
   }
 }
 
-void ContactManager_getAddressBook(const JsonObject& args, JsonObject& out) {
+void ContactManagerGetAddressBook(const JsonObject& args, JsonObject& out) {
   ContactUtil::CheckDBConnection();
   long address_book_id;
   try {
     address_book_id = common::stol(FromJson<JsonString>(args, "addressBookId"));
-  } catch (const common::InvalidValuesException&) {
+  }
+  catch (const common::InvalidValuesException&) {
     throw common::NotFoundException("Invalid id");
   }
 
   contacts_record_h contacts_record;
   int error_code = contacts_db_get_record(_contacts_address_book._uri,
-      static_cast<int>(address_book_id), &contacts_record);
+                                          static_cast<int>(address_book_id),
+                                          &contacts_record);
   if (CONTACTS_ERROR_NONE != error_code || nullptr == contacts_record) {
     LoggerE("Fail to get addressbook record, error code: %d", error_code);
     throw NotFoundException("Fail to get address book with given id");
   }
 
-  ContactUtil::ContactsRecordHPtr contacts_record_ptr(&contacts_record,
-      ContactUtil::ContactsDeleter);
+  ContactUtil::ContactsRecordHPtr contacts_record_ptr(
+      &contacts_record, ContactUtil::ContactsDeleter);
 
   int account_id;
-  ContactUtil::GetIntFromRecord(contacts_record, _contacts_address_book.account_id, &account_id);
+  ContactUtil::GetIntFromRecord(contacts_record,
+                                _contacts_address_book.account_id, &account_id);
 
   int mode;
-  ContactUtil::GetIntFromRecord(contacts_record, _contacts_address_book.mode, &mode);
+  ContactUtil::GetIntFromRecord(contacts_record, _contacts_address_book.mode,
+                                &mode);
 
   char* name;
-  ContactUtil::GetStrFromRecord(contacts_record, _contacts_address_book.name, &name);
+  ContactUtil::GetStrFromRecord(contacts_record, _contacts_address_book.name,
+                                &name);
 
   out.insert(std::make_pair("accountId", static_cast<double>(account_id)));
   out.insert(std::make_pair("name", std::string(name)));
-  out.insert(std::make_pair("readOnly", (CONTACTS_ADDRESS_BOOK_MODE_READONLY == mode)));
+  out.insert(std::make_pair("readOnly",
+                            (CONTACTS_ADDRESS_BOOK_MODE_READONLY == mode)));
 }
 
 namespace {
-void ContactManager_get_internal(int person_id, JsonObject* out) {
+void ContactManagerGetInternal(int person_id, JsonObject* out) {
   contacts_record_h contacts_record = nullptr;
 
-  int error_code = contacts_db_get_record(_contacts_person._uri, person_id, &contacts_record);
+  int error_code = contacts_db_get_record(_contacts_person._uri, person_id,
+                                          &contacts_record);
   if (CONTACTS_ERROR_NONE != error_code) {
     LoggerE("Person with id: %d, not found, error: %d", person_id, error_code);
     throw NotFoundException("Person not found");
   }
 
-  ContactUtil::ContactsRecordHPtr contacts_record_ptr(&contacts_record,
-      ContactUtil::ContactsDeleter);
+  ContactUtil::ContactsRecordHPtr contacts_record_ptr(
+      &contacts_record, ContactUtil::ContactsDeleter);
 
   ContactUtil::ImportPersonFromContactsRecord(contacts_record, out);
 }
 }
 
-void ContactManager_addAddressBook(const JsonObject &args, JsonObject &out) {
+void ContactManagerAddAddressBook(const JsonObject& args, JsonObject& out) {
   ContactUtil::CheckDBConnection();
 
-  const JsonObject &addressBook = FromJson<JsonObject>(args, "addressBook");
+  const JsonObject& addressBook = FromJson<JsonObject>(args, "addressBook");
 
   if (!IsNull(addressBook, "id")) {
     LoggerW("AddressBook already exists");
@@ -160,25 +173,29 @@ void ContactManager_addAddressBook(const JsonObject &args, JsonObject &out) {
   }
 
   contacts_record_h contacts_record;
-  int ret = contacts_record_create(_contacts_address_book._uri, &contacts_record);
+  int ret =
+      contacts_record_create(_contacts_address_book._uri, &contacts_record);
   if (CONTACTS_ERROR_NONE != ret) {
     LoggerE("Failed to create address book record, error code : %d", ret);
     throw UnknownException("Failed to create address book record");
   }
-  ContactUtil::ContactsRecordHPtr contacts_record_ptr(&contacts_record,
-      ContactUtil::ContactsDeleter);
+  ContactUtil::ContactsRecordHPtr contacts_record_ptr(
+      &contacts_record, ContactUtil::ContactsDeleter);
 
-  ContactUtil::SetStrInRecord(contacts_record, _contacts_address_book.name,
+  ContactUtil::SetStrInRecord(
+      contacts_record, _contacts_address_book.name,
       FromJson<JsonString>(addressBook, "name").c_str());
 
-  contacts_address_book_mode_e mode = FromJson<bool>(addressBook, "readOnly") ?
-      CONTACTS_ADDRESS_BOOK_MODE_READONLY : CONTACTS_ADDRESS_BOOK_MODE_NONE;
+  contacts_address_book_mode_e mode = FromJson<bool>(addressBook, "readOnly")
+                                          ? CONTACTS_ADDRESS_BOOK_MODE_READONLY
+                                          : CONTACTS_ADDRESS_BOOK_MODE_NONE;
   ContactUtil::SetIntInRecord(contacts_record, _contacts_address_book.mode,
-      static_cast<int>(mode));
+                              static_cast<int>(mode));
 
   double account_id = FromJson<double>(addressBook, "accountId");
-  ContactUtil::SetIntInRecord(contacts_record, _contacts_address_book.account_id,
-      static_cast<int>(account_id));
+  ContactUtil::SetIntInRecord(contacts_record,
+                              _contacts_address_book.account_id,
+                              static_cast<int>(account_id));
 
   int address_book_id;
   ret = contacts_db_insert_record(*contacts_record_ptr, &address_book_id);
@@ -190,46 +207,49 @@ void ContactManager_addAddressBook(const JsonObject &args, JsonObject &out) {
   out.insert(std::make_pair("id", std::to_string(address_book_id)));
 }
 
-void ContactManager_removeAddressBook(const JsonObject &args, JsonObject &out) {
+void ContactManagerRemoveAddressBook(const JsonObject& args, JsonObject& out) {
   ContactUtil::CheckDBConnection();
   long address_book_id;
   try {
     address_book_id = common::stol(FromJson<JsonString>(args, "addressBookId"));
-  } catch (const common::InvalidValuesException&) {
+  }
+  catch (const common::InvalidValuesException&) {
     throw common::NotFoundException("Invalid id");
   }
 
   contacts_record_h contacts_record;
   int error_code = contacts_db_get_record(_contacts_address_book._uri,
-      static_cast<int>(address_book_id), &contacts_record);
+                                          static_cast<int>(address_book_id),
+                                          &contacts_record);
   if (CONTACTS_ERROR_NONE != error_code || nullptr == contacts_record) {
     LoggerE("Fail to get addressbook record, error code: %d", error_code);
     throw NotFoundException("Fail to get address book with given id");
   }
 
   int ret = contacts_db_delete_record(_contacts_address_book._uri,
-      static_cast<int>(address_book_id));
+                                      static_cast<int>(address_book_id));
   if (CONTACTS_ERROR_NONE != ret) {
     LOGE("Failed to delete address book record, error code : %d", ret);
     throw UnknownException("Failed to delete address book record");
   }
 }
 
-void ContactManager_get(const JsonObject& args, JsonObject& out) {
+void ContactManagerGet(const JsonObject& args, JsonObject& out) {
   ContactUtil::CheckDBConnection();
   long person_id = common::stol(FromJson<JsonString>(args, "personId"));
 
-  ContactManager_get_internal(person_id, &out);
+  ContactManagerGetInternal(person_id, &out);
 }
 
-void ContactManager_update(const JsonObject& args, JsonObject&) {
+void ContactManagerUpdate(const JsonObject& args, JsonObject&) {
   ContactUtil::CheckDBConnection();
   const JsonObject& person = FromJson<JsonObject>(args, "person");
   long person_id = common::stol(FromJson<JsonString>(person, "id"));
 
   contacts_record_h contacts_record = nullptr;
 
-  int error_code = contacts_db_get_record(_contacts_person._uri, person_id, &contacts_record);
+  int error_code = contacts_db_get_record(_contacts_person._uri, person_id,
+                                          &contacts_record);
 
   if (CONTACTS_ERROR_NONE != error_code) {
     throw NotFoundException("Person not found");
@@ -248,7 +268,7 @@ void ContactManager_update(const JsonObject& args, JsonObject&) {
   }
 }
 
-void ContactManager_remove(const JsonObject& args, JsonObject&) {
+void ContactManagerRemove(const JsonObject& args, JsonObject&) {
   ContactUtil::CheckDBConnection();
   long person_id = common::stol(FromJson<JsonString>(args, "personId"));
 
@@ -263,28 +283,32 @@ void ContactManager_remove(const JsonObject& args, JsonObject&) {
   }
 }
 
-void ContactManager_find(const JsonObject &args, JsonArray &out) {
+void ContactManagerFind(const JsonObject& args, JsonArray& out) {
   ContactUtil::CheckDBConnection();
 
   contacts_query_h contacts_query = nullptr;
-  int error_code = contacts_query_create(_contacts_person._uri, &contacts_query);
+  int error_code =
+      contacts_query_create(_contacts_person._uri, &contacts_query);
   ContactUtil::ErrorChecker(error_code, "Failed contacts_query_create");
 
-  ContactUtil::ContactsQueryHPtr contacts_query_ptr(&contacts_query,
-      ContactUtil::ContactsQueryDeleter);
+  ContactUtil::ContactsQueryHPtr contacts_query_ptr(
+      &contacts_query, ContactUtil::ContactsQueryDeleter);
 
   // Add filter to query
-  std::vector<std::vector<ContactUtil::ContactsFilterPtr>> intermediate_filters(1);
+  std::vector<std::vector<ContactUtil::ContactsFilterPtr>> intermediate_filters(
+      1);
   if (!IsNull(args, "filter")) {
     FilterVisitor visitor;
-    visitor.SetOnAttributeFilter([&](const std::string &name,
-        AttributeMatchFlag match_flag,
-        const JsonValue &match_value) {
+    visitor.SetOnAttributeFilter([&](const std::string& name,
+                                     AttributeMatchFlag match_flag,
+                                     const JsonValue& match_value) {
 
-      const Person::PersonProperty &property = Person::PersonProperty_fromString(name);
+      const Person::PersonProperty& property =
+          Person::PersonPropertyFromString(name);
 
       contacts_filter_h contacts_filter = nullptr;
-      int error_code = contacts_filter_create(_contacts_person._uri, &contacts_filter);
+      int error_code =
+          contacts_filter_create(_contacts_person._uri, &contacts_filter);
       ContactUtil::ErrorChecker(error_code, "Failed contacts_query_set_filter");
       ContactUtil::ContactsFilterPtr contacts_filter_ptr(
           contacts_filter, ContactUtil::ContactsFilterDeleter);
@@ -294,8 +318,10 @@ void ContactManager_find(const JsonObject &args, JsonArray &out) {
         if (AttributeMatchFlag::kExists != match_flag) {
           value = JsonCast<bool>(match_value);
         }
-        error_code = contacts_filter_add_bool(contacts_filter, property.propertyId, value);
-        ContactUtil::ErrorChecker(error_code, "Failed contacts_filter_add_bool");
+        error_code = contacts_filter_add_bool(contacts_filter,
+                                              property.propertyId, value);
+        ContactUtil::ErrorChecker(error_code,
+                                  "Failed contacts_filter_add_bool");
       } else if (property.type == kPrimitiveTypeString) {
         std::string value = JsonCast<std::string>(match_value);
 
@@ -314,11 +340,11 @@ void ContactManager_find(const JsonObject &args, JsonArray &out) {
           flag = CONTACTS_MATCH_EXISTS;
           value = "";
         }
-        error_code = contacts_filter_add_str(contacts_filter, property.propertyId,
-            flag, value.c_str());
+        error_code = contacts_filter_add_str(
+            contacts_filter, property.propertyId, flag, value.c_str());
         ContactUtil::ErrorChecker(error_code, "Failed contacts_filter_add_str");
       } else if (property.type == kPrimitiveTypeLong ||
-          property.type == kPrimitiveTypeId) {
+                 property.type == kPrimitiveTypeId) {
         int value;
         if (property.type == kPrimitiveTypeLong) {
           value = static_cast<int>(JsonCast<double>(match_value));
@@ -333,7 +359,7 @@ void ContactManager_find(const JsonObject &args, JsonArray &out) {
           flag = CONTACTS_MATCH_GREATER_THAN_OR_EQUAL;
           value = 0;
         } else if (AttributeMatchFlag::kStartsWith == match_flag ||
-            AttributeMatchFlag::kContains == match_flag) {
+                   AttributeMatchFlag::kContains == match_flag) {
           flag = CONTACTS_MATCH_GREATER_THAN_OR_EQUAL;
         } else if (AttributeMatchFlag::kEndsWith == match_flag) {
           flag = CONTACTS_MATCH_LESS_THAN_OR_EQUAL;
@@ -341,7 +367,8 @@ void ContactManager_find(const JsonObject &args, JsonArray &out) {
           flag = CONTACTS_MATCH_EQUAL;
         }
 
-        error_code = contacts_filter_add_int(contacts_filter, property.propertyId, flag, value);
+        error_code = contacts_filter_add_int(contacts_filter,
+                                             property.propertyId, flag, value);
         ContactUtil::ErrorChecker(error_code, "Failed contacts_filter_add_str");
       } else {
         throw UnknownException("Invalid primitive type!");
@@ -350,14 +377,16 @@ void ContactManager_find(const JsonObject &args, JsonArray &out) {
           .push_back(std::move(contacts_filter_ptr));
     });
 
-    visitor.SetOnAttributeRangeFilter([&](const std::string &name,
-        const JsonValue &initial_value,
-        const JsonValue &end_value) {
+    visitor.SetOnAttributeRangeFilter([&](const std::string& name,
+                                          const JsonValue& initial_value,
+                                          const JsonValue& end_value) {
 
-      const Person::PersonProperty &property = Person::PersonProperty_fromString(name);
+      const Person::PersonProperty& property =
+          Person::PersonPropertyFromString(name);
 
       contacts_filter_h contacts_filter = nullptr;
-      int error_code = contacts_filter_create(_contacts_person._uri, &contacts_filter);
+      int error_code =
+          contacts_filter_create(_contacts_person._uri, &contacts_filter);
       ContactUtil::ErrorChecker(error_code, "Failed contacts_query_set_filter");
       ContactUtil::ContactsFilterPtr contacts_filter_ptr(
           contacts_filter, ContactUtil::ContactsFilterDeleter);
@@ -380,18 +409,22 @@ void ContactManager_find(const JsonObject &args, JsonArray &out) {
           if (initial_value_bool == end_value_bool) {
             error_code = contacts_filter_add_bool(
                 contacts_filter, property.propertyId, initial_value_bool);
-            ContactUtil::ErrorChecker(error_code, "Failed contacts_filter_add_bool");
+            ContactUtil::ErrorChecker(error_code,
+                                      "Failed contacts_filter_add_bool");
           }
         } else if (initial_value_exists) {
           if (initial_value_bool) {
-            error_code = contacts_filter_add_bool(contacts_filter, property.propertyId, true);
+            error_code = contacts_filter_add_bool(contacts_filter,
+                                                  property.propertyId, true);
             ContactUtil::ErrorChecker(error_code,
-                "Failed contacts_filter_add_bool");
+                                      "Failed contacts_filter_add_bool");
           }
         } else if (end_value_exists) {
           if (!end_value_bool) {
-            error_code = contacts_filter_add_bool(contacts_filter, property.propertyId, false);
-            ContactUtil::ErrorChecker(error_code, "Failed contacts_filter_add_bool");
+            error_code = contacts_filter_add_bool(contacts_filter,
+                                                  property.propertyId, false);
+            ContactUtil::ErrorChecker(error_code,
+                                      "Failed contacts_filter_add_bool");
           }
         }
       } else if (property.type == kPrimitiveTypeString) {
@@ -409,47 +442,58 @@ void ContactManager_find(const JsonObject &args, JsonArray &out) {
         if (initial_value_exists && end_value_exists) {
           contacts_filter_h sub_filter = NULL;
 
-          error_code = contacts_filter_create(_contacts_person._uri, &sub_filter);
-          ContactUtil::ErrorChecker(error_code, "Failed contacts_filter_add_str");
+          error_code =
+              contacts_filter_create(_contacts_person._uri, &sub_filter);
+          ContactUtil::ErrorChecker(error_code,
+                                    "Failed contacts_filter_add_str");
 
           ContactUtil::ContactsFilterPtr sub_filter_ptr(
               sub_filter, ContactUtil::ContactsFilterDeleter);
 
           error_code = contacts_filter_add_str(sub_filter, property.propertyId,
-              CONTACTS_MATCH_STARTSWITH,
-              initial_value_str.c_str());
-          ContactUtil::ErrorChecker(error_code, "Failed contacts_filter_add_str");
-          error_code = contacts_filter_add_operator(sub_filter,
-              CONTACTS_FILTER_OPERATOR_AND);
-          ContactUtil::ErrorChecker(error_code, "Failed contacts_filter_add_str");
+                                               CONTACTS_MATCH_STARTSWITH,
+                                               initial_value_str.c_str());
+          ContactUtil::ErrorChecker(error_code,
+                                    "Failed contacts_filter_add_str");
+          error_code = contacts_filter_add_operator(
+              sub_filter, CONTACTS_FILTER_OPERATOR_AND);
+          ContactUtil::ErrorChecker(error_code,
+                                    "Failed contacts_filter_add_str");
 
           error_code = contacts_filter_add_str(sub_filter, property.propertyId,
-              CONTACTS_MATCH_ENDSWITH,
-              end_value_str.c_str());
-          ContactUtil::ErrorChecker(error_code, "Failed contacts_filter_add_str");
+                                               CONTACTS_MATCH_ENDSWITH,
+                                               end_value_str.c_str());
+          ContactUtil::ErrorChecker(error_code,
+                                    "Failed contacts_filter_add_str");
 
           error_code = contacts_filter_add_filter(contacts_filter, sub_filter);
-          ContactUtil::ErrorChecker(error_code, "Failed contacts_filter_add_str");
+          ContactUtil::ErrorChecker(error_code,
+                                    "Failed contacts_filter_add_str");
         } else if (initial_value_exists) {
           error_code = contacts_filter_add_str(
               contacts_filter, property.propertyId, CONTACTS_MATCH_STARTSWITH,
               initial_value_str.c_str());
-          ContactUtil::ErrorChecker(error_code, "Failed contacts_filter_add_str");
+          ContactUtil::ErrorChecker(error_code,
+                                    "Failed contacts_filter_add_str");
         } else if (end_value_exists) {
           error_code = contacts_filter_add_str(
               contacts_filter, property.propertyId, CONTACTS_MATCH_ENDSWITH,
               end_value_str.c_str());
-          ContactUtil::ErrorChecker(error_code, "Failed contacts_filter_add_str");
+          ContactUtil::ErrorChecker(error_code,
+                                    "Failed contacts_filter_add_str");
         }
-      } else if (property.type == kPrimitiveTypeLong || property.type == kPrimitiveTypeId) {
+      } else if (property.type == kPrimitiveTypeLong ||
+                 property.type == kPrimitiveTypeId) {
         int initial_value_int = 0;
         int end_value_int = 0;
 
         if (initial_value_exists) {
           if (property.type == kPrimitiveTypeLong) {
-            initial_value_int = static_cast<int>(JsonCast<double>(initial_value));
+            initial_value_int =
+                static_cast<int>(JsonCast<double>(initial_value));
           } else {
-            initial_value_int = common::stol(JsonCast<std::string>(initial_value));
+            initial_value_int =
+                common::stol(JsonCast<std::string>(initial_value));
           }
         }
 
@@ -464,37 +508,45 @@ void ContactManager_find(const JsonObject &args, JsonArray &out) {
         if (initial_value_exists && end_value_exists) {
           contacts_filter_h sub_filter = NULL;
 
-          error_code = contacts_filter_create(_contacts_person._uri, &sub_filter);
-          ContactUtil::ErrorChecker(error_code, "Failed contacts_filter_add_bool");
+          error_code =
+              contacts_filter_create(_contacts_person._uri, &sub_filter);
+          ContactUtil::ErrorChecker(error_code,
+                                    "Failed contacts_filter_add_bool");
           ContactUtil::ContactsFilterPtr sub_filter_ptr(
               sub_filter, ContactUtil::ContactsFilterDeleter);
 
           error_code = contacts_filter_add_int(
               sub_filter, property.propertyId,
               CONTACTS_MATCH_GREATER_THAN_OR_EQUAL, initial_value_int);
-          ContactUtil::ErrorChecker(error_code, "Failed contacts_filter_add_int");
+          ContactUtil::ErrorChecker(error_code,
+                                    "Failed contacts_filter_add_int");
 
-          error_code = contacts_filter_add_operator(sub_filter,
-              CONTACTS_FILTER_OPERATOR_AND);
-          ContactUtil::ErrorChecker(error_code, "Failed contacts_filter_add_operator");
+          error_code = contacts_filter_add_operator(
+              sub_filter, CONTACTS_FILTER_OPERATOR_AND);
+          ContactUtil::ErrorChecker(error_code,
+                                    "Failed contacts_filter_add_operator");
 
-          error_code = contacts_filter_add_int(sub_filter, property.propertyId,
-              CONTACTS_MATCH_LESS_THAN_OR_EQUAL,
-              end_value_int);
-          ContactUtil::ErrorChecker(error_code, "Failed contacts_filter_add_int");
+          error_code = contacts_filter_add_int(
+              sub_filter, property.propertyId,
+              CONTACTS_MATCH_LESS_THAN_OR_EQUAL, end_value_int);
+          ContactUtil::ErrorChecker(error_code,
+                                    "Failed contacts_filter_add_int");
 
           error_code = contacts_filter_add_filter(contacts_filter, sub_filter);
-          ContactUtil::ErrorChecker(error_code, "Failed contacts_filter_add_filter");
+          ContactUtil::ErrorChecker(error_code,
+                                    "Failed contacts_filter_add_filter");
         } else if (initial_value_exists) {
           error_code = contacts_filter_add_int(
               contacts_filter, property.propertyId,
               CONTACTS_MATCH_GREATER_THAN_OR_EQUAL, initial_value_int);
-          ContactUtil::ErrorChecker(error_code, "Failed contacts_filter_add_int");
+          ContactUtil::ErrorChecker(error_code,
+                                    "Failed contacts_filter_add_int");
         } else if (end_value_exists) {
           error_code = contacts_filter_add_int(
               contacts_filter, property.propertyId,
               CONTACTS_MATCH_LESS_THAN_OR_EQUAL, end_value_int);
-          ContactUtil::ErrorChecker(error_code, "Failed contacts_filter_add_int");
+          ContactUtil::ErrorChecker(error_code,
+                                    "Failed contacts_filter_add_int");
         }
       } else {
         throw UnknownException("Invalid primitive type!");
@@ -504,7 +556,8 @@ void ContactManager_find(const JsonObject &args, JsonArray &out) {
     });
 
     visitor.SetOnCompositeFilterBegin([&](CompositeFilterType type) {
-      intermediate_filters.push_back(std::vector<ContactUtil::ContactsFilterPtr>());
+      intermediate_filters.push_back(
+          std::vector<ContactUtil::ContactsFilterPtr>());
     });
 
     visitor.SetOnCompositeFilterEnd([&](CompositeFilterType type) {
@@ -513,7 +566,8 @@ void ContactManager_find(const JsonObject &args, JsonArray &out) {
       }
 
       contacts_filter_h merged_filter = nullptr;
-      int error_code = contacts_filter_create(_contacts_person._uri, &merged_filter);
+      int error_code =
+          contacts_filter_create(_contacts_person._uri, &merged_filter);
       ContactUtil::ErrorChecker(error_code, "Failed contacts_query_set_filter");
       ContactUtil::ContactsFilterPtr merged_filter_ptr(
           merged_filter, ContactUtil::ContactsFilterDeleter);
@@ -521,15 +575,18 @@ void ContactManager_find(const JsonObject &args, JsonArray &out) {
       for (std::size_t i = 0; i < intermediate_filters.back().size(); ++i) {
         error_code = contacts_filter_add_filter(
             merged_filter, intermediate_filters.back().at(i).get());
-        ContactUtil::ErrorChecker(error_code, "Failed contacts_query_set_filter");
+        ContactUtil::ErrorChecker(error_code,
+                                  "Failed contacts_query_set_filter");
         if (CompositeFilterType::kIntersection == type) {
-          error_code = contacts_filter_add_operator(merged_filter,
-              CONTACTS_FILTER_OPERATOR_AND);
-          ContactUtil::ErrorChecker(error_code, "Failed contacts_query_set_filter");
+          error_code = contacts_filter_add_operator(
+              merged_filter, CONTACTS_FILTER_OPERATOR_AND);
+          ContactUtil::ErrorChecker(error_code,
+                                    "Failed contacts_query_set_filter");
         } else if (CompositeFilterType::kUnion == type) {
-          error_code = contacts_filter_add_operator(merged_filter,
-              CONTACTS_FILTER_OPERATOR_OR);
-          ContactUtil::ErrorChecker(error_code, "Failed contacts_query_set_filter");
+          error_code = contacts_filter_add_operator(
+              merged_filter, CONTACTS_FILTER_OPERATOR_OR);
+          ContactUtil::ErrorChecker(error_code,
+                                    "Failed contacts_query_set_filter");
         } else {
           throw InvalidValuesException("Invalid union type!");
         }
@@ -541,21 +598,26 @@ void ContactManager_find(const JsonObject &args, JsonArray &out) {
 
     visitor.Visit(FromJson<JsonObject>(args, "filter"));
     // Should compute only one filter always.
-    if ((intermediate_filters.size() != 1) || (intermediate_filters[0].size() != 1)) {
+    if ((intermediate_filters.size() != 1) ||
+        (intermediate_filters[0].size() != 1)) {
       LoggerE("Bad filter evaluation!");
       throw UnknownException("Bad filter evaluation!");
     }
     // Filter is generated
-    error_code = contacts_query_set_filter(contacts_query, intermediate_filters[0][0].get());
+    error_code = contacts_query_set_filter(contacts_query,
+                                           intermediate_filters[0][0].get());
     ContactUtil::ErrorChecker(error_code, "Failed contacts_query_set_filter");
   }
 
   contacts_list_h person_list = nullptr;
-  error_code = contacts_db_get_records_with_query(contacts_query, 0, 0, &person_list);
+  error_code =
+      contacts_db_get_records_with_query(contacts_query, 0, 0, &person_list);
 
-  ContactUtil::ErrorChecker(error_code, "Failed contacts_db_get_records_with_query");
+  ContactUtil::ErrorChecker(error_code,
+                            "Failed contacts_db_get_records_with_query");
 
-  ContactUtil::ContactsListHPtr person_list_ptr(&person_list, ContactUtil::ContactsListDeleter);
+  ContactUtil::ContactsListHPtr person_list_ptr(
+      &person_list, ContactUtil::ContactsListDeleter);
 
   int record_count = 0;
   error_code = contacts_list_get_count(person_list, &record_count);
@@ -565,14 +627,16 @@ void ContactManager_find(const JsonObject &args, JsonArray &out) {
 
   for (unsigned int i = 0; i < record_count; i++) {
     contacts_record_h contacts_record;
-    error_code = contacts_list_get_current_record_p(person_list, &contacts_record);
+    error_code =
+        contacts_list_get_current_record_p(person_list, &contacts_record);
     if (error_code != CONTACTS_ERROR_NONE || contacts_record == NULL) {
       LoggerW("Failed group record (ret:%d)", error_code);
       continue;
     }
 
     int id_value = 0;
-    error_code = contacts_record_get_int(contacts_record, _contacts_person.id, &id_value);
+    error_code = contacts_record_get_int(contacts_record, _contacts_person.id,
+                                         &id_value);
 
     ContactUtil::ErrorChecker(error_code, "Failed contacts_record_get_int");
 
@@ -582,7 +646,7 @@ void ContactManager_find(const JsonObject &args, JsonArray &out) {
   }
 }
 
-void ContactManager_importFromVCard(const JsonObject& args, JsonObject& out) {
+void ContactManagerImportFromVCard(const JsonObject& args, JsonObject& out) {
   // I'm not sure how to call it. Should it be 'Contact', 'vCard' or what?
   ContactUtil::CheckDBConnection();
   const char* vcard_char_ptr = FromJson<JsonString>(args, "contact").c_str();
@@ -629,8 +693,8 @@ bool IsNumeric(const char* s) {
   return true;
 }
 
-void ContactManager_listenerCallback(const char* view_uri, char* changes,
-                                     void* user_data) {
+void ContactManagerListenerCallback(const char* view_uri, char* changes,
+                                    void* user_data) {
   (void)view_uri;
   (void)user_data;
 
@@ -647,13 +711,11 @@ void ContactManager_listenerCallback(const char* view_uri, char* changes,
   JsonObject& result_obj = result.get<JsonObject>();
   result_obj.insert(std::make_pair("listenerId", kContactPersonListenerId));
   JsonArray& added = result_obj.insert(std::make_pair("added", JsonArray{}))
+                         .first->second.get<JsonArray>();
+  JsonArray& updated = result_obj.insert(std::make_pair("updated", JsonArray{}))
                            .first->second.get<JsonArray>();
-  JsonArray& updated =
-      result_obj.insert(std::make_pair("updated", JsonArray{}))
-          .first->second.get<JsonArray>();
-  JsonArray& removed =
-      result_obj.insert(std::make_pair("removed", JsonArray{}))
-          .first->second.get<JsonArray>();
+  JsonArray& removed = result_obj.insert(std::make_pair("removed", JsonArray{}))
+                           .first->second.get<JsonArray>();
 
   std::unique_ptr<char, void (*)(char*)> tmp(strdup(changes),
                                              [](char* p) { free(p); });
@@ -672,14 +734,14 @@ void ContactManager_listenerCallback(const char* view_uri, char* changes,
           switch (type) {
             case CONTACTS_CHANGE_INSERTED: {
               added.push_back(JsonValue{JsonObject{}});
-              ContactManager_get_internal(person_id,
-                                          &added.back().get<JsonObject>());
+              ContactManagerGetInternal(person_id,
+                                        &added.back().get<JsonObject>());
               break;
             }
             case CONTACTS_CHANGE_UPDATED: {
               updated.push_back(JsonValue{JsonObject{}});
-              ContactManager_get_internal(person_id,
-                                          &updated.back().get<JsonObject>());
+              ContactManagerGetInternal(person_id,
+                                        &updated.back().get<JsonObject>());
               break;
             }
             case CONTACTS_CHANGE_DELETED: {
@@ -704,10 +766,11 @@ void ContactManager_listenerCallback(const char* view_uri, char* changes,
 }
 }
 
-void ContactManager_startListening(const JsonObject& /*args*/, JsonObject& /*out*/) {
+void ContactManagerStartListening(const JsonObject& /*args*/,
+                                  JsonObject& /*out*/) {
   ContactUtil::CheckDBConnection();
   int error_code = contacts_db_add_changed_cb_with_info(
-      _contacts_person._uri, ContactManager_listenerCallback, nullptr);
+      _contacts_person._uri, ContactManagerListenerCallback, nullptr);
 
   if (CONTACTS_ERROR_NONE != error_code) {
     LoggerE("contacts_db_add_changed_cb(_contacts_person._uri) error: %d",
@@ -716,10 +779,11 @@ void ContactManager_startListening(const JsonObject& /*args*/, JsonObject& /*out
   }
 }
 
-void ContactManager_stopListening(const JsonObject& /*args*/, JsonObject& /*out*/) {
+void ContactManagerStopListening(const JsonObject& /*args*/,
+                                 JsonObject& /*out*/) {
   ContactUtil::CheckDBConnection();
   int error_code = contacts_db_remove_changed_cb_with_info(
-      _contacts_person._uri, ContactManager_listenerCallback, nullptr);
+      _contacts_person._uri, ContactManagerListenerCallback, nullptr);
 
   if (CONTACTS_ERROR_NONE != error_code) {
     LoggerE("contacts_db_remove_changed_cb(_contacts_person._uri) error: %d",

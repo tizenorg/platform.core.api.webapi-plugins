@@ -27,24 +27,24 @@ namespace AddressBook {
 
 typedef std::function<void(const JsonObject&, JsonObject&)> NativeFunction;
 
-void AddressBook_get(const JsonObject& args, JsonObject& out);
-void AddressBook_add(const JsonObject& args, JsonObject& out);
-void AddressBook_update(const JsonObject& args, JsonObject& out);
-void AddressBook_remove(const JsonObject& args, JsonObject&);
-void AddressBook_find(const JsonObject& args, JsonArray& array);
-void AddressBook_addGroup(const JsonObject& args, JsonObject& out);
-void AddressBook_getGroup(const JsonObject& args, JsonObject& out);
-void AddressBook_updateGroup(const JsonObject& args, JsonObject&);
-void AddressBook_removeGroup(const JsonObject& args, JsonObject&);
-void AddressBook_getGroups(const JsonObject& args, JsonArray& out);
-void AddressBook_startListening(const JsonObject& args, JsonObject& out);
-void AddressBook_stopListening(const JsonObject& args, JsonObject& out);
+void AddressBookGet(const JsonObject& args, JsonObject& out);
+void AddressBookAdd(const JsonObject& args, JsonObject& out);
+void AddressBookUpdate(const JsonObject& args, JsonObject& out);
+void AddressBookRemove(const JsonObject& args, JsonObject&);
+void AddressBookFind(const JsonObject& args, JsonArray& array);
+void AddressBookAddGroup(const JsonObject& args, JsonObject& out);
+void AddressBookGetGroup(const JsonObject& args, JsonObject& out);
+void AddressBookUpdateGroup(const JsonObject& args, JsonObject&);
+void AddressBookRemoveGroup(const JsonObject& args, JsonObject&);
+void AddressBookGetGroups(const JsonObject& args, JsonArray& out);
+void AddressBookStartListening(const JsonObject& args, JsonObject& out);
+void AddressBookStopListening(const JsonObject& args, JsonObject& out);
 
-void AddressBook_batchFunc(NativeFunction impl, const char *single_arg_name,
-                           const JsonObject &args, JsonArray &out);
+void AddressBookBatchFunc(NativeFunction impl, const char* single_arg_name,
+                          const JsonObject& args, JsonArray& out);
 
 // TODO all batch operations should be implemented using CAPI batch functions
-void AddressBook_addBatch(const JsonObject& args, JsonArray& out);
+void AddressBookAddBatch(const JsonObject& args, JsonArray& out);
 
 }  // AddressBook
 }  // contact

@@ -24,10 +24,10 @@ namespace extension {
 namespace contact {
 
 enum PrimitiveType {
-    kPrimitiveTypeBoolean,
-    kPrimitiveTypeString,
-    kPrimitiveTypeLong,
-    kPrimitiveTypeId
+  kPrimitiveTypeBoolean,
+  kPrimitiveTypeString,
+  kPrimitiveTypeLong,
+  kPrimitiveTypeId
 };
 
 namespace Person {
@@ -39,10 +39,10 @@ struct PersonProperty {
 
 typedef std::map<std::string, PersonProperty> PersonPropertyMap;
 
-const PersonProperty& PersonProperty_fromString(const std::string& name);
+const PersonProperty& PersonPropertyFromString(const std::string& name);
 
-void Person_link(const JsonObject& args, JsonObject&);
-void Person_unlink(const JsonObject& args, JsonObject&);
+void PersonLink(const JsonObject& args, JsonObject&);
+void PersonUnlink(const JsonObject& args, JsonObject&);
 
 }  // Person
 }  // contact

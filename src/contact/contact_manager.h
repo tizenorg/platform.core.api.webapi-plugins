@@ -24,27 +24,27 @@ namespace extension {
 namespace contact {
 namespace ContactManager {
 
-void ContactManager_getAddressBooks(const JsonObject& args, JsonArray& out);
+void ContactManagerGetAddressBooks(const JsonObject& args, JsonArray& out);
 
-void ContactManager_getAddressBook(const JsonObject& args, JsonObject& out);
+void ContactManagerGetAddressBook(const JsonObject& args, JsonObject& out);
 
-void ContactManager_addAddressBook(const JsonObject& args, JsonObject& out);
+void ContactManagerAddAddressBook(const JsonObject& args, JsonObject& out);
 
-void ContactManager_removeAddressBook(const JsonObject& args, JsonObject& out);
+void ContactManagerRemoveAddressBook(const JsonObject& args, JsonObject& out);
 
-void ContactManager_get(const JsonObject& args, JsonObject& out);
+void ContactManagerGet(const JsonObject& args, JsonObject& out);
 
-void ContactManager_update(const JsonObject& args, JsonObject&);
+void ContactManagerUpdate(const JsonObject& args, JsonObject&);
 
-void ContactManager_updateBatch(const JsonObject& args, JsonObject& out);
+void ContactManagerUpdateBatch(const JsonObject& args, JsonObject& out);
 
-void ContactManager_remove(const JsonObject& args, JsonObject&);
+void ContactManagerRemove(const JsonObject& args, JsonObject&);
 
-void ContactManager_removeBatch(const JsonObject& args, JsonObject& out);
+void ContactManagerRemoveBatch(const JsonObject& args, JsonObject& out);
 
-void ContactManager_find(const JsonObject &args, JsonArray &out);
+void ContactManagerFind(const JsonObject& args, JsonArray& out);
 
-void ContactManager_importFromVCard(const JsonObject& args, JsonObject& out);
+void ContactManagerImportFromVCard(const JsonObject& args, JsonObject& out);
 
 /**
  * Signature: @code void getAddressBook(contactString); @endcode
@@ -57,7 +57,7 @@ void ContactManager_importFromVCard(const JsonObject& args, JsonObject& out);
  * {status: 'success'}
  * @endcode
  */
-void ContactManager_startListening(const JsonObject& args, JsonObject& out);
+void ContactManagerStartListening(const JsonObject& args, JsonObject& out);
 
 /**
  * Signature: @code void getAddressBook(contactString); @endcode
@@ -70,7 +70,7 @@ void ContactManager_startListening(const JsonObject& args, JsonObject& out);
  * {status: 'success'}
  * @endcode
  */
-void ContactManager_stopListening(const JsonObject& args, JsonObject& out);
+void ContactManagerStopListening(const JsonObject& args, JsonObject& out);
 
 }  // namespace ContactManager
 }  // namespace contact
