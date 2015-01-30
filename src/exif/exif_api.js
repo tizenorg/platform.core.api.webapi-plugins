@@ -193,7 +193,7 @@ ExifManager.prototype.getExifInfo = function() {
     }
   };
 
-  native_.call('Exif_getExifInfo', callArgs, callback);
+  native_.call('ExifManager_getExifInfo', callArgs, callback);
 };
 
 ExifManager.prototype.saveExifInfo = function() {
@@ -230,7 +230,7 @@ ExifManager.prototype.saveExifInfo = function() {
     }
   };
 
-  native_.call('Exif_saveExifInfo', json, callback);
+  native_.call('ExifManager_saveExifInfo', json, callback);
 };
 
 ExifManager.prototype.getThumbnail = function() {
@@ -265,7 +265,7 @@ ExifManager.prototype.getThumbnail = function() {
     }
   };
 
-  native_.call('Exif_getThumbnail', {'uri': args.uri}, callback);
+  native_.call('ExifManager_getThumbnail', {'uri': args.uri}, callback);
 };
 
 tizen.ExifInformation = function() {
