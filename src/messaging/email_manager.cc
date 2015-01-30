@@ -1004,6 +1004,8 @@ void EmailManager::updateMessages(MessagesCallbackUserData* callback)
                 addDraftMessagePlatform(mail->account_id, (*it));
                 LoggerD("mail added - new id = [%d]\n", (*it)->getId());
 
+                //storing old message id
+                (*it)->setOldId(mail->mail_id);
                 //deleting old mail
                 LoggerD("mail deleted = [%d]\n", mail->mail_id);
                 error = email_delete_mail(mail->mailbox_id,&mail->mail_id,1,1);

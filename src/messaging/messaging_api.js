@@ -1041,21 +1041,28 @@ MessageStorage.prototype.updateMessages = function () {
         }
     }).then({
         success: function (data) {
-            var originals = {};
-            args.messages.forEach(function (m) {
+            var originals = {},
+                    i = args.messages.length,
+                    m;
+            while (i--) {
+                m = args.messages[i];
                 if (m.id) {
                     originals[m.id] = m;
                 }
-            });
-            data.forEach(function (message) {
-                if (!originals[message.id]) {return;}
-                var body = message.body;
-                if (body) {
-                    updateInternal_(originals[message.id].body, body)
-                    delete message.body;
+            }
+
+            i = data.length;
+            while (i--) {
+                m = data[i];
+                if (originals[m.oldId]) {
+                    var body = m.body;
+                    if (body) {
+                        updateInternal_(originals[m.oldId].body, body)
+                        delete m.body;
+                    }
+                    updateInternal_(originals[m.oldId], m);
                 }
-                updateInternal_(originals[message.id], message);
-            });
+            }
 
             if (args.successCallback) {
                 args.successCallback.call(null);

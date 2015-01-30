@@ -23,7 +23,7 @@ namespace messaging {
 
 // *** constructor
 Message::Message():
-    m_id(-1), m_id_set(false), m_conversation_id(-1),
+    m_id(-1), m_old_id(-1), m_id_set(false), m_conversation_id(-1),
     m_conversation_id_set(false), m_folder_id(-1), m_folder_id_set(false),
     m_type(UNDEFINED), m_timestamp_set(false), m_from_set(false),
     m_body(new(std::nothrow) MessageBody()),
@@ -44,6 +44,14 @@ Message::~Message()
 int Message::getId() const
 {
     return m_id;
+}
+
+int Message::getOldId() const
+{
+    if (-1 == m_old_id) {
+        return m_id;
+    }
+    return m_old_id;
 }
 
 int Message::getConversationId() const
@@ -149,6 +157,13 @@ void Message::setId(int id)
         att->setMessageId(m_id);
     }
 }
+
+void Message::setOldId(int id)
+{
+    LoggerD("Entered");
+    m_old_id = id;
+}
+
 
 void Message::setConversationId(int id)
 {

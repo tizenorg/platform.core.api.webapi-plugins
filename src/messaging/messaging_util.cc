@@ -38,6 +38,7 @@ const char* JSON_ERROR_MESSAGE = "message";
 const char* JSON_ERROR_NAME = "name";
 
 const char* MESSAGE_ATTRIBUTE_ID = "id";
+const char* MESSAGE_ATTRIBUTE_OLD_ID = "oldId";
 const char* MESSAGE_ATTRIBUTE_CONVERSATION_ID = "conversationId";
 const char* MESSAGE_ATTRIBUTE_FOLDER_ID = "folderId";
 const char* MESSAGE_ATTRIBUTE_TYPE = "type";
@@ -333,6 +334,7 @@ picojson::value MessagingUtil::messageToJson(std::shared_ptr<Message> message)
         o[MESSAGE_ATTRIBUTE_HAS_ATTACHMENT] = picojson::value(message->getHasAttachment());
         o[MESSAGE_ATTRIBUTE_IS_HIGH_PRIORITY] = picojson::value(message->getIsHighPriority());
         o[MESSAGE_ATTRIBUTE_SUBJECT] = picojson::value(message->getSubject());
+        o[MESSAGE_ATTRIBUTE_OLD_ID] = picojson::value(std::to_string(message->getOldId()));
 
         break;
     }

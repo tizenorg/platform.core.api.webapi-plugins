@@ -48,6 +48,7 @@ public:
 
 // attributes getters
     int getId() const;
+    int getOldId() const;
     int getConversationId() const;
     int getFolderId() const;
     MessageType getType() const;
@@ -70,6 +71,7 @@ public:
 
 // attributes setters (virtual because some of them can be overriden in sub classes)
     virtual void setId(int id);
+    virtual void setOldId(int id);
     virtual void setConversationId(int id);
     virtual void setFolderId(int id);
     // type setting not allowed so no setter provided
@@ -156,6 +158,8 @@ public:
 protected:
     //! Message id
     int m_id;
+    //! Old Message id - for email update hack
+    int m_old_id;
     //! Flag for checking if id is set (false means: not set)
     bool m_id_set;
     //! Conversation id
