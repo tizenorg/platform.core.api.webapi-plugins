@@ -167,6 +167,7 @@ public:
     static bool IsCalendar();
     static bool IsContact();
     static bool IsContent();
+    static bool IsDataControl();
     static bool IsDataSync();
     static bool IsDownload();
     static bool IsExif();

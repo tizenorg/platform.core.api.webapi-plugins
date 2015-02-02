@@ -191,6 +191,7 @@ const char* kTizenFeatureBookmark = "http://tizen.org/feature/bookmark";
 const char* kTizenFeatureCalendar = "http://tizen.org/feature/calendar";
 const char* kTizenFeatureContact  = "http://tizen.org/feature/contact";
 const char* kTizenFeatureContent  = "http://tizen.org/feature/content";
+const char* kTizenFeatureDatacontrol  = "http://tizen.org/feature/datacontrol";
 const char* kTizenFeatureDatasync  = "http://tizen.org/feature/datasync";
 const char* kTizenFeatureDownload = "http://tizen.org/feature/download";
 const char* kTizenFeatureExif = "http://tizen.org/feature/exif";
@@ -2522,6 +2523,9 @@ static bool CheckBoolCapability(const std::string& key, bool* bool_value)
     } else if(key == kTizenFeatureContent) {
         *bool_value = SystemInfoDeviceCapability::IsContent();
         fetched = true;
+    } else if(key == kTizenFeatureDatacontrol) {
+        *bool_value = SystemInfoDeviceCapability::IsDataControl();
+        fetched = true;
     } else if(key == kTizenFeatureDatasync) {
         *bool_value = SystemInfoDeviceCapability::IsDataSync();
         fetched = true;
@@ -3452,6 +3456,15 @@ bool SystemInfoDeviceCapability::IsContact()
 bool SystemInfoDeviceCapability::IsContent()
 {
 #ifdef FEATURE_OPTIONAL_CONTENT
+    return true;
+#else
+    return false;
+#endif
+}
+
+bool SystemInfoDeviceCapability::IsDataControl()
+{
+#ifdef FEATURE_OPTIONAL_DATACONTROL
     return true;
 #else
     return false;
