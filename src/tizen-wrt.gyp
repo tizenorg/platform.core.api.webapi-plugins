@@ -31,6 +31,7 @@
               'datacontrol/datacontrol.gyp:*',
               'datasync/datasync.gyp:*',
               'messaging/messaging.gyp:*',
+              'networkbearerselection/networkbearerselection.gyp:*',
               'nfc/nfc.gyp:*',
               'power/power.gyp:*',
               'bookmark/bookmark.gyp:*',
