@@ -194,6 +194,7 @@ class Compiler(IndentPrintable):
                         if arg.validation:
                             if arg.validation[0] in ['FUNCTION', 'LISTENER']:
                                 m.async = True
+                                operation.async = True
                             elif arg.validation[0] in jsPrimitiveMap.values():
                                 operation.primitiveArgs.append(arg)
 
