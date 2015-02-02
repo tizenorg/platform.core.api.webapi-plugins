@@ -5,9 +5,6 @@
 #ifndef COMMON_LOGGER_H_
 #define COMMON_LOGGER_H_
 
-// TODO(wonyoung.choi): this define should be handled by .spec file.
-#define TIZEN_DEBUG_ENABLE
-
 #include <dlog.h>
 
 #undef LOGGER_TAG

@@ -39,7 +39,7 @@
       ['extension_host_os == "ivi"', { 'defines': ['TIZEN_IVI'] } ],
       ['extension_host_os == "desktop"', { 'defines': ['GENERIC_DESKTOP'] } ],
       ['extension_build_type== "Debug"', {
-        'defines': ['_DEBUG', ],
+        'defines': ['_DEBUG', 'TIZEN_DEBUG_ENABLE', ],
         'cflags': [ '-O0', '-g', ],
       }],
       ['extension_build_type == "Release"', {
