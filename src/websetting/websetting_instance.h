@@ -1,4 +1,4 @@
-// Copyright (c) 2014 Samsung Electronics Co., Ltd. All Rights Reserved
+// Copyright 2015 Samsung Electronics Co, Ltd. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -20,8 +20,8 @@ class WebSettingInstance : public common::ParsedInstance {
   virtual ~WebSettingInstance();
 
  private:
-  void setUserAgentString(const picojson::value& args, picojson::object& out);
-  void removeAllCookies(const picojson::value& args, picojson::object& out);
+  void WebSettingManagerSetUserAgentString(const picojson::value& args, picojson::object& out);
+  void WebSettingManagerRemoveAllCookies(const picojson::value& args, picojson::object& out);
 
   WebSettingExtension* extension_;
 };

@@ -39,7 +39,7 @@ exports.setUserAgentString = function() {
     }
   };
 
-  native_.call('Websetting_setUserAgentString', {'userAgent': args.userAgent},
+  native_.call('WebSettingManager_setUserAgentString', {'userAgent': args.userAgent},
       callback);
 };
 
@@ -69,6 +69,6 @@ exports.removeAllCookies = function() {
     }
   };
 
-  native_.call('Websetting_removeAllCookies', {},
+  native_.call('WebSettingManager_removeAllCookies', {},
       callback);
 };

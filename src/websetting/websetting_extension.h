@@ -1,4 +1,4 @@
-// Copyright (c) 2014 Samsung Electronics Co., Ltd. All Rights Reserved
+// Copyright 2015 Samsung Electronics Co, Ltd. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -16,6 +16,7 @@ class WebSettingExtension : public common::Extension {
   virtual ~WebSettingExtension();
 
   WebSetting* current_app() { return current_app_.get(); }
+
  private:
   virtual common::Instance* CreateInstance();
 
