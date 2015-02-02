@@ -37,6 +37,7 @@
               'systeminfo/systeminfo.gyp:*',
               #'radio/radio.gyp:*',
               'secureelement/secureelement.gyp:*',
+              'sound/sound.gyp:*',
               'notification/notification.gyp:*',
             ],
           },
