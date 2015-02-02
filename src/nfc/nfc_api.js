@@ -879,15 +879,14 @@ var isArrayOfType = function(array, type) {
 //};
 
 tizen.NDEFMessage = function(data) {
+    validator_.isConstructorCall(this, tizen.NDEFMessage);
     var records_ = [];
-    var recordCount_ = 0;
 
     try {
         if (arguments.length >= 1) {
             if (T_.isArray(data)) {
                 if ( isArrayOfType(data, tizen.NDEFRecord) ) {
                     records_ = data;
-                    recordCount_ = data.length;
                 } else {
                     var raw_data_ = toByteArray(data);
                     var result = native_.callSync(
@@ -910,13 +909,11 @@ tizen.NDEFMessage = function(data) {
     } catch (e) {
         //constructor call failed - empty object should be created
         records_ = undefined;
-        recordCount_ = undefined;
     }
 
     var recordsSetter = function(data){
         if (T_.isArray(data)) {
             if ( isArrayOfType(data, tizen.NDEFRecord) ) {
-                recordCount_ = data.length;
                 records_ = data;
             }
         }
@@ -925,7 +922,7 @@ tizen.NDEFMessage = function(data) {
     Object.defineProperties(this, {
         recordCount:   { enumerable: true,
             set : function(){},
-            get : function(){return recordCount_;}},
+            get : function(){ return records_ ? records_.length : undefined}},
         records:   { enumerable: true,
             set : recordsSetter,
             get : function(){return records_;}}
@@ -959,6 +956,7 @@ tizen.NDEFRecord = function(first, type, payload, id) {
     var id_ = undefined;
     //if it is inherited call, then ignore validation
     if ( !(first instanceof InternalData) ){
+        validator_.isConstructorCall(this, tizen.NDEFRecord);
         try {
             if (arguments.length >= 1) {
                 if (T_.isArray(first)) {

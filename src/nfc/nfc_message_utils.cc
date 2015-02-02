@@ -40,7 +40,7 @@ namespace {
 }
 
 /* -------------------------------COMMON FUNCTIONS------------------------------------ */
-void RemoveMessageHandle(nfc_ndef_message_h message_handle)
+void NFCMessageUtils::RemoveMessageHandle(nfc_ndef_message_h message_handle)
 {
     if (message_handle) {
         int result = nfc_ndef_message_destroy(message_handle);
@@ -78,7 +78,7 @@ static short getTnfFromHandle(nfc_ndef_record_h handle,
             removeRecordHandle(handle);
         }
         else {
-            RemoveMessageHandle(message_handle);
+            NFCMessageUtils::RemoveMessageHandle(message_handle);
         }
         NFCUtil::throwNFCException(result, "Can't get record's tnf");
     }
@@ -102,7 +102,7 @@ static UCharVector getTypeNameFromHandle(nfc_ndef_record_h handle,
             removeRecordHandle(handle);
         }
         else {
-            RemoveMessageHandle(message_handle);
+            NFCMessageUtils::RemoveMessageHandle(message_handle);
         }
         NFCUtil::throwNFCException(result, "Can't get record's type");
     }
@@ -125,7 +125,7 @@ static UCharVector getIdFromHandle(nfc_ndef_record_h handle,
             removeRecordHandle(handle);
         }
         else {
-            RemoveMessageHandle(message_handle);
+            NFCMessageUtils::RemoveMessageHandle(message_handle);
         }
         NFCUtil::throwNFCException(result, "Can't get record's id");
     }
@@ -150,7 +150,7 @@ static UCharVector getPayloadFromHandle(nfc_ndef_record_h handle,
             removeRecordHandle(handle);
         }
         else {
-            RemoveMessageHandle(message_handle);
+            NFCMessageUtils::RemoveMessageHandle(message_handle);
         }
         NFCUtil::throwNFCException(result, "Can't get record's payload");
     }
@@ -488,7 +488,7 @@ static std::string getTextFromHandle(nfc_ndef_record_h handle,
     if (NFC_ERROR_NONE != result) {
         LoggerE("Can't get record's text: %d, %s", result,
             NFCUtil::getNFCErrorMessage(result).c_str());
-        RemoveMessageHandle(message_handle);
+        NFCMessageUtils::RemoveMessageHandle(message_handle);
         NFCUtil::throwNFCException(result, "Can't get record's text");
     }
 
@@ -506,7 +506,7 @@ static std::string getLanguageCodeFromHandle(nfc_ndef_record_h handle,
     if (NFC_ERROR_NONE != result) {
         LoggerE("Can't get record's languageCode: %d, %s", result,
             NFCUtil::getNFCErrorMessage(result).c_str());
-        RemoveMessageHandle(message_handle);
+        NFCMessageUtils::RemoveMessageHandle(message_handle);
         NFCUtil::throwNFCException(result, "Can't get record's languageCode");
     }
 
@@ -524,7 +524,7 @@ static nfc_encode_type_e getEncodingFromHandle(nfc_ndef_record_h handle,
     if (NFC_ERROR_NONE != result) {
         LoggerE("Can't get record's encoding: %d, %s", result,
             NFCUtil::getNFCErrorMessage(result).c_str());
-        RemoveMessageHandle(message_handle);
+        NFCMessageUtils::RemoveMessageHandle(message_handle);
         NFCUtil::throwNFCException(result, "Can't get record's encoding");
     }
 
@@ -598,7 +598,7 @@ static std::string getURIFromHandle(nfc_ndef_record_h handle,
     if (NFC_ERROR_NONE != result) {
         LoggerE("Can't get record's uri: %d, %s", result,
             NFCUtil::getNFCErrorMessage(result).c_str());
-        RemoveMessageHandle(message_handle);
+        NFCMessageUtils::RemoveMessageHandle(message_handle);
         NFCUtil::throwNFCException(result, "Can't get record's uri");
     }
 
@@ -664,7 +664,7 @@ static std::string getMimeTypeFromHandle(nfc_ndef_record_h handle,
     if (NFC_ERROR_NONE != result) {
         LoggerE("Can't get record's mime_type: %d, %s", result,
             NFCUtil::getNFCErrorMessage(result).c_str());
-        RemoveMessageHandle(message_handle);
+        NFCMessageUtils::RemoveMessageHandle(message_handle);
         NFCUtil::throwNFCException(result, "Can't get record's mime_type");
     }
 
