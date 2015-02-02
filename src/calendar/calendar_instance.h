@@ -18,21 +18,21 @@ class CalendarInstance : public common::ParsedInstance {
   static CalendarInstance& GetInstance();
 
  private:
-  void CalendarGet(const picojson::value& args, picojson::object& out);
-  void CalendarAdd(const picojson::value& args, picojson::object& out);
-  void CalendarAddBatch(const picojson::value& args, picojson::object& out);
-  void CalendarUpdate(const picojson::value& args, picojson::object& out);
-  void CalendarUpdateBatch(const picojson::value& args, picojson::object& out);
-  void CalendarRemove(const picojson::value& args, picojson::object& out);
-  void CalendarRemoveBatch(const picojson::value& args, picojson::object& out);
-  void CalendarFind(const picojson::value& args, picojson::object& out);
-  void CalendarAddChangeListener(const picojson::value& args, picojson::object& out);
-  void CalendarRemoveChangeListener(const picojson::value& args, picojson::object& out);
+  void Calendar_get(const picojson::value& args, picojson::object& out);
+  void Calendar_add(const picojson::value& args, picojson::object& out);
+  void Calendar_addBatch(const picojson::value& args, picojson::object& out);
+  void Calendar_update(const picojson::value& args, picojson::object& out);
+  void Calendar_updateBatch(const picojson::value& args, picojson::object& out);
+  void Calendar_remove(const picojson::value& args, picojson::object& out);
+  void Calendar_removeBatch(const picojson::value& args, picojson::object& out);
+  void Calendar_find(const picojson::value& args, picojson::object& out);
+  void Calendar_addChangeListener(const picojson::value& args, picojson::object& out);
+  void Calendar_removeChangeListener(const picojson::value& args, picojson::object& out);
 
-  void CalendarManagerAddCalendar(const picojson::value& args, picojson::object& out);
-  void CalendarManagerGetCalendar(const picojson::value& args, picojson::object& out);
-  void CalendarManagerGetCalendars(const picojson::value& args, picojson::object& out);
-  void CalendarManagerRemoveCalendar(const picojson::value& args, picojson::object& out);
+  void CalendarManager_addCalendar(const picojson::value& args, picojson::object& out);
+  void CalendarManager_getCalendar(const picojson::value& args, picojson::object& out);
+  void CalendarManager_getCalendars(const picojson::value& args, picojson::object& out);
+  void CalendarManager_removeCalendar(const picojson::value& args, picojson::object& out);
 
 };
 
