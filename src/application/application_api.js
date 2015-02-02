@@ -1,4 +1,10 @@
-// Application
+/* global tizen, xwalk, extension */
+
+// Copyright 2015 Samsung Electronics Co, Ltd. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+
 var validator_ = xwalk.utils.validator;
 var types_ = validator_.Types;
 
@@ -25,12 +31,12 @@ function callNative(cmd, args) {
     throw new tizen.WebAPIException(tizen.WebAPIException.UNKNOWN_ERR);
   }
 
-  if (result['status'] == 'success') {
+  if (result['status'] === 'success') {
     if (result['result']) {
       return result['result'];
     }
     return true;
-  } else if (result['status'] == 'error') {
+  } else if (result['status'] === 'error') {
     var err = result['error'];
     if (err) {
       throw new tizen.WebAPIException(err.name, err.message);
@@ -50,17 +56,30 @@ function callNativeWithCallback(cmd, args, callback) {
 }
 
 function SetReadOnlyProperty(obj, n, v) {
-  Object.defineProperty(obj, n, {value: v, writable: false});
+  Object.defineProperty(obj, n, {'value': v, 'writable': false});
 }
-
 
 function ApplicationManager() {
   // constructor of ApplicationManager
 }
 
+function getAppInfoWithReadOnly(obj) {
+  var appInfo = new ApplicationInformation();
+  SetReadOnlyProperty(appInfo, 'id', obj.id);
+  SetReadOnlyProperty(appInfo, 'name', obj.name);
+  SetReadOnlyProperty(appInfo, 'iconPath', obj.iconPath);
+  SetReadOnlyProperty(appInfo, 'version', obj.version);
+  SetReadOnlyProperty(appInfo, 'show', obj.show);
+  SetReadOnlyProperty(appInfo, 'categories', obj.categories);
+  SetReadOnlyProperty(appInfo, 'installDate', new Date(obj.installDate));
+  SetReadOnlyProperty(appInfo, 'size', obj.size);
+  SetReadOnlyProperty(appInfo, 'packageId', obj.packageId);
 
+  return appInfo;
+}
 ApplicationManager.prototype.getCurrentApplication = function() {
-  var nativeParam = {};
+  var nativeParam = {
+  };
 
   try {
     var syncResult = callNative('ApplicationManager_getCurrentApplication', nativeParam);
@@ -68,101 +87,89 @@ ApplicationManager.prototype.getCurrentApplication = function() {
     throw e;
   }
 
-  var appInfo = new ApplicationInformation();
-  SetReadOnlyProperty(appInfo, 'id', syncResult.appInfo.id);
-  SetReadOnlyProperty(appInfo, 'name', syncResult.appInfo.name);
-  SetReadOnlyProperty(appInfo, 'iconPath', syncResult.appInfo.iconPath);
-  SetReadOnlyProperty(appInfo, 'version', syncResult.appInfo.version);
-  SetReadOnlyProperty(appInfo, 'show', syncResult.appInfo.show);
-  SetReadOnlyProperty(appInfo, 'categories', syncResult.appInfo.categories);
-  SetReadOnlyProperty(appInfo, 'installDate', syncResult.appInfo.installDate);
-  SetReadOnlyProperty(appInfo, 'size', syncResult.appInfo.size);
-  SetReadOnlyProperty(appInfo, 'packageId', syncResult.appInfo.packageId);
-
+  var appInfo = getAppInfoWithReadOnly(syncResult.appInfo);
   var app = new Application();
   SetReadOnlyProperty(app, 'appInfo', appInfo);
   SetReadOnlyProperty(app, 'contextId', syncResult.contextId);
   return app;
 };
 
-ApplicationManager.prototype.kill = function(contextId) {
+ApplicationManager.prototype.kill = function(contextId, successCallback, errorCallback) {
   var args = validator_.validateArgs(arguments, [
     {'name': 'contextId', 'type': types_.STRING},
-    {'name': 'successCallback', 'type': types_.FUCTION, optional: true, nullable: true},
-    {'name': 'errorCallback', 'type': types_.FUNCTION, optional: true, nullable: true}
+    {'name': 'successCallback', 'type': types_.FUNCTION, 'optional': true, 'nullable': true},
+    {'name': 'errorCallback', 'type': types_.FUNCTION, 'optional': true, 'nullable': true}
   ]);
 
   var nativeParam = {
+    'contextId': args.contextId
   };
-  if (args['contextId']) {
-    nativeParam['contextId'] = args.contextId;
-
-    try {
-      var syncResult =
-          callNativeWithCallback('ApplicationManager_kill', nativeParam, function(result) {
-        if (result.status == 'success') {
-          if (args.successCallback) {
-            args.successCallback();
-          }
-        }
-        if (result.status == 'error') {
-          if (args.errorCallback) {
-            args.errorCallback(result.error);
-          }
-        }
-      });
-    } catch (e) {
-      throw e;
-    }
-  }
-};
-
-ApplicationManager.prototype.launch = function(id) {
-  var args = validator_.validateArgs(arguments, [
-    {'name': 'id', 'type': types_.STRING},
-    {'name': 'successCallback', 'type': types_.FUNCTION, optional: true, nullable: true},
-    {'name': 'errorCallback', 'type': types_.FUNCTION, optional: true, nullable: true}
-  ]);
-
-  var nativeParam = {
-  };
-  if (args['id']) {
-    nativeParam['id'] = args.id;
-  }
 
   try {
     var syncResult =
-        callNativeWithCallback('ApplicationManager_launch', nativeParam, function(result) {
-      if (result.status == 'success') {
+        callNativeWithCallback('ApplicationManager_kill', nativeParam, function(result) {
+      if (result.status === 'success') {
         if (args.successCallback) {
           args.successCallback();
         }
       }
-      if (result.status == 'error') {
+      if (result.status === 'error') {
         if (args.errorCallback) {
           args.errorCallback(result.error);
         }
       }
+      delete callbacks[result['callbackId']];
     });
   } catch (e) {
     throw e;
   }
 };
 
-ApplicationManager.prototype.launchAppControl = function(appControl) {
+ApplicationManager.prototype.launch = function(id, successCallback, errorCallback) {
   var args = validator_.validateArgs(arguments, [
-    {'name': 'appControl', 'type': types_.DICTIONARY},
-    {'name': 'id', 'type': types_.STRING, optional: true, nullable: true},
-    {'name': 'successCallback', 'type': types_.FUNCTION, optional: true, nullable: true},
-    {'name': 'errorCallback', 'type': types_.FUNCTION, optional: true, nullable: true},
+    {'name': 'id', 'type': types_.STRING},
+    {'name': 'successCallback', 'type': types_.FUNCTION, 'optional': true, 'nullable': true},
+    {'name': 'errorCallback', 'type': types_.FUNCTION, 'optional': true, 'nullable': true}
+  ]);
+
+  var nativeParam = {
+    'id': args.id
+  };
+
+  try {
+    var syncResult =
+        callNativeWithCallback('ApplicationManager_launch', nativeParam, function(result) {
+      if (result.status === 'success') {
+        if (args.successCallback) {
+          args.successCallback();
+        }
+      }
+      if (result.status === 'error') {
+        if (args.errorCallback) {
+          args.errorCallback(result.error);
+        }
+      }
+      delete callbacks[result['callbackId']];
+    });
+  } catch (e) {
+    throw e;
+  }
+};
+
+ApplicationManager.prototype.launchAppControl = function(appControl, id, successCallback,
+    errorCallback, replyCallback) {
+  var args = validator_.validateArgs(arguments, [
+    {'name': 'appControl', 'type': types_.PLATFORM_OBJECT, 'values': tizen.ApplicationControl},
+    {'name': 'id', 'type': types_.STRING, 'optional': true, 'nullable': true},
+    {'name': 'successCallback', 'type': types_.FUNCTION, 'optional': true, 'nullable': true},
+    {'name': 'errorCallback', 'type': types_.FUNCTION, 'optional': true, 'nullable': true},
     {'name': 'replyCallback', 'type': types_.LISTENER, 'values': ['onsuccess', 'onfailure'],
-      optional: true, nullable: true}
+      'optional': true, 'nullable': true}
   ]);
 
   var nativeParam = {
   };
   if (args['id']) {
-    console.log(args.id);
     nativeParam['id'] = args.id;
   }
   if (args['appControl']) {
@@ -173,37 +180,38 @@ ApplicationManager.prototype.launchAppControl = function(appControl) {
         callNativeWithCallback('ApplicationManager_launchAppControl', nativeParam, function(ret) {
       // In case of reply, can have onsuccess or onfailure with result.status
       // It should be checked first of all
-      if (ret.type == 'onsuccess') {
+      if (ret.type === 'onsuccess') {
         if (args.replyCallback) {
           args.replyCallback.onsuccess(ret.data);
         }
       }
-      else if (ret.type == 'onfailure') {
+      else if (ret.type === 'onfailure') {
         if (args.replyCallback) {
           args.replyCallback.onfailure();
         }
       }
-      else if (ret.status == 'success') {
+      else if (ret.status === 'success') {
         if (args.successCallback) {
           args.successCallback();
         }
       }
-      else if (ret.status == 'error') {
+      else if (ret.status === 'error') {
         if (args.errorCallback) {
           args.errorCallback(ret.error);
         }
       }
+      delete callbacks[result['callbackId']];
     });
   } catch (e) {
     throw e;
   }
 };
 
-ApplicationManager.prototype.findAppControl = function(appControl, successCallback) {
+ApplicationManager.prototype.findAppControl = function(appControl, successCallback, errorCallback) {
   var args = validator_.validateArgs(arguments, [
-    {'name': 'appControl', 'type': types_.DICTIONARY},
+    {'name': 'appControl', 'type': types_.PLATFORM_OBJECT, 'values': tizen.ApplicationControl},
     {'name': 'successCallback', 'type': types_.FUNCTION},
-    {'name': 'errorCallback', 'type': types_.FUNCTION, optional: true, nullable: true}
+    {'name': 'errorCallback', 'type': types_.FUNCTION, 'optional': true, 'nullable': true}
   ]);
 
   var nativeParam = {
@@ -214,23 +222,30 @@ ApplicationManager.prototype.findAppControl = function(appControl, successCallba
   try {
     var syncResult =
         callNativeWithCallback('ApplicationManager_findAppControl', nativeParam, function(result) {
-      if (result.status == 'success') {
-        args.successCallback(result.informationArray, result.appControl);
-      } else if (result.status == 'error') {
+      if (result.status === 'success') {
+        var returnArray = new Array();
+        for (var i = 0; i < result.informationArray.length; i++) {
+          var appInfo = getAppInfoWithReadOnly(result.informationArray[i]);
+          returnArray.push(appInfo);
+        }
+
+        args.successCallback(returnArray, result.appControl);
+      } else if (result.status === 'error') {
         if (args.errorCallback) {
           args.errorCallback(result.error);
         }
       }
+      delete callbacks[result['callbackId']];
     });
   } catch (e) {
     throw e;
   }
 };
 
-ApplicationManager.prototype.getAppsContext = function(successCallback) {
+ApplicationManager.prototype.getAppsContext = function(successCallback, errorCallback) {
   var args = validator_.validateArgs(arguments, [
     {'name': 'successCallback', 'type': types_.FUNCTION},
-    {'name': 'errorCallback', 'type': types_.FUNCTION, optional: true, nullable: true}
+    {'name': 'errorCallback', 'type': types_.FUNCTION, 'optional': true, 'nullable': true}
   ]);
 
   var nativeParam = {
@@ -238,7 +253,7 @@ ApplicationManager.prototype.getAppsContext = function(successCallback) {
   try {
     var syncResult =
         callNativeWithCallback('ApplicationManager_getAppsContext', nativeParam, function(result) {
-      if (result.status == 'success') {
+      if (result.status === 'success') {
         var returnArray = new Array();
         for (var index = 0; index < result.contexts.length; index++) {
           var appContext = new ApplicationContext();
@@ -248,20 +263,21 @@ ApplicationManager.prototype.getAppsContext = function(successCallback) {
         }
         args.successCallback(returnArray);
       }
-      else if (result.status == 'error') {
+      else if (result.status === 'error') {
         if (args.errorCallback) {
           args.errorCallback(result.error);
         }
       }
+      delete callbacks[result['callbackId']];
     });
   } catch (e) {
     throw e;
   }
 };
 
-ApplicationManager.prototype.getAppContext = function() {
+ApplicationManager.prototype.getAppContext = function(contextId) {
   var args = validator_.validateArgs(arguments, [
-    {'name': 'contextId', 'type': types_.STRING, optional: true, nullable: true}
+    {'name': 'contextId', 'type': types_.STRING, 'optional': true, 'nullable': true}
   ]);
 
   var nativeParam = {
@@ -282,10 +298,10 @@ ApplicationManager.prototype.getAppContext = function() {
   return returnObject;
 };
 
-ApplicationManager.prototype.getAppsInfo = function(successCallback) {
+ApplicationManager.prototype.getAppsInfo = function(successCallback, errorCallback) {
   var args = validator_.validateArgs(arguments, [
     {'name': 'successCallback', 'type': types_.FUNCTION},
-    {'name': 'errorCallback', 'type': types_.FUNCTION, optional: true, nullable: true}
+    {'name': 'errorCallback', 'type': types_.FUNCTION, 'optional': true, 'nullable': true}
   ]);
 
   var nativeParam = {
@@ -293,38 +309,29 @@ ApplicationManager.prototype.getAppsInfo = function(successCallback) {
   try {
     var syncResult =
         callNativeWithCallback('ApplicationManager_getAppsInfo', nativeParam, function(result) {
-      if (result.status == 'success') {
-        // args.successCallback(result.informationArray);
+      if (result.status === 'success') {
         var returnArray = new Array();
         for (var i = 0; i < result.informationArray.length; i++) {
-          var appInfo = new ApplicationInformation();
-          SetReadOnlyProperty(appInfo, 'id', result.informationArray[i].id);
-          SetReadOnlyProperty(appInfo, 'name', result.informationArray[i].name);
-          SetReadOnlyProperty(appInfo, 'iconPath', result.informationArray[i].iconPath);
-          SetReadOnlyProperty(appInfo, 'version', result.informationArray[i].version);
-          SetReadOnlyProperty(appInfo, 'show', result.informationArray[i].show);
-          SetReadOnlyProperty(appInfo, 'categories', result.informationArray[i].categories);
-          SetReadOnlyProperty(appInfo, 'installDate', result.informationArray[i].installDate);
-          SetReadOnlyProperty(appInfo, 'size', result.informationArray[i].size);
-          SetReadOnlyProperty(appInfo, 'packageId', result.informationArray[i].packageId);
+          var appInfo = getAppInfoWithReadOnly(result.informationArray[i]);
           returnArray.push(appInfo);
         }
         args.successCallback(returnArray);
       }
-      else if (result.status == 'error') {
+      else if (result.status === 'error') {
         if (args.errorCallback) {
           args.errorCallback(result.error);
         }
       }
+      delete callbacks[result['callbackId']];
     });
   } catch (e) {
     throw e;
   }
 };
 
-ApplicationManager.prototype.getAppInfo = function() {
+ApplicationManager.prototype.getAppInfo = function(id) {
   var args = validator_.validateArgs(arguments, [
-    {'name': 'id', 'type': types_.STRING, optional: true, nullable: true}
+    {'name': 'id', 'type': types_.STRING, 'optional': true, 'nullable': true}
   ]);
 
   var nativeParam = {
@@ -337,24 +344,13 @@ ApplicationManager.prototype.getAppInfo = function() {
   } catch (e) {
     throw e;
   }
-
-  var returnObject = new ApplicationInformation();
-  SetReadOnlyProperty(returnObject, 'id', syncResult.id);
-  SetReadOnlyProperty(returnObject, 'name', syncResult.name);
-  SetReadOnlyProperty(returnObject, 'iconPath', syncResult.iconPath);
-  SetReadOnlyProperty(returnObject, 'version', syncResult.version);
-  SetReadOnlyProperty(returnObject, 'show', syncResult.show);
-  SetReadOnlyProperty(returnObject, 'categories', syncResult.categories);
-  SetReadOnlyProperty(returnObject, 'installDate', syncResult.installDate);
-  SetReadOnlyProperty(returnObject, 'size', syncResult.size);
-  SetReadOnlyProperty(returnObject, 'packageId', syncResult.packageId);
-
-  return returnObject;
+  var appInfo = getAppInfoWithReadOnly(syncResult);
+  return appInfo;
 };
 
-ApplicationManager.prototype.getAppCerts = function() {
+ApplicationManager.prototype.getAppCerts = function(id) {
   var args = validator_.validateArgs(arguments, [
-    {'name': 'id', 'type': types_.STRING, optional: true, nullable: true}
+    {'name': 'id', 'type': types_.STRING, 'optional': true, 'nullable': true}
   ]);
 
   var nativeParam = {
@@ -398,9 +394,9 @@ ApplicationManager.prototype.getAppSharedURI = function() {
   return syncResult;
 };
 
-ApplicationManager.prototype.getAppMetaData = function() {
+ApplicationManager.prototype.getAppMetaData = function(id) {
   var args = validator_.validateArgs(arguments, [
-    {'name': 'id', 'type': types_.STRING, optional: true, nullable: true}
+    {'name': 'id', 'type': types_.STRING, 'optional': true, 'nullable': true}
   ]);
 
   var nativeParam = {
@@ -436,15 +432,16 @@ ApplicationManager.prototype.addAppInfoEventListener = function(eventCallback) {
   try {
     var syncResult =
         callNativeWithCallback('ApplicationManager_addAppInfoEventListener', param, function(ret) {
-      if (ret.type == 'oninstalled') {
-        args.eventCallback.oninstalled(ret.info);
-      }
-      if (ret.type == 'onupdated') {
-        args.eventCallback.onupdated(ret.info);
-      }
-      if (ret.type == 'onuninstalled') {
+      if (ret.type === 'oninstalled') {
+        var appInfo = getAppInfoWithReadOnly(ret.info);
+        args.eventCallback.oninstalled(appInfo);
+      } else if (ret.type === 'onupdated') {
+        var appInfo = getAppInfoWithReadOnly(ret.info);
+        args.eventCallback.oninstalled(appInfo);
+      } else if (ret.type === 'onuninstalled') {
         args.eventCallback.onuninstalled(ret.id);
       }
+      delete callbacks[result['callbackId']];
     });
   } catch (e) {
     throw e;
@@ -473,7 +470,8 @@ function Application() {
 }
 
 Application.prototype.exit = function() {
-  var nativeParam = {};
+  var nativeParam = {
+  };
   try {
     var syncResult = callNative('Application_exit', nativeParam);
   } catch (e) {
@@ -482,7 +480,8 @@ Application.prototype.exit = function() {
 };
 
 Application.prototype.hide = function() {
-  var nativeParam = {};
+  var nativeParam = {
+  };
   try {
     var syncResult = callNative('Application_hide', nativeParam);
   } catch (e) {
@@ -491,7 +490,8 @@ Application.prototype.hide = function() {
 };
 
 Application.prototype.getRequestedAppControl = function() {
-  var nativeParam = {};
+  var nativeParam = {
+  };
   try {
     var syncResult = callNative('Application_getRequestedAppControl', nativeParam);
   } catch (e) {
@@ -514,8 +514,8 @@ function ApplicationContext() {
 }
 
 tizen.ApplicationControlData = function(key, value) {
-  if (this && this.constructor == tizen.ApplicationControlData &&
-      (typeof(key) == 'string' || key instanceof String) &&
+  if (this && this.constructor === tizen.ApplicationControlData &&
+      (typeof(key) === 'string' || key instanceof String) &&
       (value && value instanceof Array)) {
 
     Object.defineProperties(this, {
@@ -530,8 +530,8 @@ tizen.ApplicationControlData = function(key, value) {
 
 tizen.ApplicationControl = function(operation, uri, mime, category, data) {
 
-  if (this && this.constructor == tizen.ApplicationControl &&
-      (typeof(operation) == 'string' || operation instanceof String) &&
+  if (this && this.constructor === tizen.ApplicationControl &&
+      (typeof(operation) === 'string' || operation instanceof String) &&
       data) {
 
     Object.defineProperties(this, {
@@ -552,9 +552,10 @@ function RequestedApplicationControl() {
   // constructor of RequestedApplicationControl
 }
 
-RequestedApplicationControl.prototype.replyResult = function() {
+RequestedApplicationControl.prototype.replyResult = function(data) {
   var args = validator_.validateArgs(arguments, [
-    {'name': 'data', 'type': types_.ARRAY, optional: true}
+    {'name': 'data', 'type': types_.PLATFORM_OBJECT,
+      'values': tizen.ApplicationControlData, 'optional': true}
   ]);
 
   var nativeParam = {

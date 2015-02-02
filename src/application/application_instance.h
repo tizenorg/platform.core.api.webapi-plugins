@@ -1,4 +1,4 @@
-// Copyright 2014 Samsung Electronics Co, Ltd. All rights reserved.
+// Copyright 2015 Samsung Electronics Co, Ltd. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -71,32 +71,13 @@ class ApplicationInstance
   void RequestedAppControlReplyFailure(const picojson::value& args,
     picojson::object& out);
 
-  RequestedApplicationControlPtr GetRequestedAppControl();
-  void ReplyResult(const std::string& caller_app_id,
-    ApplicationControlDataArrayPtr app_ctr_data_array_ptr);
-  void ReplyFailure(const std::string& caller_app_id);
-  ApplicationPtr GetCurrentApplication(const std::string app_id);
   ApplicationInformationPtr GetAppInfo(const std::string app_id);
-  void GetAppsInfo(const int& callback_id);
-  void Kill(const std::string context_id, int callback_id);
-  void Launch(const std::string app_id, int callback_id);
-  void LaunchAppControl(const ApplicationControlPtr& app_ctr_ptr,
-    const std::string& app_id, const int& callback_id);
-  void FindAppControl(const ApplicationControlPtr& app_ctr_ptr,
-    const int& callback_id);
-  void GetAppsContext(const int& callback_id);
-  ApplicationContextPtr GetAppContext(const std::string context_id);
-  ApplicationCertificateArrayPtr GetAppCertificate(const std::string app_id);
-  ApplicationMetaDataArrayPtr GetAppMetaData(const std::string app_id);
-  std::string GetAppSharedURI(std::string app_id);
-  int AddAppInfoEventListener(const int& callback_id);
   static bool app_callback(package_info_app_component_type_e comp_type,
     const char *app_id, void *user_data);
   static int app_list_changed_cb(int id, const char *type, const char *package,
     const char *key, const char *val, const void *msg, void *data);
   void ReplyAppListChangedCallback(app_info_event_e event_type,
     const char *pkg_id, void *user_data);
-  void RemoveAppInfoEventListener(int watch_id);
 
   int get_watch_id_and_increase();
 
