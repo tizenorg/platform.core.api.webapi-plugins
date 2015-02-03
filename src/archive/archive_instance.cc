@@ -106,41 +106,44 @@ void ArchiveInstance::Open(const picojson::value& args, picojson::object& out) {
         }
 
         std::string location_full_path = v_file.get<std::string>();
+        PathPtr path = Path::create(location_full_path);
 
-        NodePtr node;
-        try {
-            node = Node::resolve(Path::create(location_full_path));
-        } catch (PlatformException& e) {
-            LoggerE("Filesystem exception - calling error callback");
-            PostError(e, callbackId);
-            delete callback;
-            callback = NULL;
-            return;
-        }
-        try {
-            file_ptr = FilePtr(new File(node, File::PermissionList()));
-            LoggerD("open: %s mode: 0x%x overwrite: %d", location_full_path.c_str(), fm, overwrite);
-
-            if(FileMode::WRITE == fm || FileMode::READ_WRITE == fm) {
-                if(overwrite) {
-                    try {
-                        LoggerD("Deleting existing file: %s", location_full_path.c_str());
-                        file_ptr->getNode()->remove(OPT_RECURSIVE);
-                        file_ptr.reset();   //We need to create new empty file
-                    } catch(...) {
-                        LoggerE("Couldn't remove existing file: %s", location_full_path.c_str());
-                        throw IOException("Could not remove existing file");
+        struct stat info;
+        if (lstat(path->getFullPath().c_str(), &info) == 0) {
+            NodePtr node;
+            try {
+                node = Node::resolve(path);
+            } catch (PlatformException& e) {
+                LoggerE("Filesystem exception - calling error callback");
+                PostError(e, callbackId);
+                delete callback;
+                callback = NULL;
+                return;
+            }
+            try {
+                file_ptr = FilePtr(new File(node, File::PermissionList()));
+                LoggerD("open: %s mode: 0x%x overwrite: %d", location_full_path.c_str(), fm, overwrite);
+                if(FileMode::WRITE == fm || FileMode::READ_WRITE == fm) {
+                    if(overwrite) {
+                        try {
+                            LoggerD("Deleting existing file: %s", location_full_path.c_str());
+                            file_ptr->getNode()->remove(OPT_RECURSIVE);
+                            file_ptr.reset();   //We need to create new empty file
+                        } catch(...) {
+                            LoggerE("Couldn't remove existing file: %s", location_full_path.c_str());
+                            throw IOException("Could not remove existing file");
+                        }
+                    }
+                    else if(FileMode::WRITE == fm) {
+                        LoggerE("open: %s with mode: \"w\" file exists and overwrite is FALSE!"
+                                " throwing InvalidModificationException", location_full_path.c_str());
+                        throw InvalidModificationException("Zip archive already exists");
                     }
                 }
-                else if(FileMode::WRITE == fm) {
-                    LoggerE("open: %s with mode: \"w\" file exists and overwrite is FALSE!"
-                            " throwing InvalidModificationException", location_full_path.c_str());
-                    throw InvalidModificationException("Zip archive already exists");
-                }
+            } catch (const NotFoundException& nfe) {
+                LoggerD("location_string: %s is not file reference", location_full_path.c_str());
+                file_ptr.reset();
             }
-        } catch (const NotFoundException& nfe) {
-            LoggerD("location_string: %s is not file reference", location_full_path.c_str());
-            file_ptr.reset();
         }
 
         if (!file_ptr) {
@@ -152,7 +155,6 @@ void ArchiveInstance::Open(const picojson::value& args, picojson::object& out) {
                 LoggerD("Archive file not found - trying to create new one at: "
                         "full: %s", location_full_path.c_str());
 
-                PathPtr path = Path::create(location_full_path);
 
                 std::string parent_path_string = path->getPath();
                 PathPtr parent_path = Path::create(parent_path_string);
@@ -177,8 +179,13 @@ void ArchiveInstance::Open(const picojson::value& args, picojson::object& out) {
         callback->setArchiveFile(afp);
 
         ArchiveManager::getInstance().open(callback);
-    }
-    catch (...) {
+    } catch (PlatformException& e) {
+        LoggerE("Filesystem exception - calling error callback");
+        PostError(e, callbackId);
+        delete callback;
+        callback = NULL;
+        return;
+    } catch (...) {
         LoggerE("Exception occurred");
         delete callback;
         callback = NULL;
