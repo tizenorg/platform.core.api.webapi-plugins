@@ -34,11 +34,11 @@ class BookmarkInstance : public common::ParsedInstance {
   bool bookmark_foreach(Context& ctx, bp_bookmark_info_fmt& info);
   bool bookmark_url_exists(const char* url);
   bool bookmark_title_exists_in_parent(const char* title, int parent);
-  void Bookmark_get(const picojson::value& arg, picojson::object& o);
-  void Bookmark_add(const picojson::value& arg, picojson::object& o);
-  void Bookmark_remove(const picojson::value& arg, picojson::object& o);
-  void Bookmark_removeAll(const picojson::value& msg, picojson::object& o);
-  void Bookmark_getRootId(const picojson::value& msg, picojson::object& o);
+  void BookmarkGet(const picojson::value& arg, picojson::object& o);
+  void BookmarkAdd(const picojson::value& arg, picojson::object& o);
+  void BookmarkRemove(const picojson::value& arg, picojson::object& o);
+  void BookmarkRemoveAll(const picojson::value& msg, picojson::object& o);
+  void BookmarkGetRootId(const picojson::value& msg, picojson::object& o);
 };
 }  // namespace bookmark
 }  // namespace extension

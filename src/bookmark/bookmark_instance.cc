@@ -14,11 +14,6 @@ namespace extension {
 namespace bookmark {
 
 namespace {
-  const char kGet[] = "Bookmark_get";
-  const char kAdd[] = "Bookmark_add";
-  const char kRemove[] = "Bookmark_remove";
-  const char kRemoveAll[] = "Bookmark_removeAll";
-  const char kGetRootId[] = "Bookmark_getRootId";
   const char kId[] = "id";
   const char kTitle[] = "title";
   const char kType[] = "type";
@@ -30,11 +25,11 @@ BookmarkInstance::BookmarkInstance() {
   using namespace std::placeholders;
 #define REGISTER_SYNC(c,x) \
     RegisterSyncHandler(c, std::bind(&BookmarkInstance::x, this, _1, _2));
-  REGISTER_SYNC(kGet, Bookmark_get);
-  REGISTER_SYNC(kAdd, Bookmark_add);
-  REGISTER_SYNC(kRemove, Bookmark_remove);
-  REGISTER_SYNC(kRemoveAll, Bookmark_removeAll);
-  REGISTER_SYNC(kGetRootId, Bookmark_getRootId);
+  REGISTER_SYNC("Bookmark_get", BookmarkGet);
+  REGISTER_SYNC("Bookmark_add", BookmarkAdd);
+  REGISTER_SYNC("Bookmark_remove", BookmarkRemove);
+  REGISTER_SYNC("Bookmark_removeAll", BookmarkRemoveAll);
+  REGISTER_SYNC("Bookmark_getRootId", BookmarkGetRootId);
 #undef REGISTER_SYNC
   if (bp_bookmark_adaptor_initialize()) {
     throw common::NotSupportedException("Fail: Bookmark not supported");
@@ -127,7 +122,7 @@ bool BookmarkInstance::bookmark_title_exists_in_parent(
   return false;
 }
 
-void BookmarkInstance::Bookmark_get(
+void BookmarkInstance::BookmarkGet(
     const picojson::value& arg, picojson::object& o) {
   Context ctx = {0};
   bp_bookmark_info_fmt info = {0};
@@ -159,7 +154,7 @@ void BookmarkInstance::Bookmark_get(
   ReportSuccess(picojson::value(arr), o);
 }
 
-void BookmarkInstance::Bookmark_add(
+void BookmarkInstance::BookmarkAdd(
     const picojson::value& arg, picojson::object& o) {
   int saved_id =-1;
   bp_bookmark_info_fmt data = {0};
@@ -205,7 +200,7 @@ void BookmarkInstance::Bookmark_add(
   ReportSuccess(picojson::value(std::to_string(saved_id)), o);
 }
 
-void BookmarkInstance::Bookmark_remove(
+void BookmarkInstance::BookmarkRemove(
     const picojson::value& arg, picojson::object& o) {
   int id = common::stol(
       common::FromJson<std::string>(arg.get<picojson::object>(), kId));
@@ -220,7 +215,7 @@ void BookmarkInstance::Bookmark_remove(
   ReportSuccess(o);
 }
 
-void BookmarkInstance::Bookmark_removeAll(
+void BookmarkInstance::BookmarkRemoveAll(
     const picojson::value& msg, picojson::object& o) {
   if (bp_bookmark_adaptor_reset() < 0) {
     ReportError(o);
@@ -229,7 +224,7 @@ void BookmarkInstance::Bookmark_removeAll(
   ReportSuccess(o);
 }
 
-void BookmarkInstance::Bookmark_getRootId(
+void BookmarkInstance::BookmarkGetRootId(
     const picojson::value& msg, picojson::object& o) {
   int rootId(0);
   if (bp_bookmark_adaptor_get_root(&rootId) < 0) {
