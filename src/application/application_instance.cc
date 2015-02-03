@@ -179,17 +179,17 @@ static picojson::value GetAppError(int type, const char* msg) {
 }
 
 static void ReplyAsync(ApplicationInstance* instance,
-  int callback_id, bool isSuccess, picojson::object& param,
+  int callback_id, bool isSuccess, picojson::object* param,
   int err_id, const char* err_msg) {
-  param["callbackId"] = picojson::value(static_cast<double>(callback_id));
+  (*param)["callbackId"] = picojson::value(static_cast<double>(callback_id));
   if (isSuccess) {
-    param["status"] = picojson::value("success");
+    (*param)["status"] = picojson::value("success");
   } else {
-    param.insert(std::make_pair("status", picojson::value("error")));
-    param.insert(std::make_pair("error", GetAppError(err_id, err_msg)));
+    (*param).insert(std::make_pair("status", picojson::value("error")));
+    (*param).insert(std::make_pair("error", GetAppError(err_id, err_msg)));
   }
 
-  picojson::value result = picojson::value(param);
+  picojson::value result = picojson::value(*param);
   char print_buf[300] = {0};
   snprintf(print_buf, sizeof(print_buf), result.serialize().c_str());
   LoggerD("async result: %s", print_buf);
@@ -443,7 +443,7 @@ static void app_control_reply_callback(app_control_h request,
     picojson::object data;
     data.insert(std::make_pair("type", picojson::value("onsuccess")));
     data.insert(std::make_pair("data", replied_data));
-    ReplyAsync(info->instance, info->callback_id, true, data, 0, NULL);
+    ReplyAsync(info->instance, info->callback_id, true, &data, 0, NULL);
 
   } else if (result == APP_CONTROL_RESULT_FAILED ||
              result == APP_CONTROL_RESULT_CANCELED) {
@@ -452,7 +452,7 @@ static void app_control_reply_callback(app_control_h request,
     // ReplyAsync
     picojson::object data;
     data.insert(std::make_pair("type", picojson::value("onfailure")));
-    ReplyAsync(info->instance, info->callback_id, false, data,
+    ReplyAsync(info->instance, info->callback_id, false, &data,
       APP_ERROR_ABORT, "Failed or Canceled");
   }
 
@@ -676,11 +676,11 @@ static void app_manager_app_context_event_callback(app_context_h app_context,
     info->error_type = APP_ERROR_UNKNOWN;
     snprintf(info->error_msg, sizeof(info->error_msg), "Not terminated.");
     ReplyAsync(info->instance, info->callback_id,
-               false, data, info->error_type, info->error_msg);
+               false, &data, info->error_type, info->error_msg);
   } else {
     picojson::object data;
     ReplyAsync(info->instance, info->callback_id,
-               true, data, 0, NULL);
+               true, &data, 0, NULL);
   }
 
   if (info)
@@ -693,11 +693,11 @@ static gboolean getappsinfo_callback_thread_completed(
 
   if (user_data->is_success) {
     ReplyAsync(user_data->instance, user_data->callback_id,
-               true, user_data->data, 0, NULL);
+               true, &(user_data->data), 0, NULL);
   } else {
     picojson::object data;
     ReplyAsync(user_data->instance, user_data->callback_id,
-               false, data, user_data->error_type, user_data->error_msg);
+               false, &data, user_data->error_type, user_data->error_msg);
   }
     return true;
 }
@@ -739,11 +739,11 @@ static gboolean getappsctx_callback_thread_completed(
 
   if (user_data->is_success) {
     ReplyAsync(user_data->instance, user_data->callback_id,
-               true, user_data->data, 0, NULL);
+               true, &(user_data->data), 0, NULL);
   } else {
     picojson::object data;
     ReplyAsync(user_data->instance, user_data->callback_id,
-               false, data, user_data->error_type, user_data->error_msg);
+               false, &data, user_data->error_type, user_data->error_msg);
   }
   return true;
 }
@@ -799,10 +799,10 @@ static gboolean callback_thread_completed
 
   if (user_data->is_success) {
     ReplyAsync(user_data->instance, user_data->callback_id,
-               true, data, 0, NULL);
+               true, &data, 0, NULL);
   } else {
     ReplyAsync(user_data->instance, user_data->callback_id,
-               false, data, user_data->error_type, user_data->error_msg);
+               false, &data, user_data->error_type, user_data->error_msg);
   }
   return true;
 }
@@ -814,10 +814,10 @@ static gboolean find_callback_thread_completed
 
   if (user_data->is_success) {
     ReplyAsync(user_data->instance, user_data->callback_id,
-               true, user_data->data, 0, NULL);
+               true, &(user_data->data), 0, NULL);
   } else {
     ReplyAsync(user_data->instance, user_data->callback_id,
-               false, data, user_data->error_type, user_data->error_msg);
+               false, &data, user_data->error_type, user_data->error_msg);
   }
   return true;
 }
@@ -834,10 +834,10 @@ static gboolean launch_completed
 
   if (user_data->is_success) {
     ReplyAsync(user_data->instance, user_data->callback_id,
-               true, data, 0, NULL);
+               true, &data, 0, NULL);
   } else {
     ReplyAsync(user_data->instance, user_data->callback_id,
-               false, data, user_data->error_type, user_data->error_msg);
+               false, &data, user_data->error_type, user_data->error_msg);
   }
   return true;
 }
@@ -887,13 +887,34 @@ static void* launch_thread(const std::shared_ptr<CallbackInfo>& user_data) {
 
 void ApplicationInstance::AppMgrGetCurrentApplication(
   const picojson::value& args, picojson::object& out) {
-  try {
-    ApplicationPtr app = GetCurrentApplication(app_id_);
-    LoggerD("context id = %s", app->get_context_id().c_str());
-    ReportSuccess(app->Value(), out);
-  } catch (const PlatformException& err) {
-    ReportError(err, out);
+  const std::string& app_id = app_id_;
+  LoggerD("app_id: %s", app_id.c_str());
+
+  pkgmgrinfo_appinfo_h handle;
+  int ret = pkgmgrinfo_appinfo_get_appinfo(app_id.c_str(), &handle);
+  if (ret != PMINFO_R_OK) {
+    LoggerE("Fail to get appInfo");
+    ReportError(UnknownException("get_appinfo error : unknown error"), out);
+    return;
   }
+
+  ApplicationInformationPtr app_info_ptr = get_app_info(handle);
+  pkgmgrinfo_appinfo_destroy_appinfo(handle);
+
+  ApplicationPtr app_ptr = ApplicationPtr(new Application());
+  app_ptr->set_app_info(app_info_ptr);
+
+  LoggerD("set appinfo to application");
+  {
+    int pid = getpid();  // DO NOT USE getppid();
+    LoggerD("context id = %d", pid);
+
+    std::stringstream sstr;
+    sstr << pid;
+    app_ptr->set_context_id(sstr.str());
+  }
+
+  ReportSuccess(app_ptr->Value(), out);
 }
 
 void ApplicationInstance::AppMgrKill(const picojson::value& args,
@@ -906,12 +927,76 @@ void ApplicationInstance::AppMgrKill(const picojson::value& args,
   LoggerD("callbackId = %d", callback_id);
   LoggerD("contextId = %s", context_id.c_str());
 
-  try {
-    Kill(context_id, callback_id);
-    ReportSuccess(out);
-  } catch (const PlatformException& err) {
-    ReportError(err, out);
+  if (context_id.empty()) {
+    LoggerE("contextId is mandatory field.");
+    ReportError(InvalidValuesException("Context id is mandatory field."), out);
+    return;
   }
+
+  int ret;
+  int pid;
+  std::stringstream(context_id) >> pid;
+
+  if (pid <= 0) {
+    LoggerE("Given context id is wrong.");
+    ReportError(InvalidValuesException("Given context id is wrong."), out);
+    return;
+  }
+
+  // if kill request is come for current context,
+  // throw InvalidValueException by spec
+  if (pid == getpid()) {
+    LoggerE("Given context id is same with me.");
+    ReportError(InvalidValuesException("Given context id is same with me."),
+      out);
+    return;
+  }
+
+  char *app_id_cstr = NULL;
+  ret = app_manager_get_app_id(pid, &app_id_cstr);
+  if (ret != APP_MANAGER_ERROR_NONE) {
+    LoggerE("Error while getting app id");
+    ReportError(NotFoundException("Error while getting app id"), out);
+    return;
+  }
+
+  std::string app_id = app_id_cstr;
+  free(app_id_cstr);
+
+  app_context_h app_context;
+  ret = app_manager_get_app_context(app_id.c_str(), &app_context);
+  if (ret != APP_MANAGER_ERROR_NONE) {
+    LoggerE("Error while getting app context");
+    ReportError(NotFoundException("Error while getting app context"), out);
+    return;
+  }
+
+  CallbackInfo* info = new CallbackInfo;
+  info->instance = this;
+  snprintf(info->id, sizeof(info->id), "%s", context_id.c_str());
+  info->callback_id = callback_id;
+
+  ret = app_manager_set_app_context_event_cb(
+    app_manager_app_context_event_callback, reinterpret_cast<void*>(info));
+  if (ret != APP_MANAGER_ERROR_NONE) {
+    if (info)
+      free(info);
+    LoggerE("Error while registering app context event");
+    ReportError(InvalidValuesException(
+      "Error while registering app context event"), out);
+    return;
+  }
+
+  ret = app_manager_terminate_app(app_context);
+  if (ret != APP_MANAGER_ERROR_NONE) {
+    if (info)
+      free(info);
+    LoggerE("Error while terminating app");
+    ReportError(InvalidValuesException("Error while terminating app"), out);
+    return;
+  }
+
+  ReportSuccess(out);
 }
 
 void ApplicationInstance::AppMgrLaunch(const picojson::value& args,
@@ -924,12 +1009,21 @@ void ApplicationInstance::AppMgrLaunch(const picojson::value& args,
   LoggerD("callbackId = %d", callback_id);
   LoggerD("appId = %s", id.c_str());
 
-  try {
-    Launch(id, callback_id);
-    ReportSuccess(out);
-  } catch (const PlatformException& err) {
-    ReportError(err, out);
+  if (id.empty()) {
+    LoggerE("app_id is mandatory field.");
+    ReportError(InvalidValuesException("App id is mandatory field."), out);
+    return;
   }
+
+  auto user_data = std::shared_ptr<CallbackInfo>(new CallbackInfo);
+  user_data->instance = this;
+  snprintf(user_data->id, sizeof(user_data->id), "%s", id.c_str());
+  user_data->callback_id = callback_id;
+
+  common::TaskQueue::GetInstance().Queue<CallbackInfo>(
+    launch_thread, launch_completed, user_data);
+
+  ReportSuccess(out);
 }
 
 void ApplicationInstance::AppMgrLaunchAppControl(const picojson::value& args,
@@ -1001,12 +1095,128 @@ void ApplicationInstance::AppMgrLaunchAppControl(const picojson::value& args,
     app_ctr_ptr->add_data_array(ctr_data_ptr);
   }
 
-  try {
-    LaunchAppControl(app_ctr_ptr, id, callback_id);
-    ReportSuccess(out);
-  } catch (const PlatformException& err) {
-    ReportError(err, out);
+  // check parameters
+  if (operation.empty()) {
+    LoggerE("operation is mandatory field.");
+    ReportError(InvalidValuesException("operation is mandatory field."), out);
+    return;
   }
+
+  app_control_h service;
+  int ret = app_control_create(&service);
+  if (ret != APP_CONTROL_ERROR_NONE) {
+    ReportError(UnknownException("Creating app_control is failed."), out);
+    return;
+  }
+
+  if (id.empty() == false) {
+    LoggerD("set_app_id: %s", id.c_str());
+    ret = app_control_set_app_id(service, id.c_str());
+    if (ret != APP_CONTROL_ERROR_NONE) {
+      ReportError(UnknownException("Setting app_id is failed."), out);
+      app_control_destroy(service);
+      return;
+    }
+  } else {
+    LoggerD("app_id is empty");
+  }
+
+  ret = app_control_set_operation(service, operation.c_str());
+  if (ret != APP_CONTROL_ERROR_NONE) {
+    ReportError(InvalidValuesException("operation is invalid parameter"), out);
+    app_control_destroy(service);
+    return;
+  }
+
+  std::string uri = app_ctr_ptr->get_uri();
+  if (!uri.empty()) {
+    ret = app_control_set_uri(service, uri.c_str());
+    if (ret != APP_CONTROL_ERROR_NONE) {
+      ReportError(InvalidValuesException("uri is invalid parameter"), out);
+      app_control_destroy(service);
+      return;
+    }
+  }
+
+  std::string mime = app_ctr_ptr->get_mime();
+  if (!mime.empty()) {
+    ret = app_control_set_mime(service, mime.c_str());
+    if (ret != APP_CONTROL_ERROR_NONE) {
+      ReportError(InvalidValuesException("mime is invalid parameter"), out);
+      app_control_destroy(service);
+      return;
+    }
+  }
+
+  std::string category = app_ctr_ptr->get_category();
+  if (!category.empty()) {
+    ret = app_control_set_category(service, category.c_str());
+    if (ret != APP_CONTROL_ERROR_NONE) {
+      ReportError(InvalidValuesException("category is invalid parameter"),
+        out);
+      app_control_destroy(service);
+      return;
+    }
+  }
+
+  CallbackInfo* info = new CallbackInfo;
+  info->instance = this;
+  info->callback_id = callback_id;
+
+  LoggerD("Try to launch...");
+  ret = app_control_send_launch_request(service,
+    app_control_reply_callback, reinterpret_cast<void*>(info));
+
+  auto user_data = std::shared_ptr<CallbackInfo>(new CallbackInfo);
+  user_data->instance = this;
+  user_data->callback_id = callback_id;
+
+  if (ret != APP_CONTROL_ERROR_NONE) {
+    switch (ret) {
+      case APP_CONTROL_ERROR_INVALID_PARAMETER:
+        LoggerD("launch_request is failed. ERROR_INVALID_PARAMETER");
+        user_data->error_type = APP_ERROR_TYPE_MISMATCH;
+        snprintf(user_data->error_msg, sizeof(user_data->error_msg),
+          "launch_request is failed. INVALID_PARAMETER");
+        break;
+      case APP_CONTROL_ERROR_OUT_OF_MEMORY:
+        LoggerD("launch_request is failed. ERROR_OUT_OF_MEMORY");
+        user_data->error_type = APP_ERROR_UNKNOWN;
+        snprintf(user_data->error_msg, sizeof(user_data->error_msg),
+          "launch_request is failed. OUT_OF_MEMORY");
+        break;
+      case APP_CONTROL_ERROR_LAUNCH_REJECTED:
+        LoggerD("launch_request is failed. ERROR_LAUNCH_REJECTED");
+        user_data->error_type = APP_ERROR_ABORT;
+        snprintf(user_data->error_msg, sizeof(user_data->error_msg),
+          "launch_request is failed. LAUNCH_REJECTED");
+        break;
+      case APP_CONTROL_ERROR_APP_NOT_FOUND:
+        LoggerD("launch_request is failed. ERROR_APP_NOT_FOUND");
+        user_data->error_type = APP_ERROR_NOT_FOUND;
+        snprintf(user_data->error_msg, sizeof(user_data->error_msg),
+          "launch_request is failed. NOT_FOUND");
+        break;
+      default:
+        LoggerD("launch_request is failed.");
+        user_data->error_type = APP_ERROR_UNKNOWN;
+        snprintf(user_data->error_msg, sizeof(user_data->error_msg),
+          "launch_request is failed. UNKNOWN");
+        break;
+    }
+    user_data->is_success = false;
+  } else {
+    user_data->is_success = true;
+  }
+  common::TaskQueue::GetInstance().Queue<CallbackInfo>(
+    callback_thread, callback_thread_completed, user_data);
+
+  ret = app_control_destroy(service);
+  if (ret != APP_CONTROL_ERROR_NONE) {
+    LoggerD("app_control_destroy is failed");
+  }
+
+  ReportSuccess(out);
 }
 
 void ApplicationInstance::AppMgrFindAppControl(const picojson::value& args,
@@ -1073,667 +1283,35 @@ void ApplicationInstance::AppMgrFindAppControl(const picojson::value& args,
     app_ctr_ptr->add_data_array(ctr_data_ptr);
   }
 
-  try {
-    FindAppControl(app_ctr_ptr, callback_id);
-    ReportSuccess(out);
-  } catch (const PlatformException& err) {
-    ReportError(err, out);
-  }
-}
-
-void ApplicationInstance::AppMgrGetAppsContext(const picojson::value& args,
-  picojson::object& out) {
-  CHECK_EXIST(args, "callbackId", out)
-
-  int callback_id = static_cast<int>(args.get("callbackId").get<double>());
-
-  try {
-    GetAppsContext(callback_id);
-    ReportSuccess(out);
-  } catch (const PlatformException& err) {
-    ReportError(err, out);
-  }
-}
-
-void ApplicationInstance::AppMgrGetAppContext(const picojson::value& args,
-  picojson::object& out) {
-  LoggerD("ENTER");
-
-  std::string context_id;
-  if (args.contains("contextId")) {
-    LoggerD("ENTER2");
-    context_id = args.get("contextId").get<std::string>();
-    LoggerD("contextId = %s", context_id.c_str());
-  } else {
-    LoggerD("contextId is null");
-  }
-
-  try {
-    ApplicationContextPtr app_ctx = GetAppContext(context_id);
-
-    LoggerD("appCtx: id = %s", app_ctx->get_context_id().c_str());
-    LoggerD("appCtx: appId = %s", app_ctx->get_app_id().c_str());
-
-    ReportSuccess(picojson::value(app_ctx->Value()), out);
-  } catch (const PlatformException& err) {
-    ReportError(err, out);
-  }
-}
-
-void ApplicationInstance::AppMgrGetAppsInfo(const picojson::value& args,
-  picojson::object& out) {
-  CHECK_EXIST(args, "callbackId", out)
-
-  int callback_id = static_cast<int>(args.get("callbackId").get<double>());
-
-  try {
-    GetAppsInfo(callback_id);
-    ReportSuccess(out);
-  } catch (const PlatformException& err) {
-    ReportError(err, out);
-  }
-}
-
-void ApplicationInstance::AppMgrGetAppInfo(const picojson::value& args,
-  picojson::object& out) {
-  std::string id;
-  if (args.contains("id")) {
-    id = args.get("id").get<std::string>();
-    if (id.empty()) {
-      LoggerD("Id is null. use current app id");
-      id = app_id_;
-    }
-  } else {
-    id = app_id_;
-  }
-
-  LoggerD("app_id = %s", id.c_str());
-
-  try {
-    ApplicationInformationPtr app_info_ptr = GetAppInfo(id);
-    ReportSuccess(app_info_ptr->Value(), out);
-  } catch (const PlatformException& err) {
-    ReportError(err, out);
-  }
-}
-
-void ApplicationInstance::AppMgrGetAppCerts(const picojson::value& args,
-  picojson::object& out) {
-  std::string id;
-  if (args.contains("id")) {
-    id = args.get("id").get<std::string>();
-    if (id.empty()) {
-      LoggerD("Id is null. use current app id");
-      id = app_id_;
-    }
-  } else {
-    id = app_id_;
-  }
-
-  LoggerD("app_id = %s", id.c_str());
-
-  try {
-    ApplicationCertificateArrayPtr cert_data_array_ptr = GetAppCertificate(id);
-    picojson::value cert_data = picojson::value(picojson::array());
-    picojson::array& cert_data_array = cert_data.get<picojson::array>();
-
-    for (int i = 0; i < cert_data_array_ptr->size(); i++) {
-      ApplicationCertificatePtr cert_data_ptr = cert_data_array_ptr->at(i);
-
-      cert_data_array.push_back(cert_data_ptr->Value());
-    }
-    ReportSuccess(cert_data, out);
-  } catch (const PlatformException& err) {
-    ReportError(err, out);
-  }
-}
-
-void ApplicationInstance::AppMgrGetAppSharedURI(const picojson::value& args,
-  picojson::object& out) {
-  std::string id;
-  if (args.contains("id")) {
-    id = args.get("id").get<std::string>();
-    if (id.empty()) {
-      LoggerD("Id is null. use current app id");
-      id = app_id_;
-    }
-  } else {
-    id = app_id_;
-  }
-
-  LoggerD("app_id = %s", id.c_str());
-
-  try {
-    const std::string& ret = GetAppSharedURI(id);
-    ReportSuccess(picojson::value(ret), out);
-  } catch (const PlatformException& err) {
-    ReportError(err, out);
-  }
-}
-
-void ApplicationInstance::AppMgrGetAppMetaData(const picojson::value& args,
-  picojson::object& out) {
-  std::string id;
-  if (args.contains("id")) {
-    id = args.get("id").get<std::string>();
-    if (id.empty()) {
-      LoggerD("Id is null. use current app id");
-      id = app_id_;
-    }
-  } else {
-    id = app_id_;
-  }
-
-  LoggerD("app_id = %s", id.c_str());
-
-  try {
-    ApplicationMetaDataArrayPtr meta_data_array_ptr = GetAppMetaData(id);
-    picojson::value meta_data = picojson::value(picojson::array());
-    picojson::array& meta_data_array = meta_data.get<picojson::array>();
-
-    for (int i = 0; i < meta_data_array_ptr->size(); i++) {
-      ApplicationMetaDataPtr meta_data_ptr = meta_data_array_ptr->at(i);
-
-      meta_data_array.push_back(meta_data_ptr->Value());
-    }
-    ReportSuccess(meta_data, out);
-  } catch (const PlatformException& err) {
-    ReportError(err, out);
-  }
-}
-
-void ApplicationInstance::AppMgrAddAppInfoEventListener(
-  const picojson::value& args, picojson::object& out) {
-  CHECK_EXIST(args, "callbackId", out)
-
-  int callback_id = static_cast<int>(args.get("callbackId").get<double>());
-
-  try {
-    const double ret =
-      static_cast<double>(AddAppInfoEventListener(callback_id));
-    ReportSuccess(picojson::value(ret), out);
-  } catch (const PlatformException& err) {
-    ReportError(err, out);
-  }
-}
-
-void ApplicationInstance::AppMgrRemoveAppInfoEventListener(
-  const picojson::value& args, picojson::object& out) {
-  CHECK_EXIST(args, "watchId", out)
-  int watch_id = static_cast<int>(args.get("watchId").get<double>());
-
-  try {
-    RemoveAppInfoEventListener(watch_id);
-    ReportSuccess(out);
-  } catch (const PlatformException& err) {
-    ReportError(err, out);
-  }
-}
-
-void ApplicationInstance::AppExit(const picojson::value& args,
-  picojson::object& out) {
-  LoggerD("Hide is called");
-
-  try {
-    // webkit
-    // IPCSupport::Instance().Post(IPCMsg::MsgExitApp(), "" );
-    // Blink
-    IPCMessageSupport::sendAsyncMessageToUiProcess(
-      IPCMessageSupport::TIZEN_EXIT, NULL, NULL, NULL);
-    ReportSuccess(out);
-  } catch (const PlatformException& err) {
-    ReportError(err, out);
-  }
-}
-
-void ApplicationInstance::AppHide(const picojson::value& args,
-  picojson::object& out) {
-  LoggerD("Hide is called");
-
-  try {
-    // webkit
-    // IPCSupport::Instance().Post(IPCMsg::MsgHideApp(), "" );
-    // Blink
-    IPCMessageSupport::sendAsyncMessageToUiProcess(
-      IPCMessageSupport::TIZEN_HIDE, NULL, NULL, NULL);
-    ReportSuccess(out);
-  } catch (const PlatformException& err) {
-    ReportError(err, out);
-  }
-}
-
-void ApplicationInstance::AppGetRequestedAppControl(
-  const picojson::value& args, picojson::object& out) {
-  try {
-    RequestedApplicationControlPtr req_app_ctr_ptr = GetRequestedAppControl();
-    ReportSuccess(req_app_ctr_ptr->Value(), out);
-  } catch (const PlatformException& err) {
-    ReportError(err, out);
-  }
-}
-
-void ApplicationInstance::RequestedAppControlReplyResult(
-  const picojson::value& args, picojson::object& out) {
-  ApplicationControlDataArrayPtr app_ctr_data_array_ptr(
-    new ApplicationControlDataArray());
-  std::string caller_app_id;
-  if (args.contains("callerAppId")) {
-    caller_app_id = args.get("callerAppId").get<std::string>();
-  } else {
-    ReportError(InvalidValuesException("unidentified caller"), out);
-    return;
-  }
-
-  if (args.contains("data")) {
-    picojson::array data_array = args.get("data").get<picojson::array>();
-
-    int size = data_array.size();
-    LoggerD("size = %d", size);
-    for (int i = 0; i < size; i++) {
-      ApplicationControlDataPtr app_ctr_data_ptr(new ApplicationControlData());
-
-      picojson::value& ctr_data = data_array.at(i);
-      std::string key = ctr_data.get("key").get<std::string>();
-      app_ctr_data_ptr->set_ctr_key(key);
-
-      picojson::array value_array =
-        ctr_data.get("value").get<picojson::array>();
-      int value_size = value_array.size();
-
-      LoggerD("value size = %d", value_size);
-      for (int j = 0; j < value_size; j++) {
-        picojson::value& value_data = value_array.at(i);
-        std::string value = value_data.get<std::string>();
-        LoggerD("value: %s", value.c_str());
-        app_ctr_data_ptr->add_ctr_value(value);
-      }
-      app_ctr_data_array_ptr->push_back(app_ctr_data_ptr);
-    }
-  }
-  try {
-    ReplyResult(caller_app_id, app_ctr_data_array_ptr);
-    ReportSuccess(out);
-  } catch (const PlatformException& err) {
-    ReportError(err, out);
-  }
-}
-
-void ApplicationInstance::RequestedAppControlReplyFailure(
-  const picojson::value& args, picojson::object& out) {
-  std::string caller_app_id;
-  if (args.contains("callerAppId")) {
-    caller_app_id = args.get("callerAppId").get<std::string>();
-  } else {
-    ReportError(InvalidValuesException("unidentified caller"), out);
-    return;
-  }
-
-  try {
-    ReplyFailure(caller_app_id);
-    ReportSuccess(out);
-  } catch (const PlatformException& err) {
-    ReportError(err, out);
-  }
-}
-
-void ApplicationInstance::ReplyResult(const std::string& caller_app_id,
-  ApplicationControlDataArrayPtr app_ctr_data_array_ptr) {
-  app_control_h reply;
-  app_control_create(&reply);
-
-  if (!app_ctr_data_array_ptr->empty()) {
-    const char** arr = NULL;
-
-    int size = app_ctr_data_array_ptr->size();
-    LoggerD("size: %d", size);
-    for (size_t i = 0; i < size; i++) {
-      std::vector<std::string> value_array =
-        app_ctr_data_array_ptr->at(i)->get_ctr_value();
-      arr = (const char**) calloc (sizeof(char*), value_array.size());
-
-      if (arr != NULL) {
-        for (size_t j = 0; j < value_array.size(); j++) {
-          arr[j] = value_array.at(j).c_str();
-          LoggerD("[index: %d][value: %s]", j, arr[j]);
-        }
-      }
-      const char* key = app_ctr_data_array_ptr->at(i)->get_ctr_key().c_str();
-      LoggerD("key: %s", key);
-      app_control_add_extra_data_array(reply, key, arr, value_array.size());
-      if (arr) {
-        free(arr);
-      }
-    }
-  } else {
-    LoggerE("[replyResult] app_ctr_data_array_ptr is empty");
-  }
-
-  std::map<std::string, app_control_h>::iterator it =
-    reply_map_.find(caller_app_id);
-  if (it == reply_map_.end()) {
-    LoggerE("caller handle is not found");
-    throw NotFoundException("caller handle is not found");
-  }
-
-  bool running = false;
-  int ret = app_manager_is_running(caller_app_id.c_str(), &running);
-  if ((ret != APP_MANAGER_ERROR_NONE) || !running) {
-    LoggerE("caller is not running");
-    throw NotFoundException("Cannot find caller");
-  }
-
-  ret = app_control_reply_to_launch_request(reply, it->second,
-    APP_CONTROL_RESULT_SUCCEEDED);
-  if (ret != APP_CONTROL_ERROR_NONE) {
-    LoggerE("Cannot find caller");
-    throw NotFoundException("Cannot find caller");
-  }
-
-  reply_map_.erase(it);
-
-  app_control_destroy(reply);
-}
-
-void ApplicationInstance::ReplyFailure(const std::string& caller_app_id) {
-  app_control_h reply;
-  app_control_create(&reply);
-
-  std::map<std::string, app_control_h>::iterator it =
-    reply_map_.find(caller_app_id);
-  if (it == reply_map_.end()) {
-    LoggerE("caller handle is not found");
-    throw NotFoundException("caller handle is not found");
-  }
-
-  bool running = false;
-  int ret = app_manager_is_running(caller_app_id.c_str(), &running);
-  if ((ret != APP_MANAGER_ERROR_NONE) || !running) {
-    LoggerE("caller is not running");
-    app_control_destroy(reply);
-    throw NotFoundException("Cannot find caller");
-  }
-
-  ret = app_control_reply_to_launch_request(reply, it->second,
-    APP_CONTROL_RESULT_FAILED);
-  if (ret != APP_CONTROL_ERROR_NONE) {
-    LoggerE("Cannot find caller");
-    app_control_destroy(reply);
-    throw NotFoundException("Cannot find caller");
-  }
-
-  reply_map_.erase(it);
-
-  app_control_destroy(reply);
-}
-
-/*
-// debug code: start
-static void iterate_bundle_foreach(const char *key, const int type,
-  const keyval_t *kv, void *data) {
-   LoggerD("key : %s, type : %d ", key, type);
-}
-// debug code: end
-*/
-
-RequestedApplicationControlPtr ApplicationInstance::GetRequestedAppControl() {
-  std::string bundle_str =
-    common::Extension::GetRuntimeVariable("encoded_bundle", 1024);
-  if (bundle_str.empty()) {
-    LoggerE("Getting encoded_bundle is failed");
-    throw UnknownException("Gettng encoded_bundle is failed");
-  }
-
-  app_control_h service = NULL;
-  char* tmp_str = NULL;
-  bundle* request_bundle = bundle_decode((bundle_raw*)bundle_str.c_str(),
-    bundle_str.length());
-  if (request_bundle == NULL) {
-    throw UnknownException("Decoding bundle is failed");
-  }
-
-/*
-// debug code: start
-  bundle_foreach(request_bundle, iterate_bundle_foreach, NULL);
-// debug code: end
-*/
-
-  int ret = app_control_create_event(request_bundle, &service);
-  if (ret != APP_CONTROL_ERROR_NONE) {
-    LoggerE("Fail to create event");
-    bundle_free(request_bundle);
-    throw UnknownException("Failed to create event");
-  }
-  bundle_free(request_bundle);
-
-  ApplicationControlPtr app_ctr_ptr(new ApplicationControl());
-
-  ret = app_control_get_operation(service, &tmp_str);
-  if (ret == APP_CONTROL_ERROR_NONE && tmp_str != NULL) {
-    app_ctr_ptr->set_operation(tmp_str);
-    free(tmp_str);
-    tmp_str = NULL;
-  }
-
-  ret = app_control_get_uri(service, &tmp_str);
-  if (ret == APP_CONTROL_ERROR_NONE && tmp_str != NULL) {
-    app_ctr_ptr->set_uri(tmp_str);
-    free(tmp_str);
-    tmp_str = NULL;
-  }
-
-  ret = app_control_get_mime(service, &tmp_str);
-  if (ret == APP_CONTROL_ERROR_NONE && tmp_str != NULL) {
-    app_ctr_ptr->set_mime(tmp_str);
-    free(tmp_str);
-    tmp_str = NULL;
-  }
-
-  ret = app_control_get_category(service, &tmp_str);
-  if (ret == APP_CONTROL_ERROR_NONE && tmp_str != NULL) {
-    app_ctr_ptr->set_category(tmp_str);
-    free(tmp_str);
-    tmp_str = NULL;
-  }
-
-  ApplicationControlDataArrayPtr app_ctr_data_array_ptr(
-    new ApplicationControlDataArray());
-  ret = app_control_foreach_extra_data(service,
-    app_control_extra_data_callback, app_ctr_data_array_ptr.get());
-  if (ret != APP_CONTROL_ERROR_NONE) {
-    LoggerE("app_control_foreach_extra_data fail");
-    throw UnknownException("Getting extra data is failed");
-  } else {
-    app_ctr_ptr->set_data_array(*(app_ctr_data_array_ptr.get()));
-  }
-
-  RequestedApplicationControlPtr req_app_ctr_ptr(
-    new RequestedApplicationControl());
-  req_app_ctr_ptr->set_app_control(*(app_ctr_ptr.get()));
-
-  // add caller id
-  ret = app_control_get_caller(service, &tmp_str);
-  if (ret == APP_CONTROL_ERROR_NONE && tmp_str != NULL) {
-    req_app_ctr_ptr->set_caller_app_id(tmp_str);
-    free(tmp_str);
-    tmp_str = NULL;
-  } else {
-    LoggerE("Failed to get caller application ID");
-    throw NotFoundException("Failed to get caller application ID");
-  }
-
-  std::pair<std::map<std::string, app_control_h>::iterator, bool> result =
-    reply_map_.insert(
-      std::map<std::string, app_control_h>::value_type(
-        req_app_ctr_ptr->get_caller_app_id(), service));
-  if (result.second) {
-    LoggerD("Adding item succeeded");
-  } else {
-    LoggerD("Adding item failed");
-  }
-
-  return req_app_ctr_ptr;
-}
-
-ApplicationPtr ApplicationInstance::GetCurrentApplication(
-  const std::string app_id) {
-  LoggerD("app_id: %s", app_id.c_str());
-
-  pkgmgrinfo_appinfo_h handle;
-  int ret = pkgmgrinfo_appinfo_get_appinfo(app_id.c_str(), &handle);
-  if (ret != PMINFO_R_OK) {
-    LoggerE("Fail to get appInfo");
-    throw UnknownException("get_appinfo error : unknown error");
-  }
-
-  ApplicationInformationPtr app_info_ptr = get_app_info(handle);
-  pkgmgrinfo_appinfo_destroy_appinfo(handle);
-
-  Application *app = new Application();
-  ApplicationPtr app_ptr = ApplicationPtr(app);
-  app_ptr->set_app_info(app_info_ptr);
-
-  LoggerD("set appinfo to application");
-  {
-    int pid = getpid();  // DO NOT USE getppid();
-    LoggerD("context id = %d", pid);
-
-    std::stringstream sstr;
-    sstr << pid;
-    app_ptr->set_context_id(sstr.str());
-  }
-
-  return app_ptr;
-}
-
-ApplicationInformationPtr ApplicationInstance::GetAppInfo(
-  const std::string app_id) {
-  LoggerD("app_id: %s", app_id.c_str());
-
-  pkgmgrinfo_appinfo_h handle;
-  int ret = pkgmgrinfo_appinfo_get_appinfo(app_id.c_str(), &handle);
-  if (ret != PMINFO_R_OK) {
-    LoggerE("Fail to get appInfo");
-    throw NotFoundException("Given app id is not found");
-  }
-
-  ApplicationInformationPtr app_info_ptr = get_app_info(handle);
-  pkgmgrinfo_appinfo_destroy_appinfo(handle);
-
-  return app_info_ptr;
-}
-
-void ApplicationInstance::Kill(const std::string context_id, int callback_id) {
-  if (context_id.empty()) {
-    LoggerE("contextId is mandatory field.");
-    throw InvalidValuesException("Context id is mandatory field.");
-  }
-
-  int ret;
-  int pid;
-  std::stringstream(context_id) >> pid;
-
-  if (pid <= 0) {
-    LoggerE("Given context id is wrong.");
-    throw InvalidValuesException("Given context id is wrong.");
-  }
-
-  // if kill request is come for current context,
-  // throw InvalidValueException by spec
-  if (pid == getpid()) {
-    LoggerE("Given context id is same with me.");
-    throw InvalidValuesException("Given context id is same with me.");
-  }
-
-  char *app_id_cstr = NULL;
-  ret = app_manager_get_app_id(pid, &app_id_cstr);
-  if (ret != APP_MANAGER_ERROR_NONE) {
-    LoggerE("Error while getting app id");
-    throw NotFoundException("Error while getting app id");
-  }
-
-  std::string app_id = app_id_cstr;
-  free(app_id_cstr);
-
-  app_context_h app_context;
-  ret = app_manager_get_app_context(app_id.c_str(), &app_context);
-  if (ret != APP_MANAGER_ERROR_NONE) {
-    LoggerE("Error while getting app context");
-    throw NotFoundException("Error while getting app context");
-  }
-
-  CallbackInfo* info = new CallbackInfo;
-  info->instance = this;
-  snprintf(info->id, sizeof(info->id), "%s", context_id.c_str());
-  info->callback_id = callback_id;
-
-  ret = app_manager_set_app_context_event_cb(
-    app_manager_app_context_event_callback, reinterpret_cast<void*>(info));
-  if (ret != APP_MANAGER_ERROR_NONE) {
-    if (info)
-      free(info);
-    LoggerE("Error while registering app context event");
-    throw InvalidValuesException("Error while registering app context event");
-  }
-
-  ret = app_manager_terminate_app(app_context);
-  if (ret != APP_MANAGER_ERROR_NONE) {
-    if (info)
-      free(info);
-    LoggerE("Error while terminating app");
-    throw InvalidValuesException("Error while terminating app");
-  }
-}
-
-void ApplicationInstance::Launch(const std::string app_id, int callback_id) {
-  if (app_id.empty()) {
-    LoggerE("app_id is mandatory field.");
-    throw InvalidValuesException("App id is mandatory field.");
-  }
-
-  auto user_data = std::shared_ptr<CallbackInfo>(new CallbackInfo);
-  user_data->instance = this;
-  snprintf(user_data->id, sizeof(user_data->id), "%s", app_id.c_str());
-  user_data->callback_id = callback_id;
-
-  common::TaskQueue::GetInstance().Queue<CallbackInfo>(
-    launch_thread, launch_completed, user_data);
-}
-
-void ApplicationInstance::LaunchAppControl(
-  const ApplicationControlPtr& app_ctr_ptr, const std::string& app_id,
-  const int& callback_id) {
-  std::string operation = app_ctr_ptr->get_operation();
+  // check parameters
   if (operation.empty()) {
     LoggerE("operation is mandatory field.");
-    throw InvalidValuesException("operation is mandatory field.");
+    ReportError(InvalidValuesException("operation is mandatory field."), out);
+    return;
   }
 
   app_control_h service;
   int ret = app_control_create(&service);
   if (ret != APP_CONTROL_ERROR_NONE) {
-    throw UnknownException("Creating app_control is failed.");
-  }
-
-  if (app_id.empty() == false) {
-    LoggerD("set_app_id: %s", app_id.c_str());
-    ret = app_control_set_app_id(service, app_id.c_str());
-    if (ret != APP_CONTROL_ERROR_NONE) {
-      throw UnknownException("Setting app_id is failed.");
-    }
-  } else {
-    LoggerD("app_id is empty");
+    ReportError(UnknownException("Creating app_control is failed."), out);
+    app_control_destroy(service);
+    return;
   }
 
   ret = app_control_set_operation(service, operation.c_str());
   if (ret != APP_CONTROL_ERROR_NONE) {
-    throw InvalidValuesException("operation is invalid parameter");
+    ReportError(InvalidValuesException("operation is invalid parameter"), out);
+    app_control_destroy(service);
+    return;
   }
 
   std::string uri = app_ctr_ptr->get_uri();
   if (!uri.empty()) {
     ret = app_control_set_uri(service, uri.c_str());
     if (ret != APP_CONTROL_ERROR_NONE) {
-      throw InvalidValuesException("uri is invalid parameter");
+      ReportError(InvalidValuesException("uri is invalid parameter"), out);
+      app_control_destroy(service);
+      return;
     }
   }
 
@@ -1741,7 +1319,9 @@ void ApplicationInstance::LaunchAppControl(
   if (!mime.empty()) {
     ret = app_control_set_mime(service, mime.c_str());
     if (ret != APP_CONTROL_ERROR_NONE) {
-      throw InvalidValuesException("mime is invalid parameter");
+      ReportError(InvalidValuesException("mime is invalid parameter"), out);
+      app_control_destroy(service);
+      return;
     }
   }
 
@@ -1749,108 +1329,10 @@ void ApplicationInstance::LaunchAppControl(
   if (!category.empty()) {
     ret = app_control_set_category(service, category.c_str());
     if (ret != APP_CONTROL_ERROR_NONE) {
-      throw InvalidValuesException("category is invalid parameter");
-    }
-  }
-
-  CallbackInfo* info = new CallbackInfo;
-  info->instance = this;
-  info->callback_id = callback_id;
-
-  LoggerD("Try to launch...");
-  ret = app_control_send_launch_request(service,
-    app_control_reply_callback, reinterpret_cast<void*>(info));
-
-  auto user_data = std::shared_ptr<CallbackInfo>(new CallbackInfo);
-  user_data->instance = this;
-  user_data->callback_id = callback_id;
-
-  if (ret != APP_CONTROL_ERROR_NONE) {
-    switch (ret) {
-      case APP_CONTROL_ERROR_INVALID_PARAMETER:
-        LoggerD("launch_request is failed. ERROR_INVALID_PARAMETER");
-        user_data->error_type = APP_ERROR_TYPE_MISMATCH;
-        snprintf(user_data->error_msg, sizeof(user_data->error_msg),
-          "launch_request is failed. INVALID_PARAMETER");
-        break;
-      case APP_CONTROL_ERROR_OUT_OF_MEMORY:
-        LoggerD("launch_request is failed. ERROR_OUT_OF_MEMORY");
-        user_data->error_type = APP_ERROR_UNKNOWN;
-        snprintf(user_data->error_msg, sizeof(user_data->error_msg),
-          "launch_request is failed. OUT_OF_MEMORY");
-        break;
-      case APP_CONTROL_ERROR_LAUNCH_REJECTED:
-        LoggerD("launch_request is failed. ERROR_LAUNCH_REJECTED");
-        user_data->error_type = APP_ERROR_ABORT;
-        snprintf(user_data->error_msg, sizeof(user_data->error_msg),
-          "launch_request is failed. LAUNCH_REJECTED");
-        break;
-      case APP_CONTROL_ERROR_APP_NOT_FOUND:
-        LoggerD("launch_request is failed. ERROR_APP_NOT_FOUND");
-        user_data->error_type = APP_ERROR_NOT_FOUND;
-        snprintf(user_data->error_msg, sizeof(user_data->error_msg),
-          "launch_request is failed. NOT_FOUND");
-        break;
-      default:
-        LoggerD("launch_request is failed.");
-        user_data->error_type = APP_ERROR_UNKNOWN;
-        snprintf(user_data->error_msg, sizeof(user_data->error_msg),
-          "launch_request is failed. UNKNOWN");
-        break;
-    }
-    user_data->is_success = false;
-  } else {
-    user_data->is_success = true;
-  }
-  common::TaskQueue::GetInstance().Queue<CallbackInfo>(
-    callback_thread, callback_thread_completed, user_data);
-
-  ret = app_control_destroy(service);
-  if (ret != APP_CONTROL_ERROR_NONE) {
-    LoggerD("app_control_destroy is failed");
-  }
-}
-
-void ApplicationInstance::FindAppControl(
-  const ApplicationControlPtr& app_ctr_ptr, const int& callback_id) {
-  std::string operation = app_ctr_ptr->get_operation();
-  if (operation.empty()) {
-    LoggerE("operation is mandatory field.");
-    throw InvalidValuesException("operation is mandatory field.");
-  }
-
-  app_control_h service;
-  int ret = app_control_create(&service);
-  if (ret != APP_CONTROL_ERROR_NONE) {
-    throw UnknownException("Creating app_control is failed.");
-  }
-
-  ret = app_control_set_operation(service, operation.c_str());
-  if (ret != APP_CONTROL_ERROR_NONE) {
-    throw InvalidValuesException("operation is invalid parameter");
-  }
-
-  std::string uri = app_ctr_ptr->get_uri();
-  if (!uri.empty()) {
-    ret = app_control_set_uri(service, uri.c_str());
-    if (ret != APP_CONTROL_ERROR_NONE) {
-      throw InvalidValuesException("uri is invalid parameter");
-    }
-  }
-
-  std::string mime = app_ctr_ptr->get_mime();
-  if (!mime.empty()) {
-    ret = app_control_set_mime(service, mime.c_str());
-    if (ret != APP_CONTROL_ERROR_NONE) {
-      throw InvalidValuesException("mime is invalid parameter");
-    }
-  }
-
-  std::string category = app_ctr_ptr->get_category();
-  if (!category.empty()) {
-    ret = app_control_set_category(service, category.c_str());
-    if (ret != APP_CONTROL_ERROR_NONE) {
-      throw InvalidValuesException("category is invalid parameter");
+      ReportError(InvalidValuesException("category is invalid parameter"),
+        out);
+      app_control_destroy(service);
+      return;
     }
   }
 
@@ -1903,9 +1385,16 @@ void ApplicationInstance::FindAppControl(
   if (ret != APP_CONTROL_ERROR_NONE) {
     LoggerD("app_control_destroy is failed");
   }
+
+  ReportSuccess(out);
 }
 
-void ApplicationInstance::GetAppsContext(const int& callback_id) {
+void ApplicationInstance::AppMgrGetAppsContext(const picojson::value& args,
+  picojson::object& out) {
+  CHECK_EXIST(args, "callbackId", out)
+
+  int callback_id = static_cast<int>(args.get("callbackId").get<double>());
+
   auto user_data = std::shared_ptr<CallbackInfo>(new CallbackInfo);
   user_data->instance = this;
   user_data->callback_id = callback_id;
@@ -1913,23 +1402,23 @@ void ApplicationInstance::GetAppsContext(const int& callback_id) {
   common::TaskQueue::GetInstance().Queue<CallbackInfo>(
     getappsctx_callback_thread, getappsctx_callback_thread_completed,
     user_data);
+
+  ReportSuccess(out);
 }
 
-void ApplicationInstance::GetAppsInfo(const int& callback_id) {
-  auto user_data = std::shared_ptr<CallbackInfo>(new CallbackInfo);
-  user_data->instance = this;
-  user_data->callback_id = callback_id;
+void ApplicationInstance::AppMgrGetAppContext(const picojson::value& args,
+  picojson::object& out) {
+  LoggerD("ENTER");
 
-  common::TaskQueue::GetInstance().Queue<CallbackInfo>(
-    getappsinfo_callback_thread, getappsinfo_callback_thread_completed,
-    user_data);
-}
-
-ApplicationContextPtr ApplicationInstance::GetAppContext(
-  const std::string context_id) {
+  std::string context_id;
+  if (args.contains("contextId")) {
+    LoggerD("ENTER2");
+    context_id = args.get("contextId").get<std::string>();
+    LoggerD("contextId = %s", context_id.c_str());
+  } else {
+    LoggerD("contextId is null");
+  }
   int ret = 0;
-
-  LoggerD("contextId: %s", context_id.c_str());
 
   std::string cur_ctx_id = context_id;
   int pid;
@@ -1943,7 +1432,8 @@ ApplicationContextPtr ApplicationInstance::GetAppContext(
     std::stringstream(context_id) >> pid;
     if (pid <= 0) {
       LoggerE("Given context_id is wrong");
-      throw NotFoundException("Given context_id is wrong");
+      ReportError(NotFoundException("Given context_id is wrong"), out);
+      return;
     }
   }
 
@@ -1952,45 +1442,116 @@ ApplicationContextPtr ApplicationInstance::GetAppContext(
 
   ret = app_manager_get_app_id(pid, &app_id);
   if (ret != APP_MANAGER_ERROR_NONE) {
+    // Handles error case
     if (app_id) {
       free(app_id);
     }
     switch (ret) {
       case APP_MANAGER_ERROR_INVALID_PARAMETER:
         LoggerE("get_app_id error : invalid parameter");
-        throw NotFoundException("get_app_id error : invalid parameter");
+        ReportError(NotFoundException("get_app_id error : invalid parameter"),
+          out);
+        return;
       case APP_MANAGER_ERROR_NO_SUCH_APP:
         LoggerE("get_app_id error : no such app");
-        throw NotFoundException("get_app_id error : no such app");
+        ReportError(NotFoundException("get_app_id error : no such app"), out);
+        return;
       case APP_MANAGER_ERROR_DB_FAILED:
         LoggerE("get_app_id error : db failed");
-        throw NotFoundException("get_app_id error : db failed");
+        ReportError(NotFoundException("get_app_id error : db failed"), out);
+        return;
       case APP_MANAGER_ERROR_OUT_OF_MEMORY:
         LoggerE("get_app_id error : out of memory");
-        throw NotFoundException("get_app_id error : out of memory");
+        ReportError(NotFoundException("get_app_id error : out of memory"),
+          out);
+        return;
       default:
         LoggerE("get_app_id known error");
-        throw UnknownException("get_app_id error : unknown error");
+        ReportError(UnknownException("get_app_id error : unknown error"), out);
+        return;
     }
   }
 
-  ApplicationContextPtr app_context(new ApplicationContext());
-  app_context->set_app_id(app_id);
-  app_context->set_context_id(cur_ctx_id);
+  ApplicationContextPtr app_ctx(new ApplicationContext());
+  app_ctx->set_app_id(app_id);
+  app_ctx->set_context_id(cur_ctx_id);
 
   if (app_id)
     free(app_id);
 
-  return app_context;
+  LoggerD("appCtx: id = %s", app_ctx->get_context_id().c_str());
+  LoggerD("appCtx: appId = %s", app_ctx->get_app_id().c_str());
+
+  ReportSuccess(picojson::value(app_ctx->Value()), out);
 }
 
-ApplicationCertificateArrayPtr ApplicationInstance::GetAppCertificate(
-  const std::string app_id) {
+void ApplicationInstance::AppMgrGetAppsInfo(const picojson::value& args,
+  picojson::object& out) {
+  CHECK_EXIST(args, "callbackId", out)
+
+  int callback_id = static_cast<int>(args.get("callbackId").get<double>());
+
+  auto user_data = std::shared_ptr<CallbackInfo>(new CallbackInfo);
+  user_data->instance = this;
+  user_data->callback_id = callback_id;
+
+  common::TaskQueue::GetInstance().Queue<CallbackInfo>(
+    getappsinfo_callback_thread, getappsinfo_callback_thread_completed,
+    user_data);
+
+  ReportSuccess(out);
+}
+
+void ApplicationInstance::AppMgrGetAppInfo(const picojson::value& args,
+  picojson::object& out) {
+  std::string id;
+  if (args.contains("id")) {
+    id = args.get("id").get<std::string>();
+    if (id.empty()) {
+      LoggerD("Id is null. use current app id");
+      id = app_id_;
+    }
+  } else {
+    id = app_id_;
+  }
+
+  LoggerD("app_id = %s", id.c_str());
+
+  pkgmgrinfo_appinfo_h handle;
+  int ret = pkgmgrinfo_appinfo_get_appinfo(id.c_str(), &handle);
+  if (ret != PMINFO_R_OK) {
+    LoggerE("Fail to get appInfo");
+    ReportError(NotFoundException("Given app id is not found"), out);
+    return;
+  }
+
+  ApplicationInformationPtr app_info_ptr = get_app_info(handle);
+  pkgmgrinfo_appinfo_destroy_appinfo(handle);
+
+  ReportSuccess(app_info_ptr->Value(), out);
+}
+
+void ApplicationInstance::AppMgrGetAppCerts(const picojson::value& args,
+  picojson::object& out) {
+  std::string id;
+  if (args.contains("id")) {
+    id = args.get("id").get<std::string>();
+    if (id.empty()) {
+      LoggerD("Id is null. use current app id");
+      id = app_id_;
+    }
+  } else {
+    id = app_id_;
+  }
+
+  LoggerD("app_id = %s", id.c_str());
+
   int ret = 0;
-  char* package = getPackageByAppId(app_id.c_str());
+  char* package = getPackageByAppId(id.c_str());
   if (package == NULL) {
     LoggerE("Can not get package");
-    throw NotFoundException("Can not get package");
+    ReportError(NotFoundException("Can not get package"), out);
+    return;
   }
 
   // TODO(sunggyu.choi): gPkgIdMapInited
@@ -1998,46 +1559,47 @@ ApplicationCertificateArrayPtr ApplicationInstance::GetAppCertificate(
   int result = 0;
   result = package_info_create(package, &pkg_info);
   if (result != PACKAGE_MANAGER_ERROR_NONE) {
-    throw UnknownException("Can not get package info");
+    ReportError(UnknownException("Can not get package info"), out);
+    return;
   }
 
-  ApplicationCertificateArrayPtr cert_array(new ApplicationCertificateArray());
+  ApplicationCertificateArrayPtr cert_array_ptr(
+    new ApplicationCertificateArray());
 
   result = package_info_foreach_cert_info(pkg_info, package_certificate_cb,
-            reinterpret_cast<void*>(cert_array.get()));
+            reinterpret_cast<void*>(cert_array_ptr.get()));
   if ((result != PACKAGE_MANAGER_ERROR_NONE) &&
       (result != PACKAGE_MANAGER_ERROR_IO_ERROR)) {
-    throw UnknownException("Can not get package cert info");
+    ReportError(UnknownException("Can not get package cert info"), out);
+    return;
   }
 
-  return cert_array;
+  picojson::value cert_data = picojson::value(picojson::array());
+  picojson::array& cert_data_array = cert_data.get<picojson::array>();
+
+  for (int i = 0; i < cert_array_ptr->size(); i++) {
+    ApplicationCertificatePtr cert_data_ptr = cert_array_ptr->at(i);
+    cert_data_array.push_back(cert_data_ptr->Value());
+  }
+
+  ReportSuccess(cert_data, out);
 }
 
-ApplicationMetaDataArrayPtr ApplicationInstance::GetAppMetaData(
-  const std::string id) {
-  std::string app_id = id;
-
-  int ret = 0;
-  pkgmgrinfo_appinfo_h handle;
-  ret = pkgmgrinfo_appinfo_get_appinfo(app_id.c_str(), &handle);
-  if (ret != PMINFO_R_OK) {
-    throw NotFoundException("Cannot found application with given app_id");
+void ApplicationInstance::AppMgrGetAppSharedURI(const picojson::value& args,
+  picojson::object& out) {
+  std::string id;
+  if (args.contains("id")) {
+    id = args.get("id").get<std::string>();
+    if (id.empty()) {
+      LoggerD("Id is null. use current app id");
+      id = app_id_;
+    }
+  } else {
+    id = app_id_;
   }
 
-  ApplicationMetaDataArrayPtr metaDataArray(new ApplicationMetaDataArray());
-  ret = pkgmgrinfo_appinfo_foreach_metadata(handle, app_meta_data_cb,
-    reinterpret_cast<void*>(metaDataArray.get()));
-  if (ret != PMINFO_R_OK) {
-    LoggerE("pkgmgrinfo_appinfo_metadata_filter_foreach() failed");
-    pkgmgrinfo_appinfo_destroy_appinfo(handle);
-    throw UnknownException("fail to get custom tag");
-  }
-  pkgmgrinfo_appinfo_destroy_appinfo(handle);
+  LoggerD("app_id = %s", id.c_str());
 
-  return metaDataArray;
-}
-
-std::string ApplicationInstance::GetAppSharedURI(const std::string app_id) {
 #define TIZENAPIS_APP_FILE_SCHEME      "file://"
 #define TIZENAPIS_APP_SLASH            "/"
 #define TIZENAPIS_APP_SHARED           "shared"
@@ -2045,16 +1607,18 @@ std::string ApplicationInstance::GetAppSharedURI(const std::string app_id) {
   app_info_h handle;
   char* pkg_name = NULL;
 
-  int ret = app_manager_get_app_info(app_id.c_str(), &handle);
+  int ret = app_manager_get_app_info(id.c_str(), &handle);
   if (ret != APP_ERROR_NONE) {
     LoggerD("Fail to get appinfo");
-    throw NotFoundException("Fail to get appinfo");
+    ReportError(NotFoundException("Fail to get appinfo"), out);
+    return;
   }
 
   ret = app_info_get_package(handle, &pkg_name);
   if ((ret != APP_ERROR_NONE) || (pkg_name == NULL)) {
     LoggerD("Fail to get pkg_name");
-    throw NotFoundException("Fail to get pkg_name");
+    ReportError(NotFoundException("Fail to get pkg_name"), out);
+    return;
   }
 
   app_info_destroy(handle);
@@ -2065,40 +1629,412 @@ std::string ApplicationInstance::GetAppSharedURI(const std::string app_id) {
   ret = pkgmgrinfo_pkginfo_get_pkginfo(pkg_name, &pkginfo_h);
   if (ret != PMINFO_R_OK) {
     free(pkg_name);
-    throw UnknownException("Fail to get pkginfo");
+    ReportError(UnknownException("Fail to get pkginfo"), out);
+    return;
   }
 
   ret = pkgmgrinfo_pkginfo_get_root_path(pkginfo_h, &root_path);
   if ((ret != PMINFO_R_OK) || (root_path == NULL)) {
      LoggerE("Fail to get root path");
      free(pkg_name);
-     throw UnknownException("Fail to get root path");
+     ReportError(UnknownException("Fail to get root path"), out);
+     return;
   }
 
-  std::string sharedURI = TIZENAPIS_APP_FILE_SCHEME + std::string(root_path) +
+  std::string shared_URI = TIZENAPIS_APP_FILE_SCHEME + std::string(root_path) +
     TIZENAPIS_APP_SLASH + TIZENAPIS_APP_SHARED + TIZENAPIS_APP_SLASH;
   free(pkg_name);
 
   pkgmgrinfo_pkginfo_destroy_pkginfo(pkginfo_h);
 
-  return sharedURI;
+  ReportSuccess(picojson::value(shared_URI), out);
 }
 
-int ApplicationInstance::AddAppInfoEventListener(const int& callback_id) {
+void ApplicationInstance::AppMgrGetAppMetaData(const picojson::value& args,
+  picojson::object& out) {
+  std::string id;
+  if (args.contains("id")) {
+    id = args.get("id").get<std::string>();
+    if (id.empty()) {
+      LoggerD("Id is null. use current app id");
+      id = app_id_;
+    }
+  } else {
+    id = app_id_;
+  }
+
+  LoggerD("app_id = %s", id.c_str());
+
+  int ret = 0;
+  pkgmgrinfo_appinfo_h handle;
+  ret = pkgmgrinfo_appinfo_get_appinfo(id.c_str(), &handle);
+  if (ret != PMINFO_R_OK) {
+    ReportError(NotFoundException("Cannot find app with given app_id"), out);
+    return;
+  }
+
+  ApplicationMetaDataArrayPtr meta_data_array_ptr(
+    new ApplicationMetaDataArray());
+  ret = pkgmgrinfo_appinfo_foreach_metadata(handle, app_meta_data_cb,
+    reinterpret_cast<void*>(meta_data_array_ptr.get()));
+  if (ret != PMINFO_R_OK) {
+    LoggerE("pkgmgrinfo_appinfo_metadata_filter_foreach() failed");
+    pkgmgrinfo_appinfo_destroy_appinfo(handle);
+    ReportError(UnknownException("fail to get custom tag"), out);
+    return;
+  }
+  pkgmgrinfo_appinfo_destroy_appinfo(handle);
+
+  picojson::value meta_data = picojson::value(picojson::array());
+  picojson::array& meta_data_array = meta_data.get<picojson::array>();
+
+  for (int i = 0; i < meta_data_array_ptr->size(); i++) {
+    ApplicationMetaDataPtr meta_data_ptr = meta_data_array_ptr->at(i);
+
+    meta_data_array.push_back(meta_data_ptr->Value());
+  }
+
+  ReportSuccess(meta_data, out);
+}
+
+void ApplicationInstance::AppMgrAddAppInfoEventListener(
+  const picojson::value& args, picojson::object& out) {
+  CHECK_EXIST(args, "callbackId", out)
+
+  int callback_id = static_cast<int>(args.get("callbackId").get<double>());
+
   if (manager_handle_ != NULL) {
     LoggerD("AppListChanged callback is already registered. watch_id_ = %d",
       watch_id_);
-    throw UnknownException("Listener is already registered.");
+    ReportError(UnknownException("Listener is already registered."), out);
+    return;
   }
   manager_handle_ = pkgmgr_client_new(PC_LISTENING);
   if (manager_handle_ == NULL) {
-    throw UnknownException("Error while registering listener to pkgmgr");
+    ReportError(UnknownException("Error while registering listener"), out);
+    return;
   }
 
   pkgmgr_client_listen_status(manager_handle_, app_list_changed_cb, this);
 
   callback_id_list_.push_back(callback_id);
-  return get_watch_id_and_increase();
+  const double ret = static_cast<double>(get_watch_id_and_increase());
+  ReportSuccess(picojson::value(ret), out);
+}
+
+void ApplicationInstance::AppMgrRemoveAppInfoEventListener(
+  const picojson::value& args, picojson::object& out) {
+  CHECK_EXIST(args, "watchId", out)
+  int watch_id = static_cast<int>(args.get("watchId").get<double>());
+
+  LoggerD("watch_id = %d", watch_id);
+
+  if (manager_handle_ == NULL) {
+    LoggerE("Listener is not added before.");
+    ReportError(UnknownException("Listener is not added before."), out);
+    return;
+  }
+
+  callback_id_list_.clear();
+
+  if (watch_id_ != watch_id) {
+    LoggerE("Invalid watch id: %d", watch_id);
+    ReportError(InvalidValuesException("Watch id is invalid."), out);
+    return;
+  }
+
+  pkgmgr_client_free(manager_handle_);
+  manager_handle_ = NULL;
+
+  ReportSuccess(out);
+}
+
+void ApplicationInstance::AppExit(const picojson::value& args,
+  picojson::object& out) {
+  LoggerD("Hide is called");
+
+  // webkit
+  // IPCSupport::Instance().Post(IPCMsg::MsgExitApp(), "" );
+  // Blink
+  IPCMessageSupport::sendAsyncMessageToUiProcess(
+    IPCMessageSupport::TIZEN_EXIT, NULL, NULL, NULL);
+  ReportSuccess(out);
+}
+
+void ApplicationInstance::AppHide(const picojson::value& args,
+  picojson::object& out) {
+  LoggerD("Hide is called");
+
+  // webkit
+  // IPCSupport::Instance().Post(IPCMsg::MsgHideApp(), "" );
+  // Blink
+  IPCMessageSupport::sendAsyncMessageToUiProcess(
+    IPCMessageSupport::TIZEN_HIDE, NULL, NULL, NULL);
+  ReportSuccess(out);
+}
+
+void ApplicationInstance::AppGetRequestedAppControl(
+  const picojson::value& args, picojson::object& out) {
+  std::string bundle_str =
+    common::Extension::GetRuntimeVariable("encoded_bundle", 1024);
+  if (bundle_str.empty()) {
+    LoggerE("Getting encoded_bundle is failed");
+    ReportError(UnknownException("Gettng encoded_bundle is failed"), out);
+    return;
+  }
+
+  app_control_h service = NULL;
+  char* tmp_str = NULL;
+  bundle* request_bundle = bundle_decode((bundle_raw*)bundle_str.c_str(),
+    bundle_str.length());
+  if (request_bundle == NULL) {
+    ReportError(UnknownException("Decoding bundle is failed"), out);
+    return;
+  }
+
+  int ret = app_control_create_event(request_bundle, &service);
+  if (ret != APP_CONTROL_ERROR_NONE) {
+    LoggerE("Fail to create event");
+    bundle_free(request_bundle);
+    ReportError(UnknownException("Failed to create event"), out);
+    return;
+  }
+  bundle_free(request_bundle);
+
+  ApplicationControlPtr app_ctr_ptr(new ApplicationControl());
+
+  ret = app_control_get_operation(service, &tmp_str);
+  if (ret == APP_CONTROL_ERROR_NONE && tmp_str != NULL) {
+    app_ctr_ptr->set_operation(tmp_str);
+    free(tmp_str);
+    tmp_str = NULL;
+  }
+
+  ret = app_control_get_uri(service, &tmp_str);
+  if (ret == APP_CONTROL_ERROR_NONE && tmp_str != NULL) {
+    app_ctr_ptr->set_uri(tmp_str);
+    free(tmp_str);
+    tmp_str = NULL;
+  }
+
+  ret = app_control_get_mime(service, &tmp_str);
+  if (ret == APP_CONTROL_ERROR_NONE && tmp_str != NULL) {
+    app_ctr_ptr->set_mime(tmp_str);
+    free(tmp_str);
+    tmp_str = NULL;
+  }
+
+  ret = app_control_get_category(service, &tmp_str);
+  if (ret == APP_CONTROL_ERROR_NONE && tmp_str != NULL) {
+    app_ctr_ptr->set_category(tmp_str);
+    free(tmp_str);
+    tmp_str = NULL;
+  }
+
+  ApplicationControlDataArrayPtr app_ctr_data_array_ptr(
+    new ApplicationControlDataArray());
+  ret = app_control_foreach_extra_data(service,
+    app_control_extra_data_callback, app_ctr_data_array_ptr.get());
+  if (ret != APP_CONTROL_ERROR_NONE) {
+    LoggerE("app_control_foreach_extra_data fail");
+    ReportError(UnknownException("Getting extra data is failed"), out);
+    return;
+  } else {
+    app_ctr_ptr->set_data_array(*(app_ctr_data_array_ptr.get()));
+  }
+
+  RequestedApplicationControlPtr req_app_ctr_ptr(
+    new RequestedApplicationControl());
+  req_app_ctr_ptr->set_app_control(*(app_ctr_ptr.get()));
+
+  // add caller id
+  ret = app_control_get_caller(service, &tmp_str);
+  if (ret == APP_CONTROL_ERROR_NONE && tmp_str != NULL) {
+    req_app_ctr_ptr->set_caller_app_id(tmp_str);
+    free(tmp_str);
+    tmp_str = NULL;
+  } else {
+    LoggerE("Failed to get caller application ID");
+    ReportError(NotFoundException("Failed to get caller application ID"), out);
+    return;
+  }
+
+  std::pair<std::map<std::string, app_control_h>::iterator, bool> result =
+    reply_map_.insert(
+      std::map<std::string, app_control_h>::value_type(
+        req_app_ctr_ptr->get_caller_app_id(), service));
+  if (result.second) {
+    LoggerD("Adding item succeeded");
+  } else {
+    LoggerD("Adding item failed");
+  }
+
+  ReportSuccess(req_app_ctr_ptr->Value(), out);
+}
+
+void ApplicationInstance::RequestedAppControlReplyResult(
+  const picojson::value& args, picojson::object& out) {
+  ApplicationControlDataArrayPtr app_ctr_data_array_ptr(
+    new ApplicationControlDataArray());
+  std::string caller_app_id;
+  if (args.contains("callerAppId")) {
+    caller_app_id = args.get("callerAppId").get<std::string>();
+  } else {
+    ReportError(InvalidValuesException("unidentified caller"), out);
+    return;
+  }
+
+  if (args.contains("data")) {
+    picojson::array data_array = args.get("data").get<picojson::array>();
+
+    int size = data_array.size();
+    LoggerD("size = %d", size);
+    for (int i = 0; i < size; i++) {
+      ApplicationControlDataPtr app_ctr_data_ptr(new ApplicationControlData());
+
+      picojson::value& ctr_data = data_array.at(i);
+      std::string key = ctr_data.get("key").get<std::string>();
+      app_ctr_data_ptr->set_ctr_key(key);
+
+      picojson::array value_array =
+        ctr_data.get("value").get<picojson::array>();
+      int value_size = value_array.size();
+
+      LoggerD("value size = %d", value_size);
+      for (int j = 0; j < value_size; j++) {
+        picojson::value& value_data = value_array.at(i);
+        std::string value = value_data.get<std::string>();
+        LoggerD("value: %s", value.c_str());
+        app_ctr_data_ptr->add_ctr_value(value);
+      }
+      app_ctr_data_array_ptr->push_back(app_ctr_data_ptr);
+    }
+  }
+
+  app_control_h reply;
+  app_control_create(&reply);
+
+  if (!app_ctr_data_array_ptr->empty()) {
+    const char** arr = NULL;
+
+    int size = app_ctr_data_array_ptr->size();
+    LoggerD("size: %d", size);
+    for (size_t i = 0; i < size; i++) {
+      std::vector<std::string> value_array =
+        app_ctr_data_array_ptr->at(i)->get_ctr_value();
+      arr = (const char**) calloc (sizeof(char*), value_array.size());
+
+      if (arr != NULL) {
+        for (size_t j = 0; j < value_array.size(); j++) {
+          arr[j] = value_array.at(j).c_str();
+          LoggerD("[index: %d][value: %s]", j, arr[j]);
+        }
+      }
+      const char* key = app_ctr_data_array_ptr->at(i)->get_ctr_key().c_str();
+      LoggerD("key: %s", key);
+      app_control_add_extra_data_array(reply, key, arr, value_array.size());
+      if (arr) {
+        free(arr);
+      }
+    }
+  } else {
+    LoggerE("[replyResult] app_ctr_data_array_ptr is empty");
+  }
+
+  std::map<std::string, app_control_h>::iterator it =
+    reply_map_.find(caller_app_id);
+  if (it == reply_map_.end()) {
+    LoggerE("caller handle is not found");
+    app_control_destroy(reply);
+    ReportError(NotFoundException("caller handle is not found"), out);
+    return;
+  }
+
+  bool running = false;
+  int ret = app_manager_is_running(caller_app_id.c_str(), &running);
+  if ((ret != APP_MANAGER_ERROR_NONE) || !running) {
+    LoggerE("caller is not running");
+    app_control_destroy(reply);
+    ReportError(NotFoundException("Cannot find caller"), out);
+    return;
+  }
+
+  ret = app_control_reply_to_launch_request(reply, it->second,
+    APP_CONTROL_RESULT_SUCCEEDED);
+  if (ret != APP_CONTROL_ERROR_NONE) {
+    LoggerE("Cannot find caller");
+    app_control_destroy(reply);
+    ReportError(NotFoundException("Cannot find caller"), out);
+    return;
+  }
+
+  reply_map_.erase(it);
+  app_control_destroy(reply);
+
+  ReportSuccess(out);
+}
+
+void ApplicationInstance::RequestedAppControlReplyFailure(
+  const picojson::value& args, picojson::object& out) {
+  std::string caller_app_id;
+  if (args.contains("callerAppId")) {
+    caller_app_id = args.get("callerAppId").get<std::string>();
+  } else {
+    ReportError(InvalidValuesException("unidentified caller"), out);
+    return;
+  }
+
+  app_control_h reply;
+  app_control_create(&reply);
+
+  std::map<std::string, app_control_h>::iterator it =
+    reply_map_.find(caller_app_id);
+  if (it == reply_map_.end()) {
+    LoggerE("caller handle is not found");
+    ReportError(NotFoundException("caller handle is not found"), out);
+    return;
+  }
+
+  bool running = false;
+  int ret = app_manager_is_running(caller_app_id.c_str(), &running);
+  if ((ret != APP_MANAGER_ERROR_NONE) || !running) {
+    LoggerE("caller is not running");
+    app_control_destroy(reply);
+    ReportError(NotFoundException("Cannot find caller"), out);
+    return;
+  }
+
+  ret = app_control_reply_to_launch_request(reply, it->second,
+    APP_CONTROL_RESULT_FAILED);
+  if (ret != APP_CONTROL_ERROR_NONE) {
+    LoggerE("Cannot find caller");
+    app_control_destroy(reply);
+    ReportError(NotFoundException("Cannot find caller"), out);
+    return;
+  }
+
+  reply_map_.erase(it);
+  app_control_destroy(reply);
+
+  ReportSuccess(out);
+}
+
+ApplicationInformationPtr ApplicationInstance::GetAppInfo(
+  const std::string app_id) {
+  LoggerD("app_id: %s", app_id.c_str());
+
+  pkgmgrinfo_appinfo_h handle;
+  int ret = pkgmgrinfo_appinfo_get_appinfo(app_id.c_str(), &handle);
+  if (ret != PMINFO_R_OK) {
+    LoggerE("Fail to get appInfo");
+    ApplicationInformationPtr app_info_ptr(new ApplicationInformation());
+    return app_info_ptr;
+  }
+
+  ApplicationInformationPtr app_info_ptr = get_app_info(handle);
+  pkgmgrinfo_appinfo_destroy_appinfo(handle);
+
+  return app_info_ptr;
 }
 
 int ApplicationInstance::app_list_changed_cb(int id, const char *type,
@@ -2197,7 +2133,7 @@ void ApplicationInstance::ReplyAppListChangedCallback(
         picojson::object data;
         data.insert(std::make_pair("type", picojson::value("onuninstalled")));
         data.insert(std::make_pair("id", picojson::value(app_id)));
-        ReplyAsync(this, callback_id, true, data, 0, NULL);
+        ReplyAsync(this, callback_id, true, &data, 0, NULL);
       }
     }
   } else {
@@ -2242,7 +2178,7 @@ void ApplicationInstance::ReplyAppListChangedCallback(
                 picojson::value("oninstalled")));
               data.insert(std::make_pair("info",
                 picojson::value(app_info_ptr->Value())));
-              ReplyAsync(this, callback_id, true, data, 0, NULL);
+              ReplyAsync(this, callback_id, true, &data, 0, NULL);
             }
           }
           break;
@@ -2263,7 +2199,7 @@ void ApplicationInstance::ReplyAppListChangedCallback(
                 picojson::value("onupdated")));
               data.insert(std::make_pair("info",
                 picojson::value(app_info_ptr->Value())));
-              ReplyAsync(this, callback_id, true, data, 0, NULL);
+              ReplyAsync(this, callback_id, true, &data, 0, NULL);
             }
           }
           break;
@@ -2276,25 +2212,6 @@ void ApplicationInstance::ReplyAppListChangedCallback(
 
   // clean-up applist
   app_list_.clear();
-}
-
-void ApplicationInstance::RemoveAppInfoEventListener(int watch_id) {
-  LoggerD("watch_id = %d", watch_id);
-
-  if (manager_handle_ == NULL) {
-    LoggerE("Listener is not added before.");
-    throw UnknownException("Listener is not added before.");
-  }
-
-  callback_id_list_.clear();
-
-  if (watch_id_ != watch_id) {
-    LoggerE("Invalid watch id: %d", watch_id);
-    throw InvalidValuesException("Watch id is invalid.");
-  }
-
-  pkgmgr_client_free(manager_handle_);
-  manager_handle_ = NULL;
 }
 
 int ApplicationInstance::get_watch_id_and_increase() {
