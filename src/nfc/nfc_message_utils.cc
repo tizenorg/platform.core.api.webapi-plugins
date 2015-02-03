@@ -262,6 +262,11 @@ void NFCMessageUtils::ReportNDEFMessage(const picojson::value& args, picojson::o
 static nfc_ndef_record_h NdefRecordGetHandle(picojson::value& record)
 {
     LoggerD("Entered");
+    if (!record.is<picojson::object>() || !record.contains("tnf") || !record.contains("type") ||
+            !record.contains("id") || !record.contains("payload")) {
+        throw TypeMismatchException("Record is empty - could not create platform handle");
+    }
+
     const picojson::object& record_obj = record.get<picojson::object>();
 
     short tnf_from_json = static_cast<short>(record.get("tnf").get<double>());
@@ -712,19 +717,25 @@ void NFCMessageUtils::ReportNDEFRecordMedia(const picojson::value& args, picojso
 
     nfc_ndef_record_h handle = NULL;
 
+    short _tnf = NFC_RECORD_TNF_UNKNOWN;
+    UCharVector _type_name;
+    UCharVector _id;
+    UCharVector _payload;
+
     int result = nfc_ndef_record_create_mime(&handle, mime_type.c_str(), data.get(),
             size);
     if (NFC_ERROR_NONE != result) {
         LoggerE("Unknown error while getting mimeType: %s - %d: %s",
             mime_type.c_str(), result,
             NFCUtil::getNFCErrorMessage(result).c_str());
-        NFCUtil::throwNFCException(result, "Unknown error while getting mimeType");
+        //Do not throw just return default values
+        //NFCUtil::throwNFCException(result, "Unknown error while getting mimeType");
+    } else {
+        _tnf = getTnfFromHandle(handle);
+        _type_name = getTypeNameFromHandle(handle);
+        _id = getIdFromHandle(handle);
+        _payload = getPayloadFromHandle(handle);
     }
-
-    short _tnf = getTnfFromHandle(handle);
-    UCharVector _type_name = getTypeNameFromHandle(handle);
-    UCharVector _id = getIdFromHandle(handle);
-    UCharVector _payload = getPayloadFromHandle(handle);
 
     //constructing json
     ConstructRecordJson(_tnf, _type_name, _id, _payload, out);

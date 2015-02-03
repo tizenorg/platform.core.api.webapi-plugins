@@ -280,7 +280,7 @@ NFCAdapter.prototype.setTagListener  = function() {
         }
     ]);
 
-    if(!types_.isNullOrUndefined(args.tagType)) {
+    if(!T_.isNullOrUndefined(args.tagType)) {
         for (var i = 0; i < args.tagType.length; i++) {
             if (NFCTagType[args.tagType[i]] === undefined) {
                 throw new tizen.WebAPIException(
@@ -297,7 +297,7 @@ NFCAdapter.prototype.setTagListener  = function() {
             tagObject = new NFCTag(message.id);
 
             // If filter is set for listener but tag type is not searched one
-            if(!types_.isNullOrUndefined(args.tagType) &&
+            if(!T_.isNullOrUndefined(args.tagType) &&
                     args.tagType.indexOf(tagObject.type) < 0) {
                 return;
             }
@@ -913,9 +913,10 @@ tizen.NDEFMessage = function(data) {
 
     var recordsSetter = function(data){
         if (T_.isArray(data)) {
-            if ( isArrayOfType(data, tizen.NDEFRecord) ) {
+            // Do not check type of array elements - allow all arrays
+            //if ( isArrayOfType(data, tizen.NDEFRecord) ) {
                 records_ = data;
-            }
+            //}
         }
     }
 
@@ -1003,20 +1004,15 @@ tizen.NDEFRecord = function(first, type, payload, id) {
 };
 
 //////////////////NDEFRecordText /////////////////
-var ENCODING = ["UTF8", "UTF16"];
-
 tizen.NDEFRecordText = function(text, languageCode, encoding) {
     var text_ = undefined;
     var languageCode_ = undefined;
-    var encoding_ = ENCODING[0];
+    var encoding_ = NDEFRecordTextEncoding[encoding] ?
+            NDEFRecordTextEncoding[encoding] : NDEFRecordTextEncoding['UTF8'];
     try {
         if (arguments.length >= 2) {
             text_ = Converter_.toString(text);
             languageCode_ = Converter_.toString(languageCode);
-
-            if (!T_.isNullOrUndefined(encoding)) {
-                encoding_ = Converter_.toEnum(encoding, ENCODING, true);
-            }
 
             var result = native_.callSync(
                     'NDEFRecordText_constructor', {
