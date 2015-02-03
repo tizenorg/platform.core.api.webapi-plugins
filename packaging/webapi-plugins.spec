@@ -47,7 +47,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_sap_support                 0
 %define tizen_feature_se_support                  1
 %define tizen_feature_sensor_support              0
-%define tizen_feature_sound_support               0
+%define tizen_feature_sound_support               1
 %define tizen_feature_system_setting_support      1
 %define tizen_feature_telephony_support           0
 %define tizen_feature_tvinputdevice_support       0
@@ -261,6 +261,10 @@ BuildRequires:  pkgconfig(smartcard-service-common)
 
 %if 0%{?tizen_feature_notification_support}
 BuildRequires: pkgconfig(notification)
+%endif
+
+%if 0%{?tizen_feature_sound_support}
+BuildRequires:  pkgconfig(capi-media-sound-manager)
 %endif
 
 

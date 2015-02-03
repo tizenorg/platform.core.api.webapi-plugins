@@ -20,7 +20,12 @@
       ],
       'conditions': [
         [ 'tizen == 1', {
-            'variables': { 'packages': ['vconf'] },
+            'variables': {
+              'packages': [
+                'vconf',
+                'capi-media-sound-manager',
+              ]
+            },
         }],
       ],
     },
