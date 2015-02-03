@@ -34,6 +34,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_exif_support                1
 %define tizen_feature_filesystem_support          1
 %define tizen_feature_fm_radio_support            0
+%define tizen_feature_media_key_support           1
 %define tizen_feature_message_port_support        1
 %define tizen_feature_messaging_support           1
 %define tizen_feature_nbs_support                 1
@@ -81,6 +82,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_exif_support                0
 %define tizen_feature_filesystem_support          0
 %define tizen_feature_fm_radio_support            0
+%define tizen_feature_media_key_support           0
 %define tizen_feature_message_port_support        0
 %define tizen_feature_messaging_support           0
 %define tizen_feature_nbs_support                 0
@@ -128,6 +130,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_exif_support                1
 %define tizen_feature_filesystem_support          1
 %define tizen_feature_fm_radio_support            0
+%define tizen_feature_media_key_support           0
 %define tizen_feature_message_port_support        1
 %define tizen_feature_messaging_support           0
 %define tizen_feature_nbs_support                 0
@@ -299,6 +302,10 @@ BuildRequires: pkgconfig(capi-system-sensor)
 %endif
 
 
+%if 0%{?tizen_feature_media_key_support}
+BuildRequires:  pkgconfig(capi-system-media-key)
+%endif
+
 %description
 Tizen Web APIs implemented.
 
@@ -329,6 +336,7 @@ GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_download_support=%{?tizen_feature_down
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_exif_support=%{?tizen_feature_exif_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_filesystem_support=%{?tizen_feature_filesystem_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_fm_radio_support=%{?tizen_feature_fm_radio_support}"
+GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_media_key_support=%{?tizen_feature_media_key_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_message_port_support=%{?tizen_feature_message_port_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_messaging_support=%{?tizen_feature_messaging_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_nbs_support=%{?tizen_feature_nbs_support}"

@@ -132,6 +132,13 @@
           },
         ],
         [
+          'tizen_feature_media_key_support==1', {
+            'dependencies': [
+              'mediakey/mediakey.gyp:*',
+            ],
+          },
+        ],
+        [
           'tizen_feature_message_port_support==1', {
             'dependencies': [
               'messageport/messageport.gyp:*',
