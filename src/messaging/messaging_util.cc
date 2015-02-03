@@ -318,6 +318,7 @@ picojson::value MessagingUtil::messageToJson(std::shared_ptr<Message> message)
     case MessageType::MMS:
         o[MESSAGE_ATTRIBUTE_HAS_ATTACHMENT] = picojson::value(message->getHasAttachment());
         o[MESSAGE_ATTRIBUTE_SUBJECT] = picojson::value(message->getSubject());
+        o[MESSAGE_ATTRIBUTE_OLD_ID] = picojson::value(std::to_string(message->getOldId()));
         break;
     case MessageType::EMAIL:
 
