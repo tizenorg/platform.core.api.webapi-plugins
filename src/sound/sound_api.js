@@ -44,6 +44,9 @@ SoundManager.prototype.setVolume = function(type, volume) {
     {name: 'volume', type: types_.DOUBLE}
   ]);
 
+  if (args.volume < 0 || args.volume > 1) {
+    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
+  }
   var result = native_.callSync('SoundManager_setVolume', args);
   if (native_.isFailure(result)) {
     throw native_.getErrorObject(result);
