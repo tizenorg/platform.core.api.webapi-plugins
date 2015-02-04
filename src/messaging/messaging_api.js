@@ -584,6 +584,8 @@ function MessageBody(data) {
     );
 };
 
+var messageAttachmentsLoaded = {};
+
 function MessageAttachment(first, second) {
     validator_.isConstructorCall(this, MessageAttachment);
     if (!this instanceof MessageAttachment) {
@@ -639,7 +641,13 @@ function MessageAttachment(first, second) {
         this,
         'filePath',
         {
-            get: function () {return _internal.filePath;},
+            get: function () {
+                if (_internal.id && !messageAttachmentsLoaded[_internal.id]) {
+                    return null;
+                }
+
+                return _internal.filePath;
+            },
             set: function (value) {
                 if (value instanceof InternalValues_) _internal.filePath = value.filePath;
             },
@@ -783,6 +791,11 @@ MessageService.prototype.loadMessageAttachment = function () {
     ]);
 
     var self = this;
+    var firstCall = false;
+    if (!messageAttachmentsLoaded[args.attachment.id]) {
+        firstCall = true;
+        messageAttachmentsLoaded[args.attachment.id] = true;
+    }
 
     bridge.async({
         cmd: 'MessageService_loadMessageAttachment',
@@ -793,13 +806,21 @@ MessageService.prototype.loadMessageAttachment = function () {
     }).then({
         success: function (data) {
             if (args.successCallback) {
+                var messageAttachment = data.messageAttachment;
+                if (messageAttachment) {
+                    updateInternal_(args.attachment, messageAttachment);
+                }
+
                 args.successCallback.call(
                     null,
-                    new MessageAttachment(new InternalValues_(data.messageAttachment))
+                    args.attachment
                 );
             }
         },
         error: function (e) {
+            if (firstCall) {
+                messageAttachmentsLoaded[args.attachment.id] = false;
+            }
             if (args.errorCallback) {
                 args.errorCallback.call(
                     null,
@@ -930,6 +951,12 @@ MessageStorage.prototype.addDraftMessage = function () {
                 if (body) {
                     updateInternal_(args.message.body, body)
                     delete message.body;
+                }
+                var attachments = message.attachments;
+                if (attachments) {
+                    for (var i = 0; i < attachments.length; i++) {
+                        messageAttachmentsLoaded[attachments[i].id] = true;
+                    }
                 }
                 updateInternal_(args.message, message);
             }
