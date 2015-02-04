@@ -55,26 +55,26 @@ NetworkBearerSelection.prototype.requestRouteToHost = function(networkType, doma
     {name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true}
   ]);
 
-  var nativeParam = {
-    networkType: args.networkType,
-    domainName: args.domainName
-  };
-
-  var result = native_.callSync('NetworkBearerSelection_requestRouteToHost', nativeParam);
-
-  if (native_.isFailure(result)) {
-    native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));
-  }
-
   var id = nextCallbackId();
 
-  native_.addListener('NetworkBearerSelectionCallback_' + id, _networkBearerSelectionCallback);
+  var nativeParam = {
+    networkType: args.networkType,
+    domainName: args.domainName,
+    id: id
+  };
 
   callbacks[id] = {
     onsuccess: args.successCallback.onsuccess,
     ondisconnected: args.successCallback.ondisconnected,
     onerror: args.errorCallback
   };
+
+  native_.addListener('NetworkBearerSelectionCallback_' + id, _networkBearerSelectionCallback);
+  var result = native_.callSync('NetworkBearerSelection_requestRouteToHost', nativeParam);
+
+  if (native_.isFailure(result)) {
+    native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));
+  }
 };
 
 NetworkBearerSelection.prototype.releaseRouteToHost = function(networkType, domainName, successCallback, errorCallback) {

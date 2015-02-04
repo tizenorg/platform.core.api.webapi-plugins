@@ -9,6 +9,7 @@
       'variables': {
         'packages': [
           'icu-i18n',
+          'capi-network-connection',
         ],
       },
       'sources': [
@@ -17,6 +18,8 @@
         'networkbearerselection_extension.h',
         'networkbearerselection_instance.cc',
         'networkbearerselection_instance.h',
+        'networkbearerselection_manager.cc',
+        'networkbearerselection_manager.h',
       ],
       'conditions': [
         [ 'tizen == 1', {

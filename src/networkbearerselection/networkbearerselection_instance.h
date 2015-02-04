@@ -6,21 +6,33 @@
 #define NETWORKBEARERSELECTION_NETWORKBEARERSELECTION_INSTANCE_H_
 
 #include "common/extension.h"
+#include "networkbearerselection_manager.h"
+#include <map>
 
 namespace extension {
 namespace networkbearerselection {
 
-class NetworkBearerSelectionInstance : public common::ParsedInstance {
+class NetworkBearerSelectionInstance : public common::ParsedInstance,
+                                       public NetworkBearerSelectionListener {
  public:
   NetworkBearerSelectionInstance();
   virtual ~NetworkBearerSelectionInstance();
 
  private:
-  void NetworkBearerSelectionRequestRouteToHost(const picojson::value& args, picojson::object& out);
-  void NetworkBearerSelectionReleaseRouteToHost(const picojson::value& args, picojson::object& out);
+  void NetworkBearerSelectionRequestRouteToHost(const picojson::value& args,
+                                                picojson::object& out);
+  void NetworkBearerSelectionReleaseRouteToHost(const picojson::value& args,
+                                                picojson::object& out);
+
+  virtual void onNBSSuccess(const std::string& domain_name);
+  virtual void onNBSError(const std::string& domain_name,
+                          const std::string& info);
+  virtual void onNBSDisconnect(const std::string& domain_name);
+
+  std::multimap<std::string, int> listenerMap;
 };
 
-} // namespace networkbearerselection
-} // namespace extension
+}  // namespace networkbearerselection
+}  // namespace extension
 
-#endif // NETWORKBEARERSELECTION_NETWORKBEARERSELECTION_INSTANCE_H_
+#endif  // NETWORKBEARERSELECTION_NETWORKBEARERSELECTION_INSTANCE_H_

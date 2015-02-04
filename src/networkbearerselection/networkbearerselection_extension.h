@@ -16,4 +16,4 @@ class NetworkBearerSelectionExtension : public common::Extension {
   virtual common::Instance* CreateInstance();
 };
 
-#endif // NETWORKBEARERSELECTION_NETWORKBEARERSELECTION_EXTENSION_H_
+#endif  // NETWORKBEARERSELECTION_NETWORKBEARERSELECTION_EXTENSION_H_
