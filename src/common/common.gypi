@@ -81,6 +81,7 @@
       'filter-utils.h',
       'picojson.h',
       'utils.h',
+      'logger.cc',
       'logger.h',
       'platform_exception.cc',
       'platform_exception.h',
