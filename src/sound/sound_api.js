@@ -48,8 +48,6 @@ SoundManager.prototype.setVolume = function(type, volume) {
   if (native_.isFailure(result)) {
     throw native_.getErrorObject(result);
   }
-
-  return native_.getResultObject(result);
 };
 
 SoundManager.prototype.getVolume = function(type) {
@@ -65,60 +63,70 @@ SoundManager.prototype.getVolume = function(type) {
   return native_.getResultObject(result);
 };
 
+var _soundModeChangeListener;
+
+function _soundModeChangeListenerCallback(result) {
+  native_.callIfPossible(_soundModeChangeListener, native_.getResultObject(result));
+}
+
 SoundManager.prototype.setSoundModeChangeListener = function(callback) {
   var args = validator_.validateArgs(arguments, [
     {name: 'callback', type: types_.FUNCTION}
   ]);
 
-  var callback = function(result) {
-    if (native_.isFailure(result)) {
-      native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));
-      return;
-    }
+  _soundModeChangeListener = args.callback;
+  native_.addListener('SoundModeChangeListener', _soundModeChangeListenerCallback);
 
-    var _result = native_.getResultObject(result);
+  var result = native_.callSync('SoundManager_setSoundModeChangeListener', {});
 
-    native_.callIfPossible(args.successCallback);
-  };
-
-  native_.call('SoundManager_setSoundModeChangeListener', args, callback);
-};
-
-SoundManager.prototype.unsetSoundModeChangeListener = function() {
-  var result = native_.callSync('SoundManager_unsetSoundModeChangeListener');
   if (native_.isFailure(result)) {
     throw native_.getErrorObject(result);
   }
-
-  return native_.getResultObject(result);
 };
+
+SoundManager.prototype.unsetSoundModeChangeListener = function() {
+  native_.removeListener('SoundModeChangeListener', _soundModeChangeListenerCallback);
+
+  var result = native_.callSync('SoundManager_unsetSoundModeChangeListener', {});
+
+  _soundModeChangeListener = undefined;
+
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
+  }
+};
+
+var _volumeChangeListener;
+
+function _volumeChangeListenerCallback(result) {
+  native_.callIfPossible(_volumeChangeListener, native_.getResultObject(result));
+}
 
 SoundManager.prototype.setVolumeChangeListener = function(callback) {
   var args = validator_.validateArgs(arguments, [
     {name: 'callback', type: types_.FUNCTION}
   ]);
 
-  var callback = function(result) {
-    if (native_.isFailure(result)) {
-      native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));
-      return;
-    }
+  _volumeChangeListener = args.callback;
+  native_.addListener('VolumeChangeListener', _volumeChangeListenerCallback);
 
-    var _result = native_.getResultObject(result);
+  var result = native_.callSync('SoundManager_setVolumeChangeListener', {});
 
-    native_.callIfPossible(args.successCallback);
-  };
-
-  native_.call('SoundManager_setVolumeChangeListener', args, callback);
-};
-
-SoundManager.prototype.unsetVolumeChangeListener = function() {
-  var result = native_.callSync('SoundManager_unsetVolumeChangeListener');
   if (native_.isFailure(result)) {
     throw native_.getErrorObject(result);
   }
+};
 
-  return native_.getResultObject(result);
+SoundManager.prototype.unsetVolumeChangeListener = function() {
+  native_.removeListener('VolumeChangeListener', _volumeChangeListenerCallback);
+
+  var result = native_.callSync('SoundManager_unsetVolumeChangeListener', {});
+
+  _volumeChangeListener = undefined;
+
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
+  }
 };
 
 
