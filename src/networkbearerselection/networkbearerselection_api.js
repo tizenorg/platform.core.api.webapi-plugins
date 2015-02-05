@@ -15,6 +15,35 @@ var NetworkType = {
   UNKNOWN: 'UNKNOWN'
 };
 
+var callbackId = 0;
+var callbacks = {};
+
+function nextCallbackId() {
+  return callbackId++;
+}
+
+function _networkBearerSelectionCallback(result) {
+  var id, callback;
+
+  for (id in callbacks) {
+    if (callbacks.hasOwnProperty(result.id)) {
+      callback = callbacks[id];
+      if (result.state === 'Success') {
+        native_.callIfPossible(callback.onsuccess);
+      }
+      if (result.state === 'Disconnected') {
+        native_.callIfPossible(callback.ondisconnected);
+        native_.removeListener('NetworkBearerSelectionCallback_' + id);
+        delete callbacks[id];
+      }
+      if (result.state === 'Error') {
+        native_.callIfPossible(callback.onerror, native_.getErrorObject(result));
+        native_.removeListener('NetworkBearerSelectionCallback_' + id);
+        delete callbacks[id];
+      }
+    }
+  }
+}
 
 function NetworkBearerSelection() {}
 
@@ -26,18 +55,26 @@ NetworkBearerSelection.prototype.requestRouteToHost = function(networkType, doma
     {name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true}
   ]);
 
-  var callback = function(result) {
-    if (native_.isFailure(result)) {
-      native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));
-      return;
-    }
-
-    var _result = native_.getResultObject(result);
-
-    native_.callIfPossible(args.successCallback);
+  var nativeParam = {
+    networkType: args.networkType,
+    domainName: args.domainName
   };
 
-  native_.call('NetworkBearerSelection_requestRouteToHost', args, callback);
+  var result = native_.callSync('NetworkBearerSelection_requestRouteToHost', nativeParam);
+
+  if (native_.isFailure(result)) {
+    native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));
+  }
+
+  var id = nextCallbackId();
+
+  native_.addListener('NetworkBearerSelectionCallback_' + id, _networkBearerSelectionCallback);
+
+  callbacks[id] = {
+    onsuccess: args.successCallback.onsuccess,
+    ondisconnected: args.successCallback.ondisconnected,
+    onerror: args.errorCallback
+  };
 };
 
 NetworkBearerSelection.prototype.releaseRouteToHost = function(networkType, domainName, successCallback, errorCallback) {
@@ -53,8 +90,6 @@ NetworkBearerSelection.prototype.releaseRouteToHost = function(networkType, doma
       native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));
       return;
     }
-
-    var _result = native_.getResultObject(result);
 
     native_.callIfPossible(args.successCallback);
   };
