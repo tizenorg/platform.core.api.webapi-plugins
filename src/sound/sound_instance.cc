@@ -70,17 +70,14 @@ void SoundInstance::SoundManagerSetVolume(const picojson::value& args,
   ReportSuccess(out);
 }
 
-void SoundInstance::SoundManagerGetVolume(const picojson::value& args, picojson::object& out) {
 
-
-  // implement it
-
-
-  // if success
-  // ReportSuccess(out);
-  // if error
-  // ReportError(out);
+void SoundInstance::SoundManagerGetVolume(const picojson::value& args,
+                                          picojson::object& out) {
+  ReportSuccess(picojson::value(static_cast<double>(
+                    manager_->GetVolume(args.get<picojson::object>()))),
+                out);
 }
+
 void SoundInstance::SoundManagerSetSoundModeChangeListener(const picojson::value& args, picojson::object& out) {
   CHECK_EXIST(args, "callbackId", out)
 

@@ -103,7 +103,30 @@ void SoundManager::SetVolume(const picojson::object& args) {
   }
 }
 
-double SoundManager::GetVolume(const picojson::object& args) {}
+double SoundManager::GetVolume(const picojson::object& args) {
+  const std::string& type = FromJson<std::string>(args, "type");
+  const sound_type_e type_enum = SoundManager::StrToPlatformEnum(type);
+
+  auto it = max_volume_map_.find(type_enum);
+  if (it == max_volume_map_.end()) {
+    LoggerE("Failed to find maxVolume of type: %s", type.c_str());
+    // TODO: throw UnknownException("Failed to find maxVolume");
+  }
+
+  int max_volume = it->second;
+  int value;
+
+  int ret = sound_manager_get_volume(type_enum, &value);
+  if (ret != SOUND_MANAGER_ERROR_NONE) {
+    LoggerE("Failed to get volume: %d", ret);
+    // TODO: throw UnknownException("Failed to get volume");
+  }
+
+  double volume = static_cast<double>(value) / max_volume;
+  LoggerD("volume: %lf, maxVolume: %d, value: %d", volume, max_volume, value);
+
+  return volume;
+}
 
 void SoundManager::SetSoundModeChangeListener(const picojson::object& args) {}
 
