@@ -9,6 +9,7 @@
 #include "common/picojson.h"
 #include "common/logger.h"
 #include "common/platform_exception.h"
+#include "sound_manager.h"
 
 namespace extension {
 namespace sound {
@@ -61,19 +62,14 @@ void SoundInstance::SoundManagerGetSoundMode(const picojson::value& args, picojs
   // if error
   // ReportError(out);
 }
-void SoundInstance::SoundManagerSetVolume(const picojson::value& args, picojson::object& out) {
-  CHECK_EXIST(args, "volume", out)
 
-  double volume = args.get("volume").get<double>();
+void SoundInstance::SoundManagerSetVolume(const picojson::value& args,
+                                          picojson::object& out) {
+  manager_->SetVolume(args.get<picojson::object>());
 
-  // implement it
-
-
-  // if success
-  // ReportSuccess(out);
-  // if error
-  // ReportError(out);
+  ReportSuccess(out);
 }
+
 void SoundInstance::SoundManagerGetVolume(const picojson::value& args, picojson::object& out) {
 
 

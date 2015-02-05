@@ -43,7 +43,7 @@ std::string SoundManager::PlatformEnumToStr(const sound_type_e value) {
   // TODO:  throw InvalidValuesException(message);
 }
 
-SoundManager::SoundManager() {}
+SoundManager::SoundManager() { FillMaxVolumeMap(); }
 
 SoundManager::~SoundManager() {}
 
@@ -52,9 +52,56 @@ SoundManager* SoundManager::GetInstance() {
   return &instance;
 }
 
+void SoundManager::FillMaxVolumeMap() {
+  int max = 100;
+  int ret;
+
+  for (auto& item : platform_enum_map_) {
+    max = 100;
+
+    ret = sound_manager_get_max_volume(item.second, &max);
+    if (ret != SOUND_MANAGER_ERROR_NONE) {
+      LoggerE("SoundManagerGetMaxVolumeFailed : %d", ret);
+    }
+
+    LoggerD("maxVolume: %d - %d", item.second, max);
+
+    max_volume_map_[item.second] = max;
+  }
+}
+
 int SoundManager::GetSoundMode() {}
 
-void SoundManager::SetVolume(const picojson::object& args) {}
+void SoundManager::SetVolume(const picojson::object& args) {
+  const std::string& type = FromJson<std::string>(args, "type");
+  double volume = FromJson<double>(args, "volume");
+
+  LoggerD("SoundType: %s", type.c_str());
+  LoggerD("volume: %f", volume);
+
+  if (volume > 1.0 || volume < 0.0) {
+    LoggerE("Volume should be the value between 0 and 1.");
+    // TODO: throw InvalidValuesException("Volume should be the value between 0
+    // and 1.");
+  }
+
+  auto it = max_volume_map_.find(SoundManager::StrToPlatformEnum(type));
+  if (it == max_volume_map_.end()) {
+    LoggerE("Failed to find maxVolume of type: %d", type.c_str());
+    // TODO: throw UnknownException("Failed to find maxVolume");
+  }
+
+  int max_volume = it->second;
+  int value = round(volume * max_volume);
+  LoggerD("volume: %lf, maxVolume: %d, value: %d", volume, max_volume, value);
+
+  int ret =
+      sound_manager_set_volume(SoundManager::StrToPlatformEnum(type), value);
+  if (ret != SOUND_MANAGER_ERROR_NONE) {
+    LoggerE("Failed to set volume: %d", ret);
+    // TODO: throw UnknownException("Failed to set volume");
+  }
+}
 
 double SoundManager::GetVolume(const picojson::object& args) {}
 

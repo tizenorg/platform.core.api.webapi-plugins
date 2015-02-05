@@ -28,7 +28,11 @@ class SoundManager {
   SoundManager();
   virtual ~SoundManager();
 
+  std::map<sound_type_e, int> max_volume_map_;
+
   static const std::map<std::string, sound_type_e> platform_enum_map_;
+
+  void FillMaxVolumeMap();
 
   static sound_type_e StrToPlatformEnum(const std::string& key);
   static std::string PlatformEnumToStr(const sound_type_e value);
