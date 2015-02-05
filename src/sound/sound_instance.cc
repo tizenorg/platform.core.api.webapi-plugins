@@ -34,6 +34,8 @@ SoundInstance::SoundInstance() {
   REGISTER_SYNC("SoundManager_setVolumeChangeListener", SoundManagerSetVolumeChangeListener);
   REGISTER_SYNC("SoundManager_getSoundMode", SoundManagerGetSoundMode);
   #undef REGISTER_SYNC
+
+  manager_ = SoundManager::GetInstance();
 }
 
 SoundInstance::~SoundInstance() {

@@ -17,6 +17,8 @@
         'sound_extension.h',
         'sound_instance.cc',
         'sound_instance.h',
+        'sound_manager.cc',
+        'sound_manager.h',
       ],
       'conditions': [
         [ 'tizen == 1', {

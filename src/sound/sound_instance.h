@@ -6,6 +6,7 @@
 #define SOUND_SOUND_INSTANCE_H_
 
 #include "common/extension.h"
+#include "sound_manager.h"
 
 namespace extension {
 namespace sound {
@@ -16,6 +17,8 @@ class SoundInstance : public common::ParsedInstance {
   virtual ~SoundInstance();
 
  private:
+  SoundManager* manager_;
+
   void SoundManagerSetVolume(const picojson::value& args, picojson::object& out);
   void SoundManagerUnsetSoundModeChangeListener(const picojson::value& args, picojson::object& out);
   void SoundManagerGetVolume(const picojson::value& args, picojson::object& out);
