@@ -55,8 +55,8 @@ void SystemSettingInstance::getProperty(const picojson::value& args, picojson::o
     auto get = [this, type](const std::shared_ptr<picojson::value>& response) -> void {
         LoggerD("Getting platform value");
         try {
-            int platformResult;
-            picojson::value result = getPlatformPropertyValue(type, platformResult);
+            picojson::value result;
+            getPlatformPropertyValue(type, &result);
             ReportSuccess(result, response->get<picojson::object>());
         } catch (const PlatformException& e) {
             ReportError(e, response->get<picojson::object>());
@@ -74,14 +74,13 @@ void SystemSettingInstance::getProperty(const picojson::value& args, picojson::o
         (get, get_response, std::shared_ptr<picojson::value>(new picojson::value(picojson::object())));
 }
 
-picojson::value SystemSettingInstance::getPlatformPropertyValue(
-    const std::string &settingType, int &platformResult)
+void SystemSettingInstance::getPlatformPropertyValue(
+    const std::string& settingType, picojson::value* out)
 {
+    picojson::object& result_obj = out->get<picojson::object>();
+
     int ret;
     char *value = NULL;
-    picojson::value result = picojson::value(picojson::object());
-    picojson::object& result_obj = result.get<picojson::object>();
-
     if (settingType == SETTING_HOME_SCREEN) {
         ret = system_settings_get_value_string(
             SYSTEM_SETTINGS_KEY_WALLPAPER_HOME_SCREEN, &value);
@@ -100,23 +99,19 @@ picojson::value SystemSettingInstance::getPlatformPropertyValue(
     }
     // other values (not specified in the documentation) are handled in JS
 
-    platformResult = ret;
-
-    if (ret == SYSTEM_SETTINGS_ERROR_NONE) {
-        LoggerD("ret == SYSTEM_SETTINGS_ERROR_NONE");
-        result_obj.insert(std::make_pair("value", value));
-        free(value);
-    }
-    else if (ret == SYSTEM_SETTINGS_ERROR_CALL_UNSUPPORTED_API) {
-        LoggerD("ret == SYSTEM_SETTINGS_ERROR_CALL_UNSUPPORTED_API");
-        throw NotSupportedException("This property is not supported.");
-    }
-    else {
-        LoggerD("Other error");
-        throw UnknownException("Unknown error");
-    }
-
-    return result;
+    switch (ret) {
+        case SYSTEM_SETTINGS_ERROR_NONE:
+            LoggerD("ret == SYSTEM_SETTINGS_ERROR_NONE");
+            result_obj.insert(std::make_pair("value", value));
+            free(value);
+            break;
+        case SYSTEM_SETTINGS_ERROR_CALL_UNSUPPORTED_API:
+            LoggerD("ret == SYSTEM_SETTINGS_ERROR_CALL_UNSUPPORTED_API");
+            throw NotSupportedException("This property is not supported.");
+        default:
+            LoggerD("Other error");
+            throw UnknownException("Unknown error");
+  }
 }
 
 void SystemSettingInstance::setProperty(const picojson::value& args, picojson::object& out)
@@ -133,8 +128,8 @@ void SystemSettingInstance::setProperty(const picojson::value& args, picojson::o
     auto get = [this, type, value](const std::shared_ptr<picojson::value>& response) -> void {
         LoggerD("Setting platform value");
         try {
-            int platformResult;
-            picojson::value result = setPlatformPropertyValue(type, value, platformResult);
+            picojson::value result;
+            setPlatformPropertyValue(type, value, &result);
             ReportSuccess(result, response->get<picojson::object>());
         } catch (const PlatformException& e) {
             ReportError(e, response->get<picojson::object>());
@@ -152,13 +147,12 @@ void SystemSettingInstance::setProperty(const picojson::value& args, picojson::o
         (get, get_response, std::shared_ptr<picojson::value>(new picojson::value(picojson::object())));
 }
 
-picojson::value SystemSettingInstance::setPlatformPropertyValue(
-    const std::string &settingType, const std::string &settingValue, int &platformResult)
+void SystemSettingInstance::setPlatformPropertyValue(
+    const std::string& settingType, const std::string& settingValue, picojson::value* out)
 {
-    int ret;
-    picojson::value result = picojson::value(picojson::object());
-    picojson::object& result_obj = result.get<picojson::object>();
+    picojson::object& result_obj = out->get<picojson::object>();
 
+    int ret;
     if (settingType == SETTING_HOME_SCREEN) {
         ret = system_settings_set_value_string(
             SYSTEM_SETTINGS_KEY_WALLPAPER_HOME_SCREEN, settingValue.c_str());
@@ -177,23 +171,18 @@ picojson::value SystemSettingInstance::setPlatformPropertyValue(
     }
     // other values (not specified in the documentation) are handled in JS
 
-    platformResult = ret;
-
-    if (ret == SYSTEM_SETTINGS_ERROR_NONE) {
-        LoggerD("ret == SYSTEM_SETTINGS_ERROR_NONE");
+    switch (ret) {
+        case SYSTEM_SETTINGS_ERROR_NONE:
+            LoggerD("ret == SYSTEM_SETTINGS_ERROR_NONE");
+            return;
+        case SYSTEM_SETTINGS_ERROR_CALL_UNSUPPORTED_API:
+            LoggerD("ret == SYSTEM_SETTINGS_ERROR_CALL_UNSUPPORTED_API");
+            throw NotSupportedException("This property is not supported.");
+        default:
+            LoggerD("Other error");
+            throw UnknownException("Unknown error");
     }
-    else if (ret == SYSTEM_SETTINGS_ERROR_CALL_UNSUPPORTED_API) {
-        LoggerD("ret == SYSTEM_SETTINGS_ERROR_CALL_UNSUPPORTED_API");
-        throw NotSupportedException("This property is not supported.");
-    }
-    else {
-        LoggerD("Other error");
-        throw UnknownException("Unknown error");
-    }
-
-    return result;
 }
-
 
 } // namespace systemsetting
 } // namespace extension

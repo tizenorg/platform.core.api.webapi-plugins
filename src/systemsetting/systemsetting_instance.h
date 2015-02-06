@@ -18,11 +18,11 @@ public:
 
 private:
     void getProperty(const picojson::value& args, picojson::object& out);
-    picojson::value getPlatformPropertyValue(const std::string &valueType, int &platformResult);
+    void getPlatformPropertyValue(const std::string& valueType, picojson::value* out);
 
     void setProperty(const picojson::value& args, picojson::object& out);
-    picojson::value setPlatformPropertyValue(const std::string &settingType,
-        const std::string &settingValue, int &platformResult);
+    void setPlatformPropertyValue(const std::string& settingType,
+        const std::string& settingValue, picojson::value* out);
 };
 
 } // namespace systemsetting
