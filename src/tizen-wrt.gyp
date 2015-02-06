@@ -23,6 +23,7 @@
         [
           'extension_host_os == "mobile"', {
             'dependencies': [
+              'account/account.gyp:*',
               'badge/badge.gyp:*',
               'bluetooth/bluetooth.gyp:*',
               'callhistory/callhistory.gyp:*',

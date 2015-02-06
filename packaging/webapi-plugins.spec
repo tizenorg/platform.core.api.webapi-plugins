@@ -18,7 +18,7 @@ Source0:    %{name}-%{version}.tar.gz
 ####################################################################
 %if "%{?profile}" == "mobile"
 
-%define tizen_feature_account_support             0
+%define tizen_feature_account_support             1
 %define tizen_feature_archive_support             0
 %define tizen_feature_badge_support               0
 %define tizen_feature_bluetooth_support           0
@@ -186,6 +186,10 @@ BuildRequires: pkgconfig(capi-appfw-application)
 BuildRequires: pkgconfig(capi-appfw-app-manager)
 BuildRequires: pkgconfig(capi-appfw-package-manager)
 BuildRequires: pkgconfig(wrt-plugins-ipc-message)
+
+%if 0%{?tizen_feature_account_support}
+BuildRequires: pkgconfig(accounts-svc)
+%endif
 
 %if 0%{?tizen_feature_datacontrol_support}
 BuildRequires: pkgconfig(capi-data-control)
