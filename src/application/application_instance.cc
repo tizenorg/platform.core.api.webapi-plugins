@@ -133,6 +133,7 @@ enum ApplicationErrors {
   APP_ERROR_QUOTA_EXCEEDED = 11,
   APP_ERROR_INVALID_STATE = 12,
   APP_ERROR_INVALID_MODIFICATION = 13,
+  APP_ERROR_INVALID_VALUES = 14,
 };
 
 struct CallbackInfo {
@@ -173,6 +174,8 @@ static picojson::value GetAppError(int type, const char* msg) {
     return InvalidStateException(msg).ToJSON();
   case APP_ERROR_INVALID_MODIFICATION:
     return InvalidModificationException(msg).ToJSON();
+  case APP_ERROR_INVALID_VALUES:
+    return InvalidValuesException(msg).ToJSON();
   default:
     return UnknownException(msg).ToJSON();
   }
@@ -273,7 +276,7 @@ static int get_app_installed_size(const char* app_id) {
     }
   }
 
-  LoggerD("Get app size: %s[%d]", app_id, size);
+  // LoggerD("Get app size: %s[%d]", app_id, size);
   return size;
 }
 
@@ -619,7 +622,7 @@ static ApplicationInformationPtr get_app_info(pkgmgrinfo_appinfo_h handle) {
       LoggerE("Fail to get installed time");
     } else {
       app_info->set_install_date(installed_time);
-      LoggerD("installed_time: %d", installed_time);
+      // LoggerD("installed_time: %d", installed_time);
     }
 
     pkgmgrinfo_pkginfo_destroy_pkginfo(pkginfo_h);
@@ -654,7 +657,7 @@ static int app_meta_data_cb(const char *meta_key, const char *meta_value,
 
 static int installed_app_info_cb(pkgmgrinfo_appinfo_h handle,
   void *user_data) {
-  LoggerD("ENTER");
+  // LoggerD("ENTER");
   ApplicationInformationPtr app_info = get_app_info(handle);
   ApplicationInformationArray* app_info_array =
     reinterpret_cast<ApplicationInformationArray*>(user_data);
@@ -842,6 +845,17 @@ static gboolean launch_completed
   return true;
 }
 
+static gboolean self_kill_completed
+  (const std::shared_ptr<CallbackInfo>& user_data) {
+  LoggerD("Entered");
+  picojson::object data;
+
+  // call error callback with InvalidValuesException
+  ReplyAsync(user_data->instance, user_data->callback_id,
+             false, &data, user_data->error_type, user_data->error_msg);
+  return true;
+}
+
 static void* launch_thread(const std::shared_ptr<CallbackInfo>& user_data) {
   int ret;
 
@@ -943,12 +957,23 @@ void ApplicationInstance::AppMgrKill(const picojson::value& args,
     return;
   }
 
+  // TC checks this case via error callback... moved it to callback
   // if kill request is come for current context,
   // throw InvalidValueException by spec
   if (pid == getpid()) {
     LoggerE("Given context id is same with me.");
-    ReportError(InvalidValuesException("Given context id is same with me."),
-      out);
+
+    auto user_data = std::shared_ptr<CallbackInfo>(new CallbackInfo);
+    user_data->instance = this;
+    user_data->callback_id = callback_id;
+    user_data->error_type = APP_ERROR_INVALID_VALUES;
+    snprintf(user_data->error_msg, sizeof(user_data->error_msg),
+      "Given context id is same with me.");
+
+    common::TaskQueue::GetInstance().Queue<CallbackInfo>(
+      callback_thread, self_kill_completed, user_data);
+
+    ReportSuccess(out);
     return;
   }
 
@@ -1072,27 +1097,32 @@ void ApplicationInstance::AppMgrLaunchAppControl(const picojson::value& args,
     }
   }
 
-  std::vector<picojson::value> data_array =
-    app_control.get("data").get<picojson::array>();
-  for (int i = 0; i < data_array.size(); i++) {
-    ApplicationControlDataPtr ctr_data_ptr(new ApplicationControlData());
+  if (app_control.contains("data")) {
+    if (app_control.get("data").is<picojson::null>() == false) {
+      std::vector<picojson::value> data_array =
+        app_control.get("data").get<picojson::array>();
+      for (int i = 0; i < data_array.size(); i++) {
+        ApplicationControlDataPtr ctr_data_ptr(new ApplicationControlData());
 
-    picojson::value each_data = data_array.at(i);
-    std::string key = each_data.get("key").get<std::string>();
-    LoggerD("%d: key = %s", i, key.c_str());
+        picojson::value each_data = data_array.at(i);
+        std::string key = each_data.get("key").get<std::string>();
+        LoggerD("%d: key = %s", i, key.c_str());
 
-    ctr_data_ptr->set_ctr_key(key);
+        ctr_data_ptr->set_ctr_key(key);
 
-    std::vector<picojson::value> values =
-      each_data.get("value").get<picojson::array>();
-    for (int j = 0; j < values.size(); j++) {
-      std::string val = values.at(i).to_str();
+        std::vector<picojson::value> values =
+          each_data.get("value").get<picojson::array>();
+        for (int j = 0; j < values.size(); j++) {
+          std::string val = values.at(i).to_str();
 
-      ctr_data_ptr->add_ctr_value(val);
-      LoggerD("-%d val = %s", j, val.c_str());
+          ctr_data_ptr->add_ctr_value(val);
+          LoggerD("-%d val = %s", j, val.c_str());
+        }
+        app_ctr_ptr->add_data_array(ctr_data_ptr);
+      }
+    } else {
+      LoggerD("data is null.");
     }
-
-    app_ctr_ptr->add_data_array(ctr_data_ptr);
   }
 
   // check parameters
@@ -1229,6 +1259,9 @@ void ApplicationInstance::AppMgrFindAppControl(const picojson::value& args,
   ApplicationControlPtr app_ctr_ptr(new ApplicationControl());
 
   picojson::value app_control = args.get("appControl");
+  char print_buf[300] = {0};
+  snprintf(print_buf, sizeof(print_buf), app_control.serialize().c_str());
+  LoggerD("appControl: %s", print_buf);
   std::string operation = app_control.get("operation").get<std::string>();
   app_ctr_ptr->set_operation(operation);
   LoggerD("operation: %s", operation.c_str());
@@ -1260,27 +1293,33 @@ void ApplicationInstance::AppMgrFindAppControl(const picojson::value& args,
     }
   }
 
-  std::vector<picojson::value> data_array =
-    app_control.get("data").get<picojson::array>();
-  for (int i = 0; i < data_array.size(); i++) {
-    ApplicationControlDataPtr ctr_data_ptr(new ApplicationControlData());
+  if (app_control.contains("data")) {
+    if (app_control.get("data").is<picojson::null>() == false) {
+      std::vector<picojson::value> data_array =
+        app_control.get("data").get<picojson::array>();
+      for (int i = 0; i < data_array.size(); i++) {
+        ApplicationControlDataPtr ctr_data_ptr(new ApplicationControlData());
 
-    picojson::value each_data = data_array.at(i);
-    std::string key = each_data.get("key").get<std::string>();
-    LoggerD("%d: key = %s", i, key.c_str());
+        picojson::value each_data = data_array.at(i);
+        std::string key = each_data.get("key").get<std::string>();
+        LoggerD("%d: key = %s", i, key.c_str());
 
-    ctr_data_ptr->set_ctr_key(key);
+        ctr_data_ptr->set_ctr_key(key);
 
-    std::vector<picojson::value> values =
-      each_data.get("value").get<picojson::array>();
-    for (int j = 0; j < values.size(); j++) {
-      std::string val = values.at(i).to_str();
+        std::vector<picojson::value> values =
+          each_data.get("value").get<picojson::array>();
+        for (int j = 0; j < values.size(); j++) {
+          std::string val = values.at(i).to_str();
 
-      ctr_data_ptr->add_ctr_value(val);
-      LoggerD("-%d val = %s", j, val.c_str());
+          ctr_data_ptr->add_ctr_value(val);
+          LoggerD("-%d val = %s", j, val.c_str());
+        }
+
+        app_ctr_ptr->add_data_array(ctr_data_ptr);
+      }
+    } else {
+      LoggerD("data is null.");
     }
-
-    app_ctr_ptr->add_data_array(ctr_data_ptr);
   }
 
   // check parameters
@@ -1694,6 +1733,10 @@ void ApplicationInstance::AppMgrGetAppMetaData(const picojson::value& args,
     meta_data_array.push_back(meta_data_ptr->Value());
   }
 
+  char print_buf[300] = {0};
+  snprintf(print_buf, sizeof(print_buf), meta_data.serialize().c_str());
+  LoggerD("GetAppMetaData:Result: %s", print_buf);
+
   ReportSuccess(meta_data, out);
 }
 
@@ -1885,29 +1928,34 @@ void ApplicationInstance::RequestedAppControlReplyResult(
   }
 
   if (args.contains("data")) {
-    picojson::array data_array = args.get("data").get<picojson::array>();
+    if (args.get("data").is<picojson::null>() == false) {
+      picojson::array data_array = args.get("data").get<picojson::array>();
 
-    int size = data_array.size();
-    LoggerD("size = %d", size);
-    for (int i = 0; i < size; i++) {
-      ApplicationControlDataPtr app_ctr_data_ptr(new ApplicationControlData());
+      int size = data_array.size();
+      LoggerD("size = %d", size);
+      for (int i = 0; i < size; i++) {
+        ApplicationControlData* app_ctr_data = new ApplicationControlData();
+        ApplicationControlDataPtr app_ctr_data_ptr(app_ctr_data);
 
-      picojson::value& ctr_data = data_array.at(i);
-      std::string key = ctr_data.get("key").get<std::string>();
-      app_ctr_data_ptr->set_ctr_key(key);
+        picojson::value& ctr_data = data_array.at(i);
+        std::string key = ctr_data.get("key").get<std::string>();
+        app_ctr_data_ptr->set_ctr_key(key);
 
-      picojson::array value_array =
-        ctr_data.get("value").get<picojson::array>();
-      int value_size = value_array.size();
+        picojson::array value_array =
+          ctr_data.get("value").get<picojson::array>();
+        int value_size = value_array.size();
 
-      LoggerD("value size = %d", value_size);
-      for (int j = 0; j < value_size; j++) {
-        picojson::value& value_data = value_array.at(i);
-        std::string value = value_data.get<std::string>();
-        LoggerD("value: %s", value.c_str());
-        app_ctr_data_ptr->add_ctr_value(value);
+        LoggerD("value size = %d", value_size);
+        for (int j = 0; j < value_size; j++) {
+          picojson::value& value_data = value_array.at(i);
+          std::string value = value_data.get<std::string>();
+          LoggerD("value: %s", value.c_str());
+          app_ctr_data_ptr->add_ctr_value(value);
+        }
+        app_ctr_data_array_ptr->push_back(app_ctr_data_ptr);
       }
-      app_ctr_data_array_ptr->push_back(app_ctr_data_ptr);
+    } else {
+      LoggerD("data is null.");
     }
   }
 

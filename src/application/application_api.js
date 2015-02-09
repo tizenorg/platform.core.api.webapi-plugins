@@ -529,10 +529,8 @@ tizen.ApplicationControlData = function(key, value) {
 };
 
 tizen.ApplicationControl = function(operation, uri, mime, category, data) {
-
   if (this && this.constructor === tizen.ApplicationControl &&
-      (typeof(operation) === 'string' || operation instanceof String) &&
-      data) {
+      (typeof(operation) === 'string' || operation instanceof String)) {
 
     Object.defineProperties(this, {
       'operation': { writable: true, enumerable: true, value: operation },
@@ -540,7 +538,7 @@ tizen.ApplicationControl = function(operation, uri, mime, category, data) {
       'mime': { writable: true, enumerable: true, value: mime === undefined ? null : mime },
       'category': { writable: true, enumerable: true,
         value: category === undefined ? null : category },
-      'data': { writable: true, enumerable: true, value: data }
+      'data': { writable: true, enumerable: true, value: data === undefined ? null : data }
     });
 
   } else {

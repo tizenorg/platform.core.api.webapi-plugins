@@ -115,7 +115,7 @@ const picojson::value& ApplicationInformation::Value() {
       categories_array.push_back(picojson::value(*it));
     }
     data_["categories"] = categories;
-    LoggerD("size: %f", size_);
+    // LoggerD("size: %f", size_);
     data_["size"] = picojson::value(size_);
 
     value_ = picojson::value(data_);
