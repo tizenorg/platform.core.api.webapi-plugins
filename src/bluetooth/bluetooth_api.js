@@ -317,6 +317,11 @@ var BluetoothDevice = function(data) {
         return _getter('isConnected');
     }
 
+    var uuids = [];
+    if (data) {
+        uuids = data.uuids;
+    }
+
     Object.defineProperties(this, {
         name : {value: data.name, writable: false, enumerable: true},
         address : {value: data.address, writable: false, enumerable: true},
@@ -338,7 +343,11 @@ var BluetoothDevice = function(data) {
             set : function(){},
             get : isConnectedGetter
         },
-        uuids : {value: data.uuids, writable: false, enumerable: true}
+        uuids : {
+            enumerable: true,
+            set : function(){},
+            get : function(){ return uuids.slice(); }
+        }
     });
 };
 
