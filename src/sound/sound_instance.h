@@ -11,7 +11,7 @@
 namespace extension {
 namespace sound {
 
-class SoundInstance : public common::ParsedInstance {
+class SoundInstance : public common::ParsedInstance, public SoundManagerSoundModeChangedListener {
  public:
   SoundInstance();
   virtual ~SoundInstance();
@@ -26,6 +26,8 @@ class SoundInstance : public common::ParsedInstance {
   void SoundManagerSetSoundModeChangeListener(const picojson::value& args, picojson::object& out);
   void SoundManagerSetVolumeChangeListener(const picojson::value& args, picojson::object& out);
   void SoundManagerGetSoundMode(const picojson::value& args, picojson::object& out);
+
+  void OnSoundModeChange(const std::string& newmode);
 };
 
 } // namespace sound

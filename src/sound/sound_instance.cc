@@ -71,30 +71,36 @@ void SoundInstance::SoundManagerGetVolume(const picojson::value& args,
 }
 
 void SoundInstance::SoundManagerSetSoundModeChangeListener(const picojson::value& args, picojson::object& out) {
-  CHECK_EXIST(args, "callbackId", out)
+  LoggerD("enter");
+  bool status = manager_->SetSoundModeChangeListener(this);
 
-  int callbackId = static_cast<int>(args.get("callbackId").get<double>());
-
-  // implement it
-
-  // call ReplyAsync in later (Asynchronously)
-
-  // if success
-  // ReportSuccess(out);
-  // if error
-  // ReportError(out);
+  if (status)
+    ReportSuccess(out);
+  else
+    ReportError(out);
 }
+
 void SoundInstance::SoundManagerUnsetSoundModeChangeListener(const picojson::value& args, picojson::object& out) {
+  LoggerD("enter");
+  bool status = manager_->UnsetSoundModeChangeListener();
 
-
-  // implement it
-
-
-  // if success
-  // ReportSuccess(out);
-  // if error
-  // ReportError(out);
+  if (status)
+    ReportSuccess(out);
+  else
+    ReportError(out);
 }
+
+void SoundInstance::OnSoundModeChange(const std::string& newmode)
+{
+  picojson::value event = picojson::value(picojson::object());
+  picojson::object& obj = event.get<picojson::object>();
+  picojson::value result = picojson::value(newmode);
+  ReportSuccess(result, obj);
+  obj["listenerId"] = picojson::value("SoundModeChangeListener");
+  LoggerD("Posting: %s", event.serialize().c_str());
+  PostMessage(event.serialize().c_str());
+}
+
 void SoundInstance::SoundManagerSetVolumeChangeListener(const picojson::value& args, picojson::object& out) {
   CHECK_EXIST(args, "callbackId", out)
 

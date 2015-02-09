@@ -8,9 +8,16 @@
 #include <sound_manager.h>
 
 #include "common/picojson.h"
+#include <vconf.h>
 
 namespace extension {
 namespace sound {
+
+class SoundManagerSoundModeChangedListener
+{
+public:
+  virtual void OnSoundModeChange(const std::string& newmode) = 0;
+};
 
 class SoundManager {
  public:
@@ -19,8 +26,8 @@ class SoundManager {
   std::string GetSoundMode();
   void SetVolume(const picojson::object& args);
   double GetVolume(const picojson::object& args);
-  void SetSoundModeChangeListener(const picojson::object& args);
-  void UnsetSoundModeChangeListener();
+  bool SetSoundModeChangeListener(SoundManagerSoundModeChangedListener* listener);
+  bool UnsetSoundModeChangeListener();
   void SetVolumeChangeListener(const picojson::object& args);
   void UnsetVolumeChangeListener();
 
@@ -36,6 +43,10 @@ class SoundManager {
 
   static sound_type_e StrToPlatformEnum(const std::string& key);
   static std::string PlatformEnumToStr(const sound_type_e value);
+
+  static void soundModeChangedCb(keynode_t *node, void *user_data);
+  bool soundModeChangeListening;
+  SoundManagerSoundModeChangedListener* soundModeListener;
 };
 
 }  // namespace sound

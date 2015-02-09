@@ -45,9 +45,19 @@ std::string SoundManager::PlatformEnumToStr(const sound_type_e value) {
   // TODO:  throw InvalidValuesException(message);
 }
 
-SoundManager::SoundManager() { FillMaxVolumeMap(); }
+SoundManager::SoundManager()
+    : soundModeChangeListening(false), soundModeListener(nullptr) {
+  FillMaxVolumeMap();
+}
 
-SoundManager::~SoundManager() {}
+SoundManager::~SoundManager() {
+  if (soundModeChangeListening) {
+    int status = vconf_ignore_key_changed(VCONFKEY_SETAPPL_VIBRATION_STATUS_BOOL, SoundManager::soundModeChangedCb);
+    if (VCONF_OK != status) {
+      LoggerE("Cannot disable listener!");
+    }
+  }
+}
 
 SoundManager* SoundManager::GetInstance() {
   static SoundManager instance;
@@ -162,9 +172,47 @@ double SoundManager::GetVolume(const picojson::object& args) {
   return volume;
 }
 
-void SoundManager::SetSoundModeChangeListener(const picojson::object& args) {}
+void SoundManager::soundModeChangedCb(keynode_t*, void* user_data)
+{
+  LOGD("enter");
+  if (user_data == nullptr) {
+    LoggerE("Invalid callback data!");
+    return;
+  }
+  SoundManager* self = static_cast<SoundManager*>(user_data);
+  std::string soundModeType = self->GetSoundMode();
+  //TODO: ERROR CHECK
+  if (self->soundModeListener) {
+    self->soundModeListener->OnSoundModeChange(soundModeType);
+  } else {
+    LOGE("No SoundModeListener attached");
+  }
+}
 
-void SoundManager::UnsetSoundModeChangeListener() {}
+bool SoundManager::SetSoundModeChangeListener(SoundManagerSoundModeChangedListener* listener) {
+  soundModeListener = listener;
+  if (soundModeChangeListening)
+    return true;
+  int status = vconf_notify_key_changed(VCONFKEY_SETAPPL_VIBRATION_STATUS_BOOL, SoundManager::soundModeChangedCb, this);
+  if (VCONF_OK == status) {
+    soundModeChangeListening = true;
+    return true;
+  }
+  return false;
+}
+
+bool SoundManager::UnsetSoundModeChangeListener() {
+  soundModeListener = nullptr;
+  if (!soundModeChangeListening) {
+    return true;
+  }
+  int status = vconf_ignore_key_changed(VCONFKEY_SETAPPL_VIBRATION_STATUS_BOOL, SoundManager::soundModeChangedCb);
+  if (VCONF_OK == status) {
+    soundModeChangeListening = false;
+    return true;
+  }
+  return false;
+}
 
 void SoundManager::SetVolumeChangeListener(const picojson::object& args) {}
 
