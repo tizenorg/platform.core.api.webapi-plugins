@@ -13,6 +13,7 @@
 #include <stdexcept>
 #include "common/logger.h"
 #include "common/picojson.h"
+#include "common/platform_result.h"
 
 #include "MsgCommon/SortMode.h"
 #include "MsgCommon/AttributeFilter.h"
@@ -20,6 +21,7 @@
 
 #include "message_folder.h"
 #include "message_attachment.h"
+#include "common/platform_result.h"
 
 namespace extension {
 namespace messaging {
@@ -37,6 +39,7 @@ extern const char* JSON_DATA_MESSAGE_ATTACHMENT;
 extern const char* JSON_DATA_RECIPIENTS;
 extern const char* JSON_ERROR_MESSAGE;
 extern const char* JSON_ERROR_NAME;
+extern const char* JSON_ERROR_CODE;
 
 extern const char* MESSAGE_ATTRIBUTE_ID;
 extern const char* MESSAGE_ATTRIBUTE_CONVERSATION_ID;
@@ -110,8 +113,9 @@ class MessagingUtil {
 public:
     static std::string messageFolderTypeToString(MessageFolderType);
     static MessageFolderType stringToMessageFolderType(std::string type);
-    static MessageType stringToMessageType(std::string);
-    static std::string messageTypeToString(MessageType);
+    static common::PlatformResult stringToMessageType(const std::string& str, MessageType* out);
+    static common::PlatformResult messageTypeToString(MessageType type, std::string* out);
+    static std::string messageTypeToString(MessageType type);
     static std::string ltrim(const std::string& input);
     static std::string extractSingleEmailAddress(const std::string& address);
     static std::vector<std::string> extractEmailAddresses(
@@ -122,12 +126,15 @@ public:
     static picojson::value messageAttachmentToJson(std::shared_ptr<MessageAttachment> attachment);
     static picojson::value conversationToJson(std::shared_ptr<MessageConversation> conversation);
     static picojson::value folderToJson(std::shared_ptr<MessageFolder> folder);
-    static std::shared_ptr<Message> jsonToMessage(const picojson::value& json);
+    static common::PlatformResult jsonToMessage(const picojson::value& json,
+                                                std::shared_ptr<Message>* result);
     static std::shared_ptr<MessageBody> jsonToMessageBody(const picojson::value& json);
     static std::shared_ptr<MessageFolder> jsonToMessageFolder(const picojson::value& json);
     static tizen::SortModePtr jsonToSortMode(const picojson::object& json);
-    static tizen::AbstractFilterPtr jsonToAbstractFilter(const picojson::object& json);
-    static std::shared_ptr<MessageConversation> jsonToMessageConversation(const picojson::value& json);
+    static common::PlatformResult jsonToAbstractFilter(const picojson::object& json,
+                                                       tizen::AbstractFilterPtr* result);
+    static common::PlatformResult jsonToMessageConversation(const picojson::value& json,
+                                      std::shared_ptr<MessageConversation>* result_conversation);
     static std::shared_ptr<MessageAttachment> jsonToMessageAttachment(const picojson::value& json);
 
     template <class T>
@@ -153,14 +160,18 @@ public:
     * std::string result = loadFileContentToString(...);
     * Reason: no copy constructor will be invoked on return.
     */
-    static std::string loadFileContentToString(const std::string& file_path);
+    static common::PlatformResult loadFileContentToString(const std::string& file_path, std::string* result);
     static std::string messageStatusToString(MessageStatus status);
 
 private:
-    static tizen::AbstractFilterPtr jsonFilterToAbstractFilter(const picojson::object& json);
-    static tizen::AttributeFilterPtr jsonFilterToAttributeFilter(const picojson::object& json);
-    static tizen::AttributeRangeFilterPtr jsonFilterToAttributeRangeFilter(const picojson::object& json);
-    static tizen::CompositeFilterPtr jsonFilterToCompositeFilter(const picojson::object& json);
+    static common::PlatformResult jsonFilterToAbstractFilter(const picojson::object& json,
+                                                         tizen::AbstractFilterPtr* result);
+    static common::PlatformResult jsonFilterToAttributeFilter(const picojson::object& json,
+                                                         tizen::AbstractFilterPtr* result);
+    static common::PlatformResult jsonFilterToAttributeRangeFilter(const picojson::object& json,
+                                                         tizen::AbstractFilterPtr* result);
+    static common::PlatformResult jsonFilterToCompositeFilter(const picojson::object& json,
+                                                         tizen::AbstractFilterPtr* result);
 };
 
 enum PostPriority {

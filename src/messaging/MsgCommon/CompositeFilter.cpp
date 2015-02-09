@@ -63,45 +63,11 @@ void CompositeFilter::addFilter(const AbstractFilterPtr& filter)
     m_filters.push_back(filter);
 }
 
-//void CompositeFilter::setFilters(const AbstractFilterPtrVector &filters)
-//{
-//    if (Common::GlobalContextManager::getInstance()->isAliveGlobalContext(
-//            m_context) && m_js_filters) {
-//        *m_js_filters = filters;
-//    }
-//    m_filters = filters;
-//}
-//
-//JSFilterArray CompositeFilter::getJSFilters(JSContextRef global_ctx)
-//{
-//    if (!m_context && !global_ctx) {
-//        LoggerE("Context is not set");
-//        throw Common::UnknownException("Context is not set");
-//    }
-//    else if (!m_context && global_ctx) {
-//        m_context = global_ctx;
-//    }
-//
-//    if (!Common::GlobalContextManager::getInstance()->isAliveGlobalContext(
-//            m_context)) {
-//        LoggerE("Context is not alive");
-//        throw Common::UnknownException("Context is not alive");
-//    }
-//    else if (!m_js_filters) {
-//        m_js_filters = std::shared_ptr<JSFilterArray>(new JSFilterArray(
-//                m_context));
-//        *m_js_filters = m_filters;
-//        m_filters.clear();
-//    }
-//    return *m_js_filters;
-//}
-
-
 bool CompositeFilter::isMatching(const FilterableObject* const filtered_object) const
 {
-    if(!filtered_object) {
+    if (!filtered_object) {
         LoggerE("Invalid object: NULL!");
-        throw common::InvalidValuesException("Invalid object");
+        return false;
     }
 
     bool composite_result = false;

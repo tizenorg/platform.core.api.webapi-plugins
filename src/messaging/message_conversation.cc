@@ -11,6 +11,9 @@
 
 #define MAX_THREAD_DATA_LEN 128
 
+using common::ErrorCode;
+using common::PlatformResult;
+
 namespace extension {
 namespace messaging {
 
@@ -40,6 +43,10 @@ int MessageConversation::getConversationId() const
 MessageType MessageConversation::getType() const
 {
     return m_conversation_type;
+}
+
+std::string MessageConversation::getTypeString() const {
+  return MessagingUtil::messageTypeToString(getType());
 }
 
 time_t MessageConversation::getTimestamp() const
@@ -97,8 +104,8 @@ int MessageConversation::getLastMessageId() const
     return m_last_message_id;
 }
 
-std::shared_ptr<MessageConversation> MessageConversation::convertMsgConversationToObject(
-        unsigned int threadId, msg_handle_t handle)
+PlatformResult MessageConversation::convertMsgConversationToObject(
+        unsigned int threadId, msg_handle_t handle, std::shared_ptr<MessageConversation>* result)
 {
     std::shared_ptr<MessageConversation> conversation (new MessageConversation());
 
@@ -119,146 +126,140 @@ std::shared_ptr<MessageConversation> MessageConversation::convertMsgConversation
     unsigned int lastMsgIndex = 0;
     char msgData[MAX_THREAD_DATA_LEN] = {0,};
 
-    try {
-        msgInfo = msg_create_struct(MSG_STRUCT_MESSAGE_INFO);
-        sendOpt = msg_create_struct(MSG_STRUCT_SENDOPT);
+    msgInfo = msg_create_struct(MSG_STRUCT_MESSAGE_INFO);
+    std::unique_ptr<std::remove_pointer<msg_struct_t*>::type, int(*)(msg_struct_t*)>
+        msg_info_ptr(&msgInfo, &msg_release_struct);
+        // automatically release the memory
+    sendOpt = msg_create_struct(MSG_STRUCT_SENDOPT);
+    std::unique_ptr<std::remove_pointer<msg_struct_t*>::type, int(*)(msg_struct_t*)>
+        send_opt_ptr(&sendOpt, &msg_release_struct);
+        // automatically release the memory
 
-        conversation->m_conversation_id = threadId;
+    conversation->m_conversation_id = threadId;
 
-        msg_thread = msg_create_struct(MSG_STRUCT_THREAD_INFO);
-        err = msg_get_thread(handle, conversation->m_conversation_id, msg_thread);
-        if (err != MSG_SUCCESS)
+    msg_thread = msg_create_struct(MSG_STRUCT_THREAD_INFO);
+    std::unique_ptr<std::remove_pointer<msg_struct_t*>::type, int(*)(msg_struct_t*)>
+        msg_thread_ptr(&msg_thread, &msg_release_struct);
+        // automatically release the memory
+    err = msg_get_thread(handle, conversation->m_conversation_id, msg_thread);
+    if (err != MSG_SUCCESS)
+    {
+      LoggerE("Failed to retrieve thread.");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to retrieve thread.");
+    }
+    msg_get_int_value(msg_thread, MSG_THREAD_MSG_TYPE_INT, &tempInt);
+    switch(tempInt)
+    {
+      case MSG_TYPE_SMS:
+      case MSG_TYPE_SMS_CB:
+      case MSG_TYPE_SMS_JAVACB:
+      case MSG_TYPE_SMS_WAPPUSH:
+      case MSG_TYPE_SMS_MWI:
+      case MSG_TYPE_SMS_SYNCML:
+      case MSG_TYPE_SMS_REJECT:
+        conversation->m_conversation_type = SMS;
+        break;
+      case MSG_TYPE_MMS:
+      case MSG_TYPE_MMS_JAVA:
+      case MSG_TYPE_MMS_NOTI:
+        conversation->m_conversation_type = MMS;
+        break;
+    }
+
+    msg_get_int_value(msg_thread, MSG_THREAD_MSG_TIME_INT, &tempInt);
+    conversation->m_timestamp = tempInt;
+
+    msg_get_int_value(msg_thread, MSG_THREAD_UNREAD_COUNT_INT, &tempInt);
+    conversation->m_unread_messages = tempInt;
+
+    msg_get_str_value(msg_thread, MSG_THREAD_MSG_DATA_STR, msgData, MAX_THREAD_DATA_LEN);
+
+    conversation->m_preview = msgData;
+
+    err = msg_get_conversation_view_list(handle, conversation->m_conversation_id,
+                                         &convViewList);
+    std::unique_ptr<std::remove_pointer<msg_struct_list_s*>::type, int(*)(msg_struct_list_s*)>
+        conv_view_list_ptr(&convViewList, &msg_release_list_struct);
+        // automatically release the memory
+    if (err != MSG_SUCCESS)
+    {
+      LoggerE("Get conversation(msg) view list fail.");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Get conversation(msg) view list fail.");
+    }
+
+    lastMsgIndex = convViewList.nCount - 1;
+    conversation->m_count = convViewList.nCount;
+
+    msg_get_bool_value(convViewList.msg_struct_info[lastMsgIndex], MSG_CONV_MSG_READ_BOOL, &tempBool);
+    conversation->m_is_read = tempBool;
+
+    msg_get_int_value(convViewList.msg_struct_info[lastMsgIndex], MSG_CONV_MSG_ID_INT, &tempInt);
+    conversation->m_last_message_id = tempInt;
+
+    if (msg_get_message(handle, conversation->m_last_message_id, msgInfo,
+                        sendOpt) != MSG_SUCCESS)
+    {
+      LoggerE("Get message fail.");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, "get message fail.");
+    }
+
+    msg_get_int_value(convViewList.msg_struct_info[lastMsgIndex], MSG_CONV_MSG_DIRECTION_INT, &tempInt);
+
+    msg_get_list_handle(msgInfo, MSG_MESSAGE_ADDR_LIST_HND, (void **)&addr_list);
+    nToCnt = msg_list_length(addr_list);
+
+    if (MSG_DIRECTION_TYPE_MT == tempInt)
+    {
+      if (nToCnt > 0 && nToCnt < MAX_TO_ADDRESS_CNT )
+      {
+        char strNumber[MAX_ADDRESS_VAL_LEN] = {0,};
+        addr_info = (msg_struct_t)msg_list_nth_data(addr_list, nToCnt-1);
+        msg_get_str_value(addr_info, MSG_ADDRESS_INFO_ADDRESS_VALUE_STR, strNumber, MAX_ADDRESS_VAL_LEN);
+
+        if (strNumber[0] != '\0')
         {
-            LoggerE("Failed to retrieve thread.");
-            throw common::UnknownException("Failed to retrieve thread.");
-        }
-        msg_get_int_value(msg_thread, MSG_THREAD_MSG_TYPE_INT, &tempInt);
-        switch(tempInt)
-        {
-            case MSG_TYPE_SMS:
-            case MSG_TYPE_SMS_CB:
-            case MSG_TYPE_SMS_JAVACB:
-            case MSG_TYPE_SMS_WAPPUSH:
-            case MSG_TYPE_SMS_MWI:
-            case MSG_TYPE_SMS_SYNCML:
-            case MSG_TYPE_SMS_REJECT:
-                conversation->m_conversation_type = SMS;
-                break;
-            case MSG_TYPE_MMS:
-            case MSG_TYPE_MMS_JAVA:
-            case MSG_TYPE_MMS_NOTI:
-                conversation->m_conversation_type = MMS;
-                break;
-        }
-
-        msg_get_int_value(msg_thread, MSG_THREAD_MSG_TIME_INT, &tempInt);
-        conversation->m_timestamp = tempInt;
-
-        msg_get_int_value(msg_thread, MSG_THREAD_UNREAD_COUNT_INT, &tempInt);
-        conversation->m_unread_messages = tempInt;
-
-        msg_get_str_value(msg_thread, MSG_THREAD_MSG_DATA_STR, msgData, MAX_THREAD_DATA_LEN);
-
-        conversation->m_preview = msgData;
-
-        err = msg_get_conversation_view_list(handle, conversation->m_conversation_id,
-            &convViewList);
-        if (err != MSG_SUCCESS)
-        {
-            LoggerE("Get conversation(msg) view list fail.");
-            throw common::UnknownException("Get conversation(msg) view list fail.");
-        }
-
-        lastMsgIndex = convViewList.nCount - 1;
-        conversation->m_count = convViewList.nCount;
-
-        msg_get_bool_value(convViewList.msg_struct_info[lastMsgIndex], MSG_CONV_MSG_READ_BOOL, &tempBool);
-        conversation->m_is_read = tempBool;
-
-        msg_get_int_value(convViewList.msg_struct_info[lastMsgIndex], MSG_CONV_MSG_ID_INT, &tempInt);
-        conversation->m_last_message_id = tempInt;
-
-        if (msg_get_message(handle, conversation->m_last_message_id, msgInfo,
-            sendOpt) != MSG_SUCCESS)
-        {
-            LoggerE("Get message fail.");
-            throw common::UnknownException("get message fail.");
-        }
-
-        msg_get_int_value(convViewList.msg_struct_info[lastMsgIndex], MSG_CONV_MSG_DIRECTION_INT, &tempInt);
-
-        msg_get_list_handle(msgInfo, MSG_MESSAGE_ADDR_LIST_HND, (void **)&addr_list);
-        nToCnt = msg_list_length(addr_list);
-
-        if (MSG_DIRECTION_TYPE_MT == tempInt)
-        {
-            if (nToCnt > 0 && nToCnt < MAX_TO_ADDRESS_CNT )
-            {
-                char strNumber[MAX_ADDRESS_VAL_LEN] = {0,};
-                addr_info = (msg_struct_t)msg_list_nth_data(addr_list, nToCnt-1);
-                msg_get_str_value(addr_info, MSG_ADDRESS_INFO_ADDRESS_VALUE_STR, strNumber, MAX_ADDRESS_VAL_LEN);
-
-                if (strNumber[0] != '\0')
-                {
-                    conversation->m_from = strNumber;
-                }
-                else
-                {
-                    LoggerD("address is null ");
-                }
-            }
-            else
-            {
-                LoggerD("address count index fail");
-            }
+          conversation->m_from = strNumber;
         }
         else
         {
-            if (nToCnt > 0 && nToCnt < MAX_TO_ADDRESS_CNT )
-            {
-                for (int index = 0; index < nToCnt; index++)
-                {
-                    addr_info = (msg_struct_t)msg_list_nth_data(addr_list, index);
-                    char strNumber[MAX_ADDRESS_VAL_LEN] = {0,};
-                    msg_get_str_value(addr_info, MSG_ADDRESS_INFO_ADDRESS_VALUE_STR, strNumber, MAX_ADDRESS_VAL_LEN);
-
-                    conversation->m_to.push_back(strNumber);
-                }
-            }
-            else
-            {
-                LoggerD("address fetch fail");
-            }
+          LoggerD("address is null ");
         }
+      }
+      else
+      {
+        LoggerD("address count index fail");
+      }
+    }
+    else
+    {
+      if (nToCnt > 0 && nToCnt < MAX_TO_ADDRESS_CNT )
+      {
+        for (int index = 0; index < nToCnt; index++)
+        {
+          addr_info = (msg_struct_t)msg_list_nth_data(addr_list, index);
+          char strNumber[MAX_ADDRESS_VAL_LEN] = {0,};
+          msg_get_str_value(addr_info, MSG_ADDRESS_INFO_ADDRESS_VALUE_STR, strNumber, MAX_ADDRESS_VAL_LEN);
 
-        char strTemp[MAX_SUBJECT_LEN] = {0};
-        msg_get_str_value(msgInfo, MSG_MESSAGE_SUBJECT_STR, strTemp, MAX_SUBJECT_LEN);
-
-        conversation->m_conversation_subject = strTemp;
-        msg_release_list_struct(&convViewList);
-        msg_release_struct(&msgInfo);
-        msg_release_struct(&sendOpt);
-        msg_release_struct(&msg_thread);
-    } catch (const common::PlatformException& ex) {
-        msg_release_list_struct(&convViewList);
-        msg_release_struct(&msgInfo);
-        msg_release_struct(&sendOpt);
-        msg_release_struct(&msg_thread);
-        LoggerE("%s (%s)", (ex.name()).c_str(), (ex.message()).c_str());
-        throw common::UnknownException("Unable to convert short message conversation.");
-    } catch (...) {
-        msg_release_list_struct(&convViewList);
-        msg_release_struct(&msgInfo);
-        msg_release_struct(&sendOpt);
-        msg_release_struct(&msg_thread);
-        throw common::UnknownException("Unable to convert short message conversation.");
+          conversation->m_to.push_back(strNumber);
+        }
+      }
+      else
+      {
+        LoggerD("address fetch fail");
+      }
     }
 
-    return conversation;
+    char strTemp[MAX_SUBJECT_LEN] = {0};
+    msg_get_str_value(msgInfo, MSG_MESSAGE_SUBJECT_STR, strTemp, MAX_SUBJECT_LEN);
+
+    conversation->m_conversation_subject = strTemp;
+
+    *result = conversation;
+    return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-std::shared_ptr<MessageConversation> MessageConversation::convertEmailConversationToObject(
-        unsigned int threadId)
+PlatformResult MessageConversation::convertEmailConversationToObject(
+        unsigned int threadId, std::shared_ptr<MessageConversation>* result)
 {
     std::shared_ptr<MessageConversation> conversation (new MessageConversation());
 
@@ -267,12 +268,12 @@ std::shared_ptr<MessageConversation> MessageConversation::convertEmailConversati
     if(email_get_thread_information_ex(threadId, &resultMail) != EMAIL_ERROR_NONE)
     {
         LoggerE("Couldn't get conversation");
-        throw common::UnknownException("Couldn't get conversation.");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Couldn't get conversation.");
     } else {
         if (!resultMail)
         {
             LoggerE("Data is null");
-            throw common::UnknownException("Get email data fail.");
+            return PlatformResult(ErrorCode::UNKNOWN_ERR, "Get email data fail.");
         }
 
         email_mail_data_t* mailData = NULL;
@@ -281,12 +282,12 @@ std::shared_ptr<MessageConversation> MessageConversation::convertEmailConversati
                 &mailData) != EMAIL_ERROR_NONE)
         {
             free(resultMail);
-            throw common::UnknownException("Get email data fail.");
+            return PlatformResult(ErrorCode::UNKNOWN_ERR, "Get email data fail.");
         }
 
         if (!mailData) {
             free(resultMail);
-            throw common::UnknownException("Get email data fail.");
+            return PlatformResult(ErrorCode::UNKNOWN_ERR, "Get email data fail.");
         }
 
         int index = 0;
@@ -300,7 +301,7 @@ std::shared_ptr<MessageConversation> MessageConversation::convertEmailConversati
         {
             email_free_mail_data(&mailData , 1);
             free(resultMail);
-            throw common::UnknownException("Get email data list fail.");
+            return PlatformResult(ErrorCode::UNKNOWN_ERR, "Get email data list fail.");
         }
 
         for (index = 0; index < count; index++)
@@ -367,26 +368,8 @@ std::shared_ptr<MessageConversation> MessageConversation::convertEmailConversati
         free(resultMail);
     }
 
-    return conversation;
-}
-
-std::shared_ptr<MessageConversation> MessageConversation::convertConversationStructToObject(
-        unsigned int threadId, MessageType msgType, msg_handle_t handle)
-{
-    std::shared_ptr<MessageConversation> conversation (new MessageConversation());
-
-    if (MessageType::EMAIL == msgType) {
-        conversation = convertEmailConversationToObject(threadId);
-    } else {
-        if(handle != NULL) {
-            conversation = convertMsgConversationToObject(threadId, handle);
-        } else {
-            LoggerE("Handle has not been sent.");
-            throw common::UnknownException("Handle has not been sent.");
-        }
-    }
-
-    return conversation;
+    *result = conversation;
+    return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 void MessageConversation::setConversationId(int id)
@@ -501,9 +484,7 @@ bool MessageConversation::isMatchingAttribute(const std::string& attribute_name,
                 match_flag);
     }
     else if(TYPE == attribute_name) {
-        const MessageType msg_type = getType();
-        const std::string msg_type_str = MessagingUtil::messageTypeToString(msg_type);
-        return FilterUtils::isStringMatching(key, msg_type_str, match_flag);
+        return FilterUtils::isStringMatching(key, getTypeString(), match_flag);
     }
     else if(MESSAGE_COUNT == attribute_name) {
         return FilterUtils::isStringMatching(key, std::to_string(getMessageCount()),

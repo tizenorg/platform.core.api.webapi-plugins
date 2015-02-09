@@ -33,11 +33,12 @@ typedef std::shared_ptr<EmailSignalProxy> EmailSignalProxyPtr;
 
 class EmailSignalProxy : public Proxy {
 public:
-    EmailSignalProxy(const std::string& proxy_path,
-            const std::string& proxy_iface);
     virtual ~EmailSignalProxy();
 
 protected:
+    EmailSignalProxy(const std::string& proxy_path,
+            const std::string& proxy_iface);
+
     /**
      * Override this method in subclass to handle email signal
      */

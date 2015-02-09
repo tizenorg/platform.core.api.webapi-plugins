@@ -17,7 +17,6 @@
 
 #include "Connection.h"
 #include "common/logger.h"
-#include "common/platform_exception.h"
 #include <cstring>
 #include <email-types.h>
 #include "../message_service.h"

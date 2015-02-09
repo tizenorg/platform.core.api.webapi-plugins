@@ -2,8 +2,10 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+#include "common/logger.h"
 #include "messaging_extension.h"
 #include "messaging_instance.h"
+#include "email_manager.h"
 
 namespace {
   const char* kMessaging = "tizen.messaging";
@@ -12,6 +14,8 @@ namespace {
 }
 // This will be generated from messaging_api.js.
 extern const char kSource_messaging_api[];
+
+using namespace common;
 
 common::Extension* CreateExtension() {
   return new MessagingExtension;
@@ -31,5 +35,11 @@ MessagingExtension::MessagingExtension() {
 MessagingExtension::~MessagingExtension() {}
 
 common::Instance* MessagingExtension::CreateInstance() {
+  LoggerD("Entered");
+  PlatformResult ret = extension::messaging::EmailManager::InitializeEmailService();
+  if (ret.IsError()) {
+      LoggerE("Initializing the email service failed (%s)", ret.message().c_str());
+      return nullptr;
+  }
   return &extension::messaging::MessagingInstance::getInstance();
 }

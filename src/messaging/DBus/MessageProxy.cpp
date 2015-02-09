@@ -17,23 +17,19 @@
 
 #include "MessageProxy.h"
 #include "Connection.h"
-
 #include "common/logger.h"
-#include "common/platform_exception.h"
-
 #include "../message.h"
 #include "../message_email.h"
-
 #include "../message_conversation.h"
 //#include <MessageFolder.h>
-
 #include "../change_listener_container.h"
-
 #include "../email_manager.h"
 
 namespace extension {
 namespace messaging {
 namespace DBus {
+
+using namespace common;
 
 MessageProxy::MessageProxy():
         Proxy(Proxy::DBUS_PATH_EMAIL_STORAGE_CHANGE,
@@ -46,6 +42,17 @@ MessageProxy::MessageProxy():
 
 MessageProxy::~MessageProxy()
 {
+}
+
+PlatformResult MessageProxy::create(MessageProxyPtr* message_proxy) {
+    message_proxy->reset(new MessageProxy());
+    if ((*message_proxy)->isNotProxyGot()) {
+        LoggerE("Could not get proxy");
+        message_proxy->reset();
+        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not get proxy");
+    } else {
+        return PlatformResult(ErrorCode::NO_ERROR);
+    }
 }
 
 void MessageProxy::signalCallback(GDBusConnection *connection,
@@ -70,44 +77,42 @@ void MessageProxy::signalCallback(GDBusConnection *connection,
     LoggerD("name: %s", name);
     LoggerD("thread_id: %d", thread_id);
 
-    try {
-        switch (status) {
-            case NOTI_MAIL_ADD:
-            case NOTI_MAIL_UPDATE:
-                handleEmailEvent(account_id, object_id, thread_id, status);
-                break;
-            case NOTI_MAIL_DELETE:
-                //ids of removing messages are sent with name in format:
-                //id1,id2,id3,
-                handleEmailRemoveEvent(account_id, name);
-                break;
-            case NOTI_MAIL_DELETE_FINISH:
-            case NOTI_MAIL_DELETE_FAIL:
-                //notify EmailManager, maybe it tries to delete mail
-                notifyEmailManager(name, static_cast<email_noti_on_storage_event>(status));
-                break;
-            case NOTI_THREAD_DELETE:
-                handleThreadRemoveEvent(account_id, object_id);
-                break;
-            case NOTI_MAILBOX_ADD:
-            case NOTI_MAILBOX_UPDATE:
-            case NOTI_MAILBOX_FIELD_UPDATE:
-            case NOTI_MAILBOX_RENAME:
-            case NOTI_MAILBOX_DELETE:
-                handleMailboxEvent(account_id, object_id, status);
-                break;
-            default:
-                LoggerD("Unrecognized status: %d", status);
-        }
-    } catch (const common::PlatformException& err) {
-        LoggerE("%s (%s)", (err.name()).c_str(), (err.message()).c_str());
-    } catch (...) {
-        LoggerE("Failed to call callback");
+    PlatformResult ret(ErrorCode::NO_ERROR);
+    switch (status) {
+      case NOTI_MAIL_ADD:
+      case NOTI_MAIL_UPDATE:
+        ret = handleEmailEvent(account_id, object_id, thread_id, status);
+        break;
+      case NOTI_MAIL_DELETE:
+        //ids of removing messages are sent with name in format:
+        //id1,id2,id3,
+        handleEmailRemoveEvent(account_id, name);
+        break;
+      case NOTI_MAIL_DELETE_FINISH:
+      case NOTI_MAIL_DELETE_FAIL:
+        //notify EmailManager, maybe it tries to delete mail
+        notifyEmailManager(name, static_cast<email_noti_on_storage_event>(status));
+        break;
+      case NOTI_THREAD_DELETE:
+        handleThreadRemoveEvent(account_id, object_id);
+        break;
+      case NOTI_MAILBOX_ADD:
+      case NOTI_MAILBOX_UPDATE:
+      case NOTI_MAILBOX_FIELD_UPDATE:
+      case NOTI_MAILBOX_RENAME:
+      case NOTI_MAILBOX_DELETE:
+        ret = handleMailboxEvent(account_id, object_id, status);
+        break;
+      default:
+        LoggerD("Unrecognized status: %d", status);
+    }
+    if (ret.IsError()){
+        LoggerE("%d (%s)", ret.error_code(), (ret.message()).c_str());
     }
     g_free(name);
 }
 
-void MessageProxy::handleEmailEvent(int account_id, int mail_id, int thread_id, int event)
+PlatformResult MessageProxy::handleEmailEvent(int account_id, int mail_id, int thread_id, int event)
 {
     LoggerD("Enter");
 
@@ -119,7 +124,10 @@ void MessageProxy::handleEmailEvent(int account_id, int mail_id, int thread_id, 
             if (mail_data) email_free_mail_data(&mail_data, 1);
 
             LoggerE("Failed to get mail data during setting conversation id in MessageProxy.");
-            return;
+            //TODO maybe error should be ignored
+            return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                                  "Failed to get mail data during setting"
+                                  " conversation id in MessageProxy.");
         }
 
         thread_id = mail_data->thread_id;
@@ -131,11 +139,15 @@ void MessageProxy::handleEmailEvent(int account_id, int mail_id, int thread_id, 
 
     email_mail_data_t* mail_data = EmailManager::getInstance().loadMessage(mail_id);
     if (mail_data == NULL) {
-        throw common::UnknownException("Failed to load email");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to load email");
     }
-    std::shared_ptr<Message> msg = Message::convertPlatformEmailToObject(*mail_data);
-    ConversationPtr conv = MessageConversation::convertEmailConversationToObject(
-            thread_id);
+    std::shared_ptr<Message> msg;
+    PlatformResult ret = Message::convertPlatformEmailToObject(*mail_data, &msg);
+    if (ret.IsError()) return ret;
+    ConversationPtr conv;
+    ret = MessageConversation::convertEmailConversationToObject(
+        thread_id, &conv);
+    if (ret.IsError()) return ret;
 
     EventMessages* eventMsg = new EventMessages();
     eventMsg->service_type = MessageType::EMAIL;
@@ -169,6 +181,7 @@ void MessageProxy::handleEmailEvent(int account_id, int mail_id, int thread_id, 
     delete eventConv;
 
     EmailManager::getInstance().freeMessage(mail_data);
+    return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 std::vector<int> getMailIds(const std::string& idsString)
@@ -242,7 +255,7 @@ void MessageProxy::handleThreadRemoveEvent(int account_id, int thread_id)
     eventConv = NULL;
 }
 
-void MessageProxy::handleMailboxEvent(int account_id, int mailbox_id, int event)
+PlatformResult MessageProxy::handleMailboxEvent(int account_id, int mailbox_id, int event)
 {
     LoggerD("Enter");
     EventFolders* eventFolder = new EventFolders();
@@ -265,7 +278,7 @@ void MessageProxy::handleMailboxEvent(int account_id, int mailbox_id, int event)
         if (EMAIL_ERROR_NONE != email_get_mailbox_by_mailbox_id(mailbox_id, &mail_box)) {
             LoggerE("Mailbox not retrieved");
             delete eventFolder;
-            throw common::UnknownException("Failed to load mailbox");
+            return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to load mailbox");
         }
         folder.reset(new MessageFolder(*mail_box));
         if (EMAIL_ERROR_NONE != email_free_mailbox(&mail_box, 1)) {
@@ -288,6 +301,7 @@ void MessageProxy::handleMailboxEvent(int account_id, int mailbox_id, int event)
             LoggerW("Unknown event type: %d", event);
     }
     delete eventFolder;
+    return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 } //namespace DBus

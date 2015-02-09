@@ -12,6 +12,7 @@
 
 #include "common/picojson.h"
 #include "common/callback_user_data.h"
+#include "common/platform_result.h"
 
 #include "messaging_util.h"
 #include "message_storage.h"
@@ -40,6 +41,7 @@ public:
 
     void setError(const std::string& err_name,
             const std::string& err_message);
+    void setError(const common::PlatformResult& error);
     bool isError() const;
 
     void setAccountId(int account_id);
@@ -54,8 +56,6 @@ public:
 private:
     std::shared_ptr<Message> m_message;
     bool m_is_error;
-    std::string m_err_name;
-    std::string m_err_message;
     std::vector<std::string> m_msg_recipients;
     int m_account_id;
     TelNetworkDefaultDataSubs_t m_sim_index;
@@ -69,9 +69,8 @@ public:
 
     void setError(const std::string& err_name,
             const std::string& err_message);
+    void setError(const common::PlatformResult& error);
     bool isError() const;
-    std::string getErrorName() const;
-    std::string getErrorMessage() const;
 
     /**
      * This handle is returned from various native API functions:
@@ -88,8 +87,6 @@ public:
 
 protected:
     bool m_is_error;
-    std::string m_err_name;
-    std::string m_err_message;
 
     int m_op_handle;
     double m_callback_id;
@@ -172,16 +169,17 @@ public:
     virtual int getMsgServiceId() const;
     virtual std::string getMsgServiceIdStr() const;
     virtual MessageType getMsgServiceType() const;
+    std::string getMsgServiceTypeString() const;
     virtual std::string getMsgServiceName() const;
 
     virtual MessageStoragePtr getMsgStorage() const;
 
-    virtual void sendMessage(MessageRecipientsCallbackData *callback);
-    virtual void loadMessageBody(MessageBodyCallbackData* callback);
-    virtual void loadMessageAttachment(MessageAttachmentCallbackData* callback);
-    virtual long sync(SyncCallbackData *callback);
-    virtual long syncFolder(SyncFolderCallbackData *callback);
-    virtual void stopSync(long op_id);
+    virtual common::PlatformResult sendMessage(MessageRecipientsCallbackData *callback);
+    virtual common::PlatformResult loadMessageBody(MessageBodyCallbackData* callback);
+    virtual common::PlatformResult loadMessageAttachment(MessageAttachmentCallbackData* callback);
+    virtual common::PlatformResult sync(SyncCallbackData *callback, long* operation_id);
+    virtual common::PlatformResult syncFolder(SyncFolderCallbackData *callback, long* operation_id);
+    virtual common::PlatformResult stopSync(long op_id);
 
     picojson::object toPicoJS() const;
 
@@ -192,7 +190,7 @@ protected:
      */
     MessageService(int id,
             MessageType msgType,
-            std::string name);
+            const std::string& name);
 
     int m_id;
     MessageType m_msg_type;

@@ -29,6 +29,7 @@
 #include <db-util.h>
 #include "MsgCommon/AbstractFilter.h"
 
+#include "common/platform_result.h"
 #include "find_msg_callback_user_data.h"
 //#include "ConversationCallbackData.h"
 
@@ -81,10 +82,13 @@ struct EmailConversationInfo {
 class MessagingDatabaseManager {
 public:
     static MessagingDatabaseManager& getInstance();
-    std::vector<int> findShortMessages(FindMsgCallbackUserData* callback);
-    std::pair<int, email_mail_data_t*> findEmails(FindMsgCallbackUserData* callback);
-    std::vector<int> findShortMessageConversations(ConversationCallbackData* callback);
-    std::vector<EmailConversationInfo> findEmailConversations(ConversationCallbackData* callback);
+    common::PlatformResult findShortMessages(FindMsgCallbackUserData* callback, std::vector<int>* result);
+    common::PlatformResult findEmails(FindMsgCallbackUserData* callback,
+                                                  std::pair<int, email_mail_data_t*>* result);
+    common::PlatformResult findShortMessageConversations(ConversationCallbackData* callback,
+                                                         std::vector<int>* result);
+    common::PlatformResult findEmailConversations(ConversationCallbackData* callback,
+                                                  std::vector<EmailConversationInfo>* result);
 
 private:
     MessagingDatabaseManager();
@@ -99,14 +103,16 @@ private:
     int cellToInt(char** array, int cellId);
     std::string getMatchString(tizen::AnyPtr matchValue,
             const tizen::PrimitiveType type) const;
-    std::string getAttributeFilterQuery(tizen::AbstractFilterPtr filter,
-            AttributeInfoMap& attributeMap, MessageType msgType);
-    std::string getAttributeRangeFilterQuery(tizen::AbstractFilterPtr filter,
-            AttributeInfoMap& attributeMap, MessageType msgType);
-    std::string getCompositeFilterQuery(tizen::AbstractFilterPtr filter,
-            AttributeInfoMap& attributeMap, MessageType msgType);
-    std::string addFilters(tizen::AbstractFilterPtr filter, tizen::SortModePtr sortMode,
-            long limit, long offset, AttributeInfoMap& attributeMap, MessageType msgType);
+    common::PlatformResult getAttributeFilterQuery(tizen::AbstractFilterPtr filter,
+            AttributeInfoMap& attributeMap, MessageType msgType, std::string* result);
+    common::PlatformResult getAttributeRangeFilterQuery(tizen::AbstractFilterPtr filter,
+            AttributeInfoMap& attributeMap, MessageType msgType, std::string* result);
+    common::PlatformResult getCompositeFilterQuery(tizen::AbstractFilterPtr filter,
+            AttributeInfoMap& attributeMap, MessageType msgType, std::string* result);
+    common::PlatformResult addFilters(tizen::AbstractFilterPtr filter,
+                                      tizen::SortModePtr sortMode, long limit, long offset,
+                                      AttributeInfoMap& attributeMap, MessageType msgType,
+                                      std::string* result);
 
     AttributeInfoMap m_msg_attr_map;
     AttributeInfoMap m_email_attr_map;

@@ -22,7 +22,6 @@
 #include "EmailSignalProxy.h"
 #include "common/logger.h"
 #include <cstring>
-#include "common/platform_exception.h"
 
 namespace extension {
 namespace messaging {
@@ -53,29 +52,21 @@ void EmailSignalProxy::signalCallback(GDBusConnection* connection,
     int status, mail_id, op_handle, error_code;
     char* source = NULL;
 
-    try {
-        g_variant_get(parameters, "(iisii)",
-                &status,
-                &mail_id,
-                &source,
-                &op_handle,
-                &error_code);
+    g_variant_get(parameters, "(iisii)",
+            &status,
+            &mail_id,
+            &source,
+            &op_handle,
+            &error_code);
 
-        //It is better to log this only when subclass is responsible of handling
-        //passed signal (usually determined by status value).
-        //
-        //LoggerD("email:\n  status: %d\n  mail_id: %d\n  "
-        //        "source: %s\n  op_handle: %d\n  error_code: %d",
-        //        status, mail_id, source, op_handle, error_code);
+    //It is better to log this only when subclass is responsible of handling
+    //passed signal (usually determined by status value).
+    //
+    //LoggerD("email:\n  status: %d\n  mail_id: %d\n  "
+    //        "source: %s\n  op_handle: %d\n  error_code: %d",
+    //        status, mail_id, source, op_handle, error_code);
 
-        handleEmailSignal(status, mail_id, source, op_handle, error_code);
-
-    } catch(const common::PlatformException& exception) {
-        LoggerE("Unhandled exception: %s (%s)!", (exception.name()).c_str(),
-             (exception.message()).c_str());
-    } catch(...) {
-        LoggerE("Unhandled exception!");
-    }
+    handleEmailSignal(status, mail_id, source, op_handle, error_code);
 
     g_free(source);
 }

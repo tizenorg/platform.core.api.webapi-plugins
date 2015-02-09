@@ -6,6 +6,7 @@
 #define MESSAGING_MESSAGES_CALLBACK_USER_DATA_H_
 
 #include "common/callback_user_data.h"
+#include "common/platform_result.h"
 
 #include <memory>
 #include <string>
@@ -28,6 +29,7 @@ public:
 
     void setError(const std::string& err_name,
             const std::string& err_message);
+    void SetError(const common::PlatformResult& error);
     bool isError() const;
     std::string getErrorName() const;
     std::string getErrorMessage() const;

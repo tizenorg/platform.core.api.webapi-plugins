@@ -711,6 +711,10 @@ MessageService.prototype.sendMessage = function () {
         {name: 'simIndex', type: types_.LONG, optional: true, nullable: true}
     ]);
 
+    if (args.message.type != this.type) {
+        throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR);
+    }
+
     var self = this;
     bridge.async({
         cmd: 'MessageService_sendMessage',
@@ -752,6 +756,10 @@ MessageService.prototype.loadMessageBody = function () {
         {name: 'successCallback', type: types_.FUNCTION},
         {name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true}
     ]);
+
+    if (args.message.type != this.type) {
+        throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR);
+    }
 
     var self = this;
 
@@ -936,6 +944,10 @@ MessageStorage.prototype.addDraftMessage = function () {
         {name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true}
     ]);
 
+    if (args.message.type != this.service.type) {
+        throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR);
+    }
+
     var self = this;
     bridge.async({
         cmd: 'MessageStorage_addDraftMessage',
@@ -1020,12 +1032,18 @@ MessageStorage.prototype.findMessages = function () {
 
 MessageStorage.prototype.removeMessages = function () {
     var args = validator_.validateArgs(arguments, [
-        {name: 'messages', type: types_.ARRAY},
+        {name: 'messages', type: types_.ARRAY, values: Message},
         {name: 'successCallback', type: types_.FUNCTION, optional: true, nullable: true},
         {name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true}
     ]);
 
     var self = this;
+
+    args.messages.forEach(function(msg) {
+        if (msg.type != self.service.type) {
+            throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR);
+        }
+    });
 
     bridge.async({
         cmd: 'MessageStorage_removeMessages',
@@ -1053,12 +1071,18 @@ MessageStorage.prototype.removeMessages = function () {
 
 MessageStorage.prototype.updateMessages = function () {
     var args = validator_.validateArgs(arguments, [
-        {name: 'messages', type: types_.ARRAY},
+        {name: 'messages', type: types_.ARRAY, values: Message},
         {name: 'successCallback', type: types_.FUNCTION, optional: true, nullable: true},
         {name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true}
     ]);
 
     var self = this;
+
+    args.messages.forEach(function(msg) {
+        if (msg.type != self.service.type) {
+            throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR);
+        }
+    });
 
     bridge.async({
         cmd: 'MessageStorage_updateMessages',

@@ -66,9 +66,9 @@ void AttributeRangeFilter::setEndValue(AnyPtr end_value)
 
 bool AttributeRangeFilter::isMatching(const FilterableObject* const filtered_object) const
 {
-    if(!filtered_object) {
+    if (!filtered_object) {
         LoggerE("Invalid object: NULL!");
-        throw common::InvalidValuesException("Invalid object");
+        return false;
     }
 
     return filtered_object->isMatchingAttributeRange(m_attribute_name, m_initial_value,

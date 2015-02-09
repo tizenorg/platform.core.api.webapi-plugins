@@ -21,7 +21,7 @@
 
 #include "SyncProxy.h"
 #include "common/logger.h"
-#include "common/platform_exception.h"
+#include "common/platform_result.h"
 #include <cstring>
 #include <email-types.h>
 #include "../message_service.h"
@@ -29,6 +29,8 @@
 namespace extension {
 namespace messaging {
 namespace DBus {
+
+using namespace common;
 
 SyncProxy::SyncProxy(const std::string& path,
         const std::string& iface) :
@@ -42,36 +44,45 @@ SyncProxy::~SyncProxy()
 
 }
 
+PlatformResult SyncProxy::create(const std::string& path,
+                                 const std::string& iface,
+                                 SyncProxyPtr* sync_proxy) {
+    sync_proxy->reset(new SyncProxy(path, iface));
+    if ((*sync_proxy)->isNotProxyGot()) {
+        LoggerE("Could not get sync proxy");
+        sync_proxy->reset();
+        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not get sync proxy");
+    } else {
+        return PlatformResult(ErrorCode::NO_ERROR);
+    }
+}
+
 void SyncProxy::addCallback(long op_id, common::CallbackUserData* callbackOwned)
 {
     m_callback_map.insert(std::make_pair(op_id, callbackOwned));
 }
 
-common::CallbackUserData* SyncProxy::getCallback(long op_id)
-{
-    common::CallbackUserData* cb = NULL;
-    CallbackMap::iterator it = m_callback_map.find(op_id);
-    if (it != m_callback_map.end()) {
-        cb = it->second;
-        return cb;
-    }
+common::CallbackUserData* SyncProxy::getCallback(long op_id) {
+  common::CallbackUserData* cb = nullptr;
+  const auto it = m_callback_map.find(op_id);
+
+  if (it != m_callback_map.end()) {
+    cb = it->second;
+  } else {
     LoggerE("Could not find callback");
-    throw common::UnknownException("Could not find callback");
-    return cb;
+  }
+
+  return cb;
 }
 
-void SyncProxy::removeCallback(long op_id){
-    CallbackMap::iterator it = m_callback_map.find(op_id);
-    if (it != m_callback_map.end()) {
-        common::CallbackUserData* cb = it->second;
-        delete cb;
-        cb = NULL;
-        m_callback_map.erase(it);
-    }
-    else {
-        LoggerE("Could not find callback");
-        throw common::UnknownException("Could not find callback");
-    }
+void SyncProxy::removeCallback(long op_id) {
+  auto it = m_callback_map.find(op_id);
+  if (it != m_callback_map.end()) {
+    delete it->second;
+    m_callback_map.erase(it);
+  } else {
+    LoggerE("Could not find callback");
+  }
 }
 
 void SyncProxy::handleEmailSignal(const int status,
@@ -100,70 +111,62 @@ void SyncProxy::handleEmailSignal(const int status,
     common::CallbackUserData* callback = NULL;
     CallbackMap::iterator callback_it;
 
-    try {
-        callback_it =  findSyncCallbackByOpHandle(op_handle);
-        callback = callback_it->second;
-        if (!callback) {
-            LoggerE("Callback is null");
-            throw common::UnknownException("Callback is null");
-        }
+    PlatformResult ret = findSyncCallbackByOpHandle(op_handle, &callback_it);
+    if (ret.IsError()) {
+        LoggerE("Failed to find callback by handle - (%s)", ret.message().c_str());
+        return;
+    }
 
-        std::shared_ptr<picojson::value> response = callback->getJson();
-        picojson::object& obj = response->get<picojson::object>();
-        switch (status) {
-            case NOTI_DOWNLOAD_FINISH:
-                LoggerD("Sync finished!");
-                obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
-                PostQueue::getInstance().resolve(
-                        obj.at(JSON_CALLBACK_ID).get<double>(),
-                        response->serialize()
-                );
-                break;
+    callback = callback_it->second;
+    if (!callback) {
+        LoggerE("Callback is null");
+        return;
+    }
 
-            case NOTI_DOWNLOAD_FAIL:
-            {
-                LoggerD("Sync failed!");
-                common::UnknownException err("Sync failed!");
-                callback->setError(err.name(), err.message());
-                PostQueue::getInstance().resolve(
-                        obj.at(JSON_CALLBACK_ID).get<double>(),
-                        response->serialize()
-                );
-            }
+    std::shared_ptr<picojson::value> response = callback->getJson();
+    picojson::object& obj = response->get<picojson::object>();
+    switch (status) {
+        case NOTI_DOWNLOAD_FINISH:
+            LoggerD("Sync finished!");
+            obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
+            PostQueue::getInstance().resolve(
+                    obj.at(JSON_CALLBACK_ID).get<double>(),
+                    response->serialize()
+            );
             break;
 
-            default:
-                break;
+        case NOTI_DOWNLOAD_FAIL:
+        {
+            LoggerD("Sync failed!");
+            common::UnknownException err("Sync failed!");
+            callback->setError(err.name(), err.message());
+            PostQueue::getInstance().resolve(
+                    obj.at(JSON_CALLBACK_ID).get<double>(),
+                    response->serialize()
+            );
         }
-    }
-    catch (const common::PlatformException& e) {
-        // this situation may occur when there is no callback in the
-        // map with specified opId (for example stopSync() has
-        // removed it), but sync() was already started - only
-        // warning here:
-        LoggerE("Exception in signal callback");
-    }
-    catch(...)
-    {
-        LoggerE("Exception in signal callback");
+        break;
+
+        default:
+            break;
     }
 
-    if(callback) {
+    if (callback) {
         delete callback;
         m_callback_map.erase(callback_it);
     }
 }
 
-SyncProxy::CallbackMap::iterator SyncProxy::findSyncCallbackByOpHandle(
-        const int op_handle)
+PlatformResult SyncProxy::findSyncCallbackByOpHandle(const int op_handle,
+                                                     SyncProxy::CallbackMap::iterator* it)
 {
-    CallbackMap::iterator it = m_callback_map.begin();
-    for (; it != m_callback_map.end(); ++it) {
-        SyncCallbackData* cb = dynamic_cast<SyncCallbackData*>(it->second);
+    *it = m_callback_map.begin();
+    for (; *it != m_callback_map.end(); ++(*it)) {
+        SyncCallbackData* cb = dynamic_cast<SyncCallbackData*>((*it)->second);
         if (!cb) continue;
 
         if (op_handle == cb->getOperationHandle()) {
-            return it;
+            return PlatformResult(ErrorCode::NO_ERROR);
         }
     }
     // this situation may occur when there is no callback in the
@@ -171,7 +174,7 @@ SyncProxy::CallbackMap::iterator SyncProxy::findSyncCallbackByOpHandle(
     // removed it), but sync() was already started - only
     // warning here:
     LoggerW("Could not find callback with op_handle: %d", op_handle);
-    throw common::UnknownException("Could not find callback");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not find callback");
 }
 
 } //namespace DBus

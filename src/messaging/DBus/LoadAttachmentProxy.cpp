@@ -22,7 +22,7 @@
 #include "LoadAttachmentProxy.h"
 
 #include "common/logger.h"
-#include "common/platform_exception.h"
+#include "common/platform_result.h"
 
 #include <cstring>
 #include <email-types.h>
@@ -37,11 +37,13 @@ namespace extension {
 namespace messaging {
 namespace DBus {
 
+using namespace common;
+
 /**
   * This method perform very specified task (see warning comment) so it should not be
   * visible outside LoadAttachmentProxy class.
   */
-void updateAttachmentDataWithEmailGetAttachmentData(
+PlatformResult updateAttachmentDataWithEmailGetAttachmentData(
         std::shared_ptr<MessageAttachment> attachment)
 {
     struct ScopedEmailAttachmentData {
@@ -72,7 +74,7 @@ void updateAttachmentDataWithEmailGetAttachmentData(
     if (EMAIL_ERROR_NONE != err ||
         NULL == attachment_data_holder.data) {
         LoggerE("Couldn't get attachment data for attachmentId:%d", attachment->getId());
-        throw common::UnknownException("Couldn't get attachment.");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Couldn't get attachment.");
     }
 
     LoggerD("attachment name : %s", attachment_data_holder->attachment_name);
@@ -91,6 +93,7 @@ void updateAttachmentDataWithEmailGetAttachmentData(
     }
     isSaved = attachment_data_holder->save_status;
     attachment->setIsSaved(isSaved);
+    return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 LoadAttachmentProxy::LoadAttachmentProxy(const std::string& path,
@@ -101,6 +104,19 @@ LoadAttachmentProxy::LoadAttachmentProxy(const std::string& path,
 
 LoadAttachmentProxy::~LoadAttachmentProxy()
 {
+}
+
+PlatformResult LoadAttachmentProxy::create(const std::string& path,
+                                           const std::string& iface,
+                                           LoadAttachmentProxyPtr* load_attachment_proxy) {
+    load_attachment_proxy->reset(new LoadAttachmentProxy(path, iface));
+    if ((*load_attachment_proxy)->isNotProxyGot()) {
+        LoggerE("Could not get load attachment proxy");
+        load_attachment_proxy->reset();
+        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not get load attachment proxy");
+    } else {
+        return PlatformResult(ErrorCode::NO_ERROR);
+    }
 }
 
 void LoadAttachmentProxy::addCallback(MessageAttachmentCallbackData* callbackOwned)
@@ -167,68 +183,50 @@ void LoadAttachmentProxy::handleEmailSignal(const int status,
     // and not handle returned from above call!!
     const int nth = op_handle;
 
-    try {
-        // From old implementation it looks that op_handle(nth) is is equal to
-        // index (1 based) of attachment inside email thus it is not globally unique!
-        // Therfore we need to test if mail_id match.
-        // For details see old implementation MailSync.cp line 461
+    // From old implementation it looks that op_handle(nth) is is equal to
+    // index (1 based) of attachment inside email thus it is not globally unique!
+    // Therfore we need to test if mail_id match.
+    // For details see old implementation MailSync.cp line 461
 
-        callback = findCallback(nth, mail_id);
-        if(!callback) {
-            //We should not log not found pair since it could be requested by
-            //different application.
-            return;
-        }
+    callback = findCallback(nth, mail_id);
+    if(!callback) {
+        //We should not log not found pair since it could be requested by
+        //different application.
+        return;
+    }
 
-        LoggerD("Found callback for pair mailId:%d nth:%d", mail_id, nth);
+    LoggerD("Found callback for pair mailId:%d nth:%d", mail_id, nth);
 
-        if(NOTI_DOWNLOAD_ATTACH_FINISH == status) {
-            LoggerD("Message attachment downloaded!");
+    PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
+    if(NOTI_DOWNLOAD_ATTACH_FINISH == status) {
+        LoggerD("Message attachment downloaded!");
 
-            std::shared_ptr<MessageAttachment> att = callback->getMessageAttachment();
-            updateAttachmentDataWithEmailGetAttachmentData(att);
+        std::shared_ptr<MessageAttachment> att = callback->getMessageAttachment();
+        ret = updateAttachmentDataWithEmailGetAttachmentData(att);
+        if (!ret.IsError()) {
             LoggerD("Updated Message attachment object");
 
-            try {
-                auto json = callback->getJson();
-                picojson::object& obj = json->get<picojson::object>();
-                obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
+            auto json = callback->getJson();
+            picojson::object& obj = json->get<picojson::object>();
+            obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
 
-                picojson::object args;
-                args[JSON_DATA_MESSAGE_ATTACHMENT] = MessagingUtil::messageAttachmentToJson(
-                        callback->getMessageAttachment());
-                obj[JSON_DATA] = picojson::value(args);
+            picojson::object args;
+            args[JSON_DATA_MESSAGE_ATTACHMENT] = MessagingUtil::messageAttachmentToJson(
+                    callback->getMessageAttachment());
+            obj[JSON_DATA] = picojson::value(args);
 
-                PostQueue::getInstance().resolve(
-                        obj.at(JSON_CALLBACK_ID).get<double>(),
-                        json->serialize()
-                );
-            } catch (...) {
-                LoggerW("Couldn't create JSMessageAttachment object!");
-                throw common::UnknownException(
-                        "Couldn't create JSMessageAttachment object!");
-            }
-
-        } else if(NOTI_DOWNLOAD_ATTACH_FAIL) {
-            LoggerD("Load message attachment failed!");
-            common::UnknownException e("Load message attachment failed!");
-            callback->setError(e.name(), e.message());
             PostQueue::getInstance().resolve(
-                    callback->getJson()->get<picojson::object>().at(JSON_CALLBACK_ID).get<double>(),
-                    callback->getJson()->serialize()
+                    obj.at(JSON_CALLBACK_ID).get<double>(),
+                    json->serialize()
             );
         }
-    } catch (const common::PlatformException& e) {
+    } else if(NOTI_DOWNLOAD_ATTACH_FAIL) {
+        LoggerD("Load message attachment failed!");
+        ret = PlatformResult(ErrorCode::UNKNOWN_ERR, "Load message attachment failed!");
+    }
+    if (ret.IsError()) {
         LoggerE("Exception in signal callback");
-        callback->setError(e.name(), e.message());
-        PostQueue::getInstance().resolve(
-                callback->getJson()->get<picojson::object>().at(JSON_CALLBACK_ID).get<double>(),
-                callback->getJson()->serialize()
-        );
-    } catch (...) {
-        LoggerE("Exception in signal callback");
-        common::UnknownException e("Exception in signal callback");
-        callback->setError(e.name(), e.message());
+        callback->setError(ret);
         PostQueue::getInstance().resolve(
                 callback->getJson()->get<picojson::object>().at(JSON_CALLBACK_ID).get<double>(),
                 callback->getJson()->serialize()

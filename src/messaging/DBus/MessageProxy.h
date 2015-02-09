@@ -26,16 +26,21 @@
 #include <sstream>
 #include <email-types.h>
 #include "Proxy.h"
+#include "common/platform_result.h"
 
 namespace extension {
 namespace messaging {
 namespace DBus {
 
+class MessageProxy;
+typedef std::shared_ptr<MessageProxy> MessageProxyPtr;
+
 class MessageProxy: public Proxy {
 public:
-    MessageProxy();
     virtual ~MessageProxy();
+    static common::PlatformResult create(MessageProxyPtr* message_proxy);
 protected:
+    MessageProxy();
     virtual void signalCallback(GDBusConnection *connection,
             const gchar *sender_name,
             const gchar *object_path,
@@ -49,14 +54,12 @@ protected:
      * @param thread_id
      * @param event
      */
-    void handleEmailEvent(int account_id, int mail_id, int thread_id, int event);
+    common::PlatformResult handleEmailEvent(int account_id, int mail_id, int thread_id, int event);
     void handleEmailRemoveEvent(int account_id, const std::string& idsString);
     void notifyEmailManager(const std::string& idsString, email_noti_on_storage_event status);
     void handleThreadRemoveEvent(int account_id, int thread_id);
-    void handleMailboxEvent(int account_id, int mailbox_id, int event);
+    common::PlatformResult handleMailboxEvent(int account_id, int mailbox_id, int event);
 };
-
-typedef std::shared_ptr<MessageProxy> MessageProxyPtr;
 
 } //namespace DBus
 } //namespace messaging

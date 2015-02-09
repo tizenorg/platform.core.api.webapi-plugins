@@ -21,7 +21,7 @@
 
 #include "Proxy.h"
 #include "common/logger.h"
-#include "common/platform_exception.h"
+#include "common/platform_result.h"
 #include <cstring>
 #include <email-types.h>
 #include "../message_service.h"
@@ -29,6 +29,8 @@
 namespace extension {
 namespace messaging {
 namespace DBus {
+
+using namespace common;
 
 const char* Proxy::DBUS_PATH_NETWORK_STATUS = "/User/Email/NetworkStatus";
 const char* Proxy::DBUS_IFACE_NETWORK_STATUS = "User.Email.NetworkStatus";
@@ -65,10 +67,6 @@ Proxy::Proxy(const std::string& proxy_path,
     m_proxy = g_dbus_proxy_new_sync(m_conn.getDBus(),
             G_DBUS_PROXY_FLAGS_DO_NOT_LOAD_PROPERTIES,
             NULL, unique_name, m_path.c_str(), m_iface.c_str(), NULL, &m_error);
-    if (!m_proxy || m_error) {
-        LoggerE("Could not get proxy");
-        throw common::UnknownException("Could not get proxy");
-    }
 }
 
 Proxy::~Proxy()
@@ -90,21 +88,12 @@ void Proxy::signalCallbackProxy(GDBusConnection *connection,
         return;
     }
 
-    try {
-        //It is better to log this only when subclass is responsible of handling
-        //passed signal. If you need it put it into your signalCallback(...) method
-        //LoggerD("signal: %s from: %s path: %s interface: %s",
-        //        signal_name, sender_name, object_path, interface_name);
-
-        this_ptr->signalCallback(connection, sender_name, object_path, interface_name,
-                signal_name, parameters);
-
-    } catch(const common::PlatformException& exception) {
-        LoggerE("Unhandled exception: %s (%s)!", (exception.name()).c_str(),
-             (exception.message()).c_str());
-    } catch(...) {
-        LoggerE("Unhandled exception!");
-    }
+    //It is better to log this only when subclass is responsible of handling
+    //passed signal. If you need it put it into your signalCallback(...) method
+    //LoggerD("signal: %s from: %s path: %s interface: %s",
+    //        signal_name, sender_name, object_path, interface_name);
+    this_ptr->signalCallback(connection, sender_name, object_path, interface_name,
+            signal_name, parameters);
 }
 
 void Proxy::signalSubscribe()

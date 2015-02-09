@@ -18,26 +18,28 @@
 #ifndef __TIZEN_SEND_PROXY_H
 #define __TIZEN_SEND_PROXY_H
 
+#include "common/platform_result.h"
 #include "EmailSignalProxy.h"
 
 namespace extension {
 namespace messaging {
 namespace DBus {
 
+class SendProxy;
+typedef std::shared_ptr<SendProxy> SendProxyPtr;
+
 class SendProxy: public EmailSignalProxy {
 public:
-    SendProxy();
     virtual ~SendProxy();
+    static common::PlatformResult create(SendProxyPtr* send_proxy);
 protected:
+    SendProxy();
     virtual void handleEmailSignal(const int status,
             const int account_id,
             const std::string& source,
             const int op_handle,
             const int error_code);
-
 };
-
-typedef std::shared_ptr<SendProxy> SendProxyPtr;
 
 } //DBus
 } //messaging

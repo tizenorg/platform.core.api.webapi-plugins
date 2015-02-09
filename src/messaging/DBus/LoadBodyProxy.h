@@ -22,6 +22,7 @@
 #ifndef __TIZEN_DBUS_LOAD_BODY_PROXY_H__
 #define __TIZEN_DBUS_LOAD_BODY_PROXY_H__
 
+#include "common/platform_result.h"
 #include "EmailSignalProxy.h"
 #include <set>
 
@@ -41,15 +42,18 @@ public:
     // Callback is owned by this set
     typedef std::set<MessageBodyCallbackData*> CallbackSet;
 
-    LoadBodyProxy(const std::string& path,
-            const std::string& iface);
     virtual ~LoadBodyProxy();
 
+    static common::PlatformResult create(const std::string& path,
+                                         const std::string& iface,
+                                         LoadBodyProxyPtr* load_body_proxy);
     //Passed callback will be owned by this proxy
     void addCallback(MessageBodyCallbackData* callbackOwned);
     void removeCallback(MessageBodyCallbackData* callback);
 
 protected:
+    LoadBodyProxy(const std::string& path,
+            const std::string& iface);
     virtual void handleEmailSignal(const int status,
             const int mail_id,
             const std::string& source,

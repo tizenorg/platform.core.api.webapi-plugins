@@ -19,6 +19,7 @@
 #define __TIZEN_FOLDERS_CALLBACK_DATA_H__
 
 #include "common/callback_user_data.h"
+#include "common/platform_result.h"
 
 #include <memory>
 #include <vector>
@@ -47,6 +48,7 @@ public:
 
     void setError(const std::string& err_name,
             const std::string& err_message);
+    void SetError(const common::PlatformResult& error);
     bool isError() const;
     std::string getErrorName() const;
     std::string getErrorMessage() const;

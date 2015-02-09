@@ -36,6 +36,10 @@ MessageType MessageStorage::getMsgServiceType() const
     return m_msg_type;
 }
 
+std::string MessageStorage::getMsgServiceTypeString() const {
+  return MessagingUtil::messageTypeToString(getMsgServiceType());
+}
+
 long MessageStorage::addMessagesChangeListener(std::shared_ptr<MessagesChangeCallback> callback)
 {
     LoggerD("Entered");

@@ -14,6 +14,7 @@
 
 //#include <CallbackUserData.h>
 
+#include "common/platform_result.h"
 #include "change_listener_container.h"
 #include "messaging_util.h"
 #include "message_service.h"
@@ -29,7 +30,7 @@ class ShortMsgManager {
 public:
     static ShortMsgManager& getInstance();
 
-    void sendMessage(MessageRecipientsCallbackData* callback);
+    common::PlatformResult sendMessage(MessageRecipientsCallbackData* callback);
     void sendStatusCallback(msg_struct_t sent_status);
 
     void addDraftMessage(MessageCallbackUserData* callback);
@@ -41,7 +42,7 @@ public:
 
     void removeMessages(MessagesCallbackUserData* callback);
     void updateMessages(MessagesCallbackUserData* callback);
-    msg_struct_t getMessage(int msg_id);
+    common::PlatformResult getMessage(int msg_id, msg_struct_t* out_msg);
 private:
     ShortMsgManager();
     ShortMsgManager(const ShortMsgManager &);
@@ -60,7 +61,8 @@ private:
         msg_id_list_s *pMsgIdList,
         void* data);
 
-    void addDraftMessagePlatform(std::shared_ptr<Message> message);
+    common::PlatformResult addDraftMessagePlatform(std::shared_ptr<Message> message);
+    common::PlatformResult SendMessagePlatform(MessageRecipientsCallbackData* callback);
     /**
      * Returns unique list of conversations for given vector of messages.
      * storageChangeType is needed to filter conversations returned:
@@ -71,10 +73,10 @@ private:
      * @param storageChangeType
      * @return
      */
-    static ConversationPtrVector getConversationsForMessages(
+    static common::PlatformResult getConversationsForMessages(
             MessagePtrVector messages,
-            msg_storage_change_type_t storageChangeType);
-    static void callProperEventMessages(EventMessages* event,
+            msg_storage_change_type_t storageChangeType, ConversationPtrVector* result);
+    static common::PlatformResult callProperEventMessages(EventMessages* event,
             msg_storage_change_type_t storageChangeType);
     typedef std::map<msg_request_id_t, MessageRecipientsCallbackData*> SendReqMap;
     SendReqMap m_sendRequests;

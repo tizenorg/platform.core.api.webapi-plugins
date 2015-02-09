@@ -28,9 +28,9 @@ FilterIterator::FilterIterator(AbstractFilterPtr filter) :
         m_root_filter(filter),
         m_current_state(FIS_NOT_VALID)
 {
-    if(!m_root_filter) {
-        LoggerE("Cannot create FilterIterator for NULL filter");
-        throw UnknownException("filter is NULL");
+    if (!m_root_filter) {
+        LoggerE("Trying to create FilterIterator with NULL filter");
+        m_root_filter = AbstractFilterPtr(new AbstractFilter());
     }
 
     goToNext(m_root_filter);

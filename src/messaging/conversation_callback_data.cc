@@ -89,6 +89,19 @@ void ConversationCallbackData::setError(const std::string& err_name,
     }
 }
 
+void ConversationCallbackData::SetError(const common::PlatformResult& error)
+{
+  // keep only first error in chain
+  if (!m_is_error) {
+    m_is_error = true;
+    picojson::object& obj = m_json->get<picojson::object>();
+    obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_ERROR);
+    auto obj_data = picojson::object();
+    obj_data[JSON_ERROR_CODE] = picojson::value(static_cast<double>(error.error_code()));
+    obj_data[JSON_ERROR_MESSAGE] = picojson::value(error.message());
+    obj[JSON_DATA] = picojson::value(obj_data);
+  }
+}
 bool ConversationCallbackData::isError() const
 {
     return m_is_error;

@@ -12,6 +12,8 @@
 namespace extension {
 namespace messaging {
 
+using namespace common;
+
 MessageBody::MessageBody() : m_messageId(1),
                              m_messageId_set(false),
                              m_loaded(false),
@@ -92,31 +94,37 @@ bool MessageBody::is_message_id_set() const
     return m_messageId_set;
 }
 
-void MessageBody::updateBody(email_mail_data_t& mail)
+PlatformResult MessageBody::updateBody(email_mail_data_t& mail)
 {
     LoggerD("Enter");
     setMessageId(mail.mail_id);
     setLoaded(mail.body_download_status);
 
     if (mail.file_path_plain) {
-        try {
-            LoggerD("Plain body");
-            setPlainBody(MessagingUtil::loadFileContentToString(mail.file_path_plain));
-        } catch (...) {
-            LoggerE("Fail to open plain body.");
-            throw common::UnknownException("Fail to open plain body.");
-        }
+      LoggerD("Plain body");
+      std::string result = "";
+      PlatformResult ret = MessagingUtil::loadFileContentToString(mail.file_path_plain,
+                                                                  &result);
+      if (ret.IsError()) {
+        LoggerE("Fail to open plain body.");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                              "Fail to open plain body.");
+      }
+      setPlainBody(result);
     }
 
     if (mail.file_path_html) {
-        try {
-            LoggerD("Html body");
-            setHtmlBody(MessagingUtil::loadFileContentToString(mail.file_path_html));
-        } catch (...) {
-            LoggerE("Fail to open html body.");
-            throw common::UnknownException("Fail to open html body.");
-        }
+      std::string result = "";
+      PlatformResult ret = MessagingUtil::loadFileContentToString(mail.file_path_html,
+                                                                  &result);
+      if (ret.IsError()) {
+        LoggerE("Fail to open html body.");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                              "Fail to open html body.");
+      }
+      setHtmlBody(result);
     }
+    return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 } // messaging

@@ -355,8 +355,8 @@ std::string MessagingDatabaseManager::getMatchString(tizen::AnyPtr match_value,
     }
 }
 
-std::string MessagingDatabaseManager::getAttributeFilterQuery(AbstractFilterPtr filter,
-        AttributeInfoMap& attribute_map, MessageType msgType)
+PlatformResult MessagingDatabaseManager::getAttributeFilterQuery(AbstractFilterPtr filter,
+        AttributeInfoMap& attribute_map, MessageType msgType, std::string* result)
 {
     LoggerD("Entered");
 
@@ -364,7 +364,8 @@ std::string MessagingDatabaseManager::getAttributeFilterQuery(AbstractFilterPtr 
     AttributeFilterPtr attr_filter = castToAttributeFilter(filter);
     if(!attr_filter) {
         LoggerE("passed filter is not valid AttributeFilter!");
-        throw UnknownException("Wrong filter type - not attribute filter");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                              "Wrong filter type - not attribute filter");
     }
 
     const std::string attribute_name = attr_filter->getAttributeName();
@@ -374,7 +375,8 @@ std::string MessagingDatabaseManager::getAttributeFilterQuery(AbstractFilterPtr 
         sqlQuery << "(" << attribute_map[attribute_name].sql_name << " ";
     } else {
         LoggerE("The attribute: %s does not exist.", attribute_name.c_str());
-        throw InvalidValuesException("The attribute does not exist.");
+        return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
+                              "The attribute does not exist.");
     }
 
     AnyPtr match_value_any_ptr = attr_filter->getMatchValue();
@@ -418,7 +420,8 @@ std::string MessagingDatabaseManager::getAttributeFilterQuery(AbstractFilterPtr 
                     "msgType:%d does not match SMS(%d), MMS(%d) nor EMAIL(%d)!",
                     match_value.c_str(), msgType, MessageType::SMS, MessageType::MMS,
                     MessageType::EMAIL);
-            throw UnknownException("The value does not match service type.");
+            return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                                  "The value does not match service type.");
         }
     }
     else if ("isRead" == attribute_name || "hasAttachment" == attribute_name) {
@@ -507,7 +510,8 @@ std::string MessagingDatabaseManager::getAttributeFilterQuery(AbstractFilterPtr 
                 break;
             }
             default:
-                throw UnknownException("The match flag is incorrect.");
+              return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                                    "The match flag is incorrect.");
         }
 
         if (MessageType::SMS == msgType || MessageType::MMS == msgType) {
@@ -524,11 +528,12 @@ std::string MessagingDatabaseManager::getAttributeFilterQuery(AbstractFilterPtr 
         }
     }
     sqlQuery << ") ";
-    return sqlQuery.str();
+    *result = sqlQuery.str();
+    return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-std::string MessagingDatabaseManager::getAttributeRangeFilterQuery(AbstractFilterPtr filter,
-        AttributeInfoMap& attribute_map, MessageType msg_type)
+PlatformResult MessagingDatabaseManager::getAttributeRangeFilterQuery(AbstractFilterPtr filter,
+        AttributeInfoMap& attribute_map, MessageType msg_type, std::string* result)
 {
     LoggerD("Entered");
 
@@ -538,7 +543,8 @@ std::string MessagingDatabaseManager::getAttributeRangeFilterQuery(AbstractFilte
     AttributeRangeFilterPtr attr_range_filter = castToAttributeRangeFilter(filter);
     if(!attr_range_filter) {
         LoggerE("passed filter is not valid AttributeRangeFilter!");
-        throw UnknownException("Wrong filter type - not attribute range filter");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                              "Wrong filter type - not attribute range filter");
     }
 
     converter << attr_range_filter->getInitialValue()->toTimeT();
@@ -549,11 +555,12 @@ std::string MessagingDatabaseManager::getAttributeRangeFilterQuery(AbstractFilte
 
     sql_query << "(" << attribute_map[attr_range_filter->getAttributeName()].sql_name << " ";
     sql_query << "BETWEEN " << initial_value << " AND " << end_value << ") ";
-    return sql_query.str();
+    *result = sql_query.str();
+    return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-std::string MessagingDatabaseManager::getCompositeFilterQuery(AbstractFilterPtr filter,
-        AttributeInfoMap& attribute_map, MessageType msg_type)
+PlatformResult MessagingDatabaseManager::getCompositeFilterQuery(AbstractFilterPtr filter,
+        AttributeInfoMap& attribute_map, MessageType msg_type, std::string* result)
 {
     LoggerD("Entered");
     std::ostringstream sql_query;
@@ -561,7 +568,8 @@ std::string MessagingDatabaseManager::getCompositeFilterQuery(AbstractFilterPtr 
     CompositeFilterPtr comp_filter = castToCompositeFilter(filter);
     if(!comp_filter) {
         LoggerE("passed filter is not valid CompositeFilter!");
-        throw UnknownException("Wrong filter type - not composite filter");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                              "Wrong filter type - not composite filter");
     }
 
     AbstractFilterPtrVector filters_arr = comp_filter->getFilters();
@@ -580,21 +588,31 @@ std::string MessagingDatabaseManager::getCompositeFilterQuery(AbstractFilterPtr 
         const FilterType filter_type = filters_arr[i]->getFilterType();
         switch (filter_type) {
             case ATTRIBUTE_FILTER: {
-                sql_query << getAttributeFilterQuery(filters_arr[i], attribute_map, msg_type);
-                break;
+              std::string query;
+              PlatformResult ret = getAttributeFilterQuery(filters_arr[i], attribute_map, msg_type, &query);
+              if (ret.IsError()) return ret;
+              sql_query << query;
+              break;
             }
             case ATTRIBUTE_RANGE_FILTER: {
-                sql_query << getAttributeRangeFilterQuery(filters_arr[i], attribute_map, msg_type);
-                break;
+              std::string query;
+              PlatformResult ret = getAttributeRangeFilterQuery(filters_arr[i], attribute_map, msg_type, &query);
+              if (ret.IsError()) return ret;
+              sql_query << query;
+              break;
             }
             case COMPOSITE_FILTER: {
-                sql_query << getCompositeFilterQuery(filters_arr[i], attribute_map, msg_type);
-                break;
+              std::string query;
+              PlatformResult ret = getCompositeFilterQuery(filters_arr[i], attribute_map, msg_type, &query);
+              if (ret.IsError()) return ret;
+              sql_query << query;
+              break;
             }
             default:
                 LoggerE("Error while querying message - unsupported filter type: %d",
                         filter_type);
-                throw UnknownException("Error while querying message.");
+                return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                                      "Error while querying message.");
         }
 
         if (i != (size - 1)) {
@@ -603,12 +621,13 @@ std::string MessagingDatabaseManager::getCompositeFilterQuery(AbstractFilterPtr 
     }
     sql_query << ") ";
 
-    return sql_query.str();
+    *result = sql_query.str();
+    return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-std::string MessagingDatabaseManager::addFilters(AbstractFilterPtr filter,
+PlatformResult MessagingDatabaseManager::addFilters(AbstractFilterPtr filter,
         SortModePtr sort_mode, long limit, long offset, AttributeInfoMap& attribute_map,
-        MessageType msg_type)
+        MessageType msg_type, std::string* result)
 {
     LoggerD("Entered");
     std::ostringstream sql_query;
@@ -619,7 +638,7 @@ std::string MessagingDatabaseManager::addFilters(AbstractFilterPtr filter,
             sql_query << attribute_map["type"].sql_name << " = " << msg_type << " AND ";
         } else {
             LoggerE("The service type is incorrect - msg_type is UNDEFINED");
-            throw UnknownException("The service type is incorrect.");
+            return PlatformResult(ErrorCode::UNKNOWN_ERR, "The service type is incorrect.");
         }
     }
 
@@ -627,20 +646,29 @@ std::string MessagingDatabaseManager::addFilters(AbstractFilterPtr filter,
         // Filter query
         switch (filter->getFilterType()) {
             case ATTRIBUTE_FILTER: {
-                sql_query << getAttributeFilterQuery(filter, attribute_map, msg_type);
-            } break;
-
+              std::string query;
+              PlatformResult ret = getAttributeFilterQuery(filter, attribute_map, msg_type, &query);
+              if (ret.IsError()) return ret;
+              sql_query << query;
+              break;
+            }
             case ATTRIBUTE_RANGE_FILTER: {
-                sql_query << getAttributeRangeFilterQuery(filter, attribute_map, msg_type);
-            } break;
-
+              std::string query;
+              PlatformResult ret = getAttributeRangeFilterQuery(filter, attribute_map, msg_type, &query);
+              if (ret.IsError()) return ret;
+              sql_query << query;
+              break;
+            }
             case COMPOSITE_FILTER : {
-                sql_query << getCompositeFilterQuery(filter, attribute_map, msg_type);
-            } break;
-
+              std::string query;
+              PlatformResult ret = getCompositeFilterQuery(filter, attribute_map, msg_type, &query);
+              if (ret.IsError()) return ret;
+              sql_query << query;
+              break;
+            }
             default:
                 LoggerE("The filter type is incorrect: %d", filter->getFilterType());
-                throw UnknownException("The filter type is incorrect.");
+                return PlatformResult(ErrorCode::UNKNOWN_ERR, "The filter type is incorrect.");
         }
     }
 
@@ -651,7 +679,7 @@ std::string MessagingDatabaseManager::addFilters(AbstractFilterPtr filter,
                     << attribute_map[sort_mode->getAttributeName()].sql_name << " ";
         } else {
             LoggerE("The attribute does not exist.");
-            throw UnknownException("The attribute does not exist.");
+            return PlatformResult(ErrorCode::UNKNOWN_ERR, "The attribute does not exist.");
         }
 
         if (ASC == sort_mode->getOrder()) {
@@ -684,11 +712,12 @@ std::string MessagingDatabaseManager::addFilters(AbstractFilterPtr filter,
         sql_query << "OFFSET " << offset << " ";
     }
 
-    return sql_query.str();
+    *result = sql_query.str();
+    return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-std::vector<int> MessagingDatabaseManager::findShortMessages(
-        FindMsgCallbackUserData* callback)
+PlatformResult MessagingDatabaseManager::findShortMessages(
+        FindMsgCallbackUserData* callback, std::vector<int>* result)
 {
     LoggerD("Entered");
     std::ostringstream sqlQuery;
@@ -710,14 +739,19 @@ std::vector<int> MessagingDatabaseManager::findShortMessages(
     long offset = callback->getOffset();
     MessageType msgType = callback->getMessageServiceType();
 
-    sqlQuery << addFilters(filter, sortMode, limit, offset, m_msg_attr_map, msgType);
+    std::string filters_query;
+    PlatformResult ret = addFilters(filter, sortMode, limit, offset, m_msg_attr_map,
+                                    msgType, &filters_query);
+    if (ret.IsError()) return ret;
+    sqlQuery << filters_query;
     LoggerD("%s", sqlQuery.str().c_str());
 
     // Getting results from database
     msg_error_t err = getTable(sqlQuery.str(), &results, &resultsCount);
     if (MSG_SUCCESS != err) {
         freeTable(&results);
-        throw UnknownException("Error while getting data from database.");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                              "Error while getting data from database.");
     }
 
     for (int i = 0; i < resultsCount; ++i) {
@@ -726,11 +760,12 @@ std::vector<int> MessagingDatabaseManager::findShortMessages(
     }
 
     freeTable(&results);
-    return messagesIds;
+    *result = messagesIds;
+    return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-std::pair<int, email_mail_data_t*> MessagingDatabaseManager::findEmails(
-        FindMsgCallbackUserData* callback)
+PlatformResult MessagingDatabaseManager::findEmails(
+        FindMsgCallbackUserData* callback, std::pair<int, email_mail_data_t*>* result)
 {
     LoggerD("Entered");
     std::ostringstream sqlWhereClause;
@@ -745,9 +780,13 @@ std::pair<int, email_mail_data_t*> MessagingDatabaseManager::findEmails(
     MessageType msgType = callback->getMessageServiceType();
     int accountId = callback->getAccountId();
 
+    std::string filters_query;
+    PlatformResult ret = addFilters(filter, sortMode, limit, offset,
+                                    m_email_attr_map, msgType, &filters_query);
+    if (ret.IsError()) return ret;
     sqlWhereClause << "WHERE "
             << m_email_attr_map["serviceId"].sql_name << " = " << accountId << " AND "
-            << addFilters(filter, sortMode, limit, offset, m_email_attr_map, msgType);
+            << filters_query;
     LoggerD("%s", sqlWhereClause.str().c_str());
 
     // Getting results from database
@@ -759,15 +798,17 @@ std::pair<int, email_mail_data_t*> MessagingDatabaseManager::findEmails(
         if (EMAIL_ERROR_MAIL_NOT_FOUND == err) {
             resultsCount = 0;
         } else {
-            throw UnknownException("Error while getting data from database.");
+          return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                                "Error while getting data from database.");
         }
     }
 
-    return std::make_pair(resultsCount, results);
+    *result = std::make_pair(resultsCount, results);
+    return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-std::vector<int> MessagingDatabaseManager::findShortMessageConversations(
-        ConversationCallbackData* callback)
+PlatformResult MessagingDatabaseManager::findShortMessageConversations(
+        ConversationCallbackData* callback, std::vector<int>* result)
 {
     LoggerD("Entered");
     std::ostringstream sqlQuery;
@@ -792,14 +833,19 @@ std::vector<int> MessagingDatabaseManager::findShortMessageConversations(
     long offset = callback->getOffset();
     MessageType msgType = callback->getMessageServiceType();
 
-    sqlQuery << addFilters(filter, sortMode, limit, offset, m_msg_conv_attr_map, msgType);
+    std::string filters_query;
+    PlatformResult ret = addFilters(filter, sortMode, limit, offset, m_msg_conv_attr_map,
+                                    msgType, &filters_query);
+    if (ret.IsError()) return ret;
+    sqlQuery << filters_query;
     LoggerD("%s", sqlQuery.str().c_str());
 
     // Getting results from database
     msg_error_t err = getTable(sqlQuery.str(), &results, &resultsCount);
     if (MSG_SUCCESS != err) {
         freeTable(&results);
-        throw common::UnknownException("Error while getting data from database.");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                              "Error while getting data from database.");
     }
 
     for (int i = 0; i < resultsCount; ++i) {
@@ -808,11 +854,12 @@ std::vector<int> MessagingDatabaseManager::findShortMessageConversations(
     }
 
     freeTable(&results);
-    return conversationsIds;
+    *result = conversationsIds;
+    return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-std::vector<EmailConversationInfo> MessagingDatabaseManager::findEmailConversations(
-        ConversationCallbackData* callback)
+PlatformResult MessagingDatabaseManager::findEmailConversations(
+        ConversationCallbackData* callback, std::vector<EmailConversationInfo>* result)
 {
     LoggerD("Entered");
     std::ostringstream sqlWhereClause;
@@ -829,9 +876,13 @@ std::vector<EmailConversationInfo> MessagingDatabaseManager::findEmailConversati
     MessageType msgType = callback->getMessageServiceType();
     int accountId = callback->getAccountId();
 
+    std::string filters_query;
+    PlatformResult ret = addFilters(filter, sortMode, limit, offset, m_email_conv_attr_map,
+                                    msgType, &filters_query);
+    if (ret.IsError()) return ret;
     sqlWhereClause << "WHERE "
             << m_email_conv_attr_map["serviceId"].sql_name << " = " << accountId << " AND "
-            << addFilters(filter, sortMode, limit, offset, m_email_conv_attr_map, msgType);
+            << filters_query;
     LoggerD("%s", sqlWhereClause.str().c_str());
 
     // Getting results from database
@@ -843,7 +894,8 @@ std::vector<EmailConversationInfo> MessagingDatabaseManager::findEmailConversati
         if (EMAIL_ERROR_MAIL_NOT_FOUND == err) {
             resultsCount = 0;
         } else {
-            throw UnknownException("Error while getting data from database.");
+          return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                                "Error while getting data from database.");
         }
     }
 
@@ -867,7 +919,8 @@ std::vector<EmailConversationInfo> MessagingDatabaseManager::findEmailConversati
     }
 
     email_free_mail_data(&results, resultsCount);
-    return conversationsInfo;
+    *result = conversationsInfo;
+    return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 } // Messaging

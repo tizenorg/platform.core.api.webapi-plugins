@@ -23,6 +23,7 @@
 #define __TIZEN_DBUS_SYNC_PROXY_H__
 
 #include "EmailSignalProxy.h"
+#include "common/platform_result.h"
 
 namespace extension {
 namespace messaging {
@@ -37,16 +38,20 @@ public:
     // Callback is owned by this map
     typedef std::map<long, common::CallbackUserData*> CallbackMap;
 
-    SyncProxy(const std::string& path,
-            const std::string& iface);
     virtual ~SyncProxy();
 
+    static common::PlatformResult create(const std::string& path,
+                                         const std::string& iface,
+                                         SyncProxyPtr* sync_proxy);
     //Passed callback will be owned by this proxy
     void addCallback(long op_id, common::CallbackUserData* callbackOwned);
     common::CallbackUserData* getCallback(long op_id);
     void removeCallback(long op_id);
 
 protected:
+    SyncProxy(const std::string& path,
+            const std::string& iface);
+
     virtual void handleEmailSignal(const int status,
             const int mail_id,
             const std::string& source,
@@ -58,8 +63,8 @@ private:
      * Find callback by operation handle returned from:
      *  int email_sync_header(..., int *handle);
      */
-    CallbackMap::iterator findSyncCallbackByOpHandle(const int op_handle);
-
+    common::PlatformResult findSyncCallbackByOpHandle(const int op_handle,
+                                                      CallbackMap::iterator* it);
     CallbackMap m_callback_map;
 };
 

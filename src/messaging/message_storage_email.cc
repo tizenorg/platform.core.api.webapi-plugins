@@ -44,11 +44,14 @@ static gboolean callError(void* data)
        return FALSE;
     }
 
-    PostQueue::getInstance().resolve(
-            callback->getJson()->get<picojson::object>().at(JSON_CALLBACK_ID).get<double>(),
-            callback->getJson()->serialize()
-    );
-
+    auto json = callback->getJson();
+    picojson::object& obj = json->get<picojson::object>();
+    if (json->contains(JSON_CALLBACK_ID) && obj.at(JSON_CALLBACK_ID).is<double>()) {
+      PostQueue::getInstance().resolve(obj.at(JSON_CALLBACK_ID).get<double>(),
+                                       json->serialize());
+    } else {
+      LoggerE("json is incorrect - missing required member");
+    }
     return FALSE;
 }
 
@@ -57,19 +60,7 @@ void MessageStorageEmail::addDraftMessage(MessageCallbackUserData* callback) {
 
     if (!callback) {
         LoggerE("Callback is null");
-        throw common::UnknownException("Callback is null");
-    }
-
-    if (m_msg_type != callback->getMessage()->getType()) {
-       LoggerE("Incorrect message type");
-       callback->setError("UnknownError", "Incorrect message type");
-       guint id = g_idle_add(callError, static_cast<void*>(callback));
-       if (!id) {
-           LoggerE("g_idle_add failed");
-           delete callback;
-           callback = NULL;
-       }
-       return;
+        return;
     }
 
     callback->setAccountId(m_id);
@@ -98,7 +89,7 @@ void MessageStorageEmail::removeMessages(MessagesCallbackUserData* callback)
 
     if (!callback) {
         LoggerE("Callback is null");
-        throw common::UnknownException("Callback is null");
+        return;
     }
 
     callback->setMessageServiceType(m_msg_type);
@@ -127,7 +118,7 @@ void MessageStorageEmail::updateMessages(MessagesCallbackUserData* callback)
 
     if (!callback) {
         LoggerE("Callback is null");
-        throw common::UnknownException("Callback is null");
+        return;
     }
 
     callback->setMessageServiceType(m_msg_type);
@@ -155,7 +146,7 @@ void MessageStorageEmail::findMessages(FindMsgCallbackUserData* callback)
 
     if (!callback) {
         LoggerE("Callback is null");
-        throw common::UnknownException("Callback is null");
+        return;
     }
 
     callback->setAccountId(m_id);
@@ -185,7 +176,7 @@ void MessageStorageEmail::findConversations(ConversationCallbackData* callback)
 
     if (!callback) {
         LoggerE("Callback is null");
-        throw common::UnknownException("Callback is null");
+        return;
     }
 
     callback->setAccountId(m_id);
@@ -214,7 +205,7 @@ void MessageStorageEmail::removeConversations(ConversationCallbackData* callback
 
     if (!callback) {
         LoggerE("Callback is null");
-        throw common::UnknownException("Callback is null");
+        return;
     }
 
     callback->setMessageServiceType(m_msg_type);
@@ -243,7 +234,7 @@ void MessageStorageEmail::findFolders(FoldersCallbackData* callback)
 
     if (!callback) {
         LoggerE("Callback is null");
-        throw common::UnknownException("Callback is null");
+        return;
     }
 
     guint id = g_idle_add(findFoldersTask, static_cast<void*>(callback));

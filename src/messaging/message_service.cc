@@ -14,6 +14,9 @@
 #include "message_storage_short_msg.h"
 #include "message.h"
 
+using common::ErrorCode;
+using common::PlatformResult;
+
 namespace extension {
 namespace messaging {
 
@@ -28,6 +31,7 @@ const char* JSON_SERVICE_STORAGE = "messageStorage";
 
 MessageRecipientsCallbackData::MessageRecipientsCallbackData():
         m_is_error(false),
+        m_account_id(-1),
         m_sim_index(TAPI_NETWORK_DEFAULT_DATA_SUBS_UNKNOWN),
         m_default_sim_index(TAPI_NETWORK_DEFAULT_DATA_SUBS_UNKNOWN)
 {
@@ -66,41 +70,34 @@ void MessageRecipientsCallbackData::setError(const std::string& err_name,
 {
     // keep only first error in chain
     if (!m_is_error) {
+        m_is_error = true;
 
         picojson::object& obj = m_json->get<picojson::object>();
         obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_ERROR);
-        auto objData = picojson::object();
+        auto obj_error = picojson::object();
 
-        objData[JSON_ERROR_NAME] = picojson::value(err_name);
-        objData[JSON_ERROR_MESSAGE] = picojson::value(err_message);
+        obj_error[JSON_ERROR_NAME] = picojson::value(err_name);
+        obj_error[JSON_ERROR_MESSAGE] = picojson::value(err_message);
 
-        obj[JSON_DATA] = picojson::value(objData);
-
-        m_is_error = true;
-        m_err_name = err_name;
-        m_err_message = err_message;
-        if (m_message) {
-            m_err_message += " for: ";
-            // platform issue: we cannot get error per recipient
-            // so all recipients are added to error message
-            std::vector<std::string> recp_list = m_message->getTO();
-            unsigned int count = recp_list.size();
-            for (unsigned int i = 0; i < count; ++i) {
-                m_err_message += recp_list.at(i) + ", ";
-            }
-            recp_list = m_message->getCC();
-            count = recp_list.size();
-            for (unsigned int i = 0; i < count; ++i) {
-                m_err_message += recp_list.at(i) + ", ";
-            }
-            recp_list = m_message->getBCC();
-            count = recp_list.size();
-            for (unsigned int i = 0; i < count; ++i) {
-                m_err_message += recp_list.at(i) + ", ";
-            }
-
-        }
+        obj[JSON_DATA] = picojson::value(obj_error);
     }
+}
+
+void MessageRecipientsCallbackData::setError(const PlatformResult& error)
+{
+  // keep only first error in chain
+  if (!m_is_error) {
+    m_is_error = true;
+
+    picojson::object& obj = m_json->get<picojson::object>();
+    obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_ERROR);
+    auto obj_error = picojson::object();
+
+    obj_error[JSON_ERROR_CODE] = picojson::value(static_cast<double>(error.error_code()));
+    obj_error[JSON_ERROR_MESSAGE] = picojson::value(error.message());
+
+    obj[JSON_DATA] = picojson::value(obj_error);
+  }
 }
 
 bool MessageRecipientsCallbackData::isError() const
@@ -170,7 +167,8 @@ TelNetworkDefaultDataSubs_t MessageRecipientsCallbackData::getDefaultSimIndex() 
 BaseMessageServiceCallbackData::BaseMessageServiceCallbackData():
 //        CallbackUserData(globalCtx),
         m_is_error(false),
-        m_op_handle(-1)
+        m_op_handle(-1),
+        m_callback_id(-1)
 {
     LoggerD("Entered");
 }
@@ -186,8 +184,6 @@ void BaseMessageServiceCallbackData::setError(const std::string& err_name,
     // keep only first error in chain
     if (!m_is_error) {
         m_is_error = true;
-        m_err_name = err_name;
-        m_err_message = err_message;
 
         picojson::object& obj = m_json->get<picojson::object>();
         obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_ERROR);
@@ -199,19 +195,26 @@ void BaseMessageServiceCallbackData::setError(const std::string& err_name,
     }
 }
 
+void BaseMessageServiceCallbackData::setError(const PlatformResult& error)
+{
+  // keep only first error in chain
+  if (!m_is_error) {
+    m_is_error = true;
+
+    picojson::object& obj = m_json->get<picojson::object>();
+    obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_ERROR);
+    auto obj_error = picojson::object();
+
+    obj_error[JSON_ERROR_CODE] = picojson::value(static_cast<double>(error.error_code()));
+    obj_error[JSON_ERROR_MESSAGE] = picojson::value(error.message());
+
+    obj[JSON_DATA] = picojson::value(obj_error);
+  }
+}
+
 bool BaseMessageServiceCallbackData::isError() const
 {
     return m_is_error;
-}
-
-std::string BaseMessageServiceCallbackData::getErrorName() const
-{
-    return m_err_name;
-}
-
-std::string BaseMessageServiceCallbackData::getErrorMessage() const
-{
-    return m_err_message;
 }
 
 void BaseMessageServiceCallbackData::setOperationHandle(const int op_handle)
@@ -297,6 +300,7 @@ SyncCallbackData::SyncCallbackData():
 //        BaseMessageServiceCallbackData(globalCtx),
         m_is_limit(false),
         m_limit(0),
+        m_op_id(-1),
         m_account_id(-1)
 {
     LoggerD("Entered");
@@ -370,7 +374,7 @@ std::shared_ptr<MessageFolder> SyncFolderCallbackData::getMessageFolder() const
 
 MessageService::MessageService(int id,
                     MessageType msgType,
-                    std::string name):
+                    const std::string& name):
         m_id(id),
         m_msg_type(msgType),
         m_name(name)
@@ -385,8 +389,9 @@ MessageService::MessageService(int id,
             m_storage.reset(new MessageStorageEmail(id));
             break;
         default:
-            LoggerE("Undefined message type");
-            throw common::InvalidValuesException("Undefined message type");
+            LoggerE("Undefined message type: %d", msgType);
+            assert(false);
+            break;
     }
 }
 
@@ -399,7 +404,7 @@ picojson::object MessageService::toPicoJS() const
 {
     picojson::object picojs = picojson::object();
     picojs[JSON_SERVICE_ID] = picojson::value(std::to_string(m_id));
-    picojs[JSON_SERVICE_TYPE] = picojson::value(MessagingUtil::messageTypeToString(m_msg_type));
+    picojs[JSON_SERVICE_TYPE] = picojson::value(getMsgServiceTypeString());
     picojs[JSON_SERVICE_NAME] = picojson::value(m_name);
     return picojs;
 }
@@ -419,6 +424,10 @@ MessageType MessageService::getMsgServiceType() const
     return m_msg_type;
 }
 
+std::string MessageService::getMsgServiceTypeString() const {
+  return MessagingUtil::messageTypeToString(getMsgServiceType());
+}
+
 std::string MessageService::getMsgServiceName() const
 {
     return m_name;
@@ -429,50 +438,55 @@ MessageStoragePtr MessageService::getMsgStorage() const
     return m_storage;
 }
 
-void MessageService::sendMessage(MessageRecipientsCallbackData *callback)
+common::PlatformResult MessageService::sendMessage(MessageRecipientsCallbackData *callback)
 {
     // this method should be overwritten be specific services
     LoggerE("Cannot send message");
-    throw common::NotSupportedException("Cannot send message");
+    delete callback;
+    return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR, "Unable to send message.");
 }
 
-void MessageService::loadMessageBody(MessageBodyCallbackData* callback)
+PlatformResult MessageService::loadMessageBody(MessageBodyCallbackData* callback)
 {
     // this method should be overwritten by specific services
     LoggerE("Cannot load message body");
-    throw common::NotSupportedException("Cannot load message body");
+    delete callback;
+    return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR, "Cannot load message body");
 }
 
-void MessageService::loadMessageAttachment(MessageAttachmentCallbackData* callback)
+PlatformResult MessageService::loadMessageAttachment(MessageAttachmentCallbackData* callback)
 {
     // this method should be overwritten by email service
     // for MMS and SMS this function is not supported
     LoggerE("Cannot load message attachment");
-    throw common::NotSupportedException("Cannot load message attachment");
+    delete callback;
+    return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR, "Cannot load message attachment");
 }
 
-long MessageService::sync(SyncCallbackData *callback)
+PlatformResult MessageService::sync(SyncCallbackData *callback, long* operation_id)
 {
     // this method should be overwritten by email service
     // for MMS and SMS this function is not supported
     LoggerE("Cannot sync with external server");
-    throw common::NotSupportedException("Cannot sync with external server");
+    delete callback;
+    return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR, "Cannot sync with external server");
 }
 
-long MessageService::syncFolder(SyncFolderCallbackData *callback)
+PlatformResult MessageService::syncFolder(SyncFolderCallbackData *callback, long* operation_id)
 {
     // this method should be overwritten by email service
     // for MMS and SMS this function is not supported
     LoggerE("Cannot sync folder with external server");
-    throw common::NotSupportedException("Cannot sync folder with external server");
+    delete callback;
+    return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR, "Cannot sync folder with external server");
 }
 
-void MessageService::stopSync(long op_id)
+PlatformResult MessageService::stopSync(long op_id)
 {
     // this method should be overwritten by email service
     // for MMS and SMS this function is not supported
     LoggerE("Cannot stop sync with external server");
-    throw common::NotSupportedException("Cannot stop sync with external server");
+    return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR, "Cannot stop sync with external server");
 }
 
 } // messaging

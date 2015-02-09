@@ -37,18 +37,14 @@ void MessageStorageShortMsg::addDraftMessage(MessageCallbackUserData* callback) 
 
     if (!callback) {
         LoggerE("Callback is null");
-        throw common::UnknownException("Callback is null");
-    }
-
-    if (m_msg_type != callback->getMessage()->getType()) {
-        LoggerE("Incorrect message type");
-        throw common::TypeMismatchException("Incorrect message type");
+        return;
     }
 
     guint id = g_idle_add(addDraftMessageTask, static_cast<void*>(callback));
     if (!id) {
         LoggerE("g_idle_add failed");
-        throw common::UnknownException("g_idle_add failed");
+        delete callback;
+        return;
     }
 }
 
@@ -67,7 +63,7 @@ void MessageStorageShortMsg::removeMessages(MessagesCallbackUserData* callback)
 
     if (!callback) {
         LoggerE("Callback is null");
-        throw common::UnknownException("Callback is null");
+        return;
     }
 
     callback->setMessageServiceType(m_msg_type);
@@ -75,7 +71,8 @@ void MessageStorageShortMsg::removeMessages(MessagesCallbackUserData* callback)
     guint id = g_idle_add(removeMessagesTask, static_cast<void*>(callback));
     if (!id) {
         LoggerE("g_idle_add failed");
-        throw common::UnknownException("g_idle_add failed");
+        delete callback;
+        return;
     }
 }
 
@@ -94,7 +91,7 @@ void MessageStorageShortMsg::updateMessages(MessagesCallbackUserData* callback)
 
     if (!callback) {
         LoggerE("Callback is null");
-        throw common::UnknownException("Callback is null");
+        return;
     }
 
     callback->setMessageServiceType(m_msg_type);
@@ -102,7 +99,8 @@ void MessageStorageShortMsg::updateMessages(MessagesCallbackUserData* callback)
     guint id = g_idle_add(updateMessagesTask, static_cast<void*>(callback));
     if (!id) {
         LoggerE("g_idle_add failed");
-        throw common::UnknownException("g_idle_add failed");
+        delete callback;
+        return;
     }
 }
 
@@ -121,7 +119,7 @@ void MessageStorageShortMsg::findMessages(FindMsgCallbackUserData* callback)
 
     if (!callback) {
         LoggerE("Callback is null");
-        throw common::UnknownException("Callback is null");
+        return;
     }
 
     callback->setMessageServiceType(m_msg_type);
@@ -129,7 +127,8 @@ void MessageStorageShortMsg::findMessages(FindMsgCallbackUserData* callback)
     guint id = g_idle_add(findMessagesTask, static_cast<void*>(callback));
     if (!id) {
         LoggerE("g_idle_add failed");
-        throw common::UnknownException("g_idle_add failed");
+        delete callback;
+        return;
     }
 }
 
@@ -148,7 +147,7 @@ void MessageStorageShortMsg::findConversations(ConversationCallbackData* callbac
 
     if (!callback) {
         LoggerE("Callback is null");
-        throw common::UnknownException("Callback is null");
+        return;
     }
 
     callback->setMessageServiceType(m_msg_type);
@@ -156,7 +155,8 @@ void MessageStorageShortMsg::findConversations(ConversationCallbackData* callbac
     guint id = g_idle_add(findConversationsTask, static_cast<void*>(callback));
     if (!id) {
         LoggerE("g_idle_add failed");
-        throw common::UnknownException("g_idle_add failed");
+        delete callback;
+        return;
     }
 }
 
@@ -175,7 +175,7 @@ void MessageStorageShortMsg::removeConversations(ConversationCallbackData* callb
 
     if (!callback) {
         LoggerE("Callback is null");
-        throw common::UnknownException("Callback is null");
+        return;
     }
 
     callback->setMessageServiceType(m_msg_type);
@@ -183,7 +183,8 @@ void MessageStorageShortMsg::removeConversations(ConversationCallbackData* callb
     guint id = g_idle_add(removeConversationsTask, static_cast<void*>(callback));
     if (!id) {
         LoggerE("g_idle_add failed");
-        throw common::UnknownException("g_idle_add failed");
+        delete callback;
+        return;
     }
 }
 
@@ -196,22 +197,26 @@ static gboolean findFoldersCB(void* data)
     auto json = callback->getJson();
     picojson::object& obj = json->get<picojson::object>();
 
-    picojson::array array;
-    auto each = [&array](std::shared_ptr<MessageFolder> folder)->void {
+    if (json->contains(JSON_CALLBACK_ID) && obj.at(JSON_CALLBACK_ID).is<double>()) {
+      picojson::array array;
+      auto each = [&array](std::shared_ptr<MessageFolder> folder)->void {
         array.push_back(MessagingUtil::folderToJson(folder));
-    };
+      };
 
-    auto folders = callback->getFolders();
-    for_each(folders.begin(), folders.end(), each);
+      auto folders = callback->getFolders();
+      for_each(folders.begin(), folders.end(), each);
 
-    obj[JSON_DATA] = picojson::value(array);
-    obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
+      obj[JSON_DATA] = picojson::value(array);
+      obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
 
-    PostQueue::getInstance().resolve(
-            obj.at(JSON_CALLBACK_ID).get<double>(),
-            json->serialize()
-    );
 
+      PostQueue::getInstance().resolve(
+          obj.at(JSON_CALLBACK_ID).get<double>(),
+          json->serialize()
+      );
+    } else {
+      LoggerE("json is incorrect - missing required member");
+    }
     delete callback;
     callback = NULL;
 
@@ -227,7 +232,7 @@ void MessageStorageShortMsg::findFolders(FoldersCallbackData* callback)
         return;
     }
 
-    std::string content_type = MessagingUtil::messageTypeToString(m_msg_type);
+    std::string content_type = getMsgServiceTypeString();
     std::string empty = "";
     std::shared_ptr<MessageFolder> folder;
 

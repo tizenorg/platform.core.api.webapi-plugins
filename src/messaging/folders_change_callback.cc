@@ -94,8 +94,12 @@ void FoldersChangeCallback::added(const FolderPtrVector& folders)
     obj[JSON_ACTION] = picojson::value(FOLDERSADDED);
     obj[JSON_DATA] = picojson::value(array);
 
-    PostQueue::getInstance().addAndResolve(obj.at(
-                JSON_CALLBACK_ID).get<double>(), PostPriority::MEDIUM, json->serialize());
+    if (json->contains(JSON_CALLBACK_ID) && obj.at(JSON_CALLBACK_ID).is<double>()) {
+      PostQueue::getInstance().addAndResolve(obj.at(
+          JSON_CALLBACK_ID).get<double>(), PostPriority::MEDIUM, json->serialize());
+    } else {
+      LoggerE("Callback id is missing");
+    }
 }
 
 void FoldersChangeCallback::updated(const FolderPtrVector& folders)
@@ -121,8 +125,12 @@ void FoldersChangeCallback::updated(const FolderPtrVector& folders)
     obj[JSON_ACTION] = picojson::value(FOLDERSUPDATED);
     obj[JSON_DATA] = picojson::value(array);
 
-    PostQueue::getInstance().addAndResolve(obj.at(
-                JSON_CALLBACK_ID).get<double>(), PostPriority::LOW, json->serialize());
+    if (json->contains(JSON_CALLBACK_ID) && obj.at(JSON_CALLBACK_ID).is<double>()) {
+      PostQueue::getInstance().addAndResolve(obj.at(
+          JSON_CALLBACK_ID).get<double>(), PostPriority::LOW, json->serialize());
+    } else {
+      LoggerE("Callback id is missing");
+    }
 }
 
 void FoldersChangeCallback::removed(const FolderPtrVector& folders)
@@ -148,8 +156,12 @@ void FoldersChangeCallback::removed(const FolderPtrVector& folders)
     obj[JSON_ACTION] = picojson::value(FOLDERSREMOVED);
     obj[JSON_DATA] = picojson::value(array);
 
-    PostQueue::getInstance().addAndResolve(obj.at(
-                JSON_CALLBACK_ID).get<double>(), PostPriority::LAST, json->serialize());
+    if (json->contains(JSON_CALLBACK_ID) && obj.at(JSON_CALLBACK_ID).is<double>()) {
+      PostQueue::getInstance().addAndResolve(obj.at(
+          JSON_CALLBACK_ID).get<double>(), PostPriority::LAST, json->serialize());
+    } else {
+      LoggerE("Callback id is missing");
+    }
 }
 
 void FoldersChangeCallback::setFilter(tizen::AbstractFilterPtr filter)

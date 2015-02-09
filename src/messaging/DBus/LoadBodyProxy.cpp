@@ -35,7 +35,7 @@
 
 #include "common/logger.h"
 #include <cstring>
-#include "common/platform_exception.h"
+#include "common/platform_result.h"
 
 #include "../message.h"
 #include "../message_body.h"
@@ -45,16 +45,29 @@ namespace extension {
 namespace messaging {
 namespace DBus {
 
+using namespace common;
+
 LoadBodyProxy::LoadBodyProxy(const std::string& path,
         const std::string& iface) :
         EmailSignalProxy(path, iface)
 {
-
 }
 
 LoadBodyProxy::~LoadBodyProxy()
 {
+}
 
+PlatformResult LoadBodyProxy::create(const std::string& path,
+                                     const std::string& iface,
+                                     LoadBodyProxyPtr* load_body_proxy) {
+    load_body_proxy->reset(new LoadBodyProxy(path, iface));
+    if ((*load_body_proxy)->isNotProxyGot()) {
+        LoggerE("Could not get load body proxy");
+        load_body_proxy->reset();
+        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not get load body proxy");
+    } else {
+        return PlatformResult(ErrorCode::NO_ERROR);
+    }
 }
 
 void LoadBodyProxy::addCallback(MessageBodyCallbackData* callbackOwned)
@@ -125,105 +138,82 @@ void LoadBodyProxy::handleEmailSignal(const int status,
     }
 
     MessageBodyCallbackData* callback = NULL;
-    try {
-        callback = findCallbackByOpHandle(op_handle);
-        if (!callback) {
-            LoggerE("Callback is null");
-        } else {
-            if( (NOTI_DOWNLOAD_BODY_FINISH == status) ||
-                (NOTI_DOWNLOAD_BODY_FAIL == status &&
-                         EMAIL_ERROR_MAIL_IS_ALREADY_DOWNLOADED == error_code)) {
 
-                // Old implementation is not verifying whether message update failed,
-                // it just calls success callback.
-                if(callback->getMessage()) {
-                    email_mail_data_t* mail_data = EmailManager::loadMessage(
-                             callback->getMessage()->getId());
-                    if (mail_data) {
-                        callback->getMessage()->updateEmailMessage(*mail_data);
+    callback = findCallbackByOpHandle(op_handle);
+    if (!callback) {
+        LoggerE("Callback is null");
+    } else {
+        PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
+        if( (NOTI_DOWNLOAD_BODY_FINISH == status) ||
+            (NOTI_DOWNLOAD_BODY_FAIL == status &&
+                     EMAIL_ERROR_MAIL_IS_ALREADY_DOWNLOADED == error_code)) {
+
+            // Old implementation is not verifying whether message update failed,
+            // it just calls success callback.
+            if(callback->getMessage()) {
+                email_mail_data_t* mail_data = EmailManager::loadMessage(
+                         callback->getMessage()->getId());
+                if (mail_data) {
+                    ret = callback->getMessage()->updateEmailMessage(*mail_data);
+                    if (!ret.IsError()) {
                         EmailManager::freeMessage(mail_data);
                         mail_data = NULL;
                     }
-
-                    //TODO: this should be reviewed when attachments and
-                    //      loadAttachments have been completed.
-                    //TODO: see old implementation lines 608-635 in MailSync.cpp
-                    /*
-                    * This is original Messaging implementation:
-                    *
-                    * std::vector<IAttachmentPtr> attachments = mail->getAttachments();
-                    * std::vector<IAttachmentPtr> inlineAttachments = mail->getInlineAttachments();
-                    *
-                    * for (unsigned int idx = 0; idx < attachments.size() ; idx++ )
-                    * {
-                    *   LoggerD("set Attachment ID = " << attachments[idx]->getAttachmentID());
-                    *   attachments[idx]->setMessage(event->m_message);
-                    *
-                    * }
-                    * for (unsigned int idx = 0; idx < inlineAttachments.size() ; idx++ )
-                    * {
-                    *   LoggerD("set inline Attachment ID = " << inlineAttachments[idx]->getAttachmentID());
-                    *   inlineAttachments[idx]->setMessage(event->m_message);
-                    * }
-                    */
                 }
 
-                LoggerD("Message body downloaded!");
-                try {
-                    LoggerD("Calling success callback");
+                //TODO: this should be reviewed when attachments and
+                //      loadAttachments have been completed.
+                //TODO: see old implementation lines 608-635 in MailSync.cpp
+                //
+                // This is original Messaging implementation:
+                //
+                // std::vector<IAttachmentPtr> attachments = mail->getAttachments();
+                // std::vector<IAttachmentPtr> inlineAttachments = mail->getInlineAttachments();
+                //
+                // for (unsigned int idx = 0; idx < attachments.size() ; idx++ )
+                // {
+                //   LoggerD("set Attachment ID = " << attachments[idx]->getAttachmentID());
+                //   attachments[idx]->setMessage(event->m_message);
+                //
+                // }
+                // for (unsigned int idx = 0; idx < inlineAttachments.size() ; idx++ )
+                // {
+                //   LoggerD("set inline Attachment ID = " << inlineAttachments[idx]->getAttachmentID());
+                //   inlineAttachments[idx]->setMessage(event->m_message);
+                // }
+                //
+            }
 
-                    auto json = callback->getJson();
-                    picojson::object& obj = json->get<picojson::object>();
-                    obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
+            if (!ret.IsError()) {
+                LoggerD("Calling success callback");
 
-                    picojson::object args;
-                    args[JSON_DATA_MESSAGE_BODY] = MessagingUtil::messageBodyToJson(
-                            callback->getMessage()->getBody());
-                    obj[JSON_DATA] = picojson::value(args);
+                auto json = callback->getJson();
+                picojson::object& obj = json->get<picojson::object>();
+                obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
 
-                    PostQueue::getInstance().resolve(
-                            obj.at(JSON_CALLBACK_ID).get<double>(),
-                            json->serialize()
-                    );
-                } catch (...) {
-                    LoggerW("Couldn't create JSMessage object!");
-                    throw common::UnknownException(
-                            "Couldn't create JSMessage object!");
-                }
+                picojson::object args;
+                args[JSON_DATA_MESSAGE_BODY] = MessagingUtil::messageBodyToJson(
+                        callback->getMessage()->getBody());
+                obj[JSON_DATA] = picojson::value(args);
 
-            } else if(NOTI_DOWNLOAD_BODY_FAIL == status) {
-                LoggerD("Load message body failed!");
-
-                common::UnknownException e("Load message body failed!");
-                callback->setError(e.name(), e.message());
                 PostQueue::getInstance().resolve(
-                        callback->getJson()->get<picojson::object>().at(JSON_CALLBACK_ID).get<double>(),
-                        callback->getJson()->serialize()
+                        obj.at(JSON_CALLBACK_ID).get<double>(),
+                        json->serialize()
                 );
             }
+        } else if(NOTI_DOWNLOAD_BODY_FAIL == status) {
+            LoggerD("Load message body failed!");
+            ret = PlatformResult(ErrorCode::UNKNOWN_ERR, "Load message body failed!");
         }
-    }
-    catch (const common::PlatformException& e) {
-        LoggerE("Exception in signal callback");
 
-        callback->setError(e.name(), e.message());
-        PostQueue::getInstance().resolve(
-                callback->getJson()->get<picojson::object>().at(JSON_CALLBACK_ID).get<double>(),
-                callback->getJson()->serialize()
-        );
-    }
-    catch (...) {
-        LoggerE("Exception in signal callback");
+        if (ret.IsError()) {
+            callback->setError(ret);
+            PostQueue::getInstance().resolve(
+                    callback->getJson()->get<picojson::object>().at(JSON_CALLBACK_ID).get<double>(),
+                    callback->getJson()->serialize()
+            );
+        }
 
-        common::UnknownException e("Load message body failed!");
-        callback->setError(e.name(), e.message());
-        PostQueue::getInstance().resolve(
-                callback->getJson()->get<picojson::object>().at(JSON_CALLBACK_ID).get<double>(),
-                callback->getJson()->serialize()
-        );
-    }
-
-    if(callback) {
         removeCallback(callback);
         delete callback;
     }

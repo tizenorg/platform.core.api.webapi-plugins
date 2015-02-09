@@ -35,6 +35,7 @@
 
 #include "common/callback_user_data.h"
 #include "common/platform_exception.h"
+#include "common/platform_result.h"
 
 #include "messaging_util.h"
 #include "message_service.h"
@@ -58,6 +59,7 @@ class MessageBodyCallbackData;
 class EmailManager {
 public:
     static EmailManager& getInstance();
+    static common::PlatformResult InitializeEmailService();
 
     void addDraftMessage(MessageCallbackUserData* callback);
     void removeMessages(MessagesCallbackUserData* callback);
@@ -67,14 +69,14 @@ public:
     void findFolders(FoldersCallbackData* callback);
     void removeConversations(ConversationCallbackData* callback);
 
-    void sendMessage(MessageRecipientsCallbackData* callback);
+    common::PlatformResult sendMessage(MessageRecipientsCallbackData* callback);
     void sendStatusCallback(int mail_id, email_noti_on_network_event status,
             int error_code);
     void removeStatusCallback(const std::vector<int> &ids,
             email_noti_on_storage_event status);
 
     void loadMessageBody(MessageBodyCallbackData* callback);
-    void loadMessageAttachment(MessageAttachmentCallbackData* callback);
+    common::PlatformResult loadMessageAttachment(MessageAttachmentCallbackData* callback);
 
     void sync(void* data);
     void syncFolder(SyncFolderCallbackData* callback);
@@ -95,12 +97,19 @@ private:
     EmailManager(const EmailManager &);
     void operator=(const EmailManager &);
     virtual ~EmailManager();
-    void addDraftMessagePlatform(int account_id,
+    common::PlatformResult addDraftMessagePlatform(int account_id,
         std::shared_ptr<Message> message);
-    void addOutboxMessagePlatform(int account_id,
+    common::PlatformResult addOutboxMessagePlatform(int account_id,
         std::shared_ptr<Message> message);
-    void addMessagePlatform(int account_id, std::shared_ptr<Message> message,
+    common::PlatformResult addMessagePlatform(int account_id, std::shared_ptr<Message> message,
         email_mailbox_type_e mailbox_type);
+    common::PlatformResult UpdateMessagesPlatform(MessagesCallbackUserData* callback);
+    common::PlatformResult RemoveMessagesPlatform(
+        MessagesCallbackUserData* callback);
+    common::PlatformResult FindMessagesPlatform(FindMsgCallbackUserData* callback);
+    common::PlatformResult FindConversationsPlatform(ConversationCallbackData* callback);
+    common::PlatformResult FindFoldersPlatform(FoldersCallbackData* callback);
+    common::PlatformResult RemoveConversationsPlatform(ConversationCallbackData* callback);
 
     typedef std::map<int, MessageRecipientsCallbackData*> SendReqMap;
     typedef SendReqMap::iterator SendReqMapIterator;
@@ -128,6 +137,7 @@ private:
     DBus::SendProxyPtr m_proxy_send;
 
     std::mutex m_mutex;
+    bool m_is_initialized;
 };
 
 } // Messaging

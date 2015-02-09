@@ -20,6 +20,7 @@
 #include "messaging_util.h"
 #include "message_body.h"
 #include "MsgCommon/AbstractFilter.h"
+#include "common/platform_result.h"
 
 namespace extension {
 namespace messaging {
@@ -51,6 +52,7 @@ public:
     int getConversationId() const;
     int getFolderId() const;
     MessageType getType() const;
+    std::string getTypeString() const;
     time_t getTimestamp() const;
     std::string getFrom() const;
     std::vector<std::string> getTO() const;
@@ -106,44 +108,48 @@ public:
     // service id
     bool is_service_is_set() const;
     // gets recipients list for SMS message
-    void addSMSRecipientsToStruct(const std::vector<std::string> &recipients,
+    common::PlatformResult addSMSRecipientsToStruct(const std::vector<std::string> &recipients,
             msg_struct_t &msg);
     // gets recipients list for SMS message
-    void addMMSRecipientsToStruct(const std::vector<std::string> &recipients,
+    common::PlatformResult addMMSRecipientsToStruct(const std::vector<std::string> &recipients,
             msg_struct_t &msg,
             int type);
     /**
      * Updates message with data from email_mail_data_t structure.
      * @param mail
      */
-    virtual void updateEmailMessage(email_mail_data_t& mail);
+    virtual common::PlatformResult updateEmailMessage(email_mail_data_t& mail);
 
     // gets from(sender) address from short msg struct
     static std::string getShortMsgSenderFromStruct(msg_struct_t &msg);
     // function for filling msg_struct_t fields
-    static msg_struct_t convertPlatformShortMessageToStruct(Message* message,
-            msg_handle_t handle);
+    static common::PlatformResult convertPlatformShortMessageToStruct(Message* message,
+            msg_handle_t handle, msg_struct_t* result);
     // gets recipients list for SMS message
-    std::vector<std::string> getSMSRecipientsFromStruct(msg_struct_t &msg);
+    common::PlatformResult getSMSRecipientsFromStruct(msg_struct_t &msg,
+                                              std::vector<std::string>* result_address);
     // gets recipients list for MMS message
-    static std::vector<std::string> getMMSRecipientsFromStruct(msg_struct_t &msg,
-            int type);
+    static common::PlatformResult getMMSRecipientsFromStruct(msg_struct_t &msg,
+            int type, std::vector<std::string>* result_address);
     // function for filling Message attributes
-    static Message* convertPlatformShortMessageToObject(msg_struct_t msg);
-    static std::shared_ptr<Message> findShortMessageById(const int id);
-    static void addMMSBodyAndAttachmentsToStruct(const AttachmentPtrVector attach,
+    static common::PlatformResult convertPlatformShortMessageToObject(msg_struct_t msg, Message** message);
+    static common::PlatformResult findShortMessageById(const int id, MessagePtr* message);
+    static common::PlatformResult addMMSBodyAndAttachmentsToStruct(const AttachmentPtrVector attach,
             msg_struct_t &mms_struct,
             Message* message);
-    static void setMMSBodyAndAttachmentsFromStruct(Message *message,
+    static common::PlatformResult setMMSBodyAndAttachmentsFromStruct(Message *message,
             msg_struct_t &msg);
 
-    static email_mail_data_t* convertPlatformEmail(std::shared_ptr<Message> message);
-    static void addEmailAttachments(std::shared_ptr<Message> message);
+    static common::PlatformResult convertPlatformEmail(std::shared_ptr<Message> message,
+                                                   email_mail_data_t** result);
+    static common::PlatformResult addEmailAttachments(std::shared_ptr<Message> message);
     static std::string convertEmailRecipients(const std::vector<std::string> &recipients);
     static std::vector<std::string> getEmailRecipientsFromStruct(const char *recipients);
-    static std::shared_ptr<Message> convertPlatformEmailToObject(email_mail_data_t& mail);
+    static common::PlatformResult convertPlatformEmailToObject(email_mail_data_t& mail,
+                                                               std::shared_ptr<Message>* result);
     static std::shared_ptr<MessageBody> convertEmailToMessageBody(email_mail_data_t& mail);
-    static AttachmentPtrVector convertEmailToMessageAttachment(email_mail_data_t& mail);
+    static common::PlatformResult convertEmailToMessageAttachment(email_mail_data_t& mail,
+                                                                  AttachmentPtrVector* result);
 
     // tizen::FilterableObject
     virtual bool isMatchingAttribute(const std::string& attribute_name,

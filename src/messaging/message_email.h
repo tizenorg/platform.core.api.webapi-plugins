@@ -29,7 +29,7 @@ public:
      * Updates message with data from email_mail_data_t structure.
      * @param mail
      */
-    virtual void updateEmailMessage(email_mail_data_t& mail);
+    virtual common::PlatformResult updateEmailMessage(email_mail_data_t& mail);
 
 private:
     // function that verifies recipient's list validity

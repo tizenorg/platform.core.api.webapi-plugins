@@ -23,7 +23,6 @@
 #define __TIZEN_TIZEN_COMPOSITE_FILTER_H__
 
 #include "AbstractFilter.h"
-//#include <JSArray.h>
 
 namespace extension {
 namespace tizen {
@@ -45,17 +44,11 @@ public:
     void setType(CompositeFilterType type);
     const AbstractFilterPtrVector& getFilters() const;
     void addFilter(const AbstractFilterPtr& filter);
-//    void setFilters(const AbstractFilterPtrVector &filter);
-//    JSFilterArray getJSFilters(JSContextRef ctx);
-//    JSContextRef getContext() const;
 
     virtual bool isMatching(const FilterableObject* const filtered_object) const;
 private:
     CompositeFilterType m_type;
     AbstractFilterPtrVector m_filters;
-//    JSContextRef m_context;
-//    std::shared_ptr<JSFilterArray> m_js_filters;
-
 };
 
 } //Tizen

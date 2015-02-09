@@ -13,12 +13,17 @@ namespace messaging {
 
 class MessageServiceShortMsg : public MessageService {
 public:
-    MessageServiceShortMsg(int id, MessageType msgType);
     virtual ~MessageServiceShortMsg();
 
-    void sendMessage(MessageRecipientsCallbackData *callback);
+    common::PlatformResult sendMessage(MessageRecipientsCallbackData *callback);
 
-    virtual void loadMessageBody(MessageBodyCallbackData *callback);
+    virtual common::PlatformResult loadMessageBody(MessageBodyCallbackData *callback);
+
+    static MessageServiceShortMsg* GetMmsMessageService();
+    static MessageServiceShortMsg* GetSmsMessageService();
+
+protected:
+    MessageServiceShortMsg(int id, MessageType msgType);
 };
 
 } // namespace messaging

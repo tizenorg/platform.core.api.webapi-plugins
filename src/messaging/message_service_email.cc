@@ -7,6 +7,9 @@
 
 #include "common/logger.h"
 
+using common::ErrorCode;
+using common::PlatformResult;
+
 namespace extension {
 namespace messaging {
 
@@ -25,35 +28,24 @@ MessageServiceEmail::~MessageServiceEmail()
 
 static gboolean sendMessageTask(void* data)
 {
-    LoggerD("Entered");
+  LoggerD("Entered");
 
-    try {
-        EmailManager::getInstance().sendMessage(
-                static_cast<MessageRecipientsCallbackData*>(data));
+  auto ret = EmailManager::getInstance().sendMessage(static_cast<MessageRecipientsCallbackData*>(data));
 
-    } catch(const common::PlatformException& exception) {
-        LoggerE("Unhandled exception: %s (%s)!", (exception.name()).c_str(),
-             (exception.message()).c_str());
-    } catch(...) {
-        LoggerE("Unhandled exception!");
-    }
+  if (!ret) {
+    LoggerE("Error: %d - %s", ret.error_code(), ret.message().c_str());
+  }
 
-    return FALSE;
+  return FALSE;
 }
 
-void MessageServiceEmail::sendMessage(MessageRecipientsCallbackData *callback)
+PlatformResult MessageServiceEmail::sendMessage(MessageRecipientsCallbackData *callback)
 {
     LoggerD("Entered");
 
     if (!callback) {
         LoggerE("Callback is null");
-        throw common::UnknownException("Callback is null");
-    }
-
-    if (m_msg_type != callback->getMessage()->getType()) {
-
-        LoggerE("Incorrect message type");
-        throw common::TypeMismatchException("Incorrect message type");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Callback is null");
     }
 
     callback->setAccountId(m_id);
@@ -62,215 +54,192 @@ void MessageServiceEmail::sendMessage(MessageRecipientsCallbackData *callback)
     if (!id) {
         LoggerE("g_idle_add fails");
         delete callback;
-        throw common::UnknownException("Could not add task");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not add task");
     }
+
+    return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 static gboolean loadMessageBodyTask(void* data)
 {
     LoggerD("Entered");
-    try {
-        EmailManager::getInstance().loadMessageBody(static_cast<MessageBodyCallbackData*>(data));
 
-    } catch(const common::PlatformException& exception) {
-        LoggerE("Unhandled exception: %s (%s)!", (exception.name()).c_str(),
-             (exception.message()).c_str());
-    } catch(...) {
-        LoggerE("Unhandled exception!");
-    }
+    EmailManager::getInstance().loadMessageBody(static_cast<MessageBodyCallbackData*>(data));
 
     return FALSE;
 }
 
-void MessageServiceEmail::loadMessageBody(MessageBodyCallbackData* callback)
+PlatformResult MessageServiceEmail::loadMessageBody(MessageBodyCallbackData* callback)
 {
     LoggerD("Entered");
     if (!callback) {
         LoggerE("Callback is null");
-        throw common::UnknownException("Callback is null");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Callback is null");
     }
 
     guint id = g_idle_add(loadMessageBodyTask, static_cast<void*>(callback));
     if (!id) {
         LoggerE("g_idle_add failed");
         delete callback;
-        throw common::UnknownException("Could not add task");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not add task");
     }
+
+    return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 static gboolean loadMessageAttachmentTask(void* data)
 {
-    LoggerD("Entered");
+  LoggerD("Entered");
 
-    try {
-        MessageAttachmentCallbackData *callback =
-                static_cast<MessageAttachmentCallbackData *>(data);
-        if (!callback) {
-            LoggerE("Callback is null");
-            throw common::UnknownException("Callback is null");
-        }
+  auto callback = static_cast<MessageAttachmentCallbackData*>(data);
 
-        std::shared_ptr<MessageAttachment> att =  callback->getMessageAttachment();
+  if (callback) {
+    auto att = callback->getMessageAttachment();
 
-        // if the attachment is already saved, then it doesn't need to load again.
-        if (att->isFilePathSet() && att->isSaved()){
-            auto json = callback->getJson();
-            picojson::object& obj = json->get<picojson::object>();
-            obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
+    // if the attachment is already saved, then it doesn't need to load again.
+    if (att->isFilePathSet() && att->isSaved()) {
+      auto json = callback->getJson();
+      picojson::object& obj = json->get<picojson::object>();
+      obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
 
-            picojson::object args;
-            args[JSON_DATA_MESSAGE_ATTACHMENT] = MessagingUtil::messageAttachmentToJson(
-                    callback->getMessageAttachment());
-            obj[JSON_DATA] = picojson::value(args);
+      if (json->contains(JSON_CALLBACK_ID) && obj.at(JSON_CALLBACK_ID).is<double>()) {
+        picojson::object args;
+        args[JSON_DATA_MESSAGE_ATTACHMENT] = MessagingUtil::messageAttachmentToJson(att);
+        obj[JSON_DATA] = picojson::value(args);
 
-            PostQueue::getInstance().resolve(
-                    obj.at(JSON_CALLBACK_ID).get<double>(),
-                    json->serialize()
-            );
+        PostQueue::getInstance().resolve(
+            obj.at(JSON_CALLBACK_ID).get<double>(),
+            json->serialize()
+        );
+      } else {
+        LoggerE("json is incorrect - missing required member");
+      }
+      delete callback;
+      callback = nullptr;
+    } else {
+      const auto ret = EmailManager::getInstance().loadMessageAttachment(callback);
 
-            delete callback;
-            callback = NULL;
-            return FALSE;
-        }
-
-        EmailManager::getInstance().loadMessageAttachment(
-                static_cast<MessageAttachmentCallbackData*>(data));
-    } catch(const common::PlatformException& exception) {
-        LoggerE("Unhandled exception: %s (%s)!", (exception.name()).c_str(),
-                (exception.message()).c_str());
-    } catch(...) {
-        LoggerE("Unhandled exception!");
+      if (!ret) {
+        LoggerE("Error: %d - %s", ret.error_code(), ret.message().c_str());
+      }
     }
-    return FALSE;
+  } else {
+    LoggerE("Callback is null");
+  }
+
+  return FALSE;
 }
 
-void MessageServiceEmail::loadMessageAttachment(MessageAttachmentCallbackData *callback)
+PlatformResult MessageServiceEmail::loadMessageAttachment(MessageAttachmentCallbackData *callback)
 {
-    LoggerD("Entered");
-    guint id = g_idle_add(loadMessageAttachmentTask, static_cast<void*>(callback));
-    if (!id) {
-        LoggerE("g_idle_add failed");
-        delete callback;
-        throw common::UnknownException("Could not add task");
-    }
+  LoggerD("Entered");
+  guint id = g_idle_add(loadMessageAttachmentTask, static_cast<void*>(callback));
+  if (!id) {
+    LoggerE("g_idle_add failed");
+    delete callback;
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not add task");
+  }
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 static gboolean syncTask(void* data)
 {
-    LoggerD("Entered");
+  LoggerD("Entered");
 
-    try {
-        EmailManager::getInstance().sync(data);
+  EmailManager::getInstance().sync(data);
 
-    } catch(const common::PlatformException& exception) {
-        LoggerE("Unhandled exception: %s (%s)!", (exception.name()).c_str(),
-             (exception.message()).c_str());
-    } catch(...) {
-        LoggerE("Unhandled exception!");
-    }
-
-    return FALSE;
+  return FALSE;
 }
 
-long MessageServiceEmail::sync(SyncCallbackData *callback)
+PlatformResult MessageServiceEmail::sync(SyncCallbackData *callback, long* operation_id)
 {
-    LoggerD("Entered");
-    if (!callback) {
-        LoggerE("Callback is null");
-        throw common::UnknownException("Callback is null");
-    }
+  LoggerD("Entered");
 
-    long op_id = EmailManager::getInstance().getUniqueOpId();
-    callback->setOpId(op_id);
+  if (!callback) {
+    LoggerE("Callback is null");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Callback is null");
+  }
 
-    guint id = g_idle_add(syncTask, static_cast<void*>(callback));
-    if (!id) {
-        LoggerE("g_idle_add failed");
-        delete callback;
-        throw common::UnknownException("Could not add task");
-    }
-    return op_id;
+  long op_id = EmailManager::getInstance().getUniqueOpId();
+  callback->setOpId(op_id);
+
+  guint id = g_idle_add(syncTask, static_cast<void*>(callback));
+  if (!id) {
+    LoggerE("g_idle_add failed");
+    delete callback;
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not add task");
+  }
+  *operation_id = op_id;
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 static gboolean syncFolderTask(void* data)
 {
     LoggerD("Entered");
 
-    try {
-        EmailManager::getInstance().syncFolder(
-                static_cast<SyncFolderCallbackData*>(data));
-
-    } catch(const common::PlatformException& exception) {
-        LoggerE("Unhandled exception: %s (%s)!", (exception.name()).c_str(),
-             (exception.message()).c_str());
-    } catch(...) {
-        LoggerE("Unhandled exception!");
-    }
+    EmailManager::getInstance().syncFolder(static_cast<SyncFolderCallbackData*>(data));
 
     return FALSE;
 }
 
-long MessageServiceEmail::syncFolder(SyncFolderCallbackData *callback)
+PlatformResult MessageServiceEmail::syncFolder(SyncFolderCallbackData *callback, long* operation_id)
 {
-    LoggerD("Entered");
-    if(!callback){
-        LoggerE("Callback is null");
-        throw common::UnknownException("Callback is null");
-    }
+  LoggerD("Entered");
+  if (!callback) {
+    LoggerE("Callback is null");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Callback is null");
+  }
 
-    if(!callback->getMessageFolder()) {
-        LoggerE("Message folder is null");
-        throw common::TypeMismatchException("Message folder is null");
-    }
+  if (!callback->getMessageFolder()) {
+    LoggerE("Message folder is null");
+    delete callback;
+    return PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, "Message folder is null");
+  }
 
-    long op_id = EmailManager::getInstance().getUniqueOpId();
-    callback->setOpId(op_id);
+  long op_id = EmailManager::getInstance().getUniqueOpId();
+  callback->setOpId(op_id);
 
-    guint id = g_idle_add(syncFolderTask, callback);
-    if (!id) {
-        LoggerE("g_idle_add fails");
-        delete callback;
-    }
-
-    return op_id;
+  guint id = g_idle_add(syncFolderTask, callback);
+  if (!id) {
+    LoggerE("g_idle_add fails");
+    delete callback;
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not add task");
+  }
+  *operation_id = op_id;
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 static gboolean stopSyncTask(void* data)
 {
-    LoggerD("Entered");
+  LoggerD("Entered");
 
-    try {
-        if (!data) {
-            LoggerE("opId is null");
-            return FALSE;
-        }
-
-        const long op_id = *(static_cast<long*>(data));
-        delete static_cast<long*>(data);
-        data = NULL;
-        EmailManager::getInstance().stopSync(op_id);
-
-    } catch(const common::PlatformException& exception) {
-        LoggerE("Unhandled exception: %s (%s)!", (exception.name()).c_str(),
-             (exception.message()).c_str());
-    } catch(...) {
-        LoggerE("Unhandled exception!");
-    }
-
+  if (!data) {
+    LoggerE("opId is null");
     return FALSE;
+  }
+
+  const long op_id = *(static_cast<long*>(data));
+  delete static_cast<long*>(data);
+  data = NULL;
+  EmailManager::getInstance().stopSync(op_id);
+
+  return FALSE;
 }
 
-void MessageServiceEmail::stopSync(long op_id)
+PlatformResult MessageServiceEmail::stopSync(long op_id)
 {
-    LoggerD("Entered");
-    long* data = new long(op_id);
-    guint id = g_idle_add(stopSyncTask, static_cast<void*>(data));
-    if (!id) {
-        LoggerE("g_idle_add failed");
-        delete data;
-        data = NULL;
-        throw common::UnknownException("Could not add task");
-    }
+  LoggerD("Entered");
+
+  long* data = new long(op_id);
+  guint id = g_idle_add(stopSyncTask, static_cast<void*>(data));
+
+  if (!id) {
+    LoggerE("g_idle_add failed");
+    delete data;
+    data = NULL;
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not add task");
+  }
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 } // messaging

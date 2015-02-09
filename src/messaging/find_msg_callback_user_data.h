@@ -29,6 +29,7 @@
 #include "MsgCommon/AttributeFilter.h"
 #include "MsgCommon/SortMode.h"
 #include "messaging_util.h"
+#include "common/platform_result.h"
 
 using namespace extension::tizen;
 
@@ -51,6 +52,7 @@ public:
 
     void setError(const std::string& err_name,
             const std::string& err_message);
+    void SetError(const common::PlatformResult& error);
     bool isError() const;
     std::string getErrorName() const;
     std::string getErrorMessage() const;

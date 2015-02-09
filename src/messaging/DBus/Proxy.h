@@ -29,7 +29,7 @@
 #include <map>
 #include "common/callback_user_data.h"
 #include "common/picojson.h"
-#include "common/platform_exception.h"
+#include "common/platform_result.h"
 #include "../messaging_instance.h"
 
 namespace extension {
@@ -56,7 +56,17 @@ public:
      * Name of email signal
      */
     static const char* DBUS_NAME_SIGNAL_EMAIL;
+    virtual ~Proxy();
+    bool isNotProxyGot() { return !m_proxy || m_error; };
 
+    void signalSubscribe();
+    void signalUnsubscribe();
+
+    const std::string& getSignalName() const;
+    const std::string& getSignalPath() const;
+    const std::string& getSignalInterfaceName() const;
+
+protected:
     /**
      * @param proxy_path - path of this proxy
      * @param proxy_iface - interface name of this proxy
@@ -70,17 +80,6 @@ public:
             const std::string& signal_name,
             const std::string& signal_path,
             const std::string& signal_iface);
-
-    virtual ~Proxy();
-
-    void signalSubscribe();
-    void signalUnsubscribe();
-
-    const std::string& getSignalName() const;
-    const std::string& getSignalPath() const;
-    const std::string& getSignalInterfaceName() const;
-
-protected:
     /**
      * Please implement this method in subclass to handle signal.
      * Executed by static void signalCallbackProxy(...).
@@ -98,6 +97,7 @@ private:
      * DBus when signal is received. It calls
      * (static_cast<Proxy*>(user_data))->signalCallback(...)
      */
+
     static void signalCallbackProxy(GDBusConnection *connection,
             const gchar *sender_name,
             const gchar *object_path,

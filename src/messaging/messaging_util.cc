@@ -20,8 +20,12 @@
 #include "common/logger.h"
 #include "common/platform_exception.h"
 
+using common::ErrorCode;
+using common::PlatformResult;
+
 namespace extension {
 namespace messaging {
+using namespace common;
 
 const char* JSON_ACTION = "action";
 const char* JSON_CALLBACK_ID = "cid";
@@ -36,6 +40,7 @@ const char* JSON_DATA_MESSAGE_ATTACHMENT = "messageAttachment";
 const char* JSON_DATA_RECIPIENTS = "recipients";
 const char* JSON_ERROR_MESSAGE = "message";
 const char* JSON_ERROR_NAME = "name";
+const char* JSON_ERROR_CODE = "code";
 
 const char* MESSAGE_ATTRIBUTE_ID = "id";
 const char* MESSAGE_ATTRIBUTE_OLD_ID = "oldId";
@@ -169,28 +174,37 @@ MessageFolderType MessagingUtil::stringToMessageFolderType(std::string type)
     return MessageFolderType::MESSAGE_FOLDER_TYPE_NOTSTANDARD;
 }
 
-MessageType MessagingUtil::stringToMessageType(std::string str)
+PlatformResult MessagingUtil::stringToMessageType(const std::string& str, MessageType* out)
 {
-    try {
-        return stringToTypeMap.at(str);
-    }
-    catch (const std::out_of_range& e) {
-        std::string exceptionMsg = "Not supported type: ";
-        exceptionMsg += str;
-        LoggerE("%s", exceptionMsg.c_str());
-        throw common::TypeMismatchException(exceptionMsg.c_str());
-    }
+  const auto it = stringToTypeMap.find(str);
+
+  if (it == stringToTypeMap.end()) {
+    LoggerE("Not supported type: %s", str.c_str());
+    return PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, "Not supported type: " + str);
+  } else {
+    *out = it->second;
+    return PlatformResult(ErrorCode::NO_ERROR);
+  }
 }
 
-std::string MessagingUtil::messageTypeToString(MessageType type)
+common::PlatformResult MessagingUtil::messageTypeToString(MessageType type, std::string* out)
 {
-    try {
-        return typeToStringMap.at(type);
-    }
-    catch (const std::out_of_range& e) {
-        LoggerE("Invalid MessageType");
-        throw common::TypeMismatchException("Invalid MessageType");
-    }
+  const auto it = typeToStringMap.find(type);
+
+  if (it == typeToStringMap.end()) {
+    LoggerE("Invalid MessageType: %d", type);
+    return PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, "Invalid MessageType");
+  } else {
+    *out = it->second;
+    return PlatformResult(ErrorCode::NO_ERROR);
+  }
+}
+
+std::string MessagingUtil::messageTypeToString(MessageType type) {
+  std::string type_str;
+  PlatformResult platform_result = messageTypeToString(type, &type_str);
+  assert(platform_result);
+  return type_str;
 }
 
 std::string MessagingUtil::ltrim(const std::string& input)
@@ -238,7 +252,7 @@ std::vector<std::string> MessagingUtil::extractEmailAddresses(
     return extractedAddresses;
 }
 
-std::string MessagingUtil::loadFileContentToString(const std::string& file_path)
+PlatformResult MessagingUtil::loadFileContentToString(const std::string& file_path, std::string* result)
 {
     std::ifstream input_file;
     input_file.open(file_path, std::ios::in);
@@ -252,12 +266,13 @@ std::string MessagingUtil::loadFileContentToString(const std::string& file_path)
         outString.assign((std::istreambuf_iterator<char>(input_file)),
                 std::istreambuf_iterator<char>());
         input_file.close();
-        return outString;
+        *result = outString;
     } else {
         std::stringstream ss_error_msg;
         ss_error_msg << "Failed to open file: " << file_path;
-        throw common::IOException(ss_error_msg.str().c_str());
+        return PlatformResult(ErrorCode::IO_ERR, ss_error_msg.str().c_str());
     }
+    return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 std::string MessagingUtil::messageStatusToString(MessageStatus status) {
@@ -352,8 +367,7 @@ picojson::value MessagingUtil::messageToJson(std::shared_ptr<Message> message)
             message->is_folder_id_set()
             ? picojson::value(std::to_string(message->getFolderId()))
             : picojson::value();
-    o[MESSAGE_ATTRIBUTE_TYPE] =
-            picojson::value(MessagingUtil::messageTypeToString(message->getType()));
+    o[MESSAGE_ATTRIBUTE_TYPE] = picojson::value(message->getTypeString());
     o[MESSAGE_ATTRIBUTE_TIMESTAMP] =
             message->is_timestamp_set()
             ? picojson::value(static_cast<double>(message->getTimestamp()))
@@ -398,8 +412,7 @@ picojson::value MessagingUtil::conversationToJson(std::shared_ptr<MessageConvers
 
     o[MESSAGE_CONVERSATION_ATTRIBUTE_ID] = picojson::value(std::to_string(conversation->getConversationId()));
 
-    o[MESSAGE_CONVERSATION_ATTRIBUTE_TYPE] =
-            picojson::value(MessagingUtil::messageTypeToString(conversation->getType()));
+    o[MESSAGE_CONVERSATION_ATTRIBUTE_TYPE] = picojson::value(conversation->getTypeString());
 
     o[MESSAGE_CONVERSATION_ATTRIBUTE_TIMESTAMP] =
             picojson::value(static_cast<double>(conversation->getTimestamp()));
@@ -481,13 +494,19 @@ picojson::value MessagingUtil::folderToJson(std::shared_ptr<MessageFolder> folde
     return v;
 }
 
-std::shared_ptr<Message> MessagingUtil::jsonToMessage(const picojson::value& json)
+PlatformResult MessagingUtil::jsonToMessage(const picojson::value& json,
+                                            std::shared_ptr<Message>* result_message)
 {
     LoggerD("Entered");
     std::shared_ptr<Message> message;
     picojson::object data = json.get<picojson::object>();
     std::string type = data.at("type").get<std::string>();
-    MessageType mtype = MessagingUtil::stringToMessageType(type);
+    MessageType mtype = UNDEFINED;
+    auto platform_result = MessagingUtil::stringToMessageType(type, &mtype);
+
+    if (!platform_result) {
+      return platform_result;
+    }
 
     switch (mtype) {
     case MessageType::SMS:
@@ -503,7 +522,8 @@ std::shared_ptr<Message> MessagingUtil::jsonToMessage(const picojson::value& jso
         } else {
             std::string mid = data.at(MESSAGE_ATTRIBUTE_ID).get<std::string>();
             int message_id = std::atoi(mid.c_str());
-            message = Message::findShortMessageById(message_id);
+            platform_result = Message::findShortMessageById(message_id, &message);
+            if (!platform_result) return platform_result;
         }
         break;
     case MessageType::EMAIL:
@@ -514,10 +534,12 @@ std::shared_ptr<Message> MessagingUtil::jsonToMessage(const picojson::value& jso
             if (EMAIL_ERROR_NONE != email_get_mail_data(mail_id, &mail)) {
                 // TODO what should happen?
                 LoggerE("Fatal error: message not found: %d!", mail_id);
-                throw common::TypeMismatchException("Failed to find specified email.");
+                return PlatformResult(ErrorCode::TYPE_MISMATCH_ERR,
+                                      "Failed to find specified email.");
             } else {
-                message = Message::convertPlatformEmailToObject(*mail);
+                platform_result = Message::convertPlatformEmailToObject(*mail, &message);
                 email_free_mail_data(&mail,1);
+                if (!platform_result) return platform_result;
             }
         } else {
             message = std::shared_ptr<Message>(new MessageEmail());
@@ -579,8 +601,8 @@ std::shared_ptr<Message> MessagingUtil::jsonToMessage(const picojson::value& jso
     for_each(ma.begin(), ma.end(), arrayVectorAttachmentConverter);
     message->setMessageAttachments(attachments);
 
-    return message;
-
+    *result_message = message;
+    return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 std::shared_ptr<MessageBody> MessagingUtil::jsonToMessageBody(const picojson::value& json)
@@ -672,12 +694,10 @@ tizen::SortModePtr MessagingUtil::jsonToSortMode(const picojson::object& json)
     LoggerD("Entered");
     using namespace tizen;
 
-    try{
-        if (json.at(JSON_TO_SORT).is<picojson::null>()) {
-            return SortModePtr();
-        }
-    } catch(const std::out_of_range& e){
-        return SortModePtr();
+    const auto it = json.find(JSON_TO_SORT);
+
+    if (json.end() == it || it->second.is<picojson::null>()) {
+      return SortModePtr();
     }
 
     auto dataSort = getValueFromJSONObject<picojson::object>(json, JSON_TO_SORT);
@@ -687,39 +707,43 @@ tizen::SortModePtr MessagingUtil::jsonToSortMode(const picojson::object& json)
     return SortModePtr(new SortMode(name, order));
 }
 
-tizen::AbstractFilterPtr MessagingUtil::jsonToAbstractFilter(const picojson::object& json)
+PlatformResult MessagingUtil::jsonToAbstractFilter(const picojson::object& json,
+                                                   tizen::AbstractFilterPtr* result)
 {
     LoggerD("Entered");
 
     const auto it = json.find(JSON_TO_FILTER);
 
     if (json.end() == it || it->second.is<picojson::null>()) {
-        return AbstractFilterPtr();
+        *result = AbstractFilterPtr();
+        return PlatformResult(ErrorCode::NO_ERROR);
     }
 
-    return jsonFilterToAbstractFilter(json.at(JSON_TO_FILTER).get<picojson::object>());
+    return jsonFilterToAbstractFilter(json.at(JSON_TO_FILTER).get<picojson::object>(), result);
 }
 
-tizen::AbstractFilterPtr MessagingUtil::jsonFilterToAbstractFilter(const picojson::object& filter)
+PlatformResult MessagingUtil::jsonFilterToAbstractFilter(const picojson::object& filter,
+                                                         tizen::AbstractFilterPtr* result)
 {
     const auto& type = filter.at(JSON_FILTER_TYPE).get<std::string>();
 
     if (JSON_FILTER_ATTRIBUTE_TYPE == type) {
-        return jsonFilterToAttributeFilter(filter);
+
+        return jsonFilterToAttributeFilter(filter, result);
     }
     if (JSON_FILTER_ATTRIBUTE_RANGE_TYPE == type) {
-        return jsonFilterToAttributeRangeFilter(filter);
+        return jsonFilterToAttributeRangeFilter(filter, result);
     }
     if (JSON_FILTER_COMPOSITE_TYPE == type) {
-        return jsonFilterToCompositeFilter(filter);
+        return jsonFilterToCompositeFilter(filter, result);
     }
 
     LoggerE("Unsupported filter type: %s", type.c_str());
-    throw common::TypeMismatchException("Unsupported filter type");
-    return AbstractFilterPtr();
+    return PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, "Unsupported filter type");
 }
 
-tizen::AttributeFilterPtr MessagingUtil::jsonFilterToAttributeFilter(const picojson::object& filter)
+PlatformResult MessagingUtil::jsonFilterToAttributeFilter(const picojson::object& filter,
+                                                          tizen::AbstractFilterPtr* result)
 {
     LoggerD("Entered");
 
@@ -750,29 +774,33 @@ tizen::AttributeFilterPtr MessagingUtil::jsonFilterToAttributeFilter(const picoj
     }
     else {
         LoggerE("Filter name is not recognized: %s", matchFlagStr.c_str());
-        throw common::TypeMismatchException("Filter name is not recognized");
+        return PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, "Filter name is not recognized");
     }
 
-    auto attributePtr = AttributeFilterPtr(new AttributeFilter(name));
+    auto attributePtr = new AttributeFilter(name);
     attributePtr->setMatchFlag(filterMatch);
     attributePtr->setMatchValue(AnyPtr(new Any(filter.at(JSON_TO_MATCH_VALUE))));
-    return attributePtr;
+    (*result).reset(attributePtr);
+    return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-tizen::AttributeRangeFilterPtr MessagingUtil::jsonFilterToAttributeRangeFilter(const picojson::object& filter)
+PlatformResult MessagingUtil::jsonFilterToAttributeRangeFilter(const picojson::object& filter,
+                                                       tizen::AbstractFilterPtr* result)
 {
     LoggerD("Entered");
 
     auto name = getValueFromJSONObject<std::string>(filter, JSON_TO_ATTRIBUTE_NAME);
 
-    auto attributeRangePtr = tizen::AttributeRangeFilterPtr(new tizen::AttributeRangeFilter(name));
+    auto attributeRangePtr = new tizen::AttributeRangeFilter(name);
     attributeRangePtr->setInitialValue(AnyPtr(new Any(filter.at(JSON_TO_INITIAL_VALUE))));
     attributeRangePtr->setEndValue(AnyPtr(new Any(filter.at(JSON_TO_END_VALUE))));
 
-    return  attributeRangePtr;
+    (*result).reset(attributeRangePtr);
+    return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-tizen::CompositeFilterPtr MessagingUtil::jsonFilterToCompositeFilter(const picojson::object& filter)
+PlatformResult MessagingUtil::jsonFilterToCompositeFilter(const picojson::object& filter,
+                                                          tizen::AbstractFilterPtr* result)
 {
     LoggerD("Entered");
 
@@ -790,16 +818,21 @@ tizen::CompositeFilterPtr MessagingUtil::jsonFilterToCompositeFilter(const picoj
     }
     else {
         LoggerE("Composite filter type is not recognized: %s", type.c_str());
-        throw common::TypeMismatchException("Composite filter type is not recognized");
+        return PlatformResult(ErrorCode::TYPE_MISMATCH_ERR,
+                              "Composite filter type is not recognized");
     }
 
-    CompositeFilterPtr compositeFilter{new CompositeFilter(filterType)};
+    auto compositeFilter = new CompositeFilter(filterType);
 
     for (const auto& a : filter.at(JSON_TO_FILTER_ARRAY).get<picojson::array>()) {
-        compositeFilter->addFilter(jsonFilterToAbstractFilter(a.get<picojson::object>()));
+      AbstractFilterPtr filter;
+      PlatformResult ret = jsonFilterToAbstractFilter(a.get<picojson::object>(), &filter);
+      if (ret.IsError()) return ret;
+      compositeFilter->addFilter(filter);
     }
 
-    return compositeFilter;
+    (*result).reset(compositeFilter);
+    return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 std::shared_ptr<MessageAttachment> MessagingUtil::jsonToMessageAttachment(const picojson::value& json)
@@ -853,13 +886,17 @@ picojson::value MessagingUtil::messageAttachmentToJson(std::shared_ptr<MessageAt
     return picojson::value(o);
 }
 
-std::shared_ptr<MessageConversation> MessagingUtil::jsonToMessageConversation(const picojson::value& json)
+PlatformResult MessagingUtil::jsonToMessageConversation(const picojson::value& json,
+                                        std::shared_ptr<MessageConversation>* result_conversation)
 {
     LoggerD("Entered");
     std::shared_ptr<MessageConversation> conversation;
     picojson::object data = json.get<picojson::object>();
     std::string type = data.at("type").get<std::string>();
-    MessageType mtype = MessagingUtil::stringToMessageType(type);
+    MessageType mtype = UNDEFINED;
+    auto platform_result = MessagingUtil::stringToMessageType(type, &mtype);
+
+    if (!platform_result) return platform_result;
 
     conversation = std::shared_ptr<MessageConversation>(new MessageConversation());
 
@@ -920,7 +957,8 @@ std::shared_ptr<MessageConversation> MessagingUtil::jsonToMessageConversation(co
         MESSAGE_CONVERSATION_ATTRIBUTE_LAST_MESSAGE_ID).c_str());
     conversation->setLastMessageId(lastMessageId);
 
-    return conversation;
+    *result_conversation = conversation;
+    return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 PostQueue& PostQueue::getInstance()

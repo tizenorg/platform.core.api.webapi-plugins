@@ -10,6 +10,7 @@
 #include <string>
 
 #include "message_attachment.h"
+#include "common/platform_result.h"
 
 namespace extension {
 namespace messaging {
@@ -41,7 +42,7 @@ public:
      * Updates body with data from email_mail_data_t structure.
      * @param mail
      */
-    void updateBody(email_mail_data_t& mail);
+    common::PlatformResult updateBody(email_mail_data_t& mail);
 
 private:
     int m_messageId;

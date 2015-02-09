@@ -20,6 +20,9 @@
 
 //using namespace DeviceAPI::Common;
 
+using common::ErrorCode;
+using common::PlatformResult;
+
 namespace extension {
 namespace messaging {
 
@@ -38,29 +41,22 @@ MessageServiceShortMsg::~MessageServiceShortMsg()
 
 static gboolean sendMessageThread(void* data)
 {
-    LoggerD("Entered");
+  LoggerD("Entered");
 
-    auto callback = static_cast<MessageRecipientsCallbackData *>(data);
-    if (!callback) {
-        LoggerE("Callback is null");
-        throw common::UnknownException("Callback is null");
-    }
+  auto ret = ShortMsgManager::getInstance().sendMessage(static_cast<MessageRecipientsCallbackData*>(data));
 
-    // TODO
-    ShortMsgManager::getInstance().sendMessage(callback);
-    return FALSE;
+  if (!ret) {
+    LoggerE("Error: %d - %s", ret.error_code(), ret.message().c_str());
+  }
+
+  return FALSE;
 }
 
-void MessageServiceShortMsg::sendMessage(MessageRecipientsCallbackData *callback)
+PlatformResult MessageServiceShortMsg::sendMessage(MessageRecipientsCallbackData *callback)
 {
     if (!callback) {
         LoggerE("Callback is null");
-        throw common::UnknownException("Callback is null");
-    }
-
-    if (m_msg_type != callback->getMessage()->getType()) {
-        LoggerE("Incorrect message type");
-        throw common::TypeMismatchException("Incorrect message type");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Callback is null");
     }
 
     /*
@@ -100,7 +96,8 @@ void MessageServiceShortMsg::sendMessage(MessageRecipientsCallbackData *callback
 
         if (sim_index >= sim_count) {
             LoggerE("Sim index out of count %d : %d", sim_index, sim_count);
-            throw common::InvalidValuesException("The index of sim is out of bound");
+            delete callback;
+            return PlatformResult(ErrorCode::INVALID_VALUES_ERR, "The index of sim is out of bound");
         }
 
         callback->getMessage()->setSimIndex(sim_index);
@@ -110,8 +107,11 @@ void MessageServiceShortMsg::sendMessage(MessageRecipientsCallbackData *callback
 
     if(!g_idle_add(sendMessageThread, static_cast<void*>(callback))) {
         LoggerE("g_idle_add fails");
-        throw common::UnknownException("Could not add task");
+        delete callback;
+        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not add task");
     }
+
+    return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 static gboolean loadMessageBodyTask(void* data)
@@ -123,50 +123,51 @@ static gboolean loadMessageBodyTask(void* data)
         return FALSE;
     }
 
-    try {
-        std::shared_ptr<MessageBody> body = callback->getMessage()->getBody();
-        auto json = callback->getJson();
-        picojson::object& obj = json->get<picojson::object>();
-        obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
+    std::shared_ptr<MessageBody> body = callback->getMessage()->getBody();
+    auto json = callback->getJson();
+    picojson::object& obj = json->get<picojson::object>();
+    obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
 
-        picojson::object args;
-        args[JSON_DATA_MESSAGE_BODY] = MessagingUtil::messageBodyToJson(body);
-        obj[JSON_DATA] = picojson::value(args);
+    if (json->contains(JSON_CALLBACK_ID) && obj.at(JSON_CALLBACK_ID).is<double>()) {
+      picojson::object args;
+      args[JSON_DATA_MESSAGE_BODY] = MessagingUtil::messageBodyToJson(body);
+      obj[JSON_DATA] = picojson::value(args);
 
-        PostQueue::getInstance().resolve(
-                obj.at(JSON_CALLBACK_ID).get<double>(),
-                json->serialize()
-        );
-    } catch (...) {
-        LoggerE("Couldn't create JSMessage object!");
-        common::UnknownException e("Loade message body failed");
-        callback->setError(e.name(), e.message());
-        PostQueue::getInstance().resolve(
-                callback->getJson()->get<picojson::object>().at(JSON_CALLBACK_ID).get<double>(),
-                callback->getJson()->serialize()
-        );
+      PostQueue::getInstance().resolve(
+          obj.at(JSON_CALLBACK_ID).get<double>(),
+          json->serialize()
+      );
+    } else {
+      LoggerE("json is incorrect - missing required member");
     }
-
     return FALSE;
 }
 
-void MessageServiceShortMsg::loadMessageBody(MessageBodyCallbackData *callback)
+PlatformResult MessageServiceShortMsg::loadMessageBody(MessageBodyCallbackData *callback)
 {
     if (!callback) {
         LoggerE("Callback is null");
-        throw common::UnknownException("Callback is null");
-    }
-
-    if (m_msg_type != callback->getMessage()->getType()) {
-        LoggerE("Incorrect message type");
-        throw common::TypeMismatchException("Incorrect message type");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Callback is null");
     }
 
     guint id = g_idle_add(loadMessageBodyTask, static_cast<void*>(callback));
     if (!id) {
         LoggerE("g_idle_add fails");
-        throw common::UnknownException("Could not add task");
+        delete callback;
+        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not add task");
     }
+
+    return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+MessageServiceShortMsg* MessageServiceShortMsg::GetMmsMessageService() {
+  return new (std::nothrow) MessageServiceShortMsg(
+      MessageServiceAccountId::MMS_ACCOUNT_ID, MessageType::MMS);
+}
+
+MessageServiceShortMsg* MessageServiceShortMsg::GetSmsMessageService() {
+  return new (std::nothrow) MessageServiceShortMsg(
+      MessageServiceAccountId::SMS_ACCOUNT_ID, MessageType::SMS);
 }
 
 } // namespace messaging

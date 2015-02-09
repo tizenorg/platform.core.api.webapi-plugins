@@ -16,12 +16,12 @@ public:
     MessageServiceEmail(int id, std::string name);
     virtual ~MessageServiceEmail();
 
-    virtual void sendMessage(MessageRecipientsCallbackData *callback);
-    virtual void loadMessageBody(MessageBodyCallbackData* callback);
-    virtual void loadMessageAttachment(MessageAttachmentCallbackData* callback);
-    virtual long sync(SyncCallbackData *callback);
-    virtual long syncFolder(SyncFolderCallbackData *callback);
-    virtual void stopSync(long op_id);
+    virtual common::PlatformResult sendMessage(MessageRecipientsCallbackData *callback);
+    virtual common::PlatformResult loadMessageBody(MessageBodyCallbackData* callback);
+    virtual common::PlatformResult loadMessageAttachment(MessageAttachmentCallbackData* callback);
+    virtual common::PlatformResult sync(SyncCallbackData *callback, long* operation_id);
+    virtual common::PlatformResult syncFolder(SyncFolderCallbackData *callback, long* operation_id);
+    virtual common::PlatformResult stopSync(long op_id);
 };
 
 } // messaging

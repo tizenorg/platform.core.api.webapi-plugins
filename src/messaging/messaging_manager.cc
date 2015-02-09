@@ -21,6 +21,9 @@
 #include "short_message_manager.h"
 #include "messaging_util.h"
 
+using common::ErrorCode;
+using common::PlatformResult;
+
 namespace extension {
 namespace messaging {
 
@@ -82,135 +85,144 @@ static gboolean callbackCompleted(const std::shared_ptr<MsgManagerCallbackData>&
 
 static void* getMsgServicesThread(const std::shared_ptr<MsgManagerCallbackData>& user_data)
 {
-    LoggerD("Entered");
+  LoggerD("Entered");
 
-    std::shared_ptr<picojson::value> response = user_data->json;
-    picojson::object& obj = response->get<picojson::object>();
-    MessageType type = MessageType::UNDEFINED;
-    try {
-        type = MessagingUtil::stringToMessageType(response->get(JSON_DATA).get<std::string>());
+  std::shared_ptr<picojson::value> response = user_data->json;
+  picojson::object& obj = response->get<picojson::object>();
+  MessageType type = MessageType::UNDEFINED;
 
-        std::vector<MessageService*> msgServices;
-        MessageService* messageService = NULL;
-        email_account_t* email_accounts = NULL;
-        int count = 0;
-        bool isSupported = false;
-        switch (type) {
-        case MessageType::SMS:
-            LoggerD("MessageService for SMS");
-            {
-                if (user_data->sms_service->second) delete user_data->sms_service->second;
+  auto platform_result = MessagingUtil::stringToMessageType(response->get(JSON_DATA).get<std::string>(), &type);
 
-                MessageService* service = new(std::nothrow) MessageServiceShortMsg(
-                        MessageServiceAccountId::SMS_ACCOUNT_ID,
-                        MessageType::SMS);
-                if (!service) {
-                    LoggerE("MessageService for SMS creation failed");
-                    throw common::UnknownException("MessageService for SMS creation failed");
-                }
-                *(user_data->sms_service) = std::make_pair(service->getMsgServiceId(), service);
+  if (platform_result) {
+    switch (type) {
+      case MessageType::SMS:
+        LoggerD("MessageService for SMS");
+        {
+          if (user_data->sms_service->second) {
+            delete user_data->sms_service->second;
+          }
 
-                // TODO FIXME
-                picojson::array array;
-                array.push_back(picojson::value(service->toPicoJS()));
-                obj[JSON_DATA] = picojson::value(array);
-                obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
+          MessageService* service = MessageServiceShortMsg::GetSmsMessageService();
 
-                service = NULL;
-            }
-            break;
-        case MessageType::MMS:
-            LoggerD("MessageService for MMS");
-            {
-                if (user_data->mms_service->second) {
-                    delete user_data->mms_service->second;
-                }
+          if (!service) {
+            LoggerE("MessageService for SMS creation failed");
+            platform_result = PlatformResult(ErrorCode::UNKNOWN_ERR, "MessageService for SMS creation failed");
+          } else {
+            *(user_data->sms_service) = std::make_pair(service->getMsgServiceId(), service);
 
-                MessageService* service = new(std::nothrow) MessageServiceShortMsg(
-                        MessageServiceAccountId::MMS_ACCOUNT_ID,
-                        MessageType::MMS);
-                if (!service) {
-                    LoggerE("MessageService for MMS creation failed");
-                    throw common::UnknownException("MessageService for MMS creation failed");
-                }
-                *(user_data->mms_service) = std::make_pair(service->getMsgServiceId(), service);
+            // TODO FIXME
+            picojson::array array;
+            array.push_back(picojson::value(service->toPicoJS()));
+            obj[JSON_DATA] = picojson::value(array);
+            obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
 
-                picojson::array array;
-                array.push_back(picojson::value(service->toPicoJS()));
-                obj[JSON_DATA] = picojson::value(array);
-                obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
-
-                service = NULL;
-            }
-            break;
-        case MessageType::EMAIL:
-                // TODO FIXME need to work on readability of that case
-                if (email_get_account_list(&email_accounts, &count) != EMAIL_ERROR_NONE) {
-                    LoggerE("Method failed: email_get_account_list()");
-                    throw common::UnknownException("Error during getting account list");
-                }
-                else {
-                    std::stringstream stream_name;
-                    for (int i = 0; i < count; ++i) {
-                        stream_name << "[" << email_accounts[i].account_name
-                                << "] "
-                                << email_accounts[i].incoming_server_user_name;
-                        LoggerD("Account[%d/%d] id: %d, name: %s", i,
-                                count, email_accounts[i].account_id, stream_name.str().c_str());
-
-                        messageService = new (std::nothrow) MessageServiceEmail(
-                                email_accounts[i].account_id, stream_name.str());
-                        if (!messageService) {
-                            LoggerD("message service[%d] is NULL", i);
-                            unsigned int count_srvcs = msgServices.size();
-                            for (unsigned int j = 0; j < count_srvcs; ++j) {
-                                delete msgServices.at(j);
-                            }
-                            msgServices.clear();
-                            LoggerE("MessageService for email creation failed");
-                            throw common::UnknownException("MessageService for email creation failed");
-                            break;
-                        }
-                        else {
-                            msgServices.push_back(messageService);
-                        }
-                        messageService = NULL;
-                        stream_name.str("");
-                    }
-
-                    std::map<int, MessageService*>& email_services = *(user_data->services_map);
-                    std::for_each(email_services.begin(), email_services.end(),
-                            [](std::pair<int, MessageService*> el) {
-                                delete el.second;
-                        }
-                    );
-                    email_services.clear();
-
-                    std::vector<picojson::value> response;
-                    std::for_each(msgServices.begin(), msgServices.end(),
-                        [&response, &email_services](MessageService* service) {
-                              response.push_back(picojson::value(service->toPicoJS()));
-                              email_services.insert(
-                                      std::pair<int, MessageService*>(
-                                              service->getMsgServiceId(),
-                                              service));
-                        }
-                    );
-                    obj[JSON_DATA] = picojson::value(response);
-                    obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
-                }
-                break;
-        default:
-            LoggerE("Unsupported services type");
-            throw common::UnknownException("Unsupported services type");
+            // service is stored, so it cannot be deleted
+            service = nullptr;
+          }
         }
-    } catch(const common::PlatformException& e) {
-          LoggerE("Unknown error");
-          obj[JSON_DATA] = e.ToJSON();
-          obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_ERROR);
-    }
+        break;
 
-    return nullptr;
+      case MessageType::MMS:
+        LoggerD("MessageService for MMS");
+        {
+          if (user_data->mms_service->second) {
+            delete user_data->mms_service->second;
+          }
+
+          MessageService* service = MessageServiceShortMsg::GetMmsMessageService();
+
+          if (!service) {
+            LoggerE("MessageService for MMS creation failed");
+            platform_result = PlatformResult(ErrorCode::UNKNOWN_ERR, "MessageService for SMS creation failed");
+          } else {
+            *(user_data->mms_service) = std::make_pair(service->getMsgServiceId(), service);
+
+            picojson::array array;
+            array.push_back(picojson::value(service->toPicoJS()));
+            obj[JSON_DATA] = picojson::value(array);
+            obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
+
+            // service is stored, so it cannot be deleted
+            service = nullptr;
+          }
+        }
+        break;
+
+      case MessageType::EMAIL:
+        LoggerD("MessageService for EMAIL");
+        {
+          email_account_t* email_accounts = nullptr;
+          int count = 0;
+
+          // TODO FIXME need to work on readability of that case
+          if (email_get_account_list(&email_accounts, &count) != EMAIL_ERROR_NONE) {
+            LoggerE("Method failed: email_get_account_list()");
+            platform_result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Error during getting account list");
+          } else {
+            std::vector<MessageService*> msgServices;
+
+            for (int i = 0; i < count && platform_result; ++i) {
+              std::string name = "[";
+              name += email_accounts[i].account_name;
+              name += "] ";
+              name += email_accounts[i].incoming_server_user_name;
+              LoggerD("Account[%d/%d] id: %d, name: %s", i, count,
+                      email_accounts[i].account_id, name.c_str());
+
+              MessageService* service = new (std::nothrow) MessageServiceEmail(email_accounts[i].account_id,
+                                                                               name.c_str());
+              if (!service) {
+                LoggerD("message service[%d] is NULL", i);
+                std::for_each(msgServices.begin(), msgServices.end(),
+                              [](MessageService* service) {
+                                delete service;
+                              });
+                msgServices.clear();
+                LoggerE("MessageService for email creation failed");
+                platform_result = PlatformResult(ErrorCode::UNKNOWN_ERR, "MessageService for email creation failed");
+              } else {
+                msgServices.push_back(service);
+              }
+
+              // service is stored, so it cannot be deleted
+              service = nullptr;
+            }
+
+            email_free_account(&email_accounts, count);
+
+            if (platform_result) {
+              std::map<int, MessageService*>& email_services = *(user_data->services_map);
+              std::for_each(email_services.begin(), email_services.end(),
+                            [](std::pair<int, MessageService*> el) {
+                              delete el.second;
+                            });
+              email_services.clear();
+
+              std::vector<picojson::value> response;
+              std::for_each(msgServices.begin(), msgServices.end(),
+                            [&response, &email_services](MessageService* service) {
+                              response.push_back(picojson::value(service->toPicoJS()));
+                              email_services.insert(std::pair<int, MessageService*>(service->getMsgServiceId(), service));
+                            });
+              obj[JSON_DATA] = picojson::value(response);
+              obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
+            }
+          }
+        }
+        break;
+    }
+  } else {
+    LoggerE("Unsupported service type");
+    platform_result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Unsupported service type");
+  }
+
+  if (!platform_result) {
+    LoggerE("Unknown error");
+    obj[JSON_DATA] = platform_result.ToJSON();
+    obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_ERROR);
+  }
+
+  return nullptr;
 }
 
 void MessagingManager::getMessageServices(const std::string& type, double callbackId)

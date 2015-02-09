@@ -46,7 +46,7 @@ FilterType AbstractFilter::getFilterType() const
 bool AbstractFilter::isMatching(const FilterableObject* const tested_object) const
 {
     LoggerE("Calling isMatching on AbstractFilter!");
-    throw UnknownException("Method not supported");
+    return false;
 }
 
 AttributeFilterPtr castToAttributeFilter(AbstractFilterPtr from)
@@ -168,34 +168,24 @@ bool FilterUtils::isTimeStampInRange(const time_t& time_stamp,
 
     bool initial_is_valid_time_value = false;
     if (initial_value && !initial_value->isNullOrUndefined()) {
-        try {
-            struct tm ftime; // TODO = *initial_value->toDateTm();
-            from_time = mktime(&ftime);
-            initial_is_valid_time_value = true;
-        }
-        catch(...) {
-            LoggerE("Unknown exception occured during execution of Any::toDateTm()");
-        }
+        struct tm ftime = *initial_value->toDateTm();
+        from_time = mktime(&ftime);
+        initial_is_valid_time_value = true;
     }
-    if(!initial_is_valid_time_value) {
+    if (!initial_is_valid_time_value) {
         LoggerE("initialValue is not Time!");
-        throw InvalidValuesException("initialValue is not Time!");
+        return false;
     }
 
     bool end_is_valid_time_value = false;
     if (end_value && !end_value->isNullOrUndefined()) {
-        try {
-            struct tm ttime; // TODO =  *end_value->toDateTm();
-            to_time = mktime(&ttime);
-            end_is_valid_time_value = true;
-        }
-        catch(...) {
-            LoggerE("Unknown exception occured during execution of Any::toDateTm()");
-        }
+        struct tm ttime =  *end_value->toDateTm();
+        to_time = mktime(&ttime);
+        end_is_valid_time_value = true;
     }
-    if(end_is_valid_time_value) {
+    if (end_is_valid_time_value) {
         LoggerE("endValue is not Time!");
-        throw InvalidValuesException("endValue is not Time!");
+        return false;
     }
 
     bool is_in_range = FilterUtils::isBetweenTimeRange(time_stamp, from_time, to_time);

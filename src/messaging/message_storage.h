@@ -7,6 +7,7 @@
 
 #include <memory>
 
+#include "common/platform_result.h"
 #include "common/logger.h"
 
 #include "messaging_util.h"
@@ -33,6 +34,7 @@ public:
 
     virtual int getMsgServiceId() const;
     virtual MessageType getMsgServiceType() const;
+    std::string getMsgServiceTypeString() const;
 
     virtual void addDraftMessage(MessageCallbackUserData* callback) = 0;
     virtual void removeMessages(MessagesCallbackUserData* callback) = 0;

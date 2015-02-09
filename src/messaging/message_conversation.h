@@ -37,6 +37,7 @@ public:
     // attributes getters
     int getConversationId() const;
     MessageType getType() const;
+    std::string getTypeString() const;
     time_t getTimestamp() const;
     unsigned long getMessageCount() const;
     unsigned long getUnreadMessages() const;
@@ -49,18 +50,16 @@ public:
     std::vector<std::string> getBCC() const;
     int getLastMessageId() const;
 
-    static std::shared_ptr<MessageConversation> convertConversationStructToObject(
-        unsigned int threadId, MessageType msgType, msg_handle_t handle = NULL);
-    static std::shared_ptr<MessageConversation> convertEmailConversationToObject(
-        unsigned int threadId);
+    static common::PlatformResult convertEmailConversationToObject(
+        unsigned int threadId, std::shared_ptr<MessageConversation>* result);
     /**
      *
      * @param threadId Id of Message (not Conversation)
      * @param handle
      * @return
      */
-    static std::shared_ptr<MessageConversation> convertMsgConversationToObject(
-        unsigned int threadId, msg_handle_t handle);
+    static common::PlatformResult convertMsgConversationToObject(
+        unsigned int threadId, msg_handle_t handle, std::shared_ptr<MessageConversation>* result);
 
     virtual void setConversationId(int id);
     virtual void setType(MessageType type);

@@ -9,6 +9,8 @@
 namespace extension {
 namespace messaging {
 
+using namespace common;
+
 MessageEmail::MessageEmail():
     Message()
 {
@@ -76,7 +78,7 @@ bool MessageEmail::getHasAttachment() const
     return m_has_attachment || !m_body->getInlineAttachments().empty();
 }
 
-void MessageEmail::updateEmailMessage(email_mail_data_t& mail)
+PlatformResult MessageEmail::updateEmailMessage(email_mail_data_t& mail)
 {
     LoggerD("Enter");
 
@@ -114,7 +116,8 @@ void MessageEmail::updateEmailMessage(email_mail_data_t& mail)
         setSubject(mail.subject);
     }
 
-    getBody()->updateBody(mail);
+    PlatformResult ret = getBody()->updateBody(mail);
+    if (ret.IsError()) return ret;
 
     if (mail.mail_id != mail.thread_id) {
         setInResponseTo(mail.thread_id);
@@ -139,9 +142,12 @@ void MessageEmail::updateEmailMessage(email_mail_data_t& mail)
         break;
     }
 
-    AttachmentPtrVector att = convertEmailToMessageAttachment(mail);
+    AttachmentPtrVector att;
+    ret = convertEmailToMessageAttachment(mail, &att);
+    if (ret.IsError()) return ret;
 
     setMessageAttachments(att);
+    return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 } // messaging

@@ -26,6 +26,8 @@ namespace extension {
 namespace messaging {
 namespace DBus {
 
+using namespace common;
+
 SendProxy::SendProxy():
         EmailSignalProxy(Proxy::DBUS_PATH_NETWORK_STATUS,
                      Proxy::DBUS_IFACE_NETWORK_STATUS)
@@ -34,6 +36,17 @@ SendProxy::SendProxy():
 
 SendProxy::~SendProxy()
 {
+}
+
+PlatformResult SendProxy::create(SendProxyPtr* send_proxy) {
+    send_proxy->reset(new SendProxy());
+    if ((*send_proxy)->isNotProxyGot()) {
+        LoggerE("Could not get send proxy");
+        send_proxy->reset();
+        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not get send proxy");
+    } else {
+        return PlatformResult(ErrorCode::NO_ERROR);
+    }
 }
 
 void SendProxy::handleEmailSignal(const int status,

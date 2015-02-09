@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include <msg.h>
+#include <msg-service/msg.h>
 #include <msg_transport.h>
 #include <msg_storage.h>
 #include <unordered_set>
@@ -20,6 +20,8 @@
 
 #include "short_message_manager.h"
 
+using common::ErrorCode;
+using common::PlatformResult;
 
 namespace extension {
 namespace messaging {
@@ -43,49 +45,40 @@ static gboolean sendMessageCompleteCB(void* data)
         return false;
     }
 
-    try {
-        if (callback->isError()) {
-            PostQueue::getInstance().resolve(
-                    callback->getJson()->get<picojson::object>().at(JSON_CALLBACK_ID).get<double>(),
-                    callback->getJson()->serialize()
-            );
-            callback->getMessage()->setMessageStatus(MessageStatus::STATUS_FAILED);
-        }
-        else {
-            std::shared_ptr<Message> message = callback->getMessage();
-
-            LoggerD("Calling success callback with: %d recipients", message->getTO().size());
-
-            auto json = callback->getJson();
-            picojson::object& obj = json->get<picojson::object>();
-            obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
-
-            std::vector<picojson::value> recipients;
-            auto addToRecipients = [&recipients](std::string& e)->void {
-                recipients.push_back(picojson::value(e));
-            };
-
-            auto toVect = callback->getMessage()->getTO();
-            std::for_each(toVect.begin(), toVect.end(), addToRecipients);
-
-            picojson::object data;
-            data[JSON_DATA_RECIPIENTS] = picojson::value(recipients);
-            data[JSON_DATA_MESSAGE] = MessagingUtil::messageToJson(message);
-            obj[JSON_DATA] = picojson::value(data);
-
-            PostQueue::getInstance().resolve(
-                    obj.at(JSON_CALLBACK_ID).get<double>(),
-                    json->serialize()
-            );
-            callback->getMessage()->setMessageStatus(MessageStatus::STATUS_SENT);
-        }
+    if (callback->isError()) {
+        PostQueue::getInstance().resolve(
+                callback->getJson()->get<picojson::object>().at(JSON_CALLBACK_ID).get<double>(),
+                callback->getJson()->serialize()
+        );
+        callback->getMessage()->setMessageStatus(MessageStatus::STATUS_FAILED);
     }
-    catch (const common::PlatformException& err) {
-        LoggerE("Error while calling sendMessage callback: %s (%s)",
-                (err.name()).c_str(),(err.message()).c_str());
-    }
-    catch (...) {
-        LoggerE("Unknown error when calling sendMessage callback.");
+    else {
+        std::shared_ptr<Message> message = callback->getMessage();
+
+        LoggerD("Calling success callback with: %d recipients", message->getTO().size());
+
+        auto json = callback->getJson();
+        picojson::object& obj = json->get<picojson::object>();
+        obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
+
+        std::vector<picojson::value> recipients;
+        auto addToRecipients = [&recipients](std::string& e)->void {
+            recipients.push_back(picojson::value(e));
+        };
+
+        auto toVect = callback->getMessage()->getTO();
+        std::for_each(toVect.begin(), toVect.end(), addToRecipients);
+
+        picojson::object data;
+        data[JSON_DATA_RECIPIENTS] = picojson::value(recipients);
+        data[JSON_DATA_MESSAGE] = MessagingUtil::messageToJson(message);
+        obj[JSON_DATA] = picojson::value(data);
+
+        PostQueue::getInstance().resolve(
+                obj.at(JSON_CALLBACK_ID).get<double>(),
+                json->serialize()
+        );
+        callback->getMessage()->setMessageStatus(MessageStatus::STATUS_SENT);
     }
 
     delete callback;
@@ -103,36 +96,29 @@ static gboolean addDraftMessageCompleteCB(void *data)
         return FALSE;
     }
 
-    try {
-        if (callback->isError()) {
-            LoggerD("Calling error callback");
+    if (callback->isError()) {
+        LoggerD("Calling error callback");
 
-            PostQueue::getInstance().resolve(
-                    callback->getJson()->get<picojson::object>().at(JSON_CALLBACK_ID).get<long>(),
-                    callback->getJson()->serialize()
-            );
-            callback->getMessage()->setMessageStatus(MessageStatus::STATUS_FAILED);
-        } else {
-            LoggerD("Calling success callback");
+        PostQueue::getInstance().resolve(
+                callback->getJson()->get<picojson::object>().at(JSON_CALLBACK_ID).get<long>(),
+                callback->getJson()->serialize()
+        );
+        callback->getMessage()->setMessageStatus(MessageStatus::STATUS_FAILED);
+    } else {
+        LoggerD("Calling success callback");
 
-            auto json = callback->getJson();
-            picojson::object& obj = json->get<picojson::object>();
-            obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
+        auto json = callback->getJson();
+        picojson::object& obj = json->get<picojson::object>();
+        obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
 
-            picojson::object args;
-            args[JSON_DATA_MESSAGE] = MessagingUtil::messageToJson(callback->getMessage());
-            obj[JSON_DATA] = picojson::value(args);
+        picojson::object args;
+        args[JSON_DATA_MESSAGE] = MessagingUtil::messageToJson(callback->getMessage());
+        obj[JSON_DATA] = picojson::value(args);
 
-            PostQueue::getInstance().resolve(
-                    obj.at(JSON_CALLBACK_ID).get<double>(),
-                    json->serialize()
-            );
-        }
-    } catch (const common::PlatformException& err) {
-        LoggerE("Error while calling addDraftMessage callback: %s (%s)",
-                (err.name()).c_str(), (err.message()).c_str());
-    } catch (...) {
-        LoggerE("Unknown error when calling addDraftMessage callback.");
+        PostQueue::getInstance().resolve(
+                obj.at(JSON_CALLBACK_ID).get<double>(),
+                json->serialize()
+        );
     }
 
     delete callback;
@@ -142,16 +128,19 @@ static gboolean addDraftMessageCompleteCB(void *data)
 }
 
 
-void ShortMsgManager::addDraftMessagePlatform(std::shared_ptr<Message> message)
+PlatformResult ShortMsgManager::addDraftMessagePlatform(std::shared_ptr<Message> message)
 {
     LoggerD("Add new message(%p)", message.get());
 
     // Save platform msg to get ID
-    msg_struct_t platform_msg
-            = Message::convertPlatformShortMessageToStruct(message.get(), m_msg_handle);
+    msg_struct_t platform_msg = nullptr;
+    PlatformResult ret = Message::convertPlatformShortMessageToStruct(message.get(),
+                                                                      m_msg_handle, &platform_msg);
+    if (ret.IsError()) return ret;
+
     if (NULL == platform_msg) {
         LoggerE("Failed to prepare platform message");
-        throw common::UnknownException("Cannot prepare platform message");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot prepare platform message");
     }
 
     msg_struct_t send_opt = msg_create_struct(MSG_STRUCT_SENDOPT);
@@ -161,7 +150,7 @@ void ShortMsgManager::addDraftMessagePlatform(std::shared_ptr<Message> message)
         LoggerE("Message(%p): Failed to add draft, error: %d", message.get(), msg_id);
         msg_release_struct(&send_opt);
         msg_release_struct(&platform_msg);
-        throw common::UnknownException("Cannot add message to draft");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot add message to draft");
     }
 
     LoggerD("Message(%p): New message ID: %d", message.get(), msg_id);
@@ -178,13 +167,12 @@ void ShortMsgManager::addDraftMessagePlatform(std::shared_ptr<Message> message)
     } else {
         LoggerE("Message(%p): Failed to get conv", message.get());
     }
-
-    Message* msgInfo = Message::convertPlatformShortMessageToObject(
-            platform_msg);
-
+    Message* msgInfo = nullptr;
+    ret = Message::convertPlatformShortMessageToObject(
+        platform_msg, &msgInfo);
+    if (ret.IsError()) return ret;
     const int folderId = msgInfo->getFolderId();
     message->setFolderId(folderId);
-
     const time_t timestamp = msgInfo->getTimestamp();
     message->setTimeStamp(timestamp);
 
@@ -208,153 +196,163 @@ void ShortMsgManager::addDraftMessagePlatform(std::shared_ptr<Message> message)
         LoggerW("Platform message is already destroyed");
     }
     delete msgInfo;
+    return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void ShortMsgManager::sendMessage(MessageRecipientsCallbackData* callback)
+PlatformResult ShortMsgManager::SendMessagePlatform(MessageRecipientsCallbackData* callback)
 {
-    LoggerD("Entered");
+  std::lock_guard<std::mutex> lock(m_mutex);
 
-    if(!callback){
-        LoggerE("Callback is null");
-        return;
-    }
+  PlatformResult platform_result(ErrorCode::NO_ERROR);
+  int msg_id;
+  Message* msgInfo = nullptr;
+  msg_struct_t platform_msg = nullptr;
+  msg_struct_t send_opt = nullptr;
+  msg_struct_t msg_conv = nullptr;
+  msg_struct_t req = nullptr;
 
-    int msg_id;
-    Message* msgInfo = NULL;
-    msg_struct_t platform_msg = NULL;
-    msg_struct_t send_opt = NULL;
-    msg_struct_t msg_conv = NULL;
-    msg_struct_t req = NULL;
+  std::shared_ptr<Message> message = callback->getMessage();
+  MessageStatus msg_status = message->getMessageStatus();
+  int ret = MSG_ERR_UNKNOWN;
 
-    try {
-        std::lock_guard<std::mutex> lock(m_mutex);
+  // if it is draft message just send it
+  // in other case create new platform message
+  // add it to draft and finally send it
+  if (!( message->is_id_set() && MessageStatus::STATUS_DRAFT == msg_status)) {
+    LoggerD("Add message to draft");
+    platform_result = addDraftMessagePlatform(message);
 
-        std::shared_ptr<Message> message = callback->getMessage();
-        MessageStatus msg_status = message->getMessageStatus();
-        int ret = MSG_ERR_UNKNOWN;
+  }
+  if(platform_result.IsSuccess()) {
+    msg_id = message->getId();
+    LoggerD("Message ID: %d", msg_id);
 
-        // if it is draft message just send it
-        // in other case create new platform message
-        // add it to draft and finally send it
-        if (!( message->is_id_set() && MessageStatus::STATUS_DRAFT == msg_status)) {
-            LoggerD("Add message to draft");
-            addDraftMessagePlatform(message);
-        }
+    platform_msg = msg_create_struct(MSG_STRUCT_MESSAGE_INFO);
+    send_opt = msg_create_struct(MSG_STRUCT_SENDOPT);
+    msg_conv = msg_create_struct(MSG_STRUCT_CONV_INFO);
+    ret = msg_get_message(m_msg_handle, msg_id, platform_msg, send_opt);
+    if (MSG_SUCCESS != ret) {
+      LoggerE("Failed to get platform message structure: %d", ret);
+      platform_result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get platform Message structure");
+    } else {
+      // Send message
+      message->setMessageStatus(MessageStatus::STATUS_SENDING);
+      req = msg_create_struct(MSG_STRUCT_REQUEST_INFO);
+      msg_set_struct_handle(req, MSG_REQUEST_MESSAGE_HND, platform_msg);
 
-        msg_id = message->getId();
-        LoggerD("Message ID: %d", msg_id);
-
-        platform_msg = msg_create_struct(MSG_STRUCT_MESSAGE_INFO);
-        send_opt = msg_create_struct(MSG_STRUCT_SENDOPT);
-        msg_conv = msg_create_struct(MSG_STRUCT_CONV_INFO);
-        ret = msg_get_message(m_msg_handle, msg_id, platform_msg, send_opt);
-        if (MSG_SUCCESS != ret) {
-            LoggerE("Failed to get platform message structure: %d", ret);
-            throw common::UnknownException("Cannot get platform Message structure");
-        }
-
-        // Send message
-        message->setMessageStatus(MessageStatus::STATUS_SENDING);
-        req = msg_create_struct(MSG_STRUCT_REQUEST_INFO);
-        msg_set_struct_handle(req, MSG_REQUEST_MESSAGE_HND, platform_msg);
-
-        int req_id = -1;
-        ret = msg_get_int_value(req, MSG_REQUEST_REQUESTID_INT, &req_id);
-        if (MSG_SUCCESS != ret) {
-            LoggerE("Failed to get send request ID: %d", ret);
-            throw common::UnknownException("Failed to get send request ID");
-        }
-
+      int req_id = -1;
+      ret = msg_get_int_value(req, MSG_REQUEST_REQUESTID_INT, &req_id);
+      if (MSG_SUCCESS != ret) {
+        LoggerE("Failed to get send request ID: %d", ret);
+        platform_result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to get send request ID");
+      } else {
         if (MessageType::MMS == message->getType()) {
-            LoggerD("Send MMS message");
-            ret = msg_mms_send_message(m_msg_handle, req);
+          LoggerD("Send MMS message");
+          ret = msg_mms_send_message(m_msg_handle, req);
         }
         else if (MessageType::SMS == message->getType()) {
-            LoggerD("Send SMS message");
-            ret = msg_sms_send_message(m_msg_handle, req);
+          LoggerD("Send SMS message");
+          ret = msg_sms_send_message(m_msg_handle, req);
         }
         else {
-            LoggerE("Invalid message type: %d", message->getType());
-            throw common::TypeMismatchException("Invalid message type");
+          LoggerE("Invalid message type: %d", message->getType());
+          platform_result = PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, "Invalid message type");
         }
 
-        if (ret != MSG_SUCCESS) {
+        if (platform_result) {
+          if (ret != MSG_SUCCESS) {
             LoggerE("Failed to send message: %d", ret);
-            throw common::UnknownException("Failed to send message");
+            platform_result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to send message");
+          } else {
+            ret = msg_get_int_value(req, MSG_REQUEST_REQUESTID_INT, &req_id);
+            if (ret != MSG_SUCCESS) {
+              LoggerE("Failed to get message request ID: %d", ret);
+              platform_result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to get send request");
+            }
+            if (platform_result.IsSuccess()) {
+              LoggerD("req_id: %d", req_id);
+
+              platform_result = Message::convertPlatformShortMessageToObject(platform_msg, &msgInfo);
+              if (platform_result.IsSuccess()) {
+
+                int conversationId;
+                ret = msg_get_conversation(m_msg_handle, msg_id, msg_conv);
+                if (MSG_SUCCESS != ret) {
+                  LoggerE("Failed to get conv");
+                }
+                msg_get_int_value(msg_conv, MSG_CONV_MSG_THREAD_ID_INT,
+                                  &conversationId);
+                message->setConversationId(conversationId);
+
+                int folderId = msgInfo->getFolderId();
+                message->setFolderId(folderId);
+
+                time_t timestamp = msgInfo->getTimestamp();
+                message->setTimeStamp(timestamp);
+
+                std::string from = msgInfo->getFrom();
+                LoggerD("From:%s", from.c_str());
+                message->setFrom(from);
+
+                bool isRead = msgInfo->getIsRead();
+                message->setIsRead(isRead);
+
+                int inResponseTo = msgInfo->getInResponseTo();
+                message->setInResponseTo(inResponseTo);
+
+                m_sendRequests[req_id] = callback;
+                LoggerD("Send MSG_SUCCESS");
+              }
+            }
+          }
         }
-
-        ret = msg_get_int_value(req, MSG_REQUEST_REQUESTID_INT, &req_id);
-        if (ret != MSG_SUCCESS) {
-            LoggerE("Failed to get message request ID: %d", ret);
-            throw common::UnknownException("Failed to get send request");
-        }
-        LoggerD("req_id: %d", req_id);
-
-        msgInfo = Message::convertPlatformShortMessageToObject(platform_msg);
-
-        int conversationId;
-        ret = msg_get_conversation(m_msg_handle, msg_id, msg_conv);
-        if (MSG_SUCCESS != ret) {
-            LoggerE("Failed to get conv");
-        }
-        msg_get_int_value(msg_conv, MSG_CONV_MSG_THREAD_ID_INT,
-                &conversationId);
-        message->setConversationId(conversationId);
-
-        int folderId = msgInfo->getFolderId();
-        message->setFolderId(folderId);
-
-        time_t timestamp = msgInfo->getTimestamp();
-        message->setTimeStamp(timestamp);
-
-        std::string from = msgInfo->getFrom();
-        LoggerD("From:%s", from.c_str());
-        message->setFrom(from);
-
-        bool isRead = msgInfo->getIsRead();
-        message->setIsRead(isRead);
-
-        int inResponseTo = msgInfo->getInResponseTo();
-        message->setInResponseTo(inResponseTo);
-
-        m_sendRequests[req_id] = callback;
-        LoggerD("Send MSG_SUCCESS");
+      }
     }
-    catch (const common::PlatformException& err) {
-        LoggerE("%s (%s)", (err.name()).c_str(), (err.message()).c_str());
-        callback->setError(err.name(), err.message());
-        if (!g_idle_add(sendMessageCompleteCB, static_cast<void*>(callback))) {
-            LoggerE("g_idle addition failed");
-            delete callback;
-            callback = NULL;
-        }
-    }
-    catch (...) {
-        LoggerE("Message send failed");
-        common::UnknownException e("Message send failed");
-        callback->setError(e.name(), e.message());
-        if (!g_idle_add(sendMessageCompleteCB, static_cast<void*>(callback))) {
-            LoggerE("g_idle addition failed");
-            delete callback;
-            callback = NULL;
-        }
-    }
+  }
 
-    if (msg_release_struct(&req) != MSG_SUCCESS) {
-        LoggerW("Request structure is already destroyed");
-    }
-    if (msg_release_struct(&platform_msg) != MSG_SUCCESS) {
-        LoggerW("Platform message is already destroyed");
-    }
-    if (msg_release_struct(&send_opt) != MSG_SUCCESS) {
-        LoggerW("Platform message is already destroyed");
-    }
-    if (msg_release_struct(&msg_conv) != MSG_SUCCESS) {
-        LoggerW("Platform message is already destroyed");
-    }
-    delete msgInfo;
+  if (msg_release_struct(&req) != MSG_SUCCESS) {
+    LoggerW("Request structure is already destroyed");
+  }
+  if (msg_release_struct(&platform_msg) != MSG_SUCCESS) {
+    LoggerW("Platform message is already destroyed");
+  }
+  if (msg_release_struct(&send_opt) != MSG_SUCCESS) {
+    LoggerW("Platform message is already destroyed");
+  }
+  if (msg_release_struct(&msg_conv) != MSG_SUCCESS) {
+    LoggerW("Platform message is already destroyed");
+  }
 
-    return;
+  delete msgInfo;
+
+  return platform_result;
+}
+
+PlatformResult ShortMsgManager::sendMessage(MessageRecipientsCallbackData* callback)
+{
+  LoggerD("Entered");
+
+  if (!callback){
+    LoggerE("Callback is null");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Callback is null");
+  }
+
+  PlatformResult platform_result(ErrorCode::NO_ERROR);
+
+  platform_result = SendMessagePlatform(callback);
+
+  if (!platform_result) {
+    LoggerE("Message send failed");
+
+    callback->setError(platform_result);
+
+    if (!g_idle_add(sendMessageCompleteCB, static_cast<void*>(callback))) {
+      LoggerE("g_idle addition failed");
+      delete callback;
+      callback = NULL;
+    }
+  }
+  return platform_result;
 }
 
 void ShortMsgManager::sendStatusCallback(msg_struct_t sent_status)
@@ -418,7 +416,7 @@ static void sent_status_cb(msg_handle_t handle,
     return;
 }
 
-void ShortMsgManager::callProperEventMessages(EventMessages* event,
+PlatformResult ShortMsgManager::callProperEventMessages(EventMessages* event,
         msg_storage_change_type_t storageChangeType)
 {
     LoggerD("Entered event.items.size()=%d event.removed_conversations.size()=%d"
@@ -432,8 +430,14 @@ void ShortMsgManager::callProperEventMessages(EventMessages* event,
     if(MSG_STORAGE_CHANGE_DELETE == storageChangeType) {
         eventConv->items = event->removed_conversations;
     } else {
-        eventConv->items = ShortMsgManager::getConversationsForMessages(
-                event->items, storageChangeType);
+        PlatformResult ret = ShortMsgManager::getConversationsForMessages(
+                event->items, storageChangeType, &(eventConv->items));
+        if (ret.IsError()) {
+          LoggerD("Error while getting conversations for message");
+          delete event;
+          delete eventConv;
+          return ret;
+        }
     }
 
     switch (storageChangeType) {
@@ -498,6 +502,7 @@ void ShortMsgManager::callProperEventMessages(EventMessages* event,
     }
     delete event;
     delete eventConv;
+    return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 void ShortMsgManager::storage_change_cb(msg_handle_t handle,
@@ -529,156 +534,160 @@ void ShortMsgManager::storage_change_cb(msg_handle_t handle,
      */
     EventMessages* eventSMS = NULL;
     EventMessages* eventMMS = NULL;
-    try {
-        // if allocation below fails than exception is thrown - no NULL check
-        eventSMS = new EventMessages();
-        eventSMS->service_type = MessageType::SMS;
-        eventSMS->service_id = SMS_ACCOUNT_ID;
-        eventMMS = new EventMessages();
-        eventMMS->service_type = MessageType::MMS;
-        eventMMS->service_id = MMS_ACCOUNT_ID;
 
-        if (MSG_STORAGE_CHANGE_DELETE == storageChangeType) {
+    // if allocation below fails than exception is thrown - no NULL check
+    eventSMS = new EventMessages();
+    eventSMS->service_type = MessageType::SMS;
+    eventSMS->service_id = SMS_ACCOUNT_ID;
+    eventMMS = new EventMessages();
+    eventMMS->service_type = MessageType::MMS;
+    eventMMS->service_id = MMS_ACCOUNT_ID;
 
-            ShortMsgManager& msg_manager = ShortMsgManager::getInstance();
-            std::lock_guard<std::mutex> lock(msg_manager.m_mutex);
+    if (MSG_STORAGE_CHANGE_DELETE == storageChangeType) {
 
-            std::map<int, MessagePtr>* rem_msgs[2] = {  // Recently removed messages
-                    &msg_manager.m_sms_removed_messages,
-                    &msg_manager.m_mms_removed_messages };
-            std::map<int, int>* rem_convs[2] = { // Recently removed conversations
-                    &msg_manager.m_sms_removed_msg_id_conv_id_map,
-                    &msg_manager.m_mms_removed_msg_id_conv_id_map };
-            EventMessages* dest_event[2] = { // SMS/MMS EventMessage to be propagated
-                    eventSMS,
-                    eventMMS };
-            std::map<int, ConversationPtr>* conv_map[2] = { //Map conversationId - object
-                    &msg_manager.m_sms_removed_conv_id_object_map,
-                    &msg_manager.m_mms_removed_conv_id_object_map };
+        ShortMsgManager& msg_manager = ShortMsgManager::getInstance();
+        std::lock_guard<std::mutex> lock(msg_manager.m_mutex);
 
-            for(int event_i = 0; event_i < 2; ++event_i) {
+        std::map<int, MessagePtr>* rem_msgs[2] = {  // Recently removed messages
+                &msg_manager.m_sms_removed_messages,
+                &msg_manager.m_mms_removed_messages };
+        std::map<int, int>* rem_convs[2] = { // Recently removed conversations
+                &msg_manager.m_sms_removed_msg_id_conv_id_map,
+                &msg_manager.m_mms_removed_msg_id_conv_id_map };
+        EventMessages* dest_event[2] = { // SMS/MMS EventMessage to be propagated
+                eventSMS,
+                eventMMS };
+        std::map<int, ConversationPtr>* conv_map[2] = { //Map conversationId - object
+                &msg_manager.m_sms_removed_conv_id_object_map,
+                &msg_manager.m_mms_removed_conv_id_object_map };
 
-                std::map<int, MessagePtr>& cur_rem_msgs = *(rem_msgs[event_i]);
-                std::map<int, int>& cur_rem_convs = *(rem_convs[event_i]);
-                EventMessages* cur_dest_event = dest_event[event_i];
-                std::map<int, ConversationPtr>& cur_conv_map = *(conv_map[event_i]);
-                std::unordered_set<int> conv_rem_now;
+        for(int event_i = 0; event_i < 2; ++event_i) {
 
-                for (int i = 0; i < pMsgIdList->nCount; ++i) {
-                    const msg_message_id_t& msg_id = pMsgIdList->msgIdList[i];
-                    LoggerD("pMsgIdList[%d] = %d", i, msg_id);
+            std::map<int, MessagePtr>& cur_rem_msgs = *(rem_msgs[event_i]);
+            std::map<int, int>& cur_rem_convs = *(rem_convs[event_i]);
+            EventMessages* cur_dest_event = dest_event[event_i];
+            std::map<int, ConversationPtr>& cur_conv_map = *(conv_map[event_i]);
+            std::unordered_set<int> conv_rem_now;
 
-                    std::map<int, MessagePtr> ::iterator it = cur_rem_msgs.find(msg_id);
-                    if(it != cur_rem_msgs.end()) {
-                        LoggerD("[%d] is %s, Pushing message with id:%d subject:%s", i,
-                                (0 == i) ? "SMS" : "MMS",
-                                it->second->getId(),
-                                it->second->getSubject().c_str());
-                        cur_dest_event->items.push_back(it->second);
-                        cur_rem_msgs.erase(it);
-                    }
+            for (int i = 0; i < pMsgIdList->nCount; ++i) {
+                const msg_message_id_t& msg_id = pMsgIdList->msgIdList[i];
+                LoggerD("pMsgIdList[%d] = %d", i, msg_id);
 
-                    std::map<int, int>::iterator cit = cur_rem_convs.find(msg_id);
-                    if(cit != cur_rem_convs.end()) {
-                        conv_rem_now.insert(cit->second);
-                        cur_rem_convs.erase(cit);
-                    }
+                std::map<int, MessagePtr> ::iterator it = cur_rem_msgs.find(msg_id);
+                if(it != cur_rem_msgs.end()) {
+                    LoggerD("[%d] is %s, Pushing message with id:%d subject:%s", i,
+                            (0 == i) ? "SMS" : "MMS",
+                            it->second->getId(),
+                            it->second->getSubject().c_str());
+                    cur_dest_event->items.push_back(it->second);
+                    cur_rem_msgs.erase(it);
                 }
 
-                for (auto it = conv_rem_now.begin(); it != conv_rem_now.end(); it++) {
-                    const int cur_rem_conv_id = *it;
-
-                    //---------------------------------------------------------------------
-                    // Check if we have removed last message from conversation
-                    //
-                    bool found = false;
-                    for(auto it2 = cur_rem_convs.begin();
-                            it2 != cur_rem_convs.end();
-                            it2++) {
-                        if( cur_rem_conv_id == it2->second) {
-                            found = true;
-                            break;
-                        }
-                    }
-
-                    if(false == found) {
-                        //We have removed last message from conversation
-
-                        std::map<int, ConversationPtr>::iterator conv_it =
-                            cur_conv_map.find(cur_rem_conv_id);
-                        if(conv_it != cur_conv_map.end()) {
-                            LoggerD("Pushing removed %s MessageConversation(%p) with id:%d",
-                                    (0 == event_i) ? "SMS" : "MMS",
-                                    conv_it->second.get(), cur_rem_conv_id);
-
-                            cur_dest_event->removed_conversations.push_back(
-                                conv_it->second);
-                            cur_conv_map.erase(conv_it);
-                        } else {
-                            LoggerW("Couldn't find ConversationPtr object with id:%d",
-                                    cur_rem_conv_id);
-                        }
-                    }
+                std::map<int, int>::iterator cit = cur_rem_convs.find(msg_id);
+                if(cit != cur_rem_convs.end()) {
+                    conv_rem_now.insert(cit->second);
+                    cur_rem_convs.erase(cit);
                 }
             }
 
-        } else {
-            for (int i = 0; i < pMsgIdList->nCount; ++i) {
+            for (auto it = conv_rem_now.begin(); it != conv_rem_now.end(); it++) {
+                const int cur_rem_conv_id = *it;
 
-                msg_struct_t msg = ShortMsgManager::getInstance().getMessage(
-                        pMsgIdList->msgIdList[i]);
-                if (NULL == msg) {
-                    LoggerE("Failed to load short message");
+                //---------------------------------------------------------------------
+                // Check if we have removed last message from conversation
+                //
+                bool found = false;
+                for(auto it2 = cur_rem_convs.begin();
+                        it2 != cur_rem_convs.end();
+                        it2++) {
+                    if( cur_rem_conv_id == it2->second) {
+                        found = true;
+                        break;
+                    }
+                }
+
+                if(false == found) {
+                    //We have removed last message from conversation
+
+                    std::map<int, ConversationPtr>::iterator conv_it =
+                        cur_conv_map.find(cur_rem_conv_id);
+                    if(conv_it != cur_conv_map.end()) {
+                        LoggerD("Pushing removed %s MessageConversation(%p) with id:%d",
+                                (0 == event_i) ? "SMS" : "MMS",
+                                conv_it->second.get(), cur_rem_conv_id);
+
+                        cur_dest_event->removed_conversations.push_back(
+                            conv_it->second);
+                        cur_conv_map.erase(conv_it);
+                    } else {
+                        LoggerW("Couldn't find ConversationPtr object with id:%d",
+                                cur_rem_conv_id);
+                    }
+                }
+            }
+        }
+
+    } else {
+        PlatformResult ret(ErrorCode::NO_ERROR);
+        for (int i = 0; i < pMsgIdList->nCount; ++i) {
+
+            msg_struct_t msg;
+            ret = ShortMsgManager::getInstance().getMessage(pMsgIdList->msgIdList[i], &msg);
+            if (ret.IsError() || NULL == msg) {
+                LoggerE("Failed to load short message");
+                delete eventSMS;
+                eventSMS = NULL;
+                delete eventMMS;
+                eventMMS = NULL;
+                return;
+            }
+            std::shared_ptr<Message> message;
+            Message* message_ptr = nullptr;
+            ret = Message::convertPlatformShortMessageToObject(msg, &message_ptr);
+            if (ret.IsError()) {
+                LoggerE("Failed to load short message");
+                msg_release_struct(&msg);
+                delete eventSMS;
+                eventSMS = NULL;
+                delete eventMMS;
+                eventMMS = NULL;
+                return;
+            }
+            message.reset(message_ptr);
+            msg_release_struct(&msg);
+            switch (message->getType()) {
+                case MessageType::SMS:
+                    eventSMS->items.push_back(message);
+                    break;
+                case MessageType::MMS:
+                    eventMMS->items.push_back(message);
+                    break;
+                default:
+                    LoggerE("Unsupported message type");
                     delete eventSMS;
                     eventSMS = NULL;
                     delete eventMMS;
                     eventMMS = NULL;
-                    throw common::UnknownException("Failed to load short message");
-                }
-                std::shared_ptr<Message> message(
-                        Message::convertPlatformShortMessageToObject(msg));
-                msg_release_struct(&msg);
-                switch (message->getType()) {
-                    case MessageType::SMS:
-                        eventSMS->items.push_back(message);
-                        break;
-                    case MessageType::MMS:
-                        eventMMS->items.push_back(message);
-                        break;
-                    default:
-                        LoggerE("Unsupported message type");
-                        delete eventSMS;
-                        eventSMS = NULL;
-                        delete eventMMS;
-                        eventMMS = NULL;
-                        throw common::UnknownException("Unsupported message type");
-                }
+                    return;
             }
         }
+    }
 
-        if (!eventSMS->items.empty() || !eventSMS->removed_conversations.empty()) {
-            ShortMsgManager::callProperEventMessages(eventSMS, storageChangeType);
-        } else {
-            LoggerD("No SMS messages, not triggering eventSMS");
-            delete eventSMS;
-            eventSMS = NULL;
-        }
-        if (!eventMMS->items.empty() || !eventMMS->removed_conversations.empty()) {
-            ShortMsgManager::callProperEventMessages(eventMMS, storageChangeType);
-        } else {
-            LoggerD("No MMS messages, not triggering eventMMS");
-            delete eventMMS;
-            eventMMS = NULL;
-        }
-
-    } catch (const common::PlatformException& err) {
-        LoggerE("%s (%s)", (err.name()).c_str(), (err.message()).c_str());
+    if (!eventSMS->items.empty() || !eventSMS->removed_conversations.empty()) {
+        PlatformResult ret = ShortMsgManager::callProperEventMessages(eventSMS, storageChangeType);
+        //PlatformResult could be ignored here. eventSMS is deleted in callProperEventMessages()
+    } else {
+        LoggerD("No SMS messages, not triggering eventSMS");
         delete eventSMS;
+        eventSMS = NULL;
+    }
+    if (!eventMMS->items.empty() || !eventMMS->removed_conversations.empty()) {
+        PlatformResult ret = ShortMsgManager::callProperEventMessages(eventMMS, storageChangeType);
+        //PlatformResult could be ignored here. eventMMS is deleted in callProperEventMessages()
+    } else {
+        LoggerD("No MMS messages, not triggering eventMMS");
         delete eventMMS;
-    } catch (...) {
-        LoggerE("Failed to call callback");
-        delete eventSMS;
-        delete eventMMS;
+        eventMMS = NULL;
     }
 }
 
@@ -704,19 +713,15 @@ void ShortMsgManager::addDraftMessage(MessageCallbackUserData* callback)
         LoggerE("Callback is null");
         return;
     }
-    try {
-        std::lock_guard<std::mutex> lock(m_mutex);
-        std::shared_ptr<Message> message = callback->getMessage();
+    {
+      std::lock_guard<std::mutex> lock(m_mutex);
+      std::shared_ptr<Message> message = callback->getMessage();
 
-        addDraftMessagePlatform(message);
-
-    } catch (const common::PlatformException& err) {
-        LoggerE("%s (%s)", (err.name()).c_str(), (err.message()).c_str());
-        callback->setError(err.name(), err.message());
-    } catch (...) {
-        LoggerE("Message add draft failed");
-        common::UnknownException e("Message add draft failed");
-        callback->setError(e.name(), e.message());
+      PlatformResult ret = addDraftMessagePlatform(message);
+      if (ret.IsError()) {
+        LoggerE("%d (%s)", ret.error_code(), ret.message().c_str());
+        callback->setError(ret);
+      }
     }
 
     // Complete task
@@ -737,70 +742,62 @@ void ShortMsgManager::removeMessages(MessagesCallbackUserData* callback)
     }
 
     int error;
-    try {
+    std::vector<std::shared_ptr<Message>> messages;
+
+    {
         std::lock_guard<std::mutex> lock(m_mutex);
-        std::vector<std::shared_ptr<Message>> messages = callback->getMessages();
+        messages = callback->getMessages();
         MessageType type = callback->getMessageServiceType();
         for(auto it = messages.begin() ; it != messages.end(); ++it) {
             if((*it)->getType() != type) {
                 LoggerE("Invalid message type: %d", (*it)->getType());
-                throw common::TypeMismatchException("Error while deleting message");
+                callback->SetError(PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, "Error while deleting message"));
+                break;
             }
         }
-        for (auto it = messages.begin() ; it != messages.end(); ++it) {
 
-            const int id = (*it)->getId();
+        if (!callback->isError()) {
+            for (auto it = messages.begin() ; it != messages.end(); ++it) {
+                const int id = (*it)->getId();
 
-            //Store message object
-            LoggerD("Storing removed message (id:%d) in m_removed_messages", id);
-            switch((*it)->getType()) {
+                //Store message object
+                LoggerD("Storing removed message (id:%d) in m_removed_messages", id);
+                switch((*it)->getType()) {
 
-                case SMS:  m_sms_removed_messages[id] = (*it); break;
-                case MMS:  m_mms_removed_messages[id] = (*it); break;
-                default:
-                    LoggerD("Unknown message type: %d", (*it)->getType());
+                    case SMS:  m_sms_removed_messages[id] = (*it); break;
+                    case MMS:  m_mms_removed_messages[id] = (*it); break;
+                    default:
+                        LoggerD("Unknown message type: %d", (*it)->getType());
+                        break;
+                }
+
+                error = msg_delete_message(m_msg_handle, id);
+                if (MSG_SUCCESS != error) {
+                    LoggerE("Error while deleting message");
+                    callback->SetError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Error while deleting message"));
                     break;
-            }
-
-            error = msg_delete_message(m_msg_handle, id);
-            if (MSG_SUCCESS != error) {
-                LoggerE("Error while deleting message");
-                throw common::UnknownException("Error while deleting message");
+                }
             }
         }
-    } catch (const common::PlatformException& err) {
-        LoggerE("%s (%s)", (err.name()).c_str(), (err.message()).c_str());
-        callback->setError(err.name(), err.message());
-    } catch (...) {
-        LoggerE("Messages remove failed");
-        common::UnknownException e("Messages remove failed");
-        callback->setError(e.name(), e.message());
     }
 
-    try {
-        if (callback->isError()) {
-            LoggerD("Calling error callback");
-            PostQueue::getInstance().resolve(
-                    callback->getJson()->get<picojson::object>().at(JSON_CALLBACK_ID).get<double>(),
-                    callback->getJson()->serialize()
-            );
-        } else {
-            LoggerD("Calling success callback");
+    if (callback->isError()) {
+        LoggerD("Calling error callback");
+        PostQueue::getInstance().resolve(
+                callback->getJson()->get<picojson::object>().at(JSON_CALLBACK_ID).get<double>(),
+                callback->getJson()->serialize()
+        );
+    } else {
+        LoggerD("Calling success callback");
 
-            auto json = callback->getJson();
-            picojson::object& obj = json->get<picojson::object>();
-            obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
+        auto json = callback->getJson();
+        picojson::object& obj = json->get<picojson::object>();
+        obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
 
-            PostQueue::getInstance().resolve(
-                    obj.at(JSON_CALLBACK_ID).get<double>(),
-                    json->serialize()
-            );
-        }
-    } catch (const common::PlatformException& err) {
-        LoggerE("Error while calling removeShortMsg callback: %s (%s)",
-                (err.name()).c_str(), (err.message()).c_str());
-    } catch (...) {
-        LoggerE("Unknown error when calling removeShortMsg callback.");
+        PostQueue::getInstance().resolve(
+                obj.at(JSON_CALLBACK_ID).get<double>(),
+                json->serialize()
+        );
     }
 
     delete callback;
@@ -817,102 +814,102 @@ void ShortMsgManager::updateMessages(MessagesCallbackUserData* callback)
     }
 
     LoggerD("messages to update: %d", callback->getMessages().size());
-    try {
+
+    {
         std::lock_guard<std::mutex> lock(m_mutex);
         std::vector<std::shared_ptr<Message>> messages = callback->getMessages();
         MessageType type = callback->getMessageServiceType();
         for (auto it = messages.begin() ; it != messages.end(); ++it) {
             if ((*it)->getType() != type) {
                 LoggerE("Invalid message type");
-                throw common::TypeMismatchException("Error while updating message");
+                callback->SetError(PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, "Error while updating message"));
+                break;
             }
         }
-        for (auto it = messages.begin() ; it != messages.end(); ++it) {
+        if (!callback->isError()) {
+            for (auto it = messages.begin() ; it != messages.end(); ++it) {
+                LoggerD("updating Message(%p) msg_id:%d", (*it).get(), (*it)->getId());
 
-            LoggerD("updating Message(%p) msg_id:%d", (*it).get(), (*it)->getId());
-
-            msg_struct_t platform_msg
-                    = Message::convertPlatformShortMessageToStruct(it->get(), m_msg_handle);
-            if (NULL == platform_msg) {
-                LoggerE("Failed to prepare platform message");
-                throw common::UnknownException("Cannot prepare platform message");
-            }
-            msg_struct_t sendOpt = msg_create_struct(MSG_STRUCT_SENDOPT);
-            int error = msg_update_message(m_msg_handle, platform_msg, sendOpt);
-            msg_release_struct(&platform_msg);
-            msg_release_struct(&sendOpt);
-            if (error != MSG_SUCCESS) {
-                LoggerE("Failed to update message %d", (*it)->getId());
-                throw common::UnknownException("Error while updating message");
+                msg_struct_t platform_msg = nullptr;
+                PlatformResult ret = Message::convertPlatformShortMessageToStruct(it->get(), m_msg_handle, &platform_msg);
+                if (ret.IsError()) {
+                    LoggerE("%s", ret.message().c_str());
+                    callback->SetError(ret);
+                    break;
+                }
+                if (NULL == platform_msg) {
+                    LoggerE("Failed to prepare platform message");
+                    callback->SetError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot prepare platform message"));
+                    break;
+                }
+                msg_struct_t sendOpt = msg_create_struct(MSG_STRUCT_SENDOPT);
+                int error = msg_update_message(m_msg_handle, platform_msg, sendOpt);
+                msg_release_struct(&platform_msg);
+                msg_release_struct(&sendOpt);
+                if (error != MSG_SUCCESS) {
+                    LoggerE("Failed to update message %d", (*it)->getId());
+                    callback->SetError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Error while updating message"));
+                    break;
+                }
             }
         }
-    } catch (const common::PlatformException& err) {
-        LoggerE("%s (%s)", (err.name()).c_str(), (err.message()).c_str());
-        callback->setError(err.name(), err.message());
-    } catch (...) {
-        LoggerE("Messages update failed");
-        common::UnknownException e("Messages update failed");
-        callback->setError(e.name(), e.message());
     }
 
-    try {
-        if (callback->isError()) {
-            LoggerD("Calling error callback");
+    if (callback->isError()) {
+        LoggerD("Calling error callback");
 
-            PostQueue::getInstance().resolve(
-                    callback->getJson()->get<picojson::object>().at(JSON_CALLBACK_ID).get<double>(),
-                    callback->getJson()->serialize()
-            );
-        } else {
-            LoggerD("Calling success callback");
+        PostQueue::getInstance().resolve(
+                callback->getJson()->get<picojson::object>().at(JSON_CALLBACK_ID).get<double>(),
+                callback->getJson()->serialize()
+        );
+    } else {
+        LoggerD("Calling success callback");
 
-            auto json = callback->getJson();
-            picojson::object& obj = json->get<picojson::object>();
+        auto json = callback->getJson();
+        picojson::object& obj = json->get<picojson::object>();
 
-            auto messages = callback->getMessages();
-            picojson::array array;
-            auto each = [&array] (std::shared_ptr<Message> m)->void {
-                array.push_back(MessagingUtil::messageToJson(m));
-            };
+        auto messages = callback->getMessages();
+        picojson::array array;
+        auto each = [&array] (std::shared_ptr<Message> m)->void {
+            array.push_back(MessagingUtil::messageToJson(m));
+        };
 
-            for_each(messages.begin(), messages.end(), each);
+        for_each(messages.begin(), messages.end(), each);
 
-            obj[JSON_DATA] = picojson::value(array);
+        obj[JSON_DATA] = picojson::value(array);
 
-            obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
+        obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
 
-            PostQueue::getInstance().resolve(
-                    obj.at(JSON_CALLBACK_ID).get<double>(),
-                    json->serialize()
-            );
-        }
-    } catch (const common::PlatformException& err) {
-        LoggerE("Error while calling updateShortMsg callback: %s (%s)",
-                (err.name()).c_str(), (err.message()).c_str());
-    } catch (...) {
-        LoggerE("Unknown error when calling updateShortMsg callback.");
+        PostQueue::getInstance().resolve(
+                obj.at(JSON_CALLBACK_ID).get<double>(),
+                json->serialize()
+        );
     }
 
     delete callback;
     callback = NULL;
 }
 
-msg_struct_t ShortMsgManager::getMessage(int msg_id)
+PlatformResult ShortMsgManager::getMessage(int msg_id, msg_struct_t* out_msg)
 {
     msg_struct_t sendOpt = msg_create_struct(MSG_STRUCT_SENDOPT);
     msg_struct_t msg = msg_create_struct(MSG_STRUCT_MESSAGE_INFO);
+
     int error = msg_get_message(m_msg_handle, msg_id, msg, sendOpt);
     if (MSG_SUCCESS != error) {
         LoggerE("Couldn't retrieve message from service, msgId: %d, error:%d", msg_id, error);
-        throw common::UnknownException("Couldn't retrieve message from service");
+        msg_release_struct(&sendOpt);
+        msg_release_struct(&msg);
+        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Couldn't retrieve message from service");
     }
     msg_release_struct(&sendOpt);
-    return msg;
+    *out_msg = msg;
+    return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-ConversationPtrVector ShortMsgManager::getConversationsForMessages(
+PlatformResult ShortMsgManager::getConversationsForMessages(
         MessagePtrVector messages,
-        msg_storage_change_type_t storageChangeType)
+        msg_storage_change_type_t storageChangeType, ConversationPtrVector* result)
 {
     LoggerD("Entered messages.size()=%d storageChangeType=%d", messages.size(),
             storageChangeType);
@@ -930,14 +927,16 @@ ConversationPtrVector ShortMsgManager::getConversationsForMessages(
         if (0 == count) {
             //conversation isn't loaded yet
             unique_conv_ids.insert(conv_id);
-            ConversationPtr conv = MessageConversation::convertMsgConversationToObject(
-                    conv_id, ShortMsgManager::getInstance().m_msg_handle);
-
+            ConversationPtr conv;
+            PlatformResult ret = MessageConversation::convertMsgConversationToObject(
+                    conv_id, ShortMsgManager::getInstance().m_msg_handle, &conv);
+            if (ret.IsError()) return ret;
             LoggerD("Pushed conv=%p", conv.get());
             convs.push_back(conv);
         }
     }
-    return convs;
+    *result = convs;
+    return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 void ShortMsgManager::findMessages(FindMsgCallbackUserData* callback)
@@ -949,83 +948,78 @@ void ShortMsgManager::findMessages(FindMsgCallbackUserData* callback)
         return;
     }
 
-    try {
+    {
         std::lock_guard<std::mutex> lock(m_mutex);
-        std::vector<int> messagesIds =
-                MessagingDatabaseManager::getInstance().findShortMessages(callback);
-        int msgListCount = messagesIds.size();
-        LoggerD("Found %d messages", msgListCount);
-
-        msg_struct_t msg;
-        msg_struct_t sendOpt;
-        msg_error_t err;
-        for (int i = 0; i < msgListCount; i++) {
-            msg = msg_create_struct(MSG_STRUCT_MESSAGE_INFO);
-            sendOpt = msg_create_struct(MSG_STRUCT_SENDOPT);
-            err = msg_get_message(m_msg_handle, messagesIds.at(i), msg, sendOpt);
-
-            if (MSG_SUCCESS != err) {
-                LoggerE("Failed to get platform message structure: %d", err);
-                throw common::UnknownException("Cannot get platform Message structure");
-            }
-
-            try {
-                std::shared_ptr<Message> message(
-                    Message::convertPlatformShortMessageToObject(msg));
-                callback->addMessage(message);
-
-                LoggerD("Created message with id %d:", messagesIds[i]);
-            }
-            catch(const common::InvalidValuesException& exception) {
-                //Ignore messages with not supported/unrecognized type
-            }
-
-            msg_release_struct(&sendOpt);
-            msg_release_struct(&msg);
+        std::vector<int> messagesIds;
+        PlatformResult ret = MessagingDatabaseManager::getInstance().findShortMessages(callback, &messagesIds);
+        if (ret.IsError()) {
+            LoggerE("Failed to find short message: %s (%d)", ret.message().c_str(), ret.error_code());
+            callback->SetError(ret);
         }
 
-    } catch (const common::PlatformException& err) {
-        LoggerE("%s (%s)", (err.name()).c_str(), (err.message()).c_str());
-        callback->setError(err.name(), err.message());
-    } catch (...) {
-        LoggerE("Message add draft failed");
-        common::UnknownException e("Message add draft failed");
-        callback->setError(e.name(), e.message());
+        if (!callback->isError()) {
+            int msgListCount = messagesIds.size();
+            LoggerD("Found %d messages", msgListCount);
+
+            msg_struct_t msg;
+            msg_struct_t sendOpt;
+            msg_error_t err;
+            for (int i = 0; i < msgListCount; i++) {
+                msg = msg_create_struct(MSG_STRUCT_MESSAGE_INFO);
+                sendOpt = msg_create_struct(MSG_STRUCT_SENDOPT);
+                err = msg_get_message(m_msg_handle, messagesIds.at(i), msg, sendOpt);
+
+                if (MSG_SUCCESS != err) {
+                    LoggerE("Failed to get platform message structure: %d", err);
+                    callback->SetError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get platform Message structure"));
+                    break;
+                }
+
+                std::shared_ptr<Message> message;
+                Message* message_ptr = nullptr;
+                PlatformResult ret = Message::convertPlatformShortMessageToObject(msg, &message_ptr);
+                if (ret.IsError() && ret.error_code() != ErrorCode::INVALID_VALUES_ERR) {
+                    LoggerE("Cannot get platform Message structure");
+                    callback->SetError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get platform Message structure"));
+                    break;
+                }
+                if (!callback->isError()) {
+                    message.reset(message_ptr);
+                    callback->addMessage(message);
+                    LoggerD("Created message with id %d:", messagesIds[i]);
+                    msg_release_struct(&sendOpt);
+                    msg_release_struct(&msg);
+                }
+            }
+        }
     }
 
-    try {
-        if (callback->isError()) {
-            LoggerD("Calling error callback");
-            PostQueue::getInstance().resolve(
-                    callback->getJson()->get<picojson::object>().at(JSON_CALLBACK_ID).get<double>(),
-                    callback->getJson()->serialize()
-            );
-        } else {
-            LoggerD("Calling success callback with %d messages:",
-                    callback->getMessages().size());
+    if (callback->isError()) {
+        LoggerD("Calling error callback");
+        PostQueue::getInstance().resolve(
+                callback->getJson()->get<picojson::object>().at(JSON_CALLBACK_ID).get<double>(),
+                callback->getJson()->serialize()
+        );
+    } else {
+        LoggerD("Calling success callback with %d messages:",
+                callback->getMessages().size());
 
-            auto json = callback->getJson();
-            picojson::object& obj = json->get<picojson::object>();
+        auto json = callback->getJson();
+        picojson::object& obj = json->get<picojson::object>();
 
-            std::vector<picojson::value> response;
-            auto messages = callback->getMessages();
-            std::for_each(messages.begin(), messages.end(), [&response](MessagePtr &message){
-                response.push_back(MessagingUtil::messageToJson(message));
-            });
+        std::vector<picojson::value> response;
+        auto messages = callback->getMessages();
+        std::for_each(messages.begin(), messages.end(), [&response](MessagePtr &message){
+            response.push_back(MessagingUtil::messageToJson(message));
+        });
 
-            obj[JSON_DATA] = picojson::value(response);
-            obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
+        obj[JSON_DATA] = picojson::value(response);
+        obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
 
-            PostQueue::getInstance().resolve(
-                    obj.at(JSON_CALLBACK_ID).get<double>(),
-                    json->serialize()
-            );
-        }
-    } catch (const common::PlatformException& err) {
-        LoggerE("Error while calling findMessages callback: %s (%s)",
-                (err.name()).c_str(), (err.message()).c_str());
-    } catch (...) {
-        LoggerE("Failed to call findMessages callback.");
+        PostQueue::getInstance().resolve(
+                obj.at(JSON_CALLBACK_ID).get<double>(),
+                json->serialize()
+        );
     }
 
     delete callback;
@@ -1041,61 +1035,58 @@ void ShortMsgManager::findConversations(ConversationCallbackData* callback)
         return;
     }
 
-    try {
+    {
         std::lock_guard<std::mutex> lock(m_mutex);
-        std::vector<int> conversationsIds =
-                MessagingDatabaseManager::getInstance().findShortMessageConversations(callback);
-        int convListCount = conversationsIds.size();
-        LoggerD("Found %d conversations", convListCount);
-
-        for (int i = 0; i < convListCount; i++) {
-            std::shared_ptr<MessageConversation> conversation =
-                    MessageConversation::convertMsgConversationToObject(
-                            conversationsIds.at(i), m_msg_handle);
-
-            callback->addConversation(conversation);
+        std::vector<int> conversationsIds;
+        PlatformResult ret = MessagingDatabaseManager::getInstance().
+            findShortMessageConversations(callback, &conversationsIds);
+        if (ret.IsError()) {
+            LoggerE("Cannot get platform Message structure");
+            callback->SetError(ret);
         }
-    } catch (const common::PlatformException& err) {
-        LoggerE("%s (%s)", (err.name()).c_str(), (err.message()).c_str());
-        callback->setError(err.name(), err.message());
-    } catch (...) {
-        LoggerE("Message add draft failed");
-        common::UnknownException e("Message add draft failed");
-        callback->setError(e.name(), e.message());
+
+        if (!callback->isError()) {
+            int convListCount = conversationsIds.size();
+            LoggerD("Found %d conversations", convListCount);
+
+            for (int i = 0; i < convListCount; i++) {
+                std::shared_ptr<MessageConversation> conversation;
+                PlatformResult ret = MessageConversation::convertMsgConversationToObject(
+                                conversationsIds.at(i), m_msg_handle, &conversation);
+                if (ret.IsSuccess()) {
+                  callback->addConversation(conversation);
+                } else {
+                  callback->SetError(ret);
+                }
+            }
+        }
     }
 
-    try {
-        if (callback->isError()) {
-            LoggerD("Calling error callback");
-            PostQueue::getInstance().resolve(
-                    callback->getJson()->get<picojson::object>().at(JSON_CALLBACK_ID).get<double>(),
-                    callback->getJson()->serialize()
-            );
-        } else {
-            LoggerD("Calling success callback");
-            auto json = callback->getJson();
-            picojson::object& obj = json->get<picojson::object>();
+    if (callback->isError()) {
+        LoggerD("Calling error callback");
+        PostQueue::getInstance().resolve(
+                callback->getJson()->get<picojson::object>().at(JSON_CALLBACK_ID).get<double>(),
+                callback->getJson()->serialize()
+        );
+    } else {
+        LoggerD("Calling success callback");
+        auto json = callback->getJson();
+        picojson::object& obj = json->get<picojson::object>();
 
-            std::vector<picojson::value> response;
-            auto conversations = callback->getConversations();
-            std::for_each(conversations.begin(), conversations.end(),
-                    [&response](std::shared_ptr<MessageConversation> &conversation) {
-                        response.push_back(MessagingUtil::conversationToJson(conversation));
-                    }
-            );
-            obj[JSON_DATA] = picojson::value(response);
-            obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
+        std::vector<picojson::value> response;
+        auto conversations = callback->getConversations();
+        std::for_each(conversations.begin(), conversations.end(),
+                [&response](std::shared_ptr<MessageConversation> &conversation) {
+                    response.push_back(MessagingUtil::conversationToJson(conversation));
+                }
+        );
+        obj[JSON_DATA] = picojson::value(response);
+        obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
 
-            PostQueue::getInstance().resolve(
-                    obj.at(JSON_CALLBACK_ID).get<double>(),
-                    json->serialize()
-            );
-        }
-    } catch (const common::PlatformException& err) {
-        LoggerE("Error while calling findConversations callback: %s (%s)",
-                (err.name()).c_str(), (err.message()).c_str());
-    } catch (...) {
-        LoggerE("Failed to call findConversations callback.");
+        PostQueue::getInstance().resolve(
+                obj.at(JSON_CALLBACK_ID).get<double>(),
+                json->serialize()
+        );
     }
 
     delete callback;
@@ -1114,122 +1105,119 @@ void ShortMsgManager::removeConversations(ConversationCallbackData* callback)
     int error = MSG_SUCCESS;
     msg_handle_t handle = NULL;
 
-    try {
+    {
         std::lock_guard<std::mutex> lock(m_mutex);
         ConversationPtrVector conversations = callback->getConversations();
         const MessageType type = callback->getMessageServiceType();
 
+        std::map<int, int>* msg_id_conv_id_map = NULL;
+        std::map<int, ConversationPtr>* conv_id_object_map = NULL;
+
         error = msg_open_msg_handle(&handle);
         if (MSG_SUCCESS != error) {
             LoggerE("Open message handle error: %d", error);
-            throw common::UnknownException("Error while creatng message handle");
+            callback->SetError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Error while creatng message handle"));
         }
 
-        for(auto it = conversations.begin() ; it != conversations.end(); ++it) {
-            if((*it)->getType() != type) {
-                LoggerE("Invalid message type");
-                throw common::TypeMismatchException("Error while deleting message conversation");
-            }
+        if (!callback->isError()) {
+          for(auto it = conversations.begin() ; it != conversations.end(); ++it) {
+              if((*it)->getType() != type) {
+                  LoggerE("Invalid message type");
+                  callback->SetError(PlatformResult(ErrorCode::TYPE_MISMATCH_ERR,
+                                     "Error while deleting message conversation"));
+                  break;
+              }
+          }
         }
 
-        std::map<int, int>* msg_id_conv_id_map = NULL;
-        std::map<int, ConversationPtr>* conv_id_object_map = NULL;
-        if(MessageType::SMS == type) {
-            msg_id_conv_id_map = &m_sms_removed_msg_id_conv_id_map;
-            conv_id_object_map = &m_sms_removed_conv_id_object_map;
-        } else if(MessageType::MMS == type) {
-            msg_id_conv_id_map = &m_mms_removed_msg_id_conv_id_map;
-            conv_id_object_map = &m_mms_removed_conv_id_object_map;
-        } else {
-            LoggerE("Invalid message type:%d for ShortMsgManager!", type);
-            throw common::UnknownException("Invalid message type for ShortMsgManager!");
-        }
-
-        int conv_index = 0;
-        for (auto it = conversations.begin() ; it != conversations.end();
-                    ++it, ++conv_index) {
-
-            ConversationPtr conv = (*it);
-            msg_thread_id_t conv_id = conv->getConversationId();
-
-            LoggerD("[%d] MessageConversation(%p) conv_id:%d", conv_index, conv.get(),
-                    conv_id);
-
-            msg_struct_list_s conv_view_list;
-            error = msg_get_conversation_view_list(handle, (msg_thread_id_t)conv_id,
-                    &conv_view_list);
-            if (MSG_SUCCESS == error) {
-                for(int msg_index = 0; msg_index < conv_view_list.nCount; ++msg_index)
-                {
-                    int cur_msg_id = 0;
-                    error = msg_get_int_value(conv_view_list.msg_struct_info[msg_index],
-                            MSG_CONV_MSG_ID_INT, &cur_msg_id);
-
-                    if(MSG_SUCCESS == error && cur_msg_id > 0) {
-                        (*msg_id_conv_id_map)[cur_msg_id] = conv_id;
-                        (*conv_id_object_map)[conv_id] = conv;
-
-                        LoggerD("[%d] message[%d] msg_id:%d,"
-                                "saved MessageConversation(%p) with conv_id:%d",
-                                conv_index, msg_index, cur_msg_id, conv.get(), conv_id);
-                    } else {
-                        LoggerE("[%d] Couldn't get msg_id, error: %d!", error);
-                    }
-                }
+        if (!callback->isError()) {
+            if(MessageType::SMS == type) {
+                msg_id_conv_id_map = &m_sms_removed_msg_id_conv_id_map;
+                conv_id_object_map = &m_sms_removed_conv_id_object_map;
+            } else if(MessageType::MMS == type) {
+                msg_id_conv_id_map = &m_mms_removed_msg_id_conv_id_map;
+                conv_id_object_map = &m_mms_removed_conv_id_object_map;
             } else {
-                LoggerE("[%d] Couldn' get conversation view list for conv_id:%d error: %d",
-                        conv_index, conv_id, error);
+                LoggerE("Invalid message type:%d for ShortMsgManager!", type);
+                callback->SetError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Invalid message type for ShortMsgManager!"));
             }
-
-            msg_release_list_struct(&conv_view_list);
-
-            error = msg_delete_thread_message_list(handle, (msg_thread_id_t) conv_id,
-                    FALSE);
-            if (MSG_SUCCESS != error) {
-                LoggerE("Error while deleting message conversation");
-                throw common::UnknownException("Error while deleting message conversation");
-            }
-
         }
 
-    } catch (const common::PlatformException& err) {
-        LoggerE("%s (%s)", (err.name()).c_str(), (err.message()).c_str());
-        callback->setError(err.name(), err.message());
-    } catch (...) {
-        LoggerE("Messages remove failed");
-        common::UnknownException e("Messages remove failed");
-        callback->setError(e.name(), e.message());
-    }
+        if (!callback->isError()) {
+            int conv_index = 0;
+            for (auto it = conversations.begin() ; it != conversations.end();
+                        ++it, ++conv_index) {
 
-    error = msg_close_msg_handle(&handle);
-    if (MSG_SUCCESS != error) {
-        LoggerW("Cannot close message handle: %d", error);
-    }
+                ConversationPtr conv = (*it);
+                msg_thread_id_t conv_id = conv->getConversationId();
 
-    try {
-        if (callback->isError()) {
-            LoggerD("Calling error callback");
-            PostQueue::getInstance().resolve(
-                    callback->getJson()->get<picojson::object>().at(JSON_CALLBACK_ID).get<double>(),
-                    callback->getJson()->serialize()
-            );
-        } else {
-            LoggerD("Calling success callback");
+                LoggerD("[%d] MessageConversation(%p) conv_id:%d", conv_index, conv.get(),
+                        conv_id);
 
-            auto json = callback->getJson();
-            picojson::object& obj = json->get<picojson::object>();
-            obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
+                msg_struct_list_s conv_view_list;
+                error = msg_get_conversation_view_list(handle, (msg_thread_id_t)conv_id,
+                        &conv_view_list);
+                if (MSG_SUCCESS == error) {
+                    for(int msg_index = 0; msg_index < conv_view_list.nCount; ++msg_index)
+                    {
+                        int cur_msg_id = 0;
+                        error = msg_get_int_value(conv_view_list.msg_struct_info[msg_index],
+                                MSG_CONV_MSG_ID_INT, &cur_msg_id);
 
-            PostQueue::getInstance().resolve(
-                    obj.at(JSON_CALLBACK_ID).get<double>(),
-                    json->serialize()
-            );
+                        if(MSG_SUCCESS == error && cur_msg_id > 0) {
+                            (*msg_id_conv_id_map)[cur_msg_id] = conv_id;
+                            (*conv_id_object_map)[conv_id] = conv;
+
+                            LoggerD("[%d] message[%d] msg_id:%d,"
+                                    "saved MessageConversation(%p) with conv_id:%d",
+                                    conv_index, msg_index, cur_msg_id, conv.get(), conv_id);
+                        } else {
+                            LoggerE("[%d] Couldn't get msg_id, error: %d!", error);
+                        }
+                    }
+                } else {
+                    LoggerE("[%d] Couldn' get conversation view list for conv_id:%d error: %d",
+                            conv_index, conv_id, error);
+                }
+
+                msg_release_list_struct(&conv_view_list);
+
+                error = msg_delete_thread_message_list(handle, (msg_thread_id_t) conv_id,
+                        FALSE);
+                if (MSG_SUCCESS != error) {
+                    LoggerE("Error while deleting message conversation");
+                    callback->SetError(PlatformResult(ErrorCode::UNKNOWN_ERR,
+                                                      "Error while deleting message conversation"));
+                    break;
+                }
+            }
         }
-    } catch (const common::PlatformException& err) {
-        LoggerE("Error while calling removeConversations callback: %s (%s)",
-                (err.name()).c_str(), (err.message()).c_str());
-    } catch (...) {
-        LoggerE("Unknown error when calling removeConversations callback.");
+    }
+
+    if (!callback->isError()) {
+        error = msg_close_msg_handle(&handle);
+        if (MSG_SUCCESS != error) {
+            LoggerW("Cannot close message handle: %d", error);
+        }
+    }
+
+    if (callback->isError()) {
+        LoggerD("Calling error callback");
+        PostQueue::getInstance().resolve(
+                callback->getJson()->get<picojson::object>().at(JSON_CALLBACK_ID).get<double>(),
+                callback->getJson()->serialize()
+        );
+    } else {
+        LoggerD("Calling success callback");
+
+        auto json = callback->getJson();
+        picojson::object& obj = json->get<picojson::object>();
+        obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
+
+        PostQueue::getInstance().resolve(
+                obj.at(JSON_CALLBACK_ID).get<double>(),
+                json->serialize()
+        );
     }
 
     delete callback;
@@ -1257,7 +1245,6 @@ ShortMsgManager::~ShortMsgManager()
     LoggerD("m_mms_removed_conv_id_object_map.size() = %d",
             m_mms_removed_conv_id_object_map.size());
 }
-
 
 } // messaging
 } // extension
