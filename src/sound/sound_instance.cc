@@ -50,17 +50,9 @@ SoundInstance::~SoundInstance() {
       return;\
     }
 
-
-void SoundInstance::SoundManagerGetSoundMode(const picojson::value& args, picojson::object& out) {
-
-
-  // implement it
-
-
-  // if success
-  // ReportSuccess(out);
-  // if error
-  // ReportError(out);
+void SoundInstance::SoundManagerGetSoundMode(const picojson::value& args,
+                                             picojson::object& out) {
+  ReportSuccess(picojson::value(manager_->GetSoundMode()), out);
 }
 
 void SoundInstance::SoundManagerSetVolume(const picojson::value& args,

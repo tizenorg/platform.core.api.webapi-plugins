@@ -16,7 +16,7 @@ class SoundManager {
  public:
   static SoundManager* GetInstance();
 
-  int GetSoundMode();
+  std::string GetSoundMode();
   void SetVolume(const picojson::object& args);
   double GetVolume(const picojson::object& args);
   void SetSoundModeChangeListener(const picojson::object& args);

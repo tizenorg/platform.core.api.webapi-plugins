@@ -5,6 +5,8 @@
 #include "sound/sound_manager.h"
 
 #include <tizen/tizen.h>
+#include <vconf.h>
+#include <vconf-keys.h>
 
 #include "sound/sound_instance.h"
 #include "common/logger.h"
@@ -70,7 +72,39 @@ void SoundManager::FillMaxVolumeMap() {
   }
 }
 
-int SoundManager::GetSoundMode() {}
+std::string SoundManager::GetSoundMode() {
+  std::string sound_mode_type = "MUTE";
+  int isEnableSound = 0;
+  int isEnableVibrate = 0;
+
+  int ret = vconf_get_bool(VCONFKEY_SETAPPL_SOUND_STATUS_BOOL, &isEnableSound);
+  if (VCONF_OK != ret) {
+    LoggerE("Unknown error : %d", ret);
+    // TODO: throw UnknownException(("Unknown error:
+    // logSoundModeError(ret)).c_str());
+  }
+
+  ret =
+      vconf_get_bool(VCONFKEY_SETAPPL_VIBRATION_STATUS_BOOL, &isEnableVibrate);
+  if (VCONF_OK != ret) {
+    LoggerE("Unknown error : %d", ret);
+    // TODO: throw UnknownException(("Unknown error:
+    // logSoundModeError(ret)).c_str());
+  }
+
+  if (isEnableSound && isEnableVibrate) {
+    LoggerE("Wrong state (sound && vibration)");
+    // TODO: throw UnknownException("Platform has wrong state.");
+  }
+
+  if (isEnableSound) {
+    sound_mode_type = "SOUND";
+  } else if (isEnableVibrate) {
+    sound_mode_type = "VIBRATE";
+  }
+
+  return sound_mode_type;
+}
 
 void SoundManager::SetVolume(const picojson::object& args) {
   const std::string& type = FromJson<std::string>(args, "type");
