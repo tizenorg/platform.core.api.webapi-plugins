@@ -17,7 +17,8 @@
         ['tizen == 1', {
           'variables': {
             'packages': [
-              'capi-data-control'
+              'capi-data-control',
+              'capi-common-base'
             ]
           },
         }],

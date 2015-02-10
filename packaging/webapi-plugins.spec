@@ -172,6 +172,7 @@ BuildRequires: pkgconfig(x11)
 BuildRequires: pkgconfig(xrandr)
 BuildRequires: pkgconfig(ecore)
 BuildRequires: python
+BuildRequires: pkgconfig(capi-base-common)
 BuildRequires: pkgconfig(capi-system-info)
 BuildRequires: pkgconfig(capi-system-runtime-info)
 BuildRequires: pkgconfig(capi-network-connection)
