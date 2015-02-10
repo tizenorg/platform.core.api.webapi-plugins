@@ -5,14 +5,15 @@
 #ifndef FMRADIO_FMRADIO_MANAGER_H_
 #define FMRADIO_FMRADIO_MANAGER_H_
 
-#include <string>
 #include <list>
-#include <device/callback.h>
+#include <string>
+#include <vector>
+
+#include <radio.h>
+#include <runtime_info.h>
+
 #include "common/picojson.h"
 #include "common/platform_exception.h"
-#include <vector>
-#include <runtime_info.h>
-#include <radio.h>
 
 #include "radio_instance.h"
 
@@ -20,52 +21,36 @@ namespace extension {
 namespace radio {
 
 class FMRadioManager {
-public:
+ public:
+  static FMRadioManager* GetInstance();
 
-    static FMRadioManager* GetInstance(bool safe  = true);
+  void Start(double freq);
+  void Stop();
+  void SeekUp(double callback_id);
+  void SeekDown(double callback_id);
+  void ScanStart(double callback_id);
+  void ScanStop(double callback_id);
+  void SetFMRadioInterruptedListener();
+  void UnsetFMRadioInterruptedListener();
+  void SetAntennaChangeListener();
+  void UnsetAntennaChangeListener();
 
-    radio_h * GetRadioInstance();
-    std::vector<double> * GetFreqs();
+  bool IsMuted();
+  void SetMute(bool mute);
+  void SetFrequency(double frequency);
+  double GetFrequency();
+  double GetSignalStrength();
+  bool HasAntenna();
+  const char* GetState();
 
-    void Start(double freq);
-    void Stop();
-    void SeekUp(const picojson::value& args);
-    void SeekDown(const picojson::value& args);
-    void ScanStart(const picojson::value& args);
-    void ScanStop(const picojson::value& args);
-    void SetFMRadioInterruptedListener();
-    void UnsetFMRadioInterruptedListener();
-    void SetAntennaChangeListener();
-    void UnsetAntennaChangeListener();
+ private:
+  FMRadioManager();
+  ~FMRadioManager();
 
-    bool MuteGetter();
-    void MuteSetter(const picojson::value& args);
-    double FrequencyGetter();
-    double SignalStrengthGetter();
-    bool AntennaGetter();
-    char* StateGetter();
-
-private:
-    std::vector<double> freqs;
-    radio_h radio_instance;
-
-    static std::string TranslateCode(int err);
-    static void RadioAntennaCB(runtime_info_key_e key, void *user_data);
-    static void RadioInterruptedCB(radio_interrupted_code_e code, void *user_data);
-    static common::PlatformException GetException(char * name,int err);
-    static void RadioSeekCB(int frequency, void *user_data);
-    static void CheckErr(std::string str,int err);
-    static void ScanStartCB(int frequency, void *user_data);
-    static void ScanStopCB(void *user_data);
-    static void ScanCompleteCB(void *user_data);
-    int Create();
-    FMRadioManager();
-    ~FMRadioManager();
-
+  radio_h radio_instance_;
 };
 
-} // namespace
+} // namespace radio
 } // namespace extension
 
 #endif // RADIO_RADIO_MANAGER_H_
-

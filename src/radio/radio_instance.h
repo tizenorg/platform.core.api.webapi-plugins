@@ -6,30 +6,25 @@
 #define RADIO_RADIO_INSTANCE_H_
 
 #include "common/extension.h"
-#include "radio_manager.h"
 #include "common/picojson.h"
 
 namespace extension {
 namespace radio {
 
-class RadioInstance
-    : public common::ParsedInstance
-      {
+class RadioInstance : public common::ParsedInstance {
  public:
   RadioInstance();
   virtual ~RadioInstance();
 
   static RadioInstance& getInstance();
 
-  void InstanceReportSuccess(picojson::object& out);
-
  private:
-  void MuteGetter(const picojson::value& args,picojson::object& out);
-  void MuteSetter(const picojson::value& args,picojson::object& out);
-  void FrequencyGetter(const picojson::value& args,picojson::object& out);
-  void SignalStrengthGetter(const picojson::value& args,picojson::object& out);
-  void AntennaGetter(const picojson::value& args,picojson::object& out);
-  void StateGetter(const picojson::value& args,picojson::object& out);
+  void MuteGetter(const picojson::value& args, picojson::object& out);
+  void MuteSetter(const picojson::value& args, picojson::object& out);
+  void FrequencyGetter(const picojson::value& args, picojson::object& out);
+  void SignalStrengthGetter(const picojson::value& args, picojson::object& out);
+  void AntennaGetter(const picojson::value& args, picojson::object& out);
+  void StateGetter(const picojson::value& args, picojson::object& out);
   void SeekUp(const picojson::value& args, picojson::object& out);
   void SeekDown(const picojson::value& args, picojson::object& out);
   void ScanStart(const picojson::value& args, picojson::object& out);
@@ -42,7 +37,7 @@ class RadioInstance
   void UnsetAntennaChangeListener(const picojson::value& args, picojson::object& out);
 };
 
-}
-}
+} // namespace radio
+} // namespace extension
 
 #endif

@@ -20,8 +20,9 @@ RadioExtension::RadioExtension() {
   LoggerD("RadioExtension()");
 }
 
-RadioExtension::~RadioExtension() {}
+RadioExtension::~RadioExtension() {
+}
 
 common::Instance* RadioExtension::CreateInstance() {
-    return &extension::radio::RadioInstance::getInstance();
+  return &extension::radio::RadioInstance::getInstance();
 }
