@@ -106,8 +106,10 @@ operator+(__dummy, F&& f)
  *     // do 3rd operation with unit and possibly quit function
  *   }
  */
+#define _SYNTAX_CONCAT(A, B) A ## B
+#define SYNTAX_CONCAT(A, B) _SYNTAX_CONCAT(A, B)
 #define SCOPE_EXIT \
-    auto SCOPE_EXIT_##__LINE__ = ::common::__dummy{} + [&]() noexcept
+    auto SYNTAX_CONCAT(SCOPE_EXIT_, __LINE__) = ::common::__dummy{} + [&]()
 
 }  // namespace common
 
