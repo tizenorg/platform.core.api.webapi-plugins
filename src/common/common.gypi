@@ -97,6 +97,7 @@
       'task-queue.h',
       'callback_user_data.cc',
       'callback_user_data.h',
+      'optional.h',
       #'multi_callback_user_data.cc',
       #'multi_callback_user_data.h',
       'platform_result.cc',
