@@ -14,6 +14,7 @@
 
 #include "common/utils.h"
 #include "common/picojson.h"
+#include "common/platform_result.h"
 
 namespace extension {
 namespace datasync {
@@ -53,8 +54,9 @@ class DataSyncManager {
   void Item(ds_profile_h* profile_h, const picojson::object& args);
   void Item(const std::string& id, ds_profile_h* profile_h, picojson::object& out);
   void GetProfileId(sync_agent_event_data_s* request, std::string& profile_id);
-  void Failed(picojson::object& response_obj, picojson::object& answer_obj, int code,
-              const std::string& name, const std::string& message);
+  void Failed(picojson::object& response_obj, picojson::object& answer_obj,
+              const common::ErrorCode& code, const std::string& name,
+              const std::string& message);
   inline void PrepareResponseObj(const std::string& profile_id, picojson::value& response,
                                  picojson::object& response_obj, picojson::value& answer,
                                  picojson::object& answer_obj);

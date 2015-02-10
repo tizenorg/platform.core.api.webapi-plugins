@@ -8,6 +8,7 @@
 #include <memory>
 
 #include "common/picojson.h"
+#include "common/platform_result.h"
 #include "tizen/tizen.h"
 
 std::unique_ptr<picojson::value> CreateResultMessage() {
@@ -16,7 +17,7 @@ std::unique_ptr<picojson::value> CreateResultMessage() {
   return std::unique_ptr<picojson::value>(new picojson::value(obj));
 }
 
-std::unique_ptr<picojson::value> CreateResultMessage(WebApiAPIErrors error) {
+std::unique_ptr<picojson::value> CreateResultMessage(const common::ErrorCode& error) {
   picojson::object obj;
   obj["error"] = picojson::value(static_cast<double>(error));
   return std::unique_ptr<picojson::value>(new picojson::value(obj));

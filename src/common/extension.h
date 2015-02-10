@@ -22,12 +22,13 @@
 #include <map>
 #include <functional>
 
+#include "common/platform_exception.h"
+#include "common/platform_result.h"
 #include "common/XW_Extension.h"
 #include "common/XW_Extension_EntryPoints.h"
 #include "common/XW_Extension_Permissions.h"
 #include "common/XW_Extension_Runtime.h"
 #include "common/XW_Extension_SyncMessage.h"
-#include "common/platform_exception.h"
 
 namespace common {
 
@@ -110,6 +111,7 @@ class ParsedInstance : public Instance {
   void ReportSuccess(const picojson::value& result, picojson::object& out);
   void ReportError(picojson::object& out);
   void ReportError(const PlatformException& ex, picojson::object& out);
+  void ReportError(const PlatformResult& error, picojson::object* out);
 
  private:
   void HandleMessage(const char* msg);
@@ -117,6 +119,7 @@ class ParsedInstance : public Instance {
 
   void HandleMessage(const char* msg, bool is_sync);
   void HandleException(const PlatformException& ex);
+  void HandleError(const PlatformResult& error);
 
   std::map<std::string, NativeHandler> handler_map_;
 };
@@ -126,6 +129,7 @@ void ReportSuccess(picojson::object& out);
 void ReportSuccess(const picojson::value& result, picojson::object& out);
 void ReportError(picojson::object& out);
 void ReportError(const PlatformException& ex, picojson::object& out);
+void ReportError(const PlatformResult& error, picojson::object* out);
 }  // namespace tools
 
 }  // namespace common

@@ -99,6 +99,8 @@
       'callback_user_data.h',
       #'multi_callback_user_data.cc',
       #'multi_callback_user_data.h',
+      'platform_result.cc',
+      'platform_result.h'
     ],
     'cflags': [
       '-std=c++0x',

@@ -10,6 +10,8 @@
 #include <string>
 #include <map>
 
+#include "common/logger.h"
+
 namespace {
 
 common::Extension* g_extension = NULL;
@@ -242,6 +244,10 @@ void ParsedInstance::ReportError(const PlatformException& ex, picojson::object& 
   tools::ReportError(ex, out);
 }
 
+void ParsedInstance::ReportError(const PlatformResult& error, picojson::object* out) {
+  tools::ReportError(error, out);
+}
+
 void ParsedInstance::HandleMessage(const char* msg) {
   HandleMessage(msg, false);
 }
@@ -306,6 +312,13 @@ void ParsedInstance::HandleException(const PlatformException& ex) {
   SendSyncReply(result.serialize().c_str());
 }
 
+void ParsedInstance::HandleError(const PlatformResult& e) {
+  LoggerE("Error: %s", static_cast<int>(e.error_code()));
+  picojson::value result = picojson::value(picojson::object());
+  ReportError(e, &result.get<picojson::object>());
+  SendSyncReply(result.serialize().c_str());
+}
+
 namespace tools {
 void ReportSuccess(picojson::object& out) {
   out.insert(std::make_pair("status", picojson::value("success")));
@@ -323,6 +336,11 @@ void ReportError(picojson::object& out) {
 void ReportError(const PlatformException& ex, picojson::object& out) {
   out.insert(std::make_pair("status", picojson::value("error")));
   out.insert(std::make_pair("error", ex.ToJSON()));
+}
+
+void ReportError(const PlatformResult& error, picojson::object* out) {
+  out->insert(std::make_pair("status", picojson::value("error")));
+  out->insert(std::make_pair("error", error.ToJSON()));
 }
 }  // namespace tools
 

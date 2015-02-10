@@ -8,7 +8,10 @@
 #include <unistd.h>
 #include <utility>
 
+#include "common/platform_result.h"
 #include "websetting/websetting_extension_utils.h"
+
+using common::ErrorCode;
 
 namespace {
 
@@ -56,7 +59,7 @@ WebSetting::~WebSetting() {
 std::unique_ptr<picojson::value> WebSetting::RemoveAllCookies() {
   if (!running_app_proxy_) {
     if (!(running_app_proxy_ = CreateRunningAppProxy(app_id_)))
-      return CreateResultMessage(WebApiAPIErrors::UNKNOWN_ERR);
+      return CreateResultMessage(ErrorCode::UNKNOWN_ERR);
   }
   GError* error = NULL;
   GVariant* result = g_dbus_proxy_call_sync(running_app_proxy_, "RemoveAllCookies", NULL,
@@ -64,7 +67,7 @@ std::unique_ptr<picojson::value> WebSetting::RemoveAllCookies() {
   if (!result) {
     std::cerr << "Fail to call 'RemoveuserAgentAllCookies':" << error->message << std::endl;
     g_error_free(error);
-    return CreateResultMessage(WebApiAPIErrors::UNKNOWN_ERR);
+    return CreateResultMessage(ErrorCode::UNKNOWN_ERR);
   }
   return CreateResultMessage();
 }
@@ -72,7 +75,7 @@ std::unique_ptr<picojson::value> WebSetting::RemoveAllCookies() {
 std::unique_ptr<picojson::value> WebSetting::SetUserAgentString(const std::string& user_agent) {
   if (!running_app_proxy_) {
     if (!(running_app_proxy_ = CreateRunningAppProxy(app_id_)))
-      return CreateResultMessage(WebApiAPIErrors::UNKNOWN_ERR);
+      return CreateResultMessage(ErrorCode::UNKNOWN_ERR);
   }
   GError* error = NULL;
   GVariant* result = g_dbus_proxy_call_sync(running_app_proxy_, "SetUserAgentString",
@@ -81,7 +84,7 @@ std::unique_ptr<picojson::value> WebSetting::SetUserAgentString(const std::strin
   if (!result) {
     std::cerr << "Fail to call 'SetUserAgentString':" << error->message << std::endl;
     g_error_free(error);
-    return CreateResultMessage(WebApiAPIErrors::UNKNOWN_ERR);
+    return CreateResultMessage(ErrorCode::UNKNOWN_ERR);
   }
   return CreateResultMessage();
 }

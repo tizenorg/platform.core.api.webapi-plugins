@@ -11,8 +11,6 @@
 #include "common/logger.h"
 #include "common/converter.h"
 
-#include "tizen/tizen.h"
-
 namespace extension {
 namespace datasync {
 
@@ -536,7 +534,8 @@ void DataSyncManager::GetProfileId(sync_agent_event_data_s* request, std::string
   g_free(profile_dir_name);
 }
 
-void DataSyncManager::Failed(picojson::object& response_obj, picojson::object& answer_obj, int code,
+void DataSyncManager::Failed(picojson::object& response_obj, picojson::object& answer_obj,
+                             const common::ErrorCode& code,
                              const std::string& name, const std::string& message) {
   LoggerE("%s", message.c_str());
   response_obj["callback_name"] = picojson::value("onfailed");
@@ -589,15 +588,15 @@ int DataSyncManager::StateChangedCallback(sync_agent_event_data_s* request) {
     callbacks_.erase(it);
 
     if (!progress) {
-      Failed(response_obj, answer_obj, UNKNOWN_ERR, "Exception", "nullptr status");
+      Failed(response_obj, answer_obj, ErrorCode::UNKNOWN_ERR, "Exception", "nullptr status");
     } else if (0 == strncmp(progress, "DONE", 4)) {
       response_obj["callback_name"] = picojson::value("oncompleted");
     } else if (0 == strncmp(progress, "CANCEL", 6)) {
       response_obj["callback_name"] = picojson::value("onstopped");
     } else if (0 == strncmp(progress, "ERROR", 5)) {
-      Failed(response_obj, answer_obj, UNKNOWN_ERR, "Exception", "Datasync failed");
+      Failed(response_obj, answer_obj, ErrorCode::UNKNOWN_ERR, "Exception", "Datasync failed");
     } else {
-      Failed(response_obj, answer_obj, UNKNOWN_ERR, "Exception", "Undefined status");
+      Failed(response_obj, answer_obj, ErrorCode::UNKNOWN_ERR, "Exception", "Undefined status");
     }
   }
 
@@ -651,7 +650,7 @@ int DataSyncManager::ProgressCallback(sync_agent_event_data_s* request) {
       answer_obj["totalPerService"] = picojson::value(static_cast<double>(total_per_db));
       answer_obj["syncedPerService"] = picojson::value(static_cast<double>(synced_per_db));
     } else {
-      Failed(response_obj, answer_obj, UNKNOWN_ERR, "Exception", "Wrong service type");
+      Failed(response_obj, answer_obj, ErrorCode::UNKNOWN_ERR, "Exception", "Wrong service type");
     }
   }
 

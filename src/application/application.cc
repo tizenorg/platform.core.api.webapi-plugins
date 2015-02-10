@@ -9,7 +9,10 @@
 #include "common/extension.h"
 #include "common/logger.h"
 #include "common/picojson.h"
-#include "tizen/tizen.h"
+
+#include "common/platform_result.h"
+
+using common::ErrorCode;
 
 namespace extension {
 namespace application {
@@ -44,10 +47,9 @@ void Application::set_app_info(const ApplicationInformationPtr& app_info) {
 
 const picojson::value& Application::Value() {
   if (!app_info_->IsValid()) {
-    LoggerD("WebApiAPIErrors::UNKNOWN_ERR");
+    LoggerD("ErrorCode::UNKNOWN_ERR");
     picojson::object obj;
-    obj["error"] =
-      picojson::value(static_cast<double>(WebApiAPIErrors::UNKNOWN_ERR));
+    obj["error"] = picojson::value(static_cast<double>(ErrorCode::UNKNOWN_ERR));
     value_ = picojson::value(obj);
   } else {
     picojson::object obj;
@@ -58,7 +60,6 @@ const picojson::value& Application::Value() {
   }
   return value_;
 }
-
 
 }  // namespace application
 }  // namespace extension
