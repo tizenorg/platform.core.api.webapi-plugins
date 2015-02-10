@@ -15,6 +15,7 @@
         'utils/utils.gyp:*',
         'messageport/messageport.gyp:*',
         'archive/archive.gyp:*',
+        'filesystem/filesystem.gyp:*',
         'exif/exif.gyp:*',
         'websetting/websetting.gyp:*',
         'systemsetting/systemsetting.gyp:*',

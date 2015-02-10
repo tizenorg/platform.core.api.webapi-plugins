@@ -171,6 +171,7 @@ BuildRequires: pkgconfig(badge)
 BuildRequires: pkgconfig(x11)
 BuildRequires: pkgconfig(xrandr)
 BuildRequires: pkgconfig(ecore)
+BuildRequires: pkgconfig(storage)
 BuildRequires: python
 BuildRequires: pkgconfig(capi-base-common)
 BuildRequires: pkgconfig(capi-system-info)
