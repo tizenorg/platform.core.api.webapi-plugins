@@ -17,6 +17,7 @@ class FilesystemStat {
  public:
   bool valid;
 
+  std::string path;
   bool isFile;
   bool isDirectory;
   bool readOnly;
