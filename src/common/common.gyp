@@ -38,7 +38,9 @@
         #'multi_callback_user_data.h',
         'platform_result.cc',
         'platform_result.h',
-        'assert.h'
+        'assert.h',
+        'virtual_fs.cc',
+        'virtual_fs.h',
       ],
       'cflags': [
         '-fvisibility=default',
@@ -49,6 +51,7 @@
             'packages': [
               'capi-appfw-app-manager',
               'capi-appfw-package-manager',
+              'storage',
             ]
           },
           'conditions': [
@@ -83,6 +86,11 @@
         'libraries' : [
           '-ltizen_common',
         ],
+        'variables': {
+          'packages': [
+            'storage',
+          ],
+        },
       },
     },
   ],

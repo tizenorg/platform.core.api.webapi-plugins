@@ -177,6 +177,7 @@ BuildRequires: pkgconfig(vconf)
 BuildRequires: pkgconfig(x11)
 BuildRequires: pkgconfig(xrandr)
 BuildRequires: pkgconfig(ecore)
+BuildRequires: pkgconfig(storage)
 BuildRequires: python
 BuildRequires: pkgconfig(capi-base-common)
 BuildRequires: pkgconfig(capi-system-info)
@@ -213,10 +214,6 @@ BuildRequires: pkgconfig(capi-data-control)
 
 %if 0%{?tizen_feature_download_support}
 BuildRequires: pkgconfig(capi-web-url-download)
-%endif
-
-%if 0%{?tizen_feature_filesystem_support}
-BuildRequires: pkgconfig(storage)
 %endif
 
 %if 0%{?tizen_feature_power_support}
