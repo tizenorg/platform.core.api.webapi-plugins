@@ -133,10 +133,19 @@ var BluetoothClassDeviceService = function() {
 
 // class BluetoothClass ////////////////////////////////////////////////////
 var BluetoothClass = function(data) {
+    var services = [];
+    if (data) {
+        services = data.services;
+    }
+
     Object.defineProperties(this, {
         major : {value: data.major, writable: false, enumerable: true},
         minor : {value: data.minor, writable: false, enumerable: true},
-        services : {value: data.services, writable: false, enumerable: true}
+        services : {
+            enumerable: true,
+            set : function(){},
+            get : function(){ return services.slice(); }
+        }
     });
 };
 
