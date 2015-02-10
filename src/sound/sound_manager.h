@@ -28,7 +28,7 @@ class SoundManager {
   double GetVolume(const picojson::object& args);
   bool SetSoundModeChangeListener(SoundManagerSoundModeChangedListener* listener);
   bool UnsetSoundModeChangeListener();
-  void SetVolumeChangeListener(const picojson::object& args);
+  void SetVolumeChangeListener();
   void UnsetVolumeChangeListener();
 
  private:
@@ -36,14 +36,17 @@ class SoundManager {
   virtual ~SoundManager();
 
   std::map<sound_type_e, int> max_volume_map_;
+  bool is_volume_change_listener_;
 
   static const std::map<std::string, sound_type_e> platform_enum_map_;
 
   void FillMaxVolumeMap();
+  int GetMaxVolume(sound_type_e type);
+  void VolumeChangeCallback(sound_type_e type, unsigned int value);
 
   static sound_type_e StrToPlatformEnum(const std::string& key);
   static std::string PlatformEnumToStr(const sound_type_e value);
-
+  static double ConvertToSystemVolume(int max_volume, int volume);
   static void soundModeChangedCb(keynode_t *node, void *user_data);
   bool soundModeChangeListening;
   SoundManagerSoundModeChangedListener* soundModeListener;

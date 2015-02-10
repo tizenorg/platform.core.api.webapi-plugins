@@ -50,6 +50,11 @@ SoundInstance::~SoundInstance() {
       return;\
     }
 
+SoundInstance &SoundInstance::GetInstance() {
+  static SoundInstance instance;
+  return instance;
+}
+
 void SoundInstance::SoundManagerGetSoundMode(const picojson::value& args,
                                              picojson::object& out) {
   ReportSuccess(picojson::value(manager_->GetSoundMode()), out);
@@ -101,32 +106,20 @@ void SoundInstance::OnSoundModeChange(const std::string& newmode)
   PostMessage(event.serialize().c_str());
 }
 
-void SoundInstance::SoundManagerSetVolumeChangeListener(const picojson::value& args, picojson::object& out) {
-  CHECK_EXIST(args, "callbackId", out)
 
-  int callbackId = static_cast<int>(args.get("callbackId").get<double>());
+void SoundInstance::SoundManagerSetVolumeChangeListener(
+    const picojson::value& args, picojson::object& out) {
+  manager_->SetVolumeChangeListener();
 
-  // implement it
-
-  // call ReplyAsync in later (Asynchronously)
-
-  // if success
-  // ReportSuccess(out);
-  // if error
-  // ReportError(out);
-}
-void SoundInstance::SoundManagerUnsetVolumeChangeListener(const picojson::value& args, picojson::object& out) {
-
-
-  // implement it
-
-
-  // if success
-  // ReportSuccess(out);
-  // if error
-  // ReportError(out);
+  ReportSuccess(out);
 }
 
+void SoundInstance::SoundManagerUnsetVolumeChangeListener(
+    const picojson::value& args, picojson::object& out) {
+  manager_->UnsetVolumeChangeListener();
+
+  ReportSuccess(out);
+}
 
 #undef CHECK_EXIST
 

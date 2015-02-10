@@ -15,6 +15,7 @@ class SoundInstance : public common::ParsedInstance, public SoundManagerSoundMod
  public:
   SoundInstance();
   virtual ~SoundInstance();
+  static SoundInstance& GetInstance();
 
  private:
   SoundManager* manager_;

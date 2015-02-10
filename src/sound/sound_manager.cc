@@ -13,10 +13,10 @@
 #include "common/converter.h"
 #include "common/platform_exception.h"
 
-using namespace common;
-
 namespace extension {
 namespace sound {
+
+using namespace common;
 
 const std::map<std::string, sound_type_e> SoundManager::platform_enum_map_ = {
     {"SYSTEM", SOUND_TYPE_SYSTEM},
@@ -80,6 +80,39 @@ void SoundManager::FillMaxVolumeMap() {
 
     max_volume_map_[item.second] = max;
   }
+}
+
+int SoundManager::GetMaxVolume(sound_type_e type) {
+  auto it = max_volume_map_.find(type);
+  if (it == max_volume_map_.end()) {
+    LoggerE("Failed to find maxVolume of type: %s",
+            PlatformEnumToStr(type).c_str());
+    // TODO: throw UnknownException("Failed to find maxVolume");
+  }
+
+  return it->second;
+}
+
+double SoundManager::ConvertToSystemVolume(int max_volume, int volume) {
+  return static_cast<double>(volume) / max_volume;
+}
+
+void SoundManager::VolumeChangeCallback(sound_type_e type, unsigned int value) {
+  LoggerD("VolumeChangeCallback: type: %d, value: %d", type, value);
+
+  // Prepare response
+  picojson::value response = picojson::value(picojson::object());
+  picojson::object& response_obj = response.get<picojson::object>();
+
+  response_obj.insert(
+      std::make_pair("listenerId", picojson::value("VolumeChangeListener")));
+  response_obj.insert(
+      std::make_pair("type", picojson::value(PlatformEnumToStr(type))));
+  response_obj.insert(std::make_pair(
+      "volume",
+      picojson::value(ConvertToSystemVolume(GetMaxVolume(type), value))));
+
+  SoundInstance::GetInstance().PostMessage(response.serialize().c_str());
 }
 
 std::string SoundManager::GetSoundMode() {
@@ -150,14 +183,7 @@ void SoundManager::SetVolume(const picojson::object& args) {
 double SoundManager::GetVolume(const picojson::object& args) {
   const std::string& type = FromJson<std::string>(args, "type");
   const sound_type_e type_enum = SoundManager::StrToPlatformEnum(type);
-
-  auto it = max_volume_map_.find(type_enum);
-  if (it == max_volume_map_.end()) {
-    LoggerE("Failed to find maxVolume of type: %s", type.c_str());
-    // TODO: throw UnknownException("Failed to find maxVolume");
-  }
-
-  int max_volume = it->second;
+  int max_volume = GetMaxVolume(type_enum);
   int value;
 
   int ret = sound_manager_get_volume(type_enum, &value);
@@ -166,7 +192,7 @@ double SoundManager::GetVolume(const picojson::object& args) {
     // TODO: throw UnknownException("Failed to get volume");
   }
 
-  double volume = static_cast<double>(value) / max_volume;
+  double volume = ConvertToSystemVolume(max_volume, value);
   LoggerD("volume: %lf, maxVolume: %d, value: %d", volume, max_volume, value);
 
   return volume;
@@ -214,9 +240,39 @@ bool SoundManager::UnsetSoundModeChangeListener() {
   return false;
 }
 
-void SoundManager::SetVolumeChangeListener(const picojson::object& args) {}
+void SoundManager::SetVolumeChangeListener() {
+  if (!is_volume_change_listener_) {
+    int ret = sound_manager_set_volume_changed_cb(
+        [](sound_type_e type, unsigned int value, void* ud) {
+          return static_cast<SoundManager*>(ud)
+              ->VolumeChangeCallback(type, value);
+        },
+        static_cast<void*>(this));
 
-void SoundManager::UnsetVolumeChangeListener() {}
+    if (ret != SOUND_MANAGER_ERROR_NONE) {
+      LoggerE("Failed to set volume changed callback: error code: %d", ret);
+      // TODO: SoundUtil::throwSoundException(ret, "Failed to set volume changed
+      // callback");
+    }
+
+    is_volume_change_listener_ = true;
+  }
+}
+
+void SoundManager::UnsetVolumeChangeListener() {
+  if (!is_volume_change_listener_) {
+    return;
+  }
+
+  int ret = sound_manager_unset_volume_changed_cb();
+  if (ret != SOUND_MANAGER_ERROR_NONE) {
+    LoggerE("Failed to unset volume changed callback");
+    // TODO: SoundUtil::throwSoundException(ret, "Failed to unset volume changed
+    // callback");
+  }
+
+  is_volume_change_listener_ = false;
+}
 
 }  // namespace sound
 }  // namespace extension

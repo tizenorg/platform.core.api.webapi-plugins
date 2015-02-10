@@ -21,5 +21,5 @@ SoundExtension::SoundExtension() {
 SoundExtension::~SoundExtension() {}
 
 common::Instance* SoundExtension::CreateInstance() {
-  return new extension::sound::SoundInstance;
+  return &extension::sound::SoundInstance::GetInstance();
 }
