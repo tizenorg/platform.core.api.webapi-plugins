@@ -5,6 +5,7 @@
 #ifndef COMMON_TYPEUTIL_H_
 #define COMMON_TYPEUTIL_H_
 
+#include <set>
 #include <string>
 
 #include "common/picojson.h"
@@ -61,11 +62,18 @@ IS_TYPE_RANGE(ByteType, -128, 127)
 IS_TYPE_RANGE(OctetType, 0, 255)
 IS_TYPE_RANGE(ShortType, -32768, 32767)
 IS_TYPE_RANGE(UnsignedShortType, 0, 65535)
-IS_TYPE_RANGE(LongType, -2147483648, 2147483647)
-IS_TYPE_RANGE(UnsignedLongType, 0, 4294967295)
-IS_TYPE_RANGE(LongLongType, -9223372036854775808, 9223372036854775807)
-IS_TYPE_RANGE(UnsignedLongLongType, 0, 18446744073709551615)
+IS_TYPE_RANGE(LongType, -2147483648L, 2147483647L)
+IS_TYPE_RANGE(UnsignedLongType, 0, 4294967295U)
+IS_TYPE_RANGE(LongLongType, -9223372036854775807LL, 9223372036854775807LL)
+IS_TYPE_RANGE(UnsignedLongLongType, 0, 18446744073709551615ULL)
 #undef IS_TYPE_RANGE
+
+bool IsEnum(const value& arg, const std::string& name,
+            const std::set<std::string>& values) {
+  const value& v = arg.get(name);
+  return v.is<std::string>() &&
+      values.find(v.get<std::string>()) != values.end();
+}
 
 }  // namespace WIDLTypeValidator
 
@@ -106,7 +114,8 @@ int main(void) {
         "\"longlong1\": -9223372036854775808,"
         "\"longlong2\": 9223372036854775807,"
         "\"ulonglong\": 18446744073709551615,"
-        "\"zero\": 0"
+        "\"zero\": 0,"
+        "\"enum\": \"enum\""
       "}";
   picojson::value v;
   std::string err = picojson::parse(v, tc, tc + strlen(tc));
@@ -115,6 +124,7 @@ int main(void) {
 
   using common::WIDLTypeValidator::WIDLType;
   using common::WIDLTypeValidator::IsType;
+  using common::WIDLTypeValidator::IsEnum;
 
 #define TC_POSITIVE(name, wtype) \
   printf("%s positive %s : %s\n", #wtype, \
@@ -241,6 +251,17 @@ int main(void) {
   TC_NEGATIVE("array", WIDLType::UnsignedLongLongType);
   TC_NEGATIVE("array2", WIDLType::UnsignedLongLongType);
   TC_NEGATIVE("boolean", WIDLType::UnsignedLongLongType);
+
+  std::string values[] = {
+    "enum", "foo", "bar"
+  };
+  std::set<std::string> enums(values, values+3);
+  bool enum_p = IsEnum(v, "enum", enums);
+  printf("%s positive %s : %s\n", "enum", enum_p ? "pass" : "fail",
+         v.get("enum").to_str().c_str());
+  bool enum_n = IsEnum(v, "xxx", enums);
+  printf("%s negative %s : %s\n", "enum", !enum_n ? "pass" : "fail",
+         v.get("enum").to_str().c_str());
 
 #undef TC_POSITIVE
 #undef TC_NEGATIVE
