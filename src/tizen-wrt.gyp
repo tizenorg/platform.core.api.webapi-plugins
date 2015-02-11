@@ -10,7 +10,7 @@
       'dependencies': [
         'tizen/tizen.gyp:*',
         'application/application.gyp:*',
-	'package/package.gyp:*',
+        'package/package.gyp:*',
         'time/time.gyp:*',
         'utils/utils.gyp:*',
         'messageport/messageport.gyp:*',
@@ -41,6 +41,7 @@
               'secureelement/secureelement.gyp:*',
               'sound/sound.gyp:*',
               'notification/notification.gyp:*',
+              'sensor/sensor.gyp:*',
             ],
           },
         ], # end mobile
