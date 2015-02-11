@@ -7,415 +7,395 @@
 
 var validator_ = xwalk.utils.validator;
 var types_ = validator_.Types;
+var T_ = xwalk.utils.type;
+var native_ = new xwalk.utils.NativeManager(extension);
 
-var callbackId = 0;
-var callbacks = {};
 
-var lastAccountChangeListenerId = -1;
-var accountChangeListener = {};
-
-function invokeListener(result) {
-  if (result.listener === 'accountChange') {
-    for (var listenerId in accountChangeListener) {
-      console.log("[Account][invokeListener] AccountChangeListenerId: " + listenerId);
-      var listener = callbacks[accountChangeListener[listenerId]];
-      listener(result);
+function InternalValues_(data) {
+    if (!(this instanceof InternalValues_)) {
+        return new InternalValues_(data);
     }
-  }
-}
-
-extension.setMessageListener(function(json) {
-  var result = JSON.parse(json);
-
-  if (result.hasOwnProperty('listener')) {
-    console.log("[Account][setMessageListener] Call listner");
-    invokeListener(result);
-  } else {
-    console.log("[Account][setMessageListener] Call callback");
-    var callback = callbacks[result.callbackId];
-    callback(result);
-  }
-});
-
-function nextCallbackId() {
-  return callbackId++;
-}
-
-function nextAccountChangeListenerId() {
-  return ++lastAccountChangeListenerId;
-}
-
-function callNative(cmd, args) {
-  var json = {'cmd': cmd, 'args': args};
-  var argjson = JSON.stringify(json);
-  var resultString = extension.internal.sendSyncMessage(argjson);
-  var result = JSON.parse(resultString);
-
-  if (typeof result !== 'object') {
-    throw new tizen.WebAPIException(tizen.WebAPIException.UNKNOWN_ERR);
-  }
-
-  if (result.status === 'success') {
-    if (result.result) {
-      return result.result;
+    for(var key in data) {
+        if (data.hasOwnProperty(key)) {
+            this[key] = data[key];
+        }
     }
-    return true;
-  } else if (result.status === 'error') {
-    var err = result.error;
-    if (err) {
-      throw new tizen.WebAPIException(err.name, err.message);
+}
+
+
+function AccountProvider(data) {
+    var internal_ = [];
+    if (data) {
+        internal_ = data.capabilities;
     }
-    return false;
-  }
+
+    Object.defineProperties(this, {
+        applicationId:              { enumerable: true, writable: false, value: data.applicationId },
+        displayName:                { enumerable: true, writable: false, value: data.displayName },
+        iconUri:                    { enumerable: true, writable: false, value: data.iconUri },
+        smallIconUri:               { enumerable: true, writable: false, value: data.smallIconUri },
+        capabilities:               { enumerable: true, 
+                                      set: function() {},
+                                      get: function() { return internal_.slice(); }
+                                    },
+        isMultipleAccountSupported: { enumerable: true, writable: false, value: data.isMultipleAccountSupported },
+    });
 }
 
 
-function callNativeWithCallback(cmd, args, callback) {
-  if (callback) {
-    var id = nextCallbackId();
-    args.callbackId = id;
-    callbacks[id] = callback;
-  }
+function Account() {
+    validator_.isConstructorCall(this, tizen.Account);
+    var args = validator_.validateArgs(arguments, [
+        { name: 'provider', type: types_.PLATFORM_OBJECT, values: AccountProvider },
+        { name: 'accountInitDict', type: types_.DICTIONARY, optional: true, nullable: true }
+    ]);
 
-  return callNative(cmd, args);
+    var _internal = { id: null };
+
+    Object.defineProperties(this, {
+        id:         { enumerable: true,
+                      set: function (value) { if (value instanceof InternalValues_) _internal.id = value.id; },
+                      get: function () { return _internal.id; }
+        },
+        userName:   { enumerable: true, writable: true,
+                      value: (args.accountInitDict ? args.accountInitDict.userName : null) },
+        iconUri:    { enumerable: true, writable: true,
+                      value: (args.accountInitDict ? args.accountInitDict.iconUri : null) },
+        provider:   { enumerable: true, writable: false, value: args.provider }
+    });
 }
 
-function SetReadOnlyProperty(obj, n, v){
-    if (v)
-        Object.defineProperty(obj, n, {value:v, writable: false, enumerable: true, configurable: true});
-    else
-        Object.defineProperty(obj, n, {writable: false, enumerable: true, configurable: true});
-}
 
-function AccountProvider(providerInfo) {
-  SetReadOnlyProperty(this, 'applicationId', providerInfo.applicationId); // read only property
-  SetReadOnlyProperty(this, 'displayName', providerInfo.displayName); // read only property
-  SetReadOnlyProperty(this, 'iconUri', providerInfo.iconUri); // read only property
-  SetReadOnlyProperty(this, 'smallIconUri', providerInfo.smallIconUri); // read only property
-  SetReadOnlyProperty(this, 'capabilities', providerInfo.capabilities); // read only property
-  SetReadOnlyProperty(this, 'isMultipleAccountSupported', providerInfo.isMultipleAccountSupported); // read only property
-}
+Account.prototype.setExtendedData = function() {
+    var args = validator_.validateArgs(arguments, [
+        { name: 'key', type: types_.STRING },
+        { name: 'value', type: types_.STRING }
+    ]);
 
-function SetAccountId(account, accountId) {
+    var result = native_.callSync('Account_setExtendedData',
+                                  {
+                                      accountId: this.id,
+                                      key: args.key,
+                                      value: args.value
+                                  }
+    );
 
-  Object.defineProperty(account, 'id', {writable: true});
-  account.id = accountId;
-  Object.defineProperty(account, 'id', {writable: false});
-
-  return account;
-}
-
-function Account(provider, accountInitDict) {
-  console.log("[Constructor of Account] Enter");
-
-  var args = validator_.validateArgs(arguments, [
-    {'name' : 'provider', 'type' : types_.PLATFORM_OBJECT, 'values' : AccountProvider},
-    {'name' : 'accountInitDict',
-      'type' : types_.DICTIONARY,
-      'optional' : true,
-      'nullable' : true
+    if (native_.isFailure(result)) {
+        throw native_.getErrorObject(result);
     }
-  ]);
-
-  SetReadOnlyProperty(this, 'id', null); // read only property
-  SetReadOnlyProperty(this, 'provider', provider); // read only property
-  if(arguments.length > 1) {
-      this.userName = accountInitDict.userName;
-      this.iconUri = accountInitDict.iconUri;
-  } else {
-      this.userName = null;
-      this.iconUri = null;
-  }
-}
-
-function MakeAccountObject(obj) {
-  console.log("[Account][MakeAccountObject] Enter");
-  var account = new Account(new AccountProvider(obj.provider), obj.accountInitDict);
-  return SetAccountId(account, obj.id);
-}
-
-Account.prototype.setExtendedData = function(key, value) {
-  var args = validator_.validateArgs(arguments, [
-    {'name': 'key', 'type': types_.STRING},
-    {'name': 'value', 'type': types_.STRING}
-  ]);
-
-  var nativeParam = {
-    'key': args.key,
-    'value': args.value
-  };
-
-
-  try {
-    var syncResult = callNative('Account_setExtendedData', nativeParam);
-    // if you need synchronous result from native function using 'syncResult'.
-  } catch (e) {
-    throw e;
-  }
-
-};
-
-Account.prototype.getExtendedData = function(key) {
-  var args = validator_.validateArgs(arguments, [
-    {'name': 'key', 'type': types_.STRING}
-  ]);
-
-  var nativeParam = {
-    'key': args.key
-  };
-
-
-  try {
-    var syncResult = callNative('Account_getExtendedData', nativeParam);
-    // if you need synchronous result from native function using 'syncResult'.
-  } catch (e) {
-    throw e;
-  }
-
-};
-
-Account.prototype.getExtendedData = function(successCallback, errorCallback) {
-  var args = validator_.validateArgs(arguments, [
-    {'name': 'successCallback', 'type': types_.LISTENER, 'values': ['onsuccess']},
-    {'name': 'errorCallback', 'type': types_.FUNCTION}
-  ]);
-
-  var nativeParam = {
-  };
-
-
-  try {
-    var syncResult = callNative('Account_getExtendedData', nativeParam);
-    // if you need synchronous result from native function using 'syncResult'.
-  } catch (e) {
-    throw e;
-  }
-
 };
 
 
-
-function AccountManager() {
-  // constructor of AccountManager
-
-}
-
-
-AccountManager.prototype.add = function(account) {
-  var args = validator_.validateArgs(arguments, [
-    {'name': 'account', 'type': types_.PLATFORM_OBJECT, 'values': Account}
-  ]);
-
-  var nativeParam = {
-  };
-
-
-  try {
-    var syncResult = callNative('AccountManager_add', nativeParam);
-    // if you need synchronous result from native function using 'syncResult'.
-  } catch (e) {
-    throw e;
-  }
-
-};
-
-AccountManager.prototype.remove = function(accountId) {
-  var args = validator_.validateArgs(arguments, [
-    {'name': 'accountId', 'type': types_.LONG}
-  ]);
-
-  var nativeParam = {
-    'accountId': args.accountId
-  };
-
-
-  try {
-    var syncResult = callNative('AccountManager_remove', nativeParam);
-    // if you need synchronous result from native function using 'syncResult'.
-  } catch (e) {
-    throw e;
-  }
-
-};
-
-AccountManager.prototype.update = function(account) {
-  var args = validator_.validateArgs(arguments, [
-    {'name': 'account', 'type': types_.PLATFORM_OBJECT, 'values': Account}
-  ]);
-
-  var nativeParam = {
-  };
-
-
-  try {
-    var syncResult = callNative('AccountManager_update', nativeParam);
-    // if you need synchronous result from native function using 'syncResult'.
-  } catch (e) {
-    throw e;
-  }
-
-};
-
-AccountManager.prototype.getAccount = function(accountId) {
-  console.log("[AccountManager][getAccount] Enter");
-  var args = validator_.validateArgs(arguments, [
-    {'name': 'accountId', 'type': types_.UNSIGNED_LONG}
-  ]);
-
-  var nativeParam = {
-    'accountId': args.accountId
-  };
-
-  try {
-    var syncResult = callNative('AccountManager_getAccount', nativeParam);
-    // if you need synchronous result from native function using 'syncResult'.
-  } catch (e) {
-    throw e;
-  }
-
-  var returnObject = new Account();
-  return returnObject;
-};
-
-AccountManager.prototype.getAccounts = function(successCallback, errorCallback, applicationId) {
-  var args = validator_.validateArgs(arguments, [
-    {'name': 'successCallback', 'type': types_.LISTENER, 'values': ['onsuccess']},
-    {'name': 'errorCallback', 'type': types_.FUNCTION},
-    {'name': 'applicationId', 'type': types_.STRING}
-  ]);
-
-  var nativeParam = {
-  };
-
-  if (args.applicationId) {
-    nativeParam.applicationId = args.applicationId;
-  }
-
-  try {
-    var syncResult = callNative('AccountManager_getAccounts', nativeParam);
-    // if you need synchronous result from native function using 'syncResult'.
-  } catch (e) {
-    throw e;
-  }
-
-};
-
-AccountManager.prototype.getProvider = function(applicationId) {
-  var args = validator_.validateArgs(arguments, [
-    {'name': 'applicationId', 'type': types_.STRING}
-  ]);
-
-  var nativeParam = {
-    'applicationId': args.applicationId
-  };
-
-  try {
-    var syncResult = callNative('AccountManager_getProvider', nativeParam);
-    return new AccountProvider(syncResult);
-  } catch (e) {
-    throw e;
-  }
-};
-
-AccountManager.prototype.getProviders = function(successCallback, errorCallback, capability) {
-  var args = validator_.validateArgs(arguments, [
-    {'name' : 'successCallback', 'type' : types_.FUNCTION},
-    {'name' : 'errorCallback', 'type' : types_.FUNCTION, 'optional' : true, 'nullable' : true},
-    {'name' : 'capability', 'type' : types_.STRING, 'optional' : true, 'nullable' : true}
-  ]);
-
-  var nativeParam = {
-  };
-
-  if (args.capability) {
-    nativeParam.capability = args.capability;
-  }
-
-  try {
-    var syncResult = callNativeWithCallback(
-        'AccountManager_getProviders',
-        nativeParam,
-        function(param) {
-          if (param.status == 'success') {
-            for (var i = 0; i < param.result.length; i++) {
-              param.result[i] = new AccountProvider(param.result[i]);
+Account.prototype.getExtendedData = function() {
+    if (T_.isFunction(arguments[0])) {
+        var args = validator_.validateArgs(arguments, [
+            {
+                name : 'successCallback',
+                type : types_.FUNCTION,
+                optional : false,
+                nullable : false
+            },
+            {
+                name : 'errorCallback',
+                type : types_.FUNCTION,
+                optional : true,
+                nullable : true
             }
-            args.successCallback(param.result);
-          } else if (param.status == 'error') {
-            var err = param.error;
-            if (err) {
-              args.errorCallback(new tizen.WebAPIError(err.name, err.message));
-              return;
+        ]);
+
+        // TODO handling exceptions
+
+        native_.call( 'Account_getExtendedData', { accountId: this.id },
+            function(result) {
+                if (native_.isFailure(result)) {
+                    if(!T_.isNullOrUndefined(args.errorCallback)) {
+                        args.errorCallback(native_.getErrorObject(result));
+                    }
+                } else {
+                    args.successCallback(native_.getResultObject(result));
+                }
             }
-          }
+        );
+    } else {
+        var args = validator_.validateArgs(arguments, [
+            { name: 'key', type: types_.STRING }
+        ]);
 
-          delete callbacks[param.callbackId];
-        });
-  } catch (e) {
-    throw e;
-  }
+        var result = native_.callSync('Account_getExtendedData',
+                                      { 
+                                           accountId: this.id,
+                                           key: args.key
+                                      }
+        );
+        if (native_.isFailure(result)) {
+            throw native_.getErrorObject(result);
+        }
+        return native_.getResultObject(result);
+    }
 };
 
-AccountManager.prototype.addAccountListener = function(callback) {
-  var args = validator_.validateArgs(
-      arguments,
-      [
-          {'name' : 'callback',
-            'type' : types_.LISTENER,
-            'values' : ['onadded', 'onremoved', 'onupdated']}
-      ]);
 
-  var nativeParam = {
-  };
+function AccountFromResult(result) {
+    var provider = new AccountProvider(result.provider);
+    var account_init_dict = { userName: result.userName, iconUri: result.iconUri };
+    var account = new Account(provider, account_init_dict);
+    account.id = new InternalValues_({ id: result.id });
+    return account;
+}
 
-  try {
-    var syncResult = callNativeWithCallback(
-        'AccountManager_addAccountListener',
-        nativeParam,
-        function(param) {
-          if (param.status === 'added') {            
-            args.callback.onadded(MakeAccountObject(param.result));
-          } else if (param.status === 'removed') {
-            args.callback.onremoved(param.result);
-          } else if (param.status === 'updated') {
-            args.callback.onupdated(MakeAccountObject(param.result));
-          }
-        });
 
-    console.log("[Account][addAccountListener] callbackId: " + nativeParam.callbackId);
-    var listenerId = nextAccountChangeListenerId();
-    accountChangeListener[listenerId] = nativeParam.callbackId;
-    console.log("[Account][addAccountListener] listenerId: " + listenerId);
-    return listenerId;
-  } catch (e) {
-    throw e;
-  }
-};
+function AccountManager() {}
 
-AccountManager.prototype.removeAccountListener = function(accountListenerId) {
-  var args = validator_.validateArgs(arguments, [
-    {'name': 'accountListenerId', 'type': types_.LONG}
-  ]);
 
-  var nativeParam = {
-  };
+AccountManager.prototype.add = function() {
+    var args = validator_.validateArgs(arguments, [
+        { name: 'account', type: types_.PLATFORM_OBJECT, values: Account }
+    ]);
 
-  try {
-    if (args.accountListenerId in accountChangeListener) {
-      delete callbacks[accountChangeListener[args.accountListenerId]];
-      delete accountChangeListener[args.accountListenerId];
+    var result = native_.callSync( 'AccountManager_add', { account: args.account });
+
+    if (native_.isFailure(result)) {
+        throw native_.getErrorObject(result);
+    }
+}
+
+
+AccountManager.prototype.remove = function() {
+    var args = validator_.validateArgs(arguments, [
+        { name: 'accountId', type: types_.UNSIGNED_LONG}
+    ]);
+
+    var result = native_.callSync('AccountManager_remove', { accountId: args.accountId });
+
+    if (native_.isFailure(result)) {
+        throw native_.getErrorObject(result);
+    }
+}
+
+
+AccountManager.prototype.update = function() {
+    var args = validator_.validateArgs(arguments, [
+        { name: 'account', type: types_.PLATFORM_OBJECT, values: Account }
+    ]);
+
+    var result = native_.callSync( 'AccountManager_update',
+                                    {
+                                        accountId:  args.account.id,
+                                        userName:   args.account.userName,
+                                        iconUri:    args.account.iconUri
+                                    }
+    );
+
+    if (native_.isFailure(result)) {
+        throw native_.getErrorObject(result);
+    }
+}
+
+
+AccountManager.prototype.getAccount = function() {
+    var args = validator_.validateArgs(arguments, [
+        { name: 'accountId', type: types_.UNSIGNED_LONG }
+    ]);
+
+    var result = native_.callSync(
+                        'AccountManager_getAccount',
+                        { accountId: args.accountId }
+    );
+
+    if (native_.isFailure(result)) {
+        throw native_.getErrorObject(result);
     }
 
-    if (Object.keys(accountChangeListener).length === 0) {
-      console.log("[Account][removeAccountListener] Unscribe native notification");
-      var syncResult = callNative('AccountManager_removeAccountListener', nativeParam);
+    var account_result = native_.getResultObject(result);
+
+    if (!T_.isNull(account_result)) {
+        return AccountFromResult(account_result);
+    } else {
+        return null;
     }
-  } catch (e) {
-    throw e;
-  }
+}
+
+
+AccountManager.prototype.getAccounts = function() {
+    var args = validator_.validateArgs(arguments, [
+        { name: 'successCallback', type: types_.FUNCTION, optional: false, nullable: false },
+        { name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true },
+        { name: 'applicationId', type: types_.STRING, optional: true, nullable: true }
+    ]);
+
+    // TODO handling exceptions
+
+    native_.call('AccountManager_getAccounts',
+        { 
+            applicationId: args.applicationId
+        },
+        function(result) {
+            if (native_.isFailure(result)) {
+                if(!T_.isNullOrUndefined(args.errorCallback)) {
+                    args.errorCallback(native_.getErrorObject(result));
+                }
+            } else {
+                var accounts_result = native_.getResultObject(result);
+                var accounts_table = [];
+                for (var i = 0; i < accounts_result.length; i++) {
+                    accounts_table[i] = AccountFromResult(accounts_result[i]);
+                }
+                args.successCallback(accounts_table);
+            }
+        }
+    );
+}
+
+
+AccountManager.prototype.getProvider = function() {
+    var args = validator_.validateArgs(arguments, [
+        { name: 'applicationId', type: types_.STRING }
+    ]);
+
+    var result = native_.callSync(
+                        'AccountManager_getProvider',
+                        { applicationId: args.applicationId }
+    );
+
+    if (native_.isFailure(result)) {
+        throw native_.getErrorObject(result);
+    }
+
+    var provider_result = native_.getResultObject(result);
+
+    if (!T_.isNull(provider_result)) {
+        return new AccountProvider(provider_result);
+    } else {
+        return null;
+    }
 };
+
+
+AccountManager.prototype.getProviders = function() {
+    var args = validator_.validateArgs(arguments, [
+        { name: 'successCallback', type: types_.FUNCTION, optional: false, nullable: false },
+        { name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true },
+        { name: 'capability', type: types_.STRING, optional: true, nullable: true }
+    ]);
+
+    // TODO handling exceptions
+
+    native_.call( 'AccountManager_getProviders',
+        {
+            capability: args.capability
+        },
+        function(result) {
+            if (native_.isFailure(result)) {
+                if(!T_.isNullOrUndefined(args.errorCallback)) {
+                    args.errorCallback(native_.getErrorObject(result));
+                }
+            } else {
+                var providers_result = native_.getResultObject(result);
+                var providers_table = [];
+                for (var i = 0; i < providers_result.length; i++) {
+                    providers_table[i] = new AccountProvider(providers_result[i]);
+                }
+                args.successCallback(providers_table);
+            }
+        }
+    );
+}
+
+
+var ACCOUNT_LISTENER = 'ACCOUNT_CHANGED';
+
+
+function AccountListeners() {
+    var that = this;
+    this.appCallback = function (event) {
+        if (!T_.isEmptyObject(that.instances)) {
+            var param;
+            switch (event.action) {
+                case 'onadded':
+                    param = AccountFromResult(native_.getResultObject(event));
+                    break;
+
+                case 'onremoved':
+                    param = native_.getResultObject(event);
+                    break;
+
+                case 'onupdated':
+                    param = AccountFromResult(native_.getResultObject(event));
+                    break;
+
+                default:
+                    console.log('Unknown event: ' + event.action);
+                    break;
+            }
+
+            var callback;
+            for ( var i = 0; i < that.instances.length; i++) {
+                callback = that.instances[i];
+                if (T_.isFunction(callback[event.action])) {
+                    callback[event.action](param);
+                }
+            }
+        }
+    };
+}
+
+
+AccountListeners.prototype.instances = {};
+
+
+AccountListeners.prototype.addListener = function(accountListenerId, callback) {
+    if (T_.isEmptyObject(this.instances)) {
+        native_.addListener(ACCOUNT_LISTENER, this.appCallback);
+    }
+    this.instances[accountListenerId] = callback;
+};
+
+
+AccountListeners.prototype.removeListener = function(accountListenerId) {
+    delete this.instances[accountListenerId];
+    if (T_.isEmptyObject(this.instances)) {
+        native_.removeListener(ACCOUNT_LISTENER, this.appCallback);
+    }
+};
+
+
+var _accountListeners = new AccountListeners();
+
+
+AccountManager.prototype.addAccountListener = function() {
+    var args = validator_.validateArgs(arguments, [
+        { name: 'callback', type: types_.LISTENER, values: ['onadded', 'onremoved', 'onupdated'] }
+    ]);
+
+    var result = native_.callSync('AccountManager_addAccountListener');
+    if (native_.isFailure(result)) {
+        throw native_.getErrorObject(result);
+    }
+
+    var accountListenerId = native_.getResultObject(result);
+    _accountListeners.addListener(accountListenerId, args.callback);
+    return accountListenerId;
+}
+
+
+AccountManager.prototype.removeAccountListener = function() {
+    var args = validator_.validateArgs(arguments, [
+        { name: 'accountListenerId', type: types_.UNSIGNED_LONG }
+    ]);
+
+    _accountListeners.removeListener(args.accountListenerId);
+
+    if (T_.isEmptyObject(_accountListeners.instances)) {
+        var result = native_.callSync('AccountManager_removeListener');
+
+        if (native_.isFailure(result)) {
+            throw native_.getErrorObject(result);
+        }
+    }
+
+    return;
+}
 
 tizen.Account = Account;
 
 exports = new AccountManager();
-
