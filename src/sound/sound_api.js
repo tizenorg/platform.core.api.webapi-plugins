@@ -102,7 +102,7 @@ SoundManager.prototype.unsetSoundModeChangeListener = function() {
 var _volumeChangeListener;
 
 function _volumeChangeListenerCallback(result) {
-  native_.callIfPossible(_volumeChangeListener, native_.getResultObject(result));
+  native_.callIfPossible(_volumeChangeListener, result.type, result.volume);
 }
 
 SoundManager.prototype.setVolumeChangeListener = function(callback) {
