@@ -10,6 +10,7 @@
 
 #include "common/logger.h"
 #include "common/picojson.h"
+#include "common/platform_result.h"
 
 namespace extension {
 namespace badge {
@@ -23,9 +24,9 @@ class BadgeManager {
  public:
   static BadgeManager* GetInstance();
 
-  void setBadgeCount(std::string appId, unsigned int count);
-  unsigned int getBadgeCount(std::string appId);
-  void addChangeListener(const JsonObject& obj);
+  common::PlatformResult setBadgeCount(std::string appId, unsigned int count);
+  common::PlatformResult getBadgeCount(std::string appId, unsigned int* count);
+  common::PlatformResult addChangeListener(const JsonObject& obj);
   void removeChangeListener(const JsonObject& obj);
   static void badge_changed_cb(unsigned int, const char*, unsigned int, void*);
 
@@ -33,7 +34,7 @@ class BadgeManager {
   BadgeManager();
   virtual ~BadgeManager();
 
-  bool checkPermisionForCreatingBadge(const char* appId);
+  common::PlatformResult checkPermisionForCreatingBadge(const char* appId);
   char* getPkgnameByAppid(const char* appId);
   char* getPkgnameByPid();
   int isSameCertInfo(const char *caller, const char *pkgname);

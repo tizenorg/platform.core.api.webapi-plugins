@@ -42,43 +42,45 @@ BadgeManager *BadgeManager::GetInstance() {
   return &instance;
 }
 
-void BadgeManager::setBadgeCount(std::string appId, unsigned int count) {
+PlatformResult BadgeManager::setBadgeCount(std::string appId,
+                                           unsigned int count) {
   int ret = BADGE_ERROR_SERVICE_NOT_READY;
   bool badgeExist = false;
   const char *app_id = appId.c_str();
 
   if (!isAppInstalled(appId)) {
     LoggerE("fail to get pkgId");
-    throw InvalidValuesException("InvalidValues error : appId");
+    return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
+                          "InvalidValues error : appId");
   }
 
   ret = badge_is_existing(app_id, &badgeExist);
   if (ret != BADGE_ERROR_NONE) {
     LoggerE("Unknown error : %d", ret);
-    throw UnknownException("Unknown error");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown error");
   }
 
   if (!badgeExist) {
-    if (!checkPermisionForCreatingBadge(app_id)) {
-      LoggerE("Security error - cannot create badge");
-      throw SecurityException("Security error - cannot create badge");
-    }
+    PlatformResult status = checkPermisionForCreatingBadge(app_id);
+    if (status.IsError()) return status;
+
     ret = badge_create(app_id, app_id);
     LoggerD("badge create : %", ret);
 
     if (ret == BADGE_ERROR_PERMISSION_DENIED) {
       LoggerE("Security error");
-      throw SecurityException("Security error");
+      return PlatformResult(ErrorCode::SECURITY_ERR, "Security error");
 #ifdef PROFILE_WEARABLE
     } else if (ret == BADGE_ERROR_INVALID_DATA) {
 #else
     } else if (ret == BADGE_ERROR_INVALID_PARAMETER) {
 #endif
       LoggerE("Invalid values error");
-      throw InvalidValuesException("Invalid values error");
+      return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
+                            "Invalid values error");
     } else if (ret != BADGE_ERROR_NONE && ret != BADGE_ERROR_ALREADY_EXIST) {
       LoggerE("Unknown error");
-      throw InvalidValuesException("Unknown error");
+      return PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Unknown error");
     }
   }
 
@@ -87,63 +89,73 @@ void BadgeManager::setBadgeCount(std::string appId, unsigned int count) {
 
   if (ret == BADGE_ERROR_PERMISSION_DENIED) {
     LoggerE("Security error");
-    throw SecurityException("Security error");
+    return PlatformResult(ErrorCode::SECURITY_ERR, "Security error");
 #ifdef PROFILE_WEARABLE
   } else if (ret == BADGE_ERROR_INVALID_DATA) {
 #else
   } else if (ret == BADGE_ERROR_INVALID_PARAMETER) {
 #endif
     LoggerE("Invalid values error");
-    throw InvalidValuesException("Invalid values error");
+    return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
+                          "Invalid values error");
   } else if (ret != BADGE_ERROR_NONE) {
     LoggerE("Unknown error : %d", ret);
-    throw InvalidValuesException("Unknown error");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown error");
   }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-unsigned int BadgeManager::getBadgeCount(std::string appId) {
+PlatformResult BadgeManager::getBadgeCount(std::string appId,
+                                           unsigned int *count) {
   LoggerD("Enter");
+
+  assert(count);
 
   int ret = BADGE_ERROR_SERVICE_NOT_READY;
   bool badgeExist = false;
   if (!isAppInstalled(appId)) {
     LoggerE("fail to get pkgId");
-    throw InvalidValuesException("InvalidValues error : appId");
+    return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
+                          "InvalidValues error : appId");
   }
   ret = badge_is_existing(appId.c_str(), &badgeExist);
   if (ret != BADGE_ERROR_NONE) {
     LoggerE("Unknown error : %d", ret);
-    throw UnknownException("Platform error while checking badge.");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                          "Platform error while checking badge.");
   }
   LoggerD("badge exist : %d", badgeExist);
-  unsigned int count = 0;
 
   if (!badgeExist) {
-    throw UnknownException("badge not exist. appId: " + appId);
+    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                          "badge not exist. appId: " + appId);
   }
 
-  ret = badge_get_count(appId.c_str(), &count);
+  *count = 0;
+  ret = badge_get_count(appId.c_str(), count);
 
   if (ret == BADGE_ERROR_NONE) {
-    LoggerD("success get ret : %d count : ", count);
-    return count;
+    LoggerD("success get ret : %d count : ", *count);
+    return PlatformResult(ErrorCode::NO_ERROR);
   } else if (ret == BADGE_ERROR_PERMISSION_DENIED) {
     LoggerE("Security error");
-    throw SecurityException("Security error.");
+    return PlatformResult(ErrorCode::SECURITY_ERR, "Security error.");
 #ifdef PROFILE_WEARABLE
   } else if (ret == BADGE_ERROR_INVALID_DATA) {
 #else
   } else if (ret == BADGE_ERROR_INVALID_PARAMETER) {
 #endif
     LoggerE("Invalid values error");
-    throw InvalidValuesException("InvalidValues error : appId");
+    return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
+                          "InvalidValues error : appId");
   } else {
     LoggerE("Unknown error : %d", ret);
-    throw UnknownException("Unknown error");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown error");
   }
 }
 
-void BadgeManager::addChangeListener(const JsonObject &obj) {
+PlatformResult BadgeManager::addChangeListener(const JsonObject &obj) {
   LoggerD("entered here");
   auto &items = FromJson<picojson::array>(obj, "appIdList");
   for (auto item : items) {
@@ -154,10 +166,13 @@ void BadgeManager::addChangeListener(const JsonObject &obj) {
     ret = badge_register_changed_cb(badge_changed_cb, this);
     if (ret != BADGE_ERROR_NONE) {
       LoggerE("Unknown error %d:", ret);
-      throw UnknownException("Platform error while adding listener.");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                            "Platform error while adding listener.");
     }
     is_cb_registered_ = true;
   }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 void BadgeManager::removeChangeListener(const JsonObject &obj) {
@@ -200,10 +215,11 @@ bool BadgeManager::isAppInstalled(const std::string &appId) {
   return true;
 }
 
-bool BadgeManager::checkPermisionForCreatingBadge(const char *appId) {
+PlatformResult BadgeManager::checkPermisionForCreatingBadge(const char *appId) {
   if (!appId) {
     LoggerE("InvalidValues error : appId");
-    throw InvalidValuesException("InvalidValues error : appId");
+    return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
+                          "InvalidValues error : appId");
   }
 
   char *caller_appid = NULL;
@@ -211,7 +227,8 @@ bool BadgeManager::checkPermisionForCreatingBadge(const char *appId) {
 
   if (!caller_appid) {
     LoggerE("fail to get caller pkgId");
-    throw UnknownException("Platform error while getting caller pkgId.");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                          "Platform error while getting caller pkgId.");
   }
 
   char *caller_pkgname = NULL;
@@ -221,7 +238,8 @@ bool BadgeManager::checkPermisionForCreatingBadge(const char *appId) {
       free(caller_appid);
     }
     LoggerE("fail to get caller pkgId");
-    throw UnknownException("Platform error while getting caller pkgId.");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                          "Platform error while getting caller pkgId.");
   }
 
   char *pkgname = NULL;
@@ -234,13 +252,12 @@ bool BadgeManager::checkPermisionForCreatingBadge(const char *appId) {
       free(caller_pkgname);
     }
     LoggerE("fail to get pkgId");
-    throw InvalidValuesException("InvalidValues error : appId");
+    return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
+                          "InvalidValues error : appId");
   }
 
-  bool flag = false;
-  if (isSameCertInfo(caller_pkgname, pkgname) == 1) {
-    flag = true;
-  } else {
+  bool flag = true;
+  if (isSameCertInfo(caller_pkgname, pkgname) != 1) {
     LoggerE("The author signature is not match");
     flag = false;
   }
@@ -255,7 +272,13 @@ bool BadgeManager::checkPermisionForCreatingBadge(const char *appId) {
     free(pkgname);
   }
 
-  return flag;
+  if (!flag) {
+    LoggerE("Security error - cannot create badge");
+    return PlatformResult(ErrorCode::SECURITY_ERR,
+                          "Security error - cannot create badge");
+  }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 char *BadgeManager::getPkgnameByAppid(const char *appId) {

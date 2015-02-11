@@ -35,25 +35,48 @@ BadgeInstance::BadgeInstance() {
 
 BadgeInstance::~BadgeInstance() {}
 
-void BadgeInstance::BadgeManagerSetBadgeCount(const JsonValue& args, JsonObject& out) {
-  std::string appId = common::FromJson<std::string>(args.get<JsonObject>(), "appId");
+void BadgeInstance::BadgeManagerSetBadgeCount(const JsonValue& args,
+                                              JsonObject& out) {
+  std::string appId =
+      common::FromJson<std::string>(args.get<JsonObject>(), "appId");
   const double count = args.get("count").get<double>();
-  BadgeManager::GetInstance()->setBadgeCount(appId, static_cast<unsigned int>(count));
-  ReportSuccess(out);
+
+  PlatformResult status = BadgeManager::GetInstance()->setBadgeCount(
+      appId, static_cast<unsigned int>(count));
+  if (status.IsSuccess())
+    ReportSuccess(out);
+  else
+    ReportError(status, &out);
 }
 
-void BadgeInstance::BadgeManagerGetBadgeCount(const JsonValue& args, JsonObject& out) {
-  std::string appId = common::FromJson<std::string>(args.get<JsonObject>(), "appId");
-  unsigned int count = BadgeManager::GetInstance()->getBadgeCount(appId);
-  ReportSuccess(JsonValue(std::to_string(count)), out);
+void BadgeInstance::BadgeManagerGetBadgeCount(const JsonValue& args,
+                                              JsonObject& out) {
+  std::string appId =
+      common::FromJson<std::string>(args.get<JsonObject>(), "appId");
+
+  unsigned int count = 0;
+  PlatformResult status =
+      BadgeManager::GetInstance()->getBadgeCount(appId, &count);
+  if (status.IsSuccess())
+    ReportSuccess(JsonValue(std::to_string(count)), out);
+  else
+    ReportError(status, &out);
 }
 
-void BadgeInstance::BadgeManagerAddChangeListener(const JsonValue& args, JsonObject& out) {
-  BadgeManager::GetInstance()->addChangeListener(args.get<JsonObject>());
+void BadgeInstance::BadgeManagerAddChangeListener(const JsonValue& args,
+                                                  JsonObject& out) {
+  PlatformResult status =
+      BadgeManager::GetInstance()->addChangeListener(args.get<JsonObject>());
+
+  if (status.IsSuccess())
+    ReportSuccess(out);
+  else
+    ReportError(status, &out);
 }
 
 void BadgeInstance::BadgeManagerRemoveChangeListener(const JsonValue& args, JsonObject& out) {
   BadgeManager::GetInstance()->removeChangeListener(args.get<JsonObject>());
+  ReportSuccess(out);
 }
 
 }  // namespace badge
