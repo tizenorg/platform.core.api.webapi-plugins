@@ -55,20 +55,22 @@ AccountInstance::AccountInstance() {
   subscribe_ = NULL;
 
   using namespace std::placeholders;
+  #define REGISTER_ASYNC(c,x) \
+    RegisterHandler(c, std::bind(&AccountInstance::x, this, _1, _2));
+  REGISTER_ASYNC("AccountManager_getAccounts", AccountManagerGetAccounts);
+  REGISTER_ASYNC("AccountManager_getProviders", AccountManagerGetProviders);
+  REGISTER_ASYNC("Account_getExtendedData", AccountGetExtendedData);
+  #undef REGISTER_ASYNC
   #define REGISTER_SYNC(c,x) \
     RegisterSyncHandler(c, std::bind(&AccountInstance::x, this, _1, _2));
   REGISTER_SYNC("AccountManager_removeAccountListener", AccountManagerRemoveAccountListener);
   REGISTER_SYNC("AccountManager_update", AccountManagerUpdate);
   REGISTER_SYNC("AccountManager_remove", AccountManagerRemove);
-//  REGISTER_SYNC("Account_constructor", AccountConstructor);
   REGISTER_SYNC("AccountManager_getAccount", AccountManagerGetAccount);
   REGISTER_SYNC("AccountManager_getProvider", AccountManagerGetProvider);
   REGISTER_SYNC("Account_setExtendedData", AccountSetExtendedData);
   REGISTER_SYNC("AccountManager_addAccountListener", AccountManagerAddAccountListener);
   REGISTER_SYNC("AccountManager_add", AccountManagerAdd);
-  REGISTER_SYNC("AccountManager_getAccounts", AccountManagerGetAccounts);
-  REGISTER_SYNC("Account_getExtendedData", AccountGetExtendedData);
-  REGISTER_SYNC("AccountManager_getProviders", AccountManagerGetProviders);
   #undef REGISTER_SYNC
 }
 
@@ -171,12 +173,11 @@ void AccountInstance::AccountManagerGetAccount(const picojson::value& args,
 
   CheckAccess(kPrivilegeAccountRead, &out);
 
-  // implement it
+  CHECK_EXIST(args, "accountId", out)
 
-  // if success
-  // ReportSuccess(out);
-  // if error
-  // ReportError(out);
+  int account_id = static_cast<int>(args.get("accountId").get<double>());
+  LoggerD("account_id [%d]", account_id);
+  manager_->GetAccountInfo(account_id, out);
 }
 
 void AccountInstance::AccountManagerGetAccounts(const picojson::value& args,
@@ -185,12 +186,27 @@ void AccountInstance::AccountManagerGetAccounts(const picojson::value& args,
 
   CheckAccess(kPrivilegeAccountRead, &out);
 
-  // implement it
+  CHECK_EXIST(args, "callbackId", out)
+  int callback_id = static_cast<int>(args.get("callbackId").get<double>());
 
-  // if success
-  // ReportSuccess(out);
-  // if error
-  // ReportError(out);
+  const std::string application_id = args.contains("applicationId") ? args.get("applicationId").get<std::string>() : "";
+  LoggerD("application ID: [%s]", application_id.c_str());
+
+  auto get_accounts = [this, application_id](const std::shared_ptr<picojson::value>& result) {
+    this->manager_->GetAccountsInfo(application_id, result->get<picojson::object>());
+  };
+
+  auto get_accounts_result = [this, callback_id](const std::shared_ptr<picojson::value>& result) {
+    result->get<picojson::object>()["callbackId"] = picojson::value{static_cast<double>(callback_id)};
+    this->PostMessage(result->serialize().c_str());
+  };
+
+  TaskQueue::GetInstance().Queue<picojson::value>(
+      get_accounts,
+      get_accounts_result,
+      std::shared_ptr<picojson::value>{new picojson::value{picojson::object()}});
+
+  ReportSuccess(out);
 }
 
 void AccountInstance::AccountManagerGetProvider(const picojson::value& args,
