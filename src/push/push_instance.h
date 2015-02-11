@@ -18,6 +18,13 @@ class PushInstance: public common::ParsedInstance {
     virtual ~PushInstance();
 
  private:
+     void registerService(const picojson::value& args, picojson::object& out);
+     void unregisterService(const picojson::value& args, picojson::object& out);
+     void connectService(const picojson::value& args, picojson::object& out);
+     void disconnectService(const picojson::value& args, picojson::object& out);
+     void getRegistrationId(const picojson::value& args, picojson::object& out);
+     void getUnreadNotifications(const picojson::value& args,
+            picojson::object& out);
 };
 
 }  // namespace push
