@@ -12,6 +12,8 @@
         'sensor_extension.h',
         'sensor_instance.cc',
         'sensor_instance.h',
+        'sensor_service.cc',
+        'sensor_service.h'
       ],
       'includes': [
         '../common/pkg-config.gypi',
