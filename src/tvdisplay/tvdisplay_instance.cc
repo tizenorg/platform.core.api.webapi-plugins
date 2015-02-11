@@ -45,9 +45,9 @@ namespace {
 
     bool is_3D_enabled() {
         LOGD("Enter");
-        bool is_supported = true;
-        int ret = system_info_get_value_bool(
-                SYSTEM_INFO_KEY_3D_EFFECT_SUPPORTED,
+        int is_supported = -1;
+        int ret = system_info_get_value_int(
+                SYSTEM_INFO_KEY_3D_SUPPORT,
                 &is_supported);
         if (SYSTEM_INFO_ERROR_NONE != ret) {
             std::string message = "'system_info' error while "
@@ -55,7 +55,7 @@ namespace {
             LOGE("%s", message.c_str());
             throw common::UnknownException(message);
         }
-        return is_supported;
+        return is_supported == 1;
     }
 }  // namespace
 
