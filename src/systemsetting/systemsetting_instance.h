@@ -6,6 +6,7 @@
 #define SYSTEMSETTING_SYSTEMSETTING_INSTANCE_H_
 
 #include "common/extension.h"
+#include "common/platform_result.h"
 
 namespace extension {
 namespace systemsetting {
@@ -18,11 +19,14 @@ public:
 
 private:
     void getProperty(const picojson::value& args, picojson::object& out);
-    void getPlatformPropertyValue(const std::string& valueType, picojson::value* out);
+    common::PlatformResult getPlatformPropertyValue(
+            const std::string& valueType,
+            picojson::value* out);
 
     void setProperty(const picojson::value& args, picojson::object& out);
-    void setPlatformPropertyValue(const std::string& settingType,
-        const std::string& settingValue, picojson::value* out);
+    common::PlatformResult setPlatformPropertyValue(
+            const std::string& settingType,
+            const std::string& settingValue);
 };
 
 } // namespace systemsetting

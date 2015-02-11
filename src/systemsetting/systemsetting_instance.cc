@@ -6,9 +6,8 @@
 
 #include <memory>
 
-#include "common/picojson.h"
 #include "common/logger.h"
-#include "common/platform_exception.h"
+#include "common/picojson.h"
 #include "common/task-queue.h"
 
 #include <system_settings.h>
@@ -54,13 +53,12 @@ void SystemSettingInstance::getProperty(const picojson::value& args, picojson::o
 
     auto get = [this, type](const std::shared_ptr<picojson::value>& response) -> void {
         LoggerD("Getting platform value");
-        try {
-            picojson::value result;
-            getPlatformPropertyValue(type, &result);
+        picojson::value result = picojson::value(picojson::object());
+        PlatformResult status = getPlatformPropertyValue(type, &result);
+        if(status.IsSuccess())
             ReportSuccess(result, response->get<picojson::object>());
-        } catch (const PlatformException& e) {
-            ReportError(e, response->get<picojson::object>());
-        }
+        else
+            ReportError(status, &response->get<picojson::object>());
     };
 
     auto get_response = [this, callback_id](const std::shared_ptr<picojson::value>& response) -> void {
@@ -74,9 +72,9 @@ void SystemSettingInstance::getProperty(const picojson::value& args, picojson::o
         (get, get_response, std::shared_ptr<picojson::value>(new picojson::value(picojson::object())));
 }
 
-void SystemSettingInstance::getPlatformPropertyValue(
-    const std::string& settingType, picojson::value* out)
-{
+PlatformResult SystemSettingInstance::getPlatformPropertyValue(
+        const std::string& settingType,
+        picojson::value* out) {
     picojson::object& result_obj = out->get<picojson::object>();
 
     int ret;
@@ -104,13 +102,14 @@ void SystemSettingInstance::getPlatformPropertyValue(
             LoggerD("ret == SYSTEM_SETTINGS_ERROR_NONE");
             result_obj.insert(std::make_pair("value", value));
             free(value);
-            break;
+            return PlatformResult(ErrorCode::NO_ERROR);
         case SYSTEM_SETTINGS_ERROR_CALL_UNSUPPORTED_API:
             LoggerD("ret == SYSTEM_SETTINGS_ERROR_CALL_UNSUPPORTED_API");
-            throw NotSupportedException("This property is not supported.");
+            return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR,
+                    "This property is not supported.");
         default:
             LoggerD("Other error");
-            throw UnknownException("Unknown error");
+            return PlatformResult(ErrorCode::UNKNOWN_ERR);
   }
 }
 
@@ -127,13 +126,11 @@ void SystemSettingInstance::setProperty(const picojson::value& args, picojson::o
 
     auto get = [this, type, value](const std::shared_ptr<picojson::value>& response) -> void {
         LoggerD("Setting platform value");
-        try {
-            picojson::value result;
-            setPlatformPropertyValue(type, value, &result);
-            ReportSuccess(result, response->get<picojson::object>());
-        } catch (const PlatformException& e) {
-            ReportError(e, response->get<picojson::object>());
-        }
+        PlatformResult status = setPlatformPropertyValue(type, value);
+        if (status.IsSuccess())
+            ReportSuccess(response->get<picojson::object>());
+        else
+            ReportError(status, &response->get<picojson::object>());
     };
 
     auto get_response = [this, callback_id](const std::shared_ptr<picojson::value>& response) -> void {
@@ -147,11 +144,9 @@ void SystemSettingInstance::setProperty(const picojson::value& args, picojson::o
         (get, get_response, std::shared_ptr<picojson::value>(new picojson::value(picojson::object())));
 }
 
-void SystemSettingInstance::setPlatformPropertyValue(
-    const std::string& settingType, const std::string& settingValue, picojson::value* out)
-{
-    picojson::object& result_obj = out->get<picojson::object>();
-
+PlatformResult SystemSettingInstance::setPlatformPropertyValue(
+        const std::string& settingType,
+        const std::string& settingValue) {
     int ret;
     if (settingType == SETTING_HOME_SCREEN) {
         ret = system_settings_set_value_string(
@@ -174,13 +169,14 @@ void SystemSettingInstance::setPlatformPropertyValue(
     switch (ret) {
         case SYSTEM_SETTINGS_ERROR_NONE:
             LoggerD("ret == SYSTEM_SETTINGS_ERROR_NONE");
-            return;
+            return PlatformResult(ErrorCode::NO_ERROR);
         case SYSTEM_SETTINGS_ERROR_CALL_UNSUPPORTED_API:
             LoggerD("ret == SYSTEM_SETTINGS_ERROR_CALL_UNSUPPORTED_API");
-            throw NotSupportedException("This property is not supported.");
+            return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR,
+                    "This property is not supported.");
         default:
             LoggerD("Other error");
-            throw UnknownException("Unknown error");
+            return PlatformResult(ErrorCode::UNKNOWN_ERR);
     }
 }
 
