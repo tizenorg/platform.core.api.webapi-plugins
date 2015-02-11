@@ -43,7 +43,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_nfc_support                 1
 %define tizen_feature_notification_support        1
 %define tizen_feature_power_support               1
-%define tizen_feature_push_support                0
+%define tizen_feature_push_support                1
 %define tizen_feature_sap_support                 0
 %define tizen_feature_se_support                  1
 %define tizen_feature_sensor_support              1
@@ -197,6 +197,11 @@ BuildRequires: pkgconfig(capi-data-control)
 
 %if 0%{?tizen_feature_power_support}
 BuildRequires: pkgconfig(capi-system-power)
+%endif
+
+%if 0%{?tizen_feature_power_support}
+BuildRequires: pkgconfig(push)
+BuildRequires: pkgconfig(capi-appfw-application)
 %endif
 
 %if 0%{?tizen_feature_tv_display_support}

@@ -42,6 +42,7 @@
               'sound/sound.gyp:*',
               'notification/notification.gyp:*',
               'sensor/sensor.gyp:*',
+              'push/push.gyp:*',
             ],
           },
         ], # end mobile
