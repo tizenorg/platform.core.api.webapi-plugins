@@ -127,11 +127,12 @@ class TVChannelManager {
 
     void getProgramList(const std::shared_ptr<GetProgramListData>& data);
 
+    ~TVChannelManager();
+
  private:
     EventListener* m_listener;
     //  Not copyable, assignable, movable
     TVChannelManager();
-    ~TVChannelManager();
     TVChannelManager(TVChannelManager const&) = delete;
     void operator=(TVChannelManager const&) = delete;
     TVChannelManager(TVChannelManager &&) = delete;

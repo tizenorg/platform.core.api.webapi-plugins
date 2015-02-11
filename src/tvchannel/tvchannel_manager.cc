@@ -587,7 +587,6 @@ void TVChannelManager::getProgramList(
     }
 }
 
-
 TVChannelManager::~TVChannelManager() {
     TVServiceAPI::Destroy();
 }

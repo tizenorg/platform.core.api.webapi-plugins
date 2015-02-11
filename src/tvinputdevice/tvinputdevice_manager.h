@@ -25,9 +25,10 @@ class TVInputDeviceManager {
 
     static TVInputDeviceManager& getInstance();
 
+    virtual ~TVInputDeviceManager();
+
  private:
     TVInputDeviceManager();
-    virtual ~TVInputDeviceManager();
 
     void setSupportedKeys();
     std::vector<InputDeviceKeyPtr> m_availableKeys;

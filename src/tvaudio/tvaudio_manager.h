@@ -52,11 +52,12 @@ class AudioControlManager {
 
     static AudioControlManager& getInstance();
 
+    virtual ~AudioControlManager();
+
  private:
     u_int16_t m_volume_step;
     VolumeChangeListener* m_volume_change_listener;
     AudioControlManager();
-    virtual ~AudioControlManager();
 
     static const int CHUNK = 768;
     static const int SAMPLING_FREQ = 44100;
