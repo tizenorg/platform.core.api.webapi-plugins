@@ -18,7 +18,7 @@
           'variables': {
             'packages': [
               'capi-data-control',
-              'capi-common-base'
+              'capi-base-common'
             ]
           },
         }],
