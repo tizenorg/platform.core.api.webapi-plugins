@@ -137,8 +137,7 @@ Account.prototype.getExtendedData = function() {
 
 function AccountFromResult(result) {
     var provider = new AccountProvider(result.provider);
-    var account_init_dict = { userName: result.userName, iconUri: result.iconUri };
-    var account = new Account(provider, account_init_dict);
+    var account = new Account(provider, result.accountInitDict);
     account.id = new InternalValues_({ id: result.id });
     return account;
 }
