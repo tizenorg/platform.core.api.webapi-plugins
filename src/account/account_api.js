@@ -340,13 +340,23 @@ function AccountListeners() {
 
 
 AccountListeners.prototype.instances = {};
+AccountListeners.prototype.nextID = 0;
 
 
-AccountListeners.prototype.addListener = function(accountListenerId, callback) {
+AccountListeners.prototype.addListener = function(callback) {
+    var id = ++this.nextID;
+
     if (T_.isEmptyObject(this.instances)) {
+        var result = native_.callSync('AccountManager_addAccountListener');
+        if (native_.isFailure(result)) {
+            throw native_.getErrorObject(result);
+        }
+
         native_.addListener(ACCOUNT_LISTENER, this.appCallback);
     }
-    this.instances[accountListenerId] = callback;
+    this.instances[id] = callback;
+
+    return id;
 };
 
 
@@ -354,6 +364,12 @@ AccountListeners.prototype.removeListener = function(accountListenerId) {
     delete this.instances[accountListenerId];
     if (T_.isEmptyObject(this.instances)) {
         native_.removeListener(ACCOUNT_LISTENER, this.appCallback);
+
+        var result = native_.callSync('AccountManager_removeListener');
+
+        if (native_.isFailure(result)) {
+            throw native_.getErrorObject(result);
+        }
     }
 };
 
@@ -366,14 +382,7 @@ AccountManager.prototype.addAccountListener = function() {
         { name: 'callback', type: types_.LISTENER, values: ['onadded', 'onremoved', 'onupdated'] }
     ]);
 
-    var result = native_.callSync('AccountManager_addAccountListener');
-    if (native_.isFailure(result)) {
-        throw native_.getErrorObject(result);
-    }
-
-    var accountListenerId = native_.getResultObject(result);
-    _accountListeners.addListener(accountListenerId, args.callback);
-    return accountListenerId;
+    return _accountListeners.addListener(args.callback);
 }
 
 
@@ -383,16 +392,6 @@ AccountManager.prototype.removeAccountListener = function() {
     ]);
 
     _accountListeners.removeListener(args.accountListenerId);
-
-    if (T_.isEmptyObject(_accountListeners.instances)) {
-        var result = native_.callSync('AccountManager_removeListener');
-
-        if (native_.isFailure(result)) {
-            throw native_.getErrorObject(result);
-        }
-    }
-
-    return;
 }
 
 tizen.Account = Account;

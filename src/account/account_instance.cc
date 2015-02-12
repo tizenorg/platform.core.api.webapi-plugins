@@ -325,6 +325,7 @@ void AccountInstance::AccountManagerAddAccountListener(
 
   int ret = 0;
   if (!subscribe_) {
+    LoggerD("Creating subscription");
     ret = account_subscribe_create(&subscribe_);
     if (ret != ACCOUNT_ERROR_NONE) {
       LoggerE("Failed to create account subscribe");
@@ -332,12 +333,15 @@ void AccountInstance::AccountManagerAddAccountListener(
       return;
     }
 
+    LoggerD("Subscribing for notification");
     ret = account_subscribe_notification(subscribe_, AccountEventCb, this);
     if (ret != ACCOUNT_ERROR_NONE) {
       LoggerE("Failed to subscribe notification");
       ReportError(UnknownException(manager_->GetErrorMsg(ret)), out);
       return;
     }
+
+    LoggerD("Success");
   }
 
   ReportSuccess(out);
@@ -350,9 +354,13 @@ void AccountInstance::AccountManagerRemoveAccountListener(
   CheckAccess(kPrivilegeAccountRead, &out);
 
   if (subscribe_) {
+    LoggerD("Removing subscription");
+
     if (account_unsubscribe_notification(subscribe_) != ACCOUNT_ERROR_NONE) {
       LoggerE("Failed to unsubscribe notification");
     }
+
+    subscribe_ = nullptr;
   }
 
   ReportSuccess(out);
