@@ -192,6 +192,32 @@ common::PlatformResult PushManager::unregisterService(double callbackId) {
     return common::PlatformResult(ErrorCode::NO_ERROR);
 }
 
+common::PlatformResult PushManager::getRegistrationId(std::string& id) {
+    LoggerD("Enter");
+    char* temp = NULL;
+    int ret = push_get_registration_id(m_handle, &temp);
+    if (ret != PUSH_ERROR_NONE) {
+        LoggerE("Failed to get id: push_get_registration_id failed");
+        return common::PlatformResult(ErrorCode::UNKNOWN_ERR,
+            "Unknown error");
+    }
+    id = temp;
+    free(temp);
+    return common::PlatformResult(ErrorCode::NO_ERROR);
+}
+
+common::PlatformResult PushManager::getUnreadNotifications() {
+    LoggerD("Enter");
+    int ret = push_request_unread_notification(m_handle);
+    if (ret != PUSH_ERROR_NONE) {
+        LoggerE(
+            "Failed to send request: push_request_unread_notification failed");
+        return common::PlatformResult(ErrorCode::UNKNOWN_ERR,
+            "Unknown error");
+    }
+    return common::PlatformResult(ErrorCode::NO_ERROR);
+}
+
 void PushManager::onPushState(push_state_e state, const char* err,
         void* user_data) {
     LoggerD("Enter %d", state);

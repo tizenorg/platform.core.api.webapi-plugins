@@ -42,6 +42,8 @@ class PushManager {
     common::PlatformResult registerService(const ApplicationControl &appControl,
         double callbackId);
     common::PlatformResult unregisterService(double callbackId);
+    common::PlatformResult getRegistrationId(std::string &id);
+    common::PlatformResult getUnreadNotifications();
 
  private:
     PushManager();

@@ -102,15 +102,31 @@ void PushInstance::disconnectService(const picojson::value& args,
 void PushInstance::getRegistrationId(const picojson::value& args,
         picojson::object& out) {
     LoggerD("Enter");
-    picojson::value result;
-    ReportSuccess(result, out);
+    std::string id;
+    common::PlatformResult result = PushManager::getInstance()
+            .getRegistrationId(id);
+    if (result.IsError()) {
+        // this method should fail silently and return null
+        picojson::value res = picojson::value();
+        ReportSuccess(res, out);
+    } else {
+        picojson::value res(id);
+        ReportSuccess(res, out);
+    }
 }
 
 void PushInstance::getUnreadNotifications(const picojson::value& args,
         picojson::object& out) {
     LoggerD("Enter");
-    picojson::value result;
-    ReportSuccess(result, out);
+    common::PlatformResult result = PushManager::getInstance()
+            .getUnreadNotifications();
+    if (result.IsError()) {
+        LoggerE("Error occured");
+        ReportError(result, &out);
+    } else {
+        picojson::value res;
+        ReportSuccess(res, out);
+    }
 }
 
 void PushInstance::onPushRegister(double callbackId,
