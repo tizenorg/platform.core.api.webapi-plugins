@@ -116,11 +116,13 @@ var WebAPIException = function(code, message, name) {
     case 1:
       var error = arguments[0];
       if (__isObject(error)) {
-        name_ = error['name'];
-        message_ = error['message'];
-        if (!__isUndefined(name_to_code[name_])) {
+        code_ = error.code;
+        name_ = error.name;
+        message_ = error.message;
+        if (__isUndefined(code_) && !__isUndefined(name_))
           code_ = name_to_code[name_];
-        }
+        if (__isUndefined(name_) && !__isUndefined(code_))
+          name_ = code_to_name[code_];
       } else if (__isNumber(error)) {
         // backward compatibility with crosswalk implementation
         code_ = error;
