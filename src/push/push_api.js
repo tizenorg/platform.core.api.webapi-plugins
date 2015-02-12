@@ -61,6 +61,7 @@ PushManager.prototype.registerService = function(appControl, successCallback, er
     operation: data.appControl.operation,
     uri: data.appControl.uri,
     mime: data.appControl.mime,
+    category: data.appControl.category,
     data: data.appControl.data
   }, function(msg) {
     if (msg.error) {

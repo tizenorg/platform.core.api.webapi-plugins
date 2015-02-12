@@ -5,18 +5,19 @@
 #ifndef SRC_PUSH_PUSH_INSTANCE_H_
 #define SRC_PUSH_PUSH_INSTANCE_H_
 
+#include <string>
 #include "common/extension.h"
-
 #include "push/push_manager.h"
 
 namespace extension {
 namespace push {
 
-class PushInstance: public common::ParsedInstance {
+class PushInstance: public common::ParsedInstance, public EventListener {
  public:
     PushInstance();
     virtual ~PushInstance();
-
+    virtual void onPushRegister(double callbackId,
+            common::PlatformResult result, const std::string& id);
  private:
      void registerService(const picojson::value& args, picojson::object& out);
      void unregisterService(const picojson::value& args, picojson::object& out);
