@@ -209,6 +209,7 @@ BuildRequires: pkgconfig(capi-system-power)
 %if 0%{?tizen_feature_power_support}
 BuildRequires: pkgconfig(push)
 BuildRequires: pkgconfig(capi-appfw-application)
+BuildRequires: pkgconfig(libpcrecpp)
 %endif
 
 %if 0%{?tizen_feature_tv_display_support}

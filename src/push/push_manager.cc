@@ -4,6 +4,7 @@
 
 #include "push/push_manager.h"
 #include <unistd.h>
+#include <pcrecpp.h>
 #include <app_control.h>
 #include <app_manager.h>
 #include "common/logger.h"
@@ -175,6 +176,48 @@ void PushManager::onPushState(push_state_e state, const char* err,
 
 void PushManager::onPushNotify(push_notification_h noti, void* user_data) {
     LoggerD("Enter");
+    if (!getInstance().m_listener) {
+        LoggerW("Listener not set, ignoring");
+        return;
+    }
+
+    char* temp = NULL;
+    int ret = push_get_notification_data(noti, &temp);
+    if (ret != PUSH_ERROR_NONE) {
+        LoggerE("Failed to get appData");
+        return;
+    }
+    std::string appData = temp;
+    free(temp);
+
+    temp = NULL;
+    ret = push_get_notification_message(noti, &temp);
+    if (ret != PUSH_ERROR_NONE) {
+        LoggerE("Failed to get message");
+        return;
+    }
+
+    // parse query string and find value for alertMessage
+    pcrecpp::StringPiece input(temp);
+    pcrecpp::RE re("([^=]+)=([^&]*)&?");
+    string key;
+    string value;
+    std::string alertMessage;
+    while (re.Consume(&input, &key, &value)) {
+        if (key == "alertMessage") {
+            alertMessage = value;
+            break;
+        }
+    }
+    free(temp);
+
+    int64_t date = -1;
+    ret = push_get_notification_time(noti, &date);
+    if (ret != PUSH_ERROR_NONE) {
+        LoggerE("Failed to get date");
+        return;
+    }
+    getInstance().m_listener->onPushNotify(appData, alertMessage, date);
 }
 
 void PushManager::onPushRegister(push_result_e result, const char* msg,

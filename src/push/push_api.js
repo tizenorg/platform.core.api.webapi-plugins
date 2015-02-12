@@ -20,7 +20,7 @@ function PushMessage(dict) {
   for (var key in dict) {
     if (dict.hasOwnProperty(key)) {
       Object.defineProperty(this, key, {
-        value: dict[key],
+        value: key === 'date' ? new Date(dict[key] * 1000) : dict[key],
         enumerable: true
       });
     }

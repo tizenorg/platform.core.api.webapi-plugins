@@ -18,6 +18,9 @@ class PushInstance: public common::ParsedInstance, public EventListener {
     virtual ~PushInstance();
     virtual void onPushRegister(double callbackId,
             common::PlatformResult result, const std::string& id);
+    virtual void onPushNotify(const std::string& appData,
+            const std::string& alertMessage, double date);
+
  private:
      void registerService(const picojson::value& args, picojson::object& out);
      void unregisterService(const picojson::value& args, picojson::object& out);
@@ -26,6 +29,8 @@ class PushInstance: public common::ParsedInstance, public EventListener {
      void getRegistrationId(const picojson::value& args, picojson::object& out);
      void getUnreadNotifications(const picojson::value& args,
             picojson::object& out);
+
+     bool m_ignoreNotificationEvents;
 };
 
 }  // namespace push

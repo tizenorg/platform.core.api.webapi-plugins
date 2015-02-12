@@ -18,6 +18,8 @@ class EventListener {
  public:
     virtual void onPushRegister(double callbackId,
             common::PlatformResult result, const std::string& id) = 0;
+    virtual void onPushNotify(const std::string& appData,
+            const std::string& alertMessage, double date) = 0;
     virtual ~EventListener() {}
 };
 

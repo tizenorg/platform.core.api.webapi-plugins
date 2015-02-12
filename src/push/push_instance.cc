@@ -11,7 +11,8 @@
 namespace extension {
 namespace push {
 
-PushInstance::PushInstance() {
+PushInstance::PushInstance():
+        m_ignoreNotificationEvents(true) {
     LoggerD("Enter");
     using std::placeholders::_1;
     using std::placeholders::_2;
@@ -19,7 +20,7 @@ PushInstance::PushInstance() {
             std::bind(&PushInstance::registerService, this, _1, _2));
     RegisterHandler("Push_unregisterService",
             std::bind(&PushInstance::unregisterService, this, _1, _2));
-    RegisterHandler("Push_connectService",
+    RegisterSyncHandler("Push_connectService",
             std::bind(&PushInstance::connectService, this, _1, _2));
     RegisterSyncHandler("Push_disconnectService",
             std::bind(&PushInstance::disconnectService, this, _1, _2));
@@ -78,6 +79,7 @@ void PushInstance::unregisterService(const picojson::value& args,
 void PushInstance::connectService(const picojson::value& args,
         picojson::object& out) {
     LoggerD("Enter");
+    m_ignoreNotificationEvents = false;
     picojson::value result;
     ReportSuccess(result, out);
 }
@@ -85,6 +87,7 @@ void PushInstance::connectService(const picojson::value& args,
 void PushInstance::disconnectService(const picojson::value& args,
         picojson::object& out) {
     LoggerD("Enter");
+    m_ignoreNotificationEvents = true;
     picojson::value result;
     ReportSuccess(result, out);
 }
@@ -115,6 +118,23 @@ void PushInstance::onPushRegister(double callbackId,
     }
     picojson::value res(dict);
     PostMessage(res.serialize().c_str());
+}
+
+void PushInstance::onPushNotify(const std::string& appData,
+        const std::string& alertMessage, double date) {
+    LoggerD("Enter");
+    if (m_ignoreNotificationEvents) {
+        LoggerD("Listener not set, ignoring event");
+    }
+    picojson::value::object dict;
+    dict["listenerId"] = picojson::value("Push_Notification_Listener");
+    picojson::value::object pushMessage;
+    pushMessage["appData"] = picojson::value(appData);
+    pushMessage["alertMessage"] = picojson::value(alertMessage);
+    pushMessage["date"] = picojson::value(date);
+    dict["pushMessage"] = picojson::value(pushMessage);
+    picojson::value resultListener(dict);
+    PostMessage(resultListener.serialize().c_str());
 }
 
 PushInstance::~PushInstance() {

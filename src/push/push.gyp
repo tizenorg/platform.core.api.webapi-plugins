@@ -24,6 +24,7 @@
             'packages': [
               'push',
               'capi-appfw-application',
+              'libpcrecpp',
             ]
           },
         }],
