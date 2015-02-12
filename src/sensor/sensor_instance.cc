@@ -7,6 +7,7 @@
 #include "common/picojson.h"
 #include "common/logger.h"
 #include "common/platform_exception.h"
+#include "sensor_service.h"
 
 namespace extension {
 namespace sensor {
@@ -22,7 +23,6 @@ SensorInstance::SensorInstance() {
   using namespace std::placeholders;
 #define REGISTER_SYNC(c,x) \
     RegisterSyncHandler(c, std::bind(&SensorInstance::x, this, _1, _2));
-  REGISTER_SYNC("SensorService_getDefaultSensor", GetDefaultSensor);
   REGISTER_SYNC("SensorService_getAvailableSensors", GetAvailableSensors);
   REGISTER_SYNC("Sensor_stop", SensorStop);
   REGISTER_SYNC("Sensor_setChangeListener", SensorSetChangeListener);
@@ -43,14 +43,9 @@ SensorInstance::SensorInstance() {
 SensorInstance::~SensorInstance() {
 }
 
-void SensorInstance::GetDefaultSensor(const picojson::value& args, picojson::object& out) {
-  LoggerD("Entered");
-  //empty stub
-}
-
 void SensorInstance::GetAvailableSensors(const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
-  //empty stub
+  SensorService::GetInstance()->GetAvailableSensors(out);
 }
 
 void SensorInstance::SensorStop(const picojson::value& args, picojson::object& out) {

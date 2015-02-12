@@ -8,12 +8,12 @@
 #include <sensor.h>
 
 #include "common/picojson.h"
+#include "common/platform_result.h"
 
 namespace extension {
 namespace sensor {
 
-class SensorService
-{
+class SensorService {
   typedef struct {
     sensor_h handle;
     sensor_listener_h listener;
@@ -26,6 +26,8 @@ class SensorService
  private:
   SensorService();
   ~SensorService();
+  std::string GetSensorErrorMessage(const int error_code);
+  common::PlatformResult GetSensorPlatformResult(const int error_code, const std::string &hint);
 
   SensorData light_sensor_;
   SensorData magnetic_sensor_;

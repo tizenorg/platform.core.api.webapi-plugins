@@ -18,7 +18,6 @@ class SensorInstance : public common::ParsedInstance {
   SensorInstance();
   virtual ~SensorInstance();
 
-  void GetDefaultSensor(const picojson::value& args, picojson::object& out);
   void GetAvailableSensors(const picojson::value& args, picojson::object& out);
   void SensorStop(const picojson::value& args, picojson::object& out);
   void SensorSetChangeListener(const picojson::value& args, picojson::object& out);

@@ -30,6 +30,18 @@ var MagneticSensorAccuracy = {
     VERYGOOD : 'ACCURACY_VERYGOOD'
 };
 
+var _supportedSensors = [];
+var _isChecked = false;
+
+function getAvailableSensors() {
+    var result = native_.callSync('SensorService_getAvailableSensors', {});
+    if (native_.isFailure(result)) {
+        throw native_.getErrorObject(result);
+    }
+    _supportedSensors = native_.getResultObject(result);
+    _isChecked = true;
+}
+
 function SensorService() {
 };
 
@@ -42,18 +54,32 @@ SensorService.prototype.getDefaultSensor = function() {
         }
     ]);
 
-    var result = native_.callSync('SensorService_getDefaultSensor', {});
-    if (native_.isFailure(result)) {
-        throw native_.getErrorObject(result);
+    if (!_isChecked) {
+        getAvailableSensors();
+    }
+
+    var index = _supportedSensors.indexOf(args.type);
+    if (index === -1) {
+        throw new tizen.WebAPIException(tizen.WebAPIException.NOT_SUPPORTED_ERR, 'Not supported.');
+    } else if (_supportedSensors[index] === 'LIGHT') {
+        return new LightSensor();
+    } else if (_supportedSensors[index] === 'MAGNETIC') {
+        return new MagneticSensor();
+    } else if (_supportedSensors[index] === 'PRESSURE') {
+        return new PressureSensor();
+    } else if (_supportedSensors[index] === 'PROXIMITY') {
+        return new ProximitySensor();
+    } else if (_supportedSensors[index] === 'ULTRAVIOLET') {
+        return new UltravioletSensor();
     }
 };
 
 SensorService.prototype.getAvailableSensors = function() {
-    var result = native_.callSync('SensorService_getAvailableSensors', {});
-    if (native_.isFailure(result)) {
-        throw native_.getErrorObject(result);
+    if (!_isChecked) {
+        getAvailableSensors();
     }
-    return [];
+
+    return _supportedSensors.slice();
 };
 
 //////////////////////Sensor classes//////////////////////////////////////////////////////////
