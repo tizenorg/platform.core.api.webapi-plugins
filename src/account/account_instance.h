@@ -47,6 +47,8 @@ class AccountInstance : public common::ParsedInstance {
       const picojson::value& args, picojson::object& out);
   void AccountGetExtendedData(
       const picojson::value& args, picojson::object& out);
+  void AccountGetExtendedDataSync(
+      const picojson::value& args, picojson::object& out);
   void AccountManagerGetProviders(
       const picojson::value& args, picojson::object& out);
 };

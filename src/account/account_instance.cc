@@ -68,9 +68,10 @@ AccountInstance::AccountInstance() {
   REGISTER_SYNC("AccountManager_remove", AccountManagerRemove);
   REGISTER_SYNC("AccountManager_getAccount", AccountManagerGetAccount);
   REGISTER_SYNC("AccountManager_getProvider", AccountManagerGetProvider);
-  REGISTER_SYNC("Account_setExtendedData", AccountSetExtendedData);
   REGISTER_SYNC("AccountManager_addAccountListener", AccountManagerAddAccountListener);
   REGISTER_SYNC("AccountManager_add", AccountManagerAdd);
+  REGISTER_SYNC("Account_setExtendedData", AccountSetExtendedData);
+  REGISTER_SYNC("Account_getExtendedDataSync", AccountGetExtendedDataSync);
   #undef REGISTER_SYNC
 }
 
@@ -95,16 +96,13 @@ void AccountInstance::AccountSetExtendedData(const picojson::value& args,
 
   CHECK_EXIST(args, "key", out)
   CHECK_EXIST(args, "value", out)
+  CHECK_EXIST(args, "accountId", out)
 
   const std::string& key = args.get("key").get<std::string>();
   const std::string& value = args.get("value").get<std::string>();
+  int account_id = static_cast<int>(args.get("accountId").get<double>());
 
-  // implement it
-
-  // if success
-  // ReportSuccess(out);
-  // if error
-  // ReportError(out);
+  this->manager_->SetExtendedData(account_id, key, value, out);
 }
 
 void AccountInstance::AccountGetExtendedData(const picojson::value& args,
@@ -113,16 +111,42 @@ void AccountInstance::AccountGetExtendedData(const picojson::value& args,
 
   CheckAccess(kPrivilegeAccountRead, &out);
 
+  CHECK_EXIST(args, "accountId", out)
+  CHECK_EXIST(args, "callbackId", out)
+
+  int account_id = static_cast<int>(args.get("accountId").get<double>());
+  int callback_id = static_cast<int>(args.get("callbackId").get<double>());
+
+  auto get_extended_data = [this, account_id](const std::shared_ptr<picojson::value>& result) {
+    this->manager_->GetExtendedData(account_id, result->get<picojson::object>());
+  };
+
+  auto get_extended_data_result = [this, callback_id](const std::shared_ptr<picojson::value>& result) {
+    result->get<picojson::object>()["callbackId"] = picojson::value{static_cast<double>(callback_id)};
+    this->PostMessage(result->serialize().c_str());
+  };
+
+  TaskQueue::GetInstance().Queue<picojson::value>(
+      get_extended_data,
+      get_extended_data_result,
+      std::shared_ptr<picojson::value>{new picojson::value{picojson::object()}});
+
+  ReportSuccess(out);
+}
+
+void AccountInstance::AccountGetExtendedDataSync(const picojson::value& args,
+                                                 picojson::object& out) {
+  LoggerD("Enter");
+
+  CheckAccess(kPrivilegeAccountRead, &out);
+
   CHECK_EXIST(args, "key", out)
+  CHECK_EXIST(args, "accountId", out)
 
   const std::string& key = args.get("key").get<std::string>();
+  int account_id = static_cast<int>(args.get("accountId").get<double>());
 
-  // implement it
-
-  // if success
-  // ReportSuccess(out);
-  // if error
-  // ReportError(out);
+  this->manager_->GetExtendedData(account_id, key, out);
 }
 
 void AccountInstance::AccountManagerAdd(const picojson::value& args,

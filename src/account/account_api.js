@@ -105,7 +105,7 @@ Account.prototype.getExtendedData = function() {
 
         // TODO handling exceptions
 
-        native_.call( 'Account_getExtendedData', { accountId: this.id },
+        native_.call('Account_getExtendedData', { accountId: this.id },
             function(result) {
                 if (native_.isFailure(result)) {
                     if(!T_.isNullOrUndefined(args.errorCallback)) {
@@ -121,7 +121,7 @@ Account.prototype.getExtendedData = function() {
             { name: 'key', type: types_.STRING }
         ]);
 
-        var result = native_.callSync('Account_getExtendedData',
+        var result = native_.callSync('Account_getExtendedDataSync',
                                       { 
                                            accountId: this.id,
                                            key: args.key

@@ -43,6 +43,24 @@ class AccountManager {
  */
   static bool GetProviderInfo(const std::string& provider_id, picojson::object& out);
 
+  /* out["status"] = "success" or "error"
+   * If status is "success", then the result(picojson::value) will be stored in out["result"].
+   * If status is "error", then the error(picojson::value) will be stored in out["error"].
+   */
+  void GetExtendedData(int account_id, const std::string& key, picojson::object& out);
+
+  /* out["status"] = "success" or "error"
+   * If status is "success", then the result(picojson::value) will be stored in out["result"].
+   * If status is "error", then the error(picojson::value) will be stored in out["error"].
+   */
+  void GetExtendedData(int account_id, picojson::object& out);
+
+  /* out["status"] = "success" or "error"
+   * If status is "success", then the result(picojson::value) will be stored in out["result"].
+   * If status is "error", then the error(picojson::value) will be stored in out["error"].
+   */
+  void SetExtendedData(int account_id, const std::string& key, const std::string& value, picojson::object& out);
+
   static bool ConvertAccountToObject(account_h account, picojson::object& out);
 
   static bool ConvertProviderToObject(account_type_h provider, picojson::object& out);

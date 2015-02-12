@@ -14,6 +14,7 @@ namespace account {
 
 using common::ScopeExit;
 using common::UnknownException;
+using common::NotFoundException;
 
 #define REPORT_ERROR(out, exception) \
   out["status"] = picojson::value("error"); \
@@ -67,6 +68,24 @@ static bool GetAccountsCallback(account_h handle, void *user_data) {
 
   return true;
 }
+
+static bool GetCustomAllCallback(char* key, char* value, void* user_data) {
+  picojson::array* array_data = static_cast<picojson::array*>(user_data);
+  if (!array_data) {
+    LoggerE("user_data is NULL");
+    return false;
+  }
+
+  picojson::value result{picojson::object()};
+  picojson::object& r = result.get<picojson::object>();
+
+  r.insert(std::make_pair(("key"), picojson::value(key)));
+  r.insert(std::make_pair(("value"), picojson::value(value)));
+
+  array_data->push_back(result);
+
+  return true;
+};
 
 } // namespace
 
@@ -373,6 +392,109 @@ void AccountManager::GetProvidersInfo(const std::string& capability,
   } else {
     LoggerE("Failed to get providers information");
     REPORT_ERROR(out, UnknownException(GetErrorMsg(ret)));
+  }
+}
+
+void AccountManager::GetExtendedData(int account_id, const std::string& key, picojson::object& out) {
+  LoggerD("Enter");
+
+  account_h account = nullptr;
+  SCOPE_EXIT {
+    account_destroy(account);
+  };
+
+  int ret = account_create(&account);
+  if (ret != ACCOUNT_ERROR_NONE) {
+    LoggerE("Failed to create account info");
+    REPORT_ERROR(out, UnknownException(GetErrorMsg(ret)));
+    return;
+  }
+
+  ret = account_query_account_by_account_id(account_id, &account);
+  if (ret != ACCOUNT_ERROR_NONE) {
+    LoggerE("Failed to get account info");
+    REPORT_ERROR(out, UnknownException(GetErrorMsg(ret)));
+    return;
+  }
+
+  char* value = nullptr;
+  ret = account_get_custom(account, key.c_str(), &value);
+  if (ACCOUNT_ERROR_NONE != ret) {
+    if (ACCOUNT_ERROR_RECORD_NOT_FOUND == ret) {
+      LoggerE("There is no extended data value for %s", key.c_str());
+      REPORT_ERROR(out, NotFoundException("There is no extended data value for specified key"));
+    } else {
+      LoggerE("Failed to get custom field");
+      REPORT_ERROR(out, UnknownException(GetErrorMsg(ret)));
+    }
+  } else {
+    out["status"] = picojson::value("success");
+    out["result"] = picojson::value(value);
+  }
+  free(value);
+}
+
+void AccountManager::GetExtendedData(int account_id, picojson::object& out) {
+  LoggerD("Enter");
+
+  account_h account = nullptr;
+  SCOPE_EXIT {
+    account_destroy(account);
+  };
+
+  int ret = account_create(&account);
+  if (ret != ACCOUNT_ERROR_NONE) {
+    LoggerE("Failed to create account info");
+    REPORT_ERROR(out, UnknownException(GetErrorMsg(ret)));
+    return;
+  }
+
+  ret = account_query_account_by_account_id(account_id, &account);
+  if (ret != ACCOUNT_ERROR_NONE) {
+    LoggerE("Failed to get account info");
+    REPORT_ERROR(out, UnknownException(GetErrorMsg(ret)));
+    return;
+  }
+
+  picojson::array array_data;
+  ret = account_get_custom_all(account, GetCustomAllCallback, &array_data);
+  if (ACCOUNT_ERROR_NONE != ret) {
+    LoggerE("Failed to get custom fields");
+    REPORT_ERROR(out, UnknownException(GetErrorMsg(ret)));
+  } else {
+    out["status"] = picojson::value("success");
+    out["result"] = picojson::value(array_data);
+  }
+}
+
+void AccountManager::SetExtendedData(int account_id, const std::string& key, const std::string& value, picojson::object& out) {
+  LoggerD("Enter");
+
+  account_h account = nullptr;
+  SCOPE_EXIT {
+    account_destroy(account);
+  };
+
+  int ret = account_create(&account);
+  if (ret != ACCOUNT_ERROR_NONE) {
+    LoggerE("Failed to create account info");
+    REPORT_ERROR(out, UnknownException(GetErrorMsg(ret)));
+    return;
+  }
+
+  ret = account_query_account_by_account_id(account_id, &account);
+  if (ret != ACCOUNT_ERROR_NONE) {
+    LoggerE("Failed to get account info");
+    REPORT_ERROR(out, UnknownException(GetErrorMsg(ret)));
+    return;
+  }
+
+  ret = account_set_custom(account, key.c_str(), value.c_str());
+  if (ACCOUNT_ERROR_NONE != ret) {
+    LoggerE("Failed to set custom field");
+    REPORT_ERROR(out, UnknownException(GetErrorMsg(ret)));
+  } else {
+    out["status"] = picojson::value("success");
   }
 }
 
