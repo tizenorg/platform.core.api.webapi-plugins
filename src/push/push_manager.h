@@ -6,6 +6,7 @@
 #define SRC_PUSH_PUSH_MANAGER_H_
 
 #include <push.h>
+#include <glib.h>
 #include <string>
 #include <vector>
 #include <map>
@@ -20,6 +21,8 @@ class EventListener {
             common::PlatformResult result, const std::string& id) = 0;
     virtual void onPushNotify(const std::string& appData,
             const std::string& alertMessage, double date) = 0;
+    virtual void onDeregister(double callbackId,
+            common::PlatformResult result) = 0;
     virtual ~EventListener() {}
 };
 
@@ -38,6 +41,7 @@ class PushManager {
     };
     common::PlatformResult registerService(const ApplicationControl &appControl,
         double callbackId);
+    common::PlatformResult unregisterService(double callbackId);
 
  private:
     PushManager();
@@ -47,9 +51,13 @@ class PushManager {
     static void onPushNotify(push_notification_h noti, void *user_data);
     static void onPushRegister(push_result_e result, const char *msg,
         void *user_data);
+    static gboolean onFakeDeregister(gpointer user_data);
+    static void onDeregister(push_result_e result, const char *msg,
+        void *user_data);
 
     push_connection_h m_handle;
     EventListener* m_listener;
+    push_state_e m_state;
     std::string m_appId;
     std::string m_pkgId;
 };

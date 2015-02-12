@@ -17,7 +17,8 @@ using common::ErrorCode;
 
 PushManager::PushManager() :
     m_handle(NULL),
-    m_listener(NULL) {
+    m_listener(NULL),
+    m_state(PUSH_STATE_UNREGISTERED) {
     LoggerD("Enter");
     initAppId();
 
@@ -169,9 +170,32 @@ PlatformResult PushManager::registerService(
     return common::PlatformResult(ErrorCode::NO_ERROR);
 }
 
+common::PlatformResult PushManager::unregisterService(double callbackId) {
+    double* pcallbackId = new double(callbackId);
+    if (m_state == PUSH_STATE_UNREGISTERED) {
+        LoggerD("Already unregister, call unregister callback");
+        if (!g_idle_add(onFakeDeregister, pcallbackId)) {
+            delete pcallbackId;
+            LoggerE("g_idle_add failed");
+            return common::PlatformResult(ErrorCode::UNKNOWN_ERR,
+                "Unknown error");
+        }
+    } else {
+        int ret = push_deregister(m_handle, onDeregister, pcallbackId);
+        if (ret != PUSH_ERROR_NONE) {
+            delete pcallbackId;
+            LoggerE("Failed to deregister: push_deregister failed");
+            return common::PlatformResult(ErrorCode::UNKNOWN_ERR,
+                "Unknown error");
+        }
+    }
+    return common::PlatformResult(ErrorCode::NO_ERROR);
+}
+
 void PushManager::onPushState(push_state_e state, const char* err,
         void* user_data) {
     LoggerD("Enter %d", state);
+    getInstance().m_state = state;
 }
 
 void PushManager::onPushNotify(push_notification_h noti, void* user_data) {
@@ -247,6 +271,38 @@ void PushManager::onPushRegister(push_result_e result, const char* msg,
                 msg == NULL ? "Unknown error" : msg);
     }
     getInstance().m_listener->onPushRegister(*callbackId, res, id);
+    delete callbackId;
+}
+
+gboolean PushManager::onFakeDeregister(gpointer user_data) {
+    LoggerD("Enter");
+    if (!getInstance().m_listener) {
+        LoggerW("Listener not set, ignoring");
+        return G_SOURCE_REMOVE;
+    }
+    double* callbackId = static_cast<double*>(user_data);
+    getInstance().m_listener->onDeregister(*callbackId,
+        PlatformResult(ErrorCode::NO_ERROR));
+    delete callbackId;
+    return G_SOURCE_REMOVE;
+}
+
+void PushManager::onDeregister(push_result_e result, const char* msg,
+        void* user_data) {
+    LoggerD("Enter");
+    if (!getInstance().m_listener) {
+        LoggerW("Listener not set, ignoring");
+        return;
+    }
+    double* callbackId = static_cast<double*>(user_data);
+    if (result == PUSH_RESULT_SUCCESS) {
+        getInstance().m_listener->onDeregister(*callbackId,
+            PlatformResult(ErrorCode::NO_ERROR));
+    } else {
+        getInstance().m_listener->onDeregister(*callbackId,
+            PlatformResult(ErrorCode::UNKNOWN_ERR,
+                msg == NULL ? "Unknown error" : msg));
+    }
     delete callbackId;
 }
 

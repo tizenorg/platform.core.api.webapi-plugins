@@ -20,6 +20,7 @@ class PushInstance: public common::ParsedInstance, public EventListener {
             common::PlatformResult result, const std::string& id);
     virtual void onPushNotify(const std::string& appData,
             const std::string& alertMessage, double date);
+    virtual void onDeregister(double callbackId, common::PlatformResult result);
 
  private:
      void registerService(const picojson::value& args, picojson::object& out);

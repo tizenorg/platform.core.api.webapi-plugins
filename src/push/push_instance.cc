@@ -72,8 +72,15 @@ void PushInstance::registerService(const picojson::value& args,
 void PushInstance::unregisterService(const picojson::value& args,
         picojson::object& out) {
     LoggerD("Enter");
-    picojson::value result;
-    ReportSuccess(result, out);
+    common::PlatformResult result = PushManager::getInstance()
+            .unregisterService(args.get("callbackId").get<double>());
+    if (result.IsError()) {
+        LoggerE("Error occured");
+        ReportError(result, &out);
+    } else {
+        picojson::value res;
+        ReportSuccess(res, out);
+    }
 }
 
 void PushInstance::connectService(const picojson::value& args,
@@ -135,6 +142,18 @@ void PushInstance::onPushNotify(const std::string& appData,
     dict["pushMessage"] = picojson::value(pushMessage);
     picojson::value resultListener(dict);
     PostMessage(resultListener.serialize().c_str());
+}
+
+void PushInstance::onDeregister(double callbackId,
+        common::PlatformResult result) {
+    LoggerD("Enter");
+    picojson::value::object dict;
+    dict["callbackId"] = picojson::value(callbackId);
+    if (result.IsError()) {
+        dict["error"] = result.ToJSON();
+    }
+    picojson::value res(dict);
+    PostMessage(res.serialize().c_str());
 }
 
 PushInstance::~PushInstance() {
