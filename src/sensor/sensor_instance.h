@@ -12,7 +12,7 @@ namespace sensor {
 
 class SensorInstance : public common::ParsedInstance {
  public:
-  static SensorInstance& getInstance();
+  static SensorInstance& GetInstance();
 
  private:
   SensorInstance();

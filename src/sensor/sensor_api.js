@@ -31,6 +31,13 @@ var MagneticSensorAccuracy = {
 };
 
 var _supportedSensors = [];
+var _startedSensors = {
+    LIGHT : false,
+    MAGNETIC : false,
+    PRESSURE : false,
+    PROXIMITY : false,
+    ULTRAVIOLET : false
+};
 var _isChecked = false;
 
 function getAvailableSensors() {
@@ -102,23 +109,31 @@ Sensor.prototype.start = function() {
            optional : true,
            nullable : true
        }
-   ]);
+    ]);
 
-    native_.call('Sensor_start', {},
-        function(result) {
-            if (native_.isFailure(result)) {
-                if(!T_.isNullOrUndefined(args.errorCallback)) {
-                    args.errorCallback(native_.getErrorObject(result));
+    if (!_startedSensors[this.sensorType]) {
+        // sensor not started
+        var type = this.sensorType;
+        native_.call('Sensor_start', {'sensorType' : type},
+            function(result) {
+                if (native_.isFailure(result)) {
+                    if(!T_.isNullOrUndefined(args.errorCallback)) {
+                        args.errorCallback(native_.getErrorObject(result));
+                    }
+                } else {
+                    _startedSensors[type] = true;
+                    args.successCallback();
                 }
-            } else {
-                args.successCallback();
             }
-        }
-    );
+        );
+    } else {
+        // sensor is already started - just call success callback
+        setTimeout(function(){args.successCallback()}, 0);
+    }
 };
 
 Sensor.prototype.stop = function() {
-    var result = native_.callSync('Sensor_stop', {});
+    var result = native_.callSync('Sensor_stop', {'sensorType' : this.sensorType});
     if (native_.isFailure(result)) {
         throw native_.getErrorObject(result);
     }
@@ -132,14 +147,14 @@ Sensor.prototype.setChangeListener = function() {
        }
    ]);
 
-    var result = native_.callSync('Sensor_setChangeListener', {});
+    var result = native_.callSync('Sensor_setChangeListener', {'sensorType' : this.sensorType});
     if (native_.isFailure(result)) {
         throw native_.getErrorObject(result);
     }
 };
 
 Sensor.prototype.unsetChangeListener = function() {
-    var result = native_.callSync('Sensor_unsetChangeListener', {});
+    var result = native_.callSync('Sensor_unsetChangeListener', {'sensorType' : this.sensorType});
     if (native_.isFailure(result)) {
         throw native_.getErrorObject(result);
     }

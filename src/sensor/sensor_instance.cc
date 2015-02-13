@@ -14,7 +14,7 @@ namespace sensor {
 
 using namespace common;
 
-SensorInstance& SensorInstance::getInstance() {
+SensorInstance& SensorInstance::GetInstance() {
   static SensorInstance instance;
   return instance;
 }
@@ -50,22 +50,22 @@ void SensorInstance::GetAvailableSensors(const picojson::value& args, picojson::
 
 void SensorInstance::SensorStop(const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
-  //empty stub
+  SensorService::GetInstance()->SensorStop(args, out);
 }
 
 void SensorInstance::SensorSetChangeListener(const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
-  //empty stub
+  SensorService::GetInstance()->SensorSetChangeListener(args, out);
 }
 
 void SensorInstance::SensorUnsetChangeListener(const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
-  //empty stub
+  SensorService::GetInstance()->SensorUnsetChangeListener(args, out);
 }
 
 void SensorInstance::SensorStart(const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
-  //empty stub
+  SensorService::GetInstance()->SensorStart(args, out);
 }
 
 void SensorInstance::LightSensorGetData(const picojson::value& args, picojson::object& out) {

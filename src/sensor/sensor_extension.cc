@@ -20,5 +20,5 @@ SensorExtension::SensorExtension() {
 SensorExtension::~SensorExtension() {}
 
 common::Instance* SensorExtension::CreateInstance() {
-  return &extension::sensor::SensorInstance::getInstance();
+  return &extension::sensor::SensorInstance::GetInstance();
 }

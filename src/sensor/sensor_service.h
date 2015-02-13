@@ -13,6 +13,8 @@
 namespace extension {
 namespace sensor {
 
+typedef void (*CallbackPtr)(sensor_h sensor, sensor_event_s *event, void *user_data);
+
 class SensorService {
   typedef struct {
     sensor_h handle;
@@ -22,12 +24,20 @@ class SensorService {
  public:
   static SensorService* GetInstance();
   void GetAvailableSensors(picojson::object& out);
+  void SensorStart(const picojson::value& args, picojson::object& out);
+  void SensorStop(const picojson::value& args, picojson::object& out);
+  void SensorSetChangeListener(const picojson::value& args, picojson::object& out);
+  void SensorUnsetChangeListener(const picojson::value& args, picojson::object& out);
 
  private:
   SensorService();
   ~SensorService();
   std::string GetSensorErrorMessage(const int error_code);
   common::PlatformResult GetSensorPlatformResult(const int error_code, const std::string &hint);
+
+  common::PlatformResult CheckSensorInitialization(sensor_type_e type_enum);
+  SensorData* GetSensorStruct(sensor_type_e type_enum);
+  CallbackPtr GetCallbackFunction(sensor_type_e type_enum);
 
   SensorData light_sensor_;
   SensorData magnetic_sensor_;
