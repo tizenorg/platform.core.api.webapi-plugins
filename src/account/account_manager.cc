@@ -535,7 +535,7 @@ void AccountManager::RemoveAccount(const picojson::value& data, picojson::object
 
   int ret = account_delete_from_db_by_id(account_id);
 
-  if (!ret) {
+  if (!ret || ret == ACCOUNT_ERROR_INVALID_PARAMETER) {
     out["status"] = picojson::value("success");
   } else {
     LoggerE("Failed to create account");
