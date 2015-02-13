@@ -13,20 +13,20 @@ namespace systemsetting {
 
 class SystemSettingInstance : public common::ParsedInstance
 {
-public:
-    SystemSettingInstance();
-    virtual ~SystemSettingInstance();
+ public:
+  SystemSettingInstance();
+  virtual ~SystemSettingInstance();
 
-private:
-    void getProperty(const picojson::value& args, picojson::object& out);
-    common::PlatformResult getPlatformPropertyValue(
-            const std::string& valueType,
-            picojson::value* out);
+ private:
+  void getProperty(const picojson::value& args, picojson::object& out);
+  common::PlatformResult getPlatformPropertyValue(
+      const std::string& valueType,
+      picojson::value* out);
 
-    void setProperty(const picojson::value& args, picojson::object& out);
-    common::PlatformResult setPlatformPropertyValue(
-            const std::string& settingType,
-            const std::string& settingValue);
+  void setProperty(const picojson::value& args, picojson::object& out);
+  common::PlatformResult setPlatformPropertyValue(
+      const std::string& settingType,
+      const std::string& settingValue);
 };
 
 } // namespace systemsetting
