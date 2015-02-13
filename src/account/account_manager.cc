@@ -222,7 +222,11 @@ bool AccountManager::GetProviderInfo(const std::string& provider_id,
   }
 
   ret = account_type_query_by_app_id(provider_id.c_str(), &provider);
-  if (ret != ACCOUNT_ERROR_NONE) {
+  if (ACCOUNT_ERROR_RECORD_NOT_FOUND == ret || ACCOUNT_ERROR_INVALID_PARAMETER == ret) {
+    out["status"] = picojson::value("success");
+    out["result"] = picojson::value();
+    return true;
+  } else if (ret != ACCOUNT_ERROR_NONE) {
     LoggerE("Failed to get provider info");
     REPORT_ERROR(out, UnknownException(GetErrorMsg(ret)));
     return false;
