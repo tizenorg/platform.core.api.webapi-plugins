@@ -40,6 +40,22 @@ static std::map<std::string, sensor_type_e> string_to_type_map = {
     {"PROXIMITY", SENSOR_PROXIMITY},
     {"ULTRAVIOLET", SENSOR_ULTRAVIOLET}
 };
+
+static std::string GetAccuracyString(int accuracy) {
+  LoggerD("Entered");
+  switch (static_cast<sensor_data_accuracy_e>(accuracy)) {
+    case SENSOR_DATA_ACCURACY_BAD:
+      return "ACCURACY_BAD";
+    case SENSOR_DATA_ACCURACY_NORMAL:
+      return "ACCURACY_NORMAL";
+    case SENSOR_DATA_ACCURACY_GOOD:
+      return "ACCURACY_GOOD";
+    case SENSOR_DATA_ACCURACY_VERYGOOD:
+      return "ACCURACY_VERYGOOD";
+    default:
+      return "ACCURACY_UNDEFINED";
+  }
+}
 }
 
 SensorService::SensorService() {
@@ -326,6 +342,76 @@ CallbackPtr SensorService::GetCallbackFunction(sensor_type_e type_enum) {
     default :
       return nullptr;
   }
+}
+
+void SensorService::GetSensorData(const picojson::value& args, picojson::object& out) {
+  LoggerD("Entered");
+
+  CHECK_EXIST(args, "callbackId", out);
+  CHECK_EXIST(args, "type", out);
+
+  int callback_id = static_cast<int>(args.get("callbackId").get<double>());
+  sensor_type_e sensor_type = string_to_type_map[args.get("type").get<std::string>()];
+
+  auto get_data = [this, sensor_type](const std::shared_ptr<picojson::value>& result) {
+    sensor_event_s sensor_event;
+    SensorData* sensor = this->GetSensorStruct(sensor_type);
+    int ret = sensor_listener_read_data(sensor->listener, &sensor_event);
+
+    if (SENSOR_ERROR_NONE != ret) {
+      ReportError(GetSensorPlatformResult(ret, type_to_string_map[sensor_type]),
+                  &(result->get<picojson::object>()));
+      return;
+    }
+
+    picojson::object& object = result->get<picojson::object>();
+    switch (sensor_type) {
+      case SENSOR_LIGHT: {
+        object["lightLevel"] = picojson::value(static_cast<double>(sensor_event.values[0]));
+        break;
+      }
+      case SENSOR_MAGNETIC: {
+        object["x"] = picojson::value(static_cast<double>(sensor_event.values[0]));
+        object["y"] = picojson::value(static_cast<double>(sensor_event.values[1]));
+        object["z"] = picojson::value(static_cast<double>(sensor_event.values[2]));
+        object["accuracy"] = picojson::value(GetAccuracyString(sensor_event.accuracy));
+        break;
+      }
+      case SENSOR_PRESSURE: {
+        object["pressure"] = picojson::value(static_cast<double>(sensor_event.values[0]));
+        break;
+      }
+      case SENSOR_PROXIMITY: {
+        int state = static_cast<int>(sensor_event.values[0]);
+        object["proximityState"] = picojson::value(state ? "NEAR" : "FAR");
+        break;
+      }
+      case SENSOR_ULTRAVIOLET: {
+        object["ultravioletLevel"] = picojson::value(static_cast<double>(sensor_event.values[0]));
+        break;
+      }
+      default: {
+        ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Unsupported type"),
+                    &(result->get<picojson::object>()));
+        return;
+      }
+    }
+
+    ReportSuccess(object);
+  };
+
+  auto get_data_result = [callback_id](const std::shared_ptr<picojson::value>& result) {
+    result->get<picojson::object>()["callbackId"] = picojson::value{static_cast<double>(callback_id)};
+
+    SensorInstance::GetInstance().PostMessage(result->serialize().c_str());
+  };
+
+  TaskQueue::GetInstance().Queue<picojson::value>(
+      get_data,
+      get_data_result,
+      std::shared_ptr<picojson::value>{new picojson::value{picojson::object()}});
+
+  ReportSuccess(out);
 }
 
 } // namespace sensor

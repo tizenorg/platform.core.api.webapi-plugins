@@ -28,6 +28,7 @@ class SensorService {
   void SensorStop(const picojson::value& args, picojson::object& out);
   void SensorSetChangeListener(const picojson::value& args, picojson::object& out);
   void SensorUnsetChangeListener(const picojson::value& args, picojson::object& out);
+  void GetSensorData(const picojson::value& args, picojson::object& out);
 
  private:
   SensorService();

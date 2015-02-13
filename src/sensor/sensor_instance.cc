@@ -31,12 +31,7 @@ SensorInstance::SensorInstance() {
 #define REGISTER_ASYNC(c,x) \
     RegisterHandler(c, std::bind(&SensorInstance::x, this, _1, _2));
   REGISTER_ASYNC("Sensor_start", SensorStart);
-  REGISTER_ASYNC("LightSensor_getData", LightSensorGetData);
-  REGISTER_ASYNC("MagneticSensor_getData", MagneticSensorGetData);
-  REGISTER_ASYNC("PressureSensor_getData", PressureSensorGetData);
-  REGISTER_ASYNC("ProximitySensor_getData", ProximitySensorGetData);
-  REGISTER_ASYNC("UltravioletSensor_getData", UltravioletSensorGetData);
-
+  REGISTER_ASYNC("Sensor_getData", SensorGetData);
 #undef REGISTER_ASYNC
 }
 
@@ -68,29 +63,10 @@ void SensorInstance::SensorStart(const picojson::value& args, picojson::object& 
   SensorService::GetInstance()->SensorStart(args, out);
 }
 
-void SensorInstance::LightSensorGetData(const picojson::value& args, picojson::object& out) {
+void SensorInstance::SensorGetData(const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
-  //empty stub
-}
 
-void SensorInstance::MagneticSensorGetData(const picojson::value& args, picojson::object& out) {
-  LoggerD("Entered");
-  //empty stub
-}
-
-void SensorInstance::PressureSensorGetData(const picojson::value& args, picojson::object& out) {
-  LoggerD("Entered");
-  //empty stub
-}
-
-void SensorInstance::ProximitySensorGetData(const picojson::value& args, picojson::object& out) {
-  LoggerD("Entered");
-  //empty stub
-}
-
-void SensorInstance::UltravioletSensorGetData(const picojson::value& args, picojson::object& out) {
-  LoggerD("Entered");
-  //empty stub
+  SensorService::GetInstance()->GetSensorData(args, out);
 }
 
 } // namespace sensor

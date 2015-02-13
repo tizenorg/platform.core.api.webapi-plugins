@@ -182,17 +182,27 @@ LightSensor.prototype.getLightSensorData = function() {
            nullable : true
        }
     ]);
-    native_.call('LightSensor_getData', {},
-        function(result) {
+
+    if (!_startedSensors[this.sensorType]) {
+        setTimeout(function() {
+            if (!T_.isNullOrUndefined(args.errorCallback)) {
+                args.errorCallback(new tizen.WebAPIException(
+                        tizen.WebAPIException.SERVICE_NOT_AVAILABLE_ERR,
+                        'Service is not available.'));
+            }
+        }, 0);
+    } else {
+        native_.call('Sensor_getData', { type : this.sensorType },
+                function(result) {
             if (native_.isFailure(result)) {
                 if(!T_.isNullOrUndefined(args.errorCallback)) {
                     args.errorCallback(native_.getErrorObject(result));
                 }
             } else {
-                args.successCallback();
+                args.successCallback(new SensorLightData(result));
             }
-        }
-    );
+        });
+    }
 };
 
 //// MagneticSensor
@@ -217,17 +227,27 @@ MagneticSensor.prototype.getMagneticSensorData = function() {
            nullable : true
        }
     ]);
-    native_.call('MagneticSensor_getData', {},
-        function(result) {
+
+    if (!_startedSensors[this.sensorType]) {
+        setTimeout(function() {
+            if (!T_.isNullOrUndefined(args.errorCallback)) {
+                args.errorCallback(new tizen.WebAPIException(
+                        tizen.WebAPIException.SERVICE_NOT_AVAILABLE_ERR,
+                        'Service is not available.'));
+            }
+        }, 0);
+    } else {
+        native_.call('Sensor_getData', { type : this.sensorType },
+                function(result) {
             if (native_.isFailure(result)) {
                 if(!T_.isNullOrUndefined(args.errorCallback)) {
                     args.errorCallback(native_.getErrorObject(result));
                 }
             } else {
-                args.successCallback();
+                args.successCallback(new SensorMagneticData(result));
             }
-        }
-    );
+        });
+    }
 };
 
 //// PressureSensor
@@ -252,17 +272,27 @@ PressureSensor.prototype.getPressureSensorData = function() {
            nullable : true
        }
     ]);
-    native_.call('PressureSensor_getData', {},
-        function(result) {
+
+    if (!_startedSensors[this.sensorType]) {
+        setTimeout(function() {
+            if (!T_.isNullOrUndefined(args.errorCallback)) {
+                args.errorCallback(new tizen.WebAPIException(
+                        tizen.WebAPIException.SERVICE_NOT_AVAILABLE_ERR,
+                        'Service is not available.'));
+            }
+        }, 0);
+    } else {
+        native_.call('Sensor_getData', { type : this.sensorType },
+                function(result) {
             if (native_.isFailure(result)) {
                 if(!T_.isNullOrUndefined(args.errorCallback)) {
                     args.errorCallback(native_.getErrorObject(result));
                 }
             } else {
-                args.successCallback();
+                args.successCallback(new SensorPressureData(result));
             }
-        }
-    );
+        });
+    }
 };
 
 //// ProximitySensor
@@ -287,17 +317,27 @@ ProximitySensor.prototype.getProximitySensorData = function() {
            nullable : true
        }
     ]);
-    native_.call('ProximitySensor_getData', {},
-        function(result) {
+
+    if (!_startedSensors[this.sensorType]) {
+        setTimeout(function() {
+            if (!T_.isNullOrUndefined(args.errorCallback)) {
+                args.errorCallback(new tizen.WebAPIException(
+                        tizen.WebAPIException.SERVICE_NOT_AVAILABLE_ERR,
+                        'Service is not available.'));
+            }
+        }, 0);
+    } else {
+        native_.call('Sensor_getData', { type : this.sensorType },
+                function(result) {
             if (native_.isFailure(result)) {
                 if(!T_.isNullOrUndefined(args.errorCallback)) {
                     args.errorCallback(native_.getErrorObject(result));
                 }
             } else {
-                args.successCallback();
+                args.successCallback(new SensorProximityData(result));
             }
-        }
-    );
+        });
+    }
 };
 
 //// UltravioletSensor
@@ -322,17 +362,27 @@ UltravioletSensor.prototype.getUltravioletSensorData = function() {
            nullable : true
        }
     ]);
-    native_.call('UltravioletSensor_getData', {},
-        function(result) {
+
+    if (!_startedSensors[this.sensorType]) {
+        setTimeout(function() {
+            if (!T_.isNullOrUndefined(args.errorCallback)) {
+                args.errorCallback(new tizen.WebAPIException(
+                        tizen.WebAPIException.SERVICE_NOT_AVAILABLE_ERR,
+                        'Service is not available.'));
+            }
+        }, 0);
+    } else {
+        native_.call('Sensor_getData', { type : this.sensorType },
+                function(result) {
             if (native_.isFailure(result)) {
                 if(!T_.isNullOrUndefined(args.errorCallback)) {
                     args.errorCallback(native_.getErrorObject(result));
                 }
             } else {
-                args.successCallback();
+                args.successCallback(new SensorUltravioletData(result));
             }
-        }
-    );
+        });
+    }
 };
 
 ////////////////////// Sensor Data classes/////////////////////////////////////////////////////

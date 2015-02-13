@@ -23,11 +23,7 @@ class SensorInstance : public common::ParsedInstance {
   void SensorSetChangeListener(const picojson::value& args, picojson::object& out);
   void SensorUnsetChangeListener(const picojson::value& args, picojson::object& out);
   void SensorStart(const picojson::value& args, picojson::object& out);
-  void LightSensorGetData(const picojson::value& args, picojson::object& out);
-  void MagneticSensorGetData(const picojson::value& args, picojson::object& out);
-  void PressureSensorGetData(const picojson::value& args, picojson::object& out);
-  void ProximitySensorGetData(const picojson::value& args, picojson::object& out);
-  void UltravioletSensorGetData(const picojson::value& args, picojson::object& out);
+  void SensorGetData(const picojson::value& args, picojson::object& out);
 };
 
 } // namespace sensor
