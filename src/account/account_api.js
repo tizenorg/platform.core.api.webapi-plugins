@@ -87,13 +87,11 @@ Account.prototype.setExtendedData = function() {
 
 
 Account.prototype.getExtendedData = function() {
-    if (T_.isFunction(arguments[0])) {
+    if (T_.isFunction(arguments[0]) || arguments.length > 1) {
         var args = validator_.validateArgs(arguments, [
             {
                 name : 'successCallback',
-                type : types_.FUNCTION,
-                optional : false,
-                nullable : false
+                type : types_.FUNCTION
             },
             {
                 name : 'errorCallback',
@@ -112,6 +110,10 @@ Account.prototype.getExtendedData = function() {
                         args.errorCallback(native_.getErrorObject(result));
                     }
                 } else {
+                    var data = native_.getResultObject(result);
+                    for (var i = 0; i < data.length; ++i) {
+                        Object.freeze(data[i]);
+                    }
                     args.successCallback(native_.getResultObject(result));
                 }
             }

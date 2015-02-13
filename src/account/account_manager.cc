@@ -422,7 +422,8 @@ void AccountManager::GetExtendedData(int account_id, const std::string& key, pic
   if (ACCOUNT_ERROR_NONE != ret) {
     if (ACCOUNT_ERROR_RECORD_NOT_FOUND == ret) {
       LoggerE("There is no extended data value for %s", key.c_str());
-      REPORT_ERROR(out, NotFoundException("There is no extended data value for specified key"));
+      out["status"] = picojson::value("success");
+      out["result"] = picojson::value();
     } else {
       LoggerE("Failed to get custom field");
       REPORT_ERROR(out, UnknownException(GetErrorMsg(ret)));
@@ -492,6 +493,13 @@ void AccountManager::SetExtendedData(int account_id, const std::string& key, con
   ret = account_set_custom(account, key.c_str(), value.c_str());
   if (ACCOUNT_ERROR_NONE != ret) {
     LoggerE("Failed to set custom field");
+    REPORT_ERROR(out, UnknownException(GetErrorMsg(ret)));
+    return;
+  }
+
+  ret = account_update_to_db_by_id(account, account_id);
+  if (ACCOUNT_ERROR_NONE != ret) {
+    LoggerE("Failed to update account in database");
     REPORT_ERROR(out, UnknownException(GetErrorMsg(ret)));
   } else {
     out["status"] = picojson::value("success");
