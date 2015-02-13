@@ -29,7 +29,7 @@ class AccountManager {
  * If status is "success", then the result(picojson::value) will be stored in out["result"].
  * If status is "error", then the error(picojson::value) will be stored in out["error"].
  */
-  bool GetAccountInfo(int account_id, picojson::object& out);
+  void GetAccountInfo(int account_id, picojson::object& out);
 
  /* out["status"] = "success" or "error"
  * If status is "success", then the result(picojson::value) will be stored in out["result"].

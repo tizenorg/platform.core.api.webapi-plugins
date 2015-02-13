@@ -166,7 +166,7 @@ void AccountManager::GetAccountsInfo(const std::string& application_id,
   }
 }
 
-bool AccountManager::GetAccountInfo(int account_id, picojson::object& out) {
+void AccountManager::GetAccountInfo(int account_id, picojson::object& out) {
   LoggerD("Enter");
 
   account_h account = NULL;
@@ -178,27 +178,31 @@ bool AccountManager::GetAccountInfo(int account_id, picojson::object& out) {
   if (ret != ACCOUNT_ERROR_NONE) {
     LoggerE("Failed to create account info");
     REPORT_ERROR(out, UnknownException(GetErrorMsg(ret)));
-    return false;
+    return;
   }
 
   ret = account_query_account_by_account_id(account_id, &account);
-  if (ret != ACCOUNT_ERROR_NONE) {
+  if (ACCOUNT_ERROR_RECORD_NOT_FOUND == ret) {
+    out["status"] = picojson::value("success");
+    out["result"] = picojson::value();
+    return;
+  } else if (ret != ACCOUNT_ERROR_NONE) {
     LoggerE("Failed to get account info");
     REPORT_ERROR(out, UnknownException(GetErrorMsg(ret)));
-    return false;
+    return;
   }
 
   picojson::object info;
   if (!ConvertAccountToObject(account, info)) {
     LoggerE("Failed to convert account_h into object");
     REPORT_ERROR(out, UnknownException("Unknown error occurs"));
-    return false;
+    return;
   }
 
   out["status"] = picojson::value("success");
   out["result"] = picojson::value(info);
 
-  return true;
+  return;
 }
 
 bool AccountManager::GetProviderInfo(const std::string& provider_id,
