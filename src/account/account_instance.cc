@@ -149,46 +149,24 @@ void AccountInstance::AccountGetExtendedDataSync(const picojson::value& args,
   this->manager_->GetExtendedData(account_id, key, out);
 }
 
-void AccountInstance::AccountManagerAdd(const picojson::value& args,
-                                        picojson::object& out) {
+void AccountInstance::AccountManagerAdd(const picojson::value& args, picojson::object& out) {
   LoggerD("Enter");
-
   CheckAccess(kPrivilegeAccountWrite, &out);
-
-  // implement it
-
-  // if success
-  // ReportSuccess(out);
-  // if error
-  // ReportError(out);
+  manager_->AddAccount(args, out);
 }
 
 void AccountInstance::AccountManagerRemove(const picojson::value& args,
                                            picojson::object& out) {
   LoggerD("Enter");
-
   CheckAccess(kPrivilegeAccountWrite, &out);
-
-  // implement it
-
-  // if success
-  // ReportSuccess(out);
-  // if error
-  // ReportError(out);
+  manager_->RemoveAccount(args, out);
 }
 
 void AccountInstance::AccountManagerUpdate(const picojson::value& args,
                                            picojson::object& out) {
   LoggerD("Enter");
-
   CheckAccess(kPrivilegeAccountWrite, &out);
-
-  // implement it
-
-  // if success
-  // ReportSuccess(out);
-  // if error
-  // ReportError(out);
+  manager_->UpdateAccount(args, out);
 }
 
 void AccountInstance::AccountManagerGetAccount(const picojson::value& args,

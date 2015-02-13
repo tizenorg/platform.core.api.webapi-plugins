@@ -498,6 +498,82 @@ void AccountManager::SetExtendedData(int account_id, const std::string& key, con
   }
 }
 
+void AccountManager::AddAccount(const picojson::value& data, picojson::object& out) {
+  LoggerD("Enter");
+  account_h account_handle = NULL;
+  int account_id;
+  const std::string& user_name = data.get("userName").get<std::string>();
+  const std::string& icon_uri = data.get("iconUri").get<std::string>();
+  const std::string& application_id = data.get("applicationId").get<std::string>();
+
+  int ret = account_create(&account_handle);
+  if (!ret) {
+    ret = account_set_user_name(account_handle, user_name.c_str());
+    if (!ret) {
+      ret = account_set_icon_path(account_handle, icon_uri.c_str());
+    }
+    if (!ret) {
+      ret = account_set_package_name(account_handle, application_id.c_str());
+    }
+    if (!ret) {
+      ret = account_insert_to_db(account_handle, &account_id);
+    }
+    account_destroy(account_handle);
+  }
+  if (!ret) {
+    out["status"] = picojson::value("success");
+    out["result"] = picojson::value(static_cast<double>(account_id));
+  } else {
+    LoggerE("Failed to create account");
+    REPORT_ERROR(out, UnknownException(GetErrorMsg(ret)));
+  }
+}
+
+void AccountManager::RemoveAccount(const picojson::value& data, picojson::object& out) {
+  LoggerD("Enter");
+  int account_id = static_cast<int>(data.get("accountId").get<double>());
+
+  int ret = account_delete_from_db_by_id(account_id);
+
+  if (!ret) {
+    out["status"] = picojson::value("success");
+  } else {
+    LoggerE("Failed to create account");
+    REPORT_ERROR(out, UnknownException(GetErrorMsg(ret)));
+  }
+}
+
+void AccountManager::UpdateAccount(const picojson::value& data, picojson::object& out) {
+  LoggerD("Enter");
+  int account_id = static_cast<int>(data.get("accountId").get<double>());
+  const std::string& user_name = data.get("userName").get<std::string>();
+  const std::string& icon_uri = data.get("iconUri").get<std::string>();
+  account_h account_handle = NULL;
+
+  int ret = account_create(&account_handle);
+
+  if (!ret) {
+    ret = account_query_account_by_account_id(account_id, &account_handle);
+    if (!ret) {
+      ret = account_set_user_name(account_handle, user_name.c_str());
+    }
+    if (!ret) {
+      ret = account_set_icon_path(account_handle, icon_uri.c_str());
+    }
+    if (!ret) {
+      ret = account_update_to_db_by_id(account_handle, account_id);
+    }
+
+    account_destroy(account_handle);
+  }
+  if (!ret) {
+    out["status"] = picojson::value("success");
+  } else {
+    LoggerE("Failed to create account");
+    REPORT_ERROR(out, UnknownException(GetErrorMsg(ret)));
+  }
+}
+
 #undef REPORT_ERROR
 
 } // namespace account

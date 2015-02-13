@@ -66,6 +66,11 @@ class AccountManager {
   static bool ConvertProviderToObject(account_type_h provider, picojson::object& out);
 
   static std::string GetErrorMsg(int error);
+
+  void AddAccount(const picojson::value& data, picojson::object& obj);
+  void RemoveAccount(const picojson::value& data, picojson::object& obj);
+  void UpdateAccount(const picojson::value& data, picojson::object& obj);
+  //bool IsValidPackage(const std::string& packageName);
 };
 
 } // namespace account

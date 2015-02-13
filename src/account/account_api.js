@@ -151,10 +151,18 @@ AccountManager.prototype.add = function() {
         { name: 'account', type: types_.PLATFORM_OBJECT, values: Account }
     ]);
 
-    var result = native_.callSync( 'AccountManager_add', { account: args.account });
+    var result = native_.callSync('AccountManager_add',
+                                  {
+                                      userName: args.account.userName,
+                                      iconUri: args.account.iconUri,
+                                      applicationId: args.account.provider.applicationId
+                                  }
+    );
 
     if (native_.isFailure(result)) {
         throw native_.getErrorObject(result);
+    } else {
+        args.account.id = new InternalValues_({ id: native_.getResultObject(result) });
     }
 }
 
@@ -177,12 +185,12 @@ AccountManager.prototype.update = function() {
         { name: 'account', type: types_.PLATFORM_OBJECT, values: Account }
     ]);
 
-    var result = native_.callSync( 'AccountManager_update',
-                                    {
-                                        accountId:  args.account.id,
-                                        userName:   args.account.userName,
-                                        iconUri:    args.account.iconUri
-                                    }
+    var result = native_.callSync('AccountManager_update',
+                                  {
+                                      accountId:  args.account.id,
+                                      userName:   args.account.userName,
+                                      iconUri:    args.account.iconUri
+                                  }
     );
 
     if (native_.isFailure(result)) {
