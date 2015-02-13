@@ -172,10 +172,6 @@ ExifManager.prototype.getExifInfo = function() {
     }
   ]);
 
-  var callArgs = {
-    uri: args.uri
-  };
-
   var callback = function(result) {
     if (native_.isFailure(result)) {
       native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));
@@ -193,7 +189,17 @@ ExifManager.prototype.getExifInfo = function() {
     }
   };
 
-  native_.call('ExifManager_getExifInfo', callArgs, callback);
+  // TODO: Check if uri is correct (invalid characters)
+  //       It could be done by file.resolve(uri), but at now is not implemented.
+  tizen.filesystem.resolve(args.uri,
+      function() {
+        native_.call('ExifManager_getExifInfo', {'uri': args.uri}, callback);
+      },
+      function() {
+        native_.callIfPossible(args.errorCallback, new tizen.WebAPIException(
+            tizen.WebAPIException.NOT_FOUND_ERR,
+            'File can not be found.'));
+      });
 };
 
 ExifManager.prototype.saveExifInfo = function() {
@@ -230,6 +236,7 @@ ExifManager.prototype.saveExifInfo = function() {
     }
   };
 
+  // TODO: check args.exifInfo.uri
   native_.call('ExifManager_saveExifInfo', json, callback);
 };
 
@@ -267,6 +274,8 @@ ExifManager.prototype.getThumbnail = function() {
     }
   };
 
+  // TODO: Check if uri is correct (invalid characters)
+  //       It could be done by file.resolve(uri), but at now is not implemented.
   tizen.filesystem.resolve(args.uri,
       function() {
         native_.call('ExifManager_getThumbnail', {'uri': args.uri}, _callback);
@@ -510,7 +519,7 @@ tizen.ExifInformation = function() {
       },
       set: function(v) {
         if (!type_.isUndefined(v)) {
-          if (v === null || v instanceof Date) gpsTime_ = v;
+          if (v === null || v instanceof Date || v instanceof tizen.TZDate) gpsTime_ = v;
         }
       }
     },

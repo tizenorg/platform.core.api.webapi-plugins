@@ -126,9 +126,8 @@ void ExifInstance::ExifManagerGetThumbnail(const picojson::value& args, picojson
 
         exif_data = exif_data_new_from_file(file_path.c_str());
         if (!exif_data) {
-          LoggerE("Thumbnail can not be loaded from path (%s)",
-                  file_path.c_str());
-          throw common::InvalidValuesException("File can not be loaded");
+          LoggerE("Error reading from file [%s]", file_path.c_str());
+          throw common::UnknownException("Error reading from file");
         }
 
         if (exif_data->data && exif_data->size) {

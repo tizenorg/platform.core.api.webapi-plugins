@@ -491,7 +491,7 @@ JsonValue GetExifInfo::LoadFromURI(const std::string& uri) {
   ExifData* ed = exif_data_new_from_file(file_path.c_str());
   if (!ed) {
     LoggerE("Error reading exif from file %s", file_path.c_str());
-    throw common::NotFoundException("Error reading exif from file");
+    throw common::UnknownException("Error reading exif from file");
   }
 
   LoggerD("loadFromURI_into_json exif_data_foreach_content START");
