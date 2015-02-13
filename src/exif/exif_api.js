@@ -255,7 +255,9 @@ ExifManager.prototype.getThumbnail = function() {
     }
   ]);
 
-  var callback = function(result) {
+  // TODO: Check if uri contains invalid characters. It should not.
+
+  var _callback = function(result) {
     if (native_.isFailure(result)) {
       native_.callIfPossible(args.errorCallback,
           native_.getErrorObject(result));
@@ -265,7 +267,15 @@ ExifManager.prototype.getThumbnail = function() {
     }
   };
 
-  native_.call('ExifManager_getThumbnail', {'uri': args.uri}, callback);
+  tizen.filesystem.resolve(args.uri,
+      function() {
+        native_.call('ExifManager_getThumbnail', {'uri': args.uri}, _callback);
+      },
+      function() {
+        native_.callIfPossible(args.errorCallback, new tizen.WebAPIException(
+            tizen.WebAPIException.NOT_FOUND_ERR,
+            'File can not be found.'));
+      });
 };
 
 tizen.ExifInformation = function() {

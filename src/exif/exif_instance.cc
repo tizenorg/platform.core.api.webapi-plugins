@@ -126,14 +126,15 @@ void ExifInstance::ExifManagerGetThumbnail(const picojson::value& args, picojson
 
         exif_data = exif_data_new_from_file(file_path.c_str());
         if (!exif_data) {
-          throw common::UnknownException("File can not be loaded");
+          LoggerE("Thumbnail can not be loaded from path (%s)",
+                  file_path.c_str());
+          throw common::InvalidValuesException("File can not be loaded");
         }
 
         if (exif_data->data && exif_data->size) {
           gchar* ch_uri = g_base64_encode(exif_data->data, exif_data->size);
-          std::string base64 = "data:image/" + ext + ";base64," + ch_uri;
-
           exif_data_unref(exif_data);
+          std::string base64 = "data:image/" + ext + ";base64," + ch_uri;
 
           std::pair<std::string, picojson::value> pair;
           pair = std::make_pair("src", picojson::value(base64));
@@ -141,11 +142,11 @@ void ExifInstance::ExifManagerGetThumbnail(const picojson::value& args, picojson
         } else {
           exif_data_unref(exif_data);
           LoggerE("File [%s] doesn't contain thumbnail", file_path.c_str());
-          throw common::InvalidValuesException("File doesn't contain thumbnail");
+          throw common::UnknownException("File doesn't contain thumbnail");
         }
       } else {
         LoggerE("extension: %s is not valid (jpeg/jpg/png/gif is supported)", ext.c_str());
-        throw common::NotSupportedException("getThumbnail support only jpeg/jpg/png/gif");
+        throw common::InvalidValuesException("getThumbnail support only jpeg/jpg/png/gif");
       }
 
       ReportSuccess(result, response->get<picojson::object>());

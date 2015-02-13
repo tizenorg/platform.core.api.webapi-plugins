@@ -56,7 +56,8 @@ IsoSpeedRatingsVector jsonArray2vector(const picojson::value& a) {
   picojson::array v = a.get<picojson::array>();
 
   for (picojson::array::iterator it = v.begin(); it != v.end(); it++) {
-    result.push_back(static_cast<long long int>((*it).get<double>()));
+    if ((*it).is<double>())
+      result.push_back(static_cast<long long int>((*it).get<double>()));
   }
 
   return result;
