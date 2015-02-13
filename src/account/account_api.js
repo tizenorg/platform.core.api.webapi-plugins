@@ -28,6 +28,7 @@ function AccountProvider(data) {
     if (data) {
         internal_ = data.capabilities;
     }
+    Object.freeze(internal_);
 
     Object.defineProperties(this, {
         applicationId:              { enumerable: true, writable: false, value: data.applicationId },
@@ -36,7 +37,7 @@ function AccountProvider(data) {
         smallIconUri:               { enumerable: true, writable: false, value: data.smallIconUri },
         capabilities:               { enumerable: true, 
                                       set: function() {},
-                                      get: function() { return internal_.slice(); }
+                                      get: function() { return internal_; }
                                     },
         isMultipleAccountSupported: { enumerable: true, writable: false, value: data.isMultipleAccountSupported },
     });
