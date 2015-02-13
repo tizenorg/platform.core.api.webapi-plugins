@@ -182,7 +182,7 @@ void AccountManager::GetAccountInfo(int account_id, picojson::object& out) {
   }
 
   ret = account_query_account_by_account_id(account_id, &account);
-  if (ACCOUNT_ERROR_RECORD_NOT_FOUND == ret) {
+  if (ACCOUNT_ERROR_RECORD_NOT_FOUND == ret || ACCOUNT_ERROR_INVALID_PARAMETER == ret) {
     out["status"] = picojson::value("success");
     out["result"] = picojson::value();
     return;
