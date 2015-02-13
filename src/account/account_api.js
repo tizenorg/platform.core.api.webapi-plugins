@@ -336,10 +336,12 @@ function AccountListeners() {
             }
 
             var callback;
-            for ( var i = 0; i < that.instances.length; i++) {
-                callback = that.instances[i];
-                if (T_.isFunction(callback[event.action])) {
-                    callback[event.action](param);
+            for (var key in that.instances) {
+                if (that.instances.hasOwnProperty(key)) {
+                    callback = that.instances[key];
+                    if (T_.isFunction(callback[event.action])) {
+                        callback[event.action](param);
+                    }
                 }
             }
         }

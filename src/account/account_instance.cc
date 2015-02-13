@@ -270,25 +270,25 @@ static bool AccountEventCb(const char *event_type, int account_id,
   }
 
   picojson::object result;
-  result["listenerId"] = picojson::value("accountChange");
+  result["listenerId"] = picojson::value("ACCOUNT_CHANGED");
   if (!strcmp(event_type, ACCOUNT_NOTI_NAME_INSERT)) {
     LoggerD("Added");
-    result["status"] = picojson::value("added");
+    result["action"] = picojson::value("onadded");
     picojson::object info;
     instance->GetAccountManager()->GetAccountInfo(account_id, info);
     result["result"] = picojson::value(info["result"]);
     instance->InvokeListener(result);
   } else if (!strcmp(event_type, ACCOUNT_NOTI_NAME_UPDATE)) {
     LoggerD("Updated");
-    result["status"] = picojson::value("updated");
+    result["action"] = picojson::value("onupdated");
     picojson::object info;
     instance->GetAccountManager()->GetAccountInfo(account_id, info);
     result["result"] = picojson::value(info["result"]);
     instance->InvokeListener(result);
   } else if (!strcmp(event_type, ACCOUNT_NOTI_NAME_DELETE)) {
     LoggerD("Deleted");
-    result["status"] = picojson::value("removed");
-    result["result"] = picojson::value("account_id");
+    result["action"] = picojson::value("onremoved");
+    result["result"] = picojson::value(static_cast<double>(account_id));
     instance->InvokeListener(result);
   }
 
