@@ -31,7 +31,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_core_api_support            0
 %define tizen_feature_datacontrol_support         1
 %define tizen_feature_datasync_support            1
-%define tizen_feature_download_support            0
+%define tizen_feature_download_support            1
 %define tizen_feature_exif_support                0
 %define tizen_feature_fm_radio_support            0
 %define tizen_feature_gamepad_support             0
@@ -193,6 +193,10 @@ BuildRequires: pkgconfig(accounts-svc)
 
 %if 0%{?tizen_feature_datacontrol_support}
 BuildRequires: pkgconfig(capi-data-control)
+%endif
+
+%if 0%{?tizen_feature_download_support}
+BuildRequires: pkgconfig(capi-web-url-download)
 %endif
 
 %if 0%{?tizen_feature_power_support}

@@ -31,6 +31,7 @@
               'calendar/calendar.gyp:*',
               'datacontrol/datacontrol.gyp:*',
               'datasync/datasync.gyp:*',
+	      'download/download.gyp:*',
               'messaging/messaging.gyp:*',
               'networkbearerselection/networkbearerselection.gyp:*',
               'nfc/nfc.gyp:*',

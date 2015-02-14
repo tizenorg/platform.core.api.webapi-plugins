@@ -1,0 +1,98 @@
+// Copyright 2014 Samsung Electronics Co, Ltd. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+#ifndef DOWNLOAD_DOWNLOAD_INSTANCE_H_
+#define DOWNLOAD_DOWNLOAD_INSTANCE_H_
+
+#include <glib.h>
+#include <download.h>
+#include <system_info.h>
+
+#include <memory>
+#include <sstream>
+#include <map>
+#include <string>
+#include <vector>
+
+#include "common/extension.h"
+
+template <class T>
+  inline std::string to_string(const T& t) {
+      std::stringstream ss;
+      ss << t;
+      return ss.str();
+  }
+
+namespace extension {
+namespace download {
+
+class DownloadInstance : public common::ParsedInstance {
+ public:
+  DownloadInstance();
+  virtual ~DownloadInstance();
+
+ private:
+  void DownloadManagerStart
+    (const picojson::value& args, picojson::object& out);
+  void DownloadManagerCancel
+    (const picojson::value& args, picojson::object& out);
+  void DownloadManagerPause
+    (const picojson::value& args, picojson::object& out);
+  void DownloadManagerResume
+    (const picojson::value& args, picojson::object& out);
+  void DownloadManagerGetstate
+    (const picojson::value& args, picojson::object& out);
+  void DownloadManagerGetdownloadrequest
+    (const picojson::value& args, picojson::object& out);
+  void DownloadManagerGetmimetype
+    (const picojson::value& args, picojson::object& out);
+  void DownloadManagerSetlistener
+    (const picojson::value& args, picojson::object& out);
+
+  bool GetDownloadID(const int callback_id, int& download_id);
+
+  static void OnStateChanged
+    (int download_id, download_state_e state, void* user_data);
+  static void progress_changed_cb
+    (int download_id, long long unsigned received, void* user_data);
+  static void OnStart(int download_id, void* user_data);
+
+  static gboolean OnProgressChanged(void* user_data);
+  static gboolean OnFinished(void* user_data);
+  static gboolean OnPaused(void* user_data);
+  static gboolean OnCanceled(void* user_data);
+  static gboolean OnFailed(void* user_data);
+
+  struct DownloadInfo {
+    int callbackId;
+    std::string url;
+    std::string destination;
+    std::string file_name;
+    std::string http_header;
+    download_network_type_e network_type;
+
+    int download_id;
+    long long unsigned file_size;
+  };
+
+  struct DownloadCallback {
+    int callbackId;
+    int downloadId;
+    DownloadInstance* instance;
+    unsigned long long received;
+    download_state_e state;
+  };
+
+  typedef std::vector<DownloadCallback*> DownloadCallbackVector;
+  typedef std::shared_ptr<DownloadInfo> DownloadInfoPtr;
+  typedef std::map<int, DownloadInfoPtr> DownloadInfoMap;
+
+  DownloadCallbackVector downCbVector;
+  DownloadInfoMap diMap;
+};
+
+}  // namespace download
+}  // namespace extension
+
+#endif  // DOWNLOAD_DOWNLOAD_INSTANCE_H_
