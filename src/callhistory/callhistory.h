@@ -11,6 +11,7 @@
 #include <contacts.h>
 #include <contacts_internal.h>
 #include "common/picojson.h"
+#include "common/platform_result.h"
 
 namespace extension {
 namespace callhistory {
@@ -24,11 +25,11 @@ public:
     std::vector<std::string>& getPhoneNumbers();
 
     void find(const picojson::object& args);
-    void remove(const picojson::object& args);
-    void removeBatch(const picojson::object& args);
+    common::PlatformResult remove(const picojson::object& args);
+    common::PlatformResult removeBatch(const picojson::object& args);
     void removeAll(const picojson::object& args);
-    void startCallHistoryChangeListener();
-    void stopCallHistoryChangeListener();
+    common::PlatformResult startCallHistoryChangeListener();
+    common::PlatformResult stopCallHistoryChangeListener();
 
 private:
     CallHistory();

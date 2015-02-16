@@ -46,32 +46,53 @@ CallHistoryInstance::~CallHistoryInstance() {
 void CallHistoryInstance::Find(const picojson::value& args, picojson::object& out) {
     LoggerD("Entered");
     CallHistory::getInstance()->find(args.get<picojson::object>());
+    ReportSuccess(out);
 }
 
 void CallHistoryInstance::Remove(const picojson::value& args, picojson::object& out) {
     LoggerD("Entered");
-    CallHistory::getInstance()->remove(args.get<picojson::object>());
-    ReportSuccess(out);
+    PlatformResult result = CallHistory::getInstance()->remove(args.get<picojson::object>());
+    if (result.IsSuccess()) {
+        ReportSuccess(out);
+    } else {
+        ReportError(result, &out);
+    }
 }
 
 void CallHistoryInstance::RemoveBatch(const picojson::value& args, picojson::object& out) {
     LoggerD("Entered");
-    CallHistory::getInstance()->removeBatch(args.get<picojson::object>());
+    PlatformResult result = CallHistory::getInstance()->removeBatch(args.get<picojson::object>());
+    if (result.IsSuccess()) {
+        ReportSuccess(out);
+    } else {
+        ReportError(result, &out);
+    }
 }
 
 void CallHistoryInstance::RemoveAll(const picojson::value& args, picojson::object& out) {
     LoggerD("Entered");
     CallHistory::getInstance()->removeAll(args.get<picojson::object>());
+    ReportSuccess(out);
 }
 
 void CallHistoryInstance::AddChangeListener(const picojson::value& args, picojson::object& out) {
     LoggerD("Entered");
-    CallHistory::getInstance()->startCallHistoryChangeListener();
+    PlatformResult result = CallHistory::getInstance()->startCallHistoryChangeListener();
+    if (result.IsSuccess()) {
+        ReportSuccess(out);
+    } else {
+        ReportError(result, &out);
+    }
 }
 
 void CallHistoryInstance::RemoveChangeListener(const picojson::value& args, picojson::object& out) {
     LoggerD("Entered");
-    CallHistory::getInstance()->stopCallHistoryChangeListener();
+    PlatformResult result = CallHistory::getInstance()->stopCallHistoryChangeListener();
+    if (result.IsSuccess()) {
+        ReportSuccess(out);
+    } else {
+        ReportError(result, &out);
+    }
 }
 
 void CallHistoryInstance::CallHistoryChange(picojson::object& data) {
