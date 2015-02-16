@@ -20,23 +20,23 @@ const std::string kPrivilegeCallHistoryWrite = "http://tizen.org/privilege/callh
 using namespace common;
 
 CallHistoryInstance& CallHistoryInstance::getInstance() {
-    static CallHistoryInstance instance;
-    return instance;
+  static CallHistoryInstance instance;
+  return instance;
 }
 
 CallHistoryInstance::CallHistoryInstance() {
-    using namespace std::placeholders;
+  using namespace std::placeholders;
 #define REGISTER_SYNC(c,x) \
-        RegisterSyncHandler(c, std::bind(&CallHistoryInstance::x, this, _1, _2));
-    REGISTER_SYNC("CallHistory_remove", Remove);
-    REGISTER_SYNC("CallHistory_addChangeListener", AddChangeListener);
-    REGISTER_SYNC("CallHistory_removeChangeListener", RemoveChangeListener);
+    RegisterSyncHandler(c, std::bind(&CallHistoryInstance::x, this, _1, _2));
+  REGISTER_SYNC("CallHistory_remove", Remove);
+  REGISTER_SYNC("CallHistory_addChangeListener", AddChangeListener);
+  REGISTER_SYNC("CallHistory_removeChangeListener", RemoveChangeListener);
 #undef REGISTER_SYNC
 #define REGISTER_ASYNC(c,x) \
-        RegisterHandler(c, std::bind(&CallHistoryInstance::x, this, _1, _2));
-    REGISTER_ASYNC("CallHistory_find", Find);
-    REGISTER_ASYNC("CallHistory_removeBatch", RemoveBatch);
-    REGISTER_ASYNC("CallHistory_removeAll", RemoveAll);
+    RegisterHandler(c, std::bind(&CallHistoryInstance::x, this, _1, _2));
+  REGISTER_ASYNC("CallHistory_find", Find);
+  REGISTER_ASYNC("CallHistory_removeBatch", RemoveBatch);
+  REGISTER_ASYNC("CallHistory_removeAll", RemoveAll);
 #undef REGISTER_ASYNC
 }
 
@@ -44,64 +44,64 @@ CallHistoryInstance::~CallHistoryInstance() {
 }
 
 void CallHistoryInstance::Find(const picojson::value& args, picojson::object& out) {
-    LoggerD("Entered");
-    CallHistory::getInstance()->find(args.get<picojson::object>());
-    ReportSuccess(out);
+  LoggerD("Entered");
+  CallHistory::getInstance()->find(args.get<picojson::object>());
+  ReportSuccess(out);
 }
 
 void CallHistoryInstance::Remove(const picojson::value& args, picojson::object& out) {
-    LoggerD("Entered");
-    PlatformResult result = CallHistory::getInstance()->remove(args.get<picojson::object>());
-    if (result.IsSuccess()) {
-        ReportSuccess(out);
-    } else {
-        ReportError(result, &out);
-    }
+  LoggerD("Entered");
+  PlatformResult result = CallHistory::getInstance()->remove(args.get<picojson::object>());
+  if (result.IsSuccess()) {
+    ReportSuccess(out);
+  } else {
+    ReportError(result, &out);
+  }
 }
 
 void CallHistoryInstance::RemoveBatch(const picojson::value& args, picojson::object& out) {
-    LoggerD("Entered");
-    PlatformResult result = CallHistory::getInstance()->removeBatch(args.get<picojson::object>());
-    if (result.IsSuccess()) {
-        ReportSuccess(out);
-    } else {
-        ReportError(result, &out);
-    }
+  LoggerD("Entered");
+  PlatformResult result = CallHistory::getInstance()->removeBatch(args.get<picojson::object>());
+  if (result.IsSuccess()) {
+    ReportSuccess(out);
+  } else {
+    ReportError(result, &out);
+  }
 }
 
 void CallHistoryInstance::RemoveAll(const picojson::value& args, picojson::object& out) {
-    LoggerD("Entered");
-    CallHistory::getInstance()->removeAll(args.get<picojson::object>());
-    ReportSuccess(out);
+  LoggerD("Entered");
+  CallHistory::getInstance()->removeAll(args.get<picojson::object>());
+  ReportSuccess(out);
 }
 
 void CallHistoryInstance::AddChangeListener(const picojson::value& args, picojson::object& out) {
-    LoggerD("Entered");
-    PlatformResult result = CallHistory::getInstance()->startCallHistoryChangeListener();
-    if (result.IsSuccess()) {
-        ReportSuccess(out);
-    } else {
-        ReportError(result, &out);
-    }
+  LoggerD("Entered");
+  PlatformResult result = CallHistory::getInstance()->startCallHistoryChangeListener();
+  if (result.IsSuccess()) {
+    ReportSuccess(out);
+  } else {
+    ReportError(result, &out);
+  }
 }
 
 void CallHistoryInstance::RemoveChangeListener(const picojson::value& args, picojson::object& out) {
-    LoggerD("Entered");
-    PlatformResult result = CallHistory::getInstance()->stopCallHistoryChangeListener();
-    if (result.IsSuccess()) {
-        ReportSuccess(out);
-    } else {
-        ReportError(result, &out);
-    }
+  LoggerD("Entered");
+  PlatformResult result = CallHistory::getInstance()->stopCallHistoryChangeListener();
+  if (result.IsSuccess()) {
+    ReportSuccess(out);
+  } else {
+    ReportError(result, &out);
+  }
 }
 
 void CallHistoryInstance::CallHistoryChange(picojson::object& data) {
-    LoggerD("Entered");
-    picojson::value event = picojson::value(data);
-    picojson::object& obj = event.get<picojson::object>();
-    obj["listenerId"] = picojson::value("CallHistoryChangeCallback");
+  LoggerD("Entered");
+  picojson::value event = picojson::value(data);
+  picojson::object& obj = event.get<picojson::object>();
+  obj["listenerId"] = picojson::value("CallHistoryChangeCallback");
 
-    PostMessage(event.serialize().c_str());
+  PostMessage(event.serialize().c_str());
 }
 
 } // namespace callhistory

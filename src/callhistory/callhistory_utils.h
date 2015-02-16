@@ -14,14 +14,14 @@ namespace extension {
 namespace callhistory {
 
 class CallHistoryUtils {
-public:
-    static void parseRecordList(contacts_list_h *record_list, picojson::array& array);
-    static void parseRecord(contacts_record_h *record, picojson::object& obj);
-    static void parseLogType(contacts_phone_log_type_e log_type, picojson::object& obj);
-    static void parseRemoteParties(contacts_record_h *record, picojson::object& obj);
-    static void parseCallingParty(contacts_record_h *record, picojson::object& obj);
-    static unsigned int convertAttributeName(const std::string attribute_name);
-    static void createFilter(contacts_filter_h filter, const picojson::object filter_obj);
+ public:
+  static void parseRecordList(contacts_list_h *record_list, picojson::array& array);
+  static void parseRecord(contacts_record_h *record, picojson::object& obj);
+  static void parseLogType(contacts_phone_log_type_e log_type, picojson::object& obj);
+  static void parseRemoteParties(contacts_record_h *record, picojson::object& obj);
+  static void parseCallingParty(contacts_record_h *record, picojson::object& obj);
+  static unsigned int convertAttributeName(const std::string attribute_name);
+  static void createFilter(contacts_filter_h filter, const picojson::object filter_obj);
 };
 
 } // namespace callhistory

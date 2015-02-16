@@ -8,12 +8,12 @@
 #include "common/extension.h"
 
 class CallHistoryExtension : public common::Extension {
-public:
-    CallHistoryExtension();
-    virtual ~CallHistoryExtension();
+ public:
+  CallHistoryExtension();
+  virtual ~CallHistoryExtension();
 
-private:
-    virtual common::Instance* CreateInstance();
+ private:
+  virtual common::Instance* CreateInstance();
 };
 
 #endif // CALLHISTORY_CALLHISTORY_EXTENSION_H_

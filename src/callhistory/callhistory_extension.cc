@@ -9,16 +9,16 @@
 extern const char kSource_callhistory_api[];
 
 common::Extension* CreateExtension() {
-    return new CallHistoryExtension;
+  return new CallHistoryExtension;
 }
 
 CallHistoryExtension::CallHistoryExtension() {
-    SetExtensionName("tizen.callhistory");
-    SetJavaScriptAPI(kSource_callhistory_api);
+  SetExtensionName("tizen.callhistory");
+  SetJavaScriptAPI(kSource_callhistory_api);
 }
 
 CallHistoryExtension::~CallHistoryExtension() {}
 
 common::Instance* CallHistoryExtension::CreateInstance() {
-    return &extension::callhistory::CallHistoryInstance::getInstance();
+  return &extension::callhistory::CallHistoryInstance::getInstance();
 }
