@@ -12,7 +12,7 @@ namespace extension {
 namespace tvaudio {
 
 TVAudioExtension::TVAudioExtension() {
-    SetExtensionName("tizen.tvaudio");
+    SetExtensionName("tizen.tvaudiocontrol");
     SetJavaScriptAPI(kSource_tvaudio_api);
 }
 
