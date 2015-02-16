@@ -10,6 +10,8 @@
 #include <storage.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 #include "common/logger.h"
 #include "common/scope_exit.h"
@@ -35,6 +37,35 @@ bool fetch_storages_cb(int storage_id,
       static_cast<std::vector<FilesystemStorage>*>(user_data);
   result->push_back(FilesystemStorage(storage_id, type, state, path));
   return true;
+}
+
+FilesystemError make_directory_worker(const std::string& path) {
+  LoggerD("enter: %s", path.c_str());
+  auto fsstat = FilesystemStat::getStat(path);
+  if (fsstat.valid) {
+    if (fsstat.isDirectory) {
+      LoggerD("Directory exists");
+      return FilesystemError::DirectoryExists;
+    } else {
+      LoggerD("It is a file and exists");
+      return FilesystemError::FileExists;
+    }
+  }
+
+  std::string parent_path = FilesystemUtils::get_dirname(path);
+  auto parent_result = make_directory_worker(parent_path);
+
+  if (parent_result == FilesystemError::DirectoryExists) {
+    LoggerD("Creating directrory: %s", path.c_str());
+    mode_t create_mode = S_IRWXU | S_IRWXG | S_IRWXO;
+    int r = mkdir(path.c_str(), create_mode);
+    if (r == 0) {
+      return FilesystemError::DirectoryExists;
+    }
+    LoggerD("Cannot create directory: %s", strerror(errno));
+    return FilesystemError::Other;
+  }
+  return parent_result;
 }
 }  // namespace
 
@@ -159,6 +190,13 @@ void FilesystemManager::CreateFile(
     LoggerE("Cannot create stat data!");
     error_cb(FilesystemError::Other);
   }
+}
+
+void FilesystemManager::MakeDirectory(
+    const std::string& path,
+    const std::function<void(FilesystemError)>& result_cb) {
+  LoggerD("enter");
+  result_cb(make_directory_worker(path));
 }
 
 void FilesystemManager::Rename(

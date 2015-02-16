@@ -15,6 +15,8 @@ namespace filesystem {
 enum class FilesystemError {
   None,
   NotFound,
+  FileExists,
+  DirectoryExists,
   PermissionDenied,
   Other
 };
@@ -35,6 +37,9 @@ namespace FilesystemUtils {
  *
  */
 std::string get_storage_dir_path(int id, storage_directory_e typeToCheck);
+
+std::string get_dirname(const std::string& path);
+std::string get_basename(const std::string& path);
 }
 
 #endif  // FILESYSTEM_FILESYSTEM_UTILS_H

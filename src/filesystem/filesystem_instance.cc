@@ -37,6 +37,9 @@ FilesystemInstance::FilesystemInstance() {
   REGISTER_SYNC("Filesystem_getWidgetPaths", FilesystemGetWidgetPaths);
   REGISTER_SYNC("FileSystemManager_fetchStorages",
                 FileSystemManagerFetchStorages);
+  REGISTER_ASYNC("FileSystemManager_mkdir", FileSystemManagerMakeDirectory);
+  REGISTER_SYNC("FileSystemManager_mkdirSync",
+                FileSystemManagerMakeDirectorySync);
 #undef REGISTER_SYNC
 #undef REGISTER_ASYNC
 }
@@ -199,6 +202,48 @@ void FilesystemInstance::FileSystemManagerFetchStorages(
   FilesystemManager::GetInstance().FetchStorages(onSuccess, onError);
 }
 
+void FilesystemInstance::FileSystemManagerMakeDirectory(
+    const picojson::value& args,
+    picojson::object& out) {
+  LoggerD("enter");
+  CHECK_EXIST(args, "callbackId", out)
+  CHECK_EXIST(args, "location", out)
+
+  double callback_id = args.get("callbackId").get<double>();
+  const std::string& location = args.get("location").get<std::string>();
+
+  auto onResult = [this, callback_id](FilesystemError e) {
+    LoggerD("enter");
+    picojson::value response = picojson::value(picojson::object());
+    picojson::object& obj = response.get<picojson::object>();
+    obj["callbackId"] = picojson::value(callback_id);
+    PrepareError(e, obj);
+    PostMessage(response.serialize().c_str());
+  };
+
+  auto onAction = [location, onResult]() {
+    FilesystemManager::GetInstance().MakeDirectory(location, onResult);
+  };
+
+  common::TaskQueue::GetInstance().Async(onAction);
+}
+
+void FilesystemInstance::FileSystemManagerMakeDirectorySync(
+    const picojson::value& args,
+    picojson::object& out) {
+  LoggerD("enter");
+  CHECK_EXIST(args, "location", out)
+
+  const std::string& location = args.get("location").get<std::string>();
+
+  auto onResult = [&](FilesystemError e) {
+    LoggerD("enter");
+    PrepareError(e, out);
+  };
+
+  FilesystemManager::GetInstance().MakeDirectory(location, onResult);
+}
+
 void FilesystemInstance::PrepareError(const FilesystemError& error, picojson::object& out)
 {
   LoggerD("enter");
@@ -208,6 +253,12 @@ void FilesystemInstance::PrepareError(const FilesystemError& error, picojson::ob
       break;
     case FilesystemError::NotFound:
       ReportError(NotFoundException("PLATFORM ERROR"), out);
+      break;
+    case FilesystemError::FileExists:
+      ReportError(IOException("File already exists"), out);
+      break;
+    case FilesystemError::DirectoryExists:
+      ReportError(IOException("Directory already exists"), out);
       break;
     case FilesystemError::PermissionDenied:
       ReportError(IOException("Permission denied"), out);
