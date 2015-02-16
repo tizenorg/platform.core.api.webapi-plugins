@@ -6,6 +6,7 @@
 
 #include <string>
 #include <memory>
+#include <mutex>
 
 #include "common/task-queue.h"
 #include "common/logger.h"
@@ -41,6 +42,14 @@ static std::map<std::string, sensor_type_e> string_to_type_map = {
     {"ULTRAVIOLET", SENSOR_ULTRAVIOLET}
 };
 
+static sensor_event_s previous_light_event;
+static sensor_event_s previous_magnetic_event;
+static sensor_event_s previous_pressure_event;
+static sensor_event_s previous_proximity_event;
+static sensor_event_s previous_ultraviolet_event;
+
+std::mutex init_mutex;
+
 static std::string GetAccuracyString(int accuracy) {
   LoggerD("Entered");
   switch (static_cast<sensor_data_accuracy_e>(accuracy)) {
@@ -56,6 +65,10 @@ static std::string GetAccuracyString(int accuracy) {
       return "ACCURACY_UNDEFINED";
   }
 }
+
+static const std::string kSensorTypeTag = "sensorType";
+static const std::string kListenerId = "listenerId";
+static const std::string kSensorChangedListener = "SensorChangedListener";
 }
 
 SensorService::SensorService() {
@@ -150,7 +163,7 @@ void SensorService::SensorStart(const picojson::value& args, picojson::object& o
   CHECK_EXIST(args, "callbackId", out)
   int callback_id = static_cast<int>(args.get("callbackId").get<double>());
   const std::string type_str =
-      args.contains("sensorType") ? args.get("sensorType").get<std::string>() : "";
+      args.contains(kSensorTypeTag) ? args.get(kSensorTypeTag).get<std::string>() : "";
   LoggerD("input type: %s" , type_str.c_str());
 
   sensor_type_e type_enum = string_to_type_map[type_str];
@@ -196,44 +209,79 @@ void SensorService::SensorStart(const picojson::value& args, picojson::object& o
 void SensorService::SensorStop(const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
   const std::string type_str =
-      args.contains("sensorType") ? args.get("sensorType").get<std::string>() : "";
+      args.contains(kSensorTypeTag) ? args.get(kSensorTypeTag).get<std::string>() : "";
   LoggerD("input type: %s" , type_str.c_str());
 
   sensor_type_e type_enum = string_to_type_map[type_str];
 
   PlatformResult res = CheckSensorInitialization(type_enum);
   SensorData* sensor_data = GetSensorStruct(type_enum);
-  //TODO fill
+
+  if (!sensor_data) {
+    LoggerD("Sensor data is null");
+    ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Sensor data is null"), &out);
+    return;
+  }
+
+  int ret = sensor_listener_stop(sensor_data->listener);
+  if (ret != SENSOR_ERROR_NONE) {
+    LOGE("ret : %d", ret);
+    ReportError(GetSensorPlatformResult(ret, "sensor_listener_stop"), &out);
+  }
 }
 
 void SensorService::SensorSetChangeListener(const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
   const std::string type_str =
-      args.contains("sensorType") ? args.get("sensorType").get<std::string>() : "";
+      args.contains(kSensorTypeTag) ? args.get(kSensorTypeTag).get<std::string>() : "";
   LoggerD("input type: %s" , type_str.c_str());
 
   sensor_type_e type_enum = string_to_type_map[type_str];
 
   PlatformResult res = CheckSensorInitialization(type_enum);
   SensorData* sensor_data = GetSensorStruct(type_enum);
-  //TODO fill
+
+  if (!sensor_data) {
+    LoggerD("Sensor data is null");
+    ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Sensor data is null"), &out);
+    return;
+  }
+
+  int ret = sensor_listener_set_event_cb(
+      sensor_data->listener, 100, GetCallbackFunction(type_enum), this);
+  if (ret != SENSOR_ERROR_NONE) {
+    LOGE("ret : %d", ret);
+    ReportError(GetSensorPlatformResult(ret, "sensor_listener_set_event_cb"), &out);
+  }
 }
 
 void SensorService::SensorUnsetChangeListener(const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
   const std::string type_str =
-      args.contains("sensorType") ? args.get("sensorType").get<std::string>() : "";
+      args.contains(kSensorTypeTag) ? args.get(kSensorTypeTag).get<std::string>() : "";
   LoggerD("input type: %s" , type_str.c_str());
 
   sensor_type_e type_enum = string_to_type_map[type_str];
 
   PlatformResult res = CheckSensorInitialization(type_enum);
   SensorData* sensor_data = GetSensorStruct(type_enum);
-  //TODO fill
+
+  if (!sensor_data) {
+    LoggerD("Sensor data is null");
+    ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Sensor data is null"), &out);
+    return;
+  }
+
+  int ret = sensor_listener_unset_event_cb(sensor_data->listener);
+  if (ret != SENSOR_ERROR_NONE) {
+    LOGE("ret : %d", ret);
+    ReportError(GetSensorPlatformResult(ret, "sensor_listener_unset_event_cb"), &out);
+  }
 }
 
 PlatformResult SensorService::CheckSensorInitialization(sensor_type_e type_enum) {
   LoggerD("Entered");
+  std::lock_guard<std::mutex> lock(init_mutex);
 
   SensorData* sensor_data = NULL;
   switch(type_enum) {
@@ -288,42 +336,110 @@ SensorService::SensorData* SensorService::GetSensorStruct(sensor_type_e type_enu
   }
 }
 
+void PrepareCallback(const std::string& sensor_type, picojson::object& out) {
+  out[kListenerId] = picojson::value(kSensorChangedListener);
+  out[kSensorTypeTag] = picojson::value(sensor_type);
+}
+
 void SensorLightCallback(sensor_h sensor, sensor_event_s *event, void *user_data)
 {
-    float lux = event->values[0];
-    LoggerD("enter %f", lux);
-    //TODO fill
+  if (previous_light_event.values[0] == event->values[0]) {
+    //value didn't change - ignore
+    return;
+  }
+  previous_light_event = *event;
+  float lux = event->values[0];
+  LoggerD("passing %f", lux);
+  picojson::value result = picojson::value(picojson::object());
+  picojson::object& object = result.get<picojson::object>();
+  object["lightLevel"] =
+      picojson::value(static_cast<double>(event->values[0]));
+  PrepareCallback("LIGHT", object);
+  SensorInstance::GetInstance().PostMessage(result.serialize().c_str());
 }
 
 void SensorMagneticCallback(sensor_h sensor, sensor_event_s *event, void *user_data)
 {
-    sensor_data_accuracy_e accuracy = static_cast<sensor_data_accuracy_e>(event->accuracy);
-    float x = event ->values[0];
-    float y = event ->values[1];
-    float z = event ->values[2];
-    LoggerD("enter [ %f , %f , %f ] [ %d ]",x, y, z, accuracy);
-    //TODO fill
+  if (previous_magnetic_event.values[0] == event->values[0] &&
+      previous_magnetic_event.values[1] == event->values[1] &&
+      previous_magnetic_event.values[2] == event->values[2] &&
+      previous_magnetic_event.accuracy == event->accuracy) {
+    //value didn't change - ignore
+    return;
+  }
+  previous_magnetic_event = *event;
+  sensor_data_accuracy_e accuracy = static_cast<sensor_data_accuracy_e>(event->accuracy);
+  float x = event ->values[0];
+  float y = event ->values[1];
+  float z = event ->values[2];
+  LoggerD("passing [ %f , %f , %f ] [ %d ]",x, y, z, accuracy);
+
+  picojson::value result = picojson::value(picojson::object());
+  picojson::object& object = result.get<picojson::object>();
+  object["x"] =
+      picojson::value(static_cast<double>(event->values[0]));
+  object["y"] =
+      picojson::value(static_cast<double>(event->values[1]));
+  object["z"] =
+      picojson::value(static_cast<double>(event->values[2]));
+  object["accuracy"] =
+      picojson::value(GetAccuracyString(event->accuracy));
+  PrepareCallback("MAGNETIC", object);
+  SensorInstance::GetInstance().PostMessage(result.serialize().c_str());
 }
 
 void SensorPressureCallback(sensor_h sensor, sensor_event_s *event, void *user_data)
 {
-    float pressure = event->values[0];
-    LoggerD("enter %f", pressure);
-    //TODO fill
+  if (previous_pressure_event.values[0] == event->values[0]) {
+    //value didn't change - ignore
+    return;
+  }
+  previous_pressure_event = *event;
+  float pressure = event->values[0];
+  LoggerD("enter %f", pressure);
+
+  picojson::value result = picojson::value(picojson::object());
+  picojson::object& object = result.get<picojson::object>();
+  object["pressure"] =
+      picojson::value(static_cast<double>(event->values[0]));
+  PrepareCallback("PRESSURE", object);
+  SensorInstance::GetInstance().PostMessage(result.serialize().c_str());
 }
 
 void SensorProximityCallback(sensor_h sensor, sensor_event_s *event, void *user_data)
 {
-    float distance = event->values[0];
-    LoggerD("enter %f", distance);
-    //TODO fill
+  if (previous_proximity_event.values[0] == event->values[0]) {
+    //value didn't change - ignore
+    return;
+  }
+  previous_proximity_event = *event;
+  float distance = event->values[0];
+  LoggerD("enter %f", distance);
+
+  picojson::value result = picojson::value(picojson::object());
+  picojson::object& object = result.get<picojson::object>();
+  int state = static_cast<int>(event->values[0]);
+  object["proximityState"] = picojson::value(state ? "NEAR" : "FAR");
+  PrepareCallback("PROXIMITY", object);
+  SensorInstance::GetInstance().PostMessage(result.serialize().c_str());
 }
 
 void SensorUltravioletCallback(sensor_h sensor, sensor_event_s *event, void *user_data)
 {
-    float index = event->values[0];
-    LoggerD("enter %f", index);
-    //TODO fill
+  if (previous_ultraviolet_event.values[0] == event->values[0]) {
+    //value didn't change - ignore
+    return;
+  }
+  previous_ultraviolet_event = *event;
+  float index = event->values[0];
+  LoggerD("enter %f", index);
+
+  picojson::value result = picojson::value(picojson::object());
+  picojson::object& object = result.get<picojson::object>();
+  object["ultravioletLevel"] =
+      picojson::value(static_cast<double>(event->values[0]));
+  PrepareCallback("ULTRAVIOLET", object);
+  SensorInstance::GetInstance().PostMessage(result.serialize().c_str());
 }
 
 CallbackPtr SensorService::GetCallbackFunction(sensor_type_e type_enum) {

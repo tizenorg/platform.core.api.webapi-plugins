@@ -40,6 +40,25 @@ var _startedSensors = {
 };
 var _isChecked = false;
 
+var _sensorListeners = {
+    'LIGHT'       : { callback : undefined, constructor : undefined },
+    'MAGNETIC'    : { callback : undefined, constructor : undefined },
+    'PRESSURE'    : { callback : undefined, constructor : undefined },
+    'PROXIMITY'   : { callback : undefined, constructor : undefined },
+    'ULTRAVIOLET' : { callback : undefined, constructor : undefined }
+}
+
+var _listener = function(object) {
+    if (_sensorListeners[object.sensorType].callback) {
+        _sensorListeners[object.sensorType].callback(
+                new _sensorListeners[object.sensorType].constructor(object));
+    }
+};
+
+var SENSOR_CHANGED_LISTENER = 'SensorChangedListener';
+native_.addListener(SENSOR_CHANGED_LISTENER, _listener);
+
+
 function getAvailableSensors() {
     var result = native_.callSync('SensorService_getAvailableSensors', {});
     if (native_.isFailure(result)) {
@@ -68,15 +87,15 @@ SensorService.prototype.getDefaultSensor = function() {
     var index = _supportedSensors.indexOf(args.type);
     if (index === -1) {
         throw new tizen.WebAPIException(tizen.WebAPIException.NOT_SUPPORTED_ERR, 'Not supported.');
-    } else if (_supportedSensors[index] === 'LIGHT') {
+    } else if (_supportedSensors[index] === SensorType.LIGHT) {
         return new LightSensor();
-    } else if (_supportedSensors[index] === 'MAGNETIC') {
+    } else if (_supportedSensors[index] === SensorType.MAGNETIC) {
         return new MagneticSensor();
-    } else if (_supportedSensors[index] === 'PRESSURE') {
+    } else if (_supportedSensors[index] === SensorType.PRESSURE) {
         return new PressureSensor();
-    } else if (_supportedSensors[index] === 'PROXIMITY') {
+    } else if (_supportedSensors[index] === SensorType.PROXIMITY) {
         return new ProximitySensor();
-    } else if (_supportedSensors[index] === 'ULTRAVIOLET') {
+    } else if (_supportedSensors[index] === SensorType.ULTRAVIOLET) {
         return new UltravioletSensor();
     }
 };
@@ -133,9 +152,12 @@ Sensor.prototype.start = function() {
 };
 
 Sensor.prototype.stop = function() {
-    var result = native_.callSync('Sensor_stop', {'sensorType' : this.sensorType});
-    if (native_.isFailure(result)) {
-        throw native_.getErrorObject(result);
+    if (_startedSensors[this.sensorType]) {
+        var result = native_.callSync('Sensor_stop', {'sensorType' : this.sensorType});
+        if (native_.isFailure(result)) {
+            throw native_.getErrorObject(result);
+        }
+        _startedSensors[this.sensorType] = false;
     }
 };
 
@@ -145,18 +167,26 @@ Sensor.prototype.setChangeListener = function() {
            name : 'successCallback',
            type: types_.FUNCTION
        }
-   ]);
+    ]);
 
-    var result = native_.callSync('Sensor_setChangeListener', {'sensorType' : this.sensorType});
-    if (native_.isFailure(result)) {
-        throw native_.getErrorObject(result);
+    if (!_sensorListeners[this.sensorType].callback) {
+        //call platform only if there was no listener registered
+        var result = native_.callSync('Sensor_setChangeListener', {'sensorType' : this.sensorType});
+        if (native_.isFailure(result)) {
+            throw native_.getErrorObject(result);
+        }
     }
+    _sensorListeners[this.sensorType].callback = args.successCallback;
 };
 
 Sensor.prototype.unsetChangeListener = function() {
-    var result = native_.callSync('Sensor_unsetChangeListener', {'sensorType' : this.sensorType});
-    if (native_.isFailure(result)) {
-        throw native_.getErrorObject(result);
+    if (_sensorListeners[this.sensorType].callback) {
+        //unregister in platform only if there is callback registered
+        _sensorListeners[this.sensorType].callback = undefined;
+        var result = native_.callSync('Sensor_unsetChangeListener', {'sensorType' : this.sensorType});
+        if (native_.isFailure(result)) {
+            throw native_.getErrorObject(result);
+        }
     }
 };
 
@@ -402,6 +432,8 @@ SensorLightData.prototype = new SensorData();
 
 SensorLightData.prototype.constructor = SensorData;
 
+_sensorListeners[SensorType.LIGHT].constructor = SensorLightData;
+
 //// SensorMagneticData
 var SensorMagneticData = function(data) {
     SensorData.call(this);
@@ -417,6 +449,8 @@ SensorMagneticData.prototype = new SensorData();
 
 SensorMagneticData.prototype.constructor = SensorData;
 
+_sensorListeners[SensorType.MAGNETIC].constructor = SensorMagneticData;
+
 //// SensorPressureData
 var SensorPressureData = function(data) {
     SensorData.call(this);
@@ -428,6 +462,8 @@ var SensorPressureData = function(data) {
 SensorPressureData.prototype = new SensorData();
 
 SensorPressureData.prototype.constructor = SensorData;
+
+_sensorListeners[SensorType.PRESSURE].constructor = SensorPressureData;
 
 //// SensorProximityData
 var SensorProximityData = function(data) {
@@ -441,6 +477,8 @@ SensorProximityData.prototype = new SensorData();
 
 SensorProximityData.prototype.constructor = SensorData;
 
+_sensorListeners[SensorType.PROXIMITY].constructor = SensorProximityData;
+
 //// SensorUltravioletData
 var SensorUltravioletData = function(data) {
     SensorData.call(this);
@@ -449,9 +487,12 @@ var SensorUltravioletData = function(data) {
     });
 };
 
+
 SensorUltravioletData.prototype = new SensorData();
 
 SensorUltravioletData.prototype.constructor = SensorData;
+
+_sensorListeners[SensorType.ULTRAVIOLET].constructor = SensorUltravioletData;
 
 // Exports
 exports = new SensorService();
