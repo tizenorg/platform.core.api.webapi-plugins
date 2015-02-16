@@ -27,33 +27,41 @@ class DataSyncManager {
  public:
   ~DataSyncManager();
 
-  int Add(const picojson::object& args);
-  void Update(const picojson::object& args);
-  void Remove(const std::string& id);
+  common::PlatformResult Add(const picojson::object& args, int* profile_id);
+  common::PlatformResult Update(const picojson::object& args);
+  common::PlatformResult Remove(const std::string& id);
 
   int GetMaxProfilesNum() const;
-  int GetProfilesNum() const;
+  common::PlatformResult GetProfilesNum(int* profiles_num);
 
-  void Get(const std::string& id, picojson::object& out);
-  void GetAll(picojson::array& out);
-  void GetLastSyncStatistics(const std::string& id, picojson::array& out);
+  common::PlatformResult Get(const std::string& id, picojson::object& out);
+  common::PlatformResult GetAll(picojson::array& out);
+  common::PlatformResult GetLastSyncStatistics(const std::string& id,
+                                               picojson::array& out);
 
-  void StartSync(const picojson::object& args);
-  void StopSync(const std::string& id);
+  common::PlatformResult StartSync(const picojson::object& args);
+  common::PlatformResult StopSync(const std::string& id);
 
   static DataSyncManager& Instance();
 
-  static int StrToPlatformEnum(const std::string& field, const std::string& value);
-  static std::string PlatformEnumToStr(const std::string& field, const int value);
+  static common::PlatformResult StrToPlatformEnum(const std::string& field,
+                                                  const std::string& value,
+                                                  int *platform_enum);
+  static common::PlatformResult PlatformEnumToStr(const std::string& field,
+                                                  const int value,
+                                                  std::string* platform_str);
 
  private:
   DataSyncManager();
 
   int StateChangedCallback(sync_agent_event_data_s* request);
   int ProgressCallback(sync_agent_event_data_s* request);
-  void Item(ds_profile_h* profile_h, const picojson::object& args);
-  void Item(const std::string& id, ds_profile_h* profile_h, picojson::object& out);
-  void GetProfileId(sync_agent_event_data_s* request, std::string& profile_id);
+  common::PlatformResult Item(ds_profile_h* profile_h,
+                              const picojson::object& args);
+  common::PlatformResult Item(const std::string& id, ds_profile_h* profile_h,
+                              picojson::object& out);
+  common::PlatformResult GetProfileId(sync_agent_event_data_s* request,
+                                      std::string& profile_id);
   void Failed(picojson::object& response_obj, picojson::object& answer_obj,
               const common::ErrorCode& code, const std::string& name,
               const std::string& message);

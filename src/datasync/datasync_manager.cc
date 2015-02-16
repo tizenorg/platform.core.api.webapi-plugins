@@ -60,40 +60,55 @@ const PlatformEnumMap DataSyncManager::platform_enum_map_ = {
       {"CONTACT", SYNC_AGENT_SRC_URI_CONTACT},
       {"EVENT", SYNC_AGENT_SRC_URI_CALENDAR}}}};
 
-int DataSyncManager::StrToPlatformEnum(const std::string& field, const std::string& value) {
+PlatformResult DataSyncManager::StrToPlatformEnum(const std::string& field,
+                                                  const std::string& value,
+                                                  int* platform_enum) {
+  assert(platform_enum);
+
   if (platform_enum_map_.find(field) == platform_enum_map_.end()) {
-    throw UnknownException(std::string("Undefined platform enum type ") + field);
+    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                          std::string("Undefined platform enum type ") + field);
   }
 
   auto def = platform_enum_map_.at(field);
   auto def_iter = def.find(value);
   if (def_iter != def.end()) {
-    return def_iter->second;
+    *platform_enum = def_iter->second;
+    return PlatformResult(ErrorCode::NO_ERROR);
   }
 
   // default value - if any
   def_iter = def.find("_DEFAULT");
   if (def_iter != def.end()) {
-    return def_iter->second;
+    *platform_enum = def_iter->second;
+    return PlatformResult(ErrorCode::NO_ERROR);
   }
 
-  std::string message = "Platform enum value " + value + " not found for " + field;
-  throw InvalidValuesException(message);
+  std::string message =
+      "Platform enum value " + value + " not found for " + field;
+  return PlatformResult(ErrorCode::INVALID_VALUES_ERR, message);
 }
 
-std::string DataSyncManager::PlatformEnumToStr(const std::string& field, const int value) {
+PlatformResult DataSyncManager::PlatformEnumToStr(const std::string& field,
+                                                  const int value,
+                                                  std::string* platform_str) {
   if (platform_enum_map_.find(field) == platform_enum_map_.end()) {
-    throw UnknownException(std::string("Undefined platform enum type ") + field);
+    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                          std::string("Undefined platform enum type ") + field);
   }
 
   auto def = platform_enum_map_.at(field);
 
   for (auto& item : def) {
-    if (item.second == value) return item.first;
+    if (item.second == value) {
+      *platform_str = item.first;
+      return PlatformResult(ErrorCode::NO_ERROR);
+    }
   }
 
-  std::string message = "Platform enum value " + std::to_string(value) + " not found for " + field;
-  throw InvalidValuesException(message);
+  std::string message = "Platform enum value " + std::to_string(value) +
+                        " not found for " + field;
+  return PlatformResult(ErrorCode::INVALID_VALUES_ERR, message);
 }
 
 bool DataSyncManager::sync_agent_initialized_ = false;
@@ -118,13 +133,13 @@ DataSyncManager::~DataSyncManager() {
   // sync-agent should fix it's deinitialization
 }
 
-void DataSyncManager::Item(ds_profile_h* profile_h, const picojson::object& args) {
+PlatformResult DataSyncManager::Item(ds_profile_h* profile_h, const picojson::object& args) {
   sync_agent_ds_error_e ret;
 
   std::string profile_name = FromJson<std::string>(args, "profileName").c_str();
   ret = sync_agent_ds_set_profile_name(profile_h, const_cast<char*>(profile_name.c_str()));
   if (SYNC_AGENT_DS_SUCCESS != ret) {
-    throw UnknownException("Platform error while settting a profile name");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Platform error while settting a profile name");
   }
 
   const picojson::object& sync_info = FromJson<picojson::object>(args, "syncInfo");
@@ -135,23 +150,36 @@ void DataSyncManager::Item(ds_profile_h* profile_h, const picojson::object& args
                                       const_cast<char*>(id.c_str()),
                                       const_cast<char*>(password.c_str()));
   if (SYNC_AGENT_DS_SUCCESS != ret) {
-    throw UnknownException("Platform error while settting a server info");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Platform error while settting a server info");
   }
 
-  int sync_mode = StrToPlatformEnum(kSyncMode, FromJson<std::string>(sync_info, "mode"));
-  int sync_type = StrToPlatformEnum(kSyncType, FromJson<std::string>(sync_info, "type"));
-  int sync_interval =
-      StrToPlatformEnum(kSyncInterval, FromJson<std::string>(sync_info, "interval"));
+  int sync_mode;
+  PlatformResult status = StrToPlatformEnum(
+      kSyncMode, FromJson<std::string>(sync_info, "mode"), &sync_mode);
+  if (status.IsError()) return status;
+
+  int sync_type;
+  status = StrToPlatformEnum(
+      kSyncType, FromJson<std::string>(sync_info, "type"), &sync_type);
+  if (status.IsError()) return status;
+
+  int sync_interval;
+  status = StrToPlatformEnum(kSyncInterval,
+                             FromJson<std::string>(sync_info, "interval"),
+                             &sync_interval);
+  if (status.IsError()) return status;
+
   LoggerD("syncMode: %d, syncType: %d, syncInterval: %d", sync_mode, sync_type, sync_interval);
+
   ret = sync_agent_ds_set_sync_info(profile_h, static_cast<sync_agent_ds_sync_mode_e>(sync_mode),
                                     static_cast<sync_agent_ds_sync_type_e>(sync_type),
                                     static_cast<sync_agent_ds_sync_interval_e>(sync_interval));
   if (SYNC_AGENT_DS_SUCCESS != ret) {
-    throw UnknownException("Platform error while settting a sync info");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Platform error while settting a sync info");
   }
 
   // Set the sync categories.
-  if (IsNull(args, "serviceInfo")) return;
+  if (IsNull(args, "serviceInfo")) return PlatformResult(ErrorCode::NO_ERROR);
 
   const picojson::array& service_info = FromJson<picojson::array>(args, "serviceInfo");
 
@@ -159,10 +187,19 @@ void DataSyncManager::Item(ds_profile_h* profile_h, const picojson::object& args
     const picojson::object& obj = JsonCast<picojson::object>(item);
 
     bool enable = FromJson<bool>(obj, "enable");
-    int service_type =
-        StrToPlatformEnum(kSyncServiceType, FromJson<std::string>(obj, "serviceType"));
+
+    int service_type;
+    status = StrToPlatformEnum(kSyncServiceType,
+                               FromJson<std::string>(obj, "serviceType"),
+                               &service_type);
+    if (status.IsError()) return status;
+
     std::string tgt_uri = FromJson<std::string>(obj, "serverDatabaseUri");
-    int src_uri = StrToPlatformEnum(kSyncServiceType, FromJson<std::string>(obj, "serviceType"));
+
+    int src_uri;
+    status = StrToPlatformEnum(
+        kSyncServiceType, FromJson<std::string>(obj, "serviceType"), &src_uri);
+    if (status.IsError()) return status;
 
     std::string id = "";
     if (!IsNull(obj, "id")) id = FromJson<std::string>(obj, "id");
@@ -178,25 +215,27 @@ void DataSyncManager::Item(ds_profile_h* profile_h, const picojson::object& args
         0 == id.size() ? nullptr : const_cast<char*>(id.c_str()),
         0 == password.size() ? nullptr : const_cast<char*>(password.c_str()));
     if (SYNC_AGENT_DS_SUCCESS != ret) {
-      throw UnknownException("Platform error while settting a sync service info");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Platform error while settting a sync service info");
     }
   }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void DataSyncManager::Item(const std::string& id, ds_profile_h* profile_h, picojson::object& out) {
+PlatformResult DataSyncManager::Item(const std::string& id, ds_profile_h* profile_h, picojson::object& out) {
   out["profileId"] = picojson::value(id);
 
   char* profile_name = nullptr;
   sync_agent_ds_error_e ret = sync_agent_ds_get_profile_name(profile_h, &profile_name);
   if (SYNC_AGENT_DS_SUCCESS != ret) {
-    throw UnknownException("Platform error while gettting a profile name");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Platform error while gettting a profile name");
   }
   out["profileName"] = picojson::value(profile_name);
 
   sync_agent_ds_server_info server_info = {nullptr};
   ret = sync_agent_ds_get_server_info(profile_h, &server_info);
   if (SYNC_AGENT_DS_SUCCESS != ret) {
-    throw UnknownException("Platform error while gettting a server info");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Platform error while gettting a server info");
   }
   picojson::value sync_info_val = picojson::value(picojson::object());
   picojson::object& sync_info_obj = sync_info_val.get<picojson::object>();
@@ -207,11 +246,23 @@ void DataSyncManager::Item(const std::string& id, ds_profile_h* profile_h, picoj
   sync_agent_ds_sync_info sync_info;
   ret = sync_agent_ds_get_sync_info(profile_h, &sync_info);
   if (SYNC_AGENT_DS_SUCCESS != ret) {
-    throw UnknownException("Platform error while gettting a sync info");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Platform error while gettting a sync info");
   }
-  sync_info_obj["mode"] = picojson::value(PlatformEnumToStr(kSyncMode, sync_info.sync_mode));
-  sync_info_obj["type"] = picojson::value(PlatformEnumToStr(kSyncType, sync_info.sync_type));
-  sync_info_obj["interval"] = picojson::value(PlatformEnumToStr(kSyncInterval, sync_info.interval));
+
+  std::string mode;
+  PlatformResult status = PlatformEnumToStr(kSyncMode, sync_info.sync_mode, &mode);
+  if (status.IsError()) return status;
+  sync_info_obj["mode"] = picojson::value(mode);
+
+  std::string type;
+  status = PlatformEnumToStr(kSyncType, sync_info.sync_type, &type);
+  if (status.IsError()) return status;
+  sync_info_obj["type"] = picojson::value(type);
+
+  std::string interval;
+  status = PlatformEnumToStr(kSyncInterval, sync_info.interval, &interval);
+  if (status.IsError()) return status;
+  sync_info_obj["interval"] = picojson::value(interval);
 
   out["syncInfo"] = sync_info_val;
 
@@ -221,12 +272,12 @@ void DataSyncManager::Item(const std::string& id, ds_profile_h* profile_h, picoj
   GList* category_list = nullptr;
   ret = sync_agent_ds_get_sync_service_info(profile_h, &category_list);
   if (SYNC_AGENT_DS_SUCCESS != ret) {
-    throw UnknownException("Platform error while gettting sync categories");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Platform error while gettting sync categories");
   }
   int category_count = g_list_length(category_list);
   LoggerD("category_count: %d", category_count);
 
-  if (!category_count) return;
+  if (!category_count) return PlatformResult(ErrorCode::NO_ERROR);
 
   picojson::value service_info_val = picojson::value(picojson::object());
   picojson::array& service_info_array = service_info_val.get<picojson::array>();
@@ -250,8 +301,13 @@ void DataSyncManager::Item(const std::string& id, ds_profile_h* profile_h, picoj
     if (category_info->password) {
       item_obj["password"] = picojson::value(category_info->password);
     }
-    sync_info_obj["serviceType"] =
-        picojson::value(PlatformEnumToStr(kSyncServiceType, category_info->service_type));
+
+    std::string service_type;
+    status = PlatformEnumToStr(kSyncServiceType, category_info->service_type,
+                               &service_type);
+    if (status.IsError()) return status;
+    sync_info_obj["serviceType"] = picojson::value(service_type);
+
     if (category_info->tgt_uri) {
       item_obj["serverDatabaseUri"] = picojson::value(category_info->tgt_uri);
     }
@@ -262,37 +318,42 @@ void DataSyncManager::Item(const std::string& id, ds_profile_h* profile_h, picoj
   }
 
   out["serviceInfo"] = service_info_val;
+
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-int DataSyncManager::Add(const picojson::object& args) {
+PlatformResult DataSyncManager::Add(const picojson::object& args, int *profile_id) {
+  assert(profile_id);
   ds_profile_h profile_h = nullptr;
 
-  int num_profiles = GetProfilesNum();
+  int num_profiles;
+  PlatformResult status = GetProfilesNum(&num_profiles);
+  if (status.IsError()) return status;
   LoggerD("numProfiles: %d", num_profiles);
 
   if (MAX_PROFILES_NUM == num_profiles) {
-    throw QuotaExceededException("There are already maximum number of profiles!");
+    return PlatformResult(ErrorCode::QUOTA_EXCEEDED_ERR, "There are already maximum number of profiles!");
   }
 
   sync_agent_ds_error_e ret = sync_agent_ds_create_profile_info(&profile_h);
   if (SYNC_AGENT_DS_SUCCESS != ret) {
-    throw UnknownException("Platform error while creating a profile");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Platform error while creating a profile");
   }
 
-  Item(&profile_h, args);
+  status = Item(&profile_h, args);
+  if (status.IsError()) return status;
 
-  int profile_id;
-  ret = sync_agent_ds_add_profile(profile_h, &profile_id);
+  ret = sync_agent_ds_add_profile(profile_h, profile_id);
   if (SYNC_AGENT_DS_SUCCESS != ret) {
-    throw UnknownException("Platform error while adding a profile");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Platform error while adding a profile");
   }
 
-  LoggerD("profileId from platform: %d", profile_id);
+  LoggerD("profileId from platform: %d", *profile_id);
 
-  return profile_id;
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void DataSyncManager::Update(const picojson::object& args) {
+PlatformResult DataSyncManager::Update(const picojson::object& args) {
   ds_profile_h profile_h = nullptr;
 
   int profile_id = std::stoi(FromJson<std::string>(args, "profileId"));
@@ -300,18 +361,21 @@ void DataSyncManager::Update(const picojson::object& args) {
 
   sync_agent_ds_error_e ret = sync_agent_ds_get_profile(profile_id, &profile_h);
   if (SYNC_AGENT_DS_SUCCESS != ret) {
-    throw NotFoundException("Platform error while getting a profile");
+    return PlatformResult(ErrorCode::NOT_FOUND_ERR, "Platform error while getting a profile");
   }
 
-  Item(&profile_h, args);
+  PlatformResult status = Item(&profile_h, args);
+  if (status.IsError()) return status;
 
   ret = sync_agent_ds_update_profile(profile_h);
   if (SYNC_AGENT_DS_SUCCESS != ret && SYNC_AGENT_DS_SYNCHRONISING != ret) {
-    throw UnknownException("Platform error while updating a profile");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Platform error while updating a profile");
   }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void DataSyncManager::Remove(const std::string& id) {
+PlatformResult DataSyncManager::Remove(const std::string& id) {
   ds_profile_h profile_h = nullptr;
 
   int profile_id = std::stoi(id);
@@ -319,30 +383,33 @@ void DataSyncManager::Remove(const std::string& id) {
 
   sync_agent_ds_error_e ret = sync_agent_ds_get_profile(profile_id, &profile_h);
   if (SYNC_AGENT_DS_SUCCESS != ret) {
-    throw UnknownException("Platform error while getting a profile");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Platform error while getting a profile");
   }
 
   ret = sync_agent_ds_delete_profile(profile_h);
   if (SYNC_AGENT_DS_SUCCESS != ret && SYNC_AGENT_DS_SYNCHRONISING != ret) {
-    throw UnknownException("Platform error while deleting a profile");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Platform error while deleting a profile");
   }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 int DataSyncManager::GetMaxProfilesNum() const { return MAX_PROFILES_NUM; }
 
-int DataSyncManager::GetProfilesNum() const {
-  int profile_list_size = 0;
-
-  sync_agent_ds_error_e error_checker = sync_agent_ds_get_profile_count(&profile_list_size);
+PlatformResult DataSyncManager::GetProfilesNum(int* profiles_num) {
+  sync_agent_ds_error_e error_checker =
+      sync_agent_ds_get_profile_count(profiles_num);
 
   if (SYNC_AGENT_DS_SUCCESS != error_checker) {
-    throw common::UnknownException("Error while getting number of profiles.");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                          "Error while getting number of profiles.");
   }
 
-  return profile_list_size;
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void DataSyncManager::Get(const std::string& id, picojson::object& out) {
+PlatformResult DataSyncManager::Get(const std::string& id,
+                                    picojson::object& out) {
   ds_profile_h profile_h = nullptr;
 
   int profile_id = std::stoi(id);
@@ -350,18 +417,21 @@ void DataSyncManager::Get(const std::string& id, picojson::object& out) {
 
   sync_agent_ds_error_e ret = sync_agent_ds_get_profile(profile_id, &profile_h);
   if (SYNC_AGENT_DS_SUCCESS != ret) {
-    throw UnknownException("Platform error while getting a profile");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                          "Platform error while getting a profile");
   }
 
   Item(id, &profile_h, out);
+
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void DataSyncManager::GetAll(picojson::array& out) {
+PlatformResult DataSyncManager::GetAll(picojson::array& out) {
   GList* profile_list = nullptr;
 
   sync_agent_ds_error_e ret = sync_agent_ds_get_all_profile(&profile_list);
   if (SYNC_AGENT_DS_SUCCESS != ret) {
-    throw UnknownException("Platform error while getting all profiles");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Platform error while getting all profiles");
   }
 
   ds_profile_h profile_h = nullptr;
@@ -374,7 +444,7 @@ void DataSyncManager::GetAll(picojson::array& out) {
 
     ret = sync_agent_ds_get_profile_id(profile_h, &profile_id);
     if (SYNC_AGENT_DS_SUCCESS != ret) {
-      throw UnknownException("Platform error while gettting a profile id");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Platform error while gettting a profile id");
     }
 
     picojson::value profile = picojson::value(picojson::object());
@@ -385,9 +455,11 @@ void DataSyncManager::GetAll(picojson::array& out) {
     LoggerD("Adding a profile to the list.");
     out.push_back(profile);
   }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void DataSyncManager::StartSync(const picojson::object& args) {
+PlatformResult DataSyncManager::StartSync(const picojson::object& args) {
   ds_profile_h profile_h = nullptr;
 
   const std::string& id = FromJson<std::string>(args, "profileId");
@@ -402,7 +474,7 @@ void DataSyncManager::StartSync(const picojson::object& args) {
          void* ud) { return static_cast<DataSyncManager*>(ud)->StateChangedCallback(d); },
       static_cast<void*>(this));
   if (err != SYNC_AGENT_EVENT_SUCCESS) {
-    throw UnknownException("Platform error while setting state changed cb");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Platform error while setting state changed cb");
   }
 
   err = sync_agent_set_noti_callback(
@@ -411,18 +483,20 @@ void DataSyncManager::StartSync(const picojson::object& args) {
                                   },
       static_cast<void*>(this));
   if (err != SYNC_AGENT_EVENT_SUCCESS) {
-    throw UnknownException("Platform error while setting progress cb");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Platform error while setting progress cb");
   }
 
   sync_agent_ds_error_e ret = sync_agent_ds_start_sync(profile_h);
   if (SYNC_AGENT_DS_SUCCESS != ret && SYNC_AGENT_DS_SYNCHRONISING != ret) {
-    throw UnknownException("Platform error while starting a profile");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Platform error while starting a profile");
   }
 
   callbacks_[id] = listener_id;
+
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void DataSyncManager::StopSync(const std::string& id) {
+PlatformResult DataSyncManager::StopSync(const std::string& id) {
   ds_profile_h profile_h = nullptr;
 
   int profile_id = std::stoi(id.c_str());
@@ -430,15 +504,17 @@ void DataSyncManager::StopSync(const std::string& id) {
 
   sync_agent_ds_error_e ret = sync_agent_ds_get_profile(profile_id, &profile_h);
   if (SYNC_AGENT_DS_SUCCESS != ret) {
-    throw UnknownException("Platform error while getting a profile");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Platform error while getting a profile");
   }
 
   ret = sync_agent_ds_stop_sync(profile_h);
   if (SYNC_AGENT_DS_SUCCESS != ret) {
-    throw UnknownException("Platform error while stopping a profile");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Platform error while stopping a profile");
   }
 
   callbacks_.erase(id);
+
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 DataSyncManager& DataSyncManager::Instance() {
@@ -446,7 +522,7 @@ DataSyncManager& DataSyncManager::Instance() {
   return manager;
 }
 
-void DataSyncManager::GetLastSyncStatistics(const std::string& id, picojson::array& out) {
+PlatformResult DataSyncManager::GetLastSyncStatistics(const std::string& id, picojson::array& out) {
   ds_profile_h profile_h = nullptr;
   GList* statistics_list = nullptr;
 
@@ -455,12 +531,12 @@ void DataSyncManager::GetLastSyncStatistics(const std::string& id, picojson::arr
 
   sync_agent_ds_error_e ret = sync_agent_ds_get_profile(profile_id, &profile_h);
   if (SYNC_AGENT_DS_SUCCESS != ret) {
-    throw NotFoundException("Platform error while getting a profile");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Platform error while getting a profile");
   }
 
   ret = sync_agent_ds_get_sync_statistics(profile_h, &statistics_list);
   if (SYNC_AGENT_DS_SUCCESS != ret) {
-    throw UnknownException("Platform error while gettting sync statistics");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Platform error while gettting sync statistics");
   }
 
   int statistics_count = g_list_length(statistics_list);
@@ -473,14 +549,21 @@ void DataSyncManager::GetLastSyncStatistics(const std::string& id, picojson::arr
     picojson::value item = picojson::value(picojson::object());
     picojson::object& item_obj = item.get<picojson::object>();
 
+    std::string service_type;
     if (0 == i) {
       LoggerD("Statistics for contact.");
-      item_obj["serviceType"] =
-          picojson::value(PlatformEnumToStr(kSyncServiceType, SYNC_AGENT_CONTACT));
+
+      PlatformResult status = PlatformEnumToStr(kSyncServiceType, SYNC_AGENT_CONTACT,
+                                 &service_type);
+      if (status.IsError()) return status;
+      item_obj["serviceType"] = picojson::value(service_type);
     } else if (1 == i) {
       LoggerD("Statistics for event.");
-      item_obj["serviceType"] =
-          picojson::value(PlatformEnumToStr(kSyncServiceType, SYNC_AGENT_CALENDAR));
+
+      PlatformResult status = PlatformEnumToStr(kSyncServiceType, SYNC_AGENT_CALENDAR,
+                                 &service_type);
+      if (status.IsError()) return status;
+      item_obj["serviceType"] = picojson::value(service_type);
     } else {
       LoggerW("Unsupported category for statistics: %d", i);
       continue;
@@ -516,9 +599,11 @@ void DataSyncManager::GetLastSyncStatistics(const std::string& id, picojson::arr
     LoggerD("ClientToServerTotal: %d, ServerToClientTotal: %d", statistics->client2server_total,
             statistics->server2client_total);
   }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void DataSyncManager::GetProfileId(sync_agent_event_data_s* request, std::string& profile_id) {
+PlatformResult DataSyncManager::GetProfileId(sync_agent_event_data_s* request, std::string& profile_id) {
   char* profile_dir_name = nullptr;
 
   sync_agent_get_event_data_param(request, &profile_dir_name);
@@ -528,10 +613,13 @@ void DataSyncManager::GetProfileId(sync_agent_event_data_s* request, std::string
     profile_id = profile_dir_name + 4;
   } else {
     g_free(profile_dir_name);
-    throw UnknownException("Invalid Sync dir name");
+    LoggerE("Invalid Sync dir name");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Invalid Sync dir name");
   }
 
   g_free(profile_dir_name);
+
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 void DataSyncManager::Failed(picojson::object& response_obj, picojson::object& answer_obj,
@@ -572,7 +660,9 @@ int DataSyncManager::StateChangedCallback(sync_agent_event_data_s* request) {
 
   LoggerD("Get state info.");
   sync_agent_get_event_data_param(request, &progress);
-  GetProfileId(request, profile_id);
+
+  PlatformResult status = GetProfileId(request, profile_id);
+  if (status.IsError()) return static_cast<int>(status.error_code());
 
   LoggerI("profileDirName: %s, progress: %s", profile_id.c_str(), progress);
 
@@ -618,7 +708,10 @@ int DataSyncManager::ProgressCallback(sync_agent_event_data_s* request) {
 
   LoggerD("Get progress info.");
   sync_agent_get_event_data_param(request, &uri);
-  GetProfileId(request, profile_id);
+
+
+  PlatformResult status = GetProfileId(request, profile_id);
+  if (status.IsError()) return static_cast<int>(status.error_code());
 
   LoggerI("profileDirName: %s, uri: %d", profile_id.c_str(), uri);
 
@@ -645,7 +738,12 @@ int DataSyncManager::ProgressCallback(sync_agent_event_data_s* request) {
 
     if (SYNC_AGENT_SRC_URI_CONTACT == uri || SYNC_AGENT_SRC_URI_CALENDAR == uri) {
       response_obj["callback_name"] = picojson::value("onprogress");
-      answer_obj["serviceType"] = picojson::value(PlatformEnumToStr(kSyncServiceTypeToSrcUri, uri));
+
+      std::string service_type;
+      PlatformResult status = PlatformEnumToStr(kSyncServiceTypeToSrcUri, uri, &service_type);
+      if (status.IsError()) return static_cast<int>(status.error_code());
+      answer_obj["serviceType"] = picojson::value(service_type);
+
       answer_obj["isFromServer"] = picojson::value(static_cast<double>(is_from_server));
       answer_obj["totalPerService"] = picojson::value(static_cast<double>(total_per_db));
       answer_obj["syncedPerService"] = picojson::value(static_cast<double>(synced_per_db));
