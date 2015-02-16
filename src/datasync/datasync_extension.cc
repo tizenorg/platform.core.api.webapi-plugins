@@ -16,8 +16,8 @@ DatasyncExtension::DatasyncExtension() {
   SetExtensionName("tizen.datasync");
   SetJavaScriptAPI(kSource_datasync_api);
 
-  const char* entry_points[] = {"tizen.SyncInfo", "tizen.SyncProfileInfo", "tizen.SyncServiceInfo",
-                                NULL};
+  const char* entry_points[] = {"tizen.SyncInfo", "tizen.SyncProfileInfo",
+                                "tizen.SyncServiceInfo", NULL};
   SetExtraJSEntryPoints(entry_points);
 }
 
@@ -28,7 +28,9 @@ DataSyncManager& DatasyncExtension::manager() {
   return DataSyncManager::Instance();
 }
 
-common::Instance* DatasyncExtension::CreateInstance() { return new DatasyncInstance; }
+common::Instance* DatasyncExtension::CreateInstance() {
+  return new DatasyncInstance;
+}
 
 // entry point
 common::Extension* CreateExtension() { return new DatasyncExtension; }

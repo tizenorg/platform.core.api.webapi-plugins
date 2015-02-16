@@ -29,18 +29,26 @@ class DatasyncInstance : public common::ParsedInstance {
   // with result
   void DataSynchronizationManagerGetMaxProfilesNum(const picojson::value& args,
                                                    picojson::object& out);
-  void DataSynchronizationManagerGetProfilesNum(const picojson::value& args, picojson::object& out);
-  void DataSynchronizationManagerGet(const picojson::value& args, picojson::object& out);
-  void DataSynchronizationManagerGetAll(const picojson::value& args, picojson::object& out);
-  void DataSynchronizationManagerGetLastSyncStatistics(const picojson::value& args,
-                                                       picojson::object& out);
+  void DataSynchronizationManagerGetProfilesNum(const picojson::value& args,
+                                                picojson::object& out);
+  void DataSynchronizationManagerGet(const picojson::value& args,
+                                     picojson::object& out);
+  void DataSynchronizationManagerGetAll(const picojson::value& args,
+                                        picojson::object& out);
+  void DataSynchronizationManagerGetLastSyncStatistics(
+      const picojson::value& args, picojson::object& out);
 
   // undefined result
-  void DataSynchronizationManagerAdd(const picojson::value& args, picojson::object& out);
-  void DataSynchronizationManagerUpdate(const picojson::value& args, picojson::object& out);
-  void DataSynchronizationManagerRemove(const picojson::value& args, picojson::object& out);
-  void DataSynchronizationManagerStartSync(const picojson::value& args, picojson::object& out);
-  void DataSynchronizationManagerStopSync(const picojson::value& args, picojson::object& out);
+  void DataSynchronizationManagerAdd(const picojson::value& args,
+                                     picojson::object& out);
+  void DataSynchronizationManagerUpdate(const picojson::value& args,
+                                        picojson::object& out);
+  void DataSynchronizationManagerRemove(const picojson::value& args,
+                                        picojson::object& out);
+  void DataSynchronizationManagerStartSync(const picojson::value& args,
+                                           picojson::object& out);
+  void DataSynchronizationManagerStopSync(const picojson::value& args,
+                                          picojson::object& out);
 };
 
 }  // namespace datasync

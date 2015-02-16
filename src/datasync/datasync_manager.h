@@ -46,7 +46,7 @@ class DataSyncManager {
 
   static common::PlatformResult StrToPlatformEnum(const std::string& field,
                                                   const std::string& value,
-                                                  int *platform_enum);
+                                                  int* platform_enum);
   static common::PlatformResult PlatformEnumToStr(const std::string& field,
                                                   const int value,
                                                   std::string* platform_str);
@@ -65,8 +65,10 @@ class DataSyncManager {
   void Failed(picojson::object& response_obj, picojson::object& answer_obj,
               const common::ErrorCode& code, const std::string& name,
               const std::string& message);
-  inline void PrepareResponseObj(const std::string& profile_id, picojson::value& response,
-                                 picojson::object& response_obj, picojson::value& answer,
+  inline void PrepareResponseObj(const std::string& profile_id,
+                                 picojson::value& response,
+                                 picojson::object& response_obj,
+                                 picojson::value& answer,
                                  picojson::object& answer_obj);
 
   std::map<std::string, std::string> callbacks_;

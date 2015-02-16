@@ -16,7 +16,8 @@ namespace datasync {
 
 namespace {
 // The privileges that required in Datasynchronization API
-const std::string kPrivilegeDatasynchronization = "http://tizen.org/privilege/datasync";
+const std::string kPrivilegeDatasynchronization =
+    "http://tizen.org/privilege/datasync";
 
 }  // namespace
 
@@ -29,18 +30,26 @@ DatasyncInstance &DatasyncInstance::GetInstance() {
 
 DatasyncInstance::DatasyncInstance() {
   using namespace std::placeholders;
-#define REGISTER_SYNC(c, x) RegisterSyncHandler(c, std::bind(&DatasyncInstance::x, this, _1, _2));
-  REGISTER_SYNC("DataSynchronizationManager_add", DataSynchronizationManagerAdd);
-  REGISTER_SYNC("DataSynchronizationManager_update", DataSynchronizationManagerUpdate);
-  REGISTER_SYNC("DataSynchronizationManager_remove", DataSynchronizationManagerRemove);
+#define REGISTER_SYNC(c, x) \
+  RegisterSyncHandler(c, std::bind(&DatasyncInstance::x, this, _1, _2));
+  REGISTER_SYNC("DataSynchronizationManager_add",
+                DataSynchronizationManagerAdd);
+  REGISTER_SYNC("DataSynchronizationManager_update",
+                DataSynchronizationManagerUpdate);
+  REGISTER_SYNC("DataSynchronizationManager_remove",
+                DataSynchronizationManagerRemove);
   REGISTER_SYNC("DataSynchronizationManager_getMaxProfilesNum",
                 DataSynchronizationManagerGetMaxProfilesNum);
   REGISTER_SYNC("DataSynchronizationManager_getProfilesNum",
                 DataSynchronizationManagerGetProfilesNum);
-  REGISTER_SYNC("DataSynchronizationManager_get", DataSynchronizationManagerGet);
-  REGISTER_SYNC("DataSynchronizationManager_getAll", DataSynchronizationManagerGetAll);
-  REGISTER_SYNC("DataSynchronizationManager_startSync", DataSynchronizationManagerStartSync);
-  REGISTER_SYNC("DataSynchronizationManager_stopSync", DataSynchronizationManagerStopSync);
+  REGISTER_SYNC("DataSynchronizationManager_get",
+                DataSynchronizationManagerGet);
+  REGISTER_SYNC("DataSynchronizationManager_getAll",
+                DataSynchronizationManagerGetAll);
+  REGISTER_SYNC("DataSynchronizationManager_startSync",
+                DataSynchronizationManagerStartSync);
+  REGISTER_SYNC("DataSynchronizationManager_stopSync",
+                DataSynchronizationManagerStopSync);
   REGISTER_SYNC("DataSynchronizationManager_getLastSyncStatistics",
                 DataSynchronizationManagerGetLastSyncStatistics);
 #undef REGISTER_SYNC
@@ -48,10 +57,11 @@ DatasyncInstance::DatasyncInstance() {
 
 DatasyncInstance::~DatasyncInstance() {}
 
-void DatasyncInstance::DataSynchronizationManagerGetMaxProfilesNum(const picojson::value &args,
-                                                                   picojson::object &out) {
-  ReportSuccess(
-      picojson::value(static_cast<double>(DataSyncManager::Instance().GetMaxProfilesNum())), out);
+void DatasyncInstance::DataSynchronizationManagerGetMaxProfilesNum(
+    const picojson::value &args, picojson::object &out) {
+  ReportSuccess(picojson::value(static_cast<double>(
+                    DataSyncManager::Instance().GetMaxProfilesNum())),
+                out);
 }
 
 void DatasyncInstance::DataSynchronizationManagerGetProfilesNum(
@@ -92,12 +102,12 @@ void DatasyncInstance::DataSynchronizationManagerGetAll(
     ReportError(status, &out);
 }
 
-void DatasyncInstance::DataSynchronizationManagerGetLastSyncStatistics(const picojson::value &args,
-                                                                       picojson::object &out) {
+void DatasyncInstance::DataSynchronizationManagerGetLastSyncStatistics(
+    const picojson::value &args, picojson::object &out) {
   picojson::value result = picojson::value(picojson::array());
 
-  DataSyncManager::Instance().GetLastSyncStatistics(args.get("profileId").get<std::string>(),
-                                                    result.get<picojson::array>());
+  DataSyncManager::Instance().GetLastSyncStatistics(
+      args.get("profileId").get<std::string>(), result.get<picojson::array>());
 
   ReportSuccess(result, out);
 }
