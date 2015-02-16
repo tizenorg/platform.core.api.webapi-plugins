@@ -18,6 +18,7 @@
         'exif/exif.gyp:*',
         'websetting/websetting.gyp:*',
         'systemsetting/systemsetting.gyp:*',
+	'content/content.gyp:*',
       ],
       'conditions': [
         [

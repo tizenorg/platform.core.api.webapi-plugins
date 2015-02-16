@@ -186,6 +186,8 @@ BuildRequires: pkgconfig(capi-appfw-application)
 BuildRequires: pkgconfig(capi-appfw-app-manager)
 BuildRequires: pkgconfig(capi-appfw-package-manager)
 BuildRequires: pkgconfig(wrt-plugins-ipc-message)
+BuildRequires: pkgconfig(capi-content-media-content)
+BuildRequires: pkgconfig(capi-media-metadata-extractor)
 
 %if 0%{?tizen_feature_account_support}
 BuildRequires: pkgconfig(accounts-svc)
