@@ -71,26 +71,48 @@ static const std::string kListenerId = "listenerId";
 static const std::string kSensorChangedListener = "SensorChangedListener";
 }
 
-SensorService::SensorService() {
+SensorService::SensorData::SensorData(sensor_type_e type) :
+  handle_(nullptr),
+  listener_(nullptr),
+  type_enum_(type) {
+
+}
+
+SensorService::SensorData::~SensorData() {
+  if (listener_) {
+    sensor_destroy_listener(listener_);
+  }
+}
+
+common::PlatformResult SensorService::SensorData::CheckInitialization() {
+  if (!handle_) {
+    LoggerD("initialization of handle and listener");
+    int ret = sensor_get_default_sensor(type_enum_, &handle_);
+    if (SENSOR_ERROR_NONE != ret) {
+      LoggerE("ret : %d", ret);
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, "sensor_get_default_sensor");
+    }
+
+    ret = sensor_create_listener(handle_, &listener_);
+    if (SENSOR_ERROR_NONE != ret) {
+      LoggerE("ret : %d", ret);
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, "sensor_create_listener");
+    }
+  }
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+SensorService::SensorService() :
+    light_sensor_(SENSOR_LIGHT),
+    magnetic_sensor_(SENSOR_MAGNETIC),
+    pressure_sensor_(SENSOR_PRESSURE),
+    proximity_sensor_(SENSOR_PROXIMITY),
+    ultraviolet_sensor_(SENSOR_ULTRAVIOLET) {
 
 }
 
 SensorService::~SensorService() {
-  if (light_sensor_.listener) {
-    sensor_destroy_listener(light_sensor_.listener);
-  }
-  if (magnetic_sensor_.listener) {
-    sensor_destroy_listener(magnetic_sensor_.listener);
-  }
-  if (pressure_sensor_.listener) {
-    sensor_destroy_listener(pressure_sensor_.listener);
-  }
-  if (proximity_sensor_.listener) {
-    sensor_destroy_listener(proximity_sensor_.listener);
-  }
-  if (ultraviolet_sensor_.listener) {
-    sensor_destroy_listener(ultraviolet_sensor_.listener);
-  }
+
 }
 
 SensorService* SensorService::GetInstance() {
@@ -169,14 +191,7 @@ void SensorService::SensorStart(const picojson::value& args, picojson::object& o
   sensor_type_e type_enum = string_to_type_map[type_str];
 
   auto start = [this, type_enum, type_str](const std::shared_ptr<picojson::value>& result) {
-    PlatformResult res = CheckSensorInitialization(type_enum);
-    if (res.IsError()) {
-      LoggerE("Sensor initialization for sensor %s failed", type_str.c_str());
-      ReportError(res, &(result->get<picojson::object>()));
-      return;
-    }
     SensorData* sensor_data = GetSensorStruct(type_enum);
-
     if (!sensor_data) {
       LoggerD("Sensor data is null");
       ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Sensor data is null"),
@@ -184,8 +199,15 @@ void SensorService::SensorStart(const picojson::value& args, picojson::object& o
       return;
     }
 
-    int ret = sensor_listener_start(sensor_data->listener);
-    if (ret != SENSOR_ERROR_NONE) {
+    PlatformResult res = sensor_data->CheckInitialization();
+    if (res.IsError()) {
+      LoggerE("Sensor initialization for sensor %s failed", type_str.c_str());
+      ReportError(res, &(result->get<picojson::object>()));
+      return;
+    }
+
+    int ret = sensor_listener_start(sensor_data->listener_);
+    if (SENSOR_ERROR_NONE != ret) {
       LoggerE("ret : %d", ret);
       ReportError(GetSensorPlatformResult(ret, "sensor_listener_start"),
                   &(result->get<picojson::object>()));
@@ -214,20 +236,27 @@ void SensorService::SensorStop(const picojson::value& args, picojson::object& ou
 
   sensor_type_e type_enum = string_to_type_map[type_str];
 
-  PlatformResult res = CheckSensorInitialization(type_enum);
   SensorData* sensor_data = GetSensorStruct(type_enum);
-
   if (!sensor_data) {
     LoggerD("Sensor data is null");
     ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Sensor data is null"), &out);
     return;
   }
 
-  int ret = sensor_listener_stop(sensor_data->listener);
-  if (ret != SENSOR_ERROR_NONE) {
-    LOGE("ret : %d", ret);
-    ReportError(GetSensorPlatformResult(ret, "sensor_listener_stop"), &out);
+  PlatformResult res = sensor_data->CheckInitialization();
+  if (res.IsError()) {
+    LoggerE("Sensor initialization for sensor %s failed", type_str.c_str());
+    ReportError(res, &out);
+    return;
   }
+
+  int ret = sensor_listener_stop(sensor_data->listener_);
+  if (SENSOR_ERROR_NONE != ret) {
+    LoggerE("ret : %d", ret);
+    ReportError(GetSensorPlatformResult(ret, "sensor_listener_stop"), &out);
+    return;
+  }
+  ReportSuccess(out);
 }
 
 void SensorService::SensorSetChangeListener(const picojson::value& args, picojson::object& out) {
@@ -238,21 +267,28 @@ void SensorService::SensorSetChangeListener(const picojson::value& args, picojso
 
   sensor_type_e type_enum = string_to_type_map[type_str];
 
-  PlatformResult res = CheckSensorInitialization(type_enum);
   SensorData* sensor_data = GetSensorStruct(type_enum);
-
   if (!sensor_data) {
     LoggerD("Sensor data is null");
     ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Sensor data is null"), &out);
     return;
   }
 
-  int ret = sensor_listener_set_event_cb(
-      sensor_data->listener, 100, GetCallbackFunction(type_enum), this);
-  if (ret != SENSOR_ERROR_NONE) {
-    LOGE("ret : %d", ret);
-    ReportError(GetSensorPlatformResult(ret, "sensor_listener_set_event_cb"), &out);
+  PlatformResult res = sensor_data->CheckInitialization();
+  if (res.IsError()) {
+    LoggerE("Sensor initialization for sensor %s failed", type_str.c_str());
+    ReportError(res, &out);
+    return;
   }
+
+  int ret = sensor_listener_set_event_cb(
+      sensor_data->listener_, 100, GetCallbackFunction(type_enum), this);
+  if (SENSOR_ERROR_NONE != ret) {
+    LoggerE("ret : %d", ret);
+    ReportError(GetSensorPlatformResult(ret, "sensor_listener_set_event_cb"), &out);
+    return;
+  }
+  ReportSuccess(out);
 }
 
 void SensorService::SensorUnsetChangeListener(const picojson::value& args, picojson::object& out) {
@@ -263,59 +299,27 @@ void SensorService::SensorUnsetChangeListener(const picojson::value& args, picoj
 
   sensor_type_e type_enum = string_to_type_map[type_str];
 
-  PlatformResult res = CheckSensorInitialization(type_enum);
   SensorData* sensor_data = GetSensorStruct(type_enum);
-
   if (!sensor_data) {
     LoggerD("Sensor data is null");
     ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Sensor data is null"), &out);
     return;
   }
 
-  int ret = sensor_listener_unset_event_cb(sensor_data->listener);
-  if (ret != SENSOR_ERROR_NONE) {
-    LOGE("ret : %d", ret);
+  PlatformResult res = sensor_data->CheckInitialization();
+  if (res.IsError()) {
+    LoggerE("Sensor initialization for sensor %s failed", type_str.c_str());
+    ReportError(res, &out);
+    return;
+  }
+
+  int ret = sensor_listener_unset_event_cb(sensor_data->listener_);
+  if (SENSOR_ERROR_NONE != ret) {
+    LoggerE("ret : %d", ret);
     ReportError(GetSensorPlatformResult(ret, "sensor_listener_unset_event_cb"), &out);
+    return;
   }
-}
-
-PlatformResult SensorService::CheckSensorInitialization(sensor_type_e type_enum) {
-  LoggerD("Entered");
-  std::lock_guard<std::mutex> lock(init_mutex);
-
-  SensorData* sensor_data = NULL;
-  switch(type_enum) {
-    case SENSOR_LIGHT :
-      sensor_data = &light_sensor_;
-      break;
-    case SENSOR_MAGNETIC :
-      sensor_data = &magnetic_sensor_;
-      break;
-    case SENSOR_PRESSURE :
-      sensor_data = &pressure_sensor_;
-      break;
-    case SENSOR_PROXIMITY :
-      sensor_data = &proximity_sensor_;
-      break;
-    case SENSOR_ULTRAVIOLET :
-      sensor_data = &ultraviolet_sensor_;
-      break;
-  }
-  if (!(sensor_data->handle)) {
-    LoggerD("initialization of handle and listener");
-    int ret = sensor_get_default_sensor(type_enum, &(sensor_data->handle));
-    if (ret != SENSOR_ERROR_NONE) {
-      LoggerE("ret : %d", ret);
-      return PlatformResult(ErrorCode::UNKNOWN_ERR, "sensor_get_default_sensor");
-    }
-
-    ret = sensor_create_listener(sensor_data->handle, &(sensor_data->listener));
-    if (ret != SENSOR_ERROR_NONE) {
-      LoggerE("ret : %d", ret);
-      return PlatformResult(ErrorCode::UNKNOWN_ERR, "sensor_create_listener");
-    }
-  }
-  return PlatformResult(ErrorCode::NO_ERROR);
+  ReportSuccess(out);
 }
 
 SensorService::SensorData* SensorService::GetSensorStruct(sensor_type_e type_enum) {
@@ -472,7 +476,7 @@ void SensorService::GetSensorData(const picojson::value& args, picojson::object&
   auto get_data = [this, sensor_type](const std::shared_ptr<picojson::value>& result) {
     sensor_event_s sensor_event;
     SensorData* sensor = this->GetSensorStruct(sensor_type);
-    int ret = sensor_listener_read_data(sensor->listener, &sensor_event);
+    int ret = sensor_listener_read_data(sensor->listener_, &sensor_event);
 
     if (SENSOR_ERROR_NONE != ret) {
       ReportError(GetSensorPlatformResult(ret, type_to_string_map[sensor_type]),

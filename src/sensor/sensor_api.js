@@ -30,29 +30,110 @@ var MagneticSensorAccuracy = {
     VERYGOOD : 'ACCURACY_VERYGOOD'
 };
 
-var _supportedSensors = [];
-var _startedSensors = {
-    LIGHT : false,
-    MAGNETIC : false,
-    PRESSURE : false,
-    PROXIMITY : false,
-    ULTRAVIOLET : false
+// helper class for sensor listeners
+var SensorListener = function (type, constructor) {
+    this.sensorType = type;
+    this.isStarted = false;
+    this.callback = undefined;
+    this.constructor = constructor;
 };
-var _isChecked = false;
 
+SensorListener.prototype.tryCall = function (object) {
+    if (this.callback) {
+        this.callback(new this.constructor(object));
+    }
+};
+
+SensorListener.prototype.start = function (successCallback, errorCallback) {
+    if (!this.isStarted) {
+        // sensor not started
+        var thisObject = this;
+        native_.call('Sensor_start', {'sensorType' : thisObject.sensorType},
+                function(result) {
+                    if (native_.isFailure(result)) {
+                        if(!T_.isNullOrUndefined(errorCallback)) {
+                            errorCallback(native_.getErrorObject(result));
+                        }
+                    } else {
+                        thisObject.isStarted = true;
+                        successCallback();
+                    }
+                }
+        );
+    } else {
+        // sensor is already started - just call success callback
+        setTimeout(function(){successCallback()}, 0);
+    }
+};
+
+SensorListener.prototype.stop = function () {
+    if (this.isStarted) {
+        var result = native_.callSync('Sensor_stop', {'sensorType' : this.sensorType});
+        if (native_.isFailure(result)) {
+            throw native_.getErrorObject(result);
+        }
+        this.isStarted = false;
+    }
+};
+
+SensorListener.prototype.setListener = function (successCallback) {
+    if (!this.callback) {
+        //call platform only if there was no listener registered
+        var result = native_.callSync('Sensor_setChangeListener', {'sensorType' : this.sensorType});
+        if (native_.isFailure(result)) {
+            throw native_.getErrorObject(result);
+        }
+    }
+    this.callback = successCallback;
+};
+
+SensorListener.prototype.unsetListener = function () {
+    if (this.callback) {
+        //unregister in platform only if there is callback registered
+        this.callback = undefined;
+        var result = native_.callSync('Sensor_unsetChangeListener', {'sensorType' : this.sensorType});
+        if (native_.isFailure(result)) {
+            throw native_.getErrorObject(result);
+        }
+    }
+};
+
+SensorListener.prototype.getData = function (successCallback, errorCallback) {
+    var thisObj = this;
+    if (!thisObj.isStarted) {
+        setTimeout(function() {
+            if (!T_.isNullOrUndefined(errorCallback)) {
+                errorCallback(new tizen.WebAPIException(
+                        tizen.WebAPIException.SERVICE_NOT_AVAILABLE_ERR,
+                        'Service is not available.'));
+            }
+        }, 0);
+    } else {
+        native_.call('Sensor_getData', { type : thisObj.sensorType },
+                function(result) {
+            if (native_.isFailure(result)) {
+                if(!T_.isNullOrUndefined(errorCallback)) {
+                    errorCallback(native_.getErrorObject(result));
+                }
+            } else {
+                successCallback(new thisObj.constructor(result));
+            }
+        });
+    }
+};
+
+var _supportedSensors = [];
+var _isChecked = false;
 var _sensorListeners = {
-    'LIGHT'       : { callback : undefined, constructor : undefined },
-    'MAGNETIC'    : { callback : undefined, constructor : undefined },
-    'PRESSURE'    : { callback : undefined, constructor : undefined },
-    'PROXIMITY'   : { callback : undefined, constructor : undefined },
-    'ULTRAVIOLET' : { callback : undefined, constructor : undefined }
-}
+    'LIGHT'       : {},
+    'MAGNETIC'    : {},
+    'PRESSURE'    : {},
+    'PROXIMITY'   : {},
+    'ULTRAVIOLET' : {}
+};
 
 var _listener = function(object) {
-    if (_sensorListeners[object.sensorType].callback) {
-        _sensorListeners[object.sensorType].callback(
-                new _sensorListeners[object.sensorType].constructor(object));
-    }
+    _sensorListeners[object.sensorType].tryCall(object);
 };
 
 var SENSOR_CHANGED_LISTENER = 'SensorChangedListener';
@@ -130,35 +211,11 @@ Sensor.prototype.start = function() {
        }
     ]);
 
-    if (!_startedSensors[this.sensorType]) {
-        // sensor not started
-        var type = this.sensorType;
-        native_.call('Sensor_start', {'sensorType' : type},
-            function(result) {
-                if (native_.isFailure(result)) {
-                    if(!T_.isNullOrUndefined(args.errorCallback)) {
-                        args.errorCallback(native_.getErrorObject(result));
-                    }
-                } else {
-                    _startedSensors[type] = true;
-                    args.successCallback();
-                }
-            }
-        );
-    } else {
-        // sensor is already started - just call success callback
-        setTimeout(function(){args.successCallback()}, 0);
-    }
+    _sensorListeners[this.sensorType].start(args.successCallback, args.errorCallback);
 };
 
 Sensor.prototype.stop = function() {
-    if (_startedSensors[this.sensorType]) {
-        var result = native_.callSync('Sensor_stop', {'sensorType' : this.sensorType});
-        if (native_.isFailure(result)) {
-            throw native_.getErrorObject(result);
-        }
-        _startedSensors[this.sensorType] = false;
-    }
+    _sensorListeners[this.sensorType].stop();
 };
 
 Sensor.prototype.setChangeListener = function() {
@@ -169,25 +226,11 @@ Sensor.prototype.setChangeListener = function() {
        }
     ]);
 
-    if (!_sensorListeners[this.sensorType].callback) {
-        //call platform only if there was no listener registered
-        var result = native_.callSync('Sensor_setChangeListener', {'sensorType' : this.sensorType});
-        if (native_.isFailure(result)) {
-            throw native_.getErrorObject(result);
-        }
-    }
-    _sensorListeners[this.sensorType].callback = args.successCallback;
+    _sensorListeners[this.sensorType].setListener(args.successCallback);
 };
 
 Sensor.prototype.unsetChangeListener = function() {
-    if (_sensorListeners[this.sensorType].callback) {
-        //unregister in platform only if there is callback registered
-        _sensorListeners[this.sensorType].callback = undefined;
-        var result = native_.callSync('Sensor_unsetChangeListener', {'sensorType' : this.sensorType});
-        if (native_.isFailure(result)) {
-            throw native_.getErrorObject(result);
-        }
-    }
+    _sensorListeners[this.sensorType].unsetListener();
 };
 
 //// LightSensor
@@ -213,26 +256,7 @@ LightSensor.prototype.getLightSensorData = function() {
        }
     ]);
 
-    if (!_startedSensors[this.sensorType]) {
-        setTimeout(function() {
-            if (!T_.isNullOrUndefined(args.errorCallback)) {
-                args.errorCallback(new tizen.WebAPIException(
-                        tizen.WebAPIException.SERVICE_NOT_AVAILABLE_ERR,
-                        'Service is not available.'));
-            }
-        }, 0);
-    } else {
-        native_.call('Sensor_getData', { type : this.sensorType },
-                function(result) {
-            if (native_.isFailure(result)) {
-                if(!T_.isNullOrUndefined(args.errorCallback)) {
-                    args.errorCallback(native_.getErrorObject(result));
-                }
-            } else {
-                args.successCallback(new SensorLightData(result));
-            }
-        });
-    }
+    _sensorListeners[this.sensorType].getData(args.successCallback, args.errorCallback);
 };
 
 //// MagneticSensor
@@ -258,26 +282,7 @@ MagneticSensor.prototype.getMagneticSensorData = function() {
        }
     ]);
 
-    if (!_startedSensors[this.sensorType]) {
-        setTimeout(function() {
-            if (!T_.isNullOrUndefined(args.errorCallback)) {
-                args.errorCallback(new tizen.WebAPIException(
-                        tizen.WebAPIException.SERVICE_NOT_AVAILABLE_ERR,
-                        'Service is not available.'));
-            }
-        }, 0);
-    } else {
-        native_.call('Sensor_getData', { type : this.sensorType },
-                function(result) {
-            if (native_.isFailure(result)) {
-                if(!T_.isNullOrUndefined(args.errorCallback)) {
-                    args.errorCallback(native_.getErrorObject(result));
-                }
-            } else {
-                args.successCallback(new SensorMagneticData(result));
-            }
-        });
-    }
+    _sensorListeners[this.sensorType].getData(args.successCallback, args.errorCallback);
 };
 
 //// PressureSensor
@@ -303,26 +308,7 @@ PressureSensor.prototype.getPressureSensorData = function() {
        }
     ]);
 
-    if (!_startedSensors[this.sensorType]) {
-        setTimeout(function() {
-            if (!T_.isNullOrUndefined(args.errorCallback)) {
-                args.errorCallback(new tizen.WebAPIException(
-                        tizen.WebAPIException.SERVICE_NOT_AVAILABLE_ERR,
-                        'Service is not available.'));
-            }
-        }, 0);
-    } else {
-        native_.call('Sensor_getData', { type : this.sensorType },
-                function(result) {
-            if (native_.isFailure(result)) {
-                if(!T_.isNullOrUndefined(args.errorCallback)) {
-                    args.errorCallback(native_.getErrorObject(result));
-                }
-            } else {
-                args.successCallback(new SensorPressureData(result));
-            }
-        });
-    }
+    _sensorListeners[this.sensorType].getData(args.successCallback, args.errorCallback);
 };
 
 //// ProximitySensor
@@ -348,26 +334,7 @@ ProximitySensor.prototype.getProximitySensorData = function() {
        }
     ]);
 
-    if (!_startedSensors[this.sensorType]) {
-        setTimeout(function() {
-            if (!T_.isNullOrUndefined(args.errorCallback)) {
-                args.errorCallback(new tizen.WebAPIException(
-                        tizen.WebAPIException.SERVICE_NOT_AVAILABLE_ERR,
-                        'Service is not available.'));
-            }
-        }, 0);
-    } else {
-        native_.call('Sensor_getData', { type : this.sensorType },
-                function(result) {
-            if (native_.isFailure(result)) {
-                if(!T_.isNullOrUndefined(args.errorCallback)) {
-                    args.errorCallback(native_.getErrorObject(result));
-                }
-            } else {
-                args.successCallback(new SensorProximityData(result));
-            }
-        });
-    }
+    _sensorListeners[this.sensorType].getData(args.successCallback, args.errorCallback);
 };
 
 //// UltravioletSensor
@@ -393,26 +360,7 @@ UltravioletSensor.prototype.getUltravioletSensorData = function() {
        }
     ]);
 
-    if (!_startedSensors[this.sensorType]) {
-        setTimeout(function() {
-            if (!T_.isNullOrUndefined(args.errorCallback)) {
-                args.errorCallback(new tizen.WebAPIException(
-                        tizen.WebAPIException.SERVICE_NOT_AVAILABLE_ERR,
-                        'Service is not available.'));
-            }
-        }, 0);
-    } else {
-        native_.call('Sensor_getData', { type : this.sensorType },
-                function(result) {
-            if (native_.isFailure(result)) {
-                if(!T_.isNullOrUndefined(args.errorCallback)) {
-                    args.errorCallback(native_.getErrorObject(result));
-                }
-            } else {
-                args.successCallback(new SensorUltravioletData(result));
-            }
-        });
-    }
+    _sensorListeners[this.sensorType].getData(args.successCallback, args.errorCallback);
 };
 
 ////////////////////// Sensor Data classes/////////////////////////////////////////////////////
@@ -432,7 +380,8 @@ SensorLightData.prototype = new SensorData();
 
 SensorLightData.prototype.constructor = SensorData;
 
-_sensorListeners[SensorType.LIGHT].constructor = SensorLightData;
+_sensorListeners[SensorType.LIGHT] = new SensorListener(SensorType.LIGHT,
+        SensorLightData);
 
 //// SensorMagneticData
 var SensorMagneticData = function(data) {
@@ -449,7 +398,8 @@ SensorMagneticData.prototype = new SensorData();
 
 SensorMagneticData.prototype.constructor = SensorData;
 
-_sensorListeners[SensorType.MAGNETIC].constructor = SensorMagneticData;
+_sensorListeners[SensorType.MAGNETIC] = new SensorListener(SensorType.MAGNETIC,
+        SensorMagneticData);
 
 //// SensorPressureData
 var SensorPressureData = function(data) {
@@ -463,7 +413,8 @@ SensorPressureData.prototype = new SensorData();
 
 SensorPressureData.prototype.constructor = SensorData;
 
-_sensorListeners[SensorType.PRESSURE].constructor = SensorPressureData;
+_sensorListeners[SensorType.PRESSURE] = new SensorListener(SensorType.PRESSURE,
+        SensorPressureData);
 
 //// SensorProximityData
 var SensorProximityData = function(data) {
@@ -477,7 +428,8 @@ SensorProximityData.prototype = new SensorData();
 
 SensorProximityData.prototype.constructor = SensorData;
 
-_sensorListeners[SensorType.PROXIMITY].constructor = SensorProximityData;
+_sensorListeners[SensorType.PROXIMITY] = new SensorListener(SensorType.PROXIMITY,
+        SensorProximityData);
 
 //// SensorUltravioletData
 var SensorUltravioletData = function(data) {
@@ -492,7 +444,8 @@ SensorUltravioletData.prototype = new SensorData();
 
 SensorUltravioletData.prototype.constructor = SensorData;
 
-_sensorListeners[SensorType.ULTRAVIOLET].constructor = SensorUltravioletData;
+_sensorListeners[SensorType.ULTRAVIOLET] = new SensorListener(SensorType.ULTRAVIOLET,
+        SensorUltravioletData);
 
 // Exports
 exports = new SensorService();

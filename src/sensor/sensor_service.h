@@ -16,10 +16,16 @@ namespace sensor {
 typedef void (*CallbackPtr)(sensor_h sensor, sensor_event_s *event, void *user_data);
 
 class SensorService {
-  typedef struct {
-    sensor_h handle;
-    sensor_listener_h listener;
-  } SensorData;
+  class SensorData {
+   public:
+    SensorData(sensor_type_e type_enum);
+    ~SensorData();
+
+    common::PlatformResult CheckInitialization();
+    sensor_h handle_;
+    sensor_listener_h listener_;
+    sensor_type_e type_enum_;
+  };
 
  public:
   static SensorService* GetInstance();
@@ -36,7 +42,6 @@ class SensorService {
   std::string GetSensorErrorMessage(const int error_code);
   common::PlatformResult GetSensorPlatformResult(const int error_code, const std::string &hint);
 
-  common::PlatformResult CheckSensorInitialization(sensor_type_e type_enum);
   SensorData* GetSensorStruct(sensor_type_e type_enum);
   CallbackPtr GetCallbackFunction(sensor_type_e type_enum);
 
