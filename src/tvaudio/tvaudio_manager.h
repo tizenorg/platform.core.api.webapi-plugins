@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+#include <glib.h>
 #include <atomic>
 #include <map>
 #include <memory>
@@ -43,6 +44,7 @@ class AudioControlManager {
     void registerVolumeChangeListener(VolumeChangeListener* listener);
     void unregisterVolumeChangeListener();
     static void volumeChangeCallback(unsigned int volume, void* user_data);
+    static gboolean onVolumeChange(gpointer user_data);
 
     // Non-copyable, -assignable, -movable
     AudioControlManager(const AudioControlManager &) = delete;

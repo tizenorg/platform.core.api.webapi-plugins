@@ -10,8 +10,6 @@
 #include <sound_manager.h>
 #include <sound_manager_product.h>
 
-#include <glib.h>
-
 #include <fstream> // NOLINT (readability/streams)
 // this flag is no longer enforced in the newest cpplint.py
 
@@ -175,10 +173,17 @@ void AudioControlManager::volumeChangeCallback(
         unsigned int /*volume*/,
         void* /*user_data*/) {
     LOGD("Enter");
+    if (!g_idle_add(onVolumeChange, NULL)) {
+        LOGW("Failed to add to g_idle");
+    }
+}
+
+gboolean AudioControlManager::onVolumeChange(gpointer /*user_data*/) {
+    LOGD("Enter");
     try {
         if (!getInstance().m_volume_change_listener) {
             LOGD("Listener is null. Ignoring");
-            return;
+            return G_SOURCE_REMOVE;
         }
         u_int16_t val;
         try {
@@ -190,6 +195,7 @@ void AudioControlManager::volumeChangeCallback(
     } catch (...) {
         LOGE("Failed to call callback");
     }
+    return G_SOURCE_REMOVE;
 }
 
 /**
