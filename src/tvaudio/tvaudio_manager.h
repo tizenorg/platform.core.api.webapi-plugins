@@ -14,6 +14,7 @@
 
 
 #include <sys/types.h>
+#include "common/platform_result.h"
 
 namespace extension {
 namespace tvaudio {
@@ -33,16 +34,16 @@ class VolumeChangeListener {
 
 class AudioControlManager {
  public:
-    void setMute(bool mute);
-    bool isMute();
-    void setVolume(u_int16_t volume);
-    void setVolumeUp();
-    void setVolumeDown();
-    bool playSound(const std::string &type);
-    u_int16_t getVolume();
-    AudioOutputMode getOutputMode();
-    void registerVolumeChangeListener(VolumeChangeListener* listener);
-    void unregisterVolumeChangeListener();
+    common::PlatformResult setMute(bool mute);
+    common::PlatformResult isMute(bool &isMute);
+    common::PlatformResult setVolume(u_int16_t volume);
+    common::PlatformResult setVolumeUp();
+    common::PlatformResult setVolumeDown();
+    common::PlatformResult playSound(const std::string &type);
+    common::PlatformResult getVolume(u_int16_t &volume);
+    common::PlatformResult getOutputMode(AudioOutputMode mode);
+    common::PlatformResult registerVolumeChangeListener(VolumeChangeListener* listener);
+    common::PlatformResult unregisterVolumeChangeListener();
     static void volumeChangeCallback(unsigned int volume, void* user_data);
     static gboolean onVolumeChange(gpointer user_data);
 
