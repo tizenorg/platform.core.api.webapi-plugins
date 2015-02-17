@@ -13,6 +13,9 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#define _XOPEN_SOURCE 500
+#include <ftw.h>
+#undef _XOPEN_SOURCE
 
 #include "common/logger.h"
 #include "common/scope_exit.h"
@@ -22,6 +25,14 @@ namespace extension {
 namespace filesystem {
 
 namespace {
+
+int unlink_cb(const char *fpath, const struct stat *sb, int typeflag, struct FTW *ftwbuf)
+{
+  int result = remove(fpath);
+  if (result)
+    LoggerE("error occured");
+  return result;
+}
 
 bool fetch_storages_cb(int storage_id,
                        storage_type_e type,
@@ -263,6 +274,19 @@ void FilesystemManager::UnlinkFile(
       return;
   }
   success_cb();
+}
+
+void FilesystemManager::RemoveDirectory(
+        const std::string& path,
+        const std::function<void()>& success_cb,
+        const std::function<void(FilesystemError)>& error_cb) {
+  const int maxDirOpened = 64;
+  if (nftw(path.c_str(), unlink_cb, maxDirOpened, FTW_DEPTH | FTW_PHYS) != 0) {
+    LoggerE("Error occured");
+    error_cb(FilesystemError::Other);
+  }
+  success_cb();
+  return;
 }
 }  // namespace filesystem
 }  // namespace extension

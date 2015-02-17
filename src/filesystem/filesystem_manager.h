@@ -57,6 +57,11 @@ class FilesystemManager {
           const std::string& path,
           const std::function<void(const std::vector<std::string>&)>& success_cb,
           const std::function<void(FilesystemError)>& error_cb);
+
+  void RemoveDirectory(
+          const std::string& path,
+          const std::function<void()>& success_cb,
+          const std::function<void(FilesystemError)>& error_cb);
 };
 }  // namespace filesystem
 }  // namespace extension
