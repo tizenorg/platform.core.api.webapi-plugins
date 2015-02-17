@@ -48,20 +48,20 @@ typedef std::vector<unsigned char> UCharVector;
 
 class NFCUtil
 {
-public:
-    static UCharVector toVector(const unsigned char *ch, const int size);
-    static void throwNFCException(const int errorCode, const char * message);
-    static std::string getNFCErrorString(const int error_code);
-    static std::string getNFCErrorMessage(const int error_code);
-    static std::string toStringNFCTag(const nfc_tag_type_e tag_type);
-    static nfc_tag_type_e toNfcTagString(const std::string& type_string);
-    static std::string toStringCardEmulationMode(
-        const nfc_se_card_emulation_mode_type_e mode);
-    static nfc_se_card_emulation_mode_type_e toCardEmulationMode(
-        const std::string& mode_string);
-    static std::string toStringSecureElementType(const nfc_se_type_e type);
-    static nfc_se_type_e toSecureElementType(const std::string& type_string);
-    static void setDefaultFilterValues(std::vector<nfc_tag_type_e>& filter);
+ public:
+  static UCharVector toVector(const unsigned char *ch, const int size);
+  static void throwNFCException(const int errorCode, const char * message);
+  static std::string getNFCErrorString(const int error_code);
+  static std::string getNFCErrorMessage(const int error_code);
+  static std::string toStringNFCTag(const nfc_tag_type_e tag_type);
+  static nfc_tag_type_e toNfcTagString(const std::string& type_string);
+  static std::string toStringCardEmulationMode(
+      const nfc_se_card_emulation_mode_type_e mode);
+  static nfc_se_card_emulation_mode_type_e toCardEmulationMode(
+      const std::string& mode_string);
+  static std::string toStringSecureElementType(const nfc_se_type_e type);
+  static nfc_se_type_e toSecureElementType(const std::string& type_string);
+  static void setDefaultFilterValues(std::vector<nfc_tag_type_e>& filter);
 };
 
 } // nfc

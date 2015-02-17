@@ -9,26 +9,26 @@
 extern const char kSource_nfc_api[];
 
 common::Extension* CreateExtension() {
-    return new NFCExtension;
+  return new NFCExtension;
 }
 
 NFCExtension::NFCExtension() {
-    SetExtensionName("tizen.nfc");
-    SetJavaScriptAPI(kSource_nfc_api);
+  SetExtensionName("tizen.nfc");
+  SetJavaScriptAPI(kSource_nfc_api);
 
-    const char* entry_points[] = {
-            "tizen.NDEFMessage",
-            "tizen.NDEFRecord",
-            "tizen.NDEFRecordText",
-            "tizen.NDEFRecordURI",
-            "tizen.NDEFRecordMedia",
-            NULL
-    };
-    SetExtraJSEntryPoints(entry_points);
+  const char* entry_points[] = {
+      "tizen.NDEFMessage",
+      "tizen.NDEFRecord",
+      "tizen.NDEFRecordText",
+      "tizen.NDEFRecordURI",
+      "tizen.NDEFRecordMedia",
+      NULL
+  };
+  SetExtraJSEntryPoints(entry_points);
 }
 
 NFCExtension::~NFCExtension() {}
 
 common::Instance* NFCExtension::CreateInstance() {
-    return &extension::nfc::NFCInstance::getInstance();;
+  return &extension::nfc::NFCInstance::getInstance();;
 }

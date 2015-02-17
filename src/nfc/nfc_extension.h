@@ -8,12 +8,12 @@
 #include "common/extension.h"
 
 class NFCExtension : public common::Extension {
-public:
-    NFCExtension();
-    virtual ~NFCExtension();
-private:
-    // common::Extension implementation.
-    virtual common::Instance* CreateInstance();
+ public:
+  NFCExtension();
+  virtual ~NFCExtension();
+ private:
+  // common::Extension implementation.
+  virtual common::Instance* CreateInstance();
 };
 
 #endif  // NFC_NFC_EXTENSION_H_
