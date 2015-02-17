@@ -18,6 +18,7 @@ class FilesystemInstance : public common::ParsedInstance {
 
  private:
   void FileCreateSync(const picojson::value& args, picojson::object& out);
+  void FileRename(const picojson::value& args, picojson::object& out);
   void FileStat(const picojson::value& args, picojson::object& out);
   void FileStatSync(const picojson::value& args, picojson::object& out);
   void FilesystemGetWidgetPaths(const picojson::value& args,

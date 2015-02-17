@@ -33,6 +33,7 @@ FilesystemInstance::FilesystemInstance() {
   REGISTER_ASYNC("File_stat", FileStat);
   REGISTER_SYNC("File_statSync", FileStatSync);
   REGISTER_SYNC("File_createSync", FileCreateSync);
+  REGISTER_ASYNC("File_rename", FileRename);
   REGISTER_SYNC("Filesystem_getWidgetPaths", FilesystemGetWidgetPaths);
   REGISTER_SYNC("FileSystemManager_fetchStorages",
                 FileSystemManagerFetchStorages);
@@ -66,6 +67,40 @@ void FilesystemInstance::FileCreateSync(const picojson::value& args, picojson::o
   };
 
   FilesystemManager::GetInstance().CreateFile(location, onSuccess, onError);
+}
+
+void FilesystemInstance::FileRename(const picojson::value& args,
+                                    picojson::object& out) {
+  LoggerD("enter");
+  CHECK_EXIST(args, "callbackId", out)
+  CHECK_EXIST(args, "oldPath", out)
+  CHECK_EXIST(args, "newPath", out)
+
+  double callback_id = args.get("callbackId").get<double>();
+  const std::string& oldPath = args.get("oldPath").get<std::string>();
+  const std::string& newPath = args.get("newPath").get<std::string>();
+
+  auto onSuccess = [this, callback_id](const FilesystemStat& data) {
+    LoggerD("enter");
+    picojson::value response = picojson::value(picojson::object());
+    picojson::object& obj = response.get<picojson::object>();
+    obj["callbackId"] = picojson::value(callback_id);
+    ReportSuccess(data.toJSON(), obj);
+    PostMessage(response.serialize().c_str());
+  };
+
+  auto onError = [this, callback_id](FilesystemError e) {
+    LoggerD("enter");
+    picojson::value response = picojson::value(picojson::object());
+    picojson::object& obj = response.get<picojson::object>();
+    obj["callbackId"] = picojson::value(callback_id);
+    PrepareError(e, obj);
+    PostMessage(response.serialize().c_str());
+  };
+
+  FilesystemManager& fsm = FilesystemManager::GetInstance();
+  common::TaskQueue::GetInstance().Async(std::bind(
+      &FilesystemManager::Rename, &fsm, oldPath, newPath, onSuccess, onError));
 }
 
 void FilesystemInstance::FileStat(const picojson::value& args,

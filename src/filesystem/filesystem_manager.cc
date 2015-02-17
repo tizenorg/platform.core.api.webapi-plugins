@@ -9,6 +9,7 @@
 #include <storage-expand.h>
 #include <storage.h>
 #include <fcntl.h>
+#include <unistd.h>
 
 #include "common/logger.h"
 #include "common/scope_exit.h"
@@ -35,7 +36,7 @@ bool fetch_storages_cb(int storage_id,
   result->push_back(FilesystemStorage(storage_id, type, state, path));
   return true;
 }
-}
+}  // namespace
 
 void FilesystemManager::FetchStorages(
     const std::function<void(const std::vector<FilesystemStorage>&)>&
@@ -156,6 +157,27 @@ void FilesystemManager::CreateFile(
     success_cb(stat);
   } else {
     LoggerE("Cannot create stat data!");
+    error_cb(FilesystemError::Other);
+  }
+}
+
+void FilesystemManager::Rename(
+    const std::string& oldPath,
+    const std::string& newPath,
+    const std::function<void(const FilesystemStat&)>& success_cb,
+    const std::function<void(FilesystemError)>& error_cb) {
+
+  int status = rename(oldPath.c_str(), newPath.c_str());
+  if (0 == status) {
+    FilesystemStat fileStat = FilesystemStat::getStat(newPath);
+    if (fileStat.valid) {
+      success_cb(FilesystemStat::getStat(newPath));
+    } else {
+      LoggerE("Cannot perform stat on new path!");
+      error_cb(FilesystemError::Other);
+    }
+  } else {
+    LoggerE("Cannot rename file: %s", strerror(errno));
     error_cb(FilesystemError::Other);
   }
 }

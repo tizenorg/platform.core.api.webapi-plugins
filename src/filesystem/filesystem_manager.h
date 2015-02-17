@@ -39,6 +39,11 @@ class FilesystemManager {
   void CreateFile(const std::string& path,
                   const std::function<void(const FilesystemStat&)>& success_cb,
                   const std::function<void(FilesystemError)>& error_cb);
+
+  void Rename(const std::string& oldPath,
+              const std::string& newPath,
+              const std::function<void(const FilesystemStat&)>& success_cb,
+              const std::function<void(FilesystemError)>& error_cb);
 };
 }  // namespace filesystem
 }  // namespace extension
