@@ -20,8 +20,10 @@ class WebSettingInstance : public common::ParsedInstance {
   virtual ~WebSettingInstance();
 
  private:
-  void WebSettingManagerSetUserAgentString(const picojson::value& args, picojson::object& out);
-  void WebSettingManagerRemoveAllCookies(const picojson::value& args, picojson::object& out);
+  void WebSettingManagerSetUserAgentString(const picojson::value& args,
+                                           picojson::object& out);
+  void WebSettingManagerRemoveAllCookies(const picojson::value& args,
+                                         picojson::object& out);
 
   WebSettingExtension* extension_;
 };

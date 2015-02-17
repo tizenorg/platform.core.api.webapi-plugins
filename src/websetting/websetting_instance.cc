@@ -14,7 +14,8 @@
 
 namespace {
 // The privileges that required in Websetting API
-const std::string kPrivilegeWebsetting = "http://tizen.org/privilege/websetting";
+const std::string kPrivilegeWebsetting =
+    "http://tizen.org/privilege/websetting";
 
 const char kWrtServiceName[] = "wrt-service";
 }  // namespace
@@ -29,11 +30,15 @@ typedef picojson::object JsonObject;
 typedef picojson::array JsonArray;
 typedef std::string JsonString;
 
-WebSettingInstance::WebSettingInstance(WebSettingExtension* extension) : extension_(extension) {
+WebSettingInstance::WebSettingInstance(WebSettingExtension* extension)
+    : extension_(extension) {
   using namespace std::placeholders;
-#define REGISTER_ASYNC(c, x) RegisterHandler(c, std::bind(&WebSettingInstance::x, this, _1, _2));
-  REGISTER_ASYNC("WebSettingManager_setUserAgentString", WebSettingManagerSetUserAgentString);
-  REGISTER_ASYNC("WebSettingManager_removeAllCookies", WebSettingManagerRemoveAllCookies);
+#define REGISTER_ASYNC(c, x) \
+  RegisterHandler(c, std::bind(&WebSettingInstance::x, this, _1, _2));
+  REGISTER_ASYNC("WebSettingManager_setUserAgentString",
+                 WebSettingManagerSetUserAgentString);
+  REGISTER_ASYNC("WebSettingManager_removeAllCookies",
+                 WebSettingManagerRemoveAllCookies);
 #undef REGISTER_ASYNC
 }
 

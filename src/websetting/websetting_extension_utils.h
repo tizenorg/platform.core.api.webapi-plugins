@@ -17,25 +17,29 @@ std::unique_ptr<picojson::value> CreateResultMessage() {
   return std::unique_ptr<picojson::value>(new picojson::value(obj));
 }
 
-std::unique_ptr<picojson::value> CreateResultMessage(const common::ErrorCode& error) {
+std::unique_ptr<picojson::value> CreateResultMessage(
+    const common::ErrorCode& error) {
   picojson::object obj;
   obj["error"] = picojson::value(static_cast<double>(error));
   return std::unique_ptr<picojson::value>(new picojson::value(obj));
 }
 
-std::unique_ptr<picojson::value> CreateResultMessage(const picojson::object& data) {
+std::unique_ptr<picojson::value> CreateResultMessage(
+    const picojson::object& data) {
   picojson::object obj;
   obj["data"] = picojson::value(data);
   return std::unique_ptr<picojson::value>(new picojson::value(obj));
 }
 
-std::unique_ptr<picojson::value> CreateResultMessage(const picojson::array& data) {
+std::unique_ptr<picojson::value> CreateResultMessage(
+    const picojson::array& data) {
   picojson::object obj;
   obj["data"] = picojson::value(data);
   return std::unique_ptr<picojson::value>(new picojson::value(obj));
 }
 
-std::unique_ptr<picojson::value> CreateResultMessage(const picojson::value& data) {
+std::unique_ptr<picojson::value> CreateResultMessage(
+    const picojson::value& data) {
   picojson::object obj;
   obj["data"] = data;
   return std::unique_ptr<picojson::value>(new picojson::value(obj));
