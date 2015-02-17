@@ -148,7 +148,7 @@ TVChannelManager.prototype.tune = function(tuneOption, successCallback, errorCal
   ]);
   native.addListener(PROGRAMINFO_LISTENER, function(msg) {
     if (validatorType.isFunction(data.callback.onprograminforeceived)) {
-      data.callback.onprograminforeceived(new ProgramInfo(msg.program), msg.type);
+      data.callback.onprograminforeceived(new ProgramInfo(msg.program), msg.windowType);
     }
   });
   native.call('TVChannelManager_tune', {
@@ -165,7 +165,7 @@ TVChannelManager.prototype.tune = function(tuneOption, successCallback, errorCal
       }
     } else if (msg.success) {
       if (validatorType.isFunction(data.callback.onsuccess)) {
-        data.callback.onsuccess(new ChannelInfo(msg.channel), msg.type);
+        data.callback.onsuccess(new ChannelInfo(msg.channel), msg.windowType);
       }
     }
   });
@@ -201,7 +201,7 @@ function tuneUpDown(args, methodName) {
   ]);
   native.addListener(PROGRAMINFO_LISTENER, function(msg) {
     if (validatorType.isFunction(data.callback.onprograminforeceived)) {
-      data.callback.onprograminforeceived(new ProgramInfo(msg.program), msg.type);
+      data.callback.onprograminforeceived(new ProgramInfo(msg.program), msg.windowType);
     }
   });
   native.call(methodName, {
@@ -218,7 +218,7 @@ function tuneUpDown(args, methodName) {
       }
     } else if (msg.success) {
       if (validatorType.isFunction(data.callback.onsuccess)) {
-        data.callback.onsuccess(new ChannelInfo(msg.channel), msg.type);
+        data.callback.onsuccess(new ChannelInfo(msg.channel), msg.windowType);
       }
     }
   });
