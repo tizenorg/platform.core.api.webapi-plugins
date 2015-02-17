@@ -23,6 +23,10 @@ class FilesystemInstance : public common::ParsedInstance,
   void FileRename(const picojson::value& args, picojson::object& out);
   void FileStat(const picojson::value& args, picojson::object& out);
   void FileStatSync(const picojson::value& args, picojson::object& out);
+  void FileRead(const picojson::value& args, picojson::object& out);
+  void FileReadSync(const picojson::value& args, picojson::object& out);
+  void FileWrite(const picojson::value& args, picojson::object& out);
+  void FileWriteSync(const picojson::value& args, picojson::object& out);
   void FilesystemGetWidgetPaths(const picojson::value& args,
                                 picojson::object& out);
   void FileSystemManagerFetchStorages(const picojson::value& args,

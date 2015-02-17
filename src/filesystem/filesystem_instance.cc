@@ -35,6 +35,10 @@ FilesystemInstance::FilesystemInstance() {
   REGISTER_SYNC("File_createSync", FileCreateSync);
   REGISTER_ASYNC("File_readDir", ReadDir);
   REGISTER_ASYNC("File_rename", FileRename);
+  REGISTER_ASYNC("File_read", FileRead);
+  REGISTER_SYNC("File_readSync", FileReadSync);
+  REGISTER_ASYNC("File_write", FileWrite);
+  REGISTER_SYNC("File_writeSync", FileWriteSync);
   REGISTER_SYNC("Filesystem_getWidgetPaths", FilesystemGetWidgetPaths);
   REGISTER_SYNC("FileSystemManager_addStorageStateChangeListener",
                 StartListening);
@@ -112,6 +116,139 @@ void FilesystemInstance::FileRename(const picojson::value& args,
   FilesystemManager& fsm = FilesystemManager::GetInstance();
   common::TaskQueue::GetInstance().Async(std::bind(
       &FilesystemManager::Rename, &fsm, oldPath, newPath, onSuccess, onError));
+}
+
+void FilesystemInstance::FileRead(const picojson::value& args,
+                                  picojson::object& out) {
+  LoggerD("enter");
+  CHECK_EXIST(args, "callbackId", out)
+  CHECK_EXIST(args, "location", out)
+  CHECK_EXIST(args, "offset", out)
+  CHECK_EXIST(args, "length", out)
+
+  double callback_id = args.get("callbackId").get<double>();
+  const std::string& location = args.get("location").get<std::string>();
+  size_t offset = static_cast<size_t>(args.get("offset").get<double>());
+  size_t length = static_cast<size_t>(args.get("length").get<double>());
+
+  auto onSuccess = [this, callback_id](const std::string& data) {
+    LoggerD("enter");
+    picojson::value response = picojson::value(picojson::object());
+    picojson::object& obj = response.get<picojson::object>();
+    obj["callbackId"] = picojson::value(callback_id);
+    ReportSuccess(picojson::value(data), obj);
+    PostMessage(response.serialize().c_str());
+  };
+
+  auto onError = [this, callback_id](FilesystemError e) {
+    LoggerD("enter");
+    picojson::value response = picojson::value(picojson::object());
+    picojson::object& obj = response.get<picojson::object>();
+    obj["callbackId"] = picojson::value(callback_id);
+    PrepareError(e, obj);
+    PostMessage(response.serialize().c_str());
+  };
+
+  FilesystemManager& fsm = FilesystemManager::GetInstance();
+  common::TaskQueue::GetInstance().Async(std::bind(&FilesystemManager::FileRead,
+                                                   &fsm,
+                                                   location,
+                                                   offset,
+                                                   length,
+                                                   onSuccess,
+                                                   onError));
+}
+
+void FilesystemInstance::FileReadSync(const picojson::value& args,
+                                      picojson::object& out) {
+  LoggerD("enter");
+  CHECK_EXIST(args, "location", out)
+  CHECK_EXIST(args, "offset", out)
+  CHECK_EXIST(args, "length", out)
+
+  const std::string& location = args.get("location").get<std::string>();
+  size_t offset = static_cast<size_t>(args.get("offset").get<double>());
+  size_t length = static_cast<size_t>(args.get("length").get<double>());
+
+  auto onSuccess = [this, &out](const std::string& data) {
+    LoggerD("enter");
+    ReportSuccess(picojson::value(data), out);
+  };
+
+  auto onError = [this, &out](FilesystemError e) {
+    LoggerD("enter");
+    PrepareError(e, out);
+  };
+
+  FilesystemManager::GetInstance().FileRead(
+      location, offset, length, onSuccess, onError);
+}
+
+void FilesystemInstance::FileWrite(const picojson::value& args,
+                                   picojson::object& out) {
+  LoggerD("enter");
+  CHECK_EXIST(args, "callbackId", out)
+  CHECK_EXIST(args, "location", out)
+  CHECK_EXIST(args, "data", out)
+  CHECK_EXIST(args, "offset", out)
+
+  double callback_id = args.get("callbackId").get<double>();
+  const std::string& location = args.get("location").get<std::string>();
+  const std::string& data = args.get("data").get<std::string>();
+  size_t offset = static_cast<size_t>(args.get("location").get<double>());
+
+  auto onSuccess = [this, callback_id]() {
+    LoggerD("enter");
+    picojson::value response = picojson::value(picojson::object());
+    picojson::object& obj = response.get<picojson::object>();
+    obj["callbackId"] = picojson::value(callback_id);
+    ReportSuccess(obj);
+    PostMessage(response.serialize().c_str());
+  };
+
+  auto onError = [this, callback_id](FilesystemError e) {
+    LoggerD("enter");
+    picojson::value response = picojson::value(picojson::object());
+    picojson::object& obj = response.get<picojson::object>();
+    obj["callbackId"] = picojson::value(callback_id);
+    PrepareError(e, obj);
+    PostMessage(response.serialize().c_str());
+  };
+
+  FilesystemManager& fsm = FilesystemManager::GetInstance();
+  common::TaskQueue::GetInstance().Async(
+      std::bind(&FilesystemManager::FileWrite,
+                &fsm,
+                location,
+                data,
+                offset,
+                onSuccess,
+                onError));
+}
+
+void FilesystemInstance::FileWriteSync(const picojson::value& args,
+                                       picojson::object& out) {
+  LoggerD("enter");
+  CHECK_EXIST(args, "location", out)
+  CHECK_EXIST(args, "data", out)
+  CHECK_EXIST(args, "offset", out)
+
+  const std::string& location = args.get("location").get<std::string>();
+  const std::string& data = args.get("data").get<std::string>();
+  size_t offset = static_cast<size_t>(args.get("offset").get<double>());
+
+  auto onSuccess = [this, &out]() {
+    LoggerD("enter");
+    ReportSuccess(out);
+  };
+
+  auto onError = [this, &out](FilesystemError e) {
+    LoggerD("enter");
+    PrepareError(e, out);
+  };
+
+  FilesystemManager::GetInstance().FileWrite(
+      location, data, offset, onSuccess, onError);
 }
 
 void FilesystemInstance::FileStat(const picojson::value& args,

@@ -20,6 +20,7 @@
 #include "common/logger.h"
 #include "common/scope_exit.h"
 #include "common/extension.h"
+#include "filesystem_file.h"
 
 namespace extension {
 namespace filesystem {
@@ -34,12 +35,15 @@ void storage_cb(int storage_id, storage_state_e state, void* user_data) {
     storage_get_type(storage_id, &type);
     listener->onFilesystemStateChangeSuccessCallback(
         std::to_string(type) + std::to_string(storage_id),
-        std::to_string(state), std::to_string(type));
+        std::to_string(state),
+        std::to_string(type));
   }
 }
 
-int unlink_cb(const char *fpath, const struct stat *sb, int typeflag, struct FTW *ftwbuf)
-{
+int unlink_cb(const char* fpath,
+              const struct stat* sb,
+              int typeflag,
+              struct FTW* ftwbuf) {
   int result = remove(fpath);
   if (result)
     LoggerE("error occured");
@@ -101,7 +105,7 @@ void FilesystemManager::FetchStorages(
   if (STORAGE_ERROR_NONE !=
       storage_foreach_device_supported(fetch_storages_cb, &result))
     error_cb(FilesystemError::Other);
-  for(auto storage : result) {
+  for (auto storage : result) {
     ids_.insert(storage.storage_id);
   }
   success_cb(result);
@@ -256,22 +260,23 @@ void FilesystemManager::Rename(
 }
 
 void FilesystemManager::ReadDir(
-        const std::string& path,
-        const std::function<void(const std::vector<std::string>&)>& success_cb,
-        const std::function<void(FilesystemError)>& error_cb) {
+    const std::string& path,
+    const std::function<void(const std::vector<std::string>&)>& success_cb,
+    const std::function<void(FilesystemError)>& error_cb) {
   LoggerD("entered");
 
   std::vector<std::string> fileList;
-  DIR *dp = nullptr;
+  DIR* dp = nullptr;
   struct dirent entry;
-  struct dirent *result = nullptr;
+  struct dirent* result = nullptr;
   int status = 0;
 
   dp = opendir(path.c_str());
   if (dp != NULL) {
-    while ((status = readdir_r(dp, &entry, &result)) == 0 && result != nullptr) {
-        if (strcmp(result->d_name, ".") != 0 && strcmp(result->d_name, "..") != 0)
-          fileList.push_back(path + "/" + std::string(result->d_name));
+    while ((status = readdir_r(dp, &entry, &result)) == 0 &&
+           result != nullptr) {
+      if (strcmp(result->d_name, ".") != 0 && strcmp(result->d_name, "..") != 0)
+        fileList.push_back(path + "/" + std::string(result->d_name));
     }
     (void)closedir(dp);
     if (status == 0) {
@@ -288,21 +293,21 @@ void FilesystemManager::ReadDir(
 }
 
 void FilesystemManager::UnlinkFile(
-        const std::string& path,
-        const std::function<void()>& success_cb,
-        const std::function<void(FilesystemError)>& error_cb) {
+    const std::string& path,
+    const std::function<void()>& success_cb,
+    const std::function<void(FilesystemError)>& error_cb) {
   if (unlink(path.c_str()) != 0) {
-      LoggerE("Error occured while deleting file");
-      error_cb(FilesystemError::Other);
-      return;
+    LoggerE("Error occured while deleting file");
+    error_cb(FilesystemError::Other);
+    return;
   }
   success_cb();
 }
 
 void FilesystemManager::RemoveDirectory(
-        const std::string& path,
-        const std::function<void()>& success_cb,
-        const std::function<void(FilesystemError)>& error_cb) {
+    const std::string& path,
+    const std::function<void()>& success_cb,
+    const std::function<void(FilesystemError)>& error_cb) {
   const int maxDirOpened = 64;
   if (nftw(path.c_str(), unlink_cb, maxDirOpened, FTW_DEPTH | FTW_PHYS) != 0) {
     LoggerE("Error occured");
@@ -311,6 +316,50 @@ void FilesystemManager::RemoveDirectory(
   success_cb();
   return;
 }
+
+void FilesystemManager::FileRead(
+    const std::string& path,
+    size_t offset,
+    size_t length,
+    const std::function<void(const std::string&)>& success_cb,
+    const std::function<void(FilesystemError)>& error_cb) {
+
+  FilesystemFile file(path);
+  FilesystemBuffer buffer;
+  if (!file.Read(&buffer, offset, length)) {
+    LoggerE("Cannot read file %s", path.c_str());
+    error_cb(FilesystemError::Other);
+    return;
+  }
+
+  std::string out_data = buffer.EncodeData();
+  success_cb(out_data);
+}
+
+void FilesystemManager::FileWrite(
+    const std::string& path,
+    const std::string& data,
+    size_t offset,
+    const std::function<void()>& success_cb,
+    const std::function<void(FilesystemError)>& error_cb) {
+
+  FilesystemFile file(path);
+  FilesystemBuffer buffer;
+  // Decode buffer data
+  if (!buffer.DecodeData(data)) {
+    LoggerE("Cannot decode file data!");
+    error_cb(FilesystemError::Other);
+    return;
+  }
+
+  if (file.Write(buffer, offset)) {
+    success_cb();
+  } else {
+    LoggerE("Cannot write to file %s!", path.c_str());
+    error_cb(FilesystemError::Other);
+  }
+}
+
 void FilesystemManager::StartListening() {
   LoggerD("enter");
 

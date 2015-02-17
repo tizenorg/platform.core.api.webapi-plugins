@@ -63,7 +63,7 @@ class FilesystemManager {
 
   void MakeDirectory(const std::string& path,
                      const std::function<void(FilesystemError)>& result_cb);
-  
+
   void ReadDir(
           const std::string& path,
           const std::function<void(const std::vector<std::string>&)>& success_cb,
@@ -73,6 +73,19 @@ class FilesystemManager {
           const std::string& path,
           const std::function<void()>& success_cb,
           const std::function<void(FilesystemError)>& error_cb);
+
+  void FileRead(const std::string& path,
+                size_t offset,
+                size_t length,
+                const std::function<void(const std::string&)>& success_cb,
+                const std::function<void(FilesystemError)>& error_cb);
+
+  void FileWrite(const std::string& path,
+                 const std::string& data,
+                 size_t offset,
+                 const std::function<void()>& success_cb,
+                 const std::function<void(FilesystemError)>& error_cb);
+
   void StartListening();
   void StopListening();
   void AddListener(FilesystemStateChangeListener* listener);

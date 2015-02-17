@@ -16,6 +16,8 @@
         'filesystem_api.js',
         'filesystem_extension.cc',
         'filesystem_extension.h',
+        'filesystem_file.cc',
+        'filesystem_file.h',
         'filesystem_instance.cc',
         'filesystem_instance.h',
         'filesystem_manager.cc',
