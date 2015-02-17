@@ -41,6 +41,7 @@ FilesystemInstance::FilesystemInstance() {
   REGISTER_ASYNC("FileSystemManager_mkdir", FileSystemManagerMakeDirectory);
   REGISTER_SYNC("FileSystemManager_mkdirSync",
                 FileSystemManagerMakeDirectorySync);
+  REGISTER_ASYNC("File_unlinkFile", UnlinkFile);
 #undef REGISTER_SYNC
 #undef REGISTER_ASYNC
 }
@@ -281,6 +282,38 @@ void FilesystemInstance::ReadDir(const picojson::value& args,
   FilesystemManager& fm = FilesystemManager::GetInstance();
   common::TaskQueue::GetInstance().Async(std::bind(
       &FilesystemManager::ReadDir, &fm, pathToDir, onSuccess, onError));
+}
+
+void FilesystemInstance::UnlinkFile(const picojson::value& args,
+                                  picojson::object& out) {
+  LoggerD("enter");
+  CHECK_EXIST(args, "pathToFile", out)
+
+  double callback_id = args.get("callbackId").get<double>();
+  const std::string& pathToFile = args.get("pathToFile").get<std::string>();
+
+  auto onSuccess = [this, callback_id]() {
+    LoggerD("enter");
+    picojson::value result = picojson::value();
+    picojson::value response = picojson::value(picojson::object());
+    picojson::object& obj = response.get<picojson::object>();
+    obj["callbackId"] = picojson::value(callback_id);
+    ReportSuccess(result, obj);
+    PostMessage(response.serialize().c_str());
+  };
+
+  auto onError = [this, callback_id](FilesystemError e) {
+    LoggerD("enter");
+    picojson::value response = picojson::value(picojson::object());
+    picojson::object& obj = response.get<picojson::object>();
+    obj["callbackId"] = picojson::value(callback_id);
+    PrepareError(e, obj);
+    PostMessage(response.serialize().c_str());
+  };
+
+  FilesystemManager& fm = FilesystemManager::GetInstance();
+  common::TaskQueue::GetInstance().Async(std::bind(
+      &FilesystemManager::UnlinkFile, &fm, pathToFile, onSuccess, onError));
 }
 
 void FilesystemInstance::PrepareError(const FilesystemError& error, picojson::object& out)

@@ -252,5 +252,17 @@ void FilesystemManager::ReadDir(
     return;
   }
 }
+
+void FilesystemManager::UnlinkFile(
+        const std::string& path,
+        const std::function<void()>& success_cb,
+        const std::function<void(FilesystemError)>& error_cb) {
+  if (unlink(path.c_str()) != 0) {
+      LoggerE("Error occured while deleting file");
+      error_cb(FilesystemError::Other);
+      return;
+  }
+  success_cb();
+}
 }  // namespace filesystem
 }  // namespace extension

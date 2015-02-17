@@ -23,6 +23,11 @@ class FilesystemManager {
  public:
   static FilesystemManager& GetInstance();
 
+  void UnlinkFile(
+          const std::string& path,
+          const std::function<void()>& success_cb,
+          const std::function<void(FilesystemError)>& error_cb);
+
   void StatPath(const std::string& path,
                 const std::function<void(const FilesystemStat&)>& success_cb,
                 const std::function<void(FilesystemError)>& error_cb);
