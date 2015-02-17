@@ -47,6 +47,11 @@ class FilesystemManager {
 
   void MakeDirectory(const std::string& path,
                      const std::function<void(FilesystemError)>& result_cb);
+  
+  void ReadDir(
+          const std::string& path,
+          const std::function<void(const std::vector<std::string>&)>& success_cb,
+          const std::function<void(FilesystemError)>& error_cb);
 };
 }  // namespace filesystem
 }  // namespace extension

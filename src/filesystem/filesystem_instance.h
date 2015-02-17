@@ -29,6 +29,7 @@ class FilesystemInstance : public common::ParsedInstance {
                                       picojson::object& out);
   void FileSystemManagerMakeDirectorySync(const picojson::value& args,
                                           picojson::object& out);
+  void ReadDir(const picojson::value& args, picojson::object& out);
   void PrepareError(const FilesystemError& error, picojson::object& out);
 };
 

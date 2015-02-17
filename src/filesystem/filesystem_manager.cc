@@ -8,6 +8,7 @@
 #include <package_manager.h>
 #include <storage-expand.h>
 #include <storage.h>
+#include <dirent.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/stat.h>
@@ -217,6 +218,38 @@ void FilesystemManager::Rename(
   } else {
     LoggerE("Cannot rename file: %s", strerror(errno));
     error_cb(FilesystemError::Other);
+  }
+}
+
+void FilesystemManager::ReadDir(
+        const std::string& path,
+        const std::function<void(const std::vector<std::string>&)>& success_cb,
+        const std::function<void(FilesystemError)>& error_cb) {
+  LoggerD("entered");
+
+  std::vector<std::string> fileList;
+  DIR *dp = nullptr;
+  struct dirent entry;
+  struct dirent *result = nullptr;
+  int status = 0;
+
+  dp = opendir(path.c_str());
+  if (dp != NULL) {
+    while ((status = readdir_r(dp, &entry, &result)) == 0 && result != nullptr) {
+        if (strcmp(result->d_name, ".") != 0 && strcmp(result->d_name, "..") != 0)
+          fileList.push_back(path + "/" + std::string(result->d_name));
+    }
+    (void)closedir(dp);
+    if (status == 0) {
+      success_cb(fileList);
+    } else {
+      LoggerE("error occured");
+      error_cb(FilesystemError::Other);
+    }
+  } else {
+    LoggerE("Couldn't open the directory");
+    error_cb(FilesystemError::Other);
+    return;
   }
 }
 }  // namespace filesystem

@@ -33,6 +33,7 @@ FilesystemInstance::FilesystemInstance() {
   REGISTER_ASYNC("File_stat", FileStat);
   REGISTER_SYNC("File_statSync", FileStatSync);
   REGISTER_SYNC("File_createSync", FileCreateSync);
+  REGISTER_ASYNC("File_readDir", ReadDir);
   REGISTER_ASYNC("File_rename", FileRename);
   REGISTER_SYNC("Filesystem_getWidgetPaths", FilesystemGetWidgetPaths);
   REGISTER_SYNC("FileSystemManager_fetchStorages",
@@ -242,6 +243,44 @@ void FilesystemInstance::FileSystemManagerMakeDirectorySync(
   };
 
   FilesystemManager::GetInstance().MakeDirectory(location, onResult);
+}
+
+void FilesystemInstance::ReadDir(const picojson::value& args,
+                                  picojson::object& out) {
+  LoggerD("enter");
+  CHECK_EXIST(args, "pathToDir", out)
+  CHECK_EXIST(args, "callbackId", out)
+
+  double callback_id = args.get("callbackId").get<double>();
+  const std::string& pathToDir = args.get("pathToDir").get<std::string>();
+
+  auto onSuccess = [this, callback_id](const std::vector<std::string>& paths) {
+    LoggerD("enter");
+    picojson::value result = picojson::value(picojson::array());;
+    picojson::array& statPaths = result.get<picojson::array>();
+    picojson::value response = picojson::value(picojson::object());
+    picojson::object& obj = response.get<picojson::object>();
+    obj["callbackId"] = picojson::value(callback_id);
+    for(auto path : paths) {
+      FilesystemStat stat = FilesystemStat::getStat(path);
+      statPaths.push_back(stat.toJSON());
+    }
+    ReportSuccess(result, obj);
+    PostMessage(response.serialize().c_str());
+  };
+
+  auto onError = [this, callback_id](FilesystemError e) {
+    LoggerD("enter");
+    picojson::value response = picojson::value(picojson::object());
+    picojson::object& obj = response.get<picojson::object>();
+    obj["callbackId"] = picojson::value(callback_id);
+    PrepareError(e, obj);
+    PostMessage(response.serialize().c_str());
+  };
+
+  FilesystemManager& fm = FilesystemManager::GetInstance();
+  common::TaskQueue::GetInstance().Async(std::bind(
+      &FilesystemManager::ReadDir, &fm, pathToDir, onSuccess, onError));
 }
 
 void FilesystemInstance::PrepareError(const FilesystemError& error, picojson::object& out)
