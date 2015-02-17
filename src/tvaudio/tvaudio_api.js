@@ -83,6 +83,11 @@ AudioControlManager.prototype.setVolume = function(volume) {
         'Volume is out of range: ' + args.volume, 'InvalidValuesError');
   }
 
+  if (arguments.length < 1) {
+    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR,
+        'no volume argument: ' + arguments.length, 'InvalidValuesError');
+    }
+
   var ret = native.callSync('AudioControlManager_setVolume', {
     volume: args.volume
   });
