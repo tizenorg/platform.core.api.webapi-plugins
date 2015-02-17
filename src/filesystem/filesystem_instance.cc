@@ -32,6 +32,7 @@ FilesystemInstance::FilesystemInstance() {
   RegisterHandler(c, std::bind(&FilesystemInstance::x, this, _1, _2));
   REGISTER_ASYNC("File_stat", FileStat);
   REGISTER_SYNC("File_statSync", FileStatSync);
+  REGISTER_SYNC("File_createSync", FileCreateSync);
   REGISTER_SYNC("Filesystem_getWidgetPaths", FilesystemGetWidgetPaths);
   REGISTER_SYNC("FileSystemManager_fetchStorages",
                 FileSystemManagerFetchStorages);
@@ -46,6 +47,26 @@ FilesystemInstance::~FilesystemInstance() {}
     ReportError(TypeMismatchException(name " is required argument"), out); \
     return;                                                                \
   }
+
+void FilesystemInstance::FileCreateSync(const picojson::value& args, picojson::object& out)
+{
+  LoggerD("enter");
+  CHECK_EXIST(args, "location", out)
+
+  const std::string& location = args.get("location").get<std::string>();
+
+  auto onSuccess = [&](const FilesystemStat& data) {
+    LoggerD("enter");
+    ReportSuccess(data.toJSON(), out);
+  };
+
+  auto onError = [&](FilesystemError e) {
+    LoggerD("enter");
+    PrepareError(e, out);
+  };
+
+  FilesystemManager::GetInstance().CreateFile(location, onSuccess, onError);
+}
 
 void FilesystemInstance::FileStat(const picojson::value& args,
                                   picojson::object& out) {

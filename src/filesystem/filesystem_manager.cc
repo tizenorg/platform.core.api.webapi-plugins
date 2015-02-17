@@ -8,6 +8,7 @@
 #include <package_manager.h>
 #include <storage-expand.h>
 #include <storage.h>
+#include <fcntl.h>
 
 #include "common/logger.h"
 #include "common/scope_exit.h"
@@ -132,5 +133,31 @@ void FilesystemManager::GetWidgetPaths(
   result["wgt-private-tmp"] = app_root + "/tmp";
   success_cb(result);
 }
+
+void FilesystemManager::CreateFile(
+    const std::string& path,
+    const std::function<void(const FilesystemStat&)>& success_cb,
+    const std::function<void(FilesystemError)>& error_cb) {
+  const mode_t create_mode = S_IRWXU | S_IRWXG | S_IRWXO;
+  int status;
+  status =
+      TEMP_FAILURE_RETRY(open(path.c_str(), O_RDWR | O_CREAT, create_mode));
+  if (-1 == status) {
+    LoggerE("Cannot create or open file %s: %s", path.c_str(), strerror(errno));
+    error_cb(FilesystemError::Other);
+  }
+  status = close(status);
+  if (0 != status) {
+    LoggerE("Cannot close file %s: %s", path.c_str(), strerror(errno));
+    error_cb(FilesystemError::Other);
+  }
+  FilesystemStat stat = FilesystemStat::getStat(path);
+  if (stat.valid) {
+    success_cb(stat);
+  } else {
+    LoggerE("Cannot create stat data!");
+    error_cb(FilesystemError::Other);
+  }
 }
-}
+}  // namespace filesystem
+}  // namespace extension
