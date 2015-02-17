@@ -220,7 +220,7 @@ common::PlatformResult PushManager::getUnreadNotifications() {
 
 void PushManager::onPushState(push_state_e state, const char* err,
         void* user_data) {
-    LoggerD("Enter %d", state);
+    LoggerD("Enter %d, err: %s", state, err);
     getInstance().m_state = state;
 }
 
@@ -296,6 +296,8 @@ void PushManager::onPushRegister(push_result_e result, const char* msg,
         res = PlatformResult(ErrorCode::UNKNOWN_ERR,
                 msg == NULL ? "Unknown error" : msg);
     }
+    // onPushState is not always called when onPushRegister is successfull
+    getInstance().m_state = PUSH_STATE_REGISTERED;
     getInstance().m_listener->onPushRegister(*callbackId, res, id);
     delete callbackId;
 }
