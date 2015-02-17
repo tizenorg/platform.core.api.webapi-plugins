@@ -36,7 +36,6 @@ function ChannelInfo(dict) {
       });
     }
   }
-  Object.freeze(this);
 }
 
 function dictListToChannelList(list) {
@@ -58,7 +57,6 @@ function ProgramInfo(dict) {
       });
     }
   }
-  Object.freeze(this);
 }
 
 function dictListToProgramList(list) {
