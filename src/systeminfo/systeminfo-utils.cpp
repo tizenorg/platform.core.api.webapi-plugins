@@ -1161,43 +1161,49 @@ void SystemInfoListeners::OnBatteryChangedCallback(keynode_t* /*node*/, void* /*
 void SystemInfoListeners::OnCpuChangedCallback(void* /*event_ptr*/)
 {
   LOGD("");
-  picojson::value result = SysteminfoUtils::GetPropertyValue(kPropertyIdCpu, false);
-
-  if (m_cpu_load == m_last_cpu_load) {
-    return;
-  }
-  if (nullptr != m_cpu_listener) {
-    m_last_cpu_load = m_cpu_load;
-    m_cpu_listener();
+  picojson::value result = picojson::value(picojson::object());
+  PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdCpu, false, result);
+  if (ret.IsSuccess()) {
+    if (m_cpu_load == m_last_cpu_load) {
+      return;
+    }
+    if (nullptr != m_cpu_listener) {
+      m_last_cpu_load = m_cpu_load;
+      m_cpu_listener();
+    }
   }
 }
 
 void SystemInfoListeners::OnStorageChangedCallback(void* /*event_ptr*/)
 {
   LOGD("");
-  picojson::value result = SysteminfoUtils::GetPropertyValue(kPropertyIdStorage, false);
+  picojson::value result = picojson::value(picojson::object());
+  PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdStorage, false, result);
+  if (ret.IsSuccess()) {
+    if (m_available_capacity_internal == m_last_available_capacity_internal) {
+      return;
+    }
 
-  if (m_available_capacity_internal == m_last_available_capacity_internal) {
-    return;
-  }
-
-  if (nullptr != m_storage_listener) {
-    m_last_available_capacity_internal = m_available_capacity_internal;
-    m_storage_listener();
+    if (nullptr != m_storage_listener) {
+      m_last_available_capacity_internal = m_available_capacity_internal;
+      m_storage_listener();
+    }
   }
 }
 
 void SystemInfoListeners::OnMmcChangedCallback(keynode_t* /*node*/, void* /*event_ptr*/)
 {
   LOGD("");
-  picojson::value result = SysteminfoUtils::GetPropertyValue(kPropertyIdStorage, false);
-
-  if (m_available_capacity_mmc == m_last_available_capacity_mmc) {
-    return;
-  }
-  if (nullptr != m_storage_listener) {
-    m_last_available_capacity_mmc = m_available_capacity_mmc;
-    m_storage_listener();
+  picojson::value result = picojson::value(picojson::object());
+  PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdStorage, false, result);
+  if (ret.IsSuccess()) {
+    if (m_available_capacity_mmc == m_last_available_capacity_mmc) {
+      return;
+    }
+    if (nullptr != m_storage_listener) {
+      m_last_available_capacity_mmc = m_available_capacity_mmc;
+      m_storage_listener();
+    }
   }
 }
 
@@ -1482,9 +1488,8 @@ static int GetValueInt(const char *key) {
   return value;
 }
 
-static std::string GetValueString(const char *key) {
+static PlatformResult GetValueString(const char *key, std::string& str_value) {
   char* value = nullptr;
-  std::string str_value = "";
 
   int ret = system_info_get_platform_string(key, &value);
   if (SYSTEM_INFO_ERROR_NONE == ret) {
@@ -1497,58 +1502,56 @@ static std::string GetValueString(const char *key) {
     std::string log_msg = "Platform error while getting string value: ";
     log_msg += std::string(key) + " " + std::to_string(ret);
     LOGE("%s", log_msg.c_str());
-    throw UnknownException(log_msg);
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
   }
 
   LOGD("value[%s]: %s", key, str_value.c_str());
-  return str_value;
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-static std::string GetRuntimeInfoString(runtime_info_key_e key) {
+static PlatformResult GetRuntimeInfoString(runtime_info_key_e key, std::string& platform_string) {
   char* platform_c_string;
   int err = runtime_info_get_value_string(key, &platform_c_string);
   if (RUNTIME_INFO_ERROR_NONE == err) {
     if (nullptr != platform_c_string) {
-      std::string platform_string = platform_c_string;
+      platform_string = platform_c_string;
       free(platform_c_string);
-      return platform_string;
+      return PlatformResult(ErrorCode::NO_ERROR);
     }
   }
   const char* error_msg = "Error when retrieving runtime information: " + err;
   LOGE("%s", error_msg);
-  throw UnknownException(error_msg);
+  return PlatformResult(ErrorCode::UNKNOWN_ERR, error_msg);
 }
 
-static std::string GetSystemValueString(system_info_key_e key) {
+static PlatformResult GetSystemValueString(system_info_key_e key, std::string& platform_string) {
   char* platform_c_string;
   if (SYSTEM_INFO_ERROR_NONE
       == system_info_get_value_string(key, &platform_c_string)) {
     if (platform_c_string) {
       LOGD("Build platfrom string %s", platform_c_string);
-      std::string platform_string = platform_c_string;
+      platform_string = platform_c_string;
       free(platform_c_string);
-      return platform_string;
+      return PlatformResult(ErrorCode::NO_ERROR);
     }
   }
 
   const char* error_msg = "Error when retrieving value from platform API";
   LOGE("%s", error_msg);
-  throw UnknownException(error_msg);
+  return PlatformResult(ErrorCode::UNKNOWN_ERR, error_msg);
 }
 
-int GetVconfInt(const char *key) {
-  int value = 0;
-
+PlatformResult GetVconfInt(const char *key, int &value) {
   if (0 == vconf_get_int(key, &value)) {
-    return value;
+    return PlatformResult(ErrorCode::NO_ERROR);
   } else {
     const std::string error_msg = "Could not get " + std::string(key);
     LOGD("%s",error_msg.c_str());
-    throw UnknownException(error_msg);
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, error_msg);
   }
 
   LOGD("value[%s]: %d", key, value);
-  return value;
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 long long SysteminfoUtils::GetTotalMemory()
@@ -1583,11 +1586,9 @@ long long SysteminfoUtils::GetAvailableMemory()
   return static_cast<long long>(value*MEMORY_TO_BYTE);
 }
 
-unsigned long SysteminfoUtils::GetCount(const std::string& property)
+PlatformResult SysteminfoUtils::GetCount(const std::string& property, unsigned long& count)
 {
   LOGD("Enter");
-
-  unsigned long count = 0;
 
   if ("BATTERY" == property || "CPU" == property || "STORAGE" == property ||
       "DISPLAY" == property || "DEVICE_ORIENTATION" == property ||
@@ -1599,87 +1600,102 @@ unsigned long SysteminfoUtils::GetCount(const std::string& property)
     count = sim_mgr.GetSimCount(system_info_listeners.GetTapiHandles());
   } else {
     LOGD("Property with given id is not supported");
-    throw NotSupportedException("Property with given id is not supported");
+    return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR, "Property with given id is not supported");
   }
-  return count;
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-picojson::value SysteminfoUtils::GetPropertyValue(const std::string& property, bool is_array_type)
+PlatformResult SysteminfoUtils::ReportProperty(const std::string& property, int index,
+                                               picojson::object& res_obj) {
+  if ("BATTERY" == property){
+    return ReportBattery(res_obj);
+  } else if ("CPU" == property) {
+    return ReportCpu(res_obj);
+  } else if ("STORAGE" == property) {
+    return ReportStorage(res_obj);
+  } else if ("DISPLAY" == property) {
+    return ReportDisplay(res_obj);
+  } else if ("DEVICE_ORIENTATION" == property) {
+    return ReportDeviceOrientation(res_obj);
+  } else if ("BUILD" == property) {
+    return ReportBuild(res_obj);
+  } else if ("LOCALE" == property) {
+    return ReportLocale(res_obj);
+  } else if ("NETWORK" == property) {
+    return ReportNetwork(res_obj);
+  } else if ("WIFI_NETWORK" == property) {
+    return ReportWifiNetwork(res_obj);
+  } else if ("CELLULAR_NETWORK" == property) {
+    return ReportCellularNetwork(res_obj);
+  } else if ("SIM" == property) {
+    return ReportSim(res_obj, index);
+  } else if ("PERIPHERAL" == property) {
+    return ReportPeripheral(res_obj);
+  } else if ("MEMORY" == property) {
+    return ReportMemory(res_obj);
+  } else {
+    LOGD("Property with given id is not supported");
+    return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR, "Property with given id is not supported");
+  }
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult SysteminfoUtils::GetPropertyValue(const std::string& property, bool is_array_type,
+                                                  picojson::value& res)
 {
   LOGD("Entered getPropertyValue");
 
-  picojson::value array_result = picojson::value(picojson::object());
-  picojson::object& array_result_obj = array_result.get<picojson::object>();
-  picojson::array& array = array_result_obj.insert(
-      std::make_pair("array", picojson::value(picojson::array()))).
-          first->second.get<picojson::array>();
+  if (!is_array_type) {
+    picojson::object& res_obj = res.get<picojson::object>();
+    return ReportProperty(property, 0, res_obj);
+  } else {
+    picojson::object& array_result_obj = res.get<picojson::object>();
+    picojson::array& array = array_result_obj.insert(
+        std::make_pair("array", picojson::value(picojson::array()))).
+            first->second.get<picojson::array>();
 
-  unsigned long property_count = SysteminfoUtils::GetCount(property);
-
-  for (int i = 0; i < property_count; i++) {
-    picojson::value result = picojson::value(picojson::object());
-    picojson::object& result_obj = result.get<picojson::object>();
-
-    if ("BATTERY" == property){
-      ReportBattery(result_obj);
-    } else if ("CPU" == property) {
-      ReportCpu(result_obj);
-    } else if ("STORAGE" == property) {
-      ReportStorage(result_obj);
-    } else if ("DISPLAY" == property) {
-      ReportDisplay(result_obj);
-    } else if ("DEVICE_ORIENTATION" == property) {
-      ReportDeviceOrientation(result_obj);
-    } else if ("BUILD" == property) {
-      ReportBuild(result_obj);
-    } else if ("LOCALE" == property) {
-      ReportLocale(result_obj);
-    } else if ("NETWORK" == property) {
-      ReportNetwork(result_obj);
-    } else if ("WIFI_NETWORK" == property) {
-      ReportWifiNetwork(result_obj);
-    } else if ("CELLULAR_NETWORK" == property) {
-      ReportCellularNetwork(result_obj);
-    } else if ("SIM" == property) {
-      ReportSim(result_obj, i);
-    } else if ("PERIPHERAL" == property) {
-      ReportPeripheral(result_obj);
-    } else if ("MEMORY" == property) {
-      ReportMemory(result_obj);
-    } else {
-      LOGD("Property with given id is not supported");
-      throw NotSupportedException("Property with given id is not supported");
+    unsigned long property_count = 0;
+    PlatformResult ret = SysteminfoUtils::GetCount(property, property_count);
+    if (ret.IsError()){
+      return ret;
     }
-    if (!is_array_type) {
-      return result;
-    } else {
+
+    for (int i = 0; i < property_count; i++) {
+      picojson::value result = picojson::value(picojson::object());
+      picojson::object& result_obj = result.get<picojson::object>();
+
+      ret = ReportProperty(property, i, result_obj);
+      if (ret.IsError()){
+        return ret;
+      }
       array.push_back(result);
     }
   }
-  return array_result;
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void SysteminfoUtils::ReportBattery(picojson::object& out) {
+PlatformResult SysteminfoUtils::ReportBattery(picojson::object& out) {
   int value = 0;
   int ret = vconf_get_int(VCONFKEY_SYSMAN_BATTERY_CAPACITY, &value);
   if (kVconfErrorNone != ret) {
     std::string log_msg = "Platform error while getting battery detail: ";
     LOGE("%s%d", log_msg.c_str(), ret);
-    throw UnknownException((log_msg + std::to_string(ret)));
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, (log_msg + std::to_string(ret)));
   }
-  out.insert(std::make_pair("level", static_cast<double>(value)/kRemainingBatteryChargeMax));
 
   value = 0;
   ret = vconf_get_int(VCONFKEY_SYSMAN_BATTERY_CHARGE_NOW, &value);
   if (kVconfErrorNone != ret) {
     std::string log_msg =  "Platform error while getting battery charging: ";
     LOGE("%s%d",log_msg.c_str(), ret);
-    throw UnknownException((log_msg + std::to_string(ret)));
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, (log_msg + std::to_string(ret)));
   }
+  out.insert(std::make_pair("level", static_cast<double>(value)/kRemainingBatteryChargeMax));
   out.insert(std::make_pair("isCharging", picojson::value(0 != value)));
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 //TODO maybe make two functions later onGSourceFunc
-void SysteminfoUtils::ReportCpu(picojson::object& out) {
+PlatformResult SysteminfoUtils::ReportCpu(picojson::object& out) {
   LOGD("Entered");
   static CpuInfo cpu_info;
   FILE *fp = nullptr;
@@ -1687,7 +1703,7 @@ void SysteminfoUtils::ReportCpu(picojson::object& out) {
   if (nullptr == fp) {
     std::string error_msg("Can not open /proc/stat for reading");
     LOGE( "%s", error_msg.c_str() );
-    throw UnknownException( error_msg );
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, error_msg);
   }
 
   long long usr = 0;
@@ -1717,7 +1733,7 @@ void SysteminfoUtils::ReportCpu(picojson::object& out) {
   } else {
     std::string error_msg( "Could not read /proc/stat" );
     LOGE( "%s", error_msg.c_str() );
-    throw UnknownException( error_msg );
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, error_msg);
   }
 
   system_info_listeners.SetCpuInfoLoad(cpu_info.load);
@@ -1725,9 +1741,10 @@ void SysteminfoUtils::ReportCpu(picojson::object& out) {
   load = 100 - load;
   LOGD("Cpu load : %f", load );
   out.insert(std::make_pair("load", load / 100.0));
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void SysteminfoUtils::ReportDisplay(picojson::object& out) {
+PlatformResult SysteminfoUtils::ReportDisplay(picojson::object& out) {
   int screenWidth = 0;
   int screenHeight = 0;
   unsigned long dotsPerInchWidth;
@@ -1740,15 +1757,13 @@ void SysteminfoUtils::ReportDisplay(picojson::object& out) {
   if (SYSTEM_INFO_ERROR_NONE != system_info_get_value_int(
       SYSTEM_INFO_KEY_SCREEN_WIDTH, &screenWidth)) {
     LOGE("Cannot get value of screen width");
-    throw UnknownException("Cannot get value of screen width");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get value of screen width");
   }
   if (SYSTEM_INFO_ERROR_NONE != system_info_get_value_int(
       SYSTEM_INFO_KEY_SCREEN_HEIGHT, &screenHeight)) {
     LOGE("Cannot get value of screen height");
-    throw UnknownException("Cannot get value of screen height");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get value of screen height");
   }
-  out.insert(std::make_pair("resolutionWidth", std::to_string(screenWidth)));
-  out.insert(std::make_pair("resolutionHeight", std::to_string(screenHeight)));
 
   //FETCH DOTS PER INCH
   int dots_per_inch=0;
@@ -1758,28 +1773,25 @@ void SysteminfoUtils::ReportDisplay(picojson::object& out) {
     dotsPerInchHeight = dots_per_inch;
   } else {
     LOGE("Cannot get 'tizen.org/feature/screen.dpi' value");
-    throw UnknownException("Cannot get 'tizen.org/feature/screen.dpi' value");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                          "Cannot get 'tizen.org/feature/screen.dpi' value");
   }
-  out.insert(std::make_pair("dotsPerInchWidth", std::to_string(dotsPerInchWidth)));
-  out.insert(std::make_pair("dotsPerInchHeight", std::to_string(dotsPerInchHeight)));
 
   //FETCH PHYSICAL WIDTH
   if (SYSTEM_INFO_ERROR_NONE != system_info_get_value_int(
       SYSTEM_INFO_KEY_PHYSICAL_SCREEN_WIDTH, &physicalWidth)) {
     LOGE("Cannot get value of phisical screen width");
     //TODO uncomment when api would support this key
-    //throw UnknownException("Cannot get value of phisical screen width");
+    //return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get value of phisical screen width");
   }
-  out.insert(std::make_pair("physicalWidth", std::to_string(physicalWidth)));
 
   //FETCH PHYSICAL HEIGHT
   if (SYSTEM_INFO_ERROR_NONE != system_info_get_value_int(
       SYSTEM_INFO_KEY_PHYSICAL_SCREEN_HEIGHT, &physicalHeight)) {
     LOGE("Cannot get value of phisical screen height");
     //TODO uncomment when api would support this key
-    //throw UnknownException("Cannot get value of phisical screen height");
+    //return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get value of phisical screen height");
   }
-  out.insert(std::make_pair("physicalHeight", std::to_string(physicalHeight)));
 
   //FETCH BRIGHTNESS
   int brightness;
@@ -1787,64 +1799,105 @@ void SysteminfoUtils::ReportDisplay(picojson::object& out) {
     scaledBrightness = static_cast<double>(brightness)/kDisplayBrightnessDivideValue;
   } else {
     LOGE("Cannot get brightness value of display");
-    throw UnknownException("Cannot get brightness value of display");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get brightness value of display");
   }
+
+  out.insert(std::make_pair("resolutionWidth", std::to_string(screenWidth)));
+  out.insert(std::make_pair("resolutionHeight", std::to_string(screenHeight)));
+  out.insert(std::make_pair("dotsPerInchWidth", std::to_string(dotsPerInchWidth)));
+  out.insert(std::make_pair("dotsPerInchHeight", std::to_string(dotsPerInchHeight)));
+  out.insert(std::make_pair("physicalWidth", std::to_string(physicalWidth)));
+  out.insert(std::make_pair("physicalHeight", std::to_string(physicalHeight)));
   out.insert(std::make_pair("brightness", scaledBrightness));
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void SysteminfoUtils::ReportDeviceOrientation(picojson::object& out) {
+PlatformResult SysteminfoUtils::ReportDeviceOrientation(picojson::object& out) {
   SystemInfoDeviceOrientationPtr dev_orientation =
       SystemInfoDeviceOrientationPtr(new SystemInfoDeviceOrientation());
   std::string status = dev_orientation->status();
   bool auto_rotation_bool = dev_orientation->is_auto_rotation();
   out.insert(std::make_pair("isAutoRotation", auto_rotation_bool));
   out.insert(std::make_pair("status", status));
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void SysteminfoUtils::ReportBuild(picojson::object& out) {
-  std::string model = GetValueString("tizen.org/system/model_name");
+PlatformResult SysteminfoUtils::ReportBuild(picojson::object& out) {
+  std::string model = "";
+  PlatformResult ret = GetValueString("tizen.org/system/model_name", model);
+  if (ret.IsError()) {
+    return ret;
+  }
+  std::string manufacturer = "";
+  ret = GetSystemValueString(SYSTEM_INFO_KEY_MANUFACTURER, manufacturer);
+  if (ret.IsError()) {
+    return ret;
+  }
+  std::string buildVersion = "";
+  ret = GetSystemValueString(SYSTEM_INFO_KEY_BUILD_STRING, buildVersion);
+  if (ret.IsError()) {
+    return ret;
+  }
+
   out.insert(std::make_pair("model", model));
-
-  std::string manufacturer = GetSystemValueString(SYSTEM_INFO_KEY_MANUFACTURER);
   out.insert(std::make_pair("manufacturer", manufacturer));
-  std::string buildVersion = GetSystemValueString(SYSTEM_INFO_KEY_BUILD_STRING);
   out.insert(std::make_pair("buildVersion", buildVersion));
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void SysteminfoUtils::ReportLocale(picojson::object& out) {
-  std::string str_language = GetRuntimeInfoString(RUNTIME_INFO_KEY_LANGUAGE);
+PlatformResult SysteminfoUtils::ReportLocale(picojson::object& out) {
+  std::string str_language = "";
+  PlatformResult ret = GetRuntimeInfoString(RUNTIME_INFO_KEY_LANGUAGE, str_language);
+  if (ret.IsError()) {
+    return ret;
+  }
+
+  std::string str_country = "";
+  ret = GetRuntimeInfoString(RUNTIME_INFO_KEY_REGION, str_country);
+  if (ret.IsError()) {
+    return ret;
+  }
+
   out.insert(std::make_pair("language", str_language));
-
-  std::string str_country = GetRuntimeInfoString(RUNTIME_INFO_KEY_REGION);;
   out.insert(std::make_pair("country", str_country));
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-static std::string GetNetworkTypeString(NetworkType type)
+static PlatformResult GetNetworkTypeString(NetworkType type, std::string& type_string)
 {
   switch (type) {
     case kNone:
-      return kNetworkTypeNone;
+      type_string = kNetworkTypeNone;
+      break;
     case kType2G:
-      return kNetworkType2G;
+      type_string = kNetworkType2G;
+      break;
     case kType2_5G:
-      return kNetworkType2_5G;
+      type_string = kNetworkType2_5G;
+      break;
     case kType3G:
-      return kNetworkType3G;
+      type_string = kNetworkType3G;
+      break;
     case kType4G:
-      return kNetworkType4G;
+      type_string = kNetworkType4G;
+      break;
     case kWifi:
-      return kNetworkTypeWifi;
+      type_string = kNetworkTypeWifi;
+      break;
     case kEthernet:
-      return kNetworkTypeEthernet;
+      type_string = kNetworkTypeEthernet;
+      break;
     case kUnknown:
-      return kNetworkTypeUnknown;
+      type_string = kNetworkTypeUnknown;
+      break;
     default:
       LOGE("Incorrect type: %d", type);
-      throw TypeMismatchException("Incorrect type");
+      return PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, "Incorrect type");
   }
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void SysteminfoUtils::ReportNetwork(picojson::object& out) {
+PlatformResult SysteminfoUtils::ReportNetwork(picojson::object& out) {
   connection_h connection_handle = nullptr;
   connection_type_e connection_type = CONNECTION_TYPE_DISCONNECTED;
   int networkType = 0;
@@ -1855,7 +1908,7 @@ void SysteminfoUtils::ReportNetwork(picojson::object& out) {
   if (CONNECTION_ERROR_NONE != error) {
     std::string log_msg = "Cannot create connection: " + std::to_string(error);
     LOGE("%s", log_msg.c_str());
-    throw UnknownException(log_msg);
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
   }
   std::unique_ptr<std::remove_pointer<connection_h>::type, int(*)(connection_h)>
   connection_handle_ptr(connection_handle, &connection_destroy);
@@ -1865,7 +1918,7 @@ void SysteminfoUtils::ReportNetwork(picojson::object& out) {
   if (CONNECTION_ERROR_NONE != error) {
     std::string log_msg = "Cannot get connection type: " + std::to_string(error);
     LOGE("%s", log_msg.c_str());
-    throw UnknownException(log_msg);
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
   }
 
   switch (connection_type) {
@@ -1899,12 +1952,18 @@ void SysteminfoUtils::ReportNetwork(picojson::object& out) {
       break;
     default:
       LOGE("Incorrect type: %d", connection_type);
-      throw UnknownException("Incorrect type");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Incorrect type");
   }
-  out.insert(std::make_pair("networkType", GetNetworkTypeString(type)));
+  std::string type_str = "";
+  PlatformResult ret = GetNetworkTypeString(type, type_str);
+  if(ret.IsError()) {
+    return ret;
+  }
+  out.insert(std::make_pair("networkType", type_str));
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-static void GetIps(connection_profile_h profile_handle, std::string* ip_addr_str,
+static PlatformResult GetIps(connection_profile_h profile_handle, std::string* ip_addr_str,
                    std::string* ipv6_addr_str){
   //getting ipv4 address
   char* ip_addr = nullptr;
@@ -1913,7 +1972,7 @@ static void GetIps(connection_profile_h profile_handle, std::string* ip_addr_str
                                                 &ip_addr);
   if (CONNECTION_ERROR_NONE != error) {
     LOGE("Failed to get ip address: %d", error);
-    throw UnknownException("Cannot get ip address");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get ip address");
   }
   *ip_addr_str = ip_addr;
   free(ip_addr);
@@ -1930,11 +1989,12 @@ static void GetIps(connection_profile_h profile_handle, std::string* ip_addr_str
     //core api returns error -97 = CONNECTION_ERROR_ADDRESS_FAMILY_NOT_SUPPORTED
     //it will be supported in the future. For now let's ignore this error
     LOGE("Failed to get ipv6 address: %d", error);
-    throw UnknownException("Cannot get ipv6 address");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get ipv6 address");
   }
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void SysteminfoUtils::ReportWifiNetwork(picojson::object& out) {
+PlatformResult SysteminfoUtils::ReportWifiNetwork(picojson::object& out) {
   bool result_status = false;
   std::string result_ssid;
   std::string result_ip_address;
@@ -1951,7 +2011,7 @@ void SysteminfoUtils::ReportWifiNetwork(picojson::object& out) {
   if (CONNECTION_ERROR_NONE != error) {
     std::string log_msg = "Cannot create connection: " + std::to_string(error);
     LOGE("%s", log_msg.c_str());
-    throw UnknownException(log_msg);
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
   }
   std::unique_ptr<std::remove_pointer<connection_h>::type, int(*)(connection_h)>
   connection_handle_ptr(connection_handle, &connection_destroy);
@@ -1966,14 +2026,14 @@ void SysteminfoUtils::ReportWifiNetwork(picojson::object& out) {
   } else {
     std::string log_msg = "Failed to get mac address: " + std::to_string(error);
     LOGE("%s", log_msg.c_str());
-    throw UnknownException(log_msg.c_str());
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
   }
 
   error = connection_get_type(connection_handle, &connection_type);
   if (CONNECTION_ERROR_NONE != error) {
     std::string log_msg = "Cannot get connection type: " + std::to_string(error);
     LOGE("%s", log_msg.c_str());
-    throw UnknownException(log_msg);
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
   }
   if (CONNECTION_TYPE_WIFI == connection_type) {
     result_status = true;
@@ -1982,7 +2042,7 @@ void SysteminfoUtils::ReportWifiNetwork(picojson::object& out) {
     if (CONNECTION_ERROR_NONE != error) {
       std::string log_msg = "Cannot get connection profile: " + std::to_string(error);
       LOGE("%s", log_msg.c_str());
-      throw UnknownException(log_msg);
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
     }
     std::unique_ptr
     <std::remove_pointer<connection_profile_h>::type, int(*)(connection_profile_h)>
@@ -1999,11 +2059,14 @@ void SysteminfoUtils::ReportWifiNetwork(picojson::object& out) {
     else {
       std::string log_msg = "Failed to get network ssid: " + std::to_string(error);
       LOGE("%s", log_msg.c_str());
-      throw UnknownException(log_msg);
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
     }
 
     //gathering ips
-    GetIps(profile_handle, &result_ip_address, &result_ipv6_address);
+    PlatformResult ret = GetIps(profile_handle, &result_ip_address, &result_ipv6_address);
+    if (ret.IsError()) {
+      return ret;
+    }
 
     //gathering strength
     int rssi = 0;
@@ -2014,7 +2077,7 @@ void SysteminfoUtils::ReportWifiNetwork(picojson::object& out) {
     else {
       std::string log_msg = "Failed to get signal strength: " + std::to_string(error);
       LOGE("%s", log_msg.c_str());
-      throw UnknownException(log_msg);
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
     }
   }
   else {
@@ -2027,9 +2090,10 @@ void SysteminfoUtils::ReportWifiNetwork(picojson::object& out) {
   out.insert(std::make_pair("ipv6Address", result_ipv6_address));
   out.insert(std::make_pair("macAddress", result_mac_address));
   out.insert(std::make_pair("signalStrength", std::to_string(result_signal_strength)));
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-static void FetchVconfSettings(
+static PlatformResult FetchVconfSettings(
     unsigned short *result_mcc,
     unsigned short *result_mnc,
     unsigned short *result_cell_id,
@@ -2041,37 +2105,38 @@ static void FetchVconfSettings(
   int result;
   if (0 != vconf_get_int(VCONFKEY_TELEPHONY_PLMN, &result)) {
     LOGE("Cannot get mcc value");
-    throw UnknownException("Cannot get mcc value");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get mcc value");
   }
   *result_mcc = static_cast<unsigned short>(result) / kMccDivider;
   *result_mnc = static_cast<unsigned short>(result) % kMccDivider;
 
   if (0 != vconf_get_int(VCONFKEY_TELEPHONY_CELLID, &result)) {
     LOGE("Cannot get cell_id value");
-    throw UnknownException("Cannot get cell_id value");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get cell_id value");
   }
   *result_cell_id = static_cast<unsigned short>(result);
 
   if (0 != vconf_get_int(VCONFKEY_TELEPHONY_LAC, &result)) {
     LOGE("Cannot get lac value");
-    throw UnknownException("Cannot get lac value");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get lac value");
   }
   *result_lac = static_cast<unsigned short>(result);
 
   if (0 != vconf_get_int(VCONFKEY_TELEPHONY_SVC_ROAM, &result)) {
     LOGE("Cannot get is_roaming value");
-    throw UnknownException("Cannot get is_roaming value");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get is_roaming value");
   }
   *result_is_roaming = (0 != result) ? true : false;
 
   if (0 != vconf_get_bool(VCONFKEY_TELEPHONY_FLIGHT_MODE, &result)) {
     LOGE("Cannot get is_flight_mode value");
-    throw UnknownException("Cannot get is_flight_mode value");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get is_flight_mode value");
   }
   *result_is_flight_mode = (0 != result) ? true : false;
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-static void FetchConnection(TapiHandle *tapi_handle, std::string* result_status,
+static PlatformResult FetchConnection(TapiHandle *tapi_handle, std::string* result_status,
                             std::string* result_apn, std::string* result_ip_address,
                             std::string* result_ipv6_address, std::string* result_imei)
 {
@@ -2085,7 +2150,7 @@ static void FetchConnection(TapiHandle *tapi_handle, std::string* result_status,
   if (CONNECTION_ERROR_NONE != error) {
     std::string log_msg = "Cannot create connection: " + std::to_string(error);
     LOGE("%s", log_msg.c_str());
-    throw UnknownException(log_msg);
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
   }
   std::unique_ptr<std::remove_pointer<connection_h>::type, int(*)(connection_h)>
   connection_handle_ptr(connection_handle, &connection_destroy);
@@ -2094,7 +2159,7 @@ static void FetchConnection(TapiHandle *tapi_handle, std::string* result_status,
   error = connection_get_type(connection_handle, &connection_type);
   if (CONNECTION_ERROR_NONE != error) {
     LOGE("Failed to get connection type: %d", error);
-    throw UnknownException("Cannot get connection type");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get connection type");
   }
 
   char* apn = nullptr;
@@ -2109,18 +2174,21 @@ static void FetchConnection(TapiHandle *tapi_handle, std::string* result_status,
     // automatically release the memory
     if (CONNECTION_ERROR_NONE != error) {
       LOGE("Failed to get profile: %d", error);
-      throw UnknownException("Cannot get profile");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get profile");
     }
 
     error = connection_profile_get_cellular_apn(profile_handle, &apn);
     if (CONNECTION_ERROR_NONE != error) {
       LOGE("Failed to get apn name: %d", error);
-      throw UnknownException("Cannot get apn name");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get apn name");
     }
     *result_apn = apn;
     free(apn);
 
-    GetIps(profile_handle, result_ip_address, result_ipv6_address);
+    PlatformResult ret = GetIps(profile_handle, result_ip_address, result_ipv6_address);
+    if (ret.IsError()) {
+      return ret;
+    }
   } else {
     *result_status = kConnectionOff;
 
@@ -2158,9 +2226,10 @@ static void FetchConnection(TapiHandle *tapi_handle, std::string* result_status,
     LOGE("Failed to get imei, nullptr pointer. Setting empty value.");
     *result_imei = "";
   }
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void SysteminfoUtils::ReportCellularNetwork(picojson::object& out) {
+PlatformResult SysteminfoUtils::ReportCellularNetwork(picojson::object& out) {
   std::string result_status;
   std::string result_apn;
   std::string result_ip_address;
@@ -2174,11 +2243,17 @@ void SysteminfoUtils::ReportCellularNetwork(picojson::object& out) {
   std::string result_imei;
 
   //gathering vconf-based values
-  FetchVconfSettings(&result_mcc, &result_mnc, &result_cell_id, &result_lac,
+  PlatformResult ret = FetchVconfSettings(&result_mcc, &result_mnc, &result_cell_id, &result_lac,
                      &result_is_roaming, &result_is_flight_mode);
+  if (ret.IsError()) {
+    return ret;
+  }
   //gathering connection informations
-  FetchConnection(system_info_listeners.GetTapiHandle(),
+  ret = FetchConnection(system_info_listeners.GetTapiHandle(),
                   &result_status, &result_apn, &result_ip_address, &result_ipv6_address, &result_imei);
+  if (ret.IsError()) {
+    return ret;
+  }
 
   out.insert(std::make_pair("status", result_status));
   out.insert(std::make_pair("apn", result_apn));
@@ -2191,6 +2266,7 @@ void SysteminfoUtils::ReportCellularNetwork(picojson::object& out) {
   out.insert(std::make_pair("isRoaming", result_is_roaming));
   out.insert(std::make_pair("isFligthMode", result_is_flight_mode));
   out.insert(std::make_pair("imei", result_imei));
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 void SimCphsValueCallback(TapiHandle */*handle*/, int result, void *data, void */*user_data*/)
@@ -2256,49 +2332,49 @@ void SimSpnValueCallback(TapiHandle */*handle*/, int result, void *data, void */
   sim_mgr.TryReturn();
 }
 
-void SysteminfoUtils::ReportSim(picojson::object& out, unsigned long count) {
+PlatformResult SysteminfoUtils::ReportSim(picojson::object& out, unsigned long count) {
 
   sim_mgr.GatherSimInformation(system_info_listeners.GetTapiHandles()[count], &out);
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void SysteminfoUtils::ReportPeripheral(picojson::object& out) {
-  try {
-    int wireless_display_status = GetVconfInt(VCONFKEY_MIRACAST_WFD_SOURCE_STATUS);
+PlatformResult SysteminfoUtils::ReportPeripheral(picojson::object& out) {
+
+  int wireless_display_status = 0;
+  PlatformResult ret = GetVconfInt(VCONFKEY_MIRACAST_WFD_SOURCE_STATUS, wireless_display_status);
+  if (ret.IsSuccess()) {
     if (VCONFKEY_MIRACAST_WFD_SOURCE_ON == wireless_display_status) {
       out.insert(std::make_pair(kVideoOutputString, true));
-      return;
+      return PlatformResult(ErrorCode::NO_ERROR);
     }
-  } catch (const PlatformException& e) {
-    // empty on purpose
   }
-
-  try {
-    int hdmi_status = GetVconfInt(VCONFKEY_SYSMAN_HDMI);
+  int hdmi_status = 0;
+  ret = GetVconfInt(VCONFKEY_SYSMAN_HDMI, hdmi_status);
+  if (ret.IsSuccess()) {
     if (VCONFKEY_SYSMAN_HDMI_CONNECTED == hdmi_status) {
       out.insert(std::make_pair(kVideoOutputString, true));
-      return;
+      return PlatformResult(ErrorCode::NO_ERROR);
     }
-  } catch (const PlatformException& e) {
-    // empty on purpose
   }
 
-  try {
-    int popsync_status = GetVconfInt(VCONFKEY_POPSYNC_ACTIVATED_KEY);
+  int popsync_status = 0;
+  ret = GetVconfInt(VCONFKEY_POPSYNC_ACTIVATED_KEY, popsync_status);
+  if (ret.IsSuccess()) {
     if (1 == popsync_status) {
       out.insert(std::make_pair(kVideoOutputString, true));
-      return;
+      return PlatformResult(ErrorCode::NO_ERROR);
     }
-  } catch (const PlatformException& e) {
-    // empty on purpose
   }
 
   out.insert(std::make_pair(kVideoOutputString, false));
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void SysteminfoUtils::ReportMemory(picojson::object& out) {
+PlatformResult SysteminfoUtils::ReportMemory(picojson::object& out) {
   std::string state = MEMORY_STATE_NORMAL;
-  try {
-    int status = GetVconfInt(VCONFKEY_SYSMAN_LOW_MEMORY);
+  int status = 0;
+  PlatformResult ret = GetVconfInt(VCONFKEY_SYSMAN_LOW_MEMORY, status);
+  if (ret.IsSuccess()) {
     switch (status) {
       case VCONFKEY_SYSMAN_LOW_MEMORY_SOFT_WARNING:
       case VCONFKEY_SYSMAN_LOW_MEMORY_HARD_WARNING:
@@ -2308,11 +2384,10 @@ void SysteminfoUtils::ReportMemory(picojson::object& out) {
       default:
         state = MEMORY_STATE_NORMAL;
     }
-  } catch (const PlatformException& e) {
-    // empty on purpose
   }
 
   out.insert(std::make_pair("state", state));
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 static void CreateStorageInfo(const std::string& type, struct statfs& fs, picojson::object* out) {
@@ -2327,7 +2402,7 @@ static void CreateStorageInfo(const std::string& type, struct statfs& fs, picojs
   out->insert(std::make_pair("isRemovable", isRemovable));
 }
 
-void SysteminfoUtils::ReportStorage(picojson::object& out) {
+PlatformResult SysteminfoUtils::ReportStorage(picojson::object& out) {
   int sdcardState = 0;
   struct statfs fs;
 
@@ -2339,7 +2414,7 @@ void SysteminfoUtils::ReportStorage(picojson::object& out) {
 
   if (statfs(kStorageInternalPath, &fs) < 0) {
     LOGE("There are no storage units detected");
-    throw UnknownException("There are no storage units detected");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "There are no storage units detected");
   }
   CreateStorageInfo(kTypeInternal, fs, &internal_obj);
   system_info_listeners.SetAvailableCapacityInternal(fs.f_bavail);
@@ -2348,7 +2423,7 @@ void SysteminfoUtils::ReportStorage(picojson::object& out) {
     if (VCONFKEY_SYSMAN_MMC_MOUNTED == sdcardState){
       if (statfs(kStorageSdcardPath, &fs) < 0) {
         LOGE("MMC mounted, but not accessible");
-        throw UnknownException("MMC mounted, but not accessible");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR, "MMC mounted, but not accessible");
       }
       array.push_back(picojson::value(picojson::object()));
       picojson::object& external_obj = array.back().get<picojson::object>();
@@ -2358,6 +2433,7 @@ void SysteminfoUtils::ReportStorage(picojson::object& out) {
   }
 
   out.insert(std::make_pair("storages", result));
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 void SysteminfoUtils::RegisterBatteryListener(const SysteminfoUtilsCallback& callback)
@@ -2489,9 +2565,8 @@ static bool CheckStringCapability(const std::string& key, std::string* value)
   } else if (key == kTizenSystemDuid) {
     *value = SystemInfoDeviceCapability::GetDuid();
   } else {
-    try {
-      *value = GetValueString(key.substr(strlen("http://")).c_str());
-    } catch (...){
+    PlatformResult ret = GetValueString(key.substr(strlen("http://")).c_str(), *value);
+    if (ret.IsError()){
       return false;
     }
   }
@@ -2675,8 +2750,9 @@ bool SystemInfoDeviceCapability::IsInputKeyboard() {
 }
 
 bool SystemInfoDeviceCapability::IsInputKeyboardLayout() {
-  std::string input_keyboard_layout =
-      GetValueString("tizen.org/feature/input.keyboard.layout");
+  std::string input_keyboard_layout = "";
+  PlatformResult ret = GetValueString("tizen.org/feature/input.keyboard.layout",
+                                      input_keyboard_layout);
 
   bool input_keyboard = GetValueBool("tizen.org/feature/input.keyboard");
 
@@ -2933,15 +3009,21 @@ bool SystemInfoDeviceCapability::IsSipVoip() {
 }
 
 std::string SystemInfoDeviceCapability::GetPlatformName() {
-  return GetValueString("tizen.org/system/platform.name");
+  std::string result = "";
+  GetValueString("tizen.org/system/platform.name", result);
+  return result;
 }
 
 std::string SystemInfoDeviceCapability::GetPlatformVersion() {
-  return GetValueString("tizen.org/feature/platform.version");
+  std::string result = "";
+  GetValueString("tizen.org/feature/platform.version", result);
+  return result;
 }
 
 std::string SystemInfoDeviceCapability::GetWebApiVersion() {
-  return GetValueString("tizen.org/feature/platform.web.api.version");
+  std::string result = "";
+  GetValueString("tizen.org/feature/platform.web.api.version", result);
+  return result;
 }
 
 bool SystemInfoDeviceCapability::IsMagnetometer() {
@@ -3005,7 +3087,9 @@ bool SystemInfoDeviceCapability::IsSecureElement() {
 }
 
 std::string SystemInfoDeviceCapability::GetProfile() {
-  std::string profile = GetValueString("tizen.org/feature/profile");
+  std::string profile = "";
+  GetValueString("tizen.org/feature/profile", profile);
+
   if ( kPlatformFull == profile ) {
     return kProfileFull;
   } else if ( kPlatformMobile == profile ) {
@@ -3018,7 +3102,9 @@ std::string SystemInfoDeviceCapability::GetProfile() {
 
 std::string SystemInfoDeviceCapability::GetNativeAPIVersion()
 {
-  return GetValueString("tizen.org/feature/platform.native.api.version");
+  std::string result = "";
+  GetValueString("tizen.org/feature/platform.native.api.version", result);
+  return result;
 }
 
 //Implementation ported from devel/webapi/refactoring branch,

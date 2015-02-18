@@ -20,6 +20,7 @@
 #include <string>
 #include <functional>
 #include "common/picojson.h"
+#include "common/platform_result.h"
 
 namespace extension {
 namespace systeminfo {
@@ -38,8 +39,9 @@ class SysteminfoUtils {
  public:
   static long long GetTotalMemory();
   static long long GetAvailableMemory();
-  static unsigned long GetCount(const std::string& property);
-  static picojson::value GetPropertyValue(const std::string& prop, bool is_array_type);
+  static common::PlatformResult GetCount(const std::string& property, unsigned long& ret);
+  static common::PlatformResult GetPropertyValue(
+      const std::string& prop, bool is_array_type, picojson::value& res);
 
   static void RegisterBatteryListener(const SysteminfoUtilsCallback& callback);
   static void UnregisterBatteryListener();
@@ -65,22 +67,24 @@ class SysteminfoUtils {
   static void UnregisterMemoryListener();
 
  private:
-  static void ReportBattery(picojson::object& out);
-  static void ReportCpu(picojson::object& out);
+  static common::PlatformResult ReportProperty(const std::string& property, int index,
+                                               picojson::object& res_obj);
+  static common::PlatformResult ReportBattery(picojson::object& out);
+  static common::PlatformResult ReportCpu(picojson::object& out);
 
-  static void ReportDisplay(picojson::object& out);
-  static void ReportDeviceOrientation(picojson::object& out);
+  static common::PlatformResult ReportDisplay(picojson::object& out);
+  static common::PlatformResult ReportDeviceOrientation(picojson::object& out);
 
-  static void ReportBuild(picojson::object& out);
-  static void ReportLocale(picojson::object& out);
-  static void ReportNetwork(picojson::object& out);
-  static void ReportWifiNetwork(picojson::object& out);
-  static void ReportCellularNetwork(picojson::object& out);
-  static void ReportSim(picojson::object& out, unsigned long count);
-  static void ReportPeripheral(picojson::object& out);
-  static void ReportMemory(picojson::object& out);
+  static common::PlatformResult ReportBuild(picojson::object& out);
+  static common::PlatformResult ReportLocale(picojson::object& out);
+  static common::PlatformResult ReportNetwork(picojson::object& out);
+  static common::PlatformResult ReportWifiNetwork(picojson::object& out);
+  static common::PlatformResult ReportCellularNetwork(picojson::object& out);
+  static common::PlatformResult ReportSim(picojson::object& out, unsigned long count);
+  static common::PlatformResult ReportPeripheral(picojson::object& out);
+  static common::PlatformResult ReportMemory(picojson::object& out);
 
-  static void ReportStorage(picojson::object& out);
+  static common::PlatformResult ReportStorage(picojson::object& out);
 };
 
 typedef unsigned char byte;
