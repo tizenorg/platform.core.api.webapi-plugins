@@ -316,19 +316,40 @@ File.prototype.createDirectory = function(dirPath) {
     {name: 'dirPath', type: types_.STRING}
   ]);
 
-  var data = {
-    dirPath: args.dirPath
-  };
-
-  var result = native_.callSync('File_createDirectory', data);
-
-  if (native_.isFailure(result)) {
-    throw native_.getErrorObject(result);
+  if (!arguments.length || !args.dirPath.length) {
+    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR,
+        'Invalid path');
   }
+  var _newPath = this.fullPath + '/' + args.dirPath,
+          _statObj,
+          _fileInfo,
+          _realNewPath = commonFS_.toRealPath(_newPath);
 
-  var returnObject = new File(native_.getResultObject(result));
-  return returnObject;
+  if (this.isDirectory) {
+    if (this.mode === 'r') {
+      throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR,
+          'Invalid path or readonly access');
+    }
 
+    var _resultExist = native_.callSync('File_statSync', {location: _realNewPath});
+    if (native_.isSuccess(_resultExist)) {
+      throw new tizen.WebAPIException(tizen.WebAPIException.IO_ERR, 'Directory already exist');
+    }
+
+    var result = native_.callSync('FileSystemManager_mkdirSync', {location: _realNewPath});
+    if (native_.isFailure(result)) {
+      throw new tizen.WebAPIException(tizen.WebAPIException.IO_ERR, native_.getErrorObject(result));
+    }
+
+    var _result = native_.callSync('File_statSync', {location: _realNewPath});
+    _statObj = native_.getResultObject(_result);
+
+    _fileInfo = commonFS_.getFileInfo(_realNewPath, _statObj, false, this.mode);
+    return new File(_fileInfo);
+  } else {
+    throw new tizen.WebAPIException(tizen.WebAPIException.IO_ERR,
+        'File object which call this method is not directory');
+  }
 };
 
 File.prototype.createFile = function(relativeFilePath) {
