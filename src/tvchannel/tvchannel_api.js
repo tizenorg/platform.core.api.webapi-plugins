@@ -157,7 +157,7 @@ TVChannelManager.prototype.tune = function(tuneOption, successCallback, errorCal
   }, function(msg) {
     if (msg.error) {
       if (validatorType.isFunction(data.errorCallback)) {
-        data.errorCallback(native.getErrorObject(msg.error));
+        data.errorCallback(native.getErrorObject(msg));
       }
     } else if (msg.nosignal) {
       if (validatorType.isFunction(data.callback.onnosignal)) {
@@ -210,7 +210,7 @@ function tuneUpDown(args, methodName) {
   }, function(msg) {
     if (msg.error) {
       if (validatorType.isFunction(data.errorCallback)) {
-        data.errorCallback(native.getErrorObject(msg.error));
+        data.errorCallback(native.getErrorObject(msg));
       }
     } else if (msg.nosignal) {
       if (validatorType.isFunction(data.callback.onnosignal)) {
@@ -266,7 +266,7 @@ TVChannelManager.prototype.findChannel = function(major, minor, successCallback,
   }, function(msg) {
     if (msg.error) {
       if (validatorType.isFunction(args.errorCallback)) {
-        args.errorCallback(native.getErrorObject(msg.error));
+        args.errorCallback(native.getErrorObject(msg));
       }
     } else {
       args.successCallback(dictListToChannelList(msg.channelInfos));
@@ -324,7 +324,7 @@ TVChannelManager.prototype.getChannelList = function(successCallback,
   }, function(msg) {
     if (msg.error) {
       if (validatorType.isFunction(args.errorCallback)) {
-        args.errorCallback(native.getErrorObject(msg.error));
+        args.errorCallback(native.getErrorObject(msg));
       }
     } else {
       args.successCallback(dictListToChannelList(msg.channelInfos));
@@ -390,7 +390,7 @@ TVChannelManager.prototype.getProgramList = function(channelInfo,
   }, function(msg) {
     if (msg.error) {
       if (validatorType.isFunction(args.errorCallback)) {
-        args.errorCallback(native.getErrorObject(msg.error));
+        args.errorCallback(native.getErrorObject(msg));
       }
     } else {
       args.successCallback(dictListToProgramList(msg.programInfos));
