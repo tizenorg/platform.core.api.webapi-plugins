@@ -123,6 +123,19 @@ void TVChannelManager::tune(std::shared_ptr<TuneData> const& _pTuneData) {
     }
 }
 
+ENavigationMode navigatorModeToENavigationMode(NavigatorMode mode) {
+    switch (mode) {
+        case DIGITAL:
+            return NAVIGATION_MODE_DIGITAL;
+        case ANALOG:
+            return NAVIGATION_MODE_ANALOG;
+        case FAVORITE:
+            return NAVIGATION_MODE_FAVORITES;
+        default:
+            return NAVIGATION_MODE_ALL;
+    }
+}
+
 void TVChannelManager::tuneUp(std::shared_ptr<TuneData> const& _pTuneData) {
     LOGD("Enter");
     try {
@@ -136,7 +149,8 @@ void TVChannelManager::tuneUp(std::shared_ptr<TuneData> const& _pTuneData) {
         TSTvMode tvMode = getTvMode(
             getNavigation(getProfile(windowType), SCREENID));
 
-        ENavigationMode naviMode = NAVIGATION_MODE_ALL;
+        ENavigationMode naviMode = navigatorModeToENavigationMode(
+            _pTuneData->navMode);
         std::unique_ptr < TCCriteriaHelper > pCriteria = getBasicCriteria(
             tvMode, naviMode);
         pCriteria->Fetch(SERVICE_ID);
@@ -187,7 +201,8 @@ void TVChannelManager::tuneDown(std::shared_ptr<TuneData> const& _pTuneData) {
         TSTvMode tvMode = getTvMode(
             getNavigation(getProfile(windowType), SCREENID));
 
-        ENavigationMode naviMode = NAVIGATION_MODE_ALL;
+        ENavigationMode naviMode = navigatorModeToENavigationMode(
+            _pTuneData->navMode);
         std::unique_ptr < TCCriteriaHelper > pCriteria = getBasicCriteria(
             tvMode, naviMode);
         pCriteria->Fetch(SERVICE_ID);
