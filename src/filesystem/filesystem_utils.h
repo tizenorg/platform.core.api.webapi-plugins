@@ -9,6 +9,18 @@
 #include <storage-expand.h>
 #include "common/picojson.h"
 
+namespace extension {
+namespace filesystem {
+
+enum class FilesystemError {
+  None,
+  NotFound,
+  PermissionDenied,
+  Other
+};
+}
+}
+
 namespace std {
 
 std::string to_string(storage_type_e);
