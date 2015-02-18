@@ -91,79 +91,20 @@ typedef unsigned char byte;
 
 class SystemInfoDeviceCapability {
  public:
-  static picojson::value GetCapability(const std::string& key);
+  static common::PlatformResult GetCapability(const std::string& key, picojson::value& result);
+  static common::PlatformResult GetValueBool(const char *key, bool& value);
+  static common::PlatformResult GetValueInt(const char *key, int& value);
+  static common::PlatformResult GetValueString(const char *key, std::string& str_value);
 
-  static bool IsBluetooth();
-  static bool IsNfc();
-  static bool IsNfcReservedPush();
-  static unsigned short GetMultiTouchCount();
-  static bool IsInputKeyboard();
-  static bool IsInputKeyboardLayout();
-  static bool IsWifi();
-  static bool IsWifiDirect();
-  static std::string GetPlatformName();
-  static std::string GetPlatformVersion();
-  static std::string GetWebApiVersion();
-  static bool IsFmRadio();
-  static bool IsOpengles();
-  static bool IsOpenglesVersion11();
-  static bool IsOpenglesVersion20();
-  static std::string GetOpenglesTextureFormat();
-  static bool IsSpeechRecognition();
-  static bool IsSpeechSynthesis();
-  static bool IsAccelerometer();
-  static bool IsAccelerometerWakeup();
-  static bool IsBarometer();
-  static bool IsBarometerWakeup();
-  static bool IsGyroscope();
-  static bool IsGyroscopeWakeup();
-  static bool IsCamera();
-  static bool IsCameraFront();
-  static bool IsCameraFrontFlash();
-  static bool IsCameraBack();
-  static bool IsCameraBackFlash();
-  static bool IsLocation();
-  static bool IsLocationGps();
-  static bool IsLocationWps();
-  static bool IsMicrophone();
-  static bool IsUsbHost();
-  static bool IsUsbAccessory();
-  static bool IsScreenOutputRca();
-  static bool IsScreenOutputHdmi();
-  static bool IsGraphicsAcceleration();
-  static bool IsPush();
-  static bool IsTelephony();
-  static bool IsTelephonyMMS();
-  static bool IsTelephonySMS();
-  static std::string GetPlatfomCoreCpuArch();
-  static std::string GetPlatfomCoreFpuArch();
-  static bool IsSipVoip();
-  static bool IsMagnetometer();
-  static bool IsMagnetometerWakeup();
-  static bool IsPhotometer();
-  static bool IsPhotometerWakeup();
-  static bool IsProximity();
-  static bool IsProximityWakeup();
-  static bool IsTiltmeter();
-  static bool IsTiltmeterWakeup();
-  static bool IsDataEncryption();
-  static bool IsAutoRotation();
-  static bool IsVisionImageRecognition();
-  static bool IsVisionQrcodeGeneration();
-  static bool IsVisionQrcodeRecognition();
-  static bool IsVisionFaceRecognition();
-  static bool IsSecureElement();
-  static std::string GetProfile();
-
-  static std::string GetNativeAPIVersion();
+  static common::PlatformResult IsBluetooth(bool& result);
+  static common::PlatformResult IsInputKeyboardLayout(bool& result);
+  static common::PlatformResult GetOpenglesTextureFormat(std::string& result);
+  static common::PlatformResult GetPlatfomCoreCpuArch(std::string& return_value);
+  static common::PlatformResult GetPlatfomCoreFpuArch(std::string& return_value);
+  static common::PlatformResult GetProfile(std::string& return_value);
   static std::string GetDuid();
-  static bool IsScreenSizeNormal();
-  static bool IsScreenSize480_800();
-  static bool IsScreenSize720_1280();
-  static bool IsShellAppWidget();
-  static bool IsNativeOspCompatible();
 
-  //additional capabilities
+//  //additional capabilities
   static bool IsAccount();
   static bool IsArchive();
   static bool IsBadge();
@@ -197,7 +138,7 @@ class SystemInfoDeviceCapability {
   static bool IsWristUp();
   static bool IsHrm();
   static bool IsScreen();
-  static bool IsScreenSize320_320();
+  static common::PlatformResult IsScreenSize320_320(bool& return_value);
  private:
   static std::string GenerateDuid();
   static std::string GenerateId(char* pDeviceString);

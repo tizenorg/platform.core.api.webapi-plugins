@@ -280,21 +280,21 @@ class SimDetailsManager {
     std::lock_guard<std::mutex> lock(sim_to_process_mutex_);
     operator_name_ = name;
     --to_process_;
-    LOGD("Operator name: %s", operator_name_.c_str());
+    LoggerD("Operator name: %s", operator_name_.c_str());
   };
   void set_msisdn(const std::string& msisdn)
   {
     std::lock_guard<std::mutex> lock(sim_to_process_mutex_);
     this->msisdn_ = msisdn;
     --to_process_;
-    LOGD("MSISDN number: %s", this->msisdn_.c_str());
+    LoggerD("MSISDN number: %s", this->msisdn_.c_str());
   };
   void set_spn(const std::string& spn)
   {
     std::lock_guard<std::mutex> lock(sim_to_process_mutex_);
     this->spn_ = spn;
     --to_process_;
-    LOGD("SPN value: %s", this->spn_.c_str());
+    LoggerD("SPN value: %s", this->spn_.c_str());
   };
 };
 
@@ -329,21 +329,21 @@ void SimDetailsManager::GatherSimInformation(TapiHandle* handle, picojson::objec
       if (TAPI_API_SUCCESS == result) {
         ++to_process_;
       } else {
-        LOGE("Failed getting cphs netname: %d", result);
+        LoggerE("Failed getting cphs netname: %d", result);
       }
 
       result = tel_get_sim_msisdn(handle, SimMsisdnValueCallback, nullptr);
       if (TAPI_API_SUCCESS == result) {
         ++to_process_;
       } else {
-        LOGE("Failed getting msisdn: %d", result);
+        LoggerE("Failed getting msisdn: %d", result);
       }
 
       result = tel_get_sim_spn(handle, SimSpnValueCallback, nullptr);
       if (TAPI_API_SUCCESS == result) {
         ++to_process_;
       } else {
-        LOGE("Failed getting spn: %d", result);
+        LoggerE("Failed getting spn: %d", result);
       }
     }
     //prevent returning not filled result
@@ -357,9 +357,9 @@ void SimDetailsManager::GatherSimInformation(TapiHandle* handle, picojson::objec
 
 void SimDetailsManager::FetchSimState(TapiHandle *tapi_handle)
 {
-  LOGD("Entered");
+  LoggerD("Entered");
   if (nullptr == tapi_handle) {
-    LOGE("Tapi handle is null");
+    LoggerE("Tapi handle is null");
     state_ = kSimStatusUnknown;
   } else {
     int card_changed = 0;
@@ -401,17 +401,17 @@ void SimDetailsManager::FetchSimState(TapiHandle *tapi_handle)
 
 void SimDetailsManager::FetchSimSyncProps(TapiHandle *tapi_handle)
 {
-  LOGD("Entered");
+  LoggerD("Entered");
   TelSimImsiInfo_t imsi;
   int error = tel_get_sim_imsi(tapi_handle, &imsi);
   if (TAPI_API_SUCCESS == error) {
-    LOGD("mcc: %s, mnc: %s, msin: %s", imsi.szMcc, imsi.szMnc, imsi.szMsin);
+    LoggerD("mcc: %s, mnc: %s, msin: %s", imsi.szMcc, imsi.szMnc, imsi.szMsin);
     mcc_ = std::stoul(imsi.szMcc);
     mnc_ = std::stoul(imsi.szMnc);
     msin_ = imsi.szMsin;
   }
   else {
-    LOGE("Failed to get sim imsi: %d", error);
+    LoggerE("Failed to get sim imsi: %d", error);
     throw UnknownException("Failed to get sim imsi");
   }
 
@@ -433,7 +433,7 @@ void SimDetailsManager::ResetSimHolder(picojson::object* out){
 }
 
 void SimDetailsManager::ReturnSimToJS(){
-  LOGD("Entered");
+  LoggerD("Entered");
   if (nullptr != sim_result_obj_) {
     sim_result_obj_->insert(std::make_pair("state", state_));
     sim_result_obj_->insert(std::make_pair("operatorName", operator_name_));
@@ -446,28 +446,28 @@ void SimDetailsManager::ReturnSimToJS(){
     //everything returned, clear pointer
     sim_result_obj_ = nullptr;
   } else {
-    LOGE("No sim returned JSON object pointer is null");
+    LoggerE("No sim returned JSON object pointer is null");
   }
 }
 
 long SimDetailsManager::GetSimCount(TapiHandle **tapi_handle){
   if (0 != sim_count_){
-    LOGD("Sim counted already");
+    LoggerD("Sim counted already");
   } else {
-    LOGD("Gathering sim count");
+    LoggerD("Gathering sim count");
     char **cp_list = tel_get_cp_name_list();
     if (cp_list != NULL) {
       while (cp_list[sim_count_]) {
         tapi_handle[sim_count_] = tel_init(cp_list[sim_count_]);
         if (tapi_handle[sim_count_] == NULL) {
-          LOGE("Failed to connect with tapi, handle is null");
+          LoggerE("Failed to connect with tapi, handle is null");
           break;
         }
         sim_count_++;
-        LOGD("%d modem: %s", sim_count_, cp_list[sim_count_]);
+        LoggerD("%d modem: %s", sim_count_, cp_list[sim_count_]);
       }
     } else {
-      LOGE("Failed to get cp list");
+      LoggerE("Failed to get cp list");
       sim_count_ = TAPI_HANDLE_MAX;
     }
     g_strfreev(cp_list);
@@ -477,11 +477,11 @@ long SimDetailsManager::GetSimCount(TapiHandle **tapi_handle){
 
 void SimDetailsManager::TryReturn(){
   if (0 == to_process_){
-    LOGD("Returning property to JS");
+    LoggerD("Returning property to JS");
     ReturnSimToJS();
     sim_info_mutex_.unlock();
   } else {
-    LOGD("Not ready yet - waiting");
+    LoggerD("Not ready yet - waiting");
   }
 }
 
@@ -524,14 +524,14 @@ SystemInfoDeviceOrientation::SystemInfoDeviceOrientation() :
                              "/Org/Tizen/System/Coord/Rotation",
                              "org.tizen.system.coord.rotation")
 {
-  LOGD("Entered");
+  LoggerD("Entered");
   is_auto_rotation_ = FetchIsAutoRotation();
   status_ = FetchStatus();
 }
 
 SystemInfoDeviceOrientation::~SystemInfoDeviceOrientation()
 {
-  LOGD("Entered");
+  LoggerD("Entered");
   UnsetDeviceOrientationChangeListener();
 }
 
@@ -547,7 +547,7 @@ bool SystemInfoDeviceOrientation::is_auto_rotation() const
 
 bool SystemInfoDeviceOrientation::FetchIsAutoRotation()
 {
-  LOGD("Entered");
+  LoggerD("Entered");
   int is_auto_rotation = 0;
 
   if ( 0 == vconf_get_bool(VCONFKEY_SETAPPL_AUTO_ROTATE_SCREEN_BOOL, &is_auto_rotation)) {
@@ -555,7 +555,7 @@ bool SystemInfoDeviceOrientation::FetchIsAutoRotation()
       return true;
     }
   } else {
-    LOGE("VCONFKEY_SETAPPL_AUTO_ROTATE_SCREEN_BOOL check failed");
+    LoggerE("VCONFKEY_SETAPPL_AUTO_ROTATE_SCREEN_BOOL check failed");
     throw UnknownException(
         "VCONFKEY_SETAPPL_AUTO_ROTATE_SCREEN_BOOL check failed");
   }
@@ -564,7 +564,7 @@ bool SystemInfoDeviceOrientation::FetchIsAutoRotation()
 
 std::string SystemInfoDeviceOrientation::FetchStatus()
 {
-  LOGD("Entered");
+  LoggerD("Entered");
 
   DBusOperationArguments args;
   args.AddArgumentString("lcddim");
@@ -591,7 +591,7 @@ std::string SystemInfoDeviceOrientation::FetchStatus()
       status = kOrientationLandscapeSecondary;
       break;
     default:
-      LOGD("Unknown rotation value");
+      LoggerD("Unknown rotation value");
       break;
   }
 
@@ -600,9 +600,9 @@ std::string SystemInfoDeviceOrientation::FetchStatus()
 
 void SystemInfoDeviceOrientation::SetDeviceOrientationChangeListener()
 {
-  LOGD("Enter");
+  LoggerD("Enter");
   if (registered_) {
-    LOGD("already registered");
+    LoggerD("already registered");
   } else {
     RegisterDBus();
     registered_ = true;
@@ -611,9 +611,9 @@ void SystemInfoDeviceOrientation::SetDeviceOrientationChangeListener()
 
 void SystemInfoDeviceOrientation::UnsetDeviceOrientationChangeListener()
 {
-  LOGD("Enter");
+  LoggerD("Enter");
   if (!registered_) {
-    LOGD("not registered");
+    LoggerD("not registered");
   } else {
     UnregisterDBus();
     registered_ = false;
@@ -622,7 +622,7 @@ void SystemInfoDeviceOrientation::UnsetDeviceOrientationChangeListener()
 
 void SystemInfoDeviceOrientation::RegisterDBus()
 {
-  LOGD("Enter");
+  LoggerD("Enter");
 
   int ret = 0;
   DBusOperationArguments args;
@@ -631,21 +631,21 @@ void SystemInfoDeviceOrientation::RegisterDBus()
   ret = dbus_op_.InvokeSyncGetInt("StartRotation", &args);
 
   if (ret != 0) {
-    LOGE("Failed to start rotation broadcast");
+    LoggerE("Failed to start rotation broadcast");
     throw UnknownException("Failed to start rotation broadcast");
   }
 
   dbus_op_.RegisterSignalListener("ChangedPhysicalRotation", this);
-  LOGD("registerSignalListener: ChangedPhysicalRotation");
+  LoggerD("registerSignalListener: ChangedPhysicalRotation");
 }
 
 void SystemInfoDeviceOrientation::UnregisterDBus()
 {
-  LOGD("Enter");
+  LoggerD("Enter");
 
   int ret = 0;
   dbus_op_.UnregisterSignalListener("ChangedPhysicalRotation", this);
-  LOGD("unregisterSignalListener: ChangedPhysicalRotation");
+  LoggerD("unregisterSignalListener: ChangedPhysicalRotation");
 
   DBusOperationArguments args;
   args.AddArgumentInt32(0);
@@ -653,35 +653,35 @@ void SystemInfoDeviceOrientation::UnregisterDBus()
   ret = dbus_op_.InvokeSyncGetInt("StartRotation", &args);
 
   if (ret != 0) {
-    LOGE("Failed to stop rotation broadcast");
+    LoggerE("Failed to stop rotation broadcast");
     throw UnknownException("Failed to stop rotation broadcast");
   }
 }
 
 void SystemInfoDeviceOrientation::OnDBusSignal(int value)
 {
-  LOGD("value : %d", value);
+  LoggerD("value : %d", value);
 
   switch (value) {
     case 0:
     case 1: //rotation 0
-      LOGD("ORIENTATION_PORTRAIT_PRIMARY");
+      LoggerD("ORIENTATION_PORTRAIT_PRIMARY");
       break;
     case 2: //rotation 90
-      LOGD("ORIENTATION_LANDSCAPE_PRIMARY");
+      LoggerD("ORIENTATION_LANDSCAPE_PRIMARY");
       break;
     case 3: //rotation 180
-      LOGD("ORIENTATION_PORTRAIT_SECONDARY");
+      LoggerD("ORIENTATION_PORTRAIT_SECONDARY");
       break;
     case 4: //rotation 270
-      LOGD("ORIENTATION_LANDSCAPE_SECONDARY");
+      LoggerD("ORIENTATION_LANDSCAPE_SECONDARY");
       break;
     default:
-      LOGD("Unknown rotation value");
+      LoggerD("Unknown rotation value");
       break;
   }
 
-  LOGD("call OnDeviceOrientationChangedCb");
+  LoggerD("call OnDeviceOrientationChangedCb");
   OnDeviceOrientationChangedCb();
 }
 
@@ -794,7 +794,7 @@ SystemInfoListeners::SystemInfoListeners():
             m_memory_listener(nullptr),
             m_connection_handle(nullptr)
 {
-  LOGD("Entered");
+  LoggerD("Entered");
 }
 
 SystemInfoListeners::~SystemInfoListeners(){
@@ -822,11 +822,11 @@ SystemInfoListeners::~SystemInfoListeners(){
 
 void SystemInfoListeners::RegisterBatteryListener(const SysteminfoUtilsCallback& callback)
 {
-  LOGD("Entered");
+  LoggerD("Entered");
   if (nullptr == m_battery_listener) {
     RegisterVconfCallback(VCONFKEY_SYSMAN_BATTERY_CAPACITY, OnBatteryChangedCb);
     RegisterVconfCallback(VCONFKEY_SYSMAN_BATTERY_CHARGE_NOW, OnBatteryChangedCb);
-    LOGD("Added callback for BATTERY");
+    LoggerD("Added callback for BATTERY");
     m_battery_listener = callback;
   }
 }
@@ -836,7 +836,7 @@ void SystemInfoListeners::UnregisterBatteryListener()
   if (nullptr != m_battery_listener) {
     UnregisterVconfCallback(VCONFKEY_SYSMAN_BATTERY_CAPACITY, OnBatteryChangedCb);
     UnregisterVconfCallback(VCONFKEY_SYSMAN_BATTERY_CHARGE_NOW, OnBatteryChangedCb);
-    LOGD("Removed callback for BATTERY");
+    LoggerD("Removed callback for BATTERY");
     m_battery_listener = nullptr;
   }
 }
@@ -845,7 +845,7 @@ void SystemInfoListeners::RegisterCpuListener(const SysteminfoUtilsCallback& cal
 {
   if (nullptr == m_cpu_listener) {
     m_cpu_event_id = g_timeout_add_seconds(kPropertyWatcherTime, OnCpuChangedCb, nullptr);
-    LOGD("Added callback for CPU");
+    LoggerD("Added callback for CPU");
     m_cpu_listener = callback;
   }
 }
@@ -855,7 +855,7 @@ void SystemInfoListeners::UnregisterCpuListener()
   if (nullptr != m_cpu_listener) {
     g_source_remove(m_cpu_event_id);
     m_cpu_event_id = 0;
-    LOGD("Removed callback for CPU");
+    LoggerD("Removed callback for CPU");
     m_cpu_listener = nullptr;
   }
 }
@@ -869,7 +869,7 @@ void SystemInfoListeners::RegisterStorageListener(const SysteminfoUtilsCallback&
       // empty on purpose
     }
     m_storage_event_id = g_timeout_add_seconds(kPropertyWatcherTime, OnStorageChangedCb, nullptr);
-    LOGD("Added callback for STORAGE");
+    LoggerD("Added callback for STORAGE");
     m_storage_listener = callback;
   }
 }
@@ -884,7 +884,7 @@ void SystemInfoListeners::UnregisterStorageListener()
     }
     g_source_remove(m_storage_event_id);
     m_storage_event_id = 0;
-    LOGD("Removed callback for STORAGE");
+    LoggerD("Removed callback for STORAGE");
     m_storage_listener = nullptr;
   }
 }
@@ -893,7 +893,7 @@ void SystemInfoListeners::RegisterDisplayListener(const SysteminfoUtilsCallback&
 {
   if (nullptr == m_display_listener) {
     RegisterVconfCallback(VCONFKEY_SETAPPL_LCD_BRIGHTNESS, OnDisplayChangedCb);
-    LOGD("Added callback for DISPLAY");
+    LoggerD("Added callback for DISPLAY");
     m_display_listener = callback;
   }
 }
@@ -903,7 +903,7 @@ void SystemInfoListeners::UnregisterDisplayListener()
 
   if (nullptr != m_display_listener) {
     UnregisterVconfCallback(VCONFKEY_SETAPPL_LCD_BRIGHTNESS, OnDisplayChangedCb);
-    LOGD("Removed callback for DISPLAY");
+    LoggerD("Removed callback for DISPLAY");
     m_display_listener = nullptr;
   }
 }
@@ -918,7 +918,7 @@ void SystemInfoListeners::RegisterDeviceOrientationListener(const SysteminfoUtil
     RegisterVconfCallback(VCONFKEY_SETAPPL_AUTO_ROTATE_SCREEN_BOOL, OnDeviceAutoRotationChangedCb);
     m_orientation->SetDeviceOrientationChangeListener();
 
-    LOGD("Added callback for DEVICE_ORIENTATION");
+    LoggerD("Added callback for DEVICE_ORIENTATION");
     m_device_orientation_listener = callback;
   }
 }
@@ -932,7 +932,7 @@ void SystemInfoListeners::UnregisterDeviceOrientationListener()
       m_orientation.reset();
     }
 
-    LOGD("Removed callback for DEVICE_ORIENTATION");
+    LoggerD("Removed callback for DEVICE_ORIENTATION");
     m_device_orientation_listener = nullptr;
   }
 }
@@ -943,16 +943,16 @@ void SystemInfoListeners::RegisterLocaleListener(const SysteminfoUtilsCallback& 
     if (RUNTIME_INFO_ERROR_NONE !=
         runtime_info_set_changed_cb(RUNTIME_INFO_KEY_REGION,
                                     OnLocaleChangedCb, nullptr) ) {
-      LOGE("Country change callback registration failed");
+      LoggerE("Country change callback registration failed");
       throw UnknownException("Country change callback registration failed");
     }
     if (RUNTIME_INFO_ERROR_NONE !=
         runtime_info_set_changed_cb(RUNTIME_INFO_KEY_LANGUAGE,
                                     OnLocaleChangedCb, nullptr) ) {
-      LOGE("Language change callback registration failed");
+      LoggerE("Language change callback registration failed");
       throw UnknownException("Language change callback registration failed");
     }
-    LOGD("Added callback for LOCALE");
+    LoggerD("Added callback for LOCALE");
     m_locale_listener = callback;
   }
 }
@@ -962,13 +962,13 @@ void SystemInfoListeners::UnregisterLocaleListener()
   if (nullptr != m_locale_listener) {
     if (RUNTIME_INFO_ERROR_NONE !=
         runtime_info_unset_changed_cb(RUNTIME_INFO_KEY_LANGUAGE) ) {
-      LOGE("Unregistration of language change callback failed");
+      LoggerE("Unregistration of language change callback failed");
     }
     if (RUNTIME_INFO_ERROR_NONE !=
         runtime_info_unset_changed_cb(RUNTIME_INFO_KEY_REGION) ) {
-      LOGE("Unregistration of country change callback failed");
+      LoggerE("Unregistration of country change callback failed");
     }
-    LOGD("Removed callback for LOCALE");
+    LoggerD("Removed callback for LOCALE");
     m_locale_listener = nullptr;
   }
 }
@@ -977,7 +977,7 @@ void SystemInfoListeners::RegisterNetworkListener(const SysteminfoUtilsCallback&
 {
   if (nullptr == m_network_listener) {
     connection_set_type_changed_cb(GetConnectionHandle(), OnNetworkChangedCb, nullptr);
-    LOGD("Added callback for NETWORK");
+    LoggerD("Added callback for NETWORK");
     m_network_listener = callback;
   }
 }
@@ -986,7 +986,7 @@ void SystemInfoListeners::UnregisterNetworkListener()
 {
   if (nullptr != m_network_listener) {
 
-    LOGD("Removed callback for NETWORK");
+    LoggerD("Removed callback for NETWORK");
     m_network_listener = nullptr;
   }
 }
@@ -998,9 +998,9 @@ void SystemInfoListeners::RegisterWifiNetworkListener(const SysteminfoUtilsCallb
       //register if there is no callback both for wifi and cellular
       RegisterIpChangeCallback();
     } else {
-      LOGD("No need to register ip listener on platform, already registered");
+      LoggerD("No need to register ip listener on platform, already registered");
     }
-    LOGD("Added callback for WIFI_NETWORK");
+    LoggerD("Added callback for WIFI_NETWORK");
     m_wifi_network_listener = callback;
   }
 }
@@ -1010,9 +1010,9 @@ void SystemInfoListeners::UnregisterWifiNetworkListener()
   //unregister if is wifi callback, but no cellular callback
   if (nullptr != m_wifi_network_listener && nullptr == m_cellular_network_listener) {
     UnregisterIpChangeCallback();
-    LOGD("Removed callback for WIFI_NETWORK");
+    LoggerD("Removed callback for WIFI_NETWORK");
   } else {
-    LOGD("Removed callback for WIFI_NETWORK, but cellular listener still works");
+    LoggerD("Removed callback for WIFI_NETWORK, but cellular listener still works");
   }
   m_wifi_network_listener = nullptr;
 }
@@ -1024,7 +1024,7 @@ void SystemInfoListeners::RegisterCellularNetworkListener(const SysteminfoUtilsC
       //register if there is no callback both for wifi and cellular
       RegisterIpChangeCallback();
     } else {
-      LOGD("No need to register ip listener on platform, already registered");
+      LoggerD("No need to register ip listener on platform, already registered");
     }
     RegisterVconfCallback(VCONFKEY_TELEPHONY_FLIGHT_MODE,
                           OnCellularNetworkValueChangedCb);
@@ -1034,7 +1034,7 @@ void SystemInfoListeners::RegisterCellularNetworkListener(const SysteminfoUtilsC
                           OnCellularNetworkValueChangedCb);
     RegisterVconfCallback(VCONFKEY_TELEPHONY_SVC_ROAM,
                           OnCellularNetworkValueChangedCb);
-    LOGD("Added callback for CELLULAR_NETWORK");
+    LoggerD("Added callback for CELLULAR_NETWORK");
     m_cellular_network_listener = callback;
   }
 }
@@ -1053,9 +1053,9 @@ void SystemInfoListeners::UnregisterCellularNetworkListener()
     if (nullptr == m_wifi_network_listener) {
       //register if there is no callback both for wifi and cellular
       UnregisterIpChangeCallback();
-      LOGD("Removed callback for CELLULAR_NETWORK");
+      LoggerD("Removed callback for CELLULAR_NETWORK");
     } else {
-      LOGD("Removed callback for CELLULAR_NETWORK, but cellular listener still works");
+      LoggerD("Removed callback for CELLULAR_NETWORK, but cellular listener still works");
     }
   }
   m_cellular_network_listener = nullptr;
@@ -1079,7 +1079,7 @@ void SystemInfoListeners::RegisterPeripheralListener(const SysteminfoUtilsCallba
     } catch (const PlatformException& e) {
       // empty on purpose
     }
-    LOGD("Added callback for PERIPHERAL");
+    LoggerD("Added callback for PERIPHERAL");
     m_peripheral_listener = callback;
   }
 }
@@ -1102,7 +1102,7 @@ void SystemInfoListeners::UnregisterPeripheralListener()
     } catch (const PlatformException& e) {
       // empty on purpose
     }
-    LOGD("Removed callback for PERIPHERAL");
+    LoggerD("Removed callback for PERIPHERAL");
     m_peripheral_listener = nullptr;
   }
 }
@@ -1118,7 +1118,7 @@ void SystemInfoListeners::RegisterMemoryListener(const SysteminfoUtilsCallback& 
     } catch (const PlatformException& e) {
       // empty on purpose
     }
-    LOGD("Added callback for MEMORY");
+    LoggerD("Added callback for MEMORY");
     m_memory_listener = callback;
   }
 }
@@ -1131,7 +1131,7 @@ void SystemInfoListeners::UnregisterMemoryListener()
     } catch (const PlatformException& e) {
       // empty on purpose
     }
-    LOGD("Removed callback for MEMORY");
+    LoggerD("Removed callback for MEMORY");
     m_memory_listener = nullptr;
   }
 }
@@ -1160,7 +1160,7 @@ void SystemInfoListeners::OnBatteryChangedCallback(keynode_t* /*node*/, void* /*
 
 void SystemInfoListeners::OnCpuChangedCallback(void* /*event_ptr*/)
 {
-  LOGD("");
+  LoggerD("");
   picojson::value result = picojson::value(picojson::object());
   PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdCpu, false, result);
   if (ret.IsSuccess()) {
@@ -1176,7 +1176,7 @@ void SystemInfoListeners::OnCpuChangedCallback(void* /*event_ptr*/)
 
 void SystemInfoListeners::OnStorageChangedCallback(void* /*event_ptr*/)
 {
-  LOGD("");
+  LoggerD("");
   picojson::value result = picojson::value(picojson::object());
   PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdStorage, false, result);
   if (ret.IsSuccess()) {
@@ -1193,7 +1193,7 @@ void SystemInfoListeners::OnStorageChangedCallback(void* /*event_ptr*/)
 
 void SystemInfoListeners::OnMmcChangedCallback(keynode_t* /*node*/, void* /*event_ptr*/)
 {
-  LOGD("");
+  LoggerD("");
   picojson::value result = picojson::value(picojson::object());
   PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdStorage, false, result);
   if (ret.IsSuccess()) {
@@ -1277,7 +1277,7 @@ void SystemInfoListeners::OnMemoryChangedCallback(keynode_t* /*node*/, void* /*e
 
 void SystemInfoListeners::InitTapiHandles()
 {
-  LOGD("Entered");
+  LoggerD("Entered");
   int sim_count = 0;
   if (nullptr == m_tapi_handles){
     char **cp_list = tel_get_cp_name_list();
@@ -1286,14 +1286,14 @@ void SystemInfoListeners::InitTapiHandles()
       while (cp_list[sim_count]) {
         m_tapi_handles[sim_count] = tel_init(cp_list[sim_count]);
         if (nullptr == m_tapi_handles[sim_count]) {
-          LOGE("Failed to connect with tapi, handle is null");
+          LoggerE("Failed to connect with tapi, handle is null");
           break;
         }
         sim_count++;
-        LOGD("%d modem: %s", sim_count, cp_list[sim_count]);
+        LoggerD("%d modem: %s", sim_count, cp_list[sim_count]);
       }
     } else {
-      LOGE("Failed to get cp list");
+      LoggerE("Failed to get cp list");
       sim_count = TAPI_HANDLE_MAX;
     }
     g_strfreev(cp_list);
@@ -1303,7 +1303,7 @@ void SystemInfoListeners::InitTapiHandles()
 TapiHandle* SystemInfoListeners::GetTapiHandle()
 {
 
-  LOGD("Entered");
+  LoggerD("Entered");
   InitTapiHandles();
   return m_tapi_handles[0];
 }
@@ -1319,7 +1319,7 @@ connection_h SystemInfoListeners::GetConnectionHandle()
   if (nullptr == m_connection_handle) {
     int error = connection_create(&m_connection_handle);
     if (CONNECTION_ERROR_NONE != error) {
-      LOGE("Failed to create connection: %d", error);
+      LoggerE("Failed to create connection: %d", error);
       throw UnknownException("Cannot create connection");
     }
   }
@@ -1331,7 +1331,7 @@ connection_h SystemInfoListeners::GetConnectionHandle()
 void SystemInfoListeners::RegisterVconfCallback(const char *in_key, vconf_callback_fn cb)
 {
   if (0 != vconf_notify_key_changed(in_key, cb, nullptr)) {
-    LOGE("Failed to register vconf callback: %s", in_key);
+    LoggerE("Failed to register vconf callback: %s", in_key);
     throw UnknownException("Failed to register vconf callback");
   }
 }
@@ -1339,30 +1339,30 @@ void SystemInfoListeners::RegisterVconfCallback(const char *in_key, vconf_callba
 void SystemInfoListeners::UnregisterVconfCallback(const char *in_key, vconf_callback_fn cb)
 {
   if (0 != vconf_ignore_key_changed(in_key, cb)) {
-    LOGE("Failed to unregister vconf callback: %s", in_key);
+    LoggerE("Failed to unregister vconf callback: %s", in_key);
     throw UnknownException("Failed to unregister vconf callback");
   }
 }
 
 void SystemInfoListeners::RegisterIpChangeCallback()
 {
-  LOGD("Registering connection callback");
+  LoggerD("Registering connection callback");
   connection_h handle = GetConnectionHandle();
   int error = connection_set_ip_address_changed_cb(handle,
                                                    OnNetworkValueChangedCb, nullptr);
   if (CONNECTION_ERROR_NONE != error) {
-    LOGE("Failed to register ip change callback: %d", error);
+    LoggerE("Failed to register ip change callback: %d", error);
     throw UnknownException("Cannot register ip change callback");
   }
 }
 
 void SystemInfoListeners::UnregisterIpChangeCallback()
 {
-  LOGD("Unregistering connection callback");
+  LoggerD("Unregistering connection callback");
   connection_h handle = GetConnectionHandle();
   int error = connection_unset_ip_address_changed_cb(handle);
   if (CONNECTION_ERROR_NONE != error) {
-    LOGE("Failed to unregister ip change callback: %d", error);
+    LoggerE("Failed to unregister ip change callback: %d", error);
     throw UnknownException("Cannot unregister ip change callback");
   }
 }
@@ -1379,116 +1379,112 @@ static SimDetailsManager sim_mgr;
 
 void OnBatteryChangedCb(keynode_t* node, void* event_ptr)
 {
-  LOGD("");
+  LoggerD("");
   system_info_listeners.OnBatteryChangedCallback(node, event_ptr);
 }
 
 gboolean OnCpuChangedCb(gpointer event_ptr)
 {
-  LOGD("");
+  LoggerD("");
   system_info_listeners.OnCpuChangedCallback(event_ptr);
   return G_SOURCE_CONTINUE;
 }
 gboolean OnStorageChangedCb(gpointer event_ptr)
 {
-  LOGD("");
+  LoggerD("");
   system_info_listeners.OnStorageChangedCallback(event_ptr);
   return G_SOURCE_CONTINUE;
 }
 void OnMmcChangedCb(keynode_t* node, void* event_ptr)
 {
-  LOGD("");
+  LoggerD("");
   system_info_listeners.OnMmcChangedCallback(node, event_ptr);
 }
 
 void OnDisplayChangedCb(keynode_t* node, void* event_ptr)
 {
-  LOGD("");
+  LoggerD("");
   system_info_listeners.OnDisplayChangedCallback(node, event_ptr);
 }
 
 void OnDeviceAutoRotationChangedCb(keynode_t* node, void* event_ptr)
 {
-  LOGD("");
+  LoggerD("");
   system_info_listeners.OnDeviceAutoRotationChangedCallback(node, event_ptr);
 }
 
 void OnDeviceOrientationChangedCb()
 {
-  LOGD("");
+  LoggerD("");
   system_info_listeners.OnDeviceOrientationChangedCallback();
 }
 
 void OnLocaleChangedCb(runtime_info_key_e key, void* event_ptr)
 {
-  LOGD("");
+  LoggerD("");
   system_info_listeners.OnLocaleChangedCallback(key, event_ptr);
 }
 
 void OnNetworkChangedCb(connection_type_e type, void* event_ptr)
 {
-  LOGD("");
+  LoggerD("");
   system_info_listeners.OnNetworkChangedCallback(type, event_ptr);
 }
 
 void OnNetworkValueChangedCb(const char* ipv4_address,
                              const char* ipv6_address, void* event_ptr)
 {
-  LOGD("");
+  LoggerD("");
   system_info_listeners.OnNetworkValueCallback(ipv4_address, ipv6_address, event_ptr);
 }
 
 void OnCellularNetworkValueChangedCb(keynode_t *node, void *event_ptr)
 {
-  LOGD("");
+  LoggerD("");
   system_info_listeners.OnCellularNetworkValueCallback(node, event_ptr);
 }
 
 void OnPeripheralChangedCb(keynode_t* node, void* event_ptr)
 {
-  LOGD("");
+  LoggerD("");
   system_info_listeners.OnPeripheralChangedCallback(node, event_ptr);
 }
 
 void OnMemoryChangedCb(keynode_t* node, void* event_ptr)
 {
-  LOGD("");
+  LoggerD("");
   system_info_listeners.OnMemoryChangedCallback(node, event_ptr);
 }
 
 /////////////////////////// SysteminfoUtils ////////////////////////////////
 
-static bool GetValueBool(const char *key) {
-  bool value = false;
-
+PlatformResult SystemInfoDeviceCapability::GetValueBool(const char *key, bool& value) {
   int ret = system_info_get_platform_bool(key, &value);
   if (SYSTEM_INFO_ERROR_NONE != ret) {
     std::string log_msg = "Platform error while getting bool value: ";
     log_msg += std::string(key) + " " + std::to_string(ret);
-    LOGE("%s", log_msg.c_str());
-    throw UnknownException(log_msg);
+    LoggerE("%s", log_msg.c_str());
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
   }
 
-  LOGD("value[%s]: %s", key, value ? "true" : "false");
-  return value;
+  LoggerD("value[%s]: %s", key, value ? "true" : "false");
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-static int GetValueInt(const char *key) {
-  int value = 0;
-
+PlatformResult SystemInfoDeviceCapability::GetValueInt(const char *key, int& value) {
   int ret = system_info_get_platform_int(key, &value);
   if (SYSTEM_INFO_ERROR_NONE != ret) {
     std::string log_msg = "Platform error while getting int value: ";
     log_msg += std::string(key) + " " + std::to_string(ret);
-    LOGE("%s", log_msg.c_str());
-    throw UnknownException(log_msg);
+    LoggerE("%s", log_msg.c_str());
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
   }
 
-  LOGD("value[%s]: %d", key, value);
-  return value;
+  LoggerD("value[%s]: %d", key, value);
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-static PlatformResult GetValueString(const char *key, std::string& str_value) {
+PlatformResult SystemInfoDeviceCapability::GetValueString(const char *key, std::string& str_value) {
   char* value = nullptr;
 
   int ret = system_info_get_platform_string(key, &value);
@@ -1501,11 +1497,11 @@ static PlatformResult GetValueString(const char *key, std::string& str_value) {
   } else {
     std::string log_msg = "Platform error while getting string value: ";
     log_msg += std::string(key) + " " + std::to_string(ret);
-    LOGE("%s", log_msg.c_str());
+    LoggerE("%s", log_msg.c_str());
     return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
   }
 
-  LOGD("value[%s]: %s", key, str_value.c_str());
+  LoggerD("value[%s]: %s", key, str_value.c_str());
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
@@ -1520,7 +1516,7 @@ static PlatformResult GetRuntimeInfoString(runtime_info_key_e key, std::string& 
     }
   }
   const char* error_msg = "Error when retrieving runtime information: " + err;
-  LOGE("%s", error_msg);
+  LoggerE("%s", error_msg);
   return PlatformResult(ErrorCode::UNKNOWN_ERR, error_msg);
 }
 
@@ -1529,7 +1525,7 @@ static PlatformResult GetSystemValueString(system_info_key_e key, std::string& p
   if (SYSTEM_INFO_ERROR_NONE
       == system_info_get_value_string(key, &platform_c_string)) {
     if (platform_c_string) {
-      LOGD("Build platfrom string %s", platform_c_string);
+      LoggerD("Build platfrom string %s", platform_c_string);
       platform_string = platform_c_string;
       free(platform_c_string);
       return PlatformResult(ErrorCode::NO_ERROR);
@@ -1537,7 +1533,7 @@ static PlatformResult GetSystemValueString(system_info_key_e key, std::string& p
   }
 
   const char* error_msg = "Error when retrieving value from platform API";
-  LOGE("%s", error_msg);
+  LoggerE("%s", error_msg);
   return PlatformResult(ErrorCode::UNKNOWN_ERR, error_msg);
 }
 
@@ -1546,24 +1542,24 @@ PlatformResult GetVconfInt(const char *key, int &value) {
     return PlatformResult(ErrorCode::NO_ERROR);
   } else {
     const std::string error_msg = "Could not get " + std::string(key);
-    LOGD("%s",error_msg.c_str());
+    LoggerD("%s",error_msg.c_str());
     return PlatformResult(ErrorCode::UNKNOWN_ERR, error_msg);
   }
 
-  LOGD("value[%s]: %d", key, value);
+  LoggerD("value[%s]: %d", key, value);
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 long long SysteminfoUtils::GetTotalMemory()
 {
-  LOGD("Entered");
+  LoggerD("Entered");
 
   unsigned int value = 0;
 
   int ret = device_memory_get_total(&value);
   if (ret != DEVICE_ERROR_NONE) {
     std::string log_msg = "Failed to get total memory: " + std::to_string(ret);
-    LOGE("%s", log_msg.c_str());
+    LoggerE("%s", log_msg.c_str());
     throw UnknownException(log_msg.c_str());
   }
 
@@ -1572,14 +1568,14 @@ long long SysteminfoUtils::GetTotalMemory()
 
 long long SysteminfoUtils::GetAvailableMemory()
 {
-  LOGD("Entered");
+  LoggerD("Entered");
 
   unsigned int value = 0;
 
   int ret = device_memory_get_available(&value);
   if (ret != DEVICE_ERROR_NONE) {
     std::string log_msg = "Failed to get total memory: " + std::to_string(ret);
-    LOGE("%s", log_msg.c_str());
+    LoggerE("%s", log_msg.c_str());
     throw UnknownException(log_msg.c_str());
   }
 
@@ -1588,7 +1584,7 @@ long long SysteminfoUtils::GetAvailableMemory()
 
 PlatformResult SysteminfoUtils::GetCount(const std::string& property, unsigned long& count)
 {
-  LOGD("Enter");
+  LoggerD("Enter");
 
   if ("BATTERY" == property || "CPU" == property || "STORAGE" == property ||
       "DISPLAY" == property || "DEVICE_ORIENTATION" == property ||
@@ -1599,7 +1595,7 @@ PlatformResult SysteminfoUtils::GetCount(const std::string& property, unsigned l
   } else if ("SIM" == property) {
     count = sim_mgr.GetSimCount(system_info_listeners.GetTapiHandles());
   } else {
-    LOGD("Property with given id is not supported");
+    LoggerD("Property with given id is not supported");
     return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR, "Property with given id is not supported");
   }
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -1634,7 +1630,7 @@ PlatformResult SysteminfoUtils::ReportProperty(const std::string& property, int 
   } else if ("MEMORY" == property) {
     return ReportMemory(res_obj);
   } else {
-    LOGD("Property with given id is not supported");
+    LoggerD("Property with given id is not supported");
     return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR, "Property with given id is not supported");
   }
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -1643,7 +1639,7 @@ PlatformResult SysteminfoUtils::ReportProperty(const std::string& property, int 
 PlatformResult SysteminfoUtils::GetPropertyValue(const std::string& property, bool is_array_type,
                                                   picojson::value& res)
 {
-  LOGD("Entered getPropertyValue");
+  LoggerD("Entered getPropertyValue");
 
   if (!is_array_type) {
     picojson::object& res_obj = res.get<picojson::object>();
@@ -1679,7 +1675,7 @@ PlatformResult SysteminfoUtils::ReportBattery(picojson::object& out) {
   int ret = vconf_get_int(VCONFKEY_SYSMAN_BATTERY_CAPACITY, &value);
   if (kVconfErrorNone != ret) {
     std::string log_msg = "Platform error while getting battery detail: ";
-    LOGE("%s%d", log_msg.c_str(), ret);
+    LoggerE("%s%d", log_msg.c_str(), ret);
     return PlatformResult(ErrorCode::UNKNOWN_ERR, (log_msg + std::to_string(ret)));
   }
 
@@ -1687,7 +1683,7 @@ PlatformResult SysteminfoUtils::ReportBattery(picojson::object& out) {
   ret = vconf_get_int(VCONFKEY_SYSMAN_BATTERY_CHARGE_NOW, &value);
   if (kVconfErrorNone != ret) {
     std::string log_msg =  "Platform error while getting battery charging: ";
-    LOGE("%s%d",log_msg.c_str(), ret);
+    LoggerE("%s%d",log_msg.c_str(), ret);
     return PlatformResult(ErrorCode::UNKNOWN_ERR, (log_msg + std::to_string(ret)));
   }
   out.insert(std::make_pair("level", static_cast<double>(value)/kRemainingBatteryChargeMax));
@@ -1696,13 +1692,13 @@ PlatformResult SysteminfoUtils::ReportBattery(picojson::object& out) {
 }
 //TODO maybe make two functions later onGSourceFunc
 PlatformResult SysteminfoUtils::ReportCpu(picojson::object& out) {
-  LOGD("Entered");
+  LoggerD("Entered");
   static CpuInfo cpu_info;
   FILE *fp = nullptr;
   fp = fopen("/proc/stat", "r");
   if (nullptr == fp) {
     std::string error_msg("Can not open /proc/stat for reading");
-    LOGE( "%s", error_msg.c_str() );
+    LoggerE( "%s", error_msg.c_str() );
     return PlatformResult(ErrorCode::UNKNOWN_ERR, error_msg);
   }
 
@@ -1727,19 +1723,19 @@ PlatformResult SysteminfoUtils::ReportCpu(picojson::object& out) {
       cpu_info.idle = idle;
       cpu_info.load = load;
     } else {
-      LOGW("Cannot calculate cpu load, previous value returned");
+      LoggerW("Cannot calculate cpu load, previous value returned");
       load = cpu_info.load;
     }
   } else {
     std::string error_msg( "Could not read /proc/stat" );
-    LOGE( "%s", error_msg.c_str() );
+    LoggerE( "%s", error_msg.c_str() );
     return PlatformResult(ErrorCode::UNKNOWN_ERR, error_msg);
   }
 
   system_info_listeners.SetCpuInfoLoad(cpu_info.load);
 
   load = 100 - load;
-  LOGD("Cpu load : %f", load );
+  LoggerD("Cpu load : %f", load );
   out.insert(std::make_pair("load", load / 100.0));
   return PlatformResult(ErrorCode::NO_ERROR);
 }
@@ -1756,12 +1752,12 @@ PlatformResult SysteminfoUtils::ReportDisplay(picojson::object& out) {
   // FETCH RESOLUTION
   if (SYSTEM_INFO_ERROR_NONE != system_info_get_value_int(
       SYSTEM_INFO_KEY_SCREEN_WIDTH, &screenWidth)) {
-    LOGE("Cannot get value of screen width");
+    LoggerE("Cannot get value of screen width");
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get value of screen width");
   }
   if (SYSTEM_INFO_ERROR_NONE != system_info_get_value_int(
       SYSTEM_INFO_KEY_SCREEN_HEIGHT, &screenHeight)) {
-    LOGE("Cannot get value of screen height");
+    LoggerE("Cannot get value of screen height");
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get value of screen height");
   }
 
@@ -1772,7 +1768,7 @@ PlatformResult SysteminfoUtils::ReportDisplay(picojson::object& out) {
     dotsPerInchWidth = dots_per_inch;
     dotsPerInchHeight = dots_per_inch;
   } else {
-    LOGE("Cannot get 'tizen.org/feature/screen.dpi' value");
+    LoggerE("Cannot get 'tizen.org/feature/screen.dpi' value");
     return PlatformResult(ErrorCode::UNKNOWN_ERR,
                           "Cannot get 'tizen.org/feature/screen.dpi' value");
   }
@@ -1780,7 +1776,7 @@ PlatformResult SysteminfoUtils::ReportDisplay(picojson::object& out) {
   //FETCH PHYSICAL WIDTH
   if (SYSTEM_INFO_ERROR_NONE != system_info_get_value_int(
       SYSTEM_INFO_KEY_PHYSICAL_SCREEN_WIDTH, &physicalWidth)) {
-    LOGE("Cannot get value of phisical screen width");
+    LoggerE("Cannot get value of phisical screen width");
     //TODO uncomment when api would support this key
     //return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get value of phisical screen width");
   }
@@ -1788,7 +1784,7 @@ PlatformResult SysteminfoUtils::ReportDisplay(picojson::object& out) {
   //FETCH PHYSICAL HEIGHT
   if (SYSTEM_INFO_ERROR_NONE != system_info_get_value_int(
       SYSTEM_INFO_KEY_PHYSICAL_SCREEN_HEIGHT, &physicalHeight)) {
-    LOGE("Cannot get value of phisical screen height");
+    LoggerE("Cannot get value of phisical screen height");
     //TODO uncomment when api would support this key
     //return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get value of phisical screen height");
   }
@@ -1798,7 +1794,7 @@ PlatformResult SysteminfoUtils::ReportDisplay(picojson::object& out) {
   if (kVconfErrorNone == vconf_get_int(VCONFKEY_SETAPPL_LCD_BRIGHTNESS, &brightness)) {
     scaledBrightness = static_cast<double>(brightness)/kDisplayBrightnessDivideValue;
   } else {
-    LOGE("Cannot get brightness value of display");
+    LoggerE("Cannot get brightness value of display");
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get brightness value of display");
   }
 
@@ -1824,7 +1820,7 @@ PlatformResult SysteminfoUtils::ReportDeviceOrientation(picojson::object& out) {
 
 PlatformResult SysteminfoUtils::ReportBuild(picojson::object& out) {
   std::string model = "";
-  PlatformResult ret = GetValueString("tizen.org/system/model_name", model);
+  PlatformResult ret = SystemInfoDeviceCapability::GetValueString("tizen.org/system/model_name", model);
   if (ret.IsError()) {
     return ret;
   }
@@ -1891,7 +1887,7 @@ static PlatformResult GetNetworkTypeString(NetworkType type, std::string& type_s
       type_string = kNetworkTypeUnknown;
       break;
     default:
-      LOGE("Incorrect type: %d", type);
+      LoggerE("Incorrect type: %d", type);
       return PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, "Incorrect type");
   }
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -1907,7 +1903,7 @@ PlatformResult SysteminfoUtils::ReportNetwork(picojson::object& out) {
   int error = connection_create(&connection_handle);
   if (CONNECTION_ERROR_NONE != error) {
     std::string log_msg = "Cannot create connection: " + std::to_string(error);
-    LOGE("%s", log_msg.c_str());
+    LoggerE("%s", log_msg.c_str());
     return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
   }
   std::unique_ptr<std::remove_pointer<connection_h>::type, int(*)(connection_h)>
@@ -1917,7 +1913,7 @@ PlatformResult SysteminfoUtils::ReportNetwork(picojson::object& out) {
   error = connection_get_type(connection_handle, &connection_type);
   if (CONNECTION_ERROR_NONE != error) {
     std::string log_msg = "Cannot get connection type: " + std::to_string(error);
-    LOGE("%s", log_msg.c_str());
+    LoggerE("%s", log_msg.c_str());
     return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
   }
 
@@ -1951,7 +1947,7 @@ PlatformResult SysteminfoUtils::ReportNetwork(picojson::object& out) {
       type =  kEthernet;
       break;
     default:
-      LOGE("Incorrect type: %d", connection_type);
+      LoggerE("Incorrect type: %d", connection_type);
       return PlatformResult(ErrorCode::UNKNOWN_ERR, "Incorrect type");
   }
   std::string type_str = "";
@@ -1971,7 +1967,7 @@ static PlatformResult GetIps(connection_profile_h profile_handle, std::string* i
                                                 CONNECTION_ADDRESS_FAMILY_IPV4,
                                                 &ip_addr);
   if (CONNECTION_ERROR_NONE != error) {
-    LOGE("Failed to get ip address: %d", error);
+    LoggerE("Failed to get ip address: %d", error);
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get ip address");
   }
   *ip_addr_str = ip_addr;
@@ -1988,7 +1984,7 @@ static PlatformResult GetIps(connection_profile_h profile_handle, std::string* i
   } else if (CONNECTION_ERROR_ADDRESS_FAMILY_NOT_SUPPORTED != error) {
     //core api returns error -97 = CONNECTION_ERROR_ADDRESS_FAMILY_NOT_SUPPORTED
     //it will be supported in the future. For now let's ignore this error
-    LOGE("Failed to get ipv6 address: %d", error);
+    LoggerE("Failed to get ipv6 address: %d", error);
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get ipv6 address");
   }
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -2010,7 +2006,7 @@ PlatformResult SysteminfoUtils::ReportWifiNetwork(picojson::object& out) {
   int error = connection_create(&connection_handle);
   if (CONNECTION_ERROR_NONE != error) {
     std::string log_msg = "Cannot create connection: " + std::to_string(error);
-    LOGE("%s", log_msg.c_str());
+    LoggerE("%s", log_msg.c_str());
     return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
   }
   std::unique_ptr<std::remove_pointer<connection_h>::type, int(*)(connection_h)>
@@ -2020,19 +2016,19 @@ PlatformResult SysteminfoUtils::ReportWifiNetwork(picojson::object& out) {
   char* mac = NULL;
   error = wifi_get_mac_address(&mac);
   if(WIFI_ERROR_NONE == error) {
-    LOGD("macAddress fetched: %s", mac);
+    LoggerD("macAddress fetched: %s", mac);
     result_mac_address = mac;
     free(mac);
   } else {
     std::string log_msg = "Failed to get mac address: " + std::to_string(error);
-    LOGE("%s", log_msg.c_str());
+    LoggerE("%s", log_msg.c_str());
     return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
   }
 
   error = connection_get_type(connection_handle, &connection_type);
   if (CONNECTION_ERROR_NONE != error) {
     std::string log_msg = "Cannot get connection type: " + std::to_string(error);
-    LOGE("%s", log_msg.c_str());
+    LoggerE("%s", log_msg.c_str());
     return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
   }
   if (CONNECTION_TYPE_WIFI == connection_type) {
@@ -2041,7 +2037,7 @@ PlatformResult SysteminfoUtils::ReportWifiNetwork(picojson::object& out) {
     error = connection_get_current_profile(connection_handle, &profile_handle);
     if (CONNECTION_ERROR_NONE != error) {
       std::string log_msg = "Cannot get connection profile: " + std::to_string(error);
-      LOGE("%s", log_msg.c_str());
+      LoggerE("%s", log_msg.c_str());
       return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
     }
     std::unique_ptr
@@ -2058,7 +2054,7 @@ PlatformResult SysteminfoUtils::ReportWifiNetwork(picojson::object& out) {
     }
     else {
       std::string log_msg = "Failed to get network ssid: " + std::to_string(error);
-      LOGE("%s", log_msg.c_str());
+      LoggerE("%s", log_msg.c_str());
       return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
     }
 
@@ -2076,12 +2072,12 @@ PlatformResult SysteminfoUtils::ReportWifiNetwork(picojson::object& out) {
     }
     else {
       std::string log_msg = "Failed to get signal strength: " + std::to_string(error);
-      LOGE("%s", log_msg.c_str());
+      LoggerE("%s", log_msg.c_str());
       return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
     }
   }
   else {
-    LOGD("Connection type = %d. WIFI is disabled", connection_type);
+    LoggerD("Connection type = %d. WIFI is disabled", connection_type);
   }
 
   out.insert(std::make_pair("status", result_status ? kWifiStatusOn : kWifiStatusOff));
@@ -2101,35 +2097,35 @@ static PlatformResult FetchVconfSettings(
     bool *result_is_roaming,
     bool *result_is_flight_mode)
 {
-  LOGD("Entered");
+  LoggerD("Entered");
   int result;
   if (0 != vconf_get_int(VCONFKEY_TELEPHONY_PLMN, &result)) {
-    LOGE("Cannot get mcc value");
+    LoggerE("Cannot get mcc value");
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get mcc value");
   }
   *result_mcc = static_cast<unsigned short>(result) / kMccDivider;
   *result_mnc = static_cast<unsigned short>(result) % kMccDivider;
 
   if (0 != vconf_get_int(VCONFKEY_TELEPHONY_CELLID, &result)) {
-    LOGE("Cannot get cell_id value");
+    LoggerE("Cannot get cell_id value");
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get cell_id value");
   }
   *result_cell_id = static_cast<unsigned short>(result);
 
   if (0 != vconf_get_int(VCONFKEY_TELEPHONY_LAC, &result)) {
-    LOGE("Cannot get lac value");
+    LoggerE("Cannot get lac value");
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get lac value");
   }
   *result_lac = static_cast<unsigned short>(result);
 
   if (0 != vconf_get_int(VCONFKEY_TELEPHONY_SVC_ROAM, &result)) {
-    LOGE("Cannot get is_roaming value");
+    LoggerE("Cannot get is_roaming value");
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get is_roaming value");
   }
   *result_is_roaming = (0 != result) ? true : false;
 
   if (0 != vconf_get_bool(VCONFKEY_TELEPHONY_FLIGHT_MODE, &result)) {
-    LOGE("Cannot get is_flight_mode value");
+    LoggerE("Cannot get is_flight_mode value");
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get is_flight_mode value");
   }
   *result_is_flight_mode = (0 != result) ? true : false;
@@ -2140,7 +2136,7 @@ static PlatformResult FetchConnection(TapiHandle *tapi_handle, std::string* resu
                             std::string* result_apn, std::string* result_ip_address,
                             std::string* result_ipv6_address, std::string* result_imei)
 {
-  LOGD("Entered");
+  LoggerD("Entered");
   connection_type_e connection_type = CONNECTION_TYPE_DISCONNECTED;
   connection_profile_h profile_handle = nullptr;
   connection_h connection_handle = nullptr;
@@ -2149,7 +2145,7 @@ static PlatformResult FetchConnection(TapiHandle *tapi_handle, std::string* resu
   int error = connection_create(&connection_handle);
   if (CONNECTION_ERROR_NONE != error) {
     std::string log_msg = "Cannot create connection: " + std::to_string(error);
-    LOGE("%s", log_msg.c_str());
+    LoggerE("%s", log_msg.c_str());
     return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
   }
   std::unique_ptr<std::remove_pointer<connection_h>::type, int(*)(connection_h)>
@@ -2158,7 +2154,7 @@ static PlatformResult FetchConnection(TapiHandle *tapi_handle, std::string* resu
 
   error = connection_get_type(connection_handle, &connection_type);
   if (CONNECTION_ERROR_NONE != error) {
-    LOGE("Failed to get connection type: %d", error);
+    LoggerE("Failed to get connection type: %d", error);
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get connection type");
   }
 
@@ -2173,13 +2169,13 @@ static PlatformResult FetchConnection(TapiHandle *tapi_handle, std::string* resu
     profile_handle_ptr(profile_handle, &connection_profile_destroy);
     // automatically release the memory
     if (CONNECTION_ERROR_NONE != error) {
-      LOGE("Failed to get profile: %d", error);
+      LoggerE("Failed to get profile: %d", error);
       return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get profile");
     }
 
     error = connection_profile_get_cellular_apn(profile_handle, &apn);
     if (CONNECTION_ERROR_NONE != error) {
-      LOGE("Failed to get apn name: %d", error);
+      LoggerE("Failed to get apn name: %d", error);
       return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get apn name");
     }
     *result_apn = apn;
@@ -2208,11 +2204,11 @@ static PlatformResult FetchConnection(TapiHandle *tapi_handle, std::string* resu
         *result_apn = apn;
         free(apn);
       } else {
-        LOGE("Failed to get default apn name: %d. Failing silently",
+        LoggerE("Failed to get default apn name: %d. Failing silently",
              error);
       }
     } else {
-      LOGE("Failed to get default profile: %d. Failing silently",
+      LoggerE("Failed to get default profile: %d. Failing silently",
            error);
     }
   }
@@ -2223,7 +2219,7 @@ static PlatformResult FetchConnection(TapiHandle *tapi_handle, std::string* resu
     *result_imei = imei;
     free(imei);
   } else {
-    LOGE("Failed to get imei, nullptr pointer. Setting empty value.");
+    LoggerE("Failed to get imei, nullptr pointer. Setting empty value.");
     *result_imei = "";
   }
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -2271,7 +2267,7 @@ PlatformResult SysteminfoUtils::ReportCellularNetwork(picojson::object& out) {
 
 void SimCphsValueCallback(TapiHandle */*handle*/, int result, void *data, void */*user_data*/)
 {
-  LOGD("Entered");
+  LoggerD("Entered");
   TelSimAccessResult_t access_rt = static_cast<TelSimAccessResult_t>(result);
   TelSimCphsNetName_t *cphs_info = static_cast<TelSimCphsNetName_t*>(data);
 
@@ -2284,7 +2280,7 @@ void SimCphsValueCallback(TapiHandle */*handle*/, int result, void *data, void *
     }
     result_operator = s.str();
   } else {
-    LOGW("Failed to retrieve cphs_info: %d", access_rt);
+    LoggerW("Failed to retrieve cphs_info: %d", access_rt);
   }
   sim_mgr.set_operator_name(result_operator);
   sim_mgr.TryReturn();
@@ -2292,7 +2288,7 @@ void SimCphsValueCallback(TapiHandle */*handle*/, int result, void *data, void *
 
 void SimMsisdnValueCallback(TapiHandle */*handle*/, int result, void *data, void */*user_data*/)
 {
-  LOGD("Entered");
+  LoggerD("Entered");
   TelSimAccessResult_t access_rt = static_cast<TelSimAccessResult_t>(result);
   TelSimMsisdnList_t *msisdn_info = static_cast<TelSimMsisdnList_t*>(data);
 
@@ -2302,13 +2298,13 @@ void SimMsisdnValueCallback(TapiHandle */*handle*/, int result, void *data, void
       if (nullptr != msisdn_info->list[0].num) {
         result_msisdn = msisdn_info->list[0].num;
       } else {
-        LOGW("MSISDN number empty");
+        LoggerW("MSISDN number empty");
       }
     } else {
-      LOGW("msisdn_info list empty");
+      LoggerW("msisdn_info list empty");
     }
   } else {
-    LOGW("Failed to retrieve msisdn_: %d", access_rt);
+    LoggerW("Failed to retrieve msisdn_: %d", access_rt);
   }
 
   sim_mgr.set_msisdn(result_msisdn);
@@ -2317,7 +2313,7 @@ void SimMsisdnValueCallback(TapiHandle */*handle*/, int result, void *data, void
 
 void SimSpnValueCallback(TapiHandle */*handle*/, int result, void *data, void */*user_data*/)
 {
-  LOGD("Entered");
+  LoggerD("Entered");
   TelSimAccessResult_t access_rt = static_cast<TelSimAccessResult_t>(result);
   TelSimSpn_t *spn_info = static_cast<TelSimSpn_t*>(data);
 
@@ -2325,7 +2321,7 @@ void SimSpnValueCallback(TapiHandle */*handle*/, int result, void *data, void */
   if (TAPI_SIM_ACCESS_SUCCESS == access_rt) {
     result_spn = (char *)spn_info->spn;
   } else {
-    LOGW("Failed to retrieve spn_: %d", access_rt);
+    LoggerW("Failed to retrieve spn_: %d", access_rt);
   }
 
   sim_mgr.set_spn(result_spn);
@@ -2413,7 +2409,7 @@ PlatformResult SysteminfoUtils::ReportStorage(picojson::object& out) {
   picojson::object& internal_obj = array.back().get<picojson::object>();
 
   if (statfs(kStorageInternalPath, &fs) < 0) {
-    LOGE("There are no storage units detected");
+    LoggerE("There are no storage units detected");
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "There are no storage units detected");
   }
   CreateStorageInfo(kTypeInternal, fs, &internal_obj);
@@ -2422,7 +2418,7 @@ PlatformResult SysteminfoUtils::ReportStorage(picojson::object& out) {
   if (0 == vconf_get_int(VCONFKEY_SYSMAN_MMC_STATUS, &sdcardState)) {
     if (VCONFKEY_SYSMAN_MMC_MOUNTED == sdcardState){
       if (statfs(kStorageSdcardPath, &fs) < 0) {
-        LOGE("MMC mounted, but not accessible");
+        LoggerE("MMC mounted, but not accessible");
         return PlatformResult(ErrorCode::UNKNOWN_ERR, "MMC mounted, but not accessible");
       }
       array.push_back(picojson::value(picojson::object()));
@@ -2549,34 +2545,48 @@ void SysteminfoUtils::UnregisterMemoryListener()
 }
 
 
-static bool CheckStringCapability(const std::string& key, std::string* value)
+static PlatformResult CheckStringCapability(const std::string& key, std::string* value, bool& fetched)
 {
-  LOGD("Entered CheckStringCapability");
+  LoggerD("Entered CheckStringCapability");
   if (key == kTizenFeatureOpenglesTextureFormat) {
-    *value = SystemInfoDeviceCapability::GetOpenglesTextureFormat();
+    PlatformResult ret = SystemInfoDeviceCapability::GetOpenglesTextureFormat(*value);
+    if (ret.IsError()) {
+      return ret;
+    }
   } else if (key == kTizenFeatureCoreApiVersion) {
     *value = "2.3";
   } else if (key == kTizenFeaturePlatfromCoreCpuArch) {
-    *value = SystemInfoDeviceCapability::GetPlatfomCoreCpuArch();
+    PlatformResult ret = SystemInfoDeviceCapability::GetPlatfomCoreCpuArch(*value);
+    if (ret.IsError()) {
+      return ret;
+    }
   } else if (key == kTizenFeaturePlatfromCoreFpuArch) {
-    *value = SystemInfoDeviceCapability::GetPlatfomCoreFpuArch();
+    PlatformResult ret = SystemInfoDeviceCapability::GetPlatfomCoreFpuArch(*value);
+    if (ret.IsError()) {
+      return ret;
+    }
   } else if (key == kTizenFeatureProfile) {
-    *value = SystemInfoDeviceCapability::GetProfile();
+    PlatformResult ret = SystemInfoDeviceCapability::GetProfile(*value);
+    if (ret.IsError()) {
+      return ret;
+    }
   } else if (key == kTizenSystemDuid) {
     *value = SystemInfoDeviceCapability::GetDuid();
   } else {
-    PlatformResult ret = GetValueString(key.substr(strlen("http://")).c_str(), *value);
+    PlatformResult ret = SystemInfoDeviceCapability::GetValueString(key.substr(strlen("http://")).c_str(), *value);
     if (ret.IsError()){
-      return false;
+      fetched = false;
+      return PlatformResult(ErrorCode::NO_ERROR);
     }
   }
-  return true;
+  fetched = true;
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-static bool CheckBoolCapability(const std::string& key, bool* bool_value)
+static PlatformResult CheckBoolCapability(const std::string& key, bool* bool_value, bool& fetched)
 {
-  LOGD("Entered CheckBoolCapability");
-  bool fetched = false;
+  LoggerD("Entered CheckBoolCapability");
+  fetched = false;
   if(key == kTizenFeatureAccount) {
     *bool_value = SystemInfoDeviceCapability::IsAccount();
     fetched = true;
@@ -2674,45 +2684,65 @@ static bool CheckBoolCapability(const std::string& key, bool* bool_value)
     *bool_value = SystemInfoDeviceCapability::IsScreen();
     fetched = true;
   } else if(key == kTizenFeatureScreenSIZE_320_320) {
-    *bool_value = SystemInfoDeviceCapability::IsScreenSize320_320();
+    PlatformResult ret = SystemInfoDeviceCapability::IsScreenSize320_320(*bool_value);
+    if (ret.IsError()) {
+      return ret;
+    }
     fetched = true;
   } else {
-    try {
-      *bool_value = GetValueBool(key.substr(strlen("http://")).c_str());
+    PlatformResult ret = SystemInfoDeviceCapability::GetValueBool(
+        key.substr(strlen("http://")).c_str(), *bool_value);
+    if (ret.IsSuccess()) {
       fetched = true;
-    } catch (...){
-      //empty for purpose - ignore that key was not found
     }
   }
-  return fetched;
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-static bool CheckIntCapability(const std::string& key, std::string* value)
+static PlatformResult CheckIntCapability(const std::string& key, std::string* value, bool& fetched)
 {
-  LOGD("Entered CheckIntCapability");
-  try {
-    *value = std::to_string(GetValueInt(key.substr(strlen("http://")).c_str()));
-    return true;
-  } catch (...) {
-    //empty for purpose - ignore that key was not found
+  LoggerD("Entered CheckIntCapability");
+  int result = 0;
+  PlatformResult ret = SystemInfoDeviceCapability::GetValueInt(
+      key.substr(strlen("http://")).c_str(), result);
+  if (ret.IsSuccess()) {
+    *value = std::to_string(result);
+    fetched = true;
+    return PlatformResult(ErrorCode::NO_ERROR);
   }
-  return false;
+  fetched = false;
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 ///////////////////////   SystemInfoDeviceCapability   //////////////////////////////////////
-picojson::value SystemInfoDeviceCapability::GetCapability(const std::string& key)
+PlatformResult SystemInfoDeviceCapability::GetCapability(const std::string& key,
+                                                          picojson::value& result)
 {
-  picojson::value result = picojson::value(picojson::object());
   picojson::object& result_obj = result.get<picojson::object>();
 
   std::string value = "";
   std::string type = "";
   bool bool_value = false ;
-  if (CheckStringCapability(key, &value)) {
+  bool fetched_string = false;
+  bool fetched_int = false;
+  bool fetched_bool = false;
+  PlatformResult ret = CheckStringCapability(key, &value, fetched_string);
+  if (ret.IsError()) {
+    return ret;
+  }
+  ret = CheckIntCapability(key, &value, fetched_int);
+  if (ret.IsError()) {
+    return ret;
+  }
+  ret = CheckBoolCapability(key, &bool_value, fetched_bool);
+  if (ret.IsError()) {
+    return ret;
+  }
+  if (fetched_string) {
     type = "string";
-  } else if (CheckIntCapability(key, &value)) {
+  } else if (fetched_int) {
     type = "int";
-  } else if(CheckBoolCapability(key, &bool_value)) {
+  } else if(fetched_bool) {
     type = "bool";
   }
 
@@ -2721,40 +2751,26 @@ picojson::value SystemInfoDeviceCapability::GetCapability(const std::string& key
   } else if (type == "string" || type == "int") {
     result_obj.insert(std::make_pair("value", value));
   } else {
-    LOGD("Value for given key was not found");
-    throw NotSupportedException("Value for given key was not found");
+    LoggerD("Value for given key was not found");
+    return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR, "Value for given key was not found");
   }
   result_obj.insert(std::make_pair("type", type));
 
-  return result;
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-bool SystemInfoDeviceCapability::IsBluetooth() {
-  return GetValueBool("tizen.org/feature/network.bluetooth");
-}
-
-bool SystemInfoDeviceCapability::IsNfc() {
-  return GetValueBool("tizen.org/feature/network.nfc");
-}
-
-bool SystemInfoDeviceCapability::IsNfcReservedPush() {
-  return GetValueBool("tizen.org/feature/network.nfc.reserved_push");
-}
-
-unsigned short SystemInfoDeviceCapability::GetMultiTouchCount() {
-  return GetValueInt("tizen.org/feature/multi_point_touch.point_count");
-}
-
-bool SystemInfoDeviceCapability::IsInputKeyboard() {
-  return GetValueBool("tizen.org/feature/input.keyboard");
-}
-
-bool SystemInfoDeviceCapability::IsInputKeyboardLayout() {
+PlatformResult SystemInfoDeviceCapability::IsInputKeyboardLayout(bool& result) {
   std::string input_keyboard_layout = "";
   PlatformResult ret = GetValueString("tizen.org/feature/input.keyboard.layout",
                                       input_keyboard_layout);
-
-  bool input_keyboard = GetValueBool("tizen.org/feature/input.keyboard");
+  if (ret.IsError()) {
+    return ret;
+  }
+  bool input_keyboard = false;
+  ret = GetValueBool("tizen.org/feature/input.keyboard", input_keyboard);
+  if (ret.IsError()) {
+    return ret;
+  }
 
   // according to SystemInfo-DeviceCapabilities-dependency-table
   // inputKeyboard   inputKeyboardLayout
@@ -2763,355 +2779,220 @@ bool SystemInfoDeviceCapability::IsInputKeyboardLayout() {
   //  X               X                   Possible
   //  X               O                   Impossible
 
-  return input_keyboard ? !(input_keyboard_layout.empty()) : false;
+  result = input_keyboard ? !(input_keyboard_layout.empty()) : false;
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-bool SystemInfoDeviceCapability::IsWifi() {
-  return GetValueBool("tizen.org/feature/network.wifi");
-}
-
-bool SystemInfoDeviceCapability::IsWifiDirect() {
-  return GetValueBool("tizen.org/feature/network.wifi.direct");
-}
-
-bool SystemInfoDeviceCapability::IsFmRadio() {
-  return GetValueBool("tizen.org/feature/fmradio");
-}
-
-bool SystemInfoDeviceCapability::IsOpengles() {
-  return GetValueBool("tizen.org/feature/opengles");
-}
-
-bool SystemInfoDeviceCapability::IsOpenglesVersion11() {
-  return GetValueBool("tizen.org/feature/opengles.version.1_1");
-}
-
-bool SystemInfoDeviceCapability::IsOpenglesVersion20() {
-  return GetValueBool("tizen.org/feature/opengles.version.2_0");
-}
-
-std::string SystemInfoDeviceCapability::GetOpenglesTextureFormat() {
-  if (!GetValueBool("tizen.org/feature/opengles")) {
+PlatformResult SystemInfoDeviceCapability::GetOpenglesTextureFormat(std::string& result) {
+  bool bool_result = false;
+  PlatformResult ret = GetValueBool("tizen.org/feature/opengles", bool_result);
+  if (!bool_result) {
     // this exception is converted to "Undefined" value in JS layer
     std::string log_msg = "OpenGL-ES is not supported";
-    LOGE("%s", log_msg.c_str());
-    throw NotSupportedException(log_msg);
+    LoggerE("%s", log_msg.c_str());
+    return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR, log_msg);
   }
   std::string texture_format = "";
-  if (GetValueBool("tizen.org/feature/opengles.texture_format.utc")) {
+
+  ret = GetValueBool("tizen.org/feature/opengles.texture_format.utc", bool_result);
+  if (ret.IsError()) {
+    return ret;
+  }
+  if (bool_result) {
     texture_format += kOpenglesTextureUtc;
   }
-  if (GetValueBool("tizen.org/feature/opengles.texture_format.ptc")) {
+
+  ret = GetValueBool("tizen.org/feature/opengles.texture_format.ptc", bool_result);
+  if (ret.IsError()) {
+    return ret;
+  }
+  if (bool_result) {
     if (!texture_format.empty()) {
       texture_format += kOpenglesTextureDelimiter;
     }
     texture_format += kOpenglesTexturePtc;
   }
-  if (GetValueBool("tizen.org/feature/opengles.texture_format.etc")) {
+
+  ret = GetValueBool("tizen.org/feature/opengles.texture_format.etc", bool_result);
+  if (ret.IsError()) {
+    return ret;
+  }
+  if (bool_result) {
     if (!texture_format.empty()) {
       texture_format += kOpenglesTextureDelimiter;
     }
     texture_format += kOpenglesTextureEtc;
   }
-  if (GetValueBool("tizen.org/feature/opengles.texture_format.3dc")) {
+
+  ret = GetValueBool("tizen.org/feature/opengles.texture_format.3dc", bool_result);
+  if (ret.IsError()) {
+    return ret;
+  }
+  if (bool_result) {
     if (!texture_format.empty()) {
       texture_format += kOpenglesTextureDelimiter;
     }
     texture_format += kOpenglesTexture3dc;
   }
-  if (GetValueBool("tizen.org/feature/opengles.texture_format.atc")) {
+
+  ret = GetValueBool("tizen.org/feature/opengles.texture_format.atc", bool_result);
+  if (ret.IsError()) {
+    return ret;
+  }
+  if (bool_result) {
     if (!texture_format.empty()) {
       texture_format += kOpenglesTextureDelimiter;
     }
     texture_format += kOpenglesTextureAtc;
   }
-  if (GetValueBool("tizen.org/feature/opengles.texture_format.pvrtc")) {
+
+  ret = GetValueBool("tizen.org/feature/opengles.texture_format.pvrtc", bool_result);
+  if (ret.IsError()) {
+    return ret;
+  }
+  if (bool_result) {
     if (!texture_format.empty()) {
       texture_format += kOpenglesTextureDelimiter;
     }
     texture_format += kOpenglesTexturePvrtc;
   }
+
   if (texture_format.empty()) {
     // this exception is converted to "Undefined" value in JS layer
     std::string log_msg = "Platform error while getting OpenGL-ES texture format";
-    LOGE("%s", log_msg.c_str());
-    throw UnknownException(log_msg);
+    LoggerE("%s", log_msg.c_str());
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
   }
-  return texture_format;
+  result = texture_format;
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-bool SystemInfoDeviceCapability::IsSpeechRecognition() {
-  return GetValueBool("tizen.org/feature/speech.recognition");
-}
-
-bool SystemInfoDeviceCapability::IsSpeechSynthesis() {
-  return GetValueBool("tizen.org/feature/speech.synthesis");
-}
-
-bool SystemInfoDeviceCapability::IsAccelerometer() {
-  return GetValueBool("tizen.org/feature/sensor.accelerometer");
-}
-
-bool SystemInfoDeviceCapability::IsAccelerometerWakeup() {
-  return GetValueBool("tizen.org/feature/sensor.accelerometer.wakeup");
-}
-
-bool SystemInfoDeviceCapability::IsBarometer() {
-  return GetValueBool("tizen.org/feature/sensor.barometer");
-}
-
-bool SystemInfoDeviceCapability::IsBarometerWakeup() {
-  return GetValueBool("tizen.org/feature/sensor.barometer.wakeup");
-}
-
-bool SystemInfoDeviceCapability::IsGyroscope() {
-  return GetValueBool("tizen.org/feature/sensor.gyroscope");
-}
-
-bool SystemInfoDeviceCapability::IsGyroscopeWakeup() {
-  return GetValueBool("tizen.org/feature/sensor.gyroscope.wakeup");
-}
-
-bool SystemInfoDeviceCapability::IsGraphicsAcceleration() {
-  return GetValueBool("tizen.org/feature/graphics.acceleration");
-}
-
-bool SystemInfoDeviceCapability::IsPush() {
-  return GetValueBool("tizen.org/feature/network.push");
-}
-
-bool SystemInfoDeviceCapability::IsTelephony() {
-  return GetValueBool("tizen.org/feature/network.telephony");
-}
-
-bool SystemInfoDeviceCapability::IsTelephonyMMS() {
-  return GetValueBool("tizen.org/feature/network.telephony.mms");
-}
-
-bool SystemInfoDeviceCapability::IsTelephonySMS() {
-  return GetValueBool("tizen.org/feature/network.telephony.sms");
-}
-
-bool SystemInfoDeviceCapability::IsCamera() {
-  return GetValueBool("tizen.org/feature/camera");
-}
-
-bool SystemInfoDeviceCapability::IsCameraFront() {
-  return GetValueBool("tizen.org/feature/camera.front");
-}
-
-bool SystemInfoDeviceCapability::IsCameraFrontFlash() {
-  return GetValueBool("tizen.org/feature/camera.front.flash");
-}
-
-bool SystemInfoDeviceCapability::IsCameraBack() {
-  return GetValueBool("tizen.org/feature/camera.back");
-}
-
-bool SystemInfoDeviceCapability::IsCameraBackFlash() {
-  return GetValueBool("tizen.org/feature/camera.back.flash");
-}
-
-bool SystemInfoDeviceCapability::IsLocation() {
-  return GetValueBool("tizen.org/feature/location");
-}
-
-bool SystemInfoDeviceCapability::IsLocationGps() {
-  return GetValueBool("tizen.org/feature/location.gps");
-}
-
-bool SystemInfoDeviceCapability::IsLocationWps() {
-  return GetValueBool("tizen.org/feature/location.wps");
-}
-
-bool SystemInfoDeviceCapability::IsMicrophone() {
-  return GetValueBool("tizen.org/feature/microphone");
-}
-
-bool SystemInfoDeviceCapability::IsUsbHost() {
-  return GetValueBool("tizen.org/feature/usb.host");
-}
-
-bool SystemInfoDeviceCapability::IsUsbAccessory() {
-  return GetValueBool("tizen.org/feature/usb.accessory");
-}
-
-bool SystemInfoDeviceCapability::IsScreenOutputRca() {
-  return GetValueBool("tizen.org/feature/screen.output.rca");
-}
-
-bool SystemInfoDeviceCapability::IsScreenOutputHdmi() {
-  return GetValueBool("tizen.org/feature/screen.output.hdmi");
-}
-
-std::string SystemInfoDeviceCapability::GetPlatfomCoreCpuArch() {
+PlatformResult SystemInfoDeviceCapability::GetPlatfomCoreCpuArch(std::string& return_value) {
   std::string result;
-  if (GetValueBool("tizen.org/feature/platform.core.cpu.arch.armv6")) {
+  bool bool_result = false;
+  PlatformResult ret = GetValueBool("tizen.org/feature/platform.core.cpu.arch.armv6", bool_result);
+  if (ret.IsError()) {
+    return ret;
+  }
+  if (bool_result) {
     result = kPlatformCoreArmv6;
   }
-  if (GetValueBool("tizen.org/feature/platform.core.cpu.arch.armv7")) {
+
+  ret = GetValueBool("tizen.org/feature/platform.core.cpu.arch.armv7", bool_result);
+  if (ret.IsError()) {
+    return ret;
+  }
+  if (bool_result) {
     if (!result.empty()) {
       result += kPlatformCoreDelimiter;
     }
     result += kPlatformCoreArmv7;
   }
-  if (GetValueBool("tizen.org/feature/platform.core.cpu.arch.x86")) {
+
+  ret = GetValueBool("tizen.org/feature/platform.core.cpu.arch.x86", bool_result);
+  if (ret.IsError()) {
+    return ret;
+  }
+  if (bool_result) {
     if (!result.empty()) {
       result += kPlatformCoreDelimiter;
     }
     result += kPlatformCoreX86;
   }
+
   if (result.empty()) {
-    LOGE("Platform error while retrieving platformCoreCpuArch: result is empty");
-    throw UnknownException("platformCoreCpuArch result is empty");
+    LoggerE("Platform error while retrieving platformCoreCpuArch: result is empty");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "platformCoreCpuArch result is empty");
   }
-  return result;
+  return_value = result;
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-std::string SystemInfoDeviceCapability::GetPlatfomCoreFpuArch() {
+PlatformResult SystemInfoDeviceCapability::GetPlatfomCoreFpuArch(std::string& return_value) {
   std::string result;
-  if (GetValueBool("tizen.org/feature/platform.core.fpu.arch.sse2")) {
+  bool bool_result = false;
+  PlatformResult ret = GetValueBool("tizen.org/feature/platform.core.fpu.arch.sse2", bool_result);
+  if (ret.IsError()) {
+    return ret;
+  }
+  if (bool_result) {
     result = kPlatformCoreSse2;
   }
-  if (GetValueBool("tizen.org/feature/platform.core.fpu.arch.sse3")) {
+
+  ret = GetValueBool("tizen.org/feature/platform.core.fpu.arch.sse3", bool_result);
+  if (ret.IsError()) {
+    return ret;
+  }
+  if (bool_result) {
     if (!result.empty()) {
       result += kPlatformCoreDelimiter;
     }
     result += kPlatformCoreSse3;
   }
-  if (GetValueBool("tizen.org/feature/platform.core.fpu.arch.ssse3")) {
+
+  ret = GetValueBool("tizen.org/feature/platform.core.fpu.arch.ssse3", bool_result);
+  if (ret.IsError()) {
+    return ret;
+  }
+  if (bool_result) {
     if (!result.empty()) {
       result += kPlatformCoreDelimiter;
     }
     result += kPlatformCoreSsse3;
   }
-  if (GetValueBool("tizen.org/feature/platform.core.fpu.arch.vfpv2")) {
+
+  ret = GetValueBool("tizen.org/feature/platform.core.fpu.arch.vfpv2", bool_result);
+  if (ret.IsError()) {
+    return ret;
+  }
+  if (bool_result) {
     if (!result.empty()) {
       result += kPlatformCoreDelimiter;
     }
     result += kPlatformCoreVfpv2;
   }
-  if (GetValueBool("tizen.org/feature/platform.core.fpu.arch.vfpv3")) {
+
+  ret = GetValueBool("tizen.org/feature/platform.core.fpu.arch.vfpv3", bool_result);
+  if (ret.IsError()) {
+    return ret;
+  }
+  if (bool_result) {
     if (!result.empty()) {
       result += kPlatformCoreDelimiter;
     }
     result += kPlatformCoreVfpv3;
   }
   if (result.empty()) {
-    LOGE("Platform error while retrieving platformCoreFpuArch: result is empty");
-    throw UnknownException("platformCoreFpuArch result is empty");
+    LoggerE("Platform error while retrieving platformCoreFpuArch: result is empty");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "platformCoreFpuArch result is empty");
   }
-  return result;
+  return_value = result;
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-bool SystemInfoDeviceCapability::IsSipVoip() {
-  return GetValueBool("tizen.org/feature/sip.voip");
-}
-
-std::string SystemInfoDeviceCapability::GetPlatformName() {
-  std::string result = "";
-  GetValueString("tizen.org/system/platform.name", result);
-  return result;
-}
-
-std::string SystemInfoDeviceCapability::GetPlatformVersion() {
-  std::string result = "";
-  GetValueString("tizen.org/feature/platform.version", result);
-  return result;
-}
-
-std::string SystemInfoDeviceCapability::GetWebApiVersion() {
-  std::string result = "";
-  GetValueString("tizen.org/feature/platform.web.api.version", result);
-  return result;
-}
-
-bool SystemInfoDeviceCapability::IsMagnetometer() {
-  return GetValueBool("tizen.org/feature/sensor.magnetometer");
-}
-
-bool SystemInfoDeviceCapability::IsMagnetometerWakeup() {
-  return GetValueBool("tizen.org/feature/sensor.magnetometer.wakeup");
-}
-
-bool SystemInfoDeviceCapability::IsPhotometer() {
-  return GetValueBool("tizen.org/feature/sensor.photometer");
-}
-
-bool SystemInfoDeviceCapability::IsPhotometerWakeup() {
-  return GetValueBool("tizen.org/feature/sensor.photometer.wakeup");
-}
-
-bool SystemInfoDeviceCapability::IsProximity() {
-  return GetValueBool("tizen.org/feature/sensor.proximity");
-}
-
-bool SystemInfoDeviceCapability::IsProximityWakeup() {
-  return GetValueBool("tizen.org/feature/sensor.proximity.wakeup");
-}
-
-bool SystemInfoDeviceCapability::IsTiltmeter() {
-  return GetValueBool("tizen.org/feature/sensor.tiltmeter");
-}
-
-bool SystemInfoDeviceCapability::IsTiltmeterWakeup() {
-  return GetValueBool("tizen.org/feature/sensor.tiltmeter.wakeup");
-}
-
-bool SystemInfoDeviceCapability::IsDataEncryption() {
-  return GetValueBool("tizen.org/feature/database.encryption");
-}
-
-bool SystemInfoDeviceCapability::IsAutoRotation() {
-  return GetValueBool("tizen.org/feature/screen.auto_rotation");
-}
-
-bool SystemInfoDeviceCapability::IsVisionImageRecognition() {
-  return GetValueBool("tizen.org/feature/vision.image_recognition");
-}
-
-bool SystemInfoDeviceCapability::IsVisionQrcodeGeneration() {
-  return GetValueBool("tizen.org/feature/vision.qrcode_generation");
-}
-
-bool SystemInfoDeviceCapability::IsVisionQrcodeRecognition() {
-  return GetValueBool("tizen.org/feature/vision.qrcode_recognition");
-}
-
-bool SystemInfoDeviceCapability::IsVisionFaceRecognition() {
-  return GetValueBool("tizen.org/feature/vision.face_recognition");
-}
-
-bool SystemInfoDeviceCapability::IsSecureElement() {
-  return GetValueBool("tizen.org/feature/network.secure_element");
-}
-
-std::string SystemInfoDeviceCapability::GetProfile() {
+PlatformResult SystemInfoDeviceCapability::GetProfile(std::string& return_value) {
   std::string profile = "";
-  GetValueString("tizen.org/feature/profile", profile);
-
-  if ( kPlatformFull == profile ) {
-    return kProfileFull;
-  } else if ( kPlatformMobile == profile ) {
-    return kProfileMobile;
-  } else if ( kPlatformWearable == profile ) {
-    return kProfileWearable;
+  PlatformResult ret = GetValueString("tizen.org/feature/profile", profile);
+  if (ret.IsError()) {
+    return ret;
   }
-  return kProfileFull;
-}
 
-std::string SystemInfoDeviceCapability::GetNativeAPIVersion()
-{
-  std::string result = "";
-  GetValueString("tizen.org/feature/platform.native.api.version", result);
-  return result;
+  return_value = kProfileFull;
+  if ( kPlatformFull == profile ) {
+    return_value = kProfileFull;
+  } else if ( kPlatformMobile == profile ) {
+    return_value = kProfileMobile;
+  } else if ( kPlatformWearable == profile ) {
+    return_value = kProfileWearable;
+  }
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 //Implementation ported from devel/webapi/refactoring branch,
 //all flags are hardcoded for Kiran on top of this file
 std::string SystemInfoDeviceCapability::GenerateDuid()
 {
-  LOGD("Entered");
+  LoggerD("Entered");
 
   bool supported = false;
   std::string duid = "";
@@ -3121,10 +3002,10 @@ std::string SystemInfoDeviceCapability::GenerateDuid()
 #ifdef FEATURE_OPTIONAL_TELEPHONY
   ret = system_info_get_platform_bool("tizen.org/feature/network.telephony", &supported);
   if (ret != SYSTEM_INFO_ERROR_NONE) {
-    LOGE("It is failed to call system_info_get_platform_bool(tizen.org/feature/network.telephony).");
+    LoggerE("It is failed to call system_info_get_platform_bool(tizen.org/feature/network.telephony).");
     return duid;
   }
-  LOGD("telephony is %s", supported ? "supported." : "not supported.");
+  LoggerD("telephony is %s", supported ? "supported." : "not supported.");
 
   if (supported) {
     int time_count = 0;
@@ -3139,7 +3020,7 @@ std::string SystemInfoDeviceCapability::GenerateDuid()
         ret = tel_check_modem_power_status(handle, &status);
         if (ret != TAPI_API_SUCCESS) {
           tel_deinit(handle);
-          LOGD("It is failed to get IMEI.");
+          LoggerD("It is failed to get IMEI.");
           return duid;
         }
 
@@ -3158,26 +3039,26 @@ std::string SystemInfoDeviceCapability::GenerateDuid()
         tel_deinit(handle);
       } else {
         tel_deinit(handle);
-        LOGD("Modem is not ready to get IMEI.");
+        LoggerD("Modem is not ready to get IMEI.");
         return duid;
       }
 
-      LOGD("telephony.- device_string : %s", device_string);
+      LoggerD("telephony.- device_string : %s", device_string);
     } else {
-      LOGD("Modem handle is not ready.");
+      LoggerD("Modem handle is not ready.");
       return duid;
     }
   } else {
-    LOGD("It is failed to generate DUID from telephony information");
+    LoggerD("It is failed to generate DUID from telephony information");
   }
 
 #elif FEATURE_OPTIONAL_BT
   ret = system_info_get_platform_bool("tizen.org/feature/network.bluetooth", &supported);
   if (ret != SYSTEM_INFO_ERROR_NONE) {
-    LOGE("It is failed to call system_info_get_platform_bool(tizen.org/feature/network.bluetooth).");
+    LoggerE("It is failed to call system_info_get_platform_bool(tizen.org/feature/network.bluetooth).");
     return duid;
   }
-  LOGD("bluetooth is %s", supported ? "supported." : "not supported.");
+  LoggerD("bluetooth is %s", supported ? "supported." : "not supported.");
 
   if (supported) {
 #ifdef ENABLE_KIRAN
@@ -3197,7 +3078,7 @@ std::string SystemInfoDeviceCapability::GenerateDuid()
       }
       free(bt_address);
 
-      LOGD("BT - device_string : %s", device_string);
+      LoggerD("BT - device_string : %s", device_string);
     }
 #else
     FILE* fp = nullptr;
@@ -3228,22 +3109,22 @@ std::string SystemInfoDeviceCapability::GenerateDuid()
       strcat(device_string, "BLU");
       strcat(device_string, buffer);
 
-      LOGD("BT - device_string : %s", device_string);
+      LoggerD("BT - device_string : %s", device_string);
     } else {
-      LOGD("fail file open.");
+      LoggerD("fail file open.");
     }
 #endif
   } else {
-    LOGD("It is failed to generate DUID from bluetooth information");
+    LoggerD("It is failed to generate DUID from bluetooth information");
   }
 
 #elif FEATURE_OPTIONAL_WI_FI
   ret = system_info_get_platform_bool("tizen.org/feature/network.wifi", &supported);
   if (ret != SYSTEM_INFO_ERROR_NONE) {
-    LOGE("It is failed to call system_info_get_platform_bool(tizen.org/feature/network.wifi).");
+    LoggerE("It is failed to call system_info_get_platform_bool(tizen.org/feature/network.wifi).");
     return duid;
   }
-  LOGD("Wi-Fi is %s", supported ? "supported." : "not supported.");
+  LoggerD("Wi-Fi is %s", supported ? "supported." : "not supported.");
 
   if (supported) {
     char* wifi_mac_address = nullptr;
@@ -3263,15 +3144,15 @@ std::string SystemInfoDeviceCapability::GenerateDuid()
       }
       free(wifi_mac_address);
 
-      LOGD("wifi - device_string : %s", pDeviceString);
+      LoggerD("wifi - device_string : %s", pDeviceString);
     } else {
-      LOGD("It is failed to get mac address");
+      LoggerD("It is failed to get mac address");
     }
   } else {
-    LOGD("It is failed to generate DUID from wi-fi information");
+    LoggerD("It is failed to generate DUID from wi-fi information");
   }
 #else
-  LOGD("It is failed to generate DUID");
+  LoggerD("It is failed to generate DUID");
 #endif
 
   if (device_string != nullptr) {
@@ -3280,13 +3161,13 @@ std::string SystemInfoDeviceCapability::GenerateDuid()
   }
   device_string = nullptr;
 
-  LOGD("duid : %s", duid.c_str());
+  LoggerD("duid : %s", duid.c_str());
   return duid;
 }
 
 std::string SystemInfoDeviceCapability::GenerateId(char* pDeviceString)
 {
-  LOGD("Entered");
+  LoggerD("Entered");
   unsigned long long value = 0;
   byte result[8]  {0,};
 
@@ -3308,7 +3189,7 @@ std::string SystemInfoDeviceCapability::GenerateId(char* pDeviceString)
 
 void SystemInfoDeviceCapability::GenerateCrc64(char* device_string, unsigned long long int* value)
 {
-  LOGD("Entered");
+  LoggerD("Entered");
 
   byte first_crypt[SEED_LENGTH + 1] = {0,};
 
@@ -3402,12 +3283,12 @@ void SystemInfoDeviceCapability::GenerateCrc64(char* device_string, unsigned lon
     *value = crc_table[(*value ^ *pu8++) & 0xff] ^ (*value >> 8);
   }
 
-  LOGD("value : %llu", value);
+  LoggerD("value : %llu", value);
 }
 
 std::string SystemInfoDeviceCapability::Base32Encode(byte* value)
 {
-  LOGD("Entered");
+  LoggerD("Entered");
 
   byte* encoding_pointer = nullptr;
   byte* src_pointer = nullptr;
@@ -3459,32 +3340,7 @@ std::string SystemInfoDeviceCapability::GetDuid()
   return GenerateDuid();
 }
 
-bool SystemInfoDeviceCapability::IsScreenSizeNormal()
-{
-  return GetValueBool("tizen.org/feature/screen.size.normal");
-}
-
-bool SystemInfoDeviceCapability::IsScreenSize480_800()
-{
-  return GetValueBool("tizen.org/feature/screen.size.normal.480.800");
-}
-
-bool SystemInfoDeviceCapability::IsScreenSize720_1280()
-{
-  return GetValueBool("tizen.org/feature/screen.size.normal.720.1280");
-}
-
-bool SystemInfoDeviceCapability::IsShellAppWidget()
-{
-  return GetValueBool("tizen.org/feature/shell.appwidget");
-}
-
-bool SystemInfoDeviceCapability::IsNativeOspCompatible()
-{
-  return GetValueBool("tizen.org/feature/platform.native.osp_compatible");
-}
-
-////additional capabilities
+//////additional capabilities
 bool SystemInfoDeviceCapability::IsAccount()
 {
 #ifdef FEATURE_OPTIONAL_ACCOUNT
@@ -3782,15 +3638,26 @@ bool SystemInfoDeviceCapability::IsScreen()
   return true;
 }
 
-bool SystemInfoDeviceCapability::IsScreenSize320_320()
+PlatformResult SystemInfoDeviceCapability::IsScreenSize320_320(bool& return_value)
 {
-  int height = GetValueInt("tizen.org/feature/screen.height");
-  int width = GetValueInt("tizen.org/feature/screen.width");
-  if (height != 320 || width != 320) {
-    return false;
-  } else {
-    return true;
+  int height = 0;
+  PlatformResult ret = SystemInfoDeviceCapability::GetValueInt(
+      "tizen.org/feature/screen.height", height);
+  if (ret.IsError()) {
+    return ret;
   }
+  int width = 0;
+  ret = SystemInfoDeviceCapability::GetValueInt(
+      "tizen.org/feature/screen.width", width);
+  if (ret.IsError()) {
+    return ret;
+  }
+  if (height != 320 || width != 320) {
+    return_value = false;
+  } else {
+    return_value = true;
+  }
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 } // namespace systeminfo
