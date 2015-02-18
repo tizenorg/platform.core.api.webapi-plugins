@@ -6,6 +6,7 @@
 #define FILESYSTEM_FILESYSTEM_INSTANCE_H_
 
 #include "common/extension.h"
+#include "filesystem_utils.h"
 
 namespace extension {
 namespace filesystem {
@@ -22,6 +23,8 @@ class FilesystemInstance : public common::ParsedInstance {
                                 picojson::object& out);
   void FileSystemManagerFetchStorages(const picojson::value& args,
                                       picojson::object& out);
+
+  void PrepareError(const FilesystemError& error, picojson::object& out);
 };
 
 }  // namespace filesystem
