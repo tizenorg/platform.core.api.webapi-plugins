@@ -155,7 +155,9 @@ AudioControlManager.prototype.setVolumeChangeListener = function(listener) {
     throw native.getErrorObject(ret);
   }
 
-  native.addListener(VOLUME_CHANGE_LISTENER, args.listener);
+  native.addListener(VOLUME_CHANGE_LISTENER, function(msg) {
+    args.listener(msg.volume);
+  });
 };
 
 
