@@ -37,34 +37,34 @@ typedef std::function<void(void)> SysteminfoUtilsCallback;
 
 class SysteminfoUtils {
  public:
-  static long long GetTotalMemory();
-  static long long GetAvailableMemory();
+  static common::PlatformResult GetTotalMemory(long long& result);
+  static common::PlatformResult GetAvailableMemory(long long& result);
   static common::PlatformResult GetCount(const std::string& property, unsigned long& ret);
   static common::PlatformResult GetPropertyValue(
       const std::string& prop, bool is_array_type, picojson::value& res);
 
-  static void RegisterBatteryListener(const SysteminfoUtilsCallback& callback);
-  static void UnregisterBatteryListener();
-  static void RegisterCpuListener(const SysteminfoUtilsCallback& callback);
-  static void UnregisterCpuListener();
-  static void RegisterStorageListener(const SysteminfoUtilsCallback& callback);
-  static void UnregisterStorageListener();
-  static void RegisterDisplayListener(const SysteminfoUtilsCallback& callback);
-  static void UnregisterDisplayListener();
-  static void RegisterDeviceOrientationListener(const SysteminfoUtilsCallback& callback);
-  static void UnregisterDeviceOrientationListener();
-  static void RegisterLocaleListener(const SysteminfoUtilsCallback& callback);
-  static void UnregisterLocaleListener();
-  static void RegisterNetworkListener(const SysteminfoUtilsCallback& callback);
-  static void UnregisterNetworkListener();
-  static void RegisterWifiNetworkListener(const SysteminfoUtilsCallback& callback);
-  static void UnregisterWifiNetworkListener();
-  static void RegisterCellularNetworkListener(const SysteminfoUtilsCallback& callback);
-  static void UnregisterCellularNetworkListener();
-  static void RegisterPeripheralListener(const SysteminfoUtilsCallback& callback);
-  static void UnregisterPeripheralListener();
-  static void RegisterMemoryListener(const SysteminfoUtilsCallback& callback);
-  static void UnregisterMemoryListener();
+  static common::PlatformResult RegisterBatteryListener(const SysteminfoUtilsCallback& callback);
+  static common::PlatformResult UnregisterBatteryListener();
+  static common::PlatformResult RegisterCpuListener(const SysteminfoUtilsCallback& callback);
+  static common::PlatformResult UnregisterCpuListener();
+  static common::PlatformResult RegisterStorageListener(const SysteminfoUtilsCallback& callback);
+  static common::PlatformResult UnregisterStorageListener();
+  static common::PlatformResult RegisterDisplayListener(const SysteminfoUtilsCallback& callback);
+  static common::PlatformResult UnregisterDisplayListener();
+  static common::PlatformResult RegisterDeviceOrientationListener(const SysteminfoUtilsCallback& callback);
+  static common::PlatformResult UnregisterDeviceOrientationListener();
+  static common::PlatformResult RegisterLocaleListener(const SysteminfoUtilsCallback& callback);
+  static common::PlatformResult UnregisterLocaleListener();
+  static common::PlatformResult RegisterNetworkListener(const SysteminfoUtilsCallback& callback);
+  static common::PlatformResult UnregisterNetworkListener();
+  static common::PlatformResult RegisterWifiNetworkListener(const SysteminfoUtilsCallback& callback);
+  static common::PlatformResult UnregisterWifiNetworkListener();
+  static common::PlatformResult RegisterCellularNetworkListener(const SysteminfoUtilsCallback& callback);
+  static common::PlatformResult UnregisterCellularNetworkListener();
+  static common::PlatformResult RegisterPeripheralListener(const SysteminfoUtilsCallback& callback);
+  static common::PlatformResult UnregisterPeripheralListener();
+  static common::PlatformResult RegisterMemoryListener(const SysteminfoUtilsCallback& callback);
+  static common::PlatformResult UnregisterMemoryListener();
 
  private:
   static common::PlatformResult ReportProperty(const std::string& property, int index,

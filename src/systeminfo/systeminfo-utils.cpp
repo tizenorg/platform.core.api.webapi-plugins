@@ -265,13 +265,13 @@ class SimDetailsManager {
 
   void ResetSimHolder(picojson::object* out);
   void FetchSimState(TapiHandle *tapi_handle);
-  void FetchSimSyncProps(TapiHandle *tapi_handle);
+  PlatformResult FetchSimSyncProps(TapiHandle *tapi_handle);
   void ReturnSimToJS();
 
  public:
   SimDetailsManager();
 
-  void GatherSimInformation(TapiHandle* handle, picojson::object* out);
+  PlatformResult GatherSimInformation(TapiHandle* handle, picojson::object* out);
   long GetSimCount(TapiHandle **tapi_handle);
   void TryReturn();
 
@@ -313,14 +313,17 @@ SimDetailsManager::SimDetailsManager():
 {
 }
 
-void SimDetailsManager::GatherSimInformation(TapiHandle* handle, picojson::object* out)
+PlatformResult SimDetailsManager::GatherSimInformation(TapiHandle* handle, picojson::object* out)
 {
   std::lock_guard<std::mutex> first_lock_sim(sim_info_mutex_);
   ResetSimHolder(out);
 
   FetchSimState(handle);
   if (kSimStatusReady == state_) {
-    FetchSimSyncProps(handle);
+    PlatformResult ret = FetchSimSyncProps(handle);
+    if (ret.IsError()) {
+      return ret;
+    }
     {
       //All props should be fetched synchronously, but sync function does not work
       std::lock_guard<std::mutex> lock_to_process(sim_to_process_mutex_);
@@ -349,10 +352,11 @@ void SimDetailsManager::GatherSimInformation(TapiHandle* handle, picojson::objec
     //prevent returning not filled result
     std::lock_guard<std::mutex> lock_sim(sim_info_mutex_);
     //result will come from callbacks
-    return;
+    return PlatformResult(ErrorCode::NO_ERROR);
   }
   //if sim state is not READY return default values and don't wait for callbacks
   TryReturn();
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 void SimDetailsManager::FetchSimState(TapiHandle *tapi_handle)
@@ -399,7 +403,7 @@ void SimDetailsManager::FetchSimState(TapiHandle *tapi_handle)
   }
 }
 
-void SimDetailsManager::FetchSimSyncProps(TapiHandle *tapi_handle)
+PlatformResult SimDetailsManager::FetchSimSyncProps(TapiHandle *tapi_handle)
 {
   LoggerD("Entered");
   TelSimImsiInfo_t imsi;
@@ -412,11 +416,12 @@ void SimDetailsManager::FetchSimSyncProps(TapiHandle *tapi_handle)
   }
   else {
     LoggerE("Failed to get sim imsi: %d", error);
-    throw UnknownException("Failed to get sim imsi");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to get sim imsi");
   }
 
   //TODO add code for iccid value fetching, when proper API would be ready
   iccid_ = "";
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 void SimDetailsManager::ResetSimHolder(picojson::object* out){
@@ -497,18 +502,20 @@ class SystemInfoDeviceOrientation:
   SystemInfoDeviceOrientation();
   virtual ~SystemInfoDeviceOrientation();
 
+  static SystemInfoDeviceOrientation* Create();
+
   std::string status() const;
   bool is_auto_rotation() const;
 
-  void SetDeviceOrientationChangeListener();
-  void UnsetDeviceOrientationChangeListener();
+  PlatformResult SetDeviceOrientationChangeListener();
+  PlatformResult UnsetDeviceOrientationChangeListener();
 
   virtual void OnDBusSignal(int value);
  private:
-  void RegisterDBus();
-  void UnregisterDBus();
-  bool FetchIsAutoRotation();
-  std::string FetchStatus();
+  PlatformResult RegisterDBus();
+  PlatformResult UnregisterDBus();
+  PlatformResult FetchIsAutoRotation();
+  PlatformResult FetchStatus();
 
   std::string status_;
   bool is_auto_rotation_;
@@ -525,8 +532,27 @@ SystemInfoDeviceOrientation::SystemInfoDeviceOrientation() :
                              "org.tizen.system.coord.rotation")
 {
   LoggerD("Entered");
-  is_auto_rotation_ = FetchIsAutoRotation();
-  status_ = FetchStatus();
+  is_auto_rotation_ = false;
+  status_ = "";
+}
+
+SystemInfoDeviceOrientation* SystemInfoDeviceOrientation::Create() {
+  //TODO DBUS based constructor can throw exception
+  SystemInfoDeviceOrientation* deviceOrientation =
+      new (std::nothrow) SystemInfoDeviceOrientation();
+  if(!deviceOrientation) return nullptr;
+
+  PlatformResult ret = deviceOrientation->FetchIsAutoRotation();
+  if (ret.IsError()) {
+    delete deviceOrientation;
+    return NULL;
+  }
+  ret = deviceOrientation->FetchStatus();
+  if (ret.IsError()) {
+    delete deviceOrientation;
+    return NULL;
+  }
+  return deviceOrientation;
 }
 
 SystemInfoDeviceOrientation::~SystemInfoDeviceOrientation()
@@ -545,24 +571,26 @@ bool SystemInfoDeviceOrientation::is_auto_rotation() const
   return is_auto_rotation_;
 }
 
-bool SystemInfoDeviceOrientation::FetchIsAutoRotation()
+PlatformResult SystemInfoDeviceOrientation::FetchIsAutoRotation()
 {
   LoggerD("Entered");
   int is_auto_rotation = 0;
 
   if ( 0 == vconf_get_bool(VCONFKEY_SETAPPL_AUTO_ROTATE_SCREEN_BOOL, &is_auto_rotation)) {
     if (is_auto_rotation) {
-      return true;
+      is_auto_rotation_ = true;
+      return PlatformResult(ErrorCode::NO_ERROR);
     }
   } else {
     LoggerE("VCONFKEY_SETAPPL_AUTO_ROTATE_SCREEN_BOOL check failed");
-    throw UnknownException(
-        "VCONFKEY_SETAPPL_AUTO_ROTATE_SCREEN_BOOL check failed");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                   "VCONFKEY_SETAPPL_AUTO_ROTATE_SCREEN_BOOL check failed");
   }
-  return false;
+  is_auto_rotation_ = false;
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-std::string SystemInfoDeviceOrientation::FetchStatus()
+PlatformResult SystemInfoDeviceOrientation::FetchStatus()
 {
   LoggerD("Entered");
 
@@ -573,6 +601,7 @@ std::string SystemInfoDeviceOrientation::FetchStatus()
   args.AddArgumentInt32(0);
 
   std::string status = kOrientationPortraitPrimary;
+  //TODO DBUS still can throw exception
   int ret = dbus_op_.InvokeSyncGetInt("DegreePhysicalRotation", &args);
 
   switch (ret) {
@@ -595,32 +624,41 @@ std::string SystemInfoDeviceOrientation::FetchStatus()
       break;
   }
 
-  return status;
+  status_ = status;
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void SystemInfoDeviceOrientation::SetDeviceOrientationChangeListener()
+PlatformResult SystemInfoDeviceOrientation::SetDeviceOrientationChangeListener()
 {
   LoggerD("Enter");
   if (registered_) {
     LoggerD("already registered");
   } else {
-    RegisterDBus();
+    PlatformResult ret = RegisterDBus();
+    if (ret.IsError()) {
+      return ret;
+    }
     registered_ = true;
   }
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void SystemInfoDeviceOrientation::UnsetDeviceOrientationChangeListener()
+PlatformResult SystemInfoDeviceOrientation::UnsetDeviceOrientationChangeListener()
 {
   LoggerD("Enter");
   if (!registered_) {
     LoggerD("not registered");
   } else {
-    UnregisterDBus();
+    PlatformResult ret = UnregisterDBus();
+    if (ret.IsError()) {
+      return ret;
+    }
     registered_ = false;
   }
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void SystemInfoDeviceOrientation::RegisterDBus()
+PlatformResult SystemInfoDeviceOrientation::RegisterDBus()
 {
   LoggerD("Enter");
 
@@ -632,30 +670,35 @@ void SystemInfoDeviceOrientation::RegisterDBus()
 
   if (ret != 0) {
     LoggerE("Failed to start rotation broadcast");
-    throw UnknownException("Failed to start rotation broadcast");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to start rotation broadcast");
   }
 
+  //TODO DBUS still throws
   dbus_op_.RegisterSignalListener("ChangedPhysicalRotation", this);
   LoggerD("registerSignalListener: ChangedPhysicalRotation");
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void SystemInfoDeviceOrientation::UnregisterDBus()
+PlatformResult SystemInfoDeviceOrientation::UnregisterDBus()
 {
   LoggerD("Enter");
 
   int ret = 0;
+  //TODO DBUS still throws
   dbus_op_.UnregisterSignalListener("ChangedPhysicalRotation", this);
   LoggerD("unregisterSignalListener: ChangedPhysicalRotation");
 
   DBusOperationArguments args;
   args.AddArgumentInt32(0);
 
+  //TODO DBUS still throws
   ret = dbus_op_.InvokeSyncGetInt("StartRotation", &args);
 
   if (ret != 0) {
     LoggerE("Failed to stop rotation broadcast");
-    throw UnknownException("Failed to stop rotation broadcast");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to stop rotation broadcast");
   }
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 void SystemInfoDeviceOrientation::OnDBusSignal(int value)
@@ -692,28 +735,28 @@ class SystemInfoListeners {
   SystemInfoListeners();
   ~SystemInfoListeners();
 
-  void RegisterBatteryListener(const SysteminfoUtilsCallback& callback);
-  void UnregisterBatteryListener();
-  void RegisterCpuListener(const SysteminfoUtilsCallback& callback);
-  void UnregisterCpuListener();
-  void RegisterStorageListener(const SysteminfoUtilsCallback& callback);
-  void UnregisterStorageListener();
-  void RegisterDisplayListener(const SysteminfoUtilsCallback& callback);
-  void UnregisterDisplayListener();
-  void RegisterDeviceOrientationListener(const SysteminfoUtilsCallback& callback);
-  void UnregisterDeviceOrientationListener();
-  void RegisterLocaleListener(const SysteminfoUtilsCallback& callback);
-  void UnregisterLocaleListener();
-  void RegisterNetworkListener(const SysteminfoUtilsCallback& callback);
-  void UnregisterNetworkListener();
-  void RegisterWifiNetworkListener(const SysteminfoUtilsCallback& callback);
-  void UnregisterWifiNetworkListener();
-  void RegisterCellularNetworkListener(const SysteminfoUtilsCallback& callback);
-  void UnregisterCellularNetworkListener();
-  void RegisterPeripheralListener(const SysteminfoUtilsCallback& callback);
-  void UnregisterPeripheralListener();
-  void RegisterMemoryListener(const SysteminfoUtilsCallback& callback);
-  void UnregisterMemoryListener();
+  PlatformResult RegisterBatteryListener(const SysteminfoUtilsCallback& callback);
+  PlatformResult UnregisterBatteryListener();
+  PlatformResult RegisterCpuListener(const SysteminfoUtilsCallback& callback);
+  PlatformResult UnregisterCpuListener();
+  PlatformResult RegisterStorageListener(const SysteminfoUtilsCallback& callback);
+  PlatformResult UnregisterStorageListener();
+  PlatformResult RegisterDisplayListener(const SysteminfoUtilsCallback& callback);
+  PlatformResult UnregisterDisplayListener();
+  PlatformResult RegisterDeviceOrientationListener(const SysteminfoUtilsCallback& callback);
+  PlatformResult UnregisterDeviceOrientationListener();
+  PlatformResult RegisterLocaleListener(const SysteminfoUtilsCallback& callback);
+  PlatformResult UnregisterLocaleListener();
+  PlatformResult RegisterNetworkListener(const SysteminfoUtilsCallback& callback);
+  PlatformResult UnregisterNetworkListener();
+  PlatformResult RegisterWifiNetworkListener(const SysteminfoUtilsCallback& callback);
+  PlatformResult UnregisterWifiNetworkListener();
+  PlatformResult RegisterCellularNetworkListener(const SysteminfoUtilsCallback& callback);
+  PlatformResult UnregisterCellularNetworkListener();
+  PlatformResult RegisterPeripheralListener(const SysteminfoUtilsCallback& callback);
+  PlatformResult UnregisterPeripheralListener();
+  PlatformResult RegisterMemoryListener(const SysteminfoUtilsCallback& callback);
+  PlatformResult UnregisterMemoryListener();
 
   void SetCpuInfoLoad(double load);
   void SetAvailableCapacityInternal(unsigned long long capacity);
@@ -736,12 +779,12 @@ class SystemInfoListeners {
 
   TapiHandle* GetTapiHandle();
   TapiHandle** GetTapiHandles();
-  connection_h GetConnectionHandle();
+  PlatformResult GetConnectionHandle(connection_h&);
  private:
-  static void RegisterVconfCallback(const char *in_key, vconf_callback_fn cb);
-  static void UnregisterVconfCallback(const char *in_key, vconf_callback_fn cb);
-  void RegisterIpChangeCallback();
-  void UnregisterIpChangeCallback();
+  static PlatformResult RegisterVconfCallback(const char *in_key, vconf_callback_fn cb);
+  static PlatformResult UnregisterVconfCallback(const char *in_key, vconf_callback_fn cb);
+  PlatformResult RegisterIpChangeCallback();
+  PlatformResult UnregisterIpChangeCallback();
   void InitTapiHandles();
 
   SystemInfoDeviceOrientationPtr m_orientation;
@@ -820,37 +863,52 @@ SystemInfoListeners::~SystemInfoListeners(){
   }
 }
 
-void SystemInfoListeners::RegisterBatteryListener(const SysteminfoUtilsCallback& callback)
+#define CHECK_LISTENER_ERROR(method) \
+  ret = method; \
+  if (ret.IsError()) { \
+    return ret; \
+  }
+
+PlatformResult SystemInfoListeners::RegisterBatteryListener(const SysteminfoUtilsCallback& callback)
 {
   LoggerD("Entered");
   if (nullptr == m_battery_listener) {
-    RegisterVconfCallback(VCONFKEY_SYSMAN_BATTERY_CAPACITY, OnBatteryChangedCb);
-    RegisterVconfCallback(VCONFKEY_SYSMAN_BATTERY_CHARGE_NOW, OnBatteryChangedCb);
+    PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
+    CHECK_LISTENER_ERROR(
+        RegisterVconfCallback(VCONFKEY_SYSMAN_BATTERY_CAPACITY, OnBatteryChangedCb))
+    CHECK_LISTENER_ERROR(
+        RegisterVconfCallback(VCONFKEY_SYSMAN_BATTERY_CHARGE_NOW, OnBatteryChangedCb))
     LoggerD("Added callback for BATTERY");
     m_battery_listener = callback;
   }
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void SystemInfoListeners::UnregisterBatteryListener()
+PlatformResult SystemInfoListeners::UnregisterBatteryListener()
 {
   if (nullptr != m_battery_listener) {
-    UnregisterVconfCallback(VCONFKEY_SYSMAN_BATTERY_CAPACITY, OnBatteryChangedCb);
-    UnregisterVconfCallback(VCONFKEY_SYSMAN_BATTERY_CHARGE_NOW, OnBatteryChangedCb);
+    PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
+    CHECK_LISTENER_ERROR(
+        UnregisterVconfCallback(VCONFKEY_SYSMAN_BATTERY_CAPACITY, OnBatteryChangedCb))
+    CHECK_LISTENER_ERROR(
+        UnregisterVconfCallback(VCONFKEY_SYSMAN_BATTERY_CHARGE_NOW, OnBatteryChangedCb))
     LoggerD("Removed callback for BATTERY");
     m_battery_listener = nullptr;
   }
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void SystemInfoListeners::RegisterCpuListener(const SysteminfoUtilsCallback& callback)
+PlatformResult SystemInfoListeners::RegisterCpuListener(const SysteminfoUtilsCallback& callback)
 {
   if (nullptr == m_cpu_listener) {
     m_cpu_event_id = g_timeout_add_seconds(kPropertyWatcherTime, OnCpuChangedCb, nullptr);
     LoggerD("Added callback for CPU");
     m_cpu_listener = callback;
   }
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void SystemInfoListeners::UnregisterCpuListener()
+PlatformResult SystemInfoListeners::UnregisterCpuListener()
 {
   if (nullptr != m_cpu_listener) {
     g_source_remove(m_cpu_event_id);
@@ -858,106 +916,119 @@ void SystemInfoListeners::UnregisterCpuListener()
     LoggerD("Removed callback for CPU");
     m_cpu_listener = nullptr;
   }
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void SystemInfoListeners::RegisterStorageListener(const SysteminfoUtilsCallback& callback)
+PlatformResult SystemInfoListeners::RegisterStorageListener(const SysteminfoUtilsCallback& callback)
 {
   if (nullptr == m_storage_listener) {
-    try {
-      RegisterVconfCallback(VCONFKEY_SYSMAN_MMC_STATUS, OnMmcChangedCb);
-    } catch (const PlatformException& e) {
-      // empty on purpose
-    }
+    PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
+    CHECK_LISTENER_ERROR(
+        RegisterVconfCallback(VCONFKEY_SYSMAN_MMC_STATUS, OnMmcChangedCb))
+
     m_storage_event_id = g_timeout_add_seconds(kPropertyWatcherTime, OnStorageChangedCb, nullptr);
     LoggerD("Added callback for STORAGE");
     m_storage_listener = callback;
   }
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void SystemInfoListeners::UnregisterStorageListener()
+PlatformResult SystemInfoListeners::UnregisterStorageListener()
 {
   if (nullptr != m_storage_listener) {
-    try {
-      UnregisterVconfCallback(VCONFKEY_SYSMAN_MMC_STATUS, OnMmcChangedCb);
-    } catch (const PlatformException& e) {
-      // empty on purpose
-    }
+    PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
+    CHECK_LISTENER_ERROR(
+        UnregisterVconfCallback(VCONFKEY_SYSMAN_MMC_STATUS, OnMmcChangedCb))
+
     g_source_remove(m_storage_event_id);
     m_storage_event_id = 0;
     LoggerD("Removed callback for STORAGE");
     m_storage_listener = nullptr;
   }
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void SystemInfoListeners::RegisterDisplayListener(const SysteminfoUtilsCallback& callback)
+PlatformResult SystemInfoListeners::RegisterDisplayListener(const SysteminfoUtilsCallback& callback)
 {
   if (nullptr == m_display_listener) {
-    RegisterVconfCallback(VCONFKEY_SETAPPL_LCD_BRIGHTNESS, OnDisplayChangedCb);
+    PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
+    CHECK_LISTENER_ERROR(
+        RegisterVconfCallback(VCONFKEY_SETAPPL_LCD_BRIGHTNESS, OnDisplayChangedCb))
     LoggerD("Added callback for DISPLAY");
     m_display_listener = callback;
   }
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void SystemInfoListeners::UnregisterDisplayListener()
+PlatformResult SystemInfoListeners::UnregisterDisplayListener()
 {
-
   if (nullptr != m_display_listener) {
-    UnregisterVconfCallback(VCONFKEY_SETAPPL_LCD_BRIGHTNESS, OnDisplayChangedCb);
+    PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
+    CHECK_LISTENER_ERROR(
+        UnregisterVconfCallback(VCONFKEY_SETAPPL_LCD_BRIGHTNESS, OnDisplayChangedCb))
     LoggerD("Removed callback for DISPLAY");
     m_display_listener = nullptr;
   }
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void SystemInfoListeners::RegisterDeviceOrientationListener(const SysteminfoUtilsCallback& callback)
+PlatformResult SystemInfoListeners::RegisterDeviceOrientationListener(const SysteminfoUtilsCallback& callback)
 {
   if (nullptr == m_orientation) {
-    m_orientation.reset(new SystemInfoDeviceOrientation());
+    m_orientation.reset(SystemInfoDeviceOrientation::Create());
   }
 
   if (nullptr == m_device_orientation_listener) {
-    RegisterVconfCallback(VCONFKEY_SETAPPL_AUTO_ROTATE_SCREEN_BOOL, OnDeviceAutoRotationChangedCb);
-    m_orientation->SetDeviceOrientationChangeListener();
+    PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
+    CHECK_LISTENER_ERROR(
+        RegisterVconfCallback(VCONFKEY_SETAPPL_AUTO_ROTATE_SCREEN_BOOL, OnDeviceAutoRotationChangedCb))
+    CHECK_LISTENER_ERROR(m_orientation->SetDeviceOrientationChangeListener())
 
     LoggerD("Added callback for DEVICE_ORIENTATION");
     m_device_orientation_listener = callback;
   }
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void SystemInfoListeners::UnregisterDeviceOrientationListener()
+PlatformResult SystemInfoListeners::UnregisterDeviceOrientationListener()
 {
   if (nullptr != m_device_orientation_listener) {
-    UnregisterVconfCallback(VCONFKEY_SETAPPL_AUTO_ROTATE_SCREEN_BOOL, OnDeviceAutoRotationChangedCb);
+    PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
+    CHECK_LISTENER_ERROR(
+        UnregisterVconfCallback(VCONFKEY_SETAPPL_AUTO_ROTATE_SCREEN_BOOL, OnDeviceAutoRotationChangedCb))
     if (nullptr != m_orientation) {
-      m_orientation->UnsetDeviceOrientationChangeListener();
+      CHECK_LISTENER_ERROR(m_orientation->UnsetDeviceOrientationChangeListener())
       m_orientation.reset();
     }
 
     LoggerD("Removed callback for DEVICE_ORIENTATION");
     m_device_orientation_listener = nullptr;
   }
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void SystemInfoListeners::RegisterLocaleListener(const SysteminfoUtilsCallback& callback)
+PlatformResult SystemInfoListeners::RegisterLocaleListener(const SysteminfoUtilsCallback& callback)
 {
   if (nullptr == m_locale_listener) {
     if (RUNTIME_INFO_ERROR_NONE !=
         runtime_info_set_changed_cb(RUNTIME_INFO_KEY_REGION,
                                     OnLocaleChangedCb, nullptr) ) {
       LoggerE("Country change callback registration failed");
-      throw UnknownException("Country change callback registration failed");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Country change callback registration failed");
     }
     if (RUNTIME_INFO_ERROR_NONE !=
         runtime_info_set_changed_cb(RUNTIME_INFO_KEY_LANGUAGE,
                                     OnLocaleChangedCb, nullptr) ) {
       LoggerE("Language change callback registration failed");
-      throw UnknownException("Language change callback registration failed");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Language change callback registration failed");
     }
     LoggerD("Added callback for LOCALE");
     m_locale_listener = callback;
   }
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void SystemInfoListeners::UnregisterLocaleListener()
+PlatformResult SystemInfoListeners::UnregisterLocaleListener()
 {
   if (nullptr != m_locale_listener) {
     if (RUNTIME_INFO_ERROR_NONE !=
@@ -971,169 +1042,190 @@ void SystemInfoListeners::UnregisterLocaleListener()
     LoggerD("Removed callback for LOCALE");
     m_locale_listener = nullptr;
   }
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void SystemInfoListeners::RegisterNetworkListener(const SysteminfoUtilsCallback& callback)
+PlatformResult SystemInfoListeners::RegisterNetworkListener(const SysteminfoUtilsCallback& callback)
 {
   if (nullptr == m_network_listener) {
-    connection_set_type_changed_cb(GetConnectionHandle(), OnNetworkChangedCb, nullptr);
+    connection_h handle;
+    PlatformResult ret(ErrorCode::NO_ERROR);
+    CHECK_LISTENER_ERROR(GetConnectionHandle(handle))
+    if (CONNECTION_ERROR_NONE !=
+        connection_set_type_changed_cb(handle, OnNetworkChangedCb, nullptr)) {
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Registration of listener failed");
+    }
     LoggerD("Added callback for NETWORK");
     m_network_listener = callback;
   }
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void SystemInfoListeners::UnregisterNetworkListener()
+PlatformResult SystemInfoListeners::UnregisterNetworkListener()
 {
   if (nullptr != m_network_listener) {
-
+    connection_h handle;
+    PlatformResult ret(ErrorCode::NO_ERROR);
+    CHECK_LISTENER_ERROR(GetConnectionHandle(handle))
+    if (CONNECTION_ERROR_NONE != connection_unset_type_changed_cb(handle)) {
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Unregistration of listener failed");
+    }
     LoggerD("Removed callback for NETWORK");
     m_network_listener = nullptr;
   }
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void SystemInfoListeners::RegisterWifiNetworkListener(const SysteminfoUtilsCallback& callback)
+PlatformResult SystemInfoListeners::RegisterWifiNetworkListener(const SysteminfoUtilsCallback& callback)
 {
   if (nullptr == m_wifi_network_listener) {
     if (nullptr == m_cellular_network_listener){
       //register if there is no callback both for wifi and cellular
-      RegisterIpChangeCallback();
+      PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
+      CHECK_LISTENER_ERROR(RegisterIpChangeCallback())
     } else {
       LoggerD("No need to register ip listener on platform, already registered");
     }
     LoggerD("Added callback for WIFI_NETWORK");
     m_wifi_network_listener = callback;
   }
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void SystemInfoListeners::UnregisterWifiNetworkListener()
+PlatformResult SystemInfoListeners::UnregisterWifiNetworkListener()
 {
   //unregister if is wifi callback, but no cellular callback
   if (nullptr != m_wifi_network_listener && nullptr == m_cellular_network_listener) {
-    UnregisterIpChangeCallback();
+    PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
+    CHECK_LISTENER_ERROR(UnregisterIpChangeCallback())
     LoggerD("Removed callback for WIFI_NETWORK");
   } else {
     LoggerD("Removed callback for WIFI_NETWORK, but cellular listener still works");
   }
   m_wifi_network_listener = nullptr;
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void SystemInfoListeners::RegisterCellularNetworkListener(const SysteminfoUtilsCallback& callback)
+PlatformResult SystemInfoListeners::RegisterCellularNetworkListener(const SysteminfoUtilsCallback& callback)
 {
   if (nullptr == m_cellular_network_listener) {
+    PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
     if (nullptr == m_wifi_network_listener){
       //register if there is no callback both for wifi and cellular
-      RegisterIpChangeCallback();
+      CHECK_LISTENER_ERROR(RegisterIpChangeCallback())
     } else {
       LoggerD("No need to register ip listener on platform, already registered");
     }
-    RegisterVconfCallback(VCONFKEY_TELEPHONY_FLIGHT_MODE,
-                          OnCellularNetworkValueChangedCb);
-    RegisterVconfCallback(VCONFKEY_TELEPHONY_CELLID,
-                          OnCellularNetworkValueChangedCb);
-    RegisterVconfCallback(VCONFKEY_TELEPHONY_LAC,
-                          OnCellularNetworkValueChangedCb);
-    RegisterVconfCallback(VCONFKEY_TELEPHONY_SVC_ROAM,
-                          OnCellularNetworkValueChangedCb);
+    CHECK_LISTENER_ERROR(RegisterVconfCallback(VCONFKEY_TELEPHONY_FLIGHT_MODE,
+                          OnCellularNetworkValueChangedCb))
+    CHECK_LISTENER_ERROR(RegisterVconfCallback(VCONFKEY_TELEPHONY_CELLID,
+                          OnCellularNetworkValueChangedCb))
+    CHECK_LISTENER_ERROR(RegisterVconfCallback(VCONFKEY_TELEPHONY_LAC,
+                          OnCellularNetworkValueChangedCb))
+    CHECK_LISTENER_ERROR(RegisterVconfCallback(VCONFKEY_TELEPHONY_SVC_ROAM,
+                          OnCellularNetworkValueChangedCb))
     LoggerD("Added callback for CELLULAR_NETWORK");
     m_cellular_network_listener = callback;
   }
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void SystemInfoListeners::UnregisterCellularNetworkListener()
+PlatformResult SystemInfoListeners::UnregisterCellularNetworkListener()
 {
   if (nullptr != m_cellular_network_listener) {
-    UnregisterVconfCallback(VCONFKEY_TELEPHONY_FLIGHT_MODE,
-                            OnCellularNetworkValueChangedCb);
-    UnregisterVconfCallback(VCONFKEY_TELEPHONY_CELLID,
-                            OnCellularNetworkValueChangedCb);
-    UnregisterVconfCallback(VCONFKEY_TELEPHONY_LAC,
-                            OnCellularNetworkValueChangedCb);
-    UnregisterVconfCallback(VCONFKEY_TELEPHONY_SVC_ROAM,
-                            OnCellularNetworkValueChangedCb);
+    PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
+    CHECK_LISTENER_ERROR(UnregisterVconfCallback(VCONFKEY_TELEPHONY_FLIGHT_MODE,
+                            OnCellularNetworkValueChangedCb))
+    CHECK_LISTENER_ERROR(UnregisterVconfCallback(VCONFKEY_TELEPHONY_CELLID,
+                            OnCellularNetworkValueChangedCb))
+    CHECK_LISTENER_ERROR(UnregisterVconfCallback(VCONFKEY_TELEPHONY_LAC,
+                            OnCellularNetworkValueChangedCb))
+    CHECK_LISTENER_ERROR(UnregisterVconfCallback(VCONFKEY_TELEPHONY_SVC_ROAM,
+                            OnCellularNetworkValueChangedCb))
     if (nullptr == m_wifi_network_listener) {
       //register if there is no callback both for wifi and cellular
-      UnregisterIpChangeCallback();
+      CHECK_LISTENER_ERROR(UnregisterIpChangeCallback())
       LoggerD("Removed callback for CELLULAR_NETWORK");
     } else {
       LoggerD("Removed callback for CELLULAR_NETWORK, but cellular listener still works");
     }
   }
   m_cellular_network_listener = nullptr;
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void SystemInfoListeners::RegisterPeripheralListener(const SysteminfoUtilsCallback& callback)
+PlatformResult SystemInfoListeners::RegisterPeripheralListener(const SysteminfoUtilsCallback& callback)
 {
   if (nullptr == m_peripheral_listener) {
-    try {
-      RegisterVconfCallback(VCONFKEY_MIRACAST_WFD_SOURCE_STATUS, OnPeripheralChangedCb);
-    } catch (const PlatformException& e) {
-      // empty on purpose
+    PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
+    int value = 0;
+    if (-1 != vconf_get_int(VCONFKEY_MIRACAST_WFD_SOURCE_STATUS, &value)) {
+      CHECK_LISTENER_ERROR(RegisterVconfCallback(VCONFKEY_MIRACAST_WFD_SOURCE_STATUS,
+                                                 OnPeripheralChangedCb))
     }
-    try {
-      RegisterVconfCallback(VCONFKEY_SYSMAN_HDMI, OnPeripheralChangedCb);
-    } catch (const PlatformException& e) {
-      // empty on purpose
+    if (-1 != vconf_get_int(VCONFKEY_SYSMAN_HDMI, &value)) {
+      CHECK_LISTENER_ERROR(RegisterVconfCallback(VCONFKEY_SYSMAN_HDMI,
+                                                 OnPeripheralChangedCb))
     }
-    try {
-      RegisterVconfCallback(VCONFKEY_POPSYNC_ACTIVATED_KEY, OnPeripheralChangedCb);
-    } catch (const PlatformException& e) {
-      // empty on purpose
+    if (-1 != vconf_get_int(VCONFKEY_POPSYNC_ACTIVATED_KEY, &value)) {
+      CHECK_LISTENER_ERROR(RegisterVconfCallback(VCONFKEY_POPSYNC_ACTIVATED_KEY,
+                                                 OnPeripheralChangedCb))
     }
     LoggerD("Added callback for PERIPHERAL");
     m_peripheral_listener = callback;
   }
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void SystemInfoListeners::UnregisterPeripheralListener()
+PlatformResult SystemInfoListeners::UnregisterPeripheralListener()
 {
   if (nullptr != m_peripheral_listener) {
-    try {
-      UnregisterVconfCallback(VCONFKEY_MIRACAST_WFD_SOURCE_STATUS, OnPeripheralChangedCb);
-    } catch (const PlatformException& e) {
-      // empty on purpose
+    PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
+    int value = 0;
+    if (-1 != vconf_get_int(VCONFKEY_MIRACAST_WFD_SOURCE_STATUS, &value)) {
+      CHECK_LISTENER_ERROR(UnregisterVconfCallback(VCONFKEY_MIRACAST_WFD_SOURCE_STATUS,
+                                                   OnPeripheralChangedCb))
     }
-    try {
-      UnregisterVconfCallback(VCONFKEY_SYSMAN_HDMI, OnPeripheralChangedCb);
-    } catch (const PlatformException& e) {
-      // empty on purpose
+    if (-1 != vconf_get_int(VCONFKEY_SYSMAN_HDMI, &value)) {
+      CHECK_LISTENER_ERROR(UnregisterVconfCallback(VCONFKEY_SYSMAN_HDMI,
+                                                   OnPeripheralChangedCb))
     }
-    try {
-      UnregisterVconfCallback(VCONFKEY_POPSYNC_ACTIVATED_KEY, OnPeripheralChangedCb);
-    } catch (const PlatformException& e) {
-      // empty on purpose
+    if (-1 != vconf_get_int(VCONFKEY_POPSYNC_ACTIVATED_KEY, &value)) {
+      CHECK_LISTENER_ERROR(UnregisterVconfCallback(VCONFKEY_POPSYNC_ACTIVATED_KEY,
+                                                   OnPeripheralChangedCb))
     }
     LoggerD("Removed callback for PERIPHERAL");
     m_peripheral_listener = nullptr;
   }
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void SystemInfoListeners::RegisterMemoryListener(const SysteminfoUtilsCallback& callback)
+PlatformResult SystemInfoListeners::RegisterMemoryListener(const SysteminfoUtilsCallback& callback)
 {
   if (nullptr == m_memory_listener) {
-    try {
-      int value = 0;
-      if (-1 != vconf_get_int(VCONFKEY_SYSMAN_LOW_MEMORY, &value)) {
-        RegisterVconfCallback(VCONFKEY_SYSMAN_LOW_MEMORY, OnMemoryChangedCb);
-      }
-    } catch (const PlatformException& e) {
-      // empty on purpose
+    PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
+    int value = 0;
+    if (-1 != vconf_get_int(VCONFKEY_SYSMAN_LOW_MEMORY, &value)) {
+      CHECK_LISTENER_ERROR(RegisterVconfCallback(VCONFKEY_SYSMAN_LOW_MEMORY, OnMemoryChangedCb))
     }
     LoggerD("Added callback for MEMORY");
     m_memory_listener = callback;
   }
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void SystemInfoListeners::UnregisterMemoryListener()
+PlatformResult SystemInfoListeners::UnregisterMemoryListener()
 {
   if (nullptr != m_memory_listener) {
-    try {
-      UnregisterVconfCallback(VCONFKEY_SYSMAN_LOW_MEMORY, OnMemoryChangedCb);
-    } catch (const PlatformException& e) {
-      // empty on purpose
+    PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
+    int value = 0;
+    if (-1 != vconf_get_int(VCONFKEY_SYSMAN_LOW_MEMORY, &value)) {
+      CHECK_LISTENER_ERROR(UnregisterVconfCallback(VCONFKEY_SYSMAN_LOW_MEMORY, OnMemoryChangedCb))
     }
     LoggerD("Removed callback for MEMORY");
     m_memory_listener = nullptr;
   }
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 void SystemInfoListeners::SetCpuInfoLoad(double load)
@@ -1314,57 +1406,66 @@ TapiHandle** SystemInfoListeners::GetTapiHandles()
   return m_tapi_handles;
 }
 
-connection_h SystemInfoListeners::GetConnectionHandle()
+PlatformResult SystemInfoListeners::GetConnectionHandle(connection_h& handle)
 {
   if (nullptr == m_connection_handle) {
     int error = connection_create(&m_connection_handle);
     if (CONNECTION_ERROR_NONE != error) {
       LoggerE("Failed to create connection: %d", error);
-      throw UnknownException("Cannot create connection");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot create connection");
     }
   }
-  return m_connection_handle;
+  handle = m_connection_handle;
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 //////////////// Private ////////////////////
 
-void SystemInfoListeners::RegisterVconfCallback(const char *in_key, vconf_callback_fn cb)
+PlatformResult SystemInfoListeners::RegisterVconfCallback(const char *in_key, vconf_callback_fn cb)
 {
   if (0 != vconf_notify_key_changed(in_key, cb, nullptr)) {
     LoggerE("Failed to register vconf callback: %s", in_key);
-    throw UnknownException("Failed to register vconf callback");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to register vconf callback");
   }
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void SystemInfoListeners::UnregisterVconfCallback(const char *in_key, vconf_callback_fn cb)
+PlatformResult SystemInfoListeners::UnregisterVconfCallback(const char *in_key, vconf_callback_fn cb)
 {
   if (0 != vconf_ignore_key_changed(in_key, cb)) {
     LoggerE("Failed to unregister vconf callback: %s", in_key);
-    throw UnknownException("Failed to unregister vconf callback");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to unregister vconf callback");
   }
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void SystemInfoListeners::RegisterIpChangeCallback()
+PlatformResult SystemInfoListeners::RegisterIpChangeCallback()
 {
   LoggerD("Registering connection callback");
-  connection_h handle = GetConnectionHandle();
+  connection_h handle;
+  PlatformResult ret(ErrorCode::NO_ERROR);
+  CHECK_LISTENER_ERROR(GetConnectionHandle(handle))
   int error = connection_set_ip_address_changed_cb(handle,
                                                    OnNetworkValueChangedCb, nullptr);
   if (CONNECTION_ERROR_NONE != error) {
     LoggerE("Failed to register ip change callback: %d", error);
-    throw UnknownException("Cannot register ip change callback");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot register ip change callback");
   }
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void SystemInfoListeners::UnregisterIpChangeCallback()
+PlatformResult SystemInfoListeners::UnregisterIpChangeCallback()
 {
   LoggerD("Unregistering connection callback");
-  connection_h handle = GetConnectionHandle();
+  connection_h handle;
+  PlatformResult ret(ErrorCode::NO_ERROR);
+  CHECK_LISTENER_ERROR(GetConnectionHandle(handle))
   int error = connection_unset_ip_address_changed_cb(handle);
   if (CONNECTION_ERROR_NONE != error) {
     LoggerE("Failed to unregister ip change callback: %d", error);
-    throw UnknownException("Cannot unregister ip change callback");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot unregister ip change callback");
   }
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 
@@ -1550,7 +1651,7 @@ PlatformResult GetVconfInt(const char *key, int &value) {
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-long long SysteminfoUtils::GetTotalMemory()
+PlatformResult SysteminfoUtils::GetTotalMemory(long long& result)
 {
   LoggerD("Entered");
 
@@ -1560,13 +1661,14 @@ long long SysteminfoUtils::GetTotalMemory()
   if (ret != DEVICE_ERROR_NONE) {
     std::string log_msg = "Failed to get total memory: " + std::to_string(ret);
     LoggerE("%s", log_msg.c_str());
-    throw UnknownException(log_msg.c_str());
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
   }
 
-  return static_cast<long long>(value*MEMORY_TO_BYTE);
+  result = static_cast<long long>(value*MEMORY_TO_BYTE);
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-long long SysteminfoUtils::GetAvailableMemory()
+PlatformResult SysteminfoUtils::GetAvailableMemory(long long& result)
 {
   LoggerD("Entered");
 
@@ -1576,10 +1678,11 @@ long long SysteminfoUtils::GetAvailableMemory()
   if (ret != DEVICE_ERROR_NONE) {
     std::string log_msg = "Failed to get total memory: " + std::to_string(ret);
     LoggerE("%s", log_msg.c_str());
-    throw UnknownException(log_msg.c_str());
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
   }
 
-  return static_cast<long long>(value*MEMORY_TO_BYTE);
+  result = static_cast<long long>(value*MEMORY_TO_BYTE);
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 PlatformResult SysteminfoUtils::GetCount(const std::string& property, unsigned long& count)
@@ -1679,6 +1782,7 @@ PlatformResult SysteminfoUtils::ReportBattery(picojson::object& out) {
     return PlatformResult(ErrorCode::UNKNOWN_ERR, (log_msg + std::to_string(ret)));
   }
 
+  out.insert(std::make_pair("level", static_cast<double>(value)/kRemainingBatteryChargeMax));
   value = 0;
   ret = vconf_get_int(VCONFKEY_SYSMAN_BATTERY_CHARGE_NOW, &value);
   if (kVconfErrorNone != ret) {
@@ -1686,7 +1790,6 @@ PlatformResult SysteminfoUtils::ReportBattery(picojson::object& out) {
     LoggerE("%s%d",log_msg.c_str(), ret);
     return PlatformResult(ErrorCode::UNKNOWN_ERR, (log_msg + std::to_string(ret)));
   }
-  out.insert(std::make_pair("level", static_cast<double>(value)/kRemainingBatteryChargeMax));
   out.insert(std::make_pair("isCharging", picojson::value(0 != value)));
   return PlatformResult(ErrorCode::NO_ERROR);
 }
@@ -1745,8 +1848,8 @@ PlatformResult SysteminfoUtils::ReportDisplay(picojson::object& out) {
   int screenHeight = 0;
   unsigned long dotsPerInchWidth;
   unsigned long dotsPerInchHeight;
-  int physicalWidth;
-  int physicalHeight;
+  int physicalWidth = 0;
+  int physicalHeight = 0;
   double scaledBrightness;
 
   // FETCH RESOLUTION
@@ -1777,16 +1880,14 @@ PlatformResult SysteminfoUtils::ReportDisplay(picojson::object& out) {
   if (SYSTEM_INFO_ERROR_NONE != system_info_get_value_int(
       SYSTEM_INFO_KEY_PHYSICAL_SCREEN_WIDTH, &physicalWidth)) {
     LoggerE("Cannot get value of phisical screen width");
-    //TODO uncomment when api would support this key
-    //return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get value of phisical screen width");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get value of phisical screen width");
   }
 
   //FETCH PHYSICAL HEIGHT
   if (SYSTEM_INFO_ERROR_NONE != system_info_get_value_int(
       SYSTEM_INFO_KEY_PHYSICAL_SCREEN_HEIGHT, &physicalHeight)) {
     LoggerE("Cannot get value of phisical screen height");
-    //TODO uncomment when api would support this key
-    //return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get value of phisical screen height");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get value of phisical screen height");
   }
 
   //FETCH BRIGHTNESS
@@ -1810,7 +1911,7 @@ PlatformResult SysteminfoUtils::ReportDisplay(picojson::object& out) {
 
 PlatformResult SysteminfoUtils::ReportDeviceOrientation(picojson::object& out) {
   SystemInfoDeviceOrientationPtr dev_orientation =
-      SystemInfoDeviceOrientationPtr(new SystemInfoDeviceOrientation());
+      SystemInfoDeviceOrientationPtr(SystemInfoDeviceOrientation::Create());
   std::string status = dev_orientation->status();
   bool auto_rotation_bool = dev_orientation->is_auto_rotation();
   out.insert(std::make_pair("isAutoRotation", auto_rotation_bool));
@@ -2329,9 +2430,8 @@ void SimSpnValueCallback(TapiHandle */*handle*/, int result, void *data, void */
 }
 
 PlatformResult SysteminfoUtils::ReportSim(picojson::object& out, unsigned long count) {
-
-  sim_mgr.GatherSimInformation(system_info_listeners.GetTapiHandles()[count], &out);
-  return PlatformResult(ErrorCode::NO_ERROR);
+  return sim_mgr.GatherSimInformation(
+      system_info_listeners.GetTapiHandles()[count], &out);
 }
 
 PlatformResult SysteminfoUtils::ReportPeripheral(picojson::object& out) {
@@ -2432,116 +2532,116 @@ PlatformResult SysteminfoUtils::ReportStorage(picojson::object& out) {
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void SysteminfoUtils::RegisterBatteryListener(const SysteminfoUtilsCallback& callback)
+PlatformResult SysteminfoUtils::RegisterBatteryListener(const SysteminfoUtilsCallback& callback)
 {
-  system_info_listeners.RegisterBatteryListener(callback);
+  return system_info_listeners.RegisterBatteryListener(callback);
 }
 
-void SysteminfoUtils::UnregisterBatteryListener()
+PlatformResult SysteminfoUtils::UnregisterBatteryListener()
 {
-  system_info_listeners.UnregisterBatteryListener();
-}
-
-
-void SysteminfoUtils::RegisterCpuListener(const SysteminfoUtilsCallback& callback)
-{
-  system_info_listeners.RegisterCpuListener(callback);
-}
-
-void SysteminfoUtils::UnregisterCpuListener()
-{
-  system_info_listeners.UnregisterCpuListener();
+  return system_info_listeners.UnregisterBatteryListener();
 }
 
 
-void SysteminfoUtils::RegisterStorageListener(const SysteminfoUtilsCallback& callback)
+PlatformResult SysteminfoUtils::RegisterCpuListener(const SysteminfoUtilsCallback& callback)
 {
-  system_info_listeners.RegisterStorageListener(callback);
+  return system_info_listeners.RegisterCpuListener(callback);
 }
 
-void SysteminfoUtils::UnregisterStorageListener()
+PlatformResult SysteminfoUtils::UnregisterCpuListener()
 {
-  system_info_listeners.UnregisterStorageListener();
+  return system_info_listeners.UnregisterCpuListener();
 }
 
-void SysteminfoUtils::RegisterDisplayListener(const SysteminfoUtilsCallback& callback)
+
+PlatformResult SysteminfoUtils::RegisterStorageListener(const SysteminfoUtilsCallback& callback)
 {
-  system_info_listeners.RegisterDisplayListener(callback);
+  return system_info_listeners.RegisterStorageListener(callback);
 }
 
-void SysteminfoUtils::UnregisterDisplayListener()
+PlatformResult SysteminfoUtils::UnregisterStorageListener()
 {
-  system_info_listeners.UnregisterDisplayListener();
+  return system_info_listeners.UnregisterStorageListener();
 }
 
-void SysteminfoUtils::RegisterDeviceOrientationListener(const SysteminfoUtilsCallback& callback)
+PlatformResult SysteminfoUtils::RegisterDisplayListener(const SysteminfoUtilsCallback& callback)
 {
-  system_info_listeners.RegisterDeviceOrientationListener(callback);
+  return system_info_listeners.RegisterDisplayListener(callback);
 }
 
-void SysteminfoUtils::UnregisterDeviceOrientationListener()
+PlatformResult SysteminfoUtils::UnregisterDisplayListener()
 {
-  system_info_listeners.UnregisterDeviceOrientationListener();
+  return system_info_listeners.UnregisterDisplayListener();
 }
 
-void SysteminfoUtils::RegisterLocaleListener(const SysteminfoUtilsCallback& callback)
+PlatformResult SysteminfoUtils::RegisterDeviceOrientationListener(const SysteminfoUtilsCallback& callback)
 {
-  system_info_listeners.RegisterLocaleListener(callback);
+  return system_info_listeners.RegisterDeviceOrientationListener(callback);
 }
 
-void SysteminfoUtils::UnregisterLocaleListener()
+PlatformResult SysteminfoUtils::UnregisterDeviceOrientationListener()
 {
-  system_info_listeners.UnregisterLocaleListener();
+  return system_info_listeners.UnregisterDeviceOrientationListener();
 }
 
-void SysteminfoUtils::RegisterNetworkListener(const SysteminfoUtilsCallback& callback)
+PlatformResult SysteminfoUtils::RegisterLocaleListener(const SysteminfoUtilsCallback& callback)
 {
-  system_info_listeners.RegisterNetworkListener(callback);
+  return system_info_listeners.RegisterLocaleListener(callback);
 }
 
-void SysteminfoUtils::UnregisterNetworkListener()
+PlatformResult SysteminfoUtils::UnregisterLocaleListener()
 {
-  system_info_listeners.UnregisterNetworkListener();
+  return system_info_listeners.UnregisterLocaleListener();
 }
 
-void SysteminfoUtils::RegisterWifiNetworkListener(const SysteminfoUtilsCallback& callback)
+PlatformResult SysteminfoUtils::RegisterNetworkListener(const SysteminfoUtilsCallback& callback)
 {
-  system_info_listeners.RegisterWifiNetworkListener(callback);
+  return system_info_listeners.RegisterNetworkListener(callback);
 }
 
-void SysteminfoUtils::UnregisterWifiNetworkListener()
+PlatformResult SysteminfoUtils::UnregisterNetworkListener()
 {
-  system_info_listeners.UnregisterWifiNetworkListener();
+  return system_info_listeners.UnregisterNetworkListener();
 }
 
-void SysteminfoUtils::RegisterCellularNetworkListener(const SysteminfoUtilsCallback& callback)
+PlatformResult SysteminfoUtils::RegisterWifiNetworkListener(const SysteminfoUtilsCallback& callback)
 {
-  system_info_listeners.RegisterCellularNetworkListener(callback);
+  return system_info_listeners.RegisterWifiNetworkListener(callback);
 }
 
-void SysteminfoUtils::UnregisterCellularNetworkListener()
+PlatformResult SysteminfoUtils::UnregisterWifiNetworkListener()
 {
-  system_info_listeners.UnregisterCellularNetworkListener();
+  return system_info_listeners.UnregisterWifiNetworkListener();
 }
 
-void SysteminfoUtils::RegisterPeripheralListener(const SysteminfoUtilsCallback& callback)
+PlatformResult SysteminfoUtils::RegisterCellularNetworkListener(const SysteminfoUtilsCallback& callback)
 {
-  system_info_listeners.RegisterPeripheralListener(callback);
+  return system_info_listeners.RegisterCellularNetworkListener(callback);
 }
 
-void SysteminfoUtils::UnregisterPeripheralListener()
+PlatformResult SysteminfoUtils::UnregisterCellularNetworkListener()
 {
-  system_info_listeners.UnregisterPeripheralListener();
+  return system_info_listeners.UnregisterCellularNetworkListener();
 }
 
-void SysteminfoUtils::RegisterMemoryListener(const SysteminfoUtilsCallback& callback)
+PlatformResult SysteminfoUtils::RegisterPeripheralListener(const SysteminfoUtilsCallback& callback)
 {
-  system_info_listeners.RegisterMemoryListener(callback);
+  return system_info_listeners.RegisterPeripheralListener(callback);
 }
 
-void SysteminfoUtils::UnregisterMemoryListener()
+PlatformResult SysteminfoUtils::UnregisterPeripheralListener()
 {
-  system_info_listeners.UnregisterMemoryListener();
+  return system_info_listeners.UnregisterPeripheralListener();
+}
+
+PlatformResult SysteminfoUtils::RegisterMemoryListener(const SysteminfoUtilsCallback& callback)
+{
+  return system_info_listeners.RegisterMemoryListener(callback);
+}
+
+PlatformResult SysteminfoUtils::UnregisterMemoryListener()
+{
+  return system_info_listeners.UnregisterMemoryListener();
 }
 
 

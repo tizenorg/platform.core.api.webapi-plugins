@@ -48,6 +48,12 @@ const std::string kPropertyIdSim = "SIM";
 const std::string kPropertyIdPeripheral = "PERIPHERAL";
 const std::string kPropertyIdMemory= "MEMORY";
 
+#define CHECK_EXIST(args, name, out) \
+  if (!args.contains(name)) {\
+    ReportError(TypeMismatchException(name" is required argument"), out);\
+      return;\
+    }
+
 #define DEFAULT_REPORT_BOOL_CAPABILITY(str_name, feature_name) \
   ret = SystemInfoDeviceCapability::GetValueBool(feature_name, bool_value); \
   if (ret.IsError()) { \
@@ -204,6 +210,7 @@ void SysteminfoInstance::GetCapabilities(const picojson::value& args, picojson::
 
 void SysteminfoInstance::GetCapability(const picojson::value& args, picojson::object& out) {
 
+  CHECK_EXIST(args, "key", out)
   const std::string& key = args.get("key").get<std::string>();
   LoggerD("Getting capability with key: %s ", key.c_str());
 
@@ -219,8 +226,9 @@ void SysteminfoInstance::GetCapability(const picojson::value& args, picojson::ob
 
 void SysteminfoInstance::GetPropertyValue(const picojson::value& args, picojson::object& out) {
   LoggerD("");
+  CHECK_EXIST(args, "callbackId", out)
+  CHECK_EXIST(args, "property", out)
   const double callback_id = args.get("callbackId").get<double>();
-
   const std::string& prop_id = args.get("property").get<std::string>();
   LoggerD("Getting property with id: %s ", prop_id.c_str());
 
@@ -249,8 +257,9 @@ void SysteminfoInstance::GetPropertyValue(const picojson::value& args, picojson:
 
 void SysteminfoInstance::GetPropertyValueArray(const picojson::value& args, picojson::object& out) {
   LoggerD("");
+  CHECK_EXIST(args, "callbackId", out)
+  CHECK_EXIST(args, "property", out)
   const double callback_id = args.get("callbackId").get<double>();
-
   const std::string& prop_id = args.get("property").get<std::string>();
   LoggerD("Getting property arrray with id: %s ", prop_id.c_str());
 
@@ -279,51 +288,52 @@ void SysteminfoInstance::GetPropertyValueArray(const picojson::value& args, pico
 
 void SysteminfoInstance::AddPropertyValueChangeListener(const picojson::value& args, picojson::object& out) {
   LoggerD("");
+  // Check type of property for which listener should be registered
+  CHECK_EXIST(args, "property", out)
+  const std::string& property_name = args.get("property").get<std::string>();
 
-  try {
-    // Check type of property for which listener should be registered
-    const std::string& property_name = args.get("property").get<std::string>();
-    LoggerD("Adding listener for property with id: %s ", property_name.c_str());
-    if (property_name == kPropertyIdBattery) {
-      SysteminfoUtils::RegisterBatteryListener(OnBatteryChangedCallback);
-    } else if (property_name == kPropertyIdCpu) {
-      SysteminfoUtils::RegisterCpuListener(OnCpuChangedCallback);
-    } else if (property_name == kPropertyIdStorage) {
-      SysteminfoUtils::RegisterStorageListener(OnStorageChangedCallback);
-    } else if (property_name == kPropertyIdDisplay) {
-      SysteminfoUtils::RegisterDisplayListener(OnDisplayChangedCallback);
-    } else if (property_name == kPropertyIdDeviceOrientation) {
-      SysteminfoUtils::RegisterDeviceOrientationListener(OnDeviceOrientationChangedCallback);
-    } else if (property_name == kPropertyIdBuild) {
-      LoggerW("BUILD property's value is a fixed value");
-      //should be accepted, but no registration is needed
-      //throw NotSupportedException("BUILD property's value is a fixed value");
-    } else if (property_name == kPropertyIdLocale) {
-      SysteminfoUtils::RegisterLocaleListener(OnLocaleChangedCallback);
-    } else if (property_name == kPropertyIdNetwork) {
-      SysteminfoUtils::RegisterNetworkListener(OnNetworkChangedCallback);
-    } else if (property_name == kPropertyIdWifiNetwork) {
-      SysteminfoUtils::RegisterWifiNetworkListener(OnWifiNetworkChangedCallback);
-    } else if (property_name == kPropertyIdCellularNetwork) {
-      SysteminfoUtils::RegisterCellularNetworkListener(OnCellularNetworkChangedCallback);
-    } else if (property_name == kPropertyIdSim) {
-      //SIM listeners are not supported by core API, so we just pass over
-      LoggerW("SIM listener is not supported by Core API - ignoring");
-    } else if (property_name == kPropertyIdPeripheral) {
-      SysteminfoUtils::RegisterPeripheralListener(OnPeripheralChangedCallback);
-    } else if (property_name == kPropertyIdMemory) {
-      SysteminfoUtils::RegisterMemoryListener(OnMemoryChangedCallback);
-    } else {
-      LoggerE("Not supported property");
-      throw InvalidValuesException("Not supported property");
-    }
+  LoggerD("Adding listener for property with id: %s ", property_name.c_str());
+  PlatformResult ret(ErrorCode::NO_ERROR);
+  if (property_name == kPropertyIdBattery) {
+    ret = SysteminfoUtils::RegisterBatteryListener(OnBatteryChangedCallback);
+  } else if (property_name == kPropertyIdCpu) {
+    ret = SysteminfoUtils::RegisterCpuListener(OnCpuChangedCallback);
+  } else if (property_name == kPropertyIdStorage) {
+    ret = SysteminfoUtils::RegisterStorageListener(OnStorageChangedCallback);
+  } else if (property_name == kPropertyIdDisplay) {
+    ret = SysteminfoUtils::RegisterDisplayListener(OnDisplayChangedCallback);
+  } else if (property_name == kPropertyIdDeviceOrientation) {
+    ret = SysteminfoUtils::RegisterDeviceOrientationListener(OnDeviceOrientationChangedCallback);
+  } else if (property_name == kPropertyIdBuild) {
+    LoggerW("BUILD property's value is a fixed value");
+    //should be accepted, but no registration is needed
+    //ret = PlatformResult(ErrorCode::NOT_SUPPORTED_ERR, "BUILD property's value is a fixed value");
+  } else if (property_name == kPropertyIdLocale) {
+    ret = SysteminfoUtils::RegisterLocaleListener(OnLocaleChangedCallback);
+  } else if (property_name == kPropertyIdNetwork) {
+    ret = SysteminfoUtils::RegisterNetworkListener(OnNetworkChangedCallback);
+  } else if (property_name == kPropertyIdWifiNetwork) {
+    ret = SysteminfoUtils::RegisterWifiNetworkListener(OnWifiNetworkChangedCallback);
+  } else if (property_name == kPropertyIdCellularNetwork) {
+    ret = SysteminfoUtils::RegisterCellularNetworkListener(OnCellularNetworkChangedCallback);
+  } else if (property_name == kPropertyIdSim) {
+    //SIM listeners are not supported by core API, so we just pass over
+    LoggerW("SIM listener is not supported by Core API - ignoring");
+  } else if (property_name == kPropertyIdPeripheral) {
+    ret = SysteminfoUtils::RegisterPeripheralListener(OnPeripheralChangedCallback);
+  } else if (property_name == kPropertyIdMemory) {
+    ret = SysteminfoUtils::RegisterMemoryListener(OnMemoryChangedCallback);
+  } else {
+    LoggerE("Not supported property");
+    ret = PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Not supported property");
+  }
+  if (ret.IsSuccess()) {
     ReportSuccess(out);
     LoggerD("Success");
-  } catch (const PlatformException& e) {
-    LoggerD("Error");
-    ReportError(e, out);
+    return;
   }
-
+  LoggerD("Error");
+  ReportError(ret, &out);
 }
 
 void SysteminfoInstance::GetTotalMemory(const picojson::value& args, picojson::object& out) {
@@ -331,8 +341,15 @@ void SysteminfoInstance::GetTotalMemory(const picojson::value& args, picojson::o
   picojson::value result = picojson::value(picojson::object());
   picojson::object& result_obj = result.get<picojson::object>();
 
+  long long return_value = 0;
+  PlatformResult ret = SysteminfoUtils::GetTotalMemory(return_value);
+  if (ret.IsError()) {
+    LoggerD("Error");
+    ReportError(ret, &out);
+    return;
+  }
   result_obj.insert(std::make_pair("totalMemory",
-                                   static_cast<double>(SysteminfoUtils::GetTotalMemory()) ));
+                                   static_cast<double>(return_value)));
 
   ReportSuccess(result, out);
   LoggerD("Success");
@@ -343,8 +360,15 @@ void SysteminfoInstance::GetAvailableMemory(const picojson::value& args, picojso
   picojson::value result = picojson::value(picojson::object());
   picojson::object& result_obj = result.get<picojson::object>();
 
+  long long return_value = 0;
+  PlatformResult ret = SysteminfoUtils::GetAvailableMemory(return_value);
+  if (ret.IsError()) {
+    LoggerD("Error");
+    ReportError(ret, &out);
+    return;
+  }
   result_obj.insert(std::make_pair("availableMemory",
-                                   static_cast<double>(SysteminfoUtils::GetAvailableMemory()) ));
+                                   static_cast<double>(return_value) ));
 
   ReportSuccess(result, out);
   LoggerD("Success");
@@ -352,6 +376,7 @@ void SysteminfoInstance::GetAvailableMemory(const picojson::value& args, picojso
 
 void SysteminfoInstance::GetCount(const picojson::value& args, picojson::object& out) {
 
+  CHECK_EXIST(args, "property", out)
   const std::string& property = args.get("property").get<std::string>();
   LoggerD("Getting count of property with id: %s ", property.c_str());
 
@@ -372,49 +397,51 @@ void SysteminfoInstance::GetCount(const picojson::value& args, picojson::object&
 void SysteminfoInstance::RemovePropertyValueChangeListener(const picojson::value& args, picojson::object& out) {
   LoggerD("");
 
-  try {
-    // Check type of property for which listener should be removed
-    const std::string& property_name = args.get("property").get<std::string>();
-    LoggerD("Removing listener for property with id: %s ", property_name.c_str());
-    if (property_name == kPropertyIdBattery) {
-      SysteminfoUtils::UnregisterBatteryListener();
-    } else if (property_name == kPropertyIdCpu) {
-      SysteminfoUtils::UnregisterCpuListener();
-    } else if (property_name == kPropertyIdStorage) {
-      SysteminfoUtils::UnregisterStorageListener();
-    } else if (property_name == kPropertyIdDisplay) {
-      SysteminfoUtils::UnregisterDisplayListener();
-    } else if (property_name == kPropertyIdDeviceOrientation) {
-      SysteminfoUtils::UnregisterDeviceOrientationListener();
-    } else if (property_name == kPropertyIdBuild) {
-      LoggerW("BUILD property's value is a fixed value");
-      //should be accepted, but no unregistration is needed
-      //throw NotSupportedException("BUILD property's value is a fixed value");
-    } else if (property_name == kPropertyIdLocale) {
-      SysteminfoUtils::UnregisterLocaleListener();
-    } else if (property_name == kPropertyIdNetwork) {
-      SysteminfoUtils::UnregisterNetworkListener();
-    } else if (property_name == kPropertyIdWifiNetwork) {
-      SysteminfoUtils::UnregisterWifiNetworkListener();
-    } else if (property_name == kPropertyIdCellularNetwork) {
-      SysteminfoUtils::UnregisterCellularNetworkListener();
-    } else if (property_name == kPropertyIdSim) {
-      //SIM listeners are not supported by core API, so we just pass over
-      LoggerW("SIM listener is not supported by Core API - ignoring");
-    } else if (property_name == kPropertyIdPeripheral) {
-      SysteminfoUtils::UnregisterPeripheralListener();
-    } else if (property_name == kPropertyIdMemory) {
-      SysteminfoUtils::UnregisterMemoryListener();
-    } else {
-      LoggerE("Not supported property");
-      throw InvalidValuesException("Not supported property");
-    }
+  // Check type of property for which listener should be removed
+  CHECK_EXIST(args, "property", out)
+  const std::string& property_name = args.get("property").get<std::string>();
+  LoggerD("Removing listener for property with id: %s ", property_name.c_str());
+  PlatformResult ret(ErrorCode::NO_ERROR);
+  if (property_name == kPropertyIdBattery) {
+    ret = SysteminfoUtils::UnregisterBatteryListener();
+  } else if (property_name == kPropertyIdCpu) {
+    ret = SysteminfoUtils::UnregisterCpuListener();
+  } else if (property_name == kPropertyIdStorage) {
+    ret = SysteminfoUtils::UnregisterStorageListener();
+  } else if (property_name == kPropertyIdDisplay) {
+    ret = SysteminfoUtils::UnregisterDisplayListener();
+  } else if (property_name == kPropertyIdDeviceOrientation) {
+    ret = SysteminfoUtils::UnregisterDeviceOrientationListener();
+  } else if (property_name == kPropertyIdBuild) {
+    LoggerW("BUILD property's value is a fixed value");
+    //should be accepted, but no unregistration is needed
+    //ret = PlatformResult(ErrorCode::NOT_SUPPORTED_ERR, "BUILD property's value is a fixed value");
+  } else if (property_name == kPropertyIdLocale) {
+    ret = SysteminfoUtils::UnregisterLocaleListener();
+  } else if (property_name == kPropertyIdNetwork) {
+    ret = SysteminfoUtils::UnregisterNetworkListener();
+  } else if (property_name == kPropertyIdWifiNetwork) {
+    ret = SysteminfoUtils::UnregisterWifiNetworkListener();
+  } else if (property_name == kPropertyIdCellularNetwork) {
+    ret = SysteminfoUtils::UnregisterCellularNetworkListener();
+  } else if (property_name == kPropertyIdSim) {
+    //SIM listeners are not supported by core API, so we just pass over
+    LoggerW("SIM listener is not supported by Core API - ignoring");
+  } else if (property_name == kPropertyIdPeripheral) {
+    ret = SysteminfoUtils::UnregisterPeripheralListener();
+  } else if (property_name == kPropertyIdMemory) {
+    ret = SysteminfoUtils::UnregisterMemoryListener();
+  } else {
+    LoggerE("Not supported property");
+    ret = PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Not supported property");
+  }
+  if (ret.IsSuccess()) {
     ReportSuccess(out);
     LoggerD("Success");
-  } catch (const PlatformException& e) {
-    LoggerD("Error");
-    ReportError(e, out);
+    return;
   }
+  LoggerD("Error");
+  ReportError(ret, &out);
 }
 
 static void ReportSuccess(const picojson::value& result, picojson::object& out) {
