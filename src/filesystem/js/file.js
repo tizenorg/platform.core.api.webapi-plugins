@@ -344,18 +344,34 @@ File.prototype.createFile = function(relativeFilePath) {
     {name: 'relativeFilePath', type: types_.STRING}
   ]);
 
-  var data = {
-    relativeFilePath: args.relativeFilePath
-  };
+  if (this.isFile) {
+    throw new tizen.WebAPIException(tizen.WebAPIException.IO_ERR,
+        'File object which call this method is not directory');
+  }
 
-  var result = native_.callSync('File_createFile', data);
+  if (!this.f_isCorrectRelativePath(args.relativeFilePath) || this.mode === 'r') {
+    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR,
+        'Invalid path or readonly acces');
+  }
 
+  var _outputPath = this.fullPath + '/' + args.relativeFilePath;
+  var _outputRealPath = commonFS_.toRealPath(_outputPath);
+  var _resultExist = native_.callSync('File_statSync', {location: _outputRealPath});
+
+  if (native_.isSuccess(_resultExist)) {
+    throw new tizen.WebAPIException(tizen.WebAPIException.IO_ERR, 'Overwrite is not allowed');
+  }
+
+  var result = native_.callSync('File_createSync', {location: _outputRealPath});
   if (native_.isFailure(result)) {
     throw native_.getErrorObject(result);
   }
 
-  var returnObject = new File(native_.getResultObject(result));
-  return returnObject;
+  var _result = native_.callSync('File_statSync', {location: _outputRealPath});
+  var _statObj = native_.getResultObject(_result);
+  var _fileInfo = commonFS_.getFileInfo(_outputPath, _statObj, false, this.mode);
+
+  return new File(_fileInfo);
 
 };
 
