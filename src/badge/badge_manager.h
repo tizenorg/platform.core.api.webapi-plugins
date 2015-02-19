@@ -24,21 +24,23 @@ class BadgeManager {
  public:
   static BadgeManager* GetInstance();
 
-  common::PlatformResult setBadgeCount(std::string appId, unsigned int count);
-  common::PlatformResult getBadgeCount(std::string appId, unsigned int* count);
-  common::PlatformResult addChangeListener(const JsonObject& obj);
-  void removeChangeListener(const JsonObject& obj);
+  common::PlatformResult SetBadgeCount(const std::string& app_id,
+                                       unsigned int count);
+  common::PlatformResult GetBadgeCount(const std::string& app_id,
+                                       unsigned int* count);
+  common::PlatformResult AddChangeListener(const JsonObject& obj);
+  common::PlatformResult RemoveChangeListener(const JsonObject& obj);
   static void badge_changed_cb(unsigned int, const char*, unsigned int, void*);
 
  private:
   BadgeManager();
   virtual ~BadgeManager();
 
-  common::PlatformResult checkPermisionForCreatingBadge(const char* appId);
-  char* getPkgnameByAppid(const char* appId);
-  char* getPkgnameByPid();
-  int isSameCertInfo(const char *caller, const char *pkgname);
-  bool isAppInstalled(const std::string& appId);
+  common::PlatformResult CheckPermisionForCreatingBadge(const char* app_id);
+  char* GetPkgnameByAppid(const char* app_id);
+  char* GetPkgnameByPid();
+  int IsSameCertInfo(const char* caller, const char* pkgname);
+  bool IsAppInstalled(const std::string& app_id);
 
   static bool is_cb_registered_;
   static std::set<std::string> watched_applications_;

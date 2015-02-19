@@ -42,29 +42,29 @@ BadgeManager *BadgeManager::GetInstance() {
   return &instance;
 }
 
-PlatformResult BadgeManager::setBadgeCount(std::string appId,
+PlatformResult BadgeManager::SetBadgeCount(const std::string& app_id,
                                            unsigned int count) {
   int ret = BADGE_ERROR_SERVICE_NOT_READY;
-  bool badgeExist = false;
-  const char *app_id = appId.c_str();
+  bool badge_exist = false;
+  const char *app_id_str = app_id.c_str();
 
-  if (!isAppInstalled(appId)) {
+  if (!IsAppInstalled(app_id)) {
     LoggerE("fail to get pkgId");
     return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
-                          "InvalidValues error : appId");
+                          "InvalidValues error : app_id");
   }
 
-  ret = badge_is_existing(app_id, &badgeExist);
+  ret = badge_is_existing(app_id_str, &badge_exist);
   if (ret != BADGE_ERROR_NONE) {
     LoggerE("Unknown error : %d", ret);
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown error");
   }
 
-  if (!badgeExist) {
-    PlatformResult status = checkPermisionForCreatingBadge(app_id);
+  if (!badge_exist) {
+    PlatformResult status = CheckPermisionForCreatingBadge(app_id_str);
     if (status.IsError()) return status;
 
-    ret = badge_create(app_id, app_id);
+    ret = badge_create(app_id_str, app_id_str);
     LoggerD("badge create : %", ret);
 
     if (ret == BADGE_ERROR_PERMISSION_DENIED) {
@@ -84,7 +84,7 @@ PlatformResult BadgeManager::setBadgeCount(std::string appId,
     }
   }
 
-  ret = badge_set_count(app_id, count);
+  ret = badge_set_count(app_id_str, count);
   LoggerE("set ret : %d count :%d ", ret, count);
 
   if (ret == BADGE_ERROR_PERMISSION_DENIED) {
@@ -106,57 +106,55 @@ PlatformResult BadgeManager::setBadgeCount(std::string appId,
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-PlatformResult BadgeManager::getBadgeCount(std::string appId,
+PlatformResult BadgeManager::GetBadgeCount(const std::string& app_id,
                                            unsigned int *count) {
-  LoggerD("Enter");
-
   assert(count);
 
   int ret = BADGE_ERROR_SERVICE_NOT_READY;
-  bool badgeExist = false;
-  if (!isAppInstalled(appId)) {
+  bool badge_exist = false;
+  if (!IsAppInstalled(app_id)) {
     LoggerE("fail to get pkgId");
     return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
-                          "InvalidValues error : appId");
+                          "InvalidValues error : app_id");
   }
-  ret = badge_is_existing(appId.c_str(), &badgeExist);
+  ret = badge_is_existing(app_id.c_str(), &badge_exist);
   if (ret != BADGE_ERROR_NONE) {
     LoggerE("Unknown error : %d", ret);
     return PlatformResult(ErrorCode::UNKNOWN_ERR,
                           "Platform error while checking badge.");
   }
-  LoggerD("badge exist : %d", badgeExist);
+  LoggerD("badge exist : %d", badge_exist);
 
-  if (!badgeExist) {
+  if (!badge_exist) {
     return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "badge not exist. appId: " + appId);
+                          "badge not exist. app_id: " + app_id);
   }
 
   *count = 0;
-  ret = badge_get_count(appId.c_str(), count);
+  ret = badge_get_count(app_id.c_str(), count);
 
-  if (ret == BADGE_ERROR_NONE) {
-    LoggerD("success get ret : %d count : ", *count);
-    return PlatformResult(ErrorCode::NO_ERROR);
-  } else if (ret == BADGE_ERROR_PERMISSION_DENIED) {
-    LoggerE("Security error");
-    return PlatformResult(ErrorCode::SECURITY_ERR, "Security error.");
+  switch (ret) {
+    case BADGE_ERROR_NONE:
+      LoggerD("success get ret : %d count : ", *count);
+      return PlatformResult(ErrorCode::NO_ERROR);
+    case BADGE_ERROR_PERMISSION_DENIED:
+      LoggerE("Security error");
+      return PlatformResult(ErrorCode::SECURITY_ERR, "Security error.");
 #ifdef PROFILE_WEARABLE
-  } else if (ret == BADGE_ERROR_INVALID_DATA) {
+    case BADGE_ERROR_INVALID_DATA:
 #else
-  } else if (ret == BADGE_ERROR_INVALID_PARAMETER) {
+    case BADGE_ERROR_INVALID_PARAMETER:
 #endif
-    LoggerE("Invalid values error");
-    return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
-                          "InvalidValues error : appId");
-  } else {
-    LoggerE("Unknown error : %d", ret);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown error");
+      LoggerE("Invalid values error");
+      return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
+                            "InvalidValues error : app_id");
+    default:
+      LoggerE("Unknown error : %d", ret);
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown error");
   }
 }
 
-PlatformResult BadgeManager::addChangeListener(const JsonObject &obj) {
-  LoggerD("entered here");
+PlatformResult BadgeManager::AddChangeListener(const JsonObject &obj) {
   auto &items = FromJson<picojson::array>(obj, "appIdList");
   for (auto item : items) {
     watched_applications_.insert(common::JsonCast<std::string>(item));
@@ -175,7 +173,7 @@ PlatformResult BadgeManager::addChangeListener(const JsonObject &obj) {
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void BadgeManager::removeChangeListener(const JsonObject &obj) {
+PlatformResult BadgeManager::RemoveChangeListener(const JsonObject &obj) {
   auto &items = FromJson<picojson::array>(obj, "appIdList");
   for (auto item : items) {
     watched_applications_.erase(common::JsonCast<std::string>(item));
@@ -184,46 +182,52 @@ void BadgeManager::removeChangeListener(const JsonObject &obj) {
     int ret = badge_unregister_changed_cb(badge_changed_cb);
     if (ret != BADGE_ERROR_NONE) {
       LoggerE("Unknown error : %d", ret);
+      return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                            "Platform error while removing listener.");
     }
     is_cb_registered_ = false;
   }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void BadgeManager::badge_changed_cb(unsigned int action, const char *pkgname, unsigned int count,
-                                    void *user_data) {
+void BadgeManager::badge_changed_cb(unsigned int action, const char *pkgname,
+                                    unsigned int count, void *user_data) {
   if (action != BADGE_ACTION_SERVICE_READY &&
       watched_applications_.find(pkgname) != watched_applications_.end()) {
     picojson::value response = picojson::value(picojson::object());
     picojson::object &response_obj = response.get<picojson::object>();
-    response_obj.insert(std::make_pair("listenerId", std::string("BadgeChangeListener")));
+    response_obj.insert(
+        std::make_pair("listenerId", std::string("BadgeChangeListener")));
     response_obj.insert(std::make_pair("appId", pkgname));
     response_obj.insert(std::make_pair("count", std::to_string(count)));
     BadgeInstance::GetInstance().PostMessage(response.serialize().c_str());
   }
 }
 
-bool BadgeManager::isAppInstalled(const std::string &appId) {
+bool BadgeManager::IsAppInstalled(const std::string &app_id) {
   int ret = PACKAGE_MANAGER_ERROR_NONE;
   pkgmgrinfo_appinfo_h pkgmgrinfo_appinfo;
-  if (appId.empty()) {
+  if (app_id.empty()) {
     return false;
   }
-  ret = pkgmgrinfo_appinfo_get_appinfo(appId.c_str(), &pkgmgrinfo_appinfo);
+  ret = pkgmgrinfo_appinfo_get_appinfo(app_id.c_str(), &pkgmgrinfo_appinfo);
   if (ret != PMINFO_R_OK) {
     return false;
   }
   return true;
 }
 
-PlatformResult BadgeManager::checkPermisionForCreatingBadge(const char *appId) {
-  if (!appId) {
-    LoggerE("InvalidValues error : appId");
+PlatformResult BadgeManager::CheckPermisionForCreatingBadge(
+    const char *app_id) {
+  if (!app_id) {
+    LoggerE("InvalidValues error : app_id");
     return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
-                          "InvalidValues error : appId");
+                          "InvalidValues error : app_id");
   }
 
   char *caller_appid = NULL;
-  caller_appid = getPkgnameByPid();
+  caller_appid = GetPkgnameByPid();
 
   if (!caller_appid) {
     LoggerE("fail to get caller pkgId");
@@ -232,7 +236,7 @@ PlatformResult BadgeManager::checkPermisionForCreatingBadge(const char *appId) {
   }
 
   char *caller_pkgname = NULL;
-  caller_pkgname = getPkgnameByAppid(caller_appid);
+  caller_pkgname = GetPkgnameByAppid(caller_appid);
   if (!caller_pkgname) {
     if (caller_appid) {
       free(caller_appid);
@@ -243,7 +247,7 @@ PlatformResult BadgeManager::checkPermisionForCreatingBadge(const char *appId) {
   }
 
   char *pkgname = NULL;
-  pkgname = getPkgnameByAppid(appId);
+  pkgname = GetPkgnameByAppid(app_id);
   if (!pkgname) {
     if (caller_appid) {
       free(caller_appid);
@@ -253,11 +257,11 @@ PlatformResult BadgeManager::checkPermisionForCreatingBadge(const char *appId) {
     }
     LoggerE("fail to get pkgId");
     return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
-                          "InvalidValues error : appId");
+                          "InvalidValues error : app_id");
   }
 
   bool flag = true;
-  if (isSameCertInfo(caller_pkgname, pkgname) != 1) {
+  if (IsSameCertInfo(caller_pkgname, pkgname) != 1) {
     LoggerE("The author signature is not match");
     flag = false;
   }
@@ -281,28 +285,28 @@ PlatformResult BadgeManager::checkPermisionForCreatingBadge(const char *appId) {
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-char *BadgeManager::getPkgnameByAppid(const char *appId) {
-  char *pkgId = NULL;
+char *BadgeManager::GetPkgnameByAppid(const char *app_id) {
+  char *pkg_id = NULL;
   int ret = PACKAGE_MANAGER_ERROR_NONE;
-  if (!appId) {
-    LoggerE("appId is null");
+  if (!app_id) {
+    LoggerE("app_id is null");
     return NULL;
   }
 
-  ret = package_manager_get_package_id_by_app_id(appId, &pkgId);
+  ret = package_manager_get_package_id_by_app_id(app_id, &pkg_id);
   if (ret != PACKAGE_MANAGER_ERROR_NONE) {
-    LoggerE("fail to get caller pkgId : ", ret);
+    LoggerE("fail to get caller pkg_id : ", ret);
     return NULL;
   }
-  if (!pkgId) {
-    LoggerE("fail to get caller pkgId");
+  if (!pkg_id) {
+    LoggerE("fail to get caller pkg_id");
     return NULL;
   }
 
-  return pkgId;
+  return pkg_id;
 }
 
-char *BadgeManager::getPkgnameByPid() {
+char *BadgeManager::GetPkgnameByPid() {
   char *pkgname = NULL;
   int pid = 0;
   int ret = AUL_R_OK;
@@ -342,9 +346,10 @@ char *BadgeManager::getPkgnameByPid() {
     return pkgname;
 }
 
-int BadgeManager::isSameCertInfo(const char *caller, const char *pkgname) {
+int BadgeManager::IsSameCertInfo(const char *caller, const char *pkgname) {
   int ret = PACKAGE_MANAGER_ERROR_NONE;
-  package_manager_compare_result_type_e compare_result = PACKAGE_MANAGER_COMPARE_MISMATCH;
+  package_manager_compare_result_type_e compare_result =
+      PACKAGE_MANAGER_COMPARE_MISMATCH;
 
   if (!caller) {
     return 0;
@@ -355,10 +360,12 @@ int BadgeManager::isSameCertInfo(const char *caller, const char *pkgname) {
 
   LoggerE("pkgname : %d caller : ", pkgname, caller);
 
-  ret = package_manager_compare_package_cert_info(pkgname, caller, &compare_result);
+  ret = package_manager_compare_package_cert_info(pkgname, caller,
+                                                  &compare_result);
 
   LoggerE("result : %d %d", ret, compare_result);
-  if (ret == PACKAGE_MANAGER_ERROR_NONE && compare_result == PACKAGE_MANAGER_COMPARE_MATCH) {
+  if (ret == PACKAGE_MANAGER_ERROR_NONE &&
+      compare_result == PACKAGE_MANAGER_COMPARE_MATCH) {
     return 1;
   }
 

@@ -25,10 +25,13 @@ BadgeInstance& BadgeInstance::GetInstance() {
 
 BadgeInstance::BadgeInstance() {
   using namespace std::placeholders;
-#define REGISTER_SYNC(c, x) RegisterSyncHandler(c, std::bind(&BadgeInstance::x, this, _1, _2));
+#define REGISTER_SYNC(c, x) \
+  RegisterSyncHandler(c, std::bind(&BadgeInstance::x, this, _1, _2));
   REGISTER_SYNC("BadgeManager_setBadgeCount", BadgeManagerSetBadgeCount);
-  REGISTER_SYNC("BadgeManager_addChangeListener", BadgeManagerAddChangeListener);
-  REGISTER_SYNC("BadgeManager_removeChangeListener", BadgeManagerRemoveChangeListener);
+  REGISTER_SYNC("BadgeManager_addChangeListener",
+                BadgeManagerAddChangeListener);
+  REGISTER_SYNC("BadgeManager_removeChangeListener",
+                BadgeManagerRemoveChangeListener);
   REGISTER_SYNC("BadgeManager_getBadgeCount", BadgeManagerGetBadgeCount);
 #undef REGISTER_SYNC
 }
@@ -37,12 +40,12 @@ BadgeInstance::~BadgeInstance() {}
 
 void BadgeInstance::BadgeManagerSetBadgeCount(const JsonValue& args,
                                               JsonObject& out) {
-  std::string appId =
+  std::string app_id =
       common::FromJson<std::string>(args.get<JsonObject>(), "appId");
   const double count = args.get("count").get<double>();
 
-  PlatformResult status = BadgeManager::GetInstance()->setBadgeCount(
-      appId, static_cast<unsigned int>(count));
+  PlatformResult status = BadgeManager::GetInstance()->SetBadgeCount(
+      app_id, static_cast<unsigned int>(count));
   if (status.IsSuccess())
     ReportSuccess(out);
   else
@@ -51,12 +54,12 @@ void BadgeInstance::BadgeManagerSetBadgeCount(const JsonValue& args,
 
 void BadgeInstance::BadgeManagerGetBadgeCount(const JsonValue& args,
                                               JsonObject& out) {
-  std::string appId =
+  std::string app_id =
       common::FromJson<std::string>(args.get<JsonObject>(), "appId");
 
   unsigned int count = 0;
   PlatformResult status =
-      BadgeManager::GetInstance()->getBadgeCount(appId, &count);
+      BadgeManager::GetInstance()->GetBadgeCount(app_id, &count);
   if (status.IsSuccess())
     ReportSuccess(JsonValue(std::to_string(count)), out);
   else
@@ -66,7 +69,7 @@ void BadgeInstance::BadgeManagerGetBadgeCount(const JsonValue& args,
 void BadgeInstance::BadgeManagerAddChangeListener(const JsonValue& args,
                                                   JsonObject& out) {
   PlatformResult status =
-      BadgeManager::GetInstance()->addChangeListener(args.get<JsonObject>());
+      BadgeManager::GetInstance()->AddChangeListener(args.get<JsonObject>());
 
   if (status.IsSuccess())
     ReportSuccess(out);
@@ -74,9 +77,15 @@ void BadgeInstance::BadgeManagerAddChangeListener(const JsonValue& args,
     ReportError(status, &out);
 }
 
-void BadgeInstance::BadgeManagerRemoveChangeListener(const JsonValue& args, JsonObject& out) {
-  BadgeManager::GetInstance()->removeChangeListener(args.get<JsonObject>());
-  ReportSuccess(out);
+void BadgeInstance::BadgeManagerRemoveChangeListener(const JsonValue& args,
+                                                     JsonObject& out) {
+  PlatformResult status =
+      BadgeManager::GetInstance()->RemoveChangeListener(args.get<JsonObject>());
+
+  if (status.IsSuccess())
+    ReportSuccess(out);
+  else
+    ReportError(status, &out);
 }
 
 }  // namespace badge
