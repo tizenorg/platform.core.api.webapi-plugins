@@ -522,14 +522,17 @@ class SystemInfoDeviceOrientation:
 
   bool registered_;
 
-  DBusOperation dbus_op_;
+  static DBusOperation dbus_op_;
 };
 
+
+DBusOperation SystemInfoDeviceOrientation::dbus_op_("org.tizen.system.coord",
+                                                "/Org/Tizen/System/Coord/Rotation",
+                                                "org.tizen.system.coord.rotation");
+
+
 SystemInfoDeviceOrientation::SystemInfoDeviceOrientation() :
-                    registered_(false),
-                    dbus_op_("org.tizen.system.coord",
-                             "/Org/Tizen/System/Coord/Rotation",
-                             "org.tizen.system.coord.rotation")
+                    registered_(false)
 {
   LoggerD("Entered");
   is_auto_rotation_ = false;
