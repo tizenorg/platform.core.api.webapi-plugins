@@ -25,6 +25,18 @@ namespace extension {
 namespace filesystem {
 
 namespace {
+void storage_cb(int storage_id, storage_state_e state, void* user_data) {
+  LoggerD("entered");
+  if (user_data) {
+    FilesystemStateChangeListener* listener =
+        static_cast<FilesystemStateChangeListener*>(user_data);
+    storage_type_e type;
+    storage_get_type(storage_id, &type);
+    listener->onFilesystemStateChangeSuccessCallback(
+        std::to_string(type) + std::to_string(storage_id),
+        std::to_string(state), std::to_string(type));
+  }
+}
 
 int unlink_cb(const char *fpath, const struct stat *sb, int typeflag, struct FTW *ftwbuf)
 {
@@ -89,10 +101,21 @@ void FilesystemManager::FetchStorages(
   if (STORAGE_ERROR_NONE !=
       storage_foreach_device_supported(fetch_storages_cb, &result))
     error_cb(FilesystemError::Other);
+  for(auto storage : result) {
+    ids_.insert(storage.storage_id);
+  }
   success_cb(result);
 }
 
-FilesystemManager::FilesystemManager() {}
+FilesystemManager::FilesystemManager()
+    : listener_(nullptr), is_listener_registered_(false) {}
+FilesystemManager::~FilesystemManager() {
+  if (is_listener_registered_) {
+    for (auto id : ids_) {
+      storage_unset_state_changed_cb(id, storage_cb);
+    }
+  }
+}
 
 FilesystemManager& FilesystemManager::GetInstance() {
   static FilesystemManager instance;
@@ -287,6 +310,45 @@ void FilesystemManager::RemoveDirectory(
   }
   success_cb();
   return;
+}
+void FilesystemManager::StartListening() {
+  LoggerD("enter");
+
+  if (!is_listener_registered_ && !ids_.empty()) {
+    int result = STORAGE_ERROR_NONE;
+    std::set<int> registeredSuccessfully;
+    for (auto id : ids_) {
+      result = storage_set_state_changed_cb(id, storage_cb, (void*)listener_);
+      LoggerD("registered id %d", id);
+      if (result != STORAGE_ERROR_NONE) {
+        for (auto registeredId : registeredSuccessfully) {
+          storage_unset_state_changed_cb(registeredId, storage_cb);
+          LoggerD("unregistering id %d", registeredId);
+        }
+        listener_->onFilesystemStateChangeErrorCallback();
+        break;
+      } else {
+        registeredSuccessfully.insert(id);
+      }
+    }
+    if (ids_.size() == registeredSuccessfully.size())
+      is_listener_registered_ = true;
+  }
+}
+
+void FilesystemManager::StopListening() {
+  LoggerD("enter");
+  if (is_listener_registered_) {
+    for (auto id : ids_) {
+      storage_unset_state_changed_cb(id, storage_cb);
+    }
+  }
+  is_listener_registered_ = false;
+}
+
+void FilesystemManager::AddListener(FilesystemStateChangeListener* listener) {
+  LoggerD("enter");
+  listener_ = listener;
 }
 }  // namespace filesystem
 }  // namespace extension

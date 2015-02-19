@@ -36,6 +36,10 @@ FilesystemInstance::FilesystemInstance() {
   REGISTER_ASYNC("File_readDir", ReadDir);
   REGISTER_ASYNC("File_rename", FileRename);
   REGISTER_SYNC("Filesystem_getWidgetPaths", FilesystemGetWidgetPaths);
+  REGISTER_SYNC("FileSystemManager_addStorageStateChangeListener",
+                StartListening);
+  REGISTER_SYNC("FileSystemManager_removeStorageStateChangeListener",
+                StopListening);
   REGISTER_SYNC("FileSystemManager_fetchStorages",
                 FileSystemManagerFetchStorages);
   REGISTER_ASYNC("FileSystemManager_mkdir", FileSystemManagerMakeDirectory);
@@ -45,6 +49,7 @@ FilesystemInstance::FilesystemInstance() {
   REGISTER_ASYNC("File_removeDirectory", RemoveDirectory);
 #undef REGISTER_SYNC
 #undef REGISTER_ASYNC
+  FilesystemManager::GetInstance().AddListener(this);
 }
 
 FilesystemInstance::~FilesystemInstance() {}
@@ -203,6 +208,40 @@ void FilesystemInstance::FileSystemManagerFetchStorages(
   };
 
   FilesystemManager::GetInstance().FetchStorages(onSuccess, onError);
+}
+void FilesystemInstance::StartListening(
+    const picojson::value& args,
+    picojson::object& out) {
+  FilesystemManager::GetInstance().StartListening();
+  ReportSuccess(out);
+}
+
+void FilesystemInstance::StopListening(
+    const picojson::value& args,
+    picojson::object& out) {
+  FilesystemManager::GetInstance().StopListening();
+  ReportSuccess(out);
+}
+
+void FilesystemInstance::onFilesystemStateChangeSuccessCallback(const std::string& label, const std::string& state, const std::string& type) {
+  LoggerD("entered");
+
+  picojson::value event = picojson::value(picojson::object());
+  picojson::object& obj = event.get<picojson::object>();
+  obj["label"] = picojson::value(label);
+  obj["type"] = picojson::value(type);
+  obj["state"] = picojson::value(state);
+  obj["listenerId"] = picojson::value("StorageStateChangeListener");
+  PostMessage(event.serialize().c_str());
+}
+
+void FilesystemInstance::onFilesystemStateChangeErrorCallback() {
+  picojson::value event = picojson::value(picojson::object());
+  picojson::object& obj = event.get<picojson::object>();
+  ReportError(UnknownException(std::string("Failed to registerd listener")), obj);
+  obj["listenerId"] = picojson::value("StorageStateChangeListener");
+  LoggerD("Posting: %s", event.serialize().c_str());
+  PostMessage(event.serialize().c_str());
 }
 
 void FilesystemInstance::FileSystemManagerMakeDirectory(

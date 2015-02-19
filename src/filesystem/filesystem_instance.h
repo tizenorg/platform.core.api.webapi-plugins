@@ -7,11 +7,13 @@
 
 #include "common/extension.h"
 #include "filesystem_utils.h"
+#include "filesystem_manager.h"
 
 namespace extension {
 namespace filesystem {
 
-class FilesystemInstance : public common::ParsedInstance {
+class FilesystemInstance : public common::ParsedInstance,
+                           FilesystemStateChangeListener {
  public:
   FilesystemInstance();
   virtual ~FilesystemInstance();
@@ -32,6 +34,12 @@ class FilesystemInstance : public common::ParsedInstance {
   void ReadDir(const picojson::value& args, picojson::object& out);
   void UnlinkFile(const picojson::value& args, picojson::object& out);
   void RemoveDirectory(const picojson::value& args, picojson::object& out);
+  void StartListening(const picojson::value& args, picojson::object& out);
+  void StopListening(const picojson::value& args, picojson::object& out);
+  void onFilesystemStateChangeErrorCallback();
+  void onFilesystemStateChangeSuccessCallback(const std::string& label,
+                                              const std::string& state,
+                                              const std::string& type);
   void PrepareError(const FilesystemError& error, picojson::object& out);
 };
 

@@ -8,6 +8,7 @@
 #include <functional>
 #include <string>
 #include <vector>
+#include <set>
 
 #include "filesystem_stat.h"
 #include "filesystem_storage.h"
@@ -16,9 +17,19 @@
 namespace extension {
 namespace filesystem {
 
+class FilesystemStateChangeListener {
+ public:
+  virtual void onFilesystemStateChangeSuccessCallback(
+      const std::string& label, const std::string& state,
+      const std::string& type) = 0;
+  virtual void onFilesystemStateChangeErrorCallback() = 0;
+};
+
 class FilesystemManager {
  private:
   FilesystemManager();
+  ~FilesystemManager();
+  FilesystemStateChangeListener* listener_;
 
  public:
   static FilesystemManager& GetInstance();
@@ -62,6 +73,13 @@ class FilesystemManager {
           const std::string& path,
           const std::function<void()>& success_cb,
           const std::function<void(FilesystemError)>& error_cb);
+  void StartListening();
+  void StopListening();
+  void AddListener(FilesystemStateChangeListener* listener);
+
+  bool is_listener_registered_;
+  static std::vector<FilesystemStorage> storages;
+  std::set<int> ids_;
 };
 }  // namespace filesystem
 }  // namespace extension
