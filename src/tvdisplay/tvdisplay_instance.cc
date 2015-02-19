@@ -43,19 +43,23 @@ namespace {
         {SYSTEM_INFO_3D_MODE_2D_3D_CONVERSION, "FROM_2D_TO_3D"}
     };
 
-    bool is_3D_enabled() {
+    common::PlatformResult is_3D_enabled(bool &is_3D_supported) {
         LOGD("Enter");
         int is_supported = -1;
         int ret = system_info_get_value_int(
                 SYSTEM_INFO_KEY_3D_SUPPORT,
                 &is_supported);
+
         if (SYSTEM_INFO_ERROR_NONE != ret) {
             std::string message = "'system_info' error while "
                     "getting 3d mode details: " + std::to_string(ret);
             LOGE("%s", message.c_str());
-            throw common::UnknownException(message);
+            return common::PlatformResult(common::ErrorCode::UNKNOWN_ERR,
+            "Unknown error. " + message);
         }
-        return is_supported == 1;
+
+        is_3D_supported = (is_supported == 1);
+        return common::PlatformResult(common::ErrorCode::NO_ERROR);
     }
 }  // namespace
 
@@ -88,16 +92,19 @@ void TVDisplayInstance::Is3DModeEnabled(
     LOGD("Enter");
     picojson::value::object o;
     std::string mode = "NOT_SUPPORTED";
-    try {
-        if (is_3D_enabled()) {
+    bool is_3D_supported = false;
+    common::PlatformResult result = is_3D_enabled(is_3D_supported);
+    if (result.IsError()) {
+        LOGD("Error occured");
+        ReportError(result, &out);
+    } else {
+        if (is_3D_supported) {
             mode = "READY";
         }
-    } catch (const common::PlatformException & error) {
-        ReportError(error, out);
-        return;
+        LOGD("3D Mode is: %s", mode.c_str());
+        picojson::value result(mode);
+        ReportSuccess(result, out);
     }
-    LOGD("3D Mode is: %s", mode.c_str());
-    ReportSuccess(picojson::value(mode), out);
 }
 
 void TVDisplayInstance::Get3DEffectMode(
@@ -152,47 +159,51 @@ void TVDisplayInstance::GetSupported3DEffectModeListTask(
     LOGD("Enter");
 
     picojson::object & reply = (*data);
-    try {
-        std::vector <picojson::value> modes;
-        if (!is_3D_enabled()) {
-            LOGD("3D is disabled");
-            reply[kResult] = picojson::value(modes);
-            reply[kSuccess] = picojson::value(true);
-            return;
-        }
-        int flags = -1;
-        int result =  system_info_get_value_int(
-                SYSTEM_INFO_KEY_3D_EFFECT_MODE,
-                &flags);
-        if (SYSTEM_INFO_ERROR_NONE != result) {
-            const char * kMessage =
-                    "Fetching SYSTEM_INFO_KEY_3D_EFFECT_MODE failed";
-            LOGE("%s: %d", kMessage, result);
-            throw common::UnknownException(kMessage);
-        }
-
-        auto it = supported_3D_modes.begin();
-        for (it; it != supported_3D_modes.end(); ++it) {
-            if (it->first & flags) {
-                modes.push_back(picojson::value(it->second));
-            }
-        }
-
-        if (flags & SYSTEM_INFO_3D_MODE_FRAME_PACKING) {
-            LOGD("There is no FRAME_PACKING mode in TIZEN");
-        }
-        if (flags & SYSTEM_INFO_3D_MODE_FRAME_DUAL) {
-            LOGD("There is no FRAME_DUAL mode in TIZEN");
-        }
-
+    std::vector <picojson::value> modes;
+    bool is_3D_supported = false;
+    common::PlatformResult res = is_3D_enabled(is_3D_supported);
+    if (res.IsError()) {
+        LOGD("Error occured");
+        reply[kError] = res.ToJSON();
+        return;
+    }
+    if (!is_3D_supported) {
+        LOGD("3D is disabled");
         reply[kResult] = picojson::value(modes);
         reply[kSuccess] = picojson::value(true);
-    } catch (common::PlatformException const& error) {
-        reply[kError] = error.ToJSON();
-        reply[kSuccess] = picojson::value(false);
-    } catch (...) {
-        LOGE("Unknown exception caught");
+        return;
     }
+    int flags = -1;
+    int result =  system_info_get_value_int(
+            SYSTEM_INFO_KEY_3D_EFFECT_MODE,
+            &flags);
+    if (SYSTEM_INFO_ERROR_NONE != result) {
+        const char * kMessage =
+                "Fetching SYSTEM_INFO_KEY_3D_EFFECT_MODE failed";
+        LOGE("%s: %d", kMessage, result);
+        LOGD("Error occured");
+        res = common::PlatformResult(common::ErrorCode::UNKNOWN_ERR,
+                "Unknown error. " + std::string(kMessage));
+        reply[kError] = res.ToJSON();
+        return;
+    }
+
+    auto it = supported_3D_modes.begin();
+    for (it; it != supported_3D_modes.end(); ++it) {
+        if (it->first & flags) {
+            modes.push_back(picojson::value(it->second));
+        }
+    }
+
+    if (flags & SYSTEM_INFO_3D_MODE_FRAME_PACKING) {
+        LOGD("There is no FRAME_PACKING mode in TIZEN");
+    }
+    if (flags & SYSTEM_INFO_3D_MODE_FRAME_DUAL) {
+        LOGD("There is no FRAME_DUAL mode in TIZEN");
+    }
+
+    reply[kResult] = picojson::value(modes);
+    reply[kSuccess] = picojson::value(true);
 }
 
 void TVDisplayInstance::GetSupported3DEffectModeListTaskAfter(

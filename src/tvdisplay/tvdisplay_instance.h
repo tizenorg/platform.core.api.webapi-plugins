@@ -11,6 +11,7 @@
 
 #include "common/extension.h"
 #include "common/picojson.h"
+#include "common/platform_result.h"
 
 namespace extension {
 namespace tvdisplay {
