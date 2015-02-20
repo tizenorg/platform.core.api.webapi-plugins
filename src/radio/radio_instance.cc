@@ -9,7 +9,6 @@
 #include <radio.h>
 
 #include "common/logger.h"
-#include "common/platform_exception.h"
 
 #include "radio/radio_manager.h"
 
@@ -111,21 +110,25 @@ void RadioInstance::SeekDown(const picojson::value& args,
 
 void RadioInstance::Start(const picojson::value& args, picojson::object& out) {
   LoggerD("Enter");
-  try {
-    FMRadioManager::GetInstance()->Start(args.get("frequency").get<double>());
+
+  PlatformResult result = FMRadioManager::GetInstance()->Start(args.get("frequency").get<double>());
+
+  if (result) {
     ReportSuccess(out);
-  } catch (const PlatformException& e) {
-    ReportError(e, out);
+  } else {
+    ReportError(result, &out);
   }
 }
 
 void RadioInstance::Stop(const picojson::value& args, picojson::object& out) {
   LoggerD("Enter");
-  try {
-    FMRadioManager::GetInstance()->Stop();
+
+  PlatformResult result = FMRadioManager::GetInstance()->Stop();
+
+  if (result) {
     ReportSuccess(out);
-  } catch (const PlatformException& e) {
-    ReportError(e, out);
+  } else {
+    ReportError(result, &out);
   }
 }
 
@@ -146,29 +149,53 @@ void RadioInstance::ScanStop(const picojson::value& args,
 void RadioInstance::SetFMRadioInterruptedListener(const picojson::value& args,
                                                   picojson::object& out) {
   LoggerD("Enter");
-  FMRadioManager::GetInstance()->SetFMRadioInterruptedListener();
-  ReportSuccess(out);
+
+  PlatformResult result = FMRadioManager::GetInstance()->SetFMRadioInterruptedListener();
+
+  if (result) {
+    ReportSuccess(out);
+  } else {
+    ReportError(result, &out);
+  }
 }
 
 void RadioInstance::UnsetFMRadioInterruptedListener(const picojson::value& args,
                                                     picojson::object& out) {
   LoggerD("Enter");
-  FMRadioManager::GetInstance()->UnsetFMRadioInterruptedListener();
-  ReportSuccess(out);
+
+  PlatformResult result = FMRadioManager::GetInstance()->UnsetFMRadioInterruptedListener();
+
+  if (result) {
+    ReportSuccess(out);
+  } else {
+    ReportError(result, &out);
+  }
 }
 
 void RadioInstance::SetAntennaChangeListener(const picojson::value& args,
                                              picojson::object& out) {
   LoggerD("Enter");
-  FMRadioManager::GetInstance()->SetAntennaChangeListener();
-  ReportSuccess(out);
+
+  PlatformResult result = FMRadioManager::GetInstance()->SetAntennaChangeListener();
+
+  if (result) {
+    ReportSuccess(out);
+  } else {
+    ReportError(result, &out);
+  }
 }
 
 void RadioInstance::UnsetAntennaChangeListener(const picojson::value& args,
                                                picojson::object& out) {
   LoggerD("Enter");
-  FMRadioManager::GetInstance()->UnsetAntennaChangeListener();
-  ReportSuccess(out);
+
+  PlatformResult result = FMRadioManager::GetInstance()->UnsetAntennaChangeListener();
+
+  if (result) {
+    ReportSuccess(out);
+  } else {
+    ReportError(result, &out);
+  }
 }
 
 } // namespace radio

@@ -13,7 +13,7 @@
 #include <runtime_info.h>
 
 #include "common/picojson.h"
-#include "common/platform_exception.h"
+#include "common/platform_result.h"
 
 #include "radio_instance.h"
 
@@ -24,20 +24,20 @@ class FMRadioManager {
  public:
   static FMRadioManager* GetInstance();
 
-  void Start(double freq);
-  void Stop();
+  common::PlatformResult Start(double freq);
+  common::PlatformResult Stop();
   void SeekUp(double callback_id);
   void SeekDown(double callback_id);
   void ScanStart(double callback_id);
   void ScanStop(double callback_id);
-  void SetFMRadioInterruptedListener();
-  void UnsetFMRadioInterruptedListener();
-  void SetAntennaChangeListener();
-  void UnsetAntennaChangeListener();
+  common::PlatformResult SetFMRadioInterruptedListener();
+  common::PlatformResult UnsetFMRadioInterruptedListener();
+  common::PlatformResult SetAntennaChangeListener();
+  common::PlatformResult UnsetAntennaChangeListener();
 
   bool IsMuted();
   void SetMute(bool mute);
-  void SetFrequency(double frequency);
+  common::PlatformResult SetFrequency(double frequency);
   double GetFrequency();
   double GetSignalStrength();
   bool HasAntenna();

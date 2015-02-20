@@ -13,7 +13,6 @@
 
 #include "common/logger.h"
 #include "common/extension.h"
-#include "common/platform_exception.h"
 
 using namespace common;
 using namespace std;
@@ -50,46 +49,45 @@ static void PostResultSuccess(double callbackId) {
   PostResultSuccess(callbackId, &event);
 }
 
-static void PostResultFailure(double callbackId, const PlatformException& ex) {
+static void PostResultFailure(double callbackId, const PlatformResult& result) {
   picojson::value event{picojson::object()};
   auto& obj = event.get<picojson::object>();
 
-  tools::ReportError(ex, obj);
+  tools::ReportError(result, &obj);
   AddCallbackID(callbackId, &obj);
 
   RadioInstance::getInstance().PostMessage(event.serialize().c_str());
 }
 
-PlatformException GetException(const std::string& str, int err) {
+PlatformResult GetPlatformResult(const std::string& str, int err) {
   LoggerD("Enter");
 
   string message = str + " : " + to_string(err);
 
   switch (err) {
     case RADIO_ERROR_INVALID_PARAMETER:
-      return InvalidValuesException(message);
+      return PlatformResult(ErrorCode::INVALID_VALUES_ERR, message);
 
     case RADIO_ERROR_INVALID_STATE:
-      return InvalidStateException(message);
+      return PlatformResult(ErrorCode::INVALID_STATE_ERR, message);
 
     case RADIO_ERROR_NOT_SUPPORTED:
-      return ServiceNotAvailableException(message);
+      return PlatformResult(ErrorCode::SERVICE_NOT_AVAILABLE_ERR, message);
 
     default:
-      return UnknownException(message);
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, message);
   }
 }
 
-void CheckError(const std::string& str, int err) {
+PlatformResult CheckError(const std::string& str, int err) {
   LoggerE("%s() error %d", str.c_str(), err);
 
   switch (err) {
     case RADIO_ERROR_NONE:
-      break;
+      return PlatformResult(ErrorCode::NO_ERROR);
 
     default:
-      throw GetException(str, err);
-      break;
+      return GetPlatformResult(str, err);
   }
 }
 
@@ -123,11 +121,11 @@ void RadioSeekCallback(int frequency, void* user_data) {
 
   double* id = static_cast<double*>(user_data);
 
-  try {
-    FMRadioManager::GetInstance()->SetFrequency(ToMHz(frequency));
+  PlatformResult result = FMRadioManager::GetInstance()->SetFrequency(ToMHz(frequency));
+  if (result) {
     PostResultSuccess(*id);
-  } catch (const PlatformException& ex) {
-    PostResultFailure(*id, ex);
+  } else {
+    PostResultFailure(*id, result);
   }
 
   delete id;
@@ -278,11 +276,9 @@ const char* FMRadioManager::GetState() {
   }
 }
 
-void FMRadioManager::SetFrequency(double frequency) {
+PlatformResult FMRadioManager::SetFrequency(double frequency) {
   LoggerD("Enter");
-
-  auto err = radio_set_frequency(radio_instance_, TokHz(frequency));
-  CheckError("radio_set_frequency", err);
+  return CheckError("radio_set_frequency", radio_set_frequency(radio_instance_, TokHz(frequency)));
 }
 
 double FMRadioManager::GetFrequency() {
@@ -346,20 +342,22 @@ FMRadioManager* FMRadioManager::GetInstance() {
   return &instance;
 }
 
-void FMRadioManager::Start(double frequency) {
+PlatformResult FMRadioManager::Start(double frequency) {
   LoggerD("Enter, frequency: %f", frequency);
 
-  SetFrequency(frequency);
+  PlatformResult result = SetFrequency(frequency);
 
-  auto err = radio_start(radio_instance_);
-  CheckError("radio_start", err);
+  if (!result) {
+    return result;
+  }
+
+  return CheckError("radio_start", radio_start(radio_instance_));
 }
 
-void FMRadioManager::Stop() {
+PlatformResult FMRadioManager::Stop() {
   LoggerD("Enter");
 
-  const auto err = radio_stop(radio_instance_);
-  CheckError("radio_stop", err);
+  return CheckError("radio_stop", radio_stop(radio_instance_));
 }
 
 void FMRadioManager::SeekUp(double callback_id) {
@@ -370,8 +368,8 @@ void FMRadioManager::SeekUp(double callback_id) {
   const auto err = radio_seek_up(radio_instance_, RadioSeekCallback, user_data);
 
   if (RADIO_ERROR_NONE != err) {
+    PostResultFailure(callback_id, GetPlatformResult("radio_seek_up", err));
     delete user_data;
-    PostResultFailure(*user_data, GetException("radio_seek_up", err));
   }
 }
 
@@ -383,8 +381,8 @@ void FMRadioManager::SeekDown(double callback_id) {
   const auto err = radio_seek_down(radio_instance_, RadioSeekCallback, user_data);
 
   if (RADIO_ERROR_NONE != err) {
+    PostResultFailure(callback_id, GetPlatformResult("radio_seek_down", err));
     delete user_data;
-    PostResultFailure(*user_data, GetException("radio_seek_down", err));
   }
 }
 
@@ -398,7 +396,7 @@ void FMRadioManager::ScanStart(double callback_id) {
                                          user_data);
   if (RADIO_ERROR_NONE != err) {
     PostResultFailure(callback_id,
-                      GetException("radio_set_scan_completed_cb", err));
+                      GetPlatformResult("radio_set_scan_completed_cb", err));
     delete user_data;
     return;
   }
@@ -406,7 +404,7 @@ void FMRadioManager::ScanStart(double callback_id) {
   err = radio_scan_start(radio_instance_, ScanStartCallback, user_data);
   if (RADIO_ERROR_NONE != err) {
     radio_unset_scan_completed_cb(radio_instance_);
-    PostResultFailure(callback_id, GetException("radio_scan_start", err));
+    PostResultFailure(callback_id, GetPlatformResult("radio_scan_start", err));
     delete user_data;
   }
 }
@@ -418,59 +416,50 @@ void FMRadioManager::ScanStop(double callback_id) {
 
   auto err = radio_unset_scan_completed_cb(radio_instance_);
   if (RADIO_ERROR_NONE != err) {
-    PostResultFailure(*user_data,
-                      GetException("radio_unset_scan_completed_cb", err));
+    PostResultFailure(callback_id,
+                      GetPlatformResult("radio_unset_scan_completed_cb", err));
     delete user_data;
     return;
   }
 
   err = radio_scan_stop(radio_instance_, ScanStopCallback, user_data);
   if (RADIO_ERROR_NONE != err) {
-    PostResultFailure(*user_data, GetException("radio_scan_stop", err));
+    PostResultFailure(callback_id, GetPlatformResult("radio_scan_stop", err));
     delete user_data;
   }
 }
 
-void FMRadioManager::SetFMRadioInterruptedListener() {
+common::PlatformResult FMRadioManager::SetFMRadioInterruptedListener() {
   LoggerD("Enter");
 
   const auto err = radio_set_interrupted_cb(radio_instance_,
                                             RadioInterruptedCallback,
                                             nullptr);
-  if (RADIO_ERROR_NONE != err) {
-    CheckError("radio_set_interrupted_cb", err);
-  }
+  return CheckError("radio_set_interrupted_cb", err);
 }
 
-void FMRadioManager::UnsetFMRadioInterruptedListener() {
+common::PlatformResult FMRadioManager::UnsetFMRadioInterruptedListener() {
   LoggerD("Enter");
 
   const auto err = radio_unset_interrupted_cb(radio_instance_);
-  if (RADIO_ERROR_NONE != err) {
-    CheckError("radio_unset_interrupted_cb", err);
-  }
+  return CheckError("radio_unset_interrupted_cb", err);
 }
 
-void FMRadioManager::SetAntennaChangeListener() {
+common::PlatformResult FMRadioManager::SetAntennaChangeListener() {
   LoggerD("Enter");
 
   const auto err = runtime_info_set_changed_cb(
                             RUNTIME_INFO_KEY_AUDIO_JACK_CONNECTED,
                             RadioAntennaCallback,
                             nullptr);
-  if (RADIO_ERROR_NONE != err) {
-    CheckError("runtime_info_set_changed_cb", err);
-  }
+  return CheckError("runtime_info_set_changed_cb", err);
 }
 
-void FMRadioManager::UnsetAntennaChangeListener() {
+common::PlatformResult FMRadioManager::UnsetAntennaChangeListener() {
   LoggerD("Enter");
 
-  const auto err = runtime_info_unset_changed_cb(
-      RUNTIME_INFO_KEY_AUDIO_JACK_CONNECTED);
-  if (RADIO_ERROR_NONE != err) {
-    CheckError("runtime_info_unset_changed_cb", err);
-  }
+  const auto err = runtime_info_unset_changed_cb(RUNTIME_INFO_KEY_AUDIO_JACK_CONNECTED);
+  return CheckError("runtime_info_unset_changed_cb", err);
 }
 
 } // namespace radio
