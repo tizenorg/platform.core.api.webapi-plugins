@@ -103,7 +103,7 @@ void DBusOperationArguments::AddArgumentString(const std::string& val) {
     arguments_.push_back(ArgumentElement(ArgType::kTypeString, p_val));
 }
 
-void DBusOperationArguments::AppendVariant(DBusMessageIter* bus_msg_iter) {
+PlatformResult DBusOperationArguments::AppendVariant(DBusMessageIter* bus_msg_iter) {
     for (auto iter = arguments_.begin(); iter != arguments_.end(); ++iter) {
         ArgType type = iter->first;
         void *p_val = iter->second;
@@ -130,9 +130,10 @@ void DBusOperationArguments::AppendVariant(DBusMessageIter* bus_msg_iter) {
             break;
 
         default:
-            throw UnknownException("Wrong debug parameter type");
+            return PlatformResult(ErrorCode::UNKNOWN_ERR, "Wrong debug parameter type");
         }
     }
+    return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 DBusOperationListener::DBusOperationListener() {
@@ -234,14 +235,81 @@ int DBusOperation::InvokeSyncGetInt(const std::string& method,
     return result;
 }
 
-void DBusOperation::RegisterSignalListener(const std::string& signal_name,
-                                           DBusOperationListener* listener) {
-    AddDBusSignalFilter();
+PlatformResult DBusOperation::InvokeSyncGetInt(const std::string& method,
+                                    DBusOperationArguments* args, int* result) {
 
-    listeners_.insert(std::make_pair(signal_name, listener));
+    if (!connection_) {
+        connection_ = dbus_bus_get_private(DBUS_BUS_SYSTEM, nullptr);
+    }
+
+    if (!connection_) {
+        LoggerE("dbus_bus_get_private error");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to get dbus connection");
+    }
+
+    DBusMessage* msg = dbus_message_new_method_call(destination_.c_str(),
+                                                    path_.c_str(),
+                                                    interface_.c_str(),
+                                                    method.c_str());
+
+    if (!msg) {
+        LoggerE("dbus_message_new_method_call error");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to create dbus message");
+    }
+
+    DBusMessageIter iter;
+    dbus_message_iter_init_append(msg, &iter);
+
+    if (nullptr != args) {
+        PlatformResult ret = args->AppendVariant(&iter);
+        if (ret.IsError()) {
+            LoggerE("append_variant error");
+            dbus_message_unref(msg);
+            return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to append dbus variable");
+        }
+    }
+
+    DBusError err;
+    dbus_error_init(&err);
+    DBusMessage* reply = dbus_connection_send_with_reply_and_block(connection_,
+                                                                   msg,
+                                                                   DBUS_REPLY_TIMEOUT,
+                                                                   &err);
+    dbus_message_unref(msg);
+
+    if (!reply) {
+        LoggerE("dbus_connection_send_with_reply_and_block error %s: %s", err.name, err.message);
+        dbus_error_free(&err);
+        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to send request via dbus");
+    }
+
+    *result = 0;
+    dbus_bool_t ret = dbus_message_get_args(reply,
+                                            &err,
+                                            DBUS_TYPE_INT32,
+                                            result,
+                                            DBUS_TYPE_INVALID);
+    dbus_message_unref(reply);
+
+    if (!ret) {
+        LoggerE("dbus_message_get_args error %s: %s", err.name, err.message);
+        dbus_error_free(&err);
+        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to get reply from dbus");
+    }
+
+    return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void DBusOperation::UnregisterSignalListener(const std::string& signal_name,
+PlatformResult DBusOperation::RegisterSignalListener(const std::string& signal_name,
+                                           DBusOperationListener* listener) {
+    PlatformResult ret = AddDBusSignalFilter();
+    if (ret.IsError()) return ret;
+
+    listeners_.insert(std::make_pair(signal_name, listener));
+    return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult DBusOperation::UnregisterSignalListener(const std::string& signal_name,
                                              DBusOperationListener* listener) {
     bool signal_found = false;
 
@@ -257,22 +325,23 @@ void DBusOperation::UnregisterSignalListener(const std::string& signal_name,
 
     if (false == signal_found) {
         LoggerE("Failed to find signal handler");
-        throw UnknownException("Failed to find signal handler");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to find signal handler");
     }
 
     if (listeners_.size() == 0) {
-        RemoveDBusSignalFilter();
+        return RemoveDBusSignalFilter();
     }
+    return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void DBusOperation::AddDBusSignalFilter() {
+PlatformResult DBusOperation::AddDBusSignalFilter() {
     if (!connection_) {
         connection_ = dbus_bus_get_private(DBUS_BUS_SYSTEM, nullptr);
     }
 
     if (!connection_) {
         LoggerE("dbus_bus_get_private error");
-        throw UnknownException("Failed to get dbus connection");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to get dbus connection");
     }
 
     dbus_connection_setup_with_g_main(connection_, nullptr);
@@ -292,16 +361,17 @@ void DBusOperation::AddDBusSignalFilter() {
     if (dbus_error_is_set(&err)) {
         LoggerE("dbus_bus_add_match error %s: %s", err.name, err.message);
         dbus_error_free(&err);
-        throw UnknownException("Failed to set rule for dbus signal");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to set rule for dbus signal");
     }
 
     if (dbus_connection_add_filter(connection_, DBusSignalFilterHandler, this, nullptr) == FALSE) {
         LoggerE("dbus_connection_add_filter error %s: %s", err.name, err.message);
-        throw UnknownException("Failed to set handler for dbus signal");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to set handler for dbus signal");
     }
+    return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void DBusOperation::RemoveDBusSignalFilter() {
+PlatformResult DBusOperation::RemoveDBusSignalFilter() {
     DBusError err;
     dbus_error_init(&err);
     dbus_bus_remove_match(connection_, rule_.c_str(), &err);
@@ -309,10 +379,11 @@ void DBusOperation::RemoveDBusSignalFilter() {
     if (dbus_error_is_set(&err)) {
         LoggerE("dbus_bus_remove_match error %s: %s", err.name, err.message);
         dbus_error_free(&err);
-        throw UnknownException("Failed to remove rule for dbus signal");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to remove rule for dbus signal");
     }
 
     dbus_connection_remove_filter(connection_, DBusSignalFilterHandler, this);
+    return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 DBusHandlerResult DBusOperation::DBusSignalFilter(DBusConnection* /* conn */,

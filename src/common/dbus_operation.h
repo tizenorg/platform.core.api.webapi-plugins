@@ -10,6 +10,7 @@
 #include <set>
 
 #include <dbus/dbus.h>
+#include "platform_result.h"
 
 namespace common {
 
@@ -42,7 +43,7 @@ class DBusOperationArguments {
 
   friend class DBusOperation;
 
-  void AppendVariant(DBusMessageIter* bus_msg_iter);
+  common::PlatformResult AppendVariant(DBusMessageIter* bus_msg_iter);
 };
 
 class DBusOperationListener {
@@ -62,10 +63,13 @@ class DBusOperation {
 
   int InvokeSyncGetInt(const std::string& method,
              DBusOperationArguments* args);
+  //TODO remove throwing methods when they would be not needed any more.
+  common::PlatformResult InvokeSyncGetInt(const std::string& method,
+             DBusOperationArguments* args, int* result);
 
-  void RegisterSignalListener(const std::string& signal_name,
+  common::PlatformResult RegisterSignalListener(const std::string& signal_name,
                 DBusOperationListener* listener);
-  void UnregisterSignalListener(const std::string& signal_name,
+  common::PlatformResult UnregisterSignalListener(const std::string& signal_name,
                   DBusOperationListener* listener);
 
  private:
@@ -80,8 +84,8 @@ class DBusOperation {
   DBusConnection* connection_;
   std::string rule_;
 
-  void AddDBusSignalFilter();
-  void RemoveDBusSignalFilter();
+  common::PlatformResult AddDBusSignalFilter();
+  common::PlatformResult RemoveDBusSignalFilter();
 
   DBusHandlerResult DBusSignalFilter(DBusConnection* conn,
                      DBusMessage* message);
