@@ -540,7 +540,6 @@ SystemInfoDeviceOrientation::SystemInfoDeviceOrientation() :
 }
 
 SystemInfoDeviceOrientation* SystemInfoDeviceOrientation::Create() {
-  //TODO DBUS based constructor can throw exception
   SystemInfoDeviceOrientation* deviceOrientation =
       new (std::nothrow) SystemInfoDeviceOrientation();
   if(!deviceOrientation) return nullptr;
@@ -604,8 +603,9 @@ PlatformResult SystemInfoDeviceOrientation::FetchStatus()
   args.AddArgumentInt32(0);
 
   std::string status = kOrientationPortraitPrimary;
-  //TODO DBUS still can throw exception
-  int ret = dbus_op_.InvokeSyncGetInt("DegreePhysicalRotation", &args);
+  int ret = 0;
+  PlatformResult platform_ret = dbus_op_.InvokeSyncGetInt("DegreePhysicalRotation", &args, &ret);
+  if (platform_ret.IsError()) return platform_ret;
 
   switch (ret) {
     case 0:
@@ -669,17 +669,17 @@ PlatformResult SystemInfoDeviceOrientation::RegisterDBus()
   DBusOperationArguments args;
   args.AddArgumentInt32(1);
 
-  ret = dbus_op_.InvokeSyncGetInt("StartRotation", &args);
+  PlatformResult platform_ret= dbus_op_.InvokeSyncGetInt("StartRotation", &args, &ret);
+  if (platform_ret.IsError()) return platform_ret;
 
   if (ret != 0) {
     LoggerE("Failed to start rotation broadcast");
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to start rotation broadcast");
   }
 
-  //TODO DBUS still throws
-  dbus_op_.RegisterSignalListener("ChangedPhysicalRotation", this);
+  platform_ret = dbus_op_.RegisterSignalListener("ChangedPhysicalRotation", this);
   LoggerD("registerSignalListener: ChangedPhysicalRotation");
-  return PlatformResult(ErrorCode::NO_ERROR);
+  return platform_ret;
 }
 
 PlatformResult SystemInfoDeviceOrientation::UnregisterDBus()
@@ -687,15 +687,16 @@ PlatformResult SystemInfoDeviceOrientation::UnregisterDBus()
   LoggerD("Enter");
 
   int ret = 0;
-  //TODO DBUS still throws
-  dbus_op_.UnregisterSignalListener("ChangedPhysicalRotation", this);
+  PlatformResult platform_ret = dbus_op_.UnregisterSignalListener(
+      "ChangedPhysicalRotation", this);
+  if (platform_ret.IsError()) return platform_ret;
   LoggerD("unregisterSignalListener: ChangedPhysicalRotation");
 
   DBusOperationArguments args;
   args.AddArgumentInt32(0);
 
-  //TODO DBUS still throws
-  ret = dbus_op_.InvokeSyncGetInt("StartRotation", &args);
+  platform_ret = dbus_op_.InvokeSyncGetInt("StartRotation", &args, &ret);
+  if (platform_ret.IsError()) return platform_ret;
 
   if (ret != 0) {
     LoggerE("Failed to stop rotation broadcast");

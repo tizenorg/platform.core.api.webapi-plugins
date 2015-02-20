@@ -218,10 +218,10 @@ void SysteminfoInstance::GetCapability(const picojson::value& args, picojson::ob
   PlatformResult ret = SystemInfoDeviceCapability::GetCapability(key, result);
   if (ret.IsSuccess()) {
     ReportSuccess(result, out);
+    LoggerD("Success");
   } else {
     ReportError(ret, &out);
   }
-  LoggerD("Success");
 }
 
 void SysteminfoInstance::GetPropertyValue(const picojson::value& args, picojson::object& out) {
