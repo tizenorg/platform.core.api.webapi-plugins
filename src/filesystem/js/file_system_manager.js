@@ -14,8 +14,7 @@ var PATH_MAX = 4096;
 
 function FileSystemManager() {
   Object.defineProperties(this, {
-    maxPathLength: {value: PATH_MAX, writable: false, enumerable: true},
-    _isWidgetPathFound: {value: false, writable: true}
+    maxPathLength: {value: PATH_MAX, writable: false, enumerable: true}
   });
 }
 
@@ -30,7 +29,7 @@ FileSystemManager.prototype.resolve = function(location, onsuccess, onerror, mod
   if (!args.has.mode) {
     args.mode = 'rw';
   }
-  commonFS_.initCache(this);
+  commonFS_.initCache();
 
   if (args.location[0] === '/') {
     setTimeout(function() {
@@ -88,25 +87,23 @@ FileSystemManager.prototype.getStorage = function(label, onsuccess, onerror) {
     {name: 'onerror', type: types_.FUNCTION, optional: true, nullable: true}
   ]);
 
-  commonFS_.initCache(this);
+  commonFS_.initCache();
 
-  var cachedObj = commonFS_.cacheVirtualToReal[args.label];
-  if (undefined === cachedObj) {
-    setTimeout(function() {
+  var storage, i;
+  setTimeout(function() {
+    for (i = 0; i < commonFS_.cacheStorages.length; i++) {
+      if (commonFS_.cacheStorages[i].label === args.label) {
+        storage = new FileSystemStorage(commonFS_.cacheStorages[i]);
+      }
+    }
+
+    if (storage === undefined) {
       native_.callIfPossible(args.onerror,
-          new tizen.WebAPIException(tizen.WebAPIException.NOT_FOUND_ERR,
-          'Storage not found.'));
-    }, 0);
-  } else {
-    setTimeout(function() {
-      var storage = new FileSystemStorage({
-        label: args.label,
-        type: cachedObj.type,
-        state: cachedObj.state
-      });
+          new tizen.WebAPIException(tizen.WebAPIException.NOT_FOUND_ERR, 'Storage not found.'));
+    } else {
       native_.callIfPossible(args.onsuccess, storage);
-    }, 0);
-  }
+    }
+  }, 0);
 };
 
 FileSystemManager.prototype.listStorages = function(onsuccess, onerror) {
@@ -115,21 +112,16 @@ FileSystemManager.prototype.listStorages = function(onsuccess, onerror) {
     {name: 'onerror', type: types_.FUNCTION, optional: true, nullable: true}
   ]);
 
-  commonFS_.initCache(this);
+  commonFS_.initCache();
 
-  var _storages = [];
+  var storages = [], i;
+  setTimeout(function() {
+    for (i = 0; i < commonFS_.cacheStorages.length; i++) {
+      storages.push(new FileSystemStorage(commonFS_.cacheStorages[i]));
+    }
 
-  for (var _storage in commonFS_.cacheVirtualToReal) {
-    var storageObj = commonFS_.cacheVirtualToReal[_storage];
-    _storages.push(new FileSystemStorage({
-      label: _storage,
-      type: storageObj.type ? storageObj.type : FileSystemStorageType.INTERNAL,
-      state: storageObj.state ? storageObj.state : FileSystemStorageState.MOUNTED
-    }));
-  }
-
-  setTimeout(function() {args.onsuccess(_storages);}, 0);
-
+    native_.callIfPossible(args.onsuccess, storages);
+  }, 0);
 };
 
 var callbackId = 0;
@@ -140,11 +132,9 @@ function nextCallbackId() {
 }
 
 function _StorageStateChangeListener(result) {
-  var storage = new FileSystemStorage(native_.getResultObject(result));
+  var storage = new FileSystemStorage(result);
   for (var id in callbacks) {
-    if (callbacks.hasOwnProperty(id)) {
-      native_.callIfPossible(callbacks[id].onsuccess, storage);
-    }
+    native_.callIfPossible(callbacks[id], storage);
   }
 }
 
@@ -153,6 +143,8 @@ FileSystemManager.prototype.addStorageStateChangeListener = function(onsuccess, 
     {name: 'onsuccess', type: types_.FUNCTION},
     {name: 'onerror', type: types_.FUNCTION, optional: true, nullable: true}
   ]);
+
+  commonFS_.initCache();
 
   var register = false;
   if (type_.isEmptyObject(callbacks)) {
@@ -164,7 +156,6 @@ FileSystemManager.prototype.addStorageStateChangeListener = function(onsuccess, 
 
   if (register) {
     native_.addListener('StorageStateChangeListener', _StorageStateChangeListener);
-
     var result = native_.callSync('FileSystemManager_addStorageStateChangeListener', {});
 
     if (native_.isFailure(result)) {
@@ -190,8 +181,17 @@ FileSystemManager.prototype.removeStorageStateChangeListener = function(watchId)
   delete callbacks[id];
 
   if (type_.isEmptyObject(callbacks)) {
-    native_.callSync('FileSystemManager_removeStorageStateChangeListener', id);
+    native_.callSync('FileSystemManager_removeStorageStateChangeListener', {});
   }
 };
 
-exports = new FileSystemManager();
+var filesystem = new FileSystemManager();
+
+function onStorageStateChanged() {
+  commonFS_.clearCache();
+  commonFS_.initCache();
+}
+
+filesystem.addStorageStateChangeListener(onStorageStateChanged);
+
+exports = filesystem;

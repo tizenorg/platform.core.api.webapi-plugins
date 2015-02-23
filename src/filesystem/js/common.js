@@ -51,6 +51,8 @@ CommonFS.prototype.cacheVirtualToReal = {};
 
 CommonFS.prototype.cacheRealToVirtual = {};
 
+CommonFS.prototype.cacheStorages = [];
+
 CommonFS.prototype.getFileInfo = function(aPath, aStatObj, secondIter, aMode) {
   var _result = {},
       _pathTokens,
@@ -153,10 +155,11 @@ CommonFS.prototype.toVirtualPath = function(aPath) {
   return aPath;
 };
 
-CommonFS.prototype.initCache = function(manager) {
-  if (manager._isWidgetPathFound) {
+CommonFS.prototype.initCache = function() {
+  if (this.cacheStorages.length > 0) {
     return;
   }
+
   var result = native_.callSync('Filesystem_getWidgetPaths', {});
   if (native_.isFailure(result)) {
     throw native_.getErrorObject(result);
@@ -189,21 +192,30 @@ CommonFS.prototype.initCache = function(manager) {
   }
 
   var data = native_.getResultObject(result);
-
   for (var i in data) {
-    if (data[i].state === FileSystemStorageState.MOUNTED) {
-      for (var j in data[i].paths) {
+    for (var j in data[i].paths) {
+      if (data[i].type === FileSystemStorageType.INTERNAL) {
         this.cacheVirtualToReal[j] = {
           path: data[i].paths[j],
           type: data[i].type,
           state: data[i].state
         };
-        this.cacheRealToVirtual[data[i].paths[j]] = j;
       }
+      this.cacheRealToVirtual[data[i].paths[j]] = j;
     }
+    this.cacheStorages.push({
+      label: data[i].name,
+      type: data[i].type,
+      state: data[i].state,
+      storage_id: data[i].storage_id
+    });
   }
-  manager._isWidgetPathFound = true;
+};
 
+CommonFS.prototype.clearCache = function() {
+  this.cacheRealToVirtual = {};
+  this.cacheVirtualToReal = {};
+  this.cacheStorages = [];
 };
 
 var commonFS_ = new CommonFS();
