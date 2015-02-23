@@ -230,18 +230,24 @@ File.prototype.resolve = function(filePath) {
     {name: 'filePath', type: types_.STRING}
   ]);
 
-  var data = {
-    filePath: args.filePath
-  };
-
-  var result = native_.callSync('File_resolve', data);
-
-  if (native_.isFailure(result)) {
-    throw native_.getErrorObject(result);
+  if (this.isFile) {
+    throw new tizen.WebAPIException(tizen.WebAPIException.IO_ERR,
+        'File object which call this method is not directory');
   }
 
-  var returnObject = new File(native_.getResultObject(result));
-  return returnObject;
+  if (!this.f_isCorrectRelativePath(args.filePath)) {
+    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR, 'Invalid path');
+  }
+
+  var _newPath = this.fullPath + '/' + args.filePath;
+  var _realPath = commonFS_.toRealPath(_newPath);
+  var _result = native_.callSync('File_statSync', {location: _realPath});
+  if (native_.isFailure(_result)) {
+    throw new tizen.WebAPIException(tizen.WebAPIException.IO_ERR, native_.getErrorObject(_result));
+  }
+  var _statObj = native_.getResultObject(_result);
+  var _fileInfo = commonFS_.getFileInfo(_newPath, _statObj, false, this.mode);
+  return new File(_fileInfo);
 
 };
 
