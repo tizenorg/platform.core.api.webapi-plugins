@@ -53,6 +53,9 @@ enum class ErrorCode : int {
   SERVICE_NOT_AVAILABLE_ERR = 103,
   DATABASE_ERR = 104,
 
+  // Error codes specific for plugins
+  OPERATION_CANCELED_ERR = 200,
+
   UNKNOWN_ERR = -1
 };
 

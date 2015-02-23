@@ -22,8 +22,8 @@ function __isNumber(object) {
 // located at tizen.h. Remember to update tizen.h if you change
 // something here.
 var errors = {
-  NO_ERROR: -1,
-  UNKNOWN_ERR: 0,
+  NO_ERROR: 0,
+  UNKNOWN_ERR: -1,
 
   INDEX_SIZE_ERR: 1,
   DOMSTRING_SIZE_ERR: 2,
