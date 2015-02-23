@@ -37,8 +37,8 @@ typedef std::shared_ptr<Zip> ZipPtr;
 class Zip
 {
 public:
-    static ZipPtr createNew(const std::string& filename);
-    static ZipPtr open(const std::string& filename);
+    static PlatformResult createNew(const std::string& filename, ZipPtr* out_zip);
+    static PlatformResult open(const std::string& filename, ZipPtr* out_zip);
     ~Zip();
 
     /**
@@ -46,9 +46,9 @@ public:
      * deleted on main thread after calling all progress callbacks.
      * If exception is thrown please delete callback.
      */
-    void addFile(AddProgressCallback*& callback);
+    PlatformResult addFile(AddProgressCallback*& callback);
 
-    void close();
+    PlatformResult close();
 
 private:
     enum ZipOpenMode {

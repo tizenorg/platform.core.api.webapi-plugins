@@ -61,7 +61,7 @@
 #define ARCHIVE_FILE_ENTRY_ATTR_COMPRESSED_SIZE                 "compressedSize"
 #define ARCHIVE_FILE_ENTRY_ATTR_MODIFIED                        "modified"
 
-#define ERROR_CALLBACK_NAME                                     "name"
+#define ERROR_CALLBACK_CODE                                     "code"
 #define ERROR_CALLBACK_MESSAGE                                  "message"
 
 #endif // _ARCHIVE_PLUGIN_DEFS_H_

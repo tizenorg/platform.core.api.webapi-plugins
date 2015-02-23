@@ -24,9 +24,8 @@
 #include <sys/stat.h>
 
 #include "common/logger.h"
-#include "common/platform_exception.h"
+#include "common/platform_result.h"
 #include "filesystem_file.h"
-
 #include "archive_file.h"
 #include "archive_utils.h"
 #include "crypt.h"
@@ -82,11 +81,6 @@ Zip::Zip(const std::string& filename, ZipOpenMode open_mode) :
     LoggerD("append_mode: %d", append_mode);
 
     m_zip = zipOpen(filename.c_str(), append_mode);
-    if(!m_zip) {
-        LoggerE("zipOpen returned NULL!");
-        throw UnknownException("Opening/creating zip file failed");
-    }
-    m_is_open = true;
 }
 
 Zip::~Zip()
@@ -94,12 +88,12 @@ Zip::~Zip()
     close();
 }
 
-void Zip::close()
+PlatformResult Zip::close()
 {
     LoggerD("Entered");
     if(!m_is_open) {
         LoggerD("Already closed - exiting.");
-        return;
+        return PlatformResult(ErrorCode::NO_ERROR);
     }
 
     int errclose = zipClose(m_zip, NULL);
@@ -107,36 +101,51 @@ void Zip::close()
 
     if (errclose != ZIP_OK) {
         LoggerE("ret: %d", errclose);
-        throwArchiveException(errclose, "zipClose()");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR, getArchiveLogMessage(errclose, "zipClose()"));
     }
     m_is_open = false;
+    return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-ZipPtr Zip::createNew(const std::string& filename)
+PlatformResult Zip::createNew(const std::string& filename, ZipPtr* out_zip)
 {
     LoggerD("Entered");
-    return ZipPtr(new Zip(filename, ZOM_CREATE));
+    ZipPtr zip = ZipPtr(new Zip(filename, ZOM_CREATE));
+    if(!zip->m_zip) {
+        LoggerE("zipOpen returned NULL!");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Opening/creating zip file failed");
+    }
+    zip->m_is_open = true;
+    *out_zip = zip;
+    return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-ZipPtr Zip::open(const std::string& filename)
+PlatformResult Zip::open(const std::string& filename, ZipPtr* out_zip)
 {
     LoggerD("Entered");
-    return ZipPtr(new Zip(filename, ZOM_ADDINZIP));
+    ZipPtr zip = ZipPtr(new Zip(filename, ZOM_ADDINZIP));
+    if(!zip->m_zip) {
+        LoggerE("zipOpen returned NULL!");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Opening/creating zip file failed");
+    }
+    zip->m_is_open = true;
+    *out_zip = zip;
+    return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void Zip::addFile(AddProgressCallback*& callback)
+PlatformResult Zip::addFile(AddProgressCallback*& callback)
 {
     LoggerD("Entered");
     if(!callback) {
         LoggerE("callback is NULL!");
-        throw UnknownException("Could not add file(-s) to archive");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not add file(-s) to archive");
     }
     if(!m_is_open) {
         LoggerE("Zip file not opened - exiting");
-        throw UnknownException("Could not add file(-s) to archive - zip file closed");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not add file(-s) to archive - zip file closed");
     }
 
-    ZipAddRequest::execute(*this, callback);
+    return ZipAddRequest::execute(*this, callback);
 }
 
 } //namespace archive

@@ -26,14 +26,10 @@
 #include <limits.h>
 
 #include "filesystem_path.h"
-
-#include "common/platform_exception.h"
 #include "common/logger.h"
 
 namespace extension {
 namespace filesystem {
-
-using namespace common;
 
 const Path::SeparatorType Path::m_pathSeparator = '/';
 
@@ -100,7 +96,10 @@ void Path::reset(const std::string& str)
     if (!isValid(str)) {
         LoggerD("Invalid string %s", str.c_str());
         LoggerW("throw NotFoundException");
-        throw NotFoundException("Invalid path");
+        // The only way to remove throw statement from here is to just return, because
+        // this function is used in the operator functions and they're not able 
+        // to handle a PlatformResult value;
+        return;
     }
 //    std::string tmp = Commons::String::unique(/*Commons::String::trim*/(
 //                                                  str), m_pathSeparator);

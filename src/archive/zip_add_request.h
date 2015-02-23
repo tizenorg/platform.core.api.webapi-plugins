@@ -21,8 +21,8 @@
 #include <stdio.h>
 #include <string>
 
+#include "common/platform_result.h"
 #include "filesystem_file.h"
-
 #include "archive_callback_data.h"
 #include "zip.h"
 
@@ -38,18 +38,18 @@ public:
      * deleted on main thread after calling all progress callbacks.
      * If exception is thrown please delete callback.
      */
-    static void execute(Zip& owner, AddProgressCallback*& callback);
+    static PlatformResult execute(Zip& owner, AddProgressCallback*& callback);
     ~ZipAddRequest();
 
 private:
     ZipAddRequest(Zip& owner, AddProgressCallback*& callback);
-    void run();
+    PlatformResult run();
 
     void addNodeAndSubdirsToList(filesystem::NodePtr src_node,
             filesystem::NodeList& out_list_of_child_nodes);
 
-    void addEmptyDirectoryToZipArchive(std::string name_in_zip);
-    void addToZipArchive(filesystem::NodePtr src_file_node);
+    PlatformResult addEmptyDirectoryToZipArchive(std::string name_in_zip);
+    PlatformResult addToZipArchive(filesystem::NodePtr src_file_node);
 
     std::string getNameInZipArchiveFor(filesystem::NodePtr node, bool strip);
 

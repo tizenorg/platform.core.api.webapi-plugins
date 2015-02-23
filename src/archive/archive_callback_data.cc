@@ -23,7 +23,6 @@
 
 #include "common/logger.h"
 
-//#include <filesystemExternalUtils.h>
 #include "archive_file.h"
 #include "archive_utils.h"
 #include "un_zip.h"
@@ -60,13 +59,13 @@ OperationCallbackData::~OperationCallbackData()
     }
 }
 
-void OperationCallbackData::setError(const std::string &err_name,
+void OperationCallbackData::setError(const ErrorCode &err_code,
         const std::string &err_message)
 {
     LoggerD("Entered");
     //store only first error
     if (!m_is_error) {
-        m_err_name = err_name;
+        m_err_code = err_code;
         m_err_message = err_message;
         m_is_error = true;
     }
@@ -120,10 +119,10 @@ void OperationCallbackData::setIsCanceled(bool canceled)
     m_is_canceled = canceled;
 }
 
-const std::string& OperationCallbackData::getErrorName() const
+const ErrorCode& OperationCallbackData::getErrorCode() const
 {
     LoggerD("Entered");
-    return m_err_name;
+    return m_err_code;
 }
 
 const std::string& OperationCallbackData::getErrorMessage() const
@@ -163,22 +162,27 @@ OpenCallbackData::~OpenCallbackData()
     LoggerD("Entered");
 }
 
-void OpenCallbackData::executeOperation(ArchiveFilePtr archive_file_ptr)
+PlatformResult OpenCallbackData::executeOperation(ArchiveFilePtr archive_file_ptr)
 {
     LoggerE("Entered");
 
     filesystem::FilePtr file = archive_file_ptr->getFile();
     if (!file) {
         LoggerE("File is null");
-        throw UnknownException("File is null");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR, "File is null");
     }
     filesystem::NodePtr node = file->getNode();
     if(!node) {
         LoggerE("Node is null");
-        throw UnknownException("Node is null");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Node is null");
     }
     const FileMode fm = archive_file_ptr->m_file_mode;
-    if (0 == node->getSize()) {
+    unsigned long long size = 0;
+    PlatformResult result = node->getSize(&size);
+    if (result.error_code() != ErrorCode::NO_ERROR) {
+        return result;
+    }
+    if (0 == size) {
         if(FileMode::READ_WRITE == fm ||
                 FileMode::WRITE == fm ||
                 FileMode::ADD == fm) {
@@ -197,19 +201,23 @@ void OpenCallbackData::executeOperation(ArchiveFilePtr archive_file_ptr)
         }
         else {
             LoggerE("The file is empty throwing: InvalidValuesException - Invalid ZIP archive");
-            throw InvalidValuesException("Invalid ZIP archive");
+            return PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid ZIP archive");
         }
     }
     else {
         archive_file_ptr->setIsOpen(true);
-        archive_file_ptr->updateListOfEntries();
+        result = archive_file_ptr->updateListOfEntries();
+        if (result.error_code() != ErrorCode::NO_ERROR) {
+            return result;
+        }
     }
 
     guint id = g_idle_add(ArchiveFile::openTaskCompleteCB, this);
     if (!id) {
         LoggerE("g_idle_add fails");
-        throw UnknownException("g_idle_add fails");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR, "g_idle_add fails");
     }
+    return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 //----------------------------------------------------------------------------------------
@@ -237,7 +245,7 @@ void GetEntriesCallbackData::setEntries(ArchiveFileEntryPtrMapPtr entries)
     m_entries = entries;
 }
 
-void GetEntriesCallbackData::executeOperation(ArchiveFilePtr archive_file_ptr)
+PlatformResult GetEntriesCallbackData::executeOperation(ArchiveFilePtr archive_file_ptr)
 {
     LoggerD("Entered");
 
@@ -246,8 +254,9 @@ void GetEntriesCallbackData::executeOperation(ArchiveFilePtr archive_file_ptr)
     guint id = g_idle_add(ArchiveFile::getEntriesTaskCompleteCB, this);
     if (!id) {
         LoggerE("g_idle_add fails");
-        throw UnknownException("g_idle_add fails");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR, "g_idle_add fails");
     }
+    return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 //----------------------------------------------------------------------------------------
@@ -287,7 +296,7 @@ void GetEntryByNameCallbackData::setFileEntry(ArchiveFileEntryPtr entry)
     m_file_entry = entry;
 }
 
-void GetEntryByNameCallbackData::executeOperation(ArchiveFilePtr archive_file_ptr)
+PlatformResult GetEntryByNameCallbackData::executeOperation(ArchiveFilePtr archive_file_ptr)
 {
     LoggerD("Entered");
 
@@ -306,7 +315,7 @@ void GetEntryByNameCallbackData::executeOperation(ArchiveFilePtr archive_file_pt
     if (it == entries->end()) {
         LoggerE("GetEntryByName Entry with name: [%s] not found", getName().c_str());
         LoggerE("Throwing NotFoundException - Entry not found");
-        throw NotFoundException("Entry not found");
+        return PlatformResult(ErrorCode::NOT_FOUND_ERR, "Entry not found");
     }
 
     setFileEntry(it->second);
@@ -314,8 +323,9 @@ void GetEntryByNameCallbackData::executeOperation(ArchiveFilePtr archive_file_pt
     guint id = g_idle_add(ArchiveFile::getEntryByNameTaskCompleteCB, this);
     if (!id) {
         LoggerE("g_idle_add fails");
-        throw UnknownException("g_idle_add fails");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR, "g_idle_add fails");
     }
+    return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 //----------------------------------------------------------------------------------------
@@ -378,26 +388,18 @@ gboolean BaseProgressCallback::callSuccessCallbackCB(void* data)
 
     std::unique_ptr<BaseProgressCallback> cb_ptr(callback);
 
-    try {
-        picojson::value val = picojson::value(picojson::object());
-        picojson::object& obj = val.get<picojson::object>();
-        obj[JSON_CALLBACK_ID] = picojson::value(callback->getCallbackId());
+    picojson::value val = picojson::value(picojson::object());
+    picojson::object& obj = val.get<picojson::object>();
+    obj[JSON_CALLBACK_ID] = picojson::value(callback->getCallbackId());
 
-        if (!callback->isError()) {
-            obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
+    if (!callback->isError()) {
+        obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
 
-            LoggerD("%s", val.serialize().c_str());
+        LoggerD("%s", val.serialize().c_str());
 
-            ArchiveInstance::getInstance().PostMessage(val.serialize().c_str());
-        } else {
-            LoggerW("Not calling error callback in such case");
-        }
-    }
-    catch (const PlatformException& ex) {
-        LoggerE("%s (%s)", ex.name().c_str(), ex.message().c_str());
-    }
-    catch (...) {
-        LoggerE("Unknown error occurred");
+        ArchiveInstance::getInstance().PostMessage(val.serialize().c_str());
+    } else {
+        LoggerW("Not calling error callback in such case");
     }
 
     callback->setArchiveFile(ArchiveFilePtr());
@@ -413,30 +415,22 @@ void BaseProgressCallback::callProgressCallback(long operationId,
 {
     LoggerD("Entered");
 
-    try {
-        picojson::value val = picojson::value(picojson::object());
-        picojson::object& obj = val.get<picojson::object>();
-        obj[JSON_CALLBACK_ID] = picojson::value(callbackId);
-        obj[JSON_DATA] = picojson::value(picojson::object());
-        picojson::object& args = obj[JSON_DATA].get<picojson::object>();
+    picojson::value val = picojson::value(picojson::object());
+    picojson::object& obj = val.get<picojson::object>();
+    obj[JSON_CALLBACK_ID] = picojson::value(callbackId);
+    obj[JSON_DATA] = picojson::value(picojson::object());
+    picojson::object& args = obj[JSON_DATA].get<picojson::object>();
 
-        obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_PROGRESS);
-        obj[JSON_CALLBACK_KEEP] = picojson::value(true);
+    obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_PROGRESS);
+    obj[JSON_CALLBACK_KEEP] = picojson::value(true);
 
-        args[PARAM_OPERATION_ID] = picojson::value(static_cast<double>(operationId));
-        args[PARAM_VALUE] = picojson::value(value);
-        args[PARAM_FILENAME] = picojson::value(filename);
+    args[PARAM_OPERATION_ID] = picojson::value(static_cast<double>(operationId));
+    args[PARAM_VALUE] = picojson::value(value);
+    args[PARAM_FILENAME] = picojson::value(filename);
 
-        LoggerD("%s", val.serialize().c_str());
+    LoggerD("%s", val.serialize().c_str());
 
-        ArchiveInstance::getInstance().PostMessage(val.serialize().c_str());
-    }
-    catch (const PlatformException& ex) {
-        LoggerE("%s (%s)", ex.name().c_str(), ex.message().c_str());
-    }
-    catch (...) {
-        LoggerE("Unknown error occurred");
-    }
+    ArchiveInstance::getInstance().PostMessage(val.serialize().c_str());
 }
 
 void BaseProgressCallback::callProgressCallbackOnMainThread(const double progress,
@@ -477,22 +471,11 @@ gboolean BaseProgressCallback::callProgressCallbackCB(void* data)
 
     LoggerW("STUB Not checking if context is still alive");
 
-    try {
-        //Error callback is being handled by ArchiveFile queue - see
-        //ArchiveFile::taskManagerThread function
-        //
-        ph->callback->callProgressCallback(
-                ph->callback->m_op_id,
-                ph->overall_progress,
-                ph->currently_processed_entry->getName(),
-                ph->callback->m_cid);
-    }
-    catch (const PlatformException &err) {
-        LoggerE("%s (%s)", err.name().c_str(), err.message().c_str());
-    }
-    catch (...) {
-        LoggerE("Unknown error occurs");
-    }
+    ph->callback->callProgressCallback(
+            ph->callback->m_op_id,
+            ph->overall_progress,
+            ph->currently_processed_entry->getName(),
+            ph->callback->m_cid);
 
     return false;
 }
@@ -552,27 +535,39 @@ const std::string& AddProgressCallback::getBaseVirtualPath()
     return m_base_virt_path;
 }
 
-void AddProgressCallback::executeOperation(ArchiveFilePtr archive_file_ptr)
+PlatformResult AddProgressCallback::executeOperation(ArchiveFilePtr archive_file_ptr)
 {
     LoggerD("Entered");
 
     if(!m_file_entry) {
         LoggerE("ArchiveFileEntry is not set in callback");
-        throw UnknownException("Could not add file to archive");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not add file to archive");
     }
 
     if(!archive_file_ptr) {
         LoggerE("archive_file_ptr is NULL");
-        throw UnknownException("Could not extract archive file entry");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not extract archive file entry");
     }
 
     AddProgressCallback* callback = this;
 
-    ZipPtr zip = archive_file_ptr->createZipObject();
-    zip->addFile(callback);
+    ZipPtr zip;
+    PlatformResult result = archive_file_ptr->createZipObject(&zip);
+    if (result.error_code() != ErrorCode::NO_ERROR) {
+      return result;
+    }
+
+    result = zip->addFile(callback);
+    if (result.error_code() != ErrorCode::NO_ERROR) {
+      return result;
+    }
+
     // Zip is no more needed but it locks file opening while
     // it is needed to read entries from file
-    zip->close();
+    result = zip->close();
+    if (result.error_code() != ErrorCode::NO_ERROR) {
+      return result;
+    }
 
     //We have just finished adding file to archive so now
     //this archive file should be valid .zip archive and
@@ -583,11 +578,8 @@ void AddProgressCallback::executeOperation(ArchiveFilePtr archive_file_ptr)
     // update informations about decompressed size and entry list
     // TODO FIXME need to resolve problem with access to file by
     // more than one thread
-    try{
-        archive_file_ptr->updateListOfEntries();
-    } catch(...){
-        LoggerD("Unknown error during updating entries list inside archive");
-    }
+
+    return archive_file_ptr->updateListOfEntries();
 }
 
 //----------------------------------------------------------------------------------------
@@ -672,10 +664,10 @@ double ExtractAllProgressCallback::getOverallProgress() const
     return m_progress_overall;
 }
 
-void ExtractAllProgressCallback::executeOperation(ArchiveFilePtr archive_file_ptr)
+PlatformResult ExtractAllProgressCallback::executeOperation(ArchiveFilePtr archive_file_ptr)
 {
     LoggerD("Entered");
-    archive_file_ptr->extractAllTask(this);
+    return archive_file_ptr->extractAllTask(this);
 }
 
 void ExtractAllProgressCallback::setExpectedDecompressedSize(unsigned long exp_dec_size)
@@ -757,22 +749,27 @@ const std::string& ExtractEntryProgressCallback::getStripBasePath() const
     return m_strip_base_path;
 }
 
-void ExtractEntryProgressCallback::executeOperation(ArchiveFilePtr archive_file_ptr)
+PlatformResult ExtractEntryProgressCallback::executeOperation(ArchiveFilePtr archive_file_ptr)
 {
     LoggerD("Entered");
 
     if(!m_archive_file_entry) {
         LoggerE("ArchiveFileEntry is not set in callback");
-        throw UnknownException("Could not extract archive file entry");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not extract archive file entry");
     }
 
     if(!archive_file_ptr) {
         LoggerE("archive_file_ptr is NULL");
-        throw UnknownException("Could not extract archive file entry");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not extract archive file entry");
     }
 
-    UnZipPtr unzip = archive_file_ptr->createUnZipObject();
-    unzip->extractTo(this);
+    UnZipPtr unzip;
+    PlatformResult result = archive_file_ptr->createUnZipObject(&unzip);
+    if (result.error_code() != ErrorCode::NO_ERROR) {
+      return result;
+    }
+
+    return unzip->extractTo(this);
 }
 
 } //namespace archive

@@ -4,21 +4,17 @@
 
 #include "archive/archive_instance.h"
 
-
 //#include "archive_manager.h"
 
 #include <functional>
 #include <memory>
-
 #include <pkgmgr-info.h>
-
 #include "common/current_application.h"
 #include "common/picojson.h"
 #include "common/logger.h"
 #include "archive_callback_data.h"
 #include "archive_manager.h"
 #include "archive_utils.h"
-
 #include "defs.h"
 
 namespace extension {
@@ -62,8 +58,7 @@ ArchiveInstance::~ArchiveInstance() {
     LoggerD("Entered");
 }
 
-
-void ArchiveInstance::PostError(const PlatformException& e, double callback_id) {
+void ArchiveInstance::PostError(const PlatformResult& e, double callback_id) {
     picojson::value val = picojson::value(picojson::object());
     picojson::object& obj = val.get<picojson::object>();
     obj[JSON_CALLBACK_ID] = picojson::value(callback_id);
@@ -72,7 +67,7 @@ void ArchiveInstance::PostError(const PlatformException& e, double callback_id) 
     picojson::object& args = obj[JSON_DATA].get<picojson::object>();
     obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_ERROR);
 
-    args[ERROR_CALLBACK_NAME] = picojson::value(e.name());
+    args[ERROR_CALLBACK_CODE] = picojson::value(static_cast<double>(e.error_code()));
     args[ERROR_CALLBACK_MESSAGE] = picojson::value(e.message());
 
     ArchiveInstance::getInstance().PostMessage(val.serialize().c_str());
@@ -90,107 +85,118 @@ void ArchiveInstance::Open(const picojson::value& args, picojson::object& out) {
     picojson::value v_overwrite = options.at(PARAM_OVERWRITE);
     const double callbackId = args.get(JSON_CALLBACK_ID).get<double>();
     const long operationId = static_cast<long>(v_op_id.get<double>());
-    FileMode fm = stringToFileMode(v_mode.get<std::string>());
+    FileMode fm;
+    PlatformResult result = stringToFileMode(v_mode.get<std::string>(), &fm);
+    if (result.error_code() != ErrorCode::NO_ERROR) {
+        LoggerE("File mode conversions error");
+        PostError(result, callbackId);
+        return;
+    }
 
     OpenCallbackData *callback = new OpenCallbackData();
 
-    try {
-        FilePtr file_ptr;
+    FilePtr file_ptr;
 
-        callback->setOperationId(operationId);
-        callback->setCallbackId(callbackId);
+    callback->setOperationId(operationId);
+    callback->setCallbackId(callbackId);
 
-        bool overwrite = false;
-        if(v_overwrite.is<bool>()) {
-            overwrite = v_overwrite.get<bool>();
+    bool overwrite = false;
+    if(v_overwrite.is<bool>()) {
+        overwrite = v_overwrite.get<bool>();
+    }
+
+    std::string location_full_path = v_file.get<std::string>();
+    PathPtr path = Path::create(location_full_path);
+
+    struct stat info;
+    if (lstat(path->getFullPath().c_str(), &info) == 0) {
+        NodePtr node;
+        result = Node::resolve(path, &node);
+        if (result.error_code() != ErrorCode::NO_ERROR) {
+            LoggerE("Filesystem exception - calling error callback");
+            PostError(result, callbackId);
+            delete callback;
+            callback = NULL;
+            return;
         }
 
-        std::string location_full_path = v_file.get<std::string>();
-        PathPtr path = Path::create(location_full_path);
-
-        struct stat info;
-        if (lstat(path->getFullPath().c_str(), &info) == 0) {
-            NodePtr node;
-            try {
-                node = Node::resolve(path);
-            } catch (PlatformException& e) {
-                LoggerE("Filesystem exception - calling error callback");
-                PostError(e, callbackId);
+        file_ptr = FilePtr(new File(node, File::PermissionList()));
+        LoggerD("open: %s mode: 0x%x overwrite: %d", location_full_path.c_str(), fm, overwrite);
+        if (FileMode::WRITE == fm || FileMode::READ_WRITE == fm) {
+            if (overwrite) {
+                LoggerD("Deleting existing file: %s", location_full_path.c_str());
+                result = file_ptr->getNode()->remove(OPT_RECURSIVE);
+                if (result.error_code() != ErrorCode::NO_ERROR) {
+                    LoggerE("Couldn't remove existing file: %s", location_full_path.c_str());
+                    PostError(result, callbackId);
+                    delete callback;
+                    callback = NULL;
+                    return;
+                }
+                file_ptr.reset();   //We need to create new empty file
+            } else if (FileMode::WRITE == fm) {
+                LoggerE("open: %s with mode: \"w\" file exists and overwrite is FALSE!"
+                        " throwing InvalidModificationException", location_full_path.c_str());
+                PostError(PlatformResult(ErrorCode::INVALID_MODIFICATION_ERR,
+                                         "Zip archive already exists"), callbackId);
                 delete callback;
                 callback = NULL;
                 return;
             }
-            try {
-                file_ptr = FilePtr(new File(node, File::PermissionList()));
-                LoggerD("open: %s mode: 0x%x overwrite: %d", location_full_path.c_str(), fm, overwrite);
-                if(FileMode::WRITE == fm || FileMode::READ_WRITE == fm) {
-                    if(overwrite) {
-                        try {
-                            LoggerD("Deleting existing file: %s", location_full_path.c_str());
-                            file_ptr->getNode()->remove(OPT_RECURSIVE);
-                            file_ptr.reset();   //We need to create new empty file
-                        } catch(...) {
-                            LoggerE("Couldn't remove existing file: %s", location_full_path.c_str());
-                            throw IOException("Could not remove existing file");
-                        }
-                    }
-                    else if(FileMode::WRITE == fm) {
-                        LoggerE("open: %s with mode: \"w\" file exists and overwrite is FALSE!"
-                                " throwing InvalidModificationException", location_full_path.c_str());
-                        throw InvalidModificationException("Zip archive already exists");
-                    }
-                }
-            } catch (const NotFoundException& nfe) {
-                LoggerD("location_string: %s is not file reference", location_full_path.c_str());
-                file_ptr.reset();
-            }
         }
-
-        if (!file_ptr) {
-            NodePtr node_ptr;
-
-            if(FileMode::WRITE == fm ||
-                    FileMode::READ_WRITE == fm ||
-                    FileMode::ADD == fm) {
-                LoggerD("Archive file not found - trying to create new one at: "
-                        "full: %s", location_full_path.c_str());
-
-
-                std::string parent_path_string = path->getPath();
-                PathPtr parent_path = Path::create(parent_path_string);
-                LoggerD("Parent path: %s", parent_path_string.c_str());
-
-                NodePtr parent_node = Node::resolve(parent_path);
-                parent_node->setPermissions(PERM_READ | PERM_WRITE);
-                std::string filename = path->getName();
-                LoggerD("File name: %s", filename.c_str());
-                node_ptr = parent_node->createChild(Path::create(filename), NT_FILE);
-            }
-            else {
-                LoggerE("Archive file not found");
-                throw NotFoundException("Archive file not found");
-            }
-            file_ptr = FilePtr(new File(node_ptr, File::PermissionList()));
-        }
-
-        ArchiveFilePtr afp = ArchiveFilePtr(new ArchiveFile(fm));
-        afp->setFile(file_ptr);
-        afp->setOverwrite(overwrite);
-        callback->setArchiveFile(afp);
-
-        ArchiveManager::getInstance().open(callback);
-    } catch (PlatformException& e) {
-        LoggerE("Filesystem exception - calling error callback");
-        PostError(e, callbackId);
-        delete callback;
-        callback = NULL;
-        return;
-    } catch (...) {
-        LoggerE("Exception occurred");
-        delete callback;
-        callback = NULL;
-        throw;
     }
+
+    if (!file_ptr) {
+        NodePtr node_ptr;
+
+        if (FileMode::WRITE == fm ||
+                FileMode::READ_WRITE == fm ||
+                FileMode::ADD == fm) {
+            LoggerD("Archive file not found - trying to create new one at: "
+                    "full: %s", location_full_path.c_str());
+
+            std::string parent_path_string = path->getPath();
+            PathPtr parent_path = Path::create(parent_path_string);
+            LoggerD("Parent path: %s", parent_path_string.c_str());
+
+            NodePtr parent_node;
+            PlatformResult result = Node::resolve(parent_path, &parent_node);
+            if (result.error_code() != ErrorCode::NO_ERROR) {
+                LoggerE("Filesystem exception - calling error callback");
+                PostError(result, callbackId);
+                delete callback;
+                callback = NULL;
+                return;
+            }
+
+            parent_node->setPermissions(PERM_READ | PERM_WRITE);
+            std::string filename = path->getName();
+            LoggerD("File name: %s", filename.c_str());
+            result = parent_node->createChild(Path::create(filename), NT_FILE, &node_ptr);
+            if (result.error_code() != ErrorCode::NO_ERROR) {
+                LoggerE("Filesystem exception - calling error callback");
+                PostError(result, callbackId);
+                delete callback;
+                callback = NULL;
+                return;
+            }
+        } else {
+            LoggerE("Archive file not found");
+            LoggerE("Filesystem exception - calling error callback");
+            PostError(PlatformResult(ErrorCode::NOT_FOUND_ERR, "Archive file not found"), callbackId);
+            delete callback;
+            callback = NULL;
+            return;
+        }
+        file_ptr = FilePtr(new File(node_ptr, File::PermissionList()));
+    }
+
+    ArchiveFilePtr afp = ArchiveFilePtr(new ArchiveFile(fm));
+    afp->setFile(file_ptr);
+    afp->setOverwrite(overwrite);
+    callback->setArchiveFile(afp);
+
+    ArchiveManager::getInstance().open(callback);
 }
 
 void ArchiveInstance::Abort(const picojson::value& args, picojson::object& out)
@@ -226,41 +232,48 @@ void ArchiveInstance::Add(const picojson::value& args, picojson::object& out)
     AddProgressCallback *callback = new AddProgressCallback();
 
     NodePtr node;
-    try {
-        node = Node::resolve(Path::create(v_source.get<std::string>()));
-    } catch (PlatformException& e) {
+    PlatformResult result = Node::resolve(Path::create(v_source.get<std::string>()), &node);
+    if (result.error_code() != ErrorCode::NO_ERROR) {
         LoggerE("Filesystem exception - calling error callback");
-        PostError(e, callbackId);
+        PostError(result, callbackId);
         delete callback;
         callback = NULL;
         return;
     }
-    try {
-        FilePtr file_ptr = FilePtr(new File(node, File::PermissionList()));
-        ArchiveFileEntryPtr afep = ArchiveFileEntryPtr(
-                new ArchiveFileEntry(file_ptr));
 
-        callback->setOperationId(operationId);
-        callback->setCallbackId(callbackId);
-        callback->setFileEntry(afep);
+    FilePtr file_ptr = FilePtr(new File(node, File::PermissionList()));
+    ArchiveFileEntryPtr afep = ArchiveFileEntryPtr(new ArchiveFileEntry(file_ptr));
 
-        callback->setBasePath(file_ptr->getNode()->getPath()->getPath());
-        LoggerD("base path:%s base virt:%s", callback->getBasePath().c_str(),
-                callback->getBaseVirtualPath().c_str());
+    callback->setOperationId(operationId);
+    callback->setCallbackId(callbackId);
+    callback->setFileEntry(afep);
 
-        ArchiveFilePtr priv = ArchiveManager::getInstance().getPrivData(handle);
-        if (!priv->isAllowedOperation(ARCHIVE_FUNCTION_API_ARCHIVE_FILE_ADD)) {
-            LoggerE("Not allowed operation");
-            throw InvalidAccessException("Not allowed operation");
-        }
+    callback->setBasePath(file_ptr->getNode()->getPath()->getPath());
+    LoggerD("base path:%s base virt:%s", callback->getBasePath().c_str(),
+            callback->getBaseVirtualPath().c_str());
 
-        priv->add(callback);
-    }
-    catch (...) {
+    ArchiveFilePtr priv;
+    result = ArchiveManager::getInstance().getPrivData(handle, &priv);
+    if (result.error_code() != ErrorCode::NO_ERROR) {
         LoggerE("Exception occurred");
         delete callback;
         callback = NULL;
-        throw;
+        return;
+    }
+
+    if (!priv->isAllowedOperation(ARCHIVE_FUNCTION_API_ARCHIVE_FILE_ADD)) {
+        LoggerE("Not allowed operation");
+        delete callback;
+        callback = NULL;
+        return;
+    }
+
+    result = priv->add(callback);
+    if (result.error_code() != ErrorCode::NO_ERROR) {
+        LoggerE("Exception occurred");
+        delete callback;
+        callback = NULL;
+        return;
     }
 }
 
@@ -282,38 +295,47 @@ void ArchiveInstance::ExtractAll(const picojson::value& args, picojson::object& 
     ExtractAllProgressCallback *callback = new ExtractAllProgressCallback();
 
     NodePtr node;
-    try {
-        node = Node::resolve(Path::create(v_dest_dir.get<std::string>()));
-    } catch (PlatformException& e) {
+    PlatformResult result = Node::resolve(Path::create(v_dest_dir.get<std::string>()), &node);
+    if (result.error_code() != ErrorCode::NO_ERROR) {
         LoggerE("Filesystem exception - calling error callback");
-        PostError(e, callbackId);
+        PostError(result, callbackId);
         delete callback;
         callback = NULL;
         return;
     }
-    try {
-        FilePtr file_ptr = FilePtr(new File(node, File::PermissionList()));
 
-        callback->setDirectory(file_ptr);
-        callback->setOperationId(operationId);
-        callback->setCallbackId(callbackId);
+    FilePtr file_ptr = FilePtr(new File(node, File::PermissionList()));
 
-        if (v_overwrite.is<bool>()) {
-            callback->setOverwrite(v_overwrite.get<bool>());
-        }
+    callback->setDirectory(file_ptr);
+    callback->setOperationId(operationId);
+    callback->setCallbackId(callbackId);
 
-        ArchiveFilePtr priv = ArchiveManager::getInstance().getPrivData(handle);
-        if (!priv->isAllowedOperation(ARCHIVE_FUNCTION_API_ARCHIVE_FILE_EXTRACT_ALL)) {
-            LoggerE("Not allowed operation");
-            throw InvalidAccessException("Not allowed operation");
-        }
-        priv->extractAll(callback);
+    if (v_overwrite.is<bool>()) {
+        callback->setOverwrite(v_overwrite.get<bool>());
     }
-    catch (...) {
+
+    ArchiveFilePtr priv;
+    result = ArchiveManager::getInstance().getPrivData(handle, &priv);
+    if (result.error_code() != ErrorCode::NO_ERROR) {
         LoggerE("Exception occurred");
         delete callback;
         callback = NULL;
-        throw;
+        return;
+    }
+
+    if (!priv->isAllowedOperation(ARCHIVE_FUNCTION_API_ARCHIVE_FILE_EXTRACT_ALL)) {
+        LoggerE("Not allowed operation");
+        delete callback;
+        callback = NULL;
+        return;
+    }
+
+    result = priv->extractAll(callback);
+    if (result.error_code() != ErrorCode::NO_ERROR) {
+        LoggerE("Exception occurred");
+        delete callback;
+        callback = NULL;
+        return;
     }
 }
 
@@ -332,24 +354,32 @@ void ArchiveInstance::GetEntries(const picojson::value& args, picojson::object& 
 
     GetEntriesCallbackData *callback = new GetEntriesCallbackData();
 
-    try {
-        callback->setOperationId(operationId);
-        callback->setCallbackId(callbackId);
-        callback->setHandle(handle);
+    callback->setOperationId(operationId);
+    callback->setCallbackId(callbackId);
+    callback->setHandle(handle);
 
-        ArchiveFilePtr priv = ArchiveManager::getInstance().getPrivData(handle);
-        if (!priv->isAllowedOperation(ARCHIVE_FUNCTION_API_ARCHIVE_FILE_GET_ENTRIES)) {
-            LoggerE("Not allowed operation");
-            throw InvalidAccessException("Not allowed operation");
-        }
-
-        priv->getEntries(callback);
-    }
-    catch (...) {
+    ArchiveFilePtr priv;
+    PlatformResult result = ArchiveManager::getInstance().getPrivData(handle, &priv);
+    if (result.error_code() != ErrorCode::NO_ERROR) {
         LoggerE("Exception occurred");
         delete callback;
         callback = NULL;
-        throw;
+        return;
+    }
+
+    if (!priv->isAllowedOperation(ARCHIVE_FUNCTION_API_ARCHIVE_FILE_GET_ENTRIES)) {
+        LoggerE("Not allowed operation");
+        delete callback;
+        callback = NULL;
+        return;
+    }
+
+    result = priv->getEntries(callback);
+    if (result.error_code() != ErrorCode::NO_ERROR) {
+        LoggerE("Exception occurred");
+        delete callback;
+        callback = NULL;
+        return;
     }
 }
 
@@ -369,25 +399,33 @@ void ArchiveInstance::GetEntryByName(const picojson::value& args, picojson::obje
 
     GetEntryByNameCallbackData *callback = new GetEntryByNameCallbackData();
 
-    try {
-        callback->setOperationId(operationId);
-        callback->setCallbackId(callbackId);
-        callback->setName(v_name.get<std::string>());
-        callback->setHandle(handle);
+    callback->setOperationId(operationId);
+    callback->setCallbackId(callbackId);
+    callback->setName(v_name.get<std::string>());
+    callback->setHandle(handle);
 
-        ArchiveFilePtr priv = ArchiveManager::getInstance().getPrivData(handle);
-        if (!priv->isAllowedOperation(ARCHIVE_FUNCTION_API_ARCHIVE_FILE_GET_ENTRY_BY_NAME)) {
-            LoggerE("Not allowed operation");
-            throw InvalidAccessException("Not allowed operation");
-        }
-
-        priv->getEntryByName(callback);
-    }
-    catch (...) {
+    ArchiveFilePtr priv;
+    PlatformResult result = ArchiveManager::getInstance().getPrivData(handle, &priv);
+    if (result.error_code() != ErrorCode::NO_ERROR) {
         LoggerE("Exception occurred");
         delete callback;
         callback = NULL;
-        throw;
+        return;
+    }
+
+    if (!priv->isAllowedOperation(ARCHIVE_FUNCTION_API_ARCHIVE_FILE_GET_ENTRY_BY_NAME)) {
+        LoggerE("Not allowed operation");
+        delete callback;
+        callback = NULL;
+        return;
+    }
+
+    result = priv->getEntryByName(callback);
+    if (result.error_code() != ErrorCode::NO_ERROR) {
+        LoggerE("Exception occurred");
+        delete callback;
+        callback = NULL;
+        return;
     }
 }
 
@@ -401,13 +439,16 @@ void ArchiveInstance::Close(const picojson::value& args, picojson::object& out)
 
     const long handle = static_cast<long>(v_handle.get<double>());
 
-    try {
-        ArchiveFilePtr priv = ArchiveManager::getInstance().getPrivData(handle);
-        priv->close();
-        ArchiveManager::getInstance().erasePrivData(handle);
-    } catch (...) {
+    ArchiveFilePtr priv;
+    PlatformResult result = ArchiveManager::getInstance().getPrivData(handle, &priv);
+    if (result.error_code() != ErrorCode::NO_ERROR) {
         LoggerD("Close method was called on already closed archive. Just end execution");
+        LoggerD("%s", result.message().c_str());
     }
+
+    priv->close();
+    ArchiveManager::getInstance().erasePrivData(handle);
+
     ReportSuccess(out);
 }
 
@@ -431,48 +472,55 @@ void ArchiveInstance::Extract(const picojson::value& args, picojson::object& out
     ExtractEntryProgressCallback *callback = new ExtractEntryProgressCallback();
 
     NodePtr node;
-    try {
-        node = Node::resolve(Path::create(v_dest_dir.get<std::string>()));
-    } catch (PlatformException& e) {
+    PlatformResult result = Node::resolve(Path::create(v_dest_dir.get<std::string>()), &node);
+    if (result.error_code() != ErrorCode::NO_ERROR) {
         LoggerE("Filesystem exception - calling error callback");
-        PostError(e, callbackId);
+        PostError(result, callbackId);
         delete callback;
         callback = NULL;
         return;
     }
-    try {
-        FilePtr file_ptr = FilePtr(new File(node, File::PermissionList()));
 
-        callback->setDirectory(file_ptr);
-        callback->setOperationId(operationId);
-        callback->setCallbackId(callbackId);
+    FilePtr file_ptr = FilePtr(new File(node, File::PermissionList()));
 
-        if (v_overwrite.is<bool>()) {
-            callback->setOverwrite(v_overwrite.get<bool>());
-        }
-        if (v_strip_name.is<bool>()) {
-            callback->setStripName(v_strip_name.get<bool>());
-        }
-        ArchiveFilePtr archive_file_ptr = ArchiveManager::getInstance().getPrivData(handle);
-        ArchiveFileEntryPtrMapPtr entries = archive_file_ptr->getEntryMap();
-        auto it = entries->find(v_entry_name.get<std::string>());
+    callback->setDirectory(file_ptr);
+    callback->setOperationId(operationId);
+    callback->setCallbackId(callbackId);
 
-        //Not found but if our name does not contain '/'
-        //try looking for directory with such name
-        //
-        if (it == entries->end() && !isDirectoryPath(v_entry_name.get<std::string>())) {
-            const std::string try_directory = v_entry_name.get<std::string>() + "/";
-            LoggerD("GetEntryByName Trying directory: [%s]", try_directory.c_str());
-            it = entries->find(try_directory);
-        }
-
-        it->second->extractTo(callback);
+    if (v_overwrite.is<bool>()) {
+        callback->setOverwrite(v_overwrite.get<bool>());
     }
-    catch (...) {
+    if (v_strip_name.is<bool>()) {
+        callback->setStripName(v_strip_name.get<bool>());
+    }
+
+    ArchiveFilePtr archive_file_ptr;
+    result = ArchiveManager::getInstance().getPrivData(handle, &archive_file_ptr);
+    if (result.error_code() != ErrorCode::NO_ERROR) {
         LoggerE("Exception occurred");
         delete callback;
         callback = NULL;
-        throw;
+        return;
+    }
+
+    ArchiveFileEntryPtrMapPtr entries = archive_file_ptr->getEntryMap();
+    auto it = entries->find(v_entry_name.get<std::string>());
+
+    //Not found but if our name does not contain '/'
+    //try looking for directory with such name
+    if (it == entries->end() && !isDirectoryPath(v_entry_name.get<std::string>())) {
+        const std::string try_directory = v_entry_name.get<std::string>() + "/";
+        LoggerD("GetEntryByName Trying directory: [%s]", try_directory.c_str());
+        it = entries->find(try_directory);
+    }
+
+    result = it->second->extractTo(callback);
+    if (result.error_code() != ErrorCode::NO_ERROR) {
+        LoggerE("ArchiveFileEntry.extractTo error");
+        PostError(result, callbackId);
+        delete callback;
+        callback = NULL;
+        return;
     }
 }
 
@@ -482,11 +530,13 @@ void ArchiveInstance::GetWidgetPaths(const picojson::value& args, picojson::obje
 
     pkgmgrinfo_pkginfo_h handle = NULL;
     if (PMINFO_R_OK != pkgmgrinfo_pkginfo_get_pkginfo(pkg_id.c_str(), &handle)) {
-        throw UnknownException("Error while getting package info");
+        ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Error while getting package info"), &out);
+        return;
     }
 
     if (PMINFO_R_OK != pkgmgrinfo_pkginfo_get_root_path(handle, &root_path)) {
-        throw UnknownException("Error while getting package info");
+        ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Error while getting package info"), &out);
+        return;
     }
 
     // Construction of the response

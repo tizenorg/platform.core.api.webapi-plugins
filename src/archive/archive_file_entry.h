@@ -19,7 +19,7 @@
 #define _TIZEN_ARCHIVE_ARCHIVE_FILE_ENTRY_H_
 
 #include <memory>
-
+#include "common/platform_result.h"
 #include "filesystem_file.h"
 
 namespace extension {
@@ -60,7 +60,7 @@ public:
     void setArchiveFileNonProtectPtr(ArchiveFile* ptr);
     ArchiveFile* getArchiveFileNonProtectPtr();
 
-    void extractTo(ExtractEntryProgressCallback* callback);
+    common::PlatformResult extractTo(ExtractEntryProgressCallback* callback);
 
 private:
     filesystem::FilePtr m_file;

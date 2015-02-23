@@ -16,10 +16,8 @@
 //
 
 #include "archive_utils.h"
-
 #include <sstream>
 #include <iomanip>
-
 #include "common/logger.h"
 
 //TODO:
@@ -50,39 +48,48 @@ std::string bytesToReadableString(const size_t num_bytes)
     return ss.str();
 }
 
-std::string fileModeToString(FileMode fm)
+PlatformResult fileModeToString(FileMode fm, std::string* fm_str)
 {
     switch(fm) {
         case FileMode::READ:
-            return "r";
+            *fm_str = "r";
+            break;
         case FileMode::WRITE:
-            return "w";
+            *fm_str = "w";
+            break;
         case FileMode::READ_WRITE:
-            return "rw";
+            *fm_str = "rw";
+            break;
         case FileMode::ADD:
-            return "a";
+            *fm_str = "a";
+            break;
         default:
-            throw UnknownException("Unknown file mode");
+            return PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown file mode");
     }
+    return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-FileMode stringToFileMode(std::string fmString)
+PlatformResult stringToFileMode(std::string fmString, FileMode* fm)
 {
     if (!fmString.compare("r")) {
-        return FileMode::READ;
+        *fm = FileMode::READ;
+        return PlatformResult(ErrorCode::NO_ERROR);
     }
     else if (!fmString.compare("w")) {
-        return FileMode::WRITE;
+        *fm = FileMode::WRITE;
+        return PlatformResult(ErrorCode::NO_ERROR);
     }
     else if(!fmString.compare("rw")) {
-        return FileMode::READ_WRITE;
+        *fm = FileMode::READ_WRITE;
+        return PlatformResult(ErrorCode::NO_ERROR);
     }
     else if(!fmString.compare("a")) {
-        return FileMode::ADD;
+        *fm = FileMode::ADD;
+        return PlatformResult(ErrorCode::NO_ERROR);
     }
     // In widl it's "TypeMismatchError" so this exception used
     // instead of InvalidValues
-    throw TypeMismatchException("Invalid FileMode");
+    return PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, "Invalid FileMode");
 }
 
 // FilePtr fileReferenceToFile(JSContextRef context, JSValueRef fileReference)

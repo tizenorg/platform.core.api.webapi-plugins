@@ -26,10 +26,9 @@
 #include <memory>
 #include <glib.h>
 
-#include "common/platform_exception.h"
+#include "common/platform_result.h"
 #include "filesystem_file.h"
 #include "archive_file_entry.h"
-
 
 namespace extension {
 namespace archive {
@@ -60,10 +59,10 @@ public:
     OperationCallbackData(ArchiveCallbackType callback_type);
     virtual ~OperationCallbackData();
 
-    void setError(const std::string &err_name,
+    void setError(const ErrorCode &err_code,
             const std::string &err_message);
     bool isError() const;
-    const std::string& getErrorName() const;
+    const ErrorCode& getErrorCode() const;
     const std::string& getErrorMessage() const;
 
     void setOperationId(long op_id);
@@ -75,7 +74,7 @@ public:
 
     ArchiveCallbackType getCallbackType() const;
 
-    virtual void executeOperation(ArchiveFilePtr archive_file_ptr) = 0;
+    virtual PlatformResult executeOperation(ArchiveFilePtr archive_file_ptr) = 0;
 
     ArchiveFilePtr getArchiveFile() const;
     void setArchiveFile(ArchiveFilePtr caller);
@@ -92,7 +91,7 @@ protected:
 private:
     bool m_is_error;
     bool m_is_canceled;
-    std::string m_err_name;
+    ErrorCode m_err_code;
     std::string m_err_message;
 
     ArchiveFilePtr m_caller_instance;
@@ -104,7 +103,7 @@ public:
     OpenCallbackData(ArchiveCallbackType callback_type = OPEN_CALLBACK_DATA);
     virtual ~OpenCallbackData();
 
-    virtual void executeOperation(ArchiveFilePtr archive_file_ptr);
+    virtual PlatformResult executeOperation(ArchiveFilePtr archive_file_ptr);
 
 private:
     std::string m_filename;
@@ -119,7 +118,7 @@ public:
     ArchiveFileEntryPtrMapPtr getEntries() const;
     void setEntries(ArchiveFileEntryPtrMapPtr entries);
 
-    virtual void executeOperation(ArchiveFilePtr archive_file_ptr);
+    virtual PlatformResult executeOperation(ArchiveFilePtr archive_file_ptr);
 
 private:
     ArchiveFileEntryPtrMapPtr m_entries;
@@ -137,7 +136,7 @@ public:
     ArchiveFileEntryPtr getFileEntry() const;
     void setFileEntry(ArchiveFileEntryPtr entry);
 
-    virtual void executeOperation(ArchiveFilePtr archive_file_ptr);
+    virtual PlatformResult executeOperation(ArchiveFilePtr archive_file_ptr);
 private:
     std::string m_name;
     ArchiveFileEntryPtr m_file_entry;
@@ -150,8 +149,6 @@ public:
     BaseProgressCallback(ArchiveCallbackType callback_type = BASE_PROGRESS_CALLBACK);
     virtual ~BaseProgressCallback();
 
-    //void setProgressCallback(JSValueRef on_progress);
-
     bool getOverwrite() const;
     void setOverwrite(bool overwrite);
 
@@ -159,7 +156,7 @@ public:
             ArchiveFileEntryPtr current_entry);
     void callSuccessCallbackOnMainThread();
 
-    virtual void executeOperation(ArchiveFilePtr archive_file_ptr) = 0;
+    virtual PlatformResult executeOperation(ArchiveFilePtr archive_file_ptr) = 0;
 
 protected:
     void callProgressCallback(long operationId,
@@ -180,7 +177,7 @@ public:
     AddProgressCallback(ArchiveCallbackType callback_type = ADD_PROGRESS_CALLBACK);
     virtual ~AddProgressCallback();
 
-    virtual void executeOperation(ArchiveFilePtr archive_file_ptr);
+    virtual PlatformResult executeOperation(ArchiveFilePtr archive_file_ptr);
 
     void setBasePath(const std::string& path);
     const std::string& getBasePath();
@@ -212,7 +209,7 @@ public:
     double getCurrentFileProgress() const;
     double getOverallProgress() const;
 
-    virtual void executeOperation(ArchiveFilePtr archive_file_ptr);
+    virtual PlatformResult executeOperation(ArchiveFilePtr archive_file_ptr);
 
     void setExpectedDecompressedSize(unsigned long exp_dec_size);
     unsigned long getExpectedDecompressedSize() const;
@@ -258,7 +255,7 @@ public:
     void setStripBasePath(const std::string& strip_base_path);
     const std::string& getStripBasePath() const;
 
-    virtual void executeOperation(ArchiveFilePtr archive_file_ptr);
+    virtual PlatformResult executeOperation(ArchiveFilePtr archive_file_ptr);
 
 private:
     ArchiveFileEntryPtr m_archive_file_entry;

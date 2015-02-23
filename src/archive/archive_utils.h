@@ -20,8 +20,7 @@
 
 #include <string>
 
-#include "common/platform_exception.h"
-
+#include "common/platform_result.h"
 #include "filesystem_file.h"
 #include "archive_file.h"
 
@@ -29,8 +28,8 @@ namespace extension {
 namespace archive {
 
 std::string bytesToReadableString(const size_t num_bytes);
-std::string fileModeToString(FileMode fm);
-FileMode stringToFileMode(std::string fmString);
+common::PlatformResult fileModeToString(FileMode fm, std::string* fm_str);
+common::PlatformResult stringToFileMode(std::string fmString, FileMode* fm);
 
 //extern Filesystem::FilePtr fileReferenceToFile(
 //    JSContextRef context, JSValueRef fileReference);
@@ -110,14 +109,6 @@ std::string stripBasePathFromPath(const std::string& fullpath);
 std::string getBasePathFromPath(const std::string& fullpath);
 
 std::string getArchiveLogMessage(const int errorCode, const std::string &hint);
-
-template <class T = common::UnknownException>
-void throwArchiveException(const int errorCode, const std::string &hint)
-{
-    std::string log = getArchiveLogMessage(errorCode, hint);
-    LOGE("%s", log.c_str());
-    throw T(log.c_str());
-}
 
 } //namespace archive
 } //namespace extension

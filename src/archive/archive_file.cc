@@ -18,7 +18,6 @@
 
 #include "common/picojson.h"
 #include "common/logger.h"
-#include "common/platform_exception.h"
 
 #include "archive_manager.h"
 #include "archive_utils.h"
@@ -93,42 +92,42 @@ gboolean ArchiveFile::openTaskCompleteCB(void *data)
         return false;
     }
 
-    try {
-        auto archive_file = callback->getArchiveFile();
+    auto archive_file = callback->getArchiveFile();
 
-        picojson::value val = picojson::value(picojson::object());
-        picojson::object& obj = val.get<picojson::object>();
-        obj[JSON_CALLBACK_ID] = picojson::value(callback->getCallbackId());
-        obj[JSON_DATA] = picojson::value(picojson::object());
+    picojson::value val = picojson::value(picojson::object());
+    picojson::object& obj = val.get<picojson::object>();
+    obj[JSON_CALLBACK_ID] = picojson::value(callback->getCallbackId());
+    obj[JSON_DATA] = picojson::value(picojson::object());
 
-        picojson::object& args = obj[JSON_DATA].get<picojson::object>();
+    picojson::object& args = obj[JSON_DATA].get<picojson::object>();
 
-        if (!callback->isError()) {
-            long handle = ArchiveManager::getInstance().addPrivData(archive_file);
+    if (!callback->isError()) {
+        long handle = ArchiveManager::getInstance().addPrivData(archive_file);
 
-            obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
+        obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
 
-            args[ARCHIVE_FILE_ATTR_MODE] = picojson::value(
-                    fileModeToString(archive_file->getFileMode()));
-            args[ARCHIVE_FILE_ATTR_DECOMPRESSED_SIZE] = picojson::value();
-            args[ARCHIVE_FILE_HANDLE] = picojson::value(static_cast<double>(handle));
-        } else {
-            obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_ERROR);
-
-            args[ERROR_CALLBACK_NAME] = picojson::value(callback->getErrorName());
-            args[ERROR_CALLBACK_MESSAGE] = picojson::value(callback->getErrorMessage());
+        std::string fm_str;
+        PlatformResult result = fileModeToString(archive_file->getFileMode(), &fm_str);
+        if (result.error_code() != ErrorCode::NO_ERROR) {
+            LoggerE("%s (%d)", result.message().c_str(), result.error_code());
+            delete callback;
+            callback = NULL;
+            return false;
         }
 
-        LoggerD("%s", val.serialize().c_str());
+        args[ARCHIVE_FILE_ATTR_MODE] = picojson::value(fm_str);
+        args[ARCHIVE_FILE_ATTR_DECOMPRESSED_SIZE] = picojson::value();
+        args[ARCHIVE_FILE_HANDLE] = picojson::value(static_cast<double>(handle));
+    } else {
+        obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_ERROR);
 
-        ArchiveInstance::getInstance().PostMessage(val.serialize().c_str());
+        args[ERROR_CALLBACK_CODE] = picojson::value(static_cast<double>(callback->getErrorCode()));
+        args[ERROR_CALLBACK_MESSAGE] = picojson::value(callback->getErrorMessage());
     }
-    catch (const PlatformException& ex) {
-        LoggerE("%s (%s)", ex.name().c_str(), ex.message().c_str());
-    }
-    catch (...) {
-        LoggerE("Unknown error occurred");
-    }
+
+    LoggerD("%s", val.serialize().c_str());
+
+    ArchiveInstance::getInstance().PostMessage(val.serialize().c_str());
 
     delete callback;
     callback = NULL;
@@ -146,33 +145,25 @@ gboolean ArchiveFile::callErrorCallback(void* data)
         return false;
     }
 
-    try {
-        picojson::value val = picojson::value(picojson::object());
-        picojson::object& obj = val.get<picojson::object>();
-        obj[JSON_CALLBACK_ID] = picojson::value(callback->getCallbackId());
-        obj[JSON_DATA] = picojson::value(picojson::object());
+    picojson::value val = picojson::value(picojson::object());
+    picojson::object& obj = val.get<picojson::object>();
+    obj[JSON_CALLBACK_ID] = picojson::value(callback->getCallbackId());
+    obj[JSON_DATA] = picojson::value(picojson::object());
 
-        picojson::object& args = obj[JSON_DATA].get<picojson::object>();
+    picojson::object& args = obj[JSON_DATA].get<picojson::object>();
 
-        if (!callback->isError()) {
-            LoggerW("The success callback should be not be called in this case");
-        } else {
-            obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_ERROR);
+    if (!callback->isError()) {
+        LoggerW("The success callback should be not be called in this case");
+    } else {
+        obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_ERROR);
 
-            args[ERROR_CALLBACK_NAME] = picojson::value(callback->getErrorName());
-            args[ERROR_CALLBACK_MESSAGE] = picojson::value(callback->getErrorMessage());
-        }
-
-        LoggerD("%s", val.serialize().c_str());
-
-        ArchiveInstance::getInstance().PostMessage(val.serialize().c_str());
+        args[ERROR_CALLBACK_CODE] = picojson::value(static_cast<double>(callback->getErrorCode()));
+        args[ERROR_CALLBACK_MESSAGE] = picojson::value(callback->getErrorMessage());
     }
-    catch (const PlatformException& ex) {
-        LoggerE("%s (%s)", ex.name().c_str(), ex.message().c_str());
-    }
-    catch (...) {
-        LoggerE("Unknown error occured");
-    }
+
+    LoggerD("%s", val.serialize().c_str());
+
+    ArchiveInstance::getInstance().PostMessage(val.serialize().c_str());
 
     delete callback;
     callback = NULL;
@@ -196,51 +187,42 @@ void* ArchiveFile::taskManagerThread(void *data)
         return NULL;
     }
 
+    PlatformResult result(ErrorCode::NO_ERROR);
+
     while(true){
         OperationCallbackData* callback = NULL;
-        bool call_error_callback = false;
-        try{
-            {
-                std::lock_guard<std::mutex> lock(archive_file_holder->ptr->m_mutex);
-                if(archive_file_holder->ptr->m_task_queue.empty()){
-                    break;
-                }
-                callback = archive_file_holder->ptr->m_task_queue.back().second;
+
+        result = PlatformResult(ErrorCode::NO_ERROR);
+
+        {
+            std::lock_guard<std::mutex> lock(archive_file_holder->ptr->m_mutex);
+            if(archive_file_holder->ptr->m_task_queue.empty()){
+                break;
             }
-            if(callback && !callback->isCanceled()){
-                callback->executeOperation(archive_file_holder->ptr);
-            }
-            {
-                std::lock_guard<std::mutex> lock(archive_file_holder->ptr->m_mutex);
-                archive_file_holder->ptr->m_task_queue.pop_back();
-            }
-        } catch (const OperationCanceledException &err) {
-            {
-                std::lock_guard<std::mutex> lock(archive_file_holder->ptr->m_mutex);
-                archive_file_holder->ptr->m_task_queue.pop_back();
-            }
+            callback = archive_file_holder->ptr->m_task_queue.back().second;
+        }
+
+        if(callback && !callback->isCanceled()){
+            result = callback->executeOperation(archive_file_holder->ptr);
+        }
+
+        if (ErrorCode::OPERATION_CANCELED_ERR == result.error_code()) {
             delete callback;
             callback = NULL;
-        } catch (const PlatformException &err) {
-            LoggerE("taskManagerThread fails, %s: %s", err.name().c_str(),
-                    err.message().c_str());
-            callback->setError(err.name().c_str(), err.message().c_str());
-            call_error_callback = true;
-        } catch (...) {
-            LoggerE("taskManagerThread fails");
-            callback->setError("UnknownError", "UnknownError");
-            call_error_callback = true;
-        }
-        if(call_error_callback) {
-            {
-                std::lock_guard<std::mutex> lock(archive_file_holder->ptr->m_mutex);
-                archive_file_holder->ptr->m_task_queue.pop_back();
-            }
+        } else if (ErrorCode::NO_ERROR != result.error_code()) {
+            LoggerE("taskManagerThread fails, %d: %s", result.error_code(),
+                    result.message().c_str());
+            callback->setError(result.error_code(), result.message().c_str());
             if (!g_idle_add(callErrorCallback, static_cast<void*>(callback))) {
                 LoggerE("g_idle_add fails");
                 delete callback;
                 callback = NULL;
             }
+        }
+
+        {
+            std::lock_guard<std::mutex> lock(archive_file_holder->ptr->m_mutex);
+            archive_file_holder->ptr->m_task_queue.pop_back();
         }
     }
 
@@ -250,7 +232,7 @@ void* ArchiveFile::taskManagerThread(void *data)
     return NULL;
 }
 
-void ArchiveFile::addOperation(OperationCallbackData* callback)
+PlatformResult ArchiveFile::addOperation(OperationCallbackData* callback)
 {
     LoggerD("Entered callback type:%d", callback->getCallbackType());
 
@@ -267,7 +249,7 @@ void ArchiveFile::addOperation(OperationCallbackData* callback)
         ArchiveFileHolder* holder = new(std::nothrow) ArchiveFileHolder();
         if(!holder) {
             LoggerE("Memory allocation error");
-            throw UnknownException("Memory allocation error");
+            return PlatformResult(ErrorCode::UNKNOWN_ERR, "Memory allocation error");
         }
         holder->ptr = shared_from_this();
         if (pthread_create(&thread, NULL, taskManagerThread,
@@ -275,43 +257,49 @@ void ArchiveFile::addOperation(OperationCallbackData* callback)
             LoggerE("Thread creation failed");
             delete holder;
             holder = NULL;
-            throw UnknownException("Thread creation failed");
+            return PlatformResult(ErrorCode::UNKNOWN_ERR, "Thread creation failed");
         }
 
         if (pthread_detach(thread)) {
             LoggerE("Thread detachment failed");
         }
     }
+    return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void ArchiveFile::extractAllTask(ExtractAllProgressCallback* callback)
+PlatformResult ArchiveFile::extractAllTask(ExtractAllProgressCallback* callback)
 {
     filesystem::FilePtr directory = callback->getDirectory();
 
     if(!directory) {
         LoggerE("Directory is null");
-        throw UnknownException("Directory is null");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Directory is null");
     } else {
         if(!directory->getNode()){
             LoggerE("Node in directory is null");
-            throw UnknownException("Node is null");
+            return PlatformResult(ErrorCode::UNKNOWN_ERR, "Node is null");
         }
     }
 
     if(!m_file) {
         LoggerE("File is null");
-        throw UnknownException("File is null");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR, "File is null");
     } else {
         if(!m_file->getNode()){
             LoggerE("Node in file is null");
-            throw UnknownException("Node in file is null");
+            return PlatformResult(ErrorCode::UNKNOWN_ERR, "Node in file is null");
         }
     }
 
     // For explanation please see:
     //    ArchiveFile.h m_created_as_new_empty_archive description
     //
-    if(m_file->getNode()->getSize() == 0) {
+    unsigned long long size = 0;
+    PlatformResult result = m_file->getNode()->getSize(&size);
+    if (result.error_code() != ErrorCode::NO_ERROR) {
+      return result;
+    }
+    if(size == 0) {
         LoggerD("Zip file: %s is empty",
                 m_file->getNode()->getPath()->getFullPath().c_str());
 
@@ -319,30 +307,38 @@ void ArchiveFile::extractAllTask(ExtractAllProgressCallback* callback)
             //We do not call progress callback since we do not have any ArchiveFileEntry
             callback->callSuccessCallbackOnMainThread();
             callback = NULL;
-            return;
+            return PlatformResult(ErrorCode::NO_ERROR);
         }
         else {
             LoggerW("m_created_as_new_empty_archive is false");
             LoggerE("Throwing InvalidStateException: File is not valid ZIP archive");
-            throw InvalidStateException("File is not valid ZIP archive");
+            return PlatformResult(ErrorCode::INVALID_STATE_ERR, "File is not valid ZIP archive");
         }
     }
 
-    UnZipPtr unzip = createUnZipObject();
-    unzip->extractAllFilesTo(directory->getNode()->getPath()->getFullPath(), callback);
+    UnZipPtr unzip;
+    result = createUnZipObject(&unzip);
+    if (result.error_code() != ErrorCode::NO_ERROR) {
+      return result;
+    }
+
+    return unzip->extractAllFilesTo(directory->getNode()->getPath()->getFullPath(), callback);
 }
 
-void ArchiveFile::getEntries(GetEntriesCallbackData* callback)
+PlatformResult ArchiveFile::getEntries(GetEntriesCallbackData* callback)
 {
     LoggerD("Entered");
     if(!callback) {
         LoggerE("callback is NULL");
-        throw UnknownException("Could not get list of files in archive");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not get list of files in archive");
     }
 
-    throwInvalidStateErrorIfArchiveFileIsClosed();
+    if(!m_is_open){
+        LoggerE("ArchiveFile closed - operation not permitted");
+        return PlatformResult(ErrorCode::INVALID_STATE_ERR, "ArchiveFile closed - operation not permitted");
+    }
 
-    addOperation(callback);
+    return addOperation(callback);
 }
 
 gboolean ArchiveFile::getEntriesTaskCompleteCB(void *data)
@@ -356,53 +352,45 @@ gboolean ArchiveFile::getEntriesTaskCompleteCB(void *data)
         return false;
     }
 
-    try {
-        picojson::value val = picojson::value(picojson::object());
-        picojson::object& obj = val.get<picojson::object>();
-        obj[JSON_CALLBACK_ID] = picojson::value(callback->getCallbackId());
+    picojson::value val = picojson::value(picojson::object());
+    picojson::object& obj = val.get<picojson::object>();
+    obj[JSON_CALLBACK_ID] = picojson::value(callback->getCallbackId());
 
-        if (!callback->isError()) {
-            obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
-            obj[JSON_DATA] = picojson::value(picojson::array());
-            picojson::array &arr = obj[JSON_DATA].get<picojson::array>();
+    if (!callback->isError()) {
+        obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
+        obj[JSON_DATA] = picojson::value(picojson::array());
+        picojson::array &arr = obj[JSON_DATA].get<picojson::array>();
 
-            ArchiveFileEntryPtrMapPtr entries = callback->getEntries();
-            for(auto it = entries->begin(); it != entries->end(); it++) {
-                picojson::value val = picojson::value(picojson::object());
-                picojson::object& obj = val.get<picojson::object>();
+        ArchiveFileEntryPtrMapPtr entries = callback->getEntries();
+        for(auto it = entries->begin(); it != entries->end(); it++) {
+            picojson::value val = picojson::value(picojson::object());
+            picojson::object& obj = val.get<picojson::object>();
 
-                obj[ARCHIVE_FILE_ENTRY_ATTR_NAME] = picojson::value(
-                        it->second->getName());
-                obj[ARCHIVE_FILE_ENTRY_ATTR_SIZE] = picojson::value(
-                        static_cast<double>(it->second->getSize()));
-                obj[ARCHIVE_FILE_ENTRY_ATTR_MODIFIED] = picojson::value(
-                        static_cast<double>(it->second->getModified()));
-                obj[ARCHIVE_FILE_ENTRY_ATTR_COMPRESSED_SIZE] = picojson::value(
-                        static_cast<double>(it->second->getCompressedSize()));
-                obj[ARCHIVE_FILE_HANDLE] = picojson::value(
-                        static_cast<double>(callback->getHandle()));
+            obj[ARCHIVE_FILE_ENTRY_ATTR_NAME] = picojson::value(
+                    it->second->getName());
+            obj[ARCHIVE_FILE_ENTRY_ATTR_SIZE] = picojson::value(
+                    static_cast<double>(it->second->getSize()));
+            obj[ARCHIVE_FILE_ENTRY_ATTR_MODIFIED] = picojson::value(
+                    static_cast<double>(it->second->getModified()));
+            obj[ARCHIVE_FILE_ENTRY_ATTR_COMPRESSED_SIZE] = picojson::value(
+                    static_cast<double>(it->second->getCompressedSize()));
+            obj[ARCHIVE_FILE_HANDLE] = picojson::value(
+                    static_cast<double>(callback->getHandle()));
 
-                arr.push_back(val);
-            }
-        } else {
-            obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_ERROR);
-            obj[JSON_DATA] = picojson::value(picojson::object());
-            picojson::object& args = obj[JSON_DATA].get<picojson::object>();
-
-            args[ERROR_CALLBACK_NAME] = picojson::value(callback->getErrorName());
-            args[ERROR_CALLBACK_MESSAGE] = picojson::value(callback->getErrorMessage());
+            arr.push_back(val);
         }
+    } else {
+        obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_ERROR);
+        obj[JSON_DATA] = picojson::value(picojson::object());
+        picojson::object& args = obj[JSON_DATA].get<picojson::object>();
 
-        LoggerD("%s", val.serialize().c_str());
+        args[ERROR_CALLBACK_CODE] = picojson::value(static_cast<double>(callback->getErrorCode()));
+        args[ERROR_CALLBACK_MESSAGE] = picojson::value(callback->getErrorMessage());
+    }
 
-        ArchiveInstance::getInstance().PostMessage(val.serialize().c_str());
-    }
-    catch (const PlatformException& ex) {
-        LoggerE("%s (%s)", ex.name().c_str(), ex.message().c_str());
-    }
-    catch (...) {
-        LoggerE("Unknown error occured");
-    }
+    LoggerD("%s", val.serialize().c_str());
+
+    ArchiveInstance::getInstance().PostMessage(val.serialize().c_str());
 
     delete callback;
     callback = NULL;
@@ -410,25 +398,28 @@ gboolean ArchiveFile::getEntriesTaskCompleteCB(void *data)
     return false;
 }
 
-void ArchiveFile::extractAll(ExtractAllProgressCallback *callback)
+PlatformResult ArchiveFile::extractAll(ExtractAllProgressCallback *callback)
 {
     LoggerD("Entered");
     if(!callback) {
         LoggerE("callback is NULL");
-        throw UnknownException("Could not extract all files from archive");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not extract all files from archive");
     }
 
-    throwInvalidStateErrorIfArchiveFileIsClosed();
+    if(!m_is_open){
+        LoggerE("ArchiveFile closed - operation not permitted");
+        return PlatformResult(ErrorCode::INVALID_STATE_ERR, "ArchiveFile closed - operation not permitted");
+    }
 
-    addOperation(callback);
+    return addOperation(callback);
 }
 
-void ArchiveFile::extractEntryTo(ExtractEntryProgressCallback* callback)
+PlatformResult ArchiveFile::extractEntryTo(ExtractEntryProgressCallback* callback)
 {
     LoggerD("Entered");
     if(!callback) {
         LoggerE("callback is NULL");
-        throw UnknownException("Could not extract archive file entry");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not extract archive file entry");
     }
 
     // FIXME according to documentation:
@@ -436,31 +427,33 @@ void ArchiveFile::extractEntryTo(ExtractEntryProgressCallback* callback)
     // but method extract() from ArchiveFileEntryObject is not permitted to throw above exception
 
     // uncomment in case when this method have permission to throwing InvalidStateError
-    // throwInvalidStateErrorIfArchiveFileisClosed();
     if(!m_is_open) {
         LoggerE("Archive is not opened");
-        throw UnknownException("Archive is not opened");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Archive is not opened");
     }
 
-    addOperation(callback);
+    return addOperation(callback);
 }
 
 
-void ArchiveFile::add(AddProgressCallback *callback)
+PlatformResult ArchiveFile::add(AddProgressCallback *callback)
 {
     LoggerD("Entered");
     if(!callback) {
         LoggerE("callback is NULL");
-        throw UnknownException("Could not add file to archive");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not add file to archive");
     }
     if(FileMode::READ == m_file_mode) {
         LoggerE("Trying to add file when READ access mode selected");
-        throw InvalidAccessException("Add not allowed for \"r\" access mode");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Add not allowed for \"r\" access mode");
     }
 
-    throwInvalidStateErrorIfArchiveFileIsClosed();
+    if(!m_is_open){
+        LoggerE("ArchiveFile closed - operation not permitted");
+        return PlatformResult(ErrorCode::INVALID_STATE_ERR, "ArchiveFile closed - operation not permitted");
+    }
 
-    addOperation(callback);
+    return addOperation(callback);
 }
 
 void ArchiveFile::close()
@@ -475,17 +468,20 @@ void ArchiveFile::close()
     return;
 }
 
-void ArchiveFile::getEntryByName(GetEntryByNameCallbackData* callback)
+PlatformResult ArchiveFile::getEntryByName(GetEntryByNameCallbackData* callback)
 {
     LoggerD("Entered");
     if(!callback) {
         LoggerE("callback is NULL");
-        throw UnknownException("Could not get archive file entries by name");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not get archive file entries by name");
     }
 
-    throwInvalidStateErrorIfArchiveFileIsClosed();
+    if(!m_is_open){
+        LoggerE("ArchiveFile closed - operation not permitted");
+        return PlatformResult(ErrorCode::INVALID_STATE_ERR, "ArchiveFile closed - operation not permitted");
+    }
 
-    addOperation(callback);
+    return addOperation(callback);
 }
 
 gboolean ArchiveFile::getEntryByNameTaskCompleteCB(void *data)
@@ -498,44 +494,36 @@ gboolean ArchiveFile::getEntryByNameTaskCompleteCB(void *data)
         return false;
     }
 
-    try {
-        picojson::value val = picojson::value(picojson::object());
-        picojson::object& obj = val.get<picojson::object>();
-        obj[JSON_CALLBACK_ID] = picojson::value(callback->getCallbackId());
-        obj[JSON_DATA] = picojson::value(picojson::object());
-        picojson::object& args = obj[JSON_DATA].get<picojson::object>();
+    picojson::value val = picojson::value(picojson::object());
+    picojson::object& obj = val.get<picojson::object>();
+    obj[JSON_CALLBACK_ID] = picojson::value(callback->getCallbackId());
+    obj[JSON_DATA] = picojson::value(picojson::object());
+    picojson::object& args = obj[JSON_DATA].get<picojson::object>();
 
-        if (!callback->isError()) {
-            obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
+    if (!callback->isError()) {
+        obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
 
-            ArchiveFileEntryPtr ent = callback->getFileEntry();
+        ArchiveFileEntryPtr ent = callback->getFileEntry();
 
-            args[ARCHIVE_FILE_ENTRY_ATTR_NAME] = picojson::value(ent->getName());
-            args[ARCHIVE_FILE_ENTRY_ATTR_SIZE] = picojson::value(
-                    static_cast<double>(ent->getSize()));
-            args[ARCHIVE_FILE_ENTRY_ATTR_MODIFIED] = picojson::value(
-                    static_cast<double>(ent->getModified()));
-            args[ARCHIVE_FILE_ENTRY_ATTR_COMPRESSED_SIZE] = picojson::value(
-                    static_cast<double>(ent->getCompressedSize()));
-            args[ARCHIVE_FILE_HANDLE] = picojson::value(
-                    static_cast<double>(callback->getHandle()));
-        } else {
-            obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_ERROR);
+        args[ARCHIVE_FILE_ENTRY_ATTR_NAME] = picojson::value(ent->getName());
+        args[ARCHIVE_FILE_ENTRY_ATTR_SIZE] = picojson::value(
+                static_cast<double>(ent->getSize()));
+        args[ARCHIVE_FILE_ENTRY_ATTR_MODIFIED] = picojson::value(
+                static_cast<double>(ent->getModified()));
+        args[ARCHIVE_FILE_ENTRY_ATTR_COMPRESSED_SIZE] = picojson::value(
+                static_cast<double>(ent->getCompressedSize()));
+        args[ARCHIVE_FILE_HANDLE] = picojson::value(
+                static_cast<double>(callback->getHandle()));
+    } else {
+        obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_ERROR);
 
-            args[ERROR_CALLBACK_NAME] = picojson::value(callback->getErrorName());
-            args[ERROR_CALLBACK_MESSAGE] = picojson::value(callback->getErrorMessage());
-        }
-
-        LoggerD("%s", val.serialize().c_str());
-
-        ArchiveInstance::getInstance().PostMessage(val.serialize().c_str());
+        args[ERROR_CALLBACK_CODE] = picojson::value(static_cast<double>(callback->getErrorCode()));
+        args[ERROR_CALLBACK_MESSAGE] = picojson::value(callback->getErrorMessage());
     }
-    catch (const PlatformException& ex) {
-        LoggerE("%s (%s)", ex.name().c_str(), ex.message().c_str());
-    }
-    catch (...) {
-        LoggerE("Unknown error occured");
-    }
+
+    LoggerD("%s", val.serialize().c_str());
+
+    ArchiveInstance::getInstance().PostMessage(val.serialize().c_str());
 
     delete callback;
     callback = NULL;
@@ -619,51 +607,48 @@ void ArchiveFile::setEntryMap(ArchiveFileEntryPtrMapPtr entries)
     }
 }
 
-UnZipPtr ArchiveFile::createUnZipObject()
+PlatformResult ArchiveFile::createUnZipObject(UnZipPtr* unzip)
 {
     LoggerD("Entered");
     if(!m_is_open) {
         LoggerE("File is not opened");
-        throw UnknownException("File is not opened");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR, "File is not opened");
     }
 
     if (!m_file) {
         LoggerE("m_file is null");
-        throw UnknownException("File is null");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR, "File is null");
     }
 
     filesystem::NodePtr node = m_file->getNode();
     if(!node) {
         LoggerE("Node is null");
-        throw UnknownException("Node is null");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR, "File is null");
     }
 
-    UnZipPtr unzip = UnZip::open(m_file->getNode()->getPath()->getFullPath());
-    return unzip;
+    return UnZip::open(m_file->getNode()->getPath()->getFullPath(), unzip);
 }
 
-ZipPtr ArchiveFile::createZipObject()
+PlatformResult ArchiveFile::createZipObject(ZipPtr* zip)
 {
     LoggerD("Entered");
     if(!m_is_open) {
         LoggerE("File is not opened");
-        throw UnknownException("File is not opened");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR, "File is not opened");
     }
 
     if (!m_file) {
         LoggerE("m_file is null");
-        throw UnknownException("File is null");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR, "File is null");
     }
 
     filesystem::NodePtr node = m_file->getNode();
     if(!node) {
         LoggerE("Node is null");
-        throw UnknownException("Node is null");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Node is null");
     }
 
-    ZipPtr zip = Zip::open(m_file->getNode()->getPath()->getFullPath());
-    return zip;
-
+    return Zip::open(m_file->getNode()->getPath()->getFullPath(), zip);
 }
 
 bool ArchiveFile::isAllowedOperation(const std::string& method_name)
@@ -688,15 +673,6 @@ void ArchiveFile::setFileMode(FileMode file_mode)
     m_file_mode = file_mode;
 }
 
-void ArchiveFile::throwInvalidStateErrorIfArchiveFileIsClosed() const
-{
-    if(!m_is_open){
-        LoggerE("ArchiveFile closed - operation not permitted");
-        throw InvalidStateException(
-            "ArchiveFile closed - operation not permitted");
-    }
-}
-
 void ArchiveFile::setCreatedAsNewEmptyArchive(bool new_and_empty)
 {
     m_created_as_new_empty_archive = new_and_empty;
@@ -707,31 +683,48 @@ bool ArchiveFile::isCreatedAsNewEmptyArchive() const
     return m_created_as_new_empty_archive;
 }
 
-void ArchiveFile::updateListOfEntries()
+PlatformResult ArchiveFile::updateListOfEntries()
 {
     // For explanation please see:
     //    ArchiveFile.h m_created_as_new_empty_archive description
     //
-    if(m_file->getNode()->getSize() == 0) {
+    unsigned long long size = 0;
+    PlatformResult result = m_file->getNode()->getSize(&size);
+    if (result.error_code() != ErrorCode::NO_ERROR) {
+      return result;
+    }
+
+    if(size == 0) {
         LoggerD("Zip file: %s is empty",
                 m_file->getNode()->getPath()->getFullPath().c_str());
 
         if(m_created_as_new_empty_archive) {
             LoggerD("OK this is empty archive = nothing to do yet");
-            return;
+            return PlatformResult(ErrorCode::NO_ERROR);
         }
         else {
             LoggerW("m_created_as_new_empty_archive is false");
             LoggerE("Throwing InvalidStateException: File is not valid ZIP archive");
-            throw InvalidStateException("File is not valid ZIP archive");
+            return PlatformResult(ErrorCode::INVALID_STATE_ERR, "File is not valid ZIP archive");
         }
     }
 
-    UnZipPtr unzip = createUnZipObject();
+    UnZipPtr unzip;
+    result = createUnZipObject(&unzip);
+    if (result.error_code() != ErrorCode::NO_ERROR) {
+      return result;
+    }
+
     unsigned long decompressedSize = 0;
-    ArchiveFileEntryPtrMapPtr emap = unzip->listEntries(&decompressedSize);
+    ArchiveFileEntryPtrMapPtr emap;
+    result = unzip->listEntries(&decompressedSize, &emap);
+    if (result.error_code() != ErrorCode::NO_ERROR) {
+      return result;
+    }
+
     setEntryMap(emap);
     setDecompressedSize(decompressedSize);
+    return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 bool ArchiveFile::isEntryWithNameInArchive(const std::string& name_in_zip,

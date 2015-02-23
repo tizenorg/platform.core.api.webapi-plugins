@@ -21,9 +21,9 @@
 #include <memory>
 #include <string>
 #include <queue>
-
 #include <unzip.h>
 
+#include "common/platform_result.h"
 #include "archive_callback_data.h"
 #include "archive_file_entry.h"
 
@@ -40,21 +40,21 @@ typedef std::shared_ptr<UnZip> UnZipPtr;
 class UnZip
 {
 public:
-    static UnZipPtr open(const std::string& filename);
+    static PlatformResult open(const std::string& filename, UnZipPtr* out_unzip);
     ~UnZip();
 
-    ArchiveFileEntryPtrMapPtr listEntries(unsigned long *decompressedSize);
+    PlatformResult listEntries(unsigned long *decompressedSize, ArchiveFileEntryPtrMapPtr* out_map);
 
     /**
      * \brief Extract all files to output directory
      * \param callback which keep pointer to ArchiveFile.
      */
-    void extractAllFilesTo(const std::string& extract_path,
+    PlatformResult extractAllFilesTo(const std::string& extract_path,
             ExtractAllProgressCallback* callback);
 
-    void extractTo(ExtractEntryProgressCallback* callback);
+    PlatformResult extractTo(ExtractEntryProgressCallback* callback);
 
-    void close();
+    PlatformResult close();
 
 private:
     UnZip(const std::string& filename);
@@ -63,25 +63,26 @@ private:
      * \brief Extract current file (iterated with minizip library)
      * \param callback which keep pointer to ArchiveFile.
      */
-    void extractCurrentFile(const std::string& extract_path,
+    PlatformResult extractCurrentFile(const std::string& extract_path,
             const std::string& base_strip_path,
             BaseProgressCallback* callback);
 
-    static void extractItFunction(const std::string& file_name,
+    static PlatformResult extractItFunction(const std::string& file_name,
             unz_file_info& file_info,
             void* user_data);
 
-    typedef void (*IterateFunction) (const std::string& file_name,
+    typedef PlatformResult (*IterateFunction) (const std::string& file_name,
             unz_file_info& file_info,
             void* user_data);
 
-    unsigned int IterateFilesInZip(unz_global_info& gi,
+    PlatformResult IterateFilesInZip(unz_global_info& gi,
             const std::string& entry_name_in_zip,
             OperationCallbackData* callback,
             IterateFunction itfunc,
+            unsigned int& num_file_or_folder_matched, 
             void* user_data);
 
-    void updateCallbackWithArchiveStatistics(ExtractAllProgressCallback* callback,
+    PlatformResult updateCallbackWithArchiveStatistics(ExtractAllProgressCallback* callback,
             unz_global_info& out_global_info,
             const std::string optional_filter = std::string());
 

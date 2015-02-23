@@ -33,6 +33,8 @@
 #include <ctime>
 #include <map>
 
+#include "common/platform_result.h"
+
 namespace extension {
 namespace filesystem {
 
@@ -137,8 +139,10 @@ public:
     //!
     //! This function creates Node wich represent folder or file
     //! in file system.
-    //! @return Node smart pointer
-    static NodePtr resolve(const PathPtr& path);
+    //! @param path virtual path in filesystem
+    //! @param node output pointer
+    //! @return a platform result
+    static common::PlatformResult resolve(const PathPtr& path, NodePtr* node);
     //! \brief Checks if path can be accessed
     //!
     //! Function opens path and base at reqested mode and type verifies access
@@ -151,10 +155,12 @@ public:
     //! @param path virtual path in filesystem
     //! @param mode access mode: "r", "rw"
     //! @param type folder or file
-    //! @return true if access is granted, false if not
-    bool checkPermission(const PathPtr& path,
-                         const std::string& mode,
-                         NodeType type);
+    //! @param granted true if access is granted, false if not
+    //! @return a platform result
+    common::PlatformResult checkPermission(const PathPtr& path,
+                                   const std::string& mode,
+                                   NodeType type,
+                                   bool* granted);
     //! \brief Gets path of current node.
     //! @return Node's path.
     PathPtr getPath() const;
@@ -168,75 +174,81 @@ public:
     //! @param perms Node's permissions @see Api::Filesystem::Permissions.
     void setPermissions(int perms);
     //! \brief Gets size of this node.
-    //! @return Size.
-    unsigned long long getSize() const;
+    //! @param size output size of a file.
+    //! @return a platform result.
+    common::PlatformResult getSize(unsigned long long* size) const;
     //! \brief Gets creation date of this node.
-    //! @return Date.
-    std::time_t getCreated() const;
+    //! @param time output date.
+    //! @return a platform result.
+    common::PlatformResult getCreated(std::time_t* time) const;
     //! \brief Gets last modification date of this node.
-    //! @return Date.
-    std::time_t getModified() const;
+    //! @param time output date.
+    //! @return a platform result.
+    common::PlatformResult getModified(std::time_t* time) const;
     //! \brief Gets parent of this node.
-    //! @return Parent node or NULL if no parent (e.g. in case of a root node).
-    NodePtr getParent() const;
+    //! @param node the output node pointer or NULL if no parent (e.g. in case of a root node).
+    //! @return a platform result
+    common::PlatformResult getParent(NodePtr* node) const;
     //! \brief Gets platform permissions.
-    //! @return Platform permissions (set of flags from @see Permissions enum).
-    int getMode() const;
+    //! @param mode output Platform permissions (set of flags from @see Permissions enum).
+    //! @return a platform result
+    common::PlatformResult getMode(int* mode) const;
     //! \brief Gets direct child of this node.
     //! @param path Path to the child node.
-    //! @return Ptr to the child node.
+    //! @param output Ptr to the child node.
+    //! @return a platform result
     //! @remarks Ownership passed to the caller.
-    NodePtr getChild(const PathPtr& path);
+    common::PlatformResult getChild(const PathPtr& path, NodePtr* node);
     //! \brief Gets list of names of direct child nodes.
-    //! @return Names of child nodes.
-    NameList getChildNames() const;
+    //! @param out_name_list the pointer to the list of nodes
+    //! @return a platform result
+    common::PlatformResult getChildNames(NameList* out_name_list) const;
     //! \brief Gets list of direct child nodes.
-    //! @return Child nodes.
+    //! @param out_node_list the pointer to the list of nodes
+    //! @return a platform result
     //! @remarks Ownership passed to the caller.
     //! @deprecated
-    NodeList getChildNodes() const;
+    common::PlatformResult getChildNodes(NodeList* out_node_list) const;
     //! \brief Creates child of current node.
     //! @param path Path to the node to create.
     //! @param type Type of the node @see Api::Filesystem::NodeType.
+    //! @param node of the created file or directory
     //! @param options Additional options see remarks (no options by default).
     //! @return Ptr to newly created node.
     //! @remarks
     //! Valid options:
     //! - OPT_RECURSIVE - attempt to create all necessary sub-directories
-    NodePtr createChild(
+    common::PlatformResult createChild(
         const PathPtr& path,
         NodeType,
+        NodePtr* node,
         int options = OPT_NONE);
     //! \brief Removes underlying filesystem node.
     //! @param options Removal options (by default removal is recursive).
+    //! @return a platform result
     //! @remarks Synchronous.
     //! Valid options:
     //! - OPT_RECURSIVE - remove node recursively.
-    void remove(int options);
+    common::PlatformResult remove(int options);
 
     std::string toUri(int widgetId) const;
 
-    bool isSubPath(PathPtr aPath) const;
     static bool isSubPath(std::string aDirPath, PathPtr aFilePath);
 
 private:
-    static bool exists(const PathPtr& path);
-    static struct stat stat(const PathPtr& path);
+    static common::PlatformResult exists(const PathPtr& path, bool* existed);
+    static common::PlatformResult stat(const PathPtr& path, struct stat* out_info);
 
-    Node(const PathPtr& path,
-         NodeType type);
+    Node(const PathPtr& path, NodeType type);
 
-    NodePtr createAsFile(const PathPtr& path,
-                         int options);
-    void createAsFileInternal(const PathPtr& path);
+    common::PlatformResult createAsFile(const PathPtr& path, NodePtr* node, int options);
+    common::PlatformResult createAsFileInternal(const PathPtr& path);
 
-    NodePtr createAsDirectory(const PathPtr& path,
-                              int options);
-    void createAsDirectoryInternal(const PathPtr& path);
+    common::PlatformResult createAsDirectory(const PathPtr& path, NodePtr* node, int options);
+    common::PlatformResult createAsDirectoryInternal(const PathPtr& path);
 
-    void removeAsFile(const PathPtr& path);
-    void removeAsDirectory(const PathPtr& path,
-                           bool recursive);
+    common::PlatformResult removeAsFile(const PathPtr& path);
+    common::PlatformResult removeAsDirectory(const PathPtr& path, bool recursive);
 
     PathPtr m_path;
     NodeType m_type;

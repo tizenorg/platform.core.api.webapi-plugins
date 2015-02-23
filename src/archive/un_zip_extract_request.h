@@ -34,7 +34,7 @@ enum FilePathStatus {
 class UnZipExtractRequest
 {
 public:
-    static void execute(UnZip& owner,
+    static PlatformResult execute(UnZip& owner,
             const std::string& extract_path,
             const std::string& base_strip_path,
             BaseProgressCallback* callback);
@@ -46,14 +46,11 @@ private:
             const std::string& extract_path,
             const std::string& base_strip_path,
             BaseProgressCallback* callback);
-    void run();
-
-    void getCurrentFileInfo();
-
-    void handleDirectoryEntry();
-
-    void handleFileEntry();
-    bool prepareOutputSubdirectory();
+    PlatformResult run();
+    PlatformResult getCurrentFileInfo();
+    PlatformResult handleDirectoryEntry();
+    PlatformResult handleFileEntry();
+    PlatformResult prepareOutputSubdirectory();
 
     //-----------------------------------------------------------------------------
     //Input request variables

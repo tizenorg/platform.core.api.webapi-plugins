@@ -7,6 +7,7 @@
 
 #include "common/extension.h"
 #include "common/platform_exception.h"
+#include "common/platform_result.h"
 
 namespace extension {
 namespace archive {
@@ -39,6 +40,7 @@ private:
     void GetWidgetPaths(const picojson::value& args, picojson::object& out);
 
     void PostError(const common::PlatformException& e, double callback_id);
+    void PostError(const common::PlatformResult& e, double callback_id);
 };
 
 } // namespace archive

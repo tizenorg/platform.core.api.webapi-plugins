@@ -15,9 +15,7 @@
 // limitations under the License.
 //
 #include "filesystem_file.h"
-
 #include "common/logger.h"
-#include "common/platform_exception.h"
 
 using namespace common;
 

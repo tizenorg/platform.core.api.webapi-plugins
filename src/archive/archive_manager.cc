@@ -15,9 +15,7 @@
 // limitations under the License.
 //
 #include "archive_manager.h"
-
 #include <mutex>
-
 #include "common/logger.h"
 #include "filesystem_file.h"
 
@@ -83,13 +81,14 @@ long ArchiveManager::addPrivData(ArchiveFilePtr archive_file_ptr)
     return handle;
 }
 
-ArchiveFilePtr ArchiveManager::getPrivData(long handle)
+PlatformResult ArchiveManager::getPrivData(long handle, ArchiveFilePtr* archive_file)
 {
     ArchiveFileMap::iterator it = m_priv_map.find(handle);
     if (it != m_priv_map.end()) {
-        return it->second;
+        *archive_file = it->second;
+        return PlatformResult(ErrorCode::NO_ERROR);
     }
-    throw UnknownException("Priv is null");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Priv is null");
 }
 
 long ArchiveManager::open(OpenCallbackData* callback)

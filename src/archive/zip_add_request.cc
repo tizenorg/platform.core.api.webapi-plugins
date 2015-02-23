@@ -16,10 +16,7 @@
 //
 
 #include "zip_add_request.h"
-
 #include "common/logger.h"
-#include "common/platform_exception.h"
-
 #include "archive_file.h"
 #include "archive_file_entry.h"
 #include "archive_utils.h"
@@ -63,27 +60,27 @@ ZipAddRequest::~ZipAddRequest()
     }
 }
 
-void ZipAddRequest::execute(Zip& owner, AddProgressCallback*& callback)
+PlatformResult ZipAddRequest::execute(Zip& owner, AddProgressCallback*& callback)
 {
     ZipAddRequest req(owner, callback);
-    req.run();
+    return req.run();
 }
 
-void ZipAddRequest::run()
+PlatformResult ZipAddRequest::run()
 {
     if(!m_callback) {
         LoggerE("m_callback is NULL");
-        throw UnknownException("Could not add file(-s) to archive");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not add file(-s) to archive");
     }
 
     if(!m_callback->getFileEntry()) {
         LoggerE("m_callback->getFileEntry() is NULL");
-        throw InvalidValuesException("Provided ArchiveFileEntry is not correct");
+        return PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Provided ArchiveFileEntry is not correct");
     }
 
     if(m_callback->isCanceled()) {
         LoggerD("Operation cancelled");
-        throw OperationCanceledException();
+        return PlatformResult(ErrorCode::OPERATION_CANCELED_ERR);
     }
 
     m_compression_level = m_callback->getFileEntry()->getCompressionLevel();
@@ -107,20 +104,24 @@ void ZipAddRequest::run()
     // If we have destination set then we need to create all folders and sub folders
     // inside this zip archive.
     //
+    PlatformResult result(ErrorCode::NO_ERROR);
     if(m_destination_path_in_zip.length() > 0) {
         LoggerD("destination is: [%s]", m_destination_path_in_zip.c_str());
 
         for(size_t i = 0; i < m_destination_path_in_zip.length(); ++i) {
             const char cur_char = m_destination_path_in_zip[i];
 
-            if( ((cur_char == '/' || cur_char == '\\') && i > 0 ) ||
+            if(((cur_char == '/' || cur_char == '\\') && i > 0 ) ||
                 (i == m_destination_path_in_zip.length() - 1)) {
 
                 //Extract left side with '/':
                 const std::string new_dir = m_destination_path_in_zip.substr(0, i + 1);
 
                 LoggerD("Adding empty directory: [%s] to archive", new_dir.c_str());
-                addEmptyDirectoryToZipArchive(new_dir);
+                result = addEmptyDirectoryToZipArchive(new_dir);
+                if (result.error_code() != ErrorCode::NO_ERROR) {
+                    return result;
+                }
             }
         }
     }
@@ -132,7 +133,7 @@ void ZipAddRequest::run()
 
     if(m_callback->isCanceled()) {
         LoggerD("Operation cancelled");
-        throw OperationCanceledException();
+        return PlatformResult(ErrorCode::OPERATION_CANCELED_ERR);
     }
 
     // Calculate total size to be compressed
@@ -145,7 +146,10 @@ void ZipAddRequest::run()
 
         unsigned long long size = 0;
         if((*it)->getType() == filesystem::NT_FILE) {
-            size = (*it)->getSize();
+            result = (*it)->getSize(&size);
+            if (result.error_code() != ErrorCode::NO_ERROR) {
+                return result;
+            }
             m_bytes_to_compress += size;
             ++m_files_to_compress;
         }
@@ -161,17 +165,22 @@ void ZipAddRequest::run()
 
     if(m_callback->isCanceled()) {
         LoggerD("Operation cancelled");
-        throw OperationCanceledException();
+        return PlatformResult(ErrorCode::OPERATION_CANCELED_ERR);
     }
 
     // Begin files compression
     //
     for(auto it = all_sub_nodes.begin(); it != all_sub_nodes.end(); ++it, ++i) {
-            addToZipArchive(*it);
+        result = addToZipArchive(*it);
+        if (result.error_code() != ErrorCode::NO_ERROR) {
+            return result;
+        }
     }
 
     m_callback->callSuccessCallbackOnMainThread();
     m_callback = NULL;
+
+    return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 void ZipAddRequest::addNodeAndSubdirsToList(filesystem::NodePtr src_node,
@@ -188,19 +197,19 @@ void ZipAddRequest::addNodeAndSubdirsToList(filesystem::NodePtr src_node,
     }
 }
 
-void ZipAddRequest::addEmptyDirectoryToZipArchive(std::string name_in_zip)
+PlatformResult ZipAddRequest::addEmptyDirectoryToZipArchive(std::string name_in_zip)
 {
     LoggerD("Entered name_in_zip:%s", name_in_zip.c_str());
 
     if(name_in_zip.length() == 0) {
         LoggerW("Trying to create directory with empty name - \"\"");
-        return;
+        return PlatformResult(ErrorCode::NO_ERROR);
     }
 
     const char last_char = name_in_zip[name_in_zip.length()-1];
     if(last_char != '/' && last_char != '\\') {
-            name_in_zip += "/";
-            LoggerD("Corrected name_in_zip: [%s]", name_in_zip.c_str());
+        name_in_zip += "/";
+        LoggerD("Corrected name_in_zip: [%s]", name_in_zip.c_str());
     }
 
     if(m_new_file_in_zip_opened) {
@@ -221,16 +230,16 @@ void ZipAddRequest::addEmptyDirectoryToZipArchive(std::string name_in_zip)
             LoggerE("Entry: [%s] exists and is NOT directory!", conflicting_name.c_str());
 
             LoggerE("Throwing InvalidValuesException - File with the same name exists");
-            throw InvalidValuesException("File with the same name exists");
+            return PlatformResult(ErrorCode::INVALID_VALUES_ERR, "File with the same name exists");
         }
 
         LoggerD("Directory: [%s] already exists -> nothing to do", name_in_zip.c_str());
-            return;
+        return PlatformResult(ErrorCode::NO_ERROR);
     }
 
     if(m_callback->isCanceled()) {
         LoggerD("Operation cancelled");
-        throw OperationCanceledException();
+        return PlatformResult(ErrorCode::OPERATION_CANCELED_ERR);
     }
 
     zip_fileinfo new_dir_info;
@@ -259,7 +268,7 @@ void ZipAddRequest::addEmptyDirectoryToZipArchive(std::string name_in_zip)
 
     if (err != ZIP_OK) {
         LoggerE("ret: %d", err);
-        throwArchiveException(err, "zipOpenNewFileInZip3()");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR, getArchiveLogMessage(err, "zipOpenNewFileInZip3()"));
     }
 
     m_new_file_in_zip_opened = true;
@@ -271,9 +280,11 @@ void ZipAddRequest::addEmptyDirectoryToZipArchive(std::string name_in_zip)
 
     LoggerD("Added new empty directory to archive: [%s]", name_in_zip.c_str());
     m_new_file_in_zip_opened = false;
+
+    return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void ZipAddRequest::addToZipArchive(filesystem::NodePtr src_file_node)
+PlatformResult ZipAddRequest::addToZipArchive(filesystem::NodePtr src_file_node)
 {
     const std::string name_in_zip = getNameInZipArchiveFor(src_file_node,
             m_callback->getFileEntry()->getStriped());
@@ -295,7 +306,7 @@ void ZipAddRequest::addToZipArchive(filesystem::NodePtr src_file_node)
 
     if(m_callback->isCanceled()) {
         LoggerD("Operation cancelled");
-        throw OperationCanceledException();
+        return PlatformResult(ErrorCode::OPERATION_CANCELED_ERR);
     }
 
     std::string conflicting_name;
@@ -307,7 +318,7 @@ void ZipAddRequest::addToZipArchive(filesystem::NodePtr src_file_node)
                 name_in_zip.c_str(), conflicting_name.c_str());
 
         LoggerE("Throwing InvalidModificationException - Archive entry name conflicts");
-        throw InvalidModificationException("Archive entry name conflicts");
+        return PlatformResult(ErrorCode::INVALID_MODIFICATION_ERR, "Archive entry name conflicts");
     }
 
     int err = zipOpenNewFileInZip3(m_owner.m_zip, name_in_zip.c_str(), &new_file_info,
@@ -319,7 +330,7 @@ void ZipAddRequest::addToZipArchive(filesystem::NodePtr src_file_node)
 
     if (err != ZIP_OK) {
         LoggerE("Error opening new file: [%s] in zipfile", name_in_zip.c_str());
-        throw UnknownException("Could not add new file to zip archive");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not add new file to zip archive");
     }
 
     m_new_file_in_zip_opened = true;
@@ -335,7 +346,13 @@ void ZipAddRequest::addToZipArchive(filesystem::NodePtr src_file_node)
     ArchiveFileEntryPtr cur_afentry(new ArchiveFileEntry(cur_file));
     cur_afentry->setCompressionLevel(m_compression_level);
     cur_afentry->setName(name_in_zip);
-    cur_afentry->setModified(src_file_node->getModified());
+
+    std::time_t time;
+    PlatformResult result = src_file_node->getModified(&time);
+    if (result.error_code() != ErrorCode::NO_ERROR) {
+        return result;
+    }
+    cur_afentry->setModified(time);
 
     auto entry = m_callback->getFileEntry();
     cur_afentry->setDestination(entry->getDestination());
@@ -352,7 +369,7 @@ void ZipAddRequest::addToZipArchive(filesystem::NodePtr src_file_node)
         m_input_file = fopen(src_file_path.c_str(), "rb");
         if (!m_input_file) {
             LoggerE("Error opening source file:%s", src_file_path.c_str());
-            throw UnknownException("Could not open file to be added");
+            return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not open file to be added");
         }
 
         //Get file length
@@ -369,7 +386,7 @@ void ZipAddRequest::addToZipArchive(filesystem::NodePtr src_file_node)
             m_buffer = new(std::nothrow) char[m_buffer_size];
             if(!m_buffer) {
                 LoggerE("Couldn't allocate m_buffer");
-                throw UnknownException("Memory allocation error");
+                return PlatformResult(ErrorCode::UNKNOWN_ERR, "Memory allocation error");
             }
         }
 
@@ -381,7 +398,7 @@ void ZipAddRequest::addToZipArchive(filesystem::NodePtr src_file_node)
             if (size_read < m_buffer_size &&
                         feof(m_input_file) == 0) {
                 LoggerE("Error reading source file: %s\n", src_file_path.c_str());
-                throw UnknownException("New file addition failed");
+                return PlatformResult(ErrorCode::UNKNOWN_ERR, "New file addition failed");
             }
 
             LoggerD("Read: %d bytes from input file:[%s]", size_read,
@@ -394,7 +411,7 @@ void ZipAddRequest::addToZipArchive(filesystem::NodePtr src_file_node)
                 if (err < 0) {
                     LoggerE("Error during adding file: %s into zip archive",
                             src_file_path.c_str());
-                    throw UnknownException("New file addition failed");
+                    return PlatformResult(ErrorCode::UNKNOWN_ERR, "New file addition failed");
                 }
             }
 
@@ -430,7 +447,7 @@ void ZipAddRequest::addToZipArchive(filesystem::NodePtr src_file_node)
         if(in_file_size != total_bytes_read) {
             LoggerE("in_file_size(%d) != total_bytes_read(%d)", in_file_size,
                     total_bytes_read);
-            throw UnknownException("Could not add file to archive");
+            return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not add file to archive");
         }
 
         fclose(m_input_file);
@@ -443,6 +460,8 @@ void ZipAddRequest::addToZipArchive(filesystem::NodePtr src_file_node)
     }
 
     m_new_file_in_zip_opened = false;
+
+    return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 std::string removeDirCharsFromFront(const std::string& path)

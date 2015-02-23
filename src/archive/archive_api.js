@@ -212,7 +212,7 @@ function ArchiveFileEntry(data, priv) {
                 if (args.onerror) {
                     args.onerror.call(
                         null,
-                        new tizen.WebAPIException(e.code, e.message, e.name)
+                        new tizen.WebAPIException(e)
                     );
                 }
             },
@@ -307,7 +307,7 @@ function ArchiveFile(data) {
                 if (args.onerror) {
                     args.onerror.call(
                         null,
-                        new tizen.WebAPIException(e.code, e.message, e.name)
+                        new tizen.WebAPIException(e)
                     );
                 }
             },
@@ -362,7 +362,7 @@ function ArchiveFile(data) {
                 if (args.onerror) {
                     args.onerror.call(
                         null,
-                        new tizen.WebAPIException(e.code, e.message, e.name)
+                        new tizen.WebAPIException(e)
                     );
                 }
             },
@@ -410,7 +410,7 @@ function ArchiveFile(data) {
                 if (args.onerror) {
                     args.onerror.call(
                         null,
-                        new tizen.WebAPIException(e.code, e.message, e.name)
+                        new tizen.WebAPIException(e)
                     );
                 }
             }
@@ -446,7 +446,7 @@ function ArchiveFile(data) {
                 if (args.onerror) {
                     args.onerror.call(
                         null,
-                        new tizen.WebAPIException(e.code, e.message, e.name)
+                        new tizen.WebAPIException(e)
                     );
                 }
             }
@@ -518,7 +518,7 @@ ArchiveManager.prototype.open = function () {
             if (args.onerror) {
                 args.onerror.call(
                     null,
-                    new tizen.WebAPIException(e.code, e.message, e.name)
+                    new tizen.WebAPIException(e)
                 );
             }
         }

@@ -79,10 +79,10 @@ public:
     ArchiveFile(FileMode file_mode);
     virtual ~ArchiveFile();
 
-    void getEntries(GetEntriesCallbackData* callback);
-    void getEntryByName(GetEntryByNameCallbackData* callback);
-    void extractAll(ExtractAllProgressCallback *callback);
-    void add(AddProgressCallback *callback);
+    common::PlatformResult getEntries(GetEntriesCallbackData* callback);
+    common::PlatformResult getEntryByName(GetEntryByNameCallbackData* callback);
+    common::PlatformResult extractAll(ExtractAllProgressCallback *callback);
+    common::PlatformResult add(AddProgressCallback *callback);
     void close();
 
     filesystem::FilePtr getFile() const;
@@ -100,27 +100,20 @@ public:
             bool* out_is_directory = NULL,
             std::string* out_matching_name = NULL);
 
-
     //Used by ArchiveFileEntry
-    void extractEntryTo(ExtractEntryProgressCallback* callback);
+    common::PlatformResult extractEntryTo(ExtractEntryProgressCallback* callback);
 
     bool isAllowedOperation(const std::string& method_name);
     FileMode getFileMode() const;
     void setFileMode(FileMode file_mode);
 
-    /**
-     *  \brief Throw InvalidStateError in case when ArchiveFile is closed
-     */
-    void throwInvalidStateErrorIfArchiveFileIsClosed() const;
-
     void setCreatedAsNewEmptyArchive(bool new_and_empty);
     bool isCreatedAsNewEmptyArchive() const;
 
-
-    void updateListOfEntries();
+    PlatformResult updateListOfEntries();
 private:
-    UnZipPtr createUnZipObject();
-    ZipPtr createZipObject();
+    PlatformResult createUnZipObject(UnZipPtr* unzip);
+    PlatformResult createZipObject(ZipPtr* zip);
 
     std::deque<CallbackPair> m_task_queue;
     std::mutex m_mutex;
@@ -139,7 +132,6 @@ private:
     */
     bool m_overwrite;
     ArchiveFileEntryPtrMapPtr m_entry_map;
-
 
     /**
      * If we execute tizen.open(destFile , "w"/"rw"/ "a", ..., {overwrite: true}),
@@ -165,10 +157,10 @@ private:
     static gboolean getEntryByNameTaskCompleteCB(void *data);
 
     static void* taskManagerThread(void *data);
-    void addOperation(OperationCallbackData* callback);
+    common::PlatformResult addOperation(OperationCallbackData* callback);
     static gboolean callErrorCallback(void* data);
 
-    void extractAllTask(ExtractAllProgressCallback* callback);
+    PlatformResult extractAllTask(ExtractAllProgressCallback* callback);
 
     friend class ExtractAllProgressCallback;
     friend class UnZipExtractRequest;

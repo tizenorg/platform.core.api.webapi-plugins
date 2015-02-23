@@ -40,7 +40,7 @@ public:
     void eraseElementFromArchiveFileMap(long operation_id);
     void erasePrivData(long handle);
     long addPrivData(ArchiveFilePtr archive_file_ptr);
-    ArchiveFilePtr getPrivData(long handle);
+    common::PlatformResult getPrivData(long handle, ArchiveFilePtr* archive_file);
     long open(OpenCallbackData* callback);
 
 private:

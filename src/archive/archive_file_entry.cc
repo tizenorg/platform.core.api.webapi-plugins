@@ -137,11 +137,11 @@ ArchiveFile* ArchiveFileEntry::getArchiveFileNonProtectPtr()
     return m_archive;
 }
 
-void ArchiveFileEntry::extractTo(ExtractEntryProgressCallback* callback)
+PlatformResult ArchiveFileEntry::extractTo(ExtractEntryProgressCallback* callback)
 {
     if(!m_archive) {
         LOGE("m_archive is NULL");
-        throw UnknownException("Could not extract archive file entry");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not extract archive file entry");
     }
 
     //Callback should be associated with this instance of ArchiveFileEntry
@@ -165,7 +165,7 @@ void ArchiveFileEntry::extractTo(ExtractEntryProgressCallback* callback)
         callback->setStripBasePath(base_path_name);
     }
 
-    m_archive->extractEntryTo(callback);
+    return m_archive->extractEntryTo(callback);
 }
 
 } // archive
