@@ -20,7 +20,7 @@ Source0:    %{name}-%{version}.tar.gz
 
 %define tizen_feature_account_support             1
 %define tizen_feature_archive_support             0
-%define tizen_feature_badge_support               0
+%define tizen_feature_badge_support               1
 %define tizen_feature_bluetooth_support           0
 %define tizen_feature_bluetooth_health_support    0
 %define tizen_feature_bookmark_support            1
@@ -38,7 +38,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_ham_support                 0
 %define tizen_feature_messaging_email_support     1
 %define tizen_feature_messaging_support           1
-%define tizen_feature_nbs_support                 0
+%define tizen_feature_nbs_support                 1
 %define tizen_feature_nfc_emulation_support       0
 %define tizen_feature_nfc_support                 1
 %define tizen_feature_notification_support        1
