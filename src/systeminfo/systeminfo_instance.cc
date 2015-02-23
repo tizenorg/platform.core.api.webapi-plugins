@@ -34,6 +34,10 @@ static void OnPeripheralChangedCallback();
 static void OnMemoryChangedCallback();
 
 namespace {
+const std::string kPropertyIdString = "propertyId";
+const std::string kListenerIdString = "listenerId";
+const std::string kListenerConstValue = "SysteminfoCommonListenerLabel";
+
 const std::string kPropertyIdBattery = "BATTERY";
 const std::string kPropertyIdCpu = "CPU";
 const std::string kPropertyIdStorage = "STORAGE";
@@ -246,8 +250,8 @@ void SysteminfoInstance::GetPropertyValue(const picojson::value& args, picojson:
   auto get_response = [this, callback_id](const std::shared_ptr<picojson::value>& response) -> void {
     LoggerD("Getting response");
     picojson::object& obj = response->get<picojson::object>();
-    obj.insert(std::make_pair("callbackId", callback_id));
-    obj.insert(std::make_pair("cmd", picojson::value("SystemInfo_getPropertyValue")));
+    obj.insert(std::make_pair("callbackId", picojson::value{static_cast<double>(callback_id)}));
+    LoggerD("message: %s", response->serialize().c_str());
     PostMessage(response->serialize().c_str());
   };
 
@@ -278,7 +282,6 @@ void SysteminfoInstance::GetPropertyValueArray(const picojson::value& args, pico
     LoggerD("Getting response");
     picojson::object& obj = response->get<picojson::object>();
     obj.insert(std::make_pair("callbackId", callback_id));
-    obj.insert(std::make_pair("cmd", picojson::value("SystemInfo_getPropertyValue")));
     PostMessage(response->serialize().c_str());
   };
 
@@ -456,7 +459,8 @@ void OnBatteryChangedCallback()
   LoggerD("");
   const std::shared_ptr<picojson::value>& response =
       std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
-  response->get<picojson::object>()["propertyId"] = picojson::value(kPropertyIdBattery);
+  response->get<picojson::object>()[kPropertyIdString] = picojson::value(kPropertyIdBattery);
+  response->get<picojson::object>()[kListenerIdString] = picojson::value(kListenerConstValue);
 
   picojson::value result = picojson::value(picojson::object());
   PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdBattery, true, result);
@@ -471,7 +475,8 @@ void OnCpuChangedCallback()
   LoggerD("");
   const std::shared_ptr<picojson::value>& response =
       std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
-  response->get<picojson::object>()["propertyId"] = picojson::value(kPropertyIdCpu);
+  response->get<picojson::object>()[kPropertyIdString] = picojson::value(kPropertyIdCpu);
+  response->get<picojson::object>()[kListenerIdString] = picojson::value(kListenerConstValue);
 
   picojson::value result = picojson::value(picojson::object());
   PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdCpu, true, result);
@@ -486,7 +491,8 @@ void OnStorageChangedCallback()
   LoggerD("");
   const std::shared_ptr<picojson::value>& response =
       std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
-  response->get<picojson::object>()["propertyId"] = picojson::value(kPropertyIdStorage);
+  response->get<picojson::object>()[kPropertyIdString] = picojson::value(kPropertyIdStorage);
+  response->get<picojson::object>()[kListenerIdString] = picojson::value(kListenerConstValue);
 
   picojson::value result = picojson::value(picojson::object());
   PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdStorage, true, result);
@@ -501,7 +507,8 @@ void OnDisplayChangedCallback()
   LoggerD("");
   const std::shared_ptr<picojson::value>& response =
       std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
-  response->get<picojson::object>()["propertyId"] = picojson::value(kPropertyIdDisplay);
+  response->get<picojson::object>()[kPropertyIdString] = picojson::value(kPropertyIdDisplay);
+  response->get<picojson::object>()[kListenerIdString] = picojson::value(kListenerConstValue);
 
   picojson::value result = picojson::value(picojson::object());
   PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdDisplay, true, result);
@@ -516,7 +523,8 @@ void OnDeviceOrientationChangedCallback()
   LoggerD("");
   const std::shared_ptr<picojson::value>& response =
       std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
-  response->get<picojson::object>()["propertyId"] = picojson::value(kPropertyIdDeviceOrientation);
+  response->get<picojson::object>()[kPropertyIdString] = picojson::value(kPropertyIdDeviceOrientation);
+  response->get<picojson::object>()[kListenerIdString] = picojson::value(kListenerConstValue);
 
   picojson::value result = picojson::value(picojson::object());
   PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdDeviceOrientation, true, result);
@@ -531,7 +539,8 @@ void OnLocaleChangedCallback()
   LoggerD("");
   const std::shared_ptr<picojson::value>& response =
       std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
-  response->get<picojson::object>()["propertyId"] = picojson::value(kPropertyIdLocale);
+  response->get<picojson::object>()[kPropertyIdString] = picojson::value(kPropertyIdLocale);
+  response->get<picojson::object>()[kListenerIdString] = picojson::value(kListenerConstValue);
 
   picojson::value result = picojson::value(picojson::object());
   PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdLocale, true, result);
@@ -546,7 +555,8 @@ void OnNetworkChangedCallback()
   LoggerD("");
   const std::shared_ptr<picojson::value>& response =
       std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
-  response->get<picojson::object>()["propertyId"] = picojson::value(kPropertyIdNetwork);
+  response->get<picojson::object>()[kPropertyIdString] = picojson::value(kPropertyIdNetwork);
+  response->get<picojson::object>()[kListenerIdString] = picojson::value(kListenerConstValue);
 
   picojson::value result = picojson::value(picojson::object());
   PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdNetwork, true, result);
@@ -561,7 +571,8 @@ void OnWifiNetworkChangedCallback()
   LoggerD("");
   const std::shared_ptr<picojson::value>& response =
       std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
-  response->get<picojson::object>()["propertyId"] = picojson::value(kPropertyIdWifiNetwork);
+  response->get<picojson::object>()[kPropertyIdString] = picojson::value(kPropertyIdWifiNetwork);
+  response->get<picojson::object>()[kListenerIdString] = picojson::value(kListenerConstValue);
 
   picojson::value result = picojson::value(picojson::object());
   PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdWifiNetwork, true, result);
@@ -576,7 +587,8 @@ void OnCellularNetworkChangedCallback()
   LoggerD("");
   const std::shared_ptr<picojson::value>& response =
       std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
-  response->get<picojson::object>()["propertyId"] = picojson::value(kPropertyIdCellularNetwork);
+  response->get<picojson::object>()[kPropertyIdString] = picojson::value(kPropertyIdCellularNetwork);
+  response->get<picojson::object>()[kListenerIdString] = picojson::value(kListenerConstValue);
 
   picojson::value result = picojson::value(picojson::object());
   PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdCellularNetwork, true, result);
@@ -591,7 +603,8 @@ void OnPeripheralChangedCallback()
   LoggerD("");
   const std::shared_ptr<picojson::value>& response =
       std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
-  response->get<picojson::object>()["propertyId"] = picojson::value(kPropertyIdPeripheral);
+  response->get<picojson::object>()[kPropertyIdString] = picojson::value(kPropertyIdPeripheral);
+  response->get<picojson::object>()[kListenerIdString] = picojson::value(kListenerConstValue);
 
   picojson::value result = picojson::value(picojson::object());
   PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdPeripheral, true, result);
@@ -606,7 +619,8 @@ void OnMemoryChangedCallback()
   LoggerD("");
   const std::shared_ptr<picojson::value>& response =
       std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
-  response->get<picojson::object>()["propertyId"] = picojson::value(kPropertyIdMemory);
+  response->get<picojson::object>()[kPropertyIdString] = picojson::value(kPropertyIdMemory);
+  response->get<picojson::object>()[kListenerIdString] = picojson::value(kListenerConstValue);
 
   picojson::value result = picojson::value(picojson::object());
   PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdMemory, true, result);
