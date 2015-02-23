@@ -27,7 +27,7 @@ class optional {
 
  public:
   optional() : exist_(false) {}
-  explicit optional(std::nullptr_t) : exist_(false) {}
+  optional(std::nullptr_t) : exist_(false) {}
   optional(const optional& rhs): exist_(rhs.exist_) { create(rhs); }
   optional(optional&& rhs): exist_(rhs.exist_) { create(std::move(rhs)); }
   optional(const T& v): exist_(true) { create(v); }
