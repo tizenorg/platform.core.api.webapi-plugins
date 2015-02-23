@@ -40,7 +40,7 @@ class FilesystemStorage {
 
   picojson::value toJSON() const;
 };
-}
-}
+}  // namespace filesystem
+}  // namespace extension
 
 #endif  // FILESYSTEM_FILESYSTEM_STORAGE_H

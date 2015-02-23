@@ -29,7 +29,7 @@ class FilesystemStat {
 
   static FilesystemStat getStat(const std::string& path);
 };
-}
-}
+}  // namespace filesystem
+}  // namespace extension
 
 #endif  // FILESYSTEM_FILESYSTEM_STAT_H

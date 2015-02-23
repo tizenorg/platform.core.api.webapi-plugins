@@ -18,8 +18,8 @@ enum class FilesystemError {
   PermissionDenied,
   Other
 };
-}
-}
+}  // namespace filesystem
+}  // namespace extension
 
 namespace std {
 

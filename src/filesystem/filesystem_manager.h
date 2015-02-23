@@ -36,7 +36,7 @@ class FilesystemManager {
           success_cb,
       const std::function<void(FilesystemError)>& error_cb);
 };
-}
-}
+}  // namespace filesystem
+}  // namespace extension
 
 #endif  // FILESYSTEM_FILESYSTEM_MANAGER_H
