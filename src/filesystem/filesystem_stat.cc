@@ -17,6 +17,7 @@ picojson::value FilesystemStat::toJSON() const {
   picojson::value retval = picojson::value(picojson::object());
   picojson::object& obj = retval.get<picojson::object>();
 
+  obj["path"] = picojson::value(path);
   obj["isFile"] = picojson::value(isFile);
   obj["isDirectory"] = picojson::value(isDirectory);
   obj["readOnly"] = picojson::value(readOnly);
@@ -36,6 +37,7 @@ FilesystemStat FilesystemStat::getStat(const std::string& path) {
 
   FilesystemStat _result;
 
+  _result.path = path;
   _result.readOnly = true;
   if (getuid() == aStatObj.st_uid && (aStatObj.st_mode & S_IWUSR) == S_IWUSR) {
     _result.readOnly = false;
