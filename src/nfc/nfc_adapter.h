@@ -9,6 +9,7 @@
 #include "nfc/nfc_util.h"
 
 #include "common/picojson.h"
+#include "common/platform_result.h"
 #include <memory>
 #include <nfc.h>
 #include <list>
@@ -27,7 +28,7 @@ typedef std::list<std::pair<std::string, UCharVector>> NFCTagPropertiesT;
 class NFCAdapter {
  public:
   bool GetPowered();
-  void SetPowered(const picojson::value& args);
+  common::PlatformResult SetPowered(const picojson::value& args);
 
   // cardEmulationMode getter and setter
   std::string GetCardEmulationMode();
@@ -51,12 +52,12 @@ class NFCAdapter {
   nfc_p2p_target_h GetPeerHandle();
   int GetPeerId();
   void IncreasePeerId();
-  bool PeerIsConnectedGetter(int peer_id);
-  void SetPeerListener();
-  void UnsetPeerListener();
-  void SetReceiveNDEFListener(int peer_id);
-  void UnsetReceiveNDEFListener(int peer_id);
-  void sendNDEF(int peer_id, const picojson::value& args);
+  common::PlatformResult PeerIsConnectedGetter(int peer_id, bool &state);
+  common::PlatformResult SetPeerListener();
+  common::PlatformResult UnsetPeerListener();
+  common::PlatformResult SetReceiveNDEFListener(int peer_id);
+  common::PlatformResult UnsetReceiveNDEFListener(int peer_id);
+  common::PlatformResult sendNDEF(int peer_id, const picojson::value& args);
   bool IsNDEFListenerSet();
 
   // NFCTag related methods
@@ -71,7 +72,7 @@ class NFCAdapter {
   void TagWriteNDEF(int tag_id, const picojson::value& args);
   void TagTransceive(int tag_id, const picojson::value& args);
   // listeners
-  void SetTagListener();
+  common::PlatformResult SetTagListener();
   void UnsetTagListener();
   int GetNextTagId();
   void SetTagHandle(nfc_tag_h tag);

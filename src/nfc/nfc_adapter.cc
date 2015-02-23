@@ -69,11 +69,22 @@ NFCAdapter::~NFCAdapter() {
   }
 }
 
+static picojson::value CreateEventError(double callbackId, const PlatformResult& ret) {
+
+  picojson::value event = picojson::value(picojson::object());
+  picojson::object& obj = event.get<picojson::object>();
+  tools::ReportError(ret, &obj);
+  obj.insert(std::make_pair(CALLBACK_ID, callbackId));
+
+  return event;
+}
+
+// TODO remove after clean code from try/catch
 static picojson::value createEventError(double callbackId, PlatformException ex) {
 
   picojson::value event = picojson::value(picojson::object());
   picojson::object& obj = event.get<picojson::object>();
-  NFCInstance::getInstance().InstanceReportError(ex, obj);
+  tools::ReportError(ex, obj);
   obj.insert(std::make_pair(CALLBACK_ID, callbackId));
 
   return event;
@@ -82,7 +93,7 @@ static picojson::value createEventError(double callbackId, PlatformException ex)
 static picojson::value createEventSuccess(double callbackId) {
   picojson::value event = picojson::value(picojson::object());
   picojson::object& obj = event.get<picojson::object>();
-  NFCInstance::getInstance().InstanceReportSuccess(obj);
+  tools::ReportSuccess(obj);
   obj.insert(std::make_pair(CALLBACK_ID, callbackId));
 
   return event;
@@ -163,7 +174,7 @@ static void se_event_callback(nfc_se_event_e se_event, void *user_data) {
 
   picojson::value event = picojson::value(picojson::object());
   picojson::object& obj = event.get<picojson::object>();
-  NFCInstance::getInstance().InstanceReportSuccess(obj);
+  tools::ReportSuccess(obj);
 
   string result;
   switch (se_event) {
@@ -194,7 +205,7 @@ static void transaction_event_callback(nfc_se_type_e type,
 {
   picojson::value response = picojson::value(picojson::object());
   picojson::object& response_obj = response.get<picojson::object>();
-  NFCInstance::getInstance().InstanceReportSuccess(response_obj);
+  tools::ReportSuccess(response_obj);
   picojson::array& aid_array = response_obj.insert(std::make_pair("aid",
                                                                   picojson::value(picojson::array()))).first->second.get<picojson::array>();
   picojson::array& data_array = response_obj.insert(std::make_pair("data",
@@ -218,91 +229,101 @@ static void transaction_event_callback(nfc_se_type_e type,
   NFCInstance::getInstance().PostMessage(response.serialize().c_str());
 }
 
-void NFCAdapter::SetPowered(const picojson::value& args) {
+#ifdef APP_CONTROL_SETTING_SUPPORT
+static void PostMessage(double *callbackId) {
+  picojson::value event = CreateEventError(*callbackId,
+                                           PlatformResult(ErrorCode::UNKNOWN_ERR,
+                                                          "SetPowered failed."));
+  NFCInstance::getInstance().PostMessage(event.serialize().c_str());
+  delete callbackId;
+  callbackId = NULL;
+}
+#endif
+
+PlatformResult NFCAdapter::SetPowered(const picojson::value& args) {
 
   double* callbackId = new double(args.get(CALLBACK_ID).get<double>());
+
   bool powered = args.get("powered").get<bool>();
 
   if (nfc_manager_is_activated() == powered) {
     if (!g_idle_add(setPoweredCompleteCB, static_cast<void *>(callbackId))) {
+      LOGE("g_idle addition failed");
       delete callbackId;
       callbackId = NULL;
-      LOGE("g_idle addition failed");
-      throw UnknownException("SetPowered failed.");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, "SetPowered failed.");
     }
-    return;
+    return PlatformResult(ErrorCode::NO_ERROR);
   }
 
 #ifdef APP_CONTROL_SETTING_SUPPORT
   app_control_h service = NULL;
+
   int ret = app_control_create(&service);
   if (ret != APP_CONTROL_ERROR_NONE) {
     LOGE("app_control_create failed: %d", ret);
     delete callbackId;
     callbackId = NULL;
-    throw UnknownException("app_control_create failed");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "SetPowered failed.");
   }
 
   ret = app_control_set_operation(service,
                                   "http://tizen.org/appcontrol/operation/setting/nfc");
   if (ret != APP_CONTROL_ERROR_NONE) {
     LOGE("app_control_set_operation failed: %d", ret);
+    app_control_destroy(service);
     delete callbackId;
     callbackId = NULL;
-    throw UnknownException("app_control_set_operation failed");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "SetPowered failed.");
   }
 
   ret = app_control_add_extra_data(service, "type", "nfc");
   if (ret != APP_CONTROL_ERROR_NONE) {
     LOGE("app_control_add_extra_data failed: %d", ret);
+    app_control_destroy(service);
     delete callbackId;
     callbackId = NULL;
-    throw UnknownException("app_control_add_extra_data failed");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "SetPowered failed.");
   }
 
   ret = app_control_send_launch_request(service, [](app_control_h request,
-      app_control_h reply, app_control_result_e result, void *user_data){
+      app_control_h reply, app_control_result_e result, void *user_data) {
     double* callbackId = static_cast<double*>(user_data);
-    try {
-      if (result == APP_CONTROL_RESULT_SUCCEEDED) {
-        char *type = NULL;
-        int ret = app_control_get_extra_data(reply, "nfc_status",
-                                             &type);
-        if (ret != APP_CONTROL_ERROR_NONE) {
-          LOGE("app_control_get_extra_data failed: %d", ret);
-          throw UnknownException("app_control_get_extra_data failed");
-        }
-
-        LOGD("app_control result: %s", type);
-      } else {
-        LOGE("NFC enable app control failed : %d", result);
-        throw UnknownException("NFC enable app control failed");
+    if (result == APP_CONTROL_RESULT_SUCCEEDED) {
+      char *type = NULL;
+      int ret = app_control_get_extra_data(reply, "nfc_status",
+                                           &type);
+      if (ret != APP_CONTROL_ERROR_NONE) {
+        LOGE("app_control_get_extra_data failed: %d", ret);
+        PostMessage(callbackId);
+        return;
       }
-    } catch (PlatformException &ex) {
-      picojson::value event = createEventError(*callbackId, ex);
-      NFCInstance::getInstance().PostMessage(event.serialize().c_str());
+      LOGD("app_control result: %s", type);
+    } else {
+      LOGE("NFC enable app control failed : %d", result);
+      PostMessage(callbackId);
       return;
     }
 
     if (!g_idle_add(setPoweredCompleteCB, static_cast<void *>(callbackId))) {
       LOGE("g_idle addition failed");
-      PlatformException ex = PlatformException("UnknownError", "UnknownError");
-      picojson::value event = createEventError(*callbackId, ex);
-      NFCInstance::getInstance().PostMessage(event.serialize().c_str());
+      PostMessage(callbackId);
+      return;
     }
   }, static_cast<void *>(callbackId));
 
   if (ret != APP_CONTROL_ERROR_NONE) {
     LOGE("app_control_send_launch_request failed: %d", ret);
+    app_control_destroy(service);
     delete callbackId;
     callbackId = NULL;
-    throw UnknownException("app_control_send_operation failed");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "SetPowered failed.");
   }
 
   ret = app_control_destroy(service);
   if (ret != APP_CONTROL_ERROR_NONE) {
     LOGE("app_control_destroy failed: %d", ret);
-    throw UnknownException("app_control_destroy failed");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "SetPowered failed.");
   }
 #else
   int ret = nfc_manager_set_activation(powered,
@@ -312,9 +333,10 @@ void NFCAdapter::SetPowered(const picojson::value& args) {
     LOGE("setPowered failed %d",ret);
     delete callbackId;
     callbackId = NULL;
-    NFCUtil::throwNFCException(ret, "setPowered failed.");
+    return NFCUtil::CodeToResult(ret, "setPowered failed.");
   }
 #endif
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 
@@ -531,9 +553,10 @@ void NFCAdapter::IncreasePeerId() {
   m_latest_peer_id++;
 }
 
-bool NFCAdapter::PeerIsConnectedGetter(int peer_id) {
+PlatformResult NFCAdapter::PeerIsConnectedGetter(int peer_id, bool &state) {
   if (m_latest_peer_id != peer_id || !m_peer_handle) {
-    return false;
+    state = false;
+    return PlatformResult(ErrorCode::NO_ERROR);
   }
 
   nfc_p2p_target_h handle = NULL;
@@ -541,34 +564,35 @@ bool NFCAdapter::PeerIsConnectedGetter(int peer_id) {
   if (NFC_ERROR_NONE != ret) {
     LOGE("Failed to get connected target handle: %d", ret);
     NFCUtil::throwNFCException(ret, "Failed to get connected target handle.");
+    return NFCUtil::CodeToResult(ret, "Failed to get connected target.");
   }
 
-  if (m_peer_handle == handle) {
-    return true;
-  }
+  state = (m_peer_handle == handle);
 
-  return false;
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void NFCAdapter::SetPeerListener() {
+PlatformResult NFCAdapter::SetPeerListener() {
   if (!nfc_manager_is_supported()) {
-    throw NotSupportedException("NFC Not Supported");
+    LOGE("NFC Not Supported");
+    return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR, "NFC Not Supported");
   }
 
   if (!m_is_peer_listener_set) {
     int ret = nfc_manager_set_p2p_target_discovered_cb (targetDetectedCallback, NULL);
     if (NFC_ERROR_NONE != ret) {
       LOGE("Failed to set listener: %d", ret);
-      NFCUtil::throwNFCException(ret, "setPeerListener failed");
+      return NFCUtil::CodeToResult(ret, "setPeerListener failed");
     }
   }
 
   m_is_peer_listener_set = true;
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void NFCAdapter::UnsetPeerListener() {
+PlatformResult NFCAdapter::UnsetPeerListener() {
   if (!nfc_manager_is_supported()) {
-    throw NotSupportedException("NFC Not Supported");
+    return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR, "NFC Not Supported");
   }
 
   if (m_is_peer_listener_set) {
@@ -576,6 +600,7 @@ void NFCAdapter::UnsetPeerListener() {
   }
 
   m_is_peer_listener_set = false;
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 static void targetReceivedCallback(nfc_p2p_target_h target, nfc_ndef_message_h message, void *data)
@@ -599,7 +624,7 @@ static void targetReceivedCallback(nfc_p2p_target_h target, nfc_ndef_message_h m
   free(raw_data);
 }
 
-void NFCAdapter::SetReceiveNDEFListener(int peer_id) {
+PlatformResult NFCAdapter::SetReceiveNDEFListener(int peer_id) {
 
   //unregister previous NDEF listener
   if (m_is_ndef_listener_set) {
@@ -611,35 +636,50 @@ void NFCAdapter::SetReceiveNDEFListener(int peer_id) {
   }
 
   //check if peer object is still connected
-  if (!PeerIsConnectedGetter(peer_id)) {
+  bool is_connected = false;
+  PlatformResult result = PeerIsConnectedGetter(peer_id, is_connected);
+  if (result.IsError()) {
+    return result;
+  }
+
+  if (!is_connected) {
     LOGE("Target is not connected");
-    throw UnknownException("Target is not connected");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Target is not connected.");
   }
 
   int ret = nfc_p2p_set_data_received_cb(m_peer_handle, targetReceivedCallback, NULL);
   if (NFC_ERROR_NONE != ret) {
     LOGE("Failed to set NDEF listener: %d", ret);
-    NFCUtil::throwNFCException(ret, "Failed to set NDEF listener");
+    return NFCUtil::CodeToResult(ret, "Failed to set NDEF listener");
   }
 
   m_is_ndef_listener_set = true;
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void NFCAdapter::UnsetReceiveNDEFListener(int peer_id) {
+PlatformResult NFCAdapter::UnsetReceiveNDEFListener(int peer_id) {
   if (m_is_ndef_listener_set) {
     //check if peer object is still connected
-    if (!PeerIsConnectedGetter(peer_id)) {
+
+    bool is_connected = false;
+    PlatformResult result = PeerIsConnectedGetter(peer_id, is_connected);
+    if (result.IsError()) {
+      return result;
+    }
+
+    if (!is_connected) {
       LOGE("Target is not connected");
     }
 
     int ret = nfc_p2p_unset_data_received_cb(m_peer_handle);
     if (NFC_ERROR_NONE != ret) {
       LOGE("Unregister ReceiveNDEFListener error: %d", ret);
-      NFCUtil::throwNFCException(ret, "Unregister ReceiveNDEFListener error");
+      return NFCUtil::CodeToResult(ret, "Failed to set NDEF listener");
     }
 
     m_is_ndef_listener_set = false;
   }
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 bool NFCAdapter::IsNDEFListenerSet() {
@@ -806,7 +846,7 @@ static void tagEventCallback(nfc_discovered_type_e type, nfc_tag_h tag, void *da
 
 }
 
-void NFCAdapter::SetTagListener(){
+PlatformResult  NFCAdapter::SetTagListener(){
 
   LoggerD("Entered");
 
@@ -815,10 +855,11 @@ void NFCAdapter::SetTagListener(){
     int result = nfc_manager_set_tag_discovered_cb (tagEventCallback, NULL);
     if (NFC_ERROR_NONE != result) {
       LoggerE("Failed to register tag listener: %d", result);
-      NFCUtil::throwNFCException(result, "Failed to register tag listene");
+      return NFCUtil::CodeToResult(result, "Failed to register tag listener.");
     }
     m_is_tag_listener_set = true;
   }
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 void NFCAdapter::UnsetTagListener(){
@@ -1015,7 +1056,7 @@ static void tagTransceiveCb(nfc_error_e err, unsigned char *buffer,
   // create result and push to JS layer
   picojson::value response = createEventSuccess(callback_id);
   picojson::object& response_obj = response.get<picojson::object>();
-  NFCInstance::getInstance().InstanceReportSuccess(response_obj);
+  tools::ReportSuccess(response_obj);
   picojson::array& callback_data_array = response_obj.insert(std::make_pair("data",
                                                                             picojson::value(picojson::array()))).first->second.get<picojson::array>();
 
@@ -1135,16 +1176,24 @@ static gboolean sendNDEFErrorCB(void * user_data) {
   return false;
 }
 
-void NFCAdapter::sendNDEF(int peer_id, const picojson::value& args) {
+PlatformResult NFCAdapter::sendNDEF(int peer_id, const picojson::value& args) {
+
+  bool is_connected = false;
+  PlatformResult result = PeerIsConnectedGetter(peer_id, is_connected);
+  if (result.IsError()) {
+    return result;
+  }
+
   double* callbackId = new double(args.get(CALLBACK_ID).get<double>());
 
-  if(!PeerIsConnectedGetter(peer_id)) {
-    UnknownException ex("Peer is no more connected");
-    picojson::value event = createEventError(*callbackId, ex);
+  if (!is_connected) {
+    picojson::value event = CreateEventError(*callbackId,
+                                             PlatformResult(ErrorCode::UNKNOWN_ERR,
+                                                            "Peer is no more connected"));
     NFCInstance::getInstance().PostMessage(event.serialize().c_str());
     delete callbackId;
     callbackId = NULL;
-    return;
+    return PlatformResult(ErrorCode::NO_ERROR);
   }
 
   const picojson::array& records_array =
@@ -1161,7 +1210,7 @@ void NFCAdapter::sendNDEF(int peer_id, const picojson::value& args) {
       LOGE("sendNDEF failed %d",ret);
       delete callbackId;
       callbackId = NULL;
-      NFCUtil::throwNFCException(ret, "sendNDEF failed.");
+      return NFCUtil::CodeToResult(ret, "sendNDEF failed.");
     }
   } else {
     if (!g_idle_add(sendNDEFErrorCB, static_cast<void*>(callbackId))) {
@@ -1170,6 +1219,7 @@ void NFCAdapter::sendNDEF(int peer_id, const picojson::value& args) {
       callbackId = NULL;
     }
   }
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 }// nfc
 }// extension

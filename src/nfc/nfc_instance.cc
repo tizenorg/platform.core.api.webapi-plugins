@@ -89,31 +89,18 @@ NFCInstance::NFCInstance() {
   }
 }
 
+#define CHECK_EXIST(args, name, out) \
+  if (!args.contains(name)) {\
+    ReportError(TypeMismatchException(name" is required argument"), out);\
+      return;\
+    }
+
 NFCInstance::~NFCInstance() {
   int result = nfc_manager_deinitialize();
   if (NFC_ERROR_NONE != result) {
     LoggerE("NFC Manager deinitialization failed.");
   }
 }
-
-void NFCInstance::InstanceReportSuccess(picojson::object& out) {
-  out.insert(std::make_pair("status", picojson::value("success")));
-}
-
-void NFCInstance::InstanceReportSuccess(const picojson::value& result, picojson::object& out) {
-  out.insert(std::make_pair("status", picojson::value("success")));
-  out.insert(std::make_pair("result", result));
-}
-
-void NFCInstance::InstanceReportError(picojson::object& out) {
-  out.insert(std::make_pair("status", picojson::value("error")));
-}
-
-void NFCInstance::InstanceReportError(const PlatformException& ex, picojson::object& out) {
-  out.insert(std::make_pair("status", picojson::value("error")));
-  out.insert(std::make_pair("error", ex.ToJSON()));
-}
-
 
 void NFCInstance::GetDefaultAdapter(
     const picojson::value& args, picojson::object& out) {
@@ -125,8 +112,8 @@ void NFCInstance::GetDefaultAdapter(
     LoggerE("NFC manager is not supported");
     // According to API reference only Security and Unknown
     // exceptions are allowed here
-    auto ex = common::UnknownException("NFC manager not supported");
-    ReportError(ex, out);
+    ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR,
+                               "NFC manager not supported"), &out);
   }
   else {
     ReportSuccess(out);
@@ -139,16 +126,24 @@ void NFCInstance::SetExclusiveMode(
   bool exmode = args.get("exclusiveMode").get<bool>();
   int ret = NFC_ERROR_NONE;
 
-  int result = nfc_manager_set_system_handler_enable(!exmode);
-  if (NFC_ERROR_NONE != result) {
-    NFCUtil::throwNFCException(result, "Failed to set exclusive mode.");
+  ret = nfc_manager_set_system_handler_enable(!exmode);
+  if (NFC_ERROR_NONE != ret) {
+    PlatformResult result = NFCUtil::CodeToResult(ret,
+                                                  "Failed to set exclusive mode.");
+    ReportError(result, &out);
+  } else {
+    ReportSuccess(out);
   }
-  ReportSuccess(out);
 }
 
 void NFCInstance::SetPowered(
     const picojson::value& args, picojson::object& out) {
-  NFCAdapter::GetInstance()->SetPowered(args);
+  PlatformResult result = NFCAdapter::GetInstance()->SetPowered(args);
+  if (result.IsSuccess()) {
+    ReportSuccess(out);
+  } else {
+    ReportError(result, &out);
+  }
 }
 
 void NFCInstance::GetPowered(
@@ -212,37 +207,39 @@ void NFCInstance::ActiveSecureElementGetter(
 void NFCInstance::SetTagListener(
     const picojson::value& args, picojson::object& out) {
 
-  try {
-    NFCAdapter::GetInstance()->SetTagListener();
+  PlatformResult result = NFCAdapter::GetInstance()->SetTagListener();
+  if (result.IsSuccess()) {
     ReportSuccess(out);
-  }
-  catch(const common::PlatformException& ex) {
-    ReportError(ex, out);
+  } else {
+    ReportError(result, &out);
   }
 }
 
 void NFCInstance::PeerIsConnectedGetter(
     const picojson::value& args, picojson::object& out) {
 
-  try {
-    int peer_id = (int)args.get("id").get<double>();
-    bool ret = NFCAdapter::GetInstance()->PeerIsConnectedGetter(peer_id);
+  CHECK_EXIST(args, "id", out);
+
+  int peer_id = (int)args.get("id").get<double>();
+  bool ret = false;
+  PlatformResult result = NFCAdapter::GetInstance()->PeerIsConnectedGetter(peer_id, ret);
+
+  if (result.IsSuccess()) {
     ReportSuccess(picojson::value(ret), out);
+  } else {
+    ReportError(result, &out);
   }
-  catch(const common::PlatformException& ex) {
-    ReportError(ex, out);
-  }
+
 }
 
 void NFCInstance::SetPeerListener(
     const picojson::value& args, picojson::object& out) {
 
-  try {
-    NFCAdapter::GetInstance()->SetPeerListener();
+  PlatformResult result = NFCAdapter::GetInstance()->SetPeerListener();
+  if (result.IsSuccess()) {
     ReportSuccess(out);
-  }
-  catch(const common::PlatformException& ex) {
-    ReportError(ex, out);
+  } else {
+    ReportError(result, &out);
   }
 }
 
@@ -390,40 +387,45 @@ void NFCInstance::Transceive(
 void NFCInstance::SetReceiveNDEFListener(
     const picojson::value& args, picojson::object& out) {
 
-  try {
-    int peer_id = (int)args.get("id").get<double>();
-    NFCAdapter::GetInstance()->SetReceiveNDEFListener(peer_id);
+  CHECK_EXIST(args, "id", out);
+
+  int peer_id = (int)args.get("id").get<double>();
+  PlatformResult result = NFCAdapter::GetInstance()->SetReceiveNDEFListener(peer_id);
+  if (result.IsSuccess()) {
     ReportSuccess(out);
-  }
-  catch(const common::PlatformException& ex) {
-    ReportError(ex, out);
+  } else {
+    ReportError(result, &out);
   }
 }
 
 void NFCInstance::UnsetReceiveNDEFListener(
     const picojson::value& args, picojson::object& out) {
 
-  try {
-    int peer_id = (int)args.get("id").get<double>();
-    NFCAdapter::GetInstance()->UnsetReceiveNDEFListener(peer_id);
+  CHECK_EXIST(args, "id", out);
+
+  int peer_id = (int)args.get("id").get<double>();
+  PlatformResult result = NFCAdapter::GetInstance()->UnsetReceiveNDEFListener(peer_id);
+  if (result.IsSuccess()) {
     ReportSuccess(out);
-  }
-  catch(const common::PlatformException& ex) {
-    ReportError(ex, out);
+  } else {
+    ReportError(result, &out);
   }
 }
 
 void NFCInstance::SendNDEF(
     const picojson::value& args, picojson::object& out) {
+
+  CHECK_EXIST(args, "id", out);
+
   int peer_id = static_cast<int>(args.get("id").get<double>());
   LoggerD("Peer id: %d", peer_id);
 
-  try {
-    NFCAdapter::GetInstance()->sendNDEF(peer_id, args);
+  PlatformResult result = NFCAdapter::GetInstance()->sendNDEF(peer_id, args);
+
+  if (result.IsSuccess()) {
     ReportSuccess(out);
-  }
-  catch(const common::PlatformException& ex) {
-    ReportError(ex, out);
+  } else {
+    ReportError(result, &out);
   }
 }
 

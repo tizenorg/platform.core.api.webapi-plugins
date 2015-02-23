@@ -10,6 +10,8 @@
 #include <string>
 #include <nfc.h>
 
+#include "common/platform_result.h"
+
 namespace extension {
 namespace nfc {
 
@@ -50,6 +52,8 @@ class NFCUtil
 {
  public:
   static UCharVector toVector(const unsigned char *ch, const int size);
+  static common::PlatformResult CodeToResult(const int errorCode, const char * message);
+  // TODO remove after clean code from try/catch
   static void throwNFCException(const int errorCode, const char * message);
   static std::string getNFCErrorString(const int error_code);
   static std::string getNFCErrorMessage(const int error_code);

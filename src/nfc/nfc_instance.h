@@ -15,11 +15,6 @@ namespace nfc {
 class NFCInstance: public common::ParsedInstance {
  public:
   static NFCInstance& getInstance();
-
-  void InstanceReportSuccess(picojson::object& out);
-  void InstanceReportSuccess(const picojson::value& result, picojson::object& out);
-  void InstanceReportError(picojson::object& out);
-  void InstanceReportError(const common::PlatformException& ex, picojson::object& out);
  private:
   NFCInstance();
   virtual ~NFCInstance();

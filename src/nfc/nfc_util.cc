@@ -20,6 +20,31 @@ UCharVector NFCUtil::toVector(const unsigned char *ch, const int size)
   return vec;
 }
 
+PlatformResult NFCUtil::CodeToResult(const int errorCode, const char* message)
+{
+  switch(errorCode) {
+    case NFC_ERROR_INVALID_PARAMETER:
+    case NFC_ERROR_INVALID_NDEF_MESSAGE:
+    case NFC_ERROR_INVALID_RECORD_TYPE:
+    case NFC_ERROR_NOT_NDEF_FORMAT:
+      return PlatformResult(ErrorCode::INVALID_VALUES_ERR, message);
+    case NFC_ERROR_SECURITY_RESTRICTED:
+    case NFC_ERROR_PERMISSION_DENIED:
+      return PlatformResult(ErrorCode::SECURITY_ERR, message);
+    case NFC_ERROR_NOT_ACTIVATED:
+    case NFC_ERROR_NOT_SUPPORTED:
+    case NFC_ERROR_OPERATION_FAILED:
+    case NFC_ERROR_DEVICE_BUSY:
+    case NFC_ERROR_NO_DEVICE:
+    case NFC_ERROR_TIMED_OUT:
+    case NFC_ERROR_OUT_OF_MEMORY:
+    case NFC_ERROR_NOT_INITIALIZED:
+    default:
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, message);
+  }
+}
+
+// TODO remove after clean code from try/catch
 void NFCUtil::throwNFCException(const int errorCode, const char* message)
 {
   switch(errorCode) {
