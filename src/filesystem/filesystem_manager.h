@@ -16,12 +16,6 @@
 namespace extension {
 namespace filesystem {
 
-enum class FilesystemError {
-  None,
-  NotFound,
-  Other
-};
-
 class FilesystemManager {
  private:
   FilesystemManager();
