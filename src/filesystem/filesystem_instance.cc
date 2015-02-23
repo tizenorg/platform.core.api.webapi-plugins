@@ -70,20 +70,7 @@ void FilesystemInstance::FileStat(const picojson::value& args,
     picojson::value response = picojson::value(picojson::object());
     picojson::object& obj = response.get<picojson::object>();
     obj["callbackId"] = picojson::value(callback_id);
-    switch (e) {
-      case FilesystemError::None:
-        ReportError(UnknownException("PLATFORM ERROR"), obj);
-        break;
-      case FilesystemError::NotFound:
-        ReportError(NotFoundException("PLATFORM ERROR"), obj);
-        break;
-      case FilesystemError::Other:
-        ReportError(UnknownException("PLATFORM ERROR"), obj);
-        break;
-      default:
-        ReportError(UnknownException("PLATFORM ERROR"), obj);
-        break;
-    }
+    PrepareError(e, obj);
     PostMessage(response.serialize().c_str());
   };
 
@@ -106,20 +93,7 @@ void FilesystemInstance::FileStatSync(const picojson::value& args,
 
   auto onError = [&](FilesystemError e) {
     LoggerD("enter");
-    switch (e) {
-      case FilesystemError::None:
-        ReportError(UnknownException("PLATFORM ERROR"), out);
-        break;
-      case FilesystemError::NotFound:
-        ReportError(NotFoundException("PLATFORM ERROR"), out);
-        break;
-      case FilesystemError::Other:
-        ReportError(UnknownException("PLATFORM ERROR"), out);
-        break;
-      default:
-        ReportError(UnknownException("PLATFORM ERROR"), out);
-        break;
-    }
+    PrepareError(e, out);
   };
 
   FilesystemManager::GetInstance().StatPath(location, onSuccess, onError);
@@ -140,20 +114,7 @@ void FilesystemInstance::FilesystemGetWidgetPaths(const picojson::value& args,
 
   auto onError = [&](FilesystemError e) {
     LoggerD("enter");
-    switch (e) {
-      case FilesystemError::None:
-        ReportError(UnknownException("PLATFORM ERROR"), out);
-        break;
-      case FilesystemError::NotFound:
-        ReportError(NotFoundException("PLATFORM ERROR"), out);
-        break;
-      case FilesystemError::Other:
-        ReportError(UnknownException("PLATFORM ERROR"), out);
-        break;
-      default:
-        ReportError(UnknownException("PLATFORM ERROR"), out);
-        break;
-    }
+    PrepareError(e, out);
   };
 
   FilesystemManager::GetInstance().GetWidgetPaths(onSuccess, onError);
@@ -176,23 +137,32 @@ void FilesystemInstance::FileSystemManagerFetchStorages(
 
   auto onError = [&](FilesystemError e) {
     LoggerD("enter");
-    switch (e) {
-      case FilesystemError::None:
-        ReportError(UnknownException("PLATFORM ERROR"), out);
-        break;
-      case FilesystemError::NotFound:
-        ReportError(NotFoundException("PLATFORM ERROR"), out);
-        break;
-      case FilesystemError::Other:
-        ReportError(UnknownException("PLATFORM ERROR"), out);
-        break;
-      default:
-        ReportError(UnknownException("PLATFORM ERROR"), out);
-        break;
-    }
+    PrepareError(e, out);
   };
 
   FilesystemManager::GetInstance().FetchStorages(onSuccess, onError);
+}
+
+void FilesystemInstance::PrepareError(const FilesystemError& error, picojson::object& out)
+{
+  LoggerD("enter");
+  switch (error) {
+    case FilesystemError::None:
+      ReportError(UnknownException("PLATFORM ERROR"), out);
+      break;
+    case FilesystemError::NotFound:
+      ReportError(NotFoundException("PLATFORM ERROR"), out);
+      break;
+    case FilesystemError::PermissionDenied:
+      ReportError(IOException("Permission denied"), out);
+      break;
+    case FilesystemError::Other:
+      ReportError(UnknownException("PLATFORM ERROR"), out);
+      break;
+    default:
+      ReportError(UnknownException("PLATFORM ERROR"), out);
+      break;
+  }
 }
 
 #undef CHECK_EXIST
