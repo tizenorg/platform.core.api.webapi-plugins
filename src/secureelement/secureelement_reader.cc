@@ -8,10 +8,8 @@
 #include <Reader.h>
 #include "common/picojson.h"
 #include "common/logger.h"
-#include "common/platform_exception.h"
 
 using namespace smartcard_service_api;
-using namespace common;
 using namespace std;
 
 namespace extension {

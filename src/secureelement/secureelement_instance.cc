@@ -8,7 +8,6 @@
 #include <Reader.h>
 #include "common/picojson.h"
 #include "common/logger.h"
-#include "common/platform_exception.h"
 #include "common/task-queue.h"
 
 #include "secureelement_reader.h"
@@ -142,9 +141,21 @@ void SecureElementInstance::OpenSession(
             SEReader seReader(reader_ptr);
             picojson::value result = seReader.openSession();
             ReportSuccess(result, response->get<picojson::object>());
-        } catch (const PlatformException& err) {
-            LoggerD("Error occurred while opening session!");
-            ReportError(err, response->get<picojson::object>());
+        } catch (const ErrorIO& err) {
+            LoggerD("Library reported ErrorIO!");
+            ReportError(PlatformResult(ErrorCode::IO_ERR), &response->get<picojson::object>());
+        } catch (const ErrorIllegalState& err) {
+            LoggerD("Library reported ErrorIllegalState!");
+            ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR), &response->get<picojson::object>());
+        } catch (const ErrorIllegalParameter& err) {
+            LoggerD("Library reported ErrorIllegalParameter!");
+            ReportError(PlatformResult(ErrorCode::INVALID_VALUES_ERR), &response->get<picojson::object>());
+        } catch (const ErrorSecurity& err) {
+            LoggerD("Library reported ErrorSecurity!");
+            ReportError(PlatformResult(ErrorCode::SECURITY_ERR), &response->get<picojson::object>());
+        } catch (const ExceptionBase& err) {
+            LoggerD("Library reported ExceptionBase!");
+            ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR), &response->get<picojson::object>());
         }
     };
 
@@ -176,8 +187,21 @@ void SecureElementInstance::OpenBasicChannel( const picojson::value& args, picoj
             SESession seSession(session_ptr);
             picojson::value result = seSession.openBasicChannel(v_aid);
             ReportSuccess(result, response->get<picojson::object>());
-        } catch (const PlatformException& e) {
-            ReportError(e, response->get<picojson::object>());
+        } catch (const ErrorIO& err) {
+            LoggerD("Library reported ErrorIO!");
+            ReportError(PlatformResult(ErrorCode::IO_ERR), &response->get<picojson::object>());
+        } catch (const ErrorIllegalState& err) {
+            LoggerD("Library reported ErrorIllegalState!");
+            ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR), &response->get<picojson::object>());
+        } catch (const ErrorIllegalParameter& err) {
+            LoggerD("Library reported ErrorIllegalParameter!");
+            ReportError(PlatformResult(ErrorCode::INVALID_VALUES_ERR), &response->get<picojson::object>());
+        } catch (const ErrorSecurity& err) {
+            LoggerD("Library reported ErrorSecurity!");
+            ReportError(PlatformResult(ErrorCode::SECURITY_ERR), &response->get<picojson::object>());
+        } catch (const ExceptionBase& err) {
+            LoggerD("Library reported ExceptionBase!");
+            ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR), &response->get<picojson::object>());
         }
     };
 
@@ -203,10 +227,23 @@ void SecureElementInstance::OpenLogicalChannel( const picojson::value& args, pic
         LoggerD("Opening basic channel");
         try {
             SESession seSession(session_ptr);
-            picojson::value result = seSession.openBasicChannel(v_aid);
+            picojson::value result = seSession.openLogicalChannel(v_aid);
             ReportSuccess(result, response->get<picojson::object>());
-        } catch (const PlatformException& e) {
-            ReportError(e, response->get<picojson::object>());
+        } catch (const ErrorIO& err) {
+            LoggerD("Library reported ErrorIO!");
+            ReportError(PlatformResult(ErrorCode::IO_ERR), &response->get<picojson::object>());
+        } catch (const ErrorIllegalState& err) {
+            LoggerD("Library reported ErrorIllegalState!");
+            ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR), &response->get<picojson::object>());
+        } catch (const ErrorIllegalParameter& err) {
+            LoggerD("Library reported ErrorIllegalParameter!");
+            ReportError(PlatformResult(ErrorCode::INVALID_VALUES_ERR), &response->get<picojson::object>());
+        } catch (const ErrorSecurity& err) {
+            LoggerD("Library reported ErrorSecurity!");
+            ReportError(PlatformResult(ErrorCode::SECURITY_ERR), &response->get<picojson::object>());
+        } catch (const ExceptionBase& err) {
+            LoggerD("Library reported ExceptionBase!");
+            ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR), &response->get<picojson::object>());
         }
     };
 
@@ -280,8 +317,21 @@ void SecureElementInstance::Transmit( const picojson::value& args, picojson::obj
                 arr.push_back(picojson::value(static_cast<double>(transmit_response[i])));
             }
             ReportSuccess( result, response->get<picojson::object>());
-        } catch (const PlatformException& e) {
-            ReportError( e, response->get<picojson::object>());
+        } catch (const ErrorIO& err) {
+            LoggerD("Library reported ErrorIO!");
+            ReportError(PlatformResult(ErrorCode::IO_ERR), &response->get<picojson::object>());
+        } catch (const ErrorIllegalState& err) {
+            LoggerD("Library reported ErrorIllegalState!");
+            ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR), &response->get<picojson::object>());
+        } catch (const ErrorIllegalParameter& err) {
+            LoggerD("Library reported ErrorIllegalParameter!");
+            ReportError(PlatformResult(ErrorCode::INVALID_VALUES_ERR), &response->get<picojson::object>());
+        } catch (const ErrorSecurity& err) {
+            LoggerD("Library reported ErrorSecurity!");
+            ReportError(PlatformResult(ErrorCode::SECURITY_ERR), &response->get<picojson::object>());
+        } catch (const ExceptionBase& err) {
+            LoggerD("Library reported ExceptionBase!");
+            ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR), &response->get<picojson::object>());
         }
     };
 
