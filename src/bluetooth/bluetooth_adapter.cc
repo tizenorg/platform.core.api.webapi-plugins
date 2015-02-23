@@ -26,6 +26,8 @@
 #include "common/converter.h"
 #include "common/logger.h"
 #include "common/platform_exception.h"
+#include "common/platform_result.h"
+#include "common/extension.h"
 #include "common/task-queue.h"
 
 #include "bluetooth_class.h"
@@ -38,6 +40,7 @@ namespace extension {
 namespace bluetooth {
 
 using namespace common;
+using namespace common::tools;
 
 namespace {
 const std::string kAction = "action";
@@ -131,28 +134,23 @@ void BluetoothAdapter::StateChangedCB(int result, bt_adapter_state_e state, void
             return;
         }
 
-        std::shared_ptr<picojson::value> response =
-                std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
-        try {
-            switch(result) {
-            case BT_ERROR_NONE:
-            case BT_ERROR_ALREADY_DONE:
-            case BT_ERROR_NOT_ENABLED:
-                util::ReportSuccess(response->get<picojson::object>());
-                break;
-            case BT_ERROR_NOW_IN_PROGRESS:
-                throw ServiceNotAvailableException("Bluetooth device is busy");
-            default:
-                throw UnknownException("Unknown exception");
-            }
-        } catch (const PlatformException& err) {
-            util::ReportError(err, response->get<picojson::object>());
-        }
+      PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
+      switch(result) {
+          case BT_ERROR_NONE:
+          case BT_ERROR_ALREADY_DONE:
+          case BT_ERROR_NOT_ENABLED:
+              //do nothing
+              break;
+          case BT_ERROR_NOW_IN_PROGRESS:
+              ret = PlatformResult(ErrorCode::SERVICE_NOT_AVAILABLE_ERR, "Bluetooth device is busy");
+              break;
+          default:
+              ret = PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown exception");
+      }
 
-        util::AsyncResponse(
-                adapter->user_request_callback_[SET_POWERED], response);
-        adapter->user_request_list_[SET_POWERED] = false;
-    }
+      util::AsyncResponse(adapter->user_request_callback_[SET_POWERED], ret);
+      adapter->user_request_list_[SET_POWERED] = false;
+  }
 }
 
 void BluetoothAdapter::NameChangedCB(char *name, void *user_data) {
@@ -204,18 +202,13 @@ void BluetoothAdapter::VisibilityChangedCB(int result, bt_adapter_visibility_mod
     }
 
     if (adapter->user_request_list_[SET_VISIBLE] && adapter->requested_visibility_ == mode) {
-        std::shared_ptr<picojson::value> response =
-                std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
+        PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
 
-        if (BT_ERROR_NONE == result) {
-            util::ReportSuccess(response->get<picojson::object>());
-        } else {
-            util::ReportError(UnknownException("Unknown exception"),
-                    response->get<picojson::object>());
+        if (BT_ERROR_NONE != result) {
+            ret = PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown exception");
         }
 
-        util::AsyncResponse(
-                adapter->user_request_callback_[SET_VISIBLE], response);
+        util::AsyncResponse(adapter->user_request_callback_[SET_VISIBLE], ret);
         adapter->user_request_list_[SET_VISIBLE] = false;
     }
 }
@@ -458,52 +451,51 @@ void BluetoothAdapter::SetName(const picojson::value& data, picojson::object& ou
     const auto& args = util::GetArguments(data);
     const auto name = FromJson<std::string>(args, "name");
 
-    try {
-        if (!this->is_initialized()) {
-            throw UnknownException("Bluetooth service is not initialized.");
-        }
-
-        if (this->get_powered()) {
-            if (get_name() == name) {
-                std::shared_ptr<picojson::value> response =
-                        std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
-                util::ReportSuccess(response->get<picojson::object>());
-                util::AsyncResponse(callback_handle, response);
-                return;
-            }
-
-            if (this->user_request_list_[SET_NAME]) {
-                throw ServiceNotAvailableException("Already requested");
-            }
-
-            this->user_request_list_[SET_NAME] = true;
-            this->user_request_callback_[SET_NAME] = callback_handle;
-
-            int ret = bt_adapter_set_name(name.c_str());
-            switch(ret) {
-                case BT_ERROR_NONE:
-                    //bt_adapter_name_changed_cb() will be invoked
-                    //if this function returns #BT_ERROR_NONE
-                    this->requested_name_ = name;
-                    break;
-                case BT_ERROR_INVALID_PARAMETER:
-                    throw InvalidValuesException("Invalid value");
-                default:
-                    throw UnknownException("Unknown exception");
-            }
-        } else {
-            throw ServiceNotAvailableException("Bluetooth device is turned off");
-        }
-    } catch (const PlatformException& err) {
-        std::shared_ptr<picojson::value> response =
-                std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
-        util::ReportError(err, response->get<picojson::object>());
-        util::AsyncResponse(callback_handle, response);
-        this->user_request_list_[SET_NAME] = false;
+    PlatformResult result = PlatformResult(ErrorCode::NO_ERROR);
+    if (!this->is_initialized()) {
+        result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Bluetooth service is not initialized.");
+        util::AsyncResponse(callback_handle, result);
         return;
     }
 
-    util::ReportSuccess(out);
+    if (this->get_powered()) {
+        if (get_name() == name) {
+            util::AsyncResponse(callback_handle, result);
+            return;
+        }
+
+        if (this->user_request_list_[SET_NAME]) {
+            result = PlatformResult(ErrorCode::SERVICE_NOT_AVAILABLE_ERR, "Already requested");
+            util::AsyncResponse(callback_handle, result);
+            return;
+        }
+
+        this->user_request_list_[SET_NAME] = true;
+        this->user_request_callback_[SET_NAME] = callback_handle;
+
+        int ret = bt_adapter_set_name(name.c_str());
+        switch(ret) {
+            case BT_ERROR_NONE:
+                //bt_adapter_name_changed_cb() will be invoked
+                //if this function returns #BT_ERROR_NONE
+                this->requested_name_ = name;
+                break;
+            case BT_ERROR_INVALID_PARAMETER:
+                result = PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid value");
+                break;
+            default:
+               result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown exception");
+        }
+    } else {
+        result = PlatformResult(
+                ErrorCode::SERVICE_NOT_AVAILABLE_ERR, "Bluetooth device is turned off");
+    }
+
+    if (result.IsError()) {
+        this->user_request_list_[SET_NAME] = false;
+    }
+
+    util::AsyncResponse(callback_handle, result);
 }
 
 void BluetoothAdapter::SetPowered(const picojson::value& data, picojson::object& out) {
@@ -515,43 +507,31 @@ void BluetoothAdapter::SetPowered(const picojson::value& data, picojson::object&
     const auto& args = util::GetArguments(data);
     const auto new_powered = FromJson<bool>(args, "powered");
 
-    try {
-        if (!this->is_initialized()) {
-            throw UnknownException("Bluetooth service is not initialized.");
-        }
+    PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
 
-        if (this->user_request_list_[SET_POWERED]) {
-            throw ServiceNotAvailableException("Already requested");
-        }
-
-        bool cur_powered = this->get_powered();
-
-        if (new_powered != cur_powered) {
-            this->requested_powered_ = new_powered;
-            this->user_request_list_[SET_POWERED] = true;
-            this->user_request_callback_[SET_POWERED] = callback_handle;
-
-            if (new_powered) {
-                bt_adapter_enable();
-            } else {
-                bt_adapter_disable();
-            }
-        } else {
-            std::shared_ptr<picojson::value> response =
-                    std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
-            util::ReportSuccess(response->get<picojson::object>());
-            util::AsyncResponse(callback_handle, response);
-            return;
-        }
-    } catch (const PlatformException& err) {
-        std::shared_ptr<picojson::value> response =
-                std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
-        util::ReportError(err, response->get<picojson::object>());
-        util::AsyncResponse(callback_handle, response);
-        return;
+    if (!this->is_initialized()) {
+        ret = PlatformResult(ErrorCode::UNKNOWN_ERR, "Bluetooth service is not initialized.");
     }
 
-    util::ReportSuccess(out);
+    if (ret.IsSuccess() && this->user_request_list_[SET_POWERED]) {
+        ret = PlatformResult(ErrorCode::SERVICE_NOT_AVAILABLE_ERR, "Already requested");
+    }
+
+    bool cur_powered = this->get_powered();
+
+    if (ret.IsSuccess() && new_powered != cur_powered) {
+        this->requested_powered_ = new_powered;
+        this->user_request_list_[SET_POWERED] = true;
+        this->user_request_callback_[SET_POWERED] = callback_handle;
+
+        if (new_powered) {
+            bt_adapter_enable();
+        } else {
+            bt_adapter_disable();
+        }
+    }
+
+    util::AsyncResponse(callback_handle, ret);
 }
 
 void BluetoothAdapter::SetVisible(const picojson::value& data, picojson::object& out)
@@ -569,69 +549,64 @@ void BluetoothAdapter::SetVisible(const picojson::value& data, picojson::object&
         timeout = static_cast<unsigned short>(FromJson<double>(args, "timeout"));
     }
 
-    try {
-        if (!this->is_initialized()) {
-            throw UnknownException("Bluetooth service is not initialized.");
-        }
+    PlatformResult result = PlatformResult(ErrorCode::NO_ERROR);
 
-        if (this->user_request_list_[SET_VISIBLE]) {
-            throw ServiceNotAvailableException("Already requested");
-        }
-
-        if (this->get_powered()) {
-            bt_adapter_visibility_mode_e mode = BT_ADAPTER_VISIBILITY_MODE_NON_DISCOVERABLE;
-            if (visible) {
-                if (0 == timeout) {
-                    mode = BT_ADAPTER_VISIBILITY_MODE_GENERAL_DISCOVERABLE;
-                } else {
-                    mode = BT_ADAPTER_VISIBILITY_MODE_LIMITED_DISCOVERABLE;
-                }
-            }
-
-            bt_adapter_visibility_mode_e current = BT_ADAPTER_VISIBILITY_MODE_NON_DISCOVERABLE;
-            int time = 0;
-            if (BT_ERROR_NONE != bt_adapter_get_visibility(&current , &time)) {
-                throw UnknownException("Unknown exception");
-            }
-
-            if (mode == current) {
-                if (BT_ADAPTER_VISIBILITY_MODE_LIMITED_DISCOVERABLE != mode ||
-                        (unsigned int)time != timeout) {
-                    std::shared_ptr<picojson::value> response =
-                            std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
-                    util::ReportSuccess(response->get<picojson::object>());
-                    util::AsyncResponse(callback_handle, response);
-                    return;
-                }
-            }
-
-            this->requested_visibility_ = mode;
-            this->user_request_list_[SET_VISIBLE] = true;
-            this->user_request_callback_[SET_VISIBLE] = callback_handle;
-            int ret = bt_adapter_set_visibility(mode, timeout);
-
-            switch(ret) {
-                case BT_ERROR_NONE:
-                    //bt_adapter_visibility_mode_changed_cb() will be invoked
-                    //if this function returns #BT_ERROR_NONE
-                    break;
-                case BT_ERROR_INVALID_PARAMETER:
-                    throw InvalidValuesException("Invalid value");
-                default:
-                    throw UnknownException("Unknown exception");
-            }
-        } else {
-            throw ServiceNotAvailableException("Bluetooth device is turned off");
-        }
-    } catch (const PlatformException& err) {
-        std::shared_ptr<picojson::value> response =
-                std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
-        util::ReportError(err, response->get<picojson::object>());
-        util::AsyncResponse(callback_handle, response);
-        return;
+    if (!this->is_initialized()) {
+        result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Bluetooth service is not initialized.");
     }
 
-    util::ReportSuccess(out);
+    if (result.IsSuccess() && this->user_request_list_[SET_VISIBLE]) {
+        result = PlatformResult(ErrorCode::SERVICE_NOT_AVAILABLE_ERR, "Already requested");
+    }
+
+    if (result.IsSuccess() && this->get_powered()) {
+        bt_adapter_visibility_mode_e mode = BT_ADAPTER_VISIBILITY_MODE_NON_DISCOVERABLE;
+        if (visible) {
+            if (0 == timeout) {
+                mode = BT_ADAPTER_VISIBILITY_MODE_GENERAL_DISCOVERABLE;
+            } else {
+                mode = BT_ADAPTER_VISIBILITY_MODE_LIMITED_DISCOVERABLE;
+            }
+        }
+
+        bt_adapter_visibility_mode_e current = BT_ADAPTER_VISIBILITY_MODE_NON_DISCOVERABLE;
+        int time = 0;
+        if (BT_ERROR_NONE != bt_adapter_get_visibility(&current , &time)) {
+          result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown exception");
+          util::AsyncResponse(callback_handle, result);
+          return;
+        }
+
+        if (mode == current) {
+            if (BT_ADAPTER_VISIBILITY_MODE_LIMITED_DISCOVERABLE != mode ||
+                    (unsigned int)time != timeout) {
+                util::AsyncResponse(callback_handle, result);
+                return;
+            }
+        }
+
+        this->requested_visibility_ = mode;
+        this->user_request_list_[SET_VISIBLE] = true;
+        this->user_request_callback_[SET_VISIBLE] = callback_handle;
+        int ret = bt_adapter_set_visibility(mode, timeout);
+
+        switch(ret) {
+            case BT_ERROR_NONE:
+                //bt_adapter_visibility_mode_changed_cb() will be invoked
+                //if this function returns #BT_ERROR_NONE
+                break;
+            case BT_ERROR_INVALID_PARAMETER:
+                result = PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid value");
+                break;
+            default:
+                result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown exception");
+        }
+    } else if (result.IsSuccess()){
+        result = PlatformResult(
+                ErrorCode::SERVICE_NOT_AVAILABLE_ERR, "Bluetooth device is turned off");
+    }
+
+    util::AsyncResponse(callback_handle, result);
 }
 
 void BluetoothAdapter::DiscoverDevices(const picojson::value& /* data */, picojson::object& out) {
@@ -639,32 +614,33 @@ void BluetoothAdapter::DiscoverDevices(const picojson::value& /* data */, picojs
 
     util::CheckAccess(Privilege::kBluetoothGap);
 
-    try {
-        if (!is_initialized_) {
-            throw UnknownException("Bluetooth service is not initialized.");
-        }
+    PlatformResult result = PlatformResult(ErrorCode::NO_ERROR);
 
-        if (this->user_request_list_[DISCOVER_DEVICES]) {
-            throw ServiceNotAvailableException("Already requested");
-        }
+    if (!is_initialized_) {
+        result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Bluetooth service is not initialized.");
+    }
 
-        if (!get_powered()) {
-            throw ServiceNotAvailableException("Bluetooth device is turned off");
-        }
+    if (result.IsSuccess() && this->user_request_list_[DISCOVER_DEVICES]) {
+        result = PlatformResult(ErrorCode::SERVICE_NOT_AVAILABLE_ERR, "Already requested");
+    }
 
+    if (result.IsSuccess() && !get_powered()) {
+        result = PlatformResult(
+                ErrorCode::SERVICE_NOT_AVAILABLE_ERR, "Bluetooth device is turned off");
+    }
+
+    if (result.IsSuccess()) {
         this->user_request_list_[DISCOVER_DEVICES] = true;
         bt_adapter_start_device_discovery();
-    } catch (const PlatformException& err) {
+    } else {
         std::shared_ptr<picojson::value> response =
-                std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
-        util::ReportError(err, response->get<picojson::object>());
+            std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
+
+        ReportError(result, &response->get<picojson::object>());
         TaskQueue::GetInstance().Async<picojson::value>([](const std::shared_ptr<picojson::value>& result) {
             util::FireEvent(kAdapterDiscoverErrorEvent, result);
         }, response);
-        return;
     }
-
-    util::ReportSuccess(out);
 }
 
 void BluetoothAdapter::StopDiscovery(const picojson::value& data, picojson::object& out) {
@@ -674,52 +650,46 @@ void BluetoothAdapter::StopDiscovery(const picojson::value& data, picojson::obje
 
     const auto callback_handle = util::GetAsyncCallbackHandle(data);
 
-    try {
-        if (!this->is_initialized()) {
-            throw UnknownException("Bluetooth service is not initialized.");
+    PlatformResult result = PlatformResult(ErrorCode::NO_ERROR);
+
+    if (!this->is_initialized()) {
+        result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Bluetooth service is not initialized.");
+    }
+
+    if (result.IsSuccess() && this->user_request_list_[STOP_DISCOVERY]) {
+        result = PlatformResult(ErrorCode::SERVICE_NOT_AVAILABLE_ERR, "Already requested");
+    }
+
+    if (result.IsSuccess() && this->get_powered()) {
+        bool is_discovering = false;
+        bt_adapter_is_discovering(&is_discovering);
+
+        if (!is_discovering) {
+            util::AsyncResponse(callback_handle, result);
+            return;
         }
 
-        if (this->user_request_list_[STOP_DISCOVERY]) {
-            throw ServiceNotAvailableException("Already requested");
-        }
-
-        if (this->get_powered()) {
-            bool is_discovering = false;
-            bt_adapter_is_discovering(&is_discovering);
-
-            if (!is_discovering) {
-                std::shared_ptr<picojson::value> response =
-                        std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
-                util::ReportSuccess(response->get<picojson::object>());
-                util::AsyncResponse(callback_handle, response);
-                return;
-            }
-
-            this->user_request_list_[STOP_DISCOVERY] = true;
-            this->user_request_callback_[STOP_DISCOVERY] = callback_handle;
-            int ret = bt_adapter_stop_device_discovery();
-            switch(ret) {
+        this->user_request_list_[STOP_DISCOVERY] = true;
+        this->user_request_callback_[STOP_DISCOVERY] = callback_handle;
+        int ret = bt_adapter_stop_device_discovery();
+        switch(ret) {
             case BT_ERROR_NONE: {
                 //This function invokes bt_adapter_device_discovery_state_changed_cb().
                 break;
             }
             default: {
                 this->user_request_list_[STOP_DISCOVERY] = false;
-                throw UnknownException("Unknown error");
+                result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown exception");
             }
-            }
-        } else {
-            throw ServiceNotAvailableException("Bluetooth device is turned off");
         }
-    } catch (const PlatformException& err) {
-        std::shared_ptr<picojson::value> response =
-                std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
-        util::ReportError(err, response->get<picojson::object>());
-        util::AsyncResponse(callback_handle, response);
-        return;
+    } else if (result.IsSuccess()) {
+        result = PlatformResult(
+                ErrorCode::SERVICE_NOT_AVAILABLE_ERR, "Bluetooth device is turned off");
     }
 
-    util::ReportSuccess(out);
+    if (result.IsError()) {
+        util::AsyncResponse(callback_handle, result);
+    }
 }
 
 void BluetoothAdapter::GetKnownDevices(const picojson::value& data, picojson::object& out) {

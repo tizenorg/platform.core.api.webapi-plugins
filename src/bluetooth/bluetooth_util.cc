@@ -6,8 +6,11 @@
 
 #include "common/logger.h"
 #include "common/task-queue.h"
+#include "common/extension.h"
 
 #include "bluetooth_instance.h"
+
+using namespace common;
 
 namespace extension {
 namespace bluetooth {
@@ -31,6 +34,21 @@ void CheckAccess(const std::string& privilege) {
 void AsyncResponse(double callback_handle, const std::shared_ptr<picojson::value>& response) {
     common::TaskQueue::GetInstance().Async<picojson::value>([callback_handle](const std::shared_ptr<picojson::value>& response) {
         SyncResponse(callback_handle, response);
+    }, response);
+}
+
+void AsyncResponse(double callback_handle, const PlatformResult& result) {
+    std::shared_ptr<picojson::value> response =
+            std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
+
+    if (result.IsError()) {
+        tools::ReportError(result, &response->get<picojson::object>());
+    } else {
+        tools::ReportSuccess(response->get<picojson::object>());
+    }
+
+    TaskQueue::GetInstance().Async<picojson::value>([callback_handle](const std::shared_ptr<picojson::value>& response) {
+         SyncResponse(callback_handle, response);
     }, response);
 }
 

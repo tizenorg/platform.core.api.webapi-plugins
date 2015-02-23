@@ -10,6 +10,7 @@
 
 #include "common/picojson.h"
 #include "common/platform_exception.h"
+#include "common/platform_result.h"
 
 namespace extension {
 namespace bluetooth {
@@ -18,6 +19,7 @@ namespace util {
 void CheckAccess(const std::string& privilege);
 
 void AsyncResponse(double callback_handle, const std::shared_ptr<picojson::value>& response);
+void AsyncResponse(double callback_handle, const common::PlatformResult& result);
 void SyncResponse(double callback_handle, const std::shared_ptr<picojson::value>& response);
 
 void FireEvent(const std::string& event, picojson::value& value);
