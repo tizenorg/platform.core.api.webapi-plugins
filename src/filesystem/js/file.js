@@ -409,21 +409,59 @@ File.prototype.deleteDirectory = function(directoryPath, recursive, onsuccess, o
     {name: 'onerror', type: types_.FUNCTION, optional: true, nullable: true}
   ]);
 
-  var data = {
-    directoryPath: args.directoryPath,
-    recursive: args.recursive
-  };
+  if (this.mode === 'r') {
+    setTimeout(function() {
+      native_.callIfPossible(args.onerror,
+          new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR,
+              'Invalid path or readonly access'));
+    }, 0);
+    return;
+  }
 
-  var callback = function(result) {
-    if (native_.isFailure(result)) {
-      native_.callIfPossible(args.onerror, native_.getErrorObject(result));
-      return;
-    }
-    native_.callIfPossible(args.onsuccess);
-  };
+  var _myPath = commonFS_.toRealPath(args.directoryPath);
+  var _result = native_.callSync('File_statSync', {location: _myPath});
+  var _statObj = native_.getResultObject(_result);
+  var _info = commonFS_.getFileInfo(_myPath, _statObj);
+  var _node = new File(_info);
 
-  native_.call('File_deleteDirectory', data, callback);
+  if (!_node.isDirectory) {
+    setTimeout(function() {
+      native_.callIfPossible(args.onerror,
+          new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR,
+          'It is file not directory'));
+    }, 0);
+    return;
+  } else {
+    _node.listFiles(
+        function(files) {
+          if (files.length > 0) {
+            if (!args.recursive) {
+              native_.callIfPossible(args.onerror,
+                  new tizen.WebAPIException(tizen.WebAPIException.IO_ERR,
+                  'Non empty folder ' + _myPath + ' passed for non recursive delete'));
+              return;
+            }
+          }
+          var data = {
+            pathToDelete: _myPath
+          };
 
+          var callback = function(result) {
+            if (native_.isFailure(result)) {
+              native_.callIfPossible(args.onerror, native_.getErrorObject(result));
+            }
+            native_.callIfPossible(args.onsuccess);
+          };
+
+          native_.call('File_removeDirectory', data, callback);
+        },
+        function() {
+          native_.callIfPossible(args.onerror,
+              new tizen.WebAPIException(tizen.WebAPIException.IO_ERR,
+              'List files failed for ' + _myPath));
+        }
+    );
+  }
 };
 
 File.prototype.deleteFile = function(filePath, onsuccess, onerror) {
