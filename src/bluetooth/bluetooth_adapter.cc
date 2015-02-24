@@ -700,31 +700,33 @@ void BluetoothAdapter::GetKnownDevices(const picojson::value& data, picojson::ob
     const auto callback_handle = util::GetAsyncCallbackHandle(data);
 
     auto get_known_devices = [this](const std::shared_ptr<picojson::value>& response) -> void {
-        try {
-            if (!this->is_initialized()) {
-                throw UnknownException("Bluetooth service is not initialized.");
-            }
-            if (this->get_powered()) {
-                picojson::object& response_obj = response->get<picojson::object>();
-                picojson::value result = picojson::value(picojson::object());
-                picojson::object& result_obj = result.get<picojson::object>();
-                picojson::array& array = result_obj.insert(
-                    std::make_pair("devices", picojson::value(
-                            picojson::array()))).first->second.get<picojson::array>();
+        PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
 
-                array = discovered_devices_;
+        if (!this->is_initialized()) {
+            ret = PlatformResult(ErrorCode::UNKNOWN_ERR, "Bluetooth service is not initialized.");
+        }
 
-                if (BT_ERROR_NONE == bt_adapter_foreach_bonded_device(
-                        ForeachBondedDevicesCB, &array)) {
-                    util::ReportSuccess(result, response_obj);
-                } else {
-                    throw UnknownException("Unknown exception");
-                }
+        if (ret.IsSuccess() && this->get_powered()) {
+            picojson::object& response_obj = response->get<picojson::object>();
+            picojson::value result = picojson::value(picojson::object());
+            picojson::object& result_obj = result.get<picojson::object>();
+            picojson::array& array = result_obj.insert(std::make_pair("devices", picojson::value(
+                        picojson::array()))).first->second.get<picojson::array>();
+
+            array = discovered_devices_;
+
+            if (BT_ERROR_NONE == bt_adapter_foreach_bonded_device(ForeachBondedDevicesCB, &array)) {
+                ReportSuccess(result, response_obj);
             } else {
-                throw ServiceNotAvailableException("Bluetooth device is turned off");
+                ret = PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown exception");
             }
-        } catch (const PlatformException& err) {
-            util::ReportError(err, response->get<picojson::object>());
+        } else if (ret.IsSuccess()) {
+            ret = PlatformResult(
+                ErrorCode::SERVICE_NOT_AVAILABLE_ERR, "Bluetooth device is turned off");
+        }
+
+        if (ret.IsError()) {
+            ReportError(ret, &response->get<picojson::object>());
         }
     };
     auto get_known_devices_response = [callback_handle](
@@ -737,7 +739,7 @@ void BluetoothAdapter::GetKnownDevices(const picojson::value& data, picojson::ob
         get_known_devices_response,
         std::shared_ptr<picojson::value>(new picojson::value(picojson::object())));
 
-    util::ReportSuccess(out);
+    ReportSuccess(out);
 }
 
 void BluetoothAdapter::GetDevice(const picojson::value& data, picojson::object&  out) {
@@ -751,47 +753,50 @@ void BluetoothAdapter::GetDevice(const picojson::value& data, picojson::object& 
     const auto& address = FromJson<std::string>(args, "address");
 
     auto get_device = [this, address](const std::shared_ptr<picojson::value>& response) -> void {
-        try {
-            if (!IsValidAddress(address)) {
-                throw NotFoundException("Wrong address");
+        PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
+        if (!IsValidAddress(address)) {
+            ret = PlatformResult(ErrorCode::NOT_FOUND_ERR, "Wrong address");
+        }
+
+        if (ret.IsSuccess() && !this->is_initialized()) {
+            ret = PlatformResult(ErrorCode::UNKNOWN_ERR, "Bluetooth service is not initialized.");
+        }
+        if (ret.IsSuccess() && this->get_powered()) {
+            picojson::object& response_obj = response->get<picojson::object>();
+            bt_device_info_s *info = nullptr;
+
+            if (bt_adapter_get_bonded_device_info(address.c_str(), &info) == BT_ERROR_NONE &&
+                        info != nullptr) {
+                picojson::value result = picojson::value(picojson::object());
+                picojson::object& result_obj = result.get<picojson::object>();
+
+                BluetoothDevice::ToJson(info, &result_obj);
+                ReportSuccess(result, response_obj);
+                bt_adapter_free_device_info(info);
+                return;
             }
 
-            if (!this->is_initialized()) {
-                throw UnknownException("Bluetooth service is not initialized.");
-            }
-            if (this->get_powered()) {
-                picojson::object& response_obj = response->get<picojson::object>();
-                bt_device_info_s *info = nullptr;
-
-                if (bt_adapter_get_bonded_device_info(address.c_str(), &info) == BT_ERROR_NONE &&
-                                info != nullptr) {
-                    picojson::value result = picojson::value(picojson::object());
-                    picojson::object& result_obj = result.get<picojson::object>();
-
-                    BluetoothDevice::ToJson(info, &result_obj);
-                    util::ReportSuccess(result, response_obj);
-                    bt_adapter_free_device_info(info);
-                    return;
-                }
-
-                auto is_address = discovered_addresses_.find(address);
-                if (is_address != discovered_addresses_.end()) {
-                    for (auto iter = discovered_devices_.begin();
-                            iter != discovered_devices_.end(); iter++) {
-                        if (!strcmp(address.c_str(), ((*iter).get<picojson::object>())
-                                    .find(kDeviceAddress)->second.get<std::string>().c_str())) {
-                            util::ReportSuccess(*iter, response_obj);
-                            return;
-                        }
+            auto is_address = discovered_addresses_.find(address);
+            if (is_address != discovered_addresses_.end()) {
+                for (auto iter = discovered_devices_.begin();
+                        iter != discovered_devices_.end(); iter++) {
+                    if (!strcmp(address.c_str(), ((*iter).get<picojson::object>())
+                                .find(kDeviceAddress)->second.get<std::string>().c_str())) {
+                        ReportSuccess(*iter, response_obj);
+                        return;
                     }
-                } else {
-                    throw NotFoundException("There is no device with the given address");
                 }
             } else {
-                throw ServiceNotAvailableException("Bluetooth device is turned off");
+                ret = PlatformResult(
+                    ErrorCode::NOT_FOUND_ERR, "There is no device with the given address");
             }
-        } catch (const PlatformException& err) {
-            util::ReportError(err, response->get<picojson::object>());
+        } else if (ret.IsSuccess()) {
+            ret = PlatformResult(
+                ErrorCode::SERVICE_NOT_AVAILABLE_ERR, "Bluetooth device is turned off");
+        }
+
+        if (ret.IsError()) {
+            ReportError(ret, &response->get<picojson::object>());
         }
     };
 
@@ -805,7 +810,7 @@ void BluetoothAdapter::GetDevice(const picojson::value& data, picojson::object& 
         get_device_response,
         std::shared_ptr<picojson::value>(new picojson::value(picojson::object())));
 
-    util::ReportSuccess(out);
+    ReportSuccess(out);
 }
 
 class BondingHandler {
@@ -821,8 +826,15 @@ public:
         return address_;
     }
 
-    void Invoke(const std::shared_ptr<picojson::value>& response) {
+    void Invoke(const PlatformResult& result, const std::shared_ptr<picojson::value>& response) {
         LoggerD("Entered");
+
+        if (result.IsError()) {
+            ReportError(result, &response->get<picojson::object>());
+        } else {
+            ReportSuccess(response->get<picojson::object>());
+        }
+
         util::AsyncResponse(callback_handle_, response);
     }
 
@@ -843,101 +855,99 @@ void BluetoothAdapter::CreateBonding(const picojson::value& data, picojson::obje
     const auto& address = FromJson<std::string>(args, "address");
 
     auto create_bonding = [address, callback_handle, this]() -> void {
-        try {
-            if(!IsValidAddress(address)) {
-                throw InvalidValuesException("Wrong address");
-            }
-            if (!this->is_initialized()) {
-                throw UnknownException("Bluetooth service is not initialized.");
-            }
+        PlatformResult result = PlatformResult(ErrorCode::NO_ERROR);
+        if(!IsValidAddress(address)) {
+            result = PlatformResult(ErrorCode::NOT_FOUND_ERR, "Wrong address");
+        }
 
-            if (this->get_powered()) {
+        if (result.IsSuccess() && !this->is_initialized()) {
+            result = PlatformResult(
+                ErrorCode::UNKNOWN_ERR, "Bluetooth service is not initialized.");
+        }
 
-                auto bond_create_callback = [](int callback_result,
-                                             bt_device_info_s *device_info,
-                                             void *user_data) {
-                    LoggerD("bond_create_callback");
+        if (result.IsSuccess() && this->get_powered()) {
 
-                    BondingHandler* handler = static_cast<BondingHandler*>(user_data);
-                    if (!handler) {
-                        LoggerW("user_data is nullptr");
-                        return;
-                    }
-                    if (!device_info) {
-                        LoggerW("device_info is nullptr");
-                        return;
-                    }
+            auto bond_create_callback = [](int callback_result,
+                                         bt_device_info_s *device_info,
+                                         void *user_data) {
+                LoggerD("bond_create_callback");
 
-                    if (!strcmp(handler->address().c_str(), device_info->remote_address)) {  // requested event
-                        try {
-                            if (BT_ERROR_NONE == callback_result && nullptr != device_info ) {
-                                std::shared_ptr<picojson::value> response =
-                                        std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
-                                picojson::object& response_obj = response->get<picojson::object>();
-                                picojson::value result = picojson::value(picojson::object());
-                                picojson::object& result_obj = result.get<picojson::object>();
-
-                                BluetoothDevice::ToJson(device_info, &result_obj);
-                                util::ReportSuccess(result, response_obj);
-                                handler->Invoke(response);
-                            } else if (BT_ERROR_REMOTE_DEVICE_NOT_FOUND == callback_result) {
-                                LoggerE("Not found");
-                                throw ServiceNotAvailableException("Not found");
-                            } else {
-                                LoggerE("Unknown exception");
-                                throw UnknownException("Unknown exception");
-                            }
-                        } catch (const PlatformException& err) {
-                            std::shared_ptr<picojson::value> response =
-                                    std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
-                            util::ReportError(err, response->get<picojson::object>());
-                            handler->Invoke(response);
-                        }
-                        delete handler;
-                        bt_device_unset_bond_created_cb();
-                    } else {  // unexpected event
-                        LoggerD("An unexpected bonding detected");
-                    }
-                };
-
-                BondingHandler* handler = new BondingHandler(callback_handle, address);
-                bt_device_set_bond_created_cb(bond_create_callback, handler);
-                int ret = bt_device_create_bond(address.c_str());
-
-                switch(ret) {
-                    case BT_ERROR_NONE:
-                    {
-                        LoggerD("bt_device_create_bond() succeeded");
-                        break;
-                    }
-                    case BT_ERROR_INVALID_PARAMETER:
-                    {
-                        LoggerE("Not found");
-                        bt_device_unset_bond_created_cb();
-                        delete handler;
-                        throw InvalidValuesException("Invalid value");
-                    }
-                    default:
-                    {
-                        LoggerE("Unknown exception");
-                        bt_device_unset_bond_created_cb();
-                        delete handler;
-                        throw UnknownException("Unknown exception");
-                    }
+                BondingHandler* handler = static_cast<BondingHandler*>(user_data);
+                if (!handler) {
+                    LoggerW("user_data is nullptr");
+                    return;
                 }
-            } else {   // Not powered
-                LoggerE("Bluetooth device is turned off");
-                throw ServiceNotAvailableException("Bluetooth device is turned off");
+                if (!device_info) {
+                    LoggerW("device_info is nullptr");
+                    return;
+                }
+
+                PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
+                std::shared_ptr<picojson::value> response =
+                        std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
+                if (!strcmp(handler->address().c_str(), device_info->remote_address)) {  // requested event
+                    if (BT_ERROR_NONE == callback_result && nullptr != device_info ) {
+                        picojson::object& response_obj = response->get<picojson::object>();
+                        picojson::value result = picojson::value(picojson::object());
+                        picojson::object& result_obj = result.get<picojson::object>();
+
+                        BluetoothDevice::ToJson(device_info, &result_obj);
+                        ReportSuccess(result, response_obj);
+                    } else if (BT_ERROR_REMOTE_DEVICE_NOT_FOUND == callback_result) {
+                        LoggerE("Not found");
+                        ret = PlatformResult(ErrorCode::SERVICE_NOT_AVAILABLE_ERR, "Not found");
+
+                    } else {
+                        LoggerE("Unknown exception");
+                        ret = PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown exception");
+                    }
+
+                    handler->Invoke(ret, response);
+                    delete handler;
+                    bt_device_unset_bond_created_cb();
+                } else {  // unexpected event
+                    LoggerD("An unexpected bonding detected");
+                }
+            };
+
+            BondingHandler* handler = new BondingHandler(callback_handle, address);
+            bt_device_set_bond_created_cb(bond_create_callback, handler);
+            int ret = bt_device_create_bond(address.c_str());
+
+            switch(ret) {
+                case BT_ERROR_NONE:
+                {
+                    LoggerD("bt_device_create_bond() succeeded");
+                    break;
+                }
+                case BT_ERROR_INVALID_PARAMETER:
+                {
+                    LoggerE("Not found");
+                    bt_device_unset_bond_created_cb();
+                    delete handler;
+                    result = PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid value");
+                    break;
+                }
+                default:
+                {
+                    LoggerE("Unknown exception");
+                    bt_device_unset_bond_created_cb();
+                    delete handler;
+                    result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown exception");
+                }
             }
-        } catch (const PlatformException& err) {
-            std::shared_ptr<picojson::value> response =
-                    std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
-            util::ReportError(err, response->get<picojson::object>());
-            util::AsyncResponse(callback_handle, response);
+        } else if (result.IsSuccess()) {
+            LoggerE("Bluetooth device is turned off");
+            result = PlatformResult(
+                ErrorCode::SERVICE_NOT_AVAILABLE_ERR, "Bluetooth device is turned off");
+        }
+
+        if (result.IsError()) {
+            util::AsyncResponse(callback_handle, result);
         }
     };
     TaskQueue::GetInstance().Queue(create_bonding);
-    util::ReportSuccess(out);
+    ReportSuccess(out);
 }
 
 void BluetoothAdapter::DestroyBonding(const picojson::value& data, picojson::object& out)
@@ -952,99 +962,94 @@ void BluetoothAdapter::DestroyBonding(const picojson::value& data, picojson::obj
     const auto& address = FromJson<std::string>(args, "address");
 
     auto destroy_bonding = [address, callback_handle, this]() -> void {
-        try {
-            if(!IsValidAddress(address)) {
-                throw InvalidValuesException("Wrong address");
-            }
-            if (!this->is_initialized()) {
-                throw UnknownException("Bluetooth service is not initialized.");
-            }
+        PlatformResult result = PlatformResult(ErrorCode::NO_ERROR);
+        if(!IsValidAddress(address)) {
+            result = PlatformResult(ErrorCode::NOT_FOUND_ERR, "Wrong address");
+        }
+        if (result.IsSuccess() && !this->is_initialized()) {
+            result = PlatformResult(
+                ErrorCode::UNKNOWN_ERR, "Bluetooth service is not initialized.");
+        }
 
-            if (this->get_powered()) {
-                bt_device_info_s *device_info = nullptr;
-                int ret = bt_adapter_get_bonded_device_info(address.c_str(), &device_info);
+        if (result.IsSuccess() && this->get_powered()) {
+            bt_device_info_s *device_info = nullptr;
+            int ret = bt_adapter_get_bonded_device_info(address.c_str(), &device_info);
 
-                if (BT_ERROR_NONE != ret || nullptr == device_info) {
-                    LoggerD("There is no bonding");
-                    throw NotFoundException("Not found");
-                } else {
-                    bt_adapter_free_device_info(device_info);
+            if (BT_ERROR_NONE != ret || nullptr == device_info) {
+                LoggerD("There is no bonding");
+                result = PlatformResult(ErrorCode::NOT_FOUND_ERR, "Not found");
+            } else {
+                bt_adapter_free_device_info(device_info);
 
-                    auto bond_destroy_callback = [](int callback_result,
-                                                    char *remote_address,
-                                                    void *user_data) {
-                        LoggerD("bond_destroy_callback");
+                auto bond_destroy_callback = [](int callback_result,
+                                                char *remote_address,
+                                                void *user_data) {
+                    LoggerD("bond_destroy_callback");
 
-                        BondingHandler* handler = static_cast<BondingHandler*>(user_data);
-                        if (!handler) {
-                            LoggerW("user_data is nullptr");
-                            return;
-                        }
+                    BondingHandler* handler = static_cast<BondingHandler*>(user_data);
+                    if (!handler) {
+                        LoggerW("user_data is nullptr");
+                        return;
+                    }
 
-                        if (!strcmp(handler->address().c_str(), remote_address)) {  // requested event
-                            try {
-                                if (BT_ERROR_NONE == callback_result) {
-                                    std::shared_ptr<picojson::value> response =
-                                            std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
-                                    util::ReportSuccess(response->get<picojson::object>());
-                                    handler->Invoke(response);
-                                } else {
-                                    LoggerE("Unknown exception");
-                                    throw UnknownException("Unknown exception");
-                                }
-                            } catch (const PlatformException& err) {
-                                std::shared_ptr<picojson::value> response =
-                                        std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
-                                util::ReportError(err, response->get<picojson::object>());
-                                handler->Invoke(response);
-                            }
-                            delete handler;
-                            bt_device_unset_bond_destroyed_cb();
-                        } else {  // unexpected event
-                            LoggerD("An unexpected bonding detected");
-                        }
-                    };
+                    PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
+                    std::shared_ptr<picojson::value> response =
+                            std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
 
-                    BondingHandler* handler = new BondingHandler(callback_handle, address);
-                    bt_device_set_bond_destroyed_cb(bond_destroy_callback, handler);
-
-                    int ret = bt_device_destroy_bond(address.c_str());
-
-                    switch(ret) {
-                        case BT_ERROR_NONE:
-                        {
-                            LoggerD("bt_device_destroy_bond() succeeded");
-                            break;
-                        }
-                        case BT_ERROR_INVALID_PARAMETER:
-                        {
-                            LoggerE("Not found");
-                            bt_device_unset_bond_destroyed_cb();
-                            delete handler;
-                            throw InvalidValuesException("Invalid value");
-                        }
-                        default:
-                        {
+                    if (!strcmp(handler->address().c_str(), remote_address)) {  // requested event
+                        if (BT_ERROR_NONE != callback_result) {
                             LoggerE("Unknown exception");
-                            bt_device_unset_bond_destroyed_cb();
-                            delete handler;
-                            throw UnknownException("Unknown exception");
+                            ret = PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown exception");
                         }
+
+                        handler->Invoke(ret, response);
+                        delete handler;
+                        bt_device_unset_bond_destroyed_cb();
+                    } else {  // unexpected event
+                        LoggerD("An unexpected bonding detected");
+                    }
+                };
+
+                BondingHandler* handler = new BondingHandler(callback_handle, address);
+                bt_device_set_bond_destroyed_cb(bond_destroy_callback, handler);
+
+                int ret = bt_device_destroy_bond(address.c_str());
+
+                switch(ret) {
+                    case BT_ERROR_NONE:
+                    {
+                        LoggerD("bt_device_destroy_bond() succeeded");
+                        break;
+                    }
+                    case BT_ERROR_INVALID_PARAMETER:
+                    {
+                        LoggerE("Not found");
+                        bt_device_unset_bond_destroyed_cb();
+                        delete handler;
+                        result = PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid value");
+                        break;
+                    }
+                    default:
+                    {
+                        LoggerE("Unknown exception");
+                        bt_device_unset_bond_destroyed_cb();
+                        delete handler;
+                        result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown exception");
                     }
                 }
-            } else {   // Not powered
-                LoggerE("Bluetooth device is turned off");
-                throw ServiceNotAvailableException("Bluetooth device is turned off");
             }
-        } catch (const PlatformException& err) {
-            std::shared_ptr<picojson::value> response =
-                    std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
-            util::ReportError(err, response->get<picojson::object>());
-            util::AsyncResponse(callback_handle, response);
+        } else  if (result.IsSuccess()) {
+            LoggerE("Bluetooth device is turned off");
+            result = PlatformResult(
+                ErrorCode::SERVICE_NOT_AVAILABLE_ERR, "Bluetooth device is turned off");
+        }
+
+        if (result.IsError()) {
+            util::AsyncResponse(callback_handle, result);
         }
     };
     TaskQueue::GetInstance().Queue(destroy_bonding);
-    util::ReportSuccess(out);
+    ReportSuccess(out);
 }
 
 void BluetoothAdapter::RegisterRFCOMMServiceByUUID(const picojson::value& data, picojson::object& out) {
