@@ -1,4 +1,4 @@
-%define profile mobile
+%{!?profile:%define profile mobile}
 
 %define _manifestdir %{TZ_SYS_RW_PACKAGES}
 %define _desktop_icondir %{TZ_SYS_SHARE}/icons/default/small
