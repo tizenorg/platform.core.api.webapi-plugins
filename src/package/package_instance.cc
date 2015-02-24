@@ -144,6 +144,8 @@ static void PackageListenerCb(
   }
 
   picojson::object param;
+  param["listener"] = picojson::value("infoEvent");
+
   if ( event_type == PACKAGE_MANAGER_EVENT_TYPE_INSTALL
       && event_state == PACKAGE_MANAGER_EVENT_STATE_COMPLETED ) {
     LoggerD("[Installed]");
@@ -219,7 +221,7 @@ PackageInstance::PackageInstance() {
     manager_ = NULL;
   }
 
-  listener_id_ = -1;
+  is_package_info_listener_set_ = false;
 
   using std::placeholders::_1;
   using std::placeholders::_2;
@@ -418,8 +420,6 @@ void PackageInstance::PackageManagerGetpackageinfo(
 
 void PackageInstance::InvokeListener(picojson::object& param) {
   LoggerD("Enter");
-
-  param["callbackId"] = picojson::value(static_cast<double>(listener_id_));
   picojson::value result = picojson::value(param);
   PostMessage(result.serialize().c_str());
 }
@@ -441,6 +441,12 @@ void PackageInstance::
   return;
   */
 
+  if ( is_package_info_listener_set_ ) {
+    LoggerD("Already set");
+    ReportSuccess(out);
+    return;
+  }
+
   if ( !manager_ ) {
     LoggerE("package_manager_h is NULL");
     ReportError(
@@ -461,7 +467,7 @@ void PackageInstance::
     return;
   }
 
-  listener_id_ = callback_id;
+  is_package_info_listener_set_ = true;
   ReportSuccess(out);
 }
 
@@ -478,7 +484,7 @@ void PackageInstance::
   return;
   */
 
-  if ( listener_id_ == -1 ) {
+  if ( !is_package_info_listener_set_ ) {
     LoggerD("Listener is not set");
     ReportSuccess(out);
     return;
@@ -503,8 +509,8 @@ void PackageInstance::
     return;
   }
 
-  ReportSuccess(picojson::value(static_cast<double>(listener_id_)), out);
-  listener_id_ = -1;
+  is_package_info_listener_set_ = false;
+  ReportSuccess(out);
 }
 
 void PackageInstance::InvokeErrorCallbackAsync(

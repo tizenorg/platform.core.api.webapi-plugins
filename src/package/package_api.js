@@ -6,11 +6,24 @@ var types_ = validator_.Types;
 
 var callbackId = 0;
 var callbacks = {};
+var infoEventListenerId = -1;
+
+function invokeListener(result) {
+  if (result.listener === 'infoEvent') {
+    var listener = callbacks[infoEventListenerId];
+    listener(result);
+  }
+}
 
 extension.setMessageListener(function(json) {
   var result = JSON.parse(json);
-  var callback = callbacks[result['callbackId']];
-  callback(result);
+
+  if (result.hasOwnProperty('listener')) {
+    invokeListener(result);
+  } else {
+    var callback = callbacks[result['callbackId']];
+    callback(result);
+  }
 });
 
 function nextCallbackId() {
@@ -40,7 +53,6 @@ function callNative(cmd, args) {
     return false;
   }
 }
-
 
 function callNativeWithCallback(cmd, args, callback) {
   if (callback) {
@@ -208,8 +220,8 @@ PackageManager.prototype.getPackageInfo = function() {
   }
 
   try {
-    var resultObject = callNative('PackageManager_getPackageInfo', nativeParam);
-    return PackageInformation(resultObject);
+    var syncResult = callNative('PackageManager_getPackageInfo', nativeParam);
+    return PackageInformation(syncResult);
   } catch (e) {
     throw e;
   }
@@ -234,14 +246,20 @@ PackageManager.prototype.setPackageInfoEventListener = function(eventCallback) {
         function(result) {
           if (result.status == 'installed') {
             args.eventCallback.oninstalled(PackageInformation(result.info));
-          }
-          if (result.status == 'updated') {
+          } else if (result.status == 'updated') {
             args.eventCallback.onupdated(PackageInformation(result.info));
-          }
-          if (result.status == 'uninstalled') {
+          } else if (result.status == 'uninstalled') {
             args.eventCallback.onuninstalled(result.id);
           }
         });
+
+    if (infoEventListenerId === -1) {
+      infoEventListenerId = nativeParam.callbackId;
+    } else {
+      delete callbacks[infoEventListenerId];
+      infoEventListenerId = nativeParam.callbackId;
+    }
+
   } catch (e) {
     throw e;
   }
@@ -253,8 +271,9 @@ PackageManager.prototype.unsetPackageInfoEventListener = function() {
 
   try {
     var syncResult = callNative('PackageManager_unsetPackageInfoEventListener', nativeParam);
-    if (typeof syncResult != 'boolean') {
-      delete callbacks[syncResult];
+    if (syncResult === true) {
+      delete callbacks[infoEventListenerId];
+      infoEventListenerId = -1;
     }
   } catch (e) {
     throw e;

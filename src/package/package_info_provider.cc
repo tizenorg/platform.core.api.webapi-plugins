@@ -35,7 +35,8 @@ static int PackageInfoGetListCb(
   }
 
   picojson::object object_info;
-  if ( PackageInfoProvider::GetPackageInfo(info, object_info) ) {
+  if ( PackageInfoProvider::ConvertToPackageToObject(
+      info, object_info) ) {
     array_data->push_back(picojson::value(object_info));
   }
 
@@ -102,7 +103,7 @@ void PackageInfoProvider::GetPackageInfo(
   }
 
   picojson::object object_info;
-  if ( !GetPackageInfo(info, object_info) ) {
+  if ( !ConvertToPackageToObject(info, object_info) ) {
     LoggerE("Failed to convert pkginfo to object");
     REPORT_ERROR(out, UnknownException(
         "The package information cannot be retrieved " \
@@ -132,7 +133,7 @@ static bool PackageAppInfoCb(
   return true;
 }
 
-bool PackageInfoProvider:: GetPackageInfo(
+bool PackageInfoProvider:: ConvertToPackageToObject(
     const pkgmgrinfo_pkginfo_h info, picojson::object& out) {
   int ret = 0;
 

@@ -27,7 +27,7 @@ class PackageInstance : public common::ParsedInstance {
  private:
   package_manager_request_h request_;
   package_manager_h manager_;
-  int listener_id_;
+  bool is_package_info_listener_set_;
   std::map<int, int> callbacks_map_;  // <request_id, callbackId>
 
   void RegisterCallback(int request_id, int callback_id);
