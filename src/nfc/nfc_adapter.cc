@@ -39,6 +39,7 @@ NFCAdapter::NFCAdapter():
             m_is_transaction_ese_listener_set(false),
             m_is_transaction_uicc_listener_set(false),
             m_is_peer_listener_set(false),
+            m_is_tag_listener_set(false),
             m_latest_peer_id(0),
             m_peer_handle(NULL),
             m_is_ndef_listener_set(false),
@@ -176,14 +177,14 @@ static void se_event_callback(nfc_se_event_e se_event, void *user_data) {
   picojson::object& obj = event.get<picojson::object>();
   tools::ReportSuccess(obj);
 
-  string result;
+  string result = "";
   switch (se_event) {
     case NFC_SE_EVENT_SE_TYPE_CHANGED:
-      result = NFCAdapter::GetInstance()->GetActiveSecureElement();
+      NFCAdapter::GetInstance()->GetActiveSecureElement(&result);
       obj.insert(make_pair(LISTENER_ID, ACTIVE_SECURE_ELEMENT_CHANGED));
       break;
     case NFC_SE_EVENT_CARD_EMULATION_CHANGED:
-      result = NFCAdapter::GetInstance()->GetCardEmulationMode();
+      NFCAdapter::GetInstance()->GetCardEmulationMode(&result);
       obj.insert(make_pair(LISTENER_ID, CARD_EMULATION_MODE_CHANGED));
       break;
     default:
@@ -340,22 +341,22 @@ PlatformResult NFCAdapter::SetPowered(const picojson::value& args) {
 }
 
 
-std::string NFCAdapter::GetCardEmulationMode() {
+PlatformResult NFCAdapter::GetCardEmulationMode(std::string *mode) {
 
   LoggerD("Entered");
 
-  nfc_se_card_emulation_mode_type_e mode;
-  int ret = nfc_se_get_card_emulation_mode(&mode);
+  nfc_se_card_emulation_mode_type_e card_mode;
+  int ret = nfc_se_get_card_emulation_mode(&card_mode);
 
   if (NFC_ERROR_NONE != ret) {
     LoggerE("Failed to get card emulation mode %d", ret);
-    NFCUtil::throwNFCException(ret, "Failed to get card emulation mode");
+    return NFCUtil::CodeToResult(ret, "Failed to get card emulation mode");
   }
 
-  return NFCUtil::toStringCardEmulationMode(mode);
+  return NFCUtil::ToStringCardEmulationMode(card_mode, mode);
 }
 
-void NFCAdapter::SetCardEmulationMode(std::string mode) {
+PlatformResult NFCAdapter::SetCardEmulationMode(std::string mode) {
 
   LoggerD("Entered");
 
@@ -363,12 +364,17 @@ void NFCAdapter::SetCardEmulationMode(std::string mode) {
       NFCUtil::toCardEmulationMode(mode);
   LoggerD("Card emulation mode value: %x", (int)new_mode);
 
-  std::string current_mode = GetCardEmulationMode();
+  std::string current_mode = "";
+  PlatformResult result = GetCardEmulationMode(&current_mode);
+
+  if (result.IsError()) {
+    return result;
+  }
 
   if (mode.compare(current_mode) == 0) {
     LoggerD("Card emulation mode already set to given value (%s)",
             mode.c_str());
-    return;
+    return PlatformResult(ErrorCode::NO_ERROR);
   }
 
   int ret = NFC_ERROR_NONE;
@@ -381,55 +387,69 @@ void NFCAdapter::SetCardEmulationMode(std::string mode) {
       break;
     default:
       // Should never go here - in case of invalid mode
-      // exception is thrown from convertert few lines above
+      // platformResult is returned from convertert few lines above
       LoggerE("Invalid card emulation mode: %s", mode.c_str());
-      throw InvalidValuesException("Invalid card emulation mode given");
+      return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
+                            "Invalid card emulation mode given.");
   }
 
   if (NFC_ERROR_NONE != ret) {
     LoggerE("Failed to set card emulation mode %d", ret);
-    NFCUtil::throwNFCException(ret, "Failed to set card emulation mode");
+    return NFCUtil::CodeToResult(ret, "Failed to set card emulation mode");
   }
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-std::string NFCAdapter::GetActiveSecureElement() {
+PlatformResult NFCAdapter::GetActiveSecureElement(std::string *type) {
 
   LoggerD("Entered");
 
-  nfc_se_type_e type;
-  int ret = nfc_manager_get_se_type(&type);
+  nfc_se_type_e se_type = NFC_SE_TYPE_DISABLE;
+  int ret = nfc_manager_get_se_type(&se_type);
   if (NFC_ERROR_NONE != ret) {
     LoggerE("Failed to get active secure element type: %d", ret);
-    NFCUtil::throwNFCException(ret, "Unable to get active secure element type");
+    return NFCUtil::CodeToResult(ret, "Unable to get active secure element type");
   }
 
-  return NFCUtil::toStringSecureElementType(type);
+  return NFCUtil::ToStringSecureElementType(se_type, type);
 }
 
-void NFCAdapter::SetActiveSecureElement(std::string element) {
+PlatformResult NFCAdapter::SetActiveSecureElement(std::string element) {
 
   LoggerD("Entered");
 
   // if given value is not correct secure element type then
   // there's no sense to get current value for comparison
-  nfc_se_type_e new_type = NFCUtil::toSecureElementType(element);
+  nfc_se_type_e new_type = NFC_SE_TYPE_DISABLE;
+  PlatformResult result = NFCUtil::ToSecureElementType(element, &new_type);
+
+  if (result.IsError()) {
+    return result;
+  }
   LoggerD("Secure element type value: %x", (int)new_type);
 
-  std::string current_type = GetActiveSecureElement();
+  std::string current_type = "";
+  result = GetActiveSecureElement(&current_type);
+
+  if (result.IsError()) {
+    return result;
+  }
+
   if (element == current_type) {
     LoggerD("Active secure element type already set to: %s", element.c_str());
-    return;
+    return PlatformResult(ErrorCode::NO_ERROR);
   }
 
   int ret = nfc_manager_set_se_type(new_type);
   if (NFC_ERROR_NONE != ret) {
     LoggerE("Failed to set active secure element type: %d", ret);
-    NFCUtil::throwNFCException(ret,
+    return NFCUtil::CodeToResult(ret,
                                "Unable to set active secure element type");
   }
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void NFCAdapter::SetExclusiveModeForTransaction(bool exmode) {
+PlatformResult NFCAdapter::SetExclusiveModeForTransaction(bool exmode) {
 
   LoggerD("Entered");
 
@@ -442,40 +462,48 @@ void NFCAdapter::SetExclusiveModeForTransaction(bool exmode) {
 
   if (NFC_ERROR_NONE != ret) {
     LoggerE("Failed to set exclusive mode for transaction: %d", ret);
-    NFCUtil::throwNFCException(ret,
+    return NFCUtil::CodeToResult(ret,
                                "Setting exclusive mode for transaction failed.");
   }
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void NFCAdapter::AddCardEmulationModeChangeListener() {
+PlatformResult NFCAdapter::AddCardEmulationModeChangeListener() {
   if (!m_is_listener_set) {
     int ret = nfc_manager_set_se_event_cb(se_event_callback, NULL);
     if (NFC_ERROR_NONE != ret) {
       LOGE("AddCardEmulationModeChangeListener failed: %d", ret);
-      NFCUtil::throwNFCException(ret,
+      return NFCUtil::CodeToResult(ret,
                                  NFCUtil::getNFCErrorMessage(ret).c_str());
     }
   }
 
   m_is_listener_set = true;
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void NFCAdapter::RemoveCardEmulationModeChangeListener() {
+PlatformResult NFCAdapter::RemoveCardEmulationModeChangeListener() {
   if (!nfc_manager_is_supported()) {
-    throw NotSupportedException("NFC Not Supported");
+    LOGE("NFC Not Supported");
+    return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR, "NFC Not Supported");
   }
 
   if (m_is_listener_set) {
     nfc_manager_unset_se_event_cb();
   }
   m_is_listener_set = false;
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 
-void NFCAdapter::AddTransactionEventListener(const picojson::value& args) {
+PlatformResult NFCAdapter::AddTransactionEventListener(const picojson::value& args) {
 
-  nfc_se_type_e se_type = NFCUtil::toSecureElementType(
-      args.get("type").get<string>());
+  nfc_se_type_e se_type = NFC_SE_TYPE_DISABLE;
+  PlatformResult result = NFCUtil::ToSecureElementType(
+      args.get("type").get<string>(), &se_type);
+  if (result.IsError()) {
+    return result;
+  }
   int ret = NFC_ERROR_NONE;
 
   if (NFC_SE_TYPE_ESE == se_type) {
@@ -494,15 +522,20 @@ void NFCAdapter::AddTransactionEventListener(const picojson::value& args) {
 
   if (NFC_ERROR_NONE != ret) {
     LOGE("AddTransactionEventListener failed: %d", ret);
-    NFCUtil::throwNFCException(ret,
+    return NFCUtil::CodeToResult(ret,
                                NFCUtil::getNFCErrorMessage(ret).c_str());
   }
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void NFCAdapter::RemoveTransactionEventListener(const picojson::value& args) {
+PlatformResult NFCAdapter::RemoveTransactionEventListener(const picojson::value& args) {
 
-  nfc_se_type_e se_type = NFCUtil::toSecureElementType(
-      args.get("type").get<string>());
+  nfc_se_type_e se_type = NFC_SE_TYPE_DISABLE;
+  PlatformResult result = NFCUtil::ToSecureElementType(
+      args.get("type").get<string>(), &se_type);
+  if (result.IsError()) {
+    return result;
+  }
 
   nfc_manager_unset_se_transaction_event_cb(se_type);
 
@@ -511,30 +544,34 @@ void NFCAdapter::RemoveTransactionEventListener(const picojson::value& args) {
   } else {
     m_is_transaction_uicc_listener_set = false;
   }
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void NFCAdapter::AddActiveSecureElementChangeListener() {
+PlatformResult NFCAdapter::AddActiveSecureElementChangeListener() {
   if (!m_is_listener_set) {
     int ret = nfc_manager_set_se_event_cb(se_event_callback, NULL);
     if (NFC_ERROR_NONE != ret) {
       LOGE("AddActiveSecureElementChangeListener failed: %d", ret);
-      NFCUtil::throwNFCException(ret,
+      return NFCUtil::CodeToResult(ret,
                                  NFCUtil::getNFCErrorMessage(ret).c_str());
     }
   }
 
   m_is_listener_set = true;
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void NFCAdapter::RemoveActiveSecureElementChangeListener() {
+PlatformResult NFCAdapter::RemoveActiveSecureElementChangeListener() {
   if (!nfc_manager_is_supported()) {
-    throw NotSupportedException("NFC Not Supported");
+    LOGE("NFC Not Supported");
+    return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR, "NFC Not Supported");
   }
 
   if (m_is_listener_set) {
     nfc_manager_unset_se_event_cb();
   }
   m_is_listener_set = false;
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 void NFCAdapter::SetPeerHandle(nfc_p2p_target_h handle) {
@@ -553,9 +590,9 @@ void NFCAdapter::IncreasePeerId() {
   m_latest_peer_id++;
 }
 
-PlatformResult NFCAdapter::PeerIsConnectedGetter(int peer_id, bool &state) {
+PlatformResult NFCAdapter::PeerIsConnectedGetter(int peer_id, bool *state) {
   if (m_latest_peer_id != peer_id || !m_peer_handle) {
-    state = false;
+    *state = false;
     return PlatformResult(ErrorCode::NO_ERROR);
   }
 
@@ -567,7 +604,7 @@ PlatformResult NFCAdapter::PeerIsConnectedGetter(int peer_id, bool &state) {
     return NFCUtil::CodeToResult(ret, "Failed to get connected target.");
   }
 
-  state = (m_peer_handle == handle);
+  *state = (m_peer_handle == handle);
 
   return PlatformResult(ErrorCode::NO_ERROR);
 }
@@ -637,7 +674,7 @@ PlatformResult NFCAdapter::SetReceiveNDEFListener(int peer_id) {
 
   //check if peer object is still connected
   bool is_connected = false;
-  PlatformResult result = PeerIsConnectedGetter(peer_id, is_connected);
+  PlatformResult result = PeerIsConnectedGetter(peer_id, &is_connected);
   if (result.IsError()) {
     return result;
   }
@@ -662,7 +699,7 @@ PlatformResult NFCAdapter::UnsetReceiveNDEFListener(int peer_id) {
     //check if peer object is still connected
 
     bool is_connected = false;
-    PlatformResult result = PeerIsConnectedGetter(peer_id, is_connected);
+    PlatformResult result = PeerIsConnectedGetter(peer_id, &is_connected);
     if (result.IsError()) {
       return result;
     }
@@ -1179,7 +1216,7 @@ static gboolean sendNDEFErrorCB(void * user_data) {
 PlatformResult NFCAdapter::sendNDEF(int peer_id, const picojson::value& args) {
 
   bool is_connected = false;
-  PlatformResult result = PeerIsConnectedGetter(peer_id, is_connected);
+  PlatformResult result = PeerIsConnectedGetter(peer_id, &is_connected);
   if (result.IsError()) {
     return result;
   }

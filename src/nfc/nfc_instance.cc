@@ -123,6 +123,7 @@ void NFCInstance::GetDefaultAdapter(
 void NFCInstance::SetExclusiveMode(
     const picojson::value& args, picojson::object& out) {
 
+  CHECK_EXIST(args, "exclusiveMode", out);
   bool exmode = args.get("exclusiveMode").get<bool>();
   int ret = NFC_ERROR_NONE;
 
@@ -155,52 +156,49 @@ void NFCInstance::GetPowered(
 void NFCInstance::CardEmulationModeSetter(
     const picojson::value& args, picojson::object& out) {
 
+  CHECK_EXIST(args, "emulationMode", out);
   std::string mode = args.get("emulationMode").get<std::string>();
-  try {
-    NFCAdapter::GetInstance()->SetCardEmulationMode(mode);
+  PlatformResult result = NFCAdapter::GetInstance()->SetCardEmulationMode(mode);
+  if (result.IsSuccess()) {
     ReportSuccess(out);
-  }
-  catch(const common::PlatformException& ex) {
-    ReportError(ex, out);
+  } else {
+    ReportError(result, &out);
   }
 }
 
 void NFCInstance::CardEmulationModeGetter(
     const picojson::value& args, picojson::object& out) {
 
-  std::string mode;
-  try {
-    mode = NFCAdapter::GetInstance()->GetCardEmulationMode();
+  std::string mode = "";
+  PlatformResult result = NFCAdapter::GetInstance()->GetCardEmulationMode(&mode);
+  if (result.IsSuccess()) {
     ReportSuccess(picojson::value(mode), out);
-  }
-  catch(const common::PlatformException& ex) {
-    ReportError(ex, out);
+  } else {
+    ReportError(result, &out);
   }
 }
 
 void NFCInstance::ActiveSecureElementSetter(
     const picojson::value& args, picojson::object& out) {
-
+  CHECK_EXIST(args, "secureElement", out);
   std::string ase = args.get("secureElement").get<std::string>();
-  try {
-    NFCAdapter::GetInstance()->SetActiveSecureElement(ase);
+  PlatformResult result = NFCAdapter::GetInstance()->SetActiveSecureElement(ase);
+  if (result.IsSuccess()) {
     ReportSuccess(out);
-  }
-  catch(const common::PlatformException& ex) {
-    ReportError(ex, out);
+  } else {
+    ReportError(result, &out);
   }
 }
 
 void NFCInstance::ActiveSecureElementGetter(
     const picojson::value& args, picojson::object& out) {
 
-  std::string ase;
-  try {
-    ase = NFCAdapter::GetInstance()->GetActiveSecureElement();
+  std::string ase = "";
+  PlatformResult result = NFCAdapter::GetInstance()->GetActiveSecureElement(&ase);
+  if (result.IsSuccess()) {
     ReportSuccess(picojson::value(ase), out);
-  }
-  catch(const common::PlatformException& ex) {
-    ReportError(ex, out);
+  } else {
+    ReportError(result, &out);
   }
 }
 
@@ -222,7 +220,7 @@ void NFCInstance::PeerIsConnectedGetter(
 
   int peer_id = (int)args.get("id").get<double>();
   bool ret = false;
-  PlatformResult result = NFCAdapter::GetInstance()->PeerIsConnectedGetter(peer_id, ret);
+  PlatformResult result = NFCAdapter::GetInstance()->PeerIsConnectedGetter(peer_id, &ret);
 
   if (result.IsSuccess()) {
     ReportSuccess(picojson::value(ret), out);
@@ -253,58 +251,73 @@ void NFCInstance::UnsetTagListener(
 void NFCInstance::UnsetPeerListener(
     const picojson::value& args, picojson::object& out) {
 
-  try {
-    NFCAdapter::GetInstance()->UnsetPeerListener();
+  PlatformResult result = NFCAdapter::GetInstance()->UnsetPeerListener();
+  if (result.IsSuccess()) {
     ReportSuccess(out);
-  }
-  catch(const common::PlatformException& ex) {
-    ReportError(ex, out);
+  } else {
+    ReportError(result, &out);
   }
 }
 
 void NFCInstance::AddCardEmulationModeChangeListener(
     const picojson::value& args, picojson::object& out) {
-  try {
-    NFCAdapter::GetInstance()->AddCardEmulationModeChangeListener();
+
+  PlatformResult result = NFCAdapter::GetInstance()->AddCardEmulationModeChangeListener();
+  if (result.IsSuccess()) {
     ReportSuccess(out);
-  } catch(const common::PlatformException& ex) {
-    ReportError(ex, out);
+  } else {
+    ReportError(result, &out);
   }
 }
 
 void NFCInstance::RemoveCardEmulationModeChangeListener(
     const picojson::value& args, picojson::object& out) {
-  NFCAdapter::GetInstance()->RemoveCardEmulationModeChangeListener();
+  PlatformResult result = NFCAdapter::GetInstance()->RemoveCardEmulationModeChangeListener();
+  if (result.IsSuccess()) {
+    ReportSuccess(out);
+  } else {
+    ReportError(result, &out);
+  }
 }
 
 void NFCInstance::AddTransactionEventListener(
     const picojson::value& args, picojson::object& out) {
-  try {
-    NFCAdapter::GetInstance()->AddTransactionEventListener(args);
+  PlatformResult result = NFCAdapter::GetInstance()->AddTransactionEventListener(args);
+  if (result.IsSuccess()) {
     ReportSuccess(out);
-  } catch(const common::PlatformException& ex) {
-    ReportError(ex, out);
+  } else {
+    ReportError(result, &out);
   }
 }
 
 void NFCInstance::RemoveTransactionEventListener(
     const picojson::value& args, picojson::object& out) {
-  NFCAdapter::GetInstance()->RemoveTransactionEventListener(args);
+  PlatformResult result = NFCAdapter::GetInstance()->RemoveTransactionEventListener(args);
+  if (result.IsSuccess()) {
+    ReportSuccess(out);
+  } else {
+    ReportError(result, &out);
+  }
 }
 
 void NFCInstance::AddActiveSecureElementChangeListener(
     const picojson::value& args, picojson::object& out) {
-  try {
-    NFCAdapter::GetInstance()->AddActiveSecureElementChangeListener();
+  PlatformResult result = NFCAdapter::GetInstance()->AddActiveSecureElementChangeListener();
+  if (result.IsSuccess()) {
     ReportSuccess(out);
-  } catch(const common::PlatformException& ex) {
-    ReportError(ex, out);
+  } else {
+    ReportError(result, &out);
   }
 }
 
 void NFCInstance::RemoveActiveSecureElementChangeListener(
     const picojson::value& args, picojson::object& out) {
-  NFCAdapter::GetInstance()->RemoveActiveSecureElementChangeListener();
+  PlatformResult result = NFCAdapter::GetInstance()->RemoveActiveSecureElementChangeListener();
+  if (result.IsSuccess()) {
+    ReportSuccess(out);
+  } else {
+    ReportError(result, &out);
+  }
 }
 
 void NFCInstance::GetCachedMessage(
@@ -325,16 +338,15 @@ void NFCInstance::GetCachedMessage(
 void NFCInstance::SetExclusiveModeForTransaction(
     const picojson::value& args, picojson::object& out) {
 
-  bool transaction_mode = args.get("transactionMode").get<bool>();
-  int ret = NFC_ERROR_NONE;
+  CHECK_EXIST(args, "transactionMode", out);
 
-  try {
-    NFCAdapter::GetInstance()->SetExclusiveModeForTransaction(
+  bool transaction_mode = args.get("transactionMode").get<bool>();
+  PlatformResult result = NFCAdapter::GetInstance()->SetExclusiveModeForTransaction(
         transaction_mode);
+  if (result.IsSuccess()) {
     ReportSuccess(out);
-  }
-  catch(const common::PlatformException& ex) {
-    ReportError(ex, out);
+  } else {
+    ReportError(result, &out);
   }
 }
 

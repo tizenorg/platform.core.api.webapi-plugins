@@ -31,28 +31,28 @@ class NFCAdapter {
   common::PlatformResult SetPowered(const picojson::value& args);
 
   // cardEmulationMode getter and setter
-  std::string GetCardEmulationMode();
-  void SetCardEmulationMode(std::string mode);
+  common::PlatformResult GetCardEmulationMode(std::string *mode);
+  common::PlatformResult SetCardEmulationMode(std::string mode);
   // activeSecureElement getter and setter
-  std::string GetActiveSecureElement();
-  void SetActiveSecureElement(std::string element);
+  common::PlatformResult GetActiveSecureElement(std::string *type);
+  common::PlatformResult SetActiveSecureElement(std::string element);
 
   // Adapter methods
-  void SetExclusiveModeForTransaction(bool exmode);
+  common::PlatformResult  SetExclusiveModeForTransaction(bool exmode);
 
-  void AddCardEmulationModeChangeListener();
-  void RemoveCardEmulationModeChangeListener();
-  void AddTransactionEventListener(const picojson::value& args);
-  void RemoveTransactionEventListener(const picojson::value& args);
-  void AddActiveSecureElementChangeListener();
-  void RemoveActiveSecureElementChangeListener();
+  common::PlatformResult AddCardEmulationModeChangeListener();
+  common::PlatformResult RemoveCardEmulationModeChangeListener();
+  common::PlatformResult AddTransactionEventListener(const picojson::value& args);
+  common::PlatformResult RemoveTransactionEventListener(const picojson::value& args);
+  common::PlatformResult AddActiveSecureElementChangeListener();
+  common::PlatformResult RemoveActiveSecureElementChangeListener();
   void GetCachedMessage(picojson::object& out);
 
   void SetPeerHandle(nfc_p2p_target_h handle);
   nfc_p2p_target_h GetPeerHandle();
   int GetPeerId();
   void IncreasePeerId();
-  common::PlatformResult PeerIsConnectedGetter(int peer_id, bool &state);
+  common::PlatformResult PeerIsConnectedGetter(int peer_id, bool *state);
   common::PlatformResult SetPeerListener();
   common::PlatformResult UnsetPeerListener();
   common::PlatformResult SetReceiveNDEFListener(int peer_id);

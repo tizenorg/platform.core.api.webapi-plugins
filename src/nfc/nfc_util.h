@@ -59,12 +59,12 @@ class NFCUtil
   static std::string getNFCErrorMessage(const int error_code);
   static std::string toStringNFCTag(const nfc_tag_type_e tag_type);
   static nfc_tag_type_e toNfcTagString(const std::string& type_string);
-  static std::string toStringCardEmulationMode(
-      const nfc_se_card_emulation_mode_type_e mode);
+  static common::PlatformResult ToStringCardEmulationMode(
+      const nfc_se_card_emulation_mode_type_e card_mode, std::string *mode);
   static nfc_se_card_emulation_mode_type_e toCardEmulationMode(
       const std::string& mode_string);
-  static std::string toStringSecureElementType(const nfc_se_type_e type);
-  static nfc_se_type_e toSecureElementType(const std::string& type_string);
+  static common::PlatformResult ToStringSecureElementType(const nfc_se_type_e se_type, std::string *type);
+  static common::PlatformResult ToSecureElementType(const std::string& type_string, nfc_se_type_e *type);
   static void setDefaultFilterValues(std::vector<nfc_tag_type_e>& filter);
 };
 

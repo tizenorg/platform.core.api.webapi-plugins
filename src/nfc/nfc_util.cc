@@ -234,19 +234,22 @@ nfc_tag_type_e NFCUtil::toNfcTagString(const std::string& type_string)
   }
 }
 
-std::string NFCUtil::toStringCardEmulationMode(
-    const nfc_se_card_emulation_mode_type_e mode)
+PlatformResult NFCUtil::ToStringCardEmulationMode(
+    const nfc_se_card_emulation_mode_type_e card_mode, std::string *mode)
 {
-  switch (mode)
+  switch (card_mode)
   {
     case NFC_SE_CARD_EMULATION_MODE_OFF:
-      return OFF;
+      *mode = OFF;
+      break;
     case NFC_SE_CARD_EMULATION_MODE_ON:
-      return ALWAYS_ON;
+      *mode = ALWAYS_ON;
+      break;
     default:
-      LOGE("No Match Card Emulation mode: %x", mode);
-      throw TypeMismatchException("No Match Card Emulation mode");
+      LOGE("No Match Card Emulation mode: %x", card_mode);
+      return PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, "No Match Card Emulation mode");
   }
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 nfc_se_card_emulation_mode_type_e NFCUtil::toCardEmulationMode(
@@ -262,29 +265,33 @@ nfc_se_card_emulation_mode_type_e NFCUtil::toCardEmulationMode(
   }
 }
 
-std::string NFCUtil::toStringSecureElementType(const nfc_se_type_e type)
+PlatformResult NFCUtil::ToStringSecureElementType(const nfc_se_type_e se_type, std::string *type)
 {
-  switch (type) {
+  switch (se_type) {
     case NFC_SE_TYPE_ESE:
-      return ESE;
+      *type = ESE;
+      break;
     case NFC_SE_TYPE_UICC:
-      return UICC;
+      *type = UICC;
+      break;
     default:
-      LOGE("No Match Secure Element Type: %x", type);
-      throw TypeMismatchException("No Match Secure Element Type");
+      LOGE("No Match Secure Element Type: %x", se_type);
+      return PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, "No Match Secure Element Type");
   }
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-nfc_se_type_e NFCUtil::toSecureElementType(const std::string &type_string)
+PlatformResult NFCUtil::ToSecureElementType(const std::string &type_string, nfc_se_type_e *type)
 {
   if (type_string == ESE) {
-    return NFC_SE_TYPE_ESE;
+    *type = NFC_SE_TYPE_ESE;
   } else if (type_string == UICC) {
-    return NFC_SE_TYPE_UICC;
+    *type = NFC_SE_TYPE_UICC;
   } else {
-    LOGE("No Match Secure Element Type: %s", type_string.c_str());
-    throw TypeMismatchException("No Match Secure Element Type");
+    LoggerE("No Match Secure Element Type: %s", type_string.c_str());
+    return PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, "No Match Secure Element Type");
   }
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 void NFCUtil::setDefaultFilterValues(std::vector<nfc_tag_type_e>& filter)

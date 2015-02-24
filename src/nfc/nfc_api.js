@@ -165,7 +165,7 @@ function NFCAdapter() {
         var result = native_.callSync('NFCAdapter_cardEmulationModeGetter');
 
         if (native_.isFailure(result)) {
-            throw new tizen.WebAPIException(0, result.error.message, result.error.name);
+            throw native_.getErrorObject(result);
         }
 
         return native_.getResultObject(result);
@@ -183,7 +183,7 @@ function NFCAdapter() {
         );
 
         if(native_.isFailure(result)) {
-            throw new tizen.WebAPIException(0, result.error.message, result.error.name);
+            throw native_.getErrorObject(result);
         }
         return;
     }
@@ -193,7 +193,7 @@ function NFCAdapter() {
         var result = native_.callSync('NFCAdapter_activeSecureElementGetter');
 
         if (native_.isFailure(result)) {
-            throw new tizen.WebAPIException(0, result.error.message, result.error.name);
+            throw native_.getErrorObject(result);
         }
 
         return native_.getResultObject(result);
@@ -211,7 +211,7 @@ function NFCAdapter() {
         );
 
         if(native_.isFailure(result)) {
-            throw new tizen.WebAPIException(0, result.error.message, result.error.name);
+            throw native_.getErrorObject(result);
         }
         return;
     }
@@ -309,7 +309,7 @@ NFCAdapter.prototype.setTagListener  = function() {
     if(!native_.isListenerSet(TAG_LISTENER)) {
         var result = native_.callSync('NFCAdapter_setTagListener');
         if (native_.isFailure(result)) {
-            throw new tizen.WebAPIException(0, result.error.message, result.error.name);
+            throw native_.getErrorObject(result);
         }
     }
 
@@ -337,7 +337,7 @@ NFCAdapter.prototype.setPeerListener = function() {
     if (!native_.isListenerSet(PEER_LISTENER)) {
         var result = native_.callSync('NFCAdapter_setPeerListener');
         if (native_.isFailure(result)) {
-            throw new tizen.WebAPIException(0, result.error.message, result.error.name);
+            throw native_.getErrorObject(result);
         }
     }
 
@@ -351,7 +351,7 @@ NFCAdapter.prototype.unsetTagListener = function() {
 
     var result = native_.callSync('NFCAdapter_unsetTagListener');
     if (native_.isFailure(result)) {
-        throw new tizen.WebAPIException(0, result.error.message, result.error.name);
+        throw native_.getErrorObject(result);
     }
 
     return;
@@ -362,7 +362,7 @@ NFCAdapter.prototype.unsetPeerListener = function() {
 
     var result = native_.callSync('NFCAdapter_unsetPeerListener');
     if (native_.isFailure(result)) {
-        throw new tizen.WebAPIException(0, result.error.message, result.error.name);
+        throw native_.getErrorObject(result);
     }
 
     return;
@@ -512,7 +512,7 @@ NFCAdapter.prototype.getCachedMessage = function() {
     var result = native_.callSync('NFCAdapter_getCachedMessage');
 
     if (native_.isFailure(result)) {
-        throw new tizen.WebAPIException(0, result.error.message, result.error.name);
+        throw native_.getErrorObject(result);
     }
 
     if (!result.records) {
@@ -537,8 +537,7 @@ NFCAdapter.prototype.setExclusiveModeForTransaction = function() {
     );
 
     if(native_.isFailure(result)) {
-        throw new tizen.WebAPIException(0, result.error.message, result.error.name);
-        // throw native_.getErrorObject(result);
+         throw native_.getErrorObject(result);
     }
     return;
 };
@@ -824,7 +823,7 @@ NFCPeer.prototype.setReceiveNDEFListener = function() {
 
     var result = native_.callSync('NFCPeer_setReceiveNDEFListener', {'id' : this._my_id});
     if (native_.isFailure(result)) {
-        throw new tizen.WebAPIException(0, result.error.message, result.error.name);
+        throw native_.getErrorObject(result);
     }
 
     native_.addListener(RECEIVE_NDEF_LISTENER, listener);
@@ -836,7 +835,7 @@ NFCPeer.prototype.unsetReceiveNDEFListener = function() {
 
     var result = native_.callSync('NFCPeer_unsetReceiveNDEFListener', {'id' : this._my_id});
     if (native_.isFailure(result)) {
-        throw new tizen.WebAPIException(0, result.error.message, result.error.name);
+        throw native_.getErrorObject(result);
     }
 
     return;
