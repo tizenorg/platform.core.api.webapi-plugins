@@ -113,6 +113,21 @@ CommonFS.prototype.isLocationAllowed = function(aPath) {
   return true;
 };
 
+CommonFS.prototype.f_isSubDir = function(fullPathToCheck, fullPath) {
+  return (-1 !== fullPathToCheck.indexOf(this.toRealPath(fullPath)));
+};
+
+CommonFS.prototype.f_isCorrectRelativePath = function(relativePath) {
+  return ((-1 === relativePath.indexOf('/')) &&
+      (-1 === relativePath.indexOf('\\')) &&
+      (-1 === relativePath.indexOf('?')) &&
+      (-1 === relativePath.indexOf('*')) &&
+      (-1 === relativePath.indexOf(':')) &&
+      (-1 === relativePath.indexOf('"')) &&
+      (-1 === relativePath.indexOf('<')) &&
+      (-1 === relativePath.indexOf('>')));
+};
+
 CommonFS.prototype.toRealPath = function(aPath) {
   var _fileRealPath = '',
       _uriPrefix = 'file://',

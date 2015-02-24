@@ -44,20 +44,7 @@ function File(data) {
     fileSize: {enumerable: true, set: function() {
     }, get: fileSizeGetter},
     length: {value: data.length, writable: false, enumerable: true},
-    mode: {value: data.mode, writable: false},
-    f_isSubDir: {value: function(fullPathToCheck) {
-      return (-1 !== fullPathToCheck.indexOf(commonFS_.toRealPath(this.fullPath)));
-    }, writable: false},
-    f_isCorrectRelativePath: {value: function(relativePath) {
-      return ((-1 === relativePath.indexOf('/')) &&
-          (-1 === relativePath.indexOf('\\')) &&
-          (-1 === relativePath.indexOf('?')) &&
-          (-1 === relativePath.indexOf('*')) &&
-          (-1 === relativePath.indexOf(':')) &&
-          (-1 === relativePath.indexOf('"')) &&
-          (-1 === relativePath.indexOf('<')) &&
-          (-1 === relativePath.indexOf('>')));
-    }}
+    mode: {value: data.mode, writable: false}
   });
 }
 
@@ -382,7 +369,7 @@ File.prototype.resolve = function(filePath) {
         'File object which call this method is not directory');
   }
 
-  if (!this.f_isCorrectRelativePath(args.filePath)) {
+  if (!commonFS_.f_isCorrectRelativePath(args.filePath)) {
     throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR, 'Invalid path');
   }
 
@@ -430,8 +417,48 @@ File.prototype.deleteFile = function(filePath, onsuccess, onerror) {
     {name: 'onerror', type: types_.FUNCTION, optional: true, nullable: true}
   ]);
 
+  if (this.isFile) {
+    setTimeout(function() {
+      native_.callIfPossible(args.onerror,
+          new tizen.WebAPIException(tizen.WebAPIException.IO_ERR,
+          'File object which call this method is not directory'));
+    }, 0);
+    return;
+  }
+
+  var _fileRealPath = commonFS_.toRealPath(args.filePath);
+
+  try {
+    var _result = native_.callSync('File_statSync', {location: _fileRealPath});
+    var _statObj = native_.getResultObject(_result);
+    if (_statObj.isDirectory) {
+      var message = 'Requested object is a directory.';
+      setTimeout(function() {
+        native_.callIfPossible(args.onerror,
+            new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR, message));
+      }, 0);
+      return;
+    }
+  } catch (err) {
+    setTimeout(function() {
+      native_.callIfPossible(args.onerror,
+          new tizen.WebAPIException(tizen.WebAPIException.NOT_FOUND_ERR, 'File is not avalaible'));
+    }, 0);
+    return;
+  }
+
+  if (!commonFS_.f_isSubDir(_fileRealPath, this.fullPath) || this.mode === 'r') {
+    var _message = 'Deleted file [' + args.filePath + '] should have write access ' +
+            'and should be subdirectory of: [' + this.fullPath + ']';
+    setTimeout(function() {
+      native_.callIfPossible(args.onerror,
+          new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR, _message));
+    }, 0);
+    return;
+  }
+
   var data = {
-    filePath: args.filePath
+    pathToFile: _fileRealPath
   };
 
   var callback = function(result) {
@@ -442,5 +469,5 @@ File.prototype.deleteFile = function(filePath, onsuccess, onerror) {
     native_.callIfPossible(args.onsuccess);
   };
 
-  native_.call('File_deleteFile', data, callback);
+  native_.call('File_unlinkFile', data, callback);
 };
