@@ -65,6 +65,97 @@ File.prototype.toURI = function() {
   return 'file://' + commonFS_.toRealPath(this.fullPath);
 };
 
+function stringToRegex(str) {
+  var _regString = '^';
+  if (str === '') {
+    return new RegExp(_regString, 'i');
+  }
+
+  str = str.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&");
+
+  var _percentTokens = str.split('%');
+  var i;
+  for (i = 0; i < _percentTokens.length - 1; ++i) {
+    _regString = _regString + _percentTokens[i];
+    if (_regString[_regString.length - 1] === '\\') {
+      _regString = _regString.split('');
+      _regString.pop();
+      _regString = _regString.join('') + '%';
+    }
+    else if (_regString.lastIndexOf('\*') !== _regString.length - 2) {
+      _regString = _regString + '.*';
+    }
+  }
+  return new RegExp(_regString + _percentTokens[i] + '$', 'i');
+}
+
+
+function createFilter(fileFilter) {
+  if (type_.isNull(fileFilter)) {
+    return null;
+  }
+
+  var FileFilter = {
+    name: 'name',
+    startModified: 'startModified',
+    endModified: 'endModified',
+    startCreated: 'startCreated',
+    endCreated: 'endCreated'
+  };
+
+  var _fileFilter = {}, i;
+  for (i in fileFilter) {
+    if (!type_.isNullOrUndefined(fileFilter[i])) {
+      if (Object.keys(FileFilter).indexOf(i) >= 0) {
+        if (FileFilter.name === i) {
+          _fileFilter[i] = stringToRegex(fileFilter[i]);
+        } else {
+          if (!(fileFilter[i] instanceof Date)) {
+            throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR,
+                'Invalid date');
+          }
+          _fileFilter[i] = fileFilter[i];
+        }
+      }
+    }
+  }
+
+  return !type_.isEmptyObject(_fileFilter) ? _fileFilter : null;
+}
+
+function matchRange(value, min, max) {
+  if (min !== undefined && value < min) {
+    return false;
+  }
+  if (max !== undefined && value > max) {
+    return false;
+  }
+  return true;
+}
+
+function matchName(value, filter_name) {
+  if (filter_name === undefined || filter_name.test(value)) {
+    return true;
+  }
+  return false;
+}
+
+function checkFile(file, fileFilter) {
+  if (!matchName(file.name, fileFilter.name)) {
+    return false;
+  }
+
+  if (!matchRange(file.modified, fileFilter.startModified, fileFilter.endModified)) {
+    return false;
+  }
+
+  if (!matchRange(file.created, fileFilter.startCreated, fileFilter.endCreated)) {
+    return false;
+  }
+
+  return true;
+}
+
 File.prototype.listFiles = function(onsuccess, onerror, filter) {
   var args = validator_.validateArgs(arguments, [
     {name: 'onsuccess', type: types_.FUNCTION},
@@ -72,8 +163,26 @@ File.prototype.listFiles = function(onsuccess, onerror, filter) {
     {name: 'filter', type: types_.DICTIONARY, optional: true, nullable: true}
   ]);
 
+  if (!this.isDirectory) {
+    setTimeout(function() {
+      native_.callIfPossible(args.onerror,
+          new tizen.WebAPIException(tizen.WebAPIException.IO_ERR,
+          'File object which call this method is not directory'));
+    }, 0);
+    return;
+  }
+
+  var _fileFilter = null;
+
+  if (args.has.filter) {
+    _fileFilter = createFilter(args.filter);
+  }
+
+  var _myPath = this.fullPath;
+  var _realMyPath = commonFS_.toRealPath(_myPath);
+
   var data = {
-    filter: args.filter
+    pathToDir: _realMyPath
   };
 
   var callback = function(result) {
@@ -81,10 +190,27 @@ File.prototype.listFiles = function(onsuccess, onerror, filter) {
       native_.callIfPossible(args.onerror, native_.getErrorObject(result));
       return;
     }
-    native_.callIfPossible(args.onsuccess);
+    var aFiles = native_.getResultObject(result);
+    var _result = [],
+        i,
+        _resolvedPath,
+        _statObj,
+        _fileInfo;
+    for (i = 0; i < aFiles.length; ++i) {
+      _resolvedPath = aFiles[i].path;
+      _statObj = aFiles[i];
+      _fileInfo = commonFS_.getFileInfo(_resolvedPath, _statObj);
+
+      if (_fileFilter === null) {
+        _result.push(new File(_fileInfo));
+      } else if (checkFile(_fileInfo, _fileFilter)) {
+        _result.push(new File(_fileInfo));
+      }
+    }
+    native_.callIfPossible(args.onsuccess, _result);
   };
 
-  native_.call('File_listFiles', data, callback);
+  native_.call('File_readDir', data, callback);
 };
 
 File.prototype.openStream = function(mode, onsuccess, onerror, encoding) {
