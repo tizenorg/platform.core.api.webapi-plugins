@@ -440,9 +440,13 @@ void Calendar::Find(const picojson::object& args, picojson::array& array) {
       }
       intermediate_filters[intermediate_filters.size() - 1].push_back(
           std::move(calendar_filter_ptr));
+
+      return PlatformResult(ErrorCode::NO_ERROR);
     });
     visitor.SetOnCompositeFilterBegin([&](CompositeFilterType type) {
       intermediate_filters.push_back(std::vector<CalendarFilterPtr>());
+
+      return PlatformResult(ErrorCode::NO_ERROR);
     });
 
     visitor.SetOnCompositeFilterEnd([&](CompositeFilterType calType) {
@@ -479,6 +483,8 @@ void Calendar::Find(const picojson::object& args, picojson::array& array) {
       }
       intermediate_filters.pop_back();
       intermediate_filters.back().push_back(std::move(merged_filter_ptr));
+
+      return PlatformResult(ErrorCode::NO_ERROR);
     });
 
     visitor.SetOnAttributeRangeFilter([&](const std::string& name,
@@ -661,6 +667,8 @@ void Calendar::Find(const picojson::object& args, picojson::array& array) {
       }
       intermediate_filters[intermediate_filters.size() - 1].push_back(
           std::move(calendar_filter_ptr));
+
+      return PlatformResult(ErrorCode::NO_ERROR);
     });
     visitor.Visit(FromJson<JsonObject>(args, "filter"));
     if ((intermediate_filters.size() != 1) ||

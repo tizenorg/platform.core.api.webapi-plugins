@@ -21,6 +21,7 @@
 #include <memory>
 
 #include "picojson.h"
+#include "platform_result.h"
 
 namespace common {
 
@@ -40,24 +41,29 @@ enum class AttributeMatchFlag {
     kExists
 };
 
-AttributeMatchFlag AttributeMatchFlagFromString(const std::string& str);
+PlatformResult AttributeMatchFlagFromString(
+    const std::string& str, AttributeMatchFlag* filter_match_flag);
 
 enum class CompositeFilterType {
     kUnion,
     kIntersection
 };
 
-CompositeFilterType CompositeFilterTypeFromString(const std::string& str);
+PlatformResult CompositeFilterTypeFromString(
+    const std::string& str, CompositeFilterType* comp_filter_type);
 
-typedef std::function<void(const std::string&, AttributeMatchFlag, const picojson::value&)>
-        AttributeFilterOnVisit;
+typedef std::function<PlatformResult(const std::string&, AttributeMatchFlag,
+                                     const picojson::value&)>
+    AttributeFilterOnVisit;
 
-typedef std::function<void(const std::string&, const picojson::value&, const picojson::value&)>
-        AttributeRangeFilterOnVisit;
+typedef std::function<PlatformResult(const std::string&, const picojson::value&,
+                                     const picojson::value&)>
+    AttributeRangeFilterOnVisit;
 
-typedef std::function<void(CompositeFilterType)> CompositeFilterOnBegin;
+typedef std::function<PlatformResult(CompositeFilterType)>
+    CompositeFilterOnBegin;
 
-typedef std::function<void(CompositeFilterType)> CompositeFilterOnEnd;
+typedef std::function<PlatformResult(CompositeFilterType)> CompositeFilterOnEnd;
 
 /**
  * @brief The FilterVisitor class
@@ -105,12 +111,12 @@ class FilterVisitor {
      * @brief Parses a json object as Tizen filter.
      * @param filter Object to be visited
      */
-    void Visit(const picojson::object& filter);
+    PlatformResult Visit(const picojson::object& filter);
 
 private:
-    void VisitAttributeFilter(const picojson::object& filter);
-    void VisitAttributeRangeFilter(const picojson::object& filter);
-    void VisitCompositeFilter(const picojson::object& filter);
+    PlatformResult VisitAttributeFilter(const picojson::object& filter);
+    PlatformResult VisitAttributeRangeFilter(const picojson::object& filter);
+    PlatformResult VisitCompositeFilter(const picojson::object& filter);
 
     AttributeFilterOnVisit m_attributeFilterOnVisit;
     AttributeRangeFilterOnVisit m_attributeRangeFilterOnVisit;

@@ -21,42 +21,43 @@
 
 namespace common {
 
-AttributeMatchFlag AttributeMatchFlagFromString(const std::string &str) {
-    if (str == "EXACTLY") {
-        return AttributeMatchFlag::kExactly;
-    }
-    if (str == "FULLSTRING") {
-        return AttributeMatchFlag::kFullString;
-    }
-    if (str == "CONTAINS") {
-        return AttributeMatchFlag::kContains;
-    }
-    if (str == "STARTSWITH") {
-        return AttributeMatchFlag::kStartsWith;
-    }
-    if (str == "ENDSWITH") {
-        return AttributeMatchFlag::kEndsWith;
-    }
-    if (str == "EXISTS") {
-        return AttributeMatchFlag::kExists;
-    }
-
+PlatformResult AttributeMatchFlagFromString(
+    const std::string &str, AttributeMatchFlag *filter_match_flag) {
+  if (str == "EXACTLY") {
+    *filter_match_flag = AttributeMatchFlag::kExactly;
+  } else if (str == "FULLSTRING") {
+    *filter_match_flag = AttributeMatchFlag::kFullString;
+  } else if (str == "CONTAINS") {
+    *filter_match_flag = AttributeMatchFlag::kContains;
+  } else if (str == "STARTSWITH") {
+    *filter_match_flag = AttributeMatchFlag::kStartsWith;
+  } else if (str == "ENDSWITH") {
+    *filter_match_flag = AttributeMatchFlag::kEndsWith;
+  } else if (str == "EXISTS") {
+    *filter_match_flag = AttributeMatchFlag::kExists;
+  } else {
     LoggerE("Invalid attribute match string: %i", str.c_str());
+    return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
+                          "Invalid attribute match string!");
+  }
 
-    throw InvalidValuesException("Invalid attribute match string!");
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-CompositeFilterType CompositeFilterTypeFromString(const std::string &str) {
-    if (str == "UNION") {
-        return CompositeFilterType::kUnion;
-    }
-    if (str == "INTERSECTION") {
-        return CompositeFilterType::kIntersection;
-    }
-
+PlatformResult CompositeFilterTypeFromString(
+    const std::string &str, CompositeFilterType *comp_filter_type) {
+  if (str == "UNION") {
+    *comp_filter_type = CompositeFilterType::kUnion;
+  } else if (str == "INTERSECTION") {
+    *comp_filter_type = CompositeFilterType::kIntersection;
+  } else {
     LoggerE("Invalid composite type string: %i", str.c_str());
 
-    throw InvalidValuesException("Invalid composite type string!");
+    return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
+                          "Invalid composite type string!");
+  }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 void FilterVisitor::SetOnAttributeFilter(const AttributeFilterOnVisit &func) {
@@ -75,56 +76,87 @@ void FilterVisitor::SetOnCompositeFilterEnd(const CompositeFilterOnEnd &func) {
     m_compositeFilterOnEnd = func;
 }
 
-void FilterVisitor::Visit(const picojson::object &filter) {
-    const std::string& filterType = FromJson<std::string>(filter, "filterType");
-    if (filterType == "AttributeFilter") {
-        VisitAttributeFilter(filter);
-    } else if (filterType == "AttributeRangeFilter") {
-        VisitAttributeRangeFilter(filter);
-    } else if (filterType == "CompositeFilter") {
-        VisitCompositeFilter(filter);
-    } else {
-        throw InvalidValuesException("Invalid filter type!");
-    }
+PlatformResult FilterVisitor::Visit(const picojson::object &filter) {
+  const std::string &filterType = FromJson<std::string>(filter, "filterType");
+  if (filterType == "AttributeFilter") {
+    PlatformResult status = VisitAttributeFilter(filter);
+    if (status.IsError()) return status;
+  } else if (filterType == "AttributeRangeFilter") {
+    PlatformResult status = VisitAttributeRangeFilter(filter);
+    if (status.IsError()) return status;
+  } else if (filterType == "CompositeFilter") {
+    PlatformResult status = VisitCompositeFilter(filter);
+    if (status.IsError()) return status;
+  } else {
+    LoggerE("Invalid filter type!");
+    return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
+                          "Invalid filter type!");
+  }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void FilterVisitor::VisitAttributeFilter(const picojson::object &filter) {
-    const std::string& attributeName = FromJson<std::string>(filter, "attributeName");
-    AttributeMatchFlag matchFlag =
-            AttributeMatchFlagFromString(FromJson<std::string>(filter, "matchFlag"));
-    const picojson::value& matchValue = FindValue(filter, "matchValue");
+PlatformResult FilterVisitor::VisitAttributeFilter(
+    const picojson::object &filter) {
+  const std::string &attribute_name =
+      FromJson<std::string>(filter, "attributeName");
 
-    if (m_attributeFilterOnVisit) {
-        m_attributeFilterOnVisit(attributeName, matchFlag, matchValue);
-    }
+  AttributeMatchFlag match_flag;
+  PlatformResult status = AttributeMatchFlagFromString(
+      FromJson<std::string>(filter, "matchFlag"), &match_flag);
+  if (status.IsError()) return status;
+
+  const picojson::value &match_value = FindValue(filter, "matchValue");
+
+  if (m_attributeFilterOnVisit) {
+    status = m_attributeFilterOnVisit(attribute_name, match_flag, match_value);
+    if (status.IsError()) return status;
+  }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void FilterVisitor::VisitAttributeRangeFilter(const picojson::object &filter) {
-    const std::string& attributeName = FromJson<std::string>(filter, "attributeName");
-    const picojson::value& initialValue = FindValue(filter, "initialValue");
-    const picojson::value& endValue = FindValue(filter, "endValue");
+PlatformResult FilterVisitor::VisitAttributeRangeFilter(
+    const picojson::object &filter) {
+  const std::string &attributeName =
+      FromJson<std::string>(filter, "attributeName");
+  const picojson::value &initialValue = FindValue(filter, "initialValue");
+  const picojson::value &endValue = FindValue(filter, "endValue");
 
-    if (m_attributeRangeFilterOnVisit) {
+  if (m_attributeRangeFilterOnVisit) {
+    PlatformResult status =
         m_attributeRangeFilterOnVisit(attributeName, initialValue, endValue);
-    }
+    if (status.IsError()) return status;
+  }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void FilterVisitor::VisitCompositeFilter(const picojson::object &filter) {
-    CompositeFilterType filterType =
-            CompositeFilterTypeFromString(FromJson<std::string>(filter, "type"));
-    const picojson::array& filters = FromJson<picojson::array>(filter, "filters");
+PlatformResult FilterVisitor::VisitCompositeFilter(
+    const picojson::object &filter) {
+  CompositeFilterType filter_type;
+  PlatformResult status = CompositeFilterTypeFromString(
+      FromJson<std::string>(filter, "type"), &filter_type);
+  if (status.IsError()) return status;
 
-    if (m_compositeFilterOnBegin) {
-        m_compositeFilterOnBegin(filterType);
-    }
+  const picojson::array &filters = FromJson<picojson::array>(filter, "filters");
 
-    for (std::size_t i = 0; i < filters.size(); ++i) {
-        Visit(JsonCast<picojson::object>(filters[i]));
-    }
+  if (m_compositeFilterOnBegin) {
+    status = m_compositeFilterOnBegin(filter_type);
+    if (status.IsError()) return status;
+  }
 
-    if (m_compositeFilterOnEnd) {
-        m_compositeFilterOnEnd(filterType);
-    }
+  for (std::size_t i = 0; i < filters.size(); ++i) {
+    PlatformResult status = Visit(JsonCast<picojson::object>(filters[i]));
+    if (status.IsError()) return status;
+  }
+
+  if (m_compositeFilterOnEnd) {
+    status = m_compositeFilterOnEnd(filter_type);
+    if (status.IsError()) return status;
+  }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 }
