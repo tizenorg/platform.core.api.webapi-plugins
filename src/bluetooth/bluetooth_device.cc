@@ -109,7 +109,7 @@ void BluetoothDevice::ConnectToServiceByUUID(const picojson::value& data, picojs
             FromJson<std::string>(args, "uuid"),
             util::GetAsyncCallbackHandle(data));
 
-    util::ReportSuccess(out);
+    ReportSuccess(out);
 }
 
 void BluetoothDevice::GetBoolValue(const picojson::value& data, picojson::object& out)

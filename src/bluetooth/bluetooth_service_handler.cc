@@ -18,6 +18,7 @@
 
 #include "common/converter.h"
 #include "common/logger.h"
+#include "common/extension.h"
 
 #include "bluetooth_adapter.h"
 #include "bluetooth_privilege.h"
@@ -39,7 +40,7 @@ void BluetoothServiceHandler::Unregister(const picojson::value& data, picojson::
             FromJson<std::string>(args, "uuid"),
             util::GetAsyncCallbackHandle(data));
 
-    util::ReportSuccess(out);
+    tools::ReportSuccess(out);
 }
 
 } // namespace bluetooth

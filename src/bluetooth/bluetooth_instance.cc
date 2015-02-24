@@ -38,7 +38,7 @@ void CheckPrivilege(const picojson::value& data, picojson::object& out)
     const auto& privilege = FromJson<std::string>(args, "privilege");
     util::CheckAccess(privilege);
 
-    util::ReportSuccess(out);
+    tools::ReportSuccess(out);
 }
 
 } // namespace

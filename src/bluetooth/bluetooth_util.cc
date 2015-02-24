@@ -73,24 +73,6 @@ void FireEvent(const std::string& event, const std::shared_ptr<picojson::value>&
     FireEvent(event, *value.get());
 }
 
-void ReportSuccess(picojson::object& out) {
-    out.insert(std::make_pair(JSON_STATUS, picojson::value(JSON_CALLBACK_SUCCCESS)));
-}
-
-void ReportSuccess(const picojson::value& result, picojson::object& out) {
-    ReportSuccess(out);
-    out.insert(std::make_pair(JSON_RESULT, result));
-}
-
-void ReportError(picojson::object& out) {
-    out.insert(std::make_pair(JSON_STATUS, picojson::value(JSON_CALLBACK_ERROR)));
-}
-
-void ReportError(const common::PlatformException& ex, picojson::object& out) {
-    ReportError(out);
-    out.insert(std::make_pair(JSON_CALLBACK_ERROR, ex.ToJSON()));
-}
-
 double GetAsyncCallbackHandle(const picojson::value& data) {
     return data.get(JSON_CALLBACK_ID).get<double>();
 }

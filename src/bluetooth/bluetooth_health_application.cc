@@ -18,6 +18,7 @@
 
 #include "common/converter.h"
 #include "common/logger.h"
+#include "common/extension.h"
 
 #include "bluetooth_health_profile_handler.h"
 #include "bluetooth_privilege.h"
@@ -45,7 +46,7 @@ void BluetoothHealthApplication::Unregister(const picojson::value& data, picojso
             FromJson<std::string>(args, "id"),
             util::GetAsyncCallbackHandle(data));
 
-    util::ReportSuccess(out);
+    tools::ReportSuccess(out);
 }
 
 void BluetoothHealthApplication::ToJson(short data_type,

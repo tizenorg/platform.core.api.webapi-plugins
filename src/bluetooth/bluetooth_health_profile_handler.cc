@@ -125,7 +125,7 @@ void BluetoothHealthProfileHandler::OnConnected(int result,
                                            app_id,
                                            &result.get<picojson::object>());
 
-            util::ReportSuccess(result, response_obj);
+            ReportSuccess(result, response_obj);
             bt_adapter_free_device_info(device_info);
 
             util::FireEvent("BLUETOOTH_HEALTH_APPLICATION_CHANGED", response);
@@ -153,11 +153,12 @@ void BluetoothHealthProfileHandler::OnConnected(int result,
                                            type,
                                            &result.get<picojson::object>());
 
-            util::ReportSuccess(result, response->get<picojson::object>());
+            ReportSuccess(result, response->get<picojson::object>());
         } else {
             LoggerE("Failed to establish a connection with health profile");
-            util::ReportError(UnknownException("Failed to establish a connection with health profile"),
-                                      response->get<picojson::object>());
+            ReportError(PlatformResult(
+                    ErrorCode::UNKNOWN_ERR, "Failed to establish a connection with health profile"),
+                    &response->get<picojson::object>());
         }
 
         util::AsyncResponse(request->second, response);
@@ -257,7 +258,7 @@ void BluetoothHealthProfileHandler::RegisterSinkApp(const picojson::value& data,
                                                name,
                                                app_id,
                                                &result.get<picojson::object>());
-            util::ReportSuccess(result, response->get<picojson::object>());
+            ReportSuccess(result, response->get<picojson::object>());
             return;
         }
 
@@ -284,7 +285,7 @@ void BluetoothHealthProfileHandler::RegisterSinkApp(const picojson::value& data,
                                                 register_app_response,
                                                 std::shared_ptr<picojson::value>(new picojson::value(picojson::object())));
 
-    util::ReportSuccess(out);
+    ReportSuccess(out);
 }
 
 void BluetoothHealthProfileHandler::ConnectToSource(const picojson::value& data, picojson::object& out) {
@@ -331,7 +332,7 @@ void BluetoothHealthProfileHandler::ConnectToSource(const picojson::value& data,
         util::AsyncResponse(callback_handle, result);
     }
 
-    util::ReportSuccess(out);
+    ReportSuccess(out);
 }
 
 void BluetoothHealthProfileHandler::UnregisterSinkAppAsync(const std::string& app_id,

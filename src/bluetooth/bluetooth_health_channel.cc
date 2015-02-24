@@ -55,7 +55,7 @@ void BluetoothHealthChannel::Close(const picojson::value& data , picojson::objec
         return;
     }
 
-    util::ReportSuccess(out);
+    ReportSuccess(out);
 }
 
 void BluetoothHealthChannel::SendData(const picojson::value& data, picojson::object& out) {
@@ -81,7 +81,7 @@ void BluetoothHealthChannel::SendData(const picojson::value& data, picojson::obj
         return;
     }
 
-    util::ReportSuccess(picojson::value(static_cast<double>(data_size)), out);
+    ReportSuccess(picojson::value(static_cast<double>(data_size)), out);
 }
 
 void BluetoothHealthChannel::ToJson(unsigned int channel,

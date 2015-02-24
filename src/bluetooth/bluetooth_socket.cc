@@ -66,7 +66,7 @@ void BluetoothSocket::WriteData(const picojson::value& data, picojson::object& o
         return;
     }
 
-    util::ReportSuccess(picojson::value(static_cast<double>(data_size)), out);
+    ReportSuccess(picojson::value(static_cast<double>(data_size)), out);
 }
 
 void BluetoothSocket::ReadData(const picojson::value& data, picojson::object& out) {
@@ -88,7 +88,7 @@ void BluetoothSocket::ReadData(const picojson::value& data, picojson::object& ou
 
     BluetoothAdapter::GetInstance().ClearSocketData(socket);
 
-    util::ReportSuccess(ret, out);
+    ReportSuccess(ret, out);
 }
 
 void BluetoothSocket::Close(const picojson::value& data, picojson::object& out) {
@@ -106,7 +106,7 @@ void BluetoothSocket::Close(const picojson::value& data, picojson::object& out) 
         return;
     }
 
-    util::ReportSuccess(out);
+    ReportSuccess(out);
 }
 
 picojson::value BluetoothSocket::ToJson(bt_socket_connection_s* connection) {

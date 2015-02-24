@@ -25,7 +25,6 @@
 
 #include "common/converter.h"
 #include "common/logger.h"
-#include "common/platform_exception.h"
 #include "common/platform_result.h"
 #include "common/extension.h"
 #include "common/task-queue.h"
@@ -270,7 +269,7 @@ void BluetoothAdapter::DiscoveryStateChangedCB(
                     data_obj->insert(std::make_pair(kAction, picojson::value(kOnDiscoverStarted)));
                     util::FireEvent(kAdapterDiscoverSuccessEvent, value);
                 } else {
-                    util::ReportError(UnknownException("Unknown error"), *data_obj);
+                    ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown error"), data_obj);
                     util::FireEvent(kAdapterDiscoverErrorEvent, value);
                     adapter->user_request_list_[DISCOVER_DEVICES] = false;
                 }
@@ -304,7 +303,7 @@ void BluetoothAdapter::DiscoveryStateChangedCB(
                     std::shared_ptr<picojson::value> response =
                             std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
 
-                    util::ReportSuccess(response->get<picojson::object>());
+                    ReportSuccess(response->get<picojson::object>());
                     util::AsyncResponse(
                             adapter->user_request_callback_[STOP_DISCOVERY], response);
 
@@ -1207,7 +1206,7 @@ void BluetoothAdapter::GetBluetoothProfileHandler(const picojson::value& data,
 void BluetoothAdapter::GetName(const picojson::value& /* data */, picojson::object& out) {
     LoggerD("Entered");
 
-    util::ReportSuccess(picojson::value(get_name()), out);
+    ReportSuccess(picojson::value(get_name()), out);
 }
 
 void BluetoothAdapter::GetAddress(const picojson::value& /* data */, picojson::object& out) {
@@ -1228,19 +1227,19 @@ void BluetoothAdapter::GetAddress(const picojson::value& /* data */, picojson::o
         }
     }
 
-    util::ReportSuccess(picojson::value(str_address), out);
+    ReportSuccess(picojson::value(str_address), out);
 }
 
 void BluetoothAdapter::GetPowered(const picojson::value& /* data */, picojson::object& out) {
     LoggerD("Entered");
 
-    util::ReportSuccess(picojson::value(is_powered_), out);
+    ReportSuccess(picojson::value(is_powered_), out);
 }
 
 void BluetoothAdapter::GetVisible(const picojson::value& /* data */, picojson::object& out) {
     LoggerD("Entered");
 
-    util::ReportSuccess(picojson::value(get_visible()), out);
+    ReportSuccess(picojson::value(get_visible()), out);
 }
 
 void BluetoothAdapter::OnSocketConnected(int result,
@@ -1323,11 +1322,11 @@ void BluetoothAdapter::OnSocketConnected(int result,
                 object->connected_sockets_.push_back(connection->socket_fd);
                 bt_socket_set_data_received_cb(OnSocketReceivedData, user_data);
 
-                util::ReportSuccess(BluetoothSocket::ToJson(connection),
+                ReportSuccess(BluetoothSocket::ToJson(connection),
                                             response->get<picojson::object>());
             } else {
-                util::ReportError(NotFoundException("Not found"),
-                                          response->get<picojson::object>());
+                ReportError(PlatformResult(
+                    ErrorCode::NOT_FOUND_ERR, "Not found"), &response->get<picojson::object>());
             }
 
             util::AsyncResponse(request->second->callback_handle_, response);
@@ -1511,7 +1510,7 @@ void BluetoothAdapter::IsServiceConnected(const picojson::value& data, picojson:
       return;
     }
 
-    util::ReportSuccess(picojson::value(iter->second.second), out);
+    ReportSuccess(picojson::value(iter->second.second), out);
 }
 
 } // namespace bluetooth
