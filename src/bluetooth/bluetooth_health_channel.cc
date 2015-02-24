@@ -20,7 +20,7 @@
 
 #include "common/converter.h"
 #include "common/logger.h"
-#include "common/platform_exception.h"
+#include "common/extension.h"
 
 #include "bluetooth_device.h"
 #include "bluetooth_privilege.h"
@@ -30,6 +30,7 @@ namespace extension {
 namespace bluetooth {
 
 using namespace common;
+using namespace common::tools;
 
 namespace {
 const std::string kPeer = "peer";
@@ -50,7 +51,8 @@ void BluetoothHealthChannel::Close(const picojson::value& data , picojson::objec
     const auto& address = FromJson<std::string>(args, "address");
 
     if (BT_ERROR_NONE != bt_hdp_disconnect(address.c_str(), channel)) {
-        throw UnknownException("Unknown error");
+        ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown error"), &out);
+        return;
     }
 
     util::ReportSuccess(out);
@@ -75,7 +77,8 @@ void BluetoothHealthChannel::SendData(const picojson::value& data, picojson::obj
 
     if (BT_ERROR_NONE != bt_hdp_send_data(channel, data_ptr.get(), data_size)) {
         LoggerE("bt_hdp_send_data() failed");
-        throw UnknownException("Unknown error");
+        ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown error"), &out);
+        return;
     }
 
     util::ReportSuccess(picojson::value(static_cast<double>(data_size)), out);

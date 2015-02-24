@@ -18,6 +18,7 @@
 
 #include "common/converter.h"
 #include "common/logger.h"
+#include "common/extension.h"
 
 #include "bluetooth_adapter.h"
 #include "bluetooth_class.h"
@@ -28,6 +29,7 @@ namespace extension {
 namespace bluetooth {
 
 using namespace common;
+using namespace common::tools;
 
 namespace {
 //device
@@ -118,6 +120,7 @@ void BluetoothDevice::GetBoolValue(const picojson::value& data, picojson::object
     const auto& address = FromJson<std::string>(args, "address");
     const auto& field = FromJson<std::string>(args, "field");
 
+    PlatformResult result = PlatformResult(ErrorCode::NO_ERROR);
     bool value = false;
     bt_device_info_s *info = nullptr;
     if (bt_adapter_get_bonded_device_info(address.c_str(), &info) == BT_ERROR_NONE &&
@@ -129,15 +132,18 @@ void BluetoothDevice::GetBoolValue(const picojson::value& data, picojson::object
         } else if (kDeviceIsConnected == field) {
             value = info->is_connected;
         } else {
-            bt_adapter_free_device_info(info);
-            throw UnknownException("Wrong field passed.");
+            result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Wrong field passed.");
         }
         bt_adapter_free_device_info(info);
     } else {
-        throw UnknownException("Unknown error");
+        result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown error");
     }
 
-    util::ReportSuccess(picojson::value(value), out);
+    if (result.IsSuccess()) {
+        ReportSuccess(picojson::value(value), out);
+    } else {
+        ReportError(result, &out);
+    }
 }
 
 } // namespace bluetooth

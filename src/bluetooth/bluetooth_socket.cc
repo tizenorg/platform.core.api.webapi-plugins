@@ -20,6 +20,7 @@
 
 #include "common/converter.h"
 #include "common/logger.h"
+#include "common/extension.h"
 
 #include "bluetooth_adapter.h"
 #include "bluetooth_device.h"
@@ -40,6 +41,7 @@ const int kBluetoothError = -1;
 }
 
 using namespace common;
+using namespace common::tools;
 
 void BluetoothSocket::WriteData(const picojson::value& data, picojson::object& out) {
     LoggerD("Enter");
@@ -60,7 +62,8 @@ void BluetoothSocket::WriteData(const picojson::value& data, picojson::object& o
 
     if (kBluetoothError == bt_socket_send_data(socket, data_ptr.get(), data_size)) {
         LoggerE("bt_socket_send_data() failed");
-        throw UnknownException("Unknown error");
+        ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown error"), &out);
+        return;
     }
 
     util::ReportSuccess(picojson::value(static_cast<double>(data_size)), out);
@@ -99,7 +102,8 @@ void BluetoothSocket::Close(const picojson::value& data, picojson::object& out) 
 
     if (BT_ERROR_NONE != bt_socket_disconnect_rfcomm(socket)) {
         LoggerE("bt_socket_disconnect_rfcomm() failed");
-        throw UnknownException("Unknown error");
+        ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown error"), &out);
+        return;
     }
 
     util::ReportSuccess(out);

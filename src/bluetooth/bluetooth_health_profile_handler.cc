@@ -18,7 +18,7 @@
 
 #include "common/converter.h"
 #include "common/logger.h"
-#include "common/platform_exception.h"
+#include "common/extension.h"
 #include "common/task-queue.h"
 
 #include "bluetooth_adapter.h"
@@ -31,6 +31,7 @@ namespace extension {
 namespace bluetooth {
 
 using namespace common;
+using namespace common::tools;
 
 namespace {
 const std::string kId = "id";
@@ -240,39 +241,39 @@ void BluetoothHealthProfileHandler::RegisterSinkApp(const picojson::value& data,
     auto register_app = [data_type, name, this](const std::shared_ptr<picojson::value>& response) -> void {
         LoggerD("Entered");
 
-        try {
-            char* app_id = nullptr;
-            const int ret = bt_hdp_register_sink_app(data_type, &app_id);
+        PlatformResult platform_result = PlatformResult(ErrorCode::NO_ERROR);
+        char* app_id = nullptr;
+        const int ret = bt_hdp_register_sink_app(data_type, &app_id);
 
-            switch (ret) {
-            case BT_ERROR_NONE:
-            {
-                LoggerD("Registered app: %s", app_id);
+        switch (ret) {
+        case BT_ERROR_NONE:
+        {
+            LoggerD("Registered app: %s", app_id);
 
-                this->registered_health_apps_.insert(app_id);
+            this->registered_health_apps_.insert(app_id);
 
-                picojson::value result = picojson::value(picojson::object());
-                BluetoothHealthApplication::ToJson(data_type,
-                                                   name,
-                                                   app_id,
-                                                   &result.get<picojson::object>());
-                util::ReportSuccess(result, response->get<picojson::object>());
-            }
-                break;
-
-            case BT_ERROR_NOT_ENABLED:
-                LoggerE("Bluetooth device is turned off");
-                throw ServiceNotAvailableException("Bluetooth device is turned off");
-                break;
-
-            default:
-                LoggerE("bt_hdp_register_sink_app() failed: %d", ret);
-                throw UnknownException("Unknown error");
-                break;
-            }
-        } catch (const PlatformException& e) {
-            util::ReportError(e, response->get<picojson::object>());
+            picojson::value result = picojson::value(picojson::object());
+            BluetoothHealthApplication::ToJson(data_type,
+                                               name,
+                                               app_id,
+                                               &result.get<picojson::object>());
+            util::ReportSuccess(result, response->get<picojson::object>());
+            return;
         }
+
+        case BT_ERROR_NOT_ENABLED:
+            LoggerE("Bluetooth device is turned off");
+            platform_result = PlatformResult(
+                ErrorCode::SERVICE_NOT_AVAILABLE_ERR, "Bluetooth device is turned off");
+            break;
+
+        default:
+            LoggerE("bt_hdp_register_sink_app() failed: %d", ret);
+            platform_result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown error");
+            break;
+        }
+
+        ReportError(platform_result, &response->get<picojson::object>());
     };
 
     auto register_app_response = [callback_handle](const std::shared_ptr<picojson::value>& response) -> void {
@@ -300,35 +301,34 @@ void BluetoothHealthProfileHandler::ConnectToSource(const picojson::value& data,
 
     const auto callback_handle = util::GetAsyncCallbackHandle(data);
 
-    try {
-        const int ret = bt_hdp_connect_to_source(address.c_str(), app_id.c_str());
+    PlatformResult result = PlatformResult(ErrorCode::NO_ERROR);
+    const int ret = bt_hdp_connect_to_source(address.c_str(), app_id.c_str());
 
-        switch (ret) {
-            case BT_ERROR_NONE: {
-                LoggerD("bt_hdp_connect_to_source() succeeded");
+    switch (ret) {
+        case BT_ERROR_NONE: {
+            LoggerD("bt_hdp_connect_to_source() succeeded");
 
-                connection_requests_.insert(std::make_pair(app_id, callback_handle));
-                break;
-            }
-
-            case BT_ERROR_NOT_ENABLED:
-                throw ServiceNotAvailableException("Bluetooth device is turned off");
-                break;
-
-            case BT_ERROR_INVALID_PARAMETER:
-            case BT_ERROR_REMOTE_DEVICE_NOT_BONDED:
-                throw InvalidValuesException("Invalid value");
-                break;
-
-            default:
-                throw UnknownException("Unknown error");
-                break;
+            connection_requests_.insert(std::make_pair(app_id, callback_handle));
+            break;
         }
-    } catch (const PlatformException& e) {
-        LoggerD("Exception: %s", e.message().c_str());
-        std::shared_ptr<picojson::value> response{new picojson::value(picojson::object())};
-        util::ReportError(e, response->get<picojson::object>());
-        util::AsyncResponse(callback_handle, response);
+
+        case BT_ERROR_NOT_ENABLED:
+            result = PlatformResult(
+                ErrorCode::SERVICE_NOT_AVAILABLE_ERR, "Bluetooth device is turned off");
+            break;
+
+        case BT_ERROR_INVALID_PARAMETER:
+        case BT_ERROR_REMOTE_DEVICE_NOT_BONDED:
+            result = PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid value");
+            break;
+
+        default:
+            result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown exception");
+            break;
+    }
+
+    if (result.IsError()) {
+        util::AsyncResponse(callback_handle, result);
     }
 
     util::ReportSuccess(out);
@@ -341,38 +341,39 @@ void BluetoothHealthProfileHandler::UnregisterSinkAppAsync(const std::string& ap
     auto unregister_app = [app_id, this](const std::shared_ptr<picojson::value>& response) -> void {
         LoggerD("Entered");
 
+        PlatformResult result = PlatformResult(ErrorCode::NO_ERROR);
         auto iter = this->registered_health_apps_.find(app_id);
 
         if (iter != this->registered_health_apps_.end()) {
             LoggerD("Found registered Health Application: %s", app_id.c_str());
 
-            try {
-                const int ret = bt_hdp_unregister_sink_app(app_id.c_str());
+            const int ret = bt_hdp_unregister_sink_app(app_id.c_str());
 
-                switch(ret) {
-                case BT_ERROR_NONE:
-                    this->registered_health_apps_.erase(iter);
-                    break;
+            switch(ret) {
+            case BT_ERROR_NONE:
+                this->registered_health_apps_.erase(iter);
+                break;
 
-                case BT_ERROR_NOT_ENABLED:
-                    LoggerE("Bluetooth device is turned off");
-                    throw ServiceNotAvailableException("Bluetooth device is turned off");
-                    break;
+            case BT_ERROR_NOT_ENABLED:
+                LoggerE("Bluetooth device is turned off");
+                result = PlatformResult(
+                    ErrorCode::SERVICE_NOT_AVAILABLE_ERR, "Bluetooth device is turned off");
+                break;
 
-                default:
-                    LoggerE("bt_hdp_unregister_sink_app() failed: %d", ret);
-                    throw UnknownException("Unknown error");
-                    break;
-                }
-            } catch (const PlatformException& e) {
-                util::ReportError(e, response->get<picojson::object>());
-                return;
+            default:
+                LoggerE("bt_hdp_unregister_sink_app() failed: %d", ret);
+                result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown exception");
+                break;
             }
         } else {
             LoggerD("Already unregistered");
         }
 
-        util::ReportSuccess(response->get<picojson::object>());
+        if (result.IsSuccess()) {
+            ReportSuccess(response->get<picojson::object>());
+        } else {
+            ReportError(result, &response->get<picojson::object>());
+        }
     };
 
     auto unregister_app_response = [callback_handle](const std::shared_ptr<picojson::value>& response) -> void {
