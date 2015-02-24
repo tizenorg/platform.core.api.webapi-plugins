@@ -36,8 +36,9 @@ class PackageInfoProvider {
   static void GetPackageInfo(picojson::object& out);
   static void GetPackageInfo(const char* package_id,
       picojson::object& out);
-  static bool GetPackageInfo(const pkgmgrinfo_pkginfo_h info,
-      picojson::object& out);
+
+  static bool ConvertToPackageToObject(
+      const pkgmgrinfo_pkginfo_h info, picojson::object& out);
 
  private:
   static bool GetCurrentPackageId(char** package_id);
