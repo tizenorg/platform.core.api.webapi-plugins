@@ -84,8 +84,8 @@ PlatformResult ContactManagerGetAddressBooks(const JsonObject& args,
     int account_id = 0;
     int mode = 0;
     char* name = nullptr;
-    status = ContactUtil::GetIntFromRecord(
-        contacts_record, _contacts_address_book.id, &id);
+    status = ContactUtil::GetIntFromRecord(contacts_record,
+                                           _contacts_address_book.id, &id);
     if (status.IsError()) return status;
 
     status = ContactUtil::GetIntFromRecord(
@@ -121,7 +121,8 @@ PlatformResult ContactManagerGetAddressBook(const JsonObject& args,
   PlatformResult status = ContactUtil::CheckDBConnection();
   if (status.IsError()) return status;
 
-  long address_book_id = common::stol(FromJson<JsonString>(args, "addressBookId"));
+  long address_book_id =
+      common::stol(FromJson<JsonString>(args, "addressBookId"));
 
   contacts_record_h contacts_record;
   int error_code = contacts_db_get_record(_contacts_address_book._uri,
@@ -368,7 +369,7 @@ PlatformResult ContactManagerFind(const JsonObject& args, JsonArray& out) {
         error_code = contacts_filter_add_bool(contacts_filter,
                                               property.propertyId, value);
         status = ContactUtil::ErrorChecker(error_code,
-                                  "Failed contacts_filter_add_bool");
+                                           "Failed contacts_filter_add_bool");
         if (status.IsError()) return status;
       } else if (property.type == kPrimitiveTypeString) {
         std::string value = JsonCast<std::string>(match_value);
@@ -428,8 +429,8 @@ PlatformResult ContactManagerFind(const JsonObject& args, JsonArray& out) {
         return PlatformResult(ErrorCode::UNKNOWN_ERR,
                               "Invalid primitive type!");
       }
-      intermediate_filters[intermediate_filters.size() - 1]
-          .push_back(std::move(contacts_filter_ptr));
+      intermediate_filters[intermediate_filters.size() - 1].push_back(
+          std::move(contacts_filter_ptr));
 
       return PlatformResult(ErrorCode::NO_ERROR);
     });
@@ -469,24 +470,24 @@ PlatformResult ContactManagerFind(const JsonObject& args, JsonArray& out) {
           if (initial_value_bool == end_value_bool) {
             error_code = contacts_filter_add_bool(
                 contacts_filter, property.propertyId, initial_value_bool);
-            status = ContactUtil::ErrorChecker(error_code,
-                                      "Failed contacts_filter_add_bool");
+            status = ContactUtil::ErrorChecker(
+                error_code, "Failed contacts_filter_add_bool");
             if (status.IsError()) return status;
           }
         } else if (initial_value_exists) {
           if (initial_value_bool) {
             error_code = contacts_filter_add_bool(contacts_filter,
                                                   property.propertyId, true);
-            status = ContactUtil::ErrorChecker(error_code,
-                                      "Failed contacts_filter_add_bool");
+            status = ContactUtil::ErrorChecker(
+                error_code, "Failed contacts_filter_add_bool");
             if (status.IsError()) return status;
           }
         } else if (end_value_exists) {
           if (!end_value_bool) {
             error_code = contacts_filter_add_bool(contacts_filter,
                                                   property.propertyId, false);
-            status = ContactUtil::ErrorChecker(error_code,
-                                      "Failed contacts_filter_add_bool");
+            status = ContactUtil::ErrorChecker(
+                error_code, "Failed contacts_filter_add_bool");
             if (status.IsError()) return status;
           }
         }
@@ -508,7 +509,7 @@ PlatformResult ContactManagerFind(const JsonObject& args, JsonArray& out) {
           error_code =
               contacts_filter_create(_contacts_person._uri, &sub_filter);
           status = ContactUtil::ErrorChecker(error_code,
-                                    "Failed contacts_filter_add_str");
+                                             "Failed contacts_filter_add_str");
           if (status.IsError()) return status;
 
           ContactUtil::ContactsFilterPtr sub_filter_ptr(
@@ -518,44 +519,43 @@ PlatformResult ContactManagerFind(const JsonObject& args, JsonArray& out) {
                                                CONTACTS_MATCH_STARTSWITH,
                                                initial_value_str.c_str());
           status = ContactUtil::ErrorChecker(error_code,
-                                    "Failed contacts_filter_add_str");
+                                             "Failed contacts_filter_add_str");
           if (status.IsError()) return status;
 
           error_code = contacts_filter_add_operator(
               sub_filter, CONTACTS_FILTER_OPERATOR_AND);
           status = ContactUtil::ErrorChecker(error_code,
-                                    "Failed contacts_filter_add_str");
+                                             "Failed contacts_filter_add_str");
           if (status.IsError()) return status;
 
           error_code = contacts_filter_add_str(sub_filter, property.propertyId,
                                                CONTACTS_MATCH_ENDSWITH,
                                                end_value_str.c_str());
           status = ContactUtil::ErrorChecker(error_code,
-                                    "Failed contacts_filter_add_str");
+                                             "Failed contacts_filter_add_str");
           if (status.IsError()) return status;
 
           error_code = contacts_filter_add_filter(contacts_filter, sub_filter);
           status = ContactUtil::ErrorChecker(error_code,
-                                    "Failed contacts_filter_add_str");
+                                             "Failed contacts_filter_add_str");
           if (status.IsError()) return status;
         } else if (initial_value_exists) {
           error_code = contacts_filter_add_str(
               contacts_filter, property.propertyId, CONTACTS_MATCH_STARTSWITH,
               initial_value_str.c_str());
           status = ContactUtil::ErrorChecker(error_code,
-                                    "Failed contacts_filter_add_str");
+                                             "Failed contacts_filter_add_str");
           if (status.IsError()) return status;
         } else if (end_value_exists) {
           error_code = contacts_filter_add_str(
               contacts_filter, property.propertyId, CONTACTS_MATCH_ENDSWITH,
               end_value_str.c_str());
           status = ContactUtil::ErrorChecker(error_code,
-                                    "Failed contacts_filter_add_str");
+                                             "Failed contacts_filter_add_str");
           if (status.IsError()) return status;
         }
       } else if (property.type == kPrimitiveTypeLong ||
                  property.type == kPrimitiveTypeId) {
-
         int initial_value_int = 0;
         int end_value_int = 0;
 
@@ -583,7 +583,7 @@ PlatformResult ContactManagerFind(const JsonObject& args, JsonArray& out) {
           error_code =
               contacts_filter_create(_contacts_person._uri, &sub_filter);
           status = ContactUtil::ErrorChecker(error_code,
-                                    "Failed contacts_filter_add_bool");
+                                             "Failed contacts_filter_add_bool");
           if (status.IsError()) return status;
 
           ContactUtil::ContactsFilterPtr sub_filter_ptr(
@@ -593,47 +593,47 @@ PlatformResult ContactManagerFind(const JsonObject& args, JsonArray& out) {
               sub_filter, property.propertyId,
               CONTACTS_MATCH_GREATER_THAN_OR_EQUAL, initial_value_int);
           status = ContactUtil::ErrorChecker(error_code,
-                                    "Failed contacts_filter_add_int");
+                                             "Failed contacts_filter_add_int");
           if (status.IsError()) return status;
 
           error_code = contacts_filter_add_operator(
               sub_filter, CONTACTS_FILTER_OPERATOR_AND);
-          status = ContactUtil::ErrorChecker(error_code,
-                                    "Failed contacts_filter_add_operator");
+          status = ContactUtil::ErrorChecker(
+              error_code, "Failed contacts_filter_add_operator");
           if (status.IsError()) return status;
 
           error_code = contacts_filter_add_int(
               sub_filter, property.propertyId,
               CONTACTS_MATCH_LESS_THAN_OR_EQUAL, end_value_int);
           status = ContactUtil::ErrorChecker(error_code,
-                                    "Failed contacts_filter_add_int");
+                                             "Failed contacts_filter_add_int");
           if (status.IsError()) return status;
 
           error_code = contacts_filter_add_filter(contacts_filter, sub_filter);
-          status = ContactUtil::ErrorChecker(error_code,
-                                    "Failed contacts_filter_add_filter");
+          status = ContactUtil::ErrorChecker(
+              error_code, "Failed contacts_filter_add_filter");
           if (status.IsError()) return status;
         } else if (initial_value_exists) {
           error_code = contacts_filter_add_int(
               contacts_filter, property.propertyId,
               CONTACTS_MATCH_GREATER_THAN_OR_EQUAL, initial_value_int);
           status = ContactUtil::ErrorChecker(error_code,
-                                    "Failed contacts_filter_add_int");
+                                             "Failed contacts_filter_add_int");
           if (status.IsError()) return status;
         } else if (end_value_exists) {
           error_code = contacts_filter_add_int(
               contacts_filter, property.propertyId,
               CONTACTS_MATCH_LESS_THAN_OR_EQUAL, end_value_int);
           status = ContactUtil::ErrorChecker(error_code,
-                                    "Failed contacts_filter_add_int");
+                                             "Failed contacts_filter_add_int");
           if (status.IsError()) return status;
         }
       } else {
         return PlatformResult(ErrorCode::UNKNOWN_ERR,
                               "Invalid primitive type!");
       }
-      intermediate_filters[intermediate_filters.size() - 1]
-          .push_back(std::move(contacts_filter_ptr));
+      intermediate_filters[intermediate_filters.size() - 1].push_back(
+          std::move(contacts_filter_ptr));
 
       return PlatformResult(ErrorCode::NO_ERROR);
     });
@@ -665,20 +665,20 @@ PlatformResult ContactManagerFind(const JsonObject& args, JsonArray& out) {
         error_code = contacts_filter_add_filter(
             merged_filter, intermediate_filters.back().at(i).get());
         status = ContactUtil::ErrorChecker(error_code,
-                                  "Failed contacts_query_set_filter");
+                                           "Failed contacts_query_set_filter");
         if (status.IsError()) return status;
 
         if (CompositeFilterType::kIntersection == type) {
           error_code = contacts_filter_add_operator(
               merged_filter, CONTACTS_FILTER_OPERATOR_AND);
-          status = ContactUtil::ErrorChecker(error_code,
-                                    "Failed contacts_query_set_filter");
+          status = ContactUtil::ErrorChecker(
+              error_code, "Failed contacts_query_set_filter");
           if (status.IsError()) return status;
         } else if (CompositeFilterType::kUnion == type) {
           error_code = contacts_filter_add_operator(
               merged_filter, CONTACTS_FILTER_OPERATOR_OR);
-          status = ContactUtil::ErrorChecker(error_code,
-                                    "Failed contacts_query_set_filter");
+          status = ContactUtil::ErrorChecker(
+              error_code, "Failed contacts_query_set_filter");
           if (status.IsError()) return status;
         } else {
           return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
@@ -713,8 +713,8 @@ PlatformResult ContactManagerFind(const JsonObject& args, JsonArray& out) {
   error_code =
       contacts_db_get_records_with_query(contacts_query, 0, 0, &person_list);
 
-  status = ContactUtil::ErrorChecker(error_code,
-                            "Failed contacts_db_get_records_with_query");
+  status = ContactUtil::ErrorChecker(
+      error_code, "Failed contacts_db_get_records_with_query");
   if (status.IsError()) return status;
 
   ContactUtil::ContactsListHPtr person_list_ptr(

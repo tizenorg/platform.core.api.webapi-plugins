@@ -36,7 +36,8 @@ static const PersonPropertyMap personPropertyMap = {
     {"photoURI", {_contacts_person.image_thumbnail_path, kPrimitiveTypeString}},
     {"ringtoneURI", {_contacts_person.ringtone_path, kPrimitiveTypeString}},
     {"displayContactId",
-     {_contacts_person.display_contact_id, kPrimitiveTypeId}}, };
+     {_contacts_person.display_contact_id, kPrimitiveTypeId}},
+};
 
 PlatformResult PersonLink(const JsonObject& args, JsonObject&) {
   PlatformResult status = ContactUtil::CheckDBConnection();
@@ -127,7 +128,7 @@ PlatformResult PersonUnlink(const JsonObject& args, JsonObject& out) {
 }
 
 PlatformResult PersonPropertyFromString(const std::string& name,
-                                        PersonProperty *person_prop) {
+                                        PersonProperty* person_prop) {
   auto iter = personPropertyMap.find(name);
   if (iter == personPropertyMap.end()) {
     LoggerE("Invalid property name (not in map): %s", name.c_str());

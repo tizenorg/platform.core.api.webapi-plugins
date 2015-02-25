@@ -7,31 +7,21 @@
 
 extern const char kSource_contact_api[];
 
-common::Extension* CreateExtension() {
-  return new ContactExtension;
-}
+common::Extension* CreateExtension() { return new ContactExtension; }
 
 ContactExtension::ContactExtension() {
   SetExtensionName("tizen.contact");
   SetJavaScriptAPI(kSource_contact_api);
 
   const char* entry_points[] = {
-      "tizen.ContactRef",
-      "tizen.ContactName",
-      "tizen.ContactOrganization",
-      "tizen.ContactWebSite",
-      "tizen.ContactAnniversary",
-      "tizen.ContactAddress",
-      "tizen.ContactPhoneNumber",
-      "tizen.ContactEmailAddress",
-      "tizen.ContactGroup",
-      "tizen.ContactRelationship",
-      "tizen.ContactInstantMessenger",
-      "tizen.Contact",
-      "tizen.AddressBook",
-      NULL
-    };
-    SetExtraJSEntryPoints(entry_points);
+      "tizen.ContactRef",              "tizen.ContactName",
+      "tizen.ContactOrganization",     "tizen.ContactWebSite",
+      "tizen.ContactAnniversary",      "tizen.ContactAddress",
+      "tizen.ContactPhoneNumber",      "tizen.ContactEmailAddress",
+      "tizen.ContactGroup",            "tizen.ContactRelationship",
+      "tizen.ContactInstantMessenger", "tizen.Contact",
+      "tizen.AddressBook",             NULL};
+  SetExtraJSEntryPoints(entry_points);
 }
 
 ContactExtension::~ContactExtension() {}

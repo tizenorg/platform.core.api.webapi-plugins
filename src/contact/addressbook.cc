@@ -181,8 +181,7 @@ PlatformResult AddressBookUpdate(const JsonObject& args, JsonObject& out) {
     }
   }
 
-  status =
-      ContactUtil::UpdateAdditionalInformation(contacts_record_ptr, &out);
+  status = ContactUtil::UpdateAdditionalInformation(contacts_record_ptr, &out);
   if (status.IsError()) return status;
 
   return PlatformResult(ErrorCode::NO_ERROR);

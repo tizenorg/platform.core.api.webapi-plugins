@@ -658,7 +658,8 @@ PlatformResult ImportContactPhoneNumberFromContactsRecord(
     JsonObject* out_ptr) {
   JsonObject& out = *out_ptr;
   contacts_record_h child_record = nullptr;
-  // contacts_record is protected by unique_ptr and its ownership is not passed here
+  // contacts_record is protected by unique_ptr and its ownership is not passed
+  // here
   if (!contacts_record) {
     LoggerE("Contacts record is null");
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
@@ -755,7 +756,8 @@ PlatformResult ImportContactPhoneNumberFromContactsRecord(
 PlatformResult ExportContactPhoneNumberToContactsRecord(
     contacts_record_h contacts_record, const JsonObject& in) {
   contacts_record_h phone_record = nullptr;
-  // contacts_record is protected by unique_ptr and its ownership is not passed here
+  // contacts_record is protected by unique_ptr and its ownership is not passed
+  // here
   if (!contacts_record) {
     LoggerE("Contacts record is null");
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
@@ -945,8 +947,8 @@ PlatformResult ExportContactOrganizationToContactsRecord(
   if (!IsNull(in, "logoURI")) {
     std::string path =
         ContactUtil::ConvertUriToPath(FromJson<JsonString>(in, "logoURI"));
-    status = ContactUtil::SetStrInRecord(
-        organization_record, _contacts_company.logo, path.c_str());
+    status = ContactUtil::SetStrInRecord(organization_record,
+                                         _contacts_company.logo, path.c_str());
     if (status.IsError()) return status;
   }
 
@@ -1829,7 +1831,8 @@ PlatformResult ImportContactFromContactsRecord(
     out.insert(std::make_pair("name", JsonValue{}));
   }
 
-  typedef PlatformResult (*ImportFunc)(contacts_record_h, unsigned int, JsonObject*);
+  typedef PlatformResult (*ImportFunc)(contacts_record_h, unsigned int,
+                                       JsonObject*);
   struct ImportData {
     const char* name;
     unsigned int property_id;
@@ -1848,7 +1851,8 @@ PlatformResult ImportContactFromContactsRecord(
       {"messengers", _contacts_contact.messenger,
        ImportContactInstantMessengerFromContactsRecord},
       {"relationships", _contacts_contact.relationship,
-       ImportContactRelationshipFromContactsRecord}, };
+       ImportContactRelationshipFromContactsRecord},
+  };
 
   for (auto& data : imports) {
     JsonArray& array = out.insert(std::make_pair(data.name, JsonArray()))
@@ -1981,7 +1985,8 @@ PlatformResult ExportContactToContactsRecord(contacts_record_h contacts_record,
       {_contacts_contact.messenger, "messengers",
        ExportContactInstantMessengerToContactsRecord},
       {_contacts_contact.relationship, "relationships",
-       ExportContactRelationshipToContactsRecord}, };
+       ExportContactRelationshipToContactsRecord},
+  };
 
   for (auto& data : exports) {
     PlatformResult status =
@@ -2298,8 +2303,8 @@ PlatformResult ExportPersonToContactsRecord(contacts_record_h record,
         record, _contacts_person.image_thumbnail_path,
         FromJson<JsonString>(args, "photoURI").c_str());
     if (status.IsError()) {
-        LoggerE("Try updating read only attribute photoURI");
-        return status;
+      LoggerE("Try updating read only attribute photoURI");
+      return status;
     }
   } else {
     // TO DO: fix when photoURI attribute changed from read only to write mode

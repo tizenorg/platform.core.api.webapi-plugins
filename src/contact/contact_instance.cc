@@ -115,8 +115,8 @@ void ContactInstance::AddressBookAddBatch(const JsonValue& args,
       ReportError(status, &response->get<JsonObject>());
   };
 
-  auto get_response = [this, callback_id](
-      const std::shared_ptr<JsonValue>& response) {
+  auto get_response =
+      [this, callback_id](const std::shared_ptr<JsonValue>& response) {
     JsonObject& obj = response->get<JsonObject>();
     obj.insert(std::make_pair("callbackId", callback_id));
     PostMessage(response->serialize().c_str());
@@ -229,8 +229,8 @@ void ContactInstance::AddressBookFind(const JsonValue& args, JsonObject& out) {
       ReportError(status, &response->get<JsonObject>());
   };
 
-  auto get_response = [this, callback_id](
-      const std::shared_ptr<JsonValue>& response) {
+  auto get_response =
+      [this, callback_id](const std::shared_ptr<JsonValue>& response) {
     JsonObject& obj = response->get<JsonObject>();
     obj.insert(std::make_pair("callbackId", callback_id));
     PostMessage(response->serialize().c_str());
