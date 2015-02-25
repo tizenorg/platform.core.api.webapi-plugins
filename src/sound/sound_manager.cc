@@ -8,6 +8,14 @@
 #include <vconf.h>
 #include <vconf-keys.h>
 
+
+//This constant was originally defined in vconf.h. However, in tizen 3, it
+//appears, it is removed (or defined only in vconf-internals.h)
+//It is not clear, if it is final solution, or not.
+#ifndef VCONF_OK
+#define VCONF_OK 0
+#endif
+
 #include "sound/sound_instance.h"
 #include "common/logger.h"
 #include "common/converter.h"
