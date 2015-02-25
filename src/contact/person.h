@@ -33,16 +33,17 @@ enum PrimitiveType {
 namespace Person {
 
 struct PersonProperty {
-  const unsigned int propertyId;
-  const PrimitiveType type;
+  unsigned int propertyId;
+  PrimitiveType type;
 };
 
 typedef std::map<std::string, PersonProperty> PersonPropertyMap;
 
-const PersonProperty& PersonPropertyFromString(const std::string& name);
+common::PlatformResult PersonPropertyFromString(const std::string& name,
+                                                PersonProperty* person_prop);
 
-void PersonLink(const JsonObject& args, JsonObject&);
-void PersonUnlink(const JsonObject& args, JsonObject&);
+common::PlatformResult PersonLink(const JsonObject& args, JsonObject&);
+common::PlatformResult PersonUnlink(const JsonObject& args, JsonObject&);
 
 }  // Person
 }  // contact

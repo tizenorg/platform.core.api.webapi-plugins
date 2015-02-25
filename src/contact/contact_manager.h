@@ -24,27 +24,32 @@ namespace extension {
 namespace contact {
 namespace ContactManager {
 
-void ContactManagerGetAddressBooks(const JsonObject& args, JsonArray& out);
+common::PlatformResult ContactManagerGetAddressBooks(const JsonObject& args,
+                                                     JsonArray& out);
 
-void ContactManagerGetAddressBook(const JsonObject& args, JsonObject& out);
+common::PlatformResult ContactManagerGetAddressBook(const JsonObject& args,
+                                                    JsonObject& out);
 
-void ContactManagerAddAddressBook(const JsonObject& args, JsonObject& out);
+common::PlatformResult ContactManagerAddAddressBook(const JsonObject& args,
+                                                    JsonObject& out);
 
-void ContactManagerRemoveAddressBook(const JsonObject& args, JsonObject& out);
+common::PlatformResult ContactManagerRemoveAddressBook(const JsonObject& args,
+                                                       JsonObject& out);
 
-void ContactManagerGet(const JsonObject& args, JsonObject& out);
+common::PlatformResult ContactManagerGet(const JsonObject& args,
+                                         JsonObject& out);
 
-void ContactManagerUpdate(const JsonObject& args, JsonObject&);
+common::PlatformResult ContactManagerUpdate(const JsonObject& args,
+                                            JsonObject&);
 
-void ContactManagerUpdateBatch(const JsonObject& args, JsonObject& out);
+common::PlatformResult ContactManagerRemove(const JsonObject& args,
+                                            JsonObject&);
 
-void ContactManagerRemove(const JsonObject& args, JsonObject&);
+common::PlatformResult ContactManagerFind(const JsonObject& args,
+                                          JsonArray& out);
 
-void ContactManagerRemoveBatch(const JsonObject& args, JsonObject& out);
-
-void ContactManagerFind(const JsonObject& args, JsonArray& out);
-
-void ContactManagerImportFromVCard(const JsonObject& args, JsonObject& out);
+common::PlatformResult ContactManagerImportFromVCard(const JsonObject& args,
+                                                     JsonObject& out);
 
 /**
  * Signature: @code void getAddressBook(contactString); @endcode
@@ -57,7 +62,8 @@ void ContactManagerImportFromVCard(const JsonObject& args, JsonObject& out);
  * {status: 'success'}
  * @endcode
  */
-void ContactManagerStartListening(const JsonObject& args, JsonObject& out);
+common::PlatformResult ContactManagerStartListening(const JsonObject& args,
+                                                    JsonObject& out);
 
 /**
  * Signature: @code void getAddressBook(contactString); @endcode
@@ -70,7 +76,8 @@ void ContactManagerStartListening(const JsonObject& args, JsonObject& out);
  * {status: 'success'}
  * @endcode
  */
-void ContactManagerStopListening(const JsonObject& args, JsonObject& out);
+common::PlatformResult ContactManagerStopListening(const JsonObject& args,
+                                                   JsonObject& out);
 
 }  // namespace ContactManager
 }  // namespace contact

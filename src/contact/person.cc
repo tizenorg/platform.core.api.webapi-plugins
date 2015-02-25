@@ -38,8 +38,9 @@ static const PersonPropertyMap personPropertyMap = {
     {"displayContactId",
      {_contacts_person.display_contact_id, kPrimitiveTypeId}}, };
 
-void PersonLink(const JsonObject& args, JsonObject&) {
-  ContactUtil::CheckDBConnection();
+PlatformResult PersonLink(const JsonObject& args, JsonObject&) {
+  PlatformResult status = ContactUtil::CheckDBConnection();
+  if (status.IsError()) return status;
 
   long id = common::stol(FromJson<JsonString>(args, "id"));
   long person_id = common::stol(FromJson<JsonString>(args, "person", "id"));
@@ -52,16 +53,21 @@ void PersonLink(const JsonObject& args, JsonObject&) {
 
   if (CONTACTS_ERROR_NONE != err) {
     LoggerW("Person was not found, error code: %d", err);
-    throw common::NotFoundException("Person not found");
+    return PlatformResult(ErrorCode::NOT_FOUND_ERR, "Person not found");
   }
 
   err = contacts_person_link_person(person_id, id);
 
-  ContactUtil::ErrorChecker(err, "Error during executing person link()");
+  status =
+      ContactUtil::ErrorChecker(err, "Error during executing person link()");
+  if (status.IsError()) return status;
+
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void PersonUnlink(const JsonObject& args, JsonObject& out) {
-  ContactUtil::CheckDBConnection();
+PlatformResult PersonUnlink(const JsonObject& args, JsonObject& out) {
+  PlatformResult status = ContactUtil::CheckDBConnection();
+  if (status.IsError()) return status;
 
   long contact_id = common::stol(FromJson<JsonString>(args, "id"));
 
@@ -73,7 +79,7 @@ void PersonUnlink(const JsonObject& args, JsonObject& out) {
     contacts_record_destroy(contacts_record, true);
     contacts_record = nullptr;
     LoggerW("Contact not found, error code: %d", error_code);
-    throw common::InvalidValuesException("Contact not found");
+    return PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Contact not found");
   }
 
   int contacts_person_id = 0;
@@ -82,12 +88,15 @@ void PersonUnlink(const JsonObject& args, JsonObject& out) {
   contacts_record_destroy(contacts_record, true);
   contacts_record = nullptr;
 
-  ContactUtil::ErrorChecker(error_code, "Contact is not a member of person");
+  status = ContactUtil::ErrorChecker(error_code,
+                                     "Contact is not a member of person");
+  if (status.IsError()) return status;
 
   long person_id = common::stol(FromJson<JsonString>(args, "person", "id"));
   if (contacts_person_id != person_id) {
     LoggerW("Contact is not a member of person (wrong id's)");
-    throw common::InvalidValuesException("Contact is not a member of person");
+    return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
+                          "Contact is not a member of person");
   }
 
   int new_person_id = 0;
@@ -95,7 +104,9 @@ void PersonUnlink(const JsonObject& args, JsonObject& out) {
   error_code =
       contacts_person_unlink_contact(person_id, contact_id, &new_person_id);
 
-  ContactUtil::ErrorChecker(error_code, "Error during executing unlink()");
+  status =
+      ContactUtil::ErrorChecker(error_code, "Error during executing unlink()");
+  if (status.IsError()) return status;
 
   error_code = contacts_db_get_record(_contacts_person._uri, new_person_id,
                                       &contacts_record);
@@ -103,22 +114,30 @@ void PersonUnlink(const JsonObject& args, JsonObject& out) {
     contacts_record_destroy(contacts_record, true);
     contacts_record = nullptr;
     LoggerW("Person not found, error code: %d", error_code);
-    throw common::UnknownException("Person not found");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Person not found");
   }
 
-  ContactUtil::ImportPersonFromContactsRecord(contacts_record, &out);
+  status = ContactUtil::ImportPersonFromContactsRecord(contacts_record, &out);
+  if (status.IsError()) return status;
 
   contacts_record_destroy(contacts_record, true);
   contacts_record = nullptr;
+
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-const PersonProperty& PersonPropertyFromString(const std::string& name) {
+PlatformResult PersonPropertyFromString(const std::string& name,
+                                        PersonProperty *person_prop) {
   auto iter = personPropertyMap.find(name);
   if (iter == personPropertyMap.end()) {
     LoggerE("Invalid property name (not in map): %s", name.c_str());
-    throw InvalidValuesException("Invalid property name");
+    return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
+                          "Invalid property name");
   }
-  return iter->second;
+  (*person_prop).propertyId = iter->second.propertyId;
+  (*person_prop).type = iter->second.type;
+
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 }  // Person

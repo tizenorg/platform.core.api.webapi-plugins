@@ -23,6 +23,7 @@
 #include <contacts.h>
 #include "common/picojson.h"
 #include "common/platform_exception.h"
+#include "common/platform_result.h"
 
 namespace extension {
 namespace contact {
@@ -50,100 +51,95 @@ void ContactsQueryDeleter(contacts_query_h *contacts_query);
 typedef std::unique_ptr<contacts_query_h, void (*)(contacts_query_h *)>
     ContactsQueryHPtr;
 
-void ErrorChecker(int err, const char *message);
+common::PlatformResult ErrorChecker(int err, const char *message);
 
-void GetStrFromRecord(contacts_record_h record, unsigned int property_id,
-                      char **value);
+common::PlatformResult GetStrFromRecord(contacts_record_h record,
+                                        unsigned int property_id, char **value);
 
-void GetIntFromRecord(contacts_record_h record, unsigned int property_id,
-                      int *value);
+common::PlatformResult GetIntFromRecord(contacts_record_h record,
+                                        unsigned int property_id, int *value);
 
-void GetBoolFromRecord(contacts_record_h record, unsigned int property_id,
-                       bool *value);
+common::PlatformResult GetBoolFromRecord(contacts_record_h record,
+                                         unsigned int property_id, bool *value);
 
-void SetStrInRecord(contacts_record_h record, unsigned int property_id,
-                    const char *value);
+common::PlatformResult SetStrInRecord(contacts_record_h record,
+                                      unsigned int property_id,
+                                      const char *value);
 
-void SetIntInRecord(contacts_record_h record, unsigned int property_id,
-                    int value);
+common::PlatformResult SetIntInRecord(contacts_record_h record,
+                                      unsigned int property_id, int value);
 
-void SetBoolInRecord(contacts_record_h record, unsigned int property_id,
-                     bool value);
+common::PlatformResult SetBoolInRecord(contacts_record_h record,
+                                       unsigned int property_id, bool value);
 
-void ClearAllContactRecord(contacts_record_h contacts_record,
-                           unsigned int property_id);
+common::PlatformResult ClearAllContactRecord(contacts_record_h contacts_record,
+                                             unsigned int property_id);
 
-unsigned int GetNumberOfChildRecord(contacts_record_h contacts_record,
-                                    unsigned int property_id);
+common::PlatformResult GetNumberOfChildRecord(contacts_record_h contacts_record,
+                                              unsigned int property_id,
+                                              int *child_count);
 
-void UpdateAdditionalInformation(const ContactsRecordHPtr &contacts_record_ptr,
-                                 JsonObject *out);
+common::PlatformResult UpdateAdditionalInformation(
+    const ContactsRecordHPtr &contacts_record_ptr, JsonObject *out);
 
-JsonValue ImportBirthdayFromContactsRecord(contacts_record_h contacts_record,
-                                           unsigned int index);
-void ExportBirthdayToContactsRecord(contacts_record_h contacts_record,
-                                    int date);
-bool ImportContactNameFromContactsRecord(contacts_record_h contacts_record,
-                                         JsonObject *out);
-void ExportContactNameToContactsRecord(contacts_record_h contacts_record,
-                                       const JsonObject &in);
-void ImportContactEmailAddressFromContactsRecord(
+common::PlatformResult ImportContactNameFromContactsRecord(
+    contacts_record_h contacts_record, JsonObject *out, bool *is_contact_name);
+common::PlatformResult ExportContactNameToContactsRecord(
+    contacts_record_h contacts_record, const JsonObject &in);
+common::PlatformResult ImportContactEmailAddressFromContactsRecord(
     contacts_record_h contacts_record, unsigned int index, JsonObject *out);
-void ExportContactEmailAddressToContactsRecord(
+common::PlatformResult ExportContactEmailAddressToContactsRecord(
     contacts_record_h contacts_record, const JsonObject &in);
 
-void ImportContactAddressFromContactsRecord(contacts_record_h contacts_record,
-                                            unsigned int index,
-                                            JsonObject *out);
-void ExportContactAddressToContactsRecord(contacts_record_h contacts_record,
-                                          const JsonObject &in);
-void ImportContactPhoneNumberFromContactsRecord(
+common::PlatformResult ImportContactAddressFromContactsRecord(
     contacts_record_h contacts_record, unsigned int index, JsonObject *out);
-void ExportContactPhoneNumberToContactsRecord(contacts_record_h contacts_record,
-                                              const JsonObject &in);
-void ImportContactOrganizationFromContactsRecord(
-    contacts_record_h contacts_record, unsigned int index, JsonObject *out);
-void ExportContactOrganizationToContactsRecord(
+common::PlatformResult ExportContactAddressToContactsRecord(
     contacts_record_h contacts_record, const JsonObject &in);
-void ImportContactWebSiteFromContactsRecord(contacts_record_h contacts_record,
-                                            unsigned int index,
-                                            JsonObject *out);
-void ExportContactWebSiteToContactsRecord(contacts_record_h contacts_record,
-                                          const JsonObject &in);
-bool ImportContactAnniversariesFromContactsRecord(
+common::PlatformResult ImportContactPhoneNumberFromContactsRecord(
     contacts_record_h contacts_record, unsigned int index, JsonObject *out);
-void ExportContactAnniversariesToContactsRecord(
+common::PlatformResult ExportContactPhoneNumberToContactsRecord(
     contacts_record_h contacts_record, const JsonObject &in);
-void ImportContactRelationshipFromContactsRecord(
+common::PlatformResult ImportContactOrganizationFromContactsRecord(
     contacts_record_h contacts_record, unsigned int index, JsonObject *out);
-void ExportContactRelationshipToContactsRecord(
+common::PlatformResult ExportContactOrganizationToContactsRecord(
     contacts_record_h contacts_record, const JsonObject &in);
-void ImportContactInstantMessengerFromContactsRecord(
+common::PlatformResult ImportContactWebSiteFromContactsRecord(
     contacts_record_h contacts_record, unsigned int index, JsonObject *out);
-void ExportContactInstantMessengerToContactsRecord(
+common::PlatformResult ExportContactWebSiteToContactsRecord(
+    contacts_record_h contacts_record, const JsonObject &in);
+common::PlatformResult ImportContactAnniversariesFromContactsRecord(
+    contacts_record_h contacts_record, unsigned int index, JsonObject *out,
+    bool *ret);
+common::PlatformResult ExportContactAnniversariesToContactsRecord(
+    contacts_record_h contacts_record, const JsonObject &in);
+common::PlatformResult ImportContactRelationshipFromContactsRecord(
+    contacts_record_h contacts_record, unsigned int index, JsonObject *out);
+common::PlatformResult ExportContactRelationshipToContactsRecord(
+    contacts_record_h contacts_record, const JsonObject &in);
+common::PlatformResult ImportContactInstantMessengerFromContactsRecord(
+    contacts_record_h contacts_record, unsigned int index, JsonObject *out);
+common::PlatformResult ExportContactInstantMessengerToContactsRecord(
     contacts_record_h contacts_record, const JsonObject &in);
 
-JsonValue ImportContactNotesFromContactsRecord(
-    contacts_record_h contacts_record, unsigned int index);
-JsonValue ImportContactNotesFromContactsRecord(
-    contacts_record_h contacts_record, unsigned int index);
-void ExportNotesToContactsRecord(contacts_record_h contacts_record,
-                                 const std::string &value);
-void ImportContactFromContactsRecord(contacts_record_h contacts_record,
-                                     JsonObject *out);
-void ExportPersonToContactsRecord(contacts_record_h record,
-                                  const JsonObject &args);
+common::PlatformResult ImportContactNotesFromContactsRecord(
+    contacts_record_h contacts_record, unsigned int index, JsonValue *val);
+common::PlatformResult ExportNotesToContactsRecord(
+    contacts_record_h contacts_record, const std::string &value);
+common::PlatformResult ImportContactFromContactsRecord(
+    contacts_record_h contacts_record, JsonObject *out);
+common::PlatformResult ExportPersonToContactsRecord(contacts_record_h record,
+                                                    const JsonObject &args);
 
-void ExportContactToContactsRecord(contacts_record_h contacts_record,
-                                   const JsonObject &in);
-void ImportContactGroupFromContactsRecord(contacts_record_h contacts_record,
-                                          JsonObject *out);
-void ExportContactGroupToContactsRecord(contacts_record_h contacts_record,
-                                        const JsonObject &in);
-void ImportPersonFromContactsRecord(contacts_record_h contacts_record,
-                                    JsonObject *out);
+common::PlatformResult ExportContactToContactsRecord(
+    contacts_record_h contacts_record, const JsonObject &in);
+common::PlatformResult ImportContactGroupFromContactsRecord(
+    contacts_record_h contacts_record, JsonObject *out);
+common::PlatformResult ExportContactGroupToContactsRecord(
+    contacts_record_h contacts_record, const JsonObject &in);
+common::PlatformResult ImportPersonFromContactsRecord(
+    contacts_record_h contacts_record, JsonObject *out);
 
-void CheckDBConnection();
+common::PlatformResult CheckDBConnection();
 
 }  // ContactUtil
 }  // contact

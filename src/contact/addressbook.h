@@ -20,31 +20,45 @@
 #include "common/picojson.h"
 #include "contact/contact_util.h"
 #include "functional"
+#include "common/platform_result.h"
 
 namespace extension {
 namespace contact {
 namespace AddressBook {
 
-typedef std::function<void(const JsonObject&, JsonObject&)> NativeFunction;
+typedef std::function<common::PlatformResult(const JsonObject&, JsonObject&)>
+    NativeFunction;
 
-void AddressBookGet(const JsonObject& args, JsonObject& out);
-void AddressBookAdd(const JsonObject& args, JsonObject& out);
-void AddressBookUpdate(const JsonObject& args, JsonObject& out);
-void AddressBookRemove(const JsonObject& args, JsonObject&);
-void AddressBookFind(const JsonObject& args, JsonArray& array);
-void AddressBookAddGroup(const JsonObject& args, JsonObject& out);
-void AddressBookGetGroup(const JsonObject& args, JsonObject& out);
-void AddressBookUpdateGroup(const JsonObject& args, JsonObject&);
-void AddressBookRemoveGroup(const JsonObject& args, JsonObject&);
-void AddressBookGetGroups(const JsonObject& args, JsonArray& out);
-void AddressBookStartListening(const JsonObject& args, JsonObject& out);
-void AddressBookStopListening(const JsonObject& args, JsonObject& out);
+common::PlatformResult AddressBookGet(const JsonObject& args, JsonObject& out);
+common::PlatformResult AddressBookAdd(const JsonObject& args, JsonObject& out);
+common::PlatformResult AddressBookUpdate(const JsonObject& args,
+                                         JsonObject& out);
+common::PlatformResult AddressBookRemove(const JsonObject& args, JsonObject&);
+common::PlatformResult AddressBookFind(const JsonObject& args,
+                                       JsonArray& array);
+common::PlatformResult AddressBookAddGroup(const JsonObject& args,
+                                           JsonObject& out);
+common::PlatformResult AddressBookGetGroup(const JsonObject& args,
+                                           JsonObject& out);
+common::PlatformResult AddressBookUpdateGroup(const JsonObject& args,
+                                              JsonObject&);
+common::PlatformResult AddressBookRemoveGroup(const JsonObject& args,
+                                              JsonObject&);
+common::PlatformResult AddressBookGetGroups(const JsonObject& args,
+                                            JsonArray& out);
+common::PlatformResult AddressBookStartListening(const JsonObject& args,
+                                                 JsonObject& out);
+common::PlatformResult AddressBookStopListening(const JsonObject& args,
+                                                JsonObject& out);
 
-void AddressBookBatchFunc(NativeFunction impl, const char* single_arg_name,
-                          const JsonObject& args, JsonArray& out);
+common::PlatformResult AddressBookBatchFunc(NativeFunction impl,
+                                            const char* single_arg_name,
+                                            const JsonObject& args,
+                                            JsonArray& out);
 
 // TODO all batch operations should be implemented using CAPI batch functions
-void AddressBookAddBatch(const JsonObject& args, JsonArray& out);
+common::PlatformResult AddressBookAddBatch(const JsonObject& args,
+                                           JsonArray& out);
 
 }  // AddressBook
 }  // contact
