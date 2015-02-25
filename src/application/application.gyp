@@ -36,12 +36,12 @@
         ['tizen == 1', {
          'variables': {
             'packages': [
+              'aul',
               'capi-appfw-app-manager',
               'capi-appfw-application',
               'capi-appfw-package-manager',
               'pkgmgr',
               'pkgmgr-info',
-              'wrt-plugins-ipc-message',
             ]
           },
         }],

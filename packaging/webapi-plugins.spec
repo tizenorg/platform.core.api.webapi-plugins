@@ -186,7 +186,6 @@ BuildRequires: pkgconfig(libpcrecpp)
 BuildRequires: pkgconfig(capi-appfw-application)
 BuildRequires: pkgconfig(capi-appfw-app-manager)
 BuildRequires: pkgconfig(capi-appfw-package-manager)
-BuildRequires: pkgconfig(wrt-plugins-ipc-message)
 BuildRequires: pkgconfig(capi-content-media-content)
 BuildRequires: pkgconfig(capi-media-metadata-extractor)
 

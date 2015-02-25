@@ -19,7 +19,7 @@
 // To get app size and installed time
 #include <pkgmgr-info.h>
 
-#include <plugins-ipc-message/ipc_message_support.h>
+//#include <plugins-ipc-message/ipc_message_support.h>
 
 #include <algorithm>
 #include <cstring>
@@ -1799,8 +1799,8 @@ void ApplicationInstance::AppExit(const picojson::value& args,
   // webkit
   // IPCSupport::Instance().Post(IPCMsg::MsgExitApp(), "" );
   // Blink
-  IPCMessageSupport::sendAsyncMessageToUiProcess(
-    IPCMessageSupport::TIZEN_EXIT, NULL, NULL, NULL);
+  //IPCMessageSupport::sendAsyncMessageToUiProcess(
+  //  IPCMessageSupport::TIZEN_EXIT, NULL, NULL, NULL);
   ReportSuccess(out);
 }
 
@@ -1811,8 +1811,8 @@ void ApplicationInstance::AppHide(const picojson::value& args,
   // webkit
   // IPCSupport::Instance().Post(IPCMsg::MsgHideApp(), "" );
   // Blink
-  IPCMessageSupport::sendAsyncMessageToUiProcess(
-    IPCMessageSupport::TIZEN_HIDE, NULL, NULL, NULL);
+  //IPCMessageSupport::sendAsyncMessageToUiProcess(
+  //  IPCMessageSupport::TIZEN_HIDE, NULL, NULL, NULL);
   ReportSuccess(out);
 }
 

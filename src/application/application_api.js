@@ -55,8 +55,31 @@ function callNativeWithCallback(cmd, args, callback) {
   return callNative(cmd, args);
 }
 
-function SetReadOnlyProperty(obj, n, v) {
+function setReadOnlyProperty(obj, n, v) {
   Object.defineProperty(obj, n, {'value': v, 'writable': false});
+}
+
+function defineReadWriteProperty(object, key, value) {
+  Object.defineProperty(object, key, {
+    enumerable: true,
+    writable: true,
+    value: value
+  });
+}
+
+function defineReadWriteNonNullProperty(object, key, value) {
+  var hvalue = value;
+  Object.defineProperty(object, key, {
+    enumerable: true,
+    set: function(val) {
+      if (val !== null && val !== undefined) {
+        hvalue = val;
+      }
+    },
+    get: function() {
+      return hvalue;
+    }
+  });
 }
 
 function ApplicationManager() {
@@ -65,15 +88,15 @@ function ApplicationManager() {
 
 function getAppInfoWithReadOnly(obj) {
   var appInfo = new ApplicationInformation();
-  SetReadOnlyProperty(appInfo, 'id', obj.id);
-  SetReadOnlyProperty(appInfo, 'name', obj.name);
-  SetReadOnlyProperty(appInfo, 'iconPath', obj.iconPath);
-  SetReadOnlyProperty(appInfo, 'version', obj.version);
-  SetReadOnlyProperty(appInfo, 'show', obj.show);
-  SetReadOnlyProperty(appInfo, 'categories', obj.categories);
-  SetReadOnlyProperty(appInfo, 'installDate', new Date(obj.installDate));
-  SetReadOnlyProperty(appInfo, 'size', obj.size);
-  SetReadOnlyProperty(appInfo, 'packageId', obj.packageId);
+  setReadOnlyProperty(appInfo, 'id', obj.id);
+  setReadOnlyProperty(appInfo, 'name', obj.name);
+  setReadOnlyProperty(appInfo, 'iconPath', obj.iconPath);
+  setReadOnlyProperty(appInfo, 'version', obj.version);
+  setReadOnlyProperty(appInfo, 'show', obj.show);
+  setReadOnlyProperty(appInfo, 'categories', obj.categories);
+  setReadOnlyProperty(appInfo, 'installDate', new Date(obj.installDate));
+  setReadOnlyProperty(appInfo, 'size', obj.size);
+  setReadOnlyProperty(appInfo, 'packageId', obj.packageId);
 
   return appInfo;
 }
@@ -89,8 +112,8 @@ ApplicationManager.prototype.getCurrentApplication = function() {
 
   var appInfo = getAppInfoWithReadOnly(syncResult.appInfo);
   var app = new Application();
-  SetReadOnlyProperty(app, 'appInfo', appInfo);
-  SetReadOnlyProperty(app, 'contextId', syncResult.contextId);
+  setReadOnlyProperty(app, 'appInfo', appInfo);
+  setReadOnlyProperty(app, 'contextId', syncResult.contextId);
   return app;
 };
 
@@ -223,7 +246,7 @@ ApplicationManager.prototype.findAppControl = function(appControl, successCallba
     var syncResult =
         callNativeWithCallback('ApplicationManager_findAppControl', nativeParam, function(result) {
       if (result.status === 'success') {
-        var returnArray = new Array();
+        var returnArray = [];
         for (var i = 0; i < result.informationArray.length; i++) {
           var appInfo = getAppInfoWithReadOnly(result.informationArray[i]);
           returnArray.push(appInfo);
@@ -254,11 +277,11 @@ ApplicationManager.prototype.getAppsContext = function(successCallback, errorCal
     var syncResult =
         callNativeWithCallback('ApplicationManager_getAppsContext', nativeParam, function(result) {
       if (result.status === 'success') {
-        var returnArray = new Array();
+        var returnArray = [];
         for (var index = 0; index < result.contexts.length; index++) {
           var appContext = new ApplicationContext();
-          SetReadOnlyProperty(appContext, 'id', result.contexts[index].id);
-          SetReadOnlyProperty(appContext, 'appId', result.contexts[index].appId);
+          setReadOnlyProperty(appContext, 'id', result.contexts[index].id);
+          setReadOnlyProperty(appContext, 'appId', result.contexts[index].appId);
           returnArray.push(appContext);
         }
         args.successCallback(returnArray);
@@ -292,8 +315,8 @@ ApplicationManager.prototype.getAppContext = function(contextId) {
   }
 
   var returnObject = new ApplicationContext();
-  SetReadOnlyProperty(returnObject, 'id', syncResult.id); // read only property
-  SetReadOnlyProperty(returnObject, 'appId', syncResult.appId); // read only property
+  setReadOnlyProperty(returnObject, 'id', syncResult.id); // read only property
+  setReadOnlyProperty(returnObject, 'appId', syncResult.appId); // read only property
 
   return returnObject;
 };
@@ -310,7 +333,7 @@ ApplicationManager.prototype.getAppsInfo = function(successCallback, errorCallba
     var syncResult =
         callNativeWithCallback('ApplicationManager_getAppsInfo', nativeParam, function(result) {
       if (result.status === 'success') {
-        var returnArray = new Array();
+        var returnArray = [];
         for (var i = 0; i < result.informationArray.length; i++) {
           var appInfo = getAppInfoWithReadOnly(result.informationArray[i]);
           returnArray.push(appInfo);
@@ -364,12 +387,12 @@ ApplicationManager.prototype.getAppCerts = function(id) {
     throw e;
   }
 
-  var returnArrayObject = new Array();
+  var returnArrayObject = [];
 
   for (var i = 0; i < syncResult.length; i++) {
     var returnObject = new ApplicationCertificate();
-    SetReadOnlyProperty(returnObject, 'type', syncResult[i].type); // read only property
-    SetReadOnlyProperty(returnObject, 'value', syncResult[i].value); // read only property
+    setReadOnlyProperty(returnObject, 'type', syncResult[i].type); // read only property
+    setReadOnlyProperty(returnObject, 'value', syncResult[i].value); // read only property
     returnArrayObject.push(returnObject);
   }
   return returnArrayObject;
@@ -410,12 +433,12 @@ ApplicationManager.prototype.getAppMetaData = function(id) {
     throw e;
   }
 
-  var returnArrayObject = new Array();
+  var returnArrayObject = [];
 
   for (var i = 0; i < syncResult.length; i++) {
     var returnObject = new ApplicationMetaData();
-    SetReadOnlyProperty(returnObject, 'key', syncResult[i].key); // read only property
-    SetReadOnlyProperty(returnObject, 'value', syncResult[i].value); // read only property
+    setReadOnlyProperty(returnObject, 'key', syncResult[i].key); // read only property
+    setReadOnlyProperty(returnObject, 'value', syncResult[i].value); // read only property
     returnArrayObject.push(returnObject);
   }
   return returnArrayObject;
@@ -499,8 +522,8 @@ Application.prototype.getRequestedAppControl = function() {
   }
 
   var returnObject = new RequestedApplicationControl();
-  SetReadOnlyProperty(returnObject, 'appControl', syncResult.appControl); // read only property
-  SetReadOnlyProperty(returnObject, 'callerAppId', syncResult.callerAppId); // read only property
+  setReadOnlyProperty(returnObject, 'appControl', syncResult.appControl); // read only property
+  setReadOnlyProperty(returnObject, 'callerAppId', syncResult.callerAppId); // read only property
 
   return returnObject;
 };
@@ -517,12 +540,8 @@ tizen.ApplicationControlData = function(key, value) {
   if (this && this.constructor === tizen.ApplicationControlData &&
       (typeof(key) === 'string' || key instanceof String) &&
       (value && value instanceof Array)) {
-
-    Object.defineProperties(this, {
-      'key': { writable: true, enumerable: true, value: key },
-      'value': { writable: true, enumerable: true, value: value }
-    });
-
+    defineReadWriteNonNullProperty(this, 'key', key);
+    defineReadWriteNonNullProperty(this, 'value', value);
   } else {
     throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR);
   }
@@ -532,14 +551,11 @@ tizen.ApplicationControl = function(operation, uri, mime, category, data) {
   if (this && this.constructor === tizen.ApplicationControl &&
       (typeof(operation) === 'string' || operation instanceof String)) {
 
-    Object.defineProperties(this, {
-      'operation': { writable: true, enumerable: true, value: operation },
-      'uri': { writable: true, enumerable: true, value: uri === undefined ? null : uri },
-      'mime': { writable: true, enumerable: true, value: mime === undefined ? null : mime },
-      'category': { writable: true, enumerable: true,
-        value: category === undefined ? null : category },
-      'data': { writable: true, enumerable: true, value: data === undefined ? null : data }
-    });
+    defineReadWriteNonNullProperty(this, 'operation', operation);
+    defineReadWriteProperty(this, 'uri', uri);
+    defineReadWriteProperty(this, 'mime', mime);
+    defineReadWriteProperty(this, 'category', category);
+    defineReadWriteProperty(this, 'data', data);
 
   } else {
     throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR);

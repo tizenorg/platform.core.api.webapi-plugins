@@ -4,8 +4,6 @@
 
 #include "application/application.h"
 
-#include <plugins-ipc-message/ipc_message_support.h>
-
 #include "common/extension.h"
 #include "common/logger.h"
 #include "common/picojson.h"
