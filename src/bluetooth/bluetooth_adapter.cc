@@ -528,6 +528,7 @@ void BluetoothAdapter::SetPowered(const picojson::value& data, picojson::object&
         } else {
             bt_adapter_disable();
         }
+        return;
     }
 
     util::AsyncResponse(callback_handle, ret);
