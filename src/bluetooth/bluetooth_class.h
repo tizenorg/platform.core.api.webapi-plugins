@@ -25,10 +25,10 @@ namespace extension {
 namespace bluetooth {
 
 class BluetoothClass {
-public:
-    static unsigned long GetMajorValue(bt_major_device_class_e major);
-    static unsigned long GetMinorValue(bt_minor_device_class_e minor);
-    static std::vector<unsigned long> getServiceValues(int serviceMask);
+ public:
+  static unsigned long GetMajorValue(bt_major_device_class_e major);
+  static unsigned long GetMinorValue(bt_minor_device_class_e minor);
+  static std::vector<unsigned long> getServiceValues(int serviceMask);
 };
 
 } // namespace bluetooth

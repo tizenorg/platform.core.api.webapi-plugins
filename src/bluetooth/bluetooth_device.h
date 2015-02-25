@@ -25,41 +25,41 @@ namespace extension {
 namespace bluetooth {
 
 class BluetoothDevice {
-public:
-    /**
-     * Signature: @code void connectToServiceByUUID(uuid, successCallback, errorCallback); @endcode
-     * JSON: @code data: {method: 'BluetoothDevice_connectToServiceByUUID', args: {uuid: uuid}} @endcode
-     * Invocation: @code native.call(request, result_callback); @endcode
-     * Return:
-     * @code
-     * {status: 'error', error: {name, message}}
-     * {status: 'success'}
-     * @endcode
-     * Result callback:
-     * @code
-     * {status: 'error', error: {name, message}}
-     * {status: 'success', result: {socket}}
-     * @endcode
-     */
-    void ConnectToServiceByUUID(const picojson::value& data, picojson::object& out);
+ public:
+  /**
+   * Signature: @code void connectToServiceByUUID(uuid, successCallback, errorCallback); @endcode
+   * JSON: @code data: {method: 'BluetoothDevice_connectToServiceByUUID', args: {uuid: uuid}} @endcode
+   * Invocation: @code native.call(request, result_callback); @endcode
+   * Return:
+   * @code
+   * {status: 'error', error: {name, message}}
+   * {status: 'success'}
+   * @endcode
+   * Result callback:
+   * @code
+   * {status: 'error', error: {name, message}}
+   * {status: 'success', result: {socket}}
+   * @endcode
+   */
+  void ConnectToServiceByUUID(const picojson::value& data, picojson::object& out);
 
-    /**
-     * Signature: @code BluetoothDevice.is(Bonded, Trusted, Connected); @endcode
-     * JSON: @code data: {method: 'BluetoothDevice_GetBoolValue', args: {address: address,
-     *                    field: field}} @endcode
-     * Invocation: @code native.callSync(request); @endcode
-     * Return:
-     * @code
-     * {status: 'error', error: {name, message}}
-     * {status: 'success', result: name}
-     * @endcode
-     */
-    void GetBoolValue(const picojson::value& data, picojson::object& out);
+  /**
+   * Signature: @code BluetoothDevice.is(Bonded, Trusted, Connected); @endcode
+   * JSON: @code data: {method: 'BluetoothDevice_GetBoolValue', args: {address: address,
+   *                    field: field}} @endcode
+   * Invocation: @code native.callSync(request); @endcode
+   * Return:
+   * @code
+   * {status: 'error', error: {name, message}}
+   * {status: 'success', result: name}
+   * @endcode
+   */
+  void GetBoolValue(const picojson::value& data, picojson::object& out);
 
-    static void ToJson(bt_device_info_s* info,
-            picojson::object* device);
-    static void ToJson(bt_adapter_device_discovery_info_s *info,
-            picojson::object* device);
+  static void ToJson(bt_device_info_s* info,
+                     picojson::object* device);
+  static void ToJson(bt_adapter_device_discovery_info_s *info,
+                     picojson::object* device);
 };
 
 } // namespace bluetooth

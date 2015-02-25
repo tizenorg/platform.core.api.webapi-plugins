@@ -123,34 +123,34 @@ std::map<bt_major_service_class_e, unsigned long> g_service_enum_map = {
 
 unsigned long BluetoothClass::GetMajorValue(bt_major_device_class_e major)
 {
-    auto iter = g_major_enum_map.find(major);
-    if (iter != g_major_enum_map.end()) {
-        return iter->second;
-    }
+  auto iter = g_major_enum_map.find(major);
+  if (iter != g_major_enum_map.end()) {
+    return iter->second;
+  }
 
-    return 0;
+  return 0;
 }
 
 unsigned long BluetoothClass::GetMinorValue(bt_minor_device_class_e minor)
 {
-    auto iter = g_minor_enum_map.find(minor);
-    if (iter != g_minor_enum_map.end()) {
-        return iter->second;
-    }
+  auto iter = g_minor_enum_map.find(minor);
+  if (iter != g_minor_enum_map.end()) {
+    return iter->second;
+  }
 
-    return 0;
+  return 0;
 }
 
 std::vector<unsigned long> BluetoothClass::getServiceValues(int serviceMask)
 {
-    std::vector<unsigned long> ret;
-    for (auto iter = g_service_enum_map.begin(); iter != g_service_enum_map.end(); iter++) {
-        if (iter->first & serviceMask) {
-            ret.push_back(iter->second);
-        }
+  std::vector<unsigned long> ret;
+  for (auto iter = g_service_enum_map.begin(); iter != g_service_enum_map.end(); iter++) {
+    if (iter->first & serviceMask) {
+      ret.push_back(iter->second);
     }
+  }
 
-    return ret;
+  return ret;
 }
 
 } // namespace bluetooth

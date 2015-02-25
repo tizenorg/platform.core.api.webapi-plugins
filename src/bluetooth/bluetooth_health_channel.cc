@@ -41,71 +41,71 @@ const std::string kId = "_id";
 } // namespace
 
 void BluetoothHealthChannel::Close(const picojson::value& data , picojson::object& out) {
-    LoggerD("Entered");
+  LoggerD("Entered");
 
-    util::CheckAccess(Privilege::kBluetoothHealth);
+  util::CheckAccess(Privilege::kBluetoothHealth);
 
-    const auto& args = util::GetArguments(data);
+  const auto& args = util::GetArguments(data);
 
-    unsigned int channel = common::stol(FromJson<std::string>(args, "channel"));
-    const auto& address = FromJson<std::string>(args, "address");
+  unsigned int channel = common::stol(FromJson<std::string>(args, "channel"));
+  const auto& address = FromJson<std::string>(args, "address");
 
-    if (BT_ERROR_NONE != bt_hdp_disconnect(address.c_str(), channel)) {
-        ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown error"), &out);
-        return;
-    }
+  if (BT_ERROR_NONE != bt_hdp_disconnect(address.c_str(), channel)) {
+    ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown error"), &out);
+    return;
+  }
 
-    ReportSuccess(out);
+  ReportSuccess(out);
 }
 
 void BluetoothHealthChannel::SendData(const picojson::value& data, picojson::object& out) {
-    LoggerD("Entered");
+  LoggerD("Entered");
 
-    util::CheckAccess(Privilege::kBluetoothHealth);
+  util::CheckAccess(Privilege::kBluetoothHealth);
 
-    const auto& args = util::GetArguments(data);
+  const auto& args = util::GetArguments(data);
 
-    unsigned int channel = common::stol(FromJson<std::string>(args, "channel"));
-    const auto& binary_data = FromJson<picojson::array>(args, "data");
-    const auto data_size = binary_data.size();
+  unsigned int channel = common::stol(FromJson<std::string>(args, "channel"));
+  const auto& binary_data = FromJson<picojson::array>(args, "data");
+  const auto data_size = binary_data.size();
 
-    std::unique_ptr<char[]> data_ptr{new char[data_size]};
+  std::unique_ptr<char[]> data_ptr{new char[data_size]};
 
-    for (std::size_t i = 0; i < data_size; ++i) {
-        data_ptr[i] = static_cast<char>(binary_data[i].get<double>());
-    }
+  for (std::size_t i = 0; i < data_size; ++i) {
+    data_ptr[i] = static_cast<char>(binary_data[i].get<double>());
+  }
 
-    if (BT_ERROR_NONE != bt_hdp_send_data(channel, data_ptr.get(), data_size)) {
-        LoggerE("bt_hdp_send_data() failed");
-        ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown error"), &out);
-        return;
-    }
+  if (BT_ERROR_NONE != bt_hdp_send_data(channel, data_ptr.get(), data_size)) {
+    LoggerE("bt_hdp_send_data() failed");
+    ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown error"), &out);
+    return;
+  }
 
-    ReportSuccess(picojson::value(static_cast<double>(data_size)), out);
+  ReportSuccess(picojson::value(static_cast<double>(data_size)), out);
 }
 
 void BluetoothHealthChannel::ToJson(unsigned int channel,
                                     bt_hdp_channel_type_e type,
                                     picojson::object* out) {
-    const char* type_str = "UNKNOWN";
+  const char* type_str = "UNKNOWN";
 
-    switch (type) {
-        case BT_HDP_CHANNEL_TYPE_RELIABLE:
-            type_str = "RELIABLE";
-            break;
+  switch (type) {
+    case BT_HDP_CHANNEL_TYPE_RELIABLE:
+      type_str = "RELIABLE";
+      break;
 
-        case BT_HDP_CHANNEL_TYPE_STREAMING:
-            type_str = "STREAMING";
-            break;
+    case BT_HDP_CHANNEL_TYPE_STREAMING:
+      type_str = "STREAMING";
+      break;
 
-        default:
-            LoggerE("Unknown HDP channel type: %d", type);
-            break;
-    }
+    default:
+      LoggerE("Unknown HDP channel type: %d", type);
+      break;
+  }
 
-    out->insert(std::make_pair(kId, picojson::value(std::to_string(channel))));
-    out->insert(std::make_pair(kChannelType, picojson::value(type_str)));
-    out->insert(std::make_pair(kIsConnected, picojson::value(true)));
+  out->insert(std::make_pair(kId, picojson::value(std::to_string(channel))));
+  out->insert(std::make_pair(kChannelType, picojson::value(type_str)));
+  out->insert(std::make_pair(kIsConnected, picojson::value(true)));
 }
 
 void BluetoothHealthChannel::ToJson(unsigned int channel,
@@ -113,11 +113,12 @@ void BluetoothHealthChannel::ToJson(unsigned int channel,
                                     bt_device_info_s* device_info,
                                     const char* app_id,
                                     picojson::object* out) {
-    ToJson(channel, type, out);
-    auto& device = out->insert(std::make_pair(kPeer, picojson::value(picojson::object())))
-                                                                 .first->second.get<picojson::object>();
-    BluetoothDevice::ToJson(device_info, &device);
-    out->insert(std::make_pair(kApplication, picojson::value(app_id)));
+  ToJson(channel, type, out);
+  auto& device = out->insert(
+      std::make_pair(kPeer, picojson::value(picojson::object()))) .first->second.get<picojson::object>();
+
+  BluetoothDevice::ToJson(device_info, &device);
+  out->insert(std::make_pair(kApplication, picojson::value(app_id)));
 }
 
 } // namespace bluetooth

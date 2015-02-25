@@ -30,17 +30,17 @@ namespace bluetooth {
 using namespace common;
 
 void BluetoothServiceHandler::Unregister(const picojson::value& data, picojson::object& out) {
-    LoggerD("Entered");
+  LoggerD("Entered");
 
-    util::CheckAccess(Privilege::kBluetoothSpp);
+  util::CheckAccess(Privilege::kBluetoothSpp);
 
-    const auto& args = util::GetArguments(data);
+  const auto& args = util::GetArguments(data);
 
-    BluetoothAdapter::GetInstance().UnregisterUUID(
-            FromJson<std::string>(args, "uuid"),
-            util::GetAsyncCallbackHandle(data));
+  BluetoothAdapter::GetInstance().UnregisterUUID(
+      FromJson<std::string>(args, "uuid"),
+      util::GetAsyncCallbackHandle(data));
 
-    tools::ReportSuccess(out);
+  tools::ReportSuccess(out);
 }
 
 } // namespace bluetooth

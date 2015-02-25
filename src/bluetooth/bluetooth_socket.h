@@ -25,44 +25,44 @@ namespace extension {
 namespace bluetooth {
 
 class BluetoothSocket {
-public:
-    /**
-     * Signature: @code unsigned long writeData(data[]); @endcode
-     * JSON: @code data: {method: 'BluetoothSocket_writeData', args: {data: data}} @endcode
-     * Invocation: @code native.callSync(request); @endcode
-     * Return:
-     * @code
-     * {status: 'error', error: {name, message}}
-     * {status: 'success', result: {bytes_sent}}
-     * @endcode
-     */
-    void WriteData(const picojson::value& data, picojson::object& out);
+ public:
+  /**
+   * Signature: @code unsigned long writeData(data[]); @endcode
+   * JSON: @code data: {method: 'BluetoothSocket_writeData', args: {data: data}} @endcode
+   * Invocation: @code native.callSync(request); @endcode
+   * Return:
+   * @code
+   * {status: 'error', error: {name, message}}
+   * {status: 'success', result: {bytes_sent}}
+   * @endcode
+   */
+  void WriteData(const picojson::value& data, picojson::object& out);
 
-    /**
-     * Signature: @code byte[] readData(); @endcode
-     * JSON: @code data: {method: 'BluetoothSocket_readData', args: {}} @endcode
-     * Invocation: @code native.callSync(request); @endcode
-     * Return:
-     * @code
-     * {status: 'error', error: {name, message}}
-     * {status: 'success', result: {bytes_read}}
-     * @endcode
-     */
-    void ReadData(const picojson::value& data, picojson::object& out);
+  /**
+   * Signature: @code byte[] readData(); @endcode
+   * JSON: @code data: {method: 'BluetoothSocket_readData', args: {}} @endcode
+   * Invocation: @code native.callSync(request); @endcode
+   * Return:
+   * @code
+   * {status: 'error', error: {name, message}}
+   * {status: 'success', result: {bytes_read}}
+   * @endcode
+   */
+  void ReadData(const picojson::value& data, picojson::object& out);
 
-    /**
-     * Signature: @code void close(); @endcode
-     * JSON: @code data: {method: 'BluetoothSocket_close', args: {}} @endcode
-     * Invocation: @code native.callSync(request); @endcode
-     * Return:
-     * @code
-     * {status: 'error', error: {name, message}}
-     * {status: 'success'}
-     * @endcode
-     */
-    void Close(const picojson::value& data, picojson::object& out);
+  /**
+   * Signature: @code void close(); @endcode
+   * JSON: @code data: {method: 'BluetoothSocket_close', args: {}} @endcode
+   * Invocation: @code native.callSync(request); @endcode
+   * Return:
+   * @code
+   * {status: 'error', error: {name, message}}
+   * {status: 'success'}
+   * @endcode
+   */
+  void Close(const picojson::value& data, picojson::object& out);
 
-    static picojson::value ToJson(bt_socket_connection_s* connection);
+  static picojson::value ToJson(bt_socket_connection_s* connection);
 };
 
 } // namespace bluetooth

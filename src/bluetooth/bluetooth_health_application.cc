@@ -36,26 +36,26 @@ const std::string kId = "_id";
 using namespace common;
 
 void BluetoothHealthApplication::Unregister(const picojson::value& data, picojson::object& out) {
-    LoggerD("Entered");
+  LoggerD("Entered");
 
-    util::CheckAccess(Privilege::kBluetoothHealth);
+  util::CheckAccess(Privilege::kBluetoothHealth);
 
-    const auto& args = util::GetArguments(data);
+  const auto& args = util::GetArguments(data);
 
-    BluetoothHealthProfileHandler::GetInstance().UnregisterSinkAppAsync(
-            FromJson<std::string>(args, "id"),
-            util::GetAsyncCallbackHandle(data));
+  BluetoothHealthProfileHandler::GetInstance().UnregisterSinkAppAsync(
+      FromJson<std::string>(args, "id"),
+      util::GetAsyncCallbackHandle(data));
 
-    tools::ReportSuccess(out);
+  tools::ReportSuccess(out);
 }
 
 void BluetoothHealthApplication::ToJson(short data_type,
                                         const std::string& name,
                                         const char* id,
                                         picojson::object* out) {
-    out->insert(std::make_pair(kDataType, picojson::value(static_cast<double>(data_type))));
-    out->insert(std::make_pair(kName, picojson::value(name)));
-    out->insert(std::make_pair(kId, picojson::value(id)));
+  out->insert(std::make_pair(kDataType, picojson::value(static_cast<double>(data_type))));
+  out->insert(std::make_pair(kName, picojson::value(name)));
+  out->insert(std::make_pair(kId, picojson::value(id)));
 }
 
 } // namespace bluetooth

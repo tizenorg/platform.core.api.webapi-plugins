@@ -25,39 +25,39 @@ namespace extension {
 namespace bluetooth {
 
 class BluetoothHealthChannel {
-public:
-    /**
-     * Signature: @code void close(); @endcode
-     * JSON: @code data: {method: 'BluetoothHealthChannel_close', args: {}} @endcode
-     * Invocation: @code native.callSync(request); @endcode
-     * Return:
-     * @code
-     * {status: 'error', error: {name, message}}
-     * {status: 'success'}
-     * @endcode
-     */
-    void Close(const picojson::value& data, picojson::object& out);
+ public:
+  /**
+   * Signature: @code void close(); @endcode
+   * JSON: @code data: {method: 'BluetoothHealthChannel_close', args: {}} @endcode
+   * Invocation: @code native.callSync(request); @endcode
+   * Return:
+   * @code
+   * {status: 'error', error: {name, message}}
+   * {status: 'success'}
+   * @endcode
+   */
+  void Close(const picojson::value& data, picojson::object& out);
 
-    /**
-     * Signature: @code unsigned long sendData(data[]); @endcode
-     * JSON: @code data: {method: 'BluetoothHealthChannel_sendData', args: {data: data}} @endcode
-     * Invocation: @code native.callSync(request); @endcode
-     * Return:
-     * @code
-     * {status: 'error', error: {name, message}}
-     * {status: 'success', result: {bytes_sent}}
-     */
-    void SendData(const picojson::value& data, picojson::object& out);
+  /**
+   * Signature: @code unsigned long sendData(data[]); @endcode
+   * JSON: @code data: {method: 'BluetoothHealthChannel_sendData', args: {data: data}} @endcode
+   * Invocation: @code native.callSync(request); @endcode
+   * Return:
+   * @code
+   * {status: 'error', error: {name, message}}
+   * {status: 'success', result: {bytes_sent}}
+   */
+  void SendData(const picojson::value& data, picojson::object& out);
 
-    static void ToJson(unsigned int channel,
-                       bt_hdp_channel_type_e type,
-                       picojson::object* out);
+  static void ToJson(unsigned int channel,
+                     bt_hdp_channel_type_e type,
+                     picojson::object* out);
 
-    static void ToJson(unsigned int channel,
-                       bt_hdp_channel_type_e type,
-                       bt_device_info_s* device_info,
-                       const char* app_id,
-                       picojson::object* out);
+  static void ToJson(unsigned int channel,
+                     bt_hdp_channel_type_e type,
+                     bt_device_info_s* device_info,
+                     const char* app_id,
+                     picojson::object* out);
 };
 
 } // namespace bluetooth

@@ -6,7 +6,7 @@
 #include "bluetooth_instance.h"
 
 namespace {
-  const char* kBluetooth = "tizen.bluetooth";
+const char* kBluetooth = "tizen.bluetooth";
 }
 // This will be generated from bluetooth_api.js.
 extern const char kSource_bluetooth_api[];
@@ -19,7 +19,7 @@ BluetoothExtension::BluetoothExtension() {
   SetExtensionName(kBluetooth);
   SetJavaScriptAPI(kSource_bluetooth_api);
   const char* entry_points[] = {
-    NULL
+      NULL
   };
   SetExtraJSEntryPoints(entry_points);
 }

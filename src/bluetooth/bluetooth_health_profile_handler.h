@@ -27,74 +27,74 @@ namespace extension {
 namespace bluetooth {
 
 class BluetoothHealthProfileHandler {
-public:
-    /**
-     * Signature: @code void registerSinkApp(dataType, name, successCallback, errorCallback); @endcode
-     * JSON: @code data: {method: 'BluetoothHealthProfileHandler_registerSinkApp',
-     *                    args: {dataType: dataType, name: name}} @endcode
-     * Invocation: @code native.call(request, result_callback); @endcode
-     * Return:
-     * @code
-     * {status: 'error', error: {name, message}}
-     * {status: 'success'}
-     * @endcode
-     * Result callback:
-     * @code
-     * {status: 'error', error: {name, message}}
-     * {status: 'success', result: {application}}
-     * @endcode
-     */
-    void RegisterSinkApp(const picojson::value& data, picojson::object& out);
+ public:
+  /**
+   * Signature: @code void registerSinkApp(dataType, name, successCallback, errorCallback); @endcode
+   * JSON: @code data: {method: 'BluetoothHealthProfileHandler_registerSinkApp',
+   *                    args: {dataType: dataType, name: name}} @endcode
+   * Invocation: @code native.call(request, result_callback); @endcode
+   * Return:
+   * @code
+   * {status: 'error', error: {name, message}}
+   * {status: 'success'}
+   * @endcode
+   * Result callback:
+   * @code
+   * {status: 'error', error: {name, message}}
+   * {status: 'success', result: {application}}
+   * @endcode
+   */
+  void RegisterSinkApp(const picojson::value& data, picojson::object& out);
 
-    /**
-     * Signature: @code void connectToSource(peer, application, successCallback, errorCallback); @endcode
-     * JSON: @code data: {method: 'BluetoothHealthProfileHandler_connectToSource',
-     *                    args: {peer: peer, application: application}} @endcode
-     * Invocation: @code native.call(request, result_callback); @endcode
-     * Return:
-     * @code
-     * {status: 'error', error: {name, message}}
-     * {status: 'success'}
-     * @endcode
-     * Result callback:
-     * @code
-     * {status: 'error', error: {name, message}}
-     * {status: 'success', result: {channel}}
-     * @endcode
-     */
-    void ConnectToSource(const picojson::value& data, picojson::object& out);
+  /**
+   * Signature: @code void connectToSource(peer, application, successCallback, errorCallback); @endcode
+   * JSON: @code data: {method: 'BluetoothHealthProfileHandler_connectToSource',
+   *                    args: {peer: peer, application: application}} @endcode
+   * Invocation: @code native.call(request, result_callback); @endcode
+   * Return:
+   * @code
+   * {status: 'error', error: {name, message}}
+   * {status: 'success'}
+   * @endcode
+   * Result callback:
+   * @code
+   * {status: 'error', error: {name, message}}
+   * {status: 'success', result: {channel}}
+   * @endcode
+   */
+  void ConnectToSource(const picojson::value& data, picojson::object& out);
 
-    static BluetoothHealthProfileHandler& GetInstance();
+  static BluetoothHealthProfileHandler& GetInstance();
 
-    ~BluetoothHealthProfileHandler();
+  ~BluetoothHealthProfileHandler();
 
-    void UnregisterSinkAppAsync(const std::string& app_id, int callback_handle);
+  void UnregisterSinkAppAsync(const std::string& app_id, int callback_handle);
 
-private:
-    BluetoothHealthProfileHandler();
-    BluetoothHealthProfileHandler(const BluetoothHealthProfileHandler&) = delete;
-    BluetoothHealthProfileHandler& operator=(const BluetoothHealthProfileHandler&) = delete;
+ private:
+  BluetoothHealthProfileHandler();
+  BluetoothHealthProfileHandler(const BluetoothHealthProfileHandler&) = delete;
+  BluetoothHealthProfileHandler& operator=(const BluetoothHealthProfileHandler&) = delete;
 
-    static void OnConnected(int result,
-                            const char* remote_address,
-                            const char* app_id,
-                            bt_hdp_channel_type_e type,
-                            unsigned int channel,
-                            void* user_data);
+  static void OnConnected(int result,
+                          const char* remote_address,
+                          const char* app_id,
+                          bt_hdp_channel_type_e type,
+                          unsigned int channel,
+                          void* user_data);
 
-    static void OnDisconnected(int result,
-                               const char* remote_address,
-                               unsigned int channel,
-                               void* user_data);
+  static void OnDisconnected(int result,
+                             const char* remote_address,
+                             unsigned int channel,
+                             void* user_data);
 
-    static void OnDataReceived(unsigned int channel,
-                               const char* data,
-                               unsigned int size,
-                               void* user_data);
+  static void OnDataReceived(unsigned int channel,
+                             const char* data,
+                             unsigned int size,
+                             void* user_data);
 
-    std::set<std::string> registered_health_apps_;
-    std::map<std::string, double> connection_requests_;
-    std::set<unsigned int> connected_channels_;
+  std::set<std::string> registered_health_apps_;
+  std::map<std::string, double> connection_requests_;
+  std::set<unsigned int> connected_channels_;
 };
 
 } // namespace bluetooth

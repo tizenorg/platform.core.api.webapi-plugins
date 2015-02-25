@@ -11,11 +11,11 @@ namespace extension {
 namespace bluetooth {
 
 class BluetoothInstance: public common::ParsedInstance {
-public:
-    static BluetoothInstance& GetInstance();
-private:
-    BluetoothInstance();
-    virtual ~BluetoothInstance();
+ public:
+  static BluetoothInstance& GetInstance();
+ private:
+  BluetoothInstance();
+  virtual ~BluetoothInstance();
 };
 
 } // namespace bluetooth

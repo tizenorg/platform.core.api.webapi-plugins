@@ -23,23 +23,23 @@ namespace extension {
 namespace bluetooth {
 
 class BluetoothServiceHandler {
-public:
-    /**
-     * Signature: @code void unregister(successCallback, errorCallback); @endcode
-     * JSON: @code data: {method: 'BluetoothServiceHandler_unregister', args: {}} @endcode
-     * Invocation: @code native.call(request, result_callback); @endcode
-     * Return:
-     * @code
-     * {status: 'error', error: {name, message}}
-     * {status: 'success'}
-     * @endcode
-     * Result callback:
-     * @code
-     * {status: 'error', error: {name, message}}
-     * {status: 'success'}
-     * @endcode
-     */
-    void Unregister(const picojson::value& data, picojson::object& out);
+ public:
+  /**
+   * Signature: @code void unregister(successCallback, errorCallback); @endcode
+   * JSON: @code data: {method: 'BluetoothServiceHandler_unregister', args: {}} @endcode
+   * Invocation: @code native.call(request, result_callback); @endcode
+   * Return:
+   * @code
+   * {status: 'error', error: {name, message}}
+   * {status: 'success'}
+   * @endcode
+   * Result callback:
+   * @code
+   * {status: 'error', error: {name, message}}
+   * {status: 'success'}
+   * @endcode
+   */
+  void Unregister(const picojson::value& data, picojson::object& out);
 };
 
 } // namespace bluetooth
