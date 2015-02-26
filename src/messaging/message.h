@@ -12,7 +12,6 @@
 #include <vector>
 #include <memory>
 #include <msg.h>
-#include <msg_product.h>
 #include <msg_storage.h>
 #include <email-api.h>
 #include <TelNetwork.h>
