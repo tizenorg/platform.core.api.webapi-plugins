@@ -239,7 +239,7 @@ void NFCMessageUtils::ReportNdefMessageFromData(unsigned char* data, unsigned lo
   picojson::value records_array = picojson::value(picojson::array());
   picojson::array& records_array_obj = records_array.get<picojson::array>();
   ToNdefRecords(message, records_array_obj);
-  out.insert(std::make_pair("records", records_array));
+  out.insert(std::make_pair("records", picojson::value(records_array)));
 
   RemoveMessageHandle(message);
 }
@@ -365,7 +365,7 @@ void NFCMessageUtils::NDEFMessageToByte(const picojson::value& args, picojson::o
 
   nfc_ndef_message_h message = NDEFMessageToStruct(records_array, size);
   if (!message) {
-    out.insert(std::make_pair("bytes", byte_array));
+    out.insert(std::make_pair("bytes", picojson::value(byte_array)));
     return;
   }
 
@@ -389,7 +389,7 @@ void NFCMessageUtils::NDEFMessageToByte(const picojson::value& args, picojson::o
   if (raw_data) {
     free(raw_data);
   }
-  out.insert(std::make_pair("bytes", byte_array));
+  out.insert(std::make_pair("bytes", picojson::value(byte_array)));
 }
 
 /* -------------------------------RECORD FUNCTIONS------------------------------------ */
@@ -397,28 +397,28 @@ static void ConstructRecordJson(short _tnf, const UCharVector& _type_name,
                                 const UCharVector& _id, const UCharVector& _payload, picojson::object& out)
 {
   LoggerD("Entered");
-  out.insert(std::make_pair("tnf", std::to_string(_tnf)));
+  out.insert(std::make_pair("tnf", picojson::value(std::to_string(_tnf))));
 
   picojson::value type_array = picojson::value(picojson::array());
   picojson::array& type_array_obj = type_array.get<picojson::array>();
   for (size_t i = 0 ; i < _type_name.size(); i++) {
     type_array_obj.push_back(picojson::value(std::to_string(_type_name[i])));
   }
-  out.insert(std::make_pair("type", type_array));
+  out.insert(std::make_pair("type", picojson::value(type_array)));
 
   picojson::value id_array = picojson::value(picojson::array());
   picojson::array& id_array_obj = id_array.get<picojson::array>();
   for (size_t i = 0 ; i < _id.size(); i++) {
     id_array_obj.push_back(picojson::value(std::to_string(_id[i])));
   }
-  out.insert(std::make_pair("id", id_array));
+  out.insert(std::make_pair("id", picojson::value(id_array)));
 
   picojson::value payload_array = picojson::value(picojson::array());
   picojson::array& payload_array_obj = payload_array.get<picojson::array>();
   for (size_t i = 0 ; i < _payload.size(); i++) {
     payload_array_obj.push_back(picojson::value(std::to_string(_payload[i])));
   }
-  out.insert(std::make_pair("payload", payload_array));
+  out.insert(std::make_pair("payload", picojson::value(payload_array)));
 }
 
 void NFCMessageUtils::ConstructNdefRecordFromRecordHandle(nfc_ndef_record_h record_handle,
@@ -580,9 +580,9 @@ void NFCMessageUtils::ReportNdefRecordTextFromMessage(nfc_ndef_message_h message
   std::string encoding_str = convertEncodingToString(encoding);
 
   ReportNDEFRecordTextFromText(text, language_code, encoding_str, out);
-  out.insert(std::make_pair("text", text));
-  out.insert(std::make_pair("languageCode", language_code));
-  out.insert(std::make_pair("encoding", encoding_str));
+  out.insert(std::make_pair("text", picojson::value(text)));
+  out.insert(std::make_pair("languageCode", picojson::value(language_code)));
+  out.insert(std::make_pair("encoding", picojson::value(encoding_str)));
 }
 
 void NFCMessageUtils::ReportNDEFRecordText(const picojson::value& args, picojson::object& out){
@@ -650,7 +650,7 @@ void NFCMessageUtils::ReportNdefRecordURIFromMessage(nfc_ndef_message_h message_
 
   std::string uri = getURIFromHandle(record_handle, message_handle);
   ReportNDEFRecordURIFromURI(uri, out);
-  out.insert(std::make_pair("uri", uri));
+  out.insert(std::make_pair("uri", picojson::value(uri)));
 }
 
 void NFCMessageUtils::ReportNDEFRecordURI(const picojson::value& args, picojson::object& out){
@@ -699,7 +699,7 @@ void NFCMessageUtils::ReportNdefRecordMediaFromMessage(nfc_ndef_message_h messag
   UCharVector _payload = getPayloadFromHandle(record_handle, message_handle);
   //constructing json
   ConstructRecordJson(_tnf, _type_name, _id, _payload, out);
-  out.insert(std::make_pair("mimeType", mime_type));
+  out.insert(std::make_pair("mimeType", picojson::value(mime_type)));
 }
 
 void NFCMessageUtils::ReportNDEFRecordMedia(const picojson::value& args, picojson::object& out){

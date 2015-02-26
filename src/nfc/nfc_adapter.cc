@@ -75,7 +75,7 @@ static picojson::value CreateEventError(double callbackId, const PlatformResult&
   picojson::value event = picojson::value(picojson::object());
   picojson::object& obj = event.get<picojson::object>();
   tools::ReportError(ret, &obj);
-  obj.insert(std::make_pair(CALLBACK_ID, callbackId));
+  obj.insert(std::make_pair(CALLBACK_ID, picojson::value(callbackId)));
 
   return event;
 }
@@ -86,7 +86,7 @@ static picojson::value createEventError(double callbackId, PlatformException ex)
   picojson::value event = picojson::value(picojson::object());
   picojson::object& obj = event.get<picojson::object>();
   tools::ReportError(ex, obj);
-  obj.insert(std::make_pair(CALLBACK_ID, callbackId));
+  obj.insert(std::make_pair(CALLBACK_ID, picojson::value(callbackId)));
 
   return event;
 }
@@ -95,7 +95,7 @@ static picojson::value createEventSuccess(double callbackId) {
   picojson::value event = picojson::value(picojson::object());
   picojson::object& obj = event.get<picojson::object>();
   tools::ReportSuccess(obj);
-  obj.insert(std::make_pair(CALLBACK_ID, callbackId));
+  obj.insert(std::make_pair(CALLBACK_ID, picojson::value(callbackId)));
 
   return event;
 }
@@ -116,7 +116,7 @@ static void targetDetectedCallback(nfc_discovered_type_e type,
 
   picojson::value event = picojson::value(picojson::object());
   picojson::object& obj = event.get<picojson::object>();
-  obj.insert(make_pair("listenerId", "PeerListener"));
+  obj.insert(make_pair("listenerId", picojson::value("PeerListener")));
 
   NFCAdapter* adapter = NFCAdapter::GetInstance();
 
@@ -127,13 +127,13 @@ static void targetDetectedCallback(nfc_discovered_type_e type,
 
   if (NFC_DISCOVERED_TYPE_ATTACHED == type) {
     adapter->SetPeerHandle(target);
-    obj.insert(make_pair("action", "onattach"));
+    obj.insert(make_pair("action", picojson::value("onattach")));
     adapter->IncreasePeerId();
-    obj.insert(make_pair("id", static_cast<double>(adapter->GetPeerId())));
+    obj.insert(make_pair("id", picojson::value(static_cast<double>(adapter->GetPeerId()))));
     NFCInstance::getInstance().PostMessage(event.serialize().c_str());
   } else {
     adapter->SetPeerHandle(NULL);
-    obj.insert(make_pair("action", "ondetach"));
+    obj.insert(make_pair("action", picojson::value("ondetach")));
     NFCInstance::getInstance().PostMessage(event.serialize().c_str());
   }
 }
@@ -181,19 +181,19 @@ static void se_event_callback(nfc_se_event_e se_event, void *user_data) {
   switch (se_event) {
     case NFC_SE_EVENT_SE_TYPE_CHANGED:
       NFCAdapter::GetInstance()->GetActiveSecureElement(&result);
-      obj.insert(make_pair(LISTENER_ID, ACTIVE_SECURE_ELEMENT_CHANGED));
+      obj.insert(make_pair(LISTENER_ID, picojson::value(ACTIVE_SECURE_ELEMENT_CHANGED)));
       break;
     case NFC_SE_EVENT_CARD_EMULATION_CHANGED:
       NFCAdapter::GetInstance()->GetCardEmulationMode(&result);
-      obj.insert(make_pair(LISTENER_ID, CARD_EMULATION_MODE_CHANGED));
+      obj.insert(make_pair(LISTENER_ID, picojson::value(CARD_EMULATION_MODE_CHANGED)));
       break;
     default:
       LOGD("se_event_occured: %d", se_event);
       return;
   }
 
-  obj.insert(make_pair(TYPE, CARD_ELEMENT));
-  obj.insert(make_pair(MODE, result));
+  obj.insert(make_pair(TYPE, picojson::value(CARD_ELEMENT)));
+  obj.insert(make_pair(MODE, picojson::value(result)));
   NFCInstance::getInstance().PostMessage(event.serialize().c_str());
 }
 
@@ -221,12 +221,12 @@ static void transaction_event_callback(nfc_se_type_e type,
   }
 
   if (NFC_SE_TYPE_ESE == type) {
-    response_obj.insert(make_pair(LISTENER_ID, TRANSACTION_EVENT_LISTENER_ESE));
+    response_obj.insert(make_pair(LISTENER_ID, picojson::value(TRANSACTION_EVENT_LISTENER_ESE)));
   } else {
-    response_obj.insert(make_pair(LISTENER_ID, TRANSACTION_EVENT_LISTENER_UICC));
+    response_obj.insert(make_pair(LISTENER_ID, picojson::value(TRANSACTION_EVENT_LISTENER_UICC)));
   }
 
-  response_obj.insert(make_pair(TYPE, TRANSACTION));
+  response_obj.insert(make_pair(TYPE, picojson::value(TRANSACTION)));
   NFCInstance::getInstance().PostMessage(response.serialize().c_str());
 }
 
@@ -652,8 +652,8 @@ static void targetReceivedCallback(nfc_p2p_target_h target, nfc_ndef_message_h m
 
   picojson::value event = picojson::value(picojson::object());
   picojson::object& obj = event.get<picojson::object>();
-  obj.insert(make_pair("listenerId", "ReceiveNDEFListener"));
-  obj.insert(make_pair("id", static_cast<double>(NFCAdapter::GetInstance()->GetPeerId())));
+  obj.insert(make_pair("listenerId", picojson::value("ReceiveNDEFListener")));
+  obj.insert(make_pair("id", picojson::value(static_cast<double>(NFCAdapter::GetInstance()->GetPeerId()))));
 
   NFCMessageUtils::ReportNdefMessageFromData(raw_data, size, obj);
 
@@ -874,7 +874,7 @@ static void tagEventCallback(nfc_discovered_type_e type, nfc_tag_h tag, void *da
 
   picojson::value event = picojson::value(picojson::object());
   picojson::object& obj = event.get<picojson::object>();
-  obj.insert(make_pair("listenerId", "TagListener"));
+  obj.insert(make_pair("listenerId", picojson::value("TagListener")));
 
   NFCAdapter* adapter = NFCAdapter::GetInstance();
   // Tag detected event
@@ -891,9 +891,9 @@ static void tagEventCallback(nfc_discovered_type_e type, nfc_tag_h tag, void *da
     int generated_id = adapter->GetNextTagId();
     adapter->SetTagHandle(tag);
 
-    obj.insert(make_pair("action", "onattach"));
-    obj.insert(make_pair("id", static_cast<double>(generated_id)));
-    obj.insert(make_pair("type", NFCUtil::ToStringNFCTag(tag_type)));
+    obj.insert(make_pair("action", picojson::value("onattach")));
+    obj.insert(make_pair("id", picojson::value(static_cast<double>(generated_id))));
+    obj.insert(make_pair("type", picojson::value(NFCUtil::ToStringNFCTag(tag_type))));
 
     NFCInstance::getInstance().PostMessage(event.serialize().c_str());
   }
@@ -902,7 +902,7 @@ static void tagEventCallback(nfc_discovered_type_e type, nfc_tag_h tag, void *da
     // Set stored tag handle to NULL
     adapter->SetTagHandle(NULL);
 
-    obj.insert(make_pair("action", "ondetach"));
+    obj.insert(make_pair("action", picojson::value("ondetach")));
     NFCInstance::getInstance().PostMessage(event.serialize().c_str());
   }
   // ERROR - should never happen
