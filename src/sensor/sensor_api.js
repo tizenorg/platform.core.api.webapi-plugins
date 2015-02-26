@@ -14,7 +14,8 @@ var SensorType = {
     MAGNETIC : 'MAGNETIC',
     PRESSURE : 'PRESSURE',
     PROXIMITY : 'PROXIMITY',
-    ULTRAVIOLET : 'ULTRAVIOLET'
+    ULTRAVIOLET : 'ULTRAVIOLET',
+    HRM_RAW : 'HRM_RAW',
 };
 
 var ProximityState = {
@@ -129,7 +130,8 @@ var _sensorListeners = {
     'MAGNETIC'    : {},
     'PRESSURE'    : {},
     'PROXIMITY'   : {},
-    'ULTRAVIOLET' : {}
+    'ULTRAVIOLET' : {},
+    'HRM_RAW'     : {},
 };
 
 var _listener = function(object) {
@@ -178,6 +180,8 @@ SensorService.prototype.getDefaultSensor = function() {
         return new ProximitySensor();
     } else if (_supportedSensors[index] === SensorType.ULTRAVIOLET) {
         return new UltravioletSensor();
+    } else if (_supportedSensors[index] === SensorType.HRM_RAW) {
+        return new HRMRawSensor();
     }
 };
 
@@ -363,6 +367,32 @@ UltravioletSensor.prototype.getUltravioletSensorData = function() {
     _sensorListeners[this.sensorType].getData(args.successCallback, args.errorCallback);
 };
 
+////HRMRawSensor
+var HRMRawSensor = function(data) {
+    Sensor.call(this, SensorType.HRM_RAW);
+};
+
+HRMRawSensor.prototype = new Sensor();
+
+HRMRawSensor.prototype.constructor = Sensor;
+
+HRMRawSensor.prototype.getHRMRawSensorData = function() {
+    var args = validator_.validateArgs(arguments, [
+       {
+           name : 'successCallback',
+           type : types_.FUNCTION
+       },
+       {
+           name : 'errorCallback',
+           type : types_.FUNCTION,
+           optional : true,
+           nullable : true
+       }
+    ]);
+
+    _sensorListeners[this.sensorType].getData(args.successCallback, args.errorCallback);
+};
+
 ////////////////////// Sensor Data classes/////////////////////////////////////////////////////
 ////Base SensorData class
 var SensorData = function () {
@@ -446,6 +476,23 @@ SensorUltravioletData.prototype.constructor = SensorData;
 
 _sensorListeners[SensorType.ULTRAVIOLET] = new SensorListener(SensorType.ULTRAVIOLET,
         SensorUltravioletData);
+
+////SensorHRMRawData
+var SensorHRMRawData = function(data) {
+    SensorData.call(this);
+    Object.defineProperties(this, {
+        lightType : {value: data.lightType, writable: false, enumerable: true},
+        lightIntensity : {value: data.lightIntensity, writable: false, enumerable: true}
+    });
+};
+
+
+SensorHRMRawData.prototype = new SensorData();
+
+SensorHRMRawData.prototype.constructor = SensorData;
+
+_sensorListeners[SensorType.HRM_RAW] = new SensorListener(SensorType.HRM_RAW,
+        SensorHRMRawData);
 
 // Exports
 exports = new SensorService();
