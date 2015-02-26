@@ -5,6 +5,8 @@
 #ifndef SENSOR_SENSOR_SERVICE_H_
 #define SENSOR_SENSOR_SERVICE_H_
 
+#include <memory>
+
 #include <sensor.h>
 
 #include "common/picojson.h"
@@ -13,20 +15,9 @@
 namespace extension {
 namespace sensor {
 
-typedef void (*CallbackPtr)(sensor_h sensor, sensor_event_s *event, void *user_data);
+class SensorData;
 
 class SensorService {
-  class SensorData {
-   public:
-    SensorData(sensor_type_e type_enum);
-    ~SensorData();
-
-    common::PlatformResult CheckInitialization();
-    sensor_h handle_;
-    sensor_listener_h listener_;
-    sensor_type_e type_enum_;
-  };
-
  public:
   static SensorService* GetInstance();
   void GetAvailableSensors(picojson::object& out);
@@ -39,17 +30,11 @@ class SensorService {
  private:
   SensorService();
   ~SensorService();
-  std::string GetSensorErrorMessage(const int error_code);
-  common::PlatformResult GetSensorPlatformResult(const int error_code, const std::string &hint);
 
-  SensorData* GetSensorStruct(sensor_type_e type_enum);
-  CallbackPtr GetCallbackFunction(sensor_type_e type_enum);
+  std::shared_ptr<SensorData> GetSensor(sensor_type_e type_enum);
+  void AddSensor(SensorData* sensor);
 
-  SensorData light_sensor_;
-  SensorData magnetic_sensor_;
-  SensorData pressure_sensor_;
-  SensorData proximity_sensor_;
-  SensorData ultraviolet_sensor_;
+  std::map<sensor_type_e, std::shared_ptr<SensorData>> sensors_;
 };
 
 } // namespace sensor
