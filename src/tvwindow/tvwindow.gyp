@@ -8,7 +8,7 @@
       'type': 'loadable_module',
       'variables': {
         'packages': [
-          'tvs-api',
+          #'tvs-api',# off for tizen 3.0. additionally, not use currently
         ],
       },
       'dependencies': [

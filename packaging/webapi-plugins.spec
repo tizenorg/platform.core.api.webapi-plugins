@@ -137,12 +137,14 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_sound_support               0
 %define tizen_feature_system_setting_support      0
 %define tizen_feature_telephony_support           0
-%define tizen_feature_tvaudio_support             1
+#off for tizen 3.0 (no libavoc)
+%define tizen_feature_tvaudio_support             0
 %define tizen_feature_tvinputdevice_support       1
 %define tizen_feature_web_setting_support         1
 %define tizen_feature_wi_fi_support               0
 %define tizen_feature_tv_display_support          1
-%define tizen_feature_tvchannel_support           1
+#off for tizen 3.0 (no tvs-api)
+%define tizen_feature_tvchannel_support           0
 %define tizen_feature_tvwindow_support            1
 
 %endif # tizen_profile_tv
@@ -251,7 +253,9 @@ BuildRequires: pkgconfig(tvs-api)
 %endif
 
 %if 0%{?tizen_feature_tvwindow_support}
-BuildRequires: pkgconfig(tvs-api)
+#TODO Currently, TVWindow does not have implementation yet.
+#Hence, below dependency can be disabled (there is no tvs-api on tizen 3.0 yet)
+#BuildRequires: pkgconfig(tvs-api)
 %endif
 
 %if 0%{?tizen_feature_exif_support}

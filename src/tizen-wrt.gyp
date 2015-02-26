@@ -19,7 +19,7 @@
         'exif/exif.gyp:*',
         'websetting/websetting.gyp:*',
         'systemsetting/systemsetting.gyp:*',
-	'content/content.gyp:*',
+        'content/content.gyp:*',
       ],
       'conditions': [
         [
@@ -33,7 +33,7 @@
               'calendar/calendar.gyp:*',
               'datacontrol/datacontrol.gyp:*',
               'datasync/datasync.gyp:*',
-	      'download/download.gyp:*',
+              'download/download.gyp:*',
               'messaging/messaging.gyp:*',
               'networkbearerselection/networkbearerselection.gyp:*',
               'nfc/nfc.gyp:*',
@@ -53,8 +53,8 @@
           'extension_host_os == "tv"', {
             'dependencies': [
               'tvdisplay/tvdisplay.gyp:*',
-              'tvaudio/tvaudio.gyp:*',
-              'tvchannel/tvchannel.gyp:*',
+              #'tvaudio/tvaudio.gyp:*',
+              #'tvchannel/tvchannel.gyp:*',
               'tvinputdevice/tvinputdevice.gyp:*',
               'tvwindow/tvwindow.gyp:*',
             ],
