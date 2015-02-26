@@ -194,19 +194,15 @@ static void contentToJson(media_info_h info, picojson::object& o) {
 
     }
     else if( type == MEDIA_CONTENT_TYPE_VIDEO ) {
-      o.insert(std::make_pair(std::string("type"), std::string("VIDEO")));
+      o["type"] = picojson::value(std::string("VIDEO"));
       video_meta_h video;
       if(MEDIA_CONTENT_ERROR_NONE == media_info_get_video(info, &video)) {
         if(MEDIA_CONTENT_ERROR_NONE == video_meta_get_width(video, &tmpInt)) {
-          std::stringstream str_width;
-          str_width << tmpInt;
-          o.insert(std::make_pair(std::string("width"), str_width.str()));
+          o["width"] = picojson::value(static_cast<double>(tmpInt));
         }
 
         if(MEDIA_CONTENT_ERROR_NONE == video_meta_get_height(video, &tmpInt) ) {
-          std::stringstream str_height;
-          str_height << tmpInt;
-          o.insert(std::make_pair(std::string("height"), str_height.str()));
+          o["height"] = picojson::value(static_cast<double>(tmpInt));
         }
         if (MEDIA_CONTENT_ERROR_NONE == video_meta_get_artist(video, &tmpStr) ) {
           picojson::array artists;
@@ -217,11 +213,11 @@ static void contentToJson(media_info_h info, picojson::object& o) {
         }
         if (MEDIA_CONTENT_ERROR_NONE == video_meta_get_album(video, &tmpStr)) {
           if (tmpStr) {
-            o.insert(std::make_pair(std::string("album"), tmpStr));
+            o["album"] = picojson::value(tmpStr);
           }
         }
         if (MEDIA_CONTENT_ERROR_NONE == video_meta_get_duration(video, &tmpInt) ) {
-          o.insert(std::make_pair(std::string("duration"), std::to_string(tmpInt)));
+          o["duration"] = picojson::value(static_cast<double>(tmpInt));
         }        
       }
       picojson::object geo;
@@ -403,7 +399,7 @@ static void contentToJson(media_info_h info, picojson::object& o) {
   if(ret == MEDIA_CONTENT_ERROR_NONE) {
     std::stringstream str_date;
     str_date << tmpDate;
-    o.insert(std::make_pair(std::string("modifiedDate"), str_date.str()));
+    o["modifiedDate"] = picojson::value(str_date.str());
   }  
 }
 
@@ -518,7 +514,7 @@ static bool playlist_foreach_cb(media_playlist_h playlist, void *user_data) {
       dlog_print(DLOG_INFO, "DYKIM", "Invalid thumbnail path for playlist.");
     }
     if( media_playlist_get_name(playlist, &name) == MEDIA_CONTENT_ERROR_NONE) {
-      o.insert(std::make_pair(std::string("name"), std::string(name)));
+      o["name"] = picojson::value(std::string(name));
       free(name);
     }
     else {
@@ -529,7 +525,7 @@ static bool playlist_foreach_cb(media_playlist_h playlist, void *user_data) {
 //    if( media_playlist_get_media_count_from_db(id, filter, &cnt) == MEDIA_CONTENT_ERROR_NONE) {
 //      std::stringstream str_cnd;
 //      str_cnd << cnt;
-      o.insert(std::make_pair(std::string("numberOfTracks"), std::to_string(0)));
+      o["numberOfTracks"] = picojson::value(static_cast<double>(0));
 //    }
 //    else {
 //      dlog_print(DLOG_INFO, "DYKIM", "Invalid count for playlist.");
@@ -550,7 +546,7 @@ static bool playlist_content_member_cb(int playlist_member_id, media_info_h medi
   
   media_info_get_display_name(media, &name);
   dlog_print(DLOG_INFO, "DYKIM", "ContentManager::playlist_content_member_cb %s.",name);
-  o["playlist_member_id"] = picojson::value(static_cast<double>(playlist_member_id));  
+  o["playlist_member_id"] = picojson::value(static_cast<double>(playlist_member_id));
   contentToJson(media, o);
   contents->push_back(picojson::value(o));
   return true;
@@ -765,7 +761,7 @@ void ContentManager::createPlaylist(std::string name,
     char* name = NULL;
     filter_h filter = NULL;
     if( media_playlist_get_playlist_id(playlist, &id) == MEDIA_CONTENT_ERROR_NONE) {
-      o.insert(std::make_pair(std::string("id"), std::to_string(id)));
+      o["id"] = picojson::value(std::to_string(id));
     }
     else {
       UnknownException err("loading of playlist is failed.");
