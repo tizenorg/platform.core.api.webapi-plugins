@@ -235,7 +235,7 @@ void CallHistory::find(const picojson::object& args)
 
   auto find_response = [callback_id](const std::shared_ptr<picojson::value>& response) -> void {
     picojson::object& obj = response->get<picojson::object>();
-    obj.insert(std::make_pair("callbackId", callback_id));
+    obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
     CallHistoryInstance::getInstance().PostMessage(response->serialize().c_str());
   };
 
@@ -311,7 +311,7 @@ common::PlatformResult CallHistory::removeBatch(const picojson::object& args)
 
   auto remove_batch_response = [callback_id](const std::shared_ptr<picojson::value>& response) -> void {
     picojson::object& obj = response->get<picojson::object>();
-    obj.insert(std::make_pair("callbackId", callback_id));
+    obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
     CallHistoryInstance::getInstance().PostMessage(response->serialize().c_str());
   };
 
@@ -425,7 +425,7 @@ void CallHistory::removeAll(const picojson::object& args)
 
   auto remove_all_response = [callback_id](const std::shared_ptr<picojson::value>& response) -> void {
     picojson::object& obj = response->get<picojson::object>();
-    obj.insert(std::make_pair("callbackId", callback_id));
+    obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
     CallHistoryInstance::getInstance().PostMessage(response->serialize().c_str());
   };
 
