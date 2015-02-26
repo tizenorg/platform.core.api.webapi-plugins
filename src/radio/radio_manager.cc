@@ -145,7 +145,7 @@ void ScanStartCallback(int frequency, void* user_data) {
   picojson::value event{picojson::object()};
   auto& obj = event.get<picojson::object>();
   obj.insert(std::make_pair("frequency", picojson::value(ToMHz(frequency))));
-  obj.insert(std::make_pair("listenerId", "FMRadio_Onfrequencyfound"));
+  obj.insert(std::make_pair("listenerId", picojson::value("FMRadio_Onfrequencyfound")));
   RadioInstance::getInstance().PostMessage(event.serialize().c_str());
 }
 
@@ -183,14 +183,14 @@ void RadioInterruptedCallback(radio_interrupted_code_e code, void *user_data) {
   picojson::value event{picojson::object()};
   auto& obj = event.get<picojson::object>();
 
-  obj.insert(std::make_pair("listenerId", "FMRadio_Interrupted"));
+  obj.insert(std::make_pair("listenerId", picojson::value("FMRadio_Interrupted")));
 
   if (code == RADIO_INTERRUPTED_COMPLETED) {
     obj.insert(
         std::make_pair("action", picojson::value("oninterruptfinished")));
   } else {
     obj.insert(std::make_pair("action", picojson::value("oninterrupted")));
-    obj.insert(std::make_pair("reason", TranslateInterruptedCode(code)));
+    obj.insert(std::make_pair("reason", picojson::value(TranslateInterruptedCode(code))));
   }
 
   RadioInstance::getInstance().PostMessage(event.serialize().c_str());
@@ -210,7 +210,7 @@ void RadioAntennaCallback(runtime_info_key_e key, void* user_data) {
   auto& obj = event.get<picojson::object>();
 
   obj.insert(std::make_pair("connected", picojson::value(connected)));
-  obj.insert(std::make_pair("listenerId", "FMRadio_Antenna"));
+  obj.insert(std::make_pair("listenerId", picojson::value("FMRadio_Antenna")));
 
   RadioInstance::getInstance().PostMessage(event.serialize().c_str());
 }
