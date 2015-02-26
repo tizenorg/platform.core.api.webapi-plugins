@@ -349,7 +349,7 @@ File.prototype.createFile = function(relativeFilePath) {
         'File object which call this method is not directory');
   }
 
-  if (!this.f_isCorrectRelativePath(args.relativeFilePath) || this.mode === 'r') {
+  if (!commonFS_.f_isCorrectRelativePath(args.relativeFilePath) || this.mode === 'r') {
     throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR,
         'Invalid path or readonly acces');
   }
