@@ -440,14 +440,14 @@ void SimDetailsManager::ResetSimHolder(picojson::object* out){
 void SimDetailsManager::ReturnSimToJS(){
   LoggerD("Entered");
   if (nullptr != sim_result_obj_) {
-    sim_result_obj_->insert(std::make_pair("state", state_));
-    sim_result_obj_->insert(std::make_pair("operatorName", operator_name_));
-    sim_result_obj_->insert(std::make_pair("msisdn", msisdn_));
-    sim_result_obj_->insert(std::make_pair("iccid", iccid_));
-    sim_result_obj_->insert(std::make_pair("mcc", std::to_string(mcc_)));
-    sim_result_obj_->insert(std::make_pair("mnc", std::to_string(mnc_)));
-    sim_result_obj_->insert(std::make_pair("msin", msin_));
-    sim_result_obj_->insert(std::make_pair("spn", spn_));
+    sim_result_obj_->insert(std::make_pair("state", picojson::value(state_)));
+    sim_result_obj_->insert(std::make_pair("operatorName", picojson::value(operator_name_)));
+    sim_result_obj_->insert(std::make_pair("msisdn", picojson::value(msisdn_)));
+    sim_result_obj_->insert(std::make_pair("iccid", picojson::value(iccid_)));
+    sim_result_obj_->insert(std::make_pair("mcc", picojson::value(std::to_string(mcc_))));
+    sim_result_obj_->insert(std::make_pair("mnc", picojson::value(std::to_string(mnc_))));
+    sim_result_obj_->insert(std::make_pair("msin", picojson::value(msin_)));
+    sim_result_obj_->insert(std::make_pair("spn", picojson::value(spn_)));
     //everything returned, clear pointer
     sim_result_obj_ = nullptr;
   } else {
@@ -1786,7 +1786,7 @@ PlatformResult SysteminfoUtils::ReportBattery(picojson::object& out) {
     return PlatformResult(ErrorCode::UNKNOWN_ERR, (log_msg + std::to_string(ret)));
   }
 
-  out.insert(std::make_pair("level", static_cast<double>(value)/kRemainingBatteryChargeMax));
+  out.insert(std::make_pair("level", picojson::value(static_cast<double>(value)/kRemainingBatteryChargeMax)));
   value = 0;
   ret = vconf_get_int(VCONFKEY_SYSMAN_BATTERY_CHARGE_NOW, &value);
   if (kVconfErrorNone != ret) {
@@ -1843,7 +1843,7 @@ PlatformResult SysteminfoUtils::ReportCpu(picojson::object& out) {
 
   load = 100 - load;
   LoggerD("Cpu load : %f", load );
-  out.insert(std::make_pair("load", load / 100.0));
+  out.insert(std::make_pair("load", picojson::value(load / 100.0)));
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
@@ -1903,13 +1903,13 @@ PlatformResult SysteminfoUtils::ReportDisplay(picojson::object& out) {
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get brightness value of display");
   }
 
-  out.insert(std::make_pair("resolutionWidth", std::to_string(screenWidth)));
-  out.insert(std::make_pair("resolutionHeight", std::to_string(screenHeight)));
-  out.insert(std::make_pair("dotsPerInchWidth", std::to_string(dotsPerInchWidth)));
-  out.insert(std::make_pair("dotsPerInchHeight", std::to_string(dotsPerInchHeight)));
-  out.insert(std::make_pair("physicalWidth", std::to_string(physicalWidth)));
-  out.insert(std::make_pair("physicalHeight", std::to_string(physicalHeight)));
-  out.insert(std::make_pair("brightness", scaledBrightness));
+  out.insert(std::make_pair("resolutionWidth", picojson::value(std::to_string(screenWidth))));
+  out.insert(std::make_pair("resolutionHeight", picojson::value(std::to_string(screenHeight))));
+  out.insert(std::make_pair("dotsPerInchWidth", picojson::value(std::to_string(dotsPerInchWidth))));
+  out.insert(std::make_pair("dotsPerInchHeight", picojson::value(std::to_string(dotsPerInchHeight))));
+  out.insert(std::make_pair("physicalWidth", picojson::value(std::to_string(physicalWidth))));
+  out.insert(std::make_pair("physicalHeight", picojson::value(std::to_string(physicalHeight))));
+  out.insert(std::make_pair("brightness", picojson::value(scaledBrightness)));
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
@@ -1918,8 +1918,8 @@ PlatformResult SysteminfoUtils::ReportDeviceOrientation(picojson::object& out) {
       SystemInfoDeviceOrientationPtr(SystemInfoDeviceOrientation::Create());
   std::string status = dev_orientation->status();
   bool auto_rotation_bool = dev_orientation->is_auto_rotation();
-  out.insert(std::make_pair("isAutoRotation", auto_rotation_bool));
-  out.insert(std::make_pair("status", status));
+  out.insert(std::make_pair("isAutoRotation", picojson::value(auto_rotation_bool)));
+  out.insert(std::make_pair("status", picojson::value(status)));
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
@@ -1940,9 +1940,9 @@ PlatformResult SysteminfoUtils::ReportBuild(picojson::object& out) {
     return ret;
   }
 
-  out.insert(std::make_pair("model", model));
-  out.insert(std::make_pair("manufacturer", manufacturer));
-  out.insert(std::make_pair("buildVersion", buildVersion));
+  out.insert(std::make_pair("model", picojson::value(model)));
+  out.insert(std::make_pair("manufacturer", picojson::value(manufacturer)));
+  out.insert(std::make_pair("buildVersion", picojson::value(buildVersion)));
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
@@ -1959,8 +1959,8 @@ PlatformResult SysteminfoUtils::ReportLocale(picojson::object& out) {
     return ret;
   }
 
-  out.insert(std::make_pair("language", str_language));
-  out.insert(std::make_pair("country", str_country));
+  out.insert(std::make_pair("language", picojson::value(str_language)));
+  out.insert(std::make_pair("country", picojson::value(str_country)));
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
@@ -2060,7 +2060,7 @@ PlatformResult SysteminfoUtils::ReportNetwork(picojson::object& out) {
   if(ret.IsError()) {
     return ret;
   }
-  out.insert(std::make_pair("networkType", type_str));
+  out.insert(std::make_pair("networkType", picojson::value(type_str)));
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
@@ -2185,12 +2185,12 @@ PlatformResult SysteminfoUtils::ReportWifiNetwork(picojson::object& out) {
     LoggerD("Connection type = %d. WIFI is disabled", connection_type);
   }
 
-  out.insert(std::make_pair("status", result_status ? kWifiStatusOn : kWifiStatusOff));
-  out.insert(std::make_pair("ssid", result_ssid));
-  out.insert(std::make_pair("ipAddress", result_ip_address));
-  out.insert(std::make_pair("ipv6Address", result_ipv6_address));
-  out.insert(std::make_pair("macAddress", result_mac_address));
-  out.insert(std::make_pair("signalStrength", std::to_string(result_signal_strength)));
+  out.insert(std::make_pair("status", picojson::value(result_status ? kWifiStatusOn : kWifiStatusOff)));
+  out.insert(std::make_pair("ssid", picojson::value(result_ssid)));
+  out.insert(std::make_pair("ipAddress", picojson::value(result_ip_address)));
+  out.insert(std::make_pair("ipv6Address", picojson::value(result_ipv6_address)));
+  out.insert(std::make_pair("macAddress", picojson::value(result_mac_address)));
+  out.insert(std::make_pair("signalStrength", picojson::value(std::to_string(result_signal_strength))));
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
@@ -2356,17 +2356,17 @@ PlatformResult SysteminfoUtils::ReportCellularNetwork(picojson::object& out) {
     return ret;
   }
 
-  out.insert(std::make_pair("status", result_status));
-  out.insert(std::make_pair("apn", result_apn));
-  out.insert(std::make_pair("ipAddress", result_ip_address));
-  out.insert(std::make_pair("ipv6Address", result_ipv6_address));
-  out.insert(std::make_pair("mcc", std::to_string(result_mcc)));
-  out.insert(std::make_pair("mnc", std::to_string(result_mnc)));
-  out.insert(std::make_pair("cellId", std::to_string(result_cell_id)));
-  out.insert(std::make_pair("lac", std::to_string(result_lac)));
-  out.insert(std::make_pair("isRoaming", result_is_roaming));
-  out.insert(std::make_pair("isFligthMode", result_is_flight_mode));
-  out.insert(std::make_pair("imei", result_imei));
+  out.insert(std::make_pair("status", picojson::value(result_status)));
+  out.insert(std::make_pair("apn", picojson::value(result_apn)));
+  out.insert(std::make_pair("ipAddress", picojson::value(result_ip_address)));
+  out.insert(std::make_pair("ipv6Address", picojson::value(result_ipv6_address)));
+  out.insert(std::make_pair("mcc", picojson::value(std::to_string(result_mcc))));
+  out.insert(std::make_pair("mnc", picojson::value(std::to_string(result_mnc))));
+  out.insert(std::make_pair("cellId", picojson::value(std::to_string(result_cell_id))));
+  out.insert(std::make_pair("lac", picojson::value(std::to_string(result_lac))));
+  out.insert(std::make_pair("isRoaming", picojson::value(result_is_roaming)));
+  out.insert(std::make_pair("isFligthMode", picojson::value(result_is_flight_mode)));
+  out.insert(std::make_pair("imei", picojson::value(result_imei)));
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
@@ -2444,7 +2444,7 @@ PlatformResult SysteminfoUtils::ReportPeripheral(picojson::object& out) {
   PlatformResult ret = GetVconfInt(VCONFKEY_MIRACAST_WFD_SOURCE_STATUS, wireless_display_status);
   if (ret.IsSuccess()) {
     if (VCONFKEY_MIRACAST_WFD_SOURCE_ON == wireless_display_status) {
-      out.insert(std::make_pair(kVideoOutputString, true));
+      out.insert(std::make_pair(kVideoOutputString, picojson::value(true)));
       return PlatformResult(ErrorCode::NO_ERROR);
     }
   }
@@ -2452,7 +2452,7 @@ PlatformResult SysteminfoUtils::ReportPeripheral(picojson::object& out) {
   ret = GetVconfInt(VCONFKEY_SYSMAN_HDMI, hdmi_status);
   if (ret.IsSuccess()) {
     if (VCONFKEY_SYSMAN_HDMI_CONNECTED == hdmi_status) {
-      out.insert(std::make_pair(kVideoOutputString, true));
+      out.insert(std::make_pair(kVideoOutputString, picojson::value(true)));
       return PlatformResult(ErrorCode::NO_ERROR);
     }
   }
@@ -2461,12 +2461,12 @@ PlatformResult SysteminfoUtils::ReportPeripheral(picojson::object& out) {
   ret = GetVconfInt(VCONFKEY_POPSYNC_ACTIVATED_KEY, popsync_status);
   if (ret.IsSuccess()) {
     if (1 == popsync_status) {
-      out.insert(std::make_pair(kVideoOutputString, true));
+      out.insert(std::make_pair(kVideoOutputString, picojson::value(true)));
       return PlatformResult(ErrorCode::NO_ERROR);
     }
   }
 
-  out.insert(std::make_pair(kVideoOutputString, false));
+  out.insert(std::make_pair(kVideoOutputString, picojson::value(false)));
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
@@ -2486,20 +2486,20 @@ PlatformResult SysteminfoUtils::ReportMemory(picojson::object& out) {
     }
   }
 
-  out.insert(std::make_pair("state", state));
+  out.insert(std::make_pair("state", picojson::value(state)));
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 static void CreateStorageInfo(const std::string& type, struct statfs& fs, picojson::object* out) {
-  out->insert(std::make_pair("type", type));
-  out->insert(std::make_pair("capacity", std::to_string(
+  out->insert(std::make_pair("type", picojson::value(type)));
+  out->insert(std::make_pair("capacity", picojson::value(std::to_string(
       static_cast<unsigned long long>(fs.f_bsize) *
-      static_cast<unsigned long long>(fs.f_blocks))));
-  out->insert(std::make_pair("availableCapacity", std::to_string(
+      static_cast<unsigned long long>(fs.f_blocks)))));
+  out->insert(std::make_pair("availableCapacity", picojson::value(std::to_string(
       static_cast<unsigned long long>(fs.f_bsize) *
-      static_cast<unsigned long long>(fs.f_bavail))));
+      static_cast<unsigned long long>(fs.f_bavail)))));
   bool isRemovable = (type == kTypeInternal) ? false : true;
-  out->insert(std::make_pair("isRemovable", isRemovable));
+  out->insert(std::make_pair("isRemovable", picojson::value(isRemovable)));
 }
 
 PlatformResult SysteminfoUtils::ReportStorage(picojson::object& out) {
@@ -2532,7 +2532,7 @@ PlatformResult SysteminfoUtils::ReportStorage(picojson::object& out) {
     }
   }
 
-  out.insert(std::make_pair("storages", result));
+  out.insert(std::make_pair("storages", picojson::value(result)));
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
@@ -2851,14 +2851,14 @@ PlatformResult SystemInfoDeviceCapability::GetCapability(const std::string& key,
   }
 
   if (type == "bool") {
-    result_obj.insert(std::make_pair("value", bool_value));
+    result_obj.insert(std::make_pair("value", picojson::value(bool_value)));
   } else if (type == "string" || type == "int") {
-    result_obj.insert(std::make_pair("value", value));
+    result_obj.insert(std::make_pair("value", picojson::value(value)));
   } else {
     LoggerD("Value for given key was not found");
     return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR, "Value for given key was not found");
   }
-  result_obj.insert(std::make_pair("type", type));
+  result_obj.insert(std::make_pair("type", picojson::value(type)));
 
   return PlatformResult(ErrorCode::NO_ERROR);
 }

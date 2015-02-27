@@ -64,7 +64,7 @@ const std::string kPropertyIdMemory= "MEMORY";
     ReportError(ret,&out); \
     return; \
   } \
-  result_obj.insert(std::make_pair(str_name, bool_value));
+  result_obj.insert(std::make_pair(str_name, picojson::value(bool_value)));
 
 #define REPORT_BOOL_CAPABILITY(str_name, method) \
   ret = method(bool_value); \
@@ -72,7 +72,7 @@ const std::string kPropertyIdMemory= "MEMORY";
     ReportError(ret,&out); \
     return; \
   } \
-  result_obj.insert(std::make_pair(str_name, bool_value));
+  result_obj.insert(std::make_pair(str_name, picojson::value(bool_value)));
 
 #define DEFAULT_REPORT_INT_CAPABILITY(str_name, feature_name) \
   ret = SystemInfoDeviceCapability::GetValueInt(feature_name, int_value); \
@@ -80,7 +80,7 @@ const std::string kPropertyIdMemory= "MEMORY";
     ReportError(ret,&out); \
     return; \
   } \
-  result_obj.insert(std::make_pair(str_name, std::to_string(int_value)));
+  result_obj.insert(std::make_pair(str_name, picojson::value(std::to_string(int_value))));
 
 #define DEFAULT_REPORT_STRING_CAPABILITY(str_name, feature_name) \
   ret = SystemInfoDeviceCapability::GetValueString(feature_name, str_value); \
@@ -88,7 +88,7 @@ const std::string kPropertyIdMemory= "MEMORY";
     ReportError(ret,&out); \
     return; \
   } \
-  result_obj.insert(std::make_pair(str_name, str_value));
+  result_obj.insert(std::make_pair(str_name, picojson::value(str_value)));
 
 #define REPORT_STRING_CAPABILITY(str_name, method) \
   ret = method(str_value); \
@@ -96,7 +96,7 @@ const std::string kPropertyIdMemory= "MEMORY";
     ReportError(ret,&out); \
     return; \
   } \
-  result_obj.insert(std::make_pair(str_name, str_value));
+  result_obj.insert(std::make_pair(str_name, picojson::value(str_value)));
 }
 
 
@@ -201,7 +201,7 @@ void SysteminfoInstance::GetCapabilities(const picojson::value& args, picojson::
   DEFAULT_REPORT_BOOL_CAPABILITY("secureElement", "tizen.org/feature/network.secure_element")
   REPORT_STRING_CAPABILITY("profile", SystemInfoDeviceCapability::GetProfile)
   DEFAULT_REPORT_STRING_CAPABILITY("nativeApiVersion", "tizen.org/feature/platform.native.api.version")
-  result_obj.insert(std::make_pair("duid", SystemInfoDeviceCapability::GetDuid() ));
+  result_obj.insert(std::make_pair("duid", picojson::value(SystemInfoDeviceCapability::GetDuid())));
   DEFAULT_REPORT_BOOL_CAPABILITY("screenSizeNormal", "tizen.org/feature/screen.size.normal")
   DEFAULT_REPORT_BOOL_CAPABILITY("screenSize480_800", "tizen.org/feature/screen.size.normal.480.800")
   DEFAULT_REPORT_BOOL_CAPABILITY("screenSize720_1280", "tizen.org/feature/screen.size.normal.720.1280")
@@ -281,7 +281,7 @@ void SysteminfoInstance::GetPropertyValueArray(const picojson::value& args, pico
   auto get_response = [this, callback_id](const std::shared_ptr<picojson::value>& response) -> void {
     LoggerD("Getting response");
     picojson::object& obj = response->get<picojson::object>();
-    obj.insert(std::make_pair("callbackId", callback_id));
+    obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
     PostMessage(response->serialize().c_str());
   };
 
@@ -352,7 +352,7 @@ void SysteminfoInstance::GetTotalMemory(const picojson::value& args, picojson::o
     return;
   }
   result_obj.insert(std::make_pair("totalMemory",
-                                   static_cast<double>(return_value)));
+                                   picojson::value(static_cast<double>(return_value))));
 
   ReportSuccess(result, out);
   LoggerD("Success");
@@ -371,7 +371,7 @@ void SysteminfoInstance::GetAvailableMemory(const picojson::value& args, picojso
     return;
   }
   result_obj.insert(std::make_pair("availableMemory",
-                                   static_cast<double>(return_value) ));
+                                   picojson::value(static_cast<double>(return_value))));
 
   ReportSuccess(result, out);
   LoggerD("Success");
@@ -391,7 +391,7 @@ void SysteminfoInstance::GetCount(const picojson::value& args, picojson::object&
     ReportError(ret, &out);
     return;
   }
-  result_obj.insert(std::make_pair("count", static_cast<double>(count) ));
+  result_obj.insert(std::make_pair("count", picojson::value(static_cast<double>(count))));
 
   ReportSuccess(result, out);
   LoggerD("Success");
@@ -449,7 +449,7 @@ void SysteminfoInstance::RemovePropertyValueChangeListener(const picojson::value
 
 static void ReportSuccess(const picojson::value& result, picojson::object& out) {
   out.insert(std::make_pair("status", picojson::value("success")));
-  out.insert(std::make_pair("result", result));
+  out.insert(std::make_pair("result",  picojson::value(result)));
 }
 
 
