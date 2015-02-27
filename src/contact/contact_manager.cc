@@ -152,10 +152,10 @@ PlatformResult ContactManagerGetAddressBook(const JsonObject& args,
                                          _contacts_address_book.name, &name);
   if (status.IsError()) return status;
 
-  out.insert(std::make_pair("accountId", static_cast<double>(account_id)));
-  out.insert(std::make_pair("name", std::string(name)));
-  out.insert(std::make_pair("readOnly",
-                            (CONTACTS_ADDRESS_BOOK_MODE_READONLY == mode)));
+  out["accountId"] = picojson::value(static_cast<double>(account_id));
+  out["name"] = picojson::value(name);
+  out["readOnly"] =
+      picojson::value(CONTACTS_ADDRESS_BOOK_MODE_READONLY == mode);
 
   return PlatformResult(ErrorCode::NO_ERROR);
 }
@@ -231,7 +231,7 @@ PlatformResult ContactManagerAddAddressBook(const JsonObject& args,
                           "Failed to insert address book record");
   }
 
-  out.insert(std::make_pair("id", std::to_string(address_book_id)));
+  out["id"] = picojson::value(std::to_string(address_book_id));
 
   return PlatformResult(ErrorCode::NO_ERROR);
 }
@@ -823,13 +823,14 @@ void ContactManagerListenerCallback(const char* view_uri, char* changes,
 
   JsonValue result{JsonObject{}};
   JsonObject& result_obj = result.get<JsonObject>();
-  result_obj.insert(std::make_pair("listenerId", kContactPersonListenerId));
-  JsonArray& added = result_obj.insert(std::make_pair("added", JsonArray{}))
-                         .first->second.get<JsonArray>();
-  JsonArray& updated = result_obj.insert(std::make_pair("updated", JsonArray{}))
-                           .first->second.get<JsonArray>();
-  JsonArray& removed = result_obj.insert(std::make_pair("removed", JsonArray{}))
-                           .first->second.get<JsonArray>();
+  result_obj.insert(std::make_pair(std::string("listenerId"),
+      picojson::value(kContactPersonListenerId)));
+  JsonArray& added = result_obj.insert(std::make_pair(std::string("added"),
+      picojson::value(JsonArray{}))).first->second.get<JsonArray>();
+  JsonArray& updated = result_obj.insert(std::make_pair(std::string("updated"),
+      picojson::value(JsonArray{}))).first->second.get<JsonArray>();
+  JsonArray& removed = result_obj.insert(std::make_pair(std::string("removed"),
+      picojson::value(JsonArray{}))).first->second.get<JsonArray>();
 
   std::unique_ptr<char, void (*)(char*)> tmp(strdup(changes),
                                              [](char* p) { free(p); });

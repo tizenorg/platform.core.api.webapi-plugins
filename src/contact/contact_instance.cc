@@ -118,7 +118,7 @@ void ContactInstance::AddressBookAddBatch(const JsonValue& args,
   auto get_response =
       [this, callback_id](const std::shared_ptr<JsonValue>& response) {
     JsonObject& obj = response->get<JsonObject>();
-    obj.insert(std::make_pair("callbackId", callback_id));
+    obj["callbackId"] = picojson::value(static_cast<double>(callback_id));
     PostMessage(response->serialize().c_str());
   };
 
@@ -151,7 +151,7 @@ void ContactInstance::AddressBookRemoveBatch(const JsonValue& args,
   auto get_response =
       [this, callback_id](const std::shared_ptr<JsonValue>& response) {
     JsonObject& obj = response->get<JsonObject>();
-    obj.insert(std::make_pair("callbackId", callback_id));
+    obj["callbackId"] = picojson::value(static_cast<double>(callback_id));
     PostMessage(response->serialize().c_str());
   };
 
@@ -184,7 +184,7 @@ void ContactInstance::AddressBookUpdateBatch(const JsonValue& args,
   auto get_response =
       [this, callback_id](const std::shared_ptr<JsonValue>& response) {
     JsonObject& obj = response->get<JsonObject>();
-    obj.insert(std::make_pair("callbackId", callback_id));
+    obj["callbackId"] = picojson::value(static_cast<double>(callback_id));
     PostMessage(response->serialize().c_str());
   };
 
@@ -232,7 +232,7 @@ void ContactInstance::AddressBookFind(const JsonValue& args, JsonObject& out) {
   auto get_response =
       [this, callback_id](const std::shared_ptr<JsonValue>& response) {
     JsonObject& obj = response->get<JsonObject>();
-    obj.insert(std::make_pair("callbackId", callback_id));
+    obj["callbackId"] = picojson::value(static_cast<double>(callback_id));
     PostMessage(response->serialize().c_str());
   };
 
@@ -316,7 +316,7 @@ void ContactInstance::ContactManagerGetAddressBooks(const JsonValue& args,
   auto get_response =
       [this, callback_id](const std::shared_ptr<JsonValue>& response) {
     JsonObject& obj = response->get<JsonObject>();
-    obj.insert(std::make_pair("callbackId", callback_id));
+    obj["callbackId"] = picojson::value(static_cast<double>(callback_id));
     PostMessage(response->serialize().c_str());
   };
 
@@ -426,7 +426,7 @@ void ContactInstance::ContactManagerUpdateBatch(const JsonValue& args,
   auto get_response =
       [this, callback_id](const std::shared_ptr<JsonValue>& response) {
     JsonObject& obj = response->get<JsonObject>();
-    obj.insert(std::make_pair("callbackId", callback_id));
+    obj["callbackId"] = picojson::value(static_cast<double>(callback_id));
     PostMessage(response->serialize().c_str());
   };
 
@@ -470,7 +470,7 @@ void ContactInstance::ContactManagerRemoveBatch(const JsonValue& args,
   auto get_response =
       [this, callback_id](const std::shared_ptr<JsonValue>& response) {
     JsonObject& obj = response->get<JsonObject>();
-    obj.insert(std::make_pair("callbackId", callback_id));
+    obj["callbackId"] = picojson::value(static_cast<double>(callback_id));
     PostMessage(response->serialize().c_str());
   };
 
@@ -498,7 +498,7 @@ void ContactInstance::ContactManagerFind(const JsonValue& args,
   auto get_response =
       [this, callback_id](const std::shared_ptr<JsonValue>& response) {
     JsonObject& obj = response->get<JsonObject>();
-    obj.insert(std::make_pair("callbackId", callback_id));
+    obj["callbackId"] = picojson::value(static_cast<double>(callback_id));
     PostMessage(response->serialize().c_str());
   };
 

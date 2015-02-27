@@ -66,7 +66,7 @@ PlatformResult AddressBookGet(const JsonObject& args, JsonObject& out) {
   ContactUtil::ContactsRecordHPtr contacts_record_ptr(
       &contacts_record, ContactUtil::ContactsDeleter);
 
-  out.insert(std::make_pair("id", std::to_string(contact_id)));
+  out["id"] = picojson::value(std::to_string(contact_id));
   status =
       ContactUtil::ImportContactFromContactsRecord(*contacts_record_ptr, &out);
   if (status.IsError()) return status;
@@ -259,7 +259,7 @@ PlatformResult AddressBookAddBatch(const JsonObject& args, JsonArray& out) {
   }
 
   int* ids;
-  int count;
+  int count = 0;
   error_code = contacts_db_insert_records(*contacts_list_ptr, &ids, &count);
   if (CONTACTS_ERROR_NONE != error_code) {
     if (ids) {
@@ -314,8 +314,8 @@ PlatformResult AddressBookBatchFunc(NativeFunction impl,
     ++i;
     JsonObject single_args{};
 
-    single_args.insert(std::make_pair("addressBook", address_book));
-    single_args.insert(std::make_pair(single_arg_name, item));
+    single_args["addressBook"] = picojson::value(address_book);
+    single_args[single_arg_name] = picojson::value(item);
 
     JsonObject single_out;
     PlatformResult status = impl(single_args, single_out);
@@ -436,8 +436,8 @@ PlatformResult AddressBookAddGroup(const JsonObject& args, JsonObject& out) {
   status = ContactUtil::ErrorChecker(err, "Error during insert group record");
   if (status.IsError()) return status;
 
-  out.insert(std::make_pair("id", std::to_string(groupId)));
-  out.insert(std::make_pair("addressBookId", std::to_string(addressbook_id)));
+  out["id"] = picojson::value(std::to_string(groupId));
+  out["addressBookId"] = picojson::value(std::to_string(addressbook_id));
 
   return PlatformResult(ErrorCode::NO_ERROR);
 }
@@ -725,15 +725,18 @@ void AddressBookListenerCallback(const char* view_uri, void* user_data) {
 
     JsonValue result{JsonObject{}};
     JsonObject& result_obj = result.get<JsonObject>();
-    result_obj.insert(std::make_pair("listenerId", kContactListenerId));
-    JsonArray& added = result_obj.insert(std::make_pair("added", JsonArray{}))
-                           .first->second.get<JsonArray>();
+    result_obj.insert(
+        std::make_pair(std::string("listenerId"),
+            picojson::value(std::string(kContactListenerId))));
+    JsonArray& added =
+        result_obj.insert(std::make_pair(std::string("added"),
+            picojson::value(JsonArray{}))).first->second.get<JsonArray>();
     JsonArray& updated =
-        result_obj.insert(std::make_pair("updated", JsonArray{}))
-            .first->second.get<JsonArray>();
+        result_obj.insert(std::make_pair(std::string("updated"),
+            picojson::value(JsonArray{}))).first->second.get<JsonArray>();
     JsonArray& removed =
-        result_obj.insert(std::make_pair("removed", JsonArray{}))
-            .first->second.get<JsonArray>();
+        result_obj.insert(std::make_pair(std::string("removed"),
+            picojson::value(JsonArray{}))).first->second.get<JsonArray>();
 
     for (unsigned int i = 0; i < count; i++) {
       contacts_record_h contact_updated_record = nullptr;
@@ -808,9 +811,11 @@ void AddressBookListenerCallback(const char* view_uri, void* user_data) {
         JsonObject& removed_data_obj = removed_data.get<JsonObject>();
 
         removed_data_obj.insert(
-            std::make_pair("id", std::to_string(changed_id)));
+            std::make_pair(std::string("id"),
+                picojson::value(std::to_string(changed_id))));
         removed_data_obj.insert(
-            std::make_pair("addressBookId", std::to_string(changed_ab_id)));
+            std::make_pair(std::string("addressBookId"),
+                picojson::value(std::to_string(changed_ab_id))));
         removed.push_back(std::move(removed_data));
       }
     }
