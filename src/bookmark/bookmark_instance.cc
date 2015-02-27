@@ -31,15 +31,9 @@ BookmarkInstance::BookmarkInstance() {
   REGISTER_SYNC("Bookmark_removeAll", BookmarkRemoveAll);
   REGISTER_SYNC("Bookmark_getRootId", BookmarkGetRootId);
 #undef REGISTER_SYNC
-  if (bp_bookmark_adaptor_initialize()) {
-    throw common::NotSupportedException("Fail: Bookmark not supported");
-  }
 }
 
 BookmarkInstance::~BookmarkInstance() {
-  if (bp_bookmark_adaptor_deinitialize()) {
-    throw common::NotSupportedException("Fail: Deinitialize Bookmark");
-  }
 }
 
 bool BookmarkInstance::bookmark_foreach(

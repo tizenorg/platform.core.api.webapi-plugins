@@ -4,6 +4,7 @@
 
 #include "bookmark/bookmark_extension.h"
 #include "bookmark/bookmark_instance.h"
+#include "common/logger.h"
 
 namespace {
   const char kBookmark[] = "tizen.bookmark";
@@ -28,9 +29,17 @@ BookmarkExtension::BookmarkExtension() {
     NULL
   };
   SetExtraJSEntryPoints(entry_points);
+
+  if (bp_bookmark_adaptor_initialize()) {
+     LOGGER(ERROR) << "Fail: Bookmark not supported";
+  }
 }
 
-BookmarkExtension::~BookmarkExtension() {}
+BookmarkExtension::~BookmarkExtension() {
+  if (bp_bookmark_adaptor_deinitialize()) {
+    LOGGER(ERROR) << "Fail: Deinitialize Bookmark";
+  }
+}
 
 common::Instance* BookmarkExtension::CreateInstance() {
   return new extension::bookmark::BookmarkInstance;
