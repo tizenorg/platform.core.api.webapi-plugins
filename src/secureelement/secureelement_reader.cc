@@ -23,7 +23,7 @@ picojson::value SEReader::getName() {
     picojson::object& obj = result.get<picojson::object>();
 
     if(m_reader) {
-        obj.insert(std::make_pair("name", m_reader->getName()));
+        obj.insert(std::make_pair("name", picojson::value(m_reader->getName())));
     }
 
     return result;
@@ -36,7 +36,7 @@ picojson::value SEReader::isPresent() {
     picojson::object& obj = result.get<picojson::object>();
 
     if(m_reader) {
-        obj.insert(std::make_pair("name", m_reader->isSecureElementPresent()));
+        obj.insert(std::make_pair("name", picojson::value(m_reader->isSecureElementPresent())));
     }
 
     return result;
@@ -51,8 +51,8 @@ picojson::value SEReader::openSession() {
     if(m_reader) {
         Session *session_ptr = static_cast<Session*>(m_reader->openSessionSync());
 
-        obj.insert(std::make_pair("handle", (double) (long) session_ptr));
-        obj.insert(std::make_pair("isClosed", session_ptr->isClosed()));
+        obj.insert(std::make_pair("handle", picojson::value((double) (long) session_ptr)));
+        obj.insert(std::make_pair("isClosed", picojson::value(session_ptr->isClosed())));
     }
 
     return result;

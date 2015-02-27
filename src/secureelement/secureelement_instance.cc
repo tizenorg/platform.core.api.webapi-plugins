@@ -163,7 +163,7 @@ void SecureElementInstance::OpenSession(
         LoggerD("Getting response");
 
         picojson::object& obj = response->get<picojson::object>();
-        obj.insert(std::make_pair("callbackId", callback_id));
+        obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
         PostMessage(response->serialize().c_str());
     };
 
@@ -208,7 +208,7 @@ void SecureElementInstance::OpenBasicChannel( const picojson::value& args, picoj
     auto get_response = [this, callback_id](const std::shared_ptr<picojson::value>& response) -> void {
         LoggerD("Getting response");
         picojson::object& obj = response->get<picojson::object>();
-        obj.insert(std::make_pair("callbackId", callback_id));
+        obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
         PostMessage(response->serialize().c_str());
     };
 
@@ -250,7 +250,7 @@ void SecureElementInstance::OpenLogicalChannel( const picojson::value& args, pic
     auto get_response = [this, callback_id](const std::shared_ptr<picojson::value>& response) -> void {
         LoggerD("Getting response");
         picojson::object& obj = response->get<picojson::object>();
-        obj.insert(std::make_pair("callbackId", callback_id));
+        obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
         PostMessage(response->serialize().c_str());
     };
 
@@ -338,7 +338,7 @@ void SecureElementInstance::Transmit( const picojson::value& args, picojson::obj
     auto get_response = [this, callback_id](const std::shared_ptr<picojson::value>& response) -> void {
         LoggerD("Getting response");
         picojson::object& obj = response->get<picojson::object>();
-        obj.insert(std::make_pair("callbackId", callback_id));
+        obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
         PostMessage(response->serialize().c_str());
     };
 

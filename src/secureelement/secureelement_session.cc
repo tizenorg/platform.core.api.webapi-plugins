@@ -26,8 +26,8 @@ picojson::value SESession::openBasicChannel(const picojson::array& v_aid) {
 
     picojson::value result = picojson::value(picojson::object());
     picojson::object& obj = result.get<picojson::object>();
-    obj.insert(std::make_pair("handle", (double) (long) channel_ptr));
-    obj.insert(std::make_pair("isBasicChannel", channel_ptr->isBasicChannel()));
+    obj.insert(std::make_pair("handle", picojson::value((double) (long) channel_ptr)));
+    obj.insert(std::make_pair("isBasicChannel", picojson::value(channel_ptr->isBasicChannel())));
 
     return result;
 }
@@ -46,8 +46,8 @@ picojson::value SESession::openLogicalChannel(const picojson::array& v_aid) {
 
     picojson::value result = picojson::value(picojson::object());
     picojson::object& obj = result.get<picojson::object>();
-    obj.insert(std::make_pair("handle", (double) (long) channel_ptr));
-    obj.insert(std::make_pair("isBasicChannel", channel_ptr->isBasicChannel()));
+    obj.insert(std::make_pair("handle", picojson::value((double) (long) channel_ptr)));
+    obj.insert(std::make_pair("isBasicChannel", picojson::value(channel_ptr->isBasicChannel())));
 
     return result;
 }
@@ -58,7 +58,7 @@ picojson::value SESession::isClosed() {
     bool is_closed = m_session_ptr->isClosed();
     picojson::value result = picojson::value(picojson::object());
     picojson::object& obj = result.get<picojson::object>();
-    obj.insert(std::make_pair("isClosed", is_closed));
+    obj.insert(std::make_pair("isClosed", picojson::value(is_closed)));
     return result;
 }
 
