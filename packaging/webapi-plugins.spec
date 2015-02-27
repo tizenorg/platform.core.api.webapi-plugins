@@ -30,7 +30,6 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_content_support             0
 %define tizen_feature_core_api_support            0
 %define tizen_feature_datacontrol_support         1
-%define tizen_feature_datasync_support            1
 %define tizen_feature_download_support            1
 %define tizen_feature_exif_support                0
 %define tizen_feature_fm_radio_support            0
@@ -72,7 +71,6 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_content_support             0
 %define tizen_feature_core_api_support            0
 %define tizen_feature_datacontrol_support         0
-%define tizen_feature_datasync_support            0
 %define tizen_feature_download_support            0
 %define tizen_feature_exif_support                0
 %define tizen_feature_fm_radio_support            0
@@ -117,7 +115,6 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_content_support             0
 %define tizen_feature_core_api_support            0
 %define tizen_feature_datacontrol_support         0
-%define tizen_feature_datasync_support            0
 %define tizen_feature_download_support            0
 %define tizen_feature_exif_support                1
 %define tizen_feature_fm_radio_support            0
@@ -243,10 +240,6 @@ BuildRequires:  pkgconfig(calendar-service2)
 BuildRequires:  pkgconfig(contacts-service2)
 %endif
 
-%if 0%{?tizen_feature_datasync_support}
-BuildRequires: pkgconfig(sync-agent)
-Requires: sync-agent
-%endif
 
 %if 0%{?tizen_feature_tvchannel_support}
 BuildRequires: pkgconfig(tvs-api)
