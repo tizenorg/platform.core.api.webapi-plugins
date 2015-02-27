@@ -22,7 +22,8 @@ var SystemInfoPropertyId = {
         CELLULAR_NETWORK : 'CELLULAR_NETWORK',
         SIM : 'SIM',
         PERIPHERAL : 'PERIPHERAL',
-        MEMORY : 'MEMORY'
+        MEMORY : 'MEMORY',
+        CAMERA_FLASH : 'CAMERA_FLASH'
 };
 
 //class SystemInfoDeviceCapability ////////////////////////////////////////////////////
@@ -574,6 +575,42 @@ function SystemInfoMemory(data) {
     });
 }
 
+function SystemInfoCameraFlash(data) {
+  var getBrightness = function() {
+      var result = native_.callSync('SystemInfo_getBrightness', {});
+      if (native_.isSuccess(result)) {
+        return Converter_.toLong(native_.getResultObject(result));
+      }
+      return null;
+    };
+
+  var getLevels = function() {
+      var result = native_.callSync('SystemInfo_getMaxBrightness', {});
+      if (native_.isSuccess(result)) {
+        return Converter_.toLong(native_.getResultObject(result));
+      }
+      return null;
+    };
+
+  Object.defineProperties(this, {
+        brightness : {get: getBrightness, enumerable: true},
+        camera : {value: null, enumerable: true},
+        levels : {get: getLevels, enumerable: true},
+    });
+}
+
+SystemInfoCameraFlash.prototype.setBrightness = function(brightness) {
+  var args = validator_.validateArgs(arguments, [
+    {name: 'brightness', type: types_.LONG}
+  ]);
+
+  var result = native_.callSync('SystemInfo_setBrightness', args);
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
+  }
+  this.brightness = result;
+};
+
 //class SystemInfo ////////////////////////////////////////////////////
 var SystemInfo = function() {
 };
@@ -891,6 +928,10 @@ function _systeminfoMemoryListenerCallback(eventObj) {
     }
 }
 
+function  _systeminfoCameraFlashListenerCallback(eventObject) {
+  //TODO fill this up
+}
+
 var _propertyContainer = {
         'BATTERY' : {
             callbacks : {},
@@ -969,7 +1010,13 @@ var _propertyContainer = {
             constructor : SystemInfoMemory,
             broadcastFunction : _systeminfoMemoryListenerCallback,
             signalLabel : 'SystemInfoMemoryChangeBroadcast'
-        }
+        },
+        'CAMERA_FLASH' : {
+            callbacks : {},
+            constructor : SystemInfoCameraFlash,
+            broadcastFunction : _systeminfoCameraFlashListenerCallback,
+            signalLabel : 'SystemInfoCameraFlashChangeBroadcast'
+    }
 };
 
 /// It common function to be called when listener would be triggered

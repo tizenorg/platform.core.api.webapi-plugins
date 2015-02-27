@@ -1701,6 +1701,9 @@ PlatformResult SysteminfoUtils::GetCount(const std::string& property, unsigned l
     count = DEFAULT_PROPERTY_COUNT;
   } else if ("SIM" == property) {
     count = sim_mgr.GetSimCount(system_info_listeners.GetTapiHandles());
+  } else if ("CAMERA_FLASH" == property) {
+    const int numberOfCameraFlashProperties = 3;
+    count = numberOfCameraFlashProperties;
   } else {
     LoggerD("Property with given id is not supported");
     return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR, "Property with given id is not supported");
@@ -1736,6 +1739,8 @@ PlatformResult SysteminfoUtils::ReportProperty(const std::string& property, int 
     return ReportPeripheral(res_obj);
   } else if ("MEMORY" == property) {
     return ReportMemory(res_obj);
+  } else if ("CAMERA_FLASH" == property) {
+    return ReportCameraFlash(res_obj);
   } else {
     LoggerD("Property with given id is not supported");
     return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR, "Property with given id is not supported");
@@ -2533,6 +2538,9 @@ PlatformResult SysteminfoUtils::ReportStorage(picojson::object& out) {
   }
 
   out.insert(std::make_pair("storages", picojson::value(result)));
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+PlatformResult SysteminfoUtils::ReportCameraFlash(picojson::object& out) {
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 

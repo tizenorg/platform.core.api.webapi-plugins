@@ -4,6 +4,7 @@
 
 #include "systeminfo/systeminfo_instance.h"
 
+#include <device/led.h>
 #include <functional>
 #include <memory>
 
@@ -118,6 +119,10 @@ SysteminfoInstance::SysteminfoInstance() {
   REGISTER_SYNC("SystemInfo_getTotalMemory", GetTotalMemory);
   REGISTER_SYNC("SystemInfo_getAvailableMemory", GetAvailableMemory);
   REGISTER_SYNC("SystemInfo_getCount", GetCount);
+  REGISTER_SYNC("SystemInfo_setBrightness", SetBrightness);
+  REGISTER_SYNC("SystemInfo_getBrightness", GetBrightness);
+  REGISTER_SYNC("SystemInfo_getMaxBrightness", GetMaxBrightness);
+
 #undef REGISTER_SYNC
 #define REGISTER_ASYNC(c,x) \
         RegisterSyncHandler(c, std::bind(&SysteminfoInstance::x, this, _1, _2));
@@ -454,6 +459,49 @@ static void ReportSuccess(const picojson::value& result, picojson::object& out) 
   out.insert(std::make_pair("result",  picojson::value(result)));
 }
 
+void SysteminfoInstance::SetBrightness(const picojson::value& args, picojson::object& out) {
+  LoggerD("entered");
+
+  CHECK_EXIST(args, "brightness", out)
+
+  const double brightness = args.get("brightness").get<double>();
+  int result = DEVICE_ERROR_NONE;
+  result = device_flash_set_brightness(brightness);
+  if (result != DEVICE_ERROR_NONE) {
+    LoggerE("Error occured");
+    ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Error occured"), &out);
+    return;
+  }
+  ReportSuccess(out);
+}
+
+void SysteminfoInstance::GetBrightness(const picojson::value& args, picojson::object& out) {
+  LoggerD("entered");
+
+  int result = DEVICE_ERROR_NONE;
+  int brightness = 0;
+  result = device_flash_get_brightness(&brightness);
+  if (result != DEVICE_ERROR_NONE) {
+    LoggerE("Error occured");
+    ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Error occured"), &out);
+    return;
+  }
+  ReportSuccess(picojson::value(std::to_string(brightness)), out);
+}
+
+void SysteminfoInstance::GetMaxBrightness(const picojson::value& args, picojson::object& out) {
+  LoggerD("entered");
+
+  int result = DEVICE_ERROR_NONE;
+  int brightness = 0;
+  result = device_flash_get_max_brightness(&brightness);
+  if (result != DEVICE_ERROR_NONE) {
+    LoggerE("Error occured");
+    ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Not supported property"), &out);
+    return;
+  }
+  ReportSuccess(picojson::value(std::to_string(brightness)), out);
+}
 
 //Callback functions
 void OnBatteryChangedCallback()
