@@ -330,10 +330,60 @@ File.prototype.moveTo = function(originFilePath, destinationFilePath, overwrite,
     {name: 'onerror', type: types_.FUNCTION, optional: true, nullable: true}
   ]);
 
+  if (this.isFile) {
+    setTimeout(function() {
+      native_.callIfPossible(args.onerror,
+          new tizen.WebAPIException(tizen.WebAPIException.IO_ERR,
+          'File object which call this method is not directory'));
+    }, 0);
+    return;
+  }
+
+  var _realOriginalPath = commonFS_.toRealPath(args.originFilePath);
+  var _realDestinationPath = commonFS_.toRealPath(args.destinationFilePath);
+
+  var resultOldPath = native_.callSync('File_statSync', {location: _realOriginalPath});
+  if (native_.isFailure(resultOldPath)) {
+    setTimeout(function() {
+      native_.callIfPossible(args.onerror,
+          new tizen.WebAPIException(tizen.WebAPIException.NOT_FOUND_ERR,
+          'Source file is not avalaible'));
+    }, 0);
+    return;
+  }
+
+  if (!args.overwrite) {
+    var resultNewPath = native_.callSync('File_statSync', {location: _realDestinationPath});
+    if (native_.isSuccess(resultNewPath)) {
+      setTimeout(function() {
+        native_.callIfPossible(args.onerror,
+            new tizen.WebAPIException(tizen.WebAPIException.IO_ERR, 'Overwrite is not allowed'));
+      }, 0);
+      return;
+    }
+  }
+
+  if (!commonFS_.f_isSubDir(_realOriginalPath, this.fullPath)) {
+    var m1 = 'Source file should be subdirectory of: ' + this.fullPath;
+    setTimeout(function() {
+      native_.callIfPossible(args.onerror,
+          new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR, m1));
+    }, 0);
+    return;
+  }
+
+  if (this.mode === 'r' || !commonFS_.isLocationAllowed(_realDestinationPath)) {
+    var m2 = 'Source/Destination is read only folder: ' + this.fullPath;
+    setTimeout(function() {
+      native_.callIfPossible(args.onerror,
+          new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR, m2));
+    }, 0);
+    return;
+  }
+
   var data = {
-    originFilePath: args.originFilePath,
-    destinationFilePath: args.destinationFilePath,
-    overwrite: args.overwrite
+    oldPath: _realOriginalPath,
+    newPath: _realDestinationPath
   };
 
   var callback = function(result) {
@@ -344,7 +394,7 @@ File.prototype.moveTo = function(originFilePath, destinationFilePath, overwrite,
     native_.callIfPossible(args.onsuccess);
   };
 
-  native_.call('File_moveTo', data, callback);
+  native_.call('File_rename', data, callback);
 };
 
 File.prototype.createDirectory = function(dirPath) {
