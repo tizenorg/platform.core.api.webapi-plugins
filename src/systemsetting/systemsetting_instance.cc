@@ -64,7 +64,7 @@ void SystemSettingInstance::getProperty(const picojson::value& args, picojson::o
   auto get_response = [this, callback_id](const std::shared_ptr<picojson::value>& response) -> void {
     LoggerD("Getting response");
     picojson::object& obj = response->get<picojson::object>();
-    obj.insert(std::make_pair("callbackId", callback_id));
+    obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
     PostMessage(response->serialize().c_str());
   };
 
@@ -100,7 +100,7 @@ PlatformResult SystemSettingInstance::getPlatformPropertyValue(
   switch (ret) {
     case SYSTEM_SETTINGS_ERROR_NONE:
       LoggerD("ret == SYSTEM_SETTINGS_ERROR_NONE");
-      result_obj.insert(std::make_pair("value", value));
+      result_obj.insert(std::make_pair("value", picojson::value(value)));
       free(value);
       return PlatformResult(ErrorCode::NO_ERROR);
     case SYSTEM_SETTINGS_ERROR_CALL_UNSUPPORTED_API:
@@ -136,7 +136,7 @@ void SystemSettingInstance::setProperty(const picojson::value& args, picojson::o
   auto get_response = [this, callback_id](const std::shared_ptr<picojson::value>& response) -> void {
     LoggerD("Getting response");
     picojson::object& obj = response->get<picojson::object>();
-    obj.insert(std::make_pair("callbackId", callback_id));
+    obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
     PostMessage(response->serialize().c_str());
   };
 
