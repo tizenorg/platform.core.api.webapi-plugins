@@ -442,7 +442,7 @@ File.prototype.resolve = function(filePath) {
   var _realPath = commonFS_.toRealPath(_newPath);
   var _result = native_.callSync('File_statSync', {location: _realPath});
   if (native_.isFailure(_result)) {
-    throw new tizen.WebAPIException(tizen.WebAPIException.IO_ERR, native_.getErrorObject(_result));
+    throw new tizen.WebAPIException(tizen.WebAPIException.NOT_FOUND_ERR, native_.getErrorObject(_result));
   }
   var _statObj = native_.getResultObject(_result);
   var _fileInfo = commonFS_.getFileInfo(_newPath, _statObj, false, this.mode);
