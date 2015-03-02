@@ -225,6 +225,7 @@ BuildRequires: pkgconfig(push)
 %endif
 
 %if 0%{?tizen_feature_messaging_support}
+BuildRequires:  pkgconfig(ecore-file)
 BuildRequires:  pkgconfig(email-service)
 BuildRequires:  pkgconfig(msg-service)
 %endif
