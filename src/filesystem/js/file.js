@@ -58,7 +58,7 @@ function stringToRegex(str) {
     return new RegExp(_regString, 'i');
   }
 
-  str = str.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&");
+  str = str.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, '\\$&');
 
   var _percentTokens = str.split('%');
   var i;
@@ -200,6 +200,21 @@ File.prototype.listFiles = function(onsuccess, onerror, filter) {
   native_.call('File_readDir', data, callback);
 };
 
+var Encoding = {
+  'utf-8': 'utf-8',
+  'iso-8859-1': 'iso-8859-1'
+};
+
+function _checkEncoding(encoding) {
+  if (encoding) {
+    var _validEncoding = Object.keys(Encoding);
+    if (_validEncoding.indexOf((encoding.toLowerCase())) < 0) {
+      throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
+          'Argument "encoding" has invalid value');
+    }
+  }
+}
+
 File.prototype.openStream = function(mode, onsuccess, onerror, encoding) {
   var args = validator_.validateArgs(arguments, [
     {name: 'mode', type: types_.ENUM, values: ['r', 'rw', 'w', 'a']},
@@ -231,19 +246,44 @@ File.prototype.readAsText = function(onsuccess, onerror, encoding) {
     {name: 'encoding', type: types_.STRING, optional: true, nullable: true}
   ]);
 
+  if (this.isDirectory) {
+    setTimeout(function() {
+      native_.callIfPossible(args.onerror,
+          new tizen.WebAPIException(tizen.WebAPIException.IO_ERR,
+              'File object which call this method is directory'));
+    }, 0);
+    return;
+  }
+
+  _checkEncoding(args.encoding);
+
   var data = {
+    location: commonFS_.toRealPath(this.fullPath),
+    offset: 0,
+    length: 1024,
     encoding: args.encoding
   };
 
-  var callback = function(result) {
+  var result, encoded, str = '';
+
+  function readFile() {
+    result = native_.callSync('File_readSync', data);
     if (native_.isFailure(result)) {
       native_.callIfPossible(args.onerror, native_.getErrorObject(result));
       return;
     }
-    native_.callIfPossible(args.onsuccess);
-  };
-
-  native_.call('File_readAsText', data, callback);
+    encoded = native_.getResultObject(result);
+    if (!encoded.length) {
+      setTimeout(function() {
+        native_.callIfPossible(args.onsuccess, Base64.decode(str));
+      }, 0);
+    } else {
+      str += encoded;
+      data.offset += data.length;
+      readFile();
+    }
+  }
+  readFile();
 };
 
 File.prototype.copyTo = function(originFilePath, destinationFilePath, overwrite, onsuccess, onerror) {
