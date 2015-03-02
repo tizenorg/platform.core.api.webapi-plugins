@@ -46,11 +46,7 @@ function FileStream(data, mode, encoding) {
 }
 
 FileStream.prototype.close = function() {
-  var result = native_.callSync('FileStream_close', {});
-
-  if (native_.isFailure(result)) {
-    throw native_.getErrorObject(result);
-  }
+//  TODO: close
 };
 
 function _checkReadAccess(mode) {
@@ -178,11 +174,18 @@ FileStream.prototype.write = function() {
 
   _checkWriteAccess(this._mode);
 
-  var result = native_.callSync('FileStream_write', {});
+  var data = {
+    location: commonFS_.toRealPath(this._file.fullPath),
+    offset: this.position,
+    data: Base64.encode(args.stringData)
+  };
+
+  var result = native_.callSync('File_writeSync', data);
 
   if (native_.isFailure(result)) {
     throw native_.getErrorObject(result);
   }
+  this.position = args.stringData.length;
 };
 
 FileStream.prototype.writeBytes = function() {
@@ -196,7 +199,13 @@ FileStream.prototype.writeBytes = function() {
 
   _checkWriteAccess(this._mode);
 
-  var result = native_.callSync('FileStream_writeBytes', {});
+  var data = {
+    location: commonFS_.toRealPath(this._file.fullPath),
+    offset: this.position,
+    data: Base64.encode(String.fromCharCode.apply(String, args.byteData))
+  };
+
+  var result = native_.callSync('File_writeSync', data);
 
   if (native_.isFailure(result)) {
     throw native_.getErrorObject(result);
@@ -213,7 +222,13 @@ FileStream.prototype.writeBase64 = function() {
 
   _checkWriteAccess(this._mode);
 
-  var result = native_.callSync('FileStream_writeBase64', {});
+  var data = {
+    location: commonFS_.toRealPath(this._file.fullPath),
+    offset: this.position,
+    data: args.base64Data
+  };
+
+  var result = native_.callSync('File_writeSync', data);
 
   if (native_.isFailure(result)) {
     throw native_.getErrorObject(result);
