@@ -6,16 +6,20 @@ var types_ = validator_.Types;
 
 var callbackId = 0;
 var callbacks = {};
+var ports = [];
 
 extension.setMessageListener(function(json) {
   var msg = JSON.parse(json);
   var listeners = callbacks[msg['local_port_id']];
+  var rmp;
 
   console.log('Listeners length:' + listeners.length);
-  var rmp = new RemoteMessagePort(msg.remotePort, msg.remoteAppId, msg.trusted);
 
+  if (!msg.hasOwnProperty('remotePort'))
+    rmp = null;
+  else
+    rmp = new RemoteMessagePort(msg.remotePort, msg.remoteAppId, msg.trusted);
   for (var i = 0; i < listeners.length; i++) {
-
     var func = listeners[i][0];
     func(msg.message, rmp);
   }
@@ -95,20 +99,21 @@ MessagePortManager.prototype.requestLocalMessagePort = function(localMessagePort
   var args = validator_.validateArgs(arguments, [
     {'name' : 'localMessagePortName', 'type': types_.STRING}
   ]);
-
+  var localPortId;
   var nativeParam = {
     'localMessagePortName': args.localMessagePortName
   };
 
   try {
 
-    var localPortId = callNative('MessagePortManager_requestLocalMessagePort', nativeParam);
+    localPortId = callNative('MessagePortManager_requestLocalMessagePort', nativeParam);
 
   } catch (e) {
     throw e;
   }
 
-  var returnObject = new LocalMessagePort(localPortId, args.localMessagePortName, false);
+  var returnObject = new LocalMessagePort(args.localMessagePortName, false);
+  ports[nativeParam.localMessagePortName] = localPortId;
 
   return returnObject;
 };
@@ -130,12 +135,14 @@ MessagePortManager.prototype.requestTrustedLocalMessagePort = function(localMess
     throw e;
   }
 
-  var returnObject = new LocalMessagePort(localPortId, args.localMessagePortName, true);
+  var returnObject = new LocalMessagePort(args.localMessagePortName, true);
+  ports[nativeParam.localMessagePortName] = localPortId;
 
   return returnObject;
 };
 
-MessagePortManager.prototype.requestRemoteMessagePort = function(appId, remoteMessagePortName) {
+MessagePortManager.prototype.requestRemoteMessagePort =
+    function(appId, remoteMessagePortName) {
   var args = validator_.validateArgs(arguments, [
     {'name' : 'appId', 'type': types_.STRING},
     {'name' : 'remoteMessagePortName', 'type': types_.STRING}
@@ -167,6 +174,7 @@ MessagePortManager.prototype.requestTrustedRemoteMessagePort =
   ]);
 
   var nativeParam = {
+    'appId' : args.appId,
     'remoteMessagePortName': args.remoteMessagePortName
   };
 
@@ -184,11 +192,10 @@ MessagePortManager.prototype.requestTrustedRemoteMessagePort =
 };
 
 
-function LocalMessagePort(id, messagePortName, isTrusted) {
+function LocalMessagePort(messagePortName, isTrusted) {
   Object.defineProperties(this, {
-    'id': { value: id, writable: false },
-    'messagePortName': { value: messagePortName, writable: false, enumerable: false },
-    'isTrusted': { value: !!isTrusted, writable: false }
+    'messagePortName': { value: messagePortName, writable: false, enumerable: true },
+    'isTrusted': { value: !!isTrusted, writable: false, enumerable: true }
   });
 }
 
@@ -198,10 +205,12 @@ LocalMessagePort.prototype.addMessagePortListener = function(listener) {
     {'name' : 'listener', 'type': types_.FUNCTION, 'nullable': false}
   ]);
 
-  if (!callbacks.hasOwnProperty(this.id)) callbacks[this.id] = [];
+  var portId = ports[this.messagePortName];
+
+  if (!callbacks.hasOwnProperty(portId)) callbacks[portId] = [];
 
   callbackId++;
-  callbacks[this.id].push([listener, callbackId]);
+  callbacks[portId].push([listener, callbackId]);
 
   return callbackId;
 
@@ -209,15 +218,11 @@ LocalMessagePort.prototype.addMessagePortListener = function(listener) {
 
 LocalMessagePort.prototype.removeMessagePortListener = function(watchId) {
   var args = validator_.validateArgs(arguments, [
-    {'name' : 'watchId', 'type': types_.LONG }
+    {'name' : 'watchId', 'type': types_.LONG, 'nullable': false, 'optional': false }
   ]);
 
-  if (args.watchId <= 0)
-    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR,
-        'The input parameter contains an invalid value.');
-
   var to_delete;
-  var listeners = callbacks[this.id];
+  var listeners = callbacks[ports[this.messagePortName]];
 
   for (var i = 0, j = listeners.length; i < j; i++) {
     var listener_id = listeners[i][1];
@@ -227,7 +232,7 @@ LocalMessagePort.prototype.removeMessagePortListener = function(watchId) {
     }
   }
 
-  if (typeof to_delete == 'undefined')
+  if (typeof to_delete === 'undefined')
     throw new tizen.WebAPIException(tizen.WebAPIException.NOT_FOUND_ERR,
         'The port of the target application is not found.');
 
@@ -269,7 +274,7 @@ RemoteMessagePort.prototype.sendMessage = function(data) {
     'messagePortName': this.messagePortName,
     'data': filtered_data,
     'trusted': this.isTrusted,
-    'local_port_id': args.localMessagePort ? args.localMessagePort.id : -1
+    'local_port_id': args.localMessagePort ? ports[args.localMessagePort.messagePortName] : -1
   };
 
   try {

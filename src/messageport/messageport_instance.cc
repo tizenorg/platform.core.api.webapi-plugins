@@ -74,11 +74,15 @@ static void OnReceiveLocalMessage(int local_port_id,
   picojson::value::array data;
 
   o["local_port_id"] = picojson::value(static_cast<double>(local_port_id));
-  o["remoteAppId"] = picojson::value(remote_app_id);
-  o["remotePort"] = picojson::value(remote_port);
-  o["trusted_remote_port"] = picojson::value(trusted_remote_port);
 
-  LoggerD("Msg received from: %s", remote_app_id);
+  if (remote_port) {
+    o["remoteAppId"] = picojson::value(remote_app_id);
+    o["remotePort"] = picojson::value(remote_port);
+    o["trusted"] = picojson::value(trusted_remote_port);
+    LoggerD("Msg received from: %s", remote_app_id);
+  }
+
+  LoggerD("Msg received");
 
   bundle_iterate(message, BundleJsonIterator, &data);
 
@@ -103,26 +107,25 @@ void MessageportInstance::MessagePortManagerRequestlocalmessageport
     portId < 0 ? "false" : "true");
 
 
-  if(portId < 0){
-    
+  if (portId < 0) {
     switch (portId) {
       case MESSAGE_PORT_ERROR_INVALID_PARAMETER:
         ReportError(InvalidValuesException
-          ("The input parameter contains an invalid value."),out);
+          ("The input parameter contains an invalid value."), out);
         break;
       case MESSAGE_PORT_ERROR_OUT_OF_MEMORY:
-        ReportError(UnknownException("Out of memory."),out);
+        ReportError(UnknownException("Out of memory."), out);
         break;
       case MESSAGE_PORT_ERROR_IO_ERROR:
-        ReportError(UnknownException("Internal I/O error ocurred."),out);
-        break;      
+        ReportError(UnknownException("Internal I/O error ocurred."), out);
+        break;
       default:
-        ReportError(UnknownException("Unknown Exception"),out);
+        ReportError(UnknownException("Unknown Exception"), out);
         break;
       }
-  }
-  else
+  } else {
     ReportSuccess(picojson::value(static_cast<double>(portId)), out);
+  }
 }
 
 void MessageportInstance::
@@ -140,27 +143,25 @@ void MessageportInstance::
   LoggerD("Registering trusted local port %s:%s", localMessagePortName.c_str(),
     portId < 0 ? "false" : "true");
 
-  if(portId < 0){
-    
+  if (portId < 0) {
     switch (portId) {
       case MESSAGE_PORT_ERROR_INVALID_PARAMETER:
         ReportError(InvalidValuesException
-          ("The input parameter contains an invalid value."),out);
+          ("The input parameter contains an invalid value."), out);
         break;
       case MESSAGE_PORT_ERROR_OUT_OF_MEMORY:
-        ReportError(UnknownException("Out of memory."),out);
+        ReportError(UnknownException("Out of memory."), out);
         break;
       case MESSAGE_PORT_ERROR_IO_ERROR:
-        ReportError(UnknownException("Internal I/O error ocurred."),out);
-        break;      
+        ReportError(UnknownException("Internal I/O error ocurred."), out);
+        break;
       default:
-        ReportError(UnknownException("Unknown Exception"),out);
+        ReportError(UnknownException("Unknown Exception"), out);
         break;
       }
-  }
-  else
+  } else {
     ReportSuccess(picojson::value(static_cast<double>(portId)), out);
-
+  }
 }
 
 void MessageportInstance::
@@ -181,22 +182,21 @@ void MessageportInstance::
   LoggerD("Checking remote port of %s: %s", remoteMessagePortName.c_str(),
     portCheck ? "true" : "false");
 
-  if(ret == MESSAGE_PORT_ERROR_NONE){
+  if (ret == MESSAGE_PORT_ERROR_NONE) {
     if (portCheck) ReportSuccess(out);
     else
       ReportError(NotFoundException
         ("The port of the target application is not found"), out);
-  }
-  else if(ret == MESSAGE_PORT_ERROR_INVALID_PARAMETER)
+  } else if (ret == MESSAGE_PORT_ERROR_INVALID_PARAMETER) {
       ReportError(InvalidValuesException
-        ("An input parameter contains an invalid value."),out);
-  else if(ret == MESSAGE_PORT_ERROR_OUT_OF_MEMORY)
+        ("An input parameter contains an invalid value."), out);
+  } else if (ret == MESSAGE_PORT_ERROR_OUT_OF_MEMORY) {
       ReportError(UnknownException("Out of memory."), out);
-  else if(ret == MESSAGE_PORT_ERROR_IO_ERROR)
-      ReportError(UnknownException("Internal I/O error ocurred."),out);
-  else 
-      ReportError(UnknownException("Unknown Error"),out);
-    
+  } else if (ret == MESSAGE_PORT_ERROR_IO_ERROR) {
+      ReportError(UnknownException("Internal I/O error ocurred."), out);
+  } else {
+      ReportError(UnknownException("Unknown Error"), out);
+  }
 }
 
 void MessageportInstance::
@@ -217,26 +217,24 @@ void MessageportInstance::
   LoggerD("Checking trusted remoteport of %s:%s",
     remoteMessagePortName.c_str(), portCheck ? "true":"false");
 
-
-    if(ret == MESSAGE_PORT_ERROR_NONE){
+    if (ret == MESSAGE_PORT_ERROR_NONE) {
       if (portCheck) ReportSuccess(out);
       else
         ReportError(NotFoundException
           ("The port of the target application is not found"), out);
-    }
-    else if(ret == MESSAGE_PORT_ERROR_INVALID_PARAMETER)
+    } else if (ret == MESSAGE_PORT_ERROR_INVALID_PARAMETER) {
         ReportError(InvalidValuesException
-          ("An input parameter contains an invalid value."),out);
-    else if(ret == MESSAGE_PORT_ERROR_OUT_OF_MEMORY)
+          ("An input parameter contains an invalid value."), out);
+    } else if (ret == MESSAGE_PORT_ERROR_OUT_OF_MEMORY) {
         ReportError(UnknownException("Out of memory."), out);
-    else if(ret == MESSAGE_PORT_ERROR_IO_ERROR)
-        ReportError(UnknownException("Internal I/O error ocurred."),out);
-    else if(ret == MESSAGE_PORT_ERROR_CERTIFICATE_NOT_MATCH)
+    } else if (ret == MESSAGE_PORT_ERROR_IO_ERROR) {
+        ReportError(UnknownException("Internal I/O error ocurred."), out);
+    } else if (ret == MESSAGE_PORT_ERROR_CERTIFICATE_NOT_MATCH) {
         ReportError(UnknownException(
-        "The remote application is not signed with the same certificate"),out);
-    else 
-        ReportError(UnknownException("Unknown Error"),out);
-
+        "The remote application is not signed with the same certificate"), out);
+    } else {
+        ReportError(UnknownException("Unknown Error"), out);
+    }
 }
 
 void MessageportInstance::RemoteMessagePortSendmessage
@@ -276,6 +274,8 @@ void MessageportInstance::RemoteMessagePortSendmessage
     if (local_port_id < 0) {
       result = message_port_send_message
         (appId.c_str(), message_port_name.c_str(), bundle);
+      LoggerD("-----------%s  & %s---------------",
+        appId.c_str(), message_port_name.c_str());
     } else {
       result = message_port_send_message_with_local_port
         (appId.c_str(), message_port_name.c_str(), bundle, local_port_id);
@@ -284,28 +284,28 @@ void MessageportInstance::RemoteMessagePortSendmessage
 
   bundle_free(bundle);
 
-  if(result == MESSAGE_PORT_ERROR_NONE)
+  if (result == MESSAGE_PORT_ERROR_NONE)
     ReportSuccess(out);
-  else if(result == MESSAGE_PORT_ERROR_INVALID_PARAMETER)
+  else if (result == MESSAGE_PORT_ERROR_INVALID_PARAMETER)
     ReportError(InvalidValuesException
-      ("An input parameter contains an invalid value."),out);
-  else if(result == MESSAGE_PORT_ERROR_PORT_NOT_FOUND)
+      ("An input parameter contains an invalid value.") , out);
+  else if (result == MESSAGE_PORT_ERROR_PORT_NOT_FOUND)
     ReportError(NotFoundException
-      ("The port of the target application is not found"),out);
-  else if(result == MESSAGE_PORT_ERROR_MAX_EXCEEDED)
+      ("The port of the target application is not found"), out);
+  else if (result == MESSAGE_PORT_ERROR_MAX_EXCEEDED)
     ReportError(QuotaExceededException
-      ("The size of message has exceeded the maximum limit."),out);
-  else if(result == MESSAGE_PORT_ERROR_RESOURCE_UNAVAILABLE)
-    ReportError(UnknownException("A resource is temporarily unavailable."),out);
-  else if(result == MESSAGE_PORT_ERROR_OUT_OF_MEMORY)
-    ReportError(UnknownException("Out of memory."),out);
-  else if(result == MESSAGE_PORT_ERROR_IO_ERROR)
-    ReportError(UnknownException("Internal I/O error ocurred."),out);
-  else if(result == MESSAGE_PORT_ERROR_CERTIFICATE_NOT_MATCH)
+      ("The size of message has exceeded the maximum limit."), out);
+  else if (result == MESSAGE_PORT_ERROR_RESOURCE_UNAVAILABLE)
+    ReportError(UnknownException("A resource is temporarily unavailable"), out);
+  else if (result == MESSAGE_PORT_ERROR_OUT_OF_MEMORY)
+    ReportError(UnknownException("Out of memory."), out);
+  else if (result == MESSAGE_PORT_ERROR_IO_ERROR)
+    ReportError(UnknownException("Internal I/O error ocurred."), out);
+  else if (result == MESSAGE_PORT_ERROR_CERTIFICATE_NOT_MATCH)
     ReportError(UnknownException
-      ("The remote application is not signed with the same certificate"),out);
-  else ReportError(UnknownException("Unknown Exception"),out);
-  
+      ("The remote application is not signed with the same certificate") , out);
+  else
+    ReportError(UnknownException("Unknown Exception"), out);
 }
 
 
