@@ -40,6 +40,7 @@ class FilesystemInstance : public common::ParsedInstance,
   void RemoveDirectory(const picojson::value& args, picojson::object& out);
   void StartListening(const picojson::value& args, picojson::object& out);
   void StopListening(const picojson::value& args, picojson::object& out);
+  void CopyTo(const picojson::value& args, picojson::object& out);
   void onFilesystemStateChangeErrorCallback();
   void onFilesystemStateChangeSuccessCallback(const std::string& label,
                                               const std::string& state,

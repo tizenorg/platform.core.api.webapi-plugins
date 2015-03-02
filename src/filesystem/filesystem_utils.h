@@ -18,6 +18,7 @@ enum class FilesystemError {
   FileExists,
   DirectoryExists,
   PermissionDenied,
+  IOError,
   Other
 };
 }  // namespace filesystem

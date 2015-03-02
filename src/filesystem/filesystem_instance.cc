@@ -51,6 +51,7 @@ FilesystemInstance::FilesystemInstance() {
                 FileSystemManagerMakeDirectorySync);
   REGISTER_ASYNC("File_unlinkFile", UnlinkFile);
   REGISTER_ASYNC("File_removeDirectory", RemoveDirectory);
+  REGISTER_ASYNC("File_copyTo", CopyTo);
 #undef REGISTER_SYNC
 #undef REGISTER_ASYNC
   FilesystemManager::GetInstance().AddListener(this);
@@ -531,6 +532,38 @@ void FilesystemInstance::RemoveDirectory(const picojson::value& args,
       &FilesystemManager::RemoveDirectory, &fm, pathToDelete, onSuccess, onError));
 }
 
+void FilesystemInstance::CopyTo(const picojson::value& args,
+                                  picojson::object& out) {
+  LoggerD("enter");
+  double callback_id = args.get("callbackId").get<double>();
+  const std::string& originPath = args.get("originFilePath").get<std::string>();
+  const std::string& destinationPath = args.get("destinationFilePath").get<std::string>();
+  const bool& overwrite = args.get("overwrite").get<bool>();
+
+  auto onSuccess = [this, callback_id]() {
+    LoggerD("enter");
+    picojson::value result = picojson::value();
+    picojson::value response = picojson::value(picojson::object());
+    picojson::object& obj = response.get<picojson::object>();
+    obj["callbackId"] = picojson::value(callback_id);
+    ReportSuccess(result, obj);
+    PostMessage(response.serialize().c_str());
+  };
+
+  auto onError = [this, callback_id](FilesystemError e) {
+    LoggerD("enter");
+    picojson::value response = picojson::value(picojson::object());
+    picojson::object& obj = response.get<picojson::object>();
+    obj["callbackId"] = picojson::value(callback_id);
+    PrepareError(e, obj);
+    PostMessage(response.serialize().c_str());
+  };
+
+  FilesystemManager& fm = FilesystemManager::GetInstance();
+  common::TaskQueue::GetInstance().Async(std::bind(
+      &FilesystemManager::CopyTo, &fm, originPath, destinationPath, overwrite, onSuccess, onError));
+}
+
 void FilesystemInstance::PrepareError(const FilesystemError& error, picojson::object& out)
 {
   LoggerD("enter");
@@ -549,6 +582,9 @@ void FilesystemInstance::PrepareError(const FilesystemError& error, picojson::ob
       break;
     case FilesystemError::PermissionDenied:
       ReportError(IOException("Permission denied"), out);
+      break;
+    case FilesystemError::IOError:
+      ReportError(IOException("IO Error"), out);
       break;
     case FilesystemError::Other:
       ReportError(UnknownException("PLATFORM ERROR"), out);

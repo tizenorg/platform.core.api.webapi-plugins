@@ -31,6 +31,9 @@ class FilesystemManager {
   ~FilesystemManager();
   FilesystemStateChangeListener* listener_;
 
+  bool is_listener_registered_;
+  std::set<int> ids_;
+
  public:
   static FilesystemManager& GetInstance();
 
@@ -86,13 +89,15 @@ class FilesystemManager {
                  const std::function<void()>& success_cb,
                  const std::function<void(FilesystemError)>& error_cb);
 
+void CopyTo(const std::string& originFilePath,
+          const std::string& destinationFilePath,
+          const bool overwrite,
+          const std::function<void()>& success_cb,
+          const std::function<void(FilesystemError)>& error_cb);
+
   void StartListening();
   void StopListening();
   void AddListener(FilesystemStateChangeListener* listener);
-
-  bool is_listener_registered_;
-  static std::vector<FilesystemStorage> storages;
-  std::set<int> ids_;
 };
 }  // namespace filesystem
 }  // namespace extension

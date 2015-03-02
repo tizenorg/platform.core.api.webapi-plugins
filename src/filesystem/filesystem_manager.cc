@@ -10,10 +10,13 @@
 #include <storage.h>
 #include <dirent.h>
 #include <fcntl.h>
+#include <fstream>
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#ifndef _XOPEN_SOURCE
 #define _XOPEN_SOURCE 500
+#endif
 #include <ftw.h>
 #undef _XOPEN_SOURCE
 
@@ -48,6 +51,118 @@ int unlink_cb(const char* fpath,
   if (result)
     LoggerE("error occured");
   return result;
+}
+FilesystemError copyFile(const std::string& originPath,
+                         const std::string& destPath) {
+  LoggerD("enter src %s dst %s", originPath.c_str(), destPath.c_str());
+  std::ifstream src(originPath, std::ios::in | std::ios::binary);
+  std::ofstream dst(destPath, std::ios::out | std::ios::binary);
+
+  std::istreambuf_iterator<char> begin_source(src);
+  std::istreambuf_iterator<char> end_source;
+  std::ostreambuf_iterator<char> begin_dest(dst);
+  std::copy(begin_source, end_source, begin_dest);
+
+  if (src.fail() || dst.fail()) {
+    LoggerE("Cannot copy file");
+    return FilesystemError::IOError;
+  }
+  return FilesystemError::None;
+}
+
+FilesystemError copyDirectory(const std::string& originPath,
+                              const std::string& destPath) {
+  LoggerD("enter src %s dst %s", originPath.c_str(), destPath.c_str());
+  int status;
+  // Mkdir if not exists
+  const mode_t create_mode = S_IRWXU | S_IRWXG | S_IRWXO;
+  status = mkdir(destPath.c_str(), create_mode);
+  if (status) {
+    LoggerE("Cannot create directory: %s", strerror(errno));
+    return FilesystemError::Other;
+  }
+  DIR* dp = opendir(originPath.c_str());
+  if (dp == NULL) {
+    LoggerE("Cannot open directory: %s", strerror(errno));
+    return FilesystemError::Other;
+  }
+  SCOPE_EXIT {
+    (void)closedir(dp);
+  };
+  struct dirent entry;
+  struct dirent* result = nullptr;
+  while (0 == (status = readdir_r(dp, &entry, &result)) && result != nullptr) {
+    if (strcmp(result->d_name, ".") == 0 || strcmp(result->d_name, "..") == 0)
+      continue;
+
+    std::string oldLocation =
+        originPath + std::string("/") + std::string(result->d_name);
+    std::string newLocation =
+        destPath + std::string("/") + std::string(result->d_name);
+    FilesystemError fstatus = FilesystemError::None;
+    if (result->d_type == DT_DIR) {
+      fstatus = copyDirectory(oldLocation, newLocation);
+    } else if (result->d_type == DT_REG) {
+      fstatus = copyFile(oldLocation, newLocation);
+    }
+    if (fstatus != FilesystemError::None) {
+      LoggerE("Error while copying tree");
+      return fstatus;
+    }
+  }
+  if (status != 0) {
+    LoggerE("error occured");
+    return FilesystemError::Other;
+  }
+  return FilesystemError::None;
+}
+
+FilesystemError perform_deep_copy(const std::string& originPath,
+                                  const std::string& destPath,
+                                  bool overwrite) {
+  LoggerD("enter src %s dst %s", originPath.c_str(), destPath.c_str());
+  FilesystemStat originStat = FilesystemStat::getStat(originPath);
+  FilesystemStat destStat = FilesystemStat::getStat(destPath);
+  int status;
+
+  if (!originStat.valid) {
+    LoggerE("Cannot retrieve stat in deep copy");
+    return FilesystemError::Other;
+  }
+
+  // Overwrite check
+  if (!overwrite && destStat.valid) {
+    // Do not overwrite file.
+    LoggerD("Cannot overwrite existing entity");
+    return FilesystemError::FileExists;
+  }
+
+  // Remove existing data.
+  if (destStat.valid) {
+    if (destStat.isDirectory) {
+      const int maxDirOpened = 64;
+      if (nftw(destPath.c_str(),
+               unlink_cb,
+               maxDirOpened,
+               FTW_DEPTH | FTW_PHYS) != 0) {
+        LoggerE("Error occured");
+        return FilesystemError::Other;
+      }
+    } else {
+      status = remove(destPath.c_str());
+      if (status) {
+        LoggerE("Cannot remove old directory: %s", strerror(errno));
+        return FilesystemError::Other;
+      }
+    }
+  }
+
+  if (originStat.isFile) {
+    return copyFile(originPath, destPath);
+  } else if (originStat.isDirectory) {
+    return copyDirectory(originPath, destPath);
+  }
+  return FilesystemError::None;
 }
 
 bool fetch_storages_cb(int storage_id,
@@ -190,10 +305,8 @@ void FilesystemManager::GetWidgetPaths(
     const std::function<void(const std::map<std::string, std::string>&)>&
         success_cb,
     const std::function<void(FilesystemError)>& error_cb) {
-  LoggerD("enter");
   std::map<std::string, std::string> result;
   const std::string app_root = getAppRoot();
-  LoggerD("App root is %s", app_root.c_str());
   if (app_root.empty()) {
     error_cb(FilesystemError::Other);
     return;
@@ -394,6 +507,23 @@ void FilesystemManager::StopListening() {
   }
   is_listener_registered_ = false;
 }
+
+void FilesystemManager::CopyTo(
+    const std::string& originFilePath,
+    const std::string& destinationFilePath,
+    const bool overwrite,
+    const std::function<void()>& success_cb,
+    const std::function<void(FilesystemError)>& error_cb) {
+  LoggerD("enter");
+  FilesystemError retval =
+      perform_deep_copy(originFilePath, destinationFilePath, overwrite);
+  if (FilesystemError::None == retval) {
+    success_cb();
+  } else {
+    error_cb(retval);
+  }
+}
+
 
 void FilesystemManager::AddListener(FilesystemStateChangeListener* listener) {
   LoggerD("enter");

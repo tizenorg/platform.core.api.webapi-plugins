@@ -304,15 +304,55 @@ File.prototype.copyTo = function(originFilePath, destinationFilePath, overwrite,
     {name: 'onerror', type: types_.FUNCTION, optional: true, nullable: true}
   ]);
 
+  if (arguments.length < 3) {
+    throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
+        'Invalid arguments given');
+  }
+
+  if (this.isFile) {
+    setTimeout(function() {
+      native_.callIfPossible(args.onerror,
+          new tizen.WebAPIException(tizen.WebAPIException.IO_ERR,
+          'File object which call this method is not directory'));
+    }, 0);
+    return;
+  }
+
+  var lastChar;
+  var addFilenameToPath = false;
+  if (args.destinationFilePath.length) {
+    lastChar = args.destinationFilePath.substr(args.destinationFilePath.length - 1);
+    if (lastChar === '/') {
+      addFilenameToPath = true;
+    }
+  }
+
+  var _realOriginalPath = commonFS_.toRealPath(args.originFilePath);
+  var _realDestinationPath = commonFS_.toRealPath(args.destinationFilePath);
+
+  var resultOldPath = native_.callSync('File_statSync', {location: _realOriginalPath});
+  if (native_.isFailure(resultOldPath)) {
+    setTimeout(function() {
+      native_.callIfPossible(args.onerror, native_.getErrorObject(resultOldPath));
+    }, 0);
+    return;
+  }
+  var _oldNode = native_.getResultObject(resultOldPath);
+
+  if (_oldNode.isFile && addFilenameToPath) {
+    _realDestinationPath = _realDestinationPath + _realOriginalPath.split('/').pop();
+  }
+
   var data = {
-    originFilePath: args.originFilePath,
-    destinationFilePath: args.destinationFilePath,
+    originFilePath: _realOriginalPath,
+    destinationFilePath: _realDestinationPath,
     overwrite: args.overwrite
   };
 
   var callback = function(result) {
     if (native_.isFailure(result)) {
-      native_.callIfPossible(args.onerror, native_.getErrorObject(result));
+      native_.callIfPossible(args.onerror,
+          new tizen.WebAPIException(tizen.WebAPIException.IO_ERR, result));
       return;
     }
     native_.callIfPossible(args.onsuccess);
