@@ -7,6 +7,9 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <dirent.h>
+#include <common/logger.h>
+#include <common/scope_exit.h>
 
 namespace extension {
 namespace filesystem {
@@ -31,6 +34,7 @@ picojson::value FilesystemStat::toJSON() const {
 
 FilesystemStat FilesystemStat::getStat(const std::string& path) {
   struct stat aStatObj;
+  LoggerD("enter");
   if (0 != stat(path.c_str(), &aStatObj)) {
     return FilesystemStat();
   }
@@ -44,7 +48,7 @@ FilesystemStat FilesystemStat::getStat(const std::string& path) {
   } else if (getgid() == aStatObj.st_gid &&
              (aStatObj.st_mode & S_IWGRP) == S_IWGRP) {
     _result.readOnly = false;
-  } else if (aStatObj.st_mode & S_IWOTH == S_IWOTH) {
+  } else if ((aStatObj.st_mode & S_IWOTH) == S_IWOTH) {
     _result.readOnly = false;
   }
 
@@ -53,10 +57,38 @@ FilesystemStat FilesystemStat::getStat(const std::string& path) {
   _result.ctime = aStatObj.st_ctim.tv_sec;
   _result.mtime = aStatObj.st_mtim.tv_sec;
   _result.size = aStatObj.st_size;
-  _result.nlink = aStatObj.st_nlink;
+  _result.nlink = 0;
+  if (_result.isDirectory) {
+    // Count entries in directory
+    DIR* dir = opendir(path.c_str());
+    if (!dir) {
+      LoggerE("Cannot open directory: %s", strerror(errno));
+      return _result;
+    }
+    SCOPE_EXIT {
+      (void) closedir(dir);
+    };
+
+    struct dirent entry;
+    struct dirent *result = nullptr;
+    int status;
+
+    while ( (0 == (status = readdir_r(dir, &entry, &result) ) && result != nullptr) ) {
+      std::string name = result->d_name;
+      if (name == "." || name == "..") {
+        continue;
+      }
+      _result.nlink++;
+    }
+
+    if (status != 0) {
+      LoggerE("Cannot count files in directory: %s", strerror(errno));
+      return _result;
+    }
+  }
 
   _result.valid = true;
   return _result;
 }
-}
-}
+}  // namespace filesystem
+}  // namespace extension
