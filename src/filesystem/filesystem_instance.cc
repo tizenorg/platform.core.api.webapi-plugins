@@ -396,7 +396,10 @@ void FilesystemInstance::FileSystemManagerMakeDirectory(
     picojson::value response = picojson::value(picojson::object());
     picojson::object& obj = response.get<picojson::object>();
     obj["callbackId"] = picojson::value(callback_id);
-    PrepareError(e, obj);
+    if (e == FilesystemError::DirectoryExists)
+      ReportSuccess(obj);
+    else
+      PrepareError(e, obj);
     PostMessage(response.serialize().c_str());
   };
 
@@ -417,7 +420,10 @@ void FilesystemInstance::FileSystemManagerMakeDirectorySync(
 
   auto onResult = [&](FilesystemError e) {
     LoggerD("enter");
-    PrepareError(e, out);
+    if (e == FilesystemError::DirectoryExists)
+      ReportSuccess(out);
+    else
+      PrepareError(e, out);
   };
 
   FilesystemManager::GetInstance().MakeDirectory(location, onResult);
