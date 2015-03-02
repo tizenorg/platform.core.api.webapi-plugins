@@ -17,6 +17,7 @@
 #include <unistd.h>
 
 #include "common/picojson.h"
+#include "common/platform_result.h"
 
 #include "unicode/timezone.h"
 #include "unicode/calendar.h"
@@ -426,8 +427,8 @@ class TimeUtilListeners {
   TimeUtilListeners();
   ~TimeUtilListeners();
 
-  void RegisterVconfCallback(ListenerType type);
-  void UnregisterVconfCallback(ListenerType type);
+  PlatformResult RegisterVconfCallback(ListenerType type);
+  PlatformResult UnregisterVconfCallback(ListenerType type);
 
   std::string GetCurrentTimezone();
   void SetCurrentTimezone(std::string& newTimezone);
@@ -455,14 +456,15 @@ TimeUtilListeners::~TimeUtilListeners() {
   }
 }
 
-void TimeUtilListeners::RegisterVconfCallback(ListenerType type) {
+PlatformResult TimeUtilListeners::RegisterVconfCallback(ListenerType type) {
   LoggerD("");
   if (!is_time_listener_registered_ && !is_timezone_listener_registered_) {
     LoggerD("registering listener on platform");
     if (0 != vconf_notify_key_changed(VCONFKEY_SYSTEM_TIME_CHANGED,
                                       OnTimeChangedCallback, nullptr)) {
       LoggerE("Failed to register vconf callback");
-      throw UnknownException("Failed to register vconf callback");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR,
+          "Failed to register vconf callback");
     }
   } else {
     LoggerD("not registering listener on platform - already registered");
@@ -478,11 +480,12 @@ void TimeUtilListeners::RegisterVconfCallback(ListenerType type) {
       break;
     default:
       LoggerE("Unknown type of listener");
-      throw UnknownException("Unknown type of listener");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown type of listener");
   }
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void TimeUtilListeners::UnregisterVconfCallback(ListenerType type) {
+PlatformResult TimeUtilListeners::UnregisterVconfCallback(ListenerType type) {
   LoggerD("");
   switch (type) {
     case kTimeChange:
@@ -494,7 +497,7 @@ void TimeUtilListeners::UnregisterVconfCallback(ListenerType type) {
       LoggerD("time zone change listener unregistered");
       break;
     default:
-      throw UnknownException("Unknown type of listener");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown type of listener");
   }
   if (!is_time_listener_registered_ && !is_timezone_listener_registered_) {
     LoggerD("unregistering listener on platform");
@@ -503,6 +506,7 @@ void TimeUtilListeners::UnregisterVconfCallback(ListenerType type) {
       LoggerE("Failed to unregister vconf callback");
     }
   }
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 std::string TimeUtilListeners::GetCurrentTimezone() {
@@ -553,26 +557,42 @@ static void OnTimeChangedCallback(keynode_t* /*node*/, void* /*event_ptr*/) {
 
 void TimeInstance::TimeSetDateTimeChangeListener(const JsonValue& /*args*/,
                                                  JsonObject& out) {
-  g_time_util_listeners_obj.RegisterVconfCallback(kTimeChange);
-  ReportSuccess(out);
+  PlatformResult result =
+      g_time_util_listeners_obj.RegisterVconfCallback(kTimeChange);
+  if (result.IsError())
+    ReportError(result, &out);
+  else
+    ReportSuccess(out);
 }
 
 void TimeInstance::TimeUnsetDateTimeChangeListener(const JsonValue& /*args*/,
                                                    JsonObject& out) {
-  g_time_util_listeners_obj.UnregisterVconfCallback(kTimeChange);
-  ReportSuccess(out);
+  PlatformResult result =
+      g_time_util_listeners_obj.UnregisterVconfCallback(kTimeChange);
+  if (result.IsError())
+    ReportError(result, &out);
+  else
+    ReportSuccess(out);
 }
 
 void TimeInstance::TimeSetTimezoneChangeListener(const JsonValue& /*args*/,
                                                  JsonObject& out) {
-  g_time_util_listeners_obj.RegisterVconfCallback(kTimezoneChange);
-  ReportSuccess(out);
+  PlatformResult result =
+      g_time_util_listeners_obj.RegisterVconfCallback(kTimezoneChange);
+  if (result.IsError())
+    ReportError(result, &out);
+  else
+    ReportSuccess(out);
 }
 
 void TimeInstance::TimeUnsetTimezoneChangeListener(const JsonValue& /*args*/,
                                                    JsonObject& out) {
-  g_time_util_listeners_obj.UnregisterVconfCallback(kTimezoneChange);
-  ReportSuccess(out);
+  PlatformResult result =
+      g_time_util_listeners_obj.UnregisterVconfCallback(kTimezoneChange);
+  if (result.IsError())
+    ReportError(result, &out);
+  else
+    ReportSuccess(out);
 }
 
 }  // namespace time
