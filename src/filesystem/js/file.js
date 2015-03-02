@@ -223,20 +223,29 @@ File.prototype.openStream = function(mode, onsuccess, onerror, encoding) {
     {name: 'encoding', type: types_.STRING, optional: true, nullable: true}
   ]);
 
-  var data = {
-    mode: args.mode,
-    encoding: args.encoding
-  };
+  if (this.mode === 'r' && args.mode !== 'r') {
+    setTimeout(function() {
+      native_.callIfPossible(args.onerror,
+          new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR, 'Read only mode'));
+    }, 0);
+    return;
+  }
 
-  var callback = function(result) {
-    if (native_.isFailure(result)) {
-      native_.callIfPossible(args.onerror, native_.getErrorObject(result));
-      return;
-    }
-    native_.callIfPossible(args.onsuccess, new FileStream(native_.getResultObject(result)));
-  };
+  if (this.isDirectory) {
+    var directoryMessage = 'This method should be called on file, not directory';
+    setTimeout(function() {
+      native_.callIfPossible(args.onerror, new tizen.WebAPIException(tizen.WebAPIException.IO_ERR,
+          directoryMessage));
+    }, 0);
+    return;
+  }
 
-  native_.call('File_openStream', data, callback);
+  _checkEncoding(args.encoding);
+
+  var fileStream = new FileStream(this, args.mode, args.encoding);
+  setTimeout(function() {
+    native_.callIfPossible(args.onsuccess, fileStream);
+  }, 0);
 };
 
 File.prototype.readAsText = function(onsuccess, onerror, encoding) {
