@@ -15,7 +15,7 @@
 // limitations under the License.
 //
 
-#include "get_exif_info.h"
+#include "exif/get_exif_info.h"
 
 #include <math.h>
 #include <memory>
@@ -25,7 +25,7 @@
 #include "common/platform_exception.h"
 #include "common/logger.h"
 
-#include "exif_util.h"
+#include "exif/exif_util.h"
 
 namespace extension {
 namespace exif {
@@ -102,7 +102,8 @@ bool DecomposeExifUndefined(ExifEntry* entry, std::string& type, std::string& va
   return true;
 }
 
-void GetExifInfo::ProcessEntry(ExifEntry* entry, ExifData* exif_data,
+void GetExifInfo::ProcessEntry(ExifEntry* entry,
+                               ExifData* exif_data,
                                JsonObject* result_obj) {
   char buf[2000];
   exif_entry_get_value(entry, buf, sizeof(buf));
@@ -118,28 +119,28 @@ void GetExifInfo::ProcessEntry(ExifEntry* entry, ExifData* exif_data,
     case EXIF_TAG_IMAGE_WIDTH: {
       exif_entry_get_value(entry, buf, sizeof(buf));
       LoggerD("Setting ExifInformation width to: [%s]", buf);
-      pair = std::make_pair("width", picojson::value(std::string(buf)));
+      pair = std::make_pair("width", JsonValue(std::string(buf)));
       result_obj->insert(pair);
       break;
     }
     case EXIF_TAG_IMAGE_LENGTH: {
       exif_entry_get_value(entry, buf, sizeof(buf));
       LoggerD("Setting ExifInformation height to: [%s]", buf);
-      pair = std::make_pair("height", picojson::value(std::string(buf)));
+      pair = std::make_pair("height", JsonValue(std::string(buf)));
       result_obj->insert(pair);
       break;
     }
     case EXIF_TAG_MAKE: {
       exif_entry_get_value(entry, buf, sizeof(buf));
       LoggerD("Setting ExifInformation maker to: [%s]", buf);
-      pair = std::make_pair("deviceMaker", picojson::value(std::string(buf)));
+      pair = std::make_pair("deviceMaker", JsonValue(std::string(buf)));
       result_obj->insert(pair);
       break;
     }
     case EXIF_TAG_MODEL: {
       exif_entry_get_value(entry, buf, sizeof(buf));
       LoggerD("Setting ExifInformation model to: [%s]", buf);
-      pair = std::make_pair("deviceModel", picojson::value(std::string(buf)));
+      pair = std::make_pair("deviceModel", JsonValue(std::string(buf)));
       result_obj->insert(pair);
       break;
     }
@@ -152,7 +153,7 @@ void GetExifInfo::ProcessEntry(ExifEntry* entry, ExifData* exif_data,
           static_cast<int>(time));
       // convert time_t (number of seconds) to string
       pair = std::make_pair("originalTimeSeconds",
-          picojson::value(static_cast<double>(time)));
+          JsonValue(static_cast<double>(time)));
       result_obj->insert(pair);
       break;
     }
@@ -162,9 +163,9 @@ void GetExifInfo::ProcessEntry(ExifEntry* entry, ExifData* exif_data,
       const ExifByteOrder order = exif_data_get_byte_order(exif_data);
       const ExifShort orient(exif_get_short(entry->data, order));
 
-      std::string orientation = ExifUtil::orientationToString(
+      const std::string& orientation = ExifUtil::orientationToString(
           static_cast<ImageOrientation>(orient));
-      pair = std::make_pair("orientation", picojson::value(orientation));
+      pair = std::make_pair("orientation", JsonValue(orientation));
       result_obj->insert(pair);
 
       if (orient < EXIF_ORIENTATION_NORMAL || orient >= EXIF_ORIENTATION_NOT_VALID) {
@@ -182,7 +183,7 @@ void GetExifInfo::ProcessEntry(ExifEntry* entry, ExifData* exif_data,
       if (fnumber.isValid()) {
         LoggerD("Setting ExifInformation fnumber to: %f (%s)", fnumber.toDouble(),
           fnumber.toString().c_str());
-        pair = std::make_pair("fNumber", picojson::value(fnumber.toDouble()));
+        pair = std::make_pair("fNumber", JsonValue(fnumber.toDouble()));
         result_obj->insert(pair);
       } else {
         LoggerW("Couldn't set ExifInformation - fnumber is not valid: %s",
@@ -200,17 +201,17 @@ void GetExifInfo::ProcessEntry(ExifEntry* entry, ExifData* exif_data,
         const size_t size_per_member =
             ExifUtil::getSizeOfExifFormatType(entry->format);
 
-        JsonArray array = picojson::array();
+        JsonArray array = JsonArray();
         for (unsigned long i = 0; i < entry->components; ++i) {
           ExifShort iso_rating = exif_get_short(read_ptr, order);
-          array.push_back(picojson::value(std::to_string(iso_rating)));
+          array.push_back(JsonValue(std::to_string(iso_rating)));
 
           LoggerD("Appending ExifInformation speed ratings with: %d",
               static_cast<int>(iso_rating));
 
           read_ptr += size_per_member;
         }
-        pair = std::make_pair("isoSpeedRatings", picojson::value(array));
+        pair = std::make_pair("isoSpeedRatings", JsonValue(array));
         result_obj->insert(pair);
       } else {
         LoggerE("iso speed ratings: format or components count is invalid!");
@@ -231,7 +232,7 @@ void GetExifInfo::ProcessEntry(ExifEntry* entry, ExifData* exif_data,
           LoggerD("Setting ExifInformation exposure time to: %s (%s)",
               exp_time.toString().c_str(),
               exp_time.toExposureTimeString().c_str());
-          pair = std::make_pair("exposureTime", picojson::value(exp_time.toDouble()));
+          pair = std::make_pair("exposureTime", JsonValue(exp_time.toDouble()));
           result_obj->insert(pair);
         } else {
           LoggerD("Couldn't set ExifInformation - exposure time is not valid: %s",
@@ -257,7 +258,7 @@ void GetExifInfo::ProcessEntry(ExifEntry* entry, ExifData* exif_data,
             exp_program, buf);
         std::string exp_program_string =
             ExifUtil::exposureProgramToString(static_cast<ExposureProgram>(exp_program));
-        pair = std::make_pair("exposureProgram", picojson::value(exp_program_string));
+        pair = std::make_pair("exposureProgram", JsonValue(exp_program_string));
         result_obj->insert(pair);
       }
       break;
@@ -270,7 +271,7 @@ void GetExifInfo::ProcessEntry(ExifEntry* entry, ExifData* exif_data,
       const ExifShort flash = exif_get_short(entry->data, order);
 
       LoggerD("Setting ExifInformation flash to: [%s] flash=%d", buf, flash);
-      pair = std::make_pair("flash", picojson::value((flash != 0) ? "true" : "false"));
+      pair = std::make_pair("flash", JsonValue((flash != 0) ? "true" : "false"));
       result_obj->insert(pair);
       break;
     }
@@ -280,7 +281,7 @@ void GetExifInfo::ProcessEntry(ExifEntry* entry, ExifData* exif_data,
       if (flength.isValid()) {
         LoggerD("Setting ExifInformation focal length to: %f (%s)",
             flength.toDouble(), flength.toString().c_str());
-        pair = std::make_pair("focalLength", picojson::value(flength.toDouble()));
+        pair = std::make_pair("focalLength", JsonValue(flength.toDouble()));
         result_obj->insert(pair);
       } else {
         LoggerW("Couldn't set ExifInformation - focal length is not valid: %s",
@@ -293,7 +294,7 @@ void GetExifInfo::ProcessEntry(ExifEntry* entry, ExifData* exif_data,
       exif_entry_get_value(entry, buf, sizeof(buf));
       LoggerD("Setting ExifInformation white balance to: [%s]", buf);
       pair = std::make_pair("whiteBalanceValue",
-          picojson::value(static_cast<double>(entry->data[0])));
+          JsonValue(static_cast<double>(entry->data[0])));
       result_obj->insert(pair);
       break;
     }
@@ -301,11 +302,11 @@ void GetExifInfo::ProcessEntry(ExifEntry* entry, ExifData* exif_data,
       // RATIONAL - 3
       GCSPosition longitude;
       if (GetGCSPositionFromEntry(entry, exif_data, longitude)) {
-        pair = std::make_pair("gpsLongitudeDegrees", picojson::value(longitude.degrees.toDouble()));
+        pair = std::make_pair("gpsLongitudeDegrees", JsonValue(longitude.degrees.toDouble()));
         result_obj->insert(pair);
-        pair = std::make_pair("gpsLongitudeMinutes", picojson::value(longitude.minutes.toDouble()));
+        pair = std::make_pair("gpsLongitudeMinutes", JsonValue(longitude.minutes.toDouble()));
         result_obj->insert(pair);
-        pair = std::make_pair("gpsLongitudeSeconds", picojson::value(longitude.seconds.toDouble()));
+        pair = std::make_pair("gpsLongitudeSeconds", JsonValue(longitude.seconds.toDouble()));
         result_obj->insert(pair);
         LoggerD("Setting ExifInformation gps longitude to: %s; %s; %s valid:%d",
             longitude.degrees.toString().c_str(),
@@ -326,11 +327,11 @@ void GetExifInfo::ProcessEntry(ExifEntry* entry, ExifData* exif_data,
 
       const char ref = static_cast<char>(entry->data[0]);
       if ('E' == ref || 'e' == ref) {      // East
-        pair = std::make_pair("gpsLongitudeRef", picojson::value("EAST"));
+        pair = std::make_pair("gpsLongitudeRef", JsonValue("EAST"));
         result_obj->insert(pair);
         LoggerD("Setting ExifInformation gps longitude REF to: EAST");
       } else if ('W' == ref || 'w' == ref) {   // West
-        pair = std::make_pair("gpsLongitudeRef", picojson::value("WEST"));
+        pair = std::make_pair("gpsLongitudeRef", JsonValue("WEST"));
         result_obj->insert(pair);
         LoggerD("Setting ExifInformation gps longitude REF to: WEST");
       } else {
@@ -346,11 +347,11 @@ void GetExifInfo::ProcessEntry(ExifEntry* entry, ExifData* exif_data,
 
       GCSPosition latitude;
       if (GetGCSPositionFromEntry(entry, exif_data, latitude)) {
-        pair = std::make_pair("gpsLatitudeDegrees", picojson::value(latitude.degrees.toDouble()));
+        pair = std::make_pair("gpsLatitudeDegrees", JsonValue(latitude.degrees.toDouble()));
         result_obj->insert(pair);
-        pair = std::make_pair("gpsLatitudeMinutes", picojson::value(latitude.minutes.toDouble()));
+        pair = std::make_pair("gpsLatitudeMinutes", JsonValue(latitude.minutes.toDouble()));
         result_obj->insert(pair);
-        pair = std::make_pair("gpsLatitudeSeconds", picojson::value(latitude.seconds.toDouble()));
+        pair = std::make_pair("gpsLatitudeSeconds", JsonValue(latitude.seconds.toDouble()));
         result_obj->insert(pair);
 
         LoggerD("Setting ExifInformation gps latitude to: %s; %s; %s valid:%d",
@@ -372,11 +373,11 @@ void GetExifInfo::ProcessEntry(ExifEntry* entry, ExifData* exif_data,
 
       const char ref = static_cast<char>(entry->data[0]);
       if ('N' == ref || 'n' == ref) {      // North
-        pair = std::make_pair("gpsLatitudeRef", picojson::value("NORTH"));
+        pair = std::make_pair("gpsLatitudeRef", JsonValue("NORTH"));
         result_obj->insert(pair);
         LoggerD("Setting ExifInformation gps latitude REF to: NORTH");
       } else if ('S' == ref || 's' == ref) {   // South
-        pair = std::make_pair("gpsLatitudeRef", picojson::value("SOUTH"));
+        pair = std::make_pair("gpsLatitudeRef", JsonValue("SOUTH"));
         result_obj->insert(pair);
         LoggerD("Setting ExifInformation gps latitude REF to: SOUTH");
       } else {
@@ -390,7 +391,7 @@ void GetExifInfo::ProcessEntry(ExifEntry* entry, ExifData* exif_data,
       if (gps_altitude.isValid()) {
         LoggerD("Setting ExifInformation gps altitude to: %f (%s)",
             gps_altitude.toDouble(), gps_altitude.toString().c_str());
-        pair = std::make_pair("gpsAltitude", picojson::value(gps_altitude.toDouble()));
+        pair = std::make_pair("gpsAltitude", JsonValue(gps_altitude.toDouble()));
         result_obj->insert(pair);
       } else {
         LoggerW("Couldn't set ExifInformation - gps altitude is not valid: %s",
@@ -401,7 +402,7 @@ void GetExifInfo::ProcessEntry(ExifEntry* entry, ExifData* exif_data,
     case EXIF_TAG_GPS_ALTITUDE_REF: {
       // BYTE - 1
       const ExifByte altitude_ref = static_cast<ExifByte>(entry->data[0]);
-      pair = std::make_pair("gpsAltitudeRef", picojson::value(static_cast<double>(altitude_ref)));
+      pair = std::make_pair("gpsAltitudeRef", JsonValue(static_cast<double>(altitude_ref)));
       result_obj->insert(pair);
       LoggerD("Setting ExifInformation gps altitude ref to: %d (%s)",
             static_cast<int>(altitude_ref),
@@ -415,7 +416,7 @@ void GetExifInfo::ProcessEntry(ExifEntry* entry, ExifData* exif_data,
       if (DecomposeExifUndefined(entry, type, value)) {
         LoggerD("Extracted GPSProcessingMethod: [%s], len:%d, type:%s",
             value.c_str(), value.length(), type.c_str());
-        pair = std::make_pair("gpsProcessingMethod", picojson::value(value));
+        pair = std::make_pair("gpsProcessingMethod", JsonValue(value));
         result_obj->insert(pair);
       } else {
         LoggerW("GPSProcessingMethod tag contains invalid values!");
@@ -424,7 +425,7 @@ void GetExifInfo::ProcessEntry(ExifEntry* entry, ExifData* exif_data,
     }
     case EXIF_TAG_GPS_DATE_STAMP: {
       // ASCII - 11
-      pair = std::make_pair("gpsExifDate", picojson::value(std::string(buf)));
+      pair = std::make_pair("gpsExifDate", JsonValue(std::string(buf)));
       result_obj->insert(pair);
       LoggerD("Setting ExifInformation gps date stamp to %s", std::string(buf).c_str());
       break;
@@ -435,11 +436,11 @@ void GetExifInfo::ProcessEntry(ExifEntry* entry, ExifData* exif_data,
 
       Rationals time;
       if (GetRationalsFromEntry(entry, exif_data, 3, time)) {
-        pair = std::make_pair("gpsExifTimeHours", picojson::value(time[0].toDouble()));
+        pair = std::make_pair("gpsExifTimeHours", JsonValue(time[0].toDouble()));
         result_obj->insert(pair);
-        pair = std::make_pair("gpsExifTimeMinutes", picojson::value(time[1].toDouble()));
+        pair = std::make_pair("gpsExifTimeMinutes", JsonValue(time[1].toDouble()));
         result_obj->insert(pair);
-        pair = std::make_pair("gpsExifTimeSeconds", picojson::value(time[2].toDouble()));
+        pair = std::make_pair("gpsExifTimeSeconds", JsonValue(time[2].toDouble()));
         result_obj->insert(pair);
       }
       break;
@@ -451,7 +452,7 @@ void GetExifInfo::ProcessEntry(ExifEntry* entry, ExifData* exif_data,
         LoggerD("Extracted UserComment: [%s], len:%d, type:%s",
             value.c_str(), value.length(), type.c_str());
 
-        pair = std::make_pair("userComment", picojson::value(value));
+        pair = std::make_pair("userComment", JsonValue(value));
         result_obj->insert(pair);
       } else {
         LoggerW("UserComment tag contains invalid values!");
@@ -487,7 +488,7 @@ void GetExifInfo::DataForeachFunction(ExifContent *content, void *user_data) {
 }
 
 JsonValue GetExifInfo::LoadFromURI(const std::string& uri) {
-  const std::string file_path = ExifUtil::convertUriToPath(uri);
+  const std::string& file_path = ExifUtil::convertUriToPath(uri);
   ExifData* ed = exif_data_new_from_file(file_path.c_str());
   if (!ed) {
     LoggerE("Error reading exif from file %s", file_path.c_str());
@@ -510,7 +511,7 @@ JsonValue GetExifInfo::LoadFromURI(const std::string& uri) {
   ed = NULL;
 
   // uri is not taken from jgp Exif, so we add it here
-  holder.result_obj_ptr->insert(std::make_pair("uri", picojson::value(uri)));
+  holder.result_obj_ptr->insert(std::make_pair("uri", JsonValue(uri)));
 
   return result;
 }

@@ -23,11 +23,9 @@
 
 #include <iomanip>
 #include <limits>
-#include <cstdio>
-#include <sstream>
 
-#include "common/platform_exception.h"
 #include "common/logger.h"
+#include "common/platform_exception.h"
 
 namespace extension {
 namespace exif {
@@ -130,14 +128,14 @@ JpegFilePtr JpegFile::loadFile(const std::string& path) {
 }
 
 void JpegFile::load(const std::string& path) {
-  LoggerD("Entered file:%s", path.c_str());
+  LoggerD("Entered file: %s", path.c_str());
 
   m_source_file_path = path;
 
   m_in_file = fopen(path.c_str(), "rb");
   if (!m_in_file) {
     LoggerE("Couldn't open Jpeg file: [%s]", path.c_str());
-    throw common::NotFoundException("Could not open JPG file");
+    throw common::NotFoundException("Could not open JPEG file");
   }
 
   fseek(m_in_file, 0, SEEK_END);

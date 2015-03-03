@@ -21,10 +21,10 @@
 #include <libexif/exif-loader.h>
 #include <string>
 
-#include "exif_gps_location.h"
-
 #include "common/extension.h"
 #include "common/picojson.h"
+
+#include "exif/exif_gps_location.h"
 
 typedef picojson::value JsonValue;
 typedef picojson::object JsonObject;
@@ -38,7 +38,8 @@ extern const size_t EXIF_UNDEFINED_TYPE_LENGTH;
 
 class GetExifInfo {
  public:
-  static void ProcessEntry(ExifEntry* entry, ExifData* exif_data,
+  static void ProcessEntry(ExifEntry* entry,
+                           ExifData* exif_data,
                            JsonObject* result_obj);
   static JsonValue LoadFromURI(const std::string& uri);
 
@@ -51,7 +52,7 @@ class GetExifInfo {
 
 typedef std::shared_ptr<GetExifInfo> GetExifInfoPtr;
 
-}  //  namespace exif
-}  //  namespace extension
+}  // namespace exif
+}  // namespace extension
 
 #endif  // WEBAPI_PLUGINS_EXIF_GET_EXIF_INFO_H__

@@ -19,12 +19,14 @@
 #define EXIF_EXIF_INFORMATION_H_
 
 #include <libexif/exif-loader.h>
+
+#include <map>
 #include <string>
 #include <vector>
-#include <map>
 
-#include "exif_gps_location.h"
 #include "common/picojson.h"
+
+#include "exif/exif_gps_location.h"
 
 namespace extension {
 namespace exif {
@@ -185,15 +187,15 @@ class ExifInformation {
   void setGpsAltitudeWithRef(double gps_altitude);
 
   /**
-   * Return gps altitude which can be negative (below sea level) and positive (above sea
-   * level)
+   * Return gps altitude which can be negative (below sea level)
+   * and positive (above sea level)
    */
   double getGpsAltitudeWithRef() const;
 
   const std::string& getGpsProcessingMethod() const;
   const std::string& getGpsProcessingMethodType() const;
   void setGpsProcessingMethod(const std::string& type,
-      const std::string& processing_method);
+                              const std::string& processing_method);
 
   void setGpsTime(time_t time);
   time_t getGpsTime();
@@ -201,8 +203,7 @@ class ExifInformation {
 
   const std::string& getUserComment();
   const std::string& getUserCommentType();
-  void setUserComment(const std::string& type,
-      const std::string& user_comment);
+  void setUserComment(const std::string& type, const std::string& user_comment);
 
   bool isSet(ExifInformationAttribute attribute) const;
   void unset(ExifInformationAttribute attribute);

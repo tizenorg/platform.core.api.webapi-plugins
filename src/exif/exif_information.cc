@@ -20,9 +20,10 @@
 #include <memory>
 #include <cmath>
 
-#include "common/platform_exception.h"
+#include "common/assert.h"
 #include "common/converter.h"
 #include "common/logger.h"
+#include "common/platform_exception.h"
 
 #include "exif_tag_saver.h"
 #include "exif_util.h"
@@ -820,7 +821,7 @@ void ExifInformation::updateAttributesInExifData(ExifData* exif_data) {
     LoggerD("Saving gps processing method: [%s] type:%s",
         getGpsProcessingMethod().c_str(), getGpsProcessingMethodType().c_str());
 
-    const std::string joined = getGpsProcessingMethodType() +
+    const std::string& joined = getGpsProcessingMethodType() +
         getGpsProcessingMethod();
     LoggerD("joined: [%s]", joined.c_str());
 
@@ -831,7 +832,7 @@ void ExifInformation::updateAttributesInExifData(ExifData* exif_data) {
   if (isSet(EXIF_INFORMATION_ATTRIBUTE_GPS_TIME)) {
     const time_t gps_time = getGpsTime();
     const Rationals gps_time_vec = ExifUtil::timeTToExifGpsTimeStamp(gps_time);
-    const std::string gps_date_str =
+    const std::string& gps_date_str =
         ExifUtil::timeTToExifGpsDateStamp(gps_time);
     LoggerD("Saving gps time stamp time_t: %d", static_cast<int>(gps_time));
 
@@ -848,7 +849,7 @@ void ExifInformation::updateAttributesInExifData(ExifData* exif_data) {
     LoggerD("Saving user comment: %s (type:%s)", getUserComment().c_str(),
         getUserCommentType().c_str());
 
-    const std::string joined = getUserCommentType() + getUserComment();
+    const std::string& joined = getUserCommentType() + getUserComment();
     LoggerD("joined: [%s]", joined.c_str());
 
     ExifTagSaver::saveToExif(joined,

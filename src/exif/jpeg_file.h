@@ -23,11 +23,11 @@
 #include <libexif/exif-entry.h>
 #include <libexif/exif-utils.h>
 
+#include <cstdio>
 #include <memory>
+#include <map>
 #include <string>
 #include <vector>
-#include <cstdio>
-#include <map>
 
 namespace extension {
 namespace exif {
