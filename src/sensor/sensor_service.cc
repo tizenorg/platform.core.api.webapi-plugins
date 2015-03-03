@@ -79,6 +79,13 @@ void ReportSensorData(sensor_type_e sensor_type, sensor_event_s* sensor_event,
       (*out)["ultravioletLevel"] = picojson::value(static_cast<double>(sensor_event->values[0]));
       break;
     }
+    case SENSOR_HRM_LED_IR:
+    case SENSOR_HRM_LED_RED:
+    case SENSOR_HRM_LED_GREEN: {
+      (*out)["lightType"] = picojson::value(type_to_string_map[sensor_type]);
+      (*out)["lightIntensity"] = picojson::value(static_cast<double>(sensor_event->values[0]));
+      break;
+    }
     default: {
       ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Unsupported type"), out);
       return;
@@ -394,6 +401,106 @@ PlatformResult SensorData::GetSensorData(picojson::object* data) {
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
+class HrmSensorData : public SensorData {
+ public:
+  HrmSensorData();
+  virtual ~HrmSensorData();
+
+  virtual PlatformResult Start();
+  virtual PlatformResult Stop();
+  virtual PlatformResult SetChangeListener();
+  virtual PlatformResult UnsetChangeListener();
+  virtual PlatformResult GetSensorData(picojson::object* data);
+
+ private:
+  void AddSensor(SensorData* sensor);
+  PlatformResult CallMember(PlatformResult (SensorData::*member) ());
+  virtual PlatformResult IsSupportedImpl(bool* supported) const;
+
+  std::map<sensor_type_e, std::shared_ptr<SensorData>> hrm_sensors_;
+};
+
+HrmSensorData::HrmSensorData()
+    : SensorData(SENSOR_CUSTOM, "HRM_RAW") {
+  LoggerD("Entered: %s", type_to_string_map[type()].c_str());
+  AddSensor(new SensorData(SENSOR_HRM_LED_IR, "LED_IR"));
+  AddSensor(new SensorData(SENSOR_HRM_LED_RED, "LED_RED"));
+  AddSensor(new SensorData(SENSOR_HRM_LED_GREEN, "LED_GREEN"));
+}
+
+HrmSensorData::~HrmSensorData() {
+  LoggerD("Entered: %s", type_to_string_map[type()].c_str());
+}
+
+void HrmSensorData::AddSensor(SensorData* sensor) {
+  LoggerD("Entered: %s", type_to_string_map[type()].c_str());
+  hrm_sensors_.insert(std::make_pair(sensor->type(), std::shared_ptr<SensorData>(sensor)));
+}
+
+PlatformResult HrmSensorData::CallMember(PlatformResult (SensorData::*member) ()) {
+  LoggerD("Entered: %s", type_to_string_map[type()].c_str());
+  for (const auto& sensor : hrm_sensors_) {
+    if (sensor.second->is_supported()) {
+      auto res = (sensor.second.get()->*member)();
+      if (!res) {
+        return res;
+      }
+    }
+  }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult HrmSensorData::IsSupportedImpl(bool* supported) const {
+  LoggerD("Entered: %s", type_to_string_map[type()].c_str());
+  bool result = false;
+
+  for (const auto& sensor : hrm_sensors_) {
+    bool is_supported = false;
+    auto res = sensor.second->IsSupported(&is_supported);
+    if (!res) {
+      return res;
+    }
+    result |= is_supported;
+  }
+
+  *supported = result;
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult HrmSensorData::Start() {
+  LoggerD("Entered: %s", type_to_string_map[type()].c_str());
+  return CallMember(&SensorData::Start);
+}
+
+PlatformResult HrmSensorData::Stop() {
+  LoggerD("Entered: %s", type_to_string_map[type()].c_str());
+  return CallMember(&SensorData::Stop);
+}
+
+PlatformResult HrmSensorData::SetChangeListener() {
+  LoggerD("Entered: %s", type_to_string_map[type()].c_str());
+  return CallMember(&SensorData::SetChangeListener);
+}
+
+PlatformResult HrmSensorData::UnsetChangeListener() {
+  LoggerD("Entered: %s", type_to_string_map[type()].c_str());
+  return CallMember(&SensorData::UnsetChangeListener);
+}
+
+PlatformResult HrmSensorData::GetSensorData(picojson::object* data) {
+  LoggerD("Entered: %s", type_to_string_map[type()].c_str());
+  for (const auto& sensor : hrm_sensors_) {
+    if (sensor.second->is_supported()) {
+      // HRMRawSensor.getHRMRawSensorData() can return only one value,
+      // so we're returning the data from the first available sensor
+      return sensor.second->GetSensorData(data);
+    }
+  }
+
+  return PlatformResult(ErrorCode::UNKNOWN_ERR, "There are no supported HRM sensors.");
+}
+
 SensorService::SensorService() {
   LoggerD("Entered");
 
@@ -402,6 +509,7 @@ SensorService::SensorService() {
   AddSensor(new SensorData(SENSOR_PRESSURE, "PRESSURE"));
   AddSensor(new SensorData(SENSOR_PROXIMITY, "PROXIMITY"));
   AddSensor(new SensorData(SENSOR_ULTRAVIOLET, "ULTRAVIOLET"));
+  AddSensor(new HrmSensorData());
 }
 
 SensorService::~SensorService() {
