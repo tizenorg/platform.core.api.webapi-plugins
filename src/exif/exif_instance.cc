@@ -28,8 +28,10 @@ using common::PlatformResult;
 using common::ErrorCode;
 
 ExifInstance::ExifInstance() {
-  using namespace std::placeholders;
-#define REGISTER_ASYNC(c, x) RegisterHandler(c, std::bind(&ExifInstance::x, this, _1, _2));
+  using std::placeholders::_1;
+  using std::placeholders::_2;
+
+#define REGISTER_ASYNC(c, x) RegisterSyncHandler(c, std::bind(&ExifInstance::x, this, _1, _2));
   REGISTER_ASYNC("ExifManager_getExifInfo", ExifManagerGetExifInfo);
   REGISTER_ASYNC("ExifManager_saveExifInfo", ExifManagerSaveExifInfo);
   REGISTER_ASYNC("ExifManager_getThumbnail", ExifManagerGetThumbnail);

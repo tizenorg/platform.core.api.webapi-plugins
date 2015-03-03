@@ -27,7 +27,9 @@ CalendarInstance& CalendarInstance::GetInstance() {
 }
 
 CalendarInstance::CalendarInstance() {
-  using namespace std::placeholders;
+  using std::placeholders::_1;
+  using std::placeholders::_2;
+
 #define REGISTER_SYNC(c, x) \
   RegisterSyncHandler(c, std::bind(&CalendarInstance::x, this, _1, _2));
 
@@ -47,7 +49,7 @@ CalendarInstance::CalendarInstance() {
 #undef REGISTER_SYNC
 
 #define REGISTER_ASYNC(c, x) \
-  RegisterHandler(c, std::bind(&CalendarInstance::x, this, _1, _2));
+  RegisterSyncHandler(c, std::bind(&CalendarInstance::x, this, _1, _2));
   REGISTER_ASYNC("Calendar_addBatch", CalendarAddBatch);
   REGISTER_ASYNC("Calendar_updateBatch", CalendarUpdateBatch);
   REGISTER_ASYNC("Calendar_removeBatch", CalendarRemoveBatch);

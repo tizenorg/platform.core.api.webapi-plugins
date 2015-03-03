@@ -106,7 +106,9 @@ SysteminfoInstance& SysteminfoInstance::getInstance() {
 }
 
 SysteminfoInstance::SysteminfoInstance() {
-  using namespace std::placeholders;
+  using std::placeholders::_1;
+  using std::placeholders::_2;
+
 #define REGISTER_SYNC(c,x) \
         RegisterSyncHandler(c, std::bind(&SysteminfoInstance::x, this, _1, _2));
   REGISTER_SYNC("SystemInfo_getCapabilities", GetCapabilities);
@@ -118,7 +120,7 @@ SysteminfoInstance::SysteminfoInstance() {
   REGISTER_SYNC("SystemInfo_getCount", GetCount);
 #undef REGISTER_SYNC
 #define REGISTER_ASYNC(c,x) \
-        RegisterHandler(c, std::bind(&SysteminfoInstance::x, this, _1, _2));
+        RegisterSyncHandler(c, std::bind(&SysteminfoInstance::x, this, _1, _2));
   REGISTER_ASYNC("SystemInfo_getPropertyValue", GetPropertyValue);
   REGISTER_ASYNC("SystemInfo_getPropertyValueArray", GetPropertyValueArray);
 #undef REGISTER_ASYNC

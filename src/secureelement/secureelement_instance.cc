@@ -26,7 +26,8 @@ SecureElementInstance& SecureElementInstance::getInstance() {
 }
 
 SecureElementInstance::SecureElementInstance() {
-    using namespace std::placeholders;
+    using std::placeholders::_1;
+    using std::placeholders::_2;
 
 #define REGISTER_SYNC(c,x) \
     RegisterSyncHandler(c, std::bind(&SecureElementInstance::x, this, _1, _2));
@@ -46,7 +47,7 @@ SecureElementInstance::SecureElementInstance() {
 #undef REGISTER_SYNC
 
 #define REGISTER(c,x) \
-    RegisterHandler(c, std::bind(&SecureElementInstance::x, this, _1, _2));
+    RegisterSyncHandler(c, std::bind(&SecureElementInstance::x, this, _1, _2));
 
     REGISTER("SEService_getReaders", GetReaders);
     REGISTER("SEReader_openSession", OpenSession);

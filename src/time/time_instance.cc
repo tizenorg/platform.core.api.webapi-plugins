@@ -50,12 +50,13 @@ TimeInstance& TimeInstance::GetInstance() {
 }
 
 TimeInstance::TimeInstance() {
-  using namespace std::placeholders;
+  using std::placeholders::_1;
+  using std::placeholders::_2;
 
 #define REGISTER_SYNC(c, x) \
   RegisterSyncHandler(c, std::bind(&TimeInstance::x, this, _1, _2));
 #define REGISTER_ASYNC(c, x) \
-  RegisterHandler(c, std::bind(&TimeInstance::x, this, _1, _2));
+  RegisterSyncHandler(c, std::bind(&TimeInstance::x, this, _1, _2));
 
   REGISTER_SYNC("Time_getAvailableTimeZones", TimeGetAvailableTimeZones);
   REGISTER_SYNC("Time_getDSTTransition", TimeGetDSTTransition);

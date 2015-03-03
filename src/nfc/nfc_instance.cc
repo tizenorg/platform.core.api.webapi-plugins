@@ -26,7 +26,9 @@ NFCInstance& NFCInstance::getInstance() {
 }
 
 NFCInstance::NFCInstance() {
-  using namespace std::placeholders;
+  using std::placeholders::_1;
+  using std::placeholders::_2;
+
 #define REGISTER_SYNC(c,x) \
     RegisterSyncHandler(c, std::bind(&NFCInstance::x, this, _1, _2));
   REGISTER_SYNC("NFCManager_getDefaultAdapter", GetDefaultAdapter);
@@ -74,7 +76,7 @@ NFCInstance::NFCInstance() {
   REGISTER_SYNC("NFCTag_isConnectedGetter", TagIsConnectedGetter);
 #undef REGISTER_SYNC
 #define REGISTER(c,x) \
-    RegisterHandler(c, std::bind(&NFCInstance::x, this, _1, _2));
+    RegisterSyncHandler(c, std::bind(&NFCInstance::x, this, _1, _2));
   REGISTER("NFCAdapter_setPowered", SetPowered);
   REGISTER("NFCTag_readNDEF", ReadNDEF);
   REGISTER("NFCTag_writeNDEF", WriteNDEF);

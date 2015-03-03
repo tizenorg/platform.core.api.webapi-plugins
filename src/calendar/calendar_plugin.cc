@@ -44,7 +44,8 @@ CalendarPlugin::CalendarPlugin() {
 CalendarPlugin::~CalendarPlugin() { manager_ = nullptr; }
 
 void CalendarPlugin::OnLoad() {
-  using namespace std::placeholders;
+  using std::placeholders::_1;
+  using std::placeholders::_2;
 
   dispatcher_.AddFunction(
       "CalendarManager_getCalendars",

@@ -20,7 +20,9 @@ SensorInstance& SensorInstance::GetInstance() {
 }
 
 SensorInstance::SensorInstance() {
-  using namespace std::placeholders;
+  using std::placeholders::_1;
+  using std::placeholders::_2;
+
 #define REGISTER_SYNC(c,x) \
     RegisterSyncHandler(c, std::bind(&SensorInstance::x, this, _1, _2));
   REGISTER_SYNC("SensorService_getAvailableSensors", GetAvailableSensors);
@@ -29,7 +31,7 @@ SensorInstance::SensorInstance() {
   REGISTER_SYNC("Sensor_unsetChangeListener", SensorUnsetChangeListener);
 #undef REGISTER_SYNC
 #define REGISTER_ASYNC(c,x) \
-    RegisterHandler(c, std::bind(&SensorInstance::x, this, _1, _2));
+    RegisterSyncHandler(c, std::bind(&SensorInstance::x, this, _1, _2));
   REGISTER_ASYNC("Sensor_start", SensorStart);
   REGISTER_ASYNC("Sensor_getData", SensorGetData);
 #undef REGISTER_ASYNC

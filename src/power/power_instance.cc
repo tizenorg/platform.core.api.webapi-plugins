@@ -41,7 +41,9 @@ using namespace common;
 using namespace extension::power;
 
 PowerInstance::PowerInstance() {
-  using namespace std::placeholders;
+  using std::placeholders::_1;
+  using std::placeholders::_2;
+
   #define REGISTER_SYNC(c,x) \
     RegisterSyncHandler(c, std::bind(&PowerInstance::x, this, _1, _2));
   REGISTER_SYNC("PowerManager_turnScreenOff", PowerManagerTurnscreenoff);
@@ -61,23 +63,23 @@ PowerInstance::~PowerInstance() {
 }
 
 enum PowerCallbacks {
-  PowerManagerTurnscreenoffCallback, 
-  PowerManagerRestorescreenbrightnessCallback, 
-  PowerManagerRequestCallback, 
-  PowerManagerGetscreenbrightnessCallback, 
-  PowerManagerReleaseCallback, 
-  PowerManagerUnsetscreenstatechangelistenerCallback, 
-  PowerManagerIsscreenonCallback, 
-  PowerManagerTurnscreenonCallback, 
-  PowerManagerSetscreenbrightnessCallback, 
+  PowerManagerTurnscreenoffCallback,
+  PowerManagerRestorescreenbrightnessCallback,
+  PowerManagerRequestCallback,
+  PowerManagerGetscreenbrightnessCallback,
+  PowerManagerReleaseCallback,
+  PowerManagerUnsetscreenstatechangelistenerCallback,
+  PowerManagerIsscreenonCallback,
+  PowerManagerTurnscreenonCallback,
+  PowerManagerSetscreenbrightnessCallback,
   PowerManagerSetscreenstatechangelistenerCallback
 };
 
-static void ReplyAsync(PowerInstance* instance, PowerCallbacks cbfunc, 
+static void ReplyAsync(PowerInstance* instance, PowerCallbacks cbfunc,
                        int callbackId, bool isSuccess, picojson::object& param) {
   param["callbackId"] = picojson::value(static_cast<double>(callbackId));
   param["status"] = picojson::value(isSuccess ? "success" : "error");
-  
+
   // insert result for async callback to param
   switch(cbfunc) {
     case PowerManagerRequestCallback: {
@@ -127,7 +129,7 @@ static void ReplyAsync(PowerInstance* instance, PowerCallbacks cbfunc,
   }
 
   picojson::value result = picojson::value(param);
-  
+
   instance->PostMessage(result.serialize().c_str());
 }
 
@@ -136,7 +138,7 @@ static void ReplyAsync(PowerInstance* instance, PowerCallbacks cbfunc,
       ReportError(TypeMismatchException(name" is required argument"), out);\
       return;\
     }
-    
+
 void PowerInstance::PowerManagerRequest(const picojson::value& args, picojson::object& out) {
   const std::string& resource = args.get("resource").get<std::string>();
   const std::string& state = args.get("state").get<std::string>();

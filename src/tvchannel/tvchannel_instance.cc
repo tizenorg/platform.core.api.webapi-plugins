@@ -18,34 +18,33 @@ namespace tvchannel {
 using common::TaskQueue;
 
 TVChannelInstance::TVChannelInstance() {
-    LOGD("Entered");
-    RegisterSyncHandler("TVChannelManager_getCurrentChannel",
-        std::bind(&TVChannelInstance::getCurrentChannel, this,
-            std::placeholders::_1, std::placeholders::_2));
-    RegisterSyncHandler("TVChannelManager_getCurrentProgram",
-        std::bind(&TVChannelInstance::getCurrentProgram, this,
-            std::placeholders::_1, std::placeholders::_2));
-    RegisterHandler("TVChannelManager_findChannel",
-        std::bind(&TVChannelInstance::findChannel, this,
-            std::placeholders::_1,
-            std::placeholders::_2));
-    RegisterHandler("TVChannelManager_getChannelList",
-        std::bind(&TVChannelInstance::getChannelList, this,
-            std::placeholders::_1,
-            std::placeholders::_2));
-    RegisterHandler("TVChannelManager_getProgramList",
-        std::bind(&TVChannelInstance::getProgramList, this,
-            std::placeholders::_1,
-            std::placeholders::_2));
-    RegisterHandler("TVChannelManager_tune",
-        std::bind(&TVChannelInstance::tune, this, std::placeholders::_1,
-            std::placeholders::_2));
-    RegisterHandler("TVChannelManager_tuneUp",
-        std::bind(&TVChannelInstance::tuneUp, this, std::placeholders::_1,
-            std::placeholders::_2));
-    RegisterHandler("TVChannelManager_tuneDown",
-        std::bind(&TVChannelInstance::tuneDown, this, std::placeholders::_1,
-            std::placeholders::_2));
+    using std::placeholders::_1;
+    using std::placeholders::_2;
+
+    #define REGISTER_ASYNC(c, func) \
+        RegisterSyncHandler(c, func);
+    #define REGISTER_SYNC(c, func) \
+        RegisterSyncHandler(c, func);
+
+    REGISTER_SYNC("TVChannelManager_getCurrentChannel",
+        std::bind(&TVChannelInstance::getCurrentChannel, this, _1, _2));
+    REGISTER_SYNC("TVChannelManager_getCurrentProgram",
+        std::bind(&TVChannelInstance::getCurrentProgram, this, _1, _2));
+    REGISTER_ASYNC("TVChannelManager_findChannel",
+        std::bind(&TVChannelInstance::findChannel, this, _1, _2));
+    REGISTER_ASYNC("TVChannelManager_getChannelList",
+        std::bind(&TVChannelInstance::getChannelList, this, _1, _2));
+    REGISTER_ASYNC("TVChannelManager_getProgramList",
+        std::bind(&TVChannelInstance::getProgramList, this, _1, _2));
+    REGISTER_ASYNC("TVChannelManager_tune",
+        std::bind(&TVChannelInstance::tune, this, _1, _2));
+    REGISTER_ASYNC("TVChannelManager_tuneUp",
+        std::bind(&TVChannelInstance::tuneUp, this, _1, _2));
+    REGISTER_ASYNC("TVChannelManager_tuneDown",
+        std::bind(&TVChannelInstance::tuneDown, this, _1, _2));
+
+    #undef REGISTER_ASYNC
+    #undef REGISTER_SYNC
 
     m_pSubscriber = TVChannelManager::getInstance()->createSubscriber(this);
     TVChannelManager::getInstance()->registerListener(m_pSubscriber);

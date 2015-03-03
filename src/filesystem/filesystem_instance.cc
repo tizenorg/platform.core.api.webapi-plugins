@@ -25,11 +25,14 @@ using namespace common;
 using namespace extension::filesystem;
 
 FilesystemInstance::FilesystemInstance() {
-  using namespace std::placeholders;
+  using std::placeholders::_1;
+  using std::placeholders::_2;
+
 #define REGISTER_SYNC(c, x) \
   RegisterSyncHandler(c, std::bind(&FilesystemInstance::x, this, _1, _2));
 #define REGISTER_ASYNC(c, x) \
-  RegisterHandler(c, std::bind(&FilesystemInstance::x, this, _1, _2));
+  RegisterSyncHandler(c, std::bind(&FilesystemInstance::x, this, _1, _2));
+
   REGISTER_ASYNC("File_stat", FileStat);
   REGISTER_SYNC("File_statSync", FileStatSync);
   REGISTER_SYNC("File_createSync", FileCreateSync);

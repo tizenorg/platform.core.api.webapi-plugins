@@ -24,7 +24,9 @@ BadgeInstance& BadgeInstance::GetInstance() {
 }
 
 BadgeInstance::BadgeInstance() {
-  using namespace std::placeholders;
+  using std::placeholders::_1;
+  using std::placeholders::_2;
+
 #define REGISTER_SYNC(c, x) \
   RegisterSyncHandler(c, std::bind(&BadgeInstance::x, this, _1, _2));
   REGISTER_SYNC("BadgeManager_setBadgeCount", BadgeManagerSetBadgeCount);

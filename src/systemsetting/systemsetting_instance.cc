@@ -28,10 +28,11 @@ using namespace extension::systemsetting;
 
 SystemSettingInstance::SystemSettingInstance()
 {
-  using namespace std::placeholders;
+  using std::placeholders::_1;
+  using std::placeholders::_2;
 
 #define REGISTER(c,x) \
-    RegisterHandler(c, std::bind(&SystemSettingInstance::x, this, _1, _2));
+    RegisterSyncHandler(c, std::bind(&SystemSettingInstance::x, this, _1, _2));
 
   REGISTER("SystemSettingManager_getProperty", getProperty);
   REGISTER("SystemSettingManager_setProperty", setProperty);

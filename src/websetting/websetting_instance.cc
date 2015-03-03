@@ -32,14 +32,18 @@ typedef std::string JsonString;
 
 WebSettingInstance::WebSettingInstance(WebSettingExtension* extension)
     : extension_(extension) {
-  using namespace std::placeholders;
-#define REGISTER_ASYNC(c, x) \
-  RegisterHandler(c, std::bind(&WebSettingInstance::x, this, _1, _2));
+  using std::placeholders::_1;
+  using std::placeholders::_2;
+
+  #define REGISTER_ASYNC(c, x) \
+      RegisterSyncHandler(c, std::bind(&WebSettingInstance::x, this, _1, _2));
+
   REGISTER_ASYNC("WebSettingManager_setUserAgentString",
                  WebSettingManagerSetUserAgentString);
   REGISTER_ASYNC("WebSettingManager_removeAllCookies",
                  WebSettingManagerRemoveAllCookies);
-#undef REGISTER_ASYNC
+
+  #undef REGISTER_ASYNC
 }
 
 WebSettingInstance::~WebSettingInstance() {}

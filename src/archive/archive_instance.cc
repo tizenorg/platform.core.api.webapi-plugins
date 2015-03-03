@@ -31,11 +31,13 @@ ArchiveInstance& ArchiveInstance::getInstance()
 ArchiveInstance::ArchiveInstance() {
     LoggerD("Entered");
 
-    using namespace std::placeholders;
+    using std::placeholders::_1;
+    using std::placeholders::_2;
+
     #define REGISTER_SYNC(c,x) \
-    RegisterSyncHandler(c, std::bind(&ArchiveInstance::x, this, _1, _2));
+        RegisterSyncHandler(c, std::bind(&ArchiveInstance::x, this, _1, _2));
     #define REGISTER_ASYNC(c,x) \
-    RegisterHandler(c, std::bind(&ArchiveInstance::x, this, _1, _2));
+        RegisterSyncHandler(c, std::bind(&ArchiveInstance::x, this, _1, _2));
 
     REGISTER_ASYNC("ArchiveManager_open", Open);
     REGISTER_SYNC("ArchiveManager_abort", Abort);

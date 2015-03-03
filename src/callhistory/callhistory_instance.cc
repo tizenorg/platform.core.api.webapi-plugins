@@ -25,7 +25,9 @@ CallHistoryInstance& CallHistoryInstance::getInstance() {
 }
 
 CallHistoryInstance::CallHistoryInstance() {
-  using namespace std::placeholders;
+  using std::placeholders::_1;
+  using std::placeholders::_2;
+
 #define REGISTER_SYNC(c,x) \
     RegisterSyncHandler(c, std::bind(&CallHistoryInstance::x, this, _1, _2));
   REGISTER_SYNC("CallHistory_remove", Remove);
@@ -33,7 +35,7 @@ CallHistoryInstance::CallHistoryInstance() {
   REGISTER_SYNC("CallHistory_removeChangeListener", RemoveChangeListener);
 #undef REGISTER_SYNC
 #define REGISTER_ASYNC(c,x) \
-    RegisterHandler(c, std::bind(&CallHistoryInstance::x, this, _1, _2));
+    RegisterSyncHandler(c, std::bind(&CallHistoryInstance::x, this, _1, _2));
   REGISTER_ASYNC("CallHistory_find", Find);
   REGISTER_ASYNC("CallHistory_removeBatch", RemoveBatch);
   REGISTER_ASYNC("CallHistory_removeAll", RemoveAll);

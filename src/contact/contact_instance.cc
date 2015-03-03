@@ -26,12 +26,13 @@ ContactInstance& ContactInstance::GetInstance() {
 int ContactInstance::current_state = 0;
 
 ContactInstance::ContactInstance() {
-  using namespace std::placeholders;
+  using std::placeholders::_1;
+  using std::placeholders::_2;
 
 #define REGISTER_SYNC(c, x) \
   RegisterSyncHandler(c, std::bind(&ContactInstance::x, this, _1, _2));
 #define REGISTER_ASYNC(c, x) \
-  RegisterHandler(c, std::bind(&ContactInstance::x, this, _1, _2));
+  RegisterSyncHandler(c, std::bind(&ContactInstance::x, this, _1, _2));
 
   // Contact Manager
   REGISTER_ASYNC("ContactManager_getAddressBooks",

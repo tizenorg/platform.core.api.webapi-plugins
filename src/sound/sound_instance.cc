@@ -24,7 +24,9 @@ using namespace common;
 using namespace extension::sound;
 
 SoundInstance::SoundInstance() {
-  using namespace std::placeholders;
+  using std::placeholders::_1;
+  using std::placeholders::_2;
+
   #define REGISTER_SYNC(c,x) \
     RegisterSyncHandler(c, std::bind(&SoundInstance::x, this, _1, _2));
   REGISTER_SYNC("SoundManager_setVolume", SoundManagerSetVolume);

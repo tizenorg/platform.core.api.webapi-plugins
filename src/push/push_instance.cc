@@ -11,24 +11,32 @@
 namespace extension {
 namespace push {
 
-PushInstance::PushInstance():
-        m_ignoreNotificationEvents(true) {
+PushInstance::PushInstance(): m_ignoreNotificationEvents(true) {
     LoggerD("Enter");
     using std::placeholders::_1;
     using std::placeholders::_2;
-    RegisterHandler("Push_registerService",
-            std::bind(&PushInstance::registerService, this, _1, _2));
-    RegisterHandler("Push_unregisterService",
-            std::bind(&PushInstance::unregisterService, this, _1, _2));
-    RegisterSyncHandler("Push_connectService",
-            std::bind(&PushInstance::connectService, this, _1, _2));
-    RegisterSyncHandler("Push_disconnectService",
-            std::bind(&PushInstance::disconnectService, this, _1, _2));
-    RegisterSyncHandler("Push_getRegistrationId",
-            std::bind(&PushInstance::getRegistrationId, this, _1, _2));
-    RegisterSyncHandler("Push_getUnreadNotifications",
-            std::bind(&PushInstance::getUnreadNotifications, this, _1, _2));
+
+    #define REGISTER_ASYNC(c, func) \
+        RegisterSyncHandler(c, func);
+    #define REGISTER_SYNC(c, func) \
+        RegisterSyncHandler(c, func);
+
+    REGISTER_ASYNC("Push_registerService",
+        std::bind(&PushInstance::registerService, this, _1, _2));
+    REGISTER_ASYNC("Push_unregisterService",
+        std::bind(&PushInstance::unregisterService, this, _1, _2));
+    REGISTER_SYNC("Push_connectService",
+        std::bind(&PushInstance::connectService, this, _1, _2));
+    REGISTER_SYNC("Push_disconnectService",
+        std::bind(&PushInstance::disconnectService, this, _1, _2));
+    REGISTER_SYNC("Push_getRegistrationId",
+        std::bind(&PushInstance::getRegistrationId, this, _1, _2));
+    REGISTER_SYNC("Push_getUnreadNotifications",
+        std::bind(&PushInstance::getUnreadNotifications, this, _1, _2));
     PushManager::getInstance().setListener(this);
+
+    #undef REGISTER_ASYNC
+    #undef REGISTER_SYNC
 }
 
 void PushInstance::registerService(const picojson::value& args,

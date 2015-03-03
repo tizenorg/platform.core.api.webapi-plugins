@@ -22,7 +22,9 @@ namespace {
 }  // namespace
 
 BookmarkInstance::BookmarkInstance() {
-  using namespace std::placeholders;
+  using std::placeholders::_1;
+  using std::placeholders::_2;
+
 #define REGISTER_SYNC(c,x) \
     RegisterSyncHandler(c, std::bind(&BookmarkInstance::x, this, _1, _2));
   REGISTER_SYNC("Bookmark_get", BookmarkGet);

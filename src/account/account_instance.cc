@@ -54,9 +54,11 @@ AccountInstance::AccountInstance() {
   manager_ = new AccountManager;
   subscribe_ = NULL;
 
-  using namespace std::placeholders;
+  using std::placeholders::_1;
+  using std::placeholders::_2;
+
   #define REGISTER_ASYNC(c,x) \
-    RegisterHandler(c, std::bind(&AccountInstance::x, this, _1, _2));
+    RegisterSyncHandler(c, std::bind(&AccountInstance::x, this, _1, _2));
   REGISTER_ASYNC("AccountManager_getAccounts", AccountManagerGetAccounts);
   REGISTER_ASYNC("AccountManager_getProviders", AccountManagerGetProviders);
   REGISTER_ASYNC("Account_getExtendedData", AccountGetExtendedData);

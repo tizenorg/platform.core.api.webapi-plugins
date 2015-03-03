@@ -69,18 +69,22 @@ namespace tvdisplay {
 TVDisplayInstance::TVDisplayInstance() {
     using std::placeholders::_1;
     using std::placeholders::_2;
-    RegisterSyncHandler(
-        "TVDisplay_is3DModeEnabled",
-        std::bind(&TVDisplayInstance::Is3DModeEnabled,
-                this, _1, _2));
-    RegisterSyncHandler(
-        "TVDisplay_get3DEffectMode",
-        std::bind(&TVDisplayInstance::Get3DEffectMode,
-                this, _1, _2));
-    RegisterHandler(
-        "TVDisplay_getSupported3DEffectModeList",
+
+    #define REGISTER_ASYNC(c, func) \
+        RegisterSyncHandler(c, func);
+    #define REGISTER_SYNC(c, func) \
+        RegisterSyncHandler(c, func);
+
+    REGISTER_SYNC("TVDisplay_is3DModeEnabled",
+        std::bind(&TVDisplayInstance::Is3DModeEnabled, this, _1, _2));
+    REGISTER_SYNC("TVDisplay_get3DEffectMode",
+        std::bind(&TVDisplayInstance::Get3DEffectMode,this, _1, _2));
+    REGISTER_ASYNC("TVDisplay_getSupported3DEffectModeList",
         std::bind(&TVDisplayInstance::GetSupported3DEffectModeList,
-                this, _1, _2));
+                  this, _1, _2));
+
+    #undef REGISTER_ASYNC
+    #undef REGISTER_SYNC
 }
 
 TVDisplayInstance::~TVDisplayInstance() {}

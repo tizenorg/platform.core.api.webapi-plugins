@@ -19,9 +19,12 @@ using namespace common;
 using namespace extension::radio;
 
 RadioInstance::RadioInstance() {
-  using namespace std::placeholders;
+  using std::placeholders::_1;
+  using std::placeholders::_2;
+
   #define REGISTER_SYNC(c,x) \
     RegisterSyncHandler(c, std::bind(&RadioInstance::x, this, _1, _2));
+
   REGISTER_SYNC("FMRadio_Start", Start);
   REGISTER_SYNC("FMRadio_Stop", Stop);
   REGISTER_SYNC("FMRadio_SetFMRadioInterruptedListener", SetFMRadioInterruptedListener);
@@ -36,7 +39,7 @@ RadioInstance::RadioInstance() {
   REGISTER_SYNC("FMRadio_MuteGetter", MuteGetter);
   #undef REGISTER_SYNC
   #define REGISTER_ASYNC(c,x) \
-    RegisterHandler(c, std::bind(&RadioInstance::x, this, _1, _2));
+    RegisterSyncHandler(c, std::bind(&RadioInstance::x, this, _1, _2));
   REGISTER_ASYNC("FMRadio_SeekUp", SeekUp);
   REGISTER_ASYNC("FMRadio_SeekDown", SeekDown);
   REGISTER_ASYNC("FMRadio_ScanStart", ScanStart);
