@@ -41,12 +41,23 @@ function FileStream(data, mode, encoding) {
       value: data,
       writable: false,
       enumerable: false
+    },
+    _closed: {
+      value: false,
+      writable: true,
+      enumerable: false
     }
   });
 }
 
+function _checkClosed(stream) {
+  if (stream._closed) {
+    throw new tizen.WebAPIException(tizen.WebAPIException.IO_ERR, 'Stream is closed.');
+  }
+}
+
 FileStream.prototype.close = function() {
-//  TODO: close
+  this._closed = true;
 };
 
 function _checkReadAccess(mode) {
@@ -68,6 +79,8 @@ FileStream.prototype.read = function() {
       type: types_.LONG
     }
   ]);
+
+  _checkClosed(this);
 
   if (args.charCount <= 0) {
     throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR,
@@ -101,6 +114,8 @@ FileStream.prototype.readBytes = function() {
       type: types_.LONG
     }
   ]);
+
+  _checkClosed(this);
 
   if (args.byteCount <= 0) {
     throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR,
@@ -140,6 +155,8 @@ FileStream.prototype.readBase64 = function() {
     }
   ]);
 
+  _checkClosed(this);
+
   if (args.byteCount <= 0) {
     throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR,
         'Argument "byteCount" must be greater than 0');
@@ -172,6 +189,7 @@ FileStream.prototype.write = function() {
     }
   ]);
 
+  _checkClosed(this);
   _checkWriteAccess(this._mode);
 
   var data = {
@@ -197,6 +215,7 @@ FileStream.prototype.writeBytes = function() {
     }
   ]);
 
+  _checkClosed(this);
   _checkWriteAccess(this._mode);
 
   var data = {
@@ -220,6 +239,7 @@ FileStream.prototype.writeBase64 = function() {
     }
   ]);
 
+  _checkClosed(this);
   _checkWriteAccess(this._mode);
 
   var data = {
