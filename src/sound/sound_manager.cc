@@ -8,6 +8,7 @@
 #include <vconf.h>
 #include <vconf-keys.h>
 
+#include "common/task-queue.h"
 
 //This constant was originally defined in vconf.h. However, in tizen 3, it
 //appears, it is removed (or defined only in vconf-internals.h)
@@ -24,6 +25,7 @@ namespace extension {
 namespace sound {
 
 using namespace common;
+using namespace common::tools;
 
 const std::map<std::string, sound_type_e> SoundManager::platform_enum_map_ = {
     {"SYSTEM", SOUND_TYPE_SYSTEM},
@@ -61,8 +63,48 @@ PlatformResult SoundManager::PlatformEnumToStr(const sound_type_e value,
   return PlatformResult(ErrorCode::INVALID_VALUES_ERR, message);
 }
 
+std::string SoundManager::SoundDeviceTypeToString(sound_device_type_e type) {
+  switch (type) {
+    case SOUND_DEVICE_BUILTIN_SPEAKER:
+      return "SPEAKER";
+    case SOUND_DEVICE_BUILTIN_RECEIVER:
+      return "RECEIVER";
+    case SOUND_DEVICE_BUILTIN_MIC:
+      return "MIC";
+    case SOUND_DEVICE_AUDIO_JACK:
+      return "AUDIO_JACK";
+    case SOUND_DEVICE_BLUETOOTH:
+      return "BLUETOOTH";
+    case SOUND_DEVICE_HDMI:
+      return "HDMI";
+    case SOUND_DEVICE_MIRRORING:
+      return "MIRRORING";
+    case SOUND_DEVICE_USB_AUDIO:
+      return "USB_AUDIO";
+    default:
+      LoggerE("Invalid sound_device_type_e: %d", type);
+      return "";
+  }
+}
+
+std::string SoundManager::SoundIOTypeToString(sound_device_io_direction_e type) {
+  switch (type) {
+    case SOUND_DEVICE_IO_DIRECTION_IN:
+      return "IN";
+    case SOUND_DEVICE_IO_DIRECTION_OUT:
+      return "OUT";
+    case SOUND_DEVICE_IO_DIRECTION_BOTH:
+      return "BOTH";
+    default:
+      LoggerE("Invalid sound_device_io_direction_e: %d", type);
+      return "";
+  }
+}
+
 SoundManager::SoundManager()
-    : soundModeChangeListening(false), soundModeListener(nullptr) {
+    : soundModeChangeListening(false),
+      sound_device_change_listener_(false),
+      soundModeListener(nullptr) {
   FillMaxVolumeMap();
 }
 
@@ -71,6 +113,16 @@ SoundManager::~SoundManager() {
     int status = vconf_ignore_key_changed(VCONFKEY_SETAPPL_VIBRATION_STATUS_BOOL, SoundManager::soundModeChangedCb);
     if (VCONF_OK != status) {
       LoggerE("Cannot disable listener!");
+    }
+  }
+
+  if (sound_device_change_listener_) {
+    if (SOUND_MANAGER_ERROR_NONE != sound_manager_unset_device_connected_cb()) {
+      LoggerE("Cannot unregister connection listener!");
+    }
+
+    if (SOUND_MANAGER_ERROR_NONE != sound_manager_unset_device_information_changed_cb()) {
+      LoggerE("Cannot unregister information listener!");
     }
   }
 }
@@ -331,6 +383,217 @@ PlatformResult SoundManager::UnsetVolumeChangeListener() {
   }
 
   is_volume_change_listener_ = false;
+
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+void SoundManager::GetDeviceList(sound_device_mask_e mask, picojson::object& out) {
+  LoggerD("Entered");
+
+  int ret = SOUND_MANAGER_ERROR_NONE;
+  sound_device_list_h device_list = nullptr;
+  sound_device_h device = nullptr;
+
+  picojson::value response = picojson::value(picojson::array());
+  picojson::array& response_array = response.get<picojson::array>();
+
+  ret = sound_manager_get_current_device_list(mask, &device_list);
+  if (SOUND_MANAGER_ERROR_NONE != ret) {
+    ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Getting device list failed"), &out);
+    return;
+  }
+
+  while (!(ret = sound_manager_get_next_device(device_list, &device))) {
+    picojson::value val = picojson::value(picojson::object());
+    picojson::object& obj = val.get<picojson::object>();
+    PlatformResult result = GetDeviceInfo(device, true, false, &obj);
+
+    if (result.IsError()) {
+      ReportError(result, &out);
+      return;
+    }
+    response_array.push_back(val);
+  }
+
+  ReportSuccess(response, out);
+}
+
+PlatformResult SoundManager::GetDeviceInfo(sound_device_h device,
+                                           bool is_connected,
+                                           bool check_connection,
+                                           picojson::object* obj) {
+  LoggerD("Entered");
+
+  int ret = SOUND_MANAGER_ERROR_NONE;
+
+  //get id
+  int id = 0;
+  ret = sound_manager_get_device_id(device, &id);
+  if (SOUND_MANAGER_ERROR_NONE != ret) {
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Getting device id failed");
+  }
+  obj->insert(std::make_pair("id", picojson::value(static_cast<double>(id))));
+
+  //get name
+  char *name = nullptr;
+  ret = sound_manager_get_device_name(device, &name);
+  if (SOUND_MANAGER_ERROR_NONE != ret) {
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Getting device name failed");
+  }
+  obj->insert(std::make_pair("name", picojson::value(name)));
+
+  //get type
+  sound_device_type_e type = SOUND_DEVICE_BUILTIN_SPEAKER;
+  ret = sound_manager_get_device_type(device, &type);
+  if (SOUND_MANAGER_ERROR_NONE != ret) {
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Getting device type failed");
+  }
+  obj->insert(std::make_pair("device", picojson::value(SoundDeviceTypeToString(type))));
+
+  //get direction
+  sound_device_io_direction_e direction = SOUND_DEVICE_IO_DIRECTION_IN;
+  ret = sound_manager_get_device_io_direction (device, &direction);
+  if (SOUND_MANAGER_ERROR_NONE != ret) {
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Getting device direction failed");
+  }
+  obj->insert(std::make_pair("direction", picojson::value(SoundIOTypeToString(direction))));
+
+  //get state
+  sound_device_state_e state = SOUND_DEVICE_STATE_DEACTIVATED;
+  ret = sound_manager_get_device_state(device, &state);
+  if (SOUND_MANAGER_ERROR_NONE != ret) {
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Getting device state failed");
+  }
+  obj->insert(std::make_pair("isActivated", picojson::value(static_cast<bool>(state))));
+
+  //get connection
+  if (check_connection) {
+    return IsDeviceConnected(type, direction, obj);
+  }
+
+  obj->insert(std::make_pair("isConnected", picojson::value(is_connected)));
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult SoundManager::IsDeviceConnected(sound_device_type_e type,
+                                               sound_device_io_direction_e direction,
+                                               picojson::object* obj) {
+  LoggerD("Entered");
+
+  sound_device_mask_e mask = SOUND_DEVICE_ALL_MASK;
+  switch (direction) {
+    case SOUND_DEVICE_IO_DIRECTION_IN:
+      mask = SOUND_DEVICE_IO_DIRECTION_IN_MASK;
+      break;
+    case SOUND_DEVICE_IO_DIRECTION_OUT:
+      mask = SOUND_DEVICE_IO_DIRECTION_OUT_MASK;
+      break;
+    case SOUND_DEVICE_IO_DIRECTION_BOTH:
+      mask = SOUND_DEVICE_IO_DIRECTION_BOTH_MASK;
+      break;
+    default:
+      LoggerD("Invalid IOType (%d)", direction);
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Invalid IO type");
+  }
+
+  int ret = SOUND_MANAGER_ERROR_NONE;
+  sound_device_list_h device_list = nullptr;
+  sound_device_h device = nullptr;
+  sound_device_type_e device_type = SOUND_DEVICE_BUILTIN_SPEAKER;
+
+  ret = sound_manager_get_current_device_list(mask, &device_list);
+  if (SOUND_MANAGER_ERROR_NONE != ret) {
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Getting device list failed");
+  }
+
+  while (!(ret = sound_manager_get_next_device(device_list, &device))) {
+    ret = sound_manager_get_device_type(device, &device_type);
+    if (SOUND_MANAGER_ERROR_NONE != ret) {
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Getting device type failed");
+    }
+
+    if (type == device_type) {
+      obj->insert(std::make_pair("isConnected", picojson::value(true)));
+      return PlatformResult(ErrorCode::NO_ERROR);
+    }
+  }
+
+  obj->insert(std::make_pair("isConnected", picojson::value(false)));
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+void SoundManager::DeviceChangeCB(sound_device_h device, bool is_connected, bool check_connection) {
+  LoggerD("Entered");
+
+  picojson::value response = picojson::value(picojson::object());
+  picojson::object& response_obj = response.get<picojson::object>();
+
+  PlatformResult result = GetDeviceInfo(device, is_connected, check_connection, &response_obj);
+
+  if (result.IsSuccess()) {
+    response_obj.insert(std::make_pair(
+        "listenerId", picojson::value("SoundDeviceStateChangeCallback")));
+
+    auto call_response = [response]()->void {
+      SoundInstance::GetInstance().PostMessage(response.serialize().c_str());
+    };
+
+    TaskQueue::GetInstance().Async(call_response);
+  }
+}
+
+void DeviceConnectionChangeCB(sound_device_h device, bool is_connected, void *user_data) {
+  LoggerD("Entered");
+
+  SoundManager::GetInstance()->DeviceChangeCB(device, is_connected, false);
+}
+
+void DeviceActivationChangeCB(sound_device_h device, sound_device_changed_info_e changed_info,
+                              void *user_data) {
+  LoggerD("Entered");
+
+  if (SOUND_DEVICE_CAHNGED_INFO_STATE == changed_info) {
+    SoundManager::GetInstance()->DeviceChangeCB(device, false, true);
+  }
+}
+
+PlatformResult SoundManager::AddDeviceStateChangeListener() {
+  LoggerD("Entered");
+
+  int ret = SOUND_MANAGER_ERROR_NONE;
+  sound_device_mask_e mask = SOUND_DEVICE_ALL_MASK;
+
+  if (!sound_device_change_listener_) {
+    ret = sound_manager_set_device_connected_cb(mask, DeviceConnectionChangeCB, nullptr);
+    if (SOUND_MANAGER_ERROR_NONE != ret) {
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Setting connection listener failed");
+    }
+
+    ret = sound_manager_set_device_information_changed_cb(mask, DeviceActivationChangeCB, nullptr);
+    if (SOUND_MANAGER_ERROR_NONE != ret) {
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Setting information listener failed");
+    }
+
+    sound_device_change_listener_ = true;
+  }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult SoundManager::RemoveDeviceStateChangeListener() {
+  LoggerD("Entered");
+
+  if (sound_device_change_listener_) {
+    if (SOUND_MANAGER_ERROR_NONE != sound_manager_unset_device_connected_cb()) {
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Unsetting information listener failed");
+    }
+
+    if (SOUND_MANAGER_ERROR_NONE != sound_manager_unset_device_information_changed_cb()) {
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Unsetting information listener failed");
+    }
+
+    sound_device_change_listener_ = false;
+  }
 
   return PlatformResult(ErrorCode::NO_ERROR);
 }

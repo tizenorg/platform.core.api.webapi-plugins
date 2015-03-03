@@ -34,6 +34,12 @@ SoundInstance::SoundInstance() {
   REGISTER_SYNC("SoundManager_setSoundModeChangeListener", SoundManagerSetSoundModeChangeListener);
   REGISTER_SYNC("SoundManager_setVolumeChangeListener", SoundManagerSetVolumeChangeListener);
   REGISTER_SYNC("SoundManager_getSoundMode", SoundManagerGetSoundMode);
+  REGISTER_SYNC("SoundManager_getConnectedDeviceList", SoundManagerGetConnectedDeviceList);
+  REGISTER_SYNC("SoundManager_getActivatedDeviceList", SoundManagerGetActivatedDeviceList);
+  REGISTER_SYNC("SoundManager_addDeviceStateChangeListener",
+                SoundManagerAddDeviceStateChangeListener);
+  REGISTER_SYNC("SoundManager_removeDeviceStateChangeListener",
+                SoundManagerRemoveDeviceStateChangeListener);
   #undef REGISTER_SYNC
 
   manager_ = SoundManager::GetInstance();
@@ -137,6 +143,46 @@ void SoundInstance::SoundManagerUnsetVolumeChangeListener(
     ReportSuccess(out);
   else
     ReportError(status, &out);
+}
+
+void SoundInstance::SoundManagerGetConnectedDeviceList(
+    const picojson::value& args, picojson::object& out) {
+
+  LoggerD("Entered");
+  manager_->GetDeviceList(SOUND_DEVICE_ALL_MASK, out);
+}
+
+void SoundInstance::SoundManagerGetActivatedDeviceList(
+    const picojson::value& args, picojson::object& out) {
+
+  LoggerD("Entered");
+  manager_->GetDeviceList(SOUND_DEVICE_STATE_ACTIVATED_MASK, out);
+}
+
+void SoundInstance::SoundManagerAddDeviceStateChangeListener(
+    const picojson::value& args, picojson::object& out) {
+
+  LoggerD("Entered");
+  PlatformResult result = manager_->AddDeviceStateChangeListener();
+
+  if (result.IsSuccess()) {
+    ReportSuccess(out);
+  } else {
+    ReportError(result, &out);
+  }
+}
+
+void SoundInstance::SoundManagerRemoveDeviceStateChangeListener(
+    const picojson::value& args, picojson::object& out) {
+
+  LoggerD("Entered");
+  PlatformResult result = manager_->RemoveDeviceStateChangeListener();
+
+  if (result.IsSuccess()) {
+    ReportSuccess(out);
+  } else {
+    ReportError(result, &out);
+  }
 }
 
 #undef CHECK_EXIST

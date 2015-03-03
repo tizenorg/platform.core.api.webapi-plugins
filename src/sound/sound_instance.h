@@ -27,6 +27,11 @@ class SoundInstance : public common::ParsedInstance, public SoundManagerSoundMod
   void SoundManagerSetSoundModeChangeListener(const picojson::value& args, picojson::object& out);
   void SoundManagerSetVolumeChangeListener(const picojson::value& args, picojson::object& out);
   void SoundManagerGetSoundMode(const picojson::value& args, picojson::object& out);
+  void SoundManagerGetConnectedDeviceList(const picojson::value& args, picojson::object& out);
+  void SoundManagerGetActivatedDeviceList(const picojson::value& args, picojson::object& out);
+  void SoundManagerAddDeviceStateChangeListener(const picojson::value& args, picojson::object& out);
+  void SoundManagerRemoveDeviceStateChangeListener(
+      const picojson::value& args, picojson::object& out);
 
   void OnSoundModeChange(const std::string& newmode);
 };

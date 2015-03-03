@@ -32,6 +32,10 @@ class SoundManager {
   common::PlatformResult UnsetSoundModeChangeListener();
   common::PlatformResult SetVolumeChangeListener();
   common::PlatformResult UnsetVolumeChangeListener();
+  void GetDeviceList(sound_device_mask_e mask, picojson::object& out);
+  void DeviceChangeCB(sound_device_h device, bool is_connected, bool check_connection);
+  common::PlatformResult AddDeviceStateChangeListener();
+  common::PlatformResult RemoveDeviceStateChangeListener();
 
  private:
   SoundManager();
@@ -50,9 +54,20 @@ class SoundManager {
                                                   sound_type_e* sound_type);
   static common::PlatformResult PlatformEnumToStr(const sound_type_e value,
                                                   std::string* sound_type);
+                                                  
+  common::PlatformResult GetDeviceInfo(sound_device_h device,
+                                       bool is_connected,
+                                       bool check_connection,
+                                       picojson::object* obj);
+  common::PlatformResult IsDeviceConnected(sound_device_type_e type,
+                                           sound_device_io_direction_e direction,
+                                           picojson::object* obj);
+  static std::string SoundDeviceTypeToString(sound_device_type_e type);
+  static std::string SoundIOTypeToString(sound_device_io_direction_e type);
   static double ConvertToSystemVolume(int max_volume, int volume);
   static void soundModeChangedCb(keynode_t* node, void* user_data);
   bool soundModeChangeListening;
+  bool sound_device_change_listener_;
   SoundManagerSoundModeChangedListener* soundModeListener;
 };
 
