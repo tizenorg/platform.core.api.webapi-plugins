@@ -119,8 +119,6 @@ class ExifUtil {
       const std::string& exposure_program);
   static const std::string& exposureProgramToString(ExposureProgram value);
 
-  static bool isValidAbsoluteURI(const std::string& uri);
-
   static std::string convertUriToPath(const std::string& str);
   static std::string ltrim(const std::string& s);
 

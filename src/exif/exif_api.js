@@ -59,6 +59,12 @@ var propertiesList = {
   USER_COMMENT: 'userComment'
 };
 
+var URI_ABSOLUTE_PREFIX = "file:///";
+
+function _isValidAbsoluteURI(uri) {
+  return 0 === uri.indexOf(URI_ABSOLUTE_PREFIX);
+}
+
 function _getJsonFromExifInformation(exifInfo) {
   var json = {};
 
@@ -172,6 +178,15 @@ ExifManager.prototype.getExifInfo = function() {
     }
   ]);
 
+  if (!_isValidAbsoluteURI(args.uri)) {
+    setTimeout(function() {
+      native_.callIfPossible(args.errorCallback, new tizen.WebAPIException(
+          tizen.WebAPIException.INVALID_VALUES_ERR,
+          'Invalid URI.'));
+    }, 0);
+    return;
+  }
+
   var callback = function(result) {
     if (native_.isFailure(result)) {
       native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));
@@ -189,8 +204,6 @@ ExifManager.prototype.getExifInfo = function() {
     }
   };
 
-  // TODO: Check if uri is correct (invalid characters)
-  //       It could be done by file.resolve(uri), but at now is not implemented.
   tizen.filesystem.resolve(args.uri,
       function() {
         native_.call('ExifManager_getExifInfo', {'uri': args.uri}, callback);
@@ -225,6 +238,15 @@ ExifManager.prototype.saveExifInfo = function() {
     }
   ]);
 
+  if (!_isValidAbsoluteURI(args.exifInfo.uri)) {
+    setTimeout(function() {
+      native_.callIfPossible(args.errorCallback, new tizen.WebAPIException(
+          tizen.WebAPIException.INVALID_VALUES_ERR,
+          'Invalid URI.'));
+    }, 0);
+    return;
+  }
+
   var json = _getJsonFromExifInformation(args.exifInfo);
   var callback = function(result) {
     if (native_.isFailure(result)) {
@@ -236,7 +258,6 @@ ExifManager.prototype.saveExifInfo = function() {
     }
   };
 
-  // TODO: check args.exifInfo.uri
   native_.call('ExifManager_saveExifInfo', json, callback);
 };
 
@@ -262,7 +283,14 @@ ExifManager.prototype.getThumbnail = function() {
     }
   ]);
 
-  // TODO: Check if uri contains invalid characters. It should not.
+  if (!_isValidAbsoluteURI(args.uri)) {
+    setTimeout(function() {
+      native_.callIfPossible(args.errorCallback, new tizen.WebAPIException(
+          tizen.WebAPIException.INVALID_VALUES_ERR,
+          'Invalid URI.'));
+    }, 0);
+    return;
+  }
 
   var _callback = function(result) {
     if (native_.isFailure(result)) {
@@ -274,8 +302,6 @@ ExifManager.prototype.getThumbnail = function() {
     }
   };
 
-  // TODO: Check if uri is correct (invalid characters)
-  //       It could be done by file.resolve(uri), but at now is not implemented.
   tizen.filesystem.resolve(args.uri,
       function() {
         native_.call('ExifManager_getThumbnail', {'uri': args.uri}, _callback);

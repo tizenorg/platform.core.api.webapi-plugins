@@ -52,7 +52,6 @@ const std::string EXPOSURE_PROGRAM_LANDSCAPE_MODE = "LANDSCAPE_MODE";
 const std::string DUMMY = "";  // For unexpected input handling
 
 const std::string URI_PREFIX = "file://";
-const std::string URI_ABSOLUTE_PREFIX = "file:///";
 }  // namespace
 
 const std::size_t ExifTypeInfo::ByteSize = 1;
@@ -213,10 +212,6 @@ const std::string& ExifUtil::exposureProgramToString(ExposureProgram value) {
     default:
       return DUMMY;
   }
-}
-
-bool ExifUtil::isValidAbsoluteURI(const std::string& uri) {
-  return 0 == uri.find(URI_ABSOLUTE_PREFIX);
 }
 
 // Example:
