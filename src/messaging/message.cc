@@ -746,9 +746,6 @@ void Message::addMMSBodyAndAttachmentsToStruct(const AttachmentPtrVector attach,
                 unsigned int type = MessageAttachment::MIMETypeStringToEnum(
                         attach.at(i)->getMimeType());
                 msg_set_int_value(tmpAtt, MSG_MMS_ATTACH_MIME_TYPE_INT, type);
-                msg_set_str_value(tmpAtt, MSG_MMS_ATTACH_CONTENT_TYPE_STR,
-                                    const_cast<char*>(attach.at(i)->getMimeType().c_str()),
-                                    MSG_MSG_ID_LEN);
 
 
                 LoggerD("att[%d]: setting mime type:0x%x (orignal:%s)", i, type,
@@ -911,8 +908,6 @@ msg_struct_t Message::convertPlatformShortMessageToStruct(Message* message,
                 LoggerE("Message(%p): Failed to set mms body filepath", message);
                 throw common::UnknownException("Failed to set mms body filepath");
             }
-            msg_set_str_value(media, MSG_MMS_MEDIA_CONTENT_TYPE_STR,
-                "text/plain", 10);
 
             //----------------------------------------------------------------------------
             //Smile text
