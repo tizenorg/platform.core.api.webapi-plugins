@@ -140,7 +140,7 @@ std::string NFCUtil::getNFCErrorMessage(const int error_code)
   return "UnknownError";
 }
 
-std::string NFCUtil::toStringNFCTag(nfc_tag_type_e tag_type)
+std::string NFCUtil::ToStringNFCTag(nfc_tag_type_e tag_type)
 {
   switch (tag_type) {
     case NFC_GENERIC_PICC:

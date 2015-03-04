@@ -57,7 +57,7 @@ class NFCUtil
   static void throwNFCException(const int errorCode, const char * message);
   static std::string getNFCErrorString(const int error_code);
   static std::string getNFCErrorMessage(const int error_code);
-  static std::string toStringNFCTag(const nfc_tag_type_e tag_type);
+  static std::string ToStringNFCTag(const nfc_tag_type_e tag_type);
   static nfc_tag_type_e toNfcTagString(const std::string& type_string);
   static common::PlatformResult ToStringCardEmulationMode(
       const nfc_se_card_emulation_mode_type_e card_mode, std::string *mode);

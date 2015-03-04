@@ -725,50 +725,48 @@ bool NFCAdapter::IsNDEFListenerSet() {
 
 
 // NFCTag related functions
-std::string NFCAdapter::TagTypeGetter(int tag_id) {
+PlatformResult NFCAdapter::TagTypeGetter(int tag_id, std::string* type) {
 
   LoggerD("Entered");
 
-  nfc_tag_type_e type = NFC_UNKNOWN_TARGET;
+  nfc_tag_type_e nfc_type = NFC_UNKNOWN_TARGET;
 
-  int err = nfc_tag_get_type(m_last_tag_handle, &type);
+  int err = nfc_tag_get_type(m_last_tag_handle, &nfc_type);
   if(NFC_ERROR_NONE != err) {
     LoggerE("Failed to get tag type: %d", err);
-    NFCUtil::throwNFCException(err, "Failed to get tag type");
+    return NFCUtil::CodeToResult(err, "Failed to get tag type");
   }
 
-  return NFCUtil::toStringNFCTag(type);
+  *type = NFCUtil::ToStringNFCTag(nfc_type);
+
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-bool NFCAdapter::TagIsSupportedNDEFGetter(int tag_id) {
+PlatformResult NFCAdapter::TagIsSupportedNDEFGetter(int tag_id, bool *is_supported) {
 
   LoggerD("Entered");
 
-  bool result = false;
-
-  int err = nfc_tag_is_support_ndef(m_last_tag_handle, &result);
+  int err = nfc_tag_is_support_ndef(m_last_tag_handle, is_supported);
   if(NFC_ERROR_NONE != err) {
     LoggerE("Failed to check if NDEF is supported %d", err);
-    NFCUtil::throwNFCException(err,
+    return NFCUtil::CodeToResult(err,
                                "Failed to check if NDEF is supported");
   }
 
-  return result;
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-unsigned int NFCAdapter::TagNDEFSizeGetter(int tag_id) {
+PlatformResult NFCAdapter::TagNDEFSizeGetter(int tag_id, unsigned int *size) {
 
   LoggerD("Entered");
 
-  unsigned int result = 0;
-
-  int err = nfc_tag_get_ndef_size(m_last_tag_handle, &result);
+  int err = nfc_tag_get_ndef_size(m_last_tag_handle, size);
   if(NFC_ERROR_NONE != err) {
     LoggerE("Failed to get tag NDEF size: %d, %s", err);
-    NFCUtil::throwNFCException(err,
+    return NFCUtil::CodeToResult(err,
                                "Failed to get tag NDEF size");
   }
-  return result;
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 static bool tagPropertiesGetterCb(const char *key,
@@ -785,27 +783,59 @@ static bool tagPropertiesGetterCb(const char *key,
   return false;
 }
 
-NFCTagPropertiesT NFCAdapter::TagPropertiesGetter(int tag_id) {
+PlatformResult NFCAdapter::TagPropertiesGetter(int tag_id, NFCTagPropertiesT *properties) {
 
   LoggerD("Entered");
 
-  NFCTagPropertiesT result;
-
   int err = nfc_tag_foreach_information(m_last_tag_handle,
-                                        tagPropertiesGetterCb, (void*)&result);
+                                        tagPropertiesGetterCb, (void*)properties);
   if(NFC_ERROR_NONE != err) {
     LoggerE("Error occured while getting NFC properties: %d", err);
-    NFCUtil::throwNFCException(err,
+    return NFCUtil::CodeToResult(err,
                                "Error occured while getting NFC properties");
+  }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult NFCAdapter::TagIsConnectedGetter(int tag_id, bool *state) {
+
+  LoggerD("Entered");
+
+  PlatformResult result = PlatformResult(ErrorCode::NO_ERROR);
+
+  if(tag_id != m_latest_tag_id || NULL == m_last_tag_handle) {
+    // internaly stored tag id changed -> new tag has been already connected
+    // internaly stored tag handle NULL -> tag has been disconnected
+    LoggerD("NFCTag () not connected (id differs or invalid handle)");
+    *state = false;
+    return result;
+  }
+
+  nfc_tag_h handle = NULL;
+  int ret = nfc_manager_get_connected_tag(&handle);
+  if(NFC_ERROR_NONE != ret) {
+    LoggerE("Failed to get connected tag: %s",
+            NFCUtil::getNFCErrorMessage(ret).c_str());
+    // exception is thrown here to return undefined in JS layer
+    // instead of false
+    return NFCUtil::CodeToResult(ret, "Failed to get connected tag");
+  }
+
+  if(m_last_tag_handle != handle) {
+    LoggerD("Last known handle and current handle differs");
+    *state = false;
+  } else {
+    *state = true;
   }
 
   return result;
 }
 
+// TODO remove after clean code from try/catch
 bool NFCAdapter::TagIsConnectedGetter(int tag_id) {
 
   LoggerD("Entered");
-
   if(tag_id != m_latest_tag_id || NULL == m_last_tag_handle) {
     // internaly stored tag id changed -> new tag has been already connected
     // internaly stored tag handle NULL -> tag has been disconnected
@@ -830,7 +860,6 @@ bool NFCAdapter::TagIsConnectedGetter(int tag_id) {
 
   return true;
 }
-
 
 int NFCAdapter::GetNextTagId() {
 
@@ -864,7 +893,7 @@ static void tagEventCallback(nfc_discovered_type_e type, nfc_tag_h tag, void *da
 
     obj.insert(make_pair("action", "onattach"));
     obj.insert(make_pair("id", static_cast<double>(generated_id)));
-    obj.insert(make_pair("type", NFCUtil::toStringNFCTag(tag_type)));
+    obj.insert(make_pair("type", NFCUtil::ToStringNFCTag(tag_type)));
 
     NFCInstance::getInstance().PostMessage(event.serialize().c_str());
   }
@@ -964,44 +993,52 @@ static void tagReadNDEFCb(nfc_error_e result , nfc_ndef_message_h message , void
   free(raw_data);
 }
 
-void NFCAdapter::TagReadNDEF(int tag_id, const picojson::value& args) {
+PlatformResult NFCAdapter::TagReadNDEF(int tag_id, const picojson::value& args) {
 
   LoggerD("Entered");
+
+  bool is_connected = false;
+  PlatformResult result = TagIsConnectedGetter(tag_id, &is_connected);
+  if (result.IsError()) {
+    return result;
+  }
+
   double callbackId = args.get(CALLBACK_ID).get<double>();
   LoggerD("Received callback id: %f", callbackId);
 
-  if(!TagIsConnectedGetter(tag_id)) {
-    UnknownException ex("Tag is no more connected");
-
-    picojson::value event = createEventError(callbackId, ex);
+  if(!is_connected) {
+    picojson::value event = CreateEventError(callbackId,
+                                             PlatformResult(ErrorCode::UNKNOWN_ERR,
+                                                            "Tag is no more connected."));
     NFCInstance::getInstance().PostMessage(event.serialize().c_str());
-    return;
+    return PlatformResult(ErrorCode::NO_ERROR);;
   }
 
   double* callbackIdPointer = new double(callbackId);
-  int result = nfc_tag_read_ndef(m_last_tag_handle, tagReadNDEFCb,
+  int ret = nfc_tag_read_ndef(m_last_tag_handle, tagReadNDEFCb,
                                  (void*)(callbackIdPointer));
-  if(NFC_ERROR_NONE != result) {
-    LoggerE("Failed to read NDEF message from tag: %d", result);
+  if(NFC_ERROR_NONE != ret) {
+    LoggerE("Failed to read NDEF message from tag: %d", ret);
     delete callbackIdPointer;
     callbackIdPointer = NULL;
 
     // for permission related error throw exception ...
-    if(NFC_ERROR_SECURITY_RESTRICTED == result ||
-        NFC_ERROR_PERMISSION_DENIED == result) {
-      throw SecurityException("Failed to read NDEF - permission denied");
+    if(NFC_ERROR_SECURITY_RESTRICTED == ret ||
+        NFC_ERROR_PERMISSION_DENIED == ret) {
+      return PlatformResult(ErrorCode::SECURITY_ERR, "Failed to read NDEF - permission denied");
     }
 
     LoggerE("Preparing error callback to call");
     // ... otherwise call error callback
-    std::string errName = NFCUtil::getNFCErrorString(result);
-    std::string errMessage = NFCUtil::getNFCErrorMessage(result);
-    PlatformException ex(errName, errMessage);
+    std::string errMessage = NFCUtil::getNFCErrorMessage(ret);
 
-    picojson::value event = createEventError(callbackId, ex);
+    result = NFCUtil::CodeToResult(ret, errMessage.c_str());
+
+    picojson::value event = CreateEventError(callbackId, result);
     NFCInstance::getInstance().PostMessage(event.serialize().c_str());
   }
 
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 void NFCAdapter::TagWriteNDEF(int tag_id, const picojson::value& args) {

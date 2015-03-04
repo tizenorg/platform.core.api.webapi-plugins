@@ -62,13 +62,15 @@ class NFCAdapter {
 
   // NFCTag related methods
   // attributes
-  std::string TagTypeGetter(int tag_id);
-  bool TagIsSupportedNDEFGetter(int tag_id);
-  unsigned int TagNDEFSizeGetter(int tag_id);
-  NFCTagPropertiesT TagPropertiesGetter(int tag_id);
+  common::PlatformResult TagTypeGetter(int tag_id, std::string *type);
+  common::PlatformResult TagIsSupportedNDEFGetter(int tag_id, bool *is_supported);
+  common::PlatformResult TagNDEFSizeGetter(int tag_id, unsigned int *size);
+  common::PlatformResult TagPropertiesGetter(int tag_id, NFCTagPropertiesT *properties);
+  common::PlatformResult TagIsConnectedGetter(int tag_id, bool *state);
+  // TODO remove after clean code from try/catch
   bool TagIsConnectedGetter(int tag_id);
   // methods
-  void TagReadNDEF(int tag_id, const picojson::value& args);
+  common::PlatformResult TagReadNDEF(int tag_id, const picojson::value& args);
   void TagWriteNDEF(int tag_id, const picojson::value& args);
   void TagTransceive(int tag_id, const picojson::value& args);
   // listeners

@@ -353,15 +353,16 @@ void NFCInstance::SetExclusiveModeForTransaction(
 void NFCInstance::ReadNDEF(
     const picojson::value& args, picojson::object& out) {
 
+  CHECK_EXIST(args, "id", out);
+
   int tag_id = static_cast<int>(args.get("id").get<double>());
   LoggerD("Tag id: %d", tag_id);
 
-  try {
-    NFCAdapter::GetInstance()->TagReadNDEF(tag_id, args);
+  PlatformResult result =NFCAdapter::GetInstance()->TagReadNDEF(tag_id, args);
+  if (result.IsSuccess()) {
     ReportSuccess(out);
-  }
-  catch(const common::PlatformException& ex) {
-    ReportError(ex, out);
+  } else {
+    ReportError(result, &out);
   }
 }
 
@@ -527,27 +528,34 @@ void NFCInstance::TagTypeGetter(
 
   LoggerD("Entered");
 
+  CHECK_EXIST(args, "id", out);
   int tag_id = (int)args.get("id").get<double>();
   LoggerD("Tag id: %d", tag_id);
 
-  try {
-    // Function below throws exception if core API call fails
-    if (!NFCAdapter::GetInstance()->TagIsConnectedGetter(tag_id)) {
-      LoggerE("Tag with id %d is not connected anymore", tag_id);
-      // If tag is not connected then attribute's value
-      // should be undefined
-      ReportError(out);
-      return;
-    }
+  // Function below throws exception if core API call fails
+  bool is_connected = false;
+  PlatformResult result = NFCAdapter::GetInstance()->TagIsConnectedGetter(tag_id, &is_connected);
 
-    std::string tag_type =
-        NFCAdapter::GetInstance()->TagTypeGetter(tag_id);
-
-    ReportSuccess(picojson::value(tag_type), out);
+  if (result.IsError()) {
+    ReportError(result, &out);
+    return;
   }
-  catch(const PlatformException& ex) {
-    LoggerE("Failed to check tag connection");
-    ReportError(ex, out);
+
+  if (!is_connected) {
+    LoggerE("Tag with id %d is not connected anymore", tag_id);
+    // If tag is not connected then attribute's value
+    // should be undefined
+    ReportError(out);
+    return;
+  }
+
+  std::string tag_type = "";
+  result = NFCAdapter::GetInstance()->TagTypeGetter(tag_id, &tag_type);
+
+  if (result.IsSuccess()) {
+    ReportSuccess(picojson::value(tag_type), out);
+  } else {
+    ReportError(result, &out);
   }
 }
 
@@ -559,26 +567,30 @@ void NFCInstance::TagIsSupportedNDEFGetter(
   int tag_id = (int)args.get("id").get<double>();
   LoggerD("Tag id: %d", tag_id);
 
-  try {
-    // Function below throws exception if core API call fails
-    if (!NFCAdapter::GetInstance()->TagIsConnectedGetter(tag_id)) {
-      LoggerE("Tag with id %d is not connected anymore", tag_id);
-      // If tag is not connected then attribute's value
-      // should be undefined
-      ReportError(out);
-      return;
-    }
+  // Function below throws exception if core API call fails
+  bool is_connected = false;
+  PlatformResult result = NFCAdapter::GetInstance()->TagIsConnectedGetter(tag_id, &is_connected);
 
-    bool is_supported =
-        NFCAdapter::GetInstance()->TagIsSupportedNDEFGetter(tag_id);
+  if (result.IsError()) {
+    ReportError(result, &out);
+    return;
+  }
 
+  if (!is_connected) {
+    LoggerE("Tag with id %d is not connected anymore", tag_id);
+    // If tag is not connected then attribute's value
+    // should be undefined
+    ReportError(out);
+    return;
+  }
+
+  bool is_supported = false;
+  result = NFCAdapter::GetInstance()->TagIsSupportedNDEFGetter(tag_id, &is_supported);
+  if (result.IsSuccess()) {
     ReportSuccess(picojson::value(is_supported), out);
+  } else {
+    ReportError(result, &out);
   }
-  catch(const PlatformException& ex) {
-    LoggerE("Failed to check is NDEF supported");
-    ReportError(ex, out);
-  }
-
 }
 
 void NFCInstance::TagNDEFSizeGetter(
@@ -589,26 +601,31 @@ void NFCInstance::TagNDEFSizeGetter(
   int tag_id = (int)args.get("id").get<double>();
   LoggerD("Tag id: %d", tag_id);
 
-  try {
-    // Function below throws exception if core API call fails
-    if (!NFCAdapter::GetInstance()->TagIsConnectedGetter(tag_id)) {
-      LoggerE("Tag with id %d is not connected anymore", tag_id);
-      // If tag is not connected then attribute's value
-      // should be undefined
-      ReportError(out);
-      return;
-    }
+  // Function below throws exception if core API call fails
+  bool is_connected = false;
+  PlatformResult result = NFCAdapter::GetInstance()->TagIsConnectedGetter(tag_id, &is_connected);
 
-    unsigned int ndef_size =
-        NFCAdapter::GetInstance()->TagNDEFSizeGetter(tag_id);
+  if (result.IsError()) {
+    ReportError(result, &out);
+    return;
+  }
 
+  if (!is_connected) {
+    LoggerE("Tag with id %d is not connected anymore", tag_id);
+    // If tag is not connected then attribute's value
+    // should be undefined
+    ReportError(out);
+    return;
+  }
+
+  unsigned int ndef_size;
+  result = NFCAdapter::GetInstance()->TagNDEFSizeGetter(tag_id, &ndef_size);
+
+  if (result.IsSuccess()) {
     ReportSuccess(picojson::value((double)ndef_size), out);
+  } else {
+    ReportError(result, &out);
   }
-  catch(const PlatformException& ex) {
-    LoggerE("Failed to get tag NDEF size");
-    ReportError(ex, out);
-  }
-
 }
 
 void NFCInstance::TagPropertiesGetter(
@@ -618,22 +635,31 @@ void NFCInstance::TagPropertiesGetter(
 
   int tag_id = (int)args.get("id").get<double>();
   LoggerD("Tag id: %d", tag_id);
-  try {
-    // Function below throws exception if core API call fails
-    if (!NFCAdapter::GetInstance()->TagIsConnectedGetter(tag_id)) {
-      LoggerE("Tag with id %d is not connected anymore", tag_id);
-      // If tag is not connected then attribute's value
-      // should be undefined
-      ReportError(out);
-      return;
-    }
 
-    NFCTagPropertiesT result =
-        NFCAdapter::GetInstance()->TagPropertiesGetter(tag_id);
+  // Function below throws exception if core API call fails
+  bool is_connected = false;
+  PlatformResult result = NFCAdapter::GetInstance()->TagIsConnectedGetter(tag_id, &is_connected);
 
+  if (result.IsError()) {
+    ReportError(result, &out);
+    return;
+  }
+
+  if (!is_connected) {
+    LoggerE("Tag with id %d is not connected anymore", tag_id);
+    // If tag is not connected then attribute's value
+    // should be undefined
+    ReportError(out);
+    return;
+  }
+
+  NFCTagPropertiesT prop;
+
+  result = NFCAdapter::GetInstance()->TagPropertiesGetter(tag_id, &prop);
+  if (result.IsSuccess()) {
     picojson::value properties = picojson::value(picojson::array());
     picojson::array& properties_array = properties.get<picojson::array>();
-    for (auto it = result.begin() ; it != result.end(); it++) {
+    for (auto it = prop.begin() ; it != prop.end(); it++) {
       picojson::value val = picojson::value(picojson::object());
       picojson::object& obj = val.get<picojson::object>();
 
@@ -649,11 +675,10 @@ void NFCInstance::TagPropertiesGetter(
       properties_array.push_back(val);
     }
     ReportSuccess(properties, out);
+  } else {
+    ReportError(result, &out);
   }
-  catch(const PlatformException& ex) {
-    LoggerE("Failed to tag properties");
-    ReportError(ex, out);
-  }
+
 }
 
 void NFCInstance::TagIsConnectedGetter(
@@ -661,18 +686,19 @@ void NFCInstance::TagIsConnectedGetter(
 
   LoggerD("Entered");
 
+  CHECK_EXIST(args, "id", out);
   int tag_id = (int)args.get("id").get<double>();
   LoggerD("Tag id: %d", tag_id);
-  try {
-    bool connected = NFCAdapter::GetInstance()->TagIsConnectedGetter(tag_id);
-    ReportSuccess(picojson::value(connected), out);
-  }
-  catch(const PlatformException& ex) {
-    LoggerE("Failed to check tag connection");
-    ReportError(ex, out);
+
+  bool connected = false;
+  PlatformResult result = NFCAdapter::GetInstance()->TagIsConnectedGetter(tag_id, &connected);
+
+  if (result.IsSuccess()) {
+    ReportSuccess(out);
+  } else {
+    ReportError(result, &out);
   }
 }
-
 
 } // namespace nfc
 } // namespace extension
