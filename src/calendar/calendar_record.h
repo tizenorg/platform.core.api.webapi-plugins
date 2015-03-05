@@ -22,7 +22,9 @@
 #include <memory>
 #include <calendar-service2/calendar.h>
 
+#include "common/platform_result.h"
 #include "common/picojson.h"
+
 namespace extension {
 namespace calendar {
 
@@ -39,46 +41,60 @@ class CalendarRecord {
   static void Deleter(calendar_record_h handle);
   static void ListDeleter(calendar_list_h handle);
 
-  static std::string GetString(calendar_record_h rec, unsigned int property,
-                               bool throw_on_error = true);
-  static void SetString(calendar_record_h rec, unsigned int property,
-                        const std::string& value, bool throw_on_error = true);
+  static common::PlatformResult GetString(calendar_record_h rec,
+                                          unsigned int property,
+                                          std::string* str,
+                                          bool throw_on_error = true);
+  static common::PlatformResult SetString(calendar_record_h rec,
+                                          unsigned int property,
+                                          const std::string& value,
+                                          bool throw_on_error = true);
 
-  static int GetInt(calendar_record_h rec, unsigned int property,
-                    bool throw_on_error = true);
-  static void SetInt(calendar_record_h rec, unsigned int property, int value,
-                     bool throw_on_error = true);
+  static common::PlatformResult GetInt(calendar_record_h rec,
+                                       unsigned int property,
+                                       int* value,
+                                       bool throw_on_error = true);
+  static common::PlatformResult SetInt(calendar_record_h rec,
+                                       unsigned int property, int value,
+                                       bool throw_on_error = true);
 
   static std::string TypeToString(int type);
   static std::string TypeToString(const char* view_uri);
   static int TypeToInt(const std::string& type);
   static int TypeToInt(const char* view_uri);
-  static const char* TypeToUri(const std::string& type);
-  static const char* TypeToUri(int type);
+  static common::PlatformResult TypeToUri(const std::string& type,
+                                          std::string* uri);
+  static common::PlatformResult TypeToUri(int type, std::string* uri);
 
-  static int Insert(calendar_record_h rec);
+  static common::PlatformResult Insert(calendar_record_h rec, int* record_id);
 
-  static void AddChildRecord(calendar_record_h rec, unsigned int property,
-                             calendar_record_h child);
+  static common::PlatformResult AddChildRecord(calendar_record_h rec,
+                                               unsigned int property,
+                                               calendar_record_h child);
   static void RemoveChildRecords(calendar_record_h rec,
                                  unsigned int property_id);
-  static unsigned int GetChildRecordCount(calendar_record_h rec,
-                                          unsigned int property,
-                                          bool throw_on_error = true);
-  static bool GetChildRecordAt(calendar_record_h rec, unsigned int property,
-                               calendar_record_h* result, int index,
-                               bool throw_on_error = true);
+  static common::PlatformResult GetChildRecordCount(calendar_record_h rec,
+                                                    unsigned int property,
+                                                    bool throw_on_error,
+                                                    unsigned int* value);
+  static common::PlatformResult GetChildRecordAt(calendar_record_h rec,
+                                                 unsigned int property,
+                                                 calendar_record_h* result,
+                                                 int index);
 
-  static CalendarRecordPtr GetById(int id, const char* view_uri);
-  static CalendarRecordPtr GetCalendar(int id);
-  static CalendarRecordPtr GetItem(int id, const char* view_uri);
-  static CalendarRecordPtr Create(const char* view_uri);
-  static CalendarRecordPtr CreateCalendar();
+  static common::PlatformResult GetById(int id, const char* view_uri,
+                                        calendar_record_h *handle);
+  static common::PlatformResult Create(const char* view_uri,
+                                       calendar_record_h *calendar);
+  static common::PlatformResult CreateCalendar(calendar_record_h* handle);
 
-  static void CalendarToJson(calendar_record_h rec,
-                             picojson::object* out_ptr);
-  static void CalendarFromJson(calendar_record_h rec,
-                               const picojson::object& in);
+  static common::PlatformResult CalendarToJson(calendar_record_h rec,
+                                               picojson::object* out_ptr);
+  static common::PlatformResult CalendarFromJson(calendar_record_h rec,
+                                                 const picojson::object& in);
+
+  static common::PlatformResult CheckReturn(int ret,
+                                            const std::string& error_name);
 };
 
 }  // namespace calendar

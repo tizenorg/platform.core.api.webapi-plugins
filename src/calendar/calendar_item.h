@@ -39,78 +39,103 @@ typedef std::map<std::string, std::map<int, std::string>>
 
 class CalendarItem : public CalendarRecord {
  public:
-  static CalendarRecordPtr Create(int type);
-  static void Remove(int type, int id);
+  static common::PlatformResult Create(int type, calendar_record_h *handle);
+  static common::PlatformResult Remove(int type, int id);
 
-  static unsigned int GetPlatformProperty(int type,
-                                          const std::string& property);
-  static int StringToPlatformEnum(const std::string& type,
-                                  const std::string& value);
-  static std::string PlatformEnumToString(const std::string& field, int value);
+  static common::PlatformResult GetPlatformProperty(int type,
+                                                    const std::string& property,
+                                                    unsigned int* value);
+  static common::PlatformResult StringToPlatformEnum(const std::string& type,
+                                                     const std::string& value,
+                                                     int* platform_enum);
+  static common::PlatformResult PlatformEnumToString(const std::string& field,
+                                                     int value,
+                                                     std::string* platform_str);
 
   // string
-  static void SetString(int type, calendar_record_h rec,
-                        const std::string& property,
-                        const  picojson::object& in, bool optional = false);
-  static void SetString(int type, calendar_record_h rec,
-                        const std::string& property, const std::string& value);
-  static std::string GetString(int type, calendar_record_h rec,
-                               const std::string& property);
+  static common::PlatformResult SetString(int type, calendar_record_h rec,
+                                          const std::string& property,
+                                          const picojson::object& in,
+                                          bool optional = false);
+  static common::PlatformResult SetString(int type, calendar_record_h rec,
+                                          const std::string& property,
+                                          const std::string& value);
+  static common::PlatformResult GetString(int type, calendar_record_h rec,
+                                          const std::string& property,
+                                          std::string* value);
 
   // int
-  static void SetInt(int type, calendar_record_h rec,
-                     const std::string& property,
-                     const  picojson::object& in, bool optional = false);
-  static void SetInt(int type, calendar_record_h rec,
-                     const std::string& property, int value);
-  static int GetInt(int type, calendar_record_h rec,
-                    const std::string& property);
+  static common::PlatformResult SetInt(int type, calendar_record_h rec,
+                                       const std::string& property,
+                                       const picojson::object& in,
+                                       bool optional = false);
+  static common::PlatformResult SetInt(int type, calendar_record_h rec,
+                                       const std::string& property, int value);
+  static common::PlatformResult GetInt(int type, calendar_record_h rec,
+                                       const std::string& property, int* value);
 
   // enum
-  static void SetEnum(int type, calendar_record_h rec,
-                      const std::string& property,
-                      const  picojson::object& in,
-                      const std::string& enum_name);
-  static void SetEnum(calendar_record_h rec, unsigned int property,
-                      const std::string& enum_name, const std::string& value);
-  static std::string GetEnum(int type, calendar_record_h rec,
-                             const std::string& property,
-                             const std::string& enum_name);
-  static std::string GetEnum(calendar_record_h rec, unsigned int property,
-                             const std::string& enum_name);
+  static common::PlatformResult SetEnum(int type, calendar_record_h rec,
+                                        const std::string& property,
+                                        const picojson::object& in,
+                                        const std::string& enum_name);
+  static common::PlatformResult SetEnum(calendar_record_h rec,
+                                        unsigned int property,
+                                        const std::string& enum_name,
+                                        const std::string& value);
+  static common::PlatformResult GetEnum(int type, calendar_record_h rec,
+                                        const std::string& property,
+                                        const std::string& enum_name,
+                                        std::string* enum_str);
+  static common::PlatformResult GetEnum(calendar_record_h rec,
+                                        unsigned int property,
+                                        const std::string& enum_name,
+                                        std::string* enum_str);
 
   // double
-  static void SetDouble(int type, calendar_record_h rec,
-                        const std::string& property, double value);
-  static double GetDouble(int type, calendar_record_h rec,
-                          const std::string& property);
+  static common::PlatformResult SetDouble(int type, calendar_record_h rec,
+                                          const std::string& property,
+                                          double value);
+  static common::PlatformResult GetDouble(int type, calendar_record_h rec,
+                                          const std::string& property,
+                                          double *value);
 
   // calendar_time_s
-  static void SetCaltime(int type, calendar_record_h rec,
-                         const std::string& property, calendar_time_s value,
-                         bool throw_on_error = true);
-  static void SetCaltime(calendar_record_h rec, unsigned int property,
-                         calendar_time_s value, bool throw_on_error = true);
-  static calendar_time_s GetCaltime(int type, calendar_record_h rec,
-                                    const std::string& property,
-                                    bool throw_on_error = true);
-  static calendar_time_s GetCaltime(calendar_record_h rec,
-                                    unsigned int property,
-                                    bool throw_on_error = true);
+  static common::PlatformResult SetCaltime(int type, calendar_record_h rec,
+                                           const std::string& property,
+                                           calendar_time_s value,
+                                           bool throw_on_error = true);
+  static common::PlatformResult SetCaltime(calendar_record_h rec,
+                                           unsigned int property,
+                                           calendar_time_s value,
+                                           bool throw_on_error = true);
+  static common::PlatformResult GetCaltime(int type, calendar_record_h rec,
+                                           const std::string& property,
+                                           calendar_time_s * cal_time,
+                                           bool throw_on_error = true);
+  static common::PlatformResult GetCaltime(calendar_record_h rec,
+                                           unsigned int property,
+                                           calendar_time_s * cal_time,
+                                           bool throw_on_error = true);
 
   // long long int
-  static void SetLli(calendar_record_h rec, unsigned int property,
-                     long long int value, bool throw_on_error = true);
-  static long long int GetLli(int type, calendar_record_h rec,
-                              const std::string& property);
-  static long long int GetLli(calendar_record_h rec, unsigned int property,
-                              bool throw_on_error = true);
+  static common::PlatformResult SetLli(calendar_record_h rec,
+                                       unsigned int property,
+                                       long long int value,
+                                       bool throw_on_error = true);
+  static common::PlatformResult GetLli(int type, calendar_record_h rec,
+                                       const std::string& property,
+                                       long long int* lli);
+  static common::PlatformResult GetLli(calendar_record_h rec,
+                                       unsigned int property,
+                                       long long int* value,
+                                       bool throw_on_error = true);
 
   // conversions
-  static void FromJson(int type, calendar_record_h record,
-                       const  picojson::object& in);
-  static void ToJson(int type, calendar_record_h record,
-                      picojson::object* out_ptr);
+  static common::PlatformResult FromJson(int type, calendar_record_h record,
+                                         const picojson::object& in);
+  static common::PlatformResult ToJson(int type, calendar_record_h record,
+                                       picojson::object* out_ptr);
 
   static std::string ExceptionsFromJson(const picojson::array& exceptions);
   static Date DateFromJson(const  picojson::object& in);
@@ -121,25 +146,35 @@ class CalendarItem : public CalendarRecord {
  private:
   // from JSON to platform
 
-  static void CategoriesFromJson(int type, calendar_record_h rec,
-                                 const picojson::array& value);
-  static void AttendeesFromJson(int type, calendar_record_h rec,
-                                const picojson::array& value);
-  static void AlarmsFromJson(int type, calendar_record_h rec,
-                             const picojson::array& alarms);
-  static void RecurrenceRuleFromJson(calendar_record_h rec,
-                                     const  picojson::object& rrule);
+  static common::PlatformResult CategoriesFromJson(
+      int type, calendar_record_h rec, const picojson::array& value);
+  static common::PlatformResult AttendeesFromJson(int type,
+                                                  calendar_record_h rec,
+                                                  const picojson::array& value);
+  static common::PlatformResult AlarmsFromJson(int type, calendar_record_h rec,
+                                               const picojson::array& alarms);
+  static common::PlatformResult RecurrenceRuleFromJson(
+      calendar_record_h rec, const picojson::object& rrule);
 
   // from platform to JSON
-  static picojson::value DateToJson(Date date);
-  static picojson::array CategoriesToJson(int type, calendar_record_h rec);
-  static picojson::array AttendeesToJson(int type, calendar_record_h rec);
-  static picojson::array AlarmsToJson(int type, calendar_record_h rec);
-  static  picojson::object RecurrenceRuleToJson(calendar_record_h rec);
+  static picojson::value DateToJson(Date *date);
+  static common::PlatformResult CategoriesToJson(int type,
+                                                 calendar_record_h rec,
+                                                 picojson::array* value);
+  static common::PlatformResult AttendeesToJson(int type, calendar_record_h rec,
+                                                picojson::array* out);
+  static common::PlatformResult AlarmsToJson(int type, calendar_record_h rec,
+                                             picojson::array* out);
+  static common::PlatformResult RecurrenceRuleToJson(calendar_record_h rec,
+                                                     picojson::object* out_ptr);
 
-  static Date DateFromPlatform(int type, calendar_record_h rec,
-                               const std::string& property);
-  static Date DateFromPlatform(calendar_record_h rec, unsigned int property);
+  static common::PlatformResult DateFromPlatform(int type,
+                                                 calendar_record_h rec,
+                                                 const std::string& property,
+                                                 Date* date_from_platform);
+  static common::PlatformResult DateFromPlatform(calendar_record_h rec,
+                                                 unsigned int property,
+                                                 Date* date_from_platform);
 
   static picojson::array StringToArray(const std::string& string);
 

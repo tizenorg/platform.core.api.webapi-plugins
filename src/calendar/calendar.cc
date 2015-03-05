@@ -68,18 +68,25 @@ Calendar::~Calendar() {
   }
 }
 
-void Calendar::Get(const picojson::object& args, picojson::object& out) {
-  LoggerD("enter");
-
+PlatformResult Calendar::Get(const picojson::object& args, picojson::object& out) {
   if (!CalendarManager::GetInstance().IsConnected()) {
-    throw UnknownException("DB Connection failed.");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "DB Connection failed.");
   }
 
   int calendar_id = common::stol(FromJson<std::string>(args, "calendarId"));
+
+  calendar_record_h handle = nullptr;
+  PlatformResult status =
+      CalendarRecord::GetById(calendar_id, _calendar_book._uri, &handle);
+  if (status.IsError()) return status;
+
   CalendarRecordPtr calendar_ptr =
-      CalendarRecord::GetById(calendar_id, _calendar_book._uri);
-  int type =
-      CalendarRecord::GetInt(calendar_ptr.get(), _calendar_book.store_type);
+      CalendarRecordPtr(handle, CalendarRecord::Deleter);
+
+  int type;
+  status = CalendarRecord::GetInt(calendar_ptr.get(), _calendar_book.store_type,
+                                  &type);
+  if (status.IsError()) return status;
 
   int id;
   if (type == CALENDAR_BOOK_TYPE_EVENT) {
@@ -88,55 +95,85 @@ void Calendar::Get(const picojson::object& args, picojson::object& out) {
     id = common::stol(FromJson<std::string>(args, "id"));
   }
 
+  std::string uri;
+  status = CalendarRecord::TypeToUri(type, &uri);
+  if (status.IsError()) return status;
+
+  calendar_record_h handle_uri = nullptr;
+  status = CalendarRecord::GetById(id, uri.c_str(), &handle_uri);
+  if (status.IsError()) return status;
+
   CalendarRecordPtr record_ptr =
-      CalendarRecord::GetById(id, CalendarRecord::TypeToUri(type));
-  picojson::value record_obj = picojson::value(picojson::object());
-  CalendarItem::ToJson(type, record_ptr.get(), &out);
+      CalendarRecordPtr(handle_uri, CalendarRecord::Deleter);
+
+  status = CalendarItem::ToJson(type, record_ptr.get(), &out);
+  if (status.IsError()) return status;
+
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void Calendar::Add(const picojson::object& args, picojson::object& out) {
-  LoggerD("enter");
+PlatformResult Calendar::Add(const picojson::object& args,
+                             picojson::object& out) {
   if (!CalendarManager::GetInstance().IsConnected()) {
-    throw UnknownException("DB Connection failed.");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "DB Connection failed.");
   }
 
   const auto& item = FromJson<picojson::object>(args, "item");
   int type = CalendarRecord::TypeToInt(FromJson<std::string>(args, "type"));
 
-  CalendarRecordPtr item_ptr = CalendarItem::Create(type);
-  CalendarItem::FromJson(type, item_ptr.get(), item);
-  int record_id = CalendarRecord::Insert(item_ptr.get());
+  calendar_record_h handle = nullptr;
+  PlatformResult status = CalendarItem::Create(type, &handle);
+  if (status.IsError()) return status;
+
+  CalendarRecordPtr item_ptr =
+      CalendarRecordPtr(handle, CalendarRecord::Deleter);
+
+  status = CalendarItem::FromJson(type, item_ptr.get(), item);
+  if (status.IsError()) return status;
+
+  int record_id;
+  status = CalendarRecord::Insert(item_ptr.get(), &record_id);
+  if (status.IsError()) return status;
+
   out.insert(std::make_pair("uid", std::to_string(record_id)));
 
   if (type == CALENDAR_BOOK_TYPE_EVENT) {
-    std::string rid = CalendarRecord::GetString(item_ptr.get(),
-                                                _calendar_event.recurrence_id);
+    std::string rid;
+    PlatformResult status = CalendarRecord::GetString(
+        item_ptr.get(), _calendar_event.recurrence_id, &rid);
+    if (status.IsError()) return status;
+
     if (!rid.empty()) {
       out["rid"] = picojson::value(rid);
     } else {
       out["rid"] = picojson::value();
     }
   }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void Calendar::AddBatch(const picojson::object& args, picojson::array& array) {
-  LoggerD("enter");
-
+PlatformResult Calendar::AddBatch(const picojson::object& args,
+                                  picojson::array& array) {
   if (!CalendarManager::GetInstance().IsConnected()) {
-    throw UnknownException("DB Connection failed.");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "DB Connection failed.");
   }
 
   auto& items = FromJson<picojson::array>(args, "items");
   if (items.empty()) {
-    throw InvalidValuesException("No items");
+    return PlatformResult(ErrorCode::INVALID_VALUES_ERR, "No items");
   }
 
   int type = CalendarRecord::TypeToInt(FromJson<std::string>(args, "type"));
-  const char* view_uri = CalendarRecord::TypeToUri(type);
+  std::string view_uri;
+  PlatformResult status = CalendarRecord::TypeToUri(type, &view_uri);
+  if (status.IsError()) return status;
+
   calendar_list_h list = NULL;
   if (CALENDAR_ERROR_NONE != calendar_list_create(&list)) {
     LoggerE("Could not create list for batch operation");
-    throw UnknownException("Could not create list for batch operation");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                          "Could not create list for batch operation");
   }
   CalendarListPtr list_ptr = CalendarListPtr(list, CalendarRecord::ListDeleter);
 
@@ -144,15 +181,20 @@ void Calendar::AddBatch(const picojson::object& args, picojson::array& array) {
   calendar_record_h record;
 
   for (auto& item : items) {
-    ret = calendar_record_create(view_uri, &record);
+    ret = calendar_record_create(view_uri.c_str(), &record);
     if (CALENDAR_ERROR_NONE != ret) {
       LoggerW("Can't create platform record %d", ret);
-      throw UnknownException("Can't create platform record");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                            "Can't create platform record");
     }
-    CalendarItem::FromJson(type, record, item.get<picojson::object>());
+    PlatformResult status =
+        CalendarItem::FromJson(type, record, item.get<picojson::object>());
+    if (status.IsError()) return status;
+
     if (CALENDAR_ERROR_NONE != calendar_list_add(list_ptr.get(), record)) {
       LoggerE("Could not add record to list events");
-      throw InvalidValuesException("Could not add record to list");
+      return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
+                            "Could not add record to list");
     }
   }
 
@@ -163,10 +205,12 @@ void Calendar::AddBatch(const picojson::object& args, picojson::array& array) {
     LoggerE("calendar_db_insert_records failed.");
     if (CALENDAR_ERROR_INVALID_PARAMETER == ret) {
       LoggerE("CALENDAR_ERROR_INVALID_PARAMETER.");
-      throw InvalidValuesException("Parameter is invalid");
+      return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
+                            "Parameter is invalid");
     } else {
       LoggerE("CALENDAR_ERROR_DB_FAILED");
-      throw UnknownException("CALENDAR_ERROR_DB_FAILED occurred");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                            "CALENDAR_ERROR_DB_FAILED occurred");
     }
   }
 
@@ -183,13 +227,14 @@ void Calendar::AddBatch(const picojson::object& args, picojson::array& array) {
     array.push_back(id);
   }
   free(ids);
+
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void Calendar::Update(const picojson::object& args, picojson::object& /*out*/) {
-  LoggerD("enter");
-
+PlatformResult Calendar::Update(const picojson::object& args,
+                                picojson::object& /*out*/) {
   if (!CalendarManager::GetInstance().IsConnected()) {
-    throw UnknownException("DB Connection failed.");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "DB Connection failed.");
   }
 
   const auto& item = FromJson<picojson::object>(args, "item");
@@ -207,15 +252,26 @@ void Calendar::Update(const picojson::object& args, picojson::object& /*out*/) {
     id = common::stol(FromJson<std::string>(item, "id"));
   }
 
+  std::string value_str;
+  PlatformResult status = CalendarRecord::TypeToUri(type, &value_str);
+  if (status.IsError()) return status;
+
+  calendar_record_h handle = nullptr;
+  status = CalendarRecord::GetById(id, value_str.c_str(), &handle);
+  if (status.IsError()) return status;
+
   CalendarRecordPtr record_ptr =
-      CalendarRecord::GetById(id, CalendarRecord::TypeToUri(type));
-  CalendarItem::FromJson(type, record_ptr.get(), item);
+      CalendarRecordPtr(handle, CalendarRecord::Deleter);
+
+  status = CalendarItem::FromJson(type, record_ptr.get(), item);
+  if (status.IsError()) return status;
 
   if (type == CALENDAR_BOOK_TYPE_TODO || update_all ||
       common::IsNull(item, "recurrenceRule")) {
     if (CALENDAR_ERROR_NONE != calendar_db_update_record(record_ptr.get())) {
       LoggerE("Can't update calendar item");
-      throw UnknownException("Can't update calendar item");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                            "Can't update calendar item");
     }
   } else {
     // first update the parent event
@@ -226,35 +282,49 @@ void Calendar::Update(const picojson::object& args, picojson::object& /*out*/) {
                         "rid")) {
       exdate.append(common::FromJson<std::string>(item, "id", "rid"));
     }
-    CalendarRecord::SetString(record_ptr.get(), _calendar_event.exdate, exdate);
+    PlatformResult status = CalendarRecord::SetString(
+        record_ptr.get(), _calendar_event.exdate, exdate);
+    if (status.IsError()) return status;
 
     // don't set the recurrence id for the parent event
-    CalendarRecord::SetString(record_ptr.get(), _calendar_event.recurrence_id,
-                              "");
+    status = CalendarRecord::SetString(record_ptr.get(),
+                                       _calendar_event.recurrence_id, "");
+    if (status.IsError()) return status;
 
     if (CALENDAR_ERROR_NONE != calendar_db_update_record(record_ptr.get())) {
       LoggerE("Can't update calendar item");
-      throw UnknownException("Can't update calendar item");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                            "Can't update calendar item");
     }
 
     // now add the detached child event
-    CalendarRecordPtr item_ptr = CalendarItem::Create(type);
-    CalendarItem::FromJson(type, item_ptr.get(), item);
-    CalendarRecord::Insert(item_ptr.get());
+    calendar_record_h handle_new = nullptr;
+    status = CalendarItem::Create(type, &handle_new);
+    if (status.IsError()) return status;
+
+    CalendarRecordPtr item_ptr =
+        CalendarRecordPtr(handle_new, CalendarRecord::Deleter);
+
+    status = CalendarItem::FromJson(type, item_ptr.get(), item);
+    if (status.IsError()) return status;
+
+    int record_id;
+    status = CalendarRecord::Insert(item_ptr.get(), &record_id);
+    if (status.IsError()) return status;
   }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void Calendar::UpdateBatch(const picojson::object& args,
-                           picojson::array& array) {
-  LoggerD("enter");
-
+PlatformResult Calendar::UpdateBatch(const picojson::object& args,
+                                     picojson::array& array) {
   if (!CalendarManager::GetInstance().IsConnected()) {
-    throw UnknownException("DB Connection failed.");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "DB Connection failed.");
   }
 
   auto& items = FromJson<picojson::array>(args, "items");
   if (items.empty()) {
-    throw InvalidValuesException("No items");
+    return PlatformResult(ErrorCode::INVALID_VALUES_ERR, "No items");
   }
 
   bool update_all = true;
@@ -263,11 +333,15 @@ void Calendar::UpdateBatch(const picojson::object& args,
   }
 
   int type = CalendarRecord::TypeToInt(FromJson<std::string>(args, "type"));
-  const char* view_uri = CalendarRecord::TypeToUri(type);
+  std::string view_uri;
+  PlatformResult status = CalendarRecord::TypeToUri(type, &view_uri);
+  if (status.IsError()) return status;
+
   calendar_list_h list = NULL;
   if (CALENDAR_ERROR_NONE != calendar_list_create(&list)) {
     LoggerE("Could not create list for batch operation");
-    throw UnknownException("Could not create list for batch operation");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                          "Could not create list for batch operation");
   }
   CalendarListPtr list_ptr = CalendarListPtr(list, CalendarRecord::ListDeleter);
 
@@ -282,35 +356,41 @@ void Calendar::UpdateBatch(const picojson::object& args,
       id = common::stol(FromJson<std::string>(item_obj, "id"));
     }
 
-    ret = calendar_db_get_record(view_uri, id, &record);
+    ret = calendar_db_get_record(view_uri.c_str(), id, &record);
     if (CALENDAR_ERROR_NONE != ret) {
       LoggerW("Can't get platform record %d", ret);
-      throw UnknownException("Can't get platform record");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                            "Can't get platform record");
     }
-    CalendarItem::FromJson(type, record, item.get<picojson::object>());
+    PlatformResult status =
+        CalendarItem::FromJson(type, record, item.get<picojson::object>());
+    if (status.IsError()) return status;
 
     if (CALENDAR_ERROR_NONE != calendar_list_add(list_ptr.get(), record)) {
       LoggerE("Could not add record to list events");
-      throw InvalidValuesException("Could not add record to list");
+      return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
+                            "Could not add record to list");
     }
   }
 
   if (type == CALENDAR_BOOK_TYPE_TODO || update_all) {
     if (CALENDAR_ERROR_NONE != calendar_db_update_records(list_ptr.get())) {
       LoggerE("Can't update calendar items");
-      throw UnknownException("Can't update calendar items");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                            "Can't update calendar items");
     }
   } else {
     // @todo update the exdate for a recurring parent event and add a new
     // child event
   }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void Calendar::Remove(const picojson::object& args, picojson::object& out) {
-  LoggerD("enter");
-
+PlatformResult Calendar::Remove(const picojson::object& args,
+                                picojson::object& out) {
   if (!CalendarManager::GetInstance().IsConnected()) {
-    throw UnknownException("DB Connection failed.");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "DB Connection failed.");
   }
 
   int type = CalendarRecord::TypeToInt(FromJson<std::string>(args, "type"));
@@ -322,31 +402,39 @@ void Calendar::Remove(const picojson::object& args, picojson::object& out) {
     id = common::stol(FromJson<std::string>(args, "id"));
   }
 
-  CalendarItem::Remove(type, id);
+  return CalendarItem::Remove(type, id);
 }
 
-void Calendar::Find(const picojson::object& args, picojson::array& array) {
-  LoggerD("enter");
-
+PlatformResult Calendar::Find(const picojson::object& args, picojson::array& array) {
   if (!CalendarManager::GetInstance().IsConnected()) {
-    throw UnknownException("DB Connection failed.");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "DB Connection failed.");
   }
   int calendar_id = common::stol(FromJson<std::string>(args, "calendarId"));
   int error_code = 0;
+  calendar_record_h handle = nullptr;
+  PlatformResult status =
+      CalendarRecord::GetById(calendar_id, _calendar_book._uri, &handle);
+  if (status.IsError()) return status;
+
   CalendarRecordPtr calendar_ptr =
-      CalendarRecord::GetById(calendar_id, _calendar_book._uri);
-  int type =
-      CalendarRecord::GetInt(calendar_ptr.get(), _calendar_book.store_type);
+      CalendarRecordPtr(handle, CalendarRecord::Deleter);
+
+  int type;
+  status = CalendarRecord::GetInt(calendar_ptr.get(), _calendar_book.store_type,
+                                  &type);
+  if (status.IsError()) return status;
+
   calendar_query_h calendar_query = nullptr;
   if (type == CALENDAR_BOOK_TYPE_EVENT) {
     error_code = calendar_query_create(_calendar_event._uri, &calendar_query);
-    ErrorChecker(error_code);
+    if ((status = ErrorChecker(error_code)).IsError()) return status;
   } else {
     error_code = calendar_query_create(_calendar_todo._uri, &calendar_query);
-    ErrorChecker(error_code);
+    if ((status = ErrorChecker(error_code)).IsError()) return status;
   }
   if (CALENDAR_ERROR_NONE != error_code) {
-    throw UnknownException("calendar_query_create failed");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                          "calendar_query_create failed");
   }
   std::vector<std::vector<CalendarFilterPtr>> intermediate_filters(1);
   if (!IsNull(args, "filter")) {
@@ -359,19 +447,25 @@ void Calendar::Find(const picojson::object& args, picojson::array& array) {
       if (type == CALENDAR_BOOK_TYPE_EVENT) {
         error_code =
             calendar_filter_create(_calendar_event._uri, &calendar_filter);
-        ErrorChecker(error_code);
+        if ((status = ErrorChecker(error_code)).IsError()) return status;
       } else {
         error_code =
             calendar_filter_create(_calendar_todo._uri, &calendar_filter);
-        ErrorChecker(error_code);
+        if ((status = ErrorChecker(error_code)).IsError()) return status;
       }
       CalendarFilterPtr calendar_filter_ptr(calendar_filter,
                                             CalendarFilterDeleter);
       unsigned int propertyId = 0;
-      if (name == "startDate" || name == "endDate" || name == "dueDate")
-        propertyId = CalendarItem::GetPlatformProperty(type, name + "_time");
-      else
-        propertyId = CalendarItem::GetPlatformProperty(type, name);
+      if (name == "startDate" || name == "endDate" || name == "dueDate") {
+        PlatformResult status = CalendarItem::GetPlatformProperty(
+            type, name + "_time", &propertyId);
+        if (status.IsError()) return status;
+      } else {
+        PlatformResult status =
+            CalendarItem::GetPlatformProperty(type, name, &propertyId);
+        if (status.IsError()) return status;
+      }
+
       if (name == "id" || name == "id.uid") {
         if (type == CALENDAR_BOOK_TYPE_EVENT && name == "id") {
           value = common::stol(
@@ -380,7 +474,8 @@ void Calendar::Find(const picojson::object& args, picojson::array& array) {
           value = common::stol(JsonCast<std::string>(match_value));
         }
         if (value < 0) {
-          throw InvalidValuesException("Match value cannot be less than 0");
+          return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
+                                "Match value cannot be less than 0");
         }
         calendar_match_int_flag_e flag;
         if (AttributeMatchFlag::kExists == match_flag) {
@@ -396,7 +491,7 @@ void Calendar::Find(const picojson::object& args, picojson::array& array) {
         }
         error_code =
             calendar_filter_add_int(calendar_filter, propertyId, flag, value);
-        ErrorChecker(error_code);
+        if ((status = ErrorChecker(error_code)).IsError()) return status;
       } else if (name == "startDate" || name == "endDate" ||
                  name == "dueDate") {
         calendar_match_int_flag_e flag;
@@ -417,7 +512,7 @@ void Calendar::Find(const picojson::object& args, picojson::array& array) {
         error_code = calendar_filter_add_caltime(
             calendar_filter, propertyId, flag,
             CalendarItem::DateToPlatform(dateTofilter, false));
-        ErrorChecker(error_code);
+        if ((status = ErrorChecker(error_code)).IsError()) return status;
       } else {
         std::string value = JsonCast<std::string>(match_value);
         calendar_match_str_flag_e flag = CALENDAR_MATCH_EXISTS;
@@ -451,34 +546,36 @@ void Calendar::Find(const picojson::object& args, picojson::array& array) {
 
     visitor.SetOnCompositeFilterEnd([&](CompositeFilterType calType) {
       if (intermediate_filters.size() == 0) {
-        throw UnknownException("Reached stack size equal to 0!");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                              "Reached stack size equal to 0!");
       }
       calendar_filter_h merged_filter = nullptr;
 
       if (type == CALENDAR_BOOK_TYPE_EVENT) {
         error_code =
             calendar_filter_create(_calendar_event._uri, &merged_filter);
-        ErrorChecker(error_code);
+        if ((status = ErrorChecker(error_code)).IsError()) return status;
       } else {
         error_code =
             calendar_filter_create(_calendar_todo._uri, &merged_filter);
-        ErrorChecker(error_code);
+        if ((status = ErrorChecker(error_code)).IsError()) return status;
       }
       CalendarFilterPtr merged_filter_ptr(merged_filter, CalendarFilterDeleter);
       for (std::size_t i = 0; i < intermediate_filters.back().size(); ++i) {
         error_code = calendar_filter_add_filter(
             merged_filter, intermediate_filters.back().at(i).get());
-        ErrorChecker(error_code);
+        if ((status = ErrorChecker(error_code)).IsError()) return status;
         if (CompositeFilterType::kIntersection == calType) {
           error_code = calendar_filter_add_operator(
               merged_filter, CALENDAR_FILTER_OPERATOR_AND);
-          ErrorChecker(error_code);
+          if ((status = ErrorChecker(error_code)).IsError()) return status;
         } else if (CompositeFilterType::kUnion == calType) {
           error_code = calendar_filter_add_operator(
               merged_filter, CALENDAR_FILTER_OPERATOR_OR);
-          ErrorChecker(error_code);
+          if ((status = ErrorChecker(error_code)).IsError()) return status;
         } else {
-          throw InvalidValuesException("Invalid union type!");
+          return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
+                                "Invalid union type!");
         }
       }
       intermediate_filters.pop_back();
@@ -492,21 +589,25 @@ void Calendar::Find(const picojson::object& args, picojson::array& array) {
                                           const JsonValue& end_value) {
       unsigned int propertyId = 0;
       if (name == "startDate" || name == "endDate" || name == "dueDate") {
-        propertyId = CalendarItem::GetPlatformProperty(type, name + "_time");
-
+        PlatformResult status = CalendarItem::GetPlatformProperty(
+            type, name + "_time", &propertyId);
+        if (status.IsError()) return status;
       } else {
-        propertyId = CalendarItem::GetPlatformProperty(type, name);
+        PlatformResult status =
+            CalendarItem::GetPlatformProperty(type, name, &propertyId);
+        if (status.IsError()) return status;
       }
+
       calendar_filter_h calendar_filter = nullptr;
       int error_code = 0;
       if (type == CALENDAR_BOOK_TYPE_EVENT) {
         error_code =
             calendar_filter_create(_calendar_event._uri, &calendar_filter);
-        ErrorChecker(error_code);
+        if ((status = ErrorChecker(error_code)).IsError()) return status;
       } else {
         error_code =
             calendar_filter_create(_calendar_todo._uri, &calendar_filter);
-        ErrorChecker(error_code);
+        if ((status = ErrorChecker(error_code)).IsError()) return status;
       }
       CalendarFilterPtr calendar_filter_ptr(calendar_filter,
                                             CalendarFilterDeleter);
@@ -529,11 +630,11 @@ void Calendar::Find(const picojson::object& args, picojson::array& array) {
           if (type == CALENDAR_BOOK_TYPE_EVENT) {
             error_code =
                 calendar_filter_create(_calendar_event._uri, &sub_filter);
-            ErrorChecker(error_code);
+            if ((status = ErrorChecker(error_code)).IsError()) return status;
           } else {
             error_code =
                 calendar_filter_create(_calendar_todo._uri, &sub_filter);
-            ErrorChecker(error_code);
+            if ((status = ErrorChecker(error_code)).IsError()) return status;
           }
           CalendarFilterPtr sub_filter_ptr(sub_filter, CalendarFilterDeleter);
 
@@ -549,17 +650,17 @@ void Calendar::Find(const picojson::object& args, picojson::array& array) {
               end_value_date);
 
           error_code = calendar_filter_add_filter(calendar_filter, sub_filter);
-          ErrorChecker(error_code);
+          if ((status = ErrorChecker(error_code)).IsError()) return status;
         } else if (initial_value_exists) {
           error_code = calendar_filter_add_int(
               calendar_filter, propertyId, CALENDAR_MATCH_GREATER_THAN_OR_EQUAL,
               initial_value_date);
-          ErrorChecker(error_code);
+          if ((status = ErrorChecker(error_code)).IsError()) return status;
         } else if (end_value_exists) {
           error_code = calendar_filter_add_int(
               calendar_filter, propertyId, CALENDAR_MATCH_LESS_THAN_OR_EQUAL,
               end_value_date);
-          ErrorChecker(error_code);
+          if ((status = ErrorChecker(error_code)).IsError()) return status;
         }
       } else if (name == "startDate" || name == "dueDate" ||
                  name == "endDate") {
@@ -579,40 +680,40 @@ void Calendar::Find(const picojson::object& args, picojson::array& array) {
           if (type == CALENDAR_BOOK_TYPE_EVENT) {
             error_code =
                 calendar_filter_create(_calendar_event._uri, &sub_filter);
-            ErrorChecker(error_code);
+            if ((status = ErrorChecker(error_code)).IsError()) return status;
           } else {
             error_code =
                 calendar_filter_create(_calendar_todo._uri, &sub_filter);
-            ErrorChecker(error_code);
+            if ((status = ErrorChecker(error_code)).IsError()) return status;
           }
           CalendarFilterPtr sub_filter_ptr(sub_filter, CalendarFilterDeleter);
 
           error_code = calendar_filter_add_caltime(
               sub_filter, propertyId, CALENDAR_MATCH_GREATER_THAN_OR_EQUAL,
               CalendarItem::DateToPlatform(initial_value_date, false));
-          ErrorChecker(error_code);
+          if ((status = ErrorChecker(error_code)).IsError()) return status;
 
           error_code = calendar_filter_add_operator(
               sub_filter, CALENDAR_FILTER_OPERATOR_AND);
-          ErrorChecker(error_code);
+          if ((status = ErrorChecker(error_code)).IsError()) return status;
 
           error_code = calendar_filter_add_caltime(
               sub_filter, propertyId, CALENDAR_MATCH_LESS_THAN_OR_EQUAL,
               CalendarItem::DateToPlatform(end_value_date, false));
-          ErrorChecker(error_code);
+          if ((status = ErrorChecker(error_code)).IsError()) return status;
 
           error_code = calendar_filter_add_filter(calendar_filter, sub_filter);
-          ErrorChecker(error_code);
+          if ((status = ErrorChecker(error_code)).IsError()) return status;
         } else if (initial_value_exists) {
           error_code = calendar_filter_add_caltime(
               calendar_filter, propertyId, CALENDAR_MATCH_GREATER_THAN_OR_EQUAL,
               CalendarItem::DateToPlatform(initial_value_date, false));
-          ErrorChecker(error_code);
+          if ((status = ErrorChecker(error_code)).IsError()) return status;
         } else if (end_value_exists) {
           error_code = calendar_filter_add_caltime(
               calendar_filter, propertyId, CALENDAR_MATCH_LESS_THAN_OR_EQUAL,
               CalendarItem::DateToPlatform(end_value_date, false));
-          ErrorChecker(error_code);
+          if ((status = ErrorChecker(error_code)).IsError()) return status;
         }
       } else {
         std::string initial_value_str;
@@ -632,37 +733,37 @@ void Calendar::Find(const picojson::object& args, picojson::array& array) {
           if (type == CALENDAR_BOOK_TYPE_EVENT) {
             error_code =
                 calendar_filter_create(_calendar_event._uri, &sub_filter);
-            ErrorChecker(error_code);
+            if ((status = ErrorChecker(error_code)).IsError()) return status;
           } else {
             error_code =
                 calendar_filter_create(_calendar_todo._uri, &sub_filter);
-            ErrorChecker(error_code);
+            if ((status = ErrorChecker(error_code)).IsError()) return status;
           }
           CalendarFilterPtr sub_filter_ptr(sub_filter, CalendarFilterDeleter);
 
           error_code = calendar_filter_add_str(sub_filter, propertyId,
                                                CALENDAR_MATCH_STARTSWITH,
                                                initial_value_str.c_str());
-          ErrorChecker(error_code);
+          if ((status = ErrorChecker(error_code)).IsError()) return status;
           error_code = calendar_filter_add_operator(
               sub_filter, CALENDAR_FILTER_OPERATOR_AND);
-          ErrorChecker(error_code);
+          if ((status = ErrorChecker(error_code)).IsError()) return status;
           error_code = calendar_filter_add_str(sub_filter, propertyId,
                                                CALENDAR_MATCH_ENDSWITH,
                                                end_value_str.c_str());
-          ErrorChecker(error_code);
+          if ((status = ErrorChecker(error_code)).IsError()) return status;
           error_code = calendar_filter_add_filter(calendar_filter, sub_filter);
-          ErrorChecker(error_code);
+          if ((status = ErrorChecker(error_code)).IsError()) return status;
         } else if (initial_value_exists) {
           error_code = calendar_filter_add_str(calendar_filter, propertyId,
                                                CALENDAR_MATCH_STARTSWITH,
                                                initial_value_str.c_str());
-          ErrorChecker(error_code);
+          if ((status = ErrorChecker(error_code)).IsError()) return status;
         } else if (end_value_exists) {
           error_code = calendar_filter_add_str(calendar_filter, propertyId,
                                                CALENDAR_MATCH_ENDSWITH,
                                                end_value_str.c_str());
-          ErrorChecker(error_code);
+          if ((status = ErrorChecker(error_code)).IsError()) return status;
         }
       }
       intermediate_filters[intermediate_filters.size() - 1].push_back(
@@ -674,11 +775,11 @@ void Calendar::Find(const picojson::object& args, picojson::array& array) {
     if ((intermediate_filters.size() != 1) ||
         (intermediate_filters[0].size() != 1)) {
       LoggerE("Bad filter evaluation!");
-      throw UnknownException("Bad filter evaluation!");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Bad filter evaluation!");
     }
     error_code = calendar_query_set_filter(calendar_query,
                                            intermediate_filters[0][0].get());
-    ErrorChecker(error_code);
+    if ((status = ErrorChecker(error_code)).IsError()) return status;
   }
 
   if (!IsNull(args, "sortMode")) {
@@ -689,17 +790,22 @@ void Calendar::Find(const picojson::object& args, picojson::array& array) {
         FromJson<std::string>(sortModeObject, "attributeName");
     std::string order = FromJson<std::string>(sortModeObject, "order");
     if (attributeName == "startDate" || attributeName == "dueDate" ||
-        attributeName == "endDate")
-      propertyId =
-          CalendarItem::GetPlatformProperty(type, attributeName + "_time");
-    else
-      propertyId = CalendarItem::GetPlatformProperty(type, attributeName);
+        attributeName == "endDate") {
+      PlatformResult status = CalendarItem::GetPlatformProperty(
+          type, attributeName + "_time", &propertyId);
+      if (status.IsError()) return status;
+    } else {
+      PlatformResult status =
+          CalendarItem::GetPlatformProperty(type, attributeName, &propertyId);
+      if (status.IsError()) return status;
+    }
+
     if (order.empty() || order == "ASC") {
       error_code = calendar_query_set_sort(calendar_query, propertyId, true);
-      ErrorChecker(error_code);
+      if ((status = ErrorChecker(error_code)).IsError()) return status;
     } else if (order == "DESC") {
       error_code = calendar_query_set_sort(calendar_query, propertyId, false);
-      ErrorChecker(error_code);
+      if ((status = ErrorChecker(error_code)).IsError()) return status;
     }
   }
 
@@ -710,18 +816,20 @@ void Calendar::Find(const picojson::object& args, picojson::array& array) {
   error_code =
       calendar_db_get_records_with_query(calendar_query, 0, 0, &record_list);
   if (CALENDAR_ERROR_NONE != error_code) {
-    throw UnknownException("calendar_db_get_records_with_query failed");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                          "calendar_db_get_records_with_query failed");
   }
   CalendarListPtr record_list_ptr(record_list, CalendarRecord::ListDeleter);
 
   int record_count = 0;
   error_code = calendar_list_get_count(record_list, &record_count);
   if (CALENDAR_ERROR_NONE != error_code) {
-    throw UnknownException("calendar_list_get_count failed");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                          "calendar_list_get_count failed");
   }
   error_code = calendar_list_first(record_list);
   if (CALENDAR_ERROR_NONE != error_code) {
-    throw UnknownException("calendar_list_first failed");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "calendar_list_first failed");
   }
 
   array.reserve(record_count);
@@ -730,11 +838,14 @@ void Calendar::Find(const picojson::object& args, picojson::array& array) {
     error_code =
         calendar_list_get_current_record_p(record_list, &current_record);
     if (CALENDAR_ERROR_NONE != error_code) {
-      throw UnknownException("calendar_list_get_current_record_p failed");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                            "calendar_list_get_current_record_p failed");
     }
     picojson::value record_obj = picojson::value(picojson::object());
-    CalendarItem::ToJson(type, current_record,
-                         &record_obj.get<picojson::object>());
+    PlatformResult status = CalendarItem::ToJson(
+        type, current_record, &record_obj.get<picojson::object>());
+    if (status.IsError()) return status;
+
     array.push_back(record_obj);
 
     error_code = calendar_list_next(record_list);
@@ -743,23 +854,25 @@ void Calendar::Find(const picojson::object& args, picojson::array& array) {
       break;
     }
   }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void Calendar::RemoveBatch(const picojson::object& args,
-                           picojson::array& array) {
-  LoggerD("enter");
-
+PlatformResult Calendar::RemoveBatch(const picojson::object& args,
+                                     picojson::array& array) {
   if (!CalendarManager::GetInstance().IsConnected()) {
-    throw UnknownException("DB Connection failed.");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "DB Connection failed.");
   }
 
   auto& ids = FromJson<picojson::array>(args, "ids");
   if (ids.empty()) {
-    throw InvalidValuesException("No items");
+    return PlatformResult(ErrorCode::INVALID_VALUES_ERR, "No items");
   }
 
   int type = CalendarRecord::TypeToInt(FromJson<std::string>(args, "type"));
-  const char* view_uri = CalendarRecord::TypeToUri(type);
+  std::string view_uri;
+  PlatformResult status = CalendarRecord::TypeToUri(type, &view_uri);
+  if (status.IsError()) return status;
 
   std::vector<int> ids_to_remove;
   int id;
@@ -771,11 +884,20 @@ void Calendar::RemoveBatch(const picojson::object& args,
       id = common::stol(ids.at(i).get<std::string>());
     }
 
-    CalendarRecordPtr record_ptr = CalendarItem::GetById(id, view_uri);
+    calendar_record_h handle = nullptr;
+    PlatformResult status =
+        CalendarItem::GetById(id, view_uri.c_str(), &handle);
+    if (status.IsError()) return status;
+
+    CalendarRecordPtr record_ptr =
+        CalendarRecordPtr(handle, CalendarRecord::Deleter);
 
     if (type == CALENDAR_BOOK_TYPE_EVENT) {
-      const std::string& rid = CalendarRecord::GetString(
-          record_ptr.get(), _calendar_event.recurrence_id);
+      std::string rid;
+      status = CalendarRecord::GetString(record_ptr.get(),
+                                         _calendar_event.recurrence_id, &rid);
+      if (status.IsError()) return status;
+
       if (rid.empty()) {
         ids_to_remove.push_back(id);
       } else {
@@ -788,28 +910,29 @@ void Calendar::RemoveBatch(const picojson::object& args,
 
   int ret;
   if (ids_to_remove.size() > 0) {
-    ret = calendar_db_delete_records(view_uri, &ids_to_remove[0],
+    ret = calendar_db_delete_records(view_uri.c_str(), &ids_to_remove[0],
                                      ids_to_remove.size());
 
     if (CALENDAR_ERROR_NONE != ret) {
       LoggerE("calendar_db_delete_records failed.");
       if (CALENDAR_ERROR_INVALID_PARAMETER == ret) {
         LoggerE("CALENDAR_ERROR_INVALID_PARAMETER");
-        throw InvalidValuesException("Parameter is invalid");
+        return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
+                              "Parameter is invalid");
       } else {
         LoggerE("CALENDAR_ERROR_DB_FAILED");
-        throw UnknownException("UnknownError");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR, "UnknownError");
       }
     }
   }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void Calendar::AddChangeListener(const picojson::object& args,
-                                 picojson::object& out) {
-  LoggerD("enter");
-
+PlatformResult Calendar::AddChangeListener(const picojson::object& args,
+                                           picojson::object& out) {
   if (!CalendarManager::GetInstance().IsConnected()) {
-    throw UnknownException("DB Connection failed.");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "DB Connection failed.");
   }
 
   const std::string& type = FromJson<std::string>(args, "type");
@@ -817,45 +940,57 @@ void Calendar::AddChangeListener(const picojson::object& args,
 
   int ret;
   if (listeners_registered_.find(type) == listeners_registered_.end()) {
-    const char* view_uri = CalendarRecord::TypeToUri(type);
-    ret = calendar_db_add_changed_cb(view_uri, ChangeCallback, nullptr);
+    std::string view_uri;
+    PlatformResult status = CalendarRecord::TypeToUri(type, &view_uri);
+    if (status.IsError()) return status;
+
+    ret = calendar_db_add_changed_cb(view_uri.c_str(), ChangeCallback, nullptr);
     if (CALENDAR_ERROR_NONE != ret) {
       LoggerE("Add calendar change callback error for type %s", type.c_str());
-      throw UnknownException("Add calendar change callback error");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                            "Add calendar change callback error");
     }
 
     ret = calendar_db_get_current_version(&current_db_version_);
     if (CALENDAR_ERROR_NONE != ret) {
       current_db_version_ = 0;
       LoggerE("Can't get calendar db version");
-      throw UnknownException("Can't get calendar db version");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                            "Can't get calendar db version");
     }
 
     listeners_registered_[type] = listener_id;
   }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void Calendar::RemoveChangeListener(const picojson::object& args,
-                                    picojson::object& out) {
-  LoggerD("enter");
-
+PlatformResult Calendar::RemoveChangeListener(const picojson::object& args,
+                                              picojson::object& out) {
   if (!CalendarManager::GetInstance().IsConnected()) {
-    throw UnknownException("DB Connection failed.");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "DB Connection failed.");
   }
 
   const std::string& type = FromJson<std::string>(args, "type");
 
   int ret;
   if (listeners_registered_.find(type) != listeners_registered_.end()) {
-    const char* view_uri = CalendarRecord::TypeToUri(type);
-    ret = calendar_db_remove_changed_cb(view_uri, ChangeCallback, nullptr);
+    std::string view_uri;
+    PlatformResult status = CalendarRecord::TypeToUri(type, &view_uri);
+    if (status.IsError()) return status;
+
+    ret = calendar_db_remove_changed_cb(view_uri.c_str(), ChangeCallback,
+                                        nullptr);
     if (CALENDAR_ERROR_NONE != ret) {
       LoggerE("Remove calendar change callback error for type %s",
               type.c_str());
-      throw UnknownException("Remove calendar change callback error");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                            "Remove calendar change callback error");
     }
     listeners_registered_.erase(type);
   }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 void Calendar::ChangeCallback(const char* view_uri, void*) {
@@ -868,7 +1003,7 @@ void Calendar::ChangeCallback(const char* view_uri, void*) {
                                            &updated_version);
   if (CALENDAR_ERROR_NONE != ret) {
     LoggerE("Can't get the changed item list");
-    throw UnknownException("Can't get the changed item list");
+    return;
   }
   CalendarListPtr list_ptr = CalendarListPtr(list, CalendarRecord::ListDeleter);
 
@@ -876,7 +1011,7 @@ void Calendar::ChangeCallback(const char* view_uri, void*) {
   ret = calendar_list_get_count(list_ptr.get(), &count);
   if (CALENDAR_ERROR_NONE != ret) {
     LoggerE("Can't get the changed item count");
-    throw UnknownException("Can't get the changed item count");
+    return;
   }
   LoggerD("Item count: %d", count);
 
@@ -911,16 +1046,21 @@ void Calendar::ChangeCallback(const char* view_uri, void*) {
     ret = calendar_list_get_current_record_p(list, &update_info);
     if (CALENDAR_ERROR_NONE != ret) {
       LoggerE("Can't get current record");
-      throw UnknownException("Can't get current record");
+      return;
     }
 
-    id = CalendarRecord::GetInt(update_info, _calendar_updated_info.id);
-    status = CalendarRecord::GetInt(update_info,
-                                    _calendar_updated_info.modified_status);
+    PlatformResult result =
+        CalendarRecord::GetInt(update_info, _calendar_updated_info.id, &id);
+    if (result.IsError()) return;
+
+    result = CalendarRecord::GetInt(
+        update_info, _calendar_updated_info.modified_status, &status);
+    if (result.IsError()) return;
 
     if (status == CALENDAR_RECORD_MODIFIED_STATUS_DELETED) {
-      calendar_id = CalendarRecord::GetInt(
-          update_info, _calendar_updated_info.calendar_book_id);
+      result = CalendarRecord::GetInt(
+          update_info, _calendar_updated_info.calendar_book_id, &calendar_id);
+      if (result.IsError()) return;
 
       picojson::value removed_row = picojson::value(picojson::object());
       picojson::object& removed_obj = removed_row.get<picojson::object>();
@@ -935,18 +1075,25 @@ void Calendar::ChangeCallback(const char* view_uri, void*) {
       continue;
     }
 
-    try {
-      CalendarRecordPtr record_ptr = CalendarRecord::GetById(id, view_uri);
-      picojson::value record_obj = picojson::value(picojson::object());
-      CalendarItem::ToJson(type, record_ptr.get(),
-                           &record_obj.get<picojson::object>());
-      if (status == CALENDAR_RECORD_MODIFIED_STATUS_INSERTED) {
-        added.push_back(record_obj);
-      } else {
-        updated.push_back(record_obj);
-      }
-    } catch (PlatformException& ex) {
-      LoggerE("error occured");
+    calendar_record_h handle = nullptr;
+    result = CalendarRecord::GetById(id, view_uri, &handle);
+    if (result.IsError()) return;
+
+    CalendarRecordPtr record_ptr =
+        CalendarRecordPtr(handle, CalendarRecord::Deleter);
+
+    picojson::value record_obj = picojson::value(picojson::object());
+    result = CalendarItem::ToJson(type, record_ptr.get(),
+                                  &record_obj.get<picojson::object>());
+    if (result.IsError()) {
+      LoggerE("error occured: %s", result.message().c_str());
+      return;
+    }
+
+    if (status == CALENDAR_RECORD_MODIFIED_STATUS_INSERTED) {
+      added.push_back(record_obj);
+    } else {
+      updated.push_back(record_obj);
     }
 
     calendar_list_next(list);
@@ -965,15 +1112,17 @@ void Calendar::ChangeCallback(const char* view_uri, void*) {
   ret = calendar_db_get_current_version(&updated_version);
   if (CALENDAR_ERROR_NONE != ret) {
     LoggerE("Can't get new version");
-    throw UnknownException("Can't get new version");
+    return;
   }
   current_db_version_ = updated_version;
   CalendarInstance::GetInstance().PostMessage(response.serialize().c_str());
 }
 
-void Calendar::ErrorChecker(int errorCode) {
+PlatformResult Calendar::ErrorChecker(int errorCode) {
   if (errorCode != CALENDAR_ERROR_NONE)
-    throw UnknownException("exception occured");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "exception occured");
+
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 }  // namespace calendar

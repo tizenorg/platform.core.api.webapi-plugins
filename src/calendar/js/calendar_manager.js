@@ -87,6 +87,11 @@ CalendarManager.prototype.getCalendar = function() {
   }
   ]);
 
+  if (isNaN(Number(args.id))) {
+      throw new tizen.WebAPIException(tizen.WebAPIException.NOT_FOUND_ERR,
+          'Calendar not found');
+  }
+
   var callArgs = {
     type: args.type,
     id: args.id

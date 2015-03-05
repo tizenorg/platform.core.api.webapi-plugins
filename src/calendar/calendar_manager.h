@@ -18,6 +18,7 @@
 #define CALENDAR_CALENDAR_MANAGER_H_
 
 #include "common/picojson.h"
+#include "common/platform_result.h"
 
 namespace extension {
 namespace calendar {
@@ -46,12 +47,11 @@ class CalendarManager {
    * {status: 'success', result: {calendarsArray}}
    * @endcode
    */
-  void GetCalendars(const JsonObject& args,
-                    JsonArray& array);
-  void GetCalendar(const JsonObject& args, JsonObject& out);
-  void AddCalendar(const JsonObject& args, JsonObject& out);
-  void RemoveCalendar(const JsonObject& args,
-                      JsonObject& out);
+  common::PlatformResult GetCalendars(const JsonObject& args, JsonArray& array);
+  common::PlatformResult GetCalendar(const JsonObject& args, JsonObject& out);
+  common::PlatformResult AddCalendar(const JsonObject& args, JsonObject& out);
+  common::PlatformResult RemoveCalendar(const JsonObject& args,
+                                        JsonObject& out);
 
   static CalendarManager& GetInstance();
   virtual ~CalendarManager();

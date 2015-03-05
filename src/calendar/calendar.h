@@ -20,6 +20,7 @@
 #include <memory>
 
 #include "common/picojson.h"
+#include "common/platform_result.h"
 
 namespace extension {
 namespace calendar {
@@ -45,7 +46,7 @@ class Calendar {
    * {status: 'success', item: {}}
    * @endcode
    */
-  void Get(const JsonObject& args, JsonObject& out);
+  common::PlatformResult Get(const JsonObject& args, JsonObject& out);
 
   /**
    * Signature: @code void add(item); @endcode
@@ -57,7 +58,7 @@ class Calendar {
    * {status: 'success'}
    * @endcode
    */
-  void Add(const JsonObject& args, JsonObject& out);
+  common::PlatformResult Add(const JsonObject& args, JsonObject& out);
 
   /**
    * Signature: @code void addBatch(items, successCallback, errorCallback);
@@ -71,7 +72,7 @@ class Calendar {
    * {status: 'success', result: items}
    * @endcode
    */
-  void AddBatch(const JsonObject& args, JsonArray& array);
+  common::PlatformResult AddBatch(const JsonObject& args, JsonArray& array);
 
   /**
    * Signature: @code void update(item, updateAllInstances); @endcode
@@ -84,7 +85,7 @@ class Calendar {
    * {status: 'success'}
    * @endcode
    */
-  void Update(const JsonObject& args, JsonObject& out);
+  common::PlatformResult Update(const JsonObject& args, JsonObject& out);
 
   /**
    * Signature: @code void updateBatch(items, successCallback, errorCallback,
@@ -99,7 +100,7 @@ class Calendar {
    * {status: 'success'}
    * @endcode
    */
-  void UpdateBatch(const JsonObject& args, JsonArray& array);
+  common::PlatformResult UpdateBatch(const JsonObject& args, JsonArray& array);
 
   /**
    * Signature: @code void remove(item); @endcode
@@ -111,7 +112,7 @@ class Calendar {
    * {status: 'success'}
    * @endcode
    */
-  void Remove(const JsonObject& args, JsonObject& out);
+  common::PlatformResult Remove(const JsonObject& args, JsonObject& out);
 
   /**
    * Signature: @code void removeBatch(items, successCallback, errorCallback);
@@ -125,7 +126,7 @@ class Calendar {
    * {status: 'success'}
    * @endcode
    */
-  void RemoveBatch(const JsonObject& args, JsonArray& array);
+  common::PlatformResult RemoveBatch(const JsonObject& args, JsonArray& array);
 
   /**
    * Signature: @code void find(successCallback, errorCallback, filter,
@@ -144,7 +145,7 @@ class Calendar {
    * {status: 'success', result: {calendarItemsArray}}
    * @endcode
    */
-  void Find(const JsonObject& args, JsonArray& array);
+  common::PlatformResult Find(const JsonObject& args, JsonArray& array);
 
   /**
    * Signature: @code void addChangeListener(successCallback); @endcode
@@ -157,8 +158,8 @@ class Calendar {
    * {status: 'success'}
    * @endcode
    */
-  void AddChangeListener(const JsonObject& args,
-                         JsonObject& out);
+  common::PlatformResult AddChangeListener(const JsonObject& args,
+                                           JsonObject& out);
 
   /**
    * Signature: @code void removeChangeListener(); @endcode
@@ -171,8 +172,8 @@ class Calendar {
    * {status: 'success'}
    * @endcode
    */
-  void RemoveChangeListener(const JsonObject& args,
-                            JsonObject& out);
+  common::PlatformResult RemoveChangeListener(const JsonObject& args,
+                                              JsonObject& out);
 
   static Calendar& GetInstance();
 
@@ -180,7 +181,7 @@ class Calendar {
   static std::map<std::string, std::string> listeners_registered_;
   static int current_db_version_;
   static void ChangeCallback(const char* view_uri, void* user_data);
-  void ErrorChecker(int errorCode);
+  common::PlatformResult ErrorChecker(int errorCode);
 };
 
 }  // namespace calendar

@@ -61,35 +61,44 @@ CalendarInstance::~CalendarInstance() {}
 
 void CalendarInstance::CalendarGet(const JsonValue& args, JsonObject& out) {
   JsonValue val{JsonObject{}};
-  Calendar::GetInstance().Get(common::JsonCast<JsonObject>(args),
-                              val.get<JsonObject>());
-  ReportSuccess(val, out);
+
+  PlatformResult status = Calendar::GetInstance().Get(
+      common::JsonCast<JsonObject>(args), val.get<JsonObject>());
+
+  if (status.IsSuccess())
+    ReportSuccess(val, out);
+  else
+    ReportError(status, &out);
 }
 
 void CalendarInstance::CalendarAdd(const JsonValue& args, JsonObject& out) {
   JsonValue val{JsonObject{}};
-  Calendar::GetInstance().Add(common::JsonCast<JsonObject>(args),
-                              val.get<JsonObject>());
-  ReportSuccess(val, out);
+
+  PlatformResult status = Calendar::GetInstance().Add(
+      common::JsonCast<JsonObject>(args), val.get<JsonObject>());
+
+  if (status.IsSuccess())
+    ReportSuccess(val, out);
+  else
+    ReportError(status, &out);
 }
 
 void CalendarInstance::CalendarAddBatch(const JsonValue& args,
                                         JsonObject& out) {
   const double callback_id = args.get("callbackId").get<double>();
-  auto get = [=](const std::shared_ptr<JsonValue> & response)->void {
-    try {
-      JsonValue result = JsonValue(JsonArray());
-      Calendar::GetInstance().AddBatch(common::JsonCast<JsonObject>(args),
-                                       result.get<JsonArray>());
+  auto get = [=](const std::shared_ptr<JsonValue>& response) -> void {
+    JsonValue result = JsonValue(JsonArray());
+    PlatformResult status = Calendar::GetInstance().AddBatch(
+        common::JsonCast<JsonObject>(args), result.get<JsonArray>());
+
+    if (status.IsSuccess())
       ReportSuccess(result, response->get<picojson::object>());
-    }
-    catch (const PlatformException& e) {
-      ReportError(e, response->get<picojson::object>());
-    }
+    else
+      ReportError(status, &response->get<picojson::object>());
   };
 
-  auto get_response = [ callback_id, this ](const std::shared_ptr<JsonValue> &
-                                            response)->void {
+  auto get_response =
+      [callback_id, this](const std::shared_ptr<JsonValue>& response) -> void {
     picojson::object& obj = response->get<picojson::object>();
     obj.insert(std::make_pair("callbackId", callback_id));
     LoggerD("callback is %s", response->serialize().c_str());
@@ -103,28 +112,32 @@ void CalendarInstance::CalendarAddBatch(const JsonValue& args,
 
 void CalendarInstance::CalendarUpdate(const JsonValue& args, JsonObject& out) {
   JsonValue val{JsonObject{}};
-  Calendar::GetInstance().Update(common::JsonCast<JsonObject>(args),
-                                 val.get<JsonObject>());
-  ReportSuccess(val, out);
+
+  PlatformResult status = Calendar::GetInstance().Update(
+      common::JsonCast<JsonObject>(args), val.get<JsonObject>());
+
+  if (status.IsSuccess())
+    ReportSuccess(val, out);
+  else
+    ReportError(status, &out);
 }
 
 void CalendarInstance::CalendarUpdateBatch(const JsonValue& args,
                                            JsonObject& out) {
   const double callback_id = args.get("callbackId").get<double>();
-  auto get = [=](const std::shared_ptr<JsonValue> & response)->void {
-    try {
-      JsonValue result = JsonValue(JsonArray());
-      Calendar::GetInstance().UpdateBatch(common::JsonCast<JsonObject>(args),
-                                          result.get<JsonArray>());
+  auto get = [=](const std::shared_ptr<JsonValue>& response) -> void {
+    JsonValue result = JsonValue(JsonArray());
+    PlatformResult status = Calendar::GetInstance().UpdateBatch(
+        common::JsonCast<JsonObject>(args), result.get<JsonArray>());
+
+    if (status.IsSuccess())
       ReportSuccess(result, response->get<picojson::object>());
-    }
-    catch (const PlatformException& e) {
-      ReportError(e, response->get<picojson::object>());
-    }
+    else
+      ReportError(status, &response->get<picojson::object>());
   };
 
-  auto get_response = [ callback_id, this ](const std::shared_ptr<JsonValue> &
-                                            response)->void {
+  auto get_response =
+      [callback_id, this](const std::shared_ptr<JsonValue>& response) -> void {
     picojson::object& obj = response->get<picojson::object>();
     obj.insert(std::make_pair("callbackId", callback_id));
     LoggerD("callback is %s", response->serialize().c_str());
@@ -138,28 +151,32 @@ void CalendarInstance::CalendarUpdateBatch(const JsonValue& args,
 
 void CalendarInstance::CalendarRemove(const JsonValue& args, JsonObject& out) {
   JsonValue val{JsonObject{}};
-  Calendar::GetInstance().Remove(common::JsonCast<JsonObject>(args),
-                                 val.get<JsonObject>());
-  ReportSuccess(out);
+
+  PlatformResult status = Calendar::GetInstance().Remove(
+      common::JsonCast<JsonObject>(args), val.get<JsonObject>());
+
+  if (status.IsSuccess())
+    ReportSuccess(out);
+  else
+    ReportError(status, &val.get<JsonObject>());
 }
 
 void CalendarInstance::CalendarRemoveBatch(const JsonValue& args,
                                            JsonObject& out) {
   const double callback_id = args.get("callbackId").get<double>();
-  auto get = [=](const std::shared_ptr<JsonValue> & response)->void {
-    try {
-      JsonValue result = JsonValue(JsonArray());
-      Calendar::GetInstance().RemoveBatch(common::JsonCast<JsonObject>(args),
-                                          result.get<JsonArray>());
+  auto get = [=](const std::shared_ptr<JsonValue>& response) -> void {
+    JsonValue result = JsonValue(JsonArray());
+    PlatformResult status = Calendar::GetInstance().RemoveBatch(
+        common::JsonCast<JsonObject>(args), result.get<JsonArray>());
+
+    if (status.IsSuccess())
       ReportSuccess(result, response->get<picojson::object>());
-    }
-    catch (const PlatformException& e) {
-      ReportError(e, response->get<picojson::object>());
-    }
+    else
+      ReportError(status, &response->get<picojson::object>());
   };
 
-  auto get_response = [ callback_id, this ](const std::shared_ptr<JsonValue> &
-                                            response)->void {
+  auto get_response =
+      [callback_id, this](const std::shared_ptr<JsonValue>& response) -> void {
     picojson::object& obj = response->get<picojson::object>();
     obj.insert(std::make_pair("callbackId", callback_id));
     LoggerD("callback is %s", response->serialize().c_str());
@@ -173,20 +190,19 @@ void CalendarInstance::CalendarRemoveBatch(const JsonValue& args,
 
 void CalendarInstance::CalendarFind(const JsonValue& args, JsonObject& out) {
   const double callback_id = args.get("callbackId").get<double>();
-  auto get = [=](const std::shared_ptr<JsonValue> & response)->void {
-    try {
-      JsonValue result = JsonValue(JsonArray());
-      Calendar::GetInstance().Find(common::JsonCast<JsonObject>(args),
-                                   result.get<JsonArray>());
+  auto get = [=](const std::shared_ptr<JsonValue>& response) -> void {
+    JsonValue result = JsonValue(JsonArray());
+    PlatformResult status = Calendar::GetInstance().Find(
+        common::JsonCast<JsonObject>(args), result.get<JsonArray>());
+
+    if (status.IsSuccess())
       ReportSuccess(result, response->get<picojson::object>());
-    }
-    catch (const PlatformException& e) {
-      ReportError(e, response->get<picojson::object>());
-    }
+    else
+      ReportError(status, &response->get<picojson::object>());
   };
 
-  auto get_response = [ callback_id, this ](const std::shared_ptr<JsonValue> &
-                                            response)->void {
+  auto get_response =
+      [callback_id, this](const std::shared_ptr<JsonValue>& response) -> void {
     picojson::object& obj = response->get<picojson::object>();
     obj.insert(std::make_pair("callbackId", callback_id));
     LoggerD("callback isssssss %s", response->serialize().c_str());
@@ -201,49 +217,67 @@ void CalendarInstance::CalendarFind(const JsonValue& args, JsonObject& out) {
 void CalendarInstance::CalendarAddChangeListener(const JsonValue& args,
                                                  JsonObject& out) {
   JsonValue val{JsonObject{}};
-  Calendar::GetInstance().AddChangeListener(common::JsonCast<JsonObject>(args),
-                                            val.get<JsonObject>());
-  ReportSuccess(out);
+
+  PlatformResult status = Calendar::GetInstance().AddChangeListener(
+      common::JsonCast<JsonObject>(args), val.get<JsonObject>());
+
+  if (status.IsSuccess())
+    ReportSuccess(out);
+  else
+    ReportError(status, &val.get<JsonObject>());
 }
 
 void CalendarInstance::CalendarRemoveChangeListener(const JsonValue& args,
                                                     JsonObject& out) {
   JsonValue val{JsonObject{}};
-  Calendar::GetInstance().RemoveChangeListener(
+
+  PlatformResult status = Calendar::GetInstance().RemoveChangeListener(
       common::JsonCast<JsonObject>(args), val.get<JsonObject>());
-  ReportSuccess(out);
+
+  if (status.IsSuccess())
+    ReportSuccess(out);
+  else
+    ReportError(status, &val.get<JsonObject>());
 }
 
 // CalendarManager
 void CalendarInstance::CalendarManagerAddCalendar(const JsonValue& args,
                                                   JsonObject& out) {
   JsonValue val{JsonObject{}};
-  CalendarManager::GetInstance().AddCalendar(common::JsonCast<JsonObject>(args),
-                                             val.get<JsonObject>());
-  ReportSuccess(val, out);
+  PlatformResult status = CalendarManager::GetInstance().AddCalendar(
+      common::JsonCast<JsonObject>(args), val.get<JsonObject>());
+
+  if (status.IsSuccess())
+    ReportSuccess(val, out);
+  else
+    ReportError(status, &out);
 }
 
 void CalendarInstance::CalendarManagerGetCalendar(const JsonValue& args,
                                                   JsonObject& out) {
   JsonValue val{JsonObject{}};
-  CalendarManager::GetInstance().GetCalendar(common::JsonCast<JsonObject>(args),
+  PlatformResult status = CalendarManager::GetInstance().GetCalendar(common::JsonCast<JsonObject>(args),
                                              val.get<JsonObject>());
-  ReportSuccess(val, out);
+
+  if (status.IsSuccess())
+    ReportSuccess(val, out);
+  else
+    ReportError(status, &out);
 }
 
 void CalendarInstance::CalendarManagerGetCalendars(const JsonValue& args,
                                                    JsonObject& out) {
   const double callback_id = args.get("callbackId").get<double>();
-  auto get = [=](const std::shared_ptr<JsonValue> & response)->void {
-    try {
-      JsonValue result = JsonValue(JsonArray());
-      CalendarManager::GetInstance().GetCalendars(
-          common::JsonCast<JsonObject>(args), result.get<JsonArray>());
+  auto get = [=](const std::shared_ptr<JsonValue>& response) -> void {
+    JsonValue result = JsonValue(JsonArray());
+
+    PlatformResult status = CalendarManager::GetInstance().GetCalendars(
+        common::JsonCast<JsonObject>(args), result.get<JsonArray>());
+
+    if (status.IsSuccess())
       ReportSuccess(result, response->get<picojson::object>());
-    }
-    catch (const PlatformException& e) {
-      ReportError(e, response->get<picojson::object>());
-    }
+    else
+      ReportError(status, &response->get<JsonObject>());
   };
 
   auto get_response = [ callback_id, this ](const std::shared_ptr<JsonValue> &
@@ -260,11 +294,15 @@ void CalendarInstance::CalendarManagerGetCalendars(const JsonValue& args,
 }
 
 void CalendarInstance::CalendarManagerRemoveCalendar(const JsonValue& args,
-                                                      JsonObject& out) {
+                                                     JsonObject& out) {
   JsonValue val{JsonObject{}};
-  CalendarManager::GetInstance().RemoveCalendar(
+  PlatformResult status = CalendarManager::GetInstance().RemoveCalendar(
       common::JsonCast<JsonObject>(args), val.get<JsonObject>());
-  ReportSuccess(val, out);
+
+  if (status.IsSuccess())
+    ReportSuccess(val, out);
+  else
+    ReportError(status, &out);
 }
 
 }  // namespace calendar
