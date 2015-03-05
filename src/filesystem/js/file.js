@@ -150,6 +150,10 @@ File.prototype.listFiles = function(onsuccess, onerror, filter) {
     {name: 'filter', type: types_.DICTIONARY, optional: true, nullable: true}
   ]);
 
+  if (!arguments.length) {
+    throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
+        'Arguments missing');
+  }
   if (!this.isDirectory) {
     setTimeout(function() {
       native_.callIfPossible(args.onerror,
@@ -223,6 +227,10 @@ File.prototype.openStream = function(mode, onsuccess, onerror, encoding) {
     {name: 'encoding', type: types_.STRING, optional: true, nullable: true}
   ]);
 
+  if (arguments.length < 2) {
+    throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
+        'Arguments missing');
+  }
   if (this.mode === 'r' && args.mode !== 'r') {
     setTimeout(function() {
       native_.callIfPossible(args.onerror,
@@ -242,6 +250,16 @@ File.prototype.openStream = function(mode, onsuccess, onerror, encoding) {
 
   _checkEncoding(args.encoding);
 
+  var _realPath = commonFS_.toRealPath(this.fullPath);
+  var _result = native_.callSync('File_statSync', {location: _realPath});
+  if (native_.isFailure(_result)) {
+    setTimeout(function() {
+      native_.callIfPossible(args.onerror,
+          new tizen.WebAPIException(tizen.WebAPIException.IO_ERR, 'File does not exist'));
+    }, 0);
+    return;
+  }
+
   var fileStream = new FileStream(this, args.mode, args.encoding);
   setTimeout(function() {
     native_.callIfPossible(args.onsuccess, fileStream);
@@ -255,6 +273,10 @@ File.prototype.readAsText = function(onsuccess, onerror, encoding) {
     {name: 'encoding', type: types_.STRING, optional: true, nullable: true}
   ]);
 
+  if (!arguments.length) {
+    throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
+        'Arguments missing');
+  }
   if (this.isDirectory) {
     setTimeout(function() {
       native_.callIfPossible(args.onerror,
@@ -370,6 +392,10 @@ File.prototype.moveTo = function(originFilePath, destinationFilePath, overwrite,
     {name: 'onerror', type: types_.FUNCTION, optional: true, nullable: true}
   ]);
 
+  if (arguments.length < 3) {
+    throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
+        'Arguments missing');
+  }
   if (this.isFile) {
     setTimeout(function() {
       native_.callIfPossible(args.onerror,
@@ -428,7 +454,8 @@ File.prototype.moveTo = function(originFilePath, destinationFilePath, overwrite,
 
   var callback = function(result) {
     if (native_.isFailure(result)) {
-      native_.callIfPossible(args.onerror, native_.getErrorObject(result));
+      native_.callIfPossible(args.onerror, new tizen.WebAPIException(tizen.WebAPIException.IO_ERR,
+          result));
       return;
     }
     native_.callIfPossible(args.onsuccess);
@@ -442,10 +469,15 @@ File.prototype.createDirectory = function(dirPath) {
     {name: 'dirPath', type: types_.STRING}
   ]);
 
-  if (!arguments.length || !args.dirPath.length) {
+  if (!arguments.length) {
     throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR,
         'Invalid path');
   }
+  if (!args.dirPath.length) {
+    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR,
+        'Invalid path');
+  }
+
   var _newPath = this.fullPath + '/' + args.dirPath,
           _statObj,
           _fileInfo,
@@ -459,7 +491,8 @@ File.prototype.createDirectory = function(dirPath) {
 
     var _resultExist = native_.callSync('File_statSync', {location: _realNewPath});
     if (native_.isSuccess(_resultExist)) {
-      throw new tizen.WebAPIException(tizen.WebAPIException.IO_ERR, 'Directory already exist');
+      throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR,
+          'Directory already exist');
     }
 
     var result = native_.callSync('FileSystemManager_mkdirSync', {location: _realNewPath});
@@ -483,6 +516,10 @@ File.prototype.createFile = function(relativeFilePath) {
     {name: 'relativeFilePath', type: types_.STRING}
   ]);
 
+  if (!arguments.length) {
+    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR,
+        'Argument "relativeFilePath" missing');
+  }
   if (this.isFile) {
     throw new tizen.WebAPIException(tizen.WebAPIException.IO_ERR,
         'File object which call this method is not directory');
@@ -519,6 +556,10 @@ File.prototype.resolve = function(filePath) {
     {name: 'filePath', type: types_.STRING}
   ]);
 
+  if (!arguments.length) {
+    throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
+        'Argument "filePath" missing');
+  }
   if (this.isFile) {
     throw new tizen.WebAPIException(tizen.WebAPIException.IO_ERR,
         'File object which call this method is not directory');
@@ -548,6 +589,10 @@ File.prototype.deleteDirectory = function(directoryPath, recursive, onsuccess, o
     {name: 'onerror', type: types_.FUNCTION, optional: true, nullable: true}
   ]);
 
+  if (arguments.length < 2) {
+    throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
+        'Arguments missing');
+  }
   if (this.mode === 'r') {
     setTimeout(function() {
       native_.callIfPossible(args.onerror,
@@ -559,6 +604,13 @@ File.prototype.deleteDirectory = function(directoryPath, recursive, onsuccess, o
 
   var _myPath = commonFS_.toRealPath(args.directoryPath);
   var _result = native_.callSync('File_statSync', {location: _myPath});
+  if (native_.isFailure(_result)) {
+    setTimeout(function() {
+      native_.callIfPossible(args.onerror,
+          new tizen.WebAPIException(tizen.WebAPIException.NOT_FOUND_ERR, 'Directory not found'));
+    }, 0);
+    return;
+  }
   var _statObj = native_.getResultObject(_result);
   var _info = commonFS_.getFileInfo(_myPath, _statObj);
   var _node = new File(_info);
@@ -610,6 +662,10 @@ File.prototype.deleteFile = function(filePath, onsuccess, onerror) {
     {name: 'onerror', type: types_.FUNCTION, optional: true, nullable: true}
   ]);
 
+  if (!arguments.length) {
+    throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
+        'Argument "filePath" missing');
+  }
   if (this.isFile) {
     setTimeout(function() {
       native_.callIfPossible(args.onerror,
@@ -621,21 +677,21 @@ File.prototype.deleteFile = function(filePath, onsuccess, onerror) {
 
   var _fileRealPath = commonFS_.toRealPath(args.filePath);
 
-  try {
-    var _result = native_.callSync('File_statSync', {location: _fileRealPath});
-    var _statObj = native_.getResultObject(_result);
-    if (_statObj.isDirectory) {
-      var message = 'Requested object is a directory.';
-      setTimeout(function() {
-        native_.callIfPossible(args.onerror,
-            new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR, message));
-      }, 0);
-      return;
-    }
-  } catch (err) {
+  var _result = native_.callSync('File_statSync', {location: _fileRealPath});
+  if (native_.isFailure(_result)) {
     setTimeout(function() {
       native_.callIfPossible(args.onerror,
           new tizen.WebAPIException(tizen.WebAPIException.NOT_FOUND_ERR, 'File is not avalaible'));
+    }, 0);
+    return;
+  }
+  var _statObj = native_.getResultObject(_result);
+
+  if (_statObj.isDirectory) {
+    var message = 'Requested object is a directory.';
+    setTimeout(function() {
+      native_.callIfPossible(args.onerror,
+          new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR, message));
     }, 0);
     return;
   }

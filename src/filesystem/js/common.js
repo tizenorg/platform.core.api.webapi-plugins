@@ -201,6 +201,14 @@ CommonFS.prototype.initCache = function() {
   this.cacheRealToVirtual[widgetsPaths['wgt-private']] = 'wgt-private';
   this.cacheRealToVirtual[widgetsPaths['wgt-private-tmp']] = 'wgt-private-tmp';
 
+  var d = this.cacheVirtualToReal;
+  for (var i in d) {
+    this.cacheStorages.push({
+      label: i,
+      type: d[i].type,
+      state: d[i].state
+    });
+  }
   var result = native_.callSync('FileSystemManager_fetchStorages', {});
   if (native_.isFailure(result)) {
     throw native_.getErrorObject(result);
@@ -215,6 +223,12 @@ CommonFS.prototype.initCache = function() {
           type: data[i].type,
           state: data[i].state
         };
+        this.cacheStorages.push({
+          label: j,
+          type: data[i].type,
+          state: data[i].state,
+          storage_id: data[i].storage_id
+        });
       }
       this.cacheRealToVirtual[data[i].paths[j]] = j;
     }

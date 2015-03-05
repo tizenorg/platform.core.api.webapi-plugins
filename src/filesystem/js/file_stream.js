@@ -81,13 +81,20 @@ FileStream.prototype.read = function() {
   ]);
 
   _checkClosed(this);
+  _checkReadAccess(this._mode);
 
+  if (!arguments.length) {
+    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR,
+        'Argument "charCount" missing');
+  }
+  if (!type_.isNumber(args.charCount)) {
+    throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
+        'Argument "charCount" must be a number');
+  }
   if (args.charCount <= 0) {
     throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR,
         'Argument "charCount" must be greater than 0');
   }
-
-  _checkReadAccess(this._mode);
 
   var _count = this.bytesAvailable;
 
@@ -99,7 +106,7 @@ FileStream.prototype.read = function() {
 
   var result = native_.callSync('File_readSync', data);
   if (native_.isFailure(result)) {
-    throw native_.getErrorObject(result);
+    throw new tizen.WebAPIException(tizen.WebAPIException.IO_ERR, 'Could not read');
   }
   var encoded = native_.getResultObject(result);
   var decoded = Base64.decode(encoded);
@@ -116,13 +123,20 @@ FileStream.prototype.readBytes = function() {
   ]);
 
   _checkClosed(this);
+  _checkReadAccess(this._mode);
 
-  if (args.byteCount <= 0) {
+  if (!arguments.length) {
     throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR,
+        'Argument "byteCount" missing');
+  }
+  if (!type_.isNumber(args.byteCount)) {
+    throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
+        'Argument "byteCount" must be a number');
+  }
+  if (args.byteCount <= 0) {
+    throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
         'Argument "byteCount" must be greater than 0');
   }
-
-  _checkReadAccess(this._mode);
 
   var _count = this.bytesAvailable;
 
@@ -134,7 +148,7 @@ FileStream.prototype.readBytes = function() {
 
   var result = native_.callSync('File_readSync', data);
   if (native_.isFailure(result)) {
-    throw native_.getErrorObject(result);
+    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR, 'Could not read');
   }
   var encoded = native_.getResultObject(result);
   var decoded = Base64.decode(encoded);
@@ -156,13 +170,24 @@ FileStream.prototype.readBase64 = function() {
   ]);
 
   _checkClosed(this);
+  _checkReadAccess(this._mode);
 
-  if (args.byteCount <= 0) {
+  if (!arguments.length) {
+    throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
+        'Argument "byteCount" missing');
+  }
+  if (type_.isString(arguments[0]) && !arguments[0].length) {
     throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR,
+        'Argument "byteCount" must be a number');
+  }
+  if (!type_.isNumber(arguments[0])) {
+    throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
+        'Argument "byteCount" must be a number');
+  }
+  if (args.byteCount <= 0) {
+    throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
         'Argument "byteCount" must be greater than 0');
   }
-
-  _checkReadAccess(this._mode);
 
   var _count = this.bytesAvailable;
 
@@ -174,7 +199,7 @@ FileStream.prototype.readBase64 = function() {
 
   var result = native_.callSync('File_readSync', data);
   if (native_.isFailure(result)) {
-    throw native_.getErrorObject(result);
+    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR, 'Could not read');
   }
   var encoded = native_.getResultObject(result);
 
@@ -192,6 +217,11 @@ FileStream.prototype.write = function() {
   _checkClosed(this);
   _checkWriteAccess(this._mode);
 
+  if (!arguments.length) {
+    throw new tizen.WebAPIException(tizen.WebAPIException.NOT_FOUND_ERR,
+        'Argument "stringData" missing');
+  }
+
   var data = {
     location: commonFS_.toRealPath(this._file.fullPath),
     offset: this.position,
@@ -201,7 +231,7 @@ FileStream.prototype.write = function() {
   var result = native_.callSync('File_writeSync', data);
 
   if (native_.isFailure(result)) {
-    throw native_.getErrorObject(result);
+    throw new tizen.WebAPIException(tizen.WebAPIException.IO_ERR, 'Could not write');
   }
   this.position = args.stringData.length;
 };
@@ -218,6 +248,11 @@ FileStream.prototype.writeBytes = function() {
   _checkClosed(this);
   _checkWriteAccess(this._mode);
 
+  if (!arguments.length) {
+    throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
+        'Argument "byteData" missing');
+  }
+
   var data = {
     location: commonFS_.toRealPath(this._file.fullPath),
     offset: this.position,
@@ -227,9 +262,14 @@ FileStream.prototype.writeBytes = function() {
   var result = native_.callSync('File_writeSync', data);
 
   if (native_.isFailure(result)) {
-    throw native_.getErrorObject(result);
+    throw new tizen.WebAPIException(tizen.WebAPIException.IO_ERR, 'Could not write');
   }
 };
+
+function _isBase64(str) {
+  var base64 = new RegExp('^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$');
+  return base64.test(str);
+}
 
 FileStream.prototype.writeBase64 = function() {
   var args = validator_.validateArgs(arguments, [
@@ -242,6 +282,15 @@ FileStream.prototype.writeBase64 = function() {
   _checkClosed(this);
   _checkWriteAccess(this._mode);
 
+  if (!arguments.length) {
+    throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
+        'Argument "base64Data" missing');
+  }
+  if (!args.base64Data.length || !_isBase64(args.base64Data)) {
+    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR,
+        'Data is not base64');
+  }
+
   var data = {
     location: commonFS_.toRealPath(this._file.fullPath),
     offset: this.position,
@@ -251,6 +300,6 @@ FileStream.prototype.writeBase64 = function() {
   var result = native_.callSync('File_writeSync', data);
 
   if (native_.isFailure(result)) {
-    throw native_.getErrorObject(result);
+    throw new tizen.WebAPIException(tizen.WebAPIException.IO_ERR, 'Could not write');
   }
 };

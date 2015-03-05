@@ -172,6 +172,10 @@ FileSystemManager.prototype.removeStorageStateChangeListener = function(watchId)
     {name: 'watchId', type: types_.LONG}
   ]);
 
+  if (!arguments.length) {
+    throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
+        'Missing watchId');
+  }
   var id = args.watchId;
 
   if (type_.isNullOrUndefined(callbacks[id])) {
