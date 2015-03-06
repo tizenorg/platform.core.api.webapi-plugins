@@ -18,7 +18,7 @@ void CheckAccess(const std::string& privilege);
 
 common::PlatformResult AppControlToService(const picojson::object& obj, app_control_h *app_control);
 common::PlatformResult AppControlToServiceExtraData(const picojson::object& app_obj,
-                                                           app_control_h *app_control);
+                                                    app_control_h *app_control);
 } // util
 } // alarm
 } // extension
