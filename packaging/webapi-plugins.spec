@@ -19,6 +19,7 @@ Source0:    %{name}-%{version}.tar.gz
 %if "%{?profile}" == "mobile"
 
 %define tizen_feature_account_support             1
+%define tizen_feature_alarm_support               1
 %define tizen_feature_application_support         1
 %define tizen_feature_archive_support             1
 %define tizen_feature_badge_support               1
@@ -65,6 +66,7 @@ Source0:    %{name}-%{version}.tar.gz
 %if "%{?profile}" == "wearable"
 
 %define tizen_feature_account_support             0
+%define tizen_feature_alarm_support               0
 %define tizen_feature_application_support         0
 %define tizen_feature_archive_support             0
 %define tizen_feature_badge_support               0
@@ -111,6 +113,7 @@ Source0:    %{name}-%{version}.tar.gz
 %if "%{?profile}" == "tv"
 
 %define tizen_feature_account_support             0
+%define tizen_feature_alarm_support               0
 %define tizen_feature_application_support         1
 %define tizen_feature_archive_support             1
 %define tizen_feature_badge_support               0
@@ -189,6 +192,10 @@ BuildRequires: pkgconfig(capi-media-metadata-extractor)
 
 %if 0%{?tizen_feature_account_support}
 BuildRequires: pkgconfig(accounts-svc)
+%endif
+
+%if 0%{?tizen_feature_alarm_support}
+BuildRequires: pkgconfig(capi-appfw-alarm)
 %endif
 
 %if 0%{?tizen_feature_application_support}
@@ -306,6 +313,7 @@ GYP_OPTIONS="$GYP_OPTIONS -Ddisplay_type=x11"
 
 # feature flags
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_account_support=%{?tizen_feature_account_support}"
+GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_alarm_support=%{?tizen_feature_alarm_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_application_support=%{?tizen_feature_application_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_archive_support=%{?tizen_feature_archive_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_badge_support=%{?tizen_feature_badge_support}"

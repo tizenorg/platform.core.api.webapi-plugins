@@ -1,0 +1,271 @@
+// Copyright 2014 Samsung Electronics Co, Ltd. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+var T = xwalk.utils.type;
+var Converter = xwalk.utils.converter;
+var AV = xwalk.utils.validator;
+
+var native = new xwalk.utils.NativeManager(extension);
+
+var AlarmManager = function () {
+    Object.defineProperties(this, {
+        PERIOD_MINUTE:  { value: 60, writable: false, enumerable: true},
+        PERIOD_HOUR:    { value: 3600, writable: false, enumerable: true},
+        PERIOD_DAY:     { value: 86400, writable: false, enumerable: true},
+        PERIOD_WEEK:    { value: 604800, writable: false, enumerable: true},
+    });
+};
+
+//internal /////////////////////////////////////////////////////////////
+//this function should be kept in internal scope
+function InternalData(id) {
+    this.id = id;
+}
+
+//class AlarmManager ////////////////////////////////////////////////////
+AlarmManager.prototype.add = function () {
+    var args = AV.validateMethod(arguments, [
+        {
+            name : 'alarm',
+            type : AV.Types.PLATFORM_OBJECT,
+            values : [tizen.AlarmRelative, tizen.AlarmAbsolute]
+        },
+        {
+            name : 'applicationId',
+            type : AV.Types.STRING,
+        },
+        {
+            name : 'appControl',
+            type : AV.Types.PLATFORM_OBJECT,
+            values : tizen.ApplicationControl,
+            optional : true,
+            nullable : true
+        },
+    ]);
+
+    var type = null, seconds = 0;
+    if (args.alarm instanceof tizen.AlarmRelative) {
+        type = 'AlarmRelative';
+    } else if (args.alarm instanceof tizen.AlarmAbsolute) {
+        type = 'AlarmAbsolute';
+        seconds = args.alarm.date.getTime();
+    }
+
+    var callArgs = {};
+    callArgs.alarm = args.alarm;
+    callArgs.applicationId = args.applicationId;
+    if (args.has.appControl) {
+        callArgs.appControl = args.appControl;
+    }
+
+    callArgs.type = type;
+    callArgs.seconds = Converter.toString(seconds);
+
+    var result = native.callSync('AlarmManager_add', callArgs);
+    if (native.isFailure(result)) {
+        throw native.getErrorObject(result);
+    } else {
+        Object.defineProperties(args.alarm, {
+            id: {
+                value: Converter.toString(native.getResultObject(result).alarm_id),
+                writable: false, enumerable: true, configurable: true}
+        });
+    }
+};
+
+AlarmManager.prototype.remove = function () {
+    var args = AV.validateMethod(arguments, [
+        {
+            name : 'id',
+            type : AV.Types.STRING,
+        }
+    ]);
+
+    var result = native.callSync('AlarmManager_remove', {id: Number(args.id)});
+
+    if (native.isFailure(result)) {
+        throw native.getErrorObject(result);
+    }
+};
+
+AlarmManager.prototype.removeAll = function () {
+    var result = native.callSync('AlarmManager_removeAll', {});
+
+    if (native.isFailure(result)) {
+        throw native.getErrorObject(result);
+    }
+};
+
+AlarmManager.prototype.get = function () {
+    var args = AV.validateMethod(arguments, [
+        {
+            name : 'id',
+            type : AV.Types.STRING,
+        }
+    ]);
+
+    var result = native.callSync('AlarmManager_get', {id: Number(args.id)});
+
+    if (native.isFailure(result)) {
+        throw native.getErrorObject(result);
+    } else {
+        result = native.getResultObject(result);
+        if ('AlarmRelative' === result.type) {
+            return new tizen.AlarmRelative(result.delay, result.period,
+                    new InternalData(result.id));
+        } else {
+            var date = new Date(result.year, result.month, result.day,
+                    result.hour, result.min, result.sec);
+
+            return new tizen.AlarmAbsolute(date, result.second,
+                    new InternalData(result.id));
+        }
+    }
+};
+
+AlarmManager.prototype.getAll = function () {
+    var result = native.callSync('AlarmManager_getAll', {});
+
+    if (native.isFailure(result)) {
+        throw native.getErrorObject(result);
+    } else {
+        var data = native.getResultObject(result);
+        var md = [];
+        data.forEach(function (i) {
+            if ('AlarmRelative'=== i.type) {
+                md.push(new tizen.AlarmRelative(i.delay, i.period,
+                        new InternalData(i.id)));
+            } else {
+                var date = new Date(i.year, i.month, i.day,
+                        i.hour, i.min, i.sec);
+                md.push(new tizen.AlarmAbsolute(date, i.second,
+                        new InternalData(i.id)));
+            }
+        });
+        return md;
+    }
+};
+
+//class Alarm //////////////////////////////////////////////////////////
+function Alarm(id) {
+    var m_id = null;
+
+    if (!T.isNullOrUndefined(id)) {
+        m_id = Converter.toString(id);
+    }
+
+    Object.defineProperties(this, {
+        id:    { value: m_id, writable: false, enumerable: true, configurable: true}
+    });
+}
+//class AlarmRelative //////////////////////////////////////////////////
+
+tizen.AlarmRelative = function(delay, period, internal) {
+    AV.validateConstructorCall(this, tizen.AlarmRelative);
+
+    var m_period = null;
+
+    var m_delay = Converter.toLong(delay);
+
+    if (arguments.length >= 2) {
+        m_period = Converter.toLong(period, true);
+    }
+    if (internal instanceof InternalData) {
+        Alarm.call(this, internal.id);
+    }
+
+    Object.defineProperties(this, {
+        delay:     { value: m_delay, writable: false, enumerable: true},
+        period:    { value: m_period, writable: false, enumerable: true}
+    });
+}
+
+tizen.AlarmRelative.prototype = new Alarm();
+
+tizen.AlarmRelative.prototype.constructor = tizen.AlarmRelative;
+
+tizen.AlarmRelative.prototype.getRemainingSeconds = function () {
+    var result = native.callSync('AlarmRelative_getRemainingSeconds', {id: Number(this.id)});
+
+    if (native.isFailure(result)) {
+        throw native.getErrorObject(result);
+    } else {
+        return Converter.toLong(native.getResultObject(result).seconds, true);
+    }
+};
+
+function makeDateConst(obj) {
+    console.log('Enter MakeConst');
+    obj.setDate = function() {};
+    obj.setFullYear = function() {};
+    obj.setHours = function() {};
+    obj.setMilliseconds = function() {};
+    obj.setMinutes = function() {};
+    obj.setMonth = function() {};
+    obj.setSeconds = function() {};
+    obj.setTime = function() {};
+    obj.setUTCDate = function() {};
+    obj.setUTCFullYear = function() {};
+    obj.setUTCHours = function() {};
+    obj.setUTCMilliseconds = function() {};
+    obj.setUTCMinutes = function() {};
+    obj.setUTCMonth = function() {};
+    obj.setUTCSeconds = function() {};
+    obj.setYear = function() {};
+    console.log('Leave MakeConst');
+}
+
+//class AlarmAbsolute //////////////////////////////////////////////////
+
+tizen.AlarmAbsolute = function(date, second, internal) {
+    AV.validateConstructorCall(this, tizen.AlarmAbsolute);
+
+    var m_period = null, m_daysOfWeek = [], m_date;
+
+    if (T.isDate(date)) {
+        m_date = date;
+        if (arguments.length >= 2) {
+            if(T.isArray(second)){
+                m_daysOfWeek = second;
+            } else {
+                m_period = Converter.toLong(second);
+            }
+        }
+
+        if (internal instanceof InternalData) {
+            Alarm.call(this, internal.id);
+        }
+    } else {
+        m_period = undefined;
+    }
+    makeDateConst(m_date);
+    Object.defineProperties(this, {
+        date:       { value: m_date, writable: false, enumerable: true},
+        period:     { value: m_period, writable: false, enumerable: true},
+        daysOfTheWeek: { value: m_daysOfWeek, writable: false, enumerable: true}
+    });
+}
+
+tizen.AlarmAbsolute.prototype = new Alarm();
+
+tizen.AlarmAbsolute.prototype.constructor = tizen.AlarmAbsolute;
+
+tizen.AlarmAbsolute.prototype.getNextScheduledDate = function () {
+    var result = native.callSync('AlarmAbsolute_getNextScheduledDate', {id: Number(this.id)});
+
+    if (native.isFailure(result)) {
+        throw native.getErrorObject(result);
+    } else {
+        var d = native.getResultObject(result);
+        if (T.isNull(d.year)) {
+            return null;
+        } else {
+            var date = new Date(d.year, d.month, d.day, d.hour, d.min, d.sec);
+            return date;
+        }
+    }
+};
+
+//exports //////////////////////////////////////////////////////////////
+exports = new AlarmManager();

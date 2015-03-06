@@ -20,6 +20,13 @@
           },
         ],
         [
+          'tizen_feature_alarm_support==1', {
+            'dependencies': [
+              'alarm/alarm.gyp:*',
+            ],
+          },
+        ],
+        [
           'tizen_feature_application_support==1', {
             'dependencies': [
               'application/application.gyp:*',
