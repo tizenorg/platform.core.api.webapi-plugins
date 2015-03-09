@@ -432,10 +432,84 @@ void AlarmManager::GetAll(const picojson::value& args, picojson::object& out) {
 
 void AlarmManager::GetRemainingSeconds(const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
+
+  struct tm date;
+  struct tm current;
+  time_t current_time;
+  time_t next_time;
+
+  int id = 0;
+
+  if (args.contains("id") && args.get("id").is<double>()) {
+    id = static_cast<int>(args.get("id").get<double>());
+  }
+
+  picojson::value result = picojson::value(picojson::object());
+  picojson::object& result_obj = result.get<picojson::object>();
+
+  int ret = alarm_get_scheduled_date(id, &date);
+  if(ALARM_ERROR_NONE != ret) {
+    LoggerI("alarm_get_scheduled_date error %d", ret);
+    if (ALARM_ERROR_INVALID_PARAMETER == ret || ALARM_ERROR_CONNECTION_FAIL == ret) {
+      result_obj.insert(std::make_pair("seconds", picojson::value()));
+      ReportSuccess(result, out);
+      return;
+    } else {
+      LoggerE("Platform unknown error.");
+      ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Platform unknown error."), &out);
+      return;
+    }
+  }
+
+  alarm_get_current_time(&current);
+  next_time = mktime(&date);
+  current_time = mktime(&current);
+
+  long seconds = next_time - current_time;
+
+  result_obj.insert(std::make_pair("seconds", picojson::value(std::to_string(seconds))));
+  ReportSuccess(result, out);
 }
 
 void AlarmManager::GetNextScheduledDate(const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
+
+  int id = 0;
+
+  if (args.contains("id") && args.get("id").is<double>()) {
+    id = static_cast<int>(args.get("id").get<double>());
+  }
+
+  struct tm date;
+  int ret = alarm_get_scheduled_date(id, &date);
+
+  picojson::value result = picojson::value(picojson::object());
+  picojson::object& result_obj = result.get<picojson::object>();
+
+  if (ALARM_ERROR_NONE != ret) {
+    result_obj.insert(std::make_pair("year", picojson::value()));
+    ReportSuccess(result, out);
+    return;
+  }
+
+  struct tm curr_date;
+  ret = alarm_get_current_time(&curr_date);
+  if (ALARM_ERROR_NONE != ret || mktime(&date) < mktime(&curr_date)) {
+    result_obj.insert(std::make_pair("year", picojson::value()));
+    ReportSuccess(result, out);
+    return;
+  }
+
+  // tm struct contains years since 1900
+  // there is added 1900 to tm_year to return proper date
+  result_obj.insert(std::make_pair("year", picojson::value(std::to_string(date.tm_year + 1900))));
+  result_obj.insert(std::make_pair("month", picojson::value(std::to_string(date.tm_mon))));
+  result_obj.insert(std::make_pair("day", picojson::value(std::to_string(date.tm_mday))));
+  result_obj.insert(std::make_pair("hour", picojson::value(std::to_string(date.tm_hour))));
+  result_obj.insert(std::make_pair("min", picojson::value(std::to_string(date.tm_min))));
+  result_obj.insert(std::make_pair("sec", picojson::value(std::to_string(date.tm_sec))));
+
+  ReportSuccess(result, out);
 }
 
 } // namespace alarm
