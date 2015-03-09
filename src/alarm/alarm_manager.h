@@ -6,6 +6,7 @@
 #define ALARM_ALARM_MANAGER_H_
 
 #include "common/picojson.h"
+#include "common/platform_result.h"
 
 namespace extension {
 namespace alarm {
@@ -30,6 +31,7 @@ class AlarmManager {
   AlarmManager();
   AlarmManager(const AlarmManager&) = delete;
   AlarmManager& operator=(const AlarmManager&) = delete;
+  common::PlatformResult GetAlarm(int id, picojson::object& obj);
 
 };
 
