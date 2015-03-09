@@ -19,7 +19,6 @@
 #include "sound/sound_instance.h"
 #include "common/logger.h"
 #include "common/converter.h"
-#include "common/platform_exception.h"
 
 namespace extension {
 namespace sound {
@@ -34,23 +33,32 @@ const std::map<std::string, sound_type_e> SoundManager::platform_enum_map_ = {
     {"VOICE", SOUND_TYPE_VOICE},
     {"RINGTONE", SOUND_TYPE_RINGTONE}};
 
-sound_type_e SoundManager::StrToPlatformEnum(const std::string& key) {
+PlatformResult SoundManager::StrToPlatformEnum(const std::string& key,
+                                               sound_type_e* sound_type) {
   if (platform_enum_map_.find(key) == platform_enum_map_.end()) {
     std::string message = "Platform enum value not found for key " + key;
-    // TODO:  throw InvalidValuesException(message);
+    return PlatformResult(ErrorCode::INVALID_VALUES_ERR, message);
   }
 
-  return platform_enum_map_.at(key);
+  *sound_type = platform_enum_map_.at(key);
+
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-std::string SoundManager::PlatformEnumToStr(const sound_type_e value) {
+PlatformResult SoundManager::PlatformEnumToStr(const sound_type_e value,
+                                               std::string* sound_type) {
   for (auto& item : platform_enum_map_) {
-    if (item.second == value) return item.first;
+    if (item.second == value) {
+      *sound_type = item.first;
+
+      return PlatformResult(ErrorCode::NO_ERROR);
+    }
   }
 
   std::string message =
       "Platform enum value " + std::to_string(value) + " not found";
-  // TODO:  throw InvalidValuesException(message);
+
+  return PlatformResult(ErrorCode::INVALID_VALUES_ERR, message);
 }
 
 SoundManager::SoundManager()
@@ -90,15 +98,20 @@ void SoundManager::FillMaxVolumeMap() {
   }
 }
 
-int SoundManager::GetMaxVolume(sound_type_e type) {
+PlatformResult SoundManager::GetMaxVolume(sound_type_e type, int* max_volume) {
   auto it = max_volume_map_.find(type);
   if (it == max_volume_map_.end()) {
-    LoggerE("Failed to find maxVolume of type: %s",
-            PlatformEnumToStr(type).c_str());
-    // TODO: throw UnknownException("Failed to find maxVolume");
+    std::string sound_type;
+    PlatformResult status = PlatformEnumToStr(type, &sound_type);
+    if (status.IsError()) return status;
+    LoggerE("Failed to find maxVolume of type: %s", sound_type.c_str());
+
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to find maxVolume");
   }
 
-  return it->second;
+  *max_volume = it->second;
+
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 double SoundManager::ConvertToSystemVolume(int max_volume, int volume) {
@@ -114,50 +127,63 @@ void SoundManager::VolumeChangeCallback(sound_type_e type, unsigned int value) {
 
   response_obj.insert(
       std::make_pair("listenerId", picojson::value("VolumeChangeListener")));
+
+  std::string sound_type;
+  PlatformResult status = PlatformEnumToStr(type, &sound_type);
+  if (status.IsError())
+      return;
+
   response_obj.insert(
-      std::make_pair("type", picojson::value(PlatformEnumToStr(type))));
+      std::make_pair("type", picojson::value(sound_type)));
+
+  int max_volume;
+  status = GetMaxVolume(type, &max_volume);
+  if (status.IsError())
+      return;
+
   response_obj.insert(std::make_pair(
       "volume",
-      picojson::value(ConvertToSystemVolume(GetMaxVolume(type), value))));
+      picojson::value(ConvertToSystemVolume(max_volume, value))));
 
   SoundInstance::GetInstance().PostMessage(response.serialize().c_str());
 }
 
-std::string SoundManager::GetSoundMode() {
-  std::string sound_mode_type = "MUTE";
+PlatformResult SoundManager::GetSoundMode(std::string* sound_mode_type) {
   int isEnableSound = 0;
   int isEnableVibrate = 0;
+
+  *sound_mode_type = "MUTE";
 
   int ret = vconf_get_bool(VCONFKEY_SETAPPL_SOUND_STATUS_BOOL, &isEnableSound);
   if (VCONF_OK != ret) {
     LoggerE("Unknown error : %d", ret);
-    // TODO: throw UnknownException(("Unknown error:
-    // logSoundModeError(ret)).c_str());
+    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                          "Unknown error: " + std::to_string(ret));
   }
 
   ret =
       vconf_get_bool(VCONFKEY_SETAPPL_VIBRATION_STATUS_BOOL, &isEnableVibrate);
   if (VCONF_OK != ret) {
     LoggerE("Unknown error : %d", ret);
-    // TODO: throw UnknownException(("Unknown error:
-    // logSoundModeError(ret)).c_str());
+    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                          "Unknown error: " + std::to_string(ret));
   }
 
   if (isEnableSound && isEnableVibrate) {
     LoggerE("Wrong state (sound && vibration)");
-    // TODO: throw UnknownException("Platform has wrong state.");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Platform has wrong state.");
   }
 
   if (isEnableSound) {
-    sound_mode_type = "SOUND";
+    *sound_mode_type = "SOUND";
   } else if (isEnableVibrate) {
-    sound_mode_type = "VIBRATE";
+    *sound_mode_type = "VIBRATE";
   }
 
-  return sound_mode_type;
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void SoundManager::SetVolume(const picojson::object& args) {
+PlatformResult SoundManager::SetVolume(const picojson::object& args) {
   const std::string& type = FromJson<std::string>(args, "type");
   double volume = FromJson<double>(args, "volume");
 
@@ -166,89 +192,112 @@ void SoundManager::SetVolume(const picojson::object& args) {
 
   if (volume > 1.0 || volume < 0.0) {
     LoggerE("Volume should be the value between 0 and 1.");
-    // TODO: throw InvalidValuesException("Volume should be the value between 0
-    // and 1.");
+    return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
+                          "Volume should be the value between 0 and 1.");
   }
 
-  auto it = max_volume_map_.find(SoundManager::StrToPlatformEnum(type));
+  sound_type_e sound_type;
+  PlatformResult status = SoundManager::StrToPlatformEnum(type, &sound_type);
+  if (status.IsError()) return status;
+
+  auto it = max_volume_map_.find(sound_type);
   if (it == max_volume_map_.end()) {
     LoggerE("Failed to find maxVolume of type: %d", type.c_str());
-    // TODO: throw UnknownException("Failed to find maxVolume");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to find maxVolume");
   }
 
   int max_volume = it->second;
   int value = round(volume * max_volume);
   LoggerD("volume: %lf, maxVolume: %d, value: %d", volume, max_volume, value);
 
-  int ret =
-      sound_manager_set_volume(SoundManager::StrToPlatformEnum(type), value);
+  int ret = sound_manager_set_volume(sound_type, value);
   if (ret != SOUND_MANAGER_ERROR_NONE) {
     LoggerE("Failed to set volume: %d", ret);
-    // TODO: throw UnknownException("Failed to set volume");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to set volume");
   }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-double SoundManager::GetVolume(const picojson::object& args) {
+PlatformResult SoundManager::GetVolume(const picojson::object& args,
+                                       double* volume) {
   const std::string& type = FromJson<std::string>(args, "type");
-  const sound_type_e type_enum = SoundManager::StrToPlatformEnum(type);
-  int max_volume = GetMaxVolume(type_enum);
   int value;
+
+  sound_type_e type_enum;
+  PlatformResult status = SoundManager::StrToPlatformEnum(type, &type_enum);
+  if (status.IsError()) return status;
+
+  int max_volume;
+  status = GetMaxVolume(type_enum, &max_volume);
+  if (status.IsError()) return status;
 
   int ret = sound_manager_get_volume(type_enum, &value);
   if (ret != SOUND_MANAGER_ERROR_NONE) {
     LoggerE("Failed to get volume: %d", ret);
-    // TODO: throw UnknownException("Failed to get volume");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to get volume");
   }
 
-  double volume = ConvertToSystemVolume(max_volume, value);
+  *volume = ConvertToSystemVolume(max_volume, value);
   LoggerD("volume: %lf, maxVolume: %d, value: %d", volume, max_volume, value);
 
-  return volume;
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 void SoundManager::soundModeChangedCb(keynode_t*, void* user_data)
 {
-  LOGD("enter");
   if (user_data == nullptr) {
     LoggerE("Invalid callback data!");
     return;
   }
   SoundManager* self = static_cast<SoundManager*>(user_data);
-  std::string soundModeType = self->GetSoundMode();
-  //TODO: ERROR CHECK
-  if (self->soundModeListener) {
+
+  std::string soundModeType;
+  PlatformResult status = self->GetSoundMode(&soundModeType);
+
+  if (status.IsSuccess() && self->soundModeListener) {
     self->soundModeListener->OnSoundModeChange(soundModeType);
   } else {
-    LOGE("No SoundModeListener attached");
+    LoggerE("No SoundModeListener attached");
   }
 }
 
-bool SoundManager::SetSoundModeChangeListener(SoundManagerSoundModeChangedListener* listener) {
+PlatformResult SoundManager::SetSoundModeChangeListener(
+    SoundManagerSoundModeChangedListener* listener) {
   soundModeListener = listener;
-  if (soundModeChangeListening)
-    return true;
-  int status = vconf_notify_key_changed(VCONFKEY_SETAPPL_VIBRATION_STATUS_BOOL, SoundManager::soundModeChangedCb, this);
+  if (soundModeChangeListening) return PlatformResult(ErrorCode::NO_ERROR);
+
+  int status = vconf_notify_key_changed(VCONFKEY_SETAPPL_VIBRATION_STATUS_BOOL,
+                                        SoundManager::soundModeChangedCb, this);
   if (VCONF_OK == status) {
     soundModeChangeListening = true;
-    return true;
+    return PlatformResult(ErrorCode::NO_ERROR);
   }
-  return false;
+
+  LoggerE("SoundModeChangeListener no setted");
+  return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                        "SoundModeChangeListener no setted");
 }
 
-bool SoundManager::UnsetSoundModeChangeListener() {
+PlatformResult SoundManager::UnsetSoundModeChangeListener() {
   soundModeListener = nullptr;
   if (!soundModeChangeListening) {
-    return true;
+    return PlatformResult(ErrorCode::NO_ERROR);
   }
-  int status = vconf_ignore_key_changed(VCONFKEY_SETAPPL_VIBRATION_STATUS_BOOL, SoundManager::soundModeChangedCb);
+
+  int status = vconf_ignore_key_changed(VCONFKEY_SETAPPL_VIBRATION_STATUS_BOOL,
+                                        SoundManager::soundModeChangedCb);
   if (VCONF_OK == status) {
     soundModeChangeListening = false;
-    return true;
+    return PlatformResult(ErrorCode::NO_ERROR);
   }
-  return false;
+
+  LoggerE("SoundModeChangeListener no unsetted");
+  return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                        "SoundModeChangeListener no unsetted");
 }
 
-void SoundManager::SetVolumeChangeListener() {
+PlatformResult SoundManager::SetVolumeChangeListener() {
   if (!is_volume_change_listener_) {
     int ret = sound_manager_set_volume_changed_cb(
         [](sound_type_e type, unsigned int value, void* ud) {
@@ -259,27 +308,31 @@ void SoundManager::SetVolumeChangeListener() {
 
     if (ret != SOUND_MANAGER_ERROR_NONE) {
       LoggerE("Failed to set volume changed callback: error code: %d", ret);
-      // TODO: SoundUtil::throwSoundException(ret, "Failed to set volume changed
-      // callback");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                            "Failed to set volume changed callback");
     }
 
     is_volume_change_listener_ = true;
   }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void SoundManager::UnsetVolumeChangeListener() {
+PlatformResult SoundManager::UnsetVolumeChangeListener() {
   if (!is_volume_change_listener_) {
-    return;
+    return PlatformResult(ErrorCode::NO_ERROR);
   }
 
   int ret = sound_manager_unset_volume_changed_cb();
   if (ret != SOUND_MANAGER_ERROR_NONE) {
     LoggerE("Failed to unset volume changed callback");
-    // TODO: SoundUtil::throwSoundException(ret, "Failed to unset volume changed
-    // callback");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                          "Failed to unset volume changed callback");
   }
 
   is_volume_change_listener_ = false;
+
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 }  // namespace sound

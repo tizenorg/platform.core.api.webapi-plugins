@@ -57,42 +57,54 @@ SoundInstance &SoundInstance::GetInstance() {
 
 void SoundInstance::SoundManagerGetSoundMode(const picojson::value& args,
                                              picojson::object& out) {
-  ReportSuccess(picojson::value(manager_->GetSoundMode()), out);
+  std::string sound_mode_type;
+  PlatformResult status = manager_->GetSoundMode(&sound_mode_type);
+
+  if (status.IsSuccess())
+    ReportSuccess(picojson::value(sound_mode_type), out);
+  else
+    ReportError(status, &out);
 }
 
 void SoundInstance::SoundManagerSetVolume(const picojson::value& args,
                                           picojson::object& out) {
-  manager_->SetVolume(args.get<picojson::object>());
+  PlatformResult status = manager_->SetVolume(args.get<picojson::object>());
 
-  ReportSuccess(out);
+  if (status.IsSuccess())
+    ReportSuccess(out);
+  else
+    ReportError(status, &out);
 }
 
 
 void SoundInstance::SoundManagerGetVolume(const picojson::value& args,
                                           picojson::object& out) {
-  ReportSuccess(picojson::value(static_cast<double>(
-                    manager_->GetVolume(args.get<picojson::object>()))),
-                out);
+  double volume;
+  PlatformResult status =
+      manager_->GetVolume(args.get<picojson::object>(), &volume);
+
+  if (status.IsSuccess())
+    ReportSuccess(picojson::value(volume), out);
+  else
+    ReportError(status, &out);
 }
 
 void SoundInstance::SoundManagerSetSoundModeChangeListener(const picojson::value& args, picojson::object& out) {
-  LoggerD("enter");
-  bool status = manager_->SetSoundModeChangeListener(this);
+  PlatformResult status = manager_->SetSoundModeChangeListener(this);
 
-  if (status)
+  if (status.IsSuccess())
     ReportSuccess(out);
   else
-    ReportError(out);
+    ReportError(status, &out);
 }
 
 void SoundInstance::SoundManagerUnsetSoundModeChangeListener(const picojson::value& args, picojson::object& out) {
-  LoggerD("enter");
-  bool status = manager_->UnsetSoundModeChangeListener();
+  PlatformResult status = manager_->UnsetSoundModeChangeListener();
 
-  if (status)
+  if (status.IsSuccess())
     ReportSuccess(out);
   else
-    ReportError(out);
+    ReportError(status, &out);
 }
 
 void SoundInstance::OnSoundModeChange(const std::string& newmode)
@@ -109,16 +121,22 @@ void SoundInstance::OnSoundModeChange(const std::string& newmode)
 
 void SoundInstance::SoundManagerSetVolumeChangeListener(
     const picojson::value& args, picojson::object& out) {
-  manager_->SetVolumeChangeListener();
+  PlatformResult status = manager_->SetVolumeChangeListener();
 
-  ReportSuccess(out);
+  if (status.IsSuccess())
+    ReportSuccess(out);
+  else
+    ReportError(status, &out);
 }
 
 void SoundInstance::SoundManagerUnsetVolumeChangeListener(
     const picojson::value& args, picojson::object& out) {
-  manager_->UnsetVolumeChangeListener();
+  PlatformResult status = manager_->UnsetVolumeChangeListener();
 
-  ReportSuccess(out);
+  if (status.IsSuccess())
+    ReportSuccess(out);
+  else
+    ReportError(status, &out);
 }
 
 #undef CHECK_EXIST
