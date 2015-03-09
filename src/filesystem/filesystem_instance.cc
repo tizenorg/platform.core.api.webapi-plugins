@@ -535,6 +535,11 @@ void FilesystemInstance::RemoveDirectory(const picojson::value& args,
 void FilesystemInstance::CopyTo(const picojson::value& args,
                                   picojson::object& out) {
   LoggerD("enter");
+  CHECK_EXIST(args, "callbackId", out)
+  CHECK_EXIST(args, "originFilePath", out)
+  CHECK_EXIST(args, "destinationFilePath", out)
+  CHECK_EXIST(args, "overwrite", out)
+
   double callback_id = args.get("callbackId").get<double>();
   const std::string& originPath = args.get("originFilePath").get<std::string>();
   const std::string& destinationPath = args.get("destinationFilePath").get<std::string>();

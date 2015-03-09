@@ -103,6 +103,9 @@ CommonFS.prototype.getFileInfo = function(aPath, aStatObj, secondIter, aMode) {
 };
 
 CommonFS.prototype.isLocationAllowed = function(aPath) {
+  if (!aPath) {
+      return false;
+  }
   if (aPath.indexOf(this.cacheVirtualToReal.ringtones.path) === 0) {
     return false;
   }
@@ -144,8 +147,10 @@ CommonFS.prototype.toRealPath = function(aPath) {
       for (i = 1; i < _pathTokens.length; ++i) {
         _fileRealPath += '/' + _pathTokens[i];
       }
+      this.cacheRealToVirtual[_fileRealPath] = aPath;
     } else {
-      _fileRealPath = aPath;
+      //If path token is not present in cache then it is invalid
+      _fileRealPath = undefined;
     }
   } else {
     _fileRealPath = aPath;

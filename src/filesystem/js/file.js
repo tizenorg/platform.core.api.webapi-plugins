@@ -352,6 +352,24 @@ File.prototype.copyTo = function(originFilePath, destinationFilePath, overwrite,
   var _realOriginalPath = commonFS_.toRealPath(args.originFilePath);
   var _realDestinationPath = commonFS_.toRealPath(args.destinationFilePath);
 
+  if (!_realOriginalPath) {
+      setTimeout(function() {
+        native_.callIfPossible(args.onerror,
+            new tizen.WebAPIException(tizen.WebAPIException.NOT_FOUND_ERR,
+            'Source path is not valid'));
+      }, 0);
+      return;
+  }
+
+  if (!_realDestinationPath) {
+      setTimeout(function() {
+        native_.callIfPossible(args.onerror,
+            new tizen.WebAPIException(tizen.WebAPIException.NOT_FOUND_ERR,
+            'Destination path is not valid'));
+      }, 0);
+      return;
+  }
+
   var resultOldPath = native_.callSync('File_statSync', {location: _realOriginalPath});
   if (native_.isFailure(resultOldPath)) {
     setTimeout(function() {
@@ -407,6 +425,24 @@ File.prototype.moveTo = function(originFilePath, destinationFilePath, overwrite,
 
   var _realOriginalPath = commonFS_.toRealPath(args.originFilePath);
   var _realDestinationPath = commonFS_.toRealPath(args.destinationFilePath);
+
+  if (!_realOriginalPath) {
+      setTimeout(function() {
+        native_.callIfPossible(args.onerror,
+            new tizen.WebAPIException(tizen.WebAPIException.NOT_FOUND_ERR,
+            'Source path is not valid'));
+      }, 0);
+      return;
+  }
+
+  if (!_realDestinationPath) {
+      setTimeout(function() {
+        native_.callIfPossible(args.onerror,
+            new tizen.WebAPIException(tizen.WebAPIException.NOT_FOUND_ERR,
+            'Destination path is not valid'));
+      }, 0);
+      return;
+  }
 
   var resultOldPath = native_.callSync('File_statSync', {location: _realOriginalPath});
   if (native_.isFailure(resultOldPath)) {
@@ -483,6 +519,15 @@ File.prototype.createDirectory = function(dirPath) {
           _fileInfo,
           _realNewPath = commonFS_.toRealPath(_newPath);
 
+  if (!_realNewPath) {
+    setTimeout(function() {
+      native_.callIfPossible(args.onerror,
+          new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR,
+          'Path is not valid'));
+    }, 0);
+    return;
+  }
+
   if (this.isDirectory) {
     if (this.mode === 'r') {
       throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR,
@@ -532,6 +577,14 @@ File.prototype.createFile = function(relativeFilePath) {
 
   var _outputPath = this.fullPath + '/' + args.relativeFilePath;
   var _outputRealPath = commonFS_.toRealPath(_outputPath);
+  if (!_outputRealPath) {
+    setTimeout(function() {
+      native_.callIfPossible(args.onerror,
+          new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR,
+          'Path is not valid'));
+    }, 0);
+    return;
+  }
   var _resultExist = native_.callSync('File_statSync', {location: _outputRealPath});
 
   if (native_.isSuccess(_resultExist)) {
@@ -571,6 +624,14 @@ File.prototype.resolve = function(filePath) {
 
   var _newPath = this.fullPath + '/' + args.filePath;
   var _realPath = commonFS_.toRealPath(_newPath);
+  if (!_realPath) {
+    setTimeout(function() {
+      native_.callIfPossible(args.onerror,
+          new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR,
+          'Path is not valid'));
+    }, 0);
+    return;
+  }
   var _result = native_.callSync('File_statSync', {location: _realPath});
   if (native_.isFailure(_result)) {
     throw new tizen.WebAPIException(tizen.WebAPIException.NOT_FOUND_ERR, native_.getErrorObject(_result));
