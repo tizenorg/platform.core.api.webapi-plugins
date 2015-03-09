@@ -25,6 +25,7 @@
 #include <vector>
 
 #include "common/picojson.h"
+#include "common/platform_result.h"
 
 #include "exif/exif_gps_location.h"
 
@@ -56,7 +57,7 @@ typedef std::shared_ptr<ExifInformation> ExifInformationPtr;
 typedef std::map<std::string, std::string> AttributeMap;
 typedef std::vector<long long int> IsoSpeedRatingsVector;
 
-extern const size_t EXIF_UNDEFINED_TYPE_LENGTH;
+extern const std::size_t EXIF_UNDEFINED_TYPE_LENGTH;
 extern const std::string EXIF_UNDEFINED_TYPE_ASCII;
 extern const std::string EXIF_UNDEFINED_TYPE_JIS;
 extern const std::string EXIF_UNDEFINED_TYPE_UNICODE;
@@ -119,7 +120,7 @@ class ExifInformation {
   explicit ExifInformation(const picojson::value& args);
   ~ExifInformation();
 
-  void saveToFile(const std::string& file_path);
+  common::PlatformResult saveToFile(const std::string& file_path);
 
   const std::string& getUri();
   void setUri(const std::string& uri);

@@ -15,15 +15,14 @@
 // limitations under the License.
 //
 
-#include "rational.h"
+#include "exif/rational.h"
 
 #include <cmath>
 #include <sstream>
 
-#include "common/platform_exception.h"
 #include "common/logger.h"
 
-#include "exif_util.h"
+#include "exif/exif_util.h"
 
 namespace extension {
 namespace exif {

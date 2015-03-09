@@ -15,16 +15,16 @@
 // limitations under the License.
 //
 
-#include "exif_tag_saver.h"
+#include "exif/exif_tag_saver.h"
 
 #include <libexif/exif-format.h>
 #include <sstream>
 #include <cstring>
 
-#include "common/platform_exception.h"
+#include "common/platform_result.h"
 #include "common/logger.h"
 
-#include "exif_util.h"
+#include "exif/exif_util.h"
 
 namespace extension {
 namespace exif {
@@ -44,6 +44,12 @@ void ExifTagSaver::removeExifEntryWithTag(const ExifTag tag,
 void ExifTagSaver::saveToExif(long int value, ExifTag tag,
                               ExifData* exif_data) {
   ExifEntry* entry = prepareEntry(exif_data, tag);
+  if (!entry) {
+    // TODO return PlatformResult and handle error
+    LoggerE("Exif entry is null");
+    return;
+  }
+
   ExifByteOrder order = exif_data_get_byte_order(exif_data);
 
   LoggerD("entry->format: %d", entry->format);
@@ -76,13 +82,19 @@ void ExifTagSaver::saveToExif(const std::string& value, ExifTag tag,
                               ExifData* exif_data, ExifFormat format,
                               bool add_zero_character) {
   ExifEntry* entry = prepareEntry(exif_data, tag);
+  if (!entry) {
+    // TODO return PlatformResult and handle error
+    LoggerE("Exif entry is null");
+    return;
+  }
+
   if (!value.empty()) {
     if (entry->data) {
       free(entry->data);
       entry->data = NULL;
     }
 
-    size_t new_len = value.length();
+    std::size_t new_len = value.length();
     if (add_zero_character) {
       ++new_len;
     }
@@ -102,6 +114,11 @@ void ExifTagSaver::saveToExif(const std::string& value, ExifTag tag,
 void ExifTagSaver::saveToExif(const Rational& value, ExifTag tag,
                               ExifData* exif_data) {
   ExifEntry* entry = prepareEntry(exif_data, tag);
+  if (!entry) {
+    // TODO return PlatformResult and handle error
+    LoggerE("Exif entry is null");
+    return;
+  }
   entry->format = EXIF_FORMAT_RATIONAL;
 
   if (ExifTypeInfo::RationalSize != entry->size) {
@@ -127,6 +144,11 @@ void ExifTagSaver::saveToExif(const Rational& value, ExifTag tag,
 void ExifTagSaver::saveToExif(const Rationals& value, ExifTag tag,
                               ExifData* exif_data) {
   ExifEntry* entry = prepareEntry(exif_data, tag);
+  if (!entry) {
+    // TODO return PlatformResult and handle error
+    LoggerE("Exif entry is null");
+    return;
+  }
   ExifByteOrder order = exif_data_get_byte_order(exif_data);
   entry->format = EXIF_FORMAT_RATIONAL;
 
@@ -143,7 +165,7 @@ void ExifTagSaver::saveToExif(const Rationals& value, ExifTag tag,
   }
 
   entry->components = value.size();
-  for (size_t i = 0; i < value.size(); ++i) {
+  for (std::size_t i = 0; i < value.size(); ++i) {
     ExifRational r;
     r.numerator = value[i].nominator;
     r.denominator = value[i].denominator;
@@ -155,9 +177,14 @@ void ExifTagSaver::saveToExif(std::vector<long long int>& value,
                               ExifFormat store_as,
                               ExifTag tag, ExifData* exif_data) {
   ExifEntry* entry = prepareEntry(exif_data, tag);
+  if (!entry) {
+    // TODO return PlatformResult and handle error
+    LoggerE("Exif entry is null");
+    return;
+  }
   const ExifByteOrder order = exif_data_get_byte_order(exif_data);
 
-  const size_t size_per_member = ExifUtil::getSizeOfExifFormatType(store_as);
+  const std::size_t size_per_member = ExifUtil::getSizeOfExifFormatType(store_as);
   switch (store_as) {
     case EXIF_FORMAT_BYTE:
     case EXIF_FORMAT_SHORT:
@@ -171,7 +198,7 @@ void ExifTagSaver::saveToExif(std::vector<long long int>& value,
   }
   entry->format = store_as;
 
-  const size_t num_elements = value.size();
+  const std::size_t num_elements = value.size();
   const unsigned int required_size = size_per_member * num_elements;
   if (required_size != entry->size) {
     if (entry->data) {
@@ -188,41 +215,39 @@ void ExifTagSaver::saveToExif(std::vector<long long int>& value,
 
   switch (store_as) {
     case EXIF_FORMAT_BYTE: {
-      for (size_t i = 0; i < num_elements; ++i) {
+      for (std::size_t i = 0; i < num_elements; ++i) {
         entry->data[i] = static_cast<ExifByte>(value[i]);
       }
       break;
     }
     case EXIF_FORMAT_SHORT: {
-      for (size_t i = 0; i < num_elements; ++i) {
+      for (std::size_t i = 0; i < num_elements; ++i) {
         exif_set_short(entry->data + i * size_per_member, order,
             static_cast<ExifShort>(value[i]));
       }
       break;
     }
     case EXIF_FORMAT_SSHORT: {
-      for (size_t i = 0; i < num_elements; ++i) {
+      for (std::size_t i = 0; i < num_elements; ++i) {
         exif_set_sshort(entry->data + i * size_per_member, order,
             static_cast<ExifSShort>(value[i]));
       }
       break;
     }
     case EXIF_FORMAT_LONG: {
-      for (size_t i = 0; i < num_elements; ++i) {
+      for (std::size_t i = 0; i < num_elements; ++i) {
         exif_set_long(entry->data + i * size_per_member, order,
             static_cast<ExifLong>(value[i]));
       }
       break;
     }
     case EXIF_FORMAT_SLONG: {
-      for (size_t i = 0; i < num_elements; ++i) {
+      for (std::size_t i = 0; i < num_elements; ++i) {
         exif_set_slong(entry->data + i * size_per_member, order,
             static_cast<ExifSLong>(value[i]));
       }
       break;
     }
-    default:
-      break;
   }
 
   LoggerD("entry after save:");
@@ -273,7 +298,7 @@ ExifEntry* ExifTagSaver::prepareEntry(ExifData* exif_data, ExifTag tag) {
 
   if (!exif_entry) {
     LoggerE("Couldn't create new Exif tag");
-    // throw UnknownException("Could not save Exif to file");
+    return NULL;
   }
 
   exif_entry_initialize(exif_entry, tag);
@@ -294,6 +319,9 @@ ExifEntry* ExifTagSaver::createNewTag(ExifData* exif_data, ExifIfd ifd,
 }
 
 ExifIfd ExifTagSaver::deduceIfdSection(ExifTag tag) {
+  // TODO EXIF_TAG_* and EXIF_TAG_GPS_* are sharing same values,
+  // they shouldn't be used in one switch statement.
+
   switch (static_cast<unsigned int>(tag)) {
     // Tags in IFD_0 Section
     case EXIF_TAG_MAKE:
@@ -330,11 +358,14 @@ ExifIfd ExifTagSaver::deduceIfdSection(ExifTag tag) {
     // Tags in other sections
     default:
       LoggerE("Unsupported tag: %d", tag);
-      // throw UnknownException("Unsupported tag");
+      // TODO handle error
   }
 }
 
 ExifFormat ExifTagSaver::deduceDataFormat(ExifTag tag) {
+  // TODO EXIF_TAG_* and EXIF_TAG_GPS_* are sharing same values,
+  // they shouldn't be used in one switch statement.
+
   switch (static_cast<unsigned int>(tag)) {
     // Tags with byte type:
     case EXIF_TAG_GPS_ALTITUDE_REF:
@@ -380,7 +411,7 @@ ExifFormat ExifTagSaver::deduceDataFormat(ExifTag tag) {
     // Unsupported tags:
     default:
       LoggerE("Unsupported tag: %d", tag);
-      // throw UnknownException("Unsupported tag");
+      // TODO handle error
   }
 }
 

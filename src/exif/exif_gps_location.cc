@@ -15,13 +15,13 @@
 // limitations under the License.
 //
 
-#include "exif_gps_location.h"
+#include "exif/exif_gps_location.h"
 
 #include <string>
 #include <sstream>
 #include <cmath>
 
-#include "common/platform_exception.h"
+#include "common/assert.h"
 #include "common/logger.h"
 
 namespace extension {

@@ -21,8 +21,8 @@
 #include <string>
 #include <vector>
 
-#include "exif_util.h"
-#include "rational.h"
+#include "exif/exif_util.h"
+#include "exif/rational.h"
 
 namespace extension {
 namespace exif {

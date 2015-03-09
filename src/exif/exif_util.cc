@@ -15,12 +15,12 @@
 // limitations under the License.
 //
 
-#include "exif_util.h"
+#include "exif/exif_util.h"
 
 #include <iomanip>
 #include <sstream>
 
-#include "common/platform_exception.h"
+#include "common/platform_result.h"
 #include "common/logger.h"
 
 namespace extension {
@@ -55,14 +55,14 @@ const std::string URI_PREFIX = "file://";
 const std::string URI_ABSOLUTE_PREFIX = "file:///";
 }  // namespace
 
-const size_t ExifTypeInfo::ByteSize = 1;
-const size_t ExifTypeInfo::ASCIISize = 1;
-const size_t ExifTypeInfo::ShortSize = 2;
-const size_t ExifTypeInfo::LongSize = 4;
-const size_t ExifTypeInfo::RationalSize = 8;
-const size_t ExifTypeInfo::UndefinedSize = 1;
-const size_t ExifTypeInfo::SLongSize = 4;
-const size_t ExifTypeInfo::SRationalSize = 8;
+const std::size_t ExifTypeInfo::ByteSize = 1;
+const std::size_t ExifTypeInfo::ASCIISize = 1;
+const std::size_t ExifTypeInfo::ShortSize = 2;
+const std::size_t ExifTypeInfo::LongSize = 4;
+const std::size_t ExifTypeInfo::RationalSize = 8;
+const std::size_t ExifTypeInfo::UndefinedSize = 1;
+const std::size_t ExifTypeInfo::SLongSize = 4;
+const std::size_t ExifTypeInfo::SRationalSize = 8;
 
 const ExifByte ExifTypeInfo::ByteId = 1;
 const ExifByte ExifTypeInfo::ASCIIId = 2;
@@ -310,7 +310,7 @@ std::string ExifUtil::timeTToExifGpsDateStamp(time_t time) {
 }
 
 size_t  ExifUtil::getSizeOfExifFormatType(ExifFormat format) {
-  size_t size_per_member = 0;
+  std::size_t size_per_member = 0;
   switch (format) {
     case EXIF_FORMAT_BYTE:
       size_per_member = 1;
@@ -355,7 +355,7 @@ void ExifUtil::printExifEntryInfo(ExifEntry* entry, ExifData* exif_data) {
 
   unsigned char* read_buf_ptr = entry->data;
 
-  size_t size_per_member = getSizeOfExifFormatType(entry->format);
+  std::size_t size_per_member = getSizeOfExifFormatType(entry->format);
   if (0 == size_per_member) {
     size_per_member = 1;  // display as array of bytes
   }

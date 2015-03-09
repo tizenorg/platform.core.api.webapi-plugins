@@ -29,6 +29,8 @@
 #include <string>
 #include <vector>
 
+#include "common/platform_result.h"
+
 namespace extension {
 namespace exif {
 
@@ -65,10 +67,11 @@ typedef std::shared_ptr<JpegFile> JpegFilePtr;
 
 class JpegFile {
  public:
-  static JpegFilePtr loadFile(const std::string& path);
+  static common::PlatformResult loadFile(const std::string& path,
+                                         JpegFilePtr* jpg_ptr);
   ~JpegFile();
 
-  void setNewExifData(ExifData* new_exif_data);
+  common::PlatformResult setNewExifData(ExifData* new_exif_data);
 
   /**
    * You are responsible to unreference returned data with: exif_data_unref(...)
@@ -81,22 +84,25 @@ class JpegFile {
    */
   ExifData* getExifData();
 
-  void saveToFile(const std::string& out_path);
+  common::PlatformResult saveToFile(const std::string& out_path);
 
  private:
   JpegFile();
-  void load(const std::string& path);
-  void generateListOfSections();
 
-  std::string getPartOfFile(const size_t offset,
-      const size_t num_bytes_before = 10,
-      const size_t num_bytes_after = 10);
+  common::PlatformResult load(const std::string &path);
+
+  common::PlatformResult generateListOfSections();
+
+  std::string getPartOfFile(const std::size_t offset,
+                            const std::size_t num_bytes_before = 10,
+                            const std::size_t num_bytes_after = 10);
 
   JpegFileSectionPtr getExifSection();
-  void saveToFilePriv(const std::string& out_path);
+
+  common::PlatformResult saveToFilePriv(const std::string &out_path);
 
   /**
-   * Search for first occurence of specific tag inside buffer.
+   * Search for first occurrence of specific tag inside buffer.
    *
    * buffer_end is the first byte that should not be checked:
    * [buffer_start ... buffer_end)
@@ -106,15 +112,15 @@ class JpegFile {
   static bool searchForTagInBuffer(const unsigned char* buffer_start,
       const unsigned char* buffer_end,
       const JpegMarker marker,
-      size_t& out_index);
+      std::size_t& out_index);
 
   std::string m_source_file_path;
 
   unsigned char* m_in_data;
-  size_t m_in_data_size;
+  std::size_t m_in_data_size;
 
   unsigned char* m_image_data;
-  size_t m_image_size;
+  std::size_t m_image_size;
 
   /**
    * This contains any bytes after EOI.
@@ -122,7 +128,7 @@ class JpegFile {
    * some cameras saves extra bytes (for example Android).
    */
   unsigned char* m_padding_data;
-  size_t m_padding_data_size;
+  std::size_t m_padding_data_size;
 
   FILE* m_in_file;
   FILE* m_out_file;

@@ -15,7 +15,7 @@
 // limitations under the License.
 //
 
-#include "exif_information.h"
+#include "exif/exif_information.h"
 
 #include <memory>
 #include <cmath>
@@ -23,16 +23,19 @@
 #include "common/assert.h"
 #include "common/converter.h"
 #include "common/logger.h"
-#include "common/platform_exception.h"
+#include "common/platform_result.h"
 
-#include "exif_tag_saver.h"
-#include "exif_util.h"
-#include "jpeg_file.h"
+#include "exif/exif_tag_saver.h"
+#include "exif/exif_util.h"
+#include "exif/jpeg_file.h"
 
 namespace extension {
 namespace exif {
 
-const size_t EXIF_UNDEFINED_TYPE_LENGTH = 8;
+using common::ErrorCode;
+using common::PlatformResult;
+
+const std::size_t EXIF_UNDEFINED_TYPE_LENGTH = 8;
 const std::string EXIF_UNDEFINED_TYPE_ASCII =
     std::string("ASCII\0\0\0", EXIF_UNDEFINED_TYPE_LENGTH);
 const std::string EXIF_UNDEFINED_TYPE_JIS =
@@ -600,10 +603,7 @@ void ExifInformation::set(std::string attributeName, const picojson::value& v) {
 
 void ExifInformation::removeNulledAttributesFromExifData(ExifData* exif_data) {
   LoggerD("Entered");
-  if (!exif_data) {
-    LoggerE("exif_data is NULL");
-    throw common::UnknownException("Invalid Exif provided");
-  }
+  AssertMsg(exif_data, "exif_data is NULL");
 
   if (!isSet(EXIF_INFORMATION_ATTRIBUTE_WIDTH)) {
     LoggerD("Removing width");
@@ -706,10 +706,7 @@ void ExifInformation::removeNulledAttributesFromExifData(ExifData* exif_data) {
 
 void ExifInformation::updateAttributesInExifData(ExifData* exif_data) {
   LoggerD("Entered");
-  if (!exif_data) {
-    LoggerE("exif_data is NULL");
-    throw common::UnknownException("Invalid Exif provided");
-  }
+  AssertMsg(exif_data, "exif_data is NULL");
 
   if (isSet(EXIF_INFORMATION_ATTRIBUTE_WIDTH)) {
     LoggerD("Saving width: %d", getWidth());
@@ -857,14 +854,18 @@ void ExifInformation::updateAttributesInExifData(ExifData* exif_data) {
   }
 }
 
-void ExifInformation::saveToFile(const std::string& file_path) {
+PlatformResult ExifInformation::saveToFile(const std::string& file_path) {
   LoggerD("Entered");
   LoggerD("Using JpegFile to read: [%s] and Exif if present",
       file_path.c_str());
 
-  bool exif_data_is_new = false;
-  JpegFilePtr jpg_file = JpegFile::loadFile(file_path);
+  JpegFilePtr jpg_file;
+  PlatformResult result = JpegFile::loadFile(file_path, &jpg_file);
+  if (!result)
+    return result;
+
   ExifData* exif_data = jpg_file->getExifData();
+  bool exif_data_is_new = false;
 
   // Exif is not present in file - create new ExifData
   if (!exif_data) {
@@ -872,45 +873,40 @@ void ExifInformation::saveToFile(const std::string& file_path) {
         file_path.c_str());
 
     exif_data = exif_data_new();
+    if (!exif_data) {
+      LoggerE("Couldn't allocate new ExifData");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Memory allocation failed");
+    }
+
     exif_data_set_option(exif_data, EXIF_DATA_OPTION_FOLLOW_SPECIFICATION);
     exif_data_set_data_type(exif_data, EXIF_DATA_TYPE_COMPRESSED);
     exif_data_set_byte_order(exif_data, EXIF_BYTE_ORDER_MOTOROLA);
     exif_data_is_new = true;
   }
 
-  if (!exif_data) {
-    LoggerE("Couldn't allocate new ExifData");
-    throw common::UnknownException("Memory allocation failed");
-  }
-
-  LoggerD("Exif data type: %d", exif_data_get_data_type(exif_data) );
-  LoggerD("Exif byte order: %d", exif_data_get_byte_order(exif_data) );
+  LoggerD("Exif data type: %d", exif_data_get_data_type(exif_data));
+  LoggerD("Exif byte order: %d", exif_data_get_byte_order(exif_data));
   exif_data_set_option(exif_data, EXIF_DATA_OPTION_FOLLOW_SPECIFICATION);
 
-  try {
-    // If we have created new ExifData there is nothing to remove
-    if (!exif_data_is_new) {
-      // Remove attributes that have been nulled
-      removeNulledAttributesFromExifData(exif_data);
-    }
-
-    updateAttributesInExifData(exif_data);
-
-    LoggerD("Using JpegFile to save new Exif in: [%s]", file_path.c_str());
-    if (exif_data_is_new) {
-      jpg_file->setNewExifData(exif_data);
-    }
-
-    jpg_file->saveToFile(file_path);
+  // If we have created new ExifData there is nothing to remove
+  if (!exif_data_is_new) {
+    // Remove attributes that have been nulled
+    removeNulledAttributesFromExifData(exif_data);
   }
-  catch (...) {
-    exif_data_unref(exif_data);
-    exif_data = NULL;
-    throw;
+  updateAttributesInExifData(exif_data);
+
+  LoggerD("Using JpegFile to save new Exif in: [%s]", file_path.c_str());
+  if (exif_data_is_new) {
+    result = jpg_file->setNewExifData(exif_data);
   }
 
   exif_data_unref(exif_data);
-  exif_data = NULL;
+
+  if (!result) {
+    return result;
+  }
+
+  return jpg_file->saveToFile(file_path);
 }
 
 }  // namespace exif

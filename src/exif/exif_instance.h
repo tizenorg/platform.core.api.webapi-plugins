@@ -8,6 +8,11 @@
 #include "common/extension.h"
 #include "common/picojson.h"
 
+typedef picojson::value JsonValue;
+typedef picojson::object JsonObject;
+typedef picojson::array JsonArray;
+typedef std::string JsonString;
+
 namespace extension {
 namespace exif {
 

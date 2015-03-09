@@ -19,16 +19,20 @@
 // For details of JPEG file format see:
 // http://www.media.mit.edu/pia/Research/deepview/exif.html
 
-#include "jpeg_file.h"
+#include "exif/jpeg_file.h"
 
 #include <iomanip>
 #include <limits>
 
+#include "common/assert.h"
 #include "common/logger.h"
-#include "common/platform_exception.h"
+#include "common/platform_result.h"
 
 namespace extension {
 namespace exif {
+
+using common::PlatformResult;
+using common::ErrorCode;
 
 /**
  * Size of maximal JPEG's section data length
@@ -115,19 +119,24 @@ JpegFile::~JpegFile() {
   }
 }
 
-JpegFilePtr JpegFile::loadFile(const std::string& path) {
+PlatformResult JpegFile::loadFile(const std::string& path, JpegFilePtr* jpg_ptr) {
   JpegFile* new_jpg = new (std::nothrow) JpegFile();
   if (!new_jpg) {
     LoggerE("Couldn't allocate Jpegfile!");
-    throw common::UnknownException("Memory allocation failed");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Memory allocation failed");
   }
 
-  JpegFilePtr jpg_ptr(new_jpg);
-  jpg_ptr->load(path);
-  return jpg_ptr;
+  jpg_ptr->reset(new_jpg);
+
+  PlatformResult result = (*jpg_ptr)->load(path);
+  if (!result) {
+    return result;
+  }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void JpegFile::load(const std::string& path) {
+PlatformResult JpegFile::load(const std::string& path) {
   LoggerD("Entered file: %s", path.c_str());
 
   m_source_file_path = path;
@@ -135,31 +144,31 @@ void JpegFile::load(const std::string& path) {
   m_in_file = fopen(path.c_str(), "rb");
   if (!m_in_file) {
     LoggerE("Couldn't open Jpeg file: [%s]", path.c_str());
-    throw common::NotFoundException("Could not open JPEG file");
+    return PlatformResult(ErrorCode::NOT_FOUND_ERR, "Could not open JPEG file");
   }
 
   fseek(m_in_file, 0, SEEK_END);
-  const size_t in_file_size = static_cast<size_t>(ftell(m_in_file));
+  const std::size_t in_file_size = static_cast<size_t>(ftell(m_in_file));
   fseek(m_in_file, 0, SEEK_SET);
   LoggerD("JPEG file: [%s] size:%d", path.c_str(), in_file_size);
   if (0 == in_file_size) {
     LoggerE("Input file [%s] is empty!", path.c_str());
-    throw common::UnknownException("JPEG file is invalid");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "JPEG file is invalid");
   }
 
   m_in_data = new (std::nothrow) unsigned char[in_file_size];
   if (!m_in_data) {
     LoggerE("Couldn't allocate buffer with size: %d", in_file_size);
-    throw common::UnknownException("Memory allocation failed");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Memory allocation failed");
   }
 
   m_in_data_size = in_file_size;
 
-  const size_t read_bytes = fread(m_in_data, 1, m_in_data_size, m_in_file);
+  const std::size_t read_bytes = fread(m_in_data, 1, m_in_data_size, m_in_file);
   if (read_bytes != m_in_data_size) {
     LoggerE("Couldn't read all: %d bytes. Read only: %d bytes!", m_in_data_size,
         read_bytes);
-    throw common::UnknownException("Could not read JPEG file");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not read JPEG file");
   }
 
   if (fclose(m_in_file) == EOF) {
@@ -167,12 +176,12 @@ void JpegFile::load(const std::string& path) {
   }
   m_in_file = NULL;
 
-  generateListOfSections();
+  return generateListOfSections();
 }
 
-std::string JpegFile::getPartOfFile(const size_t offset,
-                                    const size_t num_bytes_before,
-                                    const size_t num_bytes_after) {
+std::string JpegFile::getPartOfFile(const std::size_t offset,
+                                    const std::size_t num_bytes_before,
+                                    const std::size_t num_bytes_after) {
   long long int start = static_cast<long long int>(offset) - num_bytes_before;
   if (start < 0) {
     start = 0;
@@ -192,7 +201,7 @@ std::string JpegFile::getPartOfFile(const size_t offset,
 }
 
 
-void JpegFile::generateListOfSections() {
+common::PlatformResult JpegFile::generateListOfSections() {
   LoggerD("Entered");
 
   // JPEG starts with:
@@ -218,8 +227,8 @@ void JpegFile::generateListOfSections() {
   for (size_t offset = 0, iterration = 0;
       offset < m_in_data_size; ++iterration) {
     LoggerD("offset:%d | Starting iteration: %d", offset, iterration);
-    const size_t search_len = 10;
-    size_t search_offset = 0;
+    const std::size_t search_len = 10;
+    std::size_t search_offset = 0;
     for (search_offset = 0; search_offset < search_len; ++search_offset) {
       // Skip bytes until first no 0xff
       unsigned char& tmp_marker = m_in_data[offset + search_offset];
@@ -231,10 +240,10 @@ void JpegFile::generateListOfSections() {
     if (search_len == search_offset) {
       LoggerE("offset:%d | Couldn't find marker! RAW DATA:{%s}", offset,
           getPartOfFile(offset, 0, 10).c_str());
-      throw common::UnknownException("JPEG file is invalid");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, "JPEG file is invalid");
     }
 
-    const size_t section_offset = offset + search_offset - 1;
+    const std::size_t section_offset = offset + search_offset - 1;
     unsigned char* section_begin = m_in_data + section_offset;
 
     offset = section_offset;  // Move to section begin
@@ -243,7 +252,7 @@ void JpegFile::generateListOfSections() {
     if (!isJpegMarker(section_begin[1])) {
       LoggerE("offset:%d | Is not valid marker: 0x%x RAW DATA:{%s}", offset,
           section_begin[1], getPartOfFile(section_offset, 0, 4).c_str());
-      throw common::UnknownException("JPEG file is invalid");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, "JPEG file is invalid");
     }
 
     const JpegMarker cur_marker = castToJpegMarker(section_begin[1]);
@@ -258,7 +267,7 @@ void JpegFile::generateListOfSections() {
       JpegFileSection* sec = new (std::nothrow) JpegFileSection();
       if (!sec) {
         LoggerE("Couldn't allocate JpegFileSection");
-        throw common::UnknownException("Memory allocation failed");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Memory allocation failed");
       }
 
       section = JpegFileSectionPtr(sec);
@@ -303,7 +312,7 @@ void JpegFile::generateListOfSections() {
       if (total_section_len < 0) {
         LoggerE("offset:%d tag:0x%x | Error: total_section_len is: %d < 0",
             offset, cur_marker, total_section_len);
-        throw common::UnknownException("JPEG file is invalid");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR, "JPEG file is invalid");
       }
 
       if (section_offset + 2 + total_section_len > m_in_data_size) {
@@ -312,7 +321,7 @@ void JpegFile::generateListOfSections() {
             offset, cur_marker,
             section_offset, total_section_len,
             section_offset + total_section_len, m_in_data_size);
-        throw common::UnknownException("JPEG file is invalid");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR, "JPEG file is invalid");
       }
 
       if (JPEG_MARKER_APP1 == cur_marker) {
@@ -343,20 +352,20 @@ void JpegFile::generateListOfSections() {
       if (JPEG_MARKER_SOS == cur_marker) {
         // Calculate offset of first image data which
         // is just after this SOS section
-        const size_t image_data_offset = section_offset + 2 + total_section_len;
+        const std::size_t image_data_offset = section_offset + 2 + total_section_len;
 
         // Calculate size of image data from start
         // to expected EOI at end of file.
         //
         // -2 (exclude ending EOI marker (2 bytes)
-        size_t image_size = m_in_data_size - image_data_offset - 2;
+        std::size_t image_size = m_in_data_size - image_data_offset - 2;
         LoggerW("offset:%d tag:0x%x"
             " | Image data offset:%d Estimated image size:%d",
             offset, cur_marker, image_data_offset, image_size);
 
         m_image_data = m_in_data + image_data_offset;
 
-        size_t eoi_tag_index = 0;
+        std::size_t eoi_tag_index = 0;
         bool found_eoi_tag = searchForTagInBuffer(m_in_data + image_data_offset,
             m_in_data + m_in_data_size, JPEG_MARKER_EOI, eoi_tag_index);
         if (!found_eoi_tag) {
@@ -394,12 +403,14 @@ void JpegFile::generateListOfSections() {
       }
     }
   }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 bool JpegFile::searchForTagInBuffer(const unsigned char* buffer_start,
     const unsigned char* buffer_end,
     const JpegMarker marker,
-    size_t& out_index) {
+    std::size_t& out_index) {
   LoggerD("Entered start:%p end:%p marker:0x%x",
       buffer_start, buffer_end, marker);
 
@@ -434,11 +445,8 @@ bool JpegFile::searchForTagInBuffer(const unsigned char* buffer_start,
   return false;
 }
 
-void JpegFile::setNewExifData(ExifData* new_exif_data) {
-  if (!new_exif_data) {
-    LoggerE("Trying to set NULL exif_data!");
-    throw common::UnknownException("Could not save Exif in JPEG file");
-  }
+PlatformResult JpegFile::setNewExifData(ExifData* new_exif_data) {
+  AssertMsg(new_exif_data, "Trying to set NULL exif_data!");
 
   JpegFileSectionPtr exif = getExifSection();
   if (!exif) {
@@ -447,7 +455,8 @@ void JpegFile::setNewExifData(ExifData* new_exif_data) {
       JpegFileSection* new_sec = new (std::nothrow) JpegFileSection();
       if (!new_sec) {
         LoggerE("Couldn't allocate JpegFileSection");
-        throw common::UnknownException("Memory allocation failed");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                "Memory allocation failed");
       }
       new_sec->type = JPEG_MARKER_APP1;
 
@@ -467,7 +476,7 @@ void JpegFile::setNewExifData(ExifData* new_exif_data) {
 
     if (!soi_is_present) {
       LoggerW("SOI section is missing");
-      throw common::UnknownException("JPEG file is invalid");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, "JPEG file is invalid");
     }
 
     // Insert new Exif sections just after SOI
@@ -487,6 +496,8 @@ void JpegFile::setNewExifData(ExifData* new_exif_data) {
   exif_data_unref(exif->exif_data);
   exif_data_ref(new_exif_data);
   exif->exif_data = new_exif_data;
+
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 ExifData* JpegFile::getExifData() {
@@ -499,54 +510,62 @@ ExifData* JpegFile::getExifData() {
   return exif->exif_data;
 }
 
-void JpegFile::saveToFile(const std::string& out_path) {
+PlatformResult JpegFile::saveToFile(const std::string& out_path) {
   LoggerD("Entered out_path:%s", out_path.c_str());
-  try {
-    saveToFilePriv(out_path);
-  }
-  catch (...) {
-    LoggerE("Exception occured during saveToFilePriv "
-        "original file: [%] new: [%s]",
-        m_source_file_path.c_str(),
-        out_path.c_str());
+  PlatformResult status = saveToFilePriv(out_path);
 
-    if (out_path == m_source_file_path) {
-      LoggerD("Trying to recover broken JPEG file: [%s]", out_path.c_str());
-      // We were writing to source file and since something went wrong let's
-      // restore old file - we have it in m_in_data
+  if (status)
+    return status;
 
-      FILE* outf = fopen(out_path.c_str(), "wb");
-      if (!outf) {
-        LoggerE("Couldn't open output file:"
-            " [%s] - JPEG file will not be restored!", out_path.c_str());
-      } else {
-        size_t bytes_wrote = fwrite(m_in_data, 1, m_in_data_size, outf);
-        if (bytes_wrote != m_in_data_size) {
-          LoggerE("Couldn't restore whole JPEG! "
-              "Only %d of %d bytes have been wrote!",
-              bytes_wrote, m_in_data_size);
-        }
-        if (EOF == fclose(outf)) {
-          LoggerE("Couldn't close restore output file: [%s]", out_path.c_str());
-        }
-      }
+  LoggerE("Exception occured during saveToFilePriv "
+      "original file: [%] new: [%s]",
+      m_source_file_path.c_str(),
+      out_path.c_str());
+
+  if (out_path == m_source_file_path) {
+    LoggerD("Trying to recover broken JPEG file: [%s]", out_path.c_str());
+    // We were writing to source file and since something went wrong let's
+    // restore old file - we have it in m_in_data
+
+    FILE* outf = fopen(out_path.c_str(), "wb");
+    if (!outf) {
+      LoggerE("Couldn't open output file:"
+          " [%s] - JPEG file will not be restored!", out_path.c_str());
+      return PlatformResult(ErrorCode::UNKNOWN_ERR,
+          "Couldn't open output file");
     }
 
-    throw;
+    std::size_t bytes_wrote = fwrite(m_in_data, 1, m_in_data_size, outf);
+    if (bytes_wrote != m_in_data_size) {
+      fclose(outf);
+
+      LoggerE("Couldn't restore whole JPEG! "
+          "Only %d of %d bytes have been wrote!",
+          bytes_wrote, m_in_data_size);
+      return PlatformResult(ErrorCode::UNKNOWN_ERR,
+          "Couldn't restore whole file");
+    }
+    if (EOF == fclose(outf)) {
+      LoggerE("Couldn't close restore output file: [%s]", out_path.c_str());
+    }
+
+    return PlatformResult(ErrorCode::NO_ERROR);
   }
+
+  return status;
 }
 
-void JpegFile::saveToFilePriv(const std::string& out_path) {
+PlatformResult JpegFile::saveToFilePriv(const std::string& out_path) {
   LoggerD("Entered out_path:%s", out_path.c_str());
 
   m_out_file = fopen(out_path.c_str(), "wb");
   if (!m_out_file) {
     LoggerE("Couldn't open output file: %s", out_path.c_str());
-    throw common::UnknownException("Could not write JPEG file");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not write JPEG file");
   }
 
   unsigned char tmp_buf[128];
-  size_t offset = 0;
+  std::size_t offset = 0;
 
   int section_index = 0;
   for (SectionsVec::iterator it = m_sections.begin();
@@ -558,15 +577,14 @@ void JpegFile::saveToFilePriv(const std::string& out_path) {
     LoggerD("offset:%d | Section: %d marker 0x%x",
         offset, section_index, cur_marker);
 
-    size_t bytes_to_write = 0;
-    size_t bytes_wrote = 0;
+    std::size_t bytes_to_write = 0;
+    std::size_t bytes_wrote = 0;
 
     tmp_buf[0] = 0xff;
     tmp_buf[1] = cur_marker;
     bytes_to_write += 2;
 
     bool write_section_data = false;
-
     bool write_exif_data = false;
 
     std::unique_ptr<unsigned char, CArrayDeleter> exif_output_data;
@@ -580,7 +598,8 @@ void JpegFile::saveToFilePriv(const std::string& out_path) {
         exif_data_save_data(cur->exif_data, &tmp, &exif_output_size);
         if (!tmp || 0 == exif_output_size) {
           LoggerE("Couldn't generate RAW Exif data!");
-          throw common::UnknownException("Could not save Exif in JPEG file");
+          return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                  "Could not save Exif in JPEG file");
         }
 
         LoggerD("offset:%d | Generated Exif RAW Data length:%d", offset,
@@ -592,8 +611,8 @@ void JpegFile::saveToFilePriv(const std::string& out_path) {
           LoggerE("exif_output_size:%d is greater then maximum JPEG section"
               "data block size: %d", exif_output_size,
               MAX_AVAILABLE_JPEG_SECTION_DATA_SIZE);
-          throw common::UnknownException(
-              "Exif data is to big to be saved in JPEG file");
+          return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                  "Exif data is to big to be saved in JPEG file");
         }
         section_size += exif_output_size;
         write_exif_data = true;
@@ -615,7 +634,8 @@ void JpegFile::saveToFilePriv(const std::string& out_path) {
     if (bytes_wrote != bytes_to_write) {
       LoggerE("Couldn't wrote %d bytes! Only %d bytes wrote", bytes_to_write,
           bytes_wrote);
-      throw common::UnknownException("Could not write JPEG file");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR,
+              "Could not write JPEG file");
     }
 
     if (write_section_data && cur->size > 0) {
@@ -628,7 +648,8 @@ void JpegFile::saveToFilePriv(const std::string& out_path) {
       if (bytes_wrote != bytes_to_write) {
         LoggerE("Couldn't wrote %d bytes! Only %d bytes wrote", bytes_to_write,
             bytes_wrote);
-        throw common::UnknownException("Could not write JPEG file");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                "Could not write JPEG file");
       }
     }
 
@@ -644,7 +665,8 @@ void JpegFile::saveToFilePriv(const std::string& out_path) {
       if (bytes_wrote != bytes_to_write) {
         LoggerE("Couldn't wrote %d bytes! Only %d bytes wrote", bytes_to_write,
             bytes_wrote);
-        throw common::UnknownException("Could not write JPEG file");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                "Could not write JPEG file");
       }
     }
 
@@ -659,35 +681,36 @@ void JpegFile::saveToFilePriv(const std::string& out_path) {
       if (bytes_wrote != bytes_to_write) {
         LoggerE("Couldn't wrote %d bytes! Only %d bytes wrote", bytes_to_write,
             bytes_wrote);
-        throw common::UnknownException("Could not write JPEG file");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                "Could not write JPEG file");
       }
     }
   }
 
   if (m_padding_data && m_padding_data_size > 0) {
     LoggerD("Padding data exists and contains:%d bytes saving to JPEG file");
-    const size_t bytes_wrote = fwrite(m_image_data, 1, m_padding_data_size,
+    const std::size_t bytes_wrote = fwrite(m_image_data, 1, m_padding_data_size,
         m_out_file);
 
     if (bytes_wrote != m_padding_data_size) {
       LoggerE("Couldn't wrote %d bytes! Only %d bytes wrote",
           m_padding_data_size, bytes_wrote);
-      throw common::UnknownException("Could not write JPEG file");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR,
+              "Could not write JPEG file");
     }
   }
 
   if (fclose(m_out_file) == EOF) {
     LoggerE("Couldn't close output file: %s", out_path.c_str());
-    m_out_file = NULL;
-  } else {
-    m_out_file = NULL;
-    LoggerD("Closed output file: %s wrote:%d bytes: %d",
-        out_path.c_str(), offset);
   }
+
+  m_out_file = NULL;
+
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 JpegFileSectionPtr JpegFile::getExifSection() {
-  size_t num_exif_sections = 0;
+  std::size_t num_exif_sections = 0;
   JpegFileSectionPtr first_exif_section;
 
   for (SectionsVec::iterator it = m_sections.begin();

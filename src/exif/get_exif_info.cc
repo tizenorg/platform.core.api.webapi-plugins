@@ -22,13 +22,16 @@
 #include <string>
 #include <utility>
 
-#include "common/platform_exception.h"
+#include "common/platform_result.h"
 #include "common/logger.h"
 
 #include "exif/exif_util.h"
 
 namespace extension {
 namespace exif {
+
+using common::PlatformResult;
+using common::ErrorCode;
 
 struct ExifDataHolder {
   ExifData* exif_data;
@@ -102,7 +105,7 @@ bool DecomposeExifUndefined(ExifEntry* entry, std::string& type, std::string& va
   return true;
 }
 
-void GetExifInfo::ProcessEntry(ExifEntry* entry,
+PlatformResult GetExifInfo::ProcessEntry(ExifEntry* entry,
                                ExifData* exif_data,
                                JsonObject* result_obj) {
   char buf[2000];
@@ -111,7 +114,7 @@ void GetExifInfo::ProcessEntry(ExifEntry* entry,
 
   const ExifIfd cur_ifd = exif_entry_get_ifd(entry);
   if (EXIF_IFD_INTEROPERABILITY == cur_ifd || EXIF_IFD_1 == cur_ifd) {
-    return;
+    return PlatformResult(ErrorCode::NO_ERROR);
   }
 
   std::pair<std::string, JsonValue> pair;
@@ -198,7 +201,7 @@ void GetExifInfo::ProcessEntry(ExifEntry* entry,
           entry->data) {
         const ExifByteOrder order = exif_data_get_byte_order(exif_data);
         unsigned char* read_ptr = entry->data;
-        const size_t size_per_member =
+        const std::size_t size_per_member =
             ExifUtil::getSizeOfExifFormatType(entry->format);
 
         JsonArray array = JsonArray();
@@ -215,8 +218,8 @@ void GetExifInfo::ProcessEntry(ExifEntry* entry,
         result_obj->insert(pair);
       } else {
         LoggerE("iso speed ratings: format or components count is invalid!");
-        throw common::TypeMismatchException("iso speed ratings: format or"
-            " components count is invalid!");
+        return PlatformResult(ErrorCode::TYPE_MISMATCH_ERR,
+            "iso speed ratings: format or components count is invalid!");
       }
       break;
     }
@@ -240,8 +243,8 @@ void GetExifInfo::ProcessEntry(ExifEntry* entry,
         }
       } else {
         LoggerE("exposure time: format or components count is invalid!");
-        throw common::TypeMismatchException("exposure time: format or"
-            " components count is invalid!");
+        return PlatformResult(ErrorCode::TYPE_MISMATCH_ERR,
+            "exposure time: format or components count is invalid!");
       }
       break;
     }
@@ -460,12 +463,15 @@ void GetExifInfo::ProcessEntry(ExifEntry* entry,
       break;
     }
   }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 void GetExifInfo::ContentForeachFunctionProxy(ExifEntry *entry, void *user_data) {
   ExifDataHolder* holder = static_cast<ExifDataHolder*>(user_data);
   if (!holder) {
     LoggerE("holder is NULL");
+    return;
   }
 
   if (!holder->exif_data) {
@@ -475,10 +481,8 @@ void GetExifInfo::ContentForeachFunctionProxy(ExifEntry *entry, void *user_data)
 
   JsonObject* result_obj_ptr = holder->result_obj_ptr;
 
-  try {
-    ProcessEntry(entry, holder->exif_data, result_obj_ptr);
-  }
-  catch(...) {
+  PlatformResult status = ProcessEntry(entry, holder->exif_data, result_obj_ptr);
+  if (!status) {
     LoggerE("Unsupported error while processing Exif entry.");
   }
 }
@@ -487,33 +491,35 @@ void GetExifInfo::DataForeachFunction(ExifContent *content, void *user_data) {
   exif_content_foreach_entry(content, ContentForeachFunctionProxy, user_data);
 }
 
-JsonValue GetExifInfo::LoadFromURI(const std::string& uri) {
+PlatformResult GetExifInfo::LoadFromURI(const std::string& uri,
+                                        JsonValue* result) {
+  // TODO(r.galka) it can be done on JS side
   const std::string& file_path = ExifUtil::convertUriToPath(uri);
   ExifData* ed = exif_data_new_from_file(file_path.c_str());
   if (!ed) {
     LoggerE("Error reading exif from file %s", file_path.c_str());
-    throw common::UnknownException("Error reading exif from file");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+            "Error reading exif from file");
   }
 
   LoggerD("loadFromURI_into_json exif_data_foreach_content START");
 
-  JsonValue result = JsonValue(JsonObject());
-  JsonObject& result_obj = result.get<JsonObject>();
+  JsonObject& result_obj = result->get<JsonObject>();
 
   ExifDataHolder holder;
   holder.exif_data = ed;
   holder.result_obj_ptr = &result_obj;
-  exif_data_foreach_content(ed, DataForeachFunction, static_cast<void*>(&holder));
+  exif_data_foreach_content(ed, DataForeachFunction,
+      static_cast<void *>(&holder));
 
   LoggerD("loadFromURI_into_json exif_data_foreach_content END");
 
   exif_data_unref(ed);
-  ed = NULL;
 
   // uri is not taken from jgp Exif, so we add it here
   holder.result_obj_ptr->insert(std::make_pair("uri", JsonValue(uri)));
 
-  return result;
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 }  // namespace exif

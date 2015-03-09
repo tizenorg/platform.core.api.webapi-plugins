@@ -77,17 +77,18 @@ enum ExposureProgram {
  *    denominator.
  */
 struct ExifTypeInfo {
+
   /**
    * Number of bytes used by each exif type
    */
-  static const size_t ByteSize;       // 1 byte
-  static const size_t ASCIISize;      // 1 byte (*N)
-  static const size_t ShortSize;      // 2 bytes
-  static const size_t LongSize;       // 4 bytes
-  static const size_t RationalSize;   // 8 bytes
-  static const size_t UndefinedSize;  // 1 byte (*N)
-  static const size_t SLongSize;      // 4 bytes
-  static const size_t SRationalSize;  // 8 bytes
+  static const std::size_t ByteSize;       // 1 byte
+  static const std::size_t ASCIISize;      // 1 byte (*N)
+  static const std::size_t ShortSize;      // 2 bytes
+  static const std::size_t LongSize;       // 4 bytes
+  static const std::size_t RationalSize;   // 8 bytes
+  static const std::size_t UndefinedSize;  // 1 byte (*N)
+  static const std::size_t SLongSize;      // 4 bytes
+  static const std::size_t SRationalSize;  // 8 bytes
 
   /**
    * Id values used by Exif to identify type
@@ -128,7 +129,7 @@ class ExifUtil {
   static const Rationals timeTToExifGpsTimeStamp(time_t time);
   static std::string timeTToExifGpsDateStamp(time_t time);
 
-  static size_t getSizeOfExifFormatType(ExifFormat format);
+  static std::size_t getSizeOfExifFormatType(ExifFormat format);
   static void  printExifEntryInfo(ExifEntry* entry, ExifData* exif_data);
 
   static void extractFromTimeT(const time_t time,
