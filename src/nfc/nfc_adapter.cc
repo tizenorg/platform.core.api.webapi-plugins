@@ -1198,19 +1198,18 @@ void NFCAdapter::TagTransceive(int tag_id, const picojson::value& args) {
 
 }
 
-void NFCAdapter::GetCachedMessage(picojson::object& out) {
-
+PlatformResult NFCAdapter::GetCachedMessage(picojson::object& out) {
   nfc_ndef_message_h message_handle = NULL;
   int result = nfc_manager_get_cached_message(&message_handle);
   if (NFC_ERROR_INVALID_NDEF_MESSAGE == result ||
       NFC_ERROR_NO_NDEF_MESSAGE == result) {
     NFCMessageUtils::RemoveMessageHandle(message_handle);
-
-    return;
+    return PlatformResult(ErrorCode::NO_ERROR);
   }
   if (NFC_ERROR_NONE != result) {
     LOGE("Failed to get cached message: %d", result);
-    NFCUtil::throwNFCException(result, "Failed to get cached message");
+    NFCMessageUtils::RemoveMessageHandle(message_handle);
+    return NFCUtil::CodeToResult(result, "Failed to get cached message");
   }
   unsigned char *raw_data = NULL;
   unsigned int size;
@@ -1218,11 +1217,17 @@ void NFCAdapter::GetCachedMessage(picojson::object& out) {
                                                      &raw_data, &size)) {
     LOGE("Unknown error while getting message.");
     free(raw_data);
-    return;
+    NFCMessageUtils::RemoveMessageHandle(message_handle);
+    return PlatformResult(ErrorCode::NO_ERROR);
   }
-  NFCMessageUtils::ReportNdefMessageFromData(raw_data, size, out);
-  NFCMessageUtils::RemoveMessageHandle(message_handle);
+  PlatformResult ret = NFCMessageUtils::ReportNdefMessageFromData(raw_data, size, out);
   free(raw_data);
+  if (ret.IsError()) {
+    NFCMessageUtils::RemoveMessageHandle(message_handle);
+    return ret;
+  }
+  NFCMessageUtils::RemoveMessageHandle(message_handle);
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 static void peerSentCallback(nfc_error_e result, void *user_data) {
@@ -1243,6 +1248,7 @@ static void peerSentCallback(nfc_error_e result, void *user_data) {
 
   delete callbackId;
   callbackId = NULL;
+
 }
 
 static gboolean sendNDEFErrorCB(void * user_data) {

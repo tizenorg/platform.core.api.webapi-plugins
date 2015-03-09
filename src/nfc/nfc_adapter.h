@@ -46,7 +46,7 @@ class NFCAdapter {
   common::PlatformResult RemoveTransactionEventListener(const picojson::value& args);
   common::PlatformResult AddActiveSecureElementChangeListener();
   common::PlatformResult RemoveActiveSecureElementChangeListener();
-  void GetCachedMessage(picojson::object& out);
+  common::PlatformResult GetCachedMessage(picojson::object& out);
 
   void SetPeerHandle(nfc_p2p_target_h handle);
   nfc_p2p_target_h GetPeerHandle();
