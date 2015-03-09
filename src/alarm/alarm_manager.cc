@@ -86,7 +86,7 @@ void AlarmManager::Add(const picojson::value& args, picojson::object& out) {
     app_control_destroy(app_control);
   };
 
-  if (args.contains("appControl")) {
+  if (args.contains("appControl") && args.get("appControl").is<picojson::object>()) {
     PlatformResult result = util::AppControlToService(
         args.get("appControl").get<picojson::object>(), &app_control);
     if (!result) {
@@ -108,7 +108,7 @@ void AlarmManager::Add(const picojson::value& args, picojson::object& out) {
     const auto it_delay = alarm.find("delay");
     const auto it_period = alarm.find("period");
 
-    if (alarm.end() == it_delay) {
+    if (alarm.end() == it_delay || alarm.end() == it_period || !it_delay->second.is<double>()) {
       LoggerE("Invalid parameter passed.");
       ReportError(PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid parameter passed."), &out);
       return;
@@ -116,7 +116,7 @@ void AlarmManager::Add(const picojson::value& args, picojson::object& out) {
     int delay = static_cast<int>(it_delay->second.get<double>());
 
     int period = 0;
-    if (alarm.end() != it_period) {
+    if (it_period->second.is<double>()) {
       period = static_cast<int>(it_period->second.get<double>());
     }
 
@@ -219,13 +219,14 @@ void AlarmManager::Remove(const picojson::value& args, picojson::object& out) {
   util::CheckAccess(kPrivilegeAlarm);
 
   int id = 0;
-  if (args.contains("id")) {
+
+  if (args.contains("id") && args.get("id").is<double>()) {
     id = static_cast<int>(args.get("id").get<double>());
   }
 
   if (id <= 0) {
       LoggerE("id is wrong: %d", id);
-      ReportError(PlatformResult(ErrorCode::NOT_FOUND_ERR, "Invalid id."), &out);
+      ReportError(PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid id."), &out);
       return;
   }
 
@@ -259,7 +260,7 @@ PlatformResult AlarmManager::GetAlarm(int id, picojson::object& obj) {
 
   if (id <= 0) {
     LoggerE("id is wrong: %d", id);
-    return PlatformResult(ErrorCode::NOT_FOUND_ERR, "Invalid id.");
+    return PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid id.");
   }
 
   int ret = ALARM_ERROR_NONE;
