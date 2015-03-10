@@ -210,7 +210,7 @@ void AlarmManager::Add(const picojson::value& args, picojson::object& out) {
   picojson::value result = picojson::value(picojson::object());
   picojson::object& result_obj = result.get<picojson::object>();
 
-  result_obj.insert(std::make_pair("alarm_id", picojson::value(std::to_string(alarm_id))));
+  result_obj.insert(std::make_pair("id", picojson::value(std::to_string(alarm_id))));
   ReportSuccess(result, out);
 }
 

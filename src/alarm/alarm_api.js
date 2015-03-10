@@ -17,10 +17,26 @@ var AlarmManager = function () {
     });
 };
 
-//internal /////////////////////////////////////////////////////////////
-//this function should be kept in internal scope
-function InternalData(id) {
-    this.id = id;
+function InternalData_(data) {
+    if (!(this instanceof InternalData_)) {
+        return new InternalData_(data);
+    }
+
+    for(var key in data) {
+        if (data.hasOwnProperty(key)) {
+            this[key] = data[key];
+        }
+    }
+}
+
+function UpdateInternalData_(internal, data) {
+    var values = InternalData_(data);
+
+    for(var key in data) {
+        if (values.hasOwnProperty(key) && internal.hasOwnProperty(key)) {
+            internal[key] = values;
+        }
+    }
 }
 
 //class AlarmManager ////////////////////////////////////////////////////
@@ -66,11 +82,7 @@ AlarmManager.prototype.add = function () {
     if (native.isFailure(result)) {
         throw native.getErrorObject(result);
     } else {
-        Object.defineProperties(args.alarm, {
-            id: {
-                value: Converter.toString(native.getResultObject(result).alarm_id),
-                writable: false, enumerable: true, configurable: true}
-        });
+        UpdateInternalData_(args.alarm, native.getResultObject(result));
     }
 };
 
@@ -112,14 +124,12 @@ AlarmManager.prototype.get = function () {
     } else {
         result = native.getResultObject(result);
         if ('AlarmRelative' === result.type) {
-            return new tizen.AlarmRelative(result.delay, result.period,
-                    new InternalData(result.id));
+            return new tizen.AlarmRelative(result.delay, result.period, InternalData_(result));
         } else {
             var date = new Date(result.year, result.month, result.day,
                     result.hour, result.min, result.sec);
 
-            return new tizen.AlarmAbsolute(date, result.second,
-                    new InternalData(result.id));
+            return new tizen.AlarmAbsolute(date, result.second, InternalData_(result));
         }
     }
 };
@@ -134,13 +144,11 @@ AlarmManager.prototype.getAll = function () {
         var md = [];
         data.forEach(function (i) {
             if ('AlarmRelative'=== i.type) {
-                md.push(new tizen.AlarmRelative(i.delay, i.period,
-                        new InternalData(i.id)));
+                md.push(new tizen.AlarmRelative(i.delay, i.period, InternalData_(i)));
             } else {
                 var date = new Date(i.year, i.month, i.day,
                         i.hour, i.min, i.sec);
-                md.push(new tizen.AlarmAbsolute(date, i.second,
-                        new InternalData(i.id)));
+                md.push(new tizen.AlarmAbsolute(date, i.second, InternalData_(i)));
             }
         });
         return md;
@@ -151,12 +159,24 @@ AlarmManager.prototype.getAll = function () {
 function Alarm(id) {
     var m_id = null;
 
-    if (!T.isNullOrUndefined(id)) {
-        m_id = Converter.toString(id);
+    if (!T.isNullOrUndefined(id) && id instanceof InternalData_) {
+        m_id = id.id;
     }
 
+    var _internal = {
+        'id' : m_id
+    };
+
     Object.defineProperties(this, {
-        id:    { value: m_id, writable: false, enumerable: true, configurable: true}
+        id: {
+            get: function () {return _internal.id;},
+            set: function (value) {
+                if (value instanceof InternalData_) {
+                    _internal.id = value.id;
+                }
+            },
+            enumerable: true
+        }
     });
 }
 //class AlarmRelative //////////////////////////////////////////////////
@@ -171,9 +191,8 @@ tizen.AlarmRelative = function(delay, period, internal) {
     if (arguments.length >= 2) {
         m_period = Converter.toLong(period, true);
     }
-    if (internal instanceof InternalData) {
-        Alarm.call(this, internal.id);
-    }
+
+    Alarm.call(this, internal);
 
     Object.defineProperties(this, {
         delay:     { value: m_delay, writable: false, enumerable: true},
@@ -233,9 +252,7 @@ tizen.AlarmAbsolute = function(date, second, internal) {
             }
         }
 
-        if (internal instanceof InternalData) {
-            Alarm.call(this, internal.id);
-        }
+        Alarm.call(this, internal);
     } else {
         m_period = undefined;
     }
