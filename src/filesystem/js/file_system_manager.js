@@ -62,14 +62,7 @@ FileSystemManager.prototype.resolve = function(location, onsuccess, onerror, mod
     }
 
     var aStatObj = native_.getResultObject(result);
-
-    var _result;
-    var _path = (args.location.indexOf('file://') === 0) ?
-            commonFS_.toVirtualPath(args.location) : args.location;
-    if (_path[_path.length - 1] === '/') {
-      _path = _path.substr(0, _path.length - 1);
-    }
-    _result = commonFS_.getFileInfo(_path, aStatObj, false, args.mode);
+    var _result = commonFS_.getFileInfo(aStatObj, false, args.mode);
     if (_result.readOnly && args.mode !== 'r') {
       throw new tizen.WebAPIException(tizen.WebAPIException.IO_ERR);
     } else {
