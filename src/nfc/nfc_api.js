@@ -280,7 +280,7 @@ NFCAdapter.prototype.setTagListener = function() {
     }
   ]);
 
-  if (!type_isNullOrUndefined(args.tagType)) {
+  if (!type_.isNullOrUndefined(args.tagType)) {
     for (var i = 0; i < args.tagType.length; i++) {
       if (NFCTagType[args.tagType[i]] === undefined) {
         throw new tizen.WebAPIException(
@@ -297,7 +297,7 @@ NFCAdapter.prototype.setTagListener = function() {
       tagObject = new NFCTag(message.id);
 
       // If filter is set for listener but tag type is not searched one
-      if (!type_isNullOrUndefined(args.tagType) &&
+      if (!type_.isNullOrUndefined(args.tagType) &&
           args.tagType.indexOf(tagObject.type) < 0) {
         return;
       }
@@ -377,8 +377,8 @@ NFCAdapter.prototype.addCardEmulationModeChangeListener = function() {
     }
   ]);
 
-  if (type_isEmptyObject(cardEmulationModeListener.listeners) &&
-      type_isEmptyObject(activeSecureElementChangeListener.listeners)) {
+  if (type_.isEmptyObject(cardEmulationModeListener.listeners) &&
+      type_.isEmptyObject(activeSecureElementChangeListener.listeners)) {
     var result = native_.callSync(
         'NFCAdapter_addCardEmulationModeChangeListener');
     if (native_.isFailure(result)) {
@@ -399,8 +399,8 @@ NFCAdapter.prototype.removeCardEmulationModeChangeListener = function() {
   ]);
   cardEmulationModeListener.removeListener(args.listenerId);
 
-  if (type_isEmptyObject(cardEmulationModeListener.listeners) &&
-      type_isEmptyObject(activeSecureElementChangeListener.listeners)) {
+  if (type_.isEmptyObject(cardEmulationModeListener.listeners) &&
+      type_.isEmptyObject(activeSecureElementChangeListener.listeners)) {
     native_.callSync('NFCAdapter_removeCardEmulationModeChangeListener');
   }
 };
