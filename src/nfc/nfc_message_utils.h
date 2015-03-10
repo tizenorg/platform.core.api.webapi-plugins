@@ -24,21 +24,22 @@ class NFCMessageUtils
   static common::PlatformResult ToNdefRecords(const nfc_ndef_message_h message, picojson::array& array);
   static common::PlatformResult ReportNdefMessageFromData(unsigned char* data, unsigned long size,
                                         picojson::object& out);
-  static void ReportNDEFMessage(const picojson::value& args, picojson::object& out);
-  static nfc_ndef_message_h NDEFMessageToStruct(const picojson::array& records_array,
-                                                const int size);
-  static void NDEFMessageToByte(const picojson::value& args, picojson::object& out);
+  static common::PlatformResult ReportNDEFMessage(const picojson::value& args, picojson::object& out);
+  static common::PlatformResult NDEFMessageToStruct(const picojson::array& records_array,
+                                                const int size,
+                                                nfc_ndef_message_h *message);
+  static common::PlatformResult NDEFMessageToByte(const picojson::value& args, picojson::object& out);
   static common::PlatformResult ConstructNdefRecordFromRecordHandle(nfc_ndef_record_h record_handle,
                                                   picojson::object& out);
-  static void ReportNdefRecordFromMessage(nfc_ndef_message_h message_handle,
+  static common::PlatformResult ReportNdefRecordFromMessage(nfc_ndef_message_h message_handle,
                                           const int index, picojson::object& out);
-  static void ReportNDEFRecord(const picojson::value& args, picojson::object& out);
+  static common::PlatformResult ReportNDEFRecord(const picojson::value& args, picojson::object& out);
   static common::PlatformResult ReportNdefRecordTextFromMessage(nfc_ndef_message_h message_handle,
                                               const int index, picojson::object& out);
-  static void ReportNDEFRecordText(const picojson::value& args, picojson::object& out);
+  static common::PlatformResult ReportNDEFRecordText(const picojson::value& args, picojson::object& out);
   static common::PlatformResult ReportNdefRecordURIFromMessage(nfc_ndef_message_h message_handle,
                                              const int index, picojson::object& out);
-  static void ReportNDEFRecordURI(const picojson::value& args, picojson::object& out);
+  static common::PlatformResult ReportNDEFRecordURI(const picojson::value& args, picojson::object& out);
   static common::PlatformResult ReportNdefRecordMediaFromMessage(nfc_ndef_message_h message_handle,
                                                const int index, picojson::object& out);
   static common::PlatformResult ReportNDEFRecordMedia(const picojson::value& args, picojson::object& out);

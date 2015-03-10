@@ -282,7 +282,7 @@ PlatformResult NFCMessageUtils::ReportNdefMessageFromData(unsigned char* data, u
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void NFCMessageUtils::ReportNDEFMessage(const picojson::value& args, picojson::object& out){
+PlatformResult NFCMessageUtils::ReportNDEFMessage(const picojson::value& args, picojson::object& out){
   LoggerD("Entered");
   const picojson::array& raw_data =
       FromJson<picojson::array>(args.get<picojson::object>(), "rawData");
@@ -294,22 +294,20 @@ void NFCMessageUtils::ReportNDEFMessage(const picojson::value& args, picojson::o
     data[i] = static_cast<unsigned char>(raw_data[i].get<double>());
   }
 
-  ReportNdefMessageFromData(data.get(), size, out);
+  return ReportNdefMessageFromData(data.get(), size, out);
 }
 
-static nfc_ndef_record_h NdefRecordGetHandle(picojson::value& record)
+static PlatformResult NdefRecordGetHandle(picojson::value& record,
+                            nfc_ndef_record_h *record_handle)
 {
   LoggerD("Entered");
   if (!record.is<picojson::object>() || !record.contains("tnf") || !record.contains("type") ||
       !record.contains("id") || !record.contains("payload")) {
-    throw TypeMismatchException("Record is empty - could not create platform handle");
+    return PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, "Record is empty");
   }
-
   const picojson::object& record_obj = record.get<picojson::object>();
-
   short tnf_from_json = static_cast<short>(record.get("tnf").get<double>());
   nfc_record_tnf_e tnf = static_cast<nfc_record_tnf_e>(tnf_from_json);
-
   const picojson::array& type_data =
       FromJson<picojson::array>(record_obj, "type");
   int type_size = type_data.size();
@@ -317,7 +315,6 @@ static nfc_ndef_record_h NdefRecordGetHandle(picojson::value& record)
   for (size_t i = 0; i < type_size; i++) {
     type[i] = static_cast<unsigned char>(type_data[i].get<double>());
   }
-
   const picojson::array& id_data =
       FromJson<picojson::array>(record_obj, "id");
   int id_size = id_data.size();
@@ -325,7 +322,6 @@ static nfc_ndef_record_h NdefRecordGetHandle(picojson::value& record)
   for (size_t i = 0; i < id_size; i++) {
     id[i] = static_cast<unsigned char>(id_data[i].get<double>());
   }
-
   const picojson::array& payload_data =
       FromJson<picojson::array>(record_obj, "payload");
   int payload_size = payload_data.size();
@@ -333,64 +329,69 @@ static nfc_ndef_record_h NdefRecordGetHandle(picojson::value& record)
   for (size_t i = 0; i < payload_size; i++) {
     payload[i] = static_cast<unsigned char>(payload_data[i].get<double>());
   }
-
   if ((tnf_from_json < TNF_MIN) || (tnf_from_json > TNF_MAX)) {
     LoggerE("Not supported tnf");
-    throw TypeMismatchException("Type mismatch");
+    return PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, "Type mismatch");
   }
-
   const int BYTE_ARRAY_MAX = 255;
-
-  nfc_ndef_record_h record_handle = NULL;
-  int result = nfc_ndef_record_create(&record_handle,
+  nfc_ndef_record_h ndef_record_handle = NULL;
+  int result = nfc_ndef_record_create(&ndef_record_handle,
                                       tnf, type.get(), type_size > BYTE_ARRAY_MAX ? BYTE_ARRAY_MAX : type_size,
                                           id.get(), id_size > BYTE_ARRAY_MAX ? BYTE_ARRAY_MAX : id_size,
                                               payload.get(), payload_size);
-
   if (NFC_ERROR_NONE != result) {
-    removeRecordHandle(record_handle);
+    removeRecordHandle(ndef_record_handle);
     LoggerE("Can't create Ndef Record: %d, %s", result,
             NFCUtil::getNFCErrorMessage(result).c_str());
-    NFCUtil::throwNFCException(result, "Can't create Ndef Record");
+    return NFCUtil::CodeToResult(result, "Can't create Ndef Record");
   }
-  return record_handle;
+  *record_handle = ndef_record_handle;
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-nfc_ndef_message_h NFCMessageUtils::NDEFMessageToStruct(const picojson::array& records_array,
-                                                        const int size)
+PlatformResult NFCMessageUtils::NDEFMessageToStruct(const picojson::array& records_array,
+                                                        const int size,
+                                                        nfc_ndef_message_h *message)
 {
   LoggerD("Entered");
   if (!size) {
     LoggerE("No records in message");
-    return NULL;
+    return PlatformResult(ErrorCode::NO_ERROR);
   }
 
-  nfc_ndef_message_h message = NULL;
-  int result = nfc_ndef_message_create(&message);
+  nfc_ndef_message_h ndef_message;
+  int result = nfc_ndef_message_create(&ndef_message);
 
   if (NFC_ERROR_NONE != result) {
-    RemoveMessageHandle(message);
+    RemoveMessageHandle(ndef_message);
     LoggerE("Can't create Ndef Message: %d, %s", result,
             NFCUtil::getNFCErrorMessage(result).c_str());
-    NFCUtil::throwNFCException(result, "Can't create Ndef Message");
+    return NFCUtil::CodeToResult(result, "Can't create Ndef Message");
   }
 
   for (picojson::value record : records_array) {
-    nfc_ndef_record_h record_handle = NdefRecordGetHandle(record);
+    nfc_ndef_record_h record_handle;
+    PlatformResult ret = NdefRecordGetHandle(record, &record_handle);
 
-    result = nfc_ndef_message_append_record(message, record_handle);
+    if (ret.IsError()) {
+      RemoveMessageHandle(ndef_message);
+      return ret;
+    }
+
+    result = nfc_ndef_message_append_record(ndef_message, record_handle);
     if (NFC_ERROR_NONE != result) {
       LoggerE("record can't be inserted: %d, %s", result,
               NFCUtil::getNFCErrorMessage(result).c_str());
       removeRecordHandle(record_handle);
-      RemoveMessageHandle(message);
-      NFCUtil::throwNFCException(result, "Invalid NDEF Message");
+      RemoveMessageHandle(ndef_message);
+      return NFCUtil::CodeToResult(result, "Invalid NDEF Message");
     }
   }
-  return message;
+  *message = ndef_message;
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void NFCMessageUtils::NDEFMessageToByte(const picojson::value& args, picojson::object& out){
+PlatformResult NFCMessageUtils::NDEFMessageToByte(const picojson::value& args, picojson::object& out){
   LoggerD("Entered");
   //input
   const picojson::array& records_array =
@@ -401,10 +402,17 @@ void NFCMessageUtils::NDEFMessageToByte(const picojson::value& args, picojson::o
   picojson::value byte_array = picojson::value(picojson::array());
   picojson::array& byte_array_obj = byte_array.get<picojson::array>();
 
-  nfc_ndef_message_h message = NDEFMessageToStruct(records_array, size);
+  nfc_ndef_message_h message = NULL;
+
+  PlatformResult ret = NDEFMessageToStruct(records_array, size, &message);
+
+  if (ret.IsError()) {
+    return ret;
+  }
+
   if (!message) {
     out.insert(std::make_pair("bytes", picojson::value(byte_array)));
-    return;
+    return PlatformResult(ErrorCode::NO_ERROR);
   }
 
   unsigned char *raw_data = NULL;
@@ -418,7 +426,7 @@ void NFCMessageUtils::NDEFMessageToByte(const picojson::value& args, picojson::o
   if (NFC_ERROR_NONE != result) {
     LoggerE("Can't get serial bytes of NDEF message: %d, %s", result,
             NFCUtil::getNFCErrorMessage(result).c_str());
-    NFCUtil::throwNFCException(result, "Can't get serial bytes of NDEF message");
+    return NFCUtil::CodeToResult(result, "Can't get serial bytes of NDEF message");
   }
 
   for (size_t i = 0 ; i < raw_data_size; i++) {
@@ -428,6 +436,7 @@ void NFCMessageUtils::NDEFMessageToByte(const picojson::value& args, picojson::o
     free(raw_data);
   }
   out.insert(std::make_pair("bytes", picojson::value(byte_array)));
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 /* -------------------------------RECORD FUNCTIONS------------------------------------ */
@@ -490,7 +499,7 @@ PlatformResult NFCMessageUtils::ConstructNdefRecordFromRecordHandle(nfc_ndef_rec
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void NFCMessageUtils::ReportNdefRecordFromMessage(nfc_ndef_message_h message_handle,
+PlatformResult NFCMessageUtils::ReportNdefRecordFromMessage(nfc_ndef_message_h message_handle,
                                                   const int index, picojson::object& out)
 {
   LoggerD("Entered");
@@ -500,13 +509,13 @@ void NFCMessageUtils::ReportNdefRecordFromMessage(nfc_ndef_message_h message_han
     LoggerE("Can't get NdefRecord: %d, %s", result,
             NFCUtil::getNFCErrorMessage(result).c_str());
     RemoveMessageHandle(message_handle);
-    NFCUtil::throwNFCException(result, "Can't get NdefRecord");
+    return NFCUtil::CodeToResult(result, "Can't get NdefRecord");
   }
 
-  ConstructNdefRecordFromRecordHandle(record_handle, out);
+  return ConstructNdefRecordFromRecordHandle(record_handle, out);
 }
 
-void NFCMessageUtils::ReportNDEFRecord(const picojson::value& args, picojson::object& out){
+PlatformResult NFCMessageUtils::ReportNDEFRecord(const picojson::value& args, picojson::object& out){
   LoggerD("Entered");
   const picojson::array& raw_data =
       FromJson<picojson::array>(args.get<picojson::object>(), "rawData");
@@ -523,7 +532,7 @@ void NFCMessageUtils::ReportNDEFRecord(const picojson::value& args, picojson::ob
   if (NFC_ERROR_NONE != result) {
     LoggerE("Can't create NdefMessage from data: %d, %s", result,
             NFCUtil::getNFCErrorMessage(result).c_str());
-    NFCUtil::throwNFCException(result, "Can't create NdefMessage from data");
+    return NFCUtil::CodeToResult(result, "Can't create NdefMessage from data");
   }
 
   int count;
@@ -532,12 +541,19 @@ void NFCMessageUtils::ReportNDEFRecord(const picojson::value& args, picojson::ob
     LoggerE("Can't get record count: %d, %s", result,
             NFCUtil::getNFCErrorMessage(result).c_str());
     RemoveMessageHandle(message_handle);
-    NFCUtil::throwNFCException(result, "Can't get record count");
+    return NFCUtil::CodeToResult(result, "Can't get record count");
   }
 
-  ReportNdefRecordFromMessage(message_handle, 0, out);
+  PlatformResult ret = ReportNdefRecordFromMessage(message_handle, 0, out);
 
   RemoveMessageHandle(message_handle);
+
+  if (ret.IsError()) {
+    return ret;
+  }
+
+
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 /* -------------------------------RECORD TEXT FUNCTIONS------------------------------------ */
@@ -581,8 +597,9 @@ static PlatformResult getLanguageCodeFromHandle(nfc_ndef_record_h handle,
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-static nfc_encode_type_e getEncodingFromHandle(nfc_ndef_record_h handle,
-                                               nfc_ndef_message_h message_handle)
+static PlatformResult getEncodingFromHandle(nfc_ndef_record_h handle,
+                                               nfc_ndef_message_h message_handle,
+                                               nfc_encode_type_e *encoding_type)
 {
   nfc_encode_type_e encoding;
   int result = nfc_ndef_record_get_encode_type(handle, &encoding);
@@ -590,10 +607,11 @@ static nfc_encode_type_e getEncodingFromHandle(nfc_ndef_record_h handle,
     LoggerE("Can't get record's encoding: %d, %s", result,
             NFCUtil::getNFCErrorMessage(result).c_str());
     NFCMessageUtils::RemoveMessageHandle(message_handle);
-    NFCUtil::throwNFCException(result, "Can't get record's encoding");
+    return NFCUtil::CodeToResult(result, "Can't get record's encoding");
   }
 
-  return encoding;
+  *encoding_type = encoding;
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 static PlatformResult ReportNDEFRecordTextFromText(const std::string& text, const std::string& language_code,
@@ -607,7 +625,7 @@ static PlatformResult ReportNDEFRecordTextFromText(const std::string& text, cons
   if (NFC_ERROR_NONE != result) {
     LoggerE("Unknown error while getting text record: %d, %s", result,
             NFCUtil::getNFCErrorMessage(result).c_str());
-    NFCUtil::throwNFCException(result,"Can't create text record");
+    return NFCUtil::CodeToResult(result,"Can't create text record");
   }
 
   short _tnf;
@@ -652,11 +670,15 @@ PlatformResult NFCMessageUtils::ReportNdefRecordTextFromMessage(nfc_ndef_message
   }
 
 
-  nfc_encode_type_e encoding = getEncodingFromHandle(record_handle, message_handle);
+  nfc_encode_type_e encoding;
+  PlatformResult ret = getEncodingFromHandle(record_handle, message_handle, &encoding);
+  if (ret.IsError()) {
+    return ret;
+  }
   std::string encoding_str = convertEncodingToString(encoding);
 
   std::string text;
-  PlatformResult ret = getTextFromHandle(record_handle, message_handle, &text);
+  ret = getTextFromHandle(record_handle, message_handle, &text);
   if (ret.IsError()) {
     return ret;
   }
@@ -666,7 +688,11 @@ PlatformResult NFCMessageUtils::ReportNdefRecordTextFromMessage(nfc_ndef_message
     return ret;
   }
 
-  ReportNDEFRecordTextFromText(text, language_code, encoding_str, out);
+  ret = ReportNDEFRecordTextFromText(text, language_code, encoding_str, out);
+  if (ret.IsError()) {
+    return ret;
+  }
+
   out.insert(std::make_pair("text", picojson::value(text)));
   out.insert(std::make_pair("languageCode", picojson::value(language_code)));
   out.insert(std::make_pair("encoding", picojson::value(encoding_str)));
@@ -674,13 +700,13 @@ PlatformResult NFCMessageUtils::ReportNdefRecordTextFromMessage(nfc_ndef_message
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void NFCMessageUtils::ReportNDEFRecordText(const picojson::value& args, picojson::object& out){
+PlatformResult NFCMessageUtils::ReportNDEFRecordText(const picojson::value& args, picojson::object& out){
   LoggerD("Entered");
   const std::string& text = args.get("text").get<std::string>();
   const std::string& language_code = args.get("languageCode").get<std::string>();
   const std::string& encoding_str = args.get("encoding").get<std::string>();
 
-  ReportNDEFRecordTextFromText(text, language_code, encoding_str, out);
+  return ReportNDEFRecordTextFromText(text, language_code, encoding_str, out);
 }
 
 /* -------------------------------RECORD URI FUNCTIONS------------------------------------ */
@@ -712,7 +738,7 @@ static PlatformResult ReportNDEFRecordURIFromURI(const std::string& uri, picojso
   if(NFC_ERROR_NONE != result) {
     LoggerE("Unknown error while creating NdefRecordURI: %d, %s", result,
             NFCUtil::getNFCErrorMessage(result).c_str());
-    NFCUtil::throwNFCException(result, "Unknown error while creating NdefRecordURI");
+    return NFCUtil::CodeToResult(result, "Unknown error while creating NdefRecordURI");
   }
 
   short _tnf;
@@ -769,11 +795,11 @@ PlatformResult NFCMessageUtils::ReportNdefRecordURIFromMessage(nfc_ndef_message_
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void NFCMessageUtils::ReportNDEFRecordURI(const picojson::value& args, picojson::object& out){
+PlatformResult NFCMessageUtils::ReportNDEFRecordURI(const picojson::value& args, picojson::object& out){
   LoggerD("Entered");
 
   const std::string& uri = args.get("uri").get<std::string>();
-  ReportNDEFRecordURIFromURI(uri, out);
+  return ReportNDEFRecordURIFromURI(uri, out);
 }
 
 /* -------------------------------RECORD MEDIA FUNCTIONS------------------------------------ */
@@ -787,7 +813,7 @@ static PlatformResult getMimeTypeFromHandle(nfc_ndef_record_h handle,
     LoggerE("Can't get record's mime_type: %d, %s", result,
             NFCUtil::getNFCErrorMessage(result).c_str());
     NFCMessageUtils::RemoveMessageHandle(message_handle);
-    NFCUtil::CodeToResult(result, "Can't get record's mime_type");
+    return NFCUtil::CodeToResult(result, "Can't get record's mime_type");
   }
 
   std::string mime_string(mime_type);

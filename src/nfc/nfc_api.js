@@ -937,8 +937,7 @@ tizen.NDEFMessage.prototype.toByte = function() {
       }
       );
   if (native_.isFailure(result)) {
-    throw new tizen.WebAPIException(0, result.error.message,
-        result.error.name);
+    throw native_.getErrorObject(result);
   }
 
   return toByteArray(result.result.bytes);

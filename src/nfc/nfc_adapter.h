@@ -67,12 +67,11 @@ class NFCAdapter {
   common::PlatformResult TagNDEFSizeGetter(int tag_id, unsigned int *size);
   common::PlatformResult TagPropertiesGetter(int tag_id, NFCTagPropertiesT *properties);
   common::PlatformResult TagIsConnectedGetter(int tag_id, bool *state);
-  // TODO remove after clean code from try/catch
-  bool TagIsConnectedGetter(int tag_id);
+
   // methods
   common::PlatformResult TagReadNDEF(int tag_id, const picojson::value& args);
-  void TagWriteNDEF(int tag_id, const picojson::value& args);
-  void TagTransceive(int tag_id, const picojson::value& args);
+  common::PlatformResult TagWriteNDEF(int tag_id, const picojson::value& args);
+  common::PlatformResult TagTransceive(int tag_id, const picojson::value& args);
   // listeners
   common::PlatformResult SetTagListener();
   void UnsetTagListener();

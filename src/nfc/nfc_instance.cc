@@ -61,7 +61,6 @@ NFCInstance::NFCInstance() {
   REGISTER_SYNC("NDEFMessage_toByte", ToByte);
   //Message related methods
   REGISTER_SYNC("NDEFMessage_constructor", NDEFMessageContructor);
-  REGISTER_SYNC("NDEFMessage_toByte", ToByte);
   REGISTER_SYNC("NDEFRecord_constructor", NDEFRecordContructor);
   REGISTER_SYNC("NDEFRecordText_constructor", NDEFRecordTextContructor);
   REGISTER_SYNC("NDEFRecordURI_constructor", NDEFRecordURIContructor);
@@ -356,7 +355,7 @@ void NFCInstance::ReadNDEF(
   int tag_id = static_cast<int>(args.get("id").get<double>());
   LoggerD("Tag id: %d", tag_id);
 
-  PlatformResult result =NFCAdapter::GetInstance()->TagReadNDEF(tag_id, args);
+  PlatformResult result = NFCAdapter::GetInstance()->TagReadNDEF(tag_id, args);
   if (result.IsSuccess()) {
     ReportSuccess(out);
   } else {
@@ -367,15 +366,16 @@ void NFCInstance::ReadNDEF(
 void NFCInstance::WriteNDEF(
     const picojson::value& args, picojson::object& out) {
 
+  CHECK_EXIST(args, "id", out);
+
   int tag_id = static_cast<int>(args.get("id").get<double>());
   LoggerD("Tag id: %d", tag_id);
 
-  try {
-    NFCAdapter::GetInstance()->TagWriteNDEF(tag_id, args);
+  PlatformResult result = NFCAdapter::GetInstance()->TagWriteNDEF(tag_id, args);
+  if (result.IsSuccess()) {
     ReportSuccess(out);
-  }
-  catch(const common::PlatformException& ex) {
-    ReportError(ex, out);
+  } else {
+    ReportError(result, &out);
   }
 }
 
@@ -383,15 +383,15 @@ void NFCInstance::Transceive(
     const picojson::value& args, picojson::object& out) {
 
   LoggerD("Entered");
+  CHECK_EXIST(args, "id", out);
   int tag_id = static_cast<int>(args.get("id").get<double>());
   LoggerD("Tag id: %d", tag_id);
 
-  try {
-    NFCAdapter::GetInstance()->TagTransceive(tag_id, args);
+  PlatformResult result = NFCAdapter::GetInstance()->TagTransceive(tag_id, args);
+  if (result.IsSuccess()) {
     ReportSuccess(out);
-  }
-  catch(const common::PlatformException& ex) {
-    ReportError(ex, out);
+  } else {
+    ReportError(result, &out);
   }
 }
 
@@ -443,80 +443,83 @@ void NFCInstance::SendNDEF(
 void NFCInstance::ToByte(
     const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
-  try {
-    picojson::value result = picojson::value(picojson::object());
-    picojson::object& result_obj = result.get<picojson::object>();
-    NFCMessageUtils::NDEFMessageToByte(args, result_obj);
+
+  picojson::value result = picojson::value(picojson::object());
+  picojson::object& result_obj = result.get<picojson::object>();
+  PlatformResult ret = NFCMessageUtils::NDEFMessageToByte(args, result_obj);
+
+  if (ret.IsSuccess()) {
     ReportSuccess(result, out);
-  }
-  catch(const common::PlatformException& ex) {
-    ReportError(ex, out);
+  } else {
+    ReportError(ret, &out);
   }
 }
 
 //Message related methods
 void NFCInstance::NDEFMessageContructor(const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
-  try {
-    picojson::value result = picojson::value(picojson::object());
-    picojson::object& result_obj = result.get<picojson::object>();
-    NFCMessageUtils::ReportNDEFMessage(args, result_obj);
+  picojson::value result = picojson::value(picojson::object());
+  picojson::object& result_obj = result.get<picojson::object>();
+  PlatformResult ret = NFCMessageUtils::ReportNDEFMessage(args, result_obj);
+
+  if (ret.IsSuccess()) {
     ReportSuccess(result, out);
-  }
-  catch(const common::PlatformException& ex) {
-    ReportError(ex, out);
+  } else {
+    ReportError(ret, &out);
   }
 }
 
 void NFCInstance::NDEFRecordContructor(const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
-  try {
-    picojson::value result = picojson::value(picojson::object());
-    picojson::object& result_obj = result.get<picojson::object>();
-    NFCMessageUtils::ReportNDEFRecord(args, result_obj);
+  picojson::value result = picojson::value(picojson::object());
+  picojson::object& result_obj = result.get<picojson::object>();
+  PlatformResult ret = NFCMessageUtils::ReportNDEFRecord(args, result_obj);
+
+  if (ret.IsSuccess()) {
     ReportSuccess(result, out);
-  }
-  catch(const common::PlatformException& ex) {
-    ReportError(ex, out);
+  } else {
+    ReportError(ret, &out);
   }
 }
 
 void NFCInstance::NDEFRecordTextContructor(const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
-  try {
-    picojson::value result = picojson::value(picojson::object());
-    picojson::object& result_obj = result.get<picojson::object>();
-    NFCMessageUtils::ReportNDEFRecordText(args, result_obj);
+
+  picojson::value result = picojson::value(picojson::object());
+  picojson::object& result_obj = result.get<picojson::object>();
+  PlatformResult ret = NFCMessageUtils::ReportNDEFRecordText(args, result_obj);
+
+  if (ret.IsSuccess()) {
     ReportSuccess(result, out);
-  }
-  catch(const common::PlatformException& ex) {
-    ReportError(ex, out);
+  } else {
+    ReportError(ret, &out);
   }
 }
 
 void NFCInstance::NDEFRecordURIContructor(const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
-  try {
-    picojson::value result = picojson::value(picojson::object());
-    picojson::object& result_obj = result.get<picojson::object>();
-    NFCMessageUtils::ReportNDEFRecordURI(args, result_obj);
+  picojson::value result = picojson::value(picojson::object());
+  picojson::object& result_obj = result.get<picojson::object>();
+  PlatformResult ret = NFCMessageUtils::ReportNDEFRecordURI(args, result_obj);
+
+  if (ret.IsSuccess()) {
     ReportSuccess(result, out);
-  }
-  catch(const common::PlatformException& ex) {
-    ReportError(ex, out);
+  } else {
+    ReportError(ret, &out);
   }
 }
 
 void NFCInstance::NDEFRecordMediaContructor(const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
-  try {
-    picojson::value result = picojson::value(picojson::object());
-    picojson::object& result_obj = result.get<picojson::object>();
-    NFCMessageUtils::ReportNDEFRecordMedia(args, result_obj);
+
+  picojson::value result = picojson::value(picojson::object());
+  picojson::object& result_obj = result.get<picojson::object>();
+  PlatformResult ret = NFCMessageUtils::ReportNDEFRecordMedia(args, result_obj);
+
+  if (ret.IsSuccess()) {
     ReportSuccess(result, out);
-  }
-  catch(const common::PlatformException& ex) {
-    ReportError(ex, out);
+  } else {
+    ReportError(ret, &out);
   }
 }
 

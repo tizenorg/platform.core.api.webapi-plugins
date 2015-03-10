@@ -44,34 +44,6 @@ PlatformResult NFCUtil::CodeToResult(const int errorCode, const char* message)
   }
 }
 
-// TODO remove after clean code from try/catch
-void NFCUtil::throwNFCException(const int errorCode, const char* message)
-{
-  switch(errorCode) {
-    case NFC_ERROR_INVALID_PARAMETER:
-    case NFC_ERROR_INVALID_NDEF_MESSAGE:
-    case NFC_ERROR_INVALID_RECORD_TYPE:
-    case NFC_ERROR_NOT_NDEF_FORMAT:
-      throw InvalidValuesException(message);
-      break;
-    case NFC_ERROR_SECURITY_RESTRICTED:
-    case NFC_ERROR_PERMISSION_DENIED:
-      throw SecurityException(message);
-      break;
-    case NFC_ERROR_NOT_ACTIVATED:
-    case NFC_ERROR_NOT_SUPPORTED:
-    case NFC_ERROR_OPERATION_FAILED:
-    case NFC_ERROR_DEVICE_BUSY:
-    case NFC_ERROR_NO_DEVICE:
-    case NFC_ERROR_TIMED_OUT:
-    case NFC_ERROR_OUT_OF_MEMORY:
-    case NFC_ERROR_NOT_INITIALIZED:
-    default:
-      throw UnknownException(message);
-      break;
-  }
-}
-
 std::string NFCUtil::getNFCErrorString(const int error_code)
 {
   LOGD("Error code : %d",error_code);
