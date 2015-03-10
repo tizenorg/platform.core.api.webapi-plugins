@@ -15,7 +15,6 @@
 #include <device/callback.h>
 
 #include "common/logger.h"
-#include "common/platform_exception.h"
 #include "power_platform_proxy.h"
 
 using namespace common;
@@ -93,7 +92,11 @@ void PowerManager::OnPlatformStateChangedCB(device_callback_e type, void* value,
     {
       current = POWER_STATE_SCREEN_OFF;
       if (object->set_custom_brightness_ == true) {
-        object->RestoreScreenBrightness();
+        PlatformResult result = object->RestoreScreenBrightness();
+        if (result.IsError()) {
+          LOGGER(ERROR) << "RestoreScreenBrightness failed";
+          return;
+        }
         object->set_custom_brightness_ = false;
       }
       break;
@@ -108,17 +111,18 @@ void PowerManager::AddListener(PowerManagerListener* listener) {
     listeners_.push_back(listener);
 }
 
-void PowerManager::Request(PowerResource resource, PowerState state) {
+PlatformResult PowerManager::Request(PowerResource resource, PowerState state) {
   if (resource == POWER_RESOURCE_SCREEN && state == POWER_STATE_CPU_AWAKE)
-    throw InvalidValuesException("invalid PowerState");
+    return PlatformResult(ErrorCode::INVALID_VALUES_ERR, "invalid PowerState");
   if (resource == POWER_RESOURCE_CPU && state != POWER_STATE_CPU_AWAKE)
-    throw InvalidValuesException("invalid PowerState");
+    return PlatformResult(ErrorCode::INVALID_VALUES_ERR, "invalid PowerState");
 
   if(current_requested_state_ == POWER_STATE_SCREEN_DIM) {
     int ret = PowerPlatformProxy::GetInstance().UnlockState();
     if (ret < 0) {
       LoggerE("deviceUnlockState error %d", ret);
-      throw UnknownException("device_power_request_unlock error");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                            "device_power_request_unlock error");
     }
   }
 
@@ -129,7 +133,8 @@ void PowerManager::Request(PowerResource resource, PowerState state) {
       ret = device_power_request_lock(POWER_LOCK_CPU, 0);
       if (DEVICE_ERROR_NONE != ret) {
         LoggerE("device_power_request_lock error %d", ret);
-        throw UnknownException("device_power_request_lock error");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                              "device_power_request_lock error");
       }
       break;
     }
@@ -138,7 +143,8 @@ void PowerManager::Request(PowerResource resource, PowerState state) {
       ret = PowerPlatformProxy::GetInstance().LockState();
       if (ret < 0) {
         LoggerE("device_power_request_lock error %d", ret);
-        throw UnknownException("device_power_request_lock error");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                              "device_power_request_lock error");
       }
       break;
     }
@@ -147,7 +153,8 @@ void PowerManager::Request(PowerResource resource, PowerState state) {
       ret = device_power_request_lock(POWER_LOCK_DISPLAY, 0);
       if (DEVICE_ERROR_NONE != ret) {
         LoggerE("device_power_request_lock error %d", ret);
-        throw UnknownException("device_power_request_lock error");
+        return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
+                              "device_power_request_lock error");
       }
       break;
     }
@@ -157,22 +164,27 @@ void PowerManager::Request(PowerResource resource, PowerState state) {
       ret = device_display_get_max_brightness(0, &max_brightness);
       if (DEVICE_ERROR_NONE != ret) {
         LoggerE("Platform error while getting max brightness: %d", ret);
-        throw UnknownException("Platform error while getting max brightness");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                              "Platform error while getting max brightness");
       }
 
-      SetPlatformBrightness(max_brightness);
+      PlatformResult set_result = SetPlatformBrightness(max_brightness);
+      if (set_result.IsError())
+        return set_result;
       LoggerD("Succeeded setting the brightness to a max level: %d", max_brightness);
 
       ret = device_display_change_state(DISPLAY_STATE_NORMAL);
       if (DEVICE_ERROR_NONE != ret) {
         LoggerE("device_display_change_state(DISPLAY_STATE_NORMAL) error %d", ret);
-        throw UnknownException("device_display_change_state error");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                              "device_display_change_state error");
       }
 
       ret = device_power_request_lock(POWER_LOCK_DISPLAY, 0);
       if (DEVICE_ERROR_NONE != ret) {
         LoggerE("device_power_request_lock error %d", ret);
-        throw UnknownException("device_power_request_lock error");
+        return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                              "device_power_request_lock error");
       }
 
       bright_state_enabled_ = true;
@@ -187,15 +199,18 @@ void PowerManager::Request(PowerResource resource, PowerState state) {
     }
     case POWER_STATE_SCREEN_OFF:
       LoggerE("SCREEN_OFF state cannot be requested");
-      throw InvalidValuesException("SCREEN_OFF state cannot be requested");
+      return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
+                            "SCREEN_OFF state cannot be requested");
     default:
-      throw UnknownException("Platform error while locking state");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                            "Platform error while locking state");
   }
 
   current_requested_state_ = state;
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void PowerManager::Release(PowerResource resource) {
+PlatformResult PowerManager::Release(PowerResource resource) {
   int ret;
   if (POWER_RESOURCE_SCREEN == resource) {
     ret = device_power_release_lock(POWER_LOCK_DISPLAY);
@@ -206,7 +221,8 @@ void PowerManager::Release(PowerResource resource) {
       ret = PowerPlatformProxy::GetInstance().SetBrightnessFromSettings();
       if (DEVICE_ERROR_NONE != ret) {
         LoggerE("Platform error while setting restore brightness %d", ret);
-        throw UnknownException("Platform error while setting restore brightness");
+        return  PlatformResult(ErrorCode::UNKNOWN_ERR,
+                    "Platform error while setting restore brightness");
       }
     }
     bright_state_enabled_ = false;
@@ -229,9 +245,11 @@ void PowerManager::Release(PowerResource resource) {
     if (DEVICE_ERROR_NONE != ret)
       LoggerE("Platform return value from off unlock: %d", ret);
   }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-double PowerManager::GetScreenBrightness() {
+PlatformResult PowerManager::GetScreenBrightness(double* output) {
   int brightness = GetPlatformBrightness();
   LoggerD("Brightness value: %d", brightness);
 
@@ -239,26 +257,33 @@ double PowerManager::GetScreenBrightness() {
   int ret = device_display_get_max_brightness(0, &max_brightness);
   if (DEVICE_ERROR_NONE != ret) {
     LoggerE("Platform error while getting brightness: %d", ret);
-    throw UnknownException("Platform error while getting max brightness");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                          "Platform error while getting max brightness");
   }
-  return (double)brightness/(double)max_brightness;
+  *output = (double)brightness/(double)max_brightness;
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void PowerManager::SetScreenBrightness(double brightness) {
+PlatformResult PowerManager::SetScreenBrightness(double brightness) {
   if (brightness > 1 || brightness < 0)
-    throw InvalidValuesException("brightness should be 0 <= brightness <= 1");
+    return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
+                          "brightness should be 0 <= brightness <= 1");
   int max_brightness;
   int ret = device_display_get_max_brightness(0, &max_brightness);
   if (DEVICE_ERROR_NONE != ret) {
     LoggerE("Platform error while setting restore brightness: %d", ret);
-    throw UnknownException("Platform error while getting max brightness");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                          "Platform error while getting max brightness");
   }
 
   int platform_brightness = (int)(brightness * max_brightness);
   if (platform_brightness == 0)
     platform_brightness = 1;
-  SetPlatformBrightness(platform_brightness);
+  PlatformResult set_result = SetPlatformBrightness(platform_brightness);
+  if (set_result.IsError())
+    return set_result;
   LoggerD("Set the brightness value: %d", platform_brightness);
+  return set_result;
 }
 
 bool PowerManager::IsScreenOn() {
@@ -269,11 +294,12 @@ bool PowerManager::IsScreenOn() {
   return DISPLAY_STATE_SCREEN_OFF != platform_state;
 }
 
-void PowerManager::SetScreenState(bool onoff) {
+PlatformResult PowerManager::SetScreenState(bool onoff) {
   int ret = device_display_change_state(onoff ? DISPLAY_STATE_NORMAL : DISPLAY_STATE_SCREEN_OFF);
   if (DEVICE_ERROR_NONE != ret) {
     LoggerE("Platform error while changing screen state %d", ret);
-    throw UnknownException("Platform error while changing screen state");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                          "Platform error while changing screen state");
   }
 
   int timeout = 100;
@@ -282,27 +308,31 @@ void PowerManager::SetScreenState(bool onoff) {
       break;
     usleep(100000);
   }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void PowerManager::RestoreScreenBrightness() {
+PlatformResult PowerManager::RestoreScreenBrightness() {
   int ret = PowerPlatformProxy::GetInstance().SetBrightnessFromSettings();
   if (DEVICE_ERROR_NONE != ret) {
     LoggerE("Platform error while restoring brightness %d", ret);
-    throw UnknownException("Platform error while restoring brightness");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                          "Platform error while restoring brightness");
   }
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void PowerManager::SetPlatformBrightness(int brightness) {
+PlatformResult PowerManager::SetPlatformBrightness(int brightness) {
   if (current_state_ == POWER_STATE_SCREEN_DIM) {
     current_brightness_ = brightness;
     LoggerD("Current state is not normal state the value is saved in cache: %d", brightness);
     should_be_read_from_cache_ = true;
-    return;
+    return PlatformResult(ErrorCode::NO_ERROR);
   } else if (current_state_ == POWER_STATE_SCREEN_BRIGHT) {
     current_brightness_ = brightness;
     LoggerD("Current state is not normal state the value is saved in cache: %d", brightness);
     should_be_read_from_cache_ = true;
-    return;
+    return PlatformResult(ErrorCode::NO_ERROR);
   } else {
     should_be_read_from_cache_ = false;
   }
@@ -310,10 +340,12 @@ void PowerManager::SetPlatformBrightness(int brightness) {
   int ret = PowerPlatformProxy::GetInstance().SetBrightness(brightness);
   if (ret != 0) {
     LoggerE("Platform error while setting %d brightness: %d", brightness, ret);
-    throw UnknownException("Platform error while setting brightness.");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                          "Platform error while setting brightness.");
   }
   set_custom_brightness_ = true;
   current_brightness_ = brightness;
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 int PowerManager::GetPlatformBrightness(){
@@ -349,18 +381,20 @@ int PowerManager::GetPlatformBrightness(){
 }
 
 
-void PowerManager::RestoreSettedBrightness() {
+PlatformResult PowerManager::RestoreSettedBrightness() {
+  PlatformResult result(ErrorCode::NO_ERROR);
   int is_custom_mode = 0;
   vconf_get_int(VCONFKEY_PM_CUSTOM_BRIGHTNESS_STATUS, &is_custom_mode);
   if (is_custom_mode || should_be_read_from_cache_) {
     if (current_brightness_ == -1) {
       // brightness was changed in other process
-      RestoreScreenBrightness();
+      result = RestoreScreenBrightness();
     } else {
-      SetPlatformBrightness(current_brightness_);
+      result = SetPlatformBrightness(current_brightness_);
     }
   }
   should_be_read_from_cache_ = false;
+  return result;
 }
 
 void PowerManager::BroadcastScreenState(PowerState current){
@@ -372,10 +406,9 @@ void PowerManager::BroadcastScreenState(PowerState current){
 
   if (current_state_ == POWER_STATE_SCREEN_NORMAL) {
     if (prev_state == POWER_STATE_SCREEN_DIM) {
-      try {
-        RestoreSettedBrightness();
-      } catch (const PlatformException& err) {
-        LoggerE("Error restore custom brightness %s", err.message().c_str());
+      PlatformResult result = RestoreSettedBrightness();
+      if (result.IsError()) {
+        LOGGER(ERROR) << "Error restore custom brightness " << result.message();
       }
     } else if (prev_state == POWER_STATE_SCREEN_OFF) {
       should_be_read_from_cache_ = false;

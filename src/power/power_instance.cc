@@ -143,28 +143,47 @@ void PowerInstance::PowerManagerRequest(const picojson::value& args, picojson::o
   const std::string& resource = args.get("resource").get<std::string>();
   const std::string& state = args.get("state").get<std::string>();
 
-  PowerManager::GetInstance()->Request(kPowerResourceMap.at(resource),
-                                       kPowerStateMap.at(state));
-  ReportSuccess(out);
+  PlatformResult result =
+      PowerManager::GetInstance()->Request(kPowerResourceMap.at(resource),
+                                           kPowerStateMap.at(state));
+  if (result.IsError())
+    ReportError(result, &out);
+  else
+    ReportSuccess(out);
 }
 
 void PowerInstance::PowerManagerRelease(const picojson::value& args, picojson::object& out) {
   const std::string& resource = args.get("resource").get<std::string>();
-  PowerManager::GetInstance()->Release(kPowerResourceMap.at(resource));
-  ReportSuccess(out);
+  PlatformResult result =
+      PowerManager::GetInstance()->Release(kPowerResourceMap.at(resource));
+  if (result.IsError())
+    ReportError(result, &out);
+  else
+    ReportSuccess(out);
 }
 
-void PowerInstance::PowerManagerGetscreenbrightness(const picojson::value& args, picojson::object& out) {
-  double brightness = PowerManager::GetInstance()->GetScreenBrightness();
-  ReportSuccess(picojson::value(brightness), out);
+void PowerInstance::PowerManagerGetscreenbrightness(const picojson::value& args,
+                                                    picojson::object& out) {
+  double brightness;
+  PlatformResult result =
+      PowerManager::GetInstance()->GetScreenBrightness(&brightness);
+  if (result.IsError())
+    ReportError(result, &out);
+  else
+    ReportSuccess(picojson::value(brightness), out);
 }
 
-void PowerInstance::PowerManagerSetscreenbrightness(const picojson::value& args, picojson::object& out) {
+void PowerInstance::PowerManagerSetscreenbrightness(const picojson::value& args,
+                                                    picojson::object& out) {
   CHECK_EXIST(args, "brightness", out)
 
   double brightness = args.get("brightness").get<double>();
-  PowerManager::GetInstance()->SetScreenBrightness(brightness);
-  ReportSuccess(out);
+  PlatformResult result =
+      PowerManager::GetInstance()->SetScreenBrightness(brightness);
+  if (result.IsError())
+    ReportError(result, &out);
+  else
+    ReportSuccess(out);
 }
 
 void PowerInstance::PowerManagerIsscreenon(const picojson::value& args, picojson::object& out) {
@@ -172,20 +191,28 @@ void PowerInstance::PowerManagerIsscreenon(const picojson::value& args, picojson
   ReportSuccess(picojson::value(ret), out);
 }
 void PowerInstance::PowerManagerRestorescreenbrightness(const picojson::value& args, picojson::object& out) {
-  PowerManager::GetInstance()->RestoreScreenBrightness();
-  ReportSuccess(out);
+  PlatformResult result =
+      PowerManager::GetInstance()->RestoreScreenBrightness();
+  if (result.IsError())
+    ReportError(result, &out);
+  else
+    ReportSuccess(out);
 }
 
 void PowerInstance::PowerManagerTurnscreenon(const picojson::value& args, picojson::object& out) {
-  bool onoff = true;
-  PowerManager::GetInstance()->SetScreenState(onoff);
-  ReportSuccess(out);
+  PlatformResult result = PowerManager::GetInstance()->SetScreenState(true);
+  if (result.IsError())
+    ReportError(result, &out);
+  else
+    ReportSuccess(out);
 }
 
 void PowerInstance::PowerManagerTurnscreenoff(const picojson::value& args, picojson::object& out) {
-  bool onoff = false;
-  PowerManager::GetInstance()->SetScreenState(onoff);
-  ReportSuccess(out);
+  PlatformResult result = PowerManager::GetInstance()->SetScreenState(false);
+  if (result.IsError())
+    ReportError(result, &out);
+  else
+    ReportSuccess(out);
 }
 
 void PowerInstance::OnScreenStateChanged(PowerState prev_state, PowerState new_state) {

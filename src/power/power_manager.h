@@ -9,6 +9,8 @@
 #include <list>
 #include <device/callback.h>
 
+#include "common/platform_result.h"
+
 namespace extension {
 namespace power {
 
@@ -34,19 +36,19 @@ class PowerManagerListener {
 class PowerManager {
  public:
   void AddListener(PowerManagerListener* listener);
-  void Request(PowerResource resource, PowerState state);
-  void Release(PowerResource resource);
-  double GetScreenBrightness();
-  void SetScreenBrightness(double brightness);
-  void RestoreScreenBrightness();
+  common::PlatformResult Request(PowerResource resource, PowerState state);
+  common::PlatformResult Release(PowerResource resource);
+  common::PlatformResult GetScreenBrightness(double* output);
+  common::PlatformResult SetScreenBrightness(double brightness);
+  common::PlatformResult RestoreScreenBrightness();
   bool IsScreenOn();
-  void SetScreenState(bool onoff);
+  common::PlatformResult SetScreenState(bool onoff);
 
   static PowerManager* GetInstance();
  private:
   int GetPlatformBrightness();
-  void SetPlatformBrightness(int brightness);
-  void RestoreSettedBrightness();
+  common::PlatformResult SetPlatformBrightness(int brightness);
+  common::PlatformResult RestoreSettedBrightness();
 
   PowerManager();
   virtual ~PowerManager();
