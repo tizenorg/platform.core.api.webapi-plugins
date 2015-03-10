@@ -33,6 +33,7 @@
             'capi-network-bluetooth',
             'capi-network-wifi',
             'tapi',
+            'sensor',
             ]
           },
         }],

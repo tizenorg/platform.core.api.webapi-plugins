@@ -31,6 +31,7 @@
 #include <ITapiModem.h>
 #include <ITapiSim.h>
 #include <device.h>
+#include <sensor_internal.h>
 
 #include "common/logger.h"
 #include "common/platform_exception.h"
@@ -71,6 +72,7 @@ namespace {
 const std::string MEMORY_STATE_NORMAL = "NORMAL";
 const std::string MEMORY_STATE_WARNING = "WARNING";
 const int MEMORY_TO_BYTE = 1024;
+const int BASE_GATHERING_INTERVAL = 100;
 }
 using namespace common;
 
@@ -81,7 +83,8 @@ static gboolean OnStorageChangedCb(gpointer event_ptr);
 static void OnMmcChangedCb(keynode_t* node, void* event_ptr);
 static void OnDisplayChangedCb(keynode_t* node, void* event_ptr);
 static void OnDeviceAutoRotationChangedCb(keynode_t* node, void* event_ptr);
-static void OnDeviceOrientationChangedCb();
+static void OnDeviceOrientationChangedCb(sensor_t sensor, unsigned int event_type,
+                                         sensor_data_t *data, void *user_data);
 static void OnLocaleChangedCb(runtime_info_key_e key, void* event_ptr);
 static void OnNetworkChangedCb(connection_type_e type, void* event_ptr);
 static void OnNetworkValueChangedCb(const char* ipv4_address,
@@ -490,248 +493,6 @@ void SimDetailsManager::TryReturn(){
   }
 }
 
-/////////////////////////// SystemInfoDeviceOrientation ////////////////////////////////
-class SystemInfoDeviceOrientation;
-class DeviceOrientationChangeListener;
-typedef std::shared_ptr<SystemInfoDeviceOrientation> SystemInfoDeviceOrientationPtr;
-
-class SystemInfoDeviceOrientation:
-    public DBusOperationListener
-{
- public:
-  SystemInfoDeviceOrientation();
-  virtual ~SystemInfoDeviceOrientation();
-
-  static SystemInfoDeviceOrientation* Create();
-
-  std::string status() const;
-  bool is_auto_rotation() const;
-
-  PlatformResult SetDeviceOrientationChangeListener();
-  PlatformResult UnsetDeviceOrientationChangeListener();
-
-  virtual void OnDBusSignal(int value);
- private:
-  PlatformResult RegisterDBus();
-  PlatformResult UnregisterDBus();
-  PlatformResult FetchIsAutoRotation();
-  PlatformResult FetchStatus();
-
-  std::string status_;
-  bool is_auto_rotation_;
-
-  bool registered_;
-
-  static DBusOperation dbus_op_;
-};
-
-
-DBusOperation SystemInfoDeviceOrientation::dbus_op_("org.tizen.system.coord",
-                                                "/Org/Tizen/System/Coord/Rotation",
-                                                "org.tizen.system.coord.rotation");
-
-
-SystemInfoDeviceOrientation::SystemInfoDeviceOrientation() :
-                    registered_(false)
-{
-  LoggerD("Entered");
-  is_auto_rotation_ = false;
-  status_ = "";
-}
-
-SystemInfoDeviceOrientation* SystemInfoDeviceOrientation::Create() {
-  SystemInfoDeviceOrientation* deviceOrientation =
-      new (std::nothrow) SystemInfoDeviceOrientation();
-  if(!deviceOrientation) return nullptr;
-
-  PlatformResult ret = deviceOrientation->FetchIsAutoRotation();
-  if (ret.IsError()) {
-    delete deviceOrientation;
-    return NULL;
-  }
-  ret = deviceOrientation->FetchStatus();
-  if (ret.IsError()) {
-    delete deviceOrientation;
-    return NULL;
-  }
-  return deviceOrientation;
-}
-
-SystemInfoDeviceOrientation::~SystemInfoDeviceOrientation()
-{
-  LoggerD("Entered");
-  UnsetDeviceOrientationChangeListener();
-}
-
-std::string SystemInfoDeviceOrientation::status() const
-{
-  return status_;
-}
-
-bool SystemInfoDeviceOrientation::is_auto_rotation() const
-{
-  return is_auto_rotation_;
-}
-
-PlatformResult SystemInfoDeviceOrientation::FetchIsAutoRotation()
-{
-  LoggerD("Entered");
-  int is_auto_rotation = 0;
-
-  if ( 0 == vconf_get_bool(VCONFKEY_SETAPPL_AUTO_ROTATE_SCREEN_BOOL, &is_auto_rotation)) {
-    if (is_auto_rotation) {
-      is_auto_rotation_ = true;
-      return PlatformResult(ErrorCode::NO_ERROR);
-    }
-  } else {
-    LoggerE("VCONFKEY_SETAPPL_AUTO_ROTATE_SCREEN_BOOL check failed");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                   "VCONFKEY_SETAPPL_AUTO_ROTATE_SCREEN_BOOL check failed");
-  }
-  is_auto_rotation_ = false;
-  return PlatformResult(ErrorCode::NO_ERROR);
-}
-
-PlatformResult SystemInfoDeviceOrientation::FetchStatus()
-{
-  LoggerD("Entered");
-
-  DBusOperationArguments args;
-  args.AddArgumentString("lcddim");
-  args.AddArgumentString("staycurstate");
-  args.AddArgumentString("NULL");
-  args.AddArgumentInt32(0);
-
-  std::string status = kOrientationPortraitPrimary;
-  int ret = 0;
-  PlatformResult platform_ret = dbus_op_.InvokeSyncGetInt("DegreePhysicalRotation", &args, &ret);
-  if (platform_ret.IsError()) return platform_ret;
-
-  switch (ret) {
-    case 0:
-      //empty for purpose - go to next case
-    case 1: //rotation 0
-      status = kOrientationPortraitPrimary;
-      break;
-    case 2: //rotation 90
-      status = kOrientationLandscapePrimary;
-      break;
-    case 3: //rotation 180
-      status = kOrientationPortraitSecondary;
-      break;
-    case 4: //rotation 270
-      status = kOrientationLandscapeSecondary;
-      break;
-    default:
-      LoggerD("Unknown rotation value");
-      break;
-  }
-
-  status_ = status;
-  return PlatformResult(ErrorCode::NO_ERROR);
-}
-
-PlatformResult SystemInfoDeviceOrientation::SetDeviceOrientationChangeListener()
-{
-  LoggerD("Enter");
-  if (registered_) {
-    LoggerD("already registered");
-  } else {
-    PlatformResult ret = RegisterDBus();
-    if (ret.IsError()) {
-      return ret;
-    }
-    registered_ = true;
-  }
-  return PlatformResult(ErrorCode::NO_ERROR);
-}
-
-PlatformResult SystemInfoDeviceOrientation::UnsetDeviceOrientationChangeListener()
-{
-  LoggerD("Enter");
-  if (!registered_) {
-    LoggerD("not registered");
-  } else {
-    PlatformResult ret = UnregisterDBus();
-    if (ret.IsError()) {
-      return ret;
-    }
-    registered_ = false;
-  }
-  return PlatformResult(ErrorCode::NO_ERROR);
-}
-
-PlatformResult SystemInfoDeviceOrientation::RegisterDBus()
-{
-  LoggerD("Enter");
-
-  int ret = 0;
-  DBusOperationArguments args;
-  args.AddArgumentInt32(1);
-
-  PlatformResult platform_ret= dbus_op_.InvokeSyncGetInt("StartRotation", &args, &ret);
-  if (platform_ret.IsError()) return platform_ret;
-
-  if (ret != 0) {
-    LoggerE("Failed to start rotation broadcast");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to start rotation broadcast");
-  }
-
-  platform_ret = dbus_op_.RegisterSignalListener("ChangedPhysicalRotation", this);
-  LoggerD("registerSignalListener: ChangedPhysicalRotation");
-  return platform_ret;
-}
-
-PlatformResult SystemInfoDeviceOrientation::UnregisterDBus()
-{
-  LoggerD("Enter");
-
-  int ret = 0;
-  PlatformResult platform_ret = dbus_op_.UnregisterSignalListener(
-      "ChangedPhysicalRotation", this);
-  if (platform_ret.IsError()) return platform_ret;
-  LoggerD("unregisterSignalListener: ChangedPhysicalRotation");
-
-  DBusOperationArguments args;
-  args.AddArgumentInt32(0);
-
-  platform_ret = dbus_op_.InvokeSyncGetInt("StartRotation", &args, &ret);
-  if (platform_ret.IsError()) return platform_ret;
-
-  if (ret != 0) {
-    LoggerE("Failed to stop rotation broadcast");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to stop rotation broadcast");
-  }
-  return PlatformResult(ErrorCode::NO_ERROR);
-}
-
-void SystemInfoDeviceOrientation::OnDBusSignal(int value)
-{
-  LoggerD("value : %d", value);
-
-  switch (value) {
-    case 0:
-    case 1: //rotation 0
-      LoggerD("ORIENTATION_PORTRAIT_PRIMARY");
-      break;
-    case 2: //rotation 90
-      LoggerD("ORIENTATION_LANDSCAPE_PRIMARY");
-      break;
-    case 3: //rotation 180
-      LoggerD("ORIENTATION_PORTRAIT_SECONDARY");
-      break;
-    case 4: //rotation 270
-      LoggerD("ORIENTATION_LANDSCAPE_SECONDARY");
-      break;
-    default:
-      LoggerD("Unknown rotation value");
-      break;
-  }
-
-  LoggerD("call OnDeviceOrientationChangedCb");
-  OnDeviceOrientationChangedCb();
-}
-
 /////////////////////////// SystemInfoListeners ////////////////////////////////
 
 class SystemInfoListeners {
@@ -784,6 +545,9 @@ class SystemInfoListeners {
   TapiHandle* GetTapiHandle();
   TapiHandle** GetTapiHandles();
   PlatformResult GetConnectionHandle(connection_h&);
+  int GetSensorHandle();
+  PlatformResult ConnectSensor(int* result);
+  void DisconnectSensor(int handle_orientation);
  private:
   static PlatformResult RegisterVconfCallback(const char *in_key, vconf_callback_fn cb);
   static PlatformResult UnregisterVconfCallback(const char *in_key, vconf_callback_fn cb);
@@ -791,7 +555,6 @@ class SystemInfoListeners {
   PlatformResult UnregisterIpChangeCallback();
   void InitTapiHandles();
 
-  SystemInfoDeviceOrientationPtr m_orientation;
   guint m_cpu_event_id;
   guint m_storage_event_id;
 
@@ -817,6 +580,8 @@ class SystemInfoListeners {
   TapiHandle *m_tapi_handles[TAPI_HANDLE_MAX+1];
   //for ip change callback
   connection_h m_connection_handle;
+  //! Sensor handle for DeviceOrientation purposes
+  int m_sensor_handle;
 };
 
 SystemInfoListeners::SystemInfoListeners():
@@ -839,12 +604,14 @@ SystemInfoListeners::SystemInfoListeners():
             m_cellular_network_listener(nullptr),
             m_peripheral_listener(nullptr),
             m_memory_listener(nullptr),
-            m_connection_handle(nullptr)
+            m_connection_handle(nullptr),
+            m_sensor_handle(-1)
 {
   LoggerD("Entered");
 }
 
 SystemInfoListeners::~SystemInfoListeners(){
+  LoggerD("Entered");
   UnregisterBatteryListener();
   UnregisterCpuListener();
   UnregisterStorageListener();
@@ -856,6 +623,8 @@ SystemInfoListeners::~SystemInfoListeners(){
   UnregisterCellularNetworkListener();
   UnregisterPeripheralListener();
   UnregisterMemoryListener();
+
+  DisconnectSensor(m_sensor_handle);
 
   unsigned int i = 0;
   while(m_tapi_handles[i]) {
@@ -872,6 +641,50 @@ SystemInfoListeners::~SystemInfoListeners(){
   if (ret.IsError()) { \
     return ret; \
   }
+
+int SystemInfoListeners::GetSensorHandle() {
+  if (m_sensor_handle < 0) {
+    LoggerD("Connecting to sensor");
+    ConnectSensor(&m_sensor_handle);
+  } else {
+    LoggerD("Sensor already connected");
+  }
+  return m_sensor_handle;
+}
+
+PlatformResult SystemInfoListeners::ConnectSensor(int* result) {
+  LoggerD("Entered");
+  sensor_t sensor = sensord_get_sensor(AUTO_ROTATION_SENSOR);
+  int handle_orientation = sensord_connect(sensor);
+  if (handle_orientation < 0) {
+    std::string log_msg = "Failed to connect auto rotation sensor";
+    LoggerE("%s", log_msg.c_str());
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
+  }
+  bool ret = sensord_start(handle_orientation, 0);
+  if(!ret) {
+    sensord_disconnect(handle_orientation);
+    std::string log_msg = "Failed to start auto rotation sensor";
+    LoggerE("%s", log_msg.c_str());
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
+  }
+  LoggerD("Sensor starts successfully = %d", handle_orientation);
+  *result = handle_orientation;
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+void SystemInfoListeners::DisconnectSensor(int handle_orientation)
+{
+  if (handle_orientation >= 0) {
+    LoggerD("Entered");
+    bool state = sensord_stop(handle_orientation);
+    LoggerD("sensord_stop() returned state = %d", state);
+    state = sensord_disconnect(handle_orientation);
+    LoggerD("sensord_disconnect() returned state %d", state);
+  } else {
+    LoggerD("sensor already disconnected - no action needed");
+  }
+}
 
 PlatformResult SystemInfoListeners::RegisterBatteryListener(const SysteminfoUtilsCallback& callback)
 {
@@ -978,15 +791,19 @@ PlatformResult SystemInfoListeners::UnregisterDisplayListener()
 
 PlatformResult SystemInfoListeners::RegisterDeviceOrientationListener(const SysteminfoUtilsCallback& callback)
 {
-  if (nullptr == m_orientation) {
-    m_orientation.reset(SystemInfoDeviceOrientation::Create());
-  }
-
   if (nullptr == m_device_orientation_listener) {
     PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
     CHECK_LISTENER_ERROR(
         RegisterVconfCallback(VCONFKEY_SETAPPL_AUTO_ROTATE_SCREEN_BOOL, OnDeviceAutoRotationChangedCb))
-    CHECK_LISTENER_ERROR(m_orientation->SetDeviceOrientationChangeListener())
+
+    bool sensor_ret = sensord_register_event(GetSensorHandle(), AUTO_ROTATION_EVENT_CHANGE_STATE,
+                                     BASE_GATHERING_INTERVAL, 0,
+                                     OnDeviceOrientationChangedCb, NULL);
+    if (!sensor_ret) {
+      LoggerE("Failed to register orientation change event listener");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                            "Failed to register orientation change event listener");
+    }
 
     LoggerD("Added callback for DEVICE_ORIENTATION");
     m_device_orientation_listener = callback;
@@ -1000,9 +817,11 @@ PlatformResult SystemInfoListeners::UnregisterDeviceOrientationListener()
     PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
     CHECK_LISTENER_ERROR(
         UnregisterVconfCallback(VCONFKEY_SETAPPL_AUTO_ROTATE_SCREEN_BOOL, OnDeviceAutoRotationChangedCb))
-    if (nullptr != m_orientation) {
-      CHECK_LISTENER_ERROR(m_orientation->UnsetDeviceOrientationChangeListener())
-      m_orientation.reset();
+    bool sensor_ret = sensord_unregister_event(GetSensorHandle(), AUTO_ROTATION_EVENT_CHANGE_STATE);
+    if (!sensor_ret) {
+      LoggerE("Failed to unregister orientation change event listener");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to unregister"
+          " orientation change event listener");
     }
 
     LoggerD("Removed callback for DEVICE_ORIENTATION");
@@ -1518,7 +1337,8 @@ void OnDeviceAutoRotationChangedCb(keynode_t* node, void* event_ptr)
   system_info_listeners.OnDeviceAutoRotationChangedCallback(node, event_ptr);
 }
 
-void OnDeviceOrientationChangedCb()
+void OnDeviceOrientationChangedCb(sensor_t sensor, unsigned int event_type,
+                                  sensor_data_t *data, void *user_data)
 {
   LoggerD("");
   system_info_listeners.OnDeviceOrientationChangedCallback();
@@ -1918,12 +1738,88 @@ PlatformResult SysteminfoUtils::ReportDisplay(picojson::object& out) {
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
+static PlatformResult FetchIsAutoRotation(bool* result)
+{
+  LoggerD("Entered");
+  int is_auto_rotation = 0;
+
+  if ( 0 == vconf_get_bool(
+      VCONFKEY_SETAPPL_AUTO_ROTATE_SCREEN_BOOL, &is_auto_rotation)) {
+    if (is_auto_rotation) {
+      *result = true;
+    } else {
+      *result = false;
+    }
+    return PlatformResult(ErrorCode::NO_ERROR);
+  }
+  else {
+    LoggerE("VCONFKEY_SETAPPL_AUTO_ROTATE_SCREEN_BOOL check failed");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                          "VCONFKEY_SETAPPL_AUTO_ROTATE_SCREEN_BOOL check failed");
+  }
+}
+
+static PlatformResult FetchStatus(std::string* result)
+{
+  LoggerD("Entered");
+  int rotation = 0;
+  std::string status = kOrientationPortraitPrimary;
+
+  sensor_data_t data;
+  bool ret = sensord_get_data(system_info_listeners.GetSensorHandle(),
+                             AUTO_ROTATION_BASE_DATA_SET, &data);
+  if (!ret) {
+    LoggerE("Failed to get data(sensord_get_data)");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                          "Failed to get data(sensord_get_data)");
+  }
+  LoggerD("size of the data value array:%d", data.value_count);
+  if (data.value_count > 0 ) {
+    rotation = data.values[0];
+    LoggerD("rotation is: %d", rotation);
+  } else {
+    LoggerE("Failed to get data : the size of array is 0");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                          "Failed to get data : the size of array is 0");
+  }
+
+  switch (rotation) {
+    case AUTO_ROTATION_DEGREE_UNKNOWN:
+    case AUTO_ROTATION_DEGREE_0:
+      LoggerD("AUTO_ROTATION_DEGREE_0");
+      status = kOrientationPortraitPrimary;
+      break;
+    case AUTO_ROTATION_DEGREE_90:
+      LoggerD("AUTO_ROTATION_DEGREE_90");
+      status = kOrientationLandscapePrimary;
+      break;
+    case AUTO_ROTATION_DEGREE_180:
+      LoggerD("AUTO_ROTATION_DEGREE_180");
+      status = kOrientationPortraitSecondary;
+      break;
+    case AUTO_ROTATION_DEGREE_270:
+      LoggerD("AUTO_ROTATION_DEGREE_270");
+      status = kOrientationLandscapeSecondary;
+      break;
+    default:
+      LoggerE("Received unexpected data: %u", rotation);
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Received unexpected data");
+  }
+  *result = status;
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
 PlatformResult SysteminfoUtils::ReportDeviceOrientation(picojson::object& out) {
-  SystemInfoDeviceOrientationPtr dev_orientation =
-      SystemInfoDeviceOrientationPtr(SystemInfoDeviceOrientation::Create());
-  std::string status = dev_orientation->status();
-  bool auto_rotation_bool = dev_orientation->is_auto_rotation();
-  out.insert(std::make_pair("isAutoRotation", picojson::value(auto_rotation_bool)));
+  bool is_auto_rotation = false;
+  std::string status = "";
+
+  PlatformResult ret = FetchIsAutoRotation(&is_auto_rotation);
+  if (ret.IsError()) return ret;
+
+  ret = FetchStatus(&status);
+  if (ret.IsError()) return ret;
+
+  out.insert(std::make_pair("isAutoRotation", picojson::value(is_auto_rotation)));
   out.insert(std::make_pair("status", picojson::value(status)));
   return PlatformResult(ErrorCode::NO_ERROR);
 }
