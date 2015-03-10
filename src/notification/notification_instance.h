@@ -6,6 +6,7 @@
 #define NOTIFICATION_NOTIFICATION_INSTANCE_H_
 
 #include "common/extension.h"
+#include "notification/notification_manager.h"
 
 namespace extension {
 namespace notification {
@@ -16,18 +17,20 @@ class NotificationInstance : public common::ParsedInstance {
   virtual ~NotificationInstance();
 
  private:
-  void NotificationManagerGet(
-      const picojson::value& args, picojson::object& out);
-  void NotificationManagerUpdate(
-      const picojson::value& args, picojson::object& out);
-  void NotificationManagerRemove(
-      const picojson::value& args, picojson::object& out);
-  void NotificationManagerGetall(
-      const picojson::value& args, picojson::object& out);
-  void NotificationManagerPost(
-      const picojson::value& args, picojson::object& out);
-  void NotificationManagerRemoveall(
-      const picojson::value& args, picojson::object& out);
+  NotificationManager* manager_;
+
+  void NotificationManagerPost(const picojson::value& args,
+                               picojson::object& out);
+  void NotificationManagerUpdate(const picojson::value& args,
+                                 picojson::object& out);
+  void NotificationManagerRemove(const picojson::value& args,
+                                 picojson::object& out);
+  void NotificationManagerRemoveAll(const picojson::value& args,
+                                    picojson::object& out);
+  void NotificationManagerGet(const picojson::value& args,
+                              picojson::object& out);
+  void NotificationManagerGetAll(const picojson::value& args,
+                                 picojson::object& out);
 };
 
 }  // namespace notification

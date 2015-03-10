@@ -11,7 +11,9 @@
         'notification_extension.cc',
         'notification_extension.h',
         'notification_instance.cc',
-        'notification_instance.h'
+        'notification_instance.h',
+        'notification_manager.h',
+        'notification_manager.cc'
       ],
       'conditions': [
         ['tizen == 1', {

@@ -3,25 +3,19 @@
 // found in the LICENSE file.
 
 #include "notification/notification_extension.h"
-
 #include "notification/notification_instance.h"
 
 // This will be generated from notification_api.js
 extern const char kSource_notification_api[];
 
-common::Extension* CreateExtension() {
-  return new NotificationExtension;
-}
+common::Extension* CreateExtension() { return new NotificationExtension; }
 
 NotificationExtension::NotificationExtension() {
   SetExtensionName("tizen.notification");
   SetJavaScriptAPI(kSource_notification_api);
 
-  const char* entry_points[] = {
-      "tizen.NotificationManager",
-      "tizen.StatusNotification",
-      NULL
-    };
+  const char* entry_points[] = {"tizen.StatusNotification",
+                                "tizen.NotificationDetailInfo", NULL};
   SetExtraJSEntryPoints(entry_points);
 }
 

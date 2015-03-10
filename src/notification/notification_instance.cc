@@ -2,128 +2,119 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include <notification.h>
+#include "notification/notification_instance.h"
 
-#include <string>
 #include <functional>
 
-#include "notification/notification_instance.h"
 #include "common/picojson.h"
 #include "common/logger.h"
-#include "common/platform_exception.h"
-#include "common/typeutil.h"
-#include "common/scope_exit.h"
+#include "common/platform_result.h"
+
+#include "notification/notification_manager.h"
 
 namespace extension {
 namespace notification {
 
 namespace {
 // The privileges that required in Notification API
-const std::string kPrivilegeNotification = "";
-
+const std::string kPrivilegeNotification =
+    "http://tizen.org/privilege/notification";
 }  // namespace
 
-using common::UnknownException;
-using common::TypeMismatchException;
-using common::ScopeExit;
-using common::operator+;
+using namespace common;
 
 NotificationInstance::NotificationInstance() {
   using std::placeholders::_1;
   using std::placeholders::_2;
-  #define REGISTER_SYNC(c, x) \
-    RegisterSyncHandler(c, std::bind(&NotificationInstance::x, this, _1, _2));
+#define REGISTER_SYNC(c, x) \
+  RegisterSyncHandler(c, std::bind(&NotificationInstance::x, this, _1, _2));
   REGISTER_SYNC("NotificationManager_get", NotificationManagerGet);
   REGISTER_SYNC("NotificationManager_update", NotificationManagerUpdate);
   REGISTER_SYNC("NotificationManager_remove", NotificationManagerRemove);
-  REGISTER_SYNC("NotificationManager_getAll", NotificationManagerGetall);
+  REGISTER_SYNC("NotificationManager_getAll", NotificationManagerGetAll);
   REGISTER_SYNC("NotificationManager_post", NotificationManagerPost);
-  REGISTER_SYNC("NotificationManager_removeAll", NotificationManagerRemoveall);
-  #undef REGISTER_SYNC
+  REGISTER_SYNC("NotificationManager_removeAll", NotificationManagerRemoveAll);
+#undef REGISTER_SYNC
+
+  manager_ = NotificationManager::GetInstance();
 }
 
-NotificationInstance::~NotificationInstance() {
+NotificationInstance::~NotificationInstance() {}
+
+#define CHECK_EXIST(args, name, out)                                       \
+  if (!args.contains(name)) {                                              \
+    ReportError(TypeMismatchException(name " is required argument"), out); \
+    return;                                                                \
+  }
+
+void NotificationInstance::NotificationManagerPost(const picojson::value& args,
+                                                   picojson::object& out) {
+  int id;
+
+  PlatformResult status = manager_->Post(args.get<picojson::object>(), &id);
+
+  if (status.IsSuccess())
+    ReportSuccess(picojson::value(static_cast<double>(id)), out);
+  else
+    ReportError(status, &out);
 }
 
-using common::WIDLTypeValidator::WIDLType;
-using common::WIDLTypeValidator::IsType;
-
-#define WIDL_TYPE_CHECK(args, name, wtype, out) \
-    do { if (!IsType<wtype>(args, name)) {\
-      ReportError(TypeMismatchException(name" is not valid type."), out);\
-    }} while (0)
-
-void NotificationInstance::NotificationManagerPost(
-    const picojson::value& args, picojson::object& out) {
-
-  WIDL_TYPE_CHECK(args, "type", WIDLType::StringType, out);
-  WIDL_TYPE_CHECK(args, "title", WIDLType::StringType, out);
-
-  int err;
-  notification_type_e noti_type = NOTIFICATION_TYPE_NOTI;
-  notification_h noti = notification_create(noti_type);
-  SCOPE_EXIT {
-    notification_free(noti);
-  };
-
-  /*
-  if (IsType<WIDLType::StringType>(args, "iconPath")) {
-    err = notification_set_image(noti, NOTIFICATION_IMAGE_TYPE_ICON,
-                           args.get("iconPath").get<std::string>().c_str());
-    if (err != NOTIFICATION_ERROR_NONE) {
-      LoggerE("Fail to set icon path. [%s]", get_error_message(err));
-      return;
-    }
-    LoggerD("iconPath : %s", args.get("iconPath").get<std::string>().c_str());
-  }
-  */
-
-  const std::string& title = args.get("title").get<std::string>();
-  err = notification_set_text(noti, NOTIFICATION_TEXT_TYPE_TITLE,
-                              title.c_str(),
-                              NULL,
-                              NOTIFICATION_VARIABLE_TYPE_NONE);
-  if (err != NOTIFICATION_ERROR_NONE) {
-    LoggerE("Fail to set title. [%s]", get_error_message(err));
-    return;
-  }
-
-  if (IsType<WIDLType::StringType>(args, "content")) {
-    const std::string& content = args.get("content").get<std::string>();
-    err = notification_set_text(noti, NOTIFICATION_TEXT_TYPE_CONTENT,
-                                content.c_str(),
-                                NULL,
-                                NOTIFICATION_VARIABLE_TYPE_NONE);
-
-    if (err != NOTIFICATION_ERROR_NONE) {
-      LoggerE("Fail to set content. [%s]", get_error_message(err));
-      return;
-    }
-  }
-
-  err = notification_post(noti);
-  if (err != NOTIFICATION_ERROR_NONE) {
-    ReportError(UnknownException("failed to post notification"), out);
-  }
-}
 void NotificationInstance::NotificationManagerUpdate(
     const picojson::value& args, picojson::object& out) {
+  PlatformResult status = manager_->Update(args.get<picojson::object>());
+
+  if (status.IsSuccess())
+    ReportSuccess(out);
+  else
+    ReportError(status, &out);
 }
+
 void NotificationInstance::NotificationManagerRemove(
     const picojson::value& args, picojson::object& out) {
-}
-void NotificationInstance::NotificationManagerRemoveall(
-    const picojson::value& args, picojson::object& out) {
-}
-void NotificationInstance::NotificationManagerGet(
-    const picojson::value& args, picojson::object& out) {
-}
-void NotificationInstance::NotificationManagerGetall(
-    const picojson::value& args, picojson::object& out) {
+  PlatformResult status = manager_->Remove(args.get<picojson::object>());
+
+  if (status.IsSuccess())
+    ReportSuccess(out);
+  else
+    ReportError(status, &out);
 }
 
+void NotificationInstance::NotificationManagerRemoveAll(
+    const picojson::value& args, picojson::object& out) {
+  PlatformResult status = manager_->RemoveAll();
 
-#undef WIDL_TYPE_CHECK
+  if (status.IsSuccess())
+    ReportSuccess(out);
+  else
+    ReportError(status, &out);
+}
+
+void NotificationInstance::NotificationManagerGet(const picojson::value& args,
+                                                  picojson::object& out) {
+  picojson::value val{picojson::object{}};
+
+  PlatformResult status =
+      manager_->Get(args.get<picojson::object>(), val.get<picojson::object>());
+
+  if (status.IsSuccess())
+    ReportSuccess(val, out);
+  else
+    ReportError(status, &out);
+}
+
+void NotificationInstance::NotificationManagerGetAll(
+    const picojson::value& args, picojson::object& out) {
+  picojson::value val{picojson::array{}};
+
+  PlatformResult status = manager_->GetAll(val.get<picojson::array>());
+
+  if (status.IsSuccess())
+    ReportSuccess(val, out);
+  else
+    ReportError(status, &out);
+}
+
+#undef CHECK_EXIST
 
 }  // namespace notification
 }  // namespace extension
