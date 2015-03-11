@@ -105,7 +105,7 @@ static std::string convertPathToUri(const string str) {
 }
 
 
-static void contentToJson(media_info_h info, picojson::object& o) {
+void contentToJson(media_info_h info, picojson::object& o) {
   int ret;
   int tmpInt = 0;
   bool tmpBool = false;
@@ -113,7 +113,6 @@ static void contentToJson(media_info_h info, picojson::object& o) {
   time_t tmpDate;
   double tmpDouble;
   long long unsigned int tmpLong;
-  
   media_content_type_e type;
   ret == media_info_get_media_type(info, &type);
   if(ret != MEDIA_CONTENT_ERROR_NONE) {
@@ -141,7 +140,6 @@ static void contentToJson(media_info_h info, picojson::object& o) {
         if(MEDIA_CONTENT_ERROR_NONE == image_meta_get_width(img, &tmpInt) ) {
           o["width"] = picojson::value(static_cast<double>(tmpInt));
         }
-
         if(MEDIA_CONTENT_ERROR_NONE == image_meta_get_height(img, &tmpInt) ) {
           o["height"] = picojson::value(static_cast<double>(tmpInt));          
         }
@@ -154,9 +152,7 @@ static void contentToJson(media_info_h info, picojson::object& o) {
         if(MEDIA_CONTENT_ERROR_NONE == media_info_get_longitude(info, &tmpDouble) ) {
           geo["longitude"] = picojson::value(tmpDouble);
         }
-        
         o["geolocation"] = picojson::value(geo);
-
         std::string ori;
         media_content_orientation_e orientation;
         if(MEDIA_CONTENT_ERROR_NONE == image_meta_get_orientation(img, &orientation) ) {
@@ -299,17 +295,19 @@ static void contentToJson(media_info_h info, picojson::object& o) {
         if (MEDIA_CONTENT_ERROR_NONE == audio_meta_get_bit_rate(audio, &tmpInt)){
           o["bitrate"] = picojson::value(static_cast<double>(tmpInt));
         }
-        if (MEDIA_CONTENT_ERROR_NONE == audio_meta_get_track_num (audio, &tmpStr)){
+        if (MEDIA_CONTENT_ERROR_NONE == audio_meta_get_track_num(audio, &tmpStr)){
           if(tmpStr) {
-            o["trackNumber"] = picojson::value(static_cast<double>(std::stoi(tmpStr)));
+            o["trackNumber"] = picojson::value(static_cast<double>(std::atoi(tmpStr)));
             free(tmpStr);
             tmpStr = NULL;
+          }
+          else {
+            o["trackNumber"] = picojson::value();
           }
         }
         if (MEDIA_CONTENT_ERROR_NONE == audio_meta_get_duration(audio, &tmpInt) ) {
           o["duration"] = picojson::value(static_cast<double>(tmpInt));          
         }
-        
       }
     }
     else {
@@ -325,7 +323,6 @@ static void contentToJson(media_info_h info, picojson::object& o) {
       tmpStr = NULL;
     }
   }
-  
   ret = media_info_get_display_name(info, &tmpStr);
   if(ret == MEDIA_CONTENT_ERROR_NONE) {
     if(tmpStr) {
@@ -334,7 +331,7 @@ static void contentToJson(media_info_h info, picojson::object& o) {
       tmpStr = NULL;
     }
   }
-
+ 
   ret = media_info_get_mime_type(info, &tmpStr);
   if(ret == MEDIA_CONTENT_ERROR_NONE) {
     if(tmpStr) {
@@ -343,7 +340,6 @@ static void contentToJson(media_info_h info, picojson::object& o) {
       tmpStr = NULL;
     }
   }    
-
   ret = media_info_get_title(info, &tmpStr);
   if(ret == MEDIA_CONTENT_ERROR_NONE) {
     if(tmpStr) {
@@ -360,7 +356,6 @@ static void contentToJson(media_info_h info, picojson::object& o) {
       tmpStr = NULL;
     }
   }
-  //dykim. thumbnailURIs
   ret = media_info_get_thumbnail_path(info, &tmpStr);
   if(ret == MEDIA_CONTENT_ERROR_NONE) {
     if(tmpStr) {
@@ -370,7 +365,6 @@ static void contentToJson(media_info_h info, picojson::object& o) {
       tmpStr = NULL;
     }
   }
-
   ret = media_info_get_description(info, &tmpStr);
   if(ret == MEDIA_CONTENT_ERROR_NONE) {
     if(tmpStr) {
@@ -379,22 +373,18 @@ static void contentToJson(media_info_h info, picojson::object& o) {
       tmpStr = NULL;
     }
   }
-
   ret = media_info_get_rating(info, &tmpInt);
   if(ret == MEDIA_CONTENT_ERROR_NONE) {
     o["rating"] = picojson::value(static_cast<double>(tmpInt));
   }
-
   ret = media_info_get_size(info, &tmpLong);
   if(ret == MEDIA_CONTENT_ERROR_NONE) {
     o["size"] = picojson::value(static_cast<double>(tmpLong));
   }
-
   ret = media_info_get_favorite(info, &tmpBool);
   if(ret == MEDIA_CONTENT_ERROR_NONE) {
     o["isFavorite"] = picojson::value(tmpBool);    
   }
-
   ret = media_info_get_modified_time(info, &tmpDate);
   if(ret == MEDIA_CONTENT_ERROR_NONE) {
     std::stringstream str_date;
@@ -404,7 +394,6 @@ static void contentToJson(media_info_h info, picojson::object& o) {
 }
 
 static int setContent(media_info_h media, picojson::value content) {
-  dlog_print(DLOG_INFO, "DYKIM", "ContentManager::setContent start");
   
   int ret;
   std::string name = content.get("name").to_str();
@@ -443,7 +432,6 @@ static int setContent(media_info_h media, picojson::value content) {
     }
     if (type == MEDIA_CONTENT_TYPE_IMAGE || type == MEDIA_CONTENT_TYPE_VIDEO) {
       picojson::value geo = content.get("geolocation");
-
       double latitude = atof(geo.get("latitude").to_str().c_str());
       double longitude = atof(geo.get("longitude ").to_str().c_str());
       ret = media_info_set_latitude(media, latitude);
@@ -464,17 +452,13 @@ static int setContent(media_info_h media, picojson::value content) {
 }
 
 static bool media_foreach_directory_cb(media_folder_h folder, void *user_data) {
-  dlog_print(DLOG_INFO, "DYKIM", "ContentManager::media_foreach_directory_cb start");
   std::vector<media_folder_h> *dir = static_cast<std::vector<media_folder_h>*>(user_data);
   media_folder_h nfolder = NULL;
   media_folder_clone (&nfolder, folder);
   dir->push_back(nfolder);
-
-  dlog_print(DLOG_INFO, "DYKIM", "ContentManager::media_foreach_directory_cb end");  
 }
 
 static bool media_foreach_content_cb(media_info_h media, void *user_data) {
-  dlog_print(DLOG_INFO, "DYKIM", "ContentManager::media_foreach_content_cb start.");
   picojson::value::array *contents = static_cast<picojson::value::array*>(user_data);
   picojson::value::object o;
 
@@ -484,7 +468,6 @@ static bool media_foreach_content_cb(media_info_h media, void *user_data) {
 }
 
 static bool playlist_foreach_cb(media_playlist_h playlist, void *user_data) {
-  dlog_print(DLOG_INFO, "DYKIM", "ContentManager::playlist_foreach_cb start");
 
   picojson::value::array *playlists = static_cast<picojson::value::array*>(user_data);
   picojson::value::object o;
@@ -499,7 +482,7 @@ static bool playlist_foreach_cb(media_playlist_h playlist, void *user_data) {
       o["id"] = picojson::value(std::to_string(id));
     }
     else {
-      dlog_print(DLOG_INFO, "DYKIM", "Invalid ID for playlist.");
+      LoggerD("Invalid ID for playlist.");
     }
     if( media_playlist_get_thumbnail_path(playlist, &thumb_path) == MEDIA_CONTENT_ERROR_NONE) {
       if (thumb_path != NULL) {
@@ -511,41 +494,36 @@ static bool playlist_foreach_cb(media_playlist_h playlist, void *user_data) {
       }
     }
     else {
-      dlog_print(DLOG_INFO, "DYKIM", "Invalid thumbnail path for playlist.");
+      LoggerD("Invalid thumbnail path for playlist.");
     }
     if( media_playlist_get_name(playlist, &name) == MEDIA_CONTENT_ERROR_NONE) {
       o["name"] = picojson::value(std::string(name));
       free(name);
     }
     else {
-      dlog_print(DLOG_INFO, "DYKIM", "Invalid name for playlist.");
+      LoggerD("Invalid name for playlist.");
     }
 
-//    media_filter_create(&filter);
-//    if( media_playlist_get_media_count_from_db(id, filter, &cnt) == MEDIA_CONTENT_ERROR_NONE) {
-//      std::stringstream str_cnd;
-//      str_cnd << cnt;
-      o["numberOfTracks"] = picojson::value(static_cast<double>(0));
-//    }
-//    else {
-//      dlog_print(DLOG_INFO, "DYKIM", "Invalid count for playlist.");
-//    }
+    media_filter_create(&filter);
+    if( media_playlist_get_media_count_from_db(id, filter, &cnt) == MEDIA_CONTENT_ERROR_NONE) {
+      o["numberOfTracks"] = picojson::value(static_cast<double>(cnt));
+    }
+    else {
+      LoggerD("Invalid count for playlist.");
+    }
     playlists->push_back(picojson::value(o));
 
   }
-  dlog_print(DLOG_INFO, "DYKIM", "ContentManager::playlist_foreach_cb end.");
   return true;
 }
 
 static bool playlist_content_member_cb(int playlist_member_id, media_info_h media, void *user_data) {
-  dlog_print(DLOG_INFO, "DYKIM", "ContentManager::playlist_content_member_cb start.");
   
   picojson::value::array *contents = static_cast<picojson::value::array*>(user_data);
   picojson::value::object o;
   char *name = NULL;
   
   media_info_get_display_name(media, &name);
-  dlog_print(DLOG_INFO, "DYKIM", "ContentManager::playlist_content_member_cb %s.",name);
   o["playlist_member_id"] = picojson::value(static_cast<double>(playlist_member_id));
   contentToJson(media, o);
   contents->push_back(picojson::value(o));
@@ -580,7 +558,6 @@ bool ContentManager::isConnected() {
 }
 
 void ContentManager::getDirectories(const std::shared_ptr<ReplyCallbackData>& user_data) {
-  dlog_print(DLOG_INFO, "DYKIM", "ContentManager::getDirectories start");
   
   picojson::value::array pico_dirs;
   
@@ -636,7 +613,6 @@ void ContentManager::getDirectories(const std::shared_ptr<ReplyCallbackData>& us
 }
 
 void ContentManager::find(const std::shared_ptr<ReplyCallbackData>& user_data) {
-  dlog_print(DLOG_INFO, "DYKIM", "ContentManager::find start");
   int ret;
   double count, offset;
   std::string dirId, attributeName, matchFlag, matchValue;
@@ -645,7 +621,6 @@ void ContentManager::find(const std::shared_ptr<ReplyCallbackData>& user_data) {
 
   picojson::value::array arrayContent;
   filter_h filter = NULL;
-  dlog_print(DLOG_INFO, "DYKIM", "ContentManager::find start1");
   ret = media_filter_create(&filter);
 
   if(ret != MEDIA_CONTENT_ERROR_NONE) {
@@ -655,7 +630,7 @@ void ContentManager::find(const std::shared_ptr<ReplyCallbackData>& user_data) {
     return;    
   }
   if(user_data->args.contains("filter")) {
-    //dykim. filter
+    //to be implemented. dykim.
     picojson::value vfilter = user_data->args.get("filter");
     if (!vfilter.is<picojson::null>() && vfilter.is<picojson::object>()) {
       attributeName = vfilter.get("attributeName").to_str();
@@ -724,17 +699,15 @@ int ContentManager::scanFile(std::string& uri) {
 }
 
 int ContentManager::setChangeListener(media_content_db_update_cb callback, void *user_data) {
-  dlog_print(DLOG_INFO, "DYKIM", "ContentManager::setChangeListener start");
 
   int ret = media_content_set_db_updated_cb(callback, user_data);
   if(ret != MEDIA_CONTENT_ERROR_NONE) {
     throw UnknownException("registering the listener is failed.");
   }
-  dlog_print(DLOG_INFO, "DYKIM", "ContentManager::media_content_db_update_cb end");
+
 }
 
 void ContentManager::unSetChangeListener() {
-  dlog_print(DLOG_INFO, "DYKIM", "ContentManager::unSetChangeListener start");
   int ret = media_content_unset_db_updated_cb();
   if(ret != MEDIA_CONTENT_ERROR_NONE) {
     throw UnknownException("unSetChangeListener is failed.");
@@ -744,9 +717,8 @@ void ContentManager::unSetChangeListener() {
 void ContentManager::createPlaylist(std::string name, 
   const std::shared_ptr<ReplyCallbackData>& user_data) {
   
-  dlog_print(DLOG_INFO, "DYKIM", "ContentManager::createPlaylist start");
   media_playlist_h	playlist = NULL;
-
+  
   int ret = media_playlist_insert_to_db(name.c_str(),&playlist);
   if(ret != MEDIA_CONTENT_ERROR_NONE) { 
     UnknownException err("creation of playlist is failed.");
@@ -779,21 +751,21 @@ void ContentManager::createPlaylist(std::string name,
       }
     }
     else {
-      dlog_print(DLOG_INFO, "DYKIM", "Invalid thumbnail path for playlist.");
+      LoggerD("Invalid thumbnail path for playlist.");
     }
     if( media_playlist_get_name(playlist, &name) == MEDIA_CONTENT_ERROR_NONE) {
       o["name"] = picojson::value(std::string(name));      
       free(name);
     }
     else {
-      dlog_print(DLOG_INFO, "DYKIM", "Invalid name for playlist.");
+      LoggerD("Invalid name for playlist.");
     }
     media_filter_create(&filter);
     if( media_playlist_get_media_count_from_db(id, filter, &cnt) == MEDIA_CONTENT_ERROR_NONE) {
       o["numberOfTracks"] = picojson::value(static_cast<double>(cnt));
     }
     else {
-      dlog_print(DLOG_INFO, "DYKIM", "Invalid count for playlist.");
+      LoggerD("Invalid count for playlist.");
     }
   }
   user_data->isSuccess = true;
@@ -802,7 +774,7 @@ void ContentManager::createPlaylist(std::string name,
 }
 
 void ContentManager::getPlaylists(const std::shared_ptr<ReplyCallbackData>& user_data) {
-  dlog_print(DLOG_INFO, "DYKIM", "ContentManager::getPlaylist start");
+
   int ret;
   filter_h 	filter;
   media_filter_create(&filter);
@@ -822,10 +794,15 @@ void ContentManager::getPlaylists(const std::shared_ptr<ReplyCallbackData>& user
 void ContentManager::removePlaylist(std::string playlistId, 
   const std::shared_ptr<ReplyCallbackData>& user_data) {
   
-  dlog_print(DLOG_INFO, "DYKIM", "ContentManager::removePlaylist start");
-  int id = std::stoi(playlistId);
-  int ret = media_playlist_delete_from_db(id);
+  int id = std::atoi(playlistId.c_str());
+  if(id == 0) {
+    UnknownException err("PlaylistId is wrong.");
+    user_data->isSuccess = false;
+    user_data->result = err.ToJSON();
+    return;
+  }
 
+  int ret = media_playlist_delete_from_db(id);
   if(ret != MEDIA_CONTENT_ERROR_NONE) {
     UnknownException err("Removal of playlist is failed.");
     user_data->isSuccess = false;
@@ -834,8 +811,6 @@ void ContentManager::removePlaylist(std::string playlistId,
 }
 
 int ContentManager::update(picojson::value args) {
-  dlog_print(DLOG_INFO, "DYKIM", "ContentManager::update start");
-
   int ret;
   picojson::value content = args.get("content");
   std::string id = content.get("id").to_str();
@@ -855,8 +830,6 @@ int ContentManager::update(picojson::value args) {
 
 
 int ContentManager::updateBatch(picojson::value args) {
-  dlog_print(DLOG_INFO, "DYKIM", "ContentManager::updateBatch start");
-
   int ret;
   std::vector<picojson::value> contents = args.get("contents").get<picojson::array>();
   for (picojson::value::array::iterator it = contents.begin(); it != contents.end(); it++) {
@@ -864,6 +837,7 @@ int ContentManager::updateBatch(picojson::value args) {
     std::string id = content.get("id").to_str();
     media_info_h media = NULL;
     ret = media_info_get_media_from_db (id.c_str(), &media);
+    dlog_print(DLOG_INFO, "DYKIM", "ContentManager::update id:%s",id.c_str());          
     if (media != NULL && ret == MEDIA_CONTENT_ERROR_NONE) {
       setContent(media, content);
       ret = media_info_update_to_db(media);
@@ -878,7 +852,6 @@ int ContentManager::updateBatch(picojson::value args) {
 
 
 int ContentManager::playlistAdd(std::string playlist_id, std::string content_id) {
-  dlog_print(DLOG_INFO, "DYKIM", "ContentManager::playlistAdd start");
   int ret = MEDIA_CONTENT_ERROR_NONE;
 
   media_playlist_h playlist = NULL;
@@ -904,12 +877,10 @@ int ContentManager::playlistAdd(std::string playlist_id, std::string content_id)
 }
 
 int ContentManager::playlistRemove(std::string playlist_id, int member_id) {
-  dlog_print(DLOG_INFO, "DYKIM", "ContentManager::playlistRemove start");
   int ret = MEDIA_CONTENT_ERROR_NONE;
 
   media_playlist_h playlist = NULL;
   ret = media_playlist_get_playlist_from_db(std::stoi(playlist_id), &playlist);
-  dlog_print(DLOG_INFO, "DYKIM", "ContentManager::playlistRemove member_id(%d)", member_id);
   if (playlist != NULL && ret == MEDIA_CONTENT_ERROR_NONE) {
     ret = media_playlist_remove_media(playlist, member_id);
     if (ret != MEDIA_CONTENT_ERROR_NONE) {
@@ -931,7 +902,6 @@ int ContentManager::playlistRemove(std::string playlist_id, int member_id) {
 
 
 void ContentManager::playlistAddbatch(const std::shared_ptr<ReplyCallbackData>& user_data) {
-  dlog_print(DLOG_INFO, "DYKIM", "ContentManager::playlistAddbatch start");
   
   int ret = MEDIA_CONTENT_ERROR_NONE;
   std::string playlist_id = user_data->args.get("playlist_id").get<std::string>();
@@ -950,10 +920,9 @@ void ContentManager::playlistAddbatch(const std::shared_ptr<ReplyCallbackData>& 
   for (picojson::value::array::iterator it = contents.begin(); it != contents.end(); it++) {
     picojson::value content = *it;
     std::string id = content.get("id").to_str();
-    dlog_print(DLOG_INFO, "DYKIM", "ContentManager::playlistAddbatch id(%s)",id.c_str());
     ret = media_playlist_add_media(playlist, id.c_str());
     if (ret != MEDIA_CONTENT_ERROR_NONE) {
-      dlog_print(DLOG_INFO, "DYKIM", "Adding Content(id:%s) is failed.", id.c_str());
+      LoggerD("Adding Content(id:%s) is failed.", id.c_str());
     }
   }
 
@@ -967,7 +936,6 @@ void ContentManager::playlistAddbatch(const std::shared_ptr<ReplyCallbackData>& 
 }
 
 void ContentManager::playlistGet(const std::shared_ptr<ReplyCallbackData>& user_data) {
-  dlog_print(DLOG_INFO, "DYKIM", "ContentManager::playlistGet start");
   
   int ret = MEDIA_CONTENT_ERROR_NONE;
   media_playlist_h playlist = NULL;  
@@ -1010,13 +978,10 @@ void ContentManager::playlistGet(const std::shared_ptr<ReplyCallbackData>& user_
     user_data->isSuccess = false;
     user_data->result = err.ToJSON();
   }
-  dlog_print(DLOG_INFO, "DYKIM", "ContentManager::playlistGet start7");  
 }
 
 void ContentManager::playlistRemovebatch(const std::shared_ptr<ReplyCallbackData>& user_data) {
-
-  dlog_print(DLOG_INFO, "DYKIM", "ContentManager::playlistRemovebatch start");
-  
+ 
   int ret = MEDIA_CONTENT_ERROR_NONE;
   media_playlist_h playlist = NULL;  
 
@@ -1052,8 +1017,6 @@ void ContentManager::playlistRemovebatch(const std::shared_ptr<ReplyCallbackData
 
 void ContentManager::playlistSetOrder(const std::shared_ptr<ReplyCallbackData>& user_data) {
 
-  dlog_print(DLOG_INFO, "DYKIM", "ContentManager::playlistSetOrder start");
-  
   int ret = MEDIA_CONTENT_ERROR_NONE;
   media_playlist_h playlist = NULL;
 
@@ -1098,11 +1061,8 @@ void ContentManager::playlistSetOrder(const std::shared_ptr<ReplyCallbackData>& 
 }
 
 void ContentManager::playlistMove(const std::shared_ptr<ReplyCallbackData>& user_data) {
-  dlog_print(DLOG_INFO, "DYKIM", "ContentManager::playlistMove start");
-  
   int ret = MEDIA_CONTENT_ERROR_NONE;
   media_playlist_h playlist = NULL;
-
   std::string playlist_id = user_data->args.get("playlist_id").get<std::string>();
   ret = media_playlist_get_playlist_from_db(std::stoi(playlist_id), &playlist);
   if(ret != MEDIA_CONTENT_ERROR_NONE && playlist == NULL) {
@@ -1113,7 +1073,7 @@ void ContentManager::playlistMove(const std::shared_ptr<ReplyCallbackData>& user
   }
   int old_order;
   double member_id = user_data->args.get("member_id").get<double>();
-  long delta = user_data->args.get("delta").get<long>();  
+  double delta = user_data->args.get("delta").get<double>();
   ret = media_playlist_get_play_order(playlist, static_cast<int>(member_id), &old_order);
   if (ret != MEDIA_CONTENT_ERROR_NONE) {
     UnknownException err("The content can't find form playlist.");
@@ -1121,7 +1081,6 @@ void ContentManager::playlistMove(const std::shared_ptr<ReplyCallbackData>& user
     user_data->result = err.ToJSON();
     return;
   }
-
   int new_order = static_cast<int>(old_order) + static_cast<int>(delta);
   ret = media_playlist_set_play_order(playlist, static_cast<int>(member_id), new_order);
   if (ret != MEDIA_CONTENT_ERROR_NONE) {
@@ -1130,7 +1089,6 @@ void ContentManager::playlistMove(const std::shared_ptr<ReplyCallbackData>& user
     user_data->result = err.ToJSON();
     return;
   }
-
   ret = media_playlist_update_to_db(playlist);
   if (ret != MEDIA_CONTENT_ERROR_NONE) {
     UnknownException err("Updateing play_order is failed.");
@@ -1143,11 +1101,10 @@ void ContentManager::playlistMove(const std::shared_ptr<ReplyCallbackData>& user
 }
 
 int ContentManager::getLyrics(const picojson::value& args, picojson::object& result) {
-
   int ret = METADATA_EXTRACTOR_ERROR_NONE;
   std::string contentURI = convertUriToPath(args.get("contentURI").get<std::string>());
   metadata_extractor_h extractor;
-  
+  metadata_extractor_create(&extractor);
   if (!(contentURI.empty())) {
     ret = metadata_extractor_set_path(extractor, contentURI.c_str());
     if (ret != METADATA_EXTRACTOR_ERROR_NONE) {
@@ -1196,7 +1153,6 @@ int ContentManager::getLyrics(const picojson::value& args, picojson::object& res
 
 
 common::PlatformException ContentManager::convertError(int err) {
-  dlog_print(DLOG_INFO, "DYKIM", "ContentManager::convertError start");
   switch (err) {
     case MEDIA_CONTENT_ERROR_INVALID_PARAMETER :
       return common::InvalidValuesException("Invalid parameter.");
