@@ -6,9 +6,10 @@
 #ifndef __TIZEN_NFC_NFC_MESSAGE_UTILS_H_
 #define __TIZEN_NFC_NFC_MESSAGE_UTILS_H_
 
-#include <vector>
+#include <network/nfc.h>
+
 #include <string>
-#include <nfc.h>
+#include <vector>
 
 #include "common/picojson.h"
 #include "common/platform_result.h"
@@ -46,7 +47,7 @@ class NFCMessageUtils
   static void RemoveMessageHandle(nfc_ndef_message_h message_handle);
 };
 
-} // nfc
-} // extension
+}  // nfc
+}  // extension
 
-#endif // __TIZEN_NFC_NFC_MESSAGE_UTILS_H_
+#endif  // __TIZEN_NFC_NFC_MESSAGE_UTILS_H_

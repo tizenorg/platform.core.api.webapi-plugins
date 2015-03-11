@@ -6,9 +6,10 @@
 #ifndef __TIZEN_NFC_NFCUTIL_H_
 #define __TIZEN_NFC_NFCUTIL_H_
 
-#include <vector>
+#include <network/nfc.h>
+
 #include <string>
-#include <nfc.h>
+#include <vector>
 
 #include "common/platform_result.h"
 
@@ -36,9 +37,6 @@ const std::string UNKNOWN_TARGET = "UNKNOWN_TARGET";
 const std::string ALWAYS_ON = "ALWAYS_ON";
 const std::string OFF = "OFF";
 
-const std::string ESE = "ESE";
-const std::string UICC = "UICC";
-
 const std::string UNKNOWN_ERROR_NAME_STR = "UnknownError";
 const std::string INVALID_VALUES_ERROR_NAME_STR = "InvalidValuesError";
 const std::string TIMEOUT_ERROR_NAME_STR = "TimeoutError";
@@ -64,6 +62,11 @@ class NFCUtil
   static common::PlatformResult ToStringSecureElementType(const nfc_se_type_e se_type, std::string *type);
   static common::PlatformResult ToSecureElementType(const std::string& type_string, nfc_se_type_e *type);
   static void setDefaultFilterValues(std::vector<nfc_tag_type_e>& filter);
+  static const char* ToStr(nfc_hce_event_type_e event_type);
+  static const char* ToStr(nfc_se_type_e se_type);
+  static nfc_card_emulation_category_type_e StringToCategory(const std::string& category_type);
+  static UCharVector DoubleArrayToUCharVector(const picojson::array& apdu_array);
+  static picojson::array FromUCharArray(unsigned char* array, unsigned int apdu_len);
 };
 
 } // nfc
