@@ -175,6 +175,7 @@ for (var prop in errors) {
   error_constants[prop] = {value: errors[prop], writable: false, enumerable: true};
 }
 Object.defineProperties(WebAPIException, error_constants);
+Object.defineProperties(WebAPIException.prototype, error_constants);
 
 exports.WebAPIException = WebAPIException;
 exports.WebAPIError = WebAPIException;
@@ -256,6 +257,9 @@ exports.AbstractFilter = function() {};
  * Represents a set of filters.
  */
 exports.AttributeFilter = function(attrName, matchFlag, matchValue) {
+  if (!(this instanceof exports.AttributeFilter)) {
+    throw new WebAPIException('TypeError', 'Constructor cannot be called as function.');
+  }
   var name_ = '';
   var flag_ = 'EXACTLY';
   var value_ = null;
@@ -272,17 +276,16 @@ exports.AttributeFilter = function(attrName, matchFlag, matchValue) {
       flag_ = flag;
   }
 
-  if (arguments.length > 1)
-    matchFlagSetter(matchFlag);
-
   function matchValueSetter(value) {
     value_ = value;
   }
 
   if (arguments.length > 2) {
+    matchFlagSetter(matchFlag);
     matchValueSetter(matchValue);
-  } else {
-    matchFlagSetter('EXISTS'); // if matchValue is not used then matchFlag is set to 'EXISTS'.
+  } else if (arguments.length > 1) {
+    // if matchValue is not used then matchFlag is set to 'EXISTS'.
+    matchFlagSetter('EXISTS');
   }
 
   Object.defineProperties(this, {
@@ -361,6 +364,9 @@ exports.AttributeFilter.prototype.constructor = exports.AttributeFilter;
  * within a particular range.
  */
 exports.AttributeRangeFilter = function(attrName, start, end) {
+  if (!(this instanceof exports.AttributeRangeFilter)) {
+    throw new WebAPIException('TypeError', 'Constructor cannot be called as function.');
+  }
   var name_ = '';
   var start_ = null;
   var end_ = null;
@@ -469,6 +475,9 @@ exports.AttributeRangeFilter.prototype.constructor = exports.AttributeRangeFilte
  * Represents a set of filters.
  */
 exports.CompositeFilter = function(type, filters) {
+  if (!(this instanceof exports.CompositeFilter)) {
+    throw new WebAPIException('TypeError', 'Constructor cannot be called as function.');
+  }
   var filterTypes = Object.keys(CompositeFilterType);
 
   var type_ = filterTypes[0];
@@ -547,6 +556,9 @@ exports.CompositeFilter.prototype.constructor = exports.CompositeFilter;
  * SortMode is a common interface used for sorting of queried data.
  */
 exports.SortMode = function(attrName, order) {
+  if (!(this instanceof exports.SortMode)) {
+    throw new WebAPIException('TypeError', 'Constructor cannot be called as function.');
+  }
   var sortModeOrder = Object.keys(SortModeOrder);
 
   var attributeName_ = '';
@@ -587,6 +599,10 @@ exports.SortMode.prototype.constructor = exports.SortMode;
  * Represents a point (latitude and longitude) in the map coordinate system.
  */
 exports.SimpleCoordinates = function(lat, lng) {
+  if (!(this instanceof exports.SimpleCoordinates)) {
+    throw new WebAPIException('TypeError', 'Constructor cannot be called as function.');
+  }
+
   var latitude = 0;
   var longitude = 0;
 
@@ -594,7 +610,7 @@ exports.SimpleCoordinates = function(lat, lng) {
     var tmp = Number(lat);
     if (!isNaN(tmp)) {
       if (tmp > 90) tmp = 90;
-      else if (tmp < 0) tmp = 0;
+      else if (tmp < -90) tmp = -90;
 
       latitude = tmp;
     }
@@ -606,7 +622,7 @@ exports.SimpleCoordinates = function(lat, lng) {
     var tmp = Number(lon);
     if (!isNaN(tmp)) {
       if (tmp > 180) tmp = 180;
-      else if (tmp < 0) tmp = 0;
+      else if (tmp < -180) tmp = -180;
 
       longitude = tmp;
     }
