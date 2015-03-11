@@ -90,7 +90,7 @@ function PlaylistItem(content,playlist_member_id) {
   var member_id = playlist_member_id;
   Object.defineProperties(this, {
     'content': { writable: false, value: content, enumerable: true },
-    'member_id': {
+    'member_id': {enumerable: false,
       set: function(v) { if (v != null) member_id = v},
       get: function() { return member_id; }
     }
@@ -102,7 +102,6 @@ Playlist.prototype.add = function(item) {
   var args = validator_.validateArgs(arguments, [
     {'name' : 'item', 'type': types_.PLATFORM_OBJECT, 'values': Content, 'optional' : false, 'nullable' : false}
   ]);
-  console.log("[dykim]Playlist add entered1");
   var nativeParam = {
     'playlist_id': this.id
   };
@@ -137,7 +136,7 @@ Playlist.prototype.remove = function(item) {
 Playlist.prototype.removeBatch = function(items) {
   var args = validator_.validateArgs(arguments, [
     {'name' : 'items', 'type': types_.ARRAY},
-    {'name' : 'successCallback', 'type': types_.FUNCTION, optional : true, nullable : true},  
+    {'name' : 'successCallback', 'type': types_.FUNCTION, optional : true, nullable : true},
     {'name' : 'errorCallback', 'type': types_.FUNCTION, optional : true, nullable : true}
   ]);
 
@@ -149,16 +148,13 @@ Playlist.prototype.removeBatch = function(items) {
   if (args['items']) {
     for (var i = 0; i < args.items.length; i++) {
       var c = args.items[i];
-      console.log("member_id:" + c.member_id);
       nativeParam.members.push(c.member_id);
     }
-    console.log("nativeParam['members']:" + nativeParam["members"]);
   }
 
   try {
     var syncResult = callNativeWithCallback('ContentPlaylist_removeBatch', nativeParam, function(result) {
       if (result.status == 'success') {
-        console.log("[dykim]ContentPlaylist_removeBatch successCallback entered");
         args.successCallback();
       }
       else if(result.status == 'error') {
@@ -201,14 +197,10 @@ Playlist.prototype.get = function() {
     var syncResult = callNativeWithCallback('ContentPlaylist_get', nativeParam, function(result) {
       if (result.status == 'success') {
         var items = [];
-        console.log("successCallback Playlist get:%d",result.value.length);
         for (var i = 0; i < result.value.length; i++) {
           var c = result.value[i];
-          console.log("name:" + c.name);
-          console.log("playlist_member_id:" + c.playlist_member_id);
-          var content = new Content(c.id, c.name);
+          var content = createContent(c);
           var item = new PlaylistItem(content,c.playlist_member_id);
-          console.log("item :" + item.member_id);
           items.push(item);
         }
         args.successCallback(items);
@@ -227,8 +219,8 @@ Playlist.prototype.get = function() {
 Playlist.prototype.addBatch = function() {
   var args = validator_.validateArgs(arguments, [
     {'name' : 'items', 'type': types_.ARRAY},
-    {'name' : 'successCallback', 'type': types_.FUNCTION, optional : true, nullable : true},  
-    {'name' : 'errorCallback', 'type': types_.FUNCTION, optional : true, nullable : true} 
+    {'name' : 'successCallback', 'type': types_.FUNCTION, optional : true, nullable : true},
+    {'name' : 'errorCallback', 'type': types_.FUNCTION, optional : true, nullable : true}
   ]);
 
   var nativeParam = {
@@ -255,8 +247,8 @@ Playlist.prototype.addBatch = function() {
 Playlist.prototype.setOrder  = function() {
   var args = validator_.validateArgs(arguments, [
     {'name' : 'items', 'type': types_.ARRAY},
-    {'name' : 'successCallback', 'type': types_.FUNCTION, optional : true, nullable : true},  
-    {'name' : 'errorCallback', 'type': types_.FUNCTION, optional : true, nullable : true} 
+    {'name' : 'successCallback', 'type': types_.FUNCTION, optional : true, nullable : true},
+    {'name' : 'errorCallback', 'type': types_.FUNCTION, optional : true, nullable : true}
   ]);
 
   var nativeParam = {
@@ -267,7 +259,6 @@ Playlist.prototype.setOrder  = function() {
   if (args['items']) {
     for (var i = 0; i < args.items.length; i++) {
       var c = args.items[i];
-      console.log("member_id:" + c.member_id);
       nativeParam.members.push(c.member_id);
     }
   }
@@ -291,23 +282,20 @@ Playlist.prototype.move  = function(item, delta) {
   var args = validator_.validateArgs(arguments, [
     {'name' : 'item', 'type': types_.PLATFORM_OBJECT, 'values': PlaylistItem},
     {'name' : 'delta', 'type': types_.LONG},
-    {'name' : 'successCallback', 'type': types_.FUNCTION, optional : true, nullable : true},  
-    {'name' : 'errorCallback', 'type': types_.FUNCTION, optional : true, nullable : true} 
+    {'name' : 'successCallback', 'type': types_.FUNCTION, optional : true, nullable : true},
+    {'name' : 'errorCallback', 'type': types_.FUNCTION, optional : true, nullable : true}
   ]);
 
   var nativeParam = {
     'playlist_id': this.id,
-    'member_id': args.item.member_id
+    'member_id': args.item.member_id,
+    'delta' : args.delta
   };
-
-  if (args['delta']) {
-    nativeParam['delta'] = delta;
-  }
-
+  
   try {
+
     var syncResult = callNativeWithCallback('ContentPlaylist_move', nativeParam, function(result) {
       if (result.status == 'success') {
-          console.log("[dykim]ContentPlaylist_move successCallback entered");
           args.successCallback();
       }
       else if(result.status == 'error') {
@@ -428,7 +416,7 @@ function AudioContentLyrics(type, timestamps, texts) {
 
 function AudioContent(obj, album, genres, artists, composers, copyright,
   bitrate, trackNumber, duration) {
-  var lyrics_ = undefined;
+  var lyrics_ = null;
   function getLyrics(contentURI) {
     var nativeParam = {
       'contentURI': contentURI
@@ -467,6 +455,9 @@ function AudioContent(obj, album, genres, artists, composers, copyright,
         	if(lyrics_ === undefined) {
         		getLyrics(obj.contentURI);
         	}
+          else if(lyrics_ === null) {
+            lyrics_ = undefined;
+          }
       		return lyrics_;
         }
       }
@@ -498,7 +489,7 @@ function createContent(c) {
   }
   else if (c.type === "VIDEO") {
     var video = new VideoContent(content,
-      c.geo,
+      c.geolocation,
       c.album,
       c.artists,
       c.duration,
@@ -526,14 +517,12 @@ function ContentManager() {
     // constructor of ContentManager
 }
 
-
+//void update (Content content)
 ContentManager.prototype.update = function(content) {
   var args = validator_.validateArgs(arguments, [
-    {'name' : 'content', 'type': types_.PLATFORM_OBJECT}
+    {'name' : 'content', 'type': types_.PLATFORM_OBJECT, 'values': Content}
   ]);
-  console.log("[dykim]update entered1 id:" + content.id);
-  var nativeParam = {
-  };
+  var nativeParam = {};
   if (args['content']) {
       nativeParam['content'] = args.content;
   }
@@ -547,8 +536,8 @@ ContentManager.prototype.update = function(content) {
 ContentManager.prototype.updateBatch = function(contents) {
   var args = validator_.validateArgs(arguments, [
     {'name' : 'contents', 'type': types_.ARRAY},  
-    {'name' : 'successCallback', 'type': types_.FUNCTION, optional : true, nullable : true},  
-    {'name' : 'errorCallback', 'type': types_.FUNCTION, optional : true, nullable : true} 
+    {'name' : 'successCallback', 'type': types_.FUNCTION, optional : true, nullable : true},
+    {'name' : 'errorCallback', 'type': types_.FUNCTION, optional : true, nullable : true}
   ]);
 
   var nativeParam = {
@@ -571,7 +560,6 @@ ContentManager.prototype.updateBatch = function(contents) {
 }
 
 ContentManager.prototype.getDirectories = function(successCallback) {
-  console.log("[dykim]getDirectories entered");
   var args = validator_.validateArgs(arguments, [
       {'name' : 'successCallback', 'type': types_.FUNCTION, optional : false, nullable : false},  
       {'name' : 'errorCallback', 'type': types_.FUNCTION, optional : true, nullable : true} 
@@ -583,7 +571,6 @@ ContentManager.prototype.getDirectories = function(successCallback) {
   try {
     var syncResult = callNativeWithCallback('ContentManager_getDirectories', nativeParam, function(result) {
       if (result.status == 'success') {
-        console.log("[dykim]getDirectories successCallback entered");
         var dirs = [];
 
         for (var i = 0; i < result.value.length; i++) {
@@ -619,8 +606,8 @@ ContentManager.prototype.find = function(successCallback) {
       {'name' : 'directoryId', 'type': types_.STRING, optional : true, nullable : true},  
       {'name' : 'filter', 'type': types_.DICTIONARY, optional : true, nullable : true},  
       {'name' : 'sortMode', 'type': types_.DICTIONARY, optional : true, nullable : true},  
-      {'name' : 'count', 'type': types_.LONG, optional : true},  
-      {'name' : 'offset', 'type': types_.LONG, optional : true} 
+      {'name' : 'count', 'type': types_.UNSIGNED_LONG, optional : true},
+      {'name' : 'offset', 'type': types_.UNSIGNED_LONG, optional : true}
   ]);
 
   var nativeParam = {
@@ -645,7 +632,6 @@ ContentManager.prototype.find = function(successCallback) {
     var syncResult = callNativeWithCallback('ContentManager_find', nativeParam, function(result) {
       if (result.status == 'success') {
         var contents = [];
-        console.log("successCallback find:%d",result.value.length);
         for ( var i = 0; i < result.value.length; i++) {
           var c = result.value[i];
 
@@ -668,11 +654,10 @@ ContentManager.prototype.find = function(successCallback) {
 }
 
 ContentManager.prototype.scanFile = function(contentURI) {
-  console.log("[dykim]scanFile entered");
   var args = validator_.validateArgs(arguments, [
     {'name' : 'contentURI', 'type': types_.STRING},  
-    {'name' : 'successCallback', 'type': types_.FUNCTION, 'values' : ['onsuccess'], optional : true, nullable : true},  
-    {'name' : 'errorCallback', 'type': types_.FUNCTION, optional : true, nullable : true} 
+    {'name' : 'successCallback', 'type': types_.FUNCTION, optional : true, nullable : true},
+    {'name' : 'errorCallback', 'type': types_.FUNCTION, optional : true, nullable : true}
   ]);
 
   var nativeParam = {
@@ -699,7 +684,6 @@ ContentManager.prototype.scanFile = function(contentURI) {
 }
 
 ContentManager.prototype.setChangeListener = function(changeCallback) {
-  console.log("[dykim]setChangeListener entered");
   var args = validator_.validateArgs(arguments, [
       {'name' : 'changeCallback', 'type': types_.LISTENER, 'values' : ['oncontentadded', 'oncontentupdated', 'oncontentremoved']} 
   ]);
@@ -709,19 +693,16 @@ ContentManager.prototype.setChangeListener = function(changeCallback) {
   try {
     var syncResult = callNativeWithCallback('ContentManager_setChangeListener', nativeParam, function(result) {
       if (result.status == 'oncontentadded') {
-        console.log("[dykim]setChangeListener oncontentadded");
         var c = result['value'];
         var content = createContent(c);
         args.changeCallback.oncontentadded(content);
       }
       if (result.status == 'oncontentupdated') {
-        console.log("[dykim]setChangeListener oncontentupdated");
         var c = result['value'];
         var content = createContent(c);
         args.changeCallback.oncontentupdated(content);
       }
       if (result.status == 'oncontentremoved') {
-        console.log("[dykim]setChangeListener oncontentremoved");
         var contentId = result['value'];
         args.changeCallback.oncontentremoved(contentId);
       }
@@ -730,7 +711,6 @@ ContentManager.prototype.setChangeListener = function(changeCallback) {
   } catch(e) {
       throw e;
   }
-  console.log("[dykim]setChangeListener ended");
 }
 
 ContentManager.prototype.unsetChangeListener = function() {
@@ -744,7 +724,6 @@ ContentManager.prototype.unsetChangeListener = function() {
 }
 
 ContentManager.prototype.getPlaylists = function(successCallback) {
-  console.log("[dykim]getPlaylists start");
   var args = validator_.validateArgs(arguments, [
     {'name' : 'successCallback', 'type': types_.FUNCTION},  
     {'name' : 'errorCallback', 'type': types_.FUNCTION, optional : true, nullable : true} 
@@ -772,11 +751,9 @@ ContentManager.prototype.getPlaylists = function(successCallback) {
   } catch(e) {
     throw e;
   }
-  console.log("[dykim]getPlaylists end");
 }
 
 ContentManager.prototype.createPlaylist = function(name, successCallback) {
-  console.log("[dykim]createPlaylist start");
   var args = validator_.validateArgs(arguments, [
     {'name' : 'name', 'type': types_.STRING},  
     {'name' : 'successCallback', 'type': types_.FUNCTION},  
@@ -810,11 +787,10 @@ ContentManager.prototype.createPlaylist = function(name, successCallback) {
 }
 
 ContentManager.prototype.removePlaylist = function(id) {
-  console.log("[dykim]removePlaylist start");
   var args = validator_.validateArgs(arguments, [
     {'name' : 'id', 'type': types_.STRING},  
-    {'name' : 'successCallback', 'type': types_.FUNCTION, optional : true, nullable : true},  
-    {'name' : 'errorCallback', 'type': types_.FUNCTION, optional : true, nullable : true} 
+    {'name' : 'successCallback', 'type': types_.FUNCTION, optional : true, nullable : true},
+    {'name' : 'errorCallback', 'type': types_.FUNCTION, optional : true, nullable : true}
   ]);
 
   var nativeParam = {
@@ -834,8 +810,6 @@ ContentManager.prototype.removePlaylist = function(id) {
   } catch(e) {
     throw e;
   }
-
-  console.log("[dykim]removePlaylist end");
 }
 
 

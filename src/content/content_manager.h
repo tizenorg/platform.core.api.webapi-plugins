@@ -19,6 +19,8 @@
 namespace extension {
 namespace content {
 
+void contentToJson(media_info_h info, picojson::object& o);
+  
 class ContentManager {
  public:
   virtual ~ContentManager();
@@ -29,8 +31,6 @@ class ContentManager {
   void find(const std::shared_ptr<ReplyCallbackData>& user_data);
   int update(picojson::value args);
   int updateBatch(picojson::value args);
-  void contentToJson(media_info_h media, picojson::object& o);
-  //directorytoJson
   
   int scanFile(std::string& uri);
   int setChangeListener(media_content_db_update_cb callback, void *user_data);

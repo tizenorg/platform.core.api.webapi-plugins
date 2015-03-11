@@ -77,7 +77,6 @@ static gboolean CompletedCallback(const std::shared_ptr<ReplyCallbackData>& user
 
   picojson::value::object reply;
   reply["value"] = user_data->result;
-  LoggerE("CompletedCallback...(%d)" , user_data->isSuccess);
   ReplyAsync(user_data->instance,user_data->cbType,user_data->callbackId,user_data->isSuccess,reply);
 
   return false;  
@@ -89,18 +88,15 @@ static void* WorkThread(const std::shared_ptr<ReplyCallbackData>& user_data) {
   ContentCallbacks cbType = user_data->cbType;
   switch(cbType) {
     case ContentManagerUpdatebatchCallback: {
-      LoggerE("ContentManagerUpdatebatchCallback...");
       ContentManager::getInstance()->updateBatch(user_data->args);
       break;
     }
     case ContentManagerGetdirectoriesCallback: {
-      LoggerE("ContentManagerGetdirectoriesCallback...");
       ContentManager::getInstance()->getDirectories(user_data);
       break;
     }
     case ContentManagerFindCallback: {
       ContentManager::getInstance()->find(user_data);        
-      LoggerE("ContentManagerFindCallback...:%s", user_data->result.serialize().c_str());
       break;
     }
     case ContentManagerScanfileCallback: {
@@ -109,12 +105,10 @@ static void* WorkThread(const std::shared_ptr<ReplyCallbackData>& user_data) {
       break;
     }
     case ContentManagerGetplaylistsCallback: {
-      LoggerE("ContentManagerGetplaylistsCallback...");
       ContentManager::getInstance()->getPlaylists(user_data);
       break;
     }
     case ContentManagerCreateplaylistCallback: {
-      LoggerE("ContentManagerCreateplaylistCallback...");
       if (user_data->args.contains("sourcePlaylist")) {
         picojson::object playlist = user_data->args.get("sourcePlaylist").get<picojson::object>();
         user_data->isSuccess = true;
@@ -134,28 +128,26 @@ static void* WorkThread(const std::shared_ptr<ReplyCallbackData>& user_data) {
       break;
     }
     case ContentManagerPlaylistAddbatchCallback: {
-      LoggerE("ContentManagerPlaylistAddBatchCallback...");
       ContentManager::getInstance()->playlistAddbatch(user_data);
       break;
     }
     case ContentManagerPlaylistGetCallback: {
-      LoggerE("ContentManagerPlaylistGetCallback...");
       ContentManager::getInstance()->playlistGet(user_data);
       break;
     }
     case ContentManagerPlaylistRemovebatchCallback: {
-      LoggerE("ContentManagerPlaylistGetCallback...");
       ContentManager::getInstance()->playlistRemovebatch(user_data);
       break;
     }
     case ContentManagerPlaylistSetOrderCallback: {
-      LoggerE("ContentManagerPlaylistSetOrderCallback...");
       ContentManager::getInstance()->playlistSetOrder(user_data);
       break;
       //ContentManagerPlaylistSetOrderCallback
     }
     case ContentManagerPlaylistMoveCallback: {
-      LoggerE("ContentManagerPlaylistMove...");
+      std::string playlist_id = user_data->args.get("playlist_id").get<std::string>();   
+      double member_id = user_data->args.get("member_id").get<double>();
+      double delta = user_data->args.get("delta").get<double>();  
       ContentManager::getInstance()->playlistMove(user_data);
       break;
     }
@@ -178,8 +170,7 @@ static void changedContentCallback(media_content_error_e error, int pid, media_c
   char *uuid, char *path, char *mime_type, void* user_data) {
 
   int ret;
-  std::shared_ptr<ReplyCallbackData> *cbData = (std::shared_ptr<ReplyCallbackData>*)(user_data);
-  LoggerE("ContentInstance::ContentManagerScanfile");
+  ReplyCallbackData *cbData = static_cast<ReplyCallbackData*>(user_data);
   picojson::object reply;
   
   picojson::object o;
@@ -190,7 +181,7 @@ static void changedContentCallback(media_content_error_e error, int pid, media_c
         std::string id(uuid);
         ret = media_info_get_media_from_db(id.c_str(), &media);
         if (ret == MEDIA_CONTENT_ERROR_NONE && media != NULL) {
-          ContentManager::getInstance()->contentToJson(media, o);
+          contentToJson(media, o);
           reply["value"] = picojson::value(o);
           if (update_type == MEDIA_CONTENT_INSERT) {
             reply["status"] = picojson::value("oncontentadded");
@@ -209,9 +200,10 @@ static void changedContentCallback(media_content_error_e error, int pid, media_c
   else {
     return;
   }
-  reply["callbackId"] = picojson::value(static_cast<double>((*cbData)->callbackId));
+  reply["callbackId"] = picojson::value(static_cast<double>(cbData->callbackId));
   picojson::value result = picojson::value(reply);
-  (*cbData)->instance->PostMessage(result.serialize().c_str());
+  cbData->instance->PostMessage(result.serialize().c_str());
+  delete cbData;
 }
 
 
@@ -223,7 +215,6 @@ static void changedContentCallback(media_content_error_e error, int pid, media_c
 
 
 void ContentInstance::ContentManagerUpdate(const picojson::value& args, picojson::object& out) {
-  LoggerE("ContentInstance::ContentManagerUpdate");
   int ret;
   if(ContentManager::getInstance()->isConnected()) {
     ret = ContentManager::getInstance()->update(args);
@@ -253,7 +244,6 @@ void ContentInstance::ContentManagerUpdatebatch(const picojson::value& args, pic
   common::TaskQueue::GetInstance().Queue<ReplyCallbackData>(WorkThread, CompletedCallback, cbData);
 }
 void ContentInstance::ContentManagerGetdirectories(const picojson::value& args, picojson::object& out) {
-  dlog_print(DLOG_INFO, "DYKIM", "ContentInstance::getDirectories started");
   CHECK_EXIST(args, "callbackId", out)
 
   double callbackId = args.get("callbackId").get<double>();
@@ -271,18 +261,9 @@ void ContentInstance::ContentManagerGetdirectories(const picojson::value& args, 
   }
   common::TaskQueue::GetInstance().Queue<ReplyCallbackData>(WorkThread, CompletedCallback, cbData);
 
-  // call ReplyAsync in later (Asynchronously)
-  
-  // if success
-  //ReportSuccess(out);
-  // if error
-  // ReportError(out);
 }
 void ContentInstance::ContentManagerFind(const picojson::value& args, picojson::object& out) {
   CHECK_EXIST(args, "callbackId", out)
-
-  //double count = args.get("count").get<double>();
-  //double offset = args.get("offset").get<double>();
 
   double callbackId = args.get("callbackId").get<double>();
   
@@ -298,17 +279,9 @@ void ContentInstance::ContentManagerFind(const picojson::value& args, picojson::
   }
 
   common::TaskQueue::GetInstance().Queue<ReplyCallbackData>(WorkThread, CompletedCallback, cbData);
-  // implement it
-
-  // call ReplyAsync in later (Asynchronously)
-
-  // if success
-  // ReportSuccess(out);
-  // if error
-  // ReportError(out);
+  
 }
 void ContentInstance::ContentManagerScanfile(const picojson::value& args, picojson::object& out) {
-  LoggerE("ContentInstance::ContentManagerScanfile");
   CHECK_EXIST(args, "callbackId", out)
   CHECK_EXIST(args, "contentURI", out)
 
@@ -324,20 +297,14 @@ void ContentInstance::ContentManagerScanfile(const picojson::value& args, picojs
     cbData->cbType = ContentManagerErrorCallback;
   }
   common::TaskQueue::GetInstance().Queue<ReplyCallbackData>(WorkThread, CompletedCallback, cbData);
-  // implement it
-  // call ReplyAsync in later (Asynchronously)
-
-  // if success
-  // ReportSuccess(out);
-  // if error
-  // ReportError(out);
 }
 void ContentInstance::ContentManagerSetchangelistener(const picojson::value& args, picojson::object& out) {
   CHECK_EXIST(args, "callbackId", out)
 
   double callbackId = args.get("callbackId").get<double>();
+//  std::shared_ptr<ReplyCallbackData>cbData(new ReplyCallbackData);
 
-  std::shared_ptr<ReplyCallbackData>cbData(new ReplyCallbackData);
+  ReplyCallbackData *cbData = new ReplyCallbackData();
   
   cbData->callbackId = callbackId;
   cbData->instance = this;
@@ -349,28 +316,15 @@ void ContentInstance::ContentManagerSetchangelistener(const picojson::value& arg
     cbData->cbType = ContentManagerErrorCallback;
   }
 
-  ContentManager::getInstance()->setChangeListener(changedContentCallback,static_cast<void*>(&cbData));
-  
-  // implement it
+  ContentManager::getInstance()->setChangeListener(changedContentCallback,static_cast<void*>(cbData));
 
-  // call ReplyAsync in later (Asynchronously)
-
-  // if success
-  // ReportSuccess(out);
-  // if error
-  // ReportError(out);
 }
 void ContentInstance::ContentManagerUnsetchangelistener(const picojson::value& args, picojson::object& out) {
 
   ContentManager::getInstance()->unSetChangeListener();
 
-  // if success
-  // ReportSuccess(out);
-  // if error
-  // ReportError(out);
 }
 void ContentInstance::ContentManagerGetplaylists(const picojson::value& args, picojson::object& out) {
-  LoggerE("ContentInstance::ContentManagerGetplaylists");
   CHECK_EXIST(args, "callbackId", out)
 
   double callbackId = args.get("callbackId").get<double>();
@@ -392,7 +346,6 @@ void ContentInstance::ContentManagerGetplaylists(const picojson::value& args, pi
   
 }
 void ContentInstance::ContentManagerCreateplaylist(const picojson::value& args, picojson::object& out) {
-  LoggerE("ContentInstance::ContentManagerCreateplaylist");
   CHECK_EXIST(args, "callbackId", out)
   CHECK_EXIST(args, "name", out)
 
@@ -414,8 +367,6 @@ void ContentInstance::ContentManagerCreateplaylist(const picojson::value& args, 
   common::TaskQueue::GetInstance().Queue<ReplyCallbackData>(WorkThread, CompletedCallback, cbData);
 }
 void ContentInstance::ContentManagerRemoveplaylist(const picojson::value& args, picojson::object& out) {
-  LoggerE("ContentInstance::ContentManagerRemoveplaylist");
-
   double callbackId = args.get("callbackId").get<double>();
 
   auto cbData = std::shared_ptr<ReplyCallbackData>(new ReplyCallbackData);
@@ -433,20 +384,13 @@ void ContentInstance::ContentManagerRemoveplaylist(const picojson::value& args, 
   // implement it
   common::TaskQueue::GetInstance().Queue<ReplyCallbackData>(WorkThread, CompletedCallback, cbData);
 
-
-  // if success
-  // ReportSuccess(out);
-  // if error
-  // ReportError(out);
 }
 
 void ContentInstance::ContentManagerPlaylistAdd(const picojson::value& args, picojson::object& out) {
-  LoggerE("ContentInstance::ContentManagerPlaylistAdd");
   int ret;
   if(ContentManager::getInstance()->isConnected()) {
     std::string playlist_id = args.get("playlist_id").get<std::string>();
     std::string content_id = args.get("content_id").get<std::string>();
-    LoggerE("playlist:%s / content:%s", playlist_id.c_str() , content_id.c_str());
     ret = ContentManager::getInstance()->playlistAdd(playlist_id, content_id);
     if(ret != MEDIA_CONTENT_ERROR_NONE) {
       ReportError(ContentManager::getInstance()->convertError(ret),out);
@@ -495,12 +439,10 @@ void ContentInstance::ContentManagerPlaylistGet(const picojson::value& args, pic
 }
 
 void ContentInstance::ContentManagerPlaylistRemove(const picojson::value& args, picojson::object& out) {
-  LoggerE("ContentInstance::ContentManagerPlaylistRemove");
   int ret;
   if(ContentManager::getInstance()->isConnected()) {
     std::string playlist_id = args.get("playlist_id").get<std::string>();
     int member_id = args.get("member_id").get<double>();
-    LoggerE("playlist:%s / member_id:%d", playlist_id.c_str() , member_id);
     ret = ContentManager::getInstance()->playlistRemove(playlist_id, member_id);
     if(ret != MEDIA_CONTENT_ERROR_NONE) {
       ReportError(ContentManager::getInstance()->convertError(ret),out);
@@ -556,7 +498,7 @@ void ContentInstance::ContentManagerPlaylistMove(const picojson::value& args, pi
   cbData->callbackId = callbackId;
   cbData->instance = this;
   cbData->args = args;
-  
+
   if(ContentManager::getInstance()->isConnected()) {
     cbData->cbType = ContentManagerPlaylistMoveCallback;
   }
@@ -567,7 +509,6 @@ void ContentInstance::ContentManagerPlaylistMove(const picojson::value& args, pi
 }
 
 void ContentInstance::ContentManagerAudioGetLyrics(const picojson::value& args, picojson::object& out) {
-  LoggerE("ContentInstance::ContentManagerAudioGetLyrics");
   int ret;
   picojson::object lyrics;
   if(ContentManager::getInstance()->isConnected()) {
