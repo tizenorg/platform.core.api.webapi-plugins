@@ -49,31 +49,21 @@ function CommonFS() {
 
 CommonFS.prototype.cacheVirtualToReal = {};
 
-CommonFS.prototype.cacheRealToVirtual = {};
-
 CommonFS.prototype.cacheStorages = [];
 
-CommonFS.prototype.getFileInfo = function(aPath, aStatObj, secondIter, aMode) {
+CommonFS.prototype.getFileInfo = function(aStatObj, secondIter, aMode) {
   var _result = {},
       _pathTokens,
       _fileParentPath = '',
       i;
-
-  if (aPath.indexOf('file://') === 0) {
-    aPath = aPath.substr('file://'.length);
-  }
-
-  if (aPath[0] === '/') {
-    aPath = aPath.substr(1);
-    _fileParentPath = '/';
-  }
+  var aPath = this.toVirtualPath(aStatObj.path);
 
   _result.readOnly = aStatObj.readOnly;
   _result.isFile = aStatObj.isFile;
   _result.isDirectory = aStatObj.isDirectory;
   _result.created = new Date(aStatObj.ctime * 1000);
   _result.modified = new Date(aStatObj.mtime * 1000);
-  _result.fullPath = _fileParentPath + aPath;
+  _result.fullPath = aPath;
   _result.fileSize = aStatObj.size;
   _result.mode = aMode;
   if (_result.isDirectory) {
@@ -96,8 +86,8 @@ CommonFS.prototype.getFileInfo = function(aPath, aStatObj, secondIter, aMode) {
     _result.parent = (secondIter) ? null : _fileParentPath;
   } else {
     _result.parent = null;
-    _result.path = _fileParentPath === '/' ? _fileParentPath : aPath;
-    _result.name = _fileParentPath === '/' ? aPath : '';
+    _result.path = aPath;
+    _result.name = '';
   }
   return _result;
 };
@@ -147,7 +137,6 @@ CommonFS.prototype.toRealPath = function(aPath) {
       for (i = 1; i < _pathTokens.length; ++i) {
         _fileRealPath += '/' + _pathTokens[i];
       }
-      this.cacheRealToVirtual[_fileRealPath] = aPath;
     } else {
       //If path token is not present in cache then it is invalid
       _fileRealPath = undefined;
@@ -164,11 +153,11 @@ CommonFS.prototype.toVirtualPath = function(aPath) {
   if (_virtualPath.indexOf('file://') === 0) {
     _virtualPath = _virtualPath.substr('file://'.length);
   }
-  for (var real_path in this.cacheRealToVirtual) {
-    if (_virtualPath.indexOf(real_path) === 0) {
-      return _virtualPath.replace(
-          real_path,
-          this.cacheRealToVirtual[real_path]);
+
+  for (var virtual_root in this.cacheVirtualToReal) {
+    var real_root_path = this.cacheVirtualToReal[virtual_root].path;
+    if (aPath.indexOf(real_root_path, 0) === 0) {
+        return aPath.replace(real_root_path, virtual_root)
     }
   }
 
@@ -202,10 +191,6 @@ CommonFS.prototype.initCache = function() {
     state: FileSystemStorageState.MOUNTED
   };
 
-  this.cacheRealToVirtual[widgetsPaths['wgt-package']] = 'wgt-package';
-  this.cacheRealToVirtual[widgetsPaths['wgt-private']] = 'wgt-private';
-  this.cacheRealToVirtual[widgetsPaths['wgt-private-tmp']] = 'wgt-private-tmp';
-
   var d = this.cacheVirtualToReal;
   for (var i in d) {
     this.cacheStorages.push({
@@ -235,7 +220,6 @@ CommonFS.prototype.initCache = function() {
           storage_id: data[i].storage_id
         });
       }
-      this.cacheRealToVirtual[data[i].paths[j]] = j;
     }
     this.cacheStorages.push({
       label: data[i].name,
@@ -247,7 +231,6 @@ CommonFS.prototype.initCache = function() {
 };
 
 CommonFS.prototype.clearCache = function() {
-  this.cacheRealToVirtual = {};
   this.cacheVirtualToReal = {};
   this.cacheStorages = [];
 };

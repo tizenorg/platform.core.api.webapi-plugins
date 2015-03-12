@@ -20,7 +20,7 @@ function File(data) {
             var _location = {location: commonFS_.toRealPath(_parentPath)};
             var _result = native_.callSync('File_statSync', _location);
             var _statObj = native_.getResultObject(_result);
-            var _info = commonFS_.getFileInfo(_parentPath, _statObj, true);
+            var _info = commonFS_.getFileInfo(_statObj, true);
             return new File(_info);
           } else {
             return null;
@@ -184,13 +184,11 @@ File.prototype.listFiles = function(onsuccess, onerror, filter) {
     var aFiles = native_.getResultObject(result);
     var _result = [],
         i,
-        _resolvedPath,
         _statObj,
         _fileInfo;
     for (i = 0; i < aFiles.length; ++i) {
-      _resolvedPath = aFiles[i].path;
       _statObj = aFiles[i];
-      _fileInfo = commonFS_.getFileInfo(_resolvedPath, _statObj);
+      _fileInfo = commonFS_.getFileInfo(_statObj);
 
       if (_fileFilter === null) {
         _result.push(new File(_fileInfo));
@@ -548,7 +546,7 @@ File.prototype.createDirectory = function(dirPath) {
     var _result = native_.callSync('File_statSync', {location: _realNewPath});
     _statObj = native_.getResultObject(_result);
 
-    _fileInfo = commonFS_.getFileInfo(_realNewPath, _statObj, false, this.mode);
+    _fileInfo = commonFS_.getFileInfo(_statObj, false, this.mode);
     return new File(_fileInfo);
   } else {
     throw new tizen.WebAPIException(tizen.WebAPIException.IO_ERR,
@@ -598,7 +596,7 @@ File.prototype.createFile = function(relativeFilePath) {
 
   var _result = native_.callSync('File_statSync', {location: _outputRealPath});
   var _statObj = native_.getResultObject(_result);
-  var _fileInfo = commonFS_.getFileInfo(_outputPath, _statObj, false, this.mode);
+  var _fileInfo = commonFS_.getFileInfo(_statObj, false, this.mode);
 
   return new File(_fileInfo);
 
@@ -637,7 +635,7 @@ File.prototype.resolve = function(filePath) {
     throw new tizen.WebAPIException(tizen.WebAPIException.NOT_FOUND_ERR, native_.getErrorObject(_result));
   }
   var _statObj = native_.getResultObject(_result);
-  var _fileInfo = commonFS_.getFileInfo(_newPath, _statObj, false, this.mode);
+  var _fileInfo = commonFS_.getFileInfo(_statObj, false, this.mode);
   return new File(_fileInfo);
 
 };
@@ -673,7 +671,7 @@ File.prototype.deleteDirectory = function(directoryPath, recursive, onsuccess, o
     return;
   }
   var _statObj = native_.getResultObject(_result);
-  var _info = commonFS_.getFileInfo(_myPath, _statObj);
+  var _info = commonFS_.getFileInfo(_statObj);
   var _node = new File(_info);
 
   if (!_node.isDirectory) {
