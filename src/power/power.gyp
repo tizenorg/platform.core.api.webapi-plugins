@@ -22,7 +22,7 @@
           'variables': {
             'packages': [
               'capi-system-device',
-              'capi-system-power',
+              'deviced',
               'vconf',
             ]
           },

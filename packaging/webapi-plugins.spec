@@ -220,7 +220,7 @@ BuildRequires: pkgconfig(storage)
 %endif
 
 %if 0%{?tizen_feature_power_support}
-BuildRequires: pkgconfig(capi-system-power)
+BuildRequires: pkgconfig(deviced)
 %endif
 
 %if 0%{?tizen_feature_power_support}
