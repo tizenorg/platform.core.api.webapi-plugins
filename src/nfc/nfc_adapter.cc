@@ -463,9 +463,9 @@ PlatformResult NFCAdapter::AddCardEmulationModeChangeListener() {
       return NFCUtil::CodeToResult(ret,
                                  NFCUtil::getNFCErrorMessage(ret).c_str());
     }
+    m_is_listener_set = true;
   }
 
-  m_is_listener_set = true;
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
@@ -477,8 +477,8 @@ PlatformResult NFCAdapter::RemoveCardEmulationModeChangeListener() {
 
   if (m_is_listener_set) {
     nfc_manager_unset_se_event_cb();
+    m_is_listener_set = false;
   }
-  m_is_listener_set = false;
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
@@ -494,17 +494,17 @@ PlatformResult NFCAdapter::AddTransactionEventListener(const picojson::value& ar
   int ret = NFC_ERROR_NONE;
 
   if (NFC_SE_TYPE_ESE == se_type) {
-    if (m_is_transaction_ese_listener_set) {
+    if (!m_is_transaction_ese_listener_set) {
       ret = nfc_manager_set_se_transaction_event_cb(se_type,
                                                     transaction_event_callback, NULL);
+      m_is_transaction_ese_listener_set = true;
     }
-    m_is_transaction_ese_listener_set = true;
   } else {
-    if (m_is_transaction_uicc_listener_set) {
+    if (!m_is_transaction_uicc_listener_set) {
       ret = nfc_manager_set_se_transaction_event_cb(se_type,
                                                     transaction_event_callback, NULL);
+      m_is_transaction_uicc_listener_set = true;
     }
-    m_is_transaction_uicc_listener_set = true;
   }
 
   if (NFC_ERROR_NONE != ret) {
@@ -542,9 +542,9 @@ PlatformResult NFCAdapter::AddActiveSecureElementChangeListener() {
       return NFCUtil::CodeToResult(ret,
                                  NFCUtil::getNFCErrorMessage(ret).c_str());
     }
+    m_is_listener_set = true;
   }
 
-  m_is_listener_set = true;
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
@@ -556,8 +556,8 @@ PlatformResult NFCAdapter::RemoveActiveSecureElementChangeListener() {
 
   if (m_is_listener_set) {
     nfc_manager_unset_se_event_cb();
+    m_is_listener_set = false;
   }
-  m_is_listener_set = false;
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
@@ -607,9 +607,9 @@ PlatformResult NFCAdapter::SetPeerListener() {
       LOGE("Failed to set listener: %d", ret);
       return NFCUtil::CodeToResult(ret, "setPeerListener failed");
     }
+    m_is_peer_listener_set = true;
   }
 
-  m_is_peer_listener_set = true;
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
@@ -620,9 +620,9 @@ PlatformResult NFCAdapter::UnsetPeerListener() {
 
   if (m_is_peer_listener_set) {
     nfc_manager_unset_p2p_target_discovered_cb();
+    m_is_peer_listener_set = false;
   }
 
-  m_is_peer_listener_set = false;
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
@@ -873,7 +873,7 @@ PlatformResult  NFCAdapter::SetTagListener(){
 
   LoggerD("Entered");
 
-  if(!m_is_tag_listener_set) {
+  if (!m_is_tag_listener_set) {
     nfc_manager_set_tag_filter(NFC_TAG_FILTER_ALL_ENABLE);
     int result = nfc_manager_set_tag_discovered_cb (tagEventCallback, NULL);
     if (NFC_ERROR_NONE != result) {
