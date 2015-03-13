@@ -6,8 +6,8 @@
 
 #include <functional>
 
-#include "common/picojson.h"
 #include "common/logger.h"
+#include "common/picojson.h"
 #include "common/platform_result.h"
 
 #include "notification/notification_manager.h"

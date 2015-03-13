@@ -13,7 +13,9 @@
         'notification_instance.cc',
         'notification_instance.h',
         'notification_manager.h',
-        'notification_manager.cc'
+        'notification_manager.cc',
+        'status_notification.cc',
+        'status_notification.h'
       ],
       'conditions': [
         ['tizen == 1', {

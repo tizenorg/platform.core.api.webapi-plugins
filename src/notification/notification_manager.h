@@ -5,6 +5,8 @@
 #ifndef NOTIFICATION_NOTIFICATION_MANAGER_H_
 #define NOTIFICATION_NOTIFICATION_MANAGER_H_
 
+#include <notification.h>
+
 #include "common/picojson.h"
 #include "common/platform_result.h"
 
