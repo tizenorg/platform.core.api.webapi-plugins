@@ -1,290 +1,481 @@
-/* global tizen, xwalk, extension */
-
 // Copyright 2015 Samsung Electronics Co, Ltd. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-
-var validator_ = xwalk.utils.validator;
+var utils_ = xwalk.utils;
+var type_ = utils_.type;
+var converter_ = utils_.converter;
+var validator_ = utils_.validator;
 var types_ = validator_.Types;
+var native_ = new xwalk.utils.NativeManager(extension);
 
+var EditManager = function() {
+  this.canEdit = false;
+};
 
-function callNative(cmd, args) {
-  var json = {'cmd': cmd, 'args': args};
-  var argjson = JSON.stringify(json);
-  var resultString = extension.internal.sendSyncMessage(argjson);
-  var result = JSON.parse(resultString);
+EditManager.prototype.allow = function() {
+  this.canEdit = true;
+};
 
-  if (typeof result !== 'object') {
-    throw new tizen.WebAPIException(tizen.WebAPIException.UNKNOWN_ERR);
-  }
+EditManager.prototype.disallow = function() {
+  this.canEdit = false;
+};
 
-  if (result['status'] == 'success') {
-    if (result['result']) {
-      return result['result'];
-    }
-    return true;
-  } else if (result['status'] == 'error') {
-    var err = result['error'];
-    if (err) {
-      throw new tizen.WebAPIException(err.name, err.message);
-    }
-    return false;
-  }
-}
-
-function SetReadOnlyProperty(obj, n, v) {
-  Object.defineProperty(obj, n, {'value': v, 'writable': false});
-}
+var _edit = new EditManager();
 
 var NotificationType = {
-  'STATUS': 'STATUS'
+  STATUS: 'STATUS'
 };
+
 var StatusNotificationType = {
-  'SIMPLE': 'SIMPLE',
-  'THUMBNAIL': 'THUMBNAIL',
-  'ONGOING': 'ONGOING',
-  'PROGRESS': 'PROGRESS'
+  SIMPLE: 'SIMPLE',
+  THUMBNAIL: 'THUMBNAIL',
+  ONGOING: 'ONGOING',
+  PROGRESS: 'PROGRESS'
 };
+
 var NotificationProgressType = {
-  'PERCENTAGE': 'PERCENTAGE',
-  'BYTE': 'BYTE'
+  PERCENTAGE: 'PERCENTAGE',
+  BYTE: 'BYTE'
 };
 
-
-function NotificationManager() {
-  // constructor of NotificationManager
-
-}
+function NotificationManager() {}
 
 
 NotificationManager.prototype.post = function(notification) {
   var args = validator_.validateArgs(arguments, [
-    {'name': 'notification', 'type': types_.PLATFORM_OBJECT, 'values': [StatusNotification]}
+    {name: 'notification', type: types_.PLATFORM_OBJECT, values: StatusNotification}
   ]);
 
-  var nativeParam = notificationToNativeParam(notification);
-  nativeParam['type'] = notification.type;
-  nativeParam['content'] = notification.content;
+  var data = {
+    notification: args.notification
+  };
 
-  try {
-    var syncResult = callNative('NotificationManager_post', nativeParam);
-    // if you need synchronous result from native function using 'syncResult'.
-  } catch (e) {
-    throw e;
+  var result = native_.callSync('NotificationManager_post', data);
+
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
   }
 
+  _edit.allow();
+  var d = native_.getResultObject(result);
+  notification.id = d.id;
+  notification.postedTime = d.postedTime || new Date();
+  notification.type = d.type || NotificationType.STATUS;
+  _edit.disallow();
 };
 
 NotificationManager.prototype.update = function(notification) {
   var args = validator_.validateArgs(arguments, [
-    {'name': 'notification', 'type': types_.PLATFORM_OBJECT, 'values': ['Notification']}
+    {name: 'notification', type: types_.PLATFORM_OBJECT, values: StatusNotification}
   ]);
 
-  var nativeParam = {
-  };
-
-
-  try {
-    var syncResult = callNative('NotificationManager_update', nativeParam);
-    // if you need synchronous result from native function using 'syncResult'.
-  } catch (e) {
-    throw e;
+  if (!arguments.length) {
+    throw new tizen.WebAPIException(tizen.WebAPIException.NOT_FOUND_ERR);
   }
 
+  var data = {
+    notification: args.notification
+  };
+
+  var result = native_.callSync('NotificationManager_update', data);
+
+  if (native_.isFailure(result)) {
+    throw new tizen.WebAPIException(tizen.WebAPIException.NOT_FOUND_ERR,
+        native_.getErrorObject(result));
+  }
 };
 
 NotificationManager.prototype.remove = function(id) {
   var args = validator_.validateArgs(arguments, [
-    {'name': 'id', 'type': types_.STRING}
+    {name: 'id', type: types_.STRING}
   ]);
 
-  var nativeParam = {
-    'id': args.id
-  };
-
-
-  try {
-    var syncResult = callNative('NotificationManager_remove', nativeParam);
-    // if you need synchronous result from native function using 'syncResult'.
-  } catch (e) {
-    throw e;
+  if (!arguments.length) {
+    throw new tizen.WebAPIException(tizen.WebAPIException.NOT_FOUND_ERR);
   }
 
+  var data = {
+    id: args.id
+  };
+
+  var result = native_.callSync('NotificationManager_remove', data);
+
+  if (native_.isFailure(result)) {
+    throw new tizen.WebAPIException(tizen.WebAPIException.NOT_FOUND_ERR,
+        native_.getErrorObject(result));
+  }
 };
 
 NotificationManager.prototype.removeAll = function() {
+  var result = native_.callSync('NotificationManager_removeAll', {});
 
-  var nativeParam = {
-  };
-
-
-  try {
-    var syncResult = callNative('NotificationManager_removeAll', nativeParam);
-    // if you need synchronous result from native function using 'syncResult'.
-  } catch (e) {
-    throw e;
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
   }
-
 };
 
 NotificationManager.prototype.get = function(id) {
   var args = validator_.validateArgs(arguments, [
-    {'name': 'id', 'type': types_.STRING}
+    {name: 'id', type: types_.STRING}
   ]);
 
-  var nativeParam = {
-    'id': args.id
-  };
-
-
-  try {
-    var syncResult = callNative('NotificationManager_get', nativeParam);
-    // if you need synchronous result from native function using 'syncResult'.
-  } catch (e) {
-    throw e;
+  if (!arguments.length) {
+    throw new tizen.WebAPIException(tizen.WebAPIException.NOT_FOUND_ERR);
   }
 
-  var returnObject = new Notification();
+  var data = {
+    id: args.id
+  };
+
+  var result = native_.callSync('NotificationManager_get', data);
+
+  if (native_.isFailure(result)) {
+    throw new tizen.WebAPIException(tizen.WebAPIException.NOT_FOUND_ERR,
+        native_.getErrorObject(result));
+  }
+
+  _edit.allow();
+  var returnObject = new StatusNotification(native_.getResultObject(result));
+  _edit.disallow();
+
   return returnObject;
 };
 
 NotificationManager.prototype.getAll = function() {
+  var result = native_.callSync('NotificationManager_getAll', {});
 
-  var nativeParam = {
-  };
-
-
-  try {
-    var syncResult = callNative('NotificationManager_getAll', nativeParam);
-    // if you need synchronous result from native function using 'syncResult'.
-  } catch (e) {
-    throw e;
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
   }
 
-  var returnObject = new Notification();
-  return returnObject;
+  var n = native_.getResultObject(result);
+  var notifications = [];
+
+  _edit.allow();
+  for (var i = 0; i < n.length; i++) {
+    notifications.push(new StatusNotification(n[i]));
+  }
+  _edit.disallow();
+
+  return notifications;
 };
 
-
-
-function Notification() {
-  // constructor of Notification
-
-  SetReadOnlyProperty(this, 'id', null); // read only property
-  SetReadOnlyProperty(this, 'type', null); // read only property
-  SetReadOnlyProperty(this, 'postedTime', null); // read only property
-  this.title = null;
-  this.content = null;
-}
-
-
-function notificationToNativeParam(n) {
-  var i;
-
-  var detailInfo = [];
-  if (n.detailInfo) {
-    for (i in n.detailInfo) {
-      detailInfo[i] = n.detailInfo[i];
+function NotificationInitDict(data) {
+  var _iconPath = null;
+  var _soundPath = null;
+  var _vibration = false;
+  var _isUnified = false;
+  var _appControl = null;
+  var _appId = false;
+  var _progressType = NotificationProgressType.PERCENTAGE;
+  var _progressValue = 0;
+  var _number = null;
+  var _subIconPath = null;
+  var _detailInfo = [];
+  var checkDetailInfo = function(v) {
+    if (!type_.isArray(v)) {
+      return false;
     }
-  }
-  var thumbnails = [];
-  if (n.thumbnails) {
-    for (i in n.thumbnails) {
-      thumbnails[i] = n.thumbnails[i];
+    for (var i = 0; i < v.length; ++i) {
+      if (!(v[i] instanceof tizen.NotificationDetailInfo)) {
+        return false;
+      }
     }
-  }
+    return true;
+  };
+  var _ledColor = null;
+  var isHex = function(v) {
+    return v.length === 7 && v.substr(0, 1) === '#' && (/^([0-9A-Fa-f]{2})+$/).test(v.substr(1, 7));
+  };
+  var _ledOnPeriod = 0;
+  var _ledOffPeriod = 0;
+  var _backgroundImagePath = null;
+  var _thumbnails = [];
+  var checkThumbnails = function(v) {
+    if (!type_.isArray(v)) {
+      return false;
+    }
+    for (var i = 0; i < v.length; ++i) {
+      if (!type_.isString(v[i]) && !(/\s/.test(v))) {
+        return false;
+      }
+    }
+    return true;
+  };
 
-  var appControl = {};
-  if (n.appControl) {
-    appControl.operation = n.appControl.operation;
-    appControl.uri = n.appControl.uri;
-    appControl.mime = n.appControl.mime;
-    appControl.category = n.appControl.category;
-    appControl.data = [];
-    if (n.appControl.data) {
-      for (i in n.appControl.data) {
-        var values = n.appControl.data[i].value;
-        var key = n.appControl.data[i].key;
-        appControl.data[i] = {
-          'key': key,
-          'value': values
-        };
+  Object.defineProperties(this, {
+    iconPath: {
+      get: function() {
+        return _iconPath;
+      },
+      set: function(v) {
+        _iconPath = type_.isString(v) ? v : _iconPath;
+      },
+      enumerable: true
+    },
+    soundPath: {
+      get: function() {
+        return _soundPath;
+      },
+      set: function(v) {
+        _soundPath = type_.isString(v) ? v : _soundPath;
+      },
+      enumerable: true
+    },
+    vibration: {
+      get: function() {
+        return _vibration;
+      },
+      set: function(v) {
+        _vibration = type_.isBoolean(v) ? v : _vibration;
+      },
+      enumerable: true
+    },
+    isUnified: {
+      get: function() {
+        return _isUnified;
+      },
+      set: function(v) {
+        _isUnified = type_.isBoolean(v) ? v : _isUnified;
+      },
+      enumerable: true
+    },
+    appControl: {
+      get: function() {
+        return _appControl;
+      },
+      set: function(v) {
+        _appControl = v instanceof tizen.ApplicationControl ? v : _appControl;
+      },
+      enumerable: true
+    },
+    appId: {
+      get: function() {
+        return _appId;
+      },
+      set: function(v) {
+        _appId = type_.isString(v) && !(/\s/.test(v)) ? v : _appId;
+      },
+      enumerable: true
+    },
+    progressType: {
+      get: function() {
+        return _progressType;
+      },
+      set: function(v) {
+        _progressType = Object.keys(NotificationProgressType).indexOf(v) >= 0 ? v : _progressType;
+      },
+      enumerable: true
+    },
+    progressValue: {
+      get: function() {
+        return _progressValue;
+      },
+      set: function(v) {
+        _progressValue = this.statusType === StatusNotificationType.PROGRESS
+                && (v >= 0 && v <= 100) ? v : _progressValue;
+      },
+      enumerable: true
+    },
+    number: {
+      get: function() {
+        return _number;
+      },
+      set: function(v) {
+        _number = type_.isNumber(v) ? v : _number;
+      },
+      enumerable: true
+    },
+    subIconPath: {
+      get: function() {
+        return _subIconPath;
+      },
+      set: function(v) {
+        _subIconPath = type_.isString(v) && !(/\s/.test(v))  ? v : _subIconPath;
+      },
+      enumerable: true
+    },
+    detailInfo: {
+      get: function() {
+        return _detailInfo;
+      },
+      set: function(v) {
+        _detailInfo = checkDetailInfo(v) ? v : _detailInfo;
+      },
+      enumerable: true
+    },
+    ledColor: {
+      get: function() {
+        return _ledColor;
+      },
+      set: function(v) {
+        _ledColor = (type_.isString(v) && isHex(v)) || v === null ? v : _ledColor;
+      },
+      enumerable: true
+    },
+    ledOnPeriod: {
+      get: function() {
+        return _ledOnPeriod;
+      },
+      set: function(v) {
+        _ledOnPeriod = type_.isNumber(v) ? v : _ledOnPeriod;
+      },
+      enumerable: true
+    },
+    ledOffPeriod: {
+      get: function() {
+        return _ledOffPeriod;
+      },
+      set: function(v) {
+        _ledOffPeriod = type_.isNumber(v) ? v : _ledOffPeriod;
+      },
+      enumerable: true
+    },
+    backgroundImagePath: {
+      get: function() {
+        return _backgroundImagePath;
+      },
+      set: function(v) {
+        _backgroundImagePath = type_.isString(v) && !(/\s/.test(v))  ? v : _backgroundImagePath;
+      },
+      enumerable: true
+    },
+    thumbnails: {
+      get: function() {
+        return _thumbnails;
+      },
+      set: function(v) {
+        _thumbnails = checkThumbnails(v) ? v : _thumbnails;
+      },
+      enumerable: true
+    }
+  });
+
+  if (data instanceof Object) {
+    for (var prop in data) {
+      if (this.hasOwnProperty(prop)) {
+        this[prop] = data[prop];
       }
     }
   }
-
-  return {
-    'statusType': n.statusType,
-    'title': n.title,
-    'content': n.content,
-    'iconPath': n.iconPath,
-    'soundPath': n.soundPath,
-    'vibration': n.vibration,
-    'appControl': appControl,
-    'appId': n.appId,
-    'progressType': n.progressType,
-    'progressValue': n.progressValue,
-    'number': n.number,
-    'subIconPath': n.subIconPath,
-    'detailInfo': detailInfo,
-    'ledColor': n.ledColor,
-    'ledOnPeriod': n.ledOnPeriod,
-    'ledOffPeriod': n.ledOffPeriod,
-    'backgroundImagePath': n.backgroundImagePath,
-    'thumbnails': thumbnails
-  };
 }
 
+function Notification(data) {
+  NotificationInitDict.call(this, data);
 
-// private constructor
+  var _id = undefined;
+  var _type = NotificationType.STATUS;
+  var _postedTime = undefined;
+  var _content = null;
+
+  Object.defineProperties(this, {
+    id: {
+      get: function() {
+        return _id;
+      },
+      set: function(v) {
+        _id = _edit.canEdit ? v : _id;
+      },
+      enumerable: true
+    },
+    type: {
+      get: function() {
+        return _type;
+      },
+      set: function(v) {
+        _type = _edit.canEdit ? v : _id;
+      },
+      enumerable: true
+    },
+    postedTime: {
+      get: function() {
+        return _postedTime;
+      },
+      set: function(v) {
+        _postedTime = _edit.canEdit ? new Date(v) : _postedTime;
+      },
+      enumerable: true
+    },
+    content: {
+      get: function() {
+        return _content;
+      },
+      set: function(v) {
+        _content = type_.isString(v) ? v : _content;
+      },
+      enumerable: true
+    }
+  });
+
+  if (data instanceof Object) {
+    for (var prop in data) {
+      if (this.hasOwnProperty(prop)) {
+        this[prop] = data[prop];
+      }
+    }
+  }
+}
+
 function StatusNotification(statusType, title, notificationInitDict) {
-  // constructor of StatusNotification
+  validator_.isConstructorCall(this, StatusNotification);
+  Notification.call(this, notificationInitDict);
 
-  SetReadOnlyProperty(this, 'id', undefined);
-  SetReadOnlyProperty(this, 'type', 'STATUS');
-  SetReadOnlyProperty(this, 'postedTime', undefined);
+  var _statusType = (Object.keys(StatusNotificationType)).indexOf(statusType) >= 0
+      ? statusType : StatusNotificationType.SIMPLE;
+  var _title = converter_.toString(title);
 
-  this.title = title;
-  this.content = notificationInitDict.content;
-  SetReadOnlyProperty(this, 'statusType', statusType); // read only property
-  this.iconPath = notificationInitDict.iconPath;
-  this.subIconPath = notificationInitDict.subIconPath;
-  this.number = notificationInitDict.number;
-  this.detailInfo = notificationInitDict.detailInfo;
-  this.ledColor = notificationInitDict.ledColor;
-  this.ledOnPeriod = notificationInitDict.ledOnPeriod;
-  this.ledOffPeriod = notificationInitDict.ledOffPeriod;
-  this.backgroundImagePath = notificationInitDict.backgroundImagePath;
-  this.thumbnails = notificationInitDict.thumbnails;
-  this.soundPath = notificationInitDict.soundPath;
-  this.vibration = notificationInitDict.vibration;
-  this.appControl = notificationInitDict.appControl;
-  this.appId = notificationInitDict.appId;
-  this.progressType = notificationInitDict.progressType;
-  this.progressValue = notificationInitDict.progressValue;
+  Object.defineProperties(this, {
+    statusType: {
+      get: function() {
+        return _statusType;
+      },
+      enumerable: true
+    },
+    title: {
+      get: function() {
+        return _title;
+      },
+      set: function(v) {
+        _title = converter_.toString(v);
+      },
+      enumerable: true
+    }
+  });
 }
 
 StatusNotification.prototype = new Notification();
 StatusNotification.prototype.constructor = StatusNotification;
 
 
-
 function NotificationDetailInfo(mainText, subText) {
-  // constructor of NotificationDetailInfo
-  var nativeParam = {
-    'mainText': args.mainText,
-    'subText': args.subText
-  };
-  var syncResult = callNative('NotificationDetailInfo_constructor', nativeParam);
+  validator_.isConstructorCall(this, NotificationDetailInfo);
 
-  this.mainText = mainText;
-  this.subText = subText;
+  var _mainText = type_.isString(mainText) ? mainText : '';
+  var _subText = type_.isString(subText) ? subText : null;
+
+  Object.defineProperties(this, {
+    mainText: {
+      get: function() {
+        return _mainText;
+      },
+      set: function(v) {
+        _mainText = type_.isString(v) ? v : _mainText;
+      },
+      enumerable: true
+    },
+    subText: {
+      get: function() {
+        return _subText;
+      },
+      set: function(v) {
+        _subText = type_.isString(v) ? v : _subText;
+      },
+      enumerable: true
+    }
+  });
 }
-
-
-
 
 exports = new NotificationManager();
 tizen.StatusNotification = StatusNotification;
-
+tizen.NotificationDetailInfo = NotificationDetailInfo;
