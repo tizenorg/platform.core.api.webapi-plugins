@@ -54,7 +54,7 @@ NotificationManager.prototype.post = function(notification) {
   var result = native_.callSync('NotificationManager_post', data);
 
   if (native_.isFailure(result)) {
-    throw native_.getErrorObject(result);
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR);
   }
 
   _edit.allow();
@@ -111,7 +111,8 @@ NotificationManager.prototype.removeAll = function() {
   var result = native_.callSync('NotificationManager_removeAll', {});
 
   if (native_.isFailure(result)) {
-    throw native_.getErrorObject(result);
+    throw new WebAPIException(WebAPIException.UNKNOWN_ERR,
+        native_.getErrorObject(result));
   }
 };
 
@@ -135,8 +136,10 @@ NotificationManager.prototype.get = function(id) {
         native_.getErrorObject(result));
   }
 
+  var n = native_.getResultObject(result);
+
   _edit.allow();
-  var returnObject = new StatusNotification(native_.getResultObject(result));
+  var returnObject = new StatusNotification(n.statusType, n.title, n);
   _edit.disallow();
 
   return returnObject;
@@ -146,7 +149,8 @@ NotificationManager.prototype.getAll = function() {
   var result = native_.callSync('NotificationManager_getAll', {});
 
   if (native_.isFailure(result)) {
-    throw native_.getErrorObject(result);
+    throw new WebAPIException(WebAPIException.NOT_FOUND_ERR,
+        native_.getErrorObject(result));
   }
 
   var n = native_.getResultObject(result);
@@ -154,7 +158,7 @@ NotificationManager.prototype.getAll = function() {
 
   _edit.allow();
   for (var i = 0; i < n.length; i++) {
-    notifications.push(new StatusNotification(n[i]));
+    notifications.push(new StatusNotification(n[i].statusType, n[i].title, n[i]));
   }
   _edit.disallow();
 
@@ -167,9 +171,16 @@ function NotificationInitDict(data) {
   var _vibration = false;
   var _isUnified = false;
   var _appControl = null;
-  var _appId = false;
+  var _appId = null;
   var _progressType = NotificationProgressType.PERCENTAGE;
-  var _progressValue = 0;
+  var _progressValue = null;
+  var checkProgressValue = function(v) {
+    if ((_progressType === NotificationProgressType.PERCENTAGE && (v >= 0 && v <= 100))
+            || (_progressType !== NotificationProgressType.PERCENTAGE && v >= 0)) {
+      return true;
+    }
+    return false;
+  };
   var _number = null;
   var _subIconPath = null;
   var _detailInfo = [];
@@ -273,8 +284,7 @@ function NotificationInitDict(data) {
         return _progressValue;
       },
       set: function(v) {
-        _progressValue = this.statusType === StatusNotificationType.PROGRESS
-                && (v >= 0 && v <= 100) ? v : _progressValue;
+        _progressValue = checkProgressValue(v) ? v : _progressValue;
       },
       enumerable: true
     },
@@ -375,7 +385,7 @@ function Notification(data) {
         return _id;
       },
       set: function(v) {
-        _id = _edit.canEdit ? v : _id;
+        _id = _edit.canEdit && v ? v : _id;
       },
       enumerable: true
     },
@@ -384,7 +394,7 @@ function Notification(data) {
         return _type;
       },
       set: function(v) {
-        _type = _edit.canEdit ? v : _id;
+        _type = _edit.canEdit && Object.keys(NotificationType).indexOf(v) >= 0 ? v : _type;
       },
       enumerable: true
     },
@@ -393,7 +403,7 @@ function Notification(data) {
         return _postedTime;
       },
       set: function(v) {
-        _postedTime = _edit.canEdit ? new Date(v) : _postedTime;
+        _postedTime = _edit.canEdit && v ? new Date(v) : _postedTime;
       },
       enumerable: true
     },
@@ -429,6 +439,10 @@ function StatusNotification(statusType, title, notificationInitDict) {
     statusType: {
       get: function() {
         return _statusType;
+      },
+      set: function(v) {
+        _statusType = (Object.keys(StatusNotificationType)).indexOf(v) >= 0 && _edit.canEdit
+            ? v : _statusType;
       },
       enumerable: true
     },
