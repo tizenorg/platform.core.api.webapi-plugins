@@ -37,7 +37,7 @@ ArchiveInstance::ArchiveInstance() {
     #define REGISTER_SYNC(c,x) \
         RegisterSyncHandler(c, std::bind(&ArchiveInstance::x, this, _1, _2));
     #define REGISTER_ASYNC(c,x) \
-        RegisterSyncHandler(c, std::bind(&ArchiveInstance::x, this, _1, _2));
+        RegisterHandler(c, std::bind(&ArchiveInstance::x, this, _1, _2));
 
     REGISTER_ASYNC("ArchiveManager_open", Open);
     REGISTER_SYNC("ArchiveManager_abort", Abort);

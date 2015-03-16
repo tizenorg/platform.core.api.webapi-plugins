@@ -129,7 +129,7 @@ MessagingInstance::MessagingInstance()
     using std::placeholders::_1;
     using std::placeholders::_2;
     #define REGISTER_ASYNC(c,x) \
-      RegisterSyncHandler(c, std::bind(&MessagingInstance::x, this, _1, _2));
+      RegisterHandler(c, std::bind(&MessagingInstance::x, this, _1, _2));
       REGISTER_ASYNC(FUN_GET_MESSAGE_SERVICES, GetMessageServices);
       REGISTER_ASYNC(FUN_MESSAGE_SERVICE_SEND_MESSAGE, MessageServiceSendMessage);
       REGISTER_ASYNC(FUN_MESSAGE_SERVICE_LOAD_MESSAGE_BODY, MessageServiceLoadMessageBody);
