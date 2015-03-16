@@ -69,7 +69,7 @@ exports.getTimeFormat = function() {
 
 exports.isLeapYear = function(year) {
   if (year === undefined)
-    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR);
 
   return ((year % 4 === 0) && (year % 100 !== 0)) || (year % 400 === 0);
 };
@@ -141,11 +141,11 @@ exports.unsetTimezoneChangeListener = function() {
 
 function _throwProperTizenException(e) {
   if (e instanceof TypeError)
-    throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR);
+    throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR);
   else if (e instanceof RangeError)
-    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR);
   else
-    throw new tizen.WebAPIException(tizen.WebAPIException.UNKNOWN_ERR);
+    throw new WebAPIException(WebAPIException.UNKNOWN_ERR);
 }
 
 var TimeDurationUnit = {
@@ -305,7 +305,7 @@ tizen.TZDate = function(year, month, day, hours, minutes, seconds, milliseconds,
     this.date_ = new Date(year, month, day, hours, minutes, seconds, milliseconds);
 
   if (tizen.time.getAvailableTimezones().indexOf(this.timezone_) < 0)
-    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR);
 };
 
 function getTimezoneOffset(_timezone, _timeInMs) {
@@ -548,7 +548,7 @@ tizen.TZDate.prototype.toTimezone = function() {
   }]);
 
   if (!args.timezone)
-    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR);
   var d = new tizen.TZDate(new Date(this.date_.getTime()), args.timezone);
   return d.addDuration(new tizen.TimeDuration((getTimezoneOffset(args.timezone) * 1) +
                                               (getTimezoneOffset(this.timezone_) * -1)));

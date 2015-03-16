@@ -28,7 +28,7 @@ function callNative(cmd, args) {
   var result = JSON.parse(resultString);
 
   if (typeof result !== 'object') {
-    throw new tizen.WebAPIException(tizen.WebAPIException.UNKNOWN_ERR);
+    throw new WebAPIException(WebAPIException.UNKNOWN_ERR);
   }
 
   if (result['status'] === 'success') {
@@ -39,7 +39,7 @@ function callNative(cmd, args) {
   } else if (result['status'] === 'error') {
     var err = result['error'];
     if (err) {
-      throw new tizen.WebAPIException(err.name, err.message);
+      throw new WebAPIException(err.name, err.message);
     }
     return false;
   }
@@ -543,7 +543,7 @@ tizen.ApplicationControlData = function(key, value) {
     defineReadWriteNonNullProperty(this, 'key', key);
     defineReadWriteNonNullProperty(this, 'value', value);
   } else {
-    throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR);
+    throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR);
   }
 };
 
@@ -558,7 +558,7 @@ tizen.ApplicationControl = function(operation, uri, mime, category, data) {
     defineReadWriteProperty(this, 'data', data);
 
   } else {
-    throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR);
+    throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR);
   }
 };
 

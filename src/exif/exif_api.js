@@ -180,8 +180,8 @@ ExifManager.prototype.getExifInfo = function() {
 
   if (!_isValidAbsoluteURI(args.uri)) {
     setTimeout(function() {
-      native_.callIfPossible(args.errorCallback, new tizen.WebAPIException(
-          tizen.WebAPIException.INVALID_VALUES_ERR,
+      native_.callIfPossible(args.errorCallback, new WebAPIException(
+          WebAPIException.INVALID_VALUES_ERR,
           'Invalid URI.'));
     }, 0);
     return;
@@ -209,8 +209,8 @@ ExifManager.prototype.getExifInfo = function() {
         native_.call('ExifManager_getExifInfo', {'uri': args.uri}, callback);
       },
       function() {
-        native_.callIfPossible(args.errorCallback, new tizen.WebAPIException(
-            tizen.WebAPIException.NOT_FOUND_ERR,
+        native_.callIfPossible(args.errorCallback, new WebAPIException(
+            WebAPIException.NOT_FOUND_ERR,
             'File can not be found.'));
       });
 };
@@ -240,8 +240,8 @@ ExifManager.prototype.saveExifInfo = function() {
 
   if (!_isValidAbsoluteURI(args.exifInfo.uri)) {
     setTimeout(function() {
-      native_.callIfPossible(args.errorCallback, new tizen.WebAPIException(
-          tizen.WebAPIException.INVALID_VALUES_ERR,
+      native_.callIfPossible(args.errorCallback, new WebAPIException(
+          WebAPIException.INVALID_VALUES_ERR,
           'Invalid URI.'));
     }, 0);
     return;
@@ -285,8 +285,8 @@ ExifManager.prototype.getThumbnail = function() {
 
   if (!_isValidAbsoluteURI(args.uri)) {
     setTimeout(function() {
-      native_.callIfPossible(args.errorCallback, new tizen.WebAPIException(
-          tizen.WebAPIException.INVALID_VALUES_ERR,
+      native_.callIfPossible(args.errorCallback, new WebAPIException(
+          WebAPIException.INVALID_VALUES_ERR,
           'Invalid URI.'));
     }, 0);
     return;
@@ -307,8 +307,8 @@ ExifManager.prototype.getThumbnail = function() {
         native_.call('ExifManager_getThumbnail', {'uri': args.uri}, _callback);
       },
       function() {
-        native_.callIfPossible(args.errorCallback, new tizen.WebAPIException(
-            tizen.WebAPIException.NOT_FOUND_ERR,
+        native_.callIfPossible(args.errorCallback, new WebAPIException(
+            WebAPIException.NOT_FOUND_ERR,
             'File can not be found.'));
       });
 };
@@ -363,7 +363,7 @@ tizen.ExifInformation = function() {
   var exifInitDict = args.ExifInitDict;
   if (exifInitDict) {
     if (exifInitDict.uri === null) {
-      throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR,
+      throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
           'Parameter "uri" is required.');
     }
   }

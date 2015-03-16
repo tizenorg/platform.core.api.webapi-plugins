@@ -19,18 +19,18 @@ function nextCallbackId() {
 
 
 var ExceptionMap = {
-  'UnknownError' : tizen.WebAPIException.UNKNOWN_ERR ,
-  'TypeMismatchError' : tizen.WebAPIException.TYPE_MISMATCH_ERR ,
-  'InvalidValuesError' : tizen.WebAPIException.INVALID_VALUES_ERR ,
-  'IOError' : tizen.WebAPIException.IO_ERR ,
-  'ServiceNotAvailableError' : tizen.WebAPIException.SERVICE_NOT_AVAILABLE_ERR ,
-  'SecurityError' : tizen.WebAPIException.SECURITY_ERR ,
-  'NetworkError' : tizen.WebAPIException.NETWORK_ERR ,
-  'NotSupportedError' : tizen.WebAPIException.NOT_SUPPORTED_ERR ,
-  'NotFoundError' : tizen.WebAPIException.NOT_FOUND_ERR ,
-  'InvalidAccessError' : tizen.WebAPIException.INVALID_ACCESS_ERR ,
-  'AbortError' : tizen.WebAPIException.ABORT_ERR ,
-  'QuotaExceededError' : tizen.WebAPIException.QUOTA_EXCEEDED_ERR ,
+  'UnknownError' : WebAPIException.UNKNOWN_ERR ,
+  'TypeMismatchError' : WebAPIException.TYPE_MISMATCH_ERR ,
+  'InvalidValuesError' : WebAPIException.INVALID_VALUES_ERR ,
+  'IOError' : WebAPIException.IO_ERR ,
+  'ServiceNotAvailableError' : WebAPIException.SERVICE_NOT_AVAILABLE_ERR ,
+  'SecurityError' : WebAPIException.SECURITY_ERR ,
+  'NetworkError' : WebAPIException.NETWORK_ERR ,
+  'NotSupportedError' : WebAPIException.NOT_SUPPORTED_ERR ,
+  'NotFoundError' : WebAPIException.NOT_FOUND_ERR ,
+  'InvalidAccessError' : WebAPIException.INVALID_ACCESS_ERR ,
+  'AbortError' : WebAPIException.ABORT_ERR ,
+  'QuotaExceededError' : WebAPIException.QUOTA_EXCEEDED_ERR ,
 }
 
 function callNative(cmd, args) {
@@ -40,7 +40,7 @@ function callNative(cmd, args) {
   var result = JSON.parse(resultString);
 
   if (typeof result !== 'object') {
-    throw new tizen.WebAPIException(tizen.WebAPIException.UNKNOWN_ERR);
+    throw new WebAPIException(WebAPIException.UNKNOWN_ERR);
   }
 
   if (result['status'] == 'success') {
@@ -52,9 +52,9 @@ function callNative(cmd, args) {
     var err = result['error'];
     if(err) {
         if(ExceptionMap[err.name]) {
-            throw new tizen.WebAPIException(ExceptionMap[err.name], err.message);
+            throw new WebAPIException(ExceptionMap[err.name], err.message);
         } else {
-            throw new tizen.WebAPIException(tizen.WebAPIException.UNKNOWN_ERR, err.message);
+            throw new WebAPIException(WebAPIException.UNKNOWN_ERR, err.message);
         }
     }
     return false;
@@ -164,13 +164,13 @@ Playlist.prototype.removeBatch = function(items) {
     });
   } catch(e) {
     throw e;
-  }    
+  }
 }
 
 
 Playlist.prototype.get = function() {
   var args = validator_.validateArgs(arguments, [
-    {'name' : 'successCallback', 'type': types_.FUNCTION},  
+    {'name' : 'successCallback', 'type': types_.FUNCTION},
     {'name' : 'errorCallback', 'type': types_.FUNCTION, optional : true, nullable : true},
     {'name' : 'count', 'type': types_.LONG, optional : true, nullable : true},
     {'name' : 'offset', 'type': types_.LONG, optional : true, nullable : true}
@@ -192,7 +192,7 @@ Playlist.prototype.get = function() {
   else {
     nativeParam['offset'] = -1;
   }
-  
+
   try {
     var syncResult = callNativeWithCallback('ContentPlaylist_get', nativeParam, function(result) {
       if (result.status == 'success') {
@@ -275,7 +275,7 @@ Playlist.prototype.setOrder  = function() {
     });
   } catch(e) {
     throw e;
-  }      
+  }
 }
 
 Playlist.prototype.move  = function(item, delta) {
@@ -291,7 +291,7 @@ Playlist.prototype.move  = function(item, delta) {
     'member_id': args.item.member_id,
     'delta' : args.delta
   };
-  
+
   try {
 
     var syncResult = callNativeWithCallback('ContentPlaylist_move', nativeParam, function(result) {
@@ -311,7 +311,7 @@ Playlist.prototype.move  = function(item, delta) {
 
 function ContentDirectory(id, uri, type, title, date) {
   Object.defineProperties(this, {
-    'id': { writable: false, value: id, enumerable: true },    
+    'id': { writable: false, value: id, enumerable: true },
     'directoryURI': { writable: false, value: uri, enumerable: true },
     'title': { writable: false, value: title, enumerable: true },
     'storageType': { writable: false, value: type, enumerable: true },
@@ -320,7 +320,7 @@ function ContentDirectory(id, uri, type, title, date) {
 }
 
 
-function Content(id, name,type, mimeType, title, contentURI, thumbnailURIs, 
+function Content(id, name,type, mimeType, title, contentURI, thumbnailURIs,
   releaseDate, modifiedDate, size, description, rating, isFavorite) {
   var name_ = name;
   var rating_ = rating;
@@ -334,82 +334,82 @@ function Content(id, name,type, mimeType, title, contentURI, thumbnailURIs,
     editableAttributes_.push("geolocation");
   }
   Object.defineProperties(this, {
-    'editableAttributes': 
+    'editableAttributes':
       { enumerable: true,
         get: function() { return editableAttributes_; }
       },
-    'id': 
+    'id':
       { writable: false, value: id, enumerable: true },
-    'name': 
+    'name':
       { enumerable: true,
         set: function(v) { if (v != null) name_ = v},
         get: function() { return name_; }
-      },        
-    'type': 
+      },
+    'type':
       { writable: false, value: type, enumerable: true },
-    'mimeType': 
+    'mimeType':
       { writable: false, value: mimeType, enumerable: true },
-    'title': 
+    'title':
       { writable: false, value: title, enumerable: true },
-    'contentURI': 
+    'contentURI':
       { writable: false, value: contentURI, enumerable: true },
-    'thumbnailURIs': 
+    'thumbnailURIs':
       { writable: false, value: thumbnailURIs, enumerable: true },
-    'releaseDate': 
+    'releaseDate':
       { writable: false, value: releaseDate, enumerable: true },
-    'modifiedDate': 
+    'modifiedDate':
       { writable: false, value: modifiedDate, enumerable: true },
-    'size': 
+    'size':
       { writable: false, value: size, enumerable: true },
-    'description': 
+    'description':
       { writable: true, value: description, enumerable: true },
-    'rating': 
+    'rating':
       { enumerable: true,
         set: function(v) { if (v != null && v >= 0 && v <= 10) rating_ = v; },
         get: function() { return rating_; }
       },
-    'isFavorite': 
+    'isFavorite':
       { writable: true, value: isFavorite, enumerable: true }
   });
 }
 
 function ImageContent(obj, width, height, orientation, geolocation) {
   Object.defineProperties(obj, {
-    'width': 
+    'width':
       { writable: false, value: width, enumerable: true },
-    'height': 
+    'height':
       { writable: false, value: height, enumerable: true },
-    'orientation': 
+    'orientation':
       { writable: true, value: orientation, enumerable: true },
-    'geolocation': 
+    'geolocation':
       { writable: true, value: geolocation, enumerable: true }
   });
 }
 
 function VideoContent(obj, geolocation, album, artists, duration, width, height) {
   Object.defineProperties(obj, {
-    'geolocation': 
+    'geolocation':
       { writable: true, value: geolocation, enumerable: true },
-    'album': 
+    'album':
       { writable: false, value: album, enumerable: true },
-    'artists': 
+    'artists':
       { writable: false, value: artists, enumerable: true },
-    'duration': 
+    'duration':
       { writable: false, value: duration, enumerable: true },
-    'width': 
+    'width':
       { writable: false, value: width, enumerable: true },
-    'height': 
+    'height':
       { writable: false, value: height, enumerable: true }
   });
 }
 
 function AudioContentLyrics(type, timestamps, texts) {
   Object.defineProperties(this, {
-    'type': 
+    'type':
       { writable: false, value: type, enumerable: true },
-    'timestamps': 
+    'timestamps':
       { writable: false, value: timestamps, enumerable: true },
-    'texts': 
+    'texts':
       { writable: false, value: texts, enumerable: true }
   });
 }
@@ -433,25 +433,25 @@ function AudioContent(obj, album, genres, artists, composers, copyright,
     }
   }
   Object.defineProperties(obj, {
-    'album': 
+    'album':
       { writable: false, value: album, enumerable: true },
-    'genres': 
+    'genres':
       { writable: false, value: genres, enumerable: true },
-    'artists': 
+    'artists':
       { writable: false, value: artists, enumerable: true },
-    'composers': 
+    'composers':
       { writable: false, value: composers, enumerable: true },
-    'copyright': 
+    'copyright':
       { writable: false, value: copyright, enumerable: true },
-    'bitrate': 
+    'bitrate':
       { writable: false, value: bitrate, enumerable: true },
-    'trackNumber': 
+    'trackNumber':
       { writable: false, value: trackNumber, enumerable: true },
-    'duration': 
+    'duration':
       { writable: false, value: duration, enumerable: true },
-    'lyrics': 
+    'lyrics':
       { enumerable: true,
-        get: function() { 
+        get: function() {
         	if(lyrics_ === undefined) {
         		getLyrics(obj.contentURI);
         	}
@@ -482,7 +482,7 @@ function createContent(c) {
   if (c.type === "IMAGE") {
     var image = new ImageContent(content,
       c.width,
-      c.height, 
+      c.height,
       c.orientation,
       c.geolocation
     );
@@ -535,7 +535,7 @@ ContentManager.prototype.update = function(content) {
 
 ContentManager.prototype.updateBatch = function(contents) {
   var args = validator_.validateArgs(arguments, [
-    {'name' : 'contents', 'type': types_.ARRAY},  
+    {'name' : 'contents', 'type': types_.ARRAY},
     {'name' : 'successCallback', 'type': types_.FUNCTION, optional : true, nullable : true},
     {'name' : 'errorCallback', 'type': types_.FUNCTION, optional : true, nullable : true}
   ]);
@@ -561,8 +561,8 @@ ContentManager.prototype.updateBatch = function(contents) {
 
 ContentManager.prototype.getDirectories = function(successCallback) {
   var args = validator_.validateArgs(arguments, [
-      {'name' : 'successCallback', 'type': types_.FUNCTION, optional : false, nullable : false},  
-      {'name' : 'errorCallback', 'type': types_.FUNCTION, optional : true, nullable : true} 
+      {'name' : 'successCallback', 'type': types_.FUNCTION, optional : false, nullable : false},
+      {'name' : 'errorCallback', 'type': types_.FUNCTION, optional : true, nullable : true}
   ]);
 
   var nativeParam = {
@@ -582,7 +582,7 @@ ContentManager.prototype.getDirectories = function(successCallback) {
             res.storageType,
             res.modifiedDate
           );
-          
+
           dirs.push(dir);
         }
         args.successCallback(dirs);
@@ -601,18 +601,18 @@ ContentManager.prototype.getDirectories = function(successCallback) {
 
 ContentManager.prototype.find = function(successCallback) {
   var args = validator_.validateArgs(arguments, [
-      {'name' : 'successCallback', 'type': types_.FUNCTION, 'values' : ['onsuccess']},  
-      {'name' : 'errorCallback', 'type': types_.FUNCTION, optional : true, nullable : true},  
-      {'name' : 'directoryId', 'type': types_.STRING, optional : true, nullable : true},  
-      {'name' : 'filter', 'type': types_.DICTIONARY, optional : true, nullable : true},  
-      {'name' : 'sortMode', 'type': types_.DICTIONARY, optional : true, nullable : true},  
+      {'name' : 'successCallback', 'type': types_.FUNCTION, 'values' : ['onsuccess']},
+      {'name' : 'errorCallback', 'type': types_.FUNCTION, optional : true, nullable : true},
+      {'name' : 'directoryId', 'type': types_.STRING, optional : true, nullable : true},
+      {'name' : 'filter', 'type': types_.DICTIONARY, optional : true, nullable : true},
+      {'name' : 'sortMode', 'type': types_.DICTIONARY, optional : true, nullable : true},
       {'name' : 'count', 'type': types_.UNSIGNED_LONG, optional : true},
       {'name' : 'offset', 'type': types_.UNSIGNED_LONG, optional : true}
   ]);
 
   var nativeParam = {
   };
-  
+
   if (args['directoryId']) {
       nativeParam['directoryId'] = args.directoryId;
   }
@@ -636,7 +636,7 @@ ContentManager.prototype.find = function(successCallback) {
           var c = result.value[i];
 
           var content = createContent(c);
-          
+
           contents.push(content);
         }
         args.successCallback(contents);
@@ -644,7 +644,7 @@ ContentManager.prototype.find = function(successCallback) {
       else if(result.status == 'error') {
         var err = result['value'];
         args.errorCallback(err);
-      }            
+      }
     });
       // if you need synchronous result from native function using 'syncResult'.
   } catch(e) {
@@ -655,7 +655,7 @@ ContentManager.prototype.find = function(successCallback) {
 
 ContentManager.prototype.scanFile = function(contentURI) {
   var args = validator_.validateArgs(arguments, [
-    {'name' : 'contentURI', 'type': types_.STRING},  
+    {'name' : 'contentURI', 'type': types_.STRING},
     {'name' : 'successCallback', 'type': types_.FUNCTION, optional : true, nullable : true},
     {'name' : 'errorCallback', 'type': types_.FUNCTION, optional : true, nullable : true}
   ]);
@@ -685,7 +685,7 @@ ContentManager.prototype.scanFile = function(contentURI) {
 
 ContentManager.prototype.setChangeListener = function(changeCallback) {
   var args = validator_.validateArgs(arguments, [
-      {'name' : 'changeCallback', 'type': types_.LISTENER, 'values' : ['oncontentadded', 'oncontentupdated', 'oncontentremoved']} 
+      {'name' : 'changeCallback', 'type': types_.LISTENER, 'values' : ['oncontentadded', 'oncontentupdated', 'oncontentremoved']}
   ]);
 
   var nativeParam = {
@@ -725,8 +725,8 @@ ContentManager.prototype.unsetChangeListener = function() {
 
 ContentManager.prototype.getPlaylists = function(successCallback) {
   var args = validator_.validateArgs(arguments, [
-    {'name' : 'successCallback', 'type': types_.FUNCTION},  
-    {'name' : 'errorCallback', 'type': types_.FUNCTION, optional : true, nullable : true} 
+    {'name' : 'successCallback', 'type': types_.FUNCTION},
+    {'name' : 'errorCallback', 'type': types_.FUNCTION, optional : true, nullable : true}
   ]);
 
   var nativeParam = {
@@ -755,9 +755,9 @@ ContentManager.prototype.getPlaylists = function(successCallback) {
 
 ContentManager.prototype.createPlaylist = function(name, successCallback) {
   var args = validator_.validateArgs(arguments, [
-    {'name' : 'name', 'type': types_.STRING},  
-    {'name' : 'successCallback', 'type': types_.FUNCTION},  
-    {'name' : 'errorCallback', 'type': types_.FUNCTION, optional : true, nullable : true},  
+    {'name' : 'name', 'type': types_.STRING},
+    {'name' : 'successCallback', 'type': types_.FUNCTION},
+    {'name' : 'errorCallback', 'type': types_.FUNCTION, optional : true, nullable : true},
     {'name' : 'sourcePlaylist', 'type': types_.PLATFORM_OBJECT, optional : true, nullable : true}
   ]);
 
@@ -788,7 +788,7 @@ ContentManager.prototype.createPlaylist = function(name, successCallback) {
 
 ContentManager.prototype.removePlaylist = function(id) {
   var args = validator_.validateArgs(arguments, [
-    {'name' : 'id', 'type': types_.STRING},  
+    {'name' : 'id', 'type': types_.STRING},
     {'name' : 'successCallback', 'type': types_.FUNCTION, optional : true, nullable : true},
     {'name' : 'errorCallback', 'type': types_.FUNCTION, optional : true, nullable : true}
   ]);

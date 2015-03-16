@@ -112,7 +112,7 @@ Calendar.prototype.get = function(id) {
   var args;
   if (this.type === CalendarType.TASK) {
     if (!parseInt(id) || parseInt(id) <= 0) {
-      throw new tizen.WebAPIException(tizen.WebAPIException.NOT_FOUND_ERR);
+      throw new WebAPIException(WebAPIException.NOT_FOUND_ERR);
     }
     args = validator_.validateArgs(arguments, [{
       name: 'id',
@@ -160,7 +160,7 @@ Calendar.prototype.add = function() {
 
   if ((this.type === CalendarType.EVENT && !(args.item instanceof CalendarEvent)) ||
       (this.type === CalendarType.TASK && !(args.item instanceof CalendarTask))) {
-    throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
+    throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR,
         'Invalid item type.');
   }
 
@@ -239,7 +239,7 @@ Calendar.prototype.addBatch = function() {
   for (var i = 0; i < args.items.length; i++) {
     if ((this.type === CalendarType.EVENT && !(args.items[i] instanceof CalendarEvent)) ||
             (this.type === CalendarType.TASK && !(args.items[i] instanceof CalendarTask))) {
-      throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
+      throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR,
         'Invalid item type.');
     }
     tmpItem = _itemConverter.fromTizenObject(args.items[i]);
@@ -271,7 +271,7 @@ Calendar.prototype.update = function() {
 
   if ((this.type === CalendarType.EVENT && !(args.item instanceof CalendarEvent)) ||
       (this.type === CalendarType.TASK && !(args.item instanceof CalendarTask))) {
-    throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
+    throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR,
       'Invalid item type.');
   }
 
@@ -345,7 +345,7 @@ Calendar.prototype.updateBatch = function() {
   for (var i = 0; i < args.items.length; i++) {
     if ((calendarType === CalendarType.EVENT && !(args.items[i] instanceof CalendarEvent)) ||
             (calendarType === CalendarType.TASK && !(args.items[i] instanceof CalendarTask))) {
-      throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
+      throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR,
         'Invalid item type.');
     }
     tmpItem = _itemConverter.fromTizenObject(args.items[i]);
@@ -366,7 +366,7 @@ Calendar.prototype.remove = function(id) {
   var args;
   if (this.type === CalendarType.TASK) {
     if (!parseInt(id) || parseInt(id) <= 0) {
-      throw new tizen.WebAPIException(tizen.WebAPIException.NOT_FOUND_ERR);
+      throw new WebAPIException(WebAPIException.NOT_FOUND_ERR);
     }
     args = validator_.validateArgs(arguments, [{
       name: 'id',

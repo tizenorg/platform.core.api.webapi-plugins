@@ -67,7 +67,7 @@ CommonFS.toRealPath = function(aPath) {
     }
     console.log("REAL PATH:" + _fileRealPath);
     if (_fileRealPath === "undefined" || _fileRealPath === "null") {
-        throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR);
+        throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR);
     }
     return _fileRealPath;
 };
@@ -135,7 +135,7 @@ function propertyFactory_(that, name, value, flags, options) {
 
 function checkMode(mode, access)
 {   if(access.indexOf(mode) == -1) {
-        throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_ACCESS_ERR, 'Not allowed operation');
+        throw new WebAPIException(WebAPIException.INVALID_ACCESS_ERR, 'Not allowed operation');
     }
 }
 
@@ -161,7 +161,7 @@ function ArchiveFileEntry(data, priv) {
     }
 
     if (data === null || typeof data !== 'object') {
-        throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR);
+        throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR);
     }
 
     propertyFactory_(this, 'name',           data.name                      || "",    Property.E);
@@ -172,7 +172,7 @@ function ArchiveFileEntry(data, priv) {
     function getHandle() {
         if(priv.handle)
             return priv.handle;
-        else throw new tizen.WebAPIException(tizen.WebAPIException.UNKNOWN_ERR, 'Archive is not opened');
+        else throw new WebAPIException(WebAPIException.UNKNOWN_ERR, 'Archive is not opened');
     }
 
     /**
@@ -190,7 +190,7 @@ function ArchiveFileEntry(data, priv) {
         opId = getNextOpId();
 
         if (!CommonFS.isVirtualPath(args.destinationDirectory)) //TODO: add FileReferece validation
-            throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
+            throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR,
                     "Destination directory should be virtual path or file.");
         bridge.async({
             cmd: 'ArchiveFileEntry_extract',
@@ -212,7 +212,7 @@ function ArchiveFileEntry(data, priv) {
                 if (args.onerror) {
                     args.onerror.call(
                         null,
-                        new tizen.WebAPIException(e)
+                        new WebAPIException(e)
                     );
                 }
             },
@@ -248,7 +248,7 @@ function ArchiveFile(data) {
     }
 
     if (data === null || typeof data !== 'object') {
-        throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR);
+        throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR);
     }
 
     propertyFactory_(this, 'mode'            , data.mode             || "r", Property.E);
@@ -259,7 +259,7 @@ function ArchiveFile(data) {
     function getHandle() {
         if(priv.handle)
             return priv.handle;
-        else throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_STATE_ERR, 'ArchiveFile closed - operation not permitted');
+        else throw new WebAPIException(WebAPIException.INVALID_STATE_ERR, 'ArchiveFile closed - operation not permitted');
     }
 
     /**
@@ -276,7 +276,7 @@ function ArchiveFile(data) {
         opId = getNextOpId();
 
         if (!CommonFS.isVirtualPath(args.sourceFile)) //TODO: add FileReferece validation
-            throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
+            throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR,
                     "sourceFile should be virtual path or file.");
 
         var optionsAttributes = ["destination", "stripSourceDirectory", "compressionLevel"],
@@ -307,7 +307,7 @@ function ArchiveFile(data) {
                 if (args.onerror) {
                     args.onerror.call(
                         null,
-                        new tizen.WebAPIException(e)
+                        new WebAPIException(e)
                     );
                 }
             },
@@ -340,7 +340,7 @@ function ArchiveFile(data) {
         opId = getNextOpId();
 
         if (!CommonFS.isVirtualPath(args.destinationDirectory)) //TODO: add FileReferece validation
-            throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
+            throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR,
                     "destinationDirectory should be virtual path or file.");
 
         checkMode(this.mode, ["r","rw"]);
@@ -362,7 +362,7 @@ function ArchiveFile(data) {
                 if (args.onerror) {
                     args.onerror.call(
                         null,
-                        new tizen.WebAPIException(e)
+                        new WebAPIException(e)
                     );
                 }
             },
@@ -410,7 +410,7 @@ function ArchiveFile(data) {
                 if (args.onerror) {
                     args.onerror.call(
                         null,
-                        new tizen.WebAPIException(e)
+                        new WebAPIException(e)
                     );
                 }
             }
@@ -446,7 +446,7 @@ function ArchiveFile(data) {
                 if (args.onerror) {
                     args.onerror.call(
                         null,
-                        new tizen.WebAPIException(e)
+                        new WebAPIException(e)
                     );
                 }
             }
@@ -499,7 +499,7 @@ ArchiveManager.prototype.open = function () {
     }
 
     if (!CommonFS.isVirtualPath(args.file)) //TODO: add FileReferece validation
-        throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
+        throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR,
                 "file should be virtual path or file.");
 
     bridge.async({
@@ -518,7 +518,7 @@ ArchiveManager.prototype.open = function () {
             if (args.onerror) {
                 args.onerror.call(
                     null,
-                    new tizen.WebAPIException(e)
+                    new WebAPIException(e)
                 );
             }
         }

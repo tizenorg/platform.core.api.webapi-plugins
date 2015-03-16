@@ -34,7 +34,7 @@ FileSystemManager.prototype.resolve = function(location, onsuccess, onerror, mod
   if (args.location[0] === '/') {
     setTimeout(function() {
       native_.callIfPossible(args.onerror,
-          new tizen.WebAPIException(tizen.WebAPIException.NOT_FOUND_ERR,
+          new WebAPIException(WebAPIException.NOT_FOUND_ERR,
           'Global path without \'file://\' prefix is not valid.'));
     }, 0);
     return;
@@ -45,7 +45,7 @@ FileSystemManager.prototype.resolve = function(location, onsuccess, onerror, mod
   if (args.mode !== 'r' && !_isLocationAllowed) {
     setTimeout(function() {
       native_.callIfPossible(args.onerror,
-          new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR,
+          new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
           'Provided arguments are not valid.'));
     }, 0);
     return;
@@ -64,7 +64,7 @@ FileSystemManager.prototype.resolve = function(location, onsuccess, onerror, mod
     var aStatObj = native_.getResultObject(result);
     var _result = commonFS_.getFileInfo(aStatObj, false, args.mode);
     if (_result.readOnly && args.mode !== 'r') {
-      throw new tizen.WebAPIException(tizen.WebAPIException.IO_ERR);
+      throw new WebAPIException(WebAPIException.IO_ERR);
     } else {
       native_.callIfPossible(args.onsuccess, new File(_result));
     }
@@ -92,7 +92,7 @@ FileSystemManager.prototype.getStorage = function(label, onsuccess, onerror) {
 
     if (storage === undefined) {
       native_.callIfPossible(args.onerror,
-          new tizen.WebAPIException(tizen.WebAPIException.NOT_FOUND_ERR, 'Storage not found.'));
+          new WebAPIException(WebAPIException.NOT_FOUND_ERR, 'Storage not found.'));
     } else {
       native_.callIfPossible(args.onsuccess, storage);
     }
@@ -166,13 +166,13 @@ FileSystemManager.prototype.removeStorageStateChangeListener = function(watchId)
   ]);
 
   if (!arguments.length) {
-    throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
+    throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR,
         'Missing watchId');
   }
   var id = args.watchId;
 
   if (type_.isNullOrUndefined(callbacks[id])) {
-    throw new tizen.WebAPIException(tizen.WebAPIException.NOT_FOUND_ERR, 'Watch ID not found.');
+    throw new WebAPIException(WebAPIException.NOT_FOUND_ERR, 'Watch ID not found.');
   }
 
   delete callbacks[id];

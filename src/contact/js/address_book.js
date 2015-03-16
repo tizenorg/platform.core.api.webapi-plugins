@@ -159,7 +159,7 @@ AddressBook.prototype.get = function() {
 
   if (String(converter_.toLong(args.id)) !== args.id) {
     // TCT: AddressBook_get_id_invalid
-    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR);
   }
 
   var result = native_.callSync('AddressBook_get', {
@@ -381,7 +381,7 @@ AddressBook.prototype.remove = function() {
 
   if (String(converter_.toLong(args.id)) !== args.id) {
     // TCT: AddressBook_remove_id_invalid
-    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR);
   }
 
   var result = native_.callSync('AddressBook_remove', {
@@ -553,13 +553,13 @@ AddressBook.prototype.removeChangeListener = function(watchId) {
   ]);
 
   if (args.watchId <= 0) {
-    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR,
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
         'Wrong watch id');
   }
 
   if (!_contactCallbackMap.hasOwnProperty(this.id) ||
       !_contactCallbackMap[this.id].hasOwnProperty(args.watchId)) {
-    throw new tizen.WebAPIException(tizen.WebAPIException.NOT_FOUND_ERR,
+    throw new WebAPIException(WebAPIException.NOT_FOUND_ERR,
         'watch id not found for this address book');
   }
 
@@ -591,7 +591,7 @@ AddressBook.prototype.getGroup = function() {
 
   if (String(converter_.toLong(args.groupId)) !== args.groupId) {
     // TCT: AddressBook_getGroup_groupId_invalid
-    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR);
   }
 
   var result = native_.callSync('AddressBook_getGroup', {
@@ -659,7 +659,7 @@ AddressBook.prototype.removeGroup = function() {
 
   if (String(converter_.toLong(args.groupId)) !== args.groupId) {
     // TCT: AddressBook_removeGroup_groupId_invalid
-    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR);
   }
 
   var result = native_.callSync('AddressBook_removeGroup',

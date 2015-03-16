@@ -48,7 +48,7 @@ function callNative(cmd, args) {
   var result = JSON.parse(resultString);
 
   if (typeof result !== 'object') {
-    throw new tizen.WebAPIException(tizen.WebAPIException.UNKNOWN_ERR);
+    throw new WebAPIException(WebAPIException.UNKNOWN_ERR);
   }
 
   if (result['status'] == 'success') {
@@ -59,7 +59,7 @@ function callNative(cmd, args) {
   } else if (result['status'] == 'error') {
     var err = result['error'];
     if (err) {
-      throw new tizen.WebAPIException(err.name, err.message);
+      throw new WebAPIException(err.name, err.message);
     }
     return false;
   }
@@ -103,12 +103,12 @@ tizen.DownloadRequest = function(url, destination, fileName, networkType, httpHe
     {'name' : 'fileName', 'type': types_.STRING, 'nullable': true, 'optional': true},
     {'name' : 'networkType', 'type': types_.ENUM, 'values': ['CELLULAR', 'WIFI', 'ALL'],
     'nullable' : true, 'optional': true},
-    {'name' : 'httpHeader', 'type': types_.Dictionary, 'nullable': true, 'optional': true} 
+    {'name' : 'httpHeader', 'type': types_.Dictionary, 'nullable': true, 'optional': true}
   ]);
 
   var url_ = url;
   var networkType_;
-  
+
   if (networkType === undefined) networkType_ = 'ALL';
   else if (networkType in DownloadNetworkType) networkType_ = networkType;
 
@@ -176,7 +176,7 @@ DownloadManager.prototype.cancel = function(downloadId) {
   };
 
   if (typeof requests[downloadId] === 'undefined')
-    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR,
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
         'the identifier does not match any download operation in progress');
 
   try {
@@ -196,7 +196,7 @@ DownloadManager.prototype.pause = function(downloadId) {
   };
 
   if (typeof requests[downloadId] === 'undefined')
-    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR,
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
         'the identifier does not match any download operation in progress');
 
   try {
@@ -216,7 +216,7 @@ DownloadManager.prototype.resume = function(downloadId) {
   };
 
   if (typeof requests[downloadId] === 'undefined')
-    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR,
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
         'the identifier does not match any download operation in progress');
 
   try {
@@ -236,7 +236,7 @@ DownloadManager.prototype.getState = function(downloadId) {
   };
 
   if (typeof requests[downloadId] === 'undefined')
-    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR,
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
         'the identifier does not match any download operation in progress');
 
   try {
@@ -254,7 +254,7 @@ DownloadManager.prototype.getDownloadRequest = function(downloadId) {
   ]);
 
   if (typeof requests[downloadId] === 'undefined')
-    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR,
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
         'the identifier does not match any download operation in progress');
 
   return requests[args.downloadId];
@@ -270,7 +270,7 @@ DownloadManager.prototype.getMIMEType = function(downloadId) {
   };
 
   if (typeof requests[downloadId] === 'undefined')
-    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR,
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
         'the identifier does not match any download operation in progress');
 
   try {

@@ -213,8 +213,8 @@ FMRadioManager.prototype.start = function() {
     if (args.frequency) {
         if (args.frequency < this.frequencyLowerBound
                 || args.frequency > this.frequencyUpperBound)
-            throw new tizen.WebAPIException(
-                    tizen.WebAPIException.INVALID_VALUES_ERR,
+            throw new WebAPIException(
+                    WebAPIException.INVALID_VALUES_ERR,
                     'Frequency out of bounds');
     }
     var result = native_.callSync('FMRadio_Start', {

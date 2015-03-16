@@ -35,7 +35,7 @@ function AccountProvider(data) {
         displayName:                { enumerable: true, writable: false, value: data.displayName },
         iconUri:                    { enumerable: true, writable: false, value: data.iconUri },
         smallIconUri:               { enumerable: true, writable: false, value: data.smallIconUri },
-        capabilities:               { enumerable: true, 
+        capabilities:               { enumerable: true,
                                       set: function() {},
                                       get: function() { return internal_; }
                                     },
@@ -125,7 +125,7 @@ Account.prototype.getExtendedData = function() {
         ]);
 
         var result = native_.callSync('Account_getExtendedDataSync',
-                                      { 
+                                      {
                                            accountId: this.id,
                                            key: args.key
                                       }
@@ -236,7 +236,7 @@ AccountManager.prototype.getAccounts = function() {
     // TODO handling exceptions
 
     native_.call('AccountManager_getAccounts',
-        { 
+        {
             applicationId: args.applicationId
         },
         function(result) {

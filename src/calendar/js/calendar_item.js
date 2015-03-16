@@ -588,7 +588,7 @@ var CalendarEventInit = function(data) {
 
   var _validateReccurence = function(v) {
     if (_isDetached && v !== null) {
-      throw new tizen.WebAPIException(tizen.WebAPIException.NOT_SUPPORTED_ERR,
+      throw new WebAPIException(WebAPIException.NOT_SUPPORTED_ERR,
         'Recurrence can\'t be set because event is detached');
     }
 
@@ -669,24 +669,24 @@ CalendarEvent.prototype.constructor = CalendarEvent;
 
 CalendarEvent.prototype.expandRecurrence = function(startDate, endDate, successCallback, errorCallback) {
   if (arguments.length < 3) {
-    throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR);
+    throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR);
   }
   if (!(startDate instanceof tizen.TZDate)) {
-    throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR);
+    throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR);
   }
   if (!(endDate instanceof tizen.TZDate)) {
-    throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR);
+    throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR);
   }
   if (typeof successCallback !== 'function') {
-    throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR);
+    throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR);
   }
   if (errorCallback) {
     if (typeof errorCallback !== 'function') {
-      throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR);
+      throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR);
     }
   }
   if (!(this.recurrenceRule instanceof tizen.CalendarRecurrenceRule)) {
-    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR,
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
       'The event is not recurring.');
   }
 

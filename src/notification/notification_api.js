@@ -71,7 +71,7 @@ NotificationManager.prototype.update = function(notification) {
   ]);
 
   if (!arguments.length) {
-    throw new tizen.WebAPIException(tizen.WebAPIException.NOT_FOUND_ERR);
+    throw new WebAPIException(WebAPIException.NOT_FOUND_ERR);
   }
 
   var data = {
@@ -81,7 +81,7 @@ NotificationManager.prototype.update = function(notification) {
   var result = native_.callSync('NotificationManager_update', data);
 
   if (native_.isFailure(result)) {
-    throw new tizen.WebAPIException(tizen.WebAPIException.NOT_FOUND_ERR,
+    throw new WebAPIException(WebAPIException.NOT_FOUND_ERR,
         native_.getErrorObject(result));
   }
 };
@@ -92,7 +92,7 @@ NotificationManager.prototype.remove = function(id) {
   ]);
 
   if (!arguments.length) {
-    throw new tizen.WebAPIException(tizen.WebAPIException.NOT_FOUND_ERR);
+    throw new WebAPIException(WebAPIException.NOT_FOUND_ERR);
   }
 
   var data = {
@@ -102,7 +102,7 @@ NotificationManager.prototype.remove = function(id) {
   var result = native_.callSync('NotificationManager_remove', data);
 
   if (native_.isFailure(result)) {
-    throw new tizen.WebAPIException(tizen.WebAPIException.NOT_FOUND_ERR,
+    throw new WebAPIException(WebAPIException.NOT_FOUND_ERR,
         native_.getErrorObject(result));
   }
 };
@@ -121,7 +121,7 @@ NotificationManager.prototype.get = function(id) {
   ]);
 
   if (!arguments.length) {
-    throw new tizen.WebAPIException(tizen.WebAPIException.NOT_FOUND_ERR);
+    throw new WebAPIException(WebAPIException.NOT_FOUND_ERR);
   }
 
   var data = {
@@ -131,7 +131,7 @@ NotificationManager.prototype.get = function(id) {
   var result = native_.callSync('NotificationManager_get', data);
 
   if (native_.isFailure(result)) {
-    throw new tizen.WebAPIException(tizen.WebAPIException.NOT_FOUND_ERR,
+    throw new WebAPIException(WebAPIException.NOT_FOUND_ERR,
         native_.getErrorObject(result));
   }
 

@@ -20,18 +20,18 @@ function nextCallbackId() {
 }
 
 var ExceptionMap = {
-    'UnknownError' : tizen.WebAPIException.UNKNOWN_ERR ,
-    'TypeMismatchError' : tizen.WebAPIException.TYPE_MISMATCH_ERR ,
-    'InvalidValuesError' : tizen.WebAPIException.INVALID_VALUES_ERR ,
-    'IOError' : tizen.WebAPIException.IO_ERR ,
-    'ServiceNotAvailableError' : tizen.WebAPIException.SERVICE_NOT_AVAILABLE_ERR ,
-    'SecurityError' : tizen.WebAPIException.SECURITY_ERR ,
-    'NetworkError' : tizen.WebAPIException.NETWORK_ERR ,
-    'NotSupportedError' : tizen.WebAPIException.NOT_SUPPORTED_ERR ,
-    'NotFoundError' : tizen.WebAPIException.NOT_FOUND_ERR ,
-    'InvalidAccessError' : tizen.WebAPIException.INVALID_ACCESS_ERR ,
-    'AbortError' : tizen.WebAPIException.ABORT_ERR ,
-    'QuotaExceededError' : tizen.WebAPIException.QUOTA_EXCEEDED_ERR ,
+    'UnknownError' : WebAPIException.UNKNOWN_ERR ,
+    'TypeMismatchError' : WebAPIException.TYPE_MISMATCH_ERR ,
+    'InvalidValuesError' : WebAPIException.INVALID_VALUES_ERR ,
+    'IOError' : WebAPIException.IO_ERR ,
+    'ServiceNotAvailableError' : WebAPIException.SERVICE_NOT_AVAILABLE_ERR ,
+    'SecurityError' : WebAPIException.SECURITY_ERR ,
+    'NetworkError' : WebAPIException.NETWORK_ERR ,
+    'NotSupportedError' : WebAPIException.NOT_SUPPORTED_ERR ,
+    'NotFoundError' : WebAPIException.NOT_FOUND_ERR ,
+    'InvalidAccessError' : WebAPIException.INVALID_ACCESS_ERR ,
+    'AbortError' : WebAPIException.ABORT_ERR ,
+    'QuotaExceededError' : WebAPIException.QUOTA_EXCEEDED_ERR ,
 }
 
 function callNative(cmd, args) {
@@ -41,7 +41,7 @@ function callNative(cmd, args) {
     var result = JSON.parse(resultString);
 
     if (typeof result !== 'object') {
-        throw new tizen.WebAPIException(tizen.WebAPIException.UNKNOWN_ERR);
+        throw new WebAPIException(WebAPIException.UNKNOWN_ERR);
     }
 
     if (result['status'] == 'success') {
@@ -53,9 +53,9 @@ function callNative(cmd, args) {
         var err = result['error'];
         if(err) {
             if(ExceptionMap[err.name]) {
-                throw new tizen.WebAPIException(ExceptionMap[err.name], err.message);
+                throw new WebAPIException(ExceptionMap[err.name], err.message);
             } else {
-                throw new tizen.WebAPIException(tizen.WebAPIException.UNKNOWN_ERR, err.message);
+                throw new WebAPIException(WebAPIException.UNKNOWN_ERR, err.message);
             }
         }
         return false;
@@ -77,8 +77,8 @@ function SetReadOnlyProperty(obj, n, v){
 }
 
 var PowerResource = {
-    'SCREEN': 'SCREEN',  
-    'CPU': 'CPU' 
+    'SCREEN': 'SCREEN',
+    'CPU': 'CPU'
 };
 
 /**
@@ -86,10 +86,10 @@ var PowerResource = {
  * @enum {string}
  */
 var PowerScreenState = {
-    'SCREEN_OFF': 'SCREEN_OFF',  
-    'SCREEN_DIM': 'SCREEN_DIM',  
-    'SCREEN_NORMAL': 'SCREEN_NORMAL',  
-    'SCREEN_BRIGHT': 'SCREEN_BRIGHT' 
+    'SCREEN_OFF': 'SCREEN_OFF',
+    'SCREEN_DIM': 'SCREEN_DIM',
+    'SCREEN_NORMAL': 'SCREEN_NORMAL',
+    'SCREEN_BRIGHT': 'SCREEN_BRIGHT'
 };
 
 /**
@@ -97,7 +97,7 @@ var PowerScreenState = {
  * @enum {string}
  */
 var PowerCpuState = {
-    'CPU_AWAKE': 'CPU_AWAKE' 
+    'CPU_AWAKE': 'CPU_AWAKE'
 };
 
 /**
@@ -117,10 +117,10 @@ function PowerManager() {
  */
 PowerManager.prototype.request = function(resource, state) {
    var args = validator_.validateArgs(arguments, [
-        {'name' : 'resource', 'type': types_.ENUM, 'values' : ['SCREEN', 'CPU']},  
-        {'name' : 'state', 'type': types_.ENUM, 'values' : ['SCREEN_OFF', 'SCREEN_DIM', 'SCREEN_NORMAL', 'SCREEN_BRIGHT', 'CPU_AWAKE']} 
+        {'name' : 'resource', 'type': types_.ENUM, 'values' : ['SCREEN', 'CPU']},
+        {'name' : 'state', 'type': types_.ENUM, 'values' : ['SCREEN_OFF', 'SCREEN_DIM', 'SCREEN_NORMAL', 'SCREEN_BRIGHT', 'CPU_AWAKE']}
     ]);
-	
+
     var nativeParam = {
     };
 
@@ -130,7 +130,7 @@ PowerManager.prototype.request = function(resource, state) {
     if (args['state']) {
         nativeParam['state'] = args.state;
     }
-	
+
     try {
         var syncResult = callNative('PowerManager_request', nativeParam);
         // if you need synchronous result from native function using 'syncResult'.
@@ -146,18 +146,18 @@ PowerManager.prototype.request = function(resource, state) {
  */
 PowerManager.prototype.release = function(resource) {
     var args = validator_.validateArgs(arguments, [
-        {'name' : 'resource', 'type': types_.ENUM, 'values' : ['SCREEN', 'CPU']} 
+        {'name' : 'resource', 'type': types_.ENUM, 'values' : ['SCREEN', 'CPU']}
     ]);
 
     if (!PowerResource.hasOwnProperty(args.resource))
-        throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR);
-	
+        throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR);
+
     var nativeParam = {
     };
 
     if (args['resource']) {
         nativeParam['resource'] = args.resource;
-    }	
+    }
     try {
         var syncResult = callNative('PowerManager_release', nativeParam);
         // if you need synchronous result from native function using 'syncResult'.
@@ -194,13 +194,13 @@ PowerManager.prototype.getScreenBrightness = function() {
     var nativeParam = {
     };
 	var syncResult = 0;
-	
+
     try {
         syncResult = callNative('PowerManager_getScreenBrightness', nativeParam);
         // if you need synchronous result from native function using 'syncResult'.
     } catch(e) {
         throw e;
-    }  
+    }
 
 	return syncResult;
 }
@@ -211,12 +211,12 @@ PowerManager.prototype.getScreenBrightness = function() {
  */
 PowerManager.prototype.setScreenBrightness = function(brightness) {
     var args = validator_.validateArgs(arguments, [
-        {'name' : 'brightness', 'type': types_.DOUBLE} 
+        {'name' : 'brightness', 'type': types_.DOUBLE}
     ]);
 
     if (args.brightness < 0 || args.brightness > 1)
-        throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
-	
+        throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR);
+
     var nativeParam = {
             'brightness': args.brightness
     };
@@ -236,8 +236,8 @@ PowerManager.prototype.isScreenOn = function() {
     var nativeParam = {
     };
 	var syncResult = 0;
-	
-    try {		
+
+    try {
         syncResult = callNative('PowerManager_isScreenOn', nativeParam);
         // if you need synchronous result from native function using 'syncResult'.
     } catch(e) {
@@ -253,7 +253,7 @@ PowerManager.prototype.isScreenOn = function() {
 PowerManager.prototype.restoreScreenBrightness = function() {
     var nativeParam = {
     };
-	
+
     try {
         var syncResult = callNative('PowerManager_restoreScreenBrightness', nativeParam);
         // if you need synchronous result from native function using 'syncResult'.
@@ -268,7 +268,7 @@ PowerManager.prototype.restoreScreenBrightness = function() {
 PowerManager.prototype.turnScreenOn = function() {
     var nativeParam = {
     };
-	
+
     try {
         var syncResult = callNative('PowerManager_turnScreenOn', nativeParam);
         // if you need synchronous result from native function using 'syncResult'.

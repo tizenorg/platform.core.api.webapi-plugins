@@ -116,7 +116,7 @@ NFCManager.prototype.getDefaultAdapter = function() {
       {}
       );
   if (native_.isFailure(result)) {
-    throw new tizen.WebAPIException(0, result.error.message,
+    throw new WebAPIException(0, result.error.message,
         result.error.name);
   }
 
@@ -137,7 +137,7 @@ NFCManager.prototype.setExclusiveMode = function() {
 
   // If failed then exception should be thrown.
   if (native_.isFailure(result)) {
-    throw new tizen.WebAPIException(0, result.error.message,
+    throw new WebAPIException(0, result.error.message,
         result.error.name);
     // Uncoment line below (and remove line above) when problem
     // with error conversion is fixed:
@@ -283,8 +283,8 @@ NFCAdapter.prototype.setTagListener = function() {
   if (!type_.isNullOrUndefined(args.tagType)) {
     for (var i = 0; i < args.tagType.length; i++) {
       if (NFCTagType[args.tagType[i]] === undefined) {
-        throw new tizen.WebAPIException(
-            tizen.WebAPIException.TYPE_MISMATCH_ERR, 'Invalid tag type.');
+        throw new WebAPIException(
+            WebAPIException.TYPE_MISMATCH_ERR, 'Invalid tag type.');
       }
     }
   }
@@ -382,7 +382,7 @@ NFCAdapter.prototype.addCardEmulationModeChangeListener = function() {
     var result = native_.callSync(
         'NFCAdapter_addCardEmulationModeChangeListener');
     if (native_.isFailure(result)) {
-      throw new tizen.WebAPIException(0, result.error.message,
+      throw new WebAPIException(0, result.error.message,
           result.error.name);
     }
   }
@@ -426,7 +426,7 @@ NFCAdapter.prototype.addTransactionEventListener = function() {
       result = native_.callSync('NFCAdapter_addTransactionEventListener', {
         type: args.type});
       if (native_.isFailure(result)) {
-        throw new tizen.WebAPIException(0, result.error.message,
+        throw new WebAPIException(0, result.error.message,
             result.error.name);
       }
     }
@@ -436,7 +436,7 @@ NFCAdapter.prototype.addTransactionEventListener = function() {
       result = native_.callSync('NFCAdapter_addTransactionEventListener', {
         type: args.type});
       if (native_.isFailure(result)) {
-        throw new tizen.WebAPIException(0, result.error.message,
+        throw new WebAPIException(0, result.error.message,
             result.error.name);
       }
     }
@@ -485,7 +485,7 @@ NFCAdapter.prototype.addActiveSecureElementChangeListener = function() {
     var result = native_.callSync(
         'NFCAdapter_addActiveSecureElementChangeListener');
     if (native_.isFailure(result)) {
-      throw new tizen.WebAPIException(0, result.error.message,
+      throw new WebAPIException(0, result.error.message,
           result.error.name);
     }
   }
@@ -850,7 +850,7 @@ var toByteArray = function(array, max_size, nullable) {
   var len = convertedArray.length;
 
   if (len > max_size)
-    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR);
   for (var i = 0; i < len; i++) {
     resultArray.push(converter_.toOctet(convertedArray[i]));
   }
@@ -902,7 +902,7 @@ tizen.NDEFMessage = function(data) {
           }
         }
       } else {
-        throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
+        throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR);
       }
     }
   } catch (e) {
@@ -967,7 +967,7 @@ tizen.NDEFRecord = function(first, type, payload, id) {
               }
               );
           if (native_.isFailure(result)) {
-            throw new tizen.WebAPIException(0, result.error.message,
+            throw new WebAPIException(0, result.error.message,
                 result.error.name);
             // throw native_.getErrorObject(result);
           }
@@ -982,7 +982,7 @@ tizen.NDEFRecord = function(first, type, payload, id) {
           id_ = toByteArray(id, 255, true, []);
         }
       } else {
-        throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
+        throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR);
       }
     } catch (e) {
       //constructor call failed - empty object should be created
@@ -1020,14 +1020,14 @@ tizen.NDEFRecordText = function(text, languageCode, encoding) {
           }
           );
       if (native_.isFailure(result)) {
-        throw new tizen.WebAPIException(0, result.error.message,
+        throw new WebAPIException(0, result.error.message,
             result.error.name);
         // throw native_.getErrorObject(result);
       }
       tizen.NDEFRecord.call(this, result.result.tnf, result.result.type,
           result.result.payload, result.result.id);
     } else {
-      throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
+      throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR);
     }
   } catch (e) {
     //constructor call failed - empty object should be created
@@ -1061,14 +1061,14 @@ tizen.NDEFRecordURI = function(uri) {
           }
           );
       if (native_.isFailure(result)) {
-        throw new tizen.WebAPIException(0, result.error.message,
+        throw new WebAPIException(0, result.error.message,
             result.error.name);
         // throw native_.getErrorObject(result);
       }
       tizen.NDEFRecord.call(this, result.result.tnf, result.result.type,
           result.result.payload, result.result.id);
     } else {
-      throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
+      throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR);
     }
   } catch (e) {
     //constructor call failed - empty object should be created
@@ -1102,14 +1102,14 @@ tizen.NDEFRecordMedia = function(mimeType, data) {
           }
           );
       if (native_.isFailure(result)) {
-        throw new tizen.WebAPIException(0, result.error.message,
+        throw new WebAPIException(0, result.error.message,
             result.error.name);
         // throw native_.getErrorObject(result);
       }
       tizen.NDEFRecord.call(this, result.result.tnf, result.result.type,
           result.result.payload, result.result.id);
     } else {
-      throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
+      throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR);
     }
   } catch (e) {
     //constructor call failed - empty object should be created

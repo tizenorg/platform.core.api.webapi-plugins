@@ -217,7 +217,7 @@ Converter.prototype.toOctet = function(val, nullable) {
 function _toDouble(val) {
   var ret = Number(val);
   if (isNaN(ret) || !isFinite(ret)) {
-    throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
+    throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR,
         'Cannot convert ' + String(val) + ' to double.');
   }
   return ret;
@@ -259,7 +259,7 @@ function _toPlatformObject(val, types) {
     return val;
   }
 
-  throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
+  throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR,
       'Cannot convert ' + String(val) + ' to ' + String(t[0].name) + '.');
 }
 
@@ -272,7 +272,7 @@ function _toFunction(val) {
     return val;
   }
 
-  throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
+  throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR,
       'Cannot convert ' + String(val) + ' to function.');
 }
 
@@ -285,7 +285,7 @@ function _toArray(val) {
     return val;
   }
 
-  throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
+  throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR,
       'Cannot convert ' + String(val) + ' to array.');
 }
 
@@ -298,7 +298,7 @@ function _toDictionary(val) {
     return val;
   }
 
-  throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
+  throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR,
       'Cannot convert ' + String(val) + ' to dictionary.');
 }
 
@@ -312,7 +312,7 @@ function _toEnum(val, e) {
     return v;
   }
 
-  throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
+  throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR,
       'Cannot convert ' + v + ' to enum.');
 }
 
@@ -519,18 +519,18 @@ Validator.prototype.validateArgs = function(a, d) {
         case this.Types.LISTENER:
           if (_type.isNull(val)) {
             if (!nullable) {
-              throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
+              throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR,
                   'Argument "' + name + '" cannot be null.');
             }
           } else {
             if (!_type.isFunction(val)) {
                 if (_type.isEmptyObject(val)) {
-                    throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
+                    throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR,
                         'Argument "' + name + '" shouldn\'t be an empty object.');
                 }
             }
             if (!_type.isObject(val)) {
-              throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
+              throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR,
                   'Argument "' + name + '" should be an object.');
             }
             for (var ii = 0; ii < values.length; ++ii) {
@@ -586,7 +586,7 @@ Validator.prototype.validateArgs = function(a, d) {
               default:
                 func = function(val) {
                   if (!(val instanceof values)) {
-                    throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
+                    throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR,
                         'Items of array "' + name + '" should be of type: ' + values + '.');
                   }
                   return val;
@@ -604,14 +604,14 @@ Validator.prototype.validateArgs = function(a, d) {
           break;
 
         default:
-          throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
+          throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR,
               'Unknown type: "' + type + '".');
       }
 
       var _validator = d[i].validator;
 
       if (_type.isFunction(_validator) && !_validator(val)) {
-        throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
+        throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR,
             'Argument "' + name + '" did not pass additional validation.');
       }
 
@@ -641,7 +641,7 @@ Validator.prototype.isConstructorCall = function(obj, instance) {
   if (!(obj instanceof instance) || obj._previouslyConstructed) {
     // There is no TypeError exception in Tizen 2.3.0 API spec but it's required by current TCTs.
     // For Tizen compliance it's wrapped into WebAPIException.
-    throw new tizen.WebAPIException('TypeError', 'Constructor cannot be called as function.');
+    throw new WebAPIException('TypeError', 'Constructor cannot be called as function.');
   }
 
   Object.defineProperty(obj, '_previouslyConstructed', {
@@ -714,7 +714,7 @@ var NativeManager = function(extension) {
       !_type.isFunction(extension.postMessage) ||
       !_type.isFunction(extension.internal.sendSyncMessage) ||
       !_type.isFunction(extension.setMessageListener)) {
-    throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
+    throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR,
       'Wrong extension object passed');
   }
 
@@ -792,7 +792,7 @@ NativeManager.prototype.callSync = function(cmd, args) {
 
 NativeManager.prototype.addListener = function(name, callback) {
   if (!_type.isString(name) || !name.length) {
-    throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR);
+    throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR);
   }
 
   this.listeners_[name] = callback;
@@ -821,7 +821,7 @@ NativeManager.prototype.getResultObject = function(result) {
 };
 
 NativeManager.prototype.getErrorObject = function(result) {
-  return new tizen.WebAPIException(result.error);
+  return new WebAPIException(result.error);
 };
 
 NativeManager.prototype.callIfPossible = function(callback) {
@@ -1024,7 +1024,7 @@ var NativeBridge = (function (extension, debug) {
             var result = extension.internal.sendSyncMessage(json);
             var obj = JSON.parse(result);
             if (obj.error)
-                throw new tizen.WebAPIException(obj.code, obj.name, obj.message);
+                throw new WebAPIException(obj.code, obj.name, obj.message);
             return obj.result;
         },
         async: function (data) {
@@ -1077,8 +1077,12 @@ var NativeBridge = (function (extension, debug) {
     return new Bridge;
 });
 
-// WebAPIException and WebAPIError
-
+// WebAPIException and WebAPIError definition moved to Utils for compliance
+// reasons with blink-wrt environment.
+// In blink-wrt the original Tizen module is loaded, which is not providing exception constructor.
+// As modules needs exceptions internally so they are loaded here for now.
+// See http://168.219.209.56/gerrit/#/c/23472/ for more details.
+// In future exception definition could be moved back to Tizen module.
 function __isObject(object) {
   return object instanceof Object;
 }
@@ -1228,17 +1232,11 @@ var WebAPIException = function(code, message, name) {
   }
 
   // attributes
-  var attributes = {
+  Object.defineProperties(this, {
     code: {value: code_, writable: false, enumerable: true},
     name: {value: name_, writable: false, enumerable: true},
     message: {value: message_, writable: false, enumerable: true}
-  };
-
-  for (var error in errors) {
-    attributes[error] = { value: errors[error], writable: false, enumerable: true}
-  }
-
-  Object.defineProperties(this, attributes);
+  });
 
   this.constructor.prototype.__proto__ = Error.prototype;
   Error.captureStackTrace(this, this.constructor);
@@ -1248,12 +1246,27 @@ WebAPIException.prototype.toString = function() {
   return this.name + ': ' + this.message;
 };
 
-function getExceptionClass() {
-  return WebAPIException;
-}
 
-Utils.prototype.getExceptionClass = getExceptionClass;
-Utils.prototype.getErrorClass = getExceptionClass;
+var error_constants = {};
+for (var prop in errors) {
+  error_constants[prop] = {value: errors[prop], writable: false, enumerable: true};
+}
+Object.defineProperties(WebAPIException, error_constants);
+Object.defineProperties(WebAPIException.prototype, error_constants);
+
+
+// Export WebAPIException and WebAPIError into global scope.
+// For compliance reasons their constructors should not be exported in tizen namespace,
+// but should be available internally to allow throwing exceptions from modules.
+var scope;
+if (typeof window !== 'undefined') {
+  scope = window;
+} else if(typeof global !== 'undefined') {
+  scope = global;
+}
+scope = scope || {};
+scope.WebAPIException = WebAPIException;
+scope.WebAPIError = WebAPIException;
 
 Utils.prototype.type = _type;
 Utils.prototype.converter = _converter;

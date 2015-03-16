@@ -47,7 +47,7 @@ function BadgeManager() {
  */
 BadgeManager.prototype.setBadgeCount = function() {
   if (arguments.length < 2)
-    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR,
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
         'incorrect number of arguments');
 
   var args = validator_.validateArgs(arguments, [
@@ -56,7 +56,7 @@ BadgeManager.prototype.setBadgeCount = function() {
   ]);
 
   if (args.count < 0)
-    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR,
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
                                     'Count parameter is negative!');
 
   var ret = native_.callSync('BadgeManager_setBadgeCount', {
@@ -76,7 +76,7 @@ BadgeManager.prototype.setBadgeCount = function() {
  */
 BadgeManager.prototype.getBadgeCount = function() {
   if (arguments.length < 1)
-    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR,
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
                                     'incorrect number of arguments');
   var args = validator_.validateArgs(arguments, [
     {name: 'appId', type: types_.STRING}
@@ -99,7 +99,7 @@ BadgeManager.prototype.getBadgeCount = function() {
  */
 BadgeManager.prototype.addChangeListener = function() {
   if (arguments.length < 2)
-    throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
+    throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR,
         'incorrect number of arguments');
   var args = validator_.validateArgs(arguments, [
     {
@@ -141,7 +141,7 @@ BadgeManager.prototype.addChangeListener = function() {
  */
 BadgeManager.prototype.removeChangeListener = function() {
   if (arguments.length < 1)
-    throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
+    throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR,
                                     'incorrect number of arguments');
 
   var args = validator_.validateArgs(arguments, [

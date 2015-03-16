@@ -31,18 +31,18 @@ function nextCallbackId() {
 }
 
 var ExceptionMap = {
-  'UnknownError' : tizen.WebAPIException.UNKNOWN_ERR,
-  'TypeMismatchError' : tizen.WebAPIException.TYPE_MISMATCH_ERR,
-  'InvalidValuesError' : tizen.WebAPIException.INVALID_VALUES_ERR,
-  'IOError' : tizen.WebAPIException.IO_ERR,
-  'ServiceNotAvailableError' : tizen.WebAPIException.SERVICE_NOT_AVAILABLE_ERR,
-  'SecurityError' : tizen.WebAPIException.SECURITY_ERR,
-  'NetworkError' : tizen.WebAPIException.NETWORK_ERR,
-  'NotSupportedError' : tizen.WebAPIException.NOT_SUPPORTED_ERR,
-  'NotFoundError' : tizen.WebAPIException.NOT_FOUND_ERR,
-  'InvalidAccessError' : tizen.WebAPIException.INVALID_ACCESS_ERR,
-  'AbortError' : tizen.WebAPIException.ABORT_ERR,
-  'QuotaExceededError' : tizen.WebAPIException.QUOTA_EXCEEDED_ERR
+  'UnknownError' : WebAPIException.UNKNOWN_ERR,
+  'TypeMismatchError' : WebAPIException.TYPE_MISMATCH_ERR,
+  'InvalidValuesError' : WebAPIException.INVALID_VALUES_ERR,
+  'IOError' : WebAPIException.IO_ERR,
+  'ServiceNotAvailableError' : WebAPIException.SERVICE_NOT_AVAILABLE_ERR,
+  'SecurityError' : WebAPIException.SECURITY_ERR,
+  'NetworkError' : WebAPIException.NETWORK_ERR,
+  'NotSupportedError' : WebAPIException.NOT_SUPPORTED_ERR,
+  'NotFoundError' : WebAPIException.NOT_FOUND_ERR,
+  'InvalidAccessError' : WebAPIException.INVALID_ACCESS_ERR,
+  'AbortError' : WebAPIException.ABORT_ERR,
+  'QuotaExceededError' : WebAPIException.QUOTA_EXCEEDED_ERR
 };
 
 function callNative(cmd, args) {
@@ -52,7 +52,7 @@ function callNative(cmd, args) {
   var result = JSON.parse(resultString);
 
   if (typeof result !== 'object') {
-    throw new tizen.WebAPIException(tizen.WebAPIException.UNKNOWN_ERR);
+    throw new WebAPIException(WebAPIException.UNKNOWN_ERR);
   }
 
   if (result['status'] == 'success') {
@@ -65,9 +65,9 @@ function callNative(cmd, args) {
     var err = result['error'];
     if (err) {
       if (ExceptionMap[err.name]) {
-        throw new tizen.WebAPIException(ExceptionMap[err.name], err.message);
+        throw new WebAPIException(ExceptionMap[err.name], err.message);
       } else {
-        throw new tizen.WebAPIException(tizen.WebAPIException.UNKNOWN_ERR, err.message);
+        throw new WebAPIException(WebAPIException.UNKNOWN_ERR, err.message);
       }
     }
     return false;
@@ -233,7 +233,7 @@ LocalMessagePort.prototype.removeMessagePortListener = function(watchId) {
   }
 
   if (typeof to_delete === 'undefined')
-    throw new tizen.WebAPIException(tizen.WebAPIException.NOT_FOUND_ERR,
+    throw new WebAPIException(WebAPIException.NOT_FOUND_ERR,
         'The port of the target application is not found.');
 
   listeners.splice(to_delete, 1);
@@ -260,10 +260,10 @@ RemoteMessagePort.prototype.sendMessage = function(data) {
 
   for (var i = 0, j = data.length; i < j; i++) {
     if (Object.hasOwnProperty(data[i], 'key'))
-      throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR,
+      throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
           'The input parameter contains an invalid value.');
     if (Object.hasOwnProperty(data[i], 'value'))
-      throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR,
+      throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
           'The input parameter contains an invalid value.');
     filtered_data[i] = { key: data[i].key, value: data[i].value };
   }

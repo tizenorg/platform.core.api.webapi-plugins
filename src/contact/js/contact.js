@@ -504,15 +504,15 @@ Contact.prototype.convertToString = function(format) {
   format = format || TypeEnum[0];
 
   if (!type_.isString(format)) {
-    throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR, 'Invalid format');
+    throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR, 'Invalid format');
   }
 
   if (TypeEnum.indexOf(format) < 0) {
-    throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR, 'Invalid format');
+    throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR, 'Invalid format');
   }
 
   if (this.id === '') {
-    throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR,
+    throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR,
       'Contact ID is empty.');
   }
 

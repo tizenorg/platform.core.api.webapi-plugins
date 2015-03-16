@@ -310,11 +310,11 @@ TVChannelManager.prototype.getChannelList = function(successCallback,
     }
   ]);
   if (args.nStart < 0) {
-    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR,
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
       "nStart is lower than 0");
   }
   if (args.number < 0) {
-    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR,
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
       "number is lower than 0");
   }
   native.call('TVChannelManager_getChannelList', {

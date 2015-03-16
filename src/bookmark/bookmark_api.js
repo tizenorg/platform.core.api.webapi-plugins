@@ -43,15 +43,15 @@ BookmarkManager.prototype.get = function() {
   if (arguments.length === 0 || args.parentFolder === null) {
     result = provider.getFolderItems(provider.getRootId(), args.recursive);
     if (!result)
-      throw new tizen.WebAPIException(tizen.WebAPIException.NOT_FOUND_ERR);
+      throw new WebAPIException(WebAPIException.NOT_FOUND_ERR);
     return result;
   }
   if (args.parentFolder.id === null || args.parentFolder.id === 0)
-    throw new tizen.WebAPIException(tizen.WebAPIException.NOT_FOUND_ERR);
+    throw new WebAPIException(WebAPIException.NOT_FOUND_ERR);
 
   result = provider.getFolderItems(args.parentFolder.id, args.recursive);
   if (!result)
-    throw new tizen.WebAPIException(tizen.WebAPIException.NOT_FOUND_ERR);
+    throw new WebAPIException(WebAPIException.NOT_FOUND_ERR);
   return result;
 };
 
@@ -74,18 +74,18 @@ BookmarkManager.prototype.add = function() {
   ]);
   if (arguments.length == 1 || args.parentFolder === null) {
     if (args.bookmark.id) {
-      throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
+      throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR);
     }
     if (!provider.addToFolder(args.bookmark, provider.getRootId())) {
-      throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
+      throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR);
     }
     return;
   }
   if (!args.parentFolder.id) {
-    throw new tizen.WebAPIException(tizen.WebAPIException.NOT_FOUND_ERR);
+    throw new WebAPIException(WebAPIException.NOT_FOUND_ERR);
   }
   if (!provider.addToFolder(args.bookmark, args.parentFolder.id)) {
-    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR);
   }
 };
 
@@ -102,14 +102,14 @@ BookmarkManager.prototype.remove = function() {
 
   if (!arguments.length || args.bookmark === null) {
     if (native_.isFailure(native_.callSync('Bookmark_removeAll')))
-      throw new tizen.WebAPIException(tizen.WebAPIException.SECURITY_ERR);
+      throw new WebAPIException(WebAPIException.SECURITY_ERR);
     return;
   }
   if (!args.bookmark.id)
-    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR);
   if (native_.isFailure(native_.callSync('Bookmark_remove', {
     id: args.bookmark.id})))
-    throw new tizen.WebAPIException(tizen.WebAPIException.SECURITY_ERR);
+    throw new WebAPIException(WebAPIException.SECURITY_ERR);
 
   _edit.allow();
   args.bookmark.id = null;
@@ -173,12 +173,12 @@ BookmarkProvider.prototype.getFolder = function() {
   });
 
   if (native_.isFailure(ret)) {
-    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR);
   }
 
   var folder = native_.getResultObject(ret);
   if (folder === undefined || folder === null)
-    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR);
 
   var obj = new tizen.BookmarkFolder(folder[0].title);
   obj.id = folder[0].id;
@@ -208,12 +208,12 @@ BookmarkProvider.prototype.getFolderItems = function() {
   });
 
   if (native_.isFailure(ret)) {
-    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR);
   }
 
   var folder = native_.getResultObject(ret);
   if (folder === undefined)
-    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR);
 
   var item;
   var obj;

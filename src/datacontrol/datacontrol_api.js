@@ -30,7 +30,7 @@ function callNative(cmd, args) {
   var result = JSON.parse(resultString);
 
   if (typeof result !== 'object') {
-    throw new tizen.WebAPIException(tizen.WebAPIException.UNKNOWN_ERR);
+    throw new WebAPIException(WebAPIException.UNKNOWN_ERR);
   }
 
   if (result['status'] == 'success') {
@@ -41,7 +41,7 @@ function callNative(cmd, args) {
   } else if (result['status'] == 'error') {
     var err = result['error'];
     if (err) {
-      throw new tizen.WebAPIException(err.name, err.message);
+      throw new WebAPIException(err.name, err.message);
     }
     return false;
   }
@@ -131,7 +131,7 @@ SQLDataControlConsumer.prototype.insert = function(reqId, insertionData) {
       if (result.status == 'error') {
         if (args.errorCallback) {
           var err = result['result'];
-          var e = new tizen.WebAPIException(err.name, err.message);
+          var e = new WebAPIException(err.name, err.message);
           args.errorCallback(result['requestId'], e);
         }
       }
@@ -168,7 +168,7 @@ SQLDataControlConsumer.prototype.update = function(reqId, updateData, where) {
       if (result.status == 'error') {
         if (args.errorCallback) {
           var err = result['result'];
-          var e = new tizen.WebAPIException(err.name, err.message);
+          var e = new WebAPIException(err.name, err.message);
           args.errorCallback(result['requestId'], e);
         }
       }
@@ -204,7 +204,7 @@ SQLDataControlConsumer.prototype.remove = function(reqId, where) {
       if (result.status == 'error') {
         if (args.errorCallback) {
           var err = result['result'];
-          var e = new tizen.WebAPIException(err.name, err.message);
+          var e = new WebAPIException(err.name, err.message);
           args.errorCallback(result['requestId'], e);
         }
       }
@@ -248,7 +248,7 @@ SQLDataControlConsumer.prototype.select = function(reqId, columns, where, succes
       if (result.status == 'error') {
         if (args.errorCallback) {
           var err = result['result'];
-          var e = new tizen.WebAPIException(err.name, err.message);
+          var e = new WebAPIException(err.name, err.message);
           args.errorCallback(result['requestId'], e);
         }
       }
@@ -295,7 +295,7 @@ MappedDataControlConsumer.prototype.addValue = function(reqId, key, value) {
       if (result.status == 'error') {
         if (args.errorCallback) {
           var err = result['result'];
-          var e = new tizen.WebAPIException(err.name, err.message);
+          var e = new WebAPIException(err.name, err.message);
           args.errorCallback(result['requestId'], e);
         }
       }
@@ -331,7 +331,7 @@ MappedDataControlConsumer.prototype.removeValue = function(reqId, key, value, su
       if (result.status == 'error') {
         if (args.errorCallback) {
           var err = result['result'];
-          var e = new tizen.WebAPIException(err.name, err.message);
+          var e = new WebAPIException(err.name, err.message);
           args.errorCallback(result['requestId'], e);
         }
       }
@@ -364,7 +364,7 @@ MappedDataControlConsumer.prototype.getValue = function(reqId, key, successCallb
       if (result.status == 'error') {
         if (args.errorCallback) {
           var err = result['result'];
-          var e = new tizen.WebAPIException(err.name, err.message);
+          var e = new WebAPIException(err.name, err.message);
           args.errorCallback(result['requestId'], e);
         }
       }
@@ -403,7 +403,7 @@ MappedDataControlConsumer.prototype.updateValue = function(
       if (result.status == 'error') {
         if (args.errorCallback) {
           var err = result['result'];
-          var e = new tizen.WebAPIException(err.name, err.message);
+          var e = new WebAPIException(err.name, err.message);
           args.errorCallback(result['requestId'], e);
         }
       }

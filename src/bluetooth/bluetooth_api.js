@@ -1401,7 +1401,7 @@ BluetoothAdapter.prototype.getBluetoothProfileHandler = function() {
             return new BluetoothHealthProfileHandler(callArgs);
 
         default:
-            throw new tizen.WebAPIException('NotSupportedError', 'Profile ' + args.profileType + ' is not supported.');
+            throw new WebAPIException('NotSupportedError', 'Profile ' + args.profileType + ' is not supported.');
         }
     }
 };

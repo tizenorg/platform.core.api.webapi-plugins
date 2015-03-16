@@ -73,7 +73,7 @@ ContactManager.prototype.getUnifiedAddressBook = function() {
   // TODO check privileges
   //var result = native_.callSync('CheckReadPrivileges', {});
   //if (native_.isFailure(result)) {
-  //  throw new tizen.WebAPIException(WebAPIException.SECURITY_ERR,
+  //  throw new WebAPIException(WebAPIException.SECURITY_ERR,
   //      'You do not have privileges for this operation');
   //}
 
@@ -103,7 +103,7 @@ ContactManager.prototype.getAddressBook = function() {
 
   if (String(converter_.toLong(args.addressBookId)) !== args.addressBookId) {
     // TCT: ContactManager_getAddressBook_addressBookId_invalid
-    throw new tizen.WebAPIException(tizen.WebAPIException.NOT_FOUND_ERR);
+    throw new WebAPIException(WebAPIException.NOT_FOUND_ERR);
   }
 
   var result = native_.callSync('ContactManager_getAddressBook', {
@@ -155,7 +155,7 @@ ContactManager.prototype.addAddressBook = function() {
 ContactManager.prototype.removeAddressBook = function() {
   // TCT: ContactManager_removeAddressBook_misarg
   if (type_.isNullOrUndefined(arguments[0])) {
-    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR);
   }
 
   var args = validator_.validateArgs(arguments, [{
@@ -166,12 +166,12 @@ ContactManager.prototype.removeAddressBook = function() {
   }]);
 
   if (args.addressBookId === UNIFIED_ADDRESSBOOK_ID) {
-    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR,
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
         'Unified address book can not be deleted');
   }
 
   if (args.addressBookId === DEFAULT_ADDRESSBOOK_ID) {
-    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR,
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
         'Default address book can not be deleted');
   }
 
@@ -198,7 +198,7 @@ ContactManager.prototype.get = function() {
 
   if (String(converter_.toLong(args.personId)) !== args.personId) {
     // TCT: ContactManager_get_personId_invalid
-    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR);
   }
 
   var result = native_.callSync('ContactManager_get', {
@@ -283,7 +283,7 @@ ContactManager.prototype.remove = function() {
 
   if (String(converter_.toLong(args.personId)) !== args.personId) {
     // TCT: ContactManager_remove_personId_invalid
-    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR);
   }
 
   var result = native_.callSync('ContactManager_remove', {personId: args.personId});
@@ -435,17 +435,17 @@ ContactManager.prototype.removeChangeListener = function() {
   // This makes UTC_contact_removeChangeListenerPerson_N_001 pass.
   // watch id's start at 1
   if (args.watchId === 0) {
-    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR,
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
       'id is null or undefined');
   }
 
   if (args.watchId < 0) {
-    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR,
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
         'Negative watch id');
   }
 
   if (!_personCallbackMap.hasOwnProperty(args.watchId)) {
-    throw new tizen.WebAPIException(tizen.WebAPIException.NOT_FOUND_ERR,
+    throw new WebAPIException(WebAPIException.NOT_FOUND_ERR,
         'watch id not found');
   }
 

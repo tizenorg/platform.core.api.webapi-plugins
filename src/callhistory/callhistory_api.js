@@ -74,7 +74,7 @@ ListenerManager.prototype.addListener = function(callback) {
 
 ListenerManager.prototype.removeListener = function(watchId) {
     if (this.listeners[watchId] === null || this.listeners[watchId] === undefined) {
-        throw new tizen.WebAPIException(0, 'Watch id not found.', 'InvalidValuesError');
+        throw new WebAPIException(0, 'Watch id not found.', 'InvalidValuesError');
     }
 
     if (this.listeners.hasOwnProperty(watchId)) {
@@ -162,8 +162,8 @@ CallHistory.prototype.remove = function() {
 
     var result = native_.callSync('CallHistory_remove', callArgs);
     if (native_.isFailure(result)) {
-        throw new tizen.WebAPIException(
-                tizen.WebAPIException.INVALID_VALUES_ERR, 'Watch id not found.');
+        throw new WebAPIException(
+                WebAPIException.INVALID_VALUES_ERR, 'Watch id not found.');
     }
 
     return;

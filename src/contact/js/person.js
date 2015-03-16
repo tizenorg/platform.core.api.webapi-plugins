@@ -135,7 +135,7 @@ Person.prototype.link = function() {
 
   if (String(converter_.toLong(args.personId)) !== args.personId) {
     // TCT: Person_link_personId_invalid
-    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR);
   }
 
   var result = native_.callSync('Person_link', {
@@ -163,7 +163,7 @@ Person.prototype.unlink = function(contactId) {
 
   if (String(converter_.toLong(args.contactId)) !== args.contactId) {
     // TCT: Person_unlink_contactId_invalid
-    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR);
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR);
   }
 
   var result = native_.callSync('Person_unlink', {

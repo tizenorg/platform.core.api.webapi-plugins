@@ -649,7 +649,7 @@ var _createProperty = function (property, data) {
     if (_propertyContainer[property]){
         return new _propertyContainer[property].constructor(data);
     } else {
-        throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR, 'Property with id: ' + property + ' is not supported.');
+        throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR, 'Property with id: ' + property + ' is not supported.');
     }
 };
 
@@ -662,7 +662,7 @@ var _createPropertyArray = function (property, data) {
             propertyArray.push(new _propertyContainer[property].constructor(jsonArray[i]));
         }
     } else {
-        throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR, 'Property with id: ' + property + ' is not supported.');
+        throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR, 'Property with id: ' + property + ' is not supported.');
     }
     return propertyArray;
 };
@@ -689,7 +689,7 @@ var getPropertyFunction = function(cppLabel, objectCreateFunction) {
                  ]);
         var propObject = _propertyContainer[args.property];
         if (!propObject) {
-            throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR, 'Property with id: ' + args.property + ' is not supported.');
+            throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR, 'Property with id: ' + args.property + ' is not supported.');
         }
         var callback = function(result) {
             if (native_.isFailure(result)) {
@@ -1037,7 +1037,7 @@ var _registerListener = function (property, listener, errorCallback) {
 
     var propObject = _propertyContainer[property];
     if (!propObject) {
-        throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR, 'Property with id: ' + property + ' is not supported.');
+        throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR, 'Property with id: ' + property + ' is not supported.');
     }
     var callbackBroadcastFunction = propObject.broadcastFunction;
     var signalLabel = propObject.signalLabel;
@@ -1070,7 +1070,7 @@ var _identifyListener = function (watchId) {
             return p;
         }
     }
-    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR, 'Listener with id: ' + watchId + ' does not exist.');
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR, 'Listener with id: ' + watchId + ' does not exist.');
 };
 
 var _unregisterListener = function (watchId, isTimeout) {

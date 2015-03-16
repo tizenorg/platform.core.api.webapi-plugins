@@ -80,7 +80,7 @@ TVDisplay.prototype.get3DEffectMode = function() {
   var mode = Display3DEffectMode[native.getResultObject(ret)];
   if (!mode) {
     var error_msg = 'Unknown 3D effect mode (' + reply.result + ')';
-    throw new tizen.WebAPIException(0, error_msg, UNKNOWN_ERROR);
+    throw new WebAPIException(0, error_msg, UNKNOWN_ERROR);
   }
   return mode;
 };

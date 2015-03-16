@@ -11,7 +11,7 @@ var types_ = validator_.Types;
 var native_ = new xwalk.utils.NativeManager(extension);
 
 function throwException_(err) {
-    throw new tizen.WebAPIException(err.code, err.name, err.message);
+    throw new WebAPIException(err.code, err.name, err.message);
 }
 
 function callSync_(msg) {

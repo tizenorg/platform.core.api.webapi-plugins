@@ -104,8 +104,8 @@ SensorListener.prototype.getData = function (successCallback, errorCallback) {
     if (!thisObj.isStarted) {
         setTimeout(function() {
             if (!T_.isNullOrUndefined(errorCallback)) {
-                errorCallback(new tizen.WebAPIException(
-                        tizen.WebAPIException.SERVICE_NOT_AVAILABLE_ERR,
+                errorCallback(new WebAPIException(
+                        WebAPIException.SERVICE_NOT_AVAILABLE_ERR,
                         'Service is not available.'));
             }
         }, 0);
@@ -169,7 +169,7 @@ SensorService.prototype.getDefaultSensor = function() {
 
     var index = _supportedSensors.indexOf(args.type);
     if (index === -1) {
-        throw new tizen.WebAPIException(tizen.WebAPIException.NOT_SUPPORTED_ERR, 'Not supported.');
+        throw new WebAPIException(WebAPIException.NOT_SUPPORTED_ERR, 'Not supported.');
     } else if (_supportedSensors[index] === SensorType.LIGHT) {
         return new LightSensor();
     } else if (_supportedSensors[index] === SensorType.MAGNETIC) {

@@ -10,7 +10,7 @@ var T_ = xwalk.utils.type;
 var bridge = xwalk.utils.NativeBridge(extension, true);
 
 function throwException_(err) {
-    throw new tizen.WebAPIException(err.code, err.name, err.message);
+    throw new WebAPIException(err.code, err.name, err.message);
 }
 
 var Property = {
@@ -115,7 +115,7 @@ function Message(type, data) {
         throw new TypeError("Constructor called like a function");
     }
     if (MessageServiceTag.indexOf(type) === -1) {
-        throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR);
+        throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR);
     }
     if ( !data || typeof data !== 'object') { // 'data' is optional
         data = {};
@@ -689,7 +689,7 @@ Messaging.prototype.getMessageServices = function () {
             if (args.errorCallback) {
                 args.errorCallback.call(
                     null,
-                    new tizen.WebAPIException(e.code, e.message, e.name)
+                    new WebAPIException(e.code, e.message, e.name)
                 )
             }
         }
@@ -739,7 +739,7 @@ MessageService.prototype.sendMessage = function () {
             if (args.errorCallback) {
                 args.errorCallback.call(
                     null,
-                    new tizen.WebAPIException(e.code, e.message, e.name)
+                    new WebAPIException(e.code, e.message, e.name)
                 )
             }
         }
@@ -777,7 +777,7 @@ MessageService.prototype.loadMessageBody = function () {
             if (args.errorCallback) {
                 args.errorCallback.call(
                     null,
-                    new tizen.WebAPIException(e.code, e.message, e.name)
+                    new WebAPIException(e.code, e.message, e.name)
                 )
             }
         }
@@ -824,7 +824,7 @@ MessageService.prototype.loadMessageAttachment = function () {
             if (args.errorCallback) {
                 args.errorCallback.call(
                     null,
-                    new tizen.WebAPIException(e.code, e.message, e.name)
+                    new WebAPIException(e.code, e.message, e.name)
                 )
             }
         }
@@ -849,7 +849,7 @@ MessageService.prototype.sync = function () {
             if (args.errorCallback) {
                 args.errorCallback.call(
                     null,
-                    new tizen.WebAPIException(e.code, e.message, e.name)
+                    new WebAPIException(e.code, e.message, e.name)
                 )
             }
         }
@@ -886,7 +886,7 @@ MessageService.prototype.syncFolder = function () {
             if (args.errorCallback) {
                 args.errorCallback.call(
                     null,
-                    new tizen.WebAPIException(e.code, e.message, e.name)
+                    new WebAPIException(e.code, e.message, e.name)
                 )
             }
         }
@@ -912,7 +912,7 @@ MessageService.prototype.stopSync = function () {
 
     // Additionally to pass the MessageService_email_stopSync_opId_TypeMismatch test
     if (!isFinite(arguments[0])) {
-        throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR);
+        throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR);
     }
 
     var self = this;
@@ -969,7 +969,7 @@ MessageStorage.prototype.addDraftMessage = function () {
             if (args.errorCallback) {
                 args.errorCallback.call(
                     null,
-                    new tizen.WebAPIException(e.code, e.message, e.name)
+                    new WebAPIException(e.code, e.message, e.name)
                 )
             }
         }
@@ -1011,7 +1011,7 @@ MessageStorage.prototype.findMessages = function () {
             if (args.errorCallback) {
                 args.errorCallback.call(
                     null,
-                    new tizen.WebAPIException(e.code, e.message, e.name)
+                    new WebAPIException(e.code, e.message, e.name)
                 )
             }
         }
@@ -1044,7 +1044,7 @@ MessageStorage.prototype.removeMessages = function () {
             if (args.errorCallback) {
                 args.errorCallback.call(
                     null,
-                    new tizen.WebAPIException(e.code, e.message, e.name)
+                    new WebAPIException(e.code, e.message, e.name)
                 )
             }
         }
@@ -1099,7 +1099,7 @@ MessageStorage.prototype.updateMessages = function () {
             if (args.errorCallback) {
                 args.errorCallback.call(
                     null,
-                    new tizen.WebAPIException(e.code, e.message, e.name)
+                    new WebAPIException(e.code, e.message, e.name)
                 )
             }
         }
@@ -1140,7 +1140,7 @@ MessageStorage.prototype.findConversations = function () {
             if (args.errorCallback) {
                 args.errorCallback.call(
                     null,
-                    new tizen.WebAPIException(e.code, e.message, e.name)
+                    new WebAPIException(e.code, e.message, e.name)
                 )
             }
         }
@@ -1156,7 +1156,7 @@ MessageStorage.prototype.removeConversations = function () {
 
     args.conversations.forEach(function (el) {
         if (!el || el.constructor !== MessageConversation) {
-            throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR);
+            throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR);
         }
     });
 
@@ -1179,7 +1179,7 @@ MessageStorage.prototype.removeConversations = function () {
             if (args.errorCallback) {
                 args.errorCallback.call(
                     null,
-                    new tizen.WebAPIException(e.code, e.message, e.name)
+                    new WebAPIException(e.code, e.message, e.name)
                 )
             }
         }
@@ -1216,7 +1216,7 @@ MessageStorage.prototype.findFolders = function () {
             if (args.errorCallback) {
                 args.errorCallback.call(
                     null,
-                    new tizen.WebAPIException(e.code, e.message, e.name)
+                    new WebAPIException(e.code, e.message, e.name)
                 )
             }
         }

@@ -37,7 +37,7 @@ function callNative(cmd, args) {
   var result = JSON.parse(resultString);
 
   if (typeof result !== 'object') {
-    throw new tizen.WebAPIException(tizen.WebAPIException.UNKNOWN_ERR);
+    throw new WebAPIException(WebAPIException.UNKNOWN_ERR);
   }
 
   if (result['status'] == 'success') {
@@ -48,7 +48,7 @@ function callNative(cmd, args) {
   } else if (result['status'] == 'error') {
     var err = result['error'];
     if (err) {
-      throw new tizen.WebAPIException(err.name, err.message);
+      throw new WebAPIException(err.name, err.message);
     }
     return false;
   }
