@@ -8,6 +8,73 @@ var type_ = xwalk.utils.type;
 var converter_ = xwalk.utils.converter;
 var native_ = new xwalk.utils.NativeManager(extension);
 
+
+var NDEFRecordTextEncoding = {
+  UTF8: 'UTF8',
+  UTF16: 'UTF16'
+};
+
+var NFCTagType = {
+  GENERIC_TARGET: 'GENERIC_TARGET',
+  ISO14443_A: 'ISO14443_A',
+  ISO14443_4A: 'ISO14443_4A',
+  ISO14443_3A: 'ISO14443_3A',
+  MIFARE_MINI: 'MIFARE_MINI',
+  MIFARE_1K: 'MIFARE_1K',
+  MIFARE_4K: 'MIFARE_4K',
+  MIFARE_ULTRA: 'MIFARE_ULTRA',
+  MIFARE_DESFIRE: 'MIFARE_DESFIRE',
+  ISO14443_B: 'ISO14443_B',
+  ISO14443_4B: 'ISO14443_4B',
+  ISO14443_BPRIME: 'ISO14443_BPRIME',
+  FELICA: 'FELICA',
+  JEWEL: 'JEWEL',
+  ISO15693: 'ISO15693',
+  UNKNOWN_TARGET: 'UNKNOWN_TARGET'
+};
+
+var CardEmulationMode = {
+  ALWAYS_ON: 'ALWAYS_ON',
+  OFF: 'OFF'
+};
+
+var SecureElementType = {
+  ESE: 'ESE',
+  UICC: 'UICC',
+  HCE: 'HCE'
+};
+
+var CardEmulationCategoryType = {
+  PAYMENT: 'PAYMENT',
+  OTHER: 'OTHER'
+};
+
+var HCEEventType = {
+  DEACTIVATED: 'DEACTIVATED',
+  ACTIVATED: 'ACTIVATED',
+  APDU_RECEIVED: 'APDU_RECEIVED'
+};
+
+function HCEEventData(data) {
+  Object.defineProperties(this, {
+    eventType: {
+      value: data.eventType,
+      writable: false,
+      enumerable: true
+    },
+    apdu: {
+      value: data.apdu || [],
+      writable: false,
+      enumerable: true
+    },
+    length: {
+      value: data.length || 0,
+      writable: false,
+      enumerable: true
+    }
+  });
+}
+
 function ListenerManager(native, listenerName) {
   this.listeners = {};
   this.nextId = 1;
@@ -23,6 +90,8 @@ ListenerManager.prototype.onListenerCalled = function(msg) {
         this.listeners[key](msg.mode);
       } else if ('Transaction' === msg.type) {
         this.listeners[key](msg.aid, msg.data);
+      } else if('HCEEventData' === msg.type) {
+        this.listeners[key](new HCEEventData(msg));
       }
     }
   }
@@ -51,49 +120,14 @@ var CARD_EMULATION_MODE_LISTENER = 'CardEmulationModeChanged';
 var ACTIVE_SECURE_ELEMENT_LISTENER = 'ActiveSecureElementChanged';
 var TRANSACTION_EVENT_ESE_LISTENER = 'TransactionEventListener_ESE';
 var TRANSACTION_EVENT_UICC_LISTENER = 'TransactionEventListener_UICC';
+var HCE_EVENT_LISTENER = 'HCEEventListener';
 var TAG_LISTENER = 'TagListener';
 var cardEmulationModeListener = new ListenerManager(native_, CARD_EMULATION_MODE_LISTENER);
 var activeSecureElementChangeListener = new ListenerManager(native_, ACTIVE_SECURE_ELEMENT_LISTENER);
 var transactionEventListenerEse = new ListenerManager(native_, TRANSACTION_EVENT_ESE_LISTENER);
 var transactionEventListenerUicc = new ListenerManager(native_, TRANSACTION_EVENT_UICC_LISTENER);
+var HCEEventListener = new ListenerManager(native_, HCE_EVENT_LISTENER);
 
-//enumeration NDEFRecordTextEncoding ////////////////////////////////////////////////////
-var NDEFRecordTextEncoding = {
-  UTF8: 'UTF8',
-  UTF16: 'UTF16'
-};
-
-//enumeration NFCTagType ////////////////////////////////////////////////////
-var NFCTagType = {
-  GENERIC_TARGET: 'GENERIC_TARGET',
-  ISO14443_A: 'ISO14443_A',
-  ISO14443_4A: 'ISO14443_4A',
-  ISO14443_3A: 'ISO14443_3A',
-  MIFARE_MINI: 'MIFARE_MINI',
-  MIFARE_1K: 'MIFARE_1K',
-  MIFARE_4K: 'MIFARE_4K',
-  MIFARE_ULTRA: 'MIFARE_ULTRA',
-  MIFARE_DESFIRE: 'MIFARE_DESFIRE',
-  ISO14443_B: 'ISO14443_B',
-  ISO14443_4B: 'ISO14443_4B',
-  ISO14443_BPRIME: 'ISO14443_BPRIME',
-  FELICA: 'FELICA',
-  JEWEL: 'JEWEL',
-  ISO15693: 'ISO15693',
-  UNKNOWN_TARGET: 'UNKNOWN_TARGET'
-};
-
-////enumeration CardEmulationMode ////////////////////////////////////////////////////
-var CardEmulationMode = {
-  ALWAYS_ON: 'ALWAYS_ON',
-  OFF: 'OFF'
-};
-
-////enumeration SecureElementType ////////////////////////////////////////////////////
-var SecureElementType = {
-  ESE: 'ESE',
-  UICC: 'UICC'
-};
 
 //////////////////NFCManager /////////////////
 
@@ -540,6 +574,168 @@ NFCAdapter.prototype.setExclusiveModeForTransaction = function() {
     throw native_.getErrorObject(result);
   }
   return;
+};
+
+NFCAdapter.prototype.addHCEEventListener = function(eventCallback) {
+  var args = validator_.validateArgs(arguments, [
+    {name: 'eventCallback', type: types_.LISTENER, values: ['onchanged']}
+  ]);
+
+  if (type_.isEmptyObject(HCEEventListener.listeners)) {
+    var result = native_.callSync('NFCAdapter_addHCEEventListener');
+    if (native_.isFailure(result)) {
+      throw new WebAPIException(0, result.error.message,
+          result.error.name);
+    }
+  }
+
+  return HCEEventListener.addListener(args.eventCallback);
+};
+
+NFCAdapter.prototype.removeHCEEventListener = function(watchId) {
+  var args = validator_.validateArgs(arguments, [
+    {name: 'watchId', type: types_.LONG}
+  ]);
+
+  HCEEventListener.removeListener(args.watchId);
+
+  if (type_.isEmptyObject(HCEEventListener.listeners)) {
+    native_.callSync('NFCAdapter_removeHCEEventListener');
+  }
+};
+
+NFCAdapter.prototype.sendHostAPDUResponse = function(apdu, successCallback, errorCallback) {
+  var args = validator_.validateArgs(arguments, [
+    {name: 'apdu', type: types_.BYTE},
+    {name: 'successCallback', type: types_.FUNCTION, optional: true, nullable: true},
+    {name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true}
+  ]);
+
+  var data = {
+    apdu: args.apdu
+  };
+
+  var callback = function(result) {
+    if (native_.isFailure(result)) {
+      native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));
+      return;
+    }
+    native_.callIfPossible(args.successCallback);
+  };
+
+  native_.call('NFCAdapter_sendHostAPDUResponse', data, callback);
+};
+
+NFCAdapter.prototype.isActivatedHandlerForAID = function(aid) {
+  var args = validator_.validateArgs(arguments, [
+    {name: 'aid', type: types_.BYTE}
+  ]);
+
+  var data = {
+    aid: args.aid
+  };
+
+  var result = native_.callSync('NFCAdapter_isActivatedHandlerForAID', data);
+
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
+  }
+  return native_.getResultObject(result);
+};
+
+NFCAdapter.prototype.isActivatedHandlerForCategory = function(category) {
+  var args = validator_.validateArgs(arguments, [
+    {name: 'category', type: types_.ENUM, values: Object.keys(CardEmulationCategoryType)}
+  ]);
+
+  var data = {
+    category: args.category
+  };
+
+  var result = native_.callSync('NFCAdapter_isActivatedHandlerForCategory', data);
+
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
+  }
+  return native_.getResultObject(result);
+};
+
+NFCAdapter.prototype.registerAID = function(aid, category) {
+  var args = validator_.validateArgs(arguments, [
+    {name: 'aid', type: types_.BYTE},
+    {name: 'category', type: types_.ENUM, values: Object.keys(CardEmulationCategoryType)}
+  ]);
+
+  var data = {
+    aid: args.aid,
+    category: args.category
+  };
+
+  var result = native_.callSync('NFCAdapter_registerAID', data);
+
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
+  }
+};
+
+NFCAdapter.prototype.unregisterAID = function(aid, category) {
+  var args = validator_.validateArgs(arguments, [
+    {name: 'aid', type: types_.BYTE},
+    {name: 'category', type: types_.ENUM, values: Object.keys(CardEmulationCategoryType)}
+  ]);
+
+  var data = {
+    aid: args.aid,
+    category: args.category
+  };
+
+  var result = native_.callSync('NFCAdapter_unregisterAID', data);
+
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
+  }
+};
+
+function AIDData(data) {
+  Object.defineProperties(this, {
+    type: {
+      value: data.type,
+      writable: false,
+      enumerable: true
+    },
+    aid: {
+      value: data.aid || [],
+      writable: false,
+      enumerable: true
+    },
+    readOnly: {
+      value: data.readOnly || false,
+      writable: false,
+      enumerable: true
+    }
+  });
+}
+
+NFCAdapter.prototype.getAIDsForCategory = function(category, successCallback, errorCallback) {
+  var args = validator_.validateArgs(arguments, [
+    {name: 'category', type: types_.ENUM, values: Object.keys(CardEmulationCategoryType)},
+    {name: 'successCallback', type: types_.FUNCTION},
+    {name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true}
+  ]);
+
+  var data = {
+    category: args.category
+  };
+
+  var callback = function(result) {
+    if (native_.isFailure(result)) {
+      native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));
+      return;
+    }
+    native_.callIfPossible(args.successCallback, new AIDData(native_.getResultObject(result)));
+  };
+
+  native_.call('NFCAdapter_getAIDsForCategory', data, callback);
 };
 
 //////////////////NFCTag /////////////////
