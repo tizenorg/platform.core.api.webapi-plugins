@@ -35,10 +35,8 @@ SystemSettingManager.prototype.getProperty = function() {
     ]);
 
     var callback = function(result) {
-        if (result.status === 'error') {
-            if (!type_.isNullOrUndefined(args.errorCallback)) {
-                args.errorCallback(result.error);
-            }
+        if (native_.isFailure(result)) {
+            native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));
         }
         else {
             args.successCallback(result.result.value);
@@ -61,10 +59,8 @@ SystemSettingManager.prototype.setProperty = function() {
     ]);
 
     var callback = function(result) {
-        if (result.status === 'error') {
-            if (!type_.isNullOrUndefined(args.errorCallback)) {
-                args.errorCallback(result.error);
-            }
+        if (native_.isFailure(result)) {
+            native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));
         }
         else {
             args.successCallback();
