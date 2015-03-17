@@ -17,11 +17,86 @@ var signature_to_type = {
   'o': 'object'
 };
 
+var DateConverter = function() {};
 
+DateConverter.prototype.toTZDate = function(v, isAllDay) {
+  if (typeof v === 'number') {
+    v = {
+      UTCTimestamp: v
+        };
+    isAllDay = false;
+  }
+
+  if (!(v instanceof Object)) {
+    return v;
+  }
+
+  if (isAllDay) {
+    return new tizen.TZDate(v.year, v.month, v.day,
+        null, null, null, null, v.timezone || null);
+  } else {
+    return new tizen.TZDate(new Date(v.UTCTimestamp * 1000), 'UTC').toLocalTimezone();
+  }
+};
+
+DateConverter.prototype.fromTZDate = function(v) {
+  if (!(v instanceof tizen.TZDate)) {
+    return v;
+  }
+
+  var utc = v.toUTC();
+  var timestamp = new Date(utc.getFullYear(), utc.getMonth(), utc.getDate(), utc.getHours(),
+      utc.getMinutes(), utc.getSeconds()) / 1000;
+
+  return {
+    year: v.getFullYear(),
+    month: v.getMonth(),
+    day: v.getDate(),
+    timezone: v.getTimezone(),
+    UTCTimestamp: timestamp
+  };
+
+};
+
+var _dateConverter = new DateConverter();
 
 /** @constructor */
 function Utils() {}
 
+Utils.prototype.repackFilter = function(filter) {
+  if (filter instanceof tizen.AttributeFilter) {
+    return {
+      filterType: 'AttributeFilter',
+      attributeName: filter.attributeName,
+      matchFlag: filter.matchFlag,
+      matchValue: _dateConverter.fromTZDate(filter.matchValue)
+    };
+  }
+  if (filter instanceof tizen.AttributeRangeFilter) {
+    return {
+      filterType: 'AttributeRangeFilter',
+      attributeName: filter.attributeName,
+      initialValue: _dateConverter.fromTZDate(filter.initialValue),
+      endValue: _dateConverter.fromTZDate(filter.endValue)
+    };
+  }
+  if (filter instanceof tizen.CompositeFilter) {
+    var _f = [];
+    var filters = filter.filters;
+
+    for (var i = 0; i < filters.length; ++i) {
+      _f.push(this.repackFilter(filters[i]));
+    }
+
+    return {
+      filterType: 'CompositeFilter',
+      type: filter.type,
+      filters: _f
+    };
+  }
+
+  return null;
+};
 
 /**
  * @deprecated You should use xwalk.utils.validator.validateMethod() instead.
@@ -1268,6 +1343,7 @@ scope = scope || {};
 scope.WebAPIException = WebAPIException;
 scope.WebAPIError = WebAPIException;
 
+Utils.prototype.dateConverter = _dateConverter;
 Utils.prototype.type = _type;
 Utils.prototype.converter = _converter;
 Utils.prototype.validator = _validator;

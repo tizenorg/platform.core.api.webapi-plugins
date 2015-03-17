@@ -365,7 +365,7 @@ ContactManager.prototype.find = function() {
 
   // TODO implement contact filtering/sorting.
   var data = {
-    filter: C.repackFilter(args.filter),
+    filter: utils_.repackFilter(args.filter),
     sortMode: args.sortMode
   };
 

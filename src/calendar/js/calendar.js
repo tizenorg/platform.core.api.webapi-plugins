@@ -454,7 +454,7 @@ Calendar.prototype.find = function(successCallback, errorCallback, filter, sortM
       nullable: true
     }
   ]);
-  args.filter = C.repackFilter(args.filter);
+  args.filter = utils_.repackFilter(args.filter);
   var calendarType = this.type;
 
   var callback = function(result) {

@@ -3,6 +3,7 @@
 // found in the LICENSE file.
 
 var utils_ = xwalk.utils;
+var dateConverter_ = utils_.dateConverter;
 var type_ = utils_.type;
 var converter_ = utils_.converter;
 var validator_ = utils_.validator;
@@ -24,49 +25,6 @@ EditManager.prototype.disallow = function() {
 
 var _edit = new EditManager();
 
-var DateConverter = function() {};
-
-DateConverter.prototype.toTZDate = function(v, isAllDay) {
-  if (typeof v === 'number') {
-    v = {
-      UTCTimestamp: v
-        };
-    isAllDay = false;
-  }
-
-  if (!(v instanceof Object)) {
-    return v;
-  }
-
-  if (isAllDay) {
-    return new tizen.TZDate(v.year, v.month, v.day,
-        null, null, null, null, v.timezone || null);
-  } else {
-    return new tizen.TZDate(new Date(v.UTCTimestamp * 1000), 'UTC').toLocalTimezone();
-  }
-};
-
-DateConverter.prototype.fromTZDate = function(v) {
-  if (!(v instanceof tizen.TZDate)) {
-    return v;
-  }
-
-  var utc = v.toUTC();
-  var timestamp = new Date(utc.getFullYear(), utc.getMonth(), utc.getDate(), utc.getHours(),
-      utc.getMinutes(), utc.getSeconds()) / 1000;
-
-  return {
-    year: v.getFullYear(),
-    month: v.getMonth(),
-    day: v.getDate(),
-    timezone: v.getTimezone(),
-    UTCTimestamp: timestamp
-  };
-
-};
-
-var _dateConverter = new DateConverter();
-
 var ItemConverter = function() {};
 
 ItemConverter.prototype.toTizenObject = function(item) {
@@ -77,7 +35,7 @@ ItemConverter.prototype.toTizenObject = function(item) {
             prop === 'dueDate' ||
             prop === 'completedDate' ||
             prop === 'lastModificationDate') {
-      tmp[prop] = _dateConverter.toTZDate(item[prop], item.isAllDay);
+      tmp[prop] = dateConverter_.toTZDate(item[prop], item.isAllDay);
     } else {
       tmp[prop] = item[prop];
     }
@@ -88,7 +46,7 @@ ItemConverter.prototype.toTizenObject = function(item) {
   for (var i = 0; i < tmp.alarms.length; i++) {
     alarm = tmp.alarms[i];
     if (alarm.absoluteDate) {
-      time = _dateConverter.toTZDate(alarm.absoluteDate, tmp.isAllDay);
+      time = dateConverter_.toTZDate(alarm.absoluteDate, tmp.isAllDay);
     } else if (alarm.before) {
       time = new tizen.TimeDuration(alarm.before.length, alarm.before.unit);
     }
@@ -112,11 +70,11 @@ ItemConverter.prototype.toTizenObject = function(item) {
   var untilDate;
   var exceptions = [];
   if (tmp.recurrenceRule) {
-    untilDate = _dateConverter.toTZDate(tmp.recurrenceRule.untilDate, tmp.isAllDay);
+    untilDate = dateConverter_.toTZDate(tmp.recurrenceRule.untilDate, tmp.isAllDay);
     tmp.recurrenceRule.untilDate = untilDate;
 
     for (var i = 0; i < tmp.recurrenceRule.exceptions.length; i++) {
-      exceptions.push(_dateConverter.toTZDate(tmp.recurrenceRule.exceptions[i], tmp.isAllDay));
+      exceptions.push(dateConverter_.toTZDate(tmp.recurrenceRule.exceptions[i], tmp.isAllDay));
     }
     tmp.recurrenceRule.exceptions = exceptions;
 
@@ -141,7 +99,7 @@ ItemConverter.prototype.fromTizenObject = function(item) {
   var tmp = {};
   for (var prop in item) {
     if (item[prop] instanceof tizen.TZDate) {
-      tmp[prop] = _dateConverter.fromTZDate(item[prop]);
+      tmp[prop] = dateConverter_.fromTZDate(item[prop]);
     } else if (item[prop] instanceof Array) {
       tmp[prop] = [];
       for (var i = 0, length = item[prop].length; i < length; i++) {
@@ -149,7 +107,7 @@ ItemConverter.prototype.fromTizenObject = function(item) {
           tmp[prop][i] = {};
           for (var p in item[prop][i]) {
             if (item[prop][i][p] instanceof tizen.TZDate) {
-              tmp[prop][i][p] = _dateConverter.fromTZDate(item[prop][i][p]);
+              tmp[prop][i][p] = dateConverter_.fromTZDate(item[prop][i][p]);
             } else {
               tmp[prop][i][p] = item[prop][i][p];
             }
@@ -162,11 +120,11 @@ ItemConverter.prototype.fromTizenObject = function(item) {
       tmp[prop] = {};
       for (var p in item[prop]) {
         if (item[prop][p] instanceof tizen.TZDate) {
-          tmp[prop][p] = _dateConverter.fromTZDate(item[prop][p]);
+          tmp[prop][p] = dateConverter_.fromTZDate(item[prop][p]);
         } else if (item[prop][p] instanceof Array) {
           tmp[prop][p] = [];
           for (var j = 0, l = item[prop][p].length; j < l; j++) {
-            tmp[prop][p].push(_dateConverter.fromTZDate(item[prop][p][j]));
+            tmp[prop][p].push(dateConverter_.fromTZDate(item[prop][p][j]));
           }
         } else {
           tmp[prop][p] = item[prop][p];
@@ -291,43 +249,3 @@ RecurrenceManager.prototype.get = function(event, startDate, endDate) {
 };
 
 var _recurrenceManager = new RecurrenceManager();
-
-//TODO: Can be moved to utils
-var Common = function() {};
-
-Common.prototype.repackFilter = function(filter) {
-  if (filter instanceof tizen.AttributeFilter) {
-    return {
-      filterType: 'AttributeFilter',
-      attributeName: filter.attributeName,
-      matchFlag: filter.matchFlag,
-      matchValue: _dateConverter.fromTZDate(filter.matchValue)
-    };
-  }
-  if (filter instanceof tizen.AttributeRangeFilter) {
-    return {
-      filterType: 'AttributeRangeFilter',
-      attributeName: filter.attributeName,
-      initialValue: _dateConverter.fromTZDate(filter.initialValue),
-      endValue: _dateConverter.fromTZDate(filter.endValue)
-    };
-  }
-  if (filter instanceof tizen.CompositeFilter) {
-    var _f = [];
-    var filters = filter.filters;
-
-    for (var i = 0; i < filters.length; ++i) {
-      _f.push(this.repackFilter(filters[i]));
-    }
-
-    return {
-      filterType: 'CompositeFilter',
-      type: filter.type,
-      filters: _f
-    };
-  }
-
-  return null;
-};
-
-var C = new Common();

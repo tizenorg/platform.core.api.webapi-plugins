@@ -150,39 +150,4 @@ Common.prototype.filter = function(arr, filter) {
   return arr;
 };
 
-Common.prototype.repackFilter = function (filter) {
-  if (filter instanceof tizen.AttributeFilter) {
-    return {
-      filterType: 'AttributeFilter',
-      attributeName: filter.attributeName,
-      matchFlag: filter.matchFlag,
-      matchValue: filter.matchValue
-    };
-  }
-  if (filter instanceof tizen.AttributeRangeFilter) {
-    return {
-      filterType: 'AttributeRangeFilter',
-      attributeName: filter.attributeName,
-      initialValue: type_.isNullOrUndefined(filter.initialValue) ? null : filter.initialValue,
-      endValue: type_.isNullOrUndefined(filter.endValue) ? null : filter.endValue
-    };
-  }
-  if (filter instanceof tizen.CompositeFilter) {
-    var _f = [];
-    var filters = filter.filters;
-
-    for (var i = 0; i < filters.length; ++i) {
-      _f.push(this.repackFilter(filters[i]));
-    }
-
-    return {
-      filterType: 'CompositeFilter',
-      type: filter.type,
-      filters: _f
-    };
-  }
-
-  return null;
-};
-
 var C = new Common();
