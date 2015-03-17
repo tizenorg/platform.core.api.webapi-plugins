@@ -308,7 +308,7 @@ Tizen Web APIs implemented.
 %build
 
 export GYP_GENERATORS='ninja'
-GYP_OPTIONS="--depth=. -Dtizen=1 -Dextension_build_type=Debug -Dextension_host_os=%{profile}"
+GYP_OPTIONS="--depth=. -Dtizen=1 -Dextension_build_type=Debug -Dextension_host_os=%{profile} -Dprivilege_engine=DB"
 GYP_OPTIONS="$GYP_OPTIONS -Ddisplay_type=x11"
 
 # feature flags

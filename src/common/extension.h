@@ -130,6 +130,18 @@ void ReportSuccess(const picojson::value& result, picojson::object& out);
 void ReportError(picojson::object& out);
 void ReportError(const PlatformException& ex, picojson::object& out);
 void ReportError(const PlatformResult& error, picojson::object* out);
+
+common::PlatformResult CheckAccess(const std::string& privilege);
+
+#define CHECK_PRIVILEGE_ACCESS(privilege, out) \
+do { \
+  auto r = common::tools::CheckAccess(privilege); \
+  if (!r) { \
+    common::tools::ReportError(r, out); \
+    return; \
+  } \
+} while (0)
+
 }  // namespace tools
 
 }  // namespace common

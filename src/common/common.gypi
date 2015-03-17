@@ -26,9 +26,35 @@
             'dlog',
             'glib-2.0',
             'capi-appfw-app-manager',
-            'capi-appfw-package-manager'
+            'capi-appfw-package-manager',
           ]
         },
+        'conditions': [
+          ['privilege_engine == "DB"', {
+            'defines': ['PRIVILEGE_USE_DB'],
+            'variables': {
+              'packages': [
+                'sqlite3',
+              ],
+            },
+          }],
+          ['privilege_engine == "ACE"', {
+            'defines': ['PRIVILEGE_USE_ACE'],
+            'variables': {
+              'packages': [
+                'sqlite3',
+                'security-client',
+              ],
+            },
+          }],
+          ['privilege_engine == "CYNARA"', {
+            'defines': ['PRIVILEGE_USE_CYNARA'],
+            'variables': {
+              'packages': [
+              ],
+            },
+          }],
+        ],
       }, {
         'sources/': [['exclude', '_tizen\\.cc$|tizen/']],
         'includes/': [['exclude', '_tizen\\.gypi$|tizen/']],

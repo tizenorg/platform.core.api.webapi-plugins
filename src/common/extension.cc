@@ -10,7 +10,18 @@
 #include <string>
 #include <map>
 
+#ifdef PRIVILEGE_USE_DB
+#include <sqlite3.h>
+#elif PRIVILEGE_USE_ACE
+#include <sqlite3.h>
+#include <dpl/wrt-dao-ro/WrtDatabase.h>
+#include <ace_api_client.h>
+#elif PRIVILEGE_USE_CYNARA
+// TODO
+#endif
+
 #include "common/logger.h"
+#include "common/scope_exit.h"
 
 namespace {
 
@@ -342,6 +353,255 @@ void ReportError(const PlatformResult& error, picojson::object* out) {
   out->insert(std::make_pair("status", picojson::value("error")));
   out->insert(std::make_pair("error", error.ToJSON()));
 }
+
+namespace {
+
+#ifdef PRIVILEGE_USE_DB
+
+class AccessControlImpl {
+ public:
+  AccessControlImpl()
+      : initialized_(false) {
+    LoggerD("Privilege access checked using DB.");
+
+    const char* kWrtDBPath = "/opt/dbspace/.wrt.db";
+    sqlite3* db = nullptr;
+
+    int ret = sqlite3_open(kWrtDBPath, &db);
+    if (SQLITE_OK != ret) {
+      LoggerE("Failed to access WRT database");
+      return;
+    }
+
+    const char* kQuery = "select name from WidgetFeature where app_id = "
+                         "(select app_id from WidgetInfo where tizen_appid = ?)"
+                         " and rejected = 0";
+    const std::string app_id = common::Extension::GetRuntimeVariable("app_id", 64);
+    sqlite3_stmt* stmt = nullptr;
+
+    ret = sqlite3_prepare_v2(db, kQuery, -1, &stmt, nullptr);
+    ret |= sqlite3_bind_text(stmt, 1, app_id.c_str(), -1, SQLITE_TRANSIENT);
+
+    SCOPE_EXIT {
+      sqlite3_finalize(stmt);
+      sqlite3_close(db);
+    };
+
+    if (SQLITE_OK != ret) {
+      LoggerE("Failed to query WRT database");
+      return;
+    }
+
+    while (sqlite3_step(stmt) == SQLITE_ROW) {
+      const char* privilege = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0));
+      SLoggerD("Granted: %s", privilege);
+      granted_privileges_.push_back(privilege);
+    }
+
+    initialized_ = true;
+  }
+
+  ~AccessControlImpl() {}
+
+  bool CheckAccess(const std::vector<std::string>& privileges) {
+    if (!initialized_) {
+      return false;
+    }
+
+    for (const auto& privilege : privileges) {
+      if (std::find(granted_privileges_.begin(), granted_privileges_.end(), privilege) == granted_privileges_.end()) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+ private:
+  bool initialized_;
+  std::vector<std::string> granted_privileges_;
+};
+
+#elif PRIVILEGE_USE_ACE
+
+class AccessControlImpl {
+ public:
+  AccessControlImpl()
+      : initialized_(false),
+        widget_id_(-1) {
+    LoggerD("Privilege access checked using ACE.");
+    // get widget ID
+    const char* kWrtDBPath = "/opt/dbspace/.wrt.db";
+    sqlite3* db = nullptr;
+
+    int ret = sqlite3_open(kWrtDBPath, &db);
+    if (SQLITE_OK != ret) {
+      LoggerE("Failed to access WRT database");
+      return;
+    }
+
+    const char* kQuery = "select app_id from WidgetInfo where tizen_appid = ?";
+    const std::string app_id = common::Extension::GetRuntimeVariable("app_id", 64);
+    sqlite3_stmt* stmt = nullptr;
+
+    ret = sqlite3_prepare_v2(db, kQuery, -1, &stmt, nullptr);
+    ret |= sqlite3_bind_text(stmt, 1, app_id.c_str(), -1, SQLITE_TRANSIENT);
+
+    SCOPE_EXIT {
+      sqlite3_finalize(stmt);
+      sqlite3_close(db);
+    };
+
+    if (SQLITE_OK != ret) {
+      LoggerE("Failed to query WRT database");
+      return;
+    }
+
+    if (sqlite3_step(stmt) == SQLITE_ROW) {
+      widget_id_ = sqlite3_column_int(stmt, 0);
+    } else {
+      LoggerE("Application %s not found.", app_id.c_str());
+      return;
+    }
+
+    // start ACE
+    if (ACE_OK != ace_client_initialize(AlwaysDeny)) {
+      LoggerE("Failed to initialize ACE.");
+    } else {
+      // in order to work, WrtDatabase needs to be bound to thread
+      // which is going to check the WrtAccess
+      WrtDB::WrtDatabase::attachToThreadRO();
+      // set the session ID
+      session_id_ = app_id + std::to_string(widget_id_);
+      // we're ready
+      initialized_ = true;
+    }
+  }
+
+  ~AccessControlImpl() {
+    if (initialized_) {
+      WrtDB::WrtDatabase::detachFromThread();
+      ace_client_shutdown();
+    }
+  }
+
+  bool CheckAccess(const std::vector<std::string>& privileges) {
+    if (!initialized_) {
+      return false;
+    }
+
+    ace_check_result_t result = ACE_PRIVILEGE_DENIED;
+    ace_request_t request;
+    const auto count = privileges.size();
+
+    request.session_id = const_cast<char*>(session_id_.c_str());
+    request.widget_handle = widget_id_;
+    request.feature_list = { 0, 0 };
+    request.dev_cap_list = { 0, 0 };
+
+    request.feature_list.count = count;
+    request.feature_list.items = new char*[count];
+
+    SCOPE_EXIT {
+      delete [] request.feature_list.items;
+    };
+
+    for (size_t i = 0; i < count; ++i) {
+      request.feature_list.items[i] = const_cast<char*>(privileges[i].c_str());
+    }
+
+    if (ACE_OK != ace_check_access_ex(&request, &result)) {
+      LoggerE("Failed to check privilege.");
+      return false;
+    } else {
+      return (result == ACE_ACCESS_GRANTED);
+    }
+  }
+
+ private:
+  static ace_return_t AlwaysDeny(ace_popup_t popup_type,
+                                 const ace_resource_t resource_name,
+                                 const ace_session_id_t session_id,
+                                 const ace_param_list_t* param_list,
+                                 ace_widget_handle_t handle,
+                                 ace_bool_t* validation_result) {
+    if (validation_result) {
+      *validation_result = ACE_TRUE;
+    }
+    return ACE_OK;
+  }
+
+  bool initialized_;
+  int widget_id_;
+  std::string session_id_;
+};
+
+#elif PRIVILEGE_USE_CYNARA
+
+class AccessControlImpl {
+ public:
+  AccessControlImpl() {
+    LoggerD("Privilege access checked using Cynara.");
+    // TODO
+  }
+
+  ~AccessControlImpl() {
+    // TODO
+  }
+
+  bool CheckAccess(const std::vector<std::string>& privileges) {
+    // TODO
+    return false;
+  }
+};
+
+#else
+
+class AccessControlImpl {
+ public:
+  AccessControlImpl() {
+    LoggerD("Privilege access - deny all.");
+  }
+
+  bool CheckAccess(const std::vector<std::string>& privileges) {
+    return false;
+  }
+};
+
+#endif
+
+class AccessControl {
+ public:
+  static AccessControl& GetInstance() {
+    static AccessControl instance;
+    return instance;
+  }
+
+  bool CheckAccess(const std::string& privilege) {
+    return CheckAccess(std::vector<std::string>{privilege});
+  }
+
+  bool CheckAccess(const std::vector<std::string>& privileges) {
+    return impl_.CheckAccess(privileges);
+  }
+
+ private:
+  AccessControl() {}
+  ~AccessControl() {}
+  AccessControlImpl impl_;
+};
+
+} // namespace
+
+PlatformResult CheckAccess(const std::string& privilege) {
+  if (AccessControl::GetInstance().CheckAccess(privilege)) {
+    return PlatformResult(ErrorCode::NO_ERROR);
+  } else {
+    LoggerD("Access to privilege: %s has been denied.", privilege.c_str());
+    return PlatformResult(ErrorCode::SECURITY_ERR, "Permission denied");
+  }
+}
+
 }  // namespace tools
 
 }  // namespace common
