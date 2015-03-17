@@ -37,6 +37,14 @@ PlatformResult NotificationManager::Update(const picojson::object& args) {
 }
 
 PlatformResult NotificationManager::Remove(const picojson::object& args) {
+  int id = std::stoi(FromJson<std::string>(args, "id"));
+
+  int ret = notification_delete_by_priv_id(NULL, NOTIFICATION_TYPE_NONE, id);
+  if (ret != NOTIFICATION_ERROR_NONE) {
+      LoggerE("Cannot remove notification error: %d", ret);
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot remove notification error");
+  }
+
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
