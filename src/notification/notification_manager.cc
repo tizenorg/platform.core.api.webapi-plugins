@@ -41,6 +41,20 @@ PlatformResult NotificationManager::Remove(const picojson::object& args) {
 }
 
 PlatformResult NotificationManager::RemoveAll() {
+  int ret = notification_delete_all(NOTIFICATION_TYPE_NOTI);
+  if (ret != NOTIFICATION_ERROR_NONE) {
+    LoggerE("Notification remove all failed: %d", ret);
+    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                          "Notification noti remove all failed");
+  }
+
+  ret = notification_delete_all(NOTIFICATION_TYPE_ONGOING);
+  if (ret != NOTIFICATION_ERROR_NONE) {
+    LoggerE("Notification remove all failed: %d", ret);
+    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                          "Notification ongoing remove all failed");
+  }
+
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
