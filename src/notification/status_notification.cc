@@ -40,8 +40,66 @@ StatusNotification::StatusNotification() {}
 
 StatusNotification::~StatusNotification() {}
 
+bool StatusNotification::IsColorFormatNumberic(const std::string& color) {
+  std::string hexCode = "0123456789abcdef";
+  if (color.length() != 7 || !color.compare(0, 1, "#")) {
+    return false;
+  }
+
+  for (size_t i = 1; i < color.length(); i++) {
+    if (std::string::npos == hexCode.find(color[i])) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+PlatformResult StatusNotification::SetLayout(notification_h noti_handle,
+                                             const std::string& noti_type) {
+  notification_ly_type_e noti_layout = NOTIFICATION_LY_NONE;
+
+  if (noti_type == "SIMPLE") {
+    long number;
+    PlatformResult status =
+        GetNumber(noti_handle, NOTIFICATION_TEXT_TYPE_EVENT_COUNT, &number);
+    if (status.IsError()) return status;
+
+    if (number > 0)
+      noti_layout = NOTIFICATION_LY_NOTI_EVENT_MULTIPLE;
+    else
+      noti_layout = NOTIFICATION_LY_NOTI_EVENT_SINGLE;
+  } else if (noti_type == "THUMBNAIL") {
+    noti_layout = NOTIFICATION_LY_NOTI_THUMBNAIL;
+  }
+  if (noti_type == "ONGOING") {
+    noti_layout = NOTIFICATION_LY_ONGOING_EVENT;
+  } else if (noti_type == "PROGRESS") {
+    noti_layout = NOTIFICATION_LY_ONGOING_PROGRESS;
+  }
+
+  int ret = notification_set_layout(noti_handle, noti_layout);
+  if (ret != NOTIFICATION_ERROR_NONE) {
+    LoggerE("Set notification layout error: %d", ret);
+    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                          "Set notification layout error");
+  }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult StatusNotification::GetId(notification_h noti_handle, int* id) {
+  int ret = notification_get_id(noti_handle, NULL, id);
+  if (ret != NOTIFICATION_ERROR_NONE) {
+    LoggerE("Get notification id error: %d", ret);
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Get notification id error");
+  }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
 static bool ServiceExtraDataCb(app_control_h service, const char* key,
-                                  void* user_data) {
+                               void* user_data) {
   if (user_data != NULL && key != NULL) {
     LoggerE("User data or key not exist");
     return true;
@@ -51,9 +109,7 @@ static bool ServiceExtraDataCb(app_control_h service, const char* key,
 
   int length = 0;
   char** value = NULL;
-  SCOPE_EXIT {
-      free(value);
-  };
+  SCOPE_EXIT { free(value); };
 
   int ret = app_control_get_extra_data_array(service, key, &value, &length);
   if (ret != APP_CONTROL_ERROR_NONE) {
@@ -80,8 +136,32 @@ static bool ServiceExtraDataCb(app_control_h service, const char* key,
   return true;
 }
 
+PlatformResult StatusNotification::Create(notification_type_e noti_type,
+                                          notification_h noti_handle) {
+  noti_handle = notification_create(noti_type);
+  if (!noti_handle) {
+    LoggerE("Cannot make new notification object");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                          "Cannot make new notification object");
+  }
+
+  if (NOTIFICATION_TYPE_ONGOING == noti_type) {
+    int ret = notification_set_display_applist(
+        noti_handle, NOTIFICATION_DISPLAY_APP_NOTIFICATION_TRAY |
+                         NOTIFICATION_DISPLAY_APP_INDICATOR);
+    if (ret != NOTIFICATION_ERROR_NONE) {
+      LoggerE("Cannot make new notification object: %d", ret);
+      return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                            "Cannot set notification display applist");
+    }
+  }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
 PlatformResult StatusNotification::StatusTypeFromPlatform(
-    notification_type_e noti_type, notification_ly_type_e noti_layout,
+    notification_type_e noti_type,
+    notification_ly_type_e noti_layout,
     std::string* type) {
   if (noti_type == NOTIFICATION_TYPE_NOTI) {
     if (noti_layout == NOTIFICATION_LY_NOTI_EVENT_SINGLE ||
@@ -105,6 +185,22 @@ PlatformResult StatusNotification::StatusTypeFromPlatform(
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
+PlatformResult StatusNotification::StatusTypeToPlatform(
+    const std::string& type,
+    notification_type_e* noti_type) {
+  if (type == "SIMPLE" || type == "THUMBNAIL") {
+    *noti_type = NOTIFICATION_TYPE_NOTI;
+  } else if (type == "ONGOING" || type == "PROGRESS") {
+    *noti_type = NOTIFICATION_TYPE_ONGOING;
+  } else {
+    LoggerI("Invalide noti type: %s", type.c_str());
+    return PlatformResult(ErrorCode::TYPE_MISMATCH_ERR,
+                          "Invalide notification type");
+  }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
 PlatformResult StatusNotification::GetImage(
     notification_h noti_handle, notification_image_type_e image_type,
     std::string* image_path) {
@@ -118,6 +214,21 @@ PlatformResult StatusNotification::GetImage(
   }
 
   *image_path = path;
+
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult StatusNotification::SetImage(
+    notification_h noti_handle,
+    notification_image_type_e image_type,
+    const std::string& image_path) {
+  int ret = notification_set_image(noti_handle, image_type, image_path.c_str());
+  if (ret != NOTIFICATION_ERROR_NONE) {
+    LoggerE("Set notification image error, image_type: %d, error: %d",
+            image_type, ret);
+    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                          "Set notification image error");
+  }
 
   return PlatformResult(ErrorCode::NO_ERROR);
 }
@@ -137,6 +248,21 @@ PlatformResult StatusNotification::GetText(notification_h noti_handle,
   }
 
   if (text) *noti_text = text;
+
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult StatusNotification::SetText(notification_h noti_handle,
+                                           notification_text_type_e text_type,
+                                           const std::string& noti_text) {
+  int ret = notification_set_text(noti_handle, text_type, noti_text.c_str(),
+                                  NULL, NOTIFICATION_VARIABLE_TYPE_NONE);
+  if (ret != NOTIFICATION_ERROR_NONE) {
+    LoggerE("Set notification text error, text_type: %d, error: %d", text_type,
+            ret);
+    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                          "Set notification text error");
+  }
 
   return PlatformResult(ErrorCode::NO_ERROR);
 }
@@ -190,6 +316,38 @@ PlatformResult StatusNotification::GetDetailInfos(notification_h noti_handle,
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
+PlatformResult StatusNotification::SetDetailInfos(
+    notification_h noti_handle,
+    const picojson::array& value) {
+  int idx = 0;
+
+  for (auto& item : value) {
+    const picojson::object& obj = JsonCast<picojson::object>(item);
+
+    PlatformResult status =
+        SetText(noti_handle, info_map_.at(idx),
+                common::FromJson<std::string>(obj, "mainText"));
+    if (status.IsError()) return status;
+
+    if (!IsNull(obj, "subText")) {
+      PlatformResult status =
+          SetText(noti_handle, info_sub_map_.at(idx),
+                  common::FromJson<std::string>(obj, "subText"));
+      if (status.IsError()) return status;
+    }
+
+    ++idx;
+
+    if (idx > info_map_.size()) {
+      LoggerE("Too many values in notification detailInfo array");
+      return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
+                            "Too many values in notification detailInfo array");
+    }
+  }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
 PlatformResult StatusNotification::GetLedColor(notification_h noti_handle,
                                                std::string* led_color) {
   unsigned int color = 0;
@@ -223,6 +381,42 @@ PlatformResult StatusNotification::GetLedColor(notification_h noti_handle,
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
+PlatformResult StatusNotification::SetLedColor(notification_h noti_handle,
+                                               const std::string& led_color) {
+  std::string color_str = led_color;
+  std::transform(color_str.begin(), color_str.end(), color_str.begin(),
+                 ::tolower);
+
+  if (!IsColorFormatNumberic(color_str)) {
+    LoggerE("Led color is not numeric value: %s", color_str.c_str());
+    return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
+                          "Led color is not numeric value");
+  }
+
+  std::stringstream stream;
+  unsigned int color = 0;
+  notification_led_op_e type = NOTIFICATION_LED_OP_ON;
+  std::string color_code =
+      color_str.substr(1, color_str.length()).insert(0, "ff");
+
+  stream << std::hex << color_code;
+  stream >> color;
+
+  if (color != 0)
+    type = NOTIFICATION_LED_OP_ON_CUSTOM_COLOR;
+  else
+    type = NOTIFICATION_LED_OP_OFF;
+
+  int ret = notification_set_led(noti_handle, type, static_cast<int>(color));
+  if (ret != NOTIFICATION_ERROR_NONE) {
+    LoggerE("Set notification led color eror: %d", ret);
+    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                          "Set notification led color eror");
+  }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
 PlatformResult StatusNotification::GetLedPeriod(notification_h noti_handle,
                                                 unsigned long* on_period,
                                                 unsigned long* off_period) {
@@ -242,6 +436,40 @@ PlatformResult StatusNotification::GetLedPeriod(notification_h noti_handle,
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
+PlatformResult StatusNotification::SetLedOnPeriod(notification_h noti_handle,
+                                                  unsigned long on_period) {
+  unsigned long off_period = 0;
+  PlatformResult status = GetLedPeriod(noti_handle, nullptr, &off_period);
+  if (status.IsError()) return status;
+
+  int ret =
+      notification_set_led_time_period(noti_handle, on_period, off_period);
+  if (ret != NOTIFICATION_ERROR_NONE) {
+    LoggerE("Set notification led on period error: %d", ret);
+    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                          "Set notification led on period error");
+  }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult StatusNotification::SetLedOffPeriod(notification_h noti_handle,
+                                                   unsigned long off_period) {
+  unsigned long on_period = 0;
+  PlatformResult status = GetLedPeriod(noti_handle, &on_period, nullptr);
+  if (status.IsError()) return status;
+
+  int ret =
+      notification_set_led_time_period(noti_handle, on_period, off_period);
+  if (ret != NOTIFICATION_ERROR_NONE) {
+    LoggerE("Set notification led off period error: %d", ret);
+    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                          "Set notification led off period error");
+  }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
 PlatformResult StatusNotification::GetThumbnails(notification_h noti_handle,
                                                  picojson::array* out) {
   std::string text;
@@ -253,6 +481,29 @@ PlatformResult StatusNotification::GetThumbnails(notification_h noti_handle,
     if (!text.length()) break;
 
     out->push_back(picojson::value(text));
+  }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult StatusNotification::SetThumbnails(notification_h noti_handle,
+                                                 const picojson::array& value) {
+  int idx = 0;
+
+  for (auto& item : value) {
+    const std::string& text = JsonCast<std::string>(item);
+
+    PlatformResult status =
+        SetImage(noti_handle, thumbnails_map_.at(idx), text);
+    if (status.IsError()) return status;
+
+    ++idx;
+
+    if (idx > thumbnails_map_.size()) {
+      LoggerE("Too many values in notification thumbnail array");
+      return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
+                            "Too many values in notification thumbnail array");
+    }
   }
 
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -288,6 +539,21 @@ PlatformResult StatusNotification::GetSoundPath(notification_h noti_handle,
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
+PlatformResult StatusNotification::SetSoundPath(notification_h noti_handle,
+                                                const std::string& sound_path) {
+  int ret = notification_set_sound(
+      noti_handle, NOTIFICATION_SOUND_TYPE_USER_DATA, sound_path.c_str());
+  if (ret != NOTIFICATION_ERROR_NONE) {
+    LoggerE("Set notification sound error: %d", ret);
+    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                          "Set notification sound error");
+  }
+
+  LoggerD("Sound path = %s", sound_path.c_str());
+
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
 PlatformResult StatusNotification::GetVibration(notification_h noti_handle,
                                                 bool* vibration) {
   notification_vibration_type_e vib_type = NOTIFICATION_VIBRATION_TYPE_NONE;
@@ -309,8 +575,33 @@ PlatformResult StatusNotification::GetVibration(notification_h noti_handle,
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
+PlatformResult StatusNotification::SetVibration(notification_h noti_handle,
+                                                bool vibration) {
+  bool platform_vibration;
+  PlatformResult status = GetVibration(noti_handle, &platform_vibration);
+  if (status.IsError()) return status;
+
+  if (platform_vibration != vibration) {
+    notification_vibration_type_e vib_type = NOTIFICATION_VIBRATION_TYPE_NONE;
+
+    if (vibration) {
+      vib_type = NOTIFICATION_VIBRATION_TYPE_DEFAULT;
+    }
+
+    int ret = notification_set_vibration(noti_handle, vib_type, NULL);
+    if (ret != NOTIFICATION_ERROR_NONE) {
+      LoggerE("Set notification vibration error: %d", ret);
+      return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                            "Set notification vibration error");
+    }
+  }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
 PlatformResult StatusNotification::GetApplicationControl(
-    app_control_h app_handle, picojson::object* out_ptr) {
+    app_control_h app_handle,
+    picojson::object* out_ptr) {
   picojson::object& out = *out_ptr;
 
   char* operation = NULL;
@@ -377,12 +668,84 @@ PlatformResult StatusNotification::GetApplicationControl(
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
+PlatformResult StatusNotification::SetApplicationControl(
+    app_control_h app_handle,
+    const picojson::object& app_ctrl) {
+  const std::string& operation =
+      common::FromJson<std::string>(app_ctrl, "operation");
+  int ret = app_control_set_operation(app_handle, operation.c_str());
+  if (ret != APP_CONTROL_ERROR_NONE) {
+    LoggerE("Set application control operation error: %d", ret);
+    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                          "Set application control operation error");
+  }
+
+  if (!IsNull(app_ctrl, "uri")) {
+    const std::string& uri = common::FromJson<std::string>(app_ctrl, "uri");
+    ret = app_control_set_uri(app_handle, uri.c_str());
+    if (ret != APP_CONTROL_ERROR_NONE) {
+      LoggerE("Set application control uri error: %d", ret);
+      return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                            "Set application control uri error");
+    }
+  }
+
+  if (!IsNull(app_ctrl, "mime")) {
+    const std::string& mime = common::FromJson<std::string>(app_ctrl, "mime");
+    ret = app_control_set_mime(app_handle, mime.c_str());
+    if (ret != APP_CONTROL_ERROR_NONE) {
+      LoggerE("Set application control mime error: %d", ret);
+      return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                            "Set application control mime error");
+    }
+  }
+
+  if (!IsNull(app_ctrl, "category")) {
+    const std::string& category =
+        common::FromJson<std::string>(app_ctrl, "category");
+    ret = app_control_set_category(app_handle, category.c_str());
+    if (ret != APP_CONTROL_ERROR_NONE) {
+      LoggerE("Set application control category error: %d", ret);
+      return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                            "Set application control category error");
+    }
+  }
+
+  int idx = 0;
+  const picojson::array& data =
+      common::FromJson<picojson::array>(app_ctrl, "data");
+  for (auto& item : data) {
+    const picojson::object& obj = JsonCast<picojson::object>(item);
+
+    const std::string key = common::FromJson<std::string>(obj, "key");
+    const picojson::array values =
+        common::FromJson<picojson::array>(obj, "value");
+
+    const char** arrayValue =
+        (const char**)calloc(sizeof(char*), values.size());
+    SCOPE_EXIT { free(arrayValue); };
+    idx = 0;
+    for (auto& item : values) {
+      arrayValue[idx] = JsonCast<std::string>(item).c_str();
+      ++idx;
+    }
+
+    ret = app_control_add_extra_data_array(app_handle, key.c_str(), arrayValue,
+                                           values.size());
+    if (ret != APP_CONTROL_ERROR_NONE) {
+      LoggerE("Set application control extra data error: %d", ret);
+      return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                            "Set application control extra data error");
+    }
+  }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
 PlatformResult StatusNotification::GetApplicationId(app_control_h app_handle,
                                                     std::string* app_id) {
   char* app_id_str = NULL;
-  SCOPE_EXIT {
-      free(app_id_str);
-  };
+  SCOPE_EXIT { free(app_id_str); };
 
   if (app_control_get_app_id(app_handle, &app_id_str) !=
       APP_CONTROL_ERROR_NONE) {
@@ -397,8 +760,20 @@ PlatformResult StatusNotification::GetApplicationId(app_control_h app_handle,
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
+PlatformResult StatusNotification::SetApplicationId(app_control_h app_handle,
+                                                    const std::string& app_id) {
+  int ret = app_control_set_app_id(app_handle, app_id.c_str());
+  if (ret != APP_CONTROL_ERROR_NONE) {
+    LoggerE("Set applicaiton ID error: %d", ret);
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Set applicaiton ID error");
+  }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
 PlatformResult StatusNotification::GetProgressValue(
-    notification_h noti_handle, const std::string& progess_type,
+    notification_h noti_handle,
+    const std::string& progess_type,
     double* progress_value) {
   *progress_value = 0.0;
 
@@ -418,6 +793,35 @@ PlatformResult StatusNotification::GetProgressValue(
                             "Get notification progress error");
     }
     LoggerD("Percentage value = %f", *progress_value);
+  } else {
+    LoggerE("Unknown notification progress type: %s ", progess_type.c_str());
+    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                          "Unknown notification progress type");
+  }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult StatusNotification::SetProgressValue(
+    notification_h noti_handle,
+    const std::string& progess_type,
+    double progress_value) {
+  int ret;
+
+  if (progess_type == kProgressTypeByte) {
+    ret = notification_set_size(noti_handle, progress_value);
+    if (ret != NOTIFICATION_ERROR_NONE) {
+      LoggerE("Set notification size error: %d", ret);
+      return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                            "Set notification size error");
+    }
+  } else if (progess_type == kProgressTypePercentage) {
+    ret = notification_set_progress(noti_handle, progress_value);
+    if (ret != NOTIFICATION_ERROR_NONE) {
+      LoggerE("Set notification progress error: %d", ret);
+      return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                            "Set notification progress error");
+    }
   } else {
     LoggerE("Unknown notification progress type: %s ", progess_type.c_str());
     return PlatformResult(ErrorCode::UNKNOWN_ERR,
@@ -621,6 +1025,122 @@ PlatformResult StatusNotification::ToJson(int id, notification_h noti_handle,
   if (status.IsError()) return status;
   if (value_str.length()) {
     out["content"] = picojson::value(value_str);
+  }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult StatusNotification::FromJson(const picojson::object& args,
+                                            int* id) {
+  const std::string& status_type =
+      common::FromJson<std::string>(args, "statusType");
+
+  notification_type_e noti_type;
+  PlatformResult status = StatusTypeToPlatform(status_type, &noti_type);
+  if (status.IsError()) return status;
+
+  notification_h noti_handle;
+  status = Create(noti_type, noti_handle);
+  if (status.IsError()) return status;
+
+  status = GetId(noti_handle, id);
+  if (status.IsError()) return status;
+
+  status = SetLayout(noti_handle, status_type);
+  if (status.IsError()) return status;
+
+  if (!IsNull(args, "iconPath")) {
+    const std::string& value_str =
+        common::FromJson<std::string>(args, "iconPath");
+    status = SetImage(noti_handle, NOTIFICATION_IMAGE_TYPE_ICON, value_str);
+    if (status.IsError()) return status;
+  }
+
+  if (!IsNull(args, "subIconPath")) {
+    const std::string& value_str =
+        common::FromJson<std::string>(args, "subIconPath");
+    status = SetImage(noti_handle, NOTIFICATION_IMAGE_TYPE_ICON_SUB, value_str);
+    if (status.IsError()) return status;
+  }
+
+  if (!IsNull(args, "number")) {
+    const std::string& value_str =
+        std::to_string(common::FromJson<double>(args, "number"));
+    status = SetImage(noti_handle, NOTIFICATION_IMAGE_TYPE_ICON_SUB, value_str);
+    if (status.IsError()) return status;
+  }
+
+  if (!IsNull(args, "detailInfo")) {
+    status = SetDetailInfos(
+        noti_handle, common::FromJson<picojson::array>(args, "detailInfo"));
+    if (status.IsError()) return status;
+  }
+
+  if (!IsNull(args, "ledColor")) {
+    status = SetLedColor(noti_handle,
+                         common::FromJson<std::string>(args, "ledColor"));
+    if (status.IsError()) return status;
+  }
+
+  status = SetLedOnPeriod(noti_handle,
+                          static_cast<unsigned long>(
+                              common::FromJson<double>(args, "ledOnPeriod")));
+  if (status.IsError()) return status;
+
+  status = SetLedOffPeriod(noti_handle,
+                           static_cast<unsigned long>(
+                               common::FromJson<double>(args, "ledOffPeriod")));
+  if (status.IsError()) return status;
+
+  if (!IsNull(args, "thumbnails")) {
+    status = SetThumbnails(
+        noti_handle, common::FromJson<picojson::array>(args, "thumbnails"));
+    if (status.IsError()) return status;
+  }
+
+  if (!IsNull(args, "soundPath")) {
+    status = SetSoundPath(noti_handle,
+                          common::FromJson<std::string>(args, "soundPath"));
+    if (status.IsError()) return status;
+  }
+
+  status = SetVibration(noti_handle, common::FromJson<bool>(args, "vibration"));
+  if (status.IsError()) return status;
+
+  app_control_h app_control;
+  status = GetAppControl(noti_handle, &app_control);
+  if (status.IsError()) return status;
+  if (!IsNull(args, "appControl")) {
+    status = SetApplicationControl(
+        app_control, common::FromJson<picojson::object>(args, "appControl"));
+    if (status.IsError()) return status;
+  }
+
+  if (!IsNull(args, "appId")) {
+    status = SetApplicationId(app_control,
+                              common::FromJson<std::string>(args, "appId"));
+    if (status.IsError()) return status;
+  }
+
+  const std::string& progress_type =
+      common::FromJson<std::string>(args, "progressType");
+  status = SetImage(noti_handle, NOTIFICATION_IMAGE_TYPE_LIST_5, progress_type);
+  if (status.IsError()) return status;
+
+  if (!IsNull(args, "progressValue")) {
+    status = SetLedOnPeriod(noti_handle,
+                            common::FromJson<double>(args, "progressValue"));
+    if (status.IsError()) return status;
+  }
+
+  status = SetText(noti_handle, NOTIFICATION_TEXT_TYPE_TITLE,
+                   common::FromJson<std::string>(args, "title"));
+  if (status.IsError()) return status;
+
+  if (!IsNull(args, "content")) {
+    status = SetText(noti_handle, NOTIFICATION_TEXT_TYPE_CONTENT,
+                     common::FromJson<std::string>(args, "content"));
+    if (status.IsError()) return status;
   }
 
   return PlatformResult(ErrorCode::NO_ERROR);

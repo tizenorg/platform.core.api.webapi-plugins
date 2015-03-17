@@ -13,7 +13,6 @@
 
 #include "notification/status_notification.h"
 
-
 namespace extension {
 namespace notification {
 
@@ -30,7 +29,7 @@ NotificationManager* NotificationManager::GetInstance() {
 
 PlatformResult NotificationManager::Post(const picojson::object& args,
                                          int* id) {
-  return PlatformResult(ErrorCode::NO_ERROR);
+  return StatusNotification::FromJson(args, id);
 }
 
 PlatformResult NotificationManager::Update(const picojson::object& args) {

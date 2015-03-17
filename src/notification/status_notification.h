@@ -22,6 +22,7 @@ class StatusNotification {
   static common::PlatformResult ToJson(int id, notification_h noti_handle,
                                        app_control_h app_handle,
                                        picojson::object* out_ptr);
+  static common::PlatformResult FromJson(const picojson::object& args, int* id);
   static common::PlatformResult GetAppControl(notification_h noti_handle,
                                               app_control_h* app_control);
 
@@ -37,39 +38,78 @@ class StatusNotification {
       notification_type_e noti_type,
       notification_ly_type_e noti_layout,
       std::string* type);
+  static common::PlatformResult StatusTypeToPlatform(
+      const std::string& type,
+      notification_type_e* noti_type);
+  static common::PlatformResult Create(notification_type_e noti_type,
+                                       notification_h noti_handle);
   static common::PlatformResult GetImage(notification_h noti_handle,
                                          notification_image_type_e image_type,
                                          std::string* image_path);
+  static common::PlatformResult SetImage(notification_h noti_handle,
+                                         notification_image_type_e image_type,
+                                         const std::string& image_path);
   static common::PlatformResult GetText(notification_h noti_handle,
                                         notification_text_type_e text_type,
                                         std::string* noti_text);
+  static common::PlatformResult SetText(notification_h noti_handle,
+                                        notification_text_type_e text_type,
+                                        const std::string& noti_text);
   static common::PlatformResult GetNumber(notification_h noti_handle,
                                           notification_text_type_e text_type,
                                           long* number);
   static common::PlatformResult GetDetailInfos(notification_h noti_handle,
                                                picojson::array* out);
+  static common::PlatformResult SetDetailInfos(notification_h noti_handle,
+                                               const picojson::array& value);
   static common::PlatformResult GetLedColor(notification_h noti_handle,
                                             std::string* led_color);
+  static common::PlatformResult SetLedColor(notification_h noti_handle,
+                                            const std::string& led_color);
   static common::PlatformResult GetLedPeriod(notification_h noti_handle,
                                              unsigned long* on_period,
                                              unsigned long* off_period);
+  static common::PlatformResult SetLedOnPeriod(notification_h noti_handle,
+                                               unsigned long on_period);
+  static common::PlatformResult SetLedOffPeriod(notification_h noti_handle,
+                                                unsigned long off_period);
   static common::PlatformResult GetThumbnails(notification_h noti_handle,
                                               picojson::array* out);
+  static common::PlatformResult SetThumbnails(notification_h noti_handle,
+                                              const picojson::array& value);
   static common::PlatformResult GetSoundPath(notification_h noti_handle,
                                              std::string* sound_path);
+  static common::PlatformResult SetSoundPath(notification_h noti_handle,
+                                             const std::string& sound_path);
   static common::PlatformResult GetVibration(notification_h noti_handle,
                                              bool* vibration);
+  static common::PlatformResult SetVibration(notification_h noti_handle,
+                                             bool vibration);
   static common::PlatformResult GetApplicationControl(
       app_control_h app_handle,
       picojson::object* out_ptr);
+  static common::PlatformResult SetApplicationControl(
+      app_control_h app_handle,
+      const picojson::object& app_ctrl);
   static common::PlatformResult GetApplicationId(app_control_h app_handle,
                                                  std::string* app_id);
+  static common::PlatformResult SetApplicationId(app_control_h app_handle,
+                                                 const std::string& app_id);
   static common::PlatformResult GetProgressValue(
       notification_h noti_handle,
       const std::string& progess_type,
       double* progress_value);
+  static common::PlatformResult SetProgressValue(
+      notification_h noti_handle,
+      const std::string& progess_type,
+      double progress_value);
   static common::PlatformResult GetPostedTime(notification_h noti_handle,
                                               time_t* posted_time);
+  static common::PlatformResult SetLayout(notification_h noti_handle,
+                                          const std::string& noti_type);
+  static common::PlatformResult GetId(notification_h noti_handle, int* id);
+
+  static bool IsColorFormatNumberic(const std::string& color);
 };
 
 }  // namespace notification
