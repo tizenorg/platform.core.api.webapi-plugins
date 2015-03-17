@@ -5,26 +5,25 @@
 #ifndef CONTENT_FILTER_H_
 #define CONTENT_FILTER_H_
 
-#include "common/picojson.h"
-
-#include <string>
 #include <media_content.h>
+#include <string>
 
+#include "common/filter-utils.h"
+#include "common/picojson.h"
+#include "common/platform_result.h"
 
 namespace extension {
 namespace content {
 
 class ContentFilter {
  public:
-  std::string convert(const picojson::value &jsFilter);
-  
+  common::PlatformResult buildQuery(const picojson::object &jsFilter,
+                                    std::string *query);
+
  private:
-    
-
+  common::FilterVisitor visitor;
 };
-
 }
 }
 
-#endif 
-
+#endif

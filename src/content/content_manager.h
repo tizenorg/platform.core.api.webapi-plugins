@@ -5,16 +5,16 @@
 #ifndef CONTENT_MANAGER_H_
 #define CONTENT_MANAGER_H_
 
+#include <glib.h>
+#include <list>
+#include <media_content.h>
+#include <memory>
+#include <string>
+
 #include "common/extension.h"
 #include "common/picojson.h"
 #include "common/platform_exception.h"
-
-#include <string>
-#include <list>
-#include <media_content.h>
-#include <glib.h>
-
-#include "content_instance.h"
+#include "content/content_instance.h"
 
 namespace extension {
 namespace content {

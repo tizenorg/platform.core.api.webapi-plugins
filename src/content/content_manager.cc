@@ -2,27 +2,28 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include <unistd.h>
-#include <cstring>
-#include <string>
-#include <algorithm>
-#include <dlog.h>
-#include <memory>
-#include <sstream>
-#include <metadata_extractor.h>
+#include "content/content_manager.h"
 
+#include <algorithm>
+#include <cstring>
+#include <dlog.h>
+#include <metadata_extractor.h>
+#include <sstream>
+#include <string>
+#include <unistd.h>
+
+#include "common/converter.h"
 #include "common/logger.h"
 #include "common/platform_exception.h"
-#include "content_manager.h"
-#include "content_filter.h"
+#include "common/platform_result.h"
+#include "common/scope_exit.h"
+#include "content/content_filter.h"
 
 using namespace std;
 using namespace common;
 
 namespace extension {
 namespace content {
-
-#define TAG_DELIMETER '/'
 
 static int get_utc_offset()
 {
@@ -400,7 +401,6 @@ static int setContent(media_info_h media, picojson::value content) {
   std::string description = content.get("description").to_str();
   std::string rating = content.get("rating").to_str();
   std::string is_fav = content.get("isFavorite").to_str();
-
   if (media != NULL) {
     media_content_type_e type;
     ret = media_info_get_media_type(media, &type);
@@ -433,7 +433,7 @@ static int setContent(media_info_h media, picojson::value content) {
     if (type == MEDIA_CONTENT_TYPE_IMAGE || type == MEDIA_CONTENT_TYPE_VIDEO) {
       picojson::value geo = content.get("geolocation");
       double latitude = atof(geo.get("latitude").to_str().c_str());
-      double longitude = atof(geo.get("longitude ").to_str().c_str());
+      double longitude = atof(geo.get("longitude").to_str().c_str());
       ret = media_info_set_latitude(media, latitude);
       if ( ret != MEDIA_CONTENT_ERROR_NONE) {
         LoggerD("Updating geolocation is failed.");
@@ -461,7 +461,6 @@ static bool media_foreach_directory_cb(media_folder_h folder, void *user_data) {
 static bool media_foreach_content_cb(media_info_h media, void *user_data) {
   picojson::value::array *contents = static_cast<picojson::value::array*>(user_data);
   picojson::value::object o;
-
   contentToJson(media, o);
   contents->push_back(picojson::value(o));  
   return true;
@@ -617,58 +616,39 @@ void ContentManager::find(const std::shared_ptr<ReplyCallbackData>& user_data) {
   double count, offset;
   std::string dirId, attributeName, matchFlag, matchValue;
   std::string sortModeName, sortModeOrder;
+  int error_code = 0;
   media_content_order_e order;
 
   picojson::value::array arrayContent;
-  filter_h filter = NULL;
-  ret = media_filter_create(&filter);
-
-  if(ret != MEDIA_CONTENT_ERROR_NONE) {
-    UnknownException err("Memory allcation for filter is failed.");
-    user_data->isSuccess = false;
-    user_data->result = err.ToJSON();
-    return;    
-  }
-  if(user_data->args.contains("filter")) {
-    //to be implemented. dykim.
-    picojson::value vfilter = user_data->args.get("filter");
-    if (!vfilter.is<picojson::null>() && vfilter.is<picojson::object>()) {
-      attributeName = vfilter.get("attributeName").to_str();
-      matchFlag = vfilter.get("matchFlag").to_str();
-      matchValue = vfilter.get("matchValue").to_str();
+  filter_h filter = nullptr;
+  media_filter_create(&filter);
+  SCOPE_EXIT {
+    if (filter) {
+      media_filter_destroy(filter);
     }
-  }
-  if(user_data->args.contains("sortMode")) {
-    picojson::value vSortMode = user_data->args.get("sortMode");
-    if (!vSortMode.is<picojson::null>() && vSortMode.is<picojson::object>()) {
-      sortModeName = vSortMode.get("attributeName").to_str();
-      sortModeOrder = vSortMode.get("order").to_str();
-      if ( !sortModeOrder.empty() ) {
-        if( sortModeOrder == "ASC" ) {
-          order = MEDIA_CONTENT_ORDER_ASC;
-        }
-        else if( sortModeOrder == "DESC" ) {
-          order = MEDIA_CONTENT_ORDER_DESC;
-        }
-        ret = media_filter_set_order(filter, order, sortModeName.c_str(), MEDIA_CONTENT_COLLATE_DEFAULT );
-        if (MEDIA_CONTENT_ERROR_NONE != ret )
-        {
-          LoggerD("Platform SortMode setting is failed.");
-        }
+  };
+  if (user_data->args.contains("filter")) {
+    ContentFilter filterMechanism;
+    std::string query;
+    picojson::object argsObject = JsonCast<picojson::object>(user_data->args);
+    if (filterMechanism.buildQuery(
+            FromJson<picojson::object>(argsObject, "filter"), &query)) {
+      ret = media_filter_set_condition(filter, query.c_str(),
+                                       MEDIA_CONTENT_COLLATE_DEFAULT);
+      if (MEDIA_CONTENT_ERROR_NONE != ret) {
       }
     }
   }
   if(user_data->args.contains("count")) {
     count = user_data->args.get("count").get<double>();
-  }
-  else {
-    count = -1;
+  } else {
+    count = 100; //TODO rethink proper default count setting
   }
   if(user_data->args.contains("offset")) {
     offset = user_data->args.get("offset").get<double>();
   }
   else {
-    offset = -1;
+    offset = 0;
   }
   ret = media_filter_set_offset(filter, offset, count);
   if ( MEDIA_CONTENT_ERROR_NONE != ret) {
@@ -681,7 +661,6 @@ void ContentManager::find(const std::shared_ptr<ReplyCallbackData>& user_data) {
   else {
     ret = media_info_foreach_media_from_db(filter, media_foreach_content_cb, static_cast<void*>(&arrayContent));
   }
-  media_filter_destroy(filter);
 
   if (ret == MEDIA_CONTENT_ERROR_NONE) {
     user_data->isSuccess = true;

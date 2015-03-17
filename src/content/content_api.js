@@ -1,6 +1,7 @@
 // Content
 
-var validator_ = xwalk.utils.validator;
+var utils_ = xwalk.utils;
+var validator_ = utils_.validator;
 var types_ = validator_.Types;
 
 
@@ -604,11 +605,16 @@ ContentManager.prototype.find = function(successCallback) {
       {'name' : 'successCallback', 'type': types_.FUNCTION, 'values' : ['onsuccess']},
       {'name' : 'errorCallback', 'type': types_.FUNCTION, optional : true, nullable : true},
       {'name' : 'directoryId', 'type': types_.STRING, optional : true, nullable : true},
-      {'name' : 'filter', 'type': types_.DICTIONARY, optional : true, nullable : true},
+      {'name' : 'filter', 'type': types_.PLATFORM_OBJECT,
+        values: [tizen.AttributeFilter, tizen.AttributeRangeFilter, tizen.CompositeFilter],
+        optional : true, nullable : true },
       {'name' : 'sortMode', 'type': types_.DICTIONARY, optional : true, nullable : true},
       {'name' : 'count', 'type': types_.UNSIGNED_LONG, optional : true},
       {'name' : 'offset', 'type': types_.UNSIGNED_LONG, optional : true}
   ]);
+  if (args.offset < 0 || args.count < 0) {
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR);
+  }
 
   var nativeParam = {
   };
@@ -617,7 +623,7 @@ ContentManager.prototype.find = function(successCallback) {
       nativeParam['directoryId'] = args.directoryId;
   }
   if (args['filter']) {
-      nativeParam['filter'] = args.filter;
+      nativeParam['filter'] = utils_.repackFilter(args.filter);
   }
   if (args['sortMode']) {
       nativeParam['sortMode'] = args.sortMode;

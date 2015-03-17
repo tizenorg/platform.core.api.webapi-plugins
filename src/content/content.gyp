@@ -10,6 +10,8 @@
         'content_api.js',
         'content_extension.cc',
         'content_extension.h',
+        'content_filter.cc',
+        'content_filter.h',
         'content_instance.cc',
         'content_instance.h',
         'content_manager.h',
