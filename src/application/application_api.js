@@ -7,52 +7,30 @@
 
 var validator_ = xwalk.utils.validator;
 var types_ = validator_.Types;
-
-var callbackId = 0;
-var callbacks = {};
-
-extension.setMessageListener(function(json) {
-  var result = JSON.parse(json);
-  var callback = callbacks[result['callbackId']];
-  callback(result);
-});
-
-function nextCallbackId() {
-  return callbackId++;
-}
+var native_ = new xwalk.utils.NativeManager(extension);
 
 function callNative(cmd, args) {
-  var json = {'cmd': cmd, 'args': args};
-  var argjson = JSON.stringify(json);
-  var resultString = extension.internal.sendSyncMessage(argjson);
-  var result = JSON.parse(resultString);
+  var result = native_.callSync(cmd, args);
 
   if (typeof result !== 'object') {
     throw new WebAPIException(WebAPIException.UNKNOWN_ERR);
   }
 
-  if (result['status'] === 'success') {
-    if (result['result']) {
-      return result['result'];
+  if (native_.isSuccess(result)) {
+    if (native_.getResultObject(result)) {
+      return native_.getResultObject(result);
     }
     return true;
-  } else if (result['status'] === 'error') {
-    var err = result['error'];
-    if (err) {
-      throw new WebAPIException(err.name, err.message);
+  } else {
+    if (result.error) {
+      throw native_.getErrorObject(result);
     }
     return false;
   }
 }
 
 function callNativeWithCallback(cmd, args, callback) {
-  if (callback) {
-    var id = nextCallbackId();
-    args['callbackId'] = id;
-    callbacks[id] = callback;
-  }
-
-  return callNative(cmd, args);
+  return native_.call(cmd, args, callback);
 }
 
 function setReadOnlyProperty(obj, n, v) {
@@ -131,17 +109,11 @@ ApplicationManager.prototype.kill = function(contextId, successCallback, errorCa
   try {
     var syncResult =
         callNativeWithCallback('ApplicationManager_kill', nativeParam, function(result) {
-      if (result.status === 'success') {
-        if (args.successCallback) {
-          args.successCallback();
-        }
+      if (native_.isSuccess(result)) {
+          native_.callIfPossible(args.successCallback);
+      } else {
+          native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));
       }
-      if (result.status === 'error') {
-        if (args.errorCallback) {
-          args.errorCallback(result.error);
-        }
-      }
-      delete callbacks[result['callbackId']];
     });
   } catch (e) {
     throw e;
@@ -162,17 +134,11 @@ ApplicationManager.prototype.launch = function(id, successCallback, errorCallbac
   try {
     var syncResult =
         callNativeWithCallback('ApplicationManager_launch', nativeParam, function(result) {
-      if (result.status === 'success') {
-        if (args.successCallback) {
-          args.successCallback();
-        }
+      if (native_.isSuccess(result)) {
+          native_.callIfPossible(args.successCallback);
+      } else {
+          native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));
       }
-      if (result.status === 'error') {
-        if (args.errorCallback) {
-          args.errorCallback(result.error);
-        }
-      }
-      delete callbacks[result['callbackId']];
     });
   } catch (e) {
     throw e;
@@ -198,6 +164,19 @@ ApplicationManager.prototype.launchAppControl = function(appControl, id, success
   if (args['appControl']) {
     nativeParam['appControl'] = args.appControl;
   }
+
+  //Try to find application
+  try {
+      if (args['id']) {
+        this.getAppInfo(args.id);
+      }
+  } catch(e) {
+      //If app cannot be found, it should all errorCallback with NotFoundException.
+      setTimeout(function() {
+          native_.callIfPossible(args.errorCallback, e);
+      }, 0);
+  }
+
   try {
     var syncResult =
         callNativeWithCallback('ApplicationManager_launchAppControl', nativeParam, function(ret) {
@@ -214,16 +193,11 @@ ApplicationManager.prototype.launchAppControl = function(appControl, id, success
         }
       }
       else if (ret.status === 'success') {
-        if (args.successCallback) {
-          args.successCallback();
-        }
+        native_.callIfPossible(args.successCallback);
       }
       else if (ret.status === 'error') {
-        if (args.errorCallback) {
-          args.errorCallback(ret.error);
-        }
+        native_.callIfPossible(args.errorCallback, native_.getErrorObject(ret));
       }
-      delete callbacks[result['callbackId']];
     });
   } catch (e) {
     throw e;
@@ -245,7 +219,7 @@ ApplicationManager.prototype.findAppControl = function(appControl, successCallba
   try {
     var syncResult =
         callNativeWithCallback('ApplicationManager_findAppControl', nativeParam, function(result) {
-      if (result.status === 'success') {
+      if (native_.isSuccess(result)) {
         var returnArray = [];
         for (var i = 0; i < result.informationArray.length; i++) {
           var appInfo = getAppInfoWithReadOnly(result.informationArray[i]);
@@ -253,12 +227,9 @@ ApplicationManager.prototype.findAppControl = function(appControl, successCallba
         }
 
         args.successCallback(returnArray, result.appControl);
-      } else if (result.status === 'error') {
-        if (args.errorCallback) {
-          args.errorCallback(result.error);
-        }
+      } else if (native_.isFailure(result)) {
+        native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));
       }
-      delete callbacks[result['callbackId']];
     });
   } catch (e) {
     throw e;
@@ -276,7 +247,7 @@ ApplicationManager.prototype.getAppsContext = function(successCallback, errorCal
   try {
     var syncResult =
         callNativeWithCallback('ApplicationManager_getAppsContext', nativeParam, function(result) {
-      if (result.status === 'success') {
+      if (native_.isSuccess(result)) {
         var returnArray = [];
         for (var index = 0; index < result.contexts.length; index++) {
           var appContext = new ApplicationContext();
@@ -287,11 +258,8 @@ ApplicationManager.prototype.getAppsContext = function(successCallback, errorCal
         args.successCallback(returnArray);
       }
       else if (result.status === 'error') {
-        if (args.errorCallback) {
-          args.errorCallback(result.error);
-        }
+        native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));
       }
-      delete callbacks[result['callbackId']];
     });
   } catch (e) {
     throw e;
@@ -332,7 +300,7 @@ ApplicationManager.prototype.getAppsInfo = function(successCallback, errorCallba
   try {
     var syncResult =
         callNativeWithCallback('ApplicationManager_getAppsInfo', nativeParam, function(result) {
-      if (result.status === 'success') {
+      if (native_.isSuccess(result)) {
         var returnArray = [];
         for (var i = 0; i < result.informationArray.length; i++) {
           var appInfo = getAppInfoWithReadOnly(result.informationArray[i]);
@@ -340,12 +308,9 @@ ApplicationManager.prototype.getAppsInfo = function(successCallback, errorCallba
         }
         args.successCallback(returnArray);
       }
-      else if (result.status === 'error') {
-        if (args.errorCallback) {
-          args.errorCallback(result.error);
-        }
+      else if (native_.isFailure(result)) {
+        native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));
       }
-      delete callbacks[result['callbackId']];
     });
   } catch (e) {
     throw e;
@@ -464,7 +429,6 @@ ApplicationManager.prototype.addAppInfoEventListener = function(eventCallback) {
       } else if (ret.type === 'onuninstalled') {
         args.eventCallback.onuninstalled(ret.id);
       }
-      delete callbacks[result['callbackId']];
     });
   } catch (e) {
     throw e;

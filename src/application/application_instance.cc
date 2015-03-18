@@ -1238,8 +1238,10 @@ void ApplicationInstance::AppMgrLaunchAppControl(const picojson::value& args,
   } else {
     user_data->is_success = true;
   }
-  common::TaskQueue::GetInstance().Queue<CallbackInfo>(
-    callback_thread, callback_thread_completed, user_data);
+  // This causes to invalidate callback. This is not expected.
+  // TODO: Refactor launchAppControl
+  //common::TaskQueue::GetInstance().Queue<CallbackInfo>(
+  //  callback_thread, callback_thread_completed, user_data);
 
   ret = app_control_destroy(service);
   if (ret != APP_CONTROL_ERROR_NONE) {
