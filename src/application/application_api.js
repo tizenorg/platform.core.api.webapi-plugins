@@ -73,8 +73,16 @@ function getAppInfoWithReadOnly(obj) {
   setReadOnlyProperty(appInfo, 'show', obj.show);
   setReadOnlyProperty(appInfo, 'categories', obj.categories);
   setReadOnlyProperty(appInfo, 'installDate', new Date(obj.installDate));
-  setReadOnlyProperty(appInfo, 'size', obj.size);
   setReadOnlyProperty(appInfo, 'packageId', obj.packageId);
+
+  Object.defineProperty(appInfo, 'size', {
+    get: function () {
+      xwalk.utils.checkPrivilegeAccess('http://tizen.org/privilege/application.info');
+      return obj.size;
+    },
+    set: function (value) {},
+    enumerable: true
+  });
 
   return appInfo;
 }

@@ -40,9 +40,11 @@ namespace extension {
 namespace application {
 
 namespace {
-// The privileges that required in Application API
-const std::string kPrivilegeApplication = "";
-
+// The privileges that are required in Application API
+const std::string kPrivilegeAppManagerCertificate = "http://tizen.org/privilege/appmanager.certificate";
+const std::string kPrivilegeAppManagerKill = "http://tizen.org/privilege/appmanager.kill";
+const std::string kPrivilegeApplicationInfo = "http://tizen.org/privilege/application.info";
+const std::string kPrivilegeApplicationLaunch = "http://tizen.org/privilege/application.launch";
 }  // namespace
 
 using common::PlatformException;
@@ -929,6 +931,8 @@ void ApplicationInstance::AppMgrGetCurrentApplication(
 
 void ApplicationInstance::AppMgrKill(const picojson::value& args,
   picojson::object& out) {
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeAppManagerKill, &out);
+
   CHECK_EXIST(args, "callbackId", out)
 
   int callback_id = static_cast<int>(args.get("callbackId").get<double>());
@@ -1022,6 +1026,8 @@ void ApplicationInstance::AppMgrKill(const picojson::value& args,
 
 void ApplicationInstance::AppMgrLaunch(const picojson::value& args,
   picojson::object& out) {
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeApplicationLaunch, &out);
+
   CHECK_EXIST(args, "callbackId", out)
 
   int callback_id = static_cast<int>(args.get("callbackId").get<double>());
@@ -1049,6 +1055,8 @@ void ApplicationInstance::AppMgrLaunch(const picojson::value& args,
 
 void ApplicationInstance::AppMgrLaunchAppControl(const picojson::value& args,
   picojson::object& out) {
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeApplicationLaunch, &out);
+
   CHECK_EXIST(args, "callbackId", out)
 
   int callback_id = static_cast<int>(args.get("callbackId").get<double>());
@@ -1570,6 +1578,8 @@ void ApplicationInstance::AppMgrGetAppInfo(const picojson::value& args,
 
 void ApplicationInstance::AppMgrGetAppCerts(const picojson::value& args,
   picojson::object& out) {
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeAppManagerCertificate, &out);
+
   std::string id;
   if (args.contains("id")) {
     id = args.get("id").get<std::string>();
@@ -1689,6 +1699,8 @@ void ApplicationInstance::AppMgrGetAppSharedURI(const picojson::value& args,
 
 void ApplicationInstance::AppMgrGetAppMetaData(const picojson::value& args,
   picojson::object& out) {
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeApplicationInfo, &out);
+
   std::string id;
   if (args.contains("id")) {
     id = args.get("id").get<std::string>();
