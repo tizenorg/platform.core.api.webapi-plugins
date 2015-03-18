@@ -27,19 +27,6 @@ const std::string kPrivilegeAccountRead =
     "http://tizen.org/privilege/account.read";
 const std::string kPrivilegeAccountWrite =
     "http://tizen.org/privilege/account.write";
-
-void CheckAccess(const std::string& privilege, picojson::object* out) {
-  LoggerD("Enter");
-
-  /* TODO: Need to check privilege
-  ReportError(
-      SecurityException("This application does not have " \
-      "the privilege to call this method"),
-      out);
-  return;
-  */
-}
-
 } // namespace
 
 #define CHECK_EXIST(args, name, out) \
@@ -94,7 +81,7 @@ void AccountInstance::AccountSetExtendedData(const picojson::value& args,
                                              picojson::object& out) {
   LoggerD("Enter");
 
-  CheckAccess(kPrivilegeAccountWrite, &out);
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeAccountWrite, &out);
 
   CHECK_EXIST(args, "key", out)
   CHECK_EXIST(args, "value", out)
@@ -111,7 +98,7 @@ void AccountInstance::AccountGetExtendedData(const picojson::value& args,
                                              picojson::object& out) {
   LoggerD("Enter");
 
-  CheckAccess(kPrivilegeAccountRead, &out);
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeAccountRead, &out);
 
   CHECK_EXIST(args, "accountId", out)
   CHECK_EXIST(args, "callbackId", out)
@@ -140,7 +127,7 @@ void AccountInstance::AccountGetExtendedDataSync(const picojson::value& args,
                                                  picojson::object& out) {
   LoggerD("Enter");
 
-  CheckAccess(kPrivilegeAccountRead, &out);
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeAccountRead, &out);
 
   CHECK_EXIST(args, "key", out)
   CHECK_EXIST(args, "accountId", out)
@@ -153,21 +140,21 @@ void AccountInstance::AccountGetExtendedDataSync(const picojson::value& args,
 
 void AccountInstance::AccountManagerAdd(const picojson::value& args, picojson::object& out) {
   LoggerD("Enter");
-  CheckAccess(kPrivilegeAccountWrite, &out);
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeAccountWrite, &out);
   manager_->AddAccount(args, out);
 }
 
 void AccountInstance::AccountManagerRemove(const picojson::value& args,
                                            picojson::object& out) {
   LoggerD("Enter");
-  CheckAccess(kPrivilegeAccountWrite, &out);
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeAccountWrite, &out);
   manager_->RemoveAccount(args, out);
 }
 
 void AccountInstance::AccountManagerUpdate(const picojson::value& args,
                                            picojson::object& out) {
   LoggerD("Enter");
-  CheckAccess(kPrivilegeAccountWrite, &out);
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeAccountWrite, &out);
   manager_->UpdateAccount(args, out);
 }
 
@@ -175,7 +162,7 @@ void AccountInstance::AccountManagerGetAccount(const picojson::value& args,
                                                picojson::object& out) {
   LoggerD("Enter");
 
-  CheckAccess(kPrivilegeAccountRead, &out);
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeAccountRead, &out);
 
   CHECK_EXIST(args, "accountId", out)
 
@@ -188,7 +175,7 @@ void AccountInstance::AccountManagerGetAccounts(const picojson::value& args,
                                                 picojson::object& out) {
   LoggerD("Enter");
 
-  CheckAccess(kPrivilegeAccountRead, &out);
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeAccountRead, &out);
 
   CHECK_EXIST(args, "callbackId", out)
   int callback_id = static_cast<int>(args.get("callbackId").get<double>());
@@ -217,7 +204,7 @@ void AccountInstance::AccountManagerGetProvider(const picojson::value& args,
                                                 picojson::object& out) {
   LoggerD("Enter");
 
-  CheckAccess(kPrivilegeAccountRead, &out);
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeAccountRead, &out);
 
   std::string application_id = args.get("applicationId").get<std::string>();
   LoggerD("application_id [%s]", application_id.c_str());
@@ -229,7 +216,7 @@ void AccountInstance::AccountManagerGetProviders(const picojson::value& args,
                                                  picojson::object& out) {
   LoggerD("Enter");
 
-  CheckAccess(kPrivilegeAccountRead, &out);
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeAccountRead, &out);
 
   CHECK_EXIST(args, "callbackId", out)
   int callback_id = static_cast<int>(args.get("callbackId").get<double>());
@@ -301,7 +288,7 @@ void AccountInstance::AccountManagerAddAccountListener(
     const picojson::value& args, picojson::object& out) {
   LoggerD("Enter");
 
-  CheckAccess(kPrivilegeAccountRead, &out);
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeAccountRead, &out);
 
   int ret = 0;
   if (!subscribe_) {
@@ -331,7 +318,7 @@ void AccountInstance::AccountManagerRemoveAccountListener(
     const picojson::value& args, picojson::object& out) {
   LoggerD("Enter");
 
-  CheckAccess(kPrivilegeAccountRead, &out);
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeAccountRead, &out);
 
   if (subscribe_) {
     LoggerD("Removing subscription");
