@@ -12,10 +12,6 @@ namespace util {
 
 using namespace common;
 
-void CheckAccess(const std::string& privilege) {
-  // TODO: check access to privilege, throw exception on failure
-}
-
 PlatformResult AppControlToService(const picojson::object& obj, app_control_h *app_control) {
   LoggerD("Entered");
 

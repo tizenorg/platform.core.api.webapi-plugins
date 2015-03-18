@@ -62,7 +62,7 @@ AlarmManager& AlarmManager::GetInstance() {
 
 void AlarmManager::Add(const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
-  util::CheckAccess(kPrivilegeAlarm);
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeAlarm, &out);
 
   if (!args.contains("alarm")) {
     LoggerE("Invalid parameter passed.");
@@ -216,7 +216,7 @@ void AlarmManager::Add(const picojson::value& args, picojson::object& out) {
 
 void AlarmManager::Remove(const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
-  util::CheckAccess(kPrivilegeAlarm);
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeAlarm, &out);
 
   int id = 0;
 
@@ -244,7 +244,7 @@ void AlarmManager::Remove(const picojson::value& args, picojson::object& out) {
 
 void AlarmManager::RemoveAll(const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
-  util::CheckAccess(kPrivilegeAlarm);
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeAlarm, &out);
 
   if (ALARM_ERROR_NONE != alarm_cancel_all()) {
     LoggerE("Platform unknown error.");
