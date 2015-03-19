@@ -141,6 +141,7 @@ var _listener = function(object) {
 var SENSOR_CHANGED_LISTENER = 'SensorChangedListener';
 native_.addListener(SENSOR_CHANGED_LISTENER, _listener);
 
+var _PRIVILEGE_HEALTH_INFO = 'http://tizen.org/privilege/healthinfo';
 
 function getAvailableSensors() {
     var result = native_.callSync('SensorService_getAvailableSensors', {});
@@ -181,6 +182,7 @@ SensorService.prototype.getDefaultSensor = function() {
     } else if (_supportedSensors[index] === SensorType.ULTRAVIOLET) {
         return new UltravioletSensor();
     } else if (_supportedSensors[index] === SensorType.HRM_RAW) {
+        xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_HEALTH_INFO);
         return new HRMRawSensor();
     }
 };
@@ -389,6 +391,8 @@ HRMRawSensor.prototype.getHRMRawSensorData = function() {
            nullable : true
        }
     ]);
+
+    xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_HEALTH_INFO);
 
     _sensorListeners[this.sensorType].getData(args.successCallback, args.errorCallback);
 };
