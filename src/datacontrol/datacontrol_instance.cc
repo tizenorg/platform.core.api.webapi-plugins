@@ -24,7 +24,7 @@ namespace datacontrol {
 
 namespace {
 // The privileges that required in Datacontrol API
-const std::string kPrivilegeDatacontrol = "";
+const std::string kPrivilegeDatacontrol = "http://tizen.org/privilege/datacontrol.consumer";
 
 }  // namespace
 
@@ -483,6 +483,8 @@ int DatacontrolInstance::RunSQLDataControlJob(const std::string& providerId,
 
 void DatacontrolInstance::DataControlManagerGetdatacontrolconsumer(
     const picojson::value& args, picojson::object& out) {
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeDatacontrol, &out);
+
   CHECK_EXIST(args, "providerId", out)
   CHECK_EXIST(args, "dataId", out)
 
@@ -491,6 +493,7 @@ void DatacontrolInstance::DataControlManagerGetdatacontrolconsumer(
 }
 void DatacontrolInstance::SQLDataControlConsumerInsert(
     const picojson::value& args, picojson::object& out) {
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeDatacontrol, &out);
   CHECK_EXIST(args, "callbackId", out)
   CHECK_EXIST(args, "reqId", out)
   CHECK_EXIST(args, "providerId", out)
@@ -562,6 +565,7 @@ void DatacontrolInstance::SQLDataControlConsumerInsert(
 }
 void DatacontrolInstance::SQLDataControlConsumerUpdate(
     const picojson::value& args, picojson::object& out) {
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeDatacontrol, &out);
   CHECK_EXIST(args, "callbackId", out)
   CHECK_EXIST(args, "reqId", out)
   CHECK_EXIST(args, "where", out)
@@ -637,6 +641,7 @@ void DatacontrolInstance::SQLDataControlConsumerUpdate(
 
 void DatacontrolInstance::SQLDataControlConsumerRemove(
     const picojson::value& args, picojson::object& out) {
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeDatacontrol, &out);
   CHECK_EXIST(args, "callbackId", out)
   CHECK_EXIST(args, "reqId", out)
   CHECK_EXIST(args, "where", out)
@@ -669,6 +674,7 @@ void DatacontrolInstance::SQLDataControlConsumerRemove(
 
 void DatacontrolInstance::SQLDataControlConsumerSelect(
     const picojson::value& args, picojson::object& out) {
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeDatacontrol, &out);
   CHECK_EXIST(args, "callbackId", out)
   CHECK_EXIST(args, "reqId", out)
   CHECK_EXIST(args, "columns", out)
@@ -729,6 +735,7 @@ void DatacontrolInstance::SQLDataControlConsumerSelect(
 void DatacontrolInstance::MappedDataControlConsumerAddvalue(
     const picojson::value& args,
     picojson::object& out) {
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeDatacontrol, &out);
   CHECK_EXIST(args, "callbackId", out)
   CHECK_EXIST(args, "reqId", out)
   CHECK_EXIST(args, "key", out)
@@ -764,6 +771,7 @@ void DatacontrolInstance::MappedDataControlConsumerAddvalue(
 }
 void DatacontrolInstance::MappedDataControlConsumerRemovevalue(
     const picojson::value& args, picojson::object& out) {
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeDatacontrol, &out);
   CHECK_EXIST(args, "callbackId", out)
   CHECK_EXIST(args, "reqId", out)
   CHECK_EXIST(args, "key", out)
@@ -799,6 +807,7 @@ void DatacontrolInstance::MappedDataControlConsumerRemovevalue(
 }
 void DatacontrolInstance::MappedDataControlConsumerGetvalue(
     const picojson::value& args, picojson::object& out) {
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeDatacontrol, &out);
   CHECK_EXIST(args, "callbackId", out)
   CHECK_EXIST(args, "reqId", out)
   CHECK_EXIST(args, "key", out)
@@ -831,6 +840,7 @@ void DatacontrolInstance::MappedDataControlConsumerGetvalue(
 }
 void DatacontrolInstance::MappedDataControlConsumerUpdatevalue(
     const picojson::value& args, picojson::object& out) {
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeDatacontrol, &out);
   CHECK_EXIST(args, "callbackId", out)
   CHECK_EXIST(args, "reqId", out)
   CHECK_EXIST(args, "key", out)
