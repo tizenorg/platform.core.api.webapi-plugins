@@ -11,6 +11,12 @@
 namespace extension {
 namespace push {
 
+namespace {
+
+const std::string kPrivilegePush = "http://tizen.org/privilege/push";
+
+} // namespace
+
 PushInstance::PushInstance(): m_ignoreNotificationEvents(true) {
     LoggerD("Enter");
     using std::placeholders::_1;
@@ -42,6 +48,9 @@ PushInstance::PushInstance(): m_ignoreNotificationEvents(true) {
 void PushInstance::registerService(const picojson::value& args,
         picojson::object& out) {
     LoggerD("Enter");
+
+    CHECK_PRIVILEGE_ACCESS(kPrivilegePush, &out);
+
     PushManager::ApplicationControl appControl;
     appControl.operation = args.get("operation").get<std::string>();
     if (args.get("uri").is<std::string>()) {
@@ -80,6 +89,9 @@ void PushInstance::registerService(const picojson::value& args,
 void PushInstance::unregisterService(const picojson::value& args,
         picojson::object& out) {
     LoggerD("Enter");
+
+    CHECK_PRIVILEGE_ACCESS(kPrivilegePush, &out);
+
     common::PlatformResult result = PushManager::getInstance()
             .unregisterService(args.get("callbackId").get<double>());
     if (result.IsError()) {
@@ -94,6 +106,9 @@ void PushInstance::unregisterService(const picojson::value& args,
 void PushInstance::connectService(const picojson::value& args,
         picojson::object& out) {
     LoggerD("Enter");
+
+    CHECK_PRIVILEGE_ACCESS(kPrivilegePush, &out);
+
     m_ignoreNotificationEvents = false;
     picojson::value result;
     ReportSuccess(result, out);
@@ -102,6 +117,9 @@ void PushInstance::connectService(const picojson::value& args,
 void PushInstance::disconnectService(const picojson::value& args,
         picojson::object& out) {
     LoggerD("Enter");
+
+    CHECK_PRIVILEGE_ACCESS(kPrivilegePush, &out);
+
     m_ignoreNotificationEvents = true;
     picojson::value result;
     ReportSuccess(result, out);
@@ -110,6 +128,9 @@ void PushInstance::disconnectService(const picojson::value& args,
 void PushInstance::getRegistrationId(const picojson::value& args,
         picojson::object& out) {
     LoggerD("Enter");
+
+    CHECK_PRIVILEGE_ACCESS(kPrivilegePush, &out);
+
     std::string id;
     common::PlatformResult result = PushManager::getInstance()
             .getRegistrationId(id);
@@ -126,6 +147,9 @@ void PushInstance::getRegistrationId(const picojson::value& args,
 void PushInstance::getUnreadNotifications(const picojson::value& args,
         picojson::object& out) {
     LoggerD("Enter");
+
+    CHECK_PRIVILEGE_ACCESS(kPrivilegePush, &out);
+
     common::PlatformResult result = PushManager::getInstance()
             .getUnreadNotifications();
     if (result.IsError()) {
