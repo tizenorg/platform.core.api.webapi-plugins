@@ -47,12 +47,14 @@ CallHistoryInstance::~CallHistoryInstance() {
 
 void CallHistoryInstance::Find(const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeCallHistoryRead, &out);
   CallHistory::getInstance()->find(args.get<picojson::object>());
   ReportSuccess(out);
 }
 
 void CallHistoryInstance::Remove(const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeCallHistoryWrite, &out);
   PlatformResult result = CallHistory::getInstance()->remove(args.get<picojson::object>());
   if (result.IsSuccess()) {
     ReportSuccess(out);
@@ -63,6 +65,7 @@ void CallHistoryInstance::Remove(const picojson::value& args, picojson::object& 
 
 void CallHistoryInstance::RemoveBatch(const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeCallHistoryWrite, &out);
   PlatformResult result = CallHistory::getInstance()->removeBatch(args.get<picojson::object>());
   if (result.IsSuccess()) {
     ReportSuccess(out);
@@ -73,12 +76,14 @@ void CallHistoryInstance::RemoveBatch(const picojson::value& args, picojson::obj
 
 void CallHistoryInstance::RemoveAll(const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeCallHistoryWrite, &out);
   CallHistory::getInstance()->removeAll(args.get<picojson::object>());
   ReportSuccess(out);
 }
 
 void CallHistoryInstance::AddChangeListener(const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeCallHistoryRead, &out);
   PlatformResult result = CallHistory::getInstance()->startCallHistoryChangeListener();
   if (result.IsSuccess()) {
     ReportSuccess(out);
@@ -89,6 +94,7 @@ void CallHistoryInstance::AddChangeListener(const picojson::value& args, picojso
 
 void CallHistoryInstance::RemoveChangeListener(const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeCallHistoryRead, &out);
   PlatformResult result = CallHistory::getInstance()->stopCallHistoryChangeListener();
   if (result.IsSuccess()) {
     ReportSuccess(out);
