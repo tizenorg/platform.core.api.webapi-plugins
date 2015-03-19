@@ -5,6 +5,7 @@
 // class CalendarManager
 var CalendarManager = function() {};
 
+var _PRIVILEGE_CALENDAR_READ = "http://tizen.org/privilege/calendar.read";
 // IDs defined in C-API calendar_types2.h
 var DefaultCalendarId = {
   EVENT: 1, // DEFAULT_EVENT_CALENDAR_BOOK_ID
@@ -56,6 +57,8 @@ CalendarManager.prototype.getUnifiedCalendar = function() {
     values: Object.keys(CalendarType)
   }]);
 
+  xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_CALENDAR_READ);
+
   return new Calendar(new InternalCalendar({
     type: args.type,
     isUnified: true
@@ -70,6 +73,8 @@ CalendarManager.prototype.getDefaultCalendar = function() {
     values: Object.keys(CalendarType)
   }
   ]);
+
+  xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_CALENDAR_READ);
 
   return this.getCalendar(args.type, DefaultCalendarId[args.type]);
 };

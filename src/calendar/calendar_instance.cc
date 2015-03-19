@@ -18,6 +18,11 @@
 namespace extension {
 namespace calendar {
 
+namespace {
+const std::string kPrivilegeCalendarRead = "http://tizen.org/privilege/calendar.read";
+const std::string kPrivilegeCalendarWrite = "http://tizen.org/privilege/calendar.write";
+}
+
 using namespace common;
 using namespace extension::calendar;
 
@@ -62,6 +67,7 @@ CalendarInstance::CalendarInstance() {
 CalendarInstance::~CalendarInstance() {}
 
 void CalendarInstance::CalendarGet(const JsonValue& args, JsonObject& out) {
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeCalendarRead, &out);
   JsonValue val{JsonObject{}};
 
   PlatformResult status = Calendar::GetInstance().Get(
@@ -74,6 +80,7 @@ void CalendarInstance::CalendarGet(const JsonValue& args, JsonObject& out) {
 }
 
 void CalendarInstance::CalendarAdd(const JsonValue& args, JsonObject& out) {
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeCalendarWrite, &out);
   JsonValue val{JsonObject{}};
 
   PlatformResult status = Calendar::GetInstance().Add(
@@ -87,6 +94,7 @@ void CalendarInstance::CalendarAdd(const JsonValue& args, JsonObject& out) {
 
 void CalendarInstance::CalendarAddBatch(const JsonValue& args,
                                         JsonObject& out) {
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeCalendarWrite, &out);
   const double callback_id = args.get("callbackId").get<double>();
   auto get = [=](const std::shared_ptr<JsonValue>& response) -> void {
     JsonValue result = JsonValue(JsonArray());
@@ -113,6 +121,7 @@ void CalendarInstance::CalendarAddBatch(const JsonValue& args,
 }
 
 void CalendarInstance::CalendarUpdate(const JsonValue& args, JsonObject& out) {
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeCalendarWrite, &out);
   JsonValue val{JsonObject{}};
 
   PlatformResult status = Calendar::GetInstance().Update(
@@ -126,6 +135,7 @@ void CalendarInstance::CalendarUpdate(const JsonValue& args, JsonObject& out) {
 
 void CalendarInstance::CalendarUpdateBatch(const JsonValue& args,
                                            JsonObject& out) {
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeCalendarWrite, &out);
   const double callback_id = args.get("callbackId").get<double>();
   auto get = [=](const std::shared_ptr<JsonValue>& response) -> void {
     JsonValue result = JsonValue(JsonArray());
@@ -152,6 +162,7 @@ void CalendarInstance::CalendarUpdateBatch(const JsonValue& args,
 }
 
 void CalendarInstance::CalendarRemove(const JsonValue& args, JsonObject& out) {
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeCalendarWrite, &out);
   JsonValue val{JsonObject{}};
 
   PlatformResult status = Calendar::GetInstance().Remove(
@@ -165,6 +176,7 @@ void CalendarInstance::CalendarRemove(const JsonValue& args, JsonObject& out) {
 
 void CalendarInstance::CalendarRemoveBatch(const JsonValue& args,
                                            JsonObject& out) {
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeCalendarWrite, &out);
   const double callback_id = args.get("callbackId").get<double>();
   auto get = [=](const std::shared_ptr<JsonValue>& response) -> void {
     JsonValue result = JsonValue(JsonArray());
@@ -191,6 +203,7 @@ void CalendarInstance::CalendarRemoveBatch(const JsonValue& args,
 }
 
 void CalendarInstance::CalendarFind(const JsonValue& args, JsonObject& out) {
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeCalendarRead, &out);
   const double callback_id = args.get("callbackId").get<double>();
   auto get = [=](const std::shared_ptr<JsonValue>& response) -> void {
     JsonValue result = JsonValue(JsonArray());
@@ -218,6 +231,7 @@ void CalendarInstance::CalendarFind(const JsonValue& args, JsonObject& out) {
 
 void CalendarInstance::CalendarAddChangeListener(const JsonValue& args,
                                                  JsonObject& out) {
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeCalendarRead, &out);
   JsonValue val{JsonObject{}};
 
   PlatformResult status = Calendar::GetInstance().AddChangeListener(
@@ -231,6 +245,7 @@ void CalendarInstance::CalendarAddChangeListener(const JsonValue& args,
 
 void CalendarInstance::CalendarRemoveChangeListener(const JsonValue& args,
                                                     JsonObject& out) {
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeCalendarRead, &out);
   JsonValue val{JsonObject{}};
 
   PlatformResult status = Calendar::GetInstance().RemoveChangeListener(
@@ -245,6 +260,7 @@ void CalendarInstance::CalendarRemoveChangeListener(const JsonValue& args,
 // CalendarManager
 void CalendarInstance::CalendarManagerAddCalendar(const JsonValue& args,
                                                   JsonObject& out) {
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeCalendarWrite, &out);
   JsonValue val{JsonObject{}};
   PlatformResult status = CalendarManager::GetInstance().AddCalendar(
       common::JsonCast<JsonObject>(args), val.get<JsonObject>());
@@ -257,6 +273,7 @@ void CalendarInstance::CalendarManagerAddCalendar(const JsonValue& args,
 
 void CalendarInstance::CalendarManagerGetCalendar(const JsonValue& args,
                                                   JsonObject& out) {
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeCalendarRead, &out);
   JsonValue val{JsonObject{}};
   PlatformResult status = CalendarManager::GetInstance().GetCalendar(common::JsonCast<JsonObject>(args),
                                              val.get<JsonObject>());
@@ -269,6 +286,7 @@ void CalendarInstance::CalendarManagerGetCalendar(const JsonValue& args,
 
 void CalendarInstance::CalendarManagerGetCalendars(const JsonValue& args,
                                                    JsonObject& out) {
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeCalendarRead, &out);
   const double callback_id = args.get("callbackId").get<double>();
   auto get = [=](const std::shared_ptr<JsonValue>& response) -> void {
     JsonValue result = JsonValue(JsonArray());
@@ -297,6 +315,7 @@ void CalendarInstance::CalendarManagerGetCalendars(const JsonValue& args,
 
 void CalendarInstance::CalendarManagerRemoveCalendar(const JsonValue& args,
                                                      JsonObject& out) {
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeCalendarWrite, &out);
   JsonValue val{JsonObject{}};
   PlatformResult status = CalendarManager::GetInstance().RemoveCalendar(
       common::JsonCast<JsonObject>(args), val.get<JsonObject>());
