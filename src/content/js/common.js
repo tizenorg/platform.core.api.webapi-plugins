@@ -27,6 +27,25 @@ var edit_ = new EditManager();
 
 var SCHEMA = 'file://';
 
+function createContentObject_(data) {
+  switch (data.type) {
+    case ContentType.IMAGE:
+        return new ImageContent(data);
+      break;
+    case ContentType.AUDIO:
+      return new AudioContent(data);
+      break;
+    case ContentType.VIDEO:
+      return new VideoContent(data);
+      break;
+    case ContentType.OTHER:
+      return new Content(data);
+      break;
+  }
+
+  throw new WebAPIException(WebAPIException.UNKNOWN_ERR, 'Undefined content type');
+}
+
 function convertUriToPath_(uri) {
   if (0 === uri.indexOf(SCHEMA)) {
     return uri.substring(SCHEMA.length);

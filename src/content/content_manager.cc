@@ -6,7 +6,6 @@
 
 #include <algorithm>
 #include <cstring>
-#include <dlog.h>
 #include <map>
 #include <metadata_extractor.h>
 #include <sstream>
@@ -406,76 +405,80 @@ void contentToJson(media_info_h info, picojson::object& o) {
   }
 }
 
-static int setContent(media_info_h media, picojson::value content) {
+static int setContent(media_info_h media, const picojson::value& content) {
+  LOGGER(DEBUG) << "entered";
 
   int ret;
   std::string name = content.get("name").to_str();
   std::string description = content.get("description").to_str();
-  std::string rating = content.get("rating").to_str();
-  std::string is_fav = content.get("isFavorite").to_str();
-  if (media != NULL) {
-    media_content_type_e type;
-    ret = media_info_get_media_type(media, &type);
-    if (ret != MEDIA_CONTENT_ERROR_NONE ) {
-      return ret;
-    }
-    ret = media_info_set_display_name(media, name.c_str());
-    if ( ret != MEDIA_CONTENT_ERROR_NONE) {
-      LoggerD("Updating name is failed.");
-    }
-    ret = media_info_set_description(media, description.c_str());
-    if ( ret != MEDIA_CONTENT_ERROR_NONE) {
-      LoggerD("Updating description is failed.");
-    }
-    ret = media_info_set_rating(media, std::stoi(rating));
-    if ( ret != MEDIA_CONTENT_ERROR_NONE) {
-      LoggerD("Updating rating is failed.");
-    }
+  int rating = std::stoi(content.get("rating").to_str());
+  bool is_fav = content.get("isFavorite").get<bool>();
 
-    if (is_fav == "true") {
-      ret = media_info_set_favorite(media, true);
-    }
-    else if (is_fav == "false") {
-      ret = media_info_set_favorite(media, false);
-    }
-
-    if ( ret != MEDIA_CONTENT_ERROR_NONE) {
-      LoggerD("Updating favorite is failed.");
-    }
-    if (type == MEDIA_CONTENT_TYPE_IMAGE) {
-      std::string orientation = content.get("orientation").to_str();
-      auto orientationToSet = orientationMap.find(orientation);
-
-      if (orientationToSet != orientationMap.end()) {
-        image_meta_h img;
-        if(MEDIA_CONTENT_ERROR_NONE == media_info_get_image(media, &img) &&
-           MEDIA_CONTENT_ERROR_NONE == image_meta_set_orientation(img, orientationToSet->second) &&
-           MEDIA_CONTENT_ERROR_NONE == image_meta_update_to_db(img)) {
-          LoggerD("orientation update was successful");
-        } else {
-          LoggerD("orientation update failed");
-        }
-      }
-    }
-    if (type == MEDIA_CONTENT_TYPE_IMAGE || type == MEDIA_CONTENT_TYPE_VIDEO) {
-      picojson::value geo = content.get("geolocation");
-      double latitude = atof(geo.get("latitude").to_str().c_str());
-      double longitude = atof(geo.get("longitude").to_str().c_str());
-      ret = media_info_set_latitude(media, latitude);
-      if ( ret != MEDIA_CONTENT_ERROR_NONE) {
-        LoggerD("Updating geolocation is failed.");
-      }
-      ret = media_info_set_longitude(media, longitude);
-      if ( ret != MEDIA_CONTENT_ERROR_NONE) {
-        LoggerD("Updating geolocation is failed.");
-      }
-    }
-    ret = MEDIA_CONTENT_ERROR_NONE;
+  if (NULL == media) {
+    return MEDIA_CONTENT_ERROR_DB_FAILED;
   }
-  else {
-    ret = MEDIA_CONTENT_ERROR_DB_FAILED;
+
+  media_content_type_e type;
+  ret = media_info_get_media_type(media, &type);
+  if (ret != MEDIA_CONTENT_ERROR_NONE) {
+    return ret;
   }
-  return ret;
+
+  ret = media_info_set_display_name(media, name.c_str());
+  if (ret != MEDIA_CONTENT_ERROR_NONE) {
+    LoggerD("Updating name failed.");
+  }
+
+  ret = media_info_set_description(media, description.c_str());
+  if (ret != MEDIA_CONTENT_ERROR_NONE) {
+    LoggerD("Updating description failed.");
+  }
+
+  ret = media_info_set_rating(media, rating);
+  if (ret != MEDIA_CONTENT_ERROR_NONE) {
+    LoggerD("Updating rating failed.");
+  }
+
+  ret = media_info_set_favorite(media, is_fav);
+  if (ret != MEDIA_CONTENT_ERROR_NONE) {
+    LoggerD("Updating isFavorite failed.");
+  }
+
+  if (ret != MEDIA_CONTENT_ERROR_NONE) {
+    LoggerD("Updating favorite failed.");
+  }
+
+  if (type == MEDIA_CONTENT_TYPE_IMAGE) {
+    std::string orientation = content.get("orientation").to_str();
+    auto orientationToSet = orientationMap.find(orientation);
+
+    if (orientationToSet != orientationMap.end()) {
+      image_meta_h img;
+      if (MEDIA_CONTENT_ERROR_NONE == media_info_get_image(media, &img) &&
+          MEDIA_CONTENT_ERROR_NONE == image_meta_set_orientation(img, orientationToSet->second) &&
+          MEDIA_CONTENT_ERROR_NONE == image_meta_update_to_db(img)) {
+        LoggerD("orientation update was successful");
+      } else {
+        LoggerD("orientation update failed");
+      }
+    }
+  }
+
+  if (type == MEDIA_CONTENT_TYPE_IMAGE || type == MEDIA_CONTENT_TYPE_VIDEO) {
+    picojson::value geo = content.get("geolocation");
+    double latitude = atof(geo.get("latitude").to_str().c_str());
+    double longitude = atof(geo.get("longitude").to_str().c_str());
+    ret = media_info_set_latitude(media, latitude);
+    if (ret != MEDIA_CONTENT_ERROR_NONE) {
+      LoggerD("Updating geolocation is failed.");
+    }
+    ret = media_info_set_longitude(media, longitude);
+    if (ret != MEDIA_CONTENT_ERROR_NONE) {
+      LoggerD("Updating geolocation is failed.");
+    }
+  }
+
+  return MEDIA_CONTENT_ERROR_NONE;
 }
 
 static bool media_foreach_directory_cb(media_folder_h folder, void *user_data) {
@@ -815,20 +818,20 @@ void ContentManager::removePlaylist(std::string playlistId,
 }
 
 int ContentManager::update(picojson::value args) {
+  LOGGER(DEBUG) << "entered";
+
   int ret;
   picojson::value content = args.get("content");
   std::string id = content.get("id").to_str();
 
   media_info_h media = NULL;
-  ret = media_info_get_media_from_db (id.c_str(), &media);
-  if (media != NULL) {
+  ret = media_info_get_media_from_db(id.c_str(), &media);
+  if (ret == MEDIA_CONTENT_ERROR_NONE) {
     setContent(media, content);
     ret = media_info_update_to_db(media);
+    media_info_destroy(media);
   }
-  else {
-    LoggerD("There is no content(%s)",id.c_str());
-    ret = MEDIA_CONTENT_ERROR_NONE;
-  }
+
   return ret;
 }
 

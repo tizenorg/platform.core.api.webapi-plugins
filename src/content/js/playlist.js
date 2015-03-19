@@ -104,7 +104,7 @@ Playlist.prototype.get = function (successCallback, errorCallback, count, offset
       native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));
       return;
     }
-    native_.callIfPossible(args.successCallback);
+    native_.callIfPossible(args.successCallback, native_.getResultObject(result));
   };
 
   native_.call('Playlist_get', data, callback);

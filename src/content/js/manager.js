@@ -5,7 +5,7 @@
 function _ContentManagerChangeCallback(result) {
   if (result.state === 'oncontentadded' || result.state === 'oncontentupdated') {
     var content = native_.getResultObject(result);
-    native_.callIfPossible(this[result.state], new Content(content));
+    native_.callIfPossible(this[result.state], createContentObject_(content));
   }
   if (result.state === 'oncontentremoved') {
     native_.callIfPossible(this.oncontentremoved, native_.getResultObject(result));
@@ -18,7 +18,7 @@ function ContentManager() {
 
 ContentManager.prototype.update = function(content) {
   var args = validator_.validateArgs(arguments, [
-    {name: 'content', type: types_.PLATFORM_OBJECT, values: tizen.Content}
+    {name: 'content', type: types_.PLATFORM_OBJECT, values: Content}
   ]);
 
   var data = {
@@ -34,7 +34,7 @@ ContentManager.prototype.update = function(content) {
 
 ContentManager.prototype.updateBatch = function(contents, successCallback, errorCallback) {
   var args = validator_.validateArgs(arguments, [
-    {name: 'contents', type: types_.PLATFORM_OBJECT, values: tizen.Content},
+    {name: 'contents', type: types_.PLATFORM_OBJECT, values: Content},
     {name: 'successCallback', type: types_.FUNCTION, optional: true, nullable: true},
     {name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true}
   ]);
@@ -68,7 +68,7 @@ ContentManager.prototype.getDirectories = function(successCallback, errorCallbac
       native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));
       return;
     }
-    native_.callIfPossible(args.successCallback);
+    native_.callIfPossible(args.successCallback, native_.getResultObject(result));
   };
 
   native_.call('ContentManager_getDirectories', data, callback);
@@ -105,7 +105,13 @@ ContentManager.prototype.find = function(successCallback, errorCallback, directo
       return;
     }
 
-    native_.callIfPossible(args.successCallback, native_.getResultObject(result));
+    var out = [];
+    result = native_.getResultObject(result);
+    for (var i = 0, max = result.length; i < max; i++) {
+      out.push(createContentObject_(result[i]));
+    }
+
+    native_.callIfPossible(args.successCallback, out);
   };
 
   native_.call('ContentManager_find', data, callback);
@@ -190,7 +196,7 @@ ContentManager.prototype.getPlaylists = function(successCallback, errorCallback)
       native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));
       return;
     }
-    native_.callIfPossible(args.successCallback);
+    native_.callIfPossible(args.successCallback, native_.getResultObject(result));
   };
 
   native_.call('ContentManager_getPlaylists', data, callback);
@@ -201,7 +207,7 @@ ContentManager.prototype.createPlaylist = function(name, successCallback, errorC
     {name: 'name', type: types_.STRING},
     {name: 'successCallback', type: types_.FUNCTION},
     {name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true},
-    {name: 'sourcePlaylist', type: types_.PLATFORM_OBJECT, values: tizen.Playlist, optional: true, nullable: true}
+    {name: 'sourcePlaylist', type: types_.PLATFORM_OBJECT, values: Playlist, optional: true, nullable: true}
   ]);
 
   var data = {
@@ -214,7 +220,7 @@ ContentManager.prototype.createPlaylist = function(name, successCallback, errorC
       native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));
       return;
     }
-    native_.callIfPossible(args.successCallback);
+    native_.callIfPossible(args.successCallback, native_.getResultObject(result));
   };
 
   native_.call('ContentManager_createPlaylist', data, callback);

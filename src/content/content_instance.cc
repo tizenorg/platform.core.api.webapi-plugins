@@ -226,16 +226,16 @@ static void changedContentCallback(media_content_error_e error,
 
 void ContentInstance::ContentManagerUpdate(const picojson::value& args, picojson::object& out) {
   int ret;
-  if(ContentManager::getInstance()->isConnected()) {
+  if (ContentManager::getInstance()->isConnected()) {
     ret = ContentManager::getInstance()->update(args);
-    if(ret != 0) {
-      ReportError(ContentManager::getInstance()->convertError(ret),out);
+    if (ret != 0) {
+      ReportError(ContentManager::getInstance()->convertError(ret), out);
     }
-  }
-  else {
-    ReportError(common::UnknownException("DB connection is failed."),out);
+  } else {
+    ReportError(common::UnknownException("DB connection is failed."), out);
   }
 }
+
 void ContentInstance::ContentManagerUpdatebatch(const picojson::value& args, picojson::object& out) {
   LoggerE("entered");
   double callbackId = args.get("callbackId").get<double>();

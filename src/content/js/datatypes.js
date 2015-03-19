@@ -218,7 +218,9 @@ function Content(data) {
 }
 
 
-function VideoContent() {
+function VideoContent(data) {
+  Content.call(this, data);
+
   // TODO(r.galka)
   //this.geolocation = null;
   //SetReadOnlyProperty(this, 'album', null); // read only property
@@ -240,7 +242,9 @@ function AudioContentLyrics() {
 }
 
 
-function AudioContent() {
+function AudioContent(data) {
+  Content.call(this, data);
+
   // TODO(r.galka)
   //SetReadOnlyProperty(this, 'album', null); // read only property
   //SetReadOnlyProperty(this, 'genres', null); // read only property
@@ -257,8 +261,14 @@ AudioContent.prototype = new Content();
 AudioContent.prototype.constructor = AudioContent;
 
 
-function ImageContent() {
-  // TODO(r.galka)
+function ImageContent(data) {
+  Content.call(this, data);
+
+  var geolocation;
+  var width;
+  var height;
+  var orientation;
+
   //this.geolocation = null;
   //SetReadOnlyProperty(this, 'width', null); // read only property
   //SetReadOnlyProperty(this, 'height', null); // read only property
