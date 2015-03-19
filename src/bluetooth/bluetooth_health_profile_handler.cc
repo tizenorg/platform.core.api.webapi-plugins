@@ -229,7 +229,7 @@ void BluetoothHealthProfileHandler::OnDataReceived(unsigned int channel,
 void BluetoothHealthProfileHandler::RegisterSinkApp(const picojson::value& data, picojson::object& out) {
   LoggerD("Entered");
 
-  util::CheckAccess(Privilege::kBluetoothHealth);
+  CHECK_PRIVILEGE_ACCESS(Privilege::kBluetoothHealth, &out);
 
   const auto& args = util::GetArguments(data);
   const auto data_type = static_cast<short>(FromJson<double>(args, "dataType"));
@@ -290,7 +290,7 @@ void BluetoothHealthProfileHandler::RegisterSinkApp(const picojson::value& data,
 void BluetoothHealthProfileHandler::ConnectToSource(const picojson::value& data, picojson::object& out) {
   LoggerD("Entered");
 
-  util::CheckAccess(Privilege::kBluetoothHealth);
+  CHECK_PRIVILEGE_ACCESS(Privilege::kBluetoothHealth, &out);
 
   const auto& args = util::GetArguments(data);
   const auto& address = FromJson<std::string>(args, "address");

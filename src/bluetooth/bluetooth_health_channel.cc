@@ -43,7 +43,7 @@ const std::string kId = "_id";
 void BluetoothHealthChannel::Close(const picojson::value& data , picojson::object& out) {
   LoggerD("Entered");
 
-  util::CheckAccess(Privilege::kBluetoothHealth);
+  CHECK_PRIVILEGE_ACCESS(Privilege::kBluetoothHealth, &out);
 
   const auto& args = util::GetArguments(data);
 
@@ -61,7 +61,7 @@ void BluetoothHealthChannel::Close(const picojson::value& data , picojson::objec
 void BluetoothHealthChannel::SendData(const picojson::value& data, picojson::object& out) {
   LoggerD("Entered");
 
-  util::CheckAccess(Privilege::kBluetoothHealth);
+  CHECK_PRIVILEGE_ACCESS(Privilege::kBluetoothHealth, &out);
 
   const auto& args = util::GetArguments(data);
 

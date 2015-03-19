@@ -100,7 +100,7 @@ void BluetoothDevice::ToJson(bt_adapter_device_discovery_info_s *info, picojson:
 void BluetoothDevice::ConnectToServiceByUUID(const picojson::value& data, picojson::object& out) {
   LoggerD("Entered");
 
-  util::CheckAccess(Privilege::kBluetoothSpp);
+  CHECK_PRIVILEGE_ACCESS(Privilege::kBluetoothSpp, &out);
 
   const auto& args = util::GetArguments(data);
 

@@ -32,15 +32,6 @@ BluetoothHealthProfileHandler* bluetooth_health_profile_handler = &BluetoothHeal
 BluetoothServiceHandler bluetooth_service_handler;
 BluetoothSocket bluetooth_socket;
 
-void CheckPrivilege(const picojson::value& data, picojson::object& out)
-{
-  const auto& args = util::GetArguments(data);
-  const auto& privilege = FromJson<std::string>(args, "privilege");
-  util::CheckAccess(privilege);
-
-  tools::ReportSuccess(out);
-}
-
 } // namespace
 
 BluetoothInstance& BluetoothInstance::GetInstance()
@@ -127,9 +118,6 @@ BluetoothInstance::BluetoothInstance()
       std::bind(&BluetoothSocket::ReadData, &bluetooth_socket, _1, _2));
   REGISTER_SYNC("BluetoothSocket_close",
       std::bind(&BluetoothSocket::Close, &bluetooth_socket, _1, _2));
-
-  // other
-  REGISTER_SYNC("Bluetooth_checkPrivilege", CheckPrivilege);
 
   #undef REGISTER_ASYNC
   #undef REGISTER_SYNC

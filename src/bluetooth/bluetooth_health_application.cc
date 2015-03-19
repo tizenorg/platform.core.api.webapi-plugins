@@ -38,7 +38,7 @@ using namespace common;
 void BluetoothHealthApplication::Unregister(const picojson::value& data, picojson::object& out) {
   LoggerD("Entered");
 
-  util::CheckAccess(Privilege::kBluetoothHealth);
+  CHECK_PRIVILEGE_ACCESS(Privilege::kBluetoothHealth, &out);
 
   const auto& args = util::GetArguments(data);
 

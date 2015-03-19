@@ -14,25 +14,18 @@
  *    limitations under the License.
  */
 
-#ifndef BLUETOOTH_BLUETOOTH_PRIVILEGE_H_
-#define BLUETOOTH_BLUETOOTH_PRIVILEGE_H_
-
-#include <string>
+#include "bluetooth_privilege.h"
 
 namespace extension {
 namespace bluetooth {
 
 namespace Privilege {
-
-extern const std::string kBluetoothAdmin;
-extern const std::string kBluetoothManager;
-extern const std::string kBluetoothGap;
-extern const std::string kBluetoothSpp;
-extern const std::string kBluetoothHealth;
-
+const std::string kBluetoothAdmin = "http://tizen.org/privilege/bluetooth.admin";
+const std::string kBluetoothManager = "http://tizen.org/privilege/bluetoothmanager";
+const std::string kBluetoothGap = "http://tizen.org/privilege/bluetooth.gap";
+const std::string kBluetoothSpp = "http://tizen.org/privilege/bluetooth.spp";
+const std::string kBluetoothHealth = "http://tizen.org/privilege/bluetooth.health";
 } // namespace Privilege
 
 } // namespace bluetooth
 } // namespace extension
-
-#endif // BLUETOOTH_BLUETOOTH_PRIVILEGE_H_

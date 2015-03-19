@@ -154,26 +154,22 @@ var _PRIVILEGE_BLUETOOTH_GAP = 'http://tizen.org/privilege/bluetooth.gap';
 BluetoothClass.prototype.hasService = function() {
     console.log('Entered BluetoothClass.hasService()');
 
-    var result = native.callSync('Bluetooth_checkPrivilege', {privilege : _PRIVILEGE_BLUETOOTH_GAP});
+    xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_BLUETOOTH_GAP);
 
-    if (native.isFailure(result)) {
-        throw native.getErrorObject(result);
-    } else {
-        var args = AV.validateMethod(arguments, [
-            {
-                name : 'service',
-                type : AV.Types.UNSIGNED_LONG
-            }
-        ]);
-
-        var size = this.services.length;
-        for (var i = 0; i < size; i++) {
-            if (this.services[i] === args.service) {
-                return true;
-            }
+    var args = AV.validateMethod(arguments, [
+        {
+            name : 'service',
+            type : AV.Types.UNSIGNED_LONG
         }
-        return false;
+    ]);
+
+    var size = this.services.length;
+    for (var i = 0; i < size; i++) {
+        if (this.services[i] === args.service) {
+            return true;
+        }
     }
+    return false;
 };
 
 // class BluetoothSocket ////////////////////////////////////////////////////
@@ -801,33 +797,25 @@ BluetoothHealthChannel.prototype.setListener = function() {
         }
     ]);
 
-    var result = native.callSync('Bluetooth_checkPrivilege', {privilege : _PRIVILEGE_BLUETOOTH_HEALTH});
+    xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_BLUETOOTH_HEALTH);
 
-    if (native.isFailure(result)) {
-        throw native.getErrorObject(result);
-    } else {
-        if (T.isEmptyObject(_healthListeners)) {
-            native.addListener('BluetoothHealthChannelChangeCallback',
-                    _BluetoothHealthChannelChangeCallback);
-        }
-        _healthListeners[this._id] = args.changeCallback;
+    if (T.isEmptyObject(_healthListeners)) {
+        native.addListener('BluetoothHealthChannelChangeCallback',
+                _BluetoothHealthChannelChangeCallback);
     }
+    _healthListeners[this._id] = args.changeCallback;
 };
 
 BluetoothHealthChannel.prototype.unsetListener  = function() {
     console.log('Entered BluetoothHealthChannel.unsetListener ()');
 
-    var result = native.callSync('Bluetooth_checkPrivilege', {privilege : _PRIVILEGE_BLUETOOTH_HEALTH});
+    xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_BLUETOOTH_HEALTH);
 
-    if (native.isFailure(result)) {
-        throw native.getErrorObject(result);
-    } else {
-        delete _healthListeners[this._id];
+    delete _healthListeners[this._id];
 
-        if (T.isEmptyObject(_healthListeners)) {
-            native.removeListener('BluetoothHealthChannelChangeCallback',
-                    _BluetoothHealthChannelChangeCallback);
-        }
+    if (T.isEmptyObject(_healthListeners)) {
+        native.removeListener('BluetoothHealthChannelChangeCallback',
+                _BluetoothHealthChannelChangeCallback);
     }
 };
 
@@ -1430,13 +1418,9 @@ var BluetoothManager = function() {
 BluetoothManager.prototype.getDefaultAdapter = function() {
     console.log('Entered BluetoothManager.getDefaultAdapter()');
 
-    var result = native.callSync('Bluetooth_checkPrivilege', {privilege : _PRIVILEGE_BLUETOOTH_GAP});
+    xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_BLUETOOTH_GAP);
 
-    if (native.isFailure(result)) {
-        throw native.getErrorObject(result);
-    } else {
-        return new BluetoothAdapter();
-    }
+    return new BluetoothAdapter();
 };
 
 // exports ///////////////////////////////////////////////////////////////////

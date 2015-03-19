@@ -32,7 +32,7 @@ using namespace common;
 void BluetoothServiceHandler::Unregister(const picojson::value& data, picojson::object& out) {
   LoggerD("Entered");
 
-  util::CheckAccess(Privilege::kBluetoothSpp);
+  CHECK_PRIVILEGE_ACCESS(Privilege::kBluetoothSpp, &out);
 
   const auto& args = util::GetArguments(data);
 

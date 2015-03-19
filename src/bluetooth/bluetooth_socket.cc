@@ -46,7 +46,7 @@ using namespace common::tools;
 void BluetoothSocket::WriteData(const picojson::value& data, picojson::object& out) {
   LoggerD("Enter");
 
-  util::CheckAccess(Privilege::kBluetoothSpp);
+  CHECK_PRIVILEGE_ACCESS(Privilege::kBluetoothSpp, &out);
 
   const auto& args = util::GetArguments(data);
 
@@ -72,7 +72,7 @@ void BluetoothSocket::WriteData(const picojson::value& data, picojson::object& o
 void BluetoothSocket::ReadData(const picojson::value& data, picojson::object& out) {
   LoggerD("Enter");
 
-  util::CheckAccess(Privilege::kBluetoothSpp);
+  CHECK_PRIVILEGE_ACCESS(Privilege::kBluetoothSpp, &out);
 
   const auto& args = util::GetArguments(data);
 
@@ -94,7 +94,7 @@ void BluetoothSocket::ReadData(const picojson::value& data, picojson::object& ou
 void BluetoothSocket::Close(const picojson::value& data, picojson::object& out) {
   LoggerD("Enter");
 
-  util::CheckAccess(Privilege::kBluetoothSpp);
+  CHECK_PRIVILEGE_ACCESS(Privilege::kBluetoothSpp, &out);
 
   const auto& args = util::GetArguments(data);
 

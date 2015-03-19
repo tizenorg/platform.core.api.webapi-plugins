@@ -26,11 +26,6 @@ const char* JSON_CALLBACK_ERROR = "error";
 const char* JSON_DATA = "args";
 } // namespace
 
-
-void CheckAccess(const std::string& privilege) {
-  // TODO: check access to privilege, throw exception on failure
-}
-
 void AsyncResponse(double callback_handle, const std::shared_ptr<picojson::value>& response) {
   common::TaskQueue::GetInstance().Async<picojson::value>([callback_handle](const std::shared_ptr<picojson::value>& response) {
     SyncResponse(callback_handle, response);
