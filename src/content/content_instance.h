@@ -11,14 +11,14 @@ namespace extension {
 namespace content {
 
 enum ContentCallbacks {
-  ContentManagerFindCallback, 
-  ContentManagerScanfileCallback, 
-  ContentManagerUnsetchangelistenerCallback, 
-  ContentManagerSetchangelistenerCallback, 
-  ContentManagerGetdirectoriesCallback, 
-  ContentManagerUpdatebatchCallback, 
-  ContentManagerRemoveplaylistCallback, 
-  ContentManagerCreateplaylistCallback, 
+  ContentManagerFindCallback,
+  ContentManagerScanfileCallback,
+  ContentManagerUnsetchangelistenerCallback,
+  ContentManagerSetchangelistenerCallback,
+  ContentManagerGetdirectoriesCallback,
+  ContentManagerUpdatebatchCallback,
+  ContentManagerRemoveplaylistCallback,
+  ContentManagerCreateplaylistCallback,
   ContentManagerGetplaylistsCallback,
   ContentManagerPlaylistAddbatchCallback,
   ContentManagerPlaylistGetCallback,

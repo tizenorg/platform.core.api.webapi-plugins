@@ -154,7 +154,7 @@ void contentToJson(media_info_h info, picojson::object& o) {
           o["width"] = picojson::value(static_cast<double>(tmpInt));
         }
         if(MEDIA_CONTENT_ERROR_NONE == image_meta_get_height(img, &tmpInt) ) {
-          o["height"] = picojson::value(static_cast<double>(tmpInt));          
+          o["height"] = picojson::value(static_cast<double>(tmpInt));
         }
         picojson::object geo;
         std::string str_latitude;
@@ -198,7 +198,7 @@ void contentToJson(media_info_h info, picojson::object& o) {
           }
           o["orientation"] = picojson::value(ori);
         }
-        
+
       }
 
     }
@@ -227,7 +227,7 @@ void contentToJson(media_info_h info, picojson::object& o) {
         }
         if (MEDIA_CONTENT_ERROR_NONE == video_meta_get_duration(video, &tmpInt) ) {
           o["duration"] = picojson::value(static_cast<double>(tmpInt));
-        }        
+        }
       }
       picojson::object geo;
       if (MEDIA_CONTENT_ERROR_NONE == media_info_get_latitude(info, &tmpDouble) ) {
@@ -235,7 +235,7 @@ void contentToJson(media_info_h info, picojson::object& o) {
       }
       if (MEDIA_CONTENT_ERROR_NONE == media_info_get_longitude(info, &tmpDouble) ) {
         geo["longitude"] = picojson::value(tmpDouble);
-      }      
+      }
       o["geolocation"] = picojson::value(geo);
     }
     else if( type == MEDIA_CONTENT_TYPE_SOUND || type == MEDIA_CONTENT_TYPE_MUSIC ) {
@@ -245,7 +245,7 @@ void contentToJson(media_info_h info, picojson::object& o) {
         if (MEDIA_CONTENT_ERROR_NONE == audio_meta_get_recorded_date(audio, &tmpStr) ) {
           if (tmpStr) {
             struct tm *result = (struct tm *)calloc(1, sizeof(struct tm));
-            
+
             if (strptime(tmpStr, "%Y:%m:%d %H:%M:%S", result) == NULL) {
                 LoggerD( "Couldn't convert supplied date.");
             }
@@ -319,7 +319,7 @@ void contentToJson(media_info_h info, picojson::object& o) {
           }
         }
         if (MEDIA_CONTENT_ERROR_NONE == audio_meta_get_duration(audio, &tmpInt) ) {
-          o["duration"] = picojson::value(static_cast<double>(tmpInt));          
+          o["duration"] = picojson::value(static_cast<double>(tmpInt));
         }
       }
     }
@@ -339,12 +339,12 @@ void contentToJson(media_info_h info, picojson::object& o) {
   ret = media_info_get_display_name(info, &tmpStr);
   if(ret == MEDIA_CONTENT_ERROR_NONE) {
     if(tmpStr) {
-      o["name"] = picojson::value(std::string(tmpStr));      
+      o["name"] = picojson::value(std::string(tmpStr));
       free(tmpStr);
       tmpStr = NULL;
     }
   }
- 
+
   ret = media_info_get_mime_type(info, &tmpStr);
   if(ret == MEDIA_CONTENT_ERROR_NONE) {
     if(tmpStr) {
@@ -352,7 +352,7 @@ void contentToJson(media_info_h info, picojson::object& o) {
       free(tmpStr);
       tmpStr = NULL;
     }
-  }    
+  }
   ret = media_info_get_title(info, &tmpStr);
   if(ret == MEDIA_CONTENT_ERROR_NONE) {
     if(tmpStr) {
@@ -396,18 +396,18 @@ void contentToJson(media_info_h info, picojson::object& o) {
   }
   ret = media_info_get_favorite(info, &tmpBool);
   if(ret == MEDIA_CONTENT_ERROR_NONE) {
-    o["isFavorite"] = picojson::value(tmpBool);    
+    o["isFavorite"] = picojson::value(tmpBool);
   }
   ret = media_info_get_modified_time(info, &tmpDate);
   if(ret == MEDIA_CONTENT_ERROR_NONE) {
     std::stringstream str_date;
     str_date << tmpDate;
     o["modifiedDate"] = picojson::value(str_date.str());
-  }  
+  }
 }
 
 static int setContent(media_info_h media, picojson::value content) {
-  
+
   int ret;
   std::string name = content.get("name").to_str();
   std::string description = content.get("description").to_str();
@@ -489,7 +489,7 @@ static bool media_foreach_content_cb(media_info_h media, void *user_data) {
   picojson::value::array *contents = static_cast<picojson::value::array*>(user_data);
   picojson::value::object o;
   contentToJson(media, o);
-  contents->push_back(picojson::value(o));  
+  contents->push_back(picojson::value(o));
   return true;
 }
 
@@ -544,11 +544,11 @@ static bool playlist_foreach_cb(media_playlist_h playlist, void *user_data) {
 }
 
 static bool playlist_content_member_cb(int playlist_member_id, media_info_h media, void *user_data) {
-  
+
   picojson::value::array *contents = static_cast<picojson::value::array*>(user_data);
   picojson::value::object o;
   char *name = NULL;
-  
+
   media_info_get_display_name(media, &name);
   o["playlist_member_id"] = picojson::value(static_cast<double>(playlist_member_id));
   contentToJson(media, o);
@@ -584,13 +584,13 @@ bool ContentManager::isConnected() {
 }
 
 void ContentManager::getDirectories(const std::shared_ptr<ReplyCallbackData>& user_data) {
-  
+
   picojson::value::array pico_dirs;
-  
+
   int ret = MEDIA_CONTENT_ERROR_NONE;
   filter_h filter = NULL;
   std::vector<media_folder_h> dirs;
-  
+
   ret = media_folder_foreach_folder_from_db(filter, media_foreach_directory_cb, &dirs);
 
   if (ret == MEDIA_CONTENT_ERROR_NONE) {
@@ -619,7 +619,7 @@ void ContentManager::getDirectories(const std::shared_ptr<ReplyCallbackData>& us
       }
 
       char tmp[128];
-      ctime_r(&date, tmp);    
+      ctime_r(&date, tmp);
       o["modifiedDate"] = picojson::value(std::string(tmp));
       pico_dirs.push_back(picojson::value(o));
 
@@ -654,46 +654,44 @@ void ContentManager::find(const std::shared_ptr<ReplyCallbackData>& user_data) {
       media_filter_destroy(filter);
     }
   };
-  if (user_data->args.contains("filter")) {
+  if (!IsNull(user_data->args.get("filter"))) {
     ContentFilter filterMechanism;
     std::string query;
     picojson::object argsObject = JsonCast<picojson::object>(user_data->args);
     if (filterMechanism.buildQuery(
-            FromJson<picojson::object>(argsObject, "filter"), &query)) {
+        FromJson<picojson::object>(argsObject, "filter"), &query)) {
       ret = media_filter_set_condition(filter, query.c_str(),
-                                       MEDIA_CONTENT_COLLATE_DEFAULT);
+          MEDIA_CONTENT_COLLATE_DEFAULT);
       if (MEDIA_CONTENT_ERROR_NONE != ret) {
       }
     }
   }
-  if(user_data->args.contains("count")) {
+  if (!IsNull(user_data->args.get("count"))) {
     count = user_data->args.get("count").get<double>();
   } else {
-    count = 100; //TODO rethink proper default count setting
+    count = -1;
   }
-  if(user_data->args.contains("offset")) {
+  if (!IsNull(user_data->args.get("offset"))) {
     offset = user_data->args.get("offset").get<double>();
-  }
-  else {
-    offset = 0;
+  } else {
+    offset = -1;
   }
   ret = media_filter_set_offset(filter, offset, count);
-  if ( MEDIA_CONTENT_ERROR_NONE != ret) {
+  if (MEDIA_CONTENT_ERROR_NONE != ret) {
     LoggerD("A platform error occurs in media_filter_set_offset.");
   }
-  if(user_data->args.contains("directoryId")) {
+  if (!IsNull(user_data->args.get("directoryId"))) {
     dirId = user_data->args.get("directoryId").get<std::string>();
     ret = media_folder_foreach_media_from_db(dirId.c_str(), filter, media_foreach_content_cb, static_cast<void*>(&arrayContent));
-  }
-  else {
+  } else {
     ret = media_info_foreach_media_from_db(filter, media_foreach_content_cb, static_cast<void*>(&arrayContent));
   }
 
   if (ret == MEDIA_CONTENT_ERROR_NONE) {
+    LoggerD("enter");
     user_data->isSuccess = true;
     user_data->result = picojson::value(arrayContent);
-  }
-  else {
+  } else {
     UnknownException err("The iteration is failed in platform.");
     user_data->isSuccess = false;
     user_data->result = err.ToJSON();
@@ -720,19 +718,19 @@ void ContentManager::unSetChangeListener() {
   }
 }
 
-void ContentManager::createPlaylist(std::string name, 
+void ContentManager::createPlaylist(std::string name,
   const std::shared_ptr<ReplyCallbackData>& user_data) {
-  
+
   media_playlist_h	playlist = NULL;
-  
+
   int ret = media_playlist_insert_to_db(name.c_str(),&playlist);
-  if(ret != MEDIA_CONTENT_ERROR_NONE) { 
+  if(ret != MEDIA_CONTENT_ERROR_NONE) {
     UnknownException err("creation of playlist is failed.");
     user_data->isSuccess = false;
-    user_data->result = err.ToJSON();    
+    user_data->result = err.ToJSON();
   }
   picojson::value::object o;
-  
+
   if( playlist != NULL) {
     int id,cnt;
     char* thumb_path = NULL;
@@ -760,7 +758,7 @@ void ContentManager::createPlaylist(std::string name,
       LoggerD("Invalid thumbnail path for playlist.");
     }
     if( media_playlist_get_name(playlist, &name) == MEDIA_CONTENT_ERROR_NONE) {
-      o["name"] = picojson::value(std::string(name));      
+      o["name"] = picojson::value(std::string(name));
       free(name);
     }
     else {
@@ -785,21 +783,21 @@ void ContentManager::getPlaylists(const std::shared_ptr<ReplyCallbackData>& user
   filter_h 	filter;
   media_filter_create(&filter);
   picojson::value::array playlists;
-  
+
   ret = media_playlist_foreach_playlist_from_db(filter, playlist_foreach_cb, static_cast<void*>(&playlists));
 
   if(ret != MEDIA_CONTENT_ERROR_NONE) {
     UnknownException err("Getting playlist is failed.");
     user_data->isSuccess = false;
-    user_data->result = err.ToJSON();      
+    user_data->result = err.ToJSON();
   }
   user_data->isSuccess = true;
   user_data->result = picojson::value(playlists);
 }
 
-void ContentManager::removePlaylist(std::string playlistId, 
+void ContentManager::removePlaylist(std::string playlistId,
   const std::shared_ptr<ReplyCallbackData>& user_data) {
-  
+
   int id = std::atoi(playlistId.c_str());
   if(id == 0) {
     UnknownException err("PlaylistId is wrong.");
@@ -812,7 +810,7 @@ void ContentManager::removePlaylist(std::string playlistId,
   if(ret != MEDIA_CONTENT_ERROR_NONE) {
     UnknownException err("Removal of playlist is failed.");
     user_data->isSuccess = false;
-    user_data->result = err.ToJSON();      
+    user_data->result = err.ToJSON();
   }
 }
 
@@ -843,7 +841,7 @@ int ContentManager::updateBatch(picojson::value args) {
     std::string id = content.get("id").to_str();
     media_info_h media = NULL;
     ret = media_info_get_media_from_db (id.c_str(), &media);
-    dlog_print(DLOG_INFO, "DYKIM", "ContentManager::update id:%s",id.c_str());          
+    dlog_print(DLOG_INFO, "DYKIM", "ContentManager::update id:%s",id.c_str());
     if (media != NULL && ret == MEDIA_CONTENT_ERROR_NONE) {
       setContent(media, content);
       ret = media_info_update_to_db(media);
@@ -866,7 +864,7 @@ int ContentManager::playlistAdd(std::string playlist_id, std::string content_id)
   if (playlist != NULL && ret == MEDIA_CONTENT_ERROR_NONE) {
     ret = media_playlist_add_media(playlist, content_id.c_str());
     if (ret != MEDIA_CONTENT_ERROR_NONE) {
-      LoggerD("The content(id:%s) can't add to playlist",content_id.c_str());      
+      LoggerD("The content(id:%s) can't add to playlist",content_id.c_str());
     }
 
     ret = media_playlist_update_to_db(playlist);
@@ -877,7 +875,7 @@ int ContentManager::playlistAdd(std::string playlist_id, std::string content_id)
   else {
     LoggerD("Playlist(id:%s) is not exist",playlist_id.c_str());
   }
-  
+
   media_playlist_destroy(playlist);
   return ret;
 }
@@ -890,7 +888,7 @@ int ContentManager::playlistRemove(std::string playlist_id, int member_id) {
   if (playlist != NULL && ret == MEDIA_CONTENT_ERROR_NONE) {
     ret = media_playlist_remove_media(playlist, member_id);
     if (ret != MEDIA_CONTENT_ERROR_NONE) {
-      LoggerD("The content can't remove to playlist");      
+      LoggerD("The content can't remove to playlist");
     }
 
     ret = media_playlist_update_to_db(playlist);
@@ -902,26 +900,26 @@ int ContentManager::playlistRemove(std::string playlist_id, int member_id) {
     LoggerD("Playlist(id:%s) is not exist",playlist_id.c_str());
   }
   media_playlist_destroy(playlist);
-  
+
   return ret;
 }
 
 
 void ContentManager::playlistAddbatch(const std::shared_ptr<ReplyCallbackData>& user_data) {
-  
+
   int ret = MEDIA_CONTENT_ERROR_NONE;
   std::string playlist_id = user_data->args.get("playlist_id").get<std::string>();
 
-  media_playlist_h playlist = NULL;  
+  media_playlist_h playlist = NULL;
   ret = media_playlist_get_playlist_from_db(std::stoi(playlist_id), &playlist);
 
-  if(ret != MEDIA_CONTENT_ERROR_NONE && playlist == NULL) { 
+  if(ret != MEDIA_CONTENT_ERROR_NONE && playlist == NULL) {
     UnknownException err("Getting playlist is failed.");
     user_data->isSuccess = false;
     user_data->result = err.ToJSON();
     return;
   }
-  
+
   std::vector<picojson::value> contents = user_data->args.get("contents").get<picojson::array>();
   for (picojson::value::array::iterator it = contents.begin(); it != contents.end(); it++) {
     picojson::value content = *it;
@@ -942,13 +940,13 @@ void ContentManager::playlistAddbatch(const std::shared_ptr<ReplyCallbackData>& 
 }
 
 void ContentManager::playlistGet(const std::shared_ptr<ReplyCallbackData>& user_data) {
-  
+
   int ret = MEDIA_CONTENT_ERROR_NONE;
-  media_playlist_h playlist = NULL;  
+  media_playlist_h playlist = NULL;
 
   std::string playlist_id = user_data->args.get("playlist_id").get<std::string>();
   ret = media_playlist_get_playlist_from_db(std::stoi(playlist_id), &playlist);
-  if(ret != MEDIA_CONTENT_ERROR_NONE && playlist == NULL) { 
+  if(ret != MEDIA_CONTENT_ERROR_NONE && playlist == NULL) {
     UnknownException err("Getting playlist is failed.");
     user_data->isSuccess = false;
     user_data->result = err.ToJSON();
@@ -961,7 +959,7 @@ void ContentManager::playlistGet(const std::shared_ptr<ReplyCallbackData>& user_
     UnknownException err("Creating a filter is failed.");
     user_data->isSuccess = false;
     user_data->result = err.ToJSON();
-    return;    
+    return;
   }
 
   int count = user_data->args.get("count").get<double>();
@@ -987,13 +985,13 @@ void ContentManager::playlistGet(const std::shared_ptr<ReplyCallbackData>& user_
 }
 
 void ContentManager::playlistRemovebatch(const std::shared_ptr<ReplyCallbackData>& user_data) {
- 
+
   int ret = MEDIA_CONTENT_ERROR_NONE;
-  media_playlist_h playlist = NULL;  
+  media_playlist_h playlist = NULL;
 
   std::string playlist_id = user_data->args.get("playlist_id").get<std::string>();
   ret = media_playlist_get_playlist_from_db(std::stoi(playlist_id), &playlist);
-  if(ret != MEDIA_CONTENT_ERROR_NONE && playlist == NULL) { 
+  if(ret != MEDIA_CONTENT_ERROR_NONE && playlist == NULL) {
     UnknownException err("Getting playlist is failed.");
     user_data->isSuccess = false;
     user_data->result = err.ToJSON();
@@ -1014,7 +1012,7 @@ void ContentManager::playlistRemovebatch(const std::shared_ptr<ReplyCallbackData
   if (ret != MEDIA_CONTENT_ERROR_NONE) {
     UnknownException err("Removing the contents is failed.");
     user_data->isSuccess = false;
-    user_data->result = err.ToJSON();    
+    user_data->result = err.ToJSON();
   }
   else {
     user_data->isSuccess = true;
@@ -1036,17 +1034,17 @@ void ContentManager::playlistSetOrder(const std::shared_ptr<ReplyCallbackData>& 
   }
 
   int cnt;
-  std::vector<picojson::value> members = user_data->args.get("members").get<picojson::array>();  
-  
+  std::vector<picojson::value> members = user_data->args.get("members").get<picojson::array>();
+
   ret = media_playlist_get_media_count_from_db(std::stoi(playlist_id), NULL, &cnt);
 
   if ( cnt != members.size() ) {
     InvalidValuesException err("The items array does not contain all items from the playlist.");
     user_data->isSuccess = false;
     user_data->result = err.ToJSON();
-    return;    
+    return;
   }
-  
+
   for( int i = 0; i < members.size(); i++ ) {
     int member_id = static_cast<int>(members.at(i).get<double>());
     ret = media_playlist_set_play_order(playlist, member_id, i);
@@ -1054,12 +1052,12 @@ void ContentManager::playlistSetOrder(const std::shared_ptr<ReplyCallbackData>& 
       LoggerD("Removing a content is failed.");
     }
   }
-  
+
   ret = media_playlist_update_to_db(playlist);
   if (ret != MEDIA_CONTENT_ERROR_NONE) {
     UnknownException err("Removing the contents is failed.");
     user_data->isSuccess = false;
-    user_data->result = err.ToJSON();    
+    user_data->result = err.ToJSON();
   }
   else {
     user_data->isSuccess = true;
@@ -1099,11 +1097,11 @@ void ContentManager::playlistMove(const std::shared_ptr<ReplyCallbackData>& user
   if (ret != MEDIA_CONTENT_ERROR_NONE) {
     UnknownException err("Updateing play_order is failed.");
     user_data->isSuccess = false;
-    user_data->result = err.ToJSON();    
+    user_data->result = err.ToJSON();
   }
   else {
     user_data->isSuccess = true;
-  }  
+  }
 }
 
 int ContentManager::getLyrics(const picojson::value& args, picojson::object& result) {
