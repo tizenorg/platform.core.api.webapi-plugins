@@ -132,6 +132,7 @@ void ReportError(const PlatformException& ex, picojson::object& out);
 void ReportError(const PlatformResult& error, picojson::object* out);
 
 common::PlatformResult CheckAccess(const std::string& privilege);
+common::PlatformResult CheckAccess(const std::vector<std::string>& privileges);
 
 #define CHECK_PRIVILEGE_ACCESS(privilege, out) \
 do { \

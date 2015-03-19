@@ -594,10 +594,16 @@ class AccessControl {
 } // namespace
 
 PlatformResult CheckAccess(const std::string& privilege) {
-  if (AccessControl::GetInstance().CheckAccess(privilege)) {
+  return CheckAccess(std::vector<std::string>{privilege});
+}
+
+PlatformResult CheckAccess(const std::vector<std::string>& privileges) {
+  if (AccessControl::GetInstance().CheckAccess(privileges)) {
     return PlatformResult(ErrorCode::NO_ERROR);
   } else {
-    LoggerD("Access to privilege: %s has been denied.", privilege.c_str());
+    for (const auto& privilege : privileges) {
+      LoggerD("Access to privilege: %s has been denied.", privilege.c_str());
+    }
     return PlatformResult(ErrorCode::SECURITY_ERR, "Permission denied");
   }
 }
