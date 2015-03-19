@@ -30,13 +30,81 @@ var ImageContentOrientation = {
   ROTATE_270: 'ROTATE_270'
 };
 
-function ContentDirectory() {
-  // TODO(r.galka)
-  //SetReadOnlyProperty(this, 'id', null); // read only property
-  //SetReadOnlyProperty(this, 'directoryURI', null); // read only property
-  //SetReadOnlyProperty(this, 'title', null); // read only property
-  //SetReadOnlyProperty(this, 'storageType', null); // read only property
-  //SetReadOnlyProperty(this, 'modifiedDate', null); // read only property
+function ContentDirectory(data) {
+  var id;
+  var directoryURI;
+  var title;
+  var storageType;
+  var modifiedDate;
+
+  Object.defineProperties(this, {
+    id: {
+      get: function() {
+        return id;
+      },
+      set: function(v) {
+        if (edit_.isAllowed) {
+          id = converter_.toString(v, false);
+        }
+      },
+      enumerable: true
+    },
+    directoryURI: {
+      get: function() {
+        return directoryURI;
+      },
+      set: function(v) {
+        if (edit_.isAllowed) {
+          directoryURI = converter_.toString(v, false);
+        }
+      },
+      enumerable: true
+    },
+    title: {
+      get: function() {
+        return title;
+      },
+      set: function(v) {
+        if (edit_.isAllowed) {
+          title = converter_.toString(v, false);
+        }
+      },
+      enumerable: true
+    },
+    storageType: {
+      get: function() {
+        return storageType;
+      },
+      set: function(v) {
+        if (edit_.isAllowed) {
+          storageType = converter_.toEnum(v, Object.keys(ContentDirectoryStorageType), false);
+        }
+      },
+      enumerable: true
+    },
+    modifiedDate: {
+      get: function() {
+        return modifiedDate;
+      },
+      set: function(v) {
+        if (edit_.isAllowed) {
+          modifiedDate = !type_.isNull(v) ? new Date(v) : null;
+        }
+      },
+      enumerable: true
+    },
+  });
+
+  if (type_.isObject(data)) {
+    // fill object with data
+    edit_.allow();
+    for (var key in data) {
+      if (data.hasOwnProperty(key) && this.hasOwnProperty(key)) {
+        this[key] = data[key];
+      }
+    }
+    edit_.disallow();
+  }
 }
 
 
@@ -221,40 +289,298 @@ function Content(data) {
 function VideoContent(data) {
   Content.call(this, data);
 
-  // TODO(r.galka)
-  //this.geolocation = null;
-  //SetReadOnlyProperty(this, 'album', null); // read only property
-  //SetReadOnlyProperty(this, 'artists', null); // read only property
-  //SetReadOnlyProperty(this, 'duration', null); // read only property
-  //SetReadOnlyProperty(this, 'width', null); // read only property
-  //SetReadOnlyProperty(this, 'height', null); // read only property
+  var editableAttributes = this.editableAttributes;
+  editableAttributes.push('geolocation');
+
+  var geolocation;
+  var album;
+  var artists;
+  var duration;
+  var width;
+  var height;
+
+    Object.defineProperties(this, {
+    editableAttributes: {
+      value: editableAttributes,
+      writable: false,
+      enumerable: true
+    },
+    geolocation: {
+      get: function() {
+        return geolocation;
+      },
+      set: function(v) {
+        if (!type_.isNull(v) && v.latitude && v.longitude) {
+          var latitude = converter_.toDouble(v.latitude, false);
+          var longitude = converter_.toDouble(v.longitude, false);
+          geolocation = new tizen.SimpleCoordinates(latitude, longitude);
+        }
+      },
+      enumerable: true
+    },
+    album: {
+      get: function() {
+        return album;
+      },
+      set: function(v) {
+        if (edit_.isAllowed) {
+          album = converter_.toString(v, false);
+        }
+      },
+      enumerable: true
+    },
+    artists: {
+      get: function() {
+        return artists;
+      },
+      set: function(v) {
+        if (edit_.isAllowed) {
+          artists = converter_.toArray(v, true);
+        }
+      },
+      enumerable: true
+    },
+    duration: {
+      get: function() {
+        return duration;
+      },
+      set: function(v) {
+        if (edit_.isAllowed) {
+          duration = converter_.toUnsignedLong(v, false);
+        }
+      },
+      enumerable: true
+    },
+    width: {
+      get: function() {
+        return width;
+      },
+      set: function(v) {
+        if (edit_.isAllowed) {
+          width = converter_.toUnsignedLong(v, false);
+        }
+      },
+      enumerable: true
+    },
+    height: {
+      get: function() {
+        return height;
+      },
+      set: function(v) {
+        if (edit_.isAllowed) {
+          height = converter_.toUnsignedLong(v, false);
+        }
+      },
+      enumerable: true
+    },
+    orientation: {
+      get: function() {
+        return orientation;
+      },
+      set: function(v) {
+        if (!type_.isNull(v)) {
+          orientation = converter_.toEnum(v, Object.keys(ImageContentOrientation), false);
+        }
+      },
+      enumerable: true
+    },
+  });
+
+  if (type_.isObject(data)) {
+    // fill object with data
+    edit_.allow();
+    for (var key in data) {
+      if (data.hasOwnProperty(key) && this.hasOwnProperty(key)) {
+        this[key] = data[key];
+      }
+    }
+    edit_.disallow();
+  }
 }
 
 VideoContent.prototype = new Content();
 VideoContent.prototype.constructor = VideoContent;
 
 
-function AudioContentLyrics() {
-  // TODO(r.galka)
-  //SetReadOnlyProperty(this, 'type', null); // read only property
-  //SetReadOnlyProperty(this, 'timestamps', null); // read only property
-  //SetReadOnlyProperty(this, 'texts', null); // read only property
+function AudioContentLyrics(data) {
+  var type;
+  var timestamps;
+  var texts;
+
+  Object.defineProperties(this, {
+    type: {
+      get: function() {
+        return type;
+      },
+      set: function(v) {
+        if (edit_.isAllowed) {
+          type = converter_.toEnum(v, Object.keys(AudioContentLyricsType), false);
+        }
+      },
+      enumerable: true
+    },
+    timestamps: {
+      get: function() {
+        return timestamps;
+      },
+      set: function(v) {
+        if (edit_.isAllowed) {
+          timestamps = converter_.toArray(v, true);
+        }
+      },
+      enumerable: true
+    },
+    texts: {
+      get: function() {
+        return texts;
+      },
+      set: function(v) {
+        if (edit_.isAllowed) {
+          texts = converter_.toArray(v, true);
+        }
+      },
+      enumerable: true
+    },
+  });
+
+  if (type_.isObject(data)) {
+    // fill object with data
+    edit_.allow();
+    for (var key in data) {
+      if (data.hasOwnProperty(key) && this.hasOwnProperty(key)) {
+        this[key] = data[key];
+      }
+    }
+    edit_.disallow();
+  }
 }
 
 
 function AudioContent(data) {
   Content.call(this, data);
 
-  // TODO(r.galka)
-  //SetReadOnlyProperty(this, 'album', null); // read only property
-  //SetReadOnlyProperty(this, 'genres', null); // read only property
-  //SetReadOnlyProperty(this, 'artists', null); // read only property
-  //SetReadOnlyProperty(this, 'composers', null); // read only property
-  //SetReadOnlyProperty(this, 'lyrics', null); // read only property
-  //SetReadOnlyProperty(this, 'copyright', null); // read only property
-  //SetReadOnlyProperty(this, 'bitrate', null); // read only property
-  //SetReadOnlyProperty(this, 'trackNumber', null); // read only property
-  //SetReadOnlyProperty(this, 'duration', null); // read only property
+  var album;
+  var genres;
+  var artists;
+  var composers;
+  var lyrics;
+  var copyright;
+  var bitrate;
+  var trackNumber;
+  var duration;
+
+  Object.defineProperties(this, {
+    album: {
+      get: function() {
+        return album;
+      },
+      set: function(v) {
+        if (edit_.isAllowed) {
+          album = converter_.toString(v, false);
+        }
+      },
+      enumerable: true
+    },
+    genres: {
+      get: function() {
+        return genres;
+      },
+      set: function(v) {
+        if (edit_.isAllowed) {
+          genres = converter_.toArray(v, true);
+        }
+      },
+      enumerable: true
+    },
+    artists: {
+      get: function() {
+        return artists;
+      },
+      set: function(v) {
+        if (edit_.isAllowed) {
+          artists = converter_.toArray(v, true);
+        }
+      },
+      enumerable: true
+    },
+    composers: {
+      get: function() {
+        return composers;
+      },
+      set: function(v) {
+        if (edit_.isAllowed) {
+          composers = converter_.toArray(v, true);
+        }
+      },
+      enumerable: true
+    },
+    lyrics: {
+      get: function() {
+        return lyrics;
+      },
+      set: function(v) {
+        if (edit_.isAllowed && type_.isObject(v)) {
+          lyrics = new AudioContentLyrics(v);
+        }
+      },
+      enumerable: true
+    },
+    copyright: {
+      get: function() {
+        return copyright;
+      },
+      set: function(v) {
+        if (edit_.isAllowed) {
+          copyright = converter_.toString(v, false);
+        }
+      },
+      enumerable: true
+    },
+    bitrate: {
+      get: function() {
+        return bitrate;
+      },
+      set: function(v) {
+        if (edit_.isAllowed) {
+          bitrate = converter_.toUnsignedLong(v, false);
+        }
+      },
+      enumerable: true
+    },
+    trackNumber: {
+      get: function() {
+        return trackNumber;
+      },
+      set: function(v) {
+        if (edit_.isAllowed) {
+          trackNumber = converter_.toUnsignedLong(v, false);
+        }
+      },
+      enumerable: true
+    },
+    duration: {
+      get: function() {
+        return duration;
+      },
+      set: function(v) {
+        if (edit_.isAllowed) {
+          duration = converter_.toUnsignedLong(v, false);
+        }
+      },
+      enumerable: true
+    },
+  });
+
+  if (type_.isObject(data)) {
+    // fill object with data
+    edit_.allow();
+    for (var key in data) {
+      if (data.hasOwnProperty(key) && this.hasOwnProperty(key)) {
+        this[key] = data[key];
+      }
+    }
+    edit_.disallow();
+  }
 }
 
 AudioContent.prototype = new Content();
@@ -264,22 +590,110 @@ AudioContent.prototype.constructor = AudioContent;
 function ImageContent(data) {
   Content.call(this, data);
 
+  var editableAttributes = this.editableAttributes;
+  editableAttributes.push('geolocation');
+  editableAttributes.push('orientation');
+
   var geolocation;
   var width;
   var height;
   var orientation;
 
-  //this.geolocation = null;
-  //SetReadOnlyProperty(this, 'width', null); // read only property
-  //SetReadOnlyProperty(this, 'height', null); // read only property
-  //this.orientation = null;
+  Object.defineProperties(this, {
+    editableAttributes: {
+      value: editableAttributes,
+      writable: false,
+      enumerable: true
+    },
+    geolocation: {
+      get: function() {
+        return geolocation;
+      },
+      set: function(v) {
+        if (!type_.isNull(v) && v.latitude && v.longitude) {
+          var latitude = converter_.toDouble(v.latitude, false);
+          var longitude = converter_.toDouble(v.longitude, false);
+          geolocation = new tizen.SimpleCoordinates(latitude, longitude);
+        }
+      },
+      enumerable: true
+    },
+    width: {
+      get: function() {
+        return width;
+      },
+      set: function(v) {
+        if (edit_.isAllowed) {
+          width = converter_.toUnsignedLong(v, false);
+        }
+      },
+      enumerable: true
+    },
+    height: {
+      get: function() {
+        return height;
+      },
+      set: function(v) {
+        if (edit_.isAllowed) {
+          height = converter_.toUnsignedLong(v, false);
+        }
+      },
+      enumerable: true
+    },
+    orientation: {
+      get: function() {
+        return orientation;
+      },
+      set: function(v) {
+        if (!type_.isNull(v)) {
+          orientation = converter_.toEnum(v, Object.keys(ImageContentOrientation), false);
+        }
+      },
+      enumerable: true
+    },
+  });
+
+  if (type_.isObject(data)) {
+    // fill object with data
+    edit_.allow();
+    for (var key in data) {
+      if (data.hasOwnProperty(key) && this.hasOwnProperty(key)) {
+        this[key] = data[key];
+      }
+    }
+    edit_.disallow();
+  }
 }
 
 ImageContent.prototype = new Content();
 ImageContent.prototype.constructor = ImageContent;
 
 
-function PlaylistItem() {
-  // TODO(r.galka)
-  //SetReadOnlyProperty(this, 'content', null); // read only property
+function PlaylistItem(data) {
+    var content;
+
+  Object.defineProperties(this, {
+    content: {
+      get: function() {
+        return content;
+      },
+      set: function(v) {
+        if (v instanceof Content ) {
+          content = v;
+        }
+      },
+      enumerable: true
+    },
+  });
+
+  if (type_.isObject(data)) {
+    // fill object with data
+    edit_.allow();
+    for (var key in data) {
+      if (data.hasOwnProperty(key) && this.hasOwnProperty(key)) {
+        this[key] = data[key];
+      }
+    }
+    edit_.disallow();
+  }
 }

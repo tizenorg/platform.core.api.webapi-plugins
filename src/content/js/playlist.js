@@ -2,12 +2,75 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-function Playlist() {
-  // TODO(r.galka)
-  //SetReadOnlyProperty(this, 'id', null); // read only property
-  //this.name = null;
-  //SetReadOnlyProperty(this, 'numberOfTracks', null); // read only property
-  //this.thumbnailURI = null;
+function Playlist(data) {
+  var editableAttributes = ['name', 'thumbnailURI'];
+  var id;
+  var name;
+  var numberOfTracks;
+  var thumbnailURI;
+
+  Object.defineProperties(this, {
+    editableAttributes: {
+      value: editableAttributes,
+      writable: false,
+      enumerable: true
+    },
+    id: {
+      get: function() {
+        return id;
+      },
+      set: function(v) {
+        if (edit_.isAllowed) {
+          id = converter_.toString(v, false);
+        }
+      },
+      enumerable: true
+    },
+    name: {
+      get: function() {
+        return name;
+      },
+      set: function(v) {
+        if (edit_.isAllowed) {
+          name = converter_.toString(v, false);
+        }
+      },
+      enumerable: true
+    },
+    numberOfTracks: {
+      get: function() {
+        return numberOfTracks;
+      },
+      set: function(v) {
+        if (edit_.isAllowed) {
+          numberOfTracks = converter_.toUnsignedLong(v, false);
+        }
+      },
+      enumerable: true
+    },
+    thumbnailURI: {
+      get: function() {
+        return thumbnailURI;
+      },
+      set: function(v) {
+        if (edit_.isAllowed) {
+          thumbnailURI = converter_.toString(v, false);
+        }
+      },
+      enumerable: true
+    },
+  });
+
+  if (type_.isObject(data)) {
+    // fill object with data
+    edit_.allow();
+    for (var key in data) {
+      if (data.hasOwnProperty(key) && this.hasOwnProperty(key)) {
+        this[key] = data[key];
+      }
+    }
+    edit_.disallow();
+  }
 }
 
 Playlist.prototype.add = function (item) {
