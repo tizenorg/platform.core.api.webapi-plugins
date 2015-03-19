@@ -22,7 +22,8 @@ class StatusNotification {
   static common::PlatformResult ToJson(int id, notification_h noti_handle,
                                        app_control_h app_handle,
                                        picojson::object* out_ptr);
-  static common::PlatformResult FromJson(const picojson::object& args, int* id);
+  static common::PlatformResult FromJson(const picojson::object& args,
+                                         picojson::object* out_ptr);
   static common::PlatformResult GetAppControl(notification_h noti_handle,
                                               app_control_h* app_control);
 
@@ -42,7 +43,7 @@ class StatusNotification {
       const std::string& type,
       notification_type_e* noti_type);
   static common::PlatformResult Create(notification_type_e noti_type,
-                                       notification_h noti_handle);
+                                       notification_h *noti_handle);
   static common::PlatformResult GetImage(notification_h noti_handle,
                                          notification_image_type_e image_type,
                                          std::string* image_path);

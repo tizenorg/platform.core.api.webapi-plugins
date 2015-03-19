@@ -28,8 +28,8 @@ NotificationManager* NotificationManager::GetInstance() {
 }
 
 PlatformResult NotificationManager::Post(const picojson::object& args,
-                                         int* id) {
-  return StatusNotification::FromJson(args, id);
+                                         picojson::object& out) {
+  return StatusNotification::FromJson(args, &out);
 }
 
 PlatformResult NotificationManager::Update(const picojson::object& args) {

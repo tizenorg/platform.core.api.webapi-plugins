@@ -60,7 +60,7 @@ NotificationManager.prototype.post = function(notification) {
   _edit.allow();
   var d = native_.getResultObject(result);
   notification.id = d.id;
-  notification.postedTime = d.postedTime || new Date();
+  notification.postedTime = new Date(d.postedTime) || new Date();
   notification.type = d.type || NotificationType.STATUS;
   _edit.disallow();
 };

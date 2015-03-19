@@ -17,7 +17,7 @@ class NotificationManager {
  public:
   static NotificationManager* GetInstance();
 
-  common::PlatformResult Post(const picojson::object& args, int* id);
+  common::PlatformResult Post(const picojson::object& args, picojson::object& out);
   common::PlatformResult Update(const picojson::object& args);
   common::PlatformResult Remove(const picojson::object& args);
   common::PlatformResult RemoveAll();

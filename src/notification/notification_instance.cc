@@ -49,12 +49,11 @@ NotificationInstance::~NotificationInstance() {}
 
 void NotificationInstance::NotificationManagerPost(const picojson::value& args,
                                                    picojson::object& out) {
-  int id;
-
-  PlatformResult status = manager_->Post(args.get<picojson::object>(), &id);
+  picojson::value val{picojson::object{}};
+  PlatformResult status = manager_->Post(args.get<picojson::object>(), val.get<picojson::object>());
 
   if (status.IsSuccess())
-    ReportSuccess(picojson::value(static_cast<double>(id)), out);
+    ReportSuccess(val, out);
   else
     ReportError(status, &out);
 }

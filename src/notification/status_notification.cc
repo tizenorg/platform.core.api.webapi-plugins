@@ -77,7 +77,6 @@ PlatformResult StatusNotification::SetLayout(notification_h noti_handle,
   } else if (noti_type == "PROGRESS") {
     noti_layout = NOTIFICATION_LY_ONGOING_PROGRESS;
   }
-
   int ret = notification_set_layout(noti_handle, noti_layout);
   if (ret != NOTIFICATION_ERROR_NONE) {
     LoggerE("Set notification layout error: %d", ret);
@@ -94,6 +93,8 @@ PlatformResult StatusNotification::GetId(notification_h noti_handle, int* id) {
     LoggerE("Get notification id error: %d", ret);
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Get notification id error");
   }
+
+  LoggerD("Notification Id = %d", *id);
 
   return PlatformResult(ErrorCode::NO_ERROR);
 }
@@ -137,8 +138,8 @@ static bool ServiceExtraDataCb(app_control_h service, const char* key,
 }
 
 PlatformResult StatusNotification::Create(notification_type_e noti_type,
-                                          notification_h noti_handle) {
-  noti_handle = notification_create(noti_type);
+                                          notification_h* noti_handle) {
+  *noti_handle = notification_create(noti_type);
   if (!noti_handle) {
     LoggerE("Cannot make new notification object");
     return PlatformResult(ErrorCode::UNKNOWN_ERR,
@@ -147,7 +148,7 @@ PlatformResult StatusNotification::Create(notification_type_e noti_type,
 
   if (NOTIFICATION_TYPE_ONGOING == noti_type) {
     int ret = notification_set_display_applist(
-        noti_handle, NOTIFICATION_DISPLAY_APP_NOTIFICATION_TRAY |
+        *noti_handle, NOTIFICATION_DISPLAY_APP_NOTIFICATION_TRAY |
                          NOTIFICATION_DISPLAY_APP_INDICATOR);
     if (ret != NOTIFICATION_ERROR_NONE) {
       LoggerE("Cannot make new notification object: %d", ret);
@@ -329,7 +330,7 @@ PlatformResult StatusNotification::SetDetailInfos(
                 common::FromJson<std::string>(obj, "mainText"));
     if (status.IsError()) return status;
 
-    if (!IsNull(obj, "subText")) {
+    if (picojson::value(obj).contains("subText") && !IsNull(obj, "subText")) {
       PlatformResult status =
           SetText(noti_handle, info_sub_map_.at(idx),
                   common::FromJson<std::string>(obj, "subText"));
@@ -671,8 +672,10 @@ PlatformResult StatusNotification::GetApplicationControl(
 PlatformResult StatusNotification::SetApplicationControl(
     app_control_h app_handle,
     const picojson::object& app_ctrl) {
+  picojson::value val(app_ctrl);
   const std::string& operation =
       common::FromJson<std::string>(app_ctrl, "operation");
+
   int ret = app_control_set_operation(app_handle, operation.c_str());
   if (ret != APP_CONTROL_ERROR_NONE) {
     LoggerE("Set application control operation error: %d", ret);
@@ -680,7 +683,7 @@ PlatformResult StatusNotification::SetApplicationControl(
                           "Set application control operation error");
   }
 
-  if (!IsNull(app_ctrl, "uri")) {
+  if (val.contains("uri") && !IsNull(app_ctrl, "uri")) {
     const std::string& uri = common::FromJson<std::string>(app_ctrl, "uri");
     ret = app_control_set_uri(app_handle, uri.c_str());
     if (ret != APP_CONTROL_ERROR_NONE) {
@@ -690,7 +693,7 @@ PlatformResult StatusNotification::SetApplicationControl(
     }
   }
 
-  if (!IsNull(app_ctrl, "mime")) {
+  if (val.contains("mime") && !IsNull(app_ctrl, "mime")) {
     const std::string& mime = common::FromJson<std::string>(app_ctrl, "mime");
     ret = app_control_set_mime(app_handle, mime.c_str());
     if (ret != APP_CONTROL_ERROR_NONE) {
@@ -700,7 +703,7 @@ PlatformResult StatusNotification::SetApplicationControl(
     }
   }
 
-  if (!IsNull(app_ctrl, "category")) {
+  if (val.contains("category") && !IsNull(app_ctrl, "category")) {
     const std::string& category =
         common::FromJson<std::string>(app_ctrl, "category");
     ret = app_control_set_category(app_handle, category.c_str());
@@ -711,16 +714,19 @@ PlatformResult StatusNotification::SetApplicationControl(
     }
   }
 
-  int idx = 0;
-  const picojson::array& data =
-      common::FromJson<picojson::array>(app_ctrl, "data");
-  for (auto& item : data) {
-    const picojson::object& obj = JsonCast<picojson::object>(item);
+if(!picojson::value(app_ctrl).contains("data") || IsNull(app_ctrl, "data")) {
+    return PlatformResult(ErrorCode::NO_ERROR);
+}
 
+auto& items = common::FromJson<picojson::array>(app_ctrl, "data");
+
+  int idx = 0;
+
+  for (auto item : items) {
+    const picojson::object& obj = JsonCast<picojson::object>(item);
     const std::string key = common::FromJson<std::string>(obj, "key");
     const picojson::array values =
         common::FromJson<picojson::array>(obj, "value");
-
     const char** arrayValue =
         (const char**)calloc(sizeof(char*), values.size());
     SCOPE_EXIT { free(arrayValue); };
@@ -729,7 +735,6 @@ PlatformResult StatusNotification::SetApplicationControl(
       arrayValue[idx] = JsonCast<std::string>(item).c_str();
       ++idx;
     }
-
     ret = app_control_add_extra_data_array(app_handle, key.c_str(), arrayValue,
                                            values.size());
     if (ret != APP_CONTROL_ERROR_NONE) {
@@ -851,7 +856,7 @@ PlatformResult StatusNotification::GetAppControl(notification_h noti_handle,
 
   int ret = notification_get_execute_option(
       noti_handle, NOTIFICATION_EXECUTE_TYPE_SINGLE_LAUNCH, NULL, &service);
-  if (ret == NOTIFICATION_ERROR_NONE) {
+  if (ret != NOTIFICATION_ERROR_NONE) {
     LoggerE("Get notification execute option error: %d", ret);
     return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
                           "Get notification execute option error");
@@ -1031,117 +1036,150 @@ PlatformResult StatusNotification::ToJson(int id, notification_h noti_handle,
 }
 
 PlatformResult StatusNotification::FromJson(const picojson::object& args,
-                                            int* id) {
+                                            picojson::object* out_ptr) {
+  picojson::object noti_obj =
+      common::FromJson<picojson::object>(args, "notification");
+
   const std::string& status_type =
-      common::FromJson<std::string>(args, "statusType");
+      common::FromJson<std::string>(noti_obj, "statusType");
 
   notification_type_e noti_type;
   PlatformResult status = StatusTypeToPlatform(status_type, &noti_type);
   if (status.IsError()) return status;
 
   notification_h noti_handle;
-  status = Create(noti_type, noti_handle);
-  if (status.IsError()) return status;
-
-  status = GetId(noti_handle, id);
+  status = Create(noti_type, &noti_handle);
   if (status.IsError()) return status;
 
   status = SetLayout(noti_handle, status_type);
   if (status.IsError()) return status;
 
-  if (!IsNull(args, "iconPath")) {
+  picojson::value val(noti_obj);
+  if (val.contains("iconPath") && !IsNull(noti_obj, "iconPath")) {
     const std::string& value_str =
-        common::FromJson<std::string>(args, "iconPath");
+        common::FromJson<std::string>(noti_obj, "iconPath");
     status = SetImage(noti_handle, NOTIFICATION_IMAGE_TYPE_ICON, value_str);
     if (status.IsError()) return status;
   }
 
-  if (!IsNull(args, "subIconPath")) {
+  if (val.contains("subIconPath") && !IsNull(noti_obj, "subIconPath")) {
     const std::string& value_str =
-        common::FromJson<std::string>(args, "subIconPath");
+        common::FromJson<std::string>(noti_obj, "subIconPath");
     status = SetImage(noti_handle, NOTIFICATION_IMAGE_TYPE_ICON_SUB, value_str);
     if (status.IsError()) return status;
   }
 
-  if (!IsNull(args, "number")) {
+  if (val.contains("number") && !IsNull(noti_obj, "number")) {
     const std::string& value_str =
-        std::to_string(common::FromJson<double>(args, "number"));
+        std::to_string(common::FromJson<double>(noti_obj, "number"));
     status = SetImage(noti_handle, NOTIFICATION_IMAGE_TYPE_ICON_SUB, value_str);
     if (status.IsError()) return status;
   }
 
-  if (!IsNull(args, "detailInfo")) {
+  if (val.contains("detailInfo") && !IsNull(noti_obj, "detailInfo")) {
     status = SetDetailInfos(
-        noti_handle, common::FromJson<picojson::array>(args, "detailInfo"));
+        noti_handle, common::FromJson<picojson::array>(noti_obj, "detailInfo"));
     if (status.IsError()) return status;
   }
 
-  if (!IsNull(args, "ledColor")) {
+  if (val.contains("ledColor") && !IsNull(noti_obj, "ledColor")) {
     status = SetLedColor(noti_handle,
-                         common::FromJson<std::string>(args, "ledColor"));
+                         common::FromJson<std::string>(noti_obj, "ledColor"));
     if (status.IsError()) return status;
   }
 
   status = SetLedOnPeriod(noti_handle,
-                          static_cast<unsigned long>(
-                              common::FromJson<double>(args, "ledOnPeriod")));
-  if (status.IsError()) return status;
+                          static_cast<unsigned long>(common::FromJson<double>(
+                              noti_obj, "ledOnPeriod")));
+  if (status.IsError())
+    return status;
 
   status = SetLedOffPeriod(noti_handle,
-                           static_cast<unsigned long>(
-                               common::FromJson<double>(args, "ledOffPeriod")));
-  if (status.IsError()) return status;
+                           static_cast<unsigned long>(common::FromJson<double>(
+                               noti_obj, "ledOffPeriod")));
+  if (status.IsError())
+    return status;
 
-  if (!IsNull(args, "thumbnails")) {
+  if (val.contains("thumbnails") && !IsNull(noti_obj, "thumbnails")) {
     status = SetThumbnails(
-        noti_handle, common::FromJson<picojson::array>(args, "thumbnails"));
+        noti_handle, common::FromJson<picojson::array>(noti_obj, "thumbnails"));
     if (status.IsError()) return status;
   }
 
-  if (!IsNull(args, "soundPath")) {
+  if (val.contains("soundPath") && !IsNull(noti_obj, "soundPath")) {
     status = SetSoundPath(noti_handle,
-                          common::FromJson<std::string>(args, "soundPath"));
+                          common::FromJson<std::string>(noti_obj, "soundPath"));
     if (status.IsError()) return status;
   }
 
-  status = SetVibration(noti_handle, common::FromJson<bool>(args, "vibration"));
-  if (status.IsError()) return status;
+  status =
+      SetVibration(noti_handle, common::FromJson<bool>(noti_obj, "vibration"));
+  if (status.IsError())
+    return status;
 
   app_control_h app_control;
-  status = GetAppControl(noti_handle, &app_control);
-  if (status.IsError()) return status;
-  if (!IsNull(args, "appControl")) {
-    status = SetApplicationControl(
-        app_control, common::FromJson<picojson::object>(args, "appControl"));
-    if (status.IsError()) return status;
+  int ret = app_control_create(&app_control);
+  if(ret != APP_CONTROL_ERROR_NONE){
+      LoggerE("Application create error: %d", ret);
+      return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
+                            "Application create error");
   }
 
-  if (!IsNull(args, "appId")) {
+  if (val.contains("appControl") && !IsNull(noti_obj, "appControl")) {
+    status = SetApplicationControl(
+        app_control,
+        common::FromJson<picojson::object>(noti_obj, "appControl"));
+    if (status.IsError())
+      return status;
+  }
+
+  if (val.contains("appId") && !IsNull(noti_obj, "appId")) {
     status = SetApplicationId(app_control,
-                              common::FromJson<std::string>(args, "appId"));
+                              common::FromJson<std::string>(noti_obj, "appId"));
     if (status.IsError()) return status;
   }
 
   const std::string& progress_type =
-      common::FromJson<std::string>(args, "progressType");
+      common::FromJson<std::string>(noti_obj, "progressType");
   status = SetImage(noti_handle, NOTIFICATION_IMAGE_TYPE_LIST_5, progress_type);
   if (status.IsError()) return status;
 
-  if (!IsNull(args, "progressValue")) {
-    status = SetLedOnPeriod(noti_handle,
-                            common::FromJson<double>(args, "progressValue"));
-    if (status.IsError()) return status;
+  if (val.contains("progressValue") && !IsNull(noti_obj, "progressValue")) {
+    status = SetLedOnPeriod(
+        noti_handle, common::FromJson<double>(noti_obj, "progressValue"));
+    if (status.IsError())
+      return status;
   }
 
   status = SetText(noti_handle, NOTIFICATION_TEXT_TYPE_TITLE,
-                   common::FromJson<std::string>(args, "title"));
+                   common::FromJson<std::string>(noti_obj, "title"));
   if (status.IsError()) return status;
 
-  if (!IsNull(args, "content")) {
+  if (val.contains("content") && !IsNull(noti_obj, "content")) {
     status = SetText(noti_handle, NOTIFICATION_TEXT_TYPE_CONTENT,
-                     common::FromJson<std::string>(args, "content"));
+                     common::FromJson<std::string>(noti_obj, "content"));
     if (status.IsError()) return status;
   }
+
+  ret = notification_post(noti_handle);
+  if(ret != NOTIFICATION_ERROR_NONE) {
+      LoggerE("Post notification error: %d", ret);
+      return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
+                            "Post notification error");
+  }
+
+  int id;
+  status = GetId(noti_handle, &id);
+  if (status.IsError()) return status;
+
+  time_t posted_time;
+  status = GetPostedTime(noti_handle, &posted_time);
+  if (status.IsError()) return status;
+
+  picojson::object& out = *out_ptr;
+  out["id"] = picojson::value(std::to_string(id));
+  out["postedTime"] = picojson::value(static_cast<double>(posted_time)*1000.0);
+  out["type"] = picojson::value("STATUS");
 
   return PlatformResult(ErrorCode::NO_ERROR);
 }
