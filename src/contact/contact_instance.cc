@@ -16,6 +16,11 @@
 namespace extension {
 namespace contact {
 
+namespace {
+const std::string kPrivilegeContactRead = "http://tizen.org/privilege/contact.read";
+const std::string kPrivilegeContactWrite = "http://tizen.org/privilege/contact.write";
+}
+
 using namespace common;
 
 ContactInstance& ContactInstance::GetInstance() {
@@ -80,6 +85,7 @@ ContactInstance::ContactInstance() {
 ContactInstance::~ContactInstance() {}
 
 void ContactInstance::AddressBookGet(const JsonValue& args, JsonObject& out) {
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeContactRead, &out);
   JsonValue val{JsonObject{}};
   PlatformResult status = AddressBook::AddressBookGet(
       common::JsonCast<JsonObject>(args), val.get<JsonObject>());
@@ -90,6 +96,7 @@ void ContactInstance::AddressBookGet(const JsonValue& args, JsonObject& out) {
 }
 
 void ContactInstance::AddressBookAdd(const JsonValue& args, JsonObject& out) {
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeContactWrite, &out);
   JsonValue val{JsonObject{}};
   PlatformResult status = AddressBook::AddressBookAdd(
       common::JsonCast<JsonObject>(args), val.get<JsonObject>());
@@ -102,7 +109,7 @@ void ContactInstance::AddressBookAdd(const JsonValue& args, JsonObject& out) {
 void ContactInstance::AddressBookAddBatch(const JsonValue& args,
                                           JsonObject& out) {
   LoggerD("entered");
-  // TODO check privileges
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeContactWrite, &out);
 
   const double callback_id = args.get("callbackId").get<double>();
 
@@ -131,7 +138,7 @@ void ContactInstance::AddressBookAddBatch(const JsonValue& args,
 void ContactInstance::AddressBookRemoveBatch(const JsonValue& args,
                                              JsonObject& out) {
   LoggerD("entered");
-  // TODO check privileges
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeContactWrite, &out);
 
   const double callback_id = args.get("callbackId").get<double>();
 
@@ -164,7 +171,7 @@ void ContactInstance::AddressBookRemoveBatch(const JsonValue& args,
 void ContactInstance::AddressBookUpdateBatch(const JsonValue& args,
                                              JsonObject& out) {
   LoggerD("entered");
-  // TODO check privileges
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeContactWrite, &out);
 
   const double callback_id = args.get("callbackId").get<double>();
 
@@ -196,6 +203,7 @@ void ContactInstance::AddressBookUpdateBatch(const JsonValue& args,
 
 void ContactInstance::AddressBookUpdate(const JsonValue& args,
                                         JsonObject& out) {
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeContactWrite, &out);
   JsonValue val{JsonObject{}};
   PlatformResult status = AddressBook::AddressBookUpdate(
       common::JsonCast<JsonObject>(args), val.get<JsonObject>());
@@ -207,6 +215,7 @@ void ContactInstance::AddressBookUpdate(const JsonValue& args,
 
 void ContactInstance::AddressBookRemove(const JsonValue& args,
                                         JsonObject& out) {
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeContactWrite, &out);
   JsonValue val{JsonObject{}};
   PlatformResult status = AddressBook::AddressBookRemove(
       common::JsonCast<JsonObject>(args), val.get<JsonObject>());
@@ -218,6 +227,7 @@ void ContactInstance::AddressBookRemove(const JsonValue& args,
 
 void ContactInstance::AddressBookFind(const JsonValue& args, JsonObject& out) {
   LoggerD("entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeContactRead, &out);
   const double callback_id = args.get("callbackId").get<double>();
 
   auto get = [=](const std::shared_ptr<JsonValue>& response) -> void {
@@ -244,6 +254,7 @@ void ContactInstance::AddressBookFind(const JsonValue& args, JsonObject& out) {
 
 void ContactInstance::AddressBookAddGroup(const JsonValue& args,
                                           JsonObject& out) {
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeContactWrite, &out);
   JsonValue val{JsonObject{}};
   PlatformResult status = AddressBook::AddressBookAddGroup(
       common::JsonCast<JsonObject>(args), val.get<JsonObject>());
@@ -255,6 +266,7 @@ void ContactInstance::AddressBookAddGroup(const JsonValue& args,
 
 void ContactInstance::AddressBookGetGroup(const JsonValue& args,
                                           JsonObject& out) {
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeContactRead, &out);
   JsonValue val{JsonObject{}};
   PlatformResult status = AddressBook::AddressBookGetGroup(
       common::JsonCast<JsonObject>(args), val.get<JsonObject>());
@@ -266,6 +278,7 @@ void ContactInstance::AddressBookGetGroup(const JsonValue& args,
 
 void ContactInstance::AddressBookUpdateGroup(const JsonValue& args,
                                              JsonObject& out) {
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeContactWrite, &out);
   JsonValue val{JsonObject{}};
   PlatformResult status = AddressBook::AddressBookUpdateGroup(
       common::JsonCast<JsonObject>(args), val.get<JsonObject>());
@@ -277,6 +290,7 @@ void ContactInstance::AddressBookUpdateGroup(const JsonValue& args,
 
 void ContactInstance::AddressBookRemoveGroup(const JsonValue& args,
                                              JsonObject& out) {
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeContactWrite, &out);
   JsonValue val{JsonObject{}};
   PlatformResult status = AddressBook::AddressBookRemoveGroup(
       common::JsonCast<JsonObject>(args), val.get<JsonObject>());
@@ -288,6 +302,7 @@ void ContactInstance::AddressBookRemoveGroup(const JsonValue& args,
 
 void ContactInstance::AddressBookGetGroups(const JsonValue& args,
                                            JsonObject& out) {
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeContactRead, &out);
   JsonValue val{JsonArray{}};
   PlatformResult status = AddressBook::AddressBookGetGroups(
       common::JsonCast<JsonObject>(args), val.get<JsonArray>());
@@ -299,7 +314,7 @@ void ContactInstance::AddressBookGetGroups(const JsonValue& args,
 
 void ContactInstance::ContactManagerGetAddressBooks(const JsonValue& args,
                                                     JsonObject& out) {
-  // TODO check privileges
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeContactRead, &out);
 
   const double callback_id = args.get("callbackId").get<double>();
 
@@ -328,6 +343,7 @@ void ContactInstance::ContactManagerGetAddressBooks(const JsonValue& args,
 
 void ContactInstance::ContactManagerGetAddressBook(const JsonValue& args,
                                                    JsonObject& out) {
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeContactRead, &out);
   JsonValue val{JsonObject{}};
   PlatformResult status = ContactManager::ContactManagerGetAddressBook(
       common::JsonCast<JsonObject>(args), val.get<JsonObject>());
@@ -339,6 +355,7 @@ void ContactInstance::ContactManagerGetAddressBook(const JsonValue& args,
 
 void ContactInstance::ContactManagerAddAddressBook(const JsonValue& args,
                                                    JsonObject& out) {
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeContactWrite, &out);
   JsonValue val{JsonObject{}};
   PlatformResult status = ContactManager::ContactManagerAddAddressBook(
       common::JsonCast<JsonObject>(args), val.get<JsonObject>());
@@ -350,6 +367,7 @@ void ContactInstance::ContactManagerAddAddressBook(const JsonValue& args,
 
 void ContactInstance::ContactManagerRemoveAddressBook(const JsonValue& args,
                                                       JsonObject& out) {
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeContactWrite, &out);
   JsonValue val{JsonObject{}};
   PlatformResult status = ContactManager::ContactManagerRemoveAddressBook(
       common::JsonCast<JsonObject>(args), val.get<JsonObject>());
@@ -361,6 +379,7 @@ void ContactInstance::ContactManagerRemoveAddressBook(const JsonValue& args,
 
 void ContactInstance::AddressBookStartListening(const JsonValue& args,
                                                 JsonObject& out) {
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeContactRead, &out);
   JsonValue val{JsonObject{}};
   PlatformResult status = AddressBook::AddressBookStartListening(
       common::JsonCast<JsonObject>(args), val.get<JsonObject>());
@@ -372,6 +391,7 @@ void ContactInstance::AddressBookStartListening(const JsonValue& args,
 
 void ContactInstance::AddressBookStopListening(const JsonValue& args,
                                                JsonObject& out) {
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeContactRead, &out);
   JsonValue val{JsonObject{}};
   PlatformResult status = AddressBook::AddressBookStopListening(
       common::JsonCast<JsonObject>(args), val.get<JsonObject>());
@@ -383,6 +403,7 @@ void ContactInstance::AddressBookStopListening(const JsonValue& args,
 
 void ContactInstance::ContactManagerGet(const JsonValue& args,
                                         JsonObject& out) {
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeContactRead, &out);
   JsonValue val{JsonObject{}};
   PlatformResult status = ContactManager::ContactManagerGet(
       common::JsonCast<JsonObject>(args), val.get<JsonObject>());
@@ -394,6 +415,7 @@ void ContactInstance::ContactManagerGet(const JsonValue& args,
 
 void ContactInstance::ContactManagerUpdate(const JsonValue& args,
                                            JsonObject& out) {
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeContactWrite, &out);
   JsonValue val{JsonObject{}};
   PlatformResult status = ContactManager::ContactManagerUpdate(
       common::JsonCast<JsonObject>(args), val.get<JsonObject>());
@@ -406,7 +428,7 @@ void ContactInstance::ContactManagerUpdate(const JsonValue& args,
 void ContactInstance::ContactManagerUpdateBatch(const JsonValue& args,
                                                 JsonObject& out) {
   LoggerD("entered");
-  // TODO check privileges
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeContactWrite, &out);
 
   const double callback_id = args.get("callbackId").get<double>();
 
@@ -438,6 +460,7 @@ void ContactInstance::ContactManagerUpdateBatch(const JsonValue& args,
 
 void ContactInstance::ContactManagerRemove(const JsonValue& args,
                                            JsonObject& out) {
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeContactWrite, &out);
   JsonValue val{JsonObject{}};
   PlatformResult status = ContactManager::ContactManagerRemove(
       common::JsonCast<JsonObject>(args), val.get<JsonObject>());
@@ -450,7 +473,7 @@ void ContactInstance::ContactManagerRemove(const JsonValue& args,
 void ContactInstance::ContactManagerRemoveBatch(const JsonValue& args,
                                                 JsonObject& out) {
   LoggerD("entered");
-  // TODO check privileges
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeContactWrite, &out);
 
   const double callback_id = args.get("callbackId").get<double>();
 
@@ -482,6 +505,7 @@ void ContactInstance::ContactManagerRemoveBatch(const JsonValue& args,
 
 void ContactInstance::ContactManagerFind(const JsonValue& args,
                                          JsonObject& out) {
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeContactRead, &out);
   const double callback_id = args.get("callbackId").get<double>();
 
   auto get = [this, args](const std::shared_ptr<JsonValue>& response) -> void {
@@ -521,6 +545,7 @@ void ContactInstance::ContactManagerImportFromVCard(const JsonValue& args,
 
 void ContactInstance::ContactManagerStartListening(const JsonValue& args,
                                                    JsonObject& out) {
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeContactRead, &out);
   JsonValue val{JsonObject{}};
   PlatformResult status = ContactManager::ContactManagerStartListening(
       common::JsonCast<JsonObject>(args), val.get<JsonObject>());
@@ -532,6 +557,7 @@ void ContactInstance::ContactManagerStartListening(const JsonValue& args,
 
 void ContactInstance::ContactManagerStopListening(const JsonValue& args,
                                                   JsonObject& out) {
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeContactRead, &out);
   JsonValue val{JsonObject{}};
   PlatformResult status = ContactManager::ContactManagerStopListening(
       common::JsonCast<JsonObject>(args), val.get<JsonObject>());
@@ -542,6 +568,7 @@ void ContactInstance::ContactManagerStopListening(const JsonValue& args,
 }
 
 void ContactInstance::PersonLink(const JsonValue& args, JsonObject& out) {
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeContactWrite, &out);
   JsonValue val{JsonObject{}};
   PlatformResult status = Person::PersonLink(common::JsonCast<JsonObject>(args),
                                              val.get<JsonObject>());
@@ -552,6 +579,7 @@ void ContactInstance::PersonLink(const JsonValue& args, JsonObject& out) {
 }
 
 void ContactInstance::PersonUnlink(const JsonValue& args, JsonObject& out) {
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeContactWrite, &out);
   JsonValue val{JsonObject{}};
   PlatformResult status = Person::PersonUnlink(
       common::JsonCast<JsonObject>(args), val.get<JsonObject>());

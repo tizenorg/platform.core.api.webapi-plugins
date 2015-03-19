@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+var _PRIVILEGE_CONTACT_READ = "http://tizen.org/privilege/contact.read";
 
 var _personListenerRegistered = false;
 var _personCallbackMap = {};
@@ -70,12 +71,7 @@ ContactManager.prototype.getAddressBooks = function() {
 
 // Gets the aggregation of all address books.
 ContactManager.prototype.getUnifiedAddressBook = function() {
-  // TODO check privileges
-  //var result = native_.callSync('CheckReadPrivileges', {});
-  //if (native_.isFailure(result)) {
-  //  throw new WebAPIException(WebAPIException.SECURITY_ERR,
-  //      'You do not have privileges for this operation');
-  //}
+  xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_CONTACT_READ);
 
   return _editGuard.run(function() {
     var addressBook = new AddressBook(0, 'Unified address book');
