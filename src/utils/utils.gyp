@@ -10,6 +10,8 @@
         'utils_api.js',
         'utils_extension.cc',
         'utils_extension.h',
+        'utils_instance.cc',
+        'utils_instance.h',
       ],
     },
   ],

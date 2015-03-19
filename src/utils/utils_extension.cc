@@ -3,6 +3,7 @@
 // found in the LICENSE file.
 
 #include "utils/utils_extension.h"
+#include "utils/utils_instance.h"
 
 // This will be generated from tizen_api.js.
 extern const char kSource_utils_api[];
@@ -17,3 +18,7 @@ UtilsExtension::UtilsExtension() {
 }
 
 UtilsExtension::~UtilsExtension() {}
+
+common::Instance* UtilsExtension::CreateInstance() {
+  return new extension::utils::UtilsInstance();
+}

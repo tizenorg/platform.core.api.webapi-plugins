@@ -136,7 +136,15 @@ Utils.prototype.validateObject = function(object, signature, attributes) {
   return true;
 };
 
+Utils.prototype.checkPrivilegeAccess = function(privilege) {
+  var result = native_.callSync('Utils_checkPrivilegeAccess', {
+    privilege : _toString(privilege),
+  });
 
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
+  }
+};
 
 /////////////////////////////////////////////////////////////////////////////
 /** @constructor */
@@ -1349,5 +1357,7 @@ Utils.prototype.converter = _converter;
 Utils.prototype.validator = _validator;
 Utils.prototype.NativeManager = NativeManager;
 Utils.prototype.NativeBridge = NativeBridge;
+
+var native_ = new NativeManager(extension);
 
 exports = new Utils();

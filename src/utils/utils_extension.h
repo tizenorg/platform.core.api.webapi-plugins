@@ -11,6 +11,9 @@ class UtilsExtension : public common::Extension {
  public:
   UtilsExtension();
   virtual ~UtilsExtension();
+
+ private:
+  virtual common::Instance* CreateInstance();
 };
 
 #endif  // UTILS_UTILS_EXTENSION_H_
