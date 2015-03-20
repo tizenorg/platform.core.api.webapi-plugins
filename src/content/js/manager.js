@@ -34,7 +34,7 @@ ContentManager.prototype.update = function(content) {
 
 ContentManager.prototype.updateBatch = function(contents, successCallback, errorCallback) {
   var args = validator_.validateArgs(arguments, [
-    {name: 'contents', type: types_.PLATFORM_OBJECT, values: Content},
+    {name: 'contents', type: types_.ARRAY, values: Content},
     {name: 'successCallback', type: types_.FUNCTION, optional: true, nullable: true},
     {name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true}
   ]);
@@ -60,18 +60,21 @@ ContentManager.prototype.getDirectories = function(successCallback, errorCallbac
     {name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true}
   ]);
 
-  var data = {
-  };
-
   var callback = function(result) {
     if (native_.isFailure(result)) {
       native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));
       return;
     }
-    native_.callIfPossible(args.successCallback, native_.getResultObject(result));
+
+    var out = [];
+    result = native_.getResultObject(result);
+    for (var i = 0, max = result.length; i < max; i++) {
+      out.push(new ContentDirectory(result[i]));
+    }
+    native_.callIfPossible(args.successCallback, out);
   };
 
-  native_.call('ContentManager_getDirectories', data, callback);
+  native_.call('ContentManager_getDirectories', null, callback);
 };
 
 ContentManager.prototype.find = function(successCallback, errorCallback, directoryId, filter, sortMode, count, offset) {
@@ -87,8 +90,8 @@ ContentManager.prototype.find = function(successCallback, errorCallback, directo
       nullable: true
     },
     {name: 'sortMode', type: types_.PLATFORM_OBJECT, values: tizen.SortMode, optional: true, nullable: true},
-    {name: 'count', type: types_.LONG, optional: true},
-    {name: 'offset', type: types_.LONG, optional: true}
+    {name: 'count', type: types_.UNSIGNED_LONG, optional: true, nullable: true},
+    {name: 'offset', type: types_.UNSIGNED_LONG, optional: true, nullable: true}
   ]);
 
   var data = {

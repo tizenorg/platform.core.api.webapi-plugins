@@ -88,7 +88,7 @@ function ContentDirectory(data) {
       },
       set: function(v) {
         if (edit_.isAllowed) {
-          modifiedDate = !type_.isNull(v) ? new Date(v) : null;
+          modifiedDate = v > 0 ? new Date(v * 1000) : null;
         }
       },
       enumerable: true
@@ -213,7 +213,7 @@ function Content(data) {
       },
       set: function(v) {
         if (edit_.isAllowed) {
-          releaseDate = !type_.isNull(v) ? new Date(v) : null;
+          releaseDate = v > 0 ? new Date(v * 1000) : null;
         }
       },
       enumerable: true
@@ -224,7 +224,7 @@ function Content(data) {
       },
       set: function(v) {
         if (edit_.isAllowed) {
-          modifiedDate = !type_.isNull(v) ? new Date(v) : null;
+          modifiedDate = v > 0 ? new Date(v * 1000) : null;
         }
       },
       enumerable: true
@@ -254,7 +254,7 @@ function Content(data) {
         return rating;
       },
       set: function(v) {
-        if (!type_.isNull(v)) {
+        if (!type_.isNull(v) && v >= 0 && v <= 10) {
           rating = converter_.toUnsignedLong(v, false);
         }
       },
@@ -372,18 +372,7 @@ function VideoContent(data) {
         }
       },
       enumerable: true
-    },
-    orientation: {
-      get: function() {
-        return orientation;
-      },
-      set: function(v) {
-        if (!type_.isNull(v)) {
-          orientation = converter_.toEnum(v, Object.keys(ImageContentOrientation), false);
-        }
-      },
-      enumerable: true
-    },
+    }
   });
 
   if (type_.isObject(data)) {

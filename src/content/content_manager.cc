@@ -399,9 +399,7 @@ void contentToJson(media_info_h info, picojson::object& o) {
   }
   ret = media_info_get_modified_time(info, &tmpDate);
   if(ret == MEDIA_CONTENT_ERROR_NONE) {
-    std::stringstream str_date;
-    str_date << tmpDate;
-    o["modifiedDate"] = picojson::value(str_date.str());
+    o["modifiedDate"] = picojson::value(static_cast<double>(tmpDate));
   }
 }
 
@@ -590,63 +588,59 @@ void ContentManager::getDirectories(const std::shared_ptr<ReplyCallbackData>& us
 
   picojson::value::array pico_dirs;
 
-  int ret = MEDIA_CONTENT_ERROR_NONE;
+  int ret;
   filter_h filter = NULL;
   std::vector<media_folder_h> dirs;
 
   ret = media_folder_foreach_folder_from_db(filter, media_foreach_directory_cb, &dirs);
 
-  if (ret == MEDIA_CONTENT_ERROR_NONE) {
-    for(std::vector<media_folder_h>::iterator it = dirs.begin(); it != dirs.end(); ++it) {
-      char *name = NULL;
-      char *id = NULL;
-      char *path = NULL;
-      time_t date;
-      media_content_storage_e storageType;
-      picojson::value::object o;
-
-      media_folder_get_folder_id(*it, &id);
-      media_folder_get_name(*it, &name);
-      media_folder_get_path(*it, &path);
-      media_folder_get_modified_time(*it, &date);
-      media_folder_get_storage_type(*it, &storageType);
-
-      o["id"] = picojson::value(std::string(id));
-      o["directoryURI"] = picojson::value(std::string(path));
-      o["title"] = picojson::value(std::string(name));
-
-      if (storageType == MEDIA_CONTENT_STORAGE_INTERNAL) {
-        o["storageType"] = picojson::value(std::string("INTERNAL"));
-      } else if (storageType == MEDIA_CONTENT_STORAGE_EXTERNAL) {
-        o["storageType"] = picojson::value(std::string("EXTERNAL"));
-      }
-
-      char tmp[128];
-      ctime_r(&date, tmp);
-      o["modifiedDate"] = picojson::value(std::string(tmp));
-      pico_dirs.push_back(picojson::value(o));
-
-      free(name);
-      free(id);
-      free(path);
-    }
-    user_data->isSuccess = true;
-    user_data->result = picojson::value(pico_dirs);
-  }
-  else {
-    UnknownException err("Getting the directories is failed.");
+  if (ret != MEDIA_CONTENT_ERROR_NONE) {
+    UnknownException err("Getting the directories failed.");
     user_data->isSuccess = false;
     user_data->result = err.ToJSON();
+    return;
   }
 
+  for (std::vector<media_folder_h>::iterator it = dirs.begin(); it != dirs.end(); ++it) {
+    char* name = NULL;
+    char* id = NULL;
+    char* path = NULL;
+    time_t date;
+    media_content_storage_e storageType;
+    picojson::value::object o;
+
+    media_folder_get_folder_id(*it, &id);
+    media_folder_get_name(*it, &name);
+    media_folder_get_path(*it, &path);
+    media_folder_get_modified_time(*it, &date);
+    media_folder_get_storage_type(*it, &storageType);
+
+    o["id"] = picojson::value(std::string(id));
+    o["directoryURI"] = picojson::value(std::string(path));
+    o["title"] = picojson::value(std::string(name));
+
+    if (storageType == MEDIA_CONTENT_STORAGE_INTERNAL) {
+      o["storageType"] = picojson::value(std::string("INTERNAL"));
+    } else if (storageType == MEDIA_CONTENT_STORAGE_EXTERNAL) {
+      o["storageType"] = picojson::value(std::string("EXTERNAL"));
+    }
+
+    o["modifiedDate"] = picojson::value(static_cast<double>(date));
+    pico_dirs.push_back(picojson::value(o));
+
+    free(name);
+    free(id);
+    free(path);
+  }
+  user_data->isSuccess = true;
+  user_data->result = picojson::value(pico_dirs);
 }
 
 void ContentManager::find(const std::shared_ptr<ReplyCallbackData>& user_data) {
   int ret;
-  double count, offset;
-  std::string dirId, attributeName, matchFlag, matchValue;
+  int count, offset;
+  std::string dirId;
   std::string sortModeName, sortModeOrder;
-  int error_code = 0;
   media_content_order_e order;
 
   picojson::value::array arrayContent;
@@ -663,25 +657,49 @@ void ContentManager::find(const std::shared_ptr<ReplyCallbackData>& user_data) {
     picojson::object argsObject = JsonCast<picojson::object>(user_data->args);
     if (filterMechanism.buildQuery(
         FromJson<picojson::object>(argsObject, "filter"), &query)) {
+      LOGGER(DEBUG) << "Filter query: " << query;
       ret = media_filter_set_condition(filter, query.c_str(),
           MEDIA_CONTENT_COLLATE_DEFAULT);
       if (MEDIA_CONTENT_ERROR_NONE != ret) {
+        LoggerD("Platform filter setting failed, error %d", ret);
       }
     }
   }
+
+  if (user_data->args.contains("sortMode")) {
+    picojson::value vSortMode = user_data->args.get("sortMode");
+
+    if (!vSortMode.is<picojson::null>() && vSortMode.is<picojson::object>()) {
+      sortModeName = vSortMode.get("attributeName").to_str();
+      sortModeOrder = vSortMode.get("order").to_str();
+      if (!sortModeOrder.empty()) {
+        if (sortModeOrder == "ASC") {
+          order = MEDIA_CONTENT_ORDER_ASC;
+        } else if (sortModeOrder == "DESC") {
+          order = MEDIA_CONTENT_ORDER_DESC;
+        }
+
+        ret = media_filter_set_order(filter, order, sortModeName.c_str(), MEDIA_CONTENT_COLLATE_DEFAULT);
+        if (MEDIA_CONTENT_ERROR_NONE != ret) {
+          LoggerD("Platform SortMode setting failed, error: %d", ret);
+        }
+      }
+    }
+  }
+
   if (!IsNull(user_data->args.get("count"))) {
-    count = user_data->args.get("count").get<double>();
+    count = static_cast<int>(user_data->args.get("count").get<double>());
   } else {
     count = -1;
   }
   if (!IsNull(user_data->args.get("offset"))) {
-    offset = user_data->args.get("offset").get<double>();
+    offset = static_cast<int>(user_data->args.get("offset").get<double>());
   } else {
     offset = -1;
   }
   ret = media_filter_set_offset(filter, offset, count);
   if (MEDIA_CONTENT_ERROR_NONE != ret) {
-    LoggerD("A platform error occurs in media_filter_set_offset.");
+    LoggerD("A platform error occurs in media_filter_set_offset: %d", ret);
   }
   if (!IsNull(user_data->args.get("directoryId"))) {
     dirId = user_data->args.get("directoryId").get<std::string>();
@@ -691,11 +709,11 @@ void ContentManager::find(const std::shared_ptr<ReplyCallbackData>& user_data) {
   }
 
   if (ret == MEDIA_CONTENT_ERROR_NONE) {
-    LoggerD("enter");
     user_data->isSuccess = true;
     user_data->result = picojson::value(arrayContent);
   } else {
-    UnknownException err("The iteration is failed in platform.");
+    LoggerD("The iteration failed in platform: %d", ret);
+    UnknownException err("The iteration failed in platform");
     user_data->isSuccess = false;
     user_data->result = err.ToJSON();
   }
@@ -835,28 +853,24 @@ int ContentManager::update(picojson::value args) {
   return ret;
 }
 
-
 int ContentManager::updateBatch(picojson::value args) {
-  int ret;
+  int ret = 0;
   std::vector<picojson::value> contents = args.get("contents").get<picojson::array>();
+
   for (picojson::value::array::iterator it = contents.begin(); it != contents.end(); it++) {
     picojson::value content = *it;
     std::string id = content.get("id").to_str();
     media_info_h media = NULL;
-    ret = media_info_get_media_from_db (id.c_str(), &media);
-    dlog_print(DLOG_INFO, "DYKIM", "ContentManager::update id:%s",id.c_str());
+    ret = media_info_get_media_from_db(id.c_str(), &media);
     if (media != NULL && ret == MEDIA_CONTENT_ERROR_NONE) {
       setContent(media, content);
       ret = media_info_update_to_db(media);
-    }
-    else {
+    } else {
       return ret;
     }
   }
   return ret;
 }
-
-
 
 int ContentManager::playlistAdd(std::string playlist_id, std::string content_id) {
   int ret = MEDIA_CONTENT_ERROR_NONE;

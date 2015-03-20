@@ -96,9 +96,9 @@ PlatformResult ContentFilter::buildQuery(const picojson::object& jsFilter,
     } else {
       return PlatformResult(ErrorCode::INVALID_VALUES_ERR);
     }
-    query.append("\"");
 
     if (AttributeMatchFlag::kExists != match_flag) {
+      query.append("\"");
       matchValue = escapeValueString(JsonCast<std::string>(match_value));
       if (name == "type") {
         if (matchValue == "IMAGE") {
@@ -112,11 +112,11 @@ PlatformResult ContentFilter::buildQuery(const picojson::object& jsFilter,
         }
       }
       query += matchValue;
+      query.append("\"");
     }
-    query.append("\"");
+
     partialqueries.back().push_back(query);
 
-    LoggerD("about to call with condition %s", query.c_str());
     return PlatformResult(ErrorCode::NO_ERROR);
   });
 
@@ -136,7 +136,6 @@ PlatformResult ContentFilter::buildQuery(const picojson::object& jsFilter,
     else
       separator = " AND ";
 
-    LoggerD("Composite filter: %i", partialqueries.back().size());
     if (partialqueries.back().empty()) {
       partialqueries.pop_back();
       return PlatformResult(ErrorCode::NO_ERROR);
@@ -155,6 +154,7 @@ PlatformResult ContentFilter::buildQuery(const picojson::object& jsFilter,
       finalQuery.append(")");
     partialqueries.pop_back();
     partialqueries.back().push_back(finalQuery);
+
     return PlatformResult(ErrorCode::NO_ERROR);
   });
 
@@ -181,7 +181,6 @@ PlatformResult ContentFilter::buildQuery(const picojson::object& jsFilter,
     query += "\"";
     partialqueries.back().push_back(query);
 
-    LoggerD("about to call with condition %s", query.c_str());
     return PlatformResult(ErrorCode::NO_ERROR);
   });
 
