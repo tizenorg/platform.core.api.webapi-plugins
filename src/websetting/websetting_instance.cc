@@ -13,9 +13,8 @@
 #include "common/scope_exit.h"
 
 namespace {
-// The privileges that required in Websetting API
-const std::string kPrivilegeWebsetting =
-    "http://tizen.org/privilege/websetting";
+// The privileges that required in WebSetting API
+const std::string kPrivilegeWebSetting = "http://tizen.org/privilege/websetting";
 
 const char kWrtServiceName[] = "wrt-service";
 }  // namespace
@@ -83,6 +82,8 @@ void WebSettingInstance::WebSettingManagerSetUserAgentString(
 
 void WebSettingInstance::WebSettingManagerRemoveAllCookies(
     const picojson::value& args, picojson::object& out) {
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeWebSetting, &out);
+
   const double callback_id = args.get("callbackId").get<double>();
   auto get = [=](const std::shared_ptr<JsonValue>& response) -> void {
     const char* runtime_name =
