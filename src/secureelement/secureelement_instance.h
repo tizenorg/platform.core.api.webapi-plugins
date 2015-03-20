@@ -44,8 +44,6 @@ private:
     void Transmit(const picojson::value& args, picojson::object& out);
     void GetSelectResponse(const picojson::value& args, picojson::object& out);
 
-    /* SEService object */
-    Service m_service;
 };
 
 } // namespace secureelement

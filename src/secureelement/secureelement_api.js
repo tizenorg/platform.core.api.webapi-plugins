@@ -8,6 +8,62 @@ var native_ = new xwalk.utils.NativeManager(extension);
 
 //////////////////SEService/////////////////
 
+function ListenerManager(native, listenerName) {
+    this.listeners = {};
+    this.nextId = 1;
+    this.nativeSet = false;
+    this.native = native;
+    this.listenerName = listenerName;
+};
+
+ListenerManager.prototype.onListenerCalled = function(msg) {
+    var d = undefined;
+    switch (msg.action) {
+    case 'onSEReady':
+    case 'onSENotReady':
+        d = new Reader(msg.handle);
+        break;
+    default:
+        console.log('Unknown mode: ' + msg.action);
+        return;
+    }
+
+    for (var watchId in this.listeners) {
+        if (this.listeners.hasOwnProperty(watchId) && this.listeners[watchId][msg.action]) {
+            this.listeners[watchId][msg.action](d);
+        }
+    }
+};
+
+ListenerManager.prototype.addListener = function(callback) {
+    var id = this.nextId;
+    if (!this.nativeSet) {
+        this.native.addListener(this.listenerName, this.onListenerCalled.bind(this));
+        this.native.callSync('SEService_registerSEListener');
+        this.nativeSet = true;
+    }
+
+    this.listeners[id] = callback;
+    ++this.nextId;
+
+    return id;
+};
+
+ListenerManager.prototype.removeListener = function(watchId) {
+    if (this.listeners.hasOwnProperty(watchId)) {
+      delete this.listeners[watchId];
+    }
+
+    if (this.nativeSet && type_.isEmptyObject(this.listeners)) {
+        this.native.callSync('SEService_unregisterSEListener');
+        this.native.removeListener(this.listenerName);
+        this.nativeSet = false;
+    }
+};
+
+var SE_CHANGE_LISTENER = 'SecureElementChangeListener';
+var SEChangeListener = new ListenerManager(native_, SE_CHANGE_LISTENER);
+
 function SEService() {
 }
 
@@ -16,23 +72,54 @@ SEService.prototype.getReaders = function() {
         { name: "successCallback", type: types_.FUNCTION },
         { name: "errorCallback", type: types_.FUNCTION, optional: true, nullable: true }
     ]);
+
+    var callback = function(result) {
+        if(native_.isFailure(result)) {
+            native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));
+        } else {
+            var result_obj = native_.getResultObject(result);
+            var readers_array = [];
+
+            result_obj.forEach(function (data) {
+                readers_array.push(new Reader(data));
+            });
+
+            args.successCallback(readers_array);
+        }
+    };
+
+    native_.call('SEService_getReaders', {}, callback);
 };
 
 SEService.prototype.registerSEListener = function() {
     var args = validator_.validateArgs(arguments, [
-        { name: "listener", type: types_.LISTENER, values: ['onSEReady', 'onSENotReady'] },
+        {
+            name : 'eventCallback',
+            type : types_.LISTENER,
+            values: ['onSEReady', 'onSENotReady']
+        }
     ]);
+
+    return SEChangeListener.addListener(args.eventCallback);
 };
 
 SEService.prototype.unregisterSEListener = function() {
     var args = validator_.validateArgs(arguments, [
-        { name: "id", type: types_.UNSIGNED_LONG },
+        {
+            name : 'id',
+            type : types_.UNSIGNED_LONG
+        }
     ]);
+
+    SEChangeListener.removeListener(args.id);
 }
 
 SEService.prototype.shutdown = function() {
-    console.log('Shutdown');
-    return 'Shutdown';
+    var result = native_.callSync('SEService_shutdown', {});
+
+    if (native_.isFailure(result)) {
+        throw native_.getErrorObject(result);
+    }
 };
 
 //////////////////Reader/////////////////

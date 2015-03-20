@@ -6,19 +6,33 @@
 #define SECUREELEMENT_SESERVICE_H_
 
 #include <SEService.h>
-#include "common/logger.h"
+#include <SEServiceHelper.h>
+
+#include "common/picojson.h"
 
 namespace extension {
 namespace secureelement {
 
-class Service {
-public:
-    Service();
-    ~Service();
-    void getSEServiceCompleted();
-    void eventChanged(char *seName, int event);
-private:
-    smartcard_service_api::SEService *m_seService;
+class SEService {
+ public:
+  static SEService& GetInstance();
+  ~SEService();
+
+  void GetReaders(const picojson::value& args);
+  void RegisterSEListener();
+  void UnregisterSEListener();
+  void Shutdown();
+
+  void ServiceConnected();
+  void EventHandler(char *se_name, int event);
+ private:
+  SEService();
+  SEService(const SEService&) = delete;
+  SEService& operator=(const SEService&) = delete;
+
+  smartcard_service_api::SEService *se_service_;
+  bool is_initialized_;
+  bool is_listener_set_;
 };
 
 } // secureelement
