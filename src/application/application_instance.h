@@ -62,8 +62,6 @@ class ApplicationInstance
     picojson::object& out);
   void AppMgrRemoveAppInfoEventListener(const picojson::value& args,
     picojson::object& out);
-  void AppExit(const picojson::value& args, picojson::object& out);
-  void AppHide(const picojson::value& args, picojson::object& out);
   void AppGetRequestedAppControl(const picojson::value& args,
     picojson::object& out);
   void RequestedAppControlReplyResult(const picojson::value& args,

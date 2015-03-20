@@ -457,23 +457,11 @@ function Application() {
 }
 
 Application.prototype.exit = function() {
-  var nativeParam = {
-  };
-  try {
-    var syncResult = callNative('Application_exit', nativeParam);
-  } catch (e) {
-    throw e;
-  }
+  return native_.sendRuntimeMessage('Application_exit');
 };
 
 Application.prototype.hide = function() {
-  var nativeParam = {
-  };
-  try {
-    var syncResult = callNative('Application_hide', nativeParam);
-  } catch (e) {
-    throw e;
-  }
+  return native_.sendRuntimeMessage('Application_hide');
 };
 
 Application.prototype.getRequestedAppControl = function() {

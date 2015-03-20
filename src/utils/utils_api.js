@@ -792,10 +792,19 @@ var NativeManager = function(extension) {
 
   _validator.isConstructorCall(this, NativeManager);
 
+  // TODO: Remove mockup if WRT implements sendRuntimeMessage
+  // This is temporary mockup!
+  extension.sendRuntimeMessage = extension.sendRuntimeMessage || function(){
+    console.error("Runtime did not implement extension.sendRuntimeMessage!");
+    throw new WebAPIException(WebAPIException.UNKNOWN_ERR,
+      'Runtime did not implement extension.sendRuntimeMessage!');
+  }
+
   // check extension prototype
   if (!extension || !extension.internal ||
       !_type.isFunction(extension.postMessage) ||
       !_type.isFunction(extension.internal.sendSyncMessage) ||
+      !_type.isFunction(extension.sendRuntimeMessage) ||
       !_type.isFunction(extension.setMessageListener)) {
     throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR,
       'Wrong extension object passed');
@@ -872,6 +881,10 @@ NativeManager.prototype.callSync = function(cmd, args) {
 
   return JSON.parse(this.extension.internal.sendSyncMessage(request));
 };
+
+NativeManager.prototype.sendRuntimeMessage = function(cmd) {
+    return this.extension.sendRuntimeMessage(cmd);
+}
 
 NativeManager.prototype.addListener = function(name, callback) {
   if (!_type.isString(name) || !name.length) {

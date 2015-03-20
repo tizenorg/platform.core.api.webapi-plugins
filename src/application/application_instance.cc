@@ -97,16 +97,12 @@ ApplicationInstance::ApplicationInstance(const std::string& app_id) {
     AppMgrGetAppsInfo);
   REGISTER_SYNC("ApplicationManager_launch",
     AppMgrLaunch);
-  REGISTER_SYNC("Application_hide",
-    AppHide);
   REGISTER_SYNC("ApplicationManager_getAppsContext",
     AppMgrGetAppsContext);
   REGISTER_SYNC("ApplicationManager_getAppContext",
     AppMgrGetAppContext);
   REGISTER_SYNC("RequestedApplicationControl_replyFailure",
     RequestedAppControlReplyFailure);
-  REGISTER_SYNC("Application_exit",
-    AppExit);
   REGISTER_SYNC("ApplicationManager_getCurrentApplication",
     AppMgrGetCurrentApplication);
   REGISTER_SYNC("ApplicationManager_findAppControl",
@@ -1791,30 +1787,6 @@ void ApplicationInstance::AppMgrRemoveAppInfoEventListener(
   pkgmgr_client_free(manager_handle_);
   manager_handle_ = NULL;
 
-  ReportSuccess(out);
-}
-
-void ApplicationInstance::AppExit(const picojson::value& args,
-  picojson::object& out) {
-  LoggerD("Hide is called");
-
-  // webkit
-  // IPCSupport::Instance().Post(IPCMsg::MsgExitApp(), "" );
-  // Blink
-  //IPCMessageSupport::sendAsyncMessageToUiProcess(
-  //  IPCMessageSupport::TIZEN_EXIT, NULL, NULL, NULL);
-  ReportSuccess(out);
-}
-
-void ApplicationInstance::AppHide(const picojson::value& args,
-  picojson::object& out) {
-  LoggerD("Hide is called");
-
-  // webkit
-  // IPCSupport::Instance().Post(IPCMsg::MsgHideApp(), "" );
-  // Blink
-  //IPCMessageSupport::sendAsyncMessageToUiProcess(
-  //  IPCMessageSupport::TIZEN_HIDE, NULL, NULL, NULL);
   ReportSuccess(out);
 }
 
