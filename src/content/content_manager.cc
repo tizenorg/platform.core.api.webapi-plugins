@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <cstring>
 #include <dlog.h>
+#include <map>
 #include <metadata_extractor.h>
 #include <sstream>
 #include <string>
@@ -24,6 +25,17 @@ using namespace common;
 
 namespace extension {
 namespace content {
+
+const std::map<std::string, media_content_orientation_e> orientationMap = {
+    {"NORMAL", MEDIA_CONTENT_ORIENTATION_NORMAL},
+    {"FLIP_HORIZONTAL", MEDIA_CONTENT_ORIENTATION_HFLIP},
+    {"ROTATE_180", MEDIA_CONTENT_ORIENTATION_ROT_180},
+    {"FLIP_VERTICAL", MEDIA_CONTENT_ORIENTATION_VFLIP},
+    {"TRANSPOSE", MEDIA_CONTENT_ORIENTATION_TRANSPOSE},
+    {"ROTATE_90", MEDIA_CONTENT_ORIENTATION_ROT_90},
+    {"TRANSVERSE", MEDIA_CONTENT_ORIENTATION_TRANSVERSE},
+    {"ROTATE_270", MEDIA_CONTENT_ORIENTATION_ROT_270},
+};
 
 static int get_utc_offset()
 {
@@ -429,6 +441,21 @@ static int setContent(media_info_h media, picojson::value content) {
 
     if ( ret != MEDIA_CONTENT_ERROR_NONE) {
       LoggerD("Updating favorite is failed.");
+    }
+    if (type == MEDIA_CONTENT_TYPE_IMAGE) {
+      std::string orientation = content.get("orientation").to_str();
+      auto orientationToSet = orientationMap.find(orientation);
+
+      if (orientationToSet != orientationMap.end()) {
+        image_meta_h img;
+        if(MEDIA_CONTENT_ERROR_NONE == media_info_get_image(media, &img) &&
+           MEDIA_CONTENT_ERROR_NONE == image_meta_set_orientation(img, orientationToSet->second) &&
+           MEDIA_CONTENT_ERROR_NONE == image_meta_update_to_db(img)) {
+          LoggerD("orientation update was successful");
+        } else {
+          LoggerD("orientation update failed");
+        }
+      }
     }
     if (type == MEDIA_CONTENT_TYPE_IMAGE || type == MEDIA_CONTENT_TYPE_VIDEO) {
       picojson::value geo = content.get("geolocation");
