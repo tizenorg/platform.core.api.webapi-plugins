@@ -8,6 +8,9 @@ var T_ = xwalk.utils.type;
 var Converter_ = xwalk.utils.converter;
 var native_ = new xwalk.utils.NativeManager(extension);
 
+var _PRIVILEGE_SYSTEM = 'http://tizen.org/privilege/system';
+var _PRIVILEGE_SYSTEM_MANAGER = 'http://tizen.org/privilege/systemmanager';
+
 //enumeration SystemInfoPropertyId ////////////////////////////////////////////////////
 var SystemInfoPropertyId = {
         BATTERY : 'BATTERY',
@@ -95,18 +98,27 @@ function SystemInfoDeviceCapability(data) {
             enumerable : true
         },
         platformVersion : {
-            value : data.platformVersion,
-            writable : false,
+            get : function() {
+                xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_SYSTEM);
+                return data.platformVersion;
+            },
+            set : function() {},
             enumerable : true
         },
         webApiVersion : {
-            value : data.webApiVersion,
-            writable : false,
+            get : function() {
+                xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_SYSTEM);
+                return data.webApiVersion;
+            },
+            set : function() {},
             enumerable : true
         },
         nativeApiVersion : {
-            value : data.nativeApiVersion,
-            writable : false,
+            get : function() {
+                xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_SYSTEM);
+                return data.nativeApiVersion;
+            },
+            set : function() {},
             enumerable : true
         },
         platformName : {
@@ -543,21 +555,84 @@ function SystemInfoCellularNetwork(data) {
         lac : {value: Number(data.lac), writable: false, enumerable: true},
         isRoaming : {value: data.isRoaming, writable: false, enumerable: true},
         isFlightMode : {value: data.isFligthMode, writable: false, enumerable: true},
-        imei : {value: data.imei, writable: false, enumerable: true}
+        imei : {
+            get: function() {
+                xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_SYSTEM_MANAGER);
+                return data.imei;
+            },
+            set: function() {},
+            enumerable: true
+        }
     });
 }
 
 //class SystemInfoSIM ////////////////////////////////////////////////////
 function SystemInfoSIM(data) {
     Object.defineProperties(this, {
-        state : {value: data.state, writable: false, enumerable: true},
-        operatorName : {value: data.operatorName, writable: false, enumerable: true},
-        msisdn : {value: data.msisdn, writable: false, enumerable: true},
-        iccid : {value: data.iccid, writable: false, enumerable: true},
-        mcc : {value: Number(data.mcc), writable: false, enumerable: true},
-        mnc : {value: Number(data.mnc), writable: false, enumerable: true},
-        msin : {value: data.msin, writable: false, enumerable: true},
-        spn : {value: data.spn, writable: false, enumerable: true}
+        state : {
+            get: function() {
+                xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_SYSTEM);
+                return data.state;
+            },
+            set: function() {},
+            enumerable: true
+        },
+        operatorName : {
+            get: function() {
+                xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_SYSTEM);
+                return data.operatorName;
+            },
+            set: function() {},
+            enumerable: true
+        },
+        msisdn : {
+            get: function() {
+                xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_SYSTEM_MANAGER);
+                return data.msisdn;
+            },
+            set: function() {},
+            enumerable: true
+        },
+        iccid : {
+            get: function() {
+                xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_SYSTEM);
+                return data.iccid;
+            },
+            set: function() {},
+            enumerable: true
+        },
+        mcc : {
+            get: function() {
+                xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_SYSTEM);
+                return data.mcc;
+            },
+            set: function() {},
+            enumerable: true
+        },
+        mnc : {
+            get: function() {
+                xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_SYSTEM);
+                return data.mnc;
+            },
+            set: function() {},
+            enumerable: true
+        },
+        msin : {
+            get: function() {
+                xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_SYSTEM_MANAGER);
+                return data.msin;
+            },
+            set: function() {},
+            enumerable: true
+        },
+        spn : {
+            get: function() {
+                xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_SYSTEM);
+                return data.spn;
+            },
+            set: function() {},
+            enumerable: true
+        },
     });
 }
 
