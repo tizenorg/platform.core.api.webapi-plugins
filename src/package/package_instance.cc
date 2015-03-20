@@ -24,10 +24,8 @@ using common::SecurityException;
 
 namespace {
 // The privileges that required in Package API
-const std::string kPrivilegePackageInstall =
-    "http://tizen.org/privilege/packagemanager.install";
-const std::string kPrivilegePackageInfo =
-    "http://tizen.org/privilege/package.info";
+const std::string kPrivilegePackageInstall = "http://tizen.org/privilege/packagemanager.install";
+const std::string kPrivilegePackageInfo = "http://tizen.org/privilege/package.info";
 }  // namespace
 
 typedef enum _PackageThreadWorkType {
@@ -281,6 +279,8 @@ void PackageInstance::PackageManagerInstall(
     const picojson::value& args, picojson::object& out) {
   LoggerD("Enter");
 
+  CHECK_PRIVILEGE_ACCESS(kPrivilegePackageInstall, &out);
+
   CHECK_EXIST(args, "callbackId", out)
   CHECK_EXIST(args, "packageFileURI", out)
 
@@ -288,14 +288,6 @@ void PackageInstance::PackageManagerInstall(
       args.get("callbackId").get<double>());
   const std::string& packageFileURI =
       convertUriToPath(args.get("packageFileURI").get<std::string>());
-
-  /* Need to check privilege
-  ReportError(
-      SecurityException("This application does not have " \
-      "the privilege to call this method"),
-      out);
-  return;
-  */
 
   if ( !request_ ) {
     LoggerE("package_manager_request_h is NULL");
@@ -332,20 +324,14 @@ void PackageInstance::PackageManagerUninstall(
     const picojson::value& args, picojson::object& out) {
   LoggerD("Enter");
 
+  CHECK_PRIVILEGE_ACCESS(kPrivilegePackageInstall, &out);
+
   CHECK_EXIST(args, "callbackId", out)
   CHECK_EXIST(args, "id", out)
 
   int callback_id =
       static_cast<int>(args.get("callbackId").get<double>());
   const std::string& id = args.get("id").get<std::string>();
-
-  /* Need to check privilege
-  ReportError(
-      SecurityException("This application does not have " \
-      "the privilege to call this method"),
-      out);
-  return;
-  */
 
   if ( !request_ ) {
     LoggerE("package_manager_request_h is NULL");
@@ -380,17 +366,11 @@ void PackageInstance::PackageManagerGetpackagesinfo(
     const picojson::value& args, picojson::object& out) {
   LoggerD("Enter");
 
+  CHECK_PRIVILEGE_ACCESS(kPrivilegePackageInfo, &out);
+
   CHECK_EXIST(args, "callbackId", out)
   int callback_id =
       static_cast<int>(args.get("callbackId").get<double>());
-
-  /* Need to check privilege
-  ReportError(
-      SecurityException("This application does not have " \
-      "the privilege to call this method"),
-      out);
-  return;
-  */
 
   PackageUserDataPtr userData(new PackageUserData(
       this, callback_id, PackageThreadWorkGetPackagesInfo));
@@ -402,13 +382,7 @@ void PackageInstance::PackageManagerGetpackageinfo(
     const picojson::value& args, picojson::object& out) {
   LoggerD("Enter");
 
-  /* Need to check privilege
-  ReportError(
-      SecurityException("This application does not have " \
-      "the privilege to call this method"),
-      out);
-  return;
-  */
+  CHECK_PRIVILEGE_ACCESS(kPrivilegePackageInfo, &out);
 
   if ( args.contains("id") ) {
     std::string id = args.get("id").get<std::string>();
@@ -429,17 +403,11 @@ void PackageInstance::
     const picojson::value& args, picojson::object& out) {
   LoggerD("Enter");
 
+  CHECK_PRIVILEGE_ACCESS(kPrivilegePackageInfo, &out);
+
   CHECK_EXIST(args, "callbackId", out)
   int callback_id =
       static_cast<int>(args.get("callbackId").get<double>());
-
-  /* Need to check privilege
-  ReportError(
-      SecurityException("This application does not have " \
-      "the privilege to call this method"),
-      out);
-  return;
-  */
 
   if ( is_package_info_listener_set_ ) {
     LoggerD("Already set");
@@ -476,13 +444,7 @@ void PackageInstance::
     const picojson::value& args, picojson::object& out) {
   LoggerD("Enter");
 
-  /* Need to check privilege
-  ReportError(
-      SecurityException("This application does not have " \
-      "the privilege to call this method"),
-      out);
-  return;
-  */
+  CHECK_PRIVILEGE_ACCESS(kPrivilegePackageInfo, &out);
 
   if ( !is_package_info_listener_set_ ) {
     LoggerD("Listener is not set");
