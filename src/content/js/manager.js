@@ -199,7 +199,12 @@ ContentManager.prototype.getPlaylists = function(successCallback, errorCallback)
       native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));
       return;
     }
-    native_.callIfPossible(args.successCallback, native_.getResultObject(result));
+    var out = [];
+    result = native_.getResultObject(result);
+    for (var i = 0, max = result.length; i < max; i++) {
+      out.push(new Playlist(result[i]));
+    }
+    native_.callIfPossible(args.successCallback, out);
   };
 
   native_.call('ContentManager_getPlaylists', data, callback);
@@ -223,7 +228,7 @@ ContentManager.prototype.createPlaylist = function(name, successCallback, errorC
       native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));
       return;
     }
-    native_.callIfPossible(args.successCallback, native_.getResultObject(result));
+    native_.callIfPossible(args.successCallback, new Playlist(native_.getResultObject(result)));
   };
 
   native_.call('ContentManager_createPlaylist', data, callback);

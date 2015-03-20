@@ -925,7 +925,7 @@ int ContentManager::playlistRemove(std::string playlist_id, int member_id) {
 void ContentManager::playlistAddbatch(const std::shared_ptr<ReplyCallbackData>& user_data) {
 
   int ret = MEDIA_CONTENT_ERROR_NONE;
-  std::string playlist_id = user_data->args.get("playlist_id").get<std::string>();
+  std::string playlist_id = user_data->args.get("playlistId").get<std::string>();
 
   media_playlist_h playlist = NULL;
   ret = media_playlist_get_playlist_from_db(std::stoi(playlist_id), &playlist);
@@ -961,7 +961,7 @@ void ContentManager::playlistGet(const std::shared_ptr<ReplyCallbackData>& user_
   int ret = MEDIA_CONTENT_ERROR_NONE;
   media_playlist_h playlist = NULL;
 
-  std::string playlist_id = user_data->args.get("playlist_id").get<std::string>();
+  std::string playlist_id = user_data->args.get("playlistId").get<std::string>();
   ret = media_playlist_get_playlist_from_db(std::stoi(playlist_id), &playlist);
   if(ret != MEDIA_CONTENT_ERROR_NONE && playlist == NULL) {
     UnknownException err("Getting playlist is failed.");

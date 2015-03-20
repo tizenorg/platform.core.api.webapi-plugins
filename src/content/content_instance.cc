@@ -396,8 +396,8 @@ void ContentInstance::ContentManagerRemoveplaylist(const picojson::value& args, 
 void ContentInstance::ContentManagerPlaylistAdd(const picojson::value& args, picojson::object& out) {
   int ret;
   if(ContentManager::getInstance()->isConnected()) {
-    std::string playlist_id = args.get("playlist_id").get<std::string>();
-    std::string content_id = args.get("content_id").get<std::string>();
+    std::string playlist_id = args.get("playlistId").get<std::string>();
+    std::string content_id = args.get("contentId").get<std::string>();
     ret = ContentManager::getInstance()->playlistAdd(playlist_id, content_id);
     if(ret != MEDIA_CONTENT_ERROR_NONE) {
       ReportError(ContentManager::getInstance()->convertError(ret),out);

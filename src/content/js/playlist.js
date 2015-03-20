@@ -75,15 +75,15 @@ function Playlist(data) {
 
 Playlist.prototype.add = function (item) {
   var args = validator_.validateArgs(arguments, [
-    {name: 'item', type: types_.PLATFORM_OBJECT, values: tizen.Content}
+    {name: 'item', type: types_.PLATFORM_OBJECT, values: Content}
   ]);
 
   var data = {
-    item: args.item
+    contentId: args.item.id,
+    playlistId: this.id,
   };
 
-  var result = native_.callSync('Playlist_add', data);
-
+  var result = native_.callSync('ContentPlaylist_add', data);
   if (native_.isFailure(result)) {
     throw native_.getErrorObject(result);
   }
@@ -91,13 +91,14 @@ Playlist.prototype.add = function (item) {
 
 Playlist.prototype.addBatch = function (items, successCallback, errorCallback) {
   var args = validator_.validateArgs(arguments, [
-    {name: 'items', type: types_.PLATFORM_OBJECT, values: tizen.Content},
+    {name: 'items', type: types_.ARRAY, values: Content},
     {name: 'successCallback', type: types_.FUNCTION, optional: true, nullable: true},
     {name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true}
   ]);
 
   var data = {
-    items: args.items
+    playlistId: this.id,
+    contents: args.items
   };
 
   var callback = function (result) {
@@ -108,12 +109,12 @@ Playlist.prototype.addBatch = function (items, successCallback, errorCallback) {
     native_.callIfPossible(args.successCallback);
   };
 
-  native_.call('Playlist_addBatch', data, callback);
+  native_.call('ContentPlaylist_addBatch', data, callback);
 };
 
 Playlist.prototype.remove = function (item) {
   var args = validator_.validateArgs(arguments, [
-    {name: 'item', type: types_.PLATFORM_OBJECT, values: tizen.PlaylistItem}
+    {name: 'item', type: types_.PLATFORM_OBJECT, values: PlaylistItem}
   ]);
 
   var data = {
@@ -129,7 +130,7 @@ Playlist.prototype.remove = function (item) {
 
 Playlist.prototype.removeBatch = function (items, successCallback, errorCallback) {
   var args = validator_.validateArgs(arguments, [
-    {name: 'items', type: types_.PLATFORM_OBJECT, values: tizen.PlaylistItem},
+    {name: 'items', type: types_.PLATFORM_OBJECT, values: PlaylistItem},
     {name: 'successCallback', type: types_.FUNCTION, optional: true, nullable: true},
     {name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true}
   ]);
@@ -158,8 +159,9 @@ Playlist.prototype.get = function (successCallback, errorCallback, count, offset
   ]);
 
   var data = {
-    count: args.count,
-    offset: args.offset
+    playlistId: this.id,
+    count: type_.isNullOrUndefined(args.count) ? -1 : args.count,
+    offset: type_.isNullOrUndefined(args.offset) ? -1 : args.offset
   };
 
   var callback = function (result) {
@@ -167,15 +169,20 @@ Playlist.prototype.get = function (successCallback, errorCallback, count, offset
       native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));
       return;
     }
-    native_.callIfPossible(args.successCallback, native_.getResultObject(result));
+    result = native_.getResultObject(result);
+    var out = [];
+    for (var i = 0, max = result.length; i < max; i++) {
+      out.push(new PlaylistItem(createContentObject_(result[i])));
+    }
+    native_.callIfPossible(args.successCallback, out);
   };
 
-  native_.call('Playlist_get', data, callback);
+  native_.call('ContentPlaylist_get', data, callback);
 };
 
 Playlist.prototype.setOrder = function (items, successCallback, errorCallback) {
   var args = validator_.validateArgs(arguments, [
-    {name: 'items', type: types_.PLATFORM_OBJECT, values: tizen.PlaylistItem},
+    {name: 'items', type: types_.PLATFORM_OBJECT, values: PlaylistItem},
     {name: 'successCallback', type: types_.FUNCTION, optional: true, nullable: true},
     {name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true}
   ]);
