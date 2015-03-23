@@ -65,8 +65,8 @@ ContentInstance::~ContentInstance() {
 static gboolean CompletedCallback(const std::shared_ptr<ReplyCallbackData>& user_data) {
   LoggerD("entered");
 
-  picojson::value::object out;
-  out["callbackId"] = picojson::value(static_cast<double>(user_data->callbackId));
+  picojson::object out;
+  out["callbackId"] = picojson::value(user_data->callbackId);
 
   if (user_data->isSuccess) {
     ReportSuccess(user_data->result, out);
@@ -123,7 +123,6 @@ static void* WorkThread(const std::shared_ptr<ReplyCallbackData>& user_data) {
       break;
     }
     case ContentManagerRemoveplaylistCallback: {
-      LoggerE("ContentManagerRemoveplaylistCallback...");
       std::string id = user_data->args.get("id").get<std::string>();
       ContentManager::getInstance()->removePlaylist(id, user_data);
       // do something...
@@ -283,8 +282,7 @@ void ContentInstance::ContentManagerFind(const picojson::value& args, picojson::
   cbData->args = args;
   if(ContentManager::getInstance()->isConnected()) {
     cbData->cbType = ContentManagerFindCallback;
-  }
-  else {
+  } else {
     cbData->cbType = ContentManagerErrorCallback;
   }
 
@@ -517,21 +515,22 @@ void ContentInstance::ContentManagerPlaylistMove(const picojson::value& args, pi
 
 void ContentInstance::ContentManagerAudioGetLyrics(const picojson::value& args,
                                                    picojson::object& out) {
+  LOGGER(DEBUG) << "entered";
+
   int ret;
   picojson::object lyrics;
   if (ContentManager::getInstance()->isConnected()) {
     ret = ContentManager::getInstance()->getLyrics(args, lyrics);
     if (ret != MEDIA_CONTENT_ERROR_NONE) {
       ReportError(ContentManager::getInstance()->convertError(ret), out);
-    }
-    else {
+    } else {
       ReportSuccess(picojson::value(lyrics), out);
     }
-  }
-  else {
+  } else {
     ReportError(common::UnknownException("DB connection is failed."), out);
   }
 }
+
 #undef CHECK_EXIST
 
 } // namespace content

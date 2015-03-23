@@ -92,7 +92,7 @@ function ContentDirectory(data) {
         }
       },
       enumerable: true
-    },
+    }
   });
 
   if (type_.isObject(data)) {
@@ -425,11 +425,11 @@ function AudioContentLyrics(data) {
       },
       set: function(v) {
         if (edit_.isAllowed) {
-          texts = converter_.toArray(v, true);
+          texts = converter_.toArray(v, false);
         }
       },
       enumerable: true
-    },
+    }
   });
 
   if (type_.isObject(data)) {
@@ -457,6 +457,21 @@ function AudioContent(data) {
   var bitrate;
   var trackNumber;
   var duration;
+
+  var getLyrics = function() {
+    var data = {
+      contentURI: convertUriToPath_(this.contentURI)
+    };
+
+    var result = native_.callSync('ContentManager_getLyrics', data);
+
+    if (native_.isFailure(result)) {
+      console.log('Getting lyrics failed for ' + contentURI);
+      return;
+    }
+
+    return new AudioContentLyrics(native_.getResultObject(result));
+  }.bind(this);
 
   Object.defineProperties(this, {
     album: {
@@ -505,6 +520,9 @@ function AudioContent(data) {
     },
     lyrics: {
       get: function() {
+        if (lyrics === undefined) {
+          lyrics = getLyrics();
+        }
         return lyrics;
       },
       set: function(v) {
@@ -557,7 +575,7 @@ function AudioContent(data) {
         }
       },
       enumerable: true
-    },
+    }
   });
 
   if (type_.isObject(data)) {
@@ -639,7 +657,7 @@ function ImageContent(data) {
         }
       },
       enumerable: true
-    },
+    }
   });
 
   if (type_.isObject(data)) {
@@ -672,7 +690,7 @@ function PlaylistItem(data) {
         }
       },
       enumerable: true
-    },
+    }
   });
 
   if (type_.isObject(data)) {

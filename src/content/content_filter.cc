@@ -67,7 +67,18 @@ std::string escapeValueString(const std::string& data) {
 
 }  // namespace
 
-PlatformResult ContentFilter::buildQuery(const picojson::object& jsFilter,
+PlatformResult ContentFilter::MapField(const std::string& name,
+                                       std::string* result) {
+  auto it = attributeNameMap.find(name);
+  if (it != attributeNameMap.end())
+    *result = it->second;
+  else
+    return PlatformResult(ErrorCode::INVALID_VALUES_ERR);
+
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult ContentFilter::BuildQuery(const picojson::object& jsFilter,
                                          std::string* queryToCall) {
   std::vector<std::vector<std::string> > partialqueries;
   partialqueries.push_back(std::vector<std::string>());
@@ -75,14 +86,16 @@ PlatformResult ContentFilter::buildQuery(const picojson::object& jsFilter,
   visitor.SetOnAttributeFilter([&](const std::string& name,
                                    AttributeMatchFlag match_flag,
                                    const picojson::value& match_value) {
-    std::string query;
     LoggerD("entered OnAttributeFilter");
+
+    PlatformResult result = PlatformResult(ErrorCode::NO_ERROR);
+
+    std::string query;
     std::string matchValue;
-    auto it = attributeNameMap.find(name);
-    if (it != attributeNameMap.end())
-      query += it->second;
-    else
-      return PlatformResult(ErrorCode::INVALID_VALUES_ERR);
+
+    result = MapField(name, &query);
+    if (!result)
+      return result;
 
     if (AttributeMatchFlag::kExactly == match_flag ||
         AttributeMatchFlag::kFullString == match_flag) {
@@ -117,7 +130,7 @@ PlatformResult ContentFilter::buildQuery(const picojson::object& jsFilter,
 
     partialqueries.back().push_back(query);
 
-    return PlatformResult(ErrorCode::NO_ERROR);
+    return result;
   });
 
   visitor.SetOnCompositeFilterBegin([&](CompositeFilterType type) {
@@ -162,13 +175,14 @@ PlatformResult ContentFilter::buildQuery(const picojson::object& jsFilter,
                                         const picojson::value& initial_value,
                                         const picojson::value& end_value) {
     LoggerD("entered OnAttributeFilter");
+
+    PlatformResult result = PlatformResult(ErrorCode::NO_ERROR);
     std::string query = "";
     std::string paramName;
-    auto it = attributeNameMap.find(name);
-    if (it != attributeNameMap.end())
-      paramName = it->second;
-    else
-      return PlatformResult(ErrorCode::INVALID_VALUES_ERR);
+    result = MapField(name, &paramName);
+    if (!result)
+      return result;
+
     std::string initialValue = escapeValueString(JsonCast<std::string>(initial_value));
     std::string endValue = escapeValueString(JsonCast<std::string>(end_value));
     query += paramName;
@@ -181,7 +195,7 @@ PlatformResult ContentFilter::buildQuery(const picojson::object& jsFilter,
     query += "\"";
     partialqueries.back().push_back(query);
 
-    return PlatformResult(ErrorCode::NO_ERROR);
+    return result;
   });
 
   if (!visitor.Visit(jsFilter)) {

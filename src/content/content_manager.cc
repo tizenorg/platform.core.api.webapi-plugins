@@ -11,6 +11,7 @@
 #include <sstream>
 #include <string>
 #include <unistd.h>
+#include <stdlib.h>
 
 #include "common/converter.h"
 #include "common/logger.h"
@@ -36,84 +37,19 @@ const std::map<std::string, media_content_orientation_e> orientationMap = {
     {"ROTATE_270", MEDIA_CONTENT_ORIENTATION_ROT_270},
 };
 
-static int get_utc_offset()
-{
-  time_t zero = 24*60*60L;
-  struct tm * timeptr;
+static int get_utc_offset() {
+  time_t zero = 24 * 60 * 60L;
+  struct tm* timeptr;
   int gmtime_hours;
 
   /* get the local time for Jan 2, 1900 00:00 UTC */
-  timeptr = localtime( &zero );
+  timeptr = localtime(&zero);
   gmtime_hours = timeptr->tm_hour;
 
-  if( timeptr->tm_mday < 2 )
+  if (timeptr->tm_mday < 2)
     gmtime_hours -= 24;
 
   return gmtime_hours;
-}
-
-static bool isContentUri(const std::string str) {
-  std::string schema("file://");
-  std::size_t found = str.find(schema);
-
-  if (found == std::string::npos || found != 0) {
-      return false;
-  }
-
-  return true;
-}
-
-static std::string ltrim(const std::string s) {
-  std::string str = s;
-  std::string::iterator i;
-  for (i = str.begin(); i != str.end(); i++) {
-      if (!isspace(*i)) {
-          break;
-      }
-  }
-  if (i == str.end()) {
-      str.clear();
-  } else {
-      str.erase(str.begin(), i);
-  }
-  return str;
-}
-
-
-static std::string convertUriToPath(const string str) {
-  string result;
-  std::string schema ("file://");
-  std::string _str = ltrim(str);
-
-  std::string _schema = _str.substr(0,schema.size());
-
-  if(_schema == schema)
-  {
-      result = _str.substr(schema.size());
-  }
-  else
-  {
-      result = _str;
-  }
-  return result;
-}
-
-static std::string convertPathToUri(const string str) {
-  string result;
-  std::string schema ("file://");
-  std::string _str = ltrim(str);
-
-  std::string _schema = _str.substr(0,schema.size());
-
-  if(_schema == schema)
-  {
-      result = _str;
-  }
-  else
- {
-      result = schema + _str;
-  }
-  return result;
 }
 
 
@@ -126,129 +62,26 @@ void contentToJson(media_info_h info, picojson::object& o) {
   double tmpDouble;
   long long unsigned int tmpLong;
   media_content_type_e type;
-  ret == media_info_get_media_type(info, &type);
-  if(ret != MEDIA_CONTENT_ERROR_NONE) {
-    if ( type == MEDIA_CONTENT_TYPE_IMAGE ) {
-      o["type"] = picojson::value(std::string("IMAGE"));
-      image_meta_h img;
-      if(MEDIA_CONTENT_ERROR_NONE == media_info_get_image(info, &img)) {
-        if(MEDIA_CONTENT_ERROR_NONE == image_meta_get_date_taken (img, &tmpStr)) {
-          if ( tmpStr ) {
-            struct tm *result = (struct tm *)calloc(1, sizeof(struct tm));
-            if(strptime(tmpStr, "%Y:%m:%d %H:%M:%S", result) == NULL) {
-              LoggerE( "Couldn't convert supplied date.");
-            }
-            else {
-              time_t t = mktime( result );// + get_utc_offset() * 3600;
-              std::stringstream str_date;
-              str_date << t;
-              o["releaseDate"] = picojson::value(str_date.str());
-              free(tmpStr);
-              free(result);
-              tmpStr = NULL;
-            }
-          }
-        }
-        if(MEDIA_CONTENT_ERROR_NONE == image_meta_get_width(img, &tmpInt) ) {
-          o["width"] = picojson::value(static_cast<double>(tmpInt));
-        }
-        if(MEDIA_CONTENT_ERROR_NONE == image_meta_get_height(img, &tmpInt) ) {
-          o["height"] = picojson::value(static_cast<double>(tmpInt));
-        }
-        picojson::object geo;
-        std::string str_latitude;
-        if (MEDIA_CONTENT_ERROR_NONE == media_info_get_latitude(info, &tmpDouble) ) {
-          geo["latitude"] = picojson::value(tmpDouble);
-        }
-        std::string str_longitude;
-        if(MEDIA_CONTENT_ERROR_NONE == media_info_get_longitude(info, &tmpDouble) ) {
-          geo["longitude"] = picojson::value(tmpDouble);
-        }
-        o["geolocation"] = picojson::value(geo);
-        std::string ori;
-        media_content_orientation_e orientation;
-        if(MEDIA_CONTENT_ERROR_NONE == image_meta_get_orientation(img, &orientation) ) {
-          switch (orientation) {
-          case 0:
-          case 1:
-              ori = "NORMAL";
-              break;
-          case 2:
-              ori = "FLIP_HORIZONTAL";
-              break;
-          case 3:
-              ori = "ROTATE_180";
-              break;
-          case 4:
-              ori = "FLIP_VERTICAL";
-              break;
-          case 5:
-              ori = "TRANSPOSE";
-              break;
-          case 6:
-              ori = "ROTATE_90";
-              break;
-          case 7:
-              ori = "TRANSVERSE";
-              break;
-          case 8:
-              ori = "ROTATE_270";
-              break;
-          }
-          o["orientation"] = picojson::value(ori);
-        }
 
-      }
+  ret = media_info_get_media_type(info, &type);
 
-    }
-    else if( type == MEDIA_CONTENT_TYPE_VIDEO ) {
-      o["type"] = picojson::value(std::string("VIDEO"));
-      video_meta_h video;
-      if(MEDIA_CONTENT_ERROR_NONE == media_info_get_video(info, &video)) {
-        if(MEDIA_CONTENT_ERROR_NONE == video_meta_get_width(video, &tmpInt)) {
-          o["width"] = picojson::value(static_cast<double>(tmpInt));
-        }
+  if (ret != MEDIA_CONTENT_ERROR_NONE) {
+    LOGGER(ERROR) << "Get media type failed: " << ret;
+    type = MEDIA_CONTENT_TYPE_OTHERS;
+  }
 
-        if(MEDIA_CONTENT_ERROR_NONE == video_meta_get_height(video, &tmpInt) ) {
-          o["height"] = picojson::value(static_cast<double>(tmpInt));
-        }
-        if (MEDIA_CONTENT_ERROR_NONE == video_meta_get_artist(video, &tmpStr) ) {
-          picojson::array artists;
-          if (tmpStr) {
-            artists.push_back(picojson::value(std::string(tmpStr)));
+  if (type == MEDIA_CONTENT_TYPE_IMAGE) {
+    o["type"] = picojson::value(std::string("IMAGE"));
+    image_meta_h img;
+    if (MEDIA_CONTENT_ERROR_NONE == media_info_get_image(info, &img)) {
+      if (MEDIA_CONTENT_ERROR_NONE == image_meta_get_date_taken(img, &tmpStr)) {
+        if (tmpStr) {
+          struct tm* result = (struct tm*) calloc(1, sizeof(struct tm));
+          if (strptime(tmpStr, "%Y:%m:%d %H:%M:%S", result) == NULL) {
+            LoggerE("Couldn't convert supplied date.");
           }
-          o["artists"] = picojson::value(artists);
-        }
-        if (MEDIA_CONTENT_ERROR_NONE == video_meta_get_album(video, &tmpStr)) {
-          if (tmpStr) {
-            o["album"] = picojson::value(tmpStr);
-          }
-        }
-        if (MEDIA_CONTENT_ERROR_NONE == video_meta_get_duration(video, &tmpInt) ) {
-          o["duration"] = picojson::value(static_cast<double>(tmpInt));
-        }
-      }
-      picojson::object geo;
-      if (MEDIA_CONTENT_ERROR_NONE == media_info_get_latitude(info, &tmpDouble) ) {
-        geo["latitude"] = picojson::value(tmpDouble);
-      }
-      if (MEDIA_CONTENT_ERROR_NONE == media_info_get_longitude(info, &tmpDouble) ) {
-        geo["longitude"] = picojson::value(tmpDouble);
-      }
-      o["geolocation"] = picojson::value(geo);
-    }
-    else if( type == MEDIA_CONTENT_TYPE_SOUND || type == MEDIA_CONTENT_TYPE_MUSIC ) {
-      o["type"] = picojson::value(std::string("AUDIO"));
-      audio_meta_h audio;
-      if(MEDIA_CONTENT_ERROR_NONE == media_info_get_audio(info, &audio)) {
-        if (MEDIA_CONTENT_ERROR_NONE == audio_meta_get_recorded_date(audio, &tmpStr) ) {
-          if (tmpStr) {
-            struct tm *result = (struct tm *)calloc(1, sizeof(struct tm));
-
-            if (strptime(tmpStr, "%Y:%m:%d %H:%M:%S", result) == NULL) {
-                LoggerD( "Couldn't convert supplied date.");
-            }
-            time_t t = mktime( result ) + get_utc_offset() * 3600;
+          else {
+            time_t t = mktime(result);// + get_utc_offset() * 3600;
             std::stringstream str_date;
             str_date << t;
             o["releaseDate"] = picojson::value(str_date.str());
@@ -257,74 +90,179 @@ void contentToJson(media_info_h info, picojson::object& o) {
             tmpStr = NULL;
           }
         }
-        if (MEDIA_CONTENT_ERROR_NONE == audio_meta_get_album(audio, &tmpStr)) {
-          if(tmpStr) {
-            o["album"] = picojson::value(std::string(tmpStr));
-            free(tmpStr);
-            tmpStr = NULL;
-          }
+      }
+      if (MEDIA_CONTENT_ERROR_NONE == image_meta_get_width(img, &tmpInt)) {
+        o["width"] = picojson::value(static_cast<double>(tmpInt));
+      }
+      if (MEDIA_CONTENT_ERROR_NONE == image_meta_get_height(img, &tmpInt)) {
+        o["height"] = picojson::value(static_cast<double>(tmpInt));
+      }
+      picojson::object geo;
+      std::string str_latitude;
+      if (MEDIA_CONTENT_ERROR_NONE == media_info_get_latitude(info, &tmpDouble)) {
+        geo["latitude"] = picojson::value(tmpDouble);
+      }
+      std::string str_longitude;
+      if (MEDIA_CONTENT_ERROR_NONE == media_info_get_longitude(info, &tmpDouble)) {
+        geo["longitude"] = picojson::value(tmpDouble);
+      }
+      o["geolocation"] = picojson::value(geo);
+      std::string ori;
+      media_content_orientation_e orientation;
+      if (MEDIA_CONTENT_ERROR_NONE == image_meta_get_orientation(img, &orientation)) {
+        switch (orientation) {
+          case MEDIA_CONTENT_ORIENTATION_NOT_AVAILABLE:
+          case MEDIA_CONTENT_ORIENTATION_NORMAL:
+            ori = "NORMAL";
+            break;
+          case MEDIA_CONTENT_ORIENTATION_HFLIP:
+            ori = "FLIP_HORIZONTAL";
+            break;
+          case MEDIA_CONTENT_ORIENTATION_ROT_180:
+            ori = "ROTATE_180";
+            break;
+          case MEDIA_CONTENT_ORIENTATION_VFLIP:
+            ori = "FLIP_VERTICAL";
+            break;
+          case MEDIA_CONTENT_ORIENTATION_TRANSPOSE:
+            ori = "TRANSPOSE";
+            break;
+          case MEDIA_CONTENT_ORIENTATION_ROT_90:
+            ori = "ROTATE_90";
+            break;
+          case MEDIA_CONTENT_ORIENTATION_TRANSVERSE:
+            ori = "TRANSVERSE";
+            break;
+          case MEDIA_CONTENT_ORIENTATION_ROT_270:
+            ori = "ROTATE_270";
+            break;
         }
-        if(MEDIA_CONTENT_ERROR_NONE == audio_meta_get_artist(audio, &tmpStr)) {
-          if(tmpStr) {
-            picojson::array artists;
-            if (tmpStr) {
-              artists.push_back(picojson::value(std::string(tmpStr)));
-            }
-            o["artists"] = picojson::value(artists);
-            free(tmpStr);
-            tmpStr = NULL;
-          }
-        }
-        if(MEDIA_CONTENT_ERROR_NONE == audio_meta_get_genre(audio, &tmpStr)) {
-          if(tmpStr) {
-            picojson::array genres;
-            if (tmpStr) {
-              genres.push_back(picojson::value(std::string(tmpStr)));
-            }
-            o["genres"] = picojson::value(genres);
-            free(tmpStr);
-            tmpStr = NULL;
-          }
-        }
-        if(MEDIA_CONTENT_ERROR_NONE == audio_meta_get_composer(audio, &tmpStr)) {
-          if(tmpStr) {
-            picojson::array composers;
-            if (tmpStr) {
-              composers.push_back(picojson::value(std::string(tmpStr)));
-            }
-            o["composers"] = picojson::value(composers);
-            free(tmpStr);
-            tmpStr = NULL;
-          }
-        }
-        if (MEDIA_CONTENT_ERROR_NONE == audio_meta_get_copyright(audio, &tmpStr)) {
-          if(tmpStr) {
-            o["copyright"] = picojson::value(std::string(tmpStr));
-            free(tmpStr);
-            tmpStr = NULL;
-          }
-        }
-        if (MEDIA_CONTENT_ERROR_NONE == audio_meta_get_bit_rate(audio, &tmpInt)){
-          o["bitrate"] = picojson::value(static_cast<double>(tmpInt));
-        }
-        if (MEDIA_CONTENT_ERROR_NONE == audio_meta_get_track_num(audio, &tmpStr)){
-          if(tmpStr) {
-            o["trackNumber"] = picojson::value(static_cast<double>(std::atoi(tmpStr)));
-            free(tmpStr);
-            tmpStr = NULL;
-          }
-          else {
-            o["trackNumber"] = picojson::value();
-          }
-        }
-        if (MEDIA_CONTENT_ERROR_NONE == audio_meta_get_duration(audio, &tmpInt) ) {
-          o["duration"] = picojson::value(static_cast<double>(tmpInt));
-        }
+        o["orientation"] = picojson::value(ori);
       }
     }
-    else {
-      o["type"] = picojson::value(std::string("OTHER"));
+
+  } else if (type == MEDIA_CONTENT_TYPE_VIDEO) {
+    o["type"] = picojson::value(std::string("VIDEO"));
+    video_meta_h video;
+    if (MEDIA_CONTENT_ERROR_NONE == media_info_get_video(info, &video)) {
+      if (MEDIA_CONTENT_ERROR_NONE == video_meta_get_width(video, &tmpInt)) {
+        o["width"] = picojson::value(static_cast<double>(tmpInt));
+      }
+
+      if (MEDIA_CONTENT_ERROR_NONE == video_meta_get_height(video, &tmpInt)) {
+        o["height"] = picojson::value(static_cast<double>(tmpInt));
+      }
+      if (MEDIA_CONTENT_ERROR_NONE == video_meta_get_artist(video, &tmpStr)) {
+        picojson::array artists;
+        if (tmpStr) {
+          artists.push_back(picojson::value(std::string(tmpStr)));
+        }
+        o["artists"] = picojson::value(artists);
+      }
+      if (MEDIA_CONTENT_ERROR_NONE == video_meta_get_album(video, &tmpStr)) {
+        if (tmpStr) {
+          o["album"] = picojson::value(tmpStr);
+        }
+      }
+      if (MEDIA_CONTENT_ERROR_NONE == video_meta_get_duration(video, &tmpInt)) {
+        o["duration"] = picojson::value(static_cast<double>(tmpInt));
+      }
     }
+    picojson::object geo;
+    if (MEDIA_CONTENT_ERROR_NONE == media_info_get_latitude(info, &tmpDouble)) {
+      geo["latitude"] = picojson::value(tmpDouble);
+    }
+    if (MEDIA_CONTENT_ERROR_NONE == media_info_get_longitude(info, &tmpDouble)) {
+      geo["longitude"] = picojson::value(tmpDouble);
+    }
+    o["geolocation"] = picojson::value(geo);
+
+  } else if (type == MEDIA_CONTENT_TYPE_SOUND || type == MEDIA_CONTENT_TYPE_MUSIC) {
+    o["type"] = picojson::value(std::string("AUDIO"));
+    audio_meta_h audio;
+    if (MEDIA_CONTENT_ERROR_NONE == media_info_get_audio(info, &audio)) {
+      if (MEDIA_CONTENT_ERROR_NONE == audio_meta_get_recorded_date(audio, &tmpStr)) {
+        if (tmpStr) {
+          struct tm* result = (struct tm*) calloc(1, sizeof(struct tm));
+
+          if (strptime(tmpStr, "%Y:%m:%d %H:%M:%S", result) == NULL) {
+            LoggerD("Couldn't convert supplied date.");
+          }
+          time_t t = mktime(result) + get_utc_offset() * 3600;
+          std::stringstream str_date;
+          str_date << t;
+          o["releaseDate"] = picojson::value(str_date.str());
+          free(tmpStr);
+          free(result);
+          tmpStr = NULL;
+        }
+      }
+      if (MEDIA_CONTENT_ERROR_NONE == audio_meta_get_album(audio, &tmpStr)) {
+        if (tmpStr) {
+          o["album"] = picojson::value(std::string(tmpStr));
+          free(tmpStr);
+          tmpStr = NULL;
+        }
+      }
+      if (MEDIA_CONTENT_ERROR_NONE == audio_meta_get_artist(audio, &tmpStr)) {
+        if (tmpStr) {
+          picojson::array artists;
+          if (tmpStr) {
+            artists.push_back(picojson::value(std::string(tmpStr)));
+          }
+          o["artists"] = picojson::value(artists);
+          free(tmpStr);
+          tmpStr = NULL;
+        }
+      }
+      if (MEDIA_CONTENT_ERROR_NONE == audio_meta_get_genre(audio, &tmpStr)) {
+        if (tmpStr) {
+          picojson::array genres;
+          if (tmpStr) {
+            genres.push_back(picojson::value(std::string(tmpStr)));
+          }
+          o["genres"] = picojson::value(genres);
+          free(tmpStr);
+          tmpStr = NULL;
+        }
+      }
+      if (MEDIA_CONTENT_ERROR_NONE == audio_meta_get_composer(audio, &tmpStr)) {
+        if (tmpStr) {
+          picojson::array composers;
+          if (tmpStr) {
+            composers.push_back(picojson::value(std::string(tmpStr)));
+          }
+          o["composers"] = picojson::value(composers);
+          free(tmpStr);
+          tmpStr = NULL;
+        }
+      }
+      if (MEDIA_CONTENT_ERROR_NONE == audio_meta_get_copyright(audio, &tmpStr)) {
+        if (tmpStr) {
+          o["copyright"] = picojson::value(std::string(tmpStr));
+          free(tmpStr);
+          tmpStr = NULL;
+        }
+      }
+      if (MEDIA_CONTENT_ERROR_NONE == audio_meta_get_bit_rate(audio, &tmpInt)) {
+        o["bitrate"] = picojson::value(static_cast<double>(tmpInt));
+      }
+      if (MEDIA_CONTENT_ERROR_NONE == audio_meta_get_track_num(audio, &tmpStr)) {
+        if (tmpStr) {
+          o["trackNumber"] = picojson::value(static_cast<double>(std::atoi(tmpStr)));
+          free(tmpStr);
+          tmpStr = NULL;
+        }
+        else {
+          o["trackNumber"] = picojson::value();
+        }
+      }
+      if (MEDIA_CONTENT_ERROR_NONE == audio_meta_get_duration(audio, &tmpInt)) {
+        o["duration"] = picojson::value(static_cast<double>(tmpInt));
+      }
+    }
+  } else {
+    o["type"] = picojson::value(std::string("OTHER"));
   }
 
   ret = media_info_get_media_id(info, &tmpStr);
@@ -637,10 +575,11 @@ void ContentManager::getDirectories(const std::shared_ptr<ReplyCallbackData>& us
 }
 
 void ContentManager::find(const std::shared_ptr<ReplyCallbackData>& user_data) {
+  LOGGER(DEBUG) << "entered";
+
   int ret;
   int count, offset;
   std::string dirId;
-  std::string sortModeName, sortModeOrder;
   media_content_order_e order;
 
   picojson::value::array arrayContent;
@@ -651,11 +590,12 @@ void ContentManager::find(const std::shared_ptr<ReplyCallbackData>& user_data) {
       media_filter_destroy(filter);
     }
   };
+
   if (!IsNull(user_data->args.get("filter"))) {
     ContentFilter filterMechanism;
     std::string query;
     picojson::object argsObject = JsonCast<picojson::object>(user_data->args);
-    if (filterMechanism.buildQuery(
+    if (filterMechanism.BuildQuery(
         FromJson<picojson::object>(argsObject, "filter"), &query)) {
       LOGGER(DEBUG) << "Filter query: " << query;
       ret = media_filter_set_condition(filter, query.c_str(),
@@ -669,8 +609,11 @@ void ContentManager::find(const std::shared_ptr<ReplyCallbackData>& user_data) {
   if (user_data->args.contains("sortMode")) {
     picojson::value vSortMode = user_data->args.get("sortMode");
 
-    if (!vSortMode.is<picojson::null>() && vSortMode.is<picojson::object>()) {
-      sortModeName = vSortMode.get("attributeName").to_str();
+    if (vSortMode.is<picojson::object>()) {
+      std::string sortModeName, sortModeOrder;
+
+      ContentFilter::MapField(vSortMode.get("attributeName").to_str(), &sortModeName);
+
       sortModeOrder = vSortMode.get("order").to_str();
       if (!sortModeOrder.empty()) {
         if (sortModeOrder == "ASC") {
@@ -679,7 +622,8 @@ void ContentManager::find(const std::shared_ptr<ReplyCallbackData>& user_data) {
           order = MEDIA_CONTENT_ORDER_DESC;
         }
 
-        ret = media_filter_set_order(filter, order, sortModeName.c_str(), MEDIA_CONTENT_COLLATE_DEFAULT);
+        ret = media_filter_set_order(filter, order, sortModeName.c_str(),
+            MEDIA_CONTENT_COLLATE_DEFAULT);
         if (MEDIA_CONTENT_ERROR_NONE != ret) {
           LoggerD("Platform SortMode setting failed, error: %d", ret);
         }
@@ -1122,53 +1066,67 @@ void ContentManager::playlistMove(const std::shared_ptr<ReplyCallbackData>& user
 }
 
 int ContentManager::getLyrics(const picojson::value& args, picojson::object& result) {
+  LOGGER(DEBUG) << "entered";
+
   int ret = METADATA_EXTRACTOR_ERROR_NONE;
-  std::string contentURI = convertUriToPath(args.get("contentURI").get<std::string>());
+  const std::string& contentURI = args.get("contentURI").to_str();
+  if (contentURI.empty()) {
+    LOGGER(ERROR) << "contentURI empty - skipping media extractor";
+    return -1;
+  }
+
   metadata_extractor_h extractor;
   metadata_extractor_create(&extractor);
-  if (!(contentURI.empty())) {
-    ret = metadata_extractor_set_path(extractor, contentURI.c_str());
-    if (ret != METADATA_EXTRACTOR_ERROR_NONE) {
-      return -1;
+
+  ret = metadata_extractor_set_path(extractor, contentURI.c_str());
+  if (ret != METADATA_EXTRACTOR_ERROR_NONE) {
+    LOGGER(ERROR) << "metadata_extractor_set_path failed, error: " << ret;
+    return -1;
+  }
+  picojson::array timestamps;
+  picojson::array texts = picojson::array();
+  char* strSyncTextNum = NULL;
+
+  ret = metadata_extractor_get_metadata(extractor,
+      METADATA_SYNCLYRICS_NUM, &strSyncTextNum);
+  if (ret != METADATA_EXTRACTOR_ERROR_NONE) {
+    LOGGER(ERROR) << "Media extractor error " << ret;
+  }
+
+  int nSyncTextNum = atoi(strSyncTextNum);
+  free(strSyncTextNum);
+  strSyncTextNum = NULL;
+  if (nSyncTextNum > 0) {
+    result["type"] = picojson::value(std::string("SYNCHRONIZED"));
+    for (int i = 0; i < nSyncTextNum; i++) {
+      unsigned long time_info = 0;
+      char* lyrics = NULL;
+      ret = metadata_extractor_get_synclyrics(extractor, i, &time_info, &lyrics);
+      if (ret == METADATA_EXTRACTOR_ERROR_NONE) {
+        timestamps.push_back(picojson::value(static_cast<double>(time_info)));
+        texts.push_back(picojson::value(std::string(lyrics)));
+        free(lyrics);
+      }
     }
-    picojson::array timestamps;
-    picojson::array texts;
-    char* strSyncTextNum=NULL;
-    metadata_extractor_attr_e attr = METADATA_SYNCLYRICS_NUM;
-    ret = metadata_extractor_get_metadata(extractor, attr, &strSyncTextNum);
-    if (ret = METADATA_EXTRACTOR_ERROR_NONE && strSyncTextNum ) {
-      int nSyncTextNum = atoi(strSyncTextNum);
-      free(strSyncTextNum);
-      strSyncTextNum = NULL;
-      if (nSyncTextNum > 0) {
-        result["type"] = picojson::value(std::string("SYNCHRONIZED"));
-        for(int i=0; i < nSyncTextNum; i++) {
-          unsigned long time_info = 0;
-          char * lyrics = NULL;
-          ret = metadata_extractor_get_synclyrics(extractor, i, &time_info, &lyrics);
-          if (ret == METADATA_EXTRACTOR_ERROR_NONE) {
-            timestamps.push_back(picojson::value(static_cast<double>(time_info)));
-            texts.push_back(picojson::value(std::string(lyrics)));
-            free(lyrics);
-          }
-        }
-        result["texts"] = picojson::value(texts);
-        result["timestamps"] = picojson::value(timestamps);
-        ret = METADATA_EXTRACTOR_ERROR_NONE;
+    result["texts"] = picojson::value(texts);
+    result["timestamps"] = picojson::value(timestamps);
+    ret = METADATA_EXTRACTOR_ERROR_NONE;
+  } else {
+    char* unSyncText;
+    ret = metadata_extractor_get_metadata(extractor,
+        METADATA_UNSYNCLYRICS, &unSyncText);
+    if (ret == METADATA_EXTRACTOR_ERROR_NONE) {
+      result["type"] = picojson::value(std::string("UNSYNCHRONIZED"));
+      if (unSyncText == NULL) {
+        LOGGER(ERROR) << "Unsynchronized lyrics text is NULL";
+        unSyncText = strdup(""); // prevents picojson assert
       }
-      else {
-        char* unSyncText = NULL;
-        attr = METADATA_UNSYNCLYRICS;
-        ret = metadata_extractor_get_metadata(extractor, attr, &unSyncText);
-        if (ret == METADATA_EXTRACTOR_ERROR_NONE) {
-          result["type"] = picojson::value(std::string("UNSYNCHRONIZED"));
-          texts.push_back(picojson::value(std::string(unSyncText)));
-          result["texts"] = picojson::value(texts);
-          free(unSyncText);
-        }
-      }
+      texts.push_back(picojson::value(std::string(unSyncText)));
+      result["texts"] = picojson::value(texts);
+      free(unSyncText);
     }
   }
+
   return ret;
 }
 

@@ -17,8 +17,10 @@ namespace content {
 
 class ContentFilter {
  public:
-  common::PlatformResult buildQuery(const picojson::object &jsFilter,
-                                    std::string *query);
+  static common::PlatformResult MapField(const std::string& name,
+                                         std::string* result);
+  common::PlatformResult BuildQuery(const picojson::object& jsFilter,
+                                    std::string* query);
 
  private:
   common::FilterVisitor visitor;

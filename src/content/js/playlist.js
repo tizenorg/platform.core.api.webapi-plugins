@@ -7,7 +7,7 @@ function Playlist(data) {
   var id;
   var name;
   var numberOfTracks;
-  var thumbnailURI;
+  var thumbnailURI = null;
 
   Object.defineProperties(this, {
     editableAttributes: {
@@ -31,7 +31,7 @@ function Playlist(data) {
         return name;
       },
       set: function(v) {
-        if (edit_.isAllowed) {
+        if (!type_.isNull(v)) {
           name = converter_.toString(v, false);
         }
       },
@@ -53,9 +53,7 @@ function Playlist(data) {
         return thumbnailURI;
       },
       set: function(v) {
-        if (edit_.isAllowed) {
-          thumbnailURI = converter_.toString(v, false);
-        }
+        thumbnailURI = converter_.toString(v, true);
       },
       enumerable: true
     },

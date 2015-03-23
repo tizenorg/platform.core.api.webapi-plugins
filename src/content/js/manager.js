@@ -110,8 +110,13 @@ ContentManager.prototype.find = function(successCallback, errorCallback, directo
 
     var out = [];
     result = native_.getResultObject(result);
-    for (var i = 0, max = result.length; i < max; i++) {
-      out.push(createContentObject_(result[i]));
+    try {
+      for (var i = 0, max = result.length; i < max; i++) {
+        out.push(createContentObject_(result[i]));
+      }
+    } catch(e) {
+      native_.callIfPossible(args.errorCallback, e);
+      return;
     }
 
     native_.callIfPossible(args.successCallback, out);
