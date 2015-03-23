@@ -19,7 +19,8 @@ typedef std::map<int, notification_image_type_e> ImageEnumMap;
 
 class StatusNotification {
  public:
-  static common::PlatformResult ToJson(int id, notification_h noti_handle,
+  static common::PlatformResult ToJson(int id,
+                                       notification_h noti_handle,
                                        app_control_h app_handle,
                                        picojson::object* out_ptr);
   static common::PlatformResult FromJson(const picojson::object& args,
@@ -43,7 +44,7 @@ class StatusNotification {
       const std::string& type,
       notification_type_e* noti_type);
   static common::PlatformResult Create(notification_type_e noti_type,
-                                       notification_h *noti_handle);
+                                       notification_h* noti_handle);
   static common::PlatformResult GetImage(notification_h noti_handle,
                                          notification_image_type_e image_type,
                                          std::string* image_path);
@@ -102,13 +103,16 @@ class StatusNotification {
       double* progress_value);
   static common::PlatformResult SetProgressValue(
       notification_h noti_handle,
-      const std::string& progess_type,
+      const std::string& progress_type,
       double progress_value);
   static common::PlatformResult GetPostedTime(notification_h noti_handle,
                                               time_t* posted_time);
   static common::PlatformResult SetLayout(notification_h noti_handle,
                                           const std::string& noti_type);
   static common::PlatformResult GetId(notification_h noti_handle, int* id);
+  static common::PlatformResult SetAppControl(notification_h noti_handle,
+                                              app_control_h app_control);
+  static common::PlatformResult CreateAppControl(app_control_h* app_control);
 
   static bool IsColorFormatNumberic(const std::string& color);
 };

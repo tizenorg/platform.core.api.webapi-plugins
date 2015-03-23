@@ -39,7 +39,8 @@ NotificationInstance::NotificationInstance() {
   manager_ = NotificationManager::GetInstance();
 }
 
-NotificationInstance::~NotificationInstance() {}
+NotificationInstance::~NotificationInstance() {
+}
 
 #define CHECK_EXIST(args, name, out)                                       \
   if (!args.contains(name)) {                                              \
@@ -50,7 +51,8 @@ NotificationInstance::~NotificationInstance() {}
 void NotificationInstance::NotificationManagerPost(const picojson::value& args,
                                                    picojson::object& out) {
   picojson::value val{picojson::object{}};
-  PlatformResult status = manager_->Post(args.get<picojson::object>(), val.get<picojson::object>());
+  PlatformResult status =
+      manager_->Post(args.get<picojson::object>(), val.get<picojson::object>());
 
   if (status.IsSuccess())
     ReportSuccess(val, out);
@@ -59,7 +61,8 @@ void NotificationInstance::NotificationManagerPost(const picojson::value& args,
 }
 
 void NotificationInstance::NotificationManagerUpdate(
-    const picojson::value& args, picojson::object& out) {
+    const picojson::value& args,
+    picojson::object& out) {
   PlatformResult status = manager_->Update(args.get<picojson::object>());
 
   if (status.IsSuccess())
@@ -69,7 +72,8 @@ void NotificationInstance::NotificationManagerUpdate(
 }
 
 void NotificationInstance::NotificationManagerRemove(
-    const picojson::value& args, picojson::object& out) {
+    const picojson::value& args,
+    picojson::object& out) {
   PlatformResult status = manager_->Remove(args.get<picojson::object>());
 
   if (status.IsSuccess())
@@ -79,7 +83,8 @@ void NotificationInstance::NotificationManagerRemove(
 }
 
 void NotificationInstance::NotificationManagerRemoveAll(
-    const picojson::value& args, picojson::object& out) {
+    const picojson::value& args,
+    picojson::object& out) {
   PlatformResult status = manager_->RemoveAll();
 
   if (status.IsSuccess())
@@ -102,7 +107,8 @@ void NotificationInstance::NotificationManagerGet(const picojson::value& args,
 }
 
 void NotificationInstance::NotificationManagerGetAll(
-    const picojson::value& args, picojson::object& out) {
+    const picojson::value& args,
+    picojson::object& out) {
   picojson::value val{picojson::array{}};
 
   PlatformResult status = manager_->GetAll(val.get<picojson::array>());

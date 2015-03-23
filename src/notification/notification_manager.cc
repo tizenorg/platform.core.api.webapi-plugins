@@ -18,9 +18,11 @@ namespace notification {
 
 using namespace common;
 
-NotificationManager::NotificationManager() {}
+NotificationManager::NotificationManager() {
+}
 
-NotificationManager::~NotificationManager() {}
+NotificationManager::~NotificationManager() {
+}
 
 NotificationManager* NotificationManager::GetInstance() {
   static NotificationManager instance;
@@ -41,8 +43,9 @@ PlatformResult NotificationManager::Remove(const picojson::object& args) {
 
   int ret = notification_delete_by_priv_id(NULL, NOTIFICATION_TYPE_NONE, id);
   if (ret != NOTIFICATION_ERROR_NONE) {
-      LoggerE("Cannot remove notification error: %d", ret);
-      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot remove notification error");
+    LoggerE("Cannot remove notification error: %d", ret);
+    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                          "Cannot remove notification error");
   }
 
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -68,7 +71,7 @@ PlatformResult NotificationManager::RemoveAll() {
 
 PlatformResult NotificationManager::Get(const picojson::object& args,
                                         picojson::object& out) {
-  int id = common::stol(FromJson<std::string>(args, "id"));
+  int id = std::stoi(FromJson<std::string>(args, "id"));
 
   notification_h noti = notification_load(NULL, id);
   if (NULL == noti) {
@@ -77,12 +80,14 @@ PlatformResult NotificationManager::Get(const picojson::object& args,
                           "Not found or removed notification id");
   }
 
-  app_control_h app_control;
+  app_control_h app_control = NULL;
   PlatformResult status = StatusNotification::GetAppControl(noti, &app_control);
-  if (status.IsError()) return status;
+  if (status.IsError())
+    return status;
 
   status = StatusNotification::ToJson(id, noti, app_control, &out);
-  if (status.IsError()) return status;
+  if (status.IsError())
+    return status;
 
   return PlatformResult(ErrorCode::NO_ERROR);
 }
@@ -100,9 +105,7 @@ PlatformResult NotificationManager::GetAll(picojson::array& out) {
                           "Get notification list error");
   }
 
-  SCOPE_EXIT {
-      notification_free_list(noti_list);
-  };
+  SCOPE_EXIT { notification_free_list(noti_list); };
 
   noti_list_iter = notification_list_get_head(noti_list);
 
@@ -120,13 +123,15 @@ PlatformResult NotificationManager::GetAll(picojson::array& out) {
       app_control_h app_control;
       PlatformResult status =
           StatusNotification::GetAppControl(noti, &app_control);
-      if (status.IsError()) return status;
+      if (status.IsError())
+        return status;
 
       picojson::object noti_item = picojson::object();
 
       status =
           StatusNotification::ToJson(noti_priv, noti, app_control, &noti_item);
-      if (status.IsError()) return status;
+      if (status.IsError())
+        return status;
 
       out.push_back(picojson::value(noti_item));
     }
