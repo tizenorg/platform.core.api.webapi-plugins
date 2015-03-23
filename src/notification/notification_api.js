@@ -208,7 +208,7 @@ function NotificationInitDict(data) {
       return false;
     }
     for (var i = 0; i < v.length; ++i) {
-      if (!type_.isString(v[i]) && !(/\s/.test(v))) {
+      if (!type_.isString(v[i])) {
         return false;
       }
     }
@@ -302,7 +302,7 @@ function NotificationInitDict(data) {
         return _subIconPath;
       },
       set: function(v) {
-        _subIconPath = type_.isString(v) && !(/\s/.test(v))  ? v : _subIconPath;
+        _subIconPath = type_.isString(v) ? v : _subIconPath;
       },
       enumerable: true
     },
@@ -347,7 +347,7 @@ function NotificationInitDict(data) {
         return _backgroundImagePath;
       },
       set: function(v) {
-        _backgroundImagePath = type_.isString(v) && !(/\s/.test(v))  ? v : _backgroundImagePath;
+        _backgroundImagePath = type_.isString(v) ? v : _backgroundImagePath;
       },
       enumerable: true
     },
