@@ -24,6 +24,11 @@ using namespace common;
 namespace extension {
 namespace content {
 
+namespace {
+static const std::string uri_prefix = "file://";
+static const std::string uri_absolute_prefix = "file:///";
+}
+
 const std::map<std::string, media_content_orientation_e> orientationMap = {
     {"NORMAL", MEDIA_CONTENT_ORIENTATION_NORMAL},
     {"FLIP_HORIZONTAL", MEDIA_CONTENT_ORIENTATION_HFLIP},
@@ -1141,6 +1146,155 @@ int ContentManager::getLyrics(const picojson::value& args, picojson::object& res
   return ret;
 }
 
+media_playlist_h getPlaylistHandle(int id)
+{
+  LoggerD("Entered");
+  media_playlist_h playlist_handle = nullptr;
+  int ret_code = media_playlist_get_playlist_from_db(id, &playlist_handle);
+  if(MEDIA_CONTENT_ERROR_NONE != ret_code ||
+      playlist_handle == nullptr) {
+    LoggerE("could not get playlist handle for id: %d", id);
+    return nullptr;
+  }
+
+  return playlist_handle;
+}
+
+void destroyMediaPlaylistHandle(media_playlist_h& playlist_handle)
+{
+  LoggerD("Entered");
+  if(playlist_handle) {
+    int ret_code = media_playlist_destroy(playlist_handle);
+    playlist_handle = nullptr;
+
+    if(MEDIA_CONTENT_ERROR_NONE != ret_code) {
+      LoggerE("media_playlist_destroy failed");
+    }
+  }
+}
+
+int ContentManager::getPlaylistName(int id, std::string* result) {
+  LoggerD("Entered");
+  media_playlist_h playlist_handle = getPlaylistHandle(id);
+  PlaylistUniquePtr playlist_ptr(playlist_handle, destroyMediaPlaylistHandle);
+
+  char* tmp_playlist_name = nullptr;
+  const int ret_code = media_playlist_get_name(playlist_handle, &tmp_playlist_name);
+
+  if(MEDIA_CONTENT_ERROR_NONE != ret_code) {
+    LoggerE("media_playlist_get_name failed");
+    return TIZEN_ERROR_UNKNOWN;
+  }
+
+  std::string playlist_name;
+  if(tmp_playlist_name) {
+    playlist_name = tmp_playlist_name;
+    free(tmp_playlist_name);
+    tmp_playlist_name = nullptr;
+  }
+
+  *result = playlist_name;
+  return MEDIA_CONTENT_ERROR_NONE;
+}
+
+int updatePlaylistInDB(media_playlist_h playlist_handle)
+{
+  LoggerD("Entered");
+  int ret_code = media_playlist_update_to_db(playlist_handle);
+  if(MEDIA_CONTENT_ERROR_NONE != ret_code) {
+    LoggerE("media_playlist_update_to_db failed");
+    return TIZEN_ERROR_UNKNOWN;
+  }
+  return MEDIA_CONTENT_ERROR_NONE;
+}
+
+int ContentManager::setPlaylistName(int id, const std::string& name)
+{
+  LoggerD("Entered");
+  if(name.empty()) {
+    LoggerE("Cannot set empty playlist name!");
+    return MEDIA_CONTENT_ERROR_INVALID_PARAMETER;
+  }
+
+  media_playlist_h playlist_handle = getPlaylistHandle(id);
+  PlaylistUniquePtr playlist_ptr(playlist_handle, destroyMediaPlaylistHandle);
+
+  const int ret_code = media_playlist_set_name(playlist_handle, name.c_str());
+  if(MEDIA_CONTENT_ERROR_NONE != ret_code) {
+    LoggerE("media_playlist_set_name failed");
+    //Setting name that is used by other playlist does not return bad error code here.
+    //MEDIA_CONTENT_ERROR_INVALID_OPERATION is being returned in updatePlaylistInDB
+    return TIZEN_ERROR_UNKNOWN;
+  }
+
+  int ret = updatePlaylistInDB(playlist_handle);
+  if (MEDIA_CONTENT_ERROR_NONE != ret) {
+    LoggerE("Error while updating playlist: %d", ret);
+    if (MEDIA_CONTENT_ERROR_INVALID_OPERATION == ret) {
+      //We could fetch list of playlists and check if other playlist is using this
+      //name, but that seems to be to much work in synchronous method
+      LoggerE("Playlist name: %s is probably already used", name.c_str());
+    }
+    return ret;
+  }
+  return MEDIA_CONTENT_ERROR_NONE;
+}
+
+int ContentManager::getThumbnailUri(int id, std::string* result)
+{
+  LoggerD("Entered");
+  media_playlist_h playlist_handle = getPlaylistHandle(id);
+  PlaylistUniquePtr playlist_ptr(playlist_handle, destroyMediaPlaylistHandle);
+
+  char* tmp_playlist_thb_path = nullptr;
+  const int ret_code = media_playlist_get_thumbnail_path(playlist_handle, &tmp_playlist_thb_path);
+
+  if(MEDIA_CONTENT_ERROR_NONE != ret_code) {
+    LoggerE("media_playlist_get_name failed");
+    return TIZEN_ERROR_UNKNOWN;
+  }
+
+  std::string playlist_thb_path;
+  if(tmp_playlist_thb_path) {
+    playlist_thb_path = tmp_playlist_thb_path;
+    free(tmp_playlist_thb_path);
+    tmp_playlist_thb_path = nullptr;
+  }
+
+  *result = playlist_thb_path;
+  return MEDIA_CONTENT_ERROR_NONE;
+}
+
+int ContentManager::setThumbnailUri(int id, const std::string& thb_uri)
+{
+  LoggerD("Entered");
+
+  //Allow setting empty URI, unfortunately Core API does not allow to set empty
+  //path so we need to set one empty space. This is probably issue of Core API.
+  if(!thb_uri.empty() && " " != thb_uri) {
+    /// TODO what if uri holds virtual path
+    if(thb_uri.find(uri_absolute_prefix) != 0) {
+      LoggerE("thumbnail URI is not valid: [%s]", thb_uri.c_str());
+      return MEDIA_CONTENT_ERROR_INVALID_PARAMETER;
+    }
+
+    std::string absoulte_path = thb_uri.substr(uri_prefix.length());
+    /// TODO check if uri points an existing file
+  }
+
+  media_playlist_h playlist_handle = getPlaylistHandle(id);
+  PlaylistUniquePtr playlist_ptr(playlist_handle, destroyMediaPlaylistHandle);
+
+  const int ret_code = media_playlist_set_thumbnail_path(playlist_handle,
+                                                         thb_uri.c_str());
+  if(MEDIA_CONTENT_ERROR_NONE != ret_code) {
+    LoggerE("media_playlist_set_thumbnail_path failed");
+    return TIZEN_ERROR_UNKNOWN;
+  }
+
+  int ret = updatePlaylistInDB(playlist_handle);
+  return ret;
+}
 
 PlatformResult ContentManager::convertError(int err) {
   switch (err) {

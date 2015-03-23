@@ -19,6 +19,9 @@
 namespace extension {
 namespace content {
 
+typedef std::unique_ptr<std::remove_pointer<media_playlist_h>::type,
+    void (*)(media_playlist_h&)> PlaylistUniquePtr;
+
 void ContentToJson(media_info_h info, picojson::object& o);
 
 class ContentManager {
@@ -50,6 +53,12 @@ class ContentManager {
   void playlistRemovebatch(const std::shared_ptr<ReplyCallbackData>& user_data);
   void playlistSetOrder(const std::shared_ptr<ReplyCallbackData>& user_data);
   void playlistMove(const std::shared_ptr<ReplyCallbackData>& user_data);
+
+  int getPlaylistName(int id, std::string* result);
+  int setPlaylistName(int id, const std::string& name);
+
+  int getThumbnailUri(int id, std::string* result);
+  int setThumbnailUri(int id, const std::string& thb_uri);
 
 //playlistSetOrder
   common::PlatformResult convertError(int err);

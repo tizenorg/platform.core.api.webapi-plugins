@@ -5,9 +5,7 @@
 function Playlist(data) {
   var editableAttributes = ['name', 'thumbnailURI'];
   var id;
-  var name;
   var numberOfTracks;
-  var thumbnailURI = null;
 
   Object.defineProperties(this, {
     editableAttributes: {
@@ -28,11 +26,20 @@ function Playlist(data) {
     },
     name: {
       get: function() {
-        return name;
+        var result = native_.callSync('ContentPlaylist_getName', {'id' : Number(id)});
+        if (native_.isFailure(result)) {
+          throw native_.getErrorObject(result);
+        }
+        return native_.getResultObject(result);
       },
       set: function(v) {
         if (!type_.isNull(v)) {
-          name = converter_.toString(v, false);
+          var name = converter_.toString(v, false);
+          var result = native_.callSync('ContentPlaylist_setName',
+                  {'id' : Number(id), 'name' : name});
+          if (native_.isFailure(result)) {
+            throw native_.getErrorObject(result);
+          }
         }
       },
       enumerable: true
@@ -50,10 +57,26 @@ function Playlist(data) {
     },
     thumbnailURI: {
       get: function() {
-        return thumbnailURI;
+        var result = native_.callSync('ContentPlaylist_getThumbnailUri', {'id' : Number(id)});
+        if (native_.isFailure(result)) {
+          throw native_.getErrorObject(result);
+        }
+        var res = native_.getResultObject(result);
+        //CoreAPI not support empty thumbnail, so one space must be used instead null thumbnail
+        return res === " " ? null : res;
       },
       set: function(v) {
-        thumbnailURI = converter_.toString(v, true);
+        var thumbnailURI = converter_.toString(v, true);
+        if (type_.isNullOrUndefined(thumbnailURI)) {
+          //CoreAPI not support empty thumbnail, so one space must be used instead null thumbnail
+          thumbnailURI = " ";
+        }
+        //TODO probably thumbnailURI should be converted here to absolute uri in case of virtual
+        var result = native_.callSync('ContentPlaylist_setThumbnailUri',
+                {'id' : Number(id), 'uri' : thumbnailURI});
+        if (native_.isFailure(result)) {
+          throw native_.getErrorObject(result);
+        }
       },
       enumerable: true
     },
