@@ -146,8 +146,8 @@ static void* WorkThread(const std::shared_ptr<ReplyCallbackData>& user_data) {
       //ContentManagerPlaylistSetOrderCallback
     }
     case ContentManagerPlaylistMoveCallback: {
-      std::string playlist_id = user_data->args.get("playlist_id").get<std::string>();
-      double member_id = user_data->args.get("member_id").get<double>();
+      std::string playlist_id = user_data->args.get("playlistId").get<std::string>();
+      double member_id = user_data->args.get("memberId").get<double>();
       double delta = user_data->args.get("delta").get<double>();
       ContentManager::getInstance()->playlistMove(user_data);
       break;
@@ -446,8 +446,8 @@ void ContentInstance::ContentManagerPlaylistGet(const picojson::value& args, pic
 void ContentInstance::ContentManagerPlaylistRemove(const picojson::value& args, picojson::object& out) {
   int ret;
   if(ContentManager::getInstance()->isConnected()) {
-    std::string playlist_id = args.get("playlist_id").get<std::string>();
-    int member_id = args.get("member_id").get<double>();
+    std::string playlist_id = args.get("playlistId").get<std::string>();
+    int member_id = args.get("memberId").get<double>();
     ret = ContentManager::getInstance()->playlistRemove(playlist_id, member_id);
     if(ret != MEDIA_CONTENT_ERROR_NONE) {
       ReportError(ContentManager::getInstance()->convertError(ret),out);

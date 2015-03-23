@@ -904,6 +904,8 @@ void ContentManager::playlistGet(const std::shared_ptr<ReplyCallbackData>& user_
 
   int ret = MEDIA_CONTENT_ERROR_NONE;
   media_playlist_h playlist = NULL;
+  media_content_order_e order = MEDIA_CONTENT_ORDER_ASC;
+  const std::string playOrder("play_order");
 
   std::string playlist_id = user_data->args.get("playlistId").get<std::string>();
   ret = media_playlist_get_playlist_from_db(std::stoi(playlist_id), &playlist);
@@ -929,6 +931,11 @@ void ContentManager::playlistGet(const std::shared_ptr<ReplyCallbackData>& user_
   if (ret != MEDIA_CONTENT_ERROR_NONE) {
     LoggerD("Setting a offset/count is failed.");
   }
+  ret = media_filter_set_order(filter, order, playOrder.c_str(), MEDIA_CONTENT_COLLATE_DEFAULT);
+  if (ret != MEDIA_CONTENT_ERROR_NONE) {
+    LoggerD("Setting a offset/count is failed.");
+  }
+
   picojson::value::array arrayContent;
   ret = media_playlist_foreach_media_from_db(std::stoi(playlist_id),
     filter, playlist_content_member_cb, static_cast<void*>(&arrayContent));
@@ -950,7 +957,7 @@ void ContentManager::playlistRemovebatch(const std::shared_ptr<ReplyCallbackData
   int ret = MEDIA_CONTENT_ERROR_NONE;
   media_playlist_h playlist = NULL;
 
-  std::string playlist_id = user_data->args.get("playlist_id").get<std::string>();
+  std::string playlist_id = user_data->args.get("playlistId").get<std::string>();
   ret = media_playlist_get_playlist_from_db(std::stoi(playlist_id), &playlist);
   if(ret != MEDIA_CONTENT_ERROR_NONE && playlist == NULL) {
     UnknownException err("Getting playlist is failed.");
@@ -985,7 +992,7 @@ void ContentManager::playlistSetOrder(const std::shared_ptr<ReplyCallbackData>& 
   int ret = MEDIA_CONTENT_ERROR_NONE;
   media_playlist_h playlist = NULL;
 
-  std::string playlist_id = user_data->args.get("playlist_id").get<std::string>();
+  std::string playlist_id = user_data->args.get("playlistId").get<std::string>();
   ret = media_playlist_get_playlist_from_db(std::stoi(playlist_id), &playlist);
   if(ret != MEDIA_CONTENT_ERROR_NONE && playlist == NULL) {
     UnknownException err("Getting playlist is failed.");
@@ -1028,7 +1035,7 @@ void ContentManager::playlistSetOrder(const std::shared_ptr<ReplyCallbackData>& 
 void ContentManager::playlistMove(const std::shared_ptr<ReplyCallbackData>& user_data) {
   int ret = MEDIA_CONTENT_ERROR_NONE;
   media_playlist_h playlist = NULL;
-  std::string playlist_id = user_data->args.get("playlist_id").get<std::string>();
+  std::string playlist_id = user_data->args.get("playlistId").get<std::string>();
   ret = media_playlist_get_playlist_from_db(std::stoi(playlist_id), &playlist);
   if(ret != MEDIA_CONTENT_ERROR_NONE && playlist == NULL) {
     UnknownException err("Getting playlist is failed.");
@@ -1037,7 +1044,7 @@ void ContentManager::playlistMove(const std::shared_ptr<ReplyCallbackData>& user
     return;
   }
   int old_order;
-  double member_id = user_data->args.get("member_id").get<double>();
+  double member_id = user_data->args.get("memberId").get<double>();
   double delta = user_data->args.get("delta").get<double>();
   ret = media_playlist_get_play_order(playlist, static_cast<int>(member_id), &old_order);
   if (ret != MEDIA_CONTENT_ERROR_NONE) {

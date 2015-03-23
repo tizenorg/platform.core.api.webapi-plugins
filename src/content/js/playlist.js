@@ -116,10 +116,10 @@ Playlist.prototype.remove = function (item) {
   ]);
 
   var data = {
-    item: args.item
+    playlistId: this.id,
+    memberId: args.item.content.memberId
   };
-
-  var result = native_.callSync('Playlist_remove', data);
+  var result = native_.callSync('ContentPlaylist_remove', data);
 
   if (native_.isFailure(result)) {
     throw native_.getErrorObject(result);
@@ -128,13 +128,19 @@ Playlist.prototype.remove = function (item) {
 
 Playlist.prototype.removeBatch = function (items, successCallback, errorCallback) {
   var args = validator_.validateArgs(arguments, [
-    {name: 'items', type: types_.PLATFORM_OBJECT, values: PlaylistItem},
+    {name: 'items', type: types_.ARRAY, values: PlaylistItem},
     {name: 'successCallback', type: types_.FUNCTION, optional: true, nullable: true},
     {name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true}
   ]);
 
+  var members = [];
+  for (var i = 0; i < args.items.length; i++) {
+    members.push(args.items[i].content.memberId);
+  }
+
   var data = {
-    items: args.items
+    playlistId: this.id,
+    members: members
   };
 
   var callback = function (result) {
@@ -145,7 +151,7 @@ Playlist.prototype.removeBatch = function (items, successCallback, errorCallback
     native_.callIfPossible(args.successCallback);
   };
 
-  native_.call('Playlist_removeBatch', data, callback);
+  native_.call('ContentPlaylist_removeBatch', data, callback);
 };
 
 Playlist.prototype.get = function (successCallback, errorCallback, count, offset) {
@@ -170,7 +176,9 @@ Playlist.prototype.get = function (successCallback, errorCallback, count, offset
     result = native_.getResultObject(result);
     var out = [];
     for (var i = 0, max = result.length; i < max; i++) {
-      out.push(new PlaylistItem(createContentObject_(result[i])));
+      var itemToPush = createContentObject_(result[i]);
+      itemToPush['memberId'] = result[i]['playlist_member_id'];
+      out.push(new PlaylistItem(itemToPush));
     }
     native_.callIfPossible(args.successCallback, out);
   };
@@ -180,13 +188,19 @@ Playlist.prototype.get = function (successCallback, errorCallback, count, offset
 
 Playlist.prototype.setOrder = function (items, successCallback, errorCallback) {
   var args = validator_.validateArgs(arguments, [
-    {name: 'items', type: types_.PLATFORM_OBJECT, values: PlaylistItem},
+    {name: 'items', type: types_.ARRAY, values: PlaylistItem},
     {name: 'successCallback', type: types_.FUNCTION, optional: true, nullable: true},
     {name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true}
   ]);
 
+  var members = [];
+  for (var i = 0; i < args.items.length; i++) {
+    members.push(args.items[i].content.memberId);
+  }
+
   var data = {
-    items: args.items
+    playlistId: this.id,
+    members: members,
   };
 
   var callback = function (result) {
@@ -197,19 +211,20 @@ Playlist.prototype.setOrder = function (items, successCallback, errorCallback) {
     native_.callIfPossible(args.successCallback);
   };
 
-  native_.call('Playlist_setOrder', data, callback);
+  native_.call('ContentPlaylist_setOrder', data, callback);
 };
 
 Playlist.prototype.move = function (item, delta, successCallback, errorCallback) {
   var args = validator_.validateArgs(arguments, [
-    {name: 'item', type: types_.PLATFORM_OBJECT, values: tizen.PlaylistItem},
+    {name: 'item', type: types_.PLATFORM_OBJECT, values: PlaylistItem},
     {name: 'delta', type: types_.LONG},
     {name: 'successCallback', type: types_.FUNCTION, optional: true, nullable: true},
     {name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true}
   ]);
 
   var data = {
-    item: args.item,
+    playlistId: this.id,
+    memberId: args.item.content.memberId,
     delta: args.delta
   };
 
@@ -220,6 +235,5 @@ Playlist.prototype.move = function (item, delta, successCallback, errorCallback)
     }
     native_.callIfPossible(args.successCallback);
   };
-
-  native_.call('Playlist_move', data, callback);
+  native_.call('ContentPlaylist_move', data, callback);
 };

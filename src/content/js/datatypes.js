@@ -677,7 +677,7 @@ ImageContent.prototype.constructor = ImageContent;
 
 
 function PlaylistItem(data) {
-    var content;
+  var content = data;
 
   Object.defineProperties(this, {
     content: {
@@ -685,22 +685,11 @@ function PlaylistItem(data) {
         return content;
       },
       set: function(v) {
-        if (v instanceof Content ) {
+        if (edit_.isAllowed && v instanceof Content ) {
           content = v;
         }
       },
       enumerable: true
     }
   });
-
-  if (type_.isObject(data)) {
-    // fill object with data
-    edit_.allow();
-    for (var key in data) {
-      if (data.hasOwnProperty(key) && this.hasOwnProperty(key)) {
-        this[key] = data[key];
-      }
-    }
-    edit_.disallow();
-  }
 }
