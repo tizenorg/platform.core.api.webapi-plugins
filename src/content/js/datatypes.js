@@ -685,7 +685,7 @@ function PlaylistItem(data) {
         return content;
       },
       set: function(v) {
-        if (edit_.isAllowed && v instanceof Content ) {
+        if (edit_.isAllowed && v instanceof Content) {
           content = v;
         }
       },

@@ -162,6 +162,13 @@ Playlist.prototype.get = function (successCallback, errorCallback, count, offset
     {name: 'offset', type: types_.LONG, optional: true}
   ]);
 
+  if (args.offset < 0 || args.count < 0) {
+    setTimeout(function() {
+      args.errorCallback(new WebAPIException(WebAPIException.INVALID_VALUES_ERR));
+    }, 0);
+    return;
+  }
+
   var data = {
     playlistId: this.id,
     count: type_.isNullOrUndefined(args.count) ? -1 : args.count,
@@ -192,6 +199,13 @@ Playlist.prototype.setOrder = function (items, successCallback, errorCallback) {
     {name: 'successCallback', type: types_.FUNCTION, optional: true, nullable: true},
     {name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true}
   ]);
+
+  if (!args.items.length) {
+    setTimeout(function() {
+      args.errorCallback(new WebAPIException(WebAPIException.INVALID_VALUES_ERR));
+    }, 0);
+    return;
+  }
 
   var members = [];
   for (var i = 0; i < args.items.length; i++) {

@@ -52,6 +52,23 @@ static int get_utc_offset() {
   return gmtime_hours;
 }
 
+std::string get_date(char* tmpStr) {
+  if (tmpStr) {
+    struct tm* result = (struct tm*) calloc(1, sizeof(struct tm));
+    if (strptime(tmpStr, "%Y:%m:%d %H:%M:%S", result) == NULL) {
+      return std::string();
+    } else {
+      time_t t = mktime(result);// + get_utc_offset() * 3600;
+      std::stringstream str_date;
+      str_date << t;
+      free(tmpStr);
+      free(result);
+      tmpStr = NULL;
+      return str_date.str();
+    }
+  }
+  return std::string();
+}
 
 void ContentToJson(media_info_h info, picojson::object& o) {
   int ret;
@@ -75,21 +92,7 @@ void ContentToJson(media_info_h info, picojson::object& o) {
     image_meta_h img;
     if (MEDIA_CONTENT_ERROR_NONE == media_info_get_image(info, &img)) {
       if (MEDIA_CONTENT_ERROR_NONE == image_meta_get_date_taken(img, &tmpStr)) {
-        if (tmpStr) {
-          struct tm* result = (struct tm*) calloc(1, sizeof(struct tm));
-          if (strptime(tmpStr, "%Y:%m:%d %H:%M:%S", result) == NULL) {
-            LoggerE("Couldn't convert supplied date.");
-          }
-          else {
-            time_t t = mktime(result);// + get_utc_offset() * 3600;
-            std::stringstream str_date;
-            str_date << t;
-            o["releaseDate"] = picojson::value(str_date.str());
-            free(tmpStr);
-            free(result);
-            tmpStr = NULL;
-          }
-        }
+        o["releaseDate"] = picojson::value(get_date(tmpStr));
       }
       if (MEDIA_CONTENT_ERROR_NONE == image_meta_get_width(img, &tmpInt)) {
         o["width"] = picojson::value(static_cast<double>(tmpInt));
@@ -167,6 +170,9 @@ void ContentToJson(media_info_h info, picojson::object& o) {
       if (MEDIA_CONTENT_ERROR_NONE == video_meta_get_duration(video, &tmpInt)) {
         o["duration"] = picojson::value(static_cast<double>(tmpInt));
       }
+      if (MEDIA_CONTENT_ERROR_NONE == video_meta_get_recorded_date(video, &tmpStr)) {
+        o["releaseDate"] = picojson::value(get_date(tmpStr));
+      }
     }
     picojson::object geo;
     if (MEDIA_CONTENT_ERROR_NONE == media_info_get_latitude(info, &tmpDouble)) {
@@ -182,20 +188,7 @@ void ContentToJson(media_info_h info, picojson::object& o) {
     audio_meta_h audio;
     if (MEDIA_CONTENT_ERROR_NONE == media_info_get_audio(info, &audio)) {
       if (MEDIA_CONTENT_ERROR_NONE == audio_meta_get_recorded_date(audio, &tmpStr)) {
-        if (tmpStr) {
-          struct tm* result = (struct tm*) calloc(1, sizeof(struct tm));
-
-          if (strptime(tmpStr, "%Y:%m:%d %H:%M:%S", result) == NULL) {
-            LoggerD("Couldn't convert supplied date.");
-          }
-          time_t t = mktime(result) + get_utc_offset() * 3600;
-          std::stringstream str_date;
-          str_date << t;
-          o["releaseDate"] = picojson::value(str_date.str());
-          free(tmpStr);
-          free(result);
-          tmpStr = NULL;
-        }
+        o["releaseDate"] = picojson::value(get_date(tmpStr));
       }
       if (MEDIA_CONTENT_ERROR_NONE == audio_meta_get_album(audio, &tmpStr)) {
         if (tmpStr) {

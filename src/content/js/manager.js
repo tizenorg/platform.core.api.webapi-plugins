@@ -223,6 +223,14 @@ ContentManager.prototype.createPlaylist = function(name, successCallback, errorC
     {name: 'sourcePlaylist', type: types_.PLATFORM_OBJECT, values: Playlist, optional: true, nullable: true}
   ]);
 
+  if (!arguments.length || !type_.isString(arguments[0]) ||
+    (type_.isString(arguments[0]) && !arguments[0].length)) {
+    setTimeout(function() {
+      args.errorCallback(new WebAPIException(WebAPIException.INVALID_VALUES_ERR));
+    }, 0);
+    return;
+  }
+
   var data = {
     name: args.name,
     sourcePlaylist: args.sourcePlaylist
