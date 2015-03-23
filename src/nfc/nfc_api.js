@@ -578,14 +578,17 @@ NFCAdapter.prototype.setExclusiveModeForTransaction = function() {
 
 NFCAdapter.prototype.addHCEEventListener = function(eventCallback) {
   var args = validator_.validateArgs(arguments, [
-    {name: 'eventCallback', type: types_.LISTENER, values: ['onchanged']}
+    {name: 'eventCallback', type: types_.FUNCTION}
   ]);
+
+  if (!arguments.length || !type_.isFunction(arguments[0])) {
+    throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR);
+  }
 
   if (type_.isEmptyObject(HCEEventListener.listeners)) {
     var result = native_.callSync('NFCAdapter_addHCEEventListener');
     if (native_.isFailure(result)) {
-      throw new WebAPIException(0, result.error.message,
-          result.error.name);
+      throw new WebAPIException(0, result.error.message, result.error.name);
     }
   }
 
@@ -597,19 +600,30 @@ NFCAdapter.prototype.removeHCEEventListener = function(watchId) {
     {name: 'watchId', type: types_.LONG}
   ]);
 
+  if (!arguments.length || !type_.isNumber(arguments[0])) {
+    throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR);
+  }
+
   HCEEventListener.removeListener(args.watchId);
 
   if (type_.isEmptyObject(HCEEventListener.listeners)) {
-    native_.callSync('NFCAdapter_removeHCEEventListener');
+    var result = native_.callSync('NFCAdapter_removeHCEEventListener');
+    if (native_.isFailure(result)) {
+      throw new WebAPIException(0, result.error.message, result.error.name);
+    }
   }
 };
 
 NFCAdapter.prototype.sendHostAPDUResponse = function(apdu, successCallback, errorCallback) {
   var args = validator_.validateArgs(arguments, [
-    {name: 'apdu', type: types_.BYTE},
+    {name: 'apdu', type: types_.ARRAY, values: types_.BYTE},
     {name: 'successCallback', type: types_.FUNCTION, optional: true, nullable: true},
     {name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true}
   ]);
+
+  if (!arguments.length || !type_.isArray(arguments[0])) {
+    throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR);
+  }
 
   var data = {
     apdu: args.apdu
@@ -617,7 +631,8 @@ NFCAdapter.prototype.sendHostAPDUResponse = function(apdu, successCallback, erro
 
   var callback = function(result) {
     if (native_.isFailure(result)) {
-      native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));
+      native_.callIfPossible(args.errorCallback, new WebAPIException(0, result.error.message,
+          result.error.name));
       return;
     }
     native_.callIfPossible(args.successCallback);
@@ -628,8 +643,12 @@ NFCAdapter.prototype.sendHostAPDUResponse = function(apdu, successCallback, erro
 
 NFCAdapter.prototype.isActivatedHandlerForAID = function(aid) {
   var args = validator_.validateArgs(arguments, [
-    {name: 'aid', type: types_.BYTE}
+    {name: 'aid', type: types_.STRING}
   ]);
+
+  if (!arguments.length) {
+    throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR);
+  }
 
   var data = {
     aid: args.aid
@@ -638,7 +657,7 @@ NFCAdapter.prototype.isActivatedHandlerForAID = function(aid) {
   var result = native_.callSync('NFCAdapter_isActivatedHandlerForAID', data);
 
   if (native_.isFailure(result)) {
-    throw native_.getErrorObject(result);
+    throw new WebAPIException(0, result.error.message, result.error.name);
   }
   return native_.getResultObject(result);
 };
@@ -648,6 +667,10 @@ NFCAdapter.prototype.isActivatedHandlerForCategory = function(category) {
     {name: 'category', type: types_.ENUM, values: Object.keys(CardEmulationCategoryType)}
   ]);
 
+  if (!arguments.length) {
+    throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR);
+  }
+
   var data = {
     category: args.category
   };
@@ -655,16 +678,20 @@ NFCAdapter.prototype.isActivatedHandlerForCategory = function(category) {
   var result = native_.callSync('NFCAdapter_isActivatedHandlerForCategory', data);
 
   if (native_.isFailure(result)) {
-    throw native_.getErrorObject(result);
+    throw new WebAPIException(0, result.error.message, result.error.name);
   }
   return native_.getResultObject(result);
 };
 
 NFCAdapter.prototype.registerAID = function(aid, category) {
   var args = validator_.validateArgs(arguments, [
-    {name: 'aid', type: types_.BYTE},
+    {name: 'aid', type: types_.STRING},
     {name: 'category', type: types_.ENUM, values: Object.keys(CardEmulationCategoryType)}
   ]);
+
+  if (arguments.length < 2 || !type_.isString(arguments[0])) {
+    throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR);
+  }
 
   var data = {
     aid: args.aid,
@@ -674,15 +701,19 @@ NFCAdapter.prototype.registerAID = function(aid, category) {
   var result = native_.callSync('NFCAdapter_registerAID', data);
 
   if (native_.isFailure(result)) {
-    throw native_.getErrorObject(result);
+    throw new WebAPIException(0, result.error.message, result.error.name);
   }
 };
 
 NFCAdapter.prototype.unregisterAID = function(aid, category) {
   var args = validator_.validateArgs(arguments, [
-    {name: 'aid', type: types_.BYTE},
+    {name: 'aid', type: types_.STRING},
     {name: 'category', type: types_.ENUM, values: Object.keys(CardEmulationCategoryType)}
   ]);
+
+  if (arguments.length < 2 || !type_.isString(arguments[0])) {
+    throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR);
+  }
 
   var data = {
     aid: args.aid,
@@ -692,7 +723,7 @@ NFCAdapter.prototype.unregisterAID = function(aid, category) {
   var result = native_.callSync('NFCAdapter_unregisterAID', data);
 
   if (native_.isFailure(result)) {
-    throw native_.getErrorObject(result);
+    throw new WebAPIException(0, result.error.message, result.error.name);
   }
 };
 
@@ -723,16 +754,26 @@ NFCAdapter.prototype.getAIDsForCategory = function(category, successCallback, er
     {name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true}
   ]);
 
+  if (arguments.length < 2) {
+    throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR);
+  }
+
   var data = {
     category: args.category
   };
 
   var callback = function(result) {
     if (native_.isFailure(result)) {
-      native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));
+      native_.callIfPossible(args.errorCallback, new WebAPIException(0, result.error.message,
+          result.error.name));
       return;
     }
-    native_.callIfPossible(args.successCallback, new AIDData(native_.getResultObject(result)));
+    var aids = [];
+    var r = native_.getResultObject(result);
+    for (var i = 0; i < r.length; i++) {
+      aids.push(new AIDData(r[i]));
+    }
+    native_.callIfPossible(args.successCallback, aids);
   };
 
   native_.call('NFCAdapter_getAIDsForCategory', data, callback);
