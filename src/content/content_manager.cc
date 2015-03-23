@@ -53,7 +53,7 @@ static int get_utc_offset() {
 }
 
 
-void contentToJson(media_info_h info, picojson::object& o) {
+void ContentToJson(media_info_h info, picojson::object& o) {
   int ret;
   int tmpInt = 0;
   bool tmpBool = false;
@@ -417,17 +417,51 @@ static int setContent(media_info_h media, const picojson::value& content) {
   return MEDIA_CONTENT_ERROR_NONE;
 }
 
+static void FolderToJson(media_folder_h folder, picojson::object* out) {
+  LOGGER(DEBUG) << "entered";
+
+  int ret;
+  char* name = NULL;
+  char* id = NULL;
+  char* path = NULL;
+  time_t date;
+  media_content_storage_e storageType;
+
+  media_folder_get_folder_id(folder, &id);
+  media_folder_get_name(folder, &name);
+  media_folder_get_path(folder, &path);
+  ret = media_folder_get_modified_time(folder, &date);
+  media_folder_get_storage_type(folder, &storageType);
+
+  (*out)["id"] = picojson::value(std::string(id));
+  (*out)["directoryURI"] = picojson::value(std::string(path));
+  (*out)["title"] = picojson::value(std::string(name));
+
+  if (storageType == MEDIA_CONTENT_STORAGE_INTERNAL) {
+    (*out)["storageType"] = picojson::value(std::string("INTERNAL"));
+  } else if (storageType == MEDIA_CONTENT_STORAGE_EXTERNAL) {
+    (*out)["storageType"] = picojson::value(std::string("EXTERNAL"));
+  }
+
+  (*out)["modifiedDate"] = picojson::value(static_cast<double>(date));
+
+  free(name);
+  free(id);
+  free(path);
+}
+
 static bool media_foreach_directory_cb(media_folder_h folder, void *user_data) {
-  std::vector<media_folder_h> *dir = static_cast<std::vector<media_folder_h>*>(user_data);
-  media_folder_h nfolder = NULL;
-  media_folder_clone (&nfolder, folder);
-  dir->push_back(nfolder);
+  picojson::array *array = static_cast<picojson::array*>(user_data);
+  picojson::object json;
+  FolderToJson(folder, &json);
+  array->push_back(picojson::value(json));
+  return true;
 }
 
 static bool media_foreach_content_cb(media_info_h media, void *user_data) {
   picojson::value::array *contents = static_cast<picojson::value::array*>(user_data);
   picojson::value::object o;
-  contentToJson(media, o);
+  ContentToJson(media, o);
   contents->push_back(picojson::value(o));
   return true;
 }
@@ -490,7 +524,7 @@ static bool playlist_content_member_cb(int playlist_member_id, media_info_h medi
 
   media_info_get_display_name(media, &name);
   o["playlist_member_id"] = picojson::value(static_cast<double>(playlist_member_id));
-  contentToJson(media, o);
+  ContentToJson(media, o);
   contents->push_back(picojson::value(o));
   return true;
 }
@@ -524,14 +558,23 @@ bool ContentManager::isConnected() {
 
 void ContentManager::getDirectories(const std::shared_ptr<ReplyCallbackData>& user_data) {
 
-  picojson::value::array pico_dirs;
-
   int ret;
   filter_h filter = NULL;
-  std::vector<media_folder_h> dirs;
+  ret = media_filter_create(&filter);
+  if (ret != MEDIA_CONTENT_ERROR_NONE) {
+    LOGGER(ERROR) << "media_filter_create failed";
+    return;
+  }
 
-  ret = media_folder_foreach_folder_from_db(filter, media_foreach_directory_cb, &dirs);
+  SCOPE_EXIT {
+    media_filter_destroy(filter);
+  };
 
+  std::string condition = "(FOLDER_STORAGE_TYPE = 0 OR FOLDER_STORAGE_TYPE = 1)";
+  media_filter_set_condition(filter, condition.c_str(), MEDIA_CONTENT_COLLATE_DEFAULT);
+
+  picojson::array pico_dirs;
+  ret = media_folder_foreach_folder_from_db(filter, media_foreach_directory_cb, &pico_dirs);
   if (ret != MEDIA_CONTENT_ERROR_NONE) {
     UnknownException err("Getting the directories failed.");
     user_data->isSuccess = false;
@@ -539,37 +582,6 @@ void ContentManager::getDirectories(const std::shared_ptr<ReplyCallbackData>& us
     return;
   }
 
-  for (std::vector<media_folder_h>::iterator it = dirs.begin(); it != dirs.end(); ++it) {
-    char* name = NULL;
-    char* id = NULL;
-    char* path = NULL;
-    time_t date;
-    media_content_storage_e storageType;
-    picojson::value::object o;
-
-    media_folder_get_folder_id(*it, &id);
-    media_folder_get_name(*it, &name);
-    media_folder_get_path(*it, &path);
-    media_folder_get_modified_time(*it, &date);
-    media_folder_get_storage_type(*it, &storageType);
-
-    o["id"] = picojson::value(std::string(id));
-    o["directoryURI"] = picojson::value(std::string(path));
-    o["title"] = picojson::value(std::string(name));
-
-    if (storageType == MEDIA_CONTENT_STORAGE_INTERNAL) {
-      o["storageType"] = picojson::value(std::string("INTERNAL"));
-    } else if (storageType == MEDIA_CONTENT_STORAGE_EXTERNAL) {
-      o["storageType"] = picojson::value(std::string("EXTERNAL"));
-    }
-
-    o["modifiedDate"] = picojson::value(static_cast<double>(date));
-    pico_dirs.push_back(picojson::value(o));
-
-    free(name);
-    free(id);
-    free(path);
-  }
   user_data->isSuccess = true;
   user_data->result = picojson::value(pico_dirs);
 }

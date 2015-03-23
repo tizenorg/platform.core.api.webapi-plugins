@@ -197,7 +197,7 @@ static void changedContentCallback(media_content_error_e error,
     ret = media_info_get_media_from_db(uuid, &media);
     if (ret == MEDIA_CONTENT_ERROR_NONE && media != NULL) {
       picojson::object o;
-      contentToJson(media, o);
+      ContentToJson(media, o);
       ReportSuccess(picojson::value(o), obj);
 
       if (update_type == MEDIA_CONTENT_INSERT) {

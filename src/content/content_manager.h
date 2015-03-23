@@ -19,8 +19,8 @@
 namespace extension {
 namespace content {
 
-void contentToJson(media_info_h info, picojson::object& o);
-  
+void ContentToJson(media_info_h info, picojson::object& o);
+
 class ContentManager {
  public:
   virtual ~ContentManager();
@@ -31,7 +31,7 @@ class ContentManager {
   void find(const std::shared_ptr<ReplyCallbackData>& user_data);
   int update(picojson::value args);
   int updateBatch(picojson::value args);
-  
+
   int scanFile(std::string& uri);
   int setChangeListener(media_content_db_update_cb callback, void *user_data);
   void unSetChangeListener();
@@ -42,15 +42,15 @@ class ContentManager {
 //playlist
   void createPlaylist(std::string name, const std::shared_ptr<ReplyCallbackData>& user_data);
   void getPlaylists(const std::shared_ptr<ReplyCallbackData>& user_data);
-  void removePlaylist(std::string playlistId, const std::shared_ptr<ReplyCallbackData>& user_data);  
+  void removePlaylist(std::string playlistId, const std::shared_ptr<ReplyCallbackData>& user_data);
   int playlistAdd(std::string playlist_id, std::string content_id);
   int playlistRemove(std::string playlist_id, int member_id);
   void playlistAddbatch(const std::shared_ptr<ReplyCallbackData>& user_data);
   void playlistGet(const std::shared_ptr<ReplyCallbackData>& user_data);
   void playlistRemovebatch(const std::shared_ptr<ReplyCallbackData>& user_data);
   void playlistSetOrder(const std::shared_ptr<ReplyCallbackData>& user_data);
-  void playlistMove(const std::shared_ptr<ReplyCallbackData>& user_data);  
-  
+  void playlistMove(const std::shared_ptr<ReplyCallbackData>& user_data);
+
 //playlistSetOrder
   common::PlatformException convertError(int err);
  private:

@@ -35,7 +35,7 @@ function ContentDirectory(data) {
   var directoryURI;
   var title;
   var storageType;
-  var modifiedDate;
+  var modifiedDate = null;
 
   Object.defineProperties(this, {
     id: {
