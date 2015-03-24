@@ -94,7 +94,7 @@ NotificationManager.prototype.remove = function(id) {
     {name: 'id', type: types_.STRING}
   ]);
 
-  if (!arguments.length) {
+  if (!arguments.length || !(parseInt(arguments[0]) > 0)) {
     throw new WebAPIException(WebAPIException.NOT_FOUND_ERR);
   }
 
