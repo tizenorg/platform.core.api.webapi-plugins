@@ -201,10 +201,6 @@ BuildRequires: pkgconfig(accounts-svc)
 BuildRequires: pkgconfig(capi-appfw-alarm)
 %endif
 
-%if 0%{?tizen_feature_application_support}
-BuildRequires: pkgconfig(wrt-plugins-ipc-message)
-%endif
-
 %if 0%{?tizen_feature_bookmark_support}
 BuildRequires: pkgconfig(capi-web-bookmark)
 BuildRequires: pkgconfig(bookmark-adaptor)
