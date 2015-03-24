@@ -3,16 +3,10 @@
 // found in the LICENSE file.
 
 function Playlist(data) {
-  var editableAttributes = ['name', 'thumbnailURI'];
   var id;
   var numberOfTracks;
 
   Object.defineProperties(this, {
-    editableAttributes: {
-      value: editableAttributes,
-      writable: false,
-      enumerable: true
-    },
     id: {
       get: function() {
         return id;
