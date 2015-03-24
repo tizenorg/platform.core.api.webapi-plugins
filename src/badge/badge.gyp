@@ -6,6 +6,9 @@
     {
       'target_name': 'tizen_badge',
       'type': 'loadable_module',
+      'dependencies': [
+        '../common/common.gyp:tizen_common',
+      ],
       'sources': [
         'badge_api.js',
         'badge_extension.cc',

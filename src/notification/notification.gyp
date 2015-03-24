@@ -6,6 +6,9 @@
     {
       'target_name': 'tizen_notification',
       'type': 'loadable_module',
+      'dependencies': [
+        '../common/common.gyp:tizen_common',
+      ],
       'sources': [
         'notification_api.js',
         'notification_extension.cc',

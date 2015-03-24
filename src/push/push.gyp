@@ -6,6 +6,9 @@
     {
       'target_name': 'tizen_push',
       'type': 'loadable_module',
+      'dependencies': [
+        '../common/common.gyp:tizen_common',
+      ],
       'sources': [
         'push_api.js',
         'push_extension.cc',

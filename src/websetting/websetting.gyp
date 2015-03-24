@@ -6,6 +6,9 @@
     {
       'target_name': 'tizen_websetting',
       'type': 'loadable_module',
+      'dependencies': [
+        '../common/common.gyp:tizen_common',
+      ],
       'sources': [
         'websetting.cc',
         'websetting.h',

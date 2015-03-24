@@ -6,6 +6,9 @@
     {
       'target_name': 'tizen_application',
       'type': 'loadable_module',
+      'dependencies': [
+        '../common/common.gyp:tizen_common',
+      ],
       'sources': [
         'application_api.js',
         'application_extension.cc',

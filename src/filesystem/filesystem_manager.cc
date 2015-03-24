@@ -256,7 +256,7 @@ void FilesystemManager::StatPath(
 }
 
 static std::string getAppRoot() {
-  std::string appId = common::Extension::GetRuntimeVariable("app_id", 64);
+  std::string appId = common::GetCurrentExtension()->GetRuntimeVariable("app_id", 64);
   app_info_h app_info;
   int err = app_info_create(appId.c_str(), &app_info);
   if (err != APP_MANAGER_ERROR_NONE) {

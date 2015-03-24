@@ -6,6 +6,9 @@
     {
       'target_name': 'tizen_nfc',
       'type': 'loadable_module',
+      'dependencies': [
+        '../common/common.gyp:tizen_common',
+      ],
       'sources': [
         'nfc_api.js',
         'nfc_extension.cc',

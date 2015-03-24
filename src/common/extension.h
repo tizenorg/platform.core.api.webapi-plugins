@@ -42,8 +42,12 @@ class Extension;
 // an appropriate Extension subclass.
 common::Extension* CreateExtension();
 
-
 namespace common {
+
+// implemented in XW_Extension.cc
+// can be called only after the extension is fully created
+//    (CreateExtension() has been called)
+Extension* GetCurrentExtension();
 
 class Extension {
  public:
@@ -61,18 +65,27 @@ class Extension {
 
   virtual Instance* CreateInstance();
 
-  static std::string GetRuntimeVariable(const char* var_name, unsigned len);
+  std::string GetRuntimeVariable(const char* var_name, unsigned len);
 
  private:
   friend int32_t (::XW_Initialize)(XW_Extension extension,
-                                 XW_GetInterface get_interface);
+                                   XW_GetInterface get_interface);
+
+  static int32_t XW_Initialize(XW_Extension extension,
+                               XW_GetInterface get_interface,
+                               XW_Initialize_Func initialize,
+                               XW_CreatedInstanceCallback created_instance,
+                               XW_ShutdownCallback shutdown);
 
   // XW_Extension callbacks.
-  static void OnShutdown(XW_Extension xw_extension);
-  static void OnInstanceCreated(XW_Instance xw_instance);
+  static void OnInstanceCreated(XW_Instance xw_instance, Instance* instance); // modified
   static void OnInstanceDestroyed(XW_Instance xw_instance);
   static void HandleMessage(XW_Instance xw_instance, const char* msg);
   static void HandleSyncMessage(XW_Instance xw_instance, const char* msg);
+
+  XW_Extension xw_extension_;
+
+  class Detail;
 };
 
 class Instance {

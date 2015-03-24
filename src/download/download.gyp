@@ -6,6 +6,9 @@
     {
       'target_name': 'tizen_download',
       'type': 'loadable_module',
+      'dependencies': [
+        '../common/common.gyp:tizen_common',
+      ],
       'sources': [
         'download_api.js',
         'download_extension.cc',
@@ -17,8 +20,8 @@
         ['tizen == 1', {
           'variables': {
             'packages': [
-           	'capi-web-url-download',
-		'capi-system-info'
+              'capi-web-url-download',
+              'capi-system-info'
             ]
           },
         }],

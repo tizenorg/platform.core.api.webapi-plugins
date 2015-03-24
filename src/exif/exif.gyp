@@ -9,6 +9,9 @@
       'includes': [
         '../common/pkg-config.gypi',
       ],
+      'dependencies': [
+        '../common/common.gyp:tizen_common',
+      ],
       'sources': [
         'exif_api.js',
         'exif_extension.cc',

@@ -12,6 +12,9 @@
           'storage',
         ],
       },
+      'dependencies': [
+        '../common/common.gyp:tizen_common',
+      ],
       'sources': [
         'filesystem_api.js',
         'filesystem_extension.cc',
@@ -31,7 +34,11 @@
       ],
       'conditions': [
         [ 'tizen == 1', {
-            'variables': { 'packages': ['vconf'] },
+            'variables': { 'packages': [
+              'vconf',
+              'capi-appfw-app-manager',
+              'capi-appfw-package-manager',
+            ] },
         }],
       ],
     },

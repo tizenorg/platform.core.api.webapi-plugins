@@ -6,6 +6,9 @@
     {
       'target_name': 'tizen_tvdisplay',
       'type': 'loadable_module',
+      'dependencies': [
+        '../common/common.gyp:tizen_common',
+      ],
       'includes': [
         '../common/pkg-config.gypi',
       ],

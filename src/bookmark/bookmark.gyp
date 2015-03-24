@@ -6,6 +6,9 @@
     {
       'target_name': 'tizen_bookmark',
       'type': 'loadable_module',
+      'dependencies': [
+        '../common/common.gyp:tizen_common',
+      ],
       'sources': [
         'bookmark_api.js',
         'bookmark_extension.cc',

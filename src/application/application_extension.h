@@ -11,8 +11,10 @@
 
 class ApplicationExtension : public common::Extension {
  public:
-  explicit ApplicationExtension(const std::string& app_id);
+  ApplicationExtension();
   virtual ~ApplicationExtension();
+
+  std::string app_id() const { return app_id_; }
 
  private:
   std::string app_id_;

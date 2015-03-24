@@ -6,6 +6,9 @@
     {
       'target_name': 'tizen_archive',
       'type': 'loadable_module',
+      'dependencies': [
+        '../common/common.gyp:tizen_common',
+      ],
       'sources': [
         'archive_api.js',
         'archive_extension.cc',

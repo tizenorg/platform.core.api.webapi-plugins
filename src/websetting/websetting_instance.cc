@@ -52,7 +52,7 @@ void WebSettingInstance::WebSettingManagerSetUserAgentString(
   const double callback_id = args.get("callbackId").get<double>();
   auto get = [=](const std::shared_ptr<JsonValue>& response) -> void {
     const char* runtime_name =
-        common::Extension::GetRuntimeVariable("runtime_name", 64).c_str();
+        common::GetCurrentExtension()->GetRuntimeVariable("runtime_name", 64).c_str();
     LoggerD("runtime_name: %s", runtime_name);
     if (strcmp(runtime_name, kWrtServiceName) == 0) {
       ReportError(
@@ -87,7 +87,7 @@ void WebSettingInstance::WebSettingManagerRemoveAllCookies(
   const double callback_id = args.get("callbackId").get<double>();
   auto get = [=](const std::shared_ptr<JsonValue>& response) -> void {
     const char* runtime_name =
-        common::Extension::GetRuntimeVariable("runtime_name", 64).c_str();
+        common::GetCurrentExtension()->GetRuntimeVariable("runtime_name", 64).c_str();
     LoggerD("runtime_name: %s", runtime_name);
     if (strcmp(runtime_name, kWrtServiceName) == 0) {
       ReportError(

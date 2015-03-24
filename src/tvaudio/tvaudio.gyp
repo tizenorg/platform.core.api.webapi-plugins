@@ -6,6 +6,9 @@
     {
       'target_name': 'tizen_tvaudio',
       'type': 'loadable_module',
+      'dependencies': [
+        '../common/common.gyp:tizen_common',
+      ],
       'sources': [
         'tvaudio_api.js',
         'tvaudio_extension.cc',

@@ -6,6 +6,9 @@
     {
       'target_name': 'tizen_sensor',
       'type': 'loadable_module',
+      'dependencies': [
+        '../common/common.gyp:tizen_common',
+      ],
       'sources': [
         'sensor_api.js',
         'sensor_extension.cc',

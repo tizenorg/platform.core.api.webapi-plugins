@@ -6,6 +6,9 @@
     {
       'target_name': 'tizen_power',
       'type': 'loadable_module',
+      'dependencies': [
+        '../common/common.gyp:tizen_common',
+      ],
       'sources': [
         'power_api.js',
         'power_extension.cc',

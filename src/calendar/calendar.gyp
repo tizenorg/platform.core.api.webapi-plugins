@@ -6,6 +6,9 @@
     {
       'target_name': 'tizen_calendar',
       'type': 'loadable_module',
+      'dependencies': [
+        '../common/common.gyp:tizen_common',
+      ],
       'sources': [
         'calendar_api.js',
         'calendar_extension.cc',

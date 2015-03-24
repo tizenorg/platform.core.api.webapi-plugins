@@ -12,7 +12,7 @@
 
 class WebSettingExtension : public common::Extension {
  public:
-  explicit WebSettingExtension(const std::string& app_id);
+  WebSettingExtension();
   virtual ~WebSettingExtension();
 
   WebSetting* current_app() { return current_app_.get(); }

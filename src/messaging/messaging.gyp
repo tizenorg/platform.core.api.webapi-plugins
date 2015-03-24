@@ -7,6 +7,9 @@
     {
       'target_name': 'tizen_messaging',
       'type': 'loadable_module',
+      'dependencies': [
+        '../common/common.gyp:tizen_common',
+      ],
       'variables': {
         'packages': [
             'msg-service',

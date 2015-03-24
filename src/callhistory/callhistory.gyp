@@ -6,6 +6,9 @@
     {
       'target_name': 'tizen_callhistory',
       'type': 'loadable_module',
+      'dependencies': [
+        '../common/common.gyp:tizen_common',
+      ],
       'sources': [
         'callhistory_api.js',
         'callhistory.cc',

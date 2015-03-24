@@ -6,6 +6,9 @@
     {
       'target_name': 'tizen_mediakey',
       'type': 'loadable_module',
+      'dependencies': [
+        '../common/common.gyp:tizen_common',
+      ],
       'sources': [
         'mediakey_api.js',
         'mediakey_extension.cc',

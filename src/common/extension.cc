@@ -23,10 +23,19 @@
 #include "common/logger.h"
 #include "common/scope_exit.h"
 
+// This function is hidden, because each plugin needs to have own implementation.
+__attribute__ ((visibility ("hidden"))) common::Extension* CreateExtension() {
+  common::Extension* e = new common::Extension();
+  e->SetExtensionName("common");
+  return e;
+}
+
 namespace {
 
-common::Extension* g_extension = NULL;
-XW_Extension g_xw_extension = 0;
+// this variable is valid only during Extension::XW_Initialize() call
+// do not use !!!
+// it's here, so we don't have to modify the interface of CreateExtension(), Extension(), etc.
+XW_Extension g_xw_extension_ = 0;
 
 const XW_CoreInterface* g_core = NULL;
 const XW_MessagingInterface* g_messaging = NULL;
@@ -36,49 +45,55 @@ const XW_Internal_RuntimeInterface* g_runtime = NULL;
 const XW_Internal_PermissionsInterface* g_permission = NULL;
 
 bool InitializeInterfaces(XW_GetInterface get_interface) {
-  g_core = reinterpret_cast<const XW_CoreInterface*>(
-      get_interface(XW_CORE_INTERFACE));
-  if (!g_core) {
-    std::cerr << "Can't initialize extension: error getting Core interface.\n";
-    return false;
-  }
+  static bool initialized = false;
 
-  g_messaging = reinterpret_cast<const XW_MessagingInterface*>(
-      get_interface(XW_MESSAGING_INTERFACE));
-  if (!g_messaging) {
-    std::cerr <<
-        "Can't initialize extension: error getting Messaging interface.\n";
-    return false;
-  }
+  if (!initialized) {
+    g_core = reinterpret_cast<const XW_CoreInterface*>(
+        get_interface(XW_CORE_INTERFACE));
+    if (!g_core) {
+      std::cerr << "Can't initialize extension: error getting Core interface.\n";
+      return false;
+    }
 
-  g_sync_messaging =
-      reinterpret_cast<const XW_Internal_SyncMessagingInterface*>(
-          get_interface(XW_INTERNAL_SYNC_MESSAGING_INTERFACE));
-  if (!g_sync_messaging) {
-    std::cerr <<
-        "Can't initialize extension: error getting SyncMessaging interface.\n";
-    return false;
-  }
+    g_messaging = reinterpret_cast<const XW_MessagingInterface*>(
+        get_interface(XW_MESSAGING_INTERFACE));
+    if (!g_messaging) {
+      std::cerr <<
+          "Can't initialize extension: error getting Messaging interface.\n";
+      return false;
+    }
 
-  g_entry_points = reinterpret_cast<const XW_Internal_EntryPointsInterface*>(
-      get_interface(XW_INTERNAL_ENTRY_POINTS_INTERFACE));
-  if (!g_entry_points) {
-    std::cerr << "NOTE: Entry points interface not available in this version "
-              << "of Crosswalk, ignoring entry point data for extensions.\n";
-  }
+    g_sync_messaging =
+        reinterpret_cast<const XW_Internal_SyncMessagingInterface*>(
+            get_interface(XW_INTERNAL_SYNC_MESSAGING_INTERFACE));
+    if (!g_sync_messaging) {
+      std::cerr <<
+          "Can't initialize extension: error getting SyncMessaging interface.\n";
+      return false;
+    }
 
-  g_runtime = reinterpret_cast<const XW_Internal_RuntimeInterface*>(
-      get_interface(XW_INTERNAL_RUNTIME_INTERFACE));
-  if (!g_runtime) {
-    std::cerr << "NOTE: runtime interface not available in this version "
-              << "of Crosswalk, ignoring runtime variables for extensions.\n";
-  }
+    g_entry_points = reinterpret_cast<const XW_Internal_EntryPointsInterface*>(
+        get_interface(XW_INTERNAL_ENTRY_POINTS_INTERFACE));
+    if (!g_entry_points) {
+      std::cerr << "NOTE: Entry points interface not available in this version "
+                << "of Crosswalk, ignoring entry point data for extensions.\n";
+    }
 
-  g_permission = reinterpret_cast<const XW_Internal_PermissionsInterface*>(
-      get_interface(XW_INTERNAL_PERMISSIONS_INTERFACE));
-  if (!g_permission) {
-    std::cerr << "NOTE: permission interface not available in this version "
-      << "of Crosswalk, ignoring permission for extensions.\n";
+    g_runtime = reinterpret_cast<const XW_Internal_RuntimeInterface*>(
+        get_interface(XW_INTERNAL_RUNTIME_INTERFACE));
+    if (!g_runtime) {
+      std::cerr << "NOTE: runtime interface not available in this version "
+                << "of Crosswalk, ignoring runtime variables for extensions.\n";
+    }
+
+    g_permission = reinterpret_cast<const XW_Internal_PermissionsInterface*>(
+        get_interface(XW_INTERNAL_PERMISSIONS_INTERFACE));
+    if (!g_permission) {
+      std::cerr << "NOTE: permission interface not available in this version "
+        << "of Crosswalk, ignoring permission for extensions.\n";
+    }
+
+    initialized = true;
   }
 
   return true;
@@ -86,58 +101,35 @@ bool InitializeInterfaces(XW_GetInterface get_interface) {
 
 }  // namespace
 
-int32_t XW_Initialize(XW_Extension extension, XW_GetInterface get_interface) {
-  assert(extension);
-  g_xw_extension = extension;
-
-  if (!InitializeInterfaces(get_interface))
-    return XW_ERROR;
-
-  g_extension = CreateExtension();
-  if (!g_extension) {
-    std::cerr << "Can't initialize extension: "
-              << "create extension returned NULL.\n";
-    return XW_ERROR;
-  }
-
-  using common::Extension;
-  g_core->RegisterShutdownCallback(g_xw_extension, Extension::OnShutdown);
-  g_core->RegisterInstanceCallbacks(
-      g_xw_extension, Extension::OnInstanceCreated,
-      Extension::OnInstanceDestroyed);
-  g_messaging->Register(g_xw_extension, Extension::HandleMessage);
-  g_sync_messaging->Register(g_xw_extension, Extension::HandleSyncMessage);
-  return XW_OK;
-}
-
 namespace common {
 
-Extension::Extension() {}
+Extension::Extension() : xw_extension_(g_xw_extension_) {
+}
 
 Extension::~Extension() {}
 
 void Extension::SetExtensionName(const char* name) {
-  g_core->SetExtensionName(g_xw_extension, name);
+  g_core->SetExtensionName(xw_extension_, name);
 }
 
 void Extension::SetJavaScriptAPI(const char* api) {
-  g_core->SetJavaScriptAPI(g_xw_extension, api);
+  g_core->SetJavaScriptAPI(xw_extension_, api);
 }
 
 void Extension::SetExtraJSEntryPoints(const char** entry_points) {
   if (g_entry_points)
-    g_entry_points->SetExtraJSEntryPoints(g_xw_extension, entry_points);
+    g_entry_points->SetExtraJSEntryPoints(xw_extension_, entry_points);
 }
 
 bool Extension::RegisterPermissions(const char* perm_table) {
   if (g_permission)
-    return g_permission->RegisterPermissions(g_xw_extension, perm_table);
+    return g_permission->RegisterPermissions(xw_extension_, perm_table);
   return false;
 }
 
 bool Extension::CheckAPIAccessControl(const char* api_name) {
   if (g_permission)
-    return g_permission->CheckAPIAccessControl(g_xw_extension, api_name);
+    return g_permission->CheckAPIAccessControl(xw_extension_, api_name);
   return false;
 }
 
@@ -150,20 +142,13 @@ std::string Extension::GetRuntimeVariable(const char* var_name, unsigned len) {
     return "";
 
   std::vector<char> res(len + 1, 0);
-  g_runtime->GetRuntimeVariableString(g_xw_extension, var_name, &res[0], len);
+  g_runtime->GetRuntimeVariableString(xw_extension_, var_name, &res[0], len);
   return std::string(res.begin(), res.end());
 }
 
 // static
-void Extension::OnShutdown(XW_Extension) {
-  delete g_extension;
-  g_extension = NULL;
-}
-
-// static
-void Extension::OnInstanceCreated(XW_Instance xw_instance) {
+void Extension::OnInstanceCreated(XW_Instance xw_instance, Instance* instance) {
   assert(!g_core->GetInstanceData(xw_instance));
-  Instance* instance = g_extension->CreateInstance();
   if (!instance)
     return;
   instance->xw_instance_ = xw_instance;
@@ -198,6 +183,36 @@ void Extension::HandleSyncMessage(XW_Instance xw_instance, const char* msg) {
     return;
   instance->HandleSyncMessage(msg);
 }
+
+//static
+int32_t Extension::XW_Initialize(XW_Extension extension,
+                                 XW_GetInterface get_interface,
+                                 XW_Initialize_Func initialize,
+                                 XW_CreatedInstanceCallback created_instance,
+                                 XW_ShutdownCallback shutdown) {
+  assert(extension);
+
+  if (!InitializeInterfaces(get_interface)) {
+    return XW_ERROR;
+  }
+
+  g_xw_extension_ = extension;
+
+  if (XW_ERROR == initialize(extension, get_interface)) {
+    return XW_ERROR;
+  }
+
+  g_xw_extension_ = 0;
+
+  using common::Extension;
+  g_core->RegisterShutdownCallback(extension, shutdown);
+  g_core->RegisterInstanceCallbacks(extension, created_instance,
+                                    Extension::OnInstanceDestroyed);
+  g_messaging->Register(extension, Extension::HandleMessage);
+  g_sync_messaging->Register(extension, Extension::HandleSyncMessage);
+  return XW_OK;
+}
+
 
 Instance::Instance()
     : xw_instance_(0) {}
@@ -376,7 +391,7 @@ class AccessControlImpl {
     const char* kQuery = "select name from WidgetFeature where app_id = "
                          "(select app_id from WidgetInfo where tizen_appid = ?)"
                          " and rejected = 0";
-    const std::string app_id = common::Extension::GetRuntimeVariable("app_id", 64);
+    const std::string app_id = common::GetCurrentExtension()->GetRuntimeVariable("app_id", 64);
     sqlite3_stmt* stmt = nullptr;
 
     ret = sqlite3_prepare_v2(db, kQuery, -1, &stmt, nullptr);
@@ -441,7 +456,7 @@ class AccessControlImpl {
     }
 
     const char* kQuery = "select app_id from WidgetInfo where tizen_appid = ?";
-    const std::string app_id = common::Extension::GetRuntimeVariable("app_id", 64);
+    const std::string app_id = common::GetCurrentExtension()->GetRuntimeVariable("app_id", 64);
     sqlite3_stmt* stmt = nullptr;
 
     ret = sqlite3_prepare_v2(db, kQuery, -1, &stmt, nullptr);

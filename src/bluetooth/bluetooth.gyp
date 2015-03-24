@@ -6,6 +6,9 @@
     {
       'target_name': 'tizen_bluetooth',
       'type': 'loadable_module',
+      'dependencies': [
+        '../common/common.gyp:tizen_common',
+      ],
       'sources': [
         'bluetooth_api.js',
         'bluetooth_adapter.cc',

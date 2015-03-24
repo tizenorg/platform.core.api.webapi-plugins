@@ -1805,7 +1805,7 @@ void ApplicationInstance::AppMgrRemoveAppInfoEventListener(
 void ApplicationInstance::AppGetRequestedAppControl(
   const picojson::value& args, picojson::object& out) {
   std::string bundle_str =
-    common::Extension::GetRuntimeVariable("encoded_bundle", 1024);
+    common::GetCurrentExtension()->GetRuntimeVariable("encoded_bundle", 1024);
   if (bundle_str.empty()) {
     LoggerE("Getting encoded_bundle is failed");
     ReportError(UnknownException("Gettng encoded_bundle is failed"), out);

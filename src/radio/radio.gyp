@@ -6,6 +6,9 @@
     {
       'target_name': 'tizen_fmradio',
       'type': 'loadable_module',
+      'dependencies': [
+        '../common/common.gyp:tizen_common',
+      ],
       'sources': [
         'radio_api.js',
         'radio_extension.cc',

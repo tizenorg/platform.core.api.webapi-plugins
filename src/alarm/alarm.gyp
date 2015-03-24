@@ -6,6 +6,9 @@
     {
       'target_name': 'tizen_alarm',
       'type': 'loadable_module',
+      'dependencies': [
+        '../common/common.gyp:tizen_common',
+      ],
       'sources': [
         'alarm_api.js',
         'alarm_extension.cc',

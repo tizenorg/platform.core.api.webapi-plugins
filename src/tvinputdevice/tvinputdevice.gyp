@@ -6,6 +6,9 @@
     {
       'target_name': 'tizen_tvinputdevice',
       'type': 'loadable_module',
+      'dependencies': [
+        '../common/common.gyp:tizen_common',
+      ],
       'sources': [
         'tvinputdevice_api.js',
         'tvinputdevice_extension.cc',

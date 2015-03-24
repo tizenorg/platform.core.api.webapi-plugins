@@ -6,6 +6,9 @@
     {
       'target_name': 'tizen_secureelement',
       'type': 'loadable_module',
+      'dependencies': [
+        '../common/common.gyp:tizen_common',
+      ],
       'sources': [
         'secureelement_api.js',
         'secureelement_extension.cc',

@@ -6,6 +6,9 @@
     {
       'target_name': 'tizen_time',
       'type': 'loadable_module',
+      'dependencies': [
+        '../common/common.gyp:tizen_common',
+      ],
       'variables': {
         'packages': [
           'icu-i18n',

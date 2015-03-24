@@ -9,19 +9,27 @@
 #include "websetting/websetting.h"
 #include "websetting/websetting_instance.h"
 
+#include "common/logger.h"
+
 extern const char kSource_websetting_api[];
 
 common::Extension* CreateExtension() {
-  std::string env_app_id = common::Extension::GetRuntimeVariable("app_id", 64);
-  std::string app_id = env_app_id.substr(1, env_app_id.rfind('"') - 1);
-  if (app_id.empty()) {
-    std::cerr << "Got invalid application ID." << std::endl;
+  WebSettingExtension* e = new WebSettingExtension();
+
+  if (e->current_app()->app_id().empty()) {
+    LoggerE("Got invalid application ID.");
+    delete e;
     return nullptr;
   }
-  return new WebSettingExtension(app_id);
+
+  return e;
 }
 
-WebSettingExtension::WebSettingExtension(const std::string& app_id) {
+WebSettingExtension::WebSettingExtension() {
+  std::string app_id = GetRuntimeVariable("app_id", 64);
+
+  LoggerD("app_id: %s", app_id.c_str());
+
   current_app_.reset(new WebSetting(app_id));
   SetExtensionName("tizen.websetting");
   SetJavaScriptAPI(kSource_websetting_api);

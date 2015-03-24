@@ -6,6 +6,9 @@
     {
       'target_name': 'tizen_contact',
       'type': 'loadable_module',
+      'dependencies': [
+        '../common/common.gyp:tizen_common',
+      ],
       'sources': [
         'contact_api.js',
         'contact_extension.cc',

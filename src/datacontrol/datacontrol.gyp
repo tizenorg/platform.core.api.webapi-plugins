@@ -6,6 +6,9 @@
     {
       'target_name': 'tizen_datacontrol',
       'type': 'loadable_module',
+      'dependencies': [
+        '../common/common.gyp:tizen_common',
+      ],
       'sources': [
         'datacontrol_api.js',
         'datacontrol_extension.cc',

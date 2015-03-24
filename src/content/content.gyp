@@ -6,6 +6,9 @@
     {
       'target_name': 'tizen_content',
       'type': 'loadable_module',
+      'dependencies': [
+        '../common/common.gyp:tizen_common',
+      ],
       'sources': [
         'content_api.js',
         'content_extension.cc',

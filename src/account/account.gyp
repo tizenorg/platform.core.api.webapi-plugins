@@ -6,6 +6,9 @@
     {
       'target_name': 'tizen_account',
       'type': 'loadable_module',
+      'dependencies': [
+        '../common/common.gyp:tizen_common',
+      ],
       'sources': [
         'account_api.js',
         'account_extension.cc',

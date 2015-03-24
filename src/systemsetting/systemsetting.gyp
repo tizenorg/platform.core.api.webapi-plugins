@@ -6,6 +6,9 @@
     {
       'target_name': 'tizen_systemsetting',
       'type': 'loadable_module',
+      'dependencies': [
+        '../common/common.gyp:tizen_common',
+      ],
       'sources': [
         'systemsetting_api.js',
         'systemsetting_extension.cc',

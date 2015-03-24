@@ -14,19 +14,21 @@
 extern const char kSource_application_api[];
 
 common::Extension* CreateExtension() {
-  std::string app_id = common::Extension::GetRuntimeVariable("app_id", 64);
-  LoggerD("app_id: %s", app_id.c_str());
+  ApplicationExtension* e = new ApplicationExtension();
 
-  if (app_id.empty()) {
+  if (e->app_id().empty()) {
     LoggerD("Application extension will not be created.");
-    return NULL;
+    delete e;
+    return nullptr;
   }
 
-  return new ApplicationExtension(app_id);
+  return e;
 }
 
-ApplicationExtension::ApplicationExtension(const std::string& app_id) {
-  app_id_ = app_id;
+ApplicationExtension::ApplicationExtension() {
+  app_id_ = GetRuntimeVariable("app_id", 64);
+
+  LoggerD("app_id: %s", app_id_.c_str());
 
   SetExtensionName("tizen.application");
   SetJavaScriptAPI(kSource_application_api);

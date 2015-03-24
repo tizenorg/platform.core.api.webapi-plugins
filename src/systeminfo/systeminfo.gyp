@@ -6,6 +6,9 @@
     {
       'target_name': 'tizen_systeminfo',
       'type': 'loadable_module',
+      'dependencies': [
+        '../common/common.gyp:tizen_common',
+      ],
       'sources': [
         'systeminfo_api.js',
         'systeminfo_extension.cc',

@@ -12,6 +12,7 @@
         ],
       },
       'dependencies': [
+        '../common/common.gyp:tizen_common',
         '../tizen/tizen.gyp:tizen',
       ],
       'includes': [
