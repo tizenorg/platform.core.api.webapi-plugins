@@ -73,6 +73,9 @@ NotificationManager.prototype.update = function(notification) {
   if (!arguments.length) {
     throw new WebAPIException(WebAPIException.NOT_FOUND_ERR);
   }
+  if (!args.notification.id) {
+    throw new WebAPIException(WebAPIException.UNKNOWN_ERR);
+  }
 
   var data = {
     notification: args.notification
