@@ -849,27 +849,34 @@ PlatformResult StatusNotification::GetProgressValue(
 PlatformResult StatusNotification::SetProgressValue(
     notification_h noti_handle,
     const std::string& progress_type,
-    double progress_value) {
+    double progress_value,
+    bool is_update) {
   int ret;
 
   if (progress_type == kProgressTypeByte) {
-    ret = notification_set_size(noti_handle, progress_value);
-    if (ret != NOTIFICATION_ERROR_NONE) {
-      LoggerE("Set notification size error: %d", ret);
-      return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                            "Set notification size error");
+    if (is_update) {
+      ret = notification_update_size(
+          noti_handle, NOTIFICATION_PRIV_ID_NONE, progress_value);
+    } else {
+      ret = notification_set_size(noti_handle, progress_value);
     }
   } else if (progress_type == kProgressTypePercentage) {
-    ret = notification_set_progress(noti_handle, progress_value);
-    if (ret != NOTIFICATION_ERROR_NONE) {
-      LoggerE("Set notification progress error: %d", ret);
-      return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                            "Set notification progress error");
+    if (is_update) {
+      ret = notification_update_progress(
+          noti_handle, NOTIFICATION_PRIV_ID_NONE, progress_value);
+    } else {
+      ret = notification_set_progress(noti_handle, progress_value);
     }
   } else {
     LoggerE("Unknown notification progress type: %s ", progress_type.c_str());
     return PlatformResult(ErrorCode::UNKNOWN_ERR,
                           "Unknown notification progress type");
+  }
+
+  if (ret != NOTIFICATION_ERROR_NONE) {
+    LoggerE("Set notification progress/size error: %d", ret);
+    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                          "Set notification progress/size error");
   }
 
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -884,6 +891,18 @@ PlatformResult StatusNotification::GetPostedTime(notification_h noti_handle,
     LoggerE("Get notification posted time error");
     return PlatformResult(ErrorCode::UNKNOWN_ERR,
                           "Get notification posted time error");
+  }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult StatusNotification::GetNotiHandle(int id,
+                                                 notification_h* noti_handle) {
+  *noti_handle = notification_load(NULL, id);
+  if (NULL == *noti_handle) {
+    LoggerE("Not found or removed notification id");
+    return PlatformResult(ErrorCode::NOT_FOUND_ERR,
+                          "Not found or removed notification id");
   }
 
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -1090,6 +1109,7 @@ PlatformResult StatusNotification::ToJson(int id,
 }
 
 PlatformResult StatusNotification::FromJson(const picojson::object& args,
+                                            bool is_update,
                                             picojson::object* out_ptr) {
   picojson::object noti_obj =
       common::FromJson<picojson::object>(args, "notification");
@@ -1103,9 +1123,17 @@ PlatformResult StatusNotification::FromJson(const picojson::object& args,
     return status;
 
   notification_h noti_handle;
-  status = Create(noti_type, &noti_handle);
-  if (status.IsError())
-    return status;
+  if (is_update) {
+    int id = std::stoi(common::FromJson<std::string>(noti_obj, "id"));
+
+    PlatformResult status = GetNotiHandle(id, &noti_handle);
+    if (status.IsError())
+      return status;
+  } else {
+    status = Create(noti_type, &noti_handle);
+    if (status.IsError())
+      return status;
+  }
 
   status = SetLayout(noti_handle, status_type);
   if (status.IsError())
@@ -1212,7 +1240,8 @@ PlatformResult StatusNotification::FromJson(const picojson::object& args,
     status =
         SetProgressValue(noti_handle,
                          progress_type,
-                         common::FromJson<double>(noti_obj, "progressValue"));
+                         common::FromJson<double>(noti_obj, "progressValue"),
+                         is_update);
     if (status.IsError())
       return status;
   }
@@ -1233,11 +1262,16 @@ PlatformResult StatusNotification::FromJson(const picojson::object& args,
 
   status = SetAppControl(noti_handle, app_control);
 
-  int ret = notification_post(noti_handle);
+  int ret;
+  if (is_update) {
+    ret = notification_update(noti_handle);
+  } else {
+    ret = notification_post(noti_handle);
+  }
   if (ret != NOTIFICATION_ERROR_NONE) {
-    LoggerE("Post notification error: %d", ret);
+    LoggerE("Post/Update notification error: %d", ret);
     return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
-                          "Post notification error");
+                          "Post/Update notification error");
   }
 
   int id;
@@ -1249,6 +1283,10 @@ PlatformResult StatusNotification::FromJson(const picojson::object& args,
   status = GetPostedTime(noti_handle, &posted_time);
   if (status.IsError())
     return status;
+
+  if (is_update) {
+    return PlatformResult(ErrorCode::NO_ERROR);
+  }
 
   picojson::object& out = *out_ptr;
   out["id"] = picojson::value(std::to_string(id));

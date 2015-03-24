@@ -24,9 +24,12 @@ class StatusNotification {
                                        app_control_h app_handle,
                                        picojson::object* out_ptr);
   static common::PlatformResult FromJson(const picojson::object& args,
+                                         bool is_update,
                                          picojson::object* out_ptr);
   static common::PlatformResult GetAppControl(notification_h noti_handle,
                                               app_control_h* app_control);
+  static common::PlatformResult GetNotiHandle(int id,
+                                              notification_h* noti_handle);
 
  private:
   StatusNotification();
@@ -104,7 +107,8 @@ class StatusNotification {
   static common::PlatformResult SetProgressValue(
       notification_h noti_handle,
       const std::string& progress_type,
-      double progress_value);
+      double progress_value,
+      bool is_update);
   static common::PlatformResult GetPostedTime(notification_h noti_handle,
                                               time_t* posted_time);
   static common::PlatformResult SetLayout(notification_h noti_handle,

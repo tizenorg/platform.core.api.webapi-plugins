@@ -31,11 +31,11 @@ NotificationManager* NotificationManager::GetInstance() {
 
 PlatformResult NotificationManager::Post(const picojson::object& args,
                                          picojson::object& out) {
-  return StatusNotification::FromJson(args, &out);
+  return StatusNotification::FromJson(args, false, &out);
 }
 
 PlatformResult NotificationManager::Update(const picojson::object& args) {
-  return PlatformResult(ErrorCode::NO_ERROR);
+  return StatusNotification::FromJson(args, true, NULL);
 }
 
 PlatformResult NotificationManager::Remove(const picojson::object& args) {
@@ -44,7 +44,7 @@ PlatformResult NotificationManager::Remove(const picojson::object& args) {
   int ret = notification_delete_by_priv_id(NULL, NOTIFICATION_TYPE_NONE, id);
   if (ret != NOTIFICATION_ERROR_NONE) {
     LoggerE("Cannot remove notification error: %d", ret);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+    return PlatformResult(ErrorCode::NOT_FOUND_ERR,
                           "Cannot remove notification error");
   }
 
@@ -73,19 +73,17 @@ PlatformResult NotificationManager::Get(const picojson::object& args,
                                         picojson::object& out) {
   int id = std::stoi(FromJson<std::string>(args, "id"));
 
-  notification_h noti = notification_load(NULL, id);
-  if (NULL == noti) {
-    LoggerE("Not found or removed notification id");
-    return PlatformResult(ErrorCode::NOT_FOUND_ERR,
-                          "Not found or removed notification id");
-  }
-
-  app_control_h app_control = NULL;
-  PlatformResult status = StatusNotification::GetAppControl(noti, &app_control);
+  notification_h noti_handle;
+  PlatformResult status = StatusNotification::GetNotiHandle(id, &noti_handle);
   if (status.IsError())
     return status;
 
-  status = StatusNotification::ToJson(id, noti, app_control, &out);
+  app_control_h app_control;
+  status = StatusNotification::GetAppControl(noti_handle, &app_control);
+  if (status.IsError())
+    return status;
+
+  status = StatusNotification::ToJson(id, noti_handle, app_control, &out);
   if (status.IsError())
     return status;
 
