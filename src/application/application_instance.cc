@@ -480,6 +480,7 @@ static char* getPackageByAppId(const char* app_id) {
     LoggerE("Fail to get pkgName");
     pkgName = NULL;
   }
+
   ret = app_info_destroy(handle);
   if (ret < 0) {
     LoggerE("Fail to get destory appinfo");
@@ -1060,13 +1061,17 @@ void ApplicationInstance::AppMgrLaunchAppControl(const picojson::value& args,
   CHECK_EXIST(args, "callbackId", out)
 
   int callback_id = static_cast<int>(args.get("callbackId").get<double>());
+  LoggerD("callbackId = %d", callback_id);
   std::string id;  // app id is optional
   if (args.contains("id")) {
     id = args.get("id").get<std::string>();
     LoggerD("app_id = %s", id.c_str());
   }
-  LoggerD("callbackId = %d", callback_id);
-
+  std::string launchMode;  // launch mode is optional
+  if (args.contains("launchMode")) {
+    launchMode = args.get("launchMode").get<std::string>();
+    LoggerD("launchMode = %s", launchMode.c_str());
+  }
   ApplicationControlPtr app_ctr_ptr(new ApplicationControl());
 
   picojson::value app_control = args.get("appControl");
@@ -1153,6 +1158,26 @@ void ApplicationInstance::AppMgrLaunchAppControl(const picojson::value& args,
     }
   } else {
     LoggerD("app_id is empty");
+  }
+
+  if (!launchMode.empty()) {
+    app_control_launch_mode_e launch_mode;
+    if (launchMode == "SINGLE") {
+      launch_mode = APP_CONTROL_LAUNCH_MODE_SINGLE;
+    } else if (launchMode == "GROUP") {
+      launch_mode = APP_CONTROL_LAUNCH_MODE_SINGLE;
+    } else {
+      LoggerE("Invalid launch mode!");
+      ReportError(UnknownException("Invalid launch mode"), out);
+      app_control_destroy(service);
+      return;
+    }
+    ret = app_control_set_launch_mode(service, launch_mode);
+    if (ret != APP_CONTROL_ERROR_NONE) {
+      ReportError(UnknownException("Setting app_id is failed."), out);
+      app_control_destroy(service);
+      return;
+    }
   }
 
   ret = app_control_set_operation(service, operation.c_str());

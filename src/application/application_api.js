@@ -9,6 +9,11 @@ var validator_ = xwalk.utils.validator;
 var types_ = validator_.Types;
 var native_ = new xwalk.utils.NativeManager(extension);
 
+var ApplicationControlLaunchMode = {
+  SINGLE: 'SINGLE',
+  GROUP: 'GROUP'
+};
+
 function callNative(cmd, args) {
   var result = native_.callSync(cmd, args);
 
@@ -183,6 +188,9 @@ ApplicationManager.prototype.launchAppControl = function(appControl, id, success
   }
   if (args['appControl']) {
     nativeParam['appControl'] = args.appControl;
+  }
+  if (args.appControl['launchMode'] ) {
+      nativeParam['launchMode'] = args.appControl['launchMode'];
   }
 
   //Try to find application
@@ -519,7 +527,7 @@ tizen.ApplicationControlData = function(key, value) {
   }
 };
 
-tizen.ApplicationControl = function(operation, uri, mime, category, data) {
+tizen.ApplicationControl = function(operation, uri, mime, category, data, launchMode) {
   if (this && this.constructor === tizen.ApplicationControl &&
       (typeof(operation) === 'string' || operation instanceof String)) {
 
@@ -528,6 +536,7 @@ tizen.ApplicationControl = function(operation, uri, mime, category, data) {
     defineReadWriteProperty(this, 'mime', mime);
     defineReadWriteProperty(this, 'category', category);
     defineReadWriteProperty(this, 'data', data);
+    defineReadWriteProperty(this, 'data', launchMode);
 
   } else {
     throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR);
