@@ -1191,6 +1191,16 @@ PlatformResult StatusNotification::FromJson(const picojson::object& args,
   if (status.IsError())
     return status;
 
+  if (val.contains("backgroundImagePath")
+      && !IsNull(noti_obj, "backgroundImagePath")) {
+    const std::string& value_str =
+        common::FromJson<std::string>(noti_obj, "backgroundImagePath");
+    status = SetImage(noti_handle, NOTIFICATION_IMAGE_TYPE_BACKGROUND,
+        value_str);
+    if (status.IsError())
+      return status;
+  }
+
   if (val.contains("thumbnails") && !IsNull(noti_obj, "thumbnails")) {
     status = SetThumbnails(
         noti_handle, common::FromJson<picojson::array>(noti_obj, "thumbnails"));
