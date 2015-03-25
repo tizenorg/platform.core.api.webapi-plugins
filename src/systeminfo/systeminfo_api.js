@@ -654,7 +654,7 @@ function SystemInfoCameraFlash(data) {
   var getBrightness = function() {
       var result = native_.callSync('SystemInfo_getBrightness', {});
       if (native_.isSuccess(result)) {
-        return Converter_.toLong(native_.getResultObject(result));
+        return Converter_.toLong(native_.getResultObject(result)) / this.levels;
       }
       return null;
     };
@@ -678,6 +678,7 @@ SystemInfoCameraFlash.prototype.setBrightness = function(brightness) {
   var args = validator_.validateArgs(arguments, [
     {name: 'brightness', type: types_.LONG}
   ]);
+  args.brightness = args.brightness * this.levels;
 
   var result = native_.callSync('SystemInfo_setBrightness', args);
   if (native_.isFailure(result)) {
@@ -801,6 +802,7 @@ var _cellularNetworkStr = SystemInfoPropertyId.CELLULAR_NETWORK;
 var _simStr = SystemInfoPropertyId.SIM;
 var _peripheralStr = SystemInfoPropertyId.PERIPHERAL;
 var _memoryStr = SystemInfoPropertyId.MEMORY;
+var _cameraFlashStr = SystemInfoPropertyId.CAMERA_FLASH;
 
 var _nextId = 0;
 
@@ -1003,8 +1005,19 @@ function _systeminfoMemoryListenerCallback(eventObj) {
     }
 }
 
-function  _systeminfoCameraFlashListenerCallback(eventObject) {
-  //TODO fill this up
+function  _systeminfoCameraFlashListenerCallback(eventObj) {
+    var property = _cameraFlashStr;
+    var callbacks = _propertyContainer[property].callbacks;
+
+    for (var watchId in callbacks) {
+        if (callbacks.hasOwnProperty(watchId)) {
+            var listener = callbacks[watchId];
+            var propObj = !listener.isArrayType ?
+                    _createProperty(property, eventObj.result.array[0]) :
+                        _createPropertyArray(property, eventObj.result);
+            callbacks[watchId].callback(propObj);
+        }
+    }
 }
 
 var _propertyContainer = {

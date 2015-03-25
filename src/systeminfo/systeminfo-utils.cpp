@@ -32,6 +32,8 @@
 #include <ITapiModem.h>
 #include <ITapiSim.h>
 #include <device.h>
+#include <device/callback.h>
+#include <device/device-error.h>
 #include <sensor_internal.h>
 
 #include "common/logger.h"
@@ -93,6 +95,7 @@ static void OnNetworkValueChangedCb(const char* ipv4_address,
 static void OnCellularNetworkValueChangedCb(keynode_t *node, void *event_ptr);
 static void OnPeripheralChangedCb(keynode_t* node, void* event_ptr);
 static void OnMemoryChangedCb(keynode_t* node, void* event_ptr);
+static void OnBrightnessChangedCb(device_callback_e type, void *value, void *user_data);
 
 static void SimCphsValueCallback(TapiHandle *handle, int result, void *data, void *user_data);
 static void SimMsisdnValueCallback(TapiHandle *handle, int result, void *data, void *user_data);
@@ -492,6 +495,9 @@ class SystemInfoListeners {
   PlatformResult RegisterMemoryListener(const SysteminfoUtilsCallback& callback,
                                         SysteminfoInstance& instance);
   PlatformResult UnregisterMemoryListener();
+  PlatformResult RegisterCameraFlashListener(const SysteminfoUtilsCallback& callback,
+                                        SysteminfoInstance& instance);
+  PlatformResult UnregisterCameraFlashListener();
 
   void SetCpuInfoLoad(double load);
   void SetAvailableCapacityInternal(unsigned long long capacity);
@@ -512,6 +518,7 @@ class SystemInfoListeners {
   void OnCellularNetworkValueCallback(keynode_t *node, void *event_ptr);
   void OnPeripheralChangedCallback(keynode_t* node, void* event_ptr);
   void OnMemoryChangedCallback(keynode_t* node, void* event_ptr);
+  void OnBrightnessChangedCallback(device_callback_e type, void* value, void* user_data);
 
   TapiHandle* GetTapiHandle();
   TapiHandle** GetTapiHandles();
@@ -548,6 +555,7 @@ class SystemInfoListeners {
   SysteminfoUtilsCallback m_cellular_network_listener;
   SysteminfoUtilsCallback m_peripheral_listener;
   SysteminfoUtilsCallback m_memory_listener;
+  SysteminfoUtilsCallback m_camera_flash_listener;
 
   TapiHandle *m_tapi_handles[TAPI_HANDLE_MAX+1];
   //for ip change callback
@@ -577,7 +585,8 @@ SystemInfoListeners::SystemInfoListeners():
             m_peripheral_listener(nullptr),
             m_memory_listener(nullptr),
             m_connection_handle(nullptr),
-            m_sensor_handle(-1)
+            m_sensor_handle(-1),
+            m_camera_flash_listener(nullptr)
 {
   LoggerD("Entered");
 }
@@ -1034,6 +1043,35 @@ PlatformResult SystemInfoListeners::UnregisterMemoryListener()
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
+PlatformResult SystemInfoListeners::RegisterCameraFlashListener(const SysteminfoUtilsCallback& callback,
+                                                           SysteminfoInstance& instance)
+{
+  if (nullptr == m_camera_flash_listener) {
+    if (DEVICE_ERROR_NONE != device_add_callback(DEVICE_CALLBACK_FLASH_BRIGHTNESS,
+                              OnBrightnessChangedCb, static_cast<void*>(&instance))) {
+        return PlatformResult(ErrorCode::UNKNOWN_ERR);
+      }
+      m_camera_flash_listener = callback;
+  }
+    return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult SystemInfoListeners::UnregisterCameraFlashListener()
+{
+  if (nullptr != m_camera_flash_listener) {
+    PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
+    int value = 0;
+    if (DEVICE_ERROR_NONE != device_remove_callback(DEVICE_CALLBACK_FLASH_BRIGHTNESS,
+                                                 OnBrightnessChangedCb)) {
+      return PlatformResult(ErrorCode::UNKNOWN_ERR);
+    }
+    LoggerD("Removed callback for camera_flash");
+    m_camera_flash_listener = nullptr;
+  }
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+
 void SystemInfoListeners::SetCpuInfoLoad(double load)
 {
   m_cpu_load = load;
@@ -1184,6 +1222,14 @@ void SystemInfoListeners::OnMemoryChangedCallback(keynode_t* /*node*/, void* eve
   if (nullptr != m_memory_listener) {
     SysteminfoInstance* instance = static_cast<SysteminfoInstance*>(event_ptr);
     m_memory_listener(*instance);
+  }
+}
+
+void SystemInfoListeners::OnBrightnessChangedCallback(device_callback_e type, void* value, void* user_data)
+{
+  if (nullptr != m_camera_flash_listener) {
+    SysteminfoInstance* instance = static_cast<SysteminfoInstance*>(user_data);
+    m_camera_flash_listener(*instance);
   }
 }
 
@@ -1378,6 +1424,14 @@ void OnMemoryChangedCb(keynode_t* node, void* event_ptr)
 {
   LoggerD("");
   system_info_listeners.OnMemoryChangedCallback(node, event_ptr);
+}
+
+void OnBrightnessChangedCb(device_callback_e type, void* value, void* user_data)
+{
+  LoggerD("");
+  if (type == DEVICE_CALLBACK_FLASH_BRIGHTNESS) {
+    system_info_listeners.OnBrightnessChangedCallback(type, value, user_data);
+  }
 }
 
 /////////////////////////// SysteminfoUtils ////////////////////////////////
@@ -2564,6 +2618,17 @@ PlatformResult SysteminfoUtils::RegisterMemoryListener(const SysteminfoUtilsCall
 PlatformResult SysteminfoUtils::UnregisterMemoryListener()
 {
   return system_info_listeners.UnregisterMemoryListener();
+}
+
+PlatformResult SysteminfoUtils::RegisterCameraFlashListener(const SysteminfoUtilsCallback& callback,
+                                                       SysteminfoInstance& instance)
+{
+  return system_info_listeners.RegisterCameraFlashListener(callback, instance);
+}
+
+PlatformResult SysteminfoUtils::UnregisterCameraFlashListener()
+{
+  return system_info_listeners.UnregisterCameraFlashListener();
 }
 
 

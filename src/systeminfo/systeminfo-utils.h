@@ -78,6 +78,9 @@ class SysteminfoUtils {
   static common::PlatformResult RegisterMemoryListener(const SysteminfoUtilsCallback& callback,
                                                        SysteminfoInstance& instance);
   static common::PlatformResult UnregisterMemoryListener();
+  static common::PlatformResult RegisterCameraFlashListener(const SysteminfoUtilsCallback& callback,
+                                                       SysteminfoInstance& instance);
+  static common::PlatformResult UnregisterCameraFlashListener();
 
  private:
   static common::PlatformResult ReportProperty(const std::string& property, int index,

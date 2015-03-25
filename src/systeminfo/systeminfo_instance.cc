@@ -33,6 +33,7 @@ static void OnWifiNetworkChangedCallback(SysteminfoInstance& instance);
 static void OnCellularNetworkChangedCallback(SysteminfoInstance& instance);
 static void OnPeripheralChangedCallback(SysteminfoInstance& instance);
 static void OnMemoryChangedCallback(SysteminfoInstance& instance);
+static void OnBrigthnessChangedCallback(SysteminfoInstance& instance);
 
 namespace {
 const std::string kPropertyIdString = "propertyId";
@@ -52,6 +53,7 @@ const std::string kPropertyIdCellularNetwork = "CELLULAR_NETWORK";
 const std::string kPropertyIdSim = "SIM";
 const std::string kPropertyIdPeripheral = "PERIPHERAL";
 const std::string kPropertyIdMemory= "MEMORY";
+const std::string kPropertyIdCameraFlash= "CAMERA_FLASH";
 
 const std::string kPrivilegeLED = "http://tizen.org/privilege/led";
 
@@ -103,6 +105,7 @@ const std::string kPrivilegeLED = "http://tizen.org/privilege/led";
 }
 
 SysteminfoInstance::SysteminfoInstance() {
+
   using std::placeholders::_1;
   using std::placeholders::_2;
 
@@ -329,6 +332,8 @@ void SysteminfoInstance::AddPropertyValueChangeListener(const picojson::value& a
     ret = SysteminfoUtils::RegisterPeripheralListener(OnPeripheralChangedCallback, *this);
   } else if (property_name == kPropertyIdMemory) {
     ret = SysteminfoUtils::RegisterMemoryListener(OnMemoryChangedCallback, *this);
+  } else if (property_name == kPropertyIdCameraFlash) {
+    ret = SysteminfoUtils::RegisterCameraFlashListener(OnBrigthnessChangedCallback, *this);
   } else {
     LoggerE("Not supported property");
     ret = PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Not supported property");
@@ -437,6 +442,8 @@ void SysteminfoInstance::RemovePropertyValueChangeListener(const picojson::value
     ret = SysteminfoUtils::UnregisterPeripheralListener();
   } else if (property_name == kPropertyIdMemory) {
     ret = SysteminfoUtils::UnregisterMemoryListener();
+  } else if (property_name == kPropertyIdCameraFlash) {
+    ret = SysteminfoUtils::UnregisterCameraFlashListener();
   } else {
     LoggerE("Not supported property");
     ret = PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Not supported property");
@@ -680,6 +687,22 @@ void OnMemoryChangedCallback(SysteminfoInstance& instance)
     ReportSuccess(result,response->get<picojson::object>());
     instance.PostMessage(response->serialize().c_str());
   }
+}
+
+void OnBrigthnessChangedCallback(SysteminfoInstance &instance)
+{
+    LoggerD("");
+    const std::shared_ptr<picojson::value>& response =
+        std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
+    response->get<picojson::object>()[kPropertyIdString] = picojson::value(kPropertyIdCameraFlash);
+    response->get<picojson::object>()[kListenerIdString] = picojson::value(kListenerConstValue);
+
+    picojson::value result = picojson::value(picojson::object());
+    PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdCameraFlash, true, result);
+    if (ret.IsSuccess()) {
+      ReportSuccess(result,response->get<picojson::object>());
+      instance.PostMessage(response->serialize().c_str());
+    }
 }
 
 } // namespace systeminfo
