@@ -118,11 +118,23 @@ ApplicationManager.prototype.kill = function(contextId, successCallback, errorCa
     var syncResult =
         callNativeWithCallback('ApplicationManager_kill', nativeParam, function(result) {
       if (native_.isSuccess(result)) {
-          native_.callIfPossible(args.successCallback);
+        native_.callIfPossible(args.successCallback);
       } else {
-          native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));
+        native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));
       }
     });
+    if (native_.isFailure(syncResult)){
+      var error = native_.getErrorObject(syncResult);
+      if (error.code === WebAPIException.NOT_FOUND_ERR
+            || error.code === WebAPIException.INVALID_VALUES_ERR
+            || error.code === WebAPIException.UNKNOWN_ERR) {
+        setTimeout(function() {
+          native_.callIfPossible(args.errorCallback, error);
+        }, 0);
+        return;
+      }
+      throw error;
+    }
   } catch (e) {
     throw e;
   }
