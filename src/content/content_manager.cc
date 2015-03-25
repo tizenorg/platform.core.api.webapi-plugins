@@ -698,6 +698,7 @@ void ContentManager::createPlaylist(std::string name,
     UnknownException err("creation of playlist is failed.");
     user_data->isSuccess = false;
     user_data->result = err.ToJSON();
+    return;
   }
   picojson::value::object o;
 
