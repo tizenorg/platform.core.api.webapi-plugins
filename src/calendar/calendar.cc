@@ -218,7 +218,7 @@ PlatformResult Calendar::AddBatch(const picojson::object& args,
     picojson::value id = picojson::value(picojson::object());
     picojson::object& id_obj = id.get<picojson::object>();
 
-    id_obj.insert(std::make_pair("uid", std::to_string(ids[i])));
+    id_obj.insert(std::make_pair("uid", picojson::value(std::to_string(ids[i]))));
 
     if (type == CALENDAR_BOOK_TYPE_EVENT) {
       id_obj.insert(std::make_pair("rid", picojson::value()));

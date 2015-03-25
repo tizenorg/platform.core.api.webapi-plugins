@@ -102,7 +102,7 @@ void CalendarInstance::CalendarAddBatch(const JsonValue& args,
   auto get_response =
       [callback_id, this](const std::shared_ptr<JsonValue>& response) -> void {
     picojson::object& obj = response->get<picojson::object>();
-    obj.insert(std::make_pair("callbackId", callback_id));
+    obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
     LoggerD("callback is %s", response->serialize().c_str());
     PostMessage(response->serialize().c_str());
   };
@@ -141,7 +141,7 @@ void CalendarInstance::CalendarUpdateBatch(const JsonValue& args,
   auto get_response =
       [callback_id, this](const std::shared_ptr<JsonValue>& response) -> void {
     picojson::object& obj = response->get<picojson::object>();
-    obj.insert(std::make_pair("callbackId", callback_id));
+    obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
     LoggerD("callback is %s", response->serialize().c_str());
     PostMessage(response->serialize().c_str());
   };
@@ -180,7 +180,7 @@ void CalendarInstance::CalendarRemoveBatch(const JsonValue& args,
   auto get_response =
       [callback_id, this](const std::shared_ptr<JsonValue>& response) -> void {
     picojson::object& obj = response->get<picojson::object>();
-    obj.insert(std::make_pair("callbackId", callback_id));
+    obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
     LoggerD("callback is %s", response->serialize().c_str());
     PostMessage(response->serialize().c_str());
   };
@@ -206,7 +206,7 @@ void CalendarInstance::CalendarFind(const JsonValue& args, JsonObject& out) {
   auto get_response =
       [callback_id, this](const std::shared_ptr<JsonValue>& response) -> void {
     picojson::object& obj = response->get<picojson::object>();
-    obj.insert(std::make_pair("callbackId", callback_id));
+    obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
     LoggerD("callback isssssss %s", response->serialize().c_str());
     PostMessage(response->serialize().c_str());
   };
@@ -285,7 +285,7 @@ void CalendarInstance::CalendarManagerGetCalendars(const JsonValue& args,
   auto get_response = [ callback_id, this ](const std::shared_ptr<JsonValue> &
                                             response)->void {
     picojson::object& obj = response->get<picojson::object>();
-    obj.insert(std::make_pair("callbackId", callback_id));
+    obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
     LoggerD("callback is %s", response->serialize().c_str());
     PostMessage(response->serialize().c_str());
   };
