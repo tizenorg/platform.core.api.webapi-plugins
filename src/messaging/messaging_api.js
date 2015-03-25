@@ -990,7 +990,11 @@ MessageStorage.prototype.addDraftMessage = function () {
 
 MessageStorage.prototype.findMessages = function () {
     var args = validator_.validateArgs(arguments, [
-        {name: 'filter', type: types_.PLATFORM_OBJECT, values: tizen.AbstractFilter},
+        {
+            name: 'filter',
+            type: types_.PLATFORM_OBJECT,
+            values: [tizen.AttributeFilter, tizen.AttributeRangeFilter, tizen.CompositeFilter]
+        },
         {name: 'successCallback', type: types_.FUNCTION},
         {name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true},
         {name: 'sort', type: types_.PLATFORM_OBJECT, values: tizen.SortMode, optional: true,
@@ -1132,7 +1136,11 @@ MessageStorage.prototype.updateMessages = function () {
 
 MessageStorage.prototype.findConversations = function () {
     var args = validator_.validateArgs(arguments, [
-        {name: 'filter', type: types_.PLATFORM_OBJECT, values: tizen.AbstractFilter},
+        {
+            name: 'filter',
+            type: types_.PLATFORM_OBJECT,
+            values: [tizen.AttributeFilter, tizen.AttributeRangeFilter, tizen.CompositeFilter]
+        },
         {name: 'successCallback', type: types_.FUNCTION},
         {name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true},
         {name: 'sort', type: types_.PLATFORM_OBJECT, values: tizen.SortMode, optional: true,
@@ -1212,7 +1220,11 @@ MessageStorage.prototype.removeConversations = function () {
 
 MessageStorage.prototype.findFolders = function () {
     var args = validator_.validateArgs(arguments, [
-        {name: 'filter', type: types_.PLATFORM_OBJECT, values: tizen.AbstractFilter},
+        {
+            name: 'filter',
+            type: types_.PLATFORM_OBJECT,
+            values: [tizen.AttributeFilter, tizen.AttributeRangeFilter, tizen.CompositeFilter]
+        },
         {name: 'successCallback', type: types_.FUNCTION},
         {name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true}
     ]);
@@ -1251,8 +1263,13 @@ MessageStorage.prototype.addMessagesChangeListener = function () {
     var args = validator_.validateArgs(arguments, [
         {name: 'messagesChangeCallback', type: types_.LISTENER,
                 values: ['messagesadded', 'messagesupdated', 'messagesremoved']},
-        {name: 'filter', type: types_.PLATFORM_OBJECT, values: tizen.AbstractFilter,
-                optional: true, nullable: true}
+        {
+            name: 'filter',
+            type: types_.PLATFORM_OBJECT,
+            values: [tizen.AttributeFilter, tizen.AttributeRangeFilter, tizen.CompositeFilter],
+            optional: true,
+            nullable: true
+        }
     ]);
 
     var self = this;
@@ -1304,8 +1321,13 @@ MessageStorage.prototype.addConversationsChangeListener = function () {
     var args = validator_.validateArgs(arguments, [
         {name: 'conversationsChangeCallback', type: types_.LISTENER,
                 values: ['conversationsadded', 'conversationsupdated', 'conversationsremoved']},
-        {name: 'filter', type: types_.PLATFORM_OBJECT, values: tizen.AbstractFilter,
-                optional: true, nullable: true}
+        {
+            name: 'filter',
+            type: types_.PLATFORM_OBJECT,
+            values: [tizen.AttributeFilter, tizen.AttributeRangeFilter, tizen.CompositeFilter],
+            optional: true,
+            nullable: true
+        }
     ]);
 
     var self = this;
@@ -1357,8 +1379,13 @@ MessageStorage.prototype.addFoldersChangeListener = function () {
     var args = validator_.validateArgs(arguments, [
         {name: 'foldersChangeCallback', type: types_.LISTENER,
                 values: ['foldersadded', 'foldersupdated', 'foldersremoved']},
-        {name: 'filter', type: types_.PLATFORM_OBJECT, values: tizen.AbstractFilter,
-                optional: true, nullable: true}
+        {
+            name: 'filter',
+            type: types_.PLATFORM_OBJECT,
+            values: [tizen.AttributeFilter, tizen.AttributeRangeFilter, tizen.CompositeFilter],
+            optional: true,
+            nullable: true
+        }
     ]);
 
     var self = this;
