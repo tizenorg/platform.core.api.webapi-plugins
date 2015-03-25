@@ -177,7 +177,7 @@ void CallHistoryUtils::parseLogType(contacts_phone_log_type_e log_type, picojson
   }
 
   if (features.size() > 0) {
-    obj.insert(std::make_pair(STR_TAGS, features));
+    obj.insert(std::make_pair(STR_TAGS, picojson::value(features)));
   }
 }
 
