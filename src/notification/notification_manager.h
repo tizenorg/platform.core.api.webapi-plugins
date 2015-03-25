@@ -26,6 +26,9 @@ class NotificationManager {
                              picojson::object& out);
   common::PlatformResult GetAll(picojson::array& out);
 
+  common::PlatformResult PlayLEDCustomEffect(const picojson::object& args);
+  common::PlatformResult StopLEDCustomEffect();
+
  private:
   NotificationManager();
   virtual ~NotificationManager();

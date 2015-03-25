@@ -33,6 +33,10 @@ NotificationInstance::NotificationInstance() {
   REGISTER_SYNC("NotificationManager_getAll", NotificationManagerGetAll);
   REGISTER_SYNC("NotificationManager_post", NotificationManagerPost);
   REGISTER_SYNC("NotificationManager_removeAll", NotificationManagerRemoveAll);
+  REGISTER_SYNC("NotificationManager_playLEDCustomEffect",
+      NotificationManagerPlayLEDCustomEffect);
+  REGISTER_SYNC("NotificationManager_stopLEDCustomEffect",
+      NotificationManagerStopLEDCustomEffect);
 #undef REGISTER_SYNC
 
   manager_ = NotificationManager::GetInstance();
@@ -122,6 +126,28 @@ void NotificationInstance::NotificationManagerGetAll(
 
   if (status.IsSuccess())
     ReportSuccess(val, out);
+  else
+    ReportError(status, &out);
+}
+
+void NotificationInstance::NotificationManagerPlayLEDCustomEffect(
+    const picojson::value& args, picojson::object& out) {
+
+  PlatformResult status = manager_->PlayLEDCustomEffect(args.get<picojson::object>());
+
+  if (status.IsSuccess())
+    ReportSuccess(out);
+  else
+    ReportError(status, &out);
+}
+
+void NotificationInstance::NotificationManagerStopLEDCustomEffect(
+    const picojson::value& /*args*/, picojson::object& out) {
+
+  PlatformResult status = manager_->StopLEDCustomEffect();
+
+  if (status.IsSuccess())
+    ReportSuccess(out);
   else
     ReportError(status, &out);
 }

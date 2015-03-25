@@ -31,6 +31,11 @@ class NotificationInstance : public common::ParsedInstance {
                               picojson::object& out);
   void NotificationManagerGetAll(const picojson::value& args,
                                  picojson::object& out);
+
+  void NotificationManagerPlayLEDCustomEffect(const picojson::value& args,
+                                              picojson::object& out);
+  void NotificationManagerStopLEDCustomEffect(const picojson::value& args,
+                                              picojson::object& out);
 };
 
 }  // namespace notification

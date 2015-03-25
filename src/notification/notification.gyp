@@ -24,7 +24,8 @@
         ['tizen == 1', {
           'variables': {
             'packages': [
-              'notification'
+              'notification',
+              'capi-system-device',
             ]
           },
         }],

@@ -9,6 +9,27 @@ var validator_ = utils_.validator;
 var types_ = validator_.Types;
 var native_ = new xwalk.utils.NativeManager(extension);
 
+function convertColorToInt(rgbaColor) {
+  var color = rgbaColor.length === 7 ? rgbaColor + 'ff' : rgbaColor;
+  var isLengthOk = color.length === 9;
+  var isHash = color.substr(0, 1) === '#';
+  var hex = '0123456789abcdefABCDEF';
+  var isHex = true;
+  var c = color.replace('#', '');
+
+  for (var i = 0; i < c.length; i++) {
+    if (hex.indexOf(c[i]) < 0) {
+      isHex = false;
+    }
+  }
+
+  if (!isLengthOk || !isHash || !isHex) {
+    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR, 'invalid value');
+  }
+
+  return parseInt('0x' + c);
+}
+
 var EditManager = function() {
   this.canEdit = false;
 };
@@ -37,6 +58,11 @@ var StatusNotificationType = {
 var NotificationProgressType = {
   PERCENTAGE: 'PERCENTAGE',
   BYTE: 'BYTE'
+};
+
+var LEDCustomFlags = {
+  LED_CUSTOM_DUTY_ON: 'LED_CUSTOM_DUTY_ON',
+  LED_CUSTOM_DEFAULT: 'LED_CUSTOM_DEFAULT'
 };
 
 function NotificationManager() {}
@@ -167,6 +193,46 @@ NotificationManager.prototype.getAll = function() {
 
   return notifications;
 };
+
+/**
+ * Plays the custom effect of the service LED that is located to the front of a device.
+ *
+ * @param timeOn Number
+ * @param timeOff Number
+ * @param color String
+ * @param flags Array
+ */
+NotificationManager.prototype.playLEDCustomEffect = function(timeOn, timeOff, color, flags) {
+  var args = validator_.validateArgs(arguments, [
+    {name: 'timeOn', type: types_.LONG},
+    {name: 'timeOff', type: types_.LONG},
+    {name: 'color', type: types_.STRING},
+    {name: 'flags', type: types_.ARRAY, values: types_.STRING}
+  ]);
+
+  for (var i = 0; i < args.flags.length; ++i) {
+    if (Object.keys(LEDCustomFlags).indexOf(args.flags[i]) < 0) {
+      throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR, 'invalid value');
+    }
+  }
+
+  args.color = convertColorToInt(args.color);
+  var result = native_.callSync('NotificationManager_playLEDCustomEffect', args);
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
+  }
+};
+
+/**
+ * Stops the custom effect of the service LED that is located to the front of a device.
+ */
+NotificationManager.prototype.stopLEDCustomEffect = function() {
+  var result = native_.callSync('NotificationManager_stopLEDCustomEffect');
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
+  }
+};
+
 
 function NotificationInitDict(data) {
   var _iconPath = null;

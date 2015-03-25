@@ -4,8 +4,9 @@
 
 #include "notification/notification_manager.h"
 
-#include <notification_internal.h>
 #include <app_control_internal.h>
+#include <device/led.h>
+#include <notification_internal.h>
 
 #include "common/converter.h"
 #include "common/logger.h"
@@ -135,6 +136,47 @@ PlatformResult NotificationManager::GetAll(picojson::array& out) {
     }
 
     noti_list_iter = notification_list_get_next(noti_list_iter);
+  }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult NotificationManager::PlayLEDCustomEffect(
+    const picojson::object& args) {
+  LOGGER(DEBUG) << "entered";
+
+  int timeOn = FromJson<double>(args, "timeOn");
+  int timeOff = FromJson<double>(args, "timeOff");
+  unsigned int color = FromJson<double>(args, "color");
+
+  auto& flags = FromJson<picojson::array>(args, "flags");
+  unsigned int platformFlags = 0;
+  for (auto flag : flags) {
+    std::string flagStr = JsonCast<std::string>(flag);
+    if (flagStr == "LED_CUSTOM_DEFAULT")
+      platformFlags |= LED_CUSTOM_DEFAULT;
+    else if (flagStr == "LED_CUSTOM_DUTY_ON")
+      platformFlags |= LED_CUSTOM_DUTY_ON;
+  }
+
+  int ret;
+  ret = device_led_play_custom(timeOn, timeOff, color, platformFlags);
+  if (ret != DEVICE_ERROR_NONE) {
+    LOGGER(ERROR) << "Cannot play LED custom effect: " << ret;
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot play LED custom effect");
+  }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult NotificationManager::StopLEDCustomEffect() {
+  LOGGER(DEBUG) << "entered";
+
+  int ret = DEVICE_ERROR_NONE;
+  ret = device_led_stop_custom();
+  if (ret != DEVICE_ERROR_NONE) {
+    LOGGER(ERROR) << "Cannot stop LED custom effect: " << ret;
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot stop LED custom effect");
   }
 
   return PlatformResult(ErrorCode::NO_ERROR);
