@@ -13,32 +13,47 @@ var requests = {};
 extension.setMessageListener(function(json) {
 
   var result = JSON.parse(json);
-  var callback = callbacks[result['callbackId']];
+  var callback = callbacks[result.callbackId];
   //console.log("PostMessage received: " + result.status);
 
+  if (!callback) {
+    console.logd('Ignoring unknown callback: ' + result.callbackId);
+    return;
+  }
+
   if (result.status == 'progress') {
-    var receivedSize = result.receivedSize;
-    var totalSize = result.totalSize;
-    callback.onprogress(result.callbackId, receivedSize, totalSize);
+    if (callback.onprogress) {
+      var receivedSize = result.receivedSize;
+      var totalSize = result.totalSize;
+      callback.onprogress(result.callbackId, receivedSize, totalSize);
+    }
   }
   else if (result.status == 'paused') {
-    callback.onpaused(result.callbackId);
+    if (callback.onpaused) {
+      callback.onpaused(result.callbackId);
+    }
   }
   else if (result.status == 'canceled') {
-    callback.oncanceled(result.callbackId);
+    if (callback.oncanceled) {
+      callback.oncanceled(result.callbackId);
+    }
   }
   else if (result.status == 'completed') {
-    var fullPath = result.fullPath;
-    callback.oncompleted(result.callbackId, fullPath);
+    if (callback.oncompleted) {
+      var fullPath = result.fullPath;
+      callback.oncompleted(result.callbackId, fullPath);
+    }
   }
   else if (result.status == 'error') {
-    callback.onfailed(
-        result.callbackId, new tizen.WebAPIError(result['error'].name, result['error'].message));
+    if (callback.onfailed) {
+      callback.onfailed(result.callbackId,
+              new WebAPIException(result.error.name, result.error.message));
+    }
   }
 });
 
 function nextCallbackId() {
-  return callbackId++;
+  return ++callbackId;
 }
 
 function callNative(cmd, args) {
@@ -51,13 +66,13 @@ function callNative(cmd, args) {
     throw new WebAPIException(WebAPIException.UNKNOWN_ERR);
   }
 
-  if (result['status'] == 'success') {
-    if (result['result']) {
-      return result['result'];
+  if (result.status == 'success') {
+    if (result.result) {
+      return result.result;
     }
     return true;
-  } else if (result['status'] == 'error') {
-    var err = result['error'];
+  } else if (result.status == 'error') {
+    var err = result.error;
     if (err) {
       throw new WebAPIException(err.name, err.message);
     }
@@ -69,7 +84,7 @@ function callNative(cmd, args) {
 function callNativeWithCallback(cmd, args, callback) {
   if (callback) {
     var id = nextCallbackId();
-    args['callbackId'] = id;
+    args.callbackId = id;
     callbacks[id] = callback;
   }
 
@@ -97,35 +112,54 @@ var DownloadNetworkType = {
 
 tizen.DownloadRequest = function(url, destination, fileName, networkType, httpHeader) {
   validator_.isConstructorCall(this, tizen.DownloadRequest);
-  var args = validator_.validateArgs(arguments, [
-    {'name' : 'url', 'type': types_.STRING, 'nullable': false, 'optional': false},
-    {'name' : 'destination', 'type': types_.STRING, 'nullable': true, 'optional': true},
-    {'name' : 'fileName', 'type': types_.STRING, 'nullable': true, 'optional': true},
-    {'name' : 'networkType', 'type': types_.ENUM, 'values': ['CELLULAR', 'WIFI', 'ALL'],
-    'nullable' : true, 'optional': true},
-    {'name' : 'httpHeader', 'type': types_.Dictionary, 'nullable': true, 'optional': true}
-  ]);
 
   var url_ = url;
   var networkType_;
 
-  if (networkType === undefined) networkType_ = 'ALL';
-  else if (networkType in DownloadNetworkType) networkType_ = networkType;
+  if (networkType === undefined || !(networkType in DownloadNetworkType)) {
+    networkType_ = 'ALL';
+  } else {
+    networkType_ = networkType;
+  }
 
   Object.defineProperties(this, {
-    'url': { enumerable: true,
-      get: function() { return url_;},
-      set: function(value) { if (value != null) { url_ = value; }} },
-    'destination': { writable: true, enumerable: true,
-      value: destination === undefined ? '' : destination },
-    'fileName': { writable: true, enumerable: true,
-      value: fileName === undefined ? '' : fileName },
-    'networkType': { enumerable: true,
-      get: function() { return networkType_;},
+    'url': {
+      enumerable: true,
+      get: function() {
+        return url_;
+      },
       set: function(value) {
-        if (value === null || value in DownloadNetworkType) { networkType_ = value; }} },
-    'httpHeader': { writable: true, enumerable: true,
-      value: httpHeader === undefined ? {} : httpHeader }
+        if (value !== null) {
+          url_ = value;
+        }
+      },
+    },
+    'destination': {
+      writable: true,
+      enumerable: true,
+      value: destination === undefined ? '' : destination,
+    },
+    'fileName': {
+      writable: true,
+      enumerable: true,
+      value: fileName === undefined ? '' : fileName,
+    },
+    'networkType': {
+      enumerable: true,
+      get: function() {
+        return networkType_;
+      },
+      set: function(value) {
+        if (value === null || value in DownloadNetworkType) {
+          networkType_ = value;
+        }
+      },
+    },
+    'httpHeader': {
+      writable: true,
+      enumerable: true,
+      value: httpHeader === undefined ? {} : httpHeader,
+    }
   });
 };
 
@@ -134,7 +168,7 @@ function DownloadManager() {
   // constructor of DownloadManager
 }
 
-DownloadManager.prototype.start = function(downloadRequest) {
+DownloadManager.prototype.start = function() {
   var args = validator_.validateArgs(arguments, [
     {'name' : 'downloadRequest', 'type': types_.PLATFORM_OBJECT, 'values': tizen.DownloadRequest},
     {'name' : 'downloadCallback', 'type': types_.LISTENER,
@@ -156,7 +190,7 @@ DownloadManager.prototype.start = function(downloadRequest) {
   }
 
   try {
-    var syncResult = callNative('DownloadManager_start', nativeParam);
+    callNative('DownloadManager_start', nativeParam);
   } catch (e) {
     throw e;
   }
@@ -166,7 +200,7 @@ DownloadManager.prototype.start = function(downloadRequest) {
   return nativeParam.callbackId;
 };
 
-DownloadManager.prototype.cancel = function(downloadId) {
+DownloadManager.prototype.cancel = function() {
   var args = validator_.validateArgs(arguments, [
     {name: 'downloadId', type: types_.LONG, 'nullable': false, 'optional': false}
   ]);
@@ -175,18 +209,18 @@ DownloadManager.prototype.cancel = function(downloadId) {
     'downloadId': args.downloadId
   };
 
-  if (typeof requests[downloadId] === 'undefined')
+  if (typeof requests[args.downloadId] === 'undefined')
     throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
         'the identifier does not match any download operation in progress');
 
   try {
-    var syncResult = callNative('DownloadManager_cancel', nativeParam);
+    callNative('DownloadManager_cancel', nativeParam);
   } catch (e) {
     throw e;
   }
 };
 
-DownloadManager.prototype.pause = function(downloadId) {
+DownloadManager.prototype.pause = function() {
   var args = validator_.validateArgs(arguments, [
     {'name': 'downloadId', 'type': types_.LONG, 'nullable': false, 'optional': false}
   ]);
@@ -195,18 +229,18 @@ DownloadManager.prototype.pause = function(downloadId) {
     'downloadId': args.downloadId
   };
 
-  if (typeof requests[downloadId] === 'undefined')
+  if (typeof requests[args.downloadId] === 'undefined')
     throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
         'the identifier does not match any download operation in progress');
 
   try {
-    var syncResult = callNative('DownloadManager_pause', nativeParam);
+    callNative('DownloadManager_pause', nativeParam);
   } catch (e) {
     throw e;
   }
 };
 
-DownloadManager.prototype.resume = function(downloadId) {
+DownloadManager.prototype.resume = function() {
   var args = validator_.validateArgs(arguments, [
     {'name' : 'downloadId', 'type': types_.LONG, 'nullable': false, 'optional': false}
   ]);
@@ -215,18 +249,18 @@ DownloadManager.prototype.resume = function(downloadId) {
     'downloadId': args.downloadId
   };
 
-  if (typeof requests[downloadId] === 'undefined')
+  if (typeof requests[args.downloadId] === 'undefined')
     throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
         'the identifier does not match any download operation in progress');
 
   try {
-    var syncResult = callNative('DownloadManager_resume', nativeParam);
+    callNative('DownloadManager_resume', nativeParam);
   } catch (e) {
     throw e;
   }
 };
 
-DownloadManager.prototype.getState = function(downloadId) {
+DownloadManager.prototype.getState = function() {
   var args = validator_.validateArgs(arguments, [
     {'name' : 'downloadId', 'type': types_.LONG, 'nullable': false, 'optional': false}
   ]);
@@ -235,32 +269,30 @@ DownloadManager.prototype.getState = function(downloadId) {
     'downloadId': args.downloadId
   };
 
-  if (typeof requests[downloadId] === 'undefined')
+  if (typeof requests[args.downloadId] === 'undefined')
     throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
         'the identifier does not match any download operation in progress');
 
   try {
-    var syncResult = callNative('DownloadManager_getState', nativeParam);
+    return callNative('DownloadManager_getState', nativeParam);
   } catch (e) {
     throw e;
   }
-
-  return syncResult;
 };
 
-DownloadManager.prototype.getDownloadRequest = function(downloadId) {
+DownloadManager.prototype.getDownloadRequest = function() {
   var args = validator_.validateArgs(arguments, [
     {'name': 'downloadId', 'type': types_.LONG, 'nullable': false, 'optional': false}
   ]);
 
-  if (typeof requests[downloadId] === 'undefined')
+  if (typeof requests[args.downloadId] === 'undefined')
     throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
         'the identifier does not match any download operation in progress');
 
   return requests[args.downloadId];
 };
 
-DownloadManager.prototype.getMIMEType = function(downloadId) {
+DownloadManager.prototype.getMIMEType = function() {
   var args = validator_.validateArgs(arguments, [
     {'name' : 'downloadId', 'type': types_.LONG, 'nullable': false, 'optional': false}
   ]);
@@ -269,20 +301,18 @@ DownloadManager.prototype.getMIMEType = function(downloadId) {
     'downloadId': args.downloadId
   };
 
-  if (typeof requests[downloadId] === 'undefined')
+  if (typeof requests[args.downloadId] === 'undefined')
     throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
         'the identifier does not match any download operation in progress');
 
   try {
-    var syncResult = callNative('DownloadManager_getMIMEType', nativeParam);
+    return callNative('DownloadManager_getMIMEType', nativeParam);
   } catch (e) {
     throw e;
   }
-
-  return syncResult;
 };
 
-DownloadManager.prototype.setListener = function(downloadId, downloadCallback) {
+DownloadManager.prototype.setListener = function() {
   var args = validator_.validateArgs(arguments, [
     {'name' : 'downloadId', 'type': types_.LONG},
     {'name' : 'downloadCallback', 'type': types_.LISTENER,
