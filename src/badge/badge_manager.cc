@@ -199,8 +199,8 @@ void BadgeManager::badge_changed_cb(unsigned int action, const char *pkgname,
     picojson::object &response_obj = response.get<picojson::object>();
     response_obj.insert(
         std::make_pair("listenerId", std::string("BadgeChangeListener")));
-    response_obj.insert(std::make_pair("appId", pkgname));
-    response_obj.insert(std::make_pair("count", std::to_string(count)));
+    response_obj.insert(std::make_pair("appId", picojson::value(pkgname)));
+    response_obj.insert(std::make_pair("count", picojson::value(std::to_string(count))));
     BadgeInstance::GetInstance().PostMessage(response.serialize().c_str());
   }
 }
