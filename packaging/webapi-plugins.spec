@@ -16,7 +16,7 @@ Source0:    %{name}-%{version}.tar.gz
 ####################################################################
 #       Mobile Profile :  Kiran(SM-Z130H), Redwood(SM-Z910F)       #
 ####################################################################
-%if "%{?profile}" == "mobile"
+%if "%{?tizen_profile_name}" == "mobile"
 
 %define tizen_feature_account_support             1
 %define tizen_feature_alarm_support               1
@@ -64,7 +64,7 @@ Source0:    %{name}-%{version}.tar.gz
 ####################################################################
 #       Wearable Profile :  Gear3(Ponte)                           #
 ####################################################################
-%if "%{?profile}" == "wearable"
+%if "%{?tizen_profile_name}" == "wearable"
 
 %define tizen_feature_account_support             0
 %define tizen_feature_alarm_support               0
@@ -112,7 +112,7 @@ Source0:    %{name}-%{version}.tar.gz
 ####################################################################
 #       TV Profile                                                 #
 ####################################################################
-%if "%{?profile}" == "tv"
+%if "%{?tizen_profile_name}" == "tv"
 
 %define tizen_feature_account_support             0
 %define tizen_feature_alarm_support               0
