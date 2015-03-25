@@ -198,6 +198,13 @@ function NotificationInitDict(data) {
     }
     return true;
   };
+  var setDetailInfo = function(v) {
+    var _d = [];
+    for (var i = 0; i < v.length; ++i) {
+      _d.push(new tizen.NotificationDetailInfo(v[i].mainText, v[i].subText || null));
+    }
+    return _d;
+  };
   var _ledColor = null;
   var isHex = function(v) {
     return v.length === 7 && v.substr(0, 1) === '#' && (/^([0-9A-Fa-f]{2})+$/).test(v.substr(1, 7));
@@ -260,7 +267,10 @@ function NotificationInitDict(data) {
         return _appControl;
       },
       set: function(v) {
-        _appControl = v instanceof tizen.ApplicationControl ? v : _appControl;
+        _appControl = _edit.canEdit && v
+            ? new tizen.ApplicationControl(v.operation, v.uri || null, v.mime || null, v.category
+                    || null, v.data || [])
+            : v instanceof tizen.ApplicationControl ? v : _appControl;
       },
       enumerable: true
     },
@@ -314,7 +324,7 @@ function NotificationInitDict(data) {
         return _detailInfo;
       },
       set: function(v) {
-        _detailInfo = checkDetailInfo(v) ? v : _detailInfo;
+        _detailInfo = _edit.canEdit && v ? setDetailInfo(v) : checkDetailInfo(v) ? v : _detailInfo;
       },
       enumerable: true
     },
