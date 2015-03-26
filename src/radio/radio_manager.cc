@@ -31,7 +31,7 @@ std::map<radio_state_e, const char*> radio_state = {
 static const double FREQ_LOWER = 87.5;
 
 static void AddCallbackID(double callbackId, picojson::object* obj) {
-  obj->insert(std::make_pair("callbackId", callbackId));
+  obj->insert(std::make_pair("callbackId", picojson::value(callbackId)));
 }
 
 static void PostResultSuccess(double callbackId, picojson::value* event) {
