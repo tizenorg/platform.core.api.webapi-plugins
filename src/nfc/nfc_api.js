@@ -91,7 +91,8 @@ ListenerManager.prototype.onListenerCalled = function(msg) {
       } else if ('Transaction' === msg.type) {
         this.listeners[key](msg.aid, msg.data);
       } else if('HCEEventData' === msg.type) {
-        this.listeners[key](new HCEEventData(msg));
+        var hceData = new HCEEventData(msg.result);
+        this.listeners[key](hceData);
       }
     }
   }
