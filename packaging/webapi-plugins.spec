@@ -14,18 +14,6 @@ Summary:    Tizen Web APIs implemented
 Source0:    %{name}-%{version}.tar.gz
 
 
-%if "%{?tizen_profile_name}" == "tv"
-ExcludeArch: %{arm} %ix86 x86_64
-%endif
-
-%if "%{?tizen_profile_name}" == "wearable"
-ExcludeArch: %{arm} %ix86 x86_64
-%endif
-
-%if "%{?tizen_profile_name}" == "mobile"
-ExcludeArch: %{arm} %ix86 x86_64
-%endif
-
 ####################################################################
 #       Mobile Profile :  Kiran(SM-Z130H), Redwood(SM-Z910F)       #
 ####################################################################
