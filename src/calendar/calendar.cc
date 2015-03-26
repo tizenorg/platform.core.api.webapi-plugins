@@ -135,7 +135,7 @@ PlatformResult Calendar::Add(const picojson::object& args,
   status = CalendarRecord::Insert(item_ptr.get(), &record_id);
   if (status.IsError()) return status;
 
-  out.insert(std::make_pair("uid", std::to_string(record_id)));
+  out.insert(std::make_pair("uid", picojson::value(std::to_string(record_id))));
 
   if (type == CALENDAR_BOOK_TYPE_EVENT) {
     std::string rid;
@@ -1027,19 +1027,19 @@ void Calendar::ChangeCallback(const char* view_uri, void*) {
   picojson::object& response_obj = response.get<picojson::object>();
   if (listeners_registered_.find("EVENT") != listeners_registered_.end())
     response_obj.insert(
-        std::make_pair("listenerId", listeners_registered_["EVENT"]));
+        std::make_pair("listenerId", picojson::value(listeners_registered_["EVENT"])));
   else
     response_obj.insert(
-        std::make_pair("listenerId", listeners_registered_["TASK"]));
+        std::make_pair("listenerId", picojson::value(listeners_registered_["TASK"])));
 
   picojson::array& added =
-      response_obj.insert(std::make_pair("added", picojson::array()))
+      response_obj.insert(std::make_pair("added", picojson::value(picojson::array())))
           .first->second.get<picojson::array>();
   picojson::array& updated =
-      response_obj.insert(std::make_pair("updated", picojson::array()))
+      response_obj.insert(std::make_pair("updated", picojson::value(picojson::array())))
           .first->second.get<picojson::array>();
   picojson::array& removed =
-      response_obj.insert(std::make_pair("removed", picojson::array()))
+      response_obj.insert(std::make_pair("removed", picojson::value(picojson::array())))
           .first->second.get<picojson::array>();
 
   while (count-- > 0) {
