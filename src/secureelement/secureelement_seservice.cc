@@ -78,7 +78,7 @@ void SEService::GetReaders(const picojson::value& args) {
     callback_id = args.get("callbackId").get<double>();
   }
 
-  auto get_readers = [is_initialized_, se_service_](
+  auto get_readers = [this](
       const std::shared_ptr<picojson::value>& response) -> void {
 
     if (!is_initialized_) {
