@@ -13,7 +13,7 @@
 
 #include "common/extension.h"
 #include "common/picojson.h"
-#include "common/platform_exception.h"
+#include "common/platform_result.h"
 #include "content/content_instance.h"
 
 namespace extension {
@@ -33,8 +33,8 @@ class ContentManager {
   int updateBatch(picojson::value args);
 
   int scanFile(std::string& uri);
-  int setChangeListener(media_content_db_update_cb callback, void *user_data);
-  void unSetChangeListener();
+  common::PlatformResult setChangeListener(media_content_db_update_cb callback, void *user_data);
+  common::PlatformResult unSetChangeListener();
 
 //Lyrics
   int getLyrics(const picojson::value& args,picojson::object& result);
@@ -52,7 +52,7 @@ class ContentManager {
   void playlistMove(const std::shared_ptr<ReplyCallbackData>& user_data);
 
 //playlistSetOrder
-  common::PlatformException convertError(int err);
+  common::PlatformResult convertError(int err);
  private:
   //int setContent(media_info_h media, picojson::value content);
   ContentManager();

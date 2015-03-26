@@ -15,8 +15,6 @@
 
 #include "common/converter.h"
 #include "common/logger.h"
-#include "common/platform_exception.h"
-#include "common/platform_result.h"
 #include "common/scope_exit.h"
 #include "content/content_filter.h"
 
@@ -569,7 +567,7 @@ void ContentManager::getDirectories(const std::shared_ptr<ReplyCallbackData>& us
   picojson::array pico_dirs;
   ret = media_folder_foreach_folder_from_db(filter, media_foreach_directory_cb, &pico_dirs);
   if (ret != MEDIA_CONTENT_ERROR_NONE) {
-    UnknownException err("Getting the directories failed.");
+    PlatformResult err(ErrorCode::UNKNOWN_ERR, "Getting the directories failed.");
     user_data->isSuccess = false;
     user_data->result = err.ToJSON();
     return;
@@ -662,7 +660,7 @@ void ContentManager::find(const std::shared_ptr<ReplyCallbackData>& user_data) {
     user_data->result = picojson::value(arrayContent);
   } else {
     LoggerD("The iteration failed in platform: %d", ret);
-    UnknownException err("The iteration failed in platform");
+    PlatformResult err(ErrorCode::UNKNOWN_ERR, "The iteration failed in platform");
     user_data->isSuccess = false;
     user_data->result = err.ToJSON();
   }
@@ -672,20 +670,20 @@ int ContentManager::scanFile(std::string& uri) {
   return media_content_scan_file(uri.c_str());
 }
 
-int ContentManager::setChangeListener(media_content_db_update_cb callback, void *user_data) {
-
+PlatformResult ContentManager::setChangeListener(media_content_db_update_cb callback, void *user_data) {
   int ret = media_content_set_db_updated_cb(callback, user_data);
   if(ret != MEDIA_CONTENT_ERROR_NONE) {
-    throw UnknownException("registering the listener is failed.");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, ("registering the listener is failed."));
   }
-
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void ContentManager::unSetChangeListener() {
+PlatformResult ContentManager::unSetChangeListener() {
   int ret = media_content_unset_db_updated_cb();
   if(ret != MEDIA_CONTENT_ERROR_NONE) {
-    throw UnknownException("unSetChangeListener is failed.");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, ("unregistering the listener is failed."));
   }
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 void ContentManager::createPlaylist(std::string name,
@@ -695,7 +693,7 @@ void ContentManager::createPlaylist(std::string name,
 
   int ret = media_playlist_insert_to_db(name.c_str(),&playlist);
   if(ret != MEDIA_CONTENT_ERROR_NONE) {
-    UnknownException err("creation of playlist is failed.");
+    PlatformResult err(ErrorCode::UNKNOWN_ERR, "creation of playlist is failed.");
     user_data->isSuccess = false;
     user_data->result = err.ToJSON();
     return;
@@ -711,7 +709,7 @@ void ContentManager::createPlaylist(std::string name,
       o["id"] = picojson::value(std::to_string(id));
     }
     else {
-      UnknownException err("loading of playlist is failed.");
+      PlatformResult err(ErrorCode::UNKNOWN_ERR, "loading of playlist is failed.");
       user_data->isSuccess = false;
       user_data->result = err.ToJSON();
       return;
@@ -758,7 +756,7 @@ void ContentManager::getPlaylists(const std::shared_ptr<ReplyCallbackData>& user
   ret = media_playlist_foreach_playlist_from_db(filter, playlist_foreach_cb, static_cast<void*>(&playlists));
 
   if(ret != MEDIA_CONTENT_ERROR_NONE) {
-    UnknownException err("Getting playlist is failed.");
+    PlatformResult err(ErrorCode::UNKNOWN_ERR, "Getting playlist is failed.");
     user_data->isSuccess = false;
     user_data->result = err.ToJSON();
   }
@@ -771,7 +769,7 @@ void ContentManager::removePlaylist(std::string playlistId,
 
   int id = std::atoi(playlistId.c_str());
   if(id == 0) {
-    UnknownException err("PlaylistId is wrong.");
+    PlatformResult err(ErrorCode::UNKNOWN_ERR, "PlaylistId is wrong.");
     user_data->isSuccess = false;
     user_data->result = err.ToJSON();
     return;
@@ -779,7 +777,7 @@ void ContentManager::removePlaylist(std::string playlistId,
 
   int ret = media_playlist_delete_from_db(id);
   if(ret != MEDIA_CONTENT_ERROR_NONE) {
-    UnknownException err("Removal of playlist is failed.");
+    PlatformResult err(ErrorCode::UNKNOWN_ERR, "Removal of playlist is failed.");
     user_data->isSuccess = false;
     user_data->result = err.ToJSON();
   }
@@ -881,7 +879,7 @@ void ContentManager::playlistAddbatch(const std::shared_ptr<ReplyCallbackData>& 
   ret = media_playlist_get_playlist_from_db(std::stoi(playlist_id), &playlist);
 
   if(ret != MEDIA_CONTENT_ERROR_NONE && playlist == NULL) {
-    UnknownException err("Getting playlist is failed.");
+    PlatformResult err(ErrorCode::UNKNOWN_ERR, "Getting playlist is failed.");
     user_data->isSuccess = false;
     user_data->result = err.ToJSON();
     return;
@@ -899,7 +897,7 @@ void ContentManager::playlistAddbatch(const std::shared_ptr<ReplyCallbackData>& 
 
   ret = media_playlist_update_to_db(playlist);
   if(ret != MEDIA_CONTENT_ERROR_NONE ) {
-    UnknownException err("Adding playlist is failed.");
+    PlatformResult err(ErrorCode::UNKNOWN_ERR, "Adding playlist is failed.");
     user_data->isSuccess = false;
     user_data->result = err.ToJSON();
   }
@@ -916,7 +914,7 @@ void ContentManager::playlistGet(const std::shared_ptr<ReplyCallbackData>& user_
   std::string playlist_id = user_data->args.get("playlistId").get<std::string>();
   ret = media_playlist_get_playlist_from_db(std::stoi(playlist_id), &playlist);
   if(ret != MEDIA_CONTENT_ERROR_NONE && playlist == NULL) {
-    UnknownException err("Getting playlist is failed.");
+    PlatformResult err(ErrorCode::UNKNOWN_ERR, "Getting playlist is failed.");
     user_data->isSuccess = false;
     user_data->result = err.ToJSON();
     return;
@@ -925,7 +923,7 @@ void ContentManager::playlistGet(const std::shared_ptr<ReplyCallbackData>& user_
   filter_h filter = NULL;
   ret = media_filter_create(&filter);
   if (ret != MEDIA_CONTENT_ERROR_NONE) {
-    UnknownException err("Creating a filter is failed.");
+    PlatformResult err(ErrorCode::UNKNOWN_ERR, "Creating a filter is failed.");
     user_data->isSuccess = false;
     user_data->result = err.ToJSON();
     return;
@@ -952,7 +950,7 @@ void ContentManager::playlistGet(const std::shared_ptr<ReplyCallbackData>& user_
     user_data->result = picojson::value(arrayContent);
   }
   else {
-    UnknownException err("Creating a filter is failed.");
+    PlatformResult err(ErrorCode::UNKNOWN_ERR, "Creating a filter is failed.");
     user_data->isSuccess = false;
     user_data->result = err.ToJSON();
   }
@@ -966,7 +964,7 @@ void ContentManager::playlistRemovebatch(const std::shared_ptr<ReplyCallbackData
   std::string playlist_id = user_data->args.get("playlistId").get<std::string>();
   ret = media_playlist_get_playlist_from_db(std::stoi(playlist_id), &playlist);
   if(ret != MEDIA_CONTENT_ERROR_NONE && playlist == NULL) {
-    UnknownException err("Getting playlist is failed.");
+    PlatformResult err(ErrorCode::UNKNOWN_ERR, "Getting playlist is failed.");
     user_data->isSuccess = false;
     user_data->result = err.ToJSON();
     return;
@@ -984,7 +982,7 @@ void ContentManager::playlistRemovebatch(const std::shared_ptr<ReplyCallbackData
 
   ret = media_playlist_update_to_db(playlist);
   if (ret != MEDIA_CONTENT_ERROR_NONE) {
-    UnknownException err("Removing the contents is failed.");
+    PlatformResult err(ErrorCode::UNKNOWN_ERR, "Removing the contents is failed.");
     user_data->isSuccess = false;
     user_data->result = err.ToJSON();
   }
@@ -1001,7 +999,7 @@ void ContentManager::playlistSetOrder(const std::shared_ptr<ReplyCallbackData>& 
   std::string playlist_id = user_data->args.get("playlistId").get<std::string>();
   ret = media_playlist_get_playlist_from_db(std::stoi(playlist_id), &playlist);
   if(ret != MEDIA_CONTENT_ERROR_NONE && playlist == NULL) {
-    UnknownException err("Getting playlist is failed.");
+    PlatformResult err(ErrorCode::UNKNOWN_ERR, "Getting playlist is failed.");
     user_data->isSuccess = false;
     user_data->result = err.ToJSON();
     return;
@@ -1013,7 +1011,7 @@ void ContentManager::playlistSetOrder(const std::shared_ptr<ReplyCallbackData>& 
   ret = media_playlist_get_media_count_from_db(std::stoi(playlist_id), NULL, &cnt);
 
   if ( cnt != members.size() ) {
-    InvalidValuesException err("The items array does not contain all items from the playlist.");
+    PlatformResult err(ErrorCode::INVALID_VALUES_ERR, "The items array does not contain all items from the playlist.");
     user_data->isSuccess = false;
     user_data->result = err.ToJSON();
     return;
@@ -1029,7 +1027,7 @@ void ContentManager::playlistSetOrder(const std::shared_ptr<ReplyCallbackData>& 
 
   ret = media_playlist_update_to_db(playlist);
   if (ret != MEDIA_CONTENT_ERROR_NONE) {
-    UnknownException err("Removing the contents is failed.");
+    PlatformResult err(ErrorCode::UNKNOWN_ERR, "Removing the contents is failed.");
     user_data->isSuccess = false;
     user_data->result = err.ToJSON();
   }
@@ -1044,7 +1042,7 @@ void ContentManager::playlistMove(const std::shared_ptr<ReplyCallbackData>& user
   std::string playlist_id = user_data->args.get("playlistId").get<std::string>();
   ret = media_playlist_get_playlist_from_db(std::stoi(playlist_id), &playlist);
   if(ret != MEDIA_CONTENT_ERROR_NONE && playlist == NULL) {
-    UnknownException err("Getting playlist is failed.");
+    PlatformResult err(ErrorCode::UNKNOWN_ERR, "Getting playlist is failed.");
     user_data->isSuccess = false;
     user_data->result = err.ToJSON();
     return;
@@ -1054,7 +1052,7 @@ void ContentManager::playlistMove(const std::shared_ptr<ReplyCallbackData>& user
   double delta = user_data->args.get("delta").get<double>();
   ret = media_playlist_get_play_order(playlist, static_cast<int>(member_id), &old_order);
   if (ret != MEDIA_CONTENT_ERROR_NONE) {
-    UnknownException err("The content can't find form playlist.");
+    PlatformResult err(ErrorCode::UNKNOWN_ERR, "The content can't find form playlist.");
     user_data->isSuccess = false;
     user_data->result = err.ToJSON();
     return;
@@ -1062,14 +1060,14 @@ void ContentManager::playlistMove(const std::shared_ptr<ReplyCallbackData>& user
   int new_order = static_cast<int>(old_order) + static_cast<int>(delta);
   ret = media_playlist_set_play_order(playlist, static_cast<int>(member_id), new_order);
   if (ret != MEDIA_CONTENT_ERROR_NONE) {
-    UnknownException err("The content can't update play_order.");
+    PlatformResult err(ErrorCode::UNKNOWN_ERR, "The content can't update play_order.");
     user_data->isSuccess = false;
     user_data->result = err.ToJSON();
     return;
   }
   ret = media_playlist_update_to_db(playlist);
   if (ret != MEDIA_CONTENT_ERROR_NONE) {
-    UnknownException err("Updateing play_order is failed.");
+    PlatformResult err(ErrorCode::UNKNOWN_ERR, "Updateing play_order is failed.");
     user_data->isSuccess = false;
     user_data->result = err.ToJSON();
   }
@@ -1144,28 +1142,28 @@ int ContentManager::getLyrics(const picojson::value& args, picojson::object& res
 }
 
 
-common::PlatformException ContentManager::convertError(int err) {
+PlatformResult ContentManager::convertError(int err) {
   switch (err) {
     case MEDIA_CONTENT_ERROR_INVALID_PARAMETER :
-      return common::InvalidValuesException("Invalid parameter.");
+      return PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid parameter.");
     case MEDIA_CONTENT_ERROR_OUT_OF_MEMORY :
-      return common::UnknownException("Out of memory.");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Out of memory.");
     case MEDIA_CONTENT_ERROR_INVALID_OPERATION :
-      return common::UnknownException("Invalid Operation.");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Invalid Operation.");
     case MEDIA_CONTENT_FILE_NO_SPACE_ON_DEVICE :
-      return common::UnknownException("No space left on device.");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, "No space left on device.");
     case MEDIA_CONTENT_ERROR_PERMISSION_DENIED :
-      return common::UnknownException("Permission denied.");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Permission denied.");
     case MEDIA_CONTENT_ERROR_DB_FAILED :
-      return common::UnknownException("DB operation failed.");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, "DB operation failed.");
     case MEDIA_CONTENT_ERROR_DB_BUSY :
-      return common::UnknownException("DB operation BUSY.");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, "DB operation BUSY.");
     case MEDIA_CONTENT_ERROR_NETWORK :
-      return common::UnknownException("Network Fail.");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Network Fail.");
     case MEDIA_CONTENT_ERROR_UNSUPPORTED_CONTENT :
-      return common::UnknownException("Unsupported Content.");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Unsupported Content.");
     default:
-      return common::UnknownException("Unknown error.");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown error.");
   }
 }
 

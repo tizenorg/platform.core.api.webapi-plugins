@@ -13,7 +13,7 @@
 
 #include "common/logger.h"
 #include "common/picojson.h"
-#include "common/platform_exception.h"
+#include "common/platform_result.h"
 #include "common/task-queue.h"
 #include "content/content_manager.h"
 
@@ -153,7 +153,7 @@ static void* WorkThread(const std::shared_ptr<ReplyCallbackData>& user_data) {
       break;
     }
     case ContentManagerErrorCallback: {
-      common::UnknownException err("DB Connection is failed.");
+      common::PlatformResult err(common::ErrorCode::UNKNOWN_ERR, "DB Connection is failed.");
       user_data->isSuccess = false;
       user_data->result = err.ToJSON();
       break;
@@ -218,7 +218,7 @@ static void changedContentCallback(media_content_error_e error,
 
 #define CHECK_EXIST(args, name, out) \
   if (!args.contains(name)) {\
-    ReportError(common::TypeMismatchException(name" is required argument"), out);\
+    ReportError(common::PlatformResult(common::ErrorCode::TYPE_MISMATCH_ERR, (name" is required argument")), &out);\
     return;\
   }
 
@@ -228,10 +228,10 @@ void ContentInstance::ContentManagerUpdate(const picojson::value& args, picojson
   if (ContentManager::getInstance()->isConnected()) {
     ret = ContentManager::getInstance()->update(args);
     if (ret != 0) {
-      ReportError(ContentManager::getInstance()->convertError(ret), out);
+      ReportError(ContentManager::getInstance()->convertError(ret), &out);
     }
   } else {
-    ReportError(common::UnknownException("DB connection is failed."), out);
+    ReportError(common::PlatformResult(common::ErrorCode::UNKNOWN_ERR, "DB connection is failed."), &out);
   }
 }
 
@@ -321,14 +321,17 @@ void ContentInstance::ContentManagerSetchangelistener(const picojson::value& arg
     cbData->cbType = ContentManagerErrorCallback;
   }
 
-  ContentManager::getInstance()->setChangeListener(changedContentCallback, static_cast<void*>(cbData));
+  if (ContentManager::getInstance()->setChangeListener(changedContentCallback, static_cast<void*>(cbData)).IsError()) {
+    ReportError(common::PlatformResult(common::ErrorCode::UNKNOWN_ERR, "The callback did not register properly"), &out);
+  }
 }
 
 void ContentInstance::ContentManagerUnsetchangelistener(const picojson::value& args, picojson::object& out) {
-
-  ContentManager::getInstance()->unSetChangeListener();
-
+  if (ContentManager::getInstance()->unSetChangeListener().IsError()) {
+    LoggerD("unsuccesfull deregistering of callback");
+  }
 }
+
 void ContentInstance::ContentManagerGetplaylists(const picojson::value& args, picojson::object& out) {
   CHECK_EXIST(args, "callbackId", out)
 
@@ -398,11 +401,11 @@ void ContentInstance::ContentManagerPlaylistAdd(const picojson::value& args, pic
     std::string content_id = args.get("contentId").get<std::string>();
     ret = ContentManager::getInstance()->playlistAdd(playlist_id, content_id);
     if(ret != MEDIA_CONTENT_ERROR_NONE) {
-      ReportError(ContentManager::getInstance()->convertError(ret),out);
+      ReportError(ContentManager::getInstance()->convertError(ret),&out);
     }
   }
   else {
-    ReportError(common::UnknownException("DB connection is failed."),out);
+    ReportError(common::PlatformResult(common::ErrorCode::UNKNOWN_ERR, "DB connection is failed."), &out);
   }
 }
 
@@ -450,11 +453,11 @@ void ContentInstance::ContentManagerPlaylistRemove(const picojson::value& args, 
     int member_id = args.get("memberId").get<double>();
     ret = ContentManager::getInstance()->playlistRemove(playlist_id, member_id);
     if(ret != MEDIA_CONTENT_ERROR_NONE) {
-      ReportError(ContentManager::getInstance()->convertError(ret),out);
+      ReportError(ContentManager::getInstance()->convertError(ret),&out);
     }
   }
   else {
-    ReportError(common::UnknownException("DB connection is failed."),out);
+    ReportError(common::PlatformResult(common::ErrorCode::UNKNOWN_ERR, "DB connection is failed."), &out);
   }
 }
 
@@ -522,12 +525,12 @@ void ContentInstance::ContentManagerAudioGetLyrics(const picojson::value& args,
   if (ContentManager::getInstance()->isConnected()) {
     ret = ContentManager::getInstance()->getLyrics(args, lyrics);
     if (ret != MEDIA_CONTENT_ERROR_NONE) {
-      ReportError(ContentManager::getInstance()->convertError(ret), out);
+      ReportError(ContentManager::getInstance()->convertError(ret), &out);
     } else {
       ReportSuccess(picojson::value(lyrics), out);
     }
   } else {
-    ReportError(common::UnknownException("DB connection is failed."), out);
+    ReportError(common::PlatformResult(common::ErrorCode::UNKNOWN_ERR, "DB connection is failed."), &out);
   }
 }
 
