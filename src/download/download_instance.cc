@@ -69,7 +69,7 @@ void DownloadInstance::OnStateChanged(int download_id,
   downCbPtr->state = state;
   downCbPtr->downloadId = download_id;
 
-  LoggerD("State for callbackId %d changed to %d",
+  SLoggerD("State for callbackId %d changed to %d",
     downCbPtr->callbackId, static_cast<int>(state));
 
   switch (state) {
@@ -103,7 +103,7 @@ gboolean DownloadInstance::OnProgressChanged(void* user_data) {
     picojson::value(static_cast<double>(downCbPtr->received));
   out["totalSize"] = picojson::value(static_cast<double>(diPtr->file_size));
 
-  LoggerD("OnProgressChanged for callbackId %d Called: Received: %ld",
+  SLoggerD("OnProgressChanged for callbackId %d Called: Received: %ld",
     downCbPtr->callbackId, downCbPtr->received);
 
   picojson::value v = picojson::value(out);
@@ -118,7 +118,7 @@ void DownloadInstance::OnStart(int download_id, void* user_data) {
 
   DownloadCallback* downCbPtr = static_cast<DownloadCallback*>(user_data);
 
-  LoggerD("OnStart for callbackId %d Called", downCbPtr->callbackId);
+  SLoggerD("OnStart for callbackId %d Called", downCbPtr->callbackId);
 
   DownloadInfoPtr diPtr = downCbPtr->instance->diMap[downCbPtr->callbackId];
 
@@ -133,7 +133,7 @@ gboolean DownloadInstance::OnFinished(void* user_data) {
   DownloadCallback* downCbPtr = static_cast<DownloadCallback*>(user_data);
   DownloadInfoPtr diPtr = downCbPtr->instance->diMap[downCbPtr->callbackId];
 
-  LoggerD("OnFinished for callbackID %d Called", downCbPtr->callbackId);
+  SLoggerD("OnFinished for callbackID %d Called", downCbPtr->callbackId);
 
   download_get_downloaded_file_path(downCbPtr->downloadId, &fullPath);
 
@@ -155,7 +155,7 @@ gboolean DownloadInstance::OnPaused(void* user_data) {
   DownloadCallback* downCbPtr = static_cast<DownloadCallback*>(user_data);
   DownloadInfoPtr diPtr = downCbPtr->instance->diMap[downCbPtr->callbackId];
 
-  LoggerD("OnPaused for callbackID %d Called", downCbPtr->callbackId);
+  SLoggerD("OnPaused for callbackID %d Called", downCbPtr->callbackId);
 
   picojson::value::object out;
   out["status"] = picojson::value("paused");
@@ -170,7 +170,7 @@ gboolean DownloadInstance::OnCanceled(void* user_data) {
   DownloadCallback* downCbPtr = static_cast<DownloadCallback*>(user_data);
   DownloadInfoPtr diPtr = downCbPtr->instance->diMap[downCbPtr->callbackId];
 
-  LoggerD("OnCanceled for callbackID %d Called", downCbPtr->callbackId);
+  SLoggerD("OnCanceled for callbackID %d Called", downCbPtr->callbackId);
 
   download_unset_state_changed_cb(diPtr->download_id);
   download_unset_progress_cb(diPtr->download_id);
@@ -191,6 +191,8 @@ gboolean DownloadInstance::OnFailed(void* user_data) {
 
   DownloadCallback* downCbPtr = static_cast<DownloadCallback*>(user_data);
   DownloadInstance* instance = downCbPtr->instance;
+
+  SLoggerD("OnFailed for callbackID %d Called", downCbPtr->callbackId);
 
   download_get_error(downCbPtr->downloadId, &error);
 
@@ -329,8 +331,6 @@ void DownloadInstance::DownloadManagerStart
     }
   }
 
-  LoggerD("destination: %s", diPtr->destination.c_str());
-
   if (!args.get("fileName").is<picojson::null>()) {
     if (args.get("fileName").get<std::string>() != "") {
       diPtr->file_name = args.get("fileName").get<std::string>();
@@ -378,7 +378,6 @@ void DownloadInstance::DownloadManagerStart
   downCbPtr->instance = this;
 
   downCbVector.push_back(downCbPtr);
-  LoggerD("Checking callback ID: %d", downCbPtr->callbackId);
 
   ret = download_create(&diPtr->download_id);
   ret =
@@ -411,31 +410,6 @@ void DownloadInstance::DownloadManagerStart
         (diPtr->download_id, it->first.c_str(), it->second.to_str().c_str());
     }
   }
-
-  char* gUrl = NULL;
-  char* gDest = NULL;
-  char* gFilename = NULL;
-  download_network_type_e gNetType;
-  char** fields;
-  char* header_value;
-  int header_length;
-
-  download_get_url(diPtr->download_id, &gUrl);
-  download_get_destination(diPtr->download_id, &gDest);
-  download_get_file_name(diPtr->download_id, &gFilename);
-  download_get_network_type(diPtr->download_id, &gNetType);
-  download_get_http_header_field_list
-    (diPtr->download_id, &fields, &header_length);
-
-  for (int i = 0; i < header_length; i++) {
-    download_get_http_header_field
-      (diPtr->download_id, fields[i], &header_value);
-    LoggerD("HTTP HEADER %d: %s - %s", i, fields[i], header_value);
-  }
-
-  LoggerD("Download Request Received" \
-    "(URL: %s, Destination: %s, File name: %s, Network type: %d ",
-    gUrl, gDest, gFilename, static_cast<int>(gNetType));
 
   diMap[downCbPtr->callbackId] = diPtr;
 
@@ -483,8 +457,6 @@ void DownloadInstance::DownloadManagerCancel
     return;
   }
 
-  LoggerD("Download cancel for download ID: %d", downloadId);
-
   ret = download_cancel(downloadId);
 
   if (ret == DOWNLOAD_ERROR_NONE)
@@ -518,8 +490,6 @@ void DownloadInstance::DownloadManagerPause
     return;
   }
 
-  LoggerD("Download pause for download ID: %d", downloadId);
-
   ret = download_pause(downloadId);
 
   if (ret == DOWNLOAD_ERROR_NONE)
@@ -552,8 +522,6 @@ void DownloadInstance::DownloadManagerResume
       out);
     return;
   }
-
-  LoggerD("Download resume for download ID: %d", downloadId);
 
   ret = download_start(downloadId);
 
@@ -660,7 +628,6 @@ void DownloadInstance::DownloadManagerGetmimetype
   ret = download_get_mime_type(downloadId, &mimetype);
 
   if (ret == DOWNLOAD_ERROR_NONE) {
-    LoggerD("MIMEtype for callbackID %d : %s", callbackId, mimetype);
     ReportSuccess(picojson::value(mimetype), out);
   } else if (ret == DOWNLOAD_ERROR_INVALID_PARAMETER) {
     ReportError(InvalidValuesException(
