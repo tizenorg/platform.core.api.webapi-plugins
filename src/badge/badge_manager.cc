@@ -10,6 +10,7 @@
 #include <fcntl.h>
 #include <package_manager.h>
 #include <pkgmgr-info.h>
+#include <unistd.h>
 
 #include "badge/badge_instance.h"
 #include "common/logger.h"
@@ -198,7 +199,7 @@ void BadgeManager::badge_changed_cb(unsigned int action, const char *pkgname,
     picojson::value response = picojson::value(picojson::object());
     picojson::object &response_obj = response.get<picojson::object>();
     response_obj.insert(
-        std::make_pair("listenerId", std::string("BadgeChangeListener")));
+        std::make_pair("listenerId", picojson::value(std::string("BadgeChangeListener"))));
     response_obj.insert(std::make_pair("appId", picojson::value(pkgname)));
     response_obj.insert(std::make_pair("count", picojson::value(std::to_string(count))));
     BadgeInstance::GetInstance().PostMessage(response.serialize().c_str());
