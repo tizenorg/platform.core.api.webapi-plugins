@@ -21,7 +21,8 @@
           'variables': {
             'packages': [
               'capi-web-url-download',
-              'capi-system-info'
+              'capi-system-info',
+              'capi-network-connection',
             ]
           },
         }],

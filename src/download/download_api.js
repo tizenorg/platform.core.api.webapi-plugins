@@ -47,7 +47,7 @@ extension.setMessageListener(function(json) {
   else if (result.status == 'error') {
     if (callback.onfailed) {
       callback.onfailed(result.callbackId,
-              new WebAPIException(result.error.name, result.error.message));
+              new WebAPIException(result.error));
     }
   }
 });
@@ -74,7 +74,7 @@ function callNative(cmd, args) {
   } else if (result.status == 'error') {
     var err = result.error;
     if (err) {
-      throw new WebAPIException(err.name, err.message);
+      throw new WebAPIException(err);
     }
     return false;
   }
@@ -192,6 +192,9 @@ DownloadManager.prototype.start = function() {
   try {
     callNative('DownloadManager_start', nativeParam);
   } catch (e) {
+    if ('NetworkError' === e.name) {
+      return -1;
+    }
     throw e;
   }
 

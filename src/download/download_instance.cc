@@ -3,7 +3,10 @@
 // found in the LICENSE file.
 
 #include "download/download_instance.h"
+
 #include <functional>
+
+#include <net_connection.h>
 
 #include "common/picojson.h"
 #include "common/logger.h"
@@ -341,34 +344,66 @@ void DownloadInstance::DownloadManagerStart
     networkType = args.get("networkType").get<std::string>();
   }
 
-  bool networkSupport;
+  bool network_support = false;
+  bool cell_support = false;
+  bool wifi_support = false;
+
+  system_info_get_platform_bool("http://tizen.org/feature/network.telephony",
+                                &cell_support);
+  system_info_get_platform_bool("http://tizen.org/feature/network.wifi",
+                                &wifi_support);
+
+  connection_h connection = nullptr;
+  connection_create(&connection);
+
+  connection_cellular_state_e cell_state = CONNECTION_CELLULAR_STATE_OUT_OF_SERVICE;
+  connection_wifi_state_e wifi_state = CONNECTION_WIFI_STATE_DEACTIVATED;
+
+  connection_get_cellular_state(connection, &cell_state);
+  connection_get_wifi_state(connection, &wifi_state);
+  connection_destroy(connection);
+
+  bool network_available = false;
+  bool cell_available = (CONNECTION_CELLULAR_STATE_CONNECTED == cell_state);
+  bool wifi_available = (CONNECTION_WIFI_STATE_CONNECTED == wifi_state);
 
   if (networkType == "CELLULAR") {
-    system_info_get_platform_bool(
-      "http://tizen.org/feature/network.telephony", &networkSupport);
-    if (!networkSupport) {
-      ReportError(NotSupportedException(
-      "The networkType of the given DownloadRequest" \
-      "is not supported on a device."), out);
-      return;
-    }
+    network_support = cell_support;
+    network_available = cell_available;
     diPtr->network_type = DOWNLOAD_NETWORK_DATA_NETWORK;
   } else if (networkType == "WIFI") {
-    system_info_get_platform_bool(
-      "http://tizen.org/feature/network.wifi", &networkSupport);
-    if (!networkSupport) {
-      ReportError(NotSupportedException(
-      "The networkType of the given DownloadRequest" \
-      "is not supported on a device."), out);
-      return;
-    }
+    network_support = wifi_support;
+    network_available = wifi_available;
     diPtr->network_type = DOWNLOAD_NETWORK_WIFI;
   } else if (networkType == "ALL") {
+    network_support = cell_support || wifi_support;
+    network_available = cell_available || wifi_available;
     diPtr->network_type = DOWNLOAD_NETWORK_ALL;
   } else {
     ReportError(
-      InvalidValuesException(
-      "The input parameter contains an invalid network type."), out);
+        InvalidValuesException(
+            "The input parameter contains an invalid network type."),
+        out);
+    return;
+  }
+
+  if (!network_support) {
+    SLoggerE("Requested network type (%s) is not supported.", networkType.c_str());
+    ReportError(
+        common::PlatformResult(common::ErrorCode::NOT_SUPPORTED_ERR,
+                               "The networkType of the given DownloadRequest "
+                               "is not supported on this device."),
+        &out);
+    return;
+  }
+
+  if (!network_available) {
+    SLoggerE("Requested network type (%s) is not available.", networkType.c_str());
+    ReportError(
+        common::PlatformResult(common::ErrorCode::NETWORK_ERR,
+                               "The networkType of the given DownloadRequest "
+                               "is currently not available on this device."),
+        &out);
     return;
   }
 
