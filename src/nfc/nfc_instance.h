@@ -6,15 +6,17 @@
 #define NFC_NFC_INSTANCE_H_
 
 #include "common/extension.h"
-
-#include "nfc_adapter.h"
+#include "nfc/nfc_adapter.h"
 
 namespace extension {
 namespace nfc {
 
-class NFCInstance: public common::ParsedInstance {
+class NFCInstance: public common::ParsedInstance, NFCAdapter::IResponder
+{
  public:
   static NFCInstance& getInstance();
+  void RespondAsync(const char* msg);
+
  private:
   NFCInstance();
   virtual ~NFCInstance();
@@ -48,7 +50,7 @@ class NFCInstance: public common::ParsedInstance {
   void SendNDEF(const picojson::value& args, picojson::object& out);
   void ToByte(const picojson::value& args, picojson::object& out);
 
-  //Message related methods
+  // Message related methods
   void NDEFMessageContructor(const picojson::value& args, picojson::object& out);
   void NDEFMessageToByte(const picojson::value& args, picojson::object& out);
   void NDEFRecordContructor(const picojson::value& args, picojson::object& out);
@@ -63,6 +65,15 @@ class NFCInstance: public common::ParsedInstance {
   void TagPropertiesGetter(const picojson::value& args, picojson::object& out);
   void TagIsConnectedGetter(const picojson::value& args, picojson::object& out);
 
+  // HCE related methods
+  void AddHCEEventListener(const picojson::value& args, picojson::object& out);
+  void RemoveHCEEventListener(const picojson::value& args, picojson::object& out);
+  void SendHostAPDUResponse(const picojson::value& args, picojson::object& out);
+  void IsActivatedHandlerForAID(const picojson::value& args, picojson::object& out);
+  void IsActivatedHandlerForCategory(const picojson::value& args, picojson::object& out);
+  void RegisterAID(const picojson::value& args, picojson::object& out);
+  void UnregisterAID(const picojson::value& args, picojson::object& out);
+  void GetAIDsForCategory(const picojson::value& args, picojson::object& out);
 };
 
 } // namespace nfc

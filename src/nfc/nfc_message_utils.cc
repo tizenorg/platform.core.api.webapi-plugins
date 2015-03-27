@@ -2,16 +2,14 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "nfc_message_utils.h"
+#include "nfc/nfc_message_utils.h"
 
 #include <memory>
-#include <nfc.h>
 
-#include "nfc_util.h"
-
+#include "common/converter.h"
 #include "common/logger.h"
 #include "common/platform_exception.h"
-#include "common/converter.h"
+#include "nfc/nfc_util.h"
 
 using namespace common;
 
@@ -93,7 +91,7 @@ static PlatformResult getTypeNameFromHandle(nfc_ndef_record_h handle,
                                          nfc_ndef_message_h message_handle,
                                          UCharVector *type)
 {
-  unsigned char *type_name;
+  unsigned char* type_name;
   int type_size, result;
 
   result = nfc_ndef_record_get_type(handle, &type_name, &type_size);
@@ -118,7 +116,7 @@ static PlatformResult getIdFromHandle(nfc_ndef_record_h handle,
                                    nfc_ndef_message_h message_handle,
                                    UCharVector *id)
 {
-  unsigned char *tmp_id;
+  unsigned char* tmp_id;
   int id_size, result;
 
   result = nfc_ndef_record_get_id(handle, &tmp_id, &id_size);
@@ -144,7 +142,7 @@ static PlatformResult getPayloadFromHandle(nfc_ndef_record_h handle,
                                         nfc_ndef_message_h message_handle,
                                         UCharVector *payload)
 {
-  unsigned char *tmp_payload;
+  unsigned char* tmp_payload;
   unsigned int payload_size;
   int result;
 
@@ -415,7 +413,7 @@ PlatformResult NFCMessageUtils::NDEFMessageToByte(const picojson::value& args, p
     return PlatformResult(ErrorCode::NO_ERROR);
   }
 
-  unsigned char *raw_data = NULL;
+  unsigned char* raw_data = NULL;
 
   unsigned int raw_data_size = 0;
   int result = nfc_ndef_message_get_rawdata(message, &raw_data, &raw_data_size);
