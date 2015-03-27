@@ -13,9 +13,7 @@
 #ifdef PRIVILEGE_USE_DB
 #include <sqlite3.h>
 #elif PRIVILEGE_USE_ACE
-#include <sqlite3.h>
-#include <dpl/wrt-dao-ro/WrtDatabase.h>
-#include <ace_api_client.h>
+#include <privilege_checker.h>
 #elif PRIVILEGE_USE_CYNARA
 // TODO
 #endif
@@ -441,114 +439,23 @@ class AccessControlImpl {
 
 class AccessControlImpl {
  public:
-  AccessControlImpl()
-      : initialized_(false),
-        widget_id_(-1) {
+  AccessControlImpl() {
     LoggerD("Privilege access checked using ACE.");
-    // get widget ID
-    const char* kWrtDBPath = "/opt/dbspace/.wrt.db";
-    sqlite3* db = nullptr;
-
-    int ret = sqlite3_open(kWrtDBPath, &db);
-    if (SQLITE_OK != ret) {
-      LoggerE("Failed to access WRT database");
-      return;
-    }
-
-    const char* kQuery = "select app_id from WidgetInfo where tizen_appid = ?";
-    const std::string app_id = common::GetCurrentExtension()->GetRuntimeVariable("app_id", 64);
-    sqlite3_stmt* stmt = nullptr;
-
-    ret = sqlite3_prepare_v2(db, kQuery, -1, &stmt, nullptr);
-    ret |= sqlite3_bind_text(stmt, 1, app_id.c_str(), -1, SQLITE_TRANSIENT);
-
-    SCOPE_EXIT {
-      sqlite3_finalize(stmt);
-      sqlite3_close(db);
-    };
-
-    if (SQLITE_OK != ret) {
-      LoggerE("Failed to query WRT database");
-      return;
-    }
-
-    if (sqlite3_step(stmt) == SQLITE_ROW) {
-      widget_id_ = sqlite3_column_int(stmt, 0);
-    } else {
-      LoggerE("Application %s not found.", app_id.c_str());
-      return;
-    }
-
-    // start ACE
-    if (ACE_OK != ace_client_initialize(AlwaysDeny)) {
-      LoggerE("Failed to initialize ACE.");
-    } else {
-      // in order to work, WrtDatabase needs to be bound to thread
-      // which is going to check the WrtAccess
-      WrtDB::WrtDatabase::attachToThreadRO();
-      // set the session ID
-      session_id_ = app_id + std::to_string(widget_id_);
-      // we're ready
-      initialized_ = true;
-    }
   }
 
   ~AccessControlImpl() {
-    if (initialized_) {
-      WrtDB::WrtDatabase::detachFromThread();
-      ace_client_shutdown();
-    }
   }
 
   bool CheckAccess(const std::vector<std::string>& privileges) {
-    if (!initialized_) {
-      return false;
+    int ret = 0;
+    for (size_t i = 0; i < privileges.size(); ++i) {
+      ret = privilege_checker_check_privilege(privileges[i].c_str());
+      if (PRIVILEGE_CHECKER_ERR_NONE != ret) {
+        return false;
+      }
     }
-
-    ace_check_result_t result = ACE_PRIVILEGE_DENIED;
-    ace_request_t request;
-    const auto count = privileges.size();
-
-    request.session_id = const_cast<char*>(session_id_.c_str());
-    request.widget_handle = widget_id_;
-    request.feature_list = { 0, 0 };
-    request.dev_cap_list = { 0, 0 };
-
-    request.feature_list.count = count;
-    request.feature_list.items = new char*[count];
-
-    SCOPE_EXIT {
-      delete [] request.feature_list.items;
-    };
-
-    for (size_t i = 0; i < count; ++i) {
-      request.feature_list.items[i] = const_cast<char*>(privileges[i].c_str());
-    }
-
-    if (ACE_OK != ace_check_access_ex(&request, &result)) {
-      LoggerE("Failed to check privilege.");
-      return false;
-    } else {
-      return (result == ACE_ACCESS_GRANTED);
-    }
+    return true;
   }
-
- private:
-  static ace_return_t AlwaysDeny(ace_popup_t popup_type,
-                                 const ace_resource_t resource_name,
-                                 const ace_session_id_t session_id,
-                                 const ace_param_list_t* param_list,
-                                 ace_widget_handle_t handle,
-                                 ace_bool_t* validation_result) {
-    if (validation_result) {
-      *validation_result = ACE_TRUE;
-    }
-    return ACE_OK;
-  }
-
-  bool initialized_;
-  int widget_id_;
-  std::string session_id_;
 };
 
 #elif PRIVILEGE_USE_CYNARA

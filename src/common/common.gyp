@@ -66,7 +66,7 @@
               'variables': {
                 'packages': [
                   'sqlite3',
-                  'security-client',
+                  'capi-security-privilege-manager',
                 ],
               },
             }],
