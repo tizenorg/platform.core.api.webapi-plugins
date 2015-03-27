@@ -42,7 +42,7 @@ FilesystemInstance::FilesystemInstance() {
   REGISTER_SYNC("File_readSync", FileReadSync);
   REGISTER_ASYNC("File_write", FileWrite);
   REGISTER_SYNC("File_writeSync", FileWriteSync);
-  REGISTER_SYNC("Filesystem_getWidgetPaths", FilesystemGetWidgetPaths);
+  REGISTER_SYNC("Filesystem_fetchVirtualRoots", FilesystemFetchVirtualRoots);
   REGISTER_SYNC("FileSystemManager_addStorageStateChangeListener",
                 StartListening);
   REGISTER_SYNC("FileSystemManager_removeStorageStateChangeListener",
@@ -307,17 +307,17 @@ void FilesystemInstance::FileStatSync(const picojson::value& args,
   FilesystemManager::GetInstance().StatPath(location, onSuccess, onError);
 }
 
-void FilesystemInstance::FilesystemGetWidgetPaths(const picojson::value& args,
-                                                  picojson::object& out) {
+void FilesystemInstance::FilesystemFetchVirtualRoots(
+    const picojson::value& args, picojson::object& out) {
   LoggerD("enter");
 
-  auto onSuccess = [&](const std::map<std::string, std::string>& result) {
+  auto onSuccess = [&](const std::vector<common::VirtualRoot>& result) {
     LoggerD("enter");
-    picojson::object paths;
-    for (const auto& entry : result) {
-      paths[entry.first] = picojson::value(entry.second);
+    picojson::array roots;
+    for (const auto& root : result) {
+      roots.push_back(root.ToJson());
     }
-    ReportSuccess(picojson::value(paths), out);
+    ReportSuccess(picojson::value(roots), out);
   };
 
   auto onError = [&](FilesystemError e) {
@@ -325,7 +325,7 @@ void FilesystemInstance::FilesystemGetWidgetPaths(const picojson::value& args,
     PrepareError(e, out);
   };
 
-  FilesystemManager::GetInstance().GetWidgetPaths(onSuccess, onError);
+  FilesystemManager::GetInstance().GetVirtualRoots(onSuccess, onError);
 }
 
 void FilesystemInstance::FileSystemManagerFetchStorages(
@@ -333,12 +333,12 @@ void FilesystemInstance::FileSystemManagerFetchStorages(
     picojson::object& out) {
   LoggerD("enter");
 
-  auto onSuccess = [&](const std::vector<FilesystemStorage>& result) {
+  auto onSuccess = [&](const std::vector<common::VirtualStorage>& result) {
     LoggerD("enter");
     picojson::array storages;
     storages.reserve(result.size());
-    for (const FilesystemStorage& storage : result) {
-      storages.push_back(storage.toJSON());
+    for (const auto& storage : result) {
+      storages.push_back(storage.ToJson());
     }
     ReportSuccess(picojson::value(storages), out);
   };
@@ -364,14 +364,14 @@ void FilesystemInstance::StopListening(
   ReportSuccess(out);
 }
 
-void FilesystemInstance::onFilesystemStateChangeSuccessCallback(const std::string& label, const std::string& state, const std::string& type) {
+void FilesystemInstance::onFilesystemStateChangeSuccessCallback(const common::VirtualStorage& storage) {
   LoggerD("entered");
 
   picojson::value event = picojson::value(picojson::object());
   picojson::object& obj = event.get<picojson::object>();
-  obj["label"] = picojson::value(label);
-  obj["type"] = picojson::value(type);
-  obj["state"] = picojson::value(state);
+  obj["label"] = picojson::value(storage.name_);
+  obj["type"] = picojson::value(common::to_string(storage.type_));
+  obj["state"] = picojson::value(common::to_string(storage.state_));
   obj["listenerId"] = picojson::value("StorageStateChangeListener");
   PostMessage(event.serialize().c_str());
 }

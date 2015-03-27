@@ -24,12 +24,6 @@ enum class FilesystemError {
 }  // namespace filesystem
 }  // namespace extension
 
-namespace std {
-
-std::string to_string(storage_type_e);
-std::string to_string(storage_state_e);
-}
-
 namespace FilesystemUtils {
 
 /**

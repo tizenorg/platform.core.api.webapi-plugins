@@ -45,11 +45,10 @@ function CommonFS() {
       enumerable: true
     }
   });
+
+  this.cacheVirtualToReal = {};
+  this.cacheStorages = [];
 }
-
-CommonFS.prototype.cacheVirtualToReal = {};
-
-CommonFS.prototype.cacheStorages = [];
 
 CommonFS.prototype.getFileInfo = function(aStatObj, secondIter, aMode) {
   var _result = {},
@@ -94,7 +93,7 @@ CommonFS.prototype.getFileInfo = function(aStatObj, secondIter, aMode) {
 
 CommonFS.prototype.isLocationAllowed = function(aPath) {
   if (!aPath) {
-      return false;
+    return false;
   }
   if (aPath.indexOf(this.cacheVirtualToReal.ringtones.path) === 0) {
     return false;
@@ -157,7 +156,7 @@ CommonFS.prototype.toVirtualPath = function(aPath) {
   for (var virtual_root in this.cacheVirtualToReal) {
     var real_root_path = this.cacheVirtualToReal[virtual_root].path;
     if (aPath.indexOf(real_root_path, 0) === 0) {
-        return aPath.replace(real_root_path, virtual_root)
+      return aPath.replace(real_root_path, virtual_root);
     }
   }
 
@@ -169,63 +168,32 @@ CommonFS.prototype.initCache = function() {
     return;
   }
 
-  var result = native_.callSync('Filesystem_getWidgetPaths', {});
+  var result = native_.callSync('Filesystem_fetchVirtualRoots', {});
   if (native_.isFailure(result)) {
     throw native_.getErrorObject(result);
   }
-  var widgetsPaths = native_.getResultObject(result);
+  var virtualRoots = native_.getResultObject(result);
 
-  this.cacheVirtualToReal['wgt-package'] = {
-    path: widgetsPaths['wgt-package'],
-    type: FileSystemStorageType.INTERNAL,
-    state: FileSystemStorageState.MOUNTED
-  };
-  this.cacheVirtualToReal['wgt-private'] = {
-    path: widgetsPaths['wgt-private'],
-    type: FileSystemStorageType.INTERNAL,
-    state: FileSystemStorageState.MOUNTED
-  };
-  this.cacheVirtualToReal['wgt-private-tmp'] = {
-    path: widgetsPaths['wgt-private-tmp'],
-    type: FileSystemStorageType.INTERNAL,
-    state: FileSystemStorageState.MOUNTED
-  };
-
-  var d = this.cacheVirtualToReal;
-  for (var i in d) {
-    this.cacheStorages.push({
-      label: i,
-      type: d[i].type,
-      state: d[i].state
-    });
+  for (var i = 0; i < virtualRoots.length; ++i) {
+    this.cacheVirtualToReal[virtualRoots[i].name] = {
+      path: virtualRoots[i].path,
+      type: FileSystemStorageType.INTERNAL,
+      state: FileSystemStorageState.MOUNTED
+    };
   }
+
   var result = native_.callSync('FileSystemManager_fetchStorages', {});
   if (native_.isFailure(result)) {
     throw native_.getErrorObject(result);
   }
 
-  var data = native_.getResultObject(result);
-  for (var i in data) {
-    for (var j in data[i].paths) {
-      if (data[i].type === FileSystemStorageType.INTERNAL) {
-        this.cacheVirtualToReal[j] = {
-          path: data[i].paths[j],
-          type: data[i].type,
-          state: data[i].state
-        };
-        this.cacheStorages.push({
-          label: j,
-          type: data[i].type,
-          state: data[i].state,
-          storage_id: data[i].storage_id
-        });
-      }
-    }
+  var storages = native_.getResultObject(result);
+  for (var i = 0; i < storages.length; ++i) {
     this.cacheStorages.push({
-      label: data[i].name,
-      type: data[i].type,
-      state: data[i].state,
-      storage_id: data[i].storage_id
+      label: storages[i].name,
+      type: storages[i].type,
+      state: storages[i].state,
+      storage_id: storages[i].storage_id
     });
   }
 };

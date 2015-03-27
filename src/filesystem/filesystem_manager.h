@@ -10,8 +10,9 @@
 #include <vector>
 #include <set>
 
+#include "common/virtual_fs.h"
+
 #include "filesystem_stat.h"
-#include "filesystem_storage.h"
 #include "filesystem_utils.h"
 
 namespace extension {
@@ -19,9 +20,9 @@ namespace filesystem {
 
 class FilesystemStateChangeListener {
  public:
+  virtual ~FilesystemStateChangeListener() {}
   virtual void onFilesystemStateChangeSuccessCallback(
-      const std::string& label, const std::string& state,
-      const std::string& type) = 0;
+      const common::VirtualStorage& storage) = 0;
   virtual void onFilesystemStateChangeErrorCallback() = 0;
 };
 
@@ -46,13 +47,12 @@ class FilesystemManager {
                 const std::function<void(const FilesystemStat&)>& success_cb,
                 const std::function<void(FilesystemError)>& error_cb);
 
-  void FetchStorages(const std::function<void(
-                         const std::vector<FilesystemStorage>&)>& success_cb,
-                     const std::function<void(FilesystemError)>& error_cb);
+  void FetchStorages(
+      const std::function<void(const std::vector<common::VirtualStorage>&)>& success_cb,
+      const std::function<void(FilesystemError)>& error_cb);
 
-  void GetWidgetPaths(
-      const std::function<void(const std::map<std::string, std::string>&)>&
-          success_cb,
+  void GetVirtualRoots(
+      const std::function<void(const std::vector<common::VirtualRoot>&)>& success_cb,
       const std::function<void(FilesystemError)>& error_cb);
 
   void CreateFile(const std::string& path,

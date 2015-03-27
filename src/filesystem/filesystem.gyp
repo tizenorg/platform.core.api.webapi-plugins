@@ -27,8 +27,6 @@
         'filesystem_manager.h',
         'filesystem_stat.cc',
         'filesystem_stat.h',
-        'filesystem_storage.cc',
-        'filesystem_storage.h',
         'filesystem_utils.cc',
         'filesystem_utils.h',
       ],

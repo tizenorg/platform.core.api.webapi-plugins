@@ -27,8 +27,8 @@ class FilesystemInstance : public common::ParsedInstance,
   void FileReadSync(const picojson::value& args, picojson::object& out);
   void FileWrite(const picojson::value& args, picojson::object& out);
   void FileWriteSync(const picojson::value& args, picojson::object& out);
-  void FilesystemGetWidgetPaths(const picojson::value& args,
-                                picojson::object& out);
+  void FilesystemFetchVirtualRoots(const picojson::value& args,
+                                   picojson::object& out);
   void FileSystemManagerFetchStorages(const picojson::value& args,
                                       picojson::object& out);
   void FileSystemManagerMakeDirectory(const picojson::value& args,
@@ -42,9 +42,7 @@ class FilesystemInstance : public common::ParsedInstance,
   void StopListening(const picojson::value& args, picojson::object& out);
   void CopyTo(const picojson::value& args, picojson::object& out);
   void onFilesystemStateChangeErrorCallback();
-  void onFilesystemStateChangeSuccessCallback(const std::string& label,
-                                              const std::string& state,
-                                              const std::string& type);
+  void onFilesystemStateChangeSuccessCallback(const common::VirtualStorage& storage);
   void PrepareError(const FilesystemError& error, picojson::object& out);
 };
 
