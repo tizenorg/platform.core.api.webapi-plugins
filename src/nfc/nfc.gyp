@@ -20,10 +20,7 @@
         'nfc_util.cc',
         'nfc_util.h',
         'nfc_message_utils.cc',
-        'nfc_message_utils.h',
-        'nfc_platform_callbacks.h',
-        'aid_data.cc',
-        'aid_data.h'
+        'nfc_message_utils.h'
       ],
       'includes': [
         '../common/pkg-config.gypi',
