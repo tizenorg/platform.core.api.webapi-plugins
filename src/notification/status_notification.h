@@ -113,7 +113,6 @@ class StatusNotification {
                                               time_t* posted_time);
   static common::PlatformResult SetLayout(notification_h noti_handle,
                                           const std::string& noti_type);
-  static common::PlatformResult GetId(notification_h noti_handle, int* id);
   static common::PlatformResult SetAppControl(notification_h noti_handle,
                                               app_control_h app_control);
   static common::PlatformResult CreateAppControl(app_control_h* app_control);

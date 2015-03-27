@@ -179,7 +179,7 @@ function NotificationInitDict(data) {
   var _progressValue = null;
   var checkProgressValue = function(v) {
     if ((_progressType === NotificationProgressType.PERCENTAGE && (v >= 0 && v <= 100))
-            || (_progressType !== NotificationProgressType.PERCENTAGE && v >= 0)) {
+            || (_progressType === NotificationProgressType.BYTE && v >= 0)) {
       return true;
     }
     return false;
@@ -294,10 +294,22 @@ function NotificationInitDict(data) {
     },
     progressValue: {
       get: function() {
-        return _progressValue;
+        if (null === _progressValue) {
+          return _progressValue;
+        }
+
+        return (_progressType === NotificationProgressType.PERCENTAGE)
+            ? _progressValue * 100
+            : _progressValue;
       },
       set: function(v) {
-        _progressValue = checkProgressValue(v) ? v : _progressValue;
+        if (!checkProgressValue(v)) {
+          return;
+        }
+
+        _progressValue = (_progressType === NotificationProgressType.PERCENTAGE)
+            ? v / 100
+            : v;
       },
       enumerable: true
     },
@@ -387,9 +399,9 @@ function NotificationInitDict(data) {
 function Notification(data) {
   NotificationInitDict.call(this, data);
 
-  var _id = undefined;
+  var _id;
   var _type = NotificationType.STATUS;
-  var _postedTime = undefined;
+  var _postedTime;
   var _content = null;
 
   Object.defineProperties(this, {
@@ -407,7 +419,9 @@ function Notification(data) {
         return _type;
       },
       set: function(v) {
-        _type = _edit.canEdit && Object.keys(NotificationType).indexOf(v) >= 0 ? v : _type;
+        _type = _edit.canEdit
+            ? converter_.toEnum(v, Object.keys(NotificationType), false)
+            : _type;
       },
       enumerable: true
     },
@@ -433,7 +447,7 @@ function Notification(data) {
 
   if (data instanceof Object) {
     for (var prop in data) {
-      if (this.hasOwnProperty(prop)) {
+      if (data.hasOwnProperty(prop) && this.hasOwnProperty(prop)) {
         this[prop] = data[prop];
       }
     }

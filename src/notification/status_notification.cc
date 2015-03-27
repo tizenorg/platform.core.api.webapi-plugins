@@ -4,6 +4,7 @@
 
 #include "notification/status_notification.h"
 
+#include <notification.h>
 #include <notification_internal.h>
 #include <app_control_internal.h>
 
@@ -85,18 +86,6 @@ PlatformResult StatusNotification::SetLayout(notification_h noti_handle,
     return PlatformResult(ErrorCode::UNKNOWN_ERR,
                           "Set notification layout error");
   }
-
-  return PlatformResult(ErrorCode::NO_ERROR);
-}
-
-PlatformResult StatusNotification::GetId(notification_h noti_handle, int* id) {
-  int ret = notification_get_id(noti_handle, NULL, id);
-  if (ret != NOTIFICATION_ERROR_NONE) {
-    LoggerE("Get notification id error: %d", ret);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Get notification id error");
-  }
-
-  LoggerD("Notification Id = %d", *id);
 
   return PlatformResult(ErrorCode::NO_ERROR);
 }
@@ -828,7 +817,6 @@ PlatformResult StatusNotification::GetProgressValue(
       return PlatformResult(ErrorCode::UNKNOWN_ERR,
                             "Get notification size error");
     }
-    LoggerD("Size value = %f", *progress_value);
   } else if (progess_type == kProgressTypePercentage) {
     if (notification_get_progress(noti_handle, progress_value) !=
         NOTIFICATION_ERROR_NONE) {
@@ -836,12 +824,13 @@ PlatformResult StatusNotification::GetProgressValue(
       return PlatformResult(ErrorCode::UNKNOWN_ERR,
                             "Get notification progress error");
     }
-    LoggerD("Percentage value = %f", *progress_value);
   } else {
     LoggerE("Unknown notification progress type: %s ", progess_type.c_str());
     return PlatformResult(ErrorCode::UNKNOWN_ERR,
                           "Unknown notification progress type");
   }
+
+  LOGGER(DEBUG) << "Progress " << progess_type << " = " << *progress_value;
 
   return PlatformResult(ErrorCode::NO_ERROR);
 }
@@ -854,18 +843,18 @@ PlatformResult StatusNotification::SetProgressValue(
   int ret;
 
   if (progress_type == kProgressTypeByte) {
+    ret = notification_set_size(noti_handle, progress_value);
+
     if (is_update) {
-      ret = notification_update_size(
-          noti_handle, NOTIFICATION_PRIV_ID_NONE, progress_value);
-    } else {
-      ret = notification_set_size(noti_handle, progress_value);
+      ret = notification_update_size(noti_handle, NOTIFICATION_PRIV_ID_NONE,
+          progress_value);
     }
   } else if (progress_type == kProgressTypePercentage) {
+    ret = notification_set_progress(noti_handle, progress_value);
+
     if (is_update) {
-      ret = notification_update_progress(
-          noti_handle, NOTIFICATION_PRIV_ID_NONE, progress_value);
-    } else {
-      ret = notification_set_progress(noti_handle, progress_value);
+      ret = notification_update_progress(noti_handle, NOTIFICATION_PRIV_ID_NONE,
+          progress_value);
     }
   } else {
     LoggerE("Unknown notification progress type: %s ", progress_type.c_str());
@@ -913,7 +902,7 @@ PlatformResult StatusNotification::GetAppControl(notification_h noti_handle,
   int ret =
       notification_get_launch_option(noti_handle,
                                      NOTIFICATION_LAUNCH_OPTION_APP_CONTROL,
-                                     static_cast<void*>(&(*app_control)));
+                                     static_cast<void*>(app_control));
   if (ret != NOTIFICATION_ERROR_NONE) {
     LoggerE("Notification get launch option error: %d", ret);
     return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
@@ -1122,13 +1111,17 @@ PlatformResult StatusNotification::FromJson(const picojson::object& args,
   if (status.IsError())
     return status;
 
+  int id = NOTIFICATION_PRIV_ID_NONE;
+  int ret;
+
   notification_h noti_handle;
   if (is_update) {
-    int id = std::stoi(common::FromJson<std::string>(noti_obj, "id"));
+    id = std::stoi(common::FromJson<std::string>(noti_obj, "id"));
 
     PlatformResult status = GetNotiHandle(id, &noti_handle);
     if (status.IsError())
       return status;
+
   } else {
     status = Create(noti_type, &noti_handle);
     if (status.IsError())
@@ -1243,15 +1236,15 @@ PlatformResult StatusNotification::FromJson(const picojson::object& args,
   const std::string& progress_type =
       common::FromJson<std::string>(noti_obj, "progressType");
   status = SetImage(noti_handle, NOTIFICATION_IMAGE_TYPE_LIST_5, progress_type);
-  if (status.IsError())
+  if (status.IsError()) {
     return status;
+  }
 
   if (val.contains("progressValue") && !IsNull(noti_obj, "progressValue")) {
-    status =
-        SetProgressValue(noti_handle,
-                         progress_type,
-                         common::FromJson<double>(noti_obj, "progressValue"),
-                         is_update);
+    double progressValue = common::FromJson<double>(noti_obj, "progressValue");
+    status = SetProgressValue(noti_handle, progress_type, progressValue,
+        is_update);
+
     if (status.IsError())
       return status;
   }
@@ -1272,22 +1265,21 @@ PlatformResult StatusNotification::FromJson(const picojson::object& args,
 
   status = SetAppControl(noti_handle, app_control);
 
-  int ret;
   if (is_update) {
     ret = notification_update(noti_handle);
+
   } else {
-    ret = notification_post(noti_handle);
+    ret = notification_insert(noti_handle, &id);
+    if (NOTIFICATION_ERROR_NONE != ret) {
+      return PlatformResult(ErrorCode::UNKNOWN_ERR,
+          "Cannot insert notification");
+    }
   }
   if (ret != NOTIFICATION_ERROR_NONE) {
     LoggerE("Post/Update notification error: %d", ret);
     return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
                           "Post/Update notification error");
   }
-
-  int id;
-  status = GetId(noti_handle, &id);
-  if (status.IsError())
-    return status;
 
   time_t posted_time;
   status = GetPostedTime(noti_handle, &posted_time);
