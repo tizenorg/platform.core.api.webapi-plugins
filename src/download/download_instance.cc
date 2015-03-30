@@ -12,7 +12,7 @@
 #include "common/logger.h"
 #include "common/platform_exception.h"
 #include "common/typeutil.h"
-
+#include "common/virtual_fs.h"
 
 namespace extension {
 namespace download {
@@ -330,7 +330,8 @@ void DownloadInstance::DownloadManagerStart
   if (!args.get("destination").is<picojson::null>()) {
     if (args.get("destination").get<std::string>() != "") {
       diPtr->destination = args.get("destination").get<std::string>();
-      // need to use filesystem API
+      // TODO: move conversion to JS
+      diPtr->destination = common::VirtualFs::GetInstance().GetRealPath(diPtr->destination);
     }
   }
 
@@ -426,9 +427,8 @@ void DownloadInstance::DownloadManagerStart
 
   const char* dest;
 
-  if (diPtr->destination == "Downloads") {
-    dest = "/opt/usr/media/Downloads";  //  ret = download_set_destination(diPtr->download_id, diPtr->destination.c_str());
-    ret = download_set_destination(diPtr->download_id, dest);
+  if (diPtr->destination.size() != 0) {
+    ret = download_set_destination(diPtr->download_id, diPtr->destination.c_str());
   }
 
   if (!diPtr->file_name.empty()) {
