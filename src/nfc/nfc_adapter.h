@@ -41,7 +41,7 @@ class NFCAdapter {
 
   // cardEmulationMode getter and setter
   common::PlatformResult GetCardEmulationMode(std::string* mode);
-  common::PlatformResult SetCardEmulationMode(std::string mode);
+  common::PlatformResult SetCardEmulationMode(const std::string& mode);
   // activeSecureElement getter and setter
   common::PlatformResult GetActiveSecureElement(std::string* type);
   common::PlatformResult SetActiveSecureElement(std::string element);

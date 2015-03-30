@@ -401,15 +401,18 @@ PlatformResult NFCAdapter::GetCardEmulationMode(std::string* mode) {
   return NFCUtil::ToStringCardEmulationMode(card_mode, mode);
 }
 
-PlatformResult NFCAdapter::SetCardEmulationMode(std::string mode) {
+PlatformResult NFCAdapter::SetCardEmulationMode(const std::string& mode) {
   LoggerD("Entered");
 
-  nfc_se_card_emulation_mode_type_e new_mode =
-      NFCUtil::toCardEmulationMode(mode);
+  nfc_se_card_emulation_mode_type_e new_mode;
+  PlatformResult result = NFCUtil::ToCardEmulationMode(mode, &new_mode);
+  if (result.IsError()) {
+    return result;
+  }
   LoggerD("Card emulation mode value: %x", (int)new_mode);
 
   std::string current_mode = "";
-  PlatformResult result = GetCardEmulationMode(&current_mode);
+  result = GetCardEmulationMode(&current_mode);
 
   if (result.IsError()) {
     return result;
@@ -826,7 +829,7 @@ static bool tagPropertiesGetterCb(const char* key,
                                   int value_size,
                                   void* user_data) {
   if (user_data) {
-    UCharVector tag_info = NFCUtil::toVector(value, value_size);
+    UCharVector tag_info = NFCUtil::ToVector(value, value_size);
     (static_cast<NFCTagPropertiesT*>(user_data))->push_back(
         std::make_pair(key, tag_info));
     return true;
@@ -1131,16 +1134,17 @@ static void tagTransceiveCb(nfc_error_e err,
                             int buffer_size,
                             void* data) {
   LoggerD("Entered");
+  std::unique_ptr<unsigned char> buffer_ptr(buffer);
+  buffer = nullptr;
 
   if (!data) {
     // no callback id - unable to report success, neither error
     LoggerE("Unable to launch transceive callback");
     return;
   }
-
-  double callback_id = *((double*)data);
-  delete (double*)data;
-  data = NULL;
+  double callback_id = *(reinterpret_cast<double*>(data));
+  delete reinterpret_cast<double*>(data);
+  data = nullptr;
 
   if (NFC_ERROR_NONE != err) {
 
@@ -1159,13 +1163,8 @@ static void tagTransceiveCb(nfc_error_e err,
   picojson::value response = createEventSuccess(callback_id);
   picojson::object& response_obj = response.get<picojson::object>();
   tools::ReportSuccess(response_obj);
-  picojson::array& callback_data_array = response_obj.insert(std::make_pair(JSON_DATA,
-                                                                            picojson::value(picojson::array()))).first->second.get<picojson::array>();
-
-  for (unsigned int i = 0; i < buffer_size; i++) {
-    callback_data_array.push_back(
-        picojson::value(static_cast<double>(buffer[i])));
-  }
+  response_obj[JSON_DATA] =
+      picojson::value(NFCUtil::FromUCharArray(buffer_ptr.get(), buffer_size));
 
   NFCAdapter::GetInstance()->RespondAsync(response.serialize().c_str());
 }
@@ -1192,20 +1191,17 @@ PlatformResult NFCAdapter::TagTransceive(int tag_id, const picojson::value& args
   const picojson::array& data_array = FromJson<picojson::array>(
       args.get<picojson::object>(), JSON_DATA);
 
-  std::unique_ptr<unsigned char> buffer_ptr(new unsigned char[data_array.size()]);
-
-  for(std::size_t i = 0; i < data_array.size(); ++i) {
-    buffer_ptr.get()[i] = static_cast<unsigned char>(data_array[i].get<double>());
-  }
-
+  unsigned char* buffer = NFCUtil::DoubleArrayToUCharArray(data_array);
   double* callback_id_pointer = new double(callback_id);
 
-  int ret = nfc_tag_transceive(m_last_tag_handle, buffer_ptr.get(),
+  int ret = nfc_tag_transceive(m_last_tag_handle, buffer,
       data_array.size(), tagTransceiveCb, (void*) callback_id_pointer);
 
   if (NFC_ERROR_NONE != ret) {
     delete callback_id_pointer;
-    callback_id_pointer = NULL;
+    callback_id_pointer = nullptr;
+    delete[] buffer;
+    buffer = nullptr;
 
     // for permission related error throw exception
     if(NFC_ERROR_SECURITY_RESTRICTED == ret ||

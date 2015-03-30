@@ -108,7 +108,7 @@ static PlatformResult getTypeNameFromHandle(nfc_ndef_record_h handle,
     }
     return NFCUtil::CodeToResult(result, "Can't get record's type");
   }
-  *type =  NFCUtil::toVector(type_name, type_size);
+  *type = NFCUtil::ToVector(type_name, type_size);
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
@@ -134,7 +134,7 @@ static PlatformResult getIdFromHandle(nfc_ndef_record_h handle,
     return NFCUtil::CodeToResult(result, "Can't get record's id");
   }
 
-  *id = NFCUtil::toVector(tmp_id, id_size);
+  *id = NFCUtil::ToVector(tmp_id, id_size);
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
@@ -161,7 +161,7 @@ static PlatformResult getPayloadFromHandle(nfc_ndef_record_h handle,
     return NFCUtil::CodeToResult(result, "Can't get record's payload");
   }
 
-  *payload = NFCUtil::toVector(tmp_payload, payload_size);
+  *payload = NFCUtil::ToVector(tmp_payload, payload_size);
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 

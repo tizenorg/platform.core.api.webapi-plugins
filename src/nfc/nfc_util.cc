@@ -14,7 +14,7 @@ using namespace common;
 namespace extension {
 namespace nfc {
 
-UCharVector NFCUtil::toVector(const unsigned char* ch, const int size)
+UCharVector NFCUtil::ToVector(const unsigned char* ch, const int size)
 {
   UCharVector vec(ch, ch + size / sizeof(char));
   return vec;
@@ -151,58 +151,58 @@ std::string NFCUtil::ToStringNFCTag(nfc_tag_type_e tag_type)
   }
 }
 
-nfc_tag_type_e NFCUtil::toNfcTagString(const std::string& type_string)
+PlatformResult NFCUtil::ToNfcTagString(const std::string& type_string, nfc_tag_type_e* tag_type)
 {
   if (GENERIC_TARGET == type_string) {
-    return NFC_GENERIC_PICC;
+    *tag_type = NFC_GENERIC_PICC;
   }
   else if (ISO14443_A == type_string) {
-    return NFC_ISO14443_A_PICC;
+    *tag_type = NFC_ISO14443_A_PICC;
   }
   else if (ISO14443_4A == type_string) {
-    return NFC_ISO14443_4A_PICC;
+    *tag_type = NFC_ISO14443_4A_PICC;
   }
   else if (ISO14443_3A == type_string) {
-    return NFC_ISO14443_3A_PICC;
+    *tag_type = NFC_ISO14443_3A_PICC;
   }
   else if (MIFARE_MINI == type_string) {
-    return NFC_MIFARE_MINI_PICC;
+    *tag_type = NFC_MIFARE_MINI_PICC;
   }
   else if (MIFARE_1K == type_string) {
-    return NFC_MIFARE_1K_PICC;
+    *tag_type = NFC_MIFARE_1K_PICC;
   }
   else if (MIFARE_4K == type_string) {
-    return NFC_MIFARE_4K_PICC;
+    *tag_type = NFC_MIFARE_4K_PICC;
   }
   else if (MIFARE_ULTRA == type_string) {
-    return NFC_MIFARE_ULTRA_PICC;
+    *tag_type = NFC_MIFARE_ULTRA_PICC;
   }
   else if (MIFARE_DESFIRE == type_string) {
-    return NFC_MIFARE_DESFIRE_PICC;
+    *tag_type = NFC_MIFARE_DESFIRE_PICC;
   }
   else if (ISO14443_B == type_string) {
-    return NFC_ISO14443_B_PICC;
+    *tag_type = NFC_ISO14443_B_PICC;
   }
   else if (ISO14443_4B == type_string) {
-    return NFC_ISO14443_4B_PICC;
+    *tag_type = NFC_ISO14443_4B_PICC;
   }
   else if (ISO14443_BPRIME == type_string) {
-    return NFC_ISO14443_BPRIME_PICC;
+    *tag_type = NFC_ISO14443_BPRIME_PICC;
   }
   else if (FELICA == type_string) {
-    return NFC_FELICA_PICC;
+    *tag_type = NFC_FELICA_PICC;
   }
   else if (JEWEL == type_string) {
-    return NFC_JEWEL_PICC;
+    *tag_type = NFC_JEWEL_PICC;
   }
   else if (ISO15693 == type_string) {
-    return NFC_ISO15693_PICC;
+    *tag_type = NFC_ISO15693_PICC;
   }
   else if (UNKNOWN_TARGET == type_string) {
-    return NFC_UNKNOWN_TARGET;
+    *tag_type = NFC_UNKNOWN_TARGET;
   }
   else {
-    throw TypeMismatchException("No Match Tag Type");
+    return PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, "No Match Tag Type");
   }
 }
 
@@ -224,17 +224,18 @@ PlatformResult NFCUtil::ToStringCardEmulationMode(
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-nfc_se_card_emulation_mode_type_e NFCUtil::toCardEmulationMode(
-    const std::string &mode_string)
-{
+PlatformResult NFCUtil::ToCardEmulationMode(
+    const std::string& mode_string,
+    nfc_se_card_emulation_mode_type_e* mode) {
   if (mode_string == ALWAYS_ON) {
-    return NFC_SE_CARD_EMULATION_MODE_ON;
+    *mode = NFC_SE_CARD_EMULATION_MODE_ON;
   } else if (mode_string == OFF) {
-    return NFC_SE_CARD_EMULATION_MODE_OFF;
+    *mode = NFC_SE_CARD_EMULATION_MODE_OFF;
   } else {
     LOGE("No Match Card Emulation mode: %s", mode_string.c_str());
-    throw TypeMismatchException("No Match Card Emulation mode");
+    return PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, "No Match Card Emulation mode");
   }
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 PlatformResult NFCUtil::ToStringSecureElementType(const nfc_se_type_e se_type,
@@ -333,12 +334,16 @@ nfc_card_emulation_category_type_e NFCUtil::StringToCategory(const std::string& 
   AssertMsg(false, "That category type is incorrect.");
 }
 
-UCharVector NFCUtil::DoubleArrayToUCharVector(const picojson::array& apdu_array) {
-  unsigned char apdu[apdu_array.size()];
-  for(std::size_t i = 0; i < apdu_array.size(); ++i) {
-    apdu[i] = static_cast<unsigned char>(apdu_array.at(i).get<double>());
+unsigned char* NFCUtil::DoubleArrayToUCharArray(const picojson::array& array_in) {
+  unsigned char* result_array = new unsigned char[array_in.size()];
+  for(std::size_t i = 0; i < array_in.size(); ++i) {
+    result_array[i] = static_cast<unsigned char>(array_in.at(i).get<double>());
   }
-  return toVector(apdu, apdu_array.size());
+  return result_array;
+}
+
+UCharVector NFCUtil::DoubleArrayToUCharVector(const picojson::array& array_in) {
+  return ToVector(NFCUtil::DoubleArrayToUCharArray(array_in), array_in.size());
 }
 
 picojson::array NFCUtil::FromUCharArray(unsigned char* array,

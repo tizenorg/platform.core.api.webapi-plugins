@@ -49,24 +49,27 @@ typedef std::vector<unsigned char> UCharVector;
 class NFCUtil
 {
  public:
-  static UCharVector toVector(const unsigned char *ch, const int size);
+  static UCharVector ToVector(const unsigned char* ch, const int size);
   static common::PlatformResult CodeToResult(const int errorCode,
                                              const std::string& message);
   static std::string getNFCErrorString(const int error_code);
   static const std::string getNFCErrorMessage(const int error_code);
   static std::string ToStringNFCTag(const nfc_tag_type_e tag_type);
-  static nfc_tag_type_e toNfcTagString(const std::string& type_string);
+  static common::PlatformResult ToNfcTagString(const std::string& type_string,
+                                               nfc_tag_type_e* tag_type);
   static common::PlatformResult ToStringCardEmulationMode(
       const nfc_se_card_emulation_mode_type_e card_mode, std::string *mode);
-  static nfc_se_card_emulation_mode_type_e toCardEmulationMode(
-      const std::string& mode_string);
+  static common::PlatformResult ToCardEmulationMode(
+      const std::string& mode_string,
+      nfc_se_card_emulation_mode_type_e* mode);
   static common::PlatformResult ToStringSecureElementType(const nfc_se_type_e se_type, std::string *type);
   static common::PlatformResult ToSecureElementType(const std::string& type_string, nfc_se_type_e *type);
   static void setDefaultFilterValues(std::vector<nfc_tag_type_e>& filter);
   static const char* ToStr(nfc_hce_event_type_e event_type);
   static const char* ToStr(nfc_se_type_e se_type);
   static nfc_card_emulation_category_type_e StringToCategory(const std::string& category_type);
-  static UCharVector DoubleArrayToUCharVector(const picojson::array& apdu_array);
+  static unsigned char* DoubleArrayToUCharArray(const picojson::array& array_in);
+  static UCharVector DoubleArrayToUCharVector(const picojson::array& array_in);
   static picojson::array FromUCharArray(unsigned char* array, unsigned int apdu_len);
 };
 
