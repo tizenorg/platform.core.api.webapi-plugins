@@ -33,6 +33,7 @@ using common::TypeMismatchException;
 using common::IOException;
 using common::SecurityException;
 using common::UnknownException;
+using common::NotFoundException;
 
 using common::ScopeExit;
 using common::operator+;
@@ -198,7 +199,7 @@ static void MAPSetResponseCallback(int requestId, data_control_h handle,
   obj["requestId"] =
       picojson::value(static_cast<double>(info->userDefinedRequestId));
   if (!providerResult) {
-    obj["result"] = InvalidValuesException(error).ToJSON();
+    obj["result"] = NotFoundException(error).ToJSON();
   }
 
   ReplyAsync(info->callbackId, providerResult, &obj);
@@ -221,7 +222,7 @@ static void MAPGetResponseCallback(int requestId, data_control_h handle,
   obj["requestId"] =
       picojson::value(static_cast<double>(info->userDefinedRequestId));
   if (!providerResult) {
-    obj["result"] = InvalidValuesException(error).ToJSON();
+    obj["result"] = NotFoundException(error).ToJSON();
   } else {
     picojson::array result;
     for (int i=0; i < result_value_count; i++) {
@@ -248,7 +249,7 @@ static void MAPRemoveReponseCallback(int requestId, data_control_h handle,
   obj["requestId"] =
       picojson::value(static_cast<double>(info->userDefinedRequestId));
   if (!providerResult) {
-    obj["result"] = InvalidValuesException(error).ToJSON();
+    obj["result"] = NotFoundException(error).ToJSON();
   }
 
   ReplyAsync(info->callbackId, providerResult, &obj);
