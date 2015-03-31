@@ -7,12 +7,14 @@ import sys
 import getopt
 import glob
 import os
+import js_minimize
 
 class Utils:
     reqfiles = []
     searchfile = '*_api.js'
     startwith = "//= require('"
     endwith = "')"
+    code = ""
 
     @classmethod
     def get_require(self, s):
@@ -37,7 +39,7 @@ class Utils:
     def print_lines(self, filename):
         with open(filename, 'r') as file:
             for line in file:
-                print line
+                self.code += line
 
     @classmethod
     def merge_js_files(self, path):
@@ -55,6 +57,10 @@ class Utils:
                 fname = path + '/' + fname
                 if fname in filenames:
                     self.print_lines(fname)
+
+    @classmethod
+    def minize_code(self):
+        self.code = js_minimize.minimize(self.code)
 
     @classmethod
     def main(self, argv):
@@ -82,6 +88,8 @@ class Utils:
               elif opt in ("-p", "--path"):
                   path = arg
         self.merge_js_files(path)
+        self.minize_code()
+        print self.code
 
 if Utils.__module__ == "__main__":
     Utils.main(sys.argv[1:])
