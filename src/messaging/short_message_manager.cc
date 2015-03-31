@@ -100,7 +100,7 @@ static gboolean addDraftMessageCompleteCB(void *data)
         LoggerD("Calling error callback");
 
         PostQueue::getInstance().resolve(
-                callback->getJson()->get<picojson::object>().at(JSON_CALLBACK_ID).get<long>(),
+                callback->getJson()->get<picojson::object>().at(JSON_CALLBACK_ID).get<double>(),
                 callback->getJson()->serialize()
         );
         callback->getMessage()->setMessageStatus(MessageStatus::STATUS_FAILED);
