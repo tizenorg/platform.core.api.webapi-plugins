@@ -221,7 +221,8 @@ void AccountInstance::AccountManagerGetProviders(const picojson::value& args,
   CHECK_EXIST(args, "callbackId", out)
   int callback_id = static_cast<int>(args.get("callbackId").get<double>());
 
-  const std::string capability = args.contains("capability") ? args.get("capability").get<std::string>() : "";
+  const auto& cap = args.get("capability");
+  const std::string& capability = cap.is<picojson::null>() ? "" : cap.get<std::string>();
 
   LoggerD("capability [%s]", capability.c_str());
 
