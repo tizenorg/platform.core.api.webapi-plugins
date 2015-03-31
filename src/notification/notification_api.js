@@ -172,14 +172,14 @@ function NotificationInitDict(data) {
   var _iconPath = null;
   var _soundPath = null;
   var _vibration = false;
-  var _isUnified = false;
   var _appControl = null;
   var _appId = null;
   var _progressType = NotificationProgressType.PERCENTAGE;
   var _progressValue = null;
   var checkProgressValue = function(v) {
     if ((_progressType === NotificationProgressType.PERCENTAGE && (v >= 0 && v <= 100))
-            || (_progressType === NotificationProgressType.BYTE && v >= 0)) {
+            || (_progressType === NotificationProgressType.BYTE &&
+            converter_.toUnsignedLong(v) >= 0)) {
       return true;
     }
     return false;
@@ -188,6 +188,9 @@ function NotificationInitDict(data) {
   var _subIconPath = null;
   var _detailInfo = [];
   var checkDetailInfo = function(v) {
+    if (type_.isNull(v)) {
+      return true;
+    }
     if (!type_.isArray(v)) {
       return false;
     }
@@ -214,6 +217,9 @@ function NotificationInitDict(data) {
   var _backgroundImagePath = null;
   var _thumbnails = [];
   var checkThumbnails = function(v) {
+    if (type_.isNull(v)) {
+      return true;
+    }
     if (!type_.isArray(v)) {
       return false;
     }
@@ -231,7 +237,7 @@ function NotificationInitDict(data) {
         return _iconPath;
       },
       set: function(v) {
-        _iconPath = type_.isString(v) ? v : _iconPath;
+        _iconPath = type_.isString(v) || type_.isNull(v) ? v : _iconPath;
       },
       enumerable: true
     },
@@ -240,7 +246,7 @@ function NotificationInitDict(data) {
         return _soundPath;
       },
       set: function(v) {
-        _soundPath = type_.isString(v) ? v : _soundPath;
+        _soundPath = type_.isString(v) || type_.isNull(v) ? v : _soundPath;
       },
       enumerable: true
     },
@@ -253,15 +259,6 @@ function NotificationInitDict(data) {
       },
       enumerable: true
     },
-    isUnified: {
-      get: function() {
-        return _isUnified;
-      },
-      set: function(v) {
-        _isUnified = type_.isBoolean(v) ? v : _isUnified;
-      },
-      enumerable: true
-    },
     appControl: {
       get: function() {
         return _appControl;
@@ -270,7 +267,7 @@ function NotificationInitDict(data) {
         _appControl = _edit.canEdit && v
             ? new tizen.ApplicationControl(v.operation, v.uri || null, v.mime || null, v.category
                     || null, v.data || [])
-            : v instanceof tizen.ApplicationControl ? v : _appControl;
+            : v instanceof tizen.ApplicationControl || type_.isNull(v) ? v : _appControl;
       },
       enumerable: true
     },
@@ -279,7 +276,7 @@ function NotificationInitDict(data) {
         return _appId;
       },
       set: function(v) {
-        _appId = type_.isString(v) && !(/\s/.test(v)) ? v : _appId;
+        _appId = type_.isString(v) && !(/\s/.test(v)) || type_.isNull(v) ? v : _appId;
       },
       enumerable: true
     },
@@ -303,13 +300,15 @@ function NotificationInitDict(data) {
             : _progressValue;
       },
       set: function(v) {
-        if (!checkProgressValue(v)) {
+        if (type_.isNull(v)) {
+          _progressValue = v;
           return;
         }
-
-        _progressValue = (_progressType === NotificationProgressType.PERCENTAGE)
+        if (checkProgressValue(v)) {
+          _progressValue = (_progressType === NotificationProgressType.PERCENTAGE)
             ? v / 100
-            : v;
+            : converter_.toUnsignedLong(v);
+        }
       },
       enumerable: true
     },
@@ -318,7 +317,7 @@ function NotificationInitDict(data) {
         return _number;
       },
       set: function(v) {
-        _number = type_.isNumber(v) ? v : _number;
+        _number = type_.isNumber(v) || type_.isNull(v) ? v : _number;
       },
       enumerable: true
     },
@@ -327,7 +326,7 @@ function NotificationInitDict(data) {
         return _subIconPath;
       },
       set: function(v) {
-        _subIconPath = type_.isString(v) ? v : _subIconPath;
+        _subIconPath = type_.isString(v) || type_.isNull(v) ? v : _subIconPath;
       },
       enumerable: true
     },
@@ -345,7 +344,7 @@ function NotificationInitDict(data) {
         return _ledColor;
       },
       set: function(v) {
-        _ledColor = (type_.isString(v) && isHex(v)) || v === null ? v : _ledColor;
+        _ledColor = (type_.isString(v) && isHex(v)) || type_.isNull(v) ? v : _ledColor;
       },
       enumerable: true
     },
@@ -372,7 +371,7 @@ function NotificationInitDict(data) {
         return _backgroundImagePath;
       },
       set: function(v) {
-        _backgroundImagePath = type_.isString(v) ? v : _backgroundImagePath;
+        _backgroundImagePath = type_.isString(v) || type_.isNull(v) ? v : _backgroundImagePath;
       },
       enumerable: true
     },
@@ -397,11 +396,10 @@ function NotificationInitDict(data) {
 }
 
 function Notification(data) {
-  NotificationInitDict.call(this, data);
-
   var _id;
   var _type = NotificationType.STATUS;
   var _postedTime;
+  var _title;
   var _content = null;
 
   Object.defineProperties(this, {
@@ -434,12 +432,21 @@ function Notification(data) {
       },
       enumerable: true
     },
+    title: {
+      get: function() {
+        return _title;
+      },
+      set: function(v) {
+        _title = converter_.toString(v);
+      },
+      enumerable: true
+    },
     content: {
       get: function() {
         return _content;
       },
       set: function(v) {
-        _content = type_.isString(v) ? v : _content;
+        _content = type_.isString(v) || type_.isNull(v) ? v : _content;
       },
       enumerable: true
     }
@@ -456,11 +463,14 @@ function Notification(data) {
 
 function StatusNotification(statusType, title, notificationInitDict) {
   validator_.isConstructorCall(this, StatusNotification);
+  type_.isObject(notificationInitDict) ?
+      notificationInitDict.title = title :
+      notificationInitDict = {title: title};
+  NotificationInitDict.call(this, notificationInitDict);
   Notification.call(this, notificationInitDict);
 
   var _statusType = (Object.keys(StatusNotificationType)).indexOf(statusType) >= 0
       ? statusType : StatusNotificationType.SIMPLE;
-  var _title = converter_.toString(title);
 
   Object.defineProperties(this, {
     statusType: {
@@ -470,15 +480,6 @@ function StatusNotification(statusType, title, notificationInitDict) {
       set: function(v) {
         _statusType = (Object.keys(StatusNotificationType)).indexOf(v) >= 0 && _edit.canEdit
             ? v : _statusType;
-      },
-      enumerable: true
-    },
-    title: {
-      get: function() {
-        return _title;
-      },
-      set: function(v) {
-        _title = converter_.toString(v);
       },
       enumerable: true
     }
