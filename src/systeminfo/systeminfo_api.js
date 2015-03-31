@@ -604,7 +604,7 @@ function SystemInfoSIM(data) {
         mcc : {
             get: function() {
                 xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_SYSTEM);
-                return data.mcc;
+                return Number(data.mcc);
             },
             set: function() {},
             enumerable: true
@@ -612,7 +612,7 @@ function SystemInfoSIM(data) {
         mnc : {
             get: function() {
                 xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_SYSTEM);
-                return data.mnc;
+                return Number(data.mnc);
             },
             set: function() {},
             enumerable: true
