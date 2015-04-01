@@ -9,7 +9,7 @@ var Converter_ = xwalk.utils.converter;
 var native_ = new xwalk.utils.NativeManager(extension);
 
 var _PRIVILEGE_SYSTEM = 'http://tizen.org/privilege/system';
-var _PRIVILEGE_SYSTEM_MANAGER = 'http://tizen.org/privilege/systemmanager';
+var _PRIVILEGE_TELEPHONY = 'http://tizen.org/privilege/telephony';
 
 //enumeration SystemInfoPropertyId ////////////////////////////////////////////////////
 var SystemInfoPropertyId = {
@@ -557,7 +557,7 @@ function SystemInfoCellularNetwork(data) {
         isFlightMode : {value: data.isFligthMode, writable: false, enumerable: true},
         imei : {
             get: function() {
-                xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_SYSTEM_MANAGER);
+                xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_TELEPHONY);
                 return data.imei;
             },
             set: function() {},
@@ -587,7 +587,7 @@ function SystemInfoSIM(data) {
         },
         msisdn : {
             get: function() {
-                xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_SYSTEM_MANAGER);
+                xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_TELEPHONY);
                 return data.msisdn;
             },
             set: function() {},
@@ -619,7 +619,7 @@ function SystemInfoSIM(data) {
         },
         msin : {
             get: function() {
-                xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_SYSTEM_MANAGER);
+                xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_TELEPHONY);
                 return data.msin;
             },
             set: function() {},
