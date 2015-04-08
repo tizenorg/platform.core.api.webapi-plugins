@@ -8,6 +8,8 @@
 #include "common/extension.h"
 #include "common/picojson.h"
 
+#include "calendar/calendar.h"
+
 namespace extension {
 namespace calendar {
 
@@ -15,7 +17,6 @@ class CalendarInstance : public common::ParsedInstance {
  public:
   CalendarInstance();
   virtual ~CalendarInstance();
-  static CalendarInstance& GetInstance();
 
  private:
   void CalendarGet(const picojson::value& args, picojson::object& out);
@@ -34,6 +35,7 @@ class CalendarInstance : public common::ParsedInstance {
   void CalendarManagerGetCalendars(const picojson::value& args, picojson::object& out);
   void CalendarManagerRemoveCalendar(const picojson::value& args, picojson::object& out);
 
+  Calendar calendar_;
 };
 
 } // namespace calendar

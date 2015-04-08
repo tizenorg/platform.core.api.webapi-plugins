@@ -32,8 +32,11 @@ typedef std::string JsonString;
 
 typedef std::shared_ptr<JsonValue> JsonValuePtr;
 
+class CalendarInstance;
+
 class Calendar {
  public:
+  explicit Calendar(CalendarInstance& instance);
   ~Calendar();
 
   /**
@@ -175,11 +178,11 @@ class Calendar {
   common::PlatformResult RemoveChangeListener(const JsonObject& args,
                                               JsonObject& out);
 
-  static Calendar& GetInstance();
-
  private:
-  static std::map<std::string, std::string> listeners_registered_;
-  static int current_db_version_;
+  std::map<std::string, std::string> listeners_registered_;
+  int current_db_version_;
+  CalendarInstance& instance_;
+
   static void ChangeCallback(const char* view_uri, void* user_data);
   common::PlatformResult ErrorChecker(int errorCode);
 };

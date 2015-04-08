@@ -26,12 +26,8 @@ const std::string kPrivilegeCalendarWrite = "http://tizen.org/privilege/calendar
 using namespace common;
 using namespace extension::calendar;
 
-CalendarInstance& CalendarInstance::GetInstance() {
-  static CalendarInstance instance;
-  return instance;
-}
-
-CalendarInstance::CalendarInstance() {
+CalendarInstance::CalendarInstance()
+    : calendar_(*this) {
   using std::placeholders::_1;
   using std::placeholders::_2;
 
@@ -70,8 +66,8 @@ void CalendarInstance::CalendarGet(const JsonValue& args, JsonObject& out) {
   CHECK_PRIVILEGE_ACCESS(kPrivilegeCalendarRead, &out);
   JsonValue val{JsonObject{}};
 
-  PlatformResult status = Calendar::GetInstance().Get(
-      common::JsonCast<JsonObject>(args), val.get<JsonObject>());
+  PlatformResult status = calendar_.Get(common::JsonCast<JsonObject>(args),
+                                        val.get<JsonObject>());
 
   if (status.IsSuccess())
     ReportSuccess(val, out);
@@ -83,8 +79,8 @@ void CalendarInstance::CalendarAdd(const JsonValue& args, JsonObject& out) {
   CHECK_PRIVILEGE_ACCESS(kPrivilegeCalendarWrite, &out);
   JsonValue val{JsonObject{}};
 
-  PlatformResult status = Calendar::GetInstance().Add(
-      common::JsonCast<JsonObject>(args), val.get<JsonObject>());
+  PlatformResult status = calendar_.Add(common::JsonCast<JsonObject>(args),
+                                        val.get<JsonObject>());
 
   if (status.IsSuccess())
     ReportSuccess(val, out);
@@ -98,7 +94,7 @@ void CalendarInstance::CalendarAddBatch(const JsonValue& args,
   const double callback_id = args.get("callbackId").get<double>();
   auto get = [=](const std::shared_ptr<JsonValue>& response) -> void {
     JsonValue result = JsonValue(JsonArray());
-    PlatformResult status = Calendar::GetInstance().AddBatch(
+    PlatformResult status = calendar_.AddBatch(
         common::JsonCast<JsonObject>(args), result.get<JsonArray>());
 
     if (status.IsSuccess())
@@ -124,8 +120,8 @@ void CalendarInstance::CalendarUpdate(const JsonValue& args, JsonObject& out) {
   CHECK_PRIVILEGE_ACCESS(kPrivilegeCalendarWrite, &out);
   JsonValue val{JsonObject{}};
 
-  PlatformResult status = Calendar::GetInstance().Update(
-      common::JsonCast<JsonObject>(args), val.get<JsonObject>());
+  PlatformResult status = calendar_.Update(common::JsonCast<JsonObject>(args),
+                                           val.get<JsonObject>());
 
   if (status.IsSuccess())
     ReportSuccess(val, out);
@@ -139,7 +135,7 @@ void CalendarInstance::CalendarUpdateBatch(const JsonValue& args,
   const double callback_id = args.get("callbackId").get<double>();
   auto get = [=](const std::shared_ptr<JsonValue>& response) -> void {
     JsonValue result = JsonValue(JsonArray());
-    PlatformResult status = Calendar::GetInstance().UpdateBatch(
+    PlatformResult status = calendar_.UpdateBatch(
         common::JsonCast<JsonObject>(args), result.get<JsonArray>());
 
     if (status.IsSuccess())
@@ -165,8 +161,8 @@ void CalendarInstance::CalendarRemove(const JsonValue& args, JsonObject& out) {
   CHECK_PRIVILEGE_ACCESS(kPrivilegeCalendarWrite, &out);
   JsonValue val{JsonObject{}};
 
-  PlatformResult status = Calendar::GetInstance().Remove(
-      common::JsonCast<JsonObject>(args), val.get<JsonObject>());
+  PlatformResult status = calendar_.Remove(common::JsonCast<JsonObject>(args),
+                                           val.get<JsonObject>());
 
   if (status.IsSuccess())
     ReportSuccess(out);
@@ -180,7 +176,7 @@ void CalendarInstance::CalendarRemoveBatch(const JsonValue& args,
   const double callback_id = args.get("callbackId").get<double>();
   auto get = [=](const std::shared_ptr<JsonValue>& response) -> void {
     JsonValue result = JsonValue(JsonArray());
-    PlatformResult status = Calendar::GetInstance().RemoveBatch(
+    PlatformResult status = calendar_.RemoveBatch(
         common::JsonCast<JsonObject>(args), result.get<JsonArray>());
 
     if (status.IsSuccess())
@@ -207,7 +203,7 @@ void CalendarInstance::CalendarFind(const JsonValue& args, JsonObject& out) {
   const double callback_id = args.get("callbackId").get<double>();
   auto get = [=](const std::shared_ptr<JsonValue>& response) -> void {
     JsonValue result = JsonValue(JsonArray());
-    PlatformResult status = Calendar::GetInstance().Find(
+    PlatformResult status = calendar_.Find(
         common::JsonCast<JsonObject>(args), result.get<JsonArray>());
 
     if (status.IsSuccess())
@@ -234,7 +230,7 @@ void CalendarInstance::CalendarAddChangeListener(const JsonValue& args,
   CHECK_PRIVILEGE_ACCESS(kPrivilegeCalendarRead, &out);
   JsonValue val{JsonObject{}};
 
-  PlatformResult status = Calendar::GetInstance().AddChangeListener(
+  PlatformResult status = calendar_.AddChangeListener(
       common::JsonCast<JsonObject>(args), val.get<JsonObject>());
 
   if (status.IsSuccess())
@@ -248,7 +244,7 @@ void CalendarInstance::CalendarRemoveChangeListener(const JsonValue& args,
   CHECK_PRIVILEGE_ACCESS(kPrivilegeCalendarRead, &out);
   JsonValue val{JsonObject{}};
 
-  PlatformResult status = Calendar::GetInstance().RemoveChangeListener(
+  PlatformResult status = calendar_.RemoveChangeListener(
       common::JsonCast<JsonObject>(args), val.get<JsonObject>());
 
   if (status.IsSuccess())

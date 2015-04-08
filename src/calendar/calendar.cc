@@ -40,12 +40,9 @@ void CalendarFilterDeleter(calendar_filter_h calendar_filter) {
 
 using namespace common;
 
-int Calendar::current_db_version_ = 0;
-std::map<std::string, std::string> Calendar::listeners_registered_;
-
-Calendar& Calendar::GetInstance() {
-  static Calendar instance;
-  return instance;
+Calendar::Calendar(CalendarInstance& instance)
+    : current_db_version_(0),
+      instance_(instance) {
 }
 
 Calendar::~Calendar() {
@@ -944,7 +941,7 @@ PlatformResult Calendar::AddChangeListener(const picojson::object& args,
     PlatformResult status = CalendarRecord::TypeToUri(type, &view_uri);
     if (status.IsError()) return status;
 
-    ret = calendar_db_add_changed_cb(view_uri.c_str(), ChangeCallback, nullptr);
+    ret = calendar_db_add_changed_cb(view_uri.c_str(), ChangeCallback, this);
     if (CALENDAR_ERROR_NONE != ret) {
       LoggerE("Add calendar change callback error for type %s", type.c_str());
       return PlatformResult(ErrorCode::UNKNOWN_ERR,
@@ -979,8 +976,7 @@ PlatformResult Calendar::RemoveChangeListener(const picojson::object& args,
     PlatformResult status = CalendarRecord::TypeToUri(type, &view_uri);
     if (status.IsError()) return status;
 
-    ret = calendar_db_remove_changed_cb(view_uri.c_str(), ChangeCallback,
-                                        nullptr);
+    ret = calendar_db_remove_changed_cb(view_uri.c_str(), ChangeCallback, this);
     if (CALENDAR_ERROR_NONE != ret) {
       LoggerE("Remove calendar change callback error for type %s",
               type.c_str());
@@ -993,13 +989,15 @@ PlatformResult Calendar::RemoveChangeListener(const picojson::object& args,
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void Calendar::ChangeCallback(const char* view_uri, void*) {
+void Calendar::ChangeCallback(const char* view_uri, void* user_data) {
   LoggerD("enter");
+
+  Calendar* c = static_cast<Calendar*>(user_data);
 
   calendar_list_h list = nullptr;
   int ret, updated_version;
   ret = calendar_db_get_changes_by_version(view_uri, CALENDAR_BOOK_FILTER_ALL,
-                                           current_db_version_, &list,
+                                           c->current_db_version_, &list,
                                            &updated_version);
   if (CALENDAR_ERROR_NONE != ret) {
     LoggerE("Can't get the changed item list");
@@ -1025,12 +1023,12 @@ void Calendar::ChangeCallback(const char* view_uri, void*) {
   // prepare response object
   picojson::value response = picojson::value(picojson::object());
   picojson::object& response_obj = response.get<picojson::object>();
-  if (listeners_registered_.find("EVENT") != listeners_registered_.end())
+  if (c->listeners_registered_.find("EVENT") != c->listeners_registered_.end())
     response_obj.insert(
-        std::make_pair("listenerId", picojson::value(listeners_registered_["EVENT"])));
+        std::make_pair("listenerId", picojson::value(c->listeners_registered_["EVENT"])));
   else
     response_obj.insert(
-        std::make_pair("listenerId", picojson::value(listeners_registered_["TASK"])));
+        std::make_pair("listenerId", picojson::value(c->listeners_registered_["TASK"])));
 
   picojson::array& added =
       response_obj.insert(std::make_pair("added", picojson::value(picojson::array())))
@@ -1114,8 +1112,8 @@ void Calendar::ChangeCallback(const char* view_uri, void*) {
     LoggerE("Can't get new version");
     return;
   }
-  current_db_version_ = updated_version;
-  CalendarInstance::GetInstance().PostMessage(response.serialize().c_str());
+  c->current_db_version_ = updated_version;
+  c->instance_.PostMessage(response.serialize().c_str());
 }
 
 PlatformResult Calendar::ErrorChecker(int errorCode) {
