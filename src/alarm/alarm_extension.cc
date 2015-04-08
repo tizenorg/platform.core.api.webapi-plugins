@@ -32,5 +32,5 @@ AlarmExtension::AlarmExtension() {
 AlarmExtension::~AlarmExtension() {}
 
 common::Instance* AlarmExtension::CreateInstance() {
-  return &extension::alarm::AlarmInstance::GetInstance();
+  return new extension::alarm::AlarmInstance();
 }

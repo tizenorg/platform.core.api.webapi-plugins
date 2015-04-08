@@ -55,11 +55,6 @@ AlarmManager::AlarmManager() {
 AlarmManager::~AlarmManager() {
 }
 
-AlarmManager& AlarmManager::GetInstance() {
-  static AlarmManager instance;
-  return instance;
-}
-
 void AlarmManager::Add(const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
   CHECK_PRIVILEGE_ACCESS(kPrivilegeAlarm, &out);

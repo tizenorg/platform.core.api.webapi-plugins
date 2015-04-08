@@ -7,15 +7,18 @@
 
 #include "common/extension.h"
 
+#include "alarm/alarm_manager.h"
+
 namespace extension {
 namespace alarm {
 
 class AlarmInstance: public common::ParsedInstance {
  public:
-  static AlarmInstance& GetInstance();
- private:
   AlarmInstance();
   virtual ~AlarmInstance();
+
+ private:
+  AlarmManager manager_;
 };
 
 } // namespace alarm

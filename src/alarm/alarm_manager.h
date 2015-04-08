@@ -13,7 +13,7 @@ namespace alarm {
 
 class AlarmManager {
  public:
-  static AlarmManager& GetInstance();
+  AlarmManager();
   virtual ~AlarmManager();
 
   void Add(const picojson::value& args, picojson::object& out);
@@ -28,7 +28,6 @@ class AlarmManager {
   void GetNextScheduledDate(const picojson::value& args, picojson::object& out);
 
  private:
-  AlarmManager();
   AlarmManager(const AlarmManager&) = delete;
   AlarmManager& operator=(const AlarmManager&) = delete;
   common::PlatformResult GetAlarm(int id, picojson::object& obj);
