@@ -7,13 +7,13 @@
 
 #include "common/extension.h"
 
-class MediacontrollerExtension : public common::Extension {
+class MediaControllerExtension : public common::Extension {
  public:
-  MediacontrollerExtension();
-  virtual ~MediacontrollerExtension();
+  MediaControllerExtension();
+  virtual ~MediaControllerExtension();
 
  private:
   virtual common::Instance* CreateInstance();
 };
 
-#endif // MEDIACONTROLLER_MEDIACONTROLLER_EXTENSION_H_
+#endif  // MEDIACONTROLLER_MEDIACONTROLLER_EXTENSION_H_

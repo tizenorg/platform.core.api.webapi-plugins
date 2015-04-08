@@ -10,21 +10,16 @@
 extern const char kSource_mediacontroller_api[];
 
 common::Extension* CreateExtension() {
-  return new MediacontrollerExtension;
+  return new MediaControllerExtension;
 }
 
-MediacontrollerExtension::MediacontrollerExtension() {
-  SetExtensionName("tizen.mediaController");
+MediaControllerExtension::MediaControllerExtension() {
+  SetExtensionName("tizen.mediacontroller");
   SetJavaScriptAPI(kSource_mediacontroller_api);
-
-  const char* entry_points[] = {
-      NULL
-    };
-  SetExtraJSEntryPoints(entry_points);
 }
 
-MediacontrollerExtension::~MediacontrollerExtension() {}
+MediaControllerExtension::~MediaControllerExtension() {}
 
-common::Instance* MediacontrollerExtension::CreateInstance() {
-  return new extension::mediacontroller::MediacontrollerInstance;
+common::Instance* MediaControllerExtension::CreateInstance() {
+  return new extension::mediacontroller::MediaControllerInstance;
 }

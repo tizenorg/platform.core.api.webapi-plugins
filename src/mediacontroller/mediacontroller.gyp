@@ -20,7 +20,7 @@
         ['tizen == 1', {
           'variables': {
             'packages': [
-              'dlog',
+              'capi-media-controller',
             ]
           },
         }],

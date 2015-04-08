@@ -133,6 +133,13 @@
           },
         ],
         [
+          'tizen_feature_media_controller_support==1', {
+            'dependencies': [
+              'mediacontroller/mediacontroller.gyp:*',
+            ],
+          },
+        ],
+        [
           'tizen_feature_media_key_support==1', {
             'dependencies': [
               'mediakey/mediakey.gyp:*',
