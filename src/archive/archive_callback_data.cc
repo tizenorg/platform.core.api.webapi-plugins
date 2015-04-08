@@ -40,13 +40,14 @@ using namespace common;
 //OperationCallbackData
 //----------------------------------------------------------------------------------------
 
-OperationCallbackData::OperationCallbackData(ArchiveCallbackType callback_type) :
+OperationCallbackData::OperationCallbackData(ArchiveCallbackType callback_type, ArchiveInstance& instance) :
     m_callback_type(callback_type),
     m_op_id(-1),
     m_cid(-1),
     m_handle(-1),
     m_is_error(false),
-    m_is_canceled(false)
+    m_is_canceled(false),
+    instance_(instance)
 {
     LoggerD("Entered");
 }
@@ -119,6 +120,10 @@ void OperationCallbackData::setIsCanceled(bool canceled)
     m_is_canceled = canceled;
 }
 
+void OperationCallbackData::PostMessage(const char* msg) {
+  instance_.PostMessage(msg);
+}
+
 const ErrorCode& OperationCallbackData::getErrorCode() const
 {
     LoggerD("Entered");
@@ -151,8 +156,8 @@ void OperationCallbackData::setArchiveFile(ArchiveFilePtr caller)
 //OpenCallbackData
 //----------------------------------------------------------------------------------------
 
-OpenCallbackData::OpenCallbackData(ArchiveCallbackType callback_type):
-    OperationCallbackData(callback_type)
+OpenCallbackData::OpenCallbackData(ArchiveInstance& instance):
+    OperationCallbackData(OPEN_CALLBACK_DATA, instance)
 {
     LoggerD("Entered");
 }
@@ -224,8 +229,8 @@ PlatformResult OpenCallbackData::executeOperation(ArchiveFilePtr archive_file_pt
 //GetEntriesCallbackData
 //----------------------------------------------------------------------------------------
 
-GetEntriesCallbackData::GetEntriesCallbackData(ArchiveCallbackType callback_type):
-    OperationCallbackData(callback_type)
+GetEntriesCallbackData::GetEntriesCallbackData(ArchiveInstance& instance):
+    OperationCallbackData(GET_ENTRIES_CALLBACK_DATA, instance)
 {
     LoggerD("Entered");
 }
@@ -263,8 +268,8 @@ PlatformResult GetEntriesCallbackData::executeOperation(ArchiveFilePtr archive_f
 //GetEntryByNameCallbackData
 //----------------------------------------------------------------------------------------
 
-GetEntryByNameCallbackData::GetEntryByNameCallbackData(ArchiveCallbackType callback_type):
-    OperationCallbackData(callback_type)
+GetEntryByNameCallbackData::GetEntryByNameCallbackData(ArchiveInstance& instance):
+    OperationCallbackData(GET_ENTRY_BY_NAME_CALLBACK_DATA, instance)
 {
     LoggerD("Entered");
 }
@@ -332,8 +337,8 @@ PlatformResult GetEntryByNameCallbackData::executeOperation(ArchiveFilePtr archi
 //BaseProgressCallback
 //----------------------------------------------------------------------------------------
 
-BaseProgressCallback::BaseProgressCallback(ArchiveCallbackType callback_type):
-    OperationCallbackData(callback_type),
+BaseProgressCallback::BaseProgressCallback(ArchiveCallbackType callback_type, ArchiveInstance& instance):
+    OperationCallbackData(callback_type, instance),
     m_overwrite(false)
 {
     LoggerD("Entered");
@@ -397,7 +402,7 @@ gboolean BaseProgressCallback::callSuccessCallbackCB(void* data)
 
         LoggerD("%s", val.serialize().c_str());
 
-        ArchiveInstance::getInstance().PostMessage(val.serialize().c_str());
+        callback->instance_.PostMessage(val.serialize().c_str());
     } else {
         LoggerW("Not calling error callback in such case");
     }
@@ -430,7 +435,7 @@ void BaseProgressCallback::callProgressCallback(long operationId,
 
     LoggerD("%s", val.serialize().c_str());
 
-    ArchiveInstance::getInstance().PostMessage(val.serialize().c_str());
+    instance_.PostMessage(val.serialize().c_str());
 }
 
 void BaseProgressCallback::callProgressCallbackOnMainThread(const double progress,
@@ -484,8 +489,8 @@ gboolean BaseProgressCallback::callProgressCallbackCB(void* data)
 //AddProgressCallback
 //----------------------------------------------------------------------------------------
 
-AddProgressCallback::AddProgressCallback(ArchiveCallbackType callback_type):
-    BaseProgressCallback(callback_type)
+AddProgressCallback::AddProgressCallback(ArchiveInstance& instance):
+    BaseProgressCallback(ADD_PROGRESS_CALLBACK, instance)
 {
     LoggerD("Entered");
 }
@@ -586,8 +591,8 @@ PlatformResult AddProgressCallback::executeOperation(ArchiveFilePtr archive_file
 //ExtractAllProgressCallback
 //----------------------------------------------------------------------------------------
 
-ExtractAllProgressCallback::ExtractAllProgressCallback(ArchiveCallbackType callback_type):
-    BaseProgressCallback(callback_type),
+ExtractAllProgressCallback::ExtractAllProgressCallback(ArchiveInstance& instance):
+    BaseProgressCallback(EXTRACT_ALL_PROGRESS_CALLBACK, instance),
     m_files_to_extract(0),
     m_expected_decompressed_size(0),
     m_files_extracted(0),
@@ -705,8 +710,8 @@ OperationCanceledException::OperationCanceledException(const char* message)
 //ExtractEntryProgressCallback
 //----------------------------------------------------------------------------------------
 
-ExtractEntryProgressCallback::ExtractEntryProgressCallback():
-        ExtractAllProgressCallback(),
+ExtractEntryProgressCallback::ExtractEntryProgressCallback(ArchiveInstance& instance):
+        ExtractAllProgressCallback(instance),
         m_strip_name(false)
 {
     LoggerD("Entered");

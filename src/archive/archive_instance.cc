@@ -27,12 +27,6 @@ const std::string kPrivilegeFilesystemRead  = "http://tizen.org/privilege/filesy
 const std::string kPrivilegeFilesystemWrite  = "http://tizen.org/privilege/filesystem.write";
 } // namespace
 
-ArchiveInstance& ArchiveInstance::getInstance()
-{
-    static ArchiveInstance instance;
-    return instance;
-}
-
 ArchiveInstance::ArchiveInstance() {
     LoggerD("Entered");
 
@@ -77,7 +71,7 @@ void ArchiveInstance::PostError(const PlatformResult& e, double callback_id) {
     args[ERROR_CALLBACK_CODE] = picojson::value(static_cast<double>(e.error_code()));
     args[ERROR_CALLBACK_MESSAGE] = picojson::value(e.message());
 
-    ArchiveInstance::getInstance().PostMessage(val.serialize().c_str());
+    PostMessage(val.serialize().c_str());
 }
 
 void ArchiveInstance::Open(const picojson::value& args, picojson::object& out) {
@@ -102,7 +96,7 @@ void ArchiveInstance::Open(const picojson::value& args, picojson::object& out) {
         return;
     }
 
-    OpenCallbackData *callback = new OpenCallbackData();
+    OpenCallbackData *callback = new OpenCallbackData(*this);
 
     FilePtr file_ptr;
 
@@ -240,7 +234,7 @@ void ArchiveInstance::Add(const picojson::value& args, picojson::object& out)
     const long operationId = static_cast<long>(v_op_id.get<double>());
     const long handle = static_cast<long>(v_handle.get<double>());
 
-    AddProgressCallback *callback = new AddProgressCallback();
+    AddProgressCallback *callback = new AddProgressCallback(*this);
 
     NodePtr node;
     PlatformResult result = Node::resolve(Path::create(v_source.get<std::string>()), &node);
@@ -305,7 +299,7 @@ void ArchiveInstance::ExtractAll(const picojson::value& args, picojson::object& 
     const long operationId = static_cast<long>(v_op_id.get<double>());
     const long handle = static_cast<long>(v_handle.get<double>());
 
-    ExtractAllProgressCallback *callback = new ExtractAllProgressCallback();
+    ExtractAllProgressCallback *callback = new ExtractAllProgressCallback(*this);
 
     NodePtr node;
     PlatformResult result = Node::resolve(Path::create(v_dest_dir.get<std::string>()), &node);
@@ -367,7 +361,7 @@ void ArchiveInstance::GetEntries(const picojson::value& args, picojson::object& 
     const long operationId = static_cast<long>(v_op_id.get<double>());
     const long handle = static_cast<long>(v_handle.get<double>());
 
-    GetEntriesCallbackData *callback = new GetEntriesCallbackData();
+    GetEntriesCallbackData *callback = new GetEntriesCallbackData(*this);
 
     callback->setOperationId(operationId);
     callback->setCallbackId(callbackId);
@@ -414,7 +408,7 @@ void ArchiveInstance::GetEntryByName(const picojson::value& args, picojson::obje
     const long operationId = static_cast<long>(v_op_id.get<double>());
     const long handle = static_cast<long>(v_handle.get<double>());
 
-    GetEntryByNameCallbackData *callback = new GetEntryByNameCallbackData();
+    GetEntryByNameCallbackData *callback = new GetEntryByNameCallbackData(*this);
 
     callback->setOperationId(operationId);
     callback->setCallbackId(callbackId);
@@ -488,7 +482,7 @@ void ArchiveInstance::Extract(const picojson::value& args, picojson::object& out
     const long operationId = static_cast<long>(v_op_id.get<double>());
     const long handle = static_cast<long>(v_handle.get<double>());
 
-    ExtractEntryProgressCallback *callback = new ExtractEntryProgressCallback();
+    ExtractEntryProgressCallback *callback = new ExtractEntryProgressCallback(*this);
 
     NodePtr node;
     PlatformResult result = Node::resolve(Path::create(v_dest_dir.get<std::string>()), &node);

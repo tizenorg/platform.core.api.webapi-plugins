@@ -127,7 +127,7 @@ gboolean ArchiveFile::openTaskCompleteCB(void *data)
 
     LoggerD("%s", val.serialize().c_str());
 
-    ArchiveInstance::getInstance().PostMessage(val.serialize().c_str());
+    callback->PostMessage(val.serialize().c_str());
 
     delete callback;
     callback = NULL;
@@ -163,7 +163,7 @@ gboolean ArchiveFile::callErrorCallback(void* data)
 
     LoggerD("%s", val.serialize().c_str());
 
-    ArchiveInstance::getInstance().PostMessage(val.serialize().c_str());
+    callback->PostMessage(val.serialize().c_str());
 
     delete callback;
     callback = NULL;
@@ -390,7 +390,7 @@ gboolean ArchiveFile::getEntriesTaskCompleteCB(void *data)
 
     LoggerD("%s", val.serialize().c_str());
 
-    ArchiveInstance::getInstance().PostMessage(val.serialize().c_str());
+    callback->PostMessage(val.serialize().c_str());
 
     delete callback;
     callback = NULL;
@@ -523,7 +523,7 @@ gboolean ArchiveFile::getEntryByNameTaskCompleteCB(void *data)
 
     LoggerD("%s", val.serialize().c_str());
 
-    ArchiveInstance::getInstance().PostMessage(val.serialize().c_str());
+    callback->PostMessage(val.serialize().c_str());
 
     delete callback;
     callback = NULL;

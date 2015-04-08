@@ -53,10 +53,12 @@ enum ArchiveCallbackType {
 class ArchiveFile;
 typedef std::shared_ptr<ArchiveFile> ArchiveFilePtr;
 
+class ArchiveInstance;
+
 class OperationCallbackData
 {
 public:
-    OperationCallbackData(ArchiveCallbackType callback_type);
+    OperationCallbackData(ArchiveCallbackType callback_type, ArchiveInstance& instance);
     virtual ~OperationCallbackData();
 
     void setError(const ErrorCode &err_code,
@@ -82,11 +84,14 @@ public:
     bool isCanceled() const;
     void setIsCanceled(bool canceled);
 
+    void PostMessage(const char* msg);
+
 protected:
     ArchiveCallbackType m_callback_type;
     long m_op_id;
     double m_cid;
     long m_handle;
+    ArchiveInstance& instance_;
 
 private:
     bool m_is_error;
@@ -100,7 +105,7 @@ private:
 class OpenCallbackData : public OperationCallbackData
 {
 public:
-    OpenCallbackData(ArchiveCallbackType callback_type = OPEN_CALLBACK_DATA);
+    explicit OpenCallbackData(ArchiveInstance& instance);
     virtual ~OpenCallbackData();
 
     virtual PlatformResult executeOperation(ArchiveFilePtr archive_file_ptr);
@@ -112,7 +117,7 @@ private:
 class GetEntriesCallbackData : public OperationCallbackData
 {
 public:
-    GetEntriesCallbackData(ArchiveCallbackType callback_type = GET_ENTRIES_CALLBACK_DATA);
+    explicit GetEntriesCallbackData(ArchiveInstance& instance);
     virtual ~GetEntriesCallbackData();
 
     ArchiveFileEntryPtrMapPtr getEntries() const;
@@ -127,7 +132,7 @@ private:
 class GetEntryByNameCallbackData : public OperationCallbackData
 {
 public:
-    GetEntryByNameCallbackData(ArchiveCallbackType callback_type = GET_ENTRY_BY_NAME_CALLBACK_DATA);
+    explicit GetEntryByNameCallbackData(ArchiveInstance& instance);
     virtual ~GetEntryByNameCallbackData();
 
     const std::string& getName() const;
@@ -146,7 +151,7 @@ private:
 class BaseProgressCallback : public OperationCallbackData
 {
 public:
-    BaseProgressCallback(ArchiveCallbackType callback_type = BASE_PROGRESS_CALLBACK);
+    BaseProgressCallback(ArchiveCallbackType callback_type, ArchiveInstance& instance);
     virtual ~BaseProgressCallback();
 
     bool getOverwrite() const;
@@ -174,7 +179,7 @@ private:
 class AddProgressCallback : public BaseProgressCallback
 {
 public:
-    AddProgressCallback(ArchiveCallbackType callback_type = ADD_PROGRESS_CALLBACK);
+    explicit AddProgressCallback(ArchiveInstance& instance);
     virtual ~AddProgressCallback();
 
     virtual PlatformResult executeOperation(ArchiveFilePtr archive_file_ptr);
@@ -196,7 +201,7 @@ private:
 class ExtractAllProgressCallback : public BaseProgressCallback
 {
 public:
-    ExtractAllProgressCallback(ArchiveCallbackType callback_type = EXTRACT_ALL_PROGRESS_CALLBACK);
+    explicit ExtractAllProgressCallback(ArchiveInstance& instance);
     virtual ~ExtractAllProgressCallback();
 
     filesystem::FilePtr getDirectory() const;
@@ -243,7 +248,7 @@ private:
 class ExtractEntryProgressCallback : public ExtractAllProgressCallback
 {
 public:
-    ExtractEntryProgressCallback();
+    explicit ExtractEntryProgressCallback(ArchiveInstance& instance);
     virtual ~ExtractEntryProgressCallback();
 
     ArchiveFileEntryPtr getArchiveFileEntry();

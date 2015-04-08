@@ -25,5 +25,5 @@ ArchiveExtension::~ArchiveExtension()
 
 common::Instance* ArchiveExtension::CreateInstance()
 {
-    return &extension::archive::ArchiveInstance::getInstance();
+    return new extension::archive::ArchiveInstance();
 }
