@@ -18,12 +18,7 @@ const std::string kPrivilegeNotification = "http://tizen.org/privilege/notificat
 using namespace common;
 using namespace extension::badge;
 
-BadgeInstance& BadgeInstance::GetInstance() {
-  static BadgeInstance instance;
-  return instance;
-}
-
-BadgeInstance::BadgeInstance() {
+BadgeInstance::BadgeInstance() : manager_(*this) {
   using std::placeholders::_1;
   using std::placeholders::_2;
 
@@ -47,7 +42,7 @@ void BadgeInstance::BadgeManagerSetBadgeCount(const JsonValue& args,
       common::FromJson<std::string>(args.get<JsonObject>(), "appId");
   const double count = args.get("count").get<double>();
 
-  PlatformResult status = BadgeManager::GetInstance()->SetBadgeCount(
+  PlatformResult status = manager_.SetBadgeCount(
       app_id, static_cast<unsigned int>(count));
   if (status.IsSuccess())
     ReportSuccess(out);
@@ -63,7 +58,7 @@ void BadgeInstance::BadgeManagerGetBadgeCount(const JsonValue& args,
 
   unsigned int count = 0;
   PlatformResult status =
-      BadgeManager::GetInstance()->GetBadgeCount(app_id, &count);
+      manager_.GetBadgeCount(app_id, &count);
   if (status.IsSuccess())
     ReportSuccess(JsonValue(std::to_string(count)), out);
   else
@@ -74,7 +69,7 @@ void BadgeInstance::BadgeManagerAddChangeListener(const JsonValue& args,
                                                   JsonObject& out) {
   CHECK_PRIVILEGE_ACCESS(kPrivilegeNotification, &out);
   PlatformResult status =
-      BadgeManager::GetInstance()->AddChangeListener(args.get<JsonObject>());
+      manager_.AddChangeListener(args.get<JsonObject>());
 
   if (status.IsSuccess())
     ReportSuccess(out);
@@ -86,7 +81,7 @@ void BadgeInstance::BadgeManagerRemoveChangeListener(const JsonValue& args,
                                                      JsonObject& out) {
   CHECK_PRIVILEGE_ACCESS(kPrivilegeNotification, &out);
   PlatformResult status =
-      BadgeManager::GetInstance()->RemoveChangeListener(args.get<JsonObject>());
+      manager_.RemoveChangeListener(args.get<JsonObject>());
 
   if (status.IsSuccess())
     ReportSuccess(out);

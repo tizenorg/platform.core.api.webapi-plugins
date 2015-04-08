@@ -22,10 +22,10 @@ using namespace common;
 namespace extension {
 namespace badge {
 
-std::set<std::string> BadgeManager::watched_applications_;
-bool BadgeManager::is_cb_registered_ = false;
-
-BadgeManager::BadgeManager() {}
+BadgeManager::BadgeManager(BadgeInstance& instance)
+    : instance_(instance),
+      is_cb_registered_(false) {
+}
 
 BadgeManager::~BadgeManager() {
   if (is_cb_registered_) {
@@ -36,11 +36,6 @@ BadgeManager::~BadgeManager() {
     }
     is_cb_registered_ = false;
   }
-}
-
-BadgeManager *BadgeManager::GetInstance() {
-  static BadgeManager instance;
-  return &instance;
 }
 
 PlatformResult BadgeManager::SetBadgeCount(const std::string& app_id,
@@ -194,15 +189,16 @@ PlatformResult BadgeManager::RemoveChangeListener(const JsonObject &obj) {
 
 void BadgeManager::badge_changed_cb(unsigned int action, const char *pkgname,
                                     unsigned int count, void *user_data) {
+  BadgeManager* that = static_cast<BadgeManager*>(user_data);
   if (action != BADGE_ACTION_SERVICE_READY &&
-      watched_applications_.find(pkgname) != watched_applications_.end()) {
+      that->watched_applications_.find(pkgname) != that->watched_applications_.end()) {
     picojson::value response = picojson::value(picojson::object());
     picojson::object &response_obj = response.get<picojson::object>();
     response_obj.insert(
         std::make_pair("listenerId", picojson::value(std::string("BadgeChangeListener"))));
     response_obj.insert(std::make_pair("appId", picojson::value(pkgname)));
     response_obj.insert(std::make_pair("count", picojson::value(std::to_string(count))));
-    BadgeInstance::GetInstance().PostMessage(response.serialize().c_str());
+    that->instance_.PostMessage(response.serialize().c_str());
   }
 }
 

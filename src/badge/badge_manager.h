@@ -20,9 +20,12 @@ typedef picojson::object JsonObject;
 typedef picojson::array JsonArray;
 typedef std::string JsonString;
 
+class BadgeInstance;
+
 class BadgeManager {
  public:
-  static BadgeManager* GetInstance();
+  explicit BadgeManager(BadgeInstance& instance);
+  ~BadgeManager();
 
   common::PlatformResult SetBadgeCount(const std::string& app_id,
                                        unsigned int count);
@@ -33,17 +36,16 @@ class BadgeManager {
   static void badge_changed_cb(unsigned int, const char*, unsigned int, void*);
 
  private:
-  BadgeManager();
-  virtual ~BadgeManager();
-
   common::PlatformResult CheckPermisionForCreatingBadge(const char* app_id);
   char* GetPkgnameByAppid(const char* app_id);
   char* GetPkgnameByPid();
   int IsSameCertInfo(const char* caller, const char* pkgname);
   bool IsAppInstalled(const std::string& app_id);
 
-  static bool is_cb_registered_;
-  static std::set<std::string> watched_applications_;
+  BadgeInstance& instance_;
+
+  bool is_cb_registered_;
+  std::set<std::string> watched_applications_;
 };
 
 }  // namespace badge

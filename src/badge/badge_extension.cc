@@ -18,5 +18,5 @@ BadgeExtension::BadgeExtension() {
 BadgeExtension::~BadgeExtension() {}
 
 common::Instance* BadgeExtension::CreateInstance() {
-  return &extension::badge::BadgeInstance::GetInstance();
+  return new extension::badge::BadgeInstance();
 }

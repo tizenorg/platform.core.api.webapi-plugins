@@ -16,7 +16,6 @@ class BadgeInstance : public common::ParsedInstance {
  public:
   BadgeInstance();
   virtual ~BadgeInstance();
-  static BadgeInstance& GetInstance();
 
  private:
   /**
@@ -48,6 +47,8 @@ class BadgeInstance : public common::ParsedInstance {
   void BadgeManagerGetBadgeCount(const JsonValue& args, JsonObject& out);
   void BadgeManagerAddChangeListener(const JsonValue& args, JsonObject& out);
   void BadgeManagerRemoveChangeListener(const JsonValue& args, JsonObject& out);
+
+  BadgeManager manager_;
 };
 }  // namespace badge
 }  // namespace extension
