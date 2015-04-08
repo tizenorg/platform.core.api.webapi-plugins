@@ -22,8 +22,12 @@
 namespace extension {
 namespace bluetooth {
 
+class BluetoothAdapter;
+
 class BluetoothServiceHandler {
  public:
+  explicit BluetoothServiceHandler(BluetoothAdapter& adapter);
+
   /**
    * Signature: @code void unregister(successCallback, errorCallback); @endcode
    * JSON: @code data: {method: 'BluetoothServiceHandler_unregister', args: {}} @endcode
@@ -40,6 +44,9 @@ class BluetoothServiceHandler {
    * @endcode
    */
   void Unregister(const picojson::value& data, picojson::object& out);
+
+ private:
+  BluetoothAdapter& adapter_;
 };
 
 } // namespace bluetooth

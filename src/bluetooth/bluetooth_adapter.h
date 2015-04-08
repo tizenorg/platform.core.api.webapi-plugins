@@ -38,6 +38,8 @@ enum AdapterAsyncEvent {
   STOP_DISCOVERY
 };
 
+class BluetoothInstance;
+
 class BluetoothAdapter {
  public:
   /**
@@ -284,7 +286,7 @@ class BluetoothAdapter {
    */
   void IsServiceConnected(const picojson::value& data, picojson::object& out);
 
-  static BluetoothAdapter& GetInstance();
+  explicit BluetoothAdapter(BluetoothInstance& instance);
   virtual ~BluetoothAdapter();
 
   std::string get_name() const;
@@ -305,7 +307,6 @@ class BluetoothAdapter {
   void UnregisterUUID(const std::string& uuid, int callback_handle);
 
  private:
-  BluetoothAdapter();
   BluetoothAdapter(const BluetoothAdapter&) = delete;
   BluetoothAdapter& operator=(const BluetoothAdapter&) = delete;
 
@@ -334,9 +335,9 @@ class BluetoothAdapter {
   static void OnSocketReceivedData(bt_socket_received_data_s* data,
                                    void* user_data);
 
-  static void InvokeSocketOnMessageEvent(int id);
-
-  static void InvokeSocketOnCloseEvent(int id);
+  void InvokeSocketEvent(int id, const char* event);
+  void InvokeSocketOnMessageEvent(int id);
+  void InvokeSocketOnCloseEvent(int id);
 
   bool is_visible_;
   bool is_powered_;
@@ -372,6 +373,8 @@ class BluetoothAdapter {
   RegisteredUuidMap registered_uuids_;
 
   std::unordered_map<int, std::list<char>> socket_data_;
+
+  BluetoothInstance& instance_;
 };
 
 } // namespace bluetooth

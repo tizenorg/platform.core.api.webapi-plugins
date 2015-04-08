@@ -24,8 +24,12 @@
 namespace extension {
 namespace bluetooth {
 
+class BluetoothAdapter;
+
 class BluetoothSocket {
  public:
+  explicit BluetoothSocket(BluetoothAdapter& adapter);
+
   /**
    * Signature: @code unsigned long writeData(data[]); @endcode
    * JSON: @code data: {method: 'BluetoothSocket_writeData', args: {data: data}} @endcode
@@ -63,6 +67,9 @@ class BluetoothSocket {
   void Close(const picojson::value& data, picojson::object& out);
 
   static picojson::value ToJson(bt_socket_connection_s* connection);
+
+ private:
+  BluetoothAdapter& adapter_;
 };
 
 } // namespace bluetooth

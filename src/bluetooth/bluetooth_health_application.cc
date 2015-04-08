@@ -35,6 +35,11 @@ const std::string kId = "_id";
 
 using namespace common;
 
+BluetoothHealthApplication::BluetoothHealthApplication(
+    BluetoothHealthProfileHandler& handler)
+    : handler_(handler) {
+}
+
 void BluetoothHealthApplication::Unregister(const picojson::value& data, picojson::object& out) {
   LoggerD("Entered");
 
@@ -42,9 +47,8 @@ void BluetoothHealthApplication::Unregister(const picojson::value& data, picojso
 
   const auto& args = util::GetArguments(data);
 
-  BluetoothHealthProfileHandler::GetInstance().UnregisterSinkAppAsync(
-      FromJson<std::string>(args, "id"),
-      util::GetAsyncCallbackHandle(data));
+  handler_.UnregisterSinkAppAsync(FromJson<std::string>(args, "id"),
+                                  util::GetAsyncCallbackHandle(data));
 
   tools::ReportSuccess(out);
 }

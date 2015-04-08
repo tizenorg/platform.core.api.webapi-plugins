@@ -43,6 +43,10 @@ const int kBluetoothError = -1;
 using namespace common;
 using namespace common::tools;
 
+BluetoothSocket::BluetoothSocket(BluetoothAdapter& adapter)
+    : adapter_(adapter) {
+}
+
 void BluetoothSocket::WriteData(const picojson::value& data, picojson::object& out) {
   LoggerD("Enter");
 
@@ -78,7 +82,7 @@ void BluetoothSocket::ReadData(const picojson::value& data, picojson::object& ou
 
   int socket = common::stol(FromJson<std::string>(args, "id"));
 
-  auto binary_data = BluetoothAdapter::GetInstance().ReadSocketData(socket);
+  auto binary_data = adapter_.ReadSocketData(socket);
   picojson::value ret = picojson::value(picojson::array());
   picojson::array& array = ret.get<picojson::array>();
 
@@ -86,7 +90,7 @@ void BluetoothSocket::ReadData(const picojson::value& data, picojson::object& ou
     array.push_back(picojson::value(static_cast<double>(val)));
   }
 
-  BluetoothAdapter::GetInstance().ClearSocketData(socket);
+  adapter_.ClearSocketData(socket);
 
   ReportSuccess(ret, out);
 }

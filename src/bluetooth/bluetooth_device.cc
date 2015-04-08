@@ -78,6 +78,10 @@ static void ToJsonFromUUID(char **service_uuid, int service_count, picojson::obj
   }
 }
 
+BluetoothDevice::BluetoothDevice(BluetoothAdapter& adapter)
+    : adapter_(adapter) {
+}
+
 void BluetoothDevice::ToJson(bt_device_info_s* info, picojson::object* device) {
   LoggerD("Entered");
   device->insert(std::make_pair(kDeviceName, picojson::value(std::string(info->remote_name))));
@@ -104,10 +108,9 @@ void BluetoothDevice::ConnectToServiceByUUID(const picojson::value& data, picojs
 
   const auto& args = util::GetArguments(data);
 
-  BluetoothAdapter::GetInstance().ConnectToServiceByUUID(
-      FromJson<std::string>(args, "address"),
-      FromJson<std::string>(args, "uuid"),
-      util::GetAsyncCallbackHandle(data));
+  adapter_.ConnectToServiceByUUID(FromJson<std::string>(args, "address"),
+                                  FromJson<std::string>(args, "uuid"),
+                                  util::GetAsyncCallbackHandle(data));
 
   ReportSuccess(out);
 }

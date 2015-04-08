@@ -15,14 +15,6 @@ namespace extension {
 namespace bluetooth {
 namespace util {
 
-void AsyncResponse(double callback_handle, const std::shared_ptr<picojson::value>& response);
-void AsyncResponse(double callback_handle, const common::PlatformResult& result);
-void SyncResponse(double callback_handle, const std::shared_ptr<picojson::value>& response);
-
-void FireEvent(const std::string& event, picojson::value& value);
-void FireEvent(const std::string& event, const picojson::value& value);
-void FireEvent(const std::string& event, const std::shared_ptr<picojson::value>& value);
-
 double GetAsyncCallbackHandle(const picojson::value& data);
 
 const picojson::object& GetArguments(const picojson::value& data);

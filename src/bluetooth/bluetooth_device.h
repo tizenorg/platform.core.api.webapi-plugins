@@ -24,8 +24,12 @@
 namespace extension {
 namespace bluetooth {
 
+class BluetoothAdapter;
+
 class BluetoothDevice {
  public:
+  explicit BluetoothDevice(BluetoothAdapter& adapter);
+
   /**
    * Signature: @code void connectToServiceByUUID(uuid, successCallback, errorCallback); @endcode
    * JSON: @code data: {method: 'BluetoothDevice_connectToServiceByUUID', args: {uuid: uuid}} @endcode
@@ -60,6 +64,9 @@ class BluetoothDevice {
                      picojson::object* device);
   static void ToJson(bt_adapter_device_discovery_info_s *info,
                      picojson::object* device);
+
+ private:
+  BluetoothAdapter& adapter_;
 };
 
 } // namespace bluetooth

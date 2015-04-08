@@ -21,11 +21,12 @@
 #include "common/extension.h"
 #include "common/task-queue.h"
 
-#include "bluetooth_adapter.h"
-#include "bluetooth_health_application.h"
-#include "bluetooth_health_channel.h"
-#include "bluetooth_privilege.h"
-#include "bluetooth_util.h"
+#include "bluetooth/bluetooth_adapter.h"
+#include "bluetooth/bluetooth_instance.h"
+#include "bluetooth/bluetooth_health_application.h"
+#include "bluetooth/bluetooth_health_channel.h"
+#include "bluetooth/bluetooth_privilege.h"
+#include "bluetooth/bluetooth_util.h"
 
 namespace extension {
 namespace bluetooth {
@@ -43,12 +44,8 @@ const std::string kOnMessage = "onmessage";
 const std::string kChangeCallback = "BluetoothHealthChannelChangeCallback";
 } //namespace
 
-BluetoothHealthProfileHandler& BluetoothHealthProfileHandler::GetInstance() {
-  static BluetoothHealthProfileHandler instance;
-  return instance;
-}
-
-BluetoothHealthProfileHandler::BluetoothHealthProfileHandler() {
+BluetoothHealthProfileHandler::BluetoothHealthProfileHandler(BluetoothInstance& instance)
+    : instance_(instance) {
   // initialize listeners
   if (BT_ERROR_NONE != bt_hdp_set_connection_state_changed_cb(OnConnected, OnDisconnected, this)) {
     LoggerE("bt_hdp_set_connection_state_changed_cb() failed");
@@ -126,7 +123,7 @@ void BluetoothHealthProfileHandler::OnConnected(int result,
       ReportSuccess(result, response_obj);
       bt_adapter_free_device_info(device_info);
 
-      util::FireEvent("BLUETOOTH_HEALTH_APPLICATION_CHANGED", response);
+      object->instance_.FireEvent("BLUETOOTH_HEALTH_APPLICATION_CHANGED", response);
     } else {
       LoggerE("Failed to get device info");
     }
@@ -159,7 +156,7 @@ void BluetoothHealthProfileHandler::OnConnected(int result,
                   &response->get<picojson::object>());
     }
 
-    util::AsyncResponse(request->second, response);
+    object->instance_.AsyncResponse(request->second, response);
 
     // request was handled, remove
     object->connection_requests_.erase(request);
@@ -190,7 +187,7 @@ void BluetoothHealthProfileHandler::OnDisconnected(int result,
 
     data_obj->insert(std::make_pair(kEvent, picojson::value(kOnClose)));
     data_obj->insert(std::make_pair(kId, picojson::value(std::to_string(channel))));
-    util::FireEvent(kChangeCallback, value);
+    object->instance_.FireEvent(kChangeCallback, value);
   }
 }
 
@@ -222,7 +219,7 @@ void BluetoothHealthProfileHandler::OnDataReceived(unsigned int channel,
       array.push_back(picojson::value(static_cast<double>(data[i])));
     }
 
-    util::FireEvent(kChangeCallback, value);
+    object->instance_.FireEvent(kChangeCallback, value);
   }
 }
 
@@ -275,8 +272,8 @@ void BluetoothHealthProfileHandler::RegisterSinkApp(const picojson::value& data,
     ReportError(platform_result, &response->get<picojson::object>());
   };
 
-  auto register_app_response = [callback_handle](const std::shared_ptr<picojson::value>& response) -> void {
-    util::SyncResponse(callback_handle, response);
+  auto register_app_response = [this, callback_handle](const std::shared_ptr<picojson::value>& response) -> void {
+    instance_.SyncResponse(callback_handle, response);
   };
 
   TaskQueue::GetInstance().Queue<picojson::value>(
@@ -328,7 +325,7 @@ void BluetoothHealthProfileHandler::ConnectToSource(const picojson::value& data,
   }
 
   if (result.IsError()) {
-    util::AsyncResponse(callback_handle, result);
+    instance_.AsyncResponse(callback_handle, result);
   }
 
   ReportSuccess(out);
@@ -376,8 +373,8 @@ void BluetoothHealthProfileHandler::UnregisterSinkAppAsync(const std::string& ap
     }
   };
 
-  auto unregister_app_response = [callback_handle](const std::shared_ptr<picojson::value>& response) -> void {
-    util::SyncResponse(callback_handle, response);
+  auto unregister_app_response = [this, callback_handle](const std::shared_ptr<picojson::value>& response) -> void {
+    instance_.SyncResponse(callback_handle, response);
   };
 
   TaskQueue::GetInstance().Queue<picojson::value>(

@@ -26,6 +26,8 @@
 namespace extension {
 namespace bluetooth {
 
+class BluetoothInstance;
+
 class BluetoothHealthProfileHandler {
  public:
   /**
@@ -64,14 +66,12 @@ class BluetoothHealthProfileHandler {
    */
   void ConnectToSource(const picojson::value& data, picojson::object& out);
 
-  static BluetoothHealthProfileHandler& GetInstance();
-
+  explicit BluetoothHealthProfileHandler(BluetoothInstance& instance);
   ~BluetoothHealthProfileHandler();
 
   void UnregisterSinkAppAsync(const std::string& app_id, int callback_handle);
 
  private:
-  BluetoothHealthProfileHandler();
   BluetoothHealthProfileHandler(const BluetoothHealthProfileHandler&) = delete;
   BluetoothHealthProfileHandler& operator=(const BluetoothHealthProfileHandler&) = delete;
 
@@ -95,6 +95,8 @@ class BluetoothHealthProfileHandler {
   std::set<std::string> registered_health_apps_;
   std::map<std::string, double> connection_requests_;
   std::set<unsigned int> connected_channels_;
+
+  BluetoothInstance& instance_;
 };
 
 } // namespace bluetooth

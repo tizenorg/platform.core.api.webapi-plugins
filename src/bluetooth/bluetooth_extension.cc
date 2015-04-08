@@ -27,5 +27,5 @@ BluetoothExtension::BluetoothExtension() {
 BluetoothExtension::~BluetoothExtension() {}
 
 common::Instance* BluetoothExtension::CreateInstance() {
-  return &extension::bluetooth::BluetoothInstance::GetInstance();
+  return new extension::bluetooth::BluetoothInstance();
 }

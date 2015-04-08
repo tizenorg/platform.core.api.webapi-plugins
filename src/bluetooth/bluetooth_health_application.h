@@ -23,8 +23,12 @@
 namespace extension {
 namespace bluetooth {
 
+class BluetoothHealthProfileHandler;
+
 class BluetoothHealthApplication {
  public:
+  explicit BluetoothHealthApplication(BluetoothHealthProfileHandler& handler);
+
   /**
    * Signature: @code void unregister(successCallback, errorCallback); @endcode
    * JSON: @code data: {method: 'BluetoothHealthApplication_unregister', args: {}} @endcode
@@ -46,6 +50,9 @@ class BluetoothHealthApplication {
                      const std::string& name,
                      const char* id,
                      picojson::object* out);
+
+ private:
+  BluetoothHealthProfileHandler& handler_;
 };
 
 } // namespace bluetooth
