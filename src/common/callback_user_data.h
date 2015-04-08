@@ -16,57 +16,39 @@
 //
 
 // Class added for backward compatibility with WRT plugins.
-// To be cleaned/replaced in the future (TODO).
+// TODO To be cleaned/replaced in the future.
 
-#ifndef __TIZEN_COMMON_CALLBACK_USER_DATA_H__
-#define __TIZEN_COMMON_CALLBACK_USER_DATA_H__
+#ifndef COMMON_CALLBACK_USER_DATA_H_
+#define COMMON_CALLBACK_USER_DATA_H_
 
-//#include <JavaScriptCore/JavaScript.h>
 #include "common/picojson.h"
 
 #include <memory>
 
-//namespace DeviceAPI {
 namespace common {
-
-//class MultiCallbackUserData;
 
 class CallbackUserData {
 public:
-    CallbackUserData();
-    virtual ~CallbackUserData();
+  CallbackUserData();
 
-//    JSContextRef getContext();
-//    void setSuccessCallback(JSValueRef on_success);
-//    void setErrorCallback(JSValueRef on_error);
-//
-//    void callSuccessCallback();
-//    void callSuccessCallback(JSValueRef obj);
-//    void callSuccessCallback(int count, JSValueRef obj[]);
-//
-//    void callErrorCallback();
-//    void callErrorCallback(JSValueRef obj);
-//    void callErrorCallback(int count, JSValueRef obj[]);
+  virtual ~CallbackUserData();
 
-    void setActive(bool act);
-    bool isActive() const;
-    void setJson(std::shared_ptr<picojson::value> json);
-    std::shared_ptr<picojson::value> getJson() const;
+  void setActive(bool act);
+  bool isActive() const;
 
-    virtual void setError(const std::string& err_name,
-            const std::string& err_message) = 0;
+  void setJson(std::shared_ptr<picojson::value> json);
+  std::shared_ptr<picojson::value> getJson() const;
+
+  virtual void setError(const std::string& err_name,
+                        const std::string& err_message) = 0;
 
 protected:
-    std::shared_ptr<picojson::value> m_json;
+  std::shared_ptr<picojson::value> m_json;
 
 private:
-//    JSContextRef m_context;
-//    MultiCallbackUserData* m_impl;
-    bool m_is_act;
+  bool m_is_act;
 };
 
-} // Common
-//} // DeviceAPI
+} // common
 
-#endif //__TIZEN_COMMON_CALLBACK_USER_DATA_H__
-
+#endif  // COMMON_CALLBACK_USER_DATA_H_
