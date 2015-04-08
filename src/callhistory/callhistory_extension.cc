@@ -20,5 +20,5 @@ CallHistoryExtension::CallHistoryExtension() {
 CallHistoryExtension::~CallHistoryExtension() {}
 
 common::Instance* CallHistoryExtension::CreateInstance() {
-  return &extension::callhistory::CallHistoryInstance::getInstance();
+  return new extension::callhistory::CallHistoryInstance();
 }

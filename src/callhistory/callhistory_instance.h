@@ -13,19 +13,19 @@ namespace callhistory {
 
 class CallHistoryInstance : public common::ParsedInstance {
  public:
-  static CallHistoryInstance& getInstance();
-
-  void CallHistoryChange(picojson::object& data);
- private:
   CallHistoryInstance();
   virtual ~CallHistoryInstance();
 
+  void CallHistoryChange(picojson::object& data);
+ private:
   void Find(const picojson::value& args, picojson::object& out);
   void Remove(const picojson::value& args, picojson::object& out);
   void RemoveBatch(const picojson::value& args, picojson::object& out);
   void RemoveAll(const picojson::value& args, picojson::object& out);
   void AddChangeListener (const picojson::value& args, picojson::object& out);
   void RemoveChangeListener(const picojson::value& args, picojson::object& out);
+
+  CallHistory history_;
 };
 
 } // namespace callhistory

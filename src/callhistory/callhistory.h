@@ -8,10 +8,14 @@
 #include <string>
 #include <vector>
 #include <future>
+
 #include <contacts.h>
 #include <contacts_internal.h>
+
 #include "common/picojson.h"
 #include "common/platform_result.h"
+
+#include "callhistory/callhistory_utils.h"
 
 namespace extension {
 namespace callhistory {
@@ -21,7 +25,9 @@ class CallHistoryInstance;
 class CallHistory
 {
  public:
-  static CallHistory* getInstance();
+  explicit CallHistory(CallHistoryInstance& instance);
+  ~CallHistory();
+
   std::vector<std::string>& getPhoneNumbers();
 
   void find(const picojson::object& args);
@@ -32,14 +38,13 @@ class CallHistory
   common::PlatformResult stopCallHistoryChangeListener();
 
  private:
-  CallHistory();
-  virtual ~CallHistory();
-
   static void changeListenerCB(const char* view_uri, char *changes, void* user_data);
   void loadPhoneNumbers();
 
   bool m_is_listener_set;
   std::vector<std::string> m_phone_numbers;
+  CallHistoryInstance& instance_;
+  CallHistoryUtils utils_;
 };
 
 } // namespace callhistory

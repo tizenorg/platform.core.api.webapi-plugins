@@ -13,8 +13,6 @@
 #include "common/scope_exit.h"
 #include "callhistory_instance.h"
 #include "callhistory_types.h"
-#include "callhistory_utils.h"
-
 
 using namespace common;
 using namespace tools;
@@ -46,9 +44,10 @@ static void get_sim_msisdn_cb(TapiHandle *handle, int result, void *data, void *
 }
 }
 
-CallHistory::CallHistory():
-            m_is_listener_set(false)
-{
+CallHistory::CallHistory(CallHistoryInstance& instance)
+    : m_is_listener_set(false),
+      instance_(instance),
+      utils_(*this) {
   LoggerD("Entered");
   if (CONTACTS_ERROR_NONE == contacts_connect()) {
     LoggerD("Successful to connect Call history DB");
@@ -77,11 +76,6 @@ CallHistory::~CallHistory()
   } else {
     LoggerD("Failed to disconnect Call history DB");
   }
-}
-
-CallHistory* CallHistory::getInstance(){
-  static CallHistory instance;
-  return &instance;
 }
 
 void CallHistory::find(const picojson::object& args)
@@ -137,7 +131,7 @@ void CallHistory::find(const picojson::object& args)
   const double callback_id = args.find("callbackId")->second.get<double>();
   int phone_numbers = m_phone_numbers.size();
 
-  auto find = [filter_obj, sort_attr_name, sort_order, limit, offset, phone_numbers](
+  auto find = [this, filter_obj, sort_attr_name, sort_order, limit, offset, phone_numbers](
       const std::shared_ptr<picojson::value>& response) -> void {
 
     contacts_query_h query = nullptr;
@@ -177,7 +171,7 @@ void CallHistory::find(const picojson::object& args)
     //filter
     if (!filter_obj.empty()) {
       LoggerD("Filter is set");
-      CallHistoryUtils::createFilter(filter, filter_obj);
+      utils_.createFilter(filter, filter_obj);
       ret = contacts_filter_add_operator(filter, CONTACTS_FILTER_OPERATOR_AND);
       if (CONTACTS_ERROR_NONE != ret) {
         LoggerW("contacts_filter_add_operator failed");
@@ -201,7 +195,7 @@ void CallHistory::find(const picojson::object& args)
       if (STR_ORDER_ASC == sort_order) {
         is_asc = true;
       }
-      unsigned int attribute = CallHistoryUtils::convertAttributeName(sort_attr_name);
+      unsigned int attribute = utils_.convertAttributeName(sort_attr_name);
       ret = contacts_query_set_sort(query, attribute, is_asc);
     } else {
       ret = contacts_query_set_sort(query, _contacts_phone_log.id, is_asc);
@@ -221,7 +215,7 @@ void CallHistory::find(const picojson::object& args)
     picojson::array& array = obj.insert(std::make_pair(STR_DATA, picojson::value(
         picojson::array()))).first->second.get<picojson::array>();
     if (record_list) {
-      CallHistoryUtils::parseRecordList(&record_list, array);
+      utils_.parseRecordList(&record_list, array);
     }
 
     ret = contacts_disconnect_on_thread();
@@ -233,10 +227,10 @@ void CallHistory::find(const picojson::object& args)
 
   };
 
-  auto find_response = [callback_id](const std::shared_ptr<picojson::value>& response) -> void {
+  auto find_response = [this, callback_id](const std::shared_ptr<picojson::value>& response) -> void {
     picojson::object& obj = response->get<picojson::object>();
     obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
-    CallHistoryInstance::getInstance().PostMessage(response->serialize().c_str());
+    instance_.PostMessage(response->serialize().c_str());
   };
 
   TaskQueue::GetInstance().Queue<picojson::value>(
@@ -309,10 +303,10 @@ common::PlatformResult CallHistory::removeBatch(const picojson::object& args)
     ReportSuccess(response->get<picojson::object>());
   };
 
-  auto remove_batch_response = [callback_id](const std::shared_ptr<picojson::value>& response) -> void {
+  auto remove_batch_response = [this, callback_id](const std::shared_ptr<picojson::value>& response) -> void {
     picojson::object& obj = response->get<picojson::object>();
     obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
-    CallHistoryInstance::getInstance().PostMessage(response->serialize().c_str());
+    instance_.PostMessage(response->serialize().c_str());
   };
 
   TaskQueue::GetInstance().Queue<picojson::value>(
@@ -423,10 +417,10 @@ void CallHistory::removeAll(const picojson::object& args)
     ReportSuccess(response->get<picojson::object>());
   };
 
-  auto remove_all_response = [callback_id](const std::shared_ptr<picojson::value>& response) -> void {
+  auto remove_all_response = [this, callback_id](const std::shared_ptr<picojson::value>& response) -> void {
     picojson::object& obj = response->get<picojson::object>();
     obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
-    CallHistoryInstance::getInstance().PostMessage(response->serialize().c_str());
+    instance_.PostMessage(response->serialize().c_str());
   };
 
   TaskQueue::GetInstance().Queue<picojson::value>(
@@ -443,6 +437,8 @@ std::vector<std::string>& CallHistory::getPhoneNumbers()
 void CallHistory::changeListenerCB(const char* view_uri, char *changes, void* user_data)
 {
   LoggerD("Entered");
+
+  CallHistory* h = static_cast<CallHistory*>(user_data);
 
   if (NULL == changes) {
     LoggerW("changes is NULL");
@@ -511,9 +507,9 @@ void CallHistory::changeListenerCB(const char* view_uri, char *changes, void* us
     }
 
     if (CONTACTS_CHANGE_INSERTED == change_type) {
-      CallHistoryUtils::parseRecordList(&record_list, added_array);
+      h->utils_.parseRecordList(&record_list, added_array);
     } else if (CONTACTS_CHANGE_UPDATED == change_type) {
-      CallHistoryUtils::parseRecordList(&record_list, changed_array);
+      h->utils_.parseRecordList(&record_list, changed_array);
     } else if (CONTACTS_CHANGE_DELETED == change_type) {
       removed_array.push_back(picojson::value(token_id));
     }
@@ -527,15 +523,15 @@ void CallHistory::changeListenerCB(const char* view_uri, char *changes, void* us
 
   if (added_array.size() > 0) {
     added_obj[STR_ACTION] = picojson::value("onadded");
-    CallHistoryInstance::getInstance().CallHistoryChange(added_obj);
+    h->instance_.CallHistoryChange(added_obj);
   }
   if (changed_array.size() > 0) {
     changed_obj[STR_ACTION] = picojson::value("onchanged");
-    CallHistoryInstance::getInstance().CallHistoryChange(changed_obj);
+    h->instance_.CallHistoryChange(changed_obj);
   }
   if (removed_array.size() > 0) {
     removed_obj[STR_ACTION] = picojson::value("onremoved");
-    CallHistoryInstance::getInstance().CallHistoryChange(removed_obj);
+    h->instance_.CallHistoryChange(removed_obj);
   }
 }
 
@@ -545,7 +541,7 @@ PlatformResult CallHistory::startCallHistoryChangeListener()
 
   if (!m_is_listener_set) {
     int ret = contacts_db_add_changed_cb_with_info(_contacts_phone_log._uri,
-                                                   changeListenerCB, NULL);
+                                                   changeListenerCB, this);
 
     if (CONTACTS_ERROR_NONE != ret) {
       LoggerE("Failed to add ChangeListener");
@@ -563,7 +559,7 @@ PlatformResult CallHistory::stopCallHistoryChangeListener()
   LoggerD("Entered");
   if (m_is_listener_set) {
     int ret = contacts_db_remove_changed_cb_with_info(_contacts_phone_log._uri,
-                                                      changeListenerCB, NULL);
+                                                      changeListenerCB, this);
 
     if (CONTACTS_ERROR_NONE != ret) {
       LoggerE("Failed to remove ChangeListener");

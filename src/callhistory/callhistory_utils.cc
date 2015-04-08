@@ -29,6 +29,10 @@ enum CompositeTypeEnum {
 };
 }
 
+CallHistoryUtils::CallHistoryUtils(CallHistory& history)
+    : history_(history) {
+}
+
 void CallHistoryUtils::parseRecordList(contacts_list_h *record_list, picojson::array& array)
 {
   LoggerD("Entered");
@@ -214,7 +218,7 @@ void CallHistoryUtils::parseCallingParty(contacts_record_h *record, picojson::ob
   LoggerD("Entered");
 
   int ret = CONTACTS_ERROR_NONE;
-  const std::vector<std::string>& phone_numbers = CallHistory::getInstance()->getPhoneNumbers();
+  const std::vector<std::string>& phone_numbers = history_.getPhoneNumbers();
   int sim_count = phone_numbers.size();
   int sim_index;
 
