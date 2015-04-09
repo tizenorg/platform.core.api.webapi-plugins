@@ -23,7 +23,6 @@ typedef std::string JsonString;
 class TimeInstance : public common::ParsedInstance {
  public:
   TimeInstance();
-  static TimeInstance& GetInstance();
   virtual ~TimeInstance();
 
  private:

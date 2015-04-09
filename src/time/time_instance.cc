@@ -44,11 +44,6 @@ const char kDateTimeListenerId[] = "DateTimeChangeListener";
 
 }  // namespace
 
-TimeInstance& TimeInstance::GetInstance() {
-  static TimeInstance instance;
-  return instance;
-}
-
 TimeInstance::TimeInstance() {
   using std::placeholders::_1;
   using std::placeholders::_2;
@@ -82,7 +77,7 @@ TimeInstance::TimeInstance() {
 #undef REGISTER_ASYNC
 }
 
-static void OnTimeChangedCallback(keynode_t* /*node*/, void* /*event_ptr*/);
+static void OnTimeChangedCallback(keynode_t* /*node*/, void* user_data);
 static std::string GetDefaultTimezone();
 
 TimeInstance::~TimeInstance() {}
@@ -428,7 +423,7 @@ class TimeUtilListeners {
   TimeUtilListeners();
   ~TimeUtilListeners();
 
-  PlatformResult RegisterVconfCallback(ListenerType type);
+  PlatformResult RegisterVconfCallback(ListenerType type, TimeInstance& instance);
   PlatformResult UnregisterVconfCallback(ListenerType type);
 
   std::string GetCurrentTimezone();
@@ -457,12 +452,12 @@ TimeUtilListeners::~TimeUtilListeners() {
   }
 }
 
-PlatformResult TimeUtilListeners::RegisterVconfCallback(ListenerType type) {
+PlatformResult TimeUtilListeners::RegisterVconfCallback(ListenerType type, TimeInstance& instance) {
   LoggerD("");
   if (!is_time_listener_registered_ && !is_timezone_listener_registered_) {
     LoggerD("registering listener on platform");
     if (0 != vconf_notify_key_changed(VCONFKEY_SYSTEM_TIME_CHANGED,
-                                      OnTimeChangedCallback, nullptr)) {
+                                      OnTimeChangedCallback, static_cast<void*>(&instance))) {
       LoggerE("Failed to register vconf callback");
       return PlatformResult(ErrorCode::UNKNOWN_ERR,
           "Failed to register vconf callback");
@@ -538,28 +533,29 @@ static std::string GetDefaultTimezone() {
 /////////////////////////// TimeUtilListeners object ////////////////////////
 static TimeUtilListeners g_time_util_listeners_obj;
 
-static void PostMessage(const char* message) {
+static void PostMessage(const char* message, TimeInstance& instance) {
   JsonValue result{JsonObject{}};
   JsonObject& result_obj = result.get<JsonObject>();
   result_obj.insert(std::make_pair("listenerId", picojson::value(message)));
-  TimeInstance::GetInstance().PostMessage(result.serialize().c_str());
+  instance.PostMessage(result.serialize().c_str());
 }
 
-static void OnTimeChangedCallback(keynode_t* /*node*/, void* /*event_ptr*/) {
+static void OnTimeChangedCallback(keynode_t* /*node*/, void* user_data) {
   LoggerD("");
+  TimeInstance *that = static_cast<TimeInstance*>(user_data);
   std::string defaultTimezone = GetDefaultTimezone();
 
   if (g_time_util_listeners_obj.GetCurrentTimezone() != defaultTimezone) {
     g_time_util_listeners_obj.SetCurrentTimezone(defaultTimezone);
-    PostMessage(kTimezoneListenerId);
+    PostMessage(kTimezoneListenerId, *that);
   }
-  PostMessage(kDateTimeListenerId);
+  PostMessage(kDateTimeListenerId, *that);
 }
 
 void TimeInstance::TimeSetDateTimeChangeListener(const JsonValue& /*args*/,
                                                  JsonObject& out) {
   PlatformResult result =
-      g_time_util_listeners_obj.RegisterVconfCallback(kTimeChange);
+      g_time_util_listeners_obj.RegisterVconfCallback(kTimeChange, *this);
   if (result.IsError())
     ReportError(result, &out);
   else
@@ -579,7 +575,7 @@ void TimeInstance::TimeUnsetDateTimeChangeListener(const JsonValue& /*args*/,
 void TimeInstance::TimeSetTimezoneChangeListener(const JsonValue& /*args*/,
                                                  JsonObject& out) {
   PlatformResult result =
-      g_time_util_listeners_obj.RegisterVconfCallback(kTimezoneChange);
+      g_time_util_listeners_obj.RegisterVconfCallback(kTimezoneChange, *this);
   if (result.IsError())
     ReportError(result, &out);
   else

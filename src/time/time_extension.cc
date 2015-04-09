@@ -28,5 +28,5 @@ TimeExtension::TimeExtension() {
 TimeExtension::~TimeExtension() {}
 
 common::Instance* TimeExtension::CreateInstance() {
-  return &extension::time::TimeInstance::GetInstance();
+  return new extension::time::TimeInstance();
 }
