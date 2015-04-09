@@ -13,9 +13,11 @@
 namespace extension {
 namespace secureelement {
 
+class SecureElementInstance;
+
 class SEService {
  public:
-  static SEService& GetInstance();
+  explicit SEService(SecureElementInstance& instance);
   ~SEService();
 
   void GetReaders(const picojson::value& args);
@@ -26,13 +28,13 @@ class SEService {
   void ServiceConnected();
   void EventHandler(char *se_name, int event);
  private:
-  SEService();
   SEService(const SEService&) = delete;
   SEService& operator=(const SEService&) = delete;
 
   smartcard_service_api::SEService *se_service_;
   bool is_initialized_;
   bool is_listener_set_;
+  SecureElementInstance& instance_;
 };
 
 } // secureelement

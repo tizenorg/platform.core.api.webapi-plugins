@@ -47,12 +47,10 @@ class SEServiceEventHandler : public SEServiceListener {
 
 static SEServiceEventHandler se_event_handler;
 
-SEService& SEService::GetInstance() {
-  static SEService instance;
-  return instance;
-}
-
-SEService::SEService() : is_initialized_(false), is_listener_set_(false) {
+SEService::SEService(SecureElementInstance& instance)
+    : is_initialized_(false),
+      is_listener_set_(false),
+      instance_(instance) {
   LoggerD("Entered");
 
   se_service_ = new smartcard_service_api::SEService((void *)this, &se_event_handler);
@@ -100,11 +98,11 @@ void SEService::GetReaders(const picojson::value& args) {
     ReportSuccess(result, response->get<picojson::object>());
   };
 
-  auto get_readers_response = [callback_id](
+  auto get_readers_response = [this, callback_id](
       const std::shared_ptr<picojson::value>& response) -> void {
     picojson::object& obj = response->get<picojson::object>();
     obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
-    SecureElementInstance::getInstance().PostMessage(response->serialize().c_str());
+    instance_.PostMessage(response->serialize().c_str());
   };
 
   TaskQueue::GetInstance().Queue<picojson::value>(
@@ -152,7 +150,7 @@ void SEService::ServiceConnected() {
       obj.insert(std::make_pair("action", picojson::value("onSEReady")));
       obj.insert(std::make_pair("handle", picojson::value((double) (long) readers[i])));
 
-      SecureElementInstance::getInstance().PostMessage(result.serialize().c_str());
+      instance_.PostMessage(result.serialize().c_str());
     }
   }
 }
@@ -182,7 +180,7 @@ void SEService::EventHandler(char *se_name, int event) {
         }
 
         obj.insert(std::make_pair("handle", picojson::value((double) (long) readers[i])));
-        SecureElementInstance::getInstance().PostMessage(result.serialize().c_str());
+        instance_.PostMessage(result.serialize().c_str());
         return;
       }
     }

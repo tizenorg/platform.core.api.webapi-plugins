@@ -24,12 +24,8 @@ namespace {
 const std::string kPrivilegeSecureElement = "http://tizen.org/privilege/secureelement";
 }
 
-SecureElementInstance& SecureElementInstance::getInstance() {
-    static SecureElementInstance instance;
-    return instance;
-}
-
-SecureElementInstance::SecureElementInstance() {
+SecureElementInstance::SecureElementInstance()
+    : service_(*this) {
     using std::placeholders::_1;
     using std::placeholders::_2;
 
@@ -68,7 +64,7 @@ void SecureElementInstance::GetReaders(const picojson::value& args, picojson::ob
   LoggerD("Entered");
 
   CHECK_PRIVILEGE_ACCESS(kPrivilegeSecureElement, &out);
-  SEService::GetInstance().GetReaders(args);
+  service_.GetReaders(args);
 }
 
 void SecureElementInstance::RegisterSEListener(const picojson::value& args, picojson::object& out) {
@@ -76,7 +72,7 @@ void SecureElementInstance::RegisterSEListener(const picojson::value& args, pico
 
   CHECK_PRIVILEGE_ACCESS(kPrivilegeSecureElement, &out);
 
-  SEService::GetInstance().RegisterSEListener();
+  service_.RegisterSEListener();
   ReportSuccess(out);
 }
 
@@ -86,7 +82,7 @@ void SecureElementInstance::UnregisterSEListener(
 
   CHECK_PRIVILEGE_ACCESS(kPrivilegeSecureElement, &out);
 
-  SEService::GetInstance().UnregisterSEListener();
+  service_.UnregisterSEListener();
   ReportSuccess(out);
 }
 
@@ -95,7 +91,7 @@ void SecureElementInstance::Shutdown(const picojson::value& args, picojson::obje
 
   CHECK_PRIVILEGE_ACCESS(kPrivilegeSecureElement, &out);
 
-  SEService::GetInstance().Shutdown();
+  service_.Shutdown();
   ReportSuccess(out);
 }
 
