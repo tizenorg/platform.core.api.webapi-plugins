@@ -14,13 +14,12 @@ namespace nfc {
 class NFCInstance: public common::ParsedInstance, NFCAdapter::IResponder
 {
  public:
-  static NFCInstance& getInstance();
-  void RespondAsync(const char* msg);
-
- private:
   NFCInstance();
   virtual ~NFCInstance();
 
+  void RespondAsync(const char* msg);
+
+ private:
   void GetDefaultAdapter(const picojson::value& args, picojson::object& out);
   void SetExclusiveMode(const picojson::value& args, picojson::object& out);
   void SetPowered(const picojson::value& args, picojson::object& out);

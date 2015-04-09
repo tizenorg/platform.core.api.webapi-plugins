@@ -32,11 +32,6 @@ const std::string kPrivilegeNfcTag = "http://tizen.org/privilege/nfc.tag";
 
 } // namespace
 
-NFCInstance& NFCInstance::getInstance() {
-  static NFCInstance instance;
-  return instance;
-}
-
 void NFCInstance::RespondAsync(const char* msg) {
   PostMessage(msg);
 }
