@@ -15,14 +15,15 @@
 #include "common/picojson.h"
 #include "common/platform_result.h"
 
-#include "radio_instance.h"
-
 namespace extension {
 namespace radio {
 
+class RadioInstance;
+
 class FMRadioManager {
  public:
-  static FMRadioManager* GetInstance();
+  explicit FMRadioManager(RadioInstance& instance);
+  ~FMRadioManager();
 
   common::PlatformResult Start(double freq);
   common::PlatformResult Stop();
@@ -43,10 +44,13 @@ class FMRadioManager {
   bool HasAntenna();
   const char* GetState();
 
- private:
-  FMRadioManager();
-  ~FMRadioManager();
+  void PostMessage(const std::string& msg) const;
+  void PostResultSuccess(double callbackId, picojson::value* event) const;
+  void PostResultSuccess(double callbackId) const;
+  void PostResultFailure(double callbackId, const common::PlatformResult& result) const;
 
+ private:
+  RadioInstance& instance_;
   radio_h radio_instance_;
 };
 

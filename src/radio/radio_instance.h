@@ -8,6 +8,8 @@
 #include "common/extension.h"
 #include "common/picojson.h"
 
+#include "radio/radio_manager.h"
+
 namespace extension {
 namespace radio {
 
@@ -15,8 +17,6 @@ class RadioInstance : public common::ParsedInstance {
  public:
   RadioInstance();
   virtual ~RadioInstance();
-
-  static RadioInstance& getInstance();
 
  private:
   void MuteGetter(const picojson::value& args, picojson::object& out);
@@ -35,6 +35,8 @@ class RadioInstance : public common::ParsedInstance {
   void UnsetFMRadioInterruptedListener(const picojson::value& args, picojson::object& out);
   void SetAntennaChangeListener(const picojson::value& args, picojson::object& out);
   void UnsetAntennaChangeListener(const picojson::value& args, picojson::object& out);
+
+  FMRadioManager manager_;
 };
 
 } // namespace radio

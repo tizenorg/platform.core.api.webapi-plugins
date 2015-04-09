@@ -24,5 +24,5 @@ RadioExtension::~RadioExtension() {
 }
 
 common::Instance* RadioExtension::CreateInstance() {
-  return &extension::radio::RadioInstance::getInstance();
+  return new extension::radio::RadioInstance();
 }

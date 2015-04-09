@@ -10,15 +10,14 @@
 
 #include "common/logger.h"
 
-#include "radio/radio_manager.h"
-
 namespace extension {
 namespace radio {
 
 using namespace common;
 using namespace extension::radio;
 
-RadioInstance::RadioInstance() {
+RadioInstance::RadioInstance()
+    : manager_(*this) {
   using std::placeholders::_1;
   using std::placeholders::_2;
 
@@ -52,69 +51,60 @@ RadioInstance::RadioInstance() {
 RadioInstance::~RadioInstance() {
 }
 
-RadioInstance& RadioInstance::getInstance() {
-  static RadioInstance instance;
-  return instance;
-}
-
 void RadioInstance::MuteGetter(const picojson::value& args,
                                picojson::object& out) {
   LoggerD("Enter");
-  ReportSuccess(picojson::value(FMRadioManager::GetInstance()->IsMuted()), out);
+  ReportSuccess(picojson::value(manager_.IsMuted()), out);
 }
 
 void RadioInstance::MuteSetter(const picojson::value& args,
                                picojson::object& out) {
   LoggerD("Enter");
-  FMRadioManager::GetInstance()->SetMute(args.get("mute").get<bool>());
+  manager_.SetMute(args.get("mute").get<bool>());
   ReportSuccess(out);
 }
 
 void RadioInstance::AntennaGetter(const picojson::value& args,
                                   picojson::object& out) {
   LoggerD("Enter");
-  ReportSuccess(picojson::value(FMRadioManager::GetInstance()->HasAntenna()),
-                out);
+  ReportSuccess(picojson::value(manager_.HasAntenna()), out);
 }
 
 void RadioInstance::StateGetter(const picojson::value& args,
                                 picojson::object& out) {
   LoggerD("Enter");
-  ReportSuccess(picojson::value(FMRadioManager::GetInstance()->GetState()),
-                out);
+  ReportSuccess(picojson::value(manager_.GetState()), out);
 }
 
 void RadioInstance::FrequencyGetter(const picojson::value& args,
                                     picojson::object& out) {
   LoggerD("Enter");
-  ReportSuccess(picojson::value(FMRadioManager::GetInstance()->GetFrequency()),
-                out);
+  ReportSuccess(picojson::value(manager_.GetFrequency()), out);
 }
 
 void RadioInstance::SignalStrengthGetter(const picojson::value& args,
                                          picojson::object& out) {
   LoggerD("Enter");
-  ReportSuccess(picojson::value(FMRadioManager::GetInstance()->GetSignalStrength()),
-                out);
+  ReportSuccess(picojson::value(manager_.GetSignalStrength()), out);
 }
 
 void RadioInstance::SeekUp(const picojson::value& args, picojson::object& out) {
   LoggerD("Enter");
-  FMRadioManager::GetInstance()->SeekUp(args.get("callbackId").get<double>());
+  manager_.SeekUp(args.get("callbackId").get<double>());
   ReportSuccess(out);
 }
 
 void RadioInstance::SeekDown(const picojson::value& args,
                              picojson::object& out) {
   LoggerD("Enter");
-  FMRadioManager::GetInstance()->SeekDown(args.get("callbackId").get<double>());
+  manager_.SeekDown(args.get("callbackId").get<double>());
   ReportSuccess(out);
 }
 
 void RadioInstance::Start(const picojson::value& args, picojson::object& out) {
   LoggerD("Enter");
 
-  PlatformResult result = FMRadioManager::GetInstance()->Start(args.get("frequency").get<double>());
+  PlatformResult result = manager_.Start(args.get("frequency").get<double>());
 
   if (result) {
     ReportSuccess(out);
@@ -126,7 +116,7 @@ void RadioInstance::Start(const picojson::value& args, picojson::object& out) {
 void RadioInstance::Stop(const picojson::value& args, picojson::object& out) {
   LoggerD("Enter");
 
-  PlatformResult result = FMRadioManager::GetInstance()->Stop();
+  PlatformResult result = manager_.Stop();
 
   if (result) {
     ReportSuccess(out);
@@ -138,14 +128,14 @@ void RadioInstance::Stop(const picojson::value& args, picojson::object& out) {
 void RadioInstance::ScanStart(const picojson::value& args,
                               picojson::object& out) {
   LoggerD("Enter");
-  FMRadioManager::GetInstance()->ScanStart(args.get("callbackId").get<double>());
+  manager_.ScanStart(args.get("callbackId").get<double>());
   ReportSuccess(out);
 }
 
 void RadioInstance::ScanStop(const picojson::value& args,
                              picojson::object& out) {
   LoggerD("Enter");
-  FMRadioManager::GetInstance()->ScanStop(args.get("callbackId").get<double>());
+  manager_.ScanStop(args.get("callbackId").get<double>());
   ReportSuccess(out);
 }
 
@@ -153,7 +143,7 @@ void RadioInstance::SetFMRadioInterruptedListener(const picojson::value& args,
                                                   picojson::object& out) {
   LoggerD("Enter");
 
-  PlatformResult result = FMRadioManager::GetInstance()->SetFMRadioInterruptedListener();
+  PlatformResult result = manager_.SetFMRadioInterruptedListener();
 
   if (result) {
     ReportSuccess(out);
@@ -166,7 +156,7 @@ void RadioInstance::UnsetFMRadioInterruptedListener(const picojson::value& args,
                                                     picojson::object& out) {
   LoggerD("Enter");
 
-  PlatformResult result = FMRadioManager::GetInstance()->UnsetFMRadioInterruptedListener();
+  PlatformResult result = manager_.UnsetFMRadioInterruptedListener();
 
   if (result) {
     ReportSuccess(out);
@@ -179,7 +169,7 @@ void RadioInstance::SetAntennaChangeListener(const picojson::value& args,
                                              picojson::object& out) {
   LoggerD("Enter");
 
-  PlatformResult result = FMRadioManager::GetInstance()->SetAntennaChangeListener();
+  PlatformResult result = manager_.SetAntennaChangeListener();
 
   if (result) {
     ReportSuccess(out);
@@ -192,7 +182,7 @@ void RadioInstance::UnsetAntennaChangeListener(const picojson::value& args,
                                                picojson::object& out) {
   LoggerD("Enter");
 
-  PlatformResult result = FMRadioManager::GetInstance()->UnsetAntennaChangeListener();
+  PlatformResult result = manager_.UnsetAntennaChangeListener();
 
   if (result) {
     ReportSuccess(out);

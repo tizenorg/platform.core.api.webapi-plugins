@@ -14,6 +14,8 @@
 #include "common/logger.h"
 #include "common/extension.h"
 
+#include "radio/radio_instance.h"
+
 using namespace common;
 using namespace std;
 
@@ -32,31 +34,6 @@ static const double FREQ_LOWER = 87.5;
 
 static void AddCallbackID(double callbackId, picojson::object* obj) {
   obj->insert(std::make_pair("callbackId", picojson::value(callbackId)));
-}
-
-static void PostResultSuccess(double callbackId, picojson::value* event) {
-  auto& obj = event->get<picojson::object>();
-
-  tools::ReportSuccess(obj);
-  AddCallbackID(callbackId, &obj);
-
-  RadioInstance::getInstance().PostMessage(event->serialize().c_str());
-}
-
-static void PostResultSuccess(double callbackId) {
-  picojson::value event{picojson::object()};
-
-  PostResultSuccess(callbackId, &event);
-}
-
-static void PostResultFailure(double callbackId, const PlatformResult& result) {
-  picojson::value event{picojson::object()};
-  auto& obj = event.get<picojson::object>();
-
-  tools::ReportError(result, &obj);
-  AddCallbackID(callbackId, &obj);
-
-  RadioInstance::getInstance().PostMessage(event.serialize().c_str());
 }
 
 PlatformResult GetPlatformResult(const std::string& str, int err) {
@@ -116,43 +93,53 @@ double ToMHz(int frequency) {
   return static_cast<double>(frequency) / 1000.0;
 }
 
+struct RadioData {
+  explicit RadioData(FMRadioManager& manager)
+      : manager_(manager),
+        callback_id_(0.0) {
+  }
+
+  FMRadioManager& manager_;
+  double callback_id_;
+};
+
+struct RadioScanData : public RadioData {
+  using RadioData::RadioData;
+  std::vector<int> frequencies_;
+};
+
 void RadioSeekCallback(int frequency, void* user_data) {
   LoggerD("Enter");
 
-  double* id = static_cast<double*>(user_data);
+  RadioData* data = static_cast<RadioData*>(user_data);
+  PlatformResult result = data->manager_.SetFrequency(ToMHz(frequency));
 
-  PlatformResult result = FMRadioManager::GetInstance()->SetFrequency(ToMHz(frequency));
   if (result) {
-    PostResultSuccess(*id);
+    data->manager_.PostResultSuccess(data->callback_id_);
   } else {
-    PostResultFailure(*id, result);
+    data->manager_.PostResultFailure(data->callback_id_, result);
   }
 
-  delete id;
+  delete data;
 }
-
-struct ScanData {
-  double callback_id_;
-  std::vector<int> frequencies_;
-};
 
 void ScanStartCallback(int frequency, void* user_data) {
   LoggerD("Enter");
 
-  ScanData* data = static_cast<ScanData*>(user_data);
+  RadioScanData* data = static_cast<RadioScanData*>(user_data);
   data->frequencies_.push_back(frequency);
 
   picojson::value event{picojson::object()};
   auto& obj = event.get<picojson::object>();
   obj.insert(std::make_pair("frequency", picojson::value(ToMHz(frequency))));
   obj.insert(std::make_pair("listenerId", picojson::value("FMRadio_Onfrequencyfound")));
-  RadioInstance::getInstance().PostMessage(event.serialize().c_str());
+  data->manager_.PostMessage(event.serialize());
 }
 
 void ScanCompleteCallback(void* user_data) {
   LoggerD("Enter");
 
-  ScanData* data = static_cast<ScanData*>(user_data);
+  RadioScanData* data = static_cast<RadioScanData*>(user_data);
 
   picojson::value event{picojson::object()};
   auto& obj = event.get<picojson::object>();
@@ -164,17 +151,17 @@ void ScanCompleteCallback(void* user_data) {
   }
 
   obj.insert(std::make_pair("frequencies", picojson::value(frequencies)));
-  PostResultSuccess(data->callback_id_, &event);
+  data->manager_.PostResultSuccess(data->callback_id_, &event);
 
   delete data;
 }
 
 void ScanStopCallback(void *user_data) {
   LoggerD("Enter");
-  double* callback_id = static_cast<double*>(user_data);
+  RadioData* data = static_cast<RadioData*>(user_data);
 
-  PostResultSuccess(*callback_id);
-  delete callback_id;
+  data->manager_.PostResultSuccess(data->callback_id_);
+  delete data;
 }
 
 void RadioInterruptedCallback(radio_interrupted_code_e code, void *user_data) {
@@ -193,7 +180,8 @@ void RadioInterruptedCallback(radio_interrupted_code_e code, void *user_data) {
     obj.insert(std::make_pair("reason", picojson::value(TranslateInterruptedCode(code))));
   }
 
-  RadioInstance::getInstance().PostMessage(event.serialize().c_str());
+  FMRadioManager* manager = static_cast<FMRadioManager*>(user_data);
+  manager->PostMessage(event.serialize());
 }
 
 
@@ -212,7 +200,8 @@ void RadioAntennaCallback(runtime_info_key_e key, void* user_data) {
   obj.insert(std::make_pair("connected", picojson::value(connected)));
   obj.insert(std::make_pair("listenerId", picojson::value("FMRadio_Antenna")));
 
-  RadioInstance::getInstance().PostMessage(event.serialize().c_str());
+  FMRadioManager* manager = static_cast<FMRadioManager*>(user_data);
+  manager->PostMessage(event.serialize());
 }
 
 } // namespace
@@ -309,8 +298,9 @@ double FMRadioManager::GetSignalStrength() {
   }
 }
 
-FMRadioManager::FMRadioManager()
-    : radio_instance_(nullptr) {
+FMRadioManager::FMRadioManager(RadioInstance& instance)
+    : instance_(instance),
+      radio_instance_(nullptr) {
   LoggerD("Enter");
 
   const auto err = radio_create(&radio_instance_);
@@ -335,13 +325,6 @@ FMRadioManager::~FMRadioManager() {
   }
 }
 
-FMRadioManager* FMRadioManager::GetInstance() {
-  LoggerD("Enter");
-
-  static FMRadioManager instance;
-  return &instance;
-}
-
 PlatformResult FMRadioManager::Start(double frequency) {
   LoggerD("Enter, frequency: %f", frequency);
 
@@ -363,7 +346,8 @@ PlatformResult FMRadioManager::Stop() {
 void FMRadioManager::SeekUp(double callback_id) {
   LoggerD("Enter");
 
-  double* user_data = new double(callback_id);
+  RadioData* user_data = new RadioData(*this);
+  user_data->callback_id_ = callback_id;
 
   const auto err = radio_seek_up(radio_instance_, RadioSeekCallback, user_data);
 
@@ -376,7 +360,8 @@ void FMRadioManager::SeekUp(double callback_id) {
 void FMRadioManager::SeekDown(double callback_id) {
   LoggerD("Enter");
 
-  double* user_data = new double(callback_id);
+  RadioData* user_data = new RadioData(*this);
+  user_data->callback_id_ = callback_id;
 
   const auto err = radio_seek_down(radio_instance_, RadioSeekCallback, user_data);
 
@@ -389,7 +374,7 @@ void FMRadioManager::SeekDown(double callback_id) {
 void FMRadioManager::ScanStart(double callback_id) {
   LoggerD("Enter");
 
-  ScanData* user_data = new ScanData();
+  RadioScanData* user_data = new RadioScanData(*this);
   user_data->callback_id_ = callback_id;
 
   auto err = radio_set_scan_completed_cb(radio_instance_, ScanCompleteCallback,
@@ -412,7 +397,8 @@ void FMRadioManager::ScanStart(double callback_id) {
 void FMRadioManager::ScanStop(double callback_id) {
   LoggerD("Enter");
 
-  double* user_data = new double(callback_id);
+  RadioScanData* user_data = new RadioScanData(*this);
+  user_data->callback_id_ = callback_id;
 
   auto err = radio_unset_scan_completed_cb(radio_instance_);
   if (RADIO_ERROR_NONE != err) {
@@ -434,7 +420,7 @@ common::PlatformResult FMRadioManager::SetFMRadioInterruptedListener() {
 
   const auto err = radio_set_interrupted_cb(radio_instance_,
                                             RadioInterruptedCallback,
-                                            nullptr);
+                                            this);
   return CheckError("radio_set_interrupted_cb", err);
 }
 
@@ -451,7 +437,7 @@ common::PlatformResult FMRadioManager::SetAntennaChangeListener() {
   const auto err = runtime_info_set_changed_cb(
                             RUNTIME_INFO_KEY_AUDIO_JACK_CONNECTED,
                             RadioAntennaCallback,
-                            nullptr);
+                            this);
   return CheckError("runtime_info_set_changed_cb", err);
 }
 
@@ -460,6 +446,35 @@ common::PlatformResult FMRadioManager::UnsetAntennaChangeListener() {
 
   const auto err = runtime_info_unset_changed_cb(RUNTIME_INFO_KEY_AUDIO_JACK_CONNECTED);
   return CheckError("runtime_info_unset_changed_cb", err);
+}
+
+void FMRadioManager::PostMessage(const std::string& msg) const {
+  instance_.PostMessage(msg.c_str());
+}
+
+void FMRadioManager::PostResultSuccess(double callbackId, picojson::value* event) const {
+  auto& obj = event->get<picojson::object>();
+
+  tools::ReportSuccess(obj);
+  AddCallbackID(callbackId, &obj);
+
+  PostMessage(event->serialize());
+}
+
+void FMRadioManager::PostResultSuccess(double callbackId) const {
+  picojson::value event{picojson::object()};
+
+  PostResultSuccess(callbackId, &event);
+}
+
+void FMRadioManager::PostResultFailure(double callbackId, const PlatformResult& result) const {
+  picojson::value event{picojson::object()};
+  auto& obj = event.get<picojson::object>();
+
+  tools::ReportError(result, &obj);
+  AddCallbackID(callbackId, &obj);
+
+  PostMessage(event.serialize());
 }
 
 } // namespace radio
