@@ -7,19 +7,14 @@
 #include "common/picojson.h"
 #include "common/logger.h"
 #include "common/platform_exception.h"
-#include "sensor_service.h"
 
 namespace extension {
 namespace sensor {
 
 using namespace common;
 
-SensorInstance& SensorInstance::GetInstance() {
-  static SensorInstance instance;
-  return instance;
-}
-
-SensorInstance::SensorInstance() {
+SensorInstance::SensorInstance()
+    : service_(*this) {
   using std::placeholders::_1;
   using std::placeholders::_2;
 
@@ -42,33 +37,33 @@ SensorInstance::~SensorInstance() {
 
 void SensorInstance::GetAvailableSensors(const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
-  SensorService::GetInstance()->GetAvailableSensors(out);
+  service_.GetAvailableSensors(out);
 }
 
 void SensorInstance::SensorStop(const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
-  SensorService::GetInstance()->SensorStop(args, out);
+  service_.SensorStop(args, out);
 }
 
 void SensorInstance::SensorSetChangeListener(const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
-  SensorService::GetInstance()->SensorSetChangeListener(args, out);
+  service_.SensorSetChangeListener(args, out);
 }
 
 void SensorInstance::SensorUnsetChangeListener(const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
-  SensorService::GetInstance()->SensorUnsetChangeListener(args, out);
+  service_.SensorUnsetChangeListener(args, out);
 }
 
 void SensorInstance::SensorStart(const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
-  SensorService::GetInstance()->SensorStart(args, out);
+  service_.SensorStart(args, out);
 }
 
 void SensorInstance::SensorGetData(const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
 
-  SensorService::GetInstance()->GetSensorData(args, out);
+  service_.GetSensorData(args, out);
 }
 
 } // namespace sensor

@@ -16,10 +16,13 @@ namespace extension {
 namespace sensor {
 
 class SensorData;
+class SensorInstance;
 
 class SensorService {
  public:
-  static SensorService* GetInstance();
+  explicit SensorService(SensorInstance& instance);
+  ~SensorService();
+
   void GetAvailableSensors(picojson::object& out);
   void SensorStart(const picojson::value& args, picojson::object& out);
   void SensorStop(const picojson::value& args, picojson::object& out);
@@ -28,13 +31,11 @@ class SensorService {
   void GetSensorData(const picojson::value& args, picojson::object& out);
 
  private:
-  SensorService();
-  ~SensorService();
-
   std::shared_ptr<SensorData> GetSensor(sensor_type_e type_enum);
   void AddSensor(SensorData* sensor);
 
   std::map<sensor_type_e, std::shared_ptr<SensorData>> sensors_;
+  SensorInstance& instance_;
 };
 
 } // namespace sensor

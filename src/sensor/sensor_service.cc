@@ -144,8 +144,9 @@ class SensorData {
  public:
   typedef bool (*EventComparator)(sensor_event_s* l, sensor_event_s* r);
 
-  SensorData(sensor_type_e type_enum, const std::string& name,
-             EventComparator comparator = DefaultEventComparator);
+  SensorData(SensorInstance& instance, sensor_type_e type_enum,
+             const std::string& name, EventComparator comparator =
+                 DefaultEventComparator);
   virtual ~SensorData();
 
   PlatformResult IsSupported(bool* supported);
@@ -174,15 +175,17 @@ class SensorData {
   sensor_listener_h listener_;
   sensor_event_s previous_event_;
   common::optional<bool> is_supported_;
+  SensorInstance& instance_;
 };
 
-SensorData::SensorData(sensor_type_e type_enum, const std::string& name,
-                       EventComparator comparator)
+SensorData::SensorData(SensorInstance& instance, sensor_type_e type_enum,
+                       const std::string& name, EventComparator comparator)
     : type_enum_(type_enum),
       comparator_(comparator),
       handle_(nullptr),
       listener_(nullptr),
-      previous_event_() {
+      previous_event_(),
+      instance_(instance) {
   type_to_string_map.insert(std::make_pair(type_enum, name));
   string_to_type_map.insert(std::make_pair(name, type_enum));
 
@@ -217,7 +220,7 @@ void SensorData::SensorCallback(sensor_h sensor, sensor_event_s* event, void* us
   picojson::value result = picojson::value(picojson::object());
   picojson::object& object = result.get<picojson::object>();
   ReportSensorData(that->type(), event, &object);
-  SensorInstance::GetInstance().PostMessage(result.serialize().c_str());
+  that->instance_.PostMessage(result.serialize().c_str());
 }
 
 bool SensorData::DefaultEventComparator(sensor_event_s* l, sensor_event_s* r) {
@@ -403,7 +406,7 @@ PlatformResult SensorData::GetSensorData(picojson::object* data) {
 
 class HrmSensorData : public SensorData {
  public:
-  HrmSensorData();
+  explicit HrmSensorData(SensorInstance& instance);
   virtual ~HrmSensorData();
 
   virtual PlatformResult Start();
@@ -420,12 +423,12 @@ class HrmSensorData : public SensorData {
   std::map<sensor_type_e, std::shared_ptr<SensorData>> hrm_sensors_;
 };
 
-HrmSensorData::HrmSensorData()
-    : SensorData(SENSOR_CUSTOM, "HRM_RAW") {
+HrmSensorData::HrmSensorData(SensorInstance& instance)
+    : SensorData(instance, SENSOR_CUSTOM, "HRM_RAW") {
   LoggerD("Entered: %s", type_to_string_map[type()].c_str());
-  AddSensor(new SensorData(SENSOR_HRM_LED_IR, "LED_IR"));
-  AddSensor(new SensorData(SENSOR_HRM_LED_RED, "LED_RED"));
-  AddSensor(new SensorData(SENSOR_HRM_LED_GREEN, "LED_GREEN"));
+  AddSensor(new SensorData(instance, SENSOR_HRM_LED_IR, "LED_IR"));
+  AddSensor(new SensorData(instance, SENSOR_HRM_LED_RED, "LED_RED"));
+  AddSensor(new SensorData(instance, SENSOR_HRM_LED_GREEN, "LED_GREEN"));
 }
 
 HrmSensorData::~HrmSensorData() {
@@ -501,25 +504,20 @@ PlatformResult HrmSensorData::GetSensorData(picojson::object* data) {
   return PlatformResult(ErrorCode::UNKNOWN_ERR, "There are no supported HRM sensors.");
 }
 
-SensorService::SensorService() {
+SensorService::SensorService(SensorInstance& instance)
+    : instance_(instance) {
   LoggerD("Entered");
 
-  AddSensor(new SensorData(SENSOR_LIGHT, "LIGHT"));
-  AddSensor(new SensorData(SENSOR_MAGNETIC, "MAGNETIC", MagneticEventComparator));
-  AddSensor(new SensorData(SENSOR_PRESSURE, "PRESSURE"));
-  AddSensor(new SensorData(SENSOR_PROXIMITY, "PROXIMITY"));
-  AddSensor(new SensorData(SENSOR_ULTRAVIOLET, "ULTRAVIOLET"));
-  AddSensor(new HrmSensorData());
+  AddSensor(new SensorData(instance, SENSOR_LIGHT, "LIGHT"));
+  AddSensor(new SensorData(instance, SENSOR_MAGNETIC, "MAGNETIC", MagneticEventComparator));
+  AddSensor(new SensorData(instance, SENSOR_PRESSURE, "PRESSURE"));
+  AddSensor(new SensorData(instance, SENSOR_PROXIMITY, "PROXIMITY"));
+  AddSensor(new SensorData(instance, SENSOR_ULTRAVIOLET, "ULTRAVIOLET"));
+  AddSensor(new HrmSensorData(instance));
 }
 
 SensorService::~SensorService() {
   LoggerD("Entered");
-}
-
-SensorService* SensorService::GetInstance() {
-  LoggerD("Entered");
-  static SensorService instance_;
-  return &instance_;
 }
 
 void SensorService::GetAvailableSensors(picojson::object& out) {
@@ -575,9 +573,9 @@ void SensorService::SensorStart(const picojson::value& args, picojson::object& o
       ReportSuccess(result->get<picojson::object>());
     }
   };
-  auto start_result = [callback_id](const std::shared_ptr<picojson::value>& result) {
+  auto start_result = [this, callback_id](const std::shared_ptr<picojson::value>& result) {
     result->get<picojson::object>()["callbackId"] = picojson::value{static_cast<double>(callback_id)};
-    SensorInstance::GetInstance().PostMessage(result->serialize().c_str());
+    instance_.PostMessage(result->serialize().c_str());
   };
 
   TaskQueue::GetInstance().Queue<picojson::value>(
@@ -703,10 +701,10 @@ void SensorService::GetSensorData(const picojson::value& args, picojson::object&
     }
   };
 
-  auto get_data_result = [callback_id](const std::shared_ptr<picojson::value>& result) {
+  auto get_data_result = [this, callback_id](const std::shared_ptr<picojson::value>& result) {
     result->get<picojson::object>()["callbackId"] = picojson::value{static_cast<double>(callback_id)};
 
-    SensorInstance::GetInstance().PostMessage(result->serialize().c_str());
+    instance_.PostMessage(result->serialize().c_str());
   };
 
   TaskQueue::GetInstance().Queue<picojson::value>(
