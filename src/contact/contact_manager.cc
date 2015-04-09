@@ -810,7 +810,6 @@ bool IsNumeric(const char* s) {
 void ContactManagerListenerCallback(const char* view_uri, char* changes,
                                     void* user_data) {
   (void)view_uri;
-  (void)user_data;
 
   if (nullptr == changes) {
     LoggerW("changes is NULL");
@@ -883,17 +882,18 @@ void ContactManagerListenerCallback(const char* view_uri, char* changes,
     token = strtok(nullptr, kTokenDelimiter);
   }
 
-  ContactInstance::GetInstance().PostMessage(result.serialize().c_str());
+  ContactInstance* instance = static_cast<ContactInstance*>(user_data);
+  instance->PostMessage(result.serialize().c_str());
 }
 }
 
-PlatformResult ContactManagerStartListening(const JsonObject& /*args*/,
+PlatformResult ContactManagerStartListening(ContactInstance& instance, const JsonObject& /*args*/,
                                             JsonObject& /*out*/) {
   PlatformResult status = ContactUtil::CheckDBConnection();
   if (status.IsError()) return status;
 
   int error_code = contacts_db_add_changed_cb_with_info(
-      _contacts_person._uri, ContactManagerListenerCallback, nullptr);
+      _contacts_person._uri, ContactManagerListenerCallback, &instance);
 
   if (CONTACTS_ERROR_NONE != error_code) {
     LoggerE("contacts_db_add_changed_cb(_contacts_person._uri) error: %d",
@@ -904,13 +904,13 @@ PlatformResult ContactManagerStartListening(const JsonObject& /*args*/,
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-PlatformResult ContactManagerStopListening(const JsonObject& /*args*/,
+PlatformResult ContactManagerStopListening(ContactInstance& instance, const JsonObject& /*args*/,
                                            JsonObject& /*out*/) {
   PlatformResult status = ContactUtil::CheckDBConnection();
   if (status.IsError()) return status;
 
   int error_code = contacts_db_remove_changed_cb_with_info(
-      _contacts_person._uri, ContactManagerListenerCallback, nullptr);
+      _contacts_person._uri, ContactManagerListenerCallback, &instance);
 
   if (CONTACTS_ERROR_NONE != error_code) {
     LoggerE("contacts_db_remove_changed_cb(_contacts_person._uri) error: %d",

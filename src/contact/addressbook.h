@@ -24,6 +24,9 @@
 
 namespace extension {
 namespace contact {
+
+class ContactInstance;
+
 namespace AddressBook {
 
 typedef std::function<common::PlatformResult(const JsonObject&, JsonObject&)>
@@ -46,9 +49,9 @@ common::PlatformResult AddressBookRemoveGroup(const JsonObject& args,
                                               JsonObject&);
 common::PlatformResult AddressBookGetGroups(const JsonObject& args,
                                             JsonArray& out);
-common::PlatformResult AddressBookStartListening(const JsonObject& args,
+common::PlatformResult AddressBookStartListening(ContactInstance& instance, const JsonObject& args,
                                                  JsonObject& out);
-common::PlatformResult AddressBookStopListening(const JsonObject& args,
+common::PlatformResult AddressBookStopListening(ContactInstance& instance, const JsonObject& args,
                                                 JsonObject& out);
 
 common::PlatformResult AddressBookBatchFunc(NativeFunction impl,

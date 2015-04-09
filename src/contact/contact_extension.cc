@@ -27,5 +27,5 @@ ContactExtension::ContactExtension() {
 ContactExtension::~ContactExtension() {}
 
 common::Instance* ContactExtension::CreateInstance() {
-  return &extension::contact::ContactInstance::GetInstance();
+  return new extension::contact::ContactInstance();
 }

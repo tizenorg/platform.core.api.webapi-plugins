@@ -23,14 +23,8 @@ const std::string kPrivilegeContactWrite = "http://tizen.org/privilege/contact.w
 
 using namespace common;
 
-ContactInstance& ContactInstance::GetInstance() {
-  static ContactInstance instance;
-  return instance;
-}
-
-int ContactInstance::current_state = 0;
-
-ContactInstance::ContactInstance() {
+ContactInstance::ContactInstance()
+    : current_state_(0) {
   using std::placeholders::_1;
   using std::placeholders::_2;
 
@@ -382,7 +376,7 @@ void ContactInstance::AddressBookStartListening(const JsonValue& args,
   CHECK_PRIVILEGE_ACCESS(kPrivilegeContactRead, &out);
   JsonValue val{JsonObject{}};
   PlatformResult status = AddressBook::AddressBookStartListening(
-      common::JsonCast<JsonObject>(args), val.get<JsonObject>());
+      *this, common::JsonCast<JsonObject>(args), val.get<JsonObject>());
   if (status.IsSuccess())
     ReportSuccess(val, out);
   else
@@ -394,7 +388,7 @@ void ContactInstance::AddressBookStopListening(const JsonValue& args,
   CHECK_PRIVILEGE_ACCESS(kPrivilegeContactRead, &out);
   JsonValue val{JsonObject{}};
   PlatformResult status = AddressBook::AddressBookStopListening(
-      common::JsonCast<JsonObject>(args), val.get<JsonObject>());
+      *this, common::JsonCast<JsonObject>(args), val.get<JsonObject>());
   if (status.IsSuccess())
     ReportSuccess(val, out);
   else
@@ -548,7 +542,7 @@ void ContactInstance::ContactManagerStartListening(const JsonValue& args,
   CHECK_PRIVILEGE_ACCESS(kPrivilegeContactRead, &out);
   JsonValue val{JsonObject{}};
   PlatformResult status = ContactManager::ContactManagerStartListening(
-      common::JsonCast<JsonObject>(args), val.get<JsonObject>());
+      *this, common::JsonCast<JsonObject>(args), val.get<JsonObject>());
   if (status.IsSuccess())
     ReportSuccess(val, out);
   else
@@ -560,7 +554,7 @@ void ContactInstance::ContactManagerStopListening(const JsonValue& args,
   CHECK_PRIVILEGE_ACCESS(kPrivilegeContactRead, &out);
   JsonValue val{JsonObject{}};
   PlatformResult status = ContactManager::ContactManagerStopListening(
-      common::JsonCast<JsonObject>(args), val.get<JsonObject>());
+      *this, common::JsonCast<JsonObject>(args), val.get<JsonObject>());
   if (status.IsSuccess())
     ReportSuccess(val, out);
   else

@@ -16,9 +16,10 @@ namespace contact {
 class ContactInstance : public common::ParsedInstance {
  public:
   ContactInstance();
-  static ContactInstance& GetInstance();
-  static int current_state;
   virtual ~ContactInstance();
+
+  int current_state() const { return current_state_; }
+  void set_current_state(int state) { current_state_ = state; }
 
  private:
   void AddressBookGet(const JsonValue& args, JsonObject& out);
@@ -213,6 +214,8 @@ class ContactInstance : public common::ParsedInstance {
 
   void PersonLink(const JsonValue& args, JsonObject& out);
   void PersonUnlink(const JsonValue& args, JsonObject& out);
+
+  int current_state_;
 };
 }  // namespace contact
 }  // namespace extension

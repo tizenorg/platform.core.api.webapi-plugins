@@ -22,6 +22,9 @@
 
 namespace extension {
 namespace contact {
+
+class ContactInstance;
+
 namespace ContactManager {
 
 common::PlatformResult ContactManagerGetAddressBooks(const JsonObject& args,
@@ -62,7 +65,7 @@ common::PlatformResult ContactManagerImportFromVCard(const JsonObject& args,
  * {status: 'success'}
  * @endcode
  */
-common::PlatformResult ContactManagerStartListening(const JsonObject& args,
+common::PlatformResult ContactManagerStartListening(ContactInstance& instance, const JsonObject& args,
                                                     JsonObject& out);
 
 /**
@@ -76,7 +79,7 @@ common::PlatformResult ContactManagerStartListening(const JsonObject& args,
  * {status: 'success'}
  * @endcode
  */
-common::PlatformResult ContactManagerStopListening(const JsonObject& args,
+common::PlatformResult ContactManagerStopListening(ContactInstance& instance, const JsonObject& args,
                                                    JsonObject& out);
 
 }  // namespace ContactManager

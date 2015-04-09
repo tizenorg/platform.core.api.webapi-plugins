@@ -675,10 +675,10 @@ PlatformResult AddressBookGetGroups(const JsonObject& args, JsonArray& out) {
 }
 
 namespace {
+
 void AddressBookListenerCallback(const char* view_uri, void* user_data) {
   LoggerD("entered");
   (void)view_uri;
-  (void)user_data;
 
   PlatformResult status = ContactUtil::CheckDBConnection();
   if (status.IsError()) {
@@ -695,8 +695,9 @@ void AddressBookListenerCallback(const char* view_uri, void* user_data) {
     LoggerW("get current version returns error, code: %d", error_code);
   }
 
-  for (int version = ContactInstance::current_state; version < current_version;
-       ++version) {
+  ContactInstance* instance = static_cast<ContactInstance*>(user_data);
+
+  for (int version = instance->current_state(); version < current_version; ++version) {
     int latest_version = 0;
     error_code = contacts_db_get_changes_by_version(
         _contacts_contact_updated_info._uri, kUnifiedAddressBookId, version,
@@ -820,27 +821,29 @@ void AddressBookListenerCallback(const char* view_uri, void* user_data) {
       }
     }
 
-    ContactInstance::GetInstance().PostMessage(result.serialize().c_str());
+    instance->PostMessage(result.serialize().c_str());
   }
 
-  ContactInstance::current_state = current_version;
+  instance->set_current_state(current_version);
 }
 }
 
-PlatformResult AddressBookStartListening(const JsonObject&, JsonObject& out) {
+PlatformResult AddressBookStartListening(ContactInstance& instance, const JsonObject&, JsonObject& out) {
   PlatformResult status = ContactUtil::CheckDBConnection();
   if (status.IsError()) return status;
+  int current_state = 0;
 
   // Set the initial latest version before registering the callback.
   // The callback should only be registered once so no race can occur.
-  int error_code =
-      contacts_db_get_current_version(&ContactInstance::current_state);
+  int error_code = contacts_db_get_current_version(&current_state);
   if (CONTACTS_ERROR_NONE != error_code) {
     LoggerW("get current version returns error, code: %d", error_code);
   }
 
+  instance.set_current_state(current_state);
+
   error_code = contacts_db_add_changed_cb(_contacts_contact._uri,
-                                          AddressBookListenerCallback, NULL);
+                                          AddressBookListenerCallback, &instance);
 
   if (CONTACTS_ERROR_NONE != error_code) {
     LoggerE("Error while registering listener to contacts db, code: %d",
@@ -852,12 +855,12 @@ PlatformResult AddressBookStartListening(const JsonObject&, JsonObject& out) {
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-PlatformResult AddressBookStopListening(const JsonObject&, JsonObject& out) {
+PlatformResult AddressBookStopListening(ContactInstance& instance, const JsonObject&, JsonObject& out) {
   PlatformResult status = ContactUtil::CheckDBConnection();
   if (status.IsError()) return status;
 
   int error_code = contacts_db_remove_changed_cb(
-      _contacts_contact._uri, AddressBookListenerCallback, NULL);
+      _contacts_contact._uri, AddressBookListenerCallback, &instance);
 
   if (CONTACTS_ERROR_NONE != error_code) {
     LoggerE("Error while removing listener");
