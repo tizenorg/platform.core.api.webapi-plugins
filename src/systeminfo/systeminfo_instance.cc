@@ -22,17 +22,17 @@ using namespace common;
 using namespace extension::systeminfo;
 
 //Callback functions declarations
-static void OnBatteryChangedCallback();
-static void OnCpuChangedCallback();
-static void OnStorageChangedCallback();
-static void OnDisplayChangedCallback();
-static void OnDeviceOrientationChangedCallback();
-static void OnLocaleChangedCallback();
-static void OnNetworkChangedCallback();
-static void OnWifiNetworkChangedCallback();
-static void OnCellularNetworkChangedCallback();
-static void OnPeripheralChangedCallback();
-static void OnMemoryChangedCallback();
+static void OnBatteryChangedCallback(SysteminfoInstance& instance);
+static void OnCpuChangedCallback(SysteminfoInstance& instance);
+static void OnStorageChangedCallback(SysteminfoInstance& instance);
+static void OnDisplayChangedCallback(SysteminfoInstance& instance);
+static void OnDeviceOrientationChangedCallback(SysteminfoInstance& instance);
+static void OnLocaleChangedCallback(SysteminfoInstance& instance);
+static void OnNetworkChangedCallback(SysteminfoInstance& instance);
+static void OnWifiNetworkChangedCallback(SysteminfoInstance& instance);
+static void OnCellularNetworkChangedCallback(SysteminfoInstance& instance);
+static void OnPeripheralChangedCallback(SysteminfoInstance& instance);
+static void OnMemoryChangedCallback(SysteminfoInstance& instance);
 
 namespace {
 const std::string kPropertyIdString = "propertyId";
@@ -100,12 +100,6 @@ const std::string kPrivilegeLED = "http://tizen.org/privilege/led";
     return; \
   } \
   result_obj.insert(std::make_pair(str_name, picojson::value(str_value)));
-}
-
-
-SysteminfoInstance& SysteminfoInstance::getInstance() {
-  static SysteminfoInstance instance;
-  return instance;
 }
 
 SysteminfoInstance::SysteminfoInstance() {
@@ -307,34 +301,34 @@ void SysteminfoInstance::AddPropertyValueChangeListener(const picojson::value& a
   LoggerD("Adding listener for property with id: %s ", property_name.c_str());
   PlatformResult ret(ErrorCode::NO_ERROR);
   if (property_name == kPropertyIdBattery) {
-    ret = SysteminfoUtils::RegisterBatteryListener(OnBatteryChangedCallback);
+    ret = SysteminfoUtils::RegisterBatteryListener(OnBatteryChangedCallback, *this);
   } else if (property_name == kPropertyIdCpu) {
-    ret = SysteminfoUtils::RegisterCpuListener(OnCpuChangedCallback);
+    ret = SysteminfoUtils::RegisterCpuListener(OnCpuChangedCallback, *this);
   } else if (property_name == kPropertyIdStorage) {
-    ret = SysteminfoUtils::RegisterStorageListener(OnStorageChangedCallback);
+    ret = SysteminfoUtils::RegisterStorageListener(OnStorageChangedCallback, *this);
   } else if (property_name == kPropertyIdDisplay) {
-    ret = SysteminfoUtils::RegisterDisplayListener(OnDisplayChangedCallback);
+    ret = SysteminfoUtils::RegisterDisplayListener(OnDisplayChangedCallback, *this);
   } else if (property_name == kPropertyIdDeviceOrientation) {
-    ret = SysteminfoUtils::RegisterDeviceOrientationListener(OnDeviceOrientationChangedCallback);
+    ret = SysteminfoUtils::RegisterDeviceOrientationListener(OnDeviceOrientationChangedCallback, *this);
   } else if (property_name == kPropertyIdBuild) {
     LoggerW("BUILD property's value is a fixed value");
     //should be accepted, but no registration is needed
     //ret = PlatformResult(ErrorCode::NOT_SUPPORTED_ERR, "BUILD property's value is a fixed value");
   } else if (property_name == kPropertyIdLocale) {
-    ret = SysteminfoUtils::RegisterLocaleListener(OnLocaleChangedCallback);
+    ret = SysteminfoUtils::RegisterLocaleListener(OnLocaleChangedCallback, *this);
   } else if (property_name == kPropertyIdNetwork) {
-    ret = SysteminfoUtils::RegisterNetworkListener(OnNetworkChangedCallback);
+    ret = SysteminfoUtils::RegisterNetworkListener(OnNetworkChangedCallback, *this);
   } else if (property_name == kPropertyIdWifiNetwork) {
-    ret = SysteminfoUtils::RegisterWifiNetworkListener(OnWifiNetworkChangedCallback);
+    ret = SysteminfoUtils::RegisterWifiNetworkListener(OnWifiNetworkChangedCallback, *this);
   } else if (property_name == kPropertyIdCellularNetwork) {
-    ret = SysteminfoUtils::RegisterCellularNetworkListener(OnCellularNetworkChangedCallback);
+    ret = SysteminfoUtils::RegisterCellularNetworkListener(OnCellularNetworkChangedCallback, *this);
   } else if (property_name == kPropertyIdSim) {
     //SIM listeners are not supported by core API, so we just pass over
     LoggerW("SIM listener is not supported by Core API - ignoring");
   } else if (property_name == kPropertyIdPeripheral) {
-    ret = SysteminfoUtils::RegisterPeripheralListener(OnPeripheralChangedCallback);
+    ret = SysteminfoUtils::RegisterPeripheralListener(OnPeripheralChangedCallback, *this);
   } else if (property_name == kPropertyIdMemory) {
-    ret = SysteminfoUtils::RegisterMemoryListener(OnMemoryChangedCallback);
+    ret = SysteminfoUtils::RegisterMemoryListener(OnMemoryChangedCallback, *this);
   } else {
     LoggerE("Not supported property");
     ret = PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Not supported property");
@@ -512,7 +506,7 @@ void SysteminfoInstance::GetMaxBrightness(const picojson::value& args, picojson:
 }
 
 //Callback functions
-void OnBatteryChangedCallback()
+void OnBatteryChangedCallback(SysteminfoInstance& instance)
 {
   LoggerD("");
   const std::shared_ptr<picojson::value>& response =
@@ -524,11 +518,11 @@ void OnBatteryChangedCallback()
   PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdBattery, true, result);
   if (ret.IsSuccess()) {
     ReportSuccess(result,response->get<picojson::object>());
-    SysteminfoInstance::getInstance().PostMessage(response->serialize().c_str());
+    instance.PostMessage(response->serialize().c_str());
   }
 }
 
-void OnCpuChangedCallback()
+void OnCpuChangedCallback(SysteminfoInstance& instance)
 {
   LoggerD("");
   const std::shared_ptr<picojson::value>& response =
@@ -540,11 +534,11 @@ void OnCpuChangedCallback()
   PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdCpu, true, result);
   if (ret.IsSuccess()) {
     ReportSuccess(result,response->get<picojson::object>());
-    SysteminfoInstance::getInstance().PostMessage(response->serialize().c_str());
+    instance.PostMessage(response->serialize().c_str());
   }
 }
 
-void OnStorageChangedCallback()
+void OnStorageChangedCallback(SysteminfoInstance& instance)
 {
   LoggerD("");
   const std::shared_ptr<picojson::value>& response =
@@ -556,11 +550,11 @@ void OnStorageChangedCallback()
   PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdStorage, true, result);
   if (ret.IsSuccess()) {
     ReportSuccess(result,response->get<picojson::object>());
-    SysteminfoInstance::getInstance().PostMessage(response->serialize().c_str());
+    instance.PostMessage(response->serialize().c_str());
   }
 }
 
-void OnDisplayChangedCallback()
+void OnDisplayChangedCallback(SysteminfoInstance& instance)
 {
   LoggerD("");
   const std::shared_ptr<picojson::value>& response =
@@ -572,11 +566,11 @@ void OnDisplayChangedCallback()
   PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdDisplay, true, result);
   if (ret.IsSuccess()) {
     ReportSuccess(result,response->get<picojson::object>());
-    SysteminfoInstance::getInstance().PostMessage(response->serialize().c_str());
+    instance.PostMessage(response->serialize().c_str());
   }
 }
 
-void OnDeviceOrientationChangedCallback()
+void OnDeviceOrientationChangedCallback(SysteminfoInstance& instance)
 {
   LoggerD("");
   const std::shared_ptr<picojson::value>& response =
@@ -588,11 +582,11 @@ void OnDeviceOrientationChangedCallback()
   PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdDeviceOrientation, true, result);
   if (ret.IsSuccess()) {
     ReportSuccess(result,response->get<picojson::object>());
-    SysteminfoInstance::getInstance().PostMessage(response->serialize().c_str());
+    instance.PostMessage(response->serialize().c_str());
   }
 }
 
-void OnLocaleChangedCallback()
+void OnLocaleChangedCallback(SysteminfoInstance& instance)
 {
   LoggerD("");
   const std::shared_ptr<picojson::value>& response =
@@ -604,11 +598,11 @@ void OnLocaleChangedCallback()
   PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdLocale, true, result);
   if (ret.IsSuccess()) {
     ReportSuccess(result,response->get<picojson::object>());
-    SysteminfoInstance::getInstance().PostMessage(response->serialize().c_str());
+    instance.PostMessage(response->serialize().c_str());
   }
 }
 
-void OnNetworkChangedCallback()
+void OnNetworkChangedCallback(SysteminfoInstance& instance)
 {
   LoggerD("");
   const std::shared_ptr<picojson::value>& response =
@@ -620,11 +614,11 @@ void OnNetworkChangedCallback()
   PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdNetwork, true, result);
   if (ret.IsSuccess()) {
     ReportSuccess(result,response->get<picojson::object>());
-    SysteminfoInstance::getInstance().PostMessage(response->serialize().c_str());
+    instance.PostMessage(response->serialize().c_str());
   }
 }
 
-void OnWifiNetworkChangedCallback()
+void OnWifiNetworkChangedCallback(SysteminfoInstance& instance)
 {
   LoggerD("");
   const std::shared_ptr<picojson::value>& response =
@@ -636,11 +630,11 @@ void OnWifiNetworkChangedCallback()
   PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdWifiNetwork, true, result);
   if (ret.IsSuccess()) {
     ReportSuccess(result,response->get<picojson::object>());
-    SysteminfoInstance::getInstance().PostMessage(response->serialize().c_str());
+    instance.PostMessage(response->serialize().c_str());
   }
 }
 
-void OnCellularNetworkChangedCallback()
+void OnCellularNetworkChangedCallback(SysteminfoInstance& instance)
 {
   LoggerD("");
   const std::shared_ptr<picojson::value>& response =
@@ -652,11 +646,11 @@ void OnCellularNetworkChangedCallback()
   PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdCellularNetwork, true, result);
   if (ret.IsSuccess()) {
     ReportSuccess(result,response->get<picojson::object>());
-    SysteminfoInstance::getInstance().PostMessage(response->serialize().c_str());
+    instance.PostMessage(response->serialize().c_str());
   }
 }
 
-void OnPeripheralChangedCallback()
+void OnPeripheralChangedCallback(SysteminfoInstance& instance)
 {
   LoggerD("");
   const std::shared_ptr<picojson::value>& response =
@@ -668,11 +662,11 @@ void OnPeripheralChangedCallback()
   PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdPeripheral, true, result);
   if (ret.IsSuccess()) {
     ReportSuccess(result,response->get<picojson::object>());
-    SysteminfoInstance::getInstance().PostMessage(response->serialize().c_str());
+    instance.PostMessage(response->serialize().c_str());
   }
 }
 
-void OnMemoryChangedCallback()
+void OnMemoryChangedCallback(SysteminfoInstance& instance)
 {
   LoggerD("");
   const std::shared_ptr<picojson::value>& response =
@@ -684,7 +678,7 @@ void OnMemoryChangedCallback()
   PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdMemory, true, result);
   if (ret.IsSuccess()) {
     ReportSuccess(result,response->get<picojson::object>());
-    SysteminfoInstance::getInstance().PostMessage(response->serialize().c_str());
+    instance.PostMessage(response->serialize().c_str());
   }
 }
 

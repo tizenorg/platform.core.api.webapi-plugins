@@ -14,12 +14,9 @@ class SysteminfoInstance
     : public common::ParsedInstance
 {
  public:
-  static SysteminfoInstance& getInstance();
-
- private:
   SysteminfoInstance();
   virtual ~SysteminfoInstance();
-
+ private:
   void GetCapabilities(const picojson::value& args, picojson::object& out);
   void GetCapability(const picojson::value& args, picojson::object& out);
   void GetPropertyValue(const picojson::value& args, picojson::object& out);

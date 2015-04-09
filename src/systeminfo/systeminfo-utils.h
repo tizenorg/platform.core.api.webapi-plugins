@@ -33,7 +33,9 @@ struct CpuInfo {
   double load;
 };
 
-typedef std::function<void(void)> SysteminfoUtilsCallback;
+class SysteminfoInstance;
+
+typedef std::function<void(SysteminfoInstance& instance)> SysteminfoUtilsCallback;
 
 class SysteminfoUtils {
  public:
@@ -43,27 +45,38 @@ class SysteminfoUtils {
   static common::PlatformResult GetPropertyValue(
       const std::string& prop, bool is_array_type, picojson::value& res);
 
-  static common::PlatformResult RegisterBatteryListener(const SysteminfoUtilsCallback& callback);
+  static common::PlatformResult RegisterBatteryListener(const SysteminfoUtilsCallback& callback,
+                                                        SysteminfoInstance& instance);
   static common::PlatformResult UnregisterBatteryListener();
-  static common::PlatformResult RegisterCpuListener(const SysteminfoUtilsCallback& callback);
+  static common::PlatformResult RegisterCpuListener(const SysteminfoUtilsCallback& callback,
+                                                    SysteminfoInstance& instance);
   static common::PlatformResult UnregisterCpuListener();
-  static common::PlatformResult RegisterStorageListener(const SysteminfoUtilsCallback& callback);
+  static common::PlatformResult RegisterStorageListener(const SysteminfoUtilsCallback& callback,
+                                                        SysteminfoInstance& instance);
   static common::PlatformResult UnregisterStorageListener();
-  static common::PlatformResult RegisterDisplayListener(const SysteminfoUtilsCallback& callback);
+  static common::PlatformResult RegisterDisplayListener(const SysteminfoUtilsCallback& callback,
+                                                        SysteminfoInstance& instance);
   static common::PlatformResult UnregisterDisplayListener();
-  static common::PlatformResult RegisterDeviceOrientationListener(const SysteminfoUtilsCallback& callback);
+  static common::PlatformResult RegisterDeviceOrientationListener(const SysteminfoUtilsCallback& callback,
+                                                                  SysteminfoInstance& instance);
   static common::PlatformResult UnregisterDeviceOrientationListener();
-  static common::PlatformResult RegisterLocaleListener(const SysteminfoUtilsCallback& callback);
+  static common::PlatformResult RegisterLocaleListener(const SysteminfoUtilsCallback& callback,
+                                                       SysteminfoInstance& instance);
   static common::PlatformResult UnregisterLocaleListener();
-  static common::PlatformResult RegisterNetworkListener(const SysteminfoUtilsCallback& callback);
+  static common::PlatformResult RegisterNetworkListener(const SysteminfoUtilsCallback& callback,
+                                                        SysteminfoInstance& instance);
   static common::PlatformResult UnregisterNetworkListener();
-  static common::PlatformResult RegisterWifiNetworkListener(const SysteminfoUtilsCallback& callback);
+  static common::PlatformResult RegisterWifiNetworkListener(const SysteminfoUtilsCallback& callback,
+                                                            SysteminfoInstance& instance);
   static common::PlatformResult UnregisterWifiNetworkListener();
-  static common::PlatformResult RegisterCellularNetworkListener(const SysteminfoUtilsCallback& callback);
+  static common::PlatformResult RegisterCellularNetworkListener(const SysteminfoUtilsCallback& callback,
+                                                                SysteminfoInstance& instance);
   static common::PlatformResult UnregisterCellularNetworkListener();
-  static common::PlatformResult RegisterPeripheralListener(const SysteminfoUtilsCallback& callback);
+  static common::PlatformResult RegisterPeripheralListener(const SysteminfoUtilsCallback& callback,
+                                                           SysteminfoInstance& instance);
   static common::PlatformResult UnregisterPeripheralListener();
-  static common::PlatformResult RegisterMemoryListener(const SysteminfoUtilsCallback& callback);
+  static common::PlatformResult RegisterMemoryListener(const SysteminfoUtilsCallback& callback,
+                                                       SysteminfoInstance& instance);
   static common::PlatformResult UnregisterMemoryListener();
 
  private:
