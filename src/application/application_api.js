@@ -536,7 +536,7 @@ tizen.ApplicationControl = function(operation, uri, mime, category, data, launch
     defineReadWriteProperty(this, 'mime', mime);
     defineReadWriteProperty(this, 'category', category);
     defineReadWriteProperty(this, 'data', data);
-    defineReadWriteProperty(this, 'data', launchMode);
+    defineReadWriteProperty(this, 'launchMode', launchMode);
 
   } else {
     throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR);
