@@ -8,8 +8,8 @@
 #include <memory>
 
 #include "common/extension.h"
-
 #include "mediacontroller/mediacontroller_client.h"
+#include "mediacontroller/mediacontroller_server.h"
 
 namespace extension {
 namespace mediacontroller {
@@ -48,6 +48,7 @@ class MediaControllerInstance : public common::ParsedInstance {
   void MediaControllerServerInfoRemovePlaybackInfoChangeListener(const picojson::value& args, picojson::object& out);
 
   std::shared_ptr<MediaControllerClient> client_;
+  std::shared_ptr<MediaControllerServer> server_;
 };
 
 } // namespace mediacontroller

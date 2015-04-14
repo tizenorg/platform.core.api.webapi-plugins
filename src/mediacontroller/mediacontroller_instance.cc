@@ -104,82 +104,134 @@ void MediaControllerInstance::MediaControllerManagerCreateServer(
     const picojson::value& args,
     picojson::object& out) {
 
-  // implement it
+  if (server_) {
+    ReportSuccess(out);
+    return;
+  }
 
-  // if success
-  // ReportSuccess(out);
-  // if error
-  // ReportError(out);
+  // TODO(r.galka) check privileges
+
+  server_ = std::make_shared<MediaControllerServer>();
+  const PlatformResult& result = server_->Init();
+  if (!result) {
+    server_.reset();
+    ReportError(result, &out);
+  }
+
+  ReportSuccess(out);
 }
 
 void MediaControllerInstance::MediaControllerServerUpdatePlaybackState(
     const picojson::value& args,
     picojson::object& out) {
+  CHECK_EXIST(args, "state", out)
 
-  // implement it
+  if (!server_) {
+    ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
+        "Server not initialized."), &out);
+    return;
+  }
 
-  // if success
-  // ReportSuccess(out);
-  // if error
-  // ReportError(out);
+  const std::string& state = args.get("state").get<std::string>();
+  const PlatformResult& result = server_->SetPlaybackState(state);
+  if (!result) {
+    ReportError(result, &out);
+    return;
+  }
+
+  ReportSuccess(out);
 }
 
 void MediaControllerInstance::MediaControllerServerUpdatePlaybackPosition(
     const picojson::value& args,
     picojson::object& out) {
+
+  if (!server_) {
+    ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
+        "Server not initialized."), &out);
+    return;
+  }
+
   CHECK_EXIST(args, "position", out)
 
   double position = args.get("position").get<double>();
+  const PlatformResult& result = server_->SetPlaybackPosition(position);
+  if (!result) {
+    ReportError(result, &out);
+    return;
+  }
 
-  // implement it
-
-  // if success
-  // ReportSuccess(out);
-  // if error
-  // ReportError(out);
+  ReportSuccess(out);
 }
 
 void MediaControllerInstance::MediaControllerServerUpdateShuffleMode(
     const picojson::value& args,
     picojson::object& out) {
+
+  if (!server_) {
+    ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
+        "Server not initialized."), &out);
+    return;
+  }
+
   CHECK_EXIST(args, "mode", out)
 
   bool mode = args.get("mode").get<bool>();
 
-  // implement it
+  const PlatformResult& result = server_->SetShuffleMode(mode);
+  if (!result) {
+    ReportError(result, &out);
+    return;
+  }
 
-  // if success
-  // ReportSuccess(out);
-  // if error
-  // ReportError(out);
+  ReportSuccess(out);
 }
 
 void MediaControllerInstance::MediaControllerServerUpdateRepeatMode(
     const picojson::value& args,
     picojson::object& out) {
 
+  if (!server_) {
+    ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
+        "Server not initialized."), &out);
+    return;
+  }
+
   CHECK_EXIST(args, "mode", out)
 
   bool mode = args.get("mode").get<bool>();
 
-  // implement it
+  const PlatformResult& result = server_->SetRepeatMode(mode);
+  if (!result) {
+    ReportError(result, &out);
+    return;
+  }
 
-  // if success
-  // ReportSuccess(out);
-  // if error
-  // ReportError(out);
+  ReportSuccess(out);
 }
 
 void MediaControllerInstance::MediaControllerServerUpdateMetadata(
     const picojson::value& args,
     picojson::object& out) {
 
-  // implement it
+  if (!server_) {
+    ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
+        "Server not initialized."), &out);
+    return;
+  }
 
-  // if success
-  // ReportSuccess(out);
-  // if error
-  // ReportError(out);
+  CHECK_EXIST(args, "metadata", out)
+
+  const picojson::object& metadata =
+      args.get("metadata").get<picojson::object>();
+
+  const PlatformResult& result = server_->SetMetadata(metadata);
+  if (!result) {
+    ReportError(result, &out);
+    return;
+  }
+
+  ReportSuccess(out);
 }
 
 void MediaControllerInstance::MediaControllerServerAddChangeRequestPlaybackInfoListener(
