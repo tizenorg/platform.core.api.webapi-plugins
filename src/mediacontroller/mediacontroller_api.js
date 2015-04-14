@@ -88,7 +88,7 @@ EditManager.prototype.disallow = function() {
   this.isAllowed = false;
 };
 
-var _edit = new EditManager();
+var edit_ = new EditManager();
 
 
 var MediaControllerServerState = {
@@ -214,8 +214,8 @@ var MediaControllerMetadata = function(data) {
 var MediaControllerPlaybackInfo = function(data) {
   var _state = 'STOP';
   var _position = 0;
-  var _shuffleMode = true;
-  var _repeatMode = true;
+  var _shuffleMode = false;
+  var _repeatMode = false;
   var _metadata = new MediaControllerMetadata();
   Object.defineProperties(this, {
     state: {
@@ -223,7 +223,7 @@ var MediaControllerPlaybackInfo = function(data) {
         return _state;
       },
       set: function(v) {
-        _state = _edit.isAllowed && v ? v : _state;
+        _state = edit_.isAllowed && v ? v : _state;
       },
       enumerable: true
     },
@@ -232,7 +232,7 @@ var MediaControllerPlaybackInfo = function(data) {
         return _position;
       },
       set: function(v) {
-        _position = _edit.isAllowed && v ? v : _position;
+        _position = edit_.isAllowed && v ? v : _position;
       },
       enumerable: true
     },
@@ -241,7 +241,7 @@ var MediaControllerPlaybackInfo = function(data) {
         return _shuffleMode;
       },
       set: function(v) {
-        _shuffleMode = _edit.isAllowed && v ? v : _shuffleMode;
+        _shuffleMode = edit_.isAllowed && v ? v : _shuffleMode;
       },
       enumerable: true
     },
@@ -250,7 +250,7 @@ var MediaControllerPlaybackInfo = function(data) {
         return _repeatMode;
       },
       set: function(v) {
-        _repeatMode = _edit.isAllowed && v ? v : _repeatMode;
+        _repeatMode = edit_.isAllowed && v ? v : _repeatMode;
       },
       enumerable: true
     },
@@ -259,7 +259,7 @@ var MediaControllerPlaybackInfo = function(data) {
         return _metadata;
       },
       set: function(v) {
-        _metadata = _edit.isAllowed && v ? new MediaControllerMetadata(v) : _metadata;
+        _metadata = edit_.isAllowed && v ? new MediaControllerMetadata(v) : _metadata;
       },
       enumerable: true
     }
@@ -267,7 +267,7 @@ var MediaControllerPlaybackInfo = function(data) {
 
   if (data instanceof Object) {
     for (var prop in data) {
-      if (this.hasOwnProperty(prop)) {
+      if (data.hasOwnProperty(prop) && this.hasOwnProperty(prop)) {
         this[prop] = data[prop];
       }
     }
@@ -299,9 +299,9 @@ MediaControllerServer.prototype.updatePlaybackState = function(state) {
     throw native_.getErrorObject(result);
   }
 
-  _edit.allow();
+  edit_.allow();
   this.playbackInfo.state = args.state;
-  _edit.disallow();
+  edit_.disallow();
 };
 
 MediaControllerServer.prototype.updatePlaybackPosition = function(position) {
@@ -319,9 +319,9 @@ MediaControllerServer.prototype.updatePlaybackPosition = function(position) {
     throw native_.getErrorObject(result);
   }
 
-  _edit.allow();
+  edit_.allow();
   this.playbackInfo.position = args.position;
-  _edit.disallow();
+  edit_.disallow();
 };
 
 MediaControllerServer.prototype.updateShuffleMode = function(mode) {
@@ -339,9 +339,9 @@ MediaControllerServer.prototype.updateShuffleMode = function(mode) {
     throw native_.getErrorObject(result);
   }
 
-  _edit.allow();
+  edit_.allow();
   this.playbackInfo.shuffleMode = args.mode;
-  _edit.disallow();
+  edit_.disallow();
 };
 
 MediaControllerServer.prototype.updateRepeatMode = function(mode) {
@@ -359,9 +359,9 @@ MediaControllerServer.prototype.updateRepeatMode = function(mode) {
     throw native_.getErrorObject(result);
   }
 
-  _edit.allow();
+  edit_.allow();
   this.playbackInfo.repeatMode = args.mode;
-  _edit.disallow();
+  edit_.disallow();
 };
 
 MediaControllerServer.prototype.updateMetadata = function(metadata) {
@@ -379,9 +379,9 @@ MediaControllerServer.prototype.updateMetadata = function(metadata) {
     throw native_.getErrorObject(result);
   }
 
-  _edit.allow();
+  edit_.allow();
   this.playbackInfo.metadata = args.metadata;
-  _edit.disallow();
+  edit_.disallow();
 };
 
 MediaControllerServer.prototype.addChangeRequestPlaybackInfoListener = function(listener) {
@@ -480,17 +480,6 @@ MediaControllerClient.prototype.getLatestServerInfo = function() {
 
 
 function MediaControllerServerInfo(data) {
-  var getPlaybackInfo = function() {
-    var result = native_.callSync('MediaControllerClient_getPlaybackInfo', {name: this.name});
-    if (native_.isFailure(result)) {
-      throw native_.getErrorObject(result);
-    }
-    edit_.allow();
-    var playbackInfo = new MediaControllerPlaybackInfo(result);
-    edit_.disallow();
-
-    return playbackInfo;
-  };
   Object.defineProperties(this, {
     name: {
       value: data.name,
@@ -503,7 +492,18 @@ function MediaControllerServerInfo(data) {
       enumerable: true
     },
     playbackInfo: {
-      get: getPlaybackInfo.bind(this),
+      get: function () {
+        var result = native_.callSync('MediaControllerClient_getPlaybackInfo', {name: this.name});
+        if (native_.isFailure(result)) {
+          throw new native_.getErrorObject(result);
+        }
+        edit_.allow();
+        var data = native_.getResultObject(result);
+        var playbackInfo = new MediaControllerPlaybackInfo(data);
+        edit_.disallow();
+
+        return playbackInfo;
+      }.bind(this),
       set: function() {},
       enumerable: true
     }
