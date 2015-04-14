@@ -1335,7 +1335,7 @@ var WebAPIException = function(code, message, name) {
   });
 
   this.constructor.prototype.__proto__ = Error.prototype;
-  Error.captureStackTrace(this, this.constructor);
+  Error.captureStackTrace && Error.captureStackTrace(this, this.constructor); // V8-specific code
 };
 
 WebAPIException.prototype.toString = function() {
