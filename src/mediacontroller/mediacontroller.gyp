@@ -11,10 +11,14 @@
       ],
       'sources': [
         'mediacontroller_api.js',
+        'mediacontroller_client.cc',
+        'mediacontroller_client.h',
         'mediacontroller_extension.cc',
         'mediacontroller_extension.h',
         'mediacontroller_instance.cc',
         'mediacontroller_instance.h',
+        'mediacontroller_types.cc',
+        'mediacontroller_types.h',
       ],
       'conditions': [
         ['tizen == 1', {

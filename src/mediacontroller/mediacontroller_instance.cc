@@ -9,6 +9,7 @@
 #include "common/logger.h"
 #include "common/picojson.h"
 #include "common/platform_result.h"
+#include "common/task-queue.h"
 
 namespace extension {
 namespace mediacontroller {
@@ -16,14 +17,15 @@ namespace mediacontroller {
 namespace {
 // The privileges required in MediaController API
 const std::string kPrivilegeMediaControllerClient =
-    "http://tizen.org/privilege/mediacontroller.client";
+    "http://tizen.org/privilege/mediacontroller.write";
 const std::string kPrivilegeMediaControllerServer =
-    "http://tizen.org/privilege/mediacontroller.server";
+    "http://tizen.org/privilege/mediacontroller.read";
 
 } // namespace
 
-using common::PlatformResult;
 using common::ErrorCode;
+using common::PlatformResult;
+using common::TaskQueue;
 
 MediaControllerInstance::MediaControllerInstance() {
   using namespace std::placeholders;
@@ -236,41 +238,78 @@ void MediaControllerInstance::MediaControllerManagerGetClient(
     const picojson::value& args,
     picojson::object& out) {
 
-  // implement it
+  if (client_) {
+    ReportSuccess(out);
+    return;
+  }
 
-  // if success
-  // ReportSuccess(out);
-  // if error
-  // ReportError(out);
+  // TODO(r.galka) check privileges
+
+  client_ = std::make_shared<MediaControllerClient>();
+  const PlatformResult& result = client_->Init();
+  if (!result) {
+    client_.reset();
+    ReportError(result, &out);
+  }
+
+  ReportSuccess(out);
 }
 
 void MediaControllerInstance::MediaControllerClientFindServers(
     const picojson::value& args,
     picojson::object& out) {
+
+  if (!client_) {
+    ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
+                               "Client not initialized."), &out);
+    return;
+  }
+
   CHECK_EXIST(args, "callbackId", out)
 
-  int callbackId = static_cast<int>(args.get("callbackId").get<double>());
+  auto search = [this, args]() -> void {
+    LOGGER(DEBUG) << "entered";
 
-  // implement it
+    picojson::value response = picojson::value(picojson::object());
+    picojson::object& response_obj = response.get<picojson::object>();
 
-  // call ReplyAsync in later (Asynchronously)
+    picojson::value servers = picojson::value(picojson::array());
+    PlatformResult result = client_->FindServers(
+        &servers.get<picojson::array>());
 
-  // if success
-  // ReportSuccess(out);
-  // if error
-  // ReportError(out);
+    response_obj["callbackId"] = args.get("callbackId");
+    if (result) {
+      ReportSuccess(servers, response_obj);
+    } else {
+      ReportError(result, &response_obj);
+    }
+
+    PostMessage(response.serialize().c_str());
+  };
+
+  TaskQueue::GetInstance().Async(search);
+
+  ReportSuccess(out);
 }
 
 void MediaControllerInstance::MediaControllerClientGetLatestServerInfo(
     const picojson::value& args,
     picojson::object& out) {
 
-  // implement it
+  if (!client_) {
+    ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
+                               "Client not initialized."), &out);
+    return;
+  }
 
-  // if success
-  // ReportSuccess(out);
-  // if error
-  // ReportError(out);
+  picojson::value server_info = picojson::value();
+  PlatformResult result = client_->GetLatestServerInfo(&server_info);
+  if (!result) {
+    ReportError(result, &out);
+    return;
+  }
+
+  ReportSuccess(server_info, out);
 }
 
 void MediaControllerInstance::MediaControllerServerInfoSendPlaybackState(

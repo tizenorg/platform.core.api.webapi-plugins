@@ -5,7 +5,11 @@
 #ifndef MEDIACONTROLLER_MEDIACONTROLLER_INSTANCE_H_
 #define MEDIACONTROLLER_MEDIACONTROLLER_INSTANCE_H_
 
+#include <memory>
+
 #include "common/extension.h"
+
+#include "mediacontroller/mediacontroller_client.h"
 
 namespace extension {
 namespace mediacontroller {
@@ -41,6 +45,8 @@ class MediaControllerInstance : public common::ParsedInstance {
   void MediaControllerServerInfoRemoveServerStatusChangeListener(const picojson::value& args, picojson::object& out);
   void MediaControllerServerInfoAddPlaybackInfoChangeListener(const picojson::value& args, picojson::object& out);
   void MediaControllerServerInfoRemovePlaybackInfoChangeListener(const picojson::value& args, picojson::object& out);
+
+  std::shared_ptr<MediaControllerClient> client_;
 };
 
 } // namespace mediacontroller
