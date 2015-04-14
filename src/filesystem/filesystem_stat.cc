@@ -36,6 +36,7 @@ FilesystemStat FilesystemStat::getStat(const std::string& path) {
   struct stat aStatObj;
   LoggerD("enter");
   if (0 != stat(path.c_str(), &aStatObj)) {
+    LoggerE("Failed to stat: (%d) %s", errno, strerror(errno));
     return FilesystemStat();
   }
 
