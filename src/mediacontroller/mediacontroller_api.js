@@ -133,107 +133,152 @@ MediaControllerManager.prototype.createServer = function() {
 
 
 var MediaControllerMetadata = function(data) {
-  var data = data || {};
+  var _title = '';
+  var _artist = '';
+  var _album = '';
+  var _author = '';
+  var _genre = '';
+  var _duration = '';
+  var _date = '';
+  var _copyright = '';
+  var _description = '';
+  var _trackNum = '';
+  var _picture = '';
   Object.defineProperties(this, {
     title: {
-      value: data.title || '',
-      writable: true,
+      get: function() {return _title;},
+      set: function(v) {_title = converter_.toString(v)},
       enumerable: true
     },
     artist: {
-      value: data.artist || '',
-      writable: true,
+      get: function() {return _artist;},
+      set: function(v) {_artist = converter_.toString(v)},
       enumerable: true
     },
     album: {
-      value: data.album || '',
-      writable: true,
+      get: function() {return _album;},
+      set: function(v) {_album = converter_.toString(v)},
       enumerable: true
     },
     author: {
-      value: data.author || '',
-      writable: true,
+      get: function() {return _author;},
+      set: function(v) {_author = converter_.toString(v)},
       enumerable: true
     },
     genre: {
-      value: data.genre || '',
-      writable: true,
+      get: function() {return _genre;},
+      set: function(v) {_genre = converter_.toString(v)},
       enumerable: true
     },
     duration: {
-      value: data.duration || '',
-      writable: true,
+      get: function() {return _duration;},
+      set: function(v) {_duration = converter_.toString(v)},
       enumerable: true
     },
     date: {
-      value: data.date || '',
-      writable: true,
+      get: function() {return _date;},
+      set: function(v) {_date = converter_.toString(v)},
       enumerable: true
     },
     copyright: {
-      value: data.copyright || '',
-      writable: true,
+      get: function() {return _copyright;},
+      set: function(v) {_copyright = converter_.toString(v)},
       enumerable: true
     },
     description: {
-      value: data.description || '',
-      writable: true,
+      get: function() {return _description;},
+      set: function(v) {_description = converter_.toString(v)},
       enumerable: true
     },
     trackNum: {
-      value: data.trackNum || '',
-      writable: true,
+      get: function() {return _trackNum;},
+      set: function(v) {_trackNum = converter_.toString(v)},
       enumerable: true
     },
     picture: {
-      value: data.picture || '',
-      writable: true,
+      get: function() {return _picture;},
+      set: function(v) {_picture = converter_.toString(v)},
       enumerable: true
     }
   });
+
+  if (data instanceof Object) {
+    for (var prop in data) {
+      if (this.hasOwnProperty(prop)) {
+        this[prop] = data[prop];
+      }
+    }
+  }
 };
 
 var MediaControllerPlaybackInfo = function(data) {
-  var data = data || {};
+  var _state = 'STOP';
+  var _position = 0;
+  var _shuffleMode = true;
+  var _repeatMode = true;
+  var _metadata = new MediaControllerMetadata();
   Object.defineProperties(this, {
     state: {
-      value: data.state || 'STOP',
-      writable: false,
+      get: function() {
+        return _state;
+      },
+      set: function(v) {
+        _state = _edit.isAllowed && v ? v : _state;
+      },
       enumerable: true
     },
     position: {
-      value: data.position || 0,
-      writable: false,
+      get: function() {
+        return _position;
+      },
+      set: function(v) {
+        _position = _edit.isAllowed && v ? v : _position;
+      },
       enumerable: true
     },
     shuffleMode: {
-      value: data.shuffleMode || false,
-      writable: false,
+      get: function() {
+        return _shuffleMode;
+      },
+      set: function(v) {
+        _shuffleMode = _edit.isAllowed && v ? v : _shuffleMode;
+      },
       enumerable: true
     },
     repeatMode: {
-      value: data.repeatMode || false,
-      writable: false,
+      get: function() {
+        return _repeatMode;
+      },
+      set: function(v) {
+        _repeatMode = _edit.isAllowed && v ? v : _repeatMode;
+      },
       enumerable: true
     },
     metadata: {
-      value: new MediaControllerMetadata(data.metadata),
-      writable: false,
+      get: function() {
+        return _metadata;
+      },
+      set: function(v) {
+        _metadata = _edit.isAllowed && v ? new MediaControllerMetadata(v) : _metadata;
+      },
       enumerable: true
     }
   });
+
+  if (data instanceof Object) {
+    for (var prop in data) {
+      if (this.hasOwnProperty(prop)) {
+        this[prop] = data[prop];
+      }
+    }
+  }
 };
 
 function MediaControllerServer(data) {
-  var _playbackInfo = new MediaControllerPlaybackInfo(data);
   Object.defineProperties(this, {
     playbackInfo: {
-      get: function() {
-        return _playbackInfo;
-      },
-      set: function(v) {
-        _playbackInfo = _edit.isAllowed && v ? new MediaControllerPlaybackInfo(v) : _playbackInfo;
-      },
+      value: new MediaControllerPlaybackInfo(data),
+      writable: false,
       enumerable: true
     }
   });
@@ -255,7 +300,7 @@ MediaControllerServer.prototype.updatePlaybackState = function(state) {
   }
 
   _edit.allow();
-  this.playbackInfo = new MediaControllerPlaybackInfo(native_.getResultObject(result));
+  this.playbackInfo.state = args.state;
   _edit.disallow();
 };
 
@@ -275,7 +320,7 @@ MediaControllerServer.prototype.updatePlaybackPosition = function(position) {
   }
 
   _edit.allow();
-  this.playbackInfo = new MediaControllerPlaybackInfo(native_.getResultObject(result));
+  this.playbackInfo.position = args.position;
   _edit.disallow();
 };
 
@@ -295,7 +340,7 @@ MediaControllerServer.prototype.updateShuffleMode = function(mode) {
   }
 
   _edit.allow();
-  this.playbackInfo = new MediaControllerPlaybackInfo(native_.getResultObject(result));
+  this.playbackInfo.shuffleMode = args.mode;
   _edit.disallow();
 };
 
@@ -315,7 +360,7 @@ MediaControllerServer.prototype.updateRepeatMode = function(mode) {
   }
 
   _edit.allow();
-  this.playbackInfo = new MediaControllerPlaybackInfo(native_.getResultObject(result));
+  this.playbackInfo.repeatMode = args.mode;
   _edit.disallow();
 };
 
@@ -335,7 +380,7 @@ MediaControllerServer.prototype.updateMetadata = function(metadata) {
   }
 
   _edit.allow();
-  this.playbackInfo = new MediaControllerPlaybackInfo(native_.getResultObject(result));
+  this.playbackInfo.metadata = args.metadata;
   _edit.disallow();
 };
 
@@ -410,7 +455,7 @@ MediaControllerClient.prototype.findServers = function(successCallback, errorCal
     var info = [];
     var data = native_.getResultObject(result);
     for (var i = 0; i < data.length; i++) {
-      info.push(new MediaControllerServerInfo(data));
+      info.push(new MediaControllerServerInfo(data[i]));
     }
     native_.callIfPossible(args.successCallback, info);
   };
@@ -426,12 +471,26 @@ MediaControllerClient.prototype.getLatestServerInfo = function() {
     throw native_.getErrorObject(result);
   }
 
-  var serverInfo = new MediaControllerServerInfo(native_.getResultObject(result));
+  var serverInfo = native_.getResultObject(result);
+  if (serverInfo) {
+    serverInfo = new MediaControllerServerInfo(serverInfo);
+  }
   return serverInfo;
 };
 
 
 function MediaControllerServerInfo(data) {
+  var getPlaybackInfo = function() {
+    var result = native_.callSync('MediaControllerClient_getPlaybackInfo', {name: this.name});
+    if (native_.isFailure(result)) {
+      throw native_.getErrorObject(result);
+    }
+    edit_.allow();
+    var playbackInfo = new MediaControllerPlaybackInfo(result);
+    edit_.disallow();
+
+    return playbackInfo;
+  };
   Object.defineProperties(this, {
     name: {
       value: data.name,
@@ -444,8 +503,8 @@ function MediaControllerServerInfo(data) {
       enumerable: true
     },
     playbackInfo: {
-      value: new MediaControllerPlaybackInfo(data.playbackInfo),
-      writable: false,
+      get: getPlaybackInfo.bind(this),
+      set: function() {},
       enumerable: true
     }
   });
