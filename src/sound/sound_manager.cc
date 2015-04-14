@@ -101,10 +101,11 @@ std::string SoundManager::SoundIOTypeToString(sound_device_io_direction_e type) 
   }
 }
 
-SoundManager::SoundManager()
+SoundManager::SoundManager(SoundInstance& instance)
     : soundModeChangeListening(false),
       sound_device_change_listener_(false),
-      soundModeListener(nullptr) {
+      soundModeListener(nullptr),
+      instance_(instance){
   FillMaxVolumeMap();
 }
 
@@ -125,11 +126,6 @@ SoundManager::~SoundManager() {
       LoggerE("Cannot unregister information listener!");
     }
   }
-}
-
-SoundManager* SoundManager::GetInstance() {
-  static SoundManager instance;
-  return &instance;
 }
 
 void SoundManager::FillMaxVolumeMap() {
@@ -197,7 +193,7 @@ void SoundManager::VolumeChangeCallback(sound_type_e type, unsigned int value) {
       "volume",
       picojson::value(ConvertToSystemVolume(max_volume, value))));
 
-  SoundInstance::GetInstance().PostMessage(response.serialize().c_str());
+  instance_.PostMessage(response.serialize().c_str());
 }
 
 PlatformResult SoundManager::GetSoundMode(std::string* sound_mode_type) {
@@ -534,8 +530,8 @@ void SoundManager::DeviceChangeCB(sound_device_h device, bool is_connected, bool
     response_obj.insert(std::make_pair(
         "listenerId", picojson::value("SoundDeviceStateChangeCallback")));
 
-    auto call_response = [response]()->void {
-      SoundInstance::GetInstance().PostMessage(response.serialize().c_str());
+    auto call_response = [this, response]()->void {
+      instance_.PostMessage(response.serialize().c_str());
     };
 
     TaskQueue::GetInstance().Async(call_response);
@@ -544,8 +540,8 @@ void SoundManager::DeviceChangeCB(sound_device_h device, bool is_connected, bool
 
 void DeviceConnectionChangeCB(sound_device_h device, bool is_connected, void *user_data) {
   LoggerD("Entered");
-
-  SoundManager::GetInstance()->DeviceChangeCB(device, is_connected, false);
+  SoundManager* h = static_cast<SoundManager*>(user_data);
+  h->DeviceChangeCB(device, is_connected, false);
 }
 
 void DeviceActivationChangeCB(sound_device_h device, sound_device_changed_info_e changed_info,
@@ -553,7 +549,8 @@ void DeviceActivationChangeCB(sound_device_h device, sound_device_changed_info_e
   LoggerD("Entered");
 
   if (SOUND_DEVICE_CAHNGED_INFO_STATE == changed_info) {
-    SoundManager::GetInstance()->DeviceChangeCB(device, false, true);
+    SoundManager* h = static_cast<SoundManager*>(user_data);
+    h->DeviceChangeCB(device, false, true);
   }
 }
 
@@ -564,12 +561,12 @@ PlatformResult SoundManager::AddDeviceStateChangeListener() {
   sound_device_mask_e mask = SOUND_DEVICE_ALL_MASK;
 
   if (!sound_device_change_listener_) {
-    ret = sound_manager_set_device_connected_cb(mask, DeviceConnectionChangeCB, nullptr);
+    ret = sound_manager_set_device_connected_cb(mask, DeviceConnectionChangeCB, this);
     if (SOUND_MANAGER_ERROR_NONE != ret) {
       return PlatformResult(ErrorCode::UNKNOWN_ERR, "Setting connection listener failed");
     }
 
-    ret = sound_manager_set_device_information_changed_cb(mask, DeviceActivationChangeCB, nullptr);
+    ret = sound_manager_set_device_information_changed_cb(mask, DeviceActivationChangeCB, this);
     if (SOUND_MANAGER_ERROR_NONE != ret) {
       return PlatformResult(ErrorCode::UNKNOWN_ERR, "Setting information listener failed");
     }

@@ -15,11 +15,8 @@ class SoundInstance : public common::ParsedInstance, public SoundManagerSoundMod
  public:
   SoundInstance();
   virtual ~SoundInstance();
-  static SoundInstance& GetInstance();
 
  private:
-  SoundManager* manager_;
-
   void SoundManagerSetVolume(const picojson::value& args, picojson::object& out);
   void SoundManagerUnsetSoundModeChangeListener(const picojson::value& args, picojson::object& out);
   void SoundManagerGetVolume(const picojson::value& args, picojson::object& out);
@@ -34,6 +31,8 @@ class SoundInstance : public common::ParsedInstance, public SoundManagerSoundMod
       const picojson::value& args, picojson::object& out);
 
   void OnSoundModeChange(const std::string& newmode);
+
+  SoundManager manager_;
 };
 
 } // namespace sound

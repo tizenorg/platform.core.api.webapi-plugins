@@ -23,7 +23,7 @@ const std::string kPrivilegeSound = "http://tizen.org/privilege/volume.set";
 using namespace common;
 using namespace extension::sound;
 
-SoundInstance::SoundInstance() {
+SoundInstance::SoundInstance(): manager_(*this) {
   using std::placeholders::_1;
   using std::placeholders::_2;
 
@@ -43,14 +43,10 @@ SoundInstance::SoundInstance() {
   REGISTER_SYNC("SoundManager_removeDeviceStateChangeListener",
                 SoundManagerRemoveDeviceStateChangeListener);
   #undef REGISTER_SYNC
-
-  manager_ = SoundManager::GetInstance();
 }
 
 SoundInstance::~SoundInstance() {
 }
-
-
 
 #define CHECK_EXIST(args, name, out) \
     if (!args.contains(name)) {\
@@ -58,15 +54,10 @@ SoundInstance::~SoundInstance() {
       return;\
     }
 
-SoundInstance &SoundInstance::GetInstance() {
-  static SoundInstance instance;
-  return instance;
-}
-
 void SoundInstance::SoundManagerGetSoundMode(const picojson::value& args,
                                              picojson::object& out) {
   std::string sound_mode_type;
-  PlatformResult status = manager_->GetSoundMode(&sound_mode_type);
+  PlatformResult status = manager_.GetSoundMode(&sound_mode_type);
 
   if (status.IsSuccess())
     ReportSuccess(picojson::value(sound_mode_type), out);
@@ -77,7 +68,7 @@ void SoundInstance::SoundManagerGetSoundMode(const picojson::value& args,
 void SoundInstance::SoundManagerSetVolume(const picojson::value& args,
                                           picojson::object& out) {
   CHECK_PRIVILEGE_ACCESS(kPrivilegeSound, &out);
-  PlatformResult status = manager_->SetVolume(args.get<picojson::object>());
+  PlatformResult status = manager_.SetVolume(args.get<picojson::object>());
 
   if (status.IsSuccess())
     ReportSuccess(out);
@@ -90,7 +81,7 @@ void SoundInstance::SoundManagerGetVolume(const picojson::value& args,
                                           picojson::object& out) {
   double volume;
   PlatformResult status =
-      manager_->GetVolume(args.get<picojson::object>(), &volume);
+      manager_.GetVolume(args.get<picojson::object>(), &volume);
 
   if (status.IsSuccess())
     ReportSuccess(picojson::value(volume), out);
@@ -99,7 +90,7 @@ void SoundInstance::SoundManagerGetVolume(const picojson::value& args,
 }
 
 void SoundInstance::SoundManagerSetSoundModeChangeListener(const picojson::value& args, picojson::object& out) {
-  PlatformResult status = manager_->SetSoundModeChangeListener(this);
+  PlatformResult status = manager_.SetSoundModeChangeListener(this);
 
   if (status.IsSuccess())
     ReportSuccess(out);
@@ -108,7 +99,7 @@ void SoundInstance::SoundManagerSetSoundModeChangeListener(const picojson::value
 }
 
 void SoundInstance::SoundManagerUnsetSoundModeChangeListener(const picojson::value& args, picojson::object& out) {
-  PlatformResult status = manager_->UnsetSoundModeChangeListener();
+  PlatformResult status = manager_.UnsetSoundModeChangeListener();
 
   if (status.IsSuccess())
     ReportSuccess(out);
@@ -130,7 +121,7 @@ void SoundInstance::OnSoundModeChange(const std::string& newmode)
 
 void SoundInstance::SoundManagerSetVolumeChangeListener(
     const picojson::value& args, picojson::object& out) {
-  PlatformResult status = manager_->SetVolumeChangeListener();
+  PlatformResult status = manager_.SetVolumeChangeListener();
 
   if (status.IsSuccess())
     ReportSuccess(out);
@@ -140,7 +131,7 @@ void SoundInstance::SoundManagerSetVolumeChangeListener(
 
 void SoundInstance::SoundManagerUnsetVolumeChangeListener(
     const picojson::value& args, picojson::object& out) {
-  PlatformResult status = manager_->UnsetVolumeChangeListener();
+  PlatformResult status = manager_.UnsetVolumeChangeListener();
 
   if (status.IsSuccess())
     ReportSuccess(out);
@@ -152,21 +143,21 @@ void SoundInstance::SoundManagerGetConnectedDeviceList(
     const picojson::value& args, picojson::object& out) {
 
   LoggerD("Entered");
-  manager_->GetDeviceList(SOUND_DEVICE_ALL_MASK, out);
+  manager_.GetDeviceList(SOUND_DEVICE_ALL_MASK, out);
 }
 
 void SoundInstance::SoundManagerGetActivatedDeviceList(
     const picojson::value& args, picojson::object& out) {
 
   LoggerD("Entered");
-  manager_->GetDeviceList(SOUND_DEVICE_STATE_ACTIVATED_MASK, out);
+  manager_.GetDeviceList(SOUND_DEVICE_STATE_ACTIVATED_MASK, out);
 }
 
 void SoundInstance::SoundManagerAddDeviceStateChangeListener(
     const picojson::value& args, picojson::object& out) {
 
   LoggerD("Entered");
-  PlatformResult result = manager_->AddDeviceStateChangeListener();
+  PlatformResult result = manager_.AddDeviceStateChangeListener();
 
   if (result.IsSuccess()) {
     ReportSuccess(out);
@@ -179,7 +170,7 @@ void SoundInstance::SoundManagerRemoveDeviceStateChangeListener(
     const picojson::value& args, picojson::object& out) {
 
   LoggerD("Entered");
-  PlatformResult result = manager_->RemoveDeviceStateChangeListener();
+  PlatformResult result = manager_.RemoveDeviceStateChangeListener();
 
   if (result.IsSuccess()) {
     ReportSuccess(out);

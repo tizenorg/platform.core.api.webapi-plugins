@@ -19,9 +19,12 @@ class SoundManagerSoundModeChangedListener {
   virtual void OnSoundModeChange(const std::string& newmode) = 0;
 };
 
+class SoundInstance;
+
 class SoundManager {
  public:
-  static SoundManager* GetInstance();
+  explicit SoundManager(SoundInstance& instance);
+  ~SoundManager();
 
   common::PlatformResult GetSoundMode(std::string* sound_mode_type);
   common::PlatformResult SetVolume(const picojson::object& args);
@@ -38,8 +41,6 @@ class SoundManager {
   common::PlatformResult RemoveDeviceStateChangeListener();
 
  private:
-  SoundManager();
-  virtual ~SoundManager();
 
   std::map<sound_type_e, int> max_volume_map_;
   bool is_volume_change_listener_;
@@ -68,6 +69,7 @@ class SoundManager {
   static void soundModeChangedCb(keynode_t* node, void* user_data);
   bool soundModeChangeListening;
   bool sound_device_change_listener_;
+  SoundInstance& instance_;
   SoundManagerSoundModeChangedListener* soundModeListener;
 };
 
