@@ -38,8 +38,9 @@ const char* MESSAGESREMOVED = "messagesremoved";
 MessagesChangeCallback::MessagesChangeCallback(
         long cid,
         int service_id,
-        MessageType service_type) :
-        m_callback_data(cid, true),
+        MessageType service_type,
+        PostQueue& queue) :
+        m_callback_data(cid, queue, true),
         m_service_id(service_id),
         m_msg_type(service_type),
         m_is_act(true)
@@ -127,7 +128,7 @@ void MessagesChangeCallback::added(const MessagePtrVector& msgs)
       obj[JSON_ACTION] = picojson::value(MESSAGESADDED);
       obj[JSON_DATA] = picojson::value(array);
 
-      PostQueue::getInstance().addAndResolve(obj.at(
+      m_callback_data.getQueue().addAndResolve(obj.at(
           JSON_CALLBACK_ID).get<double>(), PostPriority::MEDIUM, json->serialize());
     } else {
       LoggerE("json is incorrect - missing required member");
@@ -164,7 +165,7 @@ void MessagesChangeCallback::updated(const MessagePtrVector& msgs)
       obj[JSON_ACTION] = picojson::value(MESSAGESUPDATED);
       obj[JSON_DATA] = picojson::value(array);
 
-      PostQueue::getInstance().addAndResolve(obj.at(
+      m_callback_data.getQueue().addAndResolve(obj.at(
           JSON_CALLBACK_ID).get<double>(), PostPriority::LOW, json->serialize());
     } else {
       LoggerE("json is incorrect - missing required member");
@@ -203,7 +204,7 @@ void MessagesChangeCallback::removed(const MessagePtrVector& msgs)
       LoggerD("MESSAGES: %s", picojson::value(array).serialize().c_str());
       obj[JSON_DATA] = picojson::value(array);
 
-      PostQueue::getInstance().addAndResolve(obj.at(
+      m_callback_data.getQueue().addAndResolve(obj.at(
           JSON_CALLBACK_ID).get<double>(), PostPriority::LAST, json->serialize());
     } else {
       LoggerE("json is incorrect - missing required member");

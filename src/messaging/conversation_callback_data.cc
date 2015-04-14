@@ -8,25 +8,27 @@
 namespace extension {
 namespace messaging {
 
-ConversationCallbackData::ConversationCallbackData():
+ConversationCallbackData::ConversationCallbackData(PostQueue& queue):
         m_filter(),
         m_sort(),
         m_limit(0),
         m_offset(0),
         m_is_error(false),
         m_account_id(0),
-        m_service_type(UNDEFINED)
+        m_service_type(UNDEFINED),
+        queue_(queue)
 {
 }
 
-ConversationCallbackData::ConversationCallbackData(long cid, bool keep):
+ConversationCallbackData::ConversationCallbackData(long cid, PostQueue& queue, bool keep):
         m_filter(),
         m_sort(),
         m_limit(0),
         m_offset(0),
         m_is_error(false),
         m_account_id(0),
-        m_service_type(UNDEFINED)
+        m_service_type(UNDEFINED),
+        queue_(queue)
 {
     auto json = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
     picojson::object& o = json->get<picojson::object>();

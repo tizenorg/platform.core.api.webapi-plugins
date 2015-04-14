@@ -15,30 +15,36 @@
 namespace extension {
 namespace messaging {
 
+class MessagingInstance;
+
 class MsgManagerCallbackData {
 public:
+    explicit MsgManagerCallbackData(MessagingInstance& instance_);
     std::shared_ptr<picojson::value> json;
     std::map<int, MessageService*>* services_map;
     std::pair<int, MessageService*>* sms_service;
     std::pair<int, MessageService*>* mms_service;
+    MessagingInstance& instance_;
 };
 
 class MessagingManager {
 public:
-    static MessagingManager& getInstance();
-    void getMessageServices(const std::string& type, double callbackId);
-    MessageService* getMessageService(const int id);
+  explicit MessagingManager(MessagingInstance& instance);
+  MessagingManager(const MessagingManager &);
+  virtual ~MessagingManager();
+
+  void getMessageServices(const std::string& type, double callbackId);
+  MessageService* getMessageService(const int id);
 
 private:
-    MessagingManager();
-    MessagingManager(const MessagingManager &);
     void operator=(const MessagingManager &);
-    virtual ~MessagingManager();
 
     msg_handle_t m_msg_handle;
     std::map<int, MessageService*> m_email_services;
     std::pair<int, MessageService*> m_sms_service;
     std::pair<int, MessageService*> m_mms_service;
+
+    MessagingInstance& instance_;
 };
 
 } // namespace messaging

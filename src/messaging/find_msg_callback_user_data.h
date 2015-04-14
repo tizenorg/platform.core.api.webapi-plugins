@@ -40,7 +40,7 @@ class Message;
 
 class FindMsgCallbackUserData: public common::CallbackUserData {
 public:
-    FindMsgCallbackUserData();
+    FindMsgCallbackUserData(PostQueue& queue);
     virtual ~FindMsgCallbackUserData();
 
     void setFilter(AbstractFilterPtr filter);
@@ -67,6 +67,7 @@ public:
     long getLimit() const;
     long getOffset() const;
 
+    PostQueue& getQueue() { return queue_;};
 private:
     AbstractFilterPtr m_filter;
     SortModePtr m_sort;
@@ -78,6 +79,7 @@ private:
     std::vector<std::shared_ptr<Message>> m_messages;
     int m_account_id;
     MessageType m_service_type;
+    PostQueue& queue_;
 };
 
 }//Messaging

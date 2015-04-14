@@ -22,7 +22,8 @@ public:
     ConversationsChangeCallback(
             long cid,
             int service_id,
-            MessageType service_type);
+            MessageType service_type,
+            PostQueue& queue);
     virtual ~ConversationsChangeCallback();
 
     void added(const ConversationPtrVector& conversations);

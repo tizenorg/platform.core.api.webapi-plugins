@@ -196,7 +196,7 @@ void LoadBodyProxy::handleEmailSignal(const int status,
                         callback->getMessage()->getBody());
                 obj[JSON_DATA] = picojson::value(args);
 
-                PostQueue::getInstance().resolve(
+                callback->getQueue().resolve(
                         obj.at(JSON_CALLBACK_ID).get<double>(),
                         json->serialize()
                 );
@@ -208,7 +208,7 @@ void LoadBodyProxy::handleEmailSignal(const int status,
 
         if (ret.IsError()) {
             callback->setError(ret);
-            PostQueue::getInstance().resolve(
+            callback->getQueue().resolve(
                     callback->getJson()->get<picojson::object>().at(JSON_CALLBACK_ID).get<double>(),
                     callback->getJson()->serialize()
             );

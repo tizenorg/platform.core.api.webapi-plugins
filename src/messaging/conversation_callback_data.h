@@ -23,8 +23,8 @@ class MessageConversation;
 
 class ConversationCallbackData: public common::CallbackUserData {
 public:
-    ConversationCallbackData();
-    ConversationCallbackData(long cid, bool keep = false);
+    ConversationCallbackData(PostQueue& queue);
+    ConversationCallbackData(long cid, PostQueue& queue, bool keep = false);
     virtual ~ConversationCallbackData();
 
     void setFilter(AbstractFilterPtr filter);
@@ -52,6 +52,7 @@ public:
     long getLimit() const;
     long getOffset() const;
 
+    PostQueue& getQueue() { return queue_;};
 private:
     AbstractFilterPtr m_filter;
     SortModePtr m_sort;
@@ -63,6 +64,7 @@ private:
     std::vector<std::shared_ptr<MessageConversation>> m_conversations;
     int m_account_id;
     MessageType m_service_type;
+    PostQueue& queue_;
 };
 
 }//messaging

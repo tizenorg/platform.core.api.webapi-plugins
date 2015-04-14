@@ -7,16 +7,17 @@
 
 #include "common/extension.h"
 
+#include "messaging_manager.h"
+#include "messaging_util.h"
+
 namespace extension {
 namespace messaging {
 
 class MessagingInstance: public common::ParsedInstance {
 public:
-    static MessagingInstance& getInstance();
+  MessagingInstance();
+  virtual ~MessagingInstance();
 private:
-    MessagingInstance();
-    virtual ~MessagingInstance();
-
     void GetMessageServices(const picojson::value& args, picojson::object& out);
 
     void MessageServiceSendMessage(const picojson::value& args,
@@ -53,6 +54,9 @@ private:
             picojson::object& out);
     void MessageStorageRemoveChangeListener(const picojson::value& args,
             picojson::object& out);
+
+    MessagingManager manager_;
+    PostQueue queue_;
 };
 
 } // namespace messaging

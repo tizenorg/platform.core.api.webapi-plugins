@@ -28,6 +28,7 @@
 #include "MsgCommon/AbstractFilter.h"
 
 #include "message_folder.h"
+#include "messaging_util.h"
 
 namespace extension {
 namespace messaging {
@@ -36,8 +37,8 @@ class MessageFolder;
 
 class FoldersCallbackData: public common::CallbackUserData {
 public:
-    FoldersCallbackData();
-    FoldersCallbackData(long cid, bool keep = false);
+    FoldersCallbackData(PostQueue& queue);
+    FoldersCallbackData(long cid, PostQueue& queue, bool keep = false);
     virtual ~FoldersCallbackData();
 
     void addFolder(std::shared_ptr<MessageFolder> folder);
@@ -53,12 +54,14 @@ public:
     std::string getErrorName() const;
     std::string getErrorMessage() const;
 
+    PostQueue& getQueue() { return queue_;};
 private:
     std::vector<std::shared_ptr<MessageFolder>> m_folders;
     tizen::AbstractFilterPtr m_filter;
     bool m_is_error;
     std::string m_err_name;
     std::string m_err_message;
+    PostQueue& queue_;
 
 };
 

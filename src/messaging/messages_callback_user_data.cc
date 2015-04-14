@@ -7,17 +7,19 @@
 namespace extension {
 namespace messaging {
 
-MessagesCallbackUserData::MessagesCallbackUserData():
+MessagesCallbackUserData::MessagesCallbackUserData(PostQueue& queue):
         common::CallbackUserData(),
         m_is_error(false),
-        m_service_type(MessageType::UNDEFINED)
+        m_service_type(MessageType::UNDEFINED),
+        queue_(queue)
 {
 }
 
-MessagesCallbackUserData::MessagesCallbackUserData(long cid, bool keep):
+MessagesCallbackUserData::MessagesCallbackUserData(long cid, PostQueue& queue, bool keep):
         common::CallbackUserData(),
         m_is_error(false),
-        m_service_type(MessageType::UNDEFINED)
+        m_service_type(MessageType::UNDEFINED),
+        queue_(queue)
 {
     auto json = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
     picojson::object& o = json->get<picojson::object>();

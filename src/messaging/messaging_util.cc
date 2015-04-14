@@ -961,14 +961,7 @@ PlatformResult MessagingUtil::jsonToMessageConversation(const picojson::value& j
     return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-PostQueue& PostQueue::getInstance()
-{
-    LoggerD("Entered");
-    static PostQueue instance;
-    return instance;
-}
-
-PostQueue::PostQueue()
+PostQueue::PostQueue(MessagingInstance& instance): instance_(instance)
 {
     LoggerD("Entered");
 }
@@ -1056,7 +1049,7 @@ void PostQueue::resolve(PostPriority p)
         i = tasks_.erase(i);
         tasks_mutex_.unlock();
 
-        MessagingInstance::getInstance().PostMessage(json.c_str());
+        instance_.PostMessage(json.c_str());
     } else if (TaskState::NEW == i->second->state()) {
         tasks_mutex_.unlock();
 

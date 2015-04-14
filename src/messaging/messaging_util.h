@@ -108,6 +108,7 @@ class Conversation;
 class MessageConversation;
 class Message;
 class MessageBody;
+class MessagingInstance;
 
 class MessagingUtil {
 public:
@@ -183,7 +184,9 @@ enum PostPriority {
 
 class PostQueue {
 public:
-    static PostQueue& getInstance();
+    explicit PostQueue(MessagingInstance& instance);
+    ~PostQueue();
+
     void addAndResolve(const long cid, PostPriority priority, const std::string json);
     void add(const long cid, PostPriority priority = PostPriority::LAST);
     void resolve(const long cid, const std::string json);
@@ -199,13 +202,13 @@ private:
     typedef std::pair<long, std::shared_ptr<PostTask>> TasksCollectionItem;
     typedef std::vector<TasksCollectionItem> TasksCollection;
 
-    PostQueue();
     PostQueue(const PostQueue &);
-    ~PostQueue();
     void operator=(const PostQueue &);
     void resolve(PostPriority p);
     TasksCollection tasks_;
     std::mutex tasks_mutex_;
+
+    MessagingInstance& instance_;
 
     class PostTask {
     public:

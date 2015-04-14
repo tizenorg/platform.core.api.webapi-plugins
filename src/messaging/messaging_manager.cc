@@ -31,7 +31,16 @@ namespace {
 const int UNDEFINED_MESSAGE_SERVICE = -1;
 }
 
-MessagingManager::MessagingManager()
+MsgManagerCallbackData::MsgManagerCallbackData(MessagingInstance& instance):
+    json(nullptr),
+    services_map(nullptr),
+    sms_service(nullptr),
+    mms_service(nullptr),
+    instance_(instance) {
+}
+
+MessagingManager::MessagingManager(MessagingInstance& instance):
+    instance_(instance)
 {
     LoggerD("Entered");
     int ret = msg_open_msg_handle(&m_msg_handle);
@@ -68,18 +77,11 @@ MessagingManager::~MessagingManager()
     }
 }
 
-MessagingManager& MessagingManager::getInstance()
-{
-    LoggerD("Entered");
-    static MessagingManager instance;
-    return instance;
-}
-
 static gboolean callbackCompleted(const std::shared_ptr<MsgManagerCallbackData>& user_data)
 {
     LoggerD("Entered");
     std::shared_ptr<picojson::value> response = user_data->json;
-    MessagingInstance::getInstance().PostMessage(response->serialize().c_str());
+    user_data->instance_.PostMessage(response->serialize().c_str());
     return false;
 }
 
@@ -234,7 +236,7 @@ void MessagingManager::getMessageServices(const std::string& type, double callba
     obj[JSON_CALLBACK_ID] = picojson::value(callbackId);
     obj[JSON_DATA] = picojson::value(type);
 
-    auto user_data = std::shared_ptr<MsgManagerCallbackData>(new MsgManagerCallbackData());
+    auto user_data = std::shared_ptr<MsgManagerCallbackData>(new MsgManagerCallbackData(instance_));
     user_data->json = json;
     user_data->services_map = &m_email_services;
     user_data->sms_service = &m_sms_service;

@@ -47,7 +47,7 @@ static gboolean callError(void* data)
     auto json = callback->getJson();
     picojson::object& obj = json->get<picojson::object>();
     if (json->contains(JSON_CALLBACK_ID) && obj.at(JSON_CALLBACK_ID).is<double>()) {
-      PostQueue::getInstance().resolve(obj.at(JSON_CALLBACK_ID).get<double>(),
+      callback->getQueue().resolve(obj.at(JSON_CALLBACK_ID).get<double>(),
                                        json->serialize());
     } else {
       LoggerE("json is incorrect - missing required member");

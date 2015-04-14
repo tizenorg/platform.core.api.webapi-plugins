@@ -312,7 +312,7 @@ static gboolean addDraftMessageCompleteCB(void *data)
     if (json->contains(JSON_CALLBACK_ID) && obj.at(JSON_CALLBACK_ID).is<double>()) {
         if (callback->isError()) {
             LoggerD("Calling error callback");
-            PostQueue::getInstance().resolve(obj.at(JSON_CALLBACK_ID).get<double>(),
+            callback->getQueue().resolve(obj.at(JSON_CALLBACK_ID).get<double>(),
                                              json->serialize()
             );
             callback->getMessage()->setMessageStatus(MessageStatus::STATUS_FAILED);
@@ -324,7 +324,7 @@ static gboolean addDraftMessageCompleteCB(void *data)
             args[JSON_DATA_MESSAGE] = MessagingUtil::messageToJson(callback->getMessage());
             obj[JSON_DATA] = picojson::value(args);
 
-            PostQueue::getInstance().resolve(
+            callback->getQueue().resolve(
                     obj.at(JSON_CALLBACK_ID).get<double>(),
                     json->serialize()
             );
@@ -381,7 +381,7 @@ static gboolean sendEmailCompleteCB(void* data)
     picojson::object& obj = json->get<picojson::object>();
     if (json->contains(JSON_CALLBACK_ID) && obj.at(JSON_CALLBACK_ID).is<double>()) {
         if (callback->isError()) {
-            PostQueue::getInstance().resolve(obj.at(JSON_CALLBACK_ID).get<double>(),
+            callback->getQueue().resolve(obj.at(JSON_CALLBACK_ID).get<double>(),
                                              json->serialize()
             );
             callback->getMessage()->setMessageStatus(MessageStatus::STATUS_FAILED);
@@ -408,7 +408,7 @@ static gboolean sendEmailCompleteCB(void* data)
             data[JSON_DATA_MESSAGE] = MessagingUtil::messageToJson(callback->getMessage());
             obj[JSON_DATA] = picojson::value(data);
 
-            PostQueue::getInstance().resolve(
+            callback->getQueue().resolve(
                     obj.at(JSON_CALLBACK_ID).get<double>(),
                     json->serialize()
             );
@@ -532,6 +532,7 @@ void EmailManager::sendStatusCallback(int mail_id,
                     LoggerE("Unknown error %d", error_code);
                     common::UnknownException ex("Failed to send message");
                     callback->setError(ex.name(),ex.message());
+                    break;
             }
         } else if (NOTI_SEND_FINISH == status) {
             LoggerD("Message sent successfully");
@@ -832,7 +833,7 @@ void EmailManager::stopSync(long op_id)
   if (response->contains(JSON_CALLBACK_ID) && obj.at(JSON_CALLBACK_ID).is<double>()) {
     callback->setError(PlatformResult(ErrorCode::ABORT_ERR, "Sync aborted by user"));
 
-    PostQueue::getInstance().resolve(obj.at(JSON_CALLBACK_ID).get<double>(),
+    callback->getQueue().resolve(obj.at(JSON_CALLBACK_ID).get<double>(),
                                      response->serialize());
     m_proxy_sync->removeCallback(op_id);
   } else {
@@ -855,14 +856,14 @@ void removeEmailCompleteCB(MessagesCallbackUserData* callback)
   if (json->contains(JSON_CALLBACK_ID) && obj.at(JSON_CALLBACK_ID).is<double>()) {
     if (callback->isError()) {
       LoggerD("Calling error callback");
-      PostQueue::getInstance().resolve(obj.at(JSON_CALLBACK_ID).get<double>(),
+      callback->getQueue().resolve(obj.at(JSON_CALLBACK_ID).get<double>(),
                                        json->serialize()
       );
     } else {
       LoggerD("Calling success callback");
 
       obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
-      PostQueue::getInstance().resolve(obj.at(JSON_CALLBACK_ID).get<double>(),
+      callback->getQueue().resolve(obj.at(JSON_CALLBACK_ID).get<double>(),
                                        json->serialize()
       );
     }
@@ -1063,7 +1064,7 @@ void EmailManager::updateMessages(MessagesCallbackUserData* callback)
     if (json->contains(JSON_CALLBACK_ID) && obj.at(JSON_CALLBACK_ID).is<double>()) {
       if (callback->isError()) {
         LoggerD("Calling error callback");
-        PostQueue::getInstance().resolve(obj.at(JSON_CALLBACK_ID).get<double>(),
+        callback->getQueue().resolve(obj.at(JSON_CALLBACK_ID).get<double>(),
                                          json->serialize());
       } else {
         LoggerD("Calling success callback");
@@ -1076,7 +1077,7 @@ void EmailManager::updateMessages(MessagesCallbackUserData* callback)
         }
         obj[JSON_DATA] = picojson::value(array);
 
-        PostQueue::getInstance().resolve(obj.at(JSON_CALLBACK_ID).get<double>(),
+        callback->getQueue().resolve(obj.at(JSON_CALLBACK_ID).get<double>(),
                                          json->serialize()
         );
       }
@@ -1144,7 +1145,7 @@ void EmailManager::findMessages(FindMsgCallbackUserData* callback)
   if (json->contains(JSON_CALLBACK_ID) && obj.at(JSON_CALLBACK_ID).is<double>()) {
     if (callback->isError()) {
       LoggerD("Calling error callback");
-      PostQueue::getInstance().resolve( obj.at(JSON_CALLBACK_ID).get<double>(),
+      callback->getQueue().resolve( obj.at(JSON_CALLBACK_ID).get<double>(),
                                         json->serialize());
     } else {
       LoggerD("Calling success callback");
@@ -1156,7 +1157,7 @@ void EmailManager::findMessages(FindMsgCallbackUserData* callback)
       obj[JSON_DATA] = picojson::value(response);
       obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
 
-      PostQueue::getInstance().resolve(obj.at(JSON_CALLBACK_ID).get<double>(),
+      callback->getQueue().resolve(obj.at(JSON_CALLBACK_ID).get<double>(),
                                        json->serialize());
     }
   } else {
@@ -1216,7 +1217,7 @@ void EmailManager::findConversations(ConversationCallbackData* callback)
     if (json->contains(JSON_CALLBACK_ID) && obj.at(JSON_CALLBACK_ID).is<double>()) {
       if (callback->isError()) {
         LoggerD("Calling error callback");
-        PostQueue::getInstance().resolve(obj.at(JSON_CALLBACK_ID).get<double>(),
+        callback->getQueue().resolve(obj.at(JSON_CALLBACK_ID).get<double>(),
                                          json->serialize());
       } else {
         LoggerD("Calling success callback");
@@ -1231,7 +1232,7 @@ void EmailManager::findConversations(ConversationCallbackData* callback)
         obj[JSON_DATA] = picojson::value(response);
         obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
 
-        PostQueue::getInstance().resolve(obj.at(JSON_CALLBACK_ID).get<double>(),
+        callback->getQueue().resolve(obj.at(JSON_CALLBACK_ID).get<double>(),
                                          json->serialize()
         );
       }
@@ -1355,7 +1356,7 @@ void EmailManager::findFolders(FoldersCallbackData* callback)
     if (json->contains(JSON_CALLBACK_ID) && obj.at(JSON_CALLBACK_ID).is<double>()) {
       if (callback->isError()) {
         LoggerD("Calling error callback");
-        PostQueue::getInstance().resolve(obj.at(JSON_CALLBACK_ID).get<double>(),
+        callback->getQueue().resolve(obj.at(JSON_CALLBACK_ID).get<double>(),
                                          json->serialize());
       } else {
         LoggerD("Calling success callback");
@@ -1370,7 +1371,7 @@ void EmailManager::findFolders(FoldersCallbackData* callback)
         obj[JSON_DATA] = picojson::value(response);
         obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
 
-        PostQueue::getInstance().resolve(obj.at(JSON_CALLBACK_ID).get<double>(),
+        callback->getQueue().resolve(obj.at(JSON_CALLBACK_ID).get<double>(),
                                          json->serialize());
       }
     } else {
@@ -1445,13 +1446,13 @@ void EmailManager::removeConversations(ConversationCallbackData* callback)
     if (json->contains(JSON_CALLBACK_ID) && obj.at(JSON_CALLBACK_ID).is<double>()) {
       if (callback->isError()) {
         LoggerD("Calling error callback");
-        PostQueue::getInstance().resolve(obj.at(JSON_CALLBACK_ID).get<double>(),
+        callback->getQueue().resolve(obj.at(JSON_CALLBACK_ID).get<double>(),
                                          json->serialize());
       } else {
         LoggerD("Calling success callback");
         obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
 
-        PostQueue::getInstance().resolve(obj.at(JSON_CALLBACK_ID).get<double>(),
+        callback->getQueue().resolve(obj.at(JSON_CALLBACK_ID).get<double>(),
                                          json->serialize());
       }
     } else {

@@ -107,7 +107,7 @@ static gboolean loadMessageAttachmentTask(void* data)
         args[JSON_DATA_MESSAGE_ATTACHMENT] = MessagingUtil::messageAttachmentToJson(att);
         obj[JSON_DATA] = picojson::value(args);
 
-        PostQueue::getInstance().resolve(
+        callback->getQueue().resolve(
             obj.at(JSON_CALLBACK_ID).get<double>(),
             json->serialize()
         );

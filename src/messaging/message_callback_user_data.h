@@ -15,10 +15,11 @@ namespace extension {
 namespace messaging {
 
 class Message;
+class PostQueue;
 
 class MessageCallbackUserData: public common::CallbackUserData {
 public:
-    MessageCallbackUserData();
+    MessageCallbackUserData(PostQueue& queue);
     virtual ~MessageCallbackUserData();
 
     void setMessage(std::shared_ptr<Message> message);
@@ -34,12 +35,16 @@ public:
     std::string getErrorName() const;
     std::string getErrorMessage() const;
 
+    PostQueue& getQueue() { return queue_;};
+
 private:
     bool m_is_error;
+    PostQueue& queue_;
     std::string m_err_name;
     std::string m_err_message;
     std::shared_ptr<Message> m_message;
     int m_account_id;
+
 };
 
 }//messaging

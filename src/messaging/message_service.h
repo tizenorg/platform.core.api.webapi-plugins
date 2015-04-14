@@ -30,7 +30,7 @@ enum MessageServiceAccountId
 
 class MessageRecipientsCallbackData : public common::CallbackUserData {
 public:
-    MessageRecipientsCallbackData();
+    MessageRecipientsCallbackData(PostQueue& queue);
     virtual ~MessageRecipientsCallbackData();
 
     void setMessage(std::shared_ptr<Message> message);
@@ -53,6 +53,8 @@ public:
     TelNetworkDefaultDataSubs_t getDefaultSimIndex() const;
     bool isSetSimIndex() const;
 
+    PostQueue& getQueue() { return queue_;};
+
 private:
     std::shared_ptr<Message> m_message;
     bool m_is_error;
@@ -60,6 +62,7 @@ private:
     int m_account_id;
     TelNetworkDefaultDataSubs_t m_sim_index;
     TelNetworkDefaultDataSubs_t m_default_sim_index;
+    PostQueue& queue_;
 };
 
 class BaseMessageServiceCallbackData : public common::CallbackUserData {
@@ -94,19 +97,21 @@ protected:
 
 class MessageBodyCallbackData : public BaseMessageServiceCallbackData {
 public:
-    MessageBodyCallbackData();
+    MessageBodyCallbackData(PostQueue& queue);
     virtual ~MessageBodyCallbackData();
 
     void setMessage(std::shared_ptr<Message> message);
     std::shared_ptr<Message> getMessage() const;
 
+    PostQueue& getQueue() { return queue_;};
 private:
     std::shared_ptr<Message> m_message;
+    PostQueue& queue_;
 };
 
 class MessageAttachmentCallbackData : public BaseMessageServiceCallbackData {
 public:
-    MessageAttachmentCallbackData();
+    MessageAttachmentCallbackData(PostQueue& queue);
     virtual ~MessageAttachmentCallbackData();
 
     void setMessageAttachment(std::shared_ptr<MessageAttachment> messageAttachment);
@@ -122,14 +127,16 @@ public:
     void setNth(const int nth);
     int getNth() const;
 
+    PostQueue& getQueue() { return queue_;};
 private:
     std::shared_ptr<MessageAttachment> m_message_attachment;
     int m_nth;
+    PostQueue& queue_;
 };
 
 class SyncCallbackData : public BaseMessageServiceCallbackData {
 public:
-    SyncCallbackData();
+    SyncCallbackData(PostQueue& queue);
     virtual ~SyncCallbackData();
 
     void setLimit(const unsigned long limit);
@@ -141,17 +148,19 @@ public:
     void setAccountId(int account_id);
     int getAccountId() const;
 
+    PostQueue& getQueue() { return queue_;};
 protected:
     bool m_is_limit;
     unsigned long m_limit;
 
     long m_op_id;
     int m_account_id;
+    PostQueue& queue_;
 };
 
 class SyncFolderCallbackData : public SyncCallbackData {
 public:
-    SyncFolderCallbackData();
+    SyncFolderCallbackData(PostQueue& queue);
     virtual ~SyncFolderCallbackData();
 
     void setMessageFolder(std::shared_ptr<MessageFolder> message_folder);

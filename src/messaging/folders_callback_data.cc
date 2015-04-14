@@ -16,21 +16,22 @@
 //
 
 #include "folders_callback_data.h"
-#include "messaging_util.h"
 
 namespace extension {
 namespace messaging {
 
 
-FoldersCallbackData::FoldersCallbackData():
+FoldersCallbackData::FoldersCallbackData(PostQueue& queue):
         m_filter(),
-        m_is_error(false)
+        m_is_error(false),
+        queue_(queue)
 {
 }
 
-FoldersCallbackData::FoldersCallbackData(long cid, bool keep):
+FoldersCallbackData::FoldersCallbackData(long cid, PostQueue& queue, bool keep):
         m_filter(),
-        m_is_error(false)
+        m_is_error(false),
+        queue_(queue)
 {
     auto json = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
     picojson::object& o = json->get<picojson::object>();

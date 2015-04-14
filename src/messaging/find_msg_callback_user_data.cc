@@ -25,13 +25,14 @@
 namespace extension {
 namespace messaging {
 
-FindMsgCallbackUserData::FindMsgCallbackUserData():
+FindMsgCallbackUserData::FindMsgCallbackUserData(PostQueue& queue):
         CallbackUserData(),
         m_limit(0),
         m_offset(0),
         m_is_error(false),
         m_account_id(0),
-        m_service_type(UNDEFINED)
+        m_service_type(UNDEFINED),
+        queue_(queue)
 {
 }
 

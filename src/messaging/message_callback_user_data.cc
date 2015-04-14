@@ -8,9 +8,10 @@
 namespace extension {
 namespace messaging {
 
-MessageCallbackUserData::MessageCallbackUserData():
+MessageCallbackUserData::MessageCallbackUserData(PostQueue& queue):
         common::CallbackUserData(),
-        m_is_error(false)
+        m_is_error(false),
+        queue_(queue)
 {
 }
 

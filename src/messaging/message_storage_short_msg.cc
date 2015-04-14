@@ -210,7 +210,7 @@ static gboolean findFoldersCB(void* data)
       obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
 
 
-      PostQueue::getInstance().resolve(
+     callback->getQueue().resolve(
           obj.at(JSON_CALLBACK_ID).get<double>(),
           json->serialize()
       );

@@ -28,7 +28,8 @@ public:
     FoldersChangeCallback(
             long cid,
             int service_id,
-            MessageType service_type);
+            MessageType service_type,
+            PostQueue& queue);
     virtual ~FoldersChangeCallback();
 
     void added(const FolderPtrVector& folders);

@@ -20,8 +20,8 @@ class Message;
 
 class MessagesCallbackUserData: public common::CallbackUserData {
 public:
-    MessagesCallbackUserData();
-    MessagesCallbackUserData(long cid, bool keep = false);
+    MessagesCallbackUserData(PostQueue& queue);
+    MessagesCallbackUserData(long cid, PostQueue& queue, bool keep = false);
     virtual ~MessagesCallbackUserData();
 
     void addMessage(std::shared_ptr<Message> msg);
@@ -37,12 +37,15 @@ public:
     void setMessageServiceType(MessageType m_msg_type);
     MessageType getMessageServiceType() const;
 
+    PostQueue& getQueue() { return queue_;};
+
 private:
     std::vector<std::shared_ptr<Message>> m_messages;
     bool m_is_error;
     std::string m_err_name;
     std::string m_err_message;
     MessageType m_service_type;
+    PostQueue& queue_;
 };
 
 }//messaging

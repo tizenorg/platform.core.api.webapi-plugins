@@ -46,7 +46,7 @@ static gboolean sendMessageCompleteCB(void* data)
     }
 
     if (callback->isError()) {
-        PostQueue::getInstance().resolve(
+      callback->getQueue().resolve(
                 callback->getJson()->get<picojson::object>().at(JSON_CALLBACK_ID).get<double>(),
                 callback->getJson()->serialize()
         );
@@ -74,7 +74,7 @@ static gboolean sendMessageCompleteCB(void* data)
         data[JSON_DATA_MESSAGE] = MessagingUtil::messageToJson(message);
         obj[JSON_DATA] = picojson::value(data);
 
-        PostQueue::getInstance().resolve(
+        callback->getQueue().resolve(
                 obj.at(JSON_CALLBACK_ID).get<double>(),
                 json->serialize()
         );
@@ -99,7 +99,7 @@ static gboolean addDraftMessageCompleteCB(void *data)
     if (callback->isError()) {
         LoggerD("Calling error callback");
 
-        PostQueue::getInstance().resolve(
+        callback->getQueue().resolve(
                 callback->getJson()->get<picojson::object>().at(JSON_CALLBACK_ID).get<double>(),
                 callback->getJson()->serialize()
         );
@@ -115,7 +115,7 @@ static gboolean addDraftMessageCompleteCB(void *data)
         args[JSON_DATA_MESSAGE] = MessagingUtil::messageToJson(callback->getMessage());
         obj[JSON_DATA] = picojson::value(args);
 
-        PostQueue::getInstance().resolve(
+        callback->getQueue().resolve(
                 obj.at(JSON_CALLBACK_ID).get<double>(),
                 json->serialize()
         );
@@ -783,7 +783,7 @@ void ShortMsgManager::removeMessages(MessagesCallbackUserData* callback)
 
     if (callback->isError()) {
         LoggerD("Calling error callback");
-        PostQueue::getInstance().resolve(
+        callback->getQueue().resolve(
                 callback->getJson()->get<picojson::object>().at(JSON_CALLBACK_ID).get<double>(),
                 callback->getJson()->serialize()
         );
@@ -794,7 +794,7 @@ void ShortMsgManager::removeMessages(MessagesCallbackUserData* callback)
         picojson::object& obj = json->get<picojson::object>();
         obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
 
-        PostQueue::getInstance().resolve(
+        callback->getQueue().resolve(
                 obj.at(JSON_CALLBACK_ID).get<double>(),
                 json->serialize()
         );
@@ -858,7 +858,7 @@ void ShortMsgManager::updateMessages(MessagesCallbackUserData* callback)
     if (callback->isError()) {
         LoggerD("Calling error callback");
 
-        PostQueue::getInstance().resolve(
+        callback->getQueue().resolve(
                 callback->getJson()->get<picojson::object>().at(JSON_CALLBACK_ID).get<double>(),
                 callback->getJson()->serialize()
         );
@@ -880,7 +880,7 @@ void ShortMsgManager::updateMessages(MessagesCallbackUserData* callback)
 
         obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
 
-        PostQueue::getInstance().resolve(
+        callback->getQueue().resolve(
                 obj.at(JSON_CALLBACK_ID).get<double>(),
                 json->serialize()
         );
@@ -996,7 +996,7 @@ void ShortMsgManager::findMessages(FindMsgCallbackUserData* callback)
 
     if (callback->isError()) {
         LoggerD("Calling error callback");
-        PostQueue::getInstance().resolve(
+        callback->getQueue().resolve(
                 callback->getJson()->get<picojson::object>().at(JSON_CALLBACK_ID).get<double>(),
                 callback->getJson()->serialize()
         );
@@ -1016,7 +1016,7 @@ void ShortMsgManager::findMessages(FindMsgCallbackUserData* callback)
         obj[JSON_DATA] = picojson::value(response);
         obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
 
-        PostQueue::getInstance().resolve(
+        callback->getQueue().resolve(
                 obj.at(JSON_CALLBACK_ID).get<double>(),
                 json->serialize()
         );
@@ -1064,7 +1064,7 @@ void ShortMsgManager::findConversations(ConversationCallbackData* callback)
 
     if (callback->isError()) {
         LoggerD("Calling error callback");
-        PostQueue::getInstance().resolve(
+        callback->getQueue().resolve(
                 callback->getJson()->get<picojson::object>().at(JSON_CALLBACK_ID).get<double>(),
                 callback->getJson()->serialize()
         );
@@ -1083,7 +1083,7 @@ void ShortMsgManager::findConversations(ConversationCallbackData* callback)
         obj[JSON_DATA] = picojson::value(response);
         obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
 
-        PostQueue::getInstance().resolve(
+        callback->getQueue().resolve(
                 obj.at(JSON_CALLBACK_ID).get<double>(),
                 json->serialize()
         );
@@ -1203,7 +1203,7 @@ void ShortMsgManager::removeConversations(ConversationCallbackData* callback)
 
     if (callback->isError()) {
         LoggerD("Calling error callback");
-        PostQueue::getInstance().resolve(
+        callback->getQueue().resolve(
                 callback->getJson()->get<picojson::object>().at(JSON_CALLBACK_ID).get<double>(),
                 callback->getJson()->serialize()
         );
@@ -1214,7 +1214,7 @@ void ShortMsgManager::removeConversations(ConversationCallbackData* callback)
         picojson::object& obj = json->get<picojson::object>();
         obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
 
-        PostQueue::getInstance().resolve(
+        callback->getQueue().resolve(
                 obj.at(JSON_CALLBACK_ID).get<double>(),
                 json->serialize()
         );

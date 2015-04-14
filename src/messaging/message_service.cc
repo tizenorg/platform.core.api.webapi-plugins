@@ -29,11 +29,12 @@ const char* JSON_SERVICE_STORAGE = "messageStorage";
 
 //#################### MessageRecipientsCallbackData ####################
 
-MessageRecipientsCallbackData::MessageRecipientsCallbackData():
+MessageRecipientsCallbackData::MessageRecipientsCallbackData(PostQueue& queue):
         m_is_error(false),
         m_account_id(-1),
         m_sim_index(TAPI_NETWORK_DEFAULT_DATA_SUBS_UNKNOWN),
-        m_default_sim_index(TAPI_NETWORK_DEFAULT_DATA_SUBS_UNKNOWN)
+        m_default_sim_index(TAPI_NETWORK_DEFAULT_DATA_SUBS_UNKNOWN),
+        queue_(queue)
 {
     LoggerD("Entered");
     m_msg_recipients = std::vector<std::string>();
@@ -239,7 +240,8 @@ double BaseMessageServiceCallbackData::getCallbackId() const
 
 //#################### MessageBodyCallbackData ####################
 
-MessageBodyCallbackData::MessageBodyCallbackData()
+MessageBodyCallbackData::MessageBodyCallbackData(PostQueue& queue):
+    queue_(queue)
 {
     LoggerD("Entered");
 }
@@ -261,8 +263,9 @@ std::shared_ptr<Message> MessageBodyCallbackData::getMessage() const
 
 //#################### MessageAttachmentCallbackData ####################
 
-MessageAttachmentCallbackData::MessageAttachmentCallbackData():
-        m_nth(0)
+MessageAttachmentCallbackData::MessageAttachmentCallbackData(PostQueue& queue):
+        m_nth(0),
+        queue_(queue)
 {
     LoggerD("Entered");
 }
@@ -296,12 +299,13 @@ int MessageAttachmentCallbackData::getNth() const
 
 //#################### SyncCallbackData ####################
 
-SyncCallbackData::SyncCallbackData():
+SyncCallbackData::SyncCallbackData(PostQueue& queue):
 //        BaseMessageServiceCallbackData(globalCtx),
         m_is_limit(false),
         m_limit(0),
         m_op_id(-1),
-        m_account_id(-1)
+        m_account_id(-1),
+        queue_(queue)
 {
     LoggerD("Entered");
 }
@@ -349,7 +353,8 @@ int SyncCallbackData::getAccountId() const
 
 //#################### SyncFolderCallbackData ####################
 
-SyncFolderCallbackData::SyncFolderCallbackData()
+SyncFolderCallbackData::SyncFolderCallbackData(PostQueue& queue):
+    SyncCallbackData(queue)
 {
     LoggerD("Entered");
 }

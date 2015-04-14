@@ -29,8 +29,9 @@ const char* FOLDERSREMOVED = "foldersremoved";
 FoldersChangeCallback::FoldersChangeCallback(
         long cid,
         int service_id,
-        MessageType service_type):
-    m_callback_data(cid, true),
+        MessageType service_type,
+        PostQueue& queue):
+    m_callback_data(cid, queue, true),
     m_id(service_id),
     m_msg_type(service_type),
     m_is_act(true)
@@ -95,7 +96,7 @@ void FoldersChangeCallback::added(const FolderPtrVector& folders)
     obj[JSON_DATA] = picojson::value(array);
 
     if (json->contains(JSON_CALLBACK_ID) && obj.at(JSON_CALLBACK_ID).is<double>()) {
-      PostQueue::getInstance().addAndResolve(obj.at(
+      m_callback_data.getQueue().addAndResolve(obj.at(
           JSON_CALLBACK_ID).get<double>(), PostPriority::MEDIUM, json->serialize());
     } else {
       LoggerE("Callback id is missing");
@@ -126,7 +127,7 @@ void FoldersChangeCallback::updated(const FolderPtrVector& folders)
     obj[JSON_DATA] = picojson::value(array);
 
     if (json->contains(JSON_CALLBACK_ID) && obj.at(JSON_CALLBACK_ID).is<double>()) {
-      PostQueue::getInstance().addAndResolve(obj.at(
+      m_callback_data.getQueue().addAndResolve(obj.at(
           JSON_CALLBACK_ID).get<double>(), PostPriority::LOW, json->serialize());
     } else {
       LoggerE("Callback id is missing");
@@ -157,7 +158,7 @@ void FoldersChangeCallback::removed(const FolderPtrVector& folders)
     obj[JSON_DATA] = picojson::value(array);
 
     if (json->contains(JSON_CALLBACK_ID) && obj.at(JSON_CALLBACK_ID).is<double>()) {
-      PostQueue::getInstance().addAndResolve(obj.at(
+      m_callback_data.getQueue().addAndResolve(obj.at(
           JSON_CALLBACK_ID).get<double>(), PostPriority::LAST, json->serialize());
     } else {
       LoggerE("Callback id is missing");

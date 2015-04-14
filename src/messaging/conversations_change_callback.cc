@@ -30,8 +30,9 @@ const char* CONVERSATIONSREMOVED = "conversationsremoved";
 ConversationsChangeCallback::ConversationsChangeCallback(
         long cid,
         int service_id,
-        MessageType service_type) :
-        m_callback_data(cid, true),
+        MessageType service_type,
+        PostQueue& queue) :
+        m_callback_data(cid, queue, true),
         m_id(service_id),
         m_msg_type(service_type),
         m_is_act(true)
@@ -99,7 +100,7 @@ void ConversationsChangeCallback::added(
     obj[JSON_ACTION] = picojson::value(CONVERSATIONSADDED);
     obj[JSON_DATA] = picojson::value(array);
 
-    PostQueue::getInstance().addAndResolve(obj.at(
+    m_callback_data.getQueue().addAndResolve(obj.at(
                 JSON_CALLBACK_ID).get<double>(), PostPriority::MEDIUM, json->serialize());
 }
 
@@ -127,7 +128,7 @@ void ConversationsChangeCallback::updated(
     obj[JSON_ACTION] = picojson::value(CONVERSATIONSUPDATED);
     obj[JSON_DATA] = picojson::value(array);
 
-    PostQueue::getInstance().addAndResolve(obj.at(
+    m_callback_data.getQueue().addAndResolve(obj.at(
                 JSON_CALLBACK_ID).get<double>(), PostPriority::LOW, json->serialize());
 }
 
@@ -155,7 +156,7 @@ void ConversationsChangeCallback::removed(
     obj[JSON_ACTION] = picojson::value(CONVERSATIONSREMOVED);
     obj[JSON_DATA] = picojson::value(array);
 
-    PostQueue::getInstance().addAndResolve(obj.at(
+    m_callback_data.getQueue().addAndResolve(obj.at(
                 JSON_CALLBACK_ID).get<double>(), PostPriority::LAST, json->serialize());
 }
 

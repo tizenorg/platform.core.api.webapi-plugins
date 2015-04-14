@@ -41,5 +41,5 @@ common::Instance* MessagingExtension::CreateInstance() {
       LoggerE("Initializing the email service failed (%s)", ret.message().c_str());
       return nullptr;
   }
-  return &extension::messaging::MessagingInstance::getInstance();
+  return new extension::messaging::MessagingInstance();
 }

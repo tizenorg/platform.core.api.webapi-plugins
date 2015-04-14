@@ -108,7 +108,7 @@ void SyncProxy::handleEmailSignal(const int status,
         return;
     }
 
-    common::CallbackUserData* callback = NULL;
+    SyncCallbackData* callback = NULL;
     CallbackMap::iterator callback_it;
 
     PlatformResult ret = findSyncCallbackByOpHandle(op_handle, &callback_it);
@@ -117,7 +117,7 @@ void SyncProxy::handleEmailSignal(const int status,
         return;
     }
 
-    callback = callback_it->second;
+    callback = dynamic_cast<SyncCallbackData*>(callback_it->second);
     if (!callback) {
         LoggerE("Callback is null");
         return;
@@ -129,7 +129,7 @@ void SyncProxy::handleEmailSignal(const int status,
         case NOTI_DOWNLOAD_FINISH:
             LoggerD("Sync finished!");
             obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
-            PostQueue::getInstance().resolve(
+            callback->getQueue().resolve(
                     obj.at(JSON_CALLBACK_ID).get<double>(),
                     response->serialize()
             );
@@ -140,7 +140,7 @@ void SyncProxy::handleEmailSignal(const int status,
             LoggerD("Sync failed!");
             common::UnknownException err("Sync failed!");
             callback->setError(err.name(), err.message());
-            PostQueue::getInstance().resolve(
+            callback->getQueue().resolve(
                     obj.at(JSON_CALLBACK_ID).get<double>(),
                     response->serialize()
             );
