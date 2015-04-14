@@ -1165,7 +1165,7 @@ void ApplicationInstance::AppMgrLaunchAppControl(const picojson::value& args,
     if (launchMode == "SINGLE") {
       launch_mode = APP_CONTROL_LAUNCH_MODE_SINGLE;
     } else if (launchMode == "GROUP") {
-      launch_mode = APP_CONTROL_LAUNCH_MODE_SINGLE;
+      launch_mode = APP_CONTROL_LAUNCH_MODE_GROUP;
     } else {
       LoggerE("Invalid launch mode!");
       ReportError(UnknownException("Invalid launch mode"), out);
