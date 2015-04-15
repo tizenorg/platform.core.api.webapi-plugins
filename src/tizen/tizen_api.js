@@ -87,9 +87,9 @@ var AbstractFilter = function() {};
  * Represents a set of filters.
  */
 exports.AttributeFilter = function(attrName, matchFlag, matchValue) {
-  if (!(this instanceof exports.AttributeFilter)) {
-    throw new WebAPIException('TypeError', 'Constructor cannot be called as function.');
-  }
+
+  xwalk.utils.validator.isConstructorCall(this, exports.AttributeFilter);
+
   var name_ = '';
   var flag_ = 'EXACTLY';
   var value_ = null;
@@ -194,9 +194,9 @@ exports.AttributeFilter.prototype.constructor = exports.AttributeFilter;
  * within a particular range.
  */
 exports.AttributeRangeFilter = function(attrName, start, end) {
-  if (!(this instanceof exports.AttributeRangeFilter)) {
-    throw new WebAPIException('TypeError', 'Constructor cannot be called as function.');
-  }
+
+  xwalk.utils.validator.isConstructorCall(this, exports.AttributeRangeFilter);
+
   var name_ = '';
   var start_ = null;
   var end_ = null;
@@ -305,9 +305,9 @@ exports.AttributeRangeFilter.prototype.constructor = exports.AttributeRangeFilte
  * Represents a set of filters.
  */
 exports.CompositeFilter = function(type, filters) {
-  if (!(this instanceof exports.CompositeFilter)) {
-    throw new WebAPIException('TypeError', 'Constructor cannot be called as function.');
-  }
+
+  xwalk.utils.validator.isConstructorCall(this, exports.CompositeFilter);
+
   var filterTypes = Object.keys(CompositeFilterType);
 
   var type_ = filterTypes[0];
@@ -386,9 +386,9 @@ exports.CompositeFilter.prototype.constructor = exports.CompositeFilter;
  * SortMode is a common interface used for sorting of queried data.
  */
 exports.SortMode = function(attrName, order) {
-  if (!(this instanceof exports.SortMode)) {
-    throw new WebAPIException('TypeError', 'Constructor cannot be called as function.');
-  }
+
+  xwalk.utils.validator.isConstructorCall(this, exports.SortMode);
+
   var sortModeOrder = Object.keys(SortModeOrder);
 
   var attributeName_ = '';
@@ -429,9 +429,8 @@ exports.SortMode.prototype.constructor = exports.SortMode;
  * Represents a point (latitude and longitude) in the map coordinate system.
  */
 exports.SimpleCoordinates = function(lat, lng) {
-  if (!(this instanceof exports.SimpleCoordinates)) {
-    throw new WebAPIException('TypeError', 'Constructor cannot be called as function.');
-  }
+
+  xwalk.utils.validator.isConstructorCall(this, exports.SimpleCoordinates);
 
   var latitude = 0;
   var longitude = 0;
