@@ -50,7 +50,7 @@ Calendar::~Calendar() {
 
   if (listeners_registered_.find("EVENT") != listeners_registered_.end()) {
     ret = calendar_db_remove_changed_cb(_calendar_event._uri, ChangeCallback,
-                                        nullptr);
+                                        this);
     if (CALENDAR_ERROR_NONE != ret) {
       LoggerE("Remove calendar event change callback error");
     }
@@ -58,7 +58,7 @@ Calendar::~Calendar() {
 
   if (listeners_registered_.find("TASK") != listeners_registered_.end()) {
     ret = calendar_db_remove_changed_cb(_calendar_todo._uri, ChangeCallback,
-                                        nullptr);
+                                        this);
     if (CALENDAR_ERROR_NONE != ret) {
       LoggerE("Remove calendar todo change callback error");
     }
