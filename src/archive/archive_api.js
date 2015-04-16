@@ -30,18 +30,22 @@ CommonFS.cacheVirtualToReal = {
 };
 
 function _initializeCache() {
-    var result = bridge.sync({
-        cmd: 'Filesystem_getWidgetPaths'
-    });
-    CommonFS.cacheVirtualToReal['wgt-package'] = {
-            path: result['wgt-package']
-    };
-    CommonFS.cacheVirtualToReal['wgt-private'] = {
-            path: result['wgt-private']
-    };
-    CommonFS.cacheVirtualToReal['wgt-private-tmp'] = {
-            path: result['wgt-private-tmp']
-    };
+    try {
+        var result = bridge.sync({
+            cmd: 'Filesystem_getWidgetPaths'
+        });
+        CommonFS.cacheVirtualToReal['wgt-package'] = {
+                path: result['wgt-package']
+        };
+        CommonFS.cacheVirtualToReal['wgt-private'] = {
+                path: result['wgt-private']
+        };
+        CommonFS.cacheVirtualToReal['wgt-private-tmp'] = {
+                path: result['wgt-private-tmp']
+        };
+    } catch(e) {
+        console.log("Exception while getting widget paths was thrown: " + e);
+    }
 }
 
 _initializeCache();
@@ -473,8 +477,8 @@ function ArchiveFile(data) {
 }
 
 
-function ArchiveManager() {
-}
+var ArchiveManager = function () {
+};
 
 /**
  * Opens the archive file. After this operation, it is possible to add or get files to and from the archive.

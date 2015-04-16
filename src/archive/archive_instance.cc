@@ -12,6 +12,7 @@
 #include "common/current_application.h"
 #include "common/picojson.h"
 #include "common/logger.h"
+#include "common/virtual_fs.h"
 #include "archive_callback_data.h"
 #include "archive_manager.h"
 #include "archive_utils.h"
@@ -25,6 +26,10 @@ using namespace common;
 namespace {
 const std::string kPrivilegeFilesystemRead  = "http://tizen.org/privilege/filesystem.read";
 const std::string kPrivilegeFilesystemWrite  = "http://tizen.org/privilege/filesystem.write";
+
+const std::string kWgtPackagePathName = "wgt-package";
+const std::string kWgtPrivatePathName = "wgt-private";
+const std::string kWgtPrivateTmpPathName = "wgt-private-tmp";
 } // namespace
 
 ArchiveInstance::ArchiveInstance() {
@@ -538,31 +543,22 @@ void ArchiveInstance::Extract(const picojson::value& args, picojson::object& out
 }
 
 void ArchiveInstance::GetWidgetPaths(const picojson::value& args, picojson::object& out) {
-    char *root_path = NULL;
-    std::string pkg_id = CurrentApplication::GetInstance().GetPackageId();
-
-    pkgmgrinfo_pkginfo_h handle = NULL;
-    if (PMINFO_R_OK != pkgmgrinfo_pkginfo_get_pkginfo(pkg_id.c_str(), &handle)) {
-        ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Error while getting package info"), &out);
-        return;
-    }
-
-    if (PMINFO_R_OK != pkgmgrinfo_pkginfo_get_root_path(handle, &root_path)) {
-        ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Error while getting package info"), &out);
-        return;
-    }
+    std::string wgt_package_path =
+        *(common::VirtualFs::GetInstance().GetVirtualRootDirectory(kWgtPackagePathName));
+    std::string wgt_private_path =
+        *(common::VirtualFs::GetInstance().GetVirtualRootDirectory(kWgtPrivatePathName));
+    std::string wgt_private_tmp_path =
+        *(common::VirtualFs::GetInstance().GetVirtualRootDirectory(kWgtPrivateTmpPathName));
+    LoggerD("wgt-package path: %s", wgt_package_path.c_str());
+    LoggerD("wgt-private path: %s", wgt_private_path.c_str());
+    LoggerD("wgt-private-tmp path: %s", wgt_private_tmp_path.c_str());
 
     // Construction of the response
-    std::string root(root_path);
-    LoggerD("root path: %s", root_path);
-
-    pkgmgrinfo_pkginfo_destroy_pkginfo(handle);
-
     picojson::value result{picojson::object()};
     auto& result_obj = result.get<picojson::object>();
-    result_obj.insert(std::make_pair("wgt-package", picojson::value(root + "/res/wgt")));
-    result_obj.insert(std::make_pair("wgt-private", picojson::value(root + "/data")));
-    result_obj.insert(std::make_pair("wgt-private-tmp", picojson::value(root + "/tmp")));
+    result_obj.insert(std::make_pair(kWgtPackagePathName, picojson::value(wgt_package_path)));
+    result_obj.insert(std::make_pair(kWgtPrivatePathName, picojson::value(wgt_private_path)));
+    result_obj.insert(std::make_pair(kWgtPrivateTmpPathName, picojson::value(wgt_private_tmp_path)));
 
     ReportSuccess(result, out);
 }
