@@ -378,7 +378,7 @@ AccountListeners.prototype.removeListener = function(accountListenerId) {
     if (T_.isEmptyObject(this.instances)) {
         native_.removeListener(ACCOUNT_LISTENER, this.appCallback);
 
-        var result = native_.callSync('AccountManager_removeListener');
+        var result = native_.callSync('AccountManager_removeAccountListener');
 
         if (native_.isFailure(result)) {
             throw native_.getErrorObject(result);
