@@ -30,6 +30,15 @@ const std::string kPrivilegeFilesystemWrite  = "http://tizen.org/privilege/files
 const std::string kWgtPackagePathName = "wgt-package";
 const std::string kWgtPrivatePathName = "wgt-private";
 const std::string kWgtPrivateTmpPathName = "wgt-private-tmp";
+
+const std::string kArchiveFileEntryOptDest = "destination";
+const std::string kArchiveFileEntryOptStrip = "stripSourceDirectory";
+const std::string kArchiveFileEntryOptCompressionLevel = "compressionLevel";
+
+const std::string kNoCompressionStr = "STORE";
+const std::string kFastCompressionStr = "FAST";
+const std::string kNormalCompressionStr = "NORMAL";
+const std::string kBestCompressionStr = "BEST";
 } // namespace
 
 ArchiveInstance::ArchiveInstance() {
@@ -222,6 +231,18 @@ void ArchiveInstance::Abort(const picojson::value& args, picojson::object& out)
     ReportSuccess(out);
 }
 
+unsigned int ConvertStringToCompressionLevel(const std::string& level) {
+  if (kNoCompressionStr == level) {
+      return Z_NO_COMPRESSION;
+  } else if (kFastCompressionStr == level) {
+      return Z_BEST_SPEED;
+  } else if (kBestCompressionStr == level) {
+      return Z_BEST_COMPRESSION;
+  } else {
+      return Z_DEFAULT_COMPRESSION;
+  }
+}
+
 void ArchiveInstance::Add(const picojson::value& args, picojson::object& out)
 {
     LoggerD("Entered");
@@ -231,7 +252,7 @@ void ArchiveInstance::Add(const picojson::value& args, picojson::object& out)
 
     picojson::object data = args.get(JSON_DATA).get<picojson::object>();
     picojson::value v_source = data.at(PARAM_SOURCE_FILE);
-    //picojson::value v_options = data.at(PARAM_OPTIONS);
+    picojson::value v_options = data.at(PARAM_OPTIONS);
     picojson::value v_op_id = data.at(PARAM_OPERATION_ID);
     picojson::value v_handle = data.at(ARCHIVE_FILE_HANDLE);
 
@@ -259,6 +280,30 @@ void ArchiveInstance::Add(const picojson::value& args, picojson::object& out)
     callback->setFileEntry(afep);
 
     callback->setBasePath(file_ptr->getNode()->getPath()->getPath());
+
+    // check and set options
+    LoggerD("Processing OPTIONS dictionary: %s", v_options.serialize().c_str());
+    const auto& dest = v_options.get(kArchiveFileEntryOptDest);
+    if (dest.is<std::string>()) {
+      std::string dic_destination = dest.get<std::string>();
+      LoggerD("Setting destination path to: \"%s\"",dic_destination.c_str());
+      afep->setDestination(dic_destination);
+    }
+
+    const auto& strip = v_options.get(kArchiveFileEntryOptStrip);
+    if (strip.is<bool>()) {
+      bool dic_strip = strip.get<bool>();
+      LoggerD("Setting strip option to: %d", dic_strip);
+      afep->setStriped(dic_strip);
+    }
+
+    const auto& level = v_options.get(kArchiveFileEntryOptCompressionLevel);
+    if (level.is<std::string>()) {
+      std::string dic_compression_level = level.get<std::string>();
+      LoggerD("Setting compression level to: \"%s\"", dic_compression_level.c_str());
+      afep->setCompressionLevel(ConvertStringToCompressionLevel(dic_compression_level));
+    }
+
     LoggerD("base path:%s base virt:%s", callback->getBasePath().c_str(),
             callback->getBaseVirtualPath().c_str());
 
