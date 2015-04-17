@@ -544,7 +544,7 @@ void DatacontrolInstance::SQLDataControlConsumerInsert(
       }
 
       std::string& columnName = column.get<std::string>();
-      std::string valueString = "\""+value.get<std::string>()+"\"";
+      std::string valueString = value.get<std::string>();
 
       bundle_add_str(b, columnName.c_str(), valueString.c_str());
     }
@@ -619,7 +619,7 @@ void DatacontrolInstance::SQLDataControlConsumerUpdate(
       }
 
       std::string& columnName = column.get<std::string>();
-      std::string valueString = "\""+value.get<std::string>()+"\"";
+      std::string valueString = value.get<std::string>();
 
       bundle_add_str(b, columnName.c_str(), valueString.c_str());
     }
