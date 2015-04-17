@@ -11,56 +11,29 @@ var types_ = validator_.Types;
 var native_ = new xwalk.utils.NativeManager(extension);
 
 
-function ListenerManager(native, listenerName) {
+function ListenerManager(native, listenerName, handle) {
   this.listeners = {};
   this.nextId = 1;
   this.nativeSet = false;
   this.native = native;
   this.listenerName = listenerName;
+  this.handle = handle || function(){};
 }
 
-ListenerManager.prototype.onListenerCalled = function(msg) {
-  for (var key in this.listeners) {
-    if (this.listeners.hasOwnProperty(key)) {
-      if ('Command' === msg.type) {
-        this.listeners[key](msg.clientName, msg.command, msg.data);
-      } else if ('RequestPlaybackInfo' === msg.type) {
-        if (msg.action === 'onplaybackstaterequest') {
-          this.listeners[key][msg.action](msg.state);
-        }
-        if (msg.action === 'onplaybackpositionrequest') {
-          this.listeners[key][msg.action](msg.position);
-        }
-        if (msg.action === 'onshufflemoderequest' || msg.action === 'onrepeatmoderequest') {
-          this.listeners[key][msg.action](msg.mode);
-        }
-      } else if ('PlaybackInfo' === msg.type) {
-        if (msg.action === 'onplaybackstaterequest') {
-          this.listeners[key][msg.action](msg.state);
-        }
-        if (msg.action === 'onplaybackpositionrequest') {
-          this.listeners[key][msg.action](msg.position);
-        }
-        if (msg.action === 'onshufflemoderequest' || msg.action === 'onrepeatmoderequest') {
-          this.listeners[key][msg.action](msg.mode);
-        }
-        if (msg.action === 'onmetadatachanged') {
-          this.listeners[key][msg.action](new MediaControllerMetadata(msg.metadata));
-        }
-      } else if ('Status' === msg.type) {
-        this.listeners[key](msg.status);
-      }
-    }
-  }
-};
-
-ListenerManager.prototype.addListener = function(callback) {
+ListenerManager.prototype.addListener = function(callback, data) {
   var id = this.nextId;
   if (!this.nativeSet) {
-    this.native.addListener(this.listenerName, this.onListenerCalled.bind(this));
+    this.native.addListener(this.listenerName, function(msg) {
+      for (var key in this.listeners) {
+        if (this.listeners.hasOwnProperty(key)) {
+          this.handle(msg, this.listeners[key], key);
+        }
+      }
+    }.bind(this));
     this.nativeSet = true;
   }
   this.listeners[id] = callback;
+  this.listeners[id].data = data || {};
   ++this.nextId;
   return id;
 };
@@ -71,10 +44,56 @@ ListenerManager.prototype.removeListener = function(watchId) {
   }
 };
 
-var ServerCommandListener = new ListenerManager(native_, '_ServerCommandListener');
-var ServerPlaybackInfoListener = new ListenerManager(native_, '_ServerPlaybackInfoListener');
-var ServerInfoStatusListener = new ListenerManager(native_, '_ServerInfoStatusListener');
-var ServerInfoPlaybackInfoListener = new ListenerManager(native_, '_ServerInfoPlaybackInfoListener');
+var ServerCommandListener = new ListenerManager(native_, '_ServerCommandListener', function(msg, listener) {
+  var d = native_.getResultObject(msg);
+  var data = listener(d.clientName, d.command, d.data);
+
+  var nativeData = {
+    clientName: d.clientName,
+    data: data
+  };
+
+  var result = native_.callSync('MediaControllerServer_replyCommand', nativeData);
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
+  }
+});
+
+var ReplyCommandListener = new ListenerManager(native_, '_ReplyCommandListener', function(msg, listener, watchId) {
+  listener(msg.reply);
+  this.removeListener(watchId);
+});
+
+var ServerPlaybackInfoListener = new ListenerManager(native_, '_ServerPlaybackInfoListener', function(msg, listener) {
+  if (msg.action === 'onplaybackstaterequest') {
+    listener[msg.action](msg.state);
+  }
+  if (msg.action === 'onplaybackpositionrequest') {
+    listener[msg.action](msg.position);
+  }
+  if (msg.action === 'onshufflemoderequest' || msg.action === 'onrepeatmoderequest') {
+    listener[msg.action](msg.mode);
+  }
+});
+
+var ServerInfoStatusListener = new ListenerManager(native_, '_ServerInfoStatusListener', function(msg, listener) {
+  if (msg.action === 'onplaybackstaterequest') {
+    listener[msg.action](msg.state);
+  }
+  if (msg.action === 'onplaybackpositionrequest') {
+    listener[msg.action](msg.position);
+  }
+  if (msg.action === 'onshufflemoderequest' || msg.action === 'onrepeatmoderequest') {
+    listener[msg.action](msg.mode);
+  }
+  if (msg.action === 'onmetadatachanged') {
+    listener[msg.action](new MediaControllerMetadata(msg.metadata));
+  }
+});
+
+var ServerInfoPlaybackInfoListener = new ListenerManager(native_, '_ServerInfoPlaybackInfoListener', function(msg, listener) {
+  listener(msg.status);
+});
 
 var EditManager = function() {
   this.isAllowed = false;
@@ -607,20 +626,26 @@ MediaControllerServerInfo.prototype.sendCommand = function(command, data, succes
     {name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true}
   ]);
 
-  var data = {
+  var nativeData = {
     command: args.command,
-    data: args.data
+    data: args.data,
+    name: this.name
   };
+
+  var replyId = ReplyCommandListener.addListener(successCallback, nativeData);
+
+  nativeData.replyId = replyId;
+  nativeData.listenerId = ReplyCommandListener.listenerName;
 
   var callback = function(result) {
     if (native_.isFailure(result)) {
       native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));
       return;
     }
-    native_.callIfPossible(args.successCallback);
+    native_.callIfPossible(args.successCallback, native_.getResultObject(result));
   };
 
-  native_.call('MediaControllerServerInfo_sendCommand', data, callback);
+  native_.call('MediaControllerServerInfo_sendCommand', nativeData, callback);
 };
 
 MediaControllerServerInfo.prototype.addServerStatusChangeListener = function(listener) {
