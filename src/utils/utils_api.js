@@ -155,7 +155,7 @@ Type.prototype.isBoolean = function(obj) {
 };
 
 Type.prototype.isObject = function(obj) {
-  return obj instanceof Object;
+  return (null !== obj && typeof obj === 'object' && !this.isArray(obj));
 };
 
 Type.prototype.isArray = function(obj) {
