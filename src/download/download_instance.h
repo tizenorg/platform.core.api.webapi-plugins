@@ -14,6 +14,7 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <mutex>
 
 #include "common/extension.h"
 
@@ -63,6 +64,7 @@ class DownloadInstance : public common::ParsedInstance {
   static gboolean OnPaused(void* user_data);
   static gboolean OnCanceled(void* user_data);
   static gboolean OnFailed(void* user_data);
+  static bool CheckInstance(DownloadInstance* instance);
 
   struct DownloadInfo {
     int callbackId;
@@ -87,6 +89,9 @@ class DownloadInstance : public common::ParsedInstance {
   typedef std::vector<DownloadCallback*> DownloadCallbackVector;
   typedef std::shared_ptr<DownloadInfo> DownloadInfoPtr;
   typedef std::map<int, DownloadInfoPtr> DownloadInfoMap;
+
+  static std::mutex instances_mutex_;
+  static std::vector<DownloadInstance*> instances_;
 
   DownloadCallbackVector downCbVector;
   DownloadInfoMap diMap;

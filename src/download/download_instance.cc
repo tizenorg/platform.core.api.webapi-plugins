@@ -17,6 +17,9 @@
 namespace extension {
 namespace download {
 
+std::vector<DownloadInstance*> DownloadInstance::instances_;
+std::mutex DownloadInstance::instances_mutex_;
+
 namespace {
 // The privileges that required in Download API
 const std::string kPrivilegeDownload = "http://tizen.org/privilege/download";
@@ -50,6 +53,9 @@ DownloadInstance::DownloadInstance() {
   REGISTER_SYNC("DownloadManager_resume", DownloadManagerResume);
   REGISTER_SYNC("DownloadManager_getState", DownloadManagerGetstate);
   #undef REGISTER_SYNC
+
+  std::lock_guard<std::mutex> lock(instances_mutex_);
+  instances_.push_back(this);
 }
 
 DownloadInstance::~DownloadInstance() {
@@ -57,6 +63,25 @@ DownloadInstance::~DownloadInstance() {
     it != downCbVector.end(); it++) {
     delete (*it);
   }
+
+  std::lock_guard<std::mutex> lock(instances_mutex_);
+  for (auto it = instances_.begin(); it != instances_.end(); it++) {
+    if (*it == this) {
+      instances_.erase(it);
+      break;
+    }
+  }
+}
+
+bool DownloadInstance::CheckInstance(DownloadInstance* instance) {
+  LoggerD("Entered");
+  for (auto vec_instance : instances_) {
+    if (vec_instance == instance) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 #define CHECK_EXIST(args, name, out) \
@@ -96,6 +121,11 @@ void DownloadInstance::OnStateChanged(int download_id,
 
 gboolean DownloadInstance::OnProgressChanged(void* user_data) {
   DownloadCallback* downCbPtr = static_cast<DownloadCallback*>(user_data);
+  std::lock_guard<std::mutex> lock(instances_mutex_);
+  if (!CheckInstance(downCbPtr->instance)) {
+    return FALSE;
+  }
+
   DownloadInfoPtr diPtr = downCbPtr->instance->diMap[downCbPtr->callbackId];
 
   picojson::value::object out;
@@ -120,6 +150,10 @@ void DownloadInstance::OnStart(int download_id, void* user_data) {
   int ret;
 
   DownloadCallback* downCbPtr = static_cast<DownloadCallback*>(user_data);
+  std::lock_guard<std::mutex> lock(instances_mutex_);
+  if (!CheckInstance(downCbPtr->instance)) {
+    return;
+  }
 
   SLoggerD("OnStart for callbackId %d Called", downCbPtr->callbackId);
 
@@ -134,6 +168,11 @@ gboolean DownloadInstance::OnFinished(void* user_data) {
   char* fullPath = NULL;
 
   DownloadCallback* downCbPtr = static_cast<DownloadCallback*>(user_data);
+  std::lock_guard<std::mutex> lock(instances_mutex_);
+  if (!CheckInstance(downCbPtr->instance)) {
+    return FALSE;
+  }
+
   DownloadInfoPtr diPtr = downCbPtr->instance->diMap[downCbPtr->callbackId];
 
   SLoggerD("OnFinished for callbackID %d Called", downCbPtr->callbackId);
@@ -156,6 +195,11 @@ gboolean DownloadInstance::OnFinished(void* user_data) {
 
 gboolean DownloadInstance::OnPaused(void* user_data) {
   DownloadCallback* downCbPtr = static_cast<DownloadCallback*>(user_data);
+  std::lock_guard<std::mutex> lock(instances_mutex_);
+  if (!CheckInstance(downCbPtr->instance)) {
+    return FALSE;
+  }
+
   DownloadInfoPtr diPtr = downCbPtr->instance->diMap[downCbPtr->callbackId];
 
   SLoggerD("OnPaused for callbackID %d Called", downCbPtr->callbackId);
@@ -171,6 +215,11 @@ gboolean DownloadInstance::OnPaused(void* user_data) {
 
 gboolean DownloadInstance::OnCanceled(void* user_data) {
   DownloadCallback* downCbPtr = static_cast<DownloadCallback*>(user_data);
+  std::lock_guard<std::mutex> lock(instances_mutex_);
+  if (!CheckInstance(downCbPtr->instance)) {
+    return FALSE;
+  }
+
   DownloadInfoPtr diPtr = downCbPtr->instance->diMap[downCbPtr->callbackId];
 
   SLoggerD("OnCanceled for callbackID %d Called", downCbPtr->callbackId);
@@ -193,6 +242,11 @@ gboolean DownloadInstance::OnFailed(void* user_data) {
   picojson::object out;
 
   DownloadCallback* downCbPtr = static_cast<DownloadCallback*>(user_data);
+  std::lock_guard<std::mutex> lock(instances_mutex_);
+  if (!CheckInstance(downCbPtr->instance)) {
+    return FALSE;
+  }
+
   DownloadInstance* instance = downCbPtr->instance;
 
   SLoggerD("OnFailed for callbackID %d Called", downCbPtr->callbackId);
