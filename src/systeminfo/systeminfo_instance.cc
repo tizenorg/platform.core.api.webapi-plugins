@@ -62,7 +62,7 @@ const std::string kPrivilegeLED = "http://tizen.org/privilege/led";
     }
 
 #define DEFAULT_REPORT_BOOL_CAPABILITY(str_name, feature_name) \
-  ret = SystemInfoDeviceCapability::GetValueBool(feature_name, bool_value); \
+  ret = SystemInfoDeviceCapability::GetValueBool(feature_name, &bool_value); \
   if (ret.IsError()) { \
     ReportError(ret,&out); \
     return; \
@@ -70,7 +70,7 @@ const std::string kPrivilegeLED = "http://tizen.org/privilege/led";
   result_obj.insert(std::make_pair(str_name, picojson::value(bool_value)));
 
 #define REPORT_BOOL_CAPABILITY(str_name, method) \
-  ret = method(bool_value); \
+  ret = method(&bool_value); \
   if (ret.IsError()) { \
     ReportError(ret,&out); \
     return; \
@@ -78,7 +78,7 @@ const std::string kPrivilegeLED = "http://tizen.org/privilege/led";
   result_obj.insert(std::make_pair(str_name, picojson::value(bool_value)));
 
 #define DEFAULT_REPORT_INT_CAPABILITY(str_name, feature_name) \
-  ret = SystemInfoDeviceCapability::GetValueInt(feature_name, int_value); \
+  ret = SystemInfoDeviceCapability::GetValueInt(feature_name, &int_value); \
   if (ret.IsError()) { \
     ReportError(ret,&out); \
     return; \
@@ -86,7 +86,7 @@ const std::string kPrivilegeLED = "http://tizen.org/privilege/led";
   result_obj.insert(std::make_pair(str_name, picojson::value(std::to_string(int_value))));
 
 #define DEFAULT_REPORT_STRING_CAPABILITY(str_name, feature_name) \
-  ret = SystemInfoDeviceCapability::GetValueString(feature_name, str_value); \
+  ret = SystemInfoDeviceCapability::GetValueString(feature_name, &str_value); \
   if (ret.IsError()) { \
     ReportError(ret,&out); \
     return; \
@@ -94,7 +94,7 @@ const std::string kPrivilegeLED = "http://tizen.org/privilege/led";
   result_obj.insert(std::make_pair(str_name, picojson::value(str_value)));
 
 #define REPORT_STRING_CAPABILITY(str_name, method) \
-  ret = method(str_value); \
+  ret = method(&str_value); \
   if (ret.IsError()) { \
     ReportError(ret,&out); \
     return; \
@@ -204,7 +204,7 @@ void SysteminfoInstance::GetCapabilities(const picojson::value& args, picojson::
   DEFAULT_REPORT_BOOL_CAPABILITY("secureElement", "tizen.org/feature/network.secure_element")
   REPORT_STRING_CAPABILITY("profile", SystemInfoDeviceCapability::GetProfile)
   DEFAULT_REPORT_STRING_CAPABILITY("nativeApiVersion", "tizen.org/feature/platform.native.api.version")
-  result_obj.insert(std::make_pair("duid", picojson::value(SystemInfoDeviceCapability::GetDuid())));
+  DEFAULT_REPORT_STRING_CAPABILITY("duid", "tizen.org/system/tizenid")
   DEFAULT_REPORT_BOOL_CAPABILITY("screenSizeNormal", "tizen.org/feature/screen.size.normal")
   DEFAULT_REPORT_BOOL_CAPABILITY("screenSize480_800", "tizen.org/feature/screen.size.normal.480.800")
   DEFAULT_REPORT_BOOL_CAPABILITY("screenSize720_1280", "tizen.org/feature/screen.size.normal.720.1280")

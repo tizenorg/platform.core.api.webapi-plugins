@@ -188,64 +188,22 @@ const char* kSimStatusUnknown = "UNKNOWN";
 
 ///*for getCapability*/
 /*API feature*/
-const char* kTizenFeatureAccount = "http://tizen.org/feature/account";
-const char* kTizenFeatureArchive = "http://tizen.org/feature/archive";
-const char* kTizenFeatureBadge = "http://tizen.org/feature/badge";
-const char* kTizenFeatureBookmark = "http://tizen.org/feature/bookmark";
-const char* kTizenFeatureCalendar = "http://tizen.org/feature/calendar";
-const char* kTizenFeatureContact  = "http://tizen.org/feature/contact";
-const char* kTizenFeatureContent  = "http://tizen.org/feature/content";
-const char* kTizenFeatureDatacontrol  = "http://tizen.org/feature/datacontrol";
-const char* kTizenFeatureDatasync  = "http://tizen.org/feature/datasync";
-const char* kTizenFeatureDownload = "http://tizen.org/feature/download";
-const char* kTizenFeatureExif = "http://tizen.org/feature/exif";
-const char* kTizenFeatureSystemsetting  = "http://tizen.org/feature/systemsetting"; //tv: false
-const char* kTizenFeatureSystemSettingHomeScreen  = "http://tizen.org/feature/systemsetting.home_screen"; //TODO mobile: true, wearable: true
-const char* kTizenFeatureSystemSettingLockScreen  = "http://tizen.org/feature/systemsetting.lock_screen"; //TODO mobile: true, wearable: false
-const char* kTizenFeatureSystemSettingIncomingCall  = "http://tizen.org/feature/systemsetting.incoming_call"; //TODO mobile:true, wearable: true
-const char* kTizenFeatureSystemSettingNotificationEmail  = "http://tizen.org/feature/systemsetting.notification_email"; //TODO mobile:true, wearable: false
-const char* kTizenFeatureWebsetting  = "http://tizen.org/feature/websetting";
-const char* kTizenFeaturePower  = "http://tizen.org/feature/power";
-const char* kTizenFeatureGamepad = "http://tizen.org/feature/gamepad";
-const char* kTizenFeatureMessaging = "http://tizen.org/feature/messaging";
-const char* kTizenFeatureEmail = "http://tizen.org/feature/email";
-const char* kTizenFeatureNotification = "http://tizen.org/feature/notification";
-/*Battery*/
-const char* kTizenFeatureBattery = "http://tizen.org/feature/battery";
-/*input feature*/
-const char* kTizenFeatureInputKeyboardLayout = "http://tizen.org/feature/input.keyboard.layout";
-/*Multi-point touch feature*/
-const char* kTizenFeatureMultitouchCount = "http://tizen.org/feature/multi_point_touch.point_count";
 /*Network feature*/
-const char* kTizenFeatureBluetooth = "http://tizen.org/feature/network.bluetooth.health"; //TODO mobile: true, wearable/tv: false
 const char* kTizenFeatureBluetoothAlwaysOn = "http://tizen.org/capability/network.bluetooth.always_on"; //TODO mobile/wearable: false, tv: true
-const char* kTizenFeatureNfcCardEmulation = "http://tizen.org/feature/network.nfc.card_emulation";
 const char* kTizenFeatureOpenglesTextureFormat = "http://tizen.org/feature/opengles.texture_format";
 const char* kTizenFeatureCoreApiVersion = "http://tizen.org/feature/platform.core.api.version";
 const char* kTizenFeaturePlatfromCoreCpuArch = "http://tizen.org/feature/platform.core.cpu.arch";
 const char* kTizenFeaturePlatfromCoreFpuArch = "http://tizen.org/feature/platform.core.fpu.arch";
-const char* kTizenFeatureNativeApiVersion = "http://tizen.org/feature/platform.native.api.version";
-const char* kTizenSystemPlatformVersion = "http://tizen.org/feature/platform.version";
-const char* kTizenSystemPlatformWebApiVersion = "http://tizen.org/feature/platform.web.api.version";
 /*profile feature*/
 const char* kTizenFeatureProfile = "http://tizen.org/feature/profile";
 /*Screen feature*/
 const char* kTizenFeatureScreen = "http://tizen.org/feature/screen";
-const char* kTizenFeatureScreenBpp = "http://tizen.org/feature/screen.bpp";
-const char* kTizenFeatureScreenDpi = "http://tizen.org/feature/screen.dpi";
-const char* kTizenFeatureScreenHeight = "http://tizen.org/feature/screen.height";
-const char* kTizenFeatureScreenSIZE_320_320 = "http://tizen.org/feature/screen.size.normal.320.320";
-const char* kTizenFeatureScreenWidth = "http://tizen.org/feature/screen.width";
-/*Sensor faeture*/
-const char* kTizenFeaturePressure = "http://tizen.org/feature/sensor.pressure";
-const char* kTizenFeatureUltraviolet = "http://tizen.org/feature/sensor.ultraviolet"; //TODO
-const char* kTizenFeaturePedometer = "http://tizen.org/feature/sensor.pedometer"; //TODO true
-const char* kTizenFeatureWristUp = "http://tizen.org/feature/sensor.wrist_up"; //TODO false
-const char* kTizenFeatureHrm = "http://tizen.org/feature/sensor.heart_rate_monitor"; //TODO true
-/*duid*/
-const char* kTizenSystemDuid = "http://tizen.org/system/duid";
+/*Sensor feature*/
+const char* kTizenFeatureCpuFrequency = "http://tizen.org/feature/platform.core.cpu.frequency";
 /*platform*/
-const char* kTizenSystemPlatformName = "http://tizen.org/system/platform.name";
+const char* kTizenFeaturePlatformNativeApiVersion = "tizen.org/feature/platform.native.api.version";
+const char* kTizenFeaturePlatformNativeOspCompatible = "tizen.org/feature/platform.native.osp_compatible";
+const char* kTizenFeaturePlatformVersionName = "http://tizen.org/feature/platform.version.name";
 }
 
 /////////////////////////// SimDetailsManager ////////////////////////////////
@@ -1424,8 +1382,9 @@ void OnMemoryChangedCb(keynode_t* node, void* event_ptr)
 
 /////////////////////////// SysteminfoUtils ////////////////////////////////
 
-PlatformResult SystemInfoDeviceCapability::GetValueBool(const char *key, bool& value) {
-  int ret = system_info_get_platform_bool(key, &value);
+PlatformResult SystemInfoDeviceCapability::GetValueBool(const char *key, bool* value) {
+  bool platform_result = false;
+  int ret = system_info_get_platform_bool(key, &platform_result);
   if (SYSTEM_INFO_ERROR_NONE != ret) {
     std::string log_msg = "Platform error while getting bool value: ";
     log_msg += std::string(key) + " " + std::to_string(ret);
@@ -1433,12 +1392,14 @@ PlatformResult SystemInfoDeviceCapability::GetValueBool(const char *key, bool& v
     return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
   }
 
+  *value = platform_result;
   LoggerD("value[%s]: %s", key, value ? "true" : "false");
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-PlatformResult SystemInfoDeviceCapability::GetValueInt(const char *key, int& value) {
-  int ret = system_info_get_platform_int(key, &value);
+PlatformResult SystemInfoDeviceCapability::GetValueInt(const char *key, int* value) {
+  int platform_result = 0;
+  int ret = system_info_get_platform_int(key, &platform_result);
   if (SYSTEM_INFO_ERROR_NONE != ret) {
     std::string log_msg = "Platform error while getting int value: ";
     log_msg += std::string(key) + " " + std::to_string(ret);
@@ -1446,17 +1407,18 @@ PlatformResult SystemInfoDeviceCapability::GetValueInt(const char *key, int& val
     return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
   }
 
+  *value = platform_result;
   LoggerD("value[%s]: %d", key, value);
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-PlatformResult SystemInfoDeviceCapability::GetValueString(const char *key, std::string& str_value) {
+PlatformResult SystemInfoDeviceCapability::GetValueString(const char *key, std::string* str_value) {
   char* value = nullptr;
 
   int ret = system_info_get_platform_string(key, &value);
   if (SYSTEM_INFO_ERROR_NONE == ret) {
     if (value != nullptr) {
-      str_value = value;
+      *str_value = value;
       free(value);
       value = nullptr;
     }
@@ -1467,7 +1429,7 @@ PlatformResult SystemInfoDeviceCapability::GetValueString(const char *key, std::
     return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
   }
 
-  LoggerD("value[%s]: %s", key, str_value.c_str());
+  LoggerD("value[%s]: %s", key, str_value->c_str());
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
@@ -1867,7 +1829,7 @@ PlatformResult SysteminfoUtils::ReportDeviceOrientation(picojson::object& out) {
 
 PlatformResult SysteminfoUtils::ReportBuild(picojson::object& out) {
   std::string model = "";
-  PlatformResult ret = SystemInfoDeviceCapability::GetValueString("tizen.org/system/model_name", model);
+  PlatformResult ret = SystemInfoDeviceCapability::GetValueString("tizen.org/system/model_name", &model);
   if (ret.IsError()) {
     return ret;
   }
@@ -2605,172 +2567,99 @@ PlatformResult SysteminfoUtils::UnregisterMemoryListener()
 }
 
 
-static PlatformResult CheckStringCapability(const std::string& key, std::string* value, bool& fetched)
+static PlatformResult CheckStringCapability(const std::string& key, std::string* value, bool* fetched)
 {
   LoggerD("Entered CheckStringCapability");
-  if (key == kTizenFeatureOpenglesTextureFormat) {
-    PlatformResult ret = SystemInfoDeviceCapability::GetOpenglesTextureFormat(*value);
+  *fetched = false;
+  if (kTizenFeatureOpenglesTextureFormat == key) {
+    PlatformResult ret = SystemInfoDeviceCapability::GetOpenglesTextureFormat(value);
     if (ret.IsError()) {
       return ret;
     }
-  } else if (key == kTizenFeatureCoreApiVersion) {
+  } else if (kTizenFeatureCoreApiVersion == key) {
     *value = "2.3";
   } else if (key == kTizenFeaturePlatfromCoreCpuArch) {
-    PlatformResult ret = SystemInfoDeviceCapability::GetPlatfomCoreCpuArch(*value);
+    PlatformResult ret = SystemInfoDeviceCapability::GetPlatfomCoreCpuArch(value);
     if (ret.IsError()) {
       return ret;
     }
-  } else if (key == kTizenFeaturePlatfromCoreFpuArch) {
-    PlatformResult ret = SystemInfoDeviceCapability::GetPlatfomCoreFpuArch(*value);
+  } else if (kTizenFeaturePlatfromCoreFpuArch == key) {
+    PlatformResult ret = SystemInfoDeviceCapability::GetPlatfomCoreFpuArch(value);
     if (ret.IsError()) {
       return ret;
     }
-  } else if (key == kTizenFeatureProfile) {
-    PlatformResult ret = SystemInfoDeviceCapability::GetProfile(*value);
+  } else if (kTizenFeatureProfile == key) {
+    PlatformResult ret = SystemInfoDeviceCapability::GetProfile(value);
     if (ret.IsError()) {
       return ret;
     }
-  } else if (key == kTizenSystemDuid) {
-    *value = SystemInfoDeviceCapability::GetDuid();
+  } else if (kTizenFeaturePlatformNativeApiVersion == key) {
+    PlatformResult ret = SystemInfoDeviceCapability::GetNativeAPIVersion(value);
+    if (ret.IsError()) {
+      return ret;
+    }
+  } else if (kTizenFeaturePlatformVersionName == key) {
+    PlatformResult ret = SystemInfoDeviceCapability::GetPlatformVersionName(value);
+    if (ret.IsError()) {
+      return ret;
+    }
   } else {
-    PlatformResult ret = SystemInfoDeviceCapability::GetValueString(key.substr(strlen("http://")).c_str(), *value);
+    PlatformResult ret = SystemInfoDeviceCapability::GetValueString(key.substr(strlen("http://")).c_str(), value);
     if (ret.IsError()){
-      fetched = false;
       return PlatformResult(ErrorCode::NO_ERROR);
     }
   }
-  fetched = true;
+  *fetched = true;
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-static PlatformResult CheckBoolCapability(const std::string& key, bool* bool_value, bool& fetched)
+static PlatformResult CheckBoolCapability(const std::string& key, bool* bool_value, bool* fetched)
 {
   LoggerD("Entered CheckBoolCapability");
-  fetched = false;
-  if(key == kTizenFeatureAccount) {
-    *bool_value = SystemInfoDeviceCapability::IsAccount();
-    fetched = true;
-  } else if(key == kTizenFeatureArchive) {
-    *bool_value = SystemInfoDeviceCapability::IsArchive();
-    fetched = true;
-  } else if(key == kTizenFeatureBadge) {
-    *bool_value = SystemInfoDeviceCapability::IsBadge();
-    fetched = true;
-  } else if(key == kTizenFeatureBookmark) {
-    *bool_value = SystemInfoDeviceCapability::IsBookmark();
-    fetched = true;
-  } else if(key == kTizenFeatureCalendar) {
-    *bool_value = SystemInfoDeviceCapability::IsCalendar();
-    fetched = true;
-  } else if(key == kTizenFeatureContact) {
-    *bool_value = SystemInfoDeviceCapability::IsContact();
-    fetched = true;
-  } else if(key == kTizenFeatureContent) {
-    *bool_value = SystemInfoDeviceCapability::IsContent();
-    fetched = true;
-  } else if(key == kTizenFeatureDatacontrol) {
-    *bool_value = SystemInfoDeviceCapability::IsDataControl();
-    fetched = true;
-  } else if(key == kTizenFeatureDatasync) {
-    *bool_value = SystemInfoDeviceCapability::IsDataSync();
-    fetched = true;
-  } else if(key == kTizenFeatureDownload) {
-    *bool_value = SystemInfoDeviceCapability::IsDownload();
-    fetched = true;
-  } else if(key == kTizenFeatureExif) {
-    *bool_value = SystemInfoDeviceCapability::IsExif();
-    fetched = true;
-  } else if(key == kTizenFeatureSystemsetting) {
-    *bool_value = SystemInfoDeviceCapability::IsSystemSetting();
-    fetched = true;
-  } else if(key == kTizenFeatureSystemSettingHomeScreen) {
-    *bool_value = SystemInfoDeviceCapability::IsSystemSettingHomeScreen();
-    fetched = true;
-  } else if(key == kTizenFeatureSystemSettingLockScreen) {
-    *bool_value = SystemInfoDeviceCapability::IsSystemSettingLockScreen();
-    fetched = true;
-  } else if(key == kTizenFeatureSystemSettingIncomingCall) {
-    *bool_value = SystemInfoDeviceCapability::IsSystemSettingIncomingCall();
-    fetched = true;
-  } else if(key == kTizenFeatureSystemSettingNotificationEmail) {
-    *bool_value = SystemInfoDeviceCapability::IsSystemSettingNotificationEmail();
-    fetched = true;
-  } else if(key == kTizenFeatureWebsetting) {
-    *bool_value = SystemInfoDeviceCapability::IsWebSetting();
-    fetched = true;
-  } else if(key == kTizenFeaturePower) {
-    *bool_value = SystemInfoDeviceCapability::IsPower();
-    fetched = true;
-  } else if(key == kTizenFeatureGamepad) {
-    *bool_value = SystemInfoDeviceCapability::IsGamePad();
-    fetched = true;
-  } else if(key == kTizenFeatureMessaging) {
-    *bool_value = SystemInfoDeviceCapability::IsMessaging();
-    fetched = true;
-  } else if(key == kTizenFeatureEmail) {
-    *bool_value = SystemInfoDeviceCapability::IsMessagingEmail();
-    fetched = true;
-  } else if(key == kTizenFeatureNotification) {
-    *bool_value = SystemInfoDeviceCapability::IsNotification();
-    fetched = true;
-  } else if(key == kTizenFeatureBluetooth) {
-    *bool_value = SystemInfoDeviceCapability::IsBluetootHealth();
-    fetched = true;
-  } else if(key == kTizenFeatureBluetoothAlwaysOn) {
+  *fetched = false;
+  if(kTizenFeatureBluetoothAlwaysOn == key) {
     *bool_value = SystemInfoDeviceCapability::IsBluetoothAlwaysOn();
-    fetched = true;
-  } else if(key == kTizenFeatureNfcCardEmulation) {
-    *bool_value = SystemInfoDeviceCapability::IsNfcEmulation();
-    fetched = true;
-  } else if(key == kTizenFeatureBattery) {
-    *bool_value = SystemInfoDeviceCapability::IsBattery();
-    fetched = true;
-  } else if(key == kTizenFeaturePressure) {
-    *bool_value = SystemInfoDeviceCapability::IsPressure();
-    fetched = true;
-  } else if(key == kTizenFeatureUltraviolet) {
-    *bool_value = SystemInfoDeviceCapability::IsUltraviolet();
-    fetched = true;
-  } else if(key == kTizenFeaturePedometer) {
-    *bool_value = SystemInfoDeviceCapability::IsPedometer();
-    fetched = true;
-  } else if(key == kTizenFeatureWristUp) {
-    *bool_value = SystemInfoDeviceCapability::IsWristUp();
-    fetched = true;
-  } else if(key == kTizenFeatureHrm) {
-    *bool_value = SystemInfoDeviceCapability::IsHrm();
-    fetched = true;
-  } else if (key == kTizenFeatureScreen) {
+    *fetched = true;
+  } else if (kTizenFeatureScreen == key) {
     *bool_value = SystemInfoDeviceCapability::IsScreen();
-    fetched = true;
-  } else if(key == kTizenFeatureScreenSIZE_320_320) {
-    PlatformResult ret = SystemInfoDeviceCapability::IsScreenSize320_320(*bool_value);
+    *fetched = true;
+  } else if (kTizenFeaturePlatformNativeOspCompatible == key) {
+    PlatformResult ret = SystemInfoDeviceCapability::IsNativeOspCompatible(bool_value);
     if (ret.IsError()) {
       return ret;
     }
-    fetched = true;
+    *fetched = true;
   } else {
     PlatformResult ret = SystemInfoDeviceCapability::GetValueBool(
-        key.substr(strlen("http://")).c_str(), *bool_value);
+        key.substr(strlen("http://")).c_str(), bool_value);
     if (ret.IsSuccess()) {
-      fetched = true;
+      *fetched = true;
     }
   }
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-static PlatformResult CheckIntCapability(const std::string& key, std::string* value, bool& fetched)
+static PlatformResult CheckIntCapability(const std::string& key, std::string* value,
+                                         bool* fetched)
 {
   LoggerD("Entered CheckIntCapability");
   int result = 0;
-  PlatformResult ret = SystemInfoDeviceCapability::GetValueInt(
-      key.substr(strlen("http://")).c_str(), result);
-  if (ret.IsSuccess()) {
-    *value = std::to_string(result);
-    fetched = true;
-    return PlatformResult(ErrorCode::NO_ERROR);
+  if (key == kTizenFeatureCpuFrequency) {
+    PlatformResult ret = SystemInfoDeviceCapability::GetPlatformCoreCpuFrequency(&result);
+    if (ret.IsError()) {
+      *fetched = false;
+      return ret;
+    }
+  } else {
+    PlatformResult ret = SystemInfoDeviceCapability::GetValueInt(
+        key.substr(strlen("http://")).c_str(), &result);
+    if (ret.IsError()) {
+      *fetched = false;
+      return PlatformResult(ErrorCode::NO_ERROR);
+    }
   }
-  fetched = false;
+  *value = std::to_string(result);
+  *fetched = true;
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
@@ -2778,32 +2667,36 @@ static PlatformResult CheckIntCapability(const std::string& key, std::string* va
 PlatformResult SystemInfoDeviceCapability::GetCapability(const std::string& key,
                                                           picojson::value& result)
 {
+  LoggerD("Entered");
   picojson::object& result_obj = result.get<picojson::object>();
 
   std::string value = "";
   std::string type = "";
   bool bool_value = false ;
-  bool fetched_string = false;
-  bool fetched_int = false;
-  bool fetched_bool = false;
-  PlatformResult ret = CheckStringCapability(key, &value, fetched_string);
+  bool is_fetched = false;
+
+  PlatformResult ret = CheckStringCapability(key, &value, &is_fetched);
   if (ret.IsError()) {
     return ret;
   }
-  ret = CheckIntCapability(key, &value, fetched_int);
-  if (ret.IsError()) {
-    return ret;
-  }
-  ret = CheckBoolCapability(key, &bool_value, fetched_bool);
-  if (ret.IsError()) {
-    return ret;
-  }
-  if (fetched_string) {
+  if (is_fetched) {
     type = "string";
-  } else if (fetched_int) {
-    type = "int";
-  } else if(fetched_bool) {
-    type = "bool";
+  } else {
+    ret = CheckIntCapability(key, &value, &is_fetched);
+    if (ret.IsError()) {
+      return ret;
+    }
+    if (is_fetched) {
+      type = "int";
+    } else {
+      ret = CheckBoolCapability(key, &bool_value, &is_fetched);
+      if (ret.IsError()) {
+        return ret;
+      }
+      if(is_fetched) {
+        type = "bool";
+      }
+    }
   }
 
   if (type == "bool") {
@@ -2819,15 +2712,15 @@ PlatformResult SystemInfoDeviceCapability::GetCapability(const std::string& key,
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-PlatformResult SystemInfoDeviceCapability::IsInputKeyboardLayout(bool& result) {
+PlatformResult SystemInfoDeviceCapability::IsInputKeyboardLayout(bool* result) {
   std::string input_keyboard_layout = "";
   PlatformResult ret = GetValueString("tizen.org/feature/input.keyboard.layout",
-                                      input_keyboard_layout);
+                                      &input_keyboard_layout);
   if (ret.IsError()) {
     return ret;
   }
   bool input_keyboard = false;
-  ret = GetValueBool("tizen.org/feature/input.keyboard", input_keyboard);
+  ret = GetValueBool("tizen.org/feature/input.keyboard", &input_keyboard);
   if (ret.IsError()) {
     return ret;
   }
@@ -2839,13 +2732,13 @@ PlatformResult SystemInfoDeviceCapability::IsInputKeyboardLayout(bool& result) {
   //  X               X                   Possible
   //  X               O                   Impossible
 
-  result = input_keyboard ? !(input_keyboard_layout.empty()) : false;
+  *result = input_keyboard ? !(input_keyboard_layout.empty()) : false;
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-PlatformResult SystemInfoDeviceCapability::GetOpenglesTextureFormat(std::string& result) {
+PlatformResult SystemInfoDeviceCapability::GetOpenglesTextureFormat(std::string* result) {
   bool bool_result = false;
-  PlatformResult ret = GetValueBool("tizen.org/feature/opengles", bool_result);
+  PlatformResult ret = GetValueBool("tizen.org/feature/opengles", &bool_result);
   if (!bool_result) {
     // this exception is converted to "Undefined" value in JS layer
     std::string log_msg = "OpenGL-ES is not supported";
@@ -2854,7 +2747,7 @@ PlatformResult SystemInfoDeviceCapability::GetOpenglesTextureFormat(std::string&
   }
   std::string texture_format = "";
 
-  ret = GetValueBool("tizen.org/feature/opengles.texture_format.utc", bool_result);
+  ret = GetValueBool("tizen.org/feature/opengles.texture_format.utc", &bool_result);
   if (ret.IsError()) {
     return ret;
   }
@@ -2862,7 +2755,7 @@ PlatformResult SystemInfoDeviceCapability::GetOpenglesTextureFormat(std::string&
     texture_format += kOpenglesTextureUtc;
   }
 
-  ret = GetValueBool("tizen.org/feature/opengles.texture_format.ptc", bool_result);
+  ret = GetValueBool("tizen.org/feature/opengles.texture_format.ptc", &bool_result);
   if (ret.IsError()) {
     return ret;
   }
@@ -2873,7 +2766,7 @@ PlatformResult SystemInfoDeviceCapability::GetOpenglesTextureFormat(std::string&
     texture_format += kOpenglesTexturePtc;
   }
 
-  ret = GetValueBool("tizen.org/feature/opengles.texture_format.etc", bool_result);
+  ret = GetValueBool("tizen.org/feature/opengles.texture_format.etc", &bool_result);
   if (ret.IsError()) {
     return ret;
   }
@@ -2884,7 +2777,7 @@ PlatformResult SystemInfoDeviceCapability::GetOpenglesTextureFormat(std::string&
     texture_format += kOpenglesTextureEtc;
   }
 
-  ret = GetValueBool("tizen.org/feature/opengles.texture_format.3dc", bool_result);
+  ret = GetValueBool("tizen.org/feature/opengles.texture_format.3dc", &bool_result);
   if (ret.IsError()) {
     return ret;
   }
@@ -2895,7 +2788,7 @@ PlatformResult SystemInfoDeviceCapability::GetOpenglesTextureFormat(std::string&
     texture_format += kOpenglesTexture3dc;
   }
 
-  ret = GetValueBool("tizen.org/feature/opengles.texture_format.atc", bool_result);
+  ret = GetValueBool("tizen.org/feature/opengles.texture_format.atc", &bool_result);
   if (ret.IsError()) {
     return ret;
   }
@@ -2906,7 +2799,7 @@ PlatformResult SystemInfoDeviceCapability::GetOpenglesTextureFormat(std::string&
     texture_format += kOpenglesTextureAtc;
   }
 
-  ret = GetValueBool("tizen.org/feature/opengles.texture_format.pvrtc", bool_result);
+  ret = GetValueBool("tizen.org/feature/opengles.texture_format.pvrtc", &bool_result);
   if (ret.IsError()) {
     return ret;
   }
@@ -2923,14 +2816,14 @@ PlatformResult SystemInfoDeviceCapability::GetOpenglesTextureFormat(std::string&
     LoggerE("%s", log_msg.c_str());
     return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
   }
-  result = texture_format;
+  *result = texture_format;
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-PlatformResult SystemInfoDeviceCapability::GetPlatfomCoreCpuArch(std::string& return_value) {
+PlatformResult SystemInfoDeviceCapability::GetPlatfomCoreCpuArch(std::string* return_value) {
   std::string result;
   bool bool_result = false;
-  PlatformResult ret = GetValueBool("tizen.org/feature/platform.core.cpu.arch.armv6", bool_result);
+  PlatformResult ret = GetValueBool("tizen.org/feature/platform.core.cpu.arch.armv6", &bool_result);
   if (ret.IsError()) {
     return ret;
   }
@@ -2938,7 +2831,7 @@ PlatformResult SystemInfoDeviceCapability::GetPlatfomCoreCpuArch(std::string& re
     result = kPlatformCoreArmv6;
   }
 
-  ret = GetValueBool("tizen.org/feature/platform.core.cpu.arch.armv7", bool_result);
+  ret = GetValueBool("tizen.org/feature/platform.core.cpu.arch.armv7", &bool_result);
   if (ret.IsError()) {
     return ret;
   }
@@ -2949,7 +2842,7 @@ PlatformResult SystemInfoDeviceCapability::GetPlatfomCoreCpuArch(std::string& re
     result += kPlatformCoreArmv7;
   }
 
-  ret = GetValueBool("tizen.org/feature/platform.core.cpu.arch.x86", bool_result);
+  ret = GetValueBool("tizen.org/feature/platform.core.cpu.arch.x86", &bool_result);
   if (ret.IsError()) {
     return ret;
   }
@@ -2964,14 +2857,14 @@ PlatformResult SystemInfoDeviceCapability::GetPlatfomCoreCpuArch(std::string& re
     LoggerE("Platform error while retrieving platformCoreCpuArch: result is empty");
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "platformCoreCpuArch result is empty");
   }
-  return_value = result;
+  *return_value = result;
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-PlatformResult SystemInfoDeviceCapability::GetPlatfomCoreFpuArch(std::string& return_value) {
+PlatformResult SystemInfoDeviceCapability::GetPlatfomCoreFpuArch(std::string* return_value) {
   std::string result;
   bool bool_result = false;
-  PlatformResult ret = GetValueBool("tizen.org/feature/platform.core.fpu.arch.sse2", bool_result);
+  PlatformResult ret = GetValueBool("tizen.org/feature/platform.core.fpu.arch.sse2", &bool_result);
   if (ret.IsError()) {
     return ret;
   }
@@ -2979,7 +2872,7 @@ PlatformResult SystemInfoDeviceCapability::GetPlatfomCoreFpuArch(std::string& re
     result = kPlatformCoreSse2;
   }
 
-  ret = GetValueBool("tizen.org/feature/platform.core.fpu.arch.sse3", bool_result);
+  ret = GetValueBool("tizen.org/feature/platform.core.fpu.arch.sse3", &bool_result);
   if (ret.IsError()) {
     return ret;
   }
@@ -2990,7 +2883,7 @@ PlatformResult SystemInfoDeviceCapability::GetPlatfomCoreFpuArch(std::string& re
     result += kPlatformCoreSse3;
   }
 
-  ret = GetValueBool("tizen.org/feature/platform.core.fpu.arch.ssse3", bool_result);
+  ret = GetValueBool("tizen.org/feature/platform.core.fpu.arch.ssse3", &bool_result);
   if (ret.IsError()) {
     return ret;
   }
@@ -3001,7 +2894,7 @@ PlatformResult SystemInfoDeviceCapability::GetPlatfomCoreFpuArch(std::string& re
     result += kPlatformCoreSsse3;
   }
 
-  ret = GetValueBool("tizen.org/feature/platform.core.fpu.arch.vfpv2", bool_result);
+  ret = GetValueBool("tizen.org/feature/platform.core.fpu.arch.vfpv2", &bool_result);
   if (ret.IsError()) {
     return ret;
   }
@@ -3012,7 +2905,7 @@ PlatformResult SystemInfoDeviceCapability::GetPlatfomCoreFpuArch(std::string& re
     result += kPlatformCoreVfpv2;
   }
 
-  ret = GetValueBool("tizen.org/feature/platform.core.fpu.arch.vfpv3", bool_result);
+  ret = GetValueBool("tizen.org/feature/platform.core.fpu.arch.vfpv3", &bool_result);
   if (ret.IsError()) {
     return ret;
   }
@@ -3026,514 +2919,26 @@ PlatformResult SystemInfoDeviceCapability::GetPlatfomCoreFpuArch(std::string& re
     LoggerE("Platform error while retrieving platformCoreFpuArch: result is empty");
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "platformCoreFpuArch result is empty");
   }
-  return_value = result;
+  *return_value = result;
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-PlatformResult SystemInfoDeviceCapability::GetProfile(std::string& return_value) {
+PlatformResult SystemInfoDeviceCapability::GetProfile(std::string* return_value) {
   std::string profile = "";
-  PlatformResult ret = GetValueString("tizen.org/feature/profile", profile);
+  PlatformResult ret = GetValueString("tizen.org/feature/profile", &profile);
   if (ret.IsError()) {
     return ret;
   }
 
-  return_value = kProfileFull;
+  *return_value = kProfileFull;
   if ( kPlatformFull == profile ) {
-    return_value = kProfileFull;
+    *return_value = kProfileFull;
   } else if ( kPlatformMobile == profile ) {
-    return_value = kProfileMobile;
+    *return_value = kProfileMobile;
   } else if ( kPlatformWearable == profile ) {
-    return_value = kProfileWearable;
+    *return_value = kProfileWearable;
   }
   return PlatformResult(ErrorCode::NO_ERROR);
-}
-
-//Implementation ported from devel/webapi/refactoring branch,
-//all flags are hardcoded for Kiran on top of this file
-std::string SystemInfoDeviceCapability::GenerateDuid()
-{
-  LoggerD("Entered");
-
-  bool supported = false;
-  std::string duid = "";
-  char* device_string = nullptr;
-  int ret = 0;
-
-#ifdef FEATURE_OPTIONAL_TELEPHONY
-  ret = system_info_get_platform_bool("tizen.org/feature/network.telephony", &supported);
-  if (ret != SYSTEM_INFO_ERROR_NONE) {
-    LoggerE("It is failed to call system_info_get_platform_bool(tizen.org/feature/network.telephony).");
-    return duid;
-  }
-  LoggerD("telephony is %s", supported ? "supported." : "not supported.");
-
-  if (supported) {
-    int time_count = 0;
-    int status = 0;
-    TapiHandle* handle = nullptr;
-    while (time_count < 10) { //Wait 10 second.
-      if (handle == nullptr) {
-        handle = tel_init(nullptr);
-      }
-
-      if (handle != nullptr) {
-        ret = tel_check_modem_power_status(handle, &status);
-        if (ret != TAPI_API_SUCCESS) {
-          tel_deinit(handle);
-          LoggerD("It is failed to get IMEI.");
-          return duid;
-        }
-
-        if (status == 0) {
-          break;
-        }
-      } else {
-        return duid;
-      }
-      usleep(1000000);
-      time_count++;
-    }
-    if (handle != nullptr) {
-      if (status == 0) {
-        device_string = tel_get_misc_me_imei_sync(handle);
-        tel_deinit(handle);
-      } else {
-        tel_deinit(handle);
-        LoggerD("Modem is not ready to get IMEI.");
-        return duid;
-      }
-
-      LoggerD("telephony.- device_string : %s", device_string);
-    } else {
-      LoggerD("Modem handle is not ready.");
-      return duid;
-    }
-  } else {
-    LoggerD("It is failed to generate DUID from telephony information");
-  }
-
-#elif FEATURE_OPTIONAL_BT
-  ret = system_info_get_platform_bool("tizen.org/feature/network.bluetooth", &supported);
-  if (ret != SYSTEM_INFO_ERROR_NONE) {
-    LoggerE("It is failed to call system_info_get_platform_bool(tizen.org/feature/network.bluetooth).");
-    return duid;
-  }
-  LoggerD("bluetooth is %s", supported ? "supported." : "not supported.");
-
-  if (supported) {
-#ifdef ENABLE_KIRAN
-    char* bt_address = nullptr;
-    ret = bt_adapter_get_address(&bt_address);
-
-    if (ret == BT_ERROR_NONE && bt_address != nullptr) {
-      char* temp = bt_address;
-      device_string = (char*)malloc(SEED_LENGTH);
-      memset(device_string, 0, SEED_LENGTH);
-
-      strcat(device_string, "BLU");
-      for (int i = 0; i < 6; i++)
-      {
-        strncat(device_string, temp, 2);
-        temp+=3;
-      }
-      free(bt_address);
-
-      LoggerD("BT - device_string : %s", device_string);
-    }
-#else
-    FILE* fp = nullptr;
-    fp = fopen("/csa/bluetooth/.bd_addr", "r");
-
-    char buffer[32] = {0,};
-    char* temp = buffer;
-
-    if (fp != nullptr) {
-      while (nullptr != fgets(temp, sizeof(buffer), fp)) {
-        int len = strlen(buffer);
-        if (buffer[len-1] == '\n' || buffer[len-1] == '\r') {
-          buffer[len-1] =='\0';
-        }
-        temp = buffer;
-        temp += len-1;
-      }
-
-      char* tmp_char = buffer;
-      while (*tmp_char = toupper(*tmp_char))
-      {
-        tmp_char++;
-      }
-
-      device_string = (char*)malloc(SEED_LENGTH);
-      memset(device_string, 0, SEED_LENGTH);
-
-      strcat(device_string, "BLU");
-      strcat(device_string, buffer);
-
-      LoggerD("BT - device_string : %s", device_string);
-    } else {
-      LoggerD("fail file open.");
-    }
-#endif
-  } else {
-    LoggerD("It is failed to generate DUID from bluetooth information");
-  }
-
-#elif FEATURE_OPTIONAL_WI_FI
-  ret = system_info_get_platform_bool("tizen.org/feature/network.wifi", &supported);
-  if (ret != SYSTEM_INFO_ERROR_NONE) {
-    LoggerE("It is failed to call system_info_get_platform_bool(tizen.org/feature/network.wifi).");
-    return duid;
-  }
-  LoggerD("Wi-Fi is %s", supported ? "supported." : "not supported.");
-
-  if (supported) {
-    char* wifi_mac_address = nullptr;
-    ret = wifi_get_mac_address(&wifi_mac_address);
-
-    if (ret == WIFI_ERROR_NONE && wifi_mac_address != nullptr) {
-      char* temp = wifi_mac_address;
-
-      device_string = (char*)malloc(SEED_LENGTH);
-      memset(device_string, 0, SEED_LENGTH);
-
-      strcat(device_string, "WIF");
-
-      for (int i = 0; i < 6; i++) {
-        strncat(device_string, temp, 2);
-        temp+=3;
-      }
-      free(wifi_mac_address);
-
-      LoggerD("wifi - device_string : %s", pDeviceString);
-    } else {
-      LoggerD("It is failed to get mac address");
-    }
-  } else {
-    LoggerD("It is failed to generate DUID from wi-fi information");
-  }
-#else
-  LoggerD("It is failed to generate DUID");
-#endif
-
-  if (device_string != nullptr) {
-    duid = GenerateId(device_string);
-    free(device_string);
-  }
-  device_string = nullptr;
-
-  LoggerD("duid : %s", duid.c_str());
-  return duid;
-}
-
-std::string SystemInfoDeviceCapability::GenerateId(char* pDeviceString)
-{
-  LoggerD("Entered");
-  unsigned long long value = 0;
-  byte result[8]  {0,};
-
-  GenerateCrc64(pDeviceString, &value);
-
-  result[7] = value         & 0xFF;
-  result[6] = (value >> 8)  & 0xFF;
-  result[5] = (value >> 16) & 0xFF;
-  result[4] = (value >> 24) & 0xFF;
-  result[3] = (value >> 32) & 0xFF;
-  result[2] = (value >> 40) & 0xFF;
-  result[1] = (value >> 48) & 0xFF;
-  result[0] = (value >> 56) & 0xFF;
-
-  std::string duid = Base32Encode(result);
-
-  return duid;
-}
-
-void SystemInfoDeviceCapability::GenerateCrc64(char* device_string, unsigned long long int* value)
-{
-  LoggerD("Entered");
-
-  byte first_crypt[SEED_LENGTH + 1] = {0,};
-
-  //0xCAFEBABECAFEBABE
-  const char key_value[CRYPT_KEY_SIZE] = {(char)0xCA, (char)0xFE, (char)0xBA, (char)0xBE, (char)0xCA, (char)0xFE, (char)0xBA, (char)0xBE};
-
-  int crypt_key_count = 0;
-  for (int i = 0; i < SEED_LENGTH; i++) {
-    first_crypt[i] = (unsigned char) (((device_string)[i] ^ key_value[crypt_key_count]));
-    crypt_key_count ++;
-    if(crypt_key_count == CRYPT_KEY_SIZE) {
-      crypt_key_count = 0;
-    }
-  }
-
-  unsigned long long int crc64_table[] = { 0x0000000000000000ULL, 0x01B0000000000000ULL, 0x0360000000000000ULL, 0x02D0000000000000ULL,
-      0x06C0000000000000ULL, 0x0770000000000000ULL, 0x05A0000000000000ULL, 0x0410000000000000ULL,
-      0x0D80000000000000ULL, 0x0C30000000000000ULL, 0x0EE0000000000000ULL, 0x0F50000000000000ULL,
-      0x0B40000000000000ULL, 0x0AF0000000000000ULL, 0x0820000000000000ULL, 0x0990000000000000ULL,
-      0x1B00000000000000ULL, 0x1AB0000000000000ULL, 0x1860000000000000ULL, 0x19D0000000000000ULL,
-      0x1DC0000000000000ULL, 0x1C70000000000000ULL, 0x1EA0000000000000ULL, 0x1F10000000000000ULL,
-      0x1680000000000000ULL, 0x1730000000000000ULL, 0x15E0000000000000ULL, 0x1450000000000000ULL,
-      0x1040000000000000ULL, 0x11F0000000000000ULL, 0x1320000000000000ULL, 0x1290000000000000ULL,
-      0x3600000000000000ULL, 0x37B0000000000000ULL, 0x3560000000000000ULL, 0x34D0000000000000ULL,
-      0x30C0000000000000ULL, 0x3170000000000000ULL, 0x33A0000000000000ULL, 0x3210000000000000ULL,
-      0x3B80000000000000ULL, 0x3A30000000000000ULL, 0x38E0000000000000ULL, 0x3950000000000000ULL,
-      0x3D40000000000000ULL, 0x3CF0000000000000ULL, 0x3E20000000000000ULL, 0x3F90000000000000ULL,
-      0x2D00000000000000ULL, 0x2CB0000000000000ULL, 0x2E60000000000000ULL, 0x2FD0000000000000ULL,
-      0x2BC0000000000000ULL, 0x2A70000000000000ULL, 0x28A0000000000000ULL, 0x2910000000000000ULL,
-      0x2080000000000000ULL, 0x2130000000000000ULL, 0x23E0000000000000ULL, 0x2250000000000000ULL,
-      0x2640000000000000ULL, 0x27F0000000000000ULL, 0x2520000000000000ULL, 0x2490000000000000ULL,
-      0x6C00000000000000ULL, 0x6DB0000000000000ULL, 0x6F60000000000000ULL, 0x6ED0000000000000ULL,
-      0x6AC0000000000000ULL, 0x6B70000000000000ULL, 0x69A0000000000000ULL, 0x6810000000000000ULL,
-      0x6180000000000000ULL, 0x6030000000000000ULL, 0x62E0000000000000ULL, 0x6350000000000000ULL,
-      0x6740000000000000ULL, 0x66F0000000000000ULL, 0x6420000000000000ULL, 0x6590000000000000ULL,
-      0x7700000000000000ULL, 0x76B0000000000000ULL, 0x7460000000000000ULL, 0x75D0000000000000ULL,
-      0x71C0000000000000ULL, 0x7070000000000000ULL, 0x72A0000000000000ULL, 0x7310000000000000ULL,
-      0x7A80000000000000ULL, 0x7B30000000000000ULL, 0x79E0000000000000ULL, 0x7850000000000000ULL,
-      0x7C40000000000000ULL, 0x7DF0000000000000ULL, 0x7F20000000000000ULL, 0x7E90000000000000ULL,
-      0x5A00000000000000ULL, 0x5BB0000000000000ULL, 0x5960000000000000ULL, 0x58D0000000000000ULL,
-      0x5CC0000000000000ULL, 0x5D70000000000000ULL, 0x5FA0000000000000ULL, 0x5E10000000000000ULL,
-      0x5780000000000000ULL, 0x5630000000000000ULL, 0x54E0000000000000ULL, 0x5550000000000000ULL,
-      0x5140000000000000ULL, 0x50F0000000000000ULL, 0x5220000000000000ULL, 0x5390000000000000ULL,
-      0x4100000000000000ULL, 0x40B0000000000000ULL, 0x4260000000000000ULL, 0x43D0000000000000ULL,
-      0x47C0000000000000ULL, 0x4670000000000000ULL, 0x44A0000000000000ULL, 0x4510000000000000ULL,
-      0x4C80000000000000ULL, 0x4D30000000000000ULL, 0x4FE0000000000000ULL, 0x4E50000000000000ULL,
-      0x4A40000000000000ULL, 0x4BF0000000000000ULL, 0x4920000000000000ULL, 0x4890000000000000ULL,
-      0xD800000000000000ULL, 0xD9B0000000000000ULL, 0xDB60000000000000ULL, 0xDAD0000000000000ULL,
-      0xDEC0000000000000ULL, 0xDF70000000000000ULL, 0xDDA0000000000000ULL, 0xDC10000000000000ULL,
-      0xD580000000000000ULL, 0xD430000000000000ULL, 0xD6E0000000000000ULL, 0xD750000000000000ULL,
-      0xD340000000000000ULL, 0xD2F0000000000000ULL, 0xD020000000000000ULL, 0xD190000000000000ULL,
-      0xC300000000000000ULL, 0xC2B0000000000000ULL, 0xC060000000000000ULL, 0xC1D0000000000000ULL,
-      0xC5C0000000000000ULL, 0xC470000000000000ULL, 0xC6A0000000000000ULL, 0xC710000000000000ULL,
-      0xCE80000000000000ULL, 0xCF30000000000000ULL, 0xCDE0000000000000ULL, 0xCC50000000000000ULL,
-      0xC840000000000000ULL, 0xC9F0000000000000ULL, 0xCB20000000000000ULL, 0xCA90000000000000ULL,
-      0xEE00000000000000ULL, 0xEFB0000000000000ULL, 0xED60000000000000ULL, 0xECD0000000000000ULL,
-      0xE8C0000000000000ULL, 0xE970000000000000ULL, 0xEBA0000000000000ULL, 0xEA10000000000000ULL,
-      0xE380000000000000ULL, 0xE230000000000000ULL, 0xE0E0000000000000ULL, 0xE150000000000000ULL,
-      0xE540000000000000ULL, 0xE4F0000000000000ULL, 0xE620000000000000ULL, 0xE790000000000000ULL,
-      0xF500000000000000ULL, 0xF4B0000000000000ULL, 0xF660000000000000ULL, 0xF7D0000000000000ULL,
-      0xF3C0000000000000ULL, 0xF270000000000000ULL, 0xF0A0000000000000ULL, 0xF110000000000000ULL,
-      0xF880000000000000ULL, 0xF930000000000000ULL, 0xFBE0000000000000ULL, 0xFA50000000000000ULL,
-      0xFE40000000000000ULL, 0xFFF0000000000000ULL, 0xFD20000000000000ULL, 0xFC90000000000000ULL,
-      0xB400000000000000ULL, 0xB5B0000000000000ULL, 0xB760000000000000ULL, 0xB6D0000000000000ULL,
-      0xB2C0000000000000ULL, 0xB370000000000000ULL, 0xB1A0000000000000ULL, 0xB010000000000000ULL,
-      0xB980000000000000ULL, 0xB830000000000000ULL, 0xBAE0000000000000ULL, 0xBB50000000000000ULL,
-      0xBF40000000000000ULL, 0xBEF0000000000000ULL, 0xBC20000000000000ULL, 0xBD90000000000000ULL,
-      0xAF00000000000000ULL, 0xAEB0000000000000ULL, 0xAC60000000000000ULL, 0xADD0000000000000ULL,
-      0xA9C0000000000000ULL, 0xA870000000000000ULL, 0xAAA0000000000000ULL, 0xAB10000000000000ULL,
-      0xA280000000000000ULL, 0xA330000000000000ULL, 0xA1E0000000000000ULL, 0xA050000000000000ULL,
-      0xA440000000000000ULL, 0xA5F0000000000000ULL, 0xA720000000000000ULL, 0xA690000000000000ULL,
-      0x8200000000000000ULL, 0x83B0000000000000ULL, 0x8160000000000000ULL, 0x80D0000000000000ULL,
-      0x84C0000000000000ULL, 0x8570000000000000ULL, 0x87A0000000000000ULL, 0x8610000000000000ULL,
-      0x8F80000000000000ULL, 0x8E30000000000000ULL, 0x8CE0000000000000ULL, 0x8D50000000000000ULL,
-      0x8940000000000000ULL, 0x88F0000000000000ULL, 0x8A20000000000000ULL, 0x8B90000000000000ULL,
-      0x9900000000000000ULL, 0x98B0000000000000ULL, 0x9A60000000000000ULL, 0x9BD0000000000000ULL,
-      0x9FC0000000000000ULL, 0x9E70000000000000ULL, 0x9CA0000000000000ULL, 0x9D10000000000000ULL,
-      0x9480000000000000ULL, 0x9530000000000000ULL, 0x97E0000000000000ULL, 0x9650000000000000ULL,
-      0x9240000000000000ULL, 0x93F0000000000000ULL, 0x9120000000000000ULL, 0x9090000000000000ULL
-  };
-
-  byte* pu8 = first_crypt;
-  unsigned long long int* crc_table = nullptr;
-  int input_size = SEED_LENGTH + 1;
-
-  *value = 0ULL;
-
-  crc_table = const_cast <unsigned long long int*> (crc64_table);
-
-  while (input_size--) {
-    *value = crc_table[(*value ^ *pu8++) & 0xff] ^ (*value >> 8);
-  }
-
-  LoggerD("value : %llu", value);
-}
-
-std::string SystemInfoDeviceCapability::Base32Encode(byte* value)
-{
-  LoggerD("Entered");
-
-  byte* encoding_pointer = nullptr;
-  byte* src_pointer = nullptr;
-  int i = 0;
-
-  const char base32_char_set[] = "abcdefghijklmnopqrstuvwxyz0123456789";
-
-  int input_size = 8;
-
-  byte* buffer = nullptr;
-  int buffer_length = 0;
-
-  int src_size = input_size+1;
-
-  src_pointer = (byte*)malloc(sizeof(byte)*src_size);
-  memset(src_pointer, 0, sizeof(byte)*src_size);
-  memcpy(src_pointer, value, sizeof(byte)*input_size);
-
-  buffer_length = 8 * (input_size / 5 + 1) + 1;
-  buffer = (byte*) calloc(1, buffer_length);
-
-  encoding_pointer = buffer;
-
-  for (i = 0; i < input_size; i += 5) {
-    encoding_pointer[0] = base32_char_set[(src_pointer[0] >> 3)];
-    encoding_pointer[1] = base32_char_set[((src_pointer[0] & 0x07) << 2) | ((src_pointer[1] & 0xc0) >> 6)];
-    encoding_pointer[2] = (i + 1 < input_size) ? base32_char_set[((src_pointer[1] & 0x3e) >> 1)] : '\0';
-    encoding_pointer[3] = (i + 1 < input_size) ? base32_char_set[((src_pointer[1] & 0x01) << 4) | ((src_pointer[2] & 0xf0) >> 4)] : '\0';
-    encoding_pointer[4] = (i + 2 < input_size) ? base32_char_set[((src_pointer[2] & 0x0f) << 1) | ((src_pointer[3] & 0x80) >> 7)] : '\0';
-    encoding_pointer[5] = (i + 3 < input_size) ? base32_char_set[((src_pointer[3] & 0x3e) >> 2)] : '\0';
-    encoding_pointer[6] = (i + 3 < input_size) ? base32_char_set[((src_pointer[3] & 0x03) << 3) | ((src_pointer[4] & 0xe0) >> 5)] : '\0';
-    encoding_pointer[7] = (i + 4 < input_size) ? base32_char_set[((src_pointer[4] & 0x1f))] : '\0';
-
-    src_pointer += 5;
-    encoding_pointer += 8;
-  }
-
-  std::string duid((char*)(buffer));
-
-  if (buffer != nullptr) {
-    free(buffer);
-  }
-
-  return duid;
-}
-
-std::string SystemInfoDeviceCapability::GetDuid()
-{
-  return GenerateDuid();
-}
-
-//////additional capabilities
-bool SystemInfoDeviceCapability::IsAccount()
-{
-#ifdef FEATURE_OPTIONAL_ACCOUNT
-  return true;
-#else
-  return false;
-#endif
-}
-
-bool SystemInfoDeviceCapability::IsArchive()
-{
-#ifdef FEATURE_OPTIONAL_ARCHIVE
-  return true;
-#else
-  return false;
-#endif
-}
-
-bool SystemInfoDeviceCapability::IsBadge()
-{
-#ifdef FEATURE_OPTIONAL_BADGE
-  return true;
-#else
-  return false;
-#endif
-}
-
-bool SystemInfoDeviceCapability::IsBookmark()
-{
-#ifdef FEATURE_OPTIONAL_BOOKMARK
-  return true;
-#else
-  return false;
-#endif
-}
-
-bool SystemInfoDeviceCapability::IsCalendar()
-{
-#ifdef FEATURE_OPTIONAL_CALENDAR
-  return true;
-#else
-  return false;
-#endif
-}
-
-bool SystemInfoDeviceCapability::IsContact()
-{
-#ifdef FEATURE_OPTIONAL_CONTACT
-  return true;
-#else
-  return false;
-#endif
-}
-
-bool SystemInfoDeviceCapability::IsContent()
-{
-#ifdef FEATURE_OPTIONAL_CONTENT
-  return true;
-#else
-  return false;
-#endif
-}
-
-bool SystemInfoDeviceCapability::IsDataControl()
-{
-#ifdef FEATURE_OPTIONAL_DATACONTROL
-  return true;
-#else
-  return false;
-#endif
-}
-
-bool SystemInfoDeviceCapability::IsDataSync()
-{
-#ifdef FEATURE_OPTIONAL_DATASYNC
-  return true;
-#else
-  return false;
-#endif
-}
-
-bool SystemInfoDeviceCapability::IsDownload()
-{
-#ifdef FEATURE_OPTIONAL_DOWNLOAD
-  return true;
-#else
-  return false;
-#endif
-}
-
-bool SystemInfoDeviceCapability::IsExif()
-{
-#ifdef FEATURE_OPTIONAL_EXIF
-  return true;
-#else
-  return false;
-#endif
-}
-
-bool SystemInfoDeviceCapability::IsGamePad()
-{
-#ifdef FEATURE_OPTIONAL_GAME_PAD
-  return true;
-#else
-  return false;
-#endif
-}
-
-bool SystemInfoDeviceCapability::IsMessagingEmail()
-{
-#ifdef FEATURE_OPTIONAL_MESSAGING_EMAIL
-  return true;
-#else
-  return false;
-#endif
-}
-
-bool SystemInfoDeviceCapability::IsMessaging()
-{
-#ifdef FEATURE_OPTIONAL_MESSAGING
-  return true;
-#else
-  return false;
-#endif
-}
-
-bool SystemInfoDeviceCapability::IsBluetootHealth()
-{
-#ifdef FEATURE_OPTIONAL_BT_HEALTH
-  return true;
-#else
-  return false;
-#endif
 }
 
 bool SystemInfoDeviceCapability::IsBluetoothAlwaysOn() {
@@ -3550,174 +2955,55 @@ bool SystemInfoDeviceCapability::IsBluetoothAlwaysOn() {
 #endif
 }
 
-bool SystemInfoDeviceCapability::IsNfcEmulation()
-{
-#ifdef FEATURE_OPTIONAL_NFC_EMULATION
-  return true;
-#else
-  return false;
-#endif
-}
-
-bool SystemInfoDeviceCapability::IsNotification()
-{
-#ifdef FEATURE_OPTIONAL_NOTIFICATION
-  return true;
-#else
-  return false;
-#endif
-}
-
-bool SystemInfoDeviceCapability::IsPower()
-{
-#ifdef FEATURE_OPTIONAL_POWER
-  return true;
-#else
-  return false;
-#endif
-}
-
-bool SystemInfoDeviceCapability::IsWebSetting()
-{
-#ifdef FEATURE_OPTIONAL_WEB_SETTING
-  return true;
-#else
-  return false;
-#endif
-}
-
-bool SystemInfoDeviceCapability::IsSystemSetting()
-{
-#ifdef FEATURE_OPTIONAL_SYSTEM_SETTING
-  return true;
-#else
-  return false;
-#endif
-}
-
-
-bool SystemInfoDeviceCapability::IsSystemSettingHomeScreen() {
-#ifdef PROFILE_MOBILE_FULL
-  return true;
-#elif PROFILE_MOBILE
-  return true;
-#elif PROFILE_WEARABLE
-  return true;
-#else
-  return false;
-#endif
-}
-
-bool SystemInfoDeviceCapability::IsSystemSettingLockScreen() {
-#ifdef PROFILE_MOBILE_FULL
-  return true;
-#elif PROFILE_MOBILE
-  return true;
-#elif PROFILE_WEARABLE
-  return false;
-#else
-  return false;
-#endif
-}
-
-bool SystemInfoDeviceCapability::IsSystemSettingIncomingCall() {
-#ifdef PROFILE_MOBILE_FULL
-  return true;
-#elif PROFILE_MOBILE
-  return true;
-#elif PROFILE_WEARABLE
-  return true;
-#else
-  return false;
-#endif
-}
-
-bool SystemInfoDeviceCapability::IsSystemSettingNotificationEmail() {
-#ifdef PROFILE_MOBILE_FULL
-  return true;
-#elif PROFILE_MOBILE
-  return true;
-#elif PROFILE_WEARABLE
-  return false;
-#else
-  return false;
-#endif
-}
-
-bool SystemInfoDeviceCapability::IsBattery() {
-#ifdef PROFILE_TV
-  return false;
-#else
-  return true;
-#endif
-}
-
-bool SystemInfoDeviceCapability::IsCoreAPI()
-{
-#ifdef FEATURE_OPTIONAL_CORE_API
-  return true;
-#else
-  return false;
-#endif
-}
-
-bool SystemInfoDeviceCapability::IsPressure() {
-  return false;
-}
-
-bool SystemInfoDeviceCapability::IsUltraviolet() {
-  return false;
-}
-
-bool SystemInfoDeviceCapability::IsPedometer() {
-#ifdef PROFILE_MOBILE_FULL
-  return true;
-#else
-  return false;
-#endif
-}
-
-bool SystemInfoDeviceCapability::IsWristUp() {
-#ifdef PROFILE_MOBILE_FULL
-  return false;
-#else
-  return false;
-#endif
-}
-
-bool SystemInfoDeviceCapability::IsHrm() {
-#ifdef PROFILE_MOBILE_FULL
-  return true;
-#else
-  return false;
-#endif
-}
-
 bool SystemInfoDeviceCapability::IsScreen()
 {
   return true;
 }
 
-PlatformResult SystemInfoDeviceCapability::IsScreenSize320_320(bool& return_value)
+
+PlatformResult SystemInfoDeviceCapability::GetPlatformCoreCpuFrequency(int* return_value)
 {
-  int height = 0;
-  PlatformResult ret = SystemInfoDeviceCapability::GetValueInt(
-      "tizen.org/feature/screen.height", height);
-  if (ret.IsError()) {
-    return ret;
-  }
-  int width = 0;
-  ret = SystemInfoDeviceCapability::GetValueInt(
-      "tizen.org/feature/screen.width", width);
-  if (ret.IsError()) {
-    return ret;
-  }
-  if (height != 320 || width != 320) {
-    return_value = false;
+  LOGD("Entered");
+  double freq = 0;
+  int ret = 0;
+
+  ret = system_info_get_value_double(SYSTEM_INFO_KEY_CORE_CPU_FREQ, &freq);
+  if (ret != SYSTEM_INFO_ERROR_NONE) {
+    LOGE("Failed to get cpu frequency: %d", ret);
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to get cpu frequency");
   } else {
-    return_value = true;
+    LOGD("cpu frequency : %d", freq);
+    *return_value = static_cast<int>(freq);
   }
   return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult SystemInfoDeviceCapability::IsNativeOspCompatible(bool* result)
+{
+  LOGD("Enter");
+#ifdef PROFILE_WEARABLE
+  *result = false;
+  return PlatformResult(ErrorCode::NO_ERROR);
+#else
+  return GetValueBool(kTizenFeaturePlatformNativeOspCompatible, result);
+#endif
+}
+
+PlatformResult SystemInfoDeviceCapability::GetNativeAPIVersion(std::string* return_value)
+{
+  LOGD("Enter");
+#ifdef PROFILE_WEARABLE
+  *return_value = "";
+  return PlatformResult(ErrorCode::NO_ERROR);
+#else
+  return GetValueString(kTizenFeaturePlatformNativeApiVersion, return_value);
+#endif
+}
+
+PlatformResult SystemInfoDeviceCapability::GetPlatformVersionName(std::string* result)
+{
+    LOGD("Enter");
+    return GetValueString("tizen.org/system/platform.version.name", result);
 }
 
 } // namespace systeminfo

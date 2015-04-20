@@ -106,58 +106,21 @@ typedef unsigned char byte;
 class SystemInfoDeviceCapability {
  public:
   static common::PlatformResult GetCapability(const std::string& key, picojson::value& result);
-  static common::PlatformResult GetValueBool(const char *key, bool& value);
-  static common::PlatformResult GetValueInt(const char *key, int& value);
-  static common::PlatformResult GetValueString(const char *key, std::string& str_value);
+  static common::PlatformResult GetValueBool(const char *key, bool* value);
+  static common::PlatformResult GetValueInt(const char *key, int* value);
+  static common::PlatformResult GetValueString(const char *key, std::string* str_value);
 
-  static common::PlatformResult IsBluetooth(bool& result);
-  static common::PlatformResult IsInputKeyboardLayout(bool& result);
-  static common::PlatformResult GetOpenglesTextureFormat(std::string& result);
-  static common::PlatformResult GetPlatfomCoreCpuArch(std::string& return_value);
-  static common::PlatformResult GetPlatfomCoreFpuArch(std::string& return_value);
-  static common::PlatformResult GetProfile(std::string& return_value);
-  static std::string GetDuid();
-
-//  //additional capabilities
-  static bool IsAccount();
-  static bool IsArchive();
-  static bool IsBadge();
-  static bool IsBookmark();
-  static bool IsCalendar();
-  static bool IsContact();
-  static bool IsContent();
-  static bool IsDataControl();
-  static bool IsDataSync();
-  static bool IsDownload();
-  static bool IsExif();
-  static bool IsGamePad();
-  static bool IsMessagingEmail();
-  static bool IsMessaging();
-  static bool IsBluetootHealth();
+  static common::PlatformResult IsInputKeyboardLayout(bool* result);
+  static common::PlatformResult GetOpenglesTextureFormat(std::string* result);
+  static common::PlatformResult GetPlatfomCoreCpuArch(std::string* return_value);
+  static common::PlatformResult GetPlatfomCoreFpuArch(std::string* return_value);
+  static common::PlatformResult GetProfile(std::string* return_value);
+  static common::PlatformResult GetPlatformCoreCpuFrequency(int* return_value);
+  static common::PlatformResult IsNativeOspCompatible(bool* result);
+  static common::PlatformResult GetNativeAPIVersion(std::string* return_value);
+  static common::PlatformResult GetPlatformVersionName(std::string* result);
   static bool IsBluetoothAlwaysOn();
-  static bool IsNfcEmulation();
-  static bool IsNotification();
-  static bool IsPower();
-  static bool IsWebSetting();
-  static bool IsSystemSetting();
-  static bool IsSystemSettingHomeScreen();
-  static bool IsSystemSettingLockScreen();
-  static bool IsSystemSettingIncomingCall();
-  static bool IsSystemSettingNotificationEmail();
-  static bool IsBattery();
-  static bool IsCoreAPI();
-  static bool IsPressure();
-  static bool IsUltraviolet();
-  static bool IsPedometer();
-  static bool IsWristUp();
-  static bool IsHrm();
   static bool IsScreen();
-  static common::PlatformResult IsScreenSize320_320(bool& return_value);
- private:
-  static std::string GenerateDuid();
-  static std::string GenerateId(char* pDeviceString);
-  static void GenerateCrc64(char* pDeviceString, unsigned long long int* value);
-  static std::string Base32Encode(byte* value);
 };
 
 } // namespace systeminfo
