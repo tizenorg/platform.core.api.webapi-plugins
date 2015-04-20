@@ -1321,6 +1321,10 @@ var WebAPIException = function(code, message, name) {
       return;
   }
 
+  if (code_ > errors.DATA_CLONE_ERR) {
+    code_ = 0;
+  }
+
   // attributes
   Object.defineProperties(this, {
     code: {value: code_, writable: false, enumerable: true},
