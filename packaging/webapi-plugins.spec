@@ -180,6 +180,7 @@ BuildRequires: pkgconfig(vconf)
 BuildRequires: pkgconfig(x11)
 BuildRequires: pkgconfig(xrandr)
 BuildRequires: pkgconfig(ecore)
+BuildRequires: pkgconfig(icu-i18n)
 BuildRequires: pkgconfig(storage)
 BuildRequires: python
 BuildRequires: pkgconfig(capi-base-common)
