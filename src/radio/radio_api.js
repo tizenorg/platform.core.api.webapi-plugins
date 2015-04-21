@@ -328,8 +328,7 @@ FMRadioManager.prototype.unsetFMRadioInterruptedListener = function() {
 FMRadioManager.prototype.setAntennaChangeListener = function() {
     var args = validator_.validateArgs(arguments, [ {
         name : 'changeCallback',
-        type : types_.LISTENER,
-        values : [ 'onchange' ]
+        type : types_.FUNCTION
     } ]);
 
     antennaCBmanager.FMRadioAntennaChangeSet(args.changeCallback);

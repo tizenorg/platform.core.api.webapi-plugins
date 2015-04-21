@@ -407,8 +407,7 @@ NFCAdapter.prototype.addCardEmulationModeChangeListener = function() {
   var args = validator_.validateArgs(arguments, [
     {
       name: 'callback',
-      type: types_.LISTENER,
-      values: ['onchanged']
+      type: types_.FUNCTION
     }
   ]);
 
@@ -449,8 +448,7 @@ NFCAdapter.prototype.addTransactionEventListener = function() {
     },
     {
       name: 'callback',
-      type: types_.LISTENER,
-      values: ['ondetected']
+      type: types_.FUNCTION
     }
   ]);
 
@@ -510,8 +508,7 @@ NFCAdapter.prototype.addActiveSecureElementChangeListener = function() {
   var args = validator_.validateArgs(arguments, [
     {
       name: 'callback',
-      type: types_.LISTENER,
-      values: ['onchanged']
+      type: types_.FUNCTION
     }
   ]);
 
@@ -1046,8 +1043,7 @@ NFCPeer.prototype.setReceiveNDEFListener = function() {
   var args = validator_.validateArgs(arguments, [
     {
       name: 'listener',
-      type: types_.LISTENER,
-      values: ['onsuccess']
+      type: types_.FUNCTION
     }
   ]);
 
