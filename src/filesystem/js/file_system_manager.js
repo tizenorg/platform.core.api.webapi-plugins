@@ -34,7 +34,6 @@ FileSystemManager.prototype.resolve = function(location, onsuccess, onerror, mod
   if (!args.has.mode) {
     args.mode = 'rw';
   }
-  commonFS_.initCache();
 
   if (args.location[0] === '/') {
     setTimeout(function() {
@@ -87,21 +86,14 @@ FileSystemManager.prototype.getStorage = function(label, onsuccess, onerror) {
     {name: 'onerror', type: types_.FUNCTION, optional: true, nullable: true}
   ]);
 
-  commonFS_.initCache();
-
-  var storage, i;
   setTimeout(function() {
-    for (i = 0; i < commonFS_.cacheStorages.length; i++) {
-      if (commonFS_.cacheStorages[i].label === args.label) {
-        storage = new FileSystemStorage(commonFS_.cacheStorages[i]);
-      }
-    }
+    var storage = commonFS_.getStorage(args.label);
 
-    if (storage === undefined) {
+    if (!storage) {
       native_.callIfPossible(args.onerror,
           new WebAPIException(WebAPIException.NOT_FOUND_ERR, 'Storage not found.'));
     } else {
-      native_.callIfPossible(args.onsuccess, storage);
+      native_.callIfPossible(args.onsuccess, new FileSystemStorage(storage));
     }
   }, 0);
 };
@@ -114,12 +106,11 @@ FileSystemManager.prototype.listStorages = function(onsuccess, onerror) {
     {name: 'onerror', type: types_.FUNCTION, optional: true, nullable: true}
   ]);
 
-  commonFS_.initCache();
-
-  var storages = [], i;
   setTimeout(function() {
-    for (i = 0; i < commonFS_.cacheStorages.length; i++) {
-      storages.push(new FileSystemStorage(commonFS_.cacheStorages[i]));
+    var storages = [];
+    var cache = commonFS_.getAllStorages();
+    for (var i = 0; i < cache.length; ++i) {
+      storages.push(new FileSystemStorage(cache[i]));
     }
 
     native_.callIfPossible(args.onsuccess, storages);
@@ -147,8 +138,6 @@ FileSystemManager.prototype.addStorageStateChangeListener = function(onsuccess, 
     {name: 'onsuccess', type: types_.FUNCTION},
     {name: 'onerror', type: types_.FUNCTION, optional: true, nullable: true}
   ]);
-
-  commonFS_.initCache();
 
   var register = false;
   if (type_.isEmptyObject(callbacks)) {
@@ -195,13 +184,4 @@ FileSystemManager.prototype.removeStorageStateChangeListener = function(watchId)
   }
 };
 
-var filesystem = new FileSystemManager();
-
-function onStorageStateChanged() {
-  commonFS_.clearCache();
-  commonFS_.initCache();
-}
-
-filesystem.addStorageStateChangeListener(onStorageStateChanged);
-
-exports = filesystem;
+exports = new FileSystemManager();
