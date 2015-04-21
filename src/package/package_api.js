@@ -48,7 +48,7 @@ function callNative(cmd, args) {
   } else if (result['status'] == 'error') {
     var err = result['error'];
     if (err) {
-      throw new WebAPIException(err.name, err.message);
+      throw new WebAPIException(err);
     }
     return false;
   }

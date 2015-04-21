@@ -19,21 +19,6 @@ function nextCallbackId() {
     return callbackId++;
 }
 
-var ExceptionMap = {
-    'UnknownError' : WebAPIException.UNKNOWN_ERR ,
-    'TypeMismatchError' : WebAPIException.TYPE_MISMATCH_ERR ,
-    'InvalidValuesError' : WebAPIException.INVALID_VALUES_ERR ,
-    'IOError' : WebAPIException.IO_ERR ,
-    'ServiceNotAvailableError' : WebAPIException.SERVICE_NOT_AVAILABLE_ERR ,
-    'SecurityError' : WebAPIException.SECURITY_ERR ,
-    'NetworkError' : WebAPIException.NETWORK_ERR ,
-    'NotSupportedError' : WebAPIException.NOT_SUPPORTED_ERR ,
-    'NotFoundError' : WebAPIException.NOT_FOUND_ERR ,
-    'InvalidAccessError' : WebAPIException.INVALID_ACCESS_ERR ,
-    'AbortError' : WebAPIException.ABORT_ERR ,
-    'QuotaExceededError' : WebAPIException.QUOTA_EXCEEDED_ERR ,
-}
-
 function callNative(cmd, args) {
     var json = {'cmd':cmd, 'args':args};
     var argjson = JSON.stringify(json);
@@ -52,11 +37,7 @@ function callNative(cmd, args) {
     } else if (result['status'] == 'error') {
         var err = result['error'];
         if(err) {
-            if(ExceptionMap[err.name]) {
-                throw new WebAPIException(ExceptionMap[err.name], err.message);
-            } else {
-                throw new WebAPIException(WebAPIException.UNKNOWN_ERR, err.message);
-            }
+            throw new WebAPIException(err);
         }
         return false;
     }

@@ -66,7 +66,9 @@ ContactManager.prototype.getAddressBooks = function() {
     }
   };
 
-  native_.call('ContactManager_getAddressBooks', {}, callback);
+  var result = native_.call('ContactManager_getAddressBooks', {}, callback);
+
+  _checkError(result);
 };
 
 // Gets the aggregation of all address books.
@@ -209,6 +211,8 @@ ContactManager.prototype.get = function() {
 
 // Updates a person in the address book synchronously.
 ContactManager.prototype.update = function() {
+  xwalk.utils.checkPrivilegeAccess('http://tizen.org/privilege/contact.write');
+
   // validation
   var args = validator_.validateArgs(arguments, [{
     name: 'person',
@@ -261,10 +265,12 @@ ContactManager.prototype.updateBatch = function() {
     native_.callIfPossible(args.successCallback);
   };
 
-  native_.call('ContactManager_updateBatch', {
+  var result = native_.call('ContactManager_updateBatch', {
     addressBook: {},
     batchArgs: _toJsonObject(args.persons)
   }, callback);
+
+  _checkError(result);
 };
 
 // Removes a person from the contact DB synchronously.
@@ -319,10 +325,12 @@ ContactManager.prototype.removeBatch = function() {
     native_.callIfPossible(args.successCallback);
   };
 
-  native_.call('ContactManager_removeBatch', {
+  var result = native_.call('ContactManager_removeBatch', {
     addressBook: {},
     batchArgs: _toJsonObject(args.personIds)
   }, callback);
+
+  _checkError(result);
 };
 
 // Gets an array of all Person objects from the contact DB or the ones that match the
@@ -382,7 +390,9 @@ ContactManager.prototype.find = function() {
     }
   };
 
-  native_.call('ContactManager_find', data, callback);
+  var result = native_.call('ContactManager_find', data, callback);
+
+  _checkError(result);
 };
 
 // Subscribes to receive notifications about persons' changes.
@@ -419,6 +429,8 @@ ContactManager.prototype.addChangeListener = function() {
 
 // Unsubscribes a persons' changes watch operation.
 ContactManager.prototype.removeChangeListener = function() {
+  xwalk.utils.checkPrivilegeAccess('http://tizen.org/privilege/contact.read');
+
   var args = validator_.validateArgs(arguments, [
     {
       name: 'watchId',

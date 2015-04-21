@@ -17,6 +17,8 @@ function ContentManager() {
 }
 
 ContentManager.prototype.update = function(content) {
+  xwalk.utils.checkPrivilegeAccess('http://tizen.org/privilege/content.write');
+
   var args = validator_.validateArgs(arguments, [
     {name: 'content', type: types_.PLATFORM_OBJECT, values: Content}
   ]);
@@ -51,7 +53,11 @@ ContentManager.prototype.updateBatch = function(contents, successCallback, error
     native_.callIfPossible(args.successCallback);
   };
 
-  native_.call('ContentManager_updateBatch', data, callback);
+  var result = native_.call('ContentManager_updateBatch', data, callback);
+
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
+  }
 };
 
 ContentManager.prototype.getDirectories = function(successCallback, errorCallback) {
@@ -122,7 +128,11 @@ ContentManager.prototype.find = function(successCallback, errorCallback, directo
     native_.callIfPossible(args.successCallback, out);
   };
 
-  native_.call('ContentManager_find', data, callback);
+  var result = native_.call('ContentManager_find', data, callback);
+
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
+  }
 };
 
 ContentManager.prototype.scanFile = function(contentURI, successCallback, errorCallback) {
@@ -149,7 +159,11 @@ ContentManager.prototype.scanFile = function(contentURI, successCallback, errorC
     native_.callIfPossible(args.successCallback, args.contentURI);
   };
 
-  native_.call('ContentManager_scanFile', data, callback);
+  var result = native_.call('ContentManager_scanFile', data, callback);
+
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
+  }
 };
 
 ContentManager.prototype.setChangeListener = function(changeCallback) {
