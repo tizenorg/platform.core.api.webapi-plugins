@@ -32,7 +32,14 @@ struct NetworkBearerSelectionReleaseEvent {
 
 void NetworkBearerSelectionManager::AddListener(
     NetworkBearerSelectionListener* listener) {
+  std::lock_guard<std::mutex> lock(m_mutex);
   m_listeners.push_back(listener);
+}
+
+void NetworkBearerSelectionManager::RemoveListener(
+    NetworkBearerSelectionListener* listener) {
+  std::lock_guard<std::mutex> lock(m_mutex);
+  m_listeners.remove(listener);
 }
 
 NetworkBearerSelectionManager* NetworkBearerSelectionManager::GetInstance() {
@@ -377,6 +384,7 @@ void NetworkBearerSelectionManager::deregistStateChangeListener(
 void NetworkBearerSelectionManager::makeSuccessCallback(
     const std::string& domain_name) {
   LoggerD("enter");
+  std::lock_guard<std::mutex> lock(m_mutex);
   for (NetworkBearerSelectionListener* listener : m_listeners)
     listener->onNBSSuccess(domain_name);
 }
@@ -393,6 +401,7 @@ void NetworkBearerSelectionManager::makeErrorCallback(
     const std::string& domain_name,
     const std::string& info) {
   LoggerD("enter");
+  std::lock_guard<std::mutex> lock(m_mutex);
   for (NetworkBearerSelectionListener* listener : m_listeners)
     listener->onNBSError(domain_name, info);
 }
@@ -400,6 +409,7 @@ void NetworkBearerSelectionManager::makeErrorCallback(
 void NetworkBearerSelectionManager::makeDisconnectCallback(
     const std::string& domain_name) {
   LoggerD("enter");
+  std::lock_guard<std::mutex> lock(m_mutex);
   for (NetworkBearerSelectionListener* listener : m_listeners)
     listener->onNBSDisconnect(domain_name);
 }

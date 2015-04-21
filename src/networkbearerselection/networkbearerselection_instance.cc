@@ -45,7 +45,9 @@ NetworkBearerSelectionInstance::NetworkBearerSelectionInstance() {
   NetworkBearerSelectionManager::GetInstance()->AddListener(this);
 }
 
-NetworkBearerSelectionInstance::~NetworkBearerSelectionInstance() {}
+NetworkBearerSelectionInstance::~NetworkBearerSelectionInstance() {
+  NetworkBearerSelectionManager::GetInstance()->RemoveListener(this);
+}
 
 #define CHECK_EXIST(args, name, out)                                       \
   if (!args.contains(name)) {                                              \

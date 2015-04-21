@@ -7,6 +7,7 @@
 
 #include <string>
 #include <list>
+#include <mutex>
 #include <functional>
 #include <device/callback.h>
 #include <net_connection.h>
@@ -38,6 +39,7 @@ class NetworkBearerSelectionManager {
  public:
   typedef std::function<void(bool)> ReleaseReplyCallback;
   void AddListener(NetworkBearerSelectionListener* listener);
+  void RemoveListener(NetworkBearerSelectionListener* listener);
 
   void requestRouteToHost(const std::string& domain_name);
   bool releaseRouteToHost(const std::string& domain_name,
@@ -79,6 +81,7 @@ class NetworkBearerSelectionManager {
   std::list<std::string> m_domainNames;
   ConnectionState m_connectionState;
   bool m_isConnectionOpen;
+  std::mutex m_mutex;
 };
 
 }  // namespace networkbearerselection
