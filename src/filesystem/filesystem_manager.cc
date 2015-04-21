@@ -198,7 +198,9 @@ void FilesystemManager::FetchStorages(
   auto result = common::VirtualFs::GetInstance().GetStorages();
 
   for (auto storage : result) {
-    ids_.insert(storage.id_);
+    if (storage.id_ >= 0) {
+      ids_.insert(storage.id_);
+    }
   }
 
   success_cb(result);
