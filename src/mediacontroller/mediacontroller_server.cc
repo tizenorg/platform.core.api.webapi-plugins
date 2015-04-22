@@ -150,5 +150,67 @@ common::PlatformResult MediaControllerServer::SetMetadata(
   return result;
 }
 
+PlatformResult MediaControllerServer::SetChangeRequestPlaybackInfoListener(
+    JsonCallback callback) {
+
+  if (callback && change_request_playback_info_listener_) {
+    LOGGER(ERROR) << "Listener already registered";
+    return PlatformResult(ErrorCode::INVALID_STATE_ERR,
+                          "Listener already registered");
+  }
+
+  change_request_playback_info_listener_ = callback;
+
+  int ret;
+  if (callback) { // set platform callbacks
+    ret = mc_server_set_playback_state_command_received_cb(
+        handle_, OnPlaybackStateCommand, this);
+    if (ret != MEDIA_CONTROLLER_ERROR_NONE) {
+      LOGGER(ERROR) << "Unable to set playback state command listener, error: " << ret;
+      return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                            "Unable to set playback state command listener");
+    }
+  } else { // unset platform callbacks
+    ret = mc_server_unset_playback_state_command_received_cb(handle_);
+    if (ret != MEDIA_CONTROLLER_ERROR_NONE) {
+      LOGGER(ERROR) << "Unable to unset playback state command listener, error: " << ret;
+      return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                            "Unable to unset playback state command listener");
+    }
+  }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+void MediaControllerServer::OnPlaybackStateCommand(const char* client_name,
+                                                   mc_playback_states_e state_e,
+                                                   void *user_data) {
+  LOGGER(DEBUG) << "entered";
+
+  MediaControllerServer* server = static_cast<MediaControllerServer*>(user_data);
+
+  if (!server->change_request_playback_info_listener_) {
+    LOGGER(DEBUG) << "No change request playback info listener registered, skipping";
+    return;
+  }
+
+  std::string state;
+  PlatformResult result = Types::PlatformEnumToString(
+      Types::kMediaControllerPlaybackState,
+      static_cast<int>(state_e), &state);
+  if (!result) {
+    LOGGER(ERROR) << "PlatformEnumToString failed, error: " << result.message();
+    return;
+  }
+
+  picojson::value data = picojson::value(picojson::object());
+  picojson::object& data_o = data.get<picojson::object>();
+
+  data_o["action"] = picojson::value(std::string("onplaybackstaterequest"));
+  data_o["state"] = picojson::value(state);
+
+  server->change_request_playback_info_listener_(&data);
+}
+
 } // namespace mediacontroller
 } // namespace extension

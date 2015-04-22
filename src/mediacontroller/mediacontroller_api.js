@@ -410,12 +410,21 @@ MediaControllerServer.prototype.updateMetadata = function(metadata) {
 };
 
 MediaControllerServer.prototype.addChangeRequestPlaybackInfoListener = function(listener) {
-  var args = validator_.validateArgs(arguments, [
-    {name: 'listener', type: types_.LISTENER, values: ['onplaybackstaterequest', 'onplaybackpositionrequest', 'onshufflemoderequest', 'onrepeatmoderequest']}
-  ]);
+  var args = validator_.validateArgs(arguments, [{
+    name: 'listener',
+    type: types_.LISTENER,
+    values: [
+      'onplaybackstaterequest',
+      'onplaybackpositionrequest',
+      'onshufflemoderequest',
+      'onrepeatmoderequest'
+    ]
+  }]);
 
   if (type_.isEmptyObject(ServerPlaybackInfoListener.listeners)) {
-    var result = native_.callSync('MediaControllerServer_addChangeRequestPlaybackInfoListener');
+    var result = native_.callSync('MediaControllerServer_addChangeRequestPlaybackInfoListener', {
+      listenerId: ServerPlaybackInfoListener.listenerName
+    });
     if (native_.isFailure(result)) {
       throw native_.getErrorObject(result);
     }
@@ -442,7 +451,9 @@ MediaControllerServer.prototype.addCommandListener = function(listener) {
   ]);
 
   if (type_.isEmptyObject(ServerCommandListener.listeners)) {
-    var result = native_.callSync('MediaControllerServer_addCommandListener');
+    var result = native_.callSync('MediaControllerServer_addCommandListener', {
+      listenerId: ServerCommandListener.listenerName
+    });
     if (native_.isFailure(result)) {
       throw native_.getErrorObject(result);
     }
@@ -544,6 +555,7 @@ MediaControllerServerInfo.prototype.sendPlaybackState = function(state, successC
   ]);
 
   var data = {
+    name: this.name,
     state: args.state
   };
 
@@ -660,7 +672,9 @@ MediaControllerServerInfo.prototype.addServerStatusChangeListener = function(lis
   ]);
 
   if (type_.isEmptyObject(ServerInfoStatusListener.listeners)) {
-    var result = native_.callSync('MediaControllerServerInfo_addServerStatusChangeListener');
+    var result = native_.callSync('MediaControllerServerInfo_addServerStatusChangeListener', {
+      listenerId: ServerInfoStatusListener.listenerName
+    });
     if (native_.isFailure(result)) {
       throw native_.getErrorObject(result);
     }

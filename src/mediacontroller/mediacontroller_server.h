@@ -9,6 +9,7 @@
 #include <string>
 
 #include "common/platform_result.h"
+#include "mediacontroller/mediacontroller_types.h"
 
 namespace extension {
 namespace mediacontroller {
@@ -25,8 +26,16 @@ class MediaControllerServer {
   common::PlatformResult SetRepeatMode(bool mode);
   common::PlatformResult SetMetadata(const picojson::object& metadata);
 
+  common::PlatformResult SetChangeRequestPlaybackInfoListener(
+      JsonCallback callback);
+
  private:
   mc_server_h handle_;
+  JsonCallback change_request_playback_info_listener_;
+
+  static void OnPlaybackStateCommand(const char* client_name,
+                                     mc_playback_states_e state_e,
+                                     void *user_data);
 };
 
 } // namespace mediacontroller

@@ -412,5 +412,31 @@ void MediaControllerClient::OnMetadataUpdate(const char* server_name,
   client->playback_info_listener_(&data);
 }
 
+PlatformResult MediaControllerClient::SendPlaybackState(
+    const std::string& server_name,
+    const std::string& state) {
+  LOGGER(DEBUG) << "entered";
+
+  int ret;
+
+  int state_e;
+  PlatformResult result = Types::StringToPlatformEnum(
+      Types::kMediaControllerPlaybackState, state, &state_e);
+  if (!result) {
+    return result;
+  }
+
+  ret = mc_client_send_playback_state_command(
+      handle_, server_name.c_str(), static_cast<mc_playback_states_e>(state_e));
+  if (ret != MEDIA_CONTROLLER_ERROR_NONE) {
+    LOGGER(ERROR) << "mc_client_send_playback_state_command failed, error: "
+        << ret;
+    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                          "Error sending playback state");
+  }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
 } // namespace mediacontroller
 } // namespace extension

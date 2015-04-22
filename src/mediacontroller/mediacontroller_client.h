@@ -28,6 +28,9 @@ class MediaControllerClient {
   common::PlatformResult GetMetadata(const std::string& server_name,
                                          picojson::object* metadata);
 
+  common::PlatformResult SendPlaybackState(const std::string& server_name,
+                                           const std::string& state);
+
   common::PlatformResult SetPlaybackInfoListener(JsonCallback callback);
  private:
   mc_client_h handle_;
