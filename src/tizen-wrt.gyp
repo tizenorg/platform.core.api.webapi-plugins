@@ -133,6 +133,13 @@
           },
         ],
         [
+          'tizen_feature_key_manager_support==1', {
+            'dependencies': [
+              'keymanager/keymanager.gyp:*',
+            ],
+          },
+        ],
+        [
           'tizen_feature_media_controller_support==1', {
             'dependencies': [
               'mediacontroller/mediacontroller.gyp:*',
