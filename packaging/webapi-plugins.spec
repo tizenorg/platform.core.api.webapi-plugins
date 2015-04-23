@@ -138,7 +138,7 @@ Source0:    %{name}-%{version}.tar.gz
 
 # Calendar API is mandatory in Tizen Wearable Profile.
 %define tizen_feature_calendar_support            0
-%define tizen_feature_callhistory_support         1
+%define tizen_feature_callhistory_support         0
 %define tizen_feature_contact_support             0
 %define tizen_feature_content_support             1
 %define tizen_feature_datacontrol_support         0
@@ -340,6 +340,9 @@ BuildRequires:  pkgconfig(calendar-service2)
 BuildRequires:  pkgconfig(contacts-service2)
 %endif
 
+%if 0%{?tizen_feature_callhistory_support}
+BuildRequires:  pkgconfig(contacts-service2)
+%endif
 
 %if 0%{?tizen_feature_tvchannel_support}
 BuildRequires: pkgconfig(tvs-api)
