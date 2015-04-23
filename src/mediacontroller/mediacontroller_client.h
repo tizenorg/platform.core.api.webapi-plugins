@@ -31,12 +31,19 @@ class MediaControllerClient {
   common::PlatformResult SendPlaybackState(const std::string& server_name,
                                            const std::string& state);
 
+  common::PlatformResult SetServerStatusChangeListener(JsonCallback callback);
   common::PlatformResult SetPlaybackInfoListener(JsonCallback callback);
+
  private:
   mc_client_h handle_;
   JsonCallback playback_info_listener_;
+  JsonCallback server_status_listener_;
 
   static bool FindServersCallback(const char* server_name, void* user_data);
+
+  static void OnServerStatusUpdate(const char *server_name,
+                                   mc_server_state_e state,
+                                   void *user_data);
   static void OnPlaybackUpdate(const char *server_name,
                                mc_playback_h playback,
                                void *user_data);

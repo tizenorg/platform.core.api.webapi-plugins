@@ -77,18 +77,7 @@ var ServerPlaybackInfoListener = new ListenerManager(native_, '_ServerPlaybackIn
 });
 
 var ServerInfoStatusListener = new ListenerManager(native_, '_ServerInfoStatusListener', function(msg, listener) {
-  if (msg.action === 'onplaybackstaterequest') {
-    listener[msg.action](msg.state);
-  }
-  if (msg.action === 'onplaybackpositionrequest') {
-    listener[msg.action](msg.position);
-  }
-  if (msg.action === 'onshufflemoderequest' || msg.action === 'onrepeatmoderequest') {
-    listener[msg.action](msg.mode);
-  }
-  if (msg.action === 'onmetadatachanged') {
-    listener[msg.action](new MediaControllerMetadata(msg.metadata));
-  }
+  listener(msg.state);
 });
 
 var ServerInfoPlaybackInfoListener = new ListenerManager(native_, '_ServerInfoPlaybackInfoListener', function(msg, listener) {

@@ -231,6 +231,70 @@ PlatformResult MediaControllerClient::GetMetadata(
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
+PlatformResult MediaControllerClient::SetServerStatusChangeListener(
+    JsonCallback callback) {
+
+  if (callback && server_status_listener_) {
+    LOGGER(ERROR) << "Listener already registered";
+    return PlatformResult(ErrorCode::INVALID_STATE_ERR,
+                          "Listener already registered");
+  }
+
+  server_status_listener_ = callback;
+
+  int ret;
+  if (callback) { // set platform callbacks
+
+    ret = mc_client_set_server_update_cb(handle_, OnServerStatusUpdate, this);
+    if (ret != MEDIA_CONTROLLER_ERROR_NONE) {
+      LOGGER(ERROR) << "Unable to set server status listener, error: " << ret;
+      return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                            "Unable to set server status listener");
+    }
+
+  } else { // unset platform callbacks
+
+    ret = mc_client_unset_server_update_cb(handle_);
+    if (ret != MEDIA_CONTROLLER_ERROR_NONE) {
+      LOGGER(ERROR) << "Unable to unset server status listener, error: " << ret;
+      return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                            "Unable to unset server status listener");
+    }
+
+  }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+void MediaControllerClient::OnServerStatusUpdate(const char* server_name,
+                                                 mc_server_state_e state,
+                                                 void* user_data) {
+  LOGGER(DEBUG) << "entered";
+
+  MediaControllerClient* client = static_cast<MediaControllerClient*>(user_data);
+
+  if (!client->server_status_listener_) {
+    LOGGER(DEBUG) << "No server status listener registered, skipping";
+    return;
+  }
+
+  // server state
+  std::string state_str;
+  PlatformResult result = Types::PlatformEnumToString(
+      Types::kMediaControllerServerState, static_cast<int>(state), &state_str);
+  if (!result) {
+    LOGGER(ERROR) << "PlatformEnumToString failed, error: " << result.message();
+    return;
+  }
+
+  picojson::value data = picojson::value(picojson::object());
+  picojson::object& data_o = data.get<picojson::object>();
+
+  data_o["state"] = picojson::value(state_str);
+
+  client->server_status_listener_(&data);
+}
+
 PlatformResult MediaControllerClient::SetPlaybackInfoListener(
     JsonCallback callback) {
 

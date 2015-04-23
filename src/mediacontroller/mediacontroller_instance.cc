@@ -529,28 +529,47 @@ void MediaControllerInstance::MediaControllerServerInfoSendCommand(
 void MediaControllerInstance::MediaControllerServerInfoAddServerStatusChangeListener(
     const picojson::value& args,
     picojson::object& out) {
+  LOGGER(DEBUG) << "entered";
 
-  // implement it
+  if (!client_) {
+    ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
+                               "Client not initialized."), &out);
+    return;
+  }
 
-  // if success
-  // ReportSuccess(out);
-  // if error
-  // ReportError(out);
+  CHECK_EXIST(args, "listenerId", out)
+
+  JsonCallback callback = [this, args](picojson::value* data) -> void {
+    LOGGER(DEBUG) << "entered";
+
+    if (nullptr == data) {
+      LOGGER(ERROR) << "No data passed to json callback";
+      return;
+    }
+
+    picojson::object& request_o = data->get<picojson::object>();
+    request_o["listenerId"] = args.get("listenerId");
+
+    PostMessage(data->serialize().c_str());
+  };
+
+  client_->SetServerStatusChangeListener(callback);
+
+  ReportSuccess(out);
 }
 
 void MediaControllerInstance::MediaControllerServerInfoRemoveServerStatusChangeListener(
     const picojson::value& args,
     picojson::object& out) {
-  CHECK_EXIST(args, "watchId", out)
+  LOGGER(DEBUG) << "entered";
 
-  double watchId = args.get("watchId").get<double>();
+  if (!client_) {
+    ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
+                               "Client not initialized."), &out);
+    return;
+  }
 
-  // implement it
-
-  // if success
-  // ReportSuccess(out);
-  // if error
-  // ReportError(out);
+  client_->SetServerStatusChangeListener(nullptr);
 }
 
 void MediaControllerInstance::MediaControllerServerInfoAddPlaybackInfoChangeListener(
