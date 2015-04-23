@@ -196,7 +196,49 @@ KeyManager.prototype.generateKeyPair = function() {
 };
 
 KeyManager.prototype.loadFromPKCS12File = function() {
+  var args = validator.validateArgs(arguments, [
+    {
+      name: 'fileURI',
+      type: validator.Types.STRING
+    },
+    {
+      name: 'privKeyName',
+      type: validator.Types.STRING
+    },
+    {
+      name: 'certificateName',
+      type: validator.Types.STRING
+    },
+    {
+      name: 'successCallback',
+      type: validator.Types.FUNCTION,
+      nullable: true
+    },
+    {
+      name: 'errorCallback',
+      type: validator.Types.FUNCTION,
+      optional: true,
+      nullable: true
+    },
+    {
+      name: 'password',
+      type: validator.Types.STRING,
+      optional: true
+    }
+  ]);
 
+  native.call('KeyManager_loadFromPKCS12File', {
+    fileURI: args.fileURI,
+    privKeyName: args.privKeyName,
+    certificateName: args.certificateName,
+    password: args.password ? args.password : null
+  }, function(msg) {
+    if (native.isFailure(msg)) {
+      native.callIfPossible(args.errorCallback, native.getErrorObject(msg));
+    } else {
+      native.callIfPossible(args.successCallback);
+    }
+  });
 };
 
 KeyManager.prototype.getKey = function() {
