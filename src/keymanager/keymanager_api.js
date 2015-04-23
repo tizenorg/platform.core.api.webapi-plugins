@@ -25,6 +25,19 @@ var EllipticCurveType = {
   "EC_SECP384R1": "EC_SECP384R1"
 };
 
+var HashAlgorithmType = {
+  "HASH_NONE": "HASH_NONE",
+  "HASH_SHA1": "HASH_SHA1",
+  "HASH_SHA256": "HASH_SHA256",
+  "HASH_SHA384": "HASH_SHA384",
+  "HASH_SHA512": "HASH_SHA512"
+};
+
+var RSAPaddingAlgorithm = {
+  "PADDING_PKCS1": "PADDING_PKCS1",
+  "PADDING_X931": "PADDING_X931"
+};
+
 var KeyType = {
   "KEY_NONE": "KEY_NONE",
   "KEY_RSA_PUBLIC": "KEY_RSA_PUBLIC",
@@ -344,11 +357,119 @@ KeyManager.prototype.denyAccessControl = function() {
 };
 
 KeyManager.prototype.createSignature = function() {
+  var args = validator.validateArgs(arguments, [
+    {
+      name: "message",
+      type: validator.Types.STRING
+    },
+    {
+      name: "privKeyAlias",
+      type: validator.Types.STRING
+    },
+    {
+      name: 'hashAlgorithmType',
+      type: validator.Types.ENUM,
+      values: Object.keys(HashAlgorithmType)
+    },
+    {
+      name: 'padding',
+      type: validator.Types.ENUM,
+      values: Object.keys(RSAPaddingAlgorithm)
+    },
+    {
+      name: 'password',
+      type: validator.Types.STRING,
+      optional: true
+    },
+    {
+      name: 'successCallback',
+      type: validator.Types.FUNCTION,
+      nullable: true
+    },
+    {
+      name: 'errorCallback',
+      type: validator.Types.FUNCTION,
+      optional: true,
+      nullable: true
+    }
+  ]);
 
+  native.call('KeyManager_createSignature', {
+    message: args.message,
+    privKeyAlias: args.privKeyAlias,
+    hashAlgorithmType: args.hashAlgorithmType,
+    padding: args.padding,
+    password: args.password ? args.password : null
+  }, function(msg) {
+    if (native.isFailure(msg)) {
+      if (type.isFunction(args.errorCallback)) {
+        args.errorCallback(native.getErrorObject(msg));
+      }
+    } else {
+      native.callIfPossible(args.successCallback, native.getResultObject(msg));
+    }
+  });
 };
 
 KeyManager.prototype.verifySignature = function() {
+  var args = validator.validateArgs(arguments, [
+    {
+      name: "signature",
+      type: validator.Types.STRING
+    },
+    {
+      name: "message",
+      type: validator.Types.STRING
+    },
+    {
+      name: 'pubKeyAlias',
+      type: validator.Types.STRING
+    },
+    {
+      name: 'hashAlgorithmType',
+      type: validator.Types.ENUM,
+      values: Object.keys(HashAlgorithmType)
+    },
+    {
+      name: 'padding',
+      type: validator.Types.ENUM,
+      values: Object.keys(RSAPaddingAlgorithm)
+    },
+    {
+      name: 'password',
+      type: validator.Types.STRING,
+      optional: true
+    },
+    {
+      name: 'successCallback',
+      type: validator.Types.FUNCTION,
+      optional: true,
+      nullable: true
+    },
+    {
+      name: 'errorCallback',
+      type: validator.Types.FUNCTION,
+      optional: true,
+      nullable: true
+    }
+  ]);
 
+  native.call('KeyManager_verifySignature', {
+    signature: args.signature,
+    message: args.message,
+    pubKeyAlias: args.pubKeyAlias,
+    hashAlgorithmType: args.hashAlgorithmType,
+    padding: args.padding,
+    password: args.password ? args.password : null
+  }, function(msg) {
+    if (native.isFailure(msg)) {
+      if (type.isFunction(args.errorCallback)) {
+        args.errorCallback(native.getErrorObject(msg));
+      }
+    } else {
+      native.callIfPossible(args.successCallback);
+    }
+  });
 };
 
 // expose only basic constructors
