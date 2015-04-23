@@ -75,11 +75,46 @@ function Key(name, password, extractable, keyType, rawKey) {
 }
 
 Key.prototype.save = function() {
+  var args = validator.validateArgs(arguments, [
+    {
+      name: 'rawKey',
+      type: validator.Types.STRING,
+      optional: true
+    },
+    {
+      name: 'successCallback',
+      type: validator.Types.FUNCTION,
+      nullable: true
+    },
+    {
+      name: 'errorCallback',
+      type: validator.Types.FUNCTION,
+      optional: true,
+      nullable: true
+    }
+  ]);
 
+  native.call('KeyManager_saveKey', {
+    key: this,
+    rawKey: args.rawKey
+  }, function(msg) {
+    if (native.isFailure(msg)) {
+      if (type.isFunction(args.errorCallback)) {
+        args.errorCallback(native.getErrorObject(msg));
+      }
+    } else {
+      native.callIfPossible(args.successCallback);
+    }
+  });
 };
 
 Key.prototype.remove = function() {
-
+  var ret = native.callSync('KeyManager_removeKey', {
+    key: this
+  });
+  if (native.isFailure(ret)) {
+    throw native.getErrorObject(ret);
+  }
 };
 
 function Certificate(name, password, extractable, rawCert) {
