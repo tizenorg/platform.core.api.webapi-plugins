@@ -242,27 +242,97 @@ KeyManager.prototype.loadFromPKCS12File = function() {
 };
 
 KeyManager.prototype.getKey = function() {
-
+  var args = validator.validateArgs(arguments, [
+    {
+      name: "name",
+      type: validator.Types.STRING
+    },
+    {
+      name: "password",
+      type: validator.Types.STRING,
+      nullable: true,
+      optional: true
+    }
+  ]);
+  var ret = native.callSync('KeyManager_getKey', {
+    name: args.name,
+    password: args.password
+  });
+  if (native.isFailure(ret)) {
+    throw native.getErrorObject(ret);
+  }
+  var result = native.getResultObject(ret);
+  return new Key(result.name, result.password, result.extractable, result.keyType, result.rawKey);
 };
 
 KeyManager.prototype.getKeyAliasList = function() {
-
+  var ret = native.callSync('KeyManager_getKeyAliasList', {});
+  if (native.isFailure(ret)) {
+    throw native.getErrorObject(ret);
+  }
+  return native.getResultObject(ret);
 };
 
 KeyManager.prototype.getCertificate = function() {
-
+  var args = validator.validateArgs(arguments, [
+    {
+      name: "name",
+      type: validator.Types.STRING
+    },
+    {
+      name: "password",
+      type: validator.Types.STRING,
+      optional: true
+    }
+  ]);
+  var ret = native.callSync('KeyManager_getCertificate', {
+    name: args.name,
+    password: args.password
+  });
+  if (native.isFailure(ret)) {
+    throw native.getErrorObject(ret);
+  }
+  var result = native.getResultObject(ret);
+  return new Certificate(result.name, result.password, result.extractable, result.rawCert);
 };
 
 KeyManager.prototype.getCertificatesAliasList = function() {
-
+  var ret = native.callSync('KeyManager_getCertificatesAliasList', {});
+  if (native.isFailure(ret)) {
+    throw native.getErrorObject(ret);
+  }
+  return native.getResultObject(ret);
 };
 
 KeyManager.prototype.getData = function() {
-
+  var args = validator.validateArgs(arguments, [
+    {
+      name: "name",
+      type: validator.Types.STRING
+    },
+    {
+      name: "password",
+      type: validator.Types.STRING,
+      optional: true
+    }
+  ]);
+  var ret = native.callSync('KeyManager_getData', {
+    name: args.name,
+    password: args.password
+  });
+  if (native.isFailure(ret)) {
+    throw native.getErrorObject(ret);
+  }
+  var result = native.getResultObject(ret);
+  return new Data(result.name, result.password, result.extractable, result.rawData);
 };
 
 KeyManager.prototype.getDataAliasList = function() {
-
+  var ret = native.callSync('KeyManager_getDataAliasList', {});
+  if (native.isFailure(ret)) {
+    throw native.getErrorObject(ret);
+  }
+  return native.getResultObject(ret);
 };
 
 KeyManager.prototype.allowAccessControl = function() {
