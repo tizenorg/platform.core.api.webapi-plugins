@@ -4,6 +4,26 @@
 
 var validator = xwalk.utils.validator;
 var converter = xwalk.utils.converter;
+var type = xwalk.utils.type;
+var native = new xwalk.utils.NativeManager(extension);
+
+var KeyPairType = {
+  "RSA": "RSA",
+  "ECDSA": "ECDSA",
+  "DSA": "DSA"
+};
+
+var KeyStrength = {
+  "1024": "1024",
+  "2048": "2048",
+  "4096": "4096"
+};
+
+var EllipticCurveType = {
+  "EC_PRIME192V1": "EC_PRIME192V1",
+  "EC_PRIME256V1": "EC_PRIME256V1",
+  "EC_SECP384R1": "EC_SECP384R1"
+};
 
 var KeyType = {
   "KEY_NONE": "KEY_NONE",
@@ -116,7 +136,63 @@ function KeyManager() {
 }
 
 KeyManager.prototype.generateKeyPair = function() {
+  var args = validator.validateArgs(arguments, [
+    {
+      name: "privKeyName",
+      type: validator.Types.PLATFORM_OBJECT,
+      values: Key
+    },
+    {
+      name: "pubKeyName",
+      type: validator.Types.PLATFORM_OBJECT,
+      values: Key
+    },
+    {
+      name: 'type',
+      type: validator.Types.ENUM,
+      values: Object.keys(KeyPairType)
+    },
+    {
+      name: 'size',
+      type: validator.Types.ENUM,
+      values: Object.keys(KeyStrength)
+    },
+    {
+      name: 'successCallback',
+      type: validator.Types.FUNCTION,
+      optional: true,
+      nullable: true
+    },
+    {
+      name: 'errorCallback',
+      type: validator.Types.FUNCTION,
+      optional: true,
+      nullable: true
+    },
+    {
+      name: 'ellipticCurveType',
+      type: validator.Types.ENUM,
+      values: Object.keys(EllipticCurveType),
+      optional: true,
+      nullable: true
+    }
+  ]);
 
+  native.call('KeyManager_generateKeyPair', {
+    privKeyName: args.privKeyName,
+    pubKeyName: args.pubKeyName,
+    type: args.type,
+    size: args.size,
+    ellipticCurveType: args.ellipticCurveType ? args.ellipticCurveType : null
+  }, function(msg) {
+    if (native.isFailure(msg)) {
+      if (type.isFunction(args.errorCallback)) {
+        args.errorCallback(native.getErrorObject(msg));
+      }
+    } else {
+      native.callIfPossible(args.successCallback);
+    }
+  });
 };
 
 KeyManager.prototype.loadFromPKCS12File = function() {
