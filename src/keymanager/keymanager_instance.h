@@ -15,6 +15,7 @@ class KeyManagerInstance : public common::ParsedInstance {
   KeyManagerInstance();
   virtual ~KeyManagerInstance();
  private:
+  void GetKeyAliasList(picojson::value const& args, picojson::object& out);
 };
 
 } // namespace keymanager
