@@ -6,6 +6,8 @@
 
 #include <functional>
 #include <ckm/ckm-manager.h>
+#include <glib.h>
+#include <pcrecpp.h>
 
 #include "common/logger.h"
 #include "common/picojson.h"
@@ -21,6 +23,8 @@ KeyManagerInstance::KeyManagerInstance() {
 
   RegisterSyncHandler("KeyManager_getKeyAliasList",
       std::bind(&KeyManagerInstance::GetKeyAliasList, this, _1, _2));
+  RegisterSyncHandler("KeyManager_saveKey",
+      std::bind(&KeyManagerInstance::SaveKey, this, _1, _2));
 }
 
 KeyManagerInstance::~KeyManagerInstance() {
@@ -43,6 +47,49 @@ void KeyManagerInstance::GetKeyAliasList(const picojson::value& args,
       picojson::value res(aliases);
       ReportSuccess(res, out);
   }
+}
+
+void KeyManagerInstance::SaveKey(const picojson::value& args,
+    picojson::object& out) {
+  LoggerD("Enter");
+
+  const picojson::value& key_object = args.get("key");
+  const std::string& alias = key_object.get("name").get<std::string>();
+  std::string password;
+  if (key_object.get("password").is<std::string>()) {
+    password = key_object.get("password").get<std::string>();
+  }
+  std::string base64 = args.get("rawKey").get<std::string>();
+  pcrecpp::RE_Options opt;
+  opt.set_multiline(true);
+  //remove first line and last line
+  pcrecpp::RE("-----[^-]*-----", opt).GlobalReplace("", &base64);
+  gsize len = 0;
+  guchar* raw_data = g_base64_decode(base64.c_str(), &len);
+  CKM::RawBuffer raw_buffer;
+  raw_buffer.assign(raw_data, raw_data + len);
+  g_free(raw_data);
+  CKM::Password pass(password.c_str());
+  CKM::KeyShPtr key = CKM::Key::create(raw_buffer, pass);
+  CKM::Policy policy(pass, key_object.get("extractable").get<bool>());
+  CKM::ManagerAsync::ObserverPtr observer(new SaveKeyObserver(this,
+    args.get("callbackId").get<double>()));
+  m_manager.saveKey(observer, alias, key, policy);
+
+  ReportSuccess(out);
+}
+
+void KeyManagerInstance::OnSaveKey(double callbackId,
+    const common::PlatformResult& result) {
+  LoggerD("Enter");
+  picojson::value::object dict;
+  dict["callbackId"] = picojson::value(callbackId);
+  if (result.IsError()) {
+    LoggerE("There was an error");
+    ReportError(result, &dict);
+  }
+  picojson::value res(dict);
+  PostMessage(res.serialize().c_str());
 }
 
 } // namespace keymanager

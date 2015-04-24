@@ -15,12 +15,15 @@
         'keymanager_extension.h',
         'keymanager_instance.cc',
         'keymanager_instance.h',
+        'keymanager_observers.h',
+        'keymanager_observers.cc',
       ],
       'conditions': [
         ['tizen == 1', {
           'variables': {
             'packages': [
               'key-manager',
+              'libpcrecpp',
             ]
           },
         }],
