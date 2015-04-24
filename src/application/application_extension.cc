@@ -10,6 +10,12 @@
 #include "application/application_instance.h"
 #include "common/logger.h"
 
+namespace {
+const char* kApplication = "tizen.application";
+const char* kApplicationControl = "tizen.ApplicationControl";
+const char* kApplicationControlData = "tizen.ApplicationControlData";
+}
+
 // This will be generated from application_api.js
 extern const char kSource_application_api[];
 
@@ -30,11 +36,14 @@ ApplicationExtension::ApplicationExtension() {
 
   LoggerD("app_id: %s", app_id_.c_str());
 
-  SetExtensionName("tizen.application");
+  SetExtensionName(kApplication);
   SetJavaScriptAPI(kSource_application_api);
 
   const char* entry_points[] = {
-      "tizen.ApplicationControlData", "tizen.ApplicationControl", NULL};
+      kApplicationControl,
+      kApplicationControlData,
+      NULL
+  };
   SetExtraJSEntryPoints(entry_points);
 }
 

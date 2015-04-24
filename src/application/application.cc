@@ -6,57 +6,40 @@
 
 #include "common/extension.h"
 #include "common/logger.h"
-#include "common/picojson.h"
-
 #include "common/platform_result.h"
 
-using common::ErrorCode;
+using namespace common;
+using namespace tools;
 
 namespace extension {
 namespace application {
 
-Application::Application() {
+RequestedApplicationControl& Application::app_control() {
+    return app_control_;
 }
 
-Application::~Application() {
-}
+void Application::GetRequestedAppControl(const picojson::value& args, picojson::object* out) {
+  LoggerD("Entered");
 
-void Application::Hide() {
-}
+  const std::string& encoded_bundle =
+      GetCurrentExtension()->GetRuntimeVariable("encoded_bundle", 1024);
 
-void Application::Exit() {
-}
+  picojson::value result = picojson::value(picojson::object());
 
-std::string Application::get_context_id() {
-  return context_id_;
-}
+  if (!encoded_bundle.empty()) {
+    PlatformResult ret = app_control_.set_bundle(encoded_bundle);
+    if (ret.IsError()) {
+      ReportError(ret, out);
+      return;
+    }
 
-void Application::set_context_id(const std::string& context_id) {
-  context_id_ = context_id;
-}
-
-ApplicationInformationPtr Application::get_app_info() const {
-  return app_info_;
-}
-
-void Application::set_app_info(const ApplicationInformationPtr& app_info) {
-  app_info_ = app_info;
-}
-
-const picojson::value& Application::Value() {
-  if (!app_info_->IsValid()) {
-    LoggerD("ErrorCode::UNKNOWN_ERR");
-    picojson::object obj;
-    obj["error"] = picojson::value(static_cast<double>(ErrorCode::UNKNOWN_ERR));
-    value_ = picojson::value(obj);
+    app_control_.ToJson(&result.get<picojson::object>());
   } else {
-    picojson::object obj;
-    LoggerD("Value returns appInfo, contextId");
-    obj["appInfo"] = app_info_->Value();
-    obj["contextId"] = picojson::value(context_id_);
-    value_ = picojson::value(obj);
+    LoggerD("bundle string is empty.");
+    result = picojson::value();
   }
-  return value_;
+
+  ReportSuccess(result, *out);
 }
 
 }  // namespace application

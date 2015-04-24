@@ -2,57 +2,190 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "application/requested_application_control.h"
+#include "requested_application_control.h"
 
 #include <app_manager.h>
+#include <app_control_internal.h>
+#include <bundle.h>
 
 #include "common/logger.h"
-#include "tizen/tizen.h"
+#include "application/application_utils.h"
+
+using namespace common;
+using namespace tools;
 
 namespace extension {
 namespace application {
 
-RequestedApplicationControl::RequestedApplicationControl() {
+PlatformResult RequestedApplicationControl::set_bundle(const std::string& encoded_bundle) {
+  LoggerD("Entered");
+
+  if (encoded_bundle != bundle_) {
+    bundle_ = encoded_bundle;
+
+    bundle* bundle = bundle_decode((bundle_raw*)(encoded_bundle.c_str()),
+                                   encoded_bundle.length());
+    app_control_h app_control = nullptr;
+    int ret = app_control_create_event(bundle, &app_control);
+    bundle_free(bundle);
+
+    if (APP_CONTROL_ERROR_NONE != ret) {
+      LoggerE("Failed to create app_control");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to create app_control.");
+    }
+
+    set_app_control(app_control);
+  }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-RequestedApplicationControl::~RequestedApplicationControl() {
+void RequestedApplicationControl::set_app_control(app_control_h app_control) {
+  LoggerD("Entered");
+
+  app_control_.reset(app_control, app_control_destroy);
+
+  char* tmp_str = nullptr;
+  int ret = app_control_get_caller(app_control, &tmp_str);
+
+  if ((APP_CONTROL_ERROR_NONE == ret) && (nullptr != tmp_str)) {
+    caller_app_id_ = tmp_str;
+  } else {
+    LoggerW("Failed to get callerAppId because of platform error");
+    LoggerW("Please ignore if the application is launched in debug mode");
+  }
+
+  free(tmp_str);
 }
 
-const picojson::value& RequestedApplicationControl::Value() {
-  LoggerD("caller_app_id_: %s", caller_app_id_.c_str());
-  data_["callerAppId"] = picojson::value(caller_app_id_);
-  data_["appControl"] = picojson::value(app_control_.Value());
+void RequestedApplicationControl::ToJson(picojson::object* out) {
+  LoggerD("Entered");
 
-  value_ = picojson::value(data_);
-
-  return value_;
+  if (app_control_) {
+    out->insert(std::make_pair("callerAppId", picojson::value(caller_app_id_)));
+    auto appControl = out->insert(std::make_pair(
+        "appControl", picojson::value(picojson::object())));
+    ApplicationUtils::ServiceToApplicationControl(
+        app_control_.get(), &appControl.first->second.get<picojson::object>());
+  }
 }
 
-bool RequestedApplicationControl::IsValid() const {
-  return error_.empty();
+void RequestedApplicationControl::ReplyResult(const picojson::value& args, picojson::object* out) {
+  LoggerD("Entered");
+
+  const auto& data_arr = args.get("data");
+  if (!data_arr.is<picojson::array>()) {
+    LoggerE("Invalid parameter passed.");
+    ReportError(PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid parameter passed."), out);
+    return;
+  }
+
+  // read input data
+  PlatformResult result = PlatformResult(ErrorCode::NO_ERROR);
+  const picojson::array& data = data_arr.get<picojson::array>();
+
+  const std::string& encoded_bundle =
+      GetCurrentExtension()->GetRuntimeVariable("encoded_bundle", 1024);
+
+  result = set_bundle(encoded_bundle);
+  if (result.IsError()) {
+    ReportError(result, out);
+    return;
+  }
+
+  // code to check caller liveness
+  result = VerifyCallerPresence();
+  if (result.IsError()) {
+    ReportError(result, out);
+    return;
+  }
+
+  // create reply
+  app_control_h reply;
+  app_control_create(&reply);
+  std::unique_ptr<std::remove_pointer<app_control_h>::type, int(*)(app_control_h)>
+  reply_ptr(reply, &app_control_destroy); // automatically release the memory
+
+  if (!data.empty()) {
+    for (auto iter = data.begin(); iter != data.end(); ++iter) {
+      result = ApplicationUtils::ApplicationControlDataToServiceExtraData(
+          iter->get<picojson::object>(), reply);
+      if (result.IsError()) {
+        ReportError(result, out);
+        return;
+      }
+    }
+  } else {
+    LoggerD("appControlDataArray is empty");
+  }
+
+  // send reply
+  if (APP_CONTROL_ERROR_NONE !=
+      app_control_reply_to_launch_request(reply, app_control_.get(), APP_CONTROL_RESULT_SUCCEEDED)) {
+    LoggerE("Cannot find caller.");
+    ReportError(PlatformResult(ErrorCode::NOT_FOUND_ERR, "Cannot find caller."), out);
+    return;
+  }
+
+  ReportSuccess(*out);
 }
 
-std::string RequestedApplicationControl::get_caller_app_id() const {
-  return caller_app_id_;
+void RequestedApplicationControl::ReplyFailure(picojson::object* out) {
+  LoggerD("Entered");
+
+  // read input data
+  PlatformResult result = PlatformResult(ErrorCode::NO_ERROR);
+  const std::string& encoded_bundle =
+      GetCurrentExtension()->GetRuntimeVariable("encoded_bundle", 1024);
+
+  result = set_bundle(encoded_bundle);
+  if (result.IsError()) {
+    ReportError(result, out);
+    return;
+  }
+
+  // code to check caller liveness
+  result = VerifyCallerPresence();
+  if (result.IsError()) {
+    ReportError(result, out);
+    return;
+  }
+
+  // create reply
+  app_control_h reply;
+  app_control_create(&reply);
+  std::unique_ptr<std::remove_pointer<app_control_h>::type, int(*)(app_control_h)>
+  reply_ptr(reply, &app_control_destroy); // automatically release the memory
+
+  // send reply
+  int ret = app_control_reply_to_launch_request(reply, app_control_.get(), APP_CONTROL_RESULT_FAILED);
+  if (APP_CONTROL_ERROR_NONE != ret) {
+    LoggerE("Cannot find caller.");
+    ReportError(PlatformResult(ErrorCode::NOT_FOUND_ERR, "Cannot find caller."), out);
+    return;
+  }
+
+  ReportSuccess(*out);
 }
 
-void RequestedApplicationControl::
-  set_caller_app_id(const std::string& caller_app_id) {
-  caller_app_id_ = caller_app_id;
-  LoggerD("caller_app_id: %s", caller_app_id.c_str());
-}
+PlatformResult RequestedApplicationControl::VerifyCallerPresence() {
+  LoggerD("Entered");
 
-ApplicationControl& RequestedApplicationControl::get_app_control() {
-  return app_control_;
-}
+  if (caller_app_id_.empty()) {
+    LoggerE("caller_app_id_ is empty. This means caller is dead.");
+    return PlatformResult(ErrorCode::NOT_FOUND_ERR, "Cannot find caller.");
+  } else {
+    bool running = false;
 
-void RequestedApplicationControl::
-  set_app_control(const ApplicationControl& app_control) {
-  app_control_.set_operation(app_control.get_operation());
-  app_control_.set_uri(app_control.get_uri());
-  app_control_.set_mime(app_control.get_mime());
-  app_control_.set_category(app_control.get_category());
-  app_control_.set_data_array(app_control.get_data_array());
+    int ret = app_manager_is_running(caller_app_id_.c_str(), &running);
+
+    if ((APP_MANAGER_ERROR_NONE != ret) || !running) {
+      LoggerE("Caller is not running");
+      return PlatformResult(ErrorCode::NOT_FOUND_ERR, "Cannot find caller.");
+    }
+
+    return PlatformResult(ErrorCode::NO_ERROR);
+  }
 }
 
 }  // namespace application

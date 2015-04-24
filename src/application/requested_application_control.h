@@ -7,40 +7,32 @@
 
 #include <string>
 #include <memory>
+#include <type_traits>
+
+#include <app_control.h>
 
 #include "common/picojson.h"
+#include "common/extension.h"
+#include "common/platform_result.h"
 #include "tizen/tizen.h"
-
-#include "application/application_control.h"
 
 namespace extension {
 namespace application {
 
-class RequestedApplicationControl;
-typedef std::shared_ptr<RequestedApplicationControl>
-  RequestedApplicationControlPtr;
-
 class RequestedApplicationControl {
  public:
-  RequestedApplicationControl();
-  ~RequestedApplicationControl();
-
-  const picojson::value& Value();
-  bool IsValid() const;
-
-  std::string get_caller_app_id() const;
-  void set_caller_app_id(const std::string& caller_app_id);
-
-  ApplicationControl& get_app_control();
-  void set_app_control(const ApplicationControl& app_control);
+  common::PlatformResult set_bundle(const std::string& encoded_bundle);
+  void ToJson(picojson::object* out);
+  void ReplyResult(const picojson::value& args, picojson::object* out);
+  void ReplyFailure(picojson::object* out);
 
  private:
-  std::string caller_app_id_;
-  ApplicationControl app_control_;
+  void set_app_control(app_control_h app_control);
+  common::PlatformResult VerifyCallerPresence();
 
-  picojson::object data_;
-  picojson::object error_;
-  picojson::value value_;
+  std::string bundle_;
+  std::shared_ptr<std::remove_pointer<app_control_h>::type> app_control_;
+  std::string caller_app_id_;
 };
 
 }  // namespace application
