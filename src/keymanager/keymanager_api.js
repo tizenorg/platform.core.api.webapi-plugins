@@ -241,11 +241,45 @@ function Data(name, password, extractable, rawData) {
 }
 
 Data.prototype.save = function() {
+  var args = validator.validateArgs(arguments, [
+    {
+      name: 'rawData',
+      type: validator.Types.STRING
+    },
+    {
+      name: 'successCallback',
+      type: validator.Types.FUNCTION,
+      nullable: true
+    },
+    {
+      name: 'errorCallback',
+      type: validator.Types.FUNCTION,
+      optional: true,
+      nullable: true
+    }
+  ]);
 
+  native.call('KeyManager_saveData', {
+    data: this,
+    rawData: args.rawData
+  }, function(msg) {
+    if (native.isFailure(msg)) {
+      if (type.isFunction(args.errorCallback)) {
+        args.errorCallback(native.getErrorObject(msg));
+      }
+    } else {
+      native.callIfPossible(args.successCallback);
+    }
+  });
 };
 
 Data.prototype.remove = function() {
-
+  var ret = native.callSync('KeyManager_removeData', {
+    data: this
+  });
+  if (native.isFailure(ret)) {
+    throw native.getErrorObject(ret);
+  }
 };
 
 function KeyManager() {
