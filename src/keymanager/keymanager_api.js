@@ -139,15 +139,84 @@ function Certificate(name, password, extractable, rawCert) {
 }
 
 Certificate.prototype.save = function() {
+  var args = validator.validateArgs(arguments, [
+    {
+      name: 'rawCert',
+      type: validator.Types.STRING
+    },
+    {
+      name: 'successCallback',
+      type: validator.Types.FUNCTION,
+      nullable: true
+    },
+    {
+      name: 'errorCallback',
+      type: validator.Types.FUNCTION,
+      optional: true,
+      nullable: true
+    }
+  ]);
 
+  native.call('KeyManager_saveCertificate', {
+    certificate: this,
+    rawCert: args.rawCert
+  }, function(msg) {
+    if (native.isFailure(msg)) {
+      if (type.isFunction(args.errorCallback)) {
+        args.errorCallback(native.getErrorObject(msg));
+      }
+    } else {
+      native.callIfPossible(args.successCallback);
+    }
+  });
 };
 
 Certificate.prototype.loadFromFile = function() {
+  var args = validator.validateArgs(arguments, [
+    {
+      name: 'fileURI',
+      type: validator.Types.STRING
+    },
+    {
+      name: 'successCallback',
+      type: validator.Types.FUNCTION,
+      nullable: true
+    },
+    {
+      name: 'errorCallback',
+      type: validator.Types.FUNCTION,
+      optional: true,
+      nullable: true
+    },
+    {
+      name: 'password',
+      type: validator.Types.STRING,
+      optional: true
+    }
+  ]);
 
+  native.call('KeyManager_loadCertificateFromFile', {
+    certificate: this,
+    fileURI: args.fileURI,
+    password: args.password
+  }, function(msg) {
+    if (native.isFailure(msg)) {
+      if (type.isFunction(args.errorCallback)) {
+        args.errorCallback(native.getErrorObject(msg));
+      }
+    } else {
+      native.callIfPossible(args.successCallback);
+    }
+  });
 };
 
 Certificate.prototype.remove = function() {
-
+  var ret = native.callSync('KeyManager_removeCertificate', {
+    certificate: this
+  });
+  if (native.isFailure(ret)) {
+    throw native.getErrorObject(ret);
+  }
 };
 
 function Data(name, password, extractable, rawData) {
