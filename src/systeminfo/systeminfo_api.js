@@ -32,6 +32,7 @@ var SystemInfoPropertyId = {
         LOCALE : 'LOCALE',
         NETWORK : 'NETWORK',
         WIFI_NETWORK : 'WIFI_NETWORK',
+        ETHERNET_NETWORK : 'ETHERNET_NETWORK',
         CELLULAR_NETWORK : 'CELLULAR_NETWORK',
         SIM : 'SIM',
         PERIPHERAL : 'PERIPHERAL',
@@ -552,6 +553,17 @@ function SystemInfoWifiNetwork(data) {
     });
 }
 
+//class SystemInfoEthernetNetwork ////////////////////////////////////////////////////
+function SystemInfoEthernetNetwork(data) {
+    Object.defineProperties(this, {
+        cable : {value: data.cable, writable: false, enumerable: true},
+        status : {value: data.status, writable: false, enumerable: true},
+        ipAddress : {value: data.ipAddress, writable: false, enumerable: true},
+        ipv6Address : {value: data.ipv6Address, writable: false, enumerable: true},
+        macAddress : {value: data.macAddress, writable: false, enumerable: true},
+    });
+}
+
 //class SystemInfoCellularNetwork ////////////////////////////////////////////////////
 function SystemInfoCellularNetwork(data) {
     Object.defineProperties(this, {
@@ -817,6 +829,7 @@ var _deviceOrientationStr = SystemInfoPropertyId.DEVICE_ORIENTATION;
 var _localeStr = SystemInfoPropertyId.LOCALE;
 var _networkStr = SystemInfoPropertyId.NETWORK;
 var _wifiNetworkStr = SystemInfoPropertyId.WIFI_NETWORK;
+var _ethernetNetworkStr = SystemInfoPropertyId.ETHERNET_NETWORK;
 var _cellularNetworkStr = SystemInfoPropertyId.CELLULAR_NETWORK;
 var _simStr = SystemInfoPropertyId.SIM;
 var _peripheralStr = SystemInfoPropertyId.PERIPHERAL;
@@ -964,6 +977,21 @@ function _systeminfoWifiNetworkListenerCallback(eventObj) {
     }
 }
 
+function _systeminfoEthernetNetworkListenerCallback(eventObj) {
+  var property = _ethernetNetworkStr;
+  var callbacks = _propertyContainer[property].callbacks;
+
+  for (var watchId in callbacks) {
+      if (callbacks.hasOwnProperty(watchId)) {
+          var listener = callbacks[watchId];
+          var propObj = !listener.isArrayType ?
+                  _createProperty(property, eventObj.result.array[0]) :
+                      _createPropertyArray(property, eventObj.result);
+          callbacks[watchId].callback(propObj);
+      }
+  }
+}
+
 function _systeminfoCellularNetworkListenerCallback(eventObj) {
     var property = _cellularNetworkStr;
     var callbacks = _propertyContainer[property].callbacks;
@@ -1093,6 +1121,12 @@ var _propertyContainer = {
             constructor : SystemInfoWifiNetwork,
             broadcastFunction : _systeminfoWifiNetworkListenerCallback,
             signalLabel : 'SystemInfoWifiNetworkChangeBroadcast'
+        },
+        'ETHERNET_NETWORK' : {
+            callbacks : {},
+            constructor : SystemInfoEthernetNetwork,
+            broadcastFunction : _systeminfoEthernetNetworkListenerCallback,
+            signalLabel : 'SystemInfoEthernetNetworkChangeBroadcast'
         },
         'CELLULAR_NETWORK' : {
             callbacks : {},

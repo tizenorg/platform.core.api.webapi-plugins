@@ -32,8 +32,6 @@
             'capi-network-connection',
             'capi-system-device',
             'capi-system-system-settings',
-            'capi-network-bluetooth',
-            'capi-network-wifi',
             'tapi',
             'sensor',
             ]
