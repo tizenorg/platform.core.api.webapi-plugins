@@ -64,7 +64,14 @@ void SecureElementInstance::GetReaders(const picojson::value& args, picojson::ob
   LoggerD("Entered");
 
   CHECK_PRIVILEGE_ACCESS(kPrivilegeSecureElement, &out);
-  service_.GetReaders(args);
+
+  double callback_id = 0.0;
+  if (args.contains("callbackId")) {
+    callback_id = args.get("callbackId").get<double>();
+  }
+
+  service_.GetReaders(callback_id);
+  ReportSuccess(out);
 }
 
 void SecureElementInstance::RegisterSEListener(const picojson::value& args, picojson::object& out) {

@@ -2,12 +2,14 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "secureelement_seservice.h"
+#include "secureelement/secureelement_seservice.h"
 
-#include "secureelement_instance.h"
 #include "common/logger.h"
 #include "common/task-queue.h"
 #include "common/platform_result.h"
+
+
+#include "secureelement/secureelement_instance.h"
 
 using namespace smartcard_service_api;
 using namespace common;
@@ -42,6 +44,11 @@ class SEServiceEventHandler : public SEServiceListener {
 
   void errorHandler(SEServiceHelper *service, int error, void *context) {
     LoggerE("Error handler called, code: %d", error);
+    if (context) {
+      (static_cast<SEService*>(context))->ErrorHandler(error);
+    } else {
+      LoggerE("Context is null");
+    }
   }
 };
 
@@ -50,6 +57,7 @@ static SEServiceEventHandler se_event_handler;
 SEService::SEService(SecureElementInstance& instance)
     : is_initialized_(false),
       is_listener_set_(false),
+      is_error_(false),
       instance_(instance) {
   LoggerD("Entered");
 
@@ -68,23 +76,11 @@ SEService::~SEService() {
   se_service_ = nullptr;
 }
 
-void SEService::GetReaders(const picojson::value& args) {
+void SEService::GetReaders(double callback_id) {
   LoggerD("Entered");
-
-  double callback_id = 0.0;
-  if (args.contains("callbackId")) {
-    callback_id = args.get("callbackId").get<double>();
-  }
 
   auto get_readers = [this](
       const std::shared_ptr<picojson::value>& response) -> void {
-
-    if (!is_initialized_) {
-      ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "SE service not initialized."),
-                  &response->get<picojson::object>());
-      return;
-    }
-
     picojson::value result = picojson::value(picojson::array());
     picojson::array& result_array = result.get<picojson::array>();
 
@@ -105,6 +101,24 @@ void SEService::GetReaders(const picojson::value& args) {
     instance_.PostMessage(response->serialize().c_str());
   };
 
+  if (is_error_) {
+    // there has been an error, report it asynchronously
+    std::shared_ptr<picojson::value> response{new picojson::value{picojson::object{}}};
+    ReportError(
+        PlatformResult(ErrorCode::SERVICE_NOT_AVAILABLE_ERR,
+                       "Unable to connect to service."),
+        &response->get<picojson::object>());
+    TaskQueue::GetInstance().Async<picojson::value>(get_readers_response, response);
+    return;
+  }
+
+  if (!is_initialized_) {
+    // not yet ready, wait for the platform callback, send the response then
+    get_readers_callbacks_.push_back(callback_id);
+    return;
+  }
+
+  // everything's fine, get the readers, send the response
   TaskQueue::GetInstance().Queue<picojson::value>(
       get_readers,
       get_readers_response,
@@ -136,6 +150,14 @@ void SEService::ServiceConnected() {
   LoggerD("Entered");
 
   is_initialized_ = true;
+
+  // send the response to pending GetReaders callbacks
+  for (const auto& callback_id : get_readers_callbacks_) {
+    GetReaders(callback_id);
+  }
+  get_readers_callbacks_.clear();
+
+  // notify the listeners
   if (!is_listener_set_) {
     LoggerW("SE listener is not set.");
     return;
@@ -185,6 +207,16 @@ void SEService::EventHandler(char *se_name, int event) {
       }
     }
   }
+}
+
+void SEService::ErrorHandler(int error) {
+  LoggerD("Entered");
+  is_error_ = true;
+
+  for (const auto& callback_id : get_readers_callbacks_) {
+    GetReaders(callback_id);
+  }
+  get_readers_callbacks_.clear();
 }
 
 } // secureelement

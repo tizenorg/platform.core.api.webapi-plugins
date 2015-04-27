@@ -8,8 +8,6 @@
 #include <SEService.h>
 #include <SEServiceHelper.h>
 
-#include "common/picojson.h"
-
 namespace extension {
 namespace secureelement {
 
@@ -20,13 +18,14 @@ class SEService {
   explicit SEService(SecureElementInstance& instance);
   ~SEService();
 
-  void GetReaders(const picojson::value& args);
+  void GetReaders(double callback_id);
   void RegisterSEListener();
   void UnregisterSEListener();
   void Shutdown();
 
   void ServiceConnected();
   void EventHandler(char *se_name, int event);
+  void ErrorHandler(int error);
  private:
   SEService(const SEService&) = delete;
   SEService& operator=(const SEService&) = delete;
@@ -34,6 +33,8 @@ class SEService {
   smartcard_service_api::SEService *se_service_;
   bool is_initialized_;
   bool is_listener_set_;
+  bool is_error_;
+  std::vector<double> get_readers_callbacks_;
   SecureElementInstance& instance_;
 };
 
