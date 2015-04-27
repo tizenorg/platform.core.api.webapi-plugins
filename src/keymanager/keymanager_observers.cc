@@ -41,6 +41,47 @@ void SaveKeyObserver::ReceivedSaveKey() {
     PlatformResult(ErrorCode::NO_ERROR)));
 }
 
+CreateKeyObserver::CreateKeyObserver(KeyManagerListener* listener, double callbackId):
+    CommonObserver(listener, callbackId) {}
+
+void CreateKeyObserver::ReceivedCreateKeyPairDSA() {
+  LoggerD("Enter");
+  CallSuccess();
+}
+
+void CreateKeyObserver::ReceivedCreateKeyPairECDSA() {
+  LoggerD("Enter");
+  CallSuccess();
+}
+
+void CreateKeyObserver::ReceivedCreateKeyPairRSA() {
+  LoggerD("Enter");
+  CallSuccess();
+}
+
+void CreateKeyObserver::CallSuccess() {
+  common::TaskQueue::GetInstance().Async(std::bind(
+    &KeyManagerListener::OnCreateKeyPair, listener, callbackId,
+    PlatformResult(ErrorCode::NO_ERROR)));
+}
+
+void CreateKeyObserver::ReceivedError(int error) {
+  LoggerD("Enter, error: %d", error);
+  ErrorCode code = ErrorCode::UNKNOWN_ERR;
+  std::string message = "Failed to create key pair";
+  switch (error) {
+    case CKM_API_ERROR_INPUT_PARAM:
+      code = ErrorCode::INVALID_VALUES_ERR;
+      break;
+    case CKM_API_ERROR_DB_ALIAS_EXISTS:
+      code = ErrorCode::INVALID_VALUES_ERR;
+      message = "Key alias already exists";
+      break;
+  }
+  common::TaskQueue::GetInstance().Async(std::bind(
+    &KeyManagerListener::OnCreateKeyPair, listener, callbackId,
+    PlatformResult(code, message)));
+}
 
 } // namespace keymanager
 } // namespace extension

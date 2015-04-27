@@ -16,6 +16,10 @@
 namespace extension {
 namespace keymanager {
 
+namespace {
+const char* kTypeRSA = "RSA";
+const char* kTypeECDSA = "ECDSA";
+}
 
 KeyManagerInstance::KeyManagerInstance() {
   using std::placeholders::_1;
@@ -27,6 +31,8 @@ KeyManagerInstance::KeyManagerInstance() {
       std::bind(&KeyManagerInstance::SaveKey, this, _1, _2));
   RegisterSyncHandler("KeyManager_removeKey",
       std::bind(&KeyManagerInstance::RemoveKey, this, _1, _2));
+  RegisterSyncHandler("KeyManager_generateKeyPair",
+      std::bind(&KeyManagerInstance::GenerateKeyPair, this, _1, _2));
 }
 
 KeyManagerInstance::~KeyManagerInstance() {
@@ -112,6 +118,66 @@ void KeyManagerInstance::RemoveKey(const picojson::value& args,
   } else {
     ReportSuccess(out);
   }
+}
+
+void KeyManagerInstance::GenerateKeyPair(const picojson::value& args,
+    picojson::object& out) {
+  LoggerD("Enter");
+
+  const picojson::value& priv_key = args.get("privKeyName");
+  const picojson::value& pub_key = args.get("pubKeyName");
+  const std::string& priv_name = priv_key.get("name").get<std::string>();
+  const std::string& pub_name = pub_key.get("name").get<std::string>();
+  const std::string& type = args.get("type").get<std::string>();
+  int size = std::stoi(args.get("size").get<std::string>());
+
+  CKM::ManagerAsync::ObserverPtr observer(new CreateKeyObserver(this,
+    args.get("callbackId").get<double>()));
+
+  CKM::Password pass;
+  if (priv_key.get("password").is<std::string>()) {
+    pass = priv_key.get("password").get<std::string>().c_str();
+  }
+  CKM::Policy priv_policy(pass, priv_key.get("extractable").get<bool>());
+
+  if (pub_key.get("password").is<std::string>()) {
+    pass = pub_key.get("password").get<std::string>().c_str();
+  } else {
+    pass = "";
+  }
+  CKM::Policy pub_policy(pass, pub_key.get("extractable").get<bool>());
+
+  if (type == kTypeRSA) {
+    m_manager.createKeyPairRSA(observer, size, priv_name, pub_name, priv_policy, pub_policy);
+  } else if (type == kTypeECDSA) {
+    CKM::ElipticCurve eliptic = CKM::ElipticCurve::prime192v1;
+    if (args.get("ellipticCurveType").is<std::string>()) {
+      const std::string& eType = args.get("ellipticCurveType").get<std::string>();
+      if (eType == "PRIME256V1") {
+        eliptic = CKM::ElipticCurve::prime256v1;
+      } else if (eType == "EC_SECP384R1") {
+        eliptic = CKM::ElipticCurve::secp384r1;
+      }
+    }
+    m_manager.createKeyPairECDSA(observer, eliptic, priv_name, pub_name, priv_policy, pub_policy);
+  } else {
+    m_manager.createKeyPairDSA(observer, size, priv_name, pub_name, priv_policy, pub_policy);
+  }
+
+  ReportSuccess(out);
+}
+
+void KeyManagerInstance::OnCreateKeyPair(double callbackId,
+    const common::PlatformResult& result) {
+  LoggerD("Enter");
+  picojson::value::object dict;
+  dict["callbackId"] = picojson::value(callbackId);
+  if (result.IsError()) {
+    LoggerE("There was an error");
+    ReportError(result, &dict);
+  }
+  picojson::value res(dict);
+  PostMessage(res.serialize().c_str());
 }
 
 } // namespace keymanager

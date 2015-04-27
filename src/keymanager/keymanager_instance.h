@@ -20,10 +20,12 @@ class KeyManagerInstance :
   KeyManagerInstance();
   virtual ~KeyManagerInstance();
   void OnSaveKey(double callbackId, const common::PlatformResult& result);
+  void OnCreateKeyPair(double callbackId, const common::PlatformResult& result);
  private:
   void GetKeyAliasList(picojson::value const& args, picojson::object& out);
   void SaveKey(const picojson::value& args, picojson::object& out);
   void RemoveKey(const picojson::value& args, picojson::object& out);
+  void GenerateKeyPair(const picojson::value& args, picojson::object& out);
 
   CKM::ManagerAsync m_manager;
 };
