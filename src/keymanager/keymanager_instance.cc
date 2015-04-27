@@ -25,6 +25,8 @@ KeyManagerInstance::KeyManagerInstance() {
       std::bind(&KeyManagerInstance::GetKeyAliasList, this, _1, _2));
   RegisterSyncHandler("KeyManager_saveKey",
       std::bind(&KeyManagerInstance::SaveKey, this, _1, _2));
+  RegisterSyncHandler("KeyManager_removeKey",
+      std::bind(&KeyManagerInstance::RemoveKey, this, _1, _2));
 }
 
 KeyManagerInstance::~KeyManagerInstance() {
@@ -90,6 +92,26 @@ void KeyManagerInstance::OnSaveKey(double callbackId,
   }
   picojson::value res(dict);
   PostMessage(res.serialize().c_str());
+}
+
+void KeyManagerInstance::RemoveKey(const picojson::value& args,
+    picojson::object& out) {
+  LoggerD("Enter");
+
+  const std::string& alias = args.get("key").get("name").get<std::string>();
+  int ret = CKM::Manager::create()->removeAlias(alias);
+  if (ret != CKM_API_SUCCESS) {
+    LoggerE("Failed to remove key alias: %d", ret);
+    if (ret == CKM_API_ERROR_DB_ALIAS_UNKNOWN) {
+      ReportError(common::PlatformResult(common::ErrorCode::NOT_FOUND_ERR,
+        "Key alias not found"), &out);
+    } else {
+      ReportError(common::PlatformResult(common::ErrorCode::UNKNOWN_ERR,
+        "Failed to remove key alias"), &out);
+    }
+  } else {
+    ReportSuccess(out);
+  }
 }
 
 } // namespace keymanager

@@ -23,6 +23,7 @@ class KeyManagerInstance :
  private:
   void GetKeyAliasList(picojson::value const& args, picojson::object& out);
   void SaveKey(const picojson::value& args, picojson::object& out);
+  void RemoveKey(const picojson::value& args, picojson::object& out);
 
   CKM::ManagerAsync m_manager;
 };
