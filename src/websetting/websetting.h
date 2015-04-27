@@ -9,7 +9,7 @@
 #include <memory>
 #include <string>
 
-#include "common/picojson.h"
+#include "common/platform_result.h"
 
 class WebSetting {
  public:
@@ -18,9 +18,8 @@ class WebSetting {
 
   std::string app_id() const { return app_id_; }
 
-  std::unique_ptr<picojson::value> RemoveAllCookies();
-  std::unique_ptr<picojson::value> SetUserAgentString(
-      const std::string& user_agent);
+  common::PlatformResult RemoveAllCookies();
+  common::PlatformResult SetUserAgentString(const std::string& user_agent);
 
  private:
   std::string app_id_;

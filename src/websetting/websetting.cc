@@ -8,10 +8,11 @@
 #include <unistd.h>
 #include <utility>
 
+#include "common/logger.h"
 #include "common/platform_result.h"
-#include "websetting/websetting_extension_utils.h"
 
 using common::ErrorCode;
+using common::PlatformResult;
 
 namespace {
 
@@ -22,14 +23,15 @@ const char kRuntimeRunningAppInterface[] =
 
 // The runtime process exports object for each running app on the session bus.
 GDBusProxy* CreateRunningAppProxy(const std::string& app_id) {
-  GError* error = NULL;
+  LoggerD("Entered");
+
+  GError* error = nullptr;
   GDBusConnection* connection =
-      g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, &error);
+      g_bus_get_sync(G_BUS_TYPE_SESSION, nullptr, &error);
   if (!connection) {
-    std::cerr << "Couldn't get the session bus connection: " << error->message
-              << std::endl;
+    LoggerE("Couldn't get the session bus connection: %s", error->message);
     g_error_free(error);
-    return NULL;
+    return nullptr;
   }
 
   std::string path = std::string(kRuntimeRunningManagerPath) + "/" + app_id;
@@ -39,13 +41,13 @@ GDBusProxy* CreateRunningAppProxy(const std::string& app_id) {
   // And that is why the substantiation is needed here.
   std::replace(path.begin(), path.end(), '.', '_');
   GDBusProxy* proxy = g_dbus_proxy_new_sync(
-      connection, G_DBUS_PROXY_FLAGS_NONE, NULL, kRuntimeServiceName,
-      path.c_str(), kRuntimeRunningAppInterface, NULL, &error);
+      connection, G_DBUS_PROXY_FLAGS_NONE, nullptr, kRuntimeServiceName,
+      path.c_str(), kRuntimeRunningAppInterface, nullptr, &error);
   if (!proxy) {
-    std::cerr << "Couldn't create proxy for " << kRuntimeRunningAppInterface
-              << ": " << error->message << std::endl;
+    LoggerE("Couldn't create proxy for %s: %s", kRuntimeRunningAppInterface,
+            error->message);
     g_error_free(error);
-    return NULL;
+    return nullptr;
   }
 
   return proxy;
@@ -54,46 +56,50 @@ GDBusProxy* CreateRunningAppProxy(const std::string& app_id) {
 }  // namespace
 
 WebSetting::WebSetting(const std::string& app_id)
-    : app_id_(app_id), running_app_proxy_(NULL) {}
+    : app_id_(app_id), running_app_proxy_(nullptr) {}
 
 WebSetting::~WebSetting() {
   if (running_app_proxy_) g_object_unref(running_app_proxy_);
 }
 
-std::unique_ptr<picojson::value> WebSetting::RemoveAllCookies() {
+common::PlatformResult WebSetting::RemoveAllCookies() {
+  LoggerD("Entered");
   if (!running_app_proxy_) {
-    if (!(running_app_proxy_ = CreateRunningAppProxy(app_id_)))
-      return CreateResultMessage(ErrorCode::UNKNOWN_ERR);
+    if (!(running_app_proxy_ = CreateRunningAppProxy(app_id_))) {
+      LoggerE("Failed to create proxy");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Unable to remove cookies.");
+    }
   }
-  GError* error = NULL;
+  GError* error = nullptr;
   GVariant* result =
-      g_dbus_proxy_call_sync(running_app_proxy_, "RemoveAllCookies", NULL,
-                             G_DBUS_CALL_FLAGS_NONE, -1, NULL, &error);
+      g_dbus_proxy_call_sync(running_app_proxy_, "RemoveAllCookies", nullptr,
+                             G_DBUS_CALL_FLAGS_NONE, -1, nullptr, &error);
   if (!result) {
-    std::cerr << "Fail to call 'RemoveuserAgentAllCookies':" << error->message
-              << std::endl;
+    LoggerE("Failed to call 'RemoveuserAgentAllCookies': %s", error->message);
     g_error_free(error);
-    return CreateResultMessage(ErrorCode::UNKNOWN_ERR);
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Unable to remove cookies.");
   }
-  return CreateResultMessage();
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-std::unique_ptr<picojson::value> WebSetting::SetUserAgentString(
+common::PlatformResult WebSetting::SetUserAgentString(
     const std::string& user_agent) {
+  LoggerD("Entered");
   if (!running_app_proxy_) {
-    if (!(running_app_proxy_ = CreateRunningAppProxy(app_id_)))
-      return CreateResultMessage(ErrorCode::UNKNOWN_ERR);
+    if (!(running_app_proxy_ = CreateRunningAppProxy(app_id_))) {
+      LoggerE("Failed to create proxy");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Unable to set user agent.");
+    }
   }
-  GError* error = NULL;
+  GError* error = nullptr;
   GVariant* result =
       g_dbus_proxy_call_sync(running_app_proxy_, "SetUserAgentString",
                              g_variant_new("(s)", user_agent.c_str()),
-                             G_DBUS_CALL_FLAGS_NONE, -1, NULL, &error);
+                             G_DBUS_CALL_FLAGS_NONE, -1, nullptr, &error);
   if (!result) {
-    std::cerr << "Fail to call 'SetUserAgentString':" << error->message
-              << std::endl;
+    LoggerE("Fail to call 'SetUserAgentString': %s", error->message);
     g_error_free(error);
-    return CreateResultMessage(ErrorCode::UNKNOWN_ERR);
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Unable to set user agent.");
   }
-  return CreateResultMessage();
+  return PlatformResult(ErrorCode::NO_ERROR);
 }

@@ -46,6 +46,8 @@ WebSettingInstance::~WebSettingInstance() {}
 
 void WebSettingInstance::WebSettingManagerSetUserAgentString(
     const picojson::value& args, picojson::object& out) {
+  LoggerD("Entered");
+
   const double callback_id = args.get("callbackId").get<double>();
   auto get = [=](const std::shared_ptr<JsonValue>& response) -> void {
     const char* runtime_name =
@@ -59,9 +61,13 @@ void WebSettingInstance::WebSettingManagerSetUserAgentString(
     }
 
     std::string userAgent = args.get("userAgentStr").to_str();
-    extension_->current_app()->SetUserAgentString(userAgent).release();
+    const auto& result = extension_->current_app()->SetUserAgentString(userAgent);
 
-    ReportSuccess(response->get<picojson::object>());
+    if (result) {
+      ReportSuccess(response->get<picojson::object>());
+    } else {
+      ReportError(result, &response->get<picojson::object>());
+    }
   };
 
   auto get_response =
@@ -79,6 +85,7 @@ void WebSettingInstance::WebSettingManagerSetUserAgentString(
 
 void WebSettingInstance::WebSettingManagerRemoveAllCookies(
     const picojson::value& args, picojson::object& out) {
+  LoggerD("Entered");
 
   const double callback_id = args.get("callbackId").get<double>();
   auto get = [=](const std::shared_ptr<JsonValue>& response) -> void {
@@ -92,8 +99,12 @@ void WebSettingInstance::WebSettingManagerRemoveAllCookies(
       return;
     }
 
-    extension_->current_app()->RemoveAllCookies().release();
-    ReportSuccess(response->get<picojson::object>());
+    const auto& result = extension_->current_app()->RemoveAllCookies();
+    if (result) {
+      ReportSuccess(response->get<picojson::object>());
+    } else {
+      ReportError(result, &response->get<picojson::object>());
+    }
   };
 
   auto get_response =

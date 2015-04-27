@@ -15,7 +15,6 @@
         'websetting_api.js',
         'websetting_extension.cc',
         'websetting_extension.h',
-        'websetting_extension_utils.h',
         'websetting_instance.cc',
         'websetting_instance.h',
       ],
