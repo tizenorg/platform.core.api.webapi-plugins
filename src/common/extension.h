@@ -156,6 +156,21 @@ do { \
   } \
 } while (0)
 
+#define CHECK_BACKWARD_COMPABILITY_PRIVILEGE_ACCESS(current_priv, prev_priv, out) \
+do { \
+  auto ret = common::tools::CheckAccess(current_priv); \
+  auto ret2 = common::tools::CheckAccess(prev_priv); \
+\
+  if (!ret && ret2) { \
+    ret = ret2; \
+  } \
+\
+  if (!ret) { \
+    common::tools::ReportError(ret, out); \
+    return; \
+  } \
+} while (0)
+
 }  // namespace tools
 
 }  // namespace common

@@ -18,6 +18,7 @@ class UtilsInstance : public common::ParsedInstance {
 
  private:
   void CheckPrivilegeAccess(const picojson::value& args, picojson::object& out);
+  void CheckBackwardCompabilityPrivilegeAccess(const picojson::value& args, picojson::object& out);
 };
 }  // namespace utils
 }  // namespace extension

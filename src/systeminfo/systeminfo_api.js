@@ -557,7 +557,8 @@ function SystemInfoCellularNetwork(data) {
         isFlightMode : {value: data.isFligthMode, writable: false, enumerable: true},
         imei : {
             get: function() {
-                xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_TELEPHONY);
+                xwalk.utils.checkBackwardCompabilityPrivilegeAccess(_PRIVILEGE_TELEPHONY,
+                                                                    _PRIVILEGE_SYSTEM);
                 return data.imei;
             },
             set: function() {},
@@ -587,7 +588,8 @@ function SystemInfoSIM(data) {
         },
         msisdn : {
             get: function() {
-                xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_TELEPHONY);
+                xwalk.utils.checkBackwardCompabilityPrivilegeAccess(_PRIVILEGE_TELEPHONY,
+                                                                    _PRIVILEGE_SYSTEM);
                 return data.msisdn;
             },
             set: function() {},
@@ -619,7 +621,8 @@ function SystemInfoSIM(data) {
         },
         msin : {
             get: function() {
-                xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_TELEPHONY);
+                xwalk.utils.checkBackwardCompabilityPrivilegeAccess(_PRIVILEGE_TELEPHONY,
+                                                                    _PRIVILEGE_SYSTEM);
                 return data.msin;
             },
             set: function() {},

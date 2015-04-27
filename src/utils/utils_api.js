@@ -146,6 +146,17 @@ Utils.prototype.checkPrivilegeAccess = function(privilege) {
   }
 };
 
+Utils.prototype.checkBackwardCompabilityPrivilegeAccess = function(current_privilege, previous_privilege) {
+  var result = native_.callSync('Utils_checkBackwardPrivilegePrivilegeAccess', {
+    current_privilege : _toString(current_privilege),
+    previous_privilege : _toString(previous_privilege),
+  });
+
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
+  }
+};
+
 /////////////////////////////////////////////////////////////////////////////
 /** @constructor */
 var Type = function() {};
