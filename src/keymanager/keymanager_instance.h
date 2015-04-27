@@ -23,6 +23,7 @@ class KeyManagerInstance :
   void OnCreateKeyPair(double callbackId, const common::PlatformResult& result);
  private:
   void GetKeyAliasList(picojson::value const& args, picojson::object& out);
+  void GetKey(const picojson::value& args, picojson::object& out);
   void SaveKey(const picojson::value& args, picojson::object& out);
   void RemoveKey(const picojson::value& args, picojson::object& out);
   void GenerateKeyPair(const picojson::value& args, picojson::object& out);

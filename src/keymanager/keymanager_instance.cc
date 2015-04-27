@@ -27,6 +27,8 @@ KeyManagerInstance::KeyManagerInstance() {
 
   RegisterSyncHandler("KeyManager_getKeyAliasList",
       std::bind(&KeyManagerInstance::GetKeyAliasList, this, _1, _2));
+  RegisterSyncHandler("KeyManager_getKey",
+      std::bind(&KeyManagerInstance::GetKey, this, _1, _2));
   RegisterSyncHandler("KeyManager_saveKey",
       std::bind(&KeyManagerInstance::SaveKey, this, _1, _2));
   RegisterSyncHandler("KeyManager_removeKey",
@@ -178,6 +180,75 @@ void KeyManagerInstance::OnCreateKeyPair(double callbackId,
   }
   picojson::value res(dict);
   PostMessage(res.serialize().c_str());
+}
+
+void KeyManagerInstance::GetKey(const picojson::value& args, picojson::object& out) {
+  LoggerD("Enter");
+  using CKM::KeyType;
+
+  const std::string& alias = args.get("name").get<std::string>();
+  CKM::Password pass;
+  if (args.get("password").is<std::string>()) {
+    pass = args.get("password").get<std::string>().c_str();
+  }
+
+  CKM::KeyShPtr key;
+  int ret = CKM::Manager::create()->getKey(alias, pass, key);
+  if (ret != CKM_API_SUCCESS) {
+    LoggerE("Failed to get key: %d", ret);
+    if (ret == CKM_API_ERROR_DB_ALIAS_UNKNOWN) {
+      ReportError(common::PlatformResult(common::ErrorCode::NOT_FOUND_ERR,
+        "Key alias not found"), &out);
+    } else {
+      ReportError(common::PlatformResult(common::ErrorCode::UNKNOWN_ERR,
+        "Failed to get key"), &out);
+    }
+  } else {
+    picojson::object dict;
+    dict["name"] = args.get("name");
+    if (args.get("password").is<std::string>()) {
+      dict["password"] = args.get("password");
+    }
+    switch (key->getType()) {
+      case KeyType::KEY_NONE:
+        dict["keyType"] = picojson::value("KEY_NONE");
+        break;
+      case KeyType::KEY_RSA_PUBLIC:
+        dict["keyType"] = picojson::value("KEY_RSA_PUBLIC");
+        break;
+      case KeyType::KEY_RSA_PRIVATE:
+        dict["keyType"] = picojson::value("KEY_RSA_PRIVATE");
+        break;
+      case KeyType::KEY_ECDSA_PUBLIC:
+        dict["keyType"] = picojson::value("KEY_ECDSA_PUBLIC");
+        break;
+      case KeyType::KEY_ECDSA_PRIVATE:
+        dict["keyType"] = picojson::value("KEY_ECDSA_PRIVATE");
+        break;
+      case KeyType::KEY_DSA_PUBLIC:
+        dict["keyType"] = picojson::value("KEY_DSA_PUBLIC");
+        break;
+      case KeyType::KEY_DSA_PRIVATE:
+        dict["keyType"] = picojson::value("KEY_DSA_PRIVATE");
+        break;
+      case KeyType::KEY_AES:
+        dict["keyType"] = picojson::value("KEY_AES");
+        break;
+    }
+    CKM::RawBuffer buf = key->getDER();
+    if (!buf.empty()) {
+      gchar* base64 = g_base64_encode(&buf[0], buf.size());
+      dict["rawKey"] = picojson::value(std::string(base64));
+      g_free(base64);
+    } else {
+      dict["rawKey"] = picojson::value(std::string());
+    }
+    //if key was retrieved it is extractable from db
+    dict["extractable"] = picojson::value(true);
+
+    picojson::value res(dict);
+    ReportSuccess(res, out);
+  }
 }
 
 } // namespace keymanager

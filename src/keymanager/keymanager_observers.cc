@@ -26,12 +26,20 @@ SaveKeyObserver::SaveKeyObserver(KeyManagerListener* listener, double callbackId
 void SaveKeyObserver::ReceivedError(int error) {
   LoggerD("Enter, error: %d", error);
   ErrorCode code = ErrorCode::UNKNOWN_ERR;
-  if (error == CKM_API_ERROR_INPUT_PARAM) {
-    code = ErrorCode::INVALID_VALUES_ERR;
+  std::string message =  "Failed to save key";
+  switch (error) {
+    case CKM_API_ERROR_INPUT_PARAM:
+      code = ErrorCode::INVALID_VALUES_ERR;
+      break;
+    case CKM_API_ERROR_DB_ALIAS_EXISTS:
+      code = ErrorCode::INVALID_VALUES_ERR;
+      message = "Key alias already exists";
+      break;
   }
   common::TaskQueue::GetInstance().Async(std::bind(
     &KeyManagerListener::OnSaveKey, listener, callbackId,
-    PlatformResult(code, "Failed to save key")));
+    PlatformResult(code, message
+  )));
 }
 
 void SaveKeyObserver::ReceivedSaveKey() {
