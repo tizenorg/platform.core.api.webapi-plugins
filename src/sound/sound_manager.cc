@@ -126,6 +126,12 @@ SoundManager::~SoundManager() {
       LoggerE("Cannot unregister information listener!");
     }
   }
+
+  if (is_volume_change_listener_) {
+    if (SOUND_MANAGER_ERROR_NONE != sound_manager_unset_volume_changed_cb()) {
+      LoggerE("Cannot unregister volume listener!");
+    }
+  }
 }
 
 void SoundManager::FillMaxVolumeMap() {
