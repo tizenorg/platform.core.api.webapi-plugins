@@ -4,6 +4,7 @@
 
 var validator_ = xwalk.utils.validator;
 var types_ = validator_.Types;
+var type_utils = xwalk.utils.type;
 var native_ = new xwalk.utils.NativeManager(extension);
 
 //////////////////SEService/////////////////
@@ -54,7 +55,7 @@ ListenerManager.prototype.removeListener = function(watchId) {
       delete this.listeners[watchId];
     }
 
-    if (this.nativeSet && type_.isEmptyObject(this.listeners)) {
+    if (this.nativeSet && type_utils.isEmptyObject(this.listeners)) {
         this.native.callSync('SEService_unregisterSEListener');
         this.native.removeListener(this.listenerName);
         this.nativeSet = false;
