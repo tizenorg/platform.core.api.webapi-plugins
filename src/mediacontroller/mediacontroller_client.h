@@ -10,6 +10,8 @@
 
 #include "common/platform_result.h"
 
+#include "mediacontroller/mediacontroller_types.h"
+
 namespace extension {
 namespace mediacontroller {
 
@@ -26,10 +28,24 @@ class MediaControllerClient {
   common::PlatformResult GetMetadata(const std::string& server_name,
                                          picojson::object* metadata);
 
+  common::PlatformResult SetPlaybackInfoListener(JsonCallback callback);
  private:
   mc_client_h handle_;
+  JsonCallback playback_info_listener_;
 
   static bool FindServersCallback(const char* server_name, void* user_data);
+  static void OnPlaybackUpdate(const char *server_name,
+                               mc_playback_h playback,
+                               void *user_data);
+  static void OnShuffleModeUpdate(const char *server_name,
+                                  mc_shuffle_mode_e mode,
+                                  void *user_data);
+  static void OnRepeatModeUpdate(const char *server_name,
+                                  mc_repeat_mode_e mode,
+                                  void *user_data);
+  static void OnMetadataUpdate(const char* server_name,
+                               mc_metadata_h metadata_h,
+                               void* user_data);
 };
 
 } // namespace mediacontroller

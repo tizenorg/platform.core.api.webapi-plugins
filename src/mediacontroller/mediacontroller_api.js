@@ -17,16 +17,16 @@ function ListenerManager(native, listenerName, handle) {
   this.nativeSet = false;
   this.native = native;
   this.listenerName = listenerName;
-  this.handle = handle || function(){};
+  this.handle = handle || function(msg, listener, watchId) {};
 }
 
 ListenerManager.prototype.addListener = function(callback, data) {
   var id = this.nextId;
   if (!this.nativeSet) {
     this.native.addListener(this.listenerName, function(msg) {
-      for (var key in this.listeners) {
-        if (this.listeners.hasOwnProperty(key)) {
-          this.handle(msg, this.listeners[key], key);
+      for (var watchId in this.listeners) {
+        if (this.listeners.hasOwnProperty(watchId)) {
+          this.handle(msg, this.listeners[watchId], watchId);
         }
       }
     }.bind(this));
@@ -92,7 +92,15 @@ var ServerInfoStatusListener = new ListenerManager(native_, '_ServerInfoStatusLi
 });
 
 var ServerInfoPlaybackInfoListener = new ListenerManager(native_, '_ServerInfoPlaybackInfoListener', function(msg, listener) {
-  listener(msg.status);
+  if (msg.action === 'onplaybackchanged') {
+    listener[msg.action](msg.state, msg.position);
+  }
+  if (msg.action === 'onshufflemodechanged' || msg.action === 'onrepeatmodechanged') {
+    listener[msg.action](msg.mode);
+  }
+  if (msg.action === 'onmetadatachanged') {
+    listener[msg.action](new MediaControllerMetadata(msg.metadata));
+  }
 });
 
 var EditManager = function() {
@@ -136,8 +144,7 @@ MediaControllerManager.prototype.getClient = function() {
     throw native_.getErrorObject(result);
   }
 
-  var client = new MediaControllerClient(native_.getResultObject(result));
-  return client;
+  return new MediaControllerClient(native_.getResultObject(result));
 };
 
 MediaControllerManager.prototype.createServer = function() {
@@ -146,8 +153,7 @@ MediaControllerManager.prototype.createServer = function() {
     throw native_.getErrorObject(result);
   }
 
-  var server = new MediaControllerServer(native_.getResultObject(result));
-  return server;
+  return new MediaControllerServer(native_.getResultObject(result));
 };
 
 
@@ -223,7 +229,7 @@ var MediaControllerMetadata = function(data) {
 
   if (data instanceof Object) {
     for (var prop in data) {
-      if (this.hasOwnProperty(prop)) {
+      if (data.hasOwnProperty(prop) && this.hasOwnProperty(prop)) {
         this[prop] = data[prop];
       }
     }
@@ -676,12 +682,22 @@ MediaControllerServerInfo.prototype.removeServerStatusChangeListener = function(
 };
 
 MediaControllerServerInfo.prototype.addPlaybackInfoChangeListener = function(listener) {
-  var args = validator_.validateArgs(arguments, [
-    {name: 'listener', type: types_.LISTENER, values: ['onplaybackstatechanged', 'onplaybackpositionchanged', 'onshufflemodechanged', 'onrepeatmodechanged', 'onmetadatachanged']}
-  ]);
+  var args = validator_.validateArgs(arguments, [{
+    name: 'listener',
+    type: types_.LISTENER,
+    values: [
+      'onplaybackchanged',
+      'onshufflemodechanged',
+      'onrepeatmodechanged',
+      'onmetadatachanged'
+    ]
+  }]);
 
   if (type_.isEmptyObject(ServerInfoPlaybackInfoListener.listeners)) {
-    var result = native_.callSync('MediaControllerServerInfo_addPlaybackInfoChangeListener');
+    var result = native_.callSync(
+        'MediaControllerServerInfo_addPlaybackInfoChangeListener', {
+          listenerId: ServerInfoPlaybackInfoListener.listenerName
+        });
     if (native_.isFailure(result)) {
       throw native_.getErrorObject(result);
     }

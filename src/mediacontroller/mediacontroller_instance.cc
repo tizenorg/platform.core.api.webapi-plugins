@@ -4,12 +4,12 @@
 
 #include "mediacontroller/mediacontroller_instance.h"
 
-#include <functional>
-
 #include "common/logger.h"
 #include "common/picojson.h"
 #include "common/platform_result.h"
 #include "common/task-queue.h"
+
+#include "mediacontroller/mediacontroller_types.h"
 
 namespace extension {
 namespace mediacontroller {
@@ -322,7 +322,6 @@ void MediaControllerInstance::MediaControllerClientFindServers(
   CHECK_EXIST(args, "callbackId", out)
 
   auto search = [this, args]() -> void {
-    LOGGER(DEBUG) << "entered";
 
     picojson::value response = picojson::value(picojson::object());
     picojson::object& response_obj = response.get<picojson::object>();
@@ -517,27 +516,43 @@ void MediaControllerInstance::MediaControllerServerInfoAddPlaybackInfoChangeList
     const picojson::value& args,
     picojson::object& out) {
 
-  // implement it
+  if (!client_) {
+    ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
+                               "Client not initialized."), &out);
+    return;
+  }
 
-  // if success
-  // ReportSuccess(out);
-  // if error
-  // ReportError(out);
+  CHECK_EXIST(args, "listenerId", out)
+
+  JsonCallback callback = [this, args](picojson::value* data) -> void {
+
+    if (!data) {
+      LOGGER(ERROR) << "No data passed to json callback";
+      return;
+    }
+
+    picojson::object& request_o = data->get<picojson::object>();
+    request_o["listenerId"] = args.get("listenerId");
+
+    PostMessage(data->serialize().c_str());
+  };
+
+  client_->SetPlaybackInfoListener(callback);
+
+  ReportSuccess(out);
 }
 
 void MediaControllerInstance::MediaControllerServerInfoRemovePlaybackInfoChangeListener(
     const picojson::value& args,
     picojson::object& out) {
-  CHECK_EXIST(args, "watchId", out)
 
-  double watchId = args.get("watchId").get<double>();
+  if (!client_) {
+    ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
+                               "Client not initialized."), &out);
+    return;
+  }
 
-  // implement it
-
-  // if success
-  // ReportSuccess(out);
-  // if error
-  // ReportError(out);
+  client_->SetPlaybackInfoListener(nullptr);
 }
 
 #undef CHECK_EXIST

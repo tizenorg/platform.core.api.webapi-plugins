@@ -4,7 +4,11 @@
 
 #include "mediacontroller/mediacontroller_types.h"
 
+#include <media_controller_client.h>
+
+#include "common/logger.h"
 #include "common/platform_result.h"
+#include "common/scope_exit.h"
 
 namespace extension {
 namespace mediacontroller {
@@ -112,6 +116,84 @@ PlatformResult Types::PlatformEnumToString(const std::string& type,
   std::string message = "Platform enum value " + std::to_string(value) +
       " not found for " + type;
   return PlatformResult(ErrorCode::INVALID_VALUES_ERR, message);
+}
+
+PlatformResult Types::ConvertPlaybackState(mc_playback_h playback_h,
+                                           std::string* state) {
+  int ret;
+  mc_playback_states_e state_e;
+  ret = mc_client_get_playback_state(playback_h, &state_e);
+  if (ret != MEDIA_CONTROLLER_ERROR_NONE) {
+    LOGGER(ERROR) << "mc_client_get_playback_state failed, error: " << ret;
+    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                          "Error getting playback state");
+  }
+  if (state_e == MEDIA_PLAYBACK_STATE_NONE) {
+    state_e = MEDIA_PLAYBACK_STATE_STOPPED;
+  }
+
+  PlatformResult result = Types::PlatformEnumToString(
+      Types::kMediaControllerPlaybackState,
+      static_cast<int>(state_e), state);
+  if (!result) {
+    LOGGER(ERROR) << "PlatformEnumToString failed, error: " << result.message();
+    return result;
+  }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult Types::ConvertPlaybackPosition(mc_playback_h playback_h,
+                                              double* position) {
+  int ret;
+
+  unsigned long long pos;
+  ret = mc_client_get_playback_position(playback_h, &pos);
+  if (ret != MEDIA_CONTROLLER_ERROR_NONE) {
+    LOGGER(ERROR) << "mc_client_get_playback_position failed, error: " << ret;
+    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                          "Error getting playback position");
+  }
+
+  *position = static_cast<double>(pos);
+
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult Types::ConvertMetadata(mc_metadata_h metadata_h,
+                                      picojson::object* metadata) {
+  std::map<std::string, int> metadata_fields;
+  PlatformResult result = GetPlatformEnumMap(
+      Types::kMediaControllerMetadataAttribute, &metadata_fields);
+  if (!result) {
+    LOGGER(ERROR) << "GetPlatformEnumMap failed, error: " << result.message();
+    return result;
+  }
+
+  char* value;
+  SCOPE_EXIT {
+      free(value);
+  };
+
+  int ret;
+  for (auto& field : metadata_fields) {
+    ret = mc_client_get_metadata(metadata_h,
+                                 static_cast<mc_meta_e>(field.second),
+                                 &value);
+    if (ret != MEDIA_CONTROLLER_ERROR_NONE) {
+      LOGGER(ERROR) << "mc_client_get_metadata failed for field '"
+          << field.first << "', error: " << ret;
+      return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                            "Error getting metadata");
+    }
+    if (NULL == value) {
+      value = strdup("");
+    }
+
+    (*metadata)[field.first] = picojson::value(std::string(value));
+  }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 } // namespace mediacontroller

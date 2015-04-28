@@ -18,7 +18,6 @@ MediaControllerServer::MediaControllerServer() : handle_(nullptr) {
 }
 
 MediaControllerServer::~MediaControllerServer() {
-  LOGGER(DEBUG) << "entered";
 
   if (handle_) {
     int ret = mc_server_destroy(handle_);

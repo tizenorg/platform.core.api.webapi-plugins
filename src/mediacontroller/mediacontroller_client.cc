@@ -19,8 +19,6 @@ MediaControllerClient::MediaControllerClient() : handle_(nullptr) {
 }
 
 MediaControllerClient::~MediaControllerClient() {
-  LOGGER(DEBUG) << "entered";
-
   if (handle_) {
     int ret = mc_client_destroy(handle_);
     if (ret != MEDIA_CONTROLLER_ERROR_NONE) {
@@ -30,20 +28,17 @@ MediaControllerClient::~MediaControllerClient() {
 }
 
 PlatformResult MediaControllerClient::Init() {
-  PlatformResult result = PlatformResult(ErrorCode::NO_ERROR);
-
   int ret = mc_client_create(&handle_);
   if (ret != MEDIA_CONTROLLER_ERROR_NONE) {
     LOGGER(ERROR) << "Unable to create media controller client, error: " << ret;
-    result = PlatformResult(ErrorCode::UNKNOWN_ERR,
-                            "Unable to create media controller client");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                          "Unable to create media controller client");
   }
 
-  return result;
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 PlatformResult MediaControllerClient::FindServers(picojson::array* servers) {
-  LOGGER(DEBUG) << "entered";
 
   int ret;
 
@@ -70,9 +65,9 @@ PlatformResult MediaControllerClient::FindServers(picojson::array* servers) {
   const std::string& latest_name = latest_server.get("name").get<std::string>();
 
   // update current server state in list
-  for (picojson::array::iterator it; it != servers->end(); ++it) {
-    picojson::object& server = it->get<picojson::object>();
-    if (it->get("name").get<std::string>() == latest_name) {
+  for (auto& it : *servers) {
+    picojson::object& server = it.get<picojson::object>();
+    if (server["name"].get<std::string>() == latest_name) {
       server["state"] = latest_server.get("state");
       break;
     }
@@ -83,7 +78,6 @@ PlatformResult MediaControllerClient::FindServers(picojson::array* servers) {
 
 bool MediaControllerClient::FindServersCallback(const char* server_name,
                                                 void* user_data) {
-  LOGGER(DEBUG) << "entered";
 
   picojson::array* servers = static_cast<picojson::array*>(user_data);
 
@@ -158,33 +152,19 @@ PlatformResult MediaControllerClient::GetPlaybackInfo(
   };
 
   // playback state
-  mc_playback_states_e state;
-  ret = mc_client_get_playback_state(playback_h, &state);
-  if (ret != MEDIA_CONTROLLER_ERROR_NONE) {
-    LOGGER(ERROR) << "mc_client_get_playback_state failed, error: " << ret;
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Error getting playback state");
-  }
-  if (state == MEDIA_PLAYBACK_STATE_NONE) {
-    state = MEDIA_PLAYBACK_STATE_STOPPED;
-  }
-
-  std::string state_str;
-  PlatformResult result = Types::PlatformEnumToString(
-      Types::kMediaControllerPlaybackState,
-      static_cast<int>(state), &state_str);
+  std::string state;
+  PlatformResult result = Types::ConvertPlaybackState(playback_h, &state);
   if (!result) {
-    LOGGER(ERROR) << "PlatformEnumToString failed, error: " << result.message();
+    LOGGER(ERROR) << "ConvertPlaybackState failed, error: " << result.message();
     return result;
   }
 
   // playback position
-  unsigned long long position;
-  ret = mc_client_get_playback_position(playback_h, &position);
-  if (ret != MEDIA_CONTROLLER_ERROR_NONE) {
-    LOGGER(ERROR) << "mc_client_get_playback_position failed, error: " << ret;
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Error getting playback position");
+  double position;
+  result = Types::ConvertPlaybackPosition(playback_h, &position);
+  if (!result) {
+    LOGGER(ERROR) << "ConvertPlaybackPosition failed, error: " << result.message();
+    return result;
   }
 
   // shuffle mode
@@ -215,8 +195,8 @@ PlatformResult MediaControllerClient::GetPlaybackInfo(
   }
 
   // fill return object
-  (*playback_info)["state"] = picojson::value(state_str);
-  (*playback_info)["position"] = picojson::value(static_cast<double>(position));
+  (*playback_info)["state"] = picojson::value(state);
+  (*playback_info)["position"] = picojson::value(position);
   (*playback_info)["shuffleMode"] = picojson::value(shuffle == SHUFFLE_MODE_ON);
   (*playback_info)["repeatMode"] = picojson::value(repeat == REPEAT_MODE_ON);
   (*playback_info)["metadata"] = metadata;
@@ -227,7 +207,6 @@ PlatformResult MediaControllerClient::GetPlaybackInfo(
 PlatformResult MediaControllerClient::GetMetadata(
     const std::string& server_name,
     picojson::object* metadata) {
-  LOGGER(DEBUG) << "entered";
 
   int ret;
 
@@ -244,36 +223,193 @@ PlatformResult MediaControllerClient::GetMetadata(
     mc_client_destroy_metadata(metadata_h);
   };
 
-  std::map<std::string, int> metadata_fields;
-  PlatformResult result = Types::GetPlatformEnumMap(
-      Types::kMediaControllerMetadataAttribute, &metadata_fields);
+  PlatformResult result = Types::ConvertMetadata(metadata_h, metadata);
   if (!result) {
-    LOGGER(ERROR) << "GetPlatformEnumMap failed, error: " << result.message();
     return result;
   }
 
-  char* value = nullptr;
-  SCOPE_EXIT {
-    free(value);
-  };
-  for (auto& field : metadata_fields) {
-    ret = mc_client_get_metadata(metadata_h,
-                                 static_cast<mc_meta_e>(field.second),
-                                 &value);
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult MediaControllerClient::SetPlaybackInfoListener(
+    JsonCallback callback) {
+
+  if (callback && playback_info_listener_) {
+    LOGGER(ERROR) << "Listener already registered";
+    return PlatformResult(ErrorCode::INVALID_STATE_ERR,
+                          "Listener already registered");
+  }
+
+  playback_info_listener_ = callback;
+
+  int ret;
+  if (callback) { // set platform callbacks
+
+    ret = mc_client_set_playback_update_cb(handle_, OnPlaybackUpdate, this);
     if (ret != MEDIA_CONTROLLER_ERROR_NONE) {
-      LOGGER(ERROR) << "mc_client_get_metadata failed for field '"
-          << field.first << "', error: " << ret;
+      LOGGER(ERROR) << "Unable to register playback listener, error: " << ret;
       return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                            "Error getting metadata");
-    }
-    if (!value) {
-      value = strdup("");
+                            "Unable to register playback listener");
     }
 
-    (*metadata)[field.first] = picojson::value(std::string(value));
+    ret = mc_client_set_shuffle_mode_update_cb(handle_, OnShuffleModeUpdate, this);
+    if (ret != MEDIA_CONTROLLER_ERROR_NONE) {
+      LOGGER(ERROR) << "Unable to register shuffle mode listener, error: " << ret;
+      return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                            "Unable to register shuffle mode listener");
+    }
+
+    ret = mc_client_set_repeat_mode_update_cb(handle_, OnRepeatModeUpdate, this);
+    if (ret != MEDIA_CONTROLLER_ERROR_NONE) {
+      LOGGER(ERROR) << "Unable to register repeat mode listener, error: " << ret;
+      return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                            "Unable to register repeat mode listener");
+    }
+
+    ret = mc_client_set_metadata_update_cb(handle_, OnMetadataUpdate, this);
+    if (ret != MEDIA_CONTROLLER_ERROR_NONE) {
+      LOGGER(ERROR) << "Unable to register metadata listener, error: " << ret;
+      return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                            "Unable to register metadata listener");
+    }
+
+  } else { // unset platform callbacks
+
+    ret = mc_client_unset_playback_update_cb(handle_);
+    if (ret != MEDIA_CONTROLLER_ERROR_NONE) {
+      LOGGER(ERROR) << "Unable to unregister playback listener, error: " << ret;
+      return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                            "Unable to unregister playback listener");
+    }
+
+    ret = mc_client_unset_shuffle_mode_update_cb(handle_);
+    if (ret != MEDIA_CONTROLLER_ERROR_NONE) {
+      LOGGER(ERROR) << "Unable to unregister shuffle mode listener, error: " << ret;
+      return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                            "Unable to unregister shuffle mode listener");
+    }
+
+    ret = mc_client_unset_repeat_mode_update_cb(handle_);
+    if (ret != MEDIA_CONTROLLER_ERROR_NONE) {
+      LOGGER(ERROR) << "Unable to unregister repeat mode listener, error: " << ret;
+      return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                            "Unable to unregister repeat mode listener");
+    }
+
+    ret = mc_client_unset_metadata_update_cb(handle_);
+    if (ret != MEDIA_CONTROLLER_ERROR_NONE) {
+      LOGGER(ERROR) << "Unable to unregister metadata listener, error: " << ret;
+      return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                            "Unable to unregister metadata listener");
+    }
   }
 
   return PlatformResult(ErrorCode::NO_ERROR);
+};
+
+void MediaControllerClient::OnPlaybackUpdate(const char *server_name,
+                                             mc_playback_h playback,
+                                             void *user_data) {
+
+  MediaControllerClient* client = static_cast<MediaControllerClient*>(user_data);
+
+  if (!client->playback_info_listener_) {
+    LOGGER(DEBUG) << "No playback info listener registered, skipping";
+    return;
+  }
+
+  // playback state
+  std::string state;
+  PlatformResult result = Types::ConvertPlaybackState(playback, &state);
+  if (!result) {
+    LOGGER(ERROR) << "ConvertPlaybackState failed, error: " << result.message();
+    return;
+  }
+
+  // playback position
+  double position;
+  result = Types::ConvertPlaybackPosition(playback, &position);
+  if (!result) {
+    LOGGER(ERROR) << "ConvertPlaybackPosition failed, error: " << result.message();
+    return;
+  }
+
+  picojson::value data = picojson::value(picojson::object());
+  picojson::object& data_o = data.get<picojson::object>();
+
+  data_o["action"] = picojson::value(std::string("onplaybackchanged"));
+  data_o["state"] = picojson::value(state);
+  data_o["position"] = picojson::value(position);
+
+  client->playback_info_listener_(&data);
+}
+
+void MediaControllerClient::OnShuffleModeUpdate(const char *server_name,
+                                             mc_shuffle_mode_e mode,
+                                             void *user_data) {
+
+  MediaControllerClient* client = static_cast<MediaControllerClient*>(user_data);
+
+  if (!client->playback_info_listener_) {
+    LOGGER(DEBUG) << "No playback info listener registered, skipping";
+    return;
+  }
+
+  picojson::value data = picojson::value(picojson::object());
+  picojson::object& data_o = data.get<picojson::object>();
+
+  data_o["action"] = picojson::value(std::string("onshufflemodechanged"));
+  data_o["mode"] = picojson::value(mode == SHUFFLE_MODE_ON);
+
+  client->playback_info_listener_(&data);
+}
+
+void MediaControllerClient::OnRepeatModeUpdate(const char *server_name,
+                                                mc_repeat_mode_e mode,
+                                                void *user_data) {
+
+  MediaControllerClient* client = static_cast<MediaControllerClient*>(user_data);
+
+  if (!client->playback_info_listener_) {
+    LOGGER(DEBUG) << "No playback info listener registered, skipping";
+    return;
+  }
+
+  picojson::value data = picojson::value(picojson::object());
+  picojson::object& data_o = data.get<picojson::object>();
+
+  data_o["action"] = picojson::value(std::string("onrepeatmodechanged"));
+  data_o["mode"] = picojson::value(mode == REPEAT_MODE_ON);
+
+  client->playback_info_listener_(&data);
+}
+
+void MediaControllerClient::OnMetadataUpdate(const char* server_name,
+                                             mc_metadata_h metadata_h,
+                                             void* user_data) {
+
+  MediaControllerClient* client = static_cast<MediaControllerClient*>(user_data);
+
+  if (!client->playback_info_listener_) {
+    LOGGER(DEBUG) << "No playback info listener registered, skipping";
+    return;
+  }
+
+  picojson::value data = picojson::value(picojson::object());
+  picojson::object& data_o = data.get<picojson::object>();
+
+  picojson::value metadata = picojson::value(picojson::object());
+  PlatformResult result = Types::ConvertMetadata(
+      metadata_h, &metadata.get<picojson::object>());
+  if (!result) {
+    LOGGER(ERROR) << "ConvertMetadata failed, error: " << result.message();
+    return;
+  }
+
+  data_o["action"] = picojson::value(std::string("onmetadatachanged"));
+  data_o["metadata"] = metadata;
+
+  client->playback_info_listener_(&data);
 }
 
 } // namespace mediacontroller

@@ -5,6 +5,7 @@
 #ifndef MEDIACONTROLLER_MEDIACONTROLLER_TYPES_H_
 #define MEDIACONTROLLER_MEDIACONTROLLER_TYPES_H_
 
+#include <functional>
 #include <map>
 #include <media_controller_type.h>
 #include <string>
@@ -16,6 +17,7 @@ namespace mediacontroller {
 
 typedef std::map<std::string, std::map<std::string, int>> PlatformEnumMap;
 typedef std::map<std::string, std::map<int, std::string>> PlatformEnumReverseMap;
+typedef std::function<void(picojson::value*)> JsonCallback;
 
 class Types {
  public:
@@ -33,6 +35,13 @@ class Types {
   static common::PlatformResult PlatformEnumToString(const std::string& type,
                                                      int value,
                                                      std::string* platform_str);
+
+  static common::PlatformResult ConvertPlaybackState(mc_playback_h playback_h,
+                                                     std::string* state);
+  static common::PlatformResult ConvertPlaybackPosition(mc_playback_h playback_h,
+                                                        double* position);
+  static common::PlatformResult ConvertMetadata(mc_metadata_h metadata_h,
+                                                picojson::object* metadata);
 
  private:
   static const PlatformEnumMap platform_enum_map_;
