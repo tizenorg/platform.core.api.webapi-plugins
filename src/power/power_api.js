@@ -6,18 +6,29 @@ var validator_ = xwalk.utils.validator;
 var types_ = validator_.Types;
 var native_ = new xwalk.utils.NativeManager(extension);
 
-var callbackId = 0;
-var callbacks = {};
-
-extension.setMessageListener(function(json) {
-    var result = JSON.parse(json);
-    var callback = callbacks[result['callbackId']];
-    callback(result);
-});
-
-function nextCallbackId() {
-    return callbackId++;
+function ListenerManager(native, listenerName) {
+  this.listener;
+  this.native = native;
+  this.listenerName = listenerName;
 }
+
+ListenerManager.prototype.onListenerCalled = function(msg) {
+  if(this.listener) {
+    this.listener(msg.prev_state, msg.new_state);
+  }
+};
+
+ListenerManager.prototype.addListener = function(callback) {
+  this.native.addListener(this.listenerName, this.onListenerCalled.bind(this));
+  this.listener = callback;
+};
+
+ListenerManager.prototype.removeListener = function() {
+  this.native.removeListener(this.listenerName);
+  delete this.listener;
+};
+
+var screenStateChangeListener = new ListenerManager(native_, "SCREEN_STATE_LISTENER");
 
 function callNative(cmd, args) {
     var json = {'cmd':cmd, 'args':args};
@@ -30,7 +41,7 @@ function callNative(cmd, args) {
     }
 
     if (result['status'] == 'success') {
-        if(result['result']) {
+        if('result' in result) {
             return result['result'];
         }
         return true;
@@ -135,7 +146,6 @@ PowerManager.prototype.release = function(resource) {
 
     var nativeParam = {
     };
-
     if (args['resource']) {
         nativeParam['resource'] = args.resource;
     }
@@ -157,14 +167,14 @@ PowerManager.prototype.setScreenStateChangeListener = function(listener) {
         {name: 'listener', type: types_.FUNCTION}
     ]);
 
-    native_.addListener("SCREEN_STATE_LISTENER", args.listener);
+    screenStateChangeListener.addListener(args.listener);
 };
 
 /**
  * Unsets the screen state change callback and stop monitoring it.
  */
 PowerManager.prototype.unsetScreenStateChangeListener = function() {
-    native_.removeListener("SCREEN_STATE_LISTENER");
+    screenStateChangeListener.removeListener();
 };
 
 /**

@@ -36,6 +36,7 @@ class PowerManagerListener {
 class PowerManager {
  public:
   void AddListener(PowerManagerListener* listener);
+  void RemoveListener(PowerManagerListener* listener);
   common::PlatformResult Request(PowerResource resource, PowerState state);
   common::PlatformResult Release(PowerResource resource);
   common::PlatformResult GetScreenBrightness(double* output);

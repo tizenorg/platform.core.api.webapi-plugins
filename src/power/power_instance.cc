@@ -55,11 +55,11 @@ PowerInstance::PowerInstance() {
   REGISTER_SYNC("PowerManager_turnScreenOn", PowerManagerTurnscreenon);
   REGISTER_SYNC("PowerManager_setScreenBrightness", PowerManagerSetscreenbrightness);
   #undef REGISTER_SYNC
-
   PowerManager::GetInstance()->AddListener(this);
 }
 
 PowerInstance::~PowerInstance() {
+  PowerManager::GetInstance()->RemoveListener(this);
 }
 
 enum PowerCallbacks {
@@ -227,8 +227,7 @@ void PowerInstance::OnScreenStateChanged(PowerState prev_state, PowerState new_s
   picojson::value event = picojson::value(picojson::object());
   picojson::object& obj = event.get<picojson::object>();
   obj["cmd"] = picojson::value("ScreenStateChanged");
-  obj["listenerId"] = picojson::value("ScreenStateChanged");
-
+  obj["listenerId"] = picojson::value("SCREEN_STATE_LISTENER");
   for (auto it = kPowerStateMap.begin(); it != kPowerStateMap.end(); ++it) {
     if (it->second == prev_state) {
       obj["prev_state"] = picojson::value(it->first);

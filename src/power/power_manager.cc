@@ -111,6 +111,10 @@ void PowerManager::AddListener(PowerManagerListener* listener) {
     listeners_.push_back(listener);
 }
 
+void PowerManager::RemoveListener(PowerManagerListener* listener) {
+  listeners_.remove(listener);
+}
+
 PlatformResult PowerManager::Request(PowerResource resource, PowerState state) {
   if (resource == POWER_RESOURCE_SCREEN && state == POWER_STATE_CPU_AWAKE)
     return PlatformResult(ErrorCode::INVALID_VALUES_ERR, "invalid PowerState");
@@ -397,7 +401,7 @@ PlatformResult PowerManager::RestoreSettedBrightness() {
   return result;
 }
 
-void PowerManager::BroadcastScreenState(PowerState current){
+void PowerManager::BroadcastScreenState(PowerState current) {
   if (current_state_ == current)
     return;
 
