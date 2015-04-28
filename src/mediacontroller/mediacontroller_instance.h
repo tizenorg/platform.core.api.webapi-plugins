@@ -30,6 +30,7 @@ class MediaControllerInstance : public common::ParsedInstance {
   void MediaControllerServerAddChangeRequestPlaybackInfoListener(const picojson::value& args, picojson::object& out);
   void MediaControllerServerRemoveChangeRequestPlaybackInfoListener(const picojson::value& args, picojson::object& out);
   void MediaControllerServerAddCommandListener(const picojson::value& args, picojson::object& out);
+  void MediaControllerServerReplyCommand(const picojson::value& args, picojson::object& out);
   void MediaControllerServerRemoveCommandListener(const picojson::value& args, picojson::object& out);
 
   // client

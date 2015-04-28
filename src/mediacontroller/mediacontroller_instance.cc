@@ -54,6 +54,8 @@ MediaControllerInstance::MediaControllerInstance() {
       MediaControllerServerRemoveChangeRequestPlaybackInfoListener);
   REGISTER_SYNC("MediaControllerServer_addCommandListener",
       MediaControllerServerAddCommandListener);
+  REGISTER_SYNC("MediaControllerServer_replyCommand",
+      MediaControllerServerReplyCommand);
   REGISTER_SYNC("MediaControllerServer_removeCommandListener",
       MediaControllerServerRemoveCommandListener);
 
@@ -283,28 +285,64 @@ void MediaControllerInstance::MediaControllerServerRemoveChangeRequestPlaybackIn
 void MediaControllerInstance::MediaControllerServerAddCommandListener(
     const picojson::value& args,
     picojson::object& out) {
+  LOGGER(DEBUG) << "entered";
 
-  // implement it
+  if (!server_) {
+    ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
+                               "Server not initialized."), &out);
+    return;
+  }
 
-  // if success
-  // ReportSuccess(out);
-  // if error
-  // ReportError(out);
+  JsonCallback on_command = [this, args](picojson::value* request) -> void {
+    LOGGER(DEBUG) << "entered";
+
+    picojson::object& request_o = request->get<picojson::object>();
+    request_o["listenerId"] = args.get("listenerId");
+
+    PostMessage(request->serialize().c_str());
+  };
+
+  server_->set_command_listener(on_command);
+
+  ReportSuccess(out);
+}
+
+void MediaControllerInstance::MediaControllerServerReplyCommand(
+    const picojson::value& args,
+    picojson::object& out) {
+  LOGGER(DEBUG) << "entered";
+
+  if (!server_) {
+    ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
+                               "Server not initialized."), &out);
+    return;
+  }
+
+  CHECK_EXIST(args, "clientName", out)
+  CHECK_EXIST(args, "replyId", out)
+  CHECK_EXIST(args, "data", out)
+
+  server_->CommandReply(args.get("clientName").get<std::string>(),
+                        args.get("replyId").to_str(),
+                        args.get("data"));
+
+  ReportSuccess(out);
 }
 
 void MediaControllerInstance::MediaControllerServerRemoveCommandListener(
     const picojson::value& args,
     picojson::object& out) {
-  CHECK_EXIST(args, "watchId", out)
+  LOGGER(DEBUG) << "entered";
 
-  double watchId = args.get("watchId").get<double>();
+  if (!server_) {
+    ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
+                               "Server not initialized."), &out);
+    return;
+  }
 
-  // implement it
+  server_->set_command_listener(nullptr);
 
-  // if success
-  // ReportSuccess(out);
-  // if error
-  // ReportError(out);
+  ReportSuccess(out);
 }
 
 void MediaControllerInstance::MediaControllerManagerGetClient(
@@ -508,22 +546,42 @@ void MediaControllerInstance::MediaControllerServerInfoSendRepeatMode(
 void MediaControllerInstance::MediaControllerServerInfoSendCommand(
     const picojson::value& args,
     picojson::object& out) {
-  CHECK_EXIST(args, "callbackId", out)
+
+  if (!client_) {
+    LOGGER(ERROR) << "Client not initialized.";
+    ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
+                               "Client not initialized."), &out);
+    return;
+  }
+
+  CHECK_EXIST(args, "listenerId", out)
+  CHECK_EXIST(args, "replyId", out)
+  CHECK_EXIST(args, "name", out)
   CHECK_EXIST(args, "command", out)
   CHECK_EXIST(args, "data", out)
 
-  int callbackId = static_cast<int>(args.get("callbackId").get<double>());
-  const std::string& command = args.get("command").get<std::string>();
-  const picojson::object data = args.get("data").get<picojson::object>();
+  JsonCallback reply_cb = [this, args](picojson::value* reply) -> void {
+    LOGGER(DEBUG) << "entered";
 
-  // implement it
+    picojson::object& reply_obj = reply->get<picojson::object>();
 
-  // call ReplyAsync in later (Asynchronously)
+    reply_obj["listenerId"] = args.get("listenerId");
 
-  // if success
-  // ReportSuccess(out);
-  // if error
-  // ReportError(out);
+    PostMessage(reply->serialize().c_str());
+  };
+
+  PlatformResult result = client_->SendCommand(
+      args.get("name").get<std::string>(),
+      args.get("command").get<std::string>(),
+      args.get("data"),
+      args.get("replyId").to_str(),
+      reply_cb);
+
+  if (result) {
+    ReportSuccess(out);
+  } else {
+    ReportError(result, &out);
+  }
 }
 
 void MediaControllerInstance::MediaControllerServerInfoAddServerStatusChangeListener(

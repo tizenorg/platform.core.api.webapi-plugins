@@ -170,9 +170,9 @@ PlatformResult Types::ConvertMetadata(mc_metadata_h metadata_h,
     return result;
   }
 
-  char* value;
+  char* value = nullptr;
   SCOPE_EXIT {
-      free(value);
+    free(value);
   };
 
   int ret;

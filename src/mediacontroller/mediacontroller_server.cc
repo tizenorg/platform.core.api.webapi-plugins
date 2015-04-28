@@ -4,7 +4,10 @@
 
 #include "mediacontroller/mediacontroller_server.h"
 
+#include <bundle.h>
+
 #include "common/logger.h"
+#include "common/scope_exit.h"
 
 #include "mediacontroller/mediacontroller_types.h"
 
@@ -20,27 +23,41 @@ MediaControllerServer::MediaControllerServer() : handle_(nullptr) {
 MediaControllerServer::~MediaControllerServer() {
 
   if (handle_) {
-    int ret = mc_server_destroy(handle_);
+    int ret;
+    ret = mc_server_unset_custom_command_received_cb(handle_);
     if (ret != MEDIA_CONTROLLER_ERROR_NONE) {
-      LOGGER(ERROR) << "Unable to destroy media controller server";
+      LOGGER(ERROR) << "Unable to unset command callback, error: " << ret;
+    }
+
+    ret = mc_server_destroy(handle_);
+    if (ret != MEDIA_CONTROLLER_ERROR_NONE) {
+      LOGGER(ERROR) << "mc_server_destroy() failed, error: " << ret;
     }
   }
 }
 
-common::PlatformResult MediaControllerServer::Init() {
-  PlatformResult result = PlatformResult(ErrorCode::NO_ERROR);
+PlatformResult MediaControllerServer::Init() {
 
   int ret = mc_server_create(&handle_);
   if (ret != MEDIA_CONTROLLER_ERROR_NONE) {
     LOGGER(ERROR) << "Unable to create media controller server, error: " << ret;
-    result = PlatformResult(ErrorCode::UNKNOWN_ERR,
-                            "Unable to create media controller server");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                          "Unable to create media controller server");
   }
 
-  return result;
+  ret = mc_server_set_custom_command_received_cb(handle_,
+                                                 OnCommandReceived,
+                                                 this);
+  if (ret != MEDIA_CONTROLLER_ERROR_NONE) {
+    LOGGER(ERROR) << "Unable to set command callback, error: " << ret;
+    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                          "Unable to set command callback");
+  }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-common::PlatformResult MediaControllerServer::SetPlaybackState(
+PlatformResult MediaControllerServer::SetPlaybackState(
     const std::string& state) {
 
   int state_int;
@@ -69,8 +86,7 @@ common::PlatformResult MediaControllerServer::SetPlaybackState(
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-common::PlatformResult MediaControllerServer::SetPlaybackPosition(
-    double position) {
+PlatformResult MediaControllerServer::SetPlaybackPosition(double position) {
 
   int ret = mc_server_set_playback_position(
       handle_, static_cast<unsigned long long>(position));
@@ -90,7 +106,7 @@ common::PlatformResult MediaControllerServer::SetPlaybackPosition(
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-common::PlatformResult MediaControllerServer::SetShuffleMode(bool mode) {
+PlatformResult MediaControllerServer::SetShuffleMode(bool mode) {
 
   int ret = mc_server_update_shuffle_mode(handle_,
                                           mode ? SHUFFLE_MODE_ON
@@ -104,7 +120,7 @@ common::PlatformResult MediaControllerServer::SetShuffleMode(bool mode) {
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-common::PlatformResult MediaControllerServer::SetRepeatMode(bool mode) {
+PlatformResult MediaControllerServer::SetRepeatMode(bool mode) {
 
   int ret = mc_server_update_repeat_mode(handle_,
                                          mode ? REPEAT_MODE_ON
@@ -117,16 +133,15 @@ common::PlatformResult MediaControllerServer::SetRepeatMode(bool mode) {
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-common::PlatformResult MediaControllerServer::SetMetadata(
+PlatformResult MediaControllerServer::SetMetadata(
     const picojson::object& metadata) {
 
   int attribute_int, ret;
-  PlatformResult result(ErrorCode::NO_ERROR);
   for (picojson::object::const_iterator i = metadata.begin();
        i != metadata.end();
        ++i) {
 
-    result = Types::StringToPlatformEnum(
+    PlatformResult result = Types::StringToPlatformEnum(
         Types::kMediaControllerMetadataAttribute, i->first, &attribute_int);
     if (!result) {
       return result;
@@ -147,7 +162,92 @@ common::PlatformResult MediaControllerServer::SetMetadata(
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Error updating metadata");
   }
 
-  return result;
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+void MediaControllerServer::OnCommandReceived(const char* client_name,
+                                              const char* command,
+                                              bundle* bundle,
+                                              void* user_data) {
+  LOGGER(DEBUG) << "entered";
+
+  MediaControllerServer* server = static_cast<MediaControllerServer*>(user_data);
+
+  if (server->command_listener_) {
+    picojson::value request = picojson::value(picojson::object());
+    picojson::object& request_o = request.get<picojson::object>();
+
+    int ret;
+    char* reply_id_str = nullptr;
+    char* data_str = nullptr;
+    SCOPE_EXIT {
+      free(reply_id_str);
+      free(data_str);
+    };
+
+    ret = bundle_get_str(bundle, "replyId", &reply_id_str);
+    if (ret != MEDIA_CONTROLLER_ERROR_NONE) {
+      LOGGER(ERROR) << "bundle_get_str(replyId) failed, error: " << ret;
+      return;
+    }
+
+    ret = bundle_get_str(bundle, "data", &data_str);
+    if (ret != MEDIA_CONTROLLER_ERROR_NONE) {
+      LOGGER(ERROR) << "bundle_get_str(data) failed, error: " << ret;
+      return;
+    }
+
+    picojson::value data;
+    std::string err;
+    picojson::parse(data, data_str, data_str + strlen(data_str), &err);
+    if (!err.empty()) {
+      LOGGER(ERROR) << "Failed to parse bundle data: " << err;
+      return;
+    }
+
+    request_o["clientName"] = picojson::value(std::string(client_name));
+    request_o["command"] = picojson::value(std::string(command));
+    request_o["replyId"] = picojson::value(std::string(reply_id_str));
+    request_o["data"] = data;
+
+    server->command_listener_(&request);
+  }
+}
+
+PlatformResult MediaControllerServer::CommandReply(
+    const std::string& client_name,
+    const std::string& reply_id,
+    const picojson::value& data) {
+  LOGGER(DEBUG) << "entered";
+
+  int ret;
+
+  bundle* bundle = bundle_create();
+  SCOPE_EXIT {
+    bundle_free(bundle);
+  };
+
+  ret = bundle_add(bundle, "replyId", reply_id.c_str());
+  if (ret != MEDIA_CONTROLLER_ERROR_NONE) {
+    LOGGER(ERROR) << "bundle_add(replyId) failed, error: " << ret;
+    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                          "Unable to add replyId to bundle");
+  }
+
+  ret = bundle_add(bundle, "data", data.serialize().c_str());
+  if (ret != MEDIA_CONTROLLER_ERROR_NONE) {
+    LOGGER(ERROR) << "bundle_add(data) failed, error: " << ret;
+    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                          "Unable to add data to bundle");
+  }
+
+  ret = mc_server_send_command_reply(handle_, client_name.c_str(), 0, bundle, NULL);
+  if (ret != MEDIA_CONTROLLER_ERROR_NONE) {
+    LOGGER(ERROR) << "mc_server_send_command_reply failed, error: " << ret;
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Error sending command reply");
+  }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 PlatformResult MediaControllerServer::SetChangeRequestPlaybackInfoListener(

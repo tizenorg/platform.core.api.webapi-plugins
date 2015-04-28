@@ -4,6 +4,9 @@
 
 #include "mediacontroller/mediacontroller_client.h"
 
+#include <bundle.h>
+#include <memory>
+
 #include "common/logger.h"
 #include "common/scope_exit.h"
 
@@ -97,7 +100,10 @@ PlatformResult MediaControllerClient::GetLatestServerInfo(
 
   int ret;
 
-  char* name;
+  char* name = nullptr;
+  SCOPE_EXIT {
+    free(name);
+  };
   mc_server_state_e state;
   ret = mc_client_get_latest_server_info(handle_, &name, &state);
   if (ret != MEDIA_CONTROLLER_ERROR_NONE) {
@@ -106,14 +112,10 @@ PlatformResult MediaControllerClient::GetLatestServerInfo(
                           "Error getting latest server info");
   }
 
-  if (NULL == name) {
+  if (!name) {
     LOGGER(DEBUG) << "No active server available";
     return PlatformResult(ErrorCode::NO_ERROR);
   }
-
-  SCOPE_EXIT {
-    free(name);
-  };
 
   std::string state_str;
   PlatformResult result = Types::PlatformEnumToString(
@@ -474,6 +476,97 @@ void MediaControllerClient::OnMetadataUpdate(const char* server_name,
   data_o["metadata"] = metadata;
 
   client->playback_info_listener_(&data);
+}
+
+PlatformResult MediaControllerClient::SendCommand(
+    const std::string& server_name,
+    const std::string& command,
+    const picojson::value& data,
+    const std::string& reply_id,
+    const JsonCallback& reply_cb) {
+  LOGGER(DEBUG) << "entered";
+
+  int ret;
+
+  bundle* bundle = bundle_create();
+  SCOPE_EXIT {
+    bundle_free(bundle);
+  };
+
+  ret = bundle_add(bundle, "replyId", reply_id.c_str());
+  if (ret != MEDIA_CONTROLLER_ERROR_NONE) {
+    LOGGER(ERROR) << "bundle_add(replyId) failed, error: " << ret;
+    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                          "Unable to add replyId to bundle");
+  }
+
+  ret = bundle_add(bundle, "data", data.serialize().c_str());
+  if (ret != MEDIA_CONTROLLER_ERROR_NONE) {
+    LOGGER(ERROR) << "bundle_add(data) failed, error: " << ret;
+    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                          "Unable to add data to bundle");
+  }
+
+  ret = mc_client_send_custom_command(handle_,
+                                      server_name.c_str(),
+                                      command.c_str(),
+                                      bundle,
+                                      OnCommandReply,
+                                      this);
+  if (ret != MEDIA_CONTROLLER_ERROR_NONE) {
+    LOGGER(ERROR) << "mc_client_send_custom_command failed, error: " << ret;
+    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                          "Error sending custom command");
+  }
+
+  command_reply_callback_ = reply_cb;
+
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+void MediaControllerClient::OnCommandReply(const char* server_name,
+                                           int result_code,
+                                           bundle* bundle,
+                                           void* user_data) {
+  LOGGER(DEBUG) << "entered";
+
+  MediaControllerClient* client = static_cast<MediaControllerClient*>(user_data);
+
+  picojson::value reply = picojson::value(picojson::object());
+  picojson::object& reply_o = reply.get<picojson::object>();
+
+  int ret;
+  char* reply_id_str = nullptr;
+  char* data_str = nullptr;
+  SCOPE_EXIT {
+    free(reply_id_str);
+    free(data_str);
+  };
+
+  ret = bundle_get_str(bundle, "replyId", &reply_id_str);
+  if (ret != MEDIA_CONTROLLER_ERROR_NONE) {
+    LOGGER(ERROR) << "bundle_get_str(replyId) failed, error: " << ret;
+    return;
+  }
+
+  reply_o["replyId"] = picojson::value(std::string(reply_id_str));
+
+  ret = bundle_get_str(bundle, "data", &data_str);
+  if (ret != MEDIA_CONTROLLER_ERROR_NONE) {
+    LOGGER(ERROR) << "bundle_get_str(data) failed, error: " << ret;
+    return;
+  }
+
+  picojson::value data;
+  std::string err;
+  picojson::parse(data, data_str, data_str + strlen(data_str), &err);
+  if (!err.empty()) {
+    LOGGER(ERROR) << "Failed to parse bundle data: " << err;
+    return;
+  }
+  reply_o["data"] = data;
+
+  client->command_reply_callback_(&reply);
 }
 
 PlatformResult MediaControllerClient::SendPlaybackState(

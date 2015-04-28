@@ -29,13 +29,27 @@ class MediaControllerServer {
   common::PlatformResult SetChangeRequestPlaybackInfoListener(
       JsonCallback callback);
 
+  common::PlatformResult CommandReply(const std::string& client_name,
+                                      const std::string& reply_id,
+                                      const picojson::value& data);
+
+  void set_command_listener(const JsonCallback& func) {
+    command_listener_ = func;
+  }
+
  private:
   mc_server_h handle_;
+
   JsonCallback change_request_playback_info_listener_;
+  JsonCallback command_listener_;
 
   static void OnPlaybackStateCommand(const char* client_name,
                                      mc_playback_states_e state_e,
                                      void *user_data);
+  static void OnCommandReceived(const char* client_name,
+                                const char* command,
+                                bundle* data,
+                                void* user_data);
 };
 
 } // namespace mediacontroller

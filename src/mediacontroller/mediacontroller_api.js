@@ -26,7 +26,10 @@ ListenerManager.prototype.addListener = function(callback, data) {
     this.native.addListener(this.listenerName, function(msg) {
       for (var watchId in this.listeners) {
         if (this.listeners.hasOwnProperty(watchId)) {
-          this.handle(msg, this.listeners[watchId], watchId);
+          var stop = this.handle(msg, this.listeners[watchId], watchId);
+          if (stop) {
+            break;
+          }
         }
       }
     }.bind(this));
@@ -45,11 +48,15 @@ ListenerManager.prototype.removeListener = function(watchId) {
 };
 
 var ServerCommandListener = new ListenerManager(native_, '_ServerCommandListener', function(msg, listener) {
-  var d = native_.getResultObject(msg);
-  var data = listener(d.clientName, d.command, d.data);
+  var data = listener(msg.clientName, msg.command, msg.data);
+
+  if (type_.isNullOrUndefined(data)) {
+    return;
+  }
 
   var nativeData = {
-    clientName: d.clientName,
+    clientName: msg.clientName,
+    replyId: msg.replyId,
     data: data
   };
 
@@ -60,8 +67,13 @@ var ServerCommandListener = new ListenerManager(native_, '_ServerCommandListener
 });
 
 var ReplyCommandListener = new ListenerManager(native_, '_ReplyCommandListener', function(msg, listener, watchId) {
-  listener(msg.reply);
-  this.removeListener(watchId);
+  if (msg.replyId === watchId) {
+    listener(msg.data);
+    this.removeListener(watchId);
+    return true;
+  }
+
+  return false;
 });
 
 var ServerPlaybackInfoListener = new ListenerManager(native_, '_ServerPlaybackInfoListener', function(msg, listener) {
