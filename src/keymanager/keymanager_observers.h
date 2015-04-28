@@ -15,6 +15,7 @@ class KeyManagerListener {
 public:
   virtual void OnSaveKey(double callbackId, const common::PlatformResult& result) = 0;
   virtual void OnCreateKeyPair(double callbackId, const common::PlatformResult& result) = 0;
+  virtual void OnSaveCert(double callbackId, const common::PlatformResult& result) = 0;
   virtual ~KeyManagerListener() {}
 };
 
@@ -42,6 +43,12 @@ struct CreateKeyObserver: public CommonObserver {
 private:
   void CallSuccess();
 
+};
+
+struct SaveCertObserver: public CommonObserver {
+  SaveCertObserver(KeyManagerListener* listener, double callbackId);
+  void ReceivedError(int error);
+  void ReceivedSaveCertificate();
 };
 
 } // namespace keymanager

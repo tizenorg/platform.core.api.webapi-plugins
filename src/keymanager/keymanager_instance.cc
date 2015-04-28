@@ -39,6 +39,10 @@ KeyManagerInstance::KeyManagerInstance() {
       std::bind(&KeyManagerInstance::RemoveKey, this, _1, _2));
   RegisterSyncHandler("KeyManager_generateKeyPair",
       std::bind(&KeyManagerInstance::GenerateKeyPair, this, _1, _2));
+  RegisterSyncHandler("KeyManager_getCertificate",
+      std::bind(&KeyManagerInstance::GetCertificate, this, _1, _2));
+  RegisterSyncHandler("KeyManager_saveCertificate",
+      std::bind(&KeyManagerInstance::SaveCertificate, this, _1, _2));
 }
 
 KeyManagerInstance::~KeyManagerInstance() {
@@ -213,6 +217,16 @@ void KeyManagerInstance::OnCreateKeyPair(double callbackId,
   PostMessage(res.serialize().c_str());
 }
 
+std::string RawBufferToBase64(const CKM::RawBuffer &buf) {
+  std::string result;
+  if (!buf.empty()) {
+    gchar* base64 = g_base64_encode(&buf[0], buf.size());
+    result = base64;
+    g_free(base64);
+  }
+  return result;
+}
+
 void KeyManagerInstance::GetKey(const picojson::value& args, picojson::object& out) {
   LoggerD("Enter");
   using CKM::KeyType;
@@ -266,20 +280,92 @@ void KeyManagerInstance::GetKey(const picojson::value& args, picojson::object& o
         dict["keyType"] = picojson::value("KEY_AES");
         break;
     }
-    CKM::RawBuffer buf = key->getDER();
-    if (!buf.empty()) {
-      gchar* base64 = g_base64_encode(&buf[0], buf.size());
-      dict["rawKey"] = picojson::value(std::string(base64));
-      g_free(base64);
-    } else {
-      dict["rawKey"] = picojson::value(std::string());
-    }
+    dict["rawKey"] = picojson::value(RawBufferToBase64(key->getDER()));
     //if key was retrieved it is extractable from db
     dict["extractable"] = picojson::value(true);
 
     picojson::value res(dict);
     ReportSuccess(res, out);
   }
+}
+
+void KeyManagerInstance::GetCertificate(const picojson::value& args,
+    picojson::object& out) {
+  LoggerD("Enter");
+
+  CKM::Password pass;
+  if (args.get("password").is<std::string>()) {
+    pass = args.get("password").get<std::string>().c_str();
+  }
+  const std::string& alias = args.get("name").get<std::string>();
+  CKM::CertificateShPtr cert;
+  int ret = CKM::Manager::create()->getCertificate(alias, pass, cert);
+  if (ret != CKM_API_SUCCESS) {
+    LoggerE("Failed to get cert: %d", ret);
+    if (ret == CKM_API_ERROR_DB_ALIAS_UNKNOWN) {
+      ReportError(common::PlatformResult(common::ErrorCode::NOT_FOUND_ERR,
+        "Cert alias not found"), &out);
+    } else {
+      ReportError(common::PlatformResult(common::ErrorCode::UNKNOWN_ERR,
+        "Failed to get cert"), &out);
+    }
+  } else {
+    picojson::object dict;
+    dict["name"] = args.get("name");
+    if (args.get("password").is<std::string>()) {
+      dict["password"] = args.get("password");
+    }
+    //if cert was retrieved it is extractable from db
+    dict["extractable"] = picojson::value(true);
+    dict["rawCert"] = picojson::value(RawBufferToBase64(cert->getDER()));
+
+    picojson::value res(dict);
+    ReportSuccess(res, out);
+  }
+}
+
+void KeyManagerInstance::SaveCertificate(const picojson::value& args,
+    picojson::object& out) {
+  LoggerD("Enter");
+
+  const picojson::value& crt = args.get("certificate");
+  const std::string& alias = crt.get("name").get<std::string>();
+  std::string password;
+  if (crt.get("password").is<std::string>()) {
+    password = crt.get("password").get<std::string>();
+  }
+  std::string base64 = args.get("rawCert").get<std::string>();
+  pcrecpp::RE_Options opt;
+  opt.set_multiline(true);
+  //remove first line and last line
+  pcrecpp::RE("-----[^-]*-----", opt).GlobalReplace("", &base64);
+  gsize len = 0;
+  guchar* rawData = g_base64_decode(base64.c_str(), &len);
+  CKM::RawBuffer rawBuffer;
+  rawBuffer.assign(rawData, rawData + len);
+  g_free(rawData);
+  CKM::Password pass(password.c_str());
+  CKM::CertificateShPtr cert = CKM::Certificate::create(rawBuffer,
+      CKM::DataFormat::FORM_DER);
+  CKM::Policy policy(pass, crt.get("extractable").get<bool>());
+  CKM::ManagerAsync::ObserverPtr observer(new SaveCertObserver(this,
+    args.get("callbackId").get<double>()));
+  m_manager.saveCertificate(observer, alias, cert, policy);
+
+  ReportSuccess(out);
+}
+
+void KeyManagerInstance::OnSaveCert(double callbackId,
+    const common::PlatformResult& result) {
+  LoggerD("Enter");
+  picojson::value::object dict;
+  dict["callbackId"] = picojson::value(callbackId);
+  if (result.IsError()) {
+    LoggerE("There was an error");
+    ReportError(result, &dict);
+  }
+  picojson::value res(dict);
+  PostMessage(res.serialize().c_str());
 }
 
 } // namespace keymanager

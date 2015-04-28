@@ -91,5 +91,27 @@ void CreateKeyObserver::ReceivedError(int error) {
     PlatformResult(code, message)));
 }
 
+SaveCertObserver::SaveCertObserver(KeyManagerListener* listener, double callbackId):
+    CommonObserver(listener, callbackId) {
+}
+
+void SaveCertObserver::ReceivedError(int error) {
+  LoggerD("Enter, error: %d", error);
+  ErrorCode code = ErrorCode::UNKNOWN_ERR;
+  if (error == CKM_API_ERROR_INPUT_PARAM) {
+    code = ErrorCode::INVALID_VALUES_ERR;
+  }
+  common::TaskQueue::GetInstance().Async(std::bind(
+    &KeyManagerListener::OnSaveCert, listener, callbackId,
+    PlatformResult(code, "Failed to save certificate")));
+}
+
+void SaveCertObserver::ReceivedSaveCertificate() {
+  LoggerD("Enter");
+  common::TaskQueue::GetInstance().Async(std::bind(
+    &KeyManagerListener::OnSaveCert, listener, callbackId,
+    PlatformResult(ErrorCode::NO_ERROR)));
+}
+
 } // namespace keymanager
 } // namespace extension
