@@ -22,7 +22,12 @@ class KeyManagerInstance :
   void OnSaveKey(double callbackId, const common::PlatformResult& result);
   void OnCreateKeyPair(double callbackId, const common::PlatformResult& result);
  private:
+  void GetAliasList(std::function<int(CKM::AliasVector&)> coreFunc,
+      picojson::object& out);
   void GetKeyAliasList(picojson::value const& args, picojson::object& out);
+  void GetCertificateAliasList(picojson::value const& args,
+      picojson::object& out);
+  void GetDataAliasList(picojson::value const& args, picojson::object& out);
   void GetKey(const picojson::value& args, picojson::object& out);
   void SaveKey(const picojson::value& args, picojson::object& out);
   void RemoveKey(const picojson::value& args, picojson::object& out);

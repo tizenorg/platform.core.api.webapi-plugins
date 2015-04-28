@@ -27,6 +27,10 @@ KeyManagerInstance::KeyManagerInstance() {
 
   RegisterSyncHandler("KeyManager_getKeyAliasList",
       std::bind(&KeyManagerInstance::GetKeyAliasList, this, _1, _2));
+  RegisterSyncHandler("KeyManager_getCertificatesAliasList",
+      std::bind(&KeyManagerInstance::GetCertificateAliasList, this, _1, _2));
+  RegisterSyncHandler("KeyManager_getDataAliasList",
+      std::bind(&KeyManagerInstance::GetDataAliasList, this, _1, _2));
   RegisterSyncHandler("KeyManager_getKey",
       std::bind(&KeyManagerInstance::GetKey, this, _1, _2));
   RegisterSyncHandler("KeyManager_saveKey",
@@ -40,15 +44,15 @@ KeyManagerInstance::KeyManagerInstance() {
 KeyManagerInstance::~KeyManagerInstance() {
 }
 
-void KeyManagerInstance::GetKeyAliasList(const picojson::value& args,
-    picojson::object& out) {
+void KeyManagerInstance::GetAliasList(
+    std::function<int(CKM::AliasVector&)> coreFunc, picojson::object& out) {
   LoggerD("Enter");
   CKM::AliasVector result;
-  int ret = CKM::Manager::create()->getKeyAliasVector(result);
+  int ret = coreFunc(result);
   if (ret != CKM_API_SUCCESS) {
-      LoggerE("Failed to fetch list of key alias: %d", ret);
+      LoggerE("Failed to fetch list of alias: %d", ret);
       ReportError(common::PlatformResult(common::ErrorCode::UNKNOWN_ERR,
-        "Failed to fetch list of key alias"), &out);
+        "Failed to fetch list of alias"), &out);
   } else {
       picojson::array aliases;
       for (auto& item: result) {
@@ -57,6 +61,33 @@ void KeyManagerInstance::GetKeyAliasList(const picojson::value& args,
       picojson::value res(aliases);
       ReportSuccess(res, out);
   }
+}
+
+void KeyManagerInstance::GetKeyAliasList(const picojson::value& args,
+    picojson::object& out) {
+  LoggerD("Enter");
+  using std::placeholders::_1;
+  GetAliasList(
+      std::bind(&CKM::Manager::getKeyAliasVector, CKM::Manager::create(), _1),
+      out);
+}
+
+void KeyManagerInstance::GetCertificateAliasList(const picojson::value& args,
+    picojson::object& out) {
+  LoggerD("Enter");
+  using std::placeholders::_1;
+  GetAliasList(
+      std::bind(&CKM::Manager::getCertificateAliasVector, CKM::Manager::create(), _1),
+      out);
+}
+
+void KeyManagerInstance::GetDataAliasList(const picojson::value& args,
+    picojson::object& out) {
+  LoggerD("Enter");
+  using std::placeholders::_1;
+  GetAliasList(
+      std::bind(&CKM::Manager::getDataAliasVector, CKM::Manager::create(), _1),
+      out);
 }
 
 void KeyManagerInstance::SaveKey(const picojson::value& args,
