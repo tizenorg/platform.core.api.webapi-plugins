@@ -21,6 +21,10 @@ class MediaControllerClient {
   common::PlatformResult Init();
   common::PlatformResult FindServers(picojson::array* servers);
   common::PlatformResult GetLatestServerInfo(picojson::value* server_info);
+  common::PlatformResult GetPlaybackInfo(const std::string& server_name,
+                                         picojson::object* playback_info);
+  common::PlatformResult GetMetadata(const std::string& server_name,
+                                         picojson::object* metadata);
 
  private:
   mc_client_h handle_;

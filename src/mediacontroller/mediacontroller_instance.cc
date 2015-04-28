@@ -64,6 +64,8 @@ MediaControllerInstance::MediaControllerInstance() {
       MediaControllerClientFindServers);
   REGISTER_SYNC("MediaControllerClient_getLatestServerInfo",
       MediaControllerClientGetLatestServerInfo);
+  REGISTER_SYNC("MediaControllerClient_getPlaybackInfo",
+      MediaControllerClientGetPlaybackInfo);
   REGISTER_SYNC("MediaControllerServerInfo_sendPlaybackState",
       MediaControllerServerInfoSendPlaybackState);
   REGISTER_ASYNC("MediaControllerServerInfo_sendPlaybackPosition",
@@ -310,6 +312,31 @@ void MediaControllerInstance::MediaControllerClientGetLatestServerInfo(
   }
 
   ReportSuccess(server_info, out);
+}
+
+void MediaControllerInstance::MediaControllerClientGetPlaybackInfo(
+    const picojson::value& args,
+    picojson::object& out) {
+
+  if (!client_) {
+    ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
+                               "Client not initialized."), &out);
+    return;
+  }
+
+  CHECK_EXIST(args, "name", out)
+
+  picojson::value playback_info = picojson::value(picojson::object());
+  PlatformResult result = client_->GetPlaybackInfo(
+      args.get("name").get<std::string>(),
+      &playback_info.get<picojson::object>());
+
+  if (!result) {
+    ReportError(result, &out);
+    return;
+  }
+
+  ReportSuccess(playback_info, out);
 }
 
 void MediaControllerInstance::MediaControllerServerInfoSendPlaybackState(

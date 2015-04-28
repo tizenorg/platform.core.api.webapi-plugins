@@ -23,11 +23,14 @@ class Types {
   static const std::string kMediaControllerPlaybackState;
   static const std::string kMediaControllerMetadataAttribute;
 
+  static common::PlatformResult GetPlatformEnumMap(
+      const std::string& type, std::map<std::string, int>* platform_str);
+
   static common::PlatformResult StringToPlatformEnum(const std::string& type,
                                                      const std::string& value,
                                                      int* platform_enum);
 
-  static common::PlatformResult PlatformEnumToString(const std::string& field,
+  static common::PlatformResult PlatformEnumToString(const std::string& type,
                                                      int value,
                                                      std::string* platform_str);
 

@@ -36,6 +36,7 @@ class MediaControllerInstance : public common::ParsedInstance {
   void MediaControllerManagerGetClient(const picojson::value& args, picojson::object& out);
   void MediaControllerClientFindServers(const picojson::value& args, picojson::object& out);
   void MediaControllerClientGetLatestServerInfo(const picojson::value& args, picojson::object& out);
+  void MediaControllerClientGetPlaybackInfo(const picojson::value& args, picojson::object& out);
   void MediaControllerServerInfoSendPlaybackState(const picojson::value& args, picojson::object& out);
   void MediaControllerServerInfoSendPlaybackPosition(const picojson::value& args, picojson::object& out);
   void MediaControllerServerInfoSendRepeatMode(const picojson::value& args, picojson::object& out);

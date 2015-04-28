@@ -48,16 +48,29 @@ const PlatformEnumMap Types::platform_enum_map_ = {
 
 PlatformEnumReverseMap Types::platform_enum_reverse_map_ = {};
 
-PlatformResult Types::StringToPlatformEnum(const std::string& field,
-                                           const std::string& value,
-                                           int* platform_enum) {
-  auto iter = platform_enum_map_.find(field);
+PlatformResult Types::GetPlatformEnumMap(const std::string& type,
+                                  std::map<std::string, int>* enum_map) {
+
+  auto iter = platform_enum_map_.find(type);
   if (iter == platform_enum_map_.end()) {
     return PlatformResult(ErrorCode::UNKNOWN_ERR,
-        std::string("Undefined platform enum type ") + field);
+                          std::string("Undefined platform enum type ") + type);
   }
 
-  auto def = platform_enum_map_.at(field);
+  *enum_map = platform_enum_map_.at(type);
+
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult Types::StringToPlatformEnum(const std::string& type,
+                                           const std::string& value,
+                                           int* platform_enum) {
+  std::map<std::string, int> def;
+  PlatformResult result = GetPlatformEnumMap(type, &def);
+  if (!result) {
+    return result;
+  }
+
   auto def_iter = def.find(value);
   if (def_iter != def.end()) {
     *platform_enum = def_iter->second;
@@ -65,11 +78,11 @@ PlatformResult Types::StringToPlatformEnum(const std::string& field,
   }
 
   std::string message =
-      "Platform enum value " + value + " not found for " + field;
+      "Platform enum value " + value + " not found for " + type;
   return PlatformResult(ErrorCode::INVALID_VALUES_ERR, message);
 }
 
-PlatformResult Types::PlatformEnumToString(const std::string& field,
+PlatformResult Types::PlatformEnumToString(const std::string& type,
                                            int value,
                                            std::string* platform_str) {
   // TODO(r.galka) can be replaced by Boost.Bimap
@@ -83,13 +96,13 @@ PlatformResult Types::PlatformEnumToString(const std::string& field,
     }
   }
 
-  auto it = platform_enum_reverse_map_.find(field);
+  auto it = platform_enum_reverse_map_.find(type);
   if (it == platform_enum_reverse_map_.end()) {
     return PlatformResult(ErrorCode::UNKNOWN_ERR,
-        std::string("Undefined platform enum type ") + field);
+        std::string("Undefined platform enum type ") + type);
   }
 
-  auto def = platform_enum_reverse_map_.at(field);
+  auto def = platform_enum_reverse_map_.at(type);
   auto def_it = def.find(value);
   if (def_it != def.end()) {
     *platform_str = def_it->second;
@@ -97,7 +110,7 @@ PlatformResult Types::PlatformEnumToString(const std::string& field,
   }
 
   std::string message = "Platform enum value " + std::to_string(value) +
-      " not found for " + field;
+      " not found for " + type;
   return PlatformResult(ErrorCode::INVALID_VALUES_ERR, message);
 }
 
