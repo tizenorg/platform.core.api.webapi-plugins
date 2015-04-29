@@ -266,6 +266,7 @@ BuildRequires: pkgconfig(x11)
 BuildRequires: pkgconfig(xrandr)
 BuildRequires: pkgconfig(ecore)
 BuildRequires: pkgconfig(icu-i18n)
+BuildRequires: pkgconfig(aul)
 BuildRequires: pkgconfig(storage)
 BuildRequires: python
 BuildRequires: pkgconfig(capi-base-common)
@@ -326,6 +327,7 @@ BuildRequires: pkgconfig(capi-media-controller)
 BuildRequires:  pkgconfig(ecore-file)
 BuildRequires:  pkgconfig(email-service)
 BuildRequires:  pkgconfig(msg-service)
+BuildRequires:  pkgconfig(db-util)
 %endif
 
 %if 0%{?tizen_feature_badge_support}
