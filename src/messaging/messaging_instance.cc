@@ -143,9 +143,6 @@ MessagingInstance::MessagingInstance():
       REGISTER_ASYNC(FUN_MESSAGE_STORAGE_FIND_CONVERSATIONS, MessageStorageFindConversations);
       REGISTER_ASYNC(FUN_MESSAGE_STORAGE_REMOVE_CONVERSATIONS, MessageStorageRemoveConversations);
       REGISTER_ASYNC(FUN_MESSAGE_STORAGE_FIND_FOLDERS, MessageStorageFindFolders);
-      REGISTER_ASYNC(FUN_MESSAGE_STORAGE_ADD_MESSAGES_CHANGE_LISTENER, MessageStorageAddMessagesChangeListener);
-      REGISTER_ASYNC(FUN_MESSAGE_STORAGE_ADD_CONVERSATIONS_CHANGE_LISTENER, MessageStorageAddConversationsChangeListener);
-      REGISTER_ASYNC(FUN_MESSAGE_STORAGE_ADD_FOLDER_CHANGE_LISTENER, MessageStorageAddFolderChangeListener);
     #undef REGISTER_ASYNC
     #define REGISTER_SYNC(c,x) \
       RegisterSyncHandler(c, std::bind(&MessagingInstance::x, this, _1, _2));
@@ -893,8 +890,7 @@ void MessagingInstance::MessageStorageRemoveChangeListener(const picojson::value
 
     CHECK_PRIVILEGE_ACCESS(kPrivilegeMessagingRead, &out);
 
-    if (!args.contains(JSON_DATA) || !args.contains(JSON_CALLBACK_ID) ||
-        !args.get(JSON_CALLBACK_ID).is<double>()) {
+    if (!args.contains(JSON_DATA)) {
       LoggerE("json is incorrect - missing required member");
       return;
     }
