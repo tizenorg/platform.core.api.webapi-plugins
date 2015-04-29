@@ -10,13 +10,9 @@
         '../common/common.gyp:tizen_common',
       ],
       'sources': [
-        'websetting.cc',
-        'websetting.h',
         'websetting_api.js',
         'websetting_extension.cc',
         'websetting_extension.h',
-        'websetting_instance.cc',
-        'websetting_instance.h',
       ],
       'includes': [
         '../common/pkg-config.gypi',

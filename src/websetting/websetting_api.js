@@ -3,14 +3,12 @@
 // found in the LICENSE file.
 
 var validator_ = xwalk.utils.validator;
-var type_ = xwalk.utils.type;
 var native_ = new xwalk.utils.NativeManager(extension);
-var converter_ = xwalk.utils.converter;
 
 exports.setUserAgentString = function() {
   var args = validator_.validateArgs(arguments, [
     {
-      name: 'uri',
+      name: 'userAgent',
       type: validator_.Types.STRING,
       optional: false,
       nullable: false
@@ -31,16 +29,13 @@ exports.setUserAgentString = function() {
 
   var callback = function(result) {
     if (native_.isFailure(result)) {
-      native_.callIfPossible(args.errorCallback,
-          native_.getErrorObject(result));
+      native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));
     } else {
-      var exifInfo = native_.getResultObject(result);
-      args.successCallback(exifInfo);
+      args.successCallback();
     }
   };
 
-  native_.call('WebSettingManager_setUserAgentString', {'userAgent': args.userAgent},
-      callback);
+  native_.sendRuntimeAsyncMessage('tizen://changeUA', args.userAgent, callback);
 };
 
 exports.removeAllCookies = function() {
@@ -61,14 +56,11 @@ exports.removeAllCookies = function() {
 
   var callback = function(result) {
     if (native_.isFailure(result)) {
-      native_.callIfPossible(args.errorCallback,
-          native_.getErrorObject(result));
+      native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));
     } else {
-      var exifInfo = native_.getResultObject(result);
-      args.successCallback(exifInfo);
+      args.successCallback();
     }
   };
 
-  native_.call('WebSettingManager_removeAllCookies', {},
-      callback);
+  native_.sendRuntimeAsyncMessage('tizen://deleteAllCookies', '', callback);
 };
