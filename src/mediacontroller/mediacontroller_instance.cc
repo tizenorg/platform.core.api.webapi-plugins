@@ -111,7 +111,7 @@ void MediaControllerInstance::MediaControllerManagerCreateServer(
     return;
   }
 
-  // TODO(r.galka) check privileges
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeMediaControllerServer, &out);
 
   server_ = std::make_shared<MediaControllerServer>();
   const PlatformResult& result = server_->Init();
@@ -239,7 +239,6 @@ void MediaControllerInstance::MediaControllerServerUpdateMetadata(
 void MediaControllerInstance::MediaControllerServerAddChangeRequestPlaybackInfoListener(
     const picojson::value& args,
     picojson::object& out) {
-  LOGGER(DEBUG) << "entered";
 
   if (!server_) {
     ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
@@ -270,7 +269,6 @@ void MediaControllerInstance::MediaControllerServerAddChangeRequestPlaybackInfoL
 void MediaControllerInstance::MediaControllerServerRemoveChangeRequestPlaybackInfoListener(
     const picojson::value& args,
     picojson::object& out) {
-  LOGGER(DEBUG) << "entered";
 
   if (!server_) {
     ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
@@ -284,7 +282,6 @@ void MediaControllerInstance::MediaControllerServerRemoveChangeRequestPlaybackIn
 void MediaControllerInstance::MediaControllerServerAddCommandListener(
     const picojson::value& args,
     picojson::object& out) {
-  LOGGER(DEBUG) << "entered";
 
   if (!server_) {
     ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
@@ -293,7 +290,6 @@ void MediaControllerInstance::MediaControllerServerAddCommandListener(
   }
 
   JsonCallback on_command = [this, args](picojson::value* request) -> void {
-    LOGGER(DEBUG) << "entered";
 
     picojson::object& request_o = request->get<picojson::object>();
     request_o["listenerId"] = args.get("listenerId");
@@ -309,7 +305,6 @@ void MediaControllerInstance::MediaControllerServerAddCommandListener(
 void MediaControllerInstance::MediaControllerServerReplyCommand(
     const picojson::value& args,
     picojson::object& out) {
-  LOGGER(DEBUG) << "entered";
 
   if (!server_) {
     ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
@@ -331,7 +326,6 @@ void MediaControllerInstance::MediaControllerServerReplyCommand(
 void MediaControllerInstance::MediaControllerServerRemoveCommandListener(
     const picojson::value& args,
     picojson::object& out) {
-  LOGGER(DEBUG) << "entered";
 
   if (!server_) {
     ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
@@ -353,7 +347,7 @@ void MediaControllerInstance::MediaControllerManagerGetClient(
     return;
   }
 
-  // TODO(r.galka) check privileges
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeMediaControllerClient, &out);
 
   client_ = std::make_shared<MediaControllerClient>();
   const PlatformResult& result = client_->Init();
@@ -614,7 +608,6 @@ void MediaControllerInstance::MediaControllerServerInfoSendCommand(
   CHECK_EXIST(args, "data", out)
 
   JsonCallback reply_cb = [this, args](picojson::value* reply) -> void {
-    LOGGER(DEBUG) << "entered";
 
     picojson::object& reply_obj = reply->get<picojson::object>();
 
@@ -640,7 +633,6 @@ void MediaControllerInstance::MediaControllerServerInfoSendCommand(
 void MediaControllerInstance::MediaControllerServerInfoAddServerStatusChangeListener(
     const picojson::value& args,
     picojson::object& out) {
-  LOGGER(DEBUG) << "entered";
 
   if (!client_) {
     ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
@@ -651,7 +643,6 @@ void MediaControllerInstance::MediaControllerServerInfoAddServerStatusChangeList
   CHECK_EXIST(args, "listenerId", out)
 
   JsonCallback callback = [this, args](picojson::value* data) -> void {
-    LOGGER(DEBUG) << "entered";
 
     if (nullptr == data) {
       LOGGER(ERROR) << "No data passed to json callback";
@@ -672,7 +663,6 @@ void MediaControllerInstance::MediaControllerServerInfoAddServerStatusChangeList
 void MediaControllerInstance::MediaControllerServerInfoRemoveServerStatusChangeListener(
     const picojson::value& args,
     picojson::object& out) {
-  LOGGER(DEBUG) << "entered";
 
   if (!client_) {
     ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,

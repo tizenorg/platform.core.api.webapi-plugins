@@ -258,7 +258,6 @@ PlatformResult MediaControllerServer::CommandReply(
     const std::string& client_name,
     const std::string& reply_id,
     const picojson::value& data) {
-  LOGGER(DEBUG) << "entered";
 
   int ret;
 

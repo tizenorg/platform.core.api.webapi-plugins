@@ -271,7 +271,6 @@ PlatformResult MediaControllerClient::SetServerStatusChangeListener(
 void MediaControllerClient::OnServerStatusUpdate(const char* server_name,
                                                  mc_server_state_e state,
                                                  void* user_data) {
-  LOGGER(DEBUG) << "entered";
 
   MediaControllerClient* client = static_cast<MediaControllerClient*>(user_data);
 
@@ -484,15 +483,13 @@ PlatformResult MediaControllerClient::SendCommand(
     const picojson::value& data,
     const std::string& reply_id,
     const JsonCallback& reply_cb) {
-  LOGGER(DEBUG) << "entered";
-
-  int ret;
 
   bundle* bundle = bundle_create();
   SCOPE_EXIT {
     bundle_free(bundle);
   };
 
+  int ret;
   ret = bundle_add(bundle, "replyId", reply_id.c_str());
   if (ret != MEDIA_CONTROLLER_ERROR_NONE) {
     LOGGER(ERROR) << "bundle_add(replyId) failed, error: " << ret;
@@ -528,7 +525,6 @@ void MediaControllerClient::OnCommandReply(const char* server_name,
                                            int result_code,
                                            bundle* bundle,
                                            void* user_data) {
-  LOGGER(DEBUG) << "entered";
 
   MediaControllerClient* client = static_cast<MediaControllerClient*>(user_data);
 
@@ -572,9 +568,6 @@ void MediaControllerClient::OnCommandReply(const char* server_name,
 PlatformResult MediaControllerClient::SendPlaybackState(
     const std::string& server_name,
     const std::string& state) {
-  LOGGER(DEBUG) << "entered";
-
-  int ret;
 
   int state_e;
   PlatformResult result = Types::StringToPlatformEnum(
@@ -583,6 +576,7 @@ PlatformResult MediaControllerClient::SendPlaybackState(
     return result;
   }
 
+  int ret;
   ret = mc_client_send_playback_state_command(
       handle_, server_name.c_str(), static_cast<mc_playback_states_e>(state_e));
   if (ret != MEDIA_CONTROLLER_ERROR_NONE) {
