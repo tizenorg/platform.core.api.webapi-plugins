@@ -595,5 +595,32 @@ PlatformResult MediaControllerClient::SendPlaybackState(
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
+PlatformResult MediaControllerClient::SendPlaybackPosition(
+    const std::string& server_name,
+    double position) {
+
+  // TODO(r.galka) implement when dedicated method will be available in CAPI
+
+  return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR);
+}
+
+PlatformResult MediaControllerClient::SendShuffleMode(
+    const std::string& server_name,
+    bool mode) {
+
+  // TODO(r.galka) implement when dedicated method will be available in CAPI
+
+  return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR);
+}
+
+PlatformResult MediaControllerClient::SendRepeatMode(
+    const std::string& server_name,
+    bool mode) {
+
+  // TODO(r.galka) implement when dedicated method will be available in CAPI
+
+  return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR);
+}
+
 } // namespace mediacontroller
 } // namespace extension

@@ -14,6 +14,16 @@
 namespace extension {
 namespace mediacontroller {
 
+namespace {
+// The privileges that are required in Application API
+const std::string kInternalCommandSendPlaybackPosition
+    = "__internal_sendPlaybackPosition";
+const std::string kInternalCommandSendShuffleMode
+    = "__internal_sendShuffleMode";
+const std::string kInternalCommandSendRepeatMode
+    = "__internal_sendRepeatMode";
+}  // namespace
+
 using common::PlatformResult;
 using common::ErrorCode;
 
@@ -169,39 +179,69 @@ void MediaControllerServer::OnCommandReceived(const char* client_name,
                                               const char* command,
                                               bundle* bundle,
                                               void* user_data) {
-  LOGGER(DEBUG) << "entered";
 
   MediaControllerServer* server = static_cast<MediaControllerServer*>(user_data);
+
+  int ret;
+  char* data_str = nullptr;
+  SCOPE_EXIT {
+    free(data_str);
+  };
+
+  ret = bundle_get_str(bundle, "data", &data_str);
+  if (ret != MEDIA_CONTROLLER_ERROR_NONE) {
+    LOGGER(ERROR) << "bundle_get_str(data) failed, error: " << ret;
+    return;
+  }
+
+  picojson::value data;
+  std::string err;
+  picojson::parse(data, data_str, data_str + strlen(data_str), &err);
+  if (!err.empty()) {
+    LOGGER(ERROR) << "Failed to parse bundle data: " << err;
+    return;
+  }
+
+  // TODO(r.galka) CAPI have no dedicated methods for position/shuffle/repeat change.
+  // It should be updated when new version of CAPI will be available.
+  // For now implementation is using internal commands.
+  if (command == kInternalCommandSendPlaybackPosition) {
+    double position = data.get("position").get<double>();
+    server->SetPlaybackPosition(position);
+    server->OnPlaybackPositionCommand(client_name,
+                                      static_cast<unsigned long long>(position),
+                                      server);
+    return;
+  }
+  if (command == kInternalCommandSendShuffleMode) {
+    bool mode = data.get("mode").get<bool>();
+    server->SetShuffleMode(mode);
+    server->OnShuffleModeCommand(client_name,
+                                 mode ? SHUFFLE_MODE_ON : SHUFFLE_MODE_OFF,
+                                 server);
+    return;
+  }
+  if (command == kInternalCommandSendRepeatMode) {
+    bool mode = data.get("mode").get<bool>();
+    server->SetRepeatMode(mode);
+    server->OnRepeatModeCommand(client_name,
+                                mode ? REPEAT_MODE_ON : REPEAT_MODE_OFF,
+                                server);
+    return;
+  }
 
   if (server->command_listener_) {
     picojson::value request = picojson::value(picojson::object());
     picojson::object& request_o = request.get<picojson::object>();
 
-    int ret;
     char* reply_id_str = nullptr;
-    char* data_str = nullptr;
     SCOPE_EXIT {
       free(reply_id_str);
-      free(data_str);
     };
 
     ret = bundle_get_str(bundle, "replyId", &reply_id_str);
     if (ret != MEDIA_CONTROLLER_ERROR_NONE) {
       LOGGER(ERROR) << "bundle_get_str(replyId) failed, error: " << ret;
-      return;
-    }
-
-    ret = bundle_get_str(bundle, "data", &data_str);
-    if (ret != MEDIA_CONTROLLER_ERROR_NONE) {
-      LOGGER(ERROR) << "bundle_get_str(data) failed, error: " << ret;
-      return;
-    }
-
-    picojson::value data;
-    std::string err;
-    picojson::parse(data, data_str, data_str + strlen(data_str), &err);
-    if (!err.empty()) {
-      LOGGER(ERROR) << "Failed to parse bundle data: " << err;
       return;
     }
 
@@ -285,7 +325,6 @@ PlatformResult MediaControllerServer::SetChangeRequestPlaybackInfoListener(
 void MediaControllerServer::OnPlaybackStateCommand(const char* client_name,
                                                    mc_playback_states_e state_e,
                                                    void *user_data) {
-  LOGGER(DEBUG) << "entered";
 
   MediaControllerServer* server = static_cast<MediaControllerServer*>(user_data);
 
@@ -308,6 +347,67 @@ void MediaControllerServer::OnPlaybackStateCommand(const char* client_name,
 
   data_o["action"] = picojson::value(std::string("onplaybackstaterequest"));
   data_o["state"] = picojson::value(state);
+
+  server->change_request_playback_info_listener_(&data);
+}
+
+void MediaControllerServer::OnPlaybackPositionCommand(
+    const char* client_name,
+    unsigned long long position,
+    void* user_data) {
+
+  MediaControllerServer* server = static_cast<MediaControllerServer*>(user_data);
+
+  if (!server->change_request_playback_info_listener_) {
+    LOGGER(DEBUG) << "No change request playback info listener registered, skipping";
+    return;
+  }
+
+  picojson::value data = picojson::value(picojson::object());
+  picojson::object& data_o = data.get<picojson::object>();
+
+  data_o["action"] = picojson::value(std::string("onplaybackpositionrequest"));
+  data_o["position"] = picojson::value(static_cast<double>(position));
+
+  server->change_request_playback_info_listener_(&data);
+}
+
+void MediaControllerServer::OnShuffleModeCommand(const char* client_name,
+                                                 mc_shuffle_mode_e mode,
+                                                 void* user_data) {
+
+  MediaControllerServer* server = static_cast<MediaControllerServer*>(user_data);
+
+  if (!server->change_request_playback_info_listener_) {
+    LOGGER(DEBUG) << "No change request playback info listener registered, skipping";
+    return;
+  }
+
+  picojson::value data = picojson::value(picojson::object());
+  picojson::object& data_o = data.get<picojson::object>();
+
+  data_o["action"] = picojson::value(std::string("onshufflemoderequest"));
+  data_o["mode"] = picojson::value(mode == SHUFFLE_MODE_ON);
+
+  server->change_request_playback_info_listener_(&data);
+}
+
+void MediaControllerServer::OnRepeatModeCommand(const char* client_name,
+                                                mc_repeat_mode_e mode,
+                                                void* user_data) {
+
+  MediaControllerServer* server = static_cast<MediaControllerServer*>(user_data);
+
+  if (!server->change_request_playback_info_listener_) {
+    LOGGER(DEBUG) << "No change request playback info listener registered, skipping";
+    return;
+  }
+
+  picojson::value data = picojson::value(picojson::object());
+  picojson::object& data_o = data.get<picojson::object>();
+
+  data_o["action"] = picojson::value(std::string("onrepeatmoderequest"));
+  data_o["mode"] = picojson::value(mode == REPEAT_MODE_ON);
 
   server->change_request_playback_info_listener_(&data);
 }

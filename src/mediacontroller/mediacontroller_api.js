@@ -10,6 +10,14 @@ var validator_ = utils_.validator;
 var types_ = validator_.Types;
 var native_ = new xwalk.utils.NativeManager(extension);
 
+// TODO(r.galka) CAPI have no dedicated methods for position/shuffle/repeat change.
+// It should be updated when new version of CAPI will be available.
+// For now implementation is using internal commands.
+var internal_commands_ = {
+  sendPlaybackPosition: '__internal_sendPlaybackPosition',
+  sendShuffleMode: '__internal_sendShuffleMode',
+  sendRepeatMode: '__internal_sendRepeatMode'
+};
 
 function ListenerManager(native, listenerName, handle) {
   this.listeners = {};
@@ -20,7 +28,7 @@ function ListenerManager(native, listenerName, handle) {
   this.handle = handle || function(msg, listener, watchId) {};
 }
 
-ListenerManager.prototype.addListener = function(callback, data) {
+ListenerManager.prototype.addListener = function(callback) {
   var id = this.nextId;
   if (!this.nativeSet) {
     this.native.addListener(this.listenerName, function(msg) {
@@ -33,10 +41,11 @@ ListenerManager.prototype.addListener = function(callback, data) {
         }
       }
     }.bind(this));
+
     this.nativeSet = true;
   }
+
   this.listeners[id] = callback;
-  this.listeners[id].data = data || {};
   ++this.nextId;
   return id;
 };
@@ -581,16 +590,7 @@ MediaControllerServerInfo.prototype.sendPlaybackPosition = function(position, su
   var data = {
     position: args.position
   };
-
-  var callback = function(result) {
-    if (native_.isFailure(result)) {
-      native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));
-      return;
-    }
-    native_.callIfPossible(args.successCallback);
-  };
-
-  native_.call('MediaControllerServerInfo_sendPlaybackPosition', data, callback);
+  this.sendCommand(internal_commands_.sendPlaybackPosition, data, successCallback, errorCallback);
 };
 
 MediaControllerServerInfo.prototype.sendShuffleMode = function(mode, successCallback, errorCallback) {
@@ -603,16 +603,7 @@ MediaControllerServerInfo.prototype.sendShuffleMode = function(mode, successCall
   var data = {
     mode: args.mode
   };
-
-  var callback = function(result) {
-    if (native_.isFailure(result)) {
-      native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));
-      return;
-    }
-    native_.callIfPossible(args.successCallback);
-  };
-
-  native_.call('MediaControllerServerInfo_sendShuffleMode', data, callback);
+  this.sendCommand(internal_commands_.sendShuffleMode, data, successCallback, errorCallback);
 };
 
 MediaControllerServerInfo.prototype.sendRepeatMode = function(mode, successCallback, errorCallback) {
@@ -625,16 +616,7 @@ MediaControllerServerInfo.prototype.sendRepeatMode = function(mode, successCallb
   var data = {
     mode: args.mode
   };
-
-  var callback = function(result) {
-    if (native_.isFailure(result)) {
-      native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));
-      return;
-    }
-    native_.callIfPossible(args.successCallback);
-  };
-
-  native_.call('MediaControllerServerInfo_sendRepeatMode', data, callback);
+  this.sendCommand(internal_commands_.sendRepeatMode, data, successCallback, errorCallback);
 };
 
 MediaControllerServerInfo.prototype.sendCommand = function(command, data, successCallback, errorCallback) {
@@ -651,7 +633,7 @@ MediaControllerServerInfo.prototype.sendCommand = function(command, data, succes
     name: this.name
   };
 
-  var replyId = ReplyCommandListener.addListener(successCallback, nativeData);
+  var replyId = ReplyCommandListener.addListener(successCallback);
 
   nativeData.replyId = replyId;
   nativeData.listenerId = ReplyCommandListener.listenerName;

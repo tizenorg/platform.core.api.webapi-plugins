@@ -250,9 +250,8 @@ void MediaControllerInstance::MediaControllerServerAddChangeRequestPlaybackInfoL
   CHECK_EXIST(args, "listenerId", out)
 
   JsonCallback callback = [this, args](picojson::value* data) -> void {
-    LOGGER(DEBUG) << "entered";
 
-    if (nullptr == data) {
+    if (!data) {
       LOGGER(ERROR) << "No data passed to json callback";
       return;
     }
@@ -462,8 +461,6 @@ void MediaControllerInstance::MediaControllerServerInfoSendPlaybackState(
   CHECK_EXIST(args, "state", out)
 
   auto send = [this, args]() -> void {
-    LOGGER(DEBUG) << "entered";
-
     picojson::value response = picojson::value(picojson::object());
     picojson::object& response_obj = response.get<picojson::object>();
     response_obj["callbackId"] = args.get("callbackId");
@@ -489,58 +486,114 @@ void MediaControllerInstance::MediaControllerServerInfoSendPlaybackState(
 void MediaControllerInstance::MediaControllerServerInfoSendPlaybackPosition(
     const picojson::value& args,
     picojson::object& out) {
+
+  if (!client_) {
+    ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
+                               "Client not initialized."), &out);
+    return;
+  }
+
   CHECK_EXIST(args, "callbackId", out)
+  CHECK_EXIST(args, "name", out)
   CHECK_EXIST(args, "position", out)
 
-  int callbackId = static_cast<int>(args.get("callbackId").get<double>());
-  double position = args.get("position").get<double>();
+  auto send = [this, args]() -> void {
+    picojson::value response = picojson::value(picojson::object());
+    picojson::object& response_obj = response.get<picojson::object>();
+    response_obj["callbackId"] = args.get("callbackId");
 
-  // implement it
+    PlatformResult result = client_->SendPlaybackPosition(
+        args.get("name").get<std::string>(),
+        args.get("position").get<double>());
 
-  // call ReplyAsync in later (Asynchronously)
+    if (result) {
+      ReportSuccess(response_obj);
+    } else {
+      ReportError(result, &response_obj);
+    }
 
-  // if success
-  // ReportSuccess(out);
-  // if error
-  // ReportError(out);
+    PostMessage(response.serialize().c_str());
+  };
+
+  TaskQueue::GetInstance().Async(send);
+
+  ReportSuccess(out);
 }
 
 void MediaControllerInstance::MediaControllerServerInfoSendShuffleMode(
     const picojson::value& args,
     picojson::object& out) {
+
+  if (!client_) {
+    LOGGER(ERROR) << "Client not initialized.";
+    ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
+                               "Client not initialized."), &out);
+    return;
+  }
+
   CHECK_EXIST(args, "callbackId", out)
+  CHECK_EXIST(args, "name", out)
   CHECK_EXIST(args, "mode", out)
 
-  int callbackId = static_cast<int>(args.get("callbackId").get<double>());
-  bool mode = args.get("mode").get<bool>();
+  auto send = [this, args]() -> void {
+    picojson::value response = picojson::value(picojson::object());
+    picojson::object& response_obj = response.get<picojson::object>();
+    response_obj["callbackId"] = args.get("callbackId");
 
-  // implement it
+    PlatformResult result = client_->SendShuffleMode(
+        args.get("name").get<std::string>(),
+        args.get("mode").get<bool>());
 
-  // call ReplyAsync in later (Asynchronously)
+    if (result) {
+      ReportSuccess(response_obj);
+    } else {
+      ReportError(result, &response_obj);
+    }
 
-  // if success
-  // ReportSuccess(out);
-  // if error
-  // ReportError(out);
+    PostMessage(response.serialize().c_str());
+  };
+
+  TaskQueue::GetInstance().Async(send);
+
+  ReportSuccess(out);
 }
 
 void MediaControllerInstance::MediaControllerServerInfoSendRepeatMode(
     const picojson::value& args,
     picojson::object& out) {
+
+  if (!client_) {
+    LOGGER(ERROR) << "Client not initialized.";
+    ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
+                               "Client not initialized."), &out);
+    return;
+  }
+
   CHECK_EXIST(args, "callbackId", out)
+  CHECK_EXIST(args, "name", out)
   CHECK_EXIST(args, "mode", out)
 
-  int callbackId = static_cast<int>(args.get("callbackId").get<double>());
-  bool mode = args.get("mode").get<bool>();
+  auto send = [this, args]() -> void {
+    picojson::value response = picojson::value(picojson::object());
+    picojson::object& response_obj = response.get<picojson::object>();
+    response_obj["callbackId"] = args.get("callbackId");
 
-  // implement it
+    PlatformResult result = client_->SendRepeatMode(
+        args.get("name").get<std::string>(),
+        args.get("mode").get<bool>());
 
-  // call ReplyAsync in later (Asynchronously)
+    if (result) {
+      ReportSuccess(response_obj);
+    } else {
+      ReportError(result, &response_obj);
+    }
 
-  // if success
-  // ReportSuccess(out);
-  // if error
-  // ReportError(out);
+    PostMessage(response.serialize().c_str());
+  };
+
+  TaskQueue::GetInstance().Async(send);
+
+  ReportSuccess(out);
 }
 
 void MediaControllerInstance::MediaControllerServerInfoSendCommand(

@@ -46,6 +46,16 @@ class MediaControllerServer {
   static void OnPlaybackStateCommand(const char* client_name,
                                      mc_playback_states_e state_e,
                                      void *user_data);
+  static void OnPlaybackPositionCommand(const char* client_name,
+                                        unsigned long long position,
+                                        void* user_data);
+  static void OnShuffleModeCommand(const char* client_name,
+                                   mc_shuffle_mode_e mode,
+                                   void* user_data);
+  static void OnRepeatModeCommand(const char* client_name,
+                                  mc_repeat_mode_e mode,
+                                  void* user_data);
+
   static void OnCommandReceived(const char* client_name,
                                 const char* command,
                                 bundle* data,

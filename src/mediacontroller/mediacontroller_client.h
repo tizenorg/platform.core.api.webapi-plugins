@@ -30,6 +30,12 @@ class MediaControllerClient {
 
   common::PlatformResult SendPlaybackState(const std::string& server_name,
                                            const std::string& state);
+  common::PlatformResult SendPlaybackPosition(const std::string& server_name,
+                                              double position);
+  common::PlatformResult SendShuffleMode(const std::string& server_name,
+                                         bool mode);
+  common::PlatformResult SendRepeatMode(const std::string& server_name,
+                                        bool mode);
 
   common::PlatformResult SendCommand(const std::string& server_name,
                                      const std::string& command,
