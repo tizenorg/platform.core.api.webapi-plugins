@@ -6,16 +6,21 @@
 #define KEYMANAGER_KEYMANAGER_OBSERVERS_H_
 
 #include <ckm/ckm-manager-async.h>
+#include <gio/gio.h>
 #include "common/platform_result.h"
 
 namespace extension {
 namespace keymanager {
+
+class LoadFileCert;
 
 class KeyManagerListener {
 public:
   virtual void OnSaveKey(double callbackId, const common::PlatformResult& result) = 0;
   virtual void OnCreateKeyPair(double callbackId, const common::PlatformResult& result) = 0;
   virtual void OnSaveCert(double callbackId, const common::PlatformResult& result) = 0;
+  virtual void OnCertFileLoaded(LoadFileCert* reader,
+    const common::PlatformResult& result) = 0;
   virtual ~KeyManagerListener() {}
 };
 
@@ -49,6 +54,32 @@ struct SaveCertObserver: public CommonObserver {
   SaveCertObserver(KeyManagerListener* listener, double callbackId);
   void ReceivedError(int error);
   void ReceivedSaveCertificate();
+};
+
+struct LoadFileCert {
+  LoadFileCert(KeyManagerListener* listener,
+    double callbackId,
+    const std::string &password,
+    const std::string &alias,
+    bool extractable);
+  void LoadFileAsync(const std::string &fileUri);
+  virtual ~LoadFileCert();
+
+  double callbackId;
+  std::string password;
+  const std::string alias;
+  bool extractable;
+  std::string fileContent;
+private:
+  guint8* buffer;
+  KeyManagerListener* listener;
+
+  static void OnFileRead(GObject *source_object,
+    GAsyncResult *res,
+    gpointer user_data);
+  static void OnStreamRead(GObject *source_object,
+    GAsyncResult *res,
+    gpointer user_data);
 };
 
 } // namespace keymanager

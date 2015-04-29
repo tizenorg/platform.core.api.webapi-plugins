@@ -113,5 +113,80 @@ void SaveCertObserver::ReceivedSaveCertificate() {
     PlatformResult(ErrorCode::NO_ERROR)));
 }
 
+LoadFileCert::LoadFileCert(KeyManagerListener* _listener,
+    double callbackId,
+    const std::string &_password,
+    const std::string &_alias,
+    bool _extractable):
+    callbackId(callbackId),
+    password(_password),
+    alias(_alias),
+    extractable(_extractable),
+    fileContent(""),
+    buffer(NULL),
+    listener(_listener) {}
+
+void LoadFileCert::LoadFileAsync(const std::string& fileUri) {
+  LoggerD("Enter");
+  GFile* file = g_file_new_for_uri(fileUri.c_str());
+  g_file_read_async(file, G_PRIORITY_DEFAULT, NULL, OnFileRead, this);
+}
+
+void LoadFileCert::OnFileRead(GObject* source_object,
+  GAsyncResult* res, gpointer user_data) {
+  LoggerD("Enter");
+  LoadFileCert* This = static_cast<LoadFileCert*>(user_data);
+  GError* err = NULL;
+  GFileInputStream* stream = g_file_read_finish(G_FILE(source_object),
+    res, &err);
+  g_object_unref(source_object);
+  if (stream == NULL) {
+      LoggerE("Failed to read file: %d", err->code);
+      if (err->code == G_FILE_ERROR_NOENT) {
+        This->listener->OnCertFileLoaded(This,
+          PlatformResult(ErrorCode::NOT_FOUND_ERR, "Certificate file not found"));
+      } else {
+        This->listener->OnCertFileLoaded(This,
+          PlatformResult(ErrorCode::IO_ERR, "Failed to load certificate file"));
+      }
+      return;
+  }
+
+  This->buffer = new guint8[4096];
+  g_input_stream_read_async(G_INPUT_STREAM(stream), This->buffer, 4096,
+    G_PRIORITY_DEFAULT, NULL, OnStreamRead, This);
+}
+
+void LoadFileCert::OnStreamRead(GObject* source_object,
+  GAsyncResult* res, gpointer user_data) {
+  LoggerD("Enter");
+
+  LoadFileCert* This = static_cast<LoadFileCert*>(user_data);
+  gssize size = g_input_stream_read_finish(G_INPUT_STREAM(source_object),
+    res, NULL);
+  switch (size){
+    case -1:
+      LoggerE("Error occured");
+      This->listener->OnCertFileLoaded(This,
+        PlatformResult(ErrorCode::IO_ERR, "Failed to load certificate file"));
+      g_object_unref(source_object);
+      break;
+    case 0:
+      LoggerD("End of file");
+      This->listener->OnCertFileLoaded(This,
+        PlatformResult(ErrorCode::NO_ERROR));
+      g_object_unref(source_object);
+      break;
+    default:
+      This->fileContent.append(This->buffer, This->buffer + size);
+      g_input_stream_read_async(G_INPUT_STREAM(source_object), This->buffer,
+        4096, G_PRIORITY_DEFAULT, NULL, OnStreamRead, This);
+  }
+}
+
+LoadFileCert::~LoadFileCert() {
+  delete[] buffer;
+}
+
 } // namespace keymanager
 } // namespace extension

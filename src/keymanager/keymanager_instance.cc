@@ -8,6 +8,7 @@
 #include <ckm/ckm-manager.h>
 #include <glib.h>
 #include <pcrecpp.h>
+#include <fstream>
 
 #include "common/logger.h"
 #include "common/picojson.h"
@@ -43,6 +44,8 @@ KeyManagerInstance::KeyManagerInstance() {
       std::bind(&KeyManagerInstance::GetCertificate, this, _1, _2));
   RegisterSyncHandler("KeyManager_saveCertificate",
       std::bind(&KeyManagerInstance::SaveCertificate, this, _1, _2));
+  RegisterSyncHandler("KeyManager_loadCertificateFromFile",
+      std::bind(&KeyManagerInstance::LoadCertificateFromFile, this, _1, _2));
 }
 
 KeyManagerInstance::~KeyManagerInstance() {
@@ -335,6 +338,21 @@ void KeyManagerInstance::SaveCertificate(const picojson::value& args,
     password = crt.get("password").get<std::string>();
   }
   std::string base64 = args.get("rawCert").get<std::string>();
+
+  SaveCert(base64,
+      password,
+      alias,
+      crt.get("extractable").get<bool>(),
+      args.get("callbackId").get<double>());
+  ReportSuccess(out);
+}
+
+void KeyManagerInstance::SaveCert(std::string &base64,
+    const std::string &password,
+    const std::string &alias,
+    bool extractable,
+    double callbackId) {
+  LoggerD("Enter");
   pcrecpp::RE_Options opt;
   opt.set_multiline(true);
   //remove first line and last line
@@ -347,12 +365,10 @@ void KeyManagerInstance::SaveCertificate(const picojson::value& args,
   CKM::Password pass(password.c_str());
   CKM::CertificateShPtr cert = CKM::Certificate::create(rawBuffer,
       CKM::DataFormat::FORM_DER);
-  CKM::Policy policy(pass, crt.get("extractable").get<bool>());
+  CKM::Policy policy(pass, extractable);
   CKM::ManagerAsync::ObserverPtr observer(new SaveCertObserver(this,
-    args.get("callbackId").get<double>()));
+    callbackId));
   m_manager.saveCertificate(observer, alias, cert, policy);
-
-  ReportSuccess(out);
 }
 
 void KeyManagerInstance::OnSaveCert(double callbackId,
@@ -366,6 +382,44 @@ void KeyManagerInstance::OnSaveCert(double callbackId,
   }
   picojson::value res(dict);
   PostMessage(res.serialize().c_str());
+}
+
+void KeyManagerInstance::LoadCertificateFromFile(const picojson::value& args,
+    picojson::object& out) {
+  LoggerD("Enter");
+
+  const picojson::value& crt = args.get("certificate");
+  const std::string& file = args.get("fileURI").get<std::string>();
+  std::string password;
+  if (crt.get("password").is<std::string>()) {
+    password = crt.get("password").get<std::string>();
+  }
+  LoadFileCert* reader = new LoadFileCert(this,
+    args.get("callbackId").get<double>(),
+    password,
+    crt.get("name").get<std::string>(),
+    crt.get("extractable").get<bool>());
+  reader->LoadFileAsync(file);
+
+  ReportSuccess(out);
+}
+
+void KeyManagerInstance::OnCertFileLoaded(LoadFileCert* reader,
+    const common::PlatformResult& result) {
+  LoggerD("Enter");
+
+  if (result.IsError()) {
+    LoggerE("There was an error");
+    picojson::value::object dict;
+    dict["callbackId"] = picojson::value(reader->callbackId);
+    ReportError(result, &dict);
+    picojson::value res(dict);
+    PostMessage(res.serialize().c_str());
+  } else {
+    SaveCert(reader->fileContent, reader->password, reader->alias,
+      reader->extractable, reader->callbackId);
+  }
+  delete reader;
 }
 
 } // namespace keymanager
