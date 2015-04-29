@@ -799,20 +799,34 @@ var NativeManager = function(extension) {
 
   // TODO: Remove mockup if WRT implements sendRuntimeMessage
   // This is temporary mockup!
-  extension.sendRuntimeMessage = extension.sendRuntimeMessage || function(){
-    console.error("Runtime did not implement extension.sendRuntimeMessage!");
+  extension.sendRuntimeMessage = extension.sendRuntimeMessage || function() {
+    console.error('Runtime did not implement extension.sendRuntimeMessage!');
     throw new WebAPIException(WebAPIException.UNKNOWN_ERR,
-      'Runtime did not implement extension.sendRuntimeMessage!');
-  }
+        'Runtime did not implement extension.sendRuntimeMessage!');
+  };
+
+  extension.sendRuntimeAsyncMessage = extension.sendRuntimeAsyncMessage || function() {
+    console.error('Runtime did not implement extension.sendRuntimeAsyncMessage!');
+    throw new WebAPIException(WebAPIException.UNKNOWN_ERR,
+        'Runtime did not implement extension.sendRuntimeAsyncMessage!');
+  };
+
+  extension.sendRuntimeSyncMessage = extension.sendRuntimeSyncMessage || function() {
+    console.error('Runtime did not implement extension.sendRuntimeSyncMessage!');
+    throw new WebAPIException(WebAPIException.UNKNOWN_ERR,
+        'Runtime did not implement extension.sendRuntimeSyncMessage!');
+  };
 
   // check extension prototype
   if (!extension || !extension.internal ||
       !_type.isFunction(extension.postMessage) ||
       !_type.isFunction(extension.internal.sendSyncMessage) ||
       !_type.isFunction(extension.sendRuntimeMessage) ||
+      !_type.isFunction(extension.sendRuntimeAsyncMessage) ||
+      !_type.isFunction(extension.sendRuntimeSyncMessage) ||
       !_type.isFunction(extension.setMessageListener)) {
     throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR,
-      'Wrong extension object passed');
+                              'Wrong extension object passed');
   }
 
   Object.defineProperties(this, {
@@ -887,9 +901,30 @@ NativeManager.prototype.callSync = function(cmd, args) {
   return JSON.parse(this.extension.internal.sendSyncMessage(request));
 };
 
-NativeManager.prototype.sendRuntimeMessage = function(cmd) {
-    return this.extension.sendRuntimeMessage(cmd);
-}
+NativeManager.prototype.sendRuntimeMessage = function(msg, body) {
+  return this.extension.sendRuntimeMessage(msg, body || '');
+};
+
+NativeManager.prototype.sendRuntimeAsyncMessage = function(msg, body, callback) {
+  var handler = function(response) {
+    if (_type.isFunction(callback)) {
+      var result = {};
+      if ('success' === response) {
+        result.status = 'success';
+      } else {
+        result.status = 'error';
+        result.error = new WebAPIException(WebAPIException.UNKNOWN_ERR,
+                                           'Runtime message failure');
+      }
+      callback(result);
+    }
+  };
+  return this.extension.sendRuntimeAsyncMessage(msg, body || '', handler);
+};
+
+NativeManager.prototype.sendRuntimeSyncMessage = function(msg, body) {
+  return this.extension.sendRuntimeSyncMessage(msg, body || '');
+};
 
 NativeManager.prototype.addListener = function(name, callback) {
   if (!_type.isString(name) || !name.length) {
