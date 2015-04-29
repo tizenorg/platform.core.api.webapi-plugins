@@ -153,8 +153,7 @@ NFCManager.prototype.getDefaultAdapter = function() {
       {}
       );
   if (native_.isFailure(result)) {
-    throw new WebAPIException(0, result.error.message,
-        result.error.name);
+    throw native_.getErrorObject(result);
   }
 
   // If NFC is supported then return new NFCAdapter instance
@@ -168,22 +167,13 @@ NFCManager.prototype.setExclusiveMode = function() {
     {name: 'exclusiveMode', type: types_.BOOLEAN}
   ]);
 
-  var result = native_.callSync(
-      'NFCManager_setExclusiveMode',
-      { 'exclusiveMode': args.exclusiveMode}
-      );
+  var result = native_.callSync('NFCManager_setExclusiveMode', {
+    exclusiveMode: args.exclusiveMode
+  });
 
-  // If failed then exception should be thrown.
   if (native_.isFailure(result)) {
-    throw new WebAPIException(0, result.error.message,
-        result.error.name);
-    // Uncoment line below (and remove line above) when problem
-    // with error conversion is fixed:
-    //
-    //throw native_.getErrorObject(result);
+    throw native_.getErrorObject(result);
   }
-  // Otherwise just return
-  return;
 };
 
 //////////////////NFCAdapter /////////////////
@@ -434,8 +424,7 @@ NFCAdapter.prototype.addCardEmulationModeChangeListener = function() {
     var result = native_.callSync(
         'NFCAdapter_addCardEmulationModeChangeListener');
     if (native_.isFailure(result)) {
-      throw new WebAPIException(0, result.error.message,
-          result.error.name);
+      throw native_.getErrorObject(result);
     }
   }
 
@@ -481,8 +470,7 @@ NFCAdapter.prototype.addTransactionEventListener = function() {
       result = native_.callSync('NFCAdapter_addTransactionEventListener', {
         type: args.type});
       if (native_.isFailure(result)) {
-        throw new WebAPIException(0, result.error.message,
-            result.error.name);
+        throw native_.getErrorObject(result);
       }
     }
     return transactionEventListenerEse.addListener(args.callback);
@@ -491,8 +479,7 @@ NFCAdapter.prototype.addTransactionEventListener = function() {
       result = native_.callSync('NFCAdapter_addTransactionEventListener', {
         type: args.type});
       if (native_.isFailure(result)) {
-        throw new WebAPIException(0, result.error.message,
-            result.error.name);
+        throw native_.getErrorObject(result);
       }
     }
     return transactionEventListenerUicc.addListener(args.callback);
@@ -543,8 +530,7 @@ NFCAdapter.prototype.addActiveSecureElementChangeListener = function() {
     var result = native_.callSync(
         'NFCAdapter_addActiveSecureElementChangeListener');
     if (native_.isFailure(result)) {
-      throw new WebAPIException(0, result.error.message,
-          result.error.name);
+      throw native_.getErrorObject(result);
     }
   }
 
@@ -617,7 +603,7 @@ NFCAdapter.prototype.addHCEEventListener = function(eventCallback) {
   if (type_.isEmptyObject(HCEEventListener.listeners)) {
     var result = native_.callSync('NFCAdapter_addHCEEventListener');
     if (native_.isFailure(result)) {
-      throw new WebAPIException(0, result.error.message, result.error.name);
+      throw native_.getErrorObject(result);
     }
   }
 
@@ -638,7 +624,7 @@ NFCAdapter.prototype.removeHCEEventListener = function(watchId) {
   if (type_.isEmptyObject(HCEEventListener.listeners)) {
     var result = native_.callSync('NFCAdapter_removeHCEEventListener');
     if (native_.isFailure(result)) {
-      throw new WebAPIException(0, result.error.message, result.error.name);
+      throw native_.getErrorObject(result);
     }
   }
 };
@@ -660,8 +646,7 @@ NFCAdapter.prototype.sendHostAPDUResponse = function(apdu, successCallback, erro
 
   var callback = function(result) {
     if (native_.isFailure(result)) {
-      native_.callIfPossible(args.errorCallback, new WebAPIException(0, result.error.message,
-          result.error.name));
+      native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));
       return;
     }
     native_.callIfPossible(args.successCallback);
@@ -692,7 +677,7 @@ NFCAdapter.prototype.isActivatedHandlerForAID = function(type, aid) {
   var result = native_.callSync('NFCAdapter_isActivatedHandlerForAID', data);
 
   if (native_.isFailure(result)) {
-    throw new WebAPIException(0, result.error.message, result.error.name);
+    throw native_.getErrorObject(result);
   }
   return native_.getResultObject(result);
 };
@@ -720,7 +705,7 @@ NFCAdapter.prototype.isActivatedHandlerForCategory = function(type, category) {
   var result = native_.callSync('NFCAdapter_isActivatedHandlerForCategory', data);
 
   if (native_.isFailure(result)) {
-    throw new WebAPIException(0, result.error.message, result.error.name);
+    throw native_.getErrorObject(result);
   }
   return native_.getResultObject(result);
 };
@@ -752,7 +737,7 @@ NFCAdapter.prototype.registerAID = function(type, aid, category) {
   var result = native_.callSync('NFCAdapter_registerAID', data);
 
   if (native_.isFailure(result)) {
-    throw new WebAPIException(0, result.error.message, result.error.name);
+    throw native_.getErrorObject(result);
   }
 };
 
@@ -780,7 +765,7 @@ NFCAdapter.prototype.unregisterAID = function(type, aid, category) {
   var result = native_.callSync('NFCAdapter_unregisterAID', data);
 
   if (native_.isFailure(result)) {
-    throw new WebAPIException(0, result.error.message, result.error.name);
+    throw native_.getErrorObject(result);
   }
 };
 
@@ -834,8 +819,7 @@ NFCAdapter.prototype.getAIDsForCategory = function(type, category, successCallba
 
   var callback = function(result) {
     if (native_.isFailure(result)) {
-      native_.callIfPossible(args.errorCallback, new WebAPIException(0, result.error.message,
-          result.error.name));
+      native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));
       return;
     }
     var aids = [];
@@ -1284,9 +1268,7 @@ tizen.NDEFRecord = function(first, type, payload, id) {
               }
               );
           if (native_.isFailure(result)) {
-            throw new WebAPIException(0, result.error.message,
-                result.error.name);
-            // throw native_.getErrorObject(result);
+            throw native_.getErrorObject(result);
           }
           tnf_ = converter_.toLong(result.result.tnf);
           typ_ = toByteArray(result.result.type, 255);
@@ -1337,9 +1319,7 @@ tizen.NDEFRecordText = function(text, languageCode, encoding) {
           }
           );
       if (native_.isFailure(result)) {
-        throw new WebAPIException(0, result.error.message,
-            result.error.name);
-        // throw native_.getErrorObject(result);
+        throw native_.getErrorObject(result);
       }
       tizen.NDEFRecord.call(this, result.result.tnf, result.result.type,
           result.result.payload, result.result.id);
@@ -1378,9 +1358,7 @@ tizen.NDEFRecordURI = function(uri) {
           }
           );
       if (native_.isFailure(result)) {
-        throw new WebAPIException(0, result.error.message,
-            result.error.name);
-        // throw native_.getErrorObject(result);
+        throw native_.getErrorObject(result);
       }
       tizen.NDEFRecord.call(this, result.result.tnf, result.result.type,
           result.result.payload, result.result.id);
@@ -1419,9 +1397,7 @@ tizen.NDEFRecordMedia = function(mimeType, data) {
           }
           );
       if (native_.isFailure(result)) {
-        throw new WebAPIException(0, result.error.message,
-            result.error.name);
-        // throw native_.getErrorObject(result);
+        throw native_.getErrorObject(result);
       }
       tizen.NDEFRecord.call(this, result.result.tnf, result.result.type,
           result.result.payload, result.result.id);
