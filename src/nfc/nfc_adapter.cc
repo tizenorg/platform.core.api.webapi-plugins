@@ -1378,13 +1378,21 @@ void NFCAdapter::SendHostAPDUResponse(
 }
 
 PlatformResult NFCAdapter::IsActivatedHandlerForAID(
-    const char* aid,
+    const std::string& type,
+    const std::string& aid,
     bool* is_activated_handler) {
-  AssertMsg(aid, "Poiner can not be null!");
   AssertMsg(is_activated_handler, "Poiner can not be null!");
   LoggerD("Entered");
 
-  int ret = nfc_se_is_activated_handler_for_aid(aid, is_activated_handler);
+  nfc_se_type_e se_type;
+  PlatformResult result = NFCUtil::ToSecureElementType(type, &se_type);
+  if (!result.IsError()) {
+    return result;
+  }
+
+  int ret = nfc_se_is_activated_handler_for_aid(se_type,
+                                                aid.c_str(),
+                                                is_activated_handler);
   if (NFC_ERROR_NONE != ret) {
     LoggerE("IsActivatedHandlerForAID failed: %d", ret);
     return NFCUtil::CodeToResult(ret,
@@ -1394,12 +1402,20 @@ PlatformResult NFCAdapter::IsActivatedHandlerForAID(
 }
 
 PlatformResult NFCAdapter::IsActivatedHandlerForCategory(
-    nfc_card_emulation_category_type_e category, bool* is_activated_handler) {
+    const std::string& type,
+    nfc_card_emulation_category_type_e category,
+    bool* is_activated_handler) {
   AssertMsg(is_activated_handler, "Poiner can not be null!");
-  LoggerD("Category: %d", category);
 
-  int ret = nfc_se_is_activated_handler_for_category(category,
-      is_activated_handler);
+  nfc_se_type_e se_type;
+  PlatformResult result = NFCUtil::ToSecureElementType(type, &se_type);
+  if (!result.IsError()) {
+    return result;
+  }
+
+  int ret = nfc_se_is_activated_handler_for_category(se_type,
+                                                     category,
+                                                     is_activated_handler);
   if (NFC_ERROR_NONE != ret) {
     LoggerE("IsActivatedHandlerForCategory failed: %d", ret);
     return NFCUtil::CodeToResult(ret,
@@ -1409,12 +1425,17 @@ PlatformResult NFCAdapter::IsActivatedHandlerForCategory(
 }
 
 PlatformResult NFCAdapter::RegisterAID(
-    const char* aid,
+    const std::string& type,
+    const std::string& aid,
     nfc_card_emulation_category_type_e category) {
-  AssertMsg(aid, "Poiner can not be null!");
-  LoggerD("AID: %s, Category: %d", aid, category);
 
-  int ret = nfc_se_register_aid(category, aid);
+  nfc_se_type_e se_type;
+  PlatformResult result = NFCUtil::ToSecureElementType(type, &se_type);
+  if (!result.IsError()) {
+    return result;
+  }
+
+  int ret = nfc_se_register_aid(se_type, category, aid.c_str());
   if (NFC_ERROR_NONE != ret) {
     LoggerE("RegisterAID failed: %d", ret);
     return NFCUtil::CodeToResult(ret,
@@ -1424,12 +1445,17 @@ PlatformResult NFCAdapter::RegisterAID(
 }
 
 PlatformResult NFCAdapter::UnregisterAID(
-    const char* aid,
+    const std::string& type,
+    const std::string& aid,
     nfc_card_emulation_category_type_e category) {
-  AssertMsg(aid, "Poiner can not be null!");
-  LoggerD("AID: %s, Category: %d", aid, category);
 
-  int ret = nfc_se_unregister_aid(category, aid);
+  nfc_se_type_e se_type;
+  PlatformResult result = NFCUtil::ToSecureElementType(type, &se_type);
+  if (!result.IsError()) {
+    return result;
+  }
+
+  int ret = nfc_se_unregister_aid(se_type, category, aid.c_str());
   if (NFC_ERROR_NONE != ret) {
     LoggerE("UnregisterAID failed: %d", ret);
     return NFCUtil::CodeToResult(ret,
@@ -1450,13 +1476,20 @@ static void SaveRow(nfc_se_type_e se_type,
 };
 
 void NFCAdapter::GetAIDsForCategory(
+    const std::string& type,
     nfc_card_emulation_category_type_e category,
     const std::function<void(const AIDDataVector&)>& success_cb,
     const std::function<void(const PlatformResult&)>& error_cb) {
-  LoggerD("Category: %d", category);
+
+  nfc_se_type_e se_type;
+  PlatformResult result = NFCUtil::ToSecureElementType(type, &se_type);
+  if (!result.IsError()) {
+    error_cb(result);
+    return;
+  }
 
   AIDDataVector aids{};
-  int ret = nfc_se_foreach_registered_aids(category, SaveRow, &aids);
+  int ret = nfc_se_foreach_registered_aids(se_type, category, SaveRow, &aids);
   if (NFC_ERROR_NONE != ret) {
     LoggerE("GetAIDsForCategory failed: %d", ret);
     error_cb(NFCUtil::CodeToResult(ret,

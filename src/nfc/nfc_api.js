@@ -670,16 +670,22 @@ NFCAdapter.prototype.sendHostAPDUResponse = function(apdu, successCallback, erro
   native_.call('NFCAdapter_sendHostAPDUResponse', data, callback);
 };
 
-NFCAdapter.prototype.isActivatedHandlerForAID = function(aid) {
+NFCAdapter.prototype.isActivatedHandlerForAID = function(type, aid) {
   var args = validator_.validateArgs(arguments, [
+    {
+      name: 'type',
+      type: types_.ENUM,
+      values: type_.getValues(SecureElementType)
+    },
     {name: 'aid', type: types_.STRING}
   ]);
 
-  if (!arguments.length) {
+  if (arguments.length < 2) {
     throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR);
   }
 
   var data = {
+    type: args.type,
     aid: args.aid
   };
 
@@ -691,16 +697,23 @@ NFCAdapter.prototype.isActivatedHandlerForAID = function(aid) {
   return native_.getResultObject(result);
 };
 
-NFCAdapter.prototype.isActivatedHandlerForCategory = function(category) {
-  var args = validator_.validateArgs(arguments, [
-    {name: 'category', type: types_.ENUM, values: Object.keys(CardEmulationCategoryType)}
-  ]);
+NFCAdapter.prototype.isActivatedHandlerForCategory = function(type, category) {
+  var args = validator_.validateArgs(arguments, [{
+    name: 'type',
+    type: types_.ENUM,
+    values: type_.getValues(SecureElementType)
+  }, {
+    name: 'category',
+    type: types_.ENUM,
+    values: Object.keys(CardEmulationCategoryType)
+  }]);
 
-  if (!arguments.length) {
+  if (arguments.length < 2) {
     throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR);
   }
 
   var data = {
+    type: args.type,
     category: args.category
   };
 
@@ -712,17 +725,26 @@ NFCAdapter.prototype.isActivatedHandlerForCategory = function(category) {
   return native_.getResultObject(result);
 };
 
-NFCAdapter.prototype.registerAID = function(aid, category) {
-  var args = validator_.validateArgs(arguments, [
-    {name: 'aid', type: types_.STRING},
-    {name: 'category', type: types_.ENUM, values: Object.keys(CardEmulationCategoryType)}
-  ]);
+NFCAdapter.prototype.registerAID = function(type, aid, category) {
+  var args = validator_.validateArgs(arguments, [{
+    name: 'type',
+    type: types_.ENUM,
+    values: type_.getValues(SecureElementType)
+  }, {
+    name: 'aid',
+    type: types_.STRING
+  }, {
+    name: 'category',
+    type: types_.ENUM,
+    values: Object.keys(CardEmulationCategoryType)
+  }]);
 
-  if (arguments.length < 2 || !type_.isString(arguments[0])) {
+  if (arguments.length < 3 || !type_.isString(arguments[0])) {
     throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR);
   }
 
   var data = {
+    type: args.type,
     aid: args.aid,
     category: args.category
   };
@@ -734,17 +756,23 @@ NFCAdapter.prototype.registerAID = function(aid, category) {
   }
 };
 
-NFCAdapter.prototype.unregisterAID = function(aid, category) {
+NFCAdapter.prototype.unregisterAID = function(type, aid, category) {
   var args = validator_.validateArgs(arguments, [
+    {
+      name: 'type',
+      type: types_.ENUM,
+      values: type_.getValues(SecureElementType)
+    },
     {name: 'aid', type: types_.STRING},
     {name: 'category', type: types_.ENUM, values: Object.keys(CardEmulationCategoryType)}
   ]);
 
-  if (arguments.length < 2 || !type_.isString(arguments[0])) {
+  if (arguments.length < 3 || !type_.isString(arguments[0])) {
     throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR);
   }
 
   var data = {
+    type: args.type,
     aid: args.aid,
     category: args.category
   };
@@ -776,18 +804,31 @@ function AIDData(data) {
   });
 }
 
-NFCAdapter.prototype.getAIDsForCategory = function(category, successCallback, errorCallback) {
-  var args = validator_.validateArgs(arguments, [
-    {name: 'category', type: types_.ENUM, values: Object.keys(CardEmulationCategoryType)},
-    {name: 'successCallback', type: types_.FUNCTION},
-    {name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true}
-  ]);
+NFCAdapter.prototype.getAIDsForCategory = function(type, category, successCallback, errorCallback) {
+  var args = validator_.validateArgs(arguments, [{
+    name: 'type',
+    type: types_.ENUM,
+    values: type_.getValues(SecureElementType)
+  }, {
+    name: 'category',
+    type: types_.ENUM,
+    values: Object.keys(CardEmulationCategoryType)
+  }, {
+    name: 'successCallback',
+    type: types_.FUNCTION
+  }, {
+    name: 'errorCallback',
+    type: types_.FUNCTION,
+    optional: true,
+    nullable: true
+  }]);
 
-  if (arguments.length < 2) {
+  if (arguments.length < 3) {
     throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR);
   }
 
   var data = {
+    type: args.type,
     category: args.category
   };
 
@@ -854,7 +895,7 @@ function NFCTag(tagid) {
 
     console.log('Current result: ' + result);
 
-    var result_array = new Object();
+    var result_array = {};
     for (var i in result.result) {
       var current = result.result[i];
       var keys = Object.keys(current);

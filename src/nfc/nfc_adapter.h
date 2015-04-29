@@ -95,17 +95,23 @@ class NFCAdapter {
       const UCharVector& apdu,
       const std::function<void()>& success_cb,
       const std::function<void(const common::PlatformResult&)>& error_cb);
-  common::PlatformResult IsActivatedHandlerForAID(const char* aid,
+  common::PlatformResult IsActivatedHandlerForAID(const std::string& type,
+                                                  const std::string& aid,
                                                   bool* is_activated_handler);
   common::PlatformResult IsActivatedHandlerForCategory(
-      nfc_card_emulation_category_type_e category, bool* is_activated_handler);
+      const std::string& type,
+      nfc_card_emulation_category_type_e category,
+      bool* is_activated_handler);
   common::PlatformResult RegisterAID(
-      const char* aid,
+      const std::string& type,
+      const std::string& aid,
       nfc_card_emulation_category_type_e category);
   common::PlatformResult UnregisterAID(
-      const char* aid,
+      const std::string& type,
+      const std::string& aid,
       nfc_card_emulation_category_type_e category);
   void GetAIDsForCategory(
+      const std::string& type,
       nfc_card_emulation_category_type_e category,
       const std::function<void(const AIDDataVector&)>& success_cb,
       const std::function<void(const common::PlatformResult&)>& error_cb);
