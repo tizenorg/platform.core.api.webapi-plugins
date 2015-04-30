@@ -46,6 +46,8 @@ KeyManagerInstance::KeyManagerInstance() {
       std::bind(&KeyManagerInstance::SaveCertificate, this, _1, _2));
   RegisterSyncHandler("KeyManager_loadCertificateFromFile",
       std::bind(&KeyManagerInstance::LoadCertificateFromFile, this, _1, _2));
+  RegisterSyncHandler("KeyManager_removeCertificate",
+      std::bind(&KeyManagerInstance::RemoveCertificate, this, _1, _2));
 }
 
 KeyManagerInstance::~KeyManagerInstance() {
@@ -145,19 +147,28 @@ void KeyManagerInstance::RemoveKey(const picojson::value& args,
   LoggerD("Enter");
 
   const std::string& alias = args.get("key").get("name").get<std::string>();
-  int ret = CKM::Manager::create()->removeAlias(alias);
-  if (ret != CKM_API_SUCCESS) {
-    LoggerE("Failed to remove key alias: %d", ret);
-    if (ret == CKM_API_ERROR_DB_ALIAS_UNKNOWN) {
-      ReportError(common::PlatformResult(common::ErrorCode::NOT_FOUND_ERR,
-        "Key alias not found"), &out);
-    } else {
-      ReportError(common::PlatformResult(common::ErrorCode::UNKNOWN_ERR,
-        "Failed to remove key alias"), &out);
-    }
+  common::PlatformResult res = RemoveAlias(alias);
+  if (res.IsError()) {
+    ReportError(res, &out);
   } else {
     ReportSuccess(out);
   }
+}
+
+common::PlatformResult KeyManagerInstance::RemoveAlias(
+    const std::string& alias) {
+  int ret = CKM::Manager::create()->removeAlias(alias);
+  if (ret != CKM_API_SUCCESS) {
+    LoggerE("Failed to remove alias: %d", ret);
+    if (ret == CKM_API_ERROR_DB_ALIAS_UNKNOWN) {
+      return common::PlatformResult(common::ErrorCode::NOT_FOUND_ERR,
+        "Key alias not found");
+    } else {
+      return common::PlatformResult(common::ErrorCode::UNKNOWN_ERR,
+        "Failed to remove alias");
+    }
+  }
+  return common::PlatformResult(common::ErrorCode::NO_ERROR);
 }
 
 void KeyManagerInstance::GenerateKeyPair(const picojson::value& args,
@@ -420,6 +431,20 @@ void KeyManagerInstance::OnCertFileLoaded(LoadFileCert* reader,
       reader->extractable, reader->callbackId);
   }
   delete reader;
+}
+
+void KeyManagerInstance::RemoveCertificate(const picojson::value& args,
+    picojson::object& out) {
+  LoggerD("Enter");
+
+  const std::string& alias = args.get("certificate").get("name").get<std::string>();
+  common::PlatformResult res = RemoveAlias(alias);
+  if (res.IsError()) {
+    ReportError(res, &out);
+  } else {
+    picojson::value result;
+    ReportSuccess(result, out);
+  }
 }
 
 } // namespace keymanager

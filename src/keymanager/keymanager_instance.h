@@ -43,6 +43,8 @@ class KeyManagerInstance :
     const std::string &alias,
     bool extractable,
     double callbackId);
+  void RemoveCertificate(const picojson::value& args, picojson::object& out);
+  common::PlatformResult RemoveAlias(const std::string &alias);
 
   CKM::ManagerAsync m_manager;
 };
