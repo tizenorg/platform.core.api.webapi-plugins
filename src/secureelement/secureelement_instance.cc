@@ -20,10 +20,6 @@ namespace secureelement {
 using namespace common;
 using namespace smartcard_service_api;
 
-namespace {
-const std::string kPrivilegeSecureElement = "http://tizen.org/privilege/secureelement";
-}
-
 SecureElementInstance::SecureElementInstance()
     : service_(*this) {
     using std::placeholders::_1;
@@ -63,8 +59,6 @@ SecureElementInstance::~SecureElementInstance() {
 void SecureElementInstance::GetReaders(const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
 
-  CHECK_PRIVILEGE_ACCESS(kPrivilegeSecureElement, &out);
-
   double callback_id = 0.0;
   if (args.contains("callbackId")) {
     callback_id = args.get("callbackId").get<double>();
@@ -76,9 +70,6 @@ void SecureElementInstance::GetReaders(const picojson::value& args, picojson::ob
 
 void SecureElementInstance::RegisterSEListener(const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
-
-  CHECK_PRIVILEGE_ACCESS(kPrivilegeSecureElement, &out);
-
   service_.RegisterSEListener();
   ReportSuccess(out);
 }
@@ -86,18 +77,12 @@ void SecureElementInstance::RegisterSEListener(const picojson::value& args, pico
 void SecureElementInstance::UnregisterSEListener(
     const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
-
-  CHECK_PRIVILEGE_ACCESS(kPrivilegeSecureElement, &out);
-
   service_.UnregisterSEListener();
   ReportSuccess(out);
 }
 
 void SecureElementInstance::Shutdown(const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
-
-  CHECK_PRIVILEGE_ACCESS(kPrivilegeSecureElement, &out);
-
   service_.Shutdown();
   ReportSuccess(out);
 }
@@ -105,9 +90,6 @@ void SecureElementInstance::Shutdown(const picojson::value& args, picojson::obje
 void SecureElementInstance::GetName(
         const picojson::value& args, picojson::object& out) {
     LoggerD("Entered");
-
-    CHECK_PRIVILEGE_ACCESS(kPrivilegeSecureElement, &out);
-
     Reader* reader_ptr = (Reader*) static_cast<long>(args.get("handle").get<double>());
     SEReader seReader(reader_ptr);
     picojson::value result = seReader.getName();
@@ -127,9 +109,6 @@ void SecureElementInstance::IsPresent(
 void SecureElementInstance::CloseSessions(
         const picojson::value& args, picojson::object& out) {
     LoggerD("Entered");
-
-    CHECK_PRIVILEGE_ACCESS(kPrivilegeSecureElement, &out);
-
     Reader* reader_ptr = (Reader*) static_cast<long>(args.get("handle").get<double>());
     SEReader seReader(reader_ptr);
     seReader.closeSessions();
@@ -138,9 +117,6 @@ void SecureElementInstance::CloseSessions(
 
 void SecureElementInstance::CloseChannel( const picojson::value& args, picojson::object& out) {
     LoggerD("Enter");
-
-    CHECK_PRIVILEGE_ACCESS(kPrivilegeSecureElement, &out);
-
     ClientChannel* channel_ptr = (ClientChannel*) static_cast<long>(args.get("handle").get<double>());
     SEChannel seChannel(channel_ptr);
     seChannel.close();
@@ -149,9 +125,6 @@ void SecureElementInstance::CloseChannel( const picojson::value& args, picojson:
 
 void SecureElementInstance::GetSelectResponse( const picojson::value& args, picojson::object& out) {
     LoggerD("Enter");
-
-    CHECK_PRIVILEGE_ACCESS(kPrivilegeSecureElement, &out);
-
     ClientChannel* channel_ptr = (ClientChannel*) static_cast<long>(args.get("handle").get<double>());
     SEChannel seChannel(channel_ptr);
 
@@ -167,9 +140,6 @@ void SecureElementInstance::GetSelectResponse( const picojson::value& args, pico
 void SecureElementInstance::OpenSession(
         const picojson::value& args, picojson::object& out) {
     LoggerD("Entered");
-
-    CHECK_PRIVILEGE_ACCESS(kPrivilegeSecureElement, &out);
-
     const double callback_id = args.get("callbackId").get<double>();
     Reader* reader_ptr = (Reader*) static_cast<long>(args.get("handle").get<double>());
 
@@ -215,9 +185,6 @@ void SecureElementInstance::OpenSession(
 
 void SecureElementInstance::OpenBasicChannel( const picojson::value& args, picojson::object& out) {
     LoggerD("Enter");
-
-    CHECK_PRIVILEGE_ACCESS(kPrivilegeSecureElement, &out);
-
     const double callback_id = args.get("callbackId").get<double>();
     const picojson::array v_aid = args.get("aid").get<picojson::value::array>();
     Session* session_ptr = (Session*) static_cast<long>(args.get("handle").get<double>());
@@ -260,9 +227,6 @@ void SecureElementInstance::OpenBasicChannel( const picojson::value& args, picoj
 
 void SecureElementInstance::OpenLogicalChannel( const picojson::value& args, picojson::object& out) {
     LoggerD("Enter");
-
-    CHECK_PRIVILEGE_ACCESS(kPrivilegeSecureElement, &out);
-
     const double callback_id = args.get("callbackId").get<double>();
     const picojson::array v_aid = args.get("aid").get<picojson::value::array>();
     Session* session_ptr = (Session*) static_cast<long>(args.get("handle").get<double>());
@@ -306,8 +270,6 @@ void SecureElementInstance::OpenLogicalChannel( const picojson::value& args, pic
 void SecureElementInstance::GetATR( const picojson::value& args, picojson::object& out) {
     LoggerD("Enter");
 
-    CHECK_PRIVILEGE_ACCESS(kPrivilegeSecureElement, &out);
-
     Session* session_ptr = (Session*) static_cast<long>(args.get("handle").get<double>());
     SESession seSession(session_ptr);
 
@@ -332,9 +294,6 @@ void SecureElementInstance::IsSessionClosed( const picojson::value& args, picojs
 
 void SecureElementInstance::CloseSession( const picojson::value& args, picojson::object& out) {
     LoggerD("Enter");
-
-    CHECK_PRIVILEGE_ACCESS(kPrivilegeSecureElement, &out);
-
     Session* session_ptr = (Session*) static_cast<long>(args.get("handle").get<double>());
     SESession seSession(session_ptr);
     seSession.close();
@@ -344,9 +303,6 @@ void SecureElementInstance::CloseSession( const picojson::value& args, picojson:
 
 void SecureElementInstance::CloseChannels( const picojson::value& args, picojson::object& out) {
     LoggerD("Enter");
-
-    CHECK_PRIVILEGE_ACCESS(kPrivilegeSecureElement, &out);
-
     Session* session_ptr = (Session*) static_cast<long>(args.get("handle").get<double>());
     SESession seSession(session_ptr);
     seSession.closeChannels();
@@ -355,9 +311,6 @@ void SecureElementInstance::CloseChannels( const picojson::value& args, picojson
 
 void SecureElementInstance::Transmit( const picojson::value& args, picojson::object& out) {
     LoggerD("Enter");
-
-    CHECK_PRIVILEGE_ACCESS(kPrivilegeSecureElement, &out);
-
     const double callback_id = args.get("callbackId").get<double>();
     const picojson::array v_command = args.get("command").get<picojson::value::array>();
     ClientChannel* channel_ptr = (ClientChannel*) static_cast<long>(args.get("handle").get<double>());

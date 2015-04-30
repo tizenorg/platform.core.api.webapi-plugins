@@ -3,6 +3,7 @@
 // found in the LICENSE file.
 
 var validator_ = xwalk.utils.validator;
+var privilege_ = xwalk.utils.privilege;
 var types_ = validator_.Types;
 var type_utils = xwalk.utils.type;
 var native_ = new xwalk.utils.NativeManager(extension);
@@ -37,6 +38,8 @@ ListenerManager.prototype.onListenerCalled = function(msg) {
 };
 
 ListenerManager.prototype.addListener = function(callback) {
+    xwalk.utils.checkPrivilegeAccess(privilege_.SECUREELEMENT);
+
     var id = this.nextId;
     if (!this.nativeSet) {
         this.native.addListener(this.listenerName, this.onListenerCalled.bind(this));
@@ -51,6 +54,8 @@ ListenerManager.prototype.addListener = function(callback) {
 };
 
 ListenerManager.prototype.removeListener = function(watchId) {
+    xwalk.utils.checkPrivilegeAccess(privilege_.SECUREELEMENT);
+
     if (this.listeners.hasOwnProperty(watchId)) {
       delete this.listeners[watchId];
     }
@@ -69,6 +74,8 @@ function SEService() {
 }
 
 SEService.prototype.getReaders = function() {
+    xwalk.utils.checkPrivilegeAccess(privilege_.SECUREELEMENT);
+
     var args = validator_.validateArgs(arguments, [
         { name: "successCallback", type: types_.FUNCTION },
         { name: "errorCallback", type: types_.FUNCTION, optional: true, nullable: true }
@@ -116,6 +123,8 @@ SEService.prototype.unregisterSEListener = function() {
 }
 
 SEService.prototype.shutdown = function() {
+    xwalk.utils.checkPrivilegeAccess(privilege_.SECUREELEMENT);
+
     var result = native_.callSync('SEService_shutdown', {});
 
     if (native_.isFailure(result)) {
@@ -142,6 +151,8 @@ function Reader(reader_handle) {
 }
 
 Reader.prototype.getName = function() {
+    xwalk.utils.checkPrivilegeAccess(privilege_.SECUREELEMENT);
+
     var callArgs = { handle: this._handle };
     var result = native_.callSync('SEReader_getName', callArgs);
 
@@ -153,6 +164,8 @@ Reader.prototype.getName = function() {
 };
 
 Reader.prototype.openSession = function() {
+    xwalk.utils.checkPrivilegeAccess(privilege_.SECUREELEMENT);
+
     var args = validator_.validateArgs(arguments, [
         { name: "successCallback", type: types_.FUNCTION },
         { name: "errorCallback", type: types_.FUNCTION, optional: true, nullable: true }
@@ -174,6 +187,7 @@ Reader.prototype.openSession = function() {
 };
 
 Reader.prototype.closeSessions = function() {
+    xwalk.utils.checkPrivilegeAccess(privilege_.SECUREELEMENT);
     var callArgs = { handle: this._handle };
     native_.call('SEReader_closeSessions', callArgs);
 };
@@ -188,11 +202,14 @@ function Channel( channel_handle, is_basic_channel) {
 }
 
 Channel.prototype.close = function() {
+    xwalk.utils.checkPrivilegeAccess(privilege_.SECUREELEMENT);
     var callArgs = { handle: this._handle };
     native_.callSync('SEChannel_close', callArgs);
 };
 
 Channel.prototype.transmit = function() {
+    xwalk.utils.checkPrivilegeAccess(privilege_.SECUREELEMENT);
+
     var args = validator_.validateArgs(arguments, [
         { name: "command", type: types_.ARRAY, values: types_.BYTE },
         { name: "successCallback", type: types_.FUNCTION },
@@ -217,6 +234,7 @@ Channel.prototype.transmit = function() {
 }
 
 Channel.prototype.getSelectResponse = function() {
+    xwalk.utils.checkPrivilegeAccess(privilege_.SECUREELEMENT);
     var callArgs = { handle: this._handle };
     native_.callSync('SEChannel_getSelectResponse', callArgs);
 }
@@ -237,6 +255,8 @@ function Session(session_handle) {
 }
 
 Session.prototype.openBasicChannel = function() {
+    xwalk.utils.checkPrivilegeAccess(privilege_.SECUREELEMENT);
+
     var args = validator_.validateArgs(arguments, [
         { name: "aid", type: types_.ARRAY, values: types_.BYTE },
         { name: "successCallback", type: types_.FUNCTION },
@@ -262,6 +282,8 @@ Session.prototype.openBasicChannel = function() {
 };
 
 Session.prototype.openLogicalChannel = function() {
+    xwalk.utils.checkPrivilegeAccess(privilege_.SECUREELEMENT);
+
     var args = validator_.validateArgs(arguments, [
         { name: "aid", type: types_.ARRAY, values: types_.BYTE },
         { name: "successCallback", type: types_.FUNCTION },
@@ -287,16 +309,19 @@ Session.prototype.openLogicalChannel = function() {
 }
 
 Session.prototype.getATR = function() {
+    xwalk.utils.checkPrivilegeAccess(privilege_.SECUREELEMENT);
     var callArgs = { handle: this._handle };
     return native_.callSync('SESession_getATR', callArgs);
 }
 
 Session.prototype.close = function() {
+    xwalk.utils.checkPrivilegeAccess(privilege_.SECUREELEMENT);
     var callArgs = { handle: this._handle };
     native_.callSync('SESession_close', callArgs);
 }
 
 Session.prototype.closeChannels = function() {
+    xwalk.utils.checkPrivilegeAccess(privilege_.SECUREELEMENT);
     var callArgs = { handle: this._handle };
     native_.callSync('SESession_closeChannels', callArgs);
 }
