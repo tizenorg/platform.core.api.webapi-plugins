@@ -21,8 +21,6 @@ const std::string SETTING_HOME_SCREEN = "HOME_SCREEN";
 const std::string SETTING_LOCK_SCREEN = "LOCK_SCREEN";
 const std::string SETTING_INCOMING_CALL = "INCOMING_CALL";
 const std::string SETTING_NOTIFICATION_EMAIL = "NOTIFICATION_EMAIL";
-
-const std::string kPrivilegeSetting = "http://tizen.org/privilege/setting";
 }
 
 using namespace common;
@@ -119,8 +117,6 @@ PlatformResult SystemSettingInstance::getPlatformPropertyValue(
 void SystemSettingInstance::setProperty(const picojson::value& args, picojson::object& out)
 {
   LoggerD("");
-
-  CHECK_PRIVILEGE_ACCESS(kPrivilegeSetting, &out);
 
   const double callback_id = args.get("callbackId").get<double>();
 

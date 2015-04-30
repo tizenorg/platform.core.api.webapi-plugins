@@ -6,6 +6,7 @@
 
 
 var validator_ = xwalk.utils.validator;
+var privilege_ = xwalk.utils.privilege;
 var type_ = xwalk.utils.type;
 var types_ = validator_.Types;
 var native_ = new xwalk.utils.NativeManager(extension);
@@ -51,6 +52,8 @@ SystemSettingManager.prototype.getProperty = function() {
 };
 
 SystemSettingManager.prototype.setProperty = function() {
+    xwalk.utils.checkPrivilegeAccess(privilege_.SETTING);
+
     var args = validator_.validateArgs(arguments, [
         { name: 'type', type: types_.ENUM, values: SystemSettingTypeValues },
         { name: 'value', type: types_.STRING },
