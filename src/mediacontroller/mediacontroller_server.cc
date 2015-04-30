@@ -280,7 +280,7 @@ PlatformResult MediaControllerServer::CommandReply(
                           "Unable to add data to bundle");
   }
 
-  ret = mc_server_send_command_reply(handle_, client_name.c_str(), 0, bundle, NULL);
+  ret = mc_server_send_command_reply(handle_, client_name.c_str(), 0, bundle);
   if (ret != MEDIA_CONTROLLER_ERROR_NONE) {
     LOGGER(ERROR) << "mc_server_send_command_reply failed, error: " << ret;
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Error sending command reply");
