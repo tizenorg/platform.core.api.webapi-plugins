@@ -20,12 +20,6 @@ namespace download {
 std::vector<DownloadInstance*> DownloadInstance::instances_;
 std::mutex DownloadInstance::instances_mutex_;
 
-namespace {
-// The privileges that required in Download API
-const std::string kPrivilegeDownload = "http://tizen.org/privilege/download";
-
-}  // namespace
-
 using common::NotFoundException;
 using common::UnknownException;
 using common::NetworkException;
@@ -370,7 +364,6 @@ void DownloadInstance::progress_changed_cb
 
 void DownloadInstance::DownloadManagerStart
   (const picojson::value& args, picojson::object& out) {
-  CHECK_PRIVILEGE_ACCESS(kPrivilegeDownload, &out);
   CHECK_EXIST(args, "callbackId", out)
 
   int ret, downlodId;

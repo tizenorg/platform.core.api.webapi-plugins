@@ -169,6 +169,8 @@ function DownloadManager() {
 }
 
 DownloadManager.prototype.start = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.DOWNLOAD);
+
   var args = validator_.validateArgs(arguments, [
     {'name' : 'downloadRequest', 'type': types_.PLATFORM_OBJECT, 'values': tizen.DownloadRequest},
     {'name' : 'downloadCallback', 'type': types_.LISTENER,
