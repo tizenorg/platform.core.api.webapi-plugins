@@ -32,7 +32,6 @@
 #include "bluetooth/bluetooth_class.h"
 #include "bluetooth/bluetooth_device.h"
 #include "bluetooth/bluetooth_instance.h"
-#include "bluetooth/bluetooth_privilege.h"
 #include "bluetooth/bluetooth_socket.h"
 #include "bluetooth/bluetooth_util.h"
 
@@ -440,8 +439,6 @@ bool BluetoothAdapter::is_initialized() const {
 void BluetoothAdapter::SetName(const picojson::value& data, picojson::object& out) {
   LoggerD("Entered");
 
-  CHECK_PRIVILEGE_ACCESS(Privilege::kBluetoothAdmin, &out);
-
   const auto callback_handle = util::GetAsyncCallbackHandle(data);
   const auto& args = util::GetArguments(data);
   const auto name = FromJson<std::string>(args, "name");
@@ -495,8 +492,6 @@ void BluetoothAdapter::SetName(const picojson::value& data, picojson::object& ou
 void BluetoothAdapter::SetPowered(const picojson::value& data, picojson::object& out) {
   LoggerD("Entered");
 
-  CHECK_PRIVILEGE_ACCESS(Privilege::kBluetoothAdmin, &out);
-
   const auto callback_handle = util::GetAsyncCallbackHandle(data);
   const auto& args = util::GetArguments(data);
   const auto new_powered = FromJson<bool>(args, "powered");
@@ -531,8 +526,6 @@ void BluetoothAdapter::SetPowered(const picojson::value& data, picojson::object&
 
 void BluetoothAdapter::SetVisible(const picojson::value& data, picojson::object& out) {
   LoggerD("Entered");
-
-  CHECK_PRIVILEGE_ACCESS(Privilege::kBluetoothManager, &out);
 
   const auto callback_handle = util::GetAsyncCallbackHandle(data);
   const auto& args = util::GetArguments(data);
@@ -605,8 +598,6 @@ void BluetoothAdapter::SetVisible(const picojson::value& data, picojson::object&
 void BluetoothAdapter::DiscoverDevices(const picojson::value& /* data */, picojson::object& out) {
   LoggerD("Entered");
 
-  CHECK_PRIVILEGE_ACCESS(Privilege::kBluetoothGap, &out);
-
   PlatformResult result = PlatformResult(ErrorCode::NO_ERROR);
 
   if (!is_initialized_) {
@@ -638,8 +629,6 @@ void BluetoothAdapter::DiscoverDevices(const picojson::value& /* data */, picojs
 
 void BluetoothAdapter::StopDiscovery(const picojson::value& data, picojson::object& out) {
   LoggerD("Entered");
-
-  CHECK_PRIVILEGE_ACCESS(Privilege::kBluetoothGap, &out);
 
   const auto callback_handle = util::GetAsyncCallbackHandle(data);
 
@@ -687,8 +676,6 @@ void BluetoothAdapter::StopDiscovery(const picojson::value& data, picojson::obje
 void BluetoothAdapter::GetKnownDevices(const picojson::value& data, picojson::object& out) {
   LoggerD("Entered");
 
-  CHECK_PRIVILEGE_ACCESS(Privilege::kBluetoothGap, &out);
-
   const auto callback_handle = util::GetAsyncCallbackHandle(data);
 
   auto get_known_devices = [this](const std::shared_ptr<picojson::value>& response) -> void {
@@ -735,8 +722,6 @@ void BluetoothAdapter::GetKnownDevices(const picojson::value& data, picojson::ob
 
 void BluetoothAdapter::GetDevice(const picojson::value& data, picojson::object&  out) {
   LoggerD("Entered");
-
-  CHECK_PRIVILEGE_ACCESS(Privilege::kBluetoothGap, &out);
 
   const auto callback_handle = util::GetAsyncCallbackHandle(data);
   const auto& args = util::GetArguments(data);
@@ -835,8 +820,6 @@ class BondingHandler {
 
 void BluetoothAdapter::CreateBonding(const picojson::value& data, picojson::object& out) {
   LoggerD("Entered");
-
-  CHECK_PRIVILEGE_ACCESS(Privilege::kBluetoothGap, &out);
 
   const auto callback_handle = util::GetAsyncCallbackHandle(data);
   const auto& args = util::GetArguments(data);
@@ -942,8 +925,6 @@ void BluetoothAdapter::DestroyBonding(const picojson::value& data, picojson::obj
 {
   LoggerD("Entered");
 
-  CHECK_PRIVILEGE_ACCESS(Privilege::kBluetoothGap, &out);
-
   const auto callback_handle = util::GetAsyncCallbackHandle(data);
   const auto& args = util::GetArguments(data);
 
@@ -1041,8 +1022,6 @@ void BluetoothAdapter::DestroyBonding(const picojson::value& data, picojson::obj
 
 void BluetoothAdapter::RegisterRFCOMMServiceByUUID(const picojson::value& data, picojson::object& out) {
   LoggerD("Entered");
-
-  CHECK_PRIVILEGE_ACCESS(Privilege::kBluetoothSpp, &out);
 
   const auto callback_handle = util::GetAsyncCallbackHandle(data);
   const auto& args = util::GetArguments(data);

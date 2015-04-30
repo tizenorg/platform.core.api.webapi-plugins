@@ -22,7 +22,6 @@
 
 #include "bluetooth_adapter.h"
 #include "bluetooth_class.h"
-#include "bluetooth_privilege.h"
 #include "bluetooth_util.h"
 
 namespace extension {
@@ -103,8 +102,6 @@ void BluetoothDevice::ToJson(bt_adapter_device_discovery_info_s *info, picojson:
 
 void BluetoothDevice::ConnectToServiceByUUID(const picojson::value& data, picojson::object& out) {
   LoggerD("Entered");
-
-  CHECK_PRIVILEGE_ACCESS(Privilege::kBluetoothSpp, &out);
 
   const auto& args = util::GetArguments(data);
 

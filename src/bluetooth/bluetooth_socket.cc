@@ -24,7 +24,6 @@
 
 #include "bluetooth_adapter.h"
 #include "bluetooth_device.h"
-#include "bluetooth_privilege.h"
 #include "bluetooth_util.h"
 
 namespace extension {
@@ -50,8 +49,6 @@ BluetoothSocket::BluetoothSocket(BluetoothAdapter& adapter)
 void BluetoothSocket::WriteData(const picojson::value& data, picojson::object& out) {
   LoggerD("Enter");
 
-  CHECK_PRIVILEGE_ACCESS(Privilege::kBluetoothSpp, &out);
-
   const auto& args = util::GetArguments(data);
 
   int socket = common::stol(FromJson<std::string>(args, "id"));
@@ -76,8 +73,6 @@ void BluetoothSocket::WriteData(const picojson::value& data, picojson::object& o
 void BluetoothSocket::ReadData(const picojson::value& data, picojson::object& out) {
   LoggerD("Enter");
 
-  CHECK_PRIVILEGE_ACCESS(Privilege::kBluetoothSpp, &out);
-
   const auto& args = util::GetArguments(data);
 
   int socket = common::stol(FromJson<std::string>(args, "id"));
@@ -97,8 +92,6 @@ void BluetoothSocket::ReadData(const picojson::value& data, picojson::object& ou
 
 void BluetoothSocket::Close(const picojson::value& data, picojson::object& out) {
   LoggerD("Enter");
-
-  CHECK_PRIVILEGE_ACCESS(Privilege::kBluetoothSpp, &out);
 
   const auto& args = util::GetArguments(data);
 
