@@ -61,7 +61,68 @@ DateConverter.prototype.fromTZDate = function(v) {
 var _dateConverter = new DateConverter();
 
 /** @constructor */
-function Utils() {}
+function Utils() {
+  var privilege = {
+    ACCOUNT_READ: 'http://tizen.org/privilege/account.read',
+    ACCOUNT_WRITE: 'http://tizen.org/privilege/account.write',
+    ALARM: 'http://tizen.org/privilege/alarm',
+    APPLICATION_INFO: 'http://tizen.org/privilege/application.info',
+    APPLICATION_LAUNCH: 'http://tizen.org/privilege/application.launch',
+    APPMANAGER_CERTIFICATE: 'http://tizen.org/privilege/appmanager.certificate',
+    APPMANAGER_KILL: 'http://tizen.org/privilege/appmanager.kill',
+    BLUETOOTH_ADMIN: 'http://tizen.org/privilege/bluetooth.admin',
+    BLUETOOTH_GAP: 'http://tizen.org/privilege/bluetooth.gap',
+    BLUETOOTH_HEALTH: 'http://tizen.org/privilege/bluetooth.health',
+    BLUETOOTH_SPP: 'http://tizen.org/privilege/bluetooth.spp',
+    BLUETOOTHMANAGER: 'http://tizen.org/privilege/bluetoothmanager',
+    BOOKMARK_READ: 'http://tizen.org/privilege/bookmark.read',
+    BOOKMARK_WRITE: 'http://tizen.org/privilege/bookmark.write',
+    CALENDAR_READ: 'http://tizen.org/privilege/calendar.read',
+    CALENDAR_WRITE: 'http://tizen.org/privilege/calendar.write',
+    CALLHISTORY_READ: 'http://tizen.org/privilege/callhistory.read',
+    CALLHISTORY_WRITE: 'http://tizen.org/privilege/callhistory.write',
+    CONTACT_READ: 'http://tizen.org/privilege/contact.read',
+    CONTACT_WRITE: 'http://tizen.org/privilege/contact.write',
+    CONTENT_READ: 'http://tizen.org/privilege/content.read',
+    CONTENT_WRITE: 'http://tizen.org/privilege/content.write',
+    DATACONTROL_CONSUMER: 'http://tizen.org/privilege/datacontrol.consumer',
+    DATASYNC: 'http://tizen.org/privilege/datasync',
+    DOWNLOAD: 'http://tizen.org/privilege/download',
+    FILESYSTEM_READ: 'http://tizen.org/privilege/filesystem.read',
+    FILESYSTEM_WRITE: 'http://tizen.org/privilege/filesystem.write',
+    HEALTHINFO: 'http://tizen.org/privilege/healthinfo',
+    INTERNET: 'http://tizen.org/privilege/internet',
+    LED: 'http://tizen.org/privilege/led',
+    LOCATION: 'http://tizen.org/privilege/location',
+    MESSAGING_READ: 'http://tizen.org/privilege/messaging.read',
+    MESSAGING_WRITE: 'http://tizen.org/privilege/messaging.write',
+    NETWORKBEARERSELECTION: 'http://tizen.org/privilege/networkbearerselection',
+    NFC_ADMIN: 'http://tizen.org/privilege/nfc.admin',
+    NFC_CARDEMULATION: 'http://tizen.org/privilege/nfc.cardemulation',
+    NFC_COMMON: 'http://tizen.org/privilege/nfc.common',
+    NFC_P2P: 'http://tizen.org/privilege/nfc.p2p',
+    NFC_TAG: 'http://tizen.org/privilege/nfc.tag',
+    NOTIFICATION: 'http://tizen.org/privilege/notification',
+    PACKAGE_INFO: 'http://tizen.org/privilege/package.info',
+    PACKAGEMANAGER_INSTALL: 'http://tizen.org/privilege/packagemanager.install',
+    POWER: 'http://tizen.org/privilege/power',
+    PUSH: 'http://tizen.org/privilege/push',
+    SECUREELEMENT: 'http://tizen.org/privilege/secureelement',
+    SETTING: 'http://tizen.org/privilege/setting',
+    SYSTEM: 'http://tizen.org/privilege/system',
+    SYSTEMMANAGER: 'http://tizen.org/privilege/systemmanager',
+    TELEPHONY: 'http://tizen.org/privilege/telephony',
+    VOLUME_SET: 'http://tizen.org/privilege/volume.set'
+  };
+  Object.freeze(privilege);
+
+  Object.defineProperty(this, 'privilege', {
+    value: privilege,
+    writable: false,
+    enumerable: true,
+    configurable: false
+  });
+}
 
 Utils.prototype.repackFilter = function(filter) {
   if (filter instanceof tizen.AttributeFilter) {
