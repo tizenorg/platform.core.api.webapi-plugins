@@ -258,7 +258,7 @@ PlatformResult AddressBookAddBatch(const JsonObject& args, JsonArray& out) {
     }
   }
 
-  int* ids;
+  int* ids = nullptr;
   int count = 0;
   error_code = contacts_db_insert_records(*contacts_list_ptr, &ids, &count);
   if (CONTACTS_ERROR_NONE != error_code) {
