@@ -19,9 +19,6 @@ namespace {
   const char kType[] = "type";
   const char kParentId[] = "parentId";
   const char kUrl[] = "url";
-
-  const std::string kPrivilegeBookmarkRead  = "http://tizen.org/privilege/bookmark.read";
-  const std::string kPrivilegeBookmarkWrite = "http://tizen.org/privilege/bookmark.write";
 }  // namespace
 
 BookmarkInstance::BookmarkInstance() {
@@ -123,7 +120,6 @@ bool BookmarkInstance::bookmark_title_exists_in_parent(
 
 void BookmarkInstance::BookmarkGet(
     const picojson::value& arg, picojson::object& o) {
-  CHECK_PRIVILEGE_ACCESS(kPrivilegeBookmarkRead, &o);
 
   Context ctx = {0};
   bp_bookmark_info_fmt info = {0};
@@ -157,7 +153,6 @@ void BookmarkInstance::BookmarkGet(
 
 void BookmarkInstance::BookmarkAdd(
     const picojson::value& arg, picojson::object& o) {
-  CHECK_PRIVILEGE_ACCESS(kPrivilegeBookmarkWrite, &o);
 
   int saved_id =-1;
   bp_bookmark_info_fmt data = {0};
@@ -205,7 +200,6 @@ void BookmarkInstance::BookmarkAdd(
 
 void BookmarkInstance::BookmarkRemove(
     const picojson::value& arg, picojson::object& o) {
-  CHECK_PRIVILEGE_ACCESS(kPrivilegeBookmarkWrite, &o);
 
   int id = common::stol(
       common::FromJson<std::string>(arg.get<picojson::object>(), kId));
@@ -222,7 +216,6 @@ void BookmarkInstance::BookmarkRemove(
 
 void BookmarkInstance::BookmarkRemoveAll(
     const picojson::value& msg, picojson::object& o) {
-  CHECK_PRIVILEGE_ACCESS(kPrivilegeBookmarkWrite, &o);
 
   if (bp_bookmark_adaptor_reset() < 0) {
     ReportError(o);

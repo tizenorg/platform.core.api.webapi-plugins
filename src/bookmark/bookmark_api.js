@@ -3,6 +3,7 @@
 // found in the LICENSE file.
 
 var validator_ = xwalk.utils.validator;
+var privilege_ = xwalk.utils.privilege;
 var types_ = validator_.Types;
 var native_ = new xwalk.utils.NativeManager(extension);
 
@@ -23,6 +24,8 @@ var _edit = new EditManager();
 function BookmarkManager() {}
 
 BookmarkManager.prototype.get = function() {
+  xwalk.utils.checkPrivilegeAccess(privilege_.BOOKMARK_READ);
+
   var args = validator_.validateArgs(arguments, [
     {
       name: 'parentFolder',
@@ -56,6 +59,8 @@ BookmarkManager.prototype.get = function() {
 };
 
 BookmarkManager.prototype.add = function() {
+  xwalk.utils.checkPrivilegeAccess(privilege_.BOOKMARK_WRITE);
+
   var args = validator_.validateArgs(arguments, [
     {
       name: 'bookmark',
@@ -90,6 +95,8 @@ BookmarkManager.prototype.add = function() {
 };
 
 BookmarkManager.prototype.remove = function() {
+  xwalk.utils.checkPrivilegeAccess(privilege_.BOOKMARK_WRITE);
+
   var args = validator_.validateArgs(arguments, [
     {
       name: 'bookmark',
