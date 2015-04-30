@@ -704,6 +704,8 @@ function MessageService(data) {
 };
 
 MessageService.prototype.sendMessage = function () {
+    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.MESSAGING_WRITE);
+
     var args = validator_.validateArgs(arguments, [
         {name: 'message', type: types_.PLATFORM_OBJECT, values: tizen.Message},
         {name: 'successCallback', type: types_.FUNCTION, optional: true, nullable: true},
@@ -751,6 +753,8 @@ MessageService.prototype.sendMessage = function () {
 };
 
 MessageService.prototype.loadMessageBody = function () {
+    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.MESSAGING_WRITE);
+
     var args = validator_.validateArgs(arguments, [
         {name: 'message', type: types_.PLATFORM_OBJECT, values: tizen.Message},
         {name: 'successCallback', type: types_.FUNCTION},
@@ -792,6 +796,8 @@ MessageService.prototype.loadMessageBody = function () {
     });
 };
 MessageService.prototype.loadMessageAttachment = function () {
+    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.MESSAGING_WRITE);
+
     var args = validator_.validateArgs(arguments, [
         {name: 'attachment', type: types_.PLATFORM_OBJECT, values: MessageAttachment},
         {name: 'successCallback', type: types_.FUNCTION},
@@ -840,6 +846,8 @@ MessageService.prototype.loadMessageAttachment = function () {
 };
 
 MessageService.prototype.sync = function () {
+    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.MESSAGING_WRITE);
+
     var args = validator_.validateArgs(arguments, [
         {name: 'successCallback', type: types_.FUNCTION, optional: true, nullable: true},
         {name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true},
@@ -876,6 +884,8 @@ MessageService.prototype.sync = function () {
 };
 
 MessageService.prototype.syncFolder = function () {
+    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.MESSAGING_WRITE);
+
     var args = validator_.validateArgs(arguments, [
         {name: 'folder', type: types_.PLATFORM_OBJECT, values: MessageFolder},
         {name: 'successCallback', type: types_.FUNCTION, optional: true, nullable: true},
@@ -938,6 +948,8 @@ function MessageStorage(service) {
 };
 
 MessageStorage.prototype.addDraftMessage = function () {
+    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.MESSAGING_WRITE);
+
     var args = validator_.validateArgs(arguments, [
         {name: 'message', type: types_.PLATFORM_OBJECT, values: tizen.Message},
         {name: 'successCallback', type: types_.FUNCTION, optional: true, nullable: true},
@@ -989,6 +1001,8 @@ MessageStorage.prototype.addDraftMessage = function () {
 };
 
 MessageStorage.prototype.findMessages = function () {
+    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.MESSAGING_READ);
+
     var args = validator_.validateArgs(arguments, [
         {
             name: 'filter',
@@ -1035,6 +1049,8 @@ MessageStorage.prototype.findMessages = function () {
 };
 
 MessageStorage.prototype.removeMessages = function () {
+    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.MESSAGING_WRITE);
+
     var args = validator_.validateArgs(arguments, [
         {name: 'messages', type: types_.ARRAY, values: Message},
         {name: 'successCallback', type: types_.FUNCTION, optional: true, nullable: true},
@@ -1074,6 +1090,8 @@ MessageStorage.prototype.removeMessages = function () {
 };
 
 MessageStorage.prototype.updateMessages = function () {
+    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.MESSAGING_WRITE);
+
     var args = validator_.validateArgs(arguments, [
         {name: 'messages', type: types_.ARRAY, values: Message},
         {name: 'successCallback', type: types_.FUNCTION, optional: true, nullable: true},
@@ -1135,6 +1153,8 @@ MessageStorage.prototype.updateMessages = function () {
 };
 
 MessageStorage.prototype.findConversations = function () {
+    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.MESSAGING_READ);
+
     var args = validator_.validateArgs(arguments, [
         {
             name: 'filter',
@@ -1180,6 +1200,8 @@ MessageStorage.prototype.findConversations = function () {
 };
 
 MessageStorage.prototype.removeConversations = function () {
+    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.MESSAGING_WRITE);
+
     var args = validator_.validateArgs(arguments, [
         {name: 'conversations', type: types_.ARRAY},
         {name: 'successCallback', type: types_.FUNCTION, optional: true, nullable: true},
@@ -1219,6 +1241,8 @@ MessageStorage.prototype.removeConversations = function () {
 };
 
 MessageStorage.prototype.findFolders = function () {
+    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.MESSAGING_READ);
+
     var args = validator_.validateArgs(arguments, [
         {
             name: 'filter',
@@ -1260,6 +1284,8 @@ MessageStorage.prototype.findFolders = function () {
 };
 
 MessageStorage.prototype.addMessagesChangeListener = function () {
+    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.MESSAGING_READ);
+
     var args = validator_.validateArgs(arguments, [
         {name: 'messagesChangeCallback', type: types_.LISTENER,
                 values: ['messagesadded', 'messagesupdated', 'messagesremoved']},
@@ -1318,6 +1344,8 @@ MessageStorage.prototype.addMessagesChangeListener = function () {
 };
 
 MessageStorage.prototype.addConversationsChangeListener = function () {
+    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.MESSAGING_READ);
+
     var args = validator_.validateArgs(arguments, [
         {name: 'conversationsChangeCallback', type: types_.LISTENER,
                 values: ['conversationsadded', 'conversationsupdated', 'conversationsremoved']},
@@ -1376,6 +1404,8 @@ MessageStorage.prototype.addConversationsChangeListener = function () {
 };
 
 MessageStorage.prototype.addFoldersChangeListener = function () {
+    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.MESSAGING_READ);
+
     var args = validator_.validateArgs(arguments, [
         {name: 'foldersChangeCallback', type: types_.LISTENER,
                 values: ['foldersadded', 'foldersupdated', 'foldersremoved']},
@@ -1434,6 +1464,8 @@ MessageStorage.prototype.addFoldersChangeListener = function () {
 };
 
 MessageStorage.prototype.removeChangeListener = function () {
+    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.MESSAGING_READ);
+
     var args = validator_.validateArgs(arguments, [
         {name: 'watchId', type: types_.LONG}
     ]);

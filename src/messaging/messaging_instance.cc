@@ -118,9 +118,6 @@ auto getServiceIdFromJSON = [](picojson::object& data) -> int {
     }
 };
 
-const std::string kPrivilegeMessagingRead  = "http://tizen.org/privilege/messaging.read";
-const std::string kPrivilegeMessagingWrite = "http://tizen.org/privilege/messaging.write";
-
 }
 
 MessagingInstance::MessagingInstance():
@@ -197,8 +194,6 @@ void MessagingInstance::MessageServiceSendMessage(const picojson::value& args,
 {
     LoggerD("Entered");
 
-    CHECK_PRIVILEGE_ACCESS(kPrivilegeMessagingWrite, &out);
-
     if (!args.contains(JSON_DATA) || !args.contains(JSON_CALLBACK_ID) ||
         !args.get(JSON_CALLBACK_ID).is<double>()) {
       LoggerE("json is incorrect - missing required member");
@@ -251,8 +246,6 @@ void MessagingInstance::MessageServiceLoadMessageBody(const picojson::value& arg
 {
     LoggerD("Entered");
 
-    CHECK_PRIVILEGE_ACCESS(kPrivilegeMessagingWrite, &out);
-
     if (!args.contains(JSON_DATA) || !args.contains(JSON_CALLBACK_ID) ||
         !args.get(JSON_CALLBACK_ID).is<double>()) {
       LoggerE("json is incorrect - missing required member");
@@ -292,8 +285,6 @@ void MessagingInstance::MessageServiceLoadMessageAttachment(const picojson::valu
 {
     LoggerD("Entered");
 
-    CHECK_PRIVILEGE_ACCESS(kPrivilegeMessagingWrite, &out);
-
     if (!args.contains(JSON_DATA) || !args.contains(JSON_CALLBACK_ID) ||
         !args.get(JSON_CALLBACK_ID).is<double>()) {
       LoggerE("json is incorrect - missing required member");
@@ -324,8 +315,6 @@ void MessagingInstance::MessageServiceSync(const picojson::value& args,
         picojson::object& out)
 {
     LoggerD("Entered");
-
-    CHECK_PRIVILEGE_ACCESS(kPrivilegeMessagingWrite, &out);
 
     if (!args.contains(JSON_DATA) || !args.contains(JSON_CALLBACK_ID) ||
         !args.get(JSON_CALLBACK_ID).is<double>()) {
@@ -376,8 +365,6 @@ void MessagingInstance::MessageServiceSyncFolder(const picojson::value& args,
         picojson::object& out)
 {
     LoggerD("Entered");
-
-    CHECK_PRIVILEGE_ACCESS(kPrivilegeMessagingWrite, &out);
 
     if (!args.contains(JSON_DATA) || !args.contains(JSON_CALLBACK_ID) ||
         !args.get(JSON_CALLBACK_ID).is<double>()) {
@@ -475,8 +462,6 @@ void MessagingInstance::MessageStorageAddDraft(const picojson::value& args,
 {
     LoggerD("Entered");
 
-    CHECK_PRIVILEGE_ACCESS(kPrivilegeMessagingWrite, &out);
-
     if (!args.contains(JSON_DATA) || !args.contains(JSON_CALLBACK_ID) ||
         !args.get(JSON_CALLBACK_ID).is<double>()) {
       LoggerE("json is incorrect - missing required member");
@@ -514,8 +499,6 @@ void MessagingInstance::MessageStorageFindMessages(const picojson::value& args,
         picojson::object& out)
 {
     LoggerD("Entered");
-
-    CHECK_PRIVILEGE_ACCESS(kPrivilegeMessagingRead, &out);
 
     if (!args.contains(JSON_DATA) || !args.contains(JSON_CALLBACK_ID) ||
         !args.get(JSON_CALLBACK_ID).is<double>()) {
@@ -563,8 +546,6 @@ void MessagingInstance::MessageStorageRemoveMessages(const picojson::value& args
 {
     LoggerD("Entered");
 
-    CHECK_PRIVILEGE_ACCESS(kPrivilegeMessagingWrite, &out);
-
     if (!args.contains(JSON_DATA) || !args.contains(JSON_CALLBACK_ID) ||
         !args.get(JSON_CALLBACK_ID).is<double>()) {
       LoggerE("json is incorrect - missing required member");
@@ -603,8 +584,6 @@ void MessagingInstance::MessageStorageUpdateMessages(const picojson::value& args
 {
     LoggerD("Entered");
 
-    CHECK_PRIVILEGE_ACCESS(kPrivilegeMessagingWrite, &out);
-
     if (!args.contains(JSON_DATA) || !args.contains(JSON_CALLBACK_ID) ||
         !args.get(JSON_CALLBACK_ID).is<double>()) {
       LoggerE("json is incorrect - missing required member");
@@ -642,8 +621,6 @@ void MessagingInstance::MessageStorageFindConversations(const picojson::value& a
         picojson::object& out)
 {
     LoggerD("Entered");
-
-    CHECK_PRIVILEGE_ACCESS(kPrivilegeMessagingRead, &out);
 
     if (!args.contains(JSON_DATA) || !args.contains(JSON_CALLBACK_ID) ||
         !args.get(JSON_CALLBACK_ID).is<double>()) {
@@ -689,8 +666,6 @@ void MessagingInstance::MessageStorageRemoveConversations(const picojson::value&
 {
     LoggerD("Entered");
 
-    CHECK_PRIVILEGE_ACCESS(kPrivilegeMessagingWrite, &out);
-
     if (!args.contains(JSON_DATA) || !args.contains(JSON_CALLBACK_ID) ||
         !args.get(JSON_CALLBACK_ID).is<double>()) {
       LoggerE("json is incorrect - missing required member");
@@ -730,8 +705,6 @@ void MessagingInstance::MessageStorageFindFolders(const picojson::value& args,
 {
     LoggerD("Entered");
 
-    CHECK_PRIVILEGE_ACCESS(kPrivilegeMessagingRead, &out);
-
     if (!args.contains(JSON_DATA) || !args.contains(JSON_CALLBACK_ID) ||
         !args.get(JSON_CALLBACK_ID).is<double>()) {
       LoggerE("json is incorrect - missing required member");
@@ -764,8 +737,6 @@ void MessagingInstance::MessageStorageAddMessagesChangeListener(const picojson::
         picojson::object& out)
 {
     LoggerD("Entered");
-
-    CHECK_PRIVILEGE_ACCESS(kPrivilegeMessagingRead, &out);
 
     if (!args.contains(JSON_DATA) || !args.contains(JSON_CALLBACK_ID) ||
         !args.get(JSON_CALLBACK_ID).is<double>()) {
@@ -806,8 +777,6 @@ void MessagingInstance::MessageStorageAddConversationsChangeListener(const picoj
 {
     LoggerD("Entered");
 
-    CHECK_PRIVILEGE_ACCESS(kPrivilegeMessagingRead, &out);
-
     if (!args.contains(JSON_DATA) || !args.contains(JSON_CALLBACK_ID) ||
         !args.get(JSON_CALLBACK_ID).is<double>()) {
       LoggerE("json is incorrect - missing required member");
@@ -847,8 +816,6 @@ void MessagingInstance::MessageStorageAddFolderChangeListener(const picojson::va
 {
     LoggerD("Entered");
 
-    CHECK_PRIVILEGE_ACCESS(kPrivilegeMessagingRead, &out);
-
     if (!args.contains(JSON_DATA) || !args.contains(JSON_CALLBACK_ID) ||
         !args.get(JSON_CALLBACK_ID).is<double>()) {
       LoggerE("json is incorrect - missing required member");
@@ -887,8 +854,6 @@ void MessagingInstance::MessageStorageRemoveChangeListener(const picojson::value
         picojson::object& out)
 {
     LoggerD("Entered");
-
-    CHECK_PRIVILEGE_ACCESS(kPrivilegeMessagingRead, &out);
 
     if (!args.contains(JSON_DATA)) {
       LoggerE("json is incorrect - missing required member");
