@@ -2,8 +2,6 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-var _PRIVILEGE_CONTACT_READ = "http://tizen.org/privilege/contact.read";
-
 var _personListenerRegistered = false;
 var _personCallbackMap = {};
 var _personChangeListener = function(result) {
@@ -30,6 +28,8 @@ var ContactManager = function() {};
 
 // Gets the available address books
 ContactManager.prototype.getAddressBooks = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CONTACT_READ);
+
   var args = validator_.validateArgs(arguments, [
     {
       name: 'successCallback',
@@ -73,7 +73,7 @@ ContactManager.prototype.getAddressBooks = function() {
 
 // Gets the aggregation of all address books.
 ContactManager.prototype.getUnifiedAddressBook = function() {
-  xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_CONTACT_READ);
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CONTACT_READ);
 
   return _editGuard.run(function() {
     var addressBook = new AddressBook(0, 'Unified address book');
@@ -92,6 +92,8 @@ ContactManager.prototype.getDefaultAddressBook = function() {
 
 // Gets the address book with the specified identifier.
 ContactManager.prototype.getAddressBook = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CONTACT_READ);
+
   var args = validator_.validateArgs(arguments, [{
     name: 'addressBookId',
     type: types_.STRING,
@@ -124,6 +126,8 @@ ContactManager.prototype.getAddressBook = function() {
 };
 
 ContactManager.prototype.addAddressBook = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CONTACT_WRITE);
+
   var args = validator_.validateArgs(arguments, [{
     name: 'addressBook',
     type: types_.PLATFORM_OBJECT,
@@ -151,6 +155,8 @@ ContactManager.prototype.addAddressBook = function() {
 };
 
 ContactManager.prototype.removeAddressBook = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CONTACT_WRITE);
+
   // TCT: ContactManager_removeAddressBook_misarg
   if (type_.isNullOrUndefined(arguments[0])) {
     throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR);
@@ -184,6 +190,8 @@ ContactManager.prototype.removeAddressBook = function() {
 
 // Gets the person with the specified identifier.
 ContactManager.prototype.get = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CONTACT_READ);
+
   // validation
   var args = validator_.validateArgs(arguments, [
     {
@@ -211,7 +219,7 @@ ContactManager.prototype.get = function() {
 
 // Updates a person in the address book synchronously.
 ContactManager.prototype.update = function() {
-  xwalk.utils.checkPrivilegeAccess('http://tizen.org/privilege/contact.write');
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CONTACT_WRITE);
 
   // validation
   var args = validator_.validateArgs(arguments, [{
@@ -234,6 +242,8 @@ ContactManager.prototype.update = function() {
 
 // Updates several existing persons in the contact DB asynchronously.
 ContactManager.prototype.updateBatch = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CONTACT_WRITE);
+
   var args = validator_.validateArgs(arguments, [
     {
       name: 'persons',
@@ -275,6 +285,8 @@ ContactManager.prototype.updateBatch = function() {
 
 // Removes a person from the contact DB synchronously.
 ContactManager.prototype.remove = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CONTACT_WRITE);
+
   // validation
   var args = validator_.validateArgs(arguments, [{
     name: 'personId',
@@ -294,6 +306,8 @@ ContactManager.prototype.remove = function() {
 
 // Removes persons from contact DB asynchronously.
 ContactManager.prototype.removeBatch = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CONTACT_WRITE);
+
   var args = validator_.validateArgs(arguments, [
     {
       name: 'personIds',
@@ -336,6 +350,8 @@ ContactManager.prototype.removeBatch = function() {
 // Gets an array of all Person objects from the contact DB or the ones that match the
 // optionally supplied filter.
 ContactManager.prototype.find = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CONTACT_READ);
+
   var args = validator_.validateArgs(arguments, [
     {
       name: 'successCallback',
@@ -397,6 +413,8 @@ ContactManager.prototype.find = function() {
 
 // Subscribes to receive notifications about persons' changes.
 ContactManager.prototype.addChangeListener = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CONTACT_READ);
+
   var args = validator_.validateArgs(arguments, [
     {
       name: 'successCallback',
@@ -429,7 +447,7 @@ ContactManager.prototype.addChangeListener = function() {
 
 // Unsubscribes a persons' changes watch operation.
 ContactManager.prototype.removeChangeListener = function() {
-  xwalk.utils.checkPrivilegeAccess('http://tizen.org/privilege/contact.read');
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CONTACT_READ);
 
   var args = validator_.validateArgs(arguments, [
     {

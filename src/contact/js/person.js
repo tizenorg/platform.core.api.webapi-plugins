@@ -126,6 +126,8 @@ var Person = function(data) {
 
 // Aggregates another person to this person.
 Person.prototype.link = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CONTACT_WRITE);
+
   var args = validator_.validateArgs(arguments, [{
     name: 'personId',
     type: types_.STRING,
@@ -154,6 +156,8 @@ Person.prototype.link = function() {
 
 // Separates a contact from this person.
 Person.prototype.unlink = function(contactId) {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CONTACT_WRITE);
+
   var args = validator_.validateArgs(arguments, [{
     name: 'contactId',
     type: types_.STRING,

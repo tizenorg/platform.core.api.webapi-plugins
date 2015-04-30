@@ -150,6 +150,8 @@ var AddressBook = function(accountId, name) {
 };
 
 AddressBook.prototype.get = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CONTACT_READ);
+
   var args = validator_.validateArgs(arguments, [{
     name: 'id',
     type: types_.STRING,
@@ -197,6 +199,8 @@ AddressBook.prototype.get = function() {
 };
 
 AddressBook.prototype.add = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CONTACT_WRITE);
+
   var args = validator_.validateArgs(arguments, [
     {
       name: 'contact',
@@ -243,6 +247,8 @@ AddressBook.prototype.add = function() {
 };
 
 AddressBook.prototype.addBatch = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CONTACT_WRITE);
+
   var args = validator_.validateArgs(arguments, [
     {
       name: 'contacts',
@@ -293,6 +299,8 @@ AddressBook.prototype.addBatch = function() {
 };
 
 AddressBook.prototype.update = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CONTACT_WRITE);
+
   var args = validator_.validateArgs(arguments, [
     {
       name: 'contact',
@@ -323,6 +331,8 @@ AddressBook.prototype.update = function() {
 };
 
 AddressBook.prototype.updateBatch = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CONTACT_WRITE);
+
   var args = validator_.validateArgs(arguments, [
     {
       name: 'contacts',
@@ -372,6 +382,8 @@ AddressBook.prototype.updateBatch = function() {
 };
 
 AddressBook.prototype.remove = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CONTACT_WRITE);
+
   var args = validator_.validateArgs(arguments, [{
     name: 'id',
     type: types_.STRING,
@@ -395,6 +407,8 @@ AddressBook.prototype.remove = function() {
 };
 
 AddressBook.prototype.removeBatch = function(ids, successCallback, errorCallback) {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CONTACT_WRITE);
+
   var args = validator_.validateArgs(arguments, [
     {
       name: 'ids',
@@ -433,6 +447,8 @@ AddressBook.prototype.removeBatch = function(ids, successCallback, errorCallback
 };
 
 AddressBook.prototype.find = function(successCallback, errorCallback, filter, sortMode) {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CONTACT_READ);
+
   var args = validator_.validateArgs(arguments, [
     {
       name: 'successCallback',
@@ -502,6 +518,8 @@ AddressBook.prototype.find = function(successCallback, errorCallback, filter, so
 };
 
 AddressBook.prototype.addChangeListener = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CONTACT_READ);
+
   var args = validator_.validateArgs(arguments, [{
     name: 'successCallback',
     type: types_.LISTENER,
@@ -543,6 +561,8 @@ AddressBook.prototype.addChangeListener = function() {
 };
 
 AddressBook.prototype.removeChangeListener = function(watchId) {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CONTACT_READ);
+
   var args = validator_.validateArgs(arguments, [
     {
       name: 'watchId',
@@ -582,6 +602,8 @@ AddressBook.prototype.removeChangeListener = function(watchId) {
 };
 
 AddressBook.prototype.getGroup = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CONTACT_READ);
+
   var args = validator_.validateArgs(arguments, [{
     name: 'groupId',
     type: types_.STRING,
@@ -608,6 +630,8 @@ AddressBook.prototype.getGroup = function() {
 };
 
 AddressBook.prototype.addGroup = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CONTACT_WRITE);
+
   var args = validator_.validateArgs(arguments, [
     {
       name: 'group',
@@ -632,6 +656,8 @@ AddressBook.prototype.addGroup = function() {
 };
 
 AddressBook.prototype.updateGroup = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CONTACT_WRITE);
+
   var args = validator_.validateArgs(arguments, [
     {
       name: 'group',
@@ -650,6 +676,8 @@ AddressBook.prototype.updateGroup = function() {
 };
 
 AddressBook.prototype.removeGroup = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CONTACT_WRITE);
+
   var args = validator_.validateArgs(arguments, [{
     name: 'groupId',
     type: types_.STRING,
@@ -670,6 +698,8 @@ AddressBook.prototype.removeGroup = function() {
 };
 
 AddressBook.prototype.getGroups = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CONTACT_READ);
+
   var result = native_.callSync('AddressBook_getGroups', {addressBook: this});
   if (native_.isFailure(result)) {
     throw native_.getErrorObject(result);
