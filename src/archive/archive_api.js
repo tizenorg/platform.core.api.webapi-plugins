@@ -183,6 +183,8 @@ function ArchiveFileEntry(data, priv) {
      * Extracts ArchiveFileEntry to the given location.
      */
     this.extract = function () {
+        xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_WRITE);
+
         var args = validator_.validateArgs(arguments, [
             { name: "destinationDirectory", type: types_.STRING }, //TODO: add FileReferece validation
             { name: "onsuccess", type: types_.FUNCTION, optional: true, nullable: true },
@@ -270,6 +272,8 @@ function ArchiveFile(data) {
      * Adds a new member file to ArchiveFile.
      */
     this.add = function () {
+        xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_WRITE);
+
         var args = validator_.validateArgs(arguments, [
             { name: "sourceFile", type: types_.STRING }, //TODO: add FileReferece validation
             { name: "onsuccess", type: types_.FUNCTION, optional: true, nullable: true },
@@ -334,6 +338,8 @@ function ArchiveFile(data) {
      * Extracts every file from this ArchiveFile to a given directory.
      */
     this.extractAll = function () {
+        xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_WRITE);
+
         var args = validator_.validateArgs(arguments, [
             { name: "destinationDirectory", type: types_.STRING }, //TODO: add FileReferece validation
             { name: "onsuccess", type: types_.FUNCTION, optional: true, nullable: true },
@@ -389,6 +395,8 @@ function ArchiveFile(data) {
      * Retrieves information about the member files in ArchiveFile.
      */
     this.getEntries = function () {
+        xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_READ);
+
         var args = validator_.validateArgs(arguments, [
             { name: "onsuccess", type: types_.FUNCTION },
             { name: "onerror", type: types_.FUNCTION, optional: true, nullable: true }
@@ -427,6 +435,8 @@ function ArchiveFile(data) {
      * Retrieves information about ArchiveFileEntry with the specified name in ArchiveFile.
      */
     this.getEntryByName = function () {
+        xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_READ);
+
         var args = validator_.validateArgs(arguments, [
             { name: "name", type: types_.STRING },
             { name: "onsuccess", type: types_.FUNCTION },
@@ -484,6 +494,8 @@ var ArchiveManager = function () {
  * Opens the archive file. After this operation, it is possible to add or get files to and from the archive.
  */
 ArchiveManager.prototype.open = function () {
+    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_WRITE);
+
     var args = validator_.validateArgs(arguments, [
         { name: "file", type: types_.STRING }, //TODO: add FileReferece validation
         { name: "mode", type: types_.ENUM, values: ["r", "rw", "w", "a"] },
