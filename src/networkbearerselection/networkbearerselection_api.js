@@ -48,6 +48,9 @@ function _networkBearerSelectionCallback(result) {
 function NetworkBearerSelection() {}
 
 NetworkBearerSelection.prototype.requestRouteToHost = function(networkType, domainName, successCallback, errorCallback) {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NETWORKBEARERSELECTION);
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.INTERNET);
+
   var args = validator_.validateArgs(arguments, [
     {name: 'networkType', type: types_.ENUM, values: Object.keys(NetworkType)},
     {name: 'domainName', type: types_.STRING},
@@ -78,6 +81,9 @@ NetworkBearerSelection.prototype.requestRouteToHost = function(networkType, doma
 };
 
 NetworkBearerSelection.prototype.releaseRouteToHost = function(networkType, domainName, successCallback, errorCallback) {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NETWORKBEARERSELECTION);
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.INTERNET);
+
   var args = validator_.validateArgs(arguments, [
     {name: 'networkType', type: types_.ENUM, values: Object.keys(NetworkType)},
     {name: 'domainName', type: types_.STRING},
