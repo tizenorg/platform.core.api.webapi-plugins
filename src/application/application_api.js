@@ -5,6 +5,7 @@
 var T = xwalk.utils.type;
 var Converter = xwalk.utils.converter;
 var AV = xwalk.utils.validator;
+var Privilege = xwalk.utils.privilege;
 
 var native = new xwalk.utils.NativeManager(extension);
 
@@ -75,6 +76,8 @@ ApplicationManager.prototype.getCurrentApplication = function() {
 };
 
 ApplicationManager.prototype.kill = function() {
+  xwalk.utils.checkPrivilegeAccess(Privilege.APPMANAGER_KILL);
+
   var args = AV.validateMethod(arguments, [
       {
         name : 'contextId',
@@ -110,6 +113,8 @@ ApplicationManager.prototype.kill = function() {
 };
 
 ApplicationManager.prototype.launch = function() {
+  xwalk.utils.checkPrivilegeAccess(Privilege.APPLICATION_LAUNCH);
+
   var args = AV.validateMethod(arguments, [
       {
         name : 'id',
@@ -145,6 +150,8 @@ ApplicationManager.prototype.launch = function() {
 };
 
 ApplicationManager.prototype.launchAppControl = function() {
+  xwalk.utils.checkPrivilegeAccess(Privilege.APPLICATION_LAUNCH);
+
   var args = AV.validateMethod(arguments, [
       {
         name : 'appControl',
@@ -368,6 +375,8 @@ ApplicationManager.prototype.getAppInfo = function() {
 };
 
 ApplicationManager.prototype.getAppCerts = function() {
+  xwalk.utils.checkPrivilegeAccess(Privilege.APPMANAGER_CERTIFICATE);
+
   var args = AV.validateMethod(arguments, [
       {
         name : 'id',
@@ -423,6 +432,8 @@ ApplicationManager.prototype.getAppSharedURI = function() {
 };
 
 ApplicationManager.prototype.getAppMetaData = function() {
+  xwalk.utils.checkPrivilegeAccess(Privilege.APPLICATION_INFO);
+
   var args = AV.validateMethod(arguments, [
       {
         name : 'id',
@@ -588,6 +599,7 @@ function ApplicationInformation(data) {
   var sizeException;
 
   function sizeGetter() {
+    xwalk.utils.checkPrivilegeAccess(Privilege.APPLICATION_INFO);
     if (undefined === size) {
       var callArgs = { packageId : this.packageId }; // jshint ignore:line
       var result = native.callSync('ApplicationInformation_getSize', callArgs);

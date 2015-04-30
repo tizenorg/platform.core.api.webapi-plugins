@@ -12,14 +12,6 @@
 namespace extension {
 namespace application {
 
-namespace {
-// The privileges that are required in Application API
-const std::string kPrivilegeAppManagerCertificate = "http://tizen.org/privilege/appmanager.certificate";
-const std::string kPrivilegeAppManagerKill = "http://tizen.org/privilege/appmanager.kill";
-const std::string kPrivilegeApplicationInfo = "http://tizen.org/privilege/application.info";
-const std::string kPrivilegeApplicationLaunch = "http://tizen.org/privilege/application.launch";
-}  // namespace
-
 using namespace common;
 
 ApplicationInstance::ApplicationInstance(const std::string& app_id) :
@@ -96,8 +88,6 @@ void ApplicationInstance::GetAppInfo(const picojson::value& args, picojson::obje
 void ApplicationInstance::GetAppCerts(const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
 
-  CHECK_PRIVILEGE_ACCESS(kPrivilegeAppManagerCertificate, &out);
-
   std::string app_id = app_id_;
   const auto& id = args.get("id");
   if (id.is<std::string>()) {
@@ -121,8 +111,6 @@ void ApplicationInstance::GetAppSharedURI(const picojson::value& args, picojson:
 
 void ApplicationInstance::GetAppMetaData(const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
-
-  CHECK_PRIVILEGE_ACCESS(kPrivilegeApplicationInfo, &out);
 
   std::string app_id = app_id_;
   const auto& id = args.get("id");
@@ -167,15 +155,11 @@ void ApplicationInstance::ReplyFailure(const picojson::value& args, picojson::ob
 void ApplicationInstance::GetSize(const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
 
-  CHECK_PRIVILEGE_ACCESS(kPrivilegeApplicationInfo, &out);
-
   manager_.GetApplicationInformationSize(args, &out);
 }
 
 void ApplicationInstance::Kill(const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
-
-  CHECK_PRIVILEGE_ACCESS(kPrivilegeAppManagerKill, &out);
 
   manager_.Kill(args);
 }
@@ -183,15 +167,11 @@ void ApplicationInstance::Kill(const picojson::value& args, picojson::object& ou
 void ApplicationInstance::Launch(const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
 
-  CHECK_PRIVILEGE_ACCESS(kPrivilegeApplicationLaunch, &out);
-
   manager_.Launch(args);
 }
 
 void ApplicationInstance::LaunchAppControl(const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
-
-  CHECK_PRIVILEGE_ACCESS(kPrivilegeApplicationLaunch, &out);
 
   manager_.LaunchAppControl(args);
 }
