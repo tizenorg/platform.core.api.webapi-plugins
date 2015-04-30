@@ -9,12 +9,6 @@
 namespace extension {
 namespace badge {
 
-namespace {
-// The privileges that required in Badge API
-const std::string kPrivilegeNotification = "http://tizen.org/privilege/notification";
-
-}  // namespace
-
 using namespace common;
 using namespace extension::badge;
 
@@ -37,7 +31,6 @@ BadgeInstance::~BadgeInstance() {}
 
 void BadgeInstance::BadgeManagerSetBadgeCount(const JsonValue& args,
                                               JsonObject& out) {
-  CHECK_PRIVILEGE_ACCESS(kPrivilegeNotification, &out);
   std::string app_id =
       common::FromJson<std::string>(args.get<JsonObject>(), "appId");
   const double count = args.get("count").get<double>();
@@ -52,7 +45,6 @@ void BadgeInstance::BadgeManagerSetBadgeCount(const JsonValue& args,
 
 void BadgeInstance::BadgeManagerGetBadgeCount(const JsonValue& args,
                                               JsonObject& out) {
-  CHECK_PRIVILEGE_ACCESS(kPrivilegeNotification, &out);
   std::string app_id =
       common::FromJson<std::string>(args.get<JsonObject>(), "appId");
 
@@ -67,7 +59,6 @@ void BadgeInstance::BadgeManagerGetBadgeCount(const JsonValue& args,
 
 void BadgeInstance::BadgeManagerAddChangeListener(const JsonValue& args,
                                                   JsonObject& out) {
-  CHECK_PRIVILEGE_ACCESS(kPrivilegeNotification, &out);
   PlatformResult status =
       manager_.AddChangeListener(args.get<JsonObject>());
 
@@ -79,7 +70,6 @@ void BadgeInstance::BadgeManagerAddChangeListener(const JsonValue& args,
 
 void BadgeInstance::BadgeManagerRemoveChangeListener(const JsonValue& args,
                                                      JsonObject& out) {
-  CHECK_PRIVILEGE_ACCESS(kPrivilegeNotification, &out);
   PlatformResult status =
       manager_.RemoveChangeListener(args.get<JsonObject>());
 

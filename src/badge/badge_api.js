@@ -46,6 +46,8 @@ function BadgeManager() {
  * Sets the badge count for the designated application.
  */
 BadgeManager.prototype.setBadgeCount = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NOTIFICATION);
+
   if (arguments.length < 2)
     throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
         'incorrect number of arguments');
@@ -75,6 +77,8 @@ BadgeManager.prototype.setBadgeCount = function() {
  * @return {number} long Count of the badge
  */
 BadgeManager.prototype.getBadgeCount = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NOTIFICATION);
+
   if (arguments.length < 1)
     throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
                                     'incorrect number of arguments');
@@ -98,6 +102,8 @@ BadgeManager.prototype.getBadgeCount = function() {
  * Gets the badge count for the designated application.
  */
 BadgeManager.prototype.addChangeListener = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NOTIFICATION);
+
   if (arguments.length < 2)
     throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR,
         'incorrect number of arguments');
@@ -140,6 +146,8 @@ BadgeManager.prototype.addChangeListener = function() {
  * Gets the badge count for the designated application.
  */
 BadgeManager.prototype.removeChangeListener = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NOTIFICATION);
+
   if (arguments.length < 1)
     throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR,
                                     'incorrect number of arguments');
