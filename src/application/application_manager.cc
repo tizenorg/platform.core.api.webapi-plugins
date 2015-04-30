@@ -437,7 +437,7 @@ void ApplicationManager::LaunchAppControl(const picojson::value& args) {
   const picojson::object& app_control_obj = control.get<picojson::object>();
 
   std::string launch_mode_str;
-  const auto& launch_mode = args.get("launchMode");
+  const auto& launch_mode = control.get("launchMode");
   if (launch_mode.is<std::string>()) {
     launch_mode_str = launch_mode.get<std::string>();
   }
