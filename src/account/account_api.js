@@ -68,6 +68,8 @@ function Account() {
 
 
 Account.prototype.setExtendedData = function() {
+    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.ACCOUNT_WRITE);
+
     var args = validator_.validateArgs(arguments, [
         { name: 'key', type: types_.STRING },
         { name: 'value', type: types_.STRING }
@@ -88,6 +90,8 @@ Account.prototype.setExtendedData = function() {
 
 
 Account.prototype.getExtendedData = function() {
+    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.ACCOUNT_READ);
+
     if (T_.isFunction(arguments[0]) || arguments.length > 1) {
         var args = validator_.validateArgs(arguments, [
             {
@@ -150,6 +154,8 @@ function AccountManager() {}
 
 
 AccountManager.prototype.add = function() {
+    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.ACCOUNT_WRITE);
+
     var args = validator_.validateArgs(arguments, [
         { name: 'account', type: types_.PLATFORM_OBJECT, values: Account }
     ]);
@@ -171,6 +177,8 @@ AccountManager.prototype.add = function() {
 
 
 AccountManager.prototype.remove = function() {
+    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.ACCOUNT_WRITE);
+
     var args = validator_.validateArgs(arguments, [
         { name: 'accountId', type: types_.UNSIGNED_LONG}
     ]);
@@ -184,6 +192,8 @@ AccountManager.prototype.remove = function() {
 
 
 AccountManager.prototype.update = function() {
+    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.ACCOUNT_WRITE);
+
     var args = validator_.validateArgs(arguments, [
         { name: 'account', type: types_.PLATFORM_OBJECT, values: Account }
     ]);
@@ -203,6 +213,8 @@ AccountManager.prototype.update = function() {
 
 
 AccountManager.prototype.getAccount = function() {
+    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.ACCOUNT_READ);
+
     var args = validator_.validateArgs(arguments, [
         { name: 'accountId', type: types_.UNSIGNED_LONG }
     ]);
@@ -227,6 +239,8 @@ AccountManager.prototype.getAccount = function() {
 
 
 AccountManager.prototype.getAccounts = function() {
+    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.ACCOUNT_READ);
+
     var args = validator_.validateArgs(arguments, [
         { name: 'successCallback', type: types_.FUNCTION, optional: false, nullable: false },
         { name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true },
@@ -258,6 +272,8 @@ AccountManager.prototype.getAccounts = function() {
 
 
 AccountManager.prototype.getProvider = function() {
+    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.ACCOUNT_READ);
+
     var args = validator_.validateArgs(arguments, [
         { name: 'applicationId', type: types_.STRING }
     ]);
@@ -282,6 +298,8 @@ AccountManager.prototype.getProvider = function() {
 
 
 AccountManager.prototype.getProviders = function() {
+    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.ACCOUNT_READ);
+
     var args = validator_.validateArgs(arguments, [
         { name: 'successCallback', type: types_.FUNCTION, optional: false, nullable: false },
         { name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true },
@@ -391,6 +409,8 @@ var _accountListeners = new AccountListeners();
 
 
 AccountManager.prototype.addAccountListener = function() {
+    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.ACCOUNT_READ);
+
     var args = validator_.validateArgs(arguments, [
         { name: 'callback', type: types_.LISTENER, values: ['onadded', 'onremoved', 'onupdated'] }
     ]);
@@ -400,6 +420,8 @@ AccountManager.prototype.addAccountListener = function() {
 
 
 AccountManager.prototype.removeAccountListener = function() {
+    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.ACCOUNT_READ);
+
     var args = validator_.validateArgs(arguments, [
         { name: 'accountListenerId', type: types_.UNSIGNED_LONG }
     ]);
