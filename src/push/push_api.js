@@ -57,7 +57,7 @@ PushManager.prototype.registerService = function(appControl, successCallback, er
       nullable: true
     }
   ]);
-  native.call('Push_registerService', {
+  var ret = native.call('Push_registerService', {
     operation: data.appControl.operation,
     uri: data.appControl.uri,
     mime: data.appControl.mime,
@@ -72,6 +72,9 @@ PushManager.prototype.registerService = function(appControl, successCallback, er
       data.successCallback(msg.registrationId);
     }
   });
+  if (native.isFailure(ret)) {
+    throw native.getErrorObject(ret);
+  }
 };
 
 PushManager.prototype.unregisterService = function(successCallback, errorCallback) {
