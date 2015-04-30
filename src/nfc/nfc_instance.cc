@@ -22,16 +22,6 @@ namespace nfc {
 using namespace common;
 using namespace extension::nfc;
 
-namespace {
-
-const std::string kPrivilegeNfcAdmin = "http://tizen.org/privilege/nfc.admin";
-const std::string kPrivilegeNfcCardEmulation = "http://tizen.org/privilege/nfc.cardemulation";
-const std::string kPrivilegeNfcCommon = "http://tizen.org/privilege/nfc.common";
-const std::string kPrivilegeNfcP2P = "http://tizen.org/privilege/nfc.p2p";
-const std::string kPrivilegeNfcTag = "http://tizen.org/privilege/nfc.tag";
-
-} // namespace
-
 void NFCInstance::RespondAsync(const char* msg) {
   PostMessage(msg);
 }
@@ -130,8 +120,6 @@ void NFCInstance::GetDefaultAdapter(
   // Here there's only check for NFC support
   LoggerD("Entered");
 
-  CHECK_PRIVILEGE_ACCESS(kPrivilegeNfcCommon, &out);
-
   if(!nfc_manager_is_supported()) {
     LoggerE("NFC manager is not supported");
     // According to API reference only Security and Unknown
@@ -146,8 +134,6 @@ void NFCInstance::GetDefaultAdapter(
 
 void NFCInstance::SetExclusiveMode(
     const picojson::value& args, picojson::object& out) {
-  CHECK_PRIVILEGE_ACCESS(kPrivilegeNfcCommon, &out);
-
   CHECK_EXIST(args, "exclusiveMode", out);
   bool exmode = args.get("exclusiveMode").get<bool>();
 
@@ -164,8 +150,6 @@ void NFCInstance::SetExclusiveMode(
 //TODO(g.rynkowski): Rewrite to asynchronous approach
 void NFCInstance::SetPowered(
     const picojson::value& args, picojson::object& out) {
-  CHECK_PRIVILEGE_ACCESS(kPrivilegeNfcAdmin, &out);
-
   PlatformResult result = NFCAdapter::GetInstance()->SetPowered(args);
   if (result.IsSuccess()) {
     ReportSuccess(out);
@@ -182,8 +166,6 @@ void NFCInstance::GetPowered(
 
 void NFCInstance::CardEmulationModeSetter(
     const picojson::value& args, picojson::object& out) {
-  CHECK_PRIVILEGE_ACCESS(kPrivilegeNfcCardEmulation, &out);
-
   CHECK_EXIST(args, "emulationMode", out);
   std::string mode = args.get("emulationMode").get<std::string>();
   PlatformResult result = NFCAdapter::GetInstance()->SetCardEmulationMode(mode);
@@ -196,8 +178,6 @@ void NFCInstance::CardEmulationModeSetter(
 
 void NFCInstance::CardEmulationModeGetter(
     const picojson::value& args, picojson::object& out) {
-  CHECK_PRIVILEGE_ACCESS(kPrivilegeNfcCardEmulation, &out);
-
   std::string mode = "";
   PlatformResult result = NFCAdapter::GetInstance()->GetCardEmulationMode(&mode);
   if (result.IsSuccess()) {
@@ -209,8 +189,6 @@ void NFCInstance::CardEmulationModeGetter(
 
 void NFCInstance::ActiveSecureElementSetter(
     const picojson::value& args, picojson::object& out) {
-  CHECK_PRIVILEGE_ACCESS(kPrivilegeNfcCardEmulation, &out);
-
   CHECK_EXIST(args, "secureElement", out);
   std::string ase = args.get("secureElement").get<std::string>();
   PlatformResult result = NFCAdapter::GetInstance()->SetActiveSecureElement(ase);
@@ -223,8 +201,6 @@ void NFCInstance::ActiveSecureElementSetter(
 
 void NFCInstance::ActiveSecureElementGetter(
     const picojson::value& args, picojson::object& out) {
-  CHECK_PRIVILEGE_ACCESS(kPrivilegeNfcCardEmulation, &out);
-
   std::string ase = "";
   PlatformResult result = NFCAdapter::GetInstance()->GetActiveSecureElement(&ase);
   if (result.IsSuccess()) {
@@ -236,8 +212,6 @@ void NFCInstance::ActiveSecureElementGetter(
 
 void NFCInstance::SetTagListener(
     const picojson::value& args, picojson::object& out) {
-  CHECK_PRIVILEGE_ACCESS(kPrivilegeNfcTag, &out);
-
   PlatformResult result = NFCAdapter::GetInstance()->SetTagListener();
   if (result.IsSuccess()) {
     ReportSuccess(out);
@@ -265,8 +239,6 @@ void NFCInstance::PeerIsConnectedGetter(
 
 void NFCInstance::SetPeerListener(
     const picojson::value& args, picojson::object& out) {
-  CHECK_PRIVILEGE_ACCESS(kPrivilegeNfcP2P, &out);
-
   PlatformResult result = NFCAdapter::GetInstance()->SetPeerListener();
   if (result.IsSuccess()) {
     ReportSuccess(out);
@@ -277,16 +249,12 @@ void NFCInstance::SetPeerListener(
 
 void NFCInstance::UnsetTagListener(
     const picojson::value& args, picojson::object& out) {
-  CHECK_PRIVILEGE_ACCESS(kPrivilegeNfcTag, &out);
-
   NFCAdapter::GetInstance()->UnsetTagListener();
   ReportSuccess(out);
 }
 
 void NFCInstance::UnsetPeerListener(
     const picojson::value& args, picojson::object& out) {
-  CHECK_PRIVILEGE_ACCESS(kPrivilegeNfcP2P, &out);
-
   PlatformResult result = NFCAdapter::GetInstance()->UnsetPeerListener();
   if (result.IsSuccess()) {
     ReportSuccess(out);
@@ -297,8 +265,6 @@ void NFCInstance::UnsetPeerListener(
 
 void NFCInstance::AddCardEmulationModeChangeListener(
     const picojson::value& args, picojson::object& out) {
-  CHECK_PRIVILEGE_ACCESS(kPrivilegeNfcCardEmulation, &out);
-
   PlatformResult result = NFCAdapter::GetInstance()->AddCardEmulationModeChangeListener();
   if (result.IsSuccess()) {
     ReportSuccess(out);
@@ -309,8 +275,6 @@ void NFCInstance::AddCardEmulationModeChangeListener(
 
 void NFCInstance::RemoveCardEmulationModeChangeListener(
     const picojson::value& args, picojson::object& out) {
-  CHECK_PRIVILEGE_ACCESS(kPrivilegeNfcCardEmulation, &out);
-
   PlatformResult result = NFCAdapter::GetInstance()->RemoveCardEmulationModeChangeListener();
   if (result.IsSuccess()) {
     ReportSuccess(out);
@@ -321,8 +285,6 @@ void NFCInstance::RemoveCardEmulationModeChangeListener(
 
 void NFCInstance::AddTransactionEventListener(
     const picojson::value& args, picojson::object& out) {
-  CHECK_PRIVILEGE_ACCESS(kPrivilegeNfcCardEmulation, &out);
-
   PlatformResult result = NFCAdapter::GetInstance()->AddTransactionEventListener(args);
   if (result.IsSuccess()) {
     ReportSuccess(out);
@@ -333,8 +295,6 @@ void NFCInstance::AddTransactionEventListener(
 
 void NFCInstance::RemoveTransactionEventListener(
     const picojson::value& args, picojson::object& out) {
-  CHECK_PRIVILEGE_ACCESS(kPrivilegeNfcCardEmulation, &out);
-
   PlatformResult result = NFCAdapter::GetInstance()->RemoveTransactionEventListener(args);
   if (result.IsSuccess()) {
     ReportSuccess(out);
@@ -345,8 +305,6 @@ void NFCInstance::RemoveTransactionEventListener(
 
 void NFCInstance::AddActiveSecureElementChangeListener(
     const picojson::value& args, picojson::object& out) {
-  CHECK_PRIVILEGE_ACCESS(kPrivilegeNfcCardEmulation, &out);
-
   PlatformResult result = NFCAdapter::GetInstance()->AddActiveSecureElementChangeListener();
   if (result.IsSuccess()) {
     ReportSuccess(out);
@@ -357,8 +315,6 @@ void NFCInstance::AddActiveSecureElementChangeListener(
 
 void NFCInstance::RemoveActiveSecureElementChangeListener(
     const picojson::value& args, picojson::object& out) {
-  CHECK_PRIVILEGE_ACCESS(kPrivilegeNfcCardEmulation, &out);
-
   PlatformResult result = NFCAdapter::GetInstance()->RemoveActiveSecureElementChangeListener();
   if (result.IsSuccess()) {
     ReportSuccess(out);
@@ -369,8 +325,6 @@ void NFCInstance::RemoveActiveSecureElementChangeListener(
 
 void NFCInstance::GetCachedMessage(
     const picojson::value& args, picojson::object& out) {
-  CHECK_PRIVILEGE_ACCESS(kPrivilegeNfcCommon, &out);
-
   picojson::value result = picojson::value(picojson::object());
   picojson::object& result_obj = result.get<picojson::object>();
 
@@ -384,8 +338,6 @@ void NFCInstance::GetCachedMessage(
 
 void NFCInstance::SetExclusiveModeForTransaction(
     const picojson::value& args, picojson::object& out) {
-  CHECK_PRIVILEGE_ACCESS(kPrivilegeNfcCardEmulation, &out);
-
   CHECK_EXIST(args, "transactionMode", out);
 
   bool transaction_mode = args.get("transactionMode").get<bool>();
@@ -401,8 +353,6 @@ void NFCInstance::SetExclusiveModeForTransaction(
 //TODO(g.rynkowski): Rewrite to asynchronous approach
 void NFCInstance::ReadNDEF(
     const picojson::value& args, picojson::object& out) {
-  CHECK_PRIVILEGE_ACCESS(kPrivilegeNfcTag, &out);
-
   CHECK_EXIST(args, "id", out);
 
   int tag_id = static_cast<int>(args.get("id").get<double>());
@@ -419,8 +369,6 @@ void NFCInstance::ReadNDEF(
 //TODO(g.rynkowski): Rewrite to asynchronous approach
 void NFCInstance::WriteNDEF(
     const picojson::value& args, picojson::object& out) {
-  CHECK_PRIVILEGE_ACCESS(kPrivilegeNfcTag, &out);
-
   CHECK_EXIST(args, "id", out);
 
   int tag_id = static_cast<int>(args.get("id").get<double>());
@@ -439,8 +387,6 @@ void NFCInstance::Transceive(
     const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
 
-  CHECK_PRIVILEGE_ACCESS(kPrivilegeNfcTag, &out);
-
   CHECK_EXIST(args, "id", out);
   int tag_id = static_cast<int>(args.get("id").get<double>());
   LoggerD("Tag id: %d", tag_id);
@@ -455,8 +401,6 @@ void NFCInstance::Transceive(
 
 void NFCInstance::SetReceiveNDEFListener(
     const picojson::value& args, picojson::object& out) {
-  CHECK_PRIVILEGE_ACCESS(kPrivilegeNfcP2P, &out);
-
   CHECK_EXIST(args, "id", out);
 
   int peer_id = (int)args.get("id").get<double>();
@@ -470,8 +414,6 @@ void NFCInstance::SetReceiveNDEFListener(
 
 void NFCInstance::UnsetReceiveNDEFListener(
     const picojson::value& args, picojson::object& out) {
-  CHECK_PRIVILEGE_ACCESS(kPrivilegeNfcP2P, &out);
-
   CHECK_EXIST(args, "id", out);
 
   int peer_id = (int)args.get("id").get<double>();
@@ -486,8 +428,6 @@ void NFCInstance::UnsetReceiveNDEFListener(
 //TODO(g.rynkowski): Rewrite to asynchronous approach
 void NFCInstance::SendNDEF(
     const picojson::value& args, picojson::object& out) {
-  CHECK_PRIVILEGE_ACCESS(kPrivilegeNfcP2P, &out);
-
   CHECK_EXIST(args, "id", out);
 
   int peer_id = static_cast<int>(args.get("id").get<double>());

@@ -145,6 +145,8 @@ function NFCManager() {
 }
 
 NFCManager.prototype.getDefaultAdapter = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NFC_COMMON);
+
   // First check NFC suppor on C++ level
   var result = native_.callSync(
       'NFCManager_getDefaultAdapter',
@@ -160,6 +162,7 @@ NFCManager.prototype.getDefaultAdapter = function() {
 };
 
 NFCManager.prototype.setExclusiveMode = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NFC_COMMON);
 
   var args = validator_.validateArgs(arguments, [
     {name: 'exclusiveMode', type: types_.BOOLEAN}
@@ -197,6 +200,8 @@ function NFCAdapter() {
   }
 
   function cardEmulationModeGetter() {
+    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NFC_CARDEMULATION);
+
     var result = native_.callSync('NFCAdapter_cardEmulationModeGetter');
 
     if (native_.isFailure(result)) {
@@ -207,6 +212,7 @@ function NFCAdapter() {
   }
 
   function cardEmulationModeSetter(cem) {
+    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NFC_CARDEMULATION);
 
     var args = validator_.validateArgs(arguments, [
       {name: 'emulationMode', type: types_.STRING}
@@ -224,6 +230,7 @@ function NFCAdapter() {
   }
 
   function activeSecureElementGetter() {
+    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NFC_CARDEMULATION);
 
     var result = native_.callSync('NFCAdapter_activeSecureElementGetter');
 
@@ -235,6 +242,7 @@ function NFCAdapter() {
   }
 
   function activeSecureElementSetter(ase) {
+    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NFC_CARDEMULATION);
 
     var args = validator_.validateArgs(arguments, [
       {name: 'secureElement', type: types_.STRING}
@@ -268,6 +276,8 @@ function NFCAdapter() {
 }
 
 NFCAdapter.prototype.setPowered = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NFC_ADMIN);
+
   var args = validator_.validateArgs(arguments, [
     {
       name: 'powered',
@@ -299,6 +309,7 @@ NFCAdapter.prototype.setPowered = function() {
 };
 
 NFCAdapter.prototype.setTagListener = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NFC_TAG);
 
   var args = validator_.validateArgs(arguments, [
     {
@@ -353,6 +364,8 @@ NFCAdapter.prototype.setTagListener = function() {
 };
 
 NFCAdapter.prototype.setPeerListener = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NFC_P2P);
+
   var args = validator_.validateArgs(arguments, [
     {
       name: 'listener',
@@ -381,6 +394,7 @@ NFCAdapter.prototype.setPeerListener = function() {
 };
 
 NFCAdapter.prototype.unsetTagListener = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NFC_TAG);
 
   native_.removeListener(TAG_LISTENER);
 
@@ -393,6 +407,8 @@ NFCAdapter.prototype.unsetTagListener = function() {
 };
 
 NFCAdapter.prototype.unsetPeerListener = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NFC_P2P);
+
   native_.removeListener(PEER_LISTENER);
 
   var result = native_.callSync('NFCAdapter_unsetPeerListener');
@@ -404,6 +420,8 @@ NFCAdapter.prototype.unsetPeerListener = function() {
 };
 
 NFCAdapter.prototype.addCardEmulationModeChangeListener = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NFC_CARDEMULATION);
+
   var args = validator_.validateArgs(arguments, [
     {
       name: 'callback',
@@ -425,6 +443,8 @@ NFCAdapter.prototype.addCardEmulationModeChangeListener = function() {
 };
 
 NFCAdapter.prototype.removeCardEmulationModeChangeListener = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NFC_CARDEMULATION);
+
   var args = validator_.validateArgs(arguments, [
     {
       name: 'listenerId',
@@ -440,6 +460,8 @@ NFCAdapter.prototype.removeCardEmulationModeChangeListener = function() {
 };
 
 NFCAdapter.prototype.addTransactionEventListener = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NFC_CARDEMULATION);
+
   var args = validator_.validateArgs(arguments, [
     {
       name: 'type',
@@ -478,6 +500,8 @@ NFCAdapter.prototype.addTransactionEventListener = function() {
 };
 
 NFCAdapter.prototype.removeTransactionEventListener = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NFC_CARDEMULATION);
+
   var args = validator_.validateArgs(arguments, [
     {
       name: 'watchId',
@@ -505,6 +529,8 @@ NFCAdapter.prototype.removeTransactionEventListener = function() {
 };
 
 NFCAdapter.prototype.addActiveSecureElementChangeListener = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NFC_CARDEMULATION);
+
   var args = validator_.validateArgs(arguments, [
     {
       name: 'callback',
@@ -526,6 +552,8 @@ NFCAdapter.prototype.addActiveSecureElementChangeListener = function() {
 };
 
 NFCAdapter.prototype.removeActiveSecureElementChangeListener = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NFC_CARDEMULATION);
+
   var args = validator_.validateArgs(arguments, [
     {
       name: 'listenerId',
@@ -541,6 +569,8 @@ NFCAdapter.prototype.removeActiveSecureElementChangeListener = function() {
 };
 
 NFCAdapter.prototype.getCachedMessage = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NFC_COMMON);
+
   var result = native_.callSync('NFCAdapter_getCachedMessage');
 
   if (native_.isFailure(result)) {
@@ -555,6 +585,7 @@ NFCAdapter.prototype.getCachedMessage = function() {
 };
 
 NFCAdapter.prototype.setExclusiveModeForTransaction = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NFC_CARDEMULATION);
 
   var args = validator_.validateArgs(arguments, [
     {
@@ -847,6 +878,7 @@ function NFCTag(tagid) {
   // Function defined here (not outside Tag "constructor"
   // because access to internal _my_id variable is needed)
   NFCTag.prototype.readNDEF = function() {
+    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NFC_TAG);
 
     var args = validator_.validateArgs(arguments, [
       {
@@ -876,6 +908,8 @@ function NFCTag(tagid) {
   };
 
   NFCTag.prototype.writeNDEF = function() {
+    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NFC_TAG);
+
     var args = validator_.validateArgs(arguments, [
       {
         name: 'message',
@@ -917,6 +951,8 @@ function NFCTag(tagid) {
   };
 
   NFCTag.prototype.transceive = function() {
+    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NFC_TAG);
+
     var args = validator_.validateArgs(arguments, [
       {
         name: 'data',
@@ -997,6 +1033,8 @@ function NFCPeer(peerid) {
   }
 
   NFCPeer.prototype.sendNDEF = function() {
+    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NFC_P2P);
+
     var args = validator_.validateArgs(arguments, [
       {
         name: 'message',
@@ -1040,6 +1078,8 @@ function NFCPeer(peerid) {
 }
 
 NFCPeer.prototype.setReceiveNDEFListener = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NFC_P2P);
+
   var args = validator_.validateArgs(arguments, [
     {
       name: 'listener',
@@ -1065,6 +1105,8 @@ NFCPeer.prototype.setReceiveNDEFListener = function() {
 };
 
 NFCPeer.prototype.unsetReceiveNDEFListener = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NFC_P2P);
+
   native_.removeListener(RECEIVE_NDEF_LISTENER);
 
   var result = native_.callSync('NFCPeer_unsetReceiveNDEFListener', {'id' : this._my_id});
