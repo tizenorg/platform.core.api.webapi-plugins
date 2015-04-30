@@ -89,6 +89,8 @@ function CallHistory() {
 };
 
 CallHistory.prototype.find = function() {
+    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CALLHISTORY_READ);
+
     var args = validator_.validateArgs(arguments, [
         {
             name : 'successCallback',
@@ -149,6 +151,8 @@ CallHistory.prototype.find = function() {
 };
 
 CallHistory.prototype.remove = function() {
+    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CALLHISTORY_WRITE);
+
     var args = validator_.validateArgs(arguments, [
         {
             name : 'entry',
@@ -170,6 +174,8 @@ CallHistory.prototype.remove = function() {
 };
 
 CallHistory.prototype.removeBatch = function() {
+    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CALLHISTORY_WRITE);
+
     var args = validator_.validateArgs(arguments, [
         {
             name : 'entries',
@@ -206,6 +212,8 @@ CallHistory.prototype.removeBatch = function() {
 };
 
 CallHistory.prototype.removeAll = function() {
+    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CALLHISTORY_WRITE);
+
     var args = validator_.validateArgs(arguments, [
         {
             name : 'successCallback',
@@ -233,6 +241,8 @@ CallHistory.prototype.removeAll = function() {
 };
 
 CallHistory.prototype.addChangeListener = function() {
+    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CALLHISTORY_READ);
+
     var args = validator_.validateArgs(arguments, [
         {
             name : 'eventCallback',
@@ -249,6 +259,8 @@ CallHistory.prototype.addChangeListener = function() {
 };
 
 CallHistory.prototype.removeChangeListener = function() {
+    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CALLHISTORY_READ);
+
     var args = validator_.validateArgs(arguments, [
         {
             name : 'watchId',
