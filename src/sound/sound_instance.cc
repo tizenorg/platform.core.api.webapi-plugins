@@ -14,12 +14,6 @@
 namespace extension {
 namespace sound {
 
-namespace {
-// The privileges that required in Sound API
-const std::string kPrivilegeSound = "http://tizen.org/privilege/volume.set";
-
-} // namespace
-
 using namespace common;
 using namespace extension::sound;
 
@@ -67,7 +61,6 @@ void SoundInstance::SoundManagerGetSoundMode(const picojson::value& args,
 
 void SoundInstance::SoundManagerSetVolume(const picojson::value& args,
                                           picojson::object& out) {
-  CHECK_PRIVILEGE_ACCESS(kPrivilegeSound, &out);
   PlatformResult status = manager_.SetVolume(args.get<picojson::object>());
 
   if (status.IsSuccess())
