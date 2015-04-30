@@ -3,13 +3,11 @@
 //found in the LICENSE file.
 
 var validator_ = xwalk.utils.validator;
+var privilege_ = xwalk.utils.privilege;
 var types_ = validator_.Types;
 var T_ = xwalk.utils.type;
 var Converter_ = xwalk.utils.converter;
 var native_ = new xwalk.utils.NativeManager(extension);
-
-var _PRIVILEGE_SYSTEM = 'http://tizen.org/privilege/system';
-var _PRIVILEGE_TELEPHONY = 'http://tizen.org/privilege/telephony';
 
 //enumeration SystemInfoPropertyId ////////////////////////////////////////////////////
 var SystemInfoPropertyId = {
@@ -99,7 +97,7 @@ function SystemInfoDeviceCapability(data) {
         },
         platformVersion : {
             get : function() {
-                xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_SYSTEM);
+                xwalk.utils.checkPrivilegeAccess(privilege_.SYSTEM);
                 return data.platformVersion;
             },
             set : function() {},
@@ -107,7 +105,7 @@ function SystemInfoDeviceCapability(data) {
         },
         webApiVersion : {
             get : function() {
-                xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_SYSTEM);
+                xwalk.utils.checkPrivilegeAccess(privilege_.SYSTEM);
                 return data.webApiVersion;
             },
             set : function() {},
@@ -115,7 +113,7 @@ function SystemInfoDeviceCapability(data) {
         },
         nativeApiVersion : {
             get : function() {
-                xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_SYSTEM);
+                xwalk.utils.checkPrivilegeAccess(privilege_.SYSTEM);
                 return data.nativeApiVersion;
             },
             set : function() {},
@@ -557,8 +555,8 @@ function SystemInfoCellularNetwork(data) {
         isFlightMode : {value: data.isFligthMode, writable: false, enumerable: true},
         imei : {
             get: function() {
-                xwalk.utils.checkBackwardCompabilityPrivilegeAccess(_PRIVILEGE_TELEPHONY,
-                                                                    _PRIVILEGE_SYSTEM);
+                xwalk.utils.checkBackwardCompabilityPrivilegeAccess(privilege_.TELEPHONY,
+                                                                    privilege_.SYSTEMMANAGER);
                 return data.imei;
             },
             set: function() {},
@@ -572,7 +570,7 @@ function SystemInfoSIM(data) {
     Object.defineProperties(this, {
         state : {
             get: function() {
-                xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_SYSTEM);
+                xwalk.utils.checkPrivilegeAccess(privilege_.SYSTEM);
                 return data.state;
             },
             set: function() {},
@@ -580,7 +578,7 @@ function SystemInfoSIM(data) {
         },
         operatorName : {
             get: function() {
-                xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_SYSTEM);
+                xwalk.utils.checkPrivilegeAccess(privilege_.SYSTEM);
                 return data.operatorName;
             },
             set: function() {},
@@ -588,8 +586,8 @@ function SystemInfoSIM(data) {
         },
         msisdn : {
             get: function() {
-                xwalk.utils.checkBackwardCompabilityPrivilegeAccess(_PRIVILEGE_TELEPHONY,
-                                                                    _PRIVILEGE_SYSTEM);
+                xwalk.utils.checkBackwardCompabilityPrivilegeAccess(privilege_.TELEPHONY,
+                                                                    privilege_.SYSTEMMANAGER);
                 return data.msisdn;
             },
             set: function() {},
@@ -597,7 +595,7 @@ function SystemInfoSIM(data) {
         },
         iccid : {
             get: function() {
-                xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_SYSTEM);
+                xwalk.utils.checkPrivilegeAccess(privilege_.SYSTEM);
                 return data.iccid;
             },
             set: function() {},
@@ -605,7 +603,7 @@ function SystemInfoSIM(data) {
         },
         mcc : {
             get: function() {
-                xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_SYSTEM);
+                xwalk.utils.checkPrivilegeAccess(privilege_.SYSTEM);
                 return Number(data.mcc);
             },
             set: function() {},
@@ -613,7 +611,7 @@ function SystemInfoSIM(data) {
         },
         mnc : {
             get: function() {
-                xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_SYSTEM);
+                xwalk.utils.checkPrivilegeAccess(privilege_.SYSTEM);
                 return Number(data.mnc);
             },
             set: function() {},
@@ -621,8 +619,8 @@ function SystemInfoSIM(data) {
         },
         msin : {
             get: function() {
-                xwalk.utils.checkBackwardCompabilityPrivilegeAccess(_PRIVILEGE_TELEPHONY,
-                                                                    _PRIVILEGE_SYSTEM);
+                xwalk.utils.checkBackwardCompabilityPrivilegeAccess(privilege_.TELEPHONY,
+                                                                    privilege_.SYSTEMMANAGER);
                 return data.msin;
             },
             set: function() {},
@@ -630,7 +628,7 @@ function SystemInfoSIM(data) {
         },
         spn : {
             get: function() {
-                xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_SYSTEM);
+                xwalk.utils.checkPrivilegeAccess(privilege_.SYSTEM);
                 return data.spn;
             },
             set: function() {},
@@ -655,6 +653,8 @@ function SystemInfoMemory(data) {
 
 function SystemInfoCameraFlash(data) {
   var getBrightness = function() {
+      xwalk.utils.checkPrivilegeAccess(privilege_.LED);
+
       var result = native_.callSync('SystemInfo_getBrightness', {});
       if (native_.isSuccess(result)) {
         return Converter_.toLong(native_.getResultObject(result)) / this.levels;
@@ -663,6 +663,8 @@ function SystemInfoCameraFlash(data) {
     };
 
   var getLevels = function() {
+      xwalk.utils.checkPrivilegeAccess(privilege_.LED);
+
       var result = native_.callSync('SystemInfo_getMaxBrightness', {});
       if (native_.isSuccess(result)) {
         return Converter_.toLong(native_.getResultObject(result));
@@ -678,6 +680,8 @@ function SystemInfoCameraFlash(data) {
 }
 
 SystemInfoCameraFlash.prototype.setBrightness = function(brightness) {
+  xwalk.utils.checkPrivilegeAccess(privilege_.LED);
+
   var args = validator_.validateArgs(arguments, [
     {name: 'brightness', type: types_.LONG}
   ]);

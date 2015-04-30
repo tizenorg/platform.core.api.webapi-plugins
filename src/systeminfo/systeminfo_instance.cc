@@ -55,8 +55,6 @@ const std::string kPropertyIdPeripheral = "PERIPHERAL";
 const std::string kPropertyIdMemory= "MEMORY";
 const std::string kPropertyIdCameraFlash= "CAMERA_FLASH";
 
-const std::string kPrivilegeLED = "http://tizen.org/privilege/led";
-
 #define CHECK_EXIST(args, name, out) \
   if (!args.contains(name)) {\
     ReportError(TypeMismatchException(name" is required argument"), out);\
@@ -465,8 +463,6 @@ static void ReportSuccess(const picojson::value& result, picojson::object& out) 
 void SysteminfoInstance::SetBrightness(const picojson::value& args, picojson::object& out) {
   LoggerD("entered");
 
-  CHECK_PRIVILEGE_ACCESS(kPrivilegeLED, &out);
-
   CHECK_EXIST(args, "brightness", out)
 
   const double brightness = args.get("brightness").get<double>();
@@ -483,8 +479,6 @@ void SysteminfoInstance::SetBrightness(const picojson::value& args, picojson::ob
 void SysteminfoInstance::GetBrightness(const picojson::value& args, picojson::object& out) {
   LoggerD("entered");
 
-  CHECK_PRIVILEGE_ACCESS(kPrivilegeLED, &out);
-
   int result = DEVICE_ERROR_NONE;
   int brightness = 0;
   result = device_flash_get_brightness(&brightness);
@@ -498,8 +492,6 @@ void SysteminfoInstance::GetBrightness(const picojson::value& args, picojson::ob
 
 void SysteminfoInstance::GetMaxBrightness(const picojson::value& args, picojson::object& out) {
   LoggerD("entered");
-
-  CHECK_PRIVILEGE_ACCESS(kPrivilegeLED, &out);
 
   int result = DEVICE_ERROR_NONE;
   int brightness = 0;
