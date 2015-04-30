@@ -73,6 +73,8 @@ function DataControlManager() {
 
 
 DataControlManager.prototype.getDataControlConsumer = function(providerId, dataId, type) {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.DATACONTROL_CONSUMER);
+
   var args = validator_.validateArgs(arguments, [
     {'name': 'providerId', 'type': types_.STRING},
     {'name': 'dataId', 'type': types_.STRING},
@@ -107,6 +109,8 @@ SQLDataControlConsumer.prototype = new DataControlConsumerObject();
 SQLDataControlConsumer.prototype.constructor = SQLDataControlConsumer;
 
 SQLDataControlConsumer.prototype.insert = function(reqId, insertionData) {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.DATACONTROL_CONSUMER);
+
   var args = validator_.validateArgs(arguments, [
     {'name': 'reqId', 'type': types_.LONG},
     {'name': 'insertionData', 'type': types_.DICTIONARY},
@@ -142,6 +146,8 @@ SQLDataControlConsumer.prototype.insert = function(reqId, insertionData) {
 };
 
 SQLDataControlConsumer.prototype.update = function(reqId, updateData, where) {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.DATACONTROL_CONSUMER);
+
   var args = validator_.validateArgs(arguments, [
     {'name': 'reqId', 'type': types_.LONG},
     {'name': 'updateData', 'type': types_.DICTIONARY},
@@ -180,6 +186,8 @@ SQLDataControlConsumer.prototype.update = function(reqId, updateData, where) {
 };
 
 SQLDataControlConsumer.prototype.remove = function(reqId, where) {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.DATACONTROL_CONSUMER);
+
   var args = validator_.validateArgs(arguments, [
     {'name': 'reqId', 'type': types_.LONG},
     {'name': 'where', 'type': types_.STRING},
@@ -216,6 +224,8 @@ SQLDataControlConsumer.prototype.remove = function(reqId, where) {
 };
 
 SQLDataControlConsumer.prototype.select = function(reqId, columns, where, successCallback) {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.DATACONTROL_CONSUMER);
+
   var args = validator_.validateArgs(arguments, [
     {'name': 'reqId', 'type': types_.LONG},
     {'name': 'columns', 'type': types_.ARRAY},
@@ -269,6 +279,8 @@ MappedDataControlConsumer.prototype = new DataControlConsumerObject();
 MappedDataControlConsumer.prototype.constructor = MappedDataControlConsumer;
 
 MappedDataControlConsumer.prototype.addValue = function(reqId, key, value) {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.DATACONTROL_CONSUMER);
+
   var args = validator_.validateArgs(arguments, [
     {'name': 'reqId', 'type': types_.LONG},
     {'name': 'key', 'type': types_.STRING},
@@ -307,6 +319,8 @@ MappedDataControlConsumer.prototype.addValue = function(reqId, key, value) {
 };
 
 MappedDataControlConsumer.prototype.removeValue = function(reqId, key, value, successCallback) {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.DATACONTROL_CONSUMER);
+
   var args = validator_.validateArgs(arguments, [
     {'name': 'reqId', 'type': types_.LONG},
     {'name': 'key', 'type': types_.STRING},
@@ -343,6 +357,8 @@ MappedDataControlConsumer.prototype.removeValue = function(reqId, key, value, su
 };
 
 MappedDataControlConsumer.prototype.getValue = function(reqId, key, successCallback) {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.DATACONTROL_CONSUMER);
+
   var args = validator_.validateArgs(arguments, [
     {'name': 'reqId', 'type': types_.LONG},
     {'name': 'key', 'type': types_.STRING},
@@ -377,6 +393,8 @@ MappedDataControlConsumer.prototype.getValue = function(reqId, key, successCallb
 
 MappedDataControlConsumer.prototype.updateValue = function(
         reqId, key, oldValue, newValue, successCallback) {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.DATACONTROL_CONSUMER);
+
   var args = validator_.validateArgs(arguments, [
     {'name': 'reqId', 'type': types_.LONG},
     {'name': 'key', 'type': types_.STRING},
