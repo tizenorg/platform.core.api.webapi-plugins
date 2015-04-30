@@ -2,8 +2,6 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-var _PRIVILEGE_CALENDAR_READ = "http://tizen.org/privilege/calendar.read";
-
 var CalendarTextFormat = {
   ICALENDAR_20: 'ICALENDAR_20',
   VCALENDAR_10: 'VCALENDAR_10'
@@ -335,7 +333,8 @@ var CalendarItem = function(data) {
 };
 
 CalendarItem.prototype.convertToString = function() {
-  xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_CALENDAR_READ);
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CALENDAR_READ);
+
   var args = validator_.validateArgs(arguments, [
     {
       name: 'format',
@@ -420,7 +419,8 @@ CalendarItem.prototype.convertToString = function() {
 };
 
 CalendarItem.prototype.clone = function() {
-  xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_CALENDAR_READ);
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CALENDAR_READ);
+
   var tmp = _itemConverter.toTizenObject(_itemConverter.fromTizenObject(this));
 
   tmp.id = null;
@@ -672,7 +672,8 @@ CalendarEvent.prototype = new CalendarItem();
 CalendarEvent.prototype.constructor = CalendarEvent;
 
 CalendarEvent.prototype.expandRecurrence = function(startDate, endDate, successCallback, errorCallback) {
-  xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_CALENDAR_READ);
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CALENDAR_READ);
+
   if (arguments.length < 3) {
     throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR);
   }

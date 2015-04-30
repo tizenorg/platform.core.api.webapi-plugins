@@ -13,6 +13,8 @@ var DefaultCalendarId = {
 };
 
 CalendarManager.prototype.getCalendars = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CALENDAR_READ);
+
   var args = validator_.validateArgs(arguments, [{
     name: 'type',
     type: types_.ENUM,
@@ -50,14 +52,13 @@ CalendarManager.prototype.getCalendars = function() {
 };
 
 CalendarManager.prototype.getUnifiedCalendar = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CALENDAR_READ);
 
   var args = validator_.validateArgs(arguments, [{
     name: 'type',
     type: types_.ENUM,
     values: Object.keys(CalendarType)
   }]);
-
-  xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_CALENDAR_READ);
 
   return new Calendar(new InternalCalendar({
     type: args.type,
@@ -66,6 +67,7 @@ CalendarManager.prototype.getUnifiedCalendar = function() {
 };
 
 CalendarManager.prototype.getDefaultCalendar = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CALENDAR_READ);
 
   var args = validator_.validateArgs(arguments, [{
     name: 'type',
@@ -74,12 +76,11 @@ CalendarManager.prototype.getDefaultCalendar = function() {
   }
   ]);
 
-  xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_CALENDAR_READ);
-
   return this.getCalendar(args.type, DefaultCalendarId[args.type]);
 };
 
 CalendarManager.prototype.getCalendar = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CALENDAR_READ);
 
   var args = validator_.validateArgs(arguments, [{
     name: 'type',
@@ -112,6 +113,7 @@ CalendarManager.prototype.getCalendar = function() {
 };
 
 CalendarManager.prototype.addCalendar = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CALENDAR_WRITE);
 
   var args = validator_.validateArgs(arguments, [{
     name: 'calendar',
@@ -135,6 +137,7 @@ CalendarManager.prototype.addCalendar = function() {
 };
 
 CalendarManager.prototype.removeCalendar = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CALENDAR_WRITE);
 
   var args = validator_.validateArgs(arguments, [{
     name: 'type',
