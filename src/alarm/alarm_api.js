@@ -5,6 +5,7 @@
 var T = xwalk.utils.type;
 var Converter = xwalk.utils.converter;
 var AV = xwalk.utils.validator;
+var Privilege = xwalk.utils.privilege;
 
 var native = new xwalk.utils.NativeManager(extension);
 
@@ -41,6 +42,8 @@ function UpdateInternalData_(internal, data) {
 
 //class AlarmManager ////////////////////////////////////////////////////
 AlarmManager.prototype.add = function () {
+    xwalk.utils.checkPrivilegeAccess(Privilege.ALARM);
+
     var args = AV.validateMethod(arguments, [
         {
             name : 'alarm',
@@ -87,6 +90,8 @@ AlarmManager.prototype.add = function () {
 };
 
 AlarmManager.prototype.remove = function () {
+    xwalk.utils.checkPrivilegeAccess(Privilege.ALARM);
+
     var args = AV.validateMethod(arguments, [
         {
             name : 'id',
@@ -102,6 +107,8 @@ AlarmManager.prototype.remove = function () {
 };
 
 AlarmManager.prototype.removeAll = function () {
+    xwalk.utils.checkPrivilegeAccess(Privilege.ALARM);
+
     var result = native.callSync('AlarmManager_removeAll', {});
 
     if (native.isFailure(result)) {

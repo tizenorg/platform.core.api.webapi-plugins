@@ -22,7 +22,6 @@ namespace alarm {
 
 namespace {
 const int kDateSize = 22; //"yyy mm dd hh mm ss dd" e.g 115 11 28 11 25 50 -1
-const std::string kPrivilegeAlarm = "http://tizen.org/privilege/alarm";
 
 const std::string kAlarmRelative = "AlarmRelative";
 const std::string kAlarmAbsolute = "AlarmAbsolute";
@@ -57,7 +56,6 @@ AlarmManager::~AlarmManager() {
 
 void AlarmManager::Add(const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
-  CHECK_PRIVILEGE_ACCESS(kPrivilegeAlarm, &out);
 
   if (!args.contains("alarm")) {
     LoggerE("Invalid parameter passed.");
@@ -211,7 +209,6 @@ void AlarmManager::Add(const picojson::value& args, picojson::object& out) {
 
 void AlarmManager::Remove(const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
-  CHECK_PRIVILEGE_ACCESS(kPrivilegeAlarm, &out);
 
   int id = 0;
 
@@ -239,7 +236,6 @@ void AlarmManager::Remove(const picojson::value& args, picojson::object& out) {
 
 void AlarmManager::RemoveAll(const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
-  CHECK_PRIVILEGE_ACCESS(kPrivilegeAlarm, &out);
 
   if (ALARM_ERROR_NONE != alarm_cancel_all()) {
     LoggerE("Platform unknown error.");
