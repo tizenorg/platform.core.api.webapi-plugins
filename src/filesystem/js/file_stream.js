@@ -2,9 +2,6 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-var _PRIVILEGE_FILESYSTEM_READ = 'http://tizen.org/privilege/filesystem.read';
-var _PRIVILEGE_FILESYSTEM_WRITE = 'http://tizen.org/privilege/filesystem.write';
-
 function FileStream(data, mode, encoding) {
   var _totalBytes = data.fileSize || 0;
   var _position = mode === 'a' ? _totalBytes : 0;
@@ -59,7 +56,7 @@ function _checkClosed(stream) {
 }
 
 FileStream.prototype.close = function() {
-  xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_FILESYSTEM_READ);
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_READ);
   this._closed = true;
 };
 
@@ -76,7 +73,7 @@ function _checkWriteAccess(mode) {
 }
 
 FileStream.prototype.read = function() {
-  xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_FILESYSTEM_READ);
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_READ);
 
   var args = validator_.validateArgs(arguments, [
     {
@@ -120,7 +117,7 @@ FileStream.prototype.read = function() {
 };
 
 FileStream.prototype.readBytes = function() {
-  xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_FILESYSTEM_READ);
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_READ);
 
   var args = validator_.validateArgs(arguments, [
     {
@@ -169,7 +166,7 @@ FileStream.prototype.readBytes = function() {
 };
 
 FileStream.prototype.readBase64 = function() {
-  xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_FILESYSTEM_READ);
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_READ);
 
   var args = validator_.validateArgs(arguments, [
     {
@@ -216,7 +213,7 @@ FileStream.prototype.readBase64 = function() {
 };
 
 FileStream.prototype.write = function() {
-  xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_FILESYSTEM_WRITE);
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_WRITE);
 
   var args = validator_.validateArgs(arguments, [
     {
@@ -248,7 +245,7 @@ FileStream.prototype.write = function() {
 };
 
 FileStream.prototype.writeBytes = function() {
-  xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_FILESYSTEM_WRITE);
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_WRITE);
 
   var args = validator_.validateArgs(arguments, [
     {
@@ -285,7 +282,7 @@ function _isBase64(str) {
 }
 
 FileStream.prototype.writeBase64 = function() {
-  xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_FILESYSTEM_WRITE);
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_WRITE);
 
   var args = validator_.validateArgs(arguments, [
     {

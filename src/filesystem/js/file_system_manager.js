@@ -2,9 +2,6 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-var _PRIVILEGE_FILESYSTEM_READ = 'http://tizen.org/privilege/filesystem.read';
-var _PRIVILEGE_FILESYSTEM_WRITE = 'http://tizen.org/privilege/filesystem.write';
-
 function FileSystemStorage(data) {
   Object.defineProperties(this, {
     label: {value: data.label, writable: false, enumerable: true},
@@ -22,7 +19,7 @@ function FileSystemManager() {
 }
 
 FileSystemManager.prototype.resolve = function(location, onsuccess, onerror, mode) {
-  xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_FILESYSTEM_READ);
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_READ);
 
   var args = validator_.validateArgs(arguments, [
     {name: 'location', type: types_.STRING},
@@ -78,7 +75,7 @@ FileSystemManager.prototype.resolve = function(location, onsuccess, onerror, mod
 };
 
 FileSystemManager.prototype.getStorage = function(label, onsuccess, onerror) {
-  xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_FILESYSTEM_READ);
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_READ);
 
   var args = validator_.validateArgs(arguments, [
     {name: 'label', type: types_.STRING},
@@ -99,7 +96,7 @@ FileSystemManager.prototype.getStorage = function(label, onsuccess, onerror) {
 };
 
 FileSystemManager.prototype.listStorages = function(onsuccess, onerror) {
-  xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_FILESYSTEM_READ);
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_READ);
 
   var args = validator_.validateArgs(arguments, [
     {name: 'onsuccess', type: types_.FUNCTION},
@@ -132,7 +129,7 @@ function _StorageStateChangeListener(result) {
 }
 
 FileSystemManager.prototype.addStorageStateChangeListener = function(onsuccess, onerror) {
-  xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_FILESYSTEM_WRITE);
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_WRITE);
 
   var args = validator_.validateArgs(arguments, [
     {name: 'onsuccess', type: types_.FUNCTION},
@@ -161,7 +158,7 @@ FileSystemManager.prototype.addStorageStateChangeListener = function(onsuccess, 
 };
 
 FileSystemManager.prototype.removeStorageStateChangeListener = function(watchId) {
-  xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_FILESYSTEM_WRITE);
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_WRITE);
 
   var args = validator_.validateArgs(arguments, [
     {name: 'watchId', type: types_.LONG}

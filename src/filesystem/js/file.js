@@ -2,9 +2,6 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-var _PRIVILEGE_FILESYSTEM_READ = 'http://tizen.org/privilege/filesystem.read';
-var _PRIVILEGE_FILESYSTEM_WRITE = 'http://tizen.org/privilege/filesystem.write';
-
 function File(data) {
   function fileSizeGetter() {
     var _realPath = commonFS_.toRealPath(this.fullPath);
@@ -51,7 +48,7 @@ function File(data) {
 }
 
 File.prototype.toURI = function() {
-  xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_FILESYSTEM_READ);
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_READ);
   return 'file://' + commonFS_.toRealPath(this.fullPath);
 };
 
@@ -147,7 +144,7 @@ function checkFile(file, fileFilter) {
 }
 
 File.prototype.listFiles = function(onsuccess, onerror, filter) {
-  xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_FILESYSTEM_READ);
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_READ);
 
   var args = validator_.validateArgs(arguments, [
     {name: 'onsuccess', type: types_.FUNCTION},
@@ -223,7 +220,7 @@ function _checkEncoding(encoding) {
 }
 
 File.prototype.openStream = function(mode, onsuccess, onerror, encoding) {
-  xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_FILESYSTEM_READ);
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_READ);
 
   var args = validator_.validateArgs(arguments, [
     {name: 'mode', type: types_.ENUM, values: ['r', 'rw', 'w', 'a']},
@@ -272,7 +269,7 @@ File.prototype.openStream = function(mode, onsuccess, onerror, encoding) {
 };
 
 File.prototype.readAsText = function(onsuccess, onerror, encoding) {
-  xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_FILESYSTEM_READ);
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_READ);
 
   var args = validator_.validateArgs(arguments, [
     {name: 'onsuccess', type: types_.FUNCTION},
@@ -325,7 +322,7 @@ File.prototype.readAsText = function(onsuccess, onerror, encoding) {
 };
 
 File.prototype.copyTo = function(originFilePath, destinationFilePath, overwrite, onsuccess, onerror) {
-  xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_FILESYSTEM_WRITE);
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_WRITE);
 
   var args = validator_.validateArgs(arguments, [
     {name: 'originFilePath', type: types_.STRING},
@@ -411,7 +408,7 @@ File.prototype.copyTo = function(originFilePath, destinationFilePath, overwrite,
 };
 
 File.prototype.moveTo = function(originFilePath, destinationFilePath, overwrite, onsuccess, onerror) {
-  xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_FILESYSTEM_WRITE);
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_WRITE);
 
   var args = validator_.validateArgs(arguments, [
     {name: 'originFilePath', type: types_.STRING},
@@ -512,7 +509,7 @@ File.prototype.moveTo = function(originFilePath, destinationFilePath, overwrite,
 };
 
 File.prototype.createDirectory = function(dirPath) {
-  xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_FILESYSTEM_WRITE);
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_WRITE);
 
   var args = validator_.validateArgs(arguments, [
     {name: 'dirPath', type: types_.STRING}
@@ -570,7 +567,7 @@ File.prototype.createDirectory = function(dirPath) {
 };
 
 File.prototype.createFile = function(relativeFilePath) {
-  xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_FILESYSTEM_WRITE);
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_WRITE);
 
   var args = validator_.validateArgs(arguments, [
     {name: 'relativeFilePath', type: types_.STRING}
@@ -620,7 +617,7 @@ File.prototype.createFile = function(relativeFilePath) {
 };
 
 File.prototype.resolve = function(filePath) {
-  xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_FILESYSTEM_READ);
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_READ);
 
   var args = validator_.validateArgs(arguments, [
     {name: 'filePath', type: types_.STRING}
@@ -660,7 +657,7 @@ File.prototype.resolve = function(filePath) {
 };
 
 File.prototype.deleteDirectory = function(directoryPath, recursive, onsuccess, onerror) {
-  xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_FILESYSTEM_WRITE);
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_WRITE);
 
   var args = validator_.validateArgs(arguments, [
     {name: 'directoryPath', type: types_.STRING},
@@ -736,7 +733,7 @@ File.prototype.deleteDirectory = function(directoryPath, recursive, onsuccess, o
 };
 
 File.prototype.deleteFile = function(filePath, onsuccess, onerror) {
-  xwalk.utils.checkPrivilegeAccess(_PRIVILEGE_FILESYSTEM_WRITE);
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_WRITE);
 
   var args = validator_.validateArgs(arguments, [
     {name: 'filePath', type: types_.STRING},
