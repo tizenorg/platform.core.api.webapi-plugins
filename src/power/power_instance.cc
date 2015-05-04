@@ -20,9 +20,6 @@ namespace extension {
 namespace power {
 
 namespace {
-// The privileges that required in Power API
-const std::string kPrivilegePower = "http://tizen.org/privilege/power";
-
 const std::map<std::string, PowerResource> kPowerResourceMap = {
     {"SCREEN", POWER_RESOURCE_SCREEN},
     {"CPU", POWER_RESOURCE_CPU}
@@ -140,8 +137,6 @@ static void ReplyAsync(PowerInstance* instance, PowerCallbacks cbfunc,
     }
 
 void PowerInstance::PowerManagerRequest(const picojson::value& args, picojson::object& out) {
-  CHECK_PRIVILEGE_ACCESS(kPrivilegePower, &out);
-
   const std::string& resource = args.get("resource").get<std::string>();
   const std::string& state = args.get("state").get<std::string>();
 
@@ -177,8 +172,6 @@ void PowerInstance::PowerManagerGetscreenbrightness(const picojson::value& args,
 
 void PowerInstance::PowerManagerSetscreenbrightness(const picojson::value& args,
                                                     picojson::object& out) {
-  CHECK_PRIVILEGE_ACCESS(kPrivilegePower, &out);
-
   CHECK_EXIST(args, "brightness", out)
 
   double brightness = args.get("brightness").get<double>();
@@ -204,8 +197,6 @@ void PowerInstance::PowerManagerRestorescreenbrightness(const picojson::value& a
 }
 
 void PowerInstance::PowerManagerTurnscreenon(const picojson::value& args, picojson::object& out) {
-  CHECK_PRIVILEGE_ACCESS(kPrivilegePower, &out);
-
   PlatformResult result = PowerManager::GetInstance()->SetScreenState(true);
   if (result.IsError())
     ReportError(result, &out);
@@ -214,8 +205,6 @@ void PowerInstance::PowerManagerTurnscreenon(const picojson::value& args, picojs
 }
 
 void PowerInstance::PowerManagerTurnscreenoff(const picojson::value& args, picojson::object& out) {
-  CHECK_PRIVILEGE_ACCESS(kPrivilegePower, &out);
-
   PlatformResult result = PowerManager::GetInstance()->SetScreenState(false);
   if (result.IsError())
     ReportError(result, &out);
