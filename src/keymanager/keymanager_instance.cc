@@ -48,6 +48,12 @@ KeyManagerInstance::KeyManagerInstance() {
       std::bind(&KeyManagerInstance::LoadCertificateFromFile, this, _1, _2));
   RegisterSyncHandler("KeyManager_removeCertificate",
       std::bind(&KeyManagerInstance::RemoveCertificate, this, _1, _2));
+  RegisterSyncHandler("KeyManager_saveData",
+      std::bind(&KeyManagerInstance::SaveData, this, _1, _2));
+  RegisterSyncHandler("KeyManager_removeData",
+      std::bind(&KeyManagerInstance::RemoveData, this, _1, _2));
+  RegisterSyncHandler("KeyManager_getData",
+      std::bind(&KeyManagerInstance::GetData, this, _1, _2));
 }
 
 KeyManagerInstance::~KeyManagerInstance() {
@@ -444,6 +450,93 @@ void KeyManagerInstance::RemoveCertificate(const picojson::value& args,
   } else {
     picojson::value result;
     ReportSuccess(result, out);
+  }
+}
+
+void KeyManagerInstance::SaveData(const picojson::value& args,
+    picojson::object& out) {
+  LoggerD("Enter");
+
+  const picojson::value& data = args.get("data");
+  const std::string& alias = data.get("name").get<std::string>();
+  std::string password;
+  if (data.get("password").is<std::string>()) {
+    password = data.get("password").get<std::string>();
+  }
+  std::string base64 = args.get("rawData").get<std::string>();
+
+  gsize len = 0;
+  guchar* raw_data = g_base64_decode(base64.c_str(), &len);
+  CKM::RawBuffer raw_buffer;
+  raw_buffer.assign(raw_data, raw_data + len);
+  g_free(raw_data);
+  CKM::Password pass(password.c_str());
+  CKM::Policy policy(pass, data.get("extractable").get<bool>());
+  CKM::ManagerAsync::ObserverPtr observer(new SaveDataObserver(this,
+      args.get("callbackId").get<double>()));
+  m_manager.saveData(observer, alias, raw_buffer, policy);
+
+  ReportSuccess(out);
+}
+
+void KeyManagerInstance::OnSaveData(double callbackId,
+    const common::PlatformResult& result) {
+  LoggerD("Enter");
+
+  picojson::value::object dict;
+  dict["callbackId"] = picojson::value(callbackId);
+  if (result.IsError()) {
+    LoggerE("There was an error");
+    ReportError(result, &dict);
+  }
+  picojson::value res(dict);
+  PostMessage(res.serialize().c_str());
+}
+
+void KeyManagerInstance::RemoveData(const picojson::value& args,
+    picojson::object& out) {
+  const std::string& alias = args.get("data").get("name").get<std::string>();
+  common::PlatformResult res = RemoveAlias(alias);
+  if (res.IsError()) {
+    ReportError(res, &out);
+  } else {
+    ReportSuccess(out);
+  }
+}
+
+void KeyManagerInstance::GetData(const picojson::value& args,
+    picojson::object& out) {
+  LoggerD("Enter");
+
+  const std::string& alias = args.get("name").get<std::string>();
+  CKM::Password pass;
+  if (args.get("password").is<std::string>()) {
+    pass = args.get("password").get<std::string>().c_str();
+  }
+
+  CKM::RawBuffer raw_buffer;
+  int ret = CKM::Manager::create()->getData(alias, pass, raw_buffer);
+  if (ret != CKM_API_SUCCESS) {
+    LoggerE("Failed to get data: %d", ret);
+    if (ret == CKM_API_ERROR_DB_ALIAS_UNKNOWN) {
+      ReportError(common::PlatformResult(common::ErrorCode::NOT_FOUND_ERR,
+        "Data alias not found"), &out);
+    } else {
+      ReportError(common::PlatformResult(common::ErrorCode::UNKNOWN_ERR,
+        "Failed to get data"), &out);
+    }
+  } else {
+    picojson::object dict;
+    dict["name"] = args.get("name");
+    if (args.get("password").is<std::string>()) {
+      dict["password"] = args.get("password");
+    }
+    dict["rawData"] = picojson::value(RawBufferToBase64(raw_buffer));
+    //if key was retrieved it is extractable from db
+    dict["extractable"] = picojson::value(true);
+
+    picojson::value res(dict);
+    ReportSuccess(res, out);
   }
 }
 

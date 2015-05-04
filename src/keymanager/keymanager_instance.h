@@ -24,6 +24,7 @@ class KeyManagerInstance :
   void OnSaveCert(double callbackId, const common::PlatformResult& result);
   void OnCertFileLoaded(LoadFileCert* reader,
     const common::PlatformResult& result);
+  void OnSaveData(double callbackId, const common::PlatformResult& result);
  private:
   void GetAliasList(std::function<int(CKM::AliasVector&)> coreFunc,
       picojson::object& out);
@@ -45,6 +46,9 @@ class KeyManagerInstance :
     double callbackId);
   void RemoveCertificate(const picojson::value& args, picojson::object& out);
   common::PlatformResult RemoveAlias(const std::string &alias);
+  void SaveData(const picojson::value& args, picojson::object& out);
+  void RemoveData(const picojson::value& args, picojson::object& out);
+  void GetData(const picojson::value& args, picojson::object& out);
 
   CKM::ManagerAsync m_manager;
 };

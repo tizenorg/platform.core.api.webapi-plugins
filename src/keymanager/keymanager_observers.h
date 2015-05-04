@@ -21,6 +21,7 @@ public:
   virtual void OnSaveCert(double callbackId, const common::PlatformResult& result) = 0;
   virtual void OnCertFileLoaded(LoadFileCert* reader,
     const common::PlatformResult& result) = 0;
+  virtual void OnSaveData(double callbackId, const common::PlatformResult& result) = 0;
   virtual ~KeyManagerListener() {}
 };
 
@@ -80,6 +81,12 @@ private:
   static void OnStreamRead(GObject *source_object,
     GAsyncResult *res,
     gpointer user_data);
+};
+
+struct SaveDataObserver: public CommonObserver {
+  SaveDataObserver(KeyManagerListener* listener, double callbackId);
+  void ReceivedError(int error);
+  void ReceivedSaveData();
 };
 
 } // namespace keymanager

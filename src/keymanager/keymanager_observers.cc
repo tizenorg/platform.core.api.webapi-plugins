@@ -188,5 +188,27 @@ LoadFileCert::~LoadFileCert() {
   delete[] buffer;
 }
 
+SaveDataObserver::SaveDataObserver(KeyManagerListener* listener, double callbackId):
+    CommonObserver(listener, callbackId) {
+}
+
+void SaveDataObserver::ReceivedError(int error) {
+  LoggerD("Enter, error: %d", error);
+  ErrorCode code = ErrorCode::UNKNOWN_ERR;
+  if (error == CKM_API_ERROR_INPUT_PARAM) {
+    code = ErrorCode::INVALID_VALUES_ERR;
+  }
+  common::TaskQueue::GetInstance().Async(std::bind(
+    &KeyManagerListener::OnSaveData, listener, callbackId,
+    PlatformResult(code, "Failed to save data")));
+}
+
+void SaveDataObserver::ReceivedSaveData() {
+  LoggerD("Enter");
+  common::TaskQueue::GetInstance().Async(std::bind(
+    &KeyManagerListener::OnSaveData, listener, callbackId,
+    PlatformResult(ErrorCode::NO_ERROR)));
+}
+
 } // namespace keymanager
 } // namespace extension
