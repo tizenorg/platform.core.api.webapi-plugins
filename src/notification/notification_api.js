@@ -7,6 +7,7 @@ var type_ = utils_.type;
 var converter_ = utils_.converter;
 var validator_ = utils_.validator;
 var types_ = validator_.Types;
+var privilege_ = xwalk.utils.privilege;
 var native_ = new xwalk.utils.NativeManager(extension);
 
 function convertColorToInt(rgbaColor) {
@@ -69,6 +70,8 @@ function NotificationManager() {}
 
 
 NotificationManager.prototype.post = function(notification) {
+  xwalk.utils.checkPrivilegeAccess(privilege_.NOTIFICATION);
+
   var args = validator_.validateArgs(arguments, [
     {name: 'notification', type: types_.PLATFORM_OBJECT, values: StatusNotification}
   ]);
@@ -92,6 +95,8 @@ NotificationManager.prototype.post = function(notification) {
 };
 
 NotificationManager.prototype.update = function(notification) {
+  xwalk.utils.checkPrivilegeAccess(privilege_.NOTIFICATION);
+
   var args = validator_.validateArgs(arguments, [
     {name: 'notification', type: types_.PLATFORM_OBJECT, values: StatusNotification}
   ]);
@@ -116,6 +121,8 @@ NotificationManager.prototype.update = function(notification) {
 };
 
 NotificationManager.prototype.remove = function(id) {
+  xwalk.utils.checkPrivilegeAccess(privilege_.NOTIFICATION);
+
   var args = validator_.validateArgs(arguments, [
     {name: 'id', type: types_.STRING}
   ]);
@@ -137,6 +144,8 @@ NotificationManager.prototype.remove = function(id) {
 };
 
 NotificationManager.prototype.removeAll = function() {
+  xwalk.utils.checkPrivilegeAccess(privilege_.NOTIFICATION);
+
   var result = native_.callSync('NotificationManager_removeAll', {});
 
   if (native_.isFailure(result)) {

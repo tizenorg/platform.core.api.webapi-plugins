@@ -15,11 +15,6 @@
 namespace extension {
 namespace notification {
 
-namespace {
-// The privileges that required in Notification API
-const std::string kPrivilegeNotification = "http://tizen.org/privilege/notification";
-}  // namespace
-
 using namespace common;
 
 NotificationInstance::NotificationInstance() {
@@ -53,7 +48,6 @@ NotificationInstance::~NotificationInstance() {
 
 void NotificationInstance::NotificationManagerPost(const picojson::value& args,
                                                    picojson::object& out) {
-  CHECK_PRIVILEGE_ACCESS(kPrivilegeNotification, &out);
 
   picojson::value val{picojson::object{}};
   PlatformResult status =
@@ -68,7 +62,6 @@ void NotificationInstance::NotificationManagerPost(const picojson::value& args,
 void NotificationInstance::NotificationManagerUpdate(
     const picojson::value& args,
     picojson::object& out) {
-  CHECK_PRIVILEGE_ACCESS(kPrivilegeNotification, &out);
 
   PlatformResult status = manager_->Update(args.get<picojson::object>());
 
@@ -81,7 +74,6 @@ void NotificationInstance::NotificationManagerUpdate(
 void NotificationInstance::NotificationManagerRemove(
     const picojson::value& args,
     picojson::object& out) {
-  CHECK_PRIVILEGE_ACCESS(kPrivilegeNotification, &out);
 
   PlatformResult status = manager_->Remove(args.get<picojson::object>());
 
@@ -94,7 +86,6 @@ void NotificationInstance::NotificationManagerRemove(
 void NotificationInstance::NotificationManagerRemoveAll(
     const picojson::value& args,
     picojson::object& out) {
-  CHECK_PRIVILEGE_ACCESS(kPrivilegeNotification, &out);
 
   PlatformResult status = manager_->RemoveAll();
 
