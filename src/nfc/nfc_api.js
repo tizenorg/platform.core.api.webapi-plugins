@@ -592,6 +592,8 @@ NFCAdapter.prototype.setExclusiveModeForTransaction = function() {
 };
 
 NFCAdapter.prototype.addHCEEventListener = function(eventCallback) {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NFC_CARDEMULATION);
+
   var args = validator_.validateArgs(arguments, [
     {name: 'eventCallback', type: types_.FUNCTION}
   ]);
@@ -611,6 +613,8 @@ NFCAdapter.prototype.addHCEEventListener = function(eventCallback) {
 };
 
 NFCAdapter.prototype.removeHCEEventListener = function(watchId) {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NFC_CARDEMULATION);
+
   var args = validator_.validateArgs(arguments, [
     {name: 'watchId', type: types_.LONG}
   ]);
@@ -630,6 +634,8 @@ NFCAdapter.prototype.removeHCEEventListener = function(watchId) {
 };
 
 NFCAdapter.prototype.sendHostAPDUResponse = function(apdu, successCallback, errorCallback) {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NFC_CARDEMULATION);
+
   var args = validator_.validateArgs(arguments, [
     {name: 'apdu', type: types_.ARRAY, values: types_.BYTE},
     {name: 'successCallback', type: types_.FUNCTION, optional: true, nullable: true},
@@ -656,6 +662,8 @@ NFCAdapter.prototype.sendHostAPDUResponse = function(apdu, successCallback, erro
 };
 
 NFCAdapter.prototype.isActivatedHandlerForAID = function(type, aid) {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NFC_CARDEMULATION);
+
   var args = validator_.validateArgs(arguments, [
     {
       name: 'type',
@@ -683,6 +691,8 @@ NFCAdapter.prototype.isActivatedHandlerForAID = function(type, aid) {
 };
 
 NFCAdapter.prototype.isActivatedHandlerForCategory = function(type, category) {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NFC_CARDEMULATION);
+
   var args = validator_.validateArgs(arguments, [{
     name: 'type',
     type: types_.ENUM,
@@ -711,6 +721,8 @@ NFCAdapter.prototype.isActivatedHandlerForCategory = function(type, category) {
 };
 
 NFCAdapter.prototype.registerAID = function(type, aid, category) {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NFC_CARDEMULATION);
+
   var args = validator_.validateArgs(arguments, [{
     name: 'type',
     type: types_.ENUM,
@@ -742,6 +754,8 @@ NFCAdapter.prototype.registerAID = function(type, aid, category) {
 };
 
 NFCAdapter.prototype.unregisterAID = function(type, aid, category) {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NFC_CARDEMULATION);
+
   var args = validator_.validateArgs(arguments, [
     {
       name: 'type',
@@ -790,6 +804,8 @@ function AIDData(data) {
 }
 
 NFCAdapter.prototype.getAIDsForCategory = function(type, category, successCallback, errorCallback) {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NFC_CARDEMULATION);
+
   var args = validator_.validateArgs(arguments, [{
     name: 'type',
     type: types_.ENUM,
