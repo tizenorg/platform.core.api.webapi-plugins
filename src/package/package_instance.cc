@@ -22,12 +22,6 @@ using common::NotFoundException;
 using common::TypeMismatchException;
 using common::SecurityException;
 
-namespace {
-// The privileges that required in Package API
-const std::string kPrivilegePackageInstall = "http://tizen.org/privilege/packagemanager.install";
-const std::string kPrivilegePackageInfo = "http://tizen.org/privilege/package.info";
-}  // namespace
-
 typedef enum _PackageThreadWorkType {
   PackageThreadWorkNone = 0,
   PackageThreadWorkGetPackagesInfo,
@@ -279,8 +273,6 @@ void PackageInstance::PackageManagerInstall(
     const picojson::value& args, picojson::object& out) {
   LoggerD("Enter");
 
-  CHECK_PRIVILEGE_ACCESS(kPrivilegePackageInstall, &out);
-
   CHECK_EXIST(args, "callbackId", out)
   CHECK_EXIST(args, "packageFileURI", out)
 
@@ -324,8 +316,6 @@ void PackageInstance::PackageManagerUninstall(
     const picojson::value& args, picojson::object& out) {
   LoggerD("Enter");
 
-  CHECK_PRIVILEGE_ACCESS(kPrivilegePackageInstall, &out);
-
   CHECK_EXIST(args, "callbackId", out)
   CHECK_EXIST(args, "id", out)
 
@@ -366,8 +356,6 @@ void PackageInstance::PackageManagerGetpackagesinfo(
     const picojson::value& args, picojson::object& out) {
   LoggerD("Enter");
 
-  CHECK_PRIVILEGE_ACCESS(kPrivilegePackageInfo, &out);
-
   CHECK_EXIST(args, "callbackId", out)
   int callback_id =
       static_cast<int>(args.get("callbackId").get<double>());
@@ -381,8 +369,6 @@ void PackageInstance::PackageManagerGetpackagesinfo(
 void PackageInstance::PackageManagerGetpackageinfo(
     const picojson::value& args, picojson::object& out) {
   LoggerD("Enter");
-
-  CHECK_PRIVILEGE_ACCESS(kPrivilegePackageInfo, &out);
 
   if ( args.contains("id") ) {
     std::string id = args.get("id").get<std::string>();
@@ -402,8 +388,6 @@ void PackageInstance::
     PackageManagerSetpackageinfoeventlistener(
     const picojson::value& args, picojson::object& out) {
   LoggerD("Enter");
-
-  CHECK_PRIVILEGE_ACCESS(kPrivilegePackageInfo, &out);
 
   CHECK_EXIST(args, "callbackId", out)
   int callback_id =
@@ -443,8 +427,6 @@ void PackageInstance::
     PackageManagerUnsetpackageinfoeventlistener(
     const picojson::value& args, picojson::object& out) {
   LoggerD("Enter");
-
-  CHECK_PRIVILEGE_ACCESS(kPrivilegePackageInfo, &out);
 
   if ( !is_package_info_listener_set_ ) {
     LoggerD("Listener is not set");
