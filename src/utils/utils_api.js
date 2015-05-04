@@ -75,6 +75,7 @@ function Utils() {
     BLUETOOTH_HEALTH: 'http://tizen.org/privilege/bluetooth.health',
     BLUETOOTH_SPP: 'http://tizen.org/privilege/bluetooth.spp',
     BLUETOOTHMANAGER: 'http://tizen.org/privilege/bluetoothmanager',
+    BLUETOOTH: 'http://tizen.org/privilege/bluetooth',
     BOOKMARK_READ: 'http://tizen.org/privilege/bookmark.read',
     BOOKMARK_WRITE: 'http://tizen.org/privilege/bookmark.write',
     CALENDAR_READ: 'http://tizen.org/privilege/calendar.read',

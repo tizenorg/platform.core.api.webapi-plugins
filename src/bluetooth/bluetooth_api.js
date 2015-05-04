@@ -132,6 +132,35 @@ var BluetoothClassDeviceService = function() {
     });
 };
 
+//class BluetoothLEServiceData ////////////////////////////////////////////////////
+var BluetoothLEServiceData = function(data) {
+    Object.defineProperties(this, {
+        serviceuuids : {value: "dummyValue", writable: true, enumerable: true},
+        data : {value: "dummyValue", writable: true, enumerable: true}
+    });
+};
+
+//class BluetoothLEAdvertiseData ////////////////////////////////////////////////////
+var BluetoothLEAdvertiseData = function(data) {
+    Object.defineProperties(this, {
+        id : {value: "dummyValue", writable: true, enumerable: true},
+        data : {value: "dummyValue", writable: true, enumerable: true}
+    });
+};
+
+//class BluetoothLEManufacturerData ////////////////////////////////////////////////////
+var BluetoothLEManufacturerData = function(data) {
+    Object.defineProperties(this, {
+        name : {value: false, writable: true, enumerable: true},
+        serviceuuids : {value: ["dummyUuids"], writable: true, enumerable: true},
+        solicitationuuids : {value: ["dummySolicitationuuids"], writable: true, enumerable: true},
+        appearance : {value: 123456, writable: true, enumerable: true},
+        txpowerLevel : {value: false, writable: true, enumerable: true},
+        serviceData : {value: ["dummyServiceData"], writable: true, enumerable: true},
+        manufacturerData : {value: null, writable: true, enumerable: true}
+    });
+};
+
 // class BluetoothClass ////////////////////////////////////////////////////
 var BluetoothClass = function(data) {
     var services = [];
@@ -291,6 +320,58 @@ BluetoothSocket.prototype.close = function() {
         // change state
         Object.defineProperty(this, 'state', { value : _BLUETOOTH_SOCKET_STATE_CLOSED });
     }
+};
+
+//class BluetoothLEDevice ////////////////////////////////////////////////////
+var BluetoothLEDevice = function(data) {
+    Object.defineProperties(this, {
+        address : {value: "dummyValue", writable: false, enumerable: true},
+        name : {value: "dummyValue", writable: false, enumerable: true},
+        txpowerLevel : {value: 123456, writable: false, enumerable: true},
+        appearance : {value: 123456, writable: false, enumerable: true},
+        uuids : {value: ["dummyValues"], writable: false, enumerable: true},
+        solicitationuuids : {value: ["dummyValues"], writable: false, enumerable: true},
+        serviceData : {value: ["dummyValues"], writable: false, enumerable: true},
+        manufacturerData : {value: "dummyManufacturer", writable: false, enumerable: true}
+    });
+};
+
+BluetoothLEDevice.prototype.connect = function() {
+    console.log('Entered BluetoothLEDevice.connect()');
+
+    xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH);
+    //TODO validate
+    //TODO call c++ layer
+};
+
+BluetoothLEDevice.prototype.disconnect = function() {
+    console.log('Entered BluetoothLEDevice.disconnect()');
+
+    xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH);
+    //TODO validate
+    //TODO call c++ layer
+};
+
+BluetoothLEDevice.prototype.getService = function() {
+    console.log('Entered BluetoothLEDevice.getService()');
+
+    xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH);
+    //TODO validate
+    //TODO call c++ layer
+};
+
+BluetoothLEDevice.prototype.addConnectStateChangeListener = function() {
+    console.log('Entered BluetoothLEDevice.addConnectStateChangeListener()');
+
+    //TODO validate
+    //TODO call c++ layer
+};
+
+BluetoothLEDevice.prototype.removeConnectStateChangeListener = function() {
+    console.log('Entered BluetoothLEDevice.removeConnectStateChangeListener()');
+
+    //TODO validate
+    //TODO call c++ layer
 };
 
 // class BluetoothDevice ////////////////////////////////////////////////////
@@ -824,6 +905,117 @@ BluetoothHealthChannel.prototype.unsetListener  = function() {
         native.removeListener('BluetoothHealthChannelChangeCallback',
                 _BluetoothHealthChannelChangeCallback);
     }
+};
+
+//class BluetoothLEAdapter ////////////////////////////////////////////////////
+var BluetoothLEAdapter = function() {
+};
+
+BluetoothLEAdapter.prototype.startScan = function() {
+    console.log('Entered BluetoothLEAdapter.startScan()');
+
+    xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH);
+    //TODO validate
+    //TODO call c++ layer
+};
+
+BluetoothLEAdapter.prototype.stopScan = function() {
+    console.log('Entered BluetoothLEAdapter.stopScan()');
+
+    xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH);
+    //TODO validate
+    //TODO call c++ layer
+};
+
+BluetoothLEAdapter.prototype.startAdvertise = function() {
+    console.log('Entered BluetoothLEAdapter.startAdvertise()');
+
+    xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH);
+    //TODO validate
+    //TODO call c++ layer
+};
+
+BluetoothLEAdapter.prototype.stopAdvertise = function() {
+    console.log('Entered BluetoothLEAdapter.stopAdvertise()');
+
+    xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH);
+    //TODO validate
+    //TODO call c++ layer
+};
+
+//class BluetoothGATTService ////////////////////////////////////////////////////
+var BluetoothGATTService = function(data) {
+    Object.defineProperties(this, {
+        uuid : {value: "dummyValue", writable: false, enumerable: true},
+        services : {value: ["dummyService"], writable: false, enumerable: true},
+        characteristics : {value: ["dummyCharacteristics"], writable: false, enumerable: true}
+    });
+};
+
+//class BluetoothGATTCharacteristic ////////////////////////////////////////////////////
+var BluetoothGATTCharacteristic = function(data) {
+    Object.defineProperties(this, {
+        descriptors : {value: ["dummyDescriptors"], writable: false, enumerable: true},
+        isBroadcast : {value: false, writable: false, enumerable: true},
+        hasExtendedProperties : {value: false, writable: false, enumerable: true},
+        isNotify : {value: false, writable: false, enumerable: true},
+        isIndication : {value: false, writable: false, enumerable: true},
+        isReadable : {value: false, writable: false, enumerable: true},
+        isSignedWrite : {value: false, writable: false, enumerable: true},
+        isWritable : {value: false, writable: false, enumerable: true},
+        isWriteNoResponse : {value: false, writable: false, enumerable: true}
+    });
+};
+
+BluetoothGATTCharacteristic.prototype.readValue = function() {
+    console.log('Entered BluetoothGATTCharacteristic.readValue()');
+
+    xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH);
+    //TODO validate
+    //TODO call c++ layer
+};
+
+BluetoothGATTCharacteristic.prototype.writeValue = function() {
+    console.log('Entered BluetoothGATTCharacteristic.writeValue()');
+
+    xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH);
+    //TODO validate
+    //TODO call c++ layer
+};
+
+BluetoothGATTCharacteristic.prototype.addValueChangeListener = function() {
+    console.log('Entered BluetoothGATTCharacteristic.addValueChangeListener()');
+
+    xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH);
+    //TODO validate
+    //TODO call c++ layer
+};
+
+BluetoothGATTCharacteristic.prototype.removeValueChangeListener = function() {
+    console.log('Entered BluetoothGATTCharacteristic.removeValueChangeListener()');
+
+    //TODO validate
+    //TODO call c++ layer
+};
+
+//class BluetoothGATTDescriptor ////////////////////////////////////////////////////
+var BluetoothGATTDescriptor = function() {
+};
+
+BluetoothGATTDescriptor.prototype.readValue = function() {
+    console.log('Entered BluetoothGATTDescriptor.readValue()');
+
+    xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH);
+    //TODO validate
+    //TODO call c++ layer
+};
+
+BluetoothGATTDescriptor.prototype.writeValue = function() {
+    console.log('Entered BluetoothGATTDescriptor.writeValue()');
+
+    xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH);
+    //TODO validate
+    //TODO call c++ layer
 };
 
 // class BluetoothAdapter ////////////////////////////////////////////////////
@@ -1450,5 +1642,12 @@ BluetoothManager.prototype.getDefaultAdapter = function() {
     return new BluetoothAdapter();
 };
 
+BluetoothManager.prototype.getLEAdapter = function() {
+    console.log('Entered BluetoothManager.getLEAdapter()');
+
+    xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH);
+
+    return new BluetoothLEAdapter();
+};
 // exports ///////////////////////////////////////////////////////////////////
 exports = new BluetoothManager();
