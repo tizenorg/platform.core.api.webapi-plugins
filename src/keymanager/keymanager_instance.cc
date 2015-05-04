@@ -54,6 +54,10 @@ KeyManagerInstance::KeyManagerInstance() {
       std::bind(&KeyManagerInstance::RemoveData, this, _1, _2));
   RegisterSyncHandler("KeyManager_getData",
       std::bind(&KeyManagerInstance::GetData, this, _1, _2));
+  RegisterSyncHandler("KeyManager_createSignature",
+      std::bind(&KeyManagerInstance::CreateSignature, this, _1, _2));
+  RegisterSyncHandler("KeyManager_verifySignature",
+      std::bind(&KeyManagerInstance::VerifySignature, this, _1, _2));
 }
 
 KeyManagerInstance::~KeyManagerInstance() {
@@ -105,6 +109,15 @@ void KeyManagerInstance::GetDataAliasList(const picojson::value& args,
       out);
 }
 
+CKM::RawBuffer Base64ToRawBuffer(const std::string base64) {
+  gsize len = 0;
+  guchar* raw_data = g_base64_decode(base64.c_str(), &len);
+  CKM::RawBuffer rawBuffer;
+  rawBuffer.assign(raw_data, raw_data + len);
+  g_free(raw_data);
+  return rawBuffer;
+}
+
 void KeyManagerInstance::SaveKey(const picojson::value& args,
     picojson::object& out) {
   LoggerD("Enter");
@@ -120,11 +133,7 @@ void KeyManagerInstance::SaveKey(const picojson::value& args,
   opt.set_multiline(true);
   //remove first line and last line
   pcrecpp::RE("-----[^-]*-----", opt).GlobalReplace("", &base64);
-  gsize len = 0;
-  guchar* raw_data = g_base64_decode(base64.c_str(), &len);
-  CKM::RawBuffer raw_buffer;
-  raw_buffer.assign(raw_data, raw_data + len);
-  g_free(raw_data);
+  CKM::RawBuffer raw_buffer = Base64ToRawBuffer(base64);
   CKM::Password pass(password.c_str());
   CKM::KeyShPtr key = CKM::Key::create(raw_buffer, pass);
   CKM::Policy policy(pass, key_object.get("extractable").get<bool>());
@@ -374,11 +383,7 @@ void KeyManagerInstance::SaveCert(std::string &base64,
   opt.set_multiline(true);
   //remove first line and last line
   pcrecpp::RE("-----[^-]*-----", opt).GlobalReplace("", &base64);
-  gsize len = 0;
-  guchar* rawData = g_base64_decode(base64.c_str(), &len);
-  CKM::RawBuffer rawBuffer;
-  rawBuffer.assign(rawData, rawData + len);
-  g_free(rawData);
+  CKM::RawBuffer rawBuffer = Base64ToRawBuffer(base64);
   CKM::Password pass(password.c_str());
   CKM::CertificateShPtr cert = CKM::Certificate::create(rawBuffer,
       CKM::DataFormat::FORM_DER);
@@ -465,11 +470,7 @@ void KeyManagerInstance::SaveData(const picojson::value& args,
   }
   std::string base64 = args.get("rawData").get<std::string>();
 
-  gsize len = 0;
-  guchar* raw_data = g_base64_decode(base64.c_str(), &len);
-  CKM::RawBuffer raw_buffer;
-  raw_buffer.assign(raw_data, raw_data + len);
-  g_free(raw_data);
+  CKM::RawBuffer raw_buffer = Base64ToRawBuffer(base64);
   CKM::Password pass(password.c_str());
   CKM::Policy policy(pass, data.get("extractable").get<bool>());
   CKM::ManagerAsync::ObserverPtr observer(new SaveDataObserver(this,
@@ -538,6 +539,107 @@ void KeyManagerInstance::GetData(const picojson::value& args,
     picojson::value res(dict);
     ReportSuccess(res, out);
   }
+}
+
+CKM::HashAlgorithm StringToHashAlgorithm(const std::string &hashAlgorithmType) {
+  using CKM::HashAlgorithm;
+  if (hashAlgorithmType == "HASH_SHA1") {
+    return HashAlgorithm::SHA1;
+  } else if (hashAlgorithmType == "HASH_SHA256") {
+    return HashAlgorithm::SHA256;
+  } else if (hashAlgorithmType == "HASH_SHA384") {
+    return HashAlgorithm::SHA384;
+  } else if (hashAlgorithmType == "HASH_SHA512") {
+    return HashAlgorithm::SHA512;
+  }
+  return HashAlgorithm::NONE;
+}
+
+CKM::RSAPaddingAlgorithm StringToRSAPadding(const std::string &padding) {
+    if (padding == "PADDING_PKCS1") {
+        return CKM::RSAPaddingAlgorithm::PKCS1;
+    }
+    return CKM::RSAPaddingAlgorithm::X931;
+}
+
+void KeyManagerInstance::CreateSignature(const picojson::value& args,
+    picojson::object& out) {
+  LoggerD("Enter");
+
+  using CKM::HashAlgorithm;
+  using CKM::RSAPaddingAlgorithm;
+  const std::string& alias = args.get("privKeyAlias").get<std::string>();
+  std::string base64 = args.get("message").get<std::string>();
+  CKM::Password pass;
+  if (args.get("password").is<std::string>()) {
+    pass = args.get("password").get<std::string>().c_str();
+  }
+  CKM::RawBuffer raw_buffer = Base64ToRawBuffer(base64);
+  HashAlgorithm hash = StringToHashAlgorithm(
+      args.get("hashAlgorithmType").get<std::string>());
+  RSAPaddingAlgorithm alg = StringToRSAPadding(
+      args.get("padding").get<std::string>());
+  CKM::ManagerAsync::ObserverPtr observer(new CreateSignatureObserver(this,
+      args.get("callbackId").get<double>()));
+  m_manager.createSignature(observer, alias, pass, raw_buffer, hash, alg);
+
+  ReportSuccess(out);
+}
+
+void KeyManagerInstance::OnCreateSignature(double callbackId,
+    const common::PlatformResult& result, CKM::RawBuffer buffer) {
+  LoggerD("Enter");
+
+  picojson::value::object dict;
+  dict["callbackId"] = picojson::value(callbackId);
+  if (result.IsError()) {
+    LoggerE("There was an error");
+    ReportError(result, &dict);
+  } else {
+      dict["result"] = picojson::value(RawBufferToBase64(buffer));
+  }
+  picojson::value res(dict);
+  PostMessage(res.serialize().c_str());
+}
+
+void KeyManagerInstance::VerifySignature(const picojson::value& args, picojson::object& out) {
+  LoggerD("Enter");
+  using CKM::HashAlgorithm;
+  using CKM::RSAPaddingAlgorithm;
+
+  const std::string& alias = args.get("pubKeyAlias").get<std::string>();
+  const std::string& message_string = args.get("message").get<std::string>();
+  const std::string& signature_string = args.get("signature").get<std::string>();
+  CKM::Password pass;
+  if (args.get("password").is<std::string>()) {
+    pass = args.get("password").get<std::string>().c_str();
+  }
+  CKM::RawBuffer message = Base64ToRawBuffer(message_string);
+  CKM::RawBuffer signature = Base64ToRawBuffer(signature_string);
+
+  HashAlgorithm hash = StringToHashAlgorithm(
+      args.get("hashAlgorithmType").get<std::string>());
+  RSAPaddingAlgorithm alg = StringToRSAPadding(
+      args.get("padding").get<std::string>());
+  CKM::ManagerAsync::ObserverPtr observer(new VerifySignatureObserver(this,
+      args.get("callbackId").get<double>()));
+  m_manager.verifySignature(observer, alias, pass, message, signature, hash, alg);
+
+  ReportSuccess(out);
+}
+
+void KeyManagerInstance::OnVerifySignature(double callbackId,
+    const common::PlatformResult& result) {
+  LoggerD("Enter");
+
+  picojson::value::object dict;
+  dict["callbackId"] = picojson::value(callbackId);
+  if (result.IsError()) {
+    LoggerE("There was an error");
+    ReportError(result, &dict);
+  }
+  picojson::value res(dict);
+  PostMessage(res.serialize().c_str());
 }
 
 } // namespace keymanager

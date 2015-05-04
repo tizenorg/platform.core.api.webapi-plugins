@@ -7,6 +7,7 @@
 
 #include <ckm/ckm-manager-async.h>
 #include <gio/gio.h>
+#include <string>
 #include "common/platform_result.h"
 
 namespace extension {
@@ -22,6 +23,8 @@ public:
   virtual void OnCertFileLoaded(LoadFileCert* reader,
     const common::PlatformResult& result) = 0;
   virtual void OnSaveData(double callbackId, const common::PlatformResult& result) = 0;
+  virtual void OnCreateSignature(double callbackId, const common::PlatformResult& result, CKM::RawBuffer buffer) = 0;
+  virtual void OnVerifySignature(double callbackId, const common::PlatformResult& result) = 0;
   virtual ~KeyManagerListener() {}
 };
 
@@ -87,6 +90,18 @@ struct SaveDataObserver: public CommonObserver {
   SaveDataObserver(KeyManagerListener* listener, double callbackId);
   void ReceivedError(int error);
   void ReceivedSaveData();
+};
+
+struct CreateSignatureObserver: public CommonObserver {
+  CreateSignatureObserver(KeyManagerListener* listener, double callbackId);
+  void ReceivedError(int error);
+  void ReceivedCreateSignature(CKM::RawBuffer&&);
+};
+
+struct VerifySignatureObserver: public CommonObserver {
+  VerifySignatureObserver(KeyManagerListener* listener, double callbackId);
+  void ReceivedError(int error);
+  void ReceivedVerifySignature();
 };
 
 } // namespace keymanager

@@ -25,6 +25,8 @@ class KeyManagerInstance :
   void OnCertFileLoaded(LoadFileCert* reader,
     const common::PlatformResult& result);
   void OnSaveData(double callbackId, const common::PlatformResult& result);
+  void OnCreateSignature(double callbackId, const common::PlatformResult& result, CKM::RawBuffer buffer);
+  void OnVerifySignature(double callbackId, const common::PlatformResult& result);
  private:
   void GetAliasList(std::function<int(CKM::AliasVector&)> coreFunc,
       picojson::object& out);
@@ -49,6 +51,8 @@ class KeyManagerInstance :
   void SaveData(const picojson::value& args, picojson::object& out);
   void RemoveData(const picojson::value& args, picojson::object& out);
   void GetData(const picojson::value& args, picojson::object& out);
+  void CreateSignature(const picojson::value& args, picojson::object& out);
+  void VerifySignature(const picojson::value& args, picojson::object& out);
 
   CKM::ManagerAsync m_manager;
 };

@@ -210,5 +210,52 @@ void SaveDataObserver::ReceivedSaveData() {
     PlatformResult(ErrorCode::NO_ERROR)));
 }
 
+CreateSignatureObserver::CreateSignatureObserver(KeyManagerListener* listener, double callbackId):
+    CommonObserver(listener, callbackId) {
+}
+
+void CreateSignatureObserver::ReceivedError(int error) {
+  LoggerD("Enter, error: %d", error);
+  ErrorCode code = ErrorCode::UNKNOWN_ERR;
+  if (error == CKM_API_ERROR_INPUT_PARAM) {
+    code = ErrorCode::INVALID_VALUES_ERR;
+  }
+  CKM::RawBuffer empty;
+ common::TaskQueue::GetInstance().Async(std::bind(
+    &KeyManagerListener::OnCreateSignature, listener, callbackId,
+    PlatformResult(code, "Failed to create signature"), empty));
+}
+
+void CreateSignatureObserver::ReceivedCreateSignature(CKM::RawBuffer&& buffer) {
+  LoggerD("Enter");
+  common::TaskQueue::GetInstance().Async(std::bind(
+    &KeyManagerListener::OnCreateSignature, listener, callbackId,
+    PlatformResult(ErrorCode::NO_ERROR), buffer));
+}
+
+VerifySignatureObserver::VerifySignatureObserver(KeyManagerListener* listener, double callbackId):
+    CommonObserver(listener, callbackId) {
+}
+
+void VerifySignatureObserver::ReceivedError(int error) {
+  LoggerD("Enter, error: %d", error);
+  ErrorCode code = ErrorCode::UNKNOWN_ERR;
+  if (error == CKM_API_ERROR_INPUT_PARAM) {
+    code = ErrorCode::INVALID_VALUES_ERR;
+  } else if (error == CKM_API_ERROR_VERIFICATION_FAILED) {
+    code = ErrorCode::VALIDATION_ERR;
+  }
+  common::TaskQueue::GetInstance().Async(std::bind(
+    &KeyManagerListener::OnVerifySignature, listener, callbackId,
+    PlatformResult(code, "Siganture verification failed")));
+}
+
+void VerifySignatureObserver::ReceivedVerifySignature() {
+  LoggerD("Enter");
+  common::TaskQueue::GetInstance().Async(std::bind(
+    &KeyManagerListener::OnVerifySignature, listener, callbackId,
+    PlatformResult(ErrorCode::NO_ERROR)));
+}
+
 } // namespace keymanager
 } // namespace extension
