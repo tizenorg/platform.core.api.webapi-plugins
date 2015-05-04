@@ -58,6 +58,8 @@ KeyManagerInstance::KeyManagerInstance() {
       std::bind(&KeyManagerInstance::CreateSignature, this, _1, _2));
   RegisterSyncHandler("KeyManager_verifySignature",
       std::bind(&KeyManagerInstance::VerifySignature, this, _1, _2));
+  RegisterSyncHandler("KeyManager_loadFromPKCS12File",
+      std::bind(&KeyManagerInstance::LoadFromPKCS12File, this, _1, _2));
 }
 
 KeyManagerInstance::~KeyManagerInstance() {
@@ -433,13 +435,13 @@ void KeyManagerInstance::OnCertFileLoaded(LoadFileCert* reader,
   if (result.IsError()) {
     LoggerE("There was an error");
     picojson::value::object dict;
-    dict["callbackId"] = picojson::value(reader->callbackId);
+    dict["callbackId"] = picojson::value(reader->callback_id);
     ReportError(result, &dict);
     picojson::value res(dict);
     PostMessage(res.serialize().c_str());
   } else {
-    SaveCert(reader->fileContent, reader->password, reader->alias,
-      reader->extractable, reader->callbackId);
+    SaveCert(reader->file_content, reader->password, reader->alias,
+      reader->extractable, reader->callback_id);
   }
   delete reader;
 }
@@ -630,6 +632,76 @@ void KeyManagerInstance::VerifySignature(const picojson::value& args, picojson::
 
 void KeyManagerInstance::OnVerifySignature(double callbackId,
     const common::PlatformResult& result) {
+  LoggerD("Enter");
+
+  picojson::value::object dict;
+  dict["callbackId"] = picojson::value(callbackId);
+  if (result.IsError()) {
+    LoggerE("There was an error");
+    ReportError(result, &dict);
+  }
+  picojson::value res(dict);
+  PostMessage(res.serialize().c_str());
+}
+
+void KeyManagerInstance::LoadFromPKCS12File(const picojson::value& args,
+    picojson::object& out) {
+  LoggerD("Enter");
+
+  const std::string& file = args.get("fileURI").get<std::string>();
+  const std::string& key_alias = args.get("privKeyName").get<std::string>();
+  const std::string& cert_alias = args.get("certificateName").get<std::string>();
+  std::string password;
+  if (args.get("password").is<std::string>()) {
+    password = args.get("password").get<std::string>();
+  }
+  LoadFilePKCS12* reader = new LoadFilePKCS12(this,
+    args.get("callbackId").get<double>(),
+    password,
+    key_alias,
+    cert_alias);
+  reader->LoadFileAsync(file);
+
+  ReportSuccess(out);
+}
+
+void KeyManagerInstance::OnPKCS12FileLoaded(LoadFilePKCS12* reader,
+    const common::PlatformResult& result) {
+  LoggerD("Enter");
+
+  if (result.IsError()) {
+    LoggerE("There was an error");
+    picojson::value::object dict;
+    dict["callbackId"] = picojson::value(reader->callback_id);
+    ReportError(result, &dict);
+    picojson::value res(dict);
+    PostMessage(res.serialize().c_str());
+  } else {
+    CKM::Password pass(reader->password.c_str());
+    CKM::PKCS12ShPtr pkcs = CKM::PKCS12::create(reader->file_content, pass);
+    if (!pkcs) {
+      LoggerE("Failed to parse PKCS12 file");
+      picojson::value::object dict;
+      dict["callbackId"] = picojson::value(reader->callback_id);
+      common::PlatformResult err(common::ErrorCode::INVALID_VALUES_ERR,
+          "Failed to parse PKCS12 file");
+      ReportError(err, &dict);
+      picojson::value res(dict);
+      PostMessage(res.serialize().c_str());
+    } else {
+      CKM::Policy keyPolicy;
+      CKM::Policy certPolicy;
+      CKM::ManagerAsync::ObserverPtr observer(new SavePKCS12Observer(this,
+          reader->callback_id));
+      m_manager.saveCertificate(observer, reader->cert_alias, pkcs->getCertificate(), certPolicy);
+      m_manager.saveKey(observer, reader->key_alias, pkcs->getKey(), keyPolicy);
+    }
+  }
+  delete reader;
+}
+
+void KeyManagerInstance::OnSavePKCS12(double callbackId,
+  const common::PlatformResult& result) {
   LoggerD("Enter");
 
   picojson::value::object dict;

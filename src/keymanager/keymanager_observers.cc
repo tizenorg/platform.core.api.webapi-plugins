@@ -118,74 +118,24 @@ LoadFileCert::LoadFileCert(KeyManagerListener* _listener,
     const std::string &_password,
     const std::string &_alias,
     bool _extractable):
-    callbackId(callbackId),
+    callback_id(callbackId),
     password(_password),
     alias(_alias),
     extractable(_extractable),
-    fileContent(""),
-    buffer(NULL),
-    listener(_listener) {}
-
-void LoadFileCert::LoadFileAsync(const std::string& fileUri) {
-  LoggerD("Enter");
-  GFile* file = g_file_new_for_uri(fileUri.c_str());
-  g_file_read_async(file, G_PRIORITY_DEFAULT, NULL, OnFileRead, this);
+    file_content(""),
+    listener(_listener) {
 }
 
-void LoadFileCert::OnFileRead(GObject* source_object,
-  GAsyncResult* res, gpointer user_data) {
-  LoggerD("Enter");
-  LoadFileCert* This = static_cast<LoadFileCert*>(user_data);
-  GError* err = NULL;
-  GFileInputStream* stream = g_file_read_finish(G_FILE(source_object),
-    res, &err);
-  g_object_unref(source_object);
-  if (stream == NULL) {
-      LoggerE("Failed to read file: %d", err->code);
-      if (err->code == G_FILE_ERROR_NOENT) {
-        This->listener->OnCertFileLoaded(This,
-          PlatformResult(ErrorCode::NOT_FOUND_ERR, "Certificate file not found"));
-      } else {
-        This->listener->OnCertFileLoaded(This,
-          PlatformResult(ErrorCode::IO_ERR, "Failed to load certificate file"));
-      }
-      return;
-  }
-
-  This->buffer = new guint8[4096];
-  g_input_stream_read_async(G_INPUT_STREAM(stream), This->buffer, 4096,
-    G_PRIORITY_DEFAULT, NULL, OnStreamRead, This);
+void LoadFileCert::AppendBuffer(guint8* buffer, gssize size) {
+  file_content.append(buffer, buffer + size);
 }
 
-void LoadFileCert::OnStreamRead(GObject* source_object,
-  GAsyncResult* res, gpointer user_data) {
-  LoggerD("Enter");
-
-  LoadFileCert* This = static_cast<LoadFileCert*>(user_data);
-  gssize size = g_input_stream_read_finish(G_INPUT_STREAM(source_object),
-    res, NULL);
-  switch (size){
-    case -1:
-      LoggerE("Error occured");
-      This->listener->OnCertFileLoaded(This,
-        PlatformResult(ErrorCode::IO_ERR, "Failed to load certificate file"));
-      g_object_unref(source_object);
-      break;
-    case 0:
-      LoggerD("End of file");
-      This->listener->OnCertFileLoaded(This,
-        PlatformResult(ErrorCode::NO_ERROR));
-      g_object_unref(source_object);
-      break;
-    default:
-      This->fileContent.append(This->buffer, This->buffer + size);
-      g_input_stream_read_async(G_INPUT_STREAM(source_object), This->buffer,
-        4096, G_PRIORITY_DEFAULT, NULL, OnStreamRead, This);
-  }
+void LoadFileCert::OnError(const common::PlatformResult& result) {
+  listener->OnCertFileLoaded(this, result);
 }
 
-LoadFileCert::~LoadFileCert() {
-  delete[] buffer;
+void LoadFileCert::OnFileLoaded() {
+  listener->OnCertFileLoaded(this, PlatformResult(ErrorCode::NO_ERROR));
 }
 
 SaveDataObserver::SaveDataObserver(KeyManagerListener* listener, double callbackId):
@@ -255,6 +205,65 @@ void VerifySignatureObserver::ReceivedVerifySignature() {
   common::TaskQueue::GetInstance().Async(std::bind(
     &KeyManagerListener::OnVerifySignature, listener, callbackId,
     PlatformResult(ErrorCode::NO_ERROR)));
+}
+
+LoadFilePKCS12::LoadFilePKCS12(KeyManagerListener* listener,
+    double callback_id,
+    const std::string &password,
+    const std::string &key_alias,
+    const std::string &cert_alias):
+    callback_id(callback_id),
+    password(password),
+    key_alias(key_alias),
+    cert_alias(cert_alias),
+    listener(listener) {
+}
+
+void LoadFilePKCS12::AppendBuffer(guint8* buffer, gssize size) {
+  file_content.insert(file_content.end(), buffer, buffer + size);
+}
+
+void LoadFilePKCS12::OnError(const common::PlatformResult& result) {
+  listener->OnPKCS12FileLoaded(this, result);
+}
+
+void LoadFilePKCS12::OnFileLoaded() {
+  listener->OnPKCS12FileLoaded(this, PlatformResult(ErrorCode::NO_ERROR));
+}
+
+SavePKCS12Observer::SavePKCS12Observer(KeyManagerListener* listener, double callback_id):
+    CommonObserver(listener, callback_id),
+    cert_saved(false), key_saved(false) {}
+
+void SavePKCS12Observer::ReceivedError(int error) {
+  LoggerD("Enter, error: %d", error);
+  ErrorCode code = ErrorCode::UNKNOWN_ERR;
+  if (error == CKM_API_ERROR_INPUT_PARAM) {
+    code = ErrorCode::INVALID_VALUES_ERR;
+  }
+  common::TaskQueue::GetInstance().Async(std::bind(
+    &KeyManagerListener::OnSavePKCS12, listener, callbackId,
+    PlatformResult(code, "Failed to save pkcs12 file")));
+}
+
+void SavePKCS12Observer::ReceivedSaveKey() {
+  LoggerD("Enter");
+  key_saved = true;
+  if (cert_saved) {
+   common::TaskQueue::GetInstance().Async(std::bind(
+    &KeyManagerListener::OnSavePKCS12, listener, callbackId,
+    PlatformResult(ErrorCode::NO_ERROR)));
+  }
+}
+
+void SavePKCS12Observer::ReceivedSaveCertificate() {
+  LoggerD("Enter");
+  cert_saved = true;
+  if (key_saved) {
+    common::TaskQueue::GetInstance().Async(std::bind(
+      &KeyManagerListener::OnSavePKCS12, listener, callbackId,
+      PlatformResult(ErrorCode::NO_ERROR)));
+  }
 }
 
 } // namespace keymanager

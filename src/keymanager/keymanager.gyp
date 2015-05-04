@@ -11,6 +11,8 @@
       ],
       'sources': [
         'keymanager_api.js',
+        'async_file_reader.cc',
+        'async_file_reader.h',
         'keymanager_extension.cc',
         'keymanager_extension.h',
         'keymanager_instance.cc',

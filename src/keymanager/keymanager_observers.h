@@ -6,14 +6,15 @@
 #define KEYMANAGER_KEYMANAGER_OBSERVERS_H_
 
 #include <ckm/ckm-manager-async.h>
-#include <gio/gio.h>
 #include <string>
 #include "common/platform_result.h"
+#include "keymanager/async_file_reader.h"
 
 namespace extension {
 namespace keymanager {
 
 class LoadFileCert;
+class LoadFilePKCS12;
 
 class KeyManagerListener {
 public:
@@ -25,6 +26,9 @@ public:
   virtual void OnSaveData(double callbackId, const common::PlatformResult& result) = 0;
   virtual void OnCreateSignature(double callbackId, const common::PlatformResult& result, CKM::RawBuffer buffer) = 0;
   virtual void OnVerifySignature(double callbackId, const common::PlatformResult& result) = 0;
+  virtual void OnPKCS12FileLoaded(LoadFilePKCS12* reader,
+    const common::PlatformResult& result) = 0;
+  virtual void OnSavePKCS12(double callbackId, const common::PlatformResult& result) = 0;
   virtual ~KeyManagerListener() {}
 };
 
@@ -60,30 +64,48 @@ struct SaveCertObserver: public CommonObserver {
   void ReceivedSaveCertificate();
 };
 
-struct LoadFileCert {
+struct LoadFileCert: public AsyncFileReader {
   LoadFileCert(KeyManagerListener* listener,
     double callbackId,
     const std::string &password,
     const std::string &alias,
     bool extractable);
-  void LoadFileAsync(const std::string &fileUri);
-  virtual ~LoadFileCert();
 
-  double callbackId;
+  double callback_id;
   std::string password;
   const std::string alias;
   bool extractable;
-  std::string fileContent;
-private:
-  guint8* buffer;
-  KeyManagerListener* listener;
+  std::string file_content;
 
-  static void OnFileRead(GObject *source_object,
-    GAsyncResult *res,
-    gpointer user_data);
-  static void OnStreamRead(GObject *source_object,
-    GAsyncResult *res,
-    gpointer user_data);
+protected:
+  void AppendBuffer(guint8* buffer, gssize size);
+  void OnError(const common::PlatformResult& result);
+  void OnFileLoaded();
+
+private:
+  KeyManagerListener* listener;
+};
+
+struct LoadFilePKCS12: public AsyncFileReader {
+  LoadFilePKCS12(KeyManagerListener* listener,
+    double callbackId,
+    const std::string &password,
+    const std::string &keyAlias,
+    const std::string &certAlias);
+
+  double callback_id;
+  std::string password;
+  const std::string key_alias;
+  const std::string cert_alias;
+  CKM::RawBuffer file_content;
+
+protected:
+  void AppendBuffer(guint8* buffer, gssize size);
+  void OnError(const common::PlatformResult& result);
+  void OnFileLoaded();
+
+private:
+  KeyManagerListener* listener;
 };
 
 struct SaveDataObserver: public CommonObserver {
@@ -102,6 +124,17 @@ struct VerifySignatureObserver: public CommonObserver {
   VerifySignatureObserver(KeyManagerListener* listener, double callbackId);
   void ReceivedError(int error);
   void ReceivedVerifySignature();
+};
+
+struct SavePKCS12Observer: public CommonObserver {
+  SavePKCS12Observer(KeyManagerListener* listener, double callback_id);
+  void ReceivedError(int error);
+  void ReceivedSaveKey();
+  void ReceivedSaveCertificate();
+
+private:
+    bool cert_saved;
+    bool key_saved;
 };
 
 } // namespace keymanager
