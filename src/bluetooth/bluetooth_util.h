@@ -19,6 +19,9 @@ double GetAsyncCallbackHandle(const picojson::value& data);
 
 const picojson::object& GetArguments(const picojson::value& data);
 
+common::PlatformResult GetBluetoothError(int error_code, const std::string& hint);
+std::string GetBluetoothErrorMessage(int error_code);
+
 } // util
 } // bluetooth
 } // extension

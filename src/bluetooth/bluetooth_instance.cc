@@ -20,7 +20,8 @@ BluetoothInstance::BluetoothInstance() :
     bluetooth_health_profile_handler_(*this),
     bluetooth_health_application_(bluetooth_health_profile_handler_),
     bluetooth_service_handler_(bluetooth_adapter_),
-    bluetooth_socket_(bluetooth_adapter_)
+    bluetooth_socket_(bluetooth_adapter_),
+    bluetooth_le_adapter_(*this)
 {
   LoggerD("Entered");
   using std::placeholders::_1;
@@ -98,6 +99,12 @@ BluetoothInstance::BluetoothInstance() :
       std::bind(&BluetoothSocket::ReadData, &bluetooth_socket_, _1, _2));
   REGISTER_SYNC("BluetoothSocket_close",
       std::bind(&BluetoothSocket::Close, &bluetooth_socket_, _1, _2));
+
+  // BluetoothLEAdapter
+  REGISTER_SYNC("BluetoothLEAdapter_startScan",
+      std::bind(&BluetoothLEAdapter::StartScan, &bluetooth_le_adapter_, _1, _2));
+  REGISTER_SYNC("BluetoothLEAdapter_stopScan",
+      std::bind(&BluetoothLEAdapter::StopScan, &bluetooth_le_adapter_, _1, _2));
 
   #undef REGISTER_ASYNC
   #undef REGISTER_SYNC

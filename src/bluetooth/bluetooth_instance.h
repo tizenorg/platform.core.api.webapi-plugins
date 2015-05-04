@@ -12,6 +12,7 @@
 #include "bluetooth/bluetooth_health_application.h"
 #include "bluetooth/bluetooth_health_channel.h"
 #include "bluetooth/bluetooth_health_profile_handler.h"
+#include "bluetooth/bluetooth_le_adapter.h"
 #include "bluetooth/bluetooth_service_handler.h"
 #include "bluetooth/bluetooth_socket.h"
 #include "bluetooth/bluetooth_util.h"
@@ -40,6 +41,7 @@ class BluetoothInstance: public common::ParsedInstance {
   BluetoothHealthProfileHandler bluetooth_health_profile_handler_;
   BluetoothServiceHandler bluetooth_service_handler_;
   BluetoothSocket bluetooth_socket_;
+  BluetoothLEAdapter bluetooth_le_adapter_;
 };
 
 } // namespace bluetooth

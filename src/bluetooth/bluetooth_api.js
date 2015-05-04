@@ -907,24 +907,117 @@ BluetoothHealthChannel.prototype.unsetListener  = function() {
     }
 };
 
+var _bleScanListener = (function() {
+  var kListenerName = 'BluetoothLEScanCallback';
+  var successCallback;
+  var errorCallback;
+  var listenerRegistered = false;
+
+  function callback(event) {
+    var d;
+
+    switch (event.action) {
+      case 'onstarted':
+        break;
+
+      case 'ondevicefound':
+        d = new BluetoothLEDevice(event.data);
+        break;
+
+      case 'onfinished':
+        d = [];
+        event.data.forEach(function(data) {
+          d.push(new BluetoothLEDevice(data));
+        });
+
+        // remove listener
+        removeListener();
+        break;
+
+      case 'onerror':
+        if (errorCallback) {
+          errorCallback(native.getErrorObject(event));
+        }
+        return;
+
+      default:
+        console.log('Unknown mode: ' + event.action);
+        return;
+    }
+
+    if (successCallback && successCallback[event.action]) {
+      successCallback[event.action](d);
+    }
+  }
+
+  function addListener(s, e) {
+    successCallback = s;
+    errorCallback = e;
+
+    if (!listenerRegistered) {
+      native.addListener(kListenerName, callback);
+      listenerRegistered = true;
+    }
+  }
+
+  function removeListener() {
+    if (listenerRegistered) {
+      native.removeListener(kListenerName, callback);
+      listenerRegistered = false;
+    }
+
+    successCallback = undefined;
+    errorCallback = undefined;
+  }
+
+  return {
+    addListener: addListener,
+    removeListener: removeListener
+  };
+})();
+
 //class BluetoothLEAdapter ////////////////////////////////////////////////////
 var BluetoothLEAdapter = function() {
 };
 
 BluetoothLEAdapter.prototype.startScan = function() {
-    console.log('Entered BluetoothLEAdapter.startScan()');
+  console.log('Entered BluetoothLEAdapter.startScan()');
 
-    xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH);
-    //TODO validate
-    //TODO call c++ layer
+  xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH);
+
+  var args = AV.validateMethod(arguments, [{
+    name: 'successCallback',
+    type: AV.Types.LISTENER,
+    values: ['onstarted', 'ondevicefound', 'onfinished']
+  }, {
+    name: 'errorCallback',
+    type: AV.Types.FUNCTION,
+    optional: true,
+    nullable: true
+  }]);
+
+  var result = native.callSync('BluetoothLEAdapter_startScan', {});
+
+  if (native.isFailure(result)) {
+    throw native.getErrorObject(result);
+  }
+
+  _bleScanListener.addListener(args.successCallback, args.errorCallback);
 };
 
 BluetoothLEAdapter.prototype.stopScan = function() {
-    console.log('Entered BluetoothLEAdapter.stopScan()');
+  console.log('Entered BluetoothLEAdapter.stopScan()');
 
-    xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH);
-    //TODO validate
-    //TODO call c++ layer
+  xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH);
+
+  // _bleScanListener.removeListener() is going to be called in 'onfinished' handler
+
+  var result = native.callSync('BluetoothLEAdapter_stopScan', {});
+
+  if (native.isFailure(result)) {
+    _bleScanListener.removeListener();
+    throw native.getErrorObject(result);
+  }
 };
 
 BluetoothLEAdapter.prototype.startAdvertise = function() {
