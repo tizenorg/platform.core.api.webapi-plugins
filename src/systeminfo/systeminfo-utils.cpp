@@ -76,6 +76,7 @@ const std::string MEMORY_STATE_NORMAL = "NORMAL";
 const std::string MEMORY_STATE_WARNING = "WARNING";
 const int MEMORY_TO_BYTE = 1024;
 const int BASE_GATHERING_INTERVAL = 100;
+const double DISPLAY_INCH_TO_MILLIMETER = 25.4;
 }
 using namespace common;
 
@@ -1733,10 +1734,10 @@ PlatformResult SysteminfoUtils::ReportCpu(picojson::object& out) {
 PlatformResult SysteminfoUtils::ReportDisplay(picojson::object& out) {
   int screenWidth = 0;
   int screenHeight = 0;
-  unsigned long dotsPerInchWidth;
-  unsigned long dotsPerInchHeight;
-  int physicalWidth = 0;
-  int physicalHeight = 0;
+  unsigned long dotsPerInchWidth = 0;
+  unsigned long dotsPerInchHeight = 0;
+  double physicalWidth = 0;
+  double physicalHeight = 0;
   double scaledBrightness;
 
   // FETCH RESOLUTION
@@ -1764,17 +1765,21 @@ PlatformResult SysteminfoUtils::ReportDisplay(picojson::object& out) {
   }
 
   //FETCH PHYSICAL WIDTH
-  if (SYSTEM_INFO_ERROR_NONE != system_info_get_value_int(
-      SYSTEM_INFO_KEY_PHYSICAL_SCREEN_WIDTH, &physicalWidth)) {
-    LoggerE("Cannot get value of phisical screen width");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get value of phisical screen width");
+  if (dotsPerInchWidth != 0 && screenWidth != 0) {
+    physicalWidth = DISPLAY_INCH_TO_MILLIMETER * screenWidth / dotsPerInchWidth;
+  } else {
+    std::string log_msg = "Failed to get physical screen width value";
+    LoggerE("%s, screenWidth : %d, dotsPerInchWidth: %d", log_msg.c_str(),
+         screenWidth, dotsPerInchWidth);
   }
 
   //FETCH PHYSICAL HEIGHT
-  if (SYSTEM_INFO_ERROR_NONE != system_info_get_value_int(
-      SYSTEM_INFO_KEY_PHYSICAL_SCREEN_HEIGHT, &physicalHeight)) {
-    LoggerE("Cannot get value of phisical screen height");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get value of phisical screen height");
+  if (dotsPerInchHeight != 0 && screenHeight != 0) {
+    physicalHeight = DISPLAY_INCH_TO_MILLIMETER * screenHeight / dotsPerInchHeight;
+  } else {
+    std::string log_msg = "Failed to get physical screen height value";
+    LoggerE("%s, screenHeight : %d, dotsPerInchHeight: %d", log_msg.c_str(),
+         screenHeight, dotsPerInchHeight);
   }
 
   //FETCH BRIGHTNESS
@@ -3029,16 +3034,16 @@ bool SystemInfoDeviceCapability::IsScreen()
 
 PlatformResult SystemInfoDeviceCapability::GetPlatformCoreCpuFrequency(int* return_value)
 {
-  LOGD("Entered");
+  LoggerD("Entered");
   double freq = 0;
   int ret = 0;
 
   ret = system_info_get_value_double(SYSTEM_INFO_KEY_CORE_CPU_FREQ, &freq);
   if (ret != SYSTEM_INFO_ERROR_NONE) {
-    LOGE("Failed to get cpu frequency: %d", ret);
+    LoggerE("Failed to get cpu frequency: %d", ret);
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to get cpu frequency");
   } else {
-    LOGD("cpu frequency : %d", freq);
+    LoggerD("cpu frequency : %d", freq);
     *return_value = static_cast<int>(freq);
   }
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -3046,7 +3051,7 @@ PlatformResult SystemInfoDeviceCapability::GetPlatformCoreCpuFrequency(int* retu
 
 PlatformResult SystemInfoDeviceCapability::IsNativeOspCompatible(bool* result)
 {
-  LOGD("Enter");
+  LoggerD("Enter");
 #ifdef PROFILE_WEARABLE
   *result = false;
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -3057,7 +3062,7 @@ PlatformResult SystemInfoDeviceCapability::IsNativeOspCompatible(bool* result)
 
 PlatformResult SystemInfoDeviceCapability::GetNativeAPIVersion(std::string* return_value)
 {
-  LOGD("Enter");
+  LoggerD("Enter");
 #ifdef PROFILE_WEARABLE
   *return_value = "";
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -3068,8 +3073,8 @@ PlatformResult SystemInfoDeviceCapability::GetNativeAPIVersion(std::string* retu
 
 PlatformResult SystemInfoDeviceCapability::GetPlatformVersionName(std::string* result)
 {
-    LOGD("Enter");
-    return GetValueString("tizen.org/system/platform.version.name", result);
+  LoggerD("Enter");
+  return GetValueString("tizen.org/system/platform.version.name", result);
 }
 
 } // namespace systeminfo
