@@ -584,9 +584,10 @@ SystemInfoListeners::SystemInfoListeners():
             m_cellular_network_listener(nullptr),
             m_peripheral_listener(nullptr),
             m_memory_listener(nullptr),
+            m_camera_flash_listener(nullptr),
+            m_tapi_handles{nullptr},
             m_connection_handle(nullptr),
-            m_sensor_handle(-1),
-            m_camera_flash_listener(nullptr)
+            m_sensor_handle(-1)
 {
   LoggerD("Entered");
 }
