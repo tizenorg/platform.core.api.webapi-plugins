@@ -147,6 +147,7 @@ var MediaControllerPlaybackState = {
 function MediaControllerManager() {}
 
 MediaControllerManager.prototype.getClient = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.MEDIACONTROLLER_WRITE);
 
   var result = native_.callSync('MediaControllerManager_getClient', {});
 
@@ -158,6 +159,8 @@ MediaControllerManager.prototype.getClient = function() {
 };
 
 MediaControllerManager.prototype.createServer = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.MEDIACONTROLLER_READ);
+
   var result = native_.callSync('MediaControllerManager_createServer', {});
   if (native_.isFailure(result)) {
     throw native_.getErrorObject(result);

@@ -14,15 +14,6 @@
 namespace extension {
 namespace mediacontroller {
 
-namespace {
-// The privileges required in MediaController API
-const std::string kPrivilegeMediaControllerClient =
-    "http://tizen.org/privilege/mediacontroller.write";
-const std::string kPrivilegeMediaControllerServer =
-    "http://tizen.org/privilege/mediacontroller.read";
-
-} // namespace
-
 using common::ErrorCode;
 using common::PlatformResult;
 using common::TaskQueue;
@@ -110,8 +101,6 @@ void MediaControllerInstance::MediaControllerManagerCreateServer(
     ReportSuccess(out);
     return;
   }
-
-  CHECK_PRIVILEGE_ACCESS(kPrivilegeMediaControllerServer, &out);
 
   server_ = std::make_shared<MediaControllerServer>();
   const PlatformResult& result = server_->Init();
@@ -346,8 +335,6 @@ void MediaControllerInstance::MediaControllerManagerGetClient(
     ReportSuccess(out);
     return;
   }
-
-  CHECK_PRIVILEGE_ACCESS(kPrivilegeMediaControllerClient, &out);
 
   client_ = std::make_shared<MediaControllerClient>();
   const PlatformResult& result = client_->Init();

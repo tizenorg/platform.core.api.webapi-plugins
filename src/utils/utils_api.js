@@ -95,6 +95,8 @@ function Utils() {
     INTERNET: 'http://tizen.org/privilege/internet',
     LED: 'http://tizen.org/privilege/led',
     LOCATION: 'http://tizen.org/privilege/location',
+    MEDIACONTROLLER_READ: 'http://tizen.org/privilege/mediacontroller.read',
+    MEDIACONTROLLER_WRITE: 'http://tizen.org/privilege/mediacontroller.write',
     MESSAGING_READ: 'http://tizen.org/privilege/messaging.read',
     MESSAGING_WRITE: 'http://tizen.org/privilege/messaging.write',
     NETWORKBEARERSELECTION: 'http://tizen.org/privilege/networkbearerselection',
