@@ -10,6 +10,7 @@ var converter_ = utils_.converter;
 var validator_ = utils_.validator;
 var types_ = validator_.Types;
 var native_ = new xwalk.utils.NativeManager(extension);
+var privilege_ = xwalk.utils.privilege;
 
 var EditManager = function() {
   this.isAllowed = false;
