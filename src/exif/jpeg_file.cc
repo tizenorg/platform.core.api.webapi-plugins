@@ -148,7 +148,14 @@ PlatformResult JpegFile::load(const std::string& path) {
   }
 
   fseek(m_in_file, 0, SEEK_END);
-  const std::size_t in_file_size = static_cast<size_t>(ftell(m_in_file));
+
+  long ftell_val = ftell(m_in_file);
+  if (0 > ftell_val) {
+    LoggerE("Input file [%s] access error! [%d]", path.c_str(), errno);
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "JPEG file is invalid");
+  }
+
+  const std::size_t in_file_size = static_cast<size_t>(ftell_val);
   fseek(m_in_file, 0, SEEK_SET);
   LoggerD("JPEG file: [%s] size:%d", path.c_str(), in_file_size);
   if (0 == in_file_size) {
