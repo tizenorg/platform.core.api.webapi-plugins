@@ -40,7 +40,7 @@ DateConverter.prototype.toTZDate = function(v, isAllDay) {
 };
 
 DateConverter.prototype.fromTZDate = function(v) {
-  if (!(v instanceof tizen.TZDate)) {
+  if (!tizen.TZDate || !(v instanceof tizen.TZDate)) {
     return v;
   }
 
