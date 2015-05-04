@@ -8,7 +8,7 @@
 var native = new xwalk.utils.NativeManager(extension);
 var validator = xwalk.utils.validator;
 var validatorType = xwalk.utils.type;
-
+var Privilege = xwalk.utils.privilege;
 
 /**
  * @const
@@ -40,6 +40,7 @@ function PushManager() {
 }
 
 PushManager.prototype.registerService = function(appControl, successCallback, errorCallback) {
+  xwalk.utils.checkPrivilegeAccess(Privilege.PUSH);
   var data = validator.validateArgs(arguments, [
     {
       name: 'appControl',
@@ -78,6 +79,7 @@ PushManager.prototype.registerService = function(appControl, successCallback, er
 };
 
 PushManager.prototype.unregisterService = function(successCallback, errorCallback) {
+  xwalk.utils.checkPrivilegeAccess(Privilege.PUSH);
   var data = validator.validateArgs(arguments, [
     {
       name: 'successCallback',
@@ -104,6 +106,7 @@ PushManager.prototype.unregisterService = function(successCallback, errorCallbac
 };
 
 PushManager.prototype.connectService = function(notificationCallback) {
+  xwalk.utils.checkPrivilegeAccess(Privilege.PUSH);
   var data = validator.validateArgs(arguments, [
     {
       name: 'notificationCallback',
@@ -120,6 +123,7 @@ PushManager.prototype.connectService = function(notificationCallback) {
 };
 
 PushManager.prototype.disconnectService = function() {
+  xwalk.utils.checkPrivilegeAccess(Privilege.PUSH);
   var ret = native.callSync('Push_disconnectService', {});
   if (native.isFailure(ret)) {
     throw native.getErrorObject(ret);
@@ -128,6 +132,7 @@ PushManager.prototype.disconnectService = function() {
 };
 
 PushManager.prototype.getRegistrationId = function() {
+  xwalk.utils.checkPrivilegeAccess(Privilege.PUSH);
   var ret = native.callSync('Push_getRegistrationId', {});
   if (native.isFailure(ret)) {
     throw native.getErrorObject(ret);
@@ -136,6 +141,7 @@ PushManager.prototype.getRegistrationId = function() {
 };
 
 PushManager.prototype.getUnreadNotifications = function() {
+  xwalk.utils.checkPrivilegeAccess(Privilege.PUSH);
   var ret = native.callSync('Push_getUnreadNotifications', {});
   if (native.isFailure(ret)) {
     throw native.getErrorObject(ret);
