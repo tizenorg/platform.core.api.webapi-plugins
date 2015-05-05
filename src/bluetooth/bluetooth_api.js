@@ -135,7 +135,7 @@ var BluetoothClassDeviceService = function() {
 //class BluetoothLEServiceData ////////////////////////////////////////////////////
 var BluetoothLEServiceData = function(data) {
     Object.defineProperties(this, {
-        serviceuuids : {value: data.serviceData, writable: true, enumerable: true},
+        serviceuuid : {value: data.serviceData, writable: true, enumerable: true},
         data : {value: data.data, writable: true, enumerable: true}
     });
 };
@@ -143,11 +143,11 @@ var BluetoothLEServiceData = function(data) {
 //class BluetoothLEAdvertiseData ////////////////////////////////////////////////////
 var BluetoothLEAdvertiseData = function(data) {
     Object.defineProperties(this, {
-        name : {value: false, writable: true, enumerable: true},
+        includeName : {value: false, writable: true, enumerable: true},
         serviceuuids : {value: ["dummyUuids"], writable: true, enumerable: true},
         solicitationuuids : {value: ["dummySolicitationuuids"], writable: true, enumerable: true},
         appearance : {value: 123456, writable: true, enumerable: true},
-        txpowerLevel : {value: false, writable: true, enumerable: true},
+        includeTxPowerLevel : {value: false, writable: true, enumerable: true},
         serviceData : {value: ["dummyServiceData"], writable: true, enumerable: true},
         manufacturerData : {value: null, writable: true, enumerable: true}
     });
@@ -1008,6 +1008,60 @@ var _bleScanListener = (function() {
   };
 })();
 
+var _bleAdvertiseListener = (function() {
+  var kListenerName = 'BluetoothLEAdvertiseCallback';
+  var successCallback;
+  var errorCallback;
+  var listenerRegistered = false;
+
+  function callback(event) {
+    var d;
+
+    switch (event.action) {
+      case 'onstate':
+        if (successCallback) {
+          successCallback(native.getResultObject(event));
+        }
+        return;
+
+      case 'onerror':
+        if (errorCallback) {
+          errorCallback(native.getErrorObject(event));
+        }
+        return;
+
+      default:
+        console.log('Unknown mode: ' + event.action);
+        return;
+    }
+  }
+
+  function addListener(s, e) {
+    successCallback = s;
+    errorCallback = e;
+
+    if (!listenerRegistered) {
+      native.addListener(kListenerName, callback);
+      listenerRegistered = true;
+    }
+  }
+
+  function removeListener() {
+    if (listenerRegistered) {
+      native.removeListener(kListenerName, callback);
+      listenerRegistered = false;
+    }
+
+    successCallback = undefined;
+    errorCallback = undefined;
+  }
+
+  return {
+    addListener: addListener,
+    removeListener: removeListener
+  };
+})();
+
 //class BluetoothLEAdapter ////////////////////////////////////////////////////
 var BluetoothLEAdapter = function() {
 };
@@ -1052,20 +1106,80 @@ BluetoothLEAdapter.prototype.stopScan = function() {
   }
 };
 
-BluetoothLEAdapter.prototype.startAdvertise = function() {
-    console.log('Entered BluetoothLEAdapter.startAdvertise()');
+var _BluetoothAdvertisePacketType = {
+  ADVERTISE: 'ADVERTISE',
+  SCAN_RESPONSE: 'SCAN_RESPONSE'
+};
 
-    xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH);
-    //TODO validate
-    //TODO call c++ layer
+var _BluetoothAdvertisingMode = {
+  BALANCED: 'BALANCED',
+  LOW_LATENCY: 'LOW_LATENCY',
+  LOW_ENERGY: 'LOW_ENERGY'
+};
+
+BluetoothLEAdapter.prototype.startAdvertise = function() {
+  console.log('Entered BluetoothLEAdapter.startAdvertise()');
+
+  xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH);
+
+  var args = AV.validateMethod(arguments, [{
+    name: 'advertiseData',
+    type: AV.Types.PLATFORM_OBJECT,
+    values: BluetoothLEAdvertiseData
+  }, {
+    name: 'packetType',
+    type: AV.Types.ENUM,
+    values: T.getValues(_BluetoothAdvertisePacketType)
+  }, {
+    name: 'successCallback',
+    type: AV.Types.FUNCTION
+  }, {
+    name: 'errorCallback',
+    type: AV.Types.FUNCTION,
+    optional: true,
+    nullable: true
+  }, {
+    name: 'mode',
+    type: AV.Types.ENUM,
+    values: T.getValues(_BluetoothAdvertisingMode),
+    optional: true,
+    nullable: true
+  }, {
+    name: 'connectable',
+    type: AV.Types.BOOLEAN,
+    optional: true,
+    nullable: true
+  }]);
+
+  var callArgs = {
+    advertiseData: args.advertiseData,
+    packetType: args.packetType,
+    mode: T.isNullOrUndefined(args.mode) ? _BluetoothAdvertisingMode.BALANCED : args.mode,
+    connectable: T.isNullOrUndefined(args.connectable) ? true : args.connectable
+  };
+
+  var result = native.callSync('BluetoothLEAdapter_startAdvertise', callArgs);
+
+  if (native.isFailure(result)) {
+    throw native.getErrorObject(result);
+  }
+
+  _bleAdvertiseListener.addListener(args.successCallback, args.errorCallback);
 };
 
 BluetoothLEAdapter.prototype.stopAdvertise = function() {
-    console.log('Entered BluetoothLEAdapter.stopAdvertise()');
+  console.log('Entered BluetoothLEAdapter.stopAdvertise()');
 
-    xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH);
-    //TODO validate
-    //TODO call c++ layer
+  xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH);
+
+  // TODO: when should we call _bleAdvertiseListener.removeListener()?
+
+  var result = native.callSync('BluetoothLEAdapter_stopAdvertise', {});
+
+  if (native.isFailure(result)) {
+    _bleAdvertiseListener.removeListener();
+    throw native.getErrorObject(result);
+  }
 };
 
 //class BluetoothGATTService ////////////////////////////////////////////////////

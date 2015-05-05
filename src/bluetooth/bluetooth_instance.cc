@@ -106,6 +106,10 @@ BluetoothInstance::BluetoothInstance() :
       std::bind(&BluetoothLEAdapter::StartScan, &bluetooth_le_adapter_, _1, _2));
   REGISTER_SYNC("BluetoothLEAdapter_stopScan",
       std::bind(&BluetoothLEAdapter::StopScan, &bluetooth_le_adapter_, _1, _2));
+  REGISTER_SYNC("BluetoothLEAdapter_startAdvertise",
+      std::bind(&BluetoothLEAdapter::StartAdvertise, &bluetooth_le_adapter_, _1, _2));
+  REGISTER_SYNC("BluetoothLEAdapter_stopAdvertise",
+      std::bind(&BluetoothLEAdapter::StopAdvertise, &bluetooth_le_adapter_, _1, _2));
 
   // BluetoothLEDevice
   REGISTER_ASYNC(

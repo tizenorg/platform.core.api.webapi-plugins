@@ -49,11 +49,15 @@ class BluetoothLEAdapter {
   static void OnScanResult(int result,
                            bt_adapter_le_device_scan_result_info_s* info,
                            void* user_data);
+  static void OnAdvertiseResult(int result, bt_advertiser_h advertiser,
+                                bt_adapter_le_advertising_state_e adv_state,
+                                void* user_data);
 
   BluetoothInstance& instance_;
   bool enabled_;
   bool scanning_;
   picojson::array discovered_devices_;
+  bt_advertiser_h bt_advertiser_;
 };
 
 } // namespace bluetooth
