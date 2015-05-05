@@ -60,6 +60,10 @@ KeyManagerInstance::KeyManagerInstance() {
       std::bind(&KeyManagerInstance::VerifySignature, this, _1, _2));
   RegisterSyncHandler("KeyManager_loadFromPKCS12File",
       std::bind(&KeyManagerInstance::LoadFromPKCS12File, this, _1, _2));
+  RegisterSyncHandler("KeyManager_allowAccessControl",
+      std::bind(&KeyManagerInstance::AllowAccessControl, this, _1, _2));
+  RegisterSyncHandler("KeyManager_denyAccessControl",
+      std::bind(&KeyManagerInstance::DenyAccessControl, this, _1, _2));
 }
 
 KeyManagerInstance::~KeyManagerInstance() {
@@ -701,6 +705,66 @@ void KeyManagerInstance::OnPKCS12FileLoaded(LoadFilePKCS12* reader,
 }
 
 void KeyManagerInstance::OnSavePKCS12(double callbackId,
+  const common::PlatformResult& result) {
+  LoggerD("Enter");
+
+  picojson::value::object dict;
+  dict["callbackId"] = picojson::value(callbackId);
+  if (result.IsError()) {
+    LoggerE("There was an error");
+    ReportError(result, &dict);
+  }
+  picojson::value res(dict);
+  PostMessage(res.serialize().c_str());
+}
+
+void KeyManagerInstance::AllowAccessControl(const picojson::value& args,
+    picojson::object& out) {
+  LoggerD("Enter");
+
+  const std::string& dataName = args.get("dataName").get<std::string>();
+  const std::string& id = args.get("id").get<std::string>();
+  const std::string& access = args.get("accessControlType").get<std::string>();
+  CKM::PermissionMask mask = CKM::Permission::READ;
+  if (access == "READ_REMOVE") {
+      mask = mask | CKM::Permission::REMOVE;
+  }
+  CKM::ManagerAsync::ObserverPtr observer(new AllowAccessObserver(this,
+          args.get("callbackId").get<double>()));
+  m_manager.setPermission(observer, dataName, id, mask);
+
+  ReportSuccess(out);
+}
+
+void KeyManagerInstance::OnAllowAccess(double callbackId,
+  const common::PlatformResult& result) {
+  LoggerD("Enter");
+
+  picojson::value::object dict;
+  dict["callbackId"] = picojson::value(callbackId);
+  if (result.IsError()) {
+    LoggerE("There was an error");
+    ReportError(result, &dict);
+  }
+  picojson::value res(dict);
+  PostMessage(res.serialize().c_str());
+}
+
+void KeyManagerInstance::DenyAccessControl(const picojson::value& args,
+    picojson::object& out) {
+  LoggerD("Enter");
+
+  const std::string& dataName = args.get("dataName").get<std::string>();
+  const std::string& id = args.get("id").get<std::string>();
+  CKM::PermissionMask mask = CKM::Permission::NONE;
+  CKM::ManagerAsync::ObserverPtr observer(new DenyAccessObserver(this,
+          args.get("callbackId").get<double>()));
+  m_manager.setPermission(observer, dataName, id, mask);
+
+  ReportSuccess(out);
+}
+
+void KeyManagerInstance::OnDenyAccess(double callbackId,
   const common::PlatformResult& result) {
   LoggerD("Enter");
 

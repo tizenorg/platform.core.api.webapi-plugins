@@ -49,6 +49,11 @@ var KeyType = {
   "KEY_AES": "KEY_AES"
 };
 
+var AccessControlType = {
+  "READ": "READ",
+  "READ_REMOVE": "READ_REMOVE"
+};
+
 function Key(name, password, extractable, keyType, rawKey) {
   Object.defineProperties(this, {
     name: {
@@ -487,11 +492,77 @@ KeyManager.prototype.getDataAliasList = function() {
 };
 
 KeyManager.prototype.allowAccessControl = function() {
-
+  var args = validator.validateArgs(arguments, [
+    {
+      name: "dataName",
+      type: validator.Types.STRING
+    },
+    {
+      name: "id",
+      type: validator.Types.STRING
+    },
+    {
+      name: 'accessControlType',
+      type: validator.Types.ENUM,
+      values: Object.keys(AccessControlType)
+    },
+    {
+      name: 'successCallback',
+      type: validator.Types.FUNCTION,
+      nullable: true
+    },
+    {
+      name: 'errorCallback',
+      type: validator.Types.FUNCTION,
+      optional: true,
+      nullable: true
+    }
+  ]);
+  native.call('KeyManager_allowAccessControl', {
+    dataName: args.dataName,
+    id: args.id,
+    accessControlType: args.accessControlType
+  }, function(msg) {
+    if (native.isFailure(msg)) {
+      native.callIfPossible(args.errorCallback, native.getErrorObject(msg));
+    } else {
+      native.callIfPossible(args.successCallback);
+    }
+  });
 };
 
 KeyManager.prototype.denyAccessControl = function() {
-
+  var args = validator.validateArgs(arguments, [
+    {
+      name: "dataName",
+      type: validator.Types.STRING
+    },
+    {
+      name: "id",
+      type: validator.Types.STRING
+    },
+    {
+      name: 'successCallback',
+      type: validator.Types.FUNCTION,
+      nullable: true
+    },
+    {
+      name: 'errorCallback',
+      type: validator.Types.FUNCTION,
+      optional: true,
+      nullable: true
+    }
+  ]);
+  native.call('KeyManager_denyAccessControl', {
+    dataName: args.dataName,
+    id: args.id
+  }, function(msg) {
+    if (native.isFailure(msg)) {
+      native.callIfPossible(args.errorCallback, native.getErrorObject(msg));
+    } else {
+      native.callIfPossible(args.successCallback);
+    }
+  });
 };
 
 KeyManager.prototype.createSignature = function() {

@@ -29,6 +29,8 @@ class KeyManagerInstance :
   void OnVerifySignature(double callbackId, const common::PlatformResult& result);
   void OnPKCS12FileLoaded(LoadFilePKCS12* reader, const common::PlatformResult& result);
   void OnSavePKCS12(double callbackId, const common::PlatformResult& result);
+  void OnAllowAccess(double callbackId, const common::PlatformResult& result);
+  void OnDenyAccess(double callbackId, const common::PlatformResult& result);
 
  private:
   void GetAliasList(std::function<int(CKM::AliasVector&)> coreFunc,
@@ -57,6 +59,8 @@ class KeyManagerInstance :
   void CreateSignature(const picojson::value& args, picojson::object& out);
   void VerifySignature(const picojson::value& args, picojson::object& out);
   void LoadFromPKCS12File(const picojson::value& args, picojson::object& out);
+  void AllowAccessControl(const picojson::value& args, picojson::object& out);
+  void DenyAccessControl(const picojson::value& args, picojson::object& out);
 
   CKM::ManagerAsync m_manager;
 };

@@ -266,5 +266,49 @@ void SavePKCS12Observer::ReceivedSaveCertificate() {
   }
 }
 
+AllowAccessObserver::AllowAccessObserver(KeyManagerListener* listener, double callbackId):
+    CommonObserver(listener, callbackId) {
+}
+
+void AllowAccessObserver::ReceivedError(int error) {
+  LoggerD("Enter, error: %d", error);
+  ErrorCode code = ErrorCode::UNKNOWN_ERR;
+  if (error == CKM_API_ERROR_DB_ALIAS_UNKNOWN) {
+    code = ErrorCode::NOT_FOUND_ERR;
+  }
+  common::TaskQueue::GetInstance().Async(std::bind(
+    &KeyManagerListener::OnAllowAccess, listener, callbackId,
+    PlatformResult(code, "Failed to grant access")));
+}
+
+void AllowAccessObserver::ReceivedSetPermission() {
+  LoggerD("Enter");
+  common::TaskQueue::GetInstance().Async(std::bind(
+    &KeyManagerListener::OnAllowAccess, listener, callbackId,
+    PlatformResult(ErrorCode::NO_ERROR)));
+}
+
+DenyAccessObserver::DenyAccessObserver(KeyManagerListener* listener, double callbackId):
+    CommonObserver(listener, callbackId) {
+}
+
+void DenyAccessObserver::ReceivedError(int error) {
+  LoggerD("Enter, error: %d", error);
+  ErrorCode code = ErrorCode::UNKNOWN_ERR;
+  if (error == CKM_API_ERROR_DB_ALIAS_UNKNOWN) {
+    code = ErrorCode::NOT_FOUND_ERR;
+  }
+  common::TaskQueue::GetInstance().Async(std::bind(
+    &KeyManagerListener::OnDenyAccess, listener, callbackId,
+    PlatformResult(code, "Failed to deny access")));
+}
+
+void DenyAccessObserver::ReceivedSetPermission() {
+  LoggerD("Enter");
+  common::TaskQueue::GetInstance().Async(std::bind(
+    &KeyManagerListener::OnDenyAccess, listener, callbackId,
+    PlatformResult(ErrorCode::NO_ERROR)));
+}
+
 } // namespace keymanager
 } // namespace extension

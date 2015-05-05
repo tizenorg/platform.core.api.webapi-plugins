@@ -29,6 +29,8 @@ public:
   virtual void OnPKCS12FileLoaded(LoadFilePKCS12* reader,
     const common::PlatformResult& result) = 0;
   virtual void OnSavePKCS12(double callbackId, const common::PlatformResult& result) = 0;
+  virtual void OnAllowAccess(double callbackId, const common::PlatformResult& result) = 0;
+  virtual void OnDenyAccess(double callbackId, const common::PlatformResult& result) = 0;
   virtual ~KeyManagerListener() {}
 };
 
@@ -135,6 +137,18 @@ struct SavePKCS12Observer: public CommonObserver {
 private:
     bool cert_saved;
     bool key_saved;
+};
+
+struct AllowAccessObserver: public CommonObserver {
+  AllowAccessObserver(KeyManagerListener* listener, double callbackId);
+  void ReceivedError(int error);
+  void ReceivedSetPermission();
+};
+
+struct DenyAccessObserver: public CommonObserver {
+  DenyAccessObserver(KeyManagerListener* listener, double callbackId);
+  void ReceivedError(int error);
+  void ReceivedSetPermission();
 };
 
 } // namespace keymanager
