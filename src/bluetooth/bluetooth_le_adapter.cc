@@ -19,23 +19,13 @@
 #include "common/logger.h"
 
 #include "bluetooth/bluetooth_instance.h"
+#include "bluetooth/bluetooth_le_device.h"
 #include "bluetooth/bluetooth_util.h"
 
 namespace extension {
 namespace bluetooth {
 
 namespace {
-
-// TODO: remove this code when BluetoothLEDevice is available
-class BluetoothLEDevice {
- public:
-  static common::PlatformResult ToJson(
-       bt_adapter_le_device_scan_result_info_s* info,
-       picojson::object* le_device) {
-    return common::PlatformResult(common::ErrorCode::NO_ERROR);
-  }
-};
-// TODO end
 
 // utility functions
 

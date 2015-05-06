@@ -135,21 +135,13 @@ var BluetoothClassDeviceService = function() {
 //class BluetoothLEServiceData ////////////////////////////////////////////////////
 var BluetoothLEServiceData = function(data) {
     Object.defineProperties(this, {
-        serviceuuids : {value: "dummyValue", writable: true, enumerable: true},
-        data : {value: "dummyValue", writable: true, enumerable: true}
+        serviceuuids : {value: data.serviceData, writable: true, enumerable: true},
+        data : {value: data.data, writable: true, enumerable: true}
     });
 };
 
 //class BluetoothLEAdvertiseData ////////////////////////////////////////////////////
 var BluetoothLEAdvertiseData = function(data) {
-    Object.defineProperties(this, {
-        id : {value: "dummyValue", writable: true, enumerable: true},
-        data : {value: "dummyValue", writable: true, enumerable: true}
-    });
-};
-
-//class BluetoothLEManufacturerData ////////////////////////////////////////////////////
-var BluetoothLEManufacturerData = function(data) {
     Object.defineProperties(this, {
         name : {value: false, writable: true, enumerable: true},
         serviceuuids : {value: ["dummyUuids"], writable: true, enumerable: true},
@@ -158,6 +150,14 @@ var BluetoothLEManufacturerData = function(data) {
         txpowerLevel : {value: false, writable: true, enumerable: true},
         serviceData : {value: ["dummyServiceData"], writable: true, enumerable: true},
         manufacturerData : {value: null, writable: true, enumerable: true}
+    });
+};
+
+//class BluetoothLEManufacturerData ////////////////////////////////////////////////////
+var BluetoothLEManufacturerData = function(data) {
+    Object.defineProperties(this, {
+        id : {value: data.id, writable: true, enumerable: true},
+        data : {value: data.data, writable: true, enumerable: true}
     });
 };
 
@@ -324,15 +324,47 @@ BluetoothSocket.prototype.close = function() {
 
 //class BluetoothLEDevice ////////////////////////////////////////////////////
 var BluetoothLEDevice = function(data) {
+
+    var address = "", name = "", txpowerLevel = null, appearance = null, uuids = [],
+        solicitationuuids = [], serviceData = [], manufacturerData = null;
+
+    if (data) {
+        address = data.address;
+        name = data.name;
+        txpowerLevel = data.txpowerLevel;
+        apperance = data.appearance;
+        uuids = data.uuids;
+        solicitationuuids = data.solicitationuuids;
+        data.serviceData.forEach(function(d) {
+            serviceData.push(new BluetoothLEServiceData(d));
+        });
+        manufacturerData = new BluetoothLEManufacturerData(data.manufacturerData);
+    }
+
     Object.defineProperties(this, {
-        address : {value: "dummyValue", writable: false, enumerable: true},
-        name : {value: "dummyValue", writable: false, enumerable: true},
-        txpowerLevel : {value: 123456, writable: false, enumerable: true},
-        appearance : {value: 123456, writable: false, enumerable: true},
-        uuids : {value: ["dummyValues"], writable: false, enumerable: true},
-        solicitationuuids : {value: ["dummyValues"], writable: false, enumerable: true},
-        serviceData : {value: ["dummyValues"], writable: false, enumerable: true},
-        manufacturerData : {value: "dummyManufacturer", writable: false, enumerable: true}
+        address : {value: address, writable: false, enumerable: true},
+        name : {value: name, writable: false, enumerable: true},
+        txpowerLevel : {value: txpowerLevel, writable: false, enumerable: true},
+        appearance : {value: appearance, writable: false, enumerable: true},
+        uuids : {
+            enumerable: true,
+            set : function(){},
+            get : function(){ return uuids.slice(); }
+        },
+        solicitationuuids : {
+            enumerable: true,
+            set : function(){},
+            get : function(){ return solicitationuuids.slice(); }
+        },
+        serviceData : {
+            enumerable: true,
+            set : function(){},
+            get : function(){ return serviceData.slice(); }
+        },
+        manufacturerData : {
+            value: manufacturerData,
+            writable: false,
+            enumerable: true}
     });
 };
 

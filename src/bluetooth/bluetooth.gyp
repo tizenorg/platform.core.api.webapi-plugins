@@ -35,6 +35,8 @@
         'bluetooth_socket.h',
         'bluetooth_util.cc',
         'bluetooth_util.h',
+        'bluetooth_le_device.cc',
+        'bluetooth_le_device.h',
       ],
       'includes': [
         '../common/pkg-config.gypi',
