@@ -1221,10 +1221,36 @@ BluetoothLEAdapter.prototype.stopAdvertise = function() {
 
 //class BluetoothGATTService ////////////////////////////////////////////////////
 var BluetoothGATTService = function(data) {
+    var handle_ = data.handle;
+    var uuid_ = data.uuid;
+    function servicesGetter() {
+        var services = [];
+        var result = native.callSync('BluetoothGATTService_getServices',
+                {handle: handle_, uuid: uuid_});
+        if (native.isSuccess(result)) {
+            var resultObject = native.getResultObject(result);
+            resultObject.forEach(function(s) {
+                services.push(new BluetoothGATTService(s));
+            });
+        }
+        return services;
+    }
+    function characteristicsGetter() {
+        var characteristics = [];
+        var result = native.callSync('BluetoothGATTService_getCharacteristics',
+                {handle: handle_, uuid: uuid_});
+        if (native.isSuccess(result)) {
+            var resultObject = native.getResultObject(result);
+            resultObject.forEach(function(c) {
+                characteristics.push(new BluetoothGATTCharacteristic(c));
+            });
+        }
+        return characteristics;
+    }
     Object.defineProperties(this, {
-        uuid : {value: "dummyValue", writable: false, enumerable: true},
-        services : {value: ["dummyService"], writable: false, enumerable: true},
-        characteristics : {value: ["dummyCharacteristics"], writable: false, enumerable: true}
+        uuid : {value: uuid_, writable: false, enumerable: true},
+        services : {enumerable: true, set : function() {}, get : servicesGetter},
+        characteristics : {enumerable: true, set : function() {}, get : characteristicsGetter}
     });
 };
 

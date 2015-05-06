@@ -31,6 +31,8 @@
         'bluetooth_le_adapter.h',
         'bluetooth_service_handler.cc',
         'bluetooth_service_handler.h',
+        'bluetooth_gatt_service.cc',
+        'bluetooth_gatt_service.h',
         'bluetooth_socket.cc',
         'bluetooth_socket.h',
         'bluetooth_util.cc',

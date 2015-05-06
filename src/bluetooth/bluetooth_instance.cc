@@ -22,7 +22,8 @@ BluetoothInstance::BluetoothInstance() :
     bluetooth_service_handler_(bluetooth_adapter_),
     bluetooth_socket_(bluetooth_adapter_),
     bluetooth_le_adapter_(*this),
-    bluetooth_le_device_(*this)
+    bluetooth_le_device_(*this),
+    bluetooth_gatt_service_(*this)
 {
   LoggerD("Entered");
   using std::placeholders::_1;
@@ -129,6 +130,12 @@ BluetoothInstance::BluetoothInstance() :
       "BluetoothLEDevice_removeConnectStateChangeListener",
       std::bind(&BluetoothLEDevice::RemoveConnectStateChangeListener,
                 &bluetooth_le_device_, _1, _2));
+
+  // BluetoothGATTService
+  REGISTER_SYNC("BluetoothGATTService_getServices",
+      std::bind(&BluetoothGATTService::GetServices, &bluetooth_gatt_service_, _1, _2));
+  REGISTER_SYNC("BluetoothGATTService_getCharacteristics",
+      std::bind(&BluetoothGATTService::GetCharacteristics, &bluetooth_gatt_service_, _1, _2));
 
   #undef REGISTER_ASYNC
   #undef REGISTER_SYNC

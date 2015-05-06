@@ -16,6 +16,7 @@
 #include "bluetooth/bluetooth_le_device.h"
 #include "bluetooth/bluetooth_service_handler.h"
 #include "bluetooth/bluetooth_socket.h"
+#include "bluetooth/bluetooth_gatt_service.h"
 #include "bluetooth/bluetooth_util.h"
 
 namespace extension {
@@ -44,6 +45,7 @@ class BluetoothInstance: public common::ParsedInstance {
   BluetoothSocket bluetooth_socket_;
   BluetoothLEAdapter bluetooth_le_adapter_;
   BluetoothLEDevice bluetooth_le_device_;
+  BluetoothGATTService bluetooth_gatt_service_;
 };
 
 } // namespace bluetooth
