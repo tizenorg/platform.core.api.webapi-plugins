@@ -1831,20 +1831,18 @@ static PlatformResult FetchStatus(std::string* result)
   sensor_data_t data;
   bool ret = sensord_get_data(system_info_listeners.GetSensorHandle(),
                              AUTO_ROTATION_BASE_DATA_SET, &data);
-  if (!ret) {
-    LoggerE("Failed to get data(sensord_get_data)");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Failed to get data(sensord_get_data)");
-  }
-  LoggerD("size of the data value array:%d", data.value_count);
-  if (data.value_count > 0 ) {
-    rotation = data.values[0];
-    LoggerD("rotation is: %d", rotation);
+  if (ret) {
+    LoggerD("size of the data value array:%d", data.value_count);
+    if (data.value_count > 0 ) {
+      rotation = data.values[0];
+      LoggerD("rotation is: %d", rotation);
+    } else {
+      LoggerE("Failed to get data : the size of array is 0. Default rotation would be returned.");
+    }
   } else {
-    LoggerE("Failed to get data : the size of array is 0");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Failed to get data : the size of array is 0");
+    LoggerE("Failed to get data(sensord_get_data). Default rotation would be returned.");
   }
+
 
   switch (rotation) {
     case AUTO_ROTATION_DEGREE_UNKNOWN:
