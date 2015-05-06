@@ -23,6 +23,7 @@
 #include "common/filter-utils.h"
 
 #include <contacts.h>
+#include <contacts_db_extension.h>
 #include "contact/contact_instance.h"
 #include "contact/person.h"
 

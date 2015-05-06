@@ -6,6 +6,7 @@
 
 #include <tapi_common.h>
 #include <ITapiSim.h>
+#include <contacts_db_extension.h>
 
 #include "common/logger.h"
 #include "common/platform_exception.h"
