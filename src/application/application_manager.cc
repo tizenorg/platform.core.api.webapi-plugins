@@ -9,6 +9,7 @@
 
 #include <app_info.h>
 #include <app_manager.h>
+#include <app_manager_extension.h>
 #include <aul.h>
 #include <package_manager.h>
 #include <pkgmgr-info.h>

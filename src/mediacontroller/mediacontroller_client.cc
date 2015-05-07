@@ -5,6 +5,7 @@
 #include "mediacontroller/mediacontroller_client.h"
 
 #include <bundle.h>
+#include <bundle_internal.h>
 #include <memory>
 
 #include "common/logger.h"
