@@ -19,6 +19,8 @@
 
 #include <bluetooth.h>
 
+#include <unordered_map>
+
 #include "common/picojson.h"
 #include "common/platform_result.h"
 
@@ -47,7 +49,11 @@ class BluetoothLEDevice {
       picojson::object* le_device);
 
  private:
+  static void GattConnectionState(int result, bool connected,
+                                  const char *remote_address, void *user_data);
+
   BluetoothInstance& instance_;
+  std::unordered_map<std::string, double> connecting_;
 };
 
 }  // namespace bluetooth

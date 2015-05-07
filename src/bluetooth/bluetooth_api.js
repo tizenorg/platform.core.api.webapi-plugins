@@ -372,16 +372,59 @@ BluetoothLEDevice.prototype.connect = function() {
     console.log('Entered BluetoothLEDevice.connect()');
 
     xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH);
-    //TODO validate
-    //TODO call c++ layer
+    var args = AV.validateMethod(arguments, [
+    {
+        name : 'successCallback',
+        type : AV.Types.FUNCTION,
+        optional : true,
+        nullable : true
+    },
+    {
+        name : 'errorCallback',
+            type : AV.Types.FUNCTION,
+            optional : true,
+            nullable : true
+        }
+    ]);
+
+    var callback = function(result) {
+        if (native.isFailure(result)) {
+            native.callIfPossible(args.errorCallback, native.getErrorObject(result));
+        } else {
+            native.callIfPossible(args.successCallback);
+        }
+    };
+
+    native.call('BluetoothLEDevice_connect', {address : this.address}, callback);
 };
 
 BluetoothLEDevice.prototype.disconnect = function() {
     console.log('Entered BluetoothLEDevice.disconnect()');
 
     xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH);
-    //TODO validate
-    //TODO call c++ layer
+    var args = AV.validateMethod(arguments, [
+    {
+        name : 'successCallback',
+        type : AV.Types.FUNCTION,
+        optional : true,
+        nullable : true
+    },
+    {
+        name : 'errorCallback',
+            type : AV.Types.FUNCTION,
+            optional : true,
+            nullable : true
+        }
+    ]);
+     var callback = function(result) {
+        if (native.isFailure(result)) {
+            native.callIfPossible(args.errorCallback, native.getErrorObject(result));
+        } else {
+            native.callIfPossible(args.successCallback);
+        }
+    };
+
+    native.call('BluetoothLEDevice_disconnect', {address : this.address}, callback);
 };
 
 BluetoothLEDevice.prototype.getService = function() {

@@ -17,11 +17,15 @@
 #include "bluetooth/bluetooth_le_device.h"
 #include <glib.h>
 
+#include "bluetooth/bluetooth_instance.h"
 #include "bluetooth/bluetooth_util.h"
 
+#include "common/converter.h"
 #include "common/logger.h"
 
+using common::ErrorCode;
 using common::PlatformResult;
+using common::tools::ReportSuccess;
 
 namespace extension {
 namespace bluetooth {
@@ -44,9 +48,17 @@ const std::string kData = "data";
 
 BluetoothLEDevice::BluetoothLEDevice(BluetoothInstance& instance)
     : instance_(instance) {
+  int ret = bt_gatt_set_connection_state_changed_cb(GattConnectionState, this);
+  if (BT_ERROR_NONE != ret && BT_ERROR_ALREADY_DONE != ret) {
+    LoggerE("Can't add connection state listener: %d", ret);
+  }
 }
 
 BluetoothLEDevice::~BluetoothLEDevice() {
+  int ret = bt_gatt_unset_connection_state_changed_cb();
+  if (ret != BT_ERROR_NONE) {
+    LoggerW("Failed to unset listener: %d", ret);
+  }
 }
 
 static void UUIDsToJson(char **service_uuid, int service_count,
@@ -109,8 +121,8 @@ PlatformResult BluetoothLEDevice::ToJson(
 
   int ret = BT_ERROR_NONE;
 
-  std::vector<bt_adapter_le_packet_type_e> types = {BT_ADAPTER_LE_PACKET_SCAN_RESPONSE,
-    BT_ADAPTER_LE_PACKET_ADVERTISING};
+  std::vector<bt_adapter_le_packet_type_e> types = {
+      BT_ADAPTER_LE_PACKET_SCAN_RESPONSE, BT_ADAPTER_LE_PACKET_ADVERTISING };
   bool found = false;
 
   for (size_t i = 0; i < types.size() && !found; ++i) {
@@ -205,7 +217,8 @@ PlatformResult BluetoothLEDevice::ToJson(
     if (BT_ERROR_NONE == ret) {
       found = true;
     } else {
-      LoggerE("Failed to get solicitation UUID (%d). Packet type: %d", ret, types[i]);
+      LoggerE("Failed to get solicitation UUID (%d). Packet type: %d", ret,
+              types[i]);
     }
   }
 
@@ -230,7 +243,8 @@ PlatformResult BluetoothLEDevice::ToJson(
     if (BT_ERROR_NONE == ret) {
       found = true;
     } else {
-      LoggerE("Failed to get device service data (%d). Packet type: %d", ret, types[i]);
+      LoggerE("Failed to get device service data (%d). Packet type: %d", ret,
+              types[i]);
     }
   }
 
@@ -258,7 +272,8 @@ PlatformResult BluetoothLEDevice::ToJson(
     if (BT_ERROR_NONE == ret) {
       found = true;
     } else {
-      LoggerE("Failed to get device manufacturer (%d). Packet type: %d", ret, types[i]);
+      LoggerE("Failed to get device manufacturer (%d). Packet type: %d", ret,
+              types[i]);
     }
   }
 
@@ -269,17 +284,51 @@ PlatformResult BluetoothLEDevice::ToJson(
   ManufacturerToJson(manufacturer_id, manufacturer_data,
                      manufacturer_data_count, le_device);
   g_free(manufacturer_data);
-  return common::PlatformResult(common::ErrorCode::NO_ERROR);
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 void BluetoothLEDevice::Connect(const picojson::value& data,
                                 picojson::object& out) {
   LoggerD("Entered");
+
+  const auto callback_handle = util::GetAsyncCallbackHandle(data);
+  const auto& args = util::GetArguments(data);
+
+  const auto& address = common::FromJson<std::string>(args, "address");
+
+  int ret = bt_gatt_connect(address.c_str(), true);
+  if (BT_ERROR_NONE != ret) {
+    instance_.AsyncResponse(
+        callback_handle,
+        PlatformResult(util::GetBluetoothError(ret, "Failed to connect.")));
+    return;
+  }
+
+  connecting_[address] = callback_handle;
+
+  ReportSuccess(out);
 }
 
 void BluetoothLEDevice::Disconnect(const picojson::value& data,
                                    picojson::object& out) {
   LoggerD("Entered");
+
+  const auto callback_handle = util::GetAsyncCallbackHandle(data);
+  const auto& args = util::GetArguments(data);
+
+  const auto& address = common::FromJson<std::string>(args, "address");
+
+  int ret = bt_gatt_disconnect(address.c_str());
+  if (BT_ERROR_NONE != ret) {
+    instance_.AsyncResponse(
+        callback_handle,
+        PlatformResult(util::GetBluetoothError(ret, "Failed to disconnect.")));
+    return;
+  }
+
+  connecting_[address] = callback_handle;
+
+  ReportSuccess(out);
 }
 
 void BluetoothLEDevice::GetService(const picojson::value& data,
@@ -295,6 +344,34 @@ void BluetoothLEDevice::AddConnectStateChangeListener(
 void BluetoothLEDevice::RemoveConnectStateChangeListener(
     const picojson::value& data, picojson::object& out) {
   LoggerD("Entered");
+}
+
+void BluetoothLEDevice::GattConnectionState(int result, bool connected,
+                                            const char* remote_address,
+                                            void* user_data) {
+  LoggerD("Entered: %s connected: %d", remote_address, connected);
+  auto le_device = static_cast<BluetoothLEDevice *>(user_data);
+
+  if (!le_device) {
+    LoggerE("user_data is NULL");
+    return;
+  }
+
+  auto it = le_device->connecting_.find(remote_address);
+  if (le_device->connecting_.end() == it) {
+    LoggerW("Given address is not in waiting connections list");
+    return;
+  }
+
+  PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
+  if (BT_ERROR_NONE != result) {
+    ret = PlatformResult(ErrorCode::UNKNOWN_ERR,
+                         "Failed to get connection state");
+  }
+
+  le_device->instance_.AsyncResponse(it->second, ret);
+
+  le_device->connecting_.erase(it);
 }
 
 }  // namespace bluetooth
