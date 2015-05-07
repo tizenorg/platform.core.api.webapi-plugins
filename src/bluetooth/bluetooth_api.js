@@ -133,32 +133,254 @@ var BluetoothClassDeviceService = function() {
 };
 
 //class BluetoothLEServiceData ////////////////////////////////////////////////////
-var BluetoothLEServiceData = function(data) {
-    Object.defineProperties(this, {
-        serviceuuid : {value: data.serviceData, writable: true, enumerable: true},
-        data : {value: data.data, writable: true, enumerable: true}
-    });
+var BluetoothLEServiceData = function(d) {
+  var uuid_ = '';
+  var data_ = '';
+
+  Object.defineProperties(this, {
+    serviceuuid: {
+      enumerable: true,
+      get: function() {
+        return uuid_;
+      },
+      set: function(v) {
+        uuid_ = Converter.toString(v);
+      }
+    },
+    data: {
+      enumerable: true,
+      get: function() {
+        return data_;
+      },
+      set: function(v) {
+        data_ = Converter.toString(v);
+      }
+    }
+  });
+
+  if (d) {
+    this.serviceuuid = d.serviceuuid;
+    this.data = d.data;
+  }
 };
 
 //class BluetoothLEAdvertiseData ////////////////////////////////////////////////////
-var BluetoothLEAdvertiseData = function(data) {
-    Object.defineProperties(this, {
-        includeName : {value: false, writable: true, enumerable: true},
-        serviceuuids : {value: ["dummyUuids"], writable: true, enumerable: true},
-        solicitationuuids : {value: ["dummySolicitationuuids"], writable: true, enumerable: true},
-        appearance : {value: 123456, writable: true, enumerable: true},
-        includeTxPowerLevel : {value: false, writable: true, enumerable: true},
-        serviceData : {value: ["dummyServiceData"], writable: true, enumerable: true},
-        manufacturerData : {value: null, writable: true, enumerable: true}
-    });
+var BluetoothLEAdvertiseData = function(dict) {
+  var includeName_;
+  var serviceuuids_;
+  var solicitationuuids_;
+  var appearance_;
+  var includeTxPowerLevel_;
+  var serviceData_;
+  var manufacturerData_;
+
+  Object.defineProperties(this, {
+    includeName: {
+      enumerable: true,
+      get: function() {
+        return includeName_;
+      },
+      set: function(v) {
+        includeName_ = Converter.toBoolean(v, true);
+      }
+    },
+    serviceuuids: {
+      enumerable: true,
+      get: function() {
+        return serviceuuids_;
+      },
+      set: function(v) {
+        if (T.isNull(v)) {
+          serviceuuids_ = v;
+        } else if (T.isArray(v)) {
+          for (var i = 0; i < v.length; ++i) {
+            if (!T.isString(v[i])) {
+              v[i] = Converter.toString(v[i]);
+            }
+          }
+          serviceuuids_ = v;
+        }
+      }
+    },
+    solicitationuuids: {
+      enumerable: true,
+      get: function() {
+        return solicitationuuids_;
+      },
+      set: function(v) {
+        if (T.isNull(v)) {
+          solicitationuuids_ = v;
+        } else if (T.isArray(v)) {
+          for (var i = 0; i < v.length; ++i) {
+            if (!T.isString(v[i])) {
+              v[i] = Converter.toString(v[i]);
+            }
+          }
+          solicitationuuids_ = v;
+        }
+      }
+    },
+    appearance: {
+      enumerable: true,
+      get: function() {
+        return appearance_;
+      },
+      set: function(v) {
+        appearance_ = Converter.toUnsignedLong(v, true);
+      }
+    },
+    includeTxPowerLevel: {
+      enumerable: true,
+      get: function() {
+        return includeTxPowerLevel_;
+      },
+      set: function(v) {
+        includeTxPowerLevel_ = Converter.toBoolean(v, true);
+      }
+    },
+    serviceData: {
+      enumerable: true,
+      get: function() {
+        return serviceData_;
+      },
+      set: function(v) {
+        if (T.isNull(v)) {
+          serviceData_ = v;
+        } else if (T.isArray(v)) {
+          for (var i = 0; i < v.length; ++i) {
+            if (!(v[i] instanceof BluetoothLEServiceData)) {
+              return;
+            }
+          }
+          serviceData_ = v;
+        }
+      }
+    },
+    manufacturerData: {
+      enumerable: true,
+      get: function() {
+        return manufacturerData_;
+      },
+      set: function(v) {
+        if (T.isNull(v) || (v instanceof BluetoothLEManufacturerData)) {
+          manufacturerData_ = v;
+        }
+      }
+    }
+  });
+
+  if (T.isObject(dict)) {
+    var o = {};
+
+    // includeName
+    if (T.isNull(dict.includeName) || T.isBoolean(dict.includeName)) {
+      o.includeName = dict.includeName;
+    } else if (!T.isUndefined(dict.includeName)) {
+      return;
+    }
+
+    // serviceuuids
+    if (T.isNull(dict.serviceuuids)) {
+      o.serviceuuids = dict.serviceuuids;
+    } else if (T.isArray(dict.serviceuuids)) {
+      for (var i = 0; i < dict.serviceuuids.length; ++i) {
+        if (!T.isString(dict.serviceuuids[i])) {
+          return;
+        }
+      }
+      o.serviceuuids = dict.serviceuuids;
+    } else if (!T.isUndefined(dict.serviceuuids)) {
+      return;
+    }
+
+    // solicitationuuids
+    if (T.isNull(dict.solicitationuuids)) {
+      o.solicitationuuids = dict.solicitationuuids;
+    } else if (T.isArray(dict.solicitationuuids)) {
+      for (var i = 0; i < dict.solicitationuuids.length; ++i) {
+        if (!T.isString(dict.solicitationuuids[i])) {
+          return;
+        }
+      }
+      o.solicitationuuids = dict.solicitationuuids;
+    } else if (!T.isUndefined(dict.solicitationuuids)) {
+      return;
+    }
+
+    // appearance
+    if (T.isNull(dict.appearance) || T.isNumber(dict.appearance)) {
+      o.appearance = dict.appearance;
+    } else if (!T.isUndefined(dict.appearance)) {
+      return;
+    }
+
+    // includeTxPowerLevel
+    if (T.isNull(dict.includeTxPowerLevel) || T.isBoolean(dict.includeTxPowerLevel)) {
+      o.includeTxPowerLevel = dict.includeTxPowerLevel;
+    } else if (!T.isUndefined(dict.includeTxPowerLevel)) {
+      return;
+    }
+
+    // serviceData
+    if (T.isNull(dict.serviceData)) {
+      o.serviceData = dict.serviceData;
+    } else if (T.isArray(dict.serviceData)) {
+      for (var i = 0; i < dict.serviceData.length; ++i) {
+        if (!(dict.serviceData[i] instanceof BluetoothLEServiceData)) {
+          return;
+        }
+      }
+      o.serviceData = dict.serviceData;
+    } else if (!T.isUndefined(dict.serviceData)) {
+      return;
+    }
+
+    // manufacturerData
+    if (T.isNull(dict.manufacturerData) ||
+        (dict.manufacturerData instanceof BluetoothLEManufacturerData)) {
+      o.manufacturerData = dict.manufacturerData;
+    } else if (!T.isUndefined(dict.manufacturerData)) {
+      return;
+    }
+
+    for (var prop in o) {
+      if (o.hasOwnProperty(prop) && this.hasOwnProperty(prop)) {
+        this[prop] = o[prop];
+      }
+    }
+  }
 };
 
 //class BluetoothLEManufacturerData ////////////////////////////////////////////////////
-var BluetoothLEManufacturerData = function(data) {
-    Object.defineProperties(this, {
-        id : {value: data.id, writable: true, enumerable: true},
-        data : {value: data.data, writable: true, enumerable: true}
-    });
+var BluetoothLEManufacturerData = function(d) {
+  var id_ = '';
+  var data_ = '';
+
+  Object.defineProperties(this, {
+    id: {
+      enumerable: true,
+      get: function() {
+        return id_;
+      },
+      set: function(v) {
+        id_ = Converter.toString(v);
+      }
+    },
+    data: {
+      enumerable: true,
+      get: function() {
+        return data_;
+      },
+      set: function(v) {
+        data_ = Converter.toString(v);
+      }
+    }
+  });
+
+  if (d) {
+    this.id = d.id;
+    this.data = d.data;
+  }
 };
 
 // class BluetoothClass ////////////////////////////////////////////////////
@@ -995,7 +1217,7 @@ BluetoothHealthChannel.prototype.unsetListener  = function() {
  *
  * @return {object} object which allows to add or remove callbacks for specified listener
  */
-function _listenerBuilder(name, callback) {
+function _singleListenerBuilder(name, callback) {
   var listenerName = name;
   var successCallback;
   var errorCallback;
@@ -1034,7 +1256,7 @@ function _listenerBuilder(name, callback) {
   };
 }
 
-var _bleScanListener = _listenerBuilder('BluetoothLEScanCallback',
+var _bleScanListener = _singleListenerBuilder('BluetoothLEScanCallback',
     function(event, successCallback, errorCallback) {
   var d;
   var ret = true;
@@ -1075,7 +1297,7 @@ var _bleScanListener = _listenerBuilder('BluetoothLEScanCallback',
   return ret;
 });
 
-var _bleAdvertiseListener = _listenerBuilder('BluetoothLEAdvertiseCallback',
+var _bleAdvertiseListener = _singleListenerBuilder('BluetoothLEAdvertiseCallback',
     function(event, successCallback, errorCallback) {
   var d;
   var ret = true;
@@ -1256,48 +1478,286 @@ var BluetoothGATTService = function(data) {
 
 //class BluetoothGATTCharacteristic ////////////////////////////////////////////////////
 var BluetoothGATTCharacteristic = function(data) {
-    Object.defineProperties(this, {
-        descriptors : {value: ["dummyDescriptors"], writable: false, enumerable: true},
-        isBroadcast : {value: false, writable: false, enumerable: true},
-        hasExtendedProperties : {value: false, writable: false, enumerable: true},
-        isNotify : {value: false, writable: false, enumerable: true},
-        isIndication : {value: false, writable: false, enumerable: true},
-        isReadable : {value: false, writable: false, enumerable: true},
-        isSignedWrite : {value: false, writable: false, enumerable: true},
-        isWritable : {value: false, writable: false, enumerable: true},
-        isWriteNoResponse : {value: false, writable: false, enumerable: true}
+  var descriptors_ = [];
+  var isBroadcast_ = false;
+  var hasExtendedProperties_ = false;
+  var isNotify_ = false;
+  var isIndication_ = false;
+  var isReadable_ = false;
+  var isSignedWrite_ = false;
+  var isWritable_ = false;
+  var isWriteNoResponse_ = false;
+
+  if (T.isObject(data)) {
+    data.descriptors.forEach(function(dd) {
+      descriptors_.push(new BluetoothGATTDescriptor(dd));
     });
+    isBroadcast_ = data.isBroadcast;
+    hasExtendedProperties_ = data.hasExtendedProperties;
+    isNotify_ = data.isNotify;
+    isIndication_ = data.isIndication;
+    isReadable_ = data.isReadable;
+    isSignedWrite_ = data.isSignedWrite;
+    isWritable_ = data.isWritable;
+    isWriteNoResponse_ = data.isWriteNoResponse;
+  }
+
+  Object.defineProperties(this, {
+    descriptors: {
+      enumerable: true,
+      get: function() {
+        return descriptors_.slice();
+      },
+      set: function() {
+      }
+    },
+    isBroadcast: {
+      enumerable: true,
+      get: function() {
+        return isBroadcast_;
+      },
+      set: function() {
+      }
+    },
+    hasExtendedProperties: {
+      enumerable: true,
+      get: function() {
+        return hasExtendedProperties_;
+      },
+      set: function() {
+      }
+    },
+    isNotify: {
+      enumerable: true,
+      get: function() {
+        return isNotify_;
+      },
+      set: function() {
+      }
+    },
+    isIndication: {
+      enumerable: true,
+      get: function() {
+        return isIndication_;
+      },
+      set: function() {
+      }
+    },
+    isReadable: {
+      enumerable: true,
+      get: function() {
+        return isReadable_;
+      },
+      set: function() {
+      }
+    },
+    isSignedWrite: {
+      enumerable: true,
+      get: function() {
+        return isSignedWrite_;
+      },
+      set: function() {
+      }
+    },
+    isWritable: {
+      enumerable: true,
+      get: function() {
+        return isWritable_;
+      },
+      set: function() {
+      }
+    },
+    isWriteNoResponse: {
+      enumerable: true,
+      get: function() {
+        return isWriteNoResponse_;
+      },
+      set: function() {
+      }
+    }
+  });
 };
 
 BluetoothGATTCharacteristic.prototype.readValue = function() {
-    console.log('Entered BluetoothGATTCharacteristic.readValue()');
+  console.log('Entered BluetoothGATTCharacteristic.readValue()');
 
-    xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH);
-    //TODO validate
-    //TODO call c++ layer
+  xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH);
+
+  var args = AV.validateMethod(arguments, [{
+    name: 'successCallback',
+    type: AV.Types.FUNCTION
+  }, {
+    name: 'errorCallback',
+    type: AV.Types.FUNCTION,
+    optional: true,
+    nullable: true
+  }]);
+
+  var callback = function(result) {
+    if (native.isFailure(result)) {
+      native.callIfPossible(args.errorCallback, native.getErrorObject(result));
+    } else {
+      var d = [];
+      native.getResultObject(result).forEach(function(b) {
+        d.push(Converter.toByte(b));
+      });
+      args.successCallback(d);
+    }
+  };
+
+  var callArgs = {}; // TODO: add more arguments
+
+  var result = native.call('BluetoothGATT_readValue', callArgs, callback);
+
+  if (native.isFailure(result)) {
+    throw native.getErrorObject(result);
+  }
 };
 
 BluetoothGATTCharacteristic.prototype.writeValue = function() {
-    console.log('Entered BluetoothGATTCharacteristic.writeValue()');
+  console.log('Entered BluetoothGATTCharacteristic.writeValue()');
 
-    xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH);
-    //TODO validate
-    //TODO call c++ layer
+  xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH);
+
+  var args = AV.validateMethod(arguments, [{
+    name: 'value',
+    type: AV.Types.ARRAY,
+    values: AV.Types.BYTE
+  }, {
+    name: 'successCallback',
+    type: AV.Types.FUNCTION,
+    optional: true,
+    nullable: true
+  }, {
+    name: 'errorCallback',
+    type: AV.Types.FUNCTION,
+    optional: true,
+    nullable: true
+  }]);
+
+  var callback = function(result) {
+    if (native.isFailure(result)) {
+      native.callIfPossible(args.errorCallback, native.getErrorObject(result));
+    } else {
+      native.callIfPossible(args.successCallback);
+    }
+  };
+
+  var callArgs = { value: args.value }; // TODO: add more arguments
+
+  var result = native.call('BluetoothGATT_writeValue', callArgs, callback);
+
+  if (native.isFailure(result)) {
+    throw native.getErrorObject(result);
+  }
 };
 
-BluetoothGATTCharacteristic.prototype.addValueChangeListener = function() {
-    console.log('Entered BluetoothGATTCharacteristic.addValueChangeListener()');
+/**
+ * Creates a manager for specified listener event. Manager handles multiple
+ * registered listeners
+ *
+ * @param {string} name - name of the listener this manager handles
+ * @param {function} callback - function to be invoked when event specified by the name fires.
+ *                              This function should have following signature:
+ *                              void callback(listener, event);
+ * @param {string} addListenerId - optional parameter. If specified, this native
+ *                                 method will be called synchronously when first
+ *                                 listener is added.
+ * @param {string} removeListenerId - optional parameter. If specified, this native
+ *                                 method will be called synchronously when last
+ *                                 listener is removed.
+ *
+ * @return {object} object which allows to add or remove callbacks for specified listener
+ */
+function _multipleListenerBuilder(name, callback, addListenerId, removeListenerId) {
+  var listenerName = name;
+  var addId = addListenerId;
+  var removeId = removeListenerId;
+  var callbackFunction = callback;
+  var listeners = {};
+  var nextId = 1;
 
-    xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH);
-    //TODO validate
-    //TODO call c++ layer
+  function innerCallback(event) {
+    for (var watchId in listeners) {
+      if (listeners.hasOwnProperty(watchId)) {
+        callbackFunction(listeners[watchId], event);
+      }
+    }
+  }
+
+  function addListener(callback) {
+    var id = ++nextId;
+
+    if (!listenerRegistered) {
+      if (addId) {
+        var result = native.callSync(addId, {});
+        if (native.isFailure(result)) {
+          throw native.getErrorObject(result);
+        }
+      }
+      native.addListener(listenerName, innerCallback);
+      listenerRegistered = true;
+    }
+
+    listeners[id] = callback;
+    return id;
+  }
+
+  function removeListener(watchId) {
+    if (listeners.hasOwnProperty(watchId)) {
+      delete listeners[watchId];
+    }
+
+    if (listenerRegistered && T.isEmptyObject(listeners)) {
+      if (removeId) {
+        native.callSync(removeId, {});
+      }
+      native.removeListener(listenerName, innerCallback);
+      listenerRegistered = false;
+    }
+  }
+
+  return {
+    addListener: addListener,
+    removeListener: removeListener
+  };
+}
+
+var _bluetoothGATTCharacteristicListener = _multipleListenerBuilder(
+    'BluetoothGATTCharacteristicValueChangeListener',
+    function(listener, data) {
+      var d = [];
+      data.value.forEach(function(b) {
+        d.push(Converter.toByte(b));
+      });
+      listener(d);
+    },
+    'BluetoothGATTCharacteristic_addValueChangeListener',
+    'BluetoothGATTCharacteristic_removeValueChangeListener'
+);
+
+BluetoothGATTCharacteristic.prototype.addValueChangeListener = function() {
+  console.log('Entered BluetoothGATTCharacteristic.addValueChangeListener()');
+
+  xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH);
+
+  var args = AV.validateMethod(arguments, [{
+    name: 'callback',
+    type: AV.Types.FUNCTION
+  }]);
+
+  return _bluetoothGATTCharacteristicListener.addListener(args.callback);
 };
 
 BluetoothGATTCharacteristic.prototype.removeValueChangeListener = function() {
-    console.log('Entered BluetoothGATTCharacteristic.removeValueChangeListener()');
+  console.log('Entered BluetoothGATTCharacteristic.removeValueChangeListener()');
 
-    //TODO validate
-    //TODO call c++ layer
+  var args = AV.validateMethod(arguments, [{
+    name: 'watchID',
+    type: AV.Types.LONG
+  }]);
+
+  return _bluetoothGATTCharacteristicListener.removeListener(args.watchID);
 };
 
 //class BluetoothGATTDescriptor ////////////////////////////////////////////////////
@@ -1305,19 +1765,77 @@ var BluetoothGATTDescriptor = function() {
 };
 
 BluetoothGATTDescriptor.prototype.readValue = function() {
-    console.log('Entered BluetoothGATTDescriptor.readValue()');
+  console.log('Entered BluetoothGATTDescriptor.readValue()');
 
-    xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH);
-    //TODO validate
-    //TODO call c++ layer
+  xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH);
+
+  var args = AV.validateMethod(arguments, [{
+    name: 'successCallback',
+    type: AV.Types.FUNCTION
+  }, {
+    name: 'errorCallback',
+    type: AV.Types.FUNCTION,
+    optional: true,
+    nullable: true
+  }]);
+
+  var callback = function(result) {
+    if (native.isFailure(result)) {
+      native.callIfPossible(args.errorCallback, native.getErrorObject(result));
+    } else {
+      var d = [];
+      native.getResultObject(result).forEach(function(b) {
+        d.push(Converter.toByte(b));
+      });
+      args.successCallback(d);
+    }
+  };
+
+  var callArgs = {}; // TODO: add more arguments
+
+  var result = native.call('BluetoothGATT_readValue', callArgs, callback);
+
+  if (native.isFailure(result)) {
+    throw native.getErrorObject(result);
+  }
 };
 
 BluetoothGATTDescriptor.prototype.writeValue = function() {
-    console.log('Entered BluetoothGATTDescriptor.writeValue()');
+  console.log('Entered BluetoothGATTDescriptor.writeValue()');
 
-    xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH);
-    //TODO validate
-    //TODO call c++ layer
+  xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH);
+
+  var args = AV.validateMethod(arguments, [{
+    name: 'value',
+    type: AV.Types.ARRAY,
+    values: AV.Types.BYTE
+  }, {
+    name: 'successCallback',
+    type: AV.Types.FUNCTION,
+    optional: true,
+    nullable: true
+  }, {
+    name: 'errorCallback',
+    type: AV.Types.FUNCTION,
+    optional: true,
+    nullable: true
+  }]);
+
+  var callback = function(result) {
+    if (native.isFailure(result)) {
+      native.callIfPossible(args.errorCallback, native.getErrorObject(result));
+    } else {
+      native.callIfPossible(args.successCallback);
+    }
+  };
+
+  var callArgs = { value: args.value }; // TODO: add more arguments
+
+  var result = native.call('BluetoothGATT_writeValue', callArgs, callback);
+
+  if (native.isFailure(result)) {
+    throw native.getErrorObject(result);
+  }
 };
 
 // class BluetoothAdapter ////////////////////////////////////////////////////
