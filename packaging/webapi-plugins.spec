@@ -122,7 +122,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_account_support             0
 
 %define tizen_feature_alarm_support               0
-%define tizen_feature_application_support         0
+%define tizen_feature_application_support         1
 
 # Archive API is optional in Tizen Wearable Profile.
 %define tizen_feature_archive_support             1
@@ -148,7 +148,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_download_support            1
 %endif
 %define tizen_feature_exif_support                1
-%define tizen_feature_filesystem_support          0
+%define tizen_feature_filesystem_support          1
 %define tizen_feature_fm_radio_support            0
 %define tizen_feature_media_controller_support    1
 
@@ -190,10 +190,10 @@ Source0:    %{name}-%{version}.tar.gz
 %endif
 %define tizen_feature_sensor_support              1
 %define tizen_feature_sound_support               1
-%define tizen_feature_system_info_support         0
-%define tizen_feature_system_setting_support      0
+%define tizen_feature_system_info_support         1
+%define tizen_feature_system_setting_support      1
 %define tizen_feature_telephony_support           0
-%define tizen_feature_time_support                0
+%define tizen_feature_time_support                1
 %define tizen_feature_web_setting_support         0
 %define tizen_feature_wi_fi_support               1
 %define tizen_feature_tvaudio_support             0
