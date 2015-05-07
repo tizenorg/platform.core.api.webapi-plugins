@@ -939,46 +939,29 @@ BluetoothHealthChannel.prototype.unsetListener  = function() {
     }
 };
 
-var _bleScanListener = (function() {
-  var kListenerName = 'BluetoothLEScanCallback';
+
+/**
+ * Creates a manager for specified listener event.
+ *
+ * @param {string} name - name of the listener this manager handles
+ * @param {function} callback - function to be invoked when event specified by the name fires.
+ *                              This function should return false if the callback doesn't want
+ *                              to handle the event anymore, true otherwise.
+ *                              This function should have following signature:
+ *                              bool callback(event, successCallback, errorCallback);
+ *
+ * @return {object} object which allows to add or remove callbacks for specified listener
+ */
+function _listenerBuilder(name, callback) {
+  var listenerName = name;
   var successCallback;
   var errorCallback;
+  var callbackFunction = callback;
   var listenerRegistered = false;
 
-  function callback(event) {
-    var d;
-
-    switch (event.action) {
-      case 'onstarted':
-        break;
-
-      case 'ondevicefound':
-        d = new BluetoothLEDevice(event.data);
-        break;
-
-      case 'onfinished':
-        d = [];
-        event.data.forEach(function(data) {
-          d.push(new BluetoothLEDevice(data));
-        });
-
-        // remove listener
-        removeListener();
-        break;
-
-      case 'onerror':
-        if (errorCallback) {
-          errorCallback(native.getErrorObject(event));
-        }
-        return;
-
-      default:
-        console.log('Unknown mode: ' + event.action);
-        return;
-    }
-
-    if (successCallback && successCallback[event.action]) {
-      successCallback[event.action](d);
+  function innerCallback(event) {
+    if (!callbackFunction(event, successCallback, errorCallback)) {
+      removeListener();
     }
   }
 
@@ -987,14 +970,14 @@ var _bleScanListener = (function() {
     errorCallback = e;
 
     if (!listenerRegistered) {
-      native.addListener(kListenerName, callback);
+      native.addListener(listenerName, innerCallback);
       listenerRegistered = true;
     }
   }
 
   function removeListener() {
     if (listenerRegistered) {
-      native.removeListener(kListenerName, callback);
+      native.removeListener(listenerName, innerCallback);
       listenerRegistered = false;
     }
 
@@ -1006,61 +989,72 @@ var _bleScanListener = (function() {
     addListener: addListener,
     removeListener: removeListener
   };
-})();
+}
 
-var _bleAdvertiseListener = (function() {
-  var kListenerName = 'BluetoothLEAdvertiseCallback';
-  var successCallback;
-  var errorCallback;
-  var listenerRegistered = false;
+var _bleScanListener = _listenerBuilder('BluetoothLEScanCallback',
+    function(event, successCallback, errorCallback) {
+  var d;
+  var ret = true;
 
-  function callback(event) {
-    var d;
+  switch (event.action) {
+    case 'onstarted':
+      break;
 
-    switch (event.action) {
-      case 'onstate':
-        if (successCallback) {
-          successCallback(native.getResultObject(event));
-        }
-        return;
+    case 'ondevicefound':
+      d = new BluetoothLEDevice(event.data);
+      break;
 
-      case 'onerror':
-        if (errorCallback) {
-          errorCallback(native.getErrorObject(event));
-        }
-        return;
+    case 'onfinished':
+      d = [];
+      event.data.forEach(function(data) {
+        d.push(new BluetoothLEDevice(data));
+      });
 
-      default:
-        console.log('Unknown mode: ' + event.action);
-        return;
-    }
+      // stop listening
+      ret = false;
+      break;
+
+    case 'onerror':
+      if (errorCallback) {
+        errorCallback(native.getErrorObject(event));
+      }
+      return ret;
+
+    default:
+      console.log('Unknown mode: ' + event.action);
+      return ret;
   }
 
-  function addListener(s, e) {
-    successCallback = s;
-    errorCallback = e;
-
-    if (!listenerRegistered) {
-      native.addListener(kListenerName, callback);
-      listenerRegistered = true;
-    }
+  if (successCallback && successCallback[event.action]) {
+    successCallback[event.action](d);
   }
 
-  function removeListener() {
-    if (listenerRegistered) {
-      native.removeListener(kListenerName, callback);
-      listenerRegistered = false;
-    }
+  return ret;
+});
 
-    successCallback = undefined;
-    errorCallback = undefined;
+var _bleAdvertiseListener = _listenerBuilder('BluetoothLEAdvertiseCallback',
+    function(event, successCallback, errorCallback) {
+  var d;
+  var ret = true;
+
+  switch (event.action) {
+    case 'onstate':
+      if (successCallback) {
+        successCallback(native.getResultObject(event));
+      }
+      return ret;
+
+    case 'onerror':
+      if (errorCallback) {
+        errorCallback(native.getErrorObject(event));
+      }
+      return ret;
+
+    default:
+      console.log('Unknown mode: ' + event.action);
+      return ret;
   }
-
-  return {
-    addListener: addListener,
-    removeListener: removeListener
-  };
-})();
+});
 
 //class BluetoothLEAdapter ////////////////////////////////////////////////////
 var BluetoothLEAdapter = function() {
