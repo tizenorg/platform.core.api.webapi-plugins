@@ -1478,6 +1478,7 @@ var BluetoothGATTService = function(data) {
 
 //class BluetoothGATTCharacteristic ////////////////////////////////////////////////////
 var BluetoothGATTCharacteristic = function(data) {
+  var handle_ = data.handle;
   var descriptors_ = [];
   var isBroadcast_ = false;
   var hasExtendedProperties_ = false;
@@ -1576,80 +1577,79 @@ var BluetoothGATTCharacteristic = function(data) {
       }
     }
   });
-};
+  BluetoothGATTCharacteristic.prototype.readValue = function() {
+      console.log('Entered BluetoothGATTCharacteristic.readValue()');
 
-BluetoothGATTCharacteristic.prototype.readValue = function() {
-  console.log('Entered BluetoothGATTCharacteristic.readValue()');
+      xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH);
 
-  xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH);
+      var args = AV.validateMethod(arguments, [{
+        name: 'successCallback',
+        type: AV.Types.FUNCTION
+      }, {
+        name: 'errorCallback',
+        type: AV.Types.FUNCTION,
+        optional: true,
+        nullable: true
+      }]);
 
-  var args = AV.validateMethod(arguments, [{
-    name: 'successCallback',
-    type: AV.Types.FUNCTION
-  }, {
-    name: 'errorCallback',
-    type: AV.Types.FUNCTION,
-    optional: true,
-    nullable: true
-  }]);
+      var callback = function(result) {
+        if (native.isFailure(result)) {
+          native.callIfPossible(args.errorCallback, native.getErrorObject(result));
+        } else {
+          var d = [];
+          native.getResultObject(result).forEach(function(b) {
+            d.push(Converter.toByte(b));
+          });
+          args.successCallback(d);
+        }
+      };
 
-  var callback = function(result) {
-    if (native.isFailure(result)) {
-      native.callIfPossible(args.errorCallback, native.getErrorObject(result));
-    } else {
-      var d = [];
-      native.getResultObject(result).forEach(function(b) {
-        d.push(Converter.toByte(b));
-      });
-      args.successCallback(d);
-    }
-  };
+      var callArgs = {handle : handle_};
 
-  var callArgs = {}; // TODO: add more arguments
+      var result = native.call('BluetoothGATT_readValue', callArgs, callback);
 
-  var result = native.call('BluetoothGATT_readValue', callArgs, callback);
+      if (native.isFailure(result)) {
+        throw native.getErrorObject(result);
+      }
+    };
 
-  if (native.isFailure(result)) {
-    throw native.getErrorObject(result);
-  }
-};
+    BluetoothGATTCharacteristic.prototype.writeValue = function() {
+      console.log('Entered BluetoothGATTCharacteristic.writeValue()');
 
-BluetoothGATTCharacteristic.prototype.writeValue = function() {
-  console.log('Entered BluetoothGATTCharacteristic.writeValue()');
+      xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH);
 
-  xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH);
+      var args = AV.validateMethod(arguments, [{
+        name: 'value',
+        type: AV.Types.ARRAY,
+        values: AV.Types.BYTE
+      }, {
+        name: 'successCallback',
+        type: AV.Types.FUNCTION,
+        optional: true,
+        nullable: true
+      }, {
+        name: 'errorCallback',
+        type: AV.Types.FUNCTION,
+        optional: true,
+        nullable: true
+      }]);
 
-  var args = AV.validateMethod(arguments, [{
-    name: 'value',
-    type: AV.Types.ARRAY,
-    values: AV.Types.BYTE
-  }, {
-    name: 'successCallback',
-    type: AV.Types.FUNCTION,
-    optional: true,
-    nullable: true
-  }, {
-    name: 'errorCallback',
-    type: AV.Types.FUNCTION,
-    optional: true,
-    nullable: true
-  }]);
+      var callback = function(result) {
+        if (native.isFailure(result)) {
+          native.callIfPossible(args.errorCallback, native.getErrorObject(result));
+        } else {
+          native.callIfPossible(args.successCallback);
+        }
+      };
 
-  var callback = function(result) {
-    if (native.isFailure(result)) {
-      native.callIfPossible(args.errorCallback, native.getErrorObject(result));
-    } else {
-      native.callIfPossible(args.successCallback);
-    }
-  };
+      var callArgs = { handle : handle_, value: args.value };
 
-  var callArgs = { value: args.value }; // TODO: add more arguments
+      var result = native.call('BluetoothGATT_writeValue', callArgs, callback);
 
-  var result = native.call('BluetoothGATT_writeValue', callArgs, callback);
-
-  if (native.isFailure(result)) {
-    throw native.getErrorObject(result);
-  }
+      if (native.isFailure(result)) {
+        throw native.getErrorObject(result);
+      }
+    };
 };
 
 /**

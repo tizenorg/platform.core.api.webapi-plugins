@@ -21,6 +21,7 @@
 #include "common/logger.h"
 #include "common/platform_result.h"
 #include "common/extension.h"
+#include "common/task-queue.h"
 
 #include "bluetooth/bluetooth_instance.h"
 #include "bluetooth/bluetooth_util.h"
@@ -30,6 +31,7 @@ namespace bluetooth {
 
 using common::PlatformResult;
 using common::ErrorCode;
+using common::TaskQueue;
 using namespace common::tools;
 
 namespace {
@@ -37,7 +39,7 @@ const std::string kUuid = "uuid";
 const std::string kHandle = "handle";
 
 const std::string kDescriptors = "descriptors";
-const std::string kBroadcast = "broadcast";
+const std::string kBroadcast = "isBroadcast";
 const std::string kExtendedProperties = "hasExtendedProperties";
 const std::string kNotify = "isNotify";
 const std::string kIndication = "isIndication";
@@ -248,6 +250,70 @@ PlatformResult BluetoothGATTService::GetCharacteristicsHelper(bt_gatt_h handle,
   }
 
   return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+void BluetoothGATTService::ReadValue(const picojson::value& args,
+                                     picojson::object& out) {
+  LoggerD("Entered");
+  const double callback_handle = util::GetAsyncCallbackHandle(args);
+  struct Data {
+    double callback_handle;
+    BluetoothGATTService* service;
+  };
+
+  Data* user_data = new Data{callback_handle, this};
+  bt_gatt_h handle = (bt_gatt_h) static_cast<long>(args.get("handle").get<double>());
+
+  //TODO check if client device is still connected and throw InvalidStateError
+
+  auto read_value = [](int result, bt_gatt_h handle, void *user_data) -> void {
+    Data* data = (Data*) user_data;
+    double callback_handle = data->callback_handle;
+    BluetoothGATTService* service = data->service;
+    delete data;
+
+    PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
+
+    picojson::value byte_array = picojson::value(picojson::array());
+    picojson::array& byte_array_obj = byte_array.get<picojson::array>();
+
+    if (BT_ERROR_NONE != result) {
+      //TODO handle error
+    } else {
+      char *value = nullptr;
+      int length = 0;
+      int ret = bt_gatt_get_value(handle, &value, &length);
+      if (BT_ERROR_NONE != result) {
+        //TODO handle error
+      }
+
+      for (size_t i = 0 ; i < length; i++) {
+        byte_array_obj.push_back(picojson::value(std::to_string(value[i])));
+      }
+      if (value) {
+        free(value);
+        value = nullptr;
+      }
+    }
+
+    std::shared_ptr<picojson::value> response =
+        std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
+    if (ret.IsSuccess()) {
+      ReportSuccess(byte_array, response->get<picojson::object>());
+    } else {
+      ReportError(ret, &response->get<picojson::object>());
+    }
+    TaskQueue::GetInstance().Async<picojson::value>(
+        [service, callback_handle](const std::shared_ptr<picojson::value>& response) {
+      service->instance_.SyncResponse(callback_handle, response);
+    }, response);
+  };
+  int ret = bt_gatt_client_read_value(handle, read_value, (void*)user_data);
+  if (BT_ERROR_NONE != ret) {
+    LOGE("Couldn't register callback for read value");
+    //TODO handle error ??
+  }
+  ReportSuccess(out);
 }
 
 } // namespace bluetooth
