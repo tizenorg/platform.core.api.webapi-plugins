@@ -36,6 +36,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_contact_support             1
 %define tizen_feature_content_support             1
 %define tizen_feature_datacontrol_support         1
+%define tizen_feature_datasync_support            0
 %define tizen_feature_download_support            1
 %define tizen_feature_exif_support                1
 %define tizen_feature_filesystem_support          1
@@ -46,6 +47,7 @@ Source0:    %{name}-%{version}.tar.gz
 # I586
 %define tizen_feature_fm_radio_support            1
 %endif
+%define tizen_feature_ham_support                 0
 %define tizen_feature_media_controller_support    1
 %ifarch %{arm}
 # ARM
@@ -138,10 +140,10 @@ Source0:    %{name}-%{version}.tar.gz
 
 # Calendar API is mandatory in Tizen Wearable Profile.
 %define tizen_feature_calendar_support            0
-%define tizen_feature_callhistory_support         0
 %define tizen_feature_contact_support             0
 %define tizen_feature_content_support             1
 %define tizen_feature_datacontrol_support         0
+%define tizen_feature_datasync_support            0
 %ifarch %{arm}
 %define tizen_feature_download_support            0
 %else
@@ -150,6 +152,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_exif_support                1
 %define tizen_feature_filesystem_support          1
 %define tizen_feature_fm_radio_support            0
+%define tizen_feature_ham_support                 0
 %define tizen_feature_media_controller_support    1
 
 # MediayKey API is optional in Tizen Wearable Profile.
@@ -164,7 +167,7 @@ Source0:    %{name}-%{version}.tar.gz
 
 %define tizen_feature_message_port_support        1
 %define tizen_feature_messaging_support           0
-%define tizen_feature_nbs_support                 1
+
 %if 0%{?model_build_feature_nfc}
 %define tizen_feature_nfc_emulation_support       1
 %define tizen_feature_nfc_support                 1
@@ -202,6 +205,17 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_tvinputdevice_support       0
 %define tizen_feature_tvwindow_support            0
 
+#- telephony related APIs
+# CallHistory API is optional in Tizen Wearable Profile.
+# NetworkBearerSelection API is optional in Tizen Wearable Profile.
+%if 0%{?tizen_feature_telephony_support}
+%define    tizen_feature_callhistory_support      1
+%define    tizen_feature_nbs_support              1
+%else
+%define    tizen_feature_callhistory_support      0
+%define    tizen_feature_nbs_support              0
+%endif
+
 %endif # tizen_profile_wearable
 
 ####################################################################
@@ -221,10 +235,12 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_contact_support             0
 %define tizen_feature_content_support             0
 %define tizen_feature_datacontrol_support         0
+%define tizen_feature_datasync_support            0
 %define tizen_feature_download_support            0
 %define tizen_feature_exif_support                1
 %define tizen_feature_filesystem_support          1
 %define tizen_feature_fm_radio_support            0
+%define tizen_feature_ham_support                 0
 %define tizen_feature_media_controller_support    0
 %define tizen_feature_media_key_support           0
 %define tizen_feature_message_port_support        1
@@ -436,6 +452,7 @@ GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_download_support=%{?tizen_feature_down
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_exif_support=%{?tizen_feature_exif_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_filesystem_support=%{?tizen_feature_filesystem_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_fm_radio_support=%{?tizen_feature_fm_radio_support}"
+GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_ham_support=%{?tizen_feature_ham_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_media_controller_support=%{?tizen_feature_media_controller_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_media_key_support=%{?tizen_feature_media_key_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_message_port_support=%{?tizen_feature_message_port_support}"
