@@ -38,16 +38,21 @@ class BluetoothGATTService {
                                                  const std::string &uuid,
                                                  picojson::object* result);
 
+  void TryDestroyClient(const std::string &address);
   void GetServices(const picojson::value& data, picojson::object& out);
   void GetCharacteristics(const picojson::value& data, picojson::object& out);
   void ReadValue(const picojson::value& args, picojson::object& out);
   void WriteValue(const picojson::value& args, picojson::object& out);
 
  private:
-  static common::PlatformResult GetServicesHelper(bt_gatt_h handle, const std::string& uuid,
-                                     picojson::array* array);
-  static common::PlatformResult GetCharacteristicsHelper(bt_gatt_h handle, const std::string& uuid,
-                                     picojson::array* array);
+  bool IsStillConnected(const std::string& address);
+  common::PlatformResult GetServicesHelper(bt_gatt_h handle, const std::string& address,
+                                                  const std::string& uuid,
+                                                  picojson::array* array);
+  common::PlatformResult GetCharacteristicsHelper(bt_gatt_h handle,
+                                                  const std::string& address,
+                                                  const std::string& uuid,
+                                                  picojson::array* array);
 
   std::map<std::string, bt_gatt_client_h> gatt_clients_;
 

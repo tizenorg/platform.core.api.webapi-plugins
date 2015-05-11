@@ -1465,17 +1465,19 @@ BluetoothLEAdapter.prototype.stopAdvertise = function() {
 };
 
 //class BluetoothGATTService ////////////////////////////////////////////////////
-var BluetoothGATTService = function(data) {
+var BluetoothGATTService = function(data, address) {
     var handle_ = data.handle;
     var uuid_ = data.uuid;
+    //address_ is needed to control if device is still connected
+    var address_ = address || data.address;
     function servicesGetter() {
         var services = [];
         var result = native.callSync('BluetoothGATTService_getServices',
-                {handle: handle_, uuid: uuid_});
+                {handle: handle_, uuid: uuid_, address : address_});
         if (native.isSuccess(result)) {
             var resultObject = native.getResultObject(result);
             resultObject.forEach(function(s) {
-                services.push(new BluetoothGATTService(s));
+                services.push(new BluetoothGATTService(s, address_));
             });
         }
         return services;
@@ -1483,11 +1485,11 @@ var BluetoothGATTService = function(data) {
     function characteristicsGetter() {
         var characteristics = [];
         var result = native.callSync('BluetoothGATTService_getCharacteristics',
-                {handle: handle_, uuid: uuid_});
+                {handle: handle_, uuid: uuid_, address : address_});
         if (native.isSuccess(result)) {
             var resultObject = native.getResultObject(result);
             resultObject.forEach(function(c) {
-                characteristics.push(new BluetoothGATTCharacteristic(c));
+                characteristics.push(new BluetoothGATTCharacteristic(c, address_));
             });
         }
         return characteristics;
@@ -1500,7 +1502,7 @@ var BluetoothGATTService = function(data) {
 };
 
 //class BluetoothGATTCharacteristic ////////////////////////////////////////////////////
-var BluetoothGATTCharacteristic = function(data) {
+var BluetoothGATTCharacteristic = function(data, address) {
   var handle_ = data.handle;
   var descriptors_ = [];
   var isBroadcast_ = false;
@@ -1511,10 +1513,12 @@ var BluetoothGATTCharacteristic = function(data) {
   var isSignedWrite_ = false;
   var isWritable_ = false;
   var isWriteNoResponse_ = false;
+  //address_ is needed to control if device is still connected
+  var address_ = address;
 
   if (T.isObject(data)) {
     data.descriptors.forEach(function(dd) {
-      descriptors_.push(new BluetoothGATTDescriptor(dd));
+      descriptors_.push(new BluetoothGATTDescriptor(dd, address_));
     });
     isBroadcast_ = data.isBroadcast;
     hasExtendedProperties_ = data.hasExtendedProperties;
@@ -1634,7 +1638,7 @@ var BluetoothGATTCharacteristic = function(data) {
         }
       };
 
-      var callArgs = {handle : handle_};
+      var callArgs = {handle : handle_, address : address_};
 
       var result = native.call('BluetoothGATT_readValue', callArgs, callback);
 
@@ -1672,7 +1676,7 @@ var BluetoothGATTCharacteristic = function(data) {
         }
       };
 
-      var callArgs = { handle : handle_, value: toByteArray(args.value) };
+      var callArgs = { handle : handle_, value: toByteArray(args.value), address : address_ };
 
       var result = native.call('BluetoothGATT_writeValue', callArgs, callback);
 
@@ -1800,8 +1804,10 @@ BluetoothGATTCharacteristic.prototype.removeValueChangeListener = function() {
 };
 
 //class BluetoothGATTDescriptor ////////////////////////////////////////////////////
-var BluetoothGATTDescriptor = function() {
+var BluetoothGATTDescriptor = function(address) {
   var handle_ = data.handle;
+  //address_ is needed to control if device is still connected
+  var address_ == address;
 
   BluetoothGATTDescriptor.prototype.readValue = function() {
     console.log('Entered BluetoothGATTDescriptor.readValue()');
@@ -1827,7 +1833,7 @@ var BluetoothGATTDescriptor = function() {
       }
     };
 
-    var callArgs = {handle : handle_};
+    var callArgs = {handle : handle_, address : address_};
 
     var result = native.call('BluetoothGATT_readValue', callArgs, callback);
 
@@ -1865,7 +1871,7 @@ var BluetoothGATTDescriptor = function() {
       }
     };
 
-    var callArgs = { handle : handle_, value: toByteArray(args.value) };
+    var callArgs = { handle : handle_, value: toByteArray(args.value), address : address_ };
 
     var result = native.call('BluetoothGATT_writeValue', callArgs, callback);
 
