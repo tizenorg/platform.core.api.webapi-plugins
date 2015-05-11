@@ -93,6 +93,7 @@ function Utils() {
     FILESYSTEM_WRITE: 'http://tizen.org/privilege/filesystem.write',
     HEALTHINFO: 'http://tizen.org/privilege/healthinfo',
     INTERNET: 'http://tizen.org/privilege/internet',
+    KEYMANAGER: 'http://tizen.org/privilege/keymanager',
     LED: 'http://tizen.org/privilege/led',
     LOCATION: 'http://tizen.org/privilege/location',
     MEDIACONTROLLER_READ: 'http://tizen.org/privilege/mediacontroller.read',

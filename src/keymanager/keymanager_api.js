@@ -80,6 +80,7 @@ function Key(name, password, extractable, keyType, rawKey) {
 }
 
 Key.prototype.save = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.KEYMANAGER);
   var args = validator.validateArgs(arguments, [
     {
       name: 'rawKey',
@@ -114,6 +115,7 @@ Key.prototype.save = function() {
 };
 
 Key.prototype.remove = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.KEYMANAGER);
   var ret = native.callSync('KeyManager_removeKey', {
     key: this
   });
@@ -144,6 +146,7 @@ function Certificate(name, password, extractable, rawCert) {
 }
 
 Certificate.prototype.save = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.KEYMANAGER);
   var args = validator.validateArgs(arguments, [
     {
       name: 'rawCert',
@@ -177,6 +180,7 @@ Certificate.prototype.save = function() {
 };
 
 Certificate.prototype.loadFromFile = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.KEYMANAGER);
   var args = validator.validateArgs(arguments, [
     {
       name: 'fileURI',
@@ -216,6 +220,7 @@ Certificate.prototype.loadFromFile = function() {
 };
 
 Certificate.prototype.remove = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.KEYMANAGER);
   var ret = native.callSync('KeyManager_removeCertificate', {
     certificate: this
   });
@@ -246,6 +251,7 @@ function Data(name, password, extractable, rawData) {
 }
 
 Data.prototype.save = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.KEYMANAGER);
   var args = validator.validateArgs(arguments, [
     {
       name: 'rawData',
@@ -279,6 +285,7 @@ Data.prototype.save = function() {
 };
 
 Data.prototype.remove = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.KEYMANAGER);
   var ret = native.callSync('KeyManager_removeData', {
     data: this
   });
@@ -292,6 +299,7 @@ function KeyManager() {
 }
 
 KeyManager.prototype.generateKeyPair = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.KEYMANAGER);
   var args = validator.validateArgs(arguments, [
     {
       name: "privKeyName",
@@ -352,6 +360,7 @@ KeyManager.prototype.generateKeyPair = function() {
 };
 
 KeyManager.prototype.loadFromPKCS12File = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.KEYMANAGER);
   var args = validator.validateArgs(arguments, [
     {
       name: 'fileURI',
@@ -398,6 +407,7 @@ KeyManager.prototype.loadFromPKCS12File = function() {
 };
 
 KeyManager.prototype.getKey = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.KEYMANAGER);
   var args = validator.validateArgs(arguments, [
     {
       name: "name",
@@ -422,6 +432,7 @@ KeyManager.prototype.getKey = function() {
 };
 
 KeyManager.prototype.getKeyAliasList = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.KEYMANAGER);
   var ret = native.callSync('KeyManager_getKeyAliasList', {});
   if (native.isFailure(ret)) {
     throw native.getErrorObject(ret);
@@ -430,6 +441,7 @@ KeyManager.prototype.getKeyAliasList = function() {
 };
 
 KeyManager.prototype.getCertificate = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.KEYMANAGER);
   var args = validator.validateArgs(arguments, [
     {
       name: "name",
@@ -453,6 +465,7 @@ KeyManager.prototype.getCertificate = function() {
 };
 
 KeyManager.prototype.getCertificatesAliasList = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.KEYMANAGER);
   var ret = native.callSync('KeyManager_getCertificatesAliasList', {});
   if (native.isFailure(ret)) {
     throw native.getErrorObject(ret);
@@ -461,6 +474,7 @@ KeyManager.prototype.getCertificatesAliasList = function() {
 };
 
 KeyManager.prototype.getData = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.KEYMANAGER);
   var args = validator.validateArgs(arguments, [
     {
       name: "name",
@@ -484,6 +498,7 @@ KeyManager.prototype.getData = function() {
 };
 
 KeyManager.prototype.getDataAliasList = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.KEYMANAGER);
   var ret = native.callSync('KeyManager_getDataAliasList', {});
   if (native.isFailure(ret)) {
     throw native.getErrorObject(ret);
@@ -492,6 +507,7 @@ KeyManager.prototype.getDataAliasList = function() {
 };
 
 KeyManager.prototype.allowAccessControl = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.KEYMANAGER);
   var args = validator.validateArgs(arguments, [
     {
       name: "dataName",
@@ -532,6 +548,7 @@ KeyManager.prototype.allowAccessControl = function() {
 };
 
 KeyManager.prototype.denyAccessControl = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.KEYMANAGER);
   var args = validator.validateArgs(arguments, [
     {
       name: "dataName",
@@ -566,6 +583,7 @@ KeyManager.prototype.denyAccessControl = function() {
 };
 
 KeyManager.prototype.createSignature = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.KEYMANAGER);
   var args = validator.validateArgs(arguments, [
     {
       name: "message",
@@ -621,6 +639,7 @@ KeyManager.prototype.createSignature = function() {
 };
 
 KeyManager.prototype.verifySignature = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.KEYMANAGER);
   var args = validator.validateArgs(arguments, [
     {
       name: "signature",
