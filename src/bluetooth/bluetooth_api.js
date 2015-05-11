@@ -660,15 +660,38 @@ BluetoothLEDevice.prototype.getService = function() {
 BluetoothLEDevice.prototype.addConnectStateChangeListener = function() {
     console.log('Entered BluetoothLEDevice.addConnectStateChangeListener()');
 
-    //TODO validate
-    //TODO call c++ layer
+    var args = AV.validateMethod(arguments, [
+        {
+            name: 'listener',
+            type: AV.Types.LISTENER,
+            values: ['onconnected', 'ondisconnected']
+        }
+    ]);
+
+    var that = this;
+
+    var func = function(event) {
+        if (event.address === that.address && args.listener[event.action]) {
+            args.listener[event.action](that);
+        }
+    }
+
+    var watchId = _bleConnectChangeListener.addListener(func);
+
+    return watchId;
 };
 
 BluetoothLEDevice.prototype.removeConnectStateChangeListener = function() {
     console.log('Entered BluetoothLEDevice.removeConnectStateChangeListener()');
 
-    //TODO validate
-    //TODO call c++ layer
+    var args = AV.validateMethod(arguments, [
+        {
+            name: 'watchID',
+            type: AV.Types.LONG
+        }
+    ]);
+
+    _bleConnectChangeListener.removeListener(args.watchID);
 };
 
 // class BluetoothDevice ////////////////////////////////////////////////////
@@ -1741,6 +1764,15 @@ var _bluetoothGATTCharacteristicListener = _multipleListenerBuilder(
     },
     'BluetoothGATTCharacteristic_addValueChangeListener',
     'BluetoothGATTCharacteristic_removeValueChangeListener'
+);
+
+var _bleConnectChangeListener = _multipleListenerBuilder(
+    'BluetoothLEConnectChangeCallback',
+    function(listener, event) {
+        listener(event);
+    },
+    'BluetoothLEDevice_addConnectStateChangeListener',
+    'BluetoothLEDevice_removeConnectStateChangeListener'
 );
 
 BluetoothGATTCharacteristic.prototype.addValueChangeListener = function() {

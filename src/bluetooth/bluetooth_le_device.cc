@@ -43,11 +43,17 @@ const std::string kServiceUuids = "serviceuuids";
 const std::string kManufacturerData = "manufacturerData";
 const std::string kId = "id";
 const std::string kData = "data";
+const std::string kAction = "action";
+
+const std::string kOnConnected = "onconnected";
+const std::string kOnDisconnected = "ondisconnected";
+const std::string kConnectChangeEvent = "BluetoothLEConnectChangeCallback";
 
 }
 
 BluetoothLEDevice::BluetoothLEDevice(BluetoothInstance& instance)
-    : instance_(instance) {
+    : instance_(instance),
+      is_listener_set_(false) {
   int ret = bt_gatt_set_connection_state_changed_cb(GattConnectionState, this);
   if (BT_ERROR_NONE != ret && BT_ERROR_ALREADY_DONE != ret) {
     LoggerE("Can't add connection state listener: %d", ret);
@@ -339,11 +345,19 @@ void BluetoothLEDevice::GetService(const picojson::value& data,
 void BluetoothLEDevice::AddConnectStateChangeListener(
     const picojson::value& data, picojson::object& out) {
   LoggerD("Entered");
+
+  is_listener_set_ = true;
+
+  ReportSuccess(out);
 }
 
 void BluetoothLEDevice::RemoveConnectStateChangeListener(
     const picojson::value& data, picojson::object& out) {
   LoggerD("Entered");
+
+  is_listener_set_ = false;
+
+  ReportSuccess(out);
 }
 
 void BluetoothLEDevice::GattConnectionState(int result, bool connected,
@@ -355,6 +369,25 @@ void BluetoothLEDevice::GattConnectionState(int result, bool connected,
   if (!le_device) {
     LoggerE("user_data is NULL");
     return;
+  }
+
+  if (le_device->is_listener_set_) {
+
+    picojson::value value = picojson::value(picojson::object());
+    picojson::object* data_obj = &value.get<picojson::object>();
+    if (connected) {
+      LoggerD("OnConnected");
+      data_obj->insert(std::make_pair(kAction, picojson::value(kOnConnected)));
+    } else {
+      LoggerD("OnDisconnected");
+      data_obj->insert(
+          std::make_pair(kAction, picojson::value(kOnDisconnected)));
+    }
+
+    data_obj->insert(
+        std::make_pair(kDeviceAddress, picojson::value(remote_address)));
+
+    le_device->instance_.FireEvent(kConnectChangeEvent, value);
   }
 
   auto it = le_device->connecting_.find(remote_address);

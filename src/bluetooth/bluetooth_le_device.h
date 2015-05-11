@@ -54,6 +54,7 @@ class BluetoothLEDevice {
 
   BluetoothInstance& instance_;
   std::unordered_map<std::string, double> connecting_;
+  bool is_listener_set_;
 };
 
 }  // namespace bluetooth
