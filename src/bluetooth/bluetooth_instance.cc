@@ -140,6 +140,14 @@ BluetoothInstance::BluetoothInstance() :
       std::bind(&BluetoothGATTService::ReadValue, &bluetooth_gatt_service_, _1, _2));
   REGISTER_SYNC("BluetoothGATT_writeValue",
       std::bind(&BluetoothGATTService::WriteValue, &bluetooth_gatt_service_, _1, _2));
+  REGISTER_SYNC(
+      "BluetoothGATTCharacteristic_addValueChangeListener",
+      std::bind(&BluetoothGATTService::AddValueChangeListener,
+                &bluetooth_gatt_service_, _1, _2));
+  REGISTER_SYNC(
+      "BluetoothGATTCharacteristic_removeValueChangeListener",
+      std::bind(&BluetoothGATTService::RemoveValueChangeListener,
+                &bluetooth_gatt_service_, _1, _2));
 
   #undef REGISTER_ASYNC
   #undef REGISTER_SYNC

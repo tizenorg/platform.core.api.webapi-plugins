@@ -1702,7 +1702,42 @@ var BluetoothGATTCharacteristic = function(data, address) {
         throw native.getErrorObject(result);
       }
     };
+
+  BluetoothGATTCharacteristic.prototype.addValueChangeListener = function() {
+    console.log('Entered BluetoothGATTCharacteristic.addValueChangeListener()');
+
+    xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH);
+
+    var args = AV.validateMethod(arguments, [{
+      name: 'callback',
+      type: AV.Types.FUNCTION
+    }]);
+
+    var callArgs = { handle: handle_, address : address_ };
+
+    var callback = function(event) {
+      if (event.handle === handle_) {
+        args.callback(toByteArray(native.getResultObject(event)));
+      }
+    };
+
+    return _bluetoothGATTCharacteristicListener.addListener(callback, callArgs);
+  };
+
+  BluetoothGATTCharacteristic.prototype.removeValueChangeListener = function() {
+    console.log('Entered BluetoothGATTCharacteristic.removeValueChangeListener()');
+
+    var args = AV.validateMethod(arguments, [{
+      name: 'watchID',
+      type: AV.Types.LONG
+    }]);
+
+    var callArgs = { handle: handle_, address : address_ };
+
+    return _bluetoothGATTCharacteristicListener.removeListener(args.watchID, callArgs);
+  };
 };
+
 
 /**
  * Creates a manager for specified listener event. Manager handles multiple
@@ -1713,21 +1748,29 @@ var BluetoothGATTCharacteristic = function(data, address) {
  *                              This function should have following signature:
  *                              void callback(listener, event);
  * @param {string} addListenerId - optional parameter. If specified, this native
- *                                 method will be called synchronously when first
+ *                                 method will be called synchronously when
  *                                 listener is added.
  * @param {string} removeListenerId - optional parameter. If specified, this native
- *                                 method will be called synchronously when last
+ *                                 method will be called synchronously when
  *                                 listener is removed.
+ * @param {bool} repeatNativeCall - optional parameter. If specified, the addListenerId
+ *                                 and removeListenerId methods will be called synchronously
+ *                                 each time listener is added/removed. Otherwise they are
+ *                                 going to be called just once: when first listener is added
+ *                                 and last listener is removed.
  *
  * @return {object} object which allows to add or remove callbacks for specified listener
  */
-function _multipleListenerBuilder(name, callback, addListenerId, removeListenerId) {
+function _multipleListenerBuilder(name, callback, addListenerId, removeListenerId, repeatNativeCall) {
   var listenerName = name;
   var addId = addListenerId;
   var removeId = removeListenerId;
   var callbackFunction = callback;
   var listeners = {};
   var nextId = 1;
+  var jsListenerRegistered = false;
+  var nativeListenerRegistered = false;
+  var repeatNativeListenerCall = repeatNativeCall;
 
   function innerCallback(event) {
     for (var watchId in listeners) {
@@ -1737,35 +1780,39 @@ function _multipleListenerBuilder(name, callback, addListenerId, removeListenerI
     }
   }
 
-  function addListener(callback) {
+  function addListener(callback, args) {
     var id = ++nextId;
 
-    if (!listenerRegistered) {
-      if (addId) {
-        var result = native.callSync(addId, {});
-        if (native.isFailure(result)) {
-          throw native.getErrorObject(result);
-        }
+    if (addId && (!nativeListenerRegistered || repeatNativeListenerCall)) {
+      var result = native.callSync(addId, args || {});
+      if (native.isFailure(result)) {
+        throw native.getErrorObject(result);
       }
+      nativeListenerRegistered = true;
+    }
+
+    if (!jsListenerRegistered) {
       native.addListener(listenerName, innerCallback);
-      listenerRegistered = true;
+      jsListenerRegistered = true;
     }
 
     listeners[id] = callback;
     return id;
   }
 
-  function removeListener(watchId) {
+  function removeListener(watchId, args) {
     if (listeners.hasOwnProperty(watchId)) {
       delete listeners[watchId];
     }
 
-    if (listenerRegistered && T.isEmptyObject(listeners)) {
-      if (removeId) {
-        native.callSync(removeId, {});
-      }
+    if (removeId && ((nativeListenerRegistered && T.isEmptyObject(listeners)) || repeatNativeListenerCall)) {
+      native.callSync(removeId, args || {});
+      nativeListenerRegistered = false;
+    }
+
+    if (jsListenerRegistered && T.isEmptyObject(listeners)) {
       native.removeListener(listenerName, innerCallback);
-      listenerRegistered = false;
+      jsListenerRegistered = false;
     }
   }
 
@@ -1777,15 +1824,12 @@ function _multipleListenerBuilder(name, callback, addListenerId, removeListenerI
 
 var _bluetoothGATTCharacteristicListener = _multipleListenerBuilder(
     'BluetoothGATTCharacteristicValueChangeListener',
-    function(listener, data) {
-      var d = [];
-      data.value.forEach(function(b) {
-        d.push(Converter.toByte(b));
-      });
-      listener(d);
+    function(listener, event) {
+      listener(event);
     },
     'BluetoothGATTCharacteristic_addValueChangeListener',
-    'BluetoothGATTCharacteristic_removeValueChangeListener'
+    'BluetoothGATTCharacteristic_removeValueChangeListener',
+    true
 );
 
 var _bleConnectChangeListener = _multipleListenerBuilder(
@@ -1796,30 +1840,6 @@ var _bleConnectChangeListener = _multipleListenerBuilder(
     'BluetoothLEDevice_addConnectStateChangeListener',
     'BluetoothLEDevice_removeConnectStateChangeListener'
 );
-
-BluetoothGATTCharacteristic.prototype.addValueChangeListener = function() {
-  console.log('Entered BluetoothGATTCharacteristic.addValueChangeListener()');
-
-  xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH);
-
-  var args = AV.validateMethod(arguments, [{
-    name: 'callback',
-    type: AV.Types.FUNCTION
-  }]);
-
-  return _bluetoothGATTCharacteristicListener.addListener(args.callback);
-};
-
-BluetoothGATTCharacteristic.prototype.removeValueChangeListener = function() {
-  console.log('Entered BluetoothGATTCharacteristic.removeValueChangeListener()');
-
-  var args = AV.validateMethod(arguments, [{
-    name: 'watchID',
-    type: AV.Types.LONG
-  }]);
-
-  return _bluetoothGATTCharacteristicListener.removeListener(args.watchID);
-};
 
 //class BluetoothGATTDescriptor ////////////////////////////////////////////////////
 var BluetoothGATTDescriptor = function(address) {

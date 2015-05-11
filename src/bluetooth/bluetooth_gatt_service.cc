@@ -49,6 +49,7 @@ const std::string kSignedWrite = "isSignedWrite";
 const std::string kWritable = "isWritable";
 const std::string kWriteNoResponse = "isWriteNoResponse";
 
+const std::string kOnValueChanged = "BluetoothGATTCharacteristicValueChangeListener";
 
 bool IsProperty (int propertyBits, bt_gatt_property_e property) {
   return (propertyBits & property) == 0;
@@ -65,6 +66,8 @@ BluetoothGATTService::~BluetoothGATTService() {
   LoggerD("Entered");
 
   for (auto it : gatt_clients_) {
+    // unregister callback, ignore errors
+    bt_gatt_client_unset_characteristic_value_changed_cb(it.second);
     LoggerD("destroying client for address: %s", it.first.c_str());
     bt_gatt_client_destroy(it.second);
   }
@@ -438,5 +441,79 @@ void BluetoothGATTService::WriteValue(const picojson::value& args,
   }
   ReportSuccess(out);
 }
+
+void BluetoothGATTService::AddValueChangeListener(const picojson::value& args,
+                                                  picojson::object& out) {
+  LoggerD("Entered");
+  const auto& address = args.get("address").get<std::string>();
+  if (!IsStillConnected(address)) {
+    LoggerE("Device with address %s is no longer connected", address.c_str());
+    ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
+                               "Device is not connected"), &out);
+    return;
+  }
+
+  bt_gatt_h handle = (bt_gatt_h)static_cast<long>(args.get(kHandle).get<double>());
+
+  int ret = bt_gatt_client_set_characteristic_value_changed_cb(handle, OnCharacteristicValueChanged, this);
+  if (BT_ERROR_NONE != ret) {
+    LoggerE("bt_gatt_client_set_characteristic_value_changed_cb() failed with: %d", ret);
+    ReportError(util::GetBluetoothError(ret, "Failed to register listener"), &out);
+  } else {
+    ReportSuccess(out);
+  }
+}
+
+void BluetoothGATTService::RemoveValueChangeListener(
+    const picojson::value& args, picojson::object& out) {
+  LoggerD("Entered");
+  const auto& address = args.get("address").get<std::string>();
+  if (!IsStillConnected(address)) {
+    LoggerE("Device with address %s is no longer connected", address.c_str());
+    ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
+                               "Device is not connected"), &out);
+    return;
+  }
+
+  bt_gatt_h handle = (bt_gatt_h)static_cast<long>(args.get(kHandle).get<double>());
+
+  int ret = bt_gatt_client_unset_characteristic_value_changed_cb(handle);
+
+  if (BT_ERROR_NONE != ret) {
+    LoggerE("bt_gatt_client_unset_characteristic_value_changed_cb() failed with: %d", ret);
+    ReportError(util::GetBluetoothError(ret, "Failed to unregister listener"), &out);
+  } else {
+    ReportSuccess(out);
+  }
+}
+
+void BluetoothGATTService::OnCharacteristicValueChanged(
+    bt_gatt_h characteristic, char* value, int length, void* user_data) {
+  LoggerD("Entered, characteristic: [%p], len: [d], user_data: [%p]", characteristic, length, user_data);
+
+  auto service = static_cast<BluetoothGATTService*>(user_data);
+
+  if (!service) {
+    LoggerE("user_data is NULL");
+    return;
+  }
+
+  picojson::value result = picojson::value(picojson::object());
+  picojson::object result_obj = result.get<picojson::object>();
+
+  result_obj.insert(std::make_pair(kHandle, picojson::value((double)(long)characteristic)));
+
+  picojson::value byte_array = picojson::value(picojson::array());
+  picojson::array& byte_array_obj = byte_array.get<picojson::array>();
+
+  for (size_t i = 0 ; i < length; ++i) {
+    byte_array_obj.push_back(picojson::value(std::to_string(value[i])));
+  }
+
+  ReportSuccess(byte_array, result_obj);
+
+  service->instance_.FireEvent(kOnValueChanged, result);
+}
+
 } // namespace bluetooth
 } // namespace extension

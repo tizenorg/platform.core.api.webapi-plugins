@@ -43,6 +43,10 @@ class BluetoothGATTService {
   void GetCharacteristics(const picojson::value& data, picojson::object& out);
   void ReadValue(const picojson::value& args, picojson::object& out);
   void WriteValue(const picojson::value& args, picojson::object& out);
+  void AddValueChangeListener(const picojson::value& args,
+                              picojson::object& out);
+  void RemoveValueChangeListener(const picojson::value& args,
+                                 picojson::object& out);
 
  private:
   bool IsStillConnected(const std::string& address);
@@ -53,6 +57,10 @@ class BluetoothGATTService {
                                                   const std::string& address,
                                                   const std::string& uuid,
                                                   picojson::array* array);
+
+  static void OnCharacteristicValueChanged(bt_gatt_h characteristic,
+                                           char* value, int len,
+                                           void* user_data);
 
   std::map<std::string, bt_gatt_client_h> gatt_clients_;
 
