@@ -316,5 +316,63 @@ void BluetoothGATTService::ReadValue(const picojson::value& args,
   ReportSuccess(out);
 }
 
+
+void BluetoothGATTService::WriteValue(const picojson::value& args,
+                                     picojson::object& out) {
+  LoggerD("Entered");
+  const double callback_handle = util::GetAsyncCallbackHandle(args);
+  const picojson::array& value_array = args.get("value").get<picojson::array>();
+
+  int value_size = value_array.size();
+  std::unique_ptr<char[]> value_data(new char[value_size]);
+  for (size_t i = 0; i < value_size; ++i) {
+    value_data[i] = static_cast<char>(value_array[i].get<double>());
+  }
+
+  struct Data {
+    double callback_handle;
+    BluetoothGATTService* service;
+  };
+
+  Data* user_data = new Data{callback_handle, this};
+  bt_gatt_h handle = (bt_gatt_h) static_cast<long>(args.get("handle").get<double>());
+
+  //TODO check if client device is still connected and throw InvalidStateError
+
+  auto write_value = [](int result, bt_gatt_h handle, void *user_data) -> void {
+    Data* data = (Data*) user_data;
+    double callback_handle = data->callback_handle;
+    BluetoothGATTService* service = data->service;
+    delete data;
+
+    PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
+    if (BT_ERROR_NONE != result) {
+      //TODO handle error
+    }
+
+    std::shared_ptr<picojson::value> response =
+        std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
+    if (ret.IsSuccess()) {
+      ReportSuccess(response->get<picojson::object>());
+    } else {
+      ReportError(ret, &response->get<picojson::object>());
+    }
+    TaskQueue::GetInstance().Async<picojson::value>(
+        [service, callback_handle](const std::shared_ptr<picojson::value>& response) {
+      service->instance_.SyncResponse(callback_handle, response);
+    }, response);
+  };
+  int ret = bt_gatt_set_value(handle, value_data.get(), value_size);
+  if (BT_ERROR_NONE != ret) {
+    LOGE("Couldn't set value");
+    //TODO handle error ??
+  }
+  ret = bt_gatt_client_write_value(handle, write_value, (void*)user_data);
+  if (BT_ERROR_NONE != ret) {
+    LOGE("Couldn't register callback for read value");
+    //TODO handle error ??
+  }
+  ReportSuccess(out);
+}
 } // namespace bluetooth
 } // namespace extension

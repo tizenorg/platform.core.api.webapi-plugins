@@ -1577,6 +1577,16 @@ var BluetoothGATTCharacteristic = function(data) {
       }
     }
   });
+
+  var toByteArray = function(array) {
+      var d = [];
+
+      array.forEach(function(b) {
+          d.push(Converter.toOctet(b));
+      });
+      return d;
+  };
+
   BluetoothGATTCharacteristic.prototype.readValue = function() {
       console.log('Entered BluetoothGATTCharacteristic.readValue()');
 
@@ -1596,10 +1606,7 @@ var BluetoothGATTCharacteristic = function(data) {
         if (native.isFailure(result)) {
           native.callIfPossible(args.errorCallback, native.getErrorObject(result));
         } else {
-          var d = [];
-          native.getResultObject(result).forEach(function(b) {
-            d.push(Converter.toByte(b));
-          });
+          var d = toByteArray(native.getResultObject(result));
           args.successCallback(d);
         }
       };
@@ -1642,7 +1649,7 @@ var BluetoothGATTCharacteristic = function(data) {
         }
       };
 
-      var callArgs = { handle : handle_, value: args.value };
+      var callArgs = { handle : handle_, value: toByteArray(args.value) };
 
       var result = native.call('BluetoothGATT_writeValue', callArgs, callback);
 
@@ -1762,81 +1769,81 @@ BluetoothGATTCharacteristic.prototype.removeValueChangeListener = function() {
 
 //class BluetoothGATTDescriptor ////////////////////////////////////////////////////
 var BluetoothGATTDescriptor = function() {
-};
+  var handle_ = data.handle;
 
-BluetoothGATTDescriptor.prototype.readValue = function() {
-  console.log('Entered BluetoothGATTDescriptor.readValue()');
+  BluetoothGATTDescriptor.prototype.readValue = function() {
+    console.log('Entered BluetoothGATTDescriptor.readValue()');
 
-  xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH);
+    xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH);
 
-  var args = AV.validateMethod(arguments, [{
-    name: 'successCallback',
-    type: AV.Types.FUNCTION
-  }, {
-    name: 'errorCallback',
-    type: AV.Types.FUNCTION,
-    optional: true,
-    nullable: true
-  }]);
+    var args = AV.validateMethod(arguments, [{
+      name: 'successCallback',
+      type: AV.Types.FUNCTION
+    }, {
+      name: 'errorCallback',
+      type: AV.Types.FUNCTION,
+      optional: true,
+      nullable: true
+    }]);
 
-  var callback = function(result) {
+    var callback = function(result) {
+      if (native.isFailure(result)) {
+        native.callIfPossible(args.errorCallback, native.getErrorObject(result));
+      } else {
+        var d = toByteArray(native.getResultObject(result));
+        args.successCallback(d);
+      }
+    };
+
+    var callArgs = {handle : handle_};
+
+    var result = native.call('BluetoothGATT_readValue', callArgs, callback);
+
     if (native.isFailure(result)) {
-      native.callIfPossible(args.errorCallback, native.getErrorObject(result));
-    } else {
-      var d = [];
-      native.getResultObject(result).forEach(function(b) {
-        d.push(Converter.toByte(b));
-      });
-      args.successCallback(d);
+      throw native.getErrorObject(result);
     }
   };
 
-  var callArgs = {}; // TODO: add more arguments
+  BluetoothGATTDescriptor.prototype.writeValue = function() {
+    console.log('Entered BluetoothGATTDescriptor.writeValue()');
 
-  var result = native.call('BluetoothGATT_readValue', callArgs, callback);
+    xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH);
 
-  if (native.isFailure(result)) {
-    throw native.getErrorObject(result);
-  }
-};
+    var args = AV.validateMethod(arguments, [{
+      name: 'value',
+      type: AV.Types.ARRAY,
+      values: AV.Types.BYTE
+    }, {
+      name: 'successCallback',
+      type: AV.Types.FUNCTION,
+      optional: true,
+      nullable: true
+    }, {
+      name: 'errorCallback',
+      type: AV.Types.FUNCTION,
+      optional: true,
+      nullable: true
+    }]);
 
-BluetoothGATTDescriptor.prototype.writeValue = function() {
-  console.log('Entered BluetoothGATTDescriptor.writeValue()');
+    var callback = function(result) {
+      if (native.isFailure(result)) {
+        native.callIfPossible(args.errorCallback, native.getErrorObject(result));
+      } else {
+        native.callIfPossible(args.successCallback);
+      }
+    };
 
-  xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH);
+    var callArgs = { handle : handle_, value: toByteArray(args.value) };
 
-  var args = AV.validateMethod(arguments, [{
-    name: 'value',
-    type: AV.Types.ARRAY,
-    values: AV.Types.BYTE
-  }, {
-    name: 'successCallback',
-    type: AV.Types.FUNCTION,
-    optional: true,
-    nullable: true
-  }, {
-    name: 'errorCallback',
-    type: AV.Types.FUNCTION,
-    optional: true,
-    nullable: true
-  }]);
+    var result = native.call('BluetoothGATT_writeValue', callArgs, callback);
 
-  var callback = function(result) {
     if (native.isFailure(result)) {
-      native.callIfPossible(args.errorCallback, native.getErrorObject(result));
-    } else {
-      native.callIfPossible(args.successCallback);
+      throw native.getErrorObject(result);
     }
   };
-
-  var callArgs = { value: args.value }; // TODO: add more arguments
-
-  var result = native.call('BluetoothGATT_writeValue', callArgs, callback);
-
-  if (native.isFailure(result)) {
-    throw native.getErrorObject(result);
-  }
 };
+
+
 
 // class BluetoothAdapter ////////////////////////////////////////////////////
 var BluetoothAdapter = function() {

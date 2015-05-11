@@ -41,6 +41,7 @@ class BluetoothGATTService {
   void GetServices(const picojson::value& data, picojson::object& out);
   void GetCharacteristics(const picojson::value& data, picojson::object& out);
   void ReadValue(const picojson::value& args, picojson::object& out);
+  void WriteValue(const picojson::value& args, picojson::object& out);
 
  private:
   static common::PlatformResult GetServicesHelper(bt_gatt_h handle, const std::string& uuid,
