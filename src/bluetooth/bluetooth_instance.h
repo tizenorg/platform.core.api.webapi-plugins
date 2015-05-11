@@ -44,8 +44,8 @@ class BluetoothInstance: public common::ParsedInstance {
   BluetoothServiceHandler bluetooth_service_handler_;
   BluetoothSocket bluetooth_socket_;
   BluetoothLEAdapter bluetooth_le_adapter_;
-  BluetoothLEDevice bluetooth_le_device_;
   BluetoothGATTService bluetooth_gatt_service_;
+  BluetoothLEDevice bluetooth_le_device_;
 };
 
 } // namespace bluetooth

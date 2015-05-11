@@ -25,6 +25,7 @@
 
 using common::ErrorCode;
 using common::PlatformResult;
+using common::tools::ReportError;
 using common::tools::ReportSuccess;
 
 namespace extension {
@@ -51,8 +52,10 @@ const std::string kConnectChangeEvent = "BluetoothLEConnectChangeCallback";
 
 }
 
-BluetoothLEDevice::BluetoothLEDevice(BluetoothInstance& instance)
+BluetoothLEDevice::BluetoothLEDevice(BluetoothInstance& instance,
+                                     BluetoothGATTService& service)
     : instance_(instance),
+      service_(service),
       is_listener_set_(false) {
   int ret = bt_gatt_set_connection_state_changed_cb(GattConnectionState, this);
   if (BT_ERROR_NONE != ret && BT_ERROR_ALREADY_DONE != ret) {
@@ -340,6 +343,33 @@ void BluetoothLEDevice::Disconnect(const picojson::value& data,
 void BluetoothLEDevice::GetService(const picojson::value& data,
                                    picojson::object& out) {
   LoggerD("Entered");
+
+  const auto& args = util::GetArguments(data);
+
+  const auto& address = common::FromJson<std::string>(args, "address");
+  const auto& uuid = common::FromJson<std::string>(args, "uuid");
+
+  auto it = is_connected_.find(address);
+  if (it == is_connected_.end()) {
+    LoggerE("Bluetooth low energy device is not connected");
+    ReportError(
+        PlatformResult(ErrorCode::INVALID_STATE_ERR,
+                       "Bluetooth low energy device is not connected"),
+        &out);
+    return;
+  }
+
+  picojson::value response = picojson::value(picojson::object());
+  picojson::object *data_obj = &response.get<picojson::object>();
+
+  PlatformResult result = service_.GetSpecifiedGATTService(address, uuid,
+                                                           data_obj);
+
+  if (result.IsError()) {
+    ReportError(result, &out);
+  } else {
+    ReportSuccess(response, out);
+  }
 }
 
 void BluetoothLEDevice::AddConnectStateChangeListener(
@@ -369,6 +399,14 @@ void BluetoothLEDevice::GattConnectionState(int result, bool connected,
   if (!le_device) {
     LoggerE("user_data is NULL");
     return;
+  }
+
+  if (connected) {
+    le_device->is_connected_.insert(remote_address);
+  } else {
+    le_device->is_connected_.erase(remote_address);
+    // inform that this device is not connected anymore
+    le_device->service_.TryDestroyClient(remote_address);
   }
 
   if (le_device->is_listener_set_) {

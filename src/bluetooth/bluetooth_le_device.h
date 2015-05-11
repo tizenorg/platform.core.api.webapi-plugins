@@ -19,7 +19,10 @@
 
 #include <bluetooth.h>
 
+#include <set>
 #include <unordered_map>
+
+#include "bluetooth/bluetooth_gatt_service.h"
 
 #include "common/picojson.h"
 #include "common/platform_result.h"
@@ -31,7 +34,7 @@ class BluetoothInstance;
 
 class BluetoothLEDevice {
  public:
-  explicit BluetoothLEDevice(BluetoothInstance& instance);
+  explicit BluetoothLEDevice(BluetoothInstance& instance, BluetoothGATTService& service);
   ~BluetoothLEDevice();
 
   void Connect(const picojson::value& data, picojson::object& out);
@@ -53,8 +56,10 @@ class BluetoothLEDevice {
                                   const char *remote_address, void *user_data);
 
   BluetoothInstance& instance_;
+  BluetoothGATTService& service_;
   std::unordered_map<std::string, double> connecting_;
   bool is_listener_set_;
+  std::set<std::string> is_connected_;
 };
 
 }  // namespace bluetooth

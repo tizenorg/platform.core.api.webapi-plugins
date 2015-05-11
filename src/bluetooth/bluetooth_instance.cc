@@ -22,8 +22,8 @@ BluetoothInstance::BluetoothInstance() :
     bluetooth_service_handler_(bluetooth_adapter_),
     bluetooth_socket_(bluetooth_adapter_),
     bluetooth_le_adapter_(*this),
-    bluetooth_le_device_(*this),
-    bluetooth_gatt_service_(*this)
+    bluetooth_gatt_service_(*this),
+    bluetooth_le_device_(*this, bluetooth_gatt_service_)
 {
   LoggerD("Entered");
   using std::placeholders::_1;

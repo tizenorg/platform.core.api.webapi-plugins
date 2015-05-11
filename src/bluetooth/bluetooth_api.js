@@ -653,8 +653,26 @@ BluetoothLEDevice.prototype.getService = function() {
     console.log('Entered BluetoothLEDevice.getService()');
 
     xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH);
-    //TODO validate
-    //TODO call c++ layer
+
+    var args = AV.validateMethod(arguments, [
+        {
+            name: 'uuid',
+            type: AV.Types.STRING
+        }
+    ]);
+
+    var callArgs = {
+        uuid : args.uuid,
+        address : this.address
+    };
+
+    var result = native.callSync('BluetoothLEDevice_getService', callArgs);
+
+    if (native.isFailure(result)) {
+        throw native.getErrorObject(result);
+    } else {
+        return BluetoothGATTService(native.getResultObject(result));
+    }
 };
 
 BluetoothLEDevice.prototype.addConnectStateChangeListener = function() {
