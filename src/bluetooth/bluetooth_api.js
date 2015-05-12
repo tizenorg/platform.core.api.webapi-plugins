@@ -1806,7 +1806,10 @@ function _multipleListenerBuilder(name, callback, addListenerId, removeListenerI
     }
 
     if (removeId && ((nativeListenerRegistered && T.isEmptyObject(listeners)) || repeatNativeListenerCall)) {
-      native.callSync(removeId, args || {});
+      var result = native.callSync(removeId, args || {});
+      if (native.isFailure(result)) {
+        throw native.getErrorObject(result);
+      }
       nativeListenerRegistered = false;
     }
 
