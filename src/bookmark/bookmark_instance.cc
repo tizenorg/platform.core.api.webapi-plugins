@@ -43,8 +43,11 @@ bool BookmarkInstance::bookmark_foreach(
   int ids_count = 0;
   int* ids = NULL;
   BookmarkObject item;
-  if (bp_bookmark_adaptor_get_full_ids_p(&ids, &ids_count) < 0)
+  if (bp_bookmark_adaptor_get_ids_p(&ids, &ids_count, -1, 0, -1, -1, -1, -1,
+                                    BP_BOOKMARK_O_DATE_CREATED, 0) < 0)
     return false;
+
+
   if (ids_count > 0) {
     for (int i = 0; i < ids_count; i++) {
       bp_bookmark_adaptor_get_easy_all(ids[i], &info);
@@ -65,7 +68,8 @@ bool BookmarkInstance::bookmark_url_exists(const char* url) {
   int* ids = NULL;
   char* compare_url = NULL;
 
-  if (bp_bookmark_adaptor_get_full_ids_p(&ids, &ids_count) < 0)
+  if (bp_bookmark_adaptor_get_ids_p(&ids, &ids_count, -1, 0, -1, -1, -1, -1,
+                                    BP_BOOKMARK_O_DATE_CREATED, 0) < 0)
     return true;
   if (ids_count > 0) {
     for (int i = 0; i < ids_count; i++) {
@@ -92,7 +96,8 @@ bool BookmarkInstance::bookmark_title_exists_in_parent(
   int* ids = NULL;
   char* compare_title = NULL;
 
-  if (bp_bookmark_adaptor_get_full_ids_p(&ids, &ids_count) < 0)
+  if (bp_bookmark_adaptor_get_ids_p(&ids, &ids_count, -1, 0, -1, -1, -1, -1,
+                                    BP_BOOKMARK_O_DATE_CREATED, 0) < 0)
     return true;
   if (ids_count > 0) {
     for (int i = 0; i < ids_count; i++) {
@@ -204,10 +209,6 @@ void BookmarkInstance::BookmarkRemove(
   int id = common::stol(
       common::FromJson<std::string>(arg.get<picojson::object>(), kId));
   if (bp_bookmark_adaptor_delete(id) < 0) {
-    ReportError(o);
-    return;
-  }
-  if (bp_bookmark_adaptor_clear_deleted_ids() < 0) {
     ReportError(o);
     return;
   }
