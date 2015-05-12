@@ -100,9 +100,7 @@ PlatformResult BluetoothGATTService::GetSpecifiedGATTService(const std::string &
     ret = bt_gatt_client_create(address.c_str(), &client);
     if (BT_ERROR_NONE != ret) {
       LoggerE("%d", ret);
-      //TODO check error code
-      return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                            "Failed to create the GATT client's handle");
+      return util::GetBluetoothError(ret, "Failed to create the GATT client's handle");
     }
     gatt_clients_.insert(std::make_pair(address, client));
   } else {
@@ -114,9 +112,7 @@ PlatformResult BluetoothGATTService::GetSpecifiedGATTService(const std::string &
   ret = bt_gatt_client_get_service(client, uuid.c_str(), &service);
   if (BT_ERROR_NONE != ret) {
     LoggerE("%d", ret);
-    //TODO check error code
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Failed to get a service's GATT handle");
+    return util::GetBluetoothError(ret, "Failed to get a service's GATT handle");
   }
 
   //report BluetoothGattService
@@ -180,9 +176,7 @@ PlatformResult BluetoothGATTService::GetServicesHelper(bt_gatt_h handle,
         return true;
       }, static_cast<void*>(&user_data));
   if (BT_ERROR_NONE != ret) {
-    //TODO check error code
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Failed to set a service's GATT callback");
+    return util::GetBluetoothError(ret, "Failed to set a service's GATT callback");
   }
 
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -218,11 +212,21 @@ PlatformResult BluetoothGATTService::GetCharacteristicsHelper(bt_gatt_h handle,
                           "Device is not connected");
   }
 
+  struct Data {
+    picojson::array* array;
+    PlatformResult* platform_res;
+  };
+
+  PlatformResult platform_result = PlatformResult(ErrorCode::NO_ERROR);
+  Data user_data = {array, &platform_result};
+
   int ret = bt_gatt_service_foreach_characteristics(
       handle,
       [](int total, int index, bt_gatt_h gatt_handle, void *data) {
         LoggerD("Enter");
-        picojson::array* array = static_cast<picojson::array*>(data);
+        Data* user_data = static_cast<Data*>(data);
+        picojson::array* array = user_data->array;
+        PlatformResult* platform_result = user_data->platform_res;
 
         picojson::value result = picojson::value(picojson::object());
         picojson::object& result_obj = result.get<picojson::object>();
@@ -250,7 +254,7 @@ PlatformResult BluetoothGATTService::GetCharacteristicsHelper(bt_gatt_h handle,
               return true;
             }, static_cast<void*>(&desc_array));
         if (BT_ERROR_NONE != ret) {
-          //TODO check error code
+          *platform_result = util::GetBluetoothError(ret, "Failed to get descriptors");
           return false;
         }
 
@@ -279,11 +283,12 @@ PlatformResult BluetoothGATTService::GetCharacteristicsHelper(bt_gatt_h handle,
 
         array->push_back(result);
         return true;
-      }, static_cast<void*>(&array));
+      }, static_cast<void*>(&user_data));
+  if (platform_result.IsError()) {
+    return platform_result;
+  }
   if (BT_ERROR_NONE != ret) {
-    //TODO check error code
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Failed while getting characteristic");
+    return util::GetBluetoothError(ret, "Failed while getting characteristic");
   }
 
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -316,23 +321,23 @@ void BluetoothGATTService::ReadValue(const picojson::value& args,
     BluetoothGATTService* service = data->service;
     delete data;
 
-    PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
+    PlatformResult plarform_res = PlatformResult(ErrorCode::NO_ERROR);
 
     picojson::value byte_array = picojson::value(picojson::array());
     picojson::array& byte_array_obj = byte_array.get<picojson::array>();
 
     if (BT_ERROR_NONE != result) {
-      //TODO handle error
+      plarform_res = util::GetBluetoothError(result, "Error while reading value");
     } else {
       char *value = nullptr;
       int length = 0;
       int ret = bt_gatt_get_value(handle, &value, &length);
       if (BT_ERROR_NONE != result) {
-        //TODO handle error
-      }
-
-      for (size_t i = 0 ; i < length; i++) {
-        byte_array_obj.push_back(picojson::value(std::to_string(value[i])));
+        plarform_res = util::GetBluetoothError(ret, "Error while getting value");
+      } else {
+        for (size_t i = 0 ; i < length; i++) {
+          byte_array_obj.push_back(picojson::value(std::to_string(value[i])));
+        }
       }
       if (value) {
         free(value);
@@ -342,10 +347,10 @@ void BluetoothGATTService::ReadValue(const picojson::value& args,
 
     std::shared_ptr<picojson::value> response =
         std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
-    if (ret.IsSuccess()) {
+    if (plarform_res.IsSuccess()) {
       ReportSuccess(byte_array, response->get<picojson::object>());
     } else {
-      ReportError(ret, &response->get<picojson::object>());
+      ReportError(plarform_res, &response->get<picojson::object>());
     }
     TaskQueue::GetInstance().Async<picojson::value>(
         [service, callback_handle](const std::shared_ptr<picojson::value>& response) {
@@ -355,7 +360,6 @@ void BluetoothGATTService::ReadValue(const picojson::value& args,
   int ret = bt_gatt_client_read_value(handle, read_value, (void*)user_data);
   if (BT_ERROR_NONE != ret) {
     LOGE("Couldn't register callback for read value");
-    //TODO handle error ??
   }
   ReportSuccess(out);
 }
@@ -398,7 +402,7 @@ void BluetoothGATTService::WriteValue(const picojson::value& args,
 
     PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
     if (BT_ERROR_NONE != result) {
-      //TODO handle error
+      ret = util::GetBluetoothError(result, "Error while getting value");
     }
 
     std::shared_ptr<picojson::value> response =
@@ -413,15 +417,24 @@ void BluetoothGATTService::WriteValue(const picojson::value& args,
       service->instance_.SyncResponse(callback_handle, response);
     }, response);
   };
+
+
   int ret = bt_gatt_set_value(handle, value_data.get(), value_size);
   if (BT_ERROR_NONE != ret) {
     LOGE("Couldn't set value");
-    //TODO handle error ??
-  }
-  ret = bt_gatt_client_write_value(handle, write_value, (void*)user_data);
-  if (BT_ERROR_NONE != ret) {
-    LOGE("Couldn't register callback for read value");
-    //TODO handle error ??
+    std::shared_ptr<picojson::value> response =
+        std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
+    ReportError(util::GetBluetoothError(ret, "Failed to set value"),
+                &response->get<picojson::object>());
+    TaskQueue::GetInstance().Async<picojson::value>(
+        [this, callback_handle](const std::shared_ptr<picojson::value>& response) {
+      instance_.SyncResponse(callback_handle, response);
+    }, response);
+  } else {
+    ret = bt_gatt_client_write_value(handle, write_value, (void*)user_data);
+    if (BT_ERROR_NONE != ret) {
+      LOGE("Couldn't register callback for write value");
+    }
   }
   ReportSuccess(out);
 }
