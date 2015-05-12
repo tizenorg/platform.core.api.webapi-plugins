@@ -153,7 +153,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_exif_support                1
 %define tizen_feature_filesystem_support          1
 %define tizen_feature_fm_radio_support            0
-%define tizen_feature_ham_support                 0
+%define tizen_feature_ham_support                 1
 %define tizen_feature_media_controller_support    1
 
 # MediayKey API is optional in Tizen Wearable Profile.
@@ -330,6 +330,11 @@ BuildRequires: pkgconfig(capi-data-control)
 
 %if 0%{?tizen_feature_download_support}
 BuildRequires: pkgconfig(capi-web-url-download)
+%endif
+
+%if 0%{?tizen_feature_ham_support}
+BuildRequires: pkgconfig(libcore-context-manager)
+BuildRequires: pkgconfig(capi-system-sensor)
 %endif
 
 %if 0%{?tizen_feature_power_support}

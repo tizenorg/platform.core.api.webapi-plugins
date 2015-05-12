@@ -1,0 +1,31 @@
+{
+  'includes':[
+    '../common/common.gypi',
+  ],
+  'targets': [
+    {
+      'target_name': 'tizen_humanactivitymonitor',
+      'type': 'loadable_module',
+      'dependencies': [
+        '../common/common.gyp:tizen_common',
+      ],
+      'sources': [
+        'humanactivitymonitor_api.js',
+        'humanactivitymonitor_extension.cc',
+        'humanactivitymonitor_extension.h',
+        'humanactivitymonitor_instance.cc',
+        'humanactivitymonitor_instance.h',
+      ],
+      'conditions': [
+        ['tizen == 1', {
+          'variables': {
+            'packages': [
+              'libcore-context-manager',
+              'capi-system-sensor',
+            ]
+          },
+        }],
+      ],
+    },
+  ],
+}
