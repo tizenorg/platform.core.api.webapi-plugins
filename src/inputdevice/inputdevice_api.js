@@ -96,9 +96,7 @@ InputDeviceManager.prototype.registerKey = function(keyName) {
     {name: 'keyName', type: types.STRING}
   ]);
 
-  var ret = native.callSync('InputDeviceManager_registerKey', {
-    keyName: args.keyName
-  });
+  var ret = native.sendRuntimeSyncMessage('tizen://api/inputdevice/registerKey',args.keyName);
 
   if (native.isFailure(ret)) {
     throw native.getErrorObject(ret);
@@ -114,10 +112,8 @@ InputDeviceManager.prototype.unregisterKey = function(keyName) {
   var args = validator.validateArgs(arguments, [
     {name: 'keyName', type: types.STRING}
   ]);
-
-  var ret = native.callSync('InputDeviceManager_unregisterKey', {
-    keyName: args.keyName
-  });
+  
+  var ret = native.sendRuntimeSyncMessage('tizen://api/inputdevice/unregisterKey',args.keyName);  
 
   if (native.isFailure(ret)) {
     throw native.getErrorObject(ret);

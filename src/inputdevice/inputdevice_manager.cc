@@ -75,12 +75,6 @@ InputDeviceKeyPtr InputDeviceManager::getKey(
         return NULL;
     }
 }
-void InputDeviceManager::registerKey(std::string const& keyName) const {
-    LOGD("Enter");
-}
-void InputDeviceManager::unregisterKey(std::string const& keyName) const {
-    LOGD("Enter");
-}
 
 std::vector<InputDeviceKeyPtr> InputDeviceManager::getSupportedKeys() const {
     LOGD("Enter");

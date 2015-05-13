@@ -34,8 +34,6 @@ InputDeviceInstance::InputDeviceInstance() {
     RegisterSyncHandler(c, std::bind(&InputDeviceInstance::x, this, _1, _2));
     REGISTER_SYNC("TVInputDeviceManager_getSupportedKeys", getSupportedKeys);
     REGISTER_SYNC("TVInputDeviceManager_getKey", getKey);
-    REGISTER_SYNC("TVInputDeviceManager_registerKey", registerKey);
-    REGISTER_SYNC("TVInputDeviceManager_unregisterKey", unregisterKey);
     #undef REGISTER_SYNC
 }
 
@@ -75,22 +73,6 @@ void InputDeviceInstance::getKey(const picojson::value& args,
     InputDeviceKeyPtr keyPtr =
             InputDeviceManager::getInstance().getKey(keyName);
     ReportSuccess(inputDeviceKeyToJson(keyPtr), out);
-}
-
-void InputDeviceInstance::registerKey(const picojson::value& args,
-        picojson::object& out) {
-    LOGD("Enter");
-    std::string keyName = args.get("keyName").get<std::string>();
-    InputDeviceManager::getInstance().registerKey(keyName);
-    ReportSuccess(out);
-}
-
-void InputDeviceInstance::unregisterKey(const picojson::value& args,
-        picojson::object& out) {
-    LOGD("Enter");
-    std::string keyName = args.get("keyName").get<std::string>();
-    InputDeviceManager::getInstance().unregisterKey(keyName);
-    ReportSuccess(out);
 }
 
 }  // namespace inputdevice

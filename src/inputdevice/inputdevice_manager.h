@@ -29,10 +29,6 @@ class InputDeviceManager {
  public:
     InputDeviceKeyPtr getKey(std::string const& keyName) const;
 
-    void registerKey(std::string const& keyName) const;
-
-    void unregisterKey(std::string const& keyName) const;
-
     std::vector<InputDeviceKeyPtr> getSupportedKeys() const;
 
     static InputDeviceManager& getInstance();
