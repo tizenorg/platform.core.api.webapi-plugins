@@ -756,13 +756,16 @@ void NFCInstance::SendHostAPDUResponse(const picojson::value& args,
 void NFCInstance::IsActivatedHandlerForAID(const picojson::value& args,
                                            picojson::object& out) {
   LoggerD("Entered");
+  CHECK_EXIST(args, JSON_TYPE, out);
   CHECK_EXIST(args, JSON_AID, out);
 
-  const char* aid = args.get(JSON_AID).get<std::string>().c_str();
+  const std::string& aid = args.get(JSON_AID).get<std::string>();
   bool is_activated_handler = false;
 
   PlatformResult result = NFCAdapter::GetInstance()->IsActivatedHandlerForAID(
-      aid, &is_activated_handler);
+      args.get(JSON_TYPE).get<std::string>(),
+      aid,
+      &is_activated_handler);
   if (result.IsSuccess())
     ReportSuccess(picojson::value(is_activated_handler), out);
   else
@@ -772,6 +775,7 @@ void NFCInstance::IsActivatedHandlerForAID(const picojson::value& args,
 void NFCInstance::IsActivatedHandlerForCategory(const picojson::value& args,
                                                 picojson::object& out) {
   LoggerD("Entered");
+  CHECK_EXIST(args, JSON_TYPE, out);
   CHECK_EXIST(args, JSON_CATEGORY, out);
 
   nfc_card_emulation_category_type_e category =
@@ -779,7 +783,9 @@ void NFCInstance::IsActivatedHandlerForCategory(const picojson::value& args,
   bool is_activated_handler = false;
 
   PlatformResult result =
-      NFCAdapter::GetInstance()->IsActivatedHandlerForCategory(category,
+      NFCAdapter::GetInstance()->IsActivatedHandlerForCategory(
+          args.get(JSON_TYPE).get<std::string>(),
+          category,
           &is_activated_handler);
   if (result.IsSuccess())
     ReportSuccess(picojson::value(is_activated_handler), out);
@@ -790,14 +796,17 @@ void NFCInstance::IsActivatedHandlerForCategory(const picojson::value& args,
 void NFCInstance::RegisterAID(const picojson::value& args,
                               picojson::object& out) {
   LoggerD("Entered");
+  CHECK_EXIST(args, JSON_TYPE, out);
   CHECK_EXIST(args, JSON_AID, out);
   CHECK_EXIST(args, JSON_CATEGORY, out);
 
-  const char* aid = args.get(JSON_AID).get<std::string>().c_str();
   nfc_card_emulation_category_type_e category =
       NFCUtil::StringToCategory(args.get(JSON_CATEGORY).get<std::string>());
 
-  PlatformResult result = NFCAdapter::GetInstance()->RegisterAID(aid, category);
+  PlatformResult result = NFCAdapter::GetInstance()->RegisterAID(
+      args.get(JSON_TYPE).get<std::string>(),
+      args.get(JSON_AID).get<std::string>(),
+      category);
   if (result.IsSuccess())
     ReportSuccess(out);
   else
@@ -807,15 +816,18 @@ void NFCInstance::RegisterAID(const picojson::value& args,
 void NFCInstance::UnregisterAID(const picojson::value& args,
                                 picojson::object& out) {
   LoggerD("Entered");
+  CHECK_EXIST(args, JSON_TYPE, out);
   CHECK_EXIST(args, JSON_AID, out);
   CHECK_EXIST(args, JSON_CATEGORY, out);
 
-  const char* aid = args.get(JSON_AID).get<std::string>().c_str();
   nfc_card_emulation_category_type_e category =
       NFCUtil::StringToCategory(args.get(JSON_CATEGORY).get<std::string>());
 
   PlatformResult result =
-      NFCAdapter::GetInstance()->UnregisterAID(aid, category);
+      NFCAdapter::GetInstance()->UnregisterAID(
+          args.get(JSON_TYPE).get<std::string>(),
+          args.get(JSON_AID).get<std::string>(),
+          category);
   if (result.IsSuccess())
     ReportSuccess(out);
   else
@@ -825,7 +837,9 @@ void NFCInstance::UnregisterAID(const picojson::value& args,
 void NFCInstance::GetAIDsForCategory(const picojson::value& args,
                                      picojson::object& out) {
   LoggerD("Entered");
+  CHECK_EXIST(args, JSON_TYPE, out);
   CHECK_EXIST(args, JSON_CATEGORY, out);
+  const std::string& type = args.get(JSON_TYPE).get<std::string>();
   nfc_card_emulation_category_type_e required_category =
       NFCUtil::StringToCategory(args.get(JSON_CATEGORY).get<std::string>());
   const double& callback_id = args.get(JSON_CALLBACK_ID).get<double>();
@@ -855,7 +869,7 @@ void NFCInstance::GetAIDsForCategory(const picojson::value& args,
 
   common::TaskQueue::GetInstance().Async(
       std::bind(&NFCAdapter::GetAIDsForCategory, NFCAdapter::GetInstance(),
-          required_category, success_cb, error_cb));
+                type, required_category, success_cb, error_cb));
 }
 
 } // namespace nfc
