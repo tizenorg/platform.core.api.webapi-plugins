@@ -124,7 +124,7 @@ Source0:    %{name}-%{version}.tar.gz
 # Account API is optional in Tizen Wearable Profile.
 %define tizen_feature_account_support             0
 
-%define tizen_feature_alarm_support               0
+%define tizen_feature_alarm_support               1
 %define tizen_feature_application_support         1
 
 # Archive API is optional in Tizen Wearable Profile.
