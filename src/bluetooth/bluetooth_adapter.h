@@ -24,6 +24,7 @@
 #include <map>
 
 #include <bluetooth.h>
+#include "bluetooth_internal.h"
 
 #include "common/picojson.h"
 
