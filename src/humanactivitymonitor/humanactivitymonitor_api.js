@@ -87,7 +87,21 @@ HumanActivityMonitorManager.prototype.start = function(type, changedCallback) {
   }
 
   var listener = function(result) {
-    native_.callIfPossible(args.changedCallback, new HumanActivityHRMData(result));
+    switch (args.type) {
+      case HumanActivityType.PEDOMETER:
+        // TODO(r.galka) Not Supported in current implementation
+        break;
+      case HumanActivityType.WRIST_UP:
+        native_.callIfPossible(args.changedCallback, null);
+        break;
+      case HumanActivityType.HRM:
+        native_.callIfPossible(args.changedCallback, new HumanActivityHRMData(result));
+        break;
+      case HumanActivityType.GPS:
+        // TODO(r.galka) implement
+        break;
+    }
+
   };
   native_.addListener(listenerId, listener);
 };

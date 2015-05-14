@@ -40,6 +40,17 @@ class HumanActivityMonitorManager {
  private:
   std::map<std::string, bool> supported_;
 
+  // WRIST_UP
+  gesture_h gesture_handle_;
+  JsonCallback wrist_up_event_callback_;
+  common::PlatformResult SetWristUpListener(JsonCallback callback);
+  common::PlatformResult UnsetWristUpListener();
+  static void OnWristUpEvent(gesture_type_e gesture,
+                             const gesture_data_h data,
+                             double timestamp,
+                             gesture_error_e error,
+                             void* user_data);
+
   // HRM
   sensor_listener_h hrm_sensor_listener_;
   JsonCallback hrm_event_callback_;
