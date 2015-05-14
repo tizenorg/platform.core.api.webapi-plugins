@@ -121,7 +121,7 @@ static bool SQLColumnValue(result_set_cursor cursor, int columnIndex,
     }
     case DATA_CONTROL_SQL_COLUMN_TYPE_TEXT: {
       int size = data_control_sql_get_column_item_size(cursor, columnIndex);
-      char *buffer = new char[size];
+      char *buffer = new char[size + 1];
       result = data_control_sql_get_text_data(cursor, columnIndex, buffer);
       if (result != DATA_CONTROL_ERROR_NONE) {
         LoggerE("Getting Text value failed : %s", get_error_message(result));
@@ -133,7 +133,7 @@ static bool SQLColumnValue(result_set_cursor cursor, int columnIndex,
     }
     case DATA_CONTROL_SQL_COLUMN_TYPE_BLOB: {
       int size = data_control_sql_get_column_item_size(cursor, columnIndex);
-      char *buffer = new char[size];
+      char *buffer = new char[size + 1];
       result =
           data_control_sql_get_blob_data(cursor, columnIndex, buffer, size);
       if (result != DATA_CONTROL_ERROR_NONE) break;
