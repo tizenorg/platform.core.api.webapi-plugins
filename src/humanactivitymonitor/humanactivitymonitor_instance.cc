@@ -5,11 +5,13 @@
 #include "humanactivitymonitor/humanactivitymonitor_instance.h"
 
 #include <functional>
+#include <memory>
 #include <string>
 
 #include "common/picojson.h"
 #include "common/logger.h"
 #include "common/platform_result.h"
+#include "humanactivitymonitor/humanactivitymonitor_manager.h"
 
 namespace extension {
 namespace humanactivitymonitor {
@@ -39,6 +41,21 @@ HumanActivityMonitorInstance::HumanActivityMonitorInstance() {
 HumanActivityMonitorInstance::~HumanActivityMonitorInstance() {
 }
 
+PlatformResult HumanActivityMonitorInstance::Init() {
+  if (!manager_) {
+
+    manager_ = std::make_shared<HumanActivityMonitorManager>();
+    const PlatformResult& result = manager_->Init();
+    if (!result) {
+      LOGGER(ERROR) << "Error initializing manager: " << result.message();
+      manager_.reset();
+      return result;
+    }
+  }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
 #define CHECK_EXIST(args, name, out) \
     if (!args.contains(name)) { \
       ReportError(PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, \
@@ -54,12 +71,50 @@ void HumanActivityMonitorInstance::HumanActivityMonitorManagerGetHumanActivityDa
 
 void HumanActivityMonitorInstance::HumanActivityMonitorManagerStart(
     const picojson::value& args, picojson::object& out) {
-  // TODO(r.galka) implement
+  CHECK_EXIST(args, "type", out)
+
+  PlatformResult result = Init();
+  if (!result) {
+    ReportError(result, &out);
+    return;
+  }
+
+  JsonCallback cb = [this, args](picojson::value* data) -> void {
+    if (!data) {
+      LOGGER(ERROR) << "No data passed to json callback";
+      return;
+    }
+
+    picojson::object& data_o = data->get<picojson::object>();
+    data_o["listenerId"] = args.get("listenerId");
+
+    PostMessage(data->serialize().c_str());
+  };
+
+  result = manager_->SetListener(args.get("type").get<std::string>(), cb);
+  if (result) {
+    ReportSuccess(out);
+  } else {
+    ReportError(result, &out);
+  }
 }
 
 void HumanActivityMonitorInstance::HumanActivityMonitorManagerStop(
     const picojson::value& args, picojson::object& out) {
-  // TODO(r.galka) implement
+  CHECK_EXIST(args, "type", out)
+
+  PlatformResult result = Init();
+  if (!result) {
+    ReportError(result, &out);
+    return;
+  }
+
+  result = manager_->UnsetListener(args.get("type").get<std::string>());
+  if (result) {
+    ReportSuccess(out);
+  } else {
+    ReportError(result, &out);
+  }
 }
 
 void HumanActivityMonitorInstance::HumanActivityMonitorManagerSetAccumulativePedometerListener(

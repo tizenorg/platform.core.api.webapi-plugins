@@ -29,6 +29,7 @@ var HumanActivityType = {
   HRM: 'HRM',
   GPS: 'GPS'
 };
+
 var PedometerStepStatus = {
   NOT_MOVING: 'NOT_MOVING',
   WALKING: 'WALKING',
@@ -62,36 +63,56 @@ HumanActivityMonitorManager.prototype.getHumanActivityData = function(type, succ
 };
 
 HumanActivityMonitorManager.prototype.start = function(type, changedCallback) {
+  // TODO(r.galka) check access
+  // HRM - http://tizen.org/privilege/healthinfo
+  // GPS - http://tizen.org/privilege/location
+
   var args = validator_.validateArgs(arguments, [
     {name: 'type', type: types_.ENUM, values: Object.keys(HumanActivityType)},
     {name: 'changedCallback', type: types_.FUNCTION, optional: true, nullable: true}
   ]);
 
+  var listenerId ='HumanActivityMonitor_'  + args.type;
+
   var data = {
-    type: args.type
+    type: args.type,
+    listenerId: listenerId
   };
 
-  var callback = function(result) {
-    native_.callIfPossible(args.changedCallback);
-  };
+  if (!native_.isListenerSet(listenerId)) {
+    var result = native_.callSync('HumanActivityMonitorManager_start', data);
+    if (native_.isFailure(result)) {
+      throw native_.getErrorObject(result);
+    }
+  }
 
-  native_.call('HumanActivityMonitorManager_start', data, callback);
+  var listener = function(result) {
+    native_.callIfPossible(args.changedCallback, new HumanActivityHRMData(result));
+  };
+  native_.addListener(listenerId, listener);
 };
 
 HumanActivityMonitorManager.prototype.stop = function(type) {
   var args = validator_.validateArgs(arguments, [
-    {name: 'type', type: types_.ENUM, values: ['PEDOMETER', 'WRIST_UP', 'HRM', 'GPS']}
+    {name: 'type', type: types_.ENUM, values: Object.keys(HumanActivityType)}
   ]);
 
   var data = {
     type: args.type
   };
 
-  var result = native_.callSync('HumanActivityMonitorManager_stop', data);
+  var listenerId ='HumanActivityMonitor_'  + args.type;
 
+  if (!native_.isListenerSet(listenerId)) {
+    return;
+  }
+
+  var result = native_.callSync('HumanActivityMonitorManager_stop', data);
   if (native_.isFailure(result)) {
     throw native_.getErrorObject(result);
   }
+
+  native_.removeListener(listenerId);
 };
 
 HumanActivityMonitorManager.prototype.setAccumulativePedometerListener = function(changeCallback) {
@@ -164,9 +185,9 @@ HumanActivityAccumulativePedometerData.prototype = new HumanActivityData();
 HumanActivityAccumulativePedometerData.prototype.constructor = HumanActivityAccumulativePedometerData;
 
 
-function HumanActivityHRMData() {
-  SetReadOnlyProperty(this, 'heartRate', null);
-  SetReadOnlyProperty(this, 'rRInterval', null);
+function HumanActivityHRMData(data) {
+  SetReadOnlyProperty(this, 'heartRate', data.heartRate);
+  SetReadOnlyProperty(this, 'rRInterval', data.rRInterval);
 }
 
 HumanActivityHRMData.prototype = new HumanActivityData();

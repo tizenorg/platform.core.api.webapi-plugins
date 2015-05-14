@@ -15,6 +15,8 @@
         'humanactivitymonitor_extension.h',
         'humanactivitymonitor_instance.cc',
         'humanactivitymonitor_instance.h',
+        'humanactivitymonitor_manager.cc',
+        'humanactivitymonitor_manager.h',
       ],
       'conditions': [
         ['tizen == 1', {
