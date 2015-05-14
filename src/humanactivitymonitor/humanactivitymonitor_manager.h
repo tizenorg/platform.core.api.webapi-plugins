@@ -8,6 +8,7 @@
 #include <functional>
 #include <sensor.h>
 #include <gesture_recognition.h>
+#include <location_batch.h>
 #include <string>
 
 #include "common/picojson.h"
@@ -58,7 +59,14 @@ class HumanActivityMonitorManager {
   common::PlatformResult UnsetHrmListener();
   static void OnHrmSensorEvent(sensor_h sensor,
                                sensor_event_s *event,
-                               void *data);
+                               void *user_data);
+
+  // GPS
+  location_manager_h location_handle_;
+  JsonCallback gps_event_callback_;
+  common::PlatformResult SetGpsListener(JsonCallback callback);
+  common::PlatformResult UnsetGpsListener();
+  static void OnGpsEvent(int num_of_location, void *user_data);
 };
 
 } // namespace humanactivitymonitor

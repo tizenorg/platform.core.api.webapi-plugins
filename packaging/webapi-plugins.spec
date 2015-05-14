@@ -343,6 +343,7 @@ BuildRequires: pkgconfig(capi-web-url-download)
 %if 0%{?tizen_feature_ham_support}
 BuildRequires: pkgconfig(libcore-context-manager)
 BuildRequires: pkgconfig(capi-system-sensor)
+BuildRequires: pkgconfig(capi-location-manager)
 %endif
 
 %if 0%{?tizen_feature_power_support}

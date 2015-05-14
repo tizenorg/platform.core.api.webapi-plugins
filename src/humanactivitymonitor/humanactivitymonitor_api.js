@@ -98,7 +98,11 @@ HumanActivityMonitorManager.prototype.start = function(type, changedCallback) {
         native_.callIfPossible(args.changedCallback, new HumanActivityHRMData(result));
         break;
       case HumanActivityType.GPS:
-        // TODO(r.galka) implement
+        var gpsInfo = [];
+        for (var i = 0, max = result.length; i < max; i++) {
+          gpsInfo.push(new HumanActivityGPSInfo(result[i]));
+        }
+        native_.callIfPossible(args.changedCallback, new HumanActivityGPSInfoArray(gpsInfo));
         break;
     }
 
@@ -208,18 +212,18 @@ HumanActivityHRMData.prototype = new HumanActivityData();
 HumanActivityHRMData.prototype.constructor = HumanActivityHRMData;
 
 
-function HumanActivityGPSInfo() {
-  SetReadOnlyProperty(this, 'latitude', null);
-  SetReadOnlyProperty(this, 'longitude', null);
-  SetReadOnlyProperty(this, 'altitude', null);
-  SetReadOnlyProperty(this, 'speed', null);
-  SetReadOnlyProperty(this, 'errorRange', null);
-  SetReadOnlyProperty(this, 'timestamp', null);
+function HumanActivityGPSInfo(data) {
+  SetReadOnlyProperty(this, 'latitude', data.latitude);
+  SetReadOnlyProperty(this, 'longitude', data.longitude);
+  SetReadOnlyProperty(this, 'altitude', data.altitude);
+  SetReadOnlyProperty(this, 'speed', data.speed);
+  SetReadOnlyProperty(this, 'errorRange', data.errorRange);
+  SetReadOnlyProperty(this, 'timestamp', data.timestamp);
 }
 
 
-function HumanActivityGPSInfoArray() {
-  SetReadOnlyProperty(this, 'gpsInfo', null);
+function HumanActivityGPSInfoArray(data) {
+  SetReadOnlyProperty(this, 'gpsInfo', data);
 }
 
 HumanActivityGPSInfoArray.prototype = new HumanActivityData();

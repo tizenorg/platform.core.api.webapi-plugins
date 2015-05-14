@@ -24,6 +24,7 @@
             'packages': [
               'libcore-context-manager',
               'capi-system-sensor',
+              'capi-location-manager',
             ]
           },
         }],
