@@ -212,7 +212,7 @@ Utils.prototype.checkPrivilegeAccess = function(privilege) {
 };
 
 Utils.prototype.checkBackwardCompabilityPrivilegeAccess = function(current_privilege, previous_privilege) {
-  var result = native_.callSync('Utils_checkBackwardPrivilegePrivilegeAccess', {
+  var result = native_.callSync('Utils_checkBackwardCompabilityPrivilegeAccess', {
     current_privilege : _toString(current_privilege),
     previous_privilege : _toString(previous_privilege),
   });
