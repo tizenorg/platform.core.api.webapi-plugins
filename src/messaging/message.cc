@@ -440,7 +440,7 @@ PlatformResult copyFileToTemp(const std::string& sourcePath, std::string* result
 
 PlatformResult removeDirFromTemp(const std::string& dirPath)
 {
-    if(EINA_TRUE != ecore_file_rmdir(dirPath.c_str())) {
+    if(EINA_TRUE != ecore_file_recursive_rm(dirPath.c_str())) {
       return PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown error while deleting temp directory.");
     }
     return PlatformResult(ErrorCode::NO_ERROR);
