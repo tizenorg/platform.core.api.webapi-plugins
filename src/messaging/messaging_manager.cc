@@ -165,7 +165,9 @@ static void* getMsgServicesThread(const std::shared_ptr<MsgManagerCallbackData>&
 
             for (int i = 0; i < count && platform_result; ++i) {
               std::string name = "[";
-              name += email_accounts[i].account_name;
+              if (email_accounts[i].account_name) {
+                name += email_accounts[i].account_name;
+              }
               name += "] ";
               name += email_accounts[i].incoming_server_user_name;
               LoggerD("Account[%d/%d] id: %d, name: %s", i, count,
