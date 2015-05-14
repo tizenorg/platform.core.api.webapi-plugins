@@ -85,8 +85,7 @@ void RequestedApplicationControl::ReplyResult(const picojson::value& args, picoj
   PlatformResult result = PlatformResult(ErrorCode::NO_ERROR);
   const picojson::array& data = data_arr.get<picojson::array>();
 
-  const std::string& encoded_bundle =
-      GetCurrentExtension()->GetRuntimeVariable("encoded_bundle", 1024);
+  const std::string& encoded_bundle = GetEncodedBundle();
 
   result = set_bundle(encoded_bundle);
   if (result.IsError()) {
@@ -136,8 +135,7 @@ void RequestedApplicationControl::ReplyFailure(picojson::object* out) {
 
   // read input data
   PlatformResult result = PlatformResult(ErrorCode::NO_ERROR);
-  const std::string& encoded_bundle =
-      GetCurrentExtension()->GetRuntimeVariable("encoded_bundle", 1024);
+  const std::string& encoded_bundle = GetEncodedBundle();
 
   result = set_bundle(encoded_bundle);
   if (result.IsError()) {
@@ -167,6 +165,22 @@ void RequestedApplicationControl::ReplyFailure(picojson::object* out) {
   }
 
   ReportSuccess(*out);
+}
+
+std::string RequestedApplicationControl::GetEncodedBundle() {
+  LoggerD("Entered");
+
+  std::string result;
+  std::size_t size = 512;
+
+  // make sure we read whole variable, if the length of read variable is equal
+  // to the size we were trying to obtain, the variable is likely to be longer
+  do {
+    size <<= 1;
+    result = GetCurrentExtension()->GetRuntimeVariable("encoded_bundle", size);
+  } while (strlen(result.c_str()) == size);
+
+  return result;
 }
 
 PlatformResult RequestedApplicationControl::VerifyCallerPresence() {

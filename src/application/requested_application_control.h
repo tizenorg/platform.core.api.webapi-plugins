@@ -26,6 +26,8 @@ class RequestedApplicationControl {
   void ReplyResult(const picojson::value& args, picojson::object* out);
   void ReplyFailure(picojson::object* out);
 
+  static std::string GetEncodedBundle();
+
  private:
   void set_app_control(app_control_h app_control);
   common::PlatformResult VerifyCallerPresence();

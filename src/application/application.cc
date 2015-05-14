@@ -21,8 +21,7 @@ RequestedApplicationControl& Application::app_control() {
 void Application::GetRequestedAppControl(const picojson::value& args, picojson::object* out) {
   LoggerD("Entered");
 
-  const std::string& encoded_bundle =
-      GetCurrentExtension()->GetRuntimeVariable("encoded_bundle", 1024);
+  const std::string& encoded_bundle = RequestedApplicationControl::GetEncodedBundle();
 
   picojson::value result = picojson::value(picojson::object());
 
