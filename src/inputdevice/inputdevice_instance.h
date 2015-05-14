@@ -17,7 +17,6 @@
 #ifndef SRC_INPUTDEVICE_INPUTDEVICE_INSTANCE_H_
 #define SRC_INPUTDEVICE_INPUTDEVICE_INSTANCE_H_
 
-#include "../inputdevice/inputdevice_manager.h"
 #include "common/picojson.h"
 #include "common/extension.h"
 
@@ -31,9 +30,6 @@ class InputDeviceInstance : public common::ParsedInstance {
     virtual ~InputDeviceInstance();
 
  private:
-    picojson::value inputDeviceKeyToJson(const InputDeviceKeyPtr keyPtr);
-    void getSupportedKeys(const picojson::value& args, picojson::object& out);
-    void getKey(const picojson::value& args, picojson::object& out);
 };
 
 }  // namespace inputdevice

@@ -5,7 +5,6 @@
 #ifndef SRC_INPUTDEVICE_INPUTDEVICE_EXTENSION_H_
 #define SRC_INPUTDEVICE_INPUTDEVICE_EXTENSION_H_
 
-#include "../inputdevice/inputdevice_manager.h"
 #include "common/extension.h"
 
 namespace extension {
@@ -15,8 +14,6 @@ class InputDeviceExtension : public common::Extension {
  public:
     InputDeviceExtension();
     virtual ~InputDeviceExtension();
-
-    InputDeviceManager& manager();
 
  private:
     virtual common::Instance* CreateInstance();

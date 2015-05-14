@@ -14,11 +14,7 @@
         'inputdevice_extension.cc',
         'inputdevice_extension.h',
         'inputdevice_instance.cc',
-        'inputdevice_instance.h',
-        'inputdevice_key.cc',
-        'inputdevice_key.h',
-        'inputdevice_manager.cc',
-        'inputdevice_manager.h'
+        'inputdevice_instance.h'
       ],
       'includes': [
         '../common/pkg-config.gypi',

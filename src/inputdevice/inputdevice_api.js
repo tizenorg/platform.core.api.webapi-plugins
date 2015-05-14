@@ -17,6 +17,16 @@
 var native = new xwalk.utils.NativeManager(extension);
 var validator = xwalk.utils.validator;
 var types = validator.Types;
+var map = {
+  "VolumeUp": {
+      keyName: "XF86AudioRaiseVolume",
+      keyCode: 447
+  },
+  "VolumeDown": {
+      keyName: "XF86AudioLowerVolume",
+      keyCode: 448
+  },
+};
 
 
 function InputDeviceKey(dict) {
@@ -32,16 +42,6 @@ function InputDeviceKey(dict) {
 }
 
 
-function dictListToInputDeviceKeyList(list) {
-  var result = [], listLength = list.length;
-  for (var i = 0; i < listLength; ++i) {
-    result.push(new InputDeviceKey(list[i]));
-  }
-  return result;
-}
-
-
-
 /**
  * This class provides access to the API functionalities through the tizen.tvinputdevice interface.
  * @constructor
@@ -52,17 +52,20 @@ function InputDeviceManager() {
   }
 }
 
-
 /**
  * Retrieves the list of keys can be registered with the registerKey() method.
  * @return {array} Array of keys
  */
 InputDeviceManager.prototype.getSupportedKeys = function() {
-  var ret = native.callSync('InputDeviceManager_getSupportedKeys');
-  if (native.isFailure(ret)) {
-    throw native.getErrorObject(ret);
+
+  var re = [];
+  for (var key in map) {
+      if (map.hasOwnProperty(key)) {
+          re.push(new InputDeviceKey({name: key, code: map[key].keyCode}));
+      }
   }
-  return dictListToInputDeviceKeyList(native.getResultObject(ret));
+  
+  return re;
 };
 
 
@@ -76,14 +79,13 @@ InputDeviceManager.prototype.getKey = function(keyName) {
     {name: 'keyName', type: types.STRING}
   ]);
 
-  var ret = native.callSync('InputDeviceManager_getKey', {
-    keyName: args.keyName
-  });
-
-  if (native.isFailure(ret)) {
-    throw native.getErrorObject(ret);
+  if (!map[args.keyName]) {
+      throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
+      'Parameter "keyName" is invalid.');
   }
-  return native.getResultObject(ret);
+  
+  return new InputDeviceKey( { name: args.keyName, code: map[args.keyName].keyCode } );
+
 };
 
 
@@ -95,8 +97,12 @@ InputDeviceManager.prototype.registerKey = function(keyName) {
   var args = validator.validateArgs(arguments, [
     {name: 'keyName', type: types.STRING}
   ]);
+  if (!map[args.keyName]) {
+      throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
+      'Parameter "keyName" is invalid.');
+  }
 
-  var ret = native.sendRuntimeSyncMessage('tizen://api/inputdevice/registerKey',args.keyName);
+  var ret = native.sendRuntimeSyncMessage('tizen://api/inputdevice/registerKey',map[args.keyName].keyName);
 
   if (native.isFailure(ret)) {
     throw native.getErrorObject(ret);
@@ -113,7 +119,12 @@ InputDeviceManager.prototype.unregisterKey = function(keyName) {
     {name: 'keyName', type: types.STRING}
   ]);
   
-  var ret = native.sendRuntimeSyncMessage('tizen://api/inputdevice/unregisterKey',args.keyName);  
+  if (!map[args.keyName]) {
+      throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
+      'Parameter "keyName" is invalid.');
+  }
+  
+  var ret = native.sendRuntimeSyncMessage('tizen://api/inputdevice/unregisterKey',map[args.keyName].keyName);  
 
   if (native.isFailure(ret)) {
     throw native.getErrorObject(ret);

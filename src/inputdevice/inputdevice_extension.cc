@@ -3,7 +3,6 @@
 // found in the LICENSE file.
 
 #include "../inputdevice/inputdevice_extension.h"
-
 #include "../inputdevice/inputdevice_instance.h"
 
 // This will be generated from inputdevice_api.js
@@ -18,11 +17,6 @@ InputDeviceExtension::InputDeviceExtension() {
 }
 
 InputDeviceExtension::~InputDeviceExtension() {}
-
-InputDeviceManager& InputDeviceExtension::manager() {
-    // Initialize API on first request
-    return InputDeviceManager::getInstance();
-}
 
 common::Instance* InputDeviceExtension::CreateInstance() {
     return new InputDeviceInstance;

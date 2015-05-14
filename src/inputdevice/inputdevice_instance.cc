@@ -14,12 +14,8 @@
  *    limitations under the License.
  */
  
-#include <functional>
-#include <string>
-#include <vector>
 
 #include "../inputdevice/inputdevice_instance.h"
-#include "../inputdevice/inputdevice_manager.h"
 #include "common/logger.h"
 
 
@@ -28,51 +24,10 @@ namespace inputdevice {
 
 InputDeviceInstance::InputDeviceInstance() {
     LOGD("Enter");
-    using std::placeholders::_1;
-    using std::placeholders::_2;
-    #define REGISTER_SYNC(c, x) \
-    RegisterSyncHandler(c, std::bind(&InputDeviceInstance::x, this, _1, _2));
-    REGISTER_SYNC("TVInputDeviceManager_getSupportedKeys", getSupportedKeys);
-    REGISTER_SYNC("TVInputDeviceManager_getKey", getKey);
-    #undef REGISTER_SYNC
 }
 
 InputDeviceInstance::~InputDeviceInstance() {
     LOGD("Enter");
-}
-
-picojson::value InputDeviceInstance::inputDeviceKeyToJson(
-        const InputDeviceKeyPtr keyPtr) {
-    LOGD("Enter");
-    picojson::value::object keyMap;
-    keyMap.insert(
-        std::make_pair("name",
-        picojson::value(keyPtr->getName())));
-    keyMap.insert(
-        std::make_pair("code",
-        picojson::value(static_cast<double>(keyPtr->getCode()))));
-    return picojson::value(keyMap);
-}
-
-void InputDeviceInstance::getSupportedKeys(const picojson::value& args,
-        picojson::object& out) {
-    LOGD("Enter");
-    std::vector<InputDeviceKeyPtr> inputDeviceKeys =
-            InputDeviceManager::getInstance().getSupportedKeys();
-    picojson::value::array picjsonValuesArray;
-    for (auto it = inputDeviceKeys.begin(); it != inputDeviceKeys.end(); ++it) {
-        picjsonValuesArray.push_back(inputDeviceKeyToJson(*it));
-    }
-    ReportSuccess(picojson::value(picjsonValuesArray), out);
-}
-
-void InputDeviceInstance::getKey(const picojson::value& args,
-        picojson::object& out) {
-    LOGD("Enter");
-    std::string keyName = args.get("keyName").get<std::string>();
-    InputDeviceKeyPtr keyPtr =
-            InputDeviceManager::getInstance().getKey(keyName);
-    ReportSuccess(inputDeviceKeyToJson(keyPtr), out);
 }
 
 }  // namespace inputdevice
