@@ -19,7 +19,8 @@ namespace contact {
 using namespace common;
 
 ContactInstance::ContactInstance()
-    : current_state_(0) {
+    : current_state_(0),
+      is_listening_(false) {
   using std::placeholders::_1;
   using std::placeholders::_2;
 
@@ -71,7 +72,12 @@ ContactInstance::ContactInstance()
 #undef REGISTER_ASYNC
 }
 
-ContactInstance::~ContactInstance() {}
+ContactInstance::~ContactInstance() {
+  if (is_listening_) {
+    AddressBook::AddressBookStopListening(*this);
+    set_is_listening(false);
+  }
+}
 
 void ContactInstance::AddressBookGet(const JsonValue& args, JsonObject& out) {
   JsonValue val{JsonObject{}};
@@ -363,8 +369,7 @@ void ContactInstance::AddressBookStartListening(const JsonValue& args,
 void ContactInstance::AddressBookStopListening(const JsonValue& args,
                                                JsonObject& out) {
   JsonValue val{JsonObject{}};
-  PlatformResult status = AddressBook::AddressBookStopListening(
-      *this, common::JsonCast<JsonObject>(args), val.get<JsonObject>());
+  PlatformResult status = AddressBook::AddressBookStopListening(*this);
   if (status.IsSuccess())
     ReportSuccess(val, out);
   else

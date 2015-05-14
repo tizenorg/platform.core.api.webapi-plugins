@@ -51,8 +51,7 @@ common::PlatformResult AddressBookGetGroups(const JsonObject& args,
                                             JsonArray& out);
 common::PlatformResult AddressBookStartListening(ContactInstance& instance, const JsonObject& args,
                                                  JsonObject& out);
-common::PlatformResult AddressBookStopListening(ContactInstance& instance, const JsonObject& args,
-                                                JsonObject& out);
+common::PlatformResult AddressBookStopListening(ContactInstance& instance);
 
 common::PlatformResult AddressBookBatchFunc(NativeFunction impl,
                                             const char* single_arg_name,

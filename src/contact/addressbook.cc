@@ -852,10 +852,12 @@ PlatformResult AddressBookStartListening(ContactInstance& instance, const JsonOb
                           "Error while registering listener to contacts db");
   }
 
+  instance.set_is_listening(true);
+
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-PlatformResult AddressBookStopListening(ContactInstance& instance, const JsonObject&, JsonObject& out) {
+PlatformResult AddressBookStopListening(ContactInstance& instance) {
   PlatformResult status = ContactUtil::CheckDBConnection();
   if (status.IsError()) return status;
 
@@ -867,6 +869,8 @@ PlatformResult AddressBookStopListening(ContactInstance& instance, const JsonObj
     return PlatformResult(ErrorCode::UNKNOWN_ERR,
                           "Error while removing listener");
   }
+
+  instance.set_is_listening(false);
 
   return PlatformResult(ErrorCode::NO_ERROR);
 }

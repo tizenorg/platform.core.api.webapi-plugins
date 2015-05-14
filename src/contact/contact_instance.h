@@ -20,6 +20,7 @@ class ContactInstance : public common::ParsedInstance {
 
   int current_state() const { return current_state_; }
   void set_current_state(int state) { current_state_ = state; }
+  void set_is_listening(bool listening) { is_listening_ = listening; }
 
  private:
   void AddressBookGet(const JsonValue& args, JsonObject& out);
@@ -216,6 +217,7 @@ class ContactInstance : public common::ParsedInstance {
   void PersonUnlink(const JsonValue& args, JsonObject& out);
 
   int current_state_;
+  bool is_listening_;
 };
 }  // namespace contact
 }  // namespace extension
