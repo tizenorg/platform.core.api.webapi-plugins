@@ -140,6 +140,13 @@
           },
         ],
         [
+          'tizen_feature_ham_support==1', {
+            'dependencies': [
+              'humanactivitymonitor/humanactivitymonitor.gyp:*',
+            ],
+          },
+        ],
+        [
           'tizen_feature_media_controller_support==1', {
             'dependencies': [
               'mediacontroller/mediacontroller.gyp:*',
