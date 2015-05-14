@@ -22,6 +22,7 @@
 #include <pcrecpp.h>
 #include <system_info.h>
 #include <bluetooth.h>
+#include "bluetooth_internal.h"
 
 #include "common/converter.h"
 #include "common/logger.h"
