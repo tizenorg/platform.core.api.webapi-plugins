@@ -486,6 +486,7 @@ AddressBook.prototype.find = function(successCallback, errorCallback, filter, so
   var callback = function(result) {
     if (native_.isFailure(result)) {
       native_.callIfPossible(errorCallback, native_.getErrorObject(result));
+      return;
     }
 
     var _contacts = [];
