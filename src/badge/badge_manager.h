@@ -36,12 +36,6 @@ class BadgeManager {
   static void badge_changed_cb(unsigned int, const char*, unsigned int, void*);
 
  private:
-  common::PlatformResult CheckPermisionForCreatingBadge(const char* app_id);
-  char* GetPkgnameByAppid(const char* app_id);
-  char* GetPkgnameByPid();
-  int IsSameCertInfo(const char* caller, const char* pkgname);
-  bool IsAppInstalled(const std::string& app_id);
-
   BadgeInstance& instance_;
 
   bool is_cb_registered_;
