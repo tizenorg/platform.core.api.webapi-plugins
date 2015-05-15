@@ -330,6 +330,7 @@ PlatformResult AddressBookBatchFunc(NativeFunction impl,
 }
 
 PlatformResult AddressBookFind(const JsonObject& args, JsonArray& array) {
+  LoggerD("Entered");
   PlatformResult status = ContactUtil::CheckDBConnection();
   if (status.IsError()) return status;
 
@@ -338,36 +339,48 @@ PlatformResult AddressBookFind(const JsonObject& args, JsonArray& array) {
   long addressbook_id = common::stol(FromJson<std::string>(address_book, "id"));
   int error_code;
 
-  contacts_query_h query = nullptr;
-  contacts_filter_h filter = nullptr;
   contacts_list_h list = nullptr;
 
-  error_code = contacts_query_create(_contacts_contact._uri, &query);
-  status =
-      ContactUtil::ErrorChecker(error_code, "Failed contacts_query_create");
-  if (status.IsError()) return status;
-  ContactUtil::ContactsQueryHPtr query_ptr(&query,
-                                           ContactUtil::ContactsQueryDeleter);
-  error_code = contacts_filter_create(_contacts_contact._uri, &filter);
-  status =
-      ContactUtil::ErrorChecker(error_code, "Failed contacts_filter_create");
-  if (status.IsError()) return status;
-  ContactUtil::ContactsFilterPtr filter_ptr(filter,
-                                            ContactUtil::ContactsFilterDeleter);
-  error_code =
-      contacts_filter_add_int(filter, _contacts_contact.address_book_id,
-                              CONTACTS_MATCH_EQUAL, addressbook_id);
-  status =
-      ContactUtil::ErrorChecker(error_code, "Failed contacts_filter_add_int");
-  if (status.IsError()) return status;
-  error_code = contacts_query_set_filter(query, filter);
-  status =
-      ContactUtil::ErrorChecker(error_code, "Failed contacts_query_set_filter");
-  if (status.IsError()) return status;
-  error_code = contacts_db_get_records_with_query(query, 0, 0, &list);
-  status = ContactUtil::ErrorChecker(
-      error_code, "Failed contacts_db_get_records_with_query");
-  if (status.IsError()) return status;
+  if (IsUnified(addressbook_id)) {
+    LoggerD("calling contacts_db_get_all_records");
+    error_code = contacts_db_get_all_records(_contacts_contact._uri, 0, 0, &list);
+    status =
+        ContactUtil::ErrorChecker(error_code, "Failed contacts_db_get_all_records");
+    if (status.IsError())  {
+      LoggerD("contacts_db_get_all_records - exit with error");
+      return status;
+    }
+  } else {
+    contacts_query_h query = nullptr;
+    contacts_filter_h filter = nullptr;
+
+    error_code = contacts_query_create(_contacts_contact._uri, &query);
+    status =
+        ContactUtil::ErrorChecker(error_code, "Failed contacts_query_create");
+    if (status.IsError()) return status;
+    ContactUtil::ContactsQueryHPtr query_ptr(&query,
+                                             ContactUtil::ContactsQueryDeleter);
+    error_code = contacts_filter_create(_contacts_contact._uri, &filter);
+    status =
+        ContactUtil::ErrorChecker(error_code, "Failed contacts_filter_create");
+    if (status.IsError()) return status;
+    ContactUtil::ContactsFilterPtr filter_ptr(filter,
+                                              ContactUtil::ContactsFilterDeleter);
+    error_code =
+        contacts_filter_add_int(filter, _contacts_contact.address_book_id,
+                                CONTACTS_MATCH_EQUAL, addressbook_id);
+    status =
+        ContactUtil::ErrorChecker(error_code, "Failed contacts_filter_add_int");
+    if (status.IsError()) return status;
+    error_code = contacts_query_set_filter(query, filter);
+    status =
+        ContactUtil::ErrorChecker(error_code, "Failed contacts_query_set_filter");
+    if (status.IsError()) return status;
+    error_code = contacts_db_get_records_with_query(query, 0, 0, &list);
+    status = ContactUtil::ErrorChecker(
+        error_code, "Failed contacts_db_get_records_with_query");
+    if (status.IsError()) return status;
+  }
   ContactUtil::ContactsListHPtr list_ptr(&list,
                                          ContactUtil::ContactsListDeleter);
 
