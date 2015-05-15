@@ -395,8 +395,8 @@ PlatformResult SensorData::GetSensorData(picojson::object* data) {
   sensor_event_s sensor_event;
   int ret = sensor_listener_read_data(listener_, &sensor_event);
   if (SENSOR_ERROR_NONE != ret) {
-    LoggerE("sensor_listener_set_event_cb : %d", ret);
-    return GetSensorPlatformResult(ret, "sensor_listener_set_event_cb");
+    LoggerE("sensor_listener_read_data : %d", ret);
+    return GetSensorPlatformResult(ret, "sensor_listener_read_data");
   }
 
   ReportSensorData(type_enum_, &sensor_event, data);
