@@ -28,6 +28,7 @@ PowerManager::PowerManager()
       bright_state_enabled_(false),
       current_brightness_(-1),
       should_be_read_from_cache_(false),
+      set_custom_brightness_(false),
       current_requested_state_(POWER_STATE_NONE) {
 
   display_state_e platform_state = DISPLAY_STATE_NORMAL;
@@ -281,8 +282,9 @@ PlatformResult PowerManager::SetScreenBrightness(double brightness) {
   }
 
   int platform_brightness = (int)(brightness * max_brightness);
-  if (platform_brightness == 0)
+  if (platform_brightness == 0) {
     platform_brightness = 1;
+  }
   PlatformResult set_result = SetPlatformBrightness(platform_brightness);
   if (set_result.IsError())
     return set_result;
@@ -353,15 +355,9 @@ PlatformResult PowerManager::SetPlatformBrightness(int brightness) {
 }
 
 int PowerManager::GetPlatformBrightness(){
-  int brightness = 0;
+  LoggerD("Entered");
 
-  int current_power_state = 1;
-  vconf_get_int(VCONFKEY_PM_STATE, &current_power_state);
-  if (current_power_state == VCONFKEY_PM_STATE_NORMAL) {
-    vconf_get_int(VCONFKEY_PM_CURRENT_BRIGHTNESS, &brightness);
-    LoggerD("[PM_STATE_NORMAL] return VCONFKEY_PM_CURRENT_BRIGHTNESS %d", brightness);
-    return brightness;
-  }
+  int brightness = 0;
 
   int is_custom_mode = 0;
   vconf_get_int(VCONFKEY_PM_CUSTOM_BRIGHTNESS_STATUS, &is_custom_mode);
@@ -374,10 +370,13 @@ int PowerManager::GetPlatformBrightness(){
   vconf_get_int(VCONFKEY_SETAPPL_BRIGHTNESS_AUTOMATIC_INT, &is_auto_brightness);
   if (is_auto_brightness == 1) {
     int ret = vconf_get_int(VCONFKEY_SETAPPL_PREFIX"/automatic_brightness_level" /*prevent RSA build error*/, &brightness);
-    if (ret != 0) //RSA binary has no AUTOMATIC_BRIGHTNESS
+    if (ret != 0) {
+      // RSA binary has no AUTOMATIC_BRIGHTNESS
       vconf_get_int(VCONFKEY_SETAPPL_LCD_BRIGHTNESS, &brightness);
+    }
   } else {
-    vconf_get_int(VCONFKEY_SETAPPL_LCD_BRIGHTNESS, &brightness);
+    LoggerD("Brightness via DBUS");
+    brightness = PowerPlatformProxy::GetInstance().GetBrightness();
   }
   LoggerD("BRIGHTNESS(%s) %d", is_auto_brightness == 1 ? "auto" : "fix" , brightness);
 

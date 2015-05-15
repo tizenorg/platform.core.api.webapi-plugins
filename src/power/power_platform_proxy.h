@@ -17,6 +17,8 @@ class PowerPlatformProxy {
 	int SetBrightnessFromSettings();
 	int SetBrightness(int val);
 
+  int GetBrightness();
+
   static PowerPlatformProxy& GetInstance();
 
  private:
