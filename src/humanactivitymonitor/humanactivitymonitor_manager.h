@@ -32,14 +32,17 @@ class HumanActivityMonitorManager {
   virtual ~HumanActivityMonitorManager();
 
   common::PlatformResult Init();
-  common::PlatformResult IsSupported(const std::string& type);
 
   common::PlatformResult SetListener(const std::string& type,
                                      JsonCallback callback);
   common::PlatformResult UnsetListener(const std::string& type);
 
+  common::PlatformResult GetHumanActivityData(const std::string& type,
+                                              picojson::value* data);
+
  private:
   std::map<std::string, bool> supported_;
+  common::PlatformResult IsSupported(const std::string& type);
 
   // WRIST_UP
   gesture_h gesture_handle_;
@@ -60,6 +63,7 @@ class HumanActivityMonitorManager {
   static void OnHrmSensorEvent(sensor_h sensor,
                                sensor_event_s *event,
                                void *user_data);
+  common::PlatformResult GetHrmData(picojson::value* data);
 
   // GPS
   location_manager_h location_handle_;
@@ -67,6 +71,7 @@ class HumanActivityMonitorManager {
   common::PlatformResult SetGpsListener(JsonCallback callback);
   common::PlatformResult UnsetGpsListener();
   static void OnGpsEvent(int num_of_location, void *user_data);
+  common::PlatformResult GetGpsData(picojson::value* data);
 };
 
 } // namespace humanactivitymonitor
