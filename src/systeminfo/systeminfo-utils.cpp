@@ -3072,7 +3072,10 @@ PlatformResult SystemInfoDeviceCapability::GetNativeAPIVersion(std::string* retu
 PlatformResult SystemInfoDeviceCapability::GetPlatformVersionName(std::string* result)
 {
   LoggerD("Enter");
-  return GetValueString("tizen.org/system/platform.version.name", result);
+
+  //Because of lack of 'http://tizen.org/feature/platform.version.name'
+  //key on platform we use 'http://tizen.org/system/platform.name'.
+  return GetValueString("tizen.org/system/platform.name", result);
 }
 
 } // namespace systeminfo
