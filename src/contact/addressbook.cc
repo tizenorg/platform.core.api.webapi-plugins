@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 Samsung Electronics Co., Ltd All Rights Reserved
+ * Copyright (c) 2014 Samsung Electronics Co., Ltd All Rights Reserved
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@
 
 #include <contacts.h>
 #include "contact/contact_instance.h"
+#include "contact/contact_search_engine.h"
 
 namespace extension {
 namespace contact {
@@ -329,84 +330,30 @@ PlatformResult AddressBookBatchFunc(NativeFunction impl,
 PlatformResult AddressBookFind(const JsonObject& args, JsonArray& array) {
   LoggerD("Entered");
   PlatformResult status = ContactUtil::CheckDBConnection();
-  if (status.IsError()) return status;
+  if (!status) return status;
 
-  // TODO implement contact filter and sorting.
-  const JsonObject& address_book = FromJson<JsonObject>(args, "addressBook");
-  long addressbook_id = common::stol(FromJson<std::string>(address_book, "id"));
-  int error_code;
+  long address_book_id = common::stol(FromJson<std::string>(args, "addressBookId"));
 
-  contacts_list_h list = nullptr;
+  LoggerD("Searching in address book: %d", address_book_id);
 
-  if (IsUnified(addressbook_id)) {
-    LoggerD("calling contacts_db_get_all_records");
-    error_code = contacts_db_get_all_records(_contacts_contact._uri, 0, 0, &list);
-    status =
-        ContactUtil::ErrorChecker(error_code, "Failed contacts_db_get_all_records");
-    if (status.IsError())  {
-      LoggerD("contacts_db_get_all_records - exit with error");
-      return status;
-    }
-  } else {
-    contacts_query_h query = nullptr;
-    contacts_filter_h filter = nullptr;
-
-    error_code = contacts_query_create(_contacts_contact._uri, &query);
-    status =
-        ContactUtil::ErrorChecker(error_code, "Failed contacts_query_create");
-    if (status.IsError()) return status;
-    ContactUtil::ContactsQueryHPtr query_ptr(&query,
-                                             ContactUtil::ContactsQueryDeleter);
-    error_code = contacts_filter_create(_contacts_contact._uri, &filter);
-    status =
-        ContactUtil::ErrorChecker(error_code, "Failed contacts_filter_create");
-    if (status.IsError()) return status;
-    ContactUtil::ContactsFilterPtr filter_ptr(filter,
-                                              ContactUtil::ContactsFilterDeleter);
-    error_code =
-        contacts_filter_add_int(filter, _contacts_contact.address_book_id,
-                                CONTACTS_MATCH_EQUAL, addressbook_id);
-    status =
-        ContactUtil::ErrorChecker(error_code, "Failed contacts_filter_add_int");
-    if (status.IsError()) return status;
-    error_code = contacts_query_set_filter(query, filter);
-    status =
-        ContactUtil::ErrorChecker(error_code, "Failed contacts_query_set_filter");
-    if (status.IsError()) return status;
-    error_code = contacts_db_get_records_with_query(query, 0, 0, &list);
-    status = ContactUtil::ErrorChecker(
-        error_code, "Failed contacts_db_get_records_with_query");
-    if (status.IsError()) return status;
-  }
-  ContactUtil::ContactsListHPtr list_ptr(&list,
-                                         ContactUtil::ContactsListDeleter);
-
-  int record_count = 0;
-  error_code = contacts_list_get_count(list, &record_count);
-  status =
-      ContactUtil::ErrorChecker(error_code, "Failed contacts_list_get_count");
-  if (status.IsError()) return status;
-
-  contacts_list_first(list);
-  for (int i = 0; i < record_count; i++) {
-    contacts_record_h record;
-    error_code = contacts_list_get_current_record_p(list, &record);
-    status = ContactUtil::ErrorChecker(
-        error_code, "Failed contacts_list_get_current_record_p");
-    if (status.IsError()) return status;
-
-    int id_value = 0;
-    error_code =
-        contacts_record_get_int(record, _contacts_contact.id, &id_value);
-    status =
-        ContactUtil::ErrorChecker(error_code, "Failed contacts_record_get_int");
-    if (status.IsError()) return status;
-
-    array.push_back(JsonValue(static_cast<double>(id_value)));
-    contacts_list_next(list);
+  ContactSearchEngine engine;
+  if (!IsUnified(address_book_id)) {
+    engine.SetAddressBookId(address_book_id);
   }
 
-  return PlatformResult(ErrorCode::NO_ERROR);
+  const auto filter_it = args.find("filter");
+  if (args.end() != filter_it && filter_it->second.is<picojson::object>()) {
+    status = engine.ApplyFilter(filter_it->second);
+    if (!status) return status;
+  }
+
+  const auto sort_mode_it = args.find("sortMode");
+  if (args.end() != sort_mode_it && sort_mode_it->second.is<picojson::object>()) {
+    status = engine.SetSortMode(sort_mode_it->second);
+    if (!status) return status;
+  }
+
+  return engine.Find(&array);
 }
 
 PlatformResult AddressBookAddGroup(const JsonObject& args, JsonObject& out) {

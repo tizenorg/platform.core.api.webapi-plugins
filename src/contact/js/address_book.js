@@ -509,23 +509,12 @@ AddressBook.prototype.find = function(successCallback, errorCallback, filter, so
       } catch (e) {}
     });
 
-    //TODO: Move filtering to native code
-    try {
-      _contacts = C.filter(_contacts, args.filter);
-    } catch (e) {
-      native_.callIfPossible(errorCallback, e);
-      return;
-    }
-
-    //TODO: Move sorting to native code
-    _contacts = C.sort(_contacts, args.sortMode);
-
     native_.callIfPossible(successCallback, _contacts);
   };
 
   native_.call('AddressBook_find', {
-    addressBook: this,
-    filter: filter,
+    addressBookId: this.id,
+    filter: utils_.repackFilter(filter),
     sortMode: sortMode
   }, callback);
 };
