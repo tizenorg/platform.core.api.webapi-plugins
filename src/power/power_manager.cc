@@ -235,14 +235,18 @@ PlatformResult PowerManager::Release(PowerResource resource) {
     display_state_e platform_state = DISPLAY_STATE_NORMAL;
     if(current_requested_state_ == POWER_STATE_SCREEN_DIM) {
       ret = PowerPlatformProxy::GetInstance().UnlockState();
-    } else {
-      ret = device_display_get_state(&platform_state);
+      if (DEVICE_ERROR_NONE != ret) {
+        LoggerE("Failed to UnlockState (%d)", ret);
+      }
     }
-    if (DEVICE_ERROR_NONE != ret)
+    ret = device_display_get_state(&platform_state);
+    if (DEVICE_ERROR_NONE != ret) {
       LoggerE("device_display_get_state failed (%d)", ret);
-
-    if (DISPLAY_STATE_NORMAL == platform_state)
-      BroadcastScreenState(POWER_STATE_SCREEN_NORMAL);
+    } else {
+      if (DISPLAY_STATE_NORMAL == platform_state) {
+        BroadcastScreenState(POWER_STATE_SCREEN_NORMAL);
+      }
+    }
 
     current_requested_state_ = POWER_STATE_NONE;
   } else if (POWER_RESOURCE_CPU == resource) {
