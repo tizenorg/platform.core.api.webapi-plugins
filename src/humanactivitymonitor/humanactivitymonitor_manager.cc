@@ -17,6 +17,7 @@ using common::ErrorCode;
 HumanActivityMonitorManager::HumanActivityMonitorManager() {}
 
 HumanActivityMonitorManager::~HumanActivityMonitorManager() {
+  UnsetWristUpListener();
   UnsetHrmListener();
 }
 
@@ -40,7 +41,12 @@ PlatformResult HumanActivityMonitorManager::IsSupported(
     // TODO(r.galka) no native api for pedometer
     // so just pass it for not supported.
   } else if (type == kActivityTypeWristUp) {
-    // TODO(r.galka) implement when available in platform
+    ret = gesture_is_supported(GESTURE_WRIST_UP, &supported);
+    if (ret != SENSOR_ERROR_NONE) {
+      LOGGER(ERROR) << "gesture_is_supported(GESTURE_WRIST_UP), error: " << ret;
+      return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                            "WRIST_UP gesture check failed");
+    }
   } else if (type == kActivityTypeHrm) {
     ret = sensor_is_supported(SENSOR_HRM, &supported);
     if (ret != SENSOR_ERROR_NONE) {
@@ -78,7 +84,7 @@ PlatformResult HumanActivityMonitorManager::SetListener(
 
   // WRIST_UP
   if (type == kActivityTypeWristUp) {
-    // TODO(r.galka) implement
+    return SetWristUpListener(callback);
   }
 
   // HRM
@@ -107,7 +113,7 @@ PlatformResult HumanActivityMonitorManager::UnsetListener(
 
   // WRIST_UP
   if (type == kActivityTypeWristUp) {
-    // TODO(r.galka) implement
+    return UnsetWristUpListener();
   }
 
   // HRM
@@ -119,6 +125,71 @@ PlatformResult HumanActivityMonitorManager::UnsetListener(
   if (type == kActivityTypeGps) {
     // TODO(r.galka) implement
   }
+}
+
+// WRIST_UP
+PlatformResult HumanActivityMonitorManager::SetWristUpListener(
+    JsonCallback callback) {
+  int ret;
+
+  ret = gesture_create(&gesture_handle_);
+  if (ret != GESTURE_ERROR_NONE) {
+    LOGGER(ERROR) << "Failed to create WRIST_UP handle, error: " << ret;
+    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                          "Failed to create WRIST_UP listener");
+  }
+
+  ret = gesture_start_recognition(gesture_handle_,
+                                  GESTURE_WRIST_UP,
+                                  GESTURE_OPTION_DEFAULT,
+                                  OnWristUpEvent,
+                                  this);
+  if (ret != GESTURE_ERROR_NONE) {
+    LOGGER(ERROR) << "Failed to start WRIST_UP listener, error: " << ret;
+    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                          "Failed to start WRIST_UP listener");
+  }
+
+  wrist_up_event_callback_ = callback;
+
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult HumanActivityMonitorManager::UnsetWristUpListener() {
+  int ret;
+
+  if (gesture_handle_) {
+    ret = gesture_stop_recognition(gesture_handle_);
+    if (ret != GESTURE_ERROR_NONE) {
+      LOGGER(ERROR) << "Failed to stop WRIST_UP detection, error: " << ret;
+    }
+
+    ret = gesture_release(gesture_handle_);
+    if (ret != GESTURE_ERROR_NONE) {
+      LOGGER(ERROR) << "Failed to release WRIST_UP handle, error: " << ret;
+    }
+  }
+
+  wrist_up_event_callback_ = nullptr;
+
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+void HumanActivityMonitorManager::OnWristUpEvent(gesture_type_e gesture,
+                                                 const gesture_data_h data,
+                                                 double timestamp,
+                                                 gesture_error_e error,
+                                                 void* user_data) {
+  HumanActivityMonitorManager* manager =
+      static_cast<HumanActivityMonitorManager*>(user_data);
+
+  if (!manager->wrist_up_event_callback_) {
+    LOGGER(ERROR) << "No WRIST_UP event callback registered, skipping.";
+    return;
+  }
+
+  picojson::value v = picojson::value(); // null value
+  manager->wrist_up_event_callback_(&v);
 }
 
 // HRM
@@ -218,6 +289,11 @@ void HumanActivityMonitorManager::OnHrmSensorEvent(
 
   HumanActivityMonitorManager* manager =
       static_cast<HumanActivityMonitorManager*>(user_data);
+
+  if (!manager->hrm_event_callback_) {
+    LOGGER(ERROR) << "No HRM event callback registered, skipping.";
+    return;
+  }
 
   picojson::value hrm_data = picojson::value(picojson::object());
   picojson::object& hrm_data_o = hrm_data.get<picojson::object>();
