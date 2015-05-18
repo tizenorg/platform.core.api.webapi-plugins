@@ -129,6 +129,21 @@ SysteminfoInstance::SysteminfoInstance() {
 }
 
 SysteminfoInstance::~SysteminfoInstance() {
+  LoggerD("Entered");
+  //TODO Below solution is temporary
+  //Implementation should be changed that each SysteminfoInstance object
+  //should have own SystemInfoListeners manager
+  SysteminfoUtils::UnregisterBatteryListener();
+  SysteminfoUtils::UnregisterCpuListener();
+  SysteminfoUtils::UnregisterStorageListener();
+  SysteminfoUtils::UnregisterDisplayListener();
+  SysteminfoUtils::UnregisterDeviceOrientationListener();
+  SysteminfoUtils::UnregisterLocaleListener();
+  SysteminfoUtils::UnregisterNetworkListener();
+  SysteminfoUtils::UnregisterWifiNetworkListener();
+  SysteminfoUtils::UnregisterCellularNetworkListener();
+  SysteminfoUtils::UnregisterPeripheralListener();
+  SysteminfoUtils::UnregisterMemoryListener();
 }
 
 void SysteminfoInstance::GetCapabilities(const picojson::value& args, picojson::object& out) {
