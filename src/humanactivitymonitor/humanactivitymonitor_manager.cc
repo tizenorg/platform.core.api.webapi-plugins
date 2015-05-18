@@ -19,6 +19,7 @@ HumanActivityMonitorManager::HumanActivityMonitorManager() {}
 HumanActivityMonitorManager::~HumanActivityMonitorManager() {
   UnsetWristUpListener();
   UnsetHrmListener();
+  UnsetGpsListener();
 }
 
 PlatformResult HumanActivityMonitorManager::Init() {
@@ -55,7 +56,7 @@ PlatformResult HumanActivityMonitorManager::IsSupported(
                             "HRM sensor check failed");
     }
   } else if (type == kActivityTypeGps) {
-    // TODO(r.galka) implement when available in platform
+    supported = location_manager_is_supported_method(LOCATIONS_METHOD_GPS);
   } else {
     return PlatformResult(ErrorCode::TYPE_MISMATCH_ERR);
   }
@@ -75,8 +76,6 @@ PlatformResult HumanActivityMonitorManager::SetListener(
     return result;
   }
 
-  int ret;
-
   // PEDOMETER
   if (type == kActivityTypePedometer) {
     // TODO(r.galka) Not Supported in current implementation.
@@ -94,8 +93,10 @@ PlatformResult HumanActivityMonitorManager::SetListener(
 
   // GPS
   if (type == kActivityTypeGps) {
-    // TODO(r.galka) implement
+    return SetGpsListener(callback);
   }
+
+  return PlatformResult(ErrorCode::UNKNOWN_ERR, "Undefined activity type");
 }
 
 PlatformResult HumanActivityMonitorManager::UnsetListener(
@@ -123,8 +124,10 @@ PlatformResult HumanActivityMonitorManager::UnsetListener(
 
   // GPS
   if (type == kActivityTypeGps) {
-    // TODO(r.galka) implement
+    return UnsetGpsListener();
   }
+
+  return PlatformResult(ErrorCode::UNKNOWN_ERR, "Undefined activity type");
 }
 
 // WRIST_UP
@@ -302,6 +305,122 @@ void HumanActivityMonitorManager::OnHrmSensorEvent(
   hrm_data_o["rRInterval"] = picojson::value(static_cast<double>(rri));
 
   manager->hrm_event_callback_(&hrm_data);
+}
+
+// GPS
+PlatformResult HumanActivityMonitorManager::SetGpsListener(
+    JsonCallback callback) {
+  int ret;
+
+  ret = location_manager_create(LOCATIONS_METHOD_GPS, &location_handle_);
+  if (ret != LOCATIONS_ERROR_NONE) {
+    LOGGER(ERROR) << "Failed to create location manager, error: " << ret;
+    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                          "Failed to create location manager");
+  }
+
+  ret = location_manager_set_location_batch_cb(location_handle_,
+                                               OnGpsEvent,
+                                               1, // batch_interval
+                                               120, // batch_period
+                                               this);
+  if (ret != LOCATIONS_ERROR_NONE) {
+    LOGGER(ERROR) << "Failed to set location listener, error: " << ret;
+    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                          "Failed to set location listener");
+  }
+
+  ret = location_manager_start_batch(location_handle_);
+  if (ret != LOCATIONS_ERROR_NONE) {
+    LOGGER(ERROR) << "Failed to start location manager, error: " << ret;
+    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                          "Failed to start location manager");
+  }
+
+  gps_event_callback_ = callback;
+
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult HumanActivityMonitorManager::UnsetGpsListener() {
+  int ret;
+
+  if (location_handle_) {
+    ret = location_manager_stop_batch(location_handle_);
+    if (ret != LOCATIONS_ERROR_NONE) {
+      LOGGER(ERROR) << "Failed to stop location manager, error: " << ret;
+      return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                            "Failed to stop location manager");
+    }
+
+    ret = location_manager_unset_location_batch_cb(location_handle_);
+    if (ret != LOCATIONS_ERROR_NONE) {
+      LOGGER(ERROR) << "Failed to unset location listener, error: " << ret;
+      return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                            "Failed to unset location listener");
+    }
+
+    ret = location_manager_destroy(location_handle_);
+    if (ret != LOCATIONS_ERROR_NONE) {
+      LOGGER(ERROR) << "Failed to destroy location manager, error: " << ret;
+      return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                            "Failed to destroy location manager");
+    }
+  }
+
+  gps_event_callback_ = nullptr;
+
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+static bool ConvertGpsEvent(double latitude, double longitude, double altitude,
+                            double speed, double direction, double horizontal,
+                            double vertical, time_t timestamp,
+                            void* user_data) {
+  picojson::array* gps_info_array = static_cast<picojson::array*>(user_data);
+
+  picojson::value gps_info = picojson::value(picojson::object());
+  picojson::object& gps_info_o = gps_info.get<picojson::object>();
+
+  gps_info_o["latitude"] = picojson::value(latitude);
+  gps_info_o["longitude"] = picojson::value(longitude);
+  gps_info_o["altitude"] = picojson::value(altitude);
+  gps_info_o["speed"] = picojson::value(speed);
+  // TODO(r.galka) errorRange not available in CAPI
+  gps_info_o["errorRange"] = picojson::value(static_cast<double>(0));
+  gps_info_o["timestamp"] = picojson::value(static_cast<double>(timestamp));
+
+  gps_info_array->push_back(gps_info);
+
+  return true;
+}
+
+void HumanActivityMonitorManager::OnGpsEvent(int num_of_location,
+                                             void *user_data) {
+  HumanActivityMonitorManager* manager =
+      static_cast<HumanActivityMonitorManager*>(user_data);
+
+  if (!manager->gps_event_callback_) {
+    LOGGER(ERROR) << "No GPS event callback registered, skipping.";
+    return;
+  }
+
+  if (0 == num_of_location) {
+    LOGGER(ERROR) << "No GPS locations available, skipping.";
+    return;
+  }
+
+  picojson::value gps_info = picojson::value(picojson::array());
+  int ret = location_manager_foreach_location_batch(
+      manager->location_handle_,
+      ConvertGpsEvent,
+      &gps_info.get<picojson::array>());
+  if (ret != LOCATIONS_ERROR_NONE) {
+    LOGGER(ERROR) << "Failed to convert location, error: " << ret;
+    return;
+  }
+
+  manager->gps_event_callback_(&gps_info);
 }
 
 }  // namespace humanactivitymonitor
