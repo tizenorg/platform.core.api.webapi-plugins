@@ -11,6 +11,7 @@
 #include "common/picojson.h"
 #include "common/logger.h"
 #include "common/platform_result.h"
+#include "common/task-queue.h"
 #include "humanactivitymonitor/humanactivitymonitor_manager.h"
 
 namespace extension {
@@ -18,6 +19,7 @@ namespace humanactivitymonitor {
 
 using common::PlatformResult;
 using common::ErrorCode;
+using common::TaskQueue;
 
 HumanActivityMonitorInstance::HumanActivityMonitorInstance() {
   using std::placeholders::_1;
@@ -66,7 +68,36 @@ PlatformResult HumanActivityMonitorInstance::Init() {
 
 void HumanActivityMonitorInstance::HumanActivityMonitorManagerGetHumanActivityData(
     const picojson::value& args, picojson::object& out) {
-  // TODO(r.galka) implement
+  CHECK_EXIST(args, "type", out)
+
+  PlatformResult result = Init();
+  if (!result) {
+    ReportError(result, &out);
+    return;
+  }
+
+  auto get = [this, args]() -> void {
+    picojson::value response = picojson::value(picojson::object());
+    picojson::object& response_obj = response.get<picojson::object>();
+    response_obj["callbackId"] = args.get("callbackId");
+
+    picojson::value data = picojson::value();
+    PlatformResult result = manager_->GetHumanActivityData(
+        args.get("type").get<std::string>(),
+        &data);
+
+    if (result) {
+      ReportSuccess(data, response_obj);
+    } else {
+      ReportError(result, &response_obj);
+    }
+
+    PostMessage(response.serialize().c_str());
+  };
+
+  TaskQueue::GetInstance().Async(get);
+
+  ReportSuccess(out);
 }
 
 void HumanActivityMonitorInstance::HumanActivityMonitorManagerStart(

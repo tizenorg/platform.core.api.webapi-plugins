@@ -76,22 +76,18 @@ PlatformResult HumanActivityMonitorManager::SetListener(
     return result;
   }
 
-  // PEDOMETER
   if (type == kActivityTypePedometer) {
     // TODO(r.galka) Not Supported in current implementation.
   }
 
-  // WRIST_UP
   if (type == kActivityTypeWristUp) {
     return SetWristUpListener(callback);
   }
 
-  // HRM
   if (type == kActivityTypeHrm) {
     return SetHrmListener(callback);
   }
 
-  // GPS
   if (type == kActivityTypeGps) {
     return SetGpsListener(callback);
   }
@@ -107,24 +103,43 @@ PlatformResult HumanActivityMonitorManager::UnsetListener(
     return result;
   }
 
-  // PEDOMETER
   if (type == kActivityTypePedometer) {
     // TODO(r.galka) Not Supported in current implementation.
   }
 
-  // WRIST_UP
   if (type == kActivityTypeWristUp) {
     return UnsetWristUpListener();
   }
 
-  // HRM
   if (type == kActivityTypeHrm) {
     return UnsetHrmListener();
   }
 
-  // GPS
   if (type == kActivityTypeGps) {
     return UnsetGpsListener();
+  }
+
+  return PlatformResult(ErrorCode::UNKNOWN_ERR, "Undefined activity type");
+}
+
+PlatformResult HumanActivityMonitorManager::GetHumanActivityData(
+    const std::string& type,
+    picojson::value* data) {
+
+  if (type == kActivityTypePedometer) {
+    // TODO(r.galka) Not Supported in current implementation.
+  }
+
+  if (type == kActivityTypeWristUp) {
+    return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR);
+  }
+
+  if (type == kActivityTypeHrm) {
+    return GetHrmData(data);
+  }
+
+  if (type == kActivityTypeGps) {
+    return GetGpsData(data);
   }
 
   return PlatformResult(ErrorCode::UNKNOWN_ERR, "Undefined activity type");
@@ -268,8 +283,8 @@ PlatformResult HumanActivityMonitorManager::UnsetHrmListener() {
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-void HumanActivityMonitorManager::OnHrmSensorEvent(
-    sensor_h sensor, sensor_event_s *event, void *user_data) {
+static PlatformResult ConvertHrmEvent(sensor_event_s* event,
+                                      picojson::object* data) {
   LOGGER(DEBUG) << "Sensor event:";
   LOGGER(DEBUG) << "  |- accuracy: " << event->accuracy;
   LOGGER(DEBUG) << "  |- timestamp: " << event->timestamp;
@@ -277,7 +292,7 @@ void HumanActivityMonitorManager::OnHrmSensorEvent(
 
   if (event->value_count < 2) {
     LOGGER(ERROR) << "To few values of HRM event";
-    return;
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "To few values of HRM event");
   }
 
   LOGGER(DEBUG) << "  |- values[0]: " << event->values[0];
@@ -290,6 +305,16 @@ void HumanActivityMonitorManager::OnHrmSensorEvent(
   // or unofficially values[1] is rri (0 ~ 5000 ms)
   float rri = event->values[1];
 
+
+  (*data)["heartRate"] = picojson::value(static_cast<double>(hr));
+  (*data)["rRInterval"] = picojson::value(static_cast<double>(rri));
+
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+void HumanActivityMonitorManager::OnHrmSensorEvent(
+    sensor_h /*sensor*/, sensor_event_s *event, void *user_data) {
+
   HumanActivityMonitorManager* manager =
       static_cast<HumanActivityMonitorManager*>(user_data);
 
@@ -299,12 +324,39 @@ void HumanActivityMonitorManager::OnHrmSensorEvent(
   }
 
   picojson::value hrm_data = picojson::value(picojson::object());
-  picojson::object& hrm_data_o = hrm_data.get<picojson::object>();
-
-  hrm_data_o["heartRate"] = picojson::value(static_cast<double>(hr));
-  hrm_data_o["rRInterval"] = picojson::value(static_cast<double>(rri));
+  PlatformResult result = ConvertHrmEvent(event,
+                                          &hrm_data.get<picojson::object>());
+  if (!result) {
+    LOGGER(ERROR) << "Failed to convert HRM data: " << result.message();
+    return;
+  }
 
   manager->hrm_event_callback_(&hrm_data);
+}
+
+PlatformResult HumanActivityMonitorManager::GetHrmData(picojson::value* data) {
+  if (!hrm_sensor_listener_) {
+    return PlatformResult(ErrorCode::SERVICE_NOT_AVAILABLE_ERR);
+  }
+
+  int ret;
+
+  sensor_event_s event;
+  ret = sensor_listener_read_data(hrm_sensor_listener_, &event);
+  if (ret != SENSOR_ERROR_NONE) {
+    LOGGER(ERROR) << "Failed to get HRM sensor data, error: " << ret;
+    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                          "Failed to get HRM sensor data");
+  }
+
+  *data = picojson::value(picojson::object());
+  PlatformResult result = ConvertHrmEvent(&event,
+                                          &data->get<picojson::object>());
+  if (!result) {
+    return result;
+  }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 // GPS
@@ -421,6 +473,32 @@ void HumanActivityMonitorManager::OnGpsEvent(int num_of_location,
   }
 
   manager->gps_event_callback_(&gps_info);
+}
+
+PlatformResult HumanActivityMonitorManager::GetGpsData(picojson::value* data) {
+  if (!location_handle_) {
+    return PlatformResult(ErrorCode::SERVICE_NOT_AVAILABLE_ERR);
+  }
+
+  int ret;
+  double altitude, latitude, longitude, climb,
+      direction, speed, horizontal, vertical;
+  location_accuracy_level_e level;
+  time_t timestamp;
+  ret = location_manager_get_location(location_handle_, &altitude, &latitude,
+                                      &longitude, &climb, &direction, &speed,
+                                      &level, &horizontal, &vertical,
+                                      &timestamp);
+  if (ret != LOCATIONS_ERROR_NONE) {
+    LOGGER(ERROR) << "Failed to get location, error: " << ret;
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to get location");
+  }
+
+  *data = picojson::value(picojson::array());
+  ConvertGpsEvent(latitude, longitude, altitude, speed, direction, horizontal,
+                  vertical, timestamp, &data->get<picojson::array>());
+
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 }  // namespace humanactivitymonitor

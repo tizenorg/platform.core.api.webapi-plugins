@@ -36,16 +36,42 @@ var PedometerStepStatus = {
   RUNNING: 'RUNNING'
 };
 
+function convertActivityData(type, data) {
+  switch (type) {
+    case HumanActivityType.PEDOMETER:
+      // TODO(r.galka) Not Supported in current implementation
+      return undefined;
+    case HumanActivityType.WRIST_UP:
+      return null;
+    case HumanActivityType.HRM:
+      return new HumanActivityHRMData(data);
+    case HumanActivityType.GPS:
+      var gpsInfo = [];
+      for (var i = 0, max = data.length; i < max; i++) {
+        gpsInfo.push(new HumanActivityGPSInfo(data[i]));
+      }
+      return new HumanActivityGPSInfoArray(gpsInfo);
+  }
+}
 
 function HumanActivityMonitorManager() {
 }
 
 HumanActivityMonitorManager.prototype.getHumanActivityData = function(type, successCallback, errorCallback) {
   var args = validator_.validateArgs(arguments, [
-    {name: 'type', type: types_.ENUM, values: ['PEDOMETER', 'WRIST_UP', 'HRM', 'GPS']},
+    {name: 'type', type: types_.ENUM, values: Object.keys(HumanActivityType)},
     {name: 'successCallback', type: types_.FUNCTION},
     {name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true}
   ]);
+
+  if (args.type === HumanActivityType.WRIST_UP) {
+    throw new WebAPIException(WebAPIException.NOT_SUPPORTED_ERR);
+  }
+
+  var listenerId ='HumanActivityMonitor_'  + args.type;
+  if (!native_.isListenerSet(listenerId)) {
+    throw new WebAPIException(WebAPIException.SERVICE_NOT_AVAILABLE_ERR);
+  }
 
   var data = {
     type: args.type
@@ -56,7 +82,9 @@ HumanActivityMonitorManager.prototype.getHumanActivityData = function(type, succ
       native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));
       return;
     }
-    native_.callIfPossible(args.successCallback);
+
+    native_.callIfPossible(args.successCallback,
+        convertActivityData(args.type, native_.getResultObject(result)));
   };
 
   native_.call('HumanActivityMonitorManager_getHumanActivityData', data, callback);
@@ -87,25 +115,7 @@ HumanActivityMonitorManager.prototype.start = function(type, changedCallback) {
   }
 
   var listener = function(result) {
-    switch (args.type) {
-      case HumanActivityType.PEDOMETER:
-        // TODO(r.galka) Not Supported in current implementation
-        break;
-      case HumanActivityType.WRIST_UP:
-        native_.callIfPossible(args.changedCallback, null);
-        break;
-      case HumanActivityType.HRM:
-        native_.callIfPossible(args.changedCallback, new HumanActivityHRMData(result));
-        break;
-      case HumanActivityType.GPS:
-        var gpsInfo = [];
-        for (var i = 0, max = result.length; i < max; i++) {
-          gpsInfo.push(new HumanActivityGPSInfo(result[i]));
-        }
-        native_.callIfPossible(args.changedCallback, new HumanActivityGPSInfoArray(gpsInfo));
-        break;
-    }
-
+    native_.callIfPossible(args.changedCallback, convertActivityData(args.type, result));
   };
   native_.addListener(listenerId, listener);
 };
