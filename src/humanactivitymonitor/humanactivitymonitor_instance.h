@@ -5,8 +5,11 @@
 #ifndef HUMANACTIVITYMONITOR_HUMANACTIVITYMONITOR_INSTANCE_H_
 #define HUMANACTIVITYMONITOR_HUMANACTIVITYMONITOR_INSTANCE_H_
 
+#include <memory>
+
 #include "common/extension.h"
 #include "common/platform_result.h"
+#include "humanactivitymonitor/humanactivitymonitor_manager.h"
 
 namespace extension {
 namespace humanactivitymonitor {
@@ -27,6 +30,9 @@ class HumanActivityMonitorInstance : public common::ParsedInstance {
       const picojson::value& args, picojson::object& out);
   void HumanActivityMonitorManagerSetAccumulativePedometerListener(
       const picojson::value& args, picojson::object& out);
+
+  std::shared_ptr<HumanActivityMonitorManager> manager_;
+  common::PlatformResult Init();
 };
 
 } // namespace humanactivitymonitor
