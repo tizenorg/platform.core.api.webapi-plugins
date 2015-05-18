@@ -87,12 +87,13 @@ void NetworkBearerSelectionManager::connection_state_changed_callback(
     }
     NetworkBearerSelectionRequestEvent* event =
         static_cast<NetworkBearerSelectionRequestEvent*>(user_data);
-    std::string domain_name = event->domain_name;
-    delete event;
-    NetworkBearerSelectionManager::GetInstance()->deregistStateChangeListener(domain_name);
+
     if (state == CONNECTION_PROFILE_STATE_DISCONNECTED) {
-      NetworkBearerSelectionManager::GetInstance()->makeDisconnectCallback(
-          domain_name);
+      std::string domain_name = event->domain_name;
+      NetworkBearerSelectionManager::GetInstance()->deregistStateChangeListener(domain_name);
+      delete event;
+
+      NetworkBearerSelectionManager::GetInstance()->makeDisconnectCallback(domain_name);
     }
   }
 }
