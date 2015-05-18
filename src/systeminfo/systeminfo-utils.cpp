@@ -2744,12 +2744,12 @@ PlatformResult SystemInfoDeviceCapability::GetCapability(const std::string& key,
   bool bool_value = false ;
   bool is_fetched = false;
 
-  PlatformResult ret = CheckStringCapability(key, &value, &is_fetched);
+  PlatformResult ret = CheckBoolCapability(key, &bool_value, &is_fetched);
   if (ret.IsError()) {
     return ret;
   }
   if (is_fetched) {
-    type = "string";
+    type = "bool";
   } else {
     ret = CheckIntCapability(key, &value, &is_fetched);
     if (ret.IsError()) {
@@ -2758,12 +2758,12 @@ PlatformResult SystemInfoDeviceCapability::GetCapability(const std::string& key,
     if (is_fetched) {
       type = "int";
     } else {
-      ret = CheckBoolCapability(key, &bool_value, &is_fetched);
+      ret = CheckStringCapability(key, &value, &is_fetched);
       if (ret.IsError()) {
         return ret;
       }
       if(is_fetched) {
-        type = "bool";
+        type = "string";
       }
     }
   }
