@@ -46,7 +46,7 @@ class FMRadioManager {
 
   void PostMessage(const std::string& msg) const;
   void PostResultSuccess(double callbackId, picojson::value* event) const;
-  void PostResultSuccess(double callbackId) const;
+  void PostResultCallbackSuccess(double callbackId) const;
   void PostResultFailure(double callbackId, const common::PlatformResult& result) const;
 
  private:

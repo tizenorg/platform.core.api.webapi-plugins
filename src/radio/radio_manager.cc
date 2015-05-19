@@ -13,6 +13,7 @@
 
 #include "common/logger.h"
 #include "common/extension.h"
+#include "common/task-queue.h"
 
 #include "radio/radio_instance.h"
 
@@ -115,9 +116,13 @@ void RadioSeekCallback(int frequency, void* user_data) {
   PlatformResult result = data->manager_.SetFrequency(ToMHz(frequency));
 
   if (result) {
-    data->manager_.PostResultSuccess(data->callback_id_);
+    common::TaskQueue::GetInstance().Async(std::bind(
+      &FMRadioManager::PostResultCallbackSuccess, &data->manager_,
+      data->callback_id_));
   } else {
-    data->manager_.PostResultFailure(data->callback_id_, result);
+    common::TaskQueue::GetInstance().Async(std::bind(
+      &FMRadioManager::PostResultFailure, &data->manager_,
+      data->callback_id_, result));
   }
 
   delete data;
@@ -133,7 +138,13 @@ void ScanStartCallback(int frequency, void* user_data) {
   auto& obj = event.get<picojson::object>();
   obj.insert(std::make_pair("frequency", picojson::value(ToMHz(frequency))));
   obj.insert(std::make_pair("listenerId", picojson::value("FMRadio_Onfrequencyfound")));
-  data->manager_.PostMessage(event.serialize());
+  common::TaskQueue::GetInstance().Async(std::bind(
+    &FMRadioManager::PostMessage, &data->manager_, event.serialize()));
+}
+
+void PostAsyncSuccess(FMRadioManager& manager, double callbackId, picojson::value* event) {
+  manager.PostResultSuccess(callbackId, event);
+  delete event;
 }
 
 void ScanCompleteCallback(void* user_data) {
@@ -141,8 +152,8 @@ void ScanCompleteCallback(void* user_data) {
 
   RadioScanData* data = static_cast<RadioScanData*>(user_data);
 
-  picojson::value event{picojson::object()};
-  auto& obj = event.get<picojson::object>();
+  picojson::value* event = new picojson::value(picojson::object());
+  auto& obj = event->get<picojson::object>();
   obj.insert(std::make_pair("name", picojson::value("onfinished")));
 
   picojson::array frequencies;
@@ -151,7 +162,8 @@ void ScanCompleteCallback(void* user_data) {
   }
 
   obj.insert(std::make_pair("frequencies", picojson::value(frequencies)));
-  data->manager_.PostResultSuccess(data->callback_id_, &event);
+  common::TaskQueue::GetInstance().Async(std::bind(&PostAsyncSuccess,
+    data->manager_, data->callback_id_, event));
 
   delete data;
 }
@@ -160,7 +172,8 @@ void ScanStopCallback(void *user_data) {
   LoggerD("Enter");
   RadioData* data = static_cast<RadioData*>(user_data);
 
-  data->manager_.PostResultSuccess(data->callback_id_);
+  common::TaskQueue::GetInstance().Async(std::bind(
+    &FMRadioManager::PostResultCallbackSuccess, &data->manager_, data->callback_id_));
   delete data;
 }
 
@@ -181,7 +194,8 @@ void RadioInterruptedCallback(radio_interrupted_code_e code, void *user_data) {
   }
 
   FMRadioManager* manager = static_cast<FMRadioManager*>(user_data);
-  manager->PostMessage(event.serialize());
+  common::TaskQueue::GetInstance().Async(std::bind(
+    &FMRadioManager::PostMessage, manager, event.serialize()));
 }
 
 
@@ -201,7 +215,8 @@ void RadioAntennaCallback(runtime_info_key_e key, void* user_data) {
   obj.insert(std::make_pair("listenerId", picojson::value("FMRadio_Antenna")));
 
   FMRadioManager* manager = static_cast<FMRadioManager*>(user_data);
-  manager->PostMessage(event.serialize());
+  common::TaskQueue::GetInstance().Async(std::bind(
+    &FMRadioManager::PostMessage, manager, event.serialize()));
 }
 
 } // namespace
@@ -461,7 +476,7 @@ void FMRadioManager::PostResultSuccess(double callbackId, picojson::value* event
   PostMessage(event->serialize());
 }
 
-void FMRadioManager::PostResultSuccess(double callbackId) const {
+void FMRadioManager::PostResultCallbackSuccess(double callbackId) const {
   picojson::value event{picojson::object()};
 
   PostResultSuccess(callbackId, &event);
