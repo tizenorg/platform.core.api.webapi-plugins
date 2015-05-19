@@ -45,8 +45,9 @@ PlatformResult NFCUtil::CodeToResult(const int errorCode,
     case NFC_ERROR_SECURITY_RESTRICTED:
     case NFC_ERROR_PERMISSION_DENIED:
       return PlatformResult(ErrorCode::SECURITY_ERR, message);
-    case NFC_ERROR_NOT_ACTIVATED:
     case NFC_ERROR_NOT_SUPPORTED:
+      return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR, message);
+    case NFC_ERROR_NOT_ACTIVATED:
     case NFC_ERROR_OPERATION_FAILED:
     case NFC_ERROR_DEVICE_BUSY:
     case NFC_ERROR_NO_DEVICE:
