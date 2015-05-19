@@ -153,7 +153,13 @@ function Reader(reader_handle) {
                         set: function() {},
                         get: function() {
                             var callArgs = { handle: reader_handle };
-                            return native_.callSync('SEReader_isPresent', callArgs);
+                            var result = native_.callSync('SEReader_isPresent', callArgs);
+                            if (native_.isFailure(result)) {
+                              console.log('SEReader_isPresent error: ' + native_.getErrorObject(result));
+                              return false;
+                            } else {
+                              return native_.getResultObject(result).isPresent;
+                            }
                         }},
         _handle:    {   configurable: false,
                         enumerable: false,

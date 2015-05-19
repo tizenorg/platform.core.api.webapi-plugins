@@ -48,7 +48,7 @@ picojson::value SEReader::isPresent() {
     picojson::object& obj = result.get<picojson::object>();
 
     if(m_reader) {
-        obj.insert(std::make_pair("name", picojson::value(m_reader->isSecureElementPresent())));
+        obj.insert(std::make_pair("isPresent", picojson::value(m_reader->isSecureElementPresent())));
     }
 
     return result;
