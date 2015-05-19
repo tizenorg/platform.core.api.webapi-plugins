@@ -18,12 +18,19 @@
 #include <algorithm>
 #include <iomanip>
 #include <string>
+#include <unistd.h>
 #include "common/converter.h"
 #include "common/logger.h"
 
 namespace extension {
 namespace contact {
 namespace ContactUtil {
+
+using common::ErrorCode;
+using common::FromJson;
+using common::IsNull;
+using common::JsonCast;
+using common::PlatformResult;
 
 namespace {
 
@@ -44,7 +51,17 @@ std::string ConvertPathToUri(const std::string& str) {
 
   return kSchema + str;
 }
+
+PlatformResult VerifyLocalPath(const std::string& path) {
+  // path should be either empty or point to existing local path
+  bool result = path.length() == 0
+      || (path.length() > 0 && path[0] == '/'
+          && (access(path.c_str(), F_OK) == 0));
+  return PlatformResult(
+      result ? ErrorCode::NO_ERROR : ErrorCode::INVALID_VALUES_ERR);
 }
+
+}  // namespace
 
 void ContactsDeleter(contacts_record_h* contacts_record) {
   if (CONTACTS_ERROR_NONE != contacts_record_destroy(*contacts_record, true)) {
@@ -69,8 +86,6 @@ void ContactsQueryDeleter(contacts_query_h* contacts_query) {
     LoggerE("failed to destroy contacts_query_h");
   }
 }
-
-using namespace common;
 
 namespace {
 static const char kContactPhoneTypeHome[] = "HOME";
@@ -2562,7 +2577,9 @@ PlatformResult ExportContactToContactsRecord(contacts_record_h contacts_record,
   if (!IsNull(in, "ringtoneURI")) {
     real_path =
         ContactUtil::ConvertUriToPath(FromJson<JsonString>(in, "ringtoneURI"));
-    PlatformResult status = ContactUtil::SetStrInRecord(
+    PlatformResult status = VerifyLocalPath(real_path);
+    if (status.IsError()) return status;
+    status = ContactUtil::SetStrInRecord(
         contacts_record, _contacts_contact.ringtone_path, real_path.c_str());
     if (status.IsError()) {
       LoggerE("Error: %s", status.message().c_str());
