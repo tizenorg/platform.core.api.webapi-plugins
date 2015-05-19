@@ -183,19 +183,26 @@ void MessageportInstance::
     portCheck ? "true" : "false");
 
   if (ret == MESSAGE_PORT_ERROR_NONE) {
-    if (portCheck) ReportSuccess(out);
-    else
-      ReportError(NotFoundException
-        ("The port of the target application is not found"), out);
+    if (portCheck)  {
+      ReportSuccess(out);
+    } else {
+      ReportError(
+          NotFoundException("The port of the target application is not found"),
+          out);
+    }
   } else if (ret == MESSAGE_PORT_ERROR_INVALID_PARAMETER) {
-      ReportError(InvalidValuesException
-        ("An input parameter contains an invalid value."), out);
+    ReportError(
+        InvalidValuesException("An input parameter contains an invalid value."),
+        out);
   } else if (ret == MESSAGE_PORT_ERROR_OUT_OF_MEMORY) {
-      ReportError(UnknownException("Out of memory."), out);
+    ReportError(UnknownException("Out of memory."), out);
   } else if (ret == MESSAGE_PORT_ERROR_IO_ERROR) {
-      ReportError(UnknownException("Internal I/O error ocurred."), out);
+    // IO error means that remote port does not exist
+    ReportError(
+        NotFoundException("The port of the target application is not found"),
+        out);
   } else {
-      ReportError(UnknownException("Unknown Error"), out);
+    ReportError(UnknownException("Unknown Error"), out);
   }
 }
 
@@ -217,24 +224,33 @@ void MessageportInstance::
   LoggerD("Checking trusted remoteport of %s:%s",
     remoteMessagePortName.c_str(), portCheck ? "true":"false");
 
-    if (ret == MESSAGE_PORT_ERROR_NONE) {
-      if (portCheck) ReportSuccess(out);
-      else
-        ReportError(NotFoundException
-          ("The port of the target application is not found"), out);
-    } else if (ret == MESSAGE_PORT_ERROR_INVALID_PARAMETER) {
-        ReportError(InvalidValuesException
-          ("An input parameter contains an invalid value."), out);
-    } else if (ret == MESSAGE_PORT_ERROR_OUT_OF_MEMORY) {
-        ReportError(UnknownException("Out of memory."), out);
-    } else if (ret == MESSAGE_PORT_ERROR_IO_ERROR) {
-        ReportError(UnknownException("Internal I/O error ocurred."), out);
-    } else if (ret == MESSAGE_PORT_ERROR_CERTIFICATE_NOT_MATCH) {
-        ReportError(UnknownException(
-        "The remote application is not signed with the same certificate"), out);
+  if (ret == MESSAGE_PORT_ERROR_NONE) {
+    if (portCheck) {
+      ReportSuccess(out);
     } else {
-        ReportError(UnknownException("Unknown Error"), out);
+      ReportError(
+          NotFoundException("The port of the target application is not found"),
+          out);
     }
+  } else if (ret == MESSAGE_PORT_ERROR_INVALID_PARAMETER) {
+    ReportError(
+        InvalidValuesException("An input parameter contains an invalid value."),
+        out);
+  } else if (ret == MESSAGE_PORT_ERROR_OUT_OF_MEMORY) {
+    ReportError(UnknownException("Out of memory."), out);
+  } else if (ret == MESSAGE_PORT_ERROR_IO_ERROR) {
+    // IO error means that remote port does not exist
+    ReportError(
+        NotFoundException("The port of the target application is not found"),
+        out);
+  } else if (ret == MESSAGE_PORT_ERROR_CERTIFICATE_NOT_MATCH) {
+    ReportError(
+        UnknownException(
+            "The remote application is not signed with the same certificate"),
+        out);
+  } else {
+    ReportError(UnknownException("Unknown Error"), out);
+  }
 }
 
 void MessageportInstance::RemoteMessagePortSendmessage
