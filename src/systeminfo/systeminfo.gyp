@@ -29,7 +29,6 @@
             'vconf',
             'glib-2.0',
             'capi-system-info',
-            'capi-system-runtime-info',
             'capi-network-connection',
             'capi-system-device',
             'capi-system-system-settings',
