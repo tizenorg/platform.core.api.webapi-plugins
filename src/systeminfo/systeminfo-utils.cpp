@@ -21,7 +21,7 @@
 #include <memory>
 #include <mutex>
 
-#include <runtime_info.h>
+#include <system_settings.h>
 #include <system_info.h>
 #include <system_info_internal.h>
 #include <sys/statfs.h>
@@ -89,7 +89,7 @@ static void OnDisplayChangedCb(keynode_t* node, void* event_ptr);
 static void OnDeviceAutoRotationChangedCb(keynode_t* node, void* event_ptr);
 static void OnDeviceOrientationChangedCb(sensor_t sensor, unsigned int event_type,
                                          sensor_data_t *data, void *user_data);
-static void OnLocaleChangedCb(runtime_info_key_e key, void* event_ptr);
+static void OnLocaleChangedCb(system_settings_key_e key, void* event_ptr);
 static void OnNetworkChangedCb(connection_type_e type, void* event_ptr);
 static void OnNetworkValueChangedCb(const char* ipv4_address,
                                     const char* ipv6_address, void* event_ptr);
@@ -512,7 +512,7 @@ class SystemInfoListeners {
   void OnDeviceAutoRotationChangedCallback(keynode_t* node, void* event_ptr);
   void OnDeviceOrientationChangedCallback(sensor_t sensor, unsigned int event_type,
                                           sensor_data_t *data, void *user_data);
-  void OnLocaleChangedCallback(runtime_info_key_e key, void* event_ptr);
+  void OnLocaleChangedCallback(system_settings_key_e key, void* event_ptr);
   void OnNetworkChangedCallback(connection_type_e type, void* event_ptr);
   void OnNetworkValueCallback(const char* ipv4_address,
                               const char* ipv6_address, void* event_ptr);
@@ -822,14 +822,14 @@ PlatformResult SystemInfoListeners::RegisterLocaleListener(const SysteminfoUtils
                                                            SysteminfoInstance& instance)
 {
   if (nullptr == m_locale_listener) {
-    if (RUNTIME_INFO_ERROR_NONE !=
-        runtime_info_set_changed_cb(RUNTIME_INFO_KEY_REGION,
+    if (SYSTEM_SETTINGS_ERROR_NONE !=
+        system_settings_set_changed_cb(SYSTEM_SETTINGS_KEY_LOCALE_COUNTRY,
                                     OnLocaleChangedCb, static_cast<void*>(&instance)) ) {
       LoggerE("Country change callback registration failed");
       return PlatformResult(ErrorCode::UNKNOWN_ERR, "Country change callback registration failed");
     }
-    if (RUNTIME_INFO_ERROR_NONE !=
-        runtime_info_set_changed_cb(RUNTIME_INFO_KEY_LANGUAGE,
+    if (SYSTEM_SETTINGS_ERROR_NONE !=
+        system_settings_set_changed_cb(SYSTEM_SETTINGS_KEY_LOCALE_LANGUAGE,
                                     OnLocaleChangedCb, static_cast<void*>(&instance)) ) {
       LoggerE("Language change callback registration failed");
       return PlatformResult(ErrorCode::UNKNOWN_ERR, "Language change callback registration failed");
@@ -843,12 +843,12 @@ PlatformResult SystemInfoListeners::RegisterLocaleListener(const SysteminfoUtils
 PlatformResult SystemInfoListeners::UnregisterLocaleListener()
 {
   if (nullptr != m_locale_listener) {
-    if (RUNTIME_INFO_ERROR_NONE !=
-        runtime_info_unset_changed_cb(RUNTIME_INFO_KEY_LANGUAGE) ) {
+    if (SYSTEM_SETTINGS_ERROR_NONE !=
+        system_settings_unset_changed_cb(SYSTEM_SETTINGS_KEY_LOCALE_LANGUAGE) ) {
       LoggerE("Unregistration of language change callback failed");
     }
-    if (RUNTIME_INFO_ERROR_NONE !=
-        runtime_info_unset_changed_cb(RUNTIME_INFO_KEY_REGION) ) {
+    if (SYSTEM_SETTINGS_ERROR_NONE !=
+        system_settings_unset_changed_cb(SYSTEM_SETTINGS_KEY_LOCALE_COUNTRY) ) {
       LoggerE("Unregistration of country change callback failed");
     }
     LoggerD("Removed callback for LOCALE");
@@ -1175,7 +1175,7 @@ void SystemInfoListeners::OnDeviceOrientationChangedCallback(sensor_t sensor, un
   }
 }
 
-void SystemInfoListeners::OnLocaleChangedCallback(runtime_info_key_e /*key*/, void* event_ptr)
+void SystemInfoListeners::OnLocaleChangedCallback(system_settings_key_e /*key*/, void* event_ptr)
 {
   if (nullptr != m_locale_listener) {
     SysteminfoInstance* instance = static_cast<SysteminfoInstance*>(event_ptr);
@@ -1391,7 +1391,7 @@ void OnDeviceOrientationChangedCb(sensor_t sensor, unsigned int event_type,
   system_info_listeners.OnDeviceOrientationChangedCallback(sensor, event_type, data, user_data);
 }
 
-void OnLocaleChangedCb(runtime_info_key_e key, void* event_ptr)
+void OnLocaleChangedCb(system_settings_key_e key, void* event_ptr)
 {
   LoggerD("");
   system_info_listeners.OnLocaleChangedCallback(key, event_ptr);
@@ -1489,17 +1489,17 @@ PlatformResult SystemInfoDeviceCapability::GetValueString(const char *key, std::
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-static PlatformResult GetRuntimeInfoString(runtime_info_key_e key, std::string& platform_string) {
+static PlatformResult GetRuntimeInfoString(system_settings_key_e key, std::string& platform_string) {
   char* platform_c_string;
-  int err = runtime_info_get_value_string(key, &platform_c_string);
-  if (RUNTIME_INFO_ERROR_NONE == err) {
+  int err = system_settings_get_value_string(key, &platform_c_string);
+  if (SYSTEM_SETTINGS_ERROR_NONE == err) {
     if (nullptr != platform_c_string) {
       platform_string = platform_c_string;
       free(platform_c_string);
       return PlatformResult(ErrorCode::NO_ERROR);
     }
   }
-  const char* error_msg = "Error when retrieving runtime information: " + err;
+  const char* error_msg = "Error when retrieving system setting information: " + err;
   LoggerE("%s", error_msg);
   return PlatformResult(ErrorCode::UNKNOWN_ERR, error_msg);
 }
@@ -1910,13 +1910,13 @@ PlatformResult SysteminfoUtils::ReportBuild(picojson::object& out) {
 
 PlatformResult SysteminfoUtils::ReportLocale(picojson::object& out) {
   std::string str_language = "";
-  PlatformResult ret = GetRuntimeInfoString(RUNTIME_INFO_KEY_LANGUAGE, str_language);
+  PlatformResult ret = GetRuntimeInfoString(SYSTEM_SETTINGS_KEY_LOCALE_LANGUAGE, str_language);
   if (ret.IsError()) {
     return ret;
   }
 
   std::string str_country = "";
-  ret = GetRuntimeInfoString(RUNTIME_INFO_KEY_REGION, str_country);
+  ret = GetRuntimeInfoString(SYSTEM_SETTINGS_KEY_LOCALE_COUNTRY, str_country);
   if (ret.IsError()) {
     return ret;
   }
