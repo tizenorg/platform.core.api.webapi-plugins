@@ -1121,6 +1121,46 @@ function NFCPeer(peerid) {
     });
   };
 
+  NFCPeer.prototype.setReceiveNDEFListener = function() {
+    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NFC_P2P);
+
+    var args = validator_.validateArgs(arguments, [
+      {
+        name: 'listener',
+        type: types_.FUNCTION
+      }
+    ]);
+
+    var listener = function(msg) {
+      var data = undefined;
+      if ('onsuccess' === msg.action && _my_id === msg.id) {
+        data = new NDEFMessage(msg);
+      }
+      args.listener[msg.action](data);
+    };
+
+    var result = native_.callSync('NFCPeer_setReceiveNDEFListener', {'id' : _my_id});
+    if (native_.isFailure(result)) {
+      throw native_.getErrorObject(result);
+    }
+
+    native_.addListener(RECEIVE_NDEF_LISTENER, listener);
+    return;
+  };
+
+  NFCPeer.prototype.unsetReceiveNDEFListener = function() {
+    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NFC_P2P);
+
+    native_.removeListener(RECEIVE_NDEF_LISTENER);
+
+    var result = native_.callSync('NFCPeer_unsetReceiveNDEFListener', {'id' : _my_id});
+    if (native_.isFailure(result)) {
+      throw native_.getErrorObject(result);
+    }
+
+    return;
+  };
+
   Object.defineProperties(this, {
     isConnected: {
       enumerable: true,
@@ -1129,46 +1169,6 @@ function NFCPeer(peerid) {
     }
   });
 }
-
-NFCPeer.prototype.setReceiveNDEFListener = function() {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NFC_P2P);
-
-  var args = validator_.validateArgs(arguments, [
-    {
-      name: 'listener',
-      type: types_.FUNCTION
-    }
-  ]);
-
-  var listener = function(msg) {
-    var data = undefined;
-    if ('onsuccess' === msg.action && this._my_id === msg.id) {
-      data = new NDEFMessage(msg);
-    }
-    args.listener[msg.action](data);
-  };
-
-  var result = native_.callSync('NFCPeer_setReceiveNDEFListener', {'id' : this._my_id});
-  if (native_.isFailure(result)) {
-    throw native_.getErrorObject(result);
-  }
-
-  native_.addListener(RECEIVE_NDEF_LISTENER, listener);
-  return;
-};
-
-NFCPeer.prototype.unsetReceiveNDEFListener = function() {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NFC_P2P);
-
-  native_.removeListener(RECEIVE_NDEF_LISTENER);
-
-  var result = native_.callSync('NFCPeer_unsetReceiveNDEFListener', {'id' : this._my_id});
-  if (native_.isFailure(result)) {
-    throw native_.getErrorObject(result);
-  }
-
-  return;
-};
 
 var toByteArray = function(array, max_size, nullable) {
   var resultArray = [];
