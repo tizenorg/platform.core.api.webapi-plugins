@@ -47,6 +47,7 @@ class FilesystemManager {
                 const std::function<void(const FilesystemStat&)>& success_cb,
                 const std::function<void(FilesystemError)>& error_cb);
 
+  std::vector<common::VirtualStorage> FillStorages();
   void FetchStorages(
       const std::function<void(const std::vector<common::VirtualStorage>&)>& success_cb,
       const std::function<void(FilesystemError)>& error_cb);
@@ -98,6 +99,7 @@ void CopyTo(const std::string& originFilePath,
   void StartListening();
   void StopListening();
   void AddListener(FilesystemStateChangeListener* listener);
+  void RemoveListener();
 };
 }  // namespace filesystem
 }  // namespace extension

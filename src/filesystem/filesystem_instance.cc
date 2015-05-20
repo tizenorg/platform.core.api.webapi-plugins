@@ -60,7 +60,11 @@ FilesystemInstance::FilesystemInstance() {
   FilesystemManager::GetInstance().AddListener(this);
 }
 
-FilesystemInstance::~FilesystemInstance() {}
+FilesystemInstance::~FilesystemInstance() {
+  LoggerD("enter");
+  FilesystemManager::GetInstance().StopListening();
+  FilesystemManager::GetInstance().RemoveListener();
+}
 
 #define CHECK_EXIST(args, name, out)                                       \
   if (!args.contains(name)) {                                              \
