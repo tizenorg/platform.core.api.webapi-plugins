@@ -21,6 +21,8 @@ Source0:    %{name}-%{version}.tar.gz
 ####################################################################
 %if "%{?profile}" == "mobile"
 
+%define tizen_privilege_engine                    CYNARA
+
 %define tizen_feature_account_support             1
 %define tizen_feature_alarm_support               1
 %define tizen_feature_application_support         1
@@ -130,6 +132,8 @@ Source0:    %{name}-%{version}.tar.gz
 ####################################################################
 %if "%{?profile}" == "wearable"
 
+%define tizen_privilege_engine                    CYNARA
+
 # Account API is optional in Tizen Wearable Profile.
 %define tizen_feature_account_support             0
 
@@ -227,6 +231,8 @@ Source0:    %{name}-%{version}.tar.gz
 ####################################################################
 %if "%{?profile}" == "tv"
 
+%define tizen_privilege_engine                    CYNARA
+
 %define tizen_feature_account_support             0
 %define tizen_feature_alarm_support               1
 %define tizen_feature_application_support         1
@@ -310,7 +316,6 @@ BuildRequires: pkgconfig(capi-appfw-app-manager)
 BuildRequires: pkgconfig(capi-appfw-package-manager)
 BuildRequires: pkgconfig(capi-content-media-content)
 BuildRequires: pkgconfig(capi-media-metadata-extractor)
-#BuildRequires: pkgconfig(capi-security-privilege-manager)
 
 %if %{with wayland}
 %define display_type wayland
@@ -319,6 +324,15 @@ BuildRequires: pkgconfig(wayland-client)
 %define display_type x11
 BuildRequires: pkgconfig(x11)
 BuildRequires: pkgconfig(xrandr)
+%endif
+
+%if "%{?tizen_privilege_engine}" == "ACE"
+BuildRequires: pkgconfig(capi-security-privilege-manager)
+%endif
+
+%if "%{?tizen_privilege_engine}" == "CYNARA"
+BuildRequires: pkgconfig(cynara-client)
+BuildRequires: pkgconfig(libsmack)
 %endif
 
 %if 0%{?tizen_feature_account_support}
@@ -453,7 +467,7 @@ Tizen Web APIs implemented.
 %build
 
 export GYP_GENERATORS='ninja'
-GYP_OPTIONS="--depth=. -Dtizen=1 -Dextension_build_type=Debug -Dextension_host_os=%{profile} -Dprivilege_engine=CYNARA"
+GYP_OPTIONS="--depth=. -Dtizen=1 -Dextension_build_type=Debug -Dextension_host_os=%{profile} -Dprivilege_engine=%{tizen_privilege_engine}"
 GYP_OPTIONS="$GYP_OPTIONS -Ddisplay_type=%{display_type}"
 
 # feature flags

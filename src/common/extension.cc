@@ -16,7 +16,10 @@
 #elif PRIVILEGE_USE_ACE
 #include <privilege_checker.h>
 #elif PRIVILEGE_USE_CYNARA
-// TODO
+#include <unistd.h>
+
+#include <cynara/cynara-client.h>
+#include <sys/smack.h>
 #endif
 
 #include "common/logger.h"
@@ -463,19 +466,66 @@ class AccessControlImpl {
 
 class AccessControlImpl {
  public:
-  AccessControlImpl() {
+  AccessControlImpl() : cynara_(nullptr) {
     LoggerD("Privilege access checked using Cynara.");
-    // TODO
+
+    char* smack_label = nullptr;
+    int ret = smack_new_label_from_self(&smack_label);
+
+    if (0 == ret && nullptr != smack_label) {
+      auto uid = getuid();
+
+      SLoggerD("uid: [%u]", uid);
+      SLoggerD("smack label: [%s]", smack_label);
+
+      uid_ = std::to_string(uid);
+      smack_label_ = smack_label;
+
+      free(smack_label);
+    } else {
+      LoggerE("Failed to get smack label");
+      return;
+    }
+
+    ret = cynara_initialize(&cynara_, nullptr);
+    if (CYNARA_API_SUCCESS != ret) {
+      LoggerE("Failed to initialize Cynara");
+      cynara_ = nullptr;
+    }
   }
 
   ~AccessControlImpl() {
-    // TODO
+    if (cynara_) {
+      auto ret = cynara_finish(cynara_);
+      if (CYNARA_API_SUCCESS != ret) {
+        LoggerE("Failed to finalize Cynara");
+      }
+      cynara_ = nullptr;
+    }
   }
 
   bool CheckAccess(const std::vector<std::string>& privileges) {
-    // TODO
-    return true;
+    if (cynara_) {
+      for (const auto& privilege : privileges) {
+        if (CYNARA_API_ACCESS_ALLOWED != cynara_simple_check(cynara_,  // p_cynara
+                                                             smack_label_.c_str(),  // client
+                                                             "", // client_session
+                                                             uid_.c_str(),  // user
+                                                             privilege.c_str()  // privilege
+                                                             )) {
+          return false;
+        }
+      }
+      return true;
+    } else {
+      return false;
+    }
   }
+
+ private:
+  cynara* cynara_;
+  std::string uid_;
+  std::string smack_label_;
 };
 
 #else
