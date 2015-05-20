@@ -204,17 +204,23 @@ FilesystemError make_directory_worker(const std::string& path) {
 }
 }  // namespace
 
+std::vector<common::VirtualStorage> FilesystemManager::FillStorages() {
+    LoggerD("entered");
+    auto virtualStorages = common::VirtualFs::GetInstance().GetStorages();
+    if (ids_.empty()) {
+        for (auto storage : virtualStorages) {
+          if (storage.id_ >= 0) {
+            ids_.insert(storage.id_);
+          }
+        }
+    }
+    return virtualStorages;
+}
+
 void FilesystemManager::FetchStorages(
     const std::function<void(const std::vector<common::VirtualStorage>&)>& success_cb,
     const std::function<void(FilesystemError)>& error_cb) {
-  auto result = common::VirtualFs::GetInstance().GetStorages();
-
-  for (auto storage : result) {
-    if (storage.id_ >= 0) {
-      ids_.insert(storage.id_);
-    }
-  }
-
+  auto result = FillStorages();
   success_cb(result);
 }
 
@@ -420,6 +426,7 @@ void FilesystemManager::FileWrite(
 
 void FilesystemManager::StartListening() {
   LoggerD("enter");
+  FillStorages();
 
   if (!is_listener_registered_ && !ids_.empty()) {
     int result = STORAGE_ERROR_NONE;
@@ -474,6 +481,11 @@ void FilesystemManager::CopyTo(
 void FilesystemManager::AddListener(FilesystemStateChangeListener* listener) {
   LoggerD("enter");
   listener_ = listener;
+}
+
+void FilesystemManager::RemoveListener() {
+  LoggerD("enter");
+  listener_ = NULL;
 }
 }  // namespace filesystem
 }  // namespace extension
