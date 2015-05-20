@@ -163,7 +163,7 @@ PlatformResult PushManager::registerService(
     app_control_destroy(service);
     if (ret != PUSH_ERROR_NONE) {
         delete pcallback;
-        LoggerE("Failed to register push: push_register failed");
+        LoggerE("Failed to register push: push_register failed (%d)", ret);
         return common::PlatformResult(ErrorCode::UNKNOWN_ERR,
             "Failed to register");
     }
