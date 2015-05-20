@@ -228,7 +228,7 @@ void FilesystemManager::StatPath(
 
   FilesystemStat statData = FilesystemStat::getStat(path);
   if (!statData.valid) {
-    error_cb(FilesystemError::NotFound);
+    error_cb(statData.error);
     return;
   }
 

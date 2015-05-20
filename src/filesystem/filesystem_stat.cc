@@ -14,7 +14,7 @@
 namespace extension {
 namespace filesystem {
 
-FilesystemStat::FilesystemStat() : valid(false) {}
+FilesystemStat::FilesystemStat() : error(FilesystemError::None), valid(false) {}
 
 picojson::value FilesystemStat::toJSON() const {
   picojson::value retval = picojson::value(picojson::object());
@@ -34,13 +34,19 @@ picojson::value FilesystemStat::toJSON() const {
 
 FilesystemStat FilesystemStat::getStat(const std::string& path) {
   struct stat aStatObj;
+  FilesystemStat _result;
+
   LoggerD("enter");
+
   if (0 != stat(path.c_str(), &aStatObj)) {
     LoggerE("Failed to stat: (%d) %s", errno, strerror(errno));
-    return FilesystemStat();
+    if (ENOENT == errno) {
+      _result.error = FilesystemError::NotFound;
+    } else {
+      _result.error = FilesystemError::InvalidValue;
+    }
+    return _result;
   }
-
-  FilesystemStat _result;
 
   _result.path = path;
   _result.readOnly = true;
