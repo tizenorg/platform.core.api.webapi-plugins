@@ -615,6 +615,9 @@ void FilesystemInstance::PrepareError(const FilesystemError& error, picojson::ob
     case FilesystemError::Other:
       ReportError(UnknownException("PLATFORM ERROR"), out);
       break;
+    case FilesystemError::InvalidValue:
+      ReportError(InvalidValuesException("PLATFORM ERROR"), out);
+      break;
     default:
       ReportError(UnknownException("PLATFORM ERROR"), out);
       break;

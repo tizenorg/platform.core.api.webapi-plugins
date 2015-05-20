@@ -31,6 +31,7 @@ enum class FilesystemError {
   DirectoryExists,
   PermissionDenied,
   IOError,
+  InvalidValue,
   Other
 };
 }  // namespace filesystem
