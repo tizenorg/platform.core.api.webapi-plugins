@@ -25,6 +25,9 @@ namespace radio {
 
 namespace {
 
+const int kLowestFrequency = 87500;
+const int kHighestFrequency = 108000;
+
 const char* RADIO_STATE_ERROR = "ERROR";
 std::map<radio_state_e, const char*> radio_state = {
   { RADIO_STATE_READY, "READY" },
@@ -110,21 +113,20 @@ struct RadioScanData : public RadioData {
 };
 
 void RadioSeekCallback(int frequency, void* user_data) {
-  LoggerD("Enter");
+  LoggerD("Enter, freq: %d", frequency);
 
   RadioData* data = static_cast<RadioData*>(user_data);
-  PlatformResult result = data->manager_.SetFrequency(ToMHz(frequency));
 
-  if (result) {
+  if (frequency >= kLowestFrequency && frequency <= kHighestFrequency) {
     common::TaskQueue::GetInstance().Async(std::bind(
       &FMRadioManager::PostResultCallbackSuccess, &data->manager_,
       data->callback_id_));
   } else {
     common::TaskQueue::GetInstance().Async(std::bind(
       &FMRadioManager::PostResultFailure, &data->manager_,
-      data->callback_id_, result));
+      data->callback_id_, PlatformResult(ErrorCode::UNKNOWN_ERR,
+        "Unsupported frequency")));
   }
-
   delete data;
 }
 
@@ -295,6 +297,7 @@ double FMRadioManager::GetFrequency() {
     LoggerE("radio_get_frequency() failed: %d", err);
     return FREQ_LOWER;
   } else {
+    LoggerD("Frequency: %d", frequency);
     return ToMHz(frequency);
   }
 }
