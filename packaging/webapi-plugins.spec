@@ -226,7 +226,7 @@ Source0:    %{name}-%{version}.tar.gz
 %if "%{?tizen_profile_name}" == "tv"
 
 %define tizen_feature_account_support             0
-%define tizen_feature_alarm_support               0
+%define tizen_feature_alarm_support               1
 %define tizen_feature_application_support         1
 %define tizen_feature_archive_support             1
 %define tizen_feature_badge_support               0
@@ -235,10 +235,10 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_calendar_support            0
 %define tizen_feature_callhistory_support         0
 %define tizen_feature_contact_support             0
-%define tizen_feature_content_support             0
+%define tizen_feature_content_support             1
 %define tizen_feature_datacontrol_support         0
 %define tizen_feature_datasync_support            0
-%define tizen_feature_download_support            0
+%define tizen_feature_download_support            1
 %define tizen_feature_exif_support                1
 %define tizen_feature_filesystem_support          1
 %define tizen_feature_fm_radio_support            0
@@ -258,7 +258,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_se_support                  0
 %define tizen_feature_sensor_support              0
 %define tizen_feature_sound_support               0
-%define tizen_feature_system_info_support         0
+%define tizen_feature_system_info_support         1
 %define tizen_feature_system_setting_support      1
 %define tizen_feature_telephony_support           0
 %define tizen_feature_time_support                1
