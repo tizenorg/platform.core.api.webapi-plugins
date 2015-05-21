@@ -7,7 +7,7 @@
 #include <app_manager.h>
 #include <app_control_internal.h>
 #include <bundle.h>
-#include <bundle_internal.h>
+//#include <bundle_internal.h>
 
 #include "common/logger.h"
 #include "application/application_utils.h"

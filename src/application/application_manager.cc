@@ -9,7 +9,7 @@
 
 #include <app_info.h>
 #include <app_manager.h>
-#include <app_manager_extension.h>
+//#include <app_manager_extension.h>
 #include <aul.h>
 #include <package_manager.h>
 #include <pkgmgr-info.h>
@@ -325,13 +325,14 @@ void ApplicationManager::Kill(const picojson::value& args) {
     LoggerD("Kill async, KILL!!!!!!!!!");
 
     // terminate application
-    ret = app_manager_terminate_app(app_context);
-
-    if (APP_MANAGER_ERROR_NONE != ret) {
-      LoggerE("Failed to terminate application.");
-      result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to terminate application.");
-      CHECK_RESULT(result, response, handler)
-    }
+    // TODO(r.galka) temporarily removed - not supported by platform
+    //ret = app_manager_terminate_app(app_context);
+    //
+    //if (APP_MANAGER_ERROR_NONE != ret) {
+    //  LoggerE("Failed to terminate application.");
+    //  result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to terminate application.");
+    //  CHECK_RESULT(result, response, handler)
+    //}
 
     LoggerD("Kill async, end, waiting for notification");
   };
@@ -497,28 +498,29 @@ void ApplicationManager::LaunchAppControl(const picojson::value& args) {
       }
     }
 
-    if (!launch_mode_str.empty()) {
-      app_control_launch_mode_e launch_mode;
-
-      if ("SINGLE" == launch_mode_str) {
-        launch_mode = APP_CONTROL_LAUNCH_MODE_SINGLE;
-      } else if ("GROUP" == launch_mode_str) {
-        launch_mode = APP_CONTROL_LAUNCH_MODE_GROUP;
-      } else {
-        LoggerE("Invalid parameter passed.");
-        ReportError(PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid parameter passed."),
-                    &response->get<picojson::object>());
-        return;
-      }
-
-      int ret = app_control_set_launch_mode(app_control_ptr.get(), launch_mode);
-      if (APP_CONTROL_ERROR_NONE != ret) {
-        LoggerE("Setting launch mode failed.");
-        ReportError(PlatformResult(ErrorCode::NOT_FOUND_ERR, "Setting launch mode failed."),
-                    &response->get<picojson::object>());
-        return;
-      }
-    }
+    // TODO(r.galka) temporarily removed - not supported by platform
+    //if (!launch_mode_str.empty()) {
+    //  app_control_launch_mode_e launch_mode;
+    //
+    //  if ("SINGLE" == launch_mode_str) {
+    //    launch_mode = APP_CONTROL_LAUNCH_MODE_SINGLE;
+    //  } else if ("GROUP" == launch_mode_str) {
+    //    launch_mode = APP_CONTROL_LAUNCH_MODE_GROUP;
+    //  } else {
+    //    LoggerE("Invalid parameter passed.");
+    //    ReportError(PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid parameter passed."),
+    //                &response->get<picojson::object>());
+    //    return;
+    //  }
+    //
+    //  int ret = app_control_set_launch_mode(app_control_ptr.get(), launch_mode);
+    //  if (APP_CONTROL_ERROR_NONE != ret) {
+    //    LoggerE("Setting launch mode failed.");
+    //    ReportError(PlatformResult(ErrorCode::NOT_FOUND_ERR, "Setting launch mode failed."),
+    //                &response->get<picojson::object>());
+    //    return;
+    //  }
+    //}
 
     app_control_reply_cb callback = nullptr;
     struct ReplayCallbackData {

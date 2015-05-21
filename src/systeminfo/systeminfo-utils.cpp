@@ -983,10 +983,11 @@ PlatformResult SystemInfoListeners::RegisterPeripheralListener(const SysteminfoU
       CHECK_LISTENER_ERROR(RegisterVconfCallback(VCONFKEY_SYSMAN_HDMI,
                                                  OnPeripheralChangedCb, instance))
     }
-    if (-1 != vconf_get_int(VCONFKEY_POPSYNC_ACTIVATED_KEY, &value)) {
-      CHECK_LISTENER_ERROR(RegisterVconfCallback(VCONFKEY_POPSYNC_ACTIVATED_KEY,
-                                                 OnPeripheralChangedCb, instance))
-    }
+    // TODO(r.galka) temporarily removed - not supported by platform
+    //if (-1 != vconf_get_int(VCONFKEY_POPSYNC_ACTIVATED_KEY, &value)) {
+    //  CHECK_LISTENER_ERROR(RegisterVconfCallback(VCONFKEY_POPSYNC_ACTIVATED_KEY,
+    //                                             OnPeripheralChangedCb, instance))
+    //}
     LoggerD("Added callback for PERIPHERAL");
     m_peripheral_listener = callback;
   }
@@ -1006,10 +1007,11 @@ PlatformResult SystemInfoListeners::UnregisterPeripheralListener()
       CHECK_LISTENER_ERROR(UnregisterVconfCallback(VCONFKEY_SYSMAN_HDMI,
                                                    OnPeripheralChangedCb))
     }
-    if (-1 != vconf_get_int(VCONFKEY_POPSYNC_ACTIVATED_KEY, &value)) {
-      CHECK_LISTENER_ERROR(UnregisterVconfCallback(VCONFKEY_POPSYNC_ACTIVATED_KEY,
-                                                   OnPeripheralChangedCb))
-    }
+    // TODO(r.galka) temporarily removed - not supported by platform
+    //if (-1 != vconf_get_int(VCONFKEY_POPSYNC_ACTIVATED_KEY, &value)) {
+    //  CHECK_LISTENER_ERROR(UnregisterVconfCallback(VCONFKEY_POPSYNC_ACTIVATED_KEY,
+    //                                               OnPeripheralChangedCb))
+    //}
     LoggerD("Removed callback for PERIPHERAL");
     m_peripheral_listener = nullptr;
   }
@@ -1048,28 +1050,30 @@ PlatformResult SystemInfoListeners::UnregisterMemoryListener()
 PlatformResult SystemInfoListeners::RegisterCameraFlashListener(const SysteminfoUtilsCallback& callback,
                                                            SysteminfoInstance& instance)
 {
-  if (nullptr == m_camera_flash_listener) {
-    if (DEVICE_ERROR_NONE != device_add_callback(DEVICE_CALLBACK_FLASH_BRIGHTNESS,
-                              OnBrightnessChangedCb, static_cast<void*>(&instance))) {
-        return PlatformResult(ErrorCode::UNKNOWN_ERR);
-      }
-      m_camera_flash_listener = callback;
-  }
+  // TODO(r.galka) temporarily removed - not supported by platform
+  //if (nullptr == m_camera_flash_listener) {
+  //  if (DEVICE_ERROR_NONE != device_add_callback(DEVICE_CALLBACK_FLASH_BRIGHTNESS,
+  //                            OnBrightnessChangedCb, static_cast<void*>(&instance))) {
+  //      return PlatformResult(ErrorCode::UNKNOWN_ERR);
+  //    }
+  //    m_camera_flash_listener = callback;
+  //}
     return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 PlatformResult SystemInfoListeners::UnregisterCameraFlashListener()
 {
-  if (nullptr != m_camera_flash_listener) {
-    PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
-    int value = 0;
-    if (DEVICE_ERROR_NONE != device_remove_callback(DEVICE_CALLBACK_FLASH_BRIGHTNESS,
-                                                 OnBrightnessChangedCb)) {
-      return PlatformResult(ErrorCode::UNKNOWN_ERR);
-    }
-    LoggerD("Removed callback for camera_flash");
-    m_camera_flash_listener = nullptr;
-  }
+  // TODO(r.galka) temporarily removed - not supported by platform
+  //if (nullptr != m_camera_flash_listener) {
+  //  PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
+  //  int value = 0;
+  //  if (DEVICE_ERROR_NONE != device_remove_callback(DEVICE_CALLBACK_FLASH_BRIGHTNESS,
+  //                                               OnBrightnessChangedCb)) {
+  //    return PlatformResult(ErrorCode::UNKNOWN_ERR);
+  //  }
+  //  LoggerD("Removed callback for camera_flash");
+  //  m_camera_flash_listener = nullptr;
+  //}
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
@@ -1431,9 +1435,10 @@ void OnMemoryChangedCb(keynode_t* node, void* event_ptr)
 void OnBrightnessChangedCb(device_callback_e type, void* value, void* user_data)
 {
   LoggerD("");
-  if (type == DEVICE_CALLBACK_FLASH_BRIGHTNESS) {
-    system_info_listeners.OnBrightnessChangedCallback(type, value, user_data);
-  }
+  // TODO(r.galka) temporarily removed - not supported by platform
+  //if (type == DEVICE_CALLBACK_FLASH_BRIGHTNESS) {
+  //  system_info_listeners.OnBrightnessChangedCallback(type, value, user_data);
+  //}
 }
 
 /////////////////////////// SysteminfoUtils ////////////////////////////////
@@ -2405,14 +2410,15 @@ PlatformResult SysteminfoUtils::ReportPeripheral(picojson::object& out) {
     }
   }
 
-  int popsync_status = 0;
-  ret = GetVconfInt(VCONFKEY_POPSYNC_ACTIVATED_KEY, popsync_status);
-  if (ret.IsSuccess()) {
-    if (1 == popsync_status) {
-      out.insert(std::make_pair(kVideoOutputString, picojson::value(true)));
-      return PlatformResult(ErrorCode::NO_ERROR);
-    }
-  }
+  // TODO(r.galka) temporarily removed - not supported by platform
+  //int popsync_status = 0;
+  //ret = GetVconfInt(VCONFKEY_POPSYNC_ACTIVATED_KEY, popsync_status);
+  //if (ret.IsSuccess()) {
+  //  if (1 == popsync_status) {
+  //    out.insert(std::make_pair(kVideoOutputString, picojson::value(true)));
+  //    return PlatformResult(ErrorCode::NO_ERROR);
+  //  }
+  //}
 
   out.insert(std::make_pair(kVideoOutputString, picojson::value(false)));
   return PlatformResult(ErrorCode::NO_ERROR);
