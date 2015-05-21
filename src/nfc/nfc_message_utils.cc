@@ -258,6 +258,7 @@ PlatformResult NFCMessageUtils::ToNdefRecords(const nfc_ndef_message_h message, 
               LoggerE("Error: %s", ret.message().c_str());
               return ret;
             }
+            record_obj.insert(std::make_pair("recordType", picojson::value("RecordText")));
             continue;
           }
           if (RECORD_TYPE_URI == type[0]) {
@@ -266,6 +267,7 @@ PlatformResult NFCMessageUtils::ToNdefRecords(const nfc_ndef_message_h message, 
               LoggerE("Error: %s", ret.message().c_str());
               return ret;
             }
+            record_obj.insert(std::make_pair("recordType", picojson::value("RecordURI")));
             continue;
           }
         }
@@ -275,6 +277,7 @@ PlatformResult NFCMessageUtils::ToNdefRecords(const nfc_ndef_message_h message, 
         LoggerE("Error: %s", ret.message().c_str());
         return ret;
       }
+      record_obj.insert(std::make_pair("recordType", picojson::value("Record")));
     }
   }
   return PlatformResult(ErrorCode::NO_ERROR);
