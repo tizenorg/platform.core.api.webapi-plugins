@@ -142,8 +142,8 @@ void ScanStartCallback(int frequency, void* user_data) {
     &FMRadioManager::PostMessage, &data->manager_, event.serialize()));
 }
 
-void PostAsyncSuccess(FMRadioManager& manager, double callbackId, picojson::value* event) {
-  manager.PostResultSuccess(callbackId, event);
+void PostAsyncSuccess(FMRadioManager* manager, double callbackId, picojson::value* event) {
+  manager->PostResultSuccess(callbackId, event);
   delete event;
 }
 
@@ -163,7 +163,7 @@ void ScanCompleteCallback(void* user_data) {
 
   obj.insert(std::make_pair("frequencies", picojson::value(frequencies)));
   common::TaskQueue::GetInstance().Async(std::bind(&PostAsyncSuccess,
-    data->manager_, data->callback_id_, event));
+    &data->manager_, data->callback_id_, event));
 
   delete data;
 }
