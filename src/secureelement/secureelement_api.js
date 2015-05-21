@@ -330,7 +330,12 @@ Session.prototype.openLogicalChannel = function() {
 Session.prototype.getATR = function() {
     xwalk.utils.checkPrivilegeAccess(privilege_.SECUREELEMENT);
     var callArgs = { handle: this._handle };
-    return native_.callSync('SESession_getATR', callArgs);
+    var result = native_.callSync('SESession_getATR', callArgs);
+    if (native_.isFailure(result)) {
+        throw native_.getErrorObject(result);
+    } else {
+        return native_.getResultObject(result);
+    }
 }
 
 Session.prototype.close = function() {
