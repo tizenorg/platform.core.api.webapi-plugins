@@ -1,0 +1,56 @@
+// Copyright 2015 Samsung Electronics Co, Ltd. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+#ifndef BADGE_BADGE_INSTANCE_H_
+#define BADGE_BADGE_INSTANCE_H_
+
+#include "badge/badge_manager.h"
+
+#include "common/extension.h"
+
+namespace extension {
+namespace badge {
+
+class BadgeInstance : public common::ParsedInstance {
+ public:
+  BadgeInstance();
+  virtual ~BadgeInstance();
+
+ private:
+  /**
+   * Signature: @code void setBadgeCount(appId, count);
+   * @endcode
+   * JSON: @code data: {method: 'Badge_setBadgeCount',
+   *                    args: {ApplicationId: appId, long: count}} @endcode
+   * Invocation: @code native.callSync(request) @endcode
+   * Return:
+   * @code
+   * {status: 'error', error: {name, message}}
+   * {status: 'success'}
+   * @endcode
+   */
+  void BadgeManagerSetBadgeCount(const JsonValue& args, JsonObject& out);
+
+  /**
+   * Signature: @code void getBadgeCount(appId);
+   * @endcode
+   * JSON: @code data: {method: 'Badge_getBadgeCount',
+   *                    args: {ApplicationId: appId}} @endcode
+   * Invocation: @code native.callSync(request) @endcode
+   * Return:
+   * @code
+   * {status: 'error', error: {name, message}}
+   * {status: 'success', result: {count}}
+   * @endcode
+   */
+  void BadgeManagerGetBadgeCount(const JsonValue& args, JsonObject& out);
+  void BadgeManagerAddChangeListener(const JsonValue& args, JsonObject& out);
+  void BadgeManagerRemoveChangeListener(const JsonValue& args, JsonObject& out);
+
+  BadgeManager manager_;
+};
+}  // namespace badge
+}  // namespace extension
+
+#endif  // BADGE_BADGE_INSTANCE_H_

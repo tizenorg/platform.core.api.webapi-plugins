@@ -1,0 +1,317 @@
+// Copyright 2015 Samsung Electronics Co, Ltd. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+function FileStream(data, mode, encoding) {
+  var _totalBytes = data.fileSize || 0;
+  var _position = mode === 'a' ? _totalBytes : 0;
+
+  Object.defineProperties(this, {
+    eof: {
+      value: false,
+      enumerable: true,
+      writable: false
+    },
+    position: {
+      get: function() {
+        return _position;
+      },
+      set: function(v) {
+        _position = Math.max(0, v);
+      },
+      enumerable: true
+    },
+    bytesAvailable: {
+      value: this.eof ? -1 : Math.max(0, _totalBytes - _position),
+      enumerable: true,
+      writable: false
+    },
+    _mode: {
+      value: mode,
+      writable: false,
+      enumerable: false
+    },
+    _encoding: {
+      value: encoding,
+      writable: false,
+      enumerable: false
+    },
+    _file: {
+      value: data,
+      writable: false,
+      enumerable: false
+    },
+    _closed: {
+      value: false,
+      writable: true,
+      enumerable: false
+    }
+  });
+}
+
+function _checkClosed(stream) {
+  if (stream._closed) {
+    throw new WebAPIException(WebAPIException.IO_ERR, 'Stream is closed.');
+  }
+}
+
+FileStream.prototype.close = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_READ);
+  this._closed = true;
+};
+
+function _checkReadAccess(mode) {
+  if (mode !== 'r' && mode !== 'rw') {
+    throw new WebAPIException(WebAPIException.IO_ERR, 'Stream is not in read mode.');
+  }
+}
+
+function _checkWriteAccess(mode) {
+  if (mode !== 'a' && mode !== 'w' && mode !== 'rw') {
+    throw new WebAPIException(WebAPIException.IO_ERR, 'Stream is not in write mode.');
+  }
+}
+
+FileStream.prototype.read = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_READ);
+
+  var args = validator_.validateArgs(arguments, [
+    {
+      name: 'charCount',
+      type: types_.LONG
+    }
+  ]);
+
+  _checkClosed(this);
+  _checkReadAccess(this._mode);
+
+  if (!arguments.length) {
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
+        'Argument "charCount" missing');
+  }
+  if (!type_.isNumber(args.charCount)) {
+    throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR,
+        'Argument "charCount" must be a number');
+  }
+  if (args.charCount <= 0) {
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
+        'Argument "charCount" must be greater than 0');
+  }
+
+  var _count = this.bytesAvailable;
+
+  var data = {
+    location: commonFS_.toRealPath(this._file.fullPath),
+    offset: this.position || 0,
+    length: args.charCount > _count ? _count : args.charCount
+  };
+
+  var result = native_.callSync('File_readSync', data);
+  if (native_.isFailure(result)) {
+    throw new WebAPIException(WebAPIException.IO_ERR, 'Could not read');
+  }
+  var encoded = native_.getResultObject(result);
+  var decoded = Base64.decode(encoded);
+
+  return decoded;
+};
+
+FileStream.prototype.readBytes = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_READ);
+
+  var args = validator_.validateArgs(arguments, [
+    {
+      name: 'byteCount',
+      type: types_.LONG
+    }
+  ]);
+
+  _checkClosed(this);
+  _checkReadAccess(this._mode);
+
+  if (!arguments.length) {
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
+        'Argument "byteCount" missing');
+  }
+  if (!type_.isNumber(args.byteCount)) {
+    throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR,
+        'Argument "byteCount" must be a number');
+  }
+  if (args.byteCount <= 0) {
+    throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR,
+        'Argument "byteCount" must be greater than 0');
+  }
+
+  var _count = this.bytesAvailable;
+
+  var data = {
+    location: commonFS_.toRealPath(this._file.fullPath),
+    offset: this.position || 0,
+    length: args.byteCount > _count ? _count : args.byteCount
+  };
+
+  var result = native_.callSync('File_readSync', data);
+  if (native_.isFailure(result)) {
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR, 'Could not read');
+  }
+  var encoded = native_.getResultObject(result);
+  var decoded = Base64.decode(encoded);
+  var bytes = [];
+
+  for (var i = 0; i < decoded.length; ++i) {
+    bytes.push(decoded.charCodeAt(i));
+  }
+
+  return bytes;
+};
+
+FileStream.prototype.readBase64 = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_READ);
+
+  var args = validator_.validateArgs(arguments, [
+    {
+      name: 'byteCount',
+      type: types_.LONG
+    }
+  ]);
+
+  _checkClosed(this);
+  _checkReadAccess(this._mode);
+
+  if (!arguments.length) {
+    throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR,
+        'Argument "byteCount" missing');
+  }
+  if (type_.isString(arguments[0]) && !arguments[0].length) {
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
+        'Argument "byteCount" must be a number');
+  }
+  if (!type_.isNumber(arguments[0])) {
+    throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR,
+        'Argument "byteCount" must be a number');
+  }
+  if (args.byteCount <= 0) {
+    throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR,
+        'Argument "byteCount" must be greater than 0');
+  }
+
+  var _count = this.bytesAvailable;
+
+  var data = {
+    location: commonFS_.toRealPath(this._file.fullPath),
+    offset: this.position || 0,
+    length: args.byteCount > _count ? _count : args.byteCount
+  };
+
+  var result = native_.callSync('File_readSync', data);
+  if (native_.isFailure(result)) {
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR, 'Could not read');
+  }
+  var encoded = native_.getResultObject(result);
+
+  return encoded;
+};
+
+FileStream.prototype.write = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_WRITE);
+
+  var args = validator_.validateArgs(arguments, [
+    {
+      name: 'stringData',
+      type: types_.STRING
+    }
+  ]);
+
+  _checkClosed(this);
+  _checkWriteAccess(this._mode);
+
+  if (!arguments.length) {
+    throw new WebAPIException(WebAPIException.NOT_FOUND_ERR,
+        'Argument "stringData" missing');
+  }
+
+  var data = {
+    location: commonFS_.toRealPath(this._file.fullPath),
+    offset: this.position,
+    data: Base64.encode(args.stringData)
+  };
+
+  var result = native_.callSync('File_writeSync', data);
+
+  if (native_.isFailure(result)) {
+    throw new WebAPIException(WebAPIException.IO_ERR, 'Could not write');
+  }
+  this.position = args.stringData.length;
+};
+
+FileStream.prototype.writeBytes = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_WRITE);
+
+  var args = validator_.validateArgs(arguments, [
+    {
+      name: 'byteData',
+      type: types_.ARRAY,
+      values: types_.OCTET
+    }
+  ]);
+
+  _checkClosed(this);
+  _checkWriteAccess(this._mode);
+
+  if (!arguments.length) {
+    throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR,
+        'Argument "byteData" missing');
+  }
+
+  var data = {
+    location: commonFS_.toRealPath(this._file.fullPath),
+    offset: this.position,
+    data: Base64.encode(String.fromCharCode.apply(String, args.byteData))
+  };
+
+  var result = native_.callSync('File_writeSync', data);
+
+  if (native_.isFailure(result)) {
+    throw new WebAPIException(WebAPIException.IO_ERR, 'Could not write');
+  }
+};
+
+function _isBase64(str) {
+  var base64 = new RegExp('^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$');
+  return base64.test(str);
+}
+
+FileStream.prototype.writeBase64 = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_WRITE);
+
+  var args = validator_.validateArgs(arguments, [
+    {
+      name: 'base64Data',
+      type: types_.STRING
+    }
+  ]);
+
+  _checkClosed(this);
+  _checkWriteAccess(this._mode);
+
+  if (!arguments.length) {
+    throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR,
+        'Argument "base64Data" missing');
+  }
+  if (!args.base64Data.length || !_isBase64(args.base64Data)) {
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
+        'Data is not base64');
+  }
+
+  var data = {
+    location: commonFS_.toRealPath(this._file.fullPath),
+    offset: this.position,
+    data: args.base64Data
+  };
+
+  var result = native_.callSync('File_writeSync', data);
+
+  if (native_.isFailure(result)) {
+    throw new WebAPIException(WebAPIException.IO_ERR, 'Could not write');
+  }
+};

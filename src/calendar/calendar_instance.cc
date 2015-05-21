@@ -1,0 +1,307 @@
+// Copyright 2014 Samsung Electronics Co, Ltd. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+#include "calendar/calendar_instance.h"
+
+#include "common/converter.h"
+
+#include "calendar/calendar_manager.h"
+#include "calendar/calendar.h"
+#include "common/task-queue.h"
+
+#include <memory>
+#include <map>
+#include <calendar-service2/calendar.h>
+#include "calendar_record.h"
+
+namespace extension {
+namespace calendar {
+
+using namespace common;
+using namespace extension::calendar;
+
+CalendarInstance::CalendarInstance()
+    : calendar_(*this) {
+  using std::placeholders::_1;
+  using std::placeholders::_2;
+
+#define REGISTER_SYNC(c, x) \
+  RegisterSyncHandler(c, std::bind(&CalendarInstance::x, this, _1, _2));
+
+  // Calendar
+  REGISTER_SYNC("Calendar_get", CalendarGet);
+  REGISTER_SYNC("Calendar_add", CalendarAdd);
+  REGISTER_SYNC("Calendar_update", CalendarUpdate);
+  REGISTER_SYNC("Calendar_remove", CalendarRemove);
+  REGISTER_SYNC("Calendar_addChangeListener", CalendarAddChangeListener);
+  REGISTER_SYNC("Calendar_removeChangeListener", CalendarRemoveChangeListener);
+
+  // Calendar Manager
+  REGISTER_SYNC("CalendarManager_addCalendar", CalendarManagerAddCalendar);
+  REGISTER_SYNC("CalendarManager_getCalendar", CalendarManagerGetCalendar);
+  REGISTER_SYNC("CalendarManager_removeCalendar",
+                CalendarManagerRemoveCalendar);
+#undef REGISTER_SYNC
+
+#define REGISTER_ASYNC(c, x) \
+  RegisterSyncHandler(c, std::bind(&CalendarInstance::x, this, _1, _2));
+  REGISTER_ASYNC("Calendar_addBatch", CalendarAddBatch);
+  REGISTER_ASYNC("Calendar_updateBatch", CalendarUpdateBatch);
+  REGISTER_ASYNC("Calendar_removeBatch", CalendarRemoveBatch);
+  REGISTER_ASYNC("Calendar_updateBatch", CalendarUpdateBatch);
+  REGISTER_ASYNC("CalendarManager_getCalendars", CalendarManagerGetCalendars);
+  REGISTER_ASYNC("Calendar_find", CalendarFind);
+#undef REGISTER_ASYNC
+}
+
+CalendarInstance::~CalendarInstance() {}
+
+void CalendarInstance::CalendarGet(const JsonValue& args, JsonObject& out) {
+  JsonValue val{JsonObject{}};
+
+  PlatformResult status = calendar_.Get(common::JsonCast<JsonObject>(args),
+                                        val.get<JsonObject>());
+
+  if (status.IsSuccess())
+    ReportSuccess(val, out);
+  else
+    ReportError(status, &out);
+}
+
+void CalendarInstance::CalendarAdd(const JsonValue& args, JsonObject& out) {
+  JsonValue val{JsonObject{}};
+
+  PlatformResult status = calendar_.Add(common::JsonCast<JsonObject>(args),
+                                        val.get<JsonObject>());
+
+  if (status.IsSuccess())
+    ReportSuccess(val, out);
+  else
+    ReportError(status, &out);
+}
+
+void CalendarInstance::CalendarAddBatch(const JsonValue& args,
+                                        JsonObject& out) {
+  const double callback_id = args.get("callbackId").get<double>();
+  auto get = [=](const std::shared_ptr<JsonValue>& response) -> void {
+    JsonValue result = JsonValue(JsonArray());
+    PlatformResult status = calendar_.AddBatch(
+        common::JsonCast<JsonObject>(args), result.get<JsonArray>());
+
+    if (status.IsSuccess())
+      ReportSuccess(result, response->get<picojson::object>());
+    else
+      ReportError(status, &response->get<picojson::object>());
+  };
+
+  auto get_response =
+      [callback_id, this](const std::shared_ptr<JsonValue>& response) -> void {
+    picojson::object& obj = response->get<picojson::object>();
+    obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
+    LoggerD("callback is %s", response->serialize().c_str());
+    PostMessage(response->serialize().c_str());
+  };
+
+  TaskQueue::GetInstance().Queue<JsonValue>(
+      get, get_response,
+      std::shared_ptr<JsonValue>(new JsonValue(JsonObject())));
+}
+
+void CalendarInstance::CalendarUpdate(const JsonValue& args, JsonObject& out) {
+  JsonValue val{JsonObject{}};
+
+  PlatformResult status = calendar_.Update(common::JsonCast<JsonObject>(args),
+                                           val.get<JsonObject>());
+
+  if (status.IsSuccess())
+    ReportSuccess(val, out);
+  else
+    ReportError(status, &out);
+}
+
+void CalendarInstance::CalendarUpdateBatch(const JsonValue& args,
+                                           JsonObject& out) {
+  const double callback_id = args.get("callbackId").get<double>();
+  auto get = [=](const std::shared_ptr<JsonValue>& response) -> void {
+    JsonValue result = JsonValue(JsonArray());
+    PlatformResult status = calendar_.UpdateBatch(
+        common::JsonCast<JsonObject>(args), result.get<JsonArray>());
+
+    if (status.IsSuccess())
+      ReportSuccess(result, response->get<picojson::object>());
+    else
+      ReportError(status, &response->get<picojson::object>());
+  };
+
+  auto get_response =
+      [callback_id, this](const std::shared_ptr<JsonValue>& response) -> void {
+    picojson::object& obj = response->get<picojson::object>();
+    obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
+    LoggerD("callback is %s", response->serialize().c_str());
+    PostMessage(response->serialize().c_str());
+  };
+
+  TaskQueue::GetInstance().Queue<JsonValue>(
+      get, get_response,
+      std::shared_ptr<JsonValue>(new JsonValue(JsonObject())));
+}
+
+void CalendarInstance::CalendarRemove(const JsonValue& args, JsonObject& out) {
+  JsonValue val{JsonObject{}};
+
+  PlatformResult status = calendar_.Remove(common::JsonCast<JsonObject>(args),
+                                           val.get<JsonObject>());
+
+  if (status.IsSuccess())
+    ReportSuccess(out);
+  else
+    ReportError(status, &val.get<JsonObject>());
+}
+
+void CalendarInstance::CalendarRemoveBatch(const JsonValue& args,
+                                           JsonObject& out) {
+  const double callback_id = args.get("callbackId").get<double>();
+  auto get = [=](const std::shared_ptr<JsonValue>& response) -> void {
+    JsonValue result = JsonValue(JsonArray());
+    PlatformResult status = calendar_.RemoveBatch(
+        common::JsonCast<JsonObject>(args), result.get<JsonArray>());
+
+    if (status.IsSuccess())
+      ReportSuccess(result, response->get<picojson::object>());
+    else
+      ReportError(status, &response->get<picojson::object>());
+  };
+
+  auto get_response =
+      [callback_id, this](const std::shared_ptr<JsonValue>& response) -> void {
+    picojson::object& obj = response->get<picojson::object>();
+    obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
+    LoggerD("callback is %s", response->serialize().c_str());
+    PostMessage(response->serialize().c_str());
+  };
+
+  TaskQueue::GetInstance().Queue<JsonValue>(
+      get, get_response,
+      std::shared_ptr<JsonValue>(new JsonValue(JsonObject())));
+}
+
+void CalendarInstance::CalendarFind(const JsonValue& args, JsonObject& out) {
+  const double callback_id = args.get("callbackId").get<double>();
+  auto get = [=](const std::shared_ptr<JsonValue>& response) -> void {
+    JsonValue result = JsonValue(JsonArray());
+    PlatformResult status = calendar_.Find(
+        common::JsonCast<JsonObject>(args), result.get<JsonArray>());
+
+    if (status.IsSuccess())
+      ReportSuccess(result, response->get<picojson::object>());
+    else
+      ReportError(status, &response->get<picojson::object>());
+  };
+
+  auto get_response =
+      [callback_id, this](const std::shared_ptr<JsonValue>& response) -> void {
+    picojson::object& obj = response->get<picojson::object>();
+    obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
+    LoggerD("callback isssssss %s", response->serialize().c_str());
+    PostMessage(response->serialize().c_str());
+  };
+
+  TaskQueue::GetInstance().Queue<JsonValue>(
+      get, get_response,
+      std::shared_ptr<JsonValue>(new JsonValue(JsonObject())));
+}
+
+void CalendarInstance::CalendarAddChangeListener(const JsonValue& args,
+                                                 JsonObject& out) {
+  JsonValue val{JsonObject{}};
+
+  PlatformResult status = calendar_.AddChangeListener(
+      common::JsonCast<JsonObject>(args), val.get<JsonObject>());
+
+  if (status.IsSuccess())
+    ReportSuccess(out);
+  else
+    ReportError(status, &val.get<JsonObject>());
+}
+
+void CalendarInstance::CalendarRemoveChangeListener(const JsonValue& args,
+                                                    JsonObject& out) {
+  JsonValue val{JsonObject{}};
+
+  PlatformResult status = calendar_.RemoveChangeListener(
+      common::JsonCast<JsonObject>(args), val.get<JsonObject>());
+
+  if (status.IsSuccess())
+    ReportSuccess(out);
+  else
+    ReportError(status, &val.get<JsonObject>());
+}
+
+// CalendarManager
+void CalendarInstance::CalendarManagerAddCalendar(const JsonValue& args,
+                                                  JsonObject& out) {
+  JsonValue val{JsonObject{}};
+  PlatformResult status = CalendarManager::GetInstance().AddCalendar(
+      common::JsonCast<JsonObject>(args), val.get<JsonObject>());
+
+  if (status.IsSuccess())
+    ReportSuccess(val, out);
+  else
+    ReportError(status, &out);
+}
+
+void CalendarInstance::CalendarManagerGetCalendar(const JsonValue& args,
+                                                  JsonObject& out) {
+  JsonValue val{JsonObject{}};
+  PlatformResult status = CalendarManager::GetInstance().GetCalendar(common::JsonCast<JsonObject>(args),
+                                             val.get<JsonObject>());
+
+  if (status.IsSuccess())
+    ReportSuccess(val, out);
+  else
+    ReportError(status, &out);
+}
+
+void CalendarInstance::CalendarManagerGetCalendars(const JsonValue& args,
+                                                   JsonObject& out) {
+  const double callback_id = args.get("callbackId").get<double>();
+  auto get = [=](const std::shared_ptr<JsonValue>& response) -> void {
+    JsonValue result = JsonValue(JsonArray());
+
+    PlatformResult status = CalendarManager::GetInstance().GetCalendars(
+        common::JsonCast<JsonObject>(args), result.get<JsonArray>());
+
+    if (status.IsSuccess())
+      ReportSuccess(result, response->get<picojson::object>());
+    else
+      ReportError(status, &response->get<JsonObject>());
+  };
+
+  auto get_response = [ callback_id, this ](const std::shared_ptr<JsonValue> &
+                                            response)->void {
+    picojson::object& obj = response->get<picojson::object>();
+    obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
+    LoggerD("callback is %s", response->serialize().c_str());
+    PostMessage(response->serialize().c_str());
+  };
+
+  TaskQueue::GetInstance().Queue<JsonValue>(
+      get, get_response,
+      std::shared_ptr<JsonValue>(new JsonValue(JsonObject())));
+}
+
+void CalendarInstance::CalendarManagerRemoveCalendar(const JsonValue& args,
+                                                     JsonObject& out) {
+  JsonValue val{JsonObject{}};
+  PlatformResult status = CalendarManager::GetInstance().RemoveCalendar(
+      common::JsonCast<JsonObject>(args), val.get<JsonObject>());
+
+  if (status.IsSuccess())
+    ReportSuccess(val, out);
+  else
+    ReportError(status, &out);
+}
+
+}  // namespace calendar
+}  // namespace extension
