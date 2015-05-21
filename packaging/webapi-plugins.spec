@@ -1,3 +1,5 @@
+%bcond_with wayland
+
 %{!?profile:%define profile mobile}
 
 %define _manifestdir %{TZ_SYS_RW_PACKAGES}
@@ -288,8 +290,6 @@ BuildRequires: pkgconfig(zlib)
 BuildRequires: pkgconfig(pkgmgr)
 BuildRequires: pkgconfig(pkgmgr-info)
 BuildRequires: pkgconfig(vconf)
-BuildRequires: pkgconfig(x11)
-BuildRequires: pkgconfig(xrandr)
 BuildRequires: pkgconfig(ecore)
 BuildRequires: pkgconfig(icu-i18n)
 BuildRequires: pkgconfig(aul)
@@ -311,6 +311,15 @@ BuildRequires: pkgconfig(capi-appfw-package-manager)
 BuildRequires: pkgconfig(capi-content-media-content)
 BuildRequires: pkgconfig(capi-media-metadata-extractor)
 #BuildRequires: pkgconfig(capi-security-privilege-manager)
+
+%if %{with wayland}
+%define display_type wayland
+BuildRequires: pkgconfig(wayland-client)
+%else
+%define display_type x11
+BuildRequires: pkgconfig(x11)
+BuildRequires: pgkconfig(xrandr)
+%endif
 
 %if 0%{?tizen_feature_account_support}
 BuildRequires: pkgconfig(accounts-svc)
@@ -445,7 +454,7 @@ Tizen Web APIs implemented.
 
 export GYP_GENERATORS='ninja'
 GYP_OPTIONS="--depth=. -Dtizen=1 -Dextension_build_type=Debug -Dextension_host_os=%{profile} -Dprivilege_engine=CYNARA"
-GYP_OPTIONS="$GYP_OPTIONS -Ddisplay_type=x11"
+GYP_OPTIONS="$GYP_OPTIONS -Ddisplay_type=%{display_type}"
 
 # feature flags
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_account_support=%{?tizen_feature_account_support}"
