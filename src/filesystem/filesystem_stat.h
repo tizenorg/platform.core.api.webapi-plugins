@@ -6,7 +6,10 @@
 #define FILESYSTEM_FILESYSTEM_STAT_H
 
 #include <string>
-#include <common/picojson.h>
+
+#include "common/picojson.h"
+
+#include "filesystem/filesystem_utils.h"
 
 namespace extension {
 namespace filesystem {
@@ -15,6 +18,7 @@ class FilesystemStat {
   FilesystemStat();
 
  public:
+  FilesystemError error;
   bool valid;
 
   std::string path;
