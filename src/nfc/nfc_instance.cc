@@ -702,7 +702,7 @@ void NFCInstance::TagIsConnectedGetter(
   PlatformResult result = NFCAdapter::GetInstance()->TagIsConnectedGetter(tag_id, &connected);
 
   if (result.IsSuccess()) {
-    ReportSuccess(out);
+    ReportSuccess(picojson::value(connected), out);
   } else {
     ReportError(result, &out);
   }
