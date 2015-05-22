@@ -6,7 +6,7 @@
 %define crosswalk_extensions tizen-extensions-crosswalk
 
 Name:       webapi-plugins
-Version:    0.3
+Version:    0.4
 Release:    0
 License:    BSD-3-Clause and Apache-2.0
 Group:      Development/Libraries
