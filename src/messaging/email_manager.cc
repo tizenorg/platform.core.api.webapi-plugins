@@ -443,30 +443,28 @@ PlatformResult EmailManager::sendMessage(MessageRecipientsCallbackData* callback
   if (message) {
     if (!(message->is_id_set())) {
       platform_result = addOutboxMessagePlatform(callback->getAccountId(), message);
-      if (platform_result.IsError()) return platform_result;
-    }
-
-    err = email_get_mail_data(message->getId(),&mail_data);
-
-    if (EMAIL_ERROR_NONE != err) {
-      LoggerE("email_get_mail_data failed. [%d]\n", err);
-      platform_result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to get platform email structure");
     } else {
-      LoggerD("email_get_mail_data success.\n");
-
-      // Sending EMAIL
-      mail_data->save_status = EMAIL_MAIL_STATUS_SENDING;
-
-      int req_id = 0;
-      err = email_send_mail(mail_data->mail_id, &req_id);
-
+      err = email_get_mail_data(message->getId(),&mail_data);
       if (EMAIL_ERROR_NONE != err) {
-        LoggerE("Failed to send message %d", err);
-        platform_result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to send message");
+        LoggerE("email_get_mail_data failed. [%d]\n", err);
+        platform_result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to get platform email structure");
       } else {
-        LoggerD("req_id: %d", req_id);
-        callback->getMessage()->setMessageStatus(MessageStatus::STATUS_SENDING);
-        m_sendRequests[req_id] = callback;
+        LoggerD("email_get_mail_data success.\n");
+
+        // Sending EMAIL
+        mail_data->save_status = EMAIL_MAIL_STATUS_SENDING;
+
+        int req_id = 0;
+        err = email_send_mail(mail_data->mail_id, &req_id);
+
+        if (EMAIL_ERROR_NONE != err) {
+          LoggerE("Failed to send message %d", err);
+          platform_result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to send message");
+        } else {
+          LoggerD("req_id: %d", req_id);
+          callback->getMessage()->setMessageStatus(MessageStatus::STATUS_SENDING);
+          m_sendRequests[req_id] = callback;
+        }
       }
     }
   } else {
