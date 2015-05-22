@@ -23,6 +23,8 @@ class RadioInstance;
 class FMRadioManager {
  public:
   explicit FMRadioManager(RadioInstance& instance);
+  // FMRadioManager destroys radio_h in destructor, so it cannot be copyable
+  FMRadioManager(const FMRadioManager& other) = delete;
   ~FMRadioManager();
 
   common::PlatformResult Start(double freq);
