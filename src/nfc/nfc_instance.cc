@@ -137,15 +137,10 @@ void NFCInstance::SetExclusiveMode(
   CHECK_EXIST(args, "exclusiveMode", out);
   bool exmode = args.get("exclusiveMode").get<bool>();
 
-  int ret = NFC_ERROR_NONE;
-  if (exmode) {
-    ret = nfc_manager_enable_transaction_fg_dispatch();
-  } else {
-    ret = nfc_manager_disable_transaction_fg_dispatch();
-  }
-
+  int ret = nfc_manager_set_system_handler_enable(!exmode);
   if (NFC_ERROR_NONE != ret) {
-    PlatformResult result = NFCUtil::CodeToResult(ret, "Failed to set exclusive mode.");
+    PlatformResult result = NFCUtil::CodeToResult(ret,
+                                                  "Failed to set exclusive mode.");
     ReportError(result, &out);
   } else {
     ReportSuccess(out);
