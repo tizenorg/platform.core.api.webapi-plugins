@@ -303,9 +303,13 @@ function RemoteParty(data) {
 };
 
 function CallHistoryEntry(data) {
-
     function directionSetter(val) {
-        direction = converter_.toString(val, false);
+        if (direction === 'MISSEDNEW' && val === 'MISSED') {
+            var result = native_.callSync('CallHistory_setMissedDirection', {uid : this.uid});
+            if (native_.isSuccess(result)) {
+                direction = 'MISSED';
+            }
+        }
     }
 
     function createRemoteParties(parties) {
@@ -318,7 +322,7 @@ function CallHistoryEntry(data) {
 
     var direction;
     if (data) {
-        directionSetter(data.direction);
+        direction = converter_.toString(data.direction, false);
     }
 
     Object.defineProperties(this, {
