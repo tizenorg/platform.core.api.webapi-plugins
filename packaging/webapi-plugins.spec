@@ -39,7 +39,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_content_support             1
 %define tizen_feature_datacontrol_support         1
 %define tizen_feature_datasync_support            0
-%define tizen_feature_download_support            0
+%define tizen_feature_download_support            1
 %define tizen_feature_exif_support                1
 %define tizen_feature_filesystem_support          1
 %ifarch %{arm}
@@ -92,7 +92,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_sensor_support              1
 %define tizen_feature_sound_support               1
 %define tizen_feature_system_info_support         1
-%define tizen_feature_system_setting_support      0
+%define tizen_feature_system_setting_support      1
 %ifarch %{arm}
 # ARM
 %define tizen_feature_telephony_support           1

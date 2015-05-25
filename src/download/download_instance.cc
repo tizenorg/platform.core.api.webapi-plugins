@@ -269,9 +269,10 @@ gboolean DownloadInstance::OnFailed(void* user_data) {
         "The application does not have the privilege to call this method."),
         out);
       break;
-    case DOWNLOAD_ERROR_NOT_SUPPORTED:
-      instance->ReportError(NotSupportedException("Not supported"), out);
-      break;
+    // TODO(p.kaczmarek3) temporarily removed - not supported by platform
+    //case DOWNLOAD_ERROR_NOT_SUPPORTED:
+    //  instance->ReportError(NotSupportedException("Not supported"), out);
+    //  break;
     case DOWNLOAD_ERROR_INVALID_STATE:
       instance->ReportError(InvalidStateException("Invalid state"), out);
       break;
@@ -333,10 +334,11 @@ gboolean DownloadInstance::OnFailed(void* user_data) {
       instance->ReportError(NotFoundException(
         "Download ID does not exist in download service module"), out);
       break;
-    case DOWNLOAD_ERROR_INVALID_NETWORK_TYPE:
-      instance->ReportError(InvalidValuesException(
-        "Network bonding is set but network type is not set as ALL"), out);
-      break;
+    // TODO(p.kaczmarek3) temporarily removed - not supported by platform
+    //case DOWNLOAD_ERROR_INVALID_NETWORK_TYPE:
+    //  instance->ReportError(InvalidValuesException(
+    //    "Network bonding is set but network type is not set as ALL"), out);
+    //  break;
     case DOWNLOAD_ERROR_NO_DATA:
       instance->ReportError(NotFoundException(
         "No data because the set API is not called"), out);
