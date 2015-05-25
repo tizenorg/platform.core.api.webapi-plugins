@@ -572,6 +572,54 @@ PlatformResult CallHistory::stopCallHistoryChangeListener()
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
+PlatformResult CallHistory::setMissedDirection(int uid)
+{
+  LoggerD("Entered");
+
+  contacts_record_h record = nullptr;
+  SCOPE_EXIT {
+    contacts_record_destroy(record, true);
+  };
+
+  int ret = CONTACTS_ERROR_NONE;
+  int log_type = CONTACTS_PLOG_TYPE_NONE;
+
+  ret = contacts_db_get_record(_contacts_phone_log._uri, uid, &record);
+  if (CONTACTS_ERROR_NONE != ret) {
+    LoggerE("Failed to get record [%d]", ret);
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to get record");
+  }
+
+  ret = contacts_record_get_int(record, _contacts_phone_log.log_type, &log_type);
+  if (CONTACTS_ERROR_NONE != ret) {
+    LoggerE("Failed to get log type [%d]", ret);
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to get log type");
+  }
+
+  if (CONTACTS_PLOG_TYPE_VOICE_INCOMMING_UNSEEN == log_type) {
+    ret = contacts_record_set_int(
+        record, _contacts_phone_log.log_type, CONTACTS_PLOG_TYPE_VOICE_INCOMMING_SEEN);
+  } else if (CONTACTS_PLOG_TYPE_VIDEO_INCOMMING_UNSEEN == log_type) {
+    ret = contacts_record_set_int(
+        record, _contacts_phone_log.log_type, CONTACTS_PLOG_TYPE_VIDEO_INCOMMING_SEEN);
+  } else {
+    return PlatformResult(ErrorCode::NO_ERROR);
+  }
+
+  if (CONTACTS_ERROR_NONE != ret) {
+    LoggerE("Failed to set direction [%d]", ret);
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to set direction");
+  }
+
+  ret = contacts_db_update_record(record);
+  if (CONTACTS_ERROR_NONE != ret) {
+    LoggerE("Failed to update record [%d]", ret);
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to update record");
+  }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
 void CallHistory::loadPhoneNumbers()
 {
   LoggerD("Entered");
