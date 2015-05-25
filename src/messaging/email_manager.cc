@@ -443,7 +443,9 @@ PlatformResult EmailManager::sendMessage(MessageRecipientsCallbackData* callback
   if (message) {
     if (!(message->is_id_set())) {
       platform_result = addOutboxMessagePlatform(callback->getAccountId(), message);
-    } else {
+    }
+
+    if (platform_result) {
       err = email_get_mail_data(message->getId(),&mail_data);
       if (EMAIL_ERROR_NONE != err) {
         LoggerE("email_get_mail_data failed. [%d]\n", err);
