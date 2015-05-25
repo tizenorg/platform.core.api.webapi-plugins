@@ -181,6 +181,7 @@ void MessageportInstance::
 
   LoggerD("Checking remote port of %s: %s", remoteMessagePortName.c_str(),
     portCheck ? "true" : "false");
+  LoggerD("Error code: -0x%X", -ret);
 
   if (ret == MESSAGE_PORT_ERROR_NONE) {
     if (portCheck)  {
@@ -198,6 +199,10 @@ void MessageportInstance::
     ReportError(UnknownException("Out of memory."), out);
   } else if (ret == MESSAGE_PORT_ERROR_IO_ERROR) {
     // IO error means that remote port does not exist
+    ReportError(
+        NotFoundException("The port of the target application is not found"),
+        out);
+  } else if (ret == MESSAGE_PORT_ERROR_PORT_NOT_FOUND) {
     ReportError(
         NotFoundException("The port of the target application is not found"),
         out);
@@ -221,8 +226,9 @@ void MessageportInstance::
   ret = message_port_check_trusted_remote_port
         (appId.c_str(), remoteMessagePortName.c_str(), &portCheck);
 
-  LoggerD("Checking trusted remoteport of %s:%s",
+  LoggerD("Checking trusted remote port of %s: %s",
     remoteMessagePortName.c_str(), portCheck ? "true":"false");
+  LoggerD("Error code: -0x%X", -ret);
 
   if (ret == MESSAGE_PORT_ERROR_NONE) {
     if (portCheck) {
@@ -240,6 +246,10 @@ void MessageportInstance::
     ReportError(UnknownException("Out of memory."), out);
   } else if (ret == MESSAGE_PORT_ERROR_IO_ERROR) {
     // IO error means that remote port does not exist
+    ReportError(
+        NotFoundException("The port of the target application is not found"),
+        out);
+  } else if (ret == MESSAGE_PORT_ERROR_PORT_NOT_FOUND) {
     ReportError(
         NotFoundException("The port of the target application is not found"),
         out);
