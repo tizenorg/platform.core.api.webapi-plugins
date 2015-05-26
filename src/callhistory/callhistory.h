@@ -36,6 +36,7 @@ class CallHistory
   void removeAll(const picojson::object& args);
   common::PlatformResult startCallHistoryChangeListener();
   common::PlatformResult stopCallHistoryChangeListener();
+  common::PlatformResult setMissedDirection(int uid);
 
  private:
   static void changeListenerCB(const char* view_uri, char *changes, void* user_data);

@@ -22,6 +22,7 @@ CallHistoryInstance::CallHistoryInstance() : history_(*this) {
   REGISTER_SYNC("CallHistory_remove", Remove);
   REGISTER_SYNC("CallHistory_addChangeListener", AddChangeListener);
   REGISTER_SYNC("CallHistory_removeChangeListener", RemoveChangeListener);
+  REGISTER_SYNC("CallHistory_setMissedDirection", SetMissedDirection);
 #undef REGISTER_SYNC
 #define REGISTER_ASYNC(c,x) \
     RegisterSyncHandler(c, std::bind(&CallHistoryInstance::x, this, _1, _2));
@@ -83,6 +84,25 @@ void CallHistoryInstance::RemoveChangeListener(const picojson::value& args, pico
     ReportSuccess(out);
   } else {
     ReportError(result, &out);
+  }
+}
+
+void CallHistoryInstance::SetMissedDirection(const picojson::value& args, picojson::object& out) {
+  LoggerD("Entered");
+
+  if (!args.contains("uid")) {
+    LoggerD("args doesn't contain attribute 'uid'");
+    ReportError(out);
+    return;
+  }
+
+  int uid = std::atoi(args.get("uid").get<std::string>().c_str());
+
+  PlatformResult result = history_.setMissedDirection(uid);
+  if (result.IsSuccess()) {
+    ReportSuccess(out);
+  } else {
+    ReportError(out);
   }
 }
 
