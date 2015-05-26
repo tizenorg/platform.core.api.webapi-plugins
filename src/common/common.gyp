@@ -65,7 +65,6 @@
               'defines': ['PRIVILEGE_USE_ACE'],
               'variables': {
                 'packages': [
-                  'sqlite3',
                   'capi-security-privilege-manager',
                 ],
               },
@@ -74,6 +73,8 @@
               'defines': ['PRIVILEGE_USE_CYNARA'],
               'variables': {
                 'packages': [
+                  'cynara-client',
+                  'libsmack',
                 ],
               },
             }],
