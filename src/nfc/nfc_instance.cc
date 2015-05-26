@@ -15,6 +15,7 @@
 #include "nfc/defs.h"
 #include "nfc/nfc_message_utils.h"
 #include "nfc/nfc_util.h"
+#include <system_info.h>
 
 namespace extension {
 namespace nfc {
@@ -24,6 +25,28 @@ using namespace extension::nfc;
 
 void NFCInstance::RespondAsync(const char* msg) {
   PostMessage(msg);
+}
+
+static bool isTagSupported(){
+    LoggerD("Entered");
+    bool supported = true;
+    if (system_info_get_platform_bool(
+                    "http://tizen.org/feature/network.nfc.tag", &supported)
+                    != SYSTEM_INFO_ERROR_NONE) {
+        LoggerD("Can't check Tag is supported or not");
+    }
+    return supported;
+}
+
+static bool isP2PSupported(){
+    LoggerD("Entered");
+    bool supported = true;
+    if (system_info_get_platform_bool(
+                    "http://tizen.org/feature/network.nfc.p2p", &supported)
+                    != SYSTEM_INFO_ERROR_NONE) {
+        LoggerD("Can't check Tag is supported or not");
+    }
+    return supported;
 }
 
 NFCInstance::NFCInstance() {
@@ -212,6 +235,17 @@ void NFCInstance::ActiveSecureElementGetter(
 
 void NFCInstance::SetTagListener(
     const picojson::value& args, picojson::object& out) {
+    bool supported = isTagSupported();
+      if (supported) {
+          SLoggerE("Tag is supported");
+      } else {
+          SLoggerE("Tag is not supported");
+          ReportError(
+              common::PlatformResult(common::ErrorCode::NOT_SUPPORTED_ERR,
+                                     "Tag is not supported on this device."),
+              &out);
+          return;
+      }
   PlatformResult result = NFCAdapter::GetInstance()->SetTagListener();
   if (result.IsSuccess()) {
     ReportSuccess(out);
@@ -239,6 +273,17 @@ void NFCInstance::PeerIsConnectedGetter(
 
 void NFCInstance::SetPeerListener(
     const picojson::value& args, picojson::object& out) {
+    bool supported = isP2PSupported();
+      if (supported) {
+          SLoggerE("P2P is supported");
+      } else {
+          SLoggerE("P2P is not supported");
+          ReportError(
+              common::PlatformResult(common::ErrorCode::NOT_SUPPORTED_ERR,
+                                     "P2P is not supported on this device."),
+              &out);
+          return;
+      }
   PlatformResult result = NFCAdapter::GetInstance()->SetPeerListener();
   if (result.IsSuccess()) {
     ReportSuccess(out);
@@ -249,12 +294,34 @@ void NFCInstance::SetPeerListener(
 
 void NFCInstance::UnsetTagListener(
     const picojson::value& args, picojson::object& out) {
+    bool supported = isTagSupported();
+      if (supported) {
+          SLoggerE("Tag is supported");
+      } else {
+          SLoggerE("Tag is not supported");
+          ReportError(
+              common::PlatformResult(common::ErrorCode::NOT_SUPPORTED_ERR,
+                                     "Tag is not supported on this device."),
+              &out);
+          return;
+      }
   NFCAdapter::GetInstance()->UnsetTagListener();
   ReportSuccess(out);
 }
 
 void NFCInstance::UnsetPeerListener(
     const picojson::value& args, picojson::object& out) {
+    bool supported = isP2PSupported();
+      if (supported) {
+          SLoggerE("P2P is supported");
+      } else {
+          SLoggerE("P2P is not supported");
+          ReportError(
+              common::PlatformResult(common::ErrorCode::NOT_SUPPORTED_ERR,
+                                     "P2P is not supported on this device."),
+              &out);
+          return;
+      }
   PlatformResult result = NFCAdapter::GetInstance()->UnsetPeerListener();
   if (result.IsSuccess()) {
     ReportSuccess(out);
