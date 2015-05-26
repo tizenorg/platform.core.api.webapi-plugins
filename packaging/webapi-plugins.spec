@@ -66,7 +66,7 @@ Source0:    %{name}-%{version}.tar.gz
 # I586
 %define tizen_feature_media_key_support           0
 %endif
-%define tizen_feature_message_port_support        0
+%define tizen_feature_message_port_support        1
 %define tizen_feature_messaging_support           1
 
 %ifarch %{arm}

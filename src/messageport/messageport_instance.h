@@ -6,7 +6,6 @@
 #define MESSAGEPORT_MESSAGEPORT_INSTANCE_H_
 
 #include <bundle.h>
-#include <bundle_internal.h>
 #include <message_port.h>
 
 #include "common/extension.h"
