@@ -318,7 +318,7 @@ BuildRequires: pkgconfig(wayland-client)
 %else
 %define display_type x11
 BuildRequires: pkgconfig(x11)
-BuildRequires: pgkconfig(xrandr)
+BuildRequires: pkgconfig(xrandr)
 %endif
 
 %if 0%{?tizen_feature_account_support}
