@@ -406,6 +406,12 @@ void DownloadInstance::DownloadManagerStart
   bool network_support = false;
   bool cell_support = false;
   bool wifi_support = false;
+  // todo retrieve this from system_info
+#ifdef TIZEN_TV
+  bool ethernet_support = true;
+#else
+  bool ethernet_support = false;
+#endif
 
   system_info_get_platform_bool("http://tizen.org/feature/network.telephony",
                                 &cell_support);
@@ -417,14 +423,17 @@ void DownloadInstance::DownloadManagerStart
 
   connection_cellular_state_e cell_state = CONNECTION_CELLULAR_STATE_OUT_OF_SERVICE;
   connection_wifi_state_e wifi_state = CONNECTION_WIFI_STATE_DEACTIVATED;
+  connection_ethernet_state_e ethernet_state = CONNECTION_ETHERNET_STATE_DEACTIVATED;
 
   connection_get_cellular_state(connection, &cell_state);
   connection_get_wifi_state(connection, &wifi_state);
+  connection_get_ethernet_state(connection, &ethernet_state);
   connection_destroy(connection);
 
   bool network_available = false;
   bool cell_available = (CONNECTION_CELLULAR_STATE_CONNECTED == cell_state);
   bool wifi_available = (CONNECTION_WIFI_STATE_CONNECTED == wifi_state);
+  bool ethernet_available = CONNECTION_ETHERNET_STATE_CONNECTED == ethernet_state;
 
   if (networkType == "CELLULAR") {
     network_support = cell_support;
@@ -435,8 +444,8 @@ void DownloadInstance::DownloadManagerStart
     network_available = wifi_available;
     diPtr->network_type = DOWNLOAD_NETWORK_WIFI;
   } else if (networkType == "ALL") {
-    network_support = cell_support || wifi_support;
-    network_available = cell_available || wifi_available;
+    network_support = cell_support || wifi_support || ethernet_support;
+    network_available = cell_available || wifi_available || ethernet_available;
     diPtr->network_type = DOWNLOAD_NETWORK_ALL;
   } else {
     LoggerE("The input parameter contains an invalid network type");
