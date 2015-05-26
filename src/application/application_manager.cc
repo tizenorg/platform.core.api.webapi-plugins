@@ -1083,6 +1083,23 @@ class ApplicationListChangedBroker {
     kUninstalled,
   };
 
+#if defined(TIZEN_TV)
+  static int ClientStatusListener(unsigned int target_uid, int id, const char* type, const char* package, const char* key,
+                                  const char* val, const void* msg, void* data) {
+    LoggerD("Entered");
+    ApplicationListChangedBroker* that = static_cast<ApplicationListChangedBroker*>(data);
+
+    if (0 == strcasecmp(key, kStartKey)) {
+      that->HandleStart(val, package);
+    } else if (0 == strcasecmp(key, kEndKey) && 0 == strcasecmp(val, kOkValue)) {
+      that->HandleEnd(package);
+    } else {
+      LoggerD("Ignored key: %s", key);
+    }
+
+    return 0;
+  }
+#else
   static int ClientStatusListener(int id, const char* type, const char* package, const char* key,
                                   const char* val, const void* msg, void* data) {
     LoggerD("Entered");
@@ -1098,6 +1115,7 @@ class ApplicationListChangedBroker {
 
     return 0;
   }
+#endif
 
   void AddApplicationInstance(ApplicationInstance* app_instance) {
     LoggerD("Entered");
