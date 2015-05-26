@@ -140,7 +140,6 @@ Source0:    %{name}-%{version}.tar.gz
 # Badge API is mandatory in Tizen Wearable Profile.
 %define tizen_feature_badge_support               1
 
-
 %define tizen_feature_bluetooth_support           1
 
 # Bookmark API is optional in Tizen Wearable Profile.
@@ -185,7 +184,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_nfc_support                 0
 %endif
 %define tizen_feature_notification_support        1
-%define tizen_feature_package_support             0
+%define tizen_feature_package_support             1
 %define tizen_feature_power_support               1
 %define tizen_feature_push_support                1
 %if 0%{?model_build_feature_smartcard }
