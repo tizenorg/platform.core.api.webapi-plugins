@@ -82,6 +82,7 @@ void BluetoothHealthChannel::SendData(const picojson::value& data, picojson::obj
 void BluetoothHealthChannel::ToJson(unsigned int channel,
                                     bt_hdp_channel_type_e type,
                                     picojson::object* out) {
+  LoggerD("Enter");
   const char* type_str = "UNKNOWN";
 
   switch (type) {
@@ -108,6 +109,7 @@ void BluetoothHealthChannel::ToJson(unsigned int channel,
                                     bt_device_info_s* device_info,
                                     const char* app_id,
                                     picojson::object* out) {
+  LoggerD("Enter");
   ToJson(channel, type, out);
   auto& device = out->insert(
       std::make_pair(kPeer, picojson::value(picojson::object()))) .first->second.get<picojson::object>();
