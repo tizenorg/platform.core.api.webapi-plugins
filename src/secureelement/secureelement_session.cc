@@ -64,6 +64,7 @@ picojson::value SESession::isClosed() {
 
 
 void SESession::close() {
+    LoggerD("Entered");
     if ( m_session_ptr) {
         m_session_ptr->closeSync();
     }
@@ -71,6 +72,7 @@ void SESession::close() {
 
 
 ByteArray SESession::getATR() {
+    LoggerD("Entered");
     ByteArray response;
     if ( m_session_ptr) {
         response = m_session_ptr->getATRSync();
@@ -80,6 +82,7 @@ ByteArray SESession::getATR() {
 
 
 void SESession::closeChannels() {
+    LoggerD("Entered");
     if ( m_session_ptr) {
         m_session_ptr->closeChannels();
     }

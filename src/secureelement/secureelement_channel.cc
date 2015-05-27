@@ -20,6 +20,7 @@ void SEChannel::close() {
 
 
 ByteArray SEChannel::transmit(const picojson::array& v_command) {
+    LoggerD("Entered");
     ByteArray response;
     if ( m_channel_ptr) {
         uint8_t* command = new uint8_t[v_command.size()];
@@ -35,6 +36,7 @@ ByteArray SEChannel::transmit(const picojson::array& v_command) {
 
 
 ByteArray SEChannel::getSelectResponse() {
+    LoggerD("Entered");
     ByteArray response;
     if ( m_channel_ptr) {
         response = m_channel_ptr->getSelectResponse();
