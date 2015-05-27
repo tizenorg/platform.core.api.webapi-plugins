@@ -33,10 +33,10 @@ MediaKeyManager.prototype.setMediaKeyEventListener = function(callback) {
     native.removeListener(ON_RELEASED_MEDIA_KEY_EVENT_CALLBACK);
 
     native.addListener(ON_PRESSED_MEDIA_KEY_EVENT_CALLBACK, function(msg) {
-        native.callIfPossible(args.callback.onpressed, native.getResultObject(msg.type));
+        native.callIfPossible(args.callback.onpressed, msg.type);
     });
     native.addListener(ON_RELEASED_MEDIA_KEY_EVENT_CALLBACK, function(msg) {
-        native.callIfPossible(args.callback.onpressed, native.getResultObject(msg.type));
+        native.callIfPossible(args.callback.onreleased, msg.type);
     });
 
 };
