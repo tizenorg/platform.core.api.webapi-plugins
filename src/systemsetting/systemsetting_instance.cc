@@ -28,6 +28,7 @@ using namespace extension::systemsetting;
 
 SystemSettingInstance::SystemSettingInstance()
 {
+  LoggerD("Enter");
   using std::placeholders::_1;
   using std::placeholders::_2;
 
@@ -42,11 +43,12 @@ SystemSettingInstance::SystemSettingInstance()
 
 SystemSettingInstance::~SystemSettingInstance()
 {
+  LoggerD("Enter");
 }
 
 void SystemSettingInstance::getProperty(const picojson::value& args, picojson::object& out)
 {
-  LoggerD("");
+  LoggerD("Enter");
   const double callback_id = args.get("callbackId").get<double>();
 
   const std::string& type = args.get("type").get<std::string>();
@@ -56,10 +58,12 @@ void SystemSettingInstance::getProperty(const picojson::value& args, picojson::o
     LoggerD("Getting platform value");
     picojson::value result = picojson::value(picojson::object());
     PlatformResult status = getPlatformPropertyValue(type, &result);
-    if(status.IsSuccess())
+    if(status.IsSuccess()) {
       ReportSuccess(result, response->get<picojson::object>());
-    else
+    } else {
+      LoggerE("Failed: getPlatformPropertyValue()");
       ReportError(status, &response->get<picojson::object>());
+    }
   };
 
   auto get_response = [this, callback_id](const std::shared_ptr<picojson::value>& response) -> void {
@@ -76,6 +80,7 @@ void SystemSettingInstance::getProperty(const picojson::value& args, picojson::o
 PlatformResult SystemSettingInstance::getPlatformPropertyValue(
     const std::string& settingType,
     picojson::value* out) {
+  LoggerD("Enter");
   picojson::object& result_obj = out->get<picojson::object>();
 
   int ret;
@@ -116,7 +121,7 @@ PlatformResult SystemSettingInstance::getPlatformPropertyValue(
 
 void SystemSettingInstance::setProperty(const picojson::value& args, picojson::object& out)
 {
-  LoggerD("");
+  LoggerD("Enter");
 
   const double callback_id = args.get("callbackId").get<double>();
 
@@ -129,10 +134,12 @@ void SystemSettingInstance::setProperty(const picojson::value& args, picojson::o
   auto get = [this, type, value](const std::shared_ptr<picojson::value>& response) -> void {
     LoggerD("Setting platform value");
     PlatformResult status = setPlatformPropertyValue(type, value);
-    if (status.IsSuccess())
+    if (status.IsSuccess()) {
       ReportSuccess(response->get<picojson::object>());
-    else
+    } else {
+      LoggerE("Failed: setPlatformPropertyValue()");
       ReportError(status, &response->get<picojson::object>());
+    }
   };
 
   auto get_response = [this, callback_id](const std::shared_ptr<picojson::value>& response) -> void {
@@ -149,6 +156,7 @@ void SystemSettingInstance::setProperty(const picojson::value& args, picojson::o
 PlatformResult SystemSettingInstance::setPlatformPropertyValue(
     const std::string& settingType,
     const std::string& settingValue) {
+  LoggerD("Enter");
   int ret;
   if (settingType == SETTING_HOME_SCREEN) {
     ret = system_settings_set_value_string(
