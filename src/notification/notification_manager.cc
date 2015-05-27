@@ -32,26 +32,32 @@ namespace notification {
 using namespace common;
 
 NotificationManager::NotificationManager() {
+  LoggerD("Enter");
 }
 
 NotificationManager::~NotificationManager() {
+  LoggerD("Enter");
 }
 
 NotificationManager* NotificationManager::GetInstance() {
+  LoggerD("Enter");
   static NotificationManager instance;
   return &instance;
 }
 
 PlatformResult NotificationManager::Post(const picojson::object& args,
                                          picojson::object& out) {
+  LoggerD("Enter");
   return StatusNotification::FromJson(args, false, &out);
 }
 
 PlatformResult NotificationManager::Update(const picojson::object& args) {
+  LoggerD("Enter");
   return StatusNotification::FromJson(args, true, NULL);
 }
 
 PlatformResult NotificationManager::Remove(const picojson::object& args) {
+  LoggerD("Enter");
   int id = std::stoi(FromJson<std::string>(args, "id"));
 
   int ret = notification_delete_by_priv_id(NULL, NOTIFICATION_TYPE_NONE, id);
@@ -65,6 +71,7 @@ PlatformResult NotificationManager::Remove(const picojson::object& args) {
 }
 
 PlatformResult NotificationManager::RemoveAll() {
+  LoggerD("Enter");
   int ret = notification_delete_all(NOTIFICATION_TYPE_NOTI);
   if (ret != NOTIFICATION_ERROR_NONE) {
     LoggerE("Notification remove all failed: %d", ret);
@@ -84,26 +91,34 @@ PlatformResult NotificationManager::RemoveAll() {
 
 PlatformResult NotificationManager::Get(const picojson::object& args,
                                         picojson::object& out) {
+  LoggerD("Enter");
   int id = std::stoi(FromJson<std::string>(args, "id"));
 
   notification_h noti_handle;
   PlatformResult status = StatusNotification::GetNotiHandle(id, &noti_handle);
   if (status.IsError())
+  {
+    LoggerE("Failed: GetNotiHandle");
     return status;
-
+  }
   app_control_h app_control;
   status = StatusNotification::GetAppControl(noti_handle, &app_control);
   if (status.IsError())
+  {
+    LoggerE("Failed: GetAppControl");
     return status;
-
+  }
   status = StatusNotification::ToJson(id, noti_handle, app_control, &out);
   if (status.IsError())
+  {
+    LoggerE("Failed: ToJson");
     return status;
-
+  }
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 PlatformResult NotificationManager::GetAll(picojson::array& out) {
+  LoggerD("Enter");
   notification_h noti = nullptr;
   notification_list_h noti_list = nullptr;
   notification_list_h noti_list_iter = nullptr;
@@ -155,7 +170,7 @@ PlatformResult NotificationManager::GetAll(picojson::array& out) {
 
 PlatformResult NotificationManager::PlayLEDCustomEffect(
     const picojson::object& args) {
-  LOGGER(DEBUG) << "entered";
+  LoggerD("Enter");
 
   int timeOn = FromJson<double>(args, "timeOn");
   int timeOff = FromJson<double>(args, "timeOff");
@@ -182,7 +197,7 @@ PlatformResult NotificationManager::PlayLEDCustomEffect(
 }
 
 PlatformResult NotificationManager::StopLEDCustomEffect() {
-  LOGGER(DEBUG) << "entered";
+  LoggerD("Enter");
 
   int ret = DEVICE_ERROR_NONE;
   ret = device_led_stop_custom();
