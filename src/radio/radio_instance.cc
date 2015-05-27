@@ -18,6 +18,7 @@ using namespace extension::radio;
 
 RadioInstance::RadioInstance()
     : manager_(*this) {
+  LoggerD("Enter");
   using std::placeholders::_1;
   using std::placeholders::_2;
 
@@ -49,6 +50,7 @@ RadioInstance::RadioInstance()
 }
 
 RadioInstance::~RadioInstance() {
+  LoggerD("Enter");
 }
 
 void RadioInstance::MuteGetter(const picojson::value& args,
@@ -109,6 +111,7 @@ void RadioInstance::Start(const picojson::value& args, picojson::object& out) {
   if (result) {
     ReportSuccess(out);
   } else {
+    LoggerE("Failed");
     ReportError(result, &out);
   }
 }
@@ -121,6 +124,7 @@ void RadioInstance::Stop(const picojson::value& args, picojson::object& out) {
   if (result) {
     ReportSuccess(out);
   } else {
+    LoggerE("Failed");
     ReportError(result, &out);
   }
 }
@@ -148,6 +152,7 @@ void RadioInstance::SetFMRadioInterruptedListener(const picojson::value& args,
   if (result) {
     ReportSuccess(out);
   } else {
+    LoggerE("Failed");
     ReportError(result, &out);
   }
 }
@@ -161,6 +166,7 @@ void RadioInstance::UnsetFMRadioInterruptedListener(const picojson::value& args,
   if (result) {
     ReportSuccess(out);
   } else {
+    LoggerE("Failed");
     ReportError(result, &out);
   }
 }
@@ -174,6 +180,7 @@ void RadioInstance::SetAntennaChangeListener(const picojson::value& args,
   if (result) {
     ReportSuccess(out);
   } else {
+    LoggerE("Failed");
     ReportError(result, &out);
   }
 }
@@ -187,6 +194,7 @@ void RadioInstance::UnsetAntennaChangeListener(const picojson::value& args,
   if (result) {
     ReportSuccess(out);
   } else {
+    LoggerE("Failed");
     ReportError(result, &out);
   }
 }
