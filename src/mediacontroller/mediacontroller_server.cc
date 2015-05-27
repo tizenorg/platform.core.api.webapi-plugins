@@ -41,9 +41,12 @@ using common::PlatformResult;
 using common::ErrorCode;
 
 MediaControllerServer::MediaControllerServer() : handle_(nullptr) {
+  LoggerD("Enter");
 }
 
 MediaControllerServer::~MediaControllerServer() {
+
+  LoggerD("Enter");
 
   if (handle_) {
     int ret;
@@ -60,6 +63,8 @@ MediaControllerServer::~MediaControllerServer() {
 }
 
 PlatformResult MediaControllerServer::Init() {
+
+  LoggerD("Enter");
 
   int ret = mc_server_create(&handle_);
   if (ret != MEDIA_CONTROLLER_ERROR_NONE) {
@@ -82,6 +87,8 @@ PlatformResult MediaControllerServer::Init() {
 
 PlatformResult MediaControllerServer::SetPlaybackState(
     const std::string& state) {
+
+  LoggerD("Enter");
 
   int state_int;
   PlatformResult result = Types::StringToPlatformEnum(
@@ -111,6 +118,8 @@ PlatformResult MediaControllerServer::SetPlaybackState(
 
 PlatformResult MediaControllerServer::SetPlaybackPosition(double position) {
 
+  LoggerD("Enter");
+
   int ret = mc_server_set_playback_position(
       handle_, static_cast<unsigned long long>(position));
   if (ret != MEDIA_CONTROLLER_ERROR_NONE) {
@@ -131,6 +140,8 @@ PlatformResult MediaControllerServer::SetPlaybackPosition(double position) {
 
 PlatformResult MediaControllerServer::SetShuffleMode(bool mode) {
 
+  LoggerD("Enter");
+
   int ret = mc_server_update_shuffle_mode(handle_,
                                           mode ? SHUFFLE_MODE_ON
                                                : SHUFFLE_MODE_OFF);
@@ -145,6 +156,8 @@ PlatformResult MediaControllerServer::SetShuffleMode(bool mode) {
 
 PlatformResult MediaControllerServer::SetRepeatMode(bool mode) {
 
+  LoggerD("Enter");
+
   int ret = mc_server_update_repeat_mode(handle_,
                                          mode ? REPEAT_MODE_ON
                                               : REPEAT_MODE_OFF);
@@ -158,6 +171,8 @@ PlatformResult MediaControllerServer::SetRepeatMode(bool mode) {
 
 PlatformResult MediaControllerServer::SetMetadata(
     const picojson::object& metadata) {
+
+  LoggerD("Enter");
 
   int attribute_int, ret;
   for (picojson::object::const_iterator i = metadata.begin();
@@ -192,6 +207,8 @@ void MediaControllerServer::OnCommandReceived(const char* client_name,
                                               const char* command,
                                               bundle* bundle,
                                               void* user_data) {
+
+  LoggerD("Enter");
 
   MediaControllerServer* server = static_cast<MediaControllerServer*>(user_data);
 
@@ -272,6 +289,8 @@ PlatformResult MediaControllerServer::CommandReply(
     const std::string& reply_id,
     const picojson::value& data) {
 
+  LoggerD("Enter");
+
   int ret;
 
   bundle* bundle = bundle_create();
@@ -304,6 +323,8 @@ PlatformResult MediaControllerServer::CommandReply(
 
 PlatformResult MediaControllerServer::SetChangeRequestPlaybackInfoListener(
     JsonCallback callback) {
+
+  LoggerD("Enter");
 
   if (callback && change_request_playback_info_listener_) {
     LOGGER(ERROR) << "Listener already registered";
@@ -338,6 +359,8 @@ void MediaControllerServer::OnPlaybackStateCommand(const char* client_name,
                                                    mc_playback_states_e state_e,
                                                    void *user_data) {
 
+  LoggerD("Enter");
+
   MediaControllerServer* server = static_cast<MediaControllerServer*>(user_data);
 
   if (!server->change_request_playback_info_listener_) {
@@ -368,6 +391,8 @@ void MediaControllerServer::OnPlaybackPositionCommand(
     unsigned long long position,
     void* user_data) {
 
+  LoggerD("Enter");
+
   MediaControllerServer* server = static_cast<MediaControllerServer*>(user_data);
 
   if (!server->change_request_playback_info_listener_) {
@@ -388,6 +413,8 @@ void MediaControllerServer::OnShuffleModeCommand(const char* client_name,
                                                  mc_shuffle_mode_e mode,
                                                  void* user_data) {
 
+  LoggerD("Enter");
+
   MediaControllerServer* server = static_cast<MediaControllerServer*>(user_data);
 
   if (!server->change_request_playback_info_listener_) {
@@ -407,6 +434,8 @@ void MediaControllerServer::OnShuffleModeCommand(const char* client_name,
 void MediaControllerServer::OnRepeatModeCommand(const char* client_name,
                                                 mc_repeat_mode_e mode,
                                                 void* user_data) {
+
+  LoggerD("Enter");
 
   MediaControllerServer* server = static_cast<MediaControllerServer*>(user_data);
 

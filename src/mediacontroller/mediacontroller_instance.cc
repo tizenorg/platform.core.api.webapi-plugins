@@ -31,6 +31,7 @@ using common::PlatformResult;
 using common::TaskQueue;
 
 MediaControllerInstance::MediaControllerInstance() {
+  LoggerD("Enter");
   using namespace std::placeholders;
 
 #define REGISTER_SYNC(c, x) \
@@ -95,6 +96,7 @@ MediaControllerInstance::MediaControllerInstance() {
 }
 
 MediaControllerInstance::~MediaControllerInstance() {
+  LoggerD("Enter");
 }
 
 #define CHECK_EXIST(args, name, out) \
@@ -109,6 +111,7 @@ void MediaControllerInstance::MediaControllerManagerCreateServer(
     const picojson::value& args,
     picojson::object& out) {
 
+  LoggerD("Enter");
   if (server_) {
     ReportSuccess(out);
     return;
@@ -127,6 +130,7 @@ void MediaControllerInstance::MediaControllerManagerCreateServer(
 void MediaControllerInstance::MediaControllerServerUpdatePlaybackState(
     const picojson::value& args,
     picojson::object& out) {
+  LoggerD("Enter");
   CHECK_EXIST(args, "state", out)
 
   if (!server_) {
@@ -138,6 +142,7 @@ void MediaControllerInstance::MediaControllerServerUpdatePlaybackState(
   const std::string& state = args.get("state").get<std::string>();
   const PlatformResult& result = server_->SetPlaybackState(state);
   if (!result) {
+    LoggerE("Failed server_->SetPlaybackState()");
     ReportError(result, &out);
     return;
   }
@@ -149,7 +154,9 @@ void MediaControllerInstance::MediaControllerServerUpdatePlaybackPosition(
     const picojson::value& args,
     picojson::object& out) {
 
+  LoggerD("Enter");
   if (!server_) {
+    LoggerE("Failed: server_");
     ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
         "Server not initialized."), &out);
     return;
@@ -160,6 +167,7 @@ void MediaControllerInstance::MediaControllerServerUpdatePlaybackPosition(
   double position = args.get("position").get<double>();
   const PlatformResult& result = server_->SetPlaybackPosition(position);
   if (!result) {
+    LoggerE("Failed: server_->SetPlaybackPosition()");
     ReportError(result, &out);
     return;
   }
@@ -171,7 +179,9 @@ void MediaControllerInstance::MediaControllerServerUpdateShuffleMode(
     const picojson::value& args,
     picojson::object& out) {
 
+  LoggerD("Enter");
   if (!server_) {
+    LoggerE("Failed: server_");
     ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
         "Server not initialized."), &out);
     return;
@@ -183,6 +193,7 @@ void MediaControllerInstance::MediaControllerServerUpdateShuffleMode(
 
   const PlatformResult& result = server_->SetShuffleMode(mode);
   if (!result) {
+    LoggerE("Failed: server_->SetShuffleMode()");
     ReportError(result, &out);
     return;
   }
@@ -194,7 +205,10 @@ void MediaControllerInstance::MediaControllerServerUpdateRepeatMode(
     const picojson::value& args,
     picojson::object& out) {
 
+  LoggerD("Enter");
+
   if (!server_) {
+    LoggerE("Failed: server_");
     ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
         "Server not initialized."), &out);
     return;
@@ -206,6 +220,7 @@ void MediaControllerInstance::MediaControllerServerUpdateRepeatMode(
 
   const PlatformResult& result = server_->SetRepeatMode(mode);
   if (!result) {
+    LoggerE("Failed: server_->SetRepeatMode()");
     ReportError(result, &out);
     return;
   }
@@ -217,7 +232,9 @@ void MediaControllerInstance::MediaControllerServerUpdateMetadata(
     const picojson::value& args,
     picojson::object& out) {
 
+  LoggerD("Enter");
   if (!server_) {
+    LoggerE("Failed: server_");
     ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
         "Server not initialized."), &out);
     return;
@@ -230,6 +247,7 @@ void MediaControllerInstance::MediaControllerServerUpdateMetadata(
 
   const PlatformResult& result = server_->SetMetadata(metadata);
   if (!result) {
+    LoggerE("Failed: server_->SetMetadata()");
     ReportError(result, &out);
     return;
   }
@@ -241,7 +259,9 @@ void MediaControllerInstance::MediaControllerServerAddChangeRequestPlaybackInfoL
     const picojson::value& args,
     picojson::object& out) {
 
+  LoggerD("Enter");
   if (!server_) {
+    LoggerE("Failed: server_");
     ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
                                "Server not initialized."), &out);
     return;
@@ -271,7 +291,9 @@ void MediaControllerInstance::MediaControllerServerRemoveChangeRequestPlaybackIn
     const picojson::value& args,
     picojson::object& out) {
 
+  LoggerD("Enter");
   if (!server_) {
+    LoggerE("Failed: server_");
     ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
                                "Server not initialized."), &out);
     return;
@@ -284,7 +306,9 @@ void MediaControllerInstance::MediaControllerServerAddCommandListener(
     const picojson::value& args,
     picojson::object& out) {
 
+  LoggerD("Enter");
   if (!server_) {
+    LoggerE("Failed: server_");
     ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
                                "Server not initialized."), &out);
     return;
@@ -307,7 +331,9 @@ void MediaControllerInstance::MediaControllerServerReplyCommand(
     const picojson::value& args,
     picojson::object& out) {
 
+  LoggerD("Enter");
   if (!server_) {
+    LoggerE("Failed: server_");
     ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
                                "Server not initialized."), &out);
     return;
@@ -328,7 +354,9 @@ void MediaControllerInstance::MediaControllerServerRemoveCommandListener(
     const picojson::value& args,
     picojson::object& out) {
 
+  LoggerD("Enter");
   if (!server_) {
+    LoggerE("Failed: server_");
     ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
                                "Server not initialized."), &out);
     return;
@@ -343,6 +371,7 @@ void MediaControllerInstance::MediaControllerManagerGetClient(
     const picojson::value& args,
     picojson::object& out) {
 
+  LoggerD("Enter");
   if (client_) {
     ReportSuccess(out);
     return;
@@ -352,6 +381,7 @@ void MediaControllerInstance::MediaControllerManagerGetClient(
   const PlatformResult& result = client_->Init();
   if (!result) {
     client_.reset();
+    LoggerE("Failed: client_->Init()");
     ReportError(result, &out);
   }
 
@@ -362,7 +392,10 @@ void MediaControllerInstance::MediaControllerClientFindServers(
     const picojson::value& args,
     picojson::object& out) {
 
+  LoggerD("Enter");
   if (!client_) {
+    LoggerE("Failed: client_");
+
     ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
                                "Client not initialized."), &out);
     return;
@@ -398,7 +431,9 @@ void MediaControllerInstance::MediaControllerClientGetLatestServerInfo(
     const picojson::value& args,
     picojson::object& out) {
 
+  LoggerD("Enter");
   if (!client_) {
+    LoggerE("Failed: client_");
     ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
                                "Client not initialized."), &out);
     return;
@@ -407,6 +442,7 @@ void MediaControllerInstance::MediaControllerClientGetLatestServerInfo(
   picojson::value server_info = picojson::value();
   PlatformResult result = client_->GetLatestServerInfo(&server_info);
   if (!result) {
+    LoggerE("Failed: client_->GetLatestServerInfo");
     ReportError(result, &out);
     return;
   }
@@ -418,6 +454,7 @@ void MediaControllerInstance::MediaControllerClientGetPlaybackInfo(
     const picojson::value& args,
     picojson::object& out) {
 
+  LoggerD("Enter");
   if (!client_) {
     ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
                                "Client not initialized."), &out);
@@ -432,6 +469,7 @@ void MediaControllerInstance::MediaControllerClientGetPlaybackInfo(
       &playback_info.get<picojson::object>());
 
   if (!result) {
+    LoggerE("Failed: client_->GetPlaybackInfo");
     ReportError(result, &out);
     return;
   }
@@ -443,7 +481,9 @@ void MediaControllerInstance::MediaControllerServerInfoSendPlaybackState(
     const picojson::value& args,
     picojson::object& out) {
 
+  LoggerD("Enter");
   if (!client_) {
+    LoggerE("Failed: client_");
     ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
                                "Client not initialized."), &out);
     return;
@@ -465,6 +505,7 @@ void MediaControllerInstance::MediaControllerServerInfoSendPlaybackState(
     if (result) {
       ReportSuccess(response_obj);
     } else {
+      LoggerE("Failed: client_->SendPlaybackState");
       ReportError(result, &response_obj);
     }
 
@@ -480,6 +521,7 @@ void MediaControllerInstance::MediaControllerServerInfoSendPlaybackPosition(
     const picojson::value& args,
     picojson::object& out) {
 
+  LoggerD("Enter");
   if (!client_) {
     ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
                                "Client not initialized."), &out);
@@ -502,6 +544,7 @@ void MediaControllerInstance::MediaControllerServerInfoSendPlaybackPosition(
     if (result) {
       ReportSuccess(response_obj);
     } else {
+      LoggerE("Failed: client_->SendPlaybackPosition");
       ReportError(result, &response_obj);
     }
 
@@ -516,6 +559,8 @@ void MediaControllerInstance::MediaControllerServerInfoSendPlaybackPosition(
 void MediaControllerInstance::MediaControllerServerInfoSendShuffleMode(
     const picojson::value& args,
     picojson::object& out) {
+
+  LoggerD("Enter");
 
   if (!client_) {
     LOGGER(ERROR) << "Client not initialized.";
@@ -555,6 +600,7 @@ void MediaControllerInstance::MediaControllerServerInfoSendRepeatMode(
     const picojson::value& args,
     picojson::object& out) {
 
+  LoggerD("Enter");
   if (!client_) {
     LOGGER(ERROR) << "Client not initialized.";
     ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
@@ -593,6 +639,7 @@ void MediaControllerInstance::MediaControllerServerInfoSendCommand(
     const picojson::value& args,
     picojson::object& out) {
 
+  LoggerD("Enter");
   if (!client_) {
     LOGGER(ERROR) << "Client not initialized.";
     ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
@@ -633,6 +680,7 @@ void MediaControllerInstance::MediaControllerServerInfoAddServerStatusChangeList
     const picojson::value& args,
     picojson::object& out) {
 
+  LoggerD("Enter");
   if (!client_) {
     ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
                                "Client not initialized."), &out);
@@ -663,6 +711,7 @@ void MediaControllerInstance::MediaControllerServerInfoRemoveServerStatusChangeL
     const picojson::value& args,
     picojson::object& out) {
 
+  LoggerD("Enter");
   if (!client_) {
     ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
                                "Client not initialized."), &out);
@@ -676,7 +725,9 @@ void MediaControllerInstance::MediaControllerServerInfoAddPlaybackInfoChangeList
     const picojson::value& args,
     picojson::object& out) {
 
+  LoggerD("Enter");
   if (!client_) {
+    LoggerE("client_");
     ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
                                "Client not initialized."), &out);
     return;
@@ -707,6 +758,7 @@ void MediaControllerInstance::MediaControllerServerInfoRemovePlaybackInfoChangeL
     picojson::object& out) {
 
   if (!client_) {
+    LoggerE("client_");
     ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
                                "Client not initialized."), &out);
     return;
