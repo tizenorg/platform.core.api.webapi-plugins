@@ -31,6 +31,7 @@ using namespace filesystem;
 
 std::string bytesToReadableString(const size_t num_bytes)
 {
+    LoggerD("Enter");
     std::stringstream ss;
     static const size_t one_mb = 1024 * 1024;
     static const size_t one_kb = 1024;
@@ -49,6 +50,7 @@ std::string bytesToReadableString(const size_t num_bytes)
 
 PlatformResult fileModeToString(FileMode fm, std::string* fm_str)
 {
+    LoggerD("Enter");
     switch(fm) {
         case FileMode::READ:
             *fm_str = "r";
@@ -63,6 +65,7 @@ PlatformResult fileModeToString(FileMode fm, std::string* fm_str)
             *fm_str = "a";
             break;
         default:
+            LoggerE("Unknown file mode");
             return PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown file mode");
     }
     return PlatformResult(ErrorCode::NO_ERROR);
@@ -70,6 +73,7 @@ PlatformResult fileModeToString(FileMode fm, std::string* fm_str)
 
 PlatformResult stringToFileMode(std::string fmString, FileMode* fm)
 {
+    LoggerD("Enter");
     if (!fmString.compare("r")) {
         *fm = FileMode::READ;
         return PlatformResult(ErrorCode::NO_ERROR);
@@ -88,13 +92,14 @@ PlatformResult stringToFileMode(std::string fmString, FileMode* fm)
     }
     // In widl it's "TypeMismatchError" so this exception used
     // instead of InvalidValues
+    LoggerE("Invalid FileMode");
     return PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, "Invalid FileMode");
 }
 
 // FilePtr fileReferenceToFile(JSContextRef context, JSValueRef fileReference)
 // {
 //     auto g_ctx = GlobalContextManager::getInstance()->getGlobalContext(context);
-// 
+//
 //     FilePtr file_ptr;
 //     try {
 //         file_ptr = JSFile::getPrivateObject(context, fileReference);
@@ -110,12 +115,12 @@ PlatformResult stringToFileMode(std::string fmString, FileMode* fm)
 //         std::string string_path =
 //             External::fromVirtualPath(virtual_path, g_ctx);
 //         LOGD("Path: %s", string_path.c_str());
-// 
+//
 //         PathPtr path = Path::create(string_path);
 //         NodePtr node_ptr = Node::resolve(path);
 //         file_ptr = FilePtr(new File(node_ptr, File::PermissionList()));
 //     }
-// 
+//
 //     return file_ptr;
 // }
 
@@ -123,6 +128,7 @@ void getBasePathAndName(const std::string& filepath,
         std::string& out_basepath,
         std::string& out_name)
 {
+    LoggerD("Enter");
     const size_t filepath_len = filepath.length();
 
     size_t name_end_index = filepath_len;
@@ -151,6 +157,7 @@ void getBasePathAndName(const std::string& filepath,
 
 std::string removeDuplicatedSlashesFromPath(const std::string& path)
 {
+    LoggerD("Enter");
     const size_t path_len = path.length();
 
     std::string out;
@@ -175,6 +182,7 @@ std::string removeDuplicatedSlashesFromPath(const std::string& path)
 
 bool isDirectoryPath(const std::string& path)
 {
+    LoggerD("Enter");
     if(path.empty()) {
         return false;
     }
@@ -185,6 +193,7 @@ bool isDirectoryPath(const std::string& path)
 
 std::string removeTrailingDirectorySlashFromPath(const std::string& path)
 {
+    LoggerD("Enter");
     if(!isDirectoryPath(path)) {
         return path;
     }
@@ -194,6 +203,7 @@ std::string removeTrailingDirectorySlashFromPath(const std::string& path)
 
 std::string stripBasePathFromPath(const std::string& fullpath)
 {
+    LoggerD("Enter");
     const size_t location = fullpath.find_last_of("/\\");
     if(std::string::npos == location) {
         return fullpath;
@@ -213,6 +223,7 @@ static std::string errUnknown = "Unknown error";
 
 const std::string& getArchiveErrorMessage(int errorCode)
 {
+    LoggerD("Enter");
     /**
      * All errors are defined in minizip library in files:
      * zip.h and unzip.h
@@ -244,6 +255,7 @@ const std::string& getArchiveErrorMessage(int errorCode)
 
 std::string getBasePathFromPath(const std::string& fullpath)
 {
+    LoggerD("Enter");
     const std::string tmp_path = removeTrailingDirectorySlashFromPath(fullpath);
     const size_t location = tmp_path.find_last_of("/\\");
     if(std::string::npos == location) {
@@ -255,6 +267,7 @@ std::string getBasePathFromPath(const std::string& fullpath)
 
 std::string getArchiveLogMessage(const int errorCode, const std::string &hint)
 {
+    LoggerD("Enter");
     std::stringstream ss;
     ss << "Failed " << hint << " : " << getArchiveErrorMessage(errorCode) << ", " << errorCode;
     return std::string(ss.str());

@@ -37,6 +37,8 @@ using namespace common;
 
 void Zip::generateZipFileInfo(const std::string& filename, zip_fileinfo& out_zi)
 {
+    LoggerD("Enter");
+
     memset(&out_zi, 0, sizeof(zip_fileinfo));
 
     time_t tm_t = 0;
@@ -84,6 +86,8 @@ Zip::Zip(const std::string& filename, ZipOpenMode open_mode) :
 
 Zip::~Zip()
 {
+    LoggerD("Enter");
+
     close();
 }
 

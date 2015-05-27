@@ -38,6 +38,7 @@ using namespace common;
 
 FilePathStatus getPathStatus(const std::string& path)
 {
+    LoggerD("Enter");
     if(path.empty()) {
         return FPS_NOT_EXIST;
     }
@@ -58,6 +59,7 @@ FilePathStatus getPathStatus(const std::string& path)
 void divideToPathAndName(const std::string& filepath, std::string& out_path,
         std::string& out_name)
 {
+    LoggerD("Enter");
     size_t pos_last_dir = filepath.find_last_of("/\\");
     if(pos_last_dir == std::string::npos) {
         out_path = "";
@@ -70,6 +72,7 @@ void divideToPathAndName(const std::string& filepath, std::string& out_path,
 
 void createMissingDirectories(const std::string& path, bool check_first = true)
 {
+    LoggerD("Enter");
     if(check_first) {
         const FilePathStatus path_status = getPathStatus(path);
         //LoggerD("[%s] status: %d", path.c_str(), path_status);
@@ -104,6 +107,7 @@ void createMissingDirectories(const std::string& path, bool check_first = true)
 
 void changeFileAccessAndModifyDate(const std::string& filepath, tm_unz tmu_date)
 {
+  LoggerD("Enter");
   struct utimbuf ut;
   struct tm newdate;
   newdate.tm_sec = tmu_date.tm_sec;
@@ -129,6 +133,7 @@ PlatformResult UnZipExtractRequest::execute(UnZip& owner, const std::string& ext
         const std::string& base_strip_path,
         BaseProgressCallback* callback)
 {
+    LoggerD("Enter");
     UnZipExtractRequest req(owner, extract_path, base_strip_path, callback);
     if(!req.m_callback){
         LoggerE("Callback is null");
@@ -155,6 +160,7 @@ UnZipExtractRequest::UnZipExtractRequest(UnZip& owner,
 
         m_is_directory_entry(false)
 {
+    LoggerD("Enter");
 }
 
 PlatformResult UnZipExtractRequest::run()
@@ -163,6 +169,7 @@ PlatformResult UnZipExtractRequest::run()
 
     PlatformResult result = getCurrentFileInfo();
     if (result.error_code() != ErrorCode::NO_ERROR) {
+        LoggerE("Error: %s", result.message().c_str());
         return result;
     }
 
@@ -177,6 +184,8 @@ PlatformResult UnZipExtractRequest::run()
 
 UnZipExtractRequest::~UnZipExtractRequest()
 {
+    LoggerD("Enter");
+
     if(m_output_file) {
         fclose(m_output_file);
         m_output_file = NULL;
@@ -359,10 +368,12 @@ PlatformResult UnZipExtractRequest::prepareOutputSubdirectory()
                 filesystem::NodePtr node;
                 PlatformResult result = filesystem::Node::resolve(path, &node);
                 if (result.error_code() != ErrorCode::NO_ERROR) {
+                    LoggerE("Error: %s", result.message().c_str());
                     return result;
                 }
                 result = node->remove(filesystem::OPT_RECURSIVE);
                 if (result.error_code() != ErrorCode::NO_ERROR) {
+                    LoggerE("Error: %s", result.message().c_str());
                     return result;
                 }
             }

@@ -75,6 +75,7 @@ bool OperationCallbackData::isError() const
 
 bool OperationCallbackData::isCanceled() const
 {
+    LoggerD("Enter");
     return m_is_canceled;
 }
 
@@ -92,30 +93,36 @@ long OperationCallbackData::getOperationId() const
 
 void OperationCallbackData::setCallbackId(double cid)
 {
+    LoggerD("Enter");
     m_cid = cid;
 }
 
 double OperationCallbackData::getCallbackId() const
 {
+    LoggerD("Enter");
     return m_cid;
 }
 
 void OperationCallbackData::setHandle(long handle)
 {
+    LoggerD("Enter");
     m_handle = handle;
 }
 
 long OperationCallbackData::getHandle() const
 {
+    LoggerD("Enter");
     return m_handle;
 }
 
 void OperationCallbackData::setIsCanceled(bool canceled)
 {
+    LoggerD("Enter");
     m_is_canceled = canceled;
 }
 
 void OperationCallbackData::PostMessage(const char* msg) {
+  LoggerD("Enter");
   instance_.PostMessage(msg);
 }
 
@@ -139,11 +146,13 @@ ArchiveCallbackType OperationCallbackData::getCallbackType() const
 
 ArchiveFilePtr OperationCallbackData::getArchiveFile() const
 {
+    LoggerD("Enter");
     return m_caller_instance;
 }
 
 void OperationCallbackData::setArchiveFile(ArchiveFilePtr caller)
 {
+    LoggerD("Enter");
     m_caller_instance = caller;
 }
 
@@ -180,6 +189,7 @@ PlatformResult OpenCallbackData::executeOperation(ArchiveFilePtr archive_file_pt
     unsigned long long size = 0;
     PlatformResult result = node->getSize(&size);
     if (result.error_code() != ErrorCode::NO_ERROR) {
+        LoggerE("Fail node->getSize()");
         return result;
     }
     if (0 == size) {
@@ -208,6 +218,7 @@ PlatformResult OpenCallbackData::executeOperation(ArchiveFilePtr archive_file_pt
         archive_file_ptr->setIsOpen(true);
         result = archive_file_ptr->updateListOfEntries();
         if (result.error_code() != ErrorCode::NO_ERROR) {
+            LoggerE("Fail archive_file_ptr->updateListOfEntries()");
             return result;
         }
     }
@@ -237,11 +248,13 @@ GetEntriesCallbackData::~GetEntriesCallbackData()
 
 ArchiveFileEntryPtrMapPtr GetEntriesCallbackData::getEntries() const
 {
+    LoggerD("Entered");
     return m_entries;
 }
 
 void GetEntriesCallbackData::setEntries(ArchiveFileEntryPtrMapPtr entries)
 {
+    LoggerD("Entered");
     m_entries = entries;
 }
 
@@ -288,11 +301,13 @@ void GetEntryByNameCallbackData::setName(const std::string& name)
 
 ArchiveFileEntryPtr GetEntryByNameCallbackData::getFileEntry() const
 {
+    LoggerD("Entered");
     return m_file_entry;
 }
 
 void GetEntryByNameCallbackData::setFileEntry(ArchiveFileEntryPtr entry)
 {
+    LoggerD("Entered");
     m_file_entry = entry;
 }
 
@@ -371,6 +386,8 @@ struct ProgressHolder
 
 void BaseProgressCallback::callSuccessCallbackOnMainThread()
 {
+    LoggerD("Entered");
+
     guint id = g_idle_add(BaseProgressCallback::callSuccessCallbackCB,
             static_cast<void*>(this));
     if (!id) {
@@ -380,6 +397,8 @@ void BaseProgressCallback::callSuccessCallbackOnMainThread()
 
 gboolean BaseProgressCallback::callSuccessCallbackCB(void* data)
 {
+    LoggerD("Entered");
+
     BaseProgressCallback* callback = static_cast<BaseProgressCallback*>(data);
     if (!callback) {
         LoggerE("callback pointer is NULL");
@@ -436,6 +455,8 @@ void BaseProgressCallback::callProgressCallback(long operationId,
 void BaseProgressCallback::callProgressCallbackOnMainThread(const double progress,
         ArchiveFileEntryPtr current_entry)
 {
+    LoggerD("Entered");
+
     ProgressHolder* ph = new(std::nothrow) ProgressHolder();
 
     if(ph) {
@@ -457,6 +478,8 @@ void BaseProgressCallback::callProgressCallbackOnMainThread(const double progres
 
 gboolean BaseProgressCallback::callProgressCallbackCB(void* data)
 {
+    LoggerD("Entered");
+
     ProgressHolder* ph = static_cast<ProgressHolder*>(data);
     if (!ph) {
         LoggerE("ph is null");
@@ -554,11 +577,13 @@ PlatformResult AddProgressCallback::executeOperation(ArchiveFilePtr archive_file
     ZipPtr zip;
     PlatformResult result = archive_file_ptr->createZipObject(&zip);
     if (result.error_code() != ErrorCode::NO_ERROR) {
+      LoggerE("archive_file_ptr->createZipObject()");
       return result;
     }
 
     result = zip->addFile(callback);
     if (result.error_code() != ErrorCode::NO_ERROR) {
+      LoggerE("zip->addFile()");
       return result;
     }
 
@@ -566,6 +591,7 @@ PlatformResult AddProgressCallback::executeOperation(ArchiveFilePtr archive_file
     // it is needed to read entries from file
     result = zip->close();
     if (result.error_code() != ErrorCode::NO_ERROR) {
+      LoggerE("zip->close()");
       return result;
     }
 
@@ -606,28 +632,36 @@ ExtractAllProgressCallback::~ExtractAllProgressCallback()
 
 filesystem::FilePtr ExtractAllProgressCallback::getDirectory() const
 {
+    LoggerD("Entered");
     return m_directory;
 }
 
 void ExtractAllProgressCallback::setDirectory(filesystem::FilePtr directory)
 {
+    LoggerD("Entered");
     m_directory = directory;
 }
 
 void ExtractAllProgressCallback::startedExtractingFile(unsigned long current_file_size)
 {
+    LoggerD("Entered");
+
     m_current_file_size = current_file_size;
     m_current_file_extracted_bytes = 0;
 }
 
 void ExtractAllProgressCallback::extractedPartOfFile(unsigned long bytes_decompressed)
 {
+    LoggerD("Entered");
+
     m_current_file_extracted_bytes += bytes_decompressed;
     updateOverallProgress(bytes_decompressed);
 }
 
 void ExtractAllProgressCallback::finishedExtractingFile()
 {
+    LoggerD("Entered");
+
     m_current_file_size = 0;
     m_current_file_extracted_bytes = 0;
     ++m_files_extracted;
@@ -636,6 +670,8 @@ void ExtractAllProgressCallback::finishedExtractingFile()
 
 void ExtractAllProgressCallback::updateOverallProgress(unsigned long bytes_decompressed)
 {
+    LoggerD("Entered");
+
     m_overall_decompressed += bytes_decompressed;
     m_progress_overall =
             static_cast<double>(m_overall_decompressed + m_files_extracted) /
@@ -650,6 +686,8 @@ void ExtractAllProgressCallback::updateOverallProgress(unsigned long bytes_decom
 
 double ExtractAllProgressCallback::getCurrentFileProgress() const
 {
+    LoggerD("Entered");
+
     if(m_current_file_size > 0) {
         return static_cast<double>(m_current_file_extracted_bytes) /
                 static_cast<double>(m_current_file_size);
@@ -661,6 +699,8 @@ double ExtractAllProgressCallback::getCurrentFileProgress() const
 
 double ExtractAllProgressCallback::getOverallProgress() const
 {
+    LoggerD("Entered");
+
     return m_progress_overall;
 }
 
@@ -672,21 +712,29 @@ PlatformResult ExtractAllProgressCallback::executeOperation(ArchiveFilePtr archi
 
 void ExtractAllProgressCallback::setExpectedDecompressedSize(unsigned long exp_dec_size)
 {
+    LoggerD("Entered");
+
     m_expected_decompressed_size = exp_dec_size;
 }
 
 unsigned long ExtractAllProgressCallback::getExpectedDecompressedSize() const
 {
+    LoggerD("Entered");
+
     return m_expected_decompressed_size;
 }
 
 void ExtractAllProgressCallback::setNumberOfFilesToExtract(unsigned long files_count)
 {
+    LoggerD("Entered");
+
     m_files_to_extract = files_count;
 }
 
 unsigned long ExtractAllProgressCallback::getNumberOfFilesToExtract() const
 {
+    LoggerD("Entered");
+
     return m_files_to_extract;
 }
 
@@ -720,32 +768,38 @@ ExtractEntryProgressCallback::~ExtractEntryProgressCallback()
 
 ArchiveFileEntryPtr ExtractEntryProgressCallback::getArchiveFileEntry()
 {
+    LoggerD("Entered");
     return m_archive_file_entry;
 }
 
 void ExtractEntryProgressCallback::setArchiveFileEntry(ArchiveFileEntryPtr afentry)
 {
+    LoggerD("Entered");
     m_archive_file_entry = afentry;
 }
 
 void ExtractEntryProgressCallback::setStripName(bool strip_name)
 {
+    LoggerD("Entered");
     m_strip_name = strip_name;
 }
 
 bool ExtractEntryProgressCallback::getStripName() const
 {
+    LoggerD("Entered");
     return m_strip_name;
 }
 
 void ExtractEntryProgressCallback::setStripBasePath(
         const std::string& strip_base_path)
 {
+    LoggerD("Entered");
     m_strip_base_path = strip_base_path;
 }
 
 const std::string& ExtractEntryProgressCallback::getStripBasePath() const
 {
+    LoggerD("Entered");
     return m_strip_base_path;
 }
 
@@ -766,6 +820,7 @@ PlatformResult ExtractEntryProgressCallback::executeOperation(ArchiveFilePtr arc
     UnZipPtr unzip;
     PlatformResult result = archive_file_ptr->createUnZipObject(&unzip);
     if (result.error_code() != ErrorCode::NO_ERROR) {
+      LoggerE("archive_file_ptr->createUnZipObject()");
       return result;
     }
 

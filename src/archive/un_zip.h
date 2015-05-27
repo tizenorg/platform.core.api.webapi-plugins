@@ -78,7 +78,7 @@ private:
             const std::string& entry_name_in_zip,
             OperationCallbackData* callback,
             IterateFunction itfunc,
-            unsigned int& num_file_or_folder_matched, 
+            unsigned int& num_file_or_folder_matched,
             void* user_data);
 
     PlatformResult updateCallbackWithArchiveStatistics(ExtractAllProgressCallback* callback,
