@@ -35,6 +35,7 @@ const Path::SeparatorType Path::m_pathSeparator = '/';
 
 PathPtr Path::create(const std::string& path)
 {
+    LoggerD("Enter");
     auto result = std::shared_ptr<Path>(new Path());
     result->reset(path);
     return result;
@@ -93,11 +94,12 @@ Path::Path()
 
 void Path::reset(const std::string& str)
 {
+    LoggerD("Enter");
     if (!isValid(str)) {
         LoggerD("Invalid string %s", str.c_str());
         LoggerW("throw NotFoundException");
         // The only way to remove throw statement from here is to just return, because
-        // this function is used in the operator functions and they're not able 
+        // this function is used in the operator functions and they're not able
         // to handle a PlatformResult value;
         return;
     }

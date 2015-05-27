@@ -33,6 +33,7 @@ File::File(NodePtr node, const File::PermissionList &parentPermissions,
 
 File::~File()
 {
+    LoggerD("Enter");
 }
 
 NodePtr File::getNode() const

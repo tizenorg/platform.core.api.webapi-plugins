@@ -227,6 +227,8 @@ void ArchiveInstance::Abort(const picojson::value& args, picojson::object& out)
 }
 
 unsigned int ConvertStringToCompressionLevel(const std::string& level) {
+  LoggerD("Entered");
+
   if (kNoCompressionStr == level) {
       return Z_NO_COMPRESSION;
   } else if (kFastCompressionStr == level) {
@@ -573,6 +575,8 @@ void ArchiveInstance::Extract(const picojson::value& args, picojson::object& out
 }
 
 void ArchiveInstance::GetWidgetPaths(const picojson::value& args, picojson::object& out) {
+    LoggerD("Entered");
+
     std::string wgt_package_path =
         *(common::VirtualFs::GetInstance().GetVirtualRootDirectory(kWgtPackagePathName));
     std::string wgt_private_path =
