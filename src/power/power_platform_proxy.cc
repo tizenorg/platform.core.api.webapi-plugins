@@ -25,55 +25,61 @@ using namespace common;
 namespace extension {
 namespace power {
 
-PowerPlatformProxy::PowerPlatformProxy()
-		:	dbus_op_("org.tizen.system.deviced",
-							 "/Org/Tizen/System/DeviceD/Display",
-							 "org.tizen.system.deviced.display")
+PowerPlatformProxy::PowerPlatformProxy() :
+    dbus_op_("org.tizen.system.deviced",
+             "/Org/Tizen/System/DeviceD/Display",
+             "org.tizen.system.deviced.display")
 {
+  LoggerD("Entered");
 }
 
 PowerPlatformProxy::~PowerPlatformProxy()
 {
+  LoggerD("Entered");
 }
 
 PowerPlatformProxy& PowerPlatformProxy::GetInstance()
 {
-	static PowerPlatformProxy instance;
-	return instance;
+  LoggerD("Entered");
+  static PowerPlatformProxy instance;
+  return instance;
 }
 
 int PowerPlatformProxy::LockState()
 {
-	DBusOperationArguments args;
-	args.AddArgumentString("lcddim");
-	args.AddArgumentString("staycurstate");
-	args.AddArgumentString("NULL");
-	args.AddArgumentInt32(0);
+  LoggerD("Entered");
+  DBusOperationArguments args;
+  args.AddArgumentString("lcddim");
+  args.AddArgumentString("staycurstate");
+  args.AddArgumentString("NULL");
+  args.AddArgumentInt32(0);
 
-	return dbus_op_.InvokeSyncGetInt("lockstate", &args);
+  return dbus_op_.InvokeSyncGetInt("lockstate", &args);
 }
 
 int PowerPlatformProxy::UnlockState()
 {
-	DBusOperationArguments args;
-	args.AddArgumentString("lcddim");
-	args.AddArgumentString("keeptimer");
+  LoggerD("Entered");
+  DBusOperationArguments args;
+  args.AddArgumentString("lcddim");
+  args.AddArgumentString("keeptimer");
 
-	return dbus_op_.InvokeSyncGetInt("unlockstate", &args);
+  return dbus_op_.InvokeSyncGetInt("unlockstate", &args);
 }
 
 int PowerPlatformProxy::SetBrightnessFromSettings()
 {
-	return dbus_op_.InvokeSyncGetInt("ReleaseBrightness", NULL);
+  LoggerD("Entered");
+  return dbus_op_.InvokeSyncGetInt("ReleaseBrightness", NULL);
 }
 
 int PowerPlatformProxy::SetBrightness(int val)
 {
   LoggerD("Entered");
-	DBusOperationArguments args;
-	args.AddArgumentInt32(val);
+  DBusOperationArguments args;
+  args.AddArgumentInt32(val);
 
-	return dbus_op_.InvokeSyncGetInt("HoldBrightness", &args);
+  return dbus_op_.InvokeSyncGetInt("HoldBrightness", &args);
 }
 
 int PowerPlatformProxy::GetBrightness() {
