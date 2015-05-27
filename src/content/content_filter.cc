@@ -45,6 +45,7 @@ std::map<std::string, std::string> const attributeNameMap = {
 };
 
 std::string escapeValueString(const std::string& data) {
+  LoggerD("Enter");
   std::string out;
   // If string won't be resized, then it will be faster
   out.reserve(data.size());
@@ -69,17 +70,21 @@ std::string escapeValueString(const std::string& data) {
 
 PlatformResult ContentFilter::MapField(const std::string& name,
                                        std::string* result) {
+  LoggerD("Enter");
   auto it = attributeNameMap.find(name);
   if (it != attributeNameMap.end())
     *result = it->second;
   else
+  {
+    LoggerE("INVALID_VALUES_ERR");
     return PlatformResult(ErrorCode::INVALID_VALUES_ERR);
-
+  }
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 PlatformResult ContentFilter::BuildQuery(const picojson::object& jsFilter,
                                          std::string* queryToCall) {
+  LoggerD("Enter");
   std::vector<std::vector<std::string> > partialqueries;
   partialqueries.push_back(std::vector<std::string>());
 
@@ -107,6 +112,7 @@ PlatformResult ContentFilter::BuildQuery(const picojson::object& jsFilter,
     } else if (AttributeMatchFlag::kExists == match_flag) {
       query += " IS NOT NULL ";
     } else {
+      LoggerE("INVALID_VALUES_ERR");
       return PlatformResult(ErrorCode::INVALID_VALUES_ERR);
     }
 
@@ -199,6 +205,7 @@ PlatformResult ContentFilter::BuildQuery(const picojson::object& jsFilter,
   });
 
   if (!visitor.Visit(jsFilter)) {
+    LoggerE("INVALID_VALUES_ERR");
     return PlatformResult(ErrorCode::INVALID_VALUES_ERR);
   }
 
