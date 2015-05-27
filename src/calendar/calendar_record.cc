@@ -33,6 +33,7 @@ using namespace common;
 
 PlatformResult CalendarRecord::CheckReturn(int ret,
                                            const std::string& error_name) {
+  LoggerD("Enter");
   if (CALENDAR_ERROR_NONE != ret) {
     LoggerE("%s : %d", error_name.c_str(), ret);
     return PlatformResult(ErrorCode::UNKNOWN_ERR, error_name);
@@ -42,6 +43,7 @@ PlatformResult CalendarRecord::CheckReturn(int ret,
 }
 
 void CalendarRecord::QueryDeleter(calendar_query_h handle) {
+  LoggerD("Enter");
   if (handle) {
     if (CALENDAR_ERROR_NONE != calendar_query_destroy(handle)) {
       LoggerW("calendar_query_destroy failed");
@@ -50,6 +52,7 @@ void CalendarRecord::QueryDeleter(calendar_query_h handle) {
 }
 
 void CalendarRecord::Deleter(calendar_record_h handle) {
+  LoggerD("Enter");
   if (handle) {
     if (CALENDAR_ERROR_NONE != calendar_record_destroy(handle, true)) {
       LoggerW("calendar_record_destroy failed");
@@ -58,6 +61,7 @@ void CalendarRecord::Deleter(calendar_record_h handle) {
 }
 
 void CalendarRecord::ListDeleter(calendar_list_h handle) {
+  LoggerD("Enter");
   if (handle) {
     if (CALENDAR_ERROR_NONE != calendar_list_destroy(handle, true)) {
       LoggerW("calendar_list_destroy failed");
@@ -69,10 +73,11 @@ PlatformResult CalendarRecord::GetString(calendar_record_h rec,
                                          unsigned int property,
                                          std::string* str,
                                          bool throw_on_error) {
+  LoggerD("Enter");
   char* value = NULL;
   int ret = calendar_record_get_str(rec, property, &value);
   if (CALENDAR_ERROR_NONE != ret) {
-    LoggerW("Can't get string value form record: %d", ret);
+    LoggerE("Can't get string value form record: %d", ret);
     if (throw_on_error) {
       return PlatformResult(ErrorCode::UNKNOWN_ERR,
                             "Get string from record failed.");
@@ -92,12 +97,12 @@ PlatformResult CalendarRecord::SetString(calendar_record_h record,
                                          unsigned int property,
                                          const std::string& value,
                                          bool throw_on_error) {
+  LoggerD("Enter");
   int ret = calendar_record_set_str(record, property,
                                     value.empty() ? NULL : value.c_str());
 
   if (CALENDAR_ERROR_NONE != ret) {
-    LoggerW("Can't set string value to record: %d", ret);
-
+    LoggerE("Can't set string value to record: %d", ret);
     if (throw_on_error) {
       return PlatformResult(ErrorCode::UNKNOWN_ERR,
                             "Set string to record failed.");
@@ -110,9 +115,10 @@ PlatformResult CalendarRecord::SetString(calendar_record_h record,
 PlatformResult CalendarRecord::GetInt(calendar_record_h rec,
                                       unsigned int property, int* value,
                                       bool throw_on_error) {
+  LoggerD("Enter");
   int ret = calendar_record_get_int(rec, property, value);
   if (CALENDAR_ERROR_NONE != ret) {
-    LoggerW("Can't get int value form record: %d", ret);
+    LoggerE("Can't get int value form record: %d", ret);
     if (throw_on_error) {
       return PlatformResult(ErrorCode::UNKNOWN_ERR,
                             "Get int from record failed.");
@@ -125,11 +131,11 @@ PlatformResult CalendarRecord::GetInt(calendar_record_h rec,
 PlatformResult CalendarRecord::SetInt(calendar_record_h record,
                                       unsigned int property, int value,
                                       bool throw_on_error) {
+  LoggerD("Enter");
   int ret = calendar_record_set_int(record, property, value);
 
   if (CALENDAR_ERROR_NONE != ret) {
-    LoggerW("Can't set int value to record: %d", ret);
-
+    LoggerE("Can't set int value to record: %d", ret);
     if (throw_on_error) {
       return PlatformResult(ErrorCode::UNKNOWN_ERR,
                             "Set int to record failed.");
@@ -140,6 +146,7 @@ PlatformResult CalendarRecord::SetInt(calendar_record_h record,
 }
 
 std::string CalendarRecord::TypeToString(int type) {
+  LoggerD("Enter");
   if (CALENDAR_BOOK_TYPE_EVENT == type) {
     return kCalendarTypeEvent;
   }
@@ -152,6 +159,7 @@ std::string CalendarRecord::TypeToString(int type) {
 }
 
 std::string CalendarRecord::TypeToString(const char* view_uri) {
+  LoggerD("Enter");
   if (0 == strcmp(view_uri, _calendar_event._uri)) {
     return kCalendarTypeEvent;
   }
@@ -163,6 +171,7 @@ std::string CalendarRecord::TypeToString(const char* view_uri) {
 }
 
 int CalendarRecord::TypeToInt(const std::string& type) {
+  LoggerD("Enter");
   if (kCalendarTypeEvent == type) {
     return CALENDAR_BOOK_TYPE_EVENT;
   }
@@ -174,6 +183,7 @@ int CalendarRecord::TypeToInt(const std::string& type) {
 }
 
 int CalendarRecord::TypeToInt(const char* view_uri) {
+  LoggerD("Enter");
   if (0 == strcmp(view_uri, _calendar_event._uri)) {
     return CALENDAR_BOOK_TYPE_EVENT;
   }
@@ -186,11 +196,13 @@ int CalendarRecord::TypeToInt(const char* view_uri) {
 
 PlatformResult CalendarRecord::TypeToUri(const std::string& type,
                                          std::string* uri) {
+  LoggerD("Enter");
   if (kCalendarTypeEvent == type) {
     *uri = _calendar_event._uri;
   } else if (kCalendarTypeTask == type) {
     *uri = _calendar_todo._uri;
   } else {
+    LoggerE("Undefined record type: %s", type.c_str());
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Undefined record type");
   }
 
@@ -198,11 +210,13 @@ PlatformResult CalendarRecord::TypeToUri(const std::string& type,
 }
 
 PlatformResult CalendarRecord::TypeToUri(int type, std::string* uri) {
+  LoggerD("Enter");
   if (CALENDAR_BOOK_TYPE_EVENT == type) {
     *uri = _calendar_event._uri;
   } else if (CALENDAR_BOOK_TYPE_TODO == type) {
     *uri = _calendar_todo._uri;
   } else {
+    LoggerE("Undefined record type: %d", type);
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Undefined record type");
   }
 
@@ -211,6 +225,7 @@ PlatformResult CalendarRecord::TypeToUri(int type, std::string* uri) {
 
 PlatformResult CalendarRecord::Create(const char* view_uri,
                                       calendar_record_h* handle) {
+  LoggerD("Enter");
   int ret = calendar_record_create(view_uri, handle);
   if (CALENDAR_ERROR_NONE != ret || nullptr == handle) {
     LoggerE("Fail to create calendar record, error code: %d", ret);
@@ -222,11 +237,13 @@ PlatformResult CalendarRecord::Create(const char* view_uri,
 }
 
 PlatformResult CalendarRecord::CreateCalendar(calendar_record_h* handle) {
+  LoggerD("Enter");
   return Create(_calendar_book._uri, handle);
 }
 
 PlatformResult CalendarRecord::GetById(int id, const char* view_uri,
                                        calendar_record_h* handle) {
+  LoggerD("Enter");
   int ret = calendar_db_get_record(view_uri, id, handle);
   if (CALENDAR_ERROR_NONE != ret || nullptr == handle) {
     LoggerE("Fail to get calendar record %d for view %s, error code: %d", id,
@@ -239,6 +256,7 @@ PlatformResult CalendarRecord::GetById(int id, const char* view_uri,
 }
 
 PlatformResult CalendarRecord::Insert(calendar_record_h rec, int* record_id) {
+  LoggerD("Enter");
   int ret = calendar_db_insert_record(rec, record_id);
 
   if (CALENDAR_ERROR_NONE != ret) {
@@ -252,6 +270,7 @@ PlatformResult CalendarRecord::Insert(calendar_record_h rec, int* record_id) {
 PlatformResult CalendarRecord::AddChildRecord(calendar_record_h rec,
                                               unsigned int property,
                                               calendar_record_h child) {
+  LoggerD("Enter");
   int ret = calendar_record_add_child_record(rec, property, child);
   if (CALENDAR_ERROR_NONE != ret) {
     if (child) {
@@ -266,6 +285,7 @@ PlatformResult CalendarRecord::AddChildRecord(calendar_record_h rec,
 
 void CalendarRecord::RemoveChildRecords(calendar_record_h rec,
                                         unsigned int property_id) {
+  LoggerD("Enter");
   unsigned int count = 0;
 
   if (CALENDAR_ERROR_NONE !=
@@ -297,9 +317,10 @@ PlatformResult CalendarRecord::GetChildRecordCount(calendar_record_h rec,
                                                    unsigned int property,
                                                    bool throw_on_error,
                                                    unsigned int* value) {
+  LoggerD("Enter");
   int ret = calendar_record_get_child_record_count(rec, property, value);
   if (CALENDAR_ERROR_NONE != ret) {
-    LoggerW("Can't get child record count: %d", ret);
+    LoggerE("Can't get child record count: %d", ret);
     if (throw_on_error) {
       return PlatformResult(ErrorCode::UNKNOWN_ERR,
                             "Get child record count failed.");
@@ -313,9 +334,10 @@ PlatformResult CalendarRecord::GetChildRecordAt(calendar_record_h rec,
                                                 unsigned int property,
                                                 calendar_record_h* result,
                                                 int index) {
+  LoggerD("Enter");
   int ret = calendar_record_get_child_record_at_p(rec, property, index, result);
   if (CALENDAR_ERROR_NONE != ret) {
-    LoggerW("Can't get child record at: %d", ret);
+    LoggerE("Can't get child record at: %d", ret);
     return PlatformResult(ErrorCode::UNKNOWN_ERR,
                           "Get child record at failed.");
   }
@@ -325,6 +347,7 @@ PlatformResult CalendarRecord::GetChildRecordAt(calendar_record_h rec,
 
 PlatformResult CalendarRecord::CalendarToJson(calendar_record_h rec,
                                               picojson::object* out_ptr) {
+  LoggerD("Enter");
   picojson::object& out = *out_ptr;
 
   if (NULL == rec) {
@@ -340,7 +363,10 @@ PlatformResult CalendarRecord::CalendarToJson(calendar_record_h rec,
 
   std::string name;
   status = GetString(rec, _calendar_book.name, &name);
-  if (status.IsError()) return status;
+  if (status.IsError()) {
+    LoggerE("Error: %s", status.message().c_str());
+    return status;
+  }
 
   int value;
   status = GetInt(rec, _calendar_book.store_type, &value);
@@ -357,6 +383,7 @@ PlatformResult CalendarRecord::CalendarToJson(calendar_record_h rec,
 
 PlatformResult CalendarRecord::CalendarFromJson(calendar_record_h rec,
                                                 const picojson::object& in) {
+  LoggerD("Enter");
   if (in.empty()) {
     LoggerE("Empty Calendar object.");
     return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
@@ -376,15 +403,24 @@ PlatformResult CalendarRecord::CalendarFromJson(calendar_record_h rec,
 
   int ret = calendar_record_set_str(rec, _calendar_book.name, name.c_str());
   PlatformResult status = CheckReturn(ret, "Failed to set name");
-  if (status.IsError()) return status;
+  if (status.IsError()) {
+    LoggerE("Error: %s", status.message().c_str());
+    return status;
+  }
 
   ret = calendar_record_set_int(rec, _calendar_book.account_id, account_id);
   status = CheckReturn(ret, "Failed to set account_id");
-  if (status.IsError()) return status;
+  if (status.IsError()) {
+    LoggerE("Error: %s", status.message().c_str());
+    return status;
+  }
 
   ret = calendar_record_set_int(rec, _calendar_book.store_type, store_type);
   status = CheckReturn(ret, "Failed to set store_type");
-  if (status.IsError()) return status;
+  if (status.IsError()) {
+    LoggerE("Error: %s", status.message().c_str());
+    return status;
+  }
 
   return PlatformResult(ErrorCode::NO_ERROR);
 }
