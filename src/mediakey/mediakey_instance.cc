@@ -48,6 +48,7 @@ MediaKeyInstance::MediaKeyInstance() {
 
 MediaKeyInstance::~MediaKeyInstance() {
   LoggerD("Entered");
+  MediaKeyManager::GetInstance().UnregisterMediaKeyEventListener();
 }
 
 void MediaKeyInstance::SetMediaKeyEventListener(const picojson::value& args,
@@ -96,7 +97,7 @@ void MediaKeyInstance::PostEvent(const std::string& eventCallback,
     picojson::value event = picojson::value(picojson::object());
     picojson::object& obj = event.get<picojson::object>();
     obj["listenerId"] = picojson::value(eventCallback);
-    obj["type"] = picojson::value(k->second);
+    obj["type"] = picojson::value((k->second).c_str());
     PostMessage(event.serialize().c_str());
   }
   else {
