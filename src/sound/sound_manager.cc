@@ -49,6 +49,7 @@ const std::map<std::string, sound_type_e> SoundManager::platform_enum_map_ = {
 
 PlatformResult SoundManager::StrToPlatformEnum(const std::string& key,
                                                sound_type_e* sound_type) {
+  LoggerD("Enter");
   if (platform_enum_map_.find(key) == platform_enum_map_.end()) {
     std::string message = "Platform enum value not found for key " + key;
     return PlatformResult(ErrorCode::INVALID_VALUES_ERR, message);
@@ -61,6 +62,7 @@ PlatformResult SoundManager::StrToPlatformEnum(const std::string& key,
 
 PlatformResult SoundManager::PlatformEnumToStr(const sound_type_e value,
                                                std::string* sound_type) {
+  LoggerD("Enter");
   for (auto& item : platform_enum_map_) {
     if (item.second == value) {
       *sound_type = item.first;
@@ -76,6 +78,7 @@ PlatformResult SoundManager::PlatformEnumToStr(const sound_type_e value,
 }
 
 std::string SoundManager::SoundDeviceTypeToString(sound_device_type_e type) {
+  LoggerD("Enter");
   switch (type) {
     case SOUND_DEVICE_BUILTIN_SPEAKER:
       return "SPEAKER";
@@ -100,6 +103,7 @@ std::string SoundManager::SoundDeviceTypeToString(sound_device_type_e type) {
 }
 
 std::string SoundManager::SoundIOTypeToString(sound_device_io_direction_e type) {
+  LoggerD("Enter");
   switch (type) {
     case SOUND_DEVICE_IO_DIRECTION_IN:
       return "IN";
@@ -122,6 +126,7 @@ SoundManager::SoundManager(SoundInstance& instance)
 }
 
 SoundManager::~SoundManager() {
+  LoggerD("Enter");
   if (soundModeChangeListening) {
     int status = vconf_ignore_key_changed(VCONFKEY_SETAPPL_VIBRATION_STATUS_BOOL, SoundManager::soundModeChangedCb);
     if (VCONF_OK != status) {
@@ -147,6 +152,7 @@ SoundManager::~SoundManager() {
 }
 
 void SoundManager::FillMaxVolumeMap() {
+  LoggerD("Enter");
   int max = 100;
   int ret;
 
@@ -165,6 +171,7 @@ void SoundManager::FillMaxVolumeMap() {
 }
 
 PlatformResult SoundManager::GetMaxVolume(sound_type_e type, int* max_volume) {
+  LoggerD("Enter");
   auto it = max_volume_map_.find(type);
   if (it == max_volume_map_.end()) {
     std::string sound_type;
@@ -181,6 +188,7 @@ PlatformResult SoundManager::GetMaxVolume(sound_type_e type, int* max_volume) {
 }
 
 double SoundManager::ConvertToSystemVolume(int max_volume, int volume) {
+  LoggerD("Enter");
   return static_cast<double>(volume) / max_volume;
 }
 
@@ -215,6 +223,7 @@ void SoundManager::VolumeChangeCallback(sound_type_e type, unsigned int value) {
 }
 
 PlatformResult SoundManager::GetSoundMode(std::string* sound_mode_type) {
+  LoggerD("Enter");
   int isEnableSound = 0;
   int isEnableVibrate = 0;
 
@@ -250,6 +259,7 @@ PlatformResult SoundManager::GetSoundMode(std::string* sound_mode_type) {
 }
 
 PlatformResult SoundManager::SetVolume(const picojson::object& args) {
+  LoggerD("Enter");
   const std::string& type = FromJson<std::string>(args, "type");
   double volume = FromJson<double>(args, "volume");
 
@@ -287,6 +297,7 @@ PlatformResult SoundManager::SetVolume(const picojson::object& args) {
 
 PlatformResult SoundManager::GetVolume(const picojson::object& args,
                                        double* volume) {
+  LoggerD("Enter");
   const std::string& type = FromJson<std::string>(args, "type");
   int value;
 
@@ -312,6 +323,7 @@ PlatformResult SoundManager::GetVolume(const picojson::object& args,
 
 void SoundManager::soundModeChangedCb(keynode_t*, void* user_data)
 {
+  LoggerD("Enter");
   if (user_data == nullptr) {
     LoggerE("Invalid callback data!");
     return;
@@ -330,6 +342,7 @@ void SoundManager::soundModeChangedCb(keynode_t*, void* user_data)
 
 PlatformResult SoundManager::SetSoundModeChangeListener(
     SoundManagerSoundModeChangedListener* listener) {
+  LoggerD("Enter");
   soundModeListener = listener;
   if (soundModeChangeListening) return PlatformResult(ErrorCode::NO_ERROR);
 
@@ -346,6 +359,7 @@ PlatformResult SoundManager::SetSoundModeChangeListener(
 }
 
 PlatformResult SoundManager::UnsetSoundModeChangeListener() {
+  LoggerD("Enter");
   soundModeListener = nullptr;
   if (!soundModeChangeListening) {
     return PlatformResult(ErrorCode::NO_ERROR);
@@ -364,6 +378,7 @@ PlatformResult SoundManager::UnsetSoundModeChangeListener() {
 }
 
 PlatformResult SoundManager::SetVolumeChangeListener() {
+  LoggerD("Enter");
   if (!is_volume_change_listener_) {
     int ret = sound_manager_set_volume_changed_cb(
         [](sound_type_e type, unsigned int value, void* ud) {
@@ -385,6 +400,7 @@ PlatformResult SoundManager::SetVolumeChangeListener() {
 }
 
 PlatformResult SoundManager::UnsetVolumeChangeListener() {
+  LoggerD("Enter");
   if (!is_volume_change_listener_) {
     return PlatformResult(ErrorCode::NO_ERROR);
   }
