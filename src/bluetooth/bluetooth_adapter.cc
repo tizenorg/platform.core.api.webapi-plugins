@@ -1439,7 +1439,7 @@ void BluetoothAdapter::RemoveSocket(int socket) {
 void BluetoothAdapter::StoreSocketData(bt_socket_received_data_s* data) {
   LoggerD("Entered");
 
-  auto data_store = socket_data_[data->socket_fd];
+  auto& data_store = socket_data_[data->socket_fd];
 
   for (int i = 0; i < data->data_size; ++i) {
     data_store.push_back(data->data[i]);
