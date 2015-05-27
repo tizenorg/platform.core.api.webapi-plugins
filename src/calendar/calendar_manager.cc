@@ -37,6 +37,7 @@ const int kUnifiedCalendardId = 0;
 using namespace common;
 
 CalendarManager::CalendarManager() {
+  LoggerD("Enter");
   if (CALENDAR_ERROR_NONE == calendar_connect()) {
     LoggerD("Calendar DB connected");
     is_connected_ = true;
@@ -46,6 +47,7 @@ CalendarManager::CalendarManager() {
 }
 
 CalendarManager::~CalendarManager() {
+  LoggerD("Enter");
   if (is_connected_) {
     if (CALENDAR_ERROR_NONE == calendar_disconnect()) {
       LoggerD("Calendar DB disconnected");
@@ -56,6 +58,7 @@ CalendarManager::~CalendarManager() {
 }
 
 CalendarManager& CalendarManager::GetInstance() {
+  LoggerD("Enter");
   static CalendarManager instance;
   return instance;
 }
@@ -64,7 +67,9 @@ bool CalendarManager::IsConnected() { return is_connected_; }
 
 PlatformResult CalendarManager::GetCalendars(const JsonObject& args,
                                              JsonArray& array) {
+  LoggerD("Enter");
   if (!is_connected_) {
+    LoggerE("DB Connection failed.");
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "DB Connection failed.");
   }
 
@@ -77,19 +82,28 @@ PlatformResult CalendarManager::GetCalendars(const JsonObject& args,
   int ret = calendar_db_get_all_records(_calendar_book._uri, 0, 0, &list);
   PlatformResult status =
       CalendarRecord::CheckReturn(ret, "Failed to get list");
-  if (status.IsError()) return status;
+  if (status.IsError()) {
+    LoggerE("Error: %s", status.message().c_str());
+    return status;
+  }
 
   int count = 0;
   ret = calendar_list_get_count(list, &count);
   status = CalendarRecord::CheckReturn(ret, "Failed to get list size");
-  if (status.IsError()) return status;
+  if (status.IsError()) {
+    LoggerE("Error: %s", status.message().c_str());
+    return status;
+  }
 
   LoggerD("Calendar list count: %d", count);
 
   ret = calendar_list_first(list);
   status = CalendarRecord::CheckReturn(
       ret, "Failed to move list to the first position");
-  if (status.IsError()) return status;
+  if (status.IsError()) {
+    LoggerE("Error: %s", status.message().c_str());
+    return status;
+  }
 
   int current_calendar_type = CalendarRecord::TypeToInt(type);
   calendar_record_h calendar = NULL;
@@ -98,11 +112,17 @@ PlatformResult CalendarManager::GetCalendars(const JsonObject& args,
   while (count-- > 0) {
     ret = calendar_list_get_current_record_p(list, &calendar);
     status = CalendarRecord::CheckReturn(ret, "Failed to get current record");
-    if (status.IsError()) return status;
+    if (status.IsError()) {
+      LoggerE("Error: %s", status.message().c_str());
+      return status;
+    }
 
     PlatformResult status = CalendarRecord::GetInt(
         calendar, _calendar_book.store_type, &store_type);
-    if (status.IsError()) return status;
+    if (status.IsError()) {
+      LoggerE("Error: %s", status.message().c_str());
+      return status;
+    }
 
     if (current_calendar_type != store_type) {
       LoggerD("Different store type %d, requested: %d. Skipping...",
@@ -115,7 +135,10 @@ PlatformResult CalendarManager::GetCalendars(const JsonObject& args,
 
     status = CalendarRecord::CalendarToJson(calendar,
                                             &array.back().get<JsonObject>());
-    if (status.IsError()) return status;
+    if (status.IsError()) {
+      LoggerE("Error: %s", status.message().c_str());
+      return status;
+    }
 
     calendar_list_next(list);
   }
@@ -125,6 +148,7 @@ PlatformResult CalendarManager::GetCalendars(const JsonObject& args,
 
 PlatformResult CalendarManager::GetCalendar(const JsonObject& args,
                                             JsonObject& out) {
+  LoggerD("Enter");
   if (!is_connected_) {
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "DB Connection failed.");
   }
@@ -134,7 +158,10 @@ PlatformResult CalendarManager::GetCalendar(const JsonObject& args,
   calendar_record_h handle = nullptr;
   PlatformResult status =
       CalendarRecord::GetById(id, _calendar_book._uri, &handle);
-  if (status.IsError()) return status;
+  if (status.IsError()) {
+    LoggerE("Error: %s", status.message().c_str());
+    return status;
+  }
 
   CalendarRecordPtr record_ptr =
       CalendarRecordPtr(handle, CalendarRecord::Deleter);
@@ -143,7 +170,10 @@ PlatformResult CalendarManager::GetCalendar(const JsonObject& args,
   int calendar_type;
   status = CalendarRecord::GetInt(record_ptr.get(), _calendar_book.store_type,
                                   &calendar_type);
-  if (status.IsError()) return status;
+  if (status.IsError()) {
+    LoggerE("Error: %s", status.message().c_str());
+    return status;
+  }
 
   if (type != calendar_type) {
     LoggerD("Calendar type doesn't match requested type");
@@ -151,13 +181,17 @@ PlatformResult CalendarManager::GetCalendar(const JsonObject& args,
   }
 
   status = CalendarRecord::CalendarToJson(record_ptr.get(), &out);
-  if (status.IsError()) return status;
+  if (status.IsError()) {
+    LoggerE("Error: %s", status.message().c_str());
+    return status;
+  }
 
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 PlatformResult CalendarManager::AddCalendar(const JsonObject& args,
                                             JsonObject& out) {
+  LoggerD("Enter");
   if (!is_connected_) {
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "DB Connection failed.");
   }
@@ -166,25 +200,35 @@ PlatformResult CalendarManager::AddCalendar(const JsonObject& args,
 
   calendar_record_h handle = nullptr;
   PlatformResult status = CalendarRecord::CreateCalendar(&handle);
-  if (status.IsError()) return status;
+  if (status.IsError()) {
+    LoggerE("Error: %s", status.message().c_str());
+    return status;
+  }
 
   CalendarRecordPtr record_ptr =
       CalendarRecordPtr(handle, CalendarRecord::Deleter);
 
   status = CalendarRecord::CalendarFromJson(record_ptr.get(), calendar);
-  if (status.IsError()) return status;
+  if (status.IsError()) {
+    LoggerE("Error: %s", status.message().c_str());
+    return status;
+  }
 
   int ret, record_id;
   ret = calendar_db_insert_record(record_ptr.get(), &record_id);
   status = CalendarRecord::CheckReturn(
       ret, "Failed to insert calendar record into db");
-  if (status.IsError()) return status;
+  if (status.IsError()) {
+    LoggerE("Error: %s", status.message().c_str());
+    return status;
+}
 
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 PlatformResult CalendarManager::RemoveCalendar(const JsonObject& args,
                                                JsonObject& out) {
+  LoggerD("Enter");
   if (!is_connected_) {
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "DB Connection failed.");
   }
@@ -208,7 +252,10 @@ PlatformResult CalendarManager::RemoveCalendar(const JsonObject& args,
   int ret = calendar_db_delete_record(_calendar_book._uri, id);
   PlatformResult status =
       CalendarRecord::CheckReturn(ret, "Failed to delete record from db");
-  if (status.IsError()) return status;
+  if (status.IsError()) {
+    LoggerE("Error: %s", status.message().c_str());
+    return status;
+  }
 
   return PlatformResult(ErrorCode::NO_ERROR);
 }
