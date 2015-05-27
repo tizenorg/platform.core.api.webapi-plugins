@@ -6,6 +6,7 @@
 #define MESSAGING_MESSAGE_STORAGE_H_
 
 #include <memory>
+#include <unordered_set>
 
 #include "common/platform_result.h"
 #include "common/logger.h"
@@ -54,6 +55,7 @@ public:
 protected:
     int m_id;
     MessageType m_msg_type;
+    std::unordered_set<long> registered_listeners_;
 };
 
 }    //messaging
