@@ -35,6 +35,7 @@ const char* kTypeECDSA = "ECDSA";
 }
 
 KeyManagerInstance::KeyManagerInstance() {
+  LoggerD("Enter");
   using std::placeholders::_1;
   using std::placeholders::_2;
 
@@ -79,6 +80,7 @@ KeyManagerInstance::KeyManagerInstance() {
 }
 
 KeyManagerInstance::~KeyManagerInstance() {
+  LoggerD("Enter");
 }
 
 void KeyManagerInstance::GetAliasList(
@@ -128,6 +130,7 @@ void KeyManagerInstance::GetDataAliasList(const picojson::value& args,
 }
 
 CKM::RawBuffer Base64ToRawBuffer(const std::string base64) {
+  LoggerD("Enter");
   gsize len = 0;
   guchar* raw_data = g_base64_decode(base64.c_str(), &len);
   CKM::RawBuffer rawBuffer;
@@ -190,6 +193,7 @@ void KeyManagerInstance::RemoveKey(const picojson::value& args,
 
 common::PlatformResult KeyManagerInstance::RemoveAlias(
     const std::string& alias) {
+  LoggerD("Enter");
   int ret = CKM::Manager::create()->removeAlias(alias);
   if (ret != CKM_API_SUCCESS) {
     LoggerE("Failed to remove alias: %d", ret);
@@ -265,6 +269,7 @@ void KeyManagerInstance::OnCreateKeyPair(double callbackId,
 }
 
 std::string RawBufferToBase64(const CKM::RawBuffer &buf) {
+  LoggerD("Enter");
   std::string result;
   if (!buf.empty()) {
     gchar* base64 = g_base64_encode(&buf[0], buf.size());
@@ -514,6 +519,7 @@ void KeyManagerInstance::OnSaveData(double callbackId,
 
 void KeyManagerInstance::RemoveData(const picojson::value& args,
     picojson::object& out) {
+  LoggerD("Enter");
   const std::string& alias = args.get("data").get("name").get<std::string>();
   common::PlatformResult res = RemoveAlias(alias);
   if (res.IsError()) {
@@ -560,6 +566,7 @@ void KeyManagerInstance::GetData(const picojson::value& args,
 }
 
 CKM::HashAlgorithm StringToHashAlgorithm(const std::string &hashAlgorithmType) {
+  LoggerD("Enter");
   using CKM::HashAlgorithm;
   if (hashAlgorithmType == "HASH_SHA1") {
     return HashAlgorithm::SHA1;
@@ -574,6 +581,7 @@ CKM::HashAlgorithm StringToHashAlgorithm(const std::string &hashAlgorithmType) {
 }
 
 CKM::RSAPaddingAlgorithm StringToRSAPadding(const std::string &padding) {
+    LoggerD("Enter");
     if (padding == "PADDING_PKCS1") {
         return CKM::RSAPaddingAlgorithm::PKCS1;
     }
