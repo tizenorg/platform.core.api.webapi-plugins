@@ -71,6 +71,7 @@ DatacontrolInstance::~DatacontrolInstance() {
 
 static void ReplyAsync(int callbackId, bool isSuccess,
                        picojson::object* param) {
+  LoggerD("Enter");
   (*param)["callbackId"] = picojson::value(static_cast<double>(callbackId));
   (*param)["status"] = picojson::value(isSuccess ? "success" : "error");
 
@@ -85,6 +86,7 @@ static void ReplyAsync(int callbackId, bool isSuccess,
 
 static bool SQLColumnName(result_set_cursor cursor, int columnIndex,
                           picojson::value& name) {
+  LoggerD("Enter");
   char buffer[4096];
   int result = data_control_sql_get_column_name(cursor, columnIndex, buffer);
   if (result != DATA_CONTROL_ERROR_NONE) {
@@ -97,6 +99,7 @@ static bool SQLColumnName(result_set_cursor cursor, int columnIndex,
 
 static bool SQLColumnValue(result_set_cursor cursor, int columnIndex,
                            picojson::value& val) {
+  LoggerD("Enter");
   data_control_sql_column_type_e type = DATA_CONTROL_SQL_COLUMN_TYPE_UNDEFINED;
   int result =
       data_control_sql_get_column_item_type(cursor, columnIndex, &type);
@@ -162,6 +165,7 @@ static bool SQLColumnValue(result_set_cursor cursor, int columnIndex,
 static void MAPAddResponseCallback(int requestId, data_control_h handle,
                                    bool providerResult,
                                    const char *error, void *user_data) {
+  LoggerD("Enter");
   DatacontrolInformation *info = IdMap[requestId];
   if (info == NULL) {
     LoggerE("Invalid context");
@@ -183,6 +187,7 @@ static void MAPAddResponseCallback(int requestId, data_control_h handle,
 static void MAPSetResponseCallback(int requestId, data_control_h handle,
                                    bool providerResult,
                                    const char *error, void *user_data) {
+  LoggerD("Enter");
   DatacontrolInformation *info = IdMap[requestId];
   if (info == NULL) {
     LoggerE("Invalid context");
@@ -206,6 +211,7 @@ static void MAPGetResponseCallback(int requestId, data_control_h handle,
                                    int result_value_count,
                                    bool providerResult,
                                    const char *error, void *user_data) {
+  LoggerD("Enter");
   DatacontrolInformation *info = IdMap[requestId];
   if (info == NULL) {
     LoggerE("Invalid context");
@@ -233,6 +239,7 @@ static void MAPGetResponseCallback(int requestId, data_control_h handle,
 static void MAPRemoveReponseCallback(int requestId, data_control_h handle,
                                      bool providerResult,
                                      const char *error, void *user_data) {
+  LoggerD("Enter");
   DatacontrolInformation *info = IdMap[requestId];
   if (info == NULL) {
     LoggerE("Invalid context");
@@ -256,6 +263,7 @@ static void SQLSelectResponseCallback(int requestId, data_control_h handle,
                                       result_set_cursor cursor,
                                       bool providerResult,
                                       const char *error, void *user_data) {
+  LoggerD("Enter");
   DatacontrolInformation *info = IdMap[requestId];
   if (info == NULL) {
     LoggerE("Invalid context");
@@ -302,6 +310,7 @@ static void SQLInsertResponseCallback(int requestId, data_control_h handle,
                                       int64_t inserted_row_id,
                                       bool providerResult,
                                       const char *error, void *user_data) {
+  LoggerD("Enter");
   DatacontrolInformation *info = IdMap[requestId];
   if (info == NULL) {
     LoggerE("Invalid context");
@@ -325,6 +334,7 @@ static void SQLInsertResponseCallback(int requestId, data_control_h handle,
 static void SQLUpdateResponseCallback(int requestId, data_control_h handle,
                                       bool providerResult,
                                       const char *error, void *user_data) {
+  LoggerD("Enter");
   DatacontrolInformation *info = IdMap[requestId];
   if (info == NULL) {
     LoggerE("Invalid context");
@@ -346,6 +356,7 @@ static void SQLUpdateResponseCallback(int requestId, data_control_h handle,
 static void SQLDeleteResponseCallback(int requestId, data_control_h handle,
                                       bool providerResult,
                                       const char *error, void *user_data) {
+  LoggerD("Enter");
   DatacontrolInformation *info = IdMap[requestId];
   if (info == NULL) {
     LoggerE("Invalid context");
@@ -390,6 +401,7 @@ int DatacontrolInstance::RunMAPDataControlJob(const std::string& providerId,
                                               int callbackId,
                                               int userRequestId,
                                               DataControlJob job) {
+  LoggerD("Enter");
   int result = DATA_CONTROL_ERROR_NONE;
   std::unique_ptr<DatacontrolInformation> info {new DatacontrolInformation()};
   info->callbackId = callbackId;
@@ -433,6 +445,7 @@ int DatacontrolInstance::RunSQLDataControlJob(const std::string& providerId,
                                               int callbackId,
                                               int userRequestId,
                                               DataControlJob job) {
+  LoggerD("Enter");
   int result = DATA_CONTROL_ERROR_NONE;
   std::unique_ptr<DatacontrolInformation> info {new DatacontrolInformation()};
   info->callbackId = callbackId;
@@ -478,6 +491,7 @@ int DatacontrolInstance::RunSQLDataControlJob(const std::string& providerId,
 
 void DatacontrolInstance::DataControlManagerGetdatacontrolconsumer(
     const picojson::value& args, picojson::object& out) {
+  LoggerD("Enter");
   CHECK_EXIST(args, "providerId", out)
   CHECK_EXIST(args, "dataId", out)
 
@@ -486,6 +500,7 @@ void DatacontrolInstance::DataControlManagerGetdatacontrolconsumer(
 }
 void DatacontrolInstance::SQLDataControlConsumerInsert(
     const picojson::value& args, picojson::object& out) {
+  LoggerD("Enter");
   CHECK_EXIST(args, "callbackId", out)
   CHECK_EXIST(args, "reqId", out)
   CHECK_EXIST(args, "providerId", out)
@@ -557,6 +572,7 @@ void DatacontrolInstance::SQLDataControlConsumerInsert(
 }
 void DatacontrolInstance::SQLDataControlConsumerUpdate(
     const picojson::value& args, picojson::object& out) {
+  LoggerD("Enter");
   CHECK_EXIST(args, "callbackId", out)
   CHECK_EXIST(args, "reqId", out)
   CHECK_EXIST(args, "where", out)
@@ -588,6 +604,7 @@ void DatacontrolInstance::SQLDataControlConsumerUpdate(
                                     [&updateData, &where](
                                         data_control_h& handle,
                                         int *requestId) -> int {
+    LoggerD("Enter");
     picojson::array columns = updateData["columns"].get<picojson::array>();
     picojson::array values = updateData["values"].get<picojson::array>();
 
@@ -632,6 +649,7 @@ void DatacontrolInstance::SQLDataControlConsumerUpdate(
 
 void DatacontrolInstance::SQLDataControlConsumerRemove(
     const picojson::value& args, picojson::object& out) {
+  LoggerD("Enter");
   CHECK_EXIST(args, "callbackId", out)
   CHECK_EXIST(args, "reqId", out)
   CHECK_EXIST(args, "where", out)
@@ -664,6 +682,7 @@ void DatacontrolInstance::SQLDataControlConsumerRemove(
 
 void DatacontrolInstance::SQLDataControlConsumerSelect(
     const picojson::value& args, picojson::object& out) {
+  LoggerD("Enter");
   CHECK_EXIST(args, "callbackId", out)
   CHECK_EXIST(args, "reqId", out)
   CHECK_EXIST(args, "columns", out)
@@ -693,6 +712,7 @@ void DatacontrolInstance::SQLDataControlConsumerSelect(
                                     [&columns, &where, page, maxNumberPerPage](
                                         data_control_h& handle,
                                         int *requestId) -> int {
+    LoggerD("Enter");
     std::vector<const char*> temp;
     for (auto& s : columns) temp.push_back(s.get<std::string>().c_str());
     int columnCount = static_cast<int>(temp.size());
@@ -724,6 +744,7 @@ void DatacontrolInstance::SQLDataControlConsumerSelect(
 void DatacontrolInstance::MappedDataControlConsumerAddvalue(
     const picojson::value& args,
     picojson::object& out) {
+  LoggerD("Enter");
   CHECK_EXIST(args, "callbackId", out)
   CHECK_EXIST(args, "reqId", out)
   CHECK_EXIST(args, "key", out)
@@ -759,6 +780,7 @@ void DatacontrolInstance::MappedDataControlConsumerAddvalue(
 }
 void DatacontrolInstance::MappedDataControlConsumerRemovevalue(
     const picojson::value& args, picojson::object& out) {
+  LoggerD("Enter");
   CHECK_EXIST(args, "callbackId", out)
   CHECK_EXIST(args, "reqId", out)
   CHECK_EXIST(args, "key", out)
@@ -794,6 +816,7 @@ void DatacontrolInstance::MappedDataControlConsumerRemovevalue(
 }
 void DatacontrolInstance::MappedDataControlConsumerGetvalue(
     const picojson::value& args, picojson::object& out) {
+  LoggerD("Enter");
   CHECK_EXIST(args, "callbackId", out)
   CHECK_EXIST(args, "reqId", out)
   CHECK_EXIST(args, "key", out)
@@ -826,6 +849,7 @@ void DatacontrolInstance::MappedDataControlConsumerGetvalue(
 }
 void DatacontrolInstance::MappedDataControlConsumerUpdatevalue(
     const picojson::value& args, picojson::object& out) {
+  LoggerD("Enter");
   CHECK_EXIST(args, "callbackId", out)
   CHECK_EXIST(args, "reqId", out)
   CHECK_EXIST(args, "key", out)
