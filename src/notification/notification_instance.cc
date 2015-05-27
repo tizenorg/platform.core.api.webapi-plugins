@@ -18,6 +18,7 @@ namespace notification {
 using namespace common;
 
 NotificationInstance::NotificationInstance() {
+  LoggerD("Enter");
   using std::placeholders::_1;
   using std::placeholders::_2;
 #define REGISTER_SYNC(c, x) \
@@ -38,6 +39,7 @@ NotificationInstance::NotificationInstance() {
 }
 
 NotificationInstance::~NotificationInstance() {
+  LoggerD("Enter");
 }
 
 #define CHECK_EXIST(args, name, out)                                       \
@@ -49,98 +51,124 @@ NotificationInstance::~NotificationInstance() {
 void NotificationInstance::NotificationManagerPost(const picojson::value& args,
                                                    picojson::object& out) {
 
+  LoggerD("Enter");
   picojson::value val{picojson::object{}};
   PlatformResult status =
       manager_->Post(args.get<picojson::object>(), val.get<picojson::object>());
 
-  if (status.IsSuccess())
+  if (status.IsSuccess()) {
     ReportSuccess(val, out);
-  else
+  } else {
+    LoggerE("Failed");
     ReportError(status, &out);
+  }
 }
 
 void NotificationInstance::NotificationManagerUpdate(
     const picojson::value& args,
     picojson::object& out) {
 
+  LoggerD("Enter");
   PlatformResult status = manager_->Update(args.get<picojson::object>());
 
-  if (status.IsSuccess())
+  if (status.IsSuccess()) {
     ReportSuccess(out);
-  else
+  } else {
+    LoggerE("Failed");
     ReportError(status, &out);
+  }
 }
 
 void NotificationInstance::NotificationManagerRemove(
     const picojson::value& args,
     picojson::object& out) {
 
+  LoggerD("Enter");
   PlatformResult status = manager_->Remove(args.get<picojson::object>());
 
-  if (status.IsSuccess())
+  if (status.IsSuccess()) {
     ReportSuccess(out);
-  else
+  } else {
+    LoggerE("Failed");
     ReportError(status, &out);
+  }
 }
 
 void NotificationInstance::NotificationManagerRemoveAll(
     const picojson::value& args,
     picojson::object& out) {
 
+  LoggerD("Enter");
   PlatformResult status = manager_->RemoveAll();
 
-  if (status.IsSuccess())
+  if (status.IsSuccess()) {
     ReportSuccess(out);
-  else
+  } else {
+    LoggerE("Failed");
     ReportError(status, &out);
+  }
 }
 
 void NotificationInstance::NotificationManagerGet(const picojson::value& args,
                                                   picojson::object& out) {
+  LoggerD("Enter");
   picojson::value val{picojson::object{}};
 
   PlatformResult status =
       manager_->Get(args.get<picojson::object>(), val.get<picojson::object>());
 
-  if (status.IsSuccess())
+  if (status.IsSuccess()) {
     ReportSuccess(val, out);
-  else
+  } else {
+    LoggerE("Failed");
     ReportError(status, &out);
+  }
 }
 
 void NotificationInstance::NotificationManagerGetAll(
     const picojson::value& args,
     picojson::object& out) {
+  LoggerD("Enter");
   picojson::value val{picojson::array{}};
 
   PlatformResult status = manager_->GetAll(val.get<picojson::array>());
 
-  if (status.IsSuccess())
+  if (status.IsSuccess()) {
     ReportSuccess(val, out);
-  else
+  } else {
+    LoggerE("Failed");
     ReportError(status, &out);
+  }
 }
 
 void NotificationInstance::NotificationManagerPlayLEDCustomEffect(
     const picojson::value& args, picojson::object& out) {
 
+  LoggerD("Enter");
+
   PlatformResult status = manager_->PlayLEDCustomEffect(args.get<picojson::object>());
 
-  if (status.IsSuccess())
+  if (status.IsSuccess()) {
     ReportSuccess(out);
-  else
+  } else {
+    LoggerE("Failed");
     ReportError(status, &out);
+  }
 }
 
 void NotificationInstance::NotificationManagerStopLEDCustomEffect(
     const picojson::value& /*args*/, picojson::object& out) {
 
+  LoggerD("Enter");
+
   PlatformResult status = manager_->StopLEDCustomEffect();
 
-  if (status.IsSuccess())
+  if (status.IsSuccess()) {
     ReportSuccess(out);
-  else
+  } else {
+    LoggerE("Failed");
     ReportError(status, &out);
+  }
 }
 
 #undef CHECK_EXIST

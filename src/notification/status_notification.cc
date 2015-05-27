@@ -43,6 +43,7 @@ StatusNotification::~StatusNotification() {
 }
 
 bool StatusNotification::IsColorFormatNumberic(const std::string& color) {
+  LoggerD("Enter");
   std::string hexCode = "0123456789abcdef";
   if (color.length() != 7 || !color.compare(0, 1, "#")) {
     return false;
@@ -59,6 +60,8 @@ bool StatusNotification::IsColorFormatNumberic(const std::string& color) {
 
 PlatformResult StatusNotification::SetLayout(notification_h noti_handle,
                                              const std::string& noti_type) {
+
+  LoggerD("Enter");
   notification_ly_type_e noti_layout = NOTIFICATION_LY_NONE;
 
   if (noti_type == "SIMPLE") {
@@ -66,8 +69,10 @@ PlatformResult StatusNotification::SetLayout(notification_h noti_handle,
     PlatformResult status =
         GetNumber(noti_handle, NOTIFICATION_TEXT_TYPE_EVENT_COUNT, &number);
     if (status.IsError())
+    {
+      LoggerE("Failed: GetNumber");
       return status;
-
+    }
     if (number > 0)
       noti_layout = NOTIFICATION_LY_NOTI_EVENT_MULTIPLE;
     else
@@ -93,6 +98,7 @@ PlatformResult StatusNotification::SetLayout(notification_h noti_handle,
 static bool ServiceExtraDataCb(app_control_h service,
                                const char* key,
                                void* user_data) {
+  LoggerD("Enter");
   if (user_data != NULL && key != NULL) {
     LoggerE("User data or key not exist");
     return true;
@@ -131,6 +137,7 @@ static bool ServiceExtraDataCb(app_control_h service,
 
 PlatformResult StatusNotification::Create(notification_type_e noti_type,
                                           notification_h* noti_handle) {
+  LoggerD("Enter");
   *noti_handle = notification_create(noti_type);
   if (!noti_handle) {
     LoggerE("Cannot make new notification object");
@@ -157,6 +164,7 @@ PlatformResult StatusNotification::StatusTypeFromPlatform(
     notification_type_e noti_type,
     notification_ly_type_e noti_layout,
     std::string* type) {
+  LoggerD("Enter");
   if (noti_type == NOTIFICATION_TYPE_NOTI) {
     if (noti_layout == NOTIFICATION_LY_NOTI_EVENT_SINGLE ||
         noti_layout == NOTIFICATION_LY_NOTI_EVENT_MULTIPLE) {
@@ -182,6 +190,7 @@ PlatformResult StatusNotification::StatusTypeFromPlatform(
 PlatformResult StatusNotification::StatusTypeToPlatform(
     const std::string& type,
     notification_type_e* noti_type) {
+  LoggerD("Enter");
   if (type == "SIMPLE" || type == "THUMBNAIL") {
     *noti_type = NOTIFICATION_TYPE_NOTI;
   } else if (type == "ONGOING" || type == "PROGRESS") {
@@ -199,6 +208,7 @@ PlatformResult StatusNotification::GetImage(
     notification_h noti_handle,
     notification_image_type_e image_type,
     std::string* image_path) {
+  LoggerD("Enter");
   char* path = NULL;
 
   *image_path = "";
@@ -221,6 +231,7 @@ PlatformResult StatusNotification::SetImage(
     notification_h noti_handle,
     notification_image_type_e image_type,
     const std::string& image_path) {
+  LoggerD("Enter");
   int ret = notification_set_image(noti_handle, image_type, image_path.c_str());
   if (ret != NOTIFICATION_ERROR_NONE) {
     LoggerE("Set notification image error, image_type: %d, error: %d",
@@ -236,6 +247,7 @@ PlatformResult StatusNotification::SetImage(
 PlatformResult StatusNotification::GetText(notification_h noti_handle,
                                            notification_text_type_e text_type,
                                            std::string* noti_text) {
+  LoggerD("Enter");
   char* text = NULL;
 
   *noti_text = "";
@@ -256,6 +268,7 @@ PlatformResult StatusNotification::GetText(notification_h noti_handle,
 PlatformResult StatusNotification::SetText(notification_h noti_handle,
                                            notification_text_type_e text_type,
                                            const std::string& noti_text) {
+  LoggerD("Enter");
   int ret = notification_set_text(noti_handle,
                                   text_type,
                                   noti_text.c_str(),
@@ -275,6 +288,7 @@ PlatformResult StatusNotification::SetText(notification_h noti_handle,
 PlatformResult StatusNotification::GetNumber(notification_h noti_handle,
                                              notification_text_type_e text_type,
                                              long* number) {
+  LoggerD("Enter");
   std::string text;
   PlatformResult status = GetText(noti_handle, text_type, &text);
   if (status.IsError())
@@ -290,6 +304,7 @@ PlatformResult StatusNotification::GetNumber(notification_h noti_handle,
 
 PlatformResult StatusNotification::GetDetailInfos(notification_h noti_handle,
                                                   picojson::array* out) {
+  LoggerD("Enter");
   if (info_map_.size() != info_sub_map_.size()) {
     LoggerE("Different notification information types element size");
     return PlatformResult(
@@ -328,6 +343,7 @@ PlatformResult StatusNotification::GetDetailInfos(notification_h noti_handle,
 PlatformResult StatusNotification::SetDetailInfos(
     notification_h noti_handle,
     const picojson::array& value) {
+  LoggerD("Enter");
   int idx = 0;
 
   for (auto& item : value) {
@@ -363,6 +379,7 @@ PlatformResult StatusNotification::SetDetailInfos(
 
 PlatformResult StatusNotification::GetLedColor(notification_h noti_handle,
                                                std::string* led_color) {
+  LoggerD("Enter");
   unsigned int color = 0;
   notification_led_op_e type = NOTIFICATION_LED_OP_ON;
 
@@ -396,6 +413,7 @@ PlatformResult StatusNotification::GetLedColor(notification_h noti_handle,
 
 PlatformResult StatusNotification::SetLedColor(notification_h noti_handle,
                                                const std::string& led_color) {
+  LoggerD("Enter");
   std::string color_str = led_color;
   std::transform(
       color_str.begin(), color_str.end(), color_str.begin(), ::tolower);
@@ -433,6 +451,7 @@ PlatformResult StatusNotification::SetLedColor(notification_h noti_handle,
 PlatformResult StatusNotification::GetLedPeriod(notification_h noti_handle,
                                                 unsigned long* on_period,
                                                 unsigned long* off_period) {
+  LoggerD("Enter");
   int on_time = 0;
   int off_time = 0;
 
@@ -453,6 +472,7 @@ PlatformResult StatusNotification::GetLedPeriod(notification_h noti_handle,
 
 PlatformResult StatusNotification::SetLedOnPeriod(notification_h noti_handle,
                                                   unsigned long on_period) {
+  LoggerD("Enter");
   unsigned long off_period = 0;
   PlatformResult status = GetLedPeriod(noti_handle, nullptr, &off_period);
   if (status.IsError())
@@ -471,6 +491,7 @@ PlatformResult StatusNotification::SetLedOnPeriod(notification_h noti_handle,
 
 PlatformResult StatusNotification::SetLedOffPeriod(notification_h noti_handle,
                                                    unsigned long off_period) {
+  LoggerD("Enter");
   unsigned long on_period = 0;
   PlatformResult status = GetLedPeriod(noti_handle, &on_period, nullptr);
   if (status.IsError())
@@ -489,6 +510,7 @@ PlatformResult StatusNotification::SetLedOffPeriod(notification_h noti_handle,
 
 PlatformResult StatusNotification::GetThumbnails(notification_h noti_handle,
                                                  picojson::array* out) {
+  LoggerD("Enter");
   std::string text;
   for (int idx = 0; idx < thumbnails_map_.size(); ++idx) {
     PlatformResult status =
@@ -507,6 +529,7 @@ PlatformResult StatusNotification::GetThumbnails(notification_h noti_handle,
 
 PlatformResult StatusNotification::SetThumbnails(notification_h noti_handle,
                                                  const picojson::array& value) {
+  LoggerD("Enter");
   int idx = 0;
 
   for (auto& item : value) {
@@ -531,6 +554,7 @@ PlatformResult StatusNotification::SetThumbnails(notification_h noti_handle,
 
 PlatformResult StatusNotification::GetSoundPath(notification_h noti_handle,
                                                 std::string* sound_path) {
+  LoggerD("Enter");
   *sound_path = "";
 
   const char* path = NULL;
@@ -556,6 +580,7 @@ PlatformResult StatusNotification::GetSoundPath(notification_h noti_handle,
 
 PlatformResult StatusNotification::SetSoundPath(notification_h noti_handle,
                                                 const std::string& sound_path) {
+  LoggerD("Enter");
   int ret = notification_set_sound(
       noti_handle, NOTIFICATION_SOUND_TYPE_USER_DATA, sound_path.c_str());
   if (ret != NOTIFICATION_ERROR_NONE) {
@@ -571,6 +596,7 @@ PlatformResult StatusNotification::SetSoundPath(notification_h noti_handle,
 
 PlatformResult StatusNotification::GetVibration(notification_h noti_handle,
                                                 bool* vibration) {
+  LoggerD("Enter");
   notification_vibration_type_e vib_type = NOTIFICATION_VIBRATION_TYPE_NONE;
 
   if (notification_get_vibration(noti_handle, &vib_type, NULL) !=
@@ -592,6 +618,7 @@ PlatformResult StatusNotification::GetVibration(notification_h noti_handle,
 
 PlatformResult StatusNotification::SetVibration(notification_h noti_handle,
                                                 bool vibration) {
+  LoggerD("Enter");
   bool platform_vibration;
   PlatformResult status = GetVibration(noti_handle, &platform_vibration);
   if (status.IsError())
@@ -618,6 +645,7 @@ PlatformResult StatusNotification::SetVibration(notification_h noti_handle,
 PlatformResult StatusNotification::GetApplicationControl(
     app_control_h app_handle,
     picojson::object* out_ptr) {
+  LoggerD("Enter");
   picojson::object& out = *out_ptr;
 
   char* operation = NULL;
@@ -689,6 +717,7 @@ PlatformResult StatusNotification::GetApplicationControl(
 PlatformResult StatusNotification::SetApplicationControl(
     app_control_h app_handle,
     const picojson::object& app_ctrl) {
+  LoggerD("Enter");
   picojson::value val(app_ctrl);
   const std::string& operation =
       common::FromJson<std::string>(app_ctrl, "operation");
@@ -771,6 +800,7 @@ PlatformResult StatusNotification::SetApplicationControl(
 
 PlatformResult StatusNotification::GetApplicationId(app_control_h app_handle,
                                                     std::string* app_id) {
+  LoggerD("Enter");
   char* app_id_str = NULL;
   SCOPE_EXIT { free(app_id_str); };
 
@@ -793,6 +823,7 @@ PlatformResult StatusNotification::GetApplicationId(app_control_h app_handle,
 
 PlatformResult StatusNotification::SetApplicationId(app_control_h app_handle,
                                                     const std::string& app_id) {
+  LoggerD("Enter");
   int ret = app_control_set_app_id(app_handle, app_id.c_str());
   if (ret != APP_CONTROL_ERROR_NONE) {
     LoggerE("Set applicaiton ID error: %d", ret);
@@ -808,6 +839,7 @@ PlatformResult StatusNotification::GetProgressValue(
     notification_h noti_handle,
     const std::string& progess_type,
     double* progress_value) {
+  LoggerD("Enter");
   *progress_value = 0.0;
 
   if (progess_type == kProgressTypeByte) {
@@ -840,6 +872,7 @@ PlatformResult StatusNotification::SetProgressValue(
     const std::string& progress_type,
     double progress_value,
     bool is_update) {
+  LoggerD("Enter");
   int ret;
 
   if (progress_type == kProgressTypeByte) {
@@ -873,6 +906,7 @@ PlatformResult StatusNotification::SetProgressValue(
 
 PlatformResult StatusNotification::GetPostedTime(notification_h noti_handle,
                                                  time_t* posted_time) {
+  LoggerD("Enter");
   *posted_time = 0;
 
   if (notification_get_insert_time(noti_handle, posted_time) !=
@@ -887,6 +921,7 @@ PlatformResult StatusNotification::GetPostedTime(notification_h noti_handle,
 
 PlatformResult StatusNotification::GetNotiHandle(int id,
                                                  notification_h* noti_handle) {
+  LoggerD("Enter");
   *noti_handle = notification_load(NULL, id);
   if (NULL == *noti_handle) {
     LoggerE("Not found or removed notification id");
@@ -899,6 +934,7 @@ PlatformResult StatusNotification::GetNotiHandle(int id,
 
 PlatformResult StatusNotification::GetAppControl(notification_h noti_handle,
                                                  app_control_h* app_control) {
+  LoggerD("Enter");
   int ret =
       notification_get_launch_option(noti_handle,
                                      NOTIFICATION_LAUNCH_OPTION_APP_CONTROL,
@@ -914,6 +950,7 @@ PlatformResult StatusNotification::GetAppControl(notification_h noti_handle,
 
 PlatformResult StatusNotification::CreateAppControl(
     app_control_h* app_control) {
+  LoggerD("Enter");
   int ret = app_control_create(app_control);
   if (ret != APP_CONTROL_ERROR_NONE) {
     LoggerE("Application create error: %d", ret);
@@ -926,6 +963,7 @@ PlatformResult StatusNotification::CreateAppControl(
 
 PlatformResult StatusNotification::SetAppControl(notification_h noti_handle,
                                                  app_control_h app_control) {
+  LoggerD("Enter");
   int ret =
       notification_set_launch_option(noti_handle,
                                      NOTIFICATION_LAUNCH_OPTION_APP_CONTROL,
@@ -943,6 +981,7 @@ PlatformResult StatusNotification::ToJson(int id,
                                           notification_h noti_handle,
                                           app_control_h app_handle,
                                           picojson::object* out_ptr) {
+  LoggerD("Enter");
   picojson::object& out = *out_ptr;
 
   out["id"] = picojson::value(std::to_string(id));
@@ -1100,6 +1139,7 @@ PlatformResult StatusNotification::ToJson(int id,
 PlatformResult StatusNotification::FromJson(const picojson::object& args,
                                             bool is_update,
                                             picojson::object* out_ptr) {
+  LoggerD("Enter");
   picojson::object noti_obj =
       common::FromJson<picojson::object>(args, "notification");
 
