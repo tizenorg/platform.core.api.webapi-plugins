@@ -364,6 +364,7 @@ void FMRadioManager::SeekUp(double callback_id) {
   const auto err = radio_seek_up(radio_instance_, RadioSeekCallback, user_data);
 
   if (RADIO_ERROR_NONE != err) {
+    LoggerE("Failed");
     PostResultFailure(callback_id, GetPlatformResult("radio_seek_up", err));
     delete user_data;
   }
@@ -378,6 +379,7 @@ void FMRadioManager::SeekDown(double callback_id) {
   const auto err = radio_seek_down(radio_instance_, RadioSeekCallback, user_data);
 
   if (RADIO_ERROR_NONE != err) {
+    LoggerE("Failed");
     PostResultFailure(callback_id, GetPlatformResult("radio_seek_down", err));
     delete user_data;
   }
@@ -414,6 +416,7 @@ void FMRadioManager::ScanStop(double callback_id) {
 
   auto err = radio_unset_scan_completed_cb(radio_instance_);
   if (RADIO_ERROR_NONE != err) {
+    LoggerE("Failed");
     PostResultFailure(callback_id,
                       GetPlatformResult("radio_unset_scan_completed_cb", err));
     delete user_data;
@@ -422,6 +425,7 @@ void FMRadioManager::ScanStop(double callback_id) {
 
   err = radio_scan_stop(radio_instance_, ScanStopCallback, user_data);
   if (RADIO_ERROR_NONE != err) {
+    LoggerE("Failed");
     PostResultFailure(callback_id, GetPlatformResult("radio_scan_stop", err));
     delete user_data;
   }
