@@ -47,10 +47,12 @@ PushManager::~PushManager() {
 }
 
 void PushManager::setListener(EventListener* listener) {
+    LoggerD("Enter");
     m_listener = listener;
 }
 
 void PushManager::initAppId() {
+    LoggerD("Enter");
     int pid = getpid();
     char *temp = NULL;
     int ret = app_manager_get_app_id(pid, &temp);
