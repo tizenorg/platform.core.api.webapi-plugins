@@ -40,6 +40,7 @@ static const PersonPropertyMap personPropertyMap = {
 };
 
 PlatformResult PersonLink(const JsonObject& args, JsonObject&) {
+  LoggerD("Enter");
   PlatformResult status = ContactUtil::CheckDBConnection();
   if (status.IsError()) return status;
 
@@ -67,6 +68,7 @@ PlatformResult PersonLink(const JsonObject& args, JsonObject&) {
 }
 
 PlatformResult PersonUnlink(const JsonObject& args, JsonObject& out) {
+  LoggerD("Enter");
   PlatformResult status = ContactUtil::CheckDBConnection();
   if (status.IsError()) return status;
 
@@ -129,6 +131,7 @@ PlatformResult PersonUnlink(const JsonObject& args, JsonObject& out) {
 
 PlatformResult PersonPropertyFromString(const std::string& name,
                                         PersonProperty* person_prop) {
+  LoggerD("Enter");
   auto iter = personPropertyMap.find(name);
   if (iter == personPropertyMap.end()) {
     LoggerE("Invalid property name (not in map): %s", name.c_str());
