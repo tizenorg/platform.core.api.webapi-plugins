@@ -30,6 +30,7 @@ namespace application {
 
 void ApplicationUtils::CreateApplicationInformation(const pkgmgrinfo_appinfo_h handle,
                                                     picojson::object* app_info) {
+  LoggerD("Enter");
 
   char* tmp_str = nullptr;
   int ret = 0;
@@ -159,6 +160,7 @@ bool ApplicationUtils::CreateApplicationContext(const app_context_h handle,
 void ApplicationUtils::CreateApplicationContext(pid_t pid, const std::string& app_id,
                                                 picojson::object* app_context) {
 
+  LoggerD("Enter");
   app_context->insert(std::make_pair("id", picojson::value(std::to_string(pid))));
   app_context->insert(std::make_pair("appId", picojson::value(app_id)));
 }
@@ -167,6 +169,7 @@ void ApplicationUtils::CreateApplicationCertificate(const char* cert_type,
                                                     const char* cert_value,
                                                     picojson::object* app_certificate) {
 
+  LoggerD("Enter");
   app_certificate->insert(std::make_pair("type", picojson::value(cert_type)));
   app_certificate->insert(std::make_pair("value", picojson::value(cert_value)));
 }
@@ -175,6 +178,7 @@ void ApplicationUtils::CreateApplicationMetaData(const char* key,
                                                  const char* value,
                                                  picojson::object* app_meta_data) {
 
+  LoggerD("Enter");
   app_meta_data->insert(std::make_pair("key", picojson::value(key)));
   app_meta_data->insert(std::make_pair("value", picojson::value(value)));
 }
@@ -183,6 +187,7 @@ PlatformResult ApplicationUtils::ApplicationControlToService(
     const picojson::object& app_control_obj,
     app_control_h* app_control) {
 
+  LoggerD("Enter");
   const auto it_operation = app_control_obj.find("operation");
   const auto it_uri = app_control_obj.find("uri");
   const auto it_mime = app_control_obj.find("mime");
@@ -229,6 +234,7 @@ PlatformResult ApplicationUtils::ApplicationControlToService(
       PlatformResult ret =
           ApplicationControlDataToServiceExtraData(iter->get<picojson::object>(), *app_control);
       if (ret.IsError()) {
+        LoggerE("Failed ApplicationControlDataToServiceExtraData()");
         return ret;
       }
     }
@@ -240,6 +246,8 @@ PlatformResult ApplicationUtils::ApplicationControlToService(
 PlatformResult ApplicationUtils::ApplicationControlDataToServiceExtraData(
     const picojson::object& app_control_data,
     app_control_h app_control) {
+
+  LoggerD("Enter");
 
   const auto it_key = app_control_data.find("key");
   const auto it_value = app_control_data.find("value");
@@ -278,6 +286,8 @@ PlatformResult ApplicationUtils::ApplicationControlDataToServiceExtraData(
 
 void ApplicationUtils::ServiceToApplicationControl(app_control_h app_control,
                                                    picojson::object* app_control_obj) {
+  LoggerD("Enter");
+
   int ret = 0;
   char* tmp_str = nullptr;
   auto clear = [](char*& str) {
@@ -321,6 +331,8 @@ void ApplicationUtils::ServiceToApplicationControl(app_control_h app_control,
 void ApplicationUtils::ServiceExtraDataToApplicationControlData(app_control_h app_control,
                                                                 const std::string& key,
                                                                 picojson::object* app_control_data) {
+  LoggerD("Enter");
+
   int ret = 0;
   bool is_array = false;
 

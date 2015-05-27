@@ -62,9 +62,11 @@ const std::string kData = "data";
 ApplicationManager::ApplicationManager(ApplicationInstance& instance) :
   instance_(instance),
   pkgmgr_client_handle_(nullptr) {
+    LoggerD("Enter");
 }
 
 ApplicationManager::~ApplicationManager() {
+  LoggerD("Enter");
   if (pkgmgr_client_handle_) {
     StopAppInfoEventListener();
   }
@@ -188,6 +190,7 @@ class TerminateHandler {
 void ApplicationManager::AsyncResponse(PlatformResult& result,
                                        std::shared_ptr<picojson::value>* response) {
 
+  LoggerD("Enter");
   ReportError(result, &(*response)->get<picojson::object>());
 
   TaskQueue::GetInstance().Async<picojson::value>([this](
@@ -225,6 +228,7 @@ void ApplicationManager::Kill(const picojson::value& args) {
   obj.insert(std::make_pair(kCallbackId, picojson::value(static_cast<double>(callback_id))));
 
   if (result.IsError()) {
+    LoggerE("Failed args.get");
     AsyncResponse(result, &response);
     return;
   }
@@ -893,6 +897,7 @@ void ApplicationManager::GetAppInfo(const std::string& app_id, picojson::object*
 }
 
 char* ApplicationManager::GetPackageId(const std::string& app_id) {
+  LoggerD("Entered");
   app_info_h handle;
   char* pkg_id = nullptr;
 
