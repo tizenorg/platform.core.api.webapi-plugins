@@ -70,6 +70,8 @@ static bool GetAccountsCallback(account_h handle, void *user_data) {
 }
 
 static bool GetCustomAllCallback(char* key, char* value, void* user_data) {
+  LoggerD("Enter");
+
   picojson::array* array_data = static_cast<picojson::array*>(user_data);
   if (!array_data) {
     LoggerE("user_data is NULL");
@@ -90,12 +92,14 @@ static bool GetCustomAllCallback(char* key, char* value, void* user_data) {
 } // namespace
 
 AccountManager::AccountManager() {
+  LoggerD("Enter");
   if (account_connect() != ACCOUNT_ERROR_NONE) {
     LoggerE("Failed to connect account db");
   }
 }
 
 AccountManager::~AccountManager() {
+  LoggerD("Enter");
   if (account_disconnect() != ACCOUNT_ERROR_NONE) {
     LoggerE("Failed to disconnect account db");
   }
