@@ -41,6 +41,9 @@ MediaKeyInstance::~MediaKeyInstance() {
 
 void MediaKeyInstance::SetMediaKeyEventListener(const picojson::value& args,
                                                 picojson::object& out) {
+
+  LoggerD("Enter");
+
   common::PlatformResult result = MediaKeyManager::GetInstance()
       .RegisterMediaKeyEventListener(this);
   if (result.IsError()) {
@@ -53,6 +56,7 @@ void MediaKeyInstance::SetMediaKeyEventListener(const picojson::value& args,
 
 void MediaKeyInstance::UnsetMediaKeyEventListener(const picojson::value& args,
                                                   picojson::object& out) {
+  LoggerD("Enter");
   common::PlatformResult result = MediaKeyManager::GetInstance()
       .UnregisterMediaKeyEventListener();
   if (result.IsError()) {
