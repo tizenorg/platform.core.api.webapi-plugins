@@ -21,6 +21,7 @@
 
 #include "common/platform_exception.h"
 #include "common/converter.h"
+#include "common/logger.h"
 
 namespace extension {
 namespace bookmark {
@@ -34,6 +35,7 @@ namespace {
 }  // namespace
 
 BookmarkInstance::BookmarkInstance() {
+  LoggerD("Enter");
   using std::placeholders::_1;
   using std::placeholders::_2;
 
@@ -48,10 +50,13 @@ BookmarkInstance::BookmarkInstance() {
 }
 
 BookmarkInstance::~BookmarkInstance() {
+  LoggerD("Enter");
 }
 
 bool BookmarkInstance::bookmark_foreach(
     Context& ctx, bp_bookmark_info_fmt& info) {
+
+  LoggerD("Enter");
   int ids_count = 0;
   int* ids = NULL;
   BookmarkObject item;
@@ -76,6 +81,7 @@ bool BookmarkInstance::bookmark_foreach(
 }
 
 bool BookmarkInstance::bookmark_url_exists(const char* url) {
+  LoggerD("Enter");
   int ids_count = 0;
   int* ids = NULL;
   char* compare_url = NULL;
@@ -103,6 +109,8 @@ bool BookmarkInstance::bookmark_url_exists(const char* url) {
 
 bool BookmarkInstance::bookmark_title_exists_in_parent(
     const char* title, int parent) {
+
+  LoggerD("Enter");
   int ids_count = 0;
   int compare_parent = -1;
   int* ids = NULL;
@@ -138,6 +146,7 @@ bool BookmarkInstance::bookmark_title_exists_in_parent(
 void BookmarkInstance::BookmarkGet(
     const picojson::value& arg, picojson::object& o) {
 
+  LoggerD("Enter");
   Context ctx = {0};
   bp_bookmark_info_fmt info = {0};
   picojson::value::array arr;
@@ -171,6 +180,7 @@ void BookmarkInstance::BookmarkGet(
 void BookmarkInstance::BookmarkAdd(
     const picojson::value& arg, picojson::object& o) {
 
+  LoggerD("Enter");
   int saved_id =-1;
   bp_bookmark_info_fmt data = {0};
 
@@ -218,6 +228,7 @@ void BookmarkInstance::BookmarkAdd(
 void BookmarkInstance::BookmarkRemove(
     const picojson::value& arg, picojson::object& o) {
 
+  LoggerD("Enter");
   int id = common::stol(
       common::FromJson<std::string>(arg.get<picojson::object>(), kId));
   if (bp_bookmark_adaptor_delete(id) < 0) {
@@ -230,6 +241,7 @@ void BookmarkInstance::BookmarkRemove(
 void BookmarkInstance::BookmarkRemoveAll(
     const picojson::value& msg, picojson::object& o) {
 
+  LoggerD("Enter");
   if (bp_bookmark_adaptor_reset() < 0) {
     ReportError(o);
     return;
@@ -239,6 +251,8 @@ void BookmarkInstance::BookmarkRemoveAll(
 
 void BookmarkInstance::BookmarkGetRootId(
     const picojson::value& msg, picojson::object& o) {
+
+  LoggerD("Enter");
   int rootId(0);
   if (bp_bookmark_adaptor_get_root(&rootId) < 0) {
     ReportError(o);
