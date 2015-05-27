@@ -34,6 +34,8 @@ using namespace smartcard_service_api;
 
 SecureElementInstance::SecureElementInstance()
     : service_(*this) {
+    LoggerD("Entered");
+
     using std::placeholders::_1;
     using std::placeholders::_2;
 
@@ -128,7 +130,7 @@ void SecureElementInstance::CloseSessions(
 }
 
 void SecureElementInstance::CloseChannel( const picojson::value& args, picojson::object& out) {
-    LoggerD("Enter");
+    LoggerD("Entered");
     ClientChannel* channel_ptr = (ClientChannel*) static_cast<long>(args.get("handle").get<double>());
     SEChannel seChannel(channel_ptr);
     seChannel.close();
@@ -136,7 +138,7 @@ void SecureElementInstance::CloseChannel( const picojson::value& args, picojson:
 }
 
 void SecureElementInstance::GetSelectResponse( const picojson::value& args, picojson::object& out) {
-    LoggerD("Enter");
+    LoggerD("Entered");
     ClientChannel* channel_ptr = (ClientChannel*) static_cast<long>(args.get("handle").get<double>());
     SEChannel seChannel(channel_ptr);
 

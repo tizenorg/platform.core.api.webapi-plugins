@@ -115,6 +115,7 @@ void SEService::GetReaders(double callback_id) {
 
   if (is_error_) {
     // there has been an error, report it asynchronously
+    LoggerE("Failed: is_error_");
     std::shared_ptr<picojson::value> response{new picojson::value{picojson::object{}}};
     ReportError(
         PlatformResult(ErrorCode::SERVICE_NOT_AVAILABLE_ERR,
@@ -171,7 +172,7 @@ void SEService::ServiceConnected() {
 
   // notify the listeners
   if (!is_listener_set_) {
-    LoggerW("SE listener is not set.");
+    LoggerE("SE listener is not set.");
     return;
   }
 
