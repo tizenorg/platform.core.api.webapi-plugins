@@ -18,6 +18,7 @@ using namespace common;
 using namespace extension::sound;
 
 SoundInstance::SoundInstance(): manager_(*this) {
+  LoggerD("Enter");
   using std::placeholders::_1;
   using std::placeholders::_2;
 
@@ -40,6 +41,7 @@ SoundInstance::SoundInstance(): manager_(*this) {
 }
 
 SoundInstance::~SoundInstance() {
+  LoggerD("Enter");
 }
 
 #define CHECK_EXIST(args, name, out) \
@@ -50,58 +52,75 @@ SoundInstance::~SoundInstance() {
 
 void SoundInstance::SoundManagerGetSoundMode(const picojson::value& args,
                                              picojson::object& out) {
+  LoggerD("Enter");
   std::string sound_mode_type;
   PlatformResult status = manager_.GetSoundMode(&sound_mode_type);
 
-  if (status.IsSuccess())
+  if (status.IsSuccess()) {
     ReportSuccess(picojson::value(sound_mode_type), out);
-  else
+  } else {
+    LoggerE("Failed");
     ReportError(status, &out);
+  }
 }
 
 void SoundInstance::SoundManagerSetVolume(const picojson::value& args,
                                           picojson::object& out) {
+  LoggerD("Enter");
   PlatformResult status = manager_.SetVolume(args.get<picojson::object>());
 
-  if (status.IsSuccess())
+  if (status.IsSuccess()) {
     ReportSuccess(out);
-  else
+  } else {
+    LoggerE("Failed");
     ReportError(status, &out);
+  }
 }
 
 
 void SoundInstance::SoundManagerGetVolume(const picojson::value& args,
                                           picojson::object& out) {
+  LoggerD("Enter");
   double volume;
   PlatformResult status =
       manager_.GetVolume(args.get<picojson::object>(), &volume);
 
-  if (status.IsSuccess())
+  if (status.IsSuccess()) {
     ReportSuccess(picojson::value(volume), out);
-  else
+  } else {
+    LoggerE("Failed");
     ReportError(status, &out);
+  }
 }
 
 void SoundInstance::SoundManagerSetSoundModeChangeListener(const picojson::value& args, picojson::object& out) {
+  LoggerD("Enter");
   PlatformResult status = manager_.SetSoundModeChangeListener(this);
 
-  if (status.IsSuccess())
+  if (status.IsSuccess()) {
     ReportSuccess(out);
-  else
+  } else {
+    LoggerE("Failed");
     ReportError(status, &out);
+  }
 }
 
 void SoundInstance::SoundManagerUnsetSoundModeChangeListener(const picojson::value& args, picojson::object& out) {
   PlatformResult status = manager_.UnsetSoundModeChangeListener();
 
-  if (status.IsSuccess())
+  LoggerD("Enter");
+
+  if (status.IsSuccess()) {
     ReportSuccess(out);
-  else
+  } else {
+    LoggerE("Failed");
     ReportError(status, &out);
+  }
 }
 
 void SoundInstance::OnSoundModeChange(const std::string& newmode)
 {
+  LoggerD("Enter");
   picojson::value event = picojson::value(picojson::object());
   picojson::object& obj = event.get<picojson::object>();
   picojson::value result = picojson::value(newmode);
@@ -114,22 +133,28 @@ void SoundInstance::OnSoundModeChange(const std::string& newmode)
 
 void SoundInstance::SoundManagerSetVolumeChangeListener(
     const picojson::value& args, picojson::object& out) {
+  LoggerD("Enter");
   PlatformResult status = manager_.SetVolumeChangeListener();
 
-  if (status.IsSuccess())
+  if (status.IsSuccess()) {
     ReportSuccess(out);
-  else
+  } else {
+    LoggerE("Failed");
     ReportError(status, &out);
+  }
 }
 
 void SoundInstance::SoundManagerUnsetVolumeChangeListener(
     const picojson::value& args, picojson::object& out) {
+  LoggerD("Enter");
   PlatformResult status = manager_.UnsetVolumeChangeListener();
 
-  if (status.IsSuccess())
+  if (status.IsSuccess()) {
     ReportSuccess(out);
-  else
+  } else {
+    LoggerE("Failed");
     ReportError(status, &out);
+  }
 }
 
 void SoundInstance::SoundManagerGetConnectedDeviceList(
@@ -155,6 +180,7 @@ void SoundInstance::SoundManagerAddDeviceStateChangeListener(
   if (result.IsSuccess()) {
     ReportSuccess(out);
   } else {
+    LoggerE("Failed");
     ReportError(result, &out);
   }
 }
@@ -168,6 +194,7 @@ void SoundInstance::SoundManagerRemoveDeviceStateChangeListener(
   if (result.IsSuccess()) {
     ReportSuccess(out);
   } else {
+    LoggerE("Failed");
     ReportError(result, &out);
   }
 }

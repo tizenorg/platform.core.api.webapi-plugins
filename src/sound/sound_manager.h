@@ -55,7 +55,7 @@ class SoundManager {
                                                   sound_type_e* sound_type);
   static common::PlatformResult PlatformEnumToStr(const sound_type_e value,
                                                   std::string* sound_type);
-                                                  
+
   common::PlatformResult GetDeviceInfo(sound_device_h device,
                                        bool is_connected,
                                        bool check_connection,
