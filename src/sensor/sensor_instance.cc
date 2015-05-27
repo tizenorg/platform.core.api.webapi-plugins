@@ -27,6 +27,7 @@ using namespace common;
 
 SensorInstance::SensorInstance()
     : service_(*this) {
+  LoggerD("Entered");
   using std::placeholders::_1;
   using std::placeholders::_2;
 
@@ -45,6 +46,7 @@ SensorInstance::SensorInstance()
 }
 
 SensorInstance::~SensorInstance() {
+  LoggerD("Entered");
 }
 
 void SensorInstance::GetAvailableSensors(const picojson::value& args, picojson::object& out) {
