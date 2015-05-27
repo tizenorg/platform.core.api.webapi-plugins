@@ -28,6 +28,7 @@ BadgeManager::BadgeManager(BadgeInstance& instance)
 }
 
 BadgeManager::~BadgeManager() {
+  LoggerD("Enter");
   if (is_cb_registered_) {
     if (!watched_applications_.empty()) watched_applications_.clear();
     int ret = badge_unregister_changed_cb(badge_changed_cb);
@@ -40,6 +41,7 @@ BadgeManager::~BadgeManager() {
 
 PlatformResult BadgeManager::SetBadgeCount(const std::string& app_id,
                                            unsigned int count) {
+  LoggerD("Enter");
   int ret = BADGE_ERROR_SERVICE_NOT_READY;
   bool badge_exist = false;
   const char *app_id_str = app_id.c_str();
@@ -104,6 +106,7 @@ PlatformResult BadgeManager::SetBadgeCount(const std::string& app_id,
 
 PlatformResult BadgeManager::GetBadgeCount(const std::string& app_id,
                                            unsigned int *count) {
+  LoggerD("Enter");
   assert(count);
 
   int ret = BADGE_ERROR_SERVICE_NOT_READY;
@@ -151,6 +154,7 @@ PlatformResult BadgeManager::GetBadgeCount(const std::string& app_id,
 }
 
 PlatformResult BadgeManager::AddChangeListener(const JsonObject &obj) {
+  LoggerD("Enter");
   auto &items = FromJson<picojson::array>(obj, "appIdList");
   for (auto item : items) {
     watched_applications_.insert(common::JsonCast<std::string>(item));
@@ -170,6 +174,7 @@ PlatformResult BadgeManager::AddChangeListener(const JsonObject &obj) {
 }
 
 PlatformResult BadgeManager::RemoveChangeListener(const JsonObject &obj) {
+  LoggerD("Enter");
   auto &items = FromJson<picojson::array>(obj, "appIdList");
   for (auto item : items) {
     watched_applications_.erase(common::JsonCast<std::string>(item));
@@ -189,6 +194,7 @@ PlatformResult BadgeManager::RemoveChangeListener(const JsonObject &obj) {
 
 void BadgeManager::badge_changed_cb(unsigned int action, const char *pkgname,
                                     unsigned int count, void *user_data) {
+  LoggerD("Enter");
   BadgeManager* that = static_cast<BadgeManager*>(user_data);
   if (action != BADGE_ACTION_SERVICE_READY &&
       that->watched_applications_.find(pkgname) != that->watched_applications_.end()) {
@@ -203,6 +209,7 @@ void BadgeManager::badge_changed_cb(unsigned int action, const char *pkgname,
 }
 
 bool BadgeManager::IsAppInstalled(const std::string &app_id) {
+  LoggerD("Enter");
   int ret = PACKAGE_MANAGER_ERROR_NONE;
   pkgmgrinfo_appinfo_h pkgmgrinfo_appinfo;
   if (app_id.empty()) {
@@ -217,6 +224,7 @@ bool BadgeManager::IsAppInstalled(const std::string &app_id) {
 
 PlatformResult BadgeManager::CheckPermisionForCreatingBadge(
     const char *app_id) {
+  LoggerD("Enter");
   if (!app_id) {
     LoggerE("InvalidValues error : app_id");
     return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
@@ -283,6 +291,7 @@ PlatformResult BadgeManager::CheckPermisionForCreatingBadge(
 }
 
 char *BadgeManager::GetPkgnameByAppid(const char *app_id) {
+  LoggerD("Enter");
   char *pkg_id = NULL;
   int ret = PACKAGE_MANAGER_ERROR_NONE;
   if (!app_id) {
@@ -304,6 +313,7 @@ char *BadgeManager::GetPkgnameByAppid(const char *app_id) {
 }
 
 char *BadgeManager::GetPkgnameByPid() {
+  LoggerD("Enter");
   char *pkgname = NULL;
   int pid = 0;
   int ret = AUL_R_OK;
@@ -344,6 +354,7 @@ char *BadgeManager::GetPkgnameByPid() {
 }
 
 int BadgeManager::IsSameCertInfo(const char *caller, const char *pkgname) {
+  LoggerD("Enter");
   int ret = PACKAGE_MANAGER_ERROR_NONE;
   package_manager_compare_result_type_e compare_result =
       PACKAGE_MANAGER_COMPARE_MISMATCH;

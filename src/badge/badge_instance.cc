@@ -13,6 +13,7 @@ using namespace common;
 using namespace extension::badge;
 
 BadgeInstance::BadgeInstance() : manager_(*this) {
+  LoggerD("Enter");
   using std::placeholders::_1;
   using std::placeholders::_2;
 
@@ -27,10 +28,13 @@ BadgeInstance::BadgeInstance() : manager_(*this) {
 #undef REGISTER_SYNC
 }
 
-BadgeInstance::~BadgeInstance() {}
+BadgeInstance::~BadgeInstance() {
+  LoggerD("Enter");
+}
 
 void BadgeInstance::BadgeManagerSetBadgeCount(const JsonValue& args,
                                               JsonObject& out) {
+  LoggerD("Enter");
   std::string app_id =
       common::FromJson<std::string>(args.get<JsonObject>(), "appId");
   const double count = args.get("count").get<double>();
@@ -45,6 +49,7 @@ void BadgeInstance::BadgeManagerSetBadgeCount(const JsonValue& args,
 
 void BadgeInstance::BadgeManagerGetBadgeCount(const JsonValue& args,
                                               JsonObject& out) {
+  LoggerD("Enter");
   std::string app_id =
       common::FromJson<std::string>(args.get<JsonObject>(), "appId");
 
@@ -59,6 +64,7 @@ void BadgeInstance::BadgeManagerGetBadgeCount(const JsonValue& args,
 
 void BadgeInstance::BadgeManagerAddChangeListener(const JsonValue& args,
                                                   JsonObject& out) {
+  LoggerD("Enter");
   PlatformResult status =
       manager_.AddChangeListener(args.get<JsonObject>());
 
@@ -70,6 +76,7 @@ void BadgeInstance::BadgeManagerAddChangeListener(const JsonValue& args,
 
 void BadgeInstance::BadgeManagerRemoveChangeListener(const JsonValue& args,
                                                      JsonObject& out) {
+  LoggerD("Enter");
   PlatformResult status =
       manager_.RemoveChangeListener(args.get<JsonObject>());
 
