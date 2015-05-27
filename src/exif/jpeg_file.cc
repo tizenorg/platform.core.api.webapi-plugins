@@ -118,6 +118,7 @@ JpegFile::~JpegFile() {
 }
 
 PlatformResult JpegFile::loadFile(const std::string& path, JpegFilePtr* jpg_ptr) {
+  LoggerD("Entered");
   JpegFile* new_jpg = new (std::nothrow) JpegFile();
   if (!new_jpg) {
     LoggerE("Couldn't allocate Jpegfile!");
@@ -187,6 +188,7 @@ PlatformResult JpegFile::load(const std::string& path) {
 std::string JpegFile::getPartOfFile(const std::size_t offset,
                                     const std::size_t num_bytes_before,
                                     const std::size_t num_bytes_after) {
+  LoggerD("Entered");
   long long int start = static_cast<long long int>(offset) - num_bytes_before;
   if (start < 0) {
     start = 0;
@@ -451,6 +453,7 @@ bool JpegFile::searchForTagInBuffer(const unsigned char* buffer_start,
 }
 
 PlatformResult JpegFile::setNewExifData(ExifData* new_exif_data) {
+  LoggerD("Entered");
   AssertMsg(new_exif_data, "Trying to set NULL exif_data!");
 
   JpegFileSectionPtr exif = getExifSection();
@@ -506,6 +509,7 @@ PlatformResult JpegFile::setNewExifData(ExifData* new_exif_data) {
 }
 
 ExifData* JpegFile::getExifData() {
+  LoggerD("Entered");
   JpegFileSectionPtr exif = getExifSection();
   if (!exif) {
     return NULL;
@@ -715,6 +719,7 @@ PlatformResult JpegFile::saveToFilePriv(const std::string& out_path) {
 }
 
 JpegFileSectionPtr JpegFile::getExifSection() {
+  LoggerD("Entered");
   std::size_t num_exif_sections = 0;
   JpegFileSectionPtr first_exif_section;
 

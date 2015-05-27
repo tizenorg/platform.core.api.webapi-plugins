@@ -41,6 +41,7 @@ void ExifTagSaver::removeExifEntryWithTag(const ExifTag tag,
 
 void ExifTagSaver::saveToExif(long int value, ExifTag tag,
                               ExifData* exif_data) {
+  LoggerD("Entered");
   ExifEntry* entry = prepareEntry(exif_data, tag);
   if (!entry) {
     // TODO return PlatformResult and handle error
@@ -79,6 +80,7 @@ void ExifTagSaver::saveToExif(long int value, ExifTag tag,
 void ExifTagSaver::saveToExif(const std::string& value, ExifTag tag,
                               ExifData* exif_data, ExifFormat format,
                               bool add_zero_character) {
+  LoggerD("Entered");
   ExifEntry* entry = prepareEntry(exif_data, tag);
   if (!entry) {
     // TODO return PlatformResult and handle error
@@ -111,6 +113,7 @@ void ExifTagSaver::saveToExif(const std::string& value, ExifTag tag,
 
 void ExifTagSaver::saveToExif(const Rational& value, ExifTag tag,
                               ExifData* exif_data) {
+  LoggerD("Entered");
   ExifEntry* entry = prepareEntry(exif_data, tag);
   if (!entry) {
     // TODO return PlatformResult and handle error
@@ -141,6 +144,7 @@ void ExifTagSaver::saveToExif(const Rational& value, ExifTag tag,
 
 void ExifTagSaver::saveToExif(const Rationals& value, ExifTag tag,
                               ExifData* exif_data) {
+  LoggerD("Entered");
   ExifEntry* entry = prepareEntry(exif_data, tag);
   if (!entry) {
     // TODO return PlatformResult and handle error
@@ -174,6 +178,7 @@ void ExifTagSaver::saveToExif(const Rationals& value, ExifTag tag,
 void ExifTagSaver::saveToExif(std::vector<long long int>& value,
                               ExifFormat store_as,
                               ExifTag tag, ExifData* exif_data) {
+  LoggerD("Entered");
   ExifEntry* entry = prepareEntry(exif_data, tag);
   if (!entry) {
     // TODO return PlatformResult and handle error
@@ -254,6 +259,7 @@ void ExifTagSaver::saveToExif(std::vector<long long int>& value,
 
 void ExifTagSaver::saveGpsLocationToExif(const ExifGPSLocation& gps_info,
                                          ExifData* exif_data) {
+  LoggerD("Entered");
   if (gps_info.isSet(EXIF_GPS_LOCATION_ATTRIBUTE_LATITUDE)) {
     auto latitude = gps_info.getLatitude();
     LoggerD("Saving latitude: %s", latitude.toDebugString().c_str());
@@ -317,6 +323,7 @@ ExifEntry* ExifTagSaver::createNewTag(ExifData* exif_data, ExifIfd ifd,
 }
 
 ExifIfd ExifTagSaver::deduceIfdSection(ExifTag tag) {
+  LoggerD("Entered");
   // TODO EXIF_TAG_* and EXIF_TAG_GPS_* are sharing same values,
   // they shouldn't be used in one switch statement.
 
@@ -361,6 +368,7 @@ ExifIfd ExifTagSaver::deduceIfdSection(ExifTag tag) {
 }
 
 ExifFormat ExifTagSaver::deduceDataFormat(ExifTag tag) {
+  LoggerD("Entered");
   // TODO EXIF_TAG_* and EXIF_TAG_GPS_* are sharing same values,
   // they shouldn't be used in one switch statement.
 

@@ -50,6 +50,7 @@ constexpr unsigned int str2int(const char* str, int h = 0) {
 }
 
 IsoSpeedRatingsVector jsonArray2vector(const picojson::value& a) {
+  LoggerD("Enter");
   if (!a.is<picojson::array>()) {
     return IsoSpeedRatingsVector();
   }
@@ -68,6 +69,7 @@ IsoSpeedRatingsVector jsonArray2vector(const picojson::value& a) {
 }  // namespace
 
 ExifInformation::ExifInformation() {
+  LoggerD("Enter");
   for (int attr = 0;
       attr < EXIF_INFORMATION_ATTRIBUTE_NUMBER_OF_ATTRIBUTES; attr++) {
     unset(static_cast<ExifInformationAttribute>(attr));
@@ -75,6 +77,7 @@ ExifInformation::ExifInformation() {
 }
 
 ExifInformation::ExifInformation(const picojson::value& args) {
+  LoggerD("Enter");
   for (int attr = 0;
       attr < EXIF_INFORMATION_ATTRIBUTE_NUMBER_OF_ATTRIBUTES; attr++) {
     unset(static_cast<ExifInformationAttribute>(attr));
@@ -90,7 +93,9 @@ ExifInformation::ExifInformation(const picojson::value& args) {
   }
 }
 
-ExifInformation::~ExifInformation() { }
+ExifInformation::~ExifInformation() {
+  LoggerD("Enter");
+ }
 
 const std::string& ExifInformation::getUri() {
   LoggerD("Entered");
