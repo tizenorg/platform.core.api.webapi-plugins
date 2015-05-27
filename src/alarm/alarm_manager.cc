@@ -83,6 +83,7 @@ void AlarmManager::Add(const picojson::value& args, picojson::object& out) {
     PlatformResult result = util::AppControlToService(
         args.get("appControl").get<picojson::object>(), &app_control);
     if (!result) {
+      LoggerE("Failed: util::AppControlToService");
       ReportError(result, &out);
       return;
     }
@@ -386,6 +387,8 @@ void AlarmManager::Get(const picojson::value& args, picojson::object& out) {
 }
 
 static bool AlarmIterateCB(int alarm_id, void *user_data) {
+  LoggerD("Enter");
+
   std::vector<int> *alarm_ids = reinterpret_cast<std::vector<int>*>(user_data);
 
   alarm_ids->push_back(alarm_id);
@@ -413,6 +416,7 @@ void AlarmManager::GetAll(const picojson::value& args, picojson::object& out) {
 
     PlatformResult platform_result = GetAlarm(alarm_ids.at(i), obj);
     if (!platform_result) {
+      LoggerE("Failed GetAlarm()");
       ReportError(platform_result, &out);
       return;
     }
