@@ -17,6 +17,7 @@ namespace filesystem {
 FilesystemStat::FilesystemStat() : error(FilesystemError::None), valid(false) {}
 
 picojson::value FilesystemStat::toJSON() const {
+  LoggerD("Enter");
   picojson::value retval = picojson::value(picojson::object());
   picojson::object& obj = retval.get<picojson::object>();
 
@@ -33,6 +34,7 @@ picojson::value FilesystemStat::toJSON() const {
 }
 
 FilesystemStat FilesystemStat::getStat(const std::string& path) {
+  LoggerD("Enter");
   struct stat aStatObj;
   FilesystemStat _result;
 

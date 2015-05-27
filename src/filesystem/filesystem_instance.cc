@@ -25,6 +25,7 @@ using namespace common;
 using namespace extension::filesystem;
 
 FilesystemInstance::FilesystemInstance() {
+  LoggerD("Enter");
   using std::placeholders::_1;
   using std::placeholders::_2;
 
@@ -357,6 +358,7 @@ void FilesystemInstance::FileSystemManagerFetchStorages(
 void FilesystemInstance::StartListening(
     const picojson::value& args,
     picojson::object& out) {
+  LoggerD("enter");
   FilesystemManager::GetInstance().StartListening();
   ReportSuccess(out);
 }
@@ -364,6 +366,7 @@ void FilesystemInstance::StartListening(
 void FilesystemInstance::StopListening(
     const picojson::value& args,
     picojson::object& out) {
+  LoggerD("enter");
   FilesystemManager::GetInstance().StopListening();
   ReportSuccess(out);
 }
@@ -381,6 +384,7 @@ void FilesystemInstance::onFilesystemStateChangeSuccessCallback(const common::Vi
 }
 
 void FilesystemInstance::onFilesystemStateChangeErrorCallback() {
+  LoggerD("enter");
   picojson::value event = picojson::value(picojson::object());
   picojson::object& obj = event.get<picojson::object>();
   ReportError(UnknownException(std::string("Failed to registerd listener")), obj);

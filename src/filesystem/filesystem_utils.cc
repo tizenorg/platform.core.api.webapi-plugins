@@ -9,6 +9,7 @@
 
 namespace FilesystemUtils {
 std::string get_storage_dir_path(int id, storage_directory_e typeToCheck) {
+  LoggerD("Enter");
   int result = STORAGE_ERROR_NONE;
   char* platformPath = NULL;
   result = storage_get_directory(id, typeToCheck, &platformPath);

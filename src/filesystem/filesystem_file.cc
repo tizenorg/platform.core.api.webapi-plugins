@@ -64,6 +64,7 @@ bool validateCharacter(char c) {
  */
 
 bool FilesystemBuffer::DecodeData(const std::string& data) {
+  LoggerD("Enter");
   if (data.length() % 4) {
     LoggerE("Buffer has invalid length");
     return false;
@@ -120,6 +121,7 @@ bool FilesystemBuffer::DecodeData(const std::string& data) {
 }
 
 std::string FilesystemBuffer::EncodeData() const {
+  LoggerD("Enter");
   std::string out;
 
   for (size_t i = 0; i < size(); i += 3) {
@@ -152,6 +154,7 @@ FilesystemFile::FilesystemFile(const std::string& path_)
 bool FilesystemFile::Read(FilesystemBuffer* data,
                                size_t offset,
                                size_t length) {
+  LoggerD("Enter");
   if (!data) {
     LoggerE("Missing output buffer");
     return false;
@@ -204,6 +207,7 @@ bool FilesystemFile::Read(FilesystemBuffer* data,
 }
 
 bool FilesystemFile::Write(const FilesystemBuffer& data, size_t offset) {
+  LoggerD("Enter");
   FILE* file = fopen(path.c_str(), "r+");
   if (!file) {
     LoggerE("Cannot open file %s to write!", path.c_str());
