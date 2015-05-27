@@ -20,6 +20,7 @@ const char* kApplicationControlData = "tizen.ApplicationControlData";
 extern const char kSource_application_api[];
 
 common::Extension* CreateExtension() {
+  LoggerD("Enter");
   ApplicationExtension* e = new ApplicationExtension();
 
   if (e->app_id().empty()) {
@@ -32,6 +33,8 @@ common::Extension* CreateExtension() {
 }
 
 ApplicationExtension::ApplicationExtension() {
+  LoggerD("Enter");
+
   app_id_ = GetRuntimeVariable("app_id", 64);
 
   LoggerD("app_id: %s", app_id_.c_str());
@@ -47,8 +50,11 @@ ApplicationExtension::ApplicationExtension() {
   SetExtraJSEntryPoints(entry_points);
 }
 
-ApplicationExtension::~ApplicationExtension() {}
+ApplicationExtension::~ApplicationExtension() {
+  LoggerD("Enter");
+}
 
 common::Instance* ApplicationExtension::CreateInstance() {
+  LoggerD("Enter");
   return new extension::application::ApplicationInstance(app_id_);
 }

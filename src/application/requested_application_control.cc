@@ -89,6 +89,7 @@ void RequestedApplicationControl::ReplyResult(const picojson::value& args, picoj
 
   result = set_bundle(encoded_bundle);
   if (result.IsError()) {
+    LoggerE("Failed set_bundle()");
     ReportError(result, out);
     return;
   }
@@ -96,6 +97,7 @@ void RequestedApplicationControl::ReplyResult(const picojson::value& args, picoj
   // code to check caller liveness
   result = VerifyCallerPresence();
   if (result.IsError()) {
+    LoggerE("Failed VerifyCallerPresence()");
     ReportError(result, out);
     return;
   }
@@ -111,6 +113,7 @@ void RequestedApplicationControl::ReplyResult(const picojson::value& args, picoj
       result = ApplicationUtils::ApplicationControlDataToServiceExtraData(
           iter->get<picojson::object>(), reply);
       if (result.IsError()) {
+        LoggerE("Failed ApplicationControlDataToServiceExtraData()");
         ReportError(result, out);
         return;
       }
@@ -139,6 +142,7 @@ void RequestedApplicationControl::ReplyFailure(picojson::object* out) {
 
   result = set_bundle(encoded_bundle);
   if (result.IsError()) {
+    LoggerE("Failed set_bundle()");
     ReportError(result, out);
     return;
   }
@@ -146,6 +150,7 @@ void RequestedApplicationControl::ReplyFailure(picojson::object* out) {
   // code to check caller liveness
   result = VerifyCallerPresence();
   if (result.IsError()) {
+    LoggerE("Failed VerifyCallerPresence()");
     ReportError(result, out);
     return;
   }
