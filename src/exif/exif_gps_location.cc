@@ -28,6 +28,7 @@ namespace extension {
 namespace exif {
 
 GCSPosition::GCSPosition() {
+  LoggerD("Enter");
 }
 
 GCSPosition::GCSPosition(Rational _degrees, Rational _minutes,
@@ -35,9 +36,11 @@ GCSPosition::GCSPosition(Rational _degrees, Rational _minutes,
     degrees(_degrees),
     minutes(_minutes),
     seconds(_seconds) {
+      LoggerD("Enter");
 }
 
 bool GCSPosition::isValid() const {
+  LoggerD("Enter");
   if (!(degrees.isValid() && minutes.isValid() && seconds.isValid())) {
     return false;
   }
@@ -52,6 +55,7 @@ bool GCSPosition::isValid() const {
 }
 
 double GCSPosition::toDouble() const {
+  LoggerD("Enter");
   const double degrees_value = degrees.toDouble();
   const double minutes_value = minutes.toDouble();
   const double seconds_value = seconds.toDouble();
@@ -59,6 +63,7 @@ double GCSPosition::toDouble() const {
 }
 
 Rationals GCSPosition::toRationalsVector() const {
+  LoggerD("Enter");
   Rationals vec;
   vec.push_back(degrees);
   vec.push_back(minutes);
@@ -67,6 +72,7 @@ Rationals GCSPosition::toRationalsVector() const {
 }
 
 std::string GCSPosition::toDebugString() const {
+  LoggerD("Enter");
   std::stringstream ss;
   ss << degrees.toString() << "d ";
   ss << minutes.toString() << "m ";
@@ -121,12 +127,14 @@ ExifGPSLocation::ExifGPSLocation() :
     m_longitude_ref(GPS_LOCATION_WEST),
     m_latitude_ref(GPS_LOCATION_NORTH) {
   for (int i = 0; i < EXIF_GPS_LOCATION_ATTRIBUTE_NUMBER_OF_ATTRIBUTES; ++i) {
+    LoggerD("Enter");
     m_is_set[i] = false;
   }
   LoggerE("ExifGPSLocation::ExifGPSLocation()");
 }
 
 ExifGPSLocation::ExifGPSLocation(double longitude, double latitude) {
+  LoggerD("Enter");
   for (int i = 0; i < EXIF_GPS_LOCATION_ATTRIBUTE_NUMBER_OF_ATTRIBUTES; ++i) {
     m_is_set[i] = false;
   }
@@ -148,6 +156,7 @@ ExifGPSLocation::ExifGPSLocation(double longitude, double latitude) {
 }
 
 void ExifGPSLocation::setLongitude(const GCSPosition& longitude) {
+  LoggerD("Enter");
   if (!longitude.isValid()) {
     LoggerW("longitude is not valid!");
     return;
@@ -158,19 +167,23 @@ void ExifGPSLocation::setLongitude(const GCSPosition& longitude) {
 }
 
 const GCSPosition& ExifGPSLocation::getLongitude() const {
+  LoggerD("Enter");
   return m_longitude;
 }
 
 void ExifGPSLocation::setLongitudeRef(GPSLocationDirectionLongitude ref) {
+  LoggerD("Enter");
   m_is_set[EXIF_GPS_LOCATION_ATTRIBUTE_LONGITUDE_REF] = true;
   m_longitude_ref = ref;
 }
 
 GPSLocationDirectionLongitude ExifGPSLocation::getLongitudeRef() const {
+  LoggerD("Enter");
   return m_longitude_ref;
 }
 
 void ExifGPSLocation::setLatitude(const GCSPosition& latitude) {
+  LoggerD("Enter");
   if (!latitude.isValid()) {
     LoggerW("latitude is not valid!");
     return;
@@ -181,27 +194,33 @@ void ExifGPSLocation::setLatitude(const GCSPosition& latitude) {
 }
 
 const GCSPosition& ExifGPSLocation::getLatitude() const {
+  LoggerD("Enter");
   return m_latitude;
 }
 
 void ExifGPSLocation::setLatitudeRef(GPSLocationDirectionLatitude ref) {
+  LoggerD("Enter");
   m_is_set[EXIF_GPS_LOCATION_ATTRIBUTE_LATITUDE_REF] = true;
   m_latitude_ref = ref;
 }
 
 GPSLocationDirectionLatitude ExifGPSLocation::getLatitudeRef() const {
+  LoggerD("Enter");
   return m_latitude_ref;
 }
 
 bool ExifGPSLocation::isSet(ExifGPSLocationAttributes attribute) const {
+  LoggerD("Enter");
   return m_is_set[attribute];
 }
 
 void ExifGPSLocation::unset(ExifGPSLocationAttributes attribute) {
+  LoggerD("Enter");
   m_is_set[attribute] = false;
 }
 
 void ExifGPSLocation::unsetAll() {
+  LoggerD("Enter");
   m_is_set[EXIF_GPS_LOCATION_ATTRIBUTE_LONGITUDE] = false;
   m_is_set[EXIF_GPS_LOCATION_ATTRIBUTE_LONGITUDE_REF] = false;
   m_longitude =  GCSPosition();
@@ -212,6 +231,7 @@ void ExifGPSLocation::unsetAll() {
 }
 
 bool ExifGPSLocation::isComplete() const {
+  LoggerD("Enter");
   return m_is_set[EXIF_GPS_LOCATION_ATTRIBUTE_LONGITUDE] &&
       m_is_set[EXIF_GPS_LOCATION_ATTRIBUTE_LONGITUDE_REF] &&
       m_is_set[EXIF_GPS_LOCATION_ATTRIBUTE_LATITUDE] &&
@@ -220,10 +240,12 @@ bool ExifGPSLocation::isComplete() const {
 
 
 bool ExifGPSLocation::isValid() const {
+  LoggerD("Enter");
   return isComplete() && m_latitude.isValid() && m_longitude.isValid();
 }
 
 double ExifGPSLocation::getLongitudeValue() const {
+  LoggerD("Enter");
   const double longitude_dir =
       (m_longitude_ref == GPS_LOCATION_WEST) ? -1.0f : 1.0f;
   const double longitude = m_longitude.toDouble() * longitude_dir;
@@ -231,6 +253,7 @@ double ExifGPSLocation::getLongitudeValue() const {
 }
 
 double ExifGPSLocation::getLatitudeValue() const {
+  LoggerD("Enter");
   const double latitude_dir =
       (m_latitude_ref == GPS_LOCATION_SOUTH) ? -1.0f : 1.0f;
   const double latitude = m_latitude.toDouble() * latitude_dir;
