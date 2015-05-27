@@ -75,6 +75,7 @@ class BluetoothLEServiceData : public ParsedDataHolder {
  private:
   static bool ParseUUID(const picojson::value& obj,
                         BluetoothLEServiceData* out) {
+    LoggerD("Entered");
     const auto& uuid = obj.get("serviceuuid");
     if (uuid.is<std::string>()) {
       out->uuid_ = uuid.get<std::string>();
@@ -87,6 +88,7 @@ class BluetoothLEServiceData : public ParsedDataHolder {
 
   static bool ParseData(const picojson::value& obj,
                         BluetoothLEServiceData* out) {
+    LoggerD("Entered");
     const auto& data = obj.get("data");
     if (data.is<std::string>()) {
       out->data_ = data.get<std::string>();
@@ -118,6 +120,7 @@ class BluetoothLEManufacturerData : public ParsedDataHolder {
 
   static bool Construct(const picojson::value& obj,
                         BluetoothLEManufacturerData* out) {
+    LoggerD("Entered");
     if (!obj.is<picojson::object>() ||
         !ParseId(obj, out) ||
         !ParseData(obj, out)) {
@@ -132,6 +135,7 @@ class BluetoothLEManufacturerData : public ParsedDataHolder {
  private:
   static bool ParseId(const picojson::value& obj,
                       BluetoothLEManufacturerData* out) {
+    LoggerD("Entered");
     const auto& id = obj.get("id");
     if (id.is<std::string>()) {
       try {
@@ -149,6 +153,7 @@ class BluetoothLEManufacturerData : public ParsedDataHolder {
 
   static bool ParseData(const picojson::value& obj,
                         BluetoothLEManufacturerData* out) {
+    LoggerD("Entered");
     const auto& data = obj.get("data");
     if (data.is<std::string>()) {
       out->data_ = data.get<std::string>();
@@ -202,6 +207,7 @@ class BluetoothLEAdvertiseData : public ParsedDataHolder {
 
   static bool Construct(const picojson::value& obj,
                         BluetoothLEAdvertiseData* out) {
+    LoggerD("Entered");
     if (!obj.is<picojson::object>() ||
         !ParseIncludeName(obj, out) ||
         !ParseServiceUUIDs(obj, out) ||
@@ -221,6 +227,7 @@ class BluetoothLEAdvertiseData : public ParsedDataHolder {
  private:
   static bool ParseIncludeName(const picojson::value& obj,
                                BluetoothLEAdvertiseData* out) {
+    LoggerD("Entered");
     const auto& include_name = obj.get("includeName");
     if (include_name.is<bool>()) {
       out->include_name_ = include_name.get<bool>();
@@ -233,6 +240,7 @@ class BluetoothLEAdvertiseData : public ParsedDataHolder {
 
   static bool ParseServiceUUIDs(const picojson::value& obj,
                                 BluetoothLEAdvertiseData* out) {
+    LoggerD("Entered");
     const auto& service_uuids = obj.get("serviceuuids");
     if (service_uuids.is<picojson::array>()) {
       for (const auto& i : service_uuids.get<picojson::array>()) {
@@ -251,6 +259,7 @@ class BluetoothLEAdvertiseData : public ParsedDataHolder {
 
   static bool ParseSolicitationUUIDs(const picojson::value& obj,
                                      BluetoothLEAdvertiseData* out) {
+    LoggerD("Entered");
     const auto& solicitation_uuids = obj.get("solicitationuuids");
     if (solicitation_uuids.is<picojson::array>()) {
       for (const auto& i : solicitation_uuids.get<picojson::array>()) {
@@ -269,6 +278,7 @@ class BluetoothLEAdvertiseData : public ParsedDataHolder {
 
   static bool ParseAppearance(const picojson::value& obj,
                               BluetoothLEAdvertiseData* out) {
+    LoggerD("Entered");
     const auto& appearance = obj.get("appearance");
     if (appearance.is<double>()) {
       out->appearance_ = static_cast<decltype(appearance_)>(appearance.get<double>());
@@ -281,6 +291,7 @@ class BluetoothLEAdvertiseData : public ParsedDataHolder {
 
   static bool ParseIncludeTxPowerLevel(const picojson::value& obj,
                                        BluetoothLEAdvertiseData* out) {
+    LoggerD("Entered");
     const auto& include_tx_power_level = obj.get("includeTxPowerLevel");
     if (include_tx_power_level.is<bool>()) {
       out->include_tx_power_level_ = include_tx_power_level.get<bool>();
@@ -293,6 +304,7 @@ class BluetoothLEAdvertiseData : public ParsedDataHolder {
 
   static bool ParseServiceData(const picojson::value& obj,
                                BluetoothLEAdvertiseData* out) {
+    LoggerD("Entered");
     const auto& service_data = obj.get("serviceData");
     if (service_data.is<picojson::array>()) {
       for (const auto& i : service_data.get<picojson::array>()) {
@@ -312,6 +324,7 @@ class BluetoothLEAdvertiseData : public ParsedDataHolder {
 
   static bool ParseManufacturerData(const picojson::value& obj,
                                     BluetoothLEAdvertiseData* out) {
+    LoggerD("Entered");
     const auto& manufacturer_data = obj.get("manufacturerData");
     BluetoothLEManufacturerData data;
     if (BluetoothLEManufacturerData::Construct(manufacturer_data, &data)) {
@@ -395,6 +408,7 @@ BluetoothLEAdapter::BluetoothLEAdapter(BluetoothInstance& instance)
 }
 
 BluetoothLEAdapter::~BluetoothLEAdapter() {
+  LoggerD("Entered");
   bt_adapter_le_unset_state_changed_cb();
   if (scanning_) {
     bt_adapter_le_stop_scan();
@@ -475,6 +489,7 @@ void BluetoothLEAdapter::StartAdvertise(const picojson::value& data, picojson::o
     } else if ("SCAN_RESPONSE" == str_packet_type) {
       packet_type = BT_ADAPTER_LE_PACKET_SCAN_RESPONSE;
     } else {
+      LoggerE("Fail: json_packet_type.get");
       ReportError(PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, "Unexpected value of packet type"), &out);
       return;
     }

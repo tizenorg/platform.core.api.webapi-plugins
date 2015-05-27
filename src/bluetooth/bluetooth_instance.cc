@@ -169,12 +169,14 @@ const char* JSON_DATA = "args";
 } // namespace
 
 void BluetoothInstance::AsyncResponse(double callback_handle, const std::shared_ptr<picojson::value>& response) {
+  LoggerD("Entered");
   common::TaskQueue::GetInstance().Async<picojson::value>([this, callback_handle](const std::shared_ptr<picojson::value>& response) {
     SyncResponse(callback_handle, response);
   }, response);
 }
 
 void BluetoothInstance::AsyncResponse(double callback_handle, const PlatformResult& result) {
+  LoggerD("Entered");
   std::shared_ptr<picojson::value> response =
       std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
 
@@ -190,23 +192,27 @@ void BluetoothInstance::AsyncResponse(double callback_handle, const PlatformResu
 }
 
 void BluetoothInstance::SyncResponse(double callback_handle, const std::shared_ptr<picojson::value>& response) {
+  LoggerD("Entered");
   auto& obj = response->get<picojson::object>();
   obj[JSON_CALLBACK_ID] = picojson::value(callback_handle);
   PostMessage(response->serialize().c_str());
 }
 
 void BluetoothInstance::FireEvent(const std::string& event, picojson::value& value) {
+  LoggerD("Entered");
   auto& obj = value.get<picojson::object>();
   obj[JSON_LISTENER_ID] = picojson::value(event);
   PostMessage(value.serialize().c_str());
 }
 
 void BluetoothInstance::FireEvent(const std::string& event, const picojson::value& value) {
+  LoggerD("Entered");
   picojson::value v{value};
   FireEvent(event, v);
 }
 
 void BluetoothInstance::FireEvent(const std::string& event, const std::shared_ptr<picojson::value>& value) {
+  LoggerD("Entered");
   FireEvent(event, *value.get());
 }
 

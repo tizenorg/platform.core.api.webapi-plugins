@@ -179,6 +179,7 @@ PlatformResult BluetoothGATTService::GetServicesHelper(bt_gatt_h handle,
         return true;
       }, static_cast<void*>(&user_data));
   if (BT_ERROR_NONE != ret) {
+    LoggerE("Failed bt_gatt_service_foreach_included_services() (%d)", ret);
     return util::GetBluetoothError(ret, "Failed to set a service's GATT callback");
   }
 
@@ -258,6 +259,7 @@ PlatformResult BluetoothGATTService::GetCharacteristicsHelper(bt_gatt_h handle,
             }, static_cast<void*>(&desc_array));
         if (BT_ERROR_NONE != ret) {
           *platform_result = util::GetBluetoothError(ret, "Failed to get descriptors");
+          LoggerE("Failed bt_gatt_characteristic_foreach_descriptors() (%d)", ret);
           return false;
         }
 
@@ -291,6 +293,7 @@ PlatformResult BluetoothGATTService::GetCharacteristicsHelper(bt_gatt_h handle,
     return platform_result;
   }
   if (BT_ERROR_NONE != ret) {
+    LoggerE("Failed (%d)", ret);
     return util::GetBluetoothError(ret, "Failed while getting characteristic");
   }
 
