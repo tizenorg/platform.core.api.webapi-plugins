@@ -22,6 +22,7 @@ using common::NotFoundException;
 using common::QuotaExceededException;
 
 MessageportInstance::MessageportInstance() {
+  LoggerD("Enter");
   using std::placeholders::_1;
   using std::placeholders::_2;
   #define REGISTER_SYNC(c, x) \
@@ -39,6 +40,7 @@ MessageportInstance::MessageportInstance() {
 }
 
 MessageportInstance::~MessageportInstance() {
+  LoggerD("Enter");
 }
 
 
@@ -53,6 +55,7 @@ enum MessageportCallbacks {
 };
 
 static void BundleJsonIterator(const char *k, const char *v, void *d) {
+  LoggerD("Enter");
   picojson::value::array *array = static_cast<picojson::value::array *>(d);
   picojson::value::object o;
   o["key"] = picojson::value(k);
@@ -69,6 +72,8 @@ static void BundleJsonIterator(const char *k, const char *v, void *d) {
 static void OnReceiveLocalMessage(int local_port_id,
   const char* remote_app_id, const char* remote_port,
   bool trusted_remote_port, bundle* message, void* user_data) {
+
+  LoggerD("Enter");
   MessageportInstance* object = static_cast<MessageportInstance*>(user_data);
   picojson::value::object o;
   picojson::value::array data;
@@ -94,6 +99,7 @@ static void OnReceiveLocalMessage(int local_port_id,
 
 void MessageportInstance::MessagePortManagerRequestlocalmessageport
   (const picojson::value& args, picojson::object& out) {
+  LoggerD("Enter");
   CHECK_EXIST(args, "localMessagePortName", out)
 
   int portId;
@@ -110,16 +116,20 @@ void MessageportInstance::MessagePortManagerRequestlocalmessageport
   if (portId < 0) {
     switch (portId) {
       case MESSAGE_PORT_ERROR_INVALID_PARAMETER:
+        LoggerE("The input parameter contains an invalid value");
         ReportError(InvalidValuesException
           ("The input parameter contains an invalid value."), out);
         break;
       case MESSAGE_PORT_ERROR_OUT_OF_MEMORY:
+        LoggerE("Out of memory");
         ReportError(UnknownException("Out of memory."), out);
         break;
       case MESSAGE_PORT_ERROR_IO_ERROR:
+        LoggerE("Internal I/O error ocurred");
         ReportError(UnknownException("Internal I/O error ocurred."), out);
         break;
       default:
+        LoggerE("Unknown Exception");
         ReportError(UnknownException("Unknown Exception"), out);
         break;
       }
@@ -131,6 +141,8 @@ void MessageportInstance::MessagePortManagerRequestlocalmessageport
 void MessageportInstance::
   MessagePortManagerRequesttrustedlocalmessageport
     (const picojson::value& args, picojson::object& out) {
+
+  LoggerD("Enter");
   CHECK_EXIST(args, "localMessagePortName", out)
 
   int portId;
@@ -146,16 +158,20 @@ void MessageportInstance::
   if (portId < 0) {
     switch (portId) {
       case MESSAGE_PORT_ERROR_INVALID_PARAMETER:
+        LoggerE("The input parameter contains an invalid value");
         ReportError(InvalidValuesException
           ("The input parameter contains an invalid value."), out);
         break;
       case MESSAGE_PORT_ERROR_OUT_OF_MEMORY:
+        LoggerE("Out of memory");
         ReportError(UnknownException("Out of memory."), out);
         break;
       case MESSAGE_PORT_ERROR_IO_ERROR:
+        LoggerE("Internal I/O error ocurred");
         ReportError(UnknownException("Internal I/O error ocurred."), out);
         break;
       default:
+        LoggerE("Unknown Exception");
         ReportError(UnknownException("Unknown Exception"), out);
         break;
       }
@@ -167,6 +183,7 @@ void MessageportInstance::
 void MessageportInstance::
   MessagePortManagerRequestremotemessageport
     (const picojson::value& args, picojson::object& out) {
+  LoggerD("Enter");
   CHECK_EXIST(args, "remoteMessagePortName", out)
 
   const std::string& remoteMessagePortName =
@@ -187,18 +204,22 @@ void MessageportInstance::
     if (portCheck)  {
       ReportSuccess(out);
     } else {
+      LoggerE("The port of the target application is not found");
       ReportError(
           NotFoundException("The port of the target application is not found"),
           out);
     }
   } else if (ret == MESSAGE_PORT_ERROR_INVALID_PARAMETER) {
+    LoggerE("An input parameter contains an invalid value");
     ReportError(
         InvalidValuesException("An input parameter contains an invalid value."),
         out);
   } else if (ret == MESSAGE_PORT_ERROR_OUT_OF_MEMORY) {
+    LoggerE("Out of memory");
     ReportError(UnknownException("Out of memory."), out);
   } else if (ret == MESSAGE_PORT_ERROR_IO_ERROR) {
     // IO error means that remote port does not exist
+    LoggerE("The port of the target application is not found");
     ReportError(
         NotFoundException("The port of the target application is not found"),
         out);
@@ -207,6 +228,7 @@ void MessageportInstance::
         NotFoundException("The port of the target application is not found"),
         out);
   } else {
+    LoggerE("Unknown Error");
     ReportError(UnknownException("Unknown Error"), out);
   }
 }
@@ -214,6 +236,7 @@ void MessageportInstance::
 void MessageportInstance::
   MessagePortManagerRequesttrustedremotemessageport
     (const picojson::value& args, picojson::object& out) {
+  LoggerD("Enter");
   CHECK_EXIST(args, "remoteMessagePortName", out)
 
   const std::string& remoteMessagePortName =
@@ -234,18 +257,23 @@ void MessageportInstance::
     if (portCheck) {
       ReportSuccess(out);
     } else {
+
+      LoggerE("The port of the target application is not found");
       ReportError(
           NotFoundException("The port of the target application is not found"),
           out);
     }
   } else if (ret == MESSAGE_PORT_ERROR_INVALID_PARAMETER) {
+    LoggerE("An input parameter contains an invalid value");
     ReportError(
         InvalidValuesException("An input parameter contains an invalid value."),
         out);
   } else if (ret == MESSAGE_PORT_ERROR_OUT_OF_MEMORY) {
+    LoggerE("Out of memory");
     ReportError(UnknownException("Out of memory."), out);
   } else if (ret == MESSAGE_PORT_ERROR_IO_ERROR) {
     // IO error means that remote port does not exist
+    LoggerE("The port of the target application is not found");
     ReportError(
         NotFoundException("The port of the target application is not found"),
         out);
@@ -254,17 +282,20 @@ void MessageportInstance::
         NotFoundException("The port of the target application is not found"),
         out);
   } else if (ret == MESSAGE_PORT_ERROR_CERTIFICATE_NOT_MATCH) {
+    LoggerE("The remote application is not signed with the same certificate");
     ReportError(
         UnknownException(
             "The remote application is not signed with the same certificate"),
         out);
   } else {
+    LoggerE("Unknown Error");
     ReportError(UnknownException("Unknown Error"), out);
   }
 }
 
 void MessageportInstance::RemoteMessagePortSendmessage
   (const picojson::value& args, picojson::object& out) {
+  LoggerD("Enter");
   const std::string& appId = args.get("appId").get<std::string>();
   const std::string& message_port_name =
     args.get("messagePortName").get<std::string>();
