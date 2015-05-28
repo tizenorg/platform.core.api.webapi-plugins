@@ -295,6 +295,7 @@ PlatformResult EmailManager::addMessagePlatform(int account_id,
 
 static gboolean addDraftMessageCompleteCB(void *data)
 {
+    LoggerD("Entered");
     MessageCallbackUserData* callback =
         static_cast<MessageCallbackUserData *>(data);
     if (!callback) {
@@ -376,12 +377,14 @@ static gboolean sendEmailCompleteCB(void* data)
     picojson::object& obj = json->get<picojson::object>();
     if (json->contains(JSON_CALLBACK_ID) && obj.at(JSON_CALLBACK_ID).is<double>()) {
         if (callback->isError()) {
+            LoggerD("Calling error callback");
             callback->getQueue().resolve(obj.at(JSON_CALLBACK_ID).get<double>(),
                                              json->serialize()
             );
             callback->getMessage()->setMessageStatus(MessageStatus::STATUS_FAILED);
         }
         else {
+            LoggerD("Calling success callback");
             obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
 
             std::vector<picojson::value> recipients;
@@ -438,30 +441,30 @@ PlatformResult EmailManager::sendMessage(MessageRecipientsCallbackData* callback
   if (message) {
     if (!(message->is_id_set())) {
       platform_result = addOutboxMessagePlatform(callback->getAccountId(), message);
-      if (platform_result.IsError()) return platform_result;
     }
 
-    err = email_get_mail_data(message->getId(),&mail_data);
-
-    if (EMAIL_ERROR_NONE != err) {
-      LoggerE("email_get_mail_data failed. [%d]\n", err);
-      platform_result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to get platform email structure");
-    } else {
-      LoggerD("email_get_mail_data success.\n");
-
-      // Sending EMAIL
-      mail_data->save_status = EMAIL_MAIL_STATUS_SENDING;
-
-      int req_id = 0;
-      err = email_send_mail(mail_data->mail_id, &req_id);
-
+    if (platform_result) {
+      err = email_get_mail_data(message->getId(),&mail_data);
       if (EMAIL_ERROR_NONE != err) {
-        LoggerE("Failed to send message %d", err);
-        platform_result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to send message");
+        LoggerE("email_get_mail_data failed. [%d]\n", err);
+        platform_result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to get platform email structure");
       } else {
-        LoggerD("req_id: %d", req_id);
-        callback->getMessage()->setMessageStatus(MessageStatus::STATUS_SENDING);
-        m_sendRequests[req_id] = callback;
+        LoggerD("email_get_mail_data success.\n");
+
+        // Sending EMAIL
+        mail_data->save_status = EMAIL_MAIL_STATUS_SENDING;
+
+        int req_id = 0;
+        err = email_send_mail(mail_data->mail_id, &req_id);
+
+        if (EMAIL_ERROR_NONE != err) {
+          LoggerE("Failed to send message %d", err);
+          platform_result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to send message");
+        } else {
+          LoggerD("req_id: %d", req_id);
+          callback->getMessage()->setMessageStatus(MessageStatus::STATUS_SENDING);
+          m_sendRequests[req_id] = callback;
+        }
       }
     }
   } else {
@@ -496,7 +499,7 @@ void EmailManager::sendStatusCallback(int mail_id,
         email_noti_on_network_event status,
         int error_code)
 {
-    LoggerD("Enter");
+    LoggerD("Entered");
 
     std::lock_guard<std::mutex> lock(m_mutex);
     //find first request for this mail_id
@@ -545,6 +548,7 @@ void EmailManager::sendStatusCallback(int mail_id,
 
 email_mail_data_t* EmailManager::loadMessage(int msg_id)
 {
+    LoggerD("Entered");
     email_mail_data_t* mail_data = NULL;
     int err = EMAIL_ERROR_NONE;
     err = email_get_mail_data(msg_id, &mail_data);
@@ -558,6 +562,7 @@ email_mail_data_t* EmailManager::loadMessage(int msg_id)
 
 EmailManager::SendReqMapIterator EmailManager::getSendRequest(int mail_id)
 {
+    LoggerD("Entered");
     for (auto it = m_sendRequests.begin(); it != m_sendRequests.end(); it++) {
         if (it->second->getMessage()->getId() == mail_id) {
             return it;
@@ -568,6 +573,7 @@ EmailManager::SendReqMapIterator EmailManager::getSendRequest(int mail_id)
 
 void EmailManager::freeMessage(email_mail_data_t* mail_data)
 {
+    LoggerD("Entered");
     if(!mail_data) {
         return;
     }
@@ -792,7 +798,7 @@ void EmailManager::syncFolder(SyncFolderCallbackData* callback)
   if (NULL != mailbox) {
     err = email_free_mailbox(&mailbox, 1);
     if (EMAIL_ERROR_NONE != err) {
-      LoggerD("Failed to email_free_mailbox - err:%d ", err);
+      LoggerE("Failed to email_free_mailbox - err:%d ", err);
     }
     mailbox = NULL;
   }
@@ -838,6 +844,24 @@ void EmailManager::stopSync(long op_id)
 
 //################################## ^stopSync #################################
 
+void EmailManager::RemoveSyncCallback(long op_id) {
+  LoggerD("Entered");
+  m_proxy_sync->removeCallback(op_id);
+}
+
+void EmailManager::RemoveCallbacksByQueue(const PostQueue& q) {
+  LoggerD("Entered");
+
+  for (auto it = m_sendRequests.begin(); it != m_sendRequests.end();) {
+    if (&it->second->getQueue() == &q) {
+      delete it->second;
+      m_sendRequests.erase(it++);
+    } else {
+      ++it;
+    }
+  }
+}
+
 void removeEmailCompleteCB(MessagesCallbackUserData* callback)
 {
   LoggerD("Entered");
@@ -873,6 +897,7 @@ void removeEmailCompleteCB(MessagesCallbackUserData* callback)
 EmailManager::DeleteReqVector::iterator EmailManager::getDeleteRequest(
         const std::vector<int> &ids)
 {
+    LoggerD("Entered");
     for (auto idIt = ids.begin(); idIt != ids.end(); ++idIt) {
         for (auto reqIt = m_deleteRequests.begin(); reqIt != m_deleteRequests.end(); ++reqIt) {
             MessagePtrVector msgs = reqIt->callback->getMessages();
@@ -889,7 +914,7 @@ EmailManager::DeleteReqVector::iterator EmailManager::getDeleteRequest(
 void EmailManager::removeStatusCallback(const std::vector<int> &ids,
             email_noti_on_storage_event status)
 {
-    LoggerD("Enter");
+    LoggerD("Entered");
     std::lock_guard<std::mutex> lock(m_mutex);
     DeleteReqVector::iterator it = getDeleteRequest(ids);
     if (it != m_deleteRequests.end()) {
@@ -923,6 +948,7 @@ void EmailManager::removeStatusCallback(const std::vector<int> &ids,
 
 PlatformResult EmailManager::RemoveMessagesPlatform(MessagesCallbackUserData* callback)
 {
+  LoggerD("Entered");
   int error;
   email_mail_data_t *mail = NULL;
 
@@ -978,6 +1004,7 @@ void EmailManager::removeMessages(MessagesCallbackUserData* callback)
 }
 
 PlatformResult EmailManager::UpdateMessagesPlatform(MessagesCallbackUserData* callback) {
+  LoggerD("Entered");
   int error;
   email_mail_data_t *mail = NULL;
   SCOPE_EXIT {
@@ -1085,6 +1112,7 @@ void EmailManager::updateMessages(MessagesCallbackUserData* callback)
 
 PlatformResult EmailManager::FindMessagesPlatform(FindMsgCallbackUserData* callback)
 {
+  LoggerD("Entered");
   email_mail_data_t* mailList = NULL;
   int mailListCount = 0;
 
@@ -1165,6 +1193,7 @@ void EmailManager::findMessages(FindMsgCallbackUserData* callback)
 
 PlatformResult EmailManager::FindConversationsPlatform(ConversationCallbackData* callback)
 {
+  LoggerD("Entered");
   int convListCount = 0;
 
   std::lock_guard<std::mutex> lock(m_mutex);
@@ -1189,7 +1218,7 @@ PlatformResult EmailManager::FindConversationsPlatform(ConversationCallbackData*
 
 void EmailManager::findConversations(ConversationCallbackData* callback)
 {
-    LoggerE("Entered");
+    LoggerD("Entered");
 
     if(!callback){
         LoggerE("Callback is null");
@@ -1241,6 +1270,7 @@ void EmailManager::findConversations(ConversationCallbackData* callback)
 
 long EmailManager::getUniqueOpId()
 {
+    LoggerD("Entered");
     // mutex is created only on first call (first call added to constructor
     // to initialize mutex correctly)
     static std::mutex op_id_mutex;
@@ -1251,6 +1281,7 @@ long EmailManager::getUniqueOpId()
 
 PlatformResult EmailManager::FindFoldersPlatform(FoldersCallbackData* callback)
 {
+  LoggerD("Entered");
   int ret = EMAIL_ERROR_UNKNOWN;
   int account_id = ACCOUNT_ID_NOT_INITIALIZED;
   email_mailbox_t* mailboxes = NULL;
@@ -1379,6 +1410,7 @@ void EmailManager::findFolders(FoldersCallbackData* callback)
 
 PlatformResult EmailManager::RemoveConversationsPlatform(ConversationCallbackData* callback)
 {
+  LoggerD("Entered");
   int error;
   std::lock_guard<std::mutex> lock(m_mutex);
   std::vector<std::shared_ptr<MessageConversation>> conversations =
