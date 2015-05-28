@@ -33,9 +33,14 @@ MessageServiceEmail::MessageServiceEmail(int id, std::string name)
     LoggerD("Entered");
 }
 
-MessageServiceEmail::~MessageServiceEmail()
-{
-    LoggerD("Entered");
+MessageServiceEmail::~MessageServiceEmail() {
+  LoggerD("Entered");
+
+  for (auto id : registered_callbacks_) {
+    // this may internally fail, because we don't have information about
+    // callbacks which already have fired
+    EmailManager::getInstance().RemoveSyncCallback(id);
+  }
 }
 
 static gboolean sendMessageTask(void* data)
@@ -182,6 +187,7 @@ PlatformResult MessageServiceEmail::sync(SyncCallbackData *callback, long* opera
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not add task");
   }
   *operation_id = op_id;
+  registered_callbacks_.insert(op_id);
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
@@ -218,6 +224,7 @@ PlatformResult MessageServiceEmail::syncFolder(SyncFolderCallbackData *callback,
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not add task");
   }
   *operation_id = op_id;
+  registered_callbacks_.insert(op_id);
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
@@ -242,6 +249,7 @@ PlatformResult MessageServiceEmail::stopSync(long op_id)
 {
   LoggerD("Entered");
 
+  registered_callbacks_.erase(op_id);
   long* data = new long(op_id);
   guint id = g_idle_add(stopSyncTask, static_cast<void*>(data));
 

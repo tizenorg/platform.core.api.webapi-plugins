@@ -19,6 +19,8 @@
 
 #include "message_service.h"
 
+#include <unordered_set>
+
 namespace extension {
 namespace messaging {
 
@@ -33,6 +35,9 @@ public:
     virtual common::PlatformResult sync(SyncCallbackData *callback, long* operation_id);
     virtual common::PlatformResult syncFolder(SyncFolderCallbackData *callback, long* operation_id);
     virtual common::PlatformResult stopSync(long op_id);
+
+private:
+    std::unordered_set<long> registered_callbacks_;
 };
 
 } // messaging
