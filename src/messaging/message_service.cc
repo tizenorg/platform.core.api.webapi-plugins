@@ -69,8 +69,10 @@ const std::vector<std::string>& MessageRecipientsCallbackData::getMessageRecipie
 void MessageRecipientsCallbackData::setError(const std::string& err_name,
         const std::string& err_message)
 {
+    LoggerD("Entered");
     // keep only first error in chain
     if (!m_is_error) {
+        LoggerD("Error has not been set yet");
         m_is_error = true;
 
         picojson::object& obj = m_json->get<picojson::object>();
@@ -86,8 +88,10 @@ void MessageRecipientsCallbackData::setError(const std::string& err_name,
 
 void MessageRecipientsCallbackData::setError(const PlatformResult& error)
 {
+  LoggerD("Entered");
   // keep only first error in chain
   if (!m_is_error) {
+    LoggerD("Error has not been set yet");
     m_is_error = true;
 
     picojson::object& obj = m_json->get<picojson::object>();
@@ -118,6 +122,7 @@ int MessageRecipientsCallbackData::getAccountId() const
 bool MessageRecipientsCallbackData::setSimIndex(
     int sim_index)
 {
+    LoggerD("Entered");
     char **cp_list = tel_get_cp_name_list();
     int sim_count = 0;
     if (cp_list) {
@@ -182,8 +187,10 @@ BaseMessageServiceCallbackData::~BaseMessageServiceCallbackData()
 void BaseMessageServiceCallbackData::setError(const std::string& err_name,
         const std::string& err_message)
 {
+    LoggerD("Entered");
     // keep only first error in chain
     if (!m_is_error) {
+        LoggerD("Error has not been set yet");
         m_is_error = true;
 
         picojson::object& obj = m_json->get<picojson::object>();
@@ -198,8 +205,10 @@ void BaseMessageServiceCallbackData::setError(const std::string& err_name,
 
 void BaseMessageServiceCallbackData::setError(const PlatformResult& error)
 {
+  LoggerD("Entered");
   // keep only first error in chain
   if (!m_is_error) {
+    LoggerD("Error has not been set yet");
     m_is_error = true;
 
     picojson::object& obj = m_json->get<picojson::object>();
@@ -407,6 +416,7 @@ MessageService::~MessageService()
 
 picojson::object MessageService::toPicoJS() const
 {
+    LoggerD("Entered");
     picojson::object picojs = picojson::object();
     picojs[JSON_SERVICE_ID] = picojson::value(std::to_string(m_id));
     picojs[JSON_SERVICE_TYPE] = picojson::value(getMsgServiceTypeString());

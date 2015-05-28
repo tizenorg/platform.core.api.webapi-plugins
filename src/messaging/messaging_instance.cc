@@ -159,6 +159,7 @@ MessagingInstance::~MessagingInstance()
 }
 
 #define POST_AND_RETURN(ret, json, obj, action) \
+    LoggerE("Error occured: (%s)", ret.message().c_str()); \
     picojson::object args; \
     ReportError(ret, &args); \
     obj[JSON_DATA] = picojson::value(args); \

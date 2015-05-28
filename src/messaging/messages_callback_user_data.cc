@@ -13,6 +13,7 @@ MessagesCallbackUserData::MessagesCallbackUserData(PostQueue& queue):
         m_service_type(MessageType::UNDEFINED),
         queue_(queue)
 {
+    LoggerD("Entered");
 }
 
 MessagesCallbackUserData::MessagesCallbackUserData(long cid, PostQueue& queue, bool keep):
@@ -21,6 +22,7 @@ MessagesCallbackUserData::MessagesCallbackUserData(long cid, PostQueue& queue, b
         m_service_type(MessageType::UNDEFINED),
         queue_(queue)
 {
+    LoggerD("Entered");
     auto json = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
     picojson::object& o = json->get<picojson::object>();
     o[JSON_CALLBACK_ID] = picojson::value(static_cast<double>(cid));
@@ -29,10 +31,12 @@ MessagesCallbackUserData::MessagesCallbackUserData(long cid, PostQueue& queue, b
 }
 
 MessagesCallbackUserData::~MessagesCallbackUserData() {
+    LoggerD("Entered");
 }
 
 void MessagesCallbackUserData::addMessage(std::shared_ptr<Message> msg)
 {
+    LoggerD("Entered");
     m_messages.push_back(msg);
 }
 
@@ -44,8 +48,10 @@ std::vector<std::shared_ptr<Message>> MessagesCallbackUserData::getMessages() co
 void MessagesCallbackUserData::setError(const std::string& err_name,
         const std::string& err_message)
 {
+    LoggerD("Entered");
     // keep only first error in chain
     if (!m_is_error) {
+        LoggerD("Error has not been set yet");
         picojson::object& obj = m_json->get<picojson::object>();
         obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_ERROR);
         auto objData = picojson::object();
@@ -65,6 +71,7 @@ void MessagesCallbackUserData::SetError(const common::PlatformResult& error)
 {
   // keep only first error in chain
   if (!m_is_error) {
+    LoggerD("Error has not been set yet");
     m_is_error = true;
     picojson::object& obj = m_json->get<picojson::object>();
     obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_ERROR);

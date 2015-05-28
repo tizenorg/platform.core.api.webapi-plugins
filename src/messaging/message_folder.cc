@@ -29,10 +29,12 @@ MessageFolder::MessageFolder(
     m_type(type),
     m_synchronizable(synchronizable)
 {
+    LoggerD("Entered");
 }
 
 MessageFolder::MessageFolder(email_mailbox_t mailbox)
 {
+    LoggerD("Entered");
     m_id = std::to_string(mailbox.mailbox_id);
     m_parent_id_set = false;
     m_service_id = std::to_string(mailbox.account_id);
@@ -112,6 +114,7 @@ void MessageFolder::setSynchronizable(const bool &value)
 MessageFolderType MessageFolder::convertPlatformFolderType(
         email_mailbox_type_e folderType)
 {
+    LoggerD("Entered");
     switch (folderType) {
         case email_mailbox_type_e::EMAIL_MAILBOX_TYPE_INBOX:
             return MessageFolderType::MESSAGE_FOLDER_TYPE_INBOX;

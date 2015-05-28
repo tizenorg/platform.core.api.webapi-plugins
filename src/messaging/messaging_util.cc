@@ -143,6 +143,7 @@ const std::string FOLDER_TYPE_SENTBOX = "SENTBOX";
 
 std::string MessagingUtil::messageFolderTypeToString(MessageFolderType type)
 {
+    LoggerD("Entered");
     switch(type) {
         case MessageFolderType::MESSAGE_FOLDER_TYPE_INBOX:
             return FOLDER_TYPE_INBOX;
@@ -159,6 +160,7 @@ std::string MessagingUtil::messageFolderTypeToString(MessageFolderType type)
 
 MessageFolderType MessagingUtil::stringToMessageFolderType(std::string type)
 {
+    LoggerD("Entered");
     if (FOLDER_TYPE_INBOX == type) {
         return MessageFolderType::MESSAGE_FOLDER_TYPE_INBOX;
     }
@@ -176,6 +178,7 @@ MessageFolderType MessagingUtil::stringToMessageFolderType(std::string type)
 
 PlatformResult MessagingUtil::stringToMessageType(const std::string& str, MessageType* out)
 {
+  LoggerD("Entered");
   const auto it = stringToTypeMap.find(str);
 
   if (it == stringToTypeMap.end()) {
@@ -189,6 +192,7 @@ PlatformResult MessagingUtil::stringToMessageType(const std::string& str, Messag
 
 common::PlatformResult MessagingUtil::messageTypeToString(MessageType type, std::string* out)
 {
+  LoggerD("Entered");
   const auto it = typeToStringMap.find(type);
 
   if (it == typeToStringMap.end()) {
@@ -201,6 +205,7 @@ common::PlatformResult MessagingUtil::messageTypeToString(MessageType type, std:
 }
 
 std::string MessagingUtil::messageTypeToString(MessageType type) {
+  LoggerD("Entered");
   std::string type_str;
   PlatformResult platform_result = messageTypeToString(type, &type_str);
   assert(platform_result);
@@ -209,6 +214,7 @@ std::string MessagingUtil::messageTypeToString(MessageType type) {
 
 std::string MessagingUtil::ltrim(const std::string& input)
 {
+    LoggerD("Entered");
     std::string str = input;
     std::string::iterator i;
     for (i = str.begin(); i != str.end(); i++) {
@@ -226,6 +232,7 @@ std::string MessagingUtil::ltrim(const std::string& input)
 
 std::string MessagingUtil::extractSingleEmailAddress(const std::string& address)
 {
+    LoggerD("Entered");
     std::size_t found_begin = address.rfind('<');
     std::size_t found_end = address.rfind('>');
     // if both '<' and '>' bracket found and '<' is before '>'
@@ -244,6 +251,7 @@ std::string MessagingUtil::extractSingleEmailAddress(const std::string& address)
 std::vector<std::string> MessagingUtil::extractEmailAddresses(
         const std::vector<std::string>& addresses)
 {
+    LoggerD("Entered");
     std::vector<std::string> extractedAddresses;
     for(auto it = addresses.begin(); it != addresses.end(); ++it) {
         extractedAddresses.push_back(MessagingUtil::extractSingleEmailAddress(*it));
@@ -254,6 +262,7 @@ std::vector<std::string> MessagingUtil::extractEmailAddresses(
 
 PlatformResult MessagingUtil::loadFileContentToString(const std::string& file_path, std::string* result)
 {
+    LoggerD("Entered");
     std::ifstream input_file;
     input_file.open(file_path, std::ios::in);
 
@@ -297,6 +306,7 @@ std::string MessagingUtil::messageStatusToString(MessageStatus status) {
 
 picojson::value MessagingUtil::messageBodyToJson(std::shared_ptr<MessageBody> body)
 {
+    LoggerD("Entered");
     picojson::object b;
     b[MESSAGE_BODY_ATTRIBUTE_MESSAGE_ID] = picojson::value(std::to_string(body->getMessageId()));
     b[MESSAGE_BODY_ATTRIBUTE_LOADED] = picojson::value(body->getLoaded());
@@ -320,6 +330,7 @@ picojson::value MessagingUtil::messageBodyToJson(std::shared_ptr<MessageBody> bo
 
 picojson::value MessagingUtil::messageToJson(std::shared_ptr<Message> message)
 {
+    LoggerD("Entered");
     picojson::object o;
 
     std::vector<picojson::value> array;
@@ -408,6 +419,7 @@ picojson::value MessagingUtil::messageToJson(std::shared_ptr<Message> message)
 
 picojson::value MessagingUtil::conversationToJson(std::shared_ptr<MessageConversation> conversation)
 {
+    LoggerD("Entered");
     picojson::object o;
 
     o[MESSAGE_CONVERSATION_ATTRIBUTE_ID] = picojson::value(std::to_string(conversation->getConversationId()));
@@ -725,6 +737,7 @@ PlatformResult MessagingUtil::jsonToAbstractFilter(const picojson::object& json,
 PlatformResult MessagingUtil::jsonFilterToAbstractFilter(const picojson::object& filter,
                                                          tizen::AbstractFilterPtr* result)
 {
+    LoggerD("Entered");
     const auto& type = filter.at(JSON_FILTER_TYPE).get<std::string>();
 
     if (JSON_FILTER_ATTRIBUTE_TYPE == type) {
@@ -827,7 +840,10 @@ PlatformResult MessagingUtil::jsonFilterToCompositeFilter(const picojson::object
     for (const auto& a : filter.at(JSON_TO_FILTER_ARRAY).get<picojson::array>()) {
       AbstractFilterPtr filter;
       PlatformResult ret = jsonFilterToAbstractFilter(a.get<picojson::object>(), &filter);
-      if (ret.IsError()) return ret;
+      if (ret.IsError()) {
+          LoggerD("Convert JSON filter to Abstract filter failed (%s)", ret.message().c_str());
+          return ret;
+      }
       compositeFilter->addFilter(filter);
     }
 

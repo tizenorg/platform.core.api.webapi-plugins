@@ -22,6 +22,7 @@ common::Extension* CreateExtension() {
 }
 
 MessagingExtension::MessagingExtension() {
+  LoggerD("Entered");
   SetExtensionName(kMessaging);
   SetJavaScriptAPI(kSource_messaging_api);
   const char* entry_points[] = {
@@ -32,7 +33,9 @@ MessagingExtension::MessagingExtension() {
   SetExtraJSEntryPoints(entry_points);
 }
 
-MessagingExtension::~MessagingExtension() {}
+MessagingExtension::~MessagingExtension() {
+  LoggerD("Entered");
+}
 
 common::Instance* MessagingExtension::CreateInstance() {
   LoggerD("Entered");
