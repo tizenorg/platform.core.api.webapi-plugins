@@ -30,6 +30,7 @@ using namespace common;
 using namespace extension::networkbearerselection;
 
 NetworkBearerSelectionInstance::NetworkBearerSelectionInstance() {
+  LoggerD("Enter");
   using std::placeholders::_1;
   using std::placeholders::_2;
 
@@ -50,6 +51,7 @@ NetworkBearerSelectionInstance::NetworkBearerSelectionInstance() {
 }
 
 NetworkBearerSelectionInstance::~NetworkBearerSelectionInstance() {
+  LoggerD("Enter");
   NetworkBearerSelectionManager::GetInstance()->RemoveListener(this);
 }
 

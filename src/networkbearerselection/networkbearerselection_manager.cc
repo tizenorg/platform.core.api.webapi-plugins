@@ -44,17 +44,20 @@ struct NetworkBearerSelectionReleaseEvent {
 
 void NetworkBearerSelectionManager::AddListener(
     NetworkBearerSelectionListener* listener) {
+  LoggerD("Enter");
   std::lock_guard<std::mutex> lock(m_mutex);
   m_listeners.push_back(listener);
 }
 
 void NetworkBearerSelectionManager::RemoveListener(
     NetworkBearerSelectionListener* listener) {
+  LoggerD("Enter");
   std::lock_guard<std::mutex> lock(m_mutex);
   m_listeners.remove(listener);
 }
 
 NetworkBearerSelectionManager* NetworkBearerSelectionManager::GetInstance() {
+  LoggerD("Enter");
   static NetworkBearerSelectionManager instance;
   return &instance;
 }
@@ -64,6 +67,7 @@ NetworkBearerSelectionManager::NetworkBearerSelectionManager()
       m_profileHandle(nullptr),
       m_connectionState(ConnectionState::Unknown),
       m_isConnectionOpen(false) {
+  LoggerD("Enter");
   int ret = connection_create(&m_connectionHandle);
 
   if (CONNECTION_ERROR_NONE == ret) {
@@ -75,6 +79,7 @@ NetworkBearerSelectionManager::NetworkBearerSelectionManager()
 }
 
 NetworkBearerSelectionManager::~NetworkBearerSelectionManager() {
+  LoggerD("Enter");
   if (m_connectionHandle != nullptr) {
     LoggerD("Client deregistration success");
     if (m_profileHandle) {
