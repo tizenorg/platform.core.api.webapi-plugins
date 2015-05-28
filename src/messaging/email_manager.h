@@ -83,6 +83,7 @@ public:
     void stopSync(long op_id);
 
     void RemoveSyncCallback(long op_id);
+    void RemoveCallbacksByQueue(const PostQueue& q);
 
 //    void registerStatusCallback(msg_handle_t msg_handle);
 

@@ -854,6 +854,19 @@ void EmailManager::RemoveSyncCallback(long op_id) {
   m_proxy_sync->removeCallback(op_id);
 }
 
+void EmailManager::RemoveCallbacksByQueue(const PostQueue& q) {
+  LoggerD("Entered");
+
+  for (auto it = m_sendRequests.begin(); it != m_sendRequests.end();) {
+    if (&it->second->getQueue() == &q) {
+      delete it->second;
+      m_sendRequests.erase(it++);
+    } else {
+      ++it;
+    }
+  }
+}
+
 void removeEmailCompleteCB(MessagesCallbackUserData* callback)
 {
   LoggerD("Entered");

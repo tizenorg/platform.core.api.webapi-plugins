@@ -15,6 +15,7 @@
 #include "message_mms.h"
 #include "message_conversation.h"
 #include "messaging_instance.h"
+#include "messaging/email_manager.h"
 
 #include "tizen/tizen.h"
 #include "common/logger.h"
@@ -979,11 +980,13 @@ PlatformResult MessagingUtil::jsonToMessageConversation(const picojson::value& j
 
 PostQueue::PostQueue(MessagingInstance& instance): instance_(instance)
 {
-    LoggerD("Entered");
+    LoggerD("Entered: [%p]", this);
 }
 PostQueue::~PostQueue()
 {
-    LoggerD("Entered");
+    LoggerD("Entered: [%p]", this);
+
+    EmailManager::getInstance().RemoveCallbacksByQueue(*this);
 }
 
 void PostQueue::addAndResolve(const long cid, PostPriority priority, const std::string json)
@@ -1014,7 +1017,7 @@ void PostQueue::add(const long cid, PostPriority priority)
 
 void PostQueue::resolve(const long cid, const std::string json)
 {
-    LoggerD("Entered");
+    LoggerD("Entered: [%p]", this);
 
     tasks_mutex_.lock();
 
@@ -1038,7 +1041,7 @@ void PostQueue::resolve(const long cid, const std::string json)
 
 void PostQueue::resolve(PostPriority p)
 {
-    LoggerD("Entered");
+    LoggerD("Entered: [%p]", this);
 
     TasksCollection::iterator i;
 
