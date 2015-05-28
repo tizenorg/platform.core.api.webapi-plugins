@@ -10,7 +10,7 @@
 Name:       webapi-plugins
 Version:    0.1
 Release:    0
-License:    BSD-3-Clause and Apache-2.0
+License:    Samsung Properietary, BSD-2.0 and Apache-2.0
 Group:      Development/Libraries
 Summary:    Tizen Web APIs implemented
 Source0:    %{name}-%{version}.tar.gz
