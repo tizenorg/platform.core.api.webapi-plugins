@@ -25,9 +25,11 @@ MessageCallbackUserData::MessageCallbackUserData(PostQueue& queue):
         m_is_error(false),
         queue_(queue)
 {
+    LoggerD("Entered");
 }
 
 MessageCallbackUserData::~MessageCallbackUserData() {
+    LoggerD("Entered");
 }
 
 void MessageCallbackUserData::setMessage(std::shared_ptr<Message> message) {
@@ -50,8 +52,10 @@ int MessageCallbackUserData::getAccountId() const
 void MessageCallbackUserData::setError(const std::string& err_name,
         const std::string& err_message)
 {
+    LoggerD("Entered");
     // keep only first error in chain
     if (!m_is_error) {
+        LoggerD("Error has not been set yet");
         picojson::object& obj = m_json->get<picojson::object>();
         obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_ERROR);
         auto objData = picojson::object();
@@ -69,8 +73,10 @@ void MessageCallbackUserData::setError(const std::string& err_name,
 
 void MessageCallbackUserData::setError(const common::PlatformResult& error)
 {
+  LoggerD("Entered");
   // keep only first error in chain
   if (!m_is_error) {
+    LoggerD("Error has not been set yet");
     m_is_error = true;
     picojson::object& obj = m_json->get<picojson::object>();
     obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_ERROR);

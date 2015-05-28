@@ -30,6 +30,7 @@ ConversationCallbackData::ConversationCallbackData(PostQueue& queue):
         m_service_type(UNDEFINED),
         queue_(queue)
 {
+    LoggerD("Entered");
 }
 
 ConversationCallbackData::ConversationCallbackData(long cid, PostQueue& queue, bool keep):
@@ -42,6 +43,7 @@ ConversationCallbackData::ConversationCallbackData(long cid, PostQueue& queue, b
         m_service_type(UNDEFINED),
         queue_(queue)
 {
+    LoggerD("Entered");
     auto json = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
     picojson::object& o = json->get<picojson::object>();
     o[JSON_CALLBACK_ID] = picojson::value(static_cast<double>(cid));
@@ -51,6 +53,7 @@ ConversationCallbackData::ConversationCallbackData(long cid, PostQueue& queue, b
 
 ConversationCallbackData::~ConversationCallbackData()
 {
+    LoggerD("Entered");
 }
 
 void ConversationCallbackData::setFilter(AbstractFilterPtr filter)
@@ -86,8 +89,10 @@ std::vector<std::shared_ptr<MessageConversation>> ConversationCallbackData::getC
 void ConversationCallbackData::setError(const std::string& err_name,
         const std::string& err_message)
 {
+    LoggerD("Entered");
     // keep only first error in chain
     if (!m_is_error) {
+        LoggerD("Error has not been set yet");
         picojson::object& obj = m_json->get<picojson::object>();
         obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_ERROR);
         auto objData = picojson::object();
@@ -105,8 +110,10 @@ void ConversationCallbackData::setError(const std::string& err_name,
 
 void ConversationCallbackData::SetError(const common::PlatformResult& error)
 {
+    LoggerD("Entered");
   // keep only first error in chain
   if (!m_is_error) {
+      LoggerD("Error has not been set yet");
     m_is_error = true;
     picojson::object& obj = m_json->get<picojson::object>();
     obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_ERROR);

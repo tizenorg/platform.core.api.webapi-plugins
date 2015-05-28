@@ -65,6 +65,7 @@ static gboolean sendMessageThread(void* data)
 
 PlatformResult MessageServiceShortMsg::sendMessage(MessageRecipientsCallbackData *callback)
 {
+    LoggerD("Entered");
     if (!callback) {
         LoggerE("Callback is null");
         return PlatformResult(ErrorCode::UNKNOWN_ERR, "Callback is null");
@@ -156,6 +157,7 @@ static gboolean loadMessageBodyTask(void* data)
 
 PlatformResult MessageServiceShortMsg::loadMessageBody(MessageBodyCallbackData *callback)
 {
+    LoggerD("Entered");
     if (!callback) {
         LoggerE("Callback is null");
         return PlatformResult(ErrorCode::UNKNOWN_ERR, "Callback is null");

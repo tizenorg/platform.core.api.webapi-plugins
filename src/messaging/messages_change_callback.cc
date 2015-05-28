@@ -34,6 +34,7 @@ namespace {
 std::string limitedString(const std::string& src,
                           const size_t max_len = 40)
 {
+    LoggerD("Entered");
     if(src.length() > max_len) {
         return src.substr(0,max_len);
     } else {
@@ -106,6 +107,7 @@ MessagePtrVector MessagesChangeCallback::filterMessages(
         return filtered_messages;
     }
     else {
+        LoggerD("Abstract filter pointer is null");
         return source_messages;
     }
 }

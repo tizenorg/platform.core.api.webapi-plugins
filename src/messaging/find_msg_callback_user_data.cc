@@ -32,10 +32,12 @@ FindMsgCallbackUserData::FindMsgCallbackUserData(PostQueue& queue):
         m_service_type(UNDEFINED),
         queue_(queue)
 {
+    LoggerD("Entered");
 }
 
 FindMsgCallbackUserData::~FindMsgCallbackUserData()
 {
+    LoggerD("Entered");
 }
 
 void FindMsgCallbackUserData::setFilter(AbstractFilterPtr filter)
@@ -71,8 +73,10 @@ std::vector<std::shared_ptr<Message>> FindMsgCallbackUserData::getMessages() con
 void FindMsgCallbackUserData::setError(const std::string& err_name,
         const std::string& err_message)
 {
+    LoggerD("Entered");
     // keep only first error in chain
     if (!m_is_error) {
+        LoggerD("Error has not been set yet");
         m_is_error = true;
         m_err_name = err_name;
         m_err_message = err_message;
@@ -89,8 +93,10 @@ void FindMsgCallbackUserData::setError(const std::string& err_name,
 
 void FindMsgCallbackUserData::SetError(const common::PlatformResult& error)
 {
-  // keep only first error in chain
-  if (!m_is_error) {
+    LoggerD("Entered");
+    // keep only first error in chain
+    if (!m_is_error) {
+    LoggerD("Error has not been set yet");
     m_is_error = true;
     picojson::object& obj = m_json->get<picojson::object>();
     obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_ERROR);

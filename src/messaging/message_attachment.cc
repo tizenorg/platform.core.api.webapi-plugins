@@ -124,6 +124,7 @@ std::string MessageAttachment::getFilePath()
 
 std::string MessageAttachment::getShortFileName() const
 {
+    LoggerD("Entered");
     if (!m_isFilePathSet) {
         return "";
     }
@@ -155,6 +156,7 @@ const char PATH_SEPARATOR = '/';
 
 void MessageAttachment::setFilePath(const std::string &value)
 {
+    LoggerD("Entered");
     std::string tmp = value;
     // change to lower case
     for (int i = 0; i < tmp.length() && i < 4; i++) {
@@ -205,6 +207,7 @@ bool MessageAttachment::isSaved() const
 
 std::map<unsigned int, std::string>& MessageAttachment::initializeMIMETypeEnumToStringMap()
 {
+    LoggerD("Entered");
     static std::map<unsigned int, std::string> enumToString;
     //0
     enumToString[MIME_ASTERISK] = "*/*";
@@ -396,6 +399,7 @@ std::map<unsigned int, std::string>& MessageAttachment::initializeMIMETypeEnumTo
 
 std::map<std::string, unsigned int>& MessageAttachment::initializeMIMETypeStringToEnumMap()
 {
+    LoggerD("Entered");
     static std::map<std::string, unsigned int> stringToEnum;
     //0
     stringToEnum["*/*"] = MIME_ASTERISK;
@@ -588,6 +592,7 @@ std::map<std::string, unsigned int>& MessageAttachment::initializeMIMETypeString
 
 unsigned int MessageAttachment::MIMETypeStringToEnum(std::string str)
 {
+    LoggerD("Entered");
     std::map<std::string, unsigned int>::iterator it = MIMETypeStringToEnumMap.find(str);
     if (it != MIMETypeStringToEnumMap.end()) {
         return it->second;
@@ -597,6 +602,7 @@ unsigned int MessageAttachment::MIMETypeStringToEnum(std::string str)
 
 std::string MessageAttachment::MIMETypeEnumToString(unsigned int num)
 {
+    LoggerD("Entered");
     std::map<unsigned int, std::string>::iterator it = MIMETypeEnumToStringMap.find(num);
     if (it != MIMETypeEnumToStringMap.end()) {
         return it->second;
@@ -606,6 +612,7 @@ std::string MessageAttachment::MIMETypeEnumToString(unsigned int num)
 
 void MessageAttachment::updateWithAttachmentData(const email_attachment_data_t& attachment_data)
 {
+    LoggerD("Entered");
     setId(attachment_data.attachment_id);
     setMessageId(attachment_data.mail_id);
     if (attachment_data.attachment_mime_type) {

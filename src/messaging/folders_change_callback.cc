@@ -49,7 +49,9 @@ FolderPtrVector FoldersChangeCallback::filterFolders(
         tizen::AbstractFilterPtr filter,
         const FolderPtrVector& source_folders)
 {
+    LoggerD("Entered");
     if (filter) {
+        LoggerD("filter pointer is valid");
         FolderPtrVector filtered_folders;
         FolderPtrVector::const_iterator it = source_folders.begin();
         FolderPtrVector::const_iterator end_it = source_folders.end();

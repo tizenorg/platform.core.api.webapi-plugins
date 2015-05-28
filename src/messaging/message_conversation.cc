@@ -119,6 +119,7 @@ int MessageConversation::getLastMessageId() const
 PlatformResult MessageConversation::convertMsgConversationToObject(
         unsigned int threadId, msg_handle_t handle, std::shared_ptr<MessageConversation>* result)
 {
+    LoggerD("Entered");
     std::shared_ptr<MessageConversation> conversation (new MessageConversation());
 
     msg_struct_t msgInfo = NULL;
@@ -273,6 +274,7 @@ PlatformResult MessageConversation::convertMsgConversationToObject(
 PlatformResult MessageConversation::convertEmailConversationToObject(
         unsigned int threadId, std::shared_ptr<MessageConversation>* result)
 {
+    LoggerD("Entered");
     std::shared_ptr<MessageConversation> conversation (new MessageConversation());
 
     email_mail_list_item_t *resultMail = NULL;

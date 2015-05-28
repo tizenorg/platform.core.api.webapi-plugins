@@ -24,6 +24,7 @@ namespace messaging {
 
 ChangeListenerContainer& ChangeListenerContainer::getInstance()
 {
+    LoggerD("Entered");
     EmailManager::getInstance(); //make sure that callbacks are registered in email-service
     //ShortMsgManager::getInstance(); //make sure that callbacks are registered in msg-service
     static ChangeListenerContainer clc;
@@ -442,6 +443,7 @@ void ChangeListenerContainer::callFolderRemoved(EventFolders* event)
 }
 
 int ChangeListenerContainer::getNextId() {
+    LoggerD("Entered");
     // mutex is created only on first call (first call added to constructor
     // to initialize mutex correctly
     static std::mutex id_mutex;

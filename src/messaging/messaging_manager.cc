@@ -49,6 +49,7 @@ MsgManagerCallbackData::MsgManagerCallbackData(MessagingInstance& instance):
     sms_service(nullptr),
     mms_service(nullptr),
     instance_(instance) {
+    LoggerD("Entered");
 }
 
 MessagingManager::MessagingManager(MessagingInstance& instance):

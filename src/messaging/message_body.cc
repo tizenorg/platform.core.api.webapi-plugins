@@ -32,10 +32,12 @@ MessageBody::MessageBody() : m_messageId(1),
                              m_plainBody(""),
                              m_htmlBody("")
 {
+    LoggerD("Entered");
 }
 
 MessageBody::~MessageBody()
 {
+    LoggerD("Entered");
 }
 
 // messageId
@@ -108,7 +110,7 @@ bool MessageBody::is_message_id_set() const
 
 PlatformResult MessageBody::updateBody(email_mail_data_t& mail)
 {
-    LoggerD("Enter");
+    LoggerD("Entered");
     setMessageId(mail.mail_id);
     setLoaded(mail.body_download_status);
 

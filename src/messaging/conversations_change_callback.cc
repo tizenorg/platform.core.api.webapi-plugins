@@ -61,7 +61,9 @@ ConversationPtrVector ConversationsChangeCallback::filterConversations(
         AbstractFilterPtr filter,
         const ConversationPtrVector& source_conversations)
 {
+    LoggerD("Entered");
     if (filter) {
+        LoggerD("filter pointer is valid");
         ConversationPtrVector filtered_conversations;
         ConversationPtrVector::const_iterator it = source_conversations.begin();
         ConversationPtrVector::const_iterator end_it = source_conversations.end();
@@ -84,6 +86,7 @@ ConversationPtrVector ConversationsChangeCallback::filterConversations(
         return filtered_conversations;
     }
     else {
+        LoggerD("filter pointer is not valid");
         return source_conversations;
     }
 }

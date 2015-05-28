@@ -93,7 +93,7 @@ bool MessageEmail::getHasAttachment() const
 
 PlatformResult MessageEmail::updateEmailMessage(email_mail_data_t& mail)
 {
-    LoggerD("Enter");
+    LoggerD("Entered");
 
     std::vector<std::string> recp_list;
     setId(mail.mail_id);
@@ -130,7 +130,10 @@ PlatformResult MessageEmail::updateEmailMessage(email_mail_data_t& mail)
     }
 
     PlatformResult ret = getBody()->updateBody(mail);
-    if (ret.IsError()) return ret;
+    if (ret.IsError()) {
+        LoggerE("Update Email body failed");
+        return ret;
+    }
 
     if (mail.mail_id != mail.thread_id) {
         setInResponseTo(mail.thread_id);

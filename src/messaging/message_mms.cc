@@ -37,6 +37,7 @@ MessageMMS::~MessageMMS()
 // *** overrided methods
 void MessageMMS::setCC(std::vector<std::string> &cc)
 {
+    LoggerD("Entered");
     // CC recipient's format validation should be done by email service
     m_cc = cc;
 
@@ -48,6 +49,7 @@ void MessageMMS::setCC(std::vector<std::string> &cc)
 
 void MessageMMS::setBCC(std::vector<std::string> &bcc)
 {
+    LoggerD("Entered");
     // BCC recipient's format validation should be done by email service
     m_bcc = bcc;
 
@@ -64,6 +66,7 @@ void MessageMMS::setSubject(std::string subject)
 
 void MessageMMS::setMessageAttachments(AttachmentPtrVector &attachments)
 {
+    LoggerD("Entered");
     m_attachments = attachments;
 
     m_has_attachment = true;
