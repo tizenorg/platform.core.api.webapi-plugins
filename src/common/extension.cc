@@ -46,6 +46,7 @@ const XW_Internal_RuntimeInterface* g_runtime = NULL;
 const XW_Internal_PermissionsInterface* g_permission = NULL;
 
 bool InitializeInterfaces(XW_GetInterface get_interface) {
+  LoggerD("Enter");
   static bool initialized = false;
 
   if (!initialized) {
@@ -105,40 +106,50 @@ bool InitializeInterfaces(XW_GetInterface get_interface) {
 namespace common {
 
 Extension::Extension() : xw_extension_(g_xw_extension_) {
+  LoggerD("Enter");
 }
 
-Extension::~Extension() {}
+Extension::~Extension() {
+  LoggerD("Enter");
+}
 
 void Extension::SetExtensionName(const char* name) {
+  LoggerD("Enter");
   g_core->SetExtensionName(xw_extension_, name);
 }
 
 void Extension::SetJavaScriptAPI(const char* api) {
+  LoggerD("Enter");
   g_core->SetJavaScriptAPI(xw_extension_, api);
 }
 
 void Extension::SetExtraJSEntryPoints(const char** entry_points) {
+  LoggerD("Enter");
   if (g_entry_points)
     g_entry_points->SetExtraJSEntryPoints(xw_extension_, entry_points);
 }
 
 bool Extension::RegisterPermissions(const char* perm_table) {
+  LoggerD("Enter");
   if (g_permission)
     return g_permission->RegisterPermissions(xw_extension_, perm_table);
   return false;
 }
 
 bool Extension::CheckAPIAccessControl(const char* api_name) {
+  LoggerD("Enter");
   if (g_permission)
     return g_permission->CheckAPIAccessControl(xw_extension_, api_name);
   return false;
 }
 
 Instance* Extension::CreateInstance() {
+  LoggerD("Enter");
   return NULL;
 }
 
 std::string Extension::GetRuntimeVariable(const char* var_name, unsigned len) {
+  LoggerD("Enter");
   if (!g_runtime)
     return "";
 
@@ -149,6 +160,7 @@ std::string Extension::GetRuntimeVariable(const char* var_name, unsigned len) {
 
 // static
 void Extension::OnInstanceCreated(XW_Instance xw_instance, Instance* instance) {
+  LoggerD("Enter");
   assert(!g_core->GetInstanceData(xw_instance));
   if (!instance)
     return;
@@ -159,6 +171,7 @@ void Extension::OnInstanceCreated(XW_Instance xw_instance, Instance* instance) {
 
 // static
 void Extension::OnInstanceDestroyed(XW_Instance xw_instance) {
+  LoggerD("Enter");
   Instance* instance =
       reinterpret_cast<Instance*>(g_core->GetInstanceData(xw_instance));
   if (!instance)
@@ -169,6 +182,7 @@ void Extension::OnInstanceDestroyed(XW_Instance xw_instance) {
 
 // static
 void Extension::HandleMessage(XW_Instance xw_instance, const char* msg) {
+  LoggerD("Enter");
   Instance* instance =
       reinterpret_cast<Instance*>(g_core->GetInstanceData(xw_instance));
   if (!instance)
@@ -178,6 +192,7 @@ void Extension::HandleMessage(XW_Instance xw_instance, const char* msg) {
 
 // static
 void Extension::HandleSyncMessage(XW_Instance xw_instance, const char* msg) {
+  LoggerD("Enter");
   Instance* instance =
       reinterpret_cast<Instance*>(g_core->GetInstanceData(xw_instance));
   if (!instance)
@@ -191,6 +206,7 @@ int32_t Extension::XW_Initialize(XW_Extension extension,
                                  XW_Initialize_Func initialize,
                                  XW_CreatedInstanceCallback created_instance,
                                  XW_ShutdownCallback shutdown) {
+  LoggerD("Enter");
   assert(extension);
 
   if (!InitializeInterfaces(get_interface)) {
@@ -215,14 +231,19 @@ int32_t Extension::XW_Initialize(XW_Extension extension,
 }
 
 
-Instance::Instance()
-    : xw_instance_(0) {}
+Instance::Instance() :
+    xw_instance_(0)
+{
+  LoggerD("Enter");
+}
 
 Instance::~Instance() {
+  LoggerD("Enter");
   assert(xw_instance_ == 0);
 }
 
 void Instance::PostMessage(const char* msg) {
+  LoggerD("Enter");
   if (!xw_instance_) {
     std::cerr << "Ignoring PostMessage() in the constructor or after the "
               << "instance was destroyed.";
@@ -232,6 +253,7 @@ void Instance::PostMessage(const char* msg) {
 }
 
 void Instance::SendSyncReply(const char* reply) {
+  LoggerD("Enter");
   if (!xw_instance_) {
     std::cerr << "Ignoring SendSyncReply() in the constructor or after the "
               << "instance was destroyed.";
@@ -242,48 +264,60 @@ void Instance::SendSyncReply(const char* reply) {
 
 
 ParsedInstance::ParsedInstance() {
+  LoggerD("Enter");
 }
 
 ParsedInstance::~ParsedInstance() {
+  LoggerD("Enter");
 }
 
 void ParsedInstance::RegisterHandler(const std::string& name, const NativeHandler& func) {
+  LoggerD("Enter");
   handler_map_.insert(std::make_pair(name, func));
 }
 
 void ParsedInstance::RegisterSyncHandler(const std::string& name, const NativeHandler& func) {
+  LoggerD("Enter");
   handler_map_.insert(std::make_pair("#SYNC#" + name, func));
 }
 
 void ParsedInstance::ReportSuccess(picojson::object& out) {
+  LoggerD("Enter");
   tools::ReportSuccess(out);
 }
 
 void ParsedInstance::ReportSuccess(const picojson::value& result, picojson::object& out) {
+  LoggerD("Enter");
   tools::ReportSuccess(result, out);
 }
 
 void ParsedInstance::ReportError(picojson::object& out) {
+  LoggerD("Enter");
   tools::ReportError(out);
 }
 
 void ParsedInstance::ReportError(const PlatformException& ex, picojson::object& out) {
+  LoggerD("Enter");
   tools::ReportError(ex, out);
 }
 
 void ParsedInstance::ReportError(const PlatformResult& error, picojson::object* out) {
+  LoggerD("Enter");
   tools::ReportError(error, out);
 }
 
 void ParsedInstance::HandleMessage(const char* msg) {
+  LoggerD("Enter");
   HandleMessage(msg, false);
 }
 
 void ParsedInstance::HandleSyncMessage(const char* msg) {
+  LoggerD("Enter");
   HandleMessage(msg, true);
 }
 
 void ParsedInstance::HandleMessage(const char* msg, bool is_sync) {
+  LoggerD("Enter");
   try {
     picojson::value value;
     std::string err;
@@ -333,6 +367,7 @@ void ParsedInstance::HandleMessage(const char* msg, bool is_sync) {
 }
 
 void ParsedInstance::HandleException(const PlatformException& ex) {
+  LoggerD("Enter");
   std::cerr << "Exception: " << ex.message();
   picojson::value result = picojson::value(picojson::object());
   ReportError(ex, result.get<picojson::object>());
@@ -348,24 +383,29 @@ void ParsedInstance::HandleError(const PlatformResult& e) {
 
 namespace tools {
 void ReportSuccess(picojson::object& out) {
+  LoggerD("Enter");
   out.insert(std::make_pair("status", picojson::value("success")));
 }
 
 void ReportSuccess(const picojson::value& result, picojson::object& out) {
+  LoggerD("Enter");
   out.insert(std::make_pair("status", picojson::value("success")));
   out.insert(std::make_pair("result", result));
 }
 
 void ReportError(picojson::object& out) {
+  LoggerD("Enter");
   out.insert(std::make_pair("status", picojson::value("error")));
 }
 
 void ReportError(const PlatformException& ex, picojson::object& out) {
+  LoggerD("Enter");
   out.insert(std::make_pair("status", picojson::value("error")));
   out.insert(std::make_pair("error", ex.ToJSON()));
 }
 
 void ReportError(const PlatformResult& error, picojson::object* out) {
+  LoggerD("Enter");
   out->insert(std::make_pair("status", picojson::value("error")));
   out->insert(std::make_pair("error", error.ToJSON()));
 }
@@ -420,6 +460,7 @@ class AccessControlImpl {
   ~AccessControlImpl() {}
 
   bool CheckAccess(const std::vector<std::string>& privileges) {
+    LoggerD("Enter");
     if (!initialized_) {
       return false;
     }
@@ -450,6 +491,7 @@ class AccessControlImpl {
   }
 
   bool CheckAccess(const std::vector<std::string>& privileges) {
+    LoggerD("Enter");
     int ret = 0;
     for (size_t i = 0; i < privileges.size(); ++i) {
       ret = privilege_checker_check_privilege(privileges[i].c_str());
@@ -570,6 +612,7 @@ PlatformResult CheckAccess(const std::string& privilege) {
 }
 
 PlatformResult CheckAccess(const std::vector<std::string>& privileges) {
+  LoggerD("Enter");
   if (AccessControl::GetInstance().CheckAccess(privileges)) {
     return PlatformResult(ErrorCode::NO_ERROR);
   } else {

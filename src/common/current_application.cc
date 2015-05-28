@@ -25,19 +25,23 @@
 namespace common {
 
 CurrentApplication& CurrentApplication::GetInstance() {
+  LoggerD("Enter");
   static CurrentApplication current_application;
   return current_application;
 }
 
 pid_t CurrentApplication::GetProcessId() const {
+  LoggerD("Enter");
   return pid_;
 }
 
 std::string CurrentApplication::GetApplicationId() const {
+  LoggerD("Enter");
   return app_id_;
 }
 
 std::string CurrentApplication::GetPackageId() const {
+  LoggerD("Enter");
   return package_id_;
 }
 
@@ -45,9 +49,11 @@ CurrentApplication::CurrentApplication() :
     pid_(getpid()),
     app_id_(FetchApplicationId()),
     package_id_(FetchPackageId()) {
+  LoggerD("Enter");
 }
 
 std::string CurrentApplication::FetchApplicationId() const {
+  LoggerD("Enter");
   std::string app_id;
   char* tmp_str = nullptr;
 
@@ -65,6 +71,7 @@ std::string CurrentApplication::FetchApplicationId() const {
 }
 
 std::string CurrentApplication::FetchPackageId() const {
+  LoggerD("Enter");
   std::string package_id;
   char* tmp_str = nullptr;
 
