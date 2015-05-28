@@ -843,6 +843,11 @@ void EmailManager::stopSync(long op_id)
 
 //################################## ^stopSync #################################
 
+void EmailManager::RemoveSyncCallback(long op_id) {
+  LoggerD("Entered");
+  m_proxy_sync->removeCallback(op_id);
+}
+
 void removeEmailCompleteCB(MessagesCallbackUserData* callback)
 {
   LoggerD("Entered");

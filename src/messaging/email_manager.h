@@ -82,6 +82,8 @@ public:
     void syncFolder(SyncFolderCallbackData* callback);
     void stopSync(long op_id);
 
+    void RemoveSyncCallback(long op_id);
+
 //    void registerStatusCallback(msg_handle_t msg_handle);
 
     /**
