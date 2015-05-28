@@ -28,6 +28,8 @@ using common::NotFoundException;
 
 static int PackageInfoGetListCb(
     const pkgmgrinfo_pkginfo_h info, void *user_data) {
+  LoggerD("Enter");
+
   picojson::array* array_data = static_cast<picojson::array*>(user_data);
   if ( !array_data ) {
     LoggerE("user_data is NULL");
@@ -54,8 +56,7 @@ void PackageInfoProvider::GetPackagesInfo(
   if ( pkgmgrinfo_pkginfo_get_list(PackageInfoGetListCb, &array_data)
       != PMINFO_R_OK ) {
     LoggerE("Failed to get package information");
-    REPORT_ERROR(out, UnknownException(
-        "Any other platform error occurs"));
+    REPORT_ERROR(out, UnknownException("Any other platform error occurs"));
     return;
   }
 
@@ -77,8 +78,7 @@ void PackageInfoProvider::GetPackageInfo(picojson::object& out) {
     free(package_id);
   } else {
     LoggerE("Failed to get current package ID");
-    REPORT_ERROR(out, NotFoundException(
-        "The package with the specified ID is not found"));
+    REPORT_ERROR(out, NotFoundException("The package with the specified ID is not found"));
   }
 }
 
@@ -88,8 +88,7 @@ void PackageInfoProvider::GetPackageInfo(
 
   if ( strlen(package_id) <= 0 ) {
     LoggerE("Wrong Package ID");
-    REPORT_ERROR(out, NotFoundException(
-        "The package with the specified ID is not found"));
+    REPORT_ERROR(out, NotFoundException("The package with the specified ID is not found"));
     return;
   }
 
@@ -97,8 +96,7 @@ void PackageInfoProvider::GetPackageInfo(
   if ( pkgmgrinfo_pkginfo_get_pkginfo(package_id, &info)
       != PMINFO_R_OK ) {
     LoggerE("Failed to get pkginfo");
-    REPORT_ERROR(out, NotFoundException(
-        "The package with the specified ID is not found"));
+    REPORT_ERROR(out, NotFoundException("The package with the specified ID is not found"));
     return;
   }
 
