@@ -975,18 +975,15 @@ PlatformResult SystemInfoListeners::RegisterPeripheralListener(const SysteminfoU
   if (nullptr == m_peripheral_listener) {
     PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
     int value = 0;
-    if (-1 != vconf_get_int(VCONFKEY_MIRACAST_WFD_SOURCE_STATUS, &value)) {
+/*    if (-1 != vconf_get_int(VCONFKEY_MIRACAST_WFD_SOURCE_STATUS, &value)) {
       CHECK_LISTENER_ERROR(RegisterVconfCallback(VCONFKEY_MIRACAST_WFD_SOURCE_STATUS,
                                                  OnPeripheralChangedCb, instance))
-    }
+    }*/
     if (-1 != vconf_get_int(VCONFKEY_SYSMAN_HDMI, &value)) {
       CHECK_LISTENER_ERROR(RegisterVconfCallback(VCONFKEY_SYSMAN_HDMI,
                                                  OnPeripheralChangedCb, instance))
     }
-    if (-1 != vconf_get_int(VCONFKEY_POPSYNC_ACTIVATED_KEY, &value)) {
-      CHECK_LISTENER_ERROR(RegisterVconfCallback(VCONFKEY_POPSYNC_ACTIVATED_KEY,
-                                                 OnPeripheralChangedCb, instance))
-    }
+
     LoggerD("Added callback for PERIPHERAL");
     m_peripheral_listener = callback;
   }
@@ -998,18 +995,15 @@ PlatformResult SystemInfoListeners::UnregisterPeripheralListener()
   if (nullptr != m_peripheral_listener) {
     PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
     int value = 0;
-    if (-1 != vconf_get_int(VCONFKEY_MIRACAST_WFD_SOURCE_STATUS, &value)) {
+/*    if (-1 != vconf_get_int(VCONFKEY_MIRACAST_WFD_SOURCE_STATUS, &value)) {
       CHECK_LISTENER_ERROR(UnregisterVconfCallback(VCONFKEY_MIRACAST_WFD_SOURCE_STATUS,
                                                    OnPeripheralChangedCb))
-    }
+    }*/
     if (-1 != vconf_get_int(VCONFKEY_SYSMAN_HDMI, &value)) {
       CHECK_LISTENER_ERROR(UnregisterVconfCallback(VCONFKEY_SYSMAN_HDMI,
                                                    OnPeripheralChangedCb))
     }
-    if (-1 != vconf_get_int(VCONFKEY_POPSYNC_ACTIVATED_KEY, &value)) {
-      CHECK_LISTENER_ERROR(UnregisterVconfCallback(VCONFKEY_POPSYNC_ACTIVATED_KEY,
-                                                   OnPeripheralChangedCb))
-    }
+
     LoggerD("Removed callback for PERIPHERAL");
     m_peripheral_listener = nullptr;
   }
@@ -2402,27 +2396,18 @@ PlatformResult SysteminfoUtils::ReportSim(picojson::object& out, unsigned long c
 
 PlatformResult SysteminfoUtils::ReportPeripheral(picojson::object& out) {
 
-  int wireless_display_status = 0;
+/*  int wireless_display_status = 0;
   PlatformResult ret = GetVconfInt(VCONFKEY_MIRACAST_WFD_SOURCE_STATUS, wireless_display_status);
   if (ret.IsSuccess()) {
     if (VCONFKEY_MIRACAST_WFD_SOURCE_ON == wireless_display_status) {
       out.insert(std::make_pair(kVideoOutputString, picojson::value(true)));
       return PlatformResult(ErrorCode::NO_ERROR);
     }
-  }
+  }*/
   int hdmi_status = 0;
-  ret = GetVconfInt(VCONFKEY_SYSMAN_HDMI, hdmi_status);
+  PlatformResult ret = GetVconfInt(VCONFKEY_SYSMAN_HDMI, hdmi_status);
   if (ret.IsSuccess()) {
     if (VCONFKEY_SYSMAN_HDMI_CONNECTED == hdmi_status) {
-      out.insert(std::make_pair(kVideoOutputString, picojson::value(true)));
-      return PlatformResult(ErrorCode::NO_ERROR);
-    }
-  }
-
-  int popsync_status = 0;
-  ret = GetVconfInt(VCONFKEY_POPSYNC_ACTIVATED_KEY, popsync_status);
-  if (ret.IsSuccess()) {
-    if (1 == popsync_status) {
       out.insert(std::make_pair(kVideoOutputString, picojson::value(true)));
       return PlatformResult(ErrorCode::NO_ERROR);
     }
