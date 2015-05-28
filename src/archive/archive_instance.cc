@@ -503,13 +503,13 @@ void ArchiveInstance::Close(const picojson::value& args, picojson::object& out)
 
     ArchiveFilePtr priv;
     PlatformResult result = ArchiveManager::getInstance().getPrivData(handle, &priv);
-    if (result.error_code() != ErrorCode::NO_ERROR) {
-        LoggerD("Close method was called on already closed archive. Just end execution");
-        LoggerD("%s", result.message().c_str());
+    if (result.error_code() == ErrorCode::NO_ERROR) {
+      priv->close();
+      ArchiveManager::getInstance().erasePrivData(handle);
+    } else {
+      LoggerD("Close method was called on already closed archive. Just end execution");
+      LoggerD("%s", result.message().c_str());
     }
-
-    priv->close();
-    ArchiveManager::getInstance().erasePrivData(handle);
 
     ReportSuccess(out);
 }
