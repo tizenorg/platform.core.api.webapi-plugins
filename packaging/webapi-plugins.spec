@@ -8,7 +8,7 @@
 Name:       webapi-plugins
 Version:    0.5
 Release:    0
-License:    SAMSUNG and BSD-2.0 and Apache-2.0
+License:    Apache-2.0 and BSD-2.0
 Group:      Development/Libraries
 Summary:    Tizen Web APIs implemented
 Source0:    %{name}-%{version}.tar.gz
@@ -513,6 +513,9 @@ GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_wi_fi_support=%{?tizen_feature_wi_fi_s
 ninja -C out/Default %{?_smp_mflags}
 
 %install
+mkdir -p %{buildroot}/usr/share/license
+cp LICENSE.AL2 %{buildroot}/usr/share/license/%{name}
+cat  LICENSE.BSD >> %{buildroot}/usr/share/license/%{name}
 
 # Extensions.
 mkdir -p %{buildroot}%{_libdir}/%{crosswalk_extensions}
@@ -528,6 +531,8 @@ cp res/tvsounds/*.pcm %{buildroot}%{ringtones_directory}
 
 %files
 %{_libdir}/%{crosswalk_extensions}/libtizen*.so
+%{_datadir}/license/%{name}
+
 %if 0%{?tizen_feature_tvaudio_support}
 # tv audio beep files:
 %{ringtones_directory}/*.pcm
