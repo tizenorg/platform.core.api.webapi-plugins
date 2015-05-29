@@ -1,5 +1,5 @@
 // Copyright (c) 2013 Intel Corporation. All rights reserved.
-// Copyright (c) 2014 Samsung Electronics Co., Ltd All Rights Reserved
+// Copyright (c) 2015 Samsung Electronics Co, Ltd. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
