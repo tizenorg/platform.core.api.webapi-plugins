@@ -16,12 +16,14 @@ namespace nfc {
 
 UCharVector NFCUtil::ToVector(const unsigned char* ch, const int size)
 {
+  LoggerD("Entered");
   UCharVector vec(ch, ch + size / sizeof(char));
   return vec;
 }
 
 PlatformResult NFCUtil::CodeToResult(const int errorCode,
                                      const std::string& message) {
+  LoggerD("Entered");
   switch(errorCode) {
     case NFC_ERROR_INVALID_PARAMETER:
     case NFC_ERROR_INVALID_NDEF_MESSAGE:
@@ -47,7 +49,7 @@ PlatformResult NFCUtil::CodeToResult(const int errorCode,
 
 std::string NFCUtil::getNFCErrorString(const int error_code)
 {
-  LOGD("Error code : %d",error_code);
+  LoggerD("Error code : %d",error_code);
   switch(error_code) {
     case NFC_ERROR_ALREADY_ACTIVATED:
     case NFC_ERROR_ALREADY_DEACTIVATED:
@@ -73,7 +75,7 @@ std::string NFCUtil::getNFCErrorString(const int error_code)
 }
 
 const std::string NFCUtil::getNFCErrorMessage(const int error_code) {
-  LOGD("Error code : %d", error_code);
+  LoggerD("Error code : %d", error_code);
   switch(error_code) {
     case NFC_ERROR_ALREADY_ACTIVATED:
     case NFC_ERROR_ALREADY_DEACTIVATED:
@@ -115,6 +117,7 @@ const std::string NFCUtil::getNFCErrorMessage(const int error_code) {
 
 std::string NFCUtil::ToStringNFCTag(nfc_tag_type_e tag_type)
 {
+  LoggerD("Entered");
   switch (tag_type) {
     case NFC_GENERIC_PICC:
       return GENERIC_TARGET;
@@ -154,6 +157,7 @@ std::string NFCUtil::ToStringNFCTag(nfc_tag_type_e tag_type)
 
 PlatformResult NFCUtil::ToNfcTagString(const std::string& type_string, nfc_tag_type_e* tag_type)
 {
+  LoggerD("Entered");
   if (GENERIC_TARGET == type_string) {
     *tag_type = NFC_GENERIC_PICC;
   }
@@ -210,6 +214,7 @@ PlatformResult NFCUtil::ToNfcTagString(const std::string& type_string, nfc_tag_t
 PlatformResult NFCUtil::ToStringCardEmulationMode(
     const nfc_se_card_emulation_mode_type_e card_mode, std::string* mode)
 {
+  LoggerD("Entered");
   switch (card_mode)
   {
     case NFC_SE_CARD_EMULATION_MODE_OFF:
@@ -219,7 +224,7 @@ PlatformResult NFCUtil::ToStringCardEmulationMode(
       *mode = ALWAYS_ON;
       break;
     default:
-      LOGE("No Match Card Emulation mode: %x", card_mode);
+      LoggerE("No Match Card Emulation mode: %x", card_mode);
       return PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, "No Match Card Emulation mode");
   }
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -228,12 +233,13 @@ PlatformResult NFCUtil::ToStringCardEmulationMode(
 PlatformResult NFCUtil::ToCardEmulationMode(
     const std::string& mode_string,
     nfc_se_card_emulation_mode_type_e* mode) {
+  LoggerD("Entered");
   if (mode_string == ALWAYS_ON) {
     *mode = NFC_SE_CARD_EMULATION_MODE_ON;
   } else if (mode_string == OFF) {
     *mode = NFC_SE_CARD_EMULATION_MODE_OFF;
   } else {
-    LOGE("No Match Card Emulation mode: %s", mode_string.c_str());
+    LoggerE("No Match Card Emulation mode: %s", mode_string.c_str());
     return PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, "No Match Card Emulation mode");
   }
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -241,6 +247,7 @@ PlatformResult NFCUtil::ToCardEmulationMode(
 
 PlatformResult NFCUtil::ToStringSecureElementType(const nfc_se_type_e se_type,
                                                   std::string* type) {
+  LoggerD("Entered");
   switch (se_type) {
     case NFC_SE_TYPE_ESE:
       *type = DATA_NFC_SE_TYPE_ESE;
@@ -252,7 +259,7 @@ PlatformResult NFCUtil::ToStringSecureElementType(const nfc_se_type_e se_type,
       *type = DATA_NFC_SE_TYPE_HCE;
       break;
     default:
-      LOGE("No Match Secure Element Type: %x", se_type);
+      LoggerE("No Match Secure Element Type: %x", se_type);
       return PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, "No Match Secure Element Type");
   }
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -260,6 +267,7 @@ PlatformResult NFCUtil::ToStringSecureElementType(const nfc_se_type_e se_type,
 
 PlatformResult NFCUtil::ToSecureElementType(const std::string& type_string,
                                             nfc_se_type_e* type) {
+  LoggerD("Entered");
   if (type_string == DATA_NFC_SE_TYPE_ESE) {
     *type = NFC_SE_TYPE_ESE;
   } else if (type_string == DATA_NFC_SE_TYPE_UICC) {
@@ -275,6 +283,7 @@ PlatformResult NFCUtil::ToSecureElementType(const std::string& type_string,
 
 void NFCUtil::setDefaultFilterValues(std::vector<nfc_tag_type_e>& filter)
 {
+  LoggerD("Entered");
   filter.push_back(NFC_GENERIC_PICC);
   filter.push_back(NFC_ISO14443_A_PICC);
   filter.push_back(NFC_ISO14443_3A_PICC);
@@ -295,6 +304,7 @@ void NFCUtil::setDefaultFilterValues(std::vector<nfc_tag_type_e>& filter)
 
 // Convertion of enum to HCEEventType(characters sequence).
 const char* NFCUtil::ToStr(nfc_hce_event_type_e event_type) {
+  LoggerD("Entered");
   switch (event_type) {
     case NFC_HCE_EVENT_DEACTIVATED:
       return "DEACTIVATED";
@@ -310,6 +320,7 @@ const char* NFCUtil::ToStr(nfc_hce_event_type_e event_type) {
 // Convertion of enum to SecureElementType(characters sequence).
 // Warning! DISABLE and SDCARD are not mentioned at widl spec.
 const char* NFCUtil::ToStr(nfc_se_type_e se_type) {
+  LoggerD("Entered");
   switch (se_type) {
     case NFC_SE_TYPE_DISABLE:
       return "DISABLE";
@@ -328,6 +339,7 @@ const char* NFCUtil::ToStr(nfc_se_type_e se_type) {
 
 // Convertion CardEmulationCategoryType(characters sequence) to enum.
 nfc_card_emulation_category_type_e NFCUtil::StringToCategory(const std::string& category_type) {
+  LoggerD("Entered");
   if (category_type == "PAYMENT")
     return NFC_CARD_EMULATION_CATEGORY_PAYMENT;
   if (category_type == "OTHER")
@@ -336,6 +348,7 @@ nfc_card_emulation_category_type_e NFCUtil::StringToCategory(const std::string& 
 }
 
 unsigned char* NFCUtil::DoubleArrayToUCharArray(const picojson::array& array_in) {
+  LoggerD("Entered");
   unsigned char* result_array = new unsigned char[array_in.size()];
   for(std::size_t i = 0; i < array_in.size(); ++i) {
     result_array[i] = static_cast<unsigned char>(array_in.at(i).get<double>());
@@ -344,11 +357,13 @@ unsigned char* NFCUtil::DoubleArrayToUCharArray(const picojson::array& array_in)
 }
 
 UCharVector NFCUtil::DoubleArrayToUCharVector(const picojson::array& array_in) {
+  LoggerD("Entered");
   return ToVector(NFCUtil::DoubleArrayToUCharArray(array_in), array_in.size());
 }
 
 picojson::array NFCUtil::FromUCharArray(unsigned char* array,
                                         unsigned int apdu_len) {
+  LoggerD("Entered");
   picojson::array apdu_array;
   apdu_array.reserve(apdu_len);
   for(int i = 0; i < apdu_len; ++i)

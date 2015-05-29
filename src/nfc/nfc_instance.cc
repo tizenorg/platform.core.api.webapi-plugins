@@ -24,6 +24,7 @@ using namespace common;
 using namespace extension::nfc;
 
 void NFCInstance::RespondAsync(const char* msg) {
+  LoggerD("Entered");
   PostMessage(msg);
 }
 
@@ -50,6 +51,7 @@ static bool isP2PSupported(){
 }
 
 NFCInstance::NFCInstance() {
+  LoggerD("Entered");
   using std::placeholders::_1;
   using std::placeholders::_2;
 #define REGISTER_ASYNC(c,x) \
@@ -134,6 +136,7 @@ NFCInstance::NFCInstance() {
   }
 
 NFCInstance::~NFCInstance() {
+  LoggerD("Entered");
 }
 
 void NFCInstance::GetDefaultAdapter(
@@ -157,11 +160,13 @@ void NFCInstance::GetDefaultAdapter(
 
 void NFCInstance::SetExclusiveMode(
     const picojson::value& args, picojson::object& out) {
+  LoggerD("Entered");
   CHECK_EXIST(args, "exclusiveMode", out);
   bool exmode = args.get("exclusiveMode").get<bool>();
 
   int ret = nfc_manager_set_system_handler_enable(!exmode);
   if (NFC_ERROR_NONE != ret) {
+    LoggerE("Error: %d", ret);
     PlatformResult result = NFCUtil::CodeToResult(ret,
                                                   "Failed to set exclusive mode.");
     ReportError(result, &out);
@@ -173,68 +178,80 @@ void NFCInstance::SetExclusiveMode(
 //TODO(g.rynkowski): Rewrite to asynchronous approach
 void NFCInstance::SetPowered(
     const picojson::value& args, picojson::object& out) {
+  LoggerD("Entered");
   PlatformResult result = NFCAdapter::GetInstance()->SetPowered(args);
   if (result.IsSuccess()) {
     ReportSuccess(out);
   } else {
+    LoggerE("Error: %s", result.message().c_str());
     ReportError(result, &out);
   }
 }
 
 void NFCInstance::GetPowered(
     const picojson::value& args, picojson::object& out) {
+  LoggerD("Entered");
   bool ret = NFCAdapter::GetInstance()->GetPowered();
   ReportSuccess(picojson::value(ret), out);
 }
 
 void NFCInstance::CardEmulationModeSetter(
     const picojson::value& args, picojson::object& out) {
+  LoggerD("Entered");
   CHECK_EXIST(args, "emulationMode", out);
   std::string mode = args.get("emulationMode").get<std::string>();
   PlatformResult result = NFCAdapter::GetInstance()->SetCardEmulationMode(mode);
   if (result.IsSuccess()) {
     ReportSuccess(out);
   } else {
+    LoggerE("Error: %s", result.message().c_str());
     ReportError(result, &out);
   }
 }
 
 void NFCInstance::CardEmulationModeGetter(
     const picojson::value& args, picojson::object& out) {
+  LoggerD("Entered");
   std::string mode = "";
   PlatformResult result = NFCAdapter::GetInstance()->GetCardEmulationMode(&mode);
   if (result.IsSuccess()) {
     ReportSuccess(picojson::value(mode), out);
   } else {
+    LoggerE("Error: %s", result.message().c_str());
     ReportError(result, &out);
   }
 }
 
 void NFCInstance::ActiveSecureElementSetter(
     const picojson::value& args, picojson::object& out) {
+  LoggerD("Entered");
   CHECK_EXIST(args, "secureElement", out);
   std::string ase = args.get("secureElement").get<std::string>();
   PlatformResult result = NFCAdapter::GetInstance()->SetActiveSecureElement(ase);
   if (result.IsSuccess()) {
     ReportSuccess(out);
   } else {
+    LoggerE("Error: %s", result.message().c_str());
     ReportError(result, &out);
   }
 }
 
 void NFCInstance::ActiveSecureElementGetter(
     const picojson::value& args, picojson::object& out) {
+  LoggerD("Entered");
   std::string ase = "";
   PlatformResult result = NFCAdapter::GetInstance()->GetActiveSecureElement(&ase);
   if (result.IsSuccess()) {
     ReportSuccess(picojson::value(ase), out);
   } else {
+    LoggerE("Error: %s", result.message().c_str());
     ReportError(result, &out);
   }
 }
 
 void NFCInstance::SetTagListener(
     const picojson::value& args, picojson::object& out) {
+  LoggerD("Entered");
     bool supported = isTagSupported();
       if (supported) {
           SLoggerE("Tag is supported");
@@ -250,13 +267,14 @@ void NFCInstance::SetTagListener(
   if (result.IsSuccess()) {
     ReportSuccess(out);
   } else {
+    LoggerE("Error: %s", result.message().c_str());
     ReportError(result, &out);
   }
 }
 
 void NFCInstance::PeerIsConnectedGetter(
     const picojson::value& args, picojson::object& out) {
-
+  LoggerD("Entered");
   CHECK_EXIST(args, "id", out);
 
   int peer_id = (int)args.get("id").get<double>();
@@ -266,6 +284,7 @@ void NFCInstance::PeerIsConnectedGetter(
   if (result.IsSuccess()) {
     ReportSuccess(picojson::value(ret), out);
   } else {
+    LoggerE("Error: %s", result.message().c_str());
     ReportError(result, &out);
   }
 
@@ -273,44 +292,48 @@ void NFCInstance::PeerIsConnectedGetter(
 
 void NFCInstance::SetPeerListener(
     const picojson::value& args, picojson::object& out) {
-    bool supported = isP2PSupported();
-      if (supported) {
-          SLoggerE("P2P is supported");
-      } else {
-          SLoggerE("P2P is not supported");
-          ReportError(
-              common::PlatformResult(common::ErrorCode::NOT_SUPPORTED_ERR,
-                                     "P2P is not supported on this device."),
-              &out);
-          return;
-      }
+  LoggerD("Entered");
+  bool supported = isP2PSupported();
+  if (supported) {
+    SLoggerE("P2P is supported");
+  } else {
+    SLoggerE("P2P is not supported");
+    ReportError(
+        common::PlatformResult(common::ErrorCode::NOT_SUPPORTED_ERR,
+                               "P2P is not supported on this device."),
+                               &out);
+    return;
+  }
   PlatformResult result = NFCAdapter::GetInstance()->SetPeerListener();
   if (result.IsSuccess()) {
     ReportSuccess(out);
   } else {
+    LoggerE("Error: %s", result.message().c_str());
     ReportError(result, &out);
   }
 }
 
 void NFCInstance::UnsetTagListener(
     const picojson::value& args, picojson::object& out) {
-    bool supported = isTagSupported();
-      if (supported) {
-          SLoggerE("Tag is supported");
-      } else {
-          SLoggerE("Tag is not supported");
-          ReportError(
-              common::PlatformResult(common::ErrorCode::NOT_SUPPORTED_ERR,
-                                     "Tag is not supported on this device."),
-              &out);
-          return;
-      }
+  LoggerD("Entered");
+  bool supported = isTagSupported();
+  if (supported) {
+    SLoggerE("Tag is supported");
+  } else {
+    SLoggerE("Tag is not supported");
+    ReportError(
+        common::PlatformResult(common::ErrorCode::NOT_SUPPORTED_ERR,
+                               "Tag is not supported on this device."),
+                               &out);
+    return;
+  }
   NFCAdapter::GetInstance()->UnsetTagListener();
   ReportSuccess(out);
 }
 
 void NFCInstance::UnsetPeerListener(
     const picojson::value& args, picojson::object& out) {
+  LoggerD("Entered");
     bool supported = isP2PSupported();
       if (supported) {
           SLoggerE("P2P is supported");
@@ -326,72 +349,86 @@ void NFCInstance::UnsetPeerListener(
   if (result.IsSuccess()) {
     ReportSuccess(out);
   } else {
+    LoggerE("Error: %s", result.message().c_str());
     ReportError(result, &out);
   }
 }
 
 void NFCInstance::AddCardEmulationModeChangeListener(
     const picojson::value& args, picojson::object& out) {
+  LoggerD("Entered");
   PlatformResult result = NFCAdapter::GetInstance()->AddCardEmulationModeChangeListener();
   if (result.IsSuccess()) {
     ReportSuccess(out);
   } else {
+    LoggerE("Error: %s", result.message().c_str());
     ReportError(result, &out);
   }
 }
 
 void NFCInstance::RemoveCardEmulationModeChangeListener(
     const picojson::value& args, picojson::object& out) {
+  LoggerD("Entered");
   PlatformResult result = NFCAdapter::GetInstance()->RemoveCardEmulationModeChangeListener();
   if (result.IsSuccess()) {
     ReportSuccess(out);
   } else {
+    LoggerE("Error: %s", result.message().c_str());
     ReportError(result, &out);
   }
 }
 
 void NFCInstance::AddTransactionEventListener(
     const picojson::value& args, picojson::object& out) {
+  LoggerD("Entered");
   PlatformResult result = NFCAdapter::GetInstance()->AddTransactionEventListener(args);
   if (result.IsSuccess()) {
     ReportSuccess(out);
   } else {
+    LoggerE("Error: %s", result.message().c_str());
     ReportError(result, &out);
   }
 }
 
 void NFCInstance::RemoveTransactionEventListener(
     const picojson::value& args, picojson::object& out) {
+  LoggerD("Entered");
   PlatformResult result = NFCAdapter::GetInstance()->RemoveTransactionEventListener(args);
   if (result.IsSuccess()) {
     ReportSuccess(out);
   } else {
+    LoggerE("Error: %s", result.message().c_str());
     ReportError(result, &out);
   }
 }
 
 void NFCInstance::AddActiveSecureElementChangeListener(
     const picojson::value& args, picojson::object& out) {
+  LoggerD("Entered");
   PlatformResult result = NFCAdapter::GetInstance()->AddActiveSecureElementChangeListener();
   if (result.IsSuccess()) {
     ReportSuccess(out);
   } else {
+    LoggerE("Error: %s", result.message().c_str());
     ReportError(result, &out);
   }
 }
 
 void NFCInstance::RemoveActiveSecureElementChangeListener(
     const picojson::value& args, picojson::object& out) {
+  LoggerD("Entered");
   PlatformResult result = NFCAdapter::GetInstance()->RemoveActiveSecureElementChangeListener();
   if (result.IsSuccess()) {
     ReportSuccess(out);
   } else {
+    LoggerE("Error: %s", result.message().c_str());
     ReportError(result, &out);
   }
 }
 
 void NFCInstance::GetCachedMessage(
     const picojson::value& args, picojson::object& out) {
+  LoggerD("Entered");
   picojson::value result = picojson::value(picojson::object());
   picojson::object& result_obj = result.get<picojson::object>();
 
@@ -399,12 +436,14 @@ void NFCInstance::GetCachedMessage(
   if (ret.IsSuccess()) {
     ReportSuccess(result, out);
   } else {
+    LoggerE("Error: %s", ret.message().c_str());
     ReportError(ret, &out);
   }
 }
 
 void NFCInstance::SetExclusiveModeForTransaction(
     const picojson::value& args, picojson::object& out) {
+  LoggerD("Entered");
   CHECK_EXIST(args, "transactionMode", out);
 
   bool transaction_mode = args.get("transactionMode").get<bool>();
@@ -413,6 +452,7 @@ void NFCInstance::SetExclusiveModeForTransaction(
   if (result.IsSuccess()) {
     ReportSuccess(out);
   } else {
+    LoggerE("Error: %s", result.message().c_str());
     ReportError(result, &out);
   }
 }
@@ -420,6 +460,7 @@ void NFCInstance::SetExclusiveModeForTransaction(
 //TODO(g.rynkowski): Rewrite to asynchronous approach
 void NFCInstance::ReadNDEF(
     const picojson::value& args, picojson::object& out) {
+  LoggerD("Entered");
   CHECK_EXIST(args, "id", out);
 
   int tag_id = static_cast<int>(args.get("id").get<double>());
@@ -429,6 +470,7 @@ void NFCInstance::ReadNDEF(
   if (result.IsSuccess()) {
     ReportSuccess(out);
   } else {
+    LoggerE("Error: %s", result.message().c_str());
     ReportError(result, &out);
   }
 }
@@ -436,6 +478,7 @@ void NFCInstance::ReadNDEF(
 //TODO(g.rynkowski): Rewrite to asynchronous approach
 void NFCInstance::WriteNDEF(
     const picojson::value& args, picojson::object& out) {
+  LoggerD("Entered");
   CHECK_EXIST(args, "id", out);
 
   int tag_id = static_cast<int>(args.get("id").get<double>());
@@ -445,6 +488,7 @@ void NFCInstance::WriteNDEF(
   if (result.IsSuccess()) {
     ReportSuccess(out);
   } else {
+    LoggerE("Error: %s", result.message().c_str());
     ReportError(result, &out);
   }
 }
@@ -462,12 +506,14 @@ void NFCInstance::Transceive(
   if (result.IsSuccess()) {
     ReportSuccess(out);
   } else {
+    LoggerE("Error: %s", result.message().c_str());
     ReportError(result, &out);
   }
 }
 
 void NFCInstance::SetReceiveNDEFListener(
     const picojson::value& args, picojson::object& out) {
+  LoggerD("Entered");
   CHECK_EXIST(args, "id", out);
 
   int peer_id = (int)args.get("id").get<double>();
@@ -475,12 +521,14 @@ void NFCInstance::SetReceiveNDEFListener(
   if (result.IsSuccess()) {
     ReportSuccess(out);
   } else {
+    LoggerE("Error: %s", result.message().c_str());
     ReportError(result, &out);
   }
 }
 
 void NFCInstance::UnsetReceiveNDEFListener(
     const picojson::value& args, picojson::object& out) {
+  LoggerD("Entered");
   CHECK_EXIST(args, "id", out);
 
   int peer_id = (int)args.get("id").get<double>();
@@ -488,6 +536,7 @@ void NFCInstance::UnsetReceiveNDEFListener(
   if (result.IsSuccess()) {
     ReportSuccess(out);
   } else {
+    LoggerE("Error: %s", result.message().c_str());
     ReportError(result, &out);
   }
 }
@@ -495,6 +544,7 @@ void NFCInstance::UnsetReceiveNDEFListener(
 //TODO(g.rynkowski): Rewrite to asynchronous approach
 void NFCInstance::SendNDEF(
     const picojson::value& args, picojson::object& out) {
+  LoggerD("Entered");
   CHECK_EXIST(args, "id", out);
 
   int peer_id = static_cast<int>(args.get("id").get<double>());
@@ -505,6 +555,7 @@ void NFCInstance::SendNDEF(
   if (result.IsSuccess()) {
     ReportSuccess(out);
   } else {
+    LoggerE("Error: %s", result.message().c_str());
     ReportError(result, &out);
   }
 }
@@ -520,6 +571,7 @@ void NFCInstance::ToByte(
   if (ret.IsSuccess()) {
     ReportSuccess(result, out);
   } else {
+    LoggerE("Error: %s", ret.message().c_str());
     ReportError(ret, &out);
   }
 }
@@ -534,6 +586,7 @@ void NFCInstance::NDEFMessageContructor(const picojson::value& args, picojson::o
   if (ret.IsSuccess()) {
     ReportSuccess(result, out);
   } else {
+    LoggerE("Error: %s", ret.message().c_str());
     ReportError(ret, &out);
   }
 }
@@ -547,6 +600,7 @@ void NFCInstance::NDEFRecordContructor(const picojson::value& args, picojson::ob
   if (ret.IsSuccess()) {
     ReportSuccess(result, out);
   } else {
+    LoggerE("Error: %s", ret.message().c_str());
     ReportError(ret, &out);
   }
 }
@@ -561,6 +615,7 @@ void NFCInstance::NDEFRecordTextContructor(const picojson::value& args, picojson
   if (ret.IsSuccess()) {
     ReportSuccess(result, out);
   } else {
+    LoggerE("Error: %s", ret.message().c_str());
     ReportError(ret, &out);
   }
 }
@@ -574,6 +629,7 @@ void NFCInstance::NDEFRecordURIContructor(const picojson::value& args, picojson:
   if (ret.IsSuccess()) {
     ReportSuccess(result, out);
   } else {
+    LoggerE("Error: %s", ret.message().c_str());
     ReportError(ret, &out);
   }
 }
@@ -588,6 +644,7 @@ void NFCInstance::NDEFRecordMediaContructor(const picojson::value& args, picojso
   if (ret.IsSuccess()) {
     ReportSuccess(result, out);
   } else {
+    LoggerE("Error: %s", ret.message().c_str());
     ReportError(ret, &out);
   }
 }
@@ -595,7 +652,6 @@ void NFCInstance::NDEFRecordMediaContructor(const picojson::value& args, picojso
 // NFCTag attributes getters
 void NFCInstance::TagTypeGetter(
     const picojson::value& args, picojson::object& out) {
-
   LoggerD("Entered");
 
   CHECK_EXIST(args, "id", out);
@@ -607,6 +663,7 @@ void NFCInstance::TagTypeGetter(
   PlatformResult result = NFCAdapter::GetInstance()->TagIsConnectedGetter(tag_id, &is_connected);
 
   if (result.IsError()) {
+    LoggerE("Error: %s", result.message().c_str());
     ReportError(result, &out);
     return;
   }
@@ -625,13 +682,13 @@ void NFCInstance::TagTypeGetter(
   if (result.IsSuccess()) {
     ReportSuccess(picojson::value(tag_type), out);
   } else {
+    LoggerE("Error: %s", result.message().c_str());
     ReportError(result, &out);
   }
 }
 
 void NFCInstance::TagIsSupportedNDEFGetter(
     const picojson::value& args, picojson::object& out) {
-
   LoggerD("Entered");
 
   int tag_id = (int)args.get("id").get<double>();
@@ -642,6 +699,7 @@ void NFCInstance::TagIsSupportedNDEFGetter(
   PlatformResult result = NFCAdapter::GetInstance()->TagIsConnectedGetter(tag_id, &is_connected);
 
   if (result.IsError()) {
+    LoggerE("Error: %s", result.message().c_str());
     ReportError(result, &out);
     return;
   }
@@ -659,6 +717,7 @@ void NFCInstance::TagIsSupportedNDEFGetter(
   if (result.IsSuccess()) {
     ReportSuccess(picojson::value(is_supported), out);
   } else {
+    LoggerE("Error: %s", result.message().c_str());
     ReportError(result, &out);
   }
 }
@@ -676,6 +735,7 @@ void NFCInstance::TagNDEFSizeGetter(
   PlatformResult result = NFCAdapter::GetInstance()->TagIsConnectedGetter(tag_id, &is_connected);
 
   if (result.IsError()) {
+    LoggerE("Error: %s", result.message().c_str());
     ReportError(result, &out);
     return;
   }
@@ -694,6 +754,7 @@ void NFCInstance::TagNDEFSizeGetter(
   if (result.IsSuccess()) {
     ReportSuccess(picojson::value((double)ndef_size), out);
   } else {
+    LoggerE("Error: %s", result.message().c_str());
     ReportError(result, &out);
   }
 }
@@ -711,6 +772,7 @@ void NFCInstance::TagPropertiesGetter(
   PlatformResult result = NFCAdapter::GetInstance()->TagIsConnectedGetter(tag_id, &is_connected);
 
   if (result.IsError()) {
+    LoggerE("Error: %s", result.message().c_str());
     ReportError(result, &out);
     return;
   }
@@ -746,6 +808,7 @@ void NFCInstance::TagPropertiesGetter(
     }
     ReportSuccess(properties, out);
   } else {
+    LoggerE("Error: %s", result.message().c_str());
     ReportError(result, &out);
   }
 
@@ -766,6 +829,7 @@ void NFCInstance::TagIsConnectedGetter(
   if (result.IsSuccess()) {
     ReportSuccess(picojson::value(connected), out);
   } else {
+    LoggerE("Error: %s", result.message().c_str());
     ReportError(result, &out);
   }
 }
@@ -773,19 +837,23 @@ void NFCInstance::TagIsConnectedGetter(
 void NFCInstance::AddHCEEventListener(const picojson::value& args,
                                       picojson::object& out) {
   PlatformResult result = NFCAdapter::GetInstance()->AddHCEEventListener();
-  if (result.IsSuccess())
+  if (result.IsSuccess()) {
     ReportSuccess(out);
-  else
+  } else {
+    LoggerE("Error: %s", result.message().c_str());
     ReportError(result, &out);
+  }
 }
 
 void NFCInstance::RemoveHCEEventListener(const picojson::value& args,
                                          picojson::object& out) {
   PlatformResult result = NFCAdapter::GetInstance()->RemoveHCEEventListener();
-  if (result.IsSuccess())
+  if (result.IsSuccess()) {
     ReportSuccess(out);
-  else
+  } else {
+    LoggerE("Error: %s", result.message().c_str());
     ReportError(result, &out);
+  }
 }
 
 void NFCInstance::SendHostAPDUResponse(const picojson::value& args,
@@ -807,7 +875,7 @@ void NFCInstance::SendHostAPDUResponse(const picojson::value& args,
   };
 
   auto error_cb = [this, callback_id](const PlatformResult& error) -> void {
-    LoggerD("Entered");
+    LoggerD("Entered error_cb: %s", error.message().c_str());
     picojson::value response = picojson::value(picojson::object());
     picojson::object& response_obj = response.get<picojson::object>();
     response_obj[JSON_CALLBACK_ID] = picojson::value(callback_id);
@@ -833,10 +901,12 @@ void NFCInstance::IsActivatedHandlerForAID(const picojson::value& args,
       args.get(JSON_TYPE).get<std::string>(),
       aid,
       &is_activated_handler);
-  if (result.IsSuccess())
+  if (result.IsSuccess()) {
     ReportSuccess(picojson::value(is_activated_handler), out);
-  else
+  } else {
+    LoggerE("Error: %s", result.message().c_str());
     ReportError(result, &out);
+  }
 }
 
 void NFCInstance::IsActivatedHandlerForCategory(const picojson::value& args,
@@ -854,10 +924,12 @@ void NFCInstance::IsActivatedHandlerForCategory(const picojson::value& args,
           args.get(JSON_TYPE).get<std::string>(),
           category,
           &is_activated_handler);
-  if (result.IsSuccess())
+  if (result.IsSuccess()) {
     ReportSuccess(picojson::value(is_activated_handler), out);
-  else
+  } else {
+    LoggerE("Error: %s", result.message().c_str());
     ReportError(result, &out);
+  }
 }
 
 void NFCInstance::RegisterAID(const picojson::value& args,
@@ -874,10 +946,12 @@ void NFCInstance::RegisterAID(const picojson::value& args,
       args.get(JSON_TYPE).get<std::string>(),
       args.get(JSON_AID).get<std::string>(),
       category);
-  if (result.IsSuccess())
+  if (result.IsSuccess()) {
     ReportSuccess(out);
-  else
+  } else {
+    LoggerE("Error: %s", result.message().c_str());
     ReportError(result, &out);
+  }
 }
 
 void NFCInstance::UnregisterAID(const picojson::value& args,
@@ -895,10 +969,12 @@ void NFCInstance::UnregisterAID(const picojson::value& args,
           args.get(JSON_TYPE).get<std::string>(),
           args.get(JSON_AID).get<std::string>(),
           category);
-  if (result.IsSuccess())
+  if (result.IsSuccess()) {
     ReportSuccess(out);
-  else
+  } else {
+    LoggerE("Error: %s", result.message().c_str());
     ReportError(result, &out);
+  }
 }
 
 void NFCInstance::GetAIDsForCategory(const picojson::value& args,
@@ -926,7 +1002,7 @@ void NFCInstance::GetAIDsForCategory(const picojson::value& args,
   };
 
   auto error_cb = [this, callback_id](const PlatformResult& error) -> void {
-    LoggerD("enter");
+    LoggerD("entered error_cb: %s", error.message().c_str());
     picojson::value response = picojson::value(picojson::object());
     picojson::object& response_obj = response.get<picojson::object>();
     response_obj[JSON_CALLBACK_ID] = picojson::value(callback_id);
