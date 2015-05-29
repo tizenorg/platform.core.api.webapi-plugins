@@ -510,8 +510,8 @@ ninja -C out/Default %{?_smp_mflags}
 
 %install
 mkdir -p %{buildroot}/usr/share/license
-cp LICENSE.AL2 %{buildroot}/usr/share/license/%{name}
-cat  LICENSE.BSD >> %{buildroot}/usr/share/license/%{name}
+cp LICENSE %{buildroot}/usr/share/license/%{name}
+cat LICENSE.BSD-2.0 >> %{buildroot}/usr/share/license/%{name}
 
 # Extensions.
 mkdir -p %{buildroot}%{_libdir}/%{crosswalk_extensions}
