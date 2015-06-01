@@ -145,7 +145,20 @@ std::string Extension::GetRuntimeVariable(const char* var_name, unsigned len) {
 
   std::vector<char> res(len + 1, 0);
   g_runtime->GetRuntimeVariableString(xw_extension_, var_name, &res[0], len);
-  return std::string(res.begin(), res.end());
+  // crosswalk has used the double quote for the app_id from the first.
+  // the n-wrt (new wrt) is using the double quote also.
+  // but that's wrt and wrt-service's bug.
+  // To keep compatibilities, two case of formats should be considered in webapi-plugins.
+  // removing double quote to keep compatibilities with new and old wrt
+  std::string value = std::string(res.begin(), res.end());
+  if (var_name == "app_id" && value.find('"', 0) != std::string::npos
+      && value.find('"', value.size() -1) != std::string::npos) {
+
+    value = value.erase(0, 1);
+    value = value.erase(value.size() - 1, 1);
+  }
+
+  return value;
 }
 
 // static
