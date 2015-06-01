@@ -8,7 +8,7 @@
 Name:       webapi-plugins
 Version:    0.5
 Release:    0
-License:    Apache-2.0 and BSD-2.0
+License:    Apache-2.0 and BSD-2.0 and MIT
 Group:      Development/Libraries
 Summary:    Tizen Web APIs implemented
 Source0:    %{name}-%{version}.tar.gz
