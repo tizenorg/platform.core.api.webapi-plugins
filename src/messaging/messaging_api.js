@@ -699,7 +699,7 @@ Messaging.prototype.getMessageServices = function () {
             if (args.errorCallback) {
                 args.errorCallback.call(
                     null,
-                    new WebAPIException(e.code, e.message, e.name)
+                    new WebAPIException(e.error)
                 )
             }
         }
@@ -755,7 +755,7 @@ MessageService.prototype.sendMessage = function () {
             if (args.errorCallback) {
                 args.errorCallback.call(
                     null,
-                    new WebAPIException(e.code, e.message, e.name)
+                    new WebAPIException(e.error)
                 )
             }
         }
@@ -799,7 +799,7 @@ MessageService.prototype.loadMessageBody = function () {
             if (args.errorCallback) {
                 args.errorCallback.call(
                     null,
-                    new WebAPIException(e.code, e.message, e.name)
+                    new WebAPIException(e.error)
                 )
             }
         }
@@ -848,7 +848,7 @@ MessageService.prototype.loadMessageAttachment = function () {
             if (args.errorCallback) {
                 args.errorCallback.call(
                     null,
-                    new WebAPIException(e.code, e.message, e.name)
+                    new WebAPIException(e.error)
                 )
             }
         }
@@ -875,7 +875,7 @@ MessageService.prototype.sync = function () {
             if (args.errorCallback) {
                 args.errorCallback.call(
                     null,
-                    new WebAPIException(e.code, e.message, e.name)
+                    new WebAPIException(e.error)
                 )
             }
         }
@@ -914,7 +914,7 @@ MessageService.prototype.syncFolder = function () {
             if (args.errorCallback) {
                 args.errorCallback.call(
                     null,
-                    new WebAPIException(e.code, e.message, e.name)
+                    new WebAPIException(e.error)
                 )
             }
         }
@@ -1003,7 +1003,7 @@ MessageStorage.prototype.addDraftMessage = function () {
             if (args.errorCallback) {
                 args.errorCallback.call(
                     null,
-                    new WebAPIException(e.code, e.message, e.name)
+                    new WebAPIException(e.error)
                 )
             }
         }
@@ -1051,7 +1051,7 @@ MessageStorage.prototype.findMessages = function () {
             if (args.errorCallback) {
                 args.errorCallback.call(
                     null,
-                    new WebAPIException(e.code, e.message, e.name)
+                    new WebAPIException(e.error)
                 )
             }
         }
@@ -1092,7 +1092,7 @@ MessageStorage.prototype.removeMessages = function () {
             if (args.errorCallback) {
                 args.errorCallback.call(
                     null,
-                    new WebAPIException(e.code, e.message, e.name)
+                    new WebAPIException(e.error)
                 )
             }
         }
@@ -1155,7 +1155,7 @@ MessageStorage.prototype.updateMessages = function () {
             if (args.errorCallback) {
                 args.errorCallback.call(
                     null,
-                    new WebAPIException(e.code, e.message, e.name)
+                    new WebAPIException(e.error)
                 )
             }
         }
@@ -1202,7 +1202,7 @@ MessageStorage.prototype.findConversations = function () {
             if (args.errorCallback) {
                 args.errorCallback.call(
                     null,
-                    new WebAPIException(e.code, e.message, e.name)
+                    new WebAPIException(e.error)
                 )
             }
         }
@@ -1243,7 +1243,7 @@ MessageStorage.prototype.removeConversations = function () {
             if (args.errorCallback) {
                 args.errorCallback.call(
                     null,
-                    new WebAPIException(e.code, e.message, e.name)
+                    new WebAPIException(e.error)
                 )
             }
         }
@@ -1286,7 +1286,7 @@ MessageStorage.prototype.findFolders = function () {
             if (args.errorCallback) {
                 args.errorCallback.call(
                     null,
-                    new WebAPIException(e.code, e.message, e.name)
+                    new WebAPIException(e.error)
                 )
             }
         }

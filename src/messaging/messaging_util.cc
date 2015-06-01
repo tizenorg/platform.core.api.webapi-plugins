@@ -574,8 +574,18 @@ PlatformResult MessagingUtil::jsonToMessage(const picojson::value& json,
     }
 
     std::vector<std::string> result;
-    auto arrayVectorStringConverter = [&result] (picojson::value& v)->void {
-        result.push_back(v.get<std::string>());
+    PlatformResult conv_res(ErrorCode::NO_ERROR);
+    auto arrayVectorStringConverter = [&result, &conv_res] (picojson::value& v)->void {
+      if (!v.is<std::string>()) {
+        const std::string message = "Passed array holds incorrect values "
+            + v.serialize() + " is not a correct string value";
+        LoggerE("Error: %s", message.c_str());
+        conv_res = PlatformResult(ErrorCode::INVALID_VALUES_ERR, message);
+      }
+      if (conv_res.IsError()) {
+        return;
+      }
+      result.push_back(v.get<std::string>());
     };
 
     auto subject = MessagingUtil::getValueFromJSONObject<std::string>(data,
@@ -585,6 +595,9 @@ PlatformResult MessagingUtil::jsonToMessage(const picojson::value& json,
     auto toJS = MessagingUtil::getValueFromJSONObject<std::vector<picojson::value>>(data,
             MESSAGE_ATTRIBUTE_TO);
     for_each(toJS.begin(), toJS.end(), arrayVectorStringConverter);
+    if (conv_res.IsError()) {
+      return conv_res;
+    }
     message->setTO(result);
     result.clear();
 
@@ -592,12 +605,18 @@ PlatformResult MessagingUtil::jsonToMessage(const picojson::value& json,
     auto ccJS = MessagingUtil::getValueFromJSONObject<
             std::vector<picojson::value>>(data, MESSAGE_ATTRIBUTE_CC);
     for_each(ccJS.begin(), ccJS.end(), arrayVectorStringConverter);
+    if (conv_res.IsError()) {
+      return conv_res;
+    }
     message->setCC(result);
     result.clear();
 
     auto bccJS = MessagingUtil::getValueFromJSONObject<
             std::vector<picojson::value>>(data, MESSAGE_ATTRIBUTE_BCC);
     for_each(bccJS.begin(), bccJS.end(), arrayVectorStringConverter);
+    if (conv_res.IsError()) {
+      return conv_res;
+    }
     message->setBCC(result);
     result.clear();
 
