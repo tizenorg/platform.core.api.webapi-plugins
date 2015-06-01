@@ -45,7 +45,7 @@ StatusNotification::~StatusNotification() {
 bool StatusNotification::IsColorFormatNumberic(const std::string& color) {
   LoggerD("Enter");
   std::string hexCode = "0123456789abcdef";
-  if (color.length() != 7 || !color.compare(0, 1, "#")) {
+  if (color.length() != 7 || '#' != color[0]) {
     return false;
   }
 
