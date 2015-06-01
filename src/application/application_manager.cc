@@ -1279,9 +1279,9 @@ void ApplicationManager::StartAppInfoEventListener(picojson::object* out) {
     }
 
     g_application_list_changed_broker.AddApplicationInstance(&instance_);
-    pkgmgr_client_listen_status(pkgmgr_client_handle_,
+/*    pkgmgr_client_listen_status(pkgmgr_client_handle_,
                                 ApplicationListChangedBroker::ClientStatusListener,
-                                &g_application_list_changed_broker);
+                                &g_application_list_changed_broker);*/
   } else {
     LoggerD("Broker callback is already registered.");
   }
