@@ -17,6 +17,7 @@
 #include "nfc/nfc_extension.h"
 
 #include "nfc/nfc_instance.h"
+#include "common/logger.h"
 
 extern const char kSource_nfc_api[];
 
@@ -25,6 +26,7 @@ common::Extension* CreateExtension() {
 }
 
 NFCExtension::NFCExtension() {
+  LoggerD("Entered");
   SetExtensionName("tizen.nfc");
   SetJavaScriptAPI(kSource_nfc_api);
 
@@ -39,8 +41,12 @@ NFCExtension::NFCExtension() {
   SetExtraJSEntryPoints(entry_points);
 }
 
-NFCExtension::~NFCExtension() {}
+NFCExtension::~NFCExtension()
+{
+  LoggerD("Entered");
+}
 
 common::Instance* NFCExtension::CreateInstance() {
+  LoggerD("Entered");
   return new extension::nfc::NFCInstance();
 }

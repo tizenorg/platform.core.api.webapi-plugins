@@ -94,6 +94,7 @@ static void PackageRequestCb(
     package_manager_event_type_e event_type,
     package_manager_event_state_e event_state, int progress,
     package_manager_error_e error, void *user_data) {
+  LoggerD("Enter");
 
   PackageInstance* instance = static_cast<PackageInstance*>(user_data);
   if ( !instance ) {
@@ -266,6 +267,7 @@ void PackageInstance::RegisterCallback(
 }
 
 void PackageInstance::DeregisterCallback(int request_id) {
+  LoggerD("Enter");
   callbacks_map_.erase(request_id);
 }
 

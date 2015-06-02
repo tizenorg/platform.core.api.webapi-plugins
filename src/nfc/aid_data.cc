@@ -15,6 +15,7 @@
  */
 
 #include "nfc/aid_data.h"
+#include "common/logger.h"
 
 namespace extension {
 namespace nfc {
@@ -22,9 +23,13 @@ namespace nfc {
 AIDData::AIDData(nfc_se_type_e se_type, const char* aid, bool read_only)
     : se_type_(se_type),
       aid_(aid),
-      read_only_(read_only) {}
+      read_only_(read_only)
+{
+  LoggerD("Entered");
+}
 
 picojson::value AIDData::toJSON() const {
+  LoggerD("Entered");
   picojson::value retval = picojson::value(picojson::object());
   picojson::object& obj = retval.get<picojson::object>();
 
