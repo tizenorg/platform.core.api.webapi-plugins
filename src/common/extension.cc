@@ -161,8 +161,8 @@ std::string Extension::GetRuntimeVariable(const char* var_name, unsigned len) {
   // but that's wrt and wrt-service's bug.
   // To keep compatibilities, two case of formats should be considered in webapi-plugins.
   // removing double quote to keep compatibilities with new and old wrt
-  std::string value = std::string(res.begin(), res.end());
-  if (var_name == "app_id" && value.find('"', 0) != std::string::npos
+  std::string value = std::string(res.data());
+  if (0 == strncmp(var_name, "app_id", 6) && value.find('"', 0) != std::string::npos
       && value.find('"', value.size() -1) != std::string::npos) {
 
     value = value.erase(0, 1);
