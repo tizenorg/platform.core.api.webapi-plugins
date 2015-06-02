@@ -38,6 +38,7 @@ BadgeManager::BadgeManager(BadgeInstance& instance)
 }
 
 BadgeManager::~BadgeManager() {
+  LoggerD("Enter");
   if (is_cb_registered_) {
     if (!watched_applications_.empty()) watched_applications_.clear();
     int ret = badge_unregister_changed_cb(badge_changed_cb);
@@ -120,6 +121,7 @@ PlatformResult BadgeManager::GetBadgeCount(const std::string& app_id,
 }
 
 PlatformResult BadgeManager::AddChangeListener(const JsonObject &obj) {
+  LoggerD("Enter");
   auto &items = FromJson<picojson::array>(obj, "appIdList");
   for (auto item : items) {
     watched_applications_.insert(common::JsonCast<std::string>(item));
@@ -139,6 +141,7 @@ PlatformResult BadgeManager::AddChangeListener(const JsonObject &obj) {
 }
 
 PlatformResult BadgeManager::RemoveChangeListener(const JsonObject &obj) {
+  LoggerD("Enter");
   auto &items = FromJson<picojson::array>(obj, "appIdList");
   for (auto item : items) {
     watched_applications_.erase(common::JsonCast<std::string>(item));
@@ -158,6 +161,7 @@ PlatformResult BadgeManager::RemoveChangeListener(const JsonObject &obj) {
 
 void BadgeManager::badge_changed_cb(unsigned int action, const char *pkgname,
                                     unsigned int count, void *user_data) {
+  LoggerD("Enter");
   BadgeManager* that = static_cast<BadgeManager*>(user_data);
   if (action != BADGE_ACTION_SERVICE_READY &&
       that->watched_applications_.find(pkgname) != that->watched_applications_.end()) {

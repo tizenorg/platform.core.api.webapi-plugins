@@ -40,6 +40,7 @@ using namespace common;
 
 PlatformResult ContactManagerGetAddressBooks(const JsonObject& args,
                                              JsonArray& out) {
+  LoggerD("Enter");
   PlatformResult status = ContactUtil::CheckDBConnection();
   if (status.IsError()) return status;
 
@@ -119,6 +120,7 @@ PlatformResult ContactManagerGetAddressBooks(const JsonObject& args,
 
 PlatformResult ContactManagerGetAddressBook(const JsonObject& args,
                                             JsonObject& out) {
+  LoggerD("Enter");
   PlatformResult status = ContactUtil::CheckDBConnection();
   if (status.IsError()) return status;
 
@@ -163,6 +165,7 @@ PlatformResult ContactManagerGetAddressBook(const JsonObject& args,
 
 namespace {
 PlatformResult ContactManagerGetInternal(int person_id, JsonObject* out) {
+  LoggerD("Enter");
   contacts_record_h contacts_record = nullptr;
 
   int error_code = contacts_db_get_record(_contacts_person._uri, person_id,
@@ -185,6 +188,7 @@ PlatformResult ContactManagerGetInternal(int person_id, JsonObject* out) {
 
 PlatformResult ContactManagerAddAddressBook(const JsonObject& args,
                                             JsonObject& out) {
+  LoggerD("Enter");
   PlatformResult status = ContactUtil::CheckDBConnection();
   if (status.IsError()) return status;
 
@@ -239,6 +243,7 @@ PlatformResult ContactManagerAddAddressBook(const JsonObject& args,
 
 PlatformResult ContactManagerRemoveAddressBook(const JsonObject& args,
                                                JsonObject& out) {
+  LoggerD("Enter");
   PlatformResult status = ContactUtil::CheckDBConnection();
   if (status.IsError()) return status;
 
@@ -267,6 +272,7 @@ PlatformResult ContactManagerRemoveAddressBook(const JsonObject& args,
 }
 
 PlatformResult ContactManagerGet(const JsonObject& args, JsonObject& out) {
+  LoggerD("Enter");
   PlatformResult status = ContactUtil::CheckDBConnection();
   if (status.IsError()) return status;
 
@@ -276,6 +282,7 @@ PlatformResult ContactManagerGet(const JsonObject& args, JsonObject& out) {
 }
 
 PlatformResult ContactManagerUpdate(const JsonObject& args, JsonObject&) {
+  LoggerD("Enter");
   PlatformResult status = ContactUtil::CheckDBConnection();
   if (status.IsError()) return status;
 
@@ -306,6 +313,7 @@ PlatformResult ContactManagerUpdate(const JsonObject& args, JsonObject&) {
 }
 
 PlatformResult ContactManagerRemove(const JsonObject& args, JsonObject&) {
+  LoggerD("Enter");
   PlatformResult status = ContactUtil::CheckDBConnection();
   if (status.IsError()) return status;
 
@@ -326,6 +334,7 @@ PlatformResult ContactManagerRemove(const JsonObject& args, JsonObject&) {
 }
 
 PlatformResult ContactManagerFind(const JsonObject& args, JsonArray& out) {
+  LoggerD("Enter");
   PlatformResult status = ContactUtil::CheckDBConnection();
   if (status.IsError()) return status;
 
@@ -756,6 +765,7 @@ PlatformResult ContactManagerFind(const JsonObject& args, JsonArray& out) {
 
 PlatformResult ContactManagerImportFromVCard(const JsonObject& args,
                                              JsonObject& out) {
+  LoggerD("Enter");
   // I'm not sure how to call it. Should it be 'Contact', 'vCard' or what?
   PlatformResult status = ContactUtil::CheckDBConnection();
   if (status.IsError()) return status;
@@ -810,6 +820,8 @@ bool IsNumeric(const char* s) {
 
 void ContactManagerListenerCallback(const char* view_uri, char* changes,
                                     void* user_data) {
+  LoggerD("ContactManagerListenerCallback");
+
   (void)view_uri;
 
   if (nullptr == changes) {
@@ -890,6 +902,7 @@ void ContactManagerListenerCallback(const char* view_uri, char* changes,
 
 PlatformResult ContactManagerStartListening(ContactInstance& instance, const JsonObject& /*args*/,
                                             JsonObject& /*out*/) {
+  LoggerD("Enter");
   PlatformResult status = ContactUtil::CheckDBConnection();
   if (status.IsError()) return status;
 
@@ -907,6 +920,7 @@ PlatformResult ContactManagerStartListening(ContactInstance& instance, const Jso
 
 PlatformResult ContactManagerStopListening(ContactInstance& instance, const JsonObject& /*args*/,
                                            JsonObject& /*out*/) {
+  LoggerD("Enter");
   PlatformResult status = ContactUtil::CheckDBConnection();
   if (status.IsError()) return status;
 
