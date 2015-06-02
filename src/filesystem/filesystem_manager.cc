@@ -221,6 +221,7 @@ void FilesystemManager::FetchStorages(
 FilesystemManager::FilesystemManager()
     : listener_(nullptr), is_listener_registered_(false) {}
 FilesystemManager::~FilesystemManager() {
+  LoggerD("enter");
   if (is_listener_registered_) {
     for (auto id : ids_) {
       storage_unset_state_changed_cb(id, storage_cb);
@@ -229,6 +230,7 @@ FilesystemManager::~FilesystemManager() {
 }
 
 FilesystemManager& FilesystemManager::GetInstance() {
+  LoggerD("enter");
   static FilesystemManager instance;
   return instance;
 }
@@ -238,6 +240,7 @@ void FilesystemManager::StatPath(
     const std::function<void(const FilesystemStat&)>& success_cb,
     const std::function<void(FilesystemError)>& error_cb) {
 
+  LoggerD("enter");
   FilesystemStat statData = FilesystemStat::getStat(path);
   if (!statData.valid) {
     error_cb(FilesystemError::NotFound);
@@ -250,6 +253,7 @@ void FilesystemManager::StatPath(
 void FilesystemManager::GetVirtualRoots(
     const std::function<void(const std::vector<common::VirtualRoot>&)>& success_cb,
     const std::function<void(FilesystemError)>& error_cb) {
+  LoggerD("enter");
   success_cb(common::VirtualFs::GetInstance().GetVirtualRoots());
 }
 
@@ -257,6 +261,7 @@ void FilesystemManager::CreateFile(
     const std::string& path,
     const std::function<void(const FilesystemStat&)>& success_cb,
     const std::function<void(FilesystemError)>& error_cb) {
+  LoggerD("enter");
   const mode_t create_mode = S_IRWXU | S_IRWXG | S_IRWXO;
   int status;
   status =
@@ -292,6 +297,7 @@ void FilesystemManager::Rename(
     const std::function<void(const FilesystemStat&)>& success_cb,
     const std::function<void(FilesystemError)>& error_cb) {
 
+  LoggerD("enter");
   int status = rename(oldPath.c_str(), newPath.c_str());
   if (0 == status) {
     FilesystemStat fileStat = FilesystemStat::getStat(newPath);
@@ -344,6 +350,7 @@ void FilesystemManager::UnlinkFile(
     const std::string& path,
     const std::function<void()>& success_cb,
     const std::function<void(FilesystemError)>& error_cb) {
+  LoggerD("enter");
   if (unlink(path.c_str()) != 0) {
     LoggerE("Error occured while deleting file");
     error_cb(FilesystemError::Other);
@@ -356,6 +363,7 @@ void FilesystemManager::RemoveDirectory(
     const std::string& path,
     const std::function<void()>& success_cb,
     const std::function<void(FilesystemError)>& error_cb) {
+  LoggerD("enter");
   const int maxDirOpened = 64;
   if (nftw(path.c_str(), unlink_cb, maxDirOpened, FTW_DEPTH | FTW_PHYS) != 0) {
     LoggerE("Error occured");
@@ -372,6 +380,7 @@ void FilesystemManager::FileRead(
     const std::function<void(const std::string&)>& success_cb,
     const std::function<void(FilesystemError)>& error_cb) {
 
+  LoggerD("enter");
   FilesystemFile file(path);
   FilesystemBuffer buffer;
   if (!file.Read(&buffer, offset, length)) {
@@ -391,6 +400,7 @@ void FilesystemManager::FileWrite(
     const std::function<void()>& success_cb,
     const std::function<void(FilesystemError)>& error_cb) {
 
+  LoggerD("enter");
   FilesystemFile file(path);
   FilesystemBuffer buffer;
   // Decode buffer data
@@ -455,6 +465,7 @@ void FilesystemManager::CopyTo(
   if (FilesystemError::None == retval) {
     success_cb();
   } else {
+    LoggerE("Failed: perform_deep_copy()");
     error_cb(retval);
   }
 }
