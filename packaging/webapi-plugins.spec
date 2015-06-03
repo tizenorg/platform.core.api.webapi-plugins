@@ -228,13 +228,13 @@ Source0:    %{name}-%{version}.tar.gz
 
 %define tizen_privilege_engine                    ACE
 
-%define tizen_feature_account_support             0
+%define tizen_feature_account_support             1
 %define tizen_feature_alarm_support               1
 %define tizen_feature_application_support         1
 %define tizen_feature_archive_support             1
-%define tizen_feature_badge_support               0
+%define tizen_feature_badge_support               1
 %define tizen_feature_bluetooth_support           0
-%define tizen_feature_bookmark_support            0
+%define tizen_feature_bookmark_support            1
 %define tizen_feature_calendar_support            0
 %define tizen_feature_callhistory_support         0
 %define tizen_feature_contact_support             0
@@ -246,21 +246,21 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_filesystem_support          1
 %define tizen_feature_fm_radio_support            0
 %define tizen_feature_ham_support                 0
-%define tizen_feature_key_manager_support         0
-%define tizen_feature_media_controller_support    0
-%define tizen_feature_media_key_support           0
+%define tizen_feature_key_manager_support         1
+%define tizen_feature_media_controller_support    1
+%define tizen_feature_media_key_support           1
 %define tizen_feature_message_port_support        1
 %define tizen_feature_messaging_support           0
 %define tizen_feature_nbs_support                 0
 %define tizen_feature_nfc_emulation_support       0
 %define tizen_feature_nfc_support                 0
-%define tizen_feature_notification_support        0
+%define tizen_feature_notification_support        1
 %define tizen_feature_package_support             1
 %define tizen_feature_power_support               0
-%define tizen_feature_push_support                0
+%define tizen_feature_push_support                1
 %define tizen_feature_se_support                  0
 %define tizen_feature_sensor_support              0
-%define tizen_feature_sound_support               0
+%define tizen_feature_sound_support               1
 %define tizen_feature_system_info_support         1
 %define tizen_feature_system_setting_support      1
 %define tizen_feature_telephony_support           0
