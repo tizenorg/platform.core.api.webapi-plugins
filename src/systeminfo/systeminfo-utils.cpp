@@ -1485,10 +1485,13 @@ PlatformResult SystemInfoDeviceCapability::GetValueBool(const char *key, bool* v
   bool platform_result = false;
   int ret = system_info_get_platform_bool(key, &platform_result);
   if (SYSTEM_INFO_ERROR_NONE != ret) {
-    std::string log_msg = "Platform error while getting bool value: ";
-    log_msg += std::string(key) + " " + std::to_string(ret);
-    LoggerE("%s", log_msg.c_str());
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
+    ret = system_info_get_custom_bool(key, &platform_result);
+    if (SYSTEM_INFO_ERROR_NONE != ret) {
+      std::string log_msg = "Platform error while getting bool value: ";
+      log_msg += std::string(key) + " " + std::to_string(ret);
+      LoggerE("%s", log_msg.c_str());
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
+    }
   }
 
   *value = platform_result;
@@ -1500,10 +1503,13 @@ PlatformResult SystemInfoDeviceCapability::GetValueInt(const char *key, int* val
   int platform_result = 0;
   int ret = system_info_get_platform_int(key, &platform_result);
   if (SYSTEM_INFO_ERROR_NONE != ret) {
-    std::string log_msg = "Platform error while getting int value: ";
-    log_msg += std::string(key) + " " + std::to_string(ret);
-    LoggerE("%s", log_msg.c_str());
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
+    ret = system_info_get_custom_int(key, &platform_result);
+    if (SYSTEM_INFO_ERROR_NONE != ret) {
+      std::string log_msg = "Platform error while getting int value: ";
+      log_msg += std::string(key) + " " + std::to_string(ret);
+      LoggerE("%s", log_msg.c_str());
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
+    }
   }
 
   *value = platform_result;
@@ -1515,17 +1521,20 @@ PlatformResult SystemInfoDeviceCapability::GetValueString(const char *key, std::
   char* value = nullptr;
 
   int ret = system_info_get_platform_string(key, &value);
-  if (SYSTEM_INFO_ERROR_NONE == ret) {
-    if (value != nullptr) {
-      *str_value = value;
-      free(value);
-      value = nullptr;
+  if (SYSTEM_INFO_ERROR_NONE != ret) {
+    ret = system_info_get_custom_string(key, &value);
+    if (SYSTEM_INFO_ERROR_NONE != ret) {
+      std::string log_msg = "Platform error while getting string value: ";
+      log_msg += std::string(key) + " " + std::to_string(ret);
+      LoggerE("%s", log_msg.c_str());
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
     }
-  } else {
-    std::string log_msg = "Platform error while getting string value: ";
-    log_msg += std::string(key) + " " + std::to_string(ret);
-    LoggerE("%s", log_msg.c_str());
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
+  }
+
+  if (value != nullptr) {
+    *str_value = value;
+    free(value);
+    value = nullptr;
   }
 
   LoggerD("value[%s]: %s", key, str_value->c_str());
