@@ -67,12 +67,10 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_message_port_support        1
 %define tizen_feature_messaging_support           1
 
-%ifarch %{arm}
-# ARM
+%if 0%{?model_build_feature_nfc}
 %define tizen_feature_nfc_emulation_support       0
 %define tizen_feature_nfc_support                 1
 %else
-# I586
 %define tizen_feature_nfc_emulation_support       0
 %define tizen_feature_nfc_support                 0
 %endif
