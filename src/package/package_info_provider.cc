@@ -65,7 +65,7 @@ void PackageInfoProvider::GetPackagesInfo(
   start_time = clock();
 
   picojson::array array_data;
-  if ( pkgmgrinfo_pkginfo_get_list(PackageInfoGetListCb, &array_data)
+  if ( pkgmgrinfo_pkginfo_get_usr_list(PackageInfoGetListCb, &array_data, getuid())
       != PMINFO_R_OK ) {
     LoggerE("Failed to get package information");
     REPORT_ERROR(out, UnknownException("Any other platform error occurs"));
@@ -105,7 +105,7 @@ void PackageInfoProvider::GetPackageInfo(
   }
 
   pkgmgrinfo_pkginfo_h info;
-  if ( pkgmgrinfo_pkginfo_get_pkginfo(package_id, &info)
+  if ( pkgmgrinfo_pkginfo_get_usr_pkginfo(package_id, getuid(), &info)
       != PMINFO_R_OK ) {
     LoggerE("Failed to get pkginfo");
     REPORT_ERROR(out, NotFoundException("The package with the specified ID is not found"));

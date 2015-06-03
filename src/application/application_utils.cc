@@ -102,7 +102,7 @@ void ApplicationUtils::CreateApplicationInformation(const pkgmgrinfo_appinfo_h h
   }
 
   pkgmgrinfo_pkginfo_h pkginfo;
-  ret = pkgmgrinfo_pkginfo_get_pkginfo(tmp_str, &pkginfo);
+  ret = pkgmgrinfo_pkginfo_get_usr_pkginfo(tmp_str, getuid(), &pkginfo);
   if (PMINFO_R_OK != ret) {
     LoggerE("Failed to get package info");
   } else {

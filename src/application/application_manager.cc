@@ -78,7 +78,7 @@ void ApplicationManager::GetCurrentApplication(const std::string& app_id,
 
   // obtain handle to application info
   pkgmgrinfo_appinfo_h handle;
-  int ret = pkgmgrinfo_appinfo_get_appinfo(app_id.c_str(), &handle);
+  int ret = pkgmgrinfo_appinfo_get_usr_appinfo(app_id.c_str(), getuid(), &handle);
   if (PMINFO_R_OK != ret) {
     LoggerE("Failed to get app info.");
     ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to get app info."), out);
@@ -674,7 +674,7 @@ void ApplicationManager::FindAppControl(const picojson::value& args) {
       }
 
       pkgmgrinfo_appinfo_h handle;
-      int ret = pkgmgrinfo_appinfo_get_appinfo(appid, &handle);
+      int ret = pkgmgrinfo_appinfo_get_usr_appinfo(appid, getuid(), &handle);
       if (PMINFO_R_OK != ret) {
         LoggerE("Failed to get appInfo");
       } else {
@@ -855,10 +855,10 @@ void ApplicationManager::GetAppsInfo(const picojson::value& args) {
       return 0;
     };
 
-    int ret = pkgmgrinfo_appinfo_get_installed_list(app_info_cb, &array);
+    int ret = pkgmgrinfo_appinfo_get_usr_installed_list(app_info_cb, getuid(), &array);
 
     if (APP_MANAGER_ERROR_NONE != ret) {
-      LoggerE("pkgmgrinfo_appinfo_get_installed_list error");
+      LoggerE("pkgmgrinfo_appinfo_get_usr_installed_list error");
       ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown error."), &response_obj);
     } else {
       ReportSuccess(result, response_obj);
@@ -883,7 +883,7 @@ void ApplicationManager::GetAppInfo(const std::string& app_id, picojson::object*
 
   pkgmgrinfo_appinfo_h handle = nullptr;
 
-  if (PMINFO_R_OK != pkgmgrinfo_appinfo_get_appinfo(app_id.c_str(), &handle)) {
+  if (PMINFO_R_OK != pkgmgrinfo_appinfo_get_usr_appinfo(app_id.c_str(), getuid(), &handle)) {
     LoggerE("Failed to get app info");
     ReportError(PlatformResult(ErrorCode::NOT_FOUND_ERR, "Failed to get app info."), out);
     return;
@@ -1024,7 +1024,7 @@ void ApplicationManager::GetAppSharedUri(const std::string& app_id, picojson::ob
 
   pkgmgrinfo_pkginfo_h pkg_info = nullptr;
 
-  int ret = pkgmgrinfo_pkginfo_get_pkginfo(package_id, &pkg_info);
+  int ret = pkgmgrinfo_pkginfo_get_usr_pkginfo(package_id, getuid(), &pkg_info);
   std::unique_ptr<std::remove_pointer<pkgmgrinfo_pkginfo_h>::type, int(*)(pkgmgrinfo_pkginfo_h)>
   pkg_info_ptr(pkg_info, &pkgmgrinfo_pkginfo_destroy_pkginfo); // automatically release the memory
 
@@ -1056,7 +1056,7 @@ void ApplicationManager::GetAppMetaData(const std::string& app_id, picojson::obj
 
   pkgmgrinfo_appinfo_h handle = nullptr;
 
-  int ret = pkgmgrinfo_appinfo_get_appinfo(app_id.c_str(), &handle);
+  int ret = pkgmgrinfo_appinfo_get_usr_appinfo(app_id.c_str(), getuid(), &handle);
   std::unique_ptr<std::remove_pointer<pkgmgrinfo_appinfo_h>::type, int(*)(pkgmgrinfo_appinfo_h)>
   pkg_info_ptr(handle, &pkgmgrinfo_appinfo_destroy_appinfo); // automatically release the memory
 
@@ -1191,7 +1191,7 @@ class ApplicationListChangedBroker {
         case Event::kUpdated:
         {
           pkgmgrinfo_appinfo_h handle = nullptr;
-          if (PMINFO_R_OK != pkgmgrinfo_appinfo_get_appinfo(app_id.c_str(), &handle)) {
+          if (PMINFO_R_OK != pkgmgrinfo_appinfo_get_usr_appinfo(app_id.c_str(), getuid(), &handle)) {
             LoggerE("Failed to get application information handle.");
             continue;
           }
