@@ -40,7 +40,7 @@ public:
     void erasePrivData(long handle);
     long addPrivData(ArchiveFilePtr archive_file_ptr);
     common::PlatformResult getPrivData(long handle, ArchiveFilePtr* archive_file);
-    long open(OpenCallbackData* callback);
+    common::PlatformResult open(OpenCallbackData* callback);
 
 private:
     ArchiveManager();

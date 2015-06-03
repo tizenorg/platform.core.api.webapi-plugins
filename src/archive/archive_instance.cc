@@ -218,7 +218,13 @@ void ArchiveInstance::Open(const picojson::value& args, picojson::object& out) {
     afp->setOverwrite(overwrite);
     callback->setArchiveFile(afp);
 
-    ArchiveManager::getInstance().open(callback);
+    result = ArchiveManager::getInstance().open(callback);
+
+    if (result) {
+        ReportSuccess(out);
+    } else {
+        ReportError(result, &out);
+    }
 }
 
 void ArchiveInstance::Abort(const picojson::value& args, picojson::object& out)
