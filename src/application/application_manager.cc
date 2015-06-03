@@ -617,7 +617,6 @@ void ApplicationManager::LaunchAppControl(const picojson::value& args) {
           return;
         default:
           LoggerE("app_control_send_launch_request returns UNKNOWN ERROR!!!");
-          throw UnknownException("Unknown error");
           ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown error."),
                       &response->get<picojson::object>());
           return;
