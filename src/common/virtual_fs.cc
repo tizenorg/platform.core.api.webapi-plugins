@@ -268,6 +268,7 @@ optional<std::string> VirtualFs::GetApplicationDirectory() const {
 
 std::string VirtualFs::GetRealPath(const std::string& path_or_uri) const {
   LoggerD("Enter");
+  SLoggerD("Input: [%s]", path_or_uri.c_str());
   std::string realpath;
   std::size_t pos = path_or_uri.find(kFileUriPrefix);
   if (pos != std::string::npos) {
@@ -280,11 +281,12 @@ std::string VirtualFs::GetRealPath(const std::string& path_or_uri) const {
     const std::string prefix = realpath.substr(0, pos);
     const auto it = g_virtual_roots.find(prefix);
     if (it != g_virtual_roots.end()) {
-      realpath.replace(0, it->second.path_.size(), it->second.path_);
+      realpath.replace(0, prefix.size(), it->second.path_);
     } else {
       LoggerE("Unknown virtual root");
     }
   }
+  SLoggerD("Exit: [%s]", realpath.c_str());
   return realpath;
 }
 
