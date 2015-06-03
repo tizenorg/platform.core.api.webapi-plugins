@@ -1,5 +1,3 @@
-%{!?profile:%define profile mobile}
-
 %define _manifestdir %{TZ_SYS_RW_PACKAGES}
 %define _desktop_icondir %{TZ_SYS_SHARE}/icons/default/small
 
@@ -453,7 +451,7 @@ Tizen Web APIs implemented.
 %build
 
 export GYP_GENERATORS='ninja'
-GYP_OPTIONS="--depth=. -Dtizen=1 -Dextension_build_type=Debug -Dextension_host_os=%{profile} -Dprivilege_engine=%{tizen_privilege_engine}"
+GYP_OPTIONS="--depth=. -Dtizen=1 -Dextension_build_type=Debug -Dextension_host_os=%{tizen_profile_name} -Dprivilege_engine=%{tizen_privilege_engine}"
 GYP_OPTIONS="$GYP_OPTIONS -Ddisplay_type=x11"
 
 # feature flags
