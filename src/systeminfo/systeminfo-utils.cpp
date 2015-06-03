@@ -35,6 +35,7 @@
 #include <device/callback.h>
 #include <device/device-error.h>
 #include <sensor_internal.h>
+#include <tzplatform_config.h>
 
 #include "common/logger.h"
 #include "common/platform_exception.h"
@@ -144,8 +145,8 @@ const std::string kOrientationLandscapeSecondary = "LANDSCAPE_SECONDARY";
 //Peripheral
 const std::string kVideoOutputString = "isVideoOutputOn";
 //Storage
-const char* kStorageInternalPath = "/opt/usr/media";
-const char* kStorageSdcardPath = "/opt/storage/sdcard";
+const std::string kStorageInternalPath = tzplatform_getenv(TZ_USER_CONTENT);
+const std::string kStorageSdcardPath = std::string(tzplatform_getenv(TZ_SYS_STORAGE)) + "/sdcard";
 const std::string kPropertyIdStorage = "STORAGE";
 const std::string kTypeUnknown = "UNKNOWN";
 const std::string kTypeInternal = "INTERNAL";
@@ -2466,7 +2467,7 @@ PlatformResult SysteminfoUtils::ReportStorage(picojson::object& out) {
   array.push_back(picojson::value(picojson::object()));
   picojson::object& internal_obj = array.back().get<picojson::object>();
 
-  if (statfs(kStorageInternalPath, &fs) < 0) {
+  if (statfs(kStorageInternalPath.c_str(), &fs) < 0) {
     LoggerE("There are no storage units detected");
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "There are no storage units detected");
   }
@@ -2475,7 +2476,7 @@ PlatformResult SysteminfoUtils::ReportStorage(picojson::object& out) {
 
   if (0 == vconf_get_int(VCONFKEY_SYSMAN_MMC_STATUS, &sdcardState)) {
     if (VCONFKEY_SYSMAN_MMC_MOUNTED == sdcardState){
-      if (statfs(kStorageSdcardPath, &fs) < 0) {
+      if (statfs(kStorageSdcardPath.c_str(), &fs) < 0) {
         LoggerE("MMC mounted, but not accessible");
         return PlatformResult(ErrorCode::UNKNOWN_ERR, "MMC mounted, but not accessible");
       }

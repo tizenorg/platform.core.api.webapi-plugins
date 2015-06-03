@@ -37,6 +37,7 @@
             'capi-network-wifi',
             'tapi',
             'sensor',
+            'libtzplatform-config',
             ]
           },
         }],
