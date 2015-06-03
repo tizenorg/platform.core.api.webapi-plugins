@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Samsung Electronics Co., Ltd All Rights Reserved
+ * Copyright (c) 2015 Samsung Electronics Co., Ltd All Rights Reserved
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -49,6 +49,7 @@ inline bool IsUnified(long id) { return id == kUnifiedAddressBookId; }
 }  // anonymous namespace
 
 PlatformResult AddressBookGet(const JsonObject& args, JsonObject& out) {
+  LoggerD("Enter");
   PlatformResult status = ContactUtil::CheckDBConnection();
   if (status.IsError()) return status;
 
@@ -78,6 +79,7 @@ PlatformResult AddressBookGet(const JsonObject& args, JsonObject& out) {
 }
 
 PlatformResult AddressBookAdd(const JsonObject& args, JsonObject& out) {
+  LoggerD("Enter");
   PlatformResult status = ContactUtil::CheckDBConnection();
   if (status.IsError()) return status;
 
@@ -131,6 +133,7 @@ PlatformResult AddressBookAdd(const JsonObject& args, JsonObject& out) {
 }
 
 PlatformResult AddressBookUpdate(const JsonObject& args, JsonObject& out) {
+  LoggerD("Enter");
   PlatformResult status = ContactUtil::CheckDBConnection();
   if (status.IsError()) return status;
 
@@ -306,6 +309,7 @@ PlatformResult AddressBookAddBatch(const JsonObject& args, JsonArray& out) {
 PlatformResult AddressBookBatchFunc(NativeFunction impl,
                                     const char* single_arg_name,
                                     const JsonObject& args, JsonArray& out) {
+  LoggerD("Enter");
   const JsonArray& batch_args = FromJson<JsonArray>(args, "batchArgs");
   const JsonObject& address_book = FromJson<JsonObject>(args, "addressBook");
 
@@ -413,6 +417,7 @@ PlatformResult AddressBookFind(const JsonObject& args, JsonArray& array) {
 }
 
 PlatformResult AddressBookAddGroup(const JsonObject& args, JsonObject& out) {
+  LoggerD("Enter");
   PlatformResult status = ContactUtil::CheckDBConnection();
   if (status.IsError()) return status;
 
@@ -456,6 +461,7 @@ PlatformResult AddressBookAddGroup(const JsonObject& args, JsonObject& out) {
 }
 
 PlatformResult AddressBookGetGroup(const JsonObject& args, JsonObject& out) {
+  LoggerD("Enter");
   PlatformResult status = ContactUtil::CheckDBConnection();
   if (status.IsError()) return status;
 
@@ -498,6 +504,7 @@ PlatformResult AddressBookGetGroup(const JsonObject& args, JsonObject& out) {
 }
 
 PlatformResult AddressBookUpdateGroup(const JsonObject& args, JsonObject&) {
+  LoggerD("Enter");
   PlatformResult status = ContactUtil::CheckDBConnection();
   if (status.IsError()) return status;
 
@@ -560,6 +567,7 @@ PlatformResult AddressBookUpdateGroup(const JsonObject& args, JsonObject&) {
 }
 
 PlatformResult AddressBookRemoveGroup(const JsonObject& args, JsonObject&) {
+  LoggerD("Enter");
   PlatformResult status = ContactUtil::CheckDBConnection();
   if (status.IsError()) return status;
 
@@ -601,6 +609,7 @@ PlatformResult AddressBookRemoveGroup(const JsonObject& args, JsonObject&) {
 }
 
 PlatformResult AddressBookGetGroups(const JsonObject& args, JsonArray& out) {
+  LoggerD("Enter");
   PlatformResult status = ContactUtil::CheckDBConnection();
   if (status.IsError()) return status;
 
@@ -842,6 +851,7 @@ void AddressBookListenerCallback(const char* view_uri, void* user_data) {
 }
 
 PlatformResult AddressBookStartListening(ContactInstance& instance, const JsonObject&, JsonObject& out) {
+  LoggerD("Enter");
   PlatformResult status = ContactUtil::CheckDBConnection();
   if (status.IsError()) return status;
   int current_state = 0;
@@ -871,6 +881,7 @@ PlatformResult AddressBookStartListening(ContactInstance& instance, const JsonOb
 }
 
 PlatformResult AddressBookStopListening(ContactInstance& instance) {
+  LoggerD("Enter");
   PlatformResult status = ContactUtil::CheckDBConnection();
   if (status.IsError()) return status;
 

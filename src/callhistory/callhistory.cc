@@ -1,6 +1,18 @@
-// Copyright 2014 Samsung Electronics Co, Ltd. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
+/*
+ * Copyright (c) 2015 Samsung Electronics Co., Ltd All Rights Reserved
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ */
 
 #include "callhistory.h"
 
@@ -569,6 +581,54 @@ PlatformResult CallHistory::stopCallHistoryChangeListener()
     }
   }
   m_is_listener_set = false;
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult CallHistory::setMissedDirection(int uid)
+{
+  LoggerD("Entered");
+
+  contacts_record_h record = nullptr;
+  SCOPE_EXIT {
+    contacts_record_destroy(record, true);
+  };
+
+  int ret = CONTACTS_ERROR_NONE;
+  int log_type = CONTACTS_PLOG_TYPE_NONE;
+
+  ret = contacts_db_get_record(_contacts_phone_log._uri, uid, &record);
+  if (CONTACTS_ERROR_NONE != ret) {
+    LoggerE("Failed to get record [%d]", ret);
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to get record");
+  }
+
+  ret = contacts_record_get_int(record, _contacts_phone_log.log_type, &log_type);
+  if (CONTACTS_ERROR_NONE != ret) {
+    LoggerE("Failed to get log type [%d]", ret);
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to get log type");
+  }
+
+  if (CONTACTS_PLOG_TYPE_VOICE_INCOMMING_UNSEEN == log_type) {
+    ret = contacts_record_set_int(
+        record, _contacts_phone_log.log_type, CONTACTS_PLOG_TYPE_VOICE_INCOMMING_SEEN);
+  } else if (CONTACTS_PLOG_TYPE_VIDEO_INCOMMING_UNSEEN == log_type) {
+    ret = contacts_record_set_int(
+        record, _contacts_phone_log.log_type, CONTACTS_PLOG_TYPE_VIDEO_INCOMMING_SEEN);
+  } else {
+    return PlatformResult(ErrorCode::NO_ERROR);
+  }
+
+  if (CONTACTS_ERROR_NONE != ret) {
+    LoggerE("Failed to set direction [%d]", ret);
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to set direction");
+  }
+
+  ret = contacts_db_update_record(record);
+  if (CONTACTS_ERROR_NONE != ret) {
+    LoggerE("Failed to update record [%d]", ret);
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to update record");
+  }
+
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 

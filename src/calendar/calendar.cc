@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Samsung Electronics Co., Ltd All Rights Reserved
+ * Copyright (c) 2015 Samsung Electronics Co., Ltd All Rights Reserved
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -509,6 +509,22 @@ PlatformResult Calendar::Find(const picojson::object& args, picojson::array& arr
         error_code = calendar_filter_add_caltime(
             calendar_filter, propertyId, flag,
             CalendarItem::DateToPlatform(dateTofilter, false));
+        if ((status = ErrorChecker(error_code)).IsError()) return status;
+      } else  if (name == "isAllDay" || name == "isDetached") {
+        calendar_match_int_flag_e flag = CALENDAR_MATCH_EQUAL;
+
+        if (match_value.is<bool>()) {
+          if(match_value.get<bool>()) {
+            value = 1;
+          } else {
+            value = 0;
+          }
+        } else {
+          value = 0;
+        }
+
+        error_code =
+        calendar_filter_add_int(calendar_filter, propertyId, flag, value);
         if ((status = ErrorChecker(error_code)).IsError()) return status;
       } else {
         std::string value = JsonCast<std::string>(match_value);

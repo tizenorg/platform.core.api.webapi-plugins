@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Samsung Electronics Co., Ltd All Rights Reserved
+ * Copyright (c) 2015 Samsung Electronics Co., Ltd All Rights Reserved
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -46,6 +46,7 @@ const std::string kChangeCallback = "BluetoothHealthChannelChangeCallback";
 BluetoothHealthProfileHandler::BluetoothHealthProfileHandler(BluetoothInstance& instance)
     : instance_(instance) {
   // initialize listeners
+  LoggerD("Entered");
   if (BT_ERROR_NONE != bt_hdp_set_connection_state_changed_cb(OnConnected, OnDisconnected, this)) {
     LoggerE("bt_hdp_set_connection_state_changed_cb() failed");
   }
@@ -56,6 +57,7 @@ BluetoothHealthProfileHandler::BluetoothHealthProfileHandler(BluetoothInstance& 
 }
 
 BluetoothHealthProfileHandler::~BluetoothHealthProfileHandler() {
+  LoggerD("Entered");
   bt_hdp_unset_connection_state_changed_cb();
   bt_hdp_unset_data_received_cb();
 
@@ -174,7 +176,7 @@ void BluetoothHealthProfileHandler::OnDisconnected(int result,
   BluetoothHealthProfileHandler* object = static_cast<BluetoothHealthProfileHandler*>(user_data);
 
   if (!object) {
-    LoggerW("user_data is NULL");
+    LoggerE("user_data is NULL");
     return;
   }
 
@@ -199,7 +201,7 @@ void BluetoothHealthProfileHandler::OnDataReceived(unsigned int channel,
   BluetoothHealthProfileHandler* object = static_cast<BluetoothHealthProfileHandler*>(user_data);
 
   if (!object) {
-    LoggerW("user_data is NULL");
+    LoggerE("user_data is NULL");
     return;
   }
 

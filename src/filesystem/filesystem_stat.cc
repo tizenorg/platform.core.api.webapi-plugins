@@ -1,6 +1,18 @@
-// Copyright 2015 Samsung Electronics Co, Ltd. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
+/*
+ * Copyright (c) 2015 Samsung Electronics Co., Ltd All Rights Reserved
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ */
 
 #include "filesystem_stat.h"
 
@@ -14,9 +26,10 @@
 namespace extension {
 namespace filesystem {
 
-FilesystemStat::FilesystemStat() : valid(false) {}
+FilesystemStat::FilesystemStat() : error(FilesystemError::None), valid(false) {}
 
 picojson::value FilesystemStat::toJSON() const {
+  LoggerD("Enter");
   picojson::value retval = picojson::value(picojson::object());
   picojson::object& obj = retval.get<picojson::object>();
 
@@ -33,14 +46,21 @@ picojson::value FilesystemStat::toJSON() const {
 }
 
 FilesystemStat FilesystemStat::getStat(const std::string& path) {
+  LoggerD("Enter");
   struct stat aStatObj;
+  FilesystemStat _result;
+
   LoggerD("enter");
+
   if (0 != stat(path.c_str(), &aStatObj)) {
     LoggerE("Failed to stat: (%d) %s", errno, strerror(errno));
-    return FilesystemStat();
+    if (ENOENT == errno) {
+      _result.error = FilesystemError::NotFound;
+    } else {
+      _result.error = FilesystemError::InvalidValue;
+    }
+    return _result;
   }
-
-  FilesystemStat _result;
 
   _result.path = path;
   _result.readOnly = true;

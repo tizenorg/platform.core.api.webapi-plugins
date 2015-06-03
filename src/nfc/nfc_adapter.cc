@@ -1,6 +1,18 @@
-// Copyright 2014 Samsung Electronics Co, Ltd. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
+/*
+ * Copyright (c) 2015 Samsung Electronics Co., Ltd All Rights Reserved
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ */
 
 #include "nfc/nfc_adapter.h"
 
@@ -77,7 +89,9 @@ NFCAdapter::NFCAdapter():
             m_latest_tag_id(0),
             m_last_tag_handle(nullptr),
             m_se_handle(nullptr),
-            responder_(nullptr) {
+            responder_(nullptr)
+{
+  LoggerD("Entered");
   // NFC library initialization
   int ret = nfc_manager_initialize();
   if(ret != NFC_ERROR_NONE) {
@@ -86,6 +100,7 @@ NFCAdapter::NFCAdapter():
 }
 
 NFCAdapter::~NFCAdapter() {
+  LoggerD("Entered");
   if (m_is_listener_set) {
     nfc_manager_unset_se_event_cb();
   }
@@ -116,16 +131,18 @@ NFCAdapter::~NFCAdapter() {
 }
 
 void NFCAdapter::SetResponder(IResponder* responder) {
+  LoggerD("Entered");
   responder_ = responder;
 }
 
 void NFCAdapter::RespondAsync(const char* msg) {
+  LoggerD("Entered");
   AssertMsg(GetInstance()->responder_, "Handler variable should be set");
   GetInstance()->responder_->RespondAsync(msg);
 }
 
 static picojson::value CreateEventError(double callbackId, const PlatformResult& ret) {
-
+  LoggerD("Entered");
   picojson::value event = picojson::value(picojson::object());
   picojson::object& obj = event.get<picojson::object>();
   tools::ReportError(ret, &obj);
@@ -135,6 +152,7 @@ static picojson::value CreateEventError(double callbackId, const PlatformResult&
 }
 
 static picojson::value createEventSuccess(double callbackId) {
+  LoggerD("Entered");
   picojson::value event = picojson::value(picojson::object());
   picojson::object& obj = event.get<picojson::object>();
   tools::ReportSuccess(obj);
@@ -144,7 +162,7 @@ static picojson::value createEventSuccess(double callbackId) {
 }
 
 static gboolean setPoweredCompleteCB(void* user_data) {
-
+  LoggerD("Entered");
   double* callbackId = static_cast<double*>(user_data);
   picojson::value event = createEventSuccess(*callbackId);
   NFCAdapter::GetInstance()->RespondAsync(event.serialize().c_str());
@@ -182,11 +200,13 @@ static void targetDetectedCallback(nfc_discovered_type_e type,
 }
 
 NFCAdapter* NFCAdapter::GetInstance() {
+  LoggerD("Entered");
   static NFCAdapter instance;
   return &instance;
 }
 
 bool NFCAdapter::GetPowered() {
+  LoggerD("Entered");
   return nfc_manager_is_activated();
 }
 
@@ -289,14 +309,14 @@ static void PostMessage(double* callbackId) {
 #endif
 
 PlatformResult NFCAdapter::SetPowered(const picojson::value& args) {
-
+  LoggerD("Entered");
   double* callbackId = new double(args.get(JSON_CALLBACK_ID).get<double>());
 
   bool powered = args.get("powered").get<bool>();
 
   if (nfc_manager_is_activated() == powered) {
     if (!g_idle_add(setPoweredCompleteCB, static_cast<void*>(callbackId))) {
-      LOGE("g_idle addition failed");
+      LoggerE("g_idle addition failed");
       delete callbackId;
       callbackId = NULL;
       return PlatformResult(ErrorCode::UNKNOWN_ERR, "SetPowered failed.");
@@ -309,7 +329,7 @@ PlatformResult NFCAdapter::SetPowered(const picojson::value& args) {
 
   int ret = app_control_create(&service);
   if (ret != APP_CONTROL_ERROR_NONE) {
-    LOGE("app_control_create failed: %d", ret);
+    LoggerE("app_control_create failed: %d", ret);
     delete callbackId;
     callbackId = NULL;
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "SetPowered failed.");
@@ -318,7 +338,7 @@ PlatformResult NFCAdapter::SetPowered(const picojson::value& args) {
   ret = app_control_set_operation(service,
                                   "http://tizen.org/appcontrol/operation/setting/nfc");
   if (ret != APP_CONTROL_ERROR_NONE) {
-    LOGE("app_control_set_operation failed: %d", ret);
+    LoggerE("app_control_set_operation failed: %d", ret);
     app_control_destroy(service);
     delete callbackId;
     callbackId = NULL;
@@ -327,7 +347,7 @@ PlatformResult NFCAdapter::SetPowered(const picojson::value& args) {
 
   ret = app_control_add_extra_data(service, "type", "nfc");
   if (ret != APP_CONTROL_ERROR_NONE) {
-    LOGE("app_control_add_extra_data failed: %d", ret);
+    LoggerE("app_control_add_extra_data failed: %d", ret);
     app_control_destroy(service);
     delete callbackId;
     callbackId = NULL;
@@ -342,26 +362,26 @@ PlatformResult NFCAdapter::SetPowered(const picojson::value& args) {
       int ret = app_control_get_extra_data(reply, "nfc_status",
                                            &type);
       if (ret != APP_CONTROL_ERROR_NONE) {
-        LOGE("app_control_get_extra_data failed: %d", ret);
+        LoggerE("app_control_get_extra_data failed: %d", ret);
         PostMessage(callbackId);
         return;
       }
-      LOGD("app_control result: %s", type);
+      LoggerD("app_control result: %s", type);
     } else {
-      LOGE("NFC enable app control failed : %d", result);
+      LoggerE("NFC enable app control failed : %d", result);
       PostMessage(callbackId);
       return;
     }
 
     if (!g_idle_add(setPoweredCompleteCB, static_cast<void*>(callbackId))) {
-      LOGE("g_idle addition failed");
+      LoggerE("g_idle addition failed");
       PostMessage(callbackId);
       return;
     }
   }, static_cast<void*>(callbackId));
 
   if (ret != APP_CONTROL_ERROR_NONE) {
-    LOGE("app_control_send_launch_request failed: %d", ret);
+    LoggerE("app_control_send_launch_request failed: %d", ret);
     app_control_destroy(service);
     delete callbackId;
     callbackId = NULL;
@@ -370,7 +390,7 @@ PlatformResult NFCAdapter::SetPowered(const picojson::value& args) {
 
   ret = app_control_destroy(service);
   if (ret != APP_CONTROL_ERROR_NONE) {
-    LOGE("app_control_destroy failed: %d", ret);
+    LoggerE("app_control_destroy failed: %d", ret);
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "SetPowered failed.");
   }
 #else
@@ -378,7 +398,7 @@ PlatformResult NFCAdapter::SetPowered(const picojson::value& args) {
       NFCSetActivationCompletedCallback, static_cast<void*>(callbackId));
 
   if (NFC_ERROR_NONE != ret) {
-    LOGE("setPowered failed %d",ret);
+    LoggerE("setPowered failed %d",ret);
     delete callbackId;
     callbackId = NULL;
     return NFCUtil::CodeToResult(ret, "setPowered failed.");
@@ -415,6 +435,7 @@ PlatformResult NFCAdapter::SetCardEmulationMode(const std::string& mode) {
   result = GetCardEmulationMode(&current_mode);
 
   if (result.IsError()) {
+    LoggerD("Error: %s", result.message().c_str());
     return result;
   }
 
@@ -470,6 +491,7 @@ PlatformResult NFCAdapter::SetActiveSecureElement(std::string element) {
   PlatformResult result = NFCUtil::ToSecureElementType(element, &new_type);
 
   if (result.IsError()) {
+    LoggerD("Error: %s", result.message().c_str());
     return result;
   }
   LoggerD("Secure element type value: %x", (int)new_type);
@@ -478,6 +500,7 @@ PlatformResult NFCAdapter::SetActiveSecureElement(std::string element) {
   result = GetActiveSecureElement(&current_type);
 
   if (result.IsError()) {
+    LoggerD("Error: %s", result.message().c_str());
     return result;
   }
 
@@ -514,10 +537,11 @@ PlatformResult NFCAdapter::SetExclusiveModeForTransaction(bool exmode) {
 }
 
 PlatformResult NFCAdapter::AddCardEmulationModeChangeListener() {
+  LoggerD("Entered");
   if (!m_is_listener_set) {
     int ret = nfc_manager_set_se_event_cb(se_event_callback, nullptr);
     if (NFC_ERROR_NONE != ret) {
-      LOGE("AddCardEmulationModeChangeListener failed: %d", ret);
+      LoggerE("AddCardEmulationModeChangeListener failed: %d", ret);
       return NFCUtil::CodeToResult(ret,
                                  NFCUtil::getNFCErrorMessage(ret).c_str());
     }
@@ -528,8 +552,9 @@ PlatformResult NFCAdapter::AddCardEmulationModeChangeListener() {
 }
 
 PlatformResult NFCAdapter::RemoveCardEmulationModeChangeListener() {
+  LoggerD("Entered");
   if (!nfc_manager_is_supported()) {
-    LOGE("NFC Not Supported");
+    LoggerE("NFC Not Supported");
     return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR, "NFC Not Supported");
   }
 
@@ -543,11 +568,13 @@ PlatformResult NFCAdapter::RemoveCardEmulationModeChangeListener() {
 
 PlatformResult NFCAdapter::AddTransactionEventListener(
     const picojson::value& args) {
+  LoggerD("Entered");
 
   nfc_se_type_e se_type = NFC_SE_TYPE_DISABLE;
   PlatformResult result = NFCUtil::ToSecureElementType(
       args.get(JSON_TYPE).get<string>(), &se_type);
   if (result.IsError()) {
+    LoggerD("Error: %s", result.message().c_str());
     return result;
   }
 
@@ -573,7 +600,7 @@ PlatformResult NFCAdapter::AddTransactionEventListener(
   }
 
   if (NFC_ERROR_NONE != ret) {
-    LOGE("AddTransactionEventListener failed: %d", ret);
+    LoggerE("AddTransactionEventListener failed: %d", ret);
     return NFCUtil::CodeToResult(ret, NFCUtil::getNFCErrorMessage(ret).c_str());
   }
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -581,6 +608,7 @@ PlatformResult NFCAdapter::AddTransactionEventListener(
 
 PlatformResult NFCAdapter::RemoveTransactionEventListener(
     const picojson::value& args) {
+  LoggerD("Entered");
 
   nfc_se_type_e se_type = NFC_SE_TYPE_DISABLE;
   PlatformResult result =
@@ -605,10 +633,11 @@ PlatformResult NFCAdapter::RemoveTransactionEventListener(
 }
 
 PlatformResult NFCAdapter::AddActiveSecureElementChangeListener() {
+  LoggerD("Entered");
   if (!m_is_listener_set) {
     int ret = nfc_manager_set_se_event_cb(se_event_callback, nullptr);
     if (NFC_ERROR_NONE != ret) {
-      LOGE("AddActiveSecureElementChangeListener failed: %d", ret);
+      LoggerE("AddActiveSecureElementChangeListener failed: %d", ret);
       return NFCUtil::CodeToResult(ret,
                                  NFCUtil::getNFCErrorMessage(ret).c_str());
     }
@@ -619,8 +648,9 @@ PlatformResult NFCAdapter::AddActiveSecureElementChangeListener() {
 }
 
 PlatformResult NFCAdapter::RemoveActiveSecureElementChangeListener() {
+  LoggerD("Entered");
   if (!nfc_manager_is_supported()) {
-    LOGE("NFC Not Supported");
+    LoggerE("NFC Not Supported");
     return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR, "NFC Not Supported");
   }
 
@@ -632,22 +662,27 @@ PlatformResult NFCAdapter::RemoveActiveSecureElementChangeListener() {
 }
 
 void NFCAdapter::SetPeerHandle(nfc_p2p_target_h handle) {
+  LoggerD("Entered");
   m_peer_handle = handle;
 }
 
 nfc_p2p_target_h NFCAdapter::GetPeerHandle() {
+  LoggerD("Entered");
   return m_peer_handle;
 }
 
 int NFCAdapter::GetPeerId() {
+  LoggerD("Entered");
   return m_latest_peer_id;
 }
 
 void NFCAdapter::IncreasePeerId() {
+  LoggerD("Entered");
   m_latest_peer_id++;
 }
 
 PlatformResult NFCAdapter::PeerIsConnectedGetter(int peer_id, bool* state) {
+  LoggerD("Entered");
   if (m_latest_peer_id != peer_id || !m_peer_handle) {
     *state = false;
     return PlatformResult(ErrorCode::NO_ERROR);
@@ -656,7 +691,7 @@ PlatformResult NFCAdapter::PeerIsConnectedGetter(int peer_id, bool* state) {
   nfc_p2p_target_h handle = NULL;
   int ret = nfc_manager_get_connected_target(&handle);
   if (NFC_ERROR_NONE != ret) {
-    LOGE("Failed to get connected target handle: %d", ret);
+    LoggerE("Failed to get connected target handle: %d", ret);
     return NFCUtil::CodeToResult(ret, "Failed to get connected target.");
   }
 
@@ -666,15 +701,16 @@ PlatformResult NFCAdapter::PeerIsConnectedGetter(int peer_id, bool* state) {
 }
 
 PlatformResult NFCAdapter::SetPeerListener() {
+  LoggerD("Entered");
   if (!nfc_manager_is_supported()) {
-    LOGE("NFC Not Supported");
+    LoggerE("NFC Not Supported");
     return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR, "NFC Not Supported");
   }
 
   if (!m_is_peer_listener_set) {
     int ret = nfc_manager_set_p2p_target_discovered_cb (targetDetectedCallback, NULL);
     if (NFC_ERROR_NONE != ret) {
-      LOGE("Failed to set listener: %d", ret);
+      LoggerE("Failed to set listener: %d", ret);
       return NFCUtil::CodeToResult(ret, "setPeerListener failed");
     }
     m_is_peer_listener_set = true;
@@ -684,7 +720,9 @@ PlatformResult NFCAdapter::SetPeerListener() {
 }
 
 PlatformResult NFCAdapter::UnsetPeerListener() {
+  LoggerD("Entered");
   if (!nfc_manager_is_supported()) {
+    LoggerE("NFC Not Supported");
     return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR, "NFC Not Supported");
   }
 
@@ -699,10 +737,11 @@ PlatformResult NFCAdapter::UnsetPeerListener() {
 static void targetReceivedCallback(nfc_p2p_target_h /*target*/,
                                    nfc_ndef_message_h message,
                                    void* /*data*/) {
+  LoggerD("Entered");
   unsigned char* raw_data = NULL;
   unsigned int size;
   if (NFC_ERROR_NONE != nfc_ndef_message_get_rawdata(message, &raw_data, &size)) {
-    LOGE("Unknown error while getting raw data of message.");
+    LoggerE("Unknown error while getting raw data of message.");
     free(raw_data);
     return;
   }
@@ -719,11 +758,12 @@ static void targetReceivedCallback(nfc_p2p_target_h /*target*/,
 }
 
 PlatformResult NFCAdapter::SetReceiveNDEFListener(int peer_id) {
+  LoggerD("Entered");
   //unregister previous NDEF listener
   if (m_is_ndef_listener_set) {
     int ret = nfc_p2p_unset_data_received_cb(m_peer_handle);
     if (NFC_ERROR_NONE != ret) {
-      LOGW("Unregister ReceiveNDEFListener error: %d", ret);
+      LoggerW("Unregister ReceiveNDEFListener error: %d", ret);
     }
     m_is_ndef_listener_set = false;
   }
@@ -732,17 +772,18 @@ PlatformResult NFCAdapter::SetReceiveNDEFListener(int peer_id) {
   bool is_connected = false;
   PlatformResult result = PeerIsConnectedGetter(peer_id, &is_connected);
   if (result.IsError()) {
+    LoggerD("Error: %s", result.message().c_str());
     return result;
   }
 
   if (!is_connected) {
-    LOGE("Target is not connected");
+    LoggerE("Target is not connected");
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Target is not connected.");
   }
 
   int ret = nfc_p2p_set_data_received_cb(m_peer_handle, targetReceivedCallback, NULL);
   if (NFC_ERROR_NONE != ret) {
-    LOGE("Failed to set NDEF listener: %d", ret);
+    LoggerE("Failed to set NDEF listener: %d", ret);
     return NFCUtil::CodeToResult(ret, "Failed to set NDEF listener");
   }
 
@@ -751,22 +792,24 @@ PlatformResult NFCAdapter::SetReceiveNDEFListener(int peer_id) {
 }
 
 PlatformResult NFCAdapter::UnsetReceiveNDEFListener(int peer_id) {
+  LoggerD("Entered");
   if (m_is_ndef_listener_set) {
     //check if peer object is still connected
 
     bool is_connected = false;
     PlatformResult result = PeerIsConnectedGetter(peer_id, &is_connected);
     if (result.IsError()) {
+      LoggerD("Error: %s", result.message().c_str());
       return result;
     }
 
     if (!is_connected) {
-      LOGE("Target is not connected");
+      LoggerE("Target is not connected");
     }
 
     int ret = nfc_p2p_unset_data_received_cb(m_peer_handle);
     if (NFC_ERROR_NONE != ret) {
-      LOGE("Unregister ReceiveNDEFListener error: %d", ret);
+      LoggerE("Unregister ReceiveNDEFListener error: %d", ret);
       return NFCUtil::CodeToResult(ret, "Failed to set NDEF listener");
     }
 
@@ -776,6 +819,7 @@ PlatformResult NFCAdapter::UnsetReceiveNDEFListener(int peer_id) {
 }
 
 bool NFCAdapter::IsNDEFListenerSet() {
+  LoggerD("Entered");
   return m_is_ndef_listener_set;
 }
 
@@ -828,6 +872,7 @@ static bool tagPropertiesGetterCb(const char* key,
                                   const unsigned char* value,
                                   int value_size,
                                   void* user_data) {
+  LoggerD("Entered");
   if (user_data) {
     UCharVector tag_info = NFCUtil::ToVector(value, value_size);
     (static_cast<NFCTagPropertiesT*>(user_data))->push_back(
@@ -886,7 +931,6 @@ PlatformResult NFCAdapter::TagIsConnectedGetter(int tag_id, bool* state) {
 }
 
 int NFCAdapter::GetNextTagId() {
-
   LoggerD("Entered");
   return ++m_latest_tag_id;
 }
@@ -962,6 +1006,7 @@ void NFCAdapter::UnsetTagListener() {
 }
 
 void NFCAdapter::SetTagHandle(nfc_tag_h tag) {
+  LoggerD("Entered");
   m_last_tag_handle = tag;
 }
 
@@ -1046,6 +1091,7 @@ PlatformResult NFCAdapter::TagReadNDEF(int tag_id,
     // for permission related error throw exception ...
     if(NFC_ERROR_SECURITY_RESTRICTED == ret ||
         NFC_ERROR_PERMISSION_DENIED == ret) {
+      LoggerD("Error: %d", ret);
       return PlatformResult(ErrorCode::SECURITY_ERR, "Failed to read NDEF - permission denied");
     }
 
@@ -1069,6 +1115,7 @@ PlatformResult NFCAdapter::TagWriteNDEF(int tag_id,
   bool is_connected = false;
   PlatformResult result = TagIsConnectedGetter(tag_id, &is_connected);
   if (result.IsError()) {
+    LoggerD("Error: %s", result.message().c_str());
     return result;
   }
 
@@ -1092,6 +1139,7 @@ PlatformResult NFCAdapter::TagWriteNDEF(int tag_id,
   result = NFCMessageUtils::NDEFMessageToStruct(records_array, size, &message);
 
   if (result.IsError()) {
+    LoggerD("Error: %s", result.message().c_str());
     return result;
   }
 
@@ -1104,6 +1152,7 @@ PlatformResult NFCAdapter::TagWriteNDEF(int tag_id,
       // for permission related error throw exception
       if(NFC_ERROR_SECURITY_RESTRICTED == ret ||
           NFC_ERROR_PERMISSION_DENIED == ret) {
+        LoggerE("Error: %d", ret);
         return PlatformResult(ErrorCode::SECURITY_ERR, "Failed to read NDEF - permission denied");
       }
 
@@ -1206,6 +1255,7 @@ PlatformResult NFCAdapter::TagTransceive(int tag_id, const picojson::value& args
     // for permission related error throw exception
     if(NFC_ERROR_SECURITY_RESTRICTED == ret ||
         NFC_ERROR_PERMISSION_DENIED == ret) {
+      LoggerE("Error: %d", ret);
       return PlatformResult(ErrorCode::SECURITY_ERR,
           "Failed to read NDEF - permission denied");
     }
@@ -1222,15 +1272,17 @@ PlatformResult NFCAdapter::TagTransceive(int tag_id, const picojson::value& args
 }
 
 PlatformResult NFCAdapter::GetCachedMessage(picojson::object& out) {
+  LoggerD("Entered");
   nfc_ndef_message_h message_handle = NULL;
   int result = nfc_manager_get_cached_message(&message_handle);
   if (NFC_ERROR_INVALID_NDEF_MESSAGE == result ||
       NFC_ERROR_NO_NDEF_MESSAGE == result) {
+    LoggerE("Error: %d", result);
     NFCMessageUtils::RemoveMessageHandle(message_handle);
     return PlatformResult(ErrorCode::NO_ERROR);
   }
   if (NFC_ERROR_NONE != result) {
-    LOGE("Failed to get cached message: %d", result);
+    LoggerE("Failed to get cached message: %d", result);
     NFCMessageUtils::RemoveMessageHandle(message_handle);
     return NFCUtil::CodeToResult(result, "Failed to get cached message");
   }
@@ -1238,7 +1290,7 @@ PlatformResult NFCAdapter::GetCachedMessage(picojson::object& out) {
   unsigned int size;
   if (NFC_ERROR_NONE != nfc_ndef_message_get_rawdata(message_handle,
                                                      &raw_data, &size)) {
-    LOGE("Unknown error while getting message.");
+    LoggerE("Unknown error while getting message.");
     free(raw_data);
     NFCMessageUtils::RemoveMessageHandle(message_handle);
     return PlatformResult(ErrorCode::NO_ERROR);
@@ -1247,6 +1299,7 @@ PlatformResult NFCAdapter::GetCachedMessage(picojson::object& out) {
       size, out);
   free(raw_data);
   if (ret.IsError()) {
+    LoggerE("Error: %d", ret.message().c_str());
     NFCMessageUtils::RemoveMessageHandle(message_handle);
     return ret;
   }
@@ -1255,9 +1308,11 @@ PlatformResult NFCAdapter::GetCachedMessage(picojson::object& out) {
 }
 
 static void peerSentCallback(nfc_error_e result, void* user_data) {
+  LoggerD("Entered");
   double* callbackId = static_cast<double*>(user_data);
 
   if (NFC_ERROR_NONE != result){
+    LoggerE("Error: %d", result);
     std::string error_message = NFCUtil::getNFCErrorMessage(result);
 
     PlatformResult ret = NFCUtil::CodeToResult(result, error_message.c_str());
@@ -1273,15 +1328,17 @@ static void peerSentCallback(nfc_error_e result, void* user_data) {
 }
 
 static gboolean sendNDEFErrorCB(void* user_data) {
+  LoggerD("Entered");
   peerSentCallback(NFC_ERROR_INVALID_NDEF_MESSAGE, user_data);
   return false;
 }
 
 PlatformResult NFCAdapter::sendNDEF(int peer_id, const picojson::value& args) {
-
+  LoggerD("Entered");
   bool is_connected = false;
   PlatformResult result = PeerIsConnectedGetter(peer_id, &is_connected);
   if (result.IsError()) {
+    LoggerE("Error: %s", result.message().c_str());
     return result;
   }
 
@@ -1308,14 +1365,14 @@ PlatformResult NFCAdapter::sendNDEF(int peer_id, const picojson::value& args) {
         static_cast<void*>(callbackId));
     NFCMessageUtils::RemoveMessageHandle(message);
     if (NFC_ERROR_NONE != ret) {
-      LOGE("sendNDEF failed %d",ret);
+      LoggerE("sendNDEF failed %d",ret);
       delete callbackId;
       callbackId = NULL;
       return NFCUtil::CodeToResult(ret, "sendNDEF failed.");
     }
   } else {
     if (!g_idle_add(sendNDEFErrorCB, static_cast<void*>(callbackId))) {
-      LOGE("g_idle addition failed");
+      LoggerE("g_idle addition failed");
       delete callbackId;
       callbackId = NULL;
     }
@@ -1324,10 +1381,12 @@ PlatformResult NFCAdapter::sendNDEF(int peer_id, const picojson::value& args) {
 }
 
 void NFCAdapter::SetSEHandle(nfc_se_h handle) {
+  LoggerD("Entered");
   m_se_handle = handle;
 }
 
 nfc_se_h NFCAdapter::GetSEHandle() {
+  LoggerD("Entered");
   return m_se_handle;
 }
 
@@ -1372,6 +1431,7 @@ void NFCAdapter::SendHostAPDUResponse(
   if (NFC_ERROR_NONE == ret) {
     success_cb();
   } else {
+    LoggerE("Error: %d", ret);
     error_cb(
         NFCUtil::CodeToResult(ret, NFCUtil::getNFCErrorMessage(ret).c_str()));
   }
@@ -1387,6 +1447,7 @@ PlatformResult NFCAdapter::IsActivatedHandlerForAID(
   nfc_se_type_e se_type;
   PlatformResult result = NFCUtil::ToSecureElementType(type, &se_type);
   if (!result.IsError()) {
+    LoggerE("Error: %s", result.message().c_str());
     return result;
   }
 
@@ -1405,11 +1466,13 @@ PlatformResult NFCAdapter::IsActivatedHandlerForCategory(
     const std::string& type,
     nfc_card_emulation_category_type_e category,
     bool* is_activated_handler) {
+  LoggerD("Entered");
   AssertMsg(is_activated_handler, "Poiner can not be null!");
 
   nfc_se_type_e se_type;
   PlatformResult result = NFCUtil::ToSecureElementType(type, &se_type);
   if (!result.IsError()) {
+    LoggerE("Error: %s", result.message().c_str());
     return result;
   }
 
@@ -1428,10 +1491,11 @@ PlatformResult NFCAdapter::RegisterAID(
     const std::string& type,
     const std::string& aid,
     nfc_card_emulation_category_type_e category) {
-
+  LoggerD("Entered");
   nfc_se_type_e se_type;
   PlatformResult result = NFCUtil::ToSecureElementType(type, &se_type);
   if (!result.IsError()) {
+    LoggerE("Error: %s", result.message().c_str());
     return result;
   }
 
@@ -1448,10 +1512,11 @@ PlatformResult NFCAdapter::UnregisterAID(
     const std::string& type,
     const std::string& aid,
     nfc_card_emulation_category_type_e category) {
-
+  LoggerD("Entered");
   nfc_se_type_e se_type;
   PlatformResult result = NFCUtil::ToSecureElementType(type, &se_type);
   if (!result.IsError()) {
+    LoggerE("Error: %s", result.message().c_str());
     return result;
   }
 
@@ -1480,10 +1545,11 @@ void NFCAdapter::GetAIDsForCategory(
     nfc_card_emulation_category_type_e category,
     const std::function<void(const AIDDataVector&)>& success_cb,
     const std::function<void(const PlatformResult&)>& error_cb) {
-
+  LoggerD("Entered");
   nfc_se_type_e se_type;
   PlatformResult result = NFCUtil::ToSecureElementType(type, &se_type);
   if (!result.IsError()) {
+    LoggerE("Error: %s", result.message().c_str());
     error_cb(result);
     return;
   }

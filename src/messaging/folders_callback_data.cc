@@ -1,20 +1,19 @@
-//
-// Tizen Web Device API
-// Copyright (c) 2013 Samsung Electronics Co., Ltd.
-//
-// Licensed under the Apache License, Version 2.0 (the License);
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-// http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-//
-
+/*
+ * Copyright (c) 2015 Samsung Electronics Co., Ltd All Rights Reserved
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ */
+ 
 #include "folders_callback_data.h"
 
 namespace extension {
@@ -26,6 +25,7 @@ FoldersCallbackData::FoldersCallbackData(PostQueue& queue):
         m_is_error(false),
         queue_(queue)
 {
+    LoggerD("Entered");
 }
 
 FoldersCallbackData::FoldersCallbackData(long cid, PostQueue& queue, bool keep):
@@ -33,6 +33,7 @@ FoldersCallbackData::FoldersCallbackData(long cid, PostQueue& queue, bool keep):
         m_is_error(false),
         queue_(queue)
 {
+    LoggerD("Entered");
     auto json = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
     picojson::object& o = json->get<picojson::object>();
     o[JSON_CALLBACK_ID] = picojson::value(static_cast<double>(cid));
@@ -41,6 +42,7 @@ FoldersCallbackData::FoldersCallbackData(long cid, PostQueue& queue, bool keep):
 }
 
 FoldersCallbackData::~FoldersCallbackData() {
+    LoggerD("Entered");
 }
 
 void FoldersCallbackData::addFolder(std::shared_ptr<MessageFolder> folder)
@@ -66,8 +68,10 @@ tizen::AbstractFilterPtr FoldersCallbackData::getFilter() const
 void FoldersCallbackData::setError(const std::string& err_name,
         const std::string& err_message)
 {
+    LoggerD("Entered");
     // keep only first error in chain
     if (!m_is_error) {
+        LoggerD("Error has not been set yet");
         m_is_error = true;
         m_err_name = err_name;
         m_err_message = err_message;
@@ -84,8 +88,10 @@ void FoldersCallbackData::setError(const std::string& err_name,
 
 void FoldersCallbackData::SetError(const common::PlatformResult& error)
 {
+    LoggerD("Entered");
   // keep only first error in chain
   if (!m_is_error) {
+      LoggerD("Error has not been set yet");
     m_is_error = true;
     picojson::object& obj = m_json->get<picojson::object>();
     obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_ERROR);

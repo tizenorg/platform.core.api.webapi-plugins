@@ -1,19 +1,18 @@
-//
-// Tizen Web Device API
-// Copyright (c) 2015 Samsung Electronics Co., Ltd.
-//
-// Licensed under the Apache License, Version 2.0 (the License);
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-// http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-//
+/*
+ * Copyright (c) 2015 Samsung Electronics Co., Ltd All Rights Reserved
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ */
 
 #include "exif/get_exif_info.h"
 
@@ -39,6 +38,7 @@ struct ExifDataHolder {
 };
 
 Rational GetRationalFromEntry(ExifEntry *entry, ExifData* exif_data) {
+  LoggerD("Entered");
   if (EXIF_FORMAT_RATIONAL == entry->format
       && entry->components >= 1
       && entry->data) {
@@ -52,6 +52,7 @@ Rational GetRationalFromEntry(ExifEntry *entry, ExifData* exif_data) {
 bool GetRationalsFromEntry(ExifEntry* entry, ExifData* exif_data,
                            unsigned long required_count,
                            Rationals& out_rationals) {
+  LoggerD("Entered");
   if (EXIF_FORMAT_RATIONAL == entry->format &&
       entry->components >= required_count &&
       entry->data) {
@@ -72,6 +73,7 @@ bool GetRationalsFromEntry(ExifEntry* entry, ExifData* exif_data,
 bool GetGCSPositionFromEntry(ExifEntry* entry, ExifData* exif_data,
                              GCSPosition& out_pos) {
   // RATIONAL - 3
+  LoggerD("Entered");
   if (EXIF_FORMAT_RATIONAL == entry->format &&
       entry->components >= 3 &&
       entry->data) {
@@ -88,6 +90,7 @@ bool GetGCSPositionFromEntry(ExifEntry* entry, ExifData* exif_data,
 }
 
 bool DecomposeExifUndefined(ExifEntry* entry, std::string& type, std::string& value) {
+  LoggerD("Entered");
   if (!entry || !entry->data) {
     LoggerW("exif entry is NULL/empty");
     return false;
@@ -108,6 +111,7 @@ bool DecomposeExifUndefined(ExifEntry* entry, std::string& type, std::string& va
 PlatformResult GetExifInfo::ProcessEntry(ExifEntry* entry,
                                ExifData* exif_data,
                                JsonObject* result_obj) {
+  LoggerD("Entered");
   char buf[2000];
   exif_entry_get_value(entry, buf, sizeof(buf));
   ExifUtil::printExifEntryInfo(entry, exif_data);
@@ -468,6 +472,7 @@ PlatformResult GetExifInfo::ProcessEntry(ExifEntry* entry,
 }
 
 void GetExifInfo::ContentForeachFunctionProxy(ExifEntry *entry, void *user_data) {
+  LoggerD("Entered");
   ExifDataHolder* holder = static_cast<ExifDataHolder*>(user_data);
   if (!holder) {
     LoggerE("holder is NULL");
@@ -493,6 +498,7 @@ void GetExifInfo::DataForeachFunction(ExifContent *content, void *user_data) {
 
 PlatformResult GetExifInfo::LoadFromURI(const std::string& uri,
                                         JsonValue* result) {
+  LoggerD("Entered");
   // TODO(r.galka) it can be done on JS side
   const std::string& file_path = ExifUtil::convertUriToPath(uri);
   ExifData* ed = exif_data_new_from_file(file_path.c_str());

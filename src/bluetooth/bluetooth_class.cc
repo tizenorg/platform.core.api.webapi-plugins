@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Samsung Electronics Co., Ltd All Rights Reserved
+ * Copyright (c) 2015 Samsung Electronics Co., Ltd All Rights Reserved
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -13,8 +13,9 @@
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
  */
-
+ 
 #include "bluetooth_class.h"
+#include "common/logger.h"
 
 #include <map>
 
@@ -123,6 +124,7 @@ std::map<bt_major_service_class_e, unsigned long> g_service_enum_map = {
 
 unsigned long BluetoothClass::GetMajorValue(bt_major_device_class_e major)
 {
+  LoggerD("Enter");
   auto iter = g_major_enum_map.find(major);
   if (iter != g_major_enum_map.end()) {
     return iter->second;
@@ -133,6 +135,7 @@ unsigned long BluetoothClass::GetMajorValue(bt_major_device_class_e major)
 
 unsigned long BluetoothClass::GetMinorValue(bt_minor_device_class_e minor)
 {
+  LoggerD("Enter");
   auto iter = g_minor_enum_map.find(minor);
   if (iter != g_minor_enum_map.end()) {
     return iter->second;
@@ -143,6 +146,7 @@ unsigned long BluetoothClass::GetMinorValue(bt_minor_device_class_e minor)
 
 std::vector<unsigned long> BluetoothClass::getServiceValues(int serviceMask)
 {
+  LoggerD("Enter");
   std::vector<unsigned long> ret;
   for (auto iter = g_service_enum_map.begin(); iter != g_service_enum_map.end(); iter++) {
     if (iter->first & serviceMask) {

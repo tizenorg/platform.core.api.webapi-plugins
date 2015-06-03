@@ -1,6 +1,18 @@
-// Copyright 2014 Samsung Electronics Co, Ltd. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
+/*
+ * Copyright (c) 2015 Samsung Electronics Co., Ltd All Rights Reserved
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ */
 
 #include "power/power_instance.h"
 
@@ -38,6 +50,7 @@ using namespace common;
 using namespace extension::power;
 
 PowerInstance::PowerInstance() {
+  LoggerD("Enter");
   using std::placeholders::_1;
   using std::placeholders::_2;
 
@@ -56,6 +69,7 @@ PowerInstance::PowerInstance() {
 }
 
 PowerInstance::~PowerInstance() {
+  LoggerD("Enter");
   PowerManager::GetInstance()->RemoveListener(this);
 }
 
@@ -74,6 +88,7 @@ enum PowerCallbacks {
 
 static void ReplyAsync(PowerInstance* instance, PowerCallbacks cbfunc,
                        int callbackId, bool isSuccess, picojson::object& param) {
+  LoggerD("Enter");
   param["callbackId"] = picojson::value(static_cast<double>(callbackId));
   param["status"] = picojson::value(isSuccess ? "success" : "error");
 
@@ -137,6 +152,7 @@ static void ReplyAsync(PowerInstance* instance, PowerCallbacks cbfunc,
     }
 
 void PowerInstance::PowerManagerRequest(const picojson::value& args, picojson::object& out) {
+  LoggerD("Enter");
   const std::string& resource = args.get("resource").get<std::string>();
   const std::string& state = args.get("state").get<std::string>();
 
@@ -150,6 +166,7 @@ void PowerInstance::PowerManagerRequest(const picojson::value& args, picojson::o
 }
 
 void PowerInstance::PowerManagerRelease(const picojson::value& args, picojson::object& out) {
+  LoggerD("Enter");
   const std::string& resource = args.get("resource").get<std::string>();
   PlatformResult result =
       PowerManager::GetInstance()->Release(kPowerResourceMap.at(resource));
@@ -161,6 +178,7 @@ void PowerInstance::PowerManagerRelease(const picojson::value& args, picojson::o
 
 void PowerInstance::PowerManagerGetscreenbrightness(const picojson::value& args,
                                                     picojson::object& out) {
+  LoggerD("Enter");
   double brightness;
   PlatformResult result =
       PowerManager::GetInstance()->GetScreenBrightness(&brightness);
@@ -172,6 +190,7 @@ void PowerInstance::PowerManagerGetscreenbrightness(const picojson::value& args,
 
 void PowerInstance::PowerManagerSetscreenbrightness(const picojson::value& args,
                                                     picojson::object& out) {
+  LoggerD("Enter");
   CHECK_EXIST(args, "brightness", out)
 
   double brightness = args.get("brightness").get<double>();
@@ -184,10 +203,12 @@ void PowerInstance::PowerManagerSetscreenbrightness(const picojson::value& args,
 }
 
 void PowerInstance::PowerManagerIsscreenon(const picojson::value& args, picojson::object& out) {
+  LoggerD("Enter");
   bool ret = PowerManager::GetInstance()->IsScreenOn();
   ReportSuccess(picojson::value(ret), out);
 }
 void PowerInstance::PowerManagerRestorescreenbrightness(const picojson::value& args, picojson::object& out) {
+  LoggerD("Enter");
   PlatformResult result =
       PowerManager::GetInstance()->RestoreScreenBrightness();
   if (result.IsError())
@@ -197,6 +218,7 @@ void PowerInstance::PowerManagerRestorescreenbrightness(const picojson::value& a
 }
 
 void PowerInstance::PowerManagerTurnscreenon(const picojson::value& args, picojson::object& out) {
+  LoggerD("Enter");
   PlatformResult result = PowerManager::GetInstance()->SetScreenState(true);
   if (result.IsError())
     ReportError(result, &out);
@@ -205,6 +227,7 @@ void PowerInstance::PowerManagerTurnscreenon(const picojson::value& args, picojs
 }
 
 void PowerInstance::PowerManagerTurnscreenoff(const picojson::value& args, picojson::object& out) {
+  LoggerD("Enter");
   PlatformResult result = PowerManager::GetInstance()->SetScreenState(false);
   if (result.IsError())
     ReportError(result, &out);
@@ -213,6 +236,7 @@ void PowerInstance::PowerManagerTurnscreenoff(const picojson::value& args, picoj
 }
 
 void PowerInstance::OnScreenStateChanged(PowerState prev_state, PowerState new_state) {
+  LoggerD("Enter");
   picojson::value event = picojson::value(picojson::object());
   picojson::object& obj = event.get<picojson::object>();
   obj["cmd"] = picojson::value("ScreenStateChanged");

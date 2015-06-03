@@ -1,20 +1,18 @@
-//
-// Tizen Web Device API
-// Copyright (c) 2013 Samsung Electronics Co., Ltd.
-//
-// Licensed under the Apache License, Version 2.0 (the License);
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-// http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-//
-
+/*
+ * Copyright (c) 2015 Samsung Electronics Co., Ltd All Rights Reserved
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ */
 /**
  * @file: FindMsgCallbackUserData.cpp
  */
@@ -34,10 +32,12 @@ FindMsgCallbackUserData::FindMsgCallbackUserData(PostQueue& queue):
         m_service_type(UNDEFINED),
         queue_(queue)
 {
+    LoggerD("Entered");
 }
 
 FindMsgCallbackUserData::~FindMsgCallbackUserData()
 {
+    LoggerD("Entered");
 }
 
 void FindMsgCallbackUserData::setFilter(AbstractFilterPtr filter)
@@ -73,8 +73,10 @@ std::vector<std::shared_ptr<Message>> FindMsgCallbackUserData::getMessages() con
 void FindMsgCallbackUserData::setError(const std::string& err_name,
         const std::string& err_message)
 {
+    LoggerD("Entered");
     // keep only first error in chain
     if (!m_is_error) {
+        LoggerD("Error has not been set yet");
         m_is_error = true;
         m_err_name = err_name;
         m_err_message = err_message;
@@ -91,8 +93,10 @@ void FindMsgCallbackUserData::setError(const std::string& err_name,
 
 void FindMsgCallbackUserData::SetError(const common::PlatformResult& error)
 {
-  // keep only first error in chain
-  if (!m_is_error) {
+    LoggerD("Entered");
+    // keep only first error in chain
+    if (!m_is_error) {
+    LoggerD("Error has not been set yet");
     m_is_error = true;
     picojson::object& obj = m_json->get<picojson::object>();
     obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_ERROR);

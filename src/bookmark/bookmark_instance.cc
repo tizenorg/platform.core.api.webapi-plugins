@@ -1,6 +1,18 @@
-// Copyright 2014 Samsung Electronics Co, Ltd. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
+/*
+ * Copyright (c) 2015 Samsung Electronics Co., Ltd All Rights Reserved
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ */
 
 #include "bookmark/bookmark_instance.h"
 
@@ -9,6 +21,7 @@
 
 #include "common/platform_exception.h"
 #include "common/converter.h"
+#include "common/logger.h"
 
 namespace extension {
 namespace bookmark {
@@ -22,6 +35,7 @@ namespace {
 }  // namespace
 
 BookmarkInstance::BookmarkInstance() {
+  LoggerD("Enter");
   using std::placeholders::_1;
   using std::placeholders::_2;
 
@@ -36,10 +50,13 @@ BookmarkInstance::BookmarkInstance() {
 }
 
 BookmarkInstance::~BookmarkInstance() {
+  LoggerD("Enter");
 }
 
 bool BookmarkInstance::bookmark_foreach(
     Context& ctx, bp_bookmark_info_fmt& info) {
+
+  LoggerD("Enter");
   int ids_count = 0;
   int* ids = NULL;
   BookmarkObject item;
@@ -64,6 +81,7 @@ bool BookmarkInstance::bookmark_foreach(
 }
 
 bool BookmarkInstance::bookmark_url_exists(const char* url) {
+  LoggerD("Enter");
   int ids_count = 0;
   int* ids = NULL;
   char* compare_url = NULL;
@@ -91,6 +109,8 @@ bool BookmarkInstance::bookmark_url_exists(const char* url) {
 
 bool BookmarkInstance::bookmark_title_exists_in_parent(
     const char* title, int parent) {
+
+  LoggerD("Enter");
   int ids_count = 0;
   int compare_parent = -1;
   int* ids = NULL;
@@ -126,6 +146,7 @@ bool BookmarkInstance::bookmark_title_exists_in_parent(
 void BookmarkInstance::BookmarkGet(
     const picojson::value& arg, picojson::object& o) {
 
+  LoggerD("Enter");
   Context ctx = {0};
   bp_bookmark_info_fmt info = {0};
   picojson::value::array arr;
@@ -159,6 +180,7 @@ void BookmarkInstance::BookmarkGet(
 void BookmarkInstance::BookmarkAdd(
     const picojson::value& arg, picojson::object& o) {
 
+  LoggerD("Enter");
   int saved_id =-1;
   bp_bookmark_info_fmt data = {0};
 
@@ -206,6 +228,7 @@ void BookmarkInstance::BookmarkAdd(
 void BookmarkInstance::BookmarkRemove(
     const picojson::value& arg, picojson::object& o) {
 
+  LoggerD("Enter");
   int id = common::stol(
       common::FromJson<std::string>(arg.get<picojson::object>(), kId));
   if (bp_bookmark_adaptor_delete(id) < 0) {
@@ -218,6 +241,7 @@ void BookmarkInstance::BookmarkRemove(
 void BookmarkInstance::BookmarkRemoveAll(
     const picojson::value& msg, picojson::object& o) {
 
+  LoggerD("Enter");
   if (bp_bookmark_adaptor_reset() < 0) {
     ReportError(o);
     return;
@@ -227,6 +251,8 @@ void BookmarkInstance::BookmarkRemoveAll(
 
 void BookmarkInstance::BookmarkGetRootId(
     const picojson::value& msg, picojson::object& o) {
+
+  LoggerD("Enter");
   int rootId(0);
   if (bp_bookmark_adaptor_get_root(&rootId) < 0) {
     ReportError(o);

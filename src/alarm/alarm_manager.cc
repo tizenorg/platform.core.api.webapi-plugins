@@ -1,6 +1,18 @@
-// Copyright 2015 Samsung Electronics Co, Ltd. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
+/*
+ * Copyright (c) 2015 Samsung Electronics Co., Ltd All Rights Reserved
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ */
 
 #include "alarm_manager.h"
 
@@ -83,6 +95,7 @@ void AlarmManager::Add(const picojson::value& args, picojson::object& out) {
     PlatformResult result = util::AppControlToService(
         args.get("appControl").get<picojson::object>(), &app_control);
     if (!result) {
+      LoggerE("Failed: util::AppControlToService");
       ReportError(result, &out);
       return;
     }
@@ -386,6 +399,8 @@ void AlarmManager::Get(const picojson::value& args, picojson::object& out) {
 }
 
 static bool AlarmIterateCB(int alarm_id, void *user_data) {
+  LoggerD("Enter");
+
   std::vector<int> *alarm_ids = reinterpret_cast<std::vector<int>*>(user_data);
 
   alarm_ids->push_back(alarm_id);
@@ -413,6 +428,7 @@ void AlarmManager::GetAll(const picojson::value& args, picojson::object& out) {
 
     PlatformResult platform_result = GetAlarm(alarm_ids.at(i), obj);
     if (!platform_result) {
+      LoggerE("Failed GetAlarm()");
       ReportError(platform_result, &out);
       return;
     }

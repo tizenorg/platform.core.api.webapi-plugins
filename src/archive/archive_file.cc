@@ -1,19 +1,19 @@
-//
-// Tizen Web Device API
-// Copyright (c) 2014 Samsung Electronics Co., Ltd.
-//
-// Licensed under the Apache License, Version 2.0 (the License);
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-// http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-//
+/*
+ * Copyright (c) 2015 Samsung Electronics Co., Ltd All Rights Reserved
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ */
+ 
 #include "archive_file.h"
 
 #include "common/picojson.h"
@@ -32,6 +32,7 @@ namespace extension {
 namespace archive {
 
 Permission::Permission(bool r, bool w, bool rw, bool a){
+    LoggerD("Enter");
     permission[0] = r;
     permission[1] = w;
     permission[2] = rw;
@@ -65,6 +66,7 @@ ArchiveFile::ArchiveFile(FileMode file_mode) :
         m_is_open(false),
         m_overwrite(false)
 {
+    LoggerD("Enter");
     m_file_mode = file_mode;
 }
 
@@ -269,6 +271,7 @@ PlatformResult ArchiveFile::addOperation(OperationCallbackData* callback)
 
 PlatformResult ArchiveFile::extractAllTask(ExtractAllProgressCallback* callback)
 {
+    LoggerD("Enter");
     filesystem::FilePtr directory = callback->getDirectory();
 
     if(!directory) {
@@ -297,6 +300,7 @@ PlatformResult ArchiveFile::extractAllTask(ExtractAllProgressCallback* callback)
     unsigned long long size = 0;
     PlatformResult result = m_file->getNode()->getSize(&size);
     if (result.error_code() != ErrorCode::NO_ERROR) {
+      LoggerE("Fail m_file->getNode()->getSize()");
       return result;
     }
     if(size == 0) {
@@ -319,6 +323,7 @@ PlatformResult ArchiveFile::extractAllTask(ExtractAllProgressCallback* callback)
     UnZipPtr unzip;
     result = createUnZipObject(&unzip);
     if (result.error_code() != ErrorCode::NO_ERROR) {
+      LoggerE("Fail createUnZipObject()");
       return result;
     }
 
@@ -580,6 +585,7 @@ void ArchiveFile::setIsOpen(bool is_open)
 
 ArchiveFileEntryPtrMapPtr ArchiveFile::getEntryMap() const
 {
+    LoggerD("Entered");
     return m_entry_map;
 }
 
@@ -675,16 +681,19 @@ void ArchiveFile::setFileMode(FileMode file_mode)
 
 void ArchiveFile::setCreatedAsNewEmptyArchive(bool new_and_empty)
 {
+    LoggerD("Entered");
     m_created_as_new_empty_archive = new_and_empty;
 }
 
 bool ArchiveFile::isCreatedAsNewEmptyArchive() const
 {
+    LoggerD("Entered");
     return m_created_as_new_empty_archive;
 }
 
 PlatformResult ArchiveFile::updateListOfEntries()
 {
+    LoggerD("Entered");
     // For explanation please see:
     //    ArchiveFile.h m_created_as_new_empty_archive description
     //
@@ -712,6 +721,7 @@ PlatformResult ArchiveFile::updateListOfEntries()
     UnZipPtr unzip;
     result = createUnZipObject(&unzip);
     if (result.error_code() != ErrorCode::NO_ERROR) {
+      LoggerD("Fail createUnZipObject()");
       return result;
     }
 
@@ -719,6 +729,7 @@ PlatformResult ArchiveFile::updateListOfEntries()
     ArchiveFileEntryPtrMapPtr emap;
     result = unzip->listEntries(&decompressedSize, &emap);
     if (result.error_code() != ErrorCode::NO_ERROR) {
+      LoggerD("Fail unzip->listEntries()");
       return result;
     }
 
@@ -731,6 +742,8 @@ bool ArchiveFile::isEntryWithNameInArchive(const std::string& name_in_zip,
         bool* out_is_directory,
         std::string* out_matching_name)
 {
+    LoggerD("Enter");
+
     if(!m_entry_map) {
         LoggerW("m_entry_map is NULL");
         return false;
@@ -763,6 +776,7 @@ bool ArchiveFile::isEntryWithNameInArchive(const std::string& name_in_zip,
     }
 
     if(!set_name_exists) {
+        LoggerE("Fail: name do not exists");
         return false;
     }
 

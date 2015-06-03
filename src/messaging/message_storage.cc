@@ -1,7 +1,19 @@
-// Copyright 2014 Samsung Electronics Co, Ltd. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
-
+/*
+ * Copyright (c) 2015 Samsung Electronics Co., Ltd All Rights Reserved
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ */
+ 
 #include "message_storage.h"
 #include "messages_change_callback.h"
 #include "conversations_change_callback.h"
@@ -19,9 +31,12 @@ MessageStorage::MessageStorage(int id, MessageType msgType) :
     LoggerD("Entered");
 }
 
-MessageStorage::~MessageStorage()
-{
-    LoggerD("Entered");
+MessageStorage::~MessageStorage() {
+  LoggerD("Entered");
+
+  for (auto id : registered_listeners_) {
+    ChangeListenerContainer::getInstance().removeChangeListener(id);
+  }
 }
 
 int MessageStorage::getMsgServiceId() const
@@ -43,26 +58,33 @@ std::string MessageStorage::getMsgServiceTypeString() const {
 long MessageStorage::addMessagesChangeListener(std::shared_ptr<MessagesChangeCallback> callback)
 {
     LoggerD("Entered");
-    return ChangeListenerContainer::getInstance().addMessageChangeListener(callback);
+    long id = ChangeListenerContainer::getInstance().addMessageChangeListener(callback);
+    registered_listeners_.insert(id);
+    return id;
 }
 
 long MessageStorage::addConversationsChangeListener(
         std::shared_ptr<ConversationsChangeCallback> callback)
 {
     LoggerD("Entered");
-    return ChangeListenerContainer::getInstance().addConversationChangeListener(callback);
+    long id = ChangeListenerContainer::getInstance().addConversationChangeListener(callback);
+    registered_listeners_.insert(id);
+    return id;
 }
 
 long MessageStorage::addFoldersChangeListener(std::shared_ptr<FoldersChangeCallback> callback)
 {
     LoggerD("Entered");
-    return ChangeListenerContainer::getInstance().addFolderChangeListener(callback);
+    long id = ChangeListenerContainer::getInstance().addFolderChangeListener(callback);
+    registered_listeners_.insert(id);
+    return id;
 }
 
 void MessageStorage::removeChangeListener(long watchId)
 {
     LoggerD("Entered");
-    return ChangeListenerContainer::getInstance().removeChangeListener(watchId);
+    ChangeListenerContainer::getInstance().removeChangeListener(watchId);
+    registered_listeners_.erase(watchId);
 }
 
 } //messaging

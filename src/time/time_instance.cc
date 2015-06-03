@@ -48,6 +48,8 @@ TimeInstance::TimeInstance() {
   using std::placeholders::_1;
   using std::placeholders::_2;
 
+  LoggerD("Entered");
+
 #define REGISTER_SYNC(c, x) \
   RegisterSyncHandler(c, std::bind(&TimeInstance::x, this, _1, _2));
 #define REGISTER_ASYNC(c, x) \
@@ -80,10 +82,14 @@ TimeInstance::TimeInstance() {
 static void OnTimeChangedCallback(keynode_t* /*node*/, void* user_data);
 static std::string GetDefaultTimezone();
 
-TimeInstance::~TimeInstance() {}
+TimeInstance::~TimeInstance() {
+    LoggerD("Entered");
+}
 
 void TimeInstance::TimeGetLocalTimeZone(const JsonValue& /*args*/,
                                         JsonObject& out) {
+  LoggerD("Entered");
+
   UnicodeString local_timezone;
   TimeZone::createDefault()->getID(local_timezone);
 
@@ -95,10 +101,13 @@ void TimeInstance::TimeGetLocalTimeZone(const JsonValue& /*args*/,
 
 void TimeInstance::TimeGetAvailableTimeZones(const JsonValue& /*args*/,
                                              JsonObject& out) {
+  LoggerD("Entered");
+
   UErrorCode ec = U_ZERO_ERROR;
   std::unique_ptr<StringEnumeration> timezones(TimeZone::createEnumeration());
   int32_t count = timezones->count(ec);
   if (U_FAILURE(ec)) {
+    LoggerE("Failed to get timezones.");
     ReportError(out);
     return;
   }
@@ -120,11 +129,14 @@ void TimeInstance::TimeGetAvailableTimeZones(const JsonValue& /*args*/,
 
 void TimeInstance::TimeGetTimeZoneOffset(const JsonValue& args,
                                          JsonObject& out) {
+  LoggerD("Entered");
+
   std::unique_ptr<UnicodeString> id(
       new UnicodeString(args.get("timezone").to_str().c_str()));
   UDate dateInMs = strtod(args.get("value").to_str().c_str(), NULL);
 
   if (errno == ERANGE) {
+    LoggerE("Value out of range");
     ReportError(out);
     return;
   }
@@ -133,12 +145,14 @@ void TimeInstance::TimeGetTimeZoneOffset(const JsonValue& args,
   std::unique_ptr<TimeZone> timezone(TimeZone::createTimeZone(*id));
   std::unique_ptr<Calendar> cal(Calendar::createInstance(*timezone, ec));
   if (U_FAILURE(ec)) {
+    LoggerE("Failed to create Calendar instance");
     ReportError(out);
     return;
   }
 
   cal->setTime(dateInMs, ec);
   if (U_FAILURE(ec)) {
+    LoggerE("Failed to set time");
     ReportError(out);
     return;
   }
@@ -155,11 +169,14 @@ void TimeInstance::TimeGetTimeZoneOffset(const JsonValue& args,
 
 void TimeInstance::TimeGetTimeZoneAbbreviation(const JsonValue& args,
                                                JsonObject& out) {
+  LoggerD("Entered");
+
   std::unique_ptr<UnicodeString> id(
       new UnicodeString(args.get("timezone").to_str().c_str()));
   UDate dateInMs = strtod(args.get("value").to_str().c_str(), NULL);
 
   if (errno == ERANGE) {
+    LoggerE("Value out of range");
     ReportError(out);
     return;
   }
@@ -168,12 +185,14 @@ void TimeInstance::TimeGetTimeZoneAbbreviation(const JsonValue& args,
   std::unique_ptr<Calendar> cal(
       Calendar::createInstance(TimeZone::createTimeZone(*id), ec));
   if (U_FAILURE(ec)) {
+    LoggerE("Failed to create Calendar instance");
     ReportError(out);
     return;
   }
 
   cal->setTime(dateInMs, ec);
   if (U_FAILURE(ec)) {
+    LoggerE("Failed to set date");
     ReportError(out);
     return;
   }
@@ -181,6 +200,7 @@ void TimeInstance::TimeGetTimeZoneAbbreviation(const JsonValue& args,
   std::unique_ptr<DateFormat> fmt(
       new SimpleDateFormat(UnicodeString("z"), Locale::getEnglish(), ec));
   if (U_FAILURE(ec)) {
+    LoggerE("Failed to create format object");
     ReportError(out);
     return;
   }
@@ -189,6 +209,7 @@ void TimeInstance::TimeGetTimeZoneAbbreviation(const JsonValue& args,
   fmt->setCalendar(*cal);
   fmt->format(cal->getTime(ec), uAbbreviation);
   if (U_FAILURE(ec)) {
+    LoggerE("Failed to format object");
     ReportError(out);
     return;
   }
@@ -200,12 +221,15 @@ void TimeInstance::TimeGetTimeZoneAbbreviation(const JsonValue& args,
 }
 
 void TimeInstance::TimeIsDST(const JsonValue& args, JsonObject& out) {
+  LoggerD("Entered");
+
   std::unique_ptr<UnicodeString> id(
       new UnicodeString(args.get("timezone").to_str().c_str()));
   UDate dateInMs = strtod(args.get("value").to_str().c_str(), NULL);
   dateInMs -= _hourInMilliseconds;
 
   if (errno == ERANGE) {
+    LoggerE("Value out of range");
     ReportError(out);
     return;
   }
@@ -214,12 +238,14 @@ void TimeInstance::TimeIsDST(const JsonValue& args, JsonObject& out) {
   std::unique_ptr<Calendar> cal(
       Calendar::createInstance(TimeZone::createTimeZone(*id), ec));
   if (U_FAILURE(ec)) {
+    LoggerE("Failed to create Calendar instance");
     ReportError(out);
     return;
   }
 
   cal->setTime(dateInMs, ec);
   if (U_FAILURE(ec)) {
+    LoggerE("Failed to set time");
     ReportError(out);
     return;
   }
@@ -229,12 +255,15 @@ void TimeInstance::TimeIsDST(const JsonValue& args, JsonObject& out) {
 
 void TimeInstance::TimeGetDSTTransition(const JsonValue& args,
                                         JsonObject& out) {
+  LoggerD("Entered");
+
   std::unique_ptr<UnicodeString> id(
       new UnicodeString(args.get("timezone").to_str().c_str()));
   std::string trans = args.get("trans").to_str();
   UDate dateInMs = strtod(args.get("value").to_str().c_str(), NULL);
 
   if (errno == ERANGE) {
+    LoggerE("Value out of range");
     ReportError(out);
     return;
   }
@@ -242,23 +271,29 @@ void TimeInstance::TimeGetDSTTransition(const JsonValue& args,
   std::unique_ptr<VTimeZone> vtimezone(VTimeZone::createVTimeZoneByID(*id));
 
   if (!vtimezone->useDaylightTime()) {
+    LoggerE("Failed to set DST");
     ReportError(out);
     return;
   }
 
   TimeZoneTransition tzTransition;
   if (trans.compare("NEXT_TRANSITION") &&
-      vtimezone->getNextTransition(dateInMs, FALSE, tzTransition))
+      vtimezone->getNextTransition(dateInMs, FALSE, tzTransition)) {
     ReportSuccess(JsonValue{tzTransition.getTime()}, out);
-  else if (vtimezone->getPreviousTransition(dateInMs, FALSE, tzTransition))
+  } else if (vtimezone->getPreviousTransition(dateInMs, FALSE, tzTransition)) {
     ReportSuccess(JsonValue{tzTransition.getTime()}, out);
-  else
+  } else {
+    LoggerE("Error while getting transition");
     ReportError(out);
+  }
 }
 
 void TimeInstance::TimeToString(const JsonValue& args, JsonObject& out) {
   JsonValue val;
+  LoggerD("Entered");
+
   if (!this->toStringByFormat(args, val, TimeInstance::DATETIME_FORMAT)) {
+    LoggerE("Failed to convert to string");
     ReportError(out);
     return;
   }
@@ -268,7 +303,10 @@ void TimeInstance::TimeToString(const JsonValue& args, JsonObject& out) {
 
 void TimeInstance::TimeToDateString(const JsonValue& args, JsonObject& out) {
   JsonValue val;
+  LoggerD("Entered");
+
   if (!this->toStringByFormat(args, val, TimeInstance::DATE_FORMAT)) {
+    LoggerE("Failed to convert to string");
     ReportError(out);
     return;
   }
@@ -278,7 +316,10 @@ void TimeInstance::TimeToDateString(const JsonValue& args, JsonObject& out) {
 
 void TimeInstance::TimeToTimeString(const JsonValue& args, JsonObject& out) {
   JsonValue val;
+  LoggerD("Entered");
+
   if (!this->toStringByFormat(args, val, TimeInstance::TIME_FORMAT)) {
+    LoggerE("Failed to convert to string");
     ReportError(out);
     return;
   }
@@ -288,30 +329,47 @@ void TimeInstance::TimeToTimeString(const JsonValue& args, JsonObject& out) {
 
 bool TimeInstance::toStringByFormat(const JsonValue& args, JsonValue& out,
                                     DateTimeFormatType format) {
+  LoggerD("Entered");
+
   std::unique_ptr<UnicodeString> id(
       new UnicodeString(args.get("timezone").to_str().c_str()));
   bool bLocale = args.get("locale").evaluate_as_boolean();
 
   UDate dateInMs = strtod(args.get("value").to_str().c_str(), NULL);
-  if (errno == ERANGE) return false;
+  if (errno == ERANGE) {
+    LoggerE("Value out of range");
+    return false;
+  }
 
   UErrorCode ec = U_ZERO_ERROR;
   std::unique_ptr<Calendar> cal(
       Calendar::createInstance(TimeZone::createTimeZone(*id), ec));
-  if (U_FAILURE(ec)) return false;
+  if (U_FAILURE(ec)) {
+    LoggerE("Failed to create Calendar instance");
+    return false;
+  }
 
   cal->setTime(dateInMs, ec);
-  if (U_FAILURE(ec)) return false;
+  if (U_FAILURE(ec)) {
+    LoggerE("Failed to set time");
+    return false;
+  }
 
   std::unique_ptr<DateFormat> fmt(new SimpleDateFormat(
       getDateTimeFormat(format, bLocale),
       (bLocale ? Locale::getDefault() : Locale::getEnglish()), ec));
-  if (U_FAILURE(ec)) return false;
+  if (U_FAILURE(ec)) {
+    LoggerE("Failed to create format object");
+    return false;
+  }
 
   UnicodeString uResult;
   fmt->setCalendar(*cal);
   fmt->format(cal->getTime(ec), uResult);
-  if (U_FAILURE(ec)) return false;
+  if (U_FAILURE(ec)) {
+    LoggerE("Failed to format object");
+    return false;
+  }
 
   std::string result = "";
   uResult.toUTF8String(result);
@@ -322,6 +380,8 @@ bool TimeInstance::toStringByFormat(const JsonValue& args, JsonValue& out,
 
 void TimeInstance::TimeGetTimeFormat(const JsonValue& /*args*/,
                                      JsonObject& out) {
+  LoggerD("Entered");
+
   UnicodeString timeFormat = getDateTimeFormat(TimeInstance::TIME_FORMAT, true);
 
   timeFormat = timeFormat.findAndReplace("H", "h");
@@ -338,8 +398,9 @@ void TimeInstance::TimeGetTimeFormat(const JsonValue& /*args*/,
 }
 
 void TimeInstance::TimeGetDateFormat(const JsonValue& args, JsonObject& out) {
-  bool shortformat = args.get("shortformat").evaluate_as_boolean();
+  LoggerD("Entered");
 
+  bool shortformat = args.get("shortformat").evaluate_as_boolean();
   UnicodeString time_format =
       getDateTimeFormat((shortformat ? DateTimeFormatType::DATE_SHORT_FORMAT
                                      : DateTimeFormatType::DATE_FORMAT),
@@ -373,12 +434,17 @@ void TimeInstance::TimeGetDateFormat(const JsonValue& args, JsonObject& out) {
 
 UnicodeString TimeInstance::getDateTimeFormat(DateTimeFormatType type,
                                               bool bLocale) {
+  LoggerD("Entered");
+
   UErrorCode ec = U_ZERO_ERROR;
   std::unique_ptr<DateTimePatternGenerator> dateTimepattern(
       DateTimePatternGenerator::createInstance(
           (bLocale ? Locale::getDefault() : Locale::getEnglish()), ec));
 
-  if (U_FAILURE(ec)) return "";
+  if (U_FAILURE(ec)) {
+    LoggerE("Failed to create Calendar instance");
+    return "";
+  }
 
   UnicodeString pattern;
   if (type == DATE_FORMAT) {
@@ -408,7 +474,10 @@ UnicodeString TimeInstance::getDateTimeFormat(DateTimeFormatType type,
 
     pattern = dateTimepattern->getBestPattern(
         *(new UnicodeString(skeleton.c_str())), ec);
-    if (U_FAILURE(ec)) return "";
+    if (U_FAILURE(ec)) {
+      LoggerE("Failed to get time pattern");
+      return "";
+    }
 
     if (!bLocale) pattern += " 'GMT'Z v'";
   }
@@ -453,7 +522,8 @@ TimeUtilListeners::~TimeUtilListeners() {
 }
 
 PlatformResult TimeUtilListeners::RegisterVconfCallback(ListenerType type, TimeInstance& instance) {
-  LoggerD("");
+  LoggerD("Entered");
+
   if (!is_time_listener_registered_ && !is_timezone_listener_registered_) {
     LoggerD("registering listener on platform");
     if (0 != vconf_notify_key_changed(VCONFKEY_SYSTEM_TIME_CHANGED,
@@ -482,7 +552,8 @@ PlatformResult TimeUtilListeners::RegisterVconfCallback(ListenerType type, TimeI
 }
 
 PlatformResult TimeUtilListeners::UnregisterVconfCallback(ListenerType type) {
-  LoggerD("");
+  LoggerD("Entered");
+
   switch (type) {
     case kTimeChange:
       is_time_listener_registered_ = false;
@@ -514,7 +585,8 @@ void TimeUtilListeners::SetCurrentTimezone(std::string& newTimezone) {
 }
 
 static std::string GetDefaultTimezone() {
-  LoggerD("");
+  LoggerD("Entered");
+
   char buf[1024];
   std::string result;
   ssize_t len = readlink("/opt/etc/localtime", buf, sizeof(buf) - 1);
@@ -522,6 +594,7 @@ static std::string GetDefaultTimezone() {
     buf[len] = '\0';
   } else {
     /* handle error condition */
+    LoggerE("Error while reading link - incorrect length");
     return result;
   }
   result = std::string(buf + strlen("/usr/share/zoneinfo/"));
@@ -534,6 +607,8 @@ static std::string GetDefaultTimezone() {
 static TimeUtilListeners g_time_util_listeners_obj;
 
 static void PostMessage(const char* message, TimeInstance& instance) {
+  LoggerD("Entered");
+
   JsonValue result{JsonObject{}};
   JsonObject& result_obj = result.get<JsonObject>();
   result_obj.insert(std::make_pair("listenerId", picojson::value(message)));
@@ -541,7 +616,8 @@ static void PostMessage(const char* message, TimeInstance& instance) {
 }
 
 static void OnTimeChangedCallback(keynode_t* /*node*/, void* user_data) {
-  LoggerD("");
+  LoggerD("Entered");
+
   TimeInstance *that = static_cast<TimeInstance*>(user_data);
   std::string defaultTimezone = GetDefaultTimezone();
 
@@ -554,40 +630,56 @@ static void OnTimeChangedCallback(keynode_t* /*node*/, void* user_data) {
 
 void TimeInstance::TimeSetDateTimeChangeListener(const JsonValue& /*args*/,
                                                  JsonObject& out) {
+  LoggerD("Entered");
+
   PlatformResult result =
       g_time_util_listeners_obj.RegisterVconfCallback(kTimeChange, *this);
-  if (result.IsError())
+  if (result.IsError()) {
+    LoggerE("Error while registering vconf callback");
     ReportError(result, &out);
+  }
   else
     ReportSuccess(out);
 }
 
 void TimeInstance::TimeUnsetDateTimeChangeListener(const JsonValue& /*args*/,
                                                    JsonObject& out) {
+  LoggerD("Entered");
+
   PlatformResult result =
       g_time_util_listeners_obj.UnregisterVconfCallback(kTimeChange);
-  if (result.IsError())
+  if (result.IsError()) {
+    LoggerE("Failed to unregister vconf callback");
     ReportError(result, &out);
+  }
   else
     ReportSuccess(out);
 }
 
 void TimeInstance::TimeSetTimezoneChangeListener(const JsonValue& /*args*/,
                                                  JsonObject& out) {
+  LoggerD("Entered");
+
   PlatformResult result =
       g_time_util_listeners_obj.RegisterVconfCallback(kTimezoneChange, *this);
-  if (result.IsError())
+  if (result.IsError()) {
+    LoggerE("Failed to register vconf callback");
     ReportError(result, &out);
+  }
   else
     ReportSuccess(out);
 }
 
 void TimeInstance::TimeUnsetTimezoneChangeListener(const JsonValue& /*args*/,
                                                    JsonObject& out) {
+  LoggerD("Entered");
+
   PlatformResult result =
       g_time_util_listeners_obj.UnregisterVconfCallback(kTimezoneChange);
-  if (result.IsError())
+  if (result.IsError()) {
+    LoggerE("Failed to unregister vconf callback");
     ReportError(result, &out);
+  }
   else
     ReportSuccess(out);
 }

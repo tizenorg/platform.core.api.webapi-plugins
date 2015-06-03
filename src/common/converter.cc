@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Samsung Electronics Co., Ltd All Rights Reserved
+ * Copyright (c) 2015 Samsung Electronics Co., Ltd All Rights Reserved
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
  */
 
 #include "common/converter.h"
+#include "common/logger.h"
 #include <stdexcept>
 #include <string>
 
@@ -22,6 +23,7 @@ namespace common {
 
 const picojson::value& FindValue(const picojson::object& in,
                                      const char* name) {
+  LoggerD("Enter");
   auto it = in.find(name);
   if (it == in.end()) {
     throw common::UnknownException(
@@ -35,9 +37,11 @@ long stol(const std::string& str, std::size_t* pos, int base) {
     return std::stol(str, pos, base);
   }
   catch (const std::invalid_argument& e) {
+    LoggerE("invalid_argument");
     throw common::InvalidValuesException(e.what());
   }
   catch (const std::out_of_range& e) {
+    LoggerE("InvalidValuesException");
     throw common::InvalidValuesException(e.what());
   }
 }

@@ -1,7 +1,19 @@
-// Copyright 2014 Samsung Electronics Co, Ltd. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
-
+/*
+ * Copyright (c) 2015 Samsung Electronics Co., Ltd All Rights Reserved
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ */
+ 
 #include <msg-service/msg.h>
 #include <msg_transport.h>
 #include <msg_storage.h>
@@ -136,7 +148,10 @@ PlatformResult ShortMsgManager::addDraftMessagePlatform(std::shared_ptr<Message>
     msg_struct_t platform_msg = nullptr;
     PlatformResult ret = Message::convertPlatformShortMessageToStruct(message.get(),
                                                                       m_msg_handle, &platform_msg);
-    if (ret.IsError()) return ret;
+    if (ret.IsError()) {
+        LoggerD("Convert Platform Short Message to Struct failed (%s)", ret.message().c_str());
+        return ret;
+    }
 
     if (NULL == platform_msg) {
         LoggerE("Failed to prepare platform message");
@@ -170,7 +185,10 @@ PlatformResult ShortMsgManager::addDraftMessagePlatform(std::shared_ptr<Message>
     Message* msgInfo = nullptr;
     ret = Message::convertPlatformShortMessageToObject(
         platform_msg, &msgInfo);
-    if (ret.IsError()) return ret;
+    if (ret.IsError()) {
+        LoggerD("Convert Platform Short Message to Object failed (%s)", ret.message().c_str());
+        return ret;
+    }
     const int folderId = msgInfo->getFolderId();
     message->setFolderId(folderId);
     const time_t timestamp = msgInfo->getTimestamp();
@@ -201,6 +219,7 @@ PlatformResult ShortMsgManager::addDraftMessagePlatform(std::shared_ptr<Message>
 
 PlatformResult ShortMsgManager::SendMessagePlatform(MessageRecipientsCallbackData* callback)
 {
+  LoggerD("Entered");
   std::lock_guard<std::mutex> lock(m_mutex);
 
   PlatformResult platform_result(ErrorCode::NO_ERROR);
@@ -357,6 +376,7 @@ PlatformResult ShortMsgManager::sendMessage(MessageRecipientsCallbackData* callb
 
 void ShortMsgManager::sendStatusCallback(msg_struct_t sent_status)
 {
+    LoggerD("Entered");
     int reqId = 0;
     int status = MSG_NETWORK_NOT_SEND;
 
@@ -693,6 +713,7 @@ void ShortMsgManager::storage_change_cb(msg_handle_t handle,
 
 void ShortMsgManager::registerStatusCallback(msg_handle_t msg_handle)
 {
+    LoggerD("Entered");
     m_msg_handle = msg_handle;
     // set message sent status callback
     if (MSG_SUCCESS != msg_reg_sent_status_callback(m_msg_handle,
@@ -892,6 +913,7 @@ void ShortMsgManager::updateMessages(MessagesCallbackUserData* callback)
 
 PlatformResult ShortMsgManager::getMessage(int msg_id, msg_struct_t* out_msg)
 {
+    LoggerD("Entered");
     msg_struct_t sendOpt = msg_create_struct(MSG_STRUCT_SENDOPT);
     msg_struct_t msg = msg_create_struct(MSG_STRUCT_MESSAGE_INFO);
 
@@ -930,7 +952,10 @@ PlatformResult ShortMsgManager::getConversationsForMessages(
             ConversationPtr conv;
             PlatformResult ret = MessageConversation::convertMsgConversationToObject(
                     conv_id, ShortMsgManager::getInstance().m_msg_handle, &conv);
-            if (ret.IsError()) return ret;
+            if (ret.IsError()) {
+                LoggerD("Convert msg conversation to object failed (%s)", ret.message().c_str());
+                return ret;
+            }
             LoggerD("Pushed conv=%p", conv.get());
             convs.push_back(conv);
         }

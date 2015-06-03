@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Samsung Electronics Co., Ltd All Rights Reserved
+ * Copyright (c) 2015 Samsung Electronics Co., Ltd All Rights Reserved
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -17,13 +17,13 @@
 #include "systeminfo-utils.h"
 #include "systeminfo/systeminfo_instance.h"
 
+#include <fstream>
 #include <sstream>
 #include <memory>
 #include <mutex>
 
 #include <runtime_info.h>
 #include <system_info.h>
-#include <system_info_internal.h>
 #include <sys/statfs.h>
 
 #include <vconf.h>
@@ -76,7 +76,7 @@ const std::string MEMORY_STATE_NORMAL = "NORMAL";
 const std::string MEMORY_STATE_WARNING = "WARNING";
 const int MEMORY_TO_BYTE = 1024;
 const int BASE_GATHERING_INTERVAL = 100;
-const double DISPLAY_INCH_TO_MILLIMETER = 25.4;
+const double DISPLAY_INCH_TO_MILLIMETER = 2.54;
 }
 using namespace common;
 
@@ -983,10 +983,11 @@ PlatformResult SystemInfoListeners::RegisterPeripheralListener(const SysteminfoU
       CHECK_LISTENER_ERROR(RegisterVconfCallback(VCONFKEY_SYSMAN_HDMI,
                                                  OnPeripheralChangedCb, instance))
     }
-    if (-1 != vconf_get_int(VCONFKEY_POPSYNC_ACTIVATED_KEY, &value)) {
-      CHECK_LISTENER_ERROR(RegisterVconfCallback(VCONFKEY_POPSYNC_ACTIVATED_KEY,
-                                                 OnPeripheralChangedCb, instance))
-    }
+    // TODO(r.galka) temporarily removed - not supported by platform
+    //if (-1 != vconf_get_int(VCONFKEY_POPSYNC_ACTIVATED_KEY, &value)) {
+    //  CHECK_LISTENER_ERROR(RegisterVconfCallback(VCONFKEY_POPSYNC_ACTIVATED_KEY,
+    //                                             OnPeripheralChangedCb, instance))
+    //}
     LoggerD("Added callback for PERIPHERAL");
     m_peripheral_listener = callback;
   }
@@ -1006,10 +1007,11 @@ PlatformResult SystemInfoListeners::UnregisterPeripheralListener()
       CHECK_LISTENER_ERROR(UnregisterVconfCallback(VCONFKEY_SYSMAN_HDMI,
                                                    OnPeripheralChangedCb))
     }
-    if (-1 != vconf_get_int(VCONFKEY_POPSYNC_ACTIVATED_KEY, &value)) {
-      CHECK_LISTENER_ERROR(UnregisterVconfCallback(VCONFKEY_POPSYNC_ACTIVATED_KEY,
-                                                   OnPeripheralChangedCb))
-    }
+    // TODO(r.galka) temporarily removed - not supported by platform
+    //if (-1 != vconf_get_int(VCONFKEY_POPSYNC_ACTIVATED_KEY, &value)) {
+    //  CHECK_LISTENER_ERROR(UnregisterVconfCallback(VCONFKEY_POPSYNC_ACTIVATED_KEY,
+    //                                               OnPeripheralChangedCb))
+    //}
     LoggerD("Removed callback for PERIPHERAL");
     m_peripheral_listener = nullptr;
   }
@@ -1048,28 +1050,30 @@ PlatformResult SystemInfoListeners::UnregisterMemoryListener()
 PlatformResult SystemInfoListeners::RegisterCameraFlashListener(const SysteminfoUtilsCallback& callback,
                                                            SysteminfoInstance& instance)
 {
-  if (nullptr == m_camera_flash_listener) {
-    if (DEVICE_ERROR_NONE != device_add_callback(DEVICE_CALLBACK_FLASH_BRIGHTNESS,
-                              OnBrightnessChangedCb, static_cast<void*>(&instance))) {
-        return PlatformResult(ErrorCode::UNKNOWN_ERR);
-      }
-      m_camera_flash_listener = callback;
-  }
+  // TODO(r.galka) temporarily removed - not supported by platform
+  //if (nullptr == m_camera_flash_listener) {
+  //  if (DEVICE_ERROR_NONE != device_add_callback(DEVICE_CALLBACK_FLASH_BRIGHTNESS,
+  //                            OnBrightnessChangedCb, static_cast<void*>(&instance))) {
+  //      return PlatformResult(ErrorCode::UNKNOWN_ERR);
+  //    }
+  //    m_camera_flash_listener = callback;
+  //}
     return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 PlatformResult SystemInfoListeners::UnregisterCameraFlashListener()
 {
-  if (nullptr != m_camera_flash_listener) {
-    PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
-    int value = 0;
-    if (DEVICE_ERROR_NONE != device_remove_callback(DEVICE_CALLBACK_FLASH_BRIGHTNESS,
-                                                 OnBrightnessChangedCb)) {
-      return PlatformResult(ErrorCode::UNKNOWN_ERR);
-    }
-    LoggerD("Removed callback for camera_flash");
-    m_camera_flash_listener = nullptr;
-  }
+  // TODO(r.galka) temporarily removed - not supported by platform
+  //if (nullptr != m_camera_flash_listener) {
+  //  PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
+  //  int value = 0;
+  //  if (DEVICE_ERROR_NONE != device_remove_callback(DEVICE_CALLBACK_FLASH_BRIGHTNESS,
+  //                                               OnBrightnessChangedCb)) {
+  //    return PlatformResult(ErrorCode::UNKNOWN_ERR);
+  //  }
+  //  LoggerD("Removed callback for camera_flash");
+  //  m_camera_flash_listener = nullptr;
+  //}
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
@@ -1431,9 +1435,10 @@ void OnMemoryChangedCb(keynode_t* node, void* event_ptr)
 void OnBrightnessChangedCb(device_callback_e type, void* value, void* user_data)
 {
   LoggerD("");
-  if (type == DEVICE_CALLBACK_FLASH_BRIGHTNESS) {
-    system_info_listeners.OnBrightnessChangedCallback(type, value, user_data);
-  }
+  // TODO(r.galka) temporarily removed - not supported by platform
+  //if (type == DEVICE_CALLBACK_FLASH_BRIGHTNESS) {
+  //  system_info_listeners.OnBrightnessChangedCallback(type, value, user_data);
+  //}
 }
 
 /////////////////////////// SysteminfoUtils ////////////////////////////////
@@ -1500,23 +1505,6 @@ static PlatformResult GetRuntimeInfoString(runtime_info_key_e key, std::string& 
     }
   }
   const char* error_msg = "Error when retrieving runtime information: " + err;
-  LoggerE("%s", error_msg);
-  return PlatformResult(ErrorCode::UNKNOWN_ERR, error_msg);
-}
-
-static PlatformResult GetSystemValueString(system_info_key_e key, std::string& platform_string) {
-  char* platform_c_string;
-  if (SYSTEM_INFO_ERROR_NONE
-      == system_info_get_value_string(key, &platform_c_string)) {
-    if (platform_c_string) {
-      LoggerD("Build platfrom string %s", platform_c_string);
-      platform_string = platform_c_string;
-      free(platform_c_string);
-      return PlatformResult(ErrorCode::NO_ERROR);
-    }
-  }
-
-  const char* error_msg = "Error when retrieving value from platform API";
   LoggerE("%s", error_msg);
   return PlatformResult(ErrorCode::UNKNOWN_ERR, error_msg);
 }
@@ -1734,20 +1722,20 @@ PlatformResult SysteminfoUtils::ReportCpu(picojson::object& out) {
 PlatformResult SysteminfoUtils::ReportDisplay(picojson::object& out) {
   int screenWidth = 0;
   int screenHeight = 0;
-  unsigned long dotsPerInchWidth = 0;
-  unsigned long dotsPerInchHeight = 0;
+  int dotsPerInchWidth = 0;
+  int dotsPerInchHeight = 0;
   double physicalWidth = 0;
   double physicalHeight = 0;
   double scaledBrightness;
 
   // FETCH RESOLUTION
-  if (SYSTEM_INFO_ERROR_NONE != system_info_get_value_int(
-      SYSTEM_INFO_KEY_SCREEN_WIDTH, &screenWidth)) {
+  if (SYSTEM_INFO_ERROR_NONE != system_info_get_platform_int(
+      "tizen.org/feature/screen.width", &screenWidth)) {
     LoggerE("Cannot get value of screen width");
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get value of screen width");
   }
-  if (SYSTEM_INFO_ERROR_NONE != system_info_get_value_int(
-      SYSTEM_INFO_KEY_SCREEN_HEIGHT, &screenHeight)) {
+  if (SYSTEM_INFO_ERROR_NONE != system_info_get_platform_int(
+      "tizen.org/feature/screen.height", &screenHeight)) {
     LoggerE("Cannot get value of screen height");
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get value of screen height");
   }
@@ -1766,7 +1754,7 @@ PlatformResult SysteminfoUtils::ReportDisplay(picojson::object& out) {
 
   //FETCH PHYSICAL WIDTH
   if (dotsPerInchWidth != 0 && screenWidth != 0) {
-    physicalWidth = DISPLAY_INCH_TO_MILLIMETER * screenWidth / dotsPerInchWidth;
+    physicalWidth = (screenWidth / dotsPerInchWidth) * DISPLAY_INCH_TO_MILLIMETER;
   } else {
     std::string log_msg = "Failed to get physical screen width value";
     LoggerE("%s, screenWidth : %d, dotsPerInchWidth: %d", log_msg.c_str(),
@@ -1775,7 +1763,7 @@ PlatformResult SysteminfoUtils::ReportDisplay(picojson::object& out) {
 
   //FETCH PHYSICAL HEIGHT
   if (dotsPerInchHeight != 0 && screenHeight != 0) {
-    physicalHeight = DISPLAY_INCH_TO_MILLIMETER * screenHeight / dotsPerInchHeight;
+    physicalHeight = (screenHeight / dotsPerInchHeight) * DISPLAY_INCH_TO_MILLIMETER;
   } else {
     std::string log_msg = "Failed to get physical screen height value";
     LoggerE("%s, screenHeight : %d, dotsPerInchHeight: %d", log_msg.c_str(),
@@ -1887,17 +1875,20 @@ PlatformResult SysteminfoUtils::ReportDeviceOrientation(picojson::object& out) {
 
 PlatformResult SysteminfoUtils::ReportBuild(picojson::object& out) {
   std::string model = "";
-  PlatformResult ret = SystemInfoDeviceCapability::GetValueString("tizen.org/system/model_name", &model);
+  PlatformResult ret = SystemInfoDeviceCapability::GetValueString(
+      "tizen.org/system/model_name", &model);
   if (ret.IsError()) {
     return ret;
   }
   std::string manufacturer = "";
-  ret = GetSystemValueString(SYSTEM_INFO_KEY_MANUFACTURER, manufacturer);
+  ret = SystemInfoDeviceCapability::GetValueString(
+      "tizen.org/system/manufacturer", &manufacturer);
   if (ret.IsError()) {
     return ret;
   }
   std::string buildVersion = "";
-  ret = GetSystemValueString(SYSTEM_INFO_KEY_BUILD_STRING, buildVersion);
+  ret = SystemInfoDeviceCapability::GetValueString(
+      "tizen.org/system/build.string", &buildVersion);
   if (ret.IsError()) {
     return ret;
   }
@@ -2419,14 +2410,15 @@ PlatformResult SysteminfoUtils::ReportPeripheral(picojson::object& out) {
     }
   }
 
-  int popsync_status = 0;
-  ret = GetVconfInt(VCONFKEY_POPSYNC_ACTIVATED_KEY, popsync_status);
-  if (ret.IsSuccess()) {
-    if (1 == popsync_status) {
-      out.insert(std::make_pair(kVideoOutputString, picojson::value(true)));
-      return PlatformResult(ErrorCode::NO_ERROR);
-    }
-  }
+  // TODO(r.galka) temporarily removed - not supported by platform
+  //int popsync_status = 0;
+  //ret = GetVconfInt(VCONFKEY_POPSYNC_ACTIVATED_KEY, popsync_status);
+  //if (ret.IsSuccess()) {
+  //  if (1 == popsync_status) {
+  //    out.insert(std::make_pair(kVideoOutputString, picojson::value(true)));
+  //    return PlatformResult(ErrorCode::NO_ERROR);
+  //  }
+  //}
 
   out.insert(std::make_pair(kVideoOutputString, picojson::value(false)));
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -3033,17 +3025,20 @@ bool SystemInfoDeviceCapability::IsScreen()
 PlatformResult SystemInfoDeviceCapability::GetPlatformCoreCpuFrequency(int* return_value)
 {
   LoggerD("Entered");
-  double freq = 0;
-  int ret = 0;
 
-  ret = system_info_get_value_double(SYSTEM_INFO_KEY_CORE_CPU_FREQ, &freq);
-  if (ret != SYSTEM_INFO_ERROR_NONE) {
-    LoggerE("Failed to get cpu frequency: %d", ret);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to get cpu frequency");
-  } else {
-    LoggerD("cpu frequency : %d", freq);
-    *return_value = static_cast<int>(freq);
+  std::string freq;
+  std::ifstream cpuinfo_max_freq("/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq");
+  if (!cpuinfo_max_freq.is_open()) {
+    LoggerE("Failed to get cpu frequency");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Unable to open file");
   }
+
+  getline(cpuinfo_max_freq, freq);
+  cpuinfo_max_freq.close();
+
+  LoggerD("cpu frequency : %s", freq.c_str());
+  *return_value = std::stoi(freq) / 1000; // unit: MHz
+
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 

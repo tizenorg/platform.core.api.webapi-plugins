@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Samsung Electronics Co., Ltd All Rights Reserved
+ * Copyright (c) 2015 Samsung Electronics Co., Ltd All Rights Reserved
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
  */
-
 #include "contact/person.h"
 #include "common/converter.h"
 #include "common/platform_exception.h"
@@ -40,6 +39,7 @@ static const PersonPropertyMap personPropertyMap = {
 };
 
 PlatformResult PersonLink(const JsonObject& args, JsonObject&) {
+  LoggerD("Enter");
   PlatformResult status = ContactUtil::CheckDBConnection();
   if (status.IsError()) return status;
 
@@ -67,6 +67,7 @@ PlatformResult PersonLink(const JsonObject& args, JsonObject&) {
 }
 
 PlatformResult PersonUnlink(const JsonObject& args, JsonObject& out) {
+  LoggerD("Enter");
   PlatformResult status = ContactUtil::CheckDBConnection();
   if (status.IsError()) return status;
 
@@ -129,6 +130,7 @@ PlatformResult PersonUnlink(const JsonObject& args, JsonObject& out) {
 
 PlatformResult PersonPropertyFromString(const std::string& name,
                                         PersonProperty* person_prop) {
+  LoggerD("Enter");
   auto iter = personPropertyMap.find(name);
   if (iter == personPropertyMap.end()) {
     LoggerE("Invalid property name (not in map): %s", name.c_str());

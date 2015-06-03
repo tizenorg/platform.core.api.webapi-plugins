@@ -1,7 +1,19 @@
-// Copyright 2015 Samsung Electronics Co, Ltd. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
-
+/*
+ * Copyright (c) 2015 Samsung Electronics Co., Ltd All Rights Reserved
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ */
+ 
 #include "mediacontroller/mediacontroller_types.h"
 
 #include <media_controller_client.h>
@@ -55,6 +67,8 @@ PlatformEnumReverseMap Types::platform_enum_reverse_map_ = {};
 PlatformResult Types::GetPlatformEnumMap(const std::string& type,
                                   std::map<std::string, int>* enum_map) {
 
+  LoggerD("Enter");
+
   auto iter = platform_enum_map_.find(type);
   if (iter == platform_enum_map_.end()) {
     return PlatformResult(ErrorCode::UNKNOWN_ERR,
@@ -69,6 +83,9 @@ PlatformResult Types::GetPlatformEnumMap(const std::string& type,
 PlatformResult Types::StringToPlatformEnum(const std::string& type,
                                            const std::string& value,
                                            int* platform_enum) {
+
+  LoggerD("Enter");
+
   std::map<std::string, int> def;
   PlatformResult result = GetPlatformEnumMap(type, &def);
   if (!result) {
@@ -89,6 +106,8 @@ PlatformResult Types::StringToPlatformEnum(const std::string& type,
 PlatformResult Types::PlatformEnumToString(const std::string& type,
                                            int value,
                                            std::string* platform_str) {
+  LoggerD("Enter");
+
   // TODO(r.galka) can be replaced by Boost.Bimap
   if (platform_enum_reverse_map_.empty()) {
     for (auto& def : platform_enum_map_) {
@@ -120,6 +139,8 @@ PlatformResult Types::PlatformEnumToString(const std::string& type,
 
 PlatformResult Types::ConvertPlaybackState(mc_playback_h playback_h,
                                            std::string* state) {
+  LoggerD("Enter");
+
   int ret;
   mc_playback_states_e state_e;
   ret = mc_client_get_playback_state(playback_h, &state_e);
@@ -145,6 +166,8 @@ PlatformResult Types::ConvertPlaybackState(mc_playback_h playback_h,
 
 PlatformResult Types::ConvertPlaybackPosition(mc_playback_h playback_h,
                                               double* position) {
+  LoggerD("Enter");
+
   int ret;
 
   unsigned long long pos;
@@ -162,6 +185,8 @@ PlatformResult Types::ConvertPlaybackPosition(mc_playback_h playback_h,
 
 PlatformResult Types::ConvertMetadata(mc_metadata_h metadata_h,
                                       picojson::object* metadata) {
+  LoggerD("Enter");
+
   std::map<std::string, int> metadata_fields;
   PlatformResult result = GetPlatformEnumMap(
       Types::kMediaControllerMetadataAttribute, &metadata_fields);

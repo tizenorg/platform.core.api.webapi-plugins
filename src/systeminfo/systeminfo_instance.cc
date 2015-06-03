@@ -1,6 +1,18 @@
-// Copyright 2014 Samsung Electronics Co, Ltd. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
+/*
+ * Copyright (c) 2015 Samsung Electronics Co., Ltd All Rights Reserved
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ */
 
 #include "systeminfo/systeminfo_instance.h"
 
@@ -103,7 +115,7 @@ const std::string kPropertyIdCameraFlash= "CAMERA_FLASH";
 }
 
 SysteminfoInstance::SysteminfoInstance() {
-
+  LoggerD("Enter");
   using std::placeholders::_1;
   using std::placeholders::_2;
 
@@ -147,7 +159,7 @@ SysteminfoInstance::~SysteminfoInstance() {
 }
 
 void SysteminfoInstance::GetCapabilities(const picojson::value& args, picojson::object& out) {
-  LoggerD("");
+  LoggerD("Enter");
   picojson::value result = picojson::value(picojson::object());
   picojson::object& result_obj = result.get<picojson::object>();
 
@@ -232,7 +244,7 @@ void SysteminfoInstance::GetCapabilities(const picojson::value& args, picojson::
 }
 
 void SysteminfoInstance::GetCapability(const picojson::value& args, picojson::object& out) {
-
+  LoggerD("Enter");
   CHECK_EXIST(args, "key", out)
   const std::string& key = args.get("key").get<std::string>();
   LoggerD("Getting capability with key: %s ", key.c_str());
@@ -248,7 +260,7 @@ void SysteminfoInstance::GetCapability(const picojson::value& args, picojson::ob
 }
 
 void SysteminfoInstance::GetPropertyValue(const picojson::value& args, picojson::object& out) {
-  LoggerD("");
+  LoggerD("Enter");
   CHECK_EXIST(args, "callbackId", out)
   CHECK_EXIST(args, "property", out)
   const double callback_id = args.get("callbackId").get<double>();
@@ -279,7 +291,7 @@ void SysteminfoInstance::GetPropertyValue(const picojson::value& args, picojson:
 }
 
 void SysteminfoInstance::GetPropertyValueArray(const picojson::value& args, picojson::object& out) {
-  LoggerD("");
+  LoggerD("Enter");
   CHECK_EXIST(args, "callbackId", out)
   CHECK_EXIST(args, "property", out)
   const double callback_id = args.get("callbackId").get<double>();
@@ -291,6 +303,7 @@ void SysteminfoInstance::GetPropertyValueArray(const picojson::value& args, pico
     picojson::value result = picojson::value(picojson::object());
     PlatformResult ret = SysteminfoUtils::GetPropertyValue(prop_id, true, result);
     if (ret.IsError()) {
+      LoggerE("Failed: GetPropertyValue()");
       ReportError(ret,&(response->get<picojson::object>()));
       return;
     }
@@ -309,7 +322,7 @@ void SysteminfoInstance::GetPropertyValueArray(const picojson::value& args, pico
 }
 
 void SysteminfoInstance::AddPropertyValueChangeListener(const picojson::value& args, picojson::object& out) {
-  LoggerD("");
+  LoggerD("Enter");
   // Check type of property for which listener should be registered
   CHECK_EXIST(args, "property", out)
   const std::string& property_name = args.get("property").get<std::string>();
@@ -361,7 +374,7 @@ void SysteminfoInstance::AddPropertyValueChangeListener(const picojson::value& a
 }
 
 void SysteminfoInstance::GetTotalMemory(const picojson::value& args, picojson::object& out) {
-  LoggerD("");
+  LoggerD("Enter");
   picojson::value result = picojson::value(picojson::object());
   picojson::object& result_obj = result.get<picojson::object>();
 
@@ -380,7 +393,7 @@ void SysteminfoInstance::GetTotalMemory(const picojson::value& args, picojson::o
 }
 
 void SysteminfoInstance::GetAvailableMemory(const picojson::value& args, picojson::object& out) {
-  LoggerD("");
+  LoggerD("Enter");
   picojson::value result = picojson::value(picojson::object());
   picojson::object& result_obj = result.get<picojson::object>();
 
@@ -400,6 +413,7 @@ void SysteminfoInstance::GetAvailableMemory(const picojson::value& args, picojso
 
 void SysteminfoInstance::GetCount(const picojson::value& args, picojson::object& out) {
 
+  LoggerD("Enter");
   CHECK_EXIST(args, "property", out)
   const std::string& property = args.get("property").get<std::string>();
   LoggerD("Getting count of property with id: %s ", property.c_str());
@@ -409,6 +423,7 @@ void SysteminfoInstance::GetCount(const picojson::value& args, picojson::object&
   unsigned long count = 0;
   PlatformResult ret = SysteminfoUtils::GetCount(property, count);
   if (ret.IsError()) {
+    LoggerE("Failed: GetCount()");
     ReportError(ret, &out);
     return;
   }
@@ -419,7 +434,7 @@ void SysteminfoInstance::GetCount(const picojson::value& args, picojson::object&
 }
 
 void SysteminfoInstance::RemovePropertyValueChangeListener(const picojson::value& args, picojson::object& out) {
-  LoggerD("");
+  LoggerD("Enter");
 
   // Check type of property for which listener should be removed
   CHECK_EXIST(args, "property", out)
@@ -522,7 +537,7 @@ void SysteminfoInstance::GetMaxBrightness(const picojson::value& args, picojson:
 //Callback functions
 void OnBatteryChangedCallback(SysteminfoInstance& instance)
 {
-  LoggerD("");
+  LoggerD("Enter");
   const std::shared_ptr<picojson::value>& response =
       std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
   response->get<picojson::object>()[kPropertyIdString] = picojson::value(kPropertyIdBattery);
@@ -538,7 +553,7 @@ void OnBatteryChangedCallback(SysteminfoInstance& instance)
 
 void OnCpuChangedCallback(SysteminfoInstance& instance)
 {
-  LoggerD("");
+  LoggerD("Enter");
   const std::shared_ptr<picojson::value>& response =
       std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
   response->get<picojson::object>()[kPropertyIdString] = picojson::value(kPropertyIdCpu);
@@ -554,7 +569,7 @@ void OnCpuChangedCallback(SysteminfoInstance& instance)
 
 void OnStorageChangedCallback(SysteminfoInstance& instance)
 {
-  LoggerD("");
+  LoggerD("Enter");
   const std::shared_ptr<picojson::value>& response =
       std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
   response->get<picojson::object>()[kPropertyIdString] = picojson::value(kPropertyIdStorage);
@@ -570,7 +585,7 @@ void OnStorageChangedCallback(SysteminfoInstance& instance)
 
 void OnDisplayChangedCallback(SysteminfoInstance& instance)
 {
-  LoggerD("");
+  LoggerD("Enter");
   const std::shared_ptr<picojson::value>& response =
       std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
   response->get<picojson::object>()[kPropertyIdString] = picojson::value(kPropertyIdDisplay);
@@ -586,7 +601,7 @@ void OnDisplayChangedCallback(SysteminfoInstance& instance)
 
 void OnDeviceOrientationChangedCallback(SysteminfoInstance& instance)
 {
-  LoggerD("");
+  LoggerD("Enter");
   const std::shared_ptr<picojson::value>& response =
       std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
   response->get<picojson::object>()[kPropertyIdString] = picojson::value(kPropertyIdDeviceOrientation);
@@ -602,7 +617,7 @@ void OnDeviceOrientationChangedCallback(SysteminfoInstance& instance)
 
 void OnLocaleChangedCallback(SysteminfoInstance& instance)
 {
-  LoggerD("");
+  LoggerD("Enter");
   const std::shared_ptr<picojson::value>& response =
       std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
   response->get<picojson::object>()[kPropertyIdString] = picojson::value(kPropertyIdLocale);
@@ -618,7 +633,7 @@ void OnLocaleChangedCallback(SysteminfoInstance& instance)
 
 void OnNetworkChangedCallback(SysteminfoInstance& instance)
 {
-  LoggerD("");
+  LoggerD("Enter");
   const std::shared_ptr<picojson::value>& response =
       std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
   response->get<picojson::object>()[kPropertyIdString] = picojson::value(kPropertyIdNetwork);
@@ -634,7 +649,7 @@ void OnNetworkChangedCallback(SysteminfoInstance& instance)
 
 void OnWifiNetworkChangedCallback(SysteminfoInstance& instance)
 {
-  LoggerD("");
+  LoggerD("Enter");
   const std::shared_ptr<picojson::value>& response =
       std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
   response->get<picojson::object>()[kPropertyIdString] = picojson::value(kPropertyIdWifiNetwork);
@@ -650,7 +665,7 @@ void OnWifiNetworkChangedCallback(SysteminfoInstance& instance)
 
 void OnCellularNetworkChangedCallback(SysteminfoInstance& instance)
 {
-  LoggerD("");
+  LoggerD("Enter");
   const std::shared_ptr<picojson::value>& response =
       std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
   response->get<picojson::object>()[kPropertyIdString] = picojson::value(kPropertyIdCellularNetwork);
@@ -666,7 +681,7 @@ void OnCellularNetworkChangedCallback(SysteminfoInstance& instance)
 
 void OnPeripheralChangedCallback(SysteminfoInstance& instance)
 {
-  LoggerD("");
+  LoggerD("Enter");
   const std::shared_ptr<picojson::value>& response =
       std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
   response->get<picojson::object>()[kPropertyIdString] = picojson::value(kPropertyIdPeripheral);
@@ -682,7 +697,7 @@ void OnPeripheralChangedCallback(SysteminfoInstance& instance)
 
 void OnMemoryChangedCallback(SysteminfoInstance& instance)
 {
-  LoggerD("");
+  LoggerD("Enter");
   const std::shared_ptr<picojson::value>& response =
       std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
   response->get<picojson::object>()[kPropertyIdString] = picojson::value(kPropertyIdMemory);
@@ -698,7 +713,7 @@ void OnMemoryChangedCallback(SysteminfoInstance& instance)
 
 void OnBrigthnessChangedCallback(SysteminfoInstance &instance)
 {
-    LoggerD("");
+    LoggerD("Enter");
     const std::shared_ptr<picojson::value>& response =
         std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
     response->get<picojson::object>()[kPropertyIdString] = picojson::value(kPropertyIdCameraFlash);

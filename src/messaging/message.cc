@@ -1,6 +1,18 @@
-// Copyright 2014 Samsung Electronics Co, Ltd. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
+/*
+ * Copyright (c) 2015 Samsung Electronics Co., Ltd All Rights Reserved
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ */
 
 #include "message.h"
 
@@ -328,6 +340,7 @@ bool Message::is_service_is_set() const
 
 std::string Message::convertEmailRecipients(const std::vector<std::string> &recipients)
 {
+    LoggerD("Entered");
     std::string address = "";
     unsigned size = recipients.size();
     for (unsigned i=0; i<size; ++i)
@@ -340,6 +353,7 @@ std::string Message::convertEmailRecipients(const std::vector<std::string> &reci
 
 PlatformResult saveToTempFile(const std::string &data, std::string* file_name)
 {
+    LoggerD("Entered");
     char buf[] = "XXXXXX";
     int res = 0;
 
@@ -440,6 +454,7 @@ PlatformResult copyFileToTemp(const std::string& sourcePath, std::string* result
 
 PlatformResult removeDirFromTemp(const std::string& dirPath)
 {
+    LoggerD("Entered");
     if(EINA_TRUE != ecore_file_recursive_rm(dirPath.c_str())) {
       return PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown error while deleting temp directory.");
     }
@@ -449,6 +464,7 @@ PlatformResult removeDirFromTemp(const std::string& dirPath)
 PlatformResult Message::convertPlatformEmail(std::shared_ptr<Message> message,
                                                  email_mail_data_t** result_mail_data)
 {
+    LoggerD("Entered");
     email_mail_data_t* mail_data = nullptr;
     if(EMAIL != message->getType()) {
         LoggerE("Invalid type");
@@ -489,6 +505,7 @@ PlatformResult Message::convertPlatformEmail(std::shared_ptr<Message> message,
     }
 
     if(message->getBody()) {
+        LoggerD("get Body success");
         std::shared_ptr<MessageBody> body;
         body = message->getBody();
         if(!body->getPlainBody().empty()) {
@@ -546,6 +563,7 @@ PlatformResult Message::convertPlatformEmail(std::shared_ptr<Message> message,
 PlatformResult addSingleEmailAttachment(std::shared_ptr<Message> message,
         std::shared_ptr<MessageAttachment> att, AttachmentType attType)
 {
+    LoggerD("Entered");
     std::string dirPath = "";
     PlatformResult ret = copyFileToTemp(att->getFilePath(), &dirPath);
     if (ret.IsError()) return ret;
@@ -662,6 +680,7 @@ PlatformResult Message::addEmailAttachments(std::shared_ptr<Message> message)
 PlatformResult Message::addSMSRecipientsToStruct(const std::vector<std::string> &recipients,
         msg_struct_t &msg)
 {
+    LoggerD("Entered");
     const unsigned size = recipients.size();
     for (unsigned int i = 0; i < size; ++i) {
         char *address = const_cast<char *>(recipients.at(i).c_str());
@@ -688,6 +707,7 @@ PlatformResult Message::addSMSRecipientsToStruct(const std::vector<std::string> 
 PlatformResult Message::addMMSRecipientsToStruct(const std::vector<std::string> &recipients,
         msg_struct_t &msg, int type)
 {
+    LoggerD("Entered");
     const unsigned size = recipients.size();
     for (unsigned int i = 0; i < size; ++i) {
 
@@ -1043,6 +1063,7 @@ PlatformResult Message::convertPlatformShortMessageToStruct(Message* message,
 
 std::string Message::getShortMsgSenderFromStruct(msg_struct_t &msg)
 {
+    LoggerD("Entered");
     msg_list_handle_t addr_list = NULL;
     msg_get_list_handle(msg, MSG_MESSAGE_ADDR_LIST_HND, (void **)&addr_list);
 
@@ -1078,6 +1099,7 @@ std::string Message::getShortMsgSenderFromStruct(msg_struct_t &msg)
 PlatformResult Message::getSMSRecipientsFromStruct(msg_struct_t &msg,
                                                    std::vector<std::string>* result_address)
 {
+    LoggerD("Entered");
     std::vector<std::string> address;
     msg_list_handle_t addr_list = NULL;
     if (MSG_SUCCESS
@@ -1104,6 +1126,7 @@ PlatformResult Message::getSMSRecipientsFromStruct(msg_struct_t &msg,
 PlatformResult Message::getMMSRecipientsFromStruct(msg_struct_t &msg,
         int type, std::vector<std::string>* result_address)
 {
+    LoggerD("Entered");
     std::vector<std::string> address;
     msg_list_handle_t addr_list = NULL;
     if (MSG_SUCCESS
@@ -1312,6 +1335,7 @@ PlatformResult Message::setMMSBodyAndAttachmentsFromStruct(Message* message,
 }
 
 PlatformResult Message::convertPlatformShortMessageToObject(msg_struct_t msg, Message** result_message){
+    LoggerD("Entered");
     Message *message = nullptr;
     int infoInt;
     bool infoBool;
@@ -1330,6 +1354,7 @@ PlatformResult Message::convertPlatformShortMessageToObject(msg_struct_t msg, Me
         std::vector<std::string> recp_list;
         PlatformResult ret = message->getSMSRecipientsFromStruct(msg, &recp_list);
         if (ret.IsError()) {
+          LoggerE("failed to get SMS recipients from struct");
           if (message) delete message;
           return ret;
         }
@@ -1377,18 +1402,21 @@ PlatformResult Message::convertPlatformShortMessageToObject(msg_struct_t msg, Me
         std::vector<std::string> recp_list;
         PlatformResult ret = getMMSRecipientsFromStruct(msg, MSG_RECIPIENTS_TYPE_TO, &recp_list);
         if (ret.IsError()) {
+          LoggerE("failed to get MMS recipients from struct");
           if (message) delete message;
           return ret;
         }
         message->setTO(recp_list);
         ret = getMMSRecipientsFromStruct(msg, MSG_RECIPIENTS_TYPE_CC, &recp_list);
         if (ret.IsError()) {
+          LoggerE("failed to get MMS recipients from struct");
           if (message) delete message;
           return ret;
         }
         message->setCC(recp_list);
         ret = getMMSRecipientsFromStruct(msg, MSG_RECIPIENTS_TYPE_BCC, &recp_list);
         if (ret.IsError()) {
+          LoggerE("failed to get MMS recipients from struct");
           if (message) delete message;
           return ret;
         }
@@ -1400,6 +1428,7 @@ PlatformResult Message::convertPlatformShortMessageToObject(msg_struct_t msg, Me
         //set attachments
         ret = setMMSBodyAndAttachmentsFromStruct(message, msg);
         if (ret.IsError()) {
+          LoggerE("failed to set body attachments from struct");
           if (message) delete message;
           return ret;
         }
@@ -1493,6 +1522,7 @@ PlatformResult Message::convertPlatformShortMessageToObject(msg_struct_t msg, Me
 }
 
 PlatformResult Message::findShortMessageById(const int id, MessagePtr* message) {
+    LoggerD("Entered");
     msg_struct_t msg;
     PlatformResult ret = ShortMsgManager::getInstance().getMessage(id, &msg);
     if (ret.IsError()) {
@@ -1511,6 +1541,7 @@ PlatformResult Message::findShortMessageById(const int id, MessagePtr* message) 
 std::vector<std::string> Message::split(const std::string& input,
         char delimiter)
 {
+    LoggerD("Entered");
     std::vector<std::string> ret;
     std::stringstream stream(input);
     std::string item;
@@ -1522,6 +1553,7 @@ std::vector<std::string> Message::split(const std::string& input,
 
 std::vector<std::string> Message::getEmailRecipientsFromStruct(const char *recipients)
 {
+    LoggerD("Entered");
     std::vector<std::string> tmp = Message::split(recipients, ';');
     for (std::vector<std::string>::iterator it = tmp.begin(); it != tmp.end(); ++it) {
         *it = MessagingUtil::ltrim(*it);
@@ -1545,7 +1577,7 @@ std::vector<std::string> Message::getEmailRecipientsFromStruct(const char *recip
 std::shared_ptr<MessageBody> Message::convertEmailToMessageBody(
         email_mail_data_t& mail)
 {
-    LoggerD("Enter");
+    LoggerD("Entered");
     std::shared_ptr<MessageBody> body (new MessageBody());
     body->updateBody(mail);
     return body;
@@ -1554,7 +1586,7 @@ std::shared_ptr<MessageBody> Message::convertEmailToMessageBody(
 PlatformResult Message::convertEmailToMessageAttachment(email_mail_data_t& mail,
                                                         AttachmentPtrVector* att)
 {
-  LoggerD("Enter");
+  LoggerD("Entered");
   email_attachment_data_t* attachment = NULL;
   int attachmentCount = 0;
 
@@ -1577,7 +1609,7 @@ PlatformResult Message::convertEmailToMessageAttachment(email_mail_data_t& mail,
 PlatformResult Message::convertPlatformEmailToObject(
         email_mail_data_t& mail, std::shared_ptr<Message>* result)
 {
-    LoggerD("Enter");
+    LoggerD("Entered");
     Message* message = new MessageEmail();
     PlatformResult ret = message->updateEmailMessage(mail);
     if (ret.IsError()) {

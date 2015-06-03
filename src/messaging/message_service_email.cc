@@ -1,7 +1,19 @@
-
-// Copyright 2014 Samsung Electronics Co, Ltd. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
+/*
+ * Copyright (c) 2015 Samsung Electronics Co., Ltd All Rights Reserved
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ */
+ 
 #include "message_service_email.h"
 #include "email_manager.h"
 
@@ -21,9 +33,14 @@ MessageServiceEmail::MessageServiceEmail(int id, std::string name)
     LoggerD("Entered");
 }
 
-MessageServiceEmail::~MessageServiceEmail()
-{
-    LoggerD("Entered");
+MessageServiceEmail::~MessageServiceEmail() {
+  LoggerD("Entered");
+
+  for (auto id : registered_callbacks_) {
+    // this may internally fail, because we don't have information about
+    // callbacks which already have fired
+    EmailManager::getInstance().RemoveSyncCallback(id);
+  }
 }
 
 static gboolean sendMessageTask(void* data)
@@ -170,6 +187,7 @@ PlatformResult MessageServiceEmail::sync(SyncCallbackData *callback, long* opera
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not add task");
   }
   *operation_id = op_id;
+  registered_callbacks_.insert(op_id);
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
@@ -206,6 +224,7 @@ PlatformResult MessageServiceEmail::syncFolder(SyncFolderCallbackData *callback,
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not add task");
   }
   *operation_id = op_id;
+  registered_callbacks_.insert(op_id);
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
@@ -230,6 +249,7 @@ PlatformResult MessageServiceEmail::stopSync(long op_id)
 {
   LoggerD("Entered");
 
+  registered_callbacks_.erase(op_id);
   long* data = new long(op_id);
   guint id = g_idle_add(stopSyncTask, static_cast<void*>(data));
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Samsung Electronics Co., Ltd All Rights Reserved
+ * Copyright (c) 2015 Samsung Electronics Co., Ltd All Rights Reserved
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 #include "contact/contact_manager.h"
 #include <memory>
+#include <set>
 
 #include "common/converter.h"
 #include "common/picojson.h"
@@ -40,6 +41,7 @@ using namespace common;
 
 PlatformResult ContactManagerGetAddressBooks(const JsonObject& args,
                                              JsonArray& out) {
+  LoggerD("Enter");
   PlatformResult status = ContactUtil::CheckDBConnection();
   if (status.IsError()) return status;
 
@@ -119,6 +121,7 @@ PlatformResult ContactManagerGetAddressBooks(const JsonObject& args,
 
 PlatformResult ContactManagerGetAddressBook(const JsonObject& args,
                                             JsonObject& out) {
+  LoggerD("Enter");
   PlatformResult status = ContactUtil::CheckDBConnection();
   if (status.IsError()) return status;
 
@@ -163,6 +166,7 @@ PlatformResult ContactManagerGetAddressBook(const JsonObject& args,
 
 namespace {
 PlatformResult ContactManagerGetInternal(int person_id, JsonObject* out) {
+  LoggerD("Enter");
   contacts_record_h contacts_record = nullptr;
 
   int error_code = contacts_db_get_record(_contacts_person._uri, person_id,
@@ -185,6 +189,7 @@ PlatformResult ContactManagerGetInternal(int person_id, JsonObject* out) {
 
 PlatformResult ContactManagerAddAddressBook(const JsonObject& args,
                                             JsonObject& out) {
+  LoggerD("Enter");
   PlatformResult status = ContactUtil::CheckDBConnection();
   if (status.IsError()) return status;
 
@@ -239,6 +244,7 @@ PlatformResult ContactManagerAddAddressBook(const JsonObject& args,
 
 PlatformResult ContactManagerRemoveAddressBook(const JsonObject& args,
                                                JsonObject& out) {
+  LoggerD("Enter");
   PlatformResult status = ContactUtil::CheckDBConnection();
   if (status.IsError()) return status;
 
@@ -267,6 +273,7 @@ PlatformResult ContactManagerRemoveAddressBook(const JsonObject& args,
 }
 
 PlatformResult ContactManagerGet(const JsonObject& args, JsonObject& out) {
+  LoggerD("Enter");
   PlatformResult status = ContactUtil::CheckDBConnection();
   if (status.IsError()) return status;
 
@@ -276,6 +283,7 @@ PlatformResult ContactManagerGet(const JsonObject& args, JsonObject& out) {
 }
 
 PlatformResult ContactManagerUpdate(const JsonObject& args, JsonObject&) {
+  LoggerD("Enter");
   PlatformResult status = ContactUtil::CheckDBConnection();
   if (status.IsError()) return status;
 
@@ -306,6 +314,7 @@ PlatformResult ContactManagerUpdate(const JsonObject& args, JsonObject&) {
 }
 
 PlatformResult ContactManagerRemove(const JsonObject& args, JsonObject&) {
+  LoggerD("Enter");
   PlatformResult status = ContactUtil::CheckDBConnection();
   if (status.IsError()) return status;
 
@@ -326,6 +335,7 @@ PlatformResult ContactManagerRemove(const JsonObject& args, JsonObject&) {
 }
 
 PlatformResult ContactManagerFind(const JsonObject& args, JsonArray& out) {
+  LoggerD("Enter");
   PlatformResult status = ContactUtil::CheckDBConnection();
   if (status.IsError()) return status;
 
@@ -756,6 +766,7 @@ PlatformResult ContactManagerFind(const JsonObject& args, JsonArray& out) {
 
 PlatformResult ContactManagerImportFromVCard(const JsonObject& args,
                                              JsonObject& out) {
+  LoggerD("Enter");
   // I'm not sure how to call it. Should it be 'Contact', 'vCard' or what?
   PlatformResult status = ContactUtil::CheckDBConnection();
   if (status.IsError()) return status;
@@ -810,6 +821,8 @@ bool IsNumeric(const char* s) {
 
 void ContactManagerListenerCallback(const char* view_uri, char* changes,
                                     void* user_data) {
+  LoggerD("ContactManagerListenerCallback");
+
   (void)view_uri;
 
   if (nullptr == changes) {
@@ -820,6 +833,9 @@ void ContactManagerListenerCallback(const char* view_uri, char* changes,
     LoggerW("changes is empty");
     return;
   }
+
+  SLoggerD("view_uri: %s", view_uri);
+  SLoggerD("changes: %s", changes);
 
   JsonValue result{JsonObject{}};
   JsonObject& result_obj = result.get<JsonObject>();
@@ -835,6 +851,11 @@ void ContactManagerListenerCallback(const char* view_uri, char* changes,
   std::unique_ptr<char, void (*)(char*)> tmp(strdup(changes),
                                              [](char* p) { free(p); });
 
+  // 'changes' may contain repeated values, we need to filter it
+  std::set<int> added_ids;
+  std::set<int> updated_ids;
+  std::set<int> removed_ids;
+
   char* token = strtok(tmp.get(), kTokenDelimiter);
   while (token) {
     if (IsNumeric(token)) {
@@ -847,35 +868,45 @@ void ContactManagerListenerCallback(const char* view_uri, char* changes,
         int person_id = atoi(token);
         switch (type) {
           case CONTACTS_CHANGE_INSERTED: {
-            added.push_back(JsonValue{JsonObject{}});
-            PlatformResult status = ContactManagerGetInternal(
-                person_id, &added.back().get<JsonObject>());
-            if (status.IsError()) {
-              LoggerE("Caught exception in listener callback: %s",
-                      status.message().c_str());
-              return;
+            if (added_ids.find(person_id) == added_ids.end()) {
+              added.push_back(JsonValue{JsonObject{}});
+              PlatformResult status = ContactManagerGetInternal(
+                  person_id, &added.back().get<JsonObject>());
+              if (status.IsError()) {
+                LoggerE("Caught exception in listener callback: %s",
+                        status.message().c_str());
+                return;
+              }
+              added_ids.insert(person_id);
             }
 
             break;
           }
           case CONTACTS_CHANGE_UPDATED: {
-            updated.push_back(JsonValue{JsonObject{}});
-            PlatformResult status = ContactManagerGetInternal(
-                person_id, &updated.back().get<JsonObject>());
-            if (status.IsError()) {
-              LoggerE("Caught exception in listener callback: %s",
-                      status.message().c_str());
-              return;
+            if (updated_ids.find(person_id) == updated_ids.end()) {
+              updated.push_back(JsonValue{JsonObject{}});
+              PlatformResult status = ContactManagerGetInternal(
+                  person_id, &updated.back().get<JsonObject>());
+              if (status.IsError()) {
+                LoggerE("Caught exception in listener callback: %s",
+                        status.message().c_str());
+                return;
+              }
+              updated_ids.insert(person_id);
             }
 
             break;
           }
           case CONTACTS_CHANGE_DELETED: {
-            std::string id_str{std::to_string(person_id)};
-            removed.push_back(JsonValue{id_str.c_str()});
+            if (removed_ids.find(person_id) == removed_ids.end()) {
+              removed.push_back(JsonValue{std::to_string(person_id)});
+              removed_ids.insert(person_id);
+            }
             break;
           }
-          default: {}
+          default: {
+            break;
+          }
         }
       }
     }
@@ -890,6 +921,7 @@ void ContactManagerListenerCallback(const char* view_uri, char* changes,
 
 PlatformResult ContactManagerStartListening(ContactInstance& instance, const JsonObject& /*args*/,
                                             JsonObject& /*out*/) {
+  LoggerD("Enter");
   PlatformResult status = ContactUtil::CheckDBConnection();
   if (status.IsError()) return status;
 
@@ -907,6 +939,7 @@ PlatformResult ContactManagerStartListening(ContactInstance& instance, const Jso
 
 PlatformResult ContactManagerStopListening(ContactInstance& instance, const JsonObject& /*args*/,
                                            JsonObject& /*out*/) {
+  LoggerD("Enter");
   PlatformResult status = ContactUtil::CheckDBConnection();
   if (status.IsError()) return status;
 

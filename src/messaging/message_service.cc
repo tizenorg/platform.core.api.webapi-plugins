@@ -1,7 +1,19 @@
-
-// Copyright 2014 Samsung Electronics Co, Ltd. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
+/*
+ * Copyright (c) 2015 Samsung Electronics Co., Ltd All Rights Reserved
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ */
+ 
 #include "message_service.h"
 
 #include <sstream>
@@ -69,8 +81,10 @@ const std::vector<std::string>& MessageRecipientsCallbackData::getMessageRecipie
 void MessageRecipientsCallbackData::setError(const std::string& err_name,
         const std::string& err_message)
 {
+    LoggerD("Entered");
     // keep only first error in chain
     if (!m_is_error) {
+        LoggerD("Error has not been set yet");
         m_is_error = true;
 
         picojson::object& obj = m_json->get<picojson::object>();
@@ -86,8 +100,10 @@ void MessageRecipientsCallbackData::setError(const std::string& err_name,
 
 void MessageRecipientsCallbackData::setError(const PlatformResult& error)
 {
+  LoggerD("Entered");
   // keep only first error in chain
   if (!m_is_error) {
+    LoggerD("Error has not been set yet");
     m_is_error = true;
 
     picojson::object& obj = m_json->get<picojson::object>();
@@ -118,6 +134,7 @@ int MessageRecipientsCallbackData::getAccountId() const
 bool MessageRecipientsCallbackData::setSimIndex(
     int sim_index)
 {
+    LoggerD("Entered");
     char **cp_list = tel_get_cp_name_list();
     int sim_count = 0;
     if (cp_list) {
@@ -182,8 +199,10 @@ BaseMessageServiceCallbackData::~BaseMessageServiceCallbackData()
 void BaseMessageServiceCallbackData::setError(const std::string& err_name,
         const std::string& err_message)
 {
+    LoggerD("Entered");
     // keep only first error in chain
     if (!m_is_error) {
+        LoggerD("Error has not been set yet");
         m_is_error = true;
 
         picojson::object& obj = m_json->get<picojson::object>();
@@ -198,8 +217,10 @@ void BaseMessageServiceCallbackData::setError(const std::string& err_name,
 
 void BaseMessageServiceCallbackData::setError(const PlatformResult& error)
 {
+  LoggerD("Entered");
   // keep only first error in chain
   if (!m_is_error) {
+    LoggerD("Error has not been set yet");
     m_is_error = true;
 
     picojson::object& obj = m_json->get<picojson::object>();
@@ -407,6 +428,7 @@ MessageService::~MessageService()
 
 picojson::object MessageService::toPicoJS() const
 {
+    LoggerD("Entered");
     picojson::object picojs = picojson::object();
     picojs[JSON_SERVICE_ID] = picojson::value(std::to_string(m_id));
     picojs[JSON_SERVICE_TYPE] = picojson::value(getMsgServiceTypeString());

@@ -1,6 +1,18 @@
-// Copyright 2015 Samsung Electronics Co, Ltd. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
+/*
+ * Copyright (c) 2015 Samsung Electronics Co., Ltd All Rights Reserved
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ */
 
 #include "application_manager.h"
 
@@ -9,7 +21,7 @@
 
 #include <app_info.h>
 #include <app_manager.h>
-#include <app_manager_extension.h>
+//#include <app_manager_extension.h>
 #include <aul.h>
 #include <package_manager.h>
 #include <pkgmgr-info.h>
@@ -50,9 +62,11 @@ const std::string kData = "data";
 ApplicationManager::ApplicationManager(ApplicationInstance& instance) :
   instance_(instance),
   pkgmgr_client_handle_(nullptr) {
+    LoggerD("Enter");
 }
 
 ApplicationManager::~ApplicationManager() {
+  LoggerD("Enter");
   if (pkgmgr_client_handle_) {
     StopAppInfoEventListener();
   }
@@ -64,7 +78,7 @@ void ApplicationManager::GetCurrentApplication(const std::string& app_id,
 
   // obtain handle to application info
   pkgmgrinfo_appinfo_h handle;
-  int ret = pkgmgrinfo_appinfo_get_appinfo(app_id.c_str(), &handle);
+  int ret = pkgmgrinfo_appinfo_get_usr_appinfo(app_id.c_str(), getuid(), &handle);
   if (PMINFO_R_OK != ret) {
     LoggerE("Failed to get app info.");
     ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to get app info."), out);
@@ -176,6 +190,7 @@ class TerminateHandler {
 void ApplicationManager::AsyncResponse(PlatformResult& result,
                                        std::shared_ptr<picojson::value>* response) {
 
+  LoggerD("Enter");
   ReportError(result, &(*response)->get<picojson::object>());
 
   TaskQueue::GetInstance().Async<picojson::value>([this](
@@ -213,6 +228,7 @@ void ApplicationManager::Kill(const picojson::value& args) {
   obj.insert(std::make_pair(kCallbackId, picojson::value(static_cast<double>(callback_id))));
 
   if (result.IsError()) {
+    LoggerE("Failed args.get");
     AsyncResponse(result, &response);
     return;
   }
@@ -325,13 +341,14 @@ void ApplicationManager::Kill(const picojson::value& args) {
     LoggerD("Kill async, KILL!!!!!!!!!");
 
     // terminate application
-    ret = app_manager_terminate_app(app_context);
-
-    if (APP_MANAGER_ERROR_NONE != ret) {
-      LoggerE("Failed to terminate application.");
-      result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to terminate application.");
-      CHECK_RESULT(result, response, handler)
-    }
+    // TODO(r.galka) temporarily removed - not supported by platform
+    //ret = app_manager_terminate_app(app_context);
+    //
+    //if (APP_MANAGER_ERROR_NONE != ret) {
+    //  LoggerE("Failed to terminate application.");
+    //  result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to terminate application.");
+    //  CHECK_RESULT(result, response, handler)
+    //}
 
     LoggerD("Kill async, end, waiting for notification");
   };
@@ -497,28 +514,29 @@ void ApplicationManager::LaunchAppControl(const picojson::value& args) {
       }
     }
 
-    if (!launch_mode_str.empty()) {
-      app_control_launch_mode_e launch_mode;
-
-      if ("SINGLE" == launch_mode_str) {
-        launch_mode = APP_CONTROL_LAUNCH_MODE_SINGLE;
-      } else if ("GROUP" == launch_mode_str) {
-        launch_mode = APP_CONTROL_LAUNCH_MODE_GROUP;
-      } else {
-        LoggerE("Invalid parameter passed.");
-        ReportError(PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid parameter passed."),
-                    &response->get<picojson::object>());
-        return;
-      }
-
-      int ret = app_control_set_launch_mode(app_control_ptr.get(), launch_mode);
-      if (APP_CONTROL_ERROR_NONE != ret) {
-        LoggerE("Setting launch mode failed.");
-        ReportError(PlatformResult(ErrorCode::NOT_FOUND_ERR, "Setting launch mode failed."),
-                    &response->get<picojson::object>());
-        return;
-      }
-    }
+    // TODO(r.galka) temporarily removed - not supported by platform
+    //if (!launch_mode_str.empty()) {
+    //  app_control_launch_mode_e launch_mode;
+    //
+    //  if ("SINGLE" == launch_mode_str) {
+    //    launch_mode = APP_CONTROL_LAUNCH_MODE_SINGLE;
+    //  } else if ("GROUP" == launch_mode_str) {
+    //    launch_mode = APP_CONTROL_LAUNCH_MODE_GROUP;
+    //  } else {
+    //    LoggerE("Invalid parameter passed.");
+    //    ReportError(PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid parameter passed."),
+    //                &response->get<picojson::object>());
+    //    return;
+    //  }
+    //
+    //  int ret = app_control_set_launch_mode(app_control_ptr.get(), launch_mode);
+    //  if (APP_CONTROL_ERROR_NONE != ret) {
+    //    LoggerE("Setting launch mode failed.");
+    //    ReportError(PlatformResult(ErrorCode::NOT_FOUND_ERR, "Setting launch mode failed."),
+    //                &response->get<picojson::object>());
+    //    return;
+    //  }
+    //}
 
     app_control_reply_cb callback = nullptr;
     struct ReplayCallbackData {
@@ -656,7 +674,7 @@ void ApplicationManager::FindAppControl(const picojson::value& args) {
       }
 
       pkgmgrinfo_appinfo_h handle;
-      int ret = pkgmgrinfo_appinfo_get_appinfo(appid, &handle);
+      int ret = pkgmgrinfo_appinfo_get_usr_appinfo(appid, getuid(), &handle);
       if (PMINFO_R_OK != ret) {
         LoggerE("Failed to get appInfo");
       } else {
@@ -837,10 +855,10 @@ void ApplicationManager::GetAppsInfo(const picojson::value& args) {
       return 0;
     };
 
-    int ret = pkgmgrinfo_appinfo_get_installed_list(app_info_cb, &array);
+    int ret = pkgmgrinfo_appinfo_get_usr_installed_list(app_info_cb, getuid(), &array);
 
     if (APP_MANAGER_ERROR_NONE != ret) {
-      LoggerE("pkgmgrinfo_appinfo_get_installed_list error");
+      LoggerE("pkgmgrinfo_appinfo_get_usr_installed_list error");
       ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown error."), &response_obj);
     } else {
       ReportSuccess(result, response_obj);
@@ -865,7 +883,7 @@ void ApplicationManager::GetAppInfo(const std::string& app_id, picojson::object*
 
   pkgmgrinfo_appinfo_h handle = nullptr;
 
-  if (PMINFO_R_OK != pkgmgrinfo_appinfo_get_appinfo(app_id.c_str(), &handle)) {
+  if (PMINFO_R_OK != pkgmgrinfo_appinfo_get_usr_appinfo(app_id.c_str(), getuid(), &handle)) {
     LoggerE("Failed to get app info");
     ReportError(PlatformResult(ErrorCode::NOT_FOUND_ERR, "Failed to get app info."), out);
     return;
@@ -879,6 +897,7 @@ void ApplicationManager::GetAppInfo(const std::string& app_id, picojson::object*
 }
 
 char* ApplicationManager::GetPackageId(const std::string& app_id) {
+  LoggerD("Entered");
   app_info_h handle;
   char* pkg_id = nullptr;
 
@@ -1005,7 +1024,7 @@ void ApplicationManager::GetAppSharedUri(const std::string& app_id, picojson::ob
 
   pkgmgrinfo_pkginfo_h pkg_info = nullptr;
 
-  int ret = pkgmgrinfo_pkginfo_get_pkginfo(package_id, &pkg_info);
+  int ret = pkgmgrinfo_pkginfo_get_usr_pkginfo(package_id, getuid(), &pkg_info);
   std::unique_ptr<std::remove_pointer<pkgmgrinfo_pkginfo_h>::type, int(*)(pkgmgrinfo_pkginfo_h)>
   pkg_info_ptr(pkg_info, &pkgmgrinfo_pkginfo_destroy_pkginfo); // automatically release the memory
 
@@ -1037,7 +1056,7 @@ void ApplicationManager::GetAppMetaData(const std::string& app_id, picojson::obj
 
   pkgmgrinfo_appinfo_h handle = nullptr;
 
-  int ret = pkgmgrinfo_appinfo_get_appinfo(app_id.c_str(), &handle);
+  int ret = pkgmgrinfo_appinfo_get_usr_appinfo(app_id.c_str(), getuid(), &handle);
   std::unique_ptr<std::remove_pointer<pkgmgrinfo_appinfo_h>::type, int(*)(pkgmgrinfo_appinfo_h)>
   pkg_info_ptr(handle, &pkgmgrinfo_appinfo_destroy_appinfo); // automatically release the memory
 
@@ -1081,6 +1100,23 @@ class ApplicationListChangedBroker {
     kUninstalled,
   };
 
+#if defined(TIZEN_TV)
+  static int ClientStatusListener(unsigned int target_uid, int id, const char* type, const char* package, const char* key,
+                                  const char* val, const void* msg, void* data) {
+    LoggerD("Entered");
+    ApplicationListChangedBroker* that = static_cast<ApplicationListChangedBroker*>(data);
+
+    if (0 == strcasecmp(key, kStartKey)) {
+      that->HandleStart(val, package);
+    } else if (0 == strcasecmp(key, kEndKey) && 0 == strcasecmp(val, kOkValue)) {
+      that->HandleEnd(package);
+    } else {
+      LoggerD("Ignored key: %s", key);
+    }
+
+    return 0;
+  }
+#else
   static int ClientStatusListener(int id, const char* type, const char* package, const char* key,
                                   const char* val, const void* msg, void* data) {
     LoggerD("Entered");
@@ -1096,6 +1132,7 @@ class ApplicationListChangedBroker {
 
     return 0;
   }
+#endif
 
   void AddApplicationInstance(ApplicationInstance* app_instance) {
     LoggerD("Entered");
@@ -1154,7 +1191,7 @@ class ApplicationListChangedBroker {
         case Event::kUpdated:
         {
           pkgmgrinfo_appinfo_h handle = nullptr;
-          if (PMINFO_R_OK != pkgmgrinfo_appinfo_get_appinfo(app_id.c_str(), &handle)) {
+          if (PMINFO_R_OK != pkgmgrinfo_appinfo_get_usr_appinfo(app_id.c_str(), getuid(), &handle)) {
             LoggerE("Failed to get application information handle.");
             continue;
           }
@@ -1242,9 +1279,9 @@ void ApplicationManager::StartAppInfoEventListener(picojson::object* out) {
     }
 
     g_application_list_changed_broker.AddApplicationInstance(&instance_);
-    pkgmgr_client_listen_status(pkgmgr_client_handle_,
+/*    pkgmgr_client_listen_status(pkgmgr_client_handle_,
                                 ApplicationListChangedBroker::ClientStatusListener,
-                                &g_application_list_changed_broker);
+                                &g_application_list_changed_broker);*/
   } else {
     LoggerD("Broker callback is already registered.");
   }

@@ -1,6 +1,18 @@
-// Copyright 2015 Samsung Electronics Co, Ltd. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
+/*
+ * Copyright (c) 2015 Samsung Electronics Co., Ltd All Rights Reserved
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ */
 
 #include "keymanager/keymanager_instance.h"
 
@@ -23,6 +35,7 @@ const char* kTypeECDSA = "ECDSA";
 }
 
 KeyManagerInstance::KeyManagerInstance() {
+  LoggerD("Enter");
   using std::placeholders::_1;
   using std::placeholders::_2;
 
@@ -67,6 +80,7 @@ KeyManagerInstance::KeyManagerInstance() {
 }
 
 KeyManagerInstance::~KeyManagerInstance() {
+  LoggerD("Enter");
 }
 
 void KeyManagerInstance::GetAliasList(
@@ -116,6 +130,7 @@ void KeyManagerInstance::GetDataAliasList(const picojson::value& args,
 }
 
 CKM::RawBuffer Base64ToRawBuffer(const std::string base64) {
+  LoggerD("Enter");
   gsize len = 0;
   guchar* raw_data = g_base64_decode(base64.c_str(), &len);
   CKM::RawBuffer rawBuffer;
@@ -178,6 +193,7 @@ void KeyManagerInstance::RemoveKey(const picojson::value& args,
 
 common::PlatformResult KeyManagerInstance::RemoveAlias(
     const std::string& alias) {
+  LoggerD("Enter");
   int ret = CKM::Manager::create()->removeAlias(alias);
   if (ret != CKM_API_SUCCESS) {
     LoggerE("Failed to remove alias: %d", ret);
@@ -253,6 +269,7 @@ void KeyManagerInstance::OnCreateKeyPair(double callbackId,
 }
 
 std::string RawBufferToBase64(const CKM::RawBuffer &buf) {
+  LoggerD("Enter");
   std::string result;
   if (!buf.empty()) {
     gchar* base64 = g_base64_encode(&buf[0], buf.size());
@@ -502,6 +519,7 @@ void KeyManagerInstance::OnSaveData(double callbackId,
 
 void KeyManagerInstance::RemoveData(const picojson::value& args,
     picojson::object& out) {
+  LoggerD("Enter");
   const std::string& alias = args.get("data").get("name").get<std::string>();
   common::PlatformResult res = RemoveAlias(alias);
   if (res.IsError()) {
@@ -548,6 +566,7 @@ void KeyManagerInstance::GetData(const picojson::value& args,
 }
 
 CKM::HashAlgorithm StringToHashAlgorithm(const std::string &hashAlgorithmType) {
+  LoggerD("Enter");
   using CKM::HashAlgorithm;
   if (hashAlgorithmType == "HASH_SHA1") {
     return HashAlgorithm::SHA1;
@@ -562,6 +581,7 @@ CKM::HashAlgorithm StringToHashAlgorithm(const std::string &hashAlgorithmType) {
 }
 
 CKM::RSAPaddingAlgorithm StringToRSAPadding(const std::string &padding) {
+    LoggerD("Enter");
     if (padding == "PADDING_PKCS1") {
         return CKM::RSAPaddingAlgorithm::PKCS1;
     }

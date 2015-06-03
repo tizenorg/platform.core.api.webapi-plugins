@@ -1,7 +1,19 @@
-// Copyright 2014 Samsung Electronics Co, Ltd. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
-
+/*
+ * Copyright (c) 2015 Samsung Electronics Co., Ltd All Rights Reserved
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ */
+ 
 #include <ctype.h>
 #include <unordered_map>
 
@@ -112,6 +124,7 @@ std::string MessageAttachment::getFilePath()
 
 std::string MessageAttachment::getShortFileName() const
 {
+    LoggerD("Entered");
     if (!m_isFilePathSet) {
         return "";
     }
@@ -143,6 +156,7 @@ const char PATH_SEPARATOR = '/';
 
 void MessageAttachment::setFilePath(const std::string &value)
 {
+    LoggerD("Entered");
     std::string tmp = value;
     // change to lower case
     for (int i = 0; i < tmp.length() && i < 4; i++) {
@@ -193,6 +207,7 @@ bool MessageAttachment::isSaved() const
 
 std::map<unsigned int, std::string>& MessageAttachment::initializeMIMETypeEnumToStringMap()
 {
+    LoggerD("Entered");
     static std::map<unsigned int, std::string> enumToString;
     //0
     enumToString[MIME_ASTERISK] = "*/*";
@@ -384,6 +399,7 @@ std::map<unsigned int, std::string>& MessageAttachment::initializeMIMETypeEnumTo
 
 std::map<std::string, unsigned int>& MessageAttachment::initializeMIMETypeStringToEnumMap()
 {
+    LoggerD("Entered");
     static std::map<std::string, unsigned int> stringToEnum;
     //0
     stringToEnum["*/*"] = MIME_ASTERISK;
@@ -576,6 +592,7 @@ std::map<std::string, unsigned int>& MessageAttachment::initializeMIMETypeString
 
 unsigned int MessageAttachment::MIMETypeStringToEnum(std::string str)
 {
+    LoggerD("Entered");
     std::map<std::string, unsigned int>::iterator it = MIMETypeStringToEnumMap.find(str);
     if (it != MIMETypeStringToEnumMap.end()) {
         return it->second;
@@ -585,6 +602,7 @@ unsigned int MessageAttachment::MIMETypeStringToEnum(std::string str)
 
 std::string MessageAttachment::MIMETypeEnumToString(unsigned int num)
 {
+    LoggerD("Entered");
     std::map<unsigned int, std::string>::iterator it = MIMETypeEnumToStringMap.find(num);
     if (it != MIMETypeEnumToStringMap.end()) {
         return it->second;
@@ -594,6 +612,7 @@ std::string MessageAttachment::MIMETypeEnumToString(unsigned int num)
 
 void MessageAttachment::updateWithAttachmentData(const email_attachment_data_t& attachment_data)
 {
+    LoggerD("Entered");
     setId(attachment_data.attachment_id);
     setMessageId(attachment_data.mail_id);
     if (attachment_data.attachment_mime_type) {

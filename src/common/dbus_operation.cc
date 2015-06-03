@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Samsung Electronics Co., Ltd All Rights Reserved
+ * Copyright (c) 2015 Samsung Electronics Co., Ltd All Rights Reserved
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
  */
-
+ 
 #include "dbus_operation.h"
 
 #include <string>
@@ -32,9 +32,11 @@
 namespace common {
 
 DBusOperationArguments::DBusOperationArguments() {
+  LoggerD("Enter");
 }
 
 DBusOperationArguments::~DBusOperationArguments() {
+    LoggerD("Enter");
     for (auto iter = arguments_.begin(); iter != arguments_.end(); ++iter) {
         ArgType type = iter->first;
         void* p_val = iter->second;
@@ -67,6 +69,7 @@ DBusOperationArguments::~DBusOperationArguments() {
 }
 
 void DBusOperationArguments::AddArgumentBool(bool val) {
+    LoggerD("Enter");
     int32_t* p_val = new int32_t;
     *p_val = val;
 
@@ -74,6 +77,7 @@ void DBusOperationArguments::AddArgumentBool(bool val) {
 }
 
 void DBusOperationArguments::AddArgumentInt32(int val) {
+    LoggerD("Enter");
     int32_t* p_val = new int32_t;
     *p_val = val;
 
@@ -81,6 +85,7 @@ void DBusOperationArguments::AddArgumentInt32(int val) {
 }
 
 void DBusOperationArguments::AddArgumentUInt32(unsigned int val) {
+    LoggerD("Enter");
     uint32_t* p_val = new uint32_t;
     *p_val = val;
 
@@ -88,6 +93,7 @@ void DBusOperationArguments::AddArgumentUInt32(unsigned int val) {
 }
 
 void DBusOperationArguments::AddArgumentUInt64(uint64_t val) {
+    LoggerD("Enter");
     uint64_t* p_val = new uint64_t;
     *p_val = val;
 
@@ -95,6 +101,7 @@ void DBusOperationArguments::AddArgumentUInt64(uint64_t val) {
 }
 
 void DBusOperationArguments::AddArgumentString(const std::string& val) {
+    LoggerD("Enter");
     const int length = val.length();
 
     char* p_val = new char[length * 2];
@@ -104,6 +111,7 @@ void DBusOperationArguments::AddArgumentString(const std::string& val) {
 }
 
 PlatformResult DBusOperationArguments::AppendVariant(DBusMessageIter* bus_msg_iter) {
+    LoggerD("Enter");
     for (auto iter = arguments_.begin(); iter != arguments_.end(); ++iter) {
         ArgType type = iter->first;
         void *p_val = iter->second;
@@ -151,10 +159,12 @@ DBusOperation::DBusOperation(const std::string& destination,
                              path_(path),
                              interface_(interface),
                              connection_(nullptr) {
+    LoggerD("Enter");
     s_objects_.insert(this);
 }
 
 DBusOperation::~DBusOperation() {
+    LoggerD("Enter");
     if (connection_) {
         dbus_connection_close(connection_);
         dbus_connection_unref(connection_);
@@ -172,6 +182,7 @@ DBusOperation::~DBusOperation() {
 int DBusOperation::InvokeSyncGetInt(const std::string& method,
                                     DBusOperationArguments* args) {
 
+    LoggerD("Enter");
     if (!connection_) {
         connection_ = dbus_bus_get_private(DBUS_BUS_SYSTEM, nullptr);
     }
@@ -238,6 +249,7 @@ int DBusOperation::InvokeSyncGetInt(const std::string& method,
 PlatformResult DBusOperation::InvokeSyncGetInt(const std::string& method,
                                     DBusOperationArguments* args, int* result) {
 
+    LoggerD("Enter");
     if (!connection_) {
         connection_ = dbus_bus_get_private(DBUS_BUS_SYSTEM, nullptr);
     }
@@ -302,6 +314,7 @@ PlatformResult DBusOperation::InvokeSyncGetInt(const std::string& method,
 
 PlatformResult DBusOperation::RegisterSignalListener(const std::string& signal_name,
                                            DBusOperationListener* listener) {
+    LoggerD("Enter");
     PlatformResult ret = AddDBusSignalFilter();
     if (ret.IsError()) return ret;
 
@@ -311,6 +324,7 @@ PlatformResult DBusOperation::RegisterSignalListener(const std::string& signal_n
 
 PlatformResult DBusOperation::UnregisterSignalListener(const std::string& signal_name,
                                              DBusOperationListener* listener) {
+    LoggerD("Enter");
     bool signal_found = false;
 
     for (auto iter = listeners_.begin(); iter != listeners_.end(); ++iter) {
@@ -335,6 +349,7 @@ PlatformResult DBusOperation::UnregisterSignalListener(const std::string& signal
 }
 
 PlatformResult DBusOperation::AddDBusSignalFilter() {
+    LoggerD("Enter");
     if (!connection_) {
         connection_ = dbus_bus_get_private(DBUS_BUS_SYSTEM, nullptr);
     }
@@ -372,6 +387,7 @@ PlatformResult DBusOperation::AddDBusSignalFilter() {
 }
 
 PlatformResult DBusOperation::RemoveDBusSignalFilter() {
+    LoggerD("Enter");
     DBusError err;
     dbus_error_init(&err);
     dbus_bus_remove_match(connection_, rule_.c_str(), &err);
@@ -388,6 +404,7 @@ PlatformResult DBusOperation::RemoveDBusSignalFilter() {
 
 DBusHandlerResult DBusOperation::DBusSignalFilter(DBusConnection* /* conn */,
                                                   DBusMessage* message) {
+    LoggerD("Enter");
     DBusError err;
     dbus_error_init(&err);
 
@@ -409,6 +426,7 @@ DBusHandlerResult DBusOperation::DBusSignalFilter(DBusConnection* /* conn */,
 DBusHandlerResult DBusOperation::DBusSignalFilterHandler(DBusConnection* conn,
                                                          DBusMessage* message,
                                                          void* user_data) {
+    LoggerD("Enter");
     DBusOperation* that = static_cast<DBusOperation *>(user_data);
 
     if (s_objects_.end() == s_objects_.find(that)) {

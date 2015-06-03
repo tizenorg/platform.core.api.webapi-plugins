@@ -1,6 +1,18 @@
-// Copyright 2014 Samsung Electronics Co, Ltd. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
+/*
+ * Copyright (c) 2015 Samsung Electronics Co., Ltd All Rights Reserved
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ */
 
 var validator_ = xwalk.utils.validator;
 var types_ = validator_.Types;
@@ -567,7 +579,7 @@ NFCAdapter.prototype.getCachedMessage = function() {
     return new tizen.NDEFMessage();
   }
 
-  return new tizen.NDEFMessage(result.records);
+  return new tizen.NDEFMessage(toRecordsArray(result.records));
 };
 
 NFCAdapter.prototype.setExclusiveModeForTransaction = function() {
@@ -849,6 +861,47 @@ NFCAdapter.prototype.getAIDsForCategory = function(type, category, successCallba
   native_.call('NFCAdapter_getAIDsForCategory', data, callback);
 };
 
+function InternalRecordData(tnf, type, payload, id) {
+  this.tnf = tnf;
+  this.type = type;
+  this.payload = payload;
+  this.id = id;
+};
+
+var toRecordsArray = function(array) {
+  var result = [];
+  if (type_.isNullOrUndefined(array) || !type_.isArray(array)) {
+    return result;
+  }
+
+  for (var i = 0; i < array.length; i++) {
+    var data = new InternalRecordData(array[i].tnf, array[i].type, array[i].payload, array[i].id);
+
+    if (array[i].recordType == 'Record') {
+      result.push(new tizen.NDEFRecord(data.tnf_, data.type_, data.payload_, data.id_));
+      continue;
+    }
+
+    if (array[i].recordType == 'RecordText') {
+      result.push(new tizen.NDEFRecordText(array[i].text, array[i].languageCode,
+          array[i].encoding, data));
+      continue;
+    }
+
+    if (array[i].recordType == 'RecordURI') {
+      result.push(new tizen.NDEFRecordURI(array[i].uri, data));
+      continue;
+    }
+
+    if (array[i].recordType == 'RecordMedia') {
+      result.push(new tizen.NDEFRecordMedia(array[i].mimeType, array[i].data, data));
+      continue;
+    }
+  }
+
+  return result;
+};
+
 //////////////////NFCTag /////////////////
 
 function NFCTag(tagid) {
@@ -941,7 +994,7 @@ function NFCTag(tagid) {
               args.errorCallback(native_.getErrorObject(result));
             }
           } else {
-            var message = new tizen.NDEFMessage(result.records);
+            var message = new tizen.NDEFMessage(toRecordsArray(result.records));
             args.readCallback(message);
           }
         });
@@ -1109,6 +1162,46 @@ function NFCPeer(peerid) {
     });
   };
 
+  NFCPeer.prototype.setReceiveNDEFListener = function() {
+    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NFC_P2P);
+
+    var args = validator_.validateArgs(arguments, [
+      {
+        name: 'listener',
+        type: types_.FUNCTION
+      }
+    ]);
+
+    var listener = function(msg) {
+      var data = undefined;
+      if ('onsuccess' === msg.action && _my_id === msg.id) {
+        data = new NDEFMessage(msg);
+      }
+      args.listener[msg.action](data);
+    };
+
+    var result = native_.callSync('NFCPeer_setReceiveNDEFListener', {'id' : _my_id});
+    if (native_.isFailure(result)) {
+      throw native_.getErrorObject(result);
+    }
+
+    native_.addListener(RECEIVE_NDEF_LISTENER, listener);
+    return;
+  };
+
+  NFCPeer.prototype.unsetReceiveNDEFListener = function() {
+    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NFC_P2P);
+
+    native_.removeListener(RECEIVE_NDEF_LISTENER);
+
+    var result = native_.callSync('NFCPeer_unsetReceiveNDEFListener', {'id' : _my_id});
+    if (native_.isFailure(result)) {
+      throw native_.getErrorObject(result);
+    }
+
+    return;
+  };
+
   Object.defineProperties(this, {
     isConnected: {
       enumerable: true,
@@ -1117,46 +1210,6 @@ function NFCPeer(peerid) {
     }
   });
 }
-
-NFCPeer.prototype.setReceiveNDEFListener = function() {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NFC_P2P);
-
-  var args = validator_.validateArgs(arguments, [
-    {
-      name: 'listener',
-      type: types_.FUNCTION
-    }
-  ]);
-
-  var listener = function(msg) {
-    var data = undefined;
-    if ('onsuccess' === msg.action && this._my_id === msg.id) {
-      data = new NDEFMessage(msg);
-    }
-    args.listener[msg.action](data);
-  };
-
-  var result = native_.callSync('NFCPeer_setReceiveNDEFListener', {'id' : this._my_id});
-  if (native_.isFailure(result)) {
-    throw native_.getErrorObject(result);
-  }
-
-  native_.addListener(RECEIVE_NDEF_LISTENER, listener);
-  return;
-};
-
-NFCPeer.prototype.unsetReceiveNDEFListener = function() {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NFC_P2P);
-
-  native_.removeListener(RECEIVE_NDEF_LISTENER);
-
-  var result = native_.callSync('NFCPeer_unsetReceiveNDEFListener', {'id' : this._my_id});
-  if (native_.isFailure(result)) {
-    throw native_.getErrorObject(result);
-  }
-
-  return;
-};
 
 var toByteArray = function(array, max_size, nullable) {
   var resultArray = [];
@@ -1317,7 +1370,7 @@ tizen.NDEFRecord = function(first, type, payload, id) {
 };
 
 //////////////////NDEFRecordText /////////////////
-tizen.NDEFRecordText = function(text, languageCode, encoding) {
+tizen.NDEFRecordText = function(text, languageCode, encoding, internal_) {
   var text_ = undefined;
   var languageCode_ = undefined;
   var encoding_ = NDEFRecordTextEncoding[encoding] ?
@@ -1327,18 +1380,22 @@ tizen.NDEFRecordText = function(text, languageCode, encoding) {
       text_ = converter_.toString(text);
       languageCode_ = converter_.toString(languageCode);
 
-      var result = native_.callSync(
-          'NDEFRecordText_constructor', {
-            'text': text_,
-            'languageCode' : languageCode_,
-            'encoding' : encoding_
-          }
-          );
-      if (native_.isFailure(result)) {
-        throw native_.getErrorObject(result);
+      if (!type_.isNullOrUndefined(internal_) && (internal_ instanceof InternalRecordData)) {
+        tizen.NDEFRecord.call(this, internal_.tnf_, internal_.type_, internal_.payload_, internal_.id_);
+      } else {
+        var result = native_.callSync(
+            'NDEFRecordText_constructor', {
+              'text': text_,
+              'languageCode' : languageCode_,
+              'encoding' : encoding_
+            }
+            );
+        if (native_.isFailure(result)) {
+          throw native_.getErrorObject(result);
+        }
+        tizen.NDEFRecord.call(this, result.result.tnf, result.result.type,
+            result.result.payload, result.result.id);
       }
-      tizen.NDEFRecord.call(this, result.result.tnf, result.result.type,
-          result.result.payload, result.result.id);
     } else {
       throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR);
     }
@@ -1362,22 +1419,26 @@ tizen.NDEFRecordText.prototype = new tizen.NDEFRecord(new InternalData());
 tizen.NDEFRecordText.prototype.constructor = tizen.NDEFRecordText;
 
 //////////////////NDEFRecordURI /////////////////
-tizen.NDEFRecordURI = function(uri) {
+tizen.NDEFRecordURI = function(uri, internal_) {
   var uri_ = undefined;
   try {
     if (arguments.length >= 1) {
       uri_ = converter_.toString(uri);
 
-      var result = native_.callSync(
-          'NDEFRecordURI_constructor', {
-            'uri': uri_
-          }
-          );
-      if (native_.isFailure(result)) {
-        throw native_.getErrorObject(result);
+      if (!type_.isNullOrUndefined(internal_) && (internal_ instanceof InternalRecordData)) {
+        tizen.NDEFRecord.call(this, internal_.tnf_, internal_.type_, internal_.payload_, internal_.id_);
+      } else {
+        var result = native_.callSync(
+            'NDEFRecordURI_constructor', {
+              'uri': uri_
+            }
+            );
+        if (native_.isFailure(result)) {
+          throw native_.getErrorObject(result);
+        }
+        tizen.NDEFRecord.call(this, result.result.tnf, result.result.type,
+            result.result.payload, result.result.id);
       }
-      tizen.NDEFRecord.call(this, result.result.tnf, result.result.type,
-          result.result.payload, result.result.id);
     } else {
       throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR);
     }
@@ -1397,7 +1458,7 @@ tizen.NDEFRecordURI.prototype = new tizen.NDEFRecord(new InternalData());
 tizen.NDEFRecordURI.prototype.constructor = tizen.NDEFRecordURI;
 
 //////////////////NDEFRecordMedia /////////////////
-tizen.NDEFRecordMedia = function(mimeType, data) {
+tizen.NDEFRecordMedia = function(mimeType, data, internal_) {
   var mimeType_ = undefined;
   var data_ = undefined;
   try {
@@ -1405,18 +1466,22 @@ tizen.NDEFRecordMedia = function(mimeType, data) {
       mimeType_ = converter_.toString(mimeType);
       data_ = toByteArray(data, Math.pow(2, 32) - 1);
 
-      var result = native_.callSync(
-          'NDEFRecordMedia_constructor', {
-            'mimeType': mimeType_,
-            'data': data_,
-            'dataSize': data_.length
-          }
-          );
-      if (native_.isFailure(result)) {
-        throw native_.getErrorObject(result);
+      if (!type_.isNullOrUndefined(internal_) && (internal_ instanceof InternalRecordData)) {
+        tizen.NDEFRecord.call(this, internal_.tnf_, internal_.type_, internal_.payload_, internal_.id_);
+      } else {
+        var result = native_.callSync(
+            'NDEFRecordMedia_constructor', {
+              'mimeType': mimeType_,
+              'data': data_,
+              'dataSize': data_.length
+            }
+            );
+        if (native_.isFailure(result)) {
+          throw native_.getErrorObject(result);
+        }
+        tizen.NDEFRecord.call(this, result.result.tnf, result.result.type,
+            result.result.payload, result.result.id);
       }
-      tizen.NDEFRecord.call(this, result.result.tnf, result.result.type,
-          result.result.payload, result.result.id);
     } else {
       throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR);
     }

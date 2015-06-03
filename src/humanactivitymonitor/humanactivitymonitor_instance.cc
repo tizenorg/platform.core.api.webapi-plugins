@@ -1,6 +1,18 @@
-// Copyright 2015 Samsung Electronics Co, Ltd. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
+/*
+ * Copyright (c) 2015 Samsung Electronics Co., Ltd All Rights Reserved
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ */
 
 #include "humanactivitymonitor/humanactivitymonitor_instance.h"
 
@@ -22,6 +34,7 @@ using common::ErrorCode;
 using common::TaskQueue;
 
 HumanActivityMonitorInstance::HumanActivityMonitorInstance() {
+  LoggerD("Enter");
   using std::placeholders::_1;
   using std::placeholders::_2;
 
@@ -41,9 +54,11 @@ HumanActivityMonitorInstance::HumanActivityMonitorInstance() {
 }
 
 HumanActivityMonitorInstance::~HumanActivityMonitorInstance() {
+  LoggerD("Enter");
 }
 
 PlatformResult HumanActivityMonitorInstance::Init() {
+  LoggerD("Enter");
   if (!manager_) {
 
     manager_ = std::make_shared<HumanActivityMonitorManager>();
@@ -68,10 +83,12 @@ PlatformResult HumanActivityMonitorInstance::Init() {
 
 void HumanActivityMonitorInstance::HumanActivityMonitorManagerGetHumanActivityData(
     const picojson::value& args, picojson::object& out) {
+  LoggerD("Enter");
   CHECK_EXIST(args, "type", out)
 
   PlatformResult result = Init();
   if (!result) {
+    LoggerE("Failed: Init()");
     ReportError(result, &out);
     return;
   }
@@ -89,6 +106,7 @@ void HumanActivityMonitorInstance::HumanActivityMonitorManagerGetHumanActivityDa
     if (result) {
       ReportSuccess(data, response_obj);
     } else {
+      LoggerE("Failed: manager_->GetHumanActivityData()");
       ReportError(result, &response_obj);
     }
 
@@ -102,10 +120,12 @@ void HumanActivityMonitorInstance::HumanActivityMonitorManagerGetHumanActivityDa
 
 void HumanActivityMonitorInstance::HumanActivityMonitorManagerStart(
     const picojson::value& args, picojson::object& out) {
+  LoggerD("Enter");
   CHECK_EXIST(args, "type", out)
 
   PlatformResult result = Init();
   if (!result) {
+    LoggerE("Failed: Init()");
     ReportError(result, &out);
     return;
   }
@@ -126,16 +146,19 @@ void HumanActivityMonitorInstance::HumanActivityMonitorManagerStart(
   if (result) {
     ReportSuccess(out);
   } else {
+    LoggerE("Failed: manager_->SetListener()");
     ReportError(result, &out);
   }
 }
 
 void HumanActivityMonitorInstance::HumanActivityMonitorManagerStop(
     const picojson::value& args, picojson::object& out) {
+  LoggerD("Enter");
   CHECK_EXIST(args, "type", out)
 
   PlatformResult result = Init();
   if (!result) {
+    LoggerE("Failed: Init()");
     ReportError(result, &out);
     return;
   }
@@ -144,6 +167,7 @@ void HumanActivityMonitorInstance::HumanActivityMonitorManagerStop(
   if (result) {
     ReportSuccess(out);
   } else {
+    LoggerE("Failed: manager_->UnsetListener()");
     ReportError(result, &out);
   }
 }

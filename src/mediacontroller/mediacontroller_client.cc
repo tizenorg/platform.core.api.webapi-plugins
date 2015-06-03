@@ -1,7 +1,19 @@
-// Copyright 2015 Samsung Electronics Co, Ltd. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
-
+/*
+ * Copyright (c) 2015 Samsung Electronics Co., Ltd All Rights Reserved
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ */
+ 
 #include "mediacontroller/mediacontroller_client.h"
 
 #include <bundle.h>
@@ -20,9 +32,11 @@ using common::PlatformResult;
 using common::ErrorCode;
 
 MediaControllerClient::MediaControllerClient() : handle_(nullptr) {
+  LoggerD("Enter");
 }
 
 MediaControllerClient::~MediaControllerClient() {
+  LoggerD("Enter");
   if (handle_) {
     int ret = mc_client_destroy(handle_);
     if (ret != MEDIA_CONTROLLER_ERROR_NONE) {
@@ -32,6 +46,7 @@ MediaControllerClient::~MediaControllerClient() {
 }
 
 PlatformResult MediaControllerClient::Init() {
+  LoggerD("Enter");
   int ret = mc_client_create(&handle_);
   if (ret != MEDIA_CONTROLLER_ERROR_NONE) {
     LOGGER(ERROR) << "Unable to create media controller client, error: " << ret;
@@ -44,6 +59,7 @@ PlatformResult MediaControllerClient::Init() {
 
 PlatformResult MediaControllerClient::FindServers(picojson::array* servers) {
 
+  LoggerD("Enter");
   int ret;
 
   ret = mc_client_foreach_server(handle_, FindServersCallback, servers);
@@ -83,6 +99,7 @@ PlatformResult MediaControllerClient::FindServers(picojson::array* servers) {
 bool MediaControllerClient::FindServersCallback(const char* server_name,
                                                 void* user_data) {
 
+  LoggerD("Enter");
   picojson::array* servers = static_cast<picojson::array*>(user_data);
 
   picojson::value server = picojson::value(picojson::object());
@@ -99,6 +116,7 @@ bool MediaControllerClient::FindServersCallback(const char* server_name,
 PlatformResult MediaControllerClient::GetLatestServerInfo(
     picojson::value* server_info) {
 
+  LoggerD("Enter");
   int ret;
 
   char* name = nullptr;
@@ -138,6 +156,7 @@ PlatformResult MediaControllerClient::GetPlaybackInfo(
     const std::string& server_name,
     picojson::object* playback_info) {
 
+  LoggerD("Enter");
   int ret;
 
   mc_playback_h playback_h;
@@ -211,6 +230,7 @@ PlatformResult MediaControllerClient::GetMetadata(
     const std::string& server_name,
     picojson::object* metadata) {
 
+  LoggerD("Enter");
   int ret;
 
   mc_metadata_h metadata_h;
@@ -237,6 +257,7 @@ PlatformResult MediaControllerClient::GetMetadata(
 PlatformResult MediaControllerClient::SetServerStatusChangeListener(
     JsonCallback callback) {
 
+  LoggerD("Enter");
   if (callback && server_status_listener_) {
     LOGGER(ERROR) << "Listener already registered";
     return PlatformResult(ErrorCode::INVALID_STATE_ERR,
@@ -273,6 +294,7 @@ void MediaControllerClient::OnServerStatusUpdate(const char* server_name,
                                                  mc_server_state_e state,
                                                  void* user_data) {
 
+  LoggerD("Enter");
   MediaControllerClient* client = static_cast<MediaControllerClient*>(user_data);
 
   if (!client->server_status_listener_) {
@@ -300,6 +322,7 @@ void MediaControllerClient::OnServerStatusUpdate(const char* server_name,
 PlatformResult MediaControllerClient::SetPlaybackInfoListener(
     JsonCallback callback) {
 
+  LoggerD("Enter");
   if (callback && playback_info_listener_) {
     LOGGER(ERROR) << "Listener already registered";
     return PlatformResult(ErrorCode::INVALID_STATE_ERR,
@@ -377,6 +400,7 @@ void MediaControllerClient::OnPlaybackUpdate(const char *server_name,
                                              mc_playback_h playback,
                                              void *user_data) {
 
+  LoggerD("Enter");
   MediaControllerClient* client = static_cast<MediaControllerClient*>(user_data);
 
   if (!client->playback_info_listener_) {
@@ -414,6 +438,7 @@ void MediaControllerClient::OnShuffleModeUpdate(const char *server_name,
                                              mc_shuffle_mode_e mode,
                                              void *user_data) {
 
+  LoggerD("Enter");
   MediaControllerClient* client = static_cast<MediaControllerClient*>(user_data);
 
   if (!client->playback_info_listener_) {
@@ -434,6 +459,7 @@ void MediaControllerClient::OnRepeatModeUpdate(const char *server_name,
                                                 mc_repeat_mode_e mode,
                                                 void *user_data) {
 
+  LoggerD("Enter");
   MediaControllerClient* client = static_cast<MediaControllerClient*>(user_data);
 
   if (!client->playback_info_listener_) {
@@ -454,6 +480,7 @@ void MediaControllerClient::OnMetadataUpdate(const char* server_name,
                                              mc_metadata_h metadata_h,
                                              void* user_data) {
 
+  LoggerD("Enter");
   MediaControllerClient* client = static_cast<MediaControllerClient*>(user_data);
 
   if (!client->playback_info_listener_) {
@@ -485,6 +512,7 @@ PlatformResult MediaControllerClient::SendCommand(
     const std::string& reply_id,
     const JsonCallback& reply_cb) {
 
+  LoggerD("Enter");
   bundle* bundle = bundle_create();
   SCOPE_EXIT {
     bundle_free(bundle);
@@ -527,6 +555,7 @@ void MediaControllerClient::OnCommandReply(const char* server_name,
                                            bundle* bundle,
                                            void* user_data) {
 
+  LoggerD("Enter");
   MediaControllerClient* client = static_cast<MediaControllerClient*>(user_data);
 
   picojson::value reply = picojson::value(picojson::object());
@@ -570,6 +599,7 @@ PlatformResult MediaControllerClient::SendPlaybackState(
     const std::string& server_name,
     const std::string& state) {
 
+  LoggerD("Enter");
   int state_e;
   PlatformResult result = Types::StringToPlatformEnum(
       Types::kMediaControllerPlaybackState, state, &state_e);

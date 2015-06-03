@@ -1,6 +1,18 @@
-// Copyright 2015 Samsung Electronics Co, Ltd. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
+/*
+ * Copyright (c) 2015 Samsung Electronics Co., Ltd All Rights Reserved
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ */
 
 #include "filesystem_manager.h"
 
@@ -192,23 +204,30 @@ FilesystemError make_directory_worker(const std::string& path) {
 }
 }  // namespace
 
+std::vector<common::VirtualStorage> FilesystemManager::FillStorages() {
+    LoggerD("entered");
+    auto virtualStorages = common::VirtualFs::GetInstance().GetStorages();
+    if (ids_.empty()) {
+        for (auto storage : virtualStorages) {
+          if (storage.id_ >= 0) {
+            ids_.insert(storage.id_);
+          }
+        }
+    }
+    return virtualStorages;
+}
+
 void FilesystemManager::FetchStorages(
     const std::function<void(const std::vector<common::VirtualStorage>&)>& success_cb,
     const std::function<void(FilesystemError)>& error_cb) {
-  auto result = common::VirtualFs::GetInstance().GetStorages();
-
-  for (auto storage : result) {
-    if (storage.id_ >= 0) {
-      ids_.insert(storage.id_);
-    }
-  }
-
+  auto result = FillStorages();
   success_cb(result);
 }
 
 FilesystemManager::FilesystemManager()
     : listener_(nullptr), is_listener_registered_(false) {}
 FilesystemManager::~FilesystemManager() {
+  LoggerD("enter");
   if (is_listener_registered_) {
     for (auto id : ids_) {
       storage_unset_state_changed_cb(id, storage_cb);
@@ -217,6 +236,7 @@ FilesystemManager::~FilesystemManager() {
 }
 
 FilesystemManager& FilesystemManager::GetInstance() {
+  LoggerD("enter");
   static FilesystemManager instance;
   return instance;
 }
@@ -226,9 +246,10 @@ void FilesystemManager::StatPath(
     const std::function<void(const FilesystemStat&)>& success_cb,
     const std::function<void(FilesystemError)>& error_cb) {
 
+  LoggerD("enter");
   FilesystemStat statData = FilesystemStat::getStat(path);
   if (!statData.valid) {
-    error_cb(FilesystemError::NotFound);
+    error_cb(statData.error);
     return;
   }
 
@@ -238,6 +259,7 @@ void FilesystemManager::StatPath(
 void FilesystemManager::GetVirtualRoots(
     const std::function<void(const std::vector<common::VirtualRoot>&)>& success_cb,
     const std::function<void(FilesystemError)>& error_cb) {
+  LoggerD("enter");
   success_cb(common::VirtualFs::GetInstance().GetVirtualRoots());
 }
 
@@ -245,6 +267,7 @@ void FilesystemManager::CreateFile(
     const std::string& path,
     const std::function<void(const FilesystemStat&)>& success_cb,
     const std::function<void(FilesystemError)>& error_cb) {
+  LoggerD("enter");
   const mode_t create_mode = S_IRWXU | S_IRWXG | S_IRWXO;
   int status;
   status =
@@ -280,6 +303,7 @@ void FilesystemManager::Rename(
     const std::function<void(const FilesystemStat&)>& success_cb,
     const std::function<void(FilesystemError)>& error_cb) {
 
+  LoggerD("enter");
   int status = rename(oldPath.c_str(), newPath.c_str());
   if (0 == status) {
     FilesystemStat fileStat = FilesystemStat::getStat(newPath);
@@ -332,6 +356,7 @@ void FilesystemManager::UnlinkFile(
     const std::string& path,
     const std::function<void()>& success_cb,
     const std::function<void(FilesystemError)>& error_cb) {
+  LoggerD("enter");
   if (unlink(path.c_str()) != 0) {
     LoggerE("Error occured while deleting file");
     error_cb(FilesystemError::Other);
@@ -344,6 +369,7 @@ void FilesystemManager::RemoveDirectory(
     const std::string& path,
     const std::function<void()>& success_cb,
     const std::function<void(FilesystemError)>& error_cb) {
+  LoggerD("enter");
   const int maxDirOpened = 64;
   if (nftw(path.c_str(), unlink_cb, maxDirOpened, FTW_DEPTH | FTW_PHYS) != 0) {
     LoggerE("Error occured");
@@ -360,6 +386,7 @@ void FilesystemManager::FileRead(
     const std::function<void(const std::string&)>& success_cb,
     const std::function<void(FilesystemError)>& error_cb) {
 
+  LoggerD("enter");
   FilesystemFile file(path);
   FilesystemBuffer buffer;
   if (!file.Read(&buffer, offset, length)) {
@@ -379,6 +406,7 @@ void FilesystemManager::FileWrite(
     const std::function<void()>& success_cb,
     const std::function<void(FilesystemError)>& error_cb) {
 
+  LoggerD("enter");
   FilesystemFile file(path);
   FilesystemBuffer buffer;
   // Decode buffer data
@@ -398,6 +426,7 @@ void FilesystemManager::FileWrite(
 
 void FilesystemManager::StartListening() {
   LoggerD("enter");
+  FillStorages();
 
   if (!is_listener_registered_ && !ids_.empty()) {
     int result = STORAGE_ERROR_NONE;
@@ -443,6 +472,7 @@ void FilesystemManager::CopyTo(
   if (FilesystemError::None == retval) {
     success_cb();
   } else {
+    LoggerE("Failed: perform_deep_copy()");
     error_cb(retval);
   }
 }
@@ -451,6 +481,11 @@ void FilesystemManager::CopyTo(
 void FilesystemManager::AddListener(FilesystemStateChangeListener* listener) {
   LoggerD("enter");
   listener_ = listener;
+}
+
+void FilesystemManager::RemoveListener() {
+  LoggerD("enter");
+  listener_ = NULL;
 }
 }  // namespace filesystem
 }  // namespace extension

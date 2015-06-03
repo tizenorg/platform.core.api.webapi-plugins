@@ -1,10 +1,12 @@
 // Copyright (c) 2013 Intel Corporation. All rights reserved.
+// Copyright (c) 2015 Samsung Electronics Co., Ltd All Rights Reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
 // This file is compiled into each plugin, hence its size should be minimized.
 
 #include "common/extension.h"
+#include "common/logger.h"
 
 namespace {
 
@@ -32,6 +34,7 @@ class Extension::Detail {
 };
 
 int32_t Extension::Detail::XW_Initialize(XW_Extension extension, XW_GetInterface get_interface) {
+  LoggerD("Enter");
   g_extension = CreateExtension();
   if (!g_extension) {
     std::cerr << "Can't initialize extension: "
@@ -42,6 +45,7 @@ int32_t Extension::Detail::XW_Initialize(XW_Extension extension, XW_GetInterface
 }
 
 void Extension::Detail::OnInstanceCreated(XW_Instance xw_instance) {
+  LoggerD("Enter");
   if (!g_extension) {
     return;
   }
@@ -53,6 +57,7 @@ void Extension::Detail::OnInstanceCreated(XW_Instance xw_instance) {
 }
 
 void Extension::Detail::OnShutdown(XW_Extension) {
+  LoggerD("Enter");
   delete g_extension;
   g_extension = nullptr;
 }

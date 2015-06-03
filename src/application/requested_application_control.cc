@@ -1,13 +1,25 @@
-// Copyright 2014 Samsung Electronics Co, Ltd. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
-
+/*
+ * Copyright (c) 2015 Samsung Electronics Co., Ltd All Rights Reserved
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ */
+ 
 #include "requested_application_control.h"
 
 #include <app_manager.h>
 #include <app_control_internal.h>
 #include <bundle.h>
-#include <bundle_internal.h>
+//#include <bundle_internal.h>
 
 #include "common/logger.h"
 #include "application/application_utils.h"
@@ -89,6 +101,7 @@ void RequestedApplicationControl::ReplyResult(const picojson::value& args, picoj
 
   result = set_bundle(encoded_bundle);
   if (result.IsError()) {
+    LoggerE("Failed set_bundle()");
     ReportError(result, out);
     return;
   }
@@ -96,6 +109,7 @@ void RequestedApplicationControl::ReplyResult(const picojson::value& args, picoj
   // code to check caller liveness
   result = VerifyCallerPresence();
   if (result.IsError()) {
+    LoggerE("Failed VerifyCallerPresence()");
     ReportError(result, out);
     return;
   }
@@ -111,6 +125,7 @@ void RequestedApplicationControl::ReplyResult(const picojson::value& args, picoj
       result = ApplicationUtils::ApplicationControlDataToServiceExtraData(
           iter->get<picojson::object>(), reply);
       if (result.IsError()) {
+        LoggerE("Failed ApplicationControlDataToServiceExtraData()");
         ReportError(result, out);
         return;
       }
@@ -139,6 +154,7 @@ void RequestedApplicationControl::ReplyFailure(picojson::object* out) {
 
   result = set_bundle(encoded_bundle);
   if (result.IsError()) {
+    LoggerE("Failed set_bundle()");
     ReportError(result, out);
     return;
   }
@@ -146,6 +162,7 @@ void RequestedApplicationControl::ReplyFailure(picojson::object* out) {
   // code to check caller liveness
   result = VerifyCallerPresence();
   if (result.IsError()) {
+    LoggerE("Failed VerifyCallerPresence()");
     ReportError(result, out);
     return;
   }

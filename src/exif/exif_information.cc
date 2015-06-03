@@ -1,19 +1,18 @@
-//
-// Tizen Web Device API
-// Copyright (c) 2014 Samsung Electronics Co., Ltd.
-//
-// Licensed under the Apache License, Version 2.0 (the License);
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-// http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-//
+/*
+ * Copyright (c) 2015 Samsung Electronics Co., Ltd All Rights Reserved
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ */
 
 #include "exif/exif_information.h"
 
@@ -51,6 +50,7 @@ constexpr unsigned int str2int(const char* str, int h = 0) {
 }
 
 IsoSpeedRatingsVector jsonArray2vector(const picojson::value& a) {
+  LoggerD("Enter");
   if (!a.is<picojson::array>()) {
     return IsoSpeedRatingsVector();
   }
@@ -69,6 +69,7 @@ IsoSpeedRatingsVector jsonArray2vector(const picojson::value& a) {
 }  // namespace
 
 ExifInformation::ExifInformation() {
+  LoggerD("Enter");
   for (int attr = 0;
       attr < EXIF_INFORMATION_ATTRIBUTE_NUMBER_OF_ATTRIBUTES; attr++) {
     unset(static_cast<ExifInformationAttribute>(attr));
@@ -76,6 +77,7 @@ ExifInformation::ExifInformation() {
 }
 
 ExifInformation::ExifInformation(const picojson::value& args) {
+  LoggerD("Enter");
   for (int attr = 0;
       attr < EXIF_INFORMATION_ATTRIBUTE_NUMBER_OF_ATTRIBUTES; attr++) {
     unset(static_cast<ExifInformationAttribute>(attr));
@@ -91,7 +93,9 @@ ExifInformation::ExifInformation(const picojson::value& args) {
   }
 }
 
-ExifInformation::~ExifInformation() { }
+ExifInformation::~ExifInformation() {
+  LoggerD("Enter");
+ }
 
 const std::string& ExifInformation::getUri() {
   LoggerD("Entered");

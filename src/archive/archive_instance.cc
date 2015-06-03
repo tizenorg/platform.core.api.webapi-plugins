@@ -1,6 +1,18 @@
-// Copyright 2014 Samsung Electronics Co, Ltd. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
+/*
+ * Copyright (c) 2015 Samsung Electronics Co., Ltd All Rights Reserved
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ */
 
 #include "archive/archive_instance.h"
 
@@ -227,6 +239,8 @@ void ArchiveInstance::Abort(const picojson::value& args, picojson::object& out)
 }
 
 unsigned int ConvertStringToCompressionLevel(const std::string& level) {
+  LoggerD("Entered");
+
   if (kNoCompressionStr == level) {
       return Z_NO_COMPRESSION;
   } else if (kFastCompressionStr == level) {
@@ -489,13 +503,13 @@ void ArchiveInstance::Close(const picojson::value& args, picojson::object& out)
 
     ArchiveFilePtr priv;
     PlatformResult result = ArchiveManager::getInstance().getPrivData(handle, &priv);
-    if (result.error_code() != ErrorCode::NO_ERROR) {
-        LoggerD("Close method was called on already closed archive. Just end execution");
-        LoggerD("%s", result.message().c_str());
+    if (result.error_code() == ErrorCode::NO_ERROR) {
+      priv->close();
+      ArchiveManager::getInstance().erasePrivData(handle);
+    } else {
+      LoggerD("Close method was called on already closed archive. Just end execution");
+      LoggerD("%s", result.message().c_str());
     }
-
-    priv->close();
-    ArchiveManager::getInstance().erasePrivData(handle);
 
     ReportSuccess(out);
 }
@@ -573,6 +587,8 @@ void ArchiveInstance::Extract(const picojson::value& args, picojson::object& out
 }
 
 void ArchiveInstance::GetWidgetPaths(const picojson::value& args, picojson::object& out) {
+    LoggerD("Entered");
+
     std::string wgt_package_path =
         *(common::VirtualFs::GetInstance().GetVirtualRootDirectory(kWgtPackagePathName));
     std::string wgt_private_path =

@@ -1,3 +1,5 @@
+%bcond_with wayland
+
 %{!?profile:%define profile mobile}
 
 %define _manifestdir %{TZ_SYS_RW_PACKAGES}
@@ -8,7 +10,7 @@
 Name:       webapi-plugins
 Version:    0.1
 Release:    0
-License:    BSD-3-Clause and Apache-2.0
+License:    Apache-2.0 and BSD-2.0 and MIT
 Group:      Development/Libraries
 Summary:    Tizen Web APIs implemented
 Source0:    %{name}-%{version}.tar.gz
@@ -17,7 +19,9 @@ Source0:    %{name}-%{version}.tar.gz
 ####################################################################
 #       Mobile Profile :  Redwood(SM-Z910F)       #
 ####################################################################
-%if "%{?tizen_profile_name}" == "mobile"
+%if "%{?profile}" == "mobile"
+
+%define tizen_privilege_engine                    CYNARA
 
 %define tizen_feature_account_support             1
 %define tizen_feature_alarm_support               1
@@ -26,14 +30,14 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_badge_support               1
 %ifarch %{arm}
 # ARM
-%define tizen_feature_bluetooth_support           1
+%define tizen_feature_bluetooth_support           0
 %else
 # I586
 %define tizen_feature_bluetooth_support           0
 %endif
-%define tizen_feature_bookmark_support            1
+%define tizen_feature_bookmark_support            0
 %define tizen_feature_calendar_support            1
-%define tizen_feature_contact_support             1
+%define tizen_feature_contact_support             0
 %define tizen_feature_content_support             1
 %define tizen_feature_datacontrol_support         1
 %define tizen_feature_datasync_support            0
@@ -56,10 +60,10 @@ Source0:    %{name}-%{version}.tar.gz
 %endif
 %define tizen_feature_location_batch              0
 %define tizen_feature_key_manager_support         1
-%define tizen_feature_media_controller_support    1
+%define tizen_feature_media_controller_support    0
 %ifarch %{arm}
 # ARM
-%define tizen_feature_media_key_support           1
+%define tizen_feature_media_key_support           0
 %else
 # I586
 %define tizen_feature_media_key_support           0
@@ -70,16 +74,16 @@ Source0:    %{name}-%{version}.tar.gz
 %ifarch %{arm}
 # ARM
 %define tizen_feature_nfc_emulation_support       0
-%define tizen_feature_nfc_support                 1
+%define tizen_feature_nfc_support                 0
 %else
 # I586
 %define tizen_feature_nfc_emulation_support       0
 %define tizen_feature_nfc_support                 0
 %endif
-%define tizen_feature_notification_support        1
+%define tizen_feature_notification_support        0
 %define tizen_feature_package_support             1
 %define tizen_feature_power_support               1
-%define tizen_feature_push_support                1
+%define tizen_feature_push_support                0
 %ifarch %{arm}
 # ARM
 %define tizen_feature_se_support                  1
@@ -114,7 +118,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_tvwindow_support            0
 
 %if 0%{?tizen_feature_telephony_support}
-%define tizen_feature_callhistory_support         1
+%define tizen_feature_callhistory_support         0
 %define tizen_feature_nbs_support                 1
 %else
 %define tizen_feature_callhistory_support         0
@@ -126,7 +130,9 @@ Source0:    %{name}-%{version}.tar.gz
 ####################################################################
 #       Wearable Profile :  B2                          #
 ####################################################################
-%if "%{?tizen_profile_name}" == "wearable"
+%if "%{?profile}" == "wearable"
+
+%define tizen_privilege_engine                    CYNARA
 
 # Account API is optional in Tizen Wearable Profile.
 %define tizen_feature_account_support             0
@@ -223,10 +229,12 @@ Source0:    %{name}-%{version}.tar.gz
 ####################################################################
 #       TV Profile                                                 #
 ####################################################################
-%if "%{?tizen_profile_name}" == "tv"
+%if "%{?profile}" == "tv"
+
+%define tizen_privilege_engine                    CYNARA
 
 %define tizen_feature_account_support             0
-%define tizen_feature_alarm_support               0
+%define tizen_feature_alarm_support               1
 %define tizen_feature_application_support         1
 %define tizen_feature_archive_support             1
 %define tizen_feature_badge_support               0
@@ -235,10 +243,10 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_calendar_support            0
 %define tizen_feature_callhistory_support         0
 %define tizen_feature_contact_support             0
-%define tizen_feature_content_support             0
+%define tizen_feature_content_support             1
 %define tizen_feature_datacontrol_support         0
 %define tizen_feature_datasync_support            0
-%define tizen_feature_download_support            0
+%define tizen_feature_download_support            1
 %define tizen_feature_exif_support                1
 %define tizen_feature_filesystem_support          1
 %define tizen_feature_fm_radio_support            0
@@ -246,7 +254,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_key_manager_support         0
 %define tizen_feature_media_controller_support    0
 %define tizen_feature_media_key_support           0
-%define tizen_feature_message_port_support        1
+%define tizen_feature_message_port_support        0
 %define tizen_feature_messaging_support           0
 %define tizen_feature_nbs_support                 0
 %define tizen_feature_nfc_emulation_support       0
@@ -258,7 +266,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_se_support                  0
 %define tizen_feature_sensor_support              0
 %define tizen_feature_sound_support               0
-%define tizen_feature_system_info_support         0
+%define tizen_feature_system_info_support         1
 %define tizen_feature_system_setting_support      1
 %define tizen_feature_telephony_support           0
 %define tizen_feature_time_support                1
@@ -288,8 +296,6 @@ BuildRequires: pkgconfig(zlib)
 BuildRequires: pkgconfig(pkgmgr)
 BuildRequires: pkgconfig(pkgmgr-info)
 BuildRequires: pkgconfig(vconf)
-BuildRequires: pkgconfig(x11)
-BuildRequires: pkgconfig(xrandr)
 BuildRequires: pkgconfig(ecore)
 BuildRequires: pkgconfig(icu-i18n)
 BuildRequires: pkgconfig(aul)
@@ -310,7 +316,24 @@ BuildRequires: pkgconfig(capi-appfw-app-manager)
 BuildRequires: pkgconfig(capi-appfw-package-manager)
 BuildRequires: pkgconfig(capi-content-media-content)
 BuildRequires: pkgconfig(capi-media-metadata-extractor)
+
+%if %{with wayland}
+%define display_type wayland
+BuildRequires: pkgconfig(wayland-client)
+%else
+%define display_type x11
+BuildRequires: pkgconfig(x11)
+BuildRequires: pkgconfig(xrandr)
+%endif
+
+%if "%{?tizen_privilege_engine}" == "ACE"
 BuildRequires: pkgconfig(capi-security-privilege-manager)
+%endif
+
+%if "%{?tizen_privilege_engine}" == "CYNARA"
+BuildRequires: pkgconfig(cynara-client)
+BuildRequires: pkgconfig(libsmack)
+%endif
 
 %if 0%{?tizen_feature_account_support}
 BuildRequires: pkgconfig(accounts-svc)
@@ -415,7 +438,7 @@ BuildRequires:  pkgconfig(smartcard-service-common)
 %endif
 
 %if 0%{?tizen_feature_message_port_support}
-BuildRequires: pkgconfig(capi-message-port)
+BuildRequires: pkgconfig(message-port)
 %endif
 
 %if 0%{?tizen_feature_notification_support}
@@ -444,8 +467,8 @@ Tizen Web APIs implemented.
 %build
 
 export GYP_GENERATORS='ninja'
-GYP_OPTIONS="--depth=. -Dtizen=1 -Dextension_build_type=Debug -Dextension_host_os=%{profile} -Dprivilege_engine=ACE"
-GYP_OPTIONS="$GYP_OPTIONS -Ddisplay_type=x11"
+GYP_OPTIONS="--depth=. -Dtizen=1 -Dextension_build_type=Debug -Dextension_host_os=%{profile} -Dprivilege_engine=%{tizen_privilege_engine}"
+GYP_OPTIONS="$GYP_OPTIONS -Ddisplay_type=%{display_type}"
 
 # feature flags
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_account_support=%{?tizen_feature_account_support}"
@@ -500,6 +523,9 @@ GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_wi_fi_support=%{?tizen_feature_wi_fi_s
 ninja -C out/Default %{?_smp_mflags}
 
 %install
+mkdir -p %{buildroot}/usr/share/license
+cp LICENSE %{buildroot}/usr/share/license/%{name}
+cat LICENSE.BSD-2.0 >> %{buildroot}/usr/share/license/%{name}
 
 # Extensions.
 mkdir -p %{buildroot}%{_libdir}/%{crosswalk_extensions}
@@ -515,6 +541,8 @@ cp res/tvsounds/*.pcm %{buildroot}%{ringtones_directory}
 
 %files
 %{_libdir}/%{crosswalk_extensions}/libtizen*.so
+%{_datadir}/license/%{name}
+
 %if 0%{?tizen_feature_tvaudio_support}
 # tv audio beep files:
 %{ringtones_directory}/*.pcm

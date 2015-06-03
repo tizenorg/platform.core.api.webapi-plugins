@@ -1,6 +1,18 @@
-// Copyright 2014 Samsung Electronics Co, Ltd. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
+/*
+ * Copyright (c) 2015 Samsung Electronics Co., Ltd All Rights Reserved
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ */
 
 #include "callhistory_utils.h"
 
@@ -255,6 +267,8 @@ unsigned int CallHistoryUtils::convertAttributeName(const std::string attribute_
 
 static FilterTypeEnum getFilterType(const picojson::object &filter)
 {
+  LoggerD("Entered");
+
   const auto it_end = filter.end();
 
   FilterTypeEnum type = FILTER_UNKNOWN;
@@ -279,6 +293,7 @@ static FilterTypeEnum getFilterType(const picojson::object &filter)
 
 static CompositeTypeEnum getCompositeType(const picojson::object &filter)
 {
+  LoggerD("Entered");
   CompositeTypeEnum type = NONE;
   const std::string& str_type = filter.find("type")->second.get<std::string>();
 
@@ -292,6 +307,7 @@ static CompositeTypeEnum getCompositeType(const picojson::object &filter)
 
 static contacts_match_str_flag_e getMatchFlag(const std::string& match_flag)
 {
+  LoggerD("Entered");
   if (STR_FILTER_FULLSTRING == match_flag) {
     return CONTACTS_MATCH_FULLSTRING;
   } else if (STR_FILTER_CONTAINS == match_flag) {
@@ -309,6 +325,7 @@ static contacts_match_str_flag_e getMatchFlag(const std::string& match_flag)
 
 static std::time_t toTimeT(const std::string &value)
 {
+  LoggerD("Entered");
   struct tm date;
   if (nullptr == strptime(value.c_str(), "%Y-%m-%dT%H:%M:%S", &date)) {
     LOGW("Couldn't convert supplied date.");
@@ -647,6 +664,7 @@ static void generateFilter(std::stack<contacts_filter_h>& stack,
 
 void CallHistoryUtils::createFilter(contacts_filter_h filter, const picojson::object filter_obj)
 {
+  LoggerD("Entered");
   std::stack<contacts_filter_h> filter_stack;
   filter_stack.push(filter);
   generateFilter(filter_stack, filter_obj, CompositeTypeEnum::NONE);

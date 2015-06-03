@@ -1,6 +1,18 @@
-// Copyright 2014 Samsung Electronics Co, Ltd. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
+/*
+ * Copyright (c) 2015 Samsung Electronics Co., Ltd All Rights Reserved
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ */
 
 #include "download/download_instance.h"
 
@@ -33,6 +45,7 @@ using common::ServiceNotAvailableException;
 using common::TypeMismatchException;
 
 DownloadInstance::DownloadInstance() {
+  LoggerD("Entered");
   using std::placeholders::_1;
   using std::placeholders::_2;
   #define REGISTER_SYNC(c, x) \
@@ -53,6 +66,7 @@ DownloadInstance::DownloadInstance() {
 }
 
 DownloadInstance::~DownloadInstance() {
+  LoggerD("Entered");
   for (DownloadCallbackVector::iterator it = downCbVector.begin();
     it != downCbVector.end(); it++) {
     delete (*it);
@@ -86,6 +100,7 @@ bool DownloadInstance::CheckInstance(DownloadInstance* instance) {
 
 void DownloadInstance::OnStateChanged(int download_id,
   download_state_e state, void* user_data) {
+  LoggerD("Entered");
   DownloadCallback* downCbPtr = static_cast<DownloadCallback*>(user_data);
 
   downCbPtr->state = state;
@@ -114,6 +129,7 @@ void DownloadInstance::OnStateChanged(int download_id,
 }
 
 gboolean DownloadInstance::OnProgressChanged(void* user_data) {
+  LoggerD("Entered");
   DownloadCallback* downCbPtr = static_cast<DownloadCallback*>(user_data);
   std::lock_guard<std::mutex> lock(instances_mutex_);
   if (!CheckInstance(downCbPtr->instance)) {
@@ -140,6 +156,7 @@ gboolean DownloadInstance::OnProgressChanged(void* user_data) {
 }
 
 void DownloadInstance::OnStart(int download_id, void* user_data) {
+  LoggerD("Entered");
   unsigned long long totalSize;
   int ret;
 
@@ -159,6 +176,7 @@ void DownloadInstance::OnStart(int download_id, void* user_data) {
 }
 
 gboolean DownloadInstance::OnFinished(void* user_data) {
+  LoggerD("Entered");
   char* fullPath = NULL;
 
   DownloadCallback* downCbPtr = static_cast<DownloadCallback*>(user_data);
@@ -188,6 +206,7 @@ gboolean DownloadInstance::OnFinished(void* user_data) {
 }
 
 gboolean DownloadInstance::OnPaused(void* user_data) {
+  LoggerD("Entered");
   DownloadCallback* downCbPtr = static_cast<DownloadCallback*>(user_data);
   std::lock_guard<std::mutex> lock(instances_mutex_);
   if (!CheckInstance(downCbPtr->instance)) {
@@ -208,6 +227,7 @@ gboolean DownloadInstance::OnPaused(void* user_data) {
 }
 
 gboolean DownloadInstance::OnCanceled(void* user_data) {
+  LoggerD("Entered");
   DownloadCallback* downCbPtr = static_cast<DownloadCallback*>(user_data);
   std::lock_guard<std::mutex> lock(instances_mutex_);
   if (!CheckInstance(downCbPtr->instance)) {
@@ -232,6 +252,7 @@ gboolean DownloadInstance::OnCanceled(void* user_data) {
 }
 
 gboolean DownloadInstance::OnFailed(void* user_data) {
+  LoggerD("Entered");
   download_error_e error;
   picojson::object out;
 
@@ -269,9 +290,10 @@ gboolean DownloadInstance::OnFailed(void* user_data) {
         "The application does not have the privilege to call this method."),
         out);
       break;
-    case DOWNLOAD_ERROR_NOT_SUPPORTED:
-      instance->ReportError(NotSupportedException("Not supported"), out);
-      break;
+    // TODO(p.kaczmarek3) temporarily removed - not supported by platform
+    //case DOWNLOAD_ERROR_NOT_SUPPORTED:
+    //  instance->ReportError(NotSupportedException("Not supported"), out);
+    //  break;
     case DOWNLOAD_ERROR_INVALID_STATE:
       instance->ReportError(InvalidStateException("Invalid state"), out);
       break;
@@ -333,10 +355,11 @@ gboolean DownloadInstance::OnFailed(void* user_data) {
       instance->ReportError(NotFoundException(
         "Download ID does not exist in download service module"), out);
       break;
-    case DOWNLOAD_ERROR_INVALID_NETWORK_TYPE:
-      instance->ReportError(InvalidValuesException(
-        "Network bonding is set but network type is not set as ALL"), out);
-      break;
+    // TODO(p.kaczmarek3) temporarily removed - not supported by platform
+    //case DOWNLOAD_ERROR_INVALID_NETWORK_TYPE:
+    //  instance->ReportError(InvalidValuesException(
+    //    "Network bonding is set but network type is not set as ALL"), out);
+    //  break;
     case DOWNLOAD_ERROR_NO_DATA:
       instance->ReportError(NotFoundException(
         "No data because the set API is not called"), out);
@@ -355,6 +378,7 @@ gboolean DownloadInstance::OnFailed(void* user_data) {
 
 void DownloadInstance::progress_changed_cb
   (int download_id, long long unsigned received, void* user_data) {
+  LoggerD("Entered");
   DownloadCallback* downCbPtr = static_cast<DownloadCallback*>(user_data);
   downCbPtr->received = received;
   downCbPtr->downloadId = download_id;
@@ -364,6 +388,7 @@ void DownloadInstance::progress_changed_cb
 
 void DownloadInstance::DownloadManagerStart
   (const picojson::value& args, picojson::object& out) {
+  LoggerD("Entered");
   CHECK_EXIST(args, "callbackId", out)
 
   int ret, downlodId;
@@ -428,6 +453,7 @@ void DownloadInstance::DownloadManagerStart
     network_available = cell_available || wifi_available;
     diPtr->network_type = DOWNLOAD_NETWORK_ALL;
   } else {
+    LoggerE("The input parameter contains an invalid network type");
     ReportError(
         InvalidValuesException(
             "The input parameter contains an invalid network type."),
@@ -437,6 +463,7 @@ void DownloadInstance::DownloadManagerStart
 
   if (!network_support) {
     SLoggerE("Requested network type (%s) is not supported.", networkType.c_str());
+    LoggerE("Requested network type is not supported");
     ReportError(
         common::PlatformResult(common::ErrorCode::NOT_SUPPORTED_ERR,
                                "The networkType of the given DownloadRequest "
@@ -447,6 +474,7 @@ void DownloadInstance::DownloadManagerStart
 
   if (!network_available) {
     SLoggerE("Requested network type (%s) is not available.", networkType.c_str());
+    LoggerE("Requested network type is not available");
     ReportError(
         common::PlatformResult(common::ErrorCode::NETWORK_ERR,
                                "The networkType of the given DownloadRequest "
@@ -527,12 +555,14 @@ void DownloadInstance::DownloadManagerStart
 
 void DownloadInstance::DownloadManagerCancel
   (const picojson::value& args, picojson::object& out) {
+  LoggerD("Entered");
   CHECK_EXIST(args, "downloadId", out)
   int downloadId, ret;
 
   int callbackId = static_cast<int>(args.get("downloadId").get<double>());
 
   if (!GetDownloadID(callbackId, downloadId)) {
+    LoggerE("The identifier does not match any download operation in progress");
     ReportError(NotFoundException
       ("The identifier does not match any download operation in progress"),
       out);
@@ -560,12 +590,14 @@ void DownloadInstance::DownloadManagerCancel
 
 void DownloadInstance::DownloadManagerPause
   (const picojson::value& args, picojson::object& out) {
+  LoggerD("Entered");
   CHECK_EXIST(args, "downloadId", out)
   int downloadId, ret;
 
   int callbackId = static_cast<int>(args.get("downloadId").get<double>());
 
   if (!GetDownloadID(callbackId, downloadId)) {
+    LoggerE("The identifier does not match any download operation in progress");
     ReportError(NotFoundException(
       "The identifier does not match any download operation in progress"),
       out);
@@ -593,6 +625,7 @@ void DownloadInstance::DownloadManagerPause
 
 void DownloadInstance::DownloadManagerResume
   (const picojson::value& args, picojson::object& out) {
+  LoggerD("Entered");
   CHECK_EXIST(args, "downloadId", out)
   int downloadId, ret;
 
@@ -636,6 +669,7 @@ void DownloadInstance::DownloadManagerResume
 }
 void DownloadInstance::DownloadManagerGetstate
   (const picojson::value& args, picojson::object& out) {
+  LoggerD("Entered");
   CHECK_EXIST(args, "downloadId", out)
   int downloadId, ret;
   std::string stateValue;
@@ -644,6 +678,7 @@ void DownloadInstance::DownloadManagerGetstate
   int callbackId = static_cast<int>(args.get("downloadId").get<double>());
 
   if (!GetDownloadID(callbackId, downloadId)) {
+    LoggerE("The identifier does not match any download operation in progress");
     ReportError(NotFoundException
       ("The identifier does not match any download operation in progress"),
       out);
@@ -693,6 +728,7 @@ void DownloadInstance::DownloadManagerGetstate
 
 void DownloadInstance::DownloadManagerGetmimetype
   (const picojson::value& args, picojson::object& out) {
+  LoggerD("Entered");
   CHECK_EXIST(args, "downloadId", out)
 
   int downloadId, ret;
@@ -729,7 +765,7 @@ void DownloadInstance::DownloadManagerGetmimetype
 
 bool DownloadInstance::GetDownloadID
   (const int callback_id, int& download_id) {
-
+  LoggerD("Entered");
   if (diMap.find(callback_id) != diMap.end()) {
     download_id = diMap.find(callback_id)->second->download_id;
   } else {
@@ -740,11 +776,13 @@ bool DownloadInstance::GetDownloadID
 
 void DownloadInstance::DownloadManagerGetdownloadrequest
   (const picojson::value& args, picojson::object& out) {
+  LoggerD("Entered");
   // Nothing to do
 }
 
 void DownloadInstance::DownloadManagerSetlistener
   (const picojson::value& args, picojson::object& out) {
+  LoggerD("Entered");
   // Nothing to do
 }
 

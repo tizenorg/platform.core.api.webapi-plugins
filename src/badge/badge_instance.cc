@@ -1,7 +1,19 @@
-// Copyright 2015 Samsung Electronics Co, Ltd. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
-
+/*
+ * Copyright (c) 2015 Samsung Electronics Co., Ltd All Rights Reserved
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ */
+ 
 #include "badge/badge_instance.h"
 
 #include "common/converter.h"
@@ -13,6 +25,7 @@ using namespace common;
 using namespace extension::badge;
 
 BadgeInstance::BadgeInstance() : manager_(*this) {
+  LoggerD("Enter");
   using std::placeholders::_1;
   using std::placeholders::_2;
 
@@ -27,10 +40,13 @@ BadgeInstance::BadgeInstance() : manager_(*this) {
 #undef REGISTER_SYNC
 }
 
-BadgeInstance::~BadgeInstance() {}
+BadgeInstance::~BadgeInstance() {
+  LoggerD("Enter");
+}
 
 void BadgeInstance::BadgeManagerSetBadgeCount(const JsonValue& args,
                                               JsonObject& out) {
+  LoggerD("Enter");
   std::string app_id =
       common::FromJson<std::string>(args.get<JsonObject>(), "appId");
   const double count = args.get("count").get<double>();
@@ -45,6 +61,7 @@ void BadgeInstance::BadgeManagerSetBadgeCount(const JsonValue& args,
 
 void BadgeInstance::BadgeManagerGetBadgeCount(const JsonValue& args,
                                               JsonObject& out) {
+  LoggerD("Enter");
   std::string app_id =
       common::FromJson<std::string>(args.get<JsonObject>(), "appId");
 
@@ -59,6 +76,7 @@ void BadgeInstance::BadgeManagerGetBadgeCount(const JsonValue& args,
 
 void BadgeInstance::BadgeManagerAddChangeListener(const JsonValue& args,
                                                   JsonObject& out) {
+  LoggerD("Enter");
   PlatformResult status =
       manager_.AddChangeListener(args.get<JsonObject>());
 
@@ -70,6 +88,7 @@ void BadgeInstance::BadgeManagerAddChangeListener(const JsonValue& args,
 
 void BadgeInstance::BadgeManagerRemoveChangeListener(const JsonValue& args,
                                                      JsonObject& out) {
+  LoggerD("Enter");
   PlatformResult status =
       manager_.RemoveChangeListener(args.get<JsonObject>());
 

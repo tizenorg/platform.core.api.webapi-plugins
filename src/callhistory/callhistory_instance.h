@@ -24,6 +24,7 @@ class CallHistoryInstance : public common::ParsedInstance {
   void RemoveAll(const picojson::value& args, picojson::object& out);
   void AddChangeListener (const picojson::value& args, picojson::object& out);
   void RemoveChangeListener(const picojson::value& args, picojson::object& out);
+  void SetMissedDirection(const picojson::value& args, picojson::object& out);
 
   CallHistory history_;
 };

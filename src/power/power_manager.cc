@@ -1,6 +1,18 @@
-// Copyright 2014 Samsung Electronics Co, Ltd. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
+/*
+ * Copyright (c) 2015 Samsung Electronics Co., Ltd All Rights Reserved
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ */
 
 #include "power_manager.h"
 
@@ -31,6 +43,8 @@ PowerManager::PowerManager()
       set_custom_brightness_(false),
       current_requested_state_(POWER_STATE_NONE) {
 
+  LoggerD("Enter");
+
   display_state_e platform_state = DISPLAY_STATE_NORMAL;
   int ret = device_display_get_state(&platform_state);
   if (DEVICE_ERROR_NONE != ret)
@@ -59,6 +73,7 @@ PowerManager::PowerManager()
 }
 
 PowerManager::~PowerManager() {
+  LoggerD("Enter");
   int ret = device_remove_callback(DEVICE_CALLBACK_DISPLAY_STATE,
                                    PowerManager::OnPlatformStateChangedCB);
   if (DEVICE_ERROR_NONE != ret)
@@ -66,11 +81,13 @@ PowerManager::~PowerManager() {
 }
 
 PowerManager* PowerManager::GetInstance(){
+  LoggerD("Enter");
   static PowerManager instance;
   return &instance;
 }
 
 void PowerManager::OnPlatformStateChangedCB(device_callback_e type, void* value, void* user_data) {
+  LoggerD("Enter");
   PowerManager* object = static_cast<PowerManager*>(user_data);
   if (object == NULL){
     LoggerE("User data is NULL");
@@ -107,16 +124,19 @@ void PowerManager::OnPlatformStateChangedCB(device_callback_e type, void* value,
 }
 
 void PowerManager::AddListener(PowerManagerListener* listener) {
+  LoggerD("Enter");
   auto it = std::find(listeners_.begin(), listeners_.end(), listener);
   if (it == listeners_.end())
     listeners_.push_back(listener);
 }
 
 void PowerManager::RemoveListener(PowerManagerListener* listener) {
+  LoggerD("Enter");
   listeners_.remove(listener);
 }
 
 PlatformResult PowerManager::Request(PowerResource resource, PowerState state) {
+  LoggerD("Enter");
   if (resource == POWER_RESOURCE_SCREEN && state == POWER_STATE_CPU_AWAKE)
     return PlatformResult(ErrorCode::INVALID_VALUES_ERR, "invalid PowerState");
   if (resource == POWER_RESOURCE_CPU && state != POWER_STATE_CPU_AWAKE)
@@ -216,6 +236,7 @@ PlatformResult PowerManager::Request(PowerResource resource, PowerState state) {
 }
 
 PlatformResult PowerManager::Release(PowerResource resource) {
+  LoggerD("Enter");
   int ret;
   if (POWER_RESOURCE_SCREEN == resource) {
     ret = device_power_release_lock(POWER_LOCK_DISPLAY);
@@ -259,6 +280,7 @@ PlatformResult PowerManager::Release(PowerResource resource) {
 }
 
 PlatformResult PowerManager::GetScreenBrightness(double* output) {
+  LoggerD("Enter");
   int brightness = GetPlatformBrightness();
   LoggerD("Brightness value: %d", brightness);
 
@@ -274,6 +296,7 @@ PlatformResult PowerManager::GetScreenBrightness(double* output) {
 }
 
 PlatformResult PowerManager::SetScreenBrightness(double brightness) {
+  LoggerD("Enter");
   if (brightness > 1 || brightness < 0)
     return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
                           "brightness should be 0 <= brightness <= 1");
@@ -297,6 +320,7 @@ PlatformResult PowerManager::SetScreenBrightness(double brightness) {
 }
 
 bool PowerManager::IsScreenOn() {
+  LoggerD("Enter");
   display_state_e platform_state = DISPLAY_STATE_NORMAL;
   int ret = device_display_get_state(&platform_state);
   if (DEVICE_ERROR_NONE != ret)
@@ -305,6 +329,7 @@ bool PowerManager::IsScreenOn() {
 }
 
 PlatformResult PowerManager::SetScreenState(bool onoff) {
+  LoggerD("Enter");
   int ret = device_display_change_state(onoff ? DISPLAY_STATE_NORMAL : DISPLAY_STATE_SCREEN_OFF);
   if (DEVICE_ERROR_NONE != ret) {
     LoggerE("Platform error while changing screen state %d", ret);
@@ -323,6 +348,7 @@ PlatformResult PowerManager::SetScreenState(bool onoff) {
 }
 
 PlatformResult PowerManager::RestoreScreenBrightness() {
+  LoggerD("Enter");
   int ret = PowerPlatformProxy::GetInstance().SetBrightnessFromSettings();
   if (DEVICE_ERROR_NONE != ret) {
     LoggerE("Platform error while restoring brightness %d", ret);
@@ -333,6 +359,7 @@ PlatformResult PowerManager::RestoreScreenBrightness() {
 }
 
 PlatformResult PowerManager::SetPlatformBrightness(int brightness) {
+  LoggerD("Enter");
   if (current_state_ == POWER_STATE_SCREEN_DIM) {
     current_brightness_ = brightness;
     LoggerD("Current state is not normal state the value is saved in cache: %d", brightness);
@@ -389,6 +416,7 @@ int PowerManager::GetPlatformBrightness(){
 
 
 PlatformResult PowerManager::RestoreSettedBrightness() {
+  LoggerD("Enter");
   PlatformResult result(ErrorCode::NO_ERROR);
   int is_custom_mode = 0;
   vconf_get_int(VCONFKEY_PM_CUSTOM_BRIGHTNESS_STATUS, &is_custom_mode);
@@ -405,6 +433,7 @@ PlatformResult PowerManager::RestoreSettedBrightness() {
 }
 
 void PowerManager::BroadcastScreenState(PowerState current) {
+  LoggerD("Enter");
   if (current_state_ == current)
     return;
 

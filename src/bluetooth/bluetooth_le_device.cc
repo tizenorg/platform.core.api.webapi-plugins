@@ -57,6 +57,7 @@ BluetoothLEDevice::BluetoothLEDevice(BluetoothInstance& instance,
     : instance_(instance),
       service_(service),
       is_listener_set_(false) {
+  LoggerD("Entered");
   int ret = bt_gatt_set_connection_state_changed_cb(GattConnectionState, this);
   if (BT_ERROR_NONE != ret && BT_ERROR_ALREADY_DONE != ret) {
     LoggerE("Can't add connection state listener: %d", ret);
@@ -64,6 +65,7 @@ BluetoothLEDevice::BluetoothLEDevice(BluetoothInstance& instance,
 }
 
 BluetoothLEDevice::~BluetoothLEDevice() {
+  LoggerD("Entered");
   int ret = bt_gatt_unset_connection_state_changed_cb();
   if (ret != BT_ERROR_NONE) {
     LoggerW("Failed to unset listener: %d", ret);
@@ -120,6 +122,7 @@ static void ManufacturerToJson(int manufacturer_id, char *manufacturer_data,
 PlatformResult BluetoothLEDevice::ToJson(
     bt_adapter_le_device_scan_result_info_s* info,
     picojson::object* le_device) {
+
   LoggerD("Entered");
 
   le_device->insert(

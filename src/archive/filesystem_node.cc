@@ -1,22 +1,17 @@
-//
-// Tizen Web Device API
-// Copyright (c) 2014 Samsung Electronics Co., Ltd.
-//
-// Licensed under the Apache License, Version 2.0 (the License);
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-// http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-//
-
-/**
- * @file        Node.cpp
+/*
+ * Copyright (c) 2015 Samsung Electronics Co., Ltd All Rights Reserved
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
  */
 
 #include "filesystem_node.h"
@@ -44,6 +39,7 @@ using namespace common;
 #define MAX_NODE_LENGTH 256
 PlatformResult Node::checkPermission(const PathPtr &path, const std::string &mode, NodeType type, bool* granted)
 {
+    LoggerD("Enter");
     *granted = false;
 
     switch (type)
@@ -53,12 +49,12 @@ PlatformResult Node::checkPermission(const PathPtr &path, const std::string &mod
             DIR* dir = opendir(path->getFullPath().c_str());
 
             if (!dir) {
-                LoggerW("throw InvalidValuesException");
+                LoggerE("throw InvalidValuesException");
                 return PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Node has been deleted from platform.");
             }
 
             if (closedir(dir) != 0) {
-                LoggerW("throw InvalidValuesException");
+                LoggerE("throw InvalidValuesException");
                 return PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Could not close platform node.");
             }
 
@@ -88,7 +84,7 @@ PlatformResult Node::checkPermission(const PathPtr &path, const std::string &mod
                 *granted = true;
                 return PlatformResult(ErrorCode::NO_ERROR);
             }
-            LoggerW("throw InvalidValuesException");
+            LoggerE("throw InvalidValuesException");
             return PlatformResult(ErrorCode::INVALID_VALUES_ERR, "invalid mode");
         }
         break;
@@ -107,7 +103,7 @@ PlatformResult Node::checkPermission(const PathPtr &path, const std::string &mod
             }
             else
             {
-                LoggerW("throw InvalidValuesException");
+                LoggerE("throw InvalidValuesException");
                 return PlatformResult(ErrorCode::INVALID_VALUES_ERR, "invalid mode");
             }
 
@@ -138,21 +134,21 @@ PlatformResult Node::resolve(const PathPtr& path, NodePtr* node)
         switch (errno)
         {
             case EACCES:
-                LoggerW("throw InvalidValuesException for file:[%s]", path->getFullPath().c_str());
+                LoggerE("throw InvalidValuesException for file:[%s]", path->getFullPath().c_str());
                 return PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Node access denied");
                 break;
             case ENOENT:
-                LoggerW("throw NotFoundException for file:[%s]", path->getFullPath().c_str());
+                LoggerE("throw NotFoundException for file:[%s]", path->getFullPath().c_str());
                 return PlatformResult(ErrorCode::NOT_FOUND_ERR, "NotFoundError");
                 break;
             default:
-                LoggerW("throw IOException for file:[%s]", path->getFullPath().c_str());
+                LoggerE("throw IOException for file:[%s]", path->getFullPath().c_str());
                 return PlatformResult(ErrorCode::IO_ERR, "Platform exception fail");
         }
     }
 
     if (!S_ISDIR(info.st_mode) & !S_ISREG(info.st_mode) && !S_ISLNK(info.st_mode)) {
-        LoggerW("throw IOException for file:[%s]", path->getFullPath().c_str());
+        LoggerE("throw IOException for file:[%s]", path->getFullPath().c_str());
         return PlatformResult(ErrorCode::IO_ERR, "Platform node is of unsupported type.");
     }
 
@@ -161,6 +157,7 @@ PlatformResult Node::resolve(const PathPtr& path, NodePtr* node)
     if (S_ISLNK(info.st_mode)) {
         PlatformResult result = stat(path, &syminfo);
         if (result.error_code() != ErrorCode::NO_ERROR) {
+            LoggerE("Error: %s", result.message().c_str());
             return result;
         }
 
@@ -183,6 +180,7 @@ PathPtr Node::getPath() const
 
 PlatformResult Node::getChild(const PathPtr& path, NodePtr* node)
 {
+    LoggerD("Enter");
     if (m_type != NT_DIRECTORY) {
         LoggerW("throw IOException");
         return PlatformResult(ErrorCode::IO_ERR, "Not a directory.");
@@ -207,19 +205,20 @@ void Node::setPermissions(int perms)
 
 PlatformResult Node::getChildNames(Node::NameList* out_name_list) const
 {
+    LoggerD("Enter");
     if (m_type != NT_DIRECTORY) {
-        LoggerW("throw IOException");
+        LoggerE("throw IOException");
         return PlatformResult(ErrorCode::IO_ERR, "Node is not directory.");
     }
 
     if ((m_perms & PERM_READ) == 0) {
-        LoggerW("throw InvalidValuesException");
+        LoggerE("throw InvalidValuesException");
         return PlatformResult(ErrorCode::INVALID_VALUES_ERR, "No permission.");
     }
 
     DIR* dir = opendir(m_path->getFullPath().c_str());
     if (!dir) {
-        LoggerW("throw IOException");
+        LoggerE("throw IOException");
         return PlatformResult(ErrorCode::IO_ERR, "Node has been deleted from platform.");
     }
 
@@ -233,12 +232,12 @@ PlatformResult Node::getChildNames(Node::NameList* out_name_list) const
         name_list.push_back(entry->d_name);
     }
     if (errno != 0) {
-        LoggerW("throw IOException");
+        LoggerE("throw IOException");
         return PlatformResult(ErrorCode::IO_ERR, "Error while reading directory.");
     }
 
     if (closedir(dir) != 0) {
-        LoggerW("throw IOException");
+        LoggerE("throw IOException");
         return PlatformResult(ErrorCode::IO_ERR, "Could not close platform node.");
     }
 
@@ -248,23 +247,25 @@ PlatformResult Node::getChildNames(Node::NameList* out_name_list) const
 
 PlatformResult Node::getChildNodes(NodeList* out_node_list) const
 {
+    LoggerD("Enter");
+
     if (m_type != NT_DIRECTORY) {
-        LoggerW("Path %s Perm %d", m_path->getFullPath().c_str(), m_perms);
-        LoggerW("throw IOException");
-        LoggerW("Path %s Perm %d", m_path->getFullPath().c_str(), m_perms);
+        LoggerE("Path %s Perm %d", m_path->getFullPath().c_str(), m_perms);
+        LoggerE("throw IOException");
+        LoggerE("Path %s Perm %d", m_path->getFullPath().c_str(), m_perms);
         return PlatformResult(ErrorCode::IO_ERR, "Node is not directory.");
     }
 
     if ((m_perms & PERM_READ) == 0) {
-        LoggerW("Path %s Perm %d", m_path->getFullPath().c_str(), m_perms);
-        LoggerW("throw InvalidValuesException");
+        LoggerE("Path %s Perm %d", m_path->getFullPath().c_str(), m_perms);
+        LoggerE("throw InvalidValuesException");
         return PlatformResult(ErrorCode::INVALID_VALUES_ERR, "No permission.");
     }
 
     DIR* dir = opendir(m_path->getFullPath().c_str());
     if (!dir) {
-        LoggerW("Path %s Perm %d", m_path->getFullPath().c_str(), m_perms);
-        LoggerW("throw IOException");
+        LoggerE("Path %s Perm %d", m_path->getFullPath().c_str(), m_perms);
+        LoggerE("throw IOException");
         return PlatformResult(ErrorCode::IO_ERR, "Node has been deleted from platform.");
     }
 
@@ -283,14 +284,14 @@ PlatformResult Node::getChildNodes(NodeList* out_node_list) const
     }
 
     if (errno != 0) {
-        LoggerW("Path %s Perm %d", m_path->getFullPath().c_str(), m_perms);
-        LoggerW("throw IOException");
+        LoggerE("Path %s Perm %d", m_path->getFullPath().c_str(), m_perms);
+        LoggerE("throw IOException");
         return PlatformResult(ErrorCode::IO_ERR, "Error while reading directory.");
     }
 
     if (closedir(dir) != 0) {
-        LoggerW("Path %s Perm %d", m_path->getFullPath().c_str(), m_perms);
-        LoggerW("throw IOException");
+        LoggerE("Path %s Perm %d", m_path->getFullPath().c_str(), m_perms);
+        LoggerE("throw IOException");
         return PlatformResult(ErrorCode::IO_ERR, "Could not close platform node.");
     }
 
@@ -305,13 +306,14 @@ PlatformResult Node::createChild(
         NodePtr* node,
         int options)
 {
+    LoggerD("Enter");
     if (m_type != NT_DIRECTORY) {
-        LoggerW("throw IOException");
+        LoggerE("throw IOException");
         return PlatformResult(ErrorCode::IO_ERR, "Parent node is not a directory.");
     }
 
     if ((m_perms & PERM_WRITE) == 0) {
-        LoggerW("throw InvalidValuesException");
+        LoggerE("throw InvalidValuesException");
         return PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Not enough permissions.");
     }
 
@@ -319,10 +321,11 @@ PlatformResult Node::createChild(
     bool existed;
     PlatformResult result = exists(childPath, &existed);
     if (result.error_code() != ErrorCode::NO_ERROR) {
+        LoggerE("Fail: exists()");
         return result;
     }
     if (existed) {
-        LoggerW("throw IOException");
+        LoggerE("throw IOException");
         return PlatformResult(ErrorCode::IO_ERR, "Node already exists.");
     }
 
@@ -334,17 +337,18 @@ PlatformResult Node::createChild(
             result = createAsDirectory(childPath, node, options);
             break;
         default:
-            LoggerW("throw IOException");
+            LoggerE("throw IOException");
             return PlatformResult(ErrorCode::IO_ERR, "Unsupported node type.");
     }
     if (result.error_code() != ErrorCode::NO_ERROR) {
+        LoggerE("Fail CreateAs...()");
         return result;
     }
 
     if (!!(*node)) {
         (*node)->m_perms = m_perms;
     } else {
-        LoggerW("throw IOException");
+        LoggerE("throw IOException");
         return PlatformResult(ErrorCode::IO_ERR, "Node creation error");
     }
 
@@ -353,6 +357,7 @@ PlatformResult Node::createChild(
 
 PlatformResult Node::remove(int options)
 {
+    LoggerD("Enter");
     PlatformResult result(ErrorCode::NO_ERROR);
     switch (m_type) {
         case NT_FILE:
@@ -370,21 +375,23 @@ PlatformResult Node::remove(int options)
 
 PlatformResult Node::getSize(unsigned long long* size) const
 {
+    LoggerD("Enter");
     if (m_type == NT_DIRECTORY) {
-        LoggerW("Getting size for directories is not supported.");
-        LoggerW("throw IOException");
+        LoggerE("Getting size for directories is not supported.");
+        LoggerE("throw IOException");
         return PlatformResult(ErrorCode::IO_ERR, "Getting size for directories is not supported.");
     }
 
     struct stat info;
     PlatformResult result = stat(m_path, &info);
     if (result.error_code() != ErrorCode::NO_ERROR) {
+        LoggerE("Fail: stat()");
         return result;
     }
 
     if (!S_ISREG(info.st_mode)) {
-        LoggerW("Specified node is not a regular file.");
-        LoggerW("throw IOException");
+        LoggerE("Specified node is not a regular file.");
+        LoggerE("throw IOException");
         return PlatformResult(ErrorCode::IO_ERR, "Specified node is not a regular file.");
     }
 
@@ -395,9 +402,11 @@ PlatformResult Node::getSize(unsigned long long* size) const
 
 PlatformResult Node::getCreated(std::time_t* time) const
 {
+    LoggerD("Enter");
     struct stat info;
     PlatformResult result = stat(m_path, &info);
     if (result.error_code() != ErrorCode::NO_ERROR) {
+        LoggerE("Fail: stat()");
         return result;
     }
     *time = info.st_ctime;
@@ -406,9 +415,11 @@ PlatformResult Node::getCreated(std::time_t* time) const
 
 PlatformResult Node::getModified(std::time_t* time) const
 {
+    LoggerD("Enter");
     struct stat info;
     PlatformResult result = stat(m_path, &info);
     if (result.error_code() != ErrorCode::NO_ERROR) {
+        LoggerE("Fail: stat()");
         return result;
     }
     *time = info.st_mtime;
@@ -418,6 +429,8 @@ PlatformResult Node::getModified(std::time_t* time) const
 // TODO Optimize it, maybe store a flag indicating that node is a root.
 PlatformResult Node::getParent(NodePtr* node) const
 {
+    LoggerD("Enter");
+
 //    LocationPaths roots = Manager::getInstance().getLocationPaths();
 //    for (LocationPaths::iterator it = roots.begin(); it != roots.end(); ++it) {
 //        if (*(*it) == *m_path) {
@@ -434,6 +447,8 @@ PlatformResult Node::getParent(NodePtr* node) const
 
 PlatformResult Node::getMode(int* mode) const
 {
+    LoggerD("Enter");
+
     struct stat info;
     PlatformResult result = stat(m_path, &info);
     if (result.error_code() == ErrorCode::NO_ERROR) {
@@ -453,6 +468,8 @@ PlatformResult Node::getMode(int* mode) const
 
 PlatformResult Node::exists(const PathPtr& path, bool* existed)
 {
+    LoggerD("Enter");
+
     struct stat info;
     memset(&info, 0, sizeof(struct stat));
     int status = lstat(path->getFullPath().c_str(), &info);
@@ -466,7 +483,7 @@ PlatformResult Node::exists(const PathPtr& path, bool* existed)
     }
     else if (ENAMETOOLONG == errno)
     {
-        LoggerW("throw IOException");
+        LoggerE("throw IOException");
         return PlatformResult(ErrorCode::IO_ERR, "file name is too long");
     }
     else if (errno != ENOENT)
@@ -479,13 +496,14 @@ PlatformResult Node::exists(const PathPtr& path, bool* existed)
 
 PlatformResult Node::stat(const PathPtr& path, struct stat* out_info)
 {
+    LoggerD("Enter");
     struct stat info;
     memset(&info, 0, sizeof(struct stat));
 
     if (::stat(path->getFullPath().c_str(), &info) != 0)
     {
         LoggerE("File: %s", path->getFullPath().c_str());
-        LoggerW("throw IOException");
+        LoggerE("throw IOException");
         return PlatformResult(ErrorCode::IO_ERR, "Node does not exist or no access");
     }
     *out_info = info;
@@ -497,10 +515,13 @@ Node::Node(const PathPtr& path, NodeType type):
             m_type(type),
             m_perms(PERM_NONE)
 {
+    LoggerD("Enter");
 }
 
 PlatformResult Node::createAsFile(const PathPtr& path, NodePtr* node, int /* options */)
 {
+    LoggerD("Enter");
+
     PlatformResult result = createAsFileInternal(path);
     if (result.error_code() == ErrorCode::NO_ERROR) {
         node->reset(new Node(path, NT_FILE));
@@ -510,9 +531,11 @@ PlatformResult Node::createAsFile(const PathPtr& path, NodePtr* node, int /* opt
 
 PlatformResult Node::createAsFileInternal(const PathPtr& path)
 {
+    LoggerD("Enter");
+
     FILE* file = std::fopen(path->getFullPath().c_str(), "wb");
     if (!file) {
-        LoggerW("fopen fails IOException throw for path [%s]",
+        LoggerE("fopen fails IOException throw for path [%s]",
                 path->getFullPath().c_str());
         return PlatformResult(ErrorCode::IO_ERR, "Platform node could not be created.");
     }
@@ -522,6 +545,8 @@ PlatformResult Node::createAsFileInternal(const PathPtr& path)
 
 PlatformResult Node::createAsDirectory(const PathPtr& path, NodePtr* node, int options)
 {
+    LoggerD("Enter");
+
 //    if (options & OPT_RECURSIVE) {
 //        auto parts = Utils::getParts(path);
 //        for (auto it = parts.begin(); it != parts.end(); ++it) {
@@ -537,9 +562,11 @@ PlatformResult Node::createAsDirectory(const PathPtr& path, NodePtr* node, int o
 
 PlatformResult Node::createAsDirectoryInternal(const PathPtr& path)
 {
+    LoggerD("Enter");
+
     if (mkdir(path->getFullPath().c_str(), S_IRWXU | S_IRWXG | S_IROTH |
             S_IXOTH) != 0) {
-        LoggerW("throw IOException");
+        LoggerE("throw IOException");
         return PlatformResult(ErrorCode::IO_ERR, "Platform node could not be created.");
     }
     return PlatformResult(ErrorCode::NO_ERROR);
@@ -547,10 +574,12 @@ PlatformResult Node::createAsDirectoryInternal(const PathPtr& path)
 
 PlatformResult Node::removeAsFile(const PathPtr& path)
 {
+    LoggerD("Enter");
+
     auto fullPath = path->getFullPath();
     if (unlink(fullPath.c_str()) != 0) {
-        LoggerW("remove [%s]", fullPath.c_str());
-        LoggerW("throw IOException");
+        LoggerE("remove [%s]", fullPath.c_str());
+        LoggerE("throw IOException");
         return PlatformResult(ErrorCode::IO_ERR, "Error while removing platform node.");
     }
     return PlatformResult(ErrorCode::NO_ERROR);
@@ -558,11 +587,13 @@ PlatformResult Node::removeAsFile(const PathPtr& path)
 
 PlatformResult Node::removeAsDirectory(const PathPtr& path, bool recursive)
 {
+    LoggerD("Enter");
+
     if (recursive) {
         DIR* dir = opendir(path->getFullPath().c_str());
         if (!dir) {
-            LoggerW("File %s", path->getFullPath().c_str());
-            LoggerW("throw IOException");
+            LoggerE("File %s", path->getFullPath().c_str());
+            LoggerE("throw IOException");
             return PlatformResult(ErrorCode::IO_ERR, "Node does not exist or access denied.");
         }
         errno = 0;
@@ -582,6 +613,7 @@ PlatformResult Node::removeAsDirectory(const PathPtr& path, bool recursive)
                     result = removeAsFile(subPath);
                 }
                 if (result.error_code() != ErrorCode::NO_ERROR) {
+                    LoggerE("Fail: getFullPath() (%d)",result.error_code());
                     return result;
                 }
             }
@@ -592,10 +624,10 @@ PlatformResult Node::removeAsDirectory(const PathPtr& path, bool recursive)
     errno = 0;
     if (rmdir(path->getFullPath().c_str()) != 0) {
         if (errno == EEXIST) {
-            LoggerW("throw IOException");
+            LoggerE("throw IOException");
             return PlatformResult(ErrorCode::IO_ERR, "Node has child nodes.");
         }
-        LoggerW("throw IOException");
+        LoggerE("throw IOException");
         return PlatformResult(ErrorCode::IO_ERR, "Error while removing platform node.");
     }
 
@@ -604,12 +636,14 @@ PlatformResult Node::removeAsDirectory(const PathPtr& path, bool recursive)
 
 std::string Node::toUri(int /*widgetId*/) const
 {
+    LoggerD("Enter");
     // TODO I believe moving this feature to WrtWrapper would make more sense.
     return "file://" + m_path->getFullPath();
 }
 
 bool Node::isSubPath(std::string aDirPath, PathPtr aFilePath)
 {
+    LoggerD("Enter");
     auto myPath = aDirPath;
     if(!myPath.empty() && myPath[myPath.length()-1] != Path::getSeparator()) {
         myPath += Path::getSeparator();

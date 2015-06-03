@@ -1,3 +1,4 @@
+// Copyright (c) 2014 Intel Corporation. All rights reserved.
 // Copyright 2015 Samsung Electronics Co, Ltd. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -44,10 +45,12 @@ std::map<int, common::VirtualStorage> g_storages;
 std::map<const std::string, common::VirtualRoot> g_virtual_roots;
 
 void AddVirtualRoot(const std::string& name, const std::string& path) {
+  LoggerD("Enter");
   g_virtual_roots.insert(std::make_pair(name, common::VirtualRoot(name, path)));
 }
 
 void OnStorageStateChanged(int storage_id, storage_state_e state, void *user_data) {
+  LoggerD("Enter");
   const auto it = g_storages.find(storage_id);
 
   if (it != g_storages.end()) {
@@ -60,6 +63,7 @@ void OnStorageStateChanged(int storage_id, storage_state_e state, void *user_dat
 bool OnStorageDeviceSupported(int storage_id, storage_type_e type,
                               storage_state_e state, const char *path,
                               void *user_data) {
+  LoggerD("Enter");
   g_storages.insert(std::make_pair(storage_id, common::VirtualStorage(storage_id, type, state, path)));
 
   storage_set_state_changed_cb(storage_id, OnStorageStateChanged, nullptr);
@@ -83,6 +87,7 @@ bool OnStorageDeviceSupported(int storage_id, storage_type_e type,
 }
 
 common::optional<std::string> GetRootDir() {
+  LoggerD("Enter");
   std::string app_id = common::GetCurrentExtension()->GetRuntimeVariable("app_id", 64);
 
   app_info_h app_info;
@@ -182,6 +187,7 @@ VirtualStorage::VirtualStorage(int id, storage_type_e type,
       type_(type),
       state_(state),
       path_(path) {
+  LoggerD("Enter");
   switch (type_) {
     case STORAGE_TYPE_INTERNAL:
       name_ = "internal";
@@ -213,6 +219,7 @@ picojson::value VirtualStorage::ToJson() const {
 }
 
 VirtualFs::VirtualFs() : app_root_(GetRootDir()) {
+  LoggerD("Enter");
   if (app_root_) {
     AddVirtualRoot(kVirtualRootWgtPackage, *app_root_ + "/res/wgt");
     AddVirtualRoot(kVirtualRootWgtPrivate, *app_root_ + "/data");
@@ -236,6 +243,7 @@ VirtualFs::VirtualFs() : app_root_(GetRootDir()) {
 }
 
 VirtualFs::~VirtualFs() {
+  LoggerD("Enter");
   for (const auto kv : g_storages) {
     storage_unset_state_changed_cb(kv.second.id_, OnStorageStateChanged);
   }
@@ -247,6 +255,7 @@ VirtualFs& VirtualFs::GetInstance() {
 }
 
 optional<std::string> VirtualFs::GetVirtualRootDirectory(const std::string& name) const {
+  LoggerD("Enter");
   const auto it = g_virtual_roots.find(name);
   if (it != g_virtual_roots.end()) {
     return it->second.path_;
@@ -258,6 +267,7 @@ optional<std::string> VirtualFs::GetApplicationDirectory() const {
 }
 
 std::string VirtualFs::GetRealPath(const std::string& path_or_uri) const {
+  LoggerD("Enter");
   std::string realpath;
   std::size_t pos = path_or_uri.find(kFileUriPrefix);
   if (pos != std::string::npos) {
@@ -279,6 +289,7 @@ std::string VirtualFs::GetRealPath(const std::string& path_or_uri) const {
 }
 
 std::string VirtualFs::GetVirtualPath(const std::string& real_path) const {
+  LoggerD("Enter");
   for (const auto& kv : g_virtual_roots) {
     if (0 == real_path.compare(0, kv.second.path_.size(), kv.second.path_)) {
       return std::string(real_path).replace(0, kv.second.path_.size(), kv.first);
@@ -288,6 +299,7 @@ std::string VirtualFs::GetVirtualPath(const std::string& real_path) const {
 }
 
 std::vector<VirtualRoot> VirtualFs::GetVirtualRoots() const {
+  LoggerD("Enter");
   std::vector<VirtualRoot> r;
 
   for (const auto kv : g_virtual_roots) {
@@ -298,6 +310,7 @@ std::vector<VirtualRoot> VirtualFs::GetVirtualRoots() const {
 }
 
 std::vector<VirtualStorage> VirtualFs::GetStorages() const {
+  LoggerD("Enter");
   std::vector<VirtualStorage> r;
 
   for (const auto kv : g_storages) {

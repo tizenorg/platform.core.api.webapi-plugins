@@ -3,10 +3,12 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+#include <common/logger.h>
 #include "time/time_extension.h"
 #include "time/time_instance.h"
 
 common::Extension* CreateExtension() {
+  LoggerD("Entered");
   return new TimeExtension;
 }
 
@@ -14,6 +16,7 @@ common::Extension* CreateExtension() {
 extern const char kSource_time_api[];
 
 TimeExtension::TimeExtension() {
+  LoggerD("Entered");
   SetExtensionName("tizen.time");
   SetJavaScriptAPI(kSource_time_api);
 
@@ -25,8 +28,11 @@ TimeExtension::TimeExtension() {
   SetExtraJSEntryPoints(entry_points);
 }
 
-TimeExtension::~TimeExtension() {}
+TimeExtension::~TimeExtension() {
+  LoggerD("Entered");
+}
 
 common::Instance* TimeExtension::CreateInstance() {
+  LoggerD("Entered");
   return new extension::time::TimeInstance();
 }

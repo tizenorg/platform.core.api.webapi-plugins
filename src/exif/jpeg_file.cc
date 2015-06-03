@@ -1,20 +1,18 @@
-//
-// Tizen Web Device API
-// Copyright (c) 2014 Samsung Electronics Co., Ltd.
-//
-// Licensed under the Apache License, Version 2.0 (the License);
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-// http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-//
-
+/*
+ * Copyright (c) 2015 Samsung Electronics Co., Ltd All Rights Reserved
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ */
 //
 // For details of JPEG file format see:
 // http://www.media.mit.edu/pia/Research/deepview/exif.html
@@ -120,6 +118,7 @@ JpegFile::~JpegFile() {
 }
 
 PlatformResult JpegFile::loadFile(const std::string& path, JpegFilePtr* jpg_ptr) {
+  LoggerD("Entered");
   JpegFile* new_jpg = new (std::nothrow) JpegFile();
   if (!new_jpg) {
     LoggerE("Couldn't allocate Jpegfile!");
@@ -189,6 +188,7 @@ PlatformResult JpegFile::load(const std::string& path) {
 std::string JpegFile::getPartOfFile(const std::size_t offset,
                                     const std::size_t num_bytes_before,
                                     const std::size_t num_bytes_after) {
+  LoggerD("Entered");
   long long int start = static_cast<long long int>(offset) - num_bytes_before;
   if (start < 0) {
     start = 0;
@@ -453,6 +453,7 @@ bool JpegFile::searchForTagInBuffer(const unsigned char* buffer_start,
 }
 
 PlatformResult JpegFile::setNewExifData(ExifData* new_exif_data) {
+  LoggerD("Entered");
   AssertMsg(new_exif_data, "Trying to set NULL exif_data!");
 
   JpegFileSectionPtr exif = getExifSection();
@@ -508,6 +509,7 @@ PlatformResult JpegFile::setNewExifData(ExifData* new_exif_data) {
 }
 
 ExifData* JpegFile::getExifData() {
+  LoggerD("Entered");
   JpegFileSectionPtr exif = getExifSection();
   if (!exif) {
     return NULL;
@@ -717,6 +719,7 @@ PlatformResult JpegFile::saveToFilePriv(const std::string& out_path) {
 }
 
 JpegFileSectionPtr JpegFile::getExifSection() {
+  LoggerD("Entered");
   std::size_t num_exif_sections = 0;
   JpegFileSectionPtr first_exif_section;
 

@@ -1,19 +1,18 @@
-//
-// Tizen Web Device API
-// Copyright (c) 2014 Samsung Electronics Co., Ltd.
-//
-// Licensed under the Apache License, Version 2.0 (the License);
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-// http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-//
+/*
+ * Copyright (c) 2015 Samsung Electronics Co., Ltd All Rights Reserved
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ */
 
 #include "zip_add_request.h"
 #include "common/logger.h"
@@ -39,10 +38,13 @@ ZipAddRequest::ZipAddRequest(Zip& owner, AddProgressCallback*& callback) :
         m_compression_level(0),
         m_new_file_in_zip_opened(false)
 {
+    LoggerD("Enter");
+
 }
 
 ZipAddRequest::~ZipAddRequest()
 {
+    LoggerD("Enter");
     if(m_input_file) {
         fclose(m_input_file);
         m_input_file = NULL;
@@ -62,12 +64,14 @@ ZipAddRequest::~ZipAddRequest()
 
 PlatformResult ZipAddRequest::execute(Zip& owner, AddProgressCallback*& callback)
 {
+    LoggerD("Enter");
     ZipAddRequest req(owner, callback);
     return req.run();
 }
 
 PlatformResult ZipAddRequest::run()
 {
+    LoggerD("Enter");
     if(!m_callback) {
         LoggerE("m_callback is NULL");
         return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not add file(-s) to archive");
@@ -186,6 +190,7 @@ PlatformResult ZipAddRequest::run()
 void ZipAddRequest::addNodeAndSubdirsToList(filesystem::NodePtr src_node,
         filesystem::NodeList& out_list_of_child_nodes)
 {
+    LoggerD("Enter");
     out_list_of_child_nodes.push_back(src_node);
 
     if(filesystem::NT_DIRECTORY == src_node->getType()) {
@@ -286,6 +291,7 @@ PlatformResult ZipAddRequest::addEmptyDirectoryToZipArchive(std::string name_in_
 
 PlatformResult ZipAddRequest::addToZipArchive(filesystem::NodePtr src_file_node)
 {
+    LoggerD("Enter");
     const std::string name_in_zip = getNameInZipArchiveFor(src_file_node,
             m_callback->getFileEntry()->getStriped());
     const std::string src_file_path = src_file_node->getPath()->getFullPath();
@@ -466,6 +472,7 @@ PlatformResult ZipAddRequest::addToZipArchive(filesystem::NodePtr src_file_node)
 
 std::string removeDirCharsFromFront(const std::string& path)
 {
+    LoggerD("Enter");
     for(size_t i = 0; i < path.length(); ++i) {
         const char& cur = path[i];
         if(cur != '/' && cur != '\\') {
@@ -478,6 +485,7 @@ std::string removeDirCharsFromFront(const std::string& path)
 
 std::string generateFullPathForZip(const std::string& path)
 {
+    LoggerD("Enter");
     //Step 1: Remove / from begining
     const size_t path_len = path.length();
 
@@ -513,6 +521,7 @@ std::string generateFullPathForZip(const std::string& path)
 
 std::string ZipAddRequest::getNameInZipArchiveFor(filesystem::NodePtr node, bool strip)
 {
+    LoggerD("Enter");
     const std::string node_full_path = node->getPath()->getFullPath();
     std::string cut_path;
 

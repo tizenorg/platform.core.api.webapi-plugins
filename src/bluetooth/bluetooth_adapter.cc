@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Samsung Electronics Co., Ltd All Rights Reserved
+ * Copyright (c) 2015 Samsung Electronics Co., Ltd All Rights Reserved
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -294,9 +294,10 @@ void BluetoothAdapter::DiscoveryStateChangedCB(
           }
 
           data_obj->insert(std::make_pair(kData, picojson::value(adapter->discovered_devices_)));
-          adapter->instance_.FireEvent(kAdapterDiscoverSuccessEvent, value);
 
+          //TODO Consider if all events during scanning shouldn't be called asynchronously
           adapter->user_request_list_[DISCOVER_DEVICES] = false;
+          adapter->instance_.FireEvent(kAdapterDiscoverSuccessEvent, value);
         }
 
         if (adapter->user_request_list_[STOP_DISCOVERY]) {
@@ -1438,7 +1439,7 @@ void BluetoothAdapter::RemoveSocket(int socket) {
 void BluetoothAdapter::StoreSocketData(bt_socket_received_data_s* data) {
   LoggerD("Entered");
 
-  auto data_store = socket_data_[data->socket_fd];
+  auto& data_store = socket_data_[data->socket_fd];
 
   for (int i = 0; i < data->data_size; ++i) {
     data_store.push_back(data->data[i]);

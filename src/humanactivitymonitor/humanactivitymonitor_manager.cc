@@ -1,6 +1,18 @@
-// Copyright 2015 Samsung Electronics Co, Ltd. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
+/*
+ * Copyright (c) 2015 Samsung Electronics Co., Ltd All Rights Reserved
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ */
 
 #include "humanactivitymonitor/humanactivitymonitor_manager.h"
 
@@ -14,15 +26,19 @@ namespace humanactivitymonitor {
 using common::PlatformResult;
 using common::ErrorCode;
 
-HumanActivityMonitorManager::HumanActivityMonitorManager() {}
+HumanActivityMonitorManager::HumanActivityMonitorManager() {
+  LoggerD("Enter");
+}
 
 HumanActivityMonitorManager::~HumanActivityMonitorManager() {
+  LoggerD("Enter");
   UnsetWristUpListener();
   UnsetHrmListener();
   UnsetGpsListener();
 }
 
 PlatformResult HumanActivityMonitorManager::Init() {
+  LoggerD("Enter");
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
@@ -126,6 +142,7 @@ PlatformResult HumanActivityMonitorManager::GetHumanActivityData(
     const std::string& type,
     picojson::value* data) {
 
+  LoggerD("Enter");
   if (type == kActivityTypePedometer) {
     // TODO(r.galka) Not Supported in current implementation.
   }
@@ -148,6 +165,7 @@ PlatformResult HumanActivityMonitorManager::GetHumanActivityData(
 // WRIST_UP
 PlatformResult HumanActivityMonitorManager::SetWristUpListener(
     JsonCallback callback) {
+  LoggerD("Enter");
   int ret;
 
   ret = gesture_create(&gesture_handle_);
@@ -174,6 +192,7 @@ PlatformResult HumanActivityMonitorManager::SetWristUpListener(
 }
 
 PlatformResult HumanActivityMonitorManager::UnsetWristUpListener() {
+  LoggerD("Enter");
   int ret;
 
   if (gesture_handle_) {
@@ -198,6 +217,7 @@ void HumanActivityMonitorManager::OnWristUpEvent(gesture_type_e gesture,
                                                  double timestamp,
                                                  gesture_error_e error,
                                                  void* user_data) {
+  LoggerD("Enter");
   HumanActivityMonitorManager* manager =
       static_cast<HumanActivityMonitorManager*>(user_data);
 
@@ -213,6 +233,7 @@ void HumanActivityMonitorManager::OnWristUpEvent(gesture_type_e gesture,
 // HRM
 PlatformResult HumanActivityMonitorManager::SetHrmListener(
     JsonCallback callback) {
+  LoggerD("Enter");
   sensor_h hrm_sensor;
   int ret;
 
@@ -253,6 +274,7 @@ PlatformResult HumanActivityMonitorManager::SetHrmListener(
 }
 
 PlatformResult HumanActivityMonitorManager::UnsetHrmListener() {
+  LoggerD("Enter");
   int ret;
 
   if (hrm_sensor_listener_) {
@@ -315,6 +337,7 @@ static PlatformResult ConvertHrmEvent(sensor_event_s* event,
 void HumanActivityMonitorManager::OnHrmSensorEvent(
     sensor_h /*sensor*/, sensor_event_s *event, void *user_data) {
 
+  LoggerD("Enter");
   HumanActivityMonitorManager* manager =
       static_cast<HumanActivityMonitorManager*>(user_data);
 
@@ -335,6 +358,7 @@ void HumanActivityMonitorManager::OnHrmSensorEvent(
 }
 
 PlatformResult HumanActivityMonitorManager::GetHrmData(picojson::value* data) {
+  LoggerD("Enter");
   if (!hrm_sensor_listener_) {
     return PlatformResult(ErrorCode::SERVICE_NOT_AVAILABLE_ERR);
   }
@@ -362,6 +386,7 @@ PlatformResult HumanActivityMonitorManager::GetHrmData(picojson::value* data) {
 // GPS
 PlatformResult HumanActivityMonitorManager::SetGpsListener(
     JsonCallback callback) {
+  LoggerD("Enter");
   int ret;
 
   ret = location_manager_create(LOCATIONS_METHOD_GPS, &location_handle_);
@@ -395,6 +420,7 @@ PlatformResult HumanActivityMonitorManager::SetGpsListener(
 }
 
 PlatformResult HumanActivityMonitorManager::UnsetGpsListener() {
+  LoggerD("Enter");
   int ret;
 
   if (location_handle_) {
@@ -429,6 +455,7 @@ static bool ConvertGpsEvent(double latitude, double longitude, double altitude,
                             double speed, double direction, double horizontal,
                             double vertical, time_t timestamp,
                             void* user_data) {
+  LoggerD("Enter");
   picojson::array* gps_info_array = static_cast<picojson::array*>(user_data);
 
   picojson::value gps_info = picojson::value(picojson::object());
@@ -449,6 +476,7 @@ static bool ConvertGpsEvent(double latitude, double longitude, double altitude,
 
 void HumanActivityMonitorManager::OnGpsEvent(int num_of_location,
                                              void *user_data) {
+  LoggerD("Enter");
   HumanActivityMonitorManager* manager =
       static_cast<HumanActivityMonitorManager*>(user_data);
 
@@ -476,6 +504,7 @@ void HumanActivityMonitorManager::OnGpsEvent(int num_of_location,
 }
 
 PlatformResult HumanActivityMonitorManager::GetGpsData(picojson::value* data) {
+  LoggerD("Enter");
   if (!location_handle_) {
     return PlatformResult(ErrorCode::SERVICE_NOT_AVAILABLE_ERR);
   }

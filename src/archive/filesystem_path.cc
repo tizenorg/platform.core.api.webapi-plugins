@@ -1,22 +1,17 @@
-//
-// Tizen Web Device API
-// Copyright (c) 2012 Samsung Electronics Co., Ltd.
-//
-// Licensed under the Apache License, Version 2.0 (the License);
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-// http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-//
-
-/**
- * @file        Path.cpp
+/*
+ * Copyright (c) 2015 Samsung Electronics Co., Ltd All Rights Reserved
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
  */
 
 #include <memory>
@@ -35,6 +30,7 @@ const Path::SeparatorType Path::m_pathSeparator = '/';
 
 PathPtr Path::create(const std::string& path)
 {
+    LoggerD("Enter");
     auto result = std::shared_ptr<Path>(new Path());
     result->reset(path);
     return result;
@@ -93,11 +89,12 @@ Path::Path()
 
 void Path::reset(const std::string& str)
 {
+    LoggerD("Enter");
     if (!isValid(str)) {
         LoggerD("Invalid string %s", str.c_str());
         LoggerW("throw NotFoundException");
         // The only way to remove throw statement from here is to just return, because
-        // this function is used in the operator functions and they're not able 
+        // this function is used in the operator functions and they're not able
         // to handle a PlatformResult value;
         return;
     }

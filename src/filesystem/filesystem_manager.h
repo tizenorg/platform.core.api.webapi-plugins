@@ -1,6 +1,18 @@
-// Copyright 2015 Samsung Electronics Co, Ltd. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
+/*
+ * Copyright (c) 2015 Samsung Electronics Co., Ltd All Rights Reserved
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ */
 
 #ifndef FILESYSTEM_FILESYSTEM_MANAGER_H
 #define FILESYSTEM_FILESYSTEM_MANAGER_H
@@ -47,6 +59,7 @@ class FilesystemManager {
                 const std::function<void(const FilesystemStat&)>& success_cb,
                 const std::function<void(FilesystemError)>& error_cb);
 
+  std::vector<common::VirtualStorage> FillStorages();
   void FetchStorages(
       const std::function<void(const std::vector<common::VirtualStorage>&)>& success_cb,
       const std::function<void(FilesystemError)>& error_cb);
@@ -98,6 +111,7 @@ void CopyTo(const std::string& originFilePath,
   void StartListening();
   void StopListening();
   void AddListener(FilesystemStateChangeListener* listener);
+  void RemoveListener();
 };
 }  // namespace filesystem
 }  // namespace extension

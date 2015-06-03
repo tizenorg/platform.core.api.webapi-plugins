@@ -1,73 +1,109 @@
-/* global tizen, xwalk, extension */
-
-// Copyright {{year}} Samsung Electronics Co, Ltd. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
+/*
+ * Copyright (c) 2015 Samsung Electronics Co., Ltd All Rights Reserved
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ */
 
 {% for module in modules %}
 
-var validator_ = xwalk.utils.validator;
+var utils_ = xwalk.utils;
+var type_ = utils_.type;
+var converter_ = utils_.converter;
+var validator_ = utils_.validator;
 var types_ = validator_.Types;
+var native_ = new xwalk.utils.NativeManager(extension);
 
 {% if module.async %}
-var callbackId = 0;
-var callbacks = {};
-
-extension.setMessageListener(function(json) {
-  var result = JSON.parse(json);
-  var callback = callbacks[result['callbackId']];
-  callback(result);
-});
-
-function nextCallbackId() {
-  return callbackId++;
+function ListenerManager(native, listenerName, handle) {
+  this.listeners = {};
+  this.nextId = 1;
+  this.nativeSet = false;
+  this.native = native;
+  this.listenerName = listenerName;
+  this.handle = handle || function(msg, listener, watchId) {};
 }
 
-function callNative(cmd, args) {
-  var json = {'cmd': cmd, 'args': args};
-  var argjson = JSON.stringify(json);
-  var resultString = extension.internal.sendSyncMessage(argjson);
-  var result = JSON.parse(resultString);
-
-  if (typeof result !== 'object') {
-    throw new tizen.WebAPIException(tizen.WebAPIException.UNKNOWN_ERR);
+ListenerManager.prototype.addListener = function(callback, nativeCall, data) {
+  var id = this.nextId;
+  if (!this.nativeSet) {
+    this.native.addListener(this.listenerName, function(msg) {
+      for (var watchId in this.listeners) {
+        if (this.listeners.hasOwnProperty(watchId)) {
+          this.handle(msg, this.listeners[watchId], watchId);
+        }
+      }
+    }.bind(this));
+    var result = this.native.callSync(nativeCall, data || {});
+    if (this.native.isFailure(result)) {
+      throw this.native.getErrorObject(result);
+    }
+    this.nativeSet = true;
   }
 
-  if (result['status'] === 'success') {
-    if (result['result']) {
-      return result['result'];
-    }
-    return true;
-  } else if (result['status'] === 'error') {
-    var err = result['error'];
-    if (err) {
-      throw new tizen.WebAPIException(err.name, err.message);
-    }
-    return false;
+  this.listeners[id] = callback;
+  ++this.nextId;
+
+  return id;
+};
+
+ListenerManager.prototype.removeListener = function(watchId, nativeCall) {
+  if (this.listeners.hasOwnProperty(watchId)) {
+    delete this.listeners[watchId];
   }
-}
+
+  if (this.nativeSet && type_.isEmptyObject(this.listeners)) {
+      this.native.callSync(nativeCall);
+      this.native.removeListener(this.listenerName);
+      this.nativeSet = false;
+  }
+};
 
 {% set multicallback = callback|length() > 1 %}
+{% for iface in module.getTypes('Interface') %}
+  {% for operation in iface.getTypes('Operation') if operation.async %}
+    {% for arg in operation.arguments if arg.validation[0] == 'LISTENER' %}
+var _{{iface.name}}Listener = new ListenerManager(native_, '{{operation.name}}Listener',
+  function(msg, listener, watchId) {
+      var d = null;
 
-function callNativeWithCallback(cmd, args, callback) {
-  if (callback) {
-    var id = nextCallbackId();
-    args['callbackId'] = id;
-    callbacks[id] = callback;
-  }
+      switch (msg.action) {
+      {% for listener in arg.validation[1] %}
+      case '{{listener}}':
+        d = msg.data;
+        break;
+      {% endfor %}
 
-  return callNative(cmd, args);
-}
+      default:
+        console.log('Unknown mode: ' + msg.action);
+      return;
+      }
+
+      listener[msg.action](d);
+    });
+
+    {% endfor %}
+  {% endfor %}
+{% endfor %}
 {% endif %}
 
 function SetReadOnlyProperty(obj, n, v) {
-  Object.defineProperty(obj, n, {'value': v, 'writable': false});
+  Object.defineProperty(obj, n, {value: v, writable: false});
 }
 
 {% for enums in module.getTypes('Enum') %}
 var {{enums.name}} = {
   {% for e in enums.childs %}
-  '{{e}}': '{{e}}'{% if not loop.last %},{% endif %}
+  {{e}}: '{{e}}'{% if not loop.last %},{% endif %}
 
   {% endfor %}
 };
@@ -120,69 +156,73 @@ function {{iface.name}}(
   {% if operation.arguments %}
   var args = validator_.validateArgs(arguments, [
     {% for arg in operation.arguments %}
-    {'name': '{{arg.name}}', 'type': types_.{{arg.validation[0]}}
+    {name: '{{arg.name}}', type: types_.{{arg.validation[0]}}
         {%- if arg.validation[1] -%}
-        , 'values': {{arg.validation[1]}} 
+        {%- if arg.validation[0] == 'PLATFORM_OBJECT' -%}
+        , values: tizen.{{arg.validation[1]|first}}
+        {%- else -%}
+        , values: {{arg.validation[1]}}
         {%- endif -%}
-        {%- if arg.optional -%}, 'optional': true{% endif -%}
-        {%- if arg.xtype.nullable -%}, 'nullable': true{% endif -%}
+        {%- endif -%}
+        {%- if arg.optional -%}, optional: true{% endif -%}
+        {%- if arg.xtype.nullable -%}, nullable: true{% endif -%}
     }{%- if not loop.last %},{% endif %}
 
     {% endfor %}
   ]);
   {% endif %}
 
-  var nativeParam = {
-    {% for arg in operation.primitiveArgs if not arg.optional %}
-    '{{arg.name}}': args.{{arg.name}}{% if not loop.last %},{% endif %}
+  var data = {
+    {% for arg in operation.arguments if not arg.validation[0] == 'LISTENER' and not arg.validation[0] == 'FUNCTION' %}
+    {{arg.name}}: args.{{arg.name}}{% if not loop.last %},{% endif %}
 
     {% endfor %}
   };
 
-  {% for arg in operation.primitiveArgs if arg.optional %}
-  if (args['{{arg.name}}']) {
-    nativeParam['{{arg.name}}'] = args.{{arg.name}};
-  }
-  {% endfor %}
+  {% if operation.async %}
+    {% set listenerSet = false %}{% set callbackSet = false %}
+    {% for arg in operation.arguments %}
+      {% if arg.validation[0] == 'LISTENER' and listenerSet == false %}{% set listenerSet = true %}
 
-  try {
-    {% if operation.async %}
-    var syncResult = callNativeWithCallback('{{operation.native_cmd}}', nativeParam, function(result) {
-      {% for arg in operation.arguments %}
-        {% if arg.isListener %}
-          {% set cb = callbacks[arg.xtype.name] %}
-          {% if cb.callbackType in ['success', 'error']  %}
-      if (result.status === '{{cb.callbackType}}') {
-            {% if arg.optional %}
-        if (args.{{arg.name}}) {
-          args.{{arg.name}}.on{{cb.callbackType}}(/* {{cb.callbackType}} argument */);
-        }
-            {% else %}
-        args.{{arg.name}}.on{{cb.callbackType}}(/* {{cb.callbackType}} argument */);
-            {% endif %}
-      }
-          {% else %}
-            {% for cbmethod in cb.getTypes('Operation') %}
-      if ( /* put some condition and delete true -> */true) {
-        args.{{arg.name}}.{{cbmethod.name}}(/* some argument for {{cbmethod.name}} */);
-      }
-            {% endfor %}
-          {% endif %}
-        {% endif %}
-      {% endfor %}
-    });
-    {% else %}
-    var syncResult = callNative('{{operation.native_cmd}}', nativeParam);
+  return _{{iface.name}}Listener.addListener(args.{{arg.name}},
+      '{{operation.native_cmd}}');
+
+    {%- if arg.name == 'errorCallback' or arg.name == 'callback' -%}
+  if (native_.isFailure(result)) {
+    native_.callIfPossible(args.{{arg.name}}, native_.getErrorObject(result));
+  }
     {% endif %}
-    // if you need synchronous result from native function using 'syncResult'.
-  } catch (e) {
-    throw e;
-  }
-
-  {% if operation.returnInternal %}
-  var returnObject = new {{operation.returnInternal.name}}();
-  return returnObject;
   {% endif %}
+
+  {% if arg.validation[0] == 'FUNCTION' and listenerSet == false and callbackSet == false %}{% set callbackSet = true %}
+  var callback = function(result) {
+  {% for arg in operation.arguments %}
+    {% if arg.name == 'errorCallback' or arg.name == 'callback' %}
+    if (native_.isFailure(result)) {
+      native_.callIfPossible(args.{{arg.name}}, native_.getErrorObject(result));
+      return;
+    }
+    {% endif %}
+  {% endfor %}
+    native_.callIfPossible(args.{{arg.name}});
+  };
+
+  native_.call('{{operation.native_cmd}}', data, callback);
+      {% endif %}
+    {% endfor %}
+
+  {% else %}
+
+  var result = native_.callSync('{{operation.native_cmd}}', data);
+
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
+  }
+  {% endif %}
+  {% if operation.returnInternal %}
+  return new {{operation.returnInternal.name}}(native_.getResultObject(result));
+  {% endif %}
+
 };
 
 {% endfor %}

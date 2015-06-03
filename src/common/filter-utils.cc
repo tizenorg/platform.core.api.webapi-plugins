@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Samsung Electronics Co., Ltd All Rights Reserved
+ * Copyright (c) 2015 Samsung Electronics Co., Ltd All Rights Reserved
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
  */
-
+ 
 #include "common/filter-utils.h"
 
 #include "common/logger.h"
@@ -23,6 +23,7 @@ namespace common {
 
 PlatformResult AttributeMatchFlagFromString(
     const std::string &str, AttributeMatchFlag *filter_match_flag) {
+  LoggerD("Enter");
   if (str == "EXACTLY") {
     *filter_match_flag = AttributeMatchFlag::kExactly;
   } else if (str == "FULLSTRING") {
@@ -46,6 +47,7 @@ PlatformResult AttributeMatchFlagFromString(
 
 PlatformResult CompositeFilterTypeFromString(
     const std::string &str, CompositeFilterType *comp_filter_type) {
+  LoggerD("Enter");
   if (str == "UNION") {
     *comp_filter_type = CompositeFilterType::kUnion;
   } else if (str == "INTERSECTION") {
@@ -61,22 +63,27 @@ PlatformResult CompositeFilterTypeFromString(
 }
 
 void FilterVisitor::SetOnAttributeFilter(const AttributeFilterOnVisit &func) {
-    m_attributeFilterOnVisit = func;
+  LoggerD("Enter");
+  m_attributeFilterOnVisit = func;
 }
 
 void FilterVisitor::SetOnAttributeRangeFilter(const AttributeRangeFilterOnVisit &func) {
-    m_attributeRangeFilterOnVisit = func;
+  LoggerD("Enter");
+  m_attributeRangeFilterOnVisit = func;
 }
 
 void FilterVisitor::SetOnCompositeFilterBegin(const CompositeFilterOnBegin &func) {
-    m_compositeFilterOnBegin = func;
+  LoggerD("Enter");
+  m_compositeFilterOnBegin = func;
 }
 
 void FilterVisitor::SetOnCompositeFilterEnd(const CompositeFilterOnEnd &func) {
-    m_compositeFilterOnEnd = func;
+  LoggerD("Enter");
+  m_compositeFilterOnEnd = func;
 }
 
 PlatformResult FilterVisitor::Visit(const picojson::object &filter) {
+  LoggerD("Enter");
   const std::string &filterType = FromJson<std::string>(filter, "filterType");
   if (filterType == "AttributeFilter") {
     PlatformResult status = VisitAttributeFilter(filter);
@@ -98,6 +105,7 @@ PlatformResult FilterVisitor::Visit(const picojson::object &filter) {
 
 PlatformResult FilterVisitor::VisitAttributeFilter(
     const picojson::object &filter) {
+  LoggerD("Enter");
   const std::string &attribute_name =
       FromJson<std::string>(filter, "attributeName");
 
@@ -118,6 +126,7 @@ PlatformResult FilterVisitor::VisitAttributeFilter(
 
 PlatformResult FilterVisitor::VisitAttributeRangeFilter(
     const picojson::object &filter) {
+  LoggerD("Enter");
   const std::string &attributeName =
       FromJson<std::string>(filter, "attributeName");
   const picojson::value &initialValue = FindValue(filter, "initialValue");
@@ -134,6 +143,7 @@ PlatformResult FilterVisitor::VisitAttributeRangeFilter(
 
 PlatformResult FilterVisitor::VisitCompositeFilter(
     const picojson::object &filter) {
+  LoggerD("Enter");
   CompositeFilterType filter_type;
   PlatformResult status = CompositeFilterTypeFromString(
       FromJson<std::string>(filter, "type"), &filter_type);

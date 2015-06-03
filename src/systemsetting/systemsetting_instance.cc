@@ -1,6 +1,18 @@
-// Copyright 2014 Samsung Electronics Co, Ltd. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
+/*
+ * Copyright (c) 2015 Samsung Electronics Co., Ltd All Rights Reserved
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ */
 
 #include "systemsetting/systemsetting_instance.h"
 
@@ -28,6 +40,7 @@ using namespace extension::systemsetting;
 
 SystemSettingInstance::SystemSettingInstance()
 {
+  LoggerD("Enter");
   using std::placeholders::_1;
   using std::placeholders::_2;
 
@@ -42,11 +55,12 @@ SystemSettingInstance::SystemSettingInstance()
 
 SystemSettingInstance::~SystemSettingInstance()
 {
+  LoggerD("Enter");
 }
 
 void SystemSettingInstance::getProperty(const picojson::value& args, picojson::object& out)
 {
-  LoggerD("");
+  LoggerD("Enter");
   const double callback_id = args.get("callbackId").get<double>();
 
   const std::string& type = args.get("type").get<std::string>();
@@ -56,10 +70,12 @@ void SystemSettingInstance::getProperty(const picojson::value& args, picojson::o
     LoggerD("Getting platform value");
     picojson::value result = picojson::value(picojson::object());
     PlatformResult status = getPlatformPropertyValue(type, &result);
-    if(status.IsSuccess())
+    if(status.IsSuccess()) {
       ReportSuccess(result, response->get<picojson::object>());
-    else
+    } else {
+      LoggerE("Failed: getPlatformPropertyValue()");
       ReportError(status, &response->get<picojson::object>());
+    }
   };
 
   auto get_response = [this, callback_id](const std::shared_ptr<picojson::value>& response) -> void {
@@ -76,6 +92,7 @@ void SystemSettingInstance::getProperty(const picojson::value& args, picojson::o
 PlatformResult SystemSettingInstance::getPlatformPropertyValue(
     const std::string& settingType,
     picojson::value* out) {
+  LoggerD("Enter");
   picojson::object& result_obj = out->get<picojson::object>();
 
   int ret;
@@ -104,10 +121,11 @@ PlatformResult SystemSettingInstance::getPlatformPropertyValue(
       result_obj.insert(std::make_pair("value", picojson::value(value)));
       free(value);
       return PlatformResult(ErrorCode::NO_ERROR);
-    case SYSTEM_SETTINGS_ERROR_CALL_UNSUPPORTED_API:
-      LoggerD("ret == SYSTEM_SETTINGS_ERROR_CALL_UNSUPPORTED_API");
-      return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR,
-                            "This property is not supported.");
+    // TODO(p.kaczmarek3) temporarily removed - not supported by platform
+    //case SYSTEM_SETTINGS_ERROR_CALL_UNSUPPORTED_API:
+    //  LoggerD("ret == SYSTEM_SETTINGS_ERROR_CALL_UNSUPPORTED_API");
+    //  return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR,
+    //                        "This property is not supported.");
     default:
       LoggerD("Other error");
       return PlatformResult(ErrorCode::UNKNOWN_ERR);
@@ -116,7 +134,7 @@ PlatformResult SystemSettingInstance::getPlatformPropertyValue(
 
 void SystemSettingInstance::setProperty(const picojson::value& args, picojson::object& out)
 {
-  LoggerD("");
+  LoggerD("Enter");
 
   const double callback_id = args.get("callbackId").get<double>();
 
@@ -129,10 +147,12 @@ void SystemSettingInstance::setProperty(const picojson::value& args, picojson::o
   auto get = [this, type, value](const std::shared_ptr<picojson::value>& response) -> void {
     LoggerD("Setting platform value");
     PlatformResult status = setPlatformPropertyValue(type, value);
-    if (status.IsSuccess())
+    if (status.IsSuccess()) {
       ReportSuccess(response->get<picojson::object>());
-    else
+    } else {
+      LoggerE("Failed: setPlatformPropertyValue()");
       ReportError(status, &response->get<picojson::object>());
+    }
   };
 
   auto get_response = [this, callback_id](const std::shared_ptr<picojson::value>& response) -> void {
@@ -149,6 +169,7 @@ void SystemSettingInstance::setProperty(const picojson::value& args, picojson::o
 PlatformResult SystemSettingInstance::setPlatformPropertyValue(
     const std::string& settingType,
     const std::string& settingValue) {
+  LoggerD("Enter");
   int ret;
   if (settingType == SETTING_HOME_SCREEN) {
     ret = system_settings_set_value_string(
@@ -172,10 +193,11 @@ PlatformResult SystemSettingInstance::setPlatformPropertyValue(
     case SYSTEM_SETTINGS_ERROR_NONE:
       LoggerD("ret == SYSTEM_SETTINGS_ERROR_NONE");
       return PlatformResult(ErrorCode::NO_ERROR);
-    case SYSTEM_SETTINGS_ERROR_CALL_UNSUPPORTED_API:
-      LoggerD("ret == SYSTEM_SETTINGS_ERROR_CALL_UNSUPPORTED_API");
-      return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR,
-                            "This property is not supported.");
+    // TODO(p.kaczmarek3) temporarily removed - not supported by platform
+    //case SYSTEM_SETTINGS_ERROR_CALL_UNSUPPORTED_API:
+    //  LoggerD("ret == SYSTEM_SETTINGS_ERROR_CALL_UNSUPPORTED_API");
+    //  return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR,
+    //                        "This property is not supported.");
     default:
       LoggerD("Other error");
       return PlatformResult(ErrorCode::UNKNOWN_ERR);
