@@ -21,7 +21,8 @@
             'ecore-file',
             'tapi',
             'vconf',
-            'db-util'
+            'db-util',
+            'libtzplatform-config',
         ],
       },
       'sources': [
