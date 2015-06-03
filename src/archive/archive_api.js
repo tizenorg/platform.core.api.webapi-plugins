@@ -20,41 +20,18 @@ var bridge = xwalk.utils.NativeBridge(extension, true);
 
 function CommonFS() {};
 
-CommonFS.cacheVirtualToReal = {
-    'downloads' : {
-        path : '/opt/usr/media/Downloads'
-    },
-    'documents' : {
-        path : '/opt/usr/media/Documents'
-    },
-    'music' : {
-        path : '/opt/usr/media/Sounds'
-    },
-    'images' : {
-        path : '/opt/usr/media/Images'
-    },
-    'videos' : {
-        path : '/opt/usr/media/Videos'
-    },
-    'ringtones' : {
-        path : '/opt/usr/share/settings/Ringtones'
-    }
-};
+CommonFS.cacheVirtualToReal = {};
 
 function _initializeCache() {
     try {
         var result = bridge.sync({
-            cmd: 'Filesystem_getWidgetPaths'
+            cmd: 'Archive_fetchVirtualRoots'
         });
-        CommonFS.cacheVirtualToReal['wgt-package'] = {
-                path: result['wgt-package']
-        };
-        CommonFS.cacheVirtualToReal['wgt-private'] = {
-                path: result['wgt-private']
-        };
-        CommonFS.cacheVirtualToReal['wgt-private-tmp'] = {
-                path: result['wgt-private-tmp']
-        };
+        for (var i = 0; i < result.length; ++i) {
+          CommonFS.cacheVirtualToReal[result[i].name] = {
+            path: result[i].path
+          };
+        }
     } catch(e) {
         console.log("Exception while getting widget paths was thrown: " + e);
     }

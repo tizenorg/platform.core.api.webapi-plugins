@@ -36,9 +36,6 @@ namespace archive {
 using namespace common;
 
 namespace {
-const std::string kWgtPackagePathName = "wgt-package";
-const std::string kWgtPrivatePathName = "wgt-private";
-const std::string kWgtPrivateTmpPathName = "wgt-private-tmp";
 
 const std::string kArchiveFileEntryOptDest = "destination";
 const std::string kArchiveFileEntryOptStrip = "stripSourceDirectory";
@@ -48,6 +45,7 @@ const std::string kNoCompressionStr = "STORE";
 const std::string kFastCompressionStr = "FAST";
 const std::string kNormalCompressionStr = "NORMAL";
 const std::string kBestCompressionStr = "BEST";
+
 } // namespace
 
 ArchiveInstance::ArchiveInstance() {
@@ -72,7 +70,7 @@ ArchiveInstance::ArchiveInstance() {
 
     REGISTER_ASYNC("ArchiveFileEntry_extract", Extract);
 
-    REGISTER_SYNC("Filesystem_getWidgetPaths", GetWidgetPaths);
+    REGISTER_SYNC("Archive_fetchVirtualRoots", FetchVirtualRoots);
 
     #undef REGISTER_ASYNC
     #undef REGISTER_SYNC
@@ -586,27 +584,14 @@ void ArchiveInstance::Extract(const picojson::value& args, picojson::object& out
     }
 }
 
-void ArchiveInstance::GetWidgetPaths(const picojson::value& args, picojson::object& out) {
+void ArchiveInstance::FetchVirtualRoots(const picojson::value& args, picojson::object& out) {
     LoggerD("Entered");
 
-    std::string wgt_package_path =
-        *(common::VirtualFs::GetInstance().GetVirtualRootDirectory(kWgtPackagePathName));
-    std::string wgt_private_path =
-        *(common::VirtualFs::GetInstance().GetVirtualRootDirectory(kWgtPrivatePathName));
-    std::string wgt_private_tmp_path =
-        *(common::VirtualFs::GetInstance().GetVirtualRootDirectory(kWgtPrivateTmpPathName));
-    LoggerD("wgt-package path: %s", wgt_package_path.c_str());
-    LoggerD("wgt-private path: %s", wgt_private_path.c_str());
-    LoggerD("wgt-private-tmp path: %s", wgt_private_tmp_path.c_str());
-
-    // Construction of the response
-    picojson::value result{picojson::object()};
-    auto& result_obj = result.get<picojson::object>();
-    result_obj.insert(std::make_pair(kWgtPackagePathName, picojson::value(wgt_package_path)));
-    result_obj.insert(std::make_pair(kWgtPrivatePathName, picojson::value(wgt_private_path)));
-    result_obj.insert(std::make_pair(kWgtPrivateTmpPathName, picojson::value(wgt_private_tmp_path)));
-
-    ReportSuccess(result, out);
+    picojson::array roots;
+    for (const auto& root : common::VirtualFs::GetInstance().GetVirtualRoots()) {
+      roots.push_back(root.ToJson());
+    }
+    ReportSuccess(picojson::value(roots), out);
 }
 
 } // namespace archive
