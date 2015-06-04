@@ -48,7 +48,7 @@ private:
     void Extract(const picojson::value& args, picojson::object& out);
 
     /* Filesystem related method */
-    void GetWidgetPaths(const picojson::value& args, picojson::object& out);
+    void FetchVirtualRoots(const picojson::value& args, picojson::object& out);
 
     void PostError(const common::PlatformException& e, double callback_id);
     void PostError(const common::PlatformResult& e, double callback_id);
