@@ -174,7 +174,7 @@ Source0:    %{name}-%{version}.tar.gz
 # tizen.org/feature/network.bluetooth.audio.media is required for MediayKey API
 %ifarch %{arm}
 # ARM
-%define tizen_feature_media_key_support           1
+%define tizen_feature_media_key_support           0
 %else
 # I586
 %define tizen_feature_media_key_support           0
