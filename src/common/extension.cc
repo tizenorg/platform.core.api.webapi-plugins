@@ -525,9 +525,8 @@ class AccessControlImpl {
     LoggerD("Privilege access checked using Cynara.");
 
     char* smack_label = nullptr;
-    int ret = smack_new_label_from_self(&smack_label);
-
-    if (0 == ret && nullptr != smack_label) {
+    int len = smack_new_label_from_self(&smack_label);
+    if (0 < len && nullptr != smack_label) {
       auto uid = getuid();
 
       SLoggerD("uid: [%u]", uid);
@@ -542,7 +541,7 @@ class AccessControlImpl {
       return;
     }
 
-    ret = cynara_initialize(&cynara_, nullptr);
+    int ret = cynara_initialize(&cynara_, nullptr);
     if (CYNARA_API_SUCCESS != ret) {
       LoggerE("Failed to initialize Cynara");
       cynara_ = nullptr;
