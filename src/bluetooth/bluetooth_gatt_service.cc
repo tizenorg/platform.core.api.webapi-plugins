@@ -338,7 +338,7 @@ void BluetoothGATTService::ReadValue(const picojson::value& args,
       char *value = nullptr;
       int length = 0;
       int ret = bt_gatt_get_value(handle, &value, &length);
-      if (BT_ERROR_NONE != result) {
+      if (BT_ERROR_NONE != ret) {
         plarform_res = util::GetBluetoothError(ret, "Error while getting value");
       } else {
         for (size_t i = 0 ; i < length; i++) {
