@@ -39,7 +39,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_calendar_support            1
 %define tizen_feature_contact_support             0
 %define tizen_feature_content_support             1
-%define tizen_feature_datacontrol_support         0
+%define tizen_feature_datacontrol_support         1
 %define tizen_feature_datasync_support            0
 %define tizen_feature_download_support            1
 %define tizen_feature_exif_support                1
@@ -345,7 +345,7 @@ BuildRequires: pkgconfig(capi-appfw-alarm)
 
 %if 0%{?tizen_feature_bookmark_support}
 BuildRequires: pkgconfig(capi-web-bookmark)
-BuildRequires: pkgconfig(bookmark-adaptor)
+#BuildRequires: pkgconfig(bookmark-adaptor)
 %endif
 
 %if 0%{?tizen_feature_datacontrol_support}

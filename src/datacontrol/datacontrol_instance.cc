@@ -121,7 +121,7 @@ static bool SQLColumnValue(result_set_cursor cursor, int columnIndex,
   }
   switch (type) {
     case DATA_CONTROL_SQL_COLUMN_TYPE_INT64: {
-      int64_t data = 0;
+      long long int data = 0;
       result = data_control_sql_get_int64_data(cursor, columnIndex, &data);
       if (result != DATA_CONTROL_ERROR_NONE) break;
       val = picojson::value(static_cast<double>(data));
