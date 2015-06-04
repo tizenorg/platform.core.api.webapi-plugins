@@ -1435,10 +1435,9 @@ void OnMemoryChangedCb(keynode_t* node, void* event_ptr)
 void OnBrightnessChangedCb(device_callback_e type, void* value, void* user_data)
 {
   LoggerD("");
-  // TODO(r.galka) temporarily removed - not supported by platform
-  //if (type == DEVICE_CALLBACK_FLASH_BRIGHTNESS) {
-  //  system_info_listeners.OnBrightnessChangedCallback(type, value, user_data);
-  //}
+  if (type == DEVICE_CALLBACK_FLASH_BRIGHTNESS) {
+    system_info_listeners.OnBrightnessChangedCallback(type, value, user_data);
+  }
 }
 
 /////////////////////////// SysteminfoUtils ////////////////////////////////
