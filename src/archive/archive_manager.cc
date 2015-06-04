@@ -92,7 +92,7 @@ PlatformResult ArchiveManager::getPrivData(long handle, ArchiveFilePtr* archive_
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Priv is null");
 }
 
-long ArchiveManager::open(OpenCallbackData* callback)
+PlatformResult ArchiveManager::open(OpenCallbackData* callback)
 {
     LoggerD("Entered");
 
@@ -104,7 +104,7 @@ long ArchiveManager::open(OpenCallbackData* callback)
 //    ArchiveFilePtr a_ptr = ArchiveFilePtr(new ArchiveFile(FileMode::READ));
 
     ArchiveFilePtr a_ptr = callback->getArchiveFile();
-    a_ptr->addOperation(callback);
+    return a_ptr->addOperation(callback);
 }
 
 void ArchiveManager::eraseElementFromArchiveFileMap(long operation_id)
