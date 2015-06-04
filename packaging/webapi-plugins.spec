@@ -56,7 +56,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_ham_support                 0
 %else
 # I586
-%define tizen_feature_ham_support                 1
+%define tizen_feature_ham_support                 0
 %endif
 %define tizen_feature_location_batch              0
 %define tizen_feature_key_manager_support         1
@@ -166,9 +166,9 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_exif_support                1
 %define tizen_feature_filesystem_support          1
 %define tizen_feature_fm_radio_support            0
-%define tizen_feature_ham_support                 1
+%define tizen_feature_ham_support                 0
 %define tizen_feature_location_batch              0
-%define tizen_feature_media_controller_support    1
+%define tizen_feature_media_controller_support    0
 
 # MediayKey API is optional in Tizen Wearable Profile.
 # tizen.org/feature/network.bluetooth.audio.media is required for MediayKey API
