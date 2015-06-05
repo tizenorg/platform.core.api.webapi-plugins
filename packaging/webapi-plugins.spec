@@ -35,9 +35,9 @@ Source0:    %{name}-%{version}.tar.gz
 # I586
 %define tizen_feature_bluetooth_support           0
 %endif
-%define tizen_feature_bookmark_support            0
+%define tizen_feature_bookmark_support            1
 %define tizen_feature_calendar_support            1
-%define tizen_feature_contact_support             0
+%define tizen_feature_contact_support             1
 %define tizen_feature_content_support             1
 %define tizen_feature_datacontrol_support         1
 %define tizen_feature_datasync_support            0
@@ -118,7 +118,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_tvwindow_support            0
 
 %if 0%{?tizen_feature_telephony_support}
-%define tizen_feature_callhistory_support         0
+%define tizen_feature_callhistory_support         1
 %define tizen_feature_nbs_support                 1
 %else
 %define tizen_feature_callhistory_support         0
