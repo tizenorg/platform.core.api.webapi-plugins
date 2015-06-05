@@ -41,9 +41,9 @@ protected:
             const int error_code);
 };
 
-} //DBus
-} //messaging
-} //extension
+}  // namespace DBus
+}  // namespace messaging
+}  // namespace extension
 
 #endif /* __TIZEN_SEND_PROXY_H */
 

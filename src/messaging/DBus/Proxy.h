@@ -121,8 +121,8 @@ private:
     bool m_dbus_signal_subscribed;
 };
 
-} //namespace DBus
-} //namespace Messaging
-} //namespace DeviceAPI
+}  // namespace DBus
+}  // namespace messaging
+}  // namespace extension
 
 #endif // __TIZEN_DBUS_PROXY_H__

@@ -96,7 +96,7 @@ private:
     std::stack<CompositeIterState> m_composite_stack;
 };
 
-} // Tizen
-} // DeviceAPI
+}  // namespace tizen
+}  // namespace extension
 
 #endif // __TIZEN_TIZEN_FILTER_ITERATOR_H__

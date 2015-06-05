@@ -70,7 +70,7 @@ private:
     picojson::value m_value;
 };
 
-} // Tizen
-} // DeviceAPI
+}  // namespace tizen
+}  // namespace extension
 
 #endif // __TIZEN_TIZEN_ANY_H__

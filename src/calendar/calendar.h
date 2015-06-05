@@ -188,6 +188,6 @@ class Calendar {
 };
 
 }  // namespace calendar
-}  // namespace webapi
+}  // namespace extension
 
 #endif  // CALENDAR_CALENDAR_H_

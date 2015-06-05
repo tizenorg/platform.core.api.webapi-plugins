@@ -46,7 +46,7 @@ private:
     SortModeOrder m_order;
 };
 
-} // Tizen
-} // DeviceAPI
+}  // namespace tizen
+}  // namespace extension
 
 #endif // __TIZEN_TIZEN_SORT_MODE_H__

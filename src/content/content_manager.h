@@ -83,8 +83,8 @@ class ContentManager {
 
 };
 
-} // namespace power
-} // namespace extension
+}  // namespace content
+}  // namespace extension
 
 #endif
 

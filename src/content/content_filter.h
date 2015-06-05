@@ -37,7 +37,8 @@ class ContentFilter {
  private:
   common::FilterVisitor visitor;
 };
-}
-}
+
+}  // namespace content
+}  // namespace extension
 
 #endif

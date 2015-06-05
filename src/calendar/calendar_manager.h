@@ -63,6 +63,6 @@ class CalendarManager {
 };
 
 }  // namespace calendar
-}  // namespace webapi
+}  // namespace extension
 
 #endif /* CALENDAR_CALENDAR_MANAGER_H_ */

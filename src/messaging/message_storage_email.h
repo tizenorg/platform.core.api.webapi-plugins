@@ -36,8 +36,8 @@ public:
     virtual void findFolders(FoldersCallbackData* callback);
 };
 
-} //messaging
-} //extension
+}  // namespace messaging
+}  // namespace extension
 
 #endif /* MESSAGING_MESSAGE_STORAGE_EMAIL_H_ */
 

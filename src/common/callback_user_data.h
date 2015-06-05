@@ -48,6 +48,6 @@ private:
   bool m_is_act;
 };
 
-} // common
+} // namespace common
 
 #endif  // COMMON_CALLBACK_USER_DATA_H_

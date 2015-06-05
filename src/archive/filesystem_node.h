@@ -251,8 +251,8 @@ private:
 
 };
 
-} // extension
-} // filesystem
+}  // namespace extension
+}  // namespace filesystem
 
 #endif /* _FILESYSTEM_NODE_H_ */
 

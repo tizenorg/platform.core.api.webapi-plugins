@@ -71,7 +71,7 @@ private:
     FolderPtrVector m_items;
 };
 
-} //messaging
-} //extension
+}  // namespace messaging
+}  // namespace extension
 
 #endif // __MESSAGING_FOLDERS_CHANGE_CALLBACK_H__

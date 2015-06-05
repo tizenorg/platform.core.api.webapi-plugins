@@ -150,7 +150,7 @@ class NFCAdapter {
   IResponder* responder_;
 };
 
-} // nfc
-} // extension
+}  // namespace nfc
+}  // namespace extension
 
 #endif // NFC_NFC_ADAPTER_H_

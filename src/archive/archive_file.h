@@ -175,7 +175,7 @@ private:
     friend class BaseProgressCallback;
 };
 
-} // archive
-} // extension
+}  // namespace archive
+}  // namespace extension
 
 #endif /* _TIZEN_ARCHIVE_FILE_ENTRY_H_ */

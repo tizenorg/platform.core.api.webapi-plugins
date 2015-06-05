@@ -65,7 +65,7 @@ private:
     AttachmentPtrVector m_inlineAttachments;
 };
 
-} // messaging
-} // extension
+}  // namespace messaging
+}  // namespace extension
 
 #endif // MESSAGING_MESSAGE_BODY_H_

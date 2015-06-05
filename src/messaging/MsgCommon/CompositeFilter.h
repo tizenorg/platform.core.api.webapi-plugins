@@ -46,7 +46,7 @@ private:
     AbstractFilterPtrVector m_filters;
 };
 
-} //Tizen
-} //DeviceAPI
+}  // namespace tizen
+}  // namespace extension
 
 #endif // __TIZEN_TIZEN_COMPOSITE_FILTER_H__

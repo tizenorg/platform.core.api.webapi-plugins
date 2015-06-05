@@ -239,6 +239,6 @@ private:
     };
 };
 
-} // messaging
-} // extension
+}  // namespace messaging
+}  // namespace extension
 #endif // MESSAGING_MESSAGING_UTIL_H_

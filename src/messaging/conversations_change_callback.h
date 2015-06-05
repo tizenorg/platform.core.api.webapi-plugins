@@ -67,8 +67,8 @@ private:
 
 };
 
-} //messaging
-} //extension
+}  // namespace messaging
+}  // namespace extension
 
 
 

@@ -127,6 +127,6 @@ class SystemInfoDeviceCapability {
 };
 
 } // namespace systeminfo
-} // namespace webapi
+} // namespace extension
 
 #endif // WEBAPI_PLUGINS_SYSTEMINFO_SYSTEMINFO_UTILS_H__

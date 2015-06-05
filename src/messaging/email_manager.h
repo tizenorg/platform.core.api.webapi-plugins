@@ -142,6 +142,6 @@ private:
     bool m_is_initialized;
 };
 
-} // Messaging
-} // DeviceAPI
+}  // namespace messaging
+}  // namespace extension
 #endif // __TIZEN_EMAIL_MANAGER_H__

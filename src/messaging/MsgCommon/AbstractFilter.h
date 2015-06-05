@@ -148,8 +148,8 @@ public:
     }
 };
 
-} // Tizen
-} // DeviceAPI
+}  // namespace tizen
+}  // namespace extension
 
 
 #include "AttributeFilter.h"

@@ -33,7 +33,7 @@ public:
 
 };
 
-} // messaging
-} // extension
+}  // namespace messaging
+}  // namespace extension
 
 #endif // __MESSAGING_MESSAGE_SMS_H__

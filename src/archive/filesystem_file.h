@@ -62,7 +62,7 @@ public:
 };
 
 
-} // filesystem
-} // extension
+}  // namespace filesystem
+}  // namespace extension
 
 #endif /* _TIZEN_FILESYSTEM_FILE_H_ */

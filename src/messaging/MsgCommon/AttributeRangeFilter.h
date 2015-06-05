@@ -48,7 +48,7 @@ private:
     AnyPtr m_end_value;
 };
 
-} // Tizen
-} // DeviceAPI
+}  // namespace tizen
+}  // namespace extension
 
 #endif // __TIZEN_TIZEN_ATTRIBUTE_RANGE_FILTER_H__

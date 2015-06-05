@@ -68,8 +68,8 @@ private:
     CallbackMap m_callback_map;
 };
 
-} //namespace DBus
-} //namespace Messaging
-} //namespace DeviceAPI
+}  //namespace DBus
+}  //namespace messaging
+}  //namespace extension
 
 #endif // __TIZEN_DBUS_SYNC_PROXY_H__

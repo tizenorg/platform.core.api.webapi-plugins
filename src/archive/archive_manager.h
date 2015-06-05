@@ -53,7 +53,7 @@ private:
     long m_next_unique_id;
 };
 
-} // archive
-} // extension
+}  // namespace archive
+}  // namespace extension
 
 #endif /* _TIZEN_ARCHIVE_ARCHIVE_MANAGER_H_ */

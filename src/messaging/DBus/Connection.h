@@ -42,8 +42,8 @@ private:
     GError* m_error;
 };
 
-} //namespace DBus
-} //namespace Messaging
-} //namespace DeviceAPI
+}  // namespace DBus
+}  // namespace messaging
+}  // namespace extension
 
 #endif

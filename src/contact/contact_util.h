@@ -141,8 +141,8 @@ common::PlatformResult ImportPersonFromContactsRecord(
 
 common::PlatformResult CheckDBConnection();
 
-}  // ContactUtil
-}  // contact
-}  // extension
+}  // namespace ContactUtil
+}  // namespace contact
+}  // namespace extension
 
 #endif  // CONTACT_CONTACT_UTIL_H_
