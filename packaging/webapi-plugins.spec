@@ -66,7 +66,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_media_key_support           0
 %else
 # I586
-%define tizen_feature_media_key_support           0
+%define tizen_feature_media_key_support           1
 %endif
 %define tizen_feature_message_port_support        1
 %define tizen_feature_messaging_support           1
@@ -364,14 +364,12 @@ BuildRequires: pkgconfig(capi-location-manager)
 
 %if 0%{?tizen_feature_power_support}
 BuildRequires: pkgconfig(deviced)
-%endif
-
-%if 0%{?tizen_feature_power_support}
 BuildRequires: pkgconfig(capi-appfw-application)
 %endif
 
 %if 0%{?tizen_feature_push_support}
 BuildRequires: pkgconfig(push)
+BuildRequires: pkgconfig(libcapi-network-connection)
 %endif
 
 %if 0%{?tizen_feature_key_manager_support}
