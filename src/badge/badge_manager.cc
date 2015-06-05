@@ -75,7 +75,7 @@ PlatformResult BadgeManager::SetBadgeCount(const std::string& app_id,
     if (status.IsError()) return status;
 
     ret = badge_create(app_id_str, app_id_str);
-    LoggerD("badge create : %", ret);
+    LoggerD("badge create : %d", ret);
 
     if (ret == BADGE_ERROR_PERMISSION_DENIED) {
       LoggerE("Security error");
