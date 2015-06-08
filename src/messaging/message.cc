@@ -516,7 +516,7 @@ PlatformResult Message::convertPlatformEmail(std::shared_ptr<Message> message,
             if(!mail_data->file_path_plain)
             {
                 LoggerE("Plain Body file is NULL.");
-                free(mail_data);
+                email_free_mail_data(&mail_data, 1);
                 mail_data = NULL;
                 return PlatformResult(ErrorCode::UNKNOWN_ERR, "Plain Body file is NULL.");
             }
@@ -529,7 +529,7 @@ PlatformResult Message::convertPlatformEmail(std::shared_ptr<Message> message,
             if(!mail_data->file_path_html)
             {
                 LoggerE("Html Body file is NULL.");
-                free(mail_data);
+                email_free_mail_data(&mail_data, 1);
                 mail_data = NULL;
                 return PlatformResult(ErrorCode::UNKNOWN_ERR, "Html Body file is NULL.");
             }
@@ -541,7 +541,7 @@ PlatformResult Message::convertPlatformEmail(std::shared_ptr<Message> message,
             if(!mail_data->file_path_html)
             {
                 LoggerE("Plain Body file is NULL.");
-                free(mail_data);
+                email_free_mail_data(&mail_data, 1);
                 mail_data = NULL;
                 return PlatformResult(ErrorCode::UNKNOWN_ERR, "Plain Body file is NULL.");
             }
