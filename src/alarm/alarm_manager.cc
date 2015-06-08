@@ -159,6 +159,12 @@ void AlarmManager::Add(const picojson::value& args, picojson::object& out) {
     struct tm *start_date;
 
     start_date = localtime(&second);
+    if (start_date == nullptr) {
+      LoggerE("Invalid date.");
+      ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Invalid date."), &out);
+      return;
+    }
+
     mktime(start_date);
 
     char str_date[kDateSize];
@@ -316,7 +322,7 @@ PlatformResult AlarmManager::GetAlarm(int id, picojson::object& obj) {
     obj.insert(std::make_pair("min", picojson::value(std::to_string(date.tm_min))));
     obj.insert(std::make_pair("sec", picojson::value(std::to_string(date.tm_sec))));
 
-    int interval = 0, byDayValue = 0;
+    int interval = 0;
 
     app_control_get_extra_data(app_control, kAlarmAbsoluteRecurrenceTypeKey, &alarm_type);
 
@@ -329,6 +335,14 @@ PlatformResult AlarmManager::GetAlarm(int id, picojson::object& obj) {
 
       obj.insert(std::make_pair("second", picojson::value(std::to_string(interval))));
     } else if (!strcmp(alarm_type, kAlarmAbsoluteReccurrenceTypeByDayValue)) {
+      int byDayValue = 0;
+
+      ret = alarm_get_scheduled_recurrence_week_flag(id, &byDayValue);
+      if (ALARM_ERROR_NONE != ret) {
+        LoggerE("Failed to get data.");
+        return PlatformResult(ErrorCode::NOT_FOUND_ERR, "Failed to get data.");
+      }
+
       picojson::array& array =
           obj.insert(std::make_pair("second", picojson::value(picojson::array())))
           .first->second.get<picojson::array>();
