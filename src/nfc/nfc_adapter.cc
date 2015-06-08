@@ -1246,11 +1246,11 @@ PlatformResult NFCAdapter::TagTransceive(int tag_id, const picojson::value& args
   int ret = nfc_tag_transceive(m_last_tag_handle, buffer,
       data_array.size(), tagTransceiveCb, (void*) callback_id_pointer);
 
+  delete[] buffer;
+  buffer = nullptr;
   if (NFC_ERROR_NONE != ret) {
     delete callback_id_pointer;
     callback_id_pointer = nullptr;
-    delete[] buffer;
-    buffer = nullptr;
 
     // for permission related error throw exception
     if(NFC_ERROR_SECURITY_RESTRICTED == ret ||
