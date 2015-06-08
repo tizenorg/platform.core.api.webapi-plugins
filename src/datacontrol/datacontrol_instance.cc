@@ -151,7 +151,10 @@ static bool SQLColumnValue(result_set_cursor cursor, int columnIndex,
       char *buffer = new char[size + 1];
       result =
           data_control_sql_get_blob_data(cursor, columnIndex, buffer, size);
-      if (result != DATA_CONTROL_ERROR_NONE) break;
+      if (result != DATA_CONTROL_ERROR_NONE) {
+        delete[] buffer;
+        break;
+      }
       val = picojson::value(buffer);
       delete[] buffer;
       break;
