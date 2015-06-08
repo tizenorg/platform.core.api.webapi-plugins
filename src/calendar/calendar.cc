@@ -667,9 +667,10 @@ PlatformResult Calendar::Find(const picojson::object& args, picojson::array& arr
 
         error_code = calendar_filter_create(view_uri, &normal_filter);
         if ((status = ErrorChecker(error_code)).IsError()) return status;
+        CalendarFilterPtr normal_filter_ptr(normal_filter, CalendarFilterDeleter);
+
         error_code = calendar_filter_create(view_uri, &all_day_filter);
         if ((status = ErrorChecker(error_code)).IsError()) return status;
-        CalendarFilterPtr normal_filter_ptr(normal_filter, CalendarFilterDeleter);
         CalendarFilterPtr all_day_filter_ptr(all_day_filter, CalendarFilterDeleter);
 
         if (initial_value_exists) {
