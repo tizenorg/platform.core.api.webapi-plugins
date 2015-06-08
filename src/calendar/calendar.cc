@@ -426,10 +426,9 @@ PlatformResult Calendar::Find(const picojson::object& args, picojson::array& arr
   error_code = calendar_query_create(view_uri, &calendar_query);
   if ((status = ErrorChecker(error_code)).IsError()) return status;
 
-  if (CALENDAR_ERROR_NONE != error_code) {
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "calendar_query_create failed");
-  }
+  CalendarQueryPtr calendar_query_ptr(calendar_query,
+                                      CalendarRecord::QueryDeleter);
+
   std::vector<std::vector<CalendarFilterPtr>> intermediate_filters(1);
   if (!IsNull(args, "filter")) {
     FilterVisitor visitor;
@@ -797,9 +796,6 @@ PlatformResult Calendar::Find(const picojson::object& args, picojson::array& arr
       if ((status = ErrorChecker(error_code)).IsError()) return status;
     }
   }
-
-  CalendarQueryPtr calendar_query_ptr(calendar_query,
-                                      CalendarRecord::QueryDeleter);
 
   calendar_list_h record_list = nullptr;
   error_code =
