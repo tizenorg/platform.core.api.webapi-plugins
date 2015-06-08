@@ -23,6 +23,9 @@
 #include "common/converter.h"
 #include "common/logger.h"
 
+using common::ErrorCode;
+using common::PlatformResult;
+
 namespace extension {
 namespace bookmark {
 
@@ -80,31 +83,48 @@ bool BookmarkInstance::bookmark_foreach(
   return true;
 }
 
-bool BookmarkInstance::bookmark_url_exists(const char* url) {
+PlatformResult BookmarkInstance::BookmarkUrlExists(const char* url,
+                                                   bool* exists) {
   LoggerD("Enter");
   int ids_count = 0;
-  int* ids = NULL;
-  char* compare_url = NULL;
+  int* ids = nullptr;
+  char* compare_url = nullptr;
 
-  if (bp_bookmark_adaptor_get_ids_p(&ids, &ids_count, -1, 0, -1, -1, -1, -1,
-                                    BP_BOOKMARK_O_DATE_CREATED, 0) < 0)
-    return true;
-  if (ids_count > 0) {
-    for (int i = 0; i < ids_count; i++) {
-      if (bp_bookmark_adaptor_get_url(ids[i], &compare_url) < 0) {
-        free(ids);
-        return true;
-      }
-      if (strcmp(url, compare_url) == 0) {
-        free(compare_url);
-        free(ids);
-        return true;
-      }
+  if (bp_bookmark_adaptor_get_ids_p(&ids,  // ids
+                                    &ids_count,  // count
+                                    -1,  //limit
+                                    0,  // offset
+                                    -1,  //parent
+                                    -1,  //type
+                                    -1,  // is_operator
+                                    -1,  // is_editable
+                                    BP_BOOKMARK_O_DATE_CREATED,  // order_offset
+                                    0  // ordering ASC
+                                    ) < 0) {
+    LoggerE("Failed to obtain bookmarks");
+    return PlatformResult{ErrorCode::UNKNOWN_ERR, "Failed to obtain bookmarks"};
+  }
+
+  PlatformResult result{ErrorCode::NO_ERROR};
+  bool url_found = false;
+  for (int i = 0; (i < ids_count) && result && !url_found; ++i) {
+    if (bp_bookmark_adaptor_get_url(ids[i], &compare_url) < 0) {
+      LoggerE("Failed to obtain URL");
+      result = PlatformResult{ErrorCode::UNKNOWN_ERR, "Failed to obtain URL"};
+    } else {
+      url_found = (0 == strcmp(url, compare_url));
+      free(compare_url);
+      compare_url = nullptr;
     }
   }
-  free(compare_url);
+
+  if (result) {
+    *exists = url_found;
+  }
+
   free(ids);
-  return false;
+
+  return result;
 }
 
 bool BookmarkInstance::bookmark_title_exists_in_parent(
@@ -189,9 +209,16 @@ void BookmarkInstance::BookmarkAdd(
   data.type   = arg.get(kType).get<double>();
   data.url    = const_cast<char*>(arg.get(kUrl).to_str().c_str());
 
-  if (!data.type && bookmark_url_exists(data.url)) {
-    ReportError(o);
-    return;
+  if (!data.type) { // bookmark
+    bool exists = false;
+    auto result = BookmarkUrlExists(data.url, &exists);
+    if (!result) {
+      ReportError(result, &o);
+      return;
+    } else if (exists) {
+      ReportError(PlatformResult{ErrorCode::UNKNOWN_ERR, "Bookmark already exists"}, &o);
+      return;
+    }
   }
   if (data.type && bookmark_title_exists_in_parent(data.title, data.parent)) {
     ReportError(o);

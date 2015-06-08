@@ -22,6 +22,7 @@
 
 #include "common/extension.h"
 #include "common/picojson.h"
+#include "common/platform_result.h"
 
 namespace extension {
 namespace bookmark {
@@ -44,7 +45,7 @@ class BookmarkInstance : public common::ParsedInstance {
 
  private:
   bool bookmark_foreach(Context& ctx, bp_bookmark_info_fmt& info);
-  bool bookmark_url_exists(const char* url);
+  common::PlatformResult BookmarkUrlExists(const char* url, bool* exists);
   bool bookmark_title_exists_in_parent(const char* title, int parent);
   void BookmarkGet(const picojson::value& arg, picojson::object& o);
   void BookmarkAdd(const picojson::value& arg, picojson::object& o);
