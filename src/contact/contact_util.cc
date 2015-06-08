@@ -699,7 +699,7 @@ PlatformResult ImportContactEmailAddressFromContactsRecord(
   if (type & CONTACTS_EMAIL_TYPE_WORK) {
     types.push_back(JsonValue{kContactEmailAddressTypeWork});
   }
-  if (type & CONTACTS_EMAIL_TYPE_OTHER) {
+  if (CONTACTS_EMAIL_TYPE_OTHER == type) {
     types.push_back(JsonValue{kContactEmailAddressTypeOther});
   }
   if (type & CONTACTS_EMAIL_TYPE_CUSTOM) {
