@@ -104,8 +104,8 @@ void DBusOperationArguments::AddArgumentString(const std::string& val) {
     LoggerD("Enter");
     const int length = val.length();
 
-    char* p_val = new char[length * 2];
-    strncpy(p_val, val.c_str(), length * 2); // TODO: is it safe?
+    char* p_val = new char[length+1];
+    strncpy(p_val, val.c_str(), length+1); // TODO: is it safe?
 
     arguments_.push_back(ArgumentElement(ArgType::kTypeString, p_val));
 }
