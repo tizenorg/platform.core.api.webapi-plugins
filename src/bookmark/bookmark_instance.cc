@@ -217,16 +217,15 @@ void BookmarkInstance::BookmarkAdd(
 
   LoggerD("Enter");
   int saved_id =-1;
-  bp_bookmark_info_fmt data = {0};
 
-  data.title  = const_cast<char*>(arg.get(kTitle).to_str().c_str());
-  data.parent = arg.get(kParentId).get<double>();
-  data.type   = arg.get(kType).get<double>();
-  data.url    = const_cast<char*>(arg.get(kUrl).to_str().c_str());
+  const auto& title = arg.get(kTitle).get<std::string>();
+  const int parent = static_cast<int>(arg.get(kParentId).get<double>());
+  const int type = static_cast<int>(arg.get(kType).get<double>());
+  const auto& url = arg.get(kUrl).get<std::string>();
 
-  if (!data.type) {  // bookmark
+  if (0 == type) {  // bookmark
     bool exists = false;
-    auto result = BookmarkUrlExists(data.url, &exists);
+    auto result = BookmarkUrlExists(url.c_str(), &exists);
     if (!result) {
       ReportError(result, &o);
       return;
@@ -236,9 +235,9 @@ void BookmarkInstance::BookmarkAdd(
     }
   }
 
-  if (data.type) {  // folder
+  if (1 == type) {  // folder
     bool exists = false;
-    auto result = BookmarkTitleExistsInParent(data.title, data.parent, &exists);
+    auto result = BookmarkTitleExistsInParent(title.c_str(), parent, &exists);
     if (!result) {
       ReportError(result, &o);
       return;
@@ -252,22 +251,22 @@ void BookmarkInstance::BookmarkAdd(
     ReportError(o);
     return;
   }
-  if (bp_bookmark_adaptor_set_title(saved_id, data.title) < 0) {
+  if (bp_bookmark_adaptor_set_title(saved_id, title.c_str()) < 0) {
     bp_bookmark_adaptor_delete(saved_id);
     ReportError(o);
     return;
   }
-  if (bp_bookmark_adaptor_set_parent_id(saved_id, data.parent) < 0) {
+  if (bp_bookmark_adaptor_set_parent_id(saved_id, parent) < 0) {
     bp_bookmark_adaptor_delete(saved_id);
     ReportError(o);
     return;
   }
-  if (bp_bookmark_adaptor_set_type(saved_id, data.type) < 0) {
+  if (bp_bookmark_adaptor_set_type(saved_id, type) < 0) {
     bp_bookmark_adaptor_delete(saved_id);
     ReportError(o);
     return;
   }
-  if (bp_bookmark_adaptor_set_url(saved_id, data.url) < 0) {
+  if (bp_bookmark_adaptor_set_url(saved_id, url.c_str()) < 0) {
     bp_bookmark_adaptor_delete(saved_id);
     ReportError(o);
     return;
