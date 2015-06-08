@@ -19,9 +19,10 @@
 #include <set>
 
 #include "common/converter.h"
-#include "common/picojson.h"
-#include "common/logger.h"
 #include "common/filter-utils.h"
+#include "common/logger.h"
+#include "common/picojson.h"
+#include "common/scope_exit.h"
 
 #include <contacts.h>
 #include <contacts_db_extension.h>
@@ -786,10 +787,13 @@ PlatformResult ContactManagerImportFromVCard(const JsonObject& args,
                           "Fail to convert vCard from string");
   }
 
+  SCOPE_EXIT {
+    contacts_list_destroy(contacts_list, true);
+  };
+
   int record_count = 0;
   err = contacts_list_get_count(contacts_list, &record_count);
   if (CONTACTS_ERROR_NONE != err || 0 == record_count) {
-    contacts_list_destroy(contacts_list, true);
     LoggerE("Invalid vCard string.");
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Invalid vCard string.");
   }
@@ -798,7 +802,6 @@ PlatformResult ContactManagerImportFromVCard(const JsonObject& args,
   contacts_list_first(contacts_list);
   err = contacts_list_get_current_record_p(contacts_list, &contacts_record);
   if (CONTACTS_ERROR_NONE != err || nullptr == contacts_record) {
-    contacts_list_destroy(contacts_list, true);
     LoggerE("Invalid vCard string.");
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Invalid vCard string.");
   }
