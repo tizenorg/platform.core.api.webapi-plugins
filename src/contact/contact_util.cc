@@ -1979,7 +1979,7 @@ PlatformResult ImportContactAddressFromContactsRecord(
   if (int_value & CONTACTS_ADDRESS_TYPE_WORK) {
     types.push_back(JsonValue{kContactAddressTypeWork});
   }
-  if (int_value & CONTACTS_ADDRESS_TYPE_OTHER) {
+  if (CONTACTS_ADDRESS_TYPE_OTHER == int_value) {
     types.push_back(JsonValue{kContactAddressTypeOther});
   }
   if (int_value & CONTACTS_ADDRESS_TYPE_CUSTOM) {
