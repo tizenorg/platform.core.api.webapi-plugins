@@ -202,6 +202,9 @@ gboolean DownloadInstance::OnFinished(void* user_data) {
   out["fullPath"] = picojson::value(fullPath);
 
   downCbPtr->instance->PostMessage(picojson::value(out).serialize().c_str());
+
+  free(fullPath);
+
   return FALSE;
 }
 
@@ -757,17 +760,18 @@ void DownloadInstance::DownloadManagerGetmimetype
   } else if (ret == DOWNLOAD_ERROR_INVALID_PARAMETER) {
     ReportError(InvalidValuesException(
     "The input parameter contains an invalid value."), out);
-    } else if (ret == DOWNLOAD_ERROR_OUT_OF_MEMORY) {
-      ReportError(UnknownException("Out of memory"), out);
-    } else if (ret == DOWNLOAD_ERROR_INVALID_STATE) {
-      ReportError(InvalidValuesException("Invalid state"), out);
-    } else if (ret == DOWNLOAD_ERROR_IO_ERROR) {
-      ReportError(UnknownException("Internal I/O error"), out);
-    } else if (ret == DOWNLOAD_ERROR_PERMISSION_DENIED) {
-      ReportError(UnknownException("Permission denied"), out);
-    } else {
-      ReportError(UnknownException("Unknown Error"), out);
-    }
+  } else if (ret == DOWNLOAD_ERROR_OUT_OF_MEMORY) {
+    ReportError(UnknownException("Out of memory"), out);
+  } else if (ret == DOWNLOAD_ERROR_INVALID_STATE) {
+    ReportError(InvalidValuesException("Invalid state"), out);
+  } else if (ret == DOWNLOAD_ERROR_IO_ERROR) {
+    ReportError(UnknownException("Internal I/O error"), out);
+  } else if (ret == DOWNLOAD_ERROR_PERMISSION_DENIED) {
+    ReportError(UnknownException("Permission denied"), out);
+  } else {
+    ReportError(UnknownException("Unknown Error"), out);
+  }
+  free(mimetype);
 }
 
 bool DownloadInstance::GetDownloadID
