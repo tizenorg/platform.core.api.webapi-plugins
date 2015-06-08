@@ -46,7 +46,8 @@ class BookmarkInstance : public common::ParsedInstance {
  private:
   bool bookmark_foreach(Context& ctx, bp_bookmark_info_fmt& info);
   common::PlatformResult BookmarkUrlExists(const char* url, bool* exists);
-  bool bookmark_title_exists_in_parent(const char* title, int parent);
+  common::PlatformResult BookmarkTitleExistsInParent(const char* title,
+                                                     int parent, bool* exists);
   void BookmarkGet(const picojson::value& arg, picojson::object& o);
   void BookmarkAdd(const picojson::value& arg, picojson::object& o);
   void BookmarkRemove(const picojson::value& arg, picojson::object& o);
