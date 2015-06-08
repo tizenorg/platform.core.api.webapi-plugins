@@ -56,15 +56,16 @@ static int get_utc_offset() {
   LoggerD("Enter");
   time_t zero = 24 * 60 * 60L;
   struct tm* timeptr;
-  int gmtime_hours;
+  int gmtime_hours = 0;
 
   /* get the local time for Jan 2, 1900 00:00 UTC */
   timeptr = localtime(&zero);
-  gmtime_hours = timeptr->tm_hour;
+  if (nullptr != timeptr) {
+    gmtime_hours = timeptr->tm_hour;
 
-  if (timeptr->tm_mday < 2)
-    gmtime_hours -= 24;
-
+    if (timeptr->tm_mday < 2)
+      gmtime_hours -= 24;
+  }
   return gmtime_hours;
 }
 
@@ -72,16 +73,17 @@ std::string get_date(char* tmpStr) {
   LoggerD("Enter");
   if (tmpStr) {
     struct tm* result = (struct tm*) calloc(1, sizeof(struct tm));
-    if (strptime(tmpStr, "%Y:%m:%d %H:%M:%S", result) == NULL) {
-      return std::string();
-    } else {
-      time_t t = mktime(result);// + get_utc_offset() * 3600;
-      std::stringstream str_date;
-      str_date << t;
-      free(tmpStr);
-      free(result);
-      tmpStr = NULL;
-      return str_date.str();
+    if (nullptr != result) {
+      if (strptime(tmpStr, "%Y:%m:%d %H:%M:%S", result) == NULL) {
+        free(result);
+        return std::string();
+      } else {
+        time_t t = mktime(result);// + get_utc_offset() * 3600;
+        std::stringstream str_date;
+        str_date << t;
+        free(result);
+        return str_date.str();
+      }
     }
   }
   return std::string();
@@ -109,6 +111,8 @@ void ContentToJson(media_info_h info, picojson::object& o) {
     o["type"] = picojson::value(std::string("IMAGE"));
     image_meta_h img;
     if (MEDIA_CONTENT_ERROR_NONE == media_info_get_image(info, &img)) {
+      std::unique_ptr<std::remove_pointer<image_meta_h>::type, int(*)(image_meta_h)>
+          img_ptr(img, &image_meta_destroy); // automatically release the memory
       if (MEDIA_CONTENT_ERROR_NONE == image_meta_get_date_taken(img, &tmpStr)) {
         o["releaseDate"] = picojson::value(get_date(tmpStr));
       }
@@ -166,6 +170,8 @@ void ContentToJson(media_info_h info, picojson::object& o) {
     o["type"] = picojson::value(std::string("VIDEO"));
     video_meta_h video;
     if (MEDIA_CONTENT_ERROR_NONE == media_info_get_video(info, &video)) {
+      std::unique_ptr<std::remove_pointer<video_meta_h>::type, int(*)(video_meta_h)>
+          video_ptr(video, &video_meta_destroy); // automatically release the memory
       if (MEDIA_CONTENT_ERROR_NONE == video_meta_get_width(video, &tmpInt)) {
         o["width"] = picojson::value(static_cast<double>(tmpInt));
       }
@@ -205,6 +211,8 @@ void ContentToJson(media_info_h info, picojson::object& o) {
     o["type"] = picojson::value(std::string("AUDIO"));
     audio_meta_h audio;
     if (MEDIA_CONTENT_ERROR_NONE == media_info_get_audio(info, &audio)) {
+      std::unique_ptr<std::remove_pointer<audio_meta_h>::type, int(*)(audio_meta_h)>
+          audio_ptr(audio, &audio_meta_destroy); // automatically release the memory
       if (MEDIA_CONTENT_ERROR_NONE == audio_meta_get_recorded_date(audio, &tmpStr)) {
         o["releaseDate"] = picojson::value(get_date(tmpStr));
       }
@@ -323,6 +331,7 @@ void ContentToJson(media_info_h info, picojson::object& o) {
       picojson::array thumbnails;
       thumbnails.push_back(picojson::value(std::string(tmpStr)));
       o["thumbnailURIs"] = picojson::value(thumbnails);
+      free(tmpStr);
       tmpStr = NULL;
     }
   }
@@ -410,6 +419,7 @@ static int setContent(media_info_h media, const picojson::value& content) {
       } else {
         LoggerE("orientation update failed");
       }
+      image_meta_destroy(img);
     }
   }
 
@@ -520,6 +530,8 @@ static bool playlist_foreach_cb(media_playlist_h playlist, void *user_data) {
     }
 
     media_filter_create(&filter);
+    std::unique_ptr<std::remove_pointer<filter_h>::type, int(*)(filter_h)>
+        filter_ptr(filter, &media_filter_destroy); // automatically release the memory
     if( media_playlist_get_media_count_from_db(id, filter, &cnt) == MEDIA_CONTENT_ERROR_NONE) {
       o["numberOfTracks"] = picojson::value(static_cast<double>(cnt));
     }
@@ -537,9 +549,7 @@ static bool playlist_content_member_cb(int playlist_member_id, media_info_h medi
   LoggerD("Enter");
   picojson::value::array *contents = static_cast<picojson::value::array*>(user_data);
   picojson::value::object o;
-  char *name = NULL;
 
-  media_info_get_display_name(media, &name);
   o["playlist_member_id"] = picojson::value(static_cast<double>(playlist_member_id));
   ContentToJson(media, o);
   contents->push_back(picojson::value(o));
@@ -728,6 +738,8 @@ void ContentManager::createPlaylist(std::string name,
   media_playlist_h	playlist = NULL;
 
   int ret = media_playlist_insert_to_db(name.c_str(),&playlist);
+  std::unique_ptr<std::remove_pointer<media_playlist_h>::type, int(*)(media_playlist_h)>
+      playlist_ptr(playlist, &media_playlist_destroy); // automatically release the memory
   if(ret != MEDIA_CONTENT_ERROR_NONE) {
     LoggerE("Failed: creation of playlist is failed");
     PlatformResult err(ErrorCode::UNKNOWN_ERR, "creation of playlist is failed.");
@@ -772,6 +784,9 @@ void ContentManager::createPlaylist(std::string name,
       LoggerE("Invalid name for playlist.");
     }
     media_filter_create(&filter);
+    std::unique_ptr<std::remove_pointer<filter_h>::type, int(*)(filter_h)>
+        filter_ptr(filter, &media_filter_destroy); // automatically release the memory
+
     if( media_playlist_get_media_count_from_db(id, filter, &cnt) == MEDIA_CONTENT_ERROR_NONE) {
       o["numberOfTracks"] = picojson::value(static_cast<double>(cnt));
     }
@@ -788,8 +803,10 @@ void ContentManager::getPlaylists(const std::shared_ptr<ReplyCallbackData>& user
 
   LoggerD("Enter");
   int ret;
-  filter_h 	filter;
+  filter_h 	filter = nullptr;
   media_filter_create(&filter);
+  std::unique_ptr<std::remove_pointer<filter_h>::type, int(*)(filter_h)>
+      filter_ptr(filter, &media_filter_destroy); // automatically release the memory
   picojson::value::array playlists;
 
   ret = media_playlist_foreach_playlist_from_db(filter, playlist_foreach_cb, static_cast<void*>(&playlists));
@@ -1149,6 +1166,8 @@ int ContentManager::getLyrics(const picojson::value& args, picojson::object& res
 
   metadata_extractor_h extractor;
   metadata_extractor_create(&extractor);
+  std::unique_ptr<std::remove_pointer<metadata_extractor_h>::type, int(*)(metadata_extractor_h)>
+      extractor_ptr(extractor, &metadata_extractor_destroy); // automatically release the memory
 
   ret = metadata_extractor_set_path(extractor, contentURI.c_str());
   if (ret != METADATA_EXTRACTOR_ERROR_NONE) {
