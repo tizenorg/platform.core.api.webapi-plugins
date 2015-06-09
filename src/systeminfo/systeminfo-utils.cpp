@@ -711,7 +711,7 @@ PlatformResult SystemInfoListeners::UnregisterCpuListener()
 PlatformResult SystemInfoListeners::RegisterStorageListener(const SysteminfoUtilsCallback& callback,
                                                             SysteminfoInstance& instance)
 {
-  if (nullptr == m_storage_listener) {
+/*  if (nullptr == m_storage_listener) {
     PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
     CHECK_LISTENER_ERROR(
         RegisterVconfCallback(VCONFKEY_SYSMAN_MMC_STATUS, OnMmcChangedCb, instance))
@@ -719,13 +719,13 @@ PlatformResult SystemInfoListeners::RegisterStorageListener(const SysteminfoUtil
     m_storage_event_id = g_timeout_add_seconds(kPropertyWatcherTime, OnStorageChangedCb, static_cast<void*>(&instance));
     LoggerD("Added callback for STORAGE");
     m_storage_listener = callback;
-  }
+  }*/
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 PlatformResult SystemInfoListeners::UnregisterStorageListener()
 {
-  if (nullptr != m_storage_listener) {
+/*  if (nullptr != m_storage_listener) {
     PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
     CHECK_LISTENER_ERROR(
         UnregisterVconfCallback(VCONFKEY_SYSMAN_MMC_STATUS, OnMmcChangedCb))
@@ -734,7 +734,7 @@ PlatformResult SystemInfoListeners::UnregisterStorageListener()
     m_storage_event_id = 0;
     LoggerD("Removed callback for STORAGE");
     m_storage_listener = nullptr;
-  }
+  }*/
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
@@ -2635,7 +2635,7 @@ PlatformResult SysteminfoUtils::ReportStorage(picojson::object& out) {
   CreateStorageInfo(kTypeInternal, fs, &internal_obj);
   system_info_listeners.SetAvailableCapacityInternal(fs.f_bavail);
 
-  if (0 == vconf_get_int(VCONFKEY_SYSMAN_MMC_STATUS, &sdcardState)) {
+/*  if (0 == vconf_get_int(VCONFKEY_SYSMAN_MMC_STATUS, &sdcardState)) {
     if (VCONFKEY_SYSMAN_MMC_MOUNTED == sdcardState){
       if (statfs(kStorageSdcardPath, &fs) < 0) {
         LoggerE("MMC mounted, but not accessible");
@@ -2646,7 +2646,7 @@ PlatformResult SysteminfoUtils::ReportStorage(picojson::object& out) {
       CreateStorageInfo(kTypeMmc, fs, &external_obj);
       system_info_listeners.SetAvailableCapacityMmc(fs.f_bavail);
     }
-  }
+  }*/
 
   out.insert(std::make_pair("storages", picojson::value(result)));
   return PlatformResult(ErrorCode::NO_ERROR);
