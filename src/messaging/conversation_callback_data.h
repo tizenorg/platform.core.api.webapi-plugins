@@ -79,7 +79,7 @@ private:
     PostQueue& queue_;
 };
 
-}//messaging
-}//extension
+}  // namespace messaging
+}  // namespace extension
 
 #endif // MESSAGING_CONVERSATION_CALLBACK_DATA_H_

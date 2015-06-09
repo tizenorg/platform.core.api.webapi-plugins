@@ -81,7 +81,7 @@ private:
     PostQueue& queue_;
 };
 
-}//Messaging
-}//DeviceAPI
+}  // namespace messaging
+}  // namespace extension
 
 #endif /* __TIZEN_FIND_MSG_CALLBACK_USER_DATA_H */

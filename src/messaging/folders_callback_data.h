@@ -64,7 +64,7 @@ private:
 
 };
 
-}//messaging
-}//extension
+}  // namespace messaging
+}  // namespace extension
 
 #endif /* __TIZEN_FOLDERS_CALLBACK_DATA_H__ */

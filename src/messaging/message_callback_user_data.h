@@ -59,8 +59,8 @@ private:
 
 };
 
-}//messaging
-}//extension
+}  // namespace messaging
+}  // namespace extension
 
 #endif /* MESSAGING_MESSAGE_CALLBACK_USER_DATA_H_ */
 

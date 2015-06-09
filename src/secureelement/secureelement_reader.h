@@ -36,7 +36,7 @@ private:
     smartcard_service_api::Reader* m_reader;
 };
 
-} // secureelement
-} // extension
+}  // namespace secureelement
+}  // namespace extension
 
 #endif // SECUREELEMENT_READER_H_

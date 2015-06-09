@@ -62,8 +62,8 @@ common::PlatformResult AddressBookBatchFunc(NativeFunction impl,
 common::PlatformResult AddressBookAddBatch(const JsonObject& args,
                                            JsonArray& out);
 
-}  // AddressBook
-}  // contact
-}  // extension
+}  // namespace AddressBook
+}  // namespace contact
+}  // namespace extension
 
 #endif  // CONTACT_ADDRESSBOOK_H_

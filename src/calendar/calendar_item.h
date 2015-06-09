@@ -185,6 +185,6 @@ class CalendarItem : public CalendarRecord {
 };
 
 }  // namespace calendar
-}  // namespace webapi
+}  // namespace extension
 
 #endif  // CALENDAR_CALENDAR_ITEM_H_

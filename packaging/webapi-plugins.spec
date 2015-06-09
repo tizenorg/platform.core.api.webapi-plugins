@@ -35,11 +35,11 @@ Source0:    %{name}-%{version}.tar.gz
 # I586
 %define tizen_feature_bluetooth_support           0
 %endif
-%define tizen_feature_bookmark_support            0
+%define tizen_feature_bookmark_support            1
 %define tizen_feature_calendar_support            1
-%define tizen_feature_contact_support             0
+%define tizen_feature_contact_support             1
 %define tizen_feature_content_support             1
-%define tizen_feature_datacontrol_support         0
+%define tizen_feature_datacontrol_support         1
 %define tizen_feature_datasync_support            0
 %define tizen_feature_download_support            1
 %define tizen_feature_exif_support                1
@@ -66,7 +66,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_media_key_support           0
 %else
 # I586
-%define tizen_feature_media_key_support           0
+%define tizen_feature_media_key_support           1
 %endif
 %define tizen_feature_message_port_support        1
 %define tizen_feature_messaging_support           1
@@ -118,7 +118,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_tvwindow_support            0
 
 %if 0%{?tizen_feature_telephony_support}
-%define tizen_feature_callhistory_support         0
+%define tizen_feature_callhistory_support         1
 %define tizen_feature_nbs_support                 1
 %else
 %define tizen_feature_callhistory_support         0
@@ -345,7 +345,7 @@ BuildRequires: pkgconfig(capi-appfw-alarm)
 
 %if 0%{?tizen_feature_bookmark_support}
 BuildRequires: pkgconfig(capi-web-bookmark)
-BuildRequires: pkgconfig(bookmark-adaptor)
+#BuildRequires: pkgconfig(bookmark-adaptor)
 %endif
 
 %if 0%{?tizen_feature_datacontrol_support}
@@ -364,14 +364,12 @@ BuildRequires: pkgconfig(capi-location-manager)
 
 %if 0%{?tizen_feature_power_support}
 BuildRequires: pkgconfig(deviced)
-%endif
-
-%if 0%{?tizen_feature_power_support}
 BuildRequires: pkgconfig(capi-appfw-application)
 %endif
 
 %if 0%{?tizen_feature_push_support}
 BuildRequires: pkgconfig(push)
+BuildRequires: pkgconfig(libcapi-network-connection)
 %endif
 
 %if 0%{?tizen_feature_key_manager_support}

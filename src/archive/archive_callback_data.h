@@ -269,7 +269,7 @@ public:
     OperationCanceledException(const char* message = "Operation Canceled");
 };
 
-}
-}
+}  // namespace archive
+}  // namespace extension
 
 #endif //__ARCHIVE_CALLBACK_DATA_H__

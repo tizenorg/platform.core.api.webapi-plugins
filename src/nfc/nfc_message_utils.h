@@ -58,7 +58,7 @@ class NFCMessageUtils
   static void RemoveMessageHandle(nfc_ndef_message_h message_handle);
 };
 
-}  // nfc
-}  // extension
+}  // namespace nfc
+}  // namespace extension
 
 #endif  // __TIZEN_NFC_NFC_MESSAGE_UTILS_H_

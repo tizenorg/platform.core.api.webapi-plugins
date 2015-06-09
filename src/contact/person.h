@@ -45,8 +45,8 @@ common::PlatformResult PersonPropertyFromString(const std::string& name,
 common::PlatformResult PersonLink(const JsonObject& args, JsonObject&);
 common::PlatformResult PersonUnlink(const JsonObject& args, JsonObject&);
 
-}  // Person
-}  // contact
-}  // extension
+}  // namespace Person
+}  // namespace contact
+}  // namespace extension
 
 #endif  // CONTACT_PERSON_H

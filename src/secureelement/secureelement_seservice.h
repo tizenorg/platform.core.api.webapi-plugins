@@ -50,7 +50,7 @@ class SEService {
   SecureElementInstance& instance_;
 };
 
-} // secureelement
-} // extension
+}  // namespace secureelement
+}  // namespace extension
 
 #endif // SECUREELEMENT_SESERVICE_H_

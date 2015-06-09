@@ -48,7 +48,7 @@ private:
     bool isValidRecpientsVector(std::vector<std::string> &recipients);
 };
 
-} // messaging
-} // extension
+}  // namespace messaging
+}  // namespace extension
 
 #endif // MESSAGING_MESSAGE_EMAIL_H_

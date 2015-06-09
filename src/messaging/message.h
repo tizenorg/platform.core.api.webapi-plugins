@@ -233,8 +233,8 @@ private:
             char delimiter);
 };
 
-}    //messaging
-}    //extension
+}  // namespace messaging
+}  // namespace extension
 
 #endif /* MESSAGING_MESSAGE_H_ */
 

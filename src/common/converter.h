@@ -61,6 +61,6 @@ const T &FromJson(const picojson::object &in, const char *name,
   return FromJson<T>(v.get<picojson::object>(), names...);
 }
 
-}  // common
+}  // namespace common
 
 #endif  // COMMON_CONVERTER_H_

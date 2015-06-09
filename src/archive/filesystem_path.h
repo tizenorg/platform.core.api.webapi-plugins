@@ -75,7 +75,7 @@ bool operator!=(const Path& lhs, const std::string& rhs);
 bool operator!=(const std::string& lhs, const Path& rhs);
 
 
-} // filesystem
-} // extension
+}  // namespace filesystem
+}  // namespace extension
 
 #endif /* _FILESYSTEM_PATH_H_ */

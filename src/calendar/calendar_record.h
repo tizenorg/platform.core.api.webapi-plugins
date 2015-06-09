@@ -97,6 +97,6 @@ class CalendarRecord {
 };
 
 }  // namespace calendar
-}  // namespace webapi
+}  // namespace extension
 
 #endif  // WEBAPI_PLUGINS_CALENDAR_RECORD_H_

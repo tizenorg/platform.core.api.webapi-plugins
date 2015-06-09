@@ -39,7 +39,7 @@ private:
     void* m_user_data;
 };
 
-} // secureelement
-} // extension
+}  // namespace secureelement
+}  // namespace extension
 
 #endif // SECUREELEMENT_SESSION_H_

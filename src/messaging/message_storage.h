@@ -70,8 +70,8 @@ protected:
     std::unordered_set<long> registered_listeners_;
 };
 
-}    //messaging
-}    //extension
+}  // namespace messaging
+}  // namespace extension
 
 #endif /* MESSAGING_MESSAGE_STORAGE_H_ */
 

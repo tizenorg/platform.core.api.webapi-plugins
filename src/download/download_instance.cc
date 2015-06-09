@@ -290,10 +290,9 @@ gboolean DownloadInstance::OnFailed(void* user_data) {
         "The application does not have the privilege to call this method."),
         out);
       break;
-    // TODO(p.kaczmarek3) temporarily removed - not supported by platform
-    //case DOWNLOAD_ERROR_NOT_SUPPORTED:
-    //  instance->ReportError(NotSupportedException("Not supported"), out);
-    //  break;
+    case DOWNLOAD_ERROR_NOT_SUPPORTED:
+      instance->ReportError(NotSupportedException("Not supported"), out);
+      break;
     case DOWNLOAD_ERROR_INVALID_STATE:
       instance->ReportError(InvalidStateException("Invalid state"), out);
       break;

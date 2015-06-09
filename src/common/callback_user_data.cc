@@ -46,4 +46,4 @@ std::shared_ptr<picojson::value> CallbackUserData::getJson() const {
   return m_json;
 }
 
-}  // common
+}  // namespace common

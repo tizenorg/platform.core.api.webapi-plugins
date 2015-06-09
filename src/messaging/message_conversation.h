@@ -112,7 +112,7 @@ private:
     int m_last_message_id;
 };
 
-}    //messaging
-}    //extension
+}  // namespace messaging
+}  // namespace extension
 
 #endif // __TIZEN_MESSAGE_CONVERSATION_H__

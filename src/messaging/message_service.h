@@ -218,6 +218,6 @@ protected:
     MessageStoragePtr m_storage;
 };
 
-} // messaging
-} // extension
+}  // namespace messaging
+}  // namespace extension
 #endif // MESSAGING_MESSAGE_SERVICE_EMAIL_H_
