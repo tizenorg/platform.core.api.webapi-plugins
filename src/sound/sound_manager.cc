@@ -299,7 +299,7 @@ PlatformResult SoundManager::GetVolume(const picojson::object& args,
                                        double* volume) {
   LoggerD("Enter");
   const std::string& type = FromJson<std::string>(args, "type");
-  int value;
+  int value = 0;
 
   sound_type_e type_enum;
   PlatformResult status = SoundManager::StrToPlatformEnum(type, &type_enum);
