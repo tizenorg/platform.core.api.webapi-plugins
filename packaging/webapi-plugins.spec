@@ -316,6 +316,7 @@ BuildRequires: pkgconfig(capi-appfw-app-manager)
 BuildRequires: pkgconfig(capi-appfw-package-manager)
 BuildRequires: pkgconfig(capi-content-media-content)
 BuildRequires: pkgconfig(capi-media-metadata-extractor)
+BuildRequires: pkgconfig(libtzplatform-config)
 
 %if %{with wayland}
 %define display_type wayland
