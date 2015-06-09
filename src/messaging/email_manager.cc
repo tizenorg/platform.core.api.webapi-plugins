@@ -58,6 +58,7 @@
 #include "MsgCommon/FilterIterator.h"
 
 #include "common/scope_exit.h"
+#include "messaging/DBus/DBusTypes.h"
 
 using namespace common;
 using namespace extension::tizen;
@@ -113,8 +114,8 @@ PlatformResult EmailManager::InitializeEmailService()
             instance.m_slot_size = slot_size;
         }
 
-        PlatformResult ret = DBus::SyncProxy::create(DBus::Proxy::DBUS_PATH_NETWORK_STATUS,
-                                                     DBus::Proxy::DBUS_IFACE_NETWORK_STATUS,
+        PlatformResult ret = DBus::SyncProxy::create(DBus::kDBusPathNetworkStatus,
+                                                     DBus::kDBusIfaceNetworkStatus,
                                                      &instance.m_proxy_sync);
         CHECK_ERROR(ret, "create sync proxy failed");
         if (!instance.m_proxy_sync) {
@@ -123,8 +124,8 @@ PlatformResult EmailManager::InitializeEmailService()
         }
         instance.m_proxy_sync->signalSubscribe();
 
-        ret = DBus::LoadBodyProxy::create(DBus::Proxy::DBUS_PATH_NETWORK_STATUS,
-                                          DBus::Proxy::DBUS_IFACE_NETWORK_STATUS,
+        ret = DBus::LoadBodyProxy::create(DBus::kDBusPathNetworkStatus,
+                                          DBus::kDBusIfaceNetworkStatus,
                                           &instance.m_proxy_load_body);
         CHECK_ERROR(ret, "create load body proxy failed");
         if (!instance.m_proxy_load_body) {

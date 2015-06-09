@@ -16,7 +16,7 @@
 //
 
 #include "MessageProxy.h"
-#include "Connection.h"
+#include "common/GDBus/connection.h"
 #include "common/logger.h"
 #include "../message.h"
 #include "../message_email.h"
@@ -24,6 +24,7 @@
 //#include <MessageFolder.h>
 #include "../change_listener_container.h"
 #include "../email_manager.h"
+#include "messaging/DBus/DBusTypes.h"
 
 namespace extension {
 namespace messaging {
@@ -32,11 +33,11 @@ namespace DBus {
 using namespace common;
 
 MessageProxy::MessageProxy():
-        Proxy(Proxy::DBUS_PATH_EMAIL_STORAGE_CHANGE,
-                     Proxy::DBUS_IFACE_EMAIL_STORAGE_CHANGE,
-                     Proxy::DBUS_NAME_SIGNAL_EMAIL,
-                     Proxy::DBUS_PATH_EMAIL_STORAGE_CHANGE,
-                     Proxy::DBUS_IFACE_EMAIL_STORAGE_CHANGE)
+        common::dbus::Proxy(kDBusPathEmailStorageChange,
+                     kDBusIfaceEmailStorageChange,
+                     kDBusNameSignalEmail,
+                     kDBusPathEmailStorageChange,
+                     kDBusIfaceEmailStorageChange)
 {
 }
 

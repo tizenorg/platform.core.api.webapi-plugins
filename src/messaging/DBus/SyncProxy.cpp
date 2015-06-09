@@ -138,8 +138,7 @@ void SyncProxy::handleEmailSignal(const int status,
         case NOTI_DOWNLOAD_FAIL:
         {
             LoggerD("Sync failed!");
-            common::UnknownException err("Sync failed!");
-            callback->setError(err.name(), err.message());
+            callback->setError("UnknownError", "Sync failed!");
             callback->getQueue().resolve(
                     obj.at(JSON_CALLBACK_ID).get<double>(),
                     response->serialize()

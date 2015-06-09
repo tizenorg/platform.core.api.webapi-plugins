@@ -21,6 +21,7 @@
 
 #include <email-types.h>
 #include "../email_manager.h"
+#include "messaging/DBus/DBusTypes.h"
 
 namespace extension {
 namespace messaging {
@@ -29,8 +30,8 @@ namespace DBus {
 using namespace common;
 
 SendProxy::SendProxy():
-        EmailSignalProxy(Proxy::DBUS_PATH_NETWORK_STATUS,
-                     Proxy::DBUS_IFACE_NETWORK_STATUS)
+        EmailSignalProxy(kDBusPathNetworkStatus,
+            kDBusIfaceNetworkStatus)
 {
 }
 

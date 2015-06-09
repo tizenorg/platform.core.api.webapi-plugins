@@ -15,45 +15,18 @@
 // limitations under the License.
 //
 
-#include "Connection.h"
-#include "common/logger.h"
-#include <cstring>
-#include <email-types.h>
-#include "../message_service.h"
+#include "messaging/DBus/DBusTypes.h"
 
 namespace extension {
 namespace messaging {
 namespace DBus {
 
-Connection& Connection::getInstance()
-{
-    LoggerD("Entered");
-    static Connection instance;
-    return instance;
-}
+const char* kDBusPathNetworkStatus = "/User/Email/NetworkStatus";
+const char* kDBusIfaceNetworkStatus = "User.Email.NetworkStatus";
+const char* kDBusPathEmailStorageChange = "/User/Email/StorageChange";
+const char* kDBusIfaceEmailStorageChange = "User.Email.StorageChange";
+const char* kDBusNameSignalEmail = "email";
 
-GDBusConnection* Connection::getDBus()
-{
-    return m_dbus;
-}
-
-Connection::Connection()
-{
-    dbus_g_thread_init();
-    g_type_init();
-
-    m_dbus = g_bus_get_sync(G_BUS_TYPE_SYSTEM, NULL, &m_error);
-    if (!m_dbus || m_error) {
-        LoggerE("Could not get connection");
-    }
-    LoggerD("Connection set");
-}
-
-Connection::~Connection()
-{
-    g_object_unref(m_dbus);
-}
-
-} //namespace DBus
-} //namespace Messaging
-} //namespace DeviceAPI
+} // namespace DBus
+} // namespace messaging
+} // namespace extension
