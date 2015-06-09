@@ -891,7 +891,7 @@ PlatformResult ImportContactPhoneNumberFromContactsRecord(
   if (type & CONTACTS_NUMBER_TYPE_ASSISTANT) {
     types.push_back(JsonValue{kContactPhoneTypeAssistant});
   }
-  if (type & CONTACTS_NUMBER_TYPE_OTHER) {
+  if (CONTACTS_NUMBER_TYPE_OTHER == type) {
     types.push_back(JsonValue{kContactPhoneTypeOther});
   }
   if (type & CONTACTS_NUMBER_TYPE_CUSTOM) {
