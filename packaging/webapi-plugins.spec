@@ -13,7 +13,7 @@ Source0:    %{name}-%{version}.tar.gz
 
 
 ####################################################################
-#       Mobile Profile :  Redwood(SM-Z910F)       #
+#       Mobile Profile :  Redwood(SM-Z910F), KIRAN(Z130H)          #
 ####################################################################
 %if "%{?tizen_profile_name}" == "mobile"
 
@@ -40,11 +40,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_download_support            1
 %define tizen_feature_exif_support                1
 %define tizen_feature_filesystem_support          1
-%if 0%{?model_build_feature_fmradio}
 %define tizen_feature_fm_radio_support            1
-%else
-%define tizen_feature_fm_radio_support            0
-%endif
 %ifarch %{arm}
 # ARM
 %define tizen_feature_ham_support                 0
