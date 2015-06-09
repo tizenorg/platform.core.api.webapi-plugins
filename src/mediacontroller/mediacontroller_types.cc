@@ -211,11 +211,8 @@ PlatformResult Types::ConvertMetadata(mc_metadata_h metadata_h,
       return PlatformResult(ErrorCode::UNKNOWN_ERR,
                             "Error getting metadata");
     }
-    if (NULL == value) {
-      value = strdup("");
-    }
 
-    (*metadata)[field.first] = picojson::value(std::string(value));
+    (*metadata)[field.first] = picojson::value(std::string(value ? value : ""));
   }
 
   return PlatformResult(ErrorCode::NO_ERROR);
