@@ -22,6 +22,7 @@
 #include <string>
 #include <vector>
 
+#include "common/platform_result.h"
 #include "exif_gps_location.h"
 
 namespace extension {
@@ -46,8 +47,8 @@ class ExifTagSaver {
 
  private:
   static ExifEntry* prepareEntry(ExifData* exif_data, ExifTag tag);
-  static ExifIfd deduceIfdSection(ExifTag tag);
-  static ExifFormat deduceDataFormat(ExifTag tag);
+  static common::PlatformResult deduceIfdSection(ExifTag tag, ExifIfd* exif_ifd);
+  static common::PlatformResult deduceDataFormat(ExifTag tag, ExifFormat* exif_format);
   static ExifEntry* createNewTag(ExifData* exif_data, ExifIfd ifd,
       ExifFormat format, ExifTag tag);
 };
