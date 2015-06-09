@@ -1020,6 +1020,7 @@ static void tagReadNDEFCb(nfc_error_e result,
   if(!data) {
     // Can not continue if unable to get callbackId
     LoggerE("NULL callback id given");
+    return;
   }
 
   double callbackId = *((double*)data);
