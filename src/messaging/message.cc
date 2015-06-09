@@ -1105,8 +1105,8 @@ PlatformResult Message::getSMSRecipientsFromStruct(msg_struct_t &msg,
     if (MSG_SUCCESS
             == msg_get_list_handle(msg, MSG_MESSAGE_ADDR_LIST_HND,
                     (void **) &addr_list)) {
-        unsigned size = msg_list_length(addr_list);
-        for (unsigned int i = 0; i < size; i++) {
+        int size = msg_list_length(addr_list);
+        for (int i = 0; i < size; i++) {
             msg_struct_t addr_info = NULL;
             char infoStr[MAX_ADDRESS_VAL_LEN];
             //get address
@@ -1132,8 +1132,8 @@ PlatformResult Message::getMMSRecipientsFromStruct(msg_struct_t &msg,
     if (MSG_SUCCESS
             == msg_get_list_handle(msg, MSG_MESSAGE_ADDR_LIST_HND,
                     (void **) &addr_list)) {
-        unsigned size = msg_list_length(addr_list);
-        for (unsigned int i = 0; i < size; i++) {
+        int size = msg_list_length(addr_list);
+        for (int i = 0; i < size; i++) {
             msg_struct_t addr_info = NULL;
             char infoStr[MAX_ADDRESS_VAL_LEN];
             int tempInt;
@@ -1283,10 +1283,10 @@ PlatformResult Message::setMMSBodyAndAttachmentsFromStruct(Message* message,
             &attach_list);
     if (MSG_SUCCESS == error) {
 
-        unsigned size = msg_list_length(attach_list);
+        int size = msg_list_length(attach_list);
         LoggerD("MSG_MMS_ATTACH_LIST length:%d", size);
 
-        for (unsigned int i = 0; i < size; i++) {
+        for (int i = 0; i < size; i++) {
             msg_struct_t attach_info = NULL;
             attach_info = (msg_struct_t) msg_list_nth_data(attach_list, i);
             if(!attach_info) {
