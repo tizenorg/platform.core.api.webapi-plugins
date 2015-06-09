@@ -474,10 +474,16 @@ PlatformResult Message::convertPlatformEmail(std::shared_ptr<Message> message,
     if(message->is_id_set()) {
         email_get_mail_data(message->getId(), &mail_data);
     } else {
-        mail_data = (email_mail_data_t*)malloc(
-                sizeof(email_mail_data_t));
+        mail_data = (email_mail_data_t*)malloc(sizeof(email_mail_data_t));
+        if (!mail_data) {
+          LoggerE("malloc failure");
+          return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to allocate memory.");
+        }
         memset(mail_data, 0x00, sizeof(email_mail_data_t));
     }
+
+  std::unique_ptr<email_mail_data_t, void (*)(email_mail_data_t*)> mail_data_ptr(
+      mail_data, [](email_mail_data_t* mail) {email_free_mail_data(&mail, 1);});
 
     if(!message->getFrom().empty()) {
         std::string from = "<"+message->getFrom()+">";
@@ -516,8 +522,6 @@ PlatformResult Message::convertPlatformEmail(std::shared_ptr<Message> message,
             if(!mail_data->file_path_plain)
             {
                 LoggerE("Plain Body file is NULL.");
-                free(mail_data);
-                mail_data = NULL;
                 return PlatformResult(ErrorCode::UNKNOWN_ERR, "Plain Body file is NULL.");
             }
         }
@@ -529,8 +533,6 @@ PlatformResult Message::convertPlatformEmail(std::shared_ptr<Message> message,
             if(!mail_data->file_path_html)
             {
                 LoggerE("Html Body file is NULL.");
-                free(mail_data);
-                mail_data = NULL;
                 return PlatformResult(ErrorCode::UNKNOWN_ERR, "Html Body file is NULL.");
             }
         } else if(!body->getPlainBody().empty()) {
@@ -541,8 +543,6 @@ PlatformResult Message::convertPlatformEmail(std::shared_ptr<Message> message,
             if(!mail_data->file_path_html)
             {
                 LoggerE("Plain Body file is NULL.");
-                free(mail_data);
-                mail_data = NULL;
                 return PlatformResult(ErrorCode::UNKNOWN_ERR, "Plain Body file is NULL.");
             }
         }
@@ -556,7 +556,7 @@ PlatformResult Message::convertPlatformEmail(std::shared_ptr<Message> message,
         mail_data->priority = EMAIL_MAIL_PRIORITY_NORMAL;
     }
 
-    *result_mail_data = mail_data;
+    *result_mail_data = mail_data_ptr.release();  // release ownership
     return PlatformResult(ErrorCode::NO_ERROR);
 }
 
