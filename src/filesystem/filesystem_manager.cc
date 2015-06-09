@@ -276,11 +276,13 @@ void FilesystemManager::CreateFile(
   if (-1 == status) {
     LoggerE("Cannot create or open file %s: %s", path.c_str(), strerror(errno));
     error_cb(FilesystemError::Other);
+    return;
   }
   status = close(status);
   if (0 != status) {
     LoggerE("Cannot close file %s: %s", path.c_str(), strerror(errno));
     error_cb(FilesystemError::Other);
+    return;
   }
   FilesystemStat stat = FilesystemStat::getStat(path);
   if (stat.valid) {
