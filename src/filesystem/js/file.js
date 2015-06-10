@@ -311,26 +311,30 @@ File.prototype.readAsText = function(onsuccess, onerror, encoding) {
     encoding: args.encoding
   };
 
-  var result, encoded, str = '';
-
   function readFile() {
-    result = native_.callSync('File_readSync', data);
-    if (native_.isFailure(result)) {
-      native_.callIfPossible(args.onerror, native_.getErrorObject(result));
-      return;
-    }
-    encoded = native_.getResultObject(result);
-    if (!encoded.length) {
-      setTimeout(function() {
-        native_.callIfPossible(args.onsuccess, Base64.decode(str));
-      }, 0);
-    } else {
-      str += encoded;
-      data.offset += data.length;
-      readFile();
-    }
+    var result, encoded, str = '';
+
+    do {
+      result = native_.callSync('File_readSync', data);
+      if (native_.isFailure(result)) {
+        setTimeout(function() {
+          native_.callIfPossible(args.onerror, native_.getErrorObject(result));
+        }, 0);
+        return;
+      }
+      encoded = native_.getResultObject(result);
+      if (encoded.length) {
+        str += Base64.decode(encoded);
+        data.offset += data.length;
+      }
+    } while (encoded.length);
+
+    setTimeout(function() {
+      native_.callIfPossible(args.onsuccess, str);
+    }, 0);
   }
-  readFile();
+
+  setTimeout(readFile, 0);
 };
 
 File.prototype.copyTo = function(originFilePath, destinationFilePath, overwrite, onsuccess, onerror) {

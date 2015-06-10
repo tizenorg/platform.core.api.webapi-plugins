@@ -134,8 +134,10 @@ CKM::RawBuffer Base64ToRawBuffer(const std::string base64) {
   gsize len = 0;
   guchar* raw_data = g_base64_decode(base64.c_str(), &len);
   CKM::RawBuffer rawBuffer;
-  rawBuffer.assign(raw_data, raw_data + len);
-  g_free(raw_data);
+  if (raw_data) {
+    rawBuffer.assign(raw_data, raw_data + len);
+    g_free(raw_data);
+  }
   return rawBuffer;
 }
 

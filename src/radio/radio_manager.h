@@ -35,6 +35,8 @@ class RadioInstance;
 class FMRadioManager {
  public:
   explicit FMRadioManager(RadioInstance& instance);
+  // FMRadioManager destroys radio_h in destructor, so it cannot be copyable
+  FMRadioManager(const FMRadioManager& other) = delete;
   ~FMRadioManager();
 
   common::PlatformResult Start(double freq);
@@ -58,7 +60,7 @@ class FMRadioManager {
 
   void PostMessage(const std::string& msg) const;
   void PostResultSuccess(double callbackId, picojson::value* event) const;
-  void PostResultSuccess(double callbackId) const;
+  void PostResultCallbackSuccess(double callbackId) const;
   void PostResultFailure(double callbackId, const common::PlatformResult& result) const;
 
  private:

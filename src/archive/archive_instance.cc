@@ -218,7 +218,13 @@ void ArchiveInstance::Open(const picojson::value& args, picojson::object& out) {
     afp->setOverwrite(overwrite);
     callback->setArchiveFile(afp);
 
-    ArchiveManager::getInstance().open(callback);
+    result = ArchiveManager::getInstance().open(callback);
+
+    if (result) {
+        ReportSuccess(out);
+    } else {
+        ReportError(result, &out);
+    }
 }
 
 void ArchiveInstance::Abort(const picojson::value& args, picojson::object& out)
@@ -568,10 +574,18 @@ void ArchiveInstance::Extract(const picojson::value& args, picojson::object& out
 
     //Not found but if our name does not contain '/'
     //try looking for directory with such name
-    if (it == entries->end() && !isDirectoryPath(v_entry_name.get<std::string>())) {
+    if (entries->end() == it && !isDirectoryPath(v_entry_name.get<std::string>())) {
         const std::string try_directory = v_entry_name.get<std::string>() + "/";
         LoggerD("GetEntryByName Trying directory: [%s]", try_directory.c_str());
         it = entries->find(try_directory);
+    }
+
+    if (entries->end() == it) {
+        LoggerE("Failed to find entry");
+        PostError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to find entry"), callbackId);
+        delete callback;
+        callback = NULL;
+        return;
     }
 
     result = it->second->extractTo(callback);

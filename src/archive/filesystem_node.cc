@@ -614,6 +614,7 @@ PlatformResult Node::removeAsDirectory(const PathPtr& path, bool recursive)
                 }
                 if (result.error_code() != ErrorCode::NO_ERROR) {
                     LoggerE("Fail: getFullPath() (%d)",result.error_code());
+                    closedir(dir);
                     return result;
                 }
             }

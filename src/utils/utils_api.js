@@ -29,7 +29,7 @@ DateConverter.prototype.toTZDate = function(v, isAllDay) {
   }
 
   if (isAllDay) {
-    return new tizen.TZDate(v.year, v.month, v.day,
+    return new tizen.TZDate(v.year, v.month - 1, v.day,
         null, null, null, null, v.timezone || null);
   } else {
     return new tizen.TZDate(new Date(v.UTCTimestamp * 1000), 'UTC').toLocalTimezone();

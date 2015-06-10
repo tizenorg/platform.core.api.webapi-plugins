@@ -95,7 +95,7 @@ PlatformResult SystemSettingInstance::getPlatformPropertyValue(
   LoggerD("Enter");
   picojson::object& result_obj = out->get<picojson::object>();
 
-  int ret;
+  int ret = SYSTEM_SETTINGS_ERROR_INVALID_PARAMETER;
   char *value = NULL;
   if (settingType == SETTING_HOME_SCREEN) {
     ret = system_settings_get_value_string(
@@ -118,7 +118,7 @@ PlatformResult SystemSettingInstance::getPlatformPropertyValue(
   switch (ret) {
     case SYSTEM_SETTINGS_ERROR_NONE:
       LoggerD("ret == SYSTEM_SETTINGS_ERROR_NONE");
-      result_obj.insert(std::make_pair("value", picojson::value(value)));
+      result_obj.insert(std::make_pair("value", picojson::value(value ? value : "")));
       free(value);
       return PlatformResult(ErrorCode::NO_ERROR);
     // TODO(p.kaczmarek3) temporarily removed - not supported by platform
@@ -170,7 +170,7 @@ PlatformResult SystemSettingInstance::setPlatformPropertyValue(
     const std::string& settingType,
     const std::string& settingValue) {
   LoggerD("Enter");
-  int ret;
+  int ret = SYSTEM_SETTINGS_ERROR_INVALID_PARAMETER;
   if (settingType == SETTING_HOME_SCREEN) {
     ret = system_settings_set_value_string(
         SYSTEM_SETTINGS_KEY_WALLPAPER_HOME_SCREEN, settingValue.c_str());

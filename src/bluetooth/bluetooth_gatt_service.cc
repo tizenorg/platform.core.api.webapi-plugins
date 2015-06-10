@@ -338,7 +338,7 @@ void BluetoothGATTService::ReadValue(const picojson::value& args,
       char *value = nullptr;
       int length = 0;
       int ret = bt_gatt_get_value(handle, &value, &length);
-      if (BT_ERROR_NONE != result) {
+      if (BT_ERROR_NONE != ret) {
         plarform_res = util::GetBluetoothError(ret, "Error while getting value");
       } else {
         for (size_t i = 0 ; i < length; i++) {
@@ -398,11 +398,10 @@ void BluetoothGATTService::WriteValue(const picojson::value& args,
     BluetoothGATTService* service;
   };
 
-  Data* user_data = new Data{callback_handle, this};
   bt_gatt_h handle = (bt_gatt_h) static_cast<long>(args.get("handle").get<double>());
 
   auto write_value = [](int result, bt_gatt_h handle, void *user_data) -> void {
-    Data* data = (Data*) user_data;
+    Data* data = static_cast<Data*>(user_data);
     double callback_handle = data->callback_handle;
     BluetoothGATTService* service = data->service;
     delete data;
@@ -425,10 +424,10 @@ void BluetoothGATTService::WriteValue(const picojson::value& args,
     }, response);
   };
 
-
   int ret = bt_gatt_set_value(handle, value_data.get(), value_size);
+
   if (BT_ERROR_NONE != ret) {
-    LOGE("Couldn't set value");
+    LoggerE("Couldn't set value");
     std::shared_ptr<picojson::value> response =
         std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
     ReportError(util::GetBluetoothError(ret, "Failed to set value"),
@@ -438,9 +437,11 @@ void BluetoothGATTService::WriteValue(const picojson::value& args,
       instance_.SyncResponse(callback_handle, response);
     }, response);
   } else {
-    ret = bt_gatt_client_write_value(handle, write_value, (void*)user_data);
+    Data* user_data = new Data{callback_handle, this};
+    ret = bt_gatt_client_write_value(handle, write_value, user_data);
     if (BT_ERROR_NONE != ret) {
-      LOGE("Couldn't register callback for write value");
+      delete user_data;
+      LoggerE("Couldn't register callback for write value");
     }
   }
   ReportSuccess(out);

@@ -221,6 +221,7 @@ PlatformResult NFCUtil::ToNfcTagString(const std::string& type_string, nfc_tag_t
   else {
     return PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, "No Match Tag Type");
   }
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 PlatformResult NFCUtil::ToStringCardEmulationMode(

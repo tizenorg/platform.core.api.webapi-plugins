@@ -26,7 +26,17 @@
 namespace extension {
 namespace filesystem {
 
-FilesystemStat::FilesystemStat() : error(FilesystemError::None), valid(false) {}
+FilesystemStat::FilesystemStat()
+    : error(FilesystemError::None),
+      valid(false),
+      isFile(false),
+      isDirectory(false),
+      readOnly(false),
+      ctime(0),
+      mtime(0),
+      size(0),
+      nlink(0) {
+}
 
 picojson::value FilesystemStat::toJSON() const {
   LoggerD("Enter");

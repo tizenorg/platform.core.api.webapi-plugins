@@ -22,11 +22,12 @@
 #include <memory>
 #include <mutex>
 
-#include <runtime_info.h>
+#include <system_settings.h>
 #include <system_info.h>
 #include <sys/statfs.h>
 
 #include <vconf.h>
+#include <vconf-internal-keys.h>
 #include <net_connection.h>
 #include <tapi_common.h>
 #include <ITapiModem.h>
@@ -41,44 +42,25 @@
 #include "common/platform_exception.h"
 #include "common/dbus_operation.h"
 
-//Hardcoded values for Kiran Device
-#define FEATURE_OPTIONAL_TELEPHONY 1
-#define FEATURE_OPTIONAL_BT 1
-#define ENABLE_KIRAN 1
-#define FEATURE_OPTIONAL_WI_FI 1
+// TODO:: hardcoded value, only for IsBluetoothAlwaysOn
 #define PROFILE_MOBILE 1
-
-#define DUID_KEY_STRING 28
-#define DUID_BUFFER_SIZE 100
-#define SEED_LENGTH 16
-#define CRYPT_KEY_SIZE 8
-
-#define TAPI_HANDLE_MAX 2
-#define DEFAULT_PROPERTY_COUNT 1
-
-#ifdef FEATURE_OPTIONAL_WI_FI
-#include <wifi.h>
-#endif
-
-#ifdef FEATURE_OPTIONAL_TELEPHONY
-#include <ITapiModem.h>
-#endif
-
-#ifdef FEATURE_OPTIONAL_BT
-#include <bluetooth.h>
-#endif
-
 
 namespace extension {
 namespace systeminfo {
 
 namespace {
+
 const std::string MEMORY_STATE_NORMAL = "NORMAL";
 const std::string MEMORY_STATE_WARNING = "WARNING";
 const int MEMORY_TO_BYTE = 1024;
 const int BASE_GATHERING_INTERVAL = 100;
 const double DISPLAY_INCH_TO_MILLIMETER = 2.54;
-}
+
+const int kTapiMaxHandle = 2;
+const int kDefaultPropertyCount = 1;
+
+}  // namespace
+
 using namespace common;
 
 //Callback functions declarations
@@ -90,7 +72,7 @@ static void OnDisplayChangedCb(keynode_t* node, void* event_ptr);
 static void OnDeviceAutoRotationChangedCb(keynode_t* node, void* event_ptr);
 static void OnDeviceOrientationChangedCb(sensor_t sensor, unsigned int event_type,
                                          sensor_data_t *data, void *user_data);
-static void OnLocaleChangedCb(runtime_info_key_e key, void* event_ptr);
+static void OnLocaleChangedCb(system_settings_key_e key, void* event_ptr);
 static void OnNetworkChangedCb(connection_type_e type, void* event_ptr);
 static void OnNetworkValueChangedCb(const char* ipv4_address,
                                     const char* ipv6_address, void* event_ptr);
@@ -440,7 +422,7 @@ long SimDetailsManager::GetSimCount(TapiHandle **tapi_handle){
       }
     } else {
       LoggerE("Failed to get cp list");
-      sim_count_ = TAPI_HANDLE_MAX;
+      sim_count_ = kTapiMaxHandle;
     }
     g_strfreev(cp_list);
   }
@@ -488,6 +470,9 @@ class SystemInfoListeners {
   PlatformResult RegisterWifiNetworkListener(const SysteminfoUtilsCallback& callback,
                                              SysteminfoInstance& instance);
   PlatformResult UnregisterWifiNetworkListener();
+  PlatformResult RegisterEthernetNetworkListener(const SysteminfoUtilsCallback& callback,
+                                                 SysteminfoInstance& instance);
+  PlatformResult UnregisterEthernetNetworkListener();
   PlatformResult RegisterCellularNetworkListener(const SysteminfoUtilsCallback& callback,
                                                  SysteminfoInstance& instance);
   PlatformResult UnregisterCellularNetworkListener();
@@ -513,7 +498,7 @@ class SystemInfoListeners {
   void OnDeviceAutoRotationChangedCallback(keynode_t* node, void* event_ptr);
   void OnDeviceOrientationChangedCallback(sensor_t sensor, unsigned int event_type,
                                           sensor_data_t *data, void *user_data);
-  void OnLocaleChangedCallback(runtime_info_key_e key, void* event_ptr);
+  void OnLocaleChangedCallback(system_settings_key_e key, void* event_ptr);
   void OnNetworkChangedCallback(connection_type_e type, void* event_ptr);
   void OnNetworkValueCallback(const char* ipv4_address,
                               const char* ipv6_address, void* event_ptr);
@@ -534,6 +519,7 @@ class SystemInfoListeners {
   static PlatformResult UnregisterVconfCallback(const char *in_key, vconf_callback_fn cb);
   PlatformResult RegisterIpChangeCallback(SysteminfoInstance& instance);
   PlatformResult UnregisterIpChangeCallback();
+  bool IsIpChangeCallbackInvalid();
   void InitTapiHandles();
 
   guint m_cpu_event_id;
@@ -554,12 +540,13 @@ class SystemInfoListeners {
   SysteminfoUtilsCallback m_locale_listener;
   SysteminfoUtilsCallback m_network_listener;
   SysteminfoUtilsCallback m_wifi_network_listener;
+  SysteminfoUtilsCallback m_ethernet_network_listener;
   SysteminfoUtilsCallback m_cellular_network_listener;
   SysteminfoUtilsCallback m_peripheral_listener;
   SysteminfoUtilsCallback m_memory_listener;
   SysteminfoUtilsCallback m_camera_flash_listener;
 
-  TapiHandle *m_tapi_handles[TAPI_HANDLE_MAX+1];
+  TapiHandle *m_tapi_handles[kTapiMaxHandle+1];
   //for ip change callback
   connection_h m_connection_handle;
   //! Sensor handle for DeviceOrientation purposes
@@ -583,6 +570,7 @@ SystemInfoListeners::SystemInfoListeners():
             m_locale_listener(nullptr),
             m_network_listener(nullptr),
             m_wifi_network_listener(nullptr),
+            m_ethernet_network_listener(nullptr),
             m_cellular_network_listener(nullptr),
             m_peripheral_listener(nullptr),
             m_memory_listener(nullptr),
@@ -823,14 +811,14 @@ PlatformResult SystemInfoListeners::RegisterLocaleListener(const SysteminfoUtils
                                                            SysteminfoInstance& instance)
 {
   if (nullptr == m_locale_listener) {
-    if (RUNTIME_INFO_ERROR_NONE !=
-        runtime_info_set_changed_cb(RUNTIME_INFO_KEY_REGION,
+    if (SYSTEM_SETTINGS_ERROR_NONE !=
+        system_settings_set_changed_cb(SYSTEM_SETTINGS_KEY_LOCALE_COUNTRY,
                                     OnLocaleChangedCb, static_cast<void*>(&instance)) ) {
       LoggerE("Country change callback registration failed");
       return PlatformResult(ErrorCode::UNKNOWN_ERR, "Country change callback registration failed");
     }
-    if (RUNTIME_INFO_ERROR_NONE !=
-        runtime_info_set_changed_cb(RUNTIME_INFO_KEY_LANGUAGE,
+    if (SYSTEM_SETTINGS_ERROR_NONE !=
+        system_settings_set_changed_cb(SYSTEM_SETTINGS_KEY_LOCALE_LANGUAGE,
                                     OnLocaleChangedCb, static_cast<void*>(&instance)) ) {
       LoggerE("Language change callback registration failed");
       return PlatformResult(ErrorCode::UNKNOWN_ERR, "Language change callback registration failed");
@@ -844,12 +832,12 @@ PlatformResult SystemInfoListeners::RegisterLocaleListener(const SysteminfoUtils
 PlatformResult SystemInfoListeners::UnregisterLocaleListener()
 {
   if (nullptr != m_locale_listener) {
-    if (RUNTIME_INFO_ERROR_NONE !=
-        runtime_info_unset_changed_cb(RUNTIME_INFO_KEY_LANGUAGE) ) {
+    if (SYSTEM_SETTINGS_ERROR_NONE !=
+        system_settings_unset_changed_cb(SYSTEM_SETTINGS_KEY_LOCALE_LANGUAGE) ) {
       LoggerE("Unregistration of language change callback failed");
     }
-    if (RUNTIME_INFO_ERROR_NONE !=
-        runtime_info_unset_changed_cb(RUNTIME_INFO_KEY_REGION) ) {
+    if (SYSTEM_SETTINGS_ERROR_NONE !=
+        system_settings_unset_changed_cb(SYSTEM_SETTINGS_KEY_LOCALE_COUNTRY) ) {
       LoggerE("Unregistration of country change callback failed");
     }
     LoggerD("Removed callback for LOCALE");
@@ -893,14 +881,17 @@ PlatformResult SystemInfoListeners::UnregisterNetworkListener()
 PlatformResult SystemInfoListeners::RegisterWifiNetworkListener(const SysteminfoUtilsCallback& callback,
                                                                 SysteminfoInstance& instance)
 {
+  LoggerD("Entered");
+
+  if (IsIpChangeCallbackInvalid()) {
+    PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
+    CHECK_LISTENER_ERROR(RegisterIpChangeCallback(instance));
+    LoggerD("Registered IP change listener");
+  } else {
+    LoggerD("No need to register IP listener on platform, already registered");
+  }
+
   if (nullptr == m_wifi_network_listener) {
-    if (nullptr == m_cellular_network_listener){
-      //register if there is no callback both for wifi and cellular
-      PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
-      CHECK_LISTENER_ERROR(RegisterIpChangeCallback(instance))
-    } else {
-      LoggerD("No need to register ip listener on platform, already registered");
-    }
     LoggerD("Added callback for WIFI_NETWORK");
     m_wifi_network_listener = callback;
   }
@@ -909,29 +900,73 @@ PlatformResult SystemInfoListeners::RegisterWifiNetworkListener(const Systeminfo
 
 PlatformResult SystemInfoListeners::UnregisterWifiNetworkListener()
 {
-  //unregister if is wifi callback, but no cellular callback
-  if (nullptr != m_wifi_network_listener && nullptr == m_cellular_network_listener) {
-    PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
-    CHECK_LISTENER_ERROR(UnregisterIpChangeCallback())
-    LoggerD("Removed callback for WIFI_NETWORK");
-  } else {
-    LoggerD("Removed callback for WIFI_NETWORK, but cellular listener still works");
-  }
+  LoggerD("Entered");
+
   m_wifi_network_listener = nullptr;
+
+  if (IsIpChangeCallbackInvalid()) {
+    PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
+    CHECK_LISTENER_ERROR(UnregisterIpChangeCallback());
+    LoggerD("Removed IP change listener");
+  } else {
+    LoggerD("Removed callback for WIFI_NETWORK, but IP change listener still works");
+  }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult SystemInfoListeners::RegisterEthernetNetworkListener(const SysteminfoUtilsCallback& callback,
+                                                                    SysteminfoInstance& instance)
+{
+  LoggerD("Entered");
+
+  if (IsIpChangeCallbackInvalid()) {
+    PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
+    CHECK_LISTENER_ERROR(RegisterIpChangeCallback(instance));
+    LoggerD("Registered IP change listener");
+  } else {
+    LoggerD("No need to register IP listener on platform, already registered");
+  }
+
+  if (nullptr == m_ethernet_network_listener) {
+    LoggerD("Added callback for ETHERNET_NETWORK");
+    m_ethernet_network_listener = callback;
+  }
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult SystemInfoListeners::UnregisterEthernetNetworkListener()
+{
+  LoggerD("Entered");
+
+  m_ethernet_network_listener = nullptr;
+
+  if (IsIpChangeCallbackInvalid()) {
+    PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
+    CHECK_LISTENER_ERROR(UnregisterIpChangeCallback());
+    LoggerD("Removed IP change listener");
+  } else {
+    LoggerD("Removed callback for ETHERNET_NETWORK, but IP change listener still works");
+  }
+
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 PlatformResult SystemInfoListeners::RegisterCellularNetworkListener(const SysteminfoUtilsCallback& callback,
                                                                     SysteminfoInstance& instance)
 {
+  LoggerD("Entered");
+
+  if (IsIpChangeCallbackInvalid()) {
+    PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
+    CHECK_LISTENER_ERROR(RegisterIpChangeCallback(instance));
+    LoggerD("Registered IP change listener");
+  } else {
+    LoggerD("No need to register IP listener on platform, already registered");
+  }
+
   if (nullptr == m_cellular_network_listener) {
     PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
-    if (nullptr == m_wifi_network_listener){
-      //register if there is no callback both for wifi and cellular
-      CHECK_LISTENER_ERROR(RegisterIpChangeCallback(instance))
-    } else {
-      LoggerD("No need to register ip listener on platform, already registered");
-    }
     CHECK_LISTENER_ERROR(RegisterVconfCallback(VCONFKEY_TELEPHONY_FLIGHT_MODE,
                           OnCellularNetworkValueChangedCb, instance))
     CHECK_LISTENER_ERROR(RegisterVconfCallback(VCONFKEY_TELEPHONY_CELLID,
@@ -948,6 +983,8 @@ PlatformResult SystemInfoListeners::RegisterCellularNetworkListener(const System
 
 PlatformResult SystemInfoListeners::UnregisterCellularNetworkListener()
 {
+  LoggerD("Entered");
+
   if (nullptr != m_cellular_network_listener) {
     PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
     CHECK_LISTENER_ERROR(UnregisterVconfCallback(VCONFKEY_TELEPHONY_FLIGHT_MODE,
@@ -958,15 +995,17 @@ PlatformResult SystemInfoListeners::UnregisterCellularNetworkListener()
                             OnCellularNetworkValueChangedCb))
     CHECK_LISTENER_ERROR(UnregisterVconfCallback(VCONFKEY_TELEPHONY_SVC_ROAM,
                             OnCellularNetworkValueChangedCb))
-    if (nullptr == m_wifi_network_listener) {
-      //register if there is no callback both for wifi and cellular
-      CHECK_LISTENER_ERROR(UnregisterIpChangeCallback())
-      LoggerD("Removed callback for CELLULAR_NETWORK");
-    } else {
-      LoggerD("Removed callback for CELLULAR_NETWORK, but cellular listener still works");
-    }
   }
   m_cellular_network_listener = nullptr;
+
+  if (IsIpChangeCallbackInvalid()) {
+    PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
+    CHECK_LISTENER_ERROR(UnregisterIpChangeCallback());
+    LoggerD("Removed IP change listener");
+  } else {
+    LoggerD("Removed callback for CELLULAR_NETWORK, but IP change listener still works");
+  }
+
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
@@ -976,19 +1015,14 @@ PlatformResult SystemInfoListeners::RegisterPeripheralListener(const SysteminfoU
   if (nullptr == m_peripheral_listener) {
     PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
     int value = 0;
-    if (-1 != vconf_get_int(VCONFKEY_MIRACAST_WFD_SOURCE_STATUS, &value)) {
+/*    if (-1 != vconf_get_int(VCONFKEY_MIRACAST_WFD_SOURCE_STATUS, &value)) {
       CHECK_LISTENER_ERROR(RegisterVconfCallback(VCONFKEY_MIRACAST_WFD_SOURCE_STATUS,
                                                  OnPeripheralChangedCb, instance))
-    }
+    }*/
     if (-1 != vconf_get_int(VCONFKEY_SYSMAN_HDMI, &value)) {
       CHECK_LISTENER_ERROR(RegisterVconfCallback(VCONFKEY_SYSMAN_HDMI,
                                                  OnPeripheralChangedCb, instance))
     }
-    // TODO(r.galka) temporarily removed - not supported by platform
-    //if (-1 != vconf_get_int(VCONFKEY_POPSYNC_ACTIVATED_KEY, &value)) {
-    //  CHECK_LISTENER_ERROR(RegisterVconfCallback(VCONFKEY_POPSYNC_ACTIVATED_KEY,
-    //                                             OnPeripheralChangedCb, instance))
-    //}
     LoggerD("Added callback for PERIPHERAL");
     m_peripheral_listener = callback;
   }
@@ -1000,19 +1034,15 @@ PlatformResult SystemInfoListeners::UnregisterPeripheralListener()
   if (nullptr != m_peripheral_listener) {
     PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
     int value = 0;
-    if (-1 != vconf_get_int(VCONFKEY_MIRACAST_WFD_SOURCE_STATUS, &value)) {
+/*    if (-1 != vconf_get_int(VCONFKEY_MIRACAST_WFD_SOURCE_STATUS, &value)) {
       CHECK_LISTENER_ERROR(UnregisterVconfCallback(VCONFKEY_MIRACAST_WFD_SOURCE_STATUS,
                                                    OnPeripheralChangedCb))
-    }
+    }*/
     if (-1 != vconf_get_int(VCONFKEY_SYSMAN_HDMI, &value)) {
       CHECK_LISTENER_ERROR(UnregisterVconfCallback(VCONFKEY_SYSMAN_HDMI,
                                                    OnPeripheralChangedCb))
     }
-    // TODO(r.galka) temporarily removed - not supported by platform
-    //if (-1 != vconf_get_int(VCONFKEY_POPSYNC_ACTIVATED_KEY, &value)) {
-    //  CHECK_LISTENER_ERROR(UnregisterVconfCallback(VCONFKEY_POPSYNC_ACTIVATED_KEY,
-    //                                               OnPeripheralChangedCb))
-    //}
+
     LoggerD("Removed callback for PERIPHERAL");
     m_peripheral_listener = nullptr;
   }
@@ -1180,7 +1210,7 @@ void SystemInfoListeners::OnDeviceOrientationChangedCallback(sensor_t sensor, un
   }
 }
 
-void SystemInfoListeners::OnLocaleChangedCallback(runtime_info_key_e /*key*/, void* event_ptr)
+void SystemInfoListeners::OnLocaleChangedCallback(system_settings_key_e /*key*/, void* event_ptr)
 {
   if (nullptr != m_locale_listener) {
     SysteminfoInstance* instance = static_cast<SysteminfoInstance*>(event_ptr);
@@ -1199,9 +1229,14 @@ void SystemInfoListeners::OnNetworkChangedCallback(connection_type_e /*type*/, v
 void SystemInfoListeners::OnNetworkValueCallback(const char* /*ipv4_address*/,
                                                  const char* /*ipv6_address*/, void* event_ptr)
 {
+  LoggerD("Entered");
+
   SysteminfoInstance* instance = static_cast<SysteminfoInstance*>(event_ptr);
   if (nullptr != m_wifi_network_listener) {
     m_wifi_network_listener(*instance);
+  }
+  if (nullptr != m_ethernet_network_listener) {
+    m_ethernet_network_listener(*instance);
   }
   if (nullptr != m_cellular_network_listener) {
     m_cellular_network_listener(*instance);
@@ -1244,9 +1279,8 @@ void SystemInfoListeners::InitTapiHandles()
 {
   LoggerD("Entered");
   int sim_count = 0;
-  if (nullptr == m_tapi_handles){
+  if (nullptr == m_tapi_handles[0]){  //check if anything is in table
     char **cp_list = tel_get_cp_name_list();
-    *m_tapi_handles = nullptr;
     if (nullptr != cp_list) {
       while (cp_list[sim_count]) {
         m_tapi_handles[sim_count] = tel_init(cp_list[sim_count]);
@@ -1259,7 +1293,7 @@ void SystemInfoListeners::InitTapiHandles()
       }
     } else {
       LoggerE("Failed to get cp list");
-      sim_count = TAPI_HANDLE_MAX;
+      sim_count = kTapiMaxHandle;
     }
     g_strfreev(cp_list);
   }
@@ -1343,6 +1377,12 @@ PlatformResult SystemInfoListeners::UnregisterIpChangeCallback()
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
+bool SystemInfoListeners::IsIpChangeCallbackInvalid() {
+  LoggerD("Entered");
+  return (nullptr == m_wifi_network_listener &&
+          nullptr == m_ethernet_network_listener &&
+          nullptr == m_cellular_network_listener);
+}
 
 /////////////////////////// system_info_listeners object ////////////////////////
 
@@ -1396,7 +1436,7 @@ void OnDeviceOrientationChangedCb(sensor_t sensor, unsigned int event_type,
   system_info_listeners.OnDeviceOrientationChangedCallback(sensor, event_type, data, user_data);
 }
 
-void OnLocaleChangedCb(runtime_info_key_e key, void* event_ptr)
+void OnLocaleChangedCb(system_settings_key_e key, void* event_ptr)
 {
   LoggerD("");
   system_info_listeners.OnLocaleChangedCallback(key, event_ptr);
@@ -1447,10 +1487,13 @@ PlatformResult SystemInfoDeviceCapability::GetValueBool(const char *key, bool* v
   bool platform_result = false;
   int ret = system_info_get_platform_bool(key, &platform_result);
   if (SYSTEM_INFO_ERROR_NONE != ret) {
-    std::string log_msg = "Platform error while getting bool value: ";
-    log_msg += std::string(key) + " " + std::to_string(ret);
-    LoggerE("%s", log_msg.c_str());
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
+    ret = system_info_get_custom_bool(key, &platform_result);
+    if (SYSTEM_INFO_ERROR_NONE != ret) {
+      std::string log_msg = "Platform error while getting bool value: ";
+      log_msg += std::string(key) + " " + std::to_string(ret);
+      LoggerE("%s", log_msg.c_str());
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
+    }
   }
 
   *value = platform_result;
@@ -1462,10 +1505,13 @@ PlatformResult SystemInfoDeviceCapability::GetValueInt(const char *key, int* val
   int platform_result = 0;
   int ret = system_info_get_platform_int(key, &platform_result);
   if (SYSTEM_INFO_ERROR_NONE != ret) {
-    std::string log_msg = "Platform error while getting int value: ";
-    log_msg += std::string(key) + " " + std::to_string(ret);
-    LoggerE("%s", log_msg.c_str());
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
+    ret = system_info_get_custom_int(key, &platform_result);
+    if (SYSTEM_INFO_ERROR_NONE != ret) {
+      std::string log_msg = "Platform error while getting int value: ";
+      log_msg += std::string(key) + " " + std::to_string(ret);
+      LoggerE("%s", log_msg.c_str());
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
+    }
   }
 
   *value = platform_result;
@@ -1477,49 +1523,50 @@ PlatformResult SystemInfoDeviceCapability::GetValueString(const char *key, std::
   char* value = nullptr;
 
   int ret = system_info_get_platform_string(key, &value);
-  if (SYSTEM_INFO_ERROR_NONE == ret) {
-    if (value != nullptr) {
-      *str_value = value;
-      free(value);
-      value = nullptr;
+  if (SYSTEM_INFO_ERROR_NONE != ret) {
+    ret = system_info_get_custom_string(key, &value);
+    if (SYSTEM_INFO_ERROR_NONE != ret) {
+      std::string log_msg = "Platform error while getting string value: ";
+      log_msg += std::string(key) + " " + std::to_string(ret);
+      LoggerE("%s", log_msg.c_str());
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
     }
-  } else {
-    std::string log_msg = "Platform error while getting string value: ";
-    log_msg += std::string(key) + " " + std::to_string(ret);
-    LoggerE("%s", log_msg.c_str());
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
+  }
+
+  if (value != nullptr) {
+    *str_value = value;
+    free(value);
+    value = nullptr;
   }
 
   LoggerD("value[%s]: %s", key, str_value->c_str());
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-static PlatformResult GetRuntimeInfoString(runtime_info_key_e key, std::string& platform_string) {
+static PlatformResult GetRuntimeInfoString(system_settings_key_e key, std::string& platform_string) {
   char* platform_c_string;
-  int err = runtime_info_get_value_string(key, &platform_c_string);
-  if (RUNTIME_INFO_ERROR_NONE == err) {
+  int err = system_settings_get_value_string(key, &platform_c_string);
+  if (SYSTEM_SETTINGS_ERROR_NONE == err) {
     if (nullptr != platform_c_string) {
       platform_string = platform_c_string;
       free(platform_c_string);
       return PlatformResult(ErrorCode::NO_ERROR);
     }
   }
-  const char* error_msg = "Error when retrieving runtime information: " + err;
-  LoggerE("%s", error_msg);
+  const std::string error_msg = "Error when retrieving system setting information: "
+      + std::to_string(err);
+  LoggerE("%s", error_msg.c_str());
   return PlatformResult(ErrorCode::UNKNOWN_ERR, error_msg);
 }
 
 PlatformResult GetVconfInt(const char *key, int &value) {
   if (0 == vconf_get_int(key, &value)) {
+    LoggerD("value[%s]: %d", key, value);
     return PlatformResult(ErrorCode::NO_ERROR);
-  } else {
-    const std::string error_msg = "Could not get " + std::string(key);
-    LoggerD("%s",error_msg.c_str());
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, error_msg);
   }
-
-  LoggerD("value[%s]: %d", key, value);
-  return PlatformResult(ErrorCode::NO_ERROR);
+  const std::string error_msg = "Could not get " + std::string(key);
+  LoggerD("%s",error_msg.c_str());
+  return PlatformResult(ErrorCode::UNKNOWN_ERR, error_msg);
 }
 
 PlatformResult SysteminfoUtils::GetTotalMemory(long long& result)
@@ -1563,9 +1610,10 @@ PlatformResult SysteminfoUtils::GetCount(const std::string& property, unsigned l
   if ("BATTERY" == property || "CPU" == property || "STORAGE" == property ||
       "DISPLAY" == property || "DEVICE_ORIENTATION" == property ||
       "BUILD" == property || "LOCALE" == property || "NETWORK" == property ||
-      "WIFI_NETWORK" == property || "CELLULAR_NETWORK" == property ||
-      "PERIPHERAL" == property || "MEMORY" == property) {
-    count = DEFAULT_PROPERTY_COUNT;
+      "WIFI_NETWORK" == property || "ETHERNET_NETWORK" == property ||
+      "CELLULAR_NETWORK" == property || "PERIPHERAL" == property ||
+      "MEMORY" == property) {
+    count = kDefaultPropertyCount;
   } else if ("SIM" == property) {
     count = sim_mgr.GetSimCount(system_info_listeners.GetTapiHandles());
   } else if ("CAMERA_FLASH" == property) {
@@ -1598,6 +1646,8 @@ PlatformResult SysteminfoUtils::ReportProperty(const std::string& property, int 
     return ReportNetwork(res_obj);
   } else if ("WIFI_NETWORK" == property) {
     return ReportWifiNetwork(res_obj);
+  } else if ("ETHERNET_NETWORK" == property) {
+    return ReportEthernetNetwork(res_obj);
   } else if ("CELLULAR_NETWORK" == property) {
     return ReportCellularNetwork(res_obj);
   } else if ("SIM" == property) {
@@ -1608,11 +1658,9 @@ PlatformResult SysteminfoUtils::ReportProperty(const std::string& property, int 
     return ReportMemory(res_obj);
   } else if ("CAMERA_FLASH" == property) {
     return ReportCameraFlash(res_obj);
-  } else {
-    LoggerD("Property with given id is not supported");
-    return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR, "Property with given id is not supported");
   }
-  return PlatformResult(ErrorCode::NO_ERROR);
+  LoggerD("Property with given id is not supported");
+  return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR, "Property with given id is not supported");
 }
 
 PlatformResult SysteminfoUtils::GetPropertyValue(const std::string& property, bool is_array_type,
@@ -1901,13 +1949,13 @@ PlatformResult SysteminfoUtils::ReportBuild(picojson::object& out) {
 
 PlatformResult SysteminfoUtils::ReportLocale(picojson::object& out) {
   std::string str_language = "";
-  PlatformResult ret = GetRuntimeInfoString(RUNTIME_INFO_KEY_LANGUAGE, str_language);
+  PlatformResult ret = GetRuntimeInfoString(SYSTEM_SETTINGS_KEY_LOCALE_LANGUAGE, str_language);
   if (ret.IsError()) {
     return ret;
   }
 
   std::string str_country = "";
-  ret = GetRuntimeInfoString(RUNTIME_INFO_KEY_REGION, str_country);
+  ret = GetRuntimeInfoString(SYSTEM_SETTINGS_KEY_LOCALE_COUNTRY, str_country);
   if (ret.IsError()) {
     return ret;
   }
@@ -2049,6 +2097,8 @@ static PlatformResult GetIps(connection_profile_h profile_handle, std::string* i
 }
 
 PlatformResult SysteminfoUtils::ReportWifiNetwork(picojson::object& out) {
+  LoggerD("Entered");
+
   bool result_status = false;
   std::string result_ssid;
   std::string result_ip_address;
@@ -2071,10 +2121,10 @@ PlatformResult SysteminfoUtils::ReportWifiNetwork(picojson::object& out) {
   connection_handle_ptr(connection_handle, &connection_destroy);
   // automatically release the memory
 
-  char* mac = NULL;
-  error = wifi_get_mac_address(&mac);
-  if(WIFI_ERROR_NONE == error) {
-    LoggerD("macAddress fetched: %s", mac);
+  char* mac = nullptr;
+  error = connection_get_mac_address(connection_handle, CONNECTION_TYPE_WIFI, &mac);
+  if (CONNECTION_ERROR_NONE == error && nullptr != mac) {
+    SLoggerD("MAC address fetched: %s", mac);
     result_mac_address = mac;
     free(mac);
   } else {
@@ -2144,6 +2194,126 @@ PlatformResult SysteminfoUtils::ReportWifiNetwork(picojson::object& out) {
   out.insert(std::make_pair("ipv6Address", picojson::value(result_ipv6_address)));
   out.insert(std::make_pair("macAddress", picojson::value(result_mac_address)));
   out.insert(std::make_pair("signalStrength", picojson::value(std::to_string(result_signal_strength))));
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult SysteminfoUtils::ReportEthernetNetwork(picojson::object& out) {
+  LoggerD("Entered");
+
+  std::string result_cable;
+  std::string result_status;
+  std::string result_ip_address;
+  std::string result_ipv6_address;
+  std::string result_mac_address;
+
+  connection_h connection_handle = nullptr;
+  connection_ethernet_state_e connection_state = CONNECTION_ETHERNET_STATE_DEACTIVATED;
+  connection_type_e connection_type = CONNECTION_TYPE_DISCONNECTED;
+  connection_profile_h profile_handle = nullptr;
+
+  // connection must be created in every call, in other case error occurs
+  int error = connection_create(&connection_handle);
+  if (CONNECTION_ERROR_NONE != error) {
+    std::string log_msg = "Cannot create connection: " + std::to_string(error);
+    LoggerE("%s", log_msg.c_str());
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
+  }
+  std::unique_ptr<std::remove_pointer<connection_h>::type, int (*)(connection_h)> connection_handle_ptr(
+      connection_handle, &connection_destroy);  // automatically release the memory
+
+  error = connection_get_ethernet_state(connection_handle, &connection_state);
+  if (CONNECTION_ERROR_NONE != error) {
+    std::string log_msg = "Cannot get ethernet connection state: " + std::to_string(error);
+    LoggerE("%s", log_msg.c_str());
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
+  }
+
+  switch (connection_state) {
+    case CONNECTION_ETHERNET_STATE_DEACTIVATED:
+      result_status = "DEACTIVATED";
+      break;
+
+    case CONNECTION_ETHERNET_STATE_DISCONNECTED:
+      result_status = "DISCONNECTED";
+      break;
+
+    case CONNECTION_ETHERNET_STATE_CONNECTED:
+      result_status = "CONNECTED";
+      break;
+
+    default:
+      result_status = "UNKNOWN";
+      break;
+  }
+
+  connection_ethernet_cable_state_e cable_state = CONNECTION_ETHERNET_CABLE_DETACHED;
+  error = connection_get_ethernet_cable_state(connection_handle, &cable_state);
+  if (CONNECTION_ERROR_NONE != error) {
+    std::string log_msg = "Cannot get ethernet cable state: " + std::to_string(error);
+    LoggerE("%s", log_msg.c_str());
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
+  }
+
+  switch (cable_state) {
+    case CONNECTION_ETHERNET_CABLE_DETACHED:
+      result_cable = "DETACHED";
+      break;
+
+    case CONNECTION_ETHERNET_CABLE_ATTACHED:
+      result_cable = "ATTACHED";
+      break;
+
+    default:
+      result_cable = "UNKNOWN";
+      break;
+  }
+
+  char* mac = nullptr;
+  error = connection_get_mac_address(connection_handle, CONNECTION_TYPE_ETHERNET, &mac);
+  if (CONNECTION_ERROR_NONE == error && nullptr != mac) {
+    SLoggerD("MAC address fetched: %s", mac);
+    result_mac_address = mac;
+    free(mac);
+  } else {
+    std::string log_msg = "Failed to get mac address: " + std::to_string(error);
+    LoggerE("%s", log_msg.c_str());
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
+  }
+
+  error = connection_get_type(connection_handle, &connection_type);
+  if (CONNECTION_ERROR_NONE != error) {
+    std::string log_msg = "Cannot get connection type: " + std::to_string(error);
+    LoggerE("%s", log_msg.c_str());
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
+  }
+
+  if (CONNECTION_TYPE_ETHERNET == connection_type) {
+    //gathering profile
+    error = connection_get_current_profile(connection_handle, &profile_handle);
+    if (CONNECTION_ERROR_NONE != error) {
+      std::string log_msg = "Cannot get connection profile: " + std::to_string(error);
+      LoggerE("%s", log_msg.c_str());
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
+    }
+    std::unique_ptr<std::remove_pointer<connection_profile_h>::type,
+        int (*)(connection_profile_h)> profile_handle_ptr(
+        profile_handle, &connection_profile_destroy); // automatically release the memory
+
+    //gathering ips
+    PlatformResult ret = GetIps(profile_handle, &result_ip_address, &result_ipv6_address);
+    if (ret.IsError()) {
+      return ret;
+    }
+  } else {
+    LoggerD("Connection type = %d. ETHERNET is disabled", connection_type);
+  }
+
+  out.insert(std::make_pair("cable", picojson::value(result_cable)));
+  out.insert(std::make_pair("status", picojson::value(result_status)));
+  out.insert(std::make_pair("ipAddress", picojson::value(result_ip_address)));
+  out.insert(std::make_pair("ipv6Address", picojson::value(result_ipv6_address)));
+  out.insert(std::make_pair("macAddress", picojson::value(result_mac_address)));
+
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
@@ -2353,7 +2523,7 @@ void SimMsisdnValueCallback(TapiHandle */*handle*/, int result, void *data, void
   std::string result_msisdn;
   if (TAPI_SIM_ACCESS_SUCCESS == access_rt) {
     if (msisdn_info->count > 0) {
-      if (nullptr != msisdn_info->list[0].num) {
+      if (strlen(msisdn_info->list[0].num) > 0) {
         result_msisdn = msisdn_info->list[0].num;
       } else {
         LoggerW("MSISDN number empty");
@@ -2393,32 +2563,22 @@ PlatformResult SysteminfoUtils::ReportSim(picojson::object& out, unsigned long c
 
 PlatformResult SysteminfoUtils::ReportPeripheral(picojson::object& out) {
 
-  int wireless_display_status = 0;
+/*  int wireless_display_status = 0;
   PlatformResult ret = GetVconfInt(VCONFKEY_MIRACAST_WFD_SOURCE_STATUS, wireless_display_status);
   if (ret.IsSuccess()) {
     if (VCONFKEY_MIRACAST_WFD_SOURCE_ON == wireless_display_status) {
       out.insert(std::make_pair(kVideoOutputString, picojson::value(true)));
       return PlatformResult(ErrorCode::NO_ERROR);
     }
-  }
+  }*/
   int hdmi_status = 0;
-  ret = GetVconfInt(VCONFKEY_SYSMAN_HDMI, hdmi_status);
+  PlatformResult ret = GetVconfInt(VCONFKEY_SYSMAN_HDMI, hdmi_status);
   if (ret.IsSuccess()) {
     if (VCONFKEY_SYSMAN_HDMI_CONNECTED == hdmi_status) {
       out.insert(std::make_pair(kVideoOutputString, picojson::value(true)));
       return PlatformResult(ErrorCode::NO_ERROR);
     }
   }
-
-  // TODO(r.galka) temporarily removed - not supported by platform
-  //int popsync_status = 0;
-  //ret = GetVconfInt(VCONFKEY_POPSYNC_ACTIVATED_KEY, popsync_status);
-  //if (ret.IsSuccess()) {
-  //  if (1 == popsync_status) {
-  //    out.insert(std::make_pair(kVideoOutputString, picojson::value(true)));
-  //    return PlatformResult(ErrorCode::NO_ERROR);
-  //  }
-  //}
 
   out.insert(std::make_pair(kVideoOutputString, picojson::value(false)));
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -2581,6 +2741,19 @@ PlatformResult SysteminfoUtils::RegisterWifiNetworkListener(const SysteminfoUtil
 PlatformResult SysteminfoUtils::UnregisterWifiNetworkListener()
 {
   return system_info_listeners.UnregisterWifiNetworkListener();
+}
+
+PlatformResult SysteminfoUtils::RegisterEthernetNetworkListener(const SysteminfoUtilsCallback& callback,
+                                                                SysteminfoInstance& instance)
+{
+  LoggerD("Entered");
+  return system_info_listeners.RegisterEthernetNetworkListener(callback, instance);
+}
+
+PlatformResult SysteminfoUtils::UnregisterEthernetNetworkListener()
+{
+  LoggerD("Entered");
+  return system_info_listeners.UnregisterEthernetNetworkListener();
 }
 
 PlatformResult SysteminfoUtils::RegisterCellularNetworkListener(const SysteminfoUtilsCallback& callback,

@@ -42,6 +42,7 @@ static void OnDeviceOrientationChangedCallback(SysteminfoInstance& instance);
 static void OnLocaleChangedCallback(SysteminfoInstance& instance);
 static void OnNetworkChangedCallback(SysteminfoInstance& instance);
 static void OnWifiNetworkChangedCallback(SysteminfoInstance& instance);
+static void OnEthernetNetworkChangedCallback(SysteminfoInstance& instance);
 static void OnCellularNetworkChangedCallback(SysteminfoInstance& instance);
 static void OnPeripheralChangedCallback(SysteminfoInstance& instance);
 static void OnMemoryChangedCallback(SysteminfoInstance& instance);
@@ -61,6 +62,7 @@ const std::string kPropertyIdBuild = "BUILD";
 const std::string kPropertyIdLocale = "LOCALE";
 const std::string kPropertyIdNetwork = "NETWORK";
 const std::string kPropertyIdWifiNetwork = "WIFI_NETWORK";
+const std::string kPropertyIdEthernetNetwork = "ETHERNET_NETWORK";
 const std::string kPropertyIdCellularNetwork = "CELLULAR_NETWORK";
 const std::string kPropertyIdSim = "SIM";
 const std::string kPropertyIdPeripheral = "PERIPHERAL";
@@ -349,6 +351,8 @@ void SysteminfoInstance::AddPropertyValueChangeListener(const picojson::value& a
     ret = SysteminfoUtils::RegisterNetworkListener(OnNetworkChangedCallback, *this);
   } else if (property_name == kPropertyIdWifiNetwork) {
     ret = SysteminfoUtils::RegisterWifiNetworkListener(OnWifiNetworkChangedCallback, *this);
+  } else if (property_name == kPropertyIdEthernetNetwork) {
+    ret = SysteminfoUtils::RegisterEthernetNetworkListener(OnEthernetNetworkChangedCallback, *this);
   } else if (property_name == kPropertyIdCellularNetwork) {
     ret = SysteminfoUtils::RegisterCellularNetworkListener(OnCellularNetworkChangedCallback, *this);
   } else if (property_name == kPropertyIdSim) {
@@ -461,6 +465,8 @@ void SysteminfoInstance::RemovePropertyValueChangeListener(const picojson::value
     ret = SysteminfoUtils::UnregisterNetworkListener();
   } else if (property_name == kPropertyIdWifiNetwork) {
     ret = SysteminfoUtils::UnregisterWifiNetworkListener();
+  } else if (property_name == kPropertyIdEthernetNetwork) {
+    ret = SysteminfoUtils::UnregisterEthernetNetworkListener();
   } else if (property_name == kPropertyIdCellularNetwork) {
     ret = SysteminfoUtils::UnregisterCellularNetworkListener();
   } else if (property_name == kPropertyIdSim) {
@@ -657,6 +663,22 @@ void OnWifiNetworkChangedCallback(SysteminfoInstance& instance)
 
   picojson::value result = picojson::value(picojson::object());
   PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdWifiNetwork, true, result);
+  if (ret.IsSuccess()) {
+    ReportSuccess(result,response->get<picojson::object>());
+    instance.PostMessage(response->serialize().c_str());
+  }
+}
+
+void OnEthernetNetworkChangedCallback(SysteminfoInstance& instance)
+{
+  LoggerD("Entered");
+  const std::shared_ptr<picojson::value>& response =
+      std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
+  response->get<picojson::object>()[kPropertyIdString] = picojson::value(kPropertyIdEthernetNetwork);
+  response->get<picojson::object>()[kListenerIdString] = picojson::value(kListenerConstValue);
+
+  picojson::value result = picojson::value(picojson::object());
+  PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdEthernetNetwork, true, result);
   if (ret.IsSuccess()) {
     ReportSuccess(result,response->get<picojson::object>());
     instance.PostMessage(response->serialize().c_str());

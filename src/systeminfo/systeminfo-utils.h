@@ -69,6 +69,9 @@ class SysteminfoUtils {
   static common::PlatformResult RegisterWifiNetworkListener(const SysteminfoUtilsCallback& callback,
                                                             SysteminfoInstance& instance);
   static common::PlatformResult UnregisterWifiNetworkListener();
+  static common::PlatformResult RegisterEthernetNetworkListener(const SysteminfoUtilsCallback& callback,
+                                                                SysteminfoInstance& instance);
+  static common::PlatformResult UnregisterEthernetNetworkListener();
   static common::PlatformResult RegisterCellularNetworkListener(const SysteminfoUtilsCallback& callback,
                                                                 SysteminfoInstance& instance);
   static common::PlatformResult UnregisterCellularNetworkListener();
@@ -95,6 +98,7 @@ class SysteminfoUtils {
   static common::PlatformResult ReportLocale(picojson::object& out);
   static common::PlatformResult ReportNetwork(picojson::object& out);
   static common::PlatformResult ReportWifiNetwork(picojson::object& out);
+  static common::PlatformResult ReportEthernetNetwork(picojson::object& out);
   static common::PlatformResult ReportCellularNetwork(picojson::object& out);
   static common::PlatformResult ReportSim(picojson::object& out, unsigned long count);
   static common::PlatformResult ReportPeripheral(picojson::object& out);

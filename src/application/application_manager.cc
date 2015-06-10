@@ -619,7 +619,6 @@ void ApplicationManager::LaunchAppControl(const picojson::value& args) {
           return;
         default:
           LoggerE("app_control_send_launch_request returns UNKNOWN ERROR!!!");
-          throw UnknownException("Unknown error");
           ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown error."),
                       &response->get<picojson::object>());
           return;
@@ -1219,7 +1218,7 @@ class ApplicationListChangedBroker {
     LoggerD("Entered");
     package_info_h package_info = nullptr;
 
-    int ret = package_manager_get_package_info(package, &package_info);
+    int ret = package_info_create(package, &package_info);
     if (PACKAGE_MANAGER_ERROR_NONE != ret) {
       LoggerE("Failed to create package info");
       return;

@@ -37,7 +37,7 @@ PushManager::PushManager() :
     int ret = push_connect(m_pkgId.c_str(), onPushState, onPushNotify, NULL,
         &m_handle);
     if (ret != PUSH_ERROR_NONE) {
-        LoggerE("Failed to connect to push");
+        LoggerE("Failed to connect to push (%d)", ret);
     }
 }
 
@@ -57,7 +57,7 @@ void PushManager::initAppId() {
     char *temp = NULL;
     int ret = app_manager_get_app_id(pid, &temp);
     if (ret != APP_MANAGER_ERROR_NONE || temp == NULL) {
-        LoggerE("Failed to get appid");
+        LoggerE("Failed to get appid (%d)", ret);
         return;
     }
 
@@ -68,7 +68,7 @@ void PushManager::initAppId() {
     app_info_h info;
     ret = app_manager_get_app_info(m_appId.c_str(), &info);
     if (ret != APP_MANAGER_ERROR_NONE) {
-        LoggerE("Failed to get app info");
+        LoggerE("Failed to get app info (%d)", ret);
         return;
     }
 
@@ -77,7 +77,7 @@ void PushManager::initAppId() {
         m_pkgId = temp;
         free(temp);
     } else {
-        LoggerE("Failed to get pkg id");
+        LoggerE("Failed to get pkg id (%d)", ret);
     }
 
     app_info_destroy(info);
@@ -94,7 +94,7 @@ PlatformResult PushManager::registerService(
     app_control_h service;
     int ret = app_control_create(&service);
     if (ret != APP_CONTROL_ERROR_NONE) {
-        LoggerE("Failed to create service: app_control_create failed");
+        LoggerE("Failed to create service: app_control_create failed(%d)", ret);
         return common::PlatformResult(ErrorCode::UNKNOWN_ERR,
             "Failed to create service");
     }
@@ -107,7 +107,7 @@ PlatformResult PushManager::registerService(
     }
     ret = app_control_set_operation(service, appControl.operation.c_str());
     if (ret != APP_CONTROL_ERROR_NONE) {
-        LoggerE("Failed to set operation: app_control_set_operation failed");
+        LoggerE("Failed to set operation: app_control_set_operation failed(%d)", ret);
         app_control_destroy(service);
         return common::PlatformResult(ErrorCode::UNKNOWN_ERR,
             "Failed to set operation");
@@ -116,7 +116,7 @@ PlatformResult PushManager::registerService(
     if (!appControl.uri.empty()) {
         ret = app_control_set_uri(service, appControl.uri.c_str());
         if (ret != APP_CONTROL_ERROR_NONE) {
-            LoggerE("Failed to set uri: app_control_set_uri failed");
+            LoggerE("Failed to set uri: app_control_set_uri failed(%d)", ret);
             app_control_destroy(service);
             return common::PlatformResult(ErrorCode::UNKNOWN_ERR,
                 "Failed to set uri");
@@ -126,7 +126,7 @@ PlatformResult PushManager::registerService(
     if (!appControl.mime.empty()) {
         ret = app_control_set_mime(service, appControl.mime.c_str());
         if (ret != APP_CONTROL_ERROR_NONE) {
-            LoggerE("Failed to set mime: app_control_set_mime failed");
+            LoggerE("Failed to set mime: app_control_set_mime failed(%d)", ret);
             app_control_destroy(service);
             return common::PlatformResult(ErrorCode::UNKNOWN_ERR,
                 "Failed to set mime");
@@ -145,7 +145,7 @@ PlatformResult PushManager::registerService(
 
     ret = app_control_set_app_id(service, m_appId.c_str());
     if (ret != APP_CONTROL_ERROR_NONE) {
-        LoggerE("Failed to set app id: app_control_set_app_id failed");
+        LoggerE("Failed to set app id: app_control_set_app_id failed(%d)", ret);
         app_control_destroy(service);
         return common::PlatformResult(ErrorCode::UNKNOWN_ERR,
             "Failed to set app id");
@@ -165,7 +165,7 @@ PlatformResult PushManager::registerService(
         }
         if (ret != APP_CONTROL_ERROR_NONE) {
             LoggerE(
-                "Failed to set extra data: app_control_add_extra_data failed");
+                "Failed to set extra data: app_control_add_extra_data failed(%d)", ret);
             app_control_destroy(service);
             return common::PlatformResult(ErrorCode::UNKNOWN_ERR,
                 "Failed to set extra data");
@@ -177,14 +177,25 @@ PlatformResult PushManager::registerService(
     app_control_destroy(service);
     if (ret != PUSH_ERROR_NONE) {
         delete pcallback;
-        LoggerE("Failed to register push: push_register failed");
+        if (ret == PUSH_ERROR_INVALID_PARAMETER) {
+          LoggerE("[push_register] PUSH_ERROR_INVALID_PARAMETER");
+        } else if (ret == PUSH_ERROR_OUT_OF_MEMORY) {
+          LoggerE("[push_register] PUSH_ERROR_OUT_OF_MEMORY");
+        } else if (ret == PUSH_ERROR_NOT_CONNECTED) {
+          LoggerE("[push_register] PUSH_ERROR_NOT_CONNECTED");
+        } else if (ret == PUSH_ERROR_OPERATION_FAILED) {
+          LoggerE("[push_register] PUSH_ERROR_OPERATION_FAILED");
+        }
+        LoggerE("Failed to register push: push_register failed (%d)", ret);
         return common::PlatformResult(ErrorCode::UNKNOWN_ERR,
             "Failed to register");
     }
+
     return common::PlatformResult(ErrorCode::NO_ERROR);
 }
 
 common::PlatformResult PushManager::unregisterService(double callbackId) {
+    LoggerD("Enter");
     double* pcallbackId = new double(callbackId);
     if (m_state == PUSH_STATE_UNREGISTERED) {
         LoggerD("Already unregister, call unregister callback");
@@ -198,7 +209,16 @@ common::PlatformResult PushManager::unregisterService(double callbackId) {
         int ret = push_deregister(m_handle, onDeregister, pcallbackId);
         if (ret != PUSH_ERROR_NONE) {
             delete pcallbackId;
-            LoggerE("Failed to deregister: push_deregister failed");
+            if (ret == PUSH_ERROR_INVALID_PARAMETER) {
+              LoggerE("[push_deregister] PUSH_ERROR_INVALID_PARAMETER");
+            } else if (ret == PUSH_ERROR_OUT_OF_MEMORY) {
+              LoggerE("[push_deregister] PUSH_ERROR_OUT_OF_MEMORY");
+            } else if (ret == PUSH_ERROR_NOT_CONNECTED) {
+              LoggerE("[push_deregister] PUSH_ERROR_NOT_CONNECTED");
+            } else if (ret == PUSH_ERROR_OPERATION_FAILED) {
+              LoggerE("[push_deregister] PUSH_ERROR_OPERATION_FAILED");
+            }
+            LoggerE("Failed to deregister: push_deregister failed (%d)", ret);
             return common::PlatformResult(ErrorCode::UNKNOWN_ERR,
                 "Unknown error");
         }
@@ -211,7 +231,14 @@ common::PlatformResult PushManager::getRegistrationId(std::string& id) {
     char* temp = NULL;
     int ret = push_get_registration_id(m_handle, &temp);
     if (ret != PUSH_ERROR_NONE) {
-        LoggerE("Failed to get id: push_get_registration_id failed");
+        if (ret == PUSH_ERROR_INVALID_PARAMETER) {
+          LoggerE("[push_get_registration_id]   PUSH_ERROR_INVALID_PARAMETER");
+        } else if (ret == PUSH_ERROR_OUT_OF_MEMORY) {
+          LoggerE("[push_get_registration_id]   PUSH_ERROR_OUT_OF_MEMORY");
+        } else if (ret == PUSH_ERROR_NO_DATA) {
+          LoggerE("[push_get_registration_id]   PUSH_ERROR_NO_DATA");
+        }
+        LoggerE("Failed to get id: push_get_registration_id failed (%d)", ret);
         return common::PlatformResult(ErrorCode::UNKNOWN_ERR,
             "Unknown error");
     }
@@ -225,7 +252,7 @@ common::PlatformResult PushManager::getUnreadNotifications() {
     int ret = push_request_unread_notification(m_handle);
     if (ret != PUSH_ERROR_NONE) {
         LoggerE(
-            "Failed to send request: push_request_unread_notification failed");
+            "Failed to send request: push_request_unread_notification failed (%d)", ret);
         return common::PlatformResult(ErrorCode::UNKNOWN_ERR,
             "Unknown error");
     }
@@ -303,10 +330,18 @@ void PushManager::onPushRegister(push_result_e result, const char* msg,
             id = temp;
             free(temp);
         } else {
+            LoggerD("Failed to retrieve registration id: push_get_registration_id(%d)", ret);
             res = PlatformResult(ErrorCode::UNKNOWN_ERR,
                 "Failed to retrieve registration id");
         }
     } else {
+        if (result == PUSH_RESULT_TIMEOUT) {
+            LoggerE("PUSH_RESULT_TIMEOUT");
+        } else if (result == PUSH_RESULT_SERVER_ERROR) {
+            LoggerE("PUSH_RESULT_SERVER_ERROR");
+        } else if (result == PUSH_RESULT_SYSTEM_ERROR) {
+            LoggerE("PUSH_RESULT_SYSTEM_ERROR");
+        }
         res = PlatformResult(ErrorCode::UNKNOWN_ERR,
                 msg == NULL ? "Unknown error" : msg);
     }
