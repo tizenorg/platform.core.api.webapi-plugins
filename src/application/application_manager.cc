@@ -1198,7 +1198,7 @@ class ApplicationListChangedBroker {
     LoggerD("Entered");
     package_info_h package_info = nullptr;
 
-    int ret = package_manager_get_package_info(package, &package_info);
+    int ret = package_info_create(package, &package_info);
     if (PACKAGE_MANAGER_ERROR_NONE != ret) {
       LoggerE("Failed to create package info");
       return;
