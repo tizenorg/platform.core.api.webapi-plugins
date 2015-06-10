@@ -699,6 +699,7 @@ void MessagingInstance::MessageStorageRemoveConversations(const picojson::value&
       std::shared_ptr<MessageConversation> conversation;
       ret = MessagingUtil::jsonToMessageConversation(*it, &conversation);
       if (ret.IsError()) {
+        delete callback;
         POST_AND_RETURN(ret, json, obj, JSON_CALLBACK_ERROR)
       }
       callback->addConversation(conversation);
