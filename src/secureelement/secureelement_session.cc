@@ -54,7 +54,7 @@ picojson::value SESession::openLogicalChannel(const picojson::array& v_aid) {
     }
     ByteArray aid_byte_array( aid, (unsigned int) v_aid.size());
     ClientChannel* channel_ptr = static_cast<ClientChannel*>(m_session_ptr->openLogicalChannelSync( aid_byte_array));
-    delete aid;
+    delete [] aid;
 
     picojson::value result = picojson::value(picojson::object());
     picojson::object& obj = result.get<picojson::object>();
