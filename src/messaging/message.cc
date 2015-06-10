@@ -1333,14 +1333,14 @@ PlatformResult Message::setMMSBodyAndAttachmentsFromStruct(Message* message,
 
 PlatformResult Message::convertPlatformShortMessageToObject(msg_struct_t msg, Message** result_message){
     LoggerD("Entered");
-    Message *message = nullptr;
+    std::unique_ptr<Message> message;
     int infoInt;
     bool infoBool;
     char infoStr[MAX_ADDRESS_VAL_LEN + 1];
     //get type
     msg_get_int_value(msg, MSG_MESSAGE_TYPE_INT, &infoInt);
     if (infoInt == MSG_TYPE_SMS) {
-        message = new MessageSMS();
+        message = std::unique_ptr<Message>(new MessageSMS());
         // get SMS body
         std::shared_ptr<MessageBody> body(new MessageBody());
         char msgInfoStr[MAX_MSG_TEXT_LEN + 1];
@@ -1352,13 +1352,12 @@ PlatformResult Message::convertPlatformShortMessageToObject(msg_struct_t msg, Me
         PlatformResult ret = message->getSMSRecipientsFromStruct(msg, &recp_list);
         if (ret.IsError()) {
           LoggerE("failed to get SMS recipients from struct");
-          if (message) delete message;
           return ret;
         }
 
         message->setTO(recp_list);
     } else if (infoInt == MSG_TYPE_MMS) {
-        message = new MessageMMS();
+        message = std::unique_ptr<Message>(new MessageMMS());
 
         // get MMS body
         msg_get_int_value(msg, MSG_MESSAGE_DATA_SIZE_INT, &infoInt);
@@ -1400,21 +1399,18 @@ PlatformResult Message::convertPlatformShortMessageToObject(msg_struct_t msg, Me
         PlatformResult ret = getMMSRecipientsFromStruct(msg, MSG_RECIPIENTS_TYPE_TO, &recp_list);
         if (ret.IsError()) {
           LoggerE("failed to get MMS recipients from struct");
-          if (message) delete message;
           return ret;
         }
         message->setTO(recp_list);
         ret = getMMSRecipientsFromStruct(msg, MSG_RECIPIENTS_TYPE_CC, &recp_list);
         if (ret.IsError()) {
           LoggerE("failed to get MMS recipients from struct");
-          if (message) delete message;
           return ret;
         }
         message->setCC(recp_list);
         ret = getMMSRecipientsFromStruct(msg, MSG_RECIPIENTS_TYPE_BCC, &recp_list);
         if (ret.IsError()) {
           LoggerE("failed to get MMS recipients from struct");
-          if (message) delete message;
           return ret;
         }
         message->setBCC(recp_list);
@@ -1423,10 +1419,9 @@ PlatformResult Message::convertPlatformShortMessageToObject(msg_struct_t msg, Me
         msg_get_str_value(msg, MSG_MESSAGE_SUBJECT_STR, infoStr, MAX_SUBJECT_LEN);
         message->setSubject(infoStr);
         //set attachments
-        ret = setMMSBodyAndAttachmentsFromStruct(message, msg);
+        ret = setMMSBodyAndAttachmentsFromStruct(message.get(), msg);
         if (ret.IsError()) {
           LoggerE("failed to set body attachments from struct");
-          if (message) delete message;
           return ret;
         }
     } else {
@@ -1449,10 +1444,10 @@ PlatformResult Message::convertPlatformShortMessageToObject(msg_struct_t msg, Me
     // get from
     const std::string& from = Message::getShortMsgSenderFromStruct(msg);
     message->setFrom(from);
-    LoggerD("Message(%p) from is: %s", message, message->getFrom().c_str());
+    LoggerD("Message(%p) from is: %s", message.get(), message->getFrom().c_str());
     // get if is in response
     msg_get_int_value(msg, MSG_MESSAGE_DIRECTION_INT, &infoInt);
-    LoggerD("Message(%p) direction is: %d", message, infoInt);
+    LoggerD("Message(%p) direction is: %d", message.get(), infoInt);
     message->setInResponseTo(infoInt);
     // get is read
     msg_get_bool_value(msg, MSG_MESSAGE_READ_BOOL, &infoBool);
@@ -1514,7 +1509,7 @@ PlatformResult Message::convertPlatformShortMessageToObject(msg_struct_t msg, Me
     }
 
     LoggerD("End");
-    *result_message = message;
+    *result_message = message.release();  // release ownership
     return PlatformResult(ErrorCode::NO_ERROR);
 }
 
