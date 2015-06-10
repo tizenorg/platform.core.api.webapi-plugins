@@ -274,6 +274,7 @@ BuildRequires: ninja
 BuildRequires: pkgconfig(appcore-common)
 BuildRequires: pkgconfig(dbus-1)
 BuildRequires: pkgconfig(dbus-glib-1)
+BuildRequires: pkgconfig(dlog)
 BuildRequires: pkgconfig(evas)
 BuildRequires: pkgconfig(gio-2.0)
 BuildRequires: pkgconfig(glib-2.0)
@@ -441,6 +442,14 @@ BuildRequires:  pkgconfig(capi-system-media-key)
 %description
 Tizen Web APIs implemented.
 
+%package devel
+Summary:    webapi-plugins development headers
+Group:      Development/Libraries
+Requires:   %{name} = %{version}
+
+%description devel
+webapi-plugins development headers
+
 %prep
 %setup -q
 
@@ -511,6 +520,12 @@ cat LICENSE.BSD-2.0 >> %{buildroot}/usr/share/license/%{name}
 mkdir -p %{buildroot}%{_libdir}/%{crosswalk_extensions}
 install -p -m 644 out/Default/libtizen*.so %{buildroot}%{_libdir}/%{crosswalk_extensions}
 
+# devel files
+mkdir -p %{buildroot}%{_libdir}/pkgconfig
+cp packaging/%{name}.pc %{buildroot}%{_libdir}/pkgconfig
+mkdir -p %{buildroot}%{_includedir}/%{crosswalk_extensions}/common
+install -p -m 644 src/common/*.h %{buildroot}%{_includedir}/%{crosswalk_extensions}/common
+
 %if 0%{?tizen_feature_tvaudio_support}
 # tv audio beep files:
 %define ringtones_directory /opt/usr/share/settings/Ringtones/
@@ -527,3 +542,7 @@ cp res/tvsounds/*.pcm %{buildroot}%{ringtones_directory}
 # tv audio beep files:
 %{ringtones_directory}/*.pcm
 %endif
+
+%files devel
+%{_includedir}/*
+%{_libdir}/pkgconfig/*
