@@ -820,15 +820,16 @@ PlatformResult Message::convertPlatformShortMessageToStruct(Message* message,
     }
 
     msg_error_t err = MSG_SUCCESS;
-    msg_struct_t sendOpt = msg_create_struct(MSG_STRUCT_SENDOPT);
+
     msg_struct_t msg = msg_create_struct(MSG_STRUCT_MESSAGE_INFO);
+    std::unique_ptr<msg_struct_t, int (*)(msg_struct_t*)> msg_ptr(&msg, msg_release_struct);
 
     if (message->is_id_set()) { // id is set - the message exists in database
         msg_message_id_t id = (msg_message_id_t) message->getId();
-        err = msg_get_message(handle, id, msg, sendOpt);
+        msg_struct_t send_opt = msg_create_struct(MSG_STRUCT_SENDOPT);
+        std::unique_ptr<msg_struct_t, int (*)(msg_struct_t*)> send_opt_ptr(&send_opt, msg_release_struct);
+        err = msg_get_message(handle, id, msg, send_opt);
         if (err != MSG_SUCCESS) {
-            msg_release_struct(&sendOpt);
-            msg_release_struct(&msg);
             LoggerD("msg_get_message() Fail [%d]", err);
             return PlatformResult(ErrorCode::UNKNOWN_ERR, "msg_get_message() Fail");
         }
@@ -839,8 +840,6 @@ PlatformResult Message::convertPlatformShortMessageToStruct(Message* message,
             // Set message type to SMS
             if (MSG_SUCCESS
                     != msg_set_int_value(msg, MSG_MESSAGE_TYPE_INT, MSG_TYPE_SMS)) {
-                msg_release_struct(&sendOpt);
-                msg_release_struct(&msg);
                 LoggerE("Set SMS type error");
                 return PlatformResult(ErrorCode::UNKNOWN_ERR, "Set SMS type error");
             }
@@ -848,14 +847,11 @@ PlatformResult Message::convertPlatformShortMessageToStruct(Message* message,
             // Set message type to MMS
             if (MSG_SUCCESS
                     != msg_set_int_value(msg, MSG_MESSAGE_TYPE_INT, MSG_TYPE_MMS)) {
-                msg_release_struct(&sendOpt);
-                msg_release_struct(&msg);
                 LoggerE("Set MMS type error");
                 return PlatformResult(ErrorCode::UNKNOWN_ERR, "Set MMS type error");
             }
         }
     }
-    msg_release_struct(&sendOpt);
 
     int type;
     msg_get_int_value(msg, MSG_MESSAGE_TYPE_INT, &type);
@@ -1014,7 +1010,6 @@ PlatformResult Message::convertPlatformShortMessageToStruct(Message* message,
         if (ret.IsError()) return ret;
     }
     else {
-        msg_release_struct(&msg);
         LoggerE("Message(%p): Invalid message type", message);
         return PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid message type");
     }
@@ -1059,6 +1054,7 @@ PlatformResult Message::convertPlatformShortMessageToStruct(Message* message,
 
     LoggerD("End");
     *result_msg = msg;
+    msg_ptr.release();  // release ownership
     return PlatformResult(ErrorCode::NO_ERROR);
 }
 
