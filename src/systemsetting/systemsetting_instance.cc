@@ -95,7 +95,7 @@ PlatformResult SystemSettingInstance::getPlatformPropertyValue(
   LoggerD("Enter");
   picojson::object& result_obj = out->get<picojson::object>();
 
-  int ret;
+  int ret = SYSTEM_SETTINGS_ERROR_INVALID_PARAMETER;
   char *value = NULL;
   if (settingType == SETTING_HOME_SCREEN) {
     ret = system_settings_get_value_string(
@@ -169,7 +169,7 @@ PlatformResult SystemSettingInstance::setPlatformPropertyValue(
     const std::string& settingType,
     const std::string& settingValue) {
   LoggerD("Enter");
-  int ret;
+  int ret = SYSTEM_SETTINGS_ERROR_INVALID_PARAMETER;
   if (settingType == SETTING_HOME_SCREEN) {
     ret = system_settings_set_value_string(
         SYSTEM_SETTINGS_KEY_WALLPAPER_HOME_SCREEN, settingValue.c_str());
