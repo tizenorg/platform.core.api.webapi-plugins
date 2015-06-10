@@ -421,17 +421,14 @@ void DownloadInstance::DownloadManagerStart
   bool network_support = false;
   bool cell_support = false;
   bool wifi_support = false;
-  // todo retrieve this from system_info
-#ifdef TIZEN_TV
-  bool ethernet_support = true;
-#else
   bool ethernet_support = false;
-#endif
 
   system_info_get_platform_bool("http://tizen.org/feature/network.telephony",
                                 &cell_support);
   system_info_get_platform_bool("http://tizen.org/feature/network.wifi",
                                 &wifi_support);
+  system_info_get_platform_bool("http://tizen.org/feature/network.ethernet",
+                                &ethernet_support);
 
   connection_h connection = nullptr;
   connection_create(&connection);
