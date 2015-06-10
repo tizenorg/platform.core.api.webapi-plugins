@@ -26,10 +26,12 @@ namespace application {
 
 using namespace common;
 
-ApplicationInstance::ApplicationInstance(const std::string& app_id) :
-  manager_(*this),
-  app_id_(app_id) {
+ApplicationInstance::ApplicationInstance() :
+  manager_(*this) {
   LoggerD("Entered");
+
+  app_id_ = common::GetCurrentExtension()->GetRuntimeVariable("app_id", 64);
+  LoggerD("app_id: %s", app_id_.c_str());
 
   using std::placeholders::_1;
   using std::placeholders::_2;
