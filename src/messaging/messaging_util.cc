@@ -874,6 +874,7 @@ PlatformResult MessagingUtil::jsonFilterToCompositeFilter(const picojson::object
       AbstractFilterPtr filter;
       PlatformResult ret = jsonFilterToAbstractFilter(a.get<picojson::object>(), &filter);
       if (ret.IsError()) {
+          delete compositeFilter;
           LoggerD("Convert JSON filter to Abstract filter failed (%s)", ret.message().c_str());
           return ret;
       }
