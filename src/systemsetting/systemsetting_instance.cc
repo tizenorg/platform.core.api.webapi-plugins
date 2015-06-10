@@ -118,7 +118,7 @@ PlatformResult SystemSettingInstance::getPlatformPropertyValue(
   switch (ret) {
     case SYSTEM_SETTINGS_ERROR_NONE:
       LoggerD("ret == SYSTEM_SETTINGS_ERROR_NONE");
-      result_obj.insert(std::make_pair("value", picojson::value(value)));
+      result_obj.insert(std::make_pair("value", picojson::value(value ? value : "")));
       free(value);
       return PlatformResult(ErrorCode::NO_ERROR);
     case SYSTEM_SETTINGS_ERROR_CALL_UNSUPPORTED_API:
