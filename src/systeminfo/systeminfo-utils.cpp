@@ -1277,9 +1277,8 @@ void SystemInfoListeners::InitTapiHandles()
 {
   LoggerD("Entered");
   int sim_count = 0;
-  if (nullptr == m_tapi_handles){
+  if (nullptr == m_tapi_handles[0]){  //check if anything is in table
     char **cp_list = tel_get_cp_name_list();
-    *m_tapi_handles = nullptr;
     if (nullptr != cp_list) {
       while (cp_list[sim_count]) {
         m_tapi_handles[sim_count] = tel_init(cp_list[sim_count]);
@@ -1552,22 +1551,20 @@ static PlatformResult GetRuntimeInfoString(system_settings_key_e key, std::strin
       return PlatformResult(ErrorCode::NO_ERROR);
     }
   }
-  const char* error_msg = "Error when retrieving system setting information: " + err;
-  LoggerE("%s", error_msg);
+  const std::string error_msg = "Error when retrieving system setting information: "
+      + std::to_string(err);
+  LoggerE("%s", error_msg.c_str());
   return PlatformResult(ErrorCode::UNKNOWN_ERR, error_msg);
 }
 
 PlatformResult GetVconfInt(const char *key, int &value) {
   if (0 == vconf_get_int(key, &value)) {
+    LoggerD("value[%s]: %d", key, value);
     return PlatformResult(ErrorCode::NO_ERROR);
-  } else {
-    const std::string error_msg = "Could not get " + std::string(key);
-    LoggerD("%s",error_msg.c_str());
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, error_msg);
   }
-
-  LoggerD("value[%s]: %d", key, value);
-  return PlatformResult(ErrorCode::NO_ERROR);
+  const std::string error_msg = "Could not get " + std::string(key);
+  LoggerD("%s",error_msg.c_str());
+  return PlatformResult(ErrorCode::UNKNOWN_ERR, error_msg);
 }
 
 PlatformResult SysteminfoUtils::GetTotalMemory(long long& result)
@@ -1659,11 +1656,9 @@ PlatformResult SysteminfoUtils::ReportProperty(const std::string& property, int 
     return ReportMemory(res_obj);
   } else if ("CAMERA_FLASH" == property) {
     return ReportCameraFlash(res_obj);
-  } else {
-    LoggerD("Property with given id is not supported");
-    return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR, "Property with given id is not supported");
   }
-  return PlatformResult(ErrorCode::NO_ERROR);
+  LoggerD("Property with given id is not supported");
+  return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR, "Property with given id is not supported");
 }
 
 PlatformResult SysteminfoUtils::GetPropertyValue(const std::string& property, bool is_array_type,
@@ -2526,7 +2521,7 @@ void SimMsisdnValueCallback(TapiHandle */*handle*/, int result, void *data, void
   std::string result_msisdn;
   if (TAPI_SIM_ACCESS_SUCCESS == access_rt) {
     if (msisdn_info->count > 0) {
-      if (nullptr != msisdn_info->list[0].num) {
+      if (strlen(msisdn_info->list[0].num) > 0) {
         result_msisdn = msisdn_info->list[0].num;
       } else {
         LoggerW("MSISDN number empty");
