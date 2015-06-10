@@ -896,106 +896,107 @@ PlatformResult Message::convertPlatformShortMessageToStruct(Message* message,
         if (mms_data == NULL) {
             LoggerE("Message(%p): Set MMS data error", message);
             return PlatformResult(ErrorCode::UNKNOWN_ERR, "Set MMS data error");
-        }
-        // Set MMS message subject
-        std::string subject = message->getSubject();
-        if (subject != "") {
-            int r = msg_set_str_value(msg, MSG_MESSAGE_SUBJECT_STR,
-                    const_cast<char*>(subject.c_str()), subject.size());
-            if (r != MSG_SUCCESS) {
-                LoggerE("Message(%p): Set MMS subject error: %d", message, r);
-                return PlatformResult(ErrorCode::UNKNOWN_ERR, "Set MMS subject error");
-            }
-        }
-        // Set MMS message text
-        std::shared_ptr<MessageBody> body;
-        body = message->getBody();
-        if (!body->getPlainBody().empty()) {
-            LoggerD("Message(%p): PlainBody is NOT empty", message);
-
-            static const int ROOT_LAYOUT_WIDTH = 100;
-            static const int ROOT_LAYOUT_HEIGHT = 100;
-            static const int WHITE_COLOR = 0xffffff;
-            static const int BLACK_COLOR = 0x000000;
-
-            //----------------------------------------------------------------------------
-            //Region
-            msg_struct_t region;
-            msg_list_add_item(mms_data, MSG_STRUCT_MMS_REGION, &region);
-            msg_set_str_value(region, MSG_MMS_REGION_ID_STR, const_cast<char*>("Text"), 4);
-
-            msg_set_int_value(region, MSG_MMS_REGION_LENGTH_LEFT_INT, 0);
-            msg_set_int_value(region, MSG_MMS_REGION_LENGTH_TOP_INT, 0);
-            msg_set_int_value(region, MSG_MMS_REGION_LENGTH_WIDTH_INT,
-                    ROOT_LAYOUT_WIDTH);
-            msg_set_int_value(region, MSG_MMS_REGION_LENGTH_HEIGHT_INT,
-                    ROOT_LAYOUT_HEIGHT);
-            msg_set_int_value(region, MSG_MMS_REGION_BGCOLOR_INT, WHITE_COLOR);
-
-            msg_set_bool_value(region, MSG_MMS_REGION_LENGTH_LEFT_PERCENT_BOOL, true);
-            msg_set_bool_value(region, MSG_MMS_REGION_LENGTH_TOP_PERCENT_BOOL, true);
-            msg_set_bool_value(region, MSG_MMS_REGION_LENGTH_WIDTH_PERCENT_BOOL, true);
-            msg_set_bool_value(region, MSG_MMS_REGION_LENGTH_HEIGHT_PERCENT_BOOL, true);
-
-            //----------------------------------------------------------------------------
-            //Page
-            msg_struct_t page;
-            msg_list_add_item(mms_data, MSG_STRUCT_MMS_PAGE, &page);
-            msg_set_int_value(page, MSG_MMS_PAGE_PAGE_DURATION_INT, 0);
-
-            //----------------------------------------------------------------------------
-            //Media
-            msg_struct_t media;
-            msg_list_add_item(page, MSG_STRUCT_MMS_MEDIA, &media);
-            msg_set_int_value(media, MSG_MMS_MEDIA_TYPE_INT, MMS_SMIL_MEDIA_TEXT);
-            msg_set_str_value(media, MSG_MMS_MEDIA_REGION_ID_STR,
-                    const_cast<char*>("Text"), 4);
-
-            std::string body_file_path = "";
-            PlatformResult ret = saveToTempFile(body->getPlainBody(), &body_file_path);
-            if (ret.IsError()) return ret;
-
-            int error = msg_set_str_value(media,
-                    MSG_MMS_MEDIA_FILEPATH_STR,
-                    const_cast<char*>(body_file_path.c_str()),
-                    body_file_path.size());
-            if (error != MSG_SUCCESS) {
-                LoggerE("Message(%p): Failed to set mms body filepath", message);
-                return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to set mms body filepath");
-            }
-            msg_set_str_value(media, MSG_MMS_MEDIA_CONTENT_TYPE_STR,
-                              "text/plain", 10);
-
-            //----------------------------------------------------------------------------
-            //Smile text
-            msg_struct_t smil_text;
-            msg_get_struct_handle(media, MSG_MMS_MEDIA_SMIL_TEXT_HND, &smil_text);
-            msg_set_int_value(smil_text, MSG_MMS_SMIL_TEXT_COLOR_INT, BLACK_COLOR);
-            msg_set_int_value(smil_text, MSG_MMS_SMIL_TEXT_SIZE_INT,
-                    MMS_SMIL_FONT_SIZE_NORMAL);
-            msg_set_bool_value(smil_text, MSG_MMS_SMIL_TEXT_BOLD_BOOL, true);
         } else {
-            LoggerD("Message(%p): PlainBody is EMPTY", message);
-        }
-        // Set MMS attachments
-        AttachmentPtrVector attach_list = message->getMessageAttachments();
-        LoggerD("Message(%p): id:%d subject:[%s] plainBody:[%s] contains %d attachments",
-                message, message->getId(), message->getSubject().c_str(),
-                message->getBody()->getPlainBody().c_str(), attach_list.size());
+            std::unique_ptr<msg_struct_t, int (*)(msg_struct_t*)> mms_data_ptr(&mms_data, msg_release_struct);
+            // Set MMS message subject
+            std::string subject = message->getSubject();
+            if (subject != "") {
+                int r = msg_set_str_value(msg, MSG_MESSAGE_SUBJECT_STR,
+                        const_cast<char*>(subject.c_str()), subject.size());
+                if (r != MSG_SUCCESS) {
+                    LoggerE("Message(%p): Set MMS subject error: %d", message, r);
+                    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Set MMS subject error");
+                }
+            }
+            // Set MMS message text
+            std::shared_ptr<MessageBody> body;
+            body = message->getBody();
+            if (!body->getPlainBody().empty()) {
+                LoggerD("Message(%p): PlainBody is NOT empty", message);
 
-        msg_set_int_value(mms_data, MSG_MESSAGE_ATTACH_COUNT_INT,
-                attach_list.size());
-        if (!attach_list.empty()) {
-            PlatformResult ret =addMMSBodyAndAttachmentsToStruct(attach_list, mms_data, message);
-            if (ret.IsError()) return ret;
+                static const int ROOT_LAYOUT_WIDTH = 100;
+                static const int ROOT_LAYOUT_HEIGHT = 100;
+                static const int WHITE_COLOR = 0xffffff;
+                static const int BLACK_COLOR = 0x000000;
+
+                //----------------------------------------------------------------------------
+                //Region
+                msg_struct_t region;
+                msg_list_add_item(mms_data, MSG_STRUCT_MMS_REGION, &region);
+                msg_set_str_value(region, MSG_MMS_REGION_ID_STR, const_cast<char*>("Text"), 4);
+
+                msg_set_int_value(region, MSG_MMS_REGION_LENGTH_LEFT_INT, 0);
+                msg_set_int_value(region, MSG_MMS_REGION_LENGTH_TOP_INT, 0);
+                msg_set_int_value(region, MSG_MMS_REGION_LENGTH_WIDTH_INT,
+                        ROOT_LAYOUT_WIDTH);
+                msg_set_int_value(region, MSG_MMS_REGION_LENGTH_HEIGHT_INT,
+                        ROOT_LAYOUT_HEIGHT);
+                msg_set_int_value(region, MSG_MMS_REGION_BGCOLOR_INT, WHITE_COLOR);
+
+                msg_set_bool_value(region, MSG_MMS_REGION_LENGTH_LEFT_PERCENT_BOOL, true);
+                msg_set_bool_value(region, MSG_MMS_REGION_LENGTH_TOP_PERCENT_BOOL, true);
+                msg_set_bool_value(region, MSG_MMS_REGION_LENGTH_WIDTH_PERCENT_BOOL, true);
+                msg_set_bool_value(region, MSG_MMS_REGION_LENGTH_HEIGHT_PERCENT_BOOL, true);
+
+                //----------------------------------------------------------------------------
+                //Page
+                msg_struct_t page;
+                msg_list_add_item(mms_data, MSG_STRUCT_MMS_PAGE, &page);
+                msg_set_int_value(page, MSG_MMS_PAGE_PAGE_DURATION_INT, 0);
+
+                //----------------------------------------------------------------------------
+                //Media
+                msg_struct_t media;
+                msg_list_add_item(page, MSG_STRUCT_MMS_MEDIA, &media);
+                msg_set_int_value(media, MSG_MMS_MEDIA_TYPE_INT, MMS_SMIL_MEDIA_TEXT);
+                msg_set_str_value(media, MSG_MMS_MEDIA_REGION_ID_STR,
+                        const_cast<char*>("Text"), 4);
+
+                std::string body_file_path = "";
+                PlatformResult ret = saveToTempFile(body->getPlainBody(), &body_file_path);
+                if (ret.IsError()) return ret;
+
+                int error = msg_set_str_value(media,
+                        MSG_MMS_MEDIA_FILEPATH_STR,
+                        const_cast<char*>(body_file_path.c_str()),
+                        body_file_path.size());
+                if (error != MSG_SUCCESS) {
+                    LoggerE("Message(%p): Failed to set mms body filepath", message);
+                    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to set mms body filepath");
+                }
+                msg_set_str_value(media, MSG_MMS_MEDIA_CONTENT_TYPE_STR,
+                                  "text/plain", 10);
+
+                //----------------------------------------------------------------------------
+                //Smile text
+                msg_struct_t smil_text;
+                msg_get_struct_handle(media, MSG_MMS_MEDIA_SMIL_TEXT_HND, &smil_text);
+                msg_set_int_value(smil_text, MSG_MMS_SMIL_TEXT_COLOR_INT, BLACK_COLOR);
+                msg_set_int_value(smil_text, MSG_MMS_SMIL_TEXT_SIZE_INT,
+                        MMS_SMIL_FONT_SIZE_NORMAL);
+                msg_set_bool_value(smil_text, MSG_MMS_SMIL_TEXT_BOLD_BOOL, true);
+            } else {
+                LoggerD("Message(%p): PlainBody is EMPTY", message);
+            }
+            // Set MMS attachments
+            AttachmentPtrVector attach_list = message->getMessageAttachments();
+            LoggerD("Message(%p): id:%d subject:[%s] plainBody:[%s] contains %d attachments",
+                    message, message->getId(), message->getSubject().c_str(),
+                    message->getBody()->getPlainBody().c_str(), attach_list.size());
+
+            msg_set_int_value(mms_data, MSG_MESSAGE_ATTACH_COUNT_INT,
+                    attach_list.size());
+            if (!attach_list.empty()) {
+                PlatformResult ret =addMMSBodyAndAttachmentsToStruct(attach_list, mms_data, message);
+                if (ret.IsError()) return ret;
+            }
+            // Set MMS body
+            int r = msg_set_mms_struct(msg, mms_data);
+            if (r != MSG_SUCCESS) {
+                LoggerE("Message(%p): Set MMS body error: %d", message, r);
+                return PlatformResult (ErrorCode::UNKNOWN_ERR, "Set MMS body error");
+            }
         }
-        // Set MMS body
-        int r = msg_set_mms_struct(msg, mms_data);
-        if (r != MSG_SUCCESS) {
-            LoggerE("Message(%p): Set MMS body error: %d", message, r);
-            return PlatformResult (ErrorCode::UNKNOWN_ERR, "Set MMS body error");
-        }
-        msg_release_struct(&mms_data);
 
         // Reset MMS recipients
         msg_list_clear(msg, MSG_MESSAGE_ADDR_LIST_HND);
