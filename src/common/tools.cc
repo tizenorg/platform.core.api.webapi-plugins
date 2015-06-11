@@ -274,5 +274,12 @@ PlatformResult CheckAccess(const std::vector<std::string>& privileges) {
   }
 }
 
+std::string GetErrorString(int error_code) {
+  static const size_t kSize = 1024;
+  char msg[kSize] = {0};
+  strerror_r(error_code, msg, kSize);
+  return msg;
+}
+
 }  // namespace tools
 }  // namespace common
