@@ -222,16 +222,17 @@ PlatformResult Node::getChildNames(Node::NameList* out_name_list) const
         return PlatformResult(ErrorCode::IO_ERR, "Node has been deleted from platform.");
     }
 
-    errno = 0;
-    struct dirent *entry = NULL;
+    int err = 0;
+    struct dirent entry = {0};
+    struct dirent* result = nullptr;
     NameList name_list;
-    while ((entry = readdir(dir))) {
-        if (!strcmp(entry->d_name, ".") || !strncmp(entry->d_name, "..", 2)) {
+    while ((0 == (err = readdir_r(dir, &entry, &result))) && result) {
+        if (!strcmp(entry.d_name, ".") || !strncmp(entry.d_name, "..", 2)) {
             continue;
         }
-        name_list.push_back(entry->d_name);
+        name_list.push_back(entry.d_name);
     }
-    if (errno != 0) {
+    if (0 != err) {
         LoggerE("throw IOException");
         return PlatformResult(ErrorCode::IO_ERR, "Error while reading directory.");
     }
@@ -269,21 +270,22 @@ PlatformResult Node::getChildNodes(NodeList* out_node_list) const
         return PlatformResult(ErrorCode::IO_ERR, "Node has been deleted from platform.");
     }
 
-    errno = 0;
-    struct dirent *entry = NULL;
+    int err = 0;
+    struct dirent entry = {0};
+    struct dirent* result = nullptr;
     NodeList node_list;
-    while ((entry = readdir(dir))) {
-        if (!strcmp(entry->d_name, ".") || !strncmp(entry->d_name, "..", 2)) {
+    while ((0 == (err = readdir_r(dir, &entry, &result))) && result) {
+        if (!strcmp(entry.d_name, ".") || !strncmp(entry.d_name, "..", 2)) {
             continue;
         }
 
         NodePtr node;
-        Node::resolve(*m_path + entry->d_name, &node);
+        Node::resolve(*m_path + entry.d_name, &node);
         node->setPermissions(getPermissions()); // inherit access rights
         node_list.push_back(node);
     }
 
-    if (errno != 0) {
+    if (0 != err) {
         LoggerE("Path %s Perm %d", m_path->getFullPath().c_str(), m_perms);
         LoggerE("throw IOException");
         return PlatformResult(ErrorCode::IO_ERR, "Error while reading directory.");
@@ -596,26 +598,27 @@ PlatformResult Node::removeAsDirectory(const PathPtr& path, bool recursive)
             LoggerE("throw IOException");
             return PlatformResult(ErrorCode::IO_ERR, "Node does not exist or access denied.");
         }
-        errno = 0;
-        struct dirent *entry = NULL;
-        PlatformResult result(ErrorCode::NO_ERROR);
-        while ((entry = readdir(dir))) {
-            if (!strcmp(entry->d_name, ".") || !strncmp(entry->d_name, "..", 2)) {
+        int err = 0;
+        struct dirent entry = {0};
+        struct dirent* result = nullptr;
+        PlatformResult platform_result(ErrorCode::NO_ERROR);
+        while ((0 == (err = readdir_r(dir, &entry, &result))) && result) {
+            if (!strcmp(entry.d_name, ".") || !strncmp(entry.d_name, "..", 2)) {
                 continue;
             }
-            PathPtr subPath = *path + entry->d_name;
+            PathPtr subPath = *path + entry.d_name;
             struct stat info;
             memset(&info, 0, sizeof(struct stat));
             if (lstat(subPath->getFullPath().c_str(), &info) == 0) {
                 if (S_ISDIR(info.st_mode)) {
-                    result = removeAsDirectory(subPath, true);
+                    platform_result = removeAsDirectory(subPath, true);
                 } else if (S_ISREG(info.st_mode)) {
-                    result = removeAsFile(subPath);
+                    platform_result = removeAsFile(subPath);
                 }
-                if (result.error_code() != ErrorCode::NO_ERROR) {
-                    LoggerE("Fail: getFullPath() (%d)",result.error_code());
+                if (platform_result.error_code() != ErrorCode::NO_ERROR) {
+                    LoggerE("Fail: getFullPath() (%d)",platform_result.error_code());
                     closedir(dir);
-                    return result;
+                    return platform_result;
                 }
             }
         }
