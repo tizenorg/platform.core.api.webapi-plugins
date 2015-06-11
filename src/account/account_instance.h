@@ -34,6 +34,11 @@ class AccountInstance : public common::ParsedInstance {
   void InvokeListener(picojson::object& param);
 
  private:
+  AccountInstance(const AccountInstance&) = delete;
+  AccountInstance(const AccountInstance&&) = delete;
+  AccountInstance& operator=(const AccountInstance&) = delete;
+  AccountInstance& operator=(const AccountInstance&&) = delete;
+
   AccountManager* manager_;
   account_subscribe_h subscribe_;
 
