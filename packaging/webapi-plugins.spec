@@ -249,7 +249,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_notification_support        1
 %define tizen_feature_package_support             1
 %define tizen_feature_power_support               0
-%define tizen_feature_push_support                1
+%define tizen_feature_push_support                0
 %define tizen_feature_se_support                  0
 %define tizen_feature_sensor_support              0
 %define tizen_feature_sound_support               1
