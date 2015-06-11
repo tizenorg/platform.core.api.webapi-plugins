@@ -83,12 +83,6 @@ private:
         {
         }
 
-        CompositeIterState(const CompositeIterState& other) :
-                filter(other.filter),
-                cur_sub_filter_index(other.cur_sub_filter_index)
-        {
-        }
-
         CompositeFilterPtr filter;
         int cur_sub_filter_index;
     };
