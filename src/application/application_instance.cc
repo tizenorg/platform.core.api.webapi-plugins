@@ -33,6 +33,11 @@ ApplicationInstance::ApplicationInstance() :
   app_id_ = common::GetCurrentExtension()->GetRuntimeVariable("app_id", 64);
   LoggerD("app_id: %s", app_id_.c_str());
 
+  if (app_id_.empty()) {
+    LoggerE("app_id_ is empty. Application instance will not be created.");
+    //return PlatformResult(ErrorCode::NOT_FOUND_ERR, "Cannot find caller.");
+  }
+
   using std::placeholders::_1;
   using std::placeholders::_2;
 

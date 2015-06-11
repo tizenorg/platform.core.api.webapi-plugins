@@ -35,12 +35,6 @@ common::Extension* CreateExtension() {
   LoggerD("Enter");
   ApplicationExtension* e = new ApplicationExtension();
 
-  if (e->app_id().empty()) {
-    LoggerD("Application extension will not be created.");
-    delete e;
-    return nullptr;
-  }
-
   return e;
 }
 
