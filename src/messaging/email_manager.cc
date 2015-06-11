@@ -1439,7 +1439,8 @@ PlatformResult EmailManager::RemoveConversationsPlatform(ConversationCallbackDat
     // so use polling to wait the thread is removed.
     email_mail_data_t *thread_info = NULL;
     do {
-      usleep(300 * 1000);
+      struct timespec sleep_time = { 0, 300L * 1000L * 1000L };
+      nanosleep(&sleep_time, nullptr);
       LoggerD("Waiting to delete this email thread...");
       error = email_get_thread_information_by_thread_id(
           thread_id, &thread_info);
