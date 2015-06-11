@@ -393,7 +393,8 @@ void ApplicationManager::Launch(const picojson::value& args) {
       }
 
       // delay 300ms for each retry
-      usleep(300 * 1000);
+      struct timespec sleep_time = { 0, 300L * 1000L * 1000L };
+      nanosleep(&sleep_time, nullptr);
       ++retry;
 
       LoggerD("Retry launch request: %d", retry);
@@ -589,7 +590,8 @@ void ApplicationManager::LaunchAppControl(const picojson::value& args) {
       }
 
       // delay 300ms for each retry
-      usleep(300 * 1000);
+      struct timespec sleep_time = { 0, 300L * 1000L * 1000L };
+      nanosleep(&sleep_time, nullptr);
       ++retry;
 
       LoggerD("Retry launch request: %d", retry);
