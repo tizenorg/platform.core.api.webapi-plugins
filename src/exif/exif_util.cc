@@ -394,6 +394,7 @@ time_t ExifUtil::convertToTimeT(int year, int month, int day,
       int hour, int min, int sec) {
   struct tm timeinfo = { 0 };
   time_t tmp_time = 0;
+  tzset();
   localtime_r(&tmp_time, &timeinfo);
 
   timeinfo.tm_year = year - 1900;
