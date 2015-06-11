@@ -41,6 +41,8 @@ class CallHistory
   ~CallHistory();
 
   std::vector<std::string>& getPhoneNumbers();
+  CallHistoryUtils& getUtils();
+  CallHistoryInstance& getInstance();
 
   void find(const picojson::object& args);
   common::PlatformResult remove(const picojson::object& args);
@@ -52,7 +54,6 @@ class CallHistory
 
  private:
   static void changeListenerCB(const char* view_uri, char *changes, void* user_data);
-  void loadPhoneNumbers();
 
   bool m_is_listener_set;
   std::vector<std::string> m_phone_numbers;
