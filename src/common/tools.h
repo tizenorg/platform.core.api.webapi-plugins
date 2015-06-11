@@ -60,6 +60,15 @@ do { \
   } \
 } while (0)
 
+/**
+ * @brief Safe wrapper of strerror() function.
+ *
+ * @param[in] error_code - error code to be passed to strerror()
+ *
+ * @return string representation of error_code
+ */
+std::string GetErrorString(int error_code);
+
 }  // namespace tools
 }  // namespace common
 
