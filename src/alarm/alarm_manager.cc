@@ -156,29 +156,29 @@ void AlarmManager::Add(const picojson::value& args, picojson::object& out) {
 
     int period = 0;
     time_t second = seconds / 1000;
-    struct tm *start_date;
+    struct tm start_date = {0};
 
-    start_date = localtime(&second);
-    if (start_date == nullptr) {
+    tzset();
+    if (nullptr == localtime_r(&second, &start_date)) {
       LoggerE("Invalid date.");
       ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Invalid date."), &out);
       return;
     }
 
-    mktime(start_date);
+    mktime(&start_date);
 
     char str_date[kDateSize];
 
-    snprintf(str_date, sizeof(str_date), "%d %d %d %d %d %d %d", start_date->tm_year,
-             start_date->tm_mon, start_date->tm_mday, start_date->tm_hour, start_date->tm_min,
-             start_date->tm_sec, start_date->tm_isdst);
+    snprintf(str_date, sizeof(str_date), "%d %d %d %d %d %d %d", start_date.tm_year,
+             start_date.tm_mon, start_date.tm_mday, start_date.tm_hour, start_date.tm_min,
+             start_date.tm_sec, start_date.tm_isdst);
 
     app_control_add_extra_data(app_control, kAlarmAbsoluteDateKey, str_date);
 
     int ret = 0;
     if (it_period->second.is<double>()) {
       period = static_cast<int>(it_period->second.get<double>());
-      ret = alarm_schedule_at_date(app_control, start_date, period, &alarm_id);
+      ret = alarm_schedule_at_date(app_control, &start_date, period, &alarm_id);
     } else if (it_daysOfWeek->second.is<picojson::array>()) {
       picojson::array days_of_week = it_daysOfWeek->second.get<picojson::array>();
       int repeat_value = 0;
@@ -205,10 +205,10 @@ void AlarmManager::Add(const picojson::value& args, picojson::object& out) {
           return;
         }
         ret = alarm_schedule_with_recurrence_week_flag(
-            app_control, start_date, repeat_value, &alarm_id);
+            app_control, &start_date, repeat_value, &alarm_id);
       }
     } else {
-      ret = alarm_schedule_at_date(app_control, start_date, 0, &alarm_id);
+      ret = alarm_schedule_at_date(app_control, &start_date, 0, &alarm_id);
     }
 
     if (ALARM_ERROR_NONE != ret) {
