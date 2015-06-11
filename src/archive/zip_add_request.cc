@@ -254,14 +254,15 @@ PlatformResult ZipAddRequest::addEmptyDirectoryToZipArchive(std::string name_in_
     // Since this directory does not exist we will set current time
     //
     time_t current_time = time(NULL);
-    struct tm* current_time_tm = localtime(&current_time);
-    if(current_time_tm) {
-        new_dir_info.tmz_date.tm_sec  = current_time_tm->tm_sec;
-        new_dir_info.tmz_date.tm_min  = current_time_tm->tm_min;
-        new_dir_info.tmz_date.tm_hour = current_time_tm->tm_hour;
-        new_dir_info.tmz_date.tm_mday = current_time_tm->tm_mday;
-        new_dir_info.tmz_date.tm_mon  = current_time_tm->tm_mon ;
-        new_dir_info.tmz_date.tm_year = current_time_tm->tm_year;
+    struct tm current_time_tm = {0};
+    tzset();
+    if (nullptr != localtime_r(&current_time, &current_time_tm)) {
+        new_dir_info.tmz_date.tm_sec  = current_time_tm.tm_sec;
+        new_dir_info.tmz_date.tm_min  = current_time_tm.tm_min;
+        new_dir_info.tmz_date.tm_hour = current_time_tm.tm_hour;
+        new_dir_info.tmz_date.tm_mday = current_time_tm.tm_mday;
+        new_dir_info.tmz_date.tm_mon  = current_time_tm.tm_mon ;
+        new_dir_info.tmz_date.tm_year = current_time_tm.tm_year;
     }
 
     int err = zipOpenNewFileInZip3(m_owner.m_zip, name_in_zip.c_str(), &new_dir_info,
