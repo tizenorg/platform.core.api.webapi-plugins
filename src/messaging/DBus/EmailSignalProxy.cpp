@@ -22,6 +22,7 @@
 #include "EmailSignalProxy.h"
 #include "common/logger.h"
 #include <cstring>
+#include "messaging/DBus/DBusTypes.h"
 
 namespace extension {
 namespace messaging {
@@ -29,11 +30,11 @@ namespace DBus {
 
 EmailSignalProxy::EmailSignalProxy(const std::string& proxy_path,
         const std::string& proxy_iface) :
-        Proxy (proxy_path,
+        common::dbus::Proxy (proxy_path,
                       proxy_iface,
-                      Proxy::DBUS_NAME_SIGNAL_EMAIL,   //specify email signal details
-                      DBUS_PATH_NETWORK_STATUS,
-                      DBUS_IFACE_NETWORK_STATUS)
+                      kDBusNameSignalEmail,   //specify email signal details
+                      kDBusPathNetworkStatus,
+                      kDBusIfaceNetworkStatus)
 {
 }
 

@@ -22,7 +22,7 @@
 #ifndef __TIZEN_DBUS_EMAIL_SIGNAL_PROXY_H__
 #define __TIZEN_DBUS_EMAIL_SIGNAL_PROXY_H__
 
-#include "Proxy.h"
+#include "common/GDBus/proxy.h"
 
 namespace extension {
 namespace messaging {
@@ -31,7 +31,7 @@ namespace DBus {
 class EmailSignalProxy;
 typedef std::shared_ptr<EmailSignalProxy> EmailSignalProxyPtr;
 
-class EmailSignalProxy : public Proxy {
+class EmailSignalProxy : public common::dbus::Proxy {
 public:
     virtual ~EmailSignalProxy();
 

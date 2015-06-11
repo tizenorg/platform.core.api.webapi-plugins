@@ -39,6 +39,10 @@
         'assert.h',
         'virtual_fs.cc',
         'virtual_fs.h',
+        'GDBus/connection.cpp',
+        'GDBus/connection.h',
+        'GDBus/proxy.cpp',
+        'GDBus/proxy.h',
       ],
       'cflags': [
         '-fvisibility=default',
