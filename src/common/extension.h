@@ -25,6 +25,9 @@
 
 #include "common/platform_exception.h"
 #include "common/platform_result.h"
+// TODO: this include should be moved to source file
+//       it's here, so we don't break other modules using it implicitly
+#include "common/tools.h"
 #include "common/XW_Extension.h"
 #include "common/XW_Extension_EntryPoints.h"
 #include "common/XW_Extension_Permissions.h"
@@ -137,42 +140,6 @@ class ParsedInstance : public Instance {
 
   std::map<std::string, NativeHandler> handler_map_;
 };
-
-namespace tools {
-void ReportSuccess(picojson::object& out);
-void ReportSuccess(const picojson::value& result, picojson::object& out);
-void ReportError(picojson::object& out);
-void ReportError(const PlatformException& ex, picojson::object& out);
-void ReportError(const PlatformResult& error, picojson::object* out);
-
-common::PlatformResult CheckAccess(const std::string& privilege);
-common::PlatformResult CheckAccess(const std::vector<std::string>& privileges);
-
-#define CHECK_PRIVILEGE_ACCESS(privilege, out) \
-do { \
-  auto r = common::tools::CheckAccess(privilege); \
-  if (!r) { \
-    common::tools::ReportError(r, out); \
-    return; \
-  } \
-} while (0)
-
-#define CHECK_BACKWARD_COMPABILITY_PRIVILEGE_ACCESS(current_priv, prev_priv, out) \
-do { \
-  auto ret = common::tools::CheckAccess(current_priv); \
-  auto ret2 = common::tools::CheckAccess(prev_priv); \
-\
-  if (!ret && ret2) { \
-    ret = ret2; \
-  } \
-\
-  if (!ret) { \
-    common::tools::ReportError(ret, out); \
-    return; \
-  } \
-} while (0)
-
-}  // namespace tools
 
 }  // namespace common
 

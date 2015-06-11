@@ -31,6 +31,8 @@
         'scope_exit.h',
         'task-queue.cpp',
         'task-queue.h',
+        'tools.cc',
+        'tools.h',
         'callback_user_data.cc',
         'callback_user_data.h',
         'optional.h',
