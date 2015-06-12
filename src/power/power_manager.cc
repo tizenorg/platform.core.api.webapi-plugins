@@ -339,9 +339,11 @@ PlatformResult PowerManager::SetScreenState(bool onoff) {
 
   int timeout = 100;
   while (timeout--) {
-    if (IsScreenOn() == onoff)
+    if (IsScreenOn() == onoff) {
       break;
-    usleep(100000);
+    }
+    struct timespec sleep_time = { 0, 100L * 1000L * 1000L };
+    nanosleep(&sleep_time, nullptr);
   }
 
   return PlatformResult(ErrorCode::NO_ERROR);
