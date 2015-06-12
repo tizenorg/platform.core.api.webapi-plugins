@@ -163,11 +163,15 @@ std::time_t Any::toTimeT() const
     std::time_t current_time;
     std::time(&current_time);
     std::tm* timeinfo = std::localtime(&current_time);
-    long int gmtoff = timeinfo->tm_gmtoff;
-    if (timeinfo->tm_isdst) {
-      // if dst is set then 1 hour should be subtracted.
-      // 1 hour = 60 second * 60 minutes = 3600 seconds
-      gmtoff -= 3600;
+    long int gmtoff = 0;
+    if (timeinfo) {
+      gmtoff = timeinfo->tm_gmtoff;
+
+      if (timeinfo->tm_isdst) {
+        // if dst is set then 1 hour should be subtracted.
+        // 1 hour = 60 second * 60 minutes = 3600 seconds
+        gmtoff -= 3600;
+      }
     }
     return mktime(toDateTm()) + gmtoff;
 }

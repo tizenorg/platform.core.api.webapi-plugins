@@ -202,6 +202,9 @@ gboolean DownloadInstance::OnFinished(void* user_data) {
   out["fullPath"] = picojson::value(fullPath);
 
   downCbPtr->instance->PostMessage(picojson::value(out).serialize().c_str());
+
+  free(fullPath);
+
   return FALSE;
 }
 
@@ -419,25 +422,31 @@ void DownloadInstance::DownloadManagerStart
   bool network_support = false;
   bool cell_support = false;
   bool wifi_support = false;
+  bool ethernet_support = false;
 
   system_info_get_platform_bool("http://tizen.org/feature/network.telephony",
                                 &cell_support);
   system_info_get_platform_bool("http://tizen.org/feature/network.wifi",
                                 &wifi_support);
+  system_info_get_platform_bool("http://tizen.org/feature/network.ethernet",
+                                &ethernet_support);
 
   connection_h connection = nullptr;
   connection_create(&connection);
 
   connection_cellular_state_e cell_state = CONNECTION_CELLULAR_STATE_OUT_OF_SERVICE;
   connection_wifi_state_e wifi_state = CONNECTION_WIFI_STATE_DEACTIVATED;
+  connection_ethernet_state_e ethernet_state = CONNECTION_ETHERNET_STATE_DEACTIVATED;
 
   connection_get_cellular_state(connection, &cell_state);
   connection_get_wifi_state(connection, &wifi_state);
+  connection_get_ethernet_state(connection, &ethernet_state);
   connection_destroy(connection);
 
   bool network_available = false;
   bool cell_available = (CONNECTION_CELLULAR_STATE_CONNECTED == cell_state);
   bool wifi_available = (CONNECTION_WIFI_STATE_CONNECTED == wifi_state);
+  bool ethernet_available = CONNECTION_ETHERNET_STATE_CONNECTED == ethernet_state;
 
   if (networkType == "CELLULAR") {
     network_support = cell_support;
@@ -448,8 +457,8 @@ void DownloadInstance::DownloadManagerStart
     network_available = wifi_available;
     diPtr->network_type = DOWNLOAD_NETWORK_WIFI;
   } else if (networkType == "ALL") {
-    network_support = cell_support || wifi_support;
-    network_available = cell_available || wifi_available;
+    network_support = cell_support || wifi_support || ethernet_support;
+    network_available = cell_available || wifi_available || ethernet_available;
     diPtr->network_type = DOWNLOAD_NETWORK_ALL;
   } else {
     LoggerE("The input parameter contains an invalid network type");
@@ -749,17 +758,18 @@ void DownloadInstance::DownloadManagerGetmimetype
   } else if (ret == DOWNLOAD_ERROR_INVALID_PARAMETER) {
     ReportError(InvalidValuesException(
     "The input parameter contains an invalid value."), out);
-    } else if (ret == DOWNLOAD_ERROR_OUT_OF_MEMORY) {
-      ReportError(UnknownException("Out of memory"), out);
-    } else if (ret == DOWNLOAD_ERROR_INVALID_STATE) {
-      ReportError(InvalidValuesException("Invalid state"), out);
-    } else if (ret == DOWNLOAD_ERROR_IO_ERROR) {
-      ReportError(UnknownException("Internal I/O error"), out);
-    } else if (ret == DOWNLOAD_ERROR_PERMISSION_DENIED) {
-      ReportError(UnknownException("Permission denied"), out);
-    } else {
-      ReportError(UnknownException("Unknown Error"), out);
-    }
+  } else if (ret == DOWNLOAD_ERROR_OUT_OF_MEMORY) {
+    ReportError(UnknownException("Out of memory"), out);
+  } else if (ret == DOWNLOAD_ERROR_INVALID_STATE) {
+    ReportError(InvalidValuesException("Invalid state"), out);
+  } else if (ret == DOWNLOAD_ERROR_IO_ERROR) {
+    ReportError(UnknownException("Internal I/O error"), out);
+  } else if (ret == DOWNLOAD_ERROR_PERMISSION_DENIED) {
+    ReportError(UnknownException("Permission denied"), out);
+  } else {
+    ReportError(UnknownException("Unknown Error"), out);
+  }
+  free(mimetype);
 }
 
 bool DownloadInstance::GetDownloadID

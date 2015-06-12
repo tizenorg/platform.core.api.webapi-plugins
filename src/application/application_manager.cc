@@ -514,29 +514,28 @@ void ApplicationManager::LaunchAppControl(const picojson::value& args) {
       }
     }
 
-    // TODO(r.galka) temporarily removed - not supported by platform
-    //if (!launch_mode_str.empty()) {
-    //  app_control_launch_mode_e launch_mode;
-    //
-    //  if ("SINGLE" == launch_mode_str) {
-    //    launch_mode = APP_CONTROL_LAUNCH_MODE_SINGLE;
-    //  } else if ("GROUP" == launch_mode_str) {
-    //    launch_mode = APP_CONTROL_LAUNCH_MODE_GROUP;
-    //  } else {
-    //    LoggerE("Invalid parameter passed.");
-    //    ReportError(PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid parameter passed."),
-    //                &response->get<picojson::object>());
-    //    return;
-    //  }
-    //
-    //  int ret = app_control_set_launch_mode(app_control_ptr.get(), launch_mode);
-    //  if (APP_CONTROL_ERROR_NONE != ret) {
-    //    LoggerE("Setting launch mode failed.");
-    //    ReportError(PlatformResult(ErrorCode::NOT_FOUND_ERR, "Setting launch mode failed."),
-    //                &response->get<picojson::object>());
-    //    return;
-    //  }
-    //}
+    if (!launch_mode_str.empty()) {
+      app_control_launch_mode_e launch_mode;
+
+      if ("SINGLE" == launch_mode_str) {
+        launch_mode = APP_CONTROL_LAUNCH_MODE_SINGLE;
+      } else if ("GROUP" == launch_mode_str) {
+        launch_mode = APP_CONTROL_LAUNCH_MODE_GROUP;
+      } else {
+        LoggerE("Invalid parameter passed.");
+        ReportError(PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid parameter passed."),
+                    &response->get<picojson::object>());
+        return;
+      }
+
+      int ret = app_control_set_launch_mode(app_control_ptr.get(), launch_mode);
+      if (APP_CONTROL_ERROR_NONE != ret) {
+        LoggerE("Setting launch mode failed.");
+        ReportError(PlatformResult(ErrorCode::NOT_FOUND_ERR, "Setting launch mode failed."),
+                    &response->get<picojson::object>());
+        return;
+      }
+    }
 
     app_control_reply_cb callback = nullptr;
     struct ReplayCallbackData {
@@ -619,7 +618,6 @@ void ApplicationManager::LaunchAppControl(const picojson::value& args) {
           return;
         default:
           LoggerE("app_control_send_launch_request returns UNKNOWN ERROR!!!");
-          throw UnknownException("Unknown error");
           ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown error."),
                       &response->get<picojson::object>());
           return;
@@ -1219,7 +1217,7 @@ class ApplicationListChangedBroker {
     LoggerD("Entered");
     package_info_h package_info = nullptr;
 
-    int ret = package_manager_get_package_info(package, &package_info);
+    int ret = package_info_create(package, &package_info);
     if (PACKAGE_MANAGER_ERROR_NONE != ret) {
       LoggerE("Failed to create package info");
       return;

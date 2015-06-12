@@ -1426,7 +1426,7 @@ calendar_time_s CalendarItem::DateToPlatform(const Date& date,
 
   if (is_all_day) {
     cal.type = CALENDAR_TIME_LOCALTIME;
-    cal.time.date = {date.year_, date.month_, date.day_};
+    cal.time.date = {date.year_, date.month_ + 1, date.day_};
   } else {
     cal.type = CALENDAR_TIME_UTIME;
     cal.time.utime = date.utc_timestamp_;

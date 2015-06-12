@@ -207,7 +207,10 @@ Reader.prototype.openSession = function() {
 Reader.prototype.closeSessions = function() {
     xwalk.utils.checkPrivilegeAccess(privilege_.SECUREELEMENT);
     var callArgs = { handle: this._handle };
-    native_.call('SEReader_closeSessions', callArgs);
+    var result = native_.callSync('SEReader_closeSessions', callArgs);
+    if (native_.isFailure(result)) {
+      throw native_.getErrorObject(result);
+    }
 };
 
 //////////////////Channel/////////////////
@@ -264,7 +267,17 @@ function Session(session_handle) {
         isClosed:   { configurable: false,
                       enumerable: true,
                       set: function() {},
-                      get: function() { var callArgs = { _handle: session_handle }; return native_.callSync('SESession_isClosed', callArgs); }},
+                      get: function() {
+                        var callArgs = { handle: session_handle };
+                        var result = native_.callSync('SESession_isClosed', callArgs);
+                        if (native_.isFailure(result)) {
+                          console.log('SESession_isClosed error: ' + native_.getErrorObject(result));
+                          return true;
+                        } else {
+                          return native_.getResultObject(result).isClosed;
+                        }
+                      }
+                    },
         _handle:    { enumerable: false,
                       configurable: false,
                       set: function() {},
@@ -329,7 +342,12 @@ Session.prototype.openLogicalChannel = function() {
 Session.prototype.getATR = function() {
     xwalk.utils.checkPrivilegeAccess(privilege_.SECUREELEMENT);
     var callArgs = { handle: this._handle };
-    return native_.callSync('SESession_getATR', callArgs);
+    var result = native_.callSync('SESession_getATR', callArgs);
+    if (native_.isFailure(result)) {
+        throw native_.getErrorObject(result);
+    } else {
+        return native_.getResultObject(result);
+    }
 }
 
 Session.prototype.close = function() {

@@ -379,31 +379,34 @@ void ExifUtil::printExifEntryInfo(ExifEntry* entry, ExifData* exif_data) {
 void ExifUtil::extractFromTimeT(const time_t time,
                                 int& out_year, int& out_month, int& out_day,
                                 int& out_hour, int& out_min, int& out_sec) {
-  struct tm* utc = gmtime(&time);
+  struct tm utc;
+  gmtime_r(&time, &utc);
 
-  out_year = utc->tm_year + 1900;
-  out_month = utc->tm_mon + 1;
-  out_day = utc->tm_mday;
-  out_hour = utc->tm_hour;
-  out_min = utc->tm_min;
-  out_sec = utc->tm_sec;
+  out_year = utc.tm_year + 1900;
+  out_month = utc.tm_mon + 1;
+  out_day = utc.tm_mday;
+  out_hour = utc.tm_hour;
+  out_min = utc.tm_min;
+  out_sec = utc.tm_sec;
 }
 
 time_t ExifUtil::convertToTimeT(int year, int month, int day,
       int hour, int min, int sec) {
+  struct tm timeinfo = { 0 };
   time_t tmp_time = 0;
-  struct tm* timeinfo = localtime(&tmp_time);
-  timeinfo->tm_year = year - 1900;
-  timeinfo->tm_mon = month - 1;
-  timeinfo->tm_mday = day;
+  localtime_r(&tmp_time, &timeinfo);
 
-  timeinfo->tm_hour = hour;
-  timeinfo->tm_min = min;
-  timeinfo->tm_sec = sec;
+  timeinfo.tm_year = year - 1900;
+  timeinfo.tm_mon = month - 1;
+  timeinfo.tm_mday = day;
+
+  timeinfo.tm_hour = hour;
+  timeinfo.tm_min = min;
+  timeinfo.tm_sec = sec;
 
   // From mktime documentation:
   // "The values of the members tm_wday and tm_yday of timeptr are ignored"
-  return timegm(timeinfo);
+  return timegm(&timeinfo);
 }
 
 }  // namespace exif

@@ -874,6 +874,7 @@ PlatformResult MessagingUtil::jsonFilterToCompositeFilter(const picojson::object
       AbstractFilterPtr filter;
       PlatformResult ret = jsonFilterToAbstractFilter(a.get<picojson::object>(), &filter);
       if (ret.IsError()) {
+          delete compositeFilter;
           LoggerD("Convert JSON filter to Abstract filter failed (%s)", ret.message().c_str());
           return ret;
       }
@@ -965,12 +966,12 @@ PlatformResult MessagingUtil::jsonToMessageConversation(const picojson::value& j
         MESSAGE_CONVERSATION_ATTRIBUTE_UNREAD_MESSAGES).c_str());
     conversation->setUnreadMessages(unreadMessages);
 
-    auto preview = MessagingUtil::getValueFromJSONObject<std::string>(data,
-        MESSAGE_CONVERSATION_ATTRIBUTE_PREVIEW).c_str();
+    std::string preview = MessagingUtil::getValueFromJSONObject<std::string>(data,
+        MESSAGE_CONVERSATION_ATTRIBUTE_PREVIEW);
     conversation->setPreview(preview);
 
-    auto subject = MessagingUtil::getValueFromJSONObject<std::string>(data,
-        MESSAGE_CONVERSATION_ATTRIBUTE_SUBJECT).c_str();
+    std::string subject = MessagingUtil::getValueFromJSONObject<std::string>(data,
+        MESSAGE_CONVERSATION_ATTRIBUTE_SUBJECT);
     conversation->setSubject(subject);
 
     /// MESSAGE_CONVERSATION_ATTRIBUTE_IS_READ ?
@@ -980,8 +981,8 @@ PlatformResult MessagingUtil::jsonToMessageConversation(const picojson::value& j
         result.push_back(v.get<std::string>());
     };
 
-    auto from = MessagingUtil::getValueFromJSONObject<std::string>(data,
-        MESSAGE_CONVERSATION_ATTRIBUTE_FROM).c_str();
+    std::string from = MessagingUtil::getValueFromJSONObject<std::string>(data,
+        MESSAGE_CONVERSATION_ATTRIBUTE_FROM);
     conversation->setFrom(from);
 
     auto toJS = MessagingUtil::getValueFromJSONObject<std::vector<picojson::value>>(

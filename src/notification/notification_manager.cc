@@ -18,7 +18,6 @@
 
 #include <app_control_internal.h>
 #include <device/led.h>
-#include <notification_internal.h>
 
 #include "common/converter.h"
 #include "common/logger.h"
@@ -72,14 +71,14 @@ PlatformResult NotificationManager::Remove(const picojson::object& args) {
 
 PlatformResult NotificationManager::RemoveAll() {
   LoggerD("Enter");
-  int ret = notification_delete_all(NOTIFICATION_TYPE_NOTI);
+  int ret = notification_delete_all_by_type(NULL, NOTIFICATION_TYPE_NOTI);
   if (ret != NOTIFICATION_ERROR_NONE) {
     LoggerE("Notification remove all failed: %d", ret);
     return PlatformResult(ErrorCode::UNKNOWN_ERR,
                           "Notification noti remove all failed");
   }
 
-  ret = notification_delete_all(NOTIFICATION_TYPE_ONGOING);
+  ret = notification_delete_all_by_type(NULL, NOTIFICATION_TYPE_ONGOING);
   if (ret != NOTIFICATION_ERROR_NONE) {
     LoggerE("Notification remove all failed: %d", ret);
     return PlatformResult(ErrorCode::UNKNOWN_ERR,
@@ -94,6 +93,7 @@ PlatformResult NotificationManager::Get(const picojson::object& args,
   LoggerD("Enter");
   int id = std::stoi(FromJson<std::string>(args, "id"));
 
+  app_control_h app_control = nullptr;
   notification_h noti_handle;
   PlatformResult status = StatusNotification::GetNotiHandle(id, &noti_handle);
   if (status.IsError())
@@ -101,7 +101,14 @@ PlatformResult NotificationManager::Get(const picojson::object& args,
     LoggerE("Failed: GetNotiHandle");
     return status;
   }
-  app_control_h app_control;
+
+  SCOPE_EXIT {
+    if (app_control) {
+      app_control_destroy(app_control);
+    }
+    free(noti_handle);
+  };
+
   status = StatusNotification::GetAppControl(noti_handle, &app_control);
   if (status.IsError())
   {

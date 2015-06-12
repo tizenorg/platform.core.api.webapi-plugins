@@ -13,13 +13,13 @@
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
  */
- 
+
 #include "requested_application_control.h"
 
 #include <app_manager.h>
 #include <app_control_internal.h>
 #include <bundle.h>
-//#include <bundle_internal.h>
+#include <bundle_internal.h>
 
 #include "common/logger.h"
 #include "application/application_utils.h"

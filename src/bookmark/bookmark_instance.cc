@@ -23,6 +23,9 @@
 #include "common/converter.h"
 #include "common/logger.h"
 
+using common::ErrorCode;
+using common::PlatformResult;
+
 namespace extension {
 namespace bookmark {
 
@@ -80,67 +83,99 @@ bool BookmarkInstance::bookmark_foreach(
   return true;
 }
 
-bool BookmarkInstance::bookmark_url_exists(const char* url) {
+PlatformResult BookmarkInstance::BookmarkUrlExists(const char* url,
+                                                   bool* exists) {
   LoggerD("Enter");
   int ids_count = 0;
-  int* ids = NULL;
-  char* compare_url = NULL;
+  int* ids = nullptr;
+  char* compare_url = nullptr;
 
-  if (bp_bookmark_adaptor_get_ids_p(&ids, &ids_count, -1, 0, -1, -1, -1, -1,
-                                    BP_BOOKMARK_O_DATE_CREATED, 0) < 0)
-    return true;
-  if (ids_count > 0) {
-    for (int i = 0; i < ids_count; i++) {
-      if (bp_bookmark_adaptor_get_url(ids[i], &compare_url) < 0) {
-        free(ids);
-        return true;
-      }
-      if (strcmp(url, compare_url) == 0) {
-        free(compare_url);
-        free(ids);
-        return true;
-      }
+  if (bp_bookmark_adaptor_get_ids_p(&ids,  // ids
+                                    &ids_count,  // count
+                                    -1,  //limit
+                                    0,  // offset
+                                    -1,  //parent
+                                    -1,  //type
+                                    -1,  // is_operator
+                                    -1,  // is_editable
+                                    BP_BOOKMARK_O_DATE_CREATED,  // order_offset
+                                    0  // ordering ASC
+                                    ) < 0) {
+    LoggerE("Failed to obtain bookmarks");
+    return PlatformResult{ErrorCode::UNKNOWN_ERR, "Failed to obtain bookmarks"};
+  }
+
+  PlatformResult result{ErrorCode::NO_ERROR};
+  bool url_found = false;
+  for (int i = 0; (i < ids_count) && result && !url_found; ++i) {
+    if (bp_bookmark_adaptor_get_url(ids[i], &compare_url) < 0) {
+      LoggerE("Failed to obtain URL");
+      result = PlatformResult{ErrorCode::UNKNOWN_ERR, "Failed to obtain URL"};
+    } else {
+      url_found = (0 == strcmp(url, compare_url));
+      free(compare_url);
+      compare_url = nullptr;
     }
   }
-  free(compare_url);
+
+  if (result) {
+    *exists = url_found;
+  }
+
   free(ids);
-  return false;
+
+  return result;
 }
 
-bool BookmarkInstance::bookmark_title_exists_in_parent(
-    const char* title, int parent) {
+PlatformResult BookmarkInstance::BookmarkTitleExistsInParent(const char* title,
+                                                             int parent,
+                                                             bool* exists) {
 
   LoggerD("Enter");
   int ids_count = 0;
   int compare_parent = -1;
-  int* ids = NULL;
-  char* compare_title = NULL;
+  int* ids = nullptr;
+  char* compare_title = nullptr;
 
-  if (bp_bookmark_adaptor_get_ids_p(&ids, &ids_count, -1, 0, -1, -1, -1, -1,
-                                    BP_BOOKMARK_O_DATE_CREATED, 0) < 0)
-    return true;
-  if (ids_count > 0) {
-    for (int i = 0; i < ids_count; i++) {
-      if (bp_bookmark_adaptor_get_title(ids[i], &compare_title) < 0) {
-        free(ids);
-        return true;
-      }
-      if (bp_bookmark_adaptor_get_parent_id(ids[i], &compare_parent) < 0) {
-        free(compare_title);
-        free(ids);
-        return true;
-      }
-      if (strcmp(title, compare_title) == 0
-        && (parent == compare_parent)) {
-        free(compare_title);
-        free(ids);
-        return true;
-      }
+  if (bp_bookmark_adaptor_get_ids_p(&ids,  // ids
+                                    &ids_count,  // count
+                                    -1,  //limit
+                                    0,  // offset
+                                    -1,  //parent
+                                    -1,  //type
+                                    -1,  // is_operator
+                                    -1,  // is_editable
+                                    BP_BOOKMARK_O_DATE_CREATED,  // order_offset
+                                    0  // ordering ASC
+                                    ) < 0) {
+    LoggerE("Failed to obtain bookmarks");
+    return PlatformResult{ErrorCode::UNKNOWN_ERR, "Failed to obtain bookmarks"};
+  }
+
+  PlatformResult result{ErrorCode::NO_ERROR};
+  bool title_found = false;
+  for (int i = 0; (i < ids_count) && result && !title_found; ++i) {
+    if (bp_bookmark_adaptor_get_parent_id(ids[i], &compare_parent) < 0) {
+      LoggerE("Failed to obtain parent ID");
+      result = PlatformResult{ErrorCode::UNKNOWN_ERR, "Failed to obtain parent ID"};
+    } else if (bp_bookmark_adaptor_get_title(ids[i], &compare_title) < 0) {
+      LoggerE("Failed to obtain title");
+      result = PlatformResult{ErrorCode::UNKNOWN_ERR, "Failed to obtain title"};
+    } else {
+      title_found = (parent == compare_parent) && (0 == strcmp(title, compare_title));
+      free(compare_title);
+      compare_title = nullptr;
+      compare_parent = -1;
     }
   }
-  free(compare_title);
+
+  if (result) {
+    *exists = title_found;
+  }
+
   free(ids);
-  return false;
+
+  return result;
 }
 
 void BookmarkInstance::BookmarkGet(
@@ -182,42 +217,56 @@ void BookmarkInstance::BookmarkAdd(
 
   LoggerD("Enter");
   int saved_id =-1;
-  bp_bookmark_info_fmt data = {0};
 
-  data.title  = const_cast<char*>(arg.get(kTitle).to_str().c_str());
-  data.parent = arg.get(kParentId).get<double>();
-  data.type   = arg.get(kType).get<double>();
-  data.url    = const_cast<char*>(arg.get(kUrl).to_str().c_str());
+  const auto& title = arg.get(kTitle).get<std::string>();
+  const int parent = static_cast<int>(arg.get(kParentId).get<double>());
+  const int type = static_cast<int>(arg.get(kType).get<double>());
+  const auto& url = arg.get(kUrl).get<std::string>();
 
-  if (!data.type && bookmark_url_exists(data.url)) {
-    ReportError(o);
-    return;
+  if (0 == type) {  // bookmark
+    bool exists = false;
+    auto result = BookmarkUrlExists(url.c_str(), &exists);
+    if (!result) {
+      ReportError(result, &o);
+      return;
+    } else if (exists) {
+      ReportError(PlatformResult{ErrorCode::UNKNOWN_ERR, "Bookmark already exists"}, &o);
+      return;
+    }
   }
-  if (data.type && bookmark_title_exists_in_parent(data.title, data.parent)) {
-    ReportError(o);
-    return;
+
+  if (1 == type) {  // folder
+    bool exists = false;
+    auto result = BookmarkTitleExistsInParent(title.c_str(), parent, &exists);
+    if (!result) {
+      ReportError(result, &o);
+      return;
+    } else if (exists) {
+      ReportError(PlatformResult{ErrorCode::UNKNOWN_ERR, "Bookmark already exists"}, &o);
+      return;
+    }
   }
 
   if (bp_bookmark_adaptor_create(&saved_id) < 0) {
     ReportError(o);
     return;
   }
-  if (bp_bookmark_adaptor_set_title(saved_id, data.title) < 0) {
+  if (bp_bookmark_adaptor_set_title(saved_id, title.c_str()) < 0) {
     bp_bookmark_adaptor_delete(saved_id);
     ReportError(o);
     return;
   }
-  if (bp_bookmark_adaptor_set_parent_id(saved_id, data.parent) < 0) {
+  if (bp_bookmark_adaptor_set_parent_id(saved_id, parent) < 0) {
     bp_bookmark_adaptor_delete(saved_id);
     ReportError(o);
     return;
   }
-  if (bp_bookmark_adaptor_set_type(saved_id, data.type) < 0) {
+  if (bp_bookmark_adaptor_set_type(saved_id, type) < 0) {
     bp_bookmark_adaptor_delete(saved_id);
     ReportError(o);
     return;
   }
-  if (bp_bookmark_adaptor_set_url(saved_id, data.url) < 0) {
+  if (bp_bookmark_adaptor_set_url(saved_id, url.c_str()) < 0) {
     bp_bookmark_adaptor_delete(saved_id);
     ReportError(o);
     return;

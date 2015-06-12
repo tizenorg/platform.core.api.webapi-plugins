@@ -220,6 +220,7 @@ std::vector<common::VirtualStorage> FilesystemManager::FillStorages() {
 void FilesystemManager::FetchStorages(
     const std::function<void(const std::vector<common::VirtualStorage>&)>& success_cb,
     const std::function<void(FilesystemError)>& error_cb) {
+  LoggerD("enter");
   auto result = FillStorages();
   success_cb(result);
 }
@@ -275,11 +276,13 @@ void FilesystemManager::CreateFile(
   if (-1 == status) {
     LoggerE("Cannot create or open file %s: %s", path.c_str(), strerror(errno));
     error_cb(FilesystemError::Other);
+    return;
   }
   status = close(status);
   if (0 != status) {
     LoggerE("Cannot close file %s: %s", path.c_str(), strerror(errno));
     error_cb(FilesystemError::Other);
+    return;
   }
   FilesystemStat stat = FilesystemStat::getStat(path);
   if (stat.valid) {

@@ -58,18 +58,15 @@ function BadgeManager() {
 BadgeManager.prototype.setBadgeCount = function() {
   xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NOTIFICATION);
 
-  if (arguments.length < 2)
-    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
-        'incorrect number of arguments');
-
   var args = validator_.validateArgs(arguments, [
     {name: 'appId', type: types_.STRING},
     {name: 'count', type: types_.LONG}
   ]);
 
-  if (args.count < 0)
+  if (args.count < 0) {
     throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
-                                    'Count parameter is negative!');
+                              'Count parameter is negative!');
+  }
 
   var ret = native_.callSync('BadgeManager_setBadgeCount', {
     appId: args.appId,
@@ -89,9 +86,6 @@ BadgeManager.prototype.setBadgeCount = function() {
 BadgeManager.prototype.getBadgeCount = function() {
   xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NOTIFICATION);
 
-  if (arguments.length < 1)
-    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
-                                    'incorrect number of arguments');
   var args = validator_.validateArgs(arguments, [
     {name: 'appId', type: types_.STRING}
   ]);
@@ -114,9 +108,6 @@ BadgeManager.prototype.getBadgeCount = function() {
 BadgeManager.prototype.addChangeListener = function() {
   xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NOTIFICATION);
 
-  if (arguments.length < 2)
-    throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR,
-        'incorrect number of arguments');
   var args = validator_.validateArgs(arguments, [
     {
       name: 'appIdList',
@@ -157,10 +148,6 @@ BadgeManager.prototype.addChangeListener = function() {
  */
 BadgeManager.prototype.removeChangeListener = function() {
   xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NOTIFICATION);
-
-  if (arguments.length < 1)
-    throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR,
-                                    'incorrect number of arguments');
 
   var args = validator_.validateArgs(arguments, [
     {

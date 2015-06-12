@@ -699,7 +699,7 @@ PlatformResult ImportContactEmailAddressFromContactsRecord(
   if (type & CONTACTS_EMAIL_TYPE_WORK) {
     types.push_back(JsonValue{kContactEmailAddressTypeWork});
   }
-  if (type & CONTACTS_EMAIL_TYPE_OTHER) {
+  if (CONTACTS_EMAIL_TYPE_OTHER == type) {
     types.push_back(JsonValue{kContactEmailAddressTypeOther});
   }
   if (type & CONTACTS_EMAIL_TYPE_CUSTOM) {
@@ -891,7 +891,7 @@ PlatformResult ImportContactPhoneNumberFromContactsRecord(
   if (type & CONTACTS_NUMBER_TYPE_ASSISTANT) {
     types.push_back(JsonValue{kContactPhoneTypeAssistant});
   }
-  if (type & CONTACTS_NUMBER_TYPE_OTHER) {
+  if (CONTACTS_NUMBER_TYPE_OTHER == type) {
     types.push_back(JsonValue{kContactPhoneTypeOther});
   }
   if (type & CONTACTS_NUMBER_TYPE_CUSTOM) {
@@ -1216,7 +1216,7 @@ PlatformResult ImportContactWebSiteFromContactsRecord(
   }
 
   out.insert(std::make_pair(std::string("logoURI"),
-      picojson::value(char_value ? char_value : "")));
+                            picojson::value(char_value ? char_value : "")));
 
   int type = 0;
   status =
@@ -1227,9 +1227,9 @@ PlatformResult ImportContactWebSiteFromContactsRecord(
   }
 
   out.insert(std::make_pair(std::string("logoURI"),
-        picojson::value((CONTACTS_URL_TYPE_HOME == type)
-             ? kContactWebSiteTypeHomePage
-             : kContactWebSiteTypeBlog)));
+                            picojson::value((CONTACTS_URL_TYPE_HOME == type)
+                                            ? kContactWebSiteTypeHomePage
+                                                : kContactWebSiteTypeBlog)));
 
   return PlatformResult(ErrorCode::NO_ERROR);
 }
@@ -1463,7 +1463,7 @@ PlatformResult ImportContactRelationshipFromContactsRecord(
   }
 
   out.insert(std::make_pair(std::string("relativeName"),
-      picojson::value(JsonString{relative})));
+                            picojson::value(JsonString{relative})));
 
   int type = 0;
   status = ContactUtil::GetIntFromRecord(child_record,
@@ -1478,57 +1478,57 @@ PlatformResult ImportContactRelationshipFromContactsRecord(
     case CONTACTS_RELATIONSHIP_TYPE_CUSTOM:
       out.insert(
           std::make_pair(std::string("type"),
-              picojson::value(JsonString{kContactRelationshipTypeCustom})));
+                         picojson::value(JsonString{kContactRelationshipTypeCustom})));
       break;
     case CONTACTS_RELATIONSHIP_TYPE_ASSISTANT:
       out.insert(std::make_pair(std::string("type"),
-          picojson::value(JsonString{kContactRelationshipTypeAssistant})));
+                                picojson::value(JsonString{kContactRelationshipTypeAssistant})));
       break;
     case CONTACTS_RELATIONSHIP_TYPE_BROTHER:
       out.insert(
           std::make_pair(std::string("type"),
-              picojson::value(JsonString{kContactRelationshipTypeBrother})));
+                         picojson::value(JsonString{kContactRelationshipTypeBrother})));
       break;
     case CONTACTS_RELATIONSHIP_TYPE_CHILD:
       out.insert(
           std::make_pair(std::string("type"),
-              picojson::value(JsonString{kContactRelationshipTypeChild})));
+                         picojson::value(JsonString{kContactRelationshipTypeChild})));
       break;
     case CONTACTS_RELATIONSHIP_TYPE_DOMESTIC_PARTNER:
       out.insert(std::make_pair(
           std::string("type"),
-              picojson::value(
-                  JsonString{kContactRelationshipTypeDomesticPartner})));
+          picojson::value(
+              JsonString{kContactRelationshipTypeDomesticPartner})));
       break;
     case CONTACTS_RELATIONSHIP_TYPE_FATHER:
       out.insert(
           std::make_pair(std::string("type"),
-              picojson::value(JsonString{kContactRelationshipTypeFather})));
+                         picojson::value(JsonString{kContactRelationshipTypeFather})));
       break;
     case CONTACTS_RELATIONSHIP_TYPE_FRIEND:
       out.insert(
           std::make_pair(std::string("type"),
-              picojson::value(JsonString{kContactRelationshipTypeFriend})));
+                         picojson::value(JsonString{kContactRelationshipTypeFriend})));
       break;
     case CONTACTS_RELATIONSHIP_TYPE_MANAGER:
       out.insert(
           std::make_pair(std::string("type"),
-              picojson::value(JsonString{kContactRelationshipTypeManager})));
+                         picojson::value(JsonString{kContactRelationshipTypeManager})));
       break;
     case CONTACTS_RELATIONSHIP_TYPE_MOTHER:
       out.insert(
           std::make_pair(std::string("type"),
-              picojson::value(JsonString{kContactRelationshipTypeMother})));
+                         picojson::value(JsonString{kContactRelationshipTypeMother})));
       break;
     case CONTACTS_RELATIONSHIP_TYPE_PARENT:
       out.insert(
           std::make_pair(std::string("type"),
-              picojson::value(JsonString{kContactRelationshipTypeParent})));
+                         picojson::value(JsonString{kContactRelationshipTypeParent})));
       break;
     case CONTACTS_RELATIONSHIP_TYPE_PARTNER:
       out.insert(
           std::make_pair(std::string("type"),
-              picojson::value(JsonString{kContactRelationshipTypePartner})));
+                         picojson::value(JsonString{kContactRelationshipTypePartner})));
       break;
     case CONTACTS_RELATIONSHIP_TYPE_REFERRED_BY:
       out.insert(std::make_pair(
@@ -1538,23 +1538,23 @@ PlatformResult ImportContactRelationshipFromContactsRecord(
     case CONTACTS_RELATIONSHIP_TYPE_RELATIVE:
       out.insert(
           std::make_pair(std::string("type"),
-              picojson::value(JsonString{kContactRelationshipTypeRelative})));
+                         picojson::value(JsonString{kContactRelationshipTypeRelative})));
       break;
     case CONTACTS_RELATIONSHIP_TYPE_SISTER:
       out.insert(
           std::make_pair(std::string("type"),
-              picojson::value(JsonString{kContactRelationshipTypeSister})));
+                         picojson::value(JsonString{kContactRelationshipTypeSister})));
       break;
     case CONTACTS_RELATIONSHIP_TYPE_SPOUSE:
       out.insert(
           std::make_pair(std::string("type"),
-              picojson::value(JsonString{kContactRelationshipTypeSpouse})));
+                         picojson::value(JsonString{kContactRelationshipTypeSpouse})));
       break;
     case CONTACTS_RELATIONSHIP_TYPE_OTHER:
     default:
       out.insert(
           std::make_pair(std::string("type"),
-              picojson::value(JsonString{kContactRelationshipTypeOther})));
+                         picojson::value(JsonString{kContactRelationshipTypeOther})));
       break;
   }
 
@@ -1568,7 +1568,7 @@ PlatformResult ImportContactRelationshipFromContactsRecord(
 
   out.insert(
       std::make_pair(std::string("label"),
-          picojson::value(label ? JsonValue{label} : JsonValue{})));
+                     picojson::value(label ? JsonValue{label} : JsonValue{})));
 
   return PlatformResult(ErrorCode::NO_ERROR);
 }
@@ -1979,7 +1979,7 @@ PlatformResult ImportContactAddressFromContactsRecord(
   if (int_value & CONTACTS_ADDRESS_TYPE_WORK) {
     types.push_back(JsonValue{kContactAddressTypeWork});
   }
-  if (int_value & CONTACTS_ADDRESS_TYPE_OTHER) {
+  if (CONTACTS_ADDRESS_TYPE_OTHER == int_value) {
     types.push_back(JsonValue{kContactAddressTypeOther});
   }
   if (int_value & CONTACTS_ADDRESS_TYPE_CUSTOM) {
@@ -2278,11 +2278,11 @@ PlatformResult ImportContactFromContactsRecord(
     out.insert(std::make_pair(std::string("name"), picojson::value(name)));
   } else {
     out.insert(std::make_pair(std::string("name"),
-        picojson::value(JsonValue{})));
+                              picojson::value(JsonValue{})));
   }
 
   typedef PlatformResult (*ImportFunc)(contacts_record_h, unsigned int,
-                                       JsonObject*);
+      JsonObject*);
   struct ImportData {
     const char* name;
     unsigned int property_id;
@@ -2290,18 +2290,18 @@ PlatformResult ImportContactFromContactsRecord(
   };
   ImportData imports[] = {
       {"emails", _contacts_contact.email,
-       ImportContactEmailAddressFromContactsRecord},
+          ImportContactEmailAddressFromContactsRecord},
       {"phoneNumbers", _contacts_contact.number,
-       ImportContactPhoneNumberFromContactsRecord},
+          ImportContactPhoneNumberFromContactsRecord},
       {"organizations", _contacts_contact.company,
-       ImportContactOrganizationFromContactsRecord},
+          ImportContactOrganizationFromContactsRecord},
       {"urls", _contacts_contact.url, ImportContactWebSiteFromContactsRecord},
       {"addresses", _contacts_contact.address,
-       ImportContactAddressFromContactsRecord},
+          ImportContactAddressFromContactsRecord},
       {"messengers", _contacts_contact.messenger,
-       ImportContactInstantMessengerFromContactsRecord},
+          ImportContactInstantMessengerFromContactsRecord},
       {"relationships", _contacts_contact.relationship,
-       ImportContactRelationshipFromContactsRecord},
+          ImportContactRelationshipFromContactsRecord},
   };
 
   for (auto& data : imports) {
@@ -2326,7 +2326,7 @@ PlatformResult ImportContactFromContactsRecord(
   //### ContactAnniversary: ###
   JsonArray& anniversaries =
       out.insert(std::make_pair(std::string("anniversaries"),
-          picojson::value(JsonArray()))).first->second.get<JsonArray>();
+                                picojson::value(JsonArray()))).first->second.get<JsonArray>();
 
   int child_rec_count;
   status = ContactUtil::GetNumberOfChildRecord(
@@ -2351,7 +2351,7 @@ PlatformResult ImportContactFromContactsRecord(
       anniversaries.push_back(anniversary);
     } else {
       out.insert(std::make_pair(std::string("birthday"),
-          picojson::value(anniversaries)));
+                                picojson::value(anniversaries)));
     }
   }
 
@@ -2453,20 +2453,20 @@ PlatformResult ExportContactToContactsRecord(contacts_record_h contacts_record,
   };
   const ExportDataHelper exports[] = {
       {_contacts_contact.email, "emails",
-       ExportContactEmailAddressToContactsRecord},
+          ExportContactEmailAddressToContactsRecord},
       {_contacts_contact.number, "phoneNumbers",
-       ExportContactPhoneNumberToContactsRecord},
+          ExportContactPhoneNumberToContactsRecord},
       {_contacts_contact.company, "organizations",
-       ExportContactOrganizationToContactsRecord},
+          ExportContactOrganizationToContactsRecord},
       {_contacts_contact.url, "urls", ExportContactWebSiteToContactsRecord},
       {_contacts_contact.event, "anniversaries",
-       ExportContactAnniversariesToContactsRecord},
+          ExportContactAnniversariesToContactsRecord},
       {_contacts_contact.address, "addresses",
-       ExportContactAddressToContactsRecord},
+          ExportContactAddressToContactsRecord},
       {_contacts_contact.messenger, "messengers",
-       ExportContactInstantMessengerToContactsRecord},
+          ExportContactInstantMessengerToContactsRecord},
       {_contacts_contact.relationship, "relationships",
-       ExportContactRelationshipToContactsRecord},
+          ExportContactRelationshipToContactsRecord},
   };
 
   for (auto& data : exports) {
@@ -2578,7 +2578,10 @@ PlatformResult ExportContactToContactsRecord(contacts_record_h contacts_record,
     real_path =
         ContactUtil::ConvertUriToPath(FromJson<JsonString>(in, "ringtoneURI"));
     PlatformResult status = VerifyLocalPath(real_path);
-    if (status.IsError()) return status;
+    if (status.IsError()) {
+      LoggerE("Error: %s", status.message().c_str());
+      return status;
+    }
     status = ContactUtil::SetStrInRecord(
         contacts_record, _contacts_contact.ringtone_path, real_path.c_str());
     if (status.IsError()) {
@@ -2844,7 +2847,7 @@ PlatformResult ImportPersonFromContactsRecord(contacts_record_h record,
 
   arguments_obj.insert(
       std::make_pair("displayContactId",
-          picojson::value(std::to_string(int_value))));
+                     picojson::value(std::to_string(int_value))));
 
   return PlatformResult(ErrorCode::NO_ERROR);
 }

@@ -420,19 +420,15 @@ PlatformResult Calendar::Find(const picojson::object& args, picojson::array& arr
   status = CalendarRecord::GetInt(calendar_ptr.get(), _calendar_book.store_type,
                                   &type);
   if (status.IsError()) return status;
+  const char* view_uri = (type == CALENDAR_BOOK_TYPE_EVENT) ? _calendar_event._uri : _calendar_todo._uri;
 
   calendar_query_h calendar_query = nullptr;
-  if (type == CALENDAR_BOOK_TYPE_EVENT) {
-    error_code = calendar_query_create(_calendar_event._uri, &calendar_query);
-    if ((status = ErrorChecker(error_code)).IsError()) return status;
-  } else {
-    error_code = calendar_query_create(_calendar_todo._uri, &calendar_query);
-    if ((status = ErrorChecker(error_code)).IsError()) return status;
-  }
-  if (CALENDAR_ERROR_NONE != error_code) {
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "calendar_query_create failed");
-  }
+  error_code = calendar_query_create(view_uri, &calendar_query);
+  if ((status = ErrorChecker(error_code)).IsError()) return status;
+
+  CalendarQueryPtr calendar_query_ptr(calendar_query,
+                                      CalendarRecord::QueryDeleter);
+
   std::vector<std::vector<CalendarFilterPtr>> intermediate_filters(1);
   if (!IsNull(args, "filter")) {
     FilterVisitor visitor;
@@ -441,15 +437,10 @@ PlatformResult Calendar::Find(const picojson::object& args, picojson::array& arr
                                      const picojson::value& match_value) {
       int value = 0;
       calendar_filter_h calendar_filter = nullptr;
-      if (type == CALENDAR_BOOK_TYPE_EVENT) {
-        error_code =
-            calendar_filter_create(_calendar_event._uri, &calendar_filter);
-        if ((status = ErrorChecker(error_code)).IsError()) return status;
-      } else {
-        error_code =
-            calendar_filter_create(_calendar_todo._uri, &calendar_filter);
-        if ((status = ErrorChecker(error_code)).IsError()) return status;
-      }
+
+      error_code = calendar_filter_create(view_uri, &calendar_filter);
+      if ((status = ErrorChecker(error_code)).IsError()) return status;
+
       CalendarFilterPtr calendar_filter_ptr(calendar_filter,
                                             CalendarFilterDeleter);
       unsigned int propertyId = 0;
@@ -564,15 +555,9 @@ PlatformResult Calendar::Find(const picojson::object& args, picojson::array& arr
       }
       calendar_filter_h merged_filter = nullptr;
 
-      if (type == CALENDAR_BOOK_TYPE_EVENT) {
-        error_code =
-            calendar_filter_create(_calendar_event._uri, &merged_filter);
-        if ((status = ErrorChecker(error_code)).IsError()) return status;
-      } else {
-        error_code =
-            calendar_filter_create(_calendar_todo._uri, &merged_filter);
-        if ((status = ErrorChecker(error_code)).IsError()) return status;
-      }
+      error_code = calendar_filter_create(view_uri, &merged_filter);
+      if ((status = ErrorChecker(error_code)).IsError()) return status;
+
       CalendarFilterPtr merged_filter_ptr(merged_filter, CalendarFilterDeleter);
       for (std::size_t i = 0; i < intermediate_filters.back().size(); ++i) {
         error_code = calendar_filter_add_filter(
@@ -613,15 +598,10 @@ PlatformResult Calendar::Find(const picojson::object& args, picojson::array& arr
 
       calendar_filter_h calendar_filter = nullptr;
       int error_code = 0;
-      if (type == CALENDAR_BOOK_TYPE_EVENT) {
-        error_code =
-            calendar_filter_create(_calendar_event._uri, &calendar_filter);
-        if ((status = ErrorChecker(error_code)).IsError()) return status;
-      } else {
-        error_code =
-            calendar_filter_create(_calendar_todo._uri, &calendar_filter);
-        if ((status = ErrorChecker(error_code)).IsError()) return status;
-      }
+
+      error_code = calendar_filter_create(view_uri, &calendar_filter);
+      if ((status = ErrorChecker(error_code)).IsError()) return status;
+
       CalendarFilterPtr calendar_filter_ptr(calendar_filter,
                                             CalendarFilterDeleter);
 
@@ -640,15 +620,9 @@ PlatformResult Calendar::Find(const picojson::object& args, picojson::array& arr
         if (initial_value_exists && end_value_exists) {
           calendar_filter_h sub_filter = NULL;
 
-          if (type == CALENDAR_BOOK_TYPE_EVENT) {
-            error_code =
-                calendar_filter_create(_calendar_event._uri, &sub_filter);
-            if ((status = ErrorChecker(error_code)).IsError()) return status;
-          } else {
-            error_code =
-                calendar_filter_create(_calendar_todo._uri, &sub_filter);
-            if ((status = ErrorChecker(error_code)).IsError()) return status;
-          }
+          error_code = calendar_filter_create(view_uri, &sub_filter);
+          if ((status = ErrorChecker(error_code)).IsError()) return status;
+
           CalendarFilterPtr sub_filter_ptr(sub_filter, CalendarFilterDeleter);
 
           error_code = calendar_filter_add_int(
@@ -687,47 +661,54 @@ PlatformResult Calendar::Find(const picojson::object& args, picojson::array& arr
           end_value_date =
               CalendarItem::DateFromJson(JsonCast<picojson::object>(end_value));
 
-        if (initial_value_exists && end_value_exists) {
-          calendar_filter_h sub_filter = NULL;
+        calendar_filter_h normal_filter = nullptr;
+        calendar_filter_h all_day_filter = nullptr;
 
-          if (type == CALENDAR_BOOK_TYPE_EVENT) {
-            error_code =
-                calendar_filter_create(_calendar_event._uri, &sub_filter);
-            if ((status = ErrorChecker(error_code)).IsError()) return status;
-          } else {
-            error_code =
-                calendar_filter_create(_calendar_todo._uri, &sub_filter);
-            if ((status = ErrorChecker(error_code)).IsError()) return status;
-          }
-          CalendarFilterPtr sub_filter_ptr(sub_filter, CalendarFilterDeleter);
+        error_code = calendar_filter_create(view_uri, &normal_filter);
+        if ((status = ErrorChecker(error_code)).IsError()) return status;
+        CalendarFilterPtr normal_filter_ptr(normal_filter, CalendarFilterDeleter);
 
+        error_code = calendar_filter_create(view_uri, &all_day_filter);
+        if ((status = ErrorChecker(error_code)).IsError()) return status;
+        CalendarFilterPtr all_day_filter_ptr(all_day_filter, CalendarFilterDeleter);
+
+        if (initial_value_exists) {
           error_code = calendar_filter_add_caltime(
-              sub_filter, propertyId, CALENDAR_MATCH_GREATER_THAN_OR_EQUAL,
+              normal_filter, propertyId, CALENDAR_MATCH_GREATER_THAN_OR_EQUAL,
               CalendarItem::DateToPlatform(initial_value_date, false));
           if ((status = ErrorChecker(error_code)).IsError()) return status;
-
-          error_code = calendar_filter_add_operator(
-              sub_filter, CALENDAR_FILTER_OPERATOR_AND);
-          if ((status = ErrorChecker(error_code)).IsError()) return status;
-
           error_code = calendar_filter_add_caltime(
-              sub_filter, propertyId, CALENDAR_MATCH_LESS_THAN_OR_EQUAL,
-              CalendarItem::DateToPlatform(end_value_date, false));
-          if ((status = ErrorChecker(error_code)).IsError()) return status;
-
-          error_code = calendar_filter_add_filter(calendar_filter, sub_filter);
-          if ((status = ErrorChecker(error_code)).IsError()) return status;
-        } else if (initial_value_exists) {
-          error_code = calendar_filter_add_caltime(
-              calendar_filter, propertyId, CALENDAR_MATCH_GREATER_THAN_OR_EQUAL,
-              CalendarItem::DateToPlatform(initial_value_date, false));
-          if ((status = ErrorChecker(error_code)).IsError()) return status;
-        } else if (end_value_exists) {
-          error_code = calendar_filter_add_caltime(
-              calendar_filter, propertyId, CALENDAR_MATCH_LESS_THAN_OR_EQUAL,
-              CalendarItem::DateToPlatform(end_value_date, false));
+              all_day_filter, propertyId, CALENDAR_MATCH_GREATER_THAN_OR_EQUAL,
+              CalendarItem::DateToPlatform(initial_value_date, true));
           if ((status = ErrorChecker(error_code)).IsError()) return status;
         }
+
+        if (initial_value_exists && end_value_exists) {
+          error_code = calendar_filter_add_operator(
+              normal_filter, CALENDAR_FILTER_OPERATOR_AND);
+          if ((status = ErrorChecker(error_code)).IsError()) return status;
+          error_code = calendar_filter_add_operator(
+              all_day_filter, CALENDAR_FILTER_OPERATOR_AND);
+          if ((status = ErrorChecker(error_code)).IsError()) return status;
+        }
+
+        if (end_value_exists) {
+          error_code = calendar_filter_add_caltime(
+              normal_filter, propertyId, CALENDAR_MATCH_LESS_THAN_OR_EQUAL,
+              CalendarItem::DateToPlatform(end_value_date, false));
+          if ((status = ErrorChecker(error_code)).IsError()) return status;
+          error_code = calendar_filter_add_caltime(
+              all_day_filter, propertyId, CALENDAR_MATCH_LESS_THAN_OR_EQUAL,
+              CalendarItem::DateToPlatform(end_value_date, true));
+          if ((status = ErrorChecker(error_code)).IsError()) return status;
+        }
+
+        error_code = calendar_filter_add_filter(calendar_filter, normal_filter);
+        if ((status = ErrorChecker(error_code)).IsError()) return status;
+        error_code = calendar_filter_add_operator(calendar_filter, CALENDAR_FILTER_OPERATOR_OR);
+        if ((status = ErrorChecker(error_code)).IsError()) return status;
+        error_code = calendar_filter_add_filter(calendar_filter, all_day_filter);
+        if ((status = ErrorChecker(error_code)).IsError()) return status;
       } else {
         std::string initial_value_str;
         std::string end_value_str;
@@ -743,15 +724,9 @@ PlatformResult Calendar::Find(const picojson::object& args, picojson::array& arr
         if (initial_value_exists && end_value_exists) {
           calendar_filter_h sub_filter = NULL;
 
-          if (type == CALENDAR_BOOK_TYPE_EVENT) {
-            error_code =
-                calendar_filter_create(_calendar_event._uri, &sub_filter);
-            if ((status = ErrorChecker(error_code)).IsError()) return status;
-          } else {
-            error_code =
-                calendar_filter_create(_calendar_todo._uri, &sub_filter);
-            if ((status = ErrorChecker(error_code)).IsError()) return status;
-          }
+          error_code = calendar_filter_create(view_uri, &sub_filter);
+          if ((status = ErrorChecker(error_code)).IsError()) return status;
+
           CalendarFilterPtr sub_filter_ptr(sub_filter, CalendarFilterDeleter);
 
           error_code = calendar_filter_add_str(sub_filter, propertyId,
@@ -821,9 +796,6 @@ PlatformResult Calendar::Find(const picojson::object& args, picojson::array& arr
       if ((status = ErrorChecker(error_code)).IsError()) return status;
     }
   }
-
-  CalendarQueryPtr calendar_query_ptr(calendar_query,
-                                      CalendarRecord::QueryDeleter);
 
   calendar_list_h record_list = nullptr;
   error_code =

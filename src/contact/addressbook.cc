@@ -18,8 +18,9 @@
 
 #include "common/converter.h"
 #include "common/extension.h"
-#include "common/platform_exception.h"
 #include "common/logger.h"
+#include "common/platform_exception.h"
+#include "common/scope_exit.h"
 
 #include <contacts.h>
 #include "contact/contact_instance.h"
@@ -263,16 +264,18 @@ PlatformResult AddressBookAddBatch(const JsonObject& args, JsonArray& out) {
 
   int* ids = nullptr;
   int count = 0;
+
+  SCOPE_EXIT {
+    free(ids);
+  };
+
   error_code = contacts_db_insert_records(*contacts_list_ptr, &ids, &count);
-  if (CONTACTS_ERROR_NONE != error_code) {
-    if (ids) {
-      free(ids);
-      ids = NULL;
-    }
+  if (CONTACTS_ERROR_NONE != error_code || nullptr == ids) {
     LoggerE("inserting contacts to db fails, code: %d", error_code);
     return PlatformResult(ErrorCode::UNKNOWN_ERR,
                           "inserting contacts to db fails");
   }
+
   if (length != count) {
     LoggerW("Added different number of contacts");
   }
@@ -283,10 +286,6 @@ PlatformResult AddressBookAddBatch(const JsonObject& args, JsonArray& out) {
     error_code =
         contacts_db_get_record(_contacts_contact._uri, ids[i], &contact_record);
     if (CONTACTS_ERROR_NONE != error_code) {
-      if (ids) {
-        free(ids);
-        ids = NULL;
-      }
       LoggerW("Contacts record get error, error code: %d", error_code);
       return PlatformResult(ErrorCode::UNKNOWN_ERR,
                             "Contacts record get error");
@@ -296,10 +295,6 @@ PlatformResult AddressBookAddBatch(const JsonObject& args, JsonArray& out) {
     if (status.IsError()) return status;
 
     out.push_back(JsonValue{out_object});
-  }
-  if (ids) {
-    free(ids);
-    ids = NULL;
   }
 
   return PlatformResult(ErrorCode::NO_ERROR);

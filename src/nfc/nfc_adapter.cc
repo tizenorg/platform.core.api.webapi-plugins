@@ -78,17 +78,19 @@ void HCEEventCallback(nfc_se_h handle,
 }  // anonymous namespace
 
 NFCAdapter::NFCAdapter():
+            m_last_tag_handle(nullptr),
+            m_is_tag_listener_set(false),
+            m_latest_tag_id(0),
             m_is_listener_set(false),
             m_is_transaction_ese_listener_set(false),
             m_is_transaction_uicc_listener_set(false),
+            m_is_transaction_hce_listener_set(false),
             m_is_peer_listener_set(false),
-            m_is_tag_listener_set(false),
             m_latest_peer_id(0),
             m_peer_handle(nullptr),
             m_is_ndef_listener_set(false),
-            m_latest_tag_id(0),
-            m_last_tag_handle(nullptr),
             m_se_handle(nullptr),
+            m_is_hce_listener_set(false),
             responder_(nullptr)
 {
   LoggerD("Entered");
@@ -1018,6 +1020,7 @@ static void tagReadNDEFCb(nfc_error_e result,
   if(!data) {
     // Can not continue if unable to get callbackId
     LoggerE("NULL callback id given");
+    return;
   }
 
   double callbackId = *((double*)data);

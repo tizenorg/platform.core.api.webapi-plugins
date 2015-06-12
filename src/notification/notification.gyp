@@ -25,6 +25,7 @@
           'variables': {
             'packages': [
               'notification',
+              'capi-appfw-app-control',
               'capi-system-device',
             ]
           },

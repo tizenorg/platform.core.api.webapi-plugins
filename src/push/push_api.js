@@ -76,7 +76,7 @@ PushManager.prototype.registerService = function(appControl, successCallback, er
   }, function(msg) {
     if (msg.error) {
       if (validatorType.isFunction(data.errorCallback)) {
-        data.errorCallback(native.getErrorObject(msg.error));
+        data.errorCallback(native.getErrorObject(msg));
       }
     } else {
       data.successCallback(msg.registrationId);
@@ -106,7 +106,7 @@ PushManager.prototype.unregisterService = function(successCallback, errorCallbac
   native.call('Push_unregisterService', {}, function(msg) {
     if (msg.error) {
       if (validatorType.isFunction(data.errorCallback)) {
-        data.errorCallback(native.getErrorObject(msg.error));
+        data.errorCallback(native.getErrorObject(msg));
       }
     } else if (validatorType.isFunction(data.successCallback)) {
       data.successCallback();

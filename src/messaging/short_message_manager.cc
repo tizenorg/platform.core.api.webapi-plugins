@@ -987,12 +987,15 @@ void ShortMsgManager::findMessages(FindMsgCallbackUserData* callback)
             LoggerD("Found %d messages", msgListCount);
 
             msg_struct_t msg;
-            msg_struct_t sendOpt;
+            msg_struct_t send_opt;
             msg_error_t err;
             for (int i = 0; i < msgListCount; i++) {
                 msg = msg_create_struct(MSG_STRUCT_MESSAGE_INFO);
-                sendOpt = msg_create_struct(MSG_STRUCT_SENDOPT);
-                err = msg_get_message(m_msg_handle, messagesIds.at(i), msg, sendOpt);
+                send_opt = msg_create_struct(MSG_STRUCT_SENDOPT);
+                std::unique_ptr<msg_struct_t, int (*)(msg_struct_t*)> msg_ptr(&msg, msg_release_struct);
+                std::unique_ptr<msg_struct_t, int (*)(msg_struct_t*)> send_opt_ptr(&send_opt, msg_release_struct);
+
+                err = msg_get_message(m_msg_handle, messagesIds.at(i), msg, send_opt);
 
                 if (MSG_SUCCESS != err) {
                     LoggerE("Failed to get platform message structure: %d", err);
@@ -1000,20 +1003,16 @@ void ShortMsgManager::findMessages(FindMsgCallbackUserData* callback)
                     break;
                 }
 
-                std::shared_ptr<Message> message;
-                Message* message_ptr = nullptr;
-                PlatformResult ret = Message::convertPlatformShortMessageToObject(msg, &message_ptr);
+                Message* message = nullptr;
+                PlatformResult ret = Message::convertPlatformShortMessageToObject(msg, &message);
                 if (ret.IsError() && ret.error_code() != ErrorCode::INVALID_VALUES_ERR) {
                     LoggerE("Cannot get platform Message structure");
                     callback->SetError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get platform Message structure"));
                     break;
                 }
                 if (!callback->isError()) {
-                    message.reset(message_ptr);
-                    callback->addMessage(message);
+                    callback->addMessage(std::shared_ptr<Message>{message});
                     LoggerD("Created message with id %d:", messagesIds[i]);
-                    msg_release_struct(&sendOpt);
-                    msg_release_struct(&msg);
                 }
             }
         }

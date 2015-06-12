@@ -8,7 +8,7 @@
 %define crosswalk_extensions tizen-extensions-crosswalk
 
 Name:       webapi-plugins
-Version:    0.1
+Version:    0.5
 Release:    0
 License:    Apache-2.0 and BSD-2.0 and MIT
 Group:      Development/Libraries
@@ -17,7 +17,7 @@ Source0:    %{name}-%{version}.tar.gz
 
 
 ####################################################################
-#       Mobile Profile :  Redwood(SM-Z910F)       #
+#       Mobile Profile :  Redwood(SM-Z910F), KIRAN(Z130H)          #
 ####################################################################
 %if "%{?profile}" == "mobile"
 
@@ -30,7 +30,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_badge_support               1
 %ifarch %{arm}
 # ARM
-%define tizen_feature_bluetooth_support           0
+%define tizen_feature_bluetooth_support           1
 %else
 # I586
 %define tizen_feature_bluetooth_support           0
@@ -44,13 +44,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_download_support            1
 %define tizen_feature_exif_support                1
 %define tizen_feature_filesystem_support          1
-%ifarch %{arm}
-# ARM
-%define tizen_feature_fm_radio_support            0
-%else
-# I586
 %define tizen_feature_fm_radio_support            1
-%endif
 %ifarch %{arm}
 # ARM
 %define tizen_feature_ham_support                 0
@@ -60,10 +54,10 @@ Source0:    %{name}-%{version}.tar.gz
 %endif
 %define tizen_feature_location_batch              0
 %define tizen_feature_key_manager_support         1
-%define tizen_feature_media_controller_support    0
+%define tizen_feature_media_controller_support    1
 %ifarch %{arm}
 # ARM
-%define tizen_feature_media_key_support           0
+%define tizen_feature_media_key_support           1
 %else
 # I586
 %define tizen_feature_media_key_support           1
@@ -71,18 +65,16 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_message_port_support        1
 %define tizen_feature_messaging_support           1
 
-%ifarch %{arm}
-# ARM
+%if 0%{?model_build_feature_nfc}
 %define tizen_feature_nfc_emulation_support       0
-%define tizen_feature_nfc_support                 0
+%define tizen_feature_nfc_support                 1
 %else
-# I586
 %define tizen_feature_nfc_emulation_support       0
 %define tizen_feature_nfc_support                 0
 %endif
-%define tizen_feature_notification_support        0
+%define tizen_feature_notification_support        1
 %define tizen_feature_package_support             1
-%define tizen_feature_power_support               0
+%define tizen_feature_power_support               1
 %define tizen_feature_push_support                0
 %ifarch %{arm}
 # ARM
@@ -145,7 +137,6 @@ Source0:    %{name}-%{version}.tar.gz
 
 # Badge API is mandatory in Tizen Wearable Profile.
 %define tizen_feature_badge_support               1
-
 
 %define tizen_feature_bluetooth_support           0
 
@@ -237,9 +228,9 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_alarm_support               1
 %define tizen_feature_application_support         1
 %define tizen_feature_archive_support             1
-%define tizen_feature_badge_support               0
+%define tizen_feature_badge_support               1
 %define tizen_feature_bluetooth_support           0
-%define tizen_feature_bookmark_support            0
+%define tizen_feature_bookmark_support            1
 %define tizen_feature_calendar_support            0
 %define tizen_feature_callhistory_support         0
 %define tizen_feature_contact_support             0
@@ -442,6 +433,7 @@ BuildRequires: pkgconfig(message-port)
 
 %if 0%{?tizen_feature_notification_support}
 BuildRequires: pkgconfig(notification)
+BuildRequires: pkgconfig(capi-appfw-app-control)
 %endif
 
 %if 0%{?tizen_feature_sound_support}

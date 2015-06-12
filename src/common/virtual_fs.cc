@@ -121,13 +121,16 @@ common::optional<std::string> GetRootDir() {
   };
 
   char* root = nullptr;
-  package_info_get_root_path(pkg_info, &root);
-  if (PACKAGE_MANAGER_ERROR_NONE != err) {
+  err = package_info_get_root_path(pkg_info, &root);
+  if (PACKAGE_MANAGER_ERROR_NONE != err || nullptr == root) {
     LoggerE("Can't get root path from package info (%s)", get_error_message(err));
     return nullptr;
   }
 
-  return std::string(root);
+  std::string ret{root};
+  free(root);
+
+  return ret;
 }
 
 }  // namespace

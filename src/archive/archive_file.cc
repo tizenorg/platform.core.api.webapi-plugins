@@ -204,21 +204,23 @@ void* ArchiveFile::taskManagerThread(void *data)
             callback = archive_file_holder->ptr->m_task_queue.back().second;
         }
 
-        if(callback && !callback->isCanceled()){
-            result = callback->executeOperation(archive_file_holder->ptr);
-        }
+        if (callback) {
+            if (!callback->isCanceled()){
+                result = callback->executeOperation(archive_file_holder->ptr);
+            }
 
-        if (ErrorCode::OPERATION_CANCELED_ERR == result.error_code()) {
-            delete callback;
-            callback = NULL;
-        } else if (ErrorCode::NO_ERROR != result.error_code()) {
-            LoggerE("taskManagerThread fails, %d: %s", result.error_code(),
-                    result.message().c_str());
-            callback->setError(result.error_code(), result.message().c_str());
-            if (!g_idle_add(callErrorCallback, static_cast<void*>(callback))) {
-                LoggerE("g_idle_add fails");
+            if (ErrorCode::OPERATION_CANCELED_ERR == result.error_code()) {
                 delete callback;
                 callback = NULL;
+            } else if (ErrorCode::NO_ERROR != result.error_code()) {
+                LoggerE("taskManagerThread fails, %d: %s", result.error_code(),
+                        result.message().c_str());
+                callback->setError(result.error_code(), result.message().c_str());
+                if (!g_idle_add(callErrorCallback, static_cast<void*>(callback))) {
+                    LoggerE("g_idle_add fails");
+                    delete callback;
+                    callback = NULL;
+                }
             }
         }
 
