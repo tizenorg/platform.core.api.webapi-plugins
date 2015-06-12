@@ -859,11 +859,13 @@ void ContactManagerListenerCallback(const char* view_uri, char* changes,
   std::set<int> updated_ids;
   std::set<int> removed_ids;
 
-  char* token = strtok(tmp.get(), kTokenDelimiter);
+  char* tmpptr = nullptr;
+
+  char* token = strtok_r(tmp.get(), kTokenDelimiter, &tmpptr);
   while (token) {
     if (IsNumeric(token)) {
       int type = atoi(token);
-      token = strtok(nullptr, kTokenDelimiter);
+      token = strtok_r(nullptr, kTokenDelimiter, &tmpptr);
       if (!token) {
         break;
       }
@@ -914,7 +916,7 @@ void ContactManagerListenerCallback(const char* view_uri, char* changes,
       }
     }
 
-    token = strtok(nullptr, kTokenDelimiter);
+    token = strtok_r(nullptr, kTokenDelimiter, &tmpptr);
   }
 
   ContactInstance* instance = static_cast<ContactInstance*>(user_data);
