@@ -142,7 +142,19 @@ PlatformResult ContentFilter::BuildQuery(const picojson::object& jsFilter,
           matchValue = "4";
         }
       }
-      query += matchValue;
+      switch (match_flag) {
+        case AttributeMatchFlag::kStartsWith :
+          query += matchValue + "%";
+          break;
+        case AttributeMatchFlag::kEndsWith :
+          query += "%" + matchValue;
+          break;
+        case AttributeMatchFlag::kContains :
+          query += "%" + matchValue + "%";
+          break;
+        default :
+          query += matchValue;
+      }
       query.append("\"");
     }
 
