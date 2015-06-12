@@ -30,7 +30,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_badge_support               1
 %ifarch %{arm}
 # ARM
-%define tizen_feature_bluetooth_support           0
+%define tizen_feature_bluetooth_support           1
 %else
 # I586
 %define tizen_feature_bluetooth_support           0
@@ -54,10 +54,10 @@ Source0:    %{name}-%{version}.tar.gz
 %endif
 %define tizen_feature_location_batch              0
 %define tizen_feature_key_manager_support         1
-%define tizen_feature_media_controller_support    0
+%define tizen_feature_media_controller_support    1
 %ifarch %{arm}
 # ARM
-%define tizen_feature_media_key_support           0
+%define tizen_feature_media_key_support           1
 %else
 # I586
 %define tizen_feature_media_key_support           1
@@ -67,14 +67,14 @@ Source0:    %{name}-%{version}.tar.gz
 
 %if 0%{?model_build_feature_nfc}
 %define tizen_feature_nfc_emulation_support       0
-%define tizen_feature_nfc_support                 0
+%define tizen_feature_nfc_support                 1
 %else
 %define tizen_feature_nfc_emulation_support       0
 %define tizen_feature_nfc_support                 0
 %endif
-%define tizen_feature_notification_support        0
+%define tizen_feature_notification_support        1
 %define tizen_feature_package_support             1
-%define tizen_feature_power_support               0
+%define tizen_feature_power_support               1
 %define tizen_feature_push_support                0
 %ifarch %{arm}
 # ARM
@@ -433,6 +433,7 @@ BuildRequires: pkgconfig(message-port)
 
 %if 0%{?tizen_feature_notification_support}
 BuildRequires: pkgconfig(notification)
+BuildRequires: pkgconfig(capi-appfw-app-control)
 %endif
 
 %if 0%{?tizen_feature_sound_support}

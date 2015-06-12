@@ -1081,30 +1081,28 @@ PlatformResult SystemInfoListeners::UnregisterMemoryListener()
 PlatformResult SystemInfoListeners::RegisterCameraFlashListener(const SysteminfoUtilsCallback& callback,
                                                            SysteminfoInstance& instance)
 {
-  // TODO(r.galka) temporarily removed - not supported by platform
-  //if (nullptr == m_camera_flash_listener) {
-  //  if (DEVICE_ERROR_NONE != device_add_callback(DEVICE_CALLBACK_FLASH_BRIGHTNESS,
-  //                            OnBrightnessChangedCb, static_cast<void*>(&instance))) {
-  //      return PlatformResult(ErrorCode::UNKNOWN_ERR);
-  //    }
-  //    m_camera_flash_listener = callback;
-  //}
+  if (nullptr == m_camera_flash_listener) {
+    if (DEVICE_ERROR_NONE != device_add_callback(DEVICE_CALLBACK_FLASH_BRIGHTNESS,
+                              OnBrightnessChangedCb, static_cast<void*>(&instance))) {
+        return PlatformResult(ErrorCode::UNKNOWN_ERR);
+      }
+      m_camera_flash_listener = callback;
+  }
     return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 PlatformResult SystemInfoListeners::UnregisterCameraFlashListener()
 {
-  // TODO(r.galka) temporarily removed - not supported by platform
-  //if (nullptr != m_camera_flash_listener) {
-  //  PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
-  //  int value = 0;
-  //  if (DEVICE_ERROR_NONE != device_remove_callback(DEVICE_CALLBACK_FLASH_BRIGHTNESS,
-  //                                               OnBrightnessChangedCb)) {
-  //    return PlatformResult(ErrorCode::UNKNOWN_ERR);
-  //  }
-  //  LoggerD("Removed callback for camera_flash");
-  //  m_camera_flash_listener = nullptr;
-  //}
+  if (nullptr != m_camera_flash_listener) {
+    PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
+    int value = 0;
+    if (DEVICE_ERROR_NONE != device_remove_callback(DEVICE_CALLBACK_FLASH_BRIGHTNESS,
+                                                 OnBrightnessChangedCb)) {
+      return PlatformResult(ErrorCode::UNKNOWN_ERR);
+    }
+    LoggerD("Removed callback for camera_flash");
+    m_camera_flash_listener = nullptr;
+  }
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
