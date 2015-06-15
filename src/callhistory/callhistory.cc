@@ -556,9 +556,11 @@ void CallHistory::changeListenerCB(const char* view_uri, char *changes, void* us
   picojson::array& removed_array = removed_obj.insert(std::make_pair(STR_DATA, picojson::value(
       picojson::array()))).first->second.get<picojson::array>();
 
-  token_type = strtok(changes, seps);
+  char* saveptr = nullptr;
+
+  token_type = strtok_r(changes, seps, &saveptr);
   while (NULL != token_type) {
-    token_id = strtok(NULL, seps);
+    token_id = strtok_r(NULL, seps, &saveptr);
     change_type = atoi((const char*)token_type);
 
     if (NULL != token_id) {
@@ -604,7 +606,7 @@ void CallHistory::changeListenerCB(const char* view_uri, char *changes, void* us
     contacts_query_destroy(query);
     contacts_filter_destroy(filter);
 
-    token_type = strtok( NULL, seps);
+    token_type = strtok_r( NULL, seps, &saveptr);
   }
 
   if (added_array.size() > 0) {
