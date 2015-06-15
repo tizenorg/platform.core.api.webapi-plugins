@@ -13,7 +13,7 @@
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
  */
- 
+
 var utils_ = xwalk.utils;
 var type_ = utils_.type;
 var converter_ = utils_.converter;
@@ -358,6 +358,10 @@ MediaControllerServer.prototype.updatePlaybackPosition = function(position) {
     {name: 'position', type: types_.LONG_LONG}
   ]);
 
+  if (args.position < 0) {
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR);
+  }
+
   var data = {
     position: args.position
   };
@@ -600,6 +604,10 @@ MediaControllerServerInfo.prototype.sendPlaybackPosition = function(position, su
     {name: 'successCallback', type: types_.FUNCTION, optional: true, nullable: true},
     {name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true}
   ]);
+
+  if (args.position < 0) {
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR);
+  }
 
   var data = {
     position: args.position
