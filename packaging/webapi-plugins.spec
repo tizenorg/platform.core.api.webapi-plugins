@@ -523,8 +523,14 @@ install -p -m 644 out/Default/libtizen*.so %{buildroot}%{_libdir}/%{crosswalk_ex
 # devel files
 mkdir -p %{buildroot}%{_libdir}/pkgconfig
 cp packaging/%{name}.pc %{buildroot}%{_libdir}/pkgconfig
-mkdir -p %{buildroot}%{_includedir}/%{crosswalk_extensions}/common
-install -p -m 644 src/common/*.h %{buildroot}%{_includedir}/%{crosswalk_extensions}/common
+mkdir -p %{buildroot}%{_includedir}/%{name}/src/common
+install -p -m 644 src/common/*.h %{buildroot}%{_includedir}/%{name}/src/common
+install -p -m 644 src/common/*.gypi %{buildroot}%{_includedir}/%{name}/src/common
+install -p -m 644 src/common/XW_Extension.cc %{buildroot}%{_includedir}/%{name}/src/common
+mkdir -p %{buildroot}%{_includedir}/%{name}/tools
+install -p -m 644 tools/generate_api.py %{buildroot}%{_includedir}/%{name}/tools
+install -p -m 644 tools/mergejs.py %{buildroot}%{_includedir}/%{name}/tools
+cp -a tools/gyp %{buildroot}%{_includedir}/%{name}/tools/gyp
 
 %if 0%{?tizen_feature_tvaudio_support}
 # tv audio beep files:
