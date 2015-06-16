@@ -714,14 +714,17 @@ KeyManager.prototype.verifySignature = function() {
 
 // expose only basic constructors
 tizen.Key = function(name, password, extractable) {
+    xwalk.utils.validator.isConstructorCall(this, tizen.Key);
     Key.call(this, name, password, extractable, KeyType.KEY_NONE, "");
 };
 tizen.Key.prototype = Object.create(Key.prototype);
 tizen.Certificate = function(name, password, extractable) {
+    xwalk.utils.validator.isConstructorCall(this, tizen.Certificate);
     Certificate.call(this, name, password, extractable, "");
 };
 tizen.Certificate.prototype = Object.create(Certificate.prototype);
 tizen.Data = function(name, password, extractable) {
+    xwalk.utils.validator.isConstructorCall(this, tizen.Data);
     Data.call(this, name, password, extractable, "");
 };
 tizen.Data.prototype = Object.create(Data.prototype);
