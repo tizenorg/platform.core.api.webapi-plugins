@@ -582,7 +582,7 @@ void DeviceActivationChangeCB(sound_device_h device, sound_device_changed_info_e
                               void *user_data) {
   LoggerD("Entered");
 
-  if (SOUND_DEVICE_CAHNGED_INFO_STATE == changed_info) {
+  if (SOUND_DEVICE_CHANGED_INFO_STATE == changed_info) {
     SoundManager* h = static_cast<SoundManager*>(user_data);
     h->DeviceChangeCB(device, false, true);
   }
