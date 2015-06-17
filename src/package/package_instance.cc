@@ -102,22 +102,22 @@ static void PackageRequestCb(
     return;
   }
 
-  if ( event_state == PACKAGE_MANAGER_EVENT_STATE_STARTED ) {
-    return;
-  }
-
   picojson::object param;
-  if ( event_state == PACKAGE_MANAGER_EVENT_STATE_FAILED ) {
+  LoggerD("Request type: %d, state: %d, progress: %d", event_type, event_state, progress);
+  if (PACKAGE_MANAGER_EVENT_STATE_FAILED == event_state) {
     LoggerE("[Failed]");
     param["status"] = picojson::value("error");
     param["error"] = UnknownException(
         "It is not allowed to install the package by the platform or " \
         "any other platform error occurs").ToJSON();
-  } else if ( event_state == PACKAGE_MANAGER_EVENT_STATE_PROCESSING ) {
+  } else if (PACKAGE_MANAGER_EVENT_STATE_STARTED == event_state ||
+      PACKAGE_MANAGER_EVENT_STATE_PROCESSING == event_state) {
+    // this 'or' condition is needed to handle onprogress callback even on uninstall process,
+    // with this additional check manual TCT uninstall/onprogress pass
     param["status"] = picojson::value("progress");
     param["progress"] = picojson::value(static_cast<double>(progress));
     param["id"] = picojson::value(std::string(package));
-  } else if ( event_state == PACKAGE_MANAGER_EVENT_STATE_COMPLETED ) {
+  } else if (PACKAGE_MANAGER_EVENT_STATE_COMPLETED == event_state) {
     param["status"] = picojson::value("complete");
     param["id"] = picojson::value(std::string(package));
   }
@@ -151,6 +151,8 @@ static void PackageListenerCb(
   picojson::object param;
   param["listener"] = picojson::value("infoEvent");
 
+  LoggerD("Listener type: %d , state: %d, progress: %d",
+          event_type, event_state, progress);
   if ( event_type == PACKAGE_MANAGER_EVENT_TYPE_INSTALL
       && event_state == PACKAGE_MANAGER_EVENT_STATE_COMPLETED ) {
     LoggerD("[Installed]");
