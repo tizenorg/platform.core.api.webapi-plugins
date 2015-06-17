@@ -199,7 +199,7 @@ PlatformResult EmailManager::addMessagePlatform(int account_id,
 
     //Adding "from" email address
     email_account_t* account = NULL;
-    err = email_get_account(account_id, EMAIL_ACC_GET_OPT_FULL_DATA, &account);
+    err = email_get_account(account_id, GET_FULL_DATA_WITHOUT_PASSWORD, &account);
     if(EMAIL_ERROR_NONE != err) {
         LoggerE("email_get_account failed. [%d]\n",err);
         err = email_free_mail_data(&mail_data,1);
