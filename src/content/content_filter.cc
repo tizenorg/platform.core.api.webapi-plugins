@@ -127,7 +127,6 @@ PlatformResult ContentFilter::BuildQuery(const picojson::object& jsFilter,
       LoggerE("INVALID_VALUES_ERR");
       return PlatformResult(ErrorCode::INVALID_VALUES_ERR);
     }
-
     if (AttributeMatchFlag::kExists != match_flag) {
       query.append("\"");
       matchValue = escapeValueString(JsonCast<std::string>(match_value));
@@ -141,6 +140,9 @@ PlatformResult ContentFilter::BuildQuery(const picojson::object& jsFilter,
         } else {  // OTHER
           matchValue = "4";
         }
+      } else if (name == "contentURI") {
+        //simple convertion of URI to globalpath
+        matchValue = matchValue.substr(strlen("file://"));
       }
       switch (match_flag) {
         case AttributeMatchFlag::kStartsWith :
