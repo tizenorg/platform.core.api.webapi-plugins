@@ -141,8 +141,12 @@ PlatformResult ContentFilter::BuildQuery(const picojson::object& jsFilter,
           matchValue = "4";
         }
       } else if (name == "contentURI") {
-        //simple convertion of URI to globalpath
-        matchValue = matchValue.substr(strlen("file://"));
+        const char* uri_prefix = "file://";
+        size_t found = matchValue.find(uri_prefix);
+        if (found != std::string::npos) {
+          //simple convertion of URI to globalpath
+          matchValue = matchValue.substr(found + strlen(uri_prefix));
+        }
       }
       switch (match_flag) {
         case AttributeMatchFlag::kStartsWith :
