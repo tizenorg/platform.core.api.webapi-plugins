@@ -938,6 +938,21 @@ PlatformResult CheckIfEthernetNetworkSupported()
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
+common::PlatformResult CheckTelephonySupport() {
+  bool supported = false;
+  PlatformResult ret = SystemInfoDeviceCapability::GetValueBool(
+    "tizen.org/feature/network.telephony", &supported);
+  if (ret.IsError()) {
+    return ret;
+  }
+  if (!supported) {
+    LoggerD("Telephony is not supported on this device");
+    return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR,
+        "Telephony is not supported on this device");
+  }
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
 PlatformResult SystemInfoListeners::RegisterEthernetNetworkListener(const SysteminfoUtilsCallback& callback,
                                                                     SysteminfoInstance& instance)
 {
@@ -983,9 +998,12 @@ PlatformResult SystemInfoListeners::RegisterCellularNetworkListener(const System
                                                                     SysteminfoInstance& instance)
 {
   LoggerD("Entered");
+  PlatformResult ret = CheckTelephonySupport();
+  if (ret.IsError()) {
+      return ret;
+  }
 
   if (IsIpChangeCallbackInvalid()) {
-    PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
     CHECK_LISTENER_ERROR(RegisterIpChangeCallback(instance));
     LoggerD("Registered IP change listener");
   } else {
@@ -993,7 +1011,6 @@ PlatformResult SystemInfoListeners::RegisterCellularNetworkListener(const System
   }
 
   if (nullptr == m_cellular_network_listener) {
-    PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
     CHECK_LISTENER_ERROR(RegisterVconfCallback(VCONFKEY_TELEPHONY_FLIGHT_MODE,
                           OnCellularNetworkValueChangedCb, instance))
     CHECK_LISTENER_ERROR(RegisterVconfCallback(VCONFKEY_TELEPHONY_CELLID,
@@ -1636,11 +1653,23 @@ PlatformResult SysteminfoUtils::GetCount(const std::string& property, unsigned l
   if ("BATTERY" == property || "CPU" == property || "STORAGE" == property ||
       "DISPLAY" == property || "DEVICE_ORIENTATION" == property ||
       "BUILD" == property || "LOCALE" == property || "NETWORK" == property ||
-      "WIFI_NETWORK" == property || "CELLULAR_NETWORK" == property ||
-      "PERIPHERAL" == property || "MEMORY" == property) {
+      "WIFI_NETWORK" == property || "PERIPHERAL" == property ||
+      "MEMORY" == property) {
     count = kDefaultPropertyCount;
+  } else if ("CELLULAR_NETWORK" == property) {
+    PlatformResult ret = CheckTelephonySupport();
+    if (ret.IsError()) {
+      count = 0;
+    } else {
+      count = kDefaultPropertyCount;
+    }
   } else if ("SIM" == property) {
-    count = sim_mgr.GetSimCount(system_info_listeners.GetTapiHandles());
+    PlatformResult ret = CheckTelephonySupport();
+    if (ret.IsError()) {
+      count = 0;
+    } else {
+      count = sim_mgr.GetSimCount(system_info_listeners.GetTapiHandles());
+    }
   } else if ("CAMERA_FLASH" == property) {
     const int numberOfCameraFlashProperties = 3;
     count = numberOfCameraFlashProperties;
@@ -2492,6 +2521,10 @@ static PlatformResult FetchConnection(TapiHandle *tapi_handle, std::string* resu
 }
 
 PlatformResult SysteminfoUtils::ReportCellularNetwork(picojson::object& out) {
+  PlatformResult ret = CheckTelephonySupport();
+  if (ret.IsError()) {
+    return ret;
+  }
   std::string result_status;
   std::string result_apn;
   std::string result_ip_address;
@@ -2505,7 +2538,7 @@ PlatformResult SysteminfoUtils::ReportCellularNetwork(picojson::object& out) {
   std::string result_imei;
 
   //gathering vconf-based values
-  PlatformResult ret = FetchVconfSettings(&result_mcc, &result_mnc, &result_cell_id, &result_lac,
+  ret = FetchVconfSettings(&result_mcc, &result_mnc, &result_cell_id, &result_lac,
                      &result_is_roaming, &result_is_flight_mode);
   if (ret.IsError()) {
     return ret;
@@ -2595,6 +2628,10 @@ void SimSpnValueCallback(TapiHandle */*handle*/, int result, void *data, void */
 }
 
 PlatformResult SysteminfoUtils::ReportSim(picojson::object& out, unsigned long count) {
+  PlatformResult ret = CheckTelephonySupport();
+  if (ret.IsError()) {
+    return ret;
+  }
   return sim_mgr.GatherSimInformation(
       system_info_listeners.GetTapiHandles()[count], &out);
 }
