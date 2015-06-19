@@ -56,6 +56,10 @@ ApplicationInstance::ApplicationInstance() :
 
   //Application
   REGISTER_SYNC("Application_getRequestedAppControl", GetRequestedAppControl);
+  REGISTER_SYNC("Application_broadcastEvent", BroadcastEvent);
+  REGISTER_SYNC("Application_broadcastTrustedEvent", BroadcastTrustedEvent);
+  REGISTER_SYNC("Application_addEventListener", AddEventListener);
+  REGISTER_SYNC("Application_removeEventListener", RemoveEventListener);
 
   //RequestedApplicationControl
   REGISTER_SYNC("RequestedApplicationControl_replyResult", ReplyResult);
@@ -212,6 +216,32 @@ void ApplicationInstance::GetAppsInfo(const picojson::value& args, picojson::obj
   LoggerD("Entered");
 
   manager_.GetAppsInfo(args);
+}
+
+void ApplicationInstance::BroadcastEvent(const picojson::value& args, picojson::object& out) {
+  LoggerD("Entered");
+
+  bool trusted = false;
+  manager_.BroadcastEventHelper(args, out, trusted);
+}
+
+void ApplicationInstance::BroadcastTrustedEvent(const picojson::value& args, picojson::object& out) {
+  LoggerD("Entered");
+
+  bool trusted = true;
+  manager_.BroadcastEventHelper(args, out, trusted);
+}
+
+void ApplicationInstance::AddEventListener(const picojson::value& args, picojson::object& out) {
+  LoggerD("Entered");
+
+  manager_.StartEventListener(&out);
+}
+
+void ApplicationInstance::RemoveEventListener(const picojson::value& args, picojson::object& out) {
+  LoggerD("Entered");
+
+  manager_.StopEventListener();
 }
 
 }  // namespace application

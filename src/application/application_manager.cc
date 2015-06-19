@@ -25,6 +25,9 @@
 #include <aul.h>
 #include <package_manager.h>
 #include <pkgmgr-info.h>
+#include <app_event.h>
+#include <bundle.h>
+#include <bundle_internal.h>
 
 #include "application/application_instance.h"
 #include "application/application_utils.h"
@@ -32,6 +35,7 @@
 #include "common/logger.h"
 #include "common/platform_result.h"
 #include "common/task-queue.h"
+#include "common/scope_exit.h"
 
 using namespace common;
 using namespace tools;
@@ -1305,6 +1309,55 @@ void ApplicationManager::GetApplicationInformationSize(const picojson::value& ar
   result_obj.insert(std::make_pair("size", picojson::value(static_cast<double>(size))));
 
   ReportSuccess(result, *out);
+}
+
+void ApplicationManager::BroadcastEventHelper(
+    const picojson::value& args,
+    picojson::object& out, bool trusted) {
+
+  LoggerD("Entered");
+
+  int ret;
+  std::string event_str = args.get("name").get<std::string>();
+  const char* event_name = event_str.c_str();
+
+  bundle* data = bundle_create();
+  SCOPE_EXIT {
+    bundle_free(data);
+  };
+
+  ret = bundle_add(data, "data", args.get("data").serialize().c_str());
+
+  if (ret != EVENT_ERROR_NONE) {
+    LoggerE("bundle_add failed, error");
+    ReportError(out);
+    return;
+  }
+
+  if (trusted) {
+    ret = event_publish_trusted_app_event(event_name, data);
+  } else {
+    ret = event_publish_app_event(event_name, data);
+  }
+
+  if (ret == EVENT_ERROR_NONE) {
+    ReportSuccess(out);
+  } else {
+    LoggerE("event_publish_app_event failed, error");
+    ReportError(out);
+  }
+}
+
+void ApplicationManager::StartEventListener(picojson::object* out) {
+  LoggerD("Entered");
+
+  //TODO: please implement
+}
+
+void ApplicationManager::StopEventListener() {
+  LoggerD("Entered");
+
+  //TODO: please implement
 }
 
 } // namespace application

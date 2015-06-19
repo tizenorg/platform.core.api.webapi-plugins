@@ -51,6 +51,9 @@ class ApplicationManager {
   void StopAppInfoEventListener();
   void GetApplicationInformationSize(const picojson::value& args, picojson::object* out);
   void AsyncResponse(common::PlatformResult& result, std::shared_ptr<picojson::value>* response);
+  void BroadcastEventHelper(const picojson::value& args, picojson::object& out, bool trusted);
+  void StartEventListener(picojson::object* out);
+  void StopEventListener();
 
  private:
   char* GetPackageId(const std::string& app_id);

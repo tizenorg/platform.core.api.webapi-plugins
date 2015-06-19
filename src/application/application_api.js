@@ -26,6 +26,36 @@ var ApplicationControlLaunchMode = {
   GROUP: 'GROUP'
 };
 
+var SystemEvent = {
+  BATTERY_CHARGER_STATUS: 'BATTERY_CHARGER_STATUS',
+  BATTERY_LEVEL_STATUS: 'BATTERY_LEVEL_STATUS',
+  USB_STATUS: 'USB_STATUS',
+  USBHOST_STATUS: 'USBHOST_STATUS',
+  EARJACK_STATUS: 'EARJACK_STATUS',
+  DISPLAY_STATE: 'DISPLAY_STATE',
+  BOOT_COMPLETED: 'BOOT_COMPLETED',
+  SYSTEM_SHUTDOWN: 'SYSTEM_SHUTDOWN',
+  LOW_MEMORY: 'LOW_MEMORY',
+  WIFI_STATE: 'WIFI_STATE',
+  BT_STATE: 'BT_STATE',
+  BT_TRANSFERING_STATE: 'BT_TRANSFERING_STATE',
+  MOBILE_DATA_STATE: 'MOBILE_DATA_STATE',
+  DATA_ROAMING_STATE: 'DATA_ROAMING_STATE',
+  LOCATION_ENABLE_STATE: 'LOCATION_ENABLE_STATE',
+  GPS_ENABLE_STATE: 'GPS_ENABLE_STATE',
+  NPS_ENABLE_STATE: 'NPS_ENABLE_STATE',
+  INCOMMING_MSG: 'INCOMMING_MSG',
+  TIME_CHANGED: 'TIME_CHANGED',
+  TIME_ZONE: 'TIME_ZONE',
+  HOUR_FORMAT: 'HOUR_FORMAT',
+  LANGUAGE_SET: 'LANGUAGE_SET',
+  REGION_FORMAT: 'REGION_FORMAT',
+  SILENT_MODE: 'SILENT_MODE',
+  VIBRATION_STATE: 'VIBRATION_STATE',
+  SCREEN_AUTOROTATE_STATE: 'SCREEN_AUTOROTATE_STATE',
+  FONT_SET: 'FONT_SET'
+};
+
 // helper functions ////////////////////////////////////////////////////
 function _createApplicationControlData(object) {
   var ret;
@@ -603,6 +633,94 @@ Application.prototype.getRequestedAppControl = function() {
     } else {
       return null;
     }
+  }
+};
+
+function _checkEventName(name) {
+  if (!(/^([a-zA-Z_]){1}([a-zA-Z0-9_]){0,126}$/.test(name))) {
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
+        'Invalid event name');
+  }
+}
+
+function _checkAppId(appId) {
+  if (!(/^([a-zA-Z0-9]){10}([.]){1}([a-zA-Z0-9_]){1,52}$/.test(appId))) {
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
+        'Invalid appId');
+  }
+}
+
+Application.prototype.addEventListener = function(name, callback) {
+  var args = AV.validateMethod(arguments, [
+    {name: 'name', type: AV.Types.STRING},
+    {name: 'callback', type: AV.Types.FUNCTION}
+  ]);
+
+  var data = {
+    listenerId: 'AppEventListener'
+  };
+
+  if (Object.keys(SystemEvent).indexOf(args.name) > -1) {
+    data.name = 'tizen.system.event.' + args.name.toLowerCase();
+  } else {
+    var _arr = args.name.split('.');
+    var _event_name = _arr.pop();
+    var _appid = _arr.join('.');
+
+    _checkEventName(_event_name);
+    _checkAppId(_appid);
+
+    data.name = 'event.' + _appid + '.' + _event_name;
+  }
+
+  // @TODO: register eventListener
+};
+
+Application.prototype.removeEventListener = function(watchId) {
+  var args = AV.validateMethod(arguments, [
+    {name: 'watchId', type: AV.Types.LONG}
+  ]);
+
+  // @TODO: remove eventListener
+};
+
+Application.prototype.broadcastEvent = function(name, data) {
+  var args = AV.validateMethod(arguments, [
+    {name: 'name', type: AV.Types.STRING},
+    {name: 'data', type: AV.Types.DICTIONARY}
+  ]);
+
+  _checkEventName(args.name);
+
+  var nativeData = {
+    name: 'event.' + this.appInfo.id + '.' + args.name,
+    data: args.data
+  };
+
+  var result = native.callSync('Application_broadcastEvent', nativeData);
+
+  if (native.isFailure(result)) {
+    throw native.getErrorObject(result);
+  }
+};
+
+Application.prototype.broadcastTrustedEvent = function(name, data) {
+  var args = AV.validateMethod(arguments, [
+    {name: 'name', type: AV.Types.STRING},
+    {name: 'data', type: AV.Types.DICTIONARY}
+  ]);
+
+  _checkEventName(args.name);
+
+  var nativeData = {
+    name: 'event.' + this.appInfo.id + '.' + args.name,
+    data: args.data
+  };
+
+  var result = native.callSync('Application_broadcastTrustedEvent', nativeData);
+
+  if (native.isFailure(result)) {
+    throw native.getErrorObject(result);
   }
 };
 
