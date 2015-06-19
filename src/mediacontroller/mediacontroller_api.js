@@ -62,6 +62,10 @@ ListenerManager.prototype.addListener = function(callback) {
 };
 
 ListenerManager.prototype.removeListener = function(watchId) {
+  if (this.listeners[watchId] === null || this.listeners[watchId] === undefined) {
+    throw new WebAPIException(0, 'Watch id not found.', 'InvalidValuesError');
+  }
+
   if (this.listeners.hasOwnProperty(watchId)) {
     delete this.listeners[watchId];
   }
