@@ -359,12 +359,8 @@ MediaControllerServer.prototype.updatePlaybackState = function(state) {
 
 MediaControllerServer.prototype.updatePlaybackPosition = function(position) {
   var args = validator_.validateArgs(arguments, [
-    {name: 'position', type: types_.LONG_LONG}
+    {name: 'position', type: types_.UNSIGNED_LONG_LONG}
   ]);
-
-  if (args.position < 0) {
-    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR);
-  }
 
   var data = {
     position: args.position
