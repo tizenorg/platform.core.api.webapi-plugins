@@ -83,7 +83,10 @@ FileSystemManager.prototype.resolve = function(location, onsuccess, onerror, mod
     }
   };
 
-  native_.call('File_stat', data, callback);
+  var ret = native_.call('File_stat', data, callback);
+  if (native_.isFailure(ret)) {
+      throw native_.getErrorObject(ret);
+  }
 };
 
 FileSystemManager.prototype.getStorage = function(label, onsuccess, onerror) {
