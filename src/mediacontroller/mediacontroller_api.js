@@ -14,6 +14,8 @@
  *    limitations under the License.
  */
 
+var _global = window || global || {};
+
 var utils_ = xwalk.utils;
 var type_ = utils_.type;
 var converter_ = utils_.converter;
@@ -255,7 +257,7 @@ var MediaControllerMetadata = function(data) {
     }
   });
 
-  if (data instanceof Object) {
+  if (data instanceof _global.Object) {
     for (var prop in data) {
       if (data.hasOwnProperty(prop) && this.hasOwnProperty(prop)) {
         this[prop] = data[prop];
@@ -318,7 +320,7 @@ var MediaControllerPlaybackInfo = function(data) {
     }
   });
 
-  if (data instanceof Object) {
+  if (data instanceof _global.Object) {
     for (var prop in data) {
       if (data.hasOwnProperty(prop) && this.hasOwnProperty(prop)) {
         this[prop] = data[prop];

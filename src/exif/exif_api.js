@@ -13,6 +13,8 @@
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
  */
+
+var _global = window || global || {};
  
 var validator_ = xwalk.utils.validator;
 var type_ = xwalk.utils.type;
@@ -574,7 +576,7 @@ tizen.ExifInformation = function() {
   });
 
   //--- copy values from exifInitDict using setters above.
-  if (exifInitDict instanceof Object) {
+  if (exifInitDict instanceof _global.Object) {
     for (var prop in exifInitDict) {
       if (this.hasOwnProperty(prop)) {
         this[prop] = exifInitDict[prop];

@@ -13,6 +13,8 @@
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
  */
+
+var _global = window || global || {};
  
 var CalendarType = {
   EVENT: 'EVENT',
@@ -51,7 +53,7 @@ var InternalCalendar = function(data) {
     }
   });
 
-  if (data instanceof Object) {
+  if (data instanceof _global.Object) {
     for (var prop in data) {
       if (this.hasOwnProperty(prop)) {
         this[prop] = data[prop];

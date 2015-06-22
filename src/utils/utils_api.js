@@ -3,6 +3,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+var _global = window || global || {};
+
 /**
  * @deprecated Used only by validateArguments()
  */
@@ -24,7 +26,7 @@ DateConverter.prototype.toTZDate = function(v, isAllDay) {
     isAllDay = false;
   }
 
-  if (!(v instanceof Object)) {
+  if (!(v instanceof _global.Object)) {
     return v;
   }
 
@@ -1324,7 +1326,7 @@ var NativeBridge = (function (extension, debug) {
 // See http://168.219.209.56/gerrit/#/c/23472/ for more details.
 // In future exception definition could be moved back to Tizen module.
 function __isObject(object) {
-  return object instanceof Object;
+  return object instanceof _global.Object;
 }
 
 function __isUndefined(object) {

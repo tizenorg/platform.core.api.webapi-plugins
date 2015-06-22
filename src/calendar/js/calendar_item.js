@@ -14,6 +14,8 @@
  *    limitations under the License.
  */
 
+var _global = window || global || {};
+
 var CalendarTextFormat = {
   ICALENDAR_20: 'ICALENDAR_20',
   VCALENDAR_10: 'VCALENDAR_10'
@@ -142,7 +144,7 @@ var CalendarItem = function(data) {
       },
       set: function(v) {
         if (_edit.canEdit) {
-          if (v instanceof Object) {
+          if (v instanceof _global.Object) {
             _id = new CalendarEventId(v.uid, v.rid);
           } else {
             _id = converter_.toString(v, true);
@@ -334,7 +336,7 @@ var CalendarItem = function(data) {
     }
   });
 
-  if (data instanceof Object) {
+  if (data instanceof _global.Object) {
     for (var prop in data) {
       if (this.hasOwnProperty(prop)) {
         this[prop] = data[prop];
@@ -569,7 +571,7 @@ var CalendarTaskInit = function(data) {
     }
   });
 
-  if (data instanceof Object) {
+  if (data instanceof _global.Object) {
     for (var prop in data) {
       if (this.hasOwnProperty(prop)) {
         this[prop] = data[prop];
@@ -661,7 +663,7 @@ var CalendarEventInit = function(data) {
     }
   });
 
-  if (data instanceof Object) {
+  if (data instanceof _global.Object) {
     for (var prop in data) {
       if (this.hasOwnProperty(prop)) {
         this[prop] = data[prop];
