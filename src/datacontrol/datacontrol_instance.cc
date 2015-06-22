@@ -140,6 +140,7 @@ static bool SQLColumnValue(result_set_cursor cursor, int columnIndex,
       result = data_control_sql_get_text_data(cursor, columnIndex, buffer);
       if (result != DATA_CONTROL_ERROR_NONE) {
         LoggerE("Getting Text value failed : %s", get_error_message(result));
+        delete[] buffer;
         break;
       }
       val = picojson::value(buffer);
