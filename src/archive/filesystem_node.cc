@@ -232,14 +232,15 @@ PlatformResult Node::getChildNames(Node::NameList* out_name_list) const
         }
         name_list.push_back(entry.d_name);
     }
-    if (0 != err) {
-        LoggerE("throw IOException");
-        return PlatformResult(ErrorCode::IO_ERR, "Error while reading directory.");
-    }
 
     if (closedir(dir) != 0) {
         LoggerE("throw IOException");
         return PlatformResult(ErrorCode::IO_ERR, "Could not close platform node.");
+    }
+
+    if (0 != err) {
+        LoggerE("throw IOException");
+        return PlatformResult(ErrorCode::IO_ERR, "Error while reading directory.");
     }
 
     *out_name_list = name_list;
@@ -285,16 +286,16 @@ PlatformResult Node::getChildNodes(NodeList* out_node_list) const
         node_list.push_back(node);
     }
 
-    if (0 != err) {
-        LoggerE("Path %s Perm %d", m_path->getFullPath().c_str(), m_perms);
-        LoggerE("throw IOException");
-        return PlatformResult(ErrorCode::IO_ERR, "Error while reading directory.");
-    }
-
     if (closedir(dir) != 0) {
         LoggerE("Path %s Perm %d", m_path->getFullPath().c_str(), m_perms);
         LoggerE("throw IOException");
         return PlatformResult(ErrorCode::IO_ERR, "Could not close platform node.");
+    }
+
+    if (0 != err) {
+        LoggerE("Path %s Perm %d", m_path->getFullPath().c_str(), m_perms);
+        LoggerE("throw IOException");
+        return PlatformResult(ErrorCode::IO_ERR, "Error while reading directory.");
     }
 
     *out_node_list = node_list;
