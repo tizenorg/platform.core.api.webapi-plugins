@@ -579,8 +579,7 @@ function SystemInfoCellularNetwork(data) {
         isFlightMode : {value: data.isFligthMode, writable: false, enumerable: true},
         imei : {
             get: function() {
-                xwalk.utils.checkBackwardCompabilityPrivilegeAccess(privilege_.TELEPHONY,
-                                                                    privilege_.SYSTEMMANAGER);
+                xwalk.utils.checkPrivilegeAccess4Ver("2.3.1", privilege_.TELEPHONY, privilege_.SYSTEMMANAGER);
                 return data.imei;
             },
             set: function() {},
@@ -610,8 +609,7 @@ function SystemInfoSIM(data) {
         },
         msisdn : {
             get: function() {
-                xwalk.utils.checkBackwardCompabilityPrivilegeAccess(privilege_.TELEPHONY,
-                                                                    privilege_.SYSTEMMANAGER);
+                xwalk.utils.checkPrivilegeAccess4Ver("2.3.1", privilege_.TELEPHONY, privilege_.SYSTEMMANAGER);
                 return data.msisdn;
             },
             set: function() {},
@@ -643,8 +641,7 @@ function SystemInfoSIM(data) {
         },
         msin : {
             get: function() {
-                xwalk.utils.checkBackwardCompabilityPrivilegeAccess(privilege_.TELEPHONY,
-                                                                    privilege_.SYSTEMMANAGER);
+                xwalk.utils.checkPrivilegeAccess4Ver("2.3.1", privilege_.TELEPHONY, privilege_.SYSTEMMANAGER);
                 return data.msin;
             },
             set: function() {},
@@ -777,6 +774,10 @@ var _createPropertyArray = function (property, data) {
 
 var getPropertyFunction = function(cppLabel, objectCreateFunction) {
     return function() {
+        if (arguments[0] === "CELLULAR_NETWORK") {
+            xwalk.utils.checkPrivilegeAccess4Ver("2.4", privilege_.TELEPHONY);
+        }
+
         var args = validator_.validateArgs(arguments, [
                  {
                      name : 'property',
@@ -1248,6 +1249,9 @@ var _unregisterListener = function (watchId, isTimeout) {
 
 var getListenerFunction = function (isArray) {
     return function() {
+        if (arguments[0] === "CELLULAR_NETWORK") {
+            xwalk.utils.checkPrivilegeAccess4Ver("2.4", privilege_.TELEPHONY);
+        }
         var args = validator_.validateArgs(arguments, [
                  {
                      name : 'property',
