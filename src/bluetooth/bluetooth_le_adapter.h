@@ -56,7 +56,6 @@ class BluetoothLEAdapter {
   BluetoothInstance& instance_;
   bool enabled_;
   bool scanning_;
-  picojson::array discovered_devices_;
   bt_advertiser_h bt_advertiser_;
 };
 
