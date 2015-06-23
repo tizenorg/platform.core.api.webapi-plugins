@@ -49,7 +49,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_ham_support                 1
 %endif
 %define tizen_feature_location_batch              0
-%define tizen_feature_key_manager_support         1
+%define tizen_feature_key_manager_support         0
 %define tizen_feature_media_controller_support    1
 %ifarch %{arm}
 # ARM
@@ -238,7 +238,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_filesystem_support          1
 %define tizen_feature_fm_radio_support            0
 %define tizen_feature_ham_support                 0
-%define tizen_feature_key_manager_support         1
+%define tizen_feature_key_manager_support         0
 %define tizen_feature_media_controller_support    1
 %define tizen_feature_media_key_support           1
 %define tizen_feature_message_port_support        1
