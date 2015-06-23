@@ -543,6 +543,7 @@ cp res/tvsounds/*.pcm %{buildroot}%{ringtones_directory}
 %files
 %{_libdir}/%{crosswalk_extensions}/libtizen*.so
 %{_datadir}/license/%{name}
+%manifest webapi-plugins.manifest
 
 %if 0%{?tizen_feature_tvaudio_support}
 # tv audio beep files:
