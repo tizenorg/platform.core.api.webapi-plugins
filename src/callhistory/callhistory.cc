@@ -35,6 +35,9 @@ using namespace tools;
 namespace extension {
 namespace callhistory {
 
+std::vector<CallHistory*> CallHistory::instances_;
+std::mutex CallHistory::instances_mutex_;
+
 namespace {
 static void get_sim_msisdn_cb(TapiHandle *handle, int result, void *data, void *user_data)
 {
@@ -69,6 +72,11 @@ CallHistory::CallHistory(CallHistoryInstance& instance)
   } else {
     LoggerD("Failed to connect Call history DB");
   }
+
+  {
+    std::lock_guard<std::mutex> lock(instances_mutex_);
+    instances_.push_back(this);
+  }
 }
 
 CallHistory::~CallHistory()
@@ -89,9 +97,19 @@ CallHistory::~CallHistory()
   } else {
     LoggerD("Failed to disconnect Call history DB");
   }
+
+  {
+    std::lock_guard<std::mutex> lock(instances_mutex_);
+    for (auto it = instances_.begin(); it != instances_.end(); ++it) {
+      if (*it == this) {
+        instances_.erase(it);
+        break;
+      }
+    }
+  }
 }
 
-static void findThread(const picojson::object& args, CallHistory* call_history)
+void CallHistory::FindThread(const picojson::object& args, CallHistory* call_history)
 {
   LoggerD("Entered");
 
@@ -238,80 +256,77 @@ static void findThread(const picojson::object& args, CallHistory* call_history)
   auto find_response = [call_history, callback_id](const std::shared_ptr<picojson::value>& response) -> void {
     picojson::object& obj = response->get<picojson::object>();
     obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
-    call_history->getInstance().PostMessage(response->serialize().c_str());
+    CallHistory::PostMessage(call_history, response->serialize());
   };
 
   TaskQueue::GetInstance().Async<picojson::value>(find_response, response);
 }
 
-static void loadPhoneNumbers(const picojson::object& args, CallHistory* call_history)
+void CallHistory::LoadPhoneNumbers(const picojson::object& args, CallHistory* call_history)
 {
   LoggerD("Entered");
 
-  std::vector<std::string>& phone_numbers = call_history->getPhoneNumbers();
-  char **cp_list = NULL;
-  cp_list = tel_get_cp_name_list();
+  char** cp_list =  tel_get_cp_name_list();
 
-  if (!cp_list) {
-    findThread(args, call_history);
-    return;
+  if (cp_list) {
+    unsigned int modem_num = 0;
+    std::vector<std::string>& phone_numbers = call_history->getPhoneNumbers();
+
+    while (cp_list[modem_num]) {
+      std::string n = "";
+      TapiHandle* handle = nullptr;
+      do {
+        std::promise<std::string> prom;
+        handle = tel_init(cp_list[modem_num]);
+        if (!handle) {
+          LoggerE("Failed to init tapi handle.");
+          break;
+        }
+
+        int card_changed;
+        TelSimCardStatus_t card_status = TAPI_SIM_STATUS_UNKNOWN;
+        int ret = tel_get_sim_init_info(handle, &card_status, &card_changed);
+        if (TAPI_API_SUCCESS != ret) {
+          LoggerE("Failed to get sim init info: %d", ret);
+          break;
+        }
+        LoggerD("Card status: %d Card Changed: %d", card_status, card_changed);
+        if (TAPI_SIM_STATUS_SIM_INIT_COMPLETED != card_status) {
+          LoggerW("SIM is not ready, we can't get other properties");
+          break;
+        }
+
+        ret = tel_get_sim_msisdn(handle, get_sim_msisdn_cb, &prom);
+        if (TAPI_API_SUCCESS != ret) {
+          LoggerE("Failed to get msisdn : %d", ret);
+          break;
+        }
+
+        auto fut = prom.get_future();
+        LoggerD("wait...");
+        fut.wait();
+        n = fut.get();
+        LoggerD("Phone number [%d] : %s", modem_num, n.c_str());
+      } while(false);
+
+      phone_numbers.push_back(n);
+      tel_deinit(handle);
+      modem_num++;
+    }
+
+    g_strfreev(cp_list);
   }
 
-  unsigned int modem_num = 0;
-  while (cp_list[modem_num]) {
-    std::string n = "";
-    TapiHandle* handle = nullptr;
-    do {
-      std::promise<std::string> prom;
-      handle = tel_init(cp_list[modem_num]);
-      if (!handle) {
-        LoggerE("Failed to init tapi handle.");
-        break;
-      }
-
-      int card_changed;
-      TelSimCardStatus_t card_status = TAPI_SIM_STATUS_UNKNOWN;
-      int ret = tel_get_sim_init_info(handle, &card_status, &card_changed);
-      if (TAPI_API_SUCCESS != ret) {
-        LoggerE("Failed to get sim init info: %d", ret);
-        break;
-      }
-      LoggerD("Card status: %d Card Changed: %d", card_status, card_changed);
-      if (TAPI_SIM_STATUS_SIM_INIT_COMPLETED != card_status) {
-        LoggerW("SIM is not ready, we can't get other properties");
-        break;
-      }
-
-      ret = tel_get_sim_msisdn(handle, get_sim_msisdn_cb, &prom);
-      if (TAPI_API_SUCCESS != ret) {
-        LoggerE("Failed to get msisdn : %d", ret);
-        break;
-      }
-
-      auto fut = prom.get_future();
-      LoggerD("wait...");
-      fut.wait();
-      n = fut.get();
-      LoggerD("Phone number [%d] : %s", modem_num, n.c_str());
-    } while(false);
-
-    phone_numbers.push_back(n);
-    tel_deinit(handle);
-    modem_num++;
-  }
-
-  g_strfreev(cp_list);
-
-  findThread(args, call_history);
+  FindThread(args, call_history);
 }
 
 void CallHistory::find(const picojson::object& args) {
   LoggerD("Entered");
 
   if (m_phone_numbers.size() == 0) {
-    std::thread(loadPhoneNumbers, args, this).detach();
+    std::thread(LoadPhoneNumbers, args, this).detach();
   } else {
-    std::thread(findThread, args, this).detach();
+    std::thread(FindThread, args, this).detach();
   }
 }
 
@@ -382,7 +397,7 @@ common::PlatformResult CallHistory::removeBatch(const picojson::object& args)
   auto remove_batch_response = [this, callback_id](const std::shared_ptr<picojson::value>& response) -> void {
     picojson::object& obj = response->get<picojson::object>();
     obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
-    instance_.PostMessage(response->serialize().c_str());
+    CallHistory::PostMessage(this, response->serialize());
   };
 
   TaskQueue::GetInstance().Queue<picojson::value>(
@@ -496,7 +511,7 @@ void CallHistory::removeAll(const picojson::object& args)
   auto remove_all_response = [this, callback_id](const std::shared_ptr<picojson::value>& response) -> void {
     picojson::object& obj = response->get<picojson::object>();
     obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
-    instance_.PostMessage(response->serialize().c_str());
+    CallHistory::PostMessage(this, response->serialize());
   };
 
   TaskQueue::GetInstance().Queue<picojson::value>(
@@ -513,11 +528,6 @@ std::vector<std::string>& CallHistory::getPhoneNumbers()
 CallHistoryUtils& CallHistory::getUtils()
 {
   return utils_;
-}
-
-CallHistoryInstance& CallHistory::getInstance()
-{
-  return instance_;
 }
 
 void CallHistory::changeListenerCB(const char* view_uri, char *changes, void* user_data)
@@ -621,6 +631,20 @@ void CallHistory::changeListenerCB(const char* view_uri, char *changes, void* us
     removed_obj[STR_ACTION] = picojson::value("onremoved");
     h->instance_.CallHistoryChange(removed_obj);
   }
+}
+
+void CallHistory::PostMessage(const CallHistory* instance, const std::string& msg) {
+  LoggerD("Entered");
+  std::lock_guard<std::mutex> lock(instances_mutex_);
+
+  for (auto it = instances_.begin(); it != instances_.end(); ++it) {
+    if (*it == instance) {
+      instance->instance_.PostMessage(msg.c_str());
+      return;
+    }
+  }
+
+  LoggerE("Instance [%p] not found, ignoring message", instance);
 }
 
 PlatformResult CallHistory::startCallHistoryChangeListener()
