@@ -8,11 +8,17 @@
   },
   'target_defaults': {
     'conditions': [
-      ['extension_host_os != "mobile"' and
-       'extension_host_os != "wearable"' and
-       'extension_host_os != "tv"', {
+      ['extension_host_os != "mobile"', {
         'sources/': [['exclude', '_mobile\\.cc$|mobile/']],
         'includes/': [['exclude', '_mobile\\.gypi$|mobile/']],
+      }],
+      ['extension_host_os != "wearable"', {
+        'sources/': [['exclude', '_wearable\\.cc$|wearable/']],
+        'includes/': [['exclude', '_wearable\\.gypi$|wearable/']],
+      }],
+      ['extension_host_os != "tv"', {
+        'sources/': [['exclude', '_tv\\.cc$|tv/']],
+        'includes/': [['exclude', '_tv\\.gypi$|tv/']],
       }],
       ['extension_host_os != "desktop"', {
         'sources/': [['exclude', '_desktop\\.cc$|desktop/']],
