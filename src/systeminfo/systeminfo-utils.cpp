@@ -914,10 +914,38 @@ PlatformResult SystemInfoListeners::UnregisterWifiNetworkListener()
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
+PlatformResult CheckIfEthernetNetworkSupported()
+{
+  LoggerD("Entered");
+  connection_h connection_handle = nullptr;
+  connection_ethernet_state_e connection_state = CONNECTION_ETHERNET_STATE_DEACTIVATED;
+
+  int error = connection_create(&connection_handle);
+  if (CONNECTION_ERROR_NONE != error) {
+    std::string log_msg = "Cannot create connection: " + std::to_string(error);
+    LoggerE("%s", log_msg.c_str());
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
+  }
+  std::unique_ptr<std::remove_pointer<connection_h>::type, int (*)(connection_h)> connection_handle_ptr(
+    connection_handle, &connection_destroy);  // automatically release the memory
+
+  error = connection_get_ethernet_state(connection_handle, &connection_state);
+  if (CONNECTION_ERROR_NOT_SUPPORTED == error) {
+    std::string log_msg = "Cannot get ethernet connection state: Not supported";
+    LoggerE("%s", log_msg.c_str());
+    return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR, log_msg);
+  }
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
 PlatformResult SystemInfoListeners::RegisterEthernetNetworkListener(const SysteminfoUtilsCallback& callback,
                                                                     SysteminfoInstance& instance)
 {
   LoggerD("Entered");
+  PlatformResult ret = CheckIfEthernetNetworkSupported();
+  if (ret.IsError()){
+    return ret;
+  }
 
   if (IsIpChangeCallbackInvalid()) {
     PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
@@ -1608,15 +1636,18 @@ PlatformResult SysteminfoUtils::GetCount(const std::string& property, unsigned l
   if ("BATTERY" == property || "CPU" == property || "STORAGE" == property ||
       "DISPLAY" == property || "DEVICE_ORIENTATION" == property ||
       "BUILD" == property || "LOCALE" == property || "NETWORK" == property ||
-      "WIFI_NETWORK" == property || "ETHERNET_NETWORK" == property ||
-      "CELLULAR_NETWORK" == property || "PERIPHERAL" == property ||
-      "MEMORY" == property) {
+      "WIFI_NETWORK" == property || "CELLULAR_NETWORK" == property ||
+      "PERIPHERAL" == property || "MEMORY" == property) {
     count = kDefaultPropertyCount;
   } else if ("SIM" == property) {
     count = sim_mgr.GetSimCount(system_info_listeners.GetTapiHandles());
   } else if ("CAMERA_FLASH" == property) {
     const int numberOfCameraFlashProperties = 3;
     count = numberOfCameraFlashProperties;
+  } else if ("ETHERNET_NETWORK" == property) {
+    PlatformResult ret = CheckIfEthernetNetworkSupported();
+    if (ret.IsError()) count = 0;
+    else count = kDefaultPropertyCount;
   } else {
     LoggerD("Property with given id is not supported");
     return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR, "Property with given id is not supported");
@@ -1691,7 +1722,11 @@ PlatformResult SysteminfoUtils::GetPropertyValue(const std::string& property, bo
       }
       array.push_back(result);
     }
+    if (property_count == 0) {
+      return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR, "Property with given id is not supported");
+    }
   }
+
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
@@ -2221,6 +2256,11 @@ PlatformResult SysteminfoUtils::ReportEthernetNetwork(picojson::object& out) {
 
   error = connection_get_ethernet_state(connection_handle, &connection_state);
   if (CONNECTION_ERROR_NONE != error) {
+    if (CONNECTION_ERROR_NOT_SUPPORTED == error) {
+      std::string log_msg = "Cannot get ethernet connection state: Not supported";
+      LoggerE("%s", log_msg.c_str());
+      return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR, log_msg);
+    }
     std::string log_msg = "Cannot get ethernet connection state: " + std::to_string(error);
     LoggerE("%s", log_msg.c_str());
     return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
