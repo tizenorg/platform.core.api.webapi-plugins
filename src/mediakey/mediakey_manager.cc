@@ -41,7 +41,9 @@ common::PlatformResult MediaKeyManager::RegisterMediaKeyEventListener(
     MediaKeyListener* listener) {
   LoggerD("Enter");
   if (!m_media_key_listener_registered) {
+    LoggerD("before calling media_key_reserve");
     int ret = media_key_reserve(MediaKeyEventCallback, NULL);
+    LoggerD("after calling media_key_reserve - result = %d", ret);
     if (MEDIA_KEY_ERROR_NONE != ret) {
       LoggerD("Failed to register "
               "a media keys change event callback: %d",
