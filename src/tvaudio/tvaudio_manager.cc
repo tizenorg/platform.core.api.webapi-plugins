@@ -164,7 +164,7 @@ common::PlatformResult AudioControlManager::getVolume(u_int16_t &volume) {
     return common::PlatformResult(ErrorCode::NO_ERROR);
 }
 
-common::PlatformResult AudioControlManager::getOutputMode(AudioOutputMode mode) {
+common::PlatformResult AudioControlManager::getOutputMode(AudioOutputMode &mode) {
     LoggerD("Enter");
     avoc_audio_format_e type;
     int ret = avoc_get_audio_format(&type);

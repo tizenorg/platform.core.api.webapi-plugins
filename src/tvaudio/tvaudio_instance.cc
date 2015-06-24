@@ -155,8 +155,12 @@ void TVAudioInstance::getOutputMode(const picojson::value& args,
     if (result.IsError()) {
         LoggerD("Error occured");
         ReportError(result, &out);
+    } else if (AudioOutputModeMap.find(mode) == AudioOutputModeMap.end()) {
+        LoggerE("Unknown mode type: %d", mode);
+        ReportError(common::PlatformResult(common::ErrorCode::UNKNOWN_ERR,
+            "Uknown audio output mode"), &out);
     } else {
-    ReportSuccess(picojson::value(AudioOutputModeMap.at(mode)), out);
+        ReportSuccess(picojson::value(AudioOutputModeMap.at(mode)), out);
     }
 }
 
