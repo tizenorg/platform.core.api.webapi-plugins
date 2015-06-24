@@ -260,10 +260,9 @@ common::PlatformResult AudioControlManager::playSound(const std::string &type) {
             "Unknown error. Unknown beep type: " + type);
     }
 
-    void *status;
     if (m_playThreadIdInit) {
         m_playData.stopSound = true;
-        pthread_join(m_playThreadId, &status);
+        pthread_join(m_playThreadId, NULL);
         m_playData.stopSound = false;
     }
     pthread_attr_t attr;
@@ -287,7 +286,7 @@ void* AudioControlManager::play(void* play_data) {
     LoggerD("Enter");
     PlayData* pData = static_cast<PlayData*>(play_data);
 
-    LoggerD("Beep type: %d", pData->beep_type.c_str());
+    LoggerD("Beep type: %s", pData->beep_type.c_str());
 
     const std::string& filename = pData->filename;
     std::unique_ptr <std::vector <char>> pBuffer =
