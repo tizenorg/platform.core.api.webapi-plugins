@@ -28,6 +28,7 @@
               'glib-2.0',
               'libavoc',
               'capi-media-audio-io',
+              'capi-media-sound-manager',
             ]
           },
         }],
