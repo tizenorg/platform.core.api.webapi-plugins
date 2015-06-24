@@ -74,10 +74,11 @@ ListenerManager.prototype.removeListener = function(watchId) {
 };
 
 var ServerCommandListener = new ListenerManager(native_, '_ServerCommandListener', function(msg, listener) {
-  var data = listener(msg.clientName, msg.command, msg.data);
+  var data = undefined;
+  data = listener(msg.clientName, msg.command, msg.data);
 
-  if (type_.isNullOrUndefined(data)) {
-    return;
+  if (type_.isUndefined(data)) {
+   data = null;
   }
 
   var nativeData = {
