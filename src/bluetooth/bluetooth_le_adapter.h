@@ -18,7 +18,7 @@
 #define BLUETOOTH_BLUETOOTH_LE_ADAPTER_H_
 
 #include <bluetooth.h>
-
+#include <bluetooth_type_internal.h>
 #include "common/picojson.h"
 
 namespace extension {
