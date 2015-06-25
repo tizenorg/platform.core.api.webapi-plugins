@@ -322,6 +322,7 @@ BuildRequires: pkgconfig(accounts-svc)
 
 %if 0%{?tizen_feature_alarm_support}
 BuildRequires: pkgconfig(capi-appfw-alarm)
+BuildRequires: pkgconfig(alarm-service)
 %endif
 
 %if 0%{?tizen_feature_bookmark_support}
