@@ -322,7 +322,7 @@ static void SQLSelectResponseCallback(int requestId, data_control_h handle,
 }
 
 static void SQLInsertResponseCallback(int requestId, data_control_h handle,
-                                      int64_t inserted_row_id,
+                                      long long int inserted_row_id,
                                       bool providerResult,
                                       const char *error, void *user_data) {
   LoggerD("Enter");
