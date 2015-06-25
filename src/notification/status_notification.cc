@@ -17,6 +17,7 @@
 #include "notification/status_notification.h"
 
 #include <notification.h>
+#include <notification_internal.h>
 #include <app_control_internal.h>
 
 #include "common/converter.h"
