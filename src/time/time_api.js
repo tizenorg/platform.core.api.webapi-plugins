@@ -549,9 +549,8 @@ tizen.TZDate.prototype.toTimezone = function() {
 
   if (!args.timezone)
     throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR);
-  var d = new tizen.TZDate(new Date(this.date_.getTime()), args.timezone);
-  return d.addDuration(new tizen.TimeDuration((getTimezoneOffset(args.timezone) * 1) +
-                                              (getTimezoneOffset(this.timezone_) * -1)));
+
+  return new tizen.TZDate(new Date(this.date_.getTime()), args.timezone);
 };
 
 tizen.TZDate.prototype.toLocalTimezone = function() {
