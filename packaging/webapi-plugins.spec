@@ -273,7 +273,7 @@ Source0:    %{name}-%{version}.tar.gz
 #off for tizen 3.0 (no systeminfo definitions)
 %define tizen_feature_tv_display_support          0
 %define tizen_feature_tvinputdevice_support       1
-%define tizen_feature_tvwindow_support            1
+%define tizen_feature_tvwindow_support            0
 
 %endif # tizen_profile_tv
 

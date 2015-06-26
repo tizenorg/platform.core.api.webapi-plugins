@@ -16,13 +16,22 @@
  
 var native = new xwalk.utils.NativeManager(extension);
 var validator = xwalk.utils.validator;
-var validatorTypes = xwalk.utils.validator.Types;
+var WindowType = {
+  MAIN: 'MAIN'
+};
 
 //TVWindowManager interface
 function TVWindowManager() {
   if (!(this instanceof TVWindowManager)) {
     throw new TypeError;
   }
+  var ret = native.callSync('TVWindow_GetScreenDimension', {});
+  if (native.isFailure(ret)) {
+    throw native.getErrorObject(ret);
+  }
+  var result = native.getResultObject(ret);
+  this.max_width = result.width;
+  this.max_height = result.height;
 }
 
 
@@ -39,11 +48,77 @@ TVWindowManager.prototype.getSource = function(type) {
 };
 
 TVWindowManager.prototype.show = function(successCallback, errorCallback, rectangle, type) {
-  return undefined;
+  // todo privilege check
+//  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.TV_WINDOW);
+  var args = validator.validateArgs(arguments, [
+    {
+      name: 'successCallback',
+      type: validator.Types.FUNCTION
+    },
+    {
+      name: 'errorCallback',
+      type: validator.Types.FUNCTION,
+      optional: true,
+      nullable: true
+    }//,
+    //todo rectangle
+//    {
+//      name: 'type',
+//      optional: true,
+//      nullable: true,
+//      type: validator.Types.ENUM,
+//      values: Object.keys(WindowType)
+//    }
+  ]);
+
+  native.sendRuntimeAsyncMessage('tizen://tvwindow/show', null, function(result) {
+    if (native.isFailure(result)) {
+      native.callIfPossible(args.errorCallback, native.getErrorObject(result));
+    } else {
+      native.sendRuntimeAsyncMessage('tizen://tvwindow/reposition', '400,400,120,80', function(result) {
+        if (native.isFailure(result)) {
+          native.callIfPossible(args.errorCallback, native.getErrorObject(result));
+        } else {
+          //todo wait for tv-window ready
+          setTimeout(function() {
+              args.successCallback([400,400,120,80], "MAIN");
+          }, 1000);
+        }
+      });
+    }
+  });
 };
 
 TVWindowManager.prototype.hide = function(successCallback, errorCallback, type) {
-  return undefined;
+  // todo privilege check
+//  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.TV_WINDOW);
+  var args = validator.validateArgs(arguments, [
+    {
+      name: 'successCallback',
+      type: validator.Types.FUNCTION
+    },
+    {
+      name: 'errorCallback',
+      type: validator.Types.FUNCTION,
+      optional: true,
+      nullable: true
+    },
+    {
+      name: 'type',
+      optional: true,
+      nullable: true,
+      type: validator.Types.ENUM,
+      values: Object.keys(WindowType)
+    }
+  ]);
+
+  native.sendRuntimeAsyncMessage('tizen://tvwindow/hide', null, function(result) {
+    if (native.isFailure(result)) {
+      native.callIfPossible(args.errorCallback, native.getErrorObject(result));
+    } else {
+      native.callIfPossible(args.successCallback);
+    }
+  });
 };
 
 TVWindowManager.prototype.getRect = function(successCallback, errorCallback, unit, type) {

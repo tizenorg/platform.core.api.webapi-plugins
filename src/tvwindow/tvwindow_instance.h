@@ -33,6 +33,7 @@ class TVWindowInstance : public common::ParsedInstance {
   virtual ~TVWindowInstance();
 
  private:
+  void GetScreenDimension(const picojson::value& args, picojson::object& out);
 };
 
 }  // namespace tvwindow

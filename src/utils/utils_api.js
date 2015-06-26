@@ -115,6 +115,7 @@ function Utils() {
     SYSTEM: 'http://tizen.org/privilege/system',
     SYSTEMMANAGER: 'http://tizen.org/privilege/systemmanager',
     TELEPHONY: 'http://tizen.org/privilege/telephony',
+    TV_WINDOW: 'http://tizen.org/privilege/tv.window ',
     VOLUME_SET: 'http://tizen.org/privilege/volume.set'
   };
   Object.freeze(privilege);
@@ -1015,7 +1016,7 @@ NativeManager.prototype.sendRuntimeAsyncMessage = function(msg, body, callback) 
   var handler = function(response) {
     if (_type.isFunction(callback)) {
       var result = {};
-      if ('success' === response) {
+      if ('success' === response.toLowerCase()) {
         result.status = 'success';
       } else {
         result.status = 'error';
