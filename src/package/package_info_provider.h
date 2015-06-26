@@ -52,6 +52,9 @@ class PackageInfoProvider {
   static bool ConvertToPackageToObject(
       const pkgmgrinfo_pkginfo_h info, picojson::object& out);
 
+  static void GetTotalSize(const std::string& id, picojson::object* out);
+  static void GetDataSize(const std::string& id, picojson::object* out);
+
  private:
   static bool GetCurrentPackageId(char** package_id);
 };

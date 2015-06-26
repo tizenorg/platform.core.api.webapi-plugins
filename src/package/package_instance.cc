@@ -34,6 +34,9 @@ using common::NotFoundException;
 using common::TypeMismatchException;
 using common::SecurityException;
 
+using common::ErrorCode;
+using common::PlatformResult;
+
 typedef enum _PackageThreadWorkType {
   PackageThreadWorkNone = 0,
   PackageThreadWorkGetPackagesInfo,
@@ -246,6 +249,10 @@ PackageInstance::PackageInstance() {
       PackageManagerUnsetpackageinfoeventlistener);
   REGISTER_SYNC("PackageManager_getPackageInfo",
       PackageManagerGetpackageinfo);
+  REGISTER_SYNC("PackageManager_getTotalSize",
+      PackageManagerGetTotalSize);
+  REGISTER_SYNC("PackageManager_getDataSize",
+      PackageManagerGetDataSize);
   #undef REGISTER_SYNC
 }
 
@@ -391,6 +398,34 @@ void PackageInstance::PackageManagerGetpackageinfo(
     PackageInfoProvider::GetPackageInfo(id.c_str(), out);
   } else {
     PackageInfoProvider::GetPackageInfo(out);
+  }
+}
+
+void PackageInstance::PackageManagerGetTotalSize(const picojson::value& args,
+                                                 picojson::object& out) {
+  LoggerD("Enter");
+
+  const auto& id = args.get("id");
+
+  if (id.is<std::string>()) {
+    PackageInfoProvider::GetTotalSize(id.get<std::string>(), &out);
+  } else {
+    ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Missing id parameter"),
+                &out);
+  }
+}
+
+void PackageInstance::PackageManagerGetDataSize(const picojson::value& args,
+                                                picojson::object& out) {
+  LoggerD("Enter");
+
+  const auto& id = args.get("id");
+
+  if (id.is<std::string>()) {
+    PackageInfoProvider::GetDataSize(id.get<std::string>(), &out);
+  } else {
+    ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Missing id parameter"),
+                &out);
   }
 }
 
