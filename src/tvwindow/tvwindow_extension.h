@@ -25,14 +25,14 @@ namespace tvwindow {
 
 class TVWindowExtension : public common::Extension {
  public:
-    TVWindowExtension();
-    virtual ~TVWindowExtension();
+  TVWindowExtension();
+  virtual ~TVWindowExtension();
 
-    TVWindowManager& manager();
+  TVWindowManager& manager();
 
  private:
-    // common::Extension implementation.
-    virtual common::Instance* CreateInstance();
+  // common::Extension implementation.
+  virtual common::Instance* CreateInstance();
 };
 
 }  // namespace tvwindow

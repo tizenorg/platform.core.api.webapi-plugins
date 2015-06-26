@@ -14,9 +14,9 @@
  *    limitations under the License.
  */
  
-extension.setMessageListener(function(msg) {
-
-});
+var native = new xwalk.utils.NativeManager(extension);
+var validator = xwalk.utils.validator;
+var validatorTypes = xwalk.utils.validator.Types;
 
 //TVWindowManager interface
 function TVWindowManager() {
@@ -26,33 +26,27 @@ function TVWindowManager() {
 }
 
 
-TVWindowManager.prototype.getAvailableWindows = function(successCallback, errorCallback)
-    {
+TVWindowManager.prototype.getAvailableWindows = function(successCallback, errorCallback) {
   return undefined;
 };
 
-TVWindowManager.prototype.setSource = function(videosource, successCallback, errorCallback, type)
-    {
+TVWindowManager.prototype.setSource = function(videosource, successCallback, errorCallback, type) {
   return undefined;
 };
 
-TVWindowManager.prototype.getSource = function(type)
-    {
+TVWindowManager.prototype.getSource = function(type) {
   return undefined;
 };
 
-TVWindowManager.prototype.show = function(successCallback, errorCallback, rectangle, type)
-    {
+TVWindowManager.prototype.show = function(successCallback, errorCallback, rectangle, type) {
   return undefined;
 };
 
-TVWindowManager.prototype.hide = function(successCallback, errorCallback, type)
-    {
+TVWindowManager.prototype.hide = function(successCallback, errorCallback, type) {
   return undefined;
 };
 
-TVWindowManager.prototype.getRect = function(successCallback, errorCallback, unit, type)
-    {
+TVWindowManager.prototype.getRect = function(successCallback, errorCallback, unit, type) {
   return undefined;
 };
 

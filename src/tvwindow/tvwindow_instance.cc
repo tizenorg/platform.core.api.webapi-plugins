@@ -23,24 +23,11 @@ namespace extension {
 namespace tvwindow {
 
 TVWindowInstance::TVWindowInstance(TVWindowExtension const& extension) {
-    LOGD("Entered");
+  LoggerD("Entered");
 }
 
 TVWindowInstance::~TVWindowInstance() {
-    LOGD("Entered");
-}
-
-void TVWindowInstance::HandleMessage(const char* msg) {
-    // this is stub, no async messages
-    LOGD("Entered");
-}
-
-void TVWindowInstance::HandleSyncMessage(const char* msg) {
-    LOGD("Entered %s", msg);
-    picojson::object answer;
-    answer["answer"] = picojson::value(true);
-
-    SendSyncReply(picojson::value(answer).serialize().c_str());
+  LoggerD("Entered");
 }
 
 }  // namespace tvwindow

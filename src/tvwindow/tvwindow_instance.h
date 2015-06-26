@@ -33,8 +33,6 @@ class TVWindowInstance : public common::ParsedInstance {
   virtual ~TVWindowInstance();
 
  private:
-  virtual void HandleMessage(const char* msg);
-  virtual void HandleSyncMessage(const char* msg);
 };
 
 }  // namespace tvwindow
