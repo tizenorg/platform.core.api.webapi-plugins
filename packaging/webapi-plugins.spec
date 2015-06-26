@@ -11,6 +11,13 @@ Group:      Development/Libraries
 Summary:    Tizen Web APIs implemented
 Source0:    %{name}-%{version}.tar.gz
 
+%ifarch %{arm}
+# ARM
+%define tizen_is_emulator           0
+%else
+# I586
+%define tizen_is_emulator           1
+%endif
 
 ####################################################################
 #       Mobile Profile :  Redwood(SM-Z910F), KIRAN(Z130H)          #
@@ -461,6 +468,7 @@ GYP_OPTIONS="--depth=. -Dtizen=1 -Dextension_build_type=Debug -Dextension_host_o
 GYP_OPTIONS="$GYP_OPTIONS -Ddisplay_type=x11"
 
 # feature flags
+GYP_OPTIONS="$GYP_OPTIONS -Dtizen_is_emulator=%{?tizen_is_emulator}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_account_support=%{?tizen_feature_account_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_alarm_support=%{?tizen_feature_alarm_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_application_support=%{?tizen_feature_application_support}"

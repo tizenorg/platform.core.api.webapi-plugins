@@ -37,6 +37,9 @@
             ]
           },
         }],
+        ['tizen_is_emulator == 1', {
+          'defines': ['TIZEN_IS_EMULATOR'],
+        }],
       ],
     },
   ],
