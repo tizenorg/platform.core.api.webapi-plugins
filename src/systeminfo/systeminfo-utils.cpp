@@ -3238,17 +3238,41 @@ PlatformResult SystemInfoDeviceCapability::GetPlatformCoreCpuFrequency(int* retu
   LoggerD("Entered");
 
   std::string freq;
-  std::ifstream cpuinfo_max_freq("/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq");
-  if (!cpuinfo_max_freq.is_open()) {
+  std::string file_name;
+
+#ifdef TIZEN_IS_EMULATOR
+  file_name = "/proc/cpuinfo";
+#else
+  file_name = "/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq";
+#endif
+
+  std::ifstream cpuinfo_freq(file_name);
+  if (!cpuinfo_freq.is_open()) {
     LoggerE("Failed to get cpu frequency");
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Unable to open file");
   }
 
-  getline(cpuinfo_max_freq, freq);
-  cpuinfo_max_freq.close();
+#ifdef TIZEN_IS_EMULATOR
+  //get frequency value from cpuinfo file
+  //example entry for frequency looks like below
+  //cpu MHz   : 3392.046
+  std::size_t found;
+  do {
+    getline(cpuinfo_freq, freq);
+    found = freq.find("cpu MHz");
+  } while (std::string::npos == found && !cpuinfo_freq.eof());
 
-  LoggerD("cpu frequency : %s", freq.c_str());
+  found = freq.find(":");
+  if (std::string::npos != found) {
+    *return_value = std::stoi(freq.substr(found + 2));
+  }
+#else
+  getline(cpuinfo_freq, freq);
   *return_value = std::stoi(freq) / 1000; // unit: MHz
+#endif
+
+  cpuinfo_freq.close();
+  LoggerD("cpu frequency : %d", *return_value);
 
   return PlatformResult(ErrorCode::NO_ERROR);
 }
