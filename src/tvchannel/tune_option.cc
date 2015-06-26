@@ -46,7 +46,7 @@ TuneOption::~TuneOption() {
 }
 
 TuneOption::TuneOption(picojson::object const& _tuneDict) {
-    LOGD("Enter");
+    LoggerD("Enter");
     initialize();
     picojson::object tuneDict = _tuneDict;
     if (tuneDict.find("major") != tuneDict.end()) {

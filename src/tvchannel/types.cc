@@ -39,7 +39,7 @@ NavigatorMode stringToNavigatorMode(const std::string &mode) {
     if (mode == NAVIGATOR_MODE_FAVORITE) {
         return NavigatorMode::FAVORITE;
     }
-    LOGE("Unrecognized mode");
+    LoggerE("Unrecognized mode");
     throw common::UnknownException("Unrecognized mode");
 }
 
@@ -57,7 +57,7 @@ std::string windowTypeToString(WindowType type) {
 //          return TIZEN_TV_WINDOW_TYPE_PIP;
 //          break;
     default:
-        LOGE("Unrecognized window type: %d", type);
+        LoggerE("Unrecognized window type: %d", type);
         throw common::UnknownException("Unrecognized window type");
     }
 }
@@ -69,7 +69,7 @@ WindowType stringToWindowType(std::string type) {
 //  } else if (type == TIZEN_TV_WINDOW_TYPE_PIP) {
 //      return PIP;
     } else {
-        LOGE("Unrecognized window type: %s", type.c_str());
+        LoggerE("Unrecognized window type: %s", type.c_str());
         throw common::UnknownException("Unrecognized window type");
     }
 }
