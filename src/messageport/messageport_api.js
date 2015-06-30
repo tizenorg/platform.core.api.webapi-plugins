@@ -263,25 +263,33 @@ function RemoteMessagePort(messagePortName, appId, isTrusted) {
   });
 }
 
-RemoteMessagePort.prototype.sendMessage = function(data) {
+RemoteMessagePort.prototype.sendMessage = function() {
   var args = validator_.validateArgs(arguments, [
     {'name' : 'data', 'type': types_.ARRAY},
     {'name' : 'localMessagePort', 'type': types_.PLATFORM_OBJECT, 'optional' : true,
       'nullable' : true, 'values' : LocalMessagePort }
   ]);
 
-  var filtered_data = new Array(data.length);
+  var filtered_data = new Array(args.data.length);
+  var unique_data_key = {};
 
-  for (var i = 0, j = data.length; i < j; i++) {
-    if (Object.hasOwnProperty(data[i], 'key'))
+  for (var i = 0, j = args.data.length; i < j; i++) {
+    if (!args.data[i].hasOwnProperty('key')) {
       throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
-          'The input parameter contains an invalid value.');
-    if (Object.hasOwnProperty(data[i], 'value'))
+          'MessagePortDataItem should contain \'key\' property.');
+    }
+    var key = args.data[i].key;
+    if ('' === key) {
       throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
-          'The input parameter contains an invalid value.');
-    filtered_data[i] = { key: data[i].key, value: data[i].value };
+          'Property \'key\' should not be empty.');
+    }
+    if (true === unique_data_key[key]) {
+      throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
+          'Property \'key\' should not be duplicated.');
+    }
+    filtered_data[i] = { key: key, value: args.data[i].value };
+    unique_data_key[key] = true;
   }
-
 
   var nativeParam = {
     'appId': this.appId,
@@ -291,16 +299,7 @@ RemoteMessagePort.prototype.sendMessage = function(data) {
     'local_port_id': args.localMessagePort ? ports[args.localMessagePort.messagePortName] : -1
   };
 
-  try {
-    var syncResult = callNative('RemoteMessagePort_sendMessage', nativeParam);
-
-  } catch (e) {
-    throw e;
-  }
-
+  var syncResult = callNative('RemoteMessagePort_sendMessage', nativeParam);
 };
 
-
-
 exports = new MessagePortManager();
-

@@ -21,10 +21,13 @@
 #include <unistd.h>
 #include <dirent.h>
 #include <common/logger.h>
+#include <common/tools.h>
 #include <common/scope_exit.h>
 
 namespace extension {
 namespace filesystem {
+
+using common::tools::GetErrorString;
 
 FilesystemStat::FilesystemStat()
     : error(FilesystemError::None),
@@ -63,7 +66,7 @@ FilesystemStat FilesystemStat::getStat(const std::string& path) {
   LoggerD("enter");
 
   if (0 != stat(path.c_str(), &aStatObj)) {
-    LoggerE("Failed to stat: (%d) %s", errno, strerror(errno));
+    LoggerE("Failed to stat: (%d) %s", errno, GetErrorString(errno).c_str());
     if (ENOENT == errno) {
       _result.error = FilesystemError::NotFound;
     } else {
@@ -93,7 +96,7 @@ FilesystemStat FilesystemStat::getStat(const std::string& path) {
     // Count entries in directory
     DIR* dir = opendir(path.c_str());
     if (!dir) {
-      LoggerE("Cannot open directory: %s", strerror(errno));
+      LoggerE("Cannot open directory: %s", GetErrorString(errno).c_str());
       return _result;
     }
     SCOPE_EXIT {
@@ -113,7 +116,7 @@ FilesystemStat FilesystemStat::getStat(const std::string& path) {
     }
 
     if (status != 0) {
-      LoggerE("Cannot count files in directory: %s", strerror(errno));
+      LoggerE("Cannot count files in directory: %s", GetErrorString(errno).c_str());
       return _result;
     }
   }

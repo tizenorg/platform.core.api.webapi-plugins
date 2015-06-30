@@ -54,6 +54,10 @@ class PackageInstance : public common::ParsedInstance {
     (const picojson::value& args, picojson::object& out);
   void PackageManagerGetpackageinfo
     (const picojson::value& args, picojson::object& out);
+  void PackageManagerGetTotalSize(const picojson::value& args,
+                                  picojson::object& out);
+  void PackageManagerGetDataSize(const picojson::value& args,
+                                 picojson::object& out);
   void PackageManagerSetpackageinfoeventlistener
     (const picojson::value& args, picojson::object& out);
   void PackageManagerUnsetpackageinfoeventlistener

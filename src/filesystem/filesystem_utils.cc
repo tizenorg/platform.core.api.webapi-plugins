@@ -15,6 +15,7 @@
  */
 #include "filesystem_utils.h"
 
+#include <glib.h>
 #include <libgen.h>
 #include "common/logger.h"
 
@@ -34,9 +35,14 @@ std::string get_storage_dir_path(int id, storage_directory_e typeToCheck) {
 }
 
 std::string get_dirname(const std::string& path) {
-  // dirname will modify content: pass a copy
-  std::string buf = path.c_str();
-  return std::string(dirname(const_cast<char*>(buf.c_str())));
+  char* dir = g_path_get_dirname(path.c_str());
+  if (dir) {
+    std::string dir_result(dir);
+    g_free(dir);
+    return dir_result;
+  } else {
+    return std::string(".");
+  }
 }
 
 std::string get_basename(const std::string& path) {

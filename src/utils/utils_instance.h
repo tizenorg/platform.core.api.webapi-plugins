@@ -17,6 +17,7 @@ class UtilsInstance : public common::ParsedInstance {
   virtual ~UtilsInstance() {}
 
  private:
+  void GetPkgApiVersion(const picojson::value& args, picojson::object& out);
   void CheckPrivilegeAccess(const picojson::value& args, picojson::object& out);
   void CheckBackwardCompabilityPrivilegeAccess(const picojson::value& args, picojson::object& out);
 };

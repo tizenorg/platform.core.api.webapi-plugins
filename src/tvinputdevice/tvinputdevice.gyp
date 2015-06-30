@@ -14,11 +14,7 @@
         'tvinputdevice_extension.cc',
         'tvinputdevice_extension.h',
         'tvinputdevice_instance.cc',
-        'tvinputdevice_instance.h',
-        'tvinputdevice_key.cc',
-        'tvinputdevice_key.h',
-        'tvinputdevice_manager.cc',
-        'tvinputdevice_manager.h'
+        'tvinputdevice_instance.h'
       ],
       'includes': [
         '../common/pkg-config.gypi',

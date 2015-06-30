@@ -13,6 +13,8 @@
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
  */
+
+var _global = window || global || {};
  
 var utils_ = xwalk.utils;
 var type_ = utils_.type;
@@ -44,7 +46,7 @@ var _toJsonObject = function(obj) {
     }
     return ret;
   }
-  if (obj instanceof Object) {
+  if (obj instanceof _global.Object) {
     ret = {};
     for (var prop in obj) {
       if (obj.hasOwnProperty(prop)) {

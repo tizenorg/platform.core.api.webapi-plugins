@@ -3,6 +3,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+var _global = window || global || {};
+
 /**
  * @deprecated Used only by validateArguments()
  */
@@ -24,7 +26,7 @@ DateConverter.prototype.toTZDate = function(v, isAllDay) {
     isAllDay = false;
   }
 
-  if (!(v instanceof Object)) {
+  if (!(v instanceof _global.Object)) {
     return v;
   }
 
@@ -198,6 +200,14 @@ Utils.prototype.validateObject = function(object, signature, attributes) {
   return true;
 };
 
+Utils.prototype.getPkgApiVersion = function() {
+  var result = native_.callSync('Utils_getPkgApiVersion');
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
+  }
+  return native_.getResultObject(result);
+};
+
 Utils.prototype.checkPrivilegeAccess = function(privilege) {
   var result = native_.callSync('Utils_checkPrivilegeAccess', {
     privilege : _toString(privilege),
@@ -207,6 +217,40 @@ Utils.prototype.checkPrivilegeAccess = function(privilege) {
     throw native_.getErrorObject(result);
   }
 };
+
+Utils.prototype.checkPrivilegeAccess4Ver = function(new_ver, new_priv, old_priv) {
+  var app_ver = this.getPkgApiVersion();
+
+  var arr_new_ver = new_ver.split(".");
+  var arr_app_ver = app_ver.split(".");
+  var num_new;
+  var num_app;
+  var sel = 0;
+
+  var i;
+  var length = Math.min(arr_new_ver.length, arr_app_ver.length);
+  for (i = 0; i < length; i++) {
+    num_new = parseInt(arr_new_ver[i]);
+    num_app = parseInt(arr_app_ver[i]);
+    if (num_app < num_new) {
+      sel = 1;
+      break;
+    } else if (num_app > num_new) {
+      sel = -1;
+      break;
+    }
+  }
+
+  if (sel == 0 && arr_new_ver.length > arr_app_ver.length) {
+    sel = 1;
+  }
+
+  if (sel != 1) {
+    this.checkPrivilegeAccess(new_priv);
+  } else if (old_priv != undefined) {
+    this.checkPrivilegeAccess(old_priv);
+  }
+}
 
 Utils.prototype.checkBackwardCompabilityPrivilegeAccess = function(current_privilege, previous_privilege) {
   var result = native_.callSync('Utils_checkBackwardCompabilityPrivilegeAccess', {
@@ -1282,7 +1326,7 @@ var NativeBridge = (function (extension, debug) {
 // See http://168.219.209.56/gerrit/#/c/23472/ for more details.
 // In future exception definition could be moved back to Tizen module.
 function __isObject(object) {
-  return object instanceof Object;
+  return object instanceof _global.Object;
 }
 
 function __isUndefined(object) {

@@ -1313,21 +1313,8 @@ var _bleScanListener = _singleListenerBuilder('BluetoothLEScanCallback',
   var ret = true;
 
   switch (event.action) {
-    case 'onstarted':
-      break;
-
-    case 'ondevicefound':
+    case 'onsuccess':
       d = new BluetoothLEDevice(event.data);
-      break;
-
-    case 'onfinished':
-      d = [];
-      event.data.forEach(function(data) {
-        d.push(new BluetoothLEDevice(data));
-      });
-
-      // stop listening
-      ret = false;
       break;
 
     case 'onerror':
@@ -1384,7 +1371,7 @@ BluetoothLEAdapter.prototype.startScan = function() {
   var args = AV.validateMethod(arguments, [{
     name: 'successCallback',
     type: AV.Types.LISTENER,
-    values: ['onstarted', 'ondevicefound', 'onfinished']
+    values: ['onsuccess']
   }, {
     name: 'errorCallback',
     type: AV.Types.FUNCTION,
@@ -1406,12 +1393,11 @@ BluetoothLEAdapter.prototype.stopScan = function() {
 
   xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH);
 
-  // _bleScanListener.removeListener() is going to be called in 'onfinished' handler
+  _bleScanListener.removeListener();
 
   var result = native.callSync('BluetoothLEAdapter_stopScan', {});
 
   if (native.isFailure(result)) {
-    _bleScanListener.removeListener();
     throw native.getErrorObject(result);
   }
 };

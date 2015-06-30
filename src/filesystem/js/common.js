@@ -83,6 +83,7 @@ var commonFS_ = (function() {
     var storages = native_.getResultObject(result);
     for (var i = 0; i < storages.length; ++i) {
       cacheStorages.push({
+        path: storages[i].path,
         label: storages[i].name,
         type: storages[i].type,
         state: storages[i].state,
@@ -126,6 +127,18 @@ var commonFS_ = (function() {
       } else {
         //If path token is not present in cache then it is invalid
         _fileRealPath = undefined;
+        // check storages
+        for (var j = 0; j < cacheStorages.length; ++j) {
+          if (cacheStorages[j].label === _pathTokens[0] && (
+            cacheStorages[j].state === undefined ||
+            cacheStorages[j].state === FileSystemStorageState.MOUNTED)) {
+            _fileRealPath = cacheStorages[j].path;
+            for (var i = 1; i < _pathTokens.length; ++i) {
+              _fileRealPath += '/' + _pathTokens[i];
+            }
+            break;
+          }
+        }
       }
     } else {
       _fileRealPath = aPath;

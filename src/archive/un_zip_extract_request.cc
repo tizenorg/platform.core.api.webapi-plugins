@@ -26,6 +26,8 @@
 #include <utime.h>
 
 #include "common/logger.h"
+#include "common/tools.h"
+
 #include "filesystem_file.h"
 #include "archive_file.h"
 #include "archive_utils.h"
@@ -35,6 +37,7 @@ namespace extension {
 namespace archive {
 
 using namespace common;
+using common::tools::GetErrorString;
 
 FilePathStatus getPathStatus(const std::string& path)
 {
@@ -94,8 +97,8 @@ void createMissingDirectories(const std::string& path, bool check_first = true)
             if(FPS_DIRECTORY != status) {
                 //TODO investigate 0775 (mode) - filesystem assumed that file should have parent mode
                 if(mkdir(left_part.c_str(), 0775) == -1) {
-                    LoggerE("Couldn't create new directory: %s errno:%s",
-                            left_part.c_str(), strerror(errno));
+                    LoggerE("Couldn't create new directory: %s errno: %s",
+                            left_part.c_str(), GetErrorString(errno).c_str());
                //TODO check why mkdir return -1 but directory is successfully created
                //     throw UnknownException(
                //             "Could not create new directory");
@@ -125,7 +128,7 @@ void changeFileAccessAndModifyDate(const std::string& filepath, tm_unz tmu_date)
 
   ut.actime = ut.modtime = mktime(&newdate);
   if(utime(filepath.c_str(), &ut) == -1) {
-      LoggerE("Couldn't set time for: [%s] errno:%s", filepath.c_str(), strerror(errno));
+      LoggerE("Couldn't set time for: [%s] errno: %s", filepath.c_str(), GetErrorString(errno).c_str());
   }
 }
 
@@ -194,8 +197,8 @@ UnZipExtractRequest::~UnZipExtractRequest()
     if(m_delete_output_file && !m_is_directory_entry) {
         if(std::remove(m_output_filepath.c_str()) != 0) {
             LoggerE("Couldn't remove partial file! "
-                    "std::remove(\"%s\") failed with errno:%s",
-                    m_output_filepath.c_str(), strerror(errno));
+                    "std::remove(\"%s\") failed with errno: %s",
+                    m_output_filepath.c_str(), GetErrorString(errno).c_str());
         }
     }
 
@@ -289,8 +292,8 @@ PlatformResult UnZipExtractRequest::handleDirectoryEntry()
             if(m_callback->getOverwrite()) {    //Is a file & overwrite is set:
                 std::string fn = removeTrailingDirectorySlashFromPath(m_new_dir_path);
                 if(std::remove(fn.c_str()) != 0) {
-                    LoggerE("std::remove(\"%s\") failed with errno:%s",
-                            m_new_dir_path.c_str(), strerror(errno));
+                    LoggerE("std::remove(\"%s\") failed with errno: %s",
+                            m_new_dir_path.c_str(), GetErrorString(errno).c_str());
                     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not overwrite file in output directory");
                 }
             } else {                            //Is a file & overwrite is not set:
@@ -303,8 +306,8 @@ PlatformResult UnZipExtractRequest::handleDirectoryEntry()
 
         //Try to create new directory in output directory
         if(mkdir(m_new_dir_path.c_str(), 0775) == -1) {
-            LoggerE("Couldn't create new directory: %s errno:%s",
-                    m_new_dir_path.c_str(), strerror(errno));
+            LoggerE("Couldn't create new directory: %s errno: %s",
+                    m_new_dir_path.c_str(), GetErrorString(errno).c_str());
             return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not create new directory in extract output directory");
         }
     }
@@ -340,8 +343,8 @@ PlatformResult UnZipExtractRequest::prepareOutputSubdirectory()
         //Try to create new directory in output directory
         //TODO investigate 0775 (mode) - filesystem assumed that file should have parent mode
         if(mkdir(m_new_dir_path.c_str(), 0775) == -1) {
-            LoggerW("couldn't create new directory: %s errno:%s",
-                    m_new_dir_path.c_str(), strerror(errno));
+            LoggerW("couldn't create new directory: %s errno: %s",
+                    m_new_dir_path.c_str(), GetErrorString(errno).c_str());
             //TODO check why mkdir return -1 but directory is successfully created
             //     throw UnknownException(
             //     "Could not create new directory in extract output directory");

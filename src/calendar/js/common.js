@@ -14,6 +14,8 @@
  *    limitations under the License.
  */
 
+var _global = window || global || {};
+
 var utils_ = xwalk.utils;
 var dateConverter_ = utils_.dateConverter;
 var type_ = utils_.type;
@@ -115,7 +117,7 @@ ItemConverter.prototype.fromTizenObject = function(item) {
     } else if (item[prop] instanceof Array) {
       tmp[prop] = [];
       for (var i = 0, length = item[prop].length; i < length; i++) {
-        if (item[prop][i] instanceof Object) {
+        if (item[prop][i] instanceof _global.Object) {
           tmp[prop][i] = {};
           for (var p in item[prop][i]) {
             if (item[prop][i][p] instanceof tizen.TZDate) {
@@ -128,7 +130,7 @@ ItemConverter.prototype.fromTizenObject = function(item) {
           tmp[prop] = item[prop];
         }
       }
-    } else if (item[prop] instanceof Object) {
+    } else if (item[prop] instanceof _global.Object) {
       tmp[prop] = {};
       for (var p in item[prop]) {
         if (item[prop][p] instanceof tizen.TZDate) {

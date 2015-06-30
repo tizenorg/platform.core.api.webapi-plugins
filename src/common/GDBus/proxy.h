@@ -22,7 +22,7 @@
 #ifndef __TIZEN_DBUS_PROXY_H__
 #define __TIZEN_DBUS_PROXY_H__
 
-#include "Connection.h"
+#include "common/GDBus/connection.h"
 #include <memory>
 #include <string>
 #include <mutex>
@@ -30,11 +30,9 @@
 #include "common/callback_user_data.h"
 #include "common/picojson.h"
 #include "common/platform_result.h"
-#include "../messaging_instance.h"
 
-namespace extension {
-namespace messaging {
-namespace DBus {
+namespace common {
+namespace dbus {
 
 
 class Proxy;
@@ -45,17 +43,7 @@ typedef std::shared_ptr<Proxy> ProxyPtr;
  */
 class Proxy {
 public:
-    /**
-     * List of Tizen path and interface names:
-     */
-    static const char* DBUS_PATH_NETWORK_STATUS;
-    static const char* DBUS_IFACE_NETWORK_STATUS;
-    static const char* DBUS_PATH_EMAIL_STORAGE_CHANGE;
-    static const char* DBUS_IFACE_EMAIL_STORAGE_CHANGE;
-    /**
-     * Name of email signal
-     */
-    static const char* DBUS_NAME_SIGNAL_EMAIL;
+
     virtual ~Proxy();
     bool isNotProxyGot() { return !m_proxy || m_error; };
 
@@ -121,8 +109,7 @@ private:
     bool m_dbus_signal_subscribed;
 };
 
-}  // namespace DBus
-}  // namespace messaging
-}  // namespace extension
+} //namespace dbus
+} //namespace common
 
 #endif // __TIZEN_DBUS_PROXY_H__

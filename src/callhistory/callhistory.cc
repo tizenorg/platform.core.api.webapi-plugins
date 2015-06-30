@@ -16,6 +16,8 @@
 
 #include "callhistory.h"
 
+#include <thread>
+
 #include <tapi_common.h>
 #include <ITapiSim.h>
 #include <contacts_db_extension.h>
@@ -32,6 +34,9 @@ using namespace tools;
 
 namespace extension {
 namespace callhistory {
+
+std::vector<CallHistory*> CallHistory::instances_;
+std::mutex CallHistory::instances_mutex_;
 
 namespace {
 static void get_sim_msisdn_cb(TapiHandle *handle, int result, void *data, void *user_data)
@@ -67,8 +72,11 @@ CallHistory::CallHistory(CallHistoryInstance& instance)
   } else {
     LoggerD("Failed to connect Call history DB");
   }
-  //TODO Uncomment below line if getting sim info will be possible
-  //loadPhoneNumbers();
+
+  {
+    std::lock_guard<std::mutex> lock(instances_mutex_);
+    instances_.push_back(this);
+  }
 }
 
 CallHistory::~CallHistory()
@@ -89,81 +97,86 @@ CallHistory::~CallHistory()
   } else {
     LoggerD("Failed to disconnect Call history DB");
   }
+
+  {
+    std::lock_guard<std::mutex> lock(instances_mutex_);
+    for (auto it = instances_.begin(); it != instances_.end(); ++it) {
+      if (*it == this) {
+        instances_.erase(it);
+        break;
+      }
+    }
+  }
 }
 
-void CallHistory::find(const picojson::object& args)
+void CallHistory::FindThread(const picojson::object& args, CallHistory* call_history)
 {
   LoggerD("Entered");
 
-  const auto it_args_end = args.end();
-  const auto it_filter = args.find("filter");
-  picojson::object filter_obj;
-  if (it_filter != it_args_end &&
-      it_filter->second.is<picojson::object>()) {
-    filter_obj = it_filter->second.get<picojson::object>();
-  }
-
-  const auto it_sort_mode = args.find("sortMode");
-  picojson::object sort_mode;
-  if (it_sort_mode != it_args_end &&
-      it_sort_mode->second.is<picojson::object>()) {
-    sort_mode = it_sort_mode->second.get<picojson::object>();
-  }
-
-  std::string sort_attr_name;
-  std::string sort_order;
-  if (!sort_mode.empty()) {
-    const auto it_sort_end = sort_mode.end();
-    const auto it_sort_attr_name = sort_mode.find("attributeName");
-    if (it_sort_attr_name != it_sort_end &&
-        it_sort_attr_name->second.is<std::string>()) {
-      sort_attr_name = it_sort_attr_name->second.get<std::string>();
-    }
-
-    const auto it_sort_order = sort_mode.find("order");
-    if (it_sort_order != it_sort_end &&
-        it_sort_order->second.is<std::string>()) {
-      sort_order = it_sort_order->second.get<std::string>();
-    }
-  }
-
-  const auto it_limit = args.find("limit");
-  int limit = 0;
-  if (it_limit != it_args_end &&
-      it_limit->second.is<double>()) {
-    limit = static_cast<int>(it_limit->second.get<double>());
-  }
-
-  const auto it_offset = args.find("offset");
-  int offset = 0;
-  if (it_offset != it_args_end &&
-      it_offset->second.is<double>()) {
-    offset = static_cast<int>(it_offset->second.get<double>());
-  }
-
+  std::shared_ptr<picojson::value> response{new picojson::value(picojson::object())};
+  int phone_numbers = call_history->getPhoneNumbers().size();
   const double callback_id = args.find("callbackId")->second.get<double>();
-  int phone_numbers = m_phone_numbers.size();
 
-  auto find = [this, filter_obj, sort_attr_name, sort_order, limit, offset, phone_numbers](
-      const std::shared_ptr<picojson::value>& response) -> void {
+  if (phone_numbers == 0) {
+    LoggerE("Phone numbers list is empty.");
+    ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Phone numbers list is empty."),
+                &response->get<picojson::object>());
+  } else {
+    const auto it_args_end = args.end();
+    const auto it_filter = args.find("filter");
+    picojson::object filter_obj;
+    if (it_filter != it_args_end &&
+        it_filter->second.is<picojson::object>()) {
+      filter_obj = it_filter->second.get<picojson::object>();
+    }
+
+    const auto it_sort_mode = args.find("sortMode");
+    picojson::object sort_mode;
+    if (it_sort_mode != it_args_end &&
+        it_sort_mode->second.is<picojson::object>()) {
+      sort_mode = it_sort_mode->second.get<picojson::object>();
+    }
+
+    std::string sort_attr_name;
+    std::string sort_order;
+    if (!sort_mode.empty()) {
+      const auto it_sort_end = sort_mode.end();
+      const auto it_sort_attr_name = sort_mode.find("attributeName");
+      if (it_sort_attr_name != it_sort_end &&
+          it_sort_attr_name->second.is<std::string>()) {
+        sort_attr_name = it_sort_attr_name->second.get<std::string>();
+      }
+
+      const auto it_sort_order = sort_mode.find("order");
+      if (it_sort_order != it_sort_end &&
+          it_sort_order->second.is<std::string>()) {
+        sort_order = it_sort_order->second.get<std::string>();
+      }
+    }
+
+    const auto it_limit = args.find("limit");
+    int limit = 0;
+    if (it_limit != it_args_end &&
+        it_limit->second.is<double>()) {
+      limit = static_cast<int>(it_limit->second.get<double>());
+    }
+
+    const auto it_offset = args.find("offset");
+    int offset = 0;
+    if (it_offset != it_args_end &&
+        it_offset->second.is<double>()) {
+      offset = static_cast<int>(it_offset->second.get<double>());
+    }
 
     contacts_query_h query = nullptr;
     contacts_filter_h filter = nullptr;
     contacts_list_h record_list = nullptr;
+
     SCOPE_EXIT {
       contacts_query_destroy(query);
       contacts_filter_destroy(filter);
       contacts_list_destroy(record_list, true);
     };
-
-    if (phone_numbers == 0) {
-      LoggerE("Phone numbers list is empty.");
-      //Uncomment below line if getting sim info will be possible (loadPhonesNumbers)
-      //            ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR,
-      //                        "Phone numbers list is empty."),
-      //                    &response->get<picojson::object>());
-      //            return;
-    }
 
     int ret = CONTACTS_ERROR_NONE;
     ret = contacts_connect_on_thread();
@@ -182,9 +195,10 @@ void CallHistory::find(const picojson::object& args)
     }
 
     //filter
+    CallHistoryUtils& utils = call_history->getUtils();
     if (!filter_obj.empty()) {
       LoggerD("Filter is set");
-      utils_.createFilter(filter, filter_obj);
+      utils.createFilter(filter, filter_obj);
       ret = contacts_filter_add_operator(filter, CONTACTS_FILTER_OPERATOR_AND);
       if (CONTACTS_ERROR_NONE != ret) {
         LoggerW("contacts_filter_add_operator failed");
@@ -208,7 +222,7 @@ void CallHistory::find(const picojson::object& args)
       if (STR_ORDER_ASC == sort_order) {
         is_asc = true;
       }
-      unsigned int attribute = utils_.convertAttributeName(sort_attr_name);
+      unsigned int attribute = utils.convertAttributeName(sort_attr_name);
       ret = contacts_query_set_sort(query, attribute, is_asc);
     } else {
       ret = contacts_query_set_sort(query, _contacts_phone_log.id, is_asc);
@@ -228,7 +242,7 @@ void CallHistory::find(const picojson::object& args)
     picojson::array& array = obj.insert(std::make_pair(STR_DATA, picojson::value(
         picojson::array()))).first->second.get<picojson::array>();
     if (record_list) {
-      utils_.parseRecordList(&record_list, array);
+      utils.parseRecordList(&record_list, array);
     }
 
     ret = contacts_disconnect_on_thread();
@@ -237,19 +251,83 @@ void CallHistory::find(const picojson::object& args)
     }
 
     ReportSuccess(response->get<picojson::object>());
+  }
 
-  };
-
-  auto find_response = [this, callback_id](const std::shared_ptr<picojson::value>& response) -> void {
+  auto find_response = [call_history, callback_id](const std::shared_ptr<picojson::value>& response) -> void {
     picojson::object& obj = response->get<picojson::object>();
     obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
-    instance_.PostMessage(response->serialize().c_str());
+    CallHistory::PostMessage(call_history, response->serialize());
   };
 
-  TaskQueue::GetInstance().Queue<picojson::value>(
-      find,
-      find_response,
-      std::shared_ptr<picojson::value>(new picojson::value(picojson::object())));
+  TaskQueue::GetInstance().Async<picojson::value>(find_response, response);
+}
+
+void CallHistory::LoadPhoneNumbers(const picojson::object& args, CallHistory* call_history)
+{
+  LoggerD("Entered");
+
+  char** cp_list =  tel_get_cp_name_list();
+
+  if (cp_list) {
+    unsigned int modem_num = 0;
+    std::vector<std::string>& phone_numbers = call_history->getPhoneNumbers();
+
+    while (cp_list[modem_num]) {
+      std::string n = "";
+      TapiHandle* handle = nullptr;
+      do {
+        std::promise<std::string> prom;
+        handle = tel_init(cp_list[modem_num]);
+        if (!handle) {
+          LoggerE("Failed to init tapi handle.");
+          break;
+        }
+
+        int card_changed;
+        TelSimCardStatus_t card_status = TAPI_SIM_STATUS_UNKNOWN;
+        int ret = tel_get_sim_init_info(handle, &card_status, &card_changed);
+        if (TAPI_API_SUCCESS != ret) {
+          LoggerE("Failed to get sim init info: %d", ret);
+          break;
+        }
+        LoggerD("Card status: %d Card Changed: %d", card_status, card_changed);
+        if (TAPI_SIM_STATUS_SIM_INIT_COMPLETED != card_status) {
+          LoggerW("SIM is not ready, we can't get other properties");
+          break;
+        }
+
+        ret = tel_get_sim_msisdn(handle, get_sim_msisdn_cb, &prom);
+        if (TAPI_API_SUCCESS != ret) {
+          LoggerE("Failed to get msisdn : %d", ret);
+          break;
+        }
+
+        auto fut = prom.get_future();
+        LoggerD("wait...");
+        fut.wait();
+        n = fut.get();
+        LoggerD("Phone number [%d] : %s", modem_num, n.c_str());
+      } while(false);
+
+      phone_numbers.push_back(n);
+      tel_deinit(handle);
+      modem_num++;
+    }
+
+    g_strfreev(cp_list);
+  }
+
+  FindThread(args, call_history);
+}
+
+void CallHistory::find(const picojson::object& args) {
+  LoggerD("Entered");
+
+  if (m_phone_numbers.size() == 0) {
+    std::thread(LoadPhoneNumbers, args, this).detach();
+  } else {
+    std::thread(FindThread, args, this).detach();
+  }
 }
 
 PlatformResult CallHistory::remove(const picojson::object& args)
@@ -319,7 +397,7 @@ common::PlatformResult CallHistory::removeBatch(const picojson::object& args)
   auto remove_batch_response = [this, callback_id](const std::shared_ptr<picojson::value>& response) -> void {
     picojson::object& obj = response->get<picojson::object>();
     obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
-    instance_.PostMessage(response->serialize().c_str());
+    CallHistory::PostMessage(this, response->serialize());
   };
 
   TaskQueue::GetInstance().Queue<picojson::value>(
@@ -433,7 +511,7 @@ void CallHistory::removeAll(const picojson::object& args)
   auto remove_all_response = [this, callback_id](const std::shared_ptr<picojson::value>& response) -> void {
     picojson::object& obj = response->get<picojson::object>();
     obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
-    instance_.PostMessage(response->serialize().c_str());
+    CallHistory::PostMessage(this, response->serialize());
   };
 
   TaskQueue::GetInstance().Queue<picojson::value>(
@@ -445,6 +523,11 @@ void CallHistory::removeAll(const picojson::object& args)
 std::vector<std::string>& CallHistory::getPhoneNumbers()
 {
   return m_phone_numbers;
+}
+
+CallHistoryUtils& CallHistory::getUtils()
+{
+  return utils_;
 }
 
 void CallHistory::changeListenerCB(const char* view_uri, char *changes, void* user_data)
@@ -483,9 +566,11 @@ void CallHistory::changeListenerCB(const char* view_uri, char *changes, void* us
   picojson::array& removed_array = removed_obj.insert(std::make_pair(STR_DATA, picojson::value(
       picojson::array()))).first->second.get<picojson::array>();
 
-  token_type = strtok(changes, seps);
+  char* saveptr = nullptr;
+
+  token_type = strtok_r(changes, seps, &saveptr);
   while (NULL != token_type) {
-    token_id = strtok(NULL, seps);
+    token_id = strtok_r(NULL, seps, &saveptr);
     change_type = atoi((const char*)token_type);
 
     if (NULL != token_id) {
@@ -531,7 +616,7 @@ void CallHistory::changeListenerCB(const char* view_uri, char *changes, void* us
     contacts_query_destroy(query);
     contacts_filter_destroy(filter);
 
-    token_type = strtok( NULL, seps);
+    token_type = strtok_r( NULL, seps, &saveptr);
   }
 
   if (added_array.size() > 0) {
@@ -546,6 +631,20 @@ void CallHistory::changeListenerCB(const char* view_uri, char *changes, void* us
     removed_obj[STR_ACTION] = picojson::value("onremoved");
     h->instance_.CallHistoryChange(removed_obj);
   }
+}
+
+void CallHistory::PostMessage(const CallHistory* instance, const std::string& msg) {
+  LoggerD("Entered");
+  std::lock_guard<std::mutex> lock(instances_mutex_);
+
+  for (auto it = instances_.begin(); it != instances_.end(); ++it) {
+    if (*it == instance) {
+      instance->instance_.PostMessage(msg.c_str());
+      return;
+    }
+  }
+
+  LoggerE("Instance [%p] not found, ignoring message", instance);
 }
 
 PlatformResult CallHistory::startCallHistoryChangeListener()
@@ -630,64 +729,6 @@ PlatformResult CallHistory::setMissedDirection(int uid)
   }
 
   return PlatformResult(ErrorCode::NO_ERROR);
-}
-
-void CallHistory::loadPhoneNumbers()
-{
-  LoggerD("Entered");
-
-  char **cp_list = NULL;
-  cp_list = tel_get_cp_name_list();
-
-  if (!cp_list) {
-    LoggerE("Failed to get cp name list.");
-    return;
-  }
-
-  unsigned int modem_num = 0;
-  while (cp_list[modem_num]) {
-    std::string n = "";
-    TapiHandle* handle;
-    do {
-      std::promise<std::string> prom;
-      handle = tel_init(cp_list[modem_num]);
-      if (!handle) {
-        LoggerE("Failed to init tapi handle.");
-        break;
-      }
-
-      int card_changed;
-      TelSimCardStatus_t card_status;
-      int ret = tel_get_sim_init_info(handle, &card_status, &card_changed);
-      if (TAPI_API_SUCCESS != ret) {
-        LoggerE("Failed to get sim init info: %d", ret);
-        break;
-      }
-      LoggerD("Card status: %d Card Changed: %d", card_status, card_changed);
-      if (TAPI_SIM_STATUS_SIM_INIT_COMPLETED != card_status) {
-        LoggerW("SIM is not ready, we can't get other properties");
-        break;
-      }
-
-      ret = tel_get_sim_msisdn(handle, get_sim_msisdn_cb, &prom);
-      if (TAPI_API_SUCCESS != ret) {
-        LoggerE("Failed to get msisdn : %d", ret);
-        break;
-      }
-
-      auto fut = prom.get_future();
-      LoggerD("wait...");
-      fut.wait();
-      n = fut.get();
-      LoggerD("Phone number [%d] : %s", modem_num, n.c_str());
-    } while(false);
-
-    m_phone_numbers.push_back(n);
-    tel_deinit(handle);
-    modem_num++;
-  }
-
-  g_strfreev(cp_list);
 }
 
 } // namespace callhistory

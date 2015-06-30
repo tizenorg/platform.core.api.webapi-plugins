@@ -29,7 +29,7 @@ namespace application {
 
 class ApplicationInstance: public common::ParsedInstance {
  public:
-  ApplicationInstance(const std::string& app_id);
+  ApplicationInstance();
   virtual ~ApplicationInstance();
  private:
   void GetCurrentApplication(const picojson::value& args, picojson::object& out);

@@ -8,13 +8,20 @@
 %define crosswalk_extensions tizen-extensions-crosswalk
 
 Name:       webapi-plugins
-Version:    0.5
+Version:    0.8
 Release:    0
 License:    Apache-2.0 and BSD-2.0 and MIT
 Group:      Development/Libraries
 Summary:    Tizen Web APIs implemented
 Source0:    %{name}-%{version}.tar.gz
 
+%ifarch %{arm}
+# ARM
+%define tizen_is_emulator           0
+%else
+# I586
+%define tizen_is_emulator           1
+%endif
 
 ####################################################################
 #       Mobile Profile :  Redwood(SM-Z910F), KIRAN(Z130H)          #
@@ -53,7 +60,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_ham_support                 0
 %endif
 %define tizen_feature_location_batch              0
-%define tizen_feature_key_manager_support         1
+%define tizen_feature_key_manager_support         0
 %define tizen_feature_media_controller_support    1
 %ifarch %{arm}
 # ARM
@@ -229,7 +236,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_application_support         1
 %define tizen_feature_archive_support             1
 %define tizen_feature_badge_support               1
-%define tizen_feature_bluetooth_support           0
+%define tizen_feature_bluetooth_support           1
 %define tizen_feature_bookmark_support            1
 %define tizen_feature_calendar_support            0
 %define tizen_feature_callhistory_support         0
@@ -243,16 +250,16 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_fm_radio_support            0
 %define tizen_feature_ham_support                 0
 %define tizen_feature_key_manager_support         0
-%define tizen_feature_media_controller_support    0
-%define tizen_feature_media_key_support           0
-%define tizen_feature_message_port_support        0
+%define tizen_feature_media_controller_support    1
+%define tizen_feature_media_key_support           1
+%define tizen_feature_message_port_support        1
 %define tizen_feature_messaging_support           0
 %define tizen_feature_nbs_support                 0
 %define tizen_feature_nfc_emulation_support       0
 %define tizen_feature_nfc_support                 0
 %define tizen_feature_notification_support        0
 %define tizen_feature_package_support             1
-%define tizen_feature_power_support               0
+%define tizen_feature_power_support               1
 %define tizen_feature_push_support                0
 %define tizen_feature_se_support                  0
 %define tizen_feature_sensor_support              0
@@ -278,6 +285,7 @@ BuildRequires: ninja
 BuildRequires: pkgconfig(appcore-common)
 BuildRequires: pkgconfig(dbus-1)
 BuildRequires: pkgconfig(dbus-glib-1)
+BuildRequires: pkgconfig(dlog)
 BuildRequires: pkgconfig(evas)
 BuildRequires: pkgconfig(gio-2.0)
 BuildRequires: pkgconfig(glib-2.0)
@@ -333,6 +341,7 @@ BuildRequires: pkgconfig(accounts-svc)
 
 %if 0%{?tizen_feature_alarm_support}
 BuildRequires: pkgconfig(capi-appfw-alarm)
+BuildRequires: pkgconfig(alarm-service)
 %endif
 
 %if 0%{?tizen_feature_bookmark_support}
@@ -452,6 +461,14 @@ BuildRequires:  pkgconfig(capi-system-media-key)
 %description
 Tizen Web APIs implemented.
 
+%package devel
+Summary:    webapi-plugins development headers
+Group:      Development/Libraries
+Requires:   %{name} = %{version}
+
+%description devel
+webapi-plugins development headers
+
 %prep
 %setup -q
 
@@ -462,6 +479,7 @@ GYP_OPTIONS="--depth=. -Dtizen=1 -Dextension_build_type=Debug -Dextension_host_o
 GYP_OPTIONS="$GYP_OPTIONS -Ddisplay_type=%{display_type}"
 
 # feature flags
+GYP_OPTIONS="$GYP_OPTIONS -Dtizen_is_emulator=%{?tizen_is_emulator}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_account_support=%{?tizen_feature_account_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_alarm_support=%{?tizen_feature_alarm_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_application_support=%{?tizen_feature_application_support}"
@@ -522,6 +540,18 @@ cat LICENSE.BSD-2.0 >> %{buildroot}/usr/share/license/%{name}
 mkdir -p %{buildroot}%{_libdir}/%{crosswalk_extensions}
 install -p -m 644 out/Default/libtizen*.so %{buildroot}%{_libdir}/%{crosswalk_extensions}
 
+# devel files
+mkdir -p %{buildroot}%{_libdir}/pkgconfig
+cp packaging/%{name}.pc %{buildroot}%{_libdir}/pkgconfig
+mkdir -p %{buildroot}%{_includedir}/%{name}/src/common
+install -p -m 644 src/common/*.h %{buildroot}%{_includedir}/%{name}/src/common
+install -p -m 644 src/common/*.gypi %{buildroot}%{_includedir}/%{name}/src/common
+install -p -m 644 src/common/XW_Extension.cc %{buildroot}%{_includedir}/%{name}/src/common
+mkdir -p %{buildroot}%{_includedir}/%{name}/tools
+install -p -m 644 tools/generate_api.py %{buildroot}%{_includedir}/%{name}/tools
+install -p -m 644 tools/mergejs.py %{buildroot}%{_includedir}/%{name}/tools
+cp -a tools/gyp %{buildroot}%{_includedir}/%{name}/tools/gyp
+
 %if 0%{?tizen_feature_tvaudio_support}
 # tv audio beep files:
 %define ringtones_directory /opt/usr/share/settings/Ringtones/
@@ -533,8 +563,13 @@ cp res/tvsounds/*.pcm %{buildroot}%{ringtones_directory}
 %files
 %{_libdir}/%{crosswalk_extensions}/libtizen*.so
 %{_datadir}/license/%{name}
+%manifest webapi-plugins.manifest
 
 %if 0%{?tizen_feature_tvaudio_support}
 # tv audio beep files:
 %{ringtones_directory}/*.pcm
 %endif
+
+%files devel
+%{_includedir}/*
+%{_libdir}/pkgconfig/*

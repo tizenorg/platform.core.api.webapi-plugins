@@ -16,6 +16,18 @@
         'utils_instance.cc',
         'utils_instance.h',
       ],
+      'conditions': [
+        ['tizen == 1', {
+          'variables': {
+            'packages': [
+              'capi-appfw-package-manager',
+              'capi-appfw-app-manager',
+              'pkgmgr-info',
+              'pkgmgr'
+            ]
+          },
+        }],
+      ],
     },
   ],
 }
