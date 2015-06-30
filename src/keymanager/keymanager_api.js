@@ -13,7 +13,7 @@
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
  */
- 
+
 var validator = xwalk.utils.validator;
 var converter = xwalk.utils.converter;
 var type = xwalk.utils.type;
@@ -65,6 +65,12 @@ var AccessControlType = {
   "READ": "READ",
   "READ_REMOVE": "READ_REMOVE"
 };
+
+function stripPemString(str) {
+  // remove new line characters
+  // remove BEGIN and END lines
+  return str.replace(/(\r\n|\r|\n)/g, '').replace(/-----[^-]*-----/g, '');
+}
 
 function Key(name, password, extractable, keyType, rawKey) {
   Object.defineProperties(this, {
