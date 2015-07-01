@@ -105,6 +105,44 @@ ckmc_key_type_e StringToKeyType(const std::string& type) {
     return CKMC_KEY_NONE;
   }
 }
+
+std::string KeyTypeToString(ckmc_key_type_e type) {
+  LoggerD("Enter");
+
+  switch (type) {
+    case CKMC_KEY_NONE:
+      return "KEY_NONE";
+
+    case CKMC_KEY_RSA_PUBLIC:
+      return "KEY_RSA_PUBLIC";
+
+    case CKMC_KEY_RSA_PRIVATE:
+      return "KEY_RSA_PRIVATE";
+
+    case CKMC_KEY_ECDSA_PUBLIC:
+      return "KEY_ECDSA_PUBLIC";
+
+    case CKMC_KEY_ECDSA_PRIVATE:
+      return "KEY_ECDSA_PRIVATE";
+
+    case CKMC_KEY_DSA_PUBLIC:
+      return "KEY_DSA_PUBLIC";
+
+    case CKMC_KEY_DSA_PRIVATE:
+      return "KEY_DSA_PRIVATE";
+
+    case CKMC_KEY_AES:
+      return "KEY_AES";
+  }
+
+  LoggerE("Unknown key type");
+  return "KEY_UNKNOWN";
+}
+
+RawBuffer ToRawBuffer(const ckmc_key_s* key) {
+  return RawBuffer(key->raw_key, key->raw_key + key->key_size);
+}
+
 }  // namespace
 
 KeyManagerInstance::KeyManagerInstance() {
@@ -170,6 +208,47 @@ void KeyManagerInstance::GetDataAliasList(const picojson::value& args,
 void KeyManagerInstance::GetKey(const picojson::value& args,
                                 picojson::object& out) {
   LoggerD("Enter");
+  const auto& key_alias = args.get("name").get<std::string>();
+  const auto& password_value = args.get("password");
+
+  std::string password;
+
+  if (password_value.is<std::string>()) {
+    password = password_value.get<std::string>();
+  }
+
+  ckmc_key_s* key = nullptr;
+  int ret = ckmc_get_key(key_alias.c_str(), password.c_str(), &key);
+
+  if (CKMC_ERROR_NONE == ret) {
+    picojson::object result;
+
+    result["name"] = picojson::value(key_alias);
+    result["password"] = picojson::value(key->password);
+    // if key was retrieved it is extractable from DB
+    result["extractable"] = picojson::value(true);
+    result["keyType"] = picojson::value(KeyTypeToString(key->key_type));
+    result["rawKey"] = picojson::value(RawBufferToBase64(ToRawBuffer(key)));
+
+    ckmc_key_free(key);
+    ReportSuccess(picojson::value{result}, out);
+  } else {
+    LoggerE("Failed to get key: %d", ret);
+
+    PlatformResult error(ErrorCode::UNKNOWN_ERR, "Failed to get key");
+
+    switch (ret) {
+      case CKMC_ERROR_DB_ALIAS_UNKNOWN:
+        error = PlatformResult(ErrorCode::NOT_FOUND_ERR, "Failed to find key");
+        break;
+
+      case CKMC_ERROR_INVALID_PARAMETER:
+        error = PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Input parameter is invalid");
+        break;
+    }
+
+    ReportError(error, &out);
+  }
 }
 
 void KeyManagerInstance::SaveKey(const picojson::value& args,
