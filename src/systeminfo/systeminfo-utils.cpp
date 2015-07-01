@@ -1140,7 +1140,6 @@ PlatformResult SystemInfoListeners::UnregisterCameraFlashListener()
 {
   if (nullptr != m_camera_flash_listener) {
     PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
-    int value = 0;
     if (DEVICE_ERROR_NONE != device_remove_callback(DEVICE_CALLBACK_FLASH_BRIGHTNESS,
                                                  OnBrightnessChangedCb)) {
       return PlatformResult(ErrorCode::UNKNOWN_ERR);
@@ -1741,7 +1740,7 @@ PlatformResult SysteminfoUtils::GetPropertyValue(const std::string& property, bo
       return ret;
     }
 
-    for (int i = 0; i < property_count; i++) {
+    for (size_t i = 0; i < property_count; i++) {
       picojson::value result = picojson::value(picojson::object());
       picojson::object& result_obj = result.get<picojson::object>();
 
