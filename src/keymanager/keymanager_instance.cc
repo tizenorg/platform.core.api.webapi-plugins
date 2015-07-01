@@ -330,11 +330,76 @@ void KeyManagerInstance::LoadFromPKCS12File(const picojson::value& args,
 void KeyManagerInstance::AllowAccessControl(const picojson::value& args,
                                             picojson::object& out) {
   LoggerD("Enter");
+
+  const std::string& data_name = args.get("dataName").get<std::string>();
+  const std::string& id = args.get("id").get<std::string>();
+  const double callback_id = args.get("callbackId").get<double>();
+  const std::string& access = args.get("accessControlType").get<std::string>();
+  ckmc_access_right_e granted = CKMC_AR_READ;
+  if ("READ_REMOVE" == access) {
+    granted = CKMC_AR_READ_REMOVE;
+  }
+
+  auto allow = [data_name, id, granted](const std::shared_ptr<picojson::value>& response) -> void {
+    int ret = ckmc_allow_access(data_name.c_str(), id.c_str(), granted);
+    if (CKMC_ERROR_NONE != ret) {
+      PlatformResult result = PlatformResult(ErrorCode::NO_ERROR);
+      if (CKMC_ERROR_DB_ALIAS_UNKNOWN == ret) {
+        result = PlatformResult(ErrorCode::NOT_FOUND_ERR, "Alias not found.");
+      } else {
+        result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to allow access.");
+      }
+      common::tools::ReportError(result, &response->get<picojson::object>());
+    } else {
+      common::tools::ReportSuccess(response->get<picojson::object>());
+    }
+  };
+
+  auto allow_response = [this, callback_id](const std::shared_ptr<picojson::value>& response) -> void {
+    picojson::object& obj = response->get<picojson::object>();
+    obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
+    this->PostMessage(response->serialize().c_str());
+  };
+
+  TaskQueue::GetInstance().Queue<picojson::value>(
+      allow,
+      allow_response,
+      std::shared_ptr<picojson::value>(new picojson::value(picojson::object())));
 }
 
 void KeyManagerInstance::DenyAccessControl(const picojson::value& args,
                                            picojson::object& out) {
   LoggerD("Enter");
+
+  const std::string& data_name = args.get("dataName").get<std::string>();
+  const std::string& id = args.get("id").get<std::string>();
+  const double callback_id = args.get("callbackId").get<double>();
+
+  auto deny = [data_name, id](const std::shared_ptr<picojson::value>& response) -> void {
+    int ret = ckmc_deny_access(data_name.c_str(), id.c_str());
+    if (CKMC_ERROR_NONE != ret) {
+      PlatformResult result = PlatformResult(ErrorCode::NO_ERROR);
+      if (CKMC_ERROR_DB_ALIAS_UNKNOWN == ret) {
+        result = PlatformResult(ErrorCode::NOT_FOUND_ERR, "Alias not found.");
+      } else {
+        result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to deny access.");
+      }
+      common::tools::ReportError(result, &response->get<picojson::object>());
+    } else {
+      common::tools::ReportSuccess(response->get<picojson::object>());
+    }
+  };
+
+  auto deny_response = [this, callback_id](const std::shared_ptr<picojson::value>& response) -> void {
+    picojson::object& obj = response->get<picojson::object>();
+    obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
+    this->PostMessage(response->serialize().c_str());
+  };
+
+  TaskQueue::GetInstance().Queue<picojson::value>(
+      deny,
+      deny_response,
+      std::shared_ptr<picojson::value>(new picojson::value(picojson::object())));
 }
 
 } // namespace keymanager
