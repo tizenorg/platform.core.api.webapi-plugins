@@ -157,9 +157,6 @@ static void* WorkThread(const std::shared_ptr<ReplyCallbackData>& user_data) {
       //ContentManagerPlaylistSetOrderCallback
     }
     case ContentManagerPlaylistMoveCallback: {
-      std::string playlist_id = user_data->args.get("playlistId").get<std::string>();
-      double member_id = user_data->args.get("memberId").get<double>();
-      double delta = user_data->args.get("delta").get<double>();
       ContentManager::getInstance()->playlistMove(user_data);
       break;
     }

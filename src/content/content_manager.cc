@@ -52,23 +52,6 @@ const std::map<std::string, media_content_orientation_e> orientationMap = {
     {"ROTATE_270", MEDIA_CONTENT_ORIENTATION_ROT_270},
 };
 
-static int get_utc_offset() {
-  LoggerD("Enter");
-  time_t zero = 24 * 60 * 60L;
-  struct tm time_struct = {0};
-  int gmtime_hours = 0;
-
-  /* get the local time for Jan 2, 1900 00:00 UTC */
-  tzset();
-  if (nullptr != localtime_r(&zero, &time_struct)) {
-    gmtime_hours = time_struct.tm_hour;
-
-    if (time_struct.tm_mday < 2)
-      gmtime_hours -= 24;
-  }
-  return gmtime_hours;
-}
-
 std::string get_date(char* tmpStr) {
   LoggerD("Enter");
   if (tmpStr) {
@@ -443,7 +426,6 @@ static int setContent(media_info_h media, const picojson::value& content) {
 static void FolderToJson(media_folder_h folder, picojson::object* out) {
   LoggerD("Enter");
 
-  int ret;
   char* name = NULL;
   char* id = NULL;
   char* path = NULL;
@@ -453,7 +435,7 @@ static void FolderToJson(media_folder_h folder, picojson::object* out) {
   media_folder_get_folder_id(folder, &id);
   media_folder_get_name(folder, &name);
   media_folder_get_path(folder, &path);
-  ret = media_folder_get_modified_time(folder, &date);
+  media_folder_get_modified_time(folder, &date);
   media_folder_get_storage_type(folder, &storageType);
 
   (*out)["id"] = picojson::value(std::string(id));
@@ -1040,7 +1022,8 @@ void ContentManager::playlistRemovebatch(const std::shared_ptr<ReplyCallbackData
   }
 
   std::vector<picojson::value> members = user_data->args.get("members").get<picojson::array>();
-  for( int i = 0; i < members.size(); i++ ) {
+  size_t members_size = members.size();
+  for( size_t i = 0; i < members_size; i++ ) {
     int member_id = static_cast<int>(members.at(i).get<double>());
     ret = media_playlist_remove_media(playlist, member_id);
 
@@ -1081,7 +1064,8 @@ void ContentManager::playlistSetOrder(const std::shared_ptr<ReplyCallbackData>& 
 
   ret = media_playlist_get_media_count_from_db(std::stoi(playlist_id), NULL, &cnt);
 
-  if ( cnt != members.size() ) {
+  size_t members_size = members.size();
+  if ( (size_t) cnt != members_size ) {
     LoggerE("Failed: The items array does not contain all items from the playlist");
     PlatformResult err(ErrorCode::INVALID_VALUES_ERR, "The items array does not contain all items from the playlist.");
     user_data->isSuccess = false;
@@ -1089,7 +1073,7 @@ void ContentManager::playlistSetOrder(const std::shared_ptr<ReplyCallbackData>& 
     return;
   }
 
-  for( int i = 0; i < members.size(); i++ ) {
+  for( size_t i = 0; i < members_size; i++ ) {
     int member_id = static_cast<int>(members.at(i).get<double>());
     ret = media_playlist_set_play_order(playlist, member_id, i);
     if (ret != MEDIA_CONTENT_ERROR_NONE) {
