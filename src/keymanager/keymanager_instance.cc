@@ -143,6 +143,35 @@ RawBuffer ToRawBuffer(const ckmc_key_s* key) {
   return RawBuffer(key->raw_key, key->raw_key + key->key_size);
 }
 
+typedef int (*AliasListFunction)(ckmc_alias_list_s**);
+
+void GetGenericAliasList(AliasListFunction func, picojson::object* out) {
+  LoggerD("Enter");
+
+  ckmc_alias_list_s* alias_list = nullptr;
+  int ret = func(&alias_list);
+
+  if (CKMC_ERROR_NONE == ret) {
+    picojson::value result{picojson::array{}};
+    auto& aliases = result.get<picojson::array>();
+    ckmc_alias_list_s* head = alias_list;
+
+    while (head) {
+      aliases.push_back(picojson::value(alias_list->alias ? alias_list->alias : ""));
+      head = head->next;
+    }
+
+    if (alias_list) {
+      ckmc_alias_list_all_free(alias_list);
+    }
+
+    common::tools::ReportSuccess(result, *out);
+  } else {
+    LoggerE("Failed to get alias list: %d", ret);
+    common::tools::ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to get alias list"), out);
+  }
+}
+
 }  // namespace
 
 KeyManagerInstance::KeyManagerInstance() {
@@ -193,16 +222,19 @@ KeyManagerInstance::~KeyManagerInstance() {
 void KeyManagerInstance::GetKeyAliasList(const picojson::value& args,
                                          picojson::object& out) {
   LoggerD("Enter");
+  GetGenericAliasList(ckmc_get_key_alias_list, &out);
 }
 
 void KeyManagerInstance::GetCertificateAliasList(const picojson::value& args,
                                                  picojson::object& out) {
   LoggerD("Enter");
+  GetGenericAliasList(ckmc_get_cert_alias_list, &out);
 }
 
 void KeyManagerInstance::GetDataAliasList(const picojson::value& args,
                                           picojson::object& out) {
   LoggerD("Enter");
+  GetGenericAliasList(ckmc_get_data_alias_list, &out);
 }
 
 void KeyManagerInstance::GetKey(const picojson::value& args,
