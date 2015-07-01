@@ -141,6 +141,10 @@ std::string KeyTypeToString(ckmc_key_type_e type) {
 
 RawBuffer ToRawBuffer(const ckmc_key_s* key) {
   return RawBuffer(key->raw_key, key->raw_key + key->key_size);
+}//
+
+RawBuffer ToRawBuffer(const ckmc_raw_buffer_s* buffer) {
+  return RawBuffer(buffer->data, buffer->data + buffer->size);
 }
 
 typedef int (*AliasListFunction)(ckmc_alias_list_s**);
@@ -501,6 +505,47 @@ void KeyManagerInstance::SaveData(const picojson::value& args,
 void KeyManagerInstance::GetData(const picojson::value& args,
                                  picojson::object& out) {
   LoggerD("Enter");
+
+  const auto& data_alias = args.get("name").get<std::string>();
+  const auto& password_value = args.get("password");
+
+  std::string password;
+
+  if (password_value.is<std::string>()) {
+    password = password_value.get<std::string>();
+  }
+
+  ckmc_raw_buffer_s* data = nullptr;
+  int ret = ckmc_get_data(data_alias.c_str(), password.c_str(), &data);
+
+  if (CKMC_ERROR_NONE == ret) {
+    picojson::object result;
+
+    result["name"] = picojson::value(data_alias);
+    result["password"] = picojson::value(password);
+    // if key was retrieved it is extractable from DB
+    result["extractable"] = picojson::value(true);
+    result["rawData"] = picojson::value(RawBufferToBase64(ToRawBuffer(data)));
+
+    ckmc_buffer_free(data);
+    ReportSuccess(picojson::value{result}, out);
+  } else {
+    LoggerE("Failed to get data: %d", ret);
+
+    PlatformResult error(ErrorCode::UNKNOWN_ERR, "Failed to get key");
+
+    switch (ret) {
+      case CKMC_ERROR_DB_ALIAS_UNKNOWN:
+        error = PlatformResult(ErrorCode::NOT_FOUND_ERR, "Failed to find key");
+        break;
+
+      case CKMC_ERROR_INVALID_PARAMETER:
+        error = PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Input parameter is invalid");
+        break;
+    }
+
+    ReportError(error, &out);
+  }
 }
 
 void KeyManagerInstance::CreateSignature(const picojson::value& args,
