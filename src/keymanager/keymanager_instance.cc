@@ -405,6 +405,98 @@ void KeyManagerInstance::VerifySignature(const picojson::value& args,
 void KeyManagerInstance::LoadFromPKCS12File(const picojson::value& args,
                                             picojson::object& out) {
   LoggerD("Enter");
+
+  const auto& file_uri = args.get("fileURI").get<std::string>();
+  const auto& key_alias = args.get("privKeyName").get<std::string>();
+  const auto& cert_alias = args.get("certificateName").get<std::string>();
+  const auto& password_value = args.get("password");
+  double callback_id = args.get("callbackId").get<double>();
+
+  std::string password;
+
+  if (password_value.is<std::string>()) {
+    password = password_value.get<std::string>();
+  }
+
+  auto load_file = [file_uri, password, cert_alias, key_alias](const std::shared_ptr<picojson::value>& result) {
+    LoggerD("Enter load_file");
+    std::string file = VirtualFs::GetInstance().GetRealPath(file_uri);
+    ckmc_pkcs12_s* pkcs12 = nullptr;
+
+    int ret = ckmc_pkcs12_load(file.c_str(), password.c_str(), &pkcs12);
+
+    if (CKMC_ERROR_NONE == ret) {
+      SCOPE_EXIT {
+        ckmc_pkcs12_free(pkcs12);
+      };
+      ckmc_policy_s policy { const_cast<char*>(password.c_str()), true };
+
+      // it's safer to use ckmc_save_pkcs12() here, however JS API specifies
+      // two different aliases for private key and certificate
+      if (pkcs12->cert) {
+        ret = ckmc_save_cert(cert_alias.c_str(), *pkcs12->cert, policy);
+        if (CKMC_ERROR_NONE != ret) {
+          LoggerE("Failed to save certificate: %d", ret);
+        }
+      }
+
+      if (CKMC_ERROR_NONE == ret && pkcs12->priv_key) {
+        ret = ckmc_save_key(key_alias.c_str(), *pkcs12->priv_key, policy);
+        if (CKMC_ERROR_NONE != ret) {
+          LoggerE("Failed to save private key: %d", ret);
+          // rollback
+          if (pkcs12->cert) {
+            ckmc_remove_cert(cert_alias.c_str());
+          }
+        }
+      }
+    } else {
+      LoggerE("Failed to load PKCS12 file: %d", ret);
+    }
+
+    PlatformResult success(ErrorCode::NO_ERROR);
+
+    switch (ret) {
+      case CKMC_ERROR_NONE:
+        break;
+
+      case CKMC_ERROR_FILE_ACCESS_DENIED:
+        success = PlatformResult(ErrorCode::NOT_FOUND_ERR, "Certificate file not found");
+        break;
+
+      case CKMC_ERROR_INVALID_FORMAT:
+      case CKMC_ERROR_INVALID_PARAMETER:
+        success = PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Certificate file has wrong format");
+        break;
+
+      case CKMC_ERROR_PERMISSION_DENIED:
+        success = PlatformResult(ErrorCode::IO_ERR, "Permission has been denied");
+        break;
+
+      default:
+        success = PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to open certificate file");
+        break;
+    }
+
+    if (success) {
+      common::tools::ReportSuccess(result->get<picojson::object>());
+    } else {
+      common::tools::ReportError(success, &result->get<picojson::object>());
+    }
+  };
+
+  auto load_file_result = [this, callback_id](const std::shared_ptr<picojson::value>& result) {
+    LoggerD("Enter load_file_result");
+    result->get<picojson::object>()["callbackId"] = picojson::value{callback_id};
+    this->PostMessage(result->serialize().c_str());
+  };
+
+  TaskQueue::GetInstance().Queue<picojson::value>(
+      load_file,
+      load_file_result,
+      std::shared_ptr<picojson::value>{new picojson::value{picojson::object()}});
+
+  ReportSuccess(out);
 }
 
 void KeyManagerInstance::AllowAccessControl(const picojson::value& args,
