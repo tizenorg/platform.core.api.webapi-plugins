@@ -120,8 +120,8 @@ std::string SoundManager::SoundIOTypeToString(sound_device_io_direction_e type) 
 SoundManager::SoundManager(SoundInstance& instance)
     : soundModeChangeListening(false),
       sound_device_change_listener_(false),
-      soundModeListener(nullptr),
-      instance_(instance){
+      instance_(instance),
+      soundModeListener(nullptr) {
   FillMaxVolumeMap();
 }
 
