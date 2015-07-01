@@ -582,6 +582,77 @@ void KeyManagerInstance::SaveCertificate(const picojson::value& args,
 void KeyManagerInstance::LoadCertificateFromFile(const picojson::value& args,
                                                  picojson::object& out) {
   LoggerD("Enter");
+
+  const auto& file_uri = args.get("fileURI").get<std::string>();
+  const auto& certificate = args.get("certificate");
+  const auto& alias = certificate.get("name").get<std::string>();
+  const auto& password_value = certificate.get("password");
+  const auto extractable = certificate.get("extractable").get<bool>();
+  double callback_id = args.get("callbackId").get<double>();
+
+  std::string password;
+
+  if (password_value.is<std::string>()) {
+    password = password_value.get<std::string>();
+  }
+
+  auto load_certificate = [file_uri, password, extractable, alias](const std::shared_ptr<picojson::value>& result) {
+    LoggerD("Enter load_certificate");
+
+    std::string file = VirtualFs::GetInstance().GetRealPath(file_uri);
+    ckmc_cert_s* certificate = nullptr;
+    int ret = ckmc_load_cert_from_file(file.c_str(), &certificate);
+
+    if (CKMC_ERROR_NONE == ret) {
+      ckmc_policy_s policy { const_cast<char*>(password.c_str()), extractable };
+      ret = ckmc_save_cert(alias.c_str(), *certificate, policy);
+      if (CKMC_ERROR_NONE != ret) {
+        LoggerE("Failed to save certificate: %d", ret);
+      }
+      ckmc_cert_free(certificate);
+    } else {
+      LoggerE("Failed to load certificate: %d", ret);
+    }
+
+    PlatformResult success(ErrorCode::NO_ERROR);
+
+    switch (ret) {
+      case CKMC_ERROR_NONE:
+        break;
+
+      case CKMC_ERROR_FILE_ACCESS_DENIED:
+        success = PlatformResult(ErrorCode::NOT_FOUND_ERR, "File not found");
+        break;
+
+      case CKMC_ERROR_INVALID_PARAMETER:
+      case CKMC_ERROR_INVALID_FORMAT:
+        success = PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Failed to load certificate");
+        break;
+
+      default:
+        success = PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to load certificate");
+        break;
+    }
+
+    if (success) {
+      common::tools::ReportSuccess(result->get<picojson::object>());
+    } else {
+      common::tools::ReportError(success, &result->get<picojson::object>());
+    }
+  };
+
+  auto load_certificate_result = [this, callback_id](const std::shared_ptr<picojson::value>& result) {
+    LoggerD("Enter load_certificate_result");
+    result->get<picojson::object>()["callbackId"] = picojson::value{callback_id};
+    this->PostMessage(result->serialize().c_str());
+  };
+
+  TaskQueue::GetInstance().Queue<picojson::value>(
+      load_certificate,
+      load_certificate_result,
+      std::shared_ptr<picojson::value>{new picojson::value{picojson::object()}});
+
+  ReportSuccess(out);
 }
 
 void KeyManagerInstance::SaveData(const picojson::value& args,
