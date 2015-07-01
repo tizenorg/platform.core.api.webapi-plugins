@@ -81,6 +81,7 @@
       '-std=c++0x',
       '-fPIC',
       '-fvisibility=hidden',
+      '-Wall',
     ],
     'libraries' : [
       '-L .',
