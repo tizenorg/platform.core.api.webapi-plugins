@@ -84,6 +84,27 @@ ckmc_ec_type_e GetEllipticCurveType(const std::string& type) {
   }
 }
 
+ckmc_key_type_e StringToKeyType(const std::string& type) {
+  LoggerD("Enter");
+
+  if ("KEY_RSA_PUBLIC" == type) {
+    return CKMC_KEY_RSA_PUBLIC;
+  } else if ("KEY_RSA_PRIVATE" == type) {
+    return CKMC_KEY_RSA_PRIVATE;
+  } else if ("KEY_ECDSA_PUBLIC" == type) {
+    return CKMC_KEY_ECDSA_PUBLIC;
+  } else if ("KEY_ECDSA_PRIVATE" == type) {
+    return CKMC_KEY_ECDSA_PRIVATE;
+  } else if ("KEY_DSA_PUBLIC" == type) {
+    return CKMC_KEY_DSA_PUBLIC;
+  } else if ("KEY_DSA_PRIVATE" == type) {
+    return CKMC_KEY_DSA_PRIVATE;
+  } else if ("KEY_AES" == type) {
+    return CKMC_KEY_AES;
+  } else {
+    return CKMC_KEY_NONE;
+  }
+}
 }  // namespace
 
 KeyManagerInstance::KeyManagerInstance() {
@@ -158,6 +179,59 @@ void KeyManagerInstance::GetKey(const picojson::value& args,
 void KeyManagerInstance::SaveKey(const picojson::value& args,
                                  picojson::object& out) {
   LoggerD("Enter");
+
+  const picojson::value& key_obj = args.get("key");
+  const std::string& alias = key_obj.get("name").get<std::string>();
+  const std::string& type = key_obj.get("keyType").get<std::string>();
+  bool extractable = key_obj.get("extractable").get<bool>();
+  const double callback_id = args.get("callbackId").get<double>();
+
+  std::string base64;
+  if (args.get("rawKey").is<std::string>()) {
+    base64 = args.get("rawKey").get<std::string>();
+  }
+
+  std::string pass;
+  if (key_obj.get("password").is<std::string>()) {
+    pass = key_obj.get("password").get<std::string>();
+  }
+
+  RawBuffer* raw_buffer = new RawBuffer(std::move(Base64ToRawBuffer(base64)));
+  ckmc_key_type_e key_type = StringToKeyType(type);
+
+  auto save = [alias, pass, key_type, extractable, raw_buffer]
+               (const std::shared_ptr<picojson::value>& response) -> void {
+
+    ckmc_policy_s policy { const_cast<char*>(pass.c_str()), extractable };
+    ckmc_key_s key { const_cast<unsigned char*>(&(*raw_buffer)[0]),
+      raw_buffer->size(), key_type, const_cast<char*>(pass.c_str()) };
+
+    int ret = ckmc_save_key(alias.c_str(), key, policy);
+    if (CKMC_ERROR_NONE != ret) {
+      PlatformResult result = PlatformResult(ErrorCode::NO_ERROR);
+      if (CKMC_ERROR_INVALID_PARAMETER == ret) {
+        result = PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid parameter passed.");
+      } else {
+        result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to save key.");
+      }
+      common::tools::ReportError(result, &response->get<picojson::object>());
+    } else {
+      common::tools::ReportSuccess(response->get<picojson::object>());
+    }
+
+    delete raw_buffer;
+  };
+
+  auto save_response = [this, callback_id](const std::shared_ptr<picojson::value>& response) -> void {
+    picojson::object& obj = response->get<picojson::object>();
+    obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
+    this->PostMessage(response->serialize().c_str());
+  };
+
+  TaskQueue::GetInstance().Queue<picojson::value>(
+      save,
+      save_response,
+      std::shared_ptr<picojson::value>(new picojson::value(picojson::object())));
 }
 
 void KeyManagerInstance::RemoveKey(const picojson::value& args,

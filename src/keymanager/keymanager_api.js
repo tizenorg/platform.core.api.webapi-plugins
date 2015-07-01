@@ -120,7 +120,7 @@ Key.prototype.save = function() {
 
   native.call('KeyManager_saveKey', {
     key: this,
-    rawKey: args.rawKey
+    rawKey: stripPemString(args.rawKey)
   }, function(msg) {
     if (native.isFailure(msg)) {
       if (type.isFunction(args.errorCallback)) {
