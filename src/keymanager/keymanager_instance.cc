@@ -139,6 +139,30 @@ std::string KeyTypeToString(ckmc_key_type_e type) {
   return "KEY_UNKNOWN";
 }
 
+ckmc_hash_algo_e StringToHashAlgorithm(const std::string& str) {
+  if ("HASH_SHA1" == str) {
+    return CKMC_HASH_SHA1;
+  } else if ("HASH_SHA256" == str) {
+    return CKMC_HASH_SHA256;
+  } else if ("HASH_SHA384" == str) {
+    return CKMC_HASH_SHA384;
+  } else if ("HASH_SHA512" == str) {
+    return CKMC_HASH_SHA512;
+  }
+
+  return CKMC_HASH_NONE;
+}
+
+ckmc_rsa_padding_algo_e StringToRsaPadding(const std::string& str) {
+  if ("PADDING_PKCS1" == str) {
+    return CKMC_PKCS1_PADDING;
+  } else if ("PADDING_X931" == str) {
+    return CKMC_X931_PADDING;
+  }
+
+  return CKMC_NONE_PADDING;
+}
+
 RawBuffer ToRawBuffer(const ckmc_key_s* key) {
   return RawBuffer(key->raw_key, key->raw_key + key->key_size);
 }//
@@ -551,6 +575,69 @@ void KeyManagerInstance::GetData(const picojson::value& args,
 void KeyManagerInstance::CreateSignature(const picojson::value& args,
                                          picojson::object& out) {
   LoggerD("Enter");
+
+  const auto& alias = args.get("privKeyAlias").get<std::string>();
+  RawBuffer* raw_buffer = new RawBuffer(std::move(Base64ToRawBuffer(args.get("message").get<std::string>())));
+  const auto& password_value = args.get("password");
+  double callback_id = args.get("callbackId").get<double>();
+  ckmc_hash_algo_e hash = StringToHashAlgorithm(args.get("hashAlgorithmType").get<std::string>());
+  ckmc_rsa_padding_algo_e padding = StringToRsaPadding(args.get("padding").get<std::string>());
+
+  std::string password;
+
+  if (password_value.is<std::string>()) {
+    password = password_value.get<std::string>();
+  }
+
+  auto create_certificate = [alias, raw_buffer, password, hash, padding](const std::shared_ptr<picojson::value>& result) {
+    LoggerD("Enter create_certificate");
+
+    ckmc_raw_buffer_s* signature = nullptr;
+    ckmc_raw_buffer_s message = { const_cast<unsigned char*>(&(*raw_buffer)[0]), raw_buffer->size() };
+    int ret = ckmc_create_signature(alias.c_str(), password.c_str(), message, hash, padding, &signature);
+
+    PlatformResult success(ErrorCode::NO_ERROR);
+
+    switch (ret) {
+      case CKMC_ERROR_NONE:
+        break;
+
+      case CKMC_ERROR_DB_ALIAS_UNKNOWN:
+        success = PlatformResult(ErrorCode::NOT_FOUND_ERR, "Alias not found");
+        break;
+
+      case CKMC_ERROR_INVALID_PARAMETER:
+        success = PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Failed to create signature");
+        break;
+
+      default:
+        success = PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to create signature");
+        break;
+    }
+
+    if (success) {
+      common::tools::ReportSuccess(picojson::value(RawBufferToBase64(ToRawBuffer(signature))), result->get<picojson::object>());
+      ckmc_buffer_free(signature);
+    } else {
+      LoggerE("Failed to create signature: %d", ret);
+      common::tools::ReportError(success, &result->get<picojson::object>());
+    }
+
+    delete raw_buffer;
+  };
+
+  auto create_certificate_result = [this, callback_id](const std::shared_ptr<picojson::value>& result) {
+    LoggerD("Enter create_certificate_result");
+    result->get<picojson::object>()["callbackId"] = picojson::value{callback_id};
+    this->PostMessage(result->serialize().c_str());
+  };
+
+  TaskQueue::GetInstance().Queue<picojson::value>(
+      create_certificate,
+      create_certificate_result,
+      std::shared_ptr<picojson::value>{new picojson::value{picojson::object()}});
+
+  ReportSuccess(out);
 }
 
 void KeyManagerInstance::VerifySignature(const picojson::value& args,
