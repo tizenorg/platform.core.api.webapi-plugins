@@ -643,6 +643,71 @@ void KeyManagerInstance::CreateSignature(const picojson::value& args,
 void KeyManagerInstance::VerifySignature(const picojson::value& args,
                                          picojson::object& out) {
   LoggerD("Enter");
+
+  const auto& alias = args.get("pubKeyAlias").get<std::string>();
+  RawBuffer* message = new RawBuffer(std::move(Base64ToRawBuffer(args.get("message").get<std::string>())));
+  RawBuffer* signature = new RawBuffer(std::move(Base64ToRawBuffer(args.get("signature").get<std::string>())));
+  const auto& password_value = args.get("password");
+  double callback_id = args.get("callbackId").get<double>();
+  ckmc_hash_algo_e hash = StringToHashAlgorithm(args.get("hashAlgorithmType").get<std::string>());
+  ckmc_rsa_padding_algo_e padding = StringToRsaPadding(args.get("padding").get<std::string>());
+
+  std::string password;
+
+  if (password_value.is<std::string>()) {
+    password = password_value.get<std::string>();
+  }
+
+  auto verify_certificate = [alias, message, signature, password, hash, padding](const std::shared_ptr<picojson::value>& result) {
+    LoggerD("Enter verify_certificate");
+
+    ckmc_raw_buffer_s message_buf = { const_cast<unsigned char*>(&(*message)[0]), message->size() };
+    ckmc_raw_buffer_s signature_buf = { const_cast<unsigned char*>(&(*signature)[0]), signature->size() };
+
+    int ret = ckmc_verify_signature(alias.c_str(), password.c_str(), message_buf, signature_buf, hash , padding);
+
+    PlatformResult success(ErrorCode::NO_ERROR);
+
+    switch (ret) {
+      case CKMC_ERROR_NONE:
+        break;
+
+      case CKMC_ERROR_DB_ALIAS_UNKNOWN:
+        success = PlatformResult(ErrorCode::NOT_FOUND_ERR, "Alias not found");
+        break;
+
+      case CKMC_ERROR_INVALID_PARAMETER:
+        success = PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Failed to verify signature");
+        break;
+
+      default:
+        success = PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to verify signature");
+        break;
+    }
+
+    if (success) {
+      common::tools::ReportSuccess(result->get<picojson::object>());
+    } else {
+      LoggerE("Failed to verify signature: %d", ret);
+      common::tools::ReportError(success, &result->get<picojson::object>());
+    }
+
+    delete message;
+    delete signature;
+  };
+
+  auto verify_certificate_result = [this, callback_id](const std::shared_ptr<picojson::value>& result) {
+    LoggerD("Enter verify_certificate_result");
+    result->get<picojson::object>()["callbackId"] = picojson::value{callback_id};
+    this->PostMessage(result->serialize().c_str());
+  };
+
+  TaskQueue::GetInstance().Queue<picojson::value>(
+      verify_certificate,
+      verify_certificate_result,
+      std::shared_ptr<picojson::value>{new picojson::value{picojson::object()}});
+
+  ReportSuccess(out);
 }
 
 void KeyManagerInstance::LoadFromPKCS12File(const picojson::value& args,
