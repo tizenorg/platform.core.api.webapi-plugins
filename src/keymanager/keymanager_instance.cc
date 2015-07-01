@@ -72,6 +72,18 @@ std::string RawBufferToBase64(const RawBuffer& buf) {
   return result;
 }
 
+ckmc_ec_type_e GetEllipticCurveType(const std::string& type) {
+  LoggerD("Enter");
+
+  if ("EC_PRIME256V1" == type) {
+    return CKMC_EC_PRIME256V1;
+  } else if ("EC_SECP384R1" == type) {
+    return CKMC_EC_SECP384R1;
+  } else {
+    return CKMC_EC_PRIME192V1;
+  }
+}
+
 }  // namespace
 
 KeyManagerInstance::KeyManagerInstance() {
@@ -156,6 +168,71 @@ void KeyManagerInstance::RemoveKey(const picojson::value& args,
 void KeyManagerInstance::GenerateKeyPair(const picojson::value& args,
                                          picojson::object& out) {
   LoggerD("Enter");
+
+  const picojson::value& priv_key = args.get("privKeyName");
+  const picojson::value& pub_key = args.get("pubKeyName");
+  const std::string& priv_name = priv_key.get("name").get<std::string>();
+  const std::string& pub_name = pub_key.get("name").get<std::string>();
+  const std::string& type = args.get("type").get<std::string>();
+  const int size = std::stoi(args.get("size").get<std::string>());
+  const double callback_id = args.get("callbackId").get<double>();
+
+  std::string priv_pass;
+  if (priv_key.get("password").is<std::string>()) {
+    priv_pass = priv_key.get("password").get<std::string>();
+  }
+  bool extractable = priv_key.get("extractable").get<bool>();
+  ckmc_policy_s priv_policy { const_cast<char*>(priv_pass.c_str()), extractable };
+
+  std::string pub_pass;
+  if (pub_key.get("password").is<std::string>()) {
+    pub_pass = pub_key.get("password").get<std::string>();
+  }
+  extractable = pub_key.get("extractable").get<bool>();
+  ckmc_policy_s pub_policy { const_cast<char*>(pub_pass.c_str()), extractable };
+
+  std::string elliptic;
+  if (args.get("ellipticCurveType").is<std::string>()) {
+    elliptic = args.get("ellipticCurveType").get<std::string>();
+  }
+
+  auto generate = [size, priv_policy, pub_policy, priv_name, pub_name, type, elliptic]
+                   (const std::shared_ptr<picojson::value>& response) -> void {
+    int ret = CKMC_ERROR_NONE;
+    if (kTypeRSA == type) {
+      ret = ckmc_create_key_pair_rsa(size, priv_name.c_str(),
+                                     pub_name.c_str(), priv_policy, pub_policy);
+    } else if (kTypeECDSA == type) {
+      ret = ckmc_create_key_pair_ecdsa(GetEllipticCurveType(elliptic), priv_name.c_str(),
+                                       pub_name.c_str(), priv_policy, pub_policy);
+    } else {
+      ret = ckmc_create_key_pair_dsa(size, priv_name.c_str(),
+                                     pub_name.c_str(), priv_policy, pub_policy);
+    }
+
+    if (CKMC_ERROR_NONE != ret) {
+      PlatformResult result = PlatformResult(ErrorCode::NO_ERROR);
+      if (CKMC_ERROR_INVALID_PARAMETER == ret) {
+        result = PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid value passed.");
+      } else {
+        result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to create key pair.");
+      }
+      common::tools::ReportError(result, &response->get<picojson::object>());
+    } else {
+      common::tools::ReportSuccess(response->get<picojson::object>());
+    }
+  };
+
+  auto generate_response = [this, callback_id](const std::shared_ptr<picojson::value>& response) -> void {
+    picojson::object& obj = response->get<picojson::object>();
+    obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
+    this->PostMessage(response->serialize().c_str());
+  };
+
+  TaskQueue::GetInstance().Queue<picojson::value>(
+      generate,
+      generate_response,
+      std::shared_ptr<picojson::value>(new picojson::value(picojson::object())));
 }
 
 void KeyManagerInstance::GetCertificate(const picojson::value& args,
