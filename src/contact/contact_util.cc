@@ -257,7 +257,7 @@ PlatformResult ClearAllContactRecord(contacts_record_h contacts_record,
     return status;
   }
 
-  for (unsigned int i = 0; i < record_count; ++i) {
+  for (int i = 0; i < record_count; ++i) {
     unsigned int actual_index = record_count - 1 - i;
     contacts_record_h phone_record = nullptr;
     int err = contacts_record_get_child_record_at_p(
@@ -437,7 +437,7 @@ PlatformResult ImportContactNameFromContactsRecord(
   }
 
   JsonArray nicknames;
-  for (unsigned int i = 0; i < count; ++i) {
+  for (int i = 0; i < count; ++i) {
     contacts_record_h nickname = nullptr;
     err = contacts_record_get_child_record_at_p(
         contacts_record, _contacts_contact.nickname, i, &nickname);
@@ -2316,9 +2316,9 @@ PlatformResult ImportContactFromContactsRecord(
       return status;
     }
 
-    for (unsigned int i = 0; i < child_rec_count; ++i) {
+    for (int i = 0; i < child_rec_count; ++i) {
       JsonValue val{JsonObject{}};
-      data.import_func(contacts_record, i, &val.get<JsonObject>());
+      data.import_func(contacts_record, static_cast<unsigned int>(i), &val.get<JsonObject>());
       array.push_back(val);
     }
   }
@@ -2337,11 +2337,11 @@ PlatformResult ImportContactFromContactsRecord(
   }
 
   bool is_contact_anniv;
-  for (unsigned int i = 0; i < child_rec_count; ++i) {
+  for (int i = 0; i < child_rec_count; ++i) {
     JsonValue anniversary{JsonObject{}};
 
     PlatformResult status = ImportContactAnniversariesFromContactsRecord(
-        contacts_record, i, &anniversary.get<JsonObject>(), &is_contact_anniv);
+        contacts_record, static_cast<unsigned int>(i), &anniversary.get<JsonObject>(), &is_contact_anniv);
     if (status.IsError()) {
       LoggerE("Error: %s", status.message().c_str());
       return status;
@@ -2366,10 +2366,10 @@ PlatformResult ImportContactFromContactsRecord(
     return status;
   }
 
-  for (unsigned int i = 0; i < child_rec_count; ++i) {
+  for (int i = 0; i < child_rec_count; ++i) {
     JsonValue val{JsonObject{}};
 
-    status = ImportContactNotesFromContactsRecord(contacts_record, i, &val);
+    status = ImportContactNotesFromContactsRecord(contacts_record, static_cast<unsigned int>(i), &val);
     if (status.IsError()) {
       LoggerE("Error: %s", status.message().c_str());
       return status;

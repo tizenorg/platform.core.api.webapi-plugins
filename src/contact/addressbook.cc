@@ -225,7 +225,7 @@ PlatformResult AddressBookAddBatch(const JsonObject& args, JsonArray& out) {
       common::stol(FromJson<JsonString>(args, "addressBookId"));
   addressBookId = addressBookId == -1 ? 0 : addressBookId;
 
-  unsigned length = batch_args.size();
+  int length = static_cast<int>(batch_args.size());
   contacts_list_h contacts_list = NULL;
   int error_code = contacts_list_create(&contacts_list);
   if (CONTACTS_ERROR_NONE != error_code) {
@@ -280,7 +280,7 @@ PlatformResult AddressBookAddBatch(const JsonObject& args, JsonArray& out) {
     LoggerW("Added different number of contacts");
   }
 
-  for (unsigned int i = 0; i < count; i++) {
+  for (int i = 0; i < count; i++) {
     JsonObject out_object;
     contacts_record_h contact_record = nullptr;
     error_code =
@@ -390,7 +390,7 @@ PlatformResult AddressBookFind(const JsonObject& args, JsonArray& array) {
   if (status.IsError()) return status;
 
   contacts_list_first(list);
-  for (unsigned int i = 0; i < record_count; i++) {
+  for (int i = 0; i < record_count; i++) {
     contacts_record_h record;
     error_code = contacts_list_get_current_record_p(list, &record);
     status = ContactUtil::ErrorChecker(
@@ -664,7 +664,7 @@ PlatformResult AddressBookGetGroups(const JsonObject& args, JsonArray& out) {
 
   contacts_list_first(groups_list);
 
-  for (unsigned int i = 0; i < record_count; i++) {
+  for (int i = 0; i < record_count; i++) {
     contacts_record_h contacts_record;
     err = contacts_list_get_current_record_p(groups_list, &contacts_record);
     if (CONTACTS_ERROR_NONE != err || nullptr == contacts_record) {
@@ -756,7 +756,7 @@ void AddressBookListenerCallback(const char* view_uri, void* user_data) {
         result_obj.insert(std::make_pair(std::string("removed"),
             picojson::value(JsonArray{}))).first->second.get<JsonArray>();
 
-    for (unsigned int i = 0; i < count; i++) {
+    for (int i = 0; i < count; i++) {
       contacts_record_h contact_updated_record = nullptr;
 
       error_code = contacts_list_get_current_record_p(contacts_list,
