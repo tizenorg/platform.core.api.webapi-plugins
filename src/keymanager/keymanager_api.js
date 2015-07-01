@@ -185,7 +185,7 @@ Certificate.prototype.save = function() {
 
   native.call('KeyManager_saveCertificate', {
     certificate: this,
-    rawCert: args.rawCert
+    rawCert: stripPemString(args.rawCert)
   }, function(msg) {
     if (native.isFailure(msg)) {
       if (type.isFunction(args.errorCallback)) {

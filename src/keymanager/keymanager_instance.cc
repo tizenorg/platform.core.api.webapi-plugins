@@ -514,6 +514,69 @@ void KeyManagerInstance::GetCertificate(const picojson::value& args,
 void KeyManagerInstance::SaveCertificate(const picojson::value& args,
                                          picojson::object& out) {
   LoggerD("Enter");
+
+  RawBuffer* raw_buffer = new RawBuffer(std::move(Base64ToRawBuffer(args.get("rawCert").get<std::string>())));
+  const auto& certificate = args.get("certificate");
+  const auto& alias = certificate.get("name").get<std::string>();
+  const auto& password_value = certificate.get("password");
+  const auto extractable = certificate.get("extractable").get<bool>();
+  double callback_id = args.get("callbackId").get<double>();
+
+  std::string password;
+
+  if (password_value.is<std::string>()) {
+    password = password_value.get<std::string>();
+  }
+
+  auto save_certificate = [raw_buffer, password, extractable, alias](const std::shared_ptr<picojson::value>& result) {
+    LoggerD("Enter save_certificate");
+
+    ckmc_cert_s certificate { const_cast<unsigned char*>(&(*raw_buffer)[0]), raw_buffer->size(), CKMC_FORM_DER };
+    ckmc_policy_s policy { const_cast<char*>(password.c_str()), extractable };
+
+    int ret = ckmc_save_cert(alias.c_str(), certificate, policy);
+
+    PlatformResult success(ErrorCode::NO_ERROR);
+
+    switch (ret) {
+      case CKMC_ERROR_NONE:
+        break;
+
+      case CKMC_ERROR_DB_ALIAS_UNKNOWN:
+        success = PlatformResult(ErrorCode::NOT_FOUND_ERR, "Alias not found");
+        break;
+
+      case CKMC_ERROR_INVALID_PARAMETER:
+        success = PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Failed to save certificate");
+        break;
+
+      default:
+        success = PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to save certificate");
+        break;
+    }
+
+    if (success) {
+      common::tools::ReportSuccess(result->get<picojson::object>());
+    } else {
+      LoggerE("Failed to save certificate: %d", ret);
+      common::tools::ReportError(success, &result->get<picojson::object>());
+    }
+
+    delete raw_buffer;
+  };
+
+  auto save_certificate_result = [this, callback_id](const std::shared_ptr<picojson::value>& result) {
+    LoggerD("Enter save_certificate_result");
+    result->get<picojson::object>()["callbackId"] = picojson::value{callback_id};
+    this->PostMessage(result->serialize().c_str());
+  };
+
+  TaskQueue::GetInstance().Queue<picojson::value>(
+      save_certificate,
+      save_certificate_result,
+      std::shared_ptr<picojson::value>{new picojson::value{picojson::object()}});
+
+  ReportSuccess(out);
 }
 
 void KeyManagerInstance::LoadCertificateFromFile(const picojson::value& args,
