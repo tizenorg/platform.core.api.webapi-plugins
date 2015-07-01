@@ -238,6 +238,48 @@ void KeyManagerInstance::GenerateKeyPair(const picojson::value& args,
 void KeyManagerInstance::GetCertificate(const picojson::value& args,
                                         picojson::object& out) {
   LoggerD("Enter");
+
+  const std::string& alias = args.get("name").get<std::string>();
+
+  std::string pass;
+  if (args.get("password").is<std::string>()) {
+    pass = args.get("password").get<std::string>();
+  }
+
+  ckmc_cert_s* cert = nullptr;
+  int ret = ckmc_get_cert(alias.c_str(), pass.c_str(), &cert);
+
+  if (CKMC_ERROR_NONE != ret) {
+    LoggerE("Failed to get certificate: %d", ret);
+    PlatformResult result = PlatformResult(ErrorCode::NO_ERROR);
+    switch (ret) {
+      case CKMC_ERROR_DB_ALIAS_UNKNOWN:
+        result = PlatformResult(ErrorCode::NOT_FOUND_ERR, "Certificate alias not found");
+        break;
+      case CKMC_ERROR_INVALID_PARAMETER:
+        result = PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid parameter passed");
+        break;
+      default:
+        result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to get certificate");
+    }
+
+    ReportError(result, &out);
+  } else {
+    picojson::value result = picojson::value(picojson::object());
+    picojson::object& obj = result.get<picojson::object>();
+
+    //if cert was retrieved it is extractable from db
+    obj["extractable"] = picojson::value(true);
+    obj["name"] = picojson::value(alias);
+    if (!pass.empty()) {
+      obj["password"] = picojson::value(pass);
+    }
+
+    RawBuffer raw_cert (cert->raw_cert, cert->raw_cert + cert->cert_size);
+    obj["rawCert"] = picojson::value(RawBufferToBase64(raw_cert));
+
+    ReportSuccess(result, out);
+  }
 }
 
 void KeyManagerInstance::SaveCertificate(const picojson::value& args,
