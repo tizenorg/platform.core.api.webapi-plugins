@@ -34,15 +34,13 @@ class KeyManagerInstance : public common::ParsedInstance {
   void GetDataAliasList(picojson::value const& args, picojson::object& out);
   void GetKey(const picojson::value& args, picojson::object& out);
   void SaveKey(const picojson::value& args, picojson::object& out);
-  void RemoveKey(const picojson::value& args, picojson::object& out);
+  void RemoveAlias(const picojson::value& args, picojson::object& out);
   void GenerateKeyPair(const picojson::value& args, picojson::object& out);
   void GetCertificate(const picojson::value& args, picojson::object& out);
   void SaveCertificate(const picojson::value& args, picojson::object& out);
   void LoadCertificateFromFile(const picojson::value& args,
                                picojson::object& out);
-  void RemoveCertificate(const picojson::value& args, picojson::object& out);
   void SaveData(const picojson::value& args, picojson::object& out);
-  void RemoveData(const picojson::value& args, picojson::object& out);
   void GetData(const picojson::value& args, picojson::object& out);
   void CreateSignature(const picojson::value& args, picojson::object& out);
   void VerifySignature(const picojson::value& args, picojson::object& out);

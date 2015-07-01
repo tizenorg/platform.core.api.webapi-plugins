@@ -134,8 +134,8 @@ Key.prototype.save = function() {
 
 Key.prototype.remove = function() {
   xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.KEYMANAGER);
-  var ret = native.callSync('KeyManager_removeKey', {
-    key: this
+  var ret = native.callSync('KeyManager_removeAlias', {
+    alias: this.name
   });
   if (native.isFailure(ret)) {
     throw native.getErrorObject(ret);
@@ -239,8 +239,8 @@ Certificate.prototype.loadFromFile = function() {
 
 Certificate.prototype.remove = function() {
   xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.KEYMANAGER);
-  var ret = native.callSync('KeyManager_removeCertificate', {
-    certificate: this
+  var ret = native.callSync('KeyManager_removeAlias', {
+    alias: this.name
   });
   if (native.isFailure(ret)) {
     throw native.getErrorObject(ret);
@@ -304,8 +304,8 @@ Data.prototype.save = function() {
 
 Data.prototype.remove = function() {
   xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.KEYMANAGER);
-  var ret = native.callSync('KeyManager_removeData', {
-    data: this
+  var ret = native.callSync('KeyManager_removeAlias', {
+    alias: this.name
   });
   if (native.isFailure(ret)) {
     throw native.getErrorObject(ret);

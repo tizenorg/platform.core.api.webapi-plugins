@@ -122,8 +122,8 @@ KeyManagerInstance::KeyManagerInstance() {
       std::bind(&KeyManagerInstance::GetKey, this, _1, _2));
   RegisterSyncHandler("KeyManager_saveKey",
       std::bind(&KeyManagerInstance::SaveKey, this, _1, _2));
-  RegisterSyncHandler("KeyManager_removeKey",
-      std::bind(&KeyManagerInstance::RemoveKey, this, _1, _2));
+  RegisterSyncHandler("KeyManager_removeAlias",
+      std::bind(&KeyManagerInstance::RemoveAlias, this, _1, _2));
   RegisterSyncHandler("KeyManager_generateKeyPair",
       std::bind(&KeyManagerInstance::GenerateKeyPair, this, _1, _2));
   RegisterSyncHandler("KeyManager_getCertificate",
@@ -132,12 +132,8 @@ KeyManagerInstance::KeyManagerInstance() {
       std::bind(&KeyManagerInstance::SaveCertificate, this, _1, _2));
   RegisterSyncHandler("KeyManager_loadCertificateFromFile",
       std::bind(&KeyManagerInstance::LoadCertificateFromFile, this, _1, _2));
-  RegisterSyncHandler("KeyManager_removeCertificate",
-      std::bind(&KeyManagerInstance::RemoveCertificate, this, _1, _2));
   RegisterSyncHandler("KeyManager_saveData",
       std::bind(&KeyManagerInstance::SaveData, this, _1, _2));
-  RegisterSyncHandler("KeyManager_removeData",
-      std::bind(&KeyManagerInstance::RemoveData, this, _1, _2));
   RegisterSyncHandler("KeyManager_getData",
       std::bind(&KeyManagerInstance::GetData, this, _1, _2));
   RegisterSyncHandler("KeyManager_createSignature",
@@ -234,9 +230,29 @@ void KeyManagerInstance::SaveKey(const picojson::value& args,
       std::shared_ptr<picojson::value>(new picojson::value(picojson::object())));
 }
 
-void KeyManagerInstance::RemoveKey(const picojson::value& args,
+void KeyManagerInstance::RemoveAlias(const picojson::value& args,
                                    picojson::object& out) {
   LoggerD("Enter");
+
+  const std::string& alias = args.get("alias").get<std::string>();
+  int ret = ckmc_remove_alias(alias.c_str());
+
+  if (CKMC_ERROR_NONE != ret) {
+    PlatformResult result = PlatformResult(ErrorCode::NO_ERROR);
+    switch(ret) {
+      case CKMC_ERROR_INVALID_PARAMETER:
+        result = PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid parameter passed");
+        break;
+      case CKMC_ERROR_DB_ALIAS_UNKNOWN:
+        result = PlatformResult(ErrorCode::NOT_FOUND_ERR, "Alias not found");
+        break;
+      default:
+        result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to remove alias");
+    }
+    ReportError(result, &out);
+  } else {
+    ReportSuccess(out);
+  }
 }
 
 void KeyManagerInstance::GenerateKeyPair(const picojson::value& args,
@@ -366,18 +382,8 @@ void KeyManagerInstance::LoadCertificateFromFile(const picojson::value& args,
   LoggerD("Enter");
 }
 
-void KeyManagerInstance::RemoveCertificate(const picojson::value& args,
-                                           picojson::object& out) {
-  LoggerD("Enter");
-}
-
 void KeyManagerInstance::SaveData(const picojson::value& args,
                                   picojson::object& out) {
-  LoggerD("Enter");
-}
-
-void KeyManagerInstance::RemoveData(const picojson::value& args,
-                                    picojson::object& out) {
   LoggerD("Enter");
 }
 
