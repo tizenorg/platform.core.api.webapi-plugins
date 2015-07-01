@@ -658,6 +658,65 @@ void KeyManagerInstance::LoadCertificateFromFile(const picojson::value& args,
 void KeyManagerInstance::SaveData(const picojson::value& args,
                                   picojson::object& out) {
   LoggerD("Enter");
+
+  RawBuffer* raw_buffer = new RawBuffer(std::move(Base64ToRawBuffer(args.get("rawData").get<std::string>())));
+  const auto& data = args.get("data");
+  const auto& alias = data.get("name").get<std::string>();
+  const auto& password_value = data.get("password");
+  const auto extractable = data.get("extractable").get<bool>();
+  double callback_id = args.get("callbackId").get<double>();
+
+  std::string password;
+
+  if (password_value.is<std::string>()) {
+    password = password_value.get<std::string>();
+  }
+
+  auto save_data = [raw_buffer, password, extractable, alias](const std::shared_ptr<picojson::value>& result) {
+    LoggerD("Enter save_data");
+
+    ckmc_raw_buffer_s raw_data { const_cast<unsigned char*>(&(*raw_buffer)[0]), raw_buffer->size() };
+    ckmc_policy_s policy { const_cast<char*>(password.c_str()), extractable };
+
+    int ret = ckmc_save_data(alias.c_str(), raw_data, policy);
+
+    PlatformResult success(ErrorCode::NO_ERROR);
+
+    switch (ret) {
+      case CKMC_ERROR_NONE:
+        break;
+
+      case CKMC_ERROR_INVALID_PARAMETER:
+        success = PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Failed to save data");
+        break;
+
+      default:
+        success = PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to save data");
+        break;
+    }
+
+    if (success) {
+      common::tools::ReportSuccess(result->get<picojson::object>());
+    } else {
+      LoggerE("Failed to save data: %d", ret);
+      common::tools::ReportError(success, &result->get<picojson::object>());
+    }
+
+    delete raw_buffer;
+  };
+
+  auto save_data_result = [this, callback_id](const std::shared_ptr<picojson::value>& result) {
+    LoggerD("Enter save_data_result");
+    result->get<picojson::object>()["callbackId"] = picojson::value{callback_id};
+    this->PostMessage(result->serialize().c_str());
+  };
+
+  TaskQueue::GetInstance().Queue<picojson::value>(
+      save_data,
+      save_data_result,
+      std::shared_ptr<picojson::value>{new picojson::value{picojson::object()}});
+
+  ReportSuccess(out);
 }
 
 void KeyManagerInstance::GetData(const picojson::value& args,
