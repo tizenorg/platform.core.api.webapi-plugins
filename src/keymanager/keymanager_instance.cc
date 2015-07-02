@@ -414,36 +414,47 @@ void KeyManagerInstance::GenerateKeyPair(const picojson::value& args,
   if (priv_key.get("password").is<std::string>()) {
     priv_pass = priv_key.get("password").get<std::string>();
   }
-  bool extractable = priv_key.get("extractable").get<bool>();
-  ckmc_policy_s priv_policy { const_cast<char*>(priv_pass.c_str()), extractable };
+  bool priv_extractable = priv_key.get("extractable").get<bool>();
 
   std::string pub_pass;
   if (pub_key.get("password").is<std::string>()) {
     pub_pass = pub_key.get("password").get<std::string>();
   }
-  extractable = pub_key.get("extractable").get<bool>();
-  ckmc_policy_s pub_policy { const_cast<char*>(pub_pass.c_str()), extractable };
+  bool pub_extractable = pub_key.get("extractable").get<bool>();
 
   std::string elliptic;
   if (args.get("ellipticCurveType").is<std::string>()) {
     elliptic = args.get("ellipticCurveType").get<std::string>();
   }
 
-  auto generate = [size, priv_policy, pub_policy, priv_name, pub_name, type, elliptic]
-                   (const std::shared_ptr<picojson::value>& response) -> void {
+  auto generate =
+      [size, priv_pass, pub_pass, priv_extractable, pub_extractable, priv_name, pub_name, type, elliptic]
+      (const std::shared_ptr<picojson::value>& response) -> void {
+    LoggerD("Enter generate");
     int ret = CKMC_ERROR_NONE;
+
+    ckmc_policy_s priv_policy { const_cast<char*>(priv_pass.c_str()), priv_extractable };
+    ckmc_policy_s pub_policy { const_cast<char*>(pub_pass.c_str()), pub_extractable };
+
     if (kTypeRSA == type) {
+      LoggerD("Generating RSA, size: %d", size);
       ret = ckmc_create_key_pair_rsa(size, priv_name.c_str(),
                                      pub_name.c_str(), priv_policy, pub_policy);
+      LoggerD("Generating RSA - done");
     } else if (kTypeECDSA == type) {
+      LoggerD("Generating ECDSA, curve: %s", elliptic.c_str());
       ret = ckmc_create_key_pair_ecdsa(GetEllipticCurveType(elliptic), priv_name.c_str(),
                                        pub_name.c_str(), priv_policy, pub_policy);
+      LoggerD("Generating ECDSA - done");
     } else {
+      LoggerD("Generating DSA, size: %d", size);
       ret = ckmc_create_key_pair_dsa(size, priv_name.c_str(),
                                      pub_name.c_str(), priv_policy, pub_policy);
+      LoggerD("Generating DSA - done");
     }
 
     if (CKMC_ERROR_NONE != ret) {
+      LoggerD("Failed to generate key pair: %d", ret);
       PlatformResult result = PlatformResult(ErrorCode::NO_ERROR);
       if (CKMC_ERROR_INVALID_PARAMETER == ret) {
         result = PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid value passed.");
@@ -457,6 +468,7 @@ void KeyManagerInstance::GenerateKeyPair(const picojson::value& args,
   };
 
   auto generate_response = [this, callback_id](const std::shared_ptr<picojson::value>& response) -> void {
+    LoggerD("Enter generate_response");
     picojson::object& obj = response->get<picojson::object>();
     obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
     this->PostMessage(response->serialize().c_str());
@@ -466,6 +478,8 @@ void KeyManagerInstance::GenerateKeyPair(const picojson::value& args,
       generate,
       generate_response,
       std::shared_ptr<picojson::value>(new picojson::value(picojson::object())));
+
+  ReportSuccess(out);
 }
 
 void KeyManagerInstance::GetCertificate(const picojson::value& args,
