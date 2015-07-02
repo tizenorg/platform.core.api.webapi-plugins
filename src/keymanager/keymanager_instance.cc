@@ -172,6 +172,10 @@ RawBuffer ToRawBuffer(const ckmc_raw_buffer_s* buffer) {
   return RawBuffer(buffer->data, buffer->data + buffer->size);
 }
 
+RawBuffer ToRawBuffer(const ckmc_cert_s* cert) {
+  return RawBuffer(cert->raw_cert, cert->raw_cert + cert->cert_size);
+}
+
 typedef int (*AliasListFunction)(ckmc_alias_list_s**);
 
 void GetGenericAliasList(AliasListFunction func, picojson::object* out) {
@@ -588,7 +592,7 @@ void KeyManagerInstance::LoadCertificateFromFile(const picojson::value& args,
   const auto& file_uri = args.get("fileURI").get<std::string>();
   const auto& certificate = args.get("certificate");
   const auto& alias = certificate.get("name").get<std::string>();
-  const auto& password_value = certificate.get("password");
+  const auto& password_value = args.get("password");
   const auto extractable = certificate.get("extractable").get<bool>();
   double callback_id = args.get("callbackId").get<double>();
 
@@ -604,6 +608,7 @@ void KeyManagerInstance::LoadCertificateFromFile(const picojson::value& args,
     std::string file = VirtualFs::GetInstance().GetRealPath(file_uri);
     ckmc_cert_s* certificate = nullptr;
     int ret = ckmc_load_cert_from_file(file.c_str(), &certificate);
+    std::string certificate_data;
 
     if (CKMC_ERROR_NONE == ret) {
       ckmc_policy_s policy { const_cast<char*>(password.c_str()), extractable };
@@ -611,6 +616,7 @@ void KeyManagerInstance::LoadCertificateFromFile(const picojson::value& args,
       if (CKMC_ERROR_NONE != ret) {
         LoggerE("Failed to save certificate: %d", ret);
       }
+      certificate_data = RawBufferToBase64(ToRawBuffer(certificate));
       ckmc_cert_free(certificate);
     } else {
       LoggerE("Failed to load certificate: %d", ret);
@@ -637,7 +643,7 @@ void KeyManagerInstance::LoadCertificateFromFile(const picojson::value& args,
     }
 
     if (success) {
-      common::tools::ReportSuccess(result->get<picojson::object>());
+      common::tools::ReportSuccess(picojson::value(certificate_data), result->get<picojson::object>());
     } else {
       common::tools::ReportError(success, &result->get<picojson::object>());
     }

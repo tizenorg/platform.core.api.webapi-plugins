@@ -72,6 +72,28 @@ function stripPemString(str) {
   return str.replace(/(\r\n|\r|\n)/g, '').replace(/-----[^-]*-----/g, '');
 }
 
+function InternalData(data) {
+  if (!(this instanceof InternalData)) {
+    return new InternalData(data);
+  }
+
+  for (var key in data) {
+    if (data.hasOwnProperty(key)) {
+      this[key] = data[key];
+    }
+  }
+}
+
+function updateInternalData(internal, data) {
+  var values = InternalData(data);
+
+  for (var key in data) {
+    if (values.hasOwnProperty(key) && internal.hasOwnProperty(key)) {
+      internal[key] = values;
+    }
+  }
+}
+
 function Key(name, password, extractable, keyType, rawKey) {
   Object.defineProperties(this, {
     name: {
@@ -143,21 +165,40 @@ Key.prototype.remove = function() {
 };
 
 function Certificate(name, password, extractable, rawCert) {
+  var _internal = {
+    name: converter.toString(name),
+    password: (password ? converter.toString(password) : null),
+    extractable: !!extractable,  // make sure it is boolean
+    rawCert: (rawCert ? converter.toString(rawCert) : '')
+  };
+
   Object.defineProperties(this, {
     name: {
-      value: converter.toString(name),
+      get: function () { return _internal.name; },
+      set: function () {},
       enumerable: true
     },
     password: {
-      value: password ? converter.toString(password) : null,
+      get: function () { return _internal.password; },
+      set: function (value) {
+        if (value instanceof InternalData) {
+          _internal.password = value.password;
+        }
+      },
       enumerable: true
     },
     extractable: {
-      value: !!extractable,//make sure it is boolean
+      get: function () { return _internal.extractable; },
+      set: function () {},
       enumerable: true
     },
     rawCert: {
-      value: rawCert ? converter.toString(rawCert) : "",
+      get: function () { return _internal.rawCert; },
+      set: function (value) {
+        if (value instanceof InternalData) {
+          _internal.rawCert = value.rawCert;
+        }
+      },
       enumerable: true
     }
   });
@@ -183,15 +224,16 @@ Certificate.prototype.save = function() {
     }
   ]);
 
+  var that = this;
+
   native.call('KeyManager_saveCertificate', {
     certificate: this,
     rawCert: stripPemString(args.rawCert)
   }, function(msg) {
     if (native.isFailure(msg)) {
-      if (type.isFunction(args.errorCallback)) {
-        args.errorCallback(native.getErrorObject(msg));
-      }
+      native.callIfPossible(args.errorCallback, native.getErrorObject(msg));
     } else {
+      updateInternalData(that, {rawCert: args.rawCert});
       native.callIfPossible(args.successCallback);
     }
   });
@@ -222,16 +264,17 @@ Certificate.prototype.loadFromFile = function() {
     }
   ]);
 
+  var that = this;
+
   native.call('KeyManager_loadCertificateFromFile', {
     certificate: this,
     fileURI: args.fileURI,
     password: args.password
   }, function(msg) {
     if (native.isFailure(msg)) {
-      if (type.isFunction(args.errorCallback)) {
-        args.errorCallback(native.getErrorObject(msg));
-      }
+      native.callIfPossible(args.errorCallback, native.getErrorObject(msg));
     } else {
+      updateInternalData(that, {password: args.password, rawCert: native.getResultObject(msg)});
       native.callIfPossible(args.successCallback);
     }
   });
