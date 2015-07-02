@@ -185,7 +185,7 @@ void GetGenericAliasList(AliasListFunction func, picojson::object* out) {
     ckmc_alias_list_s* head = alias_list;
 
     while (head) {
-      aliases.push_back(picojson::value(alias_list->alias ? alias_list->alias : ""));
+      aliases.push_back(picojson::value(head->alias ? head->alias : ""));
       head = head->next;
     }
 
