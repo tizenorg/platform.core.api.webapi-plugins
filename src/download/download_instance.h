@@ -98,14 +98,14 @@ class DownloadInstance : public common::ParsedInstance {
     download_state_e state;
   };
 
-  typedef std::vector<DownloadCallback*> DownloadCallbackVector;
+  typedef std::map<int, DownloadCallback*> DownloadCallbackMap;
   typedef std::shared_ptr<DownloadInfo> DownloadInfoPtr;
   typedef std::map<int, DownloadInfoPtr> DownloadInfoMap;
 
   static std::mutex instances_mutex_;
   static std::vector<DownloadInstance*> instances_;
 
-  DownloadCallbackVector downCbVector;
+  DownloadCallbackMap downCbMap;
   DownloadInfoMap diMap;
 };
 
