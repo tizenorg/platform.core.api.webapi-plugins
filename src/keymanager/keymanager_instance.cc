@@ -18,6 +18,7 @@
 
 #include <ckmc/ckmc-manager.h>
 #include <glib.h>
+#include <pkgmgr-info.h>
 
 #include "common/logger.h"
 #include "common/optional.h"
@@ -199,7 +200,6 @@ void GetGenericAliasList(AliasListFunction func, picojson::object* out) {
     common::tools::ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to get alias list"), out);
   }
 }
-
 }  // namespace
 
 KeyManagerInstance::KeyManagerInstance() {
@@ -241,6 +241,8 @@ KeyManagerInstance::KeyManagerInstance() {
       std::bind(&KeyManagerInstance::AllowAccessControl, this, _1, _2));
   RegisterSyncHandler("KeyManager_denyAccessControl",
       std::bind(&KeyManagerInstance::DenyAccessControl, this, _1, _2));
+  RegisterSyncHandler("KeyManager_isDataNameFound",
+      std::bind(&KeyManagerInstance::IsDataNameFound, this, _1, _2));
 }
 
 KeyManagerInstance::~KeyManagerInstance() {
@@ -1014,7 +1016,19 @@ void KeyManagerInstance::AllowAccessControl(const picojson::value& args,
   }
 
   auto allow = [data_name, id, granted](const std::shared_ptr<picojson::value>& response) -> void {
-    int ret = ckmc_allow_access(data_name.c_str(), id.c_str(), granted);
+    //as ckmc_allow_access does not check if package id exists
+    //it has to be done before allowing access
+    pkgmgrinfo_pkginfo_h handle = nullptr;
+    int ret = pkgmgrinfo_pkginfo_get_pkginfo(id.c_str(), &handle);
+    if (PMINFO_R_OK != ret) {
+      LoggerE("Package id not found.");
+      common::tools::ReportError(PlatformResult(
+          ErrorCode::NOT_FOUND_ERR, "Package id not found."), &response->get<picojson::object>());
+      return;
+    }
+    pkgmgrinfo_pkginfo_destroy_pkginfo(handle);
+
+    ret = ckmc_allow_access(data_name.c_str(), id.c_str(), granted);
     if (CKMC_ERROR_NONE != ret) {
       PlatformResult result = PlatformResult(ErrorCode::NO_ERROR);
       if (CKMC_ERROR_DB_ALIAS_UNKNOWN == ret) {
@@ -1073,6 +1087,48 @@ void KeyManagerInstance::DenyAccessControl(const picojson::value& args,
       deny,
       deny_response,
       std::shared_ptr<picojson::value>(new picojson::value(picojson::object())));
+}
+
+void KeyManagerInstance::IsDataNameFound(const picojson::value& args,
+                                           picojson::object& out){
+  LoggerD("Entered");
+
+  const std::string& data_name = args.get("dataName").get<std::string>();
+  bool data_found = false;
+  ckmc_alias_list_s* alias_list = nullptr;
+
+  int ret = ckmc_get_data_alias_list(&alias_list);
+  if (CKMC_ERROR_NONE != ret) {
+    LoggerE("Failed to get data list [%d]", ret);
+    PlatformResult result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to get data list.");
+    if (CKMC_ERROR_DB_ALIAS_UNKNOWN == ret) {
+      result = PlatformResult(ErrorCode::NOT_FOUND_ERR, "Data name not found.");
+    }
+
+    common::tools::ReportError(result, &out);
+    return;
+  }
+
+  ckmc_alias_list_s* head = alias_list;
+  while (head) {
+    if (!strcmp(head->alias, data_name.c_str())) {
+      data_found = true;
+      break;
+    }
+    head = head->next;
+  }
+
+  if (alias_list) {
+    ckmc_alias_list_all_free(alias_list);
+  }
+
+  LoggerD("Data name found: %d", data_found);
+  if (data_found) {
+    common::tools::ReportSuccess(out);
+  } else {
+    common::tools::ReportError(
+        PlatformResult(ErrorCode::NOT_FOUND_ERR, "Data name not found."), &out);
+  }
 }
 
 } // namespace keymanager

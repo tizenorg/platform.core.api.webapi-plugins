@@ -47,6 +47,8 @@ class KeyManagerInstance : public common::ParsedInstance {
   void LoadFromPKCS12File(const picojson::value& args, picojson::object& out);
   void AllowAccessControl(const picojson::value& args, picojson::object& out);
   void DenyAccessControl(const picojson::value& args, picojson::object& out);
+
+  void IsDataNameFound(const picojson::value& args, picojson::object& out);
 };
 
 } // namespace keymanager

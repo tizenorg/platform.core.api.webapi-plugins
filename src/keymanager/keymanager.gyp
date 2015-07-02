@@ -21,6 +21,7 @@
           'variables': {
             'packages': [
               'key-manager',
+              'pkgmgr-info',
             ]
           },
         }],

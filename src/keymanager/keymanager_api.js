@@ -552,6 +552,12 @@ KeyManager.prototype.allowAccessControl = function() {
       nullable: true
     }
   ]);
+
+  var ret = native.callSync('KeyManager_isDataNameFound', {dataName : args.dataName});
+  if (native.isFailure(ret)) {
+    throw native.getErrorObject(ret);
+  }
+
   native.call('KeyManager_allowAccessControl', {
     dataName: args.dataName,
     id: args.id,
@@ -588,6 +594,12 @@ KeyManager.prototype.denyAccessControl = function() {
       nullable: true
     }
   ]);
+
+  var ret = native.callSync('KeyManager_isDataNameFound', {dataName : args.dataName});
+  if (native.isFailure(ret)) {
+    throw native.getErrorObject(ret);
+  }
+
   native.call('KeyManager_denyAccessControl', {
     dataName: args.dataName,
     id: args.id
