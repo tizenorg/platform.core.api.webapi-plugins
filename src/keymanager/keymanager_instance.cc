@@ -184,8 +184,9 @@ void GetGenericAliasList(AliasListFunction func, picojson::object* out) {
   ckmc_alias_list_s* alias_list = nullptr;
   int ret = func(&alias_list);
 
+  picojson::value result{picojson::array{}};
+
   if (CKMC_ERROR_NONE == ret) {
-    picojson::value result{picojson::array{}};
     auto& aliases = result.get<picojson::array>();
     ckmc_alias_list_s* head = alias_list;
 
@@ -197,12 +198,9 @@ void GetGenericAliasList(AliasListFunction func, picojson::object* out) {
     if (alias_list) {
       ckmc_alias_list_all_free(alias_list);
     }
-
-    common::tools::ReportSuccess(result, *out);
-  } else {
-    LoggerE("Failed to get alias list: %d", ret);
-    common::tools::ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to get alias list"), out);
   }
+
+  common::tools::ReportSuccess(result, *out);
 }
 }  // namespace
 
