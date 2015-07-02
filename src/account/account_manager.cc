@@ -75,7 +75,9 @@ static bool GetAccountsCallback(account_h handle, void *user_data) {
 
   picojson::object object_info;
   if (AccountManager::ConvertAccountToObject(handle, object_info)) {
-    array_data->push_back(picojson::value(object_info));
+    if (!object_info["provider"].is<picojson::null>()) {
+      array_data->push_back(picojson::value(object_info));
+    }
   }
 
   return true;
