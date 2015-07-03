@@ -74,7 +74,7 @@ PlatformResult ContactManagerGetAddressBooks(const JsonObject& args,
                           "Fail to get address book from list");
   }
 
-  for (unsigned int i = 0; i < record_count; i++) {
+  for (int i = 0; i < record_count; i++) {
     contacts_record_h contacts_record = nullptr;
     error_code = contacts_list_get_current_record_p(*contacts_list_ptr,
                                                     &contacts_record);
@@ -740,7 +740,7 @@ PlatformResult ContactManagerFind(const JsonObject& args, JsonArray& out) {
 
   contacts_list_first(person_list);
 
-  for (unsigned int i = 0; i < record_count; i++) {
+  for (int i = 0; i < record_count; i++) {
     contacts_record_h contacts_record;
     error_code =
         contacts_list_get_current_record_p(person_list, &contacts_record);
