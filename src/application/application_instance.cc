@@ -20,6 +20,7 @@
 #include "common/picojson.h"
 #include "common/platform_exception.h"
 #include "common/task-queue.h"
+#include "common/current_application.h"
 
 namespace extension {
 namespace application {
@@ -30,7 +31,7 @@ ApplicationInstance::ApplicationInstance() :
   manager_(*this) {
   LoggerD("Entered");
 
-  app_id_ = common::GetCurrentExtension()->GetRuntimeVariable("app_id", 64);
+  app_id_ = CurrentApplication::GetInstance().GetApplicationId();
   LoggerD("app_id: %s", app_id_.c_str());
 
   if (app_id_.empty()) {
