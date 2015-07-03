@@ -341,12 +341,14 @@ void KeyManagerInstance::SaveKey(const picojson::value& args,
   auto save = [alias, pass, key_type, extractable, raw_buffer]
                (const std::shared_ptr<picojson::value>& response) -> void {
 
+    LoggerD("Enter save_key");
     ckmc_policy_s policy { const_cast<char*>(pass.c_str()), extractable };
     ckmc_key_s key { const_cast<unsigned char*>(&(*raw_buffer)[0]),
       raw_buffer->size(), key_type, const_cast<char*>(pass.c_str()) };
 
     int ret = ckmc_save_key(alias.c_str(), key, policy);
     if (CKMC_ERROR_NONE != ret) {
+      LoggerE("Failed to save key alias [%d]", ret);
       PlatformResult result = PlatformResult(ErrorCode::NO_ERROR);
       if (CKMC_ERROR_INVALID_PARAMETER == ret) {
         result = PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid parameter passed.");
@@ -362,6 +364,7 @@ void KeyManagerInstance::SaveKey(const picojson::value& args,
   };
 
   auto save_response = [this, callback_id](const std::shared_ptr<picojson::value>& response) -> void {
+    LoggerD("Enter save_key_result");
     picojson::object& obj = response->get<picojson::object>();
     obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
     this->PostMessage(response->serialize().c_str());
@@ -381,6 +384,7 @@ void KeyManagerInstance::RemoveAlias(const picojson::value& args,
   int ret = ckmc_remove_alias(alias.c_str());
 
   if (CKMC_ERROR_NONE != ret) {
+    LoggerE("Failed to remove alias [%d]", ret);
     PlatformResult result = PlatformResult(ErrorCode::NO_ERROR);
     switch(ret) {
       case CKMC_ERROR_INVALID_PARAMETER:
