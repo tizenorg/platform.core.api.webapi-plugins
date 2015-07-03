@@ -18,11 +18,6 @@
 
 namespace common {
 
-namespace {
-const char* CALLBACK_SUCCESS = "success";
-const char* CALLBACK_ERROR = "error";
-}  // anonymous namespace
-
 CallbackUserData::CallbackUserData() :
     m_is_act(true) {
 }
