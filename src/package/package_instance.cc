@@ -63,8 +63,6 @@ static void* PackageThreadWork(
     const PackageUserDataPtr& userData) {
   LoggerD("Enter");
 
-  PackageInstance* instance = userData->instance_;
-
   switch ( userData->work_ ) {
     case PackageThreadWorkGetPackagesInfo: {
       picojson::object output;
@@ -441,8 +439,6 @@ void PackageInstance::
   LoggerD("Enter");
 
   CHECK_EXIST(args, "callbackId", out)
-  int callback_id =
-      static_cast<int>(args.get("callbackId").get<double>());
 
   if ( is_package_info_listener_set_ ) {
     LoggerD("Already set");
