@@ -288,7 +288,10 @@ void KeyManagerInstance::GetKey(const picojson::value& args,
     picojson::object result;
 
     result["name"] = picojson::value(key_alias);
-    result["password"] = picojson::value(key->password);
+    if (key->password) {
+      result["password"] = picojson::value(key->password);
+    }
+
     // if key was retrieved it is extractable from DB
     result["extractable"] = picojson::value(true);
     result["keyType"] = picojson::value(KeyTypeToString(key->key_type));
