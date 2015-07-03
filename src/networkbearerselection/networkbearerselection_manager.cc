@@ -26,7 +26,6 @@ namespace networkbearerselection {
 
 namespace {
 const char* kPlatformError = "Platform error";
-const char* kInvalidValuesError = "Invalid values error";
 }
 
 struct NetworkBearerSelectionRequestEvent {
