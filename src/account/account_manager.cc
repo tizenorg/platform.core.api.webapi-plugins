@@ -307,7 +307,7 @@ bool AccountManager::ConvertAccountToObject(account_h account,
     REPORT_ERROR(out, UnknownException(GetErrorMsg(ret)));
     return false;
   }
-  account_init["iconUri"] = picojson::value(icon_path);
+  account_init["iconUri"] = icon_path ? picojson::value(icon_path) : picojson::value();
 
   ret = account_get_user_name(account, &user_name);
   if (ret != ACCOUNT_ERROR_NONE) {
@@ -315,7 +315,7 @@ bool AccountManager::ConvertAccountToObject(account_h account,
     REPORT_ERROR(out, UnknownException(GetErrorMsg(ret)));
     return false;
   }
-  account_init["userName"] = picojson::value(user_name);
+  account_init["userName"] = user_name ? picojson::value(user_name) : picojson::value();
   out["accountInitDict"] = picojson::value(account_init);
 
   return true;
