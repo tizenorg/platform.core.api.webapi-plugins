@@ -360,6 +360,16 @@ void KeyManagerInstance::SaveKey(const picojson::value& args,
       }
       common::tools::ReportError(result, &response->get<picojson::object>());
     } else {
+      //as key_type is determined inside key manager during storing keys
+      //we have to get saved key and check key_type again.
+      ckmc_key_s * saved_key = nullptr;
+      ret = ckmc_get_key(alias.c_str(), pass.c_str(), &saved_key);
+      if (CKMC_ERROR_NONE == ret) {
+        picojson::object& obj = response->get<picojson::object>();
+        obj["keyType"] = picojson::value(KeyTypeToString(saved_key->key_type));
+        ckmc_key_free(saved_key);
+      }
+
       common::tools::ReportSuccess(response->get<picojson::object>());
     }
 

@@ -95,25 +95,50 @@ function updateInternalData(internal, data) {
 }
 
 function Key(name, password, extractable, keyType, rawKey) {
+  var _internal = {
+    name: converter.toString(name),
+    password: (password ? converter.toString(password) : null),
+    extractable: !!extractable,  // make sure it is boolean
+    keyType: (KeyType.hasOwnProperty(keyType) ? keyType : KeyType.KEY_NONE),
+    rawKey: (rawKey ? converter.toString(rawKey) : '')
+  };
+
   Object.defineProperties(this, {
     name: {
-      value: converter.toString(name),
+      get: function () { return _internal.name; },
+      set: function () {},
       enumerable: true
     },
     password: {
-      value: password ? converter.toString(password) : null,
+      get: function () { return _internal.password; },
+      set: function (value) {
+        if (value instanceof InternalData) {
+          _internal.password = value.password;
+        }
+      },
       enumerable: true
     },
     extractable: {
-      value: !!extractable,//make sure it is boolean
+      get: function () { return _internal.extractable; },
+      set: function () {},
       enumerable: true
     },
     keyType: {
-      value: KeyType.hasOwnProperty(keyType) ? keyType : KeyType.KEY_NONE,
+      get: function () { return _internal.keyType; },
+      set: function (value) {
+        if (value instanceof InternalData && KeyType.hasOwnProperty(value.keyType)) {
+          _internal.keyType = value.keyType;
+        }
+      },
       enumerable: true
     },
     rawKey: {
-      value: converter.toString(rawKey),
+      get: function () { return _internal.rawKey; },
+      set: function (value) {
+        if (value instanceof InternalData) {
+          _internal.rawKey = value.rawKey;
+        }
+      },
       enumerable: true
     }
   });
@@ -140,6 +165,8 @@ Key.prototype.save = function() {
     }
   ]);
 
+  var that = this;
+
   native.call('KeyManager_saveKey', {
     key: this,
     rawKey: stripPemString(args.rawKey)
@@ -149,6 +176,7 @@ Key.prototype.save = function() {
         args.errorCallback(native.getErrorObject(msg));
       }
     } else {
+      updateInternalData(that, {rawKey: stripPemString(args.rawKey), keyType: msg.keyType});
       native.callIfPossible(args.successCallback);
     }
   });
