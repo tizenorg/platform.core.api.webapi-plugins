@@ -1172,7 +1172,7 @@ int ContentManager::getLyrics(const picojson::value& args, picojson::object& res
   ret = metadata_extractor_set_path(extractor, contentURI.c_str());
   if (ret != METADATA_EXTRACTOR_ERROR_NONE) {
     LOGGER(ERROR) << "metadata_extractor_set_path failed, error: " << ret;
-    return -1;
+    return ret;
   }
   picojson::array timestamps;
   picojson::array texts = picojson::array();
@@ -1182,11 +1182,15 @@ int ContentManager::getLyrics(const picojson::value& args, picojson::object& res
       METADATA_SYNCLYRICS_NUM, &strSyncTextNum);
   if (ret != METADATA_EXTRACTOR_ERROR_NONE) {
     LOGGER(ERROR) << "Media extractor error " << ret;
+    return ret;
   }
 
-  int nSyncTextNum = atoi(strSyncTextNum);
-  free(strSyncTextNum);
-  strSyncTextNum = NULL;
+  int nSyncTextNum = 0;
+  if (strSyncTextNum) {
+    nSyncTextNum = atoi(strSyncTextNum);
+    free(strSyncTextNum);
+    strSyncTextNum = NULL;
+  }
   if (nSyncTextNum > 0) {
     result["type"] = picojson::value(std::string("SYNCHRONIZED"));
     for (int i = 0; i < nSyncTextNum; i++) {
