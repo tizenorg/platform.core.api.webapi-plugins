@@ -20,6 +20,7 @@
 #include <string>
 #include <unistd.h>
 #include "common/converter.h"
+#include "common/assert.h"
 #include "common/logger.h"
 
 namespace extension {
@@ -286,7 +287,7 @@ PlatformResult GetNumberOfChildRecord(contacts_record_h contacts_record,
                                       unsigned int property_id,
                                       int* child_count) {
   LoggerD("Enter");
-  assert(child_count);
+  Assert(child_count);
 
   int err = CONTACTS_ERROR_NONE;
   err = contacts_record_get_child_record_count(contacts_record, property_id,
