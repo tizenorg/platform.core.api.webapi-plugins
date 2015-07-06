@@ -26,10 +26,10 @@
 #endif
 
 
-#include <cassert>
 #include <new>
 #include <utility>
 #include <type_traits>
+#include "common/assert.h"
 
 namespace common {
 
@@ -75,12 +75,12 @@ class optional {
     get()->~T();
   }
   const T* get() const {
-    assert(exist_);
+    Assert(exist_);
     return reinterpret_cast<const T*>(value_);
   }
 
   T* get() {
-    assert(exist_);
+    Assert(exist_);
     return reinterpret_cast<T*>(value_);
   }
 
