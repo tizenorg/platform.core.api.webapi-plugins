@@ -110,6 +110,8 @@ void DownloadInstance::OnStateChanged(int download_id,
     downCbPtr->callbackId, static_cast<int>(state));
 
   switch (state) {
+    case DOWNLOAD_STATE_NONE:
+      break;
     case DOWNLOAD_STATE_DOWNLOADING:
       OnStart(download_id, user_data);
       break;
@@ -124,6 +126,9 @@ void DownloadInstance::OnStateChanged(int download_id,
       break;
     case DOWNLOAD_STATE_FAILED:
       g_idle_add(OnFailed, downCbPtr);
+      break;
+    default:
+      LoggerD("Unexpected download state: %d", state);
       break;
   }
 }
@@ -158,7 +163,6 @@ gboolean DownloadInstance::OnProgressChanged(void* user_data) {
 void DownloadInstance::OnStart(int download_id, void* user_data) {
   LoggerD("Entered");
   unsigned long long totalSize;
-  int ret;
 
   DownloadCallback* downCbPtr = static_cast<DownloadCallback*>(user_data);
   std::lock_guard<std::mutex> lock(instances_mutex_);
@@ -369,6 +373,8 @@ gboolean DownloadInstance::OnFailed(void* user_data) {
     case DOWNLOAD_ERROR_IO_ERROR:
       instance->ReportError(IOException("Internal I/O error"), out);
       break;
+    case DOWNLOAD_ERROR_NONE:
+      break;
   }
 
   out["callbackId"] =
@@ -393,7 +399,7 @@ void DownloadInstance::DownloadManagerStart
   LoggerD("Entered");
   CHECK_EXIST(args, "callbackId", out)
 
-  int ret, downlodId;
+  int ret;
   std::string networkType;
 
   DownloadInfoPtr diPtr(new DownloadInfo);
@@ -507,8 +513,6 @@ void DownloadInstance::DownloadManagerStart
     (diPtr->download_id, progress_changed_cb, static_cast<void*>(downCbPtr));
   ret =
     download_set_url(diPtr->download_id, diPtr->url.c_str());
-
-  const char* dest;
 
   if (diPtr->destination.size() != 0) {
     ret = download_set_destination(diPtr->download_id, diPtr->destination.c_str());
@@ -697,6 +701,8 @@ void DownloadInstance::DownloadManagerGetstate
 
   if (ret == DOWNLOAD_ERROR_NONE) {
     switch (state) {
+     case DOWNLOAD_STATE_NONE:
+      break;
      case DOWNLOAD_STATE_QUEUED:
        stateValue = "QUEUED";
        break;
@@ -715,7 +721,10 @@ void DownloadInstance::DownloadManagerGetstate
      case DOWNLOAD_STATE_CANCELED:
        stateValue = "CANCELED";
        break;
-     }
+     default:
+      LoggerD("Unexpected download state: %d", state);
+      break;
+    }
 
     ReportSuccess(picojson::value(stateValue), out);
   } else if (ret == DOWNLOAD_ERROR_INVALID_PARAMETER) {

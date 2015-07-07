@@ -13,7 +13,7 @@
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
  */
- 
+
 var validator = xwalk.utils.validator;
 var converter = xwalk.utils.converter;
 var type = xwalk.utils.type;
@@ -66,26 +66,79 @@ var AccessControlType = {
   "READ_REMOVE": "READ_REMOVE"
 };
 
+function stripPemString(str) {
+  // remove new line characters
+  // remove BEGIN and END lines
+  return str.replace(/(\r\n|\r|\n)/g, '').replace(/-----[^-]*-----/g, '');
+}
+
+function InternalData(data) {
+  if (!(this instanceof InternalData)) {
+    return new InternalData(data);
+  }
+
+  for (var key in data) {
+    if (data.hasOwnProperty(key)) {
+      this[key] = data[key];
+    }
+  }
+}
+
+function updateInternalData(internal, data) {
+  var values = InternalData(data);
+
+  for (var key in data) {
+    if (values.hasOwnProperty(key) && internal.hasOwnProperty(key)) {
+      internal[key] = values;
+    }
+  }
+}
+
 function Key(name, password, extractable, keyType, rawKey) {
+  var _internal = {
+    name: converter.toString(name),
+    password: (password ? converter.toString(password) : null),
+    extractable: !!extractable,  // make sure it is boolean
+    keyType: (KeyType.hasOwnProperty(keyType) ? keyType : KeyType.KEY_NONE),
+    rawKey: (rawKey ? converter.toString(rawKey) : '')
+  };
+
   Object.defineProperties(this, {
     name: {
-      value: converter.toString(name),
+      get: function () { return _internal.name; },
+      set: function () {},
       enumerable: true
     },
     password: {
-      value: password ? converter.toString(password) : null,
+      get: function () { return _internal.password; },
+      set: function (value) {
+        if (value instanceof InternalData) {
+          _internal.password = value.password;
+        }
+      },
       enumerable: true
     },
     extractable: {
-      value: !!extractable,//make sure it is boolean
+      get: function () { return _internal.extractable; },
+      set: function () {},
       enumerable: true
     },
     keyType: {
-      value: KeyType.hasOwnProperty(keyType) ? keyType : KeyType.KEY_NONE,
+      get: function () { return _internal.keyType; },
+      set: function (value) {
+        if (value instanceof InternalData && KeyType.hasOwnProperty(value.keyType)) {
+          _internal.keyType = value.keyType;
+        }
+      },
       enumerable: true
     },
     rawKey: {
-      value: converter.toString(rawKey),
+      get: function () { return _internal.rawKey; },
+      set: function (value) {
+        if (value instanceof InternalData) {
+          _internal.rawKey = value.rawKey;
+        }
+      },
       enumerable: true
     }
   });
@@ -112,15 +165,18 @@ Key.prototype.save = function() {
     }
   ]);
 
+  var that = this;
+
   native.call('KeyManager_saveKey', {
     key: this,
-    rawKey: args.rawKey
+    rawKey: stripPemString(args.rawKey)
   }, function(msg) {
     if (native.isFailure(msg)) {
       if (type.isFunction(args.errorCallback)) {
         args.errorCallback(native.getErrorObject(msg));
       }
     } else {
+      updateInternalData(that, {rawKey: stripPemString(args.rawKey), keyType: msg.keyType});
       native.callIfPossible(args.successCallback);
     }
   });
@@ -128,8 +184,8 @@ Key.prototype.save = function() {
 
 Key.prototype.remove = function() {
   xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.KEYMANAGER);
-  var ret = native.callSync('KeyManager_removeKey', {
-    key: this
+  var ret = native.callSync('KeyManager_removeAlias', {
+    alias: this.name
   });
   if (native.isFailure(ret)) {
     throw native.getErrorObject(ret);
@@ -137,21 +193,40 @@ Key.prototype.remove = function() {
 };
 
 function Certificate(name, password, extractable, rawCert) {
+  var _internal = {
+    name: converter.toString(name),
+    password: (password ? converter.toString(password) : null),
+    extractable: !!extractable,  // make sure it is boolean
+    rawCert: (rawCert ? converter.toString(rawCert) : '')
+  };
+
   Object.defineProperties(this, {
     name: {
-      value: converter.toString(name),
+      get: function () { return _internal.name; },
+      set: function () {},
       enumerable: true
     },
     password: {
-      value: password ? converter.toString(password) : null,
+      get: function () { return _internal.password; },
+      set: function (value) {
+        if (value instanceof InternalData) {
+          _internal.password = value.password;
+        }
+      },
       enumerable: true
     },
     extractable: {
-      value: !!extractable,//make sure it is boolean
+      get: function () { return _internal.extractable; },
+      set: function () {},
       enumerable: true
     },
     rawCert: {
-      value: rawCert ? converter.toString(rawCert) : "",
+      get: function () { return _internal.rawCert; },
+      set: function (value) {
+        if (value instanceof InternalData) {
+          _internal.rawCert = value.rawCert;
+        }
+      },
       enumerable: true
     }
   });
@@ -177,15 +252,16 @@ Certificate.prototype.save = function() {
     }
   ]);
 
+  var that = this;
+
   native.call('KeyManager_saveCertificate', {
     certificate: this,
-    rawCert: args.rawCert
+    rawCert: stripPemString(args.rawCert)
   }, function(msg) {
     if (native.isFailure(msg)) {
-      if (type.isFunction(args.errorCallback)) {
-        args.errorCallback(native.getErrorObject(msg));
-      }
+      native.callIfPossible(args.errorCallback, native.getErrorObject(msg));
     } else {
+      updateInternalData(that, {rawCert: args.rawCert});
       native.callIfPossible(args.successCallback);
     }
   });
@@ -216,16 +292,17 @@ Certificate.prototype.loadFromFile = function() {
     }
   ]);
 
+  var that = this;
+
   native.call('KeyManager_loadCertificateFromFile', {
     certificate: this,
     fileURI: args.fileURI,
     password: args.password
   }, function(msg) {
     if (native.isFailure(msg)) {
-      if (type.isFunction(args.errorCallback)) {
-        args.errorCallback(native.getErrorObject(msg));
-      }
+      native.callIfPossible(args.errorCallback, native.getErrorObject(msg));
     } else {
+      updateInternalData(that, {password: args.password, rawCert: native.getResultObject(msg)});
       native.callIfPossible(args.successCallback);
     }
   });
@@ -233,8 +310,8 @@ Certificate.prototype.loadFromFile = function() {
 
 Certificate.prototype.remove = function() {
   xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.KEYMANAGER);
-  var ret = native.callSync('KeyManager_removeCertificate', {
-    certificate: this
+  var ret = native.callSync('KeyManager_removeAlias', {
+    alias: this.name
   });
   if (native.isFailure(ret)) {
     throw native.getErrorObject(ret);
@@ -242,21 +319,40 @@ Certificate.prototype.remove = function() {
 };
 
 function Data(name, password, extractable, rawData) {
+  var _internal = {
+    name: converter.toString(name),
+    password: (password ? converter.toString(password) : null),
+    extractable: !!extractable, // make sure it is boolean
+    rawData: (rawData ? converter.toString(rawData) : '')
+  };
+
   Object.defineProperties(this, {
     name: {
-      value: converter.toString(name),
+      get: function () { return _internal.name; },
+      set: function () {},
       enumerable: true
     },
     password: {
-      value: password ? converter.toString(password) : null,
+      get: function () { return _internal.password; },
+      set: function (value) {
+        if (value instanceof InternalData) {
+          _internal.password = value.password;
+        }
+      },
       enumerable: true
     },
     extractable: {
-      value: !!extractable,//make sure it is boolean
+      get: function () { return _internal.extractable; },
+      set: function () {},
       enumerable: true
     },
     rawData: {
-      value: rawData ? converter.toString(rawData) : "",
+      get: function () { return _internal.rawData; },
+      set: function (value) {
+        if (value instanceof InternalData) {
+          _internal.rawData = value.rawData;
+        }
+      },
       enumerable: true
     }
   });
@@ -282,6 +378,8 @@ Data.prototype.save = function() {
     }
   ]);
 
+  var that = this;
+
   native.call('KeyManager_saveData', {
     data: this,
     rawData: args.rawData
@@ -291,6 +389,7 @@ Data.prototype.save = function() {
         args.errorCallback(native.getErrorObject(msg));
       }
     } else {
+      updateInternalData(that, {rawData: args.rawData});
       native.callIfPossible(args.successCallback);
     }
   });
@@ -298,8 +397,8 @@ Data.prototype.save = function() {
 
 Data.prototype.remove = function() {
   xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.KEYMANAGER);
-  var ret = native.callSync('KeyManager_removeData', {
-    data: this
+  var ret = native.callSync('KeyManager_removeAlias', {
+    alias: this.name
   });
   if (native.isFailure(ret)) {
     throw native.getErrorObject(ret);
@@ -546,6 +645,12 @@ KeyManager.prototype.allowAccessControl = function() {
       nullable: true
     }
   ]);
+
+  var ret = native.callSync('KeyManager_isDataNameFound', {dataName : args.dataName});
+  if (native.isFailure(ret)) {
+    throw native.getErrorObject(ret);
+  }
+
   native.call('KeyManager_allowAccessControl', {
     dataName: args.dataName,
     id: args.id,
@@ -582,6 +687,12 @@ KeyManager.prototype.denyAccessControl = function() {
       nullable: true
     }
   ]);
+
+  var ret = native.callSync('KeyManager_isDataNameFound', {dataName : args.dataName});
+  if (native.isFailure(ret)) {
+    throw native.getErrorObject(ret);
+  }
+
   native.call('KeyManager_denyAccessControl', {
     dataName: args.dataName,
     id: args.id

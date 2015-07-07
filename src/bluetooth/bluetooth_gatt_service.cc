@@ -341,7 +341,7 @@ void BluetoothGATTService::ReadValue(const picojson::value& args,
       if (BT_ERROR_NONE != ret) {
         plarform_res = util::GetBluetoothError(ret, "Error while getting value");
       } else {
-        for (size_t i = 0 ; i < length; i++) {
+        for (int i = 0 ; i < length; i++) {
           byte_array_obj.push_back(picojson::value(std::to_string(value[i])));
         }
       }
@@ -389,7 +389,7 @@ void BluetoothGATTService::WriteValue(const picojson::value& args,
 
   int value_size = value_array.size();
   std::unique_ptr<char[]> value_data(new char[value_size]);
-  for (size_t i = 0; i < value_size; ++i) {
+  for (int i = 0; i < value_size; ++i) {
     value_data[i] = static_cast<char>(value_array[i].get<double>());
   }
 
@@ -511,7 +511,7 @@ void BluetoothGATTService::OnCharacteristicValueChanged(
   picojson::value byte_array = picojson::value(picojson::array());
   picojson::array& byte_array_obj = byte_array.get<picojson::array>();
 
-  for (size_t i = 0 ; i < length; ++i) {
+  for (int i = 0 ; i < length; ++i) {
     byte_array_obj.push_back(picojson::value(std::to_string(value[i])));
   }
 

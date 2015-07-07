@@ -86,65 +86,6 @@ enum PowerCallbacks {
   PowerManagerSetscreenstatechangelistenerCallback
 };
 
-static void ReplyAsync(PowerInstance* instance, PowerCallbacks cbfunc,
-                       int callbackId, bool isSuccess, picojson::object& param) {
-  LoggerD("Enter");
-  param["callbackId"] = picojson::value(static_cast<double>(callbackId));
-  param["status"] = picojson::value(isSuccess ? "success" : "error");
-
-  // insert result for async callback to param
-  switch(cbfunc) {
-    case PowerManagerRequestCallback: {
-      // do something...
-      break;
-    }
-    case PowerManagerReleaseCallback: {
-      // do something...
-      break;
-    }
-    case PowerManagerSetscreenstatechangelistenerCallback: {
-      // do something...
-      break;
-    }
-    case PowerManagerUnsetscreenstatechangelistenerCallback: {
-      // do something...
-      break;
-    }
-    case PowerManagerGetscreenbrightnessCallback: {
-      // do something...
-      break;
-    }
-    case PowerManagerSetscreenbrightnessCallback: {
-      // do something...
-      break;
-    }
-    case PowerManagerIsscreenonCallback: {
-      // do something...
-      break;
-    }
-    case PowerManagerRestorescreenbrightnessCallback: {
-      // do something...
-      break;
-    }
-    case PowerManagerTurnscreenonCallback: {
-      // do something...
-      break;
-    }
-    case PowerManagerTurnscreenoffCallback: {
-      // do something...
-      break;
-    }
-    default: {
-      LoggerE("Invalid Callback Type");
-      return;
-    }
-  }
-
-  picojson::value result = picojson::value(param);
-
-  instance->PostMessage(result.serialize().c_str());
-}
-
 #define CHECK_EXIST(args, name, out) \
     if (!args.contains(name)) {\
       ReportError(TypeMismatchException(name" is required argument"), out);\

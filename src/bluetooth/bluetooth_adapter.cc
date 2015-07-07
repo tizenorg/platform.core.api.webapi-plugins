@@ -341,8 +341,8 @@ BluetoothAdapter::BluetoothAdapter(BluetoothInstance& instance) :
     is_visible_(false),
     is_powered_(false),
     is_initialized_(false),
-    instance_(instance),
-    user_request_list_()
+    user_request_list_(),
+    instance_(instance)
 {
   LoggerD("Entered");
   if (BT_ERROR_NONE == bt_initialize()) {

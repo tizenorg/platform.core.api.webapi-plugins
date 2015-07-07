@@ -295,7 +295,6 @@ static void SQLSelectResponseCallback(int requestId, data_control_h handle,
     picojson::array result;
 
     while (data_control_sql_step_next(cursor) == DATA_CONTROL_ERROR_NONE) {
-      int columnSize = 0;
       picojson::object rowData;
       picojson::array columns;
       picojson::array values;
@@ -425,9 +424,7 @@ int DatacontrolInstance::RunMAPDataControlJob(const std::string& providerId,
   data_control_h handle;
 
   SCOPE_EXIT {
-    result = ::data_control_map_destroy(handle);
-    RETURN_IF_FAIL(result,
-                   "Destroying map data control handle is failed with error");
+    ::data_control_map_destroy(handle);
   };
 
   result = ::data_control_map_create(&handle);
@@ -469,9 +466,7 @@ int DatacontrolInstance::RunSQLDataControlJob(const std::string& providerId,
   data_control_h handle;
 
   SCOPE_EXIT {
-    result = ::data_control_sql_destroy(handle);
-    RETURN_IF_FAIL(result,
-                   "Destroying sql data control handle is failed with error");
+    ::data_control_sql_destroy(handle);
   };
 
   result = ::data_control_sql_create(&handle);

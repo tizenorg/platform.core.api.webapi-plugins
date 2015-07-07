@@ -268,6 +268,9 @@ void ExifTagSaver::saveToExif(std::vector<long long int>& value,
       }
       break;
     }
+    default:
+      LoggerE("output ExifFormat: %d is not supported!", store_as);
+      return;
   }
 
   LoggerD("entry after save:");

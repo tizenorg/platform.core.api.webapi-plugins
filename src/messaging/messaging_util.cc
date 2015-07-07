@@ -33,6 +33,7 @@
 #include "tizen/tizen.h"
 #include "common/logger.h"
 #include "common/platform_exception.h"
+#include "common/assert.h"
 
 using common::ErrorCode;
 using common::PlatformResult;
@@ -222,7 +223,7 @@ std::string MessagingUtil::messageTypeToString(MessageType type) {
   LoggerD("Entered");
   std::string type_str;
   PlatformResult platform_result = messageTypeToString(type, &type_str);
-  assert(platform_result);
+  Assert(platform_result);
   return type_str;
 }
 

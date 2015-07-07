@@ -24,14 +24,14 @@ namespace tvwindow {
 
 class TVWindowManager {
  public:
-    static TVWindowManager& getInstance();
+  static TVWindowManager& getInstance();
 
  private:
-    TVWindowManager();
-    // Not copyable, assignable, movable
-    TVWindowManager(TVWindowManager const&);
-    void operator=(TVWindowManager const&);
-    TVWindowManager(TVWindowManager &&);
+  TVWindowManager();
+  // Not copyable, assignable, movable
+  TVWindowManager(TVWindowManager const&);
+  void operator=(TVWindowManager const&);
+  TVWindowManager(TVWindowManager &&);
 };
 
 }  // namespace tvwindow

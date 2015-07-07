@@ -114,6 +114,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_tvchannel_support           0
 %define tizen_feature_tv_display_support          0
 %define tizen_feature_tvinputdevice_support       0
+%define tizen_feature_inputdevice_support         0
 %define tizen_feature_tvwindow_support            0
 
 %if 0%{?tizen_feature_telephony_support}
@@ -209,6 +210,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_tvchannel_support           0
 %define tizen_feature_tv_display_support          0
 %define tizen_feature_tvinputdevice_support       0
+%define tizen_feature_inputdevice_support         0
 %define tizen_feature_tvwindow_support            0
 
 #- telephony related APIs
@@ -235,7 +237,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_alarm_support               1
 %define tizen_feature_application_support         1
 %define tizen_feature_archive_support             1
-%define tizen_feature_badge_support               1
+%define tizen_feature_badge_support               0
 %define tizen_feature_bluetooth_support           1
 %define tizen_feature_bookmark_support            1
 %define tizen_feature_calendar_support            0
@@ -265,11 +267,11 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_sensor_support              0
 %define tizen_feature_sound_support               0
 %define tizen_feature_system_info_support         1
-%define tizen_feature_system_setting_support      1
+%define tizen_feature_system_setting_support      0
 %define tizen_feature_telephony_support           0
 %define tizen_feature_time_support                1
 %define tizen_feature_web_setting_support         1
-%define tizen_feature_wi_fi_support               0
+%define tizen_feature_wi_fi_support               1
 #off for tizen 3.0 (no libavoc)
 %define tizen_feature_tvaudio_support             0
 #off for tizen 3.0 (no tvs-api)
@@ -277,7 +279,8 @@ Source0:    %{name}-%{version}.tar.gz
 #off for tizen 3.0 (no systeminfo definitions)
 %define tizen_feature_tv_display_support          0
 %define tizen_feature_tvinputdevice_support       1
-%define tizen_feature_tvwindow_support            1
+%define tizen_feature_inputdevice_support         1
+%define tizen_feature_tvwindow_support            0
 
 %endif # tizen_profile_tv
 
@@ -453,7 +456,6 @@ BuildRequires:  pkgconfig(capi-media-sound-manager)
 BuildRequires: pkgconfig(capi-system-sensor)
 %endif
 
-
 %if 0%{?tizen_feature_media_key_support}
 BuildRequires:  pkgconfig(capi-system-media-key)
 %endif
@@ -523,6 +525,7 @@ GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_tvaudio_support=%{?tizen_feature_tvaud
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_tvchannel_support=%{?tizen_feature_tvchannel_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_tv_display_support=%{?tizen_feature_tv_display_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_tvinputdevice_support=%{?tizen_feature_tvinputdevice_support}"
+GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_inputdevice_support=%{?tizen_feature_inputdevice_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_tvwindow_support=%{?tizen_feature_tvwindow_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_web_setting_support=%{?tizen_feature_web_setting_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_wi_fi_support=%{?tizen_feature_wi_fi_support}"

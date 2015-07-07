@@ -25,6 +25,7 @@
 #include <unistd.h>
 
 #include "badge/badge_instance.h"
+#include "common/assert.h"
 #include "common/logger.h"
 #include "common/converter.h"
 #include "common/platform_exception.h"
@@ -119,7 +120,7 @@ PlatformResult BadgeManager::SetBadgeCount(const std::string& app_id,
 PlatformResult BadgeManager::GetBadgeCount(const std::string& app_id,
                                            unsigned int *count) {
   LoggerD("Enter");
-  assert(count);
+  Assert(count);
 
   int ret = BADGE_ERROR_SERVICE_NOT_READY;
   bool badge_exist = false;

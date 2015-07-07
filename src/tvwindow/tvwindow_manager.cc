@@ -20,12 +20,12 @@ namespace extension {
 namespace tvwindow {
 
 TVWindowManager::TVWindowManager() {
-	LOGD("Enter");
+  LoggerD("Enter");
 }
 
 TVWindowManager& TVWindowManager::getInstance() {
-    static TVWindowManager manager;
-    return manager;
+  static TVWindowManager manager;
+  return manager;
 }
 }  // namespace tvwindow
 }  // namespace extension

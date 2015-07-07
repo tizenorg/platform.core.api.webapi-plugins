@@ -36,10 +36,10 @@ TVChannelManager* TVChannelManager::getInstance() {
 
 TVChannelManager::TVChannelManager() :
     m_listener(NULL) {
-    LOGD("Enter");
+    LoggerD("Enter");
     int ret = TVServiceAPI::CreateService(&m_pService);
     if (TV_SERVICE_API_SUCCESS != ret) {
-        LOGE("Failed to create tvs-api service: %d", ret);
+        LoggerE("Failed to create tvs-api service: %d", ret);
         throw common::UnknownException("Failed to create tvs-api service");
     }
 }
@@ -49,7 +49,7 @@ IService* TVChannelManager::getService() {
 }
 
 void TVChannelManager::tune(std::shared_ptr<TuneData> const& _pTuneData) {
-    LOGD("Enter");
+    LoggerD("Enter");
     try {
         std::unique_lock<std::mutex> lock(tuneMutex);
 
@@ -72,35 +72,35 @@ void TVChannelManager::tune(std::shared_ptr<TuneData> const& _pTuneData) {
         CriteriaFilter filter = CriteriaFilter(tvMode.serviceMode);
 
         if (tuneOption.isMajorSet()) {
-            LOGD("MAJOR: %d", tuneOption.getMajor());
+            LoggerD("MAJOR: %d", tuneOption.getMajor());
             filter.filterWhere(MAJOR, static_cast<int>(tuneOption.getMajor()));
         }
         if (tuneOption.isMinorSet()) {
-            LOGD("MINOR: %d", tuneOption.getMinor());
+            LoggerD("MINOR: %d", tuneOption.getMinor());
             filter.filterWhere(MINOR, static_cast<int>(tuneOption.getMinor()));
         }
         if (tuneOption.isPtcSet()) {
-            LOGD("PTC: %d", tuneOption.getPtc());
+            LoggerD("PTC: %d", tuneOption.getPtc());
             filter.filterWhere(CHANNEL_NUMBER,
                 static_cast<int>(tuneOption.getPtc()));
         }
         if (tuneOption.isOriginalNetworkIDSet()) {
-            LOGD("ORIGINAL_NETWORK_ID: %d", tuneOption.getOriginalNetworkID());
+            LoggerD("ORIGINAL_NETWORK_ID: %d", tuneOption.getOriginalNetworkID());
             filter.filterWhere(ORIGINAL_NETWORK_ID,
                 static_cast<int>(tuneOption.getOriginalNetworkID()));
         }
         if (tuneOption.isProgramNumberSet()) {
-            LOGD("PROGRAM_NUMBER: %d", tuneOption.getProgramNumber());
+            LoggerD("PROGRAM_NUMBER: %d", tuneOption.getProgramNumber());
             filter.filterWhere(PROGRAM_NUMBER,
                 static_cast<int>(tuneOption.getProgramNumber()));
         }
         if (tuneOption.isSourceIDSet()) {
-            LOGD("SOURCE_ID: %d", tuneOption.getSourceID());
+            LoggerD("SOURCE_ID: %d", tuneOption.getSourceID());
             filter.filterWhere(SOURCE_ID,
                 static_cast<int>(tuneOption.getSourceID()));
         }
         if (tuneOption.isTransportStreamIDSet()) {
-            LOGD("TRANSPORT_STREAM_ID: %d", tuneOption.getTransportStreamID());
+            LoggerD("TRANSPORT_STREAM_ID: %d", tuneOption.getTransportStreamID());
             filter.filterWhere(TRANSPORT_STREAM_ID,
                 static_cast<int>(tuneOption.getTransportStreamID()));
         }
@@ -110,7 +110,7 @@ void TVChannelManager::tune(std::shared_ptr<TuneData> const& _pTuneData) {
         TCServiceData foundService;
         int ret = getService()->FindService(*pCriteria, foundService);
         if (TV_SERVICE_API_METHOD_SUCCESS != ret) {
-            LOGE("Failed to find channel: %d", ret);
+            LoggerE("Failed to find channel: %d", ret);
             throw common::NotFoundException("Failed to find channel");
         }
 
@@ -122,7 +122,7 @@ void TVChannelManager::tune(std::shared_ptr<TuneData> const& _pTuneData) {
 
         ret = getNavigation(getProfile(windowType), 0)->SetService(serviceId);
         if (TV_SERVICE_API_METHOD_SUCCESS != ret) {
-            LOGE("Failed to set selected channel: %d", ret);
+            LoggerE("Failed to set selected channel: %d", ret);
             throw common::UnknownException(
                 "Failed to set selected channel");
         }
@@ -131,7 +131,7 @@ void TVChannelManager::tune(std::shared_ptr<TuneData> const& _pTuneData) {
     } catch (common::PlatformException const& _error) {
         _pTuneData->pError.reset(
             new common::PlatformException(_error.name(), _error.message()));
-        LOGE("Some exception caught");
+        LoggerE("Some exception caught");
     }
 }
 
@@ -149,7 +149,7 @@ ENavigationMode navigatorModeToENavigationMode(NavigatorMode mode) {
 }
 
 void TVChannelManager::tuneUp(std::shared_ptr<TuneData> const& _pTuneData) {
-    LOGD("Enter");
+    LoggerD("Enter");
     try {
         std::unique_lock<std::mutex> lock(tuneMutex);
 
@@ -175,7 +175,7 @@ void TVChannelManager::tuneUp(std::shared_ptr<TuneData> const& _pTuneData) {
                 currentServiceId,
                 previousService);
         if (TV_SERVICE_API_METHOD_SUCCESS != ret) {
-            LOGE("Failed to find previous channel: %d", ret);
+            LoggerE("Failed to find previous channel: %d", ret);
             throw common::NotFoundException("Failed to find previous channel");
         }
         TCServiceId serviceId = previousService.Get<TCServiceId>(SERVICE_ID);
@@ -183,12 +183,12 @@ void TVChannelManager::tuneUp(std::shared_ptr<TuneData> const& _pTuneData) {
         // if GetNextService's result is same with current service id,
         // it means failure to find previous channel.
         if (currentServiceId == serviceId) {
-            LOGE("Failed to find previous channel: %d", ret);
+            LoggerE("Failed to find previous channel: %d", ret);
             throw common::NotFoundException("Failed to find next channel");
         }
         ret = getNavigation(getProfile(windowType), 0)->SetService(serviceId);
         if (TV_SERVICE_API_METHOD_SUCCESS != ret) {
-            LOGE("Failed to set selected channel: %d", ret);
+            LoggerE("Failed to set selected channel: %d", ret);
             throw common::UnknownException(
                 "Failed to set selected channel");
         }
@@ -196,12 +196,12 @@ void TVChannelManager::tuneUp(std::shared_ptr<TuneData> const& _pTuneData) {
     } catch (common::PlatformException const& _error) {
         _pTuneData->pError.reset(
             new common::PlatformException(_error.name(), _error.message()));
-        LOGE("Some exception caught");
+        LoggerE("Some exception caught");
     }
 }
 
 void TVChannelManager::tuneDown(std::shared_ptr<TuneData> const& _pTuneData) {
-    LOGD("Enter");
+    LoggerD("Enter");
     try {
         std::unique_lock<std::mutex> lock(tuneMutex);
 
@@ -227,7 +227,7 @@ void TVChannelManager::tuneDown(std::shared_ptr<TuneData> const& _pTuneData) {
                 currentServiceId,
                 nextService);
         if (TV_SERVICE_API_METHOD_SUCCESS != ret) {
-            LOGE("Failed to find previous channel: %d", ret);
+            LoggerE("Failed to find previous channel: %d", ret);
             throw common::NotFoundException("Failed to find previous channel");
         }
         TCServiceId serviceId = nextService.Get<TCServiceId>(SERVICE_ID);
@@ -235,12 +235,12 @@ void TVChannelManager::tuneDown(std::shared_ptr<TuneData> const& _pTuneData) {
         // if GetNextService's result is same with current service id,
         // it means failure to find previous channel.
         if (currentServiceId == serviceId) {
-            LOGE("Failed to find previous channel: %d", ret);
+            LoggerE("Failed to find previous channel: %d", ret);
             throw common::NotFoundException("Failed to find previous channel");
         }
         ret = getNavigation(getProfile(windowType), 0)->SetService(serviceId);
         if (TV_SERVICE_API_METHOD_SUCCESS != ret) {
-            LOGE("Failed to set selected channel: %d", ret);
+            LoggerE("Failed to set selected channel: %d", ret);
             throw common::UnknownException(
                 "Failed to set selected channel");
         }
@@ -248,44 +248,44 @@ void TVChannelManager::tuneDown(std::shared_ptr<TuneData> const& _pTuneData) {
     } catch (common::PlatformException const& _error) {
         _pTuneData->pError.reset(
             new common::PlatformException(_error.name(), _error.message()));
-        LOGE("Some exception caught");
+        LoggerE("Some exception caught");
     }
 }
 
 IServiceNavigation* TVChannelManager::getNavigation(EProfile profileId,
     u_int16_t screenId) {
-    LOGD("Enter");
+    LoggerD("Enter");
     IServiceNavigation* navigation;
     int ret = TVServiceAPI::CreateServiceNavigation(profileId, screenId,
         &navigation);
     if (TV_SERVICE_API_SUCCESS != ret) {
-        LOGE("Failed to create service navigation: %d", ret);
+        LoggerE("Failed to create service navigation: %d", ret);
         throw common::UnknownException("Failed to create service navigation");
     }
     return navigation;
 }
 
 TSTvMode TVChannelManager::getTvMode(IServiceNavigation* pNavigation) {
-    LOGD("Enter");
+    LoggerD("Enter");
     TSTvMode tvMode;
     int ret = pNavigation->GetTvMode(tvMode);
     if (TV_SERVICE_API_METHOD_SUCCESS != ret) {
-        LOGE("Failed to get current tv mode: %d", ret);
+        LoggerE("Failed to get current tv mode: %d", ret);
         throw common::UnknownException("Failed to get current tv mode");
     }
-    LOGD("tvMode : antenna - %d, service - %d", tvMode.antennaMode,
+    LoggerD("tvMode : antenna - %d, service - %d", tvMode.antennaMode,
         tvMode.serviceMode);
     return tvMode;
 }
 
 std::unique_ptr<TCCriteriaHelper> TVChannelManager::getBasicCriteria(
     TSTvMode tvMode, ENavigationMode naviMode) {
-    LOGD("Enter");
+    LoggerD("Enter");
     std::unique_ptr < TCCriteriaHelper > pCriteria(new TCCriteriaHelper());
     bool found = TCNavigationModeHelper::GetNavigationCriteria(tvMode, naviMode,
         *pCriteria);
     if (!found) {
-        LOGE("Failed to create navigation criteria");
+        LoggerE("Failed to create navigation criteria");
         throw common::UnknownException("Failed to create navigation criteria");
     }
     return pCriteria;
@@ -294,12 +294,12 @@ std::unique_ptr<TCCriteriaHelper> TVChannelManager::getBasicCriteria(
 TCServiceData TVChannelManager::getCurrentServiceInfo(
     IServiceNavigation* _pNavigation, TSTvMode _mode,
     std::unique_ptr<TCCriteriaHelper> const& _pCriteria) {
-    LOGD("Enter");
+    LoggerD("Enter");
     TCServiceData serviceData;
     int ret = _pNavigation->GetCurrentServiceInfo(_mode, *_pCriteria,
         serviceData);
     if (TV_SERVICE_API_METHOD_SUCCESS != ret) {
-        LOGE("Failed to get current service info: %d", ret);
+        LoggerE("Failed to get current service info: %d", ret);
         throw common::UnknownException("Failed to get current service info");
     }
     return serviceData;
@@ -307,7 +307,7 @@ TCServiceData TVChannelManager::getCurrentServiceInfo(
 
 std::unique_ptr<ChannelInfo> TVChannelManager::getCurrentChannel(
     WindowType _windowType) {
-    LOGD("Entered %d", _windowType);
+    LoggerD("Entered %d", _windowType);
 
     std::unique_ptr < TCCriteriaHelper > pCriteria(new TCCriteriaHelper());
     pCriteria->Fetch(SERVICE_ID);
@@ -330,7 +330,7 @@ std::unique_ptr<ChannelInfo> TVChannelManager::getCurrentChannel(
 
     TCServiceData serviceData = getCurrentServiceInfo(navigation, tvMode,
         pCriteria);
-    LOGD("Current channel id: %llu",
+    LoggerD("Current channel id: %llu",
         serviceData.Get < TCServiceId > (SERVICE_ID));
     std::unique_ptr<ChannelInfo> pChannel(new ChannelInfo());
     pChannel->fromApiData(serviceData);
@@ -338,7 +338,7 @@ std::unique_ptr<ChannelInfo> TVChannelManager::getCurrentChannel(
 }
 
 EProfile TVChannelManager::getProfile(WindowType windowType) {
-    LOGD("Enter");
+    LoggerD("Enter");
     switch (windowType) {
     case MAIN:
         return PROFILE_TYPE_MAIN;
@@ -346,12 +346,12 @@ EProfile TVChannelManager::getProfile(WindowType windowType) {
 //      case PIP:
 //          return PROFILE_TYPE_PIP;
     default:
-        LOGE("Unsupported window type: %d", windowType);
+        LoggerE("Unsupported window type: %d", windowType);
     }
 }
 
 TCServiceId TVChannelManager::getCurrentChannelId(WindowType _windowType) {
-    LOGD("Enter");
+    LoggerD("Enter");
     //  Navigation
     IServiceNavigation* navigation = getNavigation(getProfile(_windowType),
         SCREENID);
@@ -364,11 +364,11 @@ TCServiceId TVChannelManager::getCurrentChannelId(WindowType _windowType) {
 }
 
 ProgramInfo* TVChannelManager::getCurrentProgram(WindowType _windowType) {
-    LOGD("Enter");
+    LoggerD("Enter");
     IServiceGuide* guide;
     int ret = TVServiceAPI::CreateServiceGuide(&guide);
     if (TV_SERVICE_API_SUCCESS != ret) {
-        LOGE("Failed to create service guide: %d", ret);
+        LoggerE("Failed to create service guide: %d", ret);
         throw common::UnknownException("Failed to create service guide");
     }
 
@@ -376,7 +376,7 @@ ProgramInfo* TVChannelManager::getCurrentProgram(WindowType _windowType) {
     ret = guide->GetPresentProgram(getCurrentChannelId(_windowType),
         programData);
     if (TV_SERVICE_API_METHOD_SUCCESS != ret) {
-        LOGE("Failed to get current program: %d", ret);
+        LoggerE("Failed to get current program: %d", ret);
         throw common::UnknownException("Failed to get current program");
     }
     ProgramInfo* program = new ProgramInfo();
@@ -386,41 +386,41 @@ ProgramInfo* TVChannelManager::getCurrentProgram(WindowType _windowType) {
 
 ISignalSubscriber* TVChannelManager::createSubscriber(
     EventListener* pListener) {
-    LOGD("Enter");
+    LoggerD("Enter");
     m_listener = pListener;
     ISignalSubscriber* pSubscriber;
     int ret = TVServiceAPI::CreateSignalSubscriber(signalListener,
         &pSubscriber);
     if (TV_SERVICE_API_SUCCESS != ret) {
-        LOGW("Failed to create tvs-api SignalSubscriber");
+        LoggerW("Failed to create tvs-api SignalSubscriber");
     }
     return pSubscriber;
 }
 
 void TVChannelManager::registerListener(ISignalSubscriber* pSubscriber) {
-    LOGD("Enter");
+    LoggerD("Enter");
     pSubscriber->Unsubscribe(SIGNAL_TUNE_SUCCESS);
     int ret = pSubscriber->Subscribe(SIGNAL_TUNE_SUCCESS);
     if (TV_SERVICE_API_METHOD_SUCCESS != ret) {
-        LOGW("Failed to add listener: SIGNAL_TUNE_SUCCESS");
+        LoggerW("Failed to add listener: SIGNAL_TUNE_SUCCESS");
     }
     pSubscriber->Unsubscribe(SIGNAL_TUNER_LOCK_FAIL);
     ret = pSubscriber->Subscribe(SIGNAL_TUNER_LOCK_FAIL);
     if (TV_SERVICE_API_METHOD_SUCCESS != ret) {
-        LOGW("Failed to add listener: SIGNAL_TUNER_LOCK_FAIL");
+        LoggerW("Failed to add listener: SIGNAL_TUNER_LOCK_FAIL");
     }
     pSubscriber->Unsubscribe(SIGNAL_EPG_COMPLETED);
     ret = pSubscriber->Subscribe(SIGNAL_EPG_COMPLETED);
     if (TV_SERVICE_API_METHOD_SUCCESS != ret) {
-        LOGW("Failed to add listener: SIGNAL_EPG_COMPLETED");
+        LoggerW("Failed to add listener: SIGNAL_EPG_COMPLETED");
     }
 }
 
 int TVChannelManager::signalListener(ESignalType type, EProfile _profile,
     u_int16_t _screenID, TSSignalData data, void*) {
-    LOGD("Enter: %d", type);
+    LoggerD("Enter: %d", type);
     if (!getInstance()->m_listener) {
-        LOGE("Listener is empty, ignoring message");
+        LoggerE("Listener is empty, ignoring message");
         return 0;
     }
 
@@ -431,7 +431,7 @@ int TVChannelManager::signalListener(ESignalType type, EProfile _profile,
     if (it != getInstance()->m_callbackTuneMap.end()) {
         callbackID = it->second;
     }
-    LOGD("CallbackID %f", callbackID);
+    LoggerD("CallbackID %f", callbackID);
 
     switch (type) {
     case SIGNAL_TUNE_SUCCESS:
@@ -444,7 +444,7 @@ int TVChannelManager::signalListener(ESignalType type, EProfile _profile,
         getInstance()->m_listener->onEPGReceived(callbackID);
         break;
     default:
-        LOGW("Unrecognized event type");
+        LoggerW("Unrecognized event type");
     }
     return 0;
 }
@@ -456,12 +456,12 @@ void TVChannelManager::ucs2utf8(char *out, size_t out_len, char *in,
 
     cd = iconv_open("UTF-8", "UCS-2BE");
     if (cd == (iconv_t) - 1) {
-        LOGE("Failed to open iconv");
+        LoggerE("Failed to open iconv");
     }
 
     r = iconv(cd, &in, &in_len, &out, &out_len);
     if (r == (size_t) - 1) {
-        LOGE("Failed convert string to utf8");
+        LoggerE("Failed convert string to utf8");
     }
 
     iconv_close(cd);
@@ -469,7 +469,7 @@ void TVChannelManager::ucs2utf8(char *out, size_t out_len, char *in,
 
 void TVChannelManager::findChannel(
     const std::shared_ptr<FindChannelData>& data) {
-    LOGD("Enter");
+    LoggerD("Enter");
     try {
         IServiceNavigation* navigation =
             getNavigation(getProfile(WindowType::MAIN), 0);
@@ -497,10 +497,10 @@ void TVChannelManager::findChannel(
         std::list<TCServiceData*> resultServices;
         int ret = m_pService->FindServiceList(*criteria, resultServices);
         if (TV_SERVICE_API_METHOD_FAILURE == ret) {
-            LOGE("Failed to find channel: %d", ret);
+            LoggerE("Failed to find channel: %d", ret);
             throw common::NotFoundException("Failed to find channel");
         }
-        LOGD("Found channels: %d", resultServices.size());
+        LoggerD("Found channels: %d", resultServices.size());
         auto it = resultServices.begin();
         for (; it != resultServices.end(); ++it) {
             ChannelInfo *channelInfo = new ChannelInfo();
@@ -519,7 +519,7 @@ void TVChannelManager::findChannel(
 
 void TVChannelManager::getChannelList(
     const std::shared_ptr<GetChannelListData>& data) {
-    LOGD("Enter");
+    LoggerD("Enter");
     try {
         IServiceNavigation* navigation =
             getNavigation(getProfile(WindowType::MAIN), 0);
@@ -558,10 +558,10 @@ void TVChannelManager::getChannelList(
         std::list<TCServiceData*> resultServices;
         int ret = m_pService->FindServiceList(*criteria, resultServices);
         if (TV_SERVICE_API_METHOD_FAILURE == ret) {
-            LOGE("Failed to find channels: %d", ret);
+            LoggerE("Failed to find channels: %d", ret);
             throw common::NotFoundException("Failed to find channels");
         }
-        LOGD("Found channels: %d", resultServices.size());
+        LoggerD("Found channels: %d", resultServices.size());
         auto it = resultServices.begin();
         for (; it != resultServices.end(); ++it) {
             ChannelInfo *channelInfo = new ChannelInfo();
@@ -580,12 +580,12 @@ void TVChannelManager::getChannelList(
 
 void TVChannelManager::getProgramList(
     const std::shared_ptr<GetProgramListData>& data) {
-    LOGD("Enter");
+    LoggerD("Enter");
     try {
         IServiceGuide* guide;
         int ret = TVServiceAPI::CreateServiceGuide(&guide);
         if (TV_SERVICE_API_SUCCESS != ret) {
-            LOGE("Failed to create service guide: %d", ret);
+            LoggerE("Failed to create service guide: %d", ret);
             throw common::UnknownException("Failed to create service guide");
         }
 
@@ -593,10 +593,10 @@ void TVChannelManager::getProgramList(
         ret = guide->GetProgramList(data->channelId,
             data->startTime, data->duration, programList);
         if (TV_SERVICE_API_METHOD_FAILURE == ret) {
-            LOGE("Failed to get program list.");
+            LoggerE("Failed to get program list.");
             throw common::NotFoundException("Failed to get program list.");
         }
-        LOGD("Found programs: %d", programList.size());
+        LoggerD("Found programs: %d", programList.size());
 
         auto it = programList.begin();
         for (; it != programList.end(); ++it) {

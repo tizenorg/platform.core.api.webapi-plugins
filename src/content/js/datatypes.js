@@ -478,7 +478,7 @@ function AudioContent(data) {
     var result = native_.callSync('ContentManager_getLyrics', data);
 
     if (native_.isFailure(result)) {
-      console.log('Getting lyrics failed for ' + contentURI);
+      console.log('Getting lyrics failed for ' + data.contentURI);
       return;
     }
 

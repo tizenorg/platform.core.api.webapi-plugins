@@ -109,7 +109,7 @@ GCSPosition GCSPosition::createFromDouble(double value) {
     d_degrees++;
   }
 
-  assert(d_degrees <= 180.0);
+  Assert(d_degrees <= 180.0);
 
   LoggerD("d_degrees:%f d_minutes:%f d_seconds:%f",
       d_degrees, d_minutes, d_seconds);

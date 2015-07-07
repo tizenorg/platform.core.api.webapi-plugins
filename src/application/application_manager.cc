@@ -60,8 +60,8 @@ const std::string kData = "data";
 }
 
 ApplicationManager::ApplicationManager(ApplicationInstance& instance) :
-  instance_(instance),
-  pkgmgr_client_handle_(nullptr) {
+  pkgmgr_client_handle_(nullptr),
+  instance_(instance) {
     LoggerD("Enter");
 }
 
@@ -105,9 +105,9 @@ class TerminateHandler {
  public:
   TerminateHandler(int callback_id, ApplicationInstance* app_instance) :
     callback_handle_(callback_id),
-    app_instance_(app_instance),
     pid_(-1),
-    timeout_id_(0) {
+    timeout_id_(0),
+    app_instance_(app_instance) {
   }
 
   void set_pid(pid_t pid) {

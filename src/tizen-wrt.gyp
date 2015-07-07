@@ -287,6 +287,13 @@
           },
         ],
         [
+          'tizen_feature_inputdevice_support==1', {
+            'dependencies': [
+              'inputdevice/inputdevice.gyp:*'
+            ],
+          },
+        ],
+        [
           'tizen_feature_tvchannel_support==1', {
             'dependencies': [
               'tvchannel/tvchannel.gyp:*',

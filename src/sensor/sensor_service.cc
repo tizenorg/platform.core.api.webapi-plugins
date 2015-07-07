@@ -554,13 +554,11 @@ void SensorService::GetAvailableSensors(picojson::object& out) {
   LoggerD("Entered");
 
   bool is_supported = false;
-  int ret = SENSOR_ERROR_NONE;
 
   picojson::value result = picojson::value(picojson::array());
   picojson::array& result_array = result.get<picojson::array>();
 
   for (const auto& sensor : sensors_) {
-    bool is_supported = false;
     auto res = sensor.second->IsSupported(&is_supported);
     if (!res) {
       LoggerE("Failed to check if sensor is supported: %s", type_to_string_map[sensor.first].c_str());

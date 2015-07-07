@@ -18,6 +18,7 @@
 
 #ifdef PRIVILEGE_USE_DB
 #include <sqlite3.h>
+#include "common/current_application.h"
 #elif PRIVILEGE_USE_ACE
 #include <privilege_checker.h>
 #elif PRIVILEGE_USE_CYNARA
@@ -83,7 +84,7 @@ class AccessControlImpl {
     const char* kQuery = "select name from WidgetFeature where app_id = "
                          "(select app_id from WidgetInfo where tizen_appid = ?)"
                          " and rejected = 0";
-    const std::string app_id = common::GetCurrentExtension()->GetRuntimeVariable("app_id", 64);
+    const std::string app_id = common::CurrentApplication::GetInstance().GetApplicationId();
     sqlite3_stmt* stmt = nullptr;
 
     ret = sqlite3_prepare_v2(db, kQuery, -1, &stmt, nullptr);

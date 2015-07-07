@@ -18,29 +18,50 @@
 #include "common/logger.h"
 #include "tizen/tizen.h"
 #include "common/picojson.h"
+#include "common/platform_result.h"
+#include <system_info.h>
 
 namespace extension {
 namespace tvwindow {
 
 TVWindowInstance::TVWindowInstance(TVWindowExtension const& extension) {
-    LOGD("Entered");
+  LoggerD("Entered");
+  using std::placeholders::_1;
+  using std::placeholders::_2;
+
+  RegisterSyncHandler("TVWindow_GetScreenDimension",
+      std::bind(&TVWindowInstance::GetScreenDimension, this, _1, _2));
 }
 
 TVWindowInstance::~TVWindowInstance() {
-    LOGD("Entered");
+  LoggerD("Entered");
 }
 
-void TVWindowInstance::HandleMessage(const char* msg) {
-    // this is stub, no async messages
-    LOGD("Entered");
-}
+void TVWindowInstance::GetScreenDimension(const picojson::value& args,
+    picojson::object& out) {
+  LoggerD("Entered");
 
-void TVWindowInstance::HandleSyncMessage(const char* msg) {
-    LOGD("Entered %s", msg);
-    picojson::object answer;
-    answer["answer"] = picojson::value(true);
-
-    SendSyncReply(picojson::value(answer).serialize().c_str());
+  int max_width = 0;
+  if (system_info_get_value_int(SYSTEM_INFO_KEY_OSD_RESOLUTION_WIDTH,
+      &max_width) != SYSTEM_INFO_ERROR_NONE) {
+    common::PlatformResult res(common::ErrorCode::UNKNOWN_ERR,
+        "Failed to retrieve screen max width");
+    ReportError(res, &out);
+    return;
+  }
+  int max_height = 0;
+  if (system_info_get_value_int(SYSTEM_INFO_KEY_OSD_RESOLUTION_HEIGHT,
+      &max_height) != SYSTEM_INFO_ERROR_NONE) {
+    common::PlatformResult res(common::ErrorCode::UNKNOWN_ERR,
+        "Failed to retrieve screen max height");
+    ReportError(res, &out);
+    return;
+  }
+  picojson::value::object dict;
+  dict["width"] = picojson::value(static_cast<double>(max_width));
+  dict["height"] = picojson::value(static_cast<double>(max_height));
+  picojson::value result(dict);
+  ReportSuccess(result, out);
 }
 
 }  // namespace tvwindow
