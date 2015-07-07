@@ -5,13 +5,13 @@
 
 #include "common/extension.h"
 
-#include <assert.h>
 #include <iostream>
 #include <vector>
 #include <string>
 #include <map>
 
 #include "common/logger.h"
+#include "common/assert.h"
 
 // This function is hidden, because each plugin needs to have own implementation.
 __attribute__ ((visibility ("hidden"))) common::Extension* CreateExtension() {
@@ -150,7 +150,7 @@ std::string Extension::GetRuntimeVariable(const char* var_name, unsigned len) {
 // static
 void Extension::OnInstanceCreated(XW_Instance xw_instance, Instance* instance) {
   LoggerD("Enter");
-  assert(!g_core->GetInstanceData(xw_instance));
+  Assert(!g_core->GetInstanceData(xw_instance));
   if (!instance)
     return;
   instance->xw_instance_ = xw_instance;
@@ -196,7 +196,7 @@ int32_t Extension::XW_Initialize(XW_Extension extension,
                                  XW_CreatedInstanceCallback created_instance,
                                  XW_ShutdownCallback shutdown) {
   LoggerD("Enter");
-  assert(extension);
+  Assert(extension);
 
   if (!InitializeInterfaces(get_interface)) {
     return XW_ERROR;
@@ -228,7 +228,7 @@ Instance::Instance() :
 
 Instance::~Instance() {
   LoggerD("Enter");
-  assert(xw_instance_ == 0);
+  Assert(xw_instance_ == 0);
 }
 
 void Instance::PostMessage(const char* msg) {

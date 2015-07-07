@@ -31,7 +31,6 @@
 #define picojson_h
 
 #include <algorithm>
-#include <cassert>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -41,6 +40,7 @@
 #include <map>
 #include <string>
 #include <vector>
+#include "common/assert.h"
 
 #ifdef _MSC_VER
     #define SNPRINTF _snprintf_s
@@ -204,12 +204,12 @@ namespace picojson {
   
 #define GET(ctype, var)						\
   template <> inline const ctype& value::get<ctype>() const {	\
-    assert("type mismatch! call vis<type>() before get<type>()" \
+    Assert("type mismatch! call vis<type>() before get<type>()" \
 	   && is<ctype>());				        \
     return var;							\
   }								\
   template <> inline ctype& value::get<ctype>() {		\
-    assert("type mismatch! call is<type>() before get<type>()"	\
+    Assert("type mismatch! call is<type>() before get<type>()"	\
 	   && is<ctype>());					\
     return var;							\
   }
@@ -237,24 +237,24 @@ namespace picojson {
   
   inline const value& value::get(size_t idx) const {
     static value s_null;
-    assert(is<array>());
+    Assert(is<array>());
     return idx < u_.array_->size() ? (*u_.array_)[idx] : s_null;
   }
 
   inline const value& value::get(const std::string& key) const {
     static value s_null;
-    assert(is<object>());
+    Assert(is<object>());
     object::const_iterator i = u_.object_->find(key);
     return i != u_.object_->end() ? i->second : s_null;
   }
 
   inline bool value::contains(size_t idx) const {
-    assert(is<array>());
+    Assert(is<array>());
     return idx < u_.array_->size();
   }
 
   inline bool value::contains(const std::string& key) const {
-    assert(is<object>());
+    Assert(is<object>());
     object::const_iterator i = u_.object_->find(key);
     return i != u_.object_->end();
   }
@@ -272,7 +272,7 @@ namespace picojson {
     case string_type:    return *u_.string_;
     case array_type:     return "array";
     case object_type:    return "object";
-    default:             assert(0);
+    default:             Assert(0);
 #ifdef _MSC_VER
       __assume(0);
 #endif
@@ -382,7 +382,7 @@ namespace picojson {
     }
     void ungetc() {
       if (last_ch_ != -1) {
-	assert(! ungot_);
+	Assert(! ungot_);
 	ungot_ = true;
       }
     }
@@ -760,7 +760,7 @@ namespace picojson {
     PICOJSON_CMP(array);
     PICOJSON_CMP(object);
 #undef PICOJSON_CMP
-    assert(0);
+    Assert(0);
 #ifdef _MSC_VER
     __assume(0);
 #endif

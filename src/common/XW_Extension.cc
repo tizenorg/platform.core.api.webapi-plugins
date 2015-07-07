@@ -6,6 +6,7 @@
 // This file is compiled into each plugin, hence its size should be minimized.
 
 #include "common/extension.h"
+#include "common/assert.h"
 #include "common/logger.h"
 
 namespace {
@@ -17,7 +18,7 @@ common::Extension* g_extension = nullptr;
 namespace common {
 
 Extension* GetCurrentExtension() {
-  assert(g_extension);
+  Assert(g_extension);
   return g_extension;
 }
 
