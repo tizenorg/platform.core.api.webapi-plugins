@@ -121,7 +121,7 @@ static bool SQLColumnValue(result_set_cursor cursor, int columnIndex,
   }
   switch (type) {
     case DATA_CONTROL_SQL_COLUMN_TYPE_INT64: {
-      long long int data = 0;
+      int64_t data = 0;
       result = data_control_sql_get_int64_data(cursor, columnIndex, &data);
       if (result != DATA_CONTROL_ERROR_NONE) break;
       val = picojson::value(static_cast<double>(data));
@@ -322,7 +322,7 @@ static void SQLSelectResponseCallback(int requestId, data_control_h handle,
 }
 
 static void SQLInsertResponseCallback(int requestId, data_control_h handle,
-                                      long long int inserted_row_id,
+                                      int64_t inserted_row_id,
                                       bool providerResult,
                                       const char *error, void *user_data) {
   LoggerD("Enter");

@@ -21,7 +21,7 @@
           'variables': {
             'packages': [
               'vconf',
-              'message-port',
+              'capi-message-port',
               'dlog'
             ]
           },

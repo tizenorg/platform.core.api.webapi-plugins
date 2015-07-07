@@ -28,7 +28,6 @@
               'push',
               'capi-appfw-application',
               'libpcrecpp',
-              'libcapi-network-connection'
             ]
           },
         }],

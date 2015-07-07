@@ -366,7 +366,6 @@ void BluetoothGATTService::ReadValue(const picojson::value& args,
   int ret = bt_gatt_client_read_value(handle, read_value, (void*)user_data);
   if (BT_ERROR_NONE != ret) {
     LOGE("Couldn't register callback for read value");
-    delete user_data;
   }
   ReportSuccess(out);
 }

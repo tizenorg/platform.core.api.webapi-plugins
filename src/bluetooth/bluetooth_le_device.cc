@@ -154,7 +154,7 @@ PlatformResult BluetoothLEDevice::ToJson(
   le_device->insert(
       std::make_pair(kDeviceName, picojson::value(std::string(device_name))));
 
-  free(device_name);
+  g_free(device_name);
 
   int power_level = 0;
   found = false;

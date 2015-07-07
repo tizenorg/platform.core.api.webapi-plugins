@@ -361,11 +361,10 @@ gboolean DownloadInstance::OnFailed(void* user_data) {
       instance->ReportError(NotFoundException(
         "Download ID does not exist in download service module"), out);
       break;
-    // TODO(p.kaczmarek3) temporarily removed - not supported by platform
-    //case DOWNLOAD_ERROR_INVALID_NETWORK_TYPE:
-    //  instance->ReportError(InvalidValuesException(
-    //    "Network bonding is set but network type is not set as ALL"), out);
-    //  break;
+    case DOWNLOAD_ERROR_INVALID_NETWORK_TYPE:
+      instance->ReportError(InvalidValuesException(
+        "Network bonding is set but network type is not set as ALL"), out);
+      break;
     case DOWNLOAD_ERROR_NO_DATA:
       instance->ReportError(NotFoundException(
         "No data because the set API is not called"), out);

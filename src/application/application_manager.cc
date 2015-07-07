@@ -21,7 +21,7 @@
 
 #include <app_info.h>
 #include <app_manager.h>
-//#include <app_manager_extension.h>
+#include <app_manager_extension.h>
 #include <aul.h>
 #include <package_manager.h>
 #include <pkgmgr-info.h>
@@ -341,14 +341,13 @@ void ApplicationManager::Kill(const picojson::value& args) {
     LoggerD("Kill async, KILL!!!!!!!!!");
 
     // terminate application
-    // TODO(r.galka) temporarily removed - not supported by platform
-    //ret = app_manager_terminate_app(app_context);
-    //
-    //if (APP_MANAGER_ERROR_NONE != ret) {
-    //  LoggerE("Failed to terminate application.");
-    //  result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to terminate application.");
-    //  CHECK_RESULT(result, response, handler)
-    //}
+    ret = app_manager_terminate_app(app_context);
+
+    if (APP_MANAGER_ERROR_NONE != ret) {
+      LoggerE("Failed to terminate application.");
+      result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to terminate application.");
+      CHECK_RESULT(result, response, handler)
+    }
 
     LoggerD("Kill async, end, waiting for notification");
   };
@@ -1279,7 +1278,8 @@ void ApplicationManager::StartAppInfoEventListener(picojson::object* out) {
     }
 
     g_application_list_changed_broker.AddApplicationInstance(&instance_);
-/*    pkgmgr_client_listen_status(pkgmgr_client_handle_,
+    /* TODO - causes build break on Tizen 3.0
+    pkgmgr_client_listen_status(pkgmgr_client_handle_,
                                 ApplicationListChangedBroker::ClientStatusListener,
                                 &g_application_list_changed_broker);*/
   } else {
