@@ -55,14 +55,15 @@ void Zip::generateZipFileInfo(const std::string& filename, zip_fileinfo& out_zi)
         }
     }
 
-    struct tm* filedate = localtime(&tm_t);
-    if(filedate) {
-        out_zi.tmz_date.tm_sec  = filedate->tm_sec;
-        out_zi.tmz_date.tm_min  = filedate->tm_min;
-        out_zi.tmz_date.tm_hour = filedate->tm_hour;
-        out_zi.tmz_date.tm_mday = filedate->tm_mday;
-        out_zi.tmz_date.tm_mon  = filedate->tm_mon ;
-        out_zi.tmz_date.tm_year = filedate->tm_year;
+    struct tm filedate = {0};
+    tzset();
+    if (nullptr != localtime_r(&tm_t, &filedate)) {
+        out_zi.tmz_date.tm_sec  = filedate.tm_sec;
+        out_zi.tmz_date.tm_min  = filedate.tm_min;
+        out_zi.tmz_date.tm_hour = filedate.tm_hour;
+        out_zi.tmz_date.tm_mday = filedate.tm_mday;
+        out_zi.tmz_date.tm_mon  = filedate.tm_mon ;
+        out_zi.tmz_date.tm_year = filedate.tm_year;
     }
 }
 

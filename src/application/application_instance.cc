@@ -20,16 +20,24 @@
 #include "common/picojson.h"
 #include "common/platform_exception.h"
 #include "common/task-queue.h"
+#include "common/current_application.h"
 
 namespace extension {
 namespace application {
 
 using namespace common;
 
-ApplicationInstance::ApplicationInstance(const std::string& app_id) :
-  manager_(*this),
-  app_id_(app_id) {
+ApplicationInstance::ApplicationInstance() :
+  manager_(*this) {
   LoggerD("Entered");
+
+  app_id_ = CurrentApplication::GetInstance().GetApplicationId();
+  LoggerD("app_id: %s", app_id_.c_str());
+
+  if (app_id_.empty()) {
+    LoggerE("app_id_ is empty. Application instance will not be created.");
+    //return PlatformResult(ErrorCode::NOT_FOUND_ERR, "Cannot find caller.");
+  }
 
   using std::placeholders::_1;
   using std::placeholders::_2;

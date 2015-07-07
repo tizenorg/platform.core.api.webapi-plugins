@@ -286,6 +286,7 @@ PlatformResult SensorData::IsSupportedImpl(bool* supported) const {
     return GetSensorPlatformResult(ret, "sensor_is_supported");
   } else {
     *supported = is_supported;
+    LoggerD("supported: %d", is_supported);
     return PlatformResult(ErrorCode::NO_ERROR);
   }
 }
@@ -470,15 +471,23 @@ PlatformResult HrmSensorData::IsSupportedImpl(bool* supported) const {
   LoggerD("Entered: %s", type_to_string_map[type()].c_str());
   bool result = false;
 
+  bool hrm_supported = false;
+  int ret = sensor_is_supported(SENSOR_HRM, &hrm_supported);
+  if (ret == SENSOR_ERROR_NONE){
+    LoggerD("HRM support is: %d", hrm_supported);
+    result |= hrm_supported;
+  }
+
   for (const auto& sensor : hrm_sensors_) {
     bool is_supported = false;
     auto res = sensor.second->IsSupported(&is_supported);
+    LoggerD("supported: %d", is_supported);
     if (!res) {
       return res;
     }
     result |= is_supported;
   }
-
+  LoggerD("result supported: %d", result);
   *supported = result;
   return PlatformResult(ErrorCode::NO_ERROR);
 }
@@ -513,7 +522,16 @@ PlatformResult HrmSensorData::GetSensorData(picojson::object* data) {
     }
   }
 
-  return PlatformResult(ErrorCode::UNKNOWN_ERR, "There are no supported HRM sensors.");
+  // use default values when are no available HRM sensors
+  const sensor_type_e default_sensor_type = SENSOR_HRM_LED_IR;
+  const double default_sensor_value = 0.0;
+
+  LoggerD("There are no supported HRM sensors - returning default values");
+  (*data)["lightType"] = picojson::value(type_to_string_map[default_sensor_type]);
+  (*data)["lightIntensity"] = picojson::value(default_sensor_value);
+  (*data)[kListenerId] = picojson::value(kSensorChangedListener);
+  (*data)[kSensorTypeTag] = picojson::value(type_to_string_map[default_sensor_type]);
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 SensorService::SensorService(SensorInstance& instance)
@@ -536,13 +554,11 @@ void SensorService::GetAvailableSensors(picojson::object& out) {
   LoggerD("Entered");
 
   bool is_supported = false;
-  int ret = SENSOR_ERROR_NONE;
 
   picojson::value result = picojson::value(picojson::array());
   picojson::array& result_array = result.get<picojson::array>();
 
   for (const auto& sensor : sensors_) {
-    bool is_supported = false;
     auto res = sensor.second->IsSupported(&is_supported);
     if (!res) {
       LoggerE("Failed to check if sensor is supported: %s", type_to_string_map[sensor.first].c_str());

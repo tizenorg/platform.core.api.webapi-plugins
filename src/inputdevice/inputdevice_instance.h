@@ -14,38 +14,25 @@
  *    limitations under the License.
  */
 
-#ifndef SRC_TVINPUTDEVICE_TVINPUTDEVICE_KEY_H_
-#define SRC_TVINPUTDEVICE_TVINPUTDEVICE_KEY_H_
+#ifndef SRC_INPUTDEVICE_INPUTDEVICE_INSTANCE_H_
+#define SRC_INPUTDEVICE_INPUTDEVICE_INSTANCE_H_
 
-#include <sys/types.h>
-#include <string>
-#include <memory>
+#include "common/picojson.h"
+#include "common/extension.h"
+
 
 namespace extension {
-namespace tvinputdevice {
+namespace inputdevice {
 
-class InputDeviceKey {
+class InputDeviceInstance : public common::ParsedInstance {
  public:
-    InputDeviceKey();
-
-    InputDeviceKey(std::string name, int32_t code);
-
-    virtual ~InputDeviceKey();
-
-    std::string getName() const;
-    void setName(std::string name);
-
-    int32_t getCode() const;
-    void setCode(int32_t code);
+    InputDeviceInstance();
+    virtual ~InputDeviceInstance();
 
  private:
-    std::string m_name;
-    int32_t m_code;
 };
 
-typedef std::shared_ptr<InputDeviceKey> InputDeviceKeyPtr;
-
-}  // namespace tvinputdevice
+}  // namespace inputdevice
 }  // namespace extension
 
-#endif  // SRC_TVINPUTDEVICE_TVINPUTDEVICE_KEY_H_
+#endif  // SRC_INPUTDEVICE_INPUTDEVICE_INSTANCE_H_

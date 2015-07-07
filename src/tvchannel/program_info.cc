@@ -34,7 +34,7 @@ ProgramInfo::~ProgramInfo() {
 }
 
 void ProgramInfo::fromApiData(const TCProgramData &data) {
-    LOGD("Enter");
+    LoggerD("Enter");
     setTitle(data);
     m_startTime = data.StartTime();
     m_duration = data.EndTime() - m_startTime;
@@ -47,7 +47,7 @@ std::string ProgramInfo::getTitle() const {
 }
 
 void ProgramInfo::setTitle(const TCProgramData &data) {
-    LOGD("Enter");
+    LoggerD("Enter");
     try {
         unsigned int len;
         size_t c_len;
@@ -55,7 +55,7 @@ void ProgramInfo::setTitle(const TCProgramData &data) {
 
         len = data.TitleLength();
         if (len) {
-            LOGD("Title length %d", len);
+            LoggerD("Title length %d", len);
             title = new t_wchar_t[len + 1];
             TCProgramData copy = data;
             copy.Title(title, &len);
@@ -69,7 +69,7 @@ void ProgramInfo::setTitle(const TCProgramData &data) {
             m_title = "";
         }
     } catch (...) {
-        LOGD("There is some problem on text encoding.");
+        LoggerD("There is some problem on text encoding.");
         m_title = "";
     }
 }
@@ -107,14 +107,14 @@ void ProgramInfo::setDetailedDescription(std::string detailedDescription) {
 }
 
 void ProgramInfo::setDetailedDescription(const TCProgramData &data) {
-    LOGD("Enter");
+    LoggerD("Enter");
     try {
         unsigned int len;
         size_t c_len;
         t_wchar_t *description;
 
         len = data.ExtendedTextLength();
-        LOGD("Description length %d", len);
+        LoggerD("Description length %d", len);
         if (len) {
             description = new t_wchar_t[len + 1];
             TCProgramData copy = data;
@@ -131,7 +131,7 @@ void ProgramInfo::setDetailedDescription(const TCProgramData &data) {
             m_detailedDescription = "";
         }
     } catch (...) {
-        LOGD("There is some problem on text encoding.");
+        LoggerD("There is some problem on text encoding.");
         m_detailedDescription = "";
     }
 }

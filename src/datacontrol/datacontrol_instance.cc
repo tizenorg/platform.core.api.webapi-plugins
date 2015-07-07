@@ -121,7 +121,7 @@ static bool SQLColumnValue(result_set_cursor cursor, int columnIndex,
   }
   switch (type) {
     case DATA_CONTROL_SQL_COLUMN_TYPE_INT64: {
-      long long int data = 0;
+      int64_t data = 0;
       result = data_control_sql_get_int64_data(cursor, columnIndex, &data);
       if (result != DATA_CONTROL_ERROR_NONE) break;
       val = picojson::value(static_cast<double>(data));
@@ -140,6 +140,7 @@ static bool SQLColumnValue(result_set_cursor cursor, int columnIndex,
       result = data_control_sql_get_text_data(cursor, columnIndex, buffer);
       if (result != DATA_CONTROL_ERROR_NONE) {
         LoggerE("Getting Text value failed : %s", get_error_message(result));
+        delete[] buffer;
         break;
       }
       val = picojson::value(buffer);
@@ -294,7 +295,6 @@ static void SQLSelectResponseCallback(int requestId, data_control_h handle,
     picojson::array result;
 
     while (data_control_sql_step_next(cursor) == DATA_CONTROL_ERROR_NONE) {
-      int columnSize = 0;
       picojson::object rowData;
       picojson::array columns;
       picojson::array values;
@@ -322,7 +322,7 @@ static void SQLSelectResponseCallback(int requestId, data_control_h handle,
 }
 
 static void SQLInsertResponseCallback(int requestId, data_control_h handle,
-                                      long long int inserted_row_id,
+                                      int64_t inserted_row_id,
                                       bool providerResult,
                                       const char *error, void *user_data) {
   LoggerD("Enter");
@@ -424,9 +424,7 @@ int DatacontrolInstance::RunMAPDataControlJob(const std::string& providerId,
   data_control_h handle;
 
   SCOPE_EXIT {
-    result = ::data_control_map_destroy(handle);
-    RETURN_IF_FAIL(result,
-                   "Destroying map data control handle is failed with error");
+    ::data_control_map_destroy(handle);
   };
 
   result = ::data_control_map_create(&handle);
@@ -468,9 +466,7 @@ int DatacontrolInstance::RunSQLDataControlJob(const std::string& providerId,
   data_control_h handle;
 
   SCOPE_EXIT {
-    result = ::data_control_sql_destroy(handle);
-    RETURN_IF_FAIL(result,
-                   "Destroying sql data control handle is failed with error");
+    ::data_control_sql_destroy(handle);
   };
 
   result = ::data_control_sql_create(&handle);

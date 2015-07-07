@@ -21,7 +21,7 @@
 
 #include <app_info.h>
 #include <app_manager.h>
-//#include <app_manager_extension.h>
+#include <app_manager_extension.h>
 #include <aul.h>
 #include <package_manager.h>
 #include <pkgmgr-info.h>
@@ -60,8 +60,8 @@ const std::string kData = "data";
 }
 
 ApplicationManager::ApplicationManager(ApplicationInstance& instance) :
-  instance_(instance),
-  pkgmgr_client_handle_(nullptr) {
+  pkgmgr_client_handle_(nullptr),
+  instance_(instance) {
     LoggerD("Enter");
 }
 
@@ -105,9 +105,9 @@ class TerminateHandler {
  public:
   TerminateHandler(int callback_id, ApplicationInstance* app_instance) :
     callback_handle_(callback_id),
-    app_instance_(app_instance),
     pid_(-1),
-    timeout_id_(0) {
+    timeout_id_(0),
+    app_instance_(app_instance) {
   }
 
   void set_pid(pid_t pid) {
@@ -341,14 +341,13 @@ void ApplicationManager::Kill(const picojson::value& args) {
     LoggerD("Kill async, KILL!!!!!!!!!");
 
     // terminate application
-    // TODO(r.galka) temporarily removed - not supported by platform
-    //ret = app_manager_terminate_app(app_context);
-    //
-    //if (APP_MANAGER_ERROR_NONE != ret) {
-    //  LoggerE("Failed to terminate application.");
-    //  result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to terminate application.");
-    //  CHECK_RESULT(result, response, handler)
-    //}
+    ret = app_manager_terminate_app(app_context);
+
+    if (APP_MANAGER_ERROR_NONE != ret) {
+      LoggerE("Failed to terminate application.");
+      result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to terminate application.");
+      CHECK_RESULT(result, response, handler)
+    }
 
     LoggerD("Kill async, end, waiting for notification");
   };
@@ -394,7 +393,8 @@ void ApplicationManager::Launch(const picojson::value& args) {
       }
 
       // delay 300ms for each retry
-      usleep(300 * 1000);
+      struct timespec sleep_time = { 0, 300L * 1000L * 1000L };
+      nanosleep(&sleep_time, nullptr);
       ++retry;
 
       LoggerD("Retry launch request: %d", retry);
@@ -590,7 +590,8 @@ void ApplicationManager::LaunchAppControl(const picojson::value& args) {
       }
 
       // delay 300ms for each retry
-      usleep(300 * 1000);
+      struct timespec sleep_time = { 0, 300L * 1000L * 1000L };
+      nanosleep(&sleep_time, nullptr);
       ++retry;
 
       LoggerD("Retry launch request: %d", retry);
@@ -1277,7 +1278,8 @@ void ApplicationManager::StartAppInfoEventListener(picojson::object* out) {
     }
 
     g_application_list_changed_broker.AddApplicationInstance(&instance_);
-/*    pkgmgr_client_listen_status(pkgmgr_client_handle_,
+    /* TODO - causes build break on Tizen 3.0
+    pkgmgr_client_listen_status(pkgmgr_client_handle_,
                                 ApplicationListChangedBroker::ClientStatusListener,
                                 &g_application_list_changed_broker);*/
   } else {

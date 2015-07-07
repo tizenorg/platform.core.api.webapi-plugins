@@ -356,9 +356,7 @@ bool ToBool(bt_adapter_le_state_e state) {
 const std::string kAction = "action";
 const std::string kData = "data";
 // scan-related
-const std::string kOnScanStarted = "onstarted";
-const std::string kOnScanDeviceFound = "ondevicefound";
-const std::string kOnScanFinished = "onfinished";
+const std::string kOnScanSuccess = "onsuccess";
 const std::string kOnScanError = "onerror";
 const std::string kScanEvent = "BluetoothLEScanCallback";
 // advertise-related
@@ -695,26 +693,14 @@ void BluetoothLEAdapter::OnScanResult(
     data_obj->insert(std::make_pair(kAction, picojson::value(kOnScanError)));
   } else {
     // TODO: this is probably capi-network-bluetooth error: when scan is stopped info has 0x1 value
-    if (nullptr == info || reinterpret_cast<void*>(0x1) == info) {
-      // info is empty, so this is start/stop callback
-      if (!adapter->scanning_) { // scanning has to be stopped by the user, it is not stopped by the platform
-        LoggerD("Scan finished");
-        data_obj->insert(std::make_pair(kAction, picojson::value(kOnScanFinished)));
-        data_obj->insert(std::make_pair(kData, picojson::value(adapter->discovered_devices_)));
-      } else {
-        LoggerD("Scan started");
-        adapter->discovered_devices_.clear();
-        data_obj->insert(std::make_pair(kAction, picojson::value(kOnScanStarted)));
-      }
-    } else {
+    if (nullptr != info && reinterpret_cast<void*>(0x1) != info) {
       // device found
       LoggerD("Device found");
       picojson::value data{picojson::object{}};
       const auto& r = BluetoothLEDevice::ToJson(info, &data.get<picojson::object>());
       if (r) {
-        data_obj->insert(std::make_pair(kAction, picojson::value(kOnScanDeviceFound)));
+        data_obj->insert(std::make_pair(kAction, picojson::value(kOnScanSuccess)));
         data_obj->insert(std::make_pair(kData, data));
-        adapter->discovered_devices_.push_back(data);
       } else {
         LoggerE("Failed to parse Bluetooth LE device");
         ReportError(r, data_obj);

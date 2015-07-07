@@ -38,7 +38,7 @@ const std::map<AudioOutputMode, std::string> AudioOutputModeMap = {
 }  // namespace
 
 TVAudioInstance::TVAudioInstance() {
-    LOGD("Enter");
+    LoggerD("Enter");
     using std::placeholders::_1;
     using std::placeholders::_2;
     #define REGISTER_SYNC(c, x) \
@@ -57,17 +57,17 @@ TVAudioInstance::TVAudioInstance() {
 }
 
 TVAudioInstance::~TVAudioInstance() {
-    LOGD("Enter");
+    LoggerD("Enter");
 }
 
 void TVAudioInstance::setMute(const picojson::value& args,
         picojson::object& out) {
-    LOGD("Enter");
+    LoggerD("Enter");
     bool mute = args.get("mute").get<bool>();
     common::PlatformResult result =
             AudioControlManager::getInstance().setMute(mute);
     if (result.IsError()) {
-        LOGD("Error occured");
+        LoggerD("Error occured");
         ReportError(result, &out);
     } else {
         picojson::value result;
@@ -77,12 +77,12 @@ void TVAudioInstance::setMute(const picojson::value& args,
 
 void TVAudioInstance::isMute(const picojson::value& args,
         picojson::object& out) {
-    LOGD("Enter");
+    LoggerD("Enter");
     bool mute;
     common::PlatformResult result =
             AudioControlManager::getInstance().isMute(mute);
     if (result.IsError()) {
-        LOGD("Error occured");
+        LoggerD("Error occured");
         ReportError(result, &out);
     } else
         ReportSuccess(picojson::value(mute), out);
@@ -90,12 +90,12 @@ void TVAudioInstance::isMute(const picojson::value& args,
 
 void TVAudioInstance::setVolume(const picojson::value& args,
         picojson::object& out) {
-    LOGD("Enter");
+    LoggerD("Enter");
     double volume = args.get("volume").get<double>();
     common::PlatformResult result =
             AudioControlManager::getInstance().setVolume(volume);
     if (result.IsError()) {
-        LOGD("Error occured");
+        LoggerD("Error occured");
         ReportError(result, &out);
     } else {
         picojson::value result;
@@ -105,11 +105,11 @@ void TVAudioInstance::setVolume(const picojson::value& args,
 
 void TVAudioInstance::setVolumeUp(const picojson::value& args,
         picojson::object& out) {
-    LOGD("Enter");
+    LoggerD("Enter");
     common::PlatformResult result =
             AudioControlManager::getInstance().setVolumeUp();
     if (result.IsError()) {
-        LOGD("Error occured");
+        LoggerD("Error occured");
         ReportError(result, &out);
     } else {
         picojson::value result;
@@ -119,11 +119,11 @@ void TVAudioInstance::setVolumeUp(const picojson::value& args,
 
 void TVAudioInstance::setVolumeDown(const picojson::value& args,
         picojson::object& out) {
-    LOGD("Enter");
+    LoggerD("Enter");
     common::PlatformResult result =
             AudioControlManager::getInstance().setVolumeDown();
     if (result.IsError()) {
-        LOGD("Error occured");
+        LoggerD("Error occured");
         ReportError(result, &out);
     } else {
         picojson::value result;
@@ -133,12 +133,12 @@ void TVAudioInstance::setVolumeDown(const picojson::value& args,
 
 void TVAudioInstance::getVolume(const picojson::value& args,
         picojson::object& out) {
-    LOGD("Enter");
+    LoggerD("Enter");
     u_int16_t volume;
     common::PlatformResult result =
             AudioControlManager::getInstance().getVolume(volume);
     if (result.IsError()) {
-        LOGD("Error occured");
+        LoggerD("Error occured");
         ReportError(result, &out);
     } else {
         picojson::value result = picojson::value(static_cast<double>(volume));
@@ -148,15 +148,19 @@ void TVAudioInstance::getVolume(const picojson::value& args,
 
 void TVAudioInstance::getOutputMode(const picojson::value& args,
         picojson::object& out) {
-    LOGD("Enter");
+    LoggerD("Enter");
     AudioOutputMode mode;
     common::PlatformResult result =
             AudioControlManager::getInstance().getOutputMode(mode);
     if (result.IsError()) {
-        LOGD("Error occured");
+        LoggerD("Error occured");
         ReportError(result, &out);
+    } else if (AudioOutputModeMap.find(mode) == AudioOutputModeMap.end()) {
+        LoggerE("Unknown mode type: %d", mode);
+        ReportError(common::PlatformResult(common::ErrorCode::UNKNOWN_ERR,
+            "Uknown audio output mode"), &out);
     } else {
-    ReportSuccess(picojson::value(AudioOutputModeMap.at(mode)), out);
+        ReportSuccess(picojson::value(AudioOutputModeMap.at(mode)), out);
     }
 }
 
@@ -165,7 +169,7 @@ void TVAudioInstance::setVolumeChangeListener(const picojson::value& args,
     common::PlatformResult result =
             AudioControlManager::getInstance().registerVolumeChangeListener(this);
     if (result.IsError()) {
-        LOGD("Error occured");
+        LoggerD("Error occured");
         ReportError(result, &out);
     } else {
         picojson::value result;
@@ -180,7 +184,7 @@ void TVAudioInstance::unsetVolumeChangeListener(const picojson::value& args,
 }
 
 void TVAudioInstance::onVolumeChangeCallback(u_int16_t volume) {
-  LOGD("Enter");
+  LoggerD("Enter");
     picojson::value event = picojson::value(picojson::object());
     picojson::object& obj = event.get<picojson::object>();
     obj["listenerId"] = picojson::value("VolumeChangeCallback");
@@ -194,7 +198,7 @@ void TVAudioInstance::playSound(const picojson::value& args,
     common::PlatformResult result =
             AudioControlManager::getInstance().playSound(type);
     if (result.IsError()) {
-        LOGD("Error occured");
+        LoggerD("Error occured");
         ReportError(result, &out);
     } else {
         picojson::value result;

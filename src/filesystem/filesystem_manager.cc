@@ -33,12 +33,15 @@
 #undef _XOPEN_SOURCE
 
 #include "common/logger.h"
+#include "common/tools.h"
 #include "common/scope_exit.h"
 #include "common/extension.h"
 #include "filesystem_file.h"
 
 namespace extension {
 namespace filesystem {
+
+using common::tools::GetErrorString;
 
 namespace {
 void storage_cb(int storage_id, storage_state_e state, void* user_data) {
@@ -87,12 +90,12 @@ FilesystemError copyDirectory(const std::string& originPath,
   const mode_t create_mode = S_IRWXU | S_IRWXG | S_IRWXO;
   status = mkdir(destPath.c_str(), create_mode);
   if (status) {
-    LoggerE("Cannot create directory: %s", strerror(errno));
+    LoggerE("Cannot create directory: %s", GetErrorString(errno).c_str());
     return FilesystemError::Other;
   }
   DIR* dp = opendir(originPath.c_str());
   if (dp == NULL) {
-    LoggerE("Cannot open directory: %s", strerror(errno));
+    LoggerE("Cannot open directory: %s", GetErrorString(errno).c_str());
     return FilesystemError::Other;
   }
   SCOPE_EXIT {
@@ -160,7 +163,7 @@ FilesystemError perform_deep_copy(const std::string& originPath,
     } else {
       status = remove(destPath.c_str());
       if (status) {
-        LoggerE("Cannot remove old directory: %s", strerror(errno));
+        LoggerE("Cannot remove old directory: %s", GetErrorString(errno).c_str());
         return FilesystemError::Other;
       }
     }
@@ -197,7 +200,7 @@ FilesystemError make_directory_worker(const std::string& path) {
     if (r == 0) {
       return FilesystemError::DirectoryExists;
     }
-    LoggerD("Cannot create directory: %s", strerror(errno));
+    LoggerD("Cannot create directory: %s", GetErrorString(errno).c_str());
     return FilesystemError::Other;
   }
   return parent_result;
@@ -274,13 +277,13 @@ void FilesystemManager::CreateFile(
   status =
       TEMP_FAILURE_RETRY(open(path.c_str(), O_RDWR | O_CREAT, create_mode));
   if (-1 == status) {
-    LoggerE("Cannot create or open file %s: %s", path.c_str(), strerror(errno));
+    LoggerE("Cannot create or open file %s: %s", path.c_str(), GetErrorString(errno).c_str());
     error_cb(FilesystemError::Other);
     return;
   }
   status = close(status);
   if (0 != status) {
-    LoggerE("Cannot close file %s: %s", path.c_str(), strerror(errno));
+    LoggerE("Cannot close file %s: %s", path.c_str(), GetErrorString(errno).c_str());
     error_cb(FilesystemError::Other);
     return;
   }
@@ -317,7 +320,7 @@ void FilesystemManager::Rename(
       error_cb(FilesystemError::Other);
     }
   } else {
-    LoggerE("Cannot rename file: %s", strerror(errno));
+    LoggerE("Cannot rename file: %s", GetErrorString(errno).c_str());
     error_cb(FilesystemError::Other);
   }
 }

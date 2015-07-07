@@ -103,7 +103,7 @@ Rational Rational::createFromDouble(const double value, const long precision) {
   LoggerD("%ld/%ld, error = %e\n", numerator0, denominator0, error0);
 
   /* now try other possibility */
-  ai = (precision - m[1][1]) / m[1][0];
+  ai = static_cast<long>(static_cast<double>(precision - m[1][1]) / static_cast<double>(m[1][0]));
   m[0][0] = m[0][0] * ai + m[0][1];
   m[1][0] = m[1][0] * ai + m[1][1];
 

@@ -2,6 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import os
 import sys
 import subprocess
 
@@ -11,7 +12,7 @@ const char %s[] = { %s, 0 };
 """
 
 js_code = sys.argv[1]
-cmd = "python ../../tools/mergejs.py -f" + js_code
+cmd = "python " + os.path.dirname(__file__) + "/mergejs.py -f" + js_code
 lines = subprocess.check_output(cmd, shell=True)
 c_code = ', '.join(str(ord(c)) for c in lines)
 

@@ -58,6 +58,7 @@
 #include "MsgCommon/FilterIterator.h"
 
 #include "common/scope_exit.h"
+#include "messaging/DBus/DBusTypes.h"
 
 using namespace common;
 using namespace extension::tizen;
@@ -113,8 +114,8 @@ PlatformResult EmailManager::InitializeEmailService()
             instance.m_slot_size = slot_size;
         }
 
-        PlatformResult ret = DBus::SyncProxy::create(DBus::Proxy::DBUS_PATH_NETWORK_STATUS,
-                                                     DBus::Proxy::DBUS_IFACE_NETWORK_STATUS,
+        PlatformResult ret = DBus::SyncProxy::create(DBus::kDBusPathNetworkStatus,
+                                                     DBus::kDBusIfaceNetworkStatus,
                                                      &instance.m_proxy_sync);
         CHECK_ERROR(ret, "create sync proxy failed");
         if (!instance.m_proxy_sync) {
@@ -123,8 +124,8 @@ PlatformResult EmailManager::InitializeEmailService()
         }
         instance.m_proxy_sync->signalSubscribe();
 
-        ret = DBus::LoadBodyProxy::create(DBus::Proxy::DBUS_PATH_NETWORK_STATUS,
-                                          DBus::Proxy::DBUS_IFACE_NETWORK_STATUS,
+        ret = DBus::LoadBodyProxy::create(DBus::kDBusPathNetworkStatus,
+                                          DBus::kDBusIfaceNetworkStatus,
                                           &instance.m_proxy_load_body);
         CHECK_ERROR(ret, "create load body proxy failed");
         if (!instance.m_proxy_load_body) {
@@ -198,7 +199,7 @@ PlatformResult EmailManager::addMessagePlatform(int account_id,
 
     //Adding "from" email address
     email_account_t* account = NULL;
-    err = email_get_account(account_id, EMAIL_ACC_GET_OPT_FULL_DATA, &account);
+    err = email_get_account(account_id, GET_FULL_DATA_WITHOUT_PASSWORD, &account);
     if(EMAIL_ERROR_NONE != err) {
         LoggerE("email_get_account failed. [%d]\n",err);
         err = email_free_mail_data(&mail_data,1);
@@ -1439,7 +1440,8 @@ PlatformResult EmailManager::RemoveConversationsPlatform(ConversationCallbackDat
     // so use polling to wait the thread is removed.
     email_mail_data_t *thread_info = NULL;
     do {
-      usleep(300 * 1000);
+      struct timespec sleep_time = { 0, 300L * 1000L * 1000L };
+      nanosleep(&sleep_time, nullptr);
       LoggerD("Waiting to delete this email thread...");
       error = email_get_thread_information_by_thread_id(
           thread_id, &thread_info);

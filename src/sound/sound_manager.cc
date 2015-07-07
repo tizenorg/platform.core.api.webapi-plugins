@@ -120,8 +120,8 @@ std::string SoundManager::SoundIOTypeToString(sound_device_io_direction_e type) 
 SoundManager::SoundManager(SoundInstance& instance)
     : soundModeChangeListening(false),
       sound_device_change_listener_(false),
-      soundModeListener(nullptr),
-      instance_(instance){
+      instance_(instance),
+      soundModeListener(nullptr) {
   FillMaxVolumeMap();
 }
 
@@ -582,10 +582,11 @@ void DeviceActivationChangeCB(sound_device_h device, sound_device_changed_info_e
                               void *user_data) {
   LoggerD("Entered");
 
-  if (SOUND_DEVICE_CAHNGED_INFO_STATE == changed_info) {
+  // TODO(r.galka) SOUND_DEVICE_CHANGED_INFO_STATE is not defined in platform (deprecated?)
+  /*if (SOUND_DEVICE_CHANGED_INFO_STATE == changed_info) {
     SoundManager* h = static_cast<SoundManager*>(user_data);
     h->DeviceChangeCB(device, false, true);
-  }
+  }*/
 }
 
 PlatformResult SoundManager::AddDeviceStateChangeListener() {

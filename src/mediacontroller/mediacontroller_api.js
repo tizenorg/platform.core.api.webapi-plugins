@@ -13,7 +13,9 @@
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
  */
- 
+
+var _global = window || global || {};
+
 var utils_ = xwalk.utils;
 var type_ = utils_.type;
 var converter_ = utils_.converter;
@@ -68,10 +70,11 @@ ListenerManager.prototype.removeListener = function(watchId) {
 };
 
 var ServerCommandListener = new ListenerManager(native_, '_ServerCommandListener', function(msg, listener) {
-  var data = listener(msg.clientName, msg.command, msg.data);
+  var data = undefined;
+  data = listener(msg.clientName, msg.command, msg.data);
 
-  if (type_.isNullOrUndefined(data)) {
-    return;
+  if (type_.isUndefined(data)) {
+   data = null;
   }
 
   var nativeData = {
@@ -251,7 +254,7 @@ var MediaControllerMetadata = function(data) {
     }
   });
 
-  if (data instanceof Object) {
+  if (data instanceof _global.Object) {
     for (var prop in data) {
       if (data.hasOwnProperty(prop) && this.hasOwnProperty(prop)) {
         this[prop] = data[prop];
@@ -314,7 +317,7 @@ var MediaControllerPlaybackInfo = function(data) {
     }
   });
 
-  if (data instanceof Object) {
+  if (data instanceof _global.Object) {
     for (var prop in data) {
       if (data.hasOwnProperty(prop) && this.hasOwnProperty(prop)) {
         this[prop] = data[prop];
@@ -355,7 +358,7 @@ MediaControllerServer.prototype.updatePlaybackState = function(state) {
 
 MediaControllerServer.prototype.updatePlaybackPosition = function(position) {
   var args = validator_.validateArgs(arguments, [
-    {name: 'position', type: types_.LONG_LONG}
+    {name: 'position', type: types_.UNSIGNED_LONG_LONG}
   ]);
 
   var data = {
@@ -601,10 +604,23 @@ MediaControllerServerInfo.prototype.sendPlaybackPosition = function(position, su
     {name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true}
   ]);
 
+  if (args.position < 0) {
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR);
+  }
+
+  var callback = function(result) {
+    if (native_.isFailure(result)) {
+      native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));
+      return;
+    }
+    native_.callIfPossible(args.successCallback);
+  };
+
   var data = {
     position: args.position
   };
-  this.sendCommand(internal_commands_.sendPlaybackPosition, data, successCallback, errorCallback);
+
+  sendDefinedCommand(this.name, internal_commands_.sendPlaybackPosition, data, callback);
 };
 
 MediaControllerServerInfo.prototype.sendShuffleMode = function(mode, successCallback, errorCallback) {
@@ -614,10 +630,18 @@ MediaControllerServerInfo.prototype.sendShuffleMode = function(mode, successCall
     {name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true}
   ]);
 
+  var callback = function(result) {
+    if (native_.isFailure(result)) {
+      native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));
+      return;
+    }
+    native_.callIfPossible(args.successCallback);
+  };
+
   var data = {
     mode: args.mode
   };
-  this.sendCommand(internal_commands_.sendShuffleMode, data, successCallback, errorCallback);
+  sendDefinedCommand(this.name, internal_commands_.sendShuffleMode, data, callback);
 };
 
 MediaControllerServerInfo.prototype.sendRepeatMode = function(mode, successCallback, errorCallback) {
@@ -627,10 +651,33 @@ MediaControllerServerInfo.prototype.sendRepeatMode = function(mode, successCallb
     {name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true}
   ]);
 
+  var callback = function(result) {
+    if (native_.isFailure(result)) {
+      native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));
+      return;
+    }
+    native_.callIfPossible(args.successCallback);
+  };
+
   var data = {
     mode: args.mode
   };
-  this.sendCommand(internal_commands_.sendRepeatMode, data, successCallback, errorCallback);
+  sendDefinedCommand(this.name, internal_commands_.sendRepeatMode, data, callback);
+};
+
+function sendDefinedCommand(name_, command_, data_, callback_) {
+  var nativeData = {
+    command: command_,
+    data: data_,
+    name: name_
+  };
+
+  var replyId = ReplyCommandListener.addListener(callback_);
+
+  nativeData.replyId = replyId;
+  nativeData.listenerId = ReplyCommandListener.listenerName;
+
+  native_.call('MediaControllerServerInfo_sendCommand', nativeData, callback_);
 };
 
 MediaControllerServerInfo.prototype.sendCommand = function(command, data, successCallback, errorCallback) {
@@ -651,13 +698,12 @@ MediaControllerServerInfo.prototype.sendCommand = function(command, data, succes
 
   nativeData.replyId = replyId;
   nativeData.listenerId = ReplyCommandListener.listenerName;
-
   var callback = function(result) {
     if (native_.isFailure(result)) {
       native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));
       return;
     }
-    native_.callIfPossible(args.successCallback, native_.getResultObject(result));
+    args.successCallback(native_.getResultObject(result));
   };
 
   native_.call('MediaControllerServerInfo_sendCommand', nativeData, callback);

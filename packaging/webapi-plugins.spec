@@ -8,13 +8,20 @@
 %define crosswalk_extensions tizen-extensions-crosswalk
 
 Name:       webapi-plugins
-Version:    0.5
+Version:    0.8
 Release:    0
 License:    Apache-2.0 and BSD-2.0 and MIT
 Group:      Development/Libraries
 Summary:    Tizen Web APIs implemented
 Source0:    %{name}-%{version}.tar.gz
 
+%ifarch %{arm}
+# ARM
+%define tizen_is_emulator           0
+%else
+# I586
+%define tizen_is_emulator           1
+%endif
 
 ####################################################################
 #       Mobile Profile :  Redwood(SM-Z910F), KIRAN(Z130H)          #
@@ -50,17 +57,17 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_ham_support                 0
 %else
 # I586
-%define tizen_feature_ham_support                 0
+%define tizen_feature_ham_support                 1
 %endif
 %define tizen_feature_location_batch              0
-%define tizen_feature_key_manager_support         1
+%define tizen_feature_key_manager_support         0
 %define tizen_feature_media_controller_support    1
 %ifarch %{arm}
 # ARM
 %define tizen_feature_media_key_support           1
 %else
 # I586
-%define tizen_feature_media_key_support           1
+%define tizen_feature_media_key_support           0
 %endif
 %define tizen_feature_message_port_support        1
 %define tizen_feature_messaging_support           1
@@ -75,7 +82,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_notification_support        1
 %define tizen_feature_package_support             1
 %define tizen_feature_power_support               1
-%define tizen_feature_push_support                0
+%define tizen_feature_push_support                1
 %ifarch %{arm}
 # ARM
 %define tizen_feature_se_support                  1
@@ -107,6 +114,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_tvchannel_support           0
 %define tizen_feature_tv_display_support          0
 %define tizen_feature_tvinputdevice_support       0
+%define tizen_feature_inputdevice_support         0
 %define tizen_feature_tvwindow_support            0
 
 %if 0%{?tizen_feature_telephony_support}
@@ -138,7 +146,7 @@ Source0:    %{name}-%{version}.tar.gz
 # Badge API is mandatory in Tizen Wearable Profile.
 %define tizen_feature_badge_support               1
 
-%define tizen_feature_bluetooth_support           0
+%define tizen_feature_bluetooth_support           1
 
 # Bookmark API is optional in Tizen Wearable Profile.
 %define tizen_feature_bookmark_support            0
@@ -157,15 +165,15 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_exif_support                1
 %define tizen_feature_filesystem_support          1
 %define tizen_feature_fm_radio_support            0
-%define tizen_feature_ham_support                 0
+%define tizen_feature_ham_support                 1
 %define tizen_feature_location_batch              0
-%define tizen_feature_media_controller_support    0
+%define tizen_feature_media_controller_support    1
 
 # MediayKey API is optional in Tizen Wearable Profile.
 # tizen.org/feature/network.bluetooth.audio.media is required for MediayKey API
 %ifarch %{arm}
 # ARM
-%define tizen_feature_media_key_support           0
+%define tizen_feature_media_key_support           1
 %else
 # I586
 %define tizen_feature_media_key_support           0
@@ -181,10 +189,10 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_nfc_emulation_support       0
 %define tizen_feature_nfc_support                 0
 %endif
-%define tizen_feature_notification_support        0
-%define tizen_feature_package_support             0
-%define tizen_feature_power_support               0
-%define tizen_feature_push_support                0
+%define tizen_feature_notification_support        1
+%define tizen_feature_package_support             1
+%define tizen_feature_power_support               1
+%define tizen_feature_push_support                1
 %if 0%{?model_build_feature_smartcard }
 %define tizen_feature_se_support                  1
 %else
@@ -202,6 +210,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_tvchannel_support           0
 %define tizen_feature_tv_display_support          0
 %define tizen_feature_tvinputdevice_support       0
+%define tizen_feature_inputdevice_support         0
 %define tizen_feature_tvwindow_support            0
 
 #- telephony related APIs
@@ -228,9 +237,9 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_alarm_support               1
 %define tizen_feature_application_support         1
 %define tizen_feature_archive_support             1
-%define tizen_feature_badge_support               1
+%define tizen_feature_badge_support               0
 %define tizen_feature_bluetooth_support           0
-%define tizen_feature_bookmark_support            1
+%define tizen_feature_bookmark_support            0
 %define tizen_feature_calendar_support            0
 %define tizen_feature_callhistory_support         0
 %define tizen_feature_contact_support             0
@@ -243,9 +252,9 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_fm_radio_support            0
 %define tizen_feature_ham_support                 0
 %define tizen_feature_key_manager_support         0
-%define tizen_feature_media_controller_support    0
-%define tizen_feature_media_key_support           0
-%define tizen_feature_message_port_support        0
+%define tizen_feature_media_controller_support    1
+%define tizen_feature_media_key_support           1
+%define tizen_feature_message_port_support        1
 %define tizen_feature_messaging_support           0
 %define tizen_feature_nbs_support                 0
 %define tizen_feature_nfc_emulation_support       0
@@ -258,11 +267,11 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_sensor_support              0
 %define tizen_feature_sound_support               0
 %define tizen_feature_system_info_support         1
-%define tizen_feature_system_setting_support      1
+%define tizen_feature_system_setting_support      0
 %define tizen_feature_telephony_support           0
 %define tizen_feature_time_support                1
 %define tizen_feature_web_setting_support         1
-%define tizen_feature_wi_fi_support               0
+%define tizen_feature_wi_fi_support               1
 #off for tizen 3.0 (no libavoc)
 %define tizen_feature_tvaudio_support             0
 #off for tizen 3.0 (no tvs-api)
@@ -270,7 +279,8 @@ Source0:    %{name}-%{version}.tar.gz
 #off for tizen 3.0 (no systeminfo definitions)
 %define tizen_feature_tv_display_support          0
 %define tizen_feature_tvinputdevice_support       1
-%define tizen_feature_tvwindow_support            1
+%define tizen_feature_inputdevice_support         1
+%define tizen_feature_tvwindow_support            0
 
 %endif # tizen_profile_tv
 
@@ -278,6 +288,7 @@ BuildRequires: ninja
 BuildRequires: pkgconfig(appcore-common)
 BuildRequires: pkgconfig(dbus-1)
 BuildRequires: pkgconfig(dbus-glib-1)
+BuildRequires: pkgconfig(dlog)
 BuildRequires: pkgconfig(evas)
 BuildRequires: pkgconfig(gio-2.0)
 BuildRequires: pkgconfig(glib-2.0)
@@ -333,11 +344,12 @@ BuildRequires: pkgconfig(accounts-svc)
 
 %if 0%{?tizen_feature_alarm_support}
 BuildRequires: pkgconfig(capi-appfw-alarm)
+BuildRequires: pkgconfig(alarm-service)
 %endif
 
 %if 0%{?tizen_feature_bookmark_support}
 BuildRequires: pkgconfig(capi-web-bookmark)
-#BuildRequires: pkgconfig(bookmark-adaptor)
+BuildRequires: pkgconfig(bookmark-adaptor)
 %endif
 
 %if 0%{?tizen_feature_datacontrol_support}
@@ -356,12 +368,14 @@ BuildRequires: pkgconfig(capi-location-manager)
 
 %if 0%{?tizen_feature_power_support}
 BuildRequires: pkgconfig(deviced)
+%endif
+
+%if 0%{?tizen_feature_power_support}
 BuildRequires: pkgconfig(capi-appfw-application)
 %endif
 
 %if 0%{?tizen_feature_push_support}
 BuildRequires: pkgconfig(push)
-BuildRequires: pkgconfig(libcapi-network-connection)
 %endif
 
 %if 0%{?tizen_feature_key_manager_support}
@@ -428,12 +442,11 @@ BuildRequires:  pkgconfig(smartcard-service-common)
 %endif
 
 %if 0%{?tizen_feature_message_port_support}
-BuildRequires: pkgconfig(message-port)
+BuildRequires: pkgconfig(capi-message-port)
 %endif
 
 %if 0%{?tizen_feature_notification_support}
 BuildRequires: pkgconfig(notification)
-BuildRequires: pkgconfig(capi-appfw-app-control)
 %endif
 
 %if 0%{?tizen_feature_sound_support}
@@ -444,13 +457,20 @@ BuildRequires:  pkgconfig(capi-media-sound-manager)
 BuildRequires: pkgconfig(capi-system-sensor)
 %endif
 
-
 %if 0%{?tizen_feature_media_key_support}
 BuildRequires:  pkgconfig(capi-system-media-key)
 %endif
 
 %description
 Tizen Web APIs implemented.
+
+%package devel
+Summary:    webapi-plugins development headers
+Group:      Development/Libraries
+Requires:   %{name} = %{version}
+
+%description devel
+webapi-plugins development headers
 
 %prep
 %setup -q
@@ -462,6 +482,7 @@ GYP_OPTIONS="--depth=. -Dtizen=1 -Dextension_build_type=Debug -Dextension_host_o
 GYP_OPTIONS="$GYP_OPTIONS -Ddisplay_type=%{display_type}"
 
 # feature flags
+GYP_OPTIONS="$GYP_OPTIONS -Dtizen_is_emulator=%{?tizen_is_emulator}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_account_support=%{?tizen_feature_account_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_alarm_support=%{?tizen_feature_alarm_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_application_support=%{?tizen_feature_application_support}"
@@ -505,6 +526,7 @@ GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_tvaudio_support=%{?tizen_feature_tvaud
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_tvchannel_support=%{?tizen_feature_tvchannel_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_tv_display_support=%{?tizen_feature_tv_display_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_tvinputdevice_support=%{?tizen_feature_tvinputdevice_support}"
+GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_inputdevice_support=%{?tizen_feature_inputdevice_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_tvwindow_support=%{?tizen_feature_tvwindow_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_web_setting_support=%{?tizen_feature_web_setting_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_wi_fi_support=%{?tizen_feature_wi_fi_support}"
@@ -522,6 +544,18 @@ cat LICENSE.BSD-2.0 >> %{buildroot}/usr/share/license/%{name}
 mkdir -p %{buildroot}%{_libdir}/%{crosswalk_extensions}
 install -p -m 644 out/Default/libtizen*.so %{buildroot}%{_libdir}/%{crosswalk_extensions}
 
+# devel files
+mkdir -p %{buildroot}%{_libdir}/pkgconfig
+cp packaging/%{name}.pc %{buildroot}%{_libdir}/pkgconfig
+mkdir -p %{buildroot}%{_includedir}/%{name}/src/common
+install -p -m 644 src/common/*.h %{buildroot}%{_includedir}/%{name}/src/common
+install -p -m 644 src/common/*.gypi %{buildroot}%{_includedir}/%{name}/src/common
+install -p -m 644 src/common/XW_Extension.cc %{buildroot}%{_includedir}/%{name}/src/common
+mkdir -p %{buildroot}%{_includedir}/%{name}/tools
+install -p -m 644 tools/generate_api.py %{buildroot}%{_includedir}/%{name}/tools
+install -p -m 644 tools/mergejs.py %{buildroot}%{_includedir}/%{name}/tools
+cp -a tools/gyp %{buildroot}%{_includedir}/%{name}/tools/gyp
+
 %if 0%{?tizen_feature_tvaudio_support}
 # tv audio beep files:
 %define ringtones_directory /opt/usr/share/settings/Ringtones/
@@ -533,8 +567,13 @@ cp res/tvsounds/*.pcm %{buildroot}%{ringtones_directory}
 %files
 %{_libdir}/%{crosswalk_extensions}/libtizen*.so
 %{_datadir}/license/%{name}
+%manifest webapi-plugins.manifest
 
 %if 0%{?tizen_feature_tvaudio_support}
 # tv audio beep files:
 %{ringtones_directory}/*.pcm
 %endif
+
+%files devel
+%{_includedir}/*
+%{_libdir}/pkgconfig/*

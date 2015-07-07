@@ -341,8 +341,8 @@ BluetoothAdapter::BluetoothAdapter(BluetoothInstance& instance) :
     is_visible_(false),
     is_powered_(false),
     is_initialized_(false),
-    instance_(instance),
-    user_request_list_()
+    user_request_list_(),
+    instance_(instance)
 {
   LoggerD("Entered");
   if (BT_ERROR_NONE == bt_initialize()) {
@@ -858,18 +858,29 @@ void BluetoothAdapter::CreateBonding(const picojson::value& data, picojson::obje
         PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
         std::shared_ptr<picojson::value> response =
             std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
-        if (!strcmp(handler->address().c_str(), device_info->remote_address)) {  // requested event
+
+        std::string address(handler->address());
+        for(size_t i = 0; i < handler->address().length(); i++) {
+          address[i] = toupper(handler->address()[i]);
+        }
+
+        std::string remote_address(device_info->remote_address);
+        for(size_t i = 0; i < sizeof(device_info->remote_address); i++) {
+          remote_address[i] = toupper(device_info->remote_address[i]);
+        }
+
+        if (!strcmp(address.c_str(), remote_address.c_str())) {  // requested event
           if (BT_ERROR_NONE == callback_result && nullptr != device_info ) {
             picojson::object& response_obj = response->get<picojson::object>();
             picojson::value result = picojson::value(picojson::object());
             picojson::object& result_obj = result.get<picojson::object>();
 
             BluetoothDevice::ToJson(device_info, &result_obj);
+            result_obj["address"] = picojson::value(handler->address());
             ReportSuccess(result, response_obj);
           } else if (BT_ERROR_REMOTE_DEVICE_NOT_FOUND == callback_result) {
             LoggerE("Not found");
             ret = PlatformResult(ErrorCode::SERVICE_NOT_AVAILABLE_ERR, "Not found");
-
           } else {
             LoggerE("Unknown exception");
             ret = PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown exception");
@@ -966,7 +977,17 @@ void BluetoothAdapter::DestroyBonding(const picojson::value& data, picojson::obj
           std::shared_ptr<picojson::value> response =
               std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
 
-          if (!strcmp(handler->address().c_str(), remote_address)) {  // requested event
+          std::string address(handler->address());
+          for(size_t i = 0; i < handler->address().length(); i++) {
+            address[i] = toupper(handler->address()[i]);
+          }
+
+          std::string r_address(remote_address);
+          for(size_t i = 0; i < sizeof(remote_address); i++) {
+            r_address[i] = toupper(remote_address[i]);
+          }
+
+          if (!strcmp(address.c_str(), r_address.c_str())) {  // requested event
             if (BT_ERROR_NONE != callback_result) {
               LoggerE("Unknown exception");
               ret = PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown exception");
@@ -1375,7 +1396,12 @@ void BluetoothAdapter::ConnectToServiceByUUID(
         ConnectionRequestPtr request{new ConnectionRequest()};
         request->uuid_ = uuid;
         request->callback_handle_ = callback_handle;
-        connection_requests_.insert(std::make_pair(address, request));
+
+        std::string r_address(address);
+        for(size_t i = 0; i < address.length(); i++) {
+          r_address[i] = toupper(address[i]);
+        }
+        connection_requests_.insert(std::make_pair(r_address, request));
 
         bt_socket_set_connection_state_changed_cb(OnSocketConnected, this);
         break;

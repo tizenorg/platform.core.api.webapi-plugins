@@ -20,6 +20,7 @@
 
 #include "common/logger.h"
 #include "common/platform_exception.h"
+#include "common/assert.h"
 
 #include "messaging_util.h"
 #include "message_storage_email.h"
@@ -416,7 +417,7 @@ MessageService::MessageService(int id,
             break;
         default:
             LoggerE("Undefined message type: %d", msgType);
-            assert(false);
+            Assert(false);
             break;
     }
 }

@@ -14,6 +14,7 @@
 #include "common/logger.h"
 #include "common/optional.h"
 #include "common/scope_exit.h"
+#include "common/current_application.h"
 
 namespace {
 
@@ -88,7 +89,7 @@ bool OnStorageDeviceSupported(int storage_id, storage_type_e type,
 
 common::optional<std::string> GetRootDir() {
   LoggerD("Enter");
-  std::string app_id = common::GetCurrentExtension()->GetRuntimeVariable("app_id", 64);
+  std::string app_id = common::CurrentApplication::GetInstance().GetApplicationId();
 
   app_info_h app_info;
   int err = app_info_create(app_id.c_str(), &app_info);

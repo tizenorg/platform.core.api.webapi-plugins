@@ -91,12 +91,18 @@ void TimeInstance::TimeGetLocalTimeZone(const JsonValue& /*args*/,
   LoggerD("Entered");
 
   UnicodeString local_timezone;
-  TimeZone::createDefault()->getID(local_timezone);
+  TimeZone* timezone = TimeZone::createDefault();
+  if (nullptr != timezone) {
+    timezone->getID(local_timezone);
+    delete timezone;
 
-  std::string localtz;
-  local_timezone.toUTF8String(localtz);
+    std::string localtz;
+    local_timezone.toUTF8String(localtz);
 
-  ReportSuccess(JsonValue(localtz), out);
+    ReportSuccess(JsonValue(localtz), out);
+  } else {
+    ReportError(out);
+  }
 }
 
 void TimeInstance::TimeGetAvailableTimeZones(const JsonValue& /*args*/,
@@ -473,7 +479,7 @@ UnicodeString TimeInstance::getDateTimeFormat(DateTimeFormatType type,
 #endif
 
     pattern = dateTimepattern->getBestPattern(
-        *(new UnicodeString(skeleton.c_str())), ec);
+        UnicodeString(skeleton.c_str()), ec);
     if (U_FAILURE(ec)) {
       LoggerE("Failed to get time pattern");
       return "";

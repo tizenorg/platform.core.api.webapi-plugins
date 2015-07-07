@@ -55,15 +55,15 @@ const std::map<std::string, media_content_orientation_e> orientationMap = {
 static int get_utc_offset() {
   LoggerD("Enter");
   time_t zero = 24 * 60 * 60L;
-  struct tm* timeptr;
+  struct tm time_struct = {0};
   int gmtime_hours = 0;
 
   /* get the local time for Jan 2, 1900 00:00 UTC */
-  timeptr = localtime(&zero);
-  if (nullptr != timeptr) {
-    gmtime_hours = timeptr->tm_hour;
+  tzset();
+  if (nullptr != localtime_r(&zero, &time_struct)) {
+    gmtime_hours = time_struct.tm_hour;
 
-    if (timeptr->tm_mday < 2)
+    if (time_struct.tm_mday < 2)
       gmtime_hours -= 24;
   }
   return gmtime_hours;
@@ -1172,7 +1172,7 @@ int ContentManager::getLyrics(const picojson::value& args, picojson::object& res
   ret = metadata_extractor_set_path(extractor, contentURI.c_str());
   if (ret != METADATA_EXTRACTOR_ERROR_NONE) {
     LOGGER(ERROR) << "metadata_extractor_set_path failed, error: " << ret;
-    return -1;
+    return ret;
   }
   picojson::array timestamps;
   picojson::array texts = picojson::array();
@@ -1182,11 +1182,15 @@ int ContentManager::getLyrics(const picojson::value& args, picojson::object& res
       METADATA_SYNCLYRICS_NUM, &strSyncTextNum);
   if (ret != METADATA_EXTRACTOR_ERROR_NONE) {
     LOGGER(ERROR) << "Media extractor error " << ret;
+    return ret;
   }
 
-  int nSyncTextNum = atoi(strSyncTextNum);
-  free(strSyncTextNum);
-  strSyncTextNum = NULL;
+  int nSyncTextNum = 0;
+  if (strSyncTextNum) {
+    nSyncTextNum = atoi(strSyncTextNum);
+    free(strSyncTextNum);
+    strSyncTextNum = NULL;
+  }
   if (nSyncTextNum > 0) {
     result["type"] = picojson::value(std::string("SYNCHRONIZED"));
     for (int i = 0; i < nSyncTextNum; i++) {

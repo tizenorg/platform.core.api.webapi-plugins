@@ -25,7 +25,7 @@
 #include <string>
 #include <sstream>
 #include <email-types.h>
-#include "Proxy.h"
+#include "common/GDBus/proxy.h"
 #include "common/platform_result.h"
 
 namespace extension {
@@ -35,7 +35,7 @@ namespace DBus {
 class MessageProxy;
 typedef std::shared_ptr<MessageProxy> MessageProxyPtr;
 
-class MessageProxy: public Proxy {
+class MessageProxy: public common::dbus::Proxy {
 public:
     virtual ~MessageProxy();
     static common::PlatformResult create(MessageProxyPtr* message_proxy);

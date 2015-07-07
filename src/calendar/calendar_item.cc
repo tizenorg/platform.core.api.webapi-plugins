@@ -1886,8 +1886,9 @@ picojson::array CalendarItem::StringToArray(const std::string& string) {
   LoggerD("Enter");
   picojson::array out = picojson::array();
 
-  char* cstr = new char[string.length() + 1];
-  strcpy(cstr, string.c_str());
+  size_t cstr_length = string.length() + 1;
+  char* cstr = new char[cstr_length];
+  strncpy(cstr, string.c_str(), cstr_length);
 
   char* saveptr = NULL;
   char* pch = strtok_r(cstr, ",", &saveptr);

@@ -5,25 +5,13 @@
 
 #include "common/extension.h"
 
-#include <assert.h>
 #include <iostream>
 #include <vector>
 #include <string>
 #include <map>
 
-#ifdef PRIVILEGE_USE_DB
-#include <sqlite3.h>
-#elif PRIVILEGE_USE_ACE
-#include <privilege_checker.h>
-#elif PRIVILEGE_USE_CYNARA
-#include <unistd.h>
-
-#include <cynara/cynara-client.h>
-#include <sys/smack.h>
-#endif
-
 #include "common/logger.h"
-#include "common/scope_exit.h"
+#include "common/assert.h"
 
 // This function is hidden, because each plugin needs to have own implementation.
 __attribute__ ((visibility ("hidden"))) common::Extension* CreateExtension() {
@@ -175,7 +163,7 @@ std::string Extension::GetRuntimeVariable(const char* var_name, unsigned len) {
 // static
 void Extension::OnInstanceCreated(XW_Instance xw_instance, Instance* instance) {
   LoggerD("Enter");
-  assert(!g_core->GetInstanceData(xw_instance));
+  Assert(!g_core->GetInstanceData(xw_instance));
   if (!instance)
     return;
   instance->xw_instance_ = xw_instance;
@@ -221,7 +209,7 @@ int32_t Extension::XW_Initialize(XW_Extension extension,
                                  XW_CreatedInstanceCallback created_instance,
                                  XW_ShutdownCallback shutdown) {
   LoggerD("Enter");
-  assert(extension);
+  Assert(extension);
 
   if (!InitializeInterfaces(get_interface)) {
     return XW_ERROR;
@@ -253,7 +241,7 @@ Instance::Instance() :
 
 Instance::~Instance() {
   LoggerD("Enter");
-  assert(xw_instance_ == 0);
+  Assert(xw_instance_ == 0);
 }
 
 void Instance::PostMessage(const char* msg) {
@@ -394,249 +382,5 @@ void ParsedInstance::HandleError(const PlatformResult& e) {
   ReportError(e, &result.get<picojson::object>());
   SendSyncReply(result.serialize().c_str());
 }
-
-namespace tools {
-void ReportSuccess(picojson::object& out) {
-  LoggerD("Enter");
-  out.insert(std::make_pair("status", picojson::value("success")));
-}
-
-void ReportSuccess(const picojson::value& result, picojson::object& out) {
-  LoggerD("Enter");
-  out.insert(std::make_pair("status", picojson::value("success")));
-  out.insert(std::make_pair("result", result));
-}
-
-void ReportError(picojson::object& out) {
-  LoggerD("Enter");
-  out.insert(std::make_pair("status", picojson::value("error")));
-}
-
-void ReportError(const PlatformException& ex, picojson::object& out) {
-  LoggerD("Enter");
-  out.insert(std::make_pair("status", picojson::value("error")));
-  out.insert(std::make_pair("error", ex.ToJSON()));
-}
-
-void ReportError(const PlatformResult& error, picojson::object* out) {
-  LoggerD("Enter");
-  out->insert(std::make_pair("status", picojson::value("error")));
-  out->insert(std::make_pair("error", error.ToJSON()));
-}
-
-namespace {
-
-#ifdef PRIVILEGE_USE_DB
-
-class AccessControlImpl {
- public:
-  AccessControlImpl()
-      : initialized_(false) {
-    LoggerD("Privilege access checked using DB.");
-
-    const char* kWrtDBPath = "/opt/dbspace/.wrt.db";
-    sqlite3* db = nullptr;
-
-    int ret = sqlite3_open(kWrtDBPath, &db);
-    if (SQLITE_OK != ret) {
-      LoggerE("Failed to access WRT database");
-      return;
-    }
-
-    const char* kQuery = "select name from WidgetFeature where app_id = "
-                         "(select app_id from WidgetInfo where tizen_appid = ?)"
-                         " and rejected = 0";
-    const std::string app_id = common::GetCurrentExtension()->GetRuntimeVariable("app_id", 64);
-    sqlite3_stmt* stmt = nullptr;
-
-    ret = sqlite3_prepare_v2(db, kQuery, -1, &stmt, nullptr);
-    ret |= sqlite3_bind_text(stmt, 1, app_id.c_str(), -1, SQLITE_TRANSIENT);
-
-    SCOPE_EXIT {
-      sqlite3_finalize(stmt);
-      sqlite3_close(db);
-    };
-
-    if (SQLITE_OK != ret) {
-      LoggerE("Failed to query WRT database");
-      return;
-    }
-
-    while (sqlite3_step(stmt) == SQLITE_ROW) {
-      const char* privilege = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0));
-      SLoggerD("Granted: %s", privilege);
-      granted_privileges_.push_back(privilege);
-    }
-
-    initialized_ = true;
-  }
-
-  ~AccessControlImpl() {}
-
-  bool CheckAccess(const std::vector<std::string>& privileges) {
-    LoggerD("Enter");
-    if (!initialized_) {
-      return false;
-    }
-
-    for (const auto& privilege : privileges) {
-      if (std::find(granted_privileges_.begin(), granted_privileges_.end(), privilege) == granted_privileges_.end()) {
-        return false;
-      }
-    }
-
-    return true;
-  }
-
- private:
-  bool initialized_;
-  std::vector<std::string> granted_privileges_;
-};
-
-#elif PRIVILEGE_USE_ACE
-
-class AccessControlImpl {
- public:
-  AccessControlImpl() {
-    LoggerD("Privilege access checked using ACE.");
-  }
-
-  ~AccessControlImpl() {
-  }
-
-  bool CheckAccess(const std::vector<std::string>& privileges) {
-    LoggerD("Enter");
-    int ret = 0;
-    for (size_t i = 0; i < privileges.size(); ++i) {
-      ret = privilege_checker_check_privilege(privileges[i].c_str());
-      if (PRIVILEGE_CHECKER_ERR_NONE != ret) {
-        return false;
-      }
-    }
-    return true;
-  }
-};
-
-#elif PRIVILEGE_USE_CYNARA
-
-class AccessControlImpl {
- public:
-  AccessControlImpl() : cynara_(nullptr) {
-    LoggerD("Privilege access checked using Cynara.");
-
-    char* smack_label = nullptr;
-    int len = smack_new_label_from_self(&smack_label);
-    if (0 < len && nullptr != smack_label) {
-      auto uid = getuid();
-
-      SLoggerD("uid: [%u]", uid);
-      SLoggerD("smack label: [%s]", smack_label);
-
-      uid_ = std::to_string(uid);
-      smack_label_ = smack_label;
-
-      free(smack_label);
-    } else {
-      LoggerE("Failed to get smack label");
-      return;
-    }
-
-    int ret = cynara_initialize(&cynara_, nullptr);
-    if (CYNARA_API_SUCCESS != ret) {
-      LoggerE("Failed to initialize Cynara");
-      cynara_ = nullptr;
-    }
-  }
-
-  ~AccessControlImpl() {
-    if (cynara_) {
-      auto ret = cynara_finish(cynara_);
-      if (CYNARA_API_SUCCESS != ret) {
-        LoggerE("Failed to finalize Cynara");
-      }
-      cynara_ = nullptr;
-    }
-  }
-
-  bool CheckAccess(const std::vector<std::string>& privileges) {
-/*    if (cynara_) {
-      for (const auto& privilege : privileges) {
-        if (CYNARA_API_ACCESS_ALLOWED != cynara_simple_check(cynara_,  // p_cynara
-                                                             smack_label_.c_str(),  // client
-                                                             "", // client_session
-                                                             uid_.c_str(),  // user
-                                                             privilege.c_str()  // privilege
-                                                             )) {
-          return false;
-        }
-      }
-      return true;
-    } else {
-      return false;
-    }*/
-    return true;
-  }
-
- private:
-  cynara* cynara_;
-  std::string uid_;
-  std::string smack_label_;
-};
-
-#else
-
-class AccessControlImpl {
- public:
-  AccessControlImpl() {
-    LoggerD("Privilege access - deny all.");
-  }
-
-  bool CheckAccess(const std::vector<std::string>& privileges) {
-    return false;
-  }
-};
-
-#endif
-
-class AccessControl {
- public:
-  static AccessControl& GetInstance() {
-    static AccessControl instance;
-    return instance;
-  }
-
-  bool CheckAccess(const std::string& privilege) {
-    return CheckAccess(std::vector<std::string>{privilege});
-  }
-
-  bool CheckAccess(const std::vector<std::string>& privileges) {
-    return impl_.CheckAccess(privileges);
-  }
-
- private:
-  AccessControl() {}
-  ~AccessControl() {}
-  AccessControlImpl impl_;
-};
-
-} // namespace
-
-PlatformResult CheckAccess(const std::string& privilege) {
-  return CheckAccess(std::vector<std::string>{privilege});
-}
-
-PlatformResult CheckAccess(const std::vector<std::string>& privileges) {
-  LoggerD("Enter");
-  if (AccessControl::GetInstance().CheckAccess(privileges)) {
-    return PlatformResult(ErrorCode::NO_ERROR);
-  } else {
-    for (const auto& privilege : privileges) {
-      LoggerD("Access to privilege: %s has been denied.", privilege.c_str());
-    }
-    return PlatformResult(ErrorCode::SECURITY_ERR, "Permission denied");
-  }
-}
-
-}  // namespace tools
 
 }  // namespace common

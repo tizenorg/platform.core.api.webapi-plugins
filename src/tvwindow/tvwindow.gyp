@@ -8,6 +8,7 @@
       'type': 'loadable_module',
       'variables': {
         'packages': [
+          'capi-system-info',
           #'tvs-api',# off for tizen 3.0. additionally, not use currently
         ],
       },

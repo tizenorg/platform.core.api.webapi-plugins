@@ -19,13 +19,13 @@
 
 #include <netdb.h>
 #include <arpa/inet.h>
+#include <memory>
 
 namespace extension {
 namespace networkbearerselection {
 
 namespace {
 const char* kPlatformError = "Platform error";
-const char* kInvalidValuesError = "Invalid values error";
 }
 
 struct NetworkBearerSelectionRequestEvent {
@@ -324,11 +324,12 @@ void NetworkBearerSelectionManager::registStateChangeListener(
   LoggerD("enter");
   char* interfaceName = nullptr;
   char* hostAddr = nullptr;
-  struct hostent* host_entry;
+  std::unique_ptr<char, void(*)(void*)> host_addr_ptr(nullptr, &std::free);
+  struct addrinfo* servinfo = nullptr;
 
   if (connection_profile_get_network_interface_name(
           m_profileHandle, &interfaceName) != CONNECTION_ERROR_NONE) {
-    LoggerD("Fail to get interface name!");
+    LoggerE("Fail to get interface name!");
     if (m_profileHandle) {
       connection_profile_destroy(m_profileHandle);
       m_profileHandle = nullptr;
@@ -340,27 +341,41 @@ void NetworkBearerSelectionManager::registStateChangeListener(
 
   LoggerD("Domain name to be resolved: %s", domain_name.c_str());
 
-  host_entry = gethostbyname(domain_name.c_str());
-
-  if (!host_entry) {
-    LoggerD("gethostbyname is failed");
-    makeErrorCallback(domain_name, kInvalidValuesError);
-    if (connection_close_profile(m_connectionHandle,
-                                 m_profileHandle,
-                                 connection_closed_callback2,
-                                 nullptr) != CONNECTION_ERROR_NONE) {
-      LoggerD("connection close failed");
-      makeErrorCallback(domain_name, kPlatformError);
-    }
+  int ret_val = getaddrinfo(domain_name.c_str() , nullptr , nullptr , &servinfo);
+  if (0 != ret_val) {
+    LoggerE("Error while calling getaddrinfo(): %s", gai_strerror(ret_val));
     if (m_profileHandle) {
       connection_profile_destroy(m_profileHandle);
       m_profileHandle = nullptr;
     }
+    makeErrorCallback(domain_name, kPlatformError);
     return;
-  }
+  } else {
+    hostAddr = new char[servinfo->ai_addrlen + 1];
+    host_addr_ptr.reset(hostAddr);
 
-  hostAddr = inet_ntoa(*(struct in_addr*)host_entry->h_addr_list[0]);
-  LoggerD("hostAddr : %s", hostAddr);
+    struct in_addr  *addr = nullptr;
+    if (AF_INET == servinfo->ai_family) {
+      struct sockaddr_in *ipv = (struct sockaddr_in *)servinfo->ai_addr;
+      addr = &(ipv->sin_addr);
+    } else {
+      struct sockaddr_in6 *ipv6 = (struct sockaddr_in6 *)servinfo->ai_addr;
+      addr = (struct in_addr *) &(ipv6->sin6_addr);
+    }
+    if (nullptr == inet_ntop(servinfo->ai_family, addr, hostAddr, servinfo->ai_addrlen)) {
+      LoggerE("Error while calling inet_ntop()");
+      if (m_profileHandle) {
+        connection_profile_destroy(m_profileHandle);
+        m_profileHandle = nullptr;
+      }
+      makeErrorCallback(domain_name, kPlatformError);
+      freeaddrinfo(servinfo);
+      return;
+    }
+    LoggerD("hostAddr : %s", hostAddr);
+
+    freeaddrinfo(servinfo);
+  }
 
   NetworkBearerSelectionRequestEvent* event =
       new NetworkBearerSelectionRequestEvent(domain_name);

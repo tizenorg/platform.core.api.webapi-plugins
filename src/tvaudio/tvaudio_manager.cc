@@ -45,19 +45,19 @@ const u_int16_t VOLUME_STEP = 1;
 }
 
 VolumeChangeListener::~VolumeChangeListener() {
-    LOGD("Enter");
+    LoggerD("Enter");
 }
 
 AudioControlManager::AudioControlManager() :
     m_volume_step(VOLUME_STEP),
     m_volume_change_listener(NULL),
     m_playThreadIdInit(false) {
-    LOGD("Enter");
+    LoggerD("Enter");
     m_playData.stopSound = false;
 }
 
 AudioControlManager::~AudioControlManager() {
-    LOGD("Enter");
+    LoggerD("Enter");
 }
 
 AudioControlManager& AudioControlManager::getInstance() {
@@ -66,10 +66,10 @@ AudioControlManager& AudioControlManager::getInstance() {
 }
 
 common::PlatformResult AudioControlManager::setMute(bool mute) {
-    LOGD("Enter");
+    LoggerD("Enter");
     int ret = sound_manager_set_master_mute(mute);
     if (SOUND_MANAGER_ERROR_NONE != ret) {
-        LOGE("Failed to change mute state: %d", ret);
+        LoggerE("Failed to change mute state: %d", ret);
         return common::PlatformResult(ErrorCode::UNKNOWN_ERR,
             "Unknown error. Failed to change mute state");
     }
@@ -77,27 +77,27 @@ common::PlatformResult AudioControlManager::setMute(bool mute) {
 }
 
 common::PlatformResult AudioControlManager::isMute(bool &isMute) {
-    LOGD("Enter");
+    LoggerD("Enter");
     int ret = sound_manager_get_master_mute(&isMute);
     if (SOUND_MANAGER_ERROR_NONE != ret) {
-        LOGE("Failed to get mute state: %d", ret);
+        LoggerE("Failed to get mute state: %d", ret);
         return common::PlatformResult(ErrorCode::UNKNOWN_ERR,
             "Unknown error. Failed to get mute state");
     }
-    LOGD("Mute state: %d", isMute);
+    LoggerD("Mute state: %d", isMute);
     return common::PlatformResult(ErrorCode::NO_ERROR);
 }
 
 common::PlatformResult AudioControlManager::setVolume(u_int16_t volume) {
-    LOGD("Enter. Volume: %d", volume);
+    LoggerD("Enter. Volume: %d", volume);
     if (volume > 100) {
-        LOGE("Invalid volume number");
+        LoggerE("Invalid volume number");
         return common::PlatformResult(ErrorCode::INVALID_VALUES_ERR,
             "Invalid volume number");
     }
     int ret = sound_manager_set_master_volume(volume);
     if (SOUND_MANAGER_ERROR_NONE != ret) {
-        LOGE("Failed to set volume: %d", ret);
+        LoggerE("Failed to set volume: %d", ret);
         return common::PlatformResult(ErrorCode::UNKNOWN_ERR,
             "Unknown error. Failed to set volume");
     }
@@ -105,7 +105,7 @@ common::PlatformResult AudioControlManager::setVolume(u_int16_t volume) {
 }
 
 common::PlatformResult AudioControlManager::setVolumeUp() {
-    LOGD("Enter");
+    LoggerD("Enter");
     common::PlatformResult ret(ErrorCode::NO_ERROR);
     u_int16_t currentVolume;
     ret = getVolume(currentVolume);
@@ -128,7 +128,7 @@ common::PlatformResult AudioControlManager::setVolumeUp() {
 }
 
 common::PlatformResult AudioControlManager::setVolumeDown() {
-    LOGD("Enter");
+    LoggerD("Enter");
     common::PlatformResult ret(ErrorCode::NO_ERROR);
     u_int16_t currentVolume;
     ret = getVolume(currentVolume);
@@ -151,25 +151,25 @@ common::PlatformResult AudioControlManager::setVolumeDown() {
 }
 
 common::PlatformResult AudioControlManager::getVolume(u_int16_t &volume) {
-    LOGD("Enter");
+    LoggerD("Enter");
     int tempVolume;
     int ret = sound_manager_get_master_volume(&tempVolume);
     if (SOUND_MANAGER_ERROR_NONE != ret) {
-        LOGE("Failed to get volume: %d", ret);
+        LoggerE("Failed to get volume: %d", ret);
         return common::PlatformResult(ErrorCode::UNKNOWN_ERR,
             "Unknown error. Failed to get volume");
     }
-    LOGD("Volume: %d", volume);
+    LoggerD("Volume: %d", volume);
     volume = tempVolume;
     return common::PlatformResult(ErrorCode::NO_ERROR);
 }
 
-common::PlatformResult AudioControlManager::getOutputMode(AudioOutputMode mode) {
-    LOGD("Enter");
+common::PlatformResult AudioControlManager::getOutputMode(AudioOutputMode &mode) {
+    LoggerD("Enter");
     avoc_audio_format_e type;
     int ret = avoc_get_audio_format(&type);
     if (AVOC_SUCCESS != ret) {
-        LOGE("Failed to get audio output type: %d", ret);
+        LoggerE("Failed to get audio output type: %d", ret);
         return common::PlatformResult(ErrorCode::UNKNOWN_ERR,
             "Unknown error. Failed to get audio output type");
     }
@@ -188,7 +188,7 @@ common::PlatformResult AudioControlManager::getOutputMode(AudioOutputMode mode) 
             mode = AudioOutputMode::AAC;
             break;
         default:
-            LOGE("Unexpected audio output type: %d", type);
+            LoggerE("Unexpected audio output type: %d", type);
             return common::PlatformResult(ErrorCode::UNKNOWN_ERR,
                 "Unexecpted audio output type");
     }
@@ -197,25 +197,25 @@ common::PlatformResult AudioControlManager::getOutputMode(AudioOutputMode mode) 
 
 common::PlatformResult AudioControlManager::registerVolumeChangeListener(
             VolumeChangeListener* listener) {
-    LOGD("Enter");
+    LoggerD("Enter");
     unregisterVolumeChangeListener();
     int r = sound_manager_set_master_volume_changed_cb(
             volumeChangeCallback, NULL);
     if (SOUND_MANAGER_ERROR_NONE != r) {
-        LOGE("Failed to add listener: %d", r);
+        LoggerE("Failed to add listener: %d", r);
         return common::PlatformResult(ErrorCode::UNKNOWN_ERR,
             "Failed to add listener");
     }
     m_volume_change_listener = listener;
-    LOGD("Added listener");
+    LoggerD("Added listener");
     return common::PlatformResult(ErrorCode::NO_ERROR);
 }
 
 common::PlatformResult AudioControlManager::unregisterVolumeChangeListener() {
-    LOGD("Enter");
+    LoggerD("Enter");
     int r = sound_manager_unset_master_volume_changed_cb();
     if (SOUND_MANAGER_ERROR_NONE != r) {
-        LOGW("Failed to remove listener: %d", r);
+        LoggerW("Failed to remove listener: %d", r);
         return common::PlatformResult(ErrorCode::UNKNOWN_ERR,
             "Failed to remove listener");
     }
@@ -226,22 +226,22 @@ common::PlatformResult AudioControlManager::unregisterVolumeChangeListener() {
 void AudioControlManager::volumeChangeCallback(
         unsigned int /*volume*/,
         void* /*user_data*/) {
-    LOGD("Enter");
+    LoggerD("Enter");
     if (!g_idle_add(onVolumeChange, NULL)) {
-        LOGW("Failed to add to g_idle");
+        LoggerW("Failed to add to g_idle");
     }
 }
 
 gboolean AudioControlManager::onVolumeChange(gpointer /*user_data*/) {
-    LOGD("Enter");
+    LoggerD("Enter");
     if (!getInstance().m_volume_change_listener) {
-        LOGD("Listener is null. Ignoring");
+        LoggerD("Listener is null. Ignoring");
         return G_SOURCE_REMOVE;
     }
     u_int16_t val;
     common::PlatformResult ret = getInstance().getVolume(val);
     if (ret.IsError()) {
-        LOGE("Failed to retrieve volume level");
+        LoggerE("Failed to retrieve volume level");
     }
     getInstance().m_volume_change_listener->onVolumeChangeCallback(val);
     return G_SOURCE_REMOVE;
@@ -253,17 +253,16 @@ gboolean AudioControlManager::onVolumeChange(gpointer /*user_data*/) {
  * If sound is already played it is replaced by the new sound
  */
 common::PlatformResult AudioControlManager::playSound(const std::string &type) {
-    LOGD("Enter");
+    LoggerD("Enter");
     const auto beep = SoundMap.find(type);
     if (beep == SoundMap.end()) {
         return common::PlatformResult(ErrorCode::UNKNOWN_ERR,
             "Unknown error. Unknown beep type: " + type);
     }
 
-    void *status;
     if (m_playThreadIdInit) {
         m_playData.stopSound = true;
-        pthread_join(m_playThreadId, &status);
+        pthread_join(m_playThreadId, NULL);
         m_playData.stopSound = false;
     }
     pthread_attr_t attr;
@@ -276,7 +275,7 @@ common::PlatformResult AudioControlManager::playSound(const std::string &type) {
     if (0 == pthread_create(&m_playThreadId, &attr, play, &m_playData )) {
         m_playThreadIdInit = true;
     } else {
-        LOGE("Failed to create pthread");
+        LoggerE("Failed to create pthread");
         return common::PlatformResult(ErrorCode::UNKNOWN_ERR,
             "Failed to create pthread to play sound");
     }
@@ -284,10 +283,10 @@ common::PlatformResult AudioControlManager::playSound(const std::string &type) {
 }
 
 void* AudioControlManager::play(void* play_data) {
-    LOGD("Enter");
+    LoggerD("Enter");
     PlayData* pData = static_cast<PlayData*>(play_data);
 
-    LOGD("Beep type: %d", pData->beep_type.c_str());
+    LoggerD("Beep type: %s", pData->beep_type.c_str());
 
     const std::string& filename = pData->filename;
     std::unique_ptr <std::vector <char>> pBuffer =
@@ -300,13 +299,13 @@ void* AudioControlManager::play(void* play_data) {
                                 SOUND_TYPE_NOTIFICATION,
                                 &handle);
     if (AUDIO_IO_ERROR_NONE != error) {
-        LOGE("Failed to open audio output: %d", error);
+        LoggerE("Failed to open audio output: %d", error);
         return NULL;
     }
 
     error = audio_out_prepare(handle);
     if (AUDIO_IO_ERROR_NONE != error) {
-        LOGE("Failed to open audio output: %d", error);
+        LoggerE("Failed to open audio output: %d", error);
         audio_out_destroy(handle);
         return NULL;
     }
@@ -320,7 +319,7 @@ void* AudioControlManager::play(void* play_data) {
                                     &(*pBuffer)[counter],
                                     dataLeftSize);
             if (dataLeftSize != error) {
-                LOGE("Failed to write to audio output: %d", error);
+                LoggerE("Failed to write to audio output: %d", error);
                 audio_out_destroy(handle);
                 return NULL;
             }
@@ -331,7 +330,7 @@ void* AudioControlManager::play(void* play_data) {
                                     &(*pBuffer)[counter],
                                     AudioControlManager::CHUNK);
             if (AudioControlManager::CHUNK != error) {
-                LOGE("Failed to write to audio output: %d", error);
+                LoggerE("Failed to write to audio output: %d", error);
                 audio_out_destroy(handle);
                 return NULL;
             }
@@ -344,34 +343,34 @@ void* AudioControlManager::play(void* play_data) {
 
 std::unique_ptr <std::vector<char>>
 AudioControlManager::loadFile(const std::string& filename) {
-    LOGD("Enter");
+    LoggerD("Enter");
     std::unique_ptr<std::vector<char>> pBuffer(new std::vector<char>());
     std::ifstream file(filename.c_str(),
                     (std::ios::binary | std::ios::in | std::ios::ate));
     if (!file.is_open()) {
-        LOGE("Could not open file %s", filename.c_str());
+        LoggerE("Could not open file %s", filename.c_str());
         return std::unique_ptr< std::vector<char>>();
     }
 
     std::ifstream::pos_type size = file.tellg();
     if (size < 0) {
         file.close();
-        LOGE("Failed to open file %s - incorrect size", filename.c_str());
+        LoggerE("Failed to open file %s - incorrect size", filename.c_str());
         return std::unique_ptr<std::vector<char>>();
     }
 
-    LOGD("resizing");
+    LoggerD("resizing");
     pBuffer->resize(size);
-    LOGD("resized");
+    LoggerD("resized");
     file.seekg(0, std::ios::beg);
     if (!file.read(&(*pBuffer)[0], size)) {
         file.close();
-        LOGE("Failed to read audio file %s", filename.c_str());
+        LoggerE("Failed to read audio file %s", filename.c_str());
         return std::unique_ptr <std::vector <char>>();
     }
     file.close();
 
-    LOGD("Got buffer");
+    LoggerD("Got buffer");
     return pBuffer;
 }
 

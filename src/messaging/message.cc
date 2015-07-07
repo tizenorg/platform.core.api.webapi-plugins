@@ -961,7 +961,7 @@ PlatformResult Message::convertPlatformShortMessageToStruct(Message* message,
                     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to set mms body filepath");
                 }
                 msg_set_str_value(media, MSG_MMS_MEDIA_CONTENT_TYPE_STR,
-                                  "text/plain", 10);
+                                  const_cast<char*>("text/plain"), 10);
 
                 //----------------------------------------------------------------------------
                 //Smile text

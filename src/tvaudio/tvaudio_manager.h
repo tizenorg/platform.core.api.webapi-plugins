@@ -53,7 +53,7 @@ class AudioControlManager {
     common::PlatformResult setVolumeDown();
     common::PlatformResult playSound(const std::string &type);
     common::PlatformResult getVolume(u_int16_t &volume);
-    common::PlatformResult getOutputMode(AudioOutputMode mode);
+    common::PlatformResult getOutputMode(AudioOutputMode &mode);
     common::PlatformResult registerVolumeChangeListener(VolumeChangeListener* listener);
     common::PlatformResult unregisterVolumeChangeListener();
     static void volumeChangeCallback(unsigned int volume, void* user_data);

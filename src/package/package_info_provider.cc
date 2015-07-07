@@ -27,12 +27,18 @@
 #include <functional>
 
 #include "common/logger.h"
+#include "common/tools.h"
 
 namespace extension {
 namespace package {
 
 using common::UnknownException;
 using common::NotFoundException;
+
+using common::ErrorCode;
+using common::PlatformResult;
+using common::tools::ReportError;
+using common::tools::ReportSuccess;
 
 #define REPORT_ERROR(out, exception) \
   out["status"] = picojson::value("error"); \
@@ -212,32 +218,6 @@ bool PackageInfoProvider:: ConvertToPackageToObject(
     return false;
   }
 
-  pkgmgr_client *pc = pkgmgr_client_new(PC_REQUEST);
-  if ( pc == NULL ) {
-    LoggerE("Fail to create pkgmgr client");
-    return false;
-  } else {
-    int ret = pkgmgr_client_request_service(PM_REQUEST_GET_SIZE,
-        PM_GET_TOTAL_SIZE, pc, NULL, id, NULL, NULL, NULL);
-    if ( ret < 0 ) {
-      LoggerE("Fail to get total size");
-      return false;
-    } else {
-      LoggerD("totalSize: [%d]", ret);
-      out["totalSize"] = picojson::value(static_cast<double>(ret));
-    }
-
-    ret = pkgmgr_client_request_service(PM_REQUEST_GET_SIZE, PM_GET_DATA_SIZE,
-        pc, NULL, id, NULL, NULL, NULL);
-    if ( ret < 0 ) {
-      LoggerE("Fail to get data size");
-      return false;
-    } else {
-      LoggerD("dataSize: [%d]", ret);
-      out["dataSize"] = picojson::value(static_cast<double>(ret));
-    }
-  }
-
   picojson::array array_data;
   ret = package_info_foreach_app_from_package(package_info,
       PACKAGE_INFO_ALLAPP, PackageAppInfoCb, &array_data);
@@ -253,6 +233,39 @@ bool PackageInfoProvider:: ConvertToPackageToObject(
   }
 
   return true;
+}
+
+namespace {
+
+void GetSize(const std::string& id, int service_mode, picojson::object* out) {
+  LoggerD("Enter");
+  pkgmgr_client* pc = pkgmgr_client_new(PC_REQUEST);
+  int size = pkgmgr_client_request_service(PM_REQUEST_GET_SIZE, service_mode,
+                                           pc,
+                                           NULL,
+                                           id.c_str(), NULL, NULL, NULL);
+  pkgmgr_client_free(pc);
+
+  if (size < 0) {
+    ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to get size"),
+                out);
+  } else {
+    ReportSuccess(picojson::value(static_cast<double>(size)), *out);
+  }
+}
+
+}  // namespace
+
+void PackageInfoProvider::GetTotalSize(const std::string& id,
+                                       picojson::object* out) {
+  LoggerD("Enter");
+  GetSize(id, PM_GET_TOTAL_SIZE, out);
+}
+
+void PackageInfoProvider::GetDataSize(const std::string& id,
+                                      picojson::object* out) {
+  LoggerD("Enter");
+  GetSize(id, PM_GET_DATA_SIZE, out);
 }
 
 bool PackageInfoProvider::GetCurrentPackageId(

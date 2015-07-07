@@ -214,13 +214,21 @@ void MediaControllerServer::OnCommandReceived(const char* client_name,
 
   int ret;
   char* data_str = nullptr;
+  char* reply_id_str = nullptr;
   SCOPE_EXIT {
     free(data_str);
+    free(reply_id_str);
   };
 
   ret = bundle_get_str(bundle, "data", &data_str);
   if (ret != MEDIA_CONTROLLER_ERROR_NONE) {
     LOGGER(ERROR) << "bundle_get_str(data) failed, error: " << ret;
+    return;
+  }
+
+  ret = bundle_get_str(bundle, "replyId", &reply_id_str);
+  if (ret != MEDIA_CONTROLLER_ERROR_NONE) {
+    LOGGER(ERROR) << "bundle_get_str(replyId) failed, error: " << ret;
     return;
   }
 
@@ -241,6 +249,7 @@ void MediaControllerServer::OnCommandReceived(const char* client_name,
     server->OnPlaybackPositionCommand(client_name,
                                       static_cast<unsigned long long>(position),
                                       server);
+    server->CommandReply(client_name, reply_id_str, data);
     return;
   }
   if (command == kInternalCommandSendShuffleMode) {
@@ -249,6 +258,7 @@ void MediaControllerServer::OnCommandReceived(const char* client_name,
     server->OnShuffleModeCommand(client_name,
                                  mode ? SHUFFLE_MODE_ON : SHUFFLE_MODE_OFF,
                                  server);
+    server->CommandReply(client_name, reply_id_str, data);
     return;
   }
   if (command == kInternalCommandSendRepeatMode) {
@@ -257,23 +267,13 @@ void MediaControllerServer::OnCommandReceived(const char* client_name,
     server->OnRepeatModeCommand(client_name,
                                 mode ? REPEAT_MODE_ON : REPEAT_MODE_OFF,
                                 server);
+    server->CommandReply(client_name, reply_id_str, data);
     return;
   }
 
   if (server->command_listener_) {
     picojson::value request = picojson::value(picojson::object());
     picojson::object& request_o = request.get<picojson::object>();
-
-    char* reply_id_str = nullptr;
-    SCOPE_EXIT {
-      free(reply_id_str);
-    };
-
-    ret = bundle_get_str(bundle, "replyId", &reply_id_str);
-    if (ret != MEDIA_CONTROLLER_ERROR_NONE) {
-      LOGGER(ERROR) << "bundle_get_str(replyId) failed, error: " << ret;
-      return;
-    }
 
     request_o["clientName"] = picojson::value(std::string(client_name));
     request_o["command"] = picojson::value(std::string(command));

@@ -33,7 +33,7 @@ ChannelInfo::~ChannelInfo() {
 }
 
 void ChannelInfo::fromApiData(const TCServiceData &channelData) {
-    LOGD("Enter");
+    LoggerD("Enter");
     m_ptc = channelData.Get<u_int16_t>(CHANNEL_NUMBER);
     m_major = channelData.Get<u_int16_t>(MAJOR);
     m_minor = channelData.Get<u_int16_t>(MINOR);
@@ -73,10 +73,10 @@ void ChannelInfo::setChannelName(std::string channelName) {
 }
 
 void ChannelInfo::setChannelName(const TCServiceData &channelData) {
-    LOGD("Enter");
+    LoggerD("Enter");
     size_t len = channelData.GetLength(SERVICE_NAME);
     if (len) {
-        LOGD("ServiceName length %d", len);
+        LoggerD("ServiceName length %d", len);
         size_t c_len = len * sizeof(t_wchar_t) / sizeof(char);
         t_wchar_t svc_name[len + 1];
         channelData.Get(SERVICE_NAME, svc_name);

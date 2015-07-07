@@ -33,13 +33,13 @@
 #include "email-api-mailbox.h"
 
 #include "common/callback_user_data.h"
+#include "common/GDBus/connection.h"
 #include "common/platform_exception.h"
 #include "common/platform_result.h"
 
 #include "messaging_util.h"
 #include "message_service.h"
 
-#include "DBus/Connection.h"
 #include "DBus/SyncProxy.h"
 #include "DBus/LoadBodyProxy.h"
 #include "DBus/LoadAttachmentProxy.h"

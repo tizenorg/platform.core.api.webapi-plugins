@@ -27,16 +27,16 @@ CriteriaFilter::CriteriaFilter(EServiceMode _mode) :
 void CriteriaFilter::filterWhere(int32_t columnName,
     const int32_t columnValue) {
     if (m_mode == SERVICE_MODE_ATSC && columnName == ORIGINAL_NETWORK_ID) {
-        LOGD("ORIGINAL_NETWORK_ID not supported");
+        LoggerD("ORIGINAL_NETWORK_ID not supported");
         return;
     }
     if ((m_mode == SERVICE_MODE_DVB || m_mode == SERVICE_MODE_DVBNT)
         && (columnName == MINOR || columnName == SOURCE_ID)) {
-        LOGD("%d not supported", columnName);
+        LoggerD("%d not supported", columnName);
         return;
     }
     if (m_mode == SERVICE_MODE_ISDB && columnName == SOURCE_ID) {
-        LOGD("SOURCE_ID not supported");
+        LoggerD("SOURCE_ID not supported");
         return;
     }
 

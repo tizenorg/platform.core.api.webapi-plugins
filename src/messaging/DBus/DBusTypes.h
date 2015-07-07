@@ -15,35 +15,22 @@
 // limitations under the License.
 //
 
-#ifndef __TIZEN_DBUS_CONNECTION_H__
-#define __TIZEN_DBUS_CONNECTION_H__
-
-#include <dbus/dbus.h>
-#include <dbus/dbus-glib.h>
-#include <gio/gio.h>
-
 namespace extension {
 namespace messaging {
 namespace DBus {
 
-class Connection {
-public:
-    static Connection& getInstance();
+/**
+ * List of Tizen path and interface names:
+ */
+extern const char* kDBusPathNetworkStatus;
+extern const char* kDBusIfaceNetworkStatus;
+extern const char* kDBusPathEmailStorageChange;
+extern const char* kDBusIfaceEmailStorageChange;
+/**
+ * Name of email signal
+ */
+extern const char* kDBusNameSignalEmail;
 
-    GDBusConnection* getDBus();
-
-private:
-    Connection();
-    Connection(const Connection&);
-    void operator=(const Connection&);
-    virtual ~Connection();
-
-    GDBusConnection* m_dbus;
-    GError* m_error;
-};
-
-}  // namespace DBus
-}  // namespace messaging
-}  // namespace extension
-
-#endif
+} // namespace DBus
+} // namespace messaging
+} // namespace extension

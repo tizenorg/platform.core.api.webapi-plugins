@@ -1,0 +1,13 @@
+project_name=webapi-plugins
+dirname=tizen-extensions-crosswalk
+prefix=/usr
+exec_prefix=${prefix}
+libdir=${prefix}/lib/${dirname}
+includedir=${prefix}/include/${project_name}/src
+
+Name: ${project_name}
+Description: ${project_name}
+Version:
+Requires: dbus-1 dlog glib-2.0
+Libs: -L${libdir} -ltizen_common
+Cflags: -I${includedir}

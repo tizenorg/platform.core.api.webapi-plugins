@@ -28,8 +28,8 @@ using namespace common;
 BluetoothInstance::BluetoothInstance() :
     bluetooth_adapter_(*this),
     bluetooth_device_(bluetooth_adapter_),
-    bluetooth_health_profile_handler_(*this),
     bluetooth_health_application_(bluetooth_health_profile_handler_),
+    bluetooth_health_profile_handler_(*this),
     bluetooth_service_handler_(bluetooth_adapter_),
     bluetooth_socket_(bluetooth_adapter_),
     bluetooth_le_adapter_(*this),
@@ -172,11 +172,6 @@ BluetoothInstance::~BluetoothInstance()
 namespace {
 const char* JSON_CALLBACK_ID = "callbackId";
 const char* JSON_LISTENER_ID = "listenerId";
-const char* JSON_STATUS = "status";
-const char* JSON_RESULT = "result";
-const char* JSON_CALLBACK_SUCCCESS = "success";
-const char* JSON_CALLBACK_ERROR = "error";
-const char* JSON_DATA = "args";
 } // namespace
 
 void BluetoothInstance::AsyncResponse(double callback_handle, const std::shared_ptr<picojson::value>& response) {

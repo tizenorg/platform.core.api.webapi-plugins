@@ -18,7 +18,7 @@
 #define BLUETOOTH_BLUETOOTH_LE_ADAPTER_H_
 
 #include <bluetooth.h>
-
+#include <bluetooth_internal.h>
 #include "common/picojson.h"
 
 namespace extension {
@@ -56,7 +56,6 @@ class BluetoothLEAdapter {
   BluetoothInstance& instance_;
   bool enabled_;
   bool scanning_;
-  picojson::array discovered_devices_;
   bt_advertiser_h bt_advertiser_;
 };
 

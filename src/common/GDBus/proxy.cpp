@@ -16,27 +16,18 @@
 //
 
 /**
- * @file        Proxy.cpp
+ * @file        proxy.cpp
  */
 
-#include "Proxy.h"
+#include "common/GDBus/proxy.h"
 #include "common/logger.h"
 #include "common/platform_result.h"
 #include <cstring>
-#include <email-types.h>
-#include "../message_service.h"
 
-namespace extension {
-namespace messaging {
-namespace DBus {
+namespace common {
+namespace dbus {
 
 using namespace common;
-
-const char* Proxy::DBUS_PATH_NETWORK_STATUS = "/User/Email/NetworkStatus";
-const char* Proxy::DBUS_IFACE_NETWORK_STATUS = "User.Email.NetworkStatus";
-const char* Proxy::DBUS_PATH_EMAIL_STORAGE_CHANGE = "/User/Email/StorageChange";
-const char* Proxy::DBUS_IFACE_EMAIL_STORAGE_CHANGE = "User.Email.StorageChange";
-const char* Proxy::DBUS_NAME_SIGNAL_EMAIL = "email";
 
 Proxy::Proxy(const std::string& proxy_path,
             const std::string& proxy_iface,
@@ -147,6 +138,5 @@ const std::string& Proxy::getSignalInterfaceName() const
     return m_signal_iface;
 }
 
-} //namespace DBus
-} //namespace Messaging
-} //namespace DeviceAPI
+} //namespace dbus
+} //namespace common

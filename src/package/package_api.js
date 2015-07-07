@@ -56,7 +56,7 @@ function callNative(cmd, args) {
   }
 
   if (result['status'] == 'success') {
-    if (result['result']) {
+    if (undefined !== result['result']) {
       return result['result'];
     }
     return true;
@@ -90,18 +90,48 @@ function SetReadOnlyProperty(obj, n, v) {
 function PackageInformation(obj) {
   var lastModified = obj.lastModified;
   obj.lastModified = new Date(lastModified);
-  SetReadOnlyProperty(obj, 'id'); // read only property
-  SetReadOnlyProperty(obj, 'name'); // read only property
-  SetReadOnlyProperty(obj, 'iconPath'); // read only property
-  SetReadOnlyProperty(obj, 'version'); // read only property
-  SetReadOnlyProperty(obj, 'totalSize'); // read only property
-  SetReadOnlyProperty(obj, 'dataSize'); // read only property
-  SetReadOnlyProperty(obj, 'lastModified'); // read only property
-  SetReadOnlyProperty(obj, 'author'); // read only property
-  SetReadOnlyProperty(obj, 'description'); // read only property
-  SetReadOnlyProperty(obj, 'appIds'); // read only property
 
-  return obj;
+  SetReadOnlyProperty(this, 'id', obj.id); // read only property
+  SetReadOnlyProperty(this, 'name', obj.name); // read only property
+  SetReadOnlyProperty(this, 'iconPath', obj.iconPath); // read only property
+  SetReadOnlyProperty(this, 'version', obj.version); // read only property
+  SetReadOnlyProperty(this, 'lastModified', obj.lastModified); // read only property
+  SetReadOnlyProperty(this, 'author', obj.author); // read only property
+  SetReadOnlyProperty(this, 'description', obj.description); // read only property
+  SetReadOnlyProperty(this, 'appIds', obj.appIds); // read only property
+
+  var totalSize;
+  var dataSize;
+
+  Object.defineProperty(this, 'totalSize', {
+    enumerable: true,
+    set: function() {},
+    get: function() {
+      if (undefined === totalSize) {
+        try {
+          totalSize = callNative('PackageManager_getTotalSize', {id: this.id});
+        } catch (e) {
+          totalSize = -1;
+        }
+      }
+      return totalSize;
+    }
+  });
+
+  Object.defineProperty(this, 'dataSize', {
+    enumerable: true,
+    set: function() {},
+    get: function() {
+      if (undefined === dataSize) {
+        try {
+          dataSize = callNative('PackageManager_getDataSize', {id: this.id});
+        } catch (e) {
+          dataSize = -1;
+        }
+      }
+      return dataSize;
+    }
+  });
 }
 
 function PackageManager() {
@@ -210,7 +240,7 @@ PackageManager.prototype.getPackagesInfo = function(successCallback, errorCallba
         function(result) {
           if (result.status == 'success') {
             for (var i = 0; i < result.informationArray.length; i++) {
-              result.informationArray[i] = PackageInformation(result.informationArray[i]);
+              result.informationArray[i] = new PackageInformation(result.informationArray[i]);
             }
             args.successCallback(result.informationArray);
           } else if (result.status == 'error') {
@@ -244,7 +274,7 @@ PackageManager.prototype.getPackageInfo = function() {
 
   try {
     var syncResult = callNative('PackageManager_getPackageInfo', nativeParam);
-    return PackageInformation(syncResult);
+    return new PackageInformation(syncResult);
   } catch (e) {
     throw e;
   }
@@ -270,9 +300,9 @@ PackageManager.prototype.setPackageInfoEventListener = function(eventCallback) {
         nativeParam,
         function(result) {
           if (result.status == 'installed') {
-            args.eventCallback.oninstalled(PackageInformation(result.info));
+            args.eventCallback.oninstalled(new PackageInformation(result.info));
           } else if (result.status == 'updated') {
-            args.eventCallback.onupdated(PackageInformation(result.info));
+            args.eventCallback.onupdated(new PackageInformation(result.info));
           } else if (result.status == 'uninstalled') {
             args.eventCallback.onuninstalled(result.id);
           }

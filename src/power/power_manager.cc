@@ -97,7 +97,7 @@ void PowerManager::OnPlatformStateChangedCB(device_callback_e type, void* value,
     LoggerE("type is not DISPLAY_STATE");
     return;
   }
-  display_state_e state = static_cast<display_state_e>(*static_cast<int*>(value));
+  display_state_e state = static_cast<display_state_e>(reinterpret_cast<int>(value));
   PowerState current = POWER_STATE_SCREEN_OFF;
   switch (state) {
     case DISPLAY_STATE_NORMAL :
@@ -339,9 +339,11 @@ PlatformResult PowerManager::SetScreenState(bool onoff) {
 
   int timeout = 100;
   while (timeout--) {
-    if (IsScreenOn() == onoff)
+    if (IsScreenOn() == onoff) {
       break;
-    usleep(100000);
+    }
+    struct timespec sleep_time = { 0, 100L * 1000L * 1000L };
+    nanosleep(&sleep_time, nullptr);
   }
 
   return PlatformResult(ErrorCode::NO_ERROR);

@@ -22,7 +22,7 @@
 #include <memory>
 #include <mutex>
 
-#include <runtime_info.h>
+#include <system_settings.h>
 #include <system_info.h>
 #include <sys/statfs.h>
 
@@ -72,7 +72,7 @@ static void OnDisplayChangedCb(keynode_t* node, void* event_ptr);
 static void OnDeviceAutoRotationChangedCb(keynode_t* node, void* event_ptr);
 static void OnDeviceOrientationChangedCb(sensor_t sensor, unsigned int event_type,
                                          sensor_data_t *data, void *user_data);
-static void OnLocaleChangedCb(runtime_info_key_e key, void* event_ptr);
+static void OnLocaleChangedCb(system_settings_key_e key, void* event_ptr);
 static void OnNetworkChangedCb(connection_type_e type, void* event_ptr);
 static void OnNetworkValueChangedCb(const char* ipv4_address,
                                     const char* ipv6_address, void* event_ptr);
@@ -498,7 +498,7 @@ class SystemInfoListeners {
   void OnDeviceAutoRotationChangedCallback(keynode_t* node, void* event_ptr);
   void OnDeviceOrientationChangedCallback(sensor_t sensor, unsigned int event_type,
                                           sensor_data_t *data, void *user_data);
-  void OnLocaleChangedCallback(runtime_info_key_e key, void* event_ptr);
+  void OnLocaleChangedCallback(system_settings_key_e key, void* event_ptr);
   void OnNetworkChangedCallback(connection_type_e type, void* event_ptr);
   void OnNetworkValueCallback(const char* ipv4_address,
                               const char* ipv6_address, void* event_ptr);
@@ -811,14 +811,14 @@ PlatformResult SystemInfoListeners::RegisterLocaleListener(const SysteminfoUtils
                                                            SysteminfoInstance& instance)
 {
   if (nullptr == m_locale_listener) {
-    if (RUNTIME_INFO_ERROR_NONE !=
-        runtime_info_set_changed_cb(RUNTIME_INFO_KEY_REGION,
+    if (SYSTEM_SETTINGS_ERROR_NONE !=
+        system_settings_set_changed_cb(SYSTEM_SETTINGS_KEY_LOCALE_COUNTRY,
                                     OnLocaleChangedCb, static_cast<void*>(&instance)) ) {
       LoggerE("Country change callback registration failed");
       return PlatformResult(ErrorCode::UNKNOWN_ERR, "Country change callback registration failed");
     }
-    if (RUNTIME_INFO_ERROR_NONE !=
-        runtime_info_set_changed_cb(RUNTIME_INFO_KEY_LANGUAGE,
+    if (SYSTEM_SETTINGS_ERROR_NONE !=
+        system_settings_set_changed_cb(SYSTEM_SETTINGS_KEY_LOCALE_LANGUAGE,
                                     OnLocaleChangedCb, static_cast<void*>(&instance)) ) {
       LoggerE("Language change callback registration failed");
       return PlatformResult(ErrorCode::UNKNOWN_ERR, "Language change callback registration failed");
@@ -832,12 +832,12 @@ PlatformResult SystemInfoListeners::RegisterLocaleListener(const SysteminfoUtils
 PlatformResult SystemInfoListeners::UnregisterLocaleListener()
 {
   if (nullptr != m_locale_listener) {
-    if (RUNTIME_INFO_ERROR_NONE !=
-        runtime_info_unset_changed_cb(RUNTIME_INFO_KEY_LANGUAGE) ) {
+    if (SYSTEM_SETTINGS_ERROR_NONE !=
+        system_settings_unset_changed_cb(SYSTEM_SETTINGS_KEY_LOCALE_LANGUAGE) ) {
       LoggerE("Unregistration of language change callback failed");
     }
-    if (RUNTIME_INFO_ERROR_NONE !=
-        runtime_info_unset_changed_cb(RUNTIME_INFO_KEY_REGION) ) {
+    if (SYSTEM_SETTINGS_ERROR_NONE !=
+        system_settings_unset_changed_cb(SYSTEM_SETTINGS_KEY_LOCALE_COUNTRY) ) {
       LoggerE("Unregistration of country change callback failed");
     }
     LoggerD("Removed callback for LOCALE");
@@ -915,10 +915,53 @@ PlatformResult SystemInfoListeners::UnregisterWifiNetworkListener()
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
+PlatformResult CheckIfEthernetNetworkSupported()
+{
+  LoggerD("Entered");
+  connection_h connection_handle = nullptr;
+  connection_ethernet_state_e connection_state = CONNECTION_ETHERNET_STATE_DEACTIVATED;
+
+  int error = connection_create(&connection_handle);
+  if (CONNECTION_ERROR_NONE != error) {
+    std::string log_msg = "Cannot create connection: " + std::to_string(error);
+    LoggerE("%s", log_msg.c_str());
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
+  }
+  std::unique_ptr<std::remove_pointer<connection_h>::type, int (*)(connection_h)> connection_handle_ptr(
+    connection_handle, &connection_destroy);  // automatically release the memory
+
+  error = connection_get_ethernet_state(connection_handle, &connection_state);
+  if (CONNECTION_ERROR_NOT_SUPPORTED == error) {
+    std::string log_msg = "Cannot get ethernet connection state: Not supported";
+    LoggerE("%s", log_msg.c_str());
+    return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR, log_msg);
+  }
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+common::PlatformResult CheckTelephonySupport() {
+  bool supported = false;
+  PlatformResult ret = SystemInfoDeviceCapability::GetValueBool(
+    "tizen.org/feature/network.telephony", &supported);
+  if (ret.IsError()) {
+    return ret;
+  }
+  if (!supported) {
+    LoggerD("Telephony is not supported on this device");
+    return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR,
+        "Telephony is not supported on this device");
+  }
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
 PlatformResult SystemInfoListeners::RegisterEthernetNetworkListener(const SysteminfoUtilsCallback& callback,
                                                                     SysteminfoInstance& instance)
 {
   LoggerD("Entered");
+  PlatformResult ret = CheckIfEthernetNetworkSupported();
+  if (ret.IsError()){
+    return ret;
+  }
 
   if (IsIpChangeCallbackInvalid()) {
     PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
@@ -956,9 +999,12 @@ PlatformResult SystemInfoListeners::RegisterCellularNetworkListener(const System
                                                                     SysteminfoInstance& instance)
 {
   LoggerD("Entered");
+  PlatformResult ret = CheckTelephonySupport();
+  if (ret.IsError()) {
+      return ret;
+  }
 
   if (IsIpChangeCallbackInvalid()) {
-    PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
     CHECK_LISTENER_ERROR(RegisterIpChangeCallback(instance));
     LoggerD("Registered IP change listener");
   } else {
@@ -966,7 +1012,6 @@ PlatformResult SystemInfoListeners::RegisterCellularNetworkListener(const System
   }
 
   if (nullptr == m_cellular_network_listener) {
-    PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
     CHECK_LISTENER_ERROR(RegisterVconfCallback(VCONFKEY_TELEPHONY_FLIGHT_MODE,
                           OnCellularNetworkValueChangedCb, instance))
     CHECK_LISTENER_ERROR(RegisterVconfCallback(VCONFKEY_TELEPHONY_CELLID,
@@ -1023,6 +1068,7 @@ PlatformResult SystemInfoListeners::RegisterPeripheralListener(const SysteminfoU
       CHECK_LISTENER_ERROR(RegisterVconfCallback(VCONFKEY_SYSMAN_HDMI,
                                                  OnPeripheralChangedCb, instance))
     }
+
     LoggerD("Added callback for PERIPHERAL");
     m_peripheral_listener = callback;
   }
@@ -1208,7 +1254,7 @@ void SystemInfoListeners::OnDeviceOrientationChangedCallback(sensor_t sensor, un
   }
 }
 
-void SystemInfoListeners::OnLocaleChangedCallback(runtime_info_key_e /*key*/, void* event_ptr)
+void SystemInfoListeners::OnLocaleChangedCallback(system_settings_key_e /*key*/, void* event_ptr)
 {
   if (nullptr != m_locale_listener) {
     SysteminfoInstance* instance = static_cast<SysteminfoInstance*>(event_ptr);
@@ -1434,7 +1480,7 @@ void OnDeviceOrientationChangedCb(sensor_t sensor, unsigned int event_type,
   system_info_listeners.OnDeviceOrientationChangedCallback(sensor, event_type, data, user_data);
 }
 
-void OnLocaleChangedCb(runtime_info_key_e key, void* event_ptr)
+void OnLocaleChangedCb(system_settings_key_e key, void* event_ptr)
 {
   LoggerD("");
   system_info_listeners.OnLocaleChangedCallback(key, event_ptr);
@@ -1541,10 +1587,10 @@ PlatformResult SystemInfoDeviceCapability::GetValueString(const char *key, std::
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-static PlatformResult GetRuntimeInfoString(runtime_info_key_e key, std::string& platform_string) {
+static PlatformResult GetRuntimeInfoString(system_settings_key_e key, std::string& platform_string) {
   char* platform_c_string;
-  int err = runtime_info_get_value_string(key, &platform_c_string);
-  if (RUNTIME_INFO_ERROR_NONE == err) {
+  int err = system_settings_get_value_string(key, &platform_c_string);
+  if (SYSTEM_SETTINGS_ERROR_NONE == err) {
     if (nullptr != platform_c_string) {
       platform_string = platform_c_string;
       free(platform_c_string);
@@ -1608,15 +1654,30 @@ PlatformResult SysteminfoUtils::GetCount(const std::string& property, unsigned l
   if ("BATTERY" == property || "CPU" == property || "STORAGE" == property ||
       "DISPLAY" == property || "DEVICE_ORIENTATION" == property ||
       "BUILD" == property || "LOCALE" == property || "NETWORK" == property ||
-      "WIFI_NETWORK" == property || "ETHERNET_NETWORK" == property ||
-      "CELLULAR_NETWORK" == property || "PERIPHERAL" == property ||
+      "WIFI_NETWORK" == property || "PERIPHERAL" == property ||
       "MEMORY" == property) {
     count = kDefaultPropertyCount;
+  } else if ("CELLULAR_NETWORK" == property) {
+    PlatformResult ret = CheckTelephonySupport();
+    if (ret.IsError()) {
+      count = 0;
+    } else {
+      count = kDefaultPropertyCount;
+    }
   } else if ("SIM" == property) {
-    count = sim_mgr.GetSimCount(system_info_listeners.GetTapiHandles());
+    PlatformResult ret = CheckTelephonySupport();
+    if (ret.IsError()) {
+      count = 0;
+    } else {
+      count = sim_mgr.GetSimCount(system_info_listeners.GetTapiHandles());
+    }
   } else if ("CAMERA_FLASH" == property) {
     const int numberOfCameraFlashProperties = 3;
     count = numberOfCameraFlashProperties;
+  } else if ("ETHERNET_NETWORK" == property) {
+    PlatformResult ret = CheckIfEthernetNetworkSupported();
+    if (ret.IsError()) count = 0;
+    else count = kDefaultPropertyCount;
   } else {
     LoggerD("Property with given id is not supported");
     return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR, "Property with given id is not supported");
@@ -1691,7 +1752,11 @@ PlatformResult SysteminfoUtils::GetPropertyValue(const std::string& property, bo
       }
       array.push_back(result);
     }
+    if (property_count == 0) {
+      return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR, "Property with given id is not supported");
+    }
   }
+
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
@@ -1947,13 +2012,13 @@ PlatformResult SysteminfoUtils::ReportBuild(picojson::object& out) {
 
 PlatformResult SysteminfoUtils::ReportLocale(picojson::object& out) {
   std::string str_language = "";
-  PlatformResult ret = GetRuntimeInfoString(RUNTIME_INFO_KEY_LANGUAGE, str_language);
+  PlatformResult ret = GetRuntimeInfoString(SYSTEM_SETTINGS_KEY_LOCALE_LANGUAGE, str_language);
   if (ret.IsError()) {
     return ret;
   }
 
   std::string str_country = "";
-  ret = GetRuntimeInfoString(RUNTIME_INFO_KEY_REGION, str_country);
+  ret = GetRuntimeInfoString(SYSTEM_SETTINGS_KEY_LOCALE_COUNTRY, str_country);
   if (ret.IsError()) {
     return ret;
   }
@@ -2221,6 +2286,11 @@ PlatformResult SysteminfoUtils::ReportEthernetNetwork(picojson::object& out) {
 
   error = connection_get_ethernet_state(connection_handle, &connection_state);
   if (CONNECTION_ERROR_NONE != error) {
+    if (CONNECTION_ERROR_NOT_SUPPORTED == error) {
+      std::string log_msg = "Cannot get ethernet connection state: Not supported";
+      LoggerE("%s", log_msg.c_str());
+      return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR, log_msg);
+    }
     std::string log_msg = "Cannot get ethernet connection state: " + std::to_string(error);
     LoggerE("%s", log_msg.c_str());
     return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
@@ -2452,6 +2522,10 @@ static PlatformResult FetchConnection(TapiHandle *tapi_handle, std::string* resu
 }
 
 PlatformResult SysteminfoUtils::ReportCellularNetwork(picojson::object& out) {
+  PlatformResult ret = CheckTelephonySupport();
+  if (ret.IsError()) {
+    return ret;
+  }
   std::string result_status;
   std::string result_apn;
   std::string result_ip_address;
@@ -2465,7 +2539,7 @@ PlatformResult SysteminfoUtils::ReportCellularNetwork(picojson::object& out) {
   std::string result_imei;
 
   //gathering vconf-based values
-  PlatformResult ret = FetchVconfSettings(&result_mcc, &result_mnc, &result_cell_id, &result_lac,
+  ret = FetchVconfSettings(&result_mcc, &result_mnc, &result_cell_id, &result_lac,
                      &result_is_roaming, &result_is_flight_mode);
   if (ret.IsError()) {
     return ret;
@@ -2555,6 +2629,10 @@ void SimSpnValueCallback(TapiHandle */*handle*/, int result, void *data, void */
 }
 
 PlatformResult SysteminfoUtils::ReportSim(picojson::object& out, unsigned long count) {
+  PlatformResult ret = CheckTelephonySupport();
+  if (ret.IsError()) {
+    return ret;
+  }
   return sim_mgr.GatherSimInformation(
       system_info_listeners.GetTapiHandles()[count], &out);
 }
@@ -3198,17 +3276,41 @@ PlatformResult SystemInfoDeviceCapability::GetPlatformCoreCpuFrequency(int* retu
   LoggerD("Entered");
 
   std::string freq;
-  std::ifstream cpuinfo_max_freq("/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq");
-  if (!cpuinfo_max_freq.is_open()) {
+  std::string file_name;
+
+#ifdef TIZEN_IS_EMULATOR
+  file_name = "/proc/cpuinfo";
+#else
+  file_name = "/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq";
+#endif
+
+  std::ifstream cpuinfo_freq(file_name);
+  if (!cpuinfo_freq.is_open()) {
     LoggerE("Failed to get cpu frequency");
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Unable to open file");
   }
 
-  getline(cpuinfo_max_freq, freq);
-  cpuinfo_max_freq.close();
+#ifdef TIZEN_IS_EMULATOR
+  //get frequency value from cpuinfo file
+  //example entry for frequency looks like below
+  //cpu MHz   : 3392.046
+  std::size_t found;
+  do {
+    getline(cpuinfo_freq, freq);
+    found = freq.find("cpu MHz");
+  } while (std::string::npos == found && !cpuinfo_freq.eof());
 
-  LoggerD("cpu frequency : %s", freq.c_str());
+  found = freq.find(":");
+  if (std::string::npos != found) {
+    *return_value = std::stoi(freq.substr(found + 2));
+  }
+#else
+  getline(cpuinfo_freq, freq);
   *return_value = std::stoi(freq) / 1000; // unit: MHz
+#endif
+
+  cpuinfo_freq.close();
+  LoggerD("cpu frequency : %d", *return_value);
 
   return PlatformResult(ErrorCode::NO_ERROR);
 }

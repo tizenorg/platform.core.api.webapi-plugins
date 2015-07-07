@@ -25,7 +25,7 @@ namespace extension {
 namespace tvdisplay {
 
 TVDisplayExtension::TVDisplayExtension() {
-    SetExtensionName("tizen.tvdisplay");
+    SetExtensionName("tizen.tvdisplaycontrol");
     SetJavaScriptAPI(kSource_tvdisplay_api);
 }
 

@@ -63,12 +63,12 @@ TVChannelInstance::TVChannelInstance() {
 }
 
 TVChannelInstance::~TVChannelInstance() {
-    LOGD("Entered");
+    LoggerD("Entered");
 }
 
 void TVChannelInstance::tune(picojson::value const& args,
     picojson::object& out) {
-    LOGD("Enter");
+    LoggerD("Enter");
     picojson::object tuneOption =
         args.get("tuneOption").get<picojson::object>();
     double callbackId = args.get("callbackId").get<double>();
@@ -79,7 +79,7 @@ void TVChannelInstance::tune(picojson::value const& args,
         windowType = "MAIN";
     }
 
-    LOGD("CallbackID %f", callbackId);
+    LoggerD("CallbackID %f", callbackId);
     std::shared_ptr<TVChannelManager::TuneData> pTuneData(
         new TVChannelManager::TuneData(TuneOption(tuneOption),
             stringToWindowType(windowType), callbackId));
@@ -100,7 +100,7 @@ void TVChannelInstance::tune(picojson::value const& args,
 
 void TVChannelInstance::tuneTaskAfter(
     std::shared_ptr<TVChannelManager::TuneData> const& _tuneData) {
-    LOGD("Enter");
+    LoggerD("Enter");
     if (_tuneData->pError) {
         picojson::value event = picojson::value(picojson::object());
         picojson::object& obj = event.get<picojson::object>();
@@ -113,13 +113,13 @@ void TVChannelInstance::tuneTaskAfter(
 
 void TVChannelInstance::tuneTask(
     std::shared_ptr<TVChannelManager::TuneData> const& _tuneData) {
-    LOGD("Enter");
+    LoggerD("Enter");
     TVChannelManager::getInstance()->tune(_tuneData);
 }
 
 void TVChannelInstance::tuneUp(picojson::value const& args,
     picojson::object& out) {
-    LOGD("Enter");
+    LoggerD("Enter");
 
     NavigatorMode navMode;
     if (args.contains("tuneMode")) {
@@ -137,7 +137,7 @@ void TVChannelInstance::tuneUp(picojson::value const& args,
         windowType = "MAIN";
     }
 
-    LOGD("CallbackID %f", callbackId);
+    LoggerD("CallbackID %f", callbackId);
     std::shared_ptr<TVChannelManager::TuneData> pTuneData(
         new TVChannelManager::TuneData(navMode,
             stringToWindowType(windowType), callbackId));
@@ -163,7 +163,7 @@ void TVChannelInstance::tuneUpTask(
 
 void TVChannelInstance::tuneDown(picojson::value const& args,
     picojson::object& out) {
-    LOGD("Enter");
+    LoggerD("Enter");
 
     NavigatorMode navMode;
     if (args.contains("tuneMode")) {
@@ -181,7 +181,7 @@ void TVChannelInstance::tuneDown(picojson::value const& args,
         windowType = "MAIN";
     }
 
-    LOGD("CallbackID %f", callbackId);
+    LoggerD("CallbackID %f", callbackId);
     std::shared_ptr<TVChannelManager::TuneData> pTuneData(
         new TVChannelManager::TuneData(navMode,
             stringToWindowType(windowType), callbackId));
@@ -291,7 +291,7 @@ void TVChannelInstance::getCurrentProgram(const picojson::value& args,
 }
 
 void TVChannelInstance::onChannelChange(double callbackId) {
-    LOGD("Enter");
+    LoggerD("Enter");
     try {
         WindowType windowType = stringToWindowType("MAIN");
 
@@ -311,9 +311,9 @@ void TVChannelInstance::onChannelChange(double callbackId) {
             PostMessage(resultCallback.serialize().c_str());
         }
     } catch (common::PlatformException& e) {
-        LOGW("Failed to post message: %s", e.message().c_str());
+        LoggerW("Failed to post message: %s", e.message().c_str());
     } catch (...) {
-        LOGW("Failed to post message, unknown error");
+        LoggerW("Failed to post message, unknown error");
     }
 }
 
@@ -328,9 +328,9 @@ void TVChannelInstance::onEPGReceived(double callbackId) {
         picojson::value result(dict);
         PostMessage(result.serialize().c_str());
     } catch (common::PlatformException& e) {
-        LOGW("Failed to post message: %s", e.message().c_str());
+        LoggerW("Failed to post message: %s", e.message().c_str());
     } catch (...) {
-        LOGW("Failed to post message, unknown error");
+        LoggerW("Failed to post message, unknown error");
     }
 }
 void TVChannelInstance::onNoSignal(double callbackId) {
@@ -342,15 +342,15 @@ void TVChannelInstance::onNoSignal(double callbackId) {
         picojson::value result(dict);
         PostMessage(result.serialize().c_str());
     } catch (common::PlatformException& e) {
-        LOGW("Failed to post message: %s", e.message().c_str());
+        LoggerW("Failed to post message: %s", e.message().c_str());
     } catch (...) {
-        LOGW("Failed to post message, unknown error");
+        LoggerW("Failed to post message, unknown error");
     }
 }
 
 void TVChannelInstance::findChannel(const picojson::value& args,
     picojson::object& out) {
-    LOGD("Enter");
+    LoggerD("Enter");
     std::function<void(std::shared_ptr<TVChannelManager::FindChannelData>)>
         asyncWork = std::bind(
             &TVChannelManager::findChannel,
@@ -376,7 +376,7 @@ void TVChannelInstance::findChannel(const picojson::value& args,
 
 void TVChannelInstance::findChannelResult(
     const std::shared_ptr<TVChannelManager::FindChannelData>& data) {
-    LOGD("Enter");
+    LoggerD("Enter");
     picojson::value::object dict;
     dict["callbackId"] = picojson::value(data->callbackId);
     if (data->error) {
@@ -397,7 +397,7 @@ void TVChannelInstance::findChannelResult(
 
 void TVChannelInstance::getChannelList(const picojson::value& args,
     picojson::object& out) {
-    LOGD("Enter");
+    LoggerD("Enter");
     std::function<void(std::shared_ptr<TVChannelManager::GetChannelListData>)>
         asyncWork = std::bind(
             &TVChannelManager::getChannelList,
@@ -462,7 +462,7 @@ void TVChannelInstance::getChannelListResult(
 
 void TVChannelInstance::getProgramList(
     const picojson::value& args, picojson::object& out) {
-    LOGD("Enter");
+    LoggerD("Enter");
     std::function<void(std::shared_ptr<TVChannelManager::GetProgramListData>)>
         asyncWork = std::bind(
             &TVChannelManager::getProgramList,

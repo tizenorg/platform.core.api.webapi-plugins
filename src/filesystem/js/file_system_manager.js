@@ -77,13 +77,16 @@ FileSystemManager.prototype.resolve = function(location, onsuccess, onerror, mod
     var aStatObj = native_.getResultObject(result);
     var _result = commonFS_.getFileInfo(aStatObj, false, args.mode);
     if (_result.readOnly && args.mode !== 'r') {
-      throw new WebAPIException(WebAPIException.IO_ERR);
+      native_.callIfPossible(args.onerror, new WebAPIException(WebAPIException.IO_ERR, 'File is read-only.'));
     } else {
       native_.callIfPossible(args.onsuccess, new File(_result));
     }
   };
 
-  native_.call('File_stat', data, callback);
+  var ret = native_.call('File_stat', data, callback);
+  if (native_.isFailure(ret)) {
+      throw native_.getErrorObject(ret);
+  }
 };
 
 FileSystemManager.prototype.getStorage = function(label, onsuccess, onerror) {
