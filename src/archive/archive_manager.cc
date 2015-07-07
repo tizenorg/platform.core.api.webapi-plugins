@@ -52,7 +52,7 @@ void ArchiveManager::abort(long operation_id)
         std::lock_guard<std::mutex> lock(archive_file_ptr->m_mutex);
 
         std::size_t size = archive_file_ptr->m_task_queue.size();
-        for(int i = 0; i < size; ++i){
+        for(std::size_t i = 0; i < size; ++i){
             if(operation_id == archive_file_ptr->m_task_queue[i].first){
                 archive_file_ptr->m_task_queue[i].second->setIsCanceled(true);
                 return;

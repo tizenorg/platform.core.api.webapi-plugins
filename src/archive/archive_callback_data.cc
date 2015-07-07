@@ -40,9 +40,9 @@ OperationCallbackData::OperationCallbackData(ArchiveCallbackType callback_type, 
     m_op_id(-1),
     m_cid(-1),
     m_handle(-1),
+    instance_(instance),
     m_is_error(false),
-    m_is_canceled(false),
-    instance_(instance)
+    m_is_canceled(false)
 {
     LoggerD("Entered");
 }
@@ -616,9 +616,9 @@ ExtractAllProgressCallback::ExtractAllProgressCallback(ArchiveInstance& instance
     BaseProgressCallback(EXTRACT_ALL_PROGRESS_CALLBACK, instance),
     m_files_to_extract(0),
     m_expected_decompressed_size(0),
-    m_files_extracted(0),
     m_current_file_size(0),
     m_current_file_extracted_bytes(0),
+    m_files_extracted(0),
     m_progress_overall(0),
     m_overall_decompressed(0)
 {

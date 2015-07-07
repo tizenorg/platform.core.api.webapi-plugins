@@ -134,13 +134,13 @@ void getBasePathAndName(const std::string& filepath,
     size_t name_end_index = filepath_len;
     size_t name_start_index = 0;
 
-    for(int i = filepath_len - 1; i >= 0; --i) {
+    for(int i = static_cast<int>(filepath_len) - 1; i >= 0; --i) {
         const char& cur = filepath[i];
         if(cur == '/' || cur == '\\') {
-            if( (filepath_len-1) == i ) {
-                name_end_index = i;
+            if((static_cast<int>(filepath_len)-1) == i) {
+                name_end_index = static_cast<std::size_t>(i);
             } else {
-                name_start_index = i+1;
+                name_start_index = static_cast<std::size_t>(i) + 1;
                 out_name = filepath.substr(name_start_index,
                     name_end_index - name_start_index);
 
