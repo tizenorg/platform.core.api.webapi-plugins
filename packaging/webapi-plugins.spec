@@ -551,9 +551,15 @@ mkdir -p %{buildroot}%{ringtones_directory}
 cp res/tvsounds/*.pcm %{buildroot}%{ringtones_directory}
 %endif
 
+# temporary plugins description for lazy loading
+
+install -p -m 644 plugins.json %{buildroot}%{_libdir}/%{crosswalk_extensions}/plugins.json
+
+
 
 %files
 %{_libdir}/%{crosswalk_extensions}/libtizen*.so
+%{_libdir}/%{crosswalk_extensions}/plugins.json
 %{_datadir}/license/%{name}
 %manifest webapi-plugins.manifest
 
