@@ -696,7 +696,7 @@ void KeyManagerInstance::SaveData(const picojson::value& args,
                                   picojson::object& out) {
   LoggerD("Enter");
 
-  RawBuffer* raw_buffer = new RawBuffer(std::move(Base64ToRawBuffer(args.get("rawData").get<std::string>())));
+  std::string data_raw = args.get("rawData").get<std::string>();
   const auto& data = args.get("data");
   const auto& alias = data.get("name").get<std::string>();
   const auto& password_value = data.get("password");
@@ -709,10 +709,13 @@ void KeyManagerInstance::SaveData(const picojson::value& args,
     password = password_value.get<std::string>();
   }
 
-  auto save_data = [raw_buffer, password, extractable, alias](const std::shared_ptr<picojson::value>& result) {
+  auto save_data = [data_raw, password, extractable, alias](const std::shared_ptr<picojson::value>& result) {
     LoggerD("Enter save_data");
 
-    ckmc_raw_buffer_s raw_data { const_cast<unsigned char*>(&(*raw_buffer)[0]), raw_buffer->size() };
+    unsigned char* data = new unsigned char[data_raw.size()];
+    std::copy(data_raw.begin(), data_raw.end(), data);
+
+    ckmc_raw_buffer_s raw_data { data, data_raw.size() };
     ckmc_policy_s policy { const_cast<char*>(password.c_str()), extractable };
 
     int ret = ckmc_save_data(alias.c_str(), raw_data, policy);
@@ -739,7 +742,7 @@ void KeyManagerInstance::SaveData(const picojson::value& args,
       common::tools::ReportError(success, &result->get<picojson::object>());
     }
 
-    delete raw_buffer;
+    delete data;
   };
 
   auto save_data_result = [this, callback_id](const std::shared_ptr<picojson::value>& result) {
@@ -779,7 +782,7 @@ void KeyManagerInstance::GetData(const picojson::value& args,
     result["password"] = picojson::value(password);
     // if key was retrieved it is extractable from DB
     result["extractable"] = picojson::value(true);
-    result["rawData"] = picojson::value(RawBufferToBase64(ToRawBuffer(data)));
+    result["rawData"] = picojson::value(std::string (data->data, data->data + data->size));
 
     ckmc_buffer_free(data);
     ReportSuccess(picojson::value{result}, out);
