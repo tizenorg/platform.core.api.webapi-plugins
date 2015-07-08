@@ -328,7 +328,8 @@ PlatformResult StatusNotification::GetDetailInfos(notification_h noti_handle,
   picojson::object& detail_info_obj = detail_info.get<picojson::object>();
 
   std::string text;
-  for (int idx = 0; idx < info_map_.size(); ++idx) {
+  size_t info_map_size = info_map_.size();
+  for (size_t idx = 0; idx < info_map_size; ++idx) {
     PlatformResult status = GetText(noti_handle, info_map_.at(idx), &text);
     if (status.IsError())
       return status;
@@ -356,8 +357,9 @@ PlatformResult StatusNotification::SetDetailInfos(
     notification_h noti_handle,
     const picojson::array& value) {
   LoggerD("Enter");
-  int idx = 0;
+  size_t idx = 0;
 
+  size_t info_map_size = info_map_.size();
   for (auto& item : value) {
     const picojson::object& obj = JsonCast<picojson::object>(item);
 
@@ -379,7 +381,7 @@ PlatformResult StatusNotification::SetDetailInfos(
 
     ++idx;
 
-    if (idx > info_map_.size()) {
+    if (idx > info_map_size) {
       LoggerE("Too many values in notification detailInfo array");
       return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
                             "Too many values in notification detailInfo array");
@@ -524,7 +526,8 @@ PlatformResult StatusNotification::GetThumbnails(notification_h noti_handle,
                                                  picojson::array* out) {
   LoggerD("Enter");
   std::string text;
-  for (int idx = 0; idx < thumbnails_map_.size(); ++idx) {
+  size_t thumbnails_map_size = thumbnails_map_.size();
+  for (size_t idx = 0; idx < thumbnails_map_size; ++idx) {
     PlatformResult status =
         GetImage(noti_handle, thumbnails_map_.at(idx), &text);
     if (status.IsError())
@@ -542,8 +545,9 @@ PlatformResult StatusNotification::GetThumbnails(notification_h noti_handle,
 PlatformResult StatusNotification::SetThumbnails(notification_h noti_handle,
                                                  const picojson::array& value) {
   LoggerD("Enter");
-  int idx = 0;
+  size_t idx = 0;
 
+  size_t thumbnails_map_size = thumbnails_map_.size();
   for (auto& item : value) {
     const std::string& text = JsonCast<std::string>(item);
 
@@ -554,7 +558,7 @@ PlatformResult StatusNotification::SetThumbnails(notification_h noti_handle,
 
     ++idx;
 
-    if (idx > thumbnails_map_.size()) {
+    if (idx > thumbnails_map_size) {
       LoggerE("Too many values in notification thumbnail array");
       return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
                             "Too many values in notification thumbnail array");
