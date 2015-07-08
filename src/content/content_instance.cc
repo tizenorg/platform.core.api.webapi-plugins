@@ -376,7 +376,6 @@ void ContentInstance::ContentManagerCreateplaylist(const picojson::value& args, 
   CHECK_EXIST(args, "name", out)
 
   double callbackId = args.get("callbackId").get<double>();
-  const std::string& name = args.get("name").get<std::string>();
 
   auto cbData = std::shared_ptr<ReplyCallbackData>(new ReplyCallbackData);
   cbData->callbackId = callbackId;
