@@ -551,10 +551,11 @@ mkdir -p %{buildroot}%{ringtones_directory}
 cp res/tvsounds/*.pcm %{buildroot}%{ringtones_directory}
 %endif
 
+# execute desc_gentool
+LD_LIBRARY_PATH=$LD_LIBRARY_PATH:%{buildroot}%{_libdir}/%{crosswalk_extensions} out/Default/desc_gentool %{buildroot}%{_libdir}/%{crosswalk_extensions} > plugins.json
+
 # temporary plugins description for lazy loading
-
 install -p -m 644 plugins.json %{buildroot}%{_libdir}/%{crosswalk_extensions}/plugins.json
-
 
 
 %files

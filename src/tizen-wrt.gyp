@@ -8,6 +8,7 @@
       'target_name': 'build_all_tizen_extensions',
       'type': 'none',
       'dependencies': [
+        'tool/tool.gyp:*',
         'common/common.gyp:*',
         'tizen/tizen.gyp:*',
         'utils/utils.gyp:*',
