@@ -97,7 +97,7 @@ void PowerManager::OnPlatformStateChangedCB(device_callback_e type, void* value,
     LoggerE("type is not DISPLAY_STATE");
     return;
   }
-  display_state_e state = static_cast<display_state_e>(reinterpret_cast<int>(value));
+  display_state_e state = static_cast<display_state_e>(reinterpret_cast<long long>(value));
   PowerState current = POWER_STATE_SCREEN_OFF;
   switch (state) {
     case DISPLAY_STATE_NORMAL :

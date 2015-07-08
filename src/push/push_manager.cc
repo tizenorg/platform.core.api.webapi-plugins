@@ -302,7 +302,7 @@ void PushManager::onPushNotify(push_notification_h noti, void* user_data) {
     }
     free(temp);
 
-    int64_t date = -1;
+    long long int date = -1;
     ret = push_get_notification_time(noti, &date);
     if (ret != PUSH_ERROR_NONE) {
         LoggerE("Failed to get date");
