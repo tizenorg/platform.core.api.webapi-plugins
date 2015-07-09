@@ -12,7 +12,7 @@
 static std::string prefix_ = "libtizen";
 static std::string postfix_ = ".so";
 static std::string target_path_ = "/usr/lib/tizen-extensions-crosswalk/";
-static std::string apinamespace = "tizen";
+static std::vector<std::string> apinamespaces = {"tizen", "xwalk"};
 
 typedef common::Extension *(*CreateExtensionFunc)(void);
 
@@ -36,9 +36,16 @@ void print_json() {
   std::cout << "[" << std::endl;
   for (const auto& kv : descriptions) {
     const module_description &desc = kv.second;
-    if (desc.name.compare(0, apinamespace.size(), apinamespace)) {
+
+    std::string::size_type n = desc.name.find('.');
+    std::string ns =
+        n == std::string::npos ? desc.name : desc.name.substr(0, n);
+
+    if (std::find(apinamespaces.begin(), apinamespaces.end(), ns) ==
+        apinamespaces.end()) {
       continue;
     }
+
     PRINT_TAB();
     std::cout << "{" << std::endl;
     PRINT_TAB();
