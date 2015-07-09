@@ -47,27 +47,6 @@ static gboolean addDraftMessageTask(void* data)
     return FALSE;
 }
 
-static gboolean callError(void* data)
-{
-    LoggerD("Entered");
-    MessageCallbackUserData* callback =
-           static_cast<MessageCallbackUserData*>(data);
-    if (!callback) {
-       LoggerE("Callback is null");
-       return FALSE;
-    }
-
-    auto json = callback->getJson();
-    picojson::object& obj = json->get<picojson::object>();
-    if (json->contains(JSON_CALLBACK_ID) && obj.at(JSON_CALLBACK_ID).is<double>()) {
-      callback->getQueue().resolve(obj.at(JSON_CALLBACK_ID).get<double>(),
-                                       json->serialize());
-    } else {
-      LoggerE("json is incorrect - missing required member");
-    }
-    return FALSE;
-}
-
 void MessageStorageEmail::addDraftMessage(MessageCallbackUserData* callback) {
     LoggerD("Entered");
 

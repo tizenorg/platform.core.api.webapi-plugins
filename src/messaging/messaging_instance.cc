@@ -48,7 +48,6 @@ const char* SEND_MESSAGE_ARGS_MESSAGE = "message";
 const char* SEND_MESSAGE_ARGS_SIMINDEX = "simIndex";
 
 const char* FUN_MESSAGE_SERVICE_LOAD_MESSAGE_BODY = "MessageService_loadMessageBody";
-const char* LOAD_MESSAGE_BODY_ARGS_MESSAGE = "message";
 
 const char* FUN_MESSAGE_SERVICE_LOAD_MESSAGE_ATTACHMENT = "MessageService_loadMessageAttachment";
 const char* LOAD_MESSAGE_ATTACHMENT_ARGS_ATTACHMENT = "attachment";
@@ -70,10 +69,6 @@ const char* FUN_MESSAGE_STORAGE_ADD_DRAFT_MESSAGE = "MessageStorage_addDraftMess
 const char* ADD_DRAFT_MESSAGE_ARGS_MESSAGE = "message";
 
 const char* FUN_MESSAGE_STORAGE_FIND_MESSAGES = "MessageStorage_findMessages";
-const char* FIND_MESSAGES_ARGS_FILTER = "filter";
-const char* FIND_MESSAGES_ARGS_SORT = "sort";
-const char* FIND_MESSAGES_ARGS_LIMIT = "limit";
-const char* FIND_MESSAGES_ARGS_OFFSET = "offset";
 
 const char* FUN_MESSAGE_STORAGE_REMOVE_MESSAGES = "MessageStorage_removeMessages";
 const char* REMOVE_MESSAGES_ARGS_MESSAGES = "messages";
@@ -82,8 +77,6 @@ const char* FUN_MESSAGE_STORAGE_UPDATE_MESSAGES = "MessageStorage_updateMessages
 const char* UPDATE_MESSAGES_ARGS_MESSAGES = "messages";
 
 const char* FUN_MESSAGE_STORAGE_FIND_CONVERSATIONS = "MessageStorage_findConversations";
-const char* FIND_CONVERSATIONS_ARGS_FILTER = "filter";
-const char* FIND_CONVERSATIONS_ARGS_SORT = "sort";
 const char* FIND_CONVERSATIONS_ARGS_LIMIT = "limit";
 const char* FIND_CONVERSATIONS_ARGS_OFFSET = "offset";
 
@@ -91,26 +84,17 @@ const char* FUN_MESSAGE_STORAGE_REMOVE_CONVERSATIONS = "MessageStorage_removeCon
 const char* REMOVE_CONVERSATIONS_ARGS_CONVERSATIONS = "conversations";
 
 const char* FUN_MESSAGE_STORAGE_FIND_FOLDERS = "MessageStorage_findFolders";
-const char* FIND_FOLDERS_ARGS_FILTER = "filter";
-const char* FIND_FOLDERS_ARGS_SORT = "sort";
 const char* FIND_FOLDERS_ARGS_LIMIT = "limit";
 const char* FIND_FOLDERS_ARGS_OFFSET = "offset";
 
 const char* FUN_MESSAGE_STORAGE_ADD_MESSAGES_CHANGE_LISTENER =
         "MessageStorage_addMessagesChangeListener";
-const char* ADD_MESSAGES_CHANGE_LISTENER_ARGS_LISTENERS = "listeners";
-const char* ADD_MESSAGES_CHANGE_LISTENER_ARGS_FILTER = "filter";
 
 const char* FUN_MESSAGE_STORAGE_ADD_CONVERSATIONS_CHANGE_LISTENER =
         "MessageStorage_addConversationsChangeListener";
-const char* ADD_CONVERSATION_CHANGE_LISTENER_ARGS_LISTENERS =
-        "listeners";
-const char* ADD_CONVERSATION_CHANGE_LISTENER_ARGS_FILTER = "filter";
 
 const char* FUN_MESSAGE_STORAGE_ADD_FOLDER_CHANGE_LISTENER =
         "MessageStorage_addFoldersChangeListener";
-const char* ADD_FOLDER_CHANGE_LISTENER_ARGS_LISTENERS = "listeners";
-const char* ADD_FOLDER_CHANGE_LISTENER_ARGS_FILTER = "filter";
 
 const char* FUN_MESSAGE_STORAGE_REMOVE_CHANGE_LISTENER = "MessageStorage_removeChangeListener";
 const char* REMOVE_CHANGE_LISTENER_ARGS_WATCHID = "watchId";

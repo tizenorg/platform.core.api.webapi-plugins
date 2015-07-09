@@ -13,7 +13,7 @@
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
  */
- 
+
 //#include <JSWebAPIErrorFactory.h>
 //#include <JSWebAPIError.h>
 //#include <JSUtil.h>
@@ -1095,7 +1095,8 @@ void EmailManager::updateMessages(MessagesCallbackUserData* callback)
 
         picojson::array array;
         auto messages = callback->getMessages();
-        for (int i = 0 ; i < messages.size(); ++i) {
+        size_t messages_size = messages.size();
+        for (size_t i = 0 ; i < messages_size; ++i) {
           array.push_back(MessagingUtil::messageToJson(messages[i]));
         }
         obj[JSON_DATA] = picojson::value(array);
@@ -1226,7 +1227,6 @@ void EmailManager::findConversations(ConversationCallbackData* callback)
         return;
     }
 
-    int convListCount = 0;
     PlatformResult ret = FindConversationsPlatform(callback);
     if (ret.IsError()) {
         LoggerE("%d (%s)", ret.error_code(), (ret.message()).c_str());
