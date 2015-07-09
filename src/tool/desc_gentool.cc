@@ -132,7 +132,6 @@ const void* get_interface(const char* name) {
     return &permissionsInterface1;
   }
 
-  LOGW("Interface '%s' is not supported.", name);
   return NULL;
 }
 
