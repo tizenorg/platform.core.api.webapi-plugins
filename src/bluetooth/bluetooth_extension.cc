@@ -19,6 +19,7 @@
 
 namespace {
 const char* kBluetooth = "tizen.bluetooth";
+const char* kBluetoothLEAdvertiseData = "tizen.BluetoothLEAdvertiseData";
 }
 // This will be generated from bluetooth_api.js.
 extern const char kSource_bluetooth_api[];
@@ -31,6 +32,7 @@ BluetoothExtension::BluetoothExtension() {
   SetExtensionName(kBluetooth);
   SetJavaScriptAPI(kSource_bluetooth_api);
   const char* entry_points[] = {
+      kBluetoothLEAdvertiseData,
       NULL
   };
   SetExtraJSEntryPoints(entry_points);

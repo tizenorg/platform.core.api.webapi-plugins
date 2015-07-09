@@ -175,14 +175,15 @@ var BluetoothLEServiceData = function(d) {
 };
 
 //class BluetoothLEAdvertiseData ////////////////////////////////////////////////////
-var BluetoothLEAdvertiseData = function(dict) {
-  var includeName_;
-  var serviceuuids_;
-  var solicitationuuids_;
-  var appearance_;
-  var includeTxPowerLevel_;
-  var serviceData_;
-  var manufacturerData_;
+tizen.BluetoothLEAdvertiseData = function(dict) {
+  AV.isConstructorCall(this, tizen.BluetoothLEAdvertiseData);
+  var includeName_ = false;
+  var uuids_ = null;
+  var solicitationuuids_ = null;
+  var appearance_ = null;
+  var includeTxPowerLevel_ = false;
+  var serviceData_ = null;
+  var manufacturerData_ = null;
 
   Object.defineProperties(this, {
     includeName: {
@@ -194,21 +195,21 @@ var BluetoothLEAdvertiseData = function(dict) {
         includeName_ = Converter.toBoolean(v, true);
       }
     },
-    serviceuuids: {
+    uuids: {
       enumerable: true,
       get: function() {
-        return serviceuuids_;
+        return uuids_;
       },
       set: function(v) {
         if (T.isNull(v)) {
-          serviceuuids_ = v;
+          uuids_ = v;
         } else if (T.isArray(v)) {
           for (var i = 0; i < v.length; ++i) {
             if (!T.isString(v[i])) {
               v[i] = Converter.toString(v[i]);
             }
           }
-          serviceuuids_ = v;
+          uuids_ = v;
         }
       }
     },
@@ -289,17 +290,17 @@ var BluetoothLEAdvertiseData = function(dict) {
       return;
     }
 
-    // serviceuuids
-    if (T.isNull(dict.serviceuuids)) {
-      o.serviceuuids = dict.serviceuuids;
-    } else if (T.isArray(dict.serviceuuids)) {
-      for (var i = 0; i < dict.serviceuuids.length; ++i) {
-        if (!T.isString(dict.serviceuuids[i])) {
+    // uuids
+    if (T.isNull(dict.uuids)) {
+      o.uuids = dict.uuids;
+    } else if (T.isArray(dict.uuids)) {
+      for (var i = 0; i < dict.uuids.length; ++i) {
+        if (!T.isString(dict.uuids[i])) {
           return;
         }
       }
-      o.serviceuuids = dict.serviceuuids;
-    } else if (!T.isUndefined(dict.serviceuuids)) {
+      o.uuids = dict.uuids;
+    } else if (!T.isUndefined(dict.uuids)) {
       return;
     }
 
@@ -1421,7 +1422,7 @@ BluetoothLEAdapter.prototype.startAdvertise = function() {
   var args = AV.validateMethod(arguments, [{
     name: 'advertiseData',
     type: AV.Types.PLATFORM_OBJECT,
-    values: BluetoothLEAdvertiseData
+    values: tizen.BluetoothLEAdvertiseData
   }, {
     name: 'packetType',
     type: AV.Types.ENUM,
