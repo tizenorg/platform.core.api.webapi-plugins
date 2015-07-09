@@ -59,14 +59,29 @@ int unlink_cb(const char* fpath,
               const struct stat* sb,
               int typeflag,
               struct FTW* ftwbuf) {
+  if (ftwbuf->level == 0)
+    return 0;
+
   int result = remove(fpath);
   if (result)
     LoggerE("error occured");
   return result;
 }
+
+int unlink_with_base_dir_cb(const char* fpath,
+              const struct stat* sb,
+              int typeflag,
+              struct FTW* ftwbuf) {
+  int result = remove(fpath);
+  if (result)
+    LoggerE("error occured");
+  return result;
+}
+
 FilesystemError copyFile(const std::string& originPath,
                          const std::string& destPath) {
   LoggerD("enter src %s dst %s", originPath.c_str(), destPath.c_str());
+
   std::ifstream src(originPath, std::ios::in | std::ios::binary);
   std::ofstream dst(destPath, std::ios::out | std::ios::binary);
 
@@ -85,13 +100,16 @@ FilesystemError copyFile(const std::string& originPath,
 FilesystemError copyDirectory(const std::string& originPath,
                               const std::string& destPath) {
   LoggerD("enter src %s dst %s", originPath.c_str(), destPath.c_str());
+  FilesystemStat destStat = FilesystemStat::getStat(destPath);
+
   int status;
-  // Mkdir if not exists
-  const mode_t create_mode = S_IRWXU | S_IRWXG | S_IRWXO;
-  status = mkdir(destPath.c_str(), create_mode);
-  if (status) {
-    LoggerE("Cannot create directory: %s", GetErrorString(errno).c_str());
-    return FilesystemError::Other;
+  if (!destStat.valid) {
+    const mode_t create_mode = S_IRWXU | S_IRWXG | S_IRWXO;
+    status = mkdir(destPath.c_str(), create_mode);
+    if (status) {
+      LoggerE("Cannot create directory: %s", GetErrorString(errno).c_str());
+      return FilesystemError::Other;
+    }
   }
   DIR* dp = opendir(originPath.c_str());
   if (dp == NULL) {
@@ -136,7 +154,7 @@ FilesystemError perform_deep_copy(const std::string& originPath,
   FilesystemStat originStat = FilesystemStat::getStat(originPath);
   FilesystemStat destStat = FilesystemStat::getStat(destPath);
   int status;
-
+  std::string path = destPath;
   if (!originStat.valid) {
     LoggerE("Cannot retrieve stat in deep copy");
     return FilesystemError::Other;
@@ -152,16 +170,30 @@ FilesystemError perform_deep_copy(const std::string& originPath,
   // Remove existing data.
   if (destStat.valid) {
     if (destStat.isDirectory) {
-      const int maxDirOpened = 64;
-      if (nftw(destPath.c_str(),
-               unlink_cb,
-               maxDirOpened,
-               FTW_DEPTH | FTW_PHYS) != 0) {
-        LoggerE("Error occured");
-        return FilesystemError::Other;
+      path.append("/");
+      if (originStat.isFile) {
+        std::string dstPathWithFilename = originPath.substr(originPath.find_last_of("/") +1 );
+        path.append(dstPathWithFilename);
+        FilesystemStat destStatWithFilename = FilesystemStat::getStat(path);
+        if (destStatWithFilename.valid) {
+          status = remove(path.c_str());
+          if (status) {
+            LoggerE("Cannot remove old file: %s", GetErrorString(errno).c_str());
+            return FilesystemError::Other;
+          }
+        }
+      } else {
+        const int maxDirOpened = 64;
+        if (nftw(path.c_str(),
+                 unlink_cb,
+                 maxDirOpened,
+                 FTW_DEPTH | FTW_PHYS) != 0) {
+          LoggerE("Error occured");
+          return FilesystemError::Other;
+        }
       }
     } else {
-      status = remove(destPath.c_str());
+      status = remove(path.c_str());
       if (status) {
         LoggerE("Cannot remove old directory: %s", GetErrorString(errno).c_str());
         return FilesystemError::Other;
@@ -170,7 +202,7 @@ FilesystemError perform_deep_copy(const std::string& originPath,
   }
 
   if (originStat.isFile) {
-    return copyFile(originPath, destPath);
+    return copyFile(originPath, path);
   } else if (originStat.isDirectory) {
     return copyDirectory(originPath, destPath);
   }
@@ -377,7 +409,7 @@ void FilesystemManager::RemoveDirectory(
     const std::function<void(FilesystemError)>& error_cb) {
   LoggerD("enter");
   const int maxDirOpened = 64;
-  if (nftw(path.c_str(), unlink_cb, maxDirOpened, FTW_DEPTH | FTW_PHYS) != 0) {
+  if (nftw(path.c_str(), unlink_with_base_dir_cb, maxDirOpened, FTW_DEPTH | FTW_PHYS) != 0) {
     LoggerE("Error occured");
     error_cb(FilesystemError::Other);
   }
