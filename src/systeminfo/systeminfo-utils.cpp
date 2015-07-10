@@ -2385,7 +2385,7 @@ PlatformResult SysteminfoUtils::ReportEthernetNetwork(picojson::object& out) {
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-static PlatformResult FetchVconfSettings(
+static PlatformResult FetchBasicSimProperties(TapiHandle *tapi_handle,
     unsigned short *result_mcc,
     unsigned short *result_mnc,
     unsigned short *result_cell_id,
@@ -2394,37 +2394,46 @@ static PlatformResult FetchVconfSettings(
     bool *result_is_flight_mode)
 {
   LoggerD("Entered");
-  int result;
-  if (0 != vconf_get_int(VCONFKEY_TELEPHONY_PLMN, &result)) {
-    LoggerE("Cannot get mcc value");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get mcc value");
+  int result_value = 0;
+  int tapi_res = TAPI_API_SUCCESS;
+  tapi_res = tel_get_property_int(tapi_handle, TAPI_PROP_NETWORK_PLMN, &result_value);
+  if (TAPI_API_SUCCESS != tapi_res) {
+    std::string error_msg = "Cannot get mcc value, error: " + tapi_res;
+    LoggerE("%s", error_msg.c_str());
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, error_msg);
   }
-  *result_mcc = static_cast<unsigned short>(result) / kMccDivider;
-  *result_mnc = static_cast<unsigned short>(result) % kMccDivider;
+  *result_mcc = static_cast<unsigned short>(result_value) / kMccDivider;
+  *result_mnc = static_cast<unsigned short>(result_value) % kMccDivider;
 
-  if (0 != vconf_get_int(VCONFKEY_TELEPHONY_CELLID, &result)) {
-    LoggerE("Cannot get cell_id value");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get cell_id value");
+  tapi_res = tel_get_property_int(tapi_handle, TAPI_PROP_NETWORK_CELLID, &result_value);
+  if (TAPI_API_SUCCESS != tapi_res) {
+    std::string error_msg = "Cannot get cell_id value, error: " + tapi_res;
+    LoggerE("%s", error_msg.c_str());
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, error_msg);
   }
-  *result_cell_id = static_cast<unsigned short>(result);
+  *result_cell_id = static_cast<unsigned short>(result_value);
 
-  if (0 != vconf_get_int(VCONFKEY_TELEPHONY_LAC, &result)) {
-    LoggerE("Cannot get lac value");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get lac value");
+  tapi_res = tel_get_property_int(tapi_handle, TAPI_PROP_NETWORK_LAC, &result_value);
+  if (TAPI_API_SUCCESS != tapi_res) {
+    std::string error_msg = "Cannot get lac value, error: " + tapi_res;
+    LoggerE("%s", error_msg.c_str());
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, error_msg);
   }
-  *result_lac = static_cast<unsigned short>(result);
+  *result_lac = static_cast<unsigned short>(result_value);
 
-  if (0 != vconf_get_int(VCONFKEY_TELEPHONY_SVC_ROAM, &result)) {
-    LoggerE("Cannot get is_roaming value");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get is_roaming value");
+  tapi_res = tel_get_property_int(tapi_handle, TAPI_PROP_NETWORK_ROAMING_STATUS, &result_value);
+  if (TAPI_API_SUCCESS != tapi_res) {
+    std::string error_msg = "Cannot get is_roaming value, error: " + tapi_res;
+    LoggerE("%s", error_msg.c_str());
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, error_msg);
   }
-  *result_is_roaming = (0 != result) ? true : false;
+  *result_is_roaming = (0 != result_value) ? true : false;
 
-  if (0 != vconf_get_bool(VCONFKEY_TELEPHONY_FLIGHT_MODE, &result)) {
+  if (0 != vconf_get_bool(VCONFKEY_TELEPHONY_FLIGHT_MODE, &result_value)) {
     LoggerE("Cannot get is_flight_mode value");
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get is_flight_mode value");
   }
-  *result_is_flight_mode = (0 != result) ? true : false;
+  *result_is_flight_mode = (0 != result_value) ? true : false;
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
@@ -2539,8 +2548,9 @@ PlatformResult SysteminfoUtils::ReportCellularNetwork(picojson::object& out, uns
   std::string result_imei;
 
   //gathering vconf-based values
-  ret = FetchVconfSettings(&result_mcc, &result_mnc, &result_cell_id, &result_lac,
-                     &result_is_roaming, &result_is_flight_mode);
+  ret = FetchBasicSimProperties(system_info_listeners.GetTapiHandles()[count], &result_mcc,
+                           &result_mnc, &result_cell_id, &result_lac,
+                           &result_is_roaming, &result_is_flight_mode);
   if (ret.IsError()) {
     return ret;
   }
