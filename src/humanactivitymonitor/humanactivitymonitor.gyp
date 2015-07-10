@@ -22,7 +22,7 @@
         ['tizen == 1', {
           'variables': {
             'packages': [
-              'libcore-context-manager',
+              'motion',
               'capi-system-sensor',
               'capi-location-manager',
             ]
