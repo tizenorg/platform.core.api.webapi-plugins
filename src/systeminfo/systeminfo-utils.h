@@ -99,7 +99,7 @@ class SysteminfoUtils {
   static common::PlatformResult ReportNetwork(picojson::object& out);
   static common::PlatformResult ReportWifiNetwork(picojson::object& out);
   static common::PlatformResult ReportEthernetNetwork(picojson::object& out);
-  static common::PlatformResult ReportCellularNetwork(picojson::object& out);
+  static common::PlatformResult ReportCellularNetwork(picojson::object& out, unsigned long count);
   static common::PlatformResult ReportSim(picojson::object& out, unsigned long count);
   static common::PlatformResult ReportPeripheral(picojson::object& out);
   static common::PlatformResult ReportMemory(picojson::object& out);
