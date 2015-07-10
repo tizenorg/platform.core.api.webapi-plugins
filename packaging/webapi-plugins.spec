@@ -361,7 +361,7 @@ BuildRequires: pkgconfig(capi-web-url-download)
 %endif
 
 %if 0%{?tizen_feature_ham_support}
-BuildRequires: pkgconfig(libcore-context-manager)
+BuildRequires: pkgconfig(motion)
 BuildRequires: pkgconfig(capi-system-sensor)
 BuildRequires: pkgconfig(capi-location-manager)
 %endif
