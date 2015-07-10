@@ -1660,7 +1660,7 @@ PlatformResult SysteminfoUtils::GetCount(const std::string& property, unsigned l
     if (ret.IsError()) {
       count = 0;
     } else {
-      count = kDefaultPropertyCount;
+      count = sim_mgr.GetSimCount(system_info_listeners.GetTapiHandles());
     }
   } else if ("SIM" == property) {
     PlatformResult ret = CheckTelephonySupport();
@@ -1706,7 +1706,7 @@ PlatformResult SysteminfoUtils::ReportProperty(const std::string& property, int 
   } else if ("ETHERNET_NETWORK" == property) {
     return ReportEthernetNetwork(res_obj);
   } else if ("CELLULAR_NETWORK" == property) {
-    return ReportCellularNetwork(res_obj);
+    return ReportCellularNetwork(res_obj, index);
   } else if ("SIM" == property) {
     return ReportSim(res_obj, index);
   } else if ("PERIPHERAL" == property) {
@@ -1740,6 +1740,8 @@ PlatformResult SysteminfoUtils::GetPropertyValue(const std::string& property, bo
       return ret;
     }
 
+    LoggerD("property name: %s", property.c_str());
+    LoggerD("available property count: %d", property_count);
     for (size_t i = 0; i < property_count; i++) {
       picojson::value result = picojson::value(picojson::object());
       picojson::object& result_obj = result.get<picojson::object>();
@@ -2519,7 +2521,7 @@ static PlatformResult FetchConnection(TapiHandle *tapi_handle, std::string* resu
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-PlatformResult SysteminfoUtils::ReportCellularNetwork(picojson::object& out) {
+PlatformResult SysteminfoUtils::ReportCellularNetwork(picojson::object& out, unsigned long count) {
   PlatformResult ret = CheckTelephonySupport();
   if (ret.IsError()) {
     return ret;
@@ -2543,7 +2545,7 @@ PlatformResult SysteminfoUtils::ReportCellularNetwork(picojson::object& out) {
     return ret;
   }
   //gathering connection informations
-  ret = FetchConnection(system_info_listeners.GetTapiHandle(),
+  ret = FetchConnection(system_info_listeners.GetTapiHandles()[count],
                   &result_status, &result_apn, &result_ip_address, &result_ipv6_address, &result_imei);
   if (ret.IsError()) {
     return ret;
