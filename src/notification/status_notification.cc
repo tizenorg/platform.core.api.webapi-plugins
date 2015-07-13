@@ -231,7 +231,6 @@ PlatformResult StatusNotification::GetImage(
     return PlatformResult(ErrorCode::UNKNOWN_ERR,
                           "Get notification image error");
   }
-
   if (path) {
     *image_path = path;
   }
@@ -856,17 +855,17 @@ PlatformResult StatusNotification::GetProgressValue(
     const std::string& progess_type,
     double* progress_value) {
   LoggerD("Enter");
-  *progress_value = 0.0;
+  double tmp_progress_value = 0.0;
 
   if (progess_type == kProgressTypeByte) {
-    if (notification_get_size(noti_handle, progress_value) !=
+    if (notification_get_size(noti_handle, &tmp_progress_value) !=
         NOTIFICATION_ERROR_NONE) {
       LoggerE("Get notification size error");
       return PlatformResult(ErrorCode::UNKNOWN_ERR,
                             "Get notification size error");
     }
   } else if (progess_type == kProgressTypePercentage) {
-    if (notification_get_progress(noti_handle, progress_value) !=
+    if (notification_get_progress(noti_handle, &tmp_progress_value) !=
         NOTIFICATION_ERROR_NONE) {
       LoggerE("Get notification progress error");
       return PlatformResult(ErrorCode::UNKNOWN_ERR,
@@ -878,8 +877,9 @@ PlatformResult StatusNotification::GetProgressValue(
                           "Unknown notification progress type");
   }
 
-  LOGGER(DEBUG) << "Progress " << progess_type << " = " << *progress_value;
+  LOGGER(DEBUG) << "Progress " << progess_type << " = " << tmp_progress_value;
 
+  *progress_value = tmp_progress_value;
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
