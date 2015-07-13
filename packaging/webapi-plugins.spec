@@ -70,11 +70,11 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_messaging_support               1
 
 %if 0%{?model_build_feature_nfc}
-%define tizen_feature_nfc_emulation_support           1
+%define tizen_feature_nfc_emulation_support           0
 %define tizen_feature_nfc_support                     1
 %else
-%define tizen_feature_nfc_emulation_support           1
-%define tizen_feature_nfc_support                     1
+%define tizen_feature_nfc_emulation_support           0
+%define tizen_feature_nfc_support                     0
 %endif
 %define tizen_feature_notification_support            1
 %define tizen_feature_package_support                 1
