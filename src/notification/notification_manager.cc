@@ -16,6 +16,9 @@
 
 #include "notification/notification_manager.h"
 
+#include <fcntl.h>
+#include <unistd.h>
+
 #include <app_control_internal.h>
 #include <device/led.h>
 #include <notification_internal.h>
@@ -125,6 +128,68 @@ PlatformResult NotificationManager::Get(const picojson::object& args,
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
+bool NotificationPackageEqual(notification_h handle) {
+  LoggerD("Entered");
+  char* package = NULL;
+  char* handle_package = NULL;
+  char cmdline[512] = {0,};
+  char buf[64] = {0,};
+
+  if (notification_get_pkgname(handle, &handle_package))
+  {
+    return false;
+  }
+
+  LoggerD("handle package = %s", handle_package);
+
+  if (app_get_id(&package))
+  {
+
+    int ret = 0;
+    int fd = -1;
+    int pid = getpid();
+
+    snprintf(buf, sizeof(buf), "/proc/%d/cmdline", pid);
+
+    fd = open(buf, O_RDONLY);
+    if (fd < 0) {
+      return false;
+    }
+
+    ret = read(fd, cmdline, sizeof(cmdline) - 1);
+    if (ret <= 0) {
+      close(fd);
+      return false;
+    }
+
+    cmdline[ret] = 0;
+    close(fd);
+
+    if (strlen(cmdline) == strlen(handle_package))
+    {
+      if (!strncmp(cmdline, handle_package, strlen(cmdline)))
+      {
+        return true;
+      }
+    }
+  }
+  else
+  {
+    LoggerD("package = %s", package);
+
+    if (strlen(package) == strlen(handle_package))
+    {
+      if (!strncmp(package, handle_package, strlen(package)))
+      {
+        free(package);
+        return true;
+      }
+    }
+  }
+  free(package);
+  return false;
+}
+
 PlatformResult NotificationManager::GetAll(picojson::array& out) {
   LoggerD("Enter");
   notification_h noti = nullptr;
@@ -145,7 +210,7 @@ PlatformResult NotificationManager::GetAll(picojson::array& out) {
 
   while (noti_list_iter != nullptr) {
     noti = notification_list_get_data(noti_list_iter);
-    if (noti != nullptr) {
+    if (noti != nullptr && NotificationPackageEqual(noti)) {
       int noti_priv = -1;
       ret = notification_get_id(noti, NULL, &noti_priv);
       if (ret != NOTIFICATION_ERROR_NONE) {
