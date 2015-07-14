@@ -24,101 +24,102 @@ Source0:    %{name}-%{version}.tar.gz
 ####################################################################
 %if "%{?tizen_profile_name}" == "mobile"
 
-%define tizen_privilege_engine                    ACE
+%define tizen_privilege_engine                        ACE
 
-%define tizen_feature_account_support             1
-%define tizen_feature_alarm_support               1
-%define tizen_feature_application_support         1
-%define tizen_feature_archive_support             1
-%define tizen_feature_badge_support               1
+%define tizen_feature_account_support                 1
+%define tizen_feature_alarm_support                   1
+%define tizen_feature_app_control_settings_support    1
+%define tizen_feature_application_support             1
+%define tizen_feature_archive_support                 1
+%define tizen_feature_badge_support                   1
 %ifarch %{arm}
 # ARM
-%define tizen_feature_bluetooth_support           1
+%define tizen_feature_bluetooth_support               1
 %else
 # I586
-%define tizen_feature_bluetooth_support           0
+%define tizen_feature_bluetooth_support               0
 %endif
-%define tizen_feature_bookmark_support            1
-%define tizen_feature_calendar_support            1
-%define tizen_feature_contact_support             1
-%define tizen_feature_content_support             1
-%define tizen_feature_datacontrol_support         1
-%define tizen_feature_datasync_support            0
-%define tizen_feature_download_support            1
-%define tizen_feature_exif_support                1
-%define tizen_feature_filesystem_support          1
-%define tizen_feature_fm_radio_support            1
+%define tizen_feature_bookmark_support                1
+%define tizen_feature_calendar_support                1
+%define tizen_feature_contact_support                 1
+%define tizen_feature_content_support                 1
+%define tizen_feature_datacontrol_support             1
+%define tizen_feature_datasync_support                0
+%define tizen_feature_download_support                1
+%define tizen_feature_exif_support                    1
+%define tizen_feature_filesystem_support              1
+%define tizen_feature_fm_radio_support                1
 %ifarch %{arm}
 # ARM
-%define tizen_feature_ham_support                 0
+%define tizen_feature_ham_support                     0
 %else
 # I586
-%define tizen_feature_ham_support                 1
+%define tizen_feature_ham_support                     1
 %endif
-%define tizen_feature_location_batch              0
-%define tizen_feature_key_manager_support         0
-%define tizen_feature_media_controller_support    1
+%define tizen_feature_location_batch                  0
+%define tizen_feature_key_manager_support             0
+%define tizen_feature_media_controller_support        1
 %ifarch %{arm}
 # ARM
-%define tizen_feature_media_key_support           1
+%define tizen_feature_media_key_support               1
 %else
 # I586
-%define tizen_feature_media_key_support           0
+%define tizen_feature_media_key_support               0
 %endif
-%define tizen_feature_message_port_support        1
-%define tizen_feature_messaging_support           1
+%define tizen_feature_message_port_support            1
+%define tizen_feature_messaging_support               1
 
 %if 0%{?model_build_feature_nfc}
-%define tizen_feature_nfc_emulation_support       0
-%define tizen_feature_nfc_support                 1
+%define tizen_feature_nfc_emulation_support           1
+%define tizen_feature_nfc_support                     1
 %else
-%define tizen_feature_nfc_emulation_support       0
-%define tizen_feature_nfc_support                 0
+%define tizen_feature_nfc_emulation_support           1
+%define tizen_feature_nfc_support                     1
 %endif
-%define tizen_feature_notification_support        1
-%define tizen_feature_package_support             1
-%define tizen_feature_power_support               1
-%define tizen_feature_push_support                1
+%define tizen_feature_notification_support            1
+%define tizen_feature_package_support                 1
+%define tizen_feature_power_support                   1
+%define tizen_feature_push_support                    1
 %ifarch %{arm}
 # ARM
-%define tizen_feature_se_support                  1
+%define tizen_feature_se_support                      1
 %else
 # I586
-%define tizen_feature_se_support                  0
+%define tizen_feature_se_support                      0
 %endif
-%define tizen_feature_sensor_support              1
-%define tizen_feature_sound_support               1
-%define tizen_feature_system_info_support         1
-%define tizen_feature_system_setting_support      1
+%define tizen_feature_sensor_support                  1
+%define tizen_feature_sound_support                   1
+%define tizen_feature_system_info_support             1
+%define tizen_feature_system_setting_support          1
 %ifarch %{arm}
 # ARM
-%define tizen_feature_telephony_support           1
+%define tizen_feature_telephony_support               1
 %else
 # I586
-%define tizen_feature_telephony_support           0
+%define tizen_feature_telephony_support               0
 %endif
-%define tizen_feature_time_support                1
-%define tizen_feature_web_setting_support         1
+%define tizen_feature_time_support                    1
+%define tizen_feature_web_setting_support             1
 %ifarch %{arm}
 # ARM
-%define tizen_feature_wi_fi_support               1
+%define tizen_feature_wi_fi_support                   1
 %else
 # I586
-%define tizen_feature_wi_fi_support               0
+%define tizen_feature_wi_fi_support                   0
 %endif
-%define tizen_feature_tvaudio_support             0
-%define tizen_feature_tvchannel_support           0
-%define tizen_feature_tv_display_support          0
-%define tizen_feature_tvinputdevice_support       0
-%define tizen_feature_inputdevice_support         1
-%define tizen_feature_tvwindow_support            0
+%define tizen_feature_tvaudio_support                 0
+%define tizen_feature_tvchannel_support               0
+%define tizen_feature_tv_display_support              0
+%define tizen_feature_tvinputdevice_support           0
+%define tizen_feature_inputdevice_support             1
+%define tizen_feature_tvwindow_support                0
 
 %if 0%{?tizen_feature_telephony_support}
-%define tizen_feature_callhistory_support         1
-%define tizen_feature_nbs_support                 1
+%define tizen_feature_callhistory_support             1
+%define tizen_feature_nbs_support                     1
 %else
-%define tizen_feature_callhistory_support         0
-%define tizen_feature_nbs_support                 0
+%define tizen_feature_callhistory_support             0
+%define tizen_feature_nbs_support                     0
 %endif
 
 %endif # tizen_profile_mobile
@@ -128,96 +129,97 @@ Source0:    %{name}-%{version}.tar.gz
 ####################################################################
 %if "%{?tizen_profile_name}" == "wearable"
 
-%define tizen_privilege_engine                    ACE
+%define tizen_privilege_engine                        ACE
 
 # Account API is optional in Tizen Wearable Profile.
-%define tizen_feature_account_support             0
+%define tizen_feature_account_support                 0
 
-%define tizen_feature_alarm_support               1
-%define tizen_feature_application_support         1
+%define tizen_feature_alarm_support                   1
+%define tizen_feature_app_control_settings_support    0
+%define tizen_feature_application_support             1
 
 # Archive API is optional in Tizen Wearable Profile.
-%define tizen_feature_archive_support             1
+%define tizen_feature_archive_support                 1
 
 # Badge API is mandatory in Tizen Wearable Profile.
-%define tizen_feature_badge_support               1
+%define tizen_feature_badge_support                   1
 
-%define tizen_feature_bluetooth_support           1
+%define tizen_feature_bluetooth_support               1
 
 # Bookmark API is optional in Tizen Wearable Profile.
-%define tizen_feature_bookmark_support            0
+%define tizen_feature_bookmark_support                0
 
 # Calendar API is mandatory in Tizen Wearable Profile.
-%define tizen_feature_calendar_support            0
-%define tizen_feature_contact_support             0
-%define tizen_feature_content_support             1
-%define tizen_feature_datacontrol_support         0
-%define tizen_feature_datasync_support            0
+%define tizen_feature_calendar_support                0
+%define tizen_feature_contact_support                 0
+%define tizen_feature_content_support                 1
+%define tizen_feature_datacontrol_support             0
+%define tizen_feature_datasync_support                0
 %ifarch %{arm}
-%define tizen_feature_download_support            0
+%define tizen_feature_download_support                0
 %else
-%define tizen_feature_download_support            1
+%define tizen_feature_download_support                1
 %endif
-%define tizen_feature_exif_support                1
-%define tizen_feature_filesystem_support          1
-%define tizen_feature_fm_radio_support            0
-%define tizen_feature_ham_support                 1
-%define tizen_feature_location_batch              0
-%define tizen_feature_media_controller_support    1
+%define tizen_feature_exif_support                    1
+%define tizen_feature_filesystem_support              1
+%define tizen_feature_fm_radio_support                0
+%define tizen_feature_ham_support                     1
+%define tizen_feature_location_batch                  0
+%define tizen_feature_media_controller_support        1
 
 # MediayKey API is optional in Tizen Wearable Profile.
 # tizen.org/feature/network.bluetooth.audio.media is required for MediayKey API
 %ifarch %{arm}
 # ARM
-%define tizen_feature_media_key_support           1
+%define tizen_feature_media_key_support               1
 %else
 # I586
-%define tizen_feature_media_key_support           0
+%define tizen_feature_media_key_support               0
 %endif
-%define tizen_feature_key_manager_support         0
-%define tizen_feature_message_port_support        1
-%define tizen_feature_messaging_support           0
+%define tizen_feature_key_manager_support             0
+%define tizen_feature_message_port_support            1
+%define tizen_feature_messaging_support               0
 
 %if 0%{?model_build_feature_nfc}
-%define tizen_feature_nfc_emulation_support       1
-%define tizen_feature_nfc_support                 1
+%define tizen_feature_nfc_emulation_support           0
+%define tizen_feature_nfc_support                     1
 %else
-%define tizen_feature_nfc_emulation_support       0
-%define tizen_feature_nfc_support                 0
+%define tizen_feature_nfc_emulation_support           0
+%define tizen_feature_nfc_support                     0
 %endif
-%define tizen_feature_notification_support        1
-%define tizen_feature_package_support             1
-%define tizen_feature_power_support               1
-%define tizen_feature_push_support                1
+%define tizen_feature_notification_support            1
+%define tizen_feature_package_support                 1
+%define tizen_feature_power_support                   1
+%define tizen_feature_push_support                    1
 %if 0%{?model_build_feature_smartcard }
-%define tizen_feature_se_support                  1
+%define tizen_feature_se_support                      1
 %else
-%define tizen_feature_se_support                  0
+%define tizen_feature_se_support                      0
 %endif
-%define tizen_feature_sensor_support              1
-%define tizen_feature_sound_support               1
-%define tizen_feature_system_info_support         1
-%define tizen_feature_system_setting_support      1
-%define tizen_feature_telephony_support           0
-%define tizen_feature_time_support                1
-%define tizen_feature_web_setting_support         0
-%define tizen_feature_wi_fi_support               1
-%define tizen_feature_tvaudio_support             0
-%define tizen_feature_tvchannel_support           0
-%define tizen_feature_tv_display_support          0
-%define tizen_feature_tvinputdevice_support       0
-%define tizen_feature_inputdevice_support         1
-%define tizen_feature_tvwindow_support            0
+%define tizen_feature_sensor_support                  1
+%define tizen_feature_sound_support                   1
+%define tizen_feature_system_info_support             1
+%define tizen_feature_system_setting_support          1
+%define tizen_feature_telephony_support               0
+%define tizen_feature_time_support                    1
+%define tizen_feature_web_setting_support             0
+%define tizen_feature_wi_fi_support                   1
+%define tizen_feature_tvaudio_support                 0
+%define tizen_feature_tvchannel_support               0
+%define tizen_feature_tv_display_support              0
+%define tizen_feature_tvinputdevice_support           0
+%define tizen_feature_inputdevice_support             1
+%define tizen_feature_tvwindow_support                0
 
 #- telephony related APIs
 # CallHistory API is optional in Tizen Wearable Profile.
 # NetworkBearerSelection API is optional in Tizen Wearable Profile.
 %if 0%{?tizen_feature_telephony_support}
-%define    tizen_feature_callhistory_support      1
-%define    tizen_feature_nbs_support              1
+%define    tizen_feature_callhistory_support          1
+%define    tizen_feature_nbs_support                  1
 %else
-%define    tizen_feature_callhistory_support      0
-%define    tizen_feature_nbs_support              0
+%define    tizen_feature_callhistory_support          0
+%define    tizen_feature_nbs_support                  0
 %endif
 
 %endif # tizen_profile_wearable
@@ -227,56 +229,57 @@ Source0:    %{name}-%{version}.tar.gz
 ####################################################################
 %if "%{?tizen_profile_name}" == "tv"
 
-%define tizen_privilege_engine                    ACE
+%define tizen_privilege_engine                        ACE
 
-%define tizen_feature_account_support             0
-%define tizen_feature_alarm_support               1
-%define tizen_feature_application_support         1
-%define tizen_feature_archive_support             1
-%define tizen_feature_badge_support               0
-%define tizen_feature_bluetooth_support           0
-%define tizen_feature_bookmark_support            0
-%define tizen_feature_calendar_support            0
-%define tizen_feature_callhistory_support         0
-%define tizen_feature_contact_support             0
-%define tizen_feature_content_support             1
-%define tizen_feature_datacontrol_support         0
-%define tizen_feature_datasync_support            0
-%define tizen_feature_download_support            1
-%define tizen_feature_exif_support                1
-%define tizen_feature_filesystem_support          1
-%define tizen_feature_fm_radio_support            0
-%define tizen_feature_ham_support                 0
-%define tizen_feature_key_manager_support         0
-%define tizen_feature_media_controller_support    1
-%define tizen_feature_media_key_support           1
-%define tizen_feature_message_port_support        1
-%define tizen_feature_messaging_support           0
-%define tizen_feature_nbs_support                 0
-%define tizen_feature_nfc_emulation_support       0
-%define tizen_feature_nfc_support                 0
-%define tizen_feature_notification_support        0
-%define tizen_feature_package_support             1
-%define tizen_feature_power_support               0
-%define tizen_feature_push_support                0
-%define tizen_feature_se_support                  0
-%define tizen_feature_sensor_support              0
-%define tizen_feature_sound_support               0
-%define tizen_feature_system_info_support         1
-%define tizen_feature_system_setting_support      0
-%define tizen_feature_telephony_support           0
-%define tizen_feature_time_support                1
-%define tizen_feature_web_setting_support         1
-%define tizen_feature_wi_fi_support               1
+%define tizen_feature_account_support                 0
+%define tizen_feature_alarm_support                   1
+%define tizen_feature_app_control_settings_support    0
+%define tizen_feature_application_support             1
+%define tizen_feature_archive_support                 1
+%define tizen_feature_badge_support                   0
+%define tizen_feature_bluetooth_support               0
+%define tizen_feature_bookmark_support                0
+%define tizen_feature_calendar_support                0
+%define tizen_feature_callhistory_support             0
+%define tizen_feature_contact_support                 0
+%define tizen_feature_content_support                 1
+%define tizen_feature_datacontrol_support             0
+%define tizen_feature_datasync_support                0
+%define tizen_feature_download_support                1
+%define tizen_feature_exif_support                    1
+%define tizen_feature_filesystem_support              1
+%define tizen_feature_fm_radio_support                0
+%define tizen_feature_ham_support                     0
+%define tizen_feature_key_manager_support             0
+%define tizen_feature_media_controller_support        1
+%define tizen_feature_media_key_support               1
+%define tizen_feature_message_port_support            1
+%define tizen_feature_messaging_support               0
+%define tizen_feature_nbs_support                     0
+%define tizen_feature_nfc_emulation_support           0
+%define tizen_feature_nfc_support                     0
+%define tizen_feature_notification_support            0
+%define tizen_feature_package_support                 1
+%define tizen_feature_power_support                   0
+%define tizen_feature_push_support                    0
+%define tizen_feature_se_support                      0
+%define tizen_feature_sensor_support                  0
+%define tizen_feature_sound_support                   0
+%define tizen_feature_system_info_support             1
+%define tizen_feature_system_setting_support          0
+%define tizen_feature_telephony_support               0
+%define tizen_feature_time_support                    1
+%define tizen_feature_web_setting_support             1
+%define tizen_feature_wi_fi_support                   1
 #off for tizen 3.0 (no libavoc)
-%define tizen_feature_tvaudio_support             0
+%define tizen_feature_tvaudio_support                 0
 #off for tizen 3.0 (no tvs-api)
-%define tizen_feature_tvchannel_support           0
+%define tizen_feature_tvchannel_support               0
 #off for tizen 3.0 (no systeminfo definitions)
-%define tizen_feature_tv_display_support          0
-%define tizen_feature_tvinputdevice_support       1
-%define tizen_feature_inputdevice_support         1
-%define tizen_feature_tvwindow_support            0
+%define tizen_feature_tv_display_support              0
+%define tizen_feature_tvinputdevice_support           1
+%define tizen_feature_inputdevice_support             1
+%define tizen_feature_tvwindow_support                0
 
 %endif # tizen_profile_tv
 
@@ -473,6 +476,7 @@ GYP_OPTIONS="$GYP_OPTIONS -Ddisplay_type=x11"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_is_emulator=%{?tizen_is_emulator}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_account_support=%{?tizen_feature_account_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_alarm_support=%{?tizen_feature_alarm_support}"
+GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_app_control_settings_support=%{?tizen_feature_app_control_settings_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_application_support=%{?tizen_feature_application_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_archive_support=%{?tizen_feature_archive_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_badge_support=%{?tizen_feature_badge_support}"
