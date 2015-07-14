@@ -128,77 +128,26 @@ PlatformResult NotificationManager::Get(const picojson::object& args,
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-bool NotificationPackageEqual(notification_h handle) {
-  LoggerD("Entered");
-  char* package = NULL;
-  char* handle_package = NULL;
-  char cmdline[512] = {0,};
-  char buf[64] = {0,};
-
-  if (notification_get_pkgname(handle, &handle_package))
-  {
-    return false;
-  }
-
-  LoggerD("handle package = %s", handle_package);
-
-  if (app_get_id(&package))
-  {
-
-    int ret = 0;
-    int fd = -1;
-    int pid = getpid();
-
-    snprintf(buf, sizeof(buf), "/proc/%d/cmdline", pid);
-
-    fd = open(buf, O_RDONLY);
-    if (fd < 0) {
-      return false;
-    }
-
-    ret = read(fd, cmdline, sizeof(cmdline) - 1);
-    if (ret <= 0) {
-      close(fd);
-      return false;
-    }
-
-    cmdline[ret] = 0;
-    close(fd);
-
-    if (strlen(cmdline) == strlen(handle_package))
-    {
-      if (!strncmp(cmdline, handle_package, strlen(cmdline)))
-      {
-        return true;
-      }
-    }
-  }
-  else
-  {
-    LoggerD("package = %s", package);
-
-    if (strlen(package) == strlen(handle_package))
-    {
-      if (!strncmp(package, handle_package, strlen(package)))
-      {
-        free(package);
-        return true;
-      }
-    }
-  }
-  free(package);
-  return false;
-}
-
 PlatformResult NotificationManager::GetAll(picojson::array& out) {
   LoggerD("Enter");
   notification_h noti = nullptr;
   notification_list_h noti_list = nullptr;
   notification_list_h noti_list_iter = nullptr;
+  char* package = nullptr;
 
-  int ret =
-      notification_get_grouping_list(NOTIFICATION_TYPE_NONE, -1, &noti_list);
-  if (ret != NOTIFICATION_ERROR_NONE) {
+  if (APP_ERROR_NONE == app_get_id(&package)) {
+    LoggerD("Package id: %s", package);
+  } else {
+    LoggerD("Could not get package id");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                          "Could not get package id");
+  }
+  const std::string package_str = package;
+  free(package);
+
+  int ret = notification_get_detail_list(package_str.c_str(), NOTIFICATION_GROUP_ID_NONE,
+                                         NOTIFICATION_PRIV_ID_NONE, -1, &noti_list);
+  if (NOTIFICATION_ERROR_NONE != ret) {
     LoggerD("Get notification list error: %d", ret);
     return PlatformResult(ErrorCode::UNKNOWN_ERR,
                           "Get notification list error");
@@ -208,12 +157,12 @@ PlatformResult NotificationManager::GetAll(picojson::array& out) {
 
   noti_list_iter = notification_list_get_head(noti_list);
 
-  while (noti_list_iter != nullptr) {
+  while (nullptr != noti_list_iter) {
     noti = notification_list_get_data(noti_list_iter);
-    if (noti != nullptr && NotificationPackageEqual(noti)) {
+    if (nullptr != noti) {
       int noti_priv = -1;
       ret = notification_get_id(noti, NULL, &noti_priv);
-      if (ret != NOTIFICATION_ERROR_NONE) {
+      if (NOTIFICATION_ERROR_NONE != ret) {
         LoggerE("Cannot get notification id, error: %d", ret);
         return PlatformResult(ErrorCode::UNKNOWN_ERR,
                               "Cannot get notification id error");
