@@ -192,7 +192,13 @@ int main(int argc, char* argv[]) {
           }
         }
 
-        dlclose(handle);
+        // some Shared libraries have static finalizer.
+        // __attribute__((destructor)) this gcc extension makes finalizer.
+        // if close it, it can makes segfault.
+        // True, It's shared object's problem. but we can't fix it.
+        // so don't close it in only this tool. just finish process.
+        //
+        // dlclose(handle);
       }
     }
     closedir(dir);
