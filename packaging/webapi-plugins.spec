@@ -110,7 +110,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_tvchannel_support           0
 %define tizen_feature_tv_display_support          0
 %define tizen_feature_tvinputdevice_support       0
-%define tizen_feature_inputdevice_support         0
+%define tizen_feature_inputdevice_support         1
 %define tizen_feature_tvwindow_support            0
 
 %if 0%{?tizen_feature_telephony_support}
@@ -206,7 +206,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_tvchannel_support           0
 %define tizen_feature_tv_display_support          0
 %define tizen_feature_tvinputdevice_support       0
-%define tizen_feature_inputdevice_support         0
+%define tizen_feature_inputdevice_support         1
 %define tizen_feature_tvwindow_support            0
 
 #- telephony related APIs
