@@ -1371,8 +1371,7 @@ BluetoothLEAdapter.prototype.startScan = function() {
 
   var args = AV.validateMethod(arguments, [{
     name: 'successCallback',
-    type: AV.Types.LISTENER,
-    values: ['onsuccess']
+    type: AV.Types.FUNCTION
   }, {
     name: 'errorCallback',
     type: AV.Types.FUNCTION,
