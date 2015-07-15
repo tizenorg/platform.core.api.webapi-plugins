@@ -6,6 +6,7 @@
 
 #include <dlfcn.h>
 #include <dirent.h>
+#include <unistd.h>
 
 #include <common/extension.h>
 
@@ -208,6 +209,9 @@ int main(int argc, char* argv[]) {
     std::cerr << "path not exist : " << tce_path << std::endl;
     return -1;
   }
+
+  // it would be need for ignore loaded libraries destructor
+  _exit(0);
 
   return 0;
 }
