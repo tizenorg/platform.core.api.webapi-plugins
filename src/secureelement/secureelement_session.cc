@@ -28,8 +28,9 @@ namespace secureelement {
 picojson::value SESession::openBasicChannel(const picojson::array& v_aid) {
     LoggerD("Entered");
 
-    unsigned char* aid = new unsigned char[v_aid.size()];
-    for ( int i = 0; i < v_aid.size(); i++) {
+    size_t v_aid_size = v_aid.size();
+    unsigned char* aid = new unsigned char[v_aid_size];
+    for (size_t i = 0; i < v_aid_size; i++) {
         aid[i] = static_cast<unsigned char>(v_aid[i].get<double>());
     }
     ByteArray aid_byte_array( aid, (unsigned int) v_aid.size());
@@ -48,8 +49,9 @@ picojson::value SESession::openBasicChannel(const picojson::array& v_aid) {
 picojson::value SESession::openLogicalChannel(const picojson::array& v_aid) {
     LoggerD("Entered");
 
-    unsigned char* aid = new unsigned char[v_aid.size()];
-    for ( int i = 0; i < v_aid.size(); i++) {
+    size_t v_aid_size = v_aid.size();
+    unsigned char* aid = new unsigned char[v_aid_size];
+    for (size_t i = 0; i < v_aid_size; i++) {
         aid[i] = static_cast<unsigned char>(v_aid[i].get<double>());
     }
     ByteArray aid_byte_array( aid, (unsigned int) v_aid.size());
