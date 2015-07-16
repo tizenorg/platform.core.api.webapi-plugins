@@ -49,6 +49,7 @@ const std::string kTizenApisAppShared = "shared";
 
 const char* kStartKey = "start";
 const char* kEndKey = "end";
+const char* kAppidKey = "appid";
 const char* kOkValue = "ok";
 const char* kInstallEvent = "install";
 const char* kUpdateEvent = "update";
@@ -89,15 +90,14 @@ const std::map<std::string, std::string> event_map_ = {
 
 ApplicationManager::ApplicationManager(ApplicationInstance& instance) :
   pkgmgr_client_handle_(nullptr),
+  pkgmgrinfo_client_handle_(nullptr),
   instance_(instance) {
     LoggerD("Enter");
 }
 
 ApplicationManager::~ApplicationManager() {
   LoggerD("Enter");
-  if (pkgmgr_client_handle_) {
-    StopAppInfoEventListener();
-  }
+  StopAppInfoEventListener();
 }
 
 void ApplicationManager::GetCurrentApplication(const std::string& app_id,
@@ -1131,6 +1131,25 @@ class ApplicationListChangedBroker {
     return 0;
   }
 
+  static int AppUninstallListener(int id, const char* type, const char* package, const char* key,
+                                  const char* val, const void* msg, void* data) {
+    LoggerD("Entered");
+
+    ApplicationListChangedBroker* that = static_cast<ApplicationListChangedBroker*>(data);
+
+    if (0 == strcasecmp(key, kStartKey)) {
+      that->HandleUninstallStart();
+    } else if (0 == strcasecmp(key, kAppidKey)) {
+      that->AddUninstalledAppId(val);
+    } else if (0 == strcasecmp(key, kEndKey)) {
+      that->HandleUninstallEnd();
+    } else {
+      LoggerD("Ignored key: %s", key);
+    }
+
+    return 0;
+  }
+
   void AddApplicationInstance(ApplicationInstance* app_instance) {
     LoggerD("Entered");
       app_instance_list_.push_back(app_instance);
@@ -1145,25 +1164,21 @@ class ApplicationListChangedBroker {
       }
     }
   }
-
  private:
   void HandleStart(const char* event_type, const char* package) {
     LoggerD("Entered");
     app_list_.clear();
     set_event_type(event_type);
-
-    if (Event::kUninstalled == event_type_) {
-      // we need to get information about application ID before it is uninstalled
-      GetApplicationIdsFromPackage(package);
-    }
   }
 
   void HandleEnd(const char* package) {
     LoggerD("Entered");
 
-    if (Event::kUninstalled != event_type_) {
-      GetApplicationIdsFromPackage(package);
+    if (Event::kUninstalled == event_type_) {
+      return;
     }
+
+    GetApplicationIdsFromPackage(package);
 
     for (auto& app_id : app_list_) {
       picojson::value value = picojson::value(picojson::object());
@@ -1176,10 +1191,6 @@ class ApplicationListChangedBroker {
 
         case Event::kUpdated:
           data_obj.insert(std::make_pair(kAction, picojson::value(kOnUpdated)));
-          break;
-
-        case Event::kUninstalled:
-          data_obj.insert(std::make_pair(kAction, picojson::value(kOnUninstalled)));
           break;
       }
 
@@ -1198,10 +1209,6 @@ class ApplicationListChangedBroker {
           pkgmgrinfo_appinfo_destroy_appinfo(handle);
         }
         break;
-
-        case Event::kUninstalled:
-          data_obj.insert(std::make_pair(kData, picojson::value(app_id)));
-          break;
       }
 
       data_obj["listenerId"] = picojson::value("ApplicationEventListener");
@@ -1256,6 +1263,36 @@ class ApplicationListChangedBroker {
     return true;
   }
 
+  void HandleUninstallStart() {
+    LoggerD("Entered");
+    app_list_.clear();
+    set_event_type(kUninstallEvent);
+  }
+
+  void AddUninstalledAppId(const char* app_id) {
+    LoggerD("Entered");
+    if (nullptr != app_id) {
+      app_list_.push_back(app_id);
+    }
+  }
+
+  void HandleUninstallEnd() {
+    LoggerD("Entered");
+    for (auto& app_id : app_list_) {
+      picojson::value value = picojson::value(picojson::object());
+      picojson::object& data_obj = value.get<picojson::object>();
+
+      data_obj.insert(std::make_pair(kAction, picojson::value(kOnUninstalled)));
+      data_obj.insert(std::make_pair(kData, picojson::value(app_id)));
+
+      data_obj["listenerId"] = picojson::value("ApplicationEventListener");
+
+      for (auto instance : app_instance_list_) {
+        instance->PostMessage(value.serialize().c_str());
+      }
+    }
+  }
+
   Event event_type_;
   std::vector<std::string> app_list_;
   std::vector<ApplicationInstance*> app_instance_list_;
@@ -1266,11 +1303,25 @@ static ApplicationListChangedBroker g_application_list_changed_broker;
 void ApplicationManager::StartAppInfoEventListener(picojson::object* out) {
   LoggerD("Entered");
 
-  if (nullptr == pkgmgr_client_handle_) {
-    pkgmgr_client_handle_ = pkgmgr_client_new(PC_LISTENING);
-
+  if (nullptr == pkgmgr_client_handle_ || nullptr == pkgmgrinfo_client_handle_) {
     if (nullptr == pkgmgr_client_handle_) {
+      pkgmgr_client_handle_ = pkgmgr_client_new(PC_LISTENING);
+    }
+
+    if (nullptr == pkgmgrinfo_client_handle_) {
+      pkgmgrinfo_client_handle_ = pkgmgrinfo_client_new(PMINFO_LISTENING);
+    }
+
+    if (nullptr == pkgmgr_client_handle_ || nullptr == pkgmgrinfo_client_handle_) {
       LoggerE("Failed to register listener.");
+      if (nullptr != pkgmgr_client_handle_) {
+        pkgmgr_client_free(pkgmgr_client_handle_);
+        pkgmgr_client_handle_ = nullptr;
+      }
+      else if (nullptr != pkgmgrinfo_client_handle_) {
+        pkgmgrinfo_client_free(pkgmgrinfo_client_handle_);
+        pkgmgrinfo_client_handle_ = nullptr;
+      }
       ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to register listener."), out);
       return;
     }
@@ -1278,6 +1329,12 @@ void ApplicationManager::StartAppInfoEventListener(picojson::object* out) {
     g_application_list_changed_broker.AddApplicationInstance(&instance_);
     pkgmgr_client_listen_status(pkgmgr_client_handle_,
                                 ApplicationListChangedBroker::ClientStatusListener,
+                                &g_application_list_changed_broker);
+
+    pkgmgrinfo_client_set_status_type(pkgmgrinfo_client_handle_,
+                                      PACKAGE_MANAGER_STATUS_TYPE_UNINSTALL);
+    pkgmgrinfo_client_listen_status(pkgmgrinfo_client_handle_,
+                                ApplicationListChangedBroker::AppUninstallListener,
                                 &g_application_list_changed_broker);
   } else {
     LoggerD("Broker callback is already registered.");
@@ -1289,9 +1346,15 @@ void ApplicationManager::StartAppInfoEventListener(picojson::object* out) {
 void ApplicationManager::StopAppInfoEventListener() {
   LoggerD("Entered");
 
-  if (nullptr != pkgmgr_client_handle_) {
-    pkgmgr_client_free(pkgmgr_client_handle_);
-    pkgmgr_client_handle_ = nullptr;
+  if (nullptr != pkgmgr_client_handle_ || nullptr != pkgmgrinfo_client_handle_) {
+    if (nullptr != pkgmgr_client_handle_) {
+      pkgmgr_client_free(pkgmgr_client_handle_);
+      pkgmgr_client_handle_ = nullptr;
+    }
+    if (nullptr != pkgmgrinfo_client_handle_) {
+      pkgmgrinfo_client_free(pkgmgrinfo_client_handle_);
+      pkgmgrinfo_client_handle_ = nullptr;
+    }
     g_application_list_changed_broker.RemoveApplicationInstance(&instance_);
   } else {
     LoggerD("Broker callback is already unregistered.");

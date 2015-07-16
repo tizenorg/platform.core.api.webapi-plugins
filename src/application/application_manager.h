@@ -23,6 +23,7 @@
 #include <memory>
 #include <package-manager.h>
 #include <string>
+#include <pkgmgr-info.h>
 
 #include "common/picojson.h"
 #include "common/platform_result.h"
@@ -65,6 +66,7 @@ class ApplicationManager {
   char* GetPackageId(const std::string& app_id);
 
   pkgmgr_client* pkgmgr_client_handle_;
+  pkgmgrinfo_client* pkgmgrinfo_client_handle_;
   ApplicationInstance& instance_;
 
   JsonCallback event_callback_;
