@@ -386,18 +386,7 @@ BluetoothLEAdapter::BluetoothLEAdapter(BluetoothInstance& instance)
     enabled_ = ToBool(le_state);
 
     ret = bt_adapter_le_set_state_changed_cb(OnStateChanged, this);
-
-    if (BT_ERROR_NONE == ret) {
-      if (!enabled_) {
-        LoggerD("BTLE is not enabled, turning on...");
-        // enabled_ is going to be updated by OnStateChanged callback
-        ret = bt_adapter_le_enable();
-
-        if (BT_ERROR_NONE != ret) {
-          LoggerE("Failed to enable BTLE.");
-        }
-      }
-    } else {
+    if (BT_ERROR_NONE != ret) {
       LoggerE("Failed to register BTLE state changed listener.");
     }
   } else {
@@ -415,7 +404,6 @@ BluetoothLEAdapter::~BluetoothLEAdapter() {
     bt_adapter_le_stop_advertising(bt_advertiser_);
     bt_adapter_le_destroy_advertiser(bt_advertiser_);
   }
-  bt_adapter_le_disable();
 }
 
 void BluetoothLEAdapter::StartScan(const picojson::value& data, picojson::object& out) {
