@@ -604,7 +604,7 @@ var BluetoothLEDevice = function(data) {
 BluetoothLEDevice.prototype.connect = function() {
     console.log('Entered BluetoothLEDevice.connect()');
 
-    xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH);
+    xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH_ADMIN);
     var args = AV.validateMethod(arguments, [
     {
         name : 'successCallback',
@@ -634,7 +634,7 @@ BluetoothLEDevice.prototype.connect = function() {
 BluetoothLEDevice.prototype.disconnect = function() {
     console.log('Entered BluetoothLEDevice.disconnect()');
 
-    xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH);
+    xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH_ADMIN);
     var args = AV.validateMethod(arguments, [
     {
         name : 'successCallback',
@@ -663,7 +663,7 @@ BluetoothLEDevice.prototype.disconnect = function() {
 BluetoothLEDevice.prototype.getService = function() {
     console.log('Entered BluetoothLEDevice.getService()');
 
-    xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH);
+    xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH_ADMIN);
 
     var args = AV.validateMethod(arguments, [
         {
@@ -1367,7 +1367,7 @@ var BluetoothLEAdapter = function() {
 BluetoothLEAdapter.prototype.startScan = function() {
   console.log('Entered BluetoothLEAdapter.startScan()');
 
-  xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH);
+  xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH_ADMIN);
 
   var args = AV.validateMethod(arguments, [{
     name: 'successCallback',
@@ -1391,7 +1391,7 @@ BluetoothLEAdapter.prototype.startScan = function() {
 BluetoothLEAdapter.prototype.stopScan = function() {
   console.log('Entered BluetoothLEAdapter.stopScan()');
 
-  xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH);
+  xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH_ADMIN);
 
   _bleScanListener.removeListener();
 
@@ -1416,7 +1416,7 @@ var _BluetoothAdvertisingMode = {
 BluetoothLEAdapter.prototype.startAdvertise = function() {
   console.log('Entered BluetoothLEAdapter.startAdvertise()');
 
-  xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH);
+  xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH_ADMIN);
 
   var args = AV.validateMethod(arguments, [{
     name: 'advertiseData',
@@ -1466,7 +1466,7 @@ BluetoothLEAdapter.prototype.startAdvertise = function() {
 BluetoothLEAdapter.prototype.stopAdvertise = function() {
   console.log('Entered BluetoothLEAdapter.stopAdvertise()');
 
-  xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH);
+  xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH_ADMIN);
 
   // TODO: when should we call _bleAdvertiseListener.removeListener()?
 
@@ -1631,7 +1631,7 @@ var BluetoothGATTCharacteristic = function(data, address) {
   BluetoothGATTCharacteristic.prototype.readValue = function() {
       console.log('Entered BluetoothGATTCharacteristic.readValue()');
 
-      xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH);
+      xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH_ADMIN);
 
       var args = AV.validateMethod(arguments, [{
         name: 'successCallback',
@@ -1664,7 +1664,7 @@ var BluetoothGATTCharacteristic = function(data, address) {
     BluetoothGATTCharacteristic.prototype.writeValue = function() {
       console.log('Entered BluetoothGATTCharacteristic.writeValue()');
 
-      xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH);
+      xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH_ADMIN);
 
       var args = AV.validateMethod(arguments, [{
         name: 'value',
@@ -1702,7 +1702,7 @@ var BluetoothGATTCharacteristic = function(data, address) {
   BluetoothGATTCharacteristic.prototype.addValueChangeListener = function() {
     console.log('Entered BluetoothGATTCharacteristic.addValueChangeListener()');
 
-    xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH);
+    xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH_ADMIN);
 
     var args = AV.validateMethod(arguments, [{
       name: 'callback',
@@ -1849,7 +1849,7 @@ var BluetoothGATTDescriptor = function(address) {
   BluetoothGATTDescriptor.prototype.readValue = function() {
     console.log('Entered BluetoothGATTDescriptor.readValue()');
 
-    xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH);
+    xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH_ADMIN);
 
     var args = AV.validateMethod(arguments, [{
       name: 'successCallback',
@@ -1882,7 +1882,7 @@ var BluetoothGATTDescriptor = function(address) {
   BluetoothGATTDescriptor.prototype.writeValue = function() {
     console.log('Entered BluetoothGATTDescriptor.writeValue()');
 
-    xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH);
+    xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH_ADMIN);
 
     var args = AV.validateMethod(arguments, [{
       name: 'value',
@@ -2547,7 +2547,7 @@ BluetoothManager.prototype.getDefaultAdapter = function() {
 BluetoothManager.prototype.getLEAdapter = function() {
     console.log('Entered BluetoothManager.getLEAdapter()');
 
-    xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH);
+    xwalk.utils.checkPrivilegeAccess(Privilege.BLUETOOTH_ADMIN);
 
     return new BluetoothLEAdapter();
 };
