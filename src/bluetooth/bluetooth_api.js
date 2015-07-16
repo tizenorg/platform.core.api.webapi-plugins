@@ -142,8 +142,9 @@ var BluetoothClassDeviceService = function() {
     });
 };
 
-//class BluetoothLEServiceData ////////////////////////////////////////////////////
-var BluetoothLEServiceData = function(d) {
+//class tizen.BluetoothLEServiceData ////////////////////////////////////////////////////
+tizen.BluetoothLEServiceData = function(d) {
+  AV.isConstructorCall(this, tizen.BluetoothLEServiceData);
   var uuid_ = '';
   var data_ = '';
 
@@ -168,9 +169,15 @@ var BluetoothLEServiceData = function(d) {
     }
   });
 
-  if (d) {
+  if (arguments.length >= 2) {  // public constructor
+    this.serviceuuid = arguments[0];
+    this.data = arguments[1];
+  } else if (d && T.isObject(d)) {  // internal constructor
     this.serviceuuid = d.serviceuuid;
     this.data = d.data;
+  } else {
+    uuid_ = undefined;
+    data_ = undefined;
   }
 };
 
@@ -259,7 +266,7 @@ tizen.BluetoothLEAdvertiseData = function(dict) {
           serviceData_ = v;
         } else if (T.isArray(v)) {
           for (var i = 0; i < v.length; ++i) {
-            if (!(v[i] instanceof BluetoothLEServiceData)) {
+            if (!(v[i] instanceof tizen.BluetoothLEServiceData)) {
               return;
             }
           }
@@ -273,7 +280,7 @@ tizen.BluetoothLEAdvertiseData = function(dict) {
         return manufacturerData_;
       },
       set: function(v) {
-        if (T.isNull(v) || (v instanceof BluetoothLEManufacturerData)) {
+        if (T.isNull(v) || (v instanceof tizen.BluetoothLEManufacturerData)) {
           manufacturerData_ = v;
         }
       }
@@ -337,7 +344,7 @@ tizen.BluetoothLEAdvertiseData = function(dict) {
       o.serviceData = dict.serviceData;
     } else if (T.isArray(dict.serviceData)) {
       for (var i = 0; i < dict.serviceData.length; ++i) {
-        if (!(dict.serviceData[i] instanceof BluetoothLEServiceData)) {
+        if (!(dict.serviceData[i] instanceof tizen.BluetoothLEServiceData)) {
           return;
         }
       }
@@ -348,7 +355,7 @@ tizen.BluetoothLEAdvertiseData = function(dict) {
 
     // manufacturerData
     if (T.isNull(dict.manufacturerData) ||
-        (dict.manufacturerData instanceof BluetoothLEManufacturerData)) {
+        (dict.manufacturerData instanceof tizen.BluetoothLEManufacturerData)) {
       o.manufacturerData = dict.manufacturerData;
     } else if (!T.isUndefined(dict.manufacturerData)) {
       return;
@@ -362,8 +369,9 @@ tizen.BluetoothLEAdvertiseData = function(dict) {
   }
 };
 
-//class BluetoothLEManufacturerData ////////////////////////////////////////////////////
-var BluetoothLEManufacturerData = function(d) {
+//class tizen.BluetoothLEManufacturerData ////////////////////////////////////////////////////
+tizen.BluetoothLEManufacturerData = function(d) {
+  AV.isConstructorCall(this, tizen.BluetoothLEManufacturerData);
   var id_ = '';
   var data_ = '';
 
@@ -388,9 +396,15 @@ var BluetoothLEManufacturerData = function(d) {
     }
   });
 
-  if (d) {
+  if (arguments.length >= 2) {  // public constructor
+    this.id = arguments[0];
+    this.data = arguments[1];
+  } else if (d && T.isObject(d)) {  // internal constructor
     this.id = d.id;
     this.data = d.data;
+  } else {
+    id_ = undefined;
+    data_ = undefined;
   }
 };
 
@@ -569,9 +583,9 @@ var BluetoothLEDevice = function(data) {
         uuids = data.uuids;
         solicitationuuids = data.solicitationuuids;
         data.serviceData.forEach(function(d) {
-            serviceData.push(new BluetoothLEServiceData(d));
+            serviceData.push(new tizen.BluetoothLEServiceData(d));
         });
-        manufacturerData = new BluetoothLEManufacturerData(data.manufacturerData);
+        manufacturerData = new tizen.BluetoothLEManufacturerData(data.manufacturerData);
     }
 
     Object.defineProperties(this, {
