@@ -490,25 +490,11 @@ void ApplicationManager::LaunchAppControl(const picojson::value& args) {
     if (!app_id.empty()) {
       LoggerD("app_id: %s", app_id.c_str());
 
-      app_control_set_app_id(app_control_ptr.get(), app_id.c_str());
+      int ret = app_control_set_app_id(app_control_ptr.get(), app_id.c_str());
 
-      char* resolved_app_id = nullptr;
-
-      // application ID can be aliased, read it again to get the real value
-      app_control_get_app_id(app_control_ptr.get(), &resolved_app_id);
-      // automatically release the memory
-      std::unique_ptr<char, void(*)(void*)> resolved_app_id_ptr(resolved_app_id, std::free);
-
-      // Check if application exists
-      app_info_h info_h = nullptr;
-
-      int ret = app_manager_get_app_info(resolved_app_id, &info_h);
-      std::unique_ptr<std::remove_pointer<app_info_h>::type, int(*)(app_info_h)>
-      info_h_ptr(info_h, &app_info_destroy); // automatically release the memory
-
-      if (APP_MANAGER_ERROR_NONE != ret) {
-        LoggerE("Specified application does not exist");
-        ReportError(PlatformResult(ErrorCode::NOT_FOUND_ERR, "No matched application found."),
+      if (APP_CONTROL_ERROR_NONE != ret) {
+        LoggerE("Invalid parameter passed.");
+        ReportError(PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid parameter passed."),
                     &response->get<picojson::object>());
         return;
       }
