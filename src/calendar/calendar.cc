@@ -402,6 +402,45 @@ PlatformResult Calendar::Remove(const picojson::object& args,
   return CalendarItem::Remove(type, id);
 }
 
+PlatformResult Calendar::SetDefaultFilter(calendar_query_h* calendar_query, int type, int id) {
+  LoggerD("Entered");
+
+  const long UNIFIED_CALENDAR_ID = 0;
+  int error_code = 0;
+  PlatformResult status = PlatformResult(ErrorCode::NO_ERROR);
+  calendar_filter_h calendar_filter = nullptr;
+  const char* view_uri =
+      (type == CALENDAR_BOOK_TYPE_EVENT) ? _calendar_event._uri : _calendar_todo._uri;
+  const int book_id =
+      (type == CALENDAR_BOOK_TYPE_EVENT) ? _calendar_event.calendar_book_id : _calendar_todo.calendar_book_id;
+  const int is_deleted =
+      (type == CALENDAR_BOOK_TYPE_EVENT) ? _calendar_event.is_deleted : _calendar_todo.is_deleted;
+
+  error_code = calendar_filter_create(view_uri, &calendar_filter);
+  if ((status = ErrorChecker(error_code)).IsError()) return status;
+
+  CalendarFilterPtr calendar_filter_ptr(calendar_filter, CalendarFilterDeleter);
+
+  calendar_match_int_flag_e match_int_flag = CALENDAR_MATCH_EQUAL;
+  if (CALENDAR_BOOK_FILTER_ALL == id || UNIFIED_CALENDAR_ID == id) {
+    match_int_flag = CALENDAR_MATCH_GREATER_THAN;
+  }
+
+  error_code = calendar_filter_add_int(calendar_filter, book_id, match_int_flag, id);
+  if ((status = ErrorChecker(error_code)).IsError()) return status;
+
+  error_code = calendar_filter_add_operator(calendar_filter, CALENDAR_FILTER_OPERATOR_AND);
+  if ((status = ErrorChecker(error_code)).IsError()) return status;
+
+  error_code = calendar_filter_add_int(calendar_filter, is_deleted, CALENDAR_MATCH_EQUAL, 0);
+  if ((status = ErrorChecker(error_code)).IsError()) return status;
+
+  error_code = calendar_query_set_filter(*calendar_query, calendar_filter);
+  status = ErrorChecker(error_code);
+
+  return status;
+}
+
 PlatformResult Calendar::Find(const picojson::object& args, picojson::array& array) {
   if (!CalendarManager::GetInstance().IsConnected()) {
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "DB Connection failed.");
@@ -423,6 +462,7 @@ PlatformResult Calendar::Find(const picojson::object& args, picojson::array& arr
   const char* view_uri = (type == CALENDAR_BOOK_TYPE_EVENT) ? _calendar_event._uri : _calendar_todo._uri;
 
   calendar_query_h calendar_query = nullptr;
+
   error_code = calendar_query_create(view_uri, &calendar_query);
   if ((status = ErrorChecker(error_code)).IsError()) return status;
 
@@ -443,6 +483,7 @@ PlatformResult Calendar::Find(const picojson::object& args, picojson::array& arr
 
       CalendarFilterPtr calendar_filter_ptr(calendar_filter,
                                             CalendarFilterDeleter);
+
       unsigned int propertyId = 0;
       if (name == "startDate" || name == "endDate" || name == "dueDate") {
         PlatformResult status = CalendarItem::GetPlatformProperty(
@@ -768,6 +809,10 @@ PlatformResult Calendar::Find(const picojson::object& args, picojson::array& arr
     error_code = calendar_query_set_filter(calendar_query,
                                            intermediate_filters[0][0].get());
     if ((status = ErrorChecker(error_code)).IsError()) return status;
+  } else {
+    //filter is not provided so default filter should be set
+    status = SetDefaultFilter(&calendar_query, type, calendar_id);
+    if (status.IsError()) return status;
   }
 
   if (!IsNull(args, "sortMode")) {
@@ -818,6 +863,7 @@ PlatformResult Calendar::Find(const picojson::object& args, picojson::array& arr
   }
 
   array.reserve(record_count);
+  LoggerD("Found %d records", record_count);
   for (int i = 0; i < record_count; ++i) {
     calendar_record_h current_record = NULL;
     error_code =

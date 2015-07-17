@@ -131,22 +131,26 @@ const PlatformEnumMap CalendarItem::platform_enum_map_ = {
         {"BUSY-UNAVAILABLE", CALENDAR_EVENT_BUSY_STATUS_UNAVAILABLE},
         {"BUSY-TENTATIVE", CALENDAR_EVENT_BUSY_STATUS_TENTATIVE}}},
     {kEventPriority, {
-        {kDefaultEnumKey, CALENDAR_EVENT_PRIORITY_NORMAL},
+        {kDefaultEnumKey, CALENDAR_EVENT_PRIORITY_NONE},
+        {"NONE", CALENDAR_EVENT_PRIORITY_NONE},
         {"LOW", CALENDAR_EVENT_PRIORITY_LOW},
         {"MEDIUM", CALENDAR_EVENT_PRIORITY_NORMAL},
         {"HIGH", CALENDAR_EVENT_PRIORITY_HIGH}}},
     {kTaskPriority, {
-        {kDefaultEnumKey, CALENDAR_TODO_PRIORITY_NORMAL},
+        {kDefaultEnumKey, CALENDAR_TODO_PRIORITY_NONE},
+        {"NONE", CALENDAR_TODO_PRIORITY_NONE},
         {"LOW", CALENDAR_TODO_PRIORITY_LOW},
         {"MEDIUM", CALENDAR_TODO_PRIORITY_NORMAL},
         {"HIGH", CALENDAR_TODO_PRIORITY_HIGH}}},
     {kEventStatus, {
         {kDefaultEnumKey, CALENDAR_EVENT_STATUS_NONE},
+        {"NONE_EVENT", CALENDAR_EVENT_STATUS_NONE},
         {"TENTATIVE", CALENDAR_EVENT_STATUS_TENTATIVE},
         {"CONFIRMED", CALENDAR_EVENT_STATUS_CONFIRMED},
         {"CANCELLED", CALENDAR_EVENT_STATUS_CANCELLED}}},
     {kTaskStatus, {
         {kDefaultEnumKey, CALENDAR_TODO_STATUS_NONE},
+        {"NONE_TASK", CALENDAR_TODO_STATUS_NONE},
         {"NEEDS_ACTION", CALENDAR_TODO_STATUS_NEEDS_ACTION},
         {"COMPLETED", CALENDAR_TODO_STATUS_COMPLETED},
         {"IN_PROCESS", CALENDAR_TODO_STATUS_IN_PROCESS},
@@ -1825,12 +1829,20 @@ PlatformResult CalendarItem::ToJson(int type, calendar_record_h rec,
       LoggerE("Error: %s", status.message().c_str());
       return status;
     }
+
+    if ("NONE_EVENT" == enum_str) {
+      enum_str = "CONFIRMED";
+    }
     out["status"] = picojson::value(enum_str);
 
     status = GetEnum(type, rec, "priority", kEventPriority, &enum_str);
     if (status.IsError()) {
       LoggerE("Error: %s", status.message().c_str());
       return status;
+    }
+
+    if ("NONE" == enum_str) {
+      enum_str = "LOW";
     }
     out["priority"] = picojson::value(enum_str);
 
@@ -1854,12 +1866,20 @@ PlatformResult CalendarItem::ToJson(int type, calendar_record_h rec,
       LoggerE("Error: %s", status.message().c_str());
       return status;
     }
+
+    if ("NONE_TASK" == enum_str) {
+      enum_str = "NEEDS_ACTION";
+    }
     out["status"] = picojson::value(enum_str);
 
     status = GetEnum(type, rec, "priority", kTaskPriority, &enum_str);
     if (status.IsError()) {
       LoggerE("Error: %s", status.message().c_str());
       return status;
+    }
+
+    if ("NONE" == enum_str) {
+      enum_str = "LOW";
     }
     out["priority"] =  picojson::value(enum_str);
 
