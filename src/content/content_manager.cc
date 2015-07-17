@@ -408,15 +408,20 @@ static int setContent(media_info_h media, const picojson::value& content) {
 
   if (type == MEDIA_CONTENT_TYPE_IMAGE || type == MEDIA_CONTENT_TYPE_VIDEO) {
     picojson::value geo = content.get("geolocation");
-    double latitude = atof(geo.get("latitude").to_str().c_str());
-    double longitude = atof(geo.get("longitude").to_str().c_str());
-    ret = media_info_set_latitude(media, latitude);
-    if (ret != MEDIA_CONTENT_ERROR_NONE) {
-      LoggerE("Updating geolocation is failed.");
-    }
-    ret = media_info_set_longitude(media, longitude);
-    if (ret != MEDIA_CONTENT_ERROR_NONE) {
-      LoggerD("Updating geolocation is failed.");
+    if (geo.evaluate_as_boolean()) {
+      LoggerD("geolocation is not null");
+      double latitude = atof(geo.get("latitude").to_str().c_str());
+      double longitude = atof(geo.get("longitude").to_str().c_str());
+      ret = media_info_set_latitude(media, latitude);
+      if (ret != MEDIA_CONTENT_ERROR_NONE) {
+        LoggerE("Updating geolocation is failed.");
+      }
+      ret = media_info_set_longitude(media, longitude);
+      if (ret != MEDIA_CONTENT_ERROR_NONE) {
+        LoggerD("Updating geolocation is failed.");
+      }
+    } else {
+      LoggerD("geolocation is null");
     }
   }
 

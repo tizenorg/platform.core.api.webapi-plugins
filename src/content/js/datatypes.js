@@ -322,7 +322,7 @@ function VideoContent(data) {
         return geolocation;
       },
       set: function(v) {
-        if (!type_.isNull(v) && v.latitude && v.longitude) {
+        if (!type_.isNull(v)) {
           var latitude = converter_.toDouble(v.latitude, false);
           var longitude = converter_.toDouble(v.longitude, false);
           geolocation = new tizen.SimpleCoordinates(latitude, longitude);
@@ -629,7 +629,7 @@ function ImageContent(data) {
         return geolocation;
       },
       set: function(v) {
-        if (!type_.isNull(v) && v.latitude && v.longitude) {
+        if (!type_.isNull(v)) {
           var latitude = converter_.toDouble(v.latitude, false);
           var longitude = converter_.toDouble(v.longitude, false);
           geolocation = new tizen.SimpleCoordinates(latitude, longitude);
