@@ -104,8 +104,8 @@ InputDeviceManager.prototype.registerKey = function(keyName) {
 
   var ret = native.sendRuntimeSyncMessage('tizen://api/inputdevice/registerKey',map[args.keyName].keyName);
 
-  if (native.isFailure(ret)) {
-    throw native.getErrorObject(ret);
+  if (ret === 'error') {
+    throw new WebAPIException(WebAPIException.UNKNOWN_ERR, 'UnknownError');
   }
 };
 
@@ -124,10 +124,10 @@ InputDeviceManager.prototype.unregisterKey = function(keyName) {
       'Parameter "keyName" is invalid.');
   }
   
-  var ret = native.sendRuntimeSyncMessage('tizen://api/inputdevice/unregisterKey',map[args.keyName].keyName);  
+  var ret = native.sendRuntimeSyncMessage('tizen://api/inputdevice/unregisterKey',map[args.keyName].keyName);
 
-  if (native.isFailure(ret)) {
-    throw native.getErrorObject(ret);
+  if (ret === 'error') {
+    throw new WebAPIException(WebAPIException.UNKNOWN_ERR, 'UnknownError');
   }
 };
 
