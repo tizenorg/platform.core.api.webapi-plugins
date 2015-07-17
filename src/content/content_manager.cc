@@ -437,11 +437,48 @@ static void FolderToJson(media_folder_h folder, picojson::object* out) {
   time_t date;
   media_content_storage_e storageType;
 
-  media_folder_get_folder_id(folder, &id);
-  media_folder_get_name(folder, &name);
-  media_folder_get_path(folder, &path);
-  media_folder_get_modified_time(folder, &date);
-  media_folder_get_storage_type(folder, &storageType);
+  int ret;
+
+  ret = media_folder_get_folder_id(folder, &id);
+  if(ret!=MEDIA_CONTENT_ERROR_NONE)
+  {
+    LoggerE("Failed: media_folder_get_folder_id");
+    common::tools::ReportError(ContentManager::convertError(ret), out);
+    return;
+  }
+
+  ret = media_folder_get_name(folder, &name);
+  if(ret!=MEDIA_CONTENT_ERROR_NONE)
+  {
+    LoggerE("Failed: media_folder_get_name");
+    common::tools::ReportError(ContentManager::convertError(ret), out);
+    return;
+  }
+
+  ret = media_folder_get_path(folder, &path);
+  if(ret!=MEDIA_CONTENT_ERROR_NONE)
+  {
+    LoggerE("Failed: media_folder_get_path");
+    common::tools::ReportError(ContentManager::convertError(ret), out);
+    return;
+  }
+
+  ret = media_folder_get_modified_time(folder, &date);
+  if(ret!=MEDIA_CONTENT_ERROR_NONE)
+  {
+    LoggerE("Failed: media_folder_get_path");
+    common::tools::ReportError(ContentManager::convertError(ret), out);
+    return;
+  }
+
+  ret = media_folder_get_storage_type(folder, &storageType);
+  if(ret!=MEDIA_CONTENT_ERROR_NONE)
+  {
+    LoggerE("Failed: media_folder_get_storage_type");
+    common::tools::ReportError(ContentManager::convertError(ret), out);
+    return;
+  }
+
 
   (*out)["id"] = picojson::value(std::string(id));
   (*out)["directoryURI"] = picojson::value(std::string(path));
@@ -1027,8 +1064,8 @@ void ContentManager::playlistRemovebatch(const std::shared_ptr<ReplyCallbackData
   }
 
   std::vector<picojson::value> members = user_data->args.get("members").get<picojson::array>();
-  size_t members_size = members.size();
-  for( size_t i = 0; i < members_size; i++ ) {
+  std::size_t members_size = members.size();
+  for (std::size_t i = 0; i < members_size; ++i) {
     int member_id = static_cast<int>(members.at(i).get<double>());
     ret = media_playlist_remove_media(playlist, member_id);
 
@@ -1068,9 +1105,16 @@ void ContentManager::playlistSetOrder(const std::shared_ptr<ReplyCallbackData>& 
   std::vector<picojson::value> members = user_data->args.get("members").get<picojson::array>();
 
   ret = media_playlist_get_media_count_from_db(std::stoi(playlist_id), NULL, &cnt);
-
-  size_t members_size = members.size();
-  if ( (size_t) cnt != members_size ) {
+  if(ret != MEDIA_CONTENT_ERROR_NONE)
+  {
+    LoggerE("Failed: media_playlist_get_media_count_from_db");
+    PlatformResult err = convertError(ret);
+    user_data->isSuccess = false;
+    user_data->result = err.ToJSON();
+    return;
+  }
+  std::size_t members_size = members.size();
+  if (cnt < 0 || static_cast<size_t>(cnt) != members_size ) {
     LoggerE("Failed: The items array does not contain all items from the playlist");
     PlatformResult err(ErrorCode::INVALID_VALUES_ERR, "The items array does not contain all items from the playlist.");
     user_data->isSuccess = false;
@@ -1078,7 +1122,7 @@ void ContentManager::playlistSetOrder(const std::shared_ptr<ReplyCallbackData>& 
     return;
   }
 
-  for( size_t i = 0; i < members_size; i++ ) {
+  for (std::size_t i = 0; i < members_size; ++i) {
     int member_id = static_cast<int>(members.at(i).get<double>());
     ret = media_playlist_set_play_order(playlist, member_id, i);
     if (ret != MEDIA_CONTENT_ERROR_NONE) {
@@ -1391,4 +1435,3 @@ PlatformResult ContentManager::convertError(int err) {
 
 } // namespace content
 } // namespace extension
-
