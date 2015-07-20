@@ -16,6 +16,9 @@
 
 #include "notification/notification_manager.h"
 
+#include <fcntl.h>
+#include <unistd.h>
+
 #include <app_control_internal.h>
 #include <device/led.h>
 #include <notification_internal.h>
@@ -130,10 +133,21 @@ PlatformResult NotificationManager::GetAll(picojson::array& out) {
   notification_h noti = nullptr;
   notification_list_h noti_list = nullptr;
   notification_list_h noti_list_iter = nullptr;
+  char* package = nullptr;
 
-  int ret =
-      notification_get_grouping_list(NOTIFICATION_TYPE_NONE, -1, &noti_list);
-  if (ret != NOTIFICATION_ERROR_NONE) {
+  if (APP_ERROR_NONE == app_get_id(&package)) {
+    LoggerD("Package id: %s", package);
+  } else {
+    LoggerD("Could not get package id");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                          "Could not get package id");
+  }
+  const std::string package_str = package;
+  free(package);
+
+  int ret = notification_get_detail_list(package_str.c_str(), NOTIFICATION_GROUP_ID_NONE,
+                                         NOTIFICATION_PRIV_ID_NONE, -1, &noti_list);
+  if (NOTIFICATION_ERROR_NONE != ret) {
     LoggerD("Get notification list error: %d", ret);
     return PlatformResult(ErrorCode::UNKNOWN_ERR,
                           "Get notification list error");
@@ -143,12 +157,12 @@ PlatformResult NotificationManager::GetAll(picojson::array& out) {
 
   noti_list_iter = notification_list_get_head(noti_list);
 
-  while (noti_list_iter != nullptr) {
+  while (nullptr != noti_list_iter) {
     noti = notification_list_get_data(noti_list_iter);
-    if (noti != nullptr) {
+    if (nullptr != noti) {
       int noti_priv = -1;
       ret = notification_get_id(noti, NULL, &noti_priv);
-      if (ret != NOTIFICATION_ERROR_NONE) {
+      if (NOTIFICATION_ERROR_NONE != ret) {
         LoggerE("Cannot get notification id, error: %d", ret);
         return PlatformResult(ErrorCode::UNKNOWN_ERR,
                               "Cannot get notification id error");

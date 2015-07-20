@@ -320,12 +320,12 @@ static PlatformResult ConvertHrmEvent(sensor_event_s* event,
   LOGGER(DEBUG) << "  |- values[0]: " << event->values[0];
   LOGGER(DEBUG) << "  |- values[1]: " << event->values[1];
 
-  float hr = event->values[0]; // heart beat rate 0 ~ 220 integer (bpm)
+  float hr = floor( event->values[0] + 0.5); // heart beat rate 0 ~ 220 integer (bpm)
 
   // there are no public native api for peak to peak interval.
   // but RRI = (60 / HR) * 1000
   // or unofficially values[1] is rri (0 ~ 5000 ms)
-  float rri = event->values[1];
+  float rri = floor(event->values[1] + 0.5);
 
 
   (*data)["heartRate"] = picojson::value(static_cast<double>(hr));

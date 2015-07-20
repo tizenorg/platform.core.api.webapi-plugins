@@ -17,7 +17,7 @@
 #ifndef NFC_NFC_ADAPTER_H_
 #define NFC_NFC_ADAPTER_H_
 
-#ifdef APP_CONTROL_SETTING_SUPPORT
+#ifdef APP_CONTROL_SETTINGS_SUPPORT
 #include <app_control.h>
 #endif
 #include <network/nfc.h>

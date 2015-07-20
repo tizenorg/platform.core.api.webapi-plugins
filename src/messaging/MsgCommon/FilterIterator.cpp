@@ -85,7 +85,7 @@ bool FilterIterator::isLastCompositeSubFilter() const
     }
 
     CompositeIterState cfilter = m_composite_stack.top();
-    return (cfilter.filter->getFilters().size() - 1) == cfilter.cur_sub_filter_index;
+    return (int)(cfilter.filter->getFilters().size() - 1) == cfilter.cur_sub_filter_index;
 }
 
 void FilterIterator::operator++(int)

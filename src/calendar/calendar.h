@@ -18,6 +18,7 @@
 #define CALENDAR_CALENDAR_H_
 
 #include <memory>
+#include <calendar-service2/calendar_types.h>
 
 #include "common/picojson.h"
 #include "common/platform_result.h"
@@ -185,6 +186,7 @@ class Calendar {
 
   static void ChangeCallback(const char* view_uri, void* user_data);
   common::PlatformResult ErrorChecker(int errorCode);
+  common::PlatformResult SetDefaultFilter(calendar_query_h* calendar_query, int type, int id);
 };
 
 }  // namespace calendar

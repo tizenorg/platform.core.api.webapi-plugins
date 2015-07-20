@@ -490,25 +490,11 @@ void ApplicationManager::LaunchAppControl(const picojson::value& args) {
     if (!app_id.empty()) {
       LoggerD("app_id: %s", app_id.c_str());
 
-      app_control_set_app_id(app_control_ptr.get(), app_id.c_str());
+      int ret = app_control_set_app_id(app_control_ptr.get(), app_id.c_str());
 
-      char* resolved_app_id = nullptr;
-
-      // application ID can be aliased, read it again to get the real value
-      app_control_get_app_id(app_control_ptr.get(), &resolved_app_id);
-      // automatically release the memory
-      std::unique_ptr<char, void(*)(void*)> resolved_app_id_ptr(resolved_app_id, std::free);
-
-      // Check if application exists
-      app_info_h info_h = nullptr;
-
-      int ret = app_manager_get_app_info(resolved_app_id, &info_h);
-      std::unique_ptr<std::remove_pointer<app_info_h>::type, int(*)(app_info_h)>
-      info_h_ptr(info_h, &app_info_destroy); // automatically release the memory
-
-      if (APP_MANAGER_ERROR_NONE != ret) {
-        LoggerE("Specified application does not exist");
-        ReportError(PlatformResult(ErrorCode::NOT_FOUND_ERR, "No matched application found."),
+      if (APP_CONTROL_ERROR_NONE != ret) {
+        LoggerE("Invalid parameter passed.");
+        ReportError(PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid parameter passed."),
                     &response->get<picojson::object>());
         return;
       }
@@ -1099,15 +1085,18 @@ class ApplicationListChangedBroker {
     kUninstalled,
   };
 
-#if defined(TIZEN_TV)
-  static int ClientStatusListener(unsigned int target_uid, int id, const char* type, const char* package, const char* key,
-                                  const char* val, const void* msg, void* data) {
+  static int ClientStatusListener(unsigned int target_uid, int id,
+                                  const char* type, const char* package,
+                                  const char* key,
+                                  const char* val, const void* msg,
+                                  void* data) {
     LoggerD("Entered");
     ApplicationListChangedBroker* that = static_cast<ApplicationListChangedBroker*>(data);
 
     if (0 == strcasecmp(key, kStartKey)) {
       that->HandleStart(val, package);
-    } else if (0 == strcasecmp(key, kEndKey) && 0 == strcasecmp(val, kOkValue)) {
+    } else if (0 == strcasecmp(key, kEndKey) &&
+               0 == strcasecmp(val, kOkValue)) {
       that->HandleEnd(package);
     } else {
       LoggerD("Ignored key: %s", key);
@@ -1115,23 +1104,6 @@ class ApplicationListChangedBroker {
 
     return 0;
   }
-#else
-  static int ClientStatusListener(int id, const char* type, const char* package, const char* key,
-                                  const char* val, const void* msg, void* data) {
-    LoggerD("Entered");
-    ApplicationListChangedBroker* that = static_cast<ApplicationListChangedBroker*>(data);
-
-    if (0 == strcasecmp(key, kStartKey)) {
-      that->HandleStart(val, package);
-    } else if (0 == strcasecmp(key, kEndKey) && 0 == strcasecmp(val, kOkValue)) {
-      that->HandleEnd(package);
-    } else {
-      LoggerD("Ignored key: %s", key);
-    }
-
-    return 0;
-  }
-#endif
 
   void AddApplicationInstance(ApplicationInstance* app_instance) {
     LoggerD("Entered");
@@ -1278,10 +1250,9 @@ void ApplicationManager::StartAppInfoEventListener(picojson::object* out) {
     }
 
     g_application_list_changed_broker.AddApplicationInstance(&instance_);
-    /* TODO - causes build break on Tizen 3.0
     pkgmgr_client_listen_status(pkgmgr_client_handle_,
                                 ApplicationListChangedBroker::ClientStatusListener,
-                                &g_application_list_changed_broker);*/
+                                &g_application_list_changed_broker);
   } else {
     LoggerD("Broker callback is already registered.");
   }

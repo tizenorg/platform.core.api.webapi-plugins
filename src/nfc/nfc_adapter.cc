@@ -212,7 +212,7 @@ bool NFCAdapter::GetPowered() {
   return nfc_manager_is_activated();
 }
 
-#ifndef APP_CONTROL_SETTING_SUPPORT
+#ifndef APP_CONTROL_SETTINGS_SUPPORT
 
 static void NFCSetActivationCompletedCallback(nfc_error_e error,
                                               void* user_data) {
@@ -299,7 +299,7 @@ static void transaction_event_callback(nfc_se_type_e type,
   NFCAdapter::GetInstance()->RespondAsync(response.serialize().c_str());
 }
 
-#ifdef APP_CONTROL_SETTING_SUPPORT
+#ifdef APP_CONTROL_SETTINGS_SUPPORT
 static void PostMessage(double* callbackId) {
   picojson::value event = CreateEventError(*callbackId,
                                            PlatformResult(ErrorCode::UNKNOWN_ERR,
@@ -326,7 +326,7 @@ PlatformResult NFCAdapter::SetPowered(const picojson::value& args) {
     return PlatformResult(ErrorCode::NO_ERROR);
   }
 
-#ifdef APP_CONTROL_SETTING_SUPPORT
+#ifdef APP_CONTROL_SETTINGS_SUPPORT
   app_control_h service = NULL;
 
   int ret = app_control_create(&service);
@@ -337,8 +337,7 @@ PlatformResult NFCAdapter::SetPowered(const picojson::value& args) {
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "SetPowered failed.");
   }
 
-  ret = app_control_set_operation(service,
-                                  "http://tizen.org/appcontrol/operation/setting/nfc");
+  ret = app_control_set_operation(service, "http://tizen.org/appcontrol/operation/setting/nfc");
   if (ret != APP_CONTROL_ERROR_NONE) {
     LoggerE("app_control_set_operation failed: %d", ret);
     app_control_destroy(service);
