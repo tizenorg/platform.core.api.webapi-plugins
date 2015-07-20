@@ -953,6 +953,21 @@ common::PlatformResult CheckTelephonySupport() {
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
+common::PlatformResult CheckCameraFlashSupport() {
+  bool supported = false;
+  PlatformResult ret = SystemInfoDeviceCapability::GetValueBool(
+    "tizen.org/feature/camera.back.flash", &supported);
+  if (ret.IsError()) {
+    return ret;
+  }
+  if (!supported) {
+    LoggerD("Back-facing camera with a flash is not supported on this device");
+    return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR,
+        "Back-facing camera with a flash is not supported on this device");
+  }
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
 PlatformResult SystemInfoListeners::RegisterEthernetNetworkListener(const SysteminfoUtilsCallback& callback,
                                                                     SysteminfoInstance& instance)
 {
@@ -1671,7 +1686,9 @@ PlatformResult SysteminfoUtils::GetCount(const std::string& property, unsigned l
     }
   } else if ("CAMERA_FLASH" == property) {
     const int numberOfCameraFlashProperties = 3;
-    count = numberOfCameraFlashProperties;
+    PlatformResult ret = CheckCameraFlashSupport();
+    if (ret.IsError()) count = 0;
+    else count = numberOfCameraFlashProperties;
   } else if ("ETHERNET_NETWORK" == property) {
     PlatformResult ret = CheckIfEthernetNetworkSupported();
     if (ret.IsError()) count = 0;
@@ -2736,7 +2753,11 @@ PlatformResult SysteminfoUtils::ReportStorage(picojson::object& out) {
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 PlatformResult SysteminfoUtils::ReportCameraFlash(picojson::object& out) {
-  return PlatformResult(ErrorCode::NO_ERROR);
+    PlatformResult ret = CheckCameraFlashSupport();
+    if (ret.IsError()) {
+      return ret;
+    }
+    return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 PlatformResult SysteminfoUtils::RegisterBatteryListener(const SysteminfoUtilsCallback& callback,
