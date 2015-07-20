@@ -20,6 +20,7 @@
 #include <glib.h>
 #include <list>
 #include <media_content.h>
+#include <media_folder.h>
 #include <memory>
 #include <string>
 
@@ -35,6 +36,7 @@ typedef std::unique_ptr<std::remove_pointer<media_playlist_h>::type,
     void (*)(media_playlist_h&)> PlaylistUniquePtr;
 
 void ContentToJson(media_info_h info, picojson::object& o);
+void ContentDirToJson(media_folder_h folder, picojson::object& o);
 
 class ContentManager {
  public:
@@ -48,6 +50,7 @@ class ContentManager {
   int updateBatch(picojson::value args);
 
   int scanFile(std::string& uri);
+  common::PlatformResult scanDirectory(media_scan_completed_cb callback, ReplyCallbackData* cbData);
   common::PlatformResult setChangeListener(media_content_db_update_cb callback, void *user_data);
   common::PlatformResult unSetChangeListener();
 

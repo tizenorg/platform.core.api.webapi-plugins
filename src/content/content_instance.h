@@ -52,6 +52,7 @@ class ContentInstance : public common::ParsedInstance {
   void ContentManagerGetdirectories(const picojson::value& args, picojson::object& out);
   void ContentManagerFind(const picojson::value& args, picojson::object& out);
   void ContentManagerScanfile(const picojson::value& args, picojson::object& out);
+  void ContentManagerScanDirectory(const picojson::value& args, picojson::object& out);
   void ContentManagerSetchangelistener(const picojson::value& args, picojson::object& out);
   void ContentManagerUnsetchangelistener(const picojson::value& args, picojson::object& out);
   void ContentManagerGetplaylists(const picojson::value& args, picojson::object& out);

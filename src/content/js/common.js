@@ -62,6 +62,10 @@ function createContentObject_(data) {
   return content;
 }
 
+function createContentDirObject_(data) {
+  return new ContentDirectory(data);
+}
+
 function convertUriToPath_(uri) {
   if (0 === uri.indexOf(SCHEMA)) {
     return uri.substring(SCHEMA.length);
