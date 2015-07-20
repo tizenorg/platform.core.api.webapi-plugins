@@ -1005,7 +1005,7 @@ void ShortMsgManager::findMessages(FindMsgCallbackUserData* callback)
 
                 Message* message = nullptr;
                 PlatformResult ret = Message::convertPlatformShortMessageToObject(msg, &message);
-                if (ret.IsError() && ret.error_code() != ErrorCode::INVALID_VALUES_ERR) {
+                if (ret.IsError()) {
                     LoggerE("Cannot get platform Message structure");
                     callback->SetError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get platform Message structure"));
                     break;
