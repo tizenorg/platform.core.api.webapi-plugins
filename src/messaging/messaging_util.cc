@@ -349,6 +349,7 @@ picojson::value MessagingUtil::messageToJson(std::shared_ptr<Message> message)
     picojson::object o;
 
     std::vector<picojson::value> array;
+    std::vector<std::string> bcc, cc;
     auto vectorToArray = [&array] (std::string& s)->void {
         array.push_back(picojson::value(s));
     };
@@ -363,12 +364,12 @@ picojson::value MessagingUtil::messageToJson(std::shared_ptr<Message> message)
         break;
     case MessageType::EMAIL:
 
-        std::vector<std::string> cc = message->getCC();
+        cc = message->getCC();
         for_each(cc.begin(), cc.end(), vectorToArray);
         o[MESSAGE_ATTRIBUTE_CC] = picojson::value(array);
         array.clear();
 
-        std::vector<std::string> bcc = message->getBCC();
+        bcc = message->getBCC();
         for_each(bcc.begin(), bcc.end(), vectorToArray);
         o[MESSAGE_ATTRIBUTE_BCC] = picojson::value(array);
         array.clear();
@@ -378,6 +379,9 @@ picojson::value MessagingUtil::messageToJson(std::shared_ptr<Message> message)
         o[MESSAGE_ATTRIBUTE_SUBJECT] = picojson::value(message->getSubject());
         o[MESSAGE_ATTRIBUTE_OLD_ID] = picojson::value(std::to_string(message->getOldId()));
 
+        break;
+    default:
+        LoggerW("Unsupported message type");
         break;
     }
 
@@ -471,6 +475,7 @@ picojson::value MessagingUtil::conversationToJson(std::shared_ptr<MessageConvers
     for_each(to.begin(), to.end(), vectorToArray);
     o[MESSAGE_ATTRIBUTE_TO] = picojson::value(array);
     array.clear();
+    std::vector<std::string> cc, bcc;
 
     switch (conversation->getType()) {
         case MessageType::SMS:
@@ -481,16 +486,19 @@ picojson::value MessagingUtil::conversationToJson(std::shared_ptr<MessageConvers
         case MessageType::EMAIL:
             o[MESSAGE_ATTRIBUTE_SUBJECT] = picojson::value(conversation->getSubject());
 
-            std::vector<std::string> cc = conversation->getCC();
+            cc = conversation->getCC();
             for_each(cc.begin(), cc.end(), vectorToArray);
             o[MESSAGE_ATTRIBUTE_CC] = picojson::value(array);
             array.clear();
 
-            std::vector<std::string> bcc = conversation->getBCC();
+            bcc = conversation->getBCC();
             for_each(bcc.begin(), bcc.end(), vectorToArray);
             o[MESSAGE_ATTRIBUTE_BCC] = picojson::value(array);
             array.clear();
 
+            break;
+        default:
+            LoggerW("Unsupported message type");
             break;
         }
 
@@ -571,6 +579,9 @@ PlatformResult MessagingUtil::jsonToMessage(const picojson::value& json,
         } else {
             message = std::shared_ptr<Message>(new MessageEmail());
         }
+        break;
+    default:
+        LoggerE("Not supported message type");
         break;
     }
 

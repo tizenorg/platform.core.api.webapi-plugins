@@ -355,10 +355,9 @@ PlatformResult saveToTempFile(const std::string &data, std::string* file_name)
 {
     LoggerD("Entered");
     char buf[] = "XXXXXX";
-    int res = 0;
 
     mode_t mask = umask(S_IWGRP | S_IWOTH);
-    res = mkstemp(buf);   //Just generate unique name
+    mkstemp(buf);   //Just generate unique name
 
     std::string tmp_name = std::string("/tmp/") + buf;
 

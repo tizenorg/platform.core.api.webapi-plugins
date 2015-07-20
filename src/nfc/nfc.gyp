@@ -38,6 +38,9 @@
             ]
           },
         }],
+        ['tizen_feature_app_control_settings_support == 1', {
+          'defines': ['APP_CONTROL_SETTINGS_SUPPORT'],
+        }],
       ],
     },
   ],

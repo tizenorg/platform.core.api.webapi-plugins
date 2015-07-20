@@ -67,9 +67,29 @@ DownloadInstance::DownloadInstance() {
 
 DownloadInstance::~DownloadInstance() {
   LoggerD("Entered");
-  for (DownloadCallbackVector::iterator it = downCbVector.begin();
-    it != downCbVector.end(); it++) {
-    delete (*it);
+  int ret;
+  for (DownloadCallbackMap::iterator it = downCbMap.begin();
+    it != downCbMap.end(); it++) {
+    DownloadInfoPtr diPtr = it->second->instance->diMap[it->second->callbackId];
+    SLoggerD("~DownloadInstance() for callbackID %d Called", it->second->callbackId);
+
+    ret = download_unset_state_changed_cb(diPtr->download_id);
+    if (ret != DOWNLOAD_ERROR_NONE)
+      LoggerE("download_unset_state_changed_cb() is failed. (%s)", get_error_message (ret));
+
+    ret = download_unset_progress_cb(diPtr->download_id);
+    if (ret != DOWNLOAD_ERROR_NONE)
+      LoggerE("download_unset_progress_cb() is failed. (%s)", get_error_message (ret));
+
+    ret = download_cancel(diPtr->download_id);
+    if (ret != DOWNLOAD_ERROR_NONE)
+      LoggerE("download_cancel() is failed. (%s)", get_error_message (ret));
+
+    ret = download_destroy(diPtr->download_id);
+    if (ret != DOWNLOAD_ERROR_NONE)
+      LoggerE("download_destroy() is failed. (%s)", get_error_message (ret));
+
+    delete (it->second);
   }
 
   std::lock_guard<std::mutex> lock(instances_mutex_);
@@ -206,6 +226,8 @@ gboolean DownloadInstance::OnFinished(void* user_data) {
   out["fullPath"] = picojson::value(fullPath);
 
   downCbPtr->instance->PostMessage(picojson::value(out).serialize().c_str());
+  downCbPtr->instance->downCbMap.erase(downCbPtr->callbackId);
+  delete (downCbPtr);
 
   free(fullPath);
 
@@ -255,6 +277,9 @@ gboolean DownloadInstance::OnCanceled(void* user_data) {
     picojson::value(static_cast<double>(downCbPtr->callbackId));
 
   downCbPtr->instance->PostMessage(picojson::value(out).serialize().c_str());
+  downCbPtr->instance->downCbMap.erase(downCbPtr->callbackId);
+  delete (downCbPtr);
+
   return FALSE;
 }
 
@@ -501,7 +526,7 @@ void DownloadInstance::DownloadManagerStart
   downCbPtr->callbackId = diPtr->callbackId;
   downCbPtr->instance = this;
 
-  downCbVector.push_back(downCbPtr);
+  downCbMap[downCbPtr->callbackId] = downCbPtr;
 
   ret = download_create(&diPtr->download_id);
   ret =

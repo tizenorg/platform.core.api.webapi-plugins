@@ -189,7 +189,7 @@ PlatformResult SoundManager::GetMaxVolume(sound_type_e type, int* max_volume) {
 
 double SoundManager::ConvertToSystemVolume(int max_volume, int volume) {
   LoggerD("Enter");
-  return static_cast<double>(volume) / max_volume;
+  return round(static_cast<double>(volume) * 10 / max_volume) / 10;
 }
 
 void SoundManager::VolumeChangeCallback(sound_type_e type, unsigned int value) {
@@ -582,11 +582,10 @@ void DeviceActivationChangeCB(sound_device_h device, sound_device_changed_info_e
                               void *user_data) {
   LoggerD("Entered");
 
-  // TODO(r.galka) SOUND_DEVICE_CHANGED_INFO_STATE is not defined in platform (deprecated?)
-  /*if (SOUND_DEVICE_CHANGED_INFO_STATE == changed_info) {
+  if (SOUND_DEVICE_CHANGED_INFO_STATE == changed_info) {
     SoundManager* h = static_cast<SoundManager*>(user_data);
     h->DeviceChangeCB(device, false, true);
-  }*/
+  }
 }
 
 PlatformResult SoundManager::AddDeviceStateChangeListener() {

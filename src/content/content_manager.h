@@ -73,7 +73,7 @@ class ContentManager {
   int setThumbnailUri(int id, const std::string& thb_uri);
 
 //playlistSetOrder
-  common::PlatformResult convertError(int err);
+  static common::PlatformResult convertError(int err);
  private:
   //int setContent(media_info_h media, picojson::value content);
   ContentManager();

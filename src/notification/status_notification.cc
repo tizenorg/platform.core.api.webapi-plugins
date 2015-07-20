@@ -231,7 +231,6 @@ PlatformResult StatusNotification::GetImage(
     return PlatformResult(ErrorCode::UNKNOWN_ERR,
                           "Get notification image error");
   }
-
   if (path) {
     *image_path = path;
   }
@@ -328,7 +327,8 @@ PlatformResult StatusNotification::GetDetailInfos(notification_h noti_handle,
   picojson::object& detail_info_obj = detail_info.get<picojson::object>();
 
   std::string text;
-  for (int idx = 0; idx < info_map_.size(); ++idx) {
+  size_t info_map_size = info_map_.size();
+  for (size_t idx = 0; idx < info_map_size; ++idx) {
     PlatformResult status = GetText(noti_handle, info_map_.at(idx), &text);
     if (status.IsError())
       return status;
@@ -356,8 +356,9 @@ PlatformResult StatusNotification::SetDetailInfos(
     notification_h noti_handle,
     const picojson::array& value) {
   LoggerD("Enter");
-  int idx = 0;
+  size_t idx = 0;
 
+  size_t info_map_size = info_map_.size();
   for (auto& item : value) {
     const picojson::object& obj = JsonCast<picojson::object>(item);
 
@@ -379,7 +380,7 @@ PlatformResult StatusNotification::SetDetailInfos(
 
     ++idx;
 
-    if (idx > info_map_.size()) {
+    if (idx > info_map_size) {
       LoggerE("Too many values in notification detailInfo array");
       return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
                             "Too many values in notification detailInfo array");
@@ -524,7 +525,8 @@ PlatformResult StatusNotification::GetThumbnails(notification_h noti_handle,
                                                  picojson::array* out) {
   LoggerD("Enter");
   std::string text;
-  for (int idx = 0; idx < thumbnails_map_.size(); ++idx) {
+  size_t thumbnails_map_size = thumbnails_map_.size();
+  for (size_t idx = 0; idx < thumbnails_map_size; ++idx) {
     PlatformResult status =
         GetImage(noti_handle, thumbnails_map_.at(idx), &text);
     if (status.IsError())
@@ -542,8 +544,9 @@ PlatformResult StatusNotification::GetThumbnails(notification_h noti_handle,
 PlatformResult StatusNotification::SetThumbnails(notification_h noti_handle,
                                                  const picojson::array& value) {
   LoggerD("Enter");
-  int idx = 0;
+  size_t idx = 0;
 
+  size_t thumbnails_map_size = thumbnails_map_.size();
   for (auto& item : value) {
     const std::string& text = JsonCast<std::string>(item);
 
@@ -554,7 +557,7 @@ PlatformResult StatusNotification::SetThumbnails(notification_h noti_handle,
 
     ++idx;
 
-    if (idx > thumbnails_map_.size()) {
+    if (idx > thumbnails_map_size) {
       LoggerE("Too many values in notification thumbnail array");
       return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
                             "Too many values in notification thumbnail array");
@@ -852,17 +855,17 @@ PlatformResult StatusNotification::GetProgressValue(
     const std::string& progess_type,
     double* progress_value) {
   LoggerD("Enter");
-  *progress_value = 0.0;
+  double tmp_progress_value = 0.0;
 
   if (progess_type == kProgressTypeByte) {
-    if (notification_get_size(noti_handle, progress_value) !=
+    if (notification_get_size(noti_handle, &tmp_progress_value) !=
         NOTIFICATION_ERROR_NONE) {
       LoggerE("Get notification size error");
       return PlatformResult(ErrorCode::UNKNOWN_ERR,
                             "Get notification size error");
     }
   } else if (progess_type == kProgressTypePercentage) {
-    if (notification_get_progress(noti_handle, progress_value) !=
+    if (notification_get_progress(noti_handle, &tmp_progress_value) !=
         NOTIFICATION_ERROR_NONE) {
       LoggerE("Get notification progress error");
       return PlatformResult(ErrorCode::UNKNOWN_ERR,
@@ -874,8 +877,9 @@ PlatformResult StatusNotification::GetProgressValue(
                           "Unknown notification progress type");
   }
 
-  LOGGER(DEBUG) << "Progress " << progess_type << " = " << *progress_value;
+  LOGGER(DEBUG) << "Progress " << progess_type << " = " << tmp_progress_value;
 
+  *progress_value = tmp_progress_value;
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 

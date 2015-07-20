@@ -39,22 +39,27 @@ var edit_ = new EditManager();
 var SCHEMA = 'file://';
 
 function createContentObject_(data) {
+  var content;
   switch (data.type) {
     case ContentType.IMAGE:
-        return new ImageContent(data);
+      content = new ImageContent(data);
       break;
     case ContentType.AUDIO:
-      return new AudioContent(data);
+        content = new AudioContent(data);
       break;
     case ContentType.VIDEO:
-      return new VideoContent(data);
+      content = new VideoContent(data);
       break;
     case ContentType.OTHER:
-      return new Content(data);
+      content = new Content(data);
       break;
+    default:
+      throw new WebAPIException(WebAPIException.UNKNOWN_ERR, 'Undefined content type');
   }
-
-  throw new WebAPIException(WebAPIException.UNKNOWN_ERR, 'Undefined content type');
+  // below constructor overwriting is needed because of backward compatibility
+  var object = {};
+  content.constructor = object.constructor;
+  return content;
 }
 
 function convertUriToPath_(uri) {

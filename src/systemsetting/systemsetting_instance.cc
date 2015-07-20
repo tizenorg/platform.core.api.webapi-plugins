@@ -121,11 +121,10 @@ PlatformResult SystemSettingInstance::getPlatformPropertyValue(
       result_obj.insert(std::make_pair("value", picojson::value(value ? value : "")));
       free(value);
       return PlatformResult(ErrorCode::NO_ERROR);
-    // TODO(p.kaczmarek3) temporarily removed - not supported by platform
-    //case SYSTEM_SETTINGS_ERROR_CALL_UNSUPPORTED_API:
-    //  LoggerD("ret == SYSTEM_SETTINGS_ERROR_CALL_UNSUPPORTED_API");
-    //  return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR,
-    //                        "This property is not supported.");
+    case SYSTEM_SETTINGS_ERROR_CALL_UNSUPPORTED_API:
+      LoggerD("ret == SYSTEM_SETTINGS_ERROR_CALL_UNSUPPORTED_API");
+      return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR,
+                            "This property is not supported.");
     default:
       LoggerD("Other error");
       return PlatformResult(ErrorCode::UNKNOWN_ERR);
@@ -193,11 +192,10 @@ PlatformResult SystemSettingInstance::setPlatformPropertyValue(
     case SYSTEM_SETTINGS_ERROR_NONE:
       LoggerD("ret == SYSTEM_SETTINGS_ERROR_NONE");
       return PlatformResult(ErrorCode::NO_ERROR);
-    // TODO(p.kaczmarek3) temporarily removed - not supported by platform
-    //case SYSTEM_SETTINGS_ERROR_CALL_UNSUPPORTED_API:
-    //  LoggerD("ret == SYSTEM_SETTINGS_ERROR_CALL_UNSUPPORTED_API");
-    //  return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR,
-    //                        "This property is not supported.");
+    case SYSTEM_SETTINGS_ERROR_CALL_UNSUPPORTED_API:
+      LoggerD("ret == SYSTEM_SETTINGS_ERROR_CALL_UNSUPPORTED_API");
+      return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR,
+                            "This property is not supported.");
     default:
       LoggerD("Other error");
       return PlatformResult(ErrorCode::UNKNOWN_ERR);

@@ -37,7 +37,6 @@ namespace{
 const char* JSON_SERVICE_ID = "id";
 const char* JSON_SERVICE_TYPE = "type";
 const char* JSON_SERVICE_NAME = "name";
-const char* JSON_SERVICE_STORAGE = "messageStorage";
 }
 
 //#################### MessageRecipientsCallbackData ####################

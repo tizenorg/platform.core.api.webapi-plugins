@@ -227,6 +227,8 @@ static void* getMsgServicesThread(const std::shared_ptr<MsgManagerCallbackData>&
           }
         }
         break;
+      default:
+        platform_result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Service type is undefined");
     }
   } else {
     LoggerE("Unsupported service type");
