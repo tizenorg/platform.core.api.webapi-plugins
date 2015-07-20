@@ -546,7 +546,9 @@ install -p -m 644 src/common/XW_Extension.cc %{buildroot}%{_includedir}/%{name}/
 mkdir -p %{buildroot}%{_includedir}/%{name}/tools
 install -p -m 644 tools/generate_api.py %{buildroot}%{_includedir}/%{name}/tools
 install -p -m 644 tools/mergejs.py %{buildroot}%{_includedir}/%{name}/tools
+install -p -m 644 tools/js_minimize.py %{buildroot}%{_includedir}/%{name}/tools
 cp -a tools/gyp %{buildroot}%{_includedir}/%{name}/tools/gyp
+cp -a tools/slimit %{buildroot}%{_includedir}/%{name}/tools/slimit
 
 %if 0%{?tizen_feature_tvaudio_support}
 # tv audio beep files:
