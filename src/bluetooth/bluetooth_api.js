@@ -2080,6 +2080,8 @@ BluetoothAdapter.prototype.setPowered = function() {
     native.call('BluetoothAdapter_setPowered', callArgs, callback);
 };
 
+
+// This method is deprecated since Tizen 2.3 and will be removed in Tizen 3.0.
 BluetoothAdapter.prototype.setVisible = function() {
     console.log('Entered BluetoothAdapter.setVisible()');
     xwalk.utils.checkPrivilegeAccess4Ver("2.3.1", Privilege.BLUETOOTH, Privilege.BLUETOOTHMANAGER);
