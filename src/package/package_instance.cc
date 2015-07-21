@@ -182,7 +182,7 @@ static void PackageListenerCb(
 static std::string ltrim(const std::string& s) {
     std::string str = s;
     std::string::iterator i;
-    for (i = str.begin(); i != str.end(); i++) {
+    for (i = str.begin(); i != str.end(); ++i) {
         if ( !isspace(*i) ) {
             break;
         }

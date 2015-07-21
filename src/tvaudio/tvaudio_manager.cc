@@ -314,7 +314,6 @@ void* AudioControlManager::play(void* play_data) {
     int dataLeftSize = pBuffer->size();
     while ((!pData->stopSound) && (dataLeftSize > 0)) {
         if ((dataLeftSize - AudioControlManager::CHUNK) < 0) {
-            dataLeftSize = dataLeftSize;
             error = audio_out_write(handle,
                                     &(*pBuffer)[counter],
                                     dataLeftSize);

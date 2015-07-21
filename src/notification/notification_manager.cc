@@ -221,8 +221,7 @@ PlatformResult NotificationManager::PlayLEDCustomEffect(
 PlatformResult NotificationManager::StopLEDCustomEffect() {
   LoggerD("Enter");
 
-  int ret = DEVICE_ERROR_NONE;
-  ret = device_led_stop_custom();
+  int ret = device_led_stop_custom();
   if (ret != DEVICE_ERROR_NONE) {
     LOGGER(ERROR) << "Cannot stop LED custom effect: " << ret;
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot stop LED custom effect");
