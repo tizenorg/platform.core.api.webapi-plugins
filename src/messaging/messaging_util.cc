@@ -16,6 +16,8 @@
  
 #include "messaging_util.h"
 
+#include <glib.h>
+
 #include <fstream>
 #include <stdexcept>
 #include <streambuf>
@@ -290,13 +292,119 @@ PlatformResult MessagingUtil::loadFileContentToString(const std::string& file_pa
         outString.assign((std::istreambuf_iterator<char>(input_file)),
                 std::istreambuf_iterator<char>());
         input_file.close();
-        *result = outString;
+        *result = ConvertToUtf8(file_path, outString);
     } else {
         std::stringstream ss_error_msg;
         ss_error_msg << "Failed to open file: " << file_path;
         return PlatformResult(ErrorCode::IO_ERR, ss_error_msg.str().c_str());
     }
     return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+namespace {
+
+std::string GetFilename(const std::string& file_path) {
+  LoggerD("Entered");
+  const auto start = file_path.find_last_of("/\\");
+  const auto basename = file_path.substr(std::string::npos == start ? 0 : start + 1);
+  return basename.substr(0, basename.find_last_of("."));
+}
+
+}  // namespace
+
+std::string MessagingUtil::ConvertToUtf8(const std::string& file_path, const std::string& contents) {
+  LoggerD("Entered");
+
+  // in case of messages, encoding of the file contents is stored as its filename
+  // is case of draft messages, it is not...
+  std::string encoding = GetFilename(file_path);
+
+  LoggerD("encoding: %s", encoding.c_str());
+
+  // implementation taken from apps/home/email.git,
+  // file Project-Files/common/src/email-utils.c
+
+  gchar* from_charset = g_ascii_strup(encoding.c_str(), -1);
+
+  if (0 == g_ascii_strcasecmp(from_charset, "KS_C_5601-1987")) {
+    // "ks_c_5601-1987" is not an encoding name. It's just a charset.
+    // There's no code page on IANA for "ks_c_5601-1987".
+    // So we should convert this to encoding name "EUC-KR"
+    // CP949 is super set of EUC-KR, we use CP949 first
+    LoggerD("change: KS_C_5601-1987 ===> CP949");
+    g_free(from_charset);
+    from_charset = g_strdup("CP949");
+  } else if (0 == g_ascii_strcasecmp(from_charset, "ISO-2022-JP")) {
+    // iso-2022-jp-2 is a superset of iso-2022-jp. In some email,
+    // iso-2022-jp is not converted to utf8 correctly. So in this case,
+    // we use iso-2022-jp-2 instead.
+    LoggerD("change: ISO-2022-JP ===> ISO-2022-JP-2");
+    g_free(from_charset);
+    from_charset = g_strdup("ISO-2022-JP-2");
+  }
+
+  std::string output;
+
+  // if charset is unknown or it's UTF-8, conversion is not needed
+  if ((0 != g_ascii_strcasecmp(from_charset, UNKNOWN_CHARSET_PLAIN_TEXT_FILE)) &&
+      (0 != g_ascii_strcasecmp(from_charset, "UTF-8"))) {
+    LoggerD("performing conversion");
+
+    GError* error = nullptr;
+    const gchar* to_charset = "UTF-8//IGNORE";  // convert to UTF-8, ignore unknown characters
+
+    gchar* result = g_convert(contents.c_str(),  // the string to convert
+                              -1,  // string is null terminated
+                              to_charset,  // target encoding
+                              from_charset,  // source encoding
+                              nullptr,  // ignore bytes read
+                              nullptr,  // ignore bytes written
+                              &error);  // store error
+    if ((nullptr == result || nullptr != error) &&
+        0 == g_ascii_strcasecmp(from_charset, "CP949")) {
+      if (nullptr != error) {
+        g_error_free(error);
+      }
+
+      if (nullptr != result) {
+        g_free(result);
+      }
+
+      LoggerD("change: CP949 ===> EUC-KR, try again");
+      result = g_convert(contents.c_str(),  // the string to convert
+                         -1,  // string is null terminated
+                         to_charset,  // target encoding
+                         "EUC-KR",  // source encoding
+                         nullptr,  // ignore bytes read
+                         nullptr,  // ignore bytes written
+                         &error);  // store error
+    }
+
+    if (nullptr == result || nullptr != error) {
+      LoggerE("g_convert() failed!");
+      if (nullptr != error) {
+        LoggerE("error_code: [%d], msg: [%s]", error->code, error->message);
+        g_error_free(error);
+      }
+
+      if (nullptr != result) {
+        g_free(result);
+      }
+
+      // conversion failed, use original contents
+      output = contents;
+    } else {
+      output = result;
+      g_free(result);
+    }
+  } else {
+    // no conversion
+    output = contents;
+  }
+
+  g_free(from_charset);
+
+  return output;
 }
 
 std::string MessagingUtil::messageStatusToString(MessageStatus status) {
