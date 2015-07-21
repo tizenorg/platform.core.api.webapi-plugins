@@ -322,7 +322,7 @@ void BluetoothGATTService::ReadValue(const picojson::value& args,
   bt_gatt_h handle = (bt_gatt_h) static_cast<long>(args.get("handle").get<double>());
 
   auto read_value = [](int result, bt_gatt_h handle, void *user_data) -> void {
-    Data* data = (Data*) user_data;
+    Data* data = static_cast<Data*>(user_data);
     double callback_handle = data->callback_handle;
     BluetoothGATTService* service = data->service;
     delete data;

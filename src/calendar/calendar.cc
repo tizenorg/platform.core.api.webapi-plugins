@@ -342,7 +342,7 @@ PlatformResult Calendar::UpdateBatch(const picojson::object& args,
   }
   CalendarListPtr list_ptr = CalendarListPtr(list, CalendarRecord::ListDeleter);
 
-  int ret, id;
+  int id;
   calendar_record_h record;
 
   for (auto& item : items) {
@@ -353,7 +353,7 @@ PlatformResult Calendar::UpdateBatch(const picojson::object& args,
       id = common::stol(FromJson<std::string>(item_obj, "id"));
     }
 
-    ret = calendar_db_get_record(view_uri.c_str(), id, &record);
+    int ret = calendar_db_get_record(view_uri.c_str(), id, &record);
     if (CALENDAR_ERROR_NONE != ret) {
       LoggerW("Can't get platform record %d", ret);
       return PlatformResult(ErrorCode::UNKNOWN_ERR,
@@ -669,13 +669,16 @@ PlatformResult Calendar::Find(const picojson::object& args, picojson::array& arr
           error_code = calendar_filter_add_int(
               sub_filter, propertyId, CALENDAR_MATCH_GREATER_THAN_OR_EQUAL,
               initial_value_date);
+          if ((status = ErrorChecker(error_code)).IsError()) return status;
 
           error_code = calendar_filter_add_operator(
               sub_filter, CALENDAR_FILTER_OPERATOR_AND);
+          if ((status = ErrorChecker(error_code)).IsError()) return status;
 
           error_code = calendar_filter_add_int(
               sub_filter, propertyId, CALENDAR_MATCH_LESS_THAN_OR_EQUAL,
               end_value_date);
+          if ((status = ErrorChecker(error_code)).IsError()) return status;
 
           error_code = calendar_filter_add_filter(calendar_filter, sub_filter);
           if ((status = ErrorChecker(error_code)).IsError()) return status;
@@ -939,9 +942,8 @@ PlatformResult Calendar::RemoveBatch(const picojson::object& args,
     }
   }
 
-  int ret;
   if (ids_to_remove.size() > 0) {
-    ret = calendar_db_delete_records(view_uri.c_str(), &ids_to_remove[0],
+    int ret = calendar_db_delete_records(view_uri.c_str(), &ids_to_remove[0],
                                      ids_to_remove.size());
 
     if (CALENDAR_ERROR_NONE != ret) {
@@ -969,13 +971,12 @@ PlatformResult Calendar::AddChangeListener(const picojson::object& args,
   const std::string& type = FromJson<std::string>(args, "type");
   const std::string& listener_id = FromJson<std::string>(args, "listenerId");
 
-  int ret;
   if (listeners_registered_.find(type) == listeners_registered_.end()) {
     std::string view_uri;
     PlatformResult status = CalendarRecord::TypeToUri(type, &view_uri);
     if (status.IsError()) return status;
 
-    ret = calendar_db_add_changed_cb(view_uri.c_str(), ChangeCallback, this);
+    int ret = calendar_db_add_changed_cb(view_uri.c_str(), ChangeCallback, this);
     if (CALENDAR_ERROR_NONE != ret) {
       LoggerE("Add calendar change callback error for type %s", type.c_str());
       return PlatformResult(ErrorCode::UNKNOWN_ERR,
@@ -1004,13 +1005,12 @@ PlatformResult Calendar::RemoveChangeListener(const picojson::object& args,
 
   const std::string& type = FromJson<std::string>(args, "type");
 
-  int ret;
   if (listeners_registered_.find(type) != listeners_registered_.end()) {
     std::string view_uri;
     PlatformResult status = CalendarRecord::TypeToUri(type, &view_uri);
     if (status.IsError()) return status;
 
-    ret = calendar_db_remove_changed_cb(view_uri.c_str(), ChangeCallback, this);
+    int ret = calendar_db_remove_changed_cb(view_uri.c_str(), ChangeCallback, this);
     if (CALENDAR_ERROR_NONE != ret) {
       LoggerE("Remove calendar change callback error for type %s",
               type.c_str());

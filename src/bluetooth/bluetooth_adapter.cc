@@ -347,6 +347,8 @@ BluetoothAdapter::BluetoothAdapter(BluetoothInstance& instance) :
     is_powered_(false),
     is_initialized_(false),
     user_request_list_(),
+    user_request_callback_(),
+    requested_powered_(),
     instance_(instance)
 {
   LoggerD("Entered");
@@ -1280,9 +1282,9 @@ void BluetoothAdapter::UnregisterUUID(const std::string& uuid, int callback_hand
       }
     }
 
-    if (registered_uuids_.size() == 0 &&
-        connection_requests_.size() == 0 &&
-        connected_sockets_.size() == 0) {
+    if (registered_uuids_.empty() &&
+        connection_requests_.empty() &&
+        connected_sockets_.empty()) {
       bt_socket_unset_connection_state_changed_cb();
     }
   } else if (result.IsSuccess()){
@@ -1466,13 +1468,13 @@ void BluetoothAdapter::OnSocketConnected(
     return;
   }
 
-  if (object->connected_sockets_.size() == 0) {
+  if (object->connected_sockets_.empty()) {
     bt_socket_unset_data_received_cb();
   }
 
-  if (object->registered_uuids_.size() == 0 &&
-      object->connection_requests_.size() == 0 &&
-      object->connected_sockets_.size() == 0) {
+  if (object->registered_uuids_.empty() &&
+      object->connection_requests_.empty() &&
+      object->connected_sockets_.empty()) {
     bt_socket_unset_connection_state_changed_cb();
   }
 }
