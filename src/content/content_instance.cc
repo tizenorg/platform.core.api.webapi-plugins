@@ -282,9 +282,8 @@ static void changedContentCallback(media_content_error_e error,
 
 void ContentInstance::ContentManagerUpdate(const picojson::value& args, picojson::object& out) {
   LoggerD("entered");
-  int ret;
   if (ContentManager::getInstance()->isConnected()) {
-    ret = ContentManager::getInstance()->update(args);
+    int ret = ContentManager::getInstance()->update(args);
     if (ret != 0) {
       LoggerE("Failed: ContentManager::getInstance()");
       ReportError(ContentManager::getInstance()->convertError(ret), &out);
@@ -493,11 +492,10 @@ void ContentInstance::ContentManagerRemoveplaylist(const picojson::value& args, 
 
 void ContentInstance::ContentManagerPlaylistAdd(const picojson::value& args, picojson::object& out) {
   LoggerD("entered");
-  int ret;
   if(ContentManager::getInstance()->isConnected()) {
     std::string playlist_id = args.get("playlistId").get<std::string>();
     std::string content_id = args.get("contentId").get<std::string>();
-    ret = ContentManager::getInstance()->playlistAdd(playlist_id, content_id);
+    int ret = ContentManager::getInstance()->playlistAdd(playlist_id, content_id);
     if(ret != MEDIA_CONTENT_ERROR_NONE) {
       ReportError(ContentManager::getInstance()->convertError(ret),&out);
     }
@@ -546,11 +544,10 @@ void ContentInstance::ContentManagerPlaylistGet(const picojson::value& args, pic
 
 void ContentInstance::ContentManagerPlaylistRemove(const picojson::value& args, picojson::object& out) {
   LoggerD("entered");
-  int ret;
   if(ContentManager::getInstance()->isConnected()) {
     std::string playlist_id = args.get("playlistId").get<std::string>();
     int member_id = args.get("memberId").get<double>();
-    ret = ContentManager::getInstance()->playlistRemove(playlist_id, member_id);
+    int ret = ContentManager::getInstance()->playlistRemove(playlist_id, member_id);
     if(ret != MEDIA_CONTENT_ERROR_NONE) {
       ReportError(ContentManager::getInstance()->convertError(ret),&out);
     }
@@ -620,10 +617,9 @@ void ContentInstance::ContentManagerAudioGetLyrics(const picojson::value& args,
   LoggerD("entered");
   LOGGER(DEBUG) << "entered";
 
-  int ret;
   picojson::object lyrics;
   if (ContentManager::getInstance()->isConnected()) {
-    ret = ContentManager::getInstance()->getLyrics(args, lyrics);
+    int ret = ContentManager::getInstance()->getLyrics(args, lyrics);
     if (ret != MEDIA_CONTENT_ERROR_NONE) {
       ReportError(ContentManager::getInstance()->convertError(ret), &out);
     } else {
