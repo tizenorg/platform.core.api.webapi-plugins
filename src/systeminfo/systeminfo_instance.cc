@@ -502,8 +502,7 @@ void SysteminfoInstance::SetBrightness(const picojson::value& args, picojson::ob
   CHECK_EXIST(args, "brightness", out)
 
   const double brightness = args.get("brightness").get<double>();
-  int result = DEVICE_ERROR_NONE;
-  result = device_flash_set_brightness(brightness);
+  int result = device_flash_set_brightness(brightness);
   if (result != DEVICE_ERROR_NONE) {
     LoggerE("Error occured");
     ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Error occured"), &out);
@@ -515,9 +514,8 @@ void SysteminfoInstance::SetBrightness(const picojson::value& args, picojson::ob
 void SysteminfoInstance::GetBrightness(const picojson::value& args, picojson::object& out) {
   LoggerD("entered");
 
-  int result = DEVICE_ERROR_NONE;
   int brightness = 0;
-  result = device_flash_get_brightness(&brightness);
+  int result = device_flash_get_brightness(&brightness);
   if (result != DEVICE_ERROR_NONE) {
     LoggerE("Error occured");
     ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Error occured"), &out);
@@ -529,9 +527,8 @@ void SysteminfoInstance::GetBrightness(const picojson::value& args, picojson::ob
 void SysteminfoInstance::GetMaxBrightness(const picojson::value& args, picojson::object& out) {
   LoggerD("entered");
 
-  int result = DEVICE_ERROR_NONE;
   int brightness = 0;
-  result = device_flash_get_max_brightness(&brightness);
+  int result = device_flash_get_max_brightness(&brightness);
   if (result != DEVICE_ERROR_NONE) {
     LoggerE("Error occured");
     ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Not supported property"), &out);
