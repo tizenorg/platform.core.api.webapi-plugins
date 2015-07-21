@@ -18,12 +18,13 @@ function _ContentManagerChangeCallback(result) {
   if (result.state === 'oncontentadded' || result.state === 'oncontentupdated') {
     var content = native_.getResultObject(result);
     native_.callIfPossible(this[result.state], createContentObject_(content));
-  }
-  if (result.state === 'oncontentremoved') {
-    native_.callIfPossible(this.oncontentremoved, native_.getResultObject(result));
+  } else if (result.state === 'oncontentdiradded' || result.state === 'oncontentdirupdated') {
+    var contentDir = native_.getResultObject(result);
+    native_.callIfPossible(this[result.state], createContentDirObject_(contentDir));
+  } else if (result.state === 'oncontentremoved' || result.state === 'oncontentdirremoved') {
+    native_.callIfPossible(this[result.state], native_.getResultObject(result));
   }
 }
-
 
 function ContentManager() {
 }
@@ -184,13 +185,48 @@ ContentManager.prototype.scanFile = function(contentURI, successCallback, errorC
   }
 };
 
+ContentManager.prototype.scanDirectory = function(contentDirURI, recursive, successCallback, errorCallback) {
+  xwalk.utils.checkPrivilegeAccess(privilege_.CONTENT_WRITE);
+
+  var args = validator_.validateArgs(arguments, [
+    {name: 'contentDirURI', type: types_.STRING},
+    {name: 'recursive', type: types_.BOOLEAN},
+    {name: 'successCallback', type: types_.FUNCTION, optional: true, nullable: true},
+    {name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true}
+  ]);
+
+  var path = args.contentDirURI.trim();
+  if (!path.length) {
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR, 'Directory path is not valid.');
+  }
+
+  var data = {
+    contentDirURI: convertUriToPath_(path),
+    recursive: args.recursive
+  };
+
+  var callback = function(result) {
+    if (native_.isFailure(result)) {
+      native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));
+      return;
+    }
+    native_.callIfPossible(args.successCallback, args.contentDirURI);
+  };
+
+  var result = native_.call('ContentManager_scanDirectory', data, callback);
+
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
+  }
+};
+
 ContentManager.prototype.setChangeListener = function(changeCallback) {
   xwalk.utils.checkPrivilegeAccess(privilege_.CONTENT_READ);
 
   var args = validator_.validateArgs(arguments, [{
     name: 'changeCallback',
     type: types_.LISTENER,
-    values: ['oncontentadded', 'oncontentupdated', 'oncontentremoved']
+    values: ['oncontentadded', 'oncontentupdated', 'oncontentremoved', 'oncontentdiradded', 'oncontentdirupdated', 'oncontentdirremoved']
   }]);
 
   var listenerId = 'ContentManagerChangeCallback';
@@ -202,7 +238,10 @@ ContentManager.prototype.setChangeListener = function(changeCallback) {
   var callbacks = {
     oncontentadded: args.changeCallback.oncontentadded,
     oncontentupdated: args.changeCallback.oncontentupdated,
-    oncontentremoved: args.changeCallback.oncontentremoved
+    oncontentremoved: args.changeCallback.oncontentremoved,
+    oncontentdiradded: args.changeCallback.oncontentdiradded,
+    oncontentdirupdated: args.changeCallback.oncontentdirupdated,
+    oncontentdirremoved: args.changeCallback.oncontentdirremoved
   };
 
   native_.addListener('ContentManagerChangeCallback',

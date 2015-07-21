@@ -344,6 +344,62 @@ void ContentToJson(media_info_h info, picojson::object& o) {
   }
 }
 
+void ContentDirToJson(media_folder_h folder, picojson::object& o) {
+  LoggerD("Enter");
+  int ret;
+  char* tmpStr = NULL;
+  media_content_storage_e storage_type;
+  time_t tmpDate;
+
+  // id
+  ret = media_folder_get_folder_id(folder, &tmpStr);
+  if(ret == MEDIA_CONTENT_ERROR_NONE) {
+    if(tmpStr) {
+      o["id"] = picojson::value(std::string(tmpStr));
+      free(tmpStr);
+      tmpStr = NULL;
+    }
+  }
+
+  // directoryURI
+  ret = media_folder_get_path(folder, &tmpStr);
+  if(ret == MEDIA_CONTENT_ERROR_NONE) {
+    if(tmpStr) {
+      o["directoryURI"] = picojson::value(std::string(tmpStr));
+      free(tmpStr);
+      tmpStr = NULL;
+    }
+  }
+
+  // title
+  ret = media_folder_get_name(folder, &tmpStr);
+  if(ret == MEDIA_CONTENT_ERROR_NONE) {
+    if(tmpStr) {
+      o["title"] = picojson::value(std::string(tmpStr));
+      free(tmpStr);
+      tmpStr = NULL;
+    }
+  }
+
+  // storageType
+  ret = media_folder_get_storage_type(folder, &storage_type);
+  if(ret == MEDIA_CONTENT_ERROR_NONE) {
+    if (storage_type == MEDIA_CONTENT_STORAGE_INTERNAL) {
+      o["storageType"] = picojson::value(std::string("INTERNAL"));
+    } else if (storage_type == MEDIA_CONTENT_STORAGE_EXTERNAL) {
+      o["storageType"] = picojson::value(std::string("EXTERNAL"));
+    } else if (storage_type == MEDIA_CONTENT_STORAGE_CLOUD) {
+      o["storageType"] = picojson::value(std::string("CLOUD"));
+    }
+  }
+
+  // modifiedData
+  ret = media_folder_get_modified_time(folder, &tmpDate);
+  if(ret == MEDIA_CONTENT_ERROR_NONE) {
+    o["modifiedDate"] = picojson::value(static_cast<double>(tmpDate));
+  }
+}
+
 static int setContent(media_info_h media, const picojson::value& content) {
   LoggerD("Enter");
 
@@ -734,6 +790,19 @@ void ContentManager::find(const std::shared_ptr<ReplyCallbackData>& user_data) {
 int ContentManager::scanFile(std::string& uri) {
   LoggerD("Enter");
   return media_content_scan_file(uri.c_str());
+}
+
+PlatformResult ContentManager::scanDirectory(media_scan_completed_cb callback, ReplyCallbackData* cbData) {
+  LoggerD("Enter");
+  const std::string& contentDirURI = cbData->args.get("contentDirURI").get<std::string>();
+  const bool recursive = cbData->args.get("recursive").get<bool>();
+
+  int ret = media_content_scan_folder(contentDirURI.c_str(), recursive, callback, (void*) cbData);
+  if (ret != MEDIA_CONTENT_ERROR_NONE) {
+    LoggerE("Scan folder failed in platform: %d", ret);
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Scanning content directory failed");
+  }
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 PlatformResult ContentManager::setChangeListener(media_content_db_update_cb callback, void *user_data) {
