@@ -22,7 +22,7 @@ namespace extension {
 namespace filesystem {
 
 File::File(NodePtr node, const File::PermissionList &parentPermissions,
-        const std::string original_location) :
+        const std::string& original_location) :
     m_node(node),
     m_parentPerms(parentPermissions)
 {

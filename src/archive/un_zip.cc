@@ -319,7 +319,6 @@ PlatformResult UnZip::extractItFunction(const std::string& file_name, unz_file_i
         LoggerE("Error: %s", result.message().c_str());
         return result;
     }
-
     return PlatformResult(ErrorCode::NO_ERROR);
 }
 
@@ -438,7 +437,7 @@ PlatformResult generateArchiveStatistics(const std::string& file_name, unz_file_
 
 PlatformResult UnZip::updateCallbackWithArchiveStatistics(ExtractAllProgressCallback* callback,
         unz_global_info& out_global_info,
-        const std::string optional_filter)
+        const std::string& optional_filter)
 {
     LoggerD("Enter");
     int err = unzGetGlobalInfo(m_unzip, &out_global_info);

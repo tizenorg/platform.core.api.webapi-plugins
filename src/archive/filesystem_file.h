@@ -13,7 +13,7 @@
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
  */
- 
+
 #ifndef _TIZEN_FILESYSTEM_FILE_H_
 #define _TIZEN_FILESYSTEM_FILE_H_
 
@@ -38,7 +38,7 @@ public:
 
     File(NodePtr node,
             const PermissionList &parentPermissions,
-            const std::string original_location = std::string());
+            const std::string& original_location = std::string());
     virtual ~File();
 
     NodePtr getNode() const;
