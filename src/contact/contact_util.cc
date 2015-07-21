@@ -289,9 +289,8 @@ PlatformResult GetNumberOfChildRecord(contacts_record_h contacts_record,
   LoggerD("Enter");
   Assert(child_count);
 
-  int err = CONTACTS_ERROR_NONE;
-  err = contacts_record_get_child_record_count(contacts_record, property_id,
-                                               child_count);
+  int err = contacts_record_get_child_record_count(contacts_record, property_id,
+                                                   child_count);
   if (CONTACTS_ERROR_NONE != err && CONTACTS_ERROR_NO_DATA != err) {
     return PlatformResult(ErrorCode::UNKNOWN_ERR,
                           "Problem during getting child count");
@@ -310,9 +309,8 @@ PlatformResult ImportContactNameFromContactsRecord(
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
   }
   int count = 0;
-  int err = CONTACTS_ERROR_NONE;
-  err = contacts_record_get_child_record_count(contacts_record,
-                                               _contacts_contact.name, &count);
+  int err = contacts_record_get_child_record_count(contacts_record,
+                                                   _contacts_contact.name, &count);
   PlatformResult status =
       ContactUtil::ErrorChecker(err, "Contacts child record get count error");
   if (status.IsError()) {
@@ -477,9 +475,8 @@ PlatformResult ExportContactNameToContactsRecord(
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
   }
 
-  int err = CONTACTS_ERROR_NONE;
   contacts_record_h contact_name = nullptr;
-  err = contacts_record_get_child_record_at_p(
+  int err = contacts_record_get_child_record_at_p(
       contacts_record, _contacts_contact.name, 0, &contact_name);
   bool update = true;
   if (CONTACTS_ERROR_NONE != err && nullptr == contact_name) {
@@ -644,9 +641,8 @@ PlatformResult ImportContactEmailAddressFromContactsRecord(
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
   }
 
-  int err = CONTACTS_ERROR_NONE;
   contacts_record_h child_record = nullptr;
-  err = contacts_record_get_child_record_at_p(
+  int err = contacts_record_get_child_record_at_p(
       contacts_record, _contacts_contact.email, index, &child_record);
   if (CONTACTS_ERROR_NONE != err && CONTACTS_ERROR_NO_DATA != err) {
     return PlatformResult(ErrorCode::NO_ERROR);
@@ -728,8 +724,7 @@ PlatformResult ExportContactEmailAddressToContactsRecord(
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
   }
 
-  int err = CONTACTS_ERROR_NONE;
-  err = contacts_record_create(_contacts_email._uri, &c_email_record_h);
+  int err = contacts_record_create(_contacts_email._uri, &c_email_record_h);
   PlatformResult status = ContactUtil::ErrorChecker(
       err, "Failed to create email record in database");
   if (status.IsError()) {
@@ -1040,9 +1035,8 @@ PlatformResult ImportContactOrganizationFromContactsRecord(
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
   }
 
-  int err = CONTACTS_ERROR_NONE;
   contacts_record_h child_record = nullptr;
-  err = contacts_record_get_child_record_at_p(
+  int err = contacts_record_get_child_record_at_p(
       contacts_record, _contacts_contact.company, index, &child_record);
   if (CONTACTS_ERROR_NONE != err && CONTACTS_ERROR_NO_DATA != err) {
     return PlatformResult(ErrorCode::NO_ERROR);
@@ -1114,8 +1108,7 @@ PlatformResult ExportContactOrganizationToContactsRecord(
   }
 
   contacts_record_h organization_record = nullptr;
-  int err = CONTACTS_ERROR_NONE;
-  err = contacts_record_create(_contacts_company._uri, &organization_record);
+  int err = contacts_record_create(_contacts_company._uri, &organization_record);
   PlatformResult status = ContactUtil::ErrorChecker(
       err, "Failed to create organization record in database");
   if (status.IsError()) {
@@ -1200,9 +1193,8 @@ PlatformResult ImportContactWebSiteFromContactsRecord(
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
   }
 
-  int err = CONTACTS_ERROR_NONE;
   contacts_record_h child_record = nullptr;
-  err = contacts_record_get_child_record_at_p(
+  int err = contacts_record_get_child_record_at_p(
       contacts_record, _contacts_contact.url, index, &child_record);
   if (CONTACTS_ERROR_NONE != err && CONTACTS_ERROR_NO_DATA != err) {
     return PlatformResult(ErrorCode::NO_ERROR);
@@ -1257,9 +1249,8 @@ PlatformResult ExportContactWebSiteToContactsRecord(
     return PlatformResult(ErrorCode::NO_ERROR);
   }
 
-  int err = CONTACTS_ERROR_NONE;
   contacts_record_h website_record_h = nullptr;
-  err = contacts_record_create(_contacts_url._uri, &website_record_h);
+  int err = contacts_record_create(_contacts_url._uri, &website_record_h);
   PlatformResult status = ContactUtil::ErrorChecker(
       err, "Fail to create website record in database.");
   if (status.IsError()) {
@@ -1316,9 +1307,8 @@ PlatformResult ImportContactAnniversariesFromContactsRecord(
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
   }
 
-  int err = CONTACTS_ERROR_NONE;
   contacts_record_h child_record = nullptr;
-  err = contacts_record_get_child_record_at_p(
+  int err = contacts_record_get_child_record_at_p(
       contacts_record, _contacts_contact.event, index, &child_record);
   if (CONTACTS_ERROR_NONE != err && CONTACTS_ERROR_NO_DATA != err) {
     *ret = false;
@@ -1379,9 +1369,8 @@ PlatformResult ExportContactAnniversariesToContactsRecord(
     return PlatformResult(ErrorCode::NO_ERROR);
   }
 
-  int err = CONTACTS_ERROR_NONE;
   contacts_record_h anniversary_record = nullptr;
-  err = contacts_record_create(_contacts_event._uri, &anniversary_record);
+  int err = contacts_record_create(_contacts_event._uri, &anniversary_record);
   PlatformResult status = ContactUtil::ErrorChecker(
       err, "Failed to create anniversary record in database");
   if (status.IsError()) {
@@ -1443,9 +1432,8 @@ PlatformResult ImportContactRelationshipFromContactsRecord(
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
   }
 
-  int err = CONTACTS_ERROR_NONE;
   contacts_record_h child_record = nullptr;
-  err = contacts_record_get_child_record_at_p(
+  int err = contacts_record_get_child_record_at_p(
       contacts_record, _contacts_contact.relationship, index, &child_record);
   if (CONTACTS_ERROR_NONE != err && CONTACTS_ERROR_NO_DATA != err) {
     return PlatformResult(ErrorCode::NO_ERROR);
@@ -1585,9 +1573,8 @@ PlatformResult ExportContactRelationshipToContactsRecord(
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
   }
 
-  int err = CONTACTS_ERROR_NONE;
   contacts_record_h child_record = nullptr;
-  err = contacts_record_create(_contacts_relationship._uri, &child_record);
+  int err = contacts_record_create(_contacts_relationship._uri, &child_record);
   PlatformResult status =
       ContactUtil::ErrorChecker(err, "Fail to create child_record in database");
   if (status.IsError()) {
@@ -1685,9 +1672,8 @@ PlatformResult ImportContactInstantMessengerFromContactsRecord(
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
   }
 
-  int err = CONTACTS_ERROR_NONE;
   contacts_record_h child_record = nullptr;
-  err = contacts_record_get_child_record_at_p(
+  int err = contacts_record_get_child_record_at_p(
       contacts_record, _contacts_contact.messenger, index, &child_record);
   if (CONTACTS_ERROR_NONE != err && CONTACTS_ERROR_NO_DATA != err) {
     LoggerW("Skipping message with index %i. error code: %i", index, err);
@@ -1794,9 +1780,8 @@ PlatformResult ExportContactInstantMessengerToContactsRecord(
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
   }
 
-  int err = CONTACTS_ERROR_NONE;
   contacts_record_h child_record = nullptr;
-  err = contacts_record_create(_contacts_messenger._uri, &child_record);
+  int err = contacts_record_create(_contacts_messenger._uri, &child_record);
   PlatformResult status =
       ContactUtil::ErrorChecker(err, "Fail to create child_record in database");
   if (status.IsError()) {
@@ -1886,9 +1871,8 @@ PlatformResult ImportContactAddressFromContactsRecord(
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
   }
 
-  int err = CONTACTS_ERROR_NONE;
   contacts_record_h child_record = nullptr;
-  err = contacts_record_get_child_record_at_p(
+  int err = contacts_record_get_child_record_at_p(
       contacts_record, _contacts_contact.address, index, &child_record);
   if (CONTACTS_ERROR_NONE != err && CONTACTS_ERROR_NO_DATA != err) {
     return PlatformResult(ErrorCode::NO_ERROR);
@@ -2006,9 +1990,8 @@ PlatformResult ExportContactAddressToContactsRecord(
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
   }
 
-  int err = CONTACTS_ERROR_NONE;
   contacts_record_h address_record = nullptr;
-  err = contacts_record_create(_contacts_address._uri, &address_record);
+  int err = contacts_record_create(_contacts_address._uri, &address_record);
   PlatformResult status = ContactUtil::ErrorChecker(
       err, "Failed to create address record in database");
   if (status.IsError()) {
@@ -2138,9 +2121,8 @@ PlatformResult ImportContactNotesFromContactsRecord(
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
   }
 
-  int err = CONTACTS_ERROR_NONE;
   contacts_record_h notes_record = nullptr;
-  err = contacts_record_get_child_record_at_p(
+  int err = contacts_record_get_child_record_at_p(
       contacts_record, _contacts_contact.note, index, &notes_record);
   if (CONTACTS_ERROR_NONE != err && CONTACTS_ERROR_NO_DATA != err) {
     return PlatformResult(ErrorCode::NO_ERROR);
@@ -2173,8 +2155,7 @@ PlatformResult ExportNotesToContactsRecord(contacts_record_h contacts_record,
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
   }
 
-  int err = CONTACTS_ERROR_NONE;
-  err = contacts_record_create(_contacts_note._uri, &notes_record);
+  int err = contacts_record_create(_contacts_note._uri, &notes_record);
   PlatformResult status =
       ContactUtil::ErrorChecker(err, "Fail to create note record in database");
   if (status.IsError()) {

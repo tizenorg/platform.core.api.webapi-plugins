@@ -776,8 +776,7 @@ PlatformResult ContactManagerImportFromVCard(const JsonObject& args,
 
   contacts_list_h contacts_list = nullptr;
 
-  int err = CONTACTS_ERROR_NONE;
-  err = contacts_vcard_parse_to_contacts(vcard_char_ptr, &contacts_list);
+  int err = contacts_vcard_parse_to_contacts(vcard_char_ptr, &contacts_list);
   if (CONTACTS_ERROR_INVALID_PARAMETER == err) {
     LoggerE("Invalid vCard string");
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Invalid vCard string");

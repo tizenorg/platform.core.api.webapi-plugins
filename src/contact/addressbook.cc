@@ -56,10 +56,9 @@ PlatformResult AddressBookGet(const JsonObject& args, JsonObject& out) {
 
   int contact_id = common::stol(FromJson<JsonString>(args, "id"));
 
-  int err = CONTACTS_ERROR_NONE;
   contacts_record_h contacts_record = nullptr;
-  err = contacts_db_get_record(_contacts_contact._uri, contact_id,
-                               &contacts_record);
+  int err = contacts_db_get_record(_contacts_contact._uri, contact_id,
+                                   &contacts_record);
   if (CONTACTS_ERROR_NONE != err) {
     LoggerW("Contacts record get error, error code: %d", err);
     return PlatformResult(ErrorCode::NOT_FOUND_ERR,
@@ -153,9 +152,8 @@ PlatformResult AddressBookUpdate(const JsonObject& args, JsonObject& out) {
                           "Contact is not saved in database");
   }
 
-  int err = CONTACTS_ERROR_NONE;
   contacts_record_h to_update = nullptr;
-  err = contacts_db_get_record(_contacts_contact._uri, contactId, &to_update);
+  int err = contacts_db_get_record(_contacts_contact._uri, contactId, &to_update);
   if (CONTACTS_ERROR_NONE != err) {
     LoggerW("Problem with getting contact. Error: %d", err);
     return PlatformResult(ErrorCode::NOT_FOUND_ERR,
@@ -423,9 +421,8 @@ PlatformResult AddressBookAddGroup(const JsonObject& args, JsonObject& out) {
                           "Group object is previously added");
   }
 
-  int err = CONTACTS_ERROR_NONE;
   contacts_record_h contacts_record = nullptr;
-  err = contacts_record_create(_contacts_group._uri, &contacts_record);
+  int err = contacts_record_create(_contacts_group._uri, &contacts_record);
   status = ContactUtil::ErrorChecker(
       err, "Error during executing contacts_record_create()");
   if (status.IsError()) return status;
@@ -466,9 +463,8 @@ PlatformResult AddressBookGetGroup(const JsonObject& args, JsonObject& out) {
     return PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Incorrect group id");
   }
 
-  int err = CONTACTS_ERROR_NONE;
   contacts_record_h contacts_record = nullptr;
-  err = contacts_db_get_record(_contacts_group._uri, id, &contacts_record);
+  int err = contacts_db_get_record(_contacts_group._uri, id, &contacts_record);
   if (CONTACTS_ERROR_NONE != err || nullptr == contacts_record) {
     LoggerE("Group not exist");
     return PlatformResult(ErrorCode::NOT_FOUND_ERR, "Group not exist");
