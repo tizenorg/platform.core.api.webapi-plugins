@@ -59,7 +59,7 @@ IsoSpeedRatingsVector jsonArray2vector(const picojson::value& a) {
 
   picojson::array v = a.get<picojson::array>();
 
-  for (picojson::array::iterator it = v.begin(); it != v.end(); it++) {
+  for (picojson::array::iterator it = v.begin(); it != v.end(); ++it) {
     if ((*it).is<double>())
       result.push_back(static_cast<long long int>((*it).get<double>()));
   }
@@ -84,7 +84,7 @@ ExifInformation::ExifInformation(const picojson::value& args) {
   }
 
   for (AttributeMap::const_iterator it = ExifInformationAttributeMap.begin();
-      it != ExifInformationAttributeMap.end(); it++) {
+      it != ExifInformationAttributeMap.end(); ++it) {
     std::string attributeName = it->second;
     picojson::value v = args.get(attributeName);
     if (!common::IsNull(v)) {

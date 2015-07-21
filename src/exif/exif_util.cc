@@ -230,7 +230,7 @@ std::string ExifUtil::convertUriToPath(const std::string& str) {
 std::string ExifUtil::ltrim(const std::string& s) {
   std::string str = s;
   std::string::iterator i;
-  for (i = str.begin(); i != str.end(); i++) {
+  for (i = str.begin(); i != str.end(); ++i) {
     if (!isspace(*i)) {
       break;
     }
@@ -246,7 +246,7 @@ std::string ExifUtil::ltrim(const std::string& s) {
 
 time_t ExifUtil::exifDateTimeOriginalToTimeT(const char* string) {
   int year, month, day, hour, min, sec;
-  if (sscanf(string, "%d:%d:%d %d:%d:%d",
+  if (sscanf(string, "%5d:%5d:%5d %5d:%5d:%5d",
       &year, &month, &day, &hour, &min, &sec) >= 6) {
     return convertToTimeT(year, month, day, hour, min, sec);
   }

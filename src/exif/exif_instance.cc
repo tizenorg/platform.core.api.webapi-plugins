@@ -87,7 +87,6 @@ void ExifInstance::ExifManagerGetExifInfo(const picojson::value& args, picojson:
 void ExifInstance::ExifManagerSaveExifInfo(const picojson::value& args,
                                            picojson::object& out) {
   LoggerD("Entered");
-  const std::string& uri = args.get("uri").get<std::string>();
 
   const double callback_id = args.get("callbackId").get<double>();
   auto get = [=](const std::shared_ptr<JsonValue>& response) -> void {

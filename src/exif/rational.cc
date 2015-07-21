@@ -205,7 +205,7 @@ Rational Rational::createFromExposureTimeString(const std::string& exp_time) {
 
   if (fraction_part.length() > 0) {
     if (sscanf(
-          fraction_part.c_str(), "%ld/%ld", &nominator, &denominator) != 2) {
+          fraction_part.c_str(), "%5ld/%5ld", &nominator, &denominator) != 2) {
       LoggerD("Failed to parse nominator/denominator string: [%s]",
           fraction_part.c_str());
       return Rational::createInvalid();

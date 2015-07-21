@@ -69,7 +69,7 @@ DownloadInstance::~DownloadInstance() {
   LoggerD("Entered");
   int ret;
   for (DownloadCallbackMap::iterator it = downCbMap.begin();
-    it != downCbMap.end(); it++) {
+    it != downCbMap.end(); ++it) {
     DownloadInfoPtr diPtr = it->second->instance->diMap[it->second->callbackId];
     SLoggerD("~DownloadInstance() for callbackID %d Called", it->second->callbackId);
 
