@@ -144,9 +144,8 @@ class AccessControlImpl {
 
   bool CheckAccess(const std::vector<std::string>& privileges) {
     LoggerD("Enter");
-    int ret = 0;
     for (size_t i = 0; i < privileges.size(); ++i) {
-      ret = privilege_checker_check_privilege(privileges[i].c_str());
+      int ret = privilege_checker_check_privilege(privileges[i].c_str());
       if (PRIVILEGE_CHECKER_ERR_NONE != ret) {
         return false;
       }

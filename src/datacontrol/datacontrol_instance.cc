@@ -304,8 +304,6 @@ static void SQLSelectResponseCallback(int requestId, data_control_h handle,
         picojson::value value;
         if (SQLColumnName(cursor, i, column) &&
             SQLColumnValue(cursor, i, value)) {
-          std::string& name = column.get<std::string>();
-          std::string& val = value.get<std::string>();
           columns.push_back(column);
           values.push_back(value);
         }
@@ -505,9 +503,6 @@ void DatacontrolInstance::DataControlManagerGetdatacontrolconsumer(
   LoggerD("Enter");
   CHECK_EXIST(args, "providerId", out)
   CHECK_EXIST(args, "dataId", out)
-
-  const std::string& providerId = args.get("providerId").get<std::string>();
-  const std::string& dataId = args.get("dataId").get<std::string>();
 }
 void DatacontrolInstance::SQLDataControlConsumerInsert(
     const picojson::value& args, picojson::object& out) {

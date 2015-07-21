@@ -178,8 +178,7 @@ void CallHistory::FindThread(const picojson::object& args, CallHistory* call_his
       contacts_list_destroy(record_list, true);
     };
 
-    int ret = CONTACTS_ERROR_NONE;
-    ret = contacts_connect_on_thread();
+    int ret = contacts_connect_on_thread();
     if (CONTACTS_ERROR_NONE != ret) {
       LoggerW("contacts_connect_on_thread failed");
     }
@@ -378,10 +377,9 @@ common::PlatformResult CallHistory::removeBatch(const picojson::object& args)
       return;
     }
 
-    int uid;
     int ret = CONTACTS_ERROR_NONE;
     for (unsigned int i = 0; i < uids.size(); ++i) {
-      uid = atoi(uids[i].get<std::string>().c_str());
+      int uid = atoi(uids[i].get<std::string>().c_str());
       ret = contacts_db_delete_record(_contacts_phone_log._uri, (int)uid);
       if (CONTACTS_ERROR_NONE != ret) {
         LoggerE("Failed to delete log [%d] with code %d", uid, ret);
@@ -423,12 +421,11 @@ void CallHistory::removeAll(const picojson::object& args)
     };
 
     contacts_record_h record = NULL;
-    int ret = CONTACTS_ERROR_NONE;
     int total = 0;
     int value;
     unsigned int cnt = 0;
 
-    ret = contacts_connect_on_thread();
+    int ret = contacts_connect_on_thread();
     if (CONTACTS_ERROR_NONE != ret) {
       LoggerW("contacts_connect_on_thread failed");
     }
@@ -547,8 +544,6 @@ void CallHistory::changeListenerCB(const char* view_uri, char *changes, void* us
 
   char seps[] = ",:";
   char* token_type = NULL;
-  char* token_id = NULL;
-  int change_type = 0;
   int change_id = 0;
 
   picojson::value added = picojson::value(picojson::object());
@@ -570,8 +565,8 @@ void CallHistory::changeListenerCB(const char* view_uri, char *changes, void* us
 
   token_type = strtok_r(changes, seps, &saveptr);
   while (NULL != token_type) {
-    token_id = strtok_r(NULL, seps, &saveptr);
-    change_type = atoi((const char*)token_type);
+    char* token_id = strtok_r(NULL, seps, &saveptr);
+    int change_type = atoi((const char*)token_type);
 
     if (NULL != token_id) {
       change_id = atoi((const char*)token_id);
@@ -583,14 +578,13 @@ void CallHistory::changeListenerCB(const char* view_uri, char *changes, void* us
     contacts_query_h query = NULL;
     contacts_filter_h filter = NULL;
     contacts_list_h record_list = NULL;
-    int ret = CONTACTS_ERROR_NONE;
 
     contacts_query_create(_contacts_phone_log._uri, &query);
     contacts_filter_create(_contacts_phone_log._uri, &filter);
     contacts_filter_add_int(filter, _contacts_phone_log.id, CONTACTS_MATCH_EQUAL, change_id);
 
     contacts_query_set_filter(query, filter);
-    ret = contacts_query_set_sort(query, _contacts_phone_log.id, false);
+    int ret = contacts_query_set_sort(query, _contacts_phone_log.id, false);
     if (CONTACTS_ERROR_NONE != ret) {
       LoggerD("Callhistory query error: %d", ret);
     }
@@ -692,10 +686,9 @@ PlatformResult CallHistory::setMissedDirection(int uid)
     contacts_record_destroy(record, true);
   };
 
-  int ret = CONTACTS_ERROR_NONE;
   int log_type = CONTACTS_PLOG_TYPE_NONE;
 
-  ret = contacts_db_get_record(_contacts_phone_log._uri, uid, &record);
+  int ret = contacts_db_get_record(_contacts_phone_log._uri, uid, &record);
   if (CONTACTS_ERROR_NONE != ret) {
     LoggerE("Failed to get record [%d]", ret);
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to get record");

@@ -342,7 +342,7 @@ PlatformResult DBusOperation::UnregisterSignalListener(const std::string& signal
         return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to find signal handler");
     }
 
-    if (listeners_.size() == 0) {
+    if (listeners_.empty()) {
         return RemoveDBusSignalFilter();
     }
     return PlatformResult(ErrorCode::NO_ERROR);
