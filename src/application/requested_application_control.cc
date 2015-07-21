@@ -94,12 +94,11 @@ void RequestedApplicationControl::ReplyResult(const picojson::value& args, picoj
   }
 
   // read input data
-  PlatformResult result = PlatformResult(ErrorCode::NO_ERROR);
   const picojson::array& data = data_arr.get<picojson::array>();
 
   const std::string& encoded_bundle = GetEncodedBundle();
 
-  result = set_bundle(encoded_bundle);
+  PlatformResult result = set_bundle(encoded_bundle);
   if (result.IsError()) {
     LoggerE("Failed set_bundle()");
     ReportError(result, out);
@@ -149,10 +148,9 @@ void RequestedApplicationControl::ReplyFailure(picojson::object* out) {
   LoggerD("Entered");
 
   // read input data
-  PlatformResult result = PlatformResult(ErrorCode::NO_ERROR);
   const std::string& encoded_bundle = GetEncodedBundle();
 
-  result = set_bundle(encoded_bundle);
+  PlatformResult result = set_bundle(encoded_bundle);
   if (result.IsError()) {
     LoggerE("Failed set_bundle()");
     ReportError(result, out);

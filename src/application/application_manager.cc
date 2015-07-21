@@ -1079,6 +1079,7 @@ void ApplicationManager::GetAppMetaData(const std::string& app_id, picojson::obj
 
 class ApplicationListChangedBroker {
  public:
+    ApplicationListChangedBroker(){}
   enum class Event {
     kInstalled,
     kUpdated,

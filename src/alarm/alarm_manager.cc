@@ -175,7 +175,6 @@ void AlarmManager::Add(const picojson::value& args, picojson::object& out) {
       seconds = atoll(args.get("seconds").get<std::string>().c_str());
     }
 
-    int period = 0;
     time_t second = seconds / 1000;
     struct tm start_date = {0};
 
@@ -198,7 +197,7 @@ void AlarmManager::Add(const picojson::value& args, picojson::object& out) {
 
     int ret = 0;
     if (it_period->second.is<double>()) {
-      period = static_cast<int>(it_period->second.get<double>());
+      int period = static_cast<int>(it_period->second.get<double>());
       ret = alarm_schedule_at_date(app_control, &start_date, period, &alarm_id);
     } else if (it_daysOfWeek->second.is<picojson::array>()) {
       picojson::array days_of_week = it_daysOfWeek->second.get<picojson::array>();
@@ -332,7 +331,7 @@ PlatformResult AlarmManager::GetAlarm(int id, picojson::object& obj) {
       return PlatformResult(ErrorCode::NOT_FOUND_ERR, "Failed to get data.");
     }
 
-    sscanf(date_string, "%d %d %d %d %d %d %d", &date.tm_year, &date.tm_mon,
+    sscanf(date_string, "%5d %5d %5d %5d %5d %5d %5d", &date.tm_year, &date.tm_mon,
            &date.tm_mday, &date.tm_hour, &date.tm_min, &date.tm_sec, &date.tm_isdst);
     mktime(&date);
 
