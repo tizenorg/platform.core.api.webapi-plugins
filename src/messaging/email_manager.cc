@@ -551,8 +551,7 @@ email_mail_data_t* EmailManager::loadMessage(int msg_id)
 {
     LoggerD("Entered");
     email_mail_data_t* mail_data = NULL;
-    int err = EMAIL_ERROR_NONE;
-    err = email_get_mail_data(msg_id, &mail_data);
+    int err = email_get_mail_data(msg_id, &mail_data);
     if (EMAIL_ERROR_NONE != err) {
         LoggerE("email_get_mail_data failed. [%d]", err);
     } else {
@@ -601,10 +600,9 @@ void EmailManager::loadMessageBody(MessageBodyCallbackData* callback)
     m_proxy_load_body->addCallback(callback);
 
     const int mailId = callback->getMessage()->getId();
-    int err = EMAIL_ERROR_NONE;
 
     int op_handle = -1;
-    err = email_download_body(mailId, 0, &op_handle);
+    int err = email_download_body(mailId, 0, &op_handle);
     if(EMAIL_ERROR_NONE != err){
         LoggerE("Email download body failed, %d", err);
         m_proxy_load_body->removeCallback(callback);
@@ -754,15 +752,13 @@ void EmailManager::syncFolder(SyncFolderCallbackData* callback)
     return;
   }
 
-  int err = EMAIL_ERROR_NONE;
-
   email_mailbox_t* mailbox = NULL;
 
   const std::string folder_id_str = callback->getMessageFolder()->getId();
   int folder_id = 0;
   std::istringstream(folder_id_str) >> folder_id;
 
-  err = email_get_mailbox_by_mailbox_id(folder_id, &mailbox);
+  int err = email_get_mailbox_by_mailbox_id(folder_id, &mailbox);
 
   if (EMAIL_ERROR_NONE != err || NULL == mailbox) {
     LoggerE("Couldn't get mailbox, error code: %d", err);
@@ -820,8 +816,7 @@ void EmailManager::stopSync(long op_id)
     return;
   }
 
-  int err = EMAIL_ERROR_NONE;
-  err = email_cancel_job(callback->getAccountId(),
+  int err = email_cancel_job(callback->getAccountId(),
                          callback->getOperationHandle(),
                          EMAIL_CANCELED_BY_USER);
 

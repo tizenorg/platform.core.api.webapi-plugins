@@ -199,9 +199,9 @@ public:
     explicit PostQueue(MessagingInstance& instance);
     ~PostQueue();
 
-    void addAndResolve(const long cid, PostPriority priority, const std::string json);
+    void addAndResolve(const long cid, PostPriority priority, const std::string &json);
     void add(const long cid, PostPriority priority = PostPriority::LAST);
-    void resolve(const long cid, const std::string json);
+    void resolve(const long cid, const std::string &json);
 
     enum TaskState {
         NEW = 0,
@@ -227,7 +227,7 @@ private:
         PostTask();
         PostTask(PostPriority p);
         ~PostTask();
-        void attach(const std::string j);
+        void attach(const std::string &j);
         PostPriority priority();
         TaskState state();
         std::string json();

@@ -469,7 +469,7 @@ PlatformResult ShortMsgManager::callProperEventMessages(EventMessages* event,
                 ConversationPtrVector updated_conv;
 
                 for(ConversationPtrVector::iterator it = eventConv->items.begin();
-                        it != eventConv->items.end(); it++) {
+                        it != eventConv->items.end(); ++it) {
                     ConversationPtr cur_conv = *it;
                     const bool new_conv = (cur_conv->getMessageCount() <= 1);
                     if(new_conv) {
@@ -762,7 +762,6 @@ void ShortMsgManager::removeMessages(MessagesCallbackUserData* callback)
         return;
     }
 
-    int error;
     std::vector<std::shared_ptr<Message>> messages;
 
     {
@@ -792,7 +791,7 @@ void ShortMsgManager::removeMessages(MessagesCallbackUserData* callback)
                         break;
                 }
 
-                error = msg_delete_message(m_msg_handle, id);
+               int error = msg_delete_message(m_msg_handle, id);
                 if (MSG_SUCCESS != error) {
                     LoggerE("Error while deleting message");
                     callback->SetError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Error while deleting message"));

@@ -200,14 +200,13 @@ __thread sqlite3_stmt* stmt = NULL;
 msg_error_t MessagingDatabaseManager::connect()
 {
     LoggerD("Entered");
-    int err = 0;
     if (NULL == sqlHandle) {
         char strDBName[64];
 
         memset(strDBName, 0x00, sizeof(strDBName));
         snprintf(strDBName, sizeof(strDBName), "%s", MSG_DB_NAME);
 
-        err = db_util_open(strDBName, &sqlHandle, DB_UTIL_REGISTER_HOOK_METHOD);
+        int err = db_util_open(strDBName, &sqlHandle, DB_UTIL_REGISTER_HOOK_METHOD);
 
         if (SQLITE_OK != err) {
             LoggerE("DB connecting fail [%d]", err);

@@ -146,7 +146,7 @@ public:
     // function for filling Message attributes
     static common::PlatformResult convertPlatformShortMessageToObject(msg_struct_t msg, Message** message);
     static common::PlatformResult findShortMessageById(const int id, MessagePtr* message);
-    static common::PlatformResult addMMSBodyAndAttachmentsToStruct(const AttachmentPtrVector attach,
+    static common::PlatformResult addMMSBodyAndAttachmentsToStruct(const AttachmentPtrVector &attach,
             msg_struct_t &mms_struct,
             Message* message);
     static common::PlatformResult setMMSBodyAndAttachmentsFromStruct(Message *message,

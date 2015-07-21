@@ -593,7 +593,6 @@ void MessagingInstance::MessageStorageUpdateMessages(const picojson::value& args
 
     auto callback = new MessagesCallbackUserData(queue_);
 
-    std::vector<std::shared_ptr<Message>> messages;
     std::for_each(pico_array.begin(), pico_array.end(), [&callback](picojson::value& v)->void {
        std::shared_ptr<Message> message;
        PlatformResult ret = MessagingUtil::jsonToMessage(v, &message);
