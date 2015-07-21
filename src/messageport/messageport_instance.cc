@@ -322,7 +322,7 @@ void MessageportInstance::RemoteMessagePortSendmessage
   bundle* bundle = bundle_create();
 
   for (picojson::value::array::iterator it = data.begin();
-       it != data.end(); it++) {
+       it != data.end(); ++it) {
       bundle_add(bundle, (*it).get("key").to_str().c_str(),
         (*it).get("value").to_str().c_str());
   }

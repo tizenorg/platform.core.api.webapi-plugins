@@ -742,7 +742,7 @@ void KeyManagerInstance::SaveData(const picojson::value& args,
       common::tools::ReportError(success, &result->get<picojson::object>());
     }
 
-    delete data;
+    delete[] data;
   };
 
   auto save_data_result = [this, callback_id](const std::shared_ptr<picojson::value>& result) {

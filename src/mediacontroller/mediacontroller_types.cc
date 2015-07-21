@@ -200,9 +200,8 @@ PlatformResult Types::ConvertMetadata(mc_metadata_h metadata_h,
     free(value);
   };
 
-  int ret;
   for (auto& field : metadata_fields) {
-    ret = mc_client_get_metadata(metadata_h,
+    int ret = mc_client_get_metadata(metadata_h,
                                  static_cast<mc_meta_e>(field.second),
                                  &value);
     if (ret != MEDIA_CONTROLLER_ERROR_NONE) {

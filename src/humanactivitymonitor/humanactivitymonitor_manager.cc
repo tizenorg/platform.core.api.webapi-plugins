@@ -193,10 +193,9 @@ PlatformResult HumanActivityMonitorManager::SetWristUpListener(
 
 PlatformResult HumanActivityMonitorManager::UnsetWristUpListener() {
   LoggerD("Enter");
-  int ret;
 
   if (gesture_handle_) {
-    ret = gesture_stop_recognition(gesture_handle_);
+    int ret = gesture_stop_recognition(gesture_handle_);
     if (ret != GESTURE_ERROR_NONE) {
       LOGGER(ERROR) << "Failed to stop WRIST_UP detection, error: " << ret;
     }
@@ -275,10 +274,9 @@ PlatformResult HumanActivityMonitorManager::SetHrmListener(
 
 PlatformResult HumanActivityMonitorManager::UnsetHrmListener() {
   LoggerD("Enter");
-  int ret;
 
   if (hrm_sensor_listener_) {
-    ret = sensor_listener_stop(hrm_sensor_listener_);
+    int ret = sensor_listener_stop(hrm_sensor_listener_);
     if (ret != SENSOR_ERROR_NONE) {
       LOGGER(ERROR) << "Failed to stop HRM sensor, error: " << ret;
       return PlatformResult(ErrorCode::UNKNOWN_ERR,
@@ -421,10 +419,9 @@ PlatformResult HumanActivityMonitorManager::SetGpsListener(
 
 PlatformResult HumanActivityMonitorManager::UnsetGpsListener() {
   LoggerD("Enter");
-  int ret;
 
   if (location_handle_) {
-    ret = location_manager_stop_batch(location_handle_);
+    int ret = location_manager_stop_batch(location_handle_);
     if (ret != LOCATIONS_ERROR_NONE) {
       LOGGER(ERROR) << "Failed to stop location manager, error: " << ret;
       return PlatformResult(ErrorCode::UNKNOWN_ERR,
