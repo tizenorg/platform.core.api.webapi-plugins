@@ -3,7 +3,13 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-var _global = window || global || {};
+var _global = {};
+if (typeof window != 'undefined') {
+  _global = window;
+}
+else if (typeof global != 'undefiend') {
+  _global = global;
+}
 
 /**
  * @deprecated Used only by validateArguments()
