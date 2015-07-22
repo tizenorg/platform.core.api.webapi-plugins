@@ -111,12 +111,7 @@ Source0:    %{name}-%{version}.tar.gz
 # I586
 %define tizen_feature_wi_fi_support                   0
 %endif
-%define tizen_feature_tvaudio_support                 0
-%define tizen_feature_tvchannel_support               0
-%define tizen_feature_tv_display_support              0
-%define tizen_feature_tvinputdevice_support           0
 %define tizen_feature_inputdevice_support             1
-%define tizen_feature_tvwindow_support                0
 
 %if 0%{?tizen_feature_telephony_support}
 %define tizen_feature_callhistory_support             1
@@ -208,12 +203,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_time_support                    1
 %define tizen_feature_web_setting_support             0
 %define tizen_feature_wi_fi_support                   1
-%define tizen_feature_tvaudio_support                 0
-%define tizen_feature_tvchannel_support               0
-%define tizen_feature_tv_display_support              0
-%define tizen_feature_tvinputdevice_support           0
 %define tizen_feature_inputdevice_support             1
-%define tizen_feature_tvwindow_support                0
 
 #- telephony related APIs
 # CallHistory API is optional in Tizen Wearable Profile.
@@ -275,15 +265,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_time_support                    1
 %define tizen_feature_web_setting_support             1
 %define tizen_feature_wi_fi_support                   1
-#off for tizen 3.0 (no libavoc)
-%define tizen_feature_tvaudio_support                 0
-#off for tizen 3.0 (no tvs-api)
-%define tizen_feature_tvchannel_support               0
-#off for tizen 3.0 (no systeminfo definitions)
-%define tizen_feature_tv_display_support              0
-%define tizen_feature_tvinputdevice_support           1
 %define tizen_feature_inputdevice_support             1
-%define tizen_feature_tvwindow_support                0
 
 %endif # tizen_profile_tv
 
@@ -412,16 +394,6 @@ BuildRequires:  pkgconfig(contacts-service2)
 BuildRequires:  pkgconfig(contacts-service2)
 %endif
 
-%if 0%{?tizen_feature_tvchannel_support}
-BuildRequires: pkgconfig(tvs-api)
-%endif
-
-%if 0%{?tizen_feature_tvwindow_support}
-#TODO Currently, TVWindow does not have implementation yet.
-#Hence, below dependency can be disabled (there is no tvs-api on tizen 3.0 yet)
-#BuildRequires: pkgconfig(tvs-api)
-%endif
-
 %if 0%{?tizen_feature_exif_support}
 BuildRequires:  pkgconfig(libexif)
 %endif
@@ -432,11 +404,6 @@ BuildRequires:  pkgconfig(capi-network-nfc)
 
 %if 0%{?tizen_feature_fm_radio_support}
 BuildRequires: pkgconfig(capi-media-radio)
-%endif
-
-%if 0%{?tizen_feature_tvaudio_support}
-BuildRequires:  pkgconfig(libavoc)
-BuildRequires:  pkgconfig(capi-media-audio-io)
 %endif
 
 %if 0%{?tizen_feature_se_support}
@@ -526,12 +493,7 @@ GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_system_info_support=%{?tizen_feature_s
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_system_setting_support=%{?tizen_feature_system_setting_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_telephony_support=%{?tizen_feature_telephony_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_time_support=%{tizen_feature_time_support}"
-GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_tvaudio_support=%{?tizen_feature_tvaudio_support}"
-GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_tvchannel_support=%{?tizen_feature_tvchannel_support}"
-GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_tv_display_support=%{?tizen_feature_tv_display_support}"
-GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_tvinputdevice_support=%{?tizen_feature_tvinputdevice_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_inputdevice_support=%{?tizen_feature_inputdevice_support}"
-GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_tvwindow_support=%{?tizen_feature_tvwindow_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_web_setting_support=%{?tizen_feature_web_setting_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_wi_fi_support=%{?tizen_feature_wi_fi_support}"
 
@@ -562,13 +524,6 @@ install -p -m 644 tools/js_minimize.py %{buildroot}%{_includedir}/%{name}/tools
 cp -a tools/gyp %{buildroot}%{_includedir}/%{name}/tools/gyp
 cp -a tools/slimit %{buildroot}%{_includedir}/%{name}/tools/slimit
 
-%if 0%{?tizen_feature_tvaudio_support}
-# tv audio beep files:
-%define ringtones_directory /opt/usr/share/settings/Ringtones/
-mkdir -p %{buildroot}%{ringtones_directory}
-cp res/tvsounds/*.pcm %{buildroot}%{ringtones_directory}
-%endif
-
 # execute desc_gentool
 LD_LIBRARY_PATH=$LD_LIBRARY_PATH:%{buildroot}%{_libdir}/%{crosswalk_extensions} out/Default/desc_gentool %{buildroot}%{_libdir}/%{crosswalk_extensions} > plugins.json
 
@@ -581,11 +536,6 @@ install -p -m 644 plugins.json %{buildroot}%{_libdir}/%{crosswalk_extensions}/pl
 %{_libdir}/%{crosswalk_extensions}/plugins.json
 %{_datadir}/license/%{name}
 %manifest webapi-plugins.manifest
-
-%if 0%{?tizen_feature_tvaudio_support}
-# tv audio beep files:
-%{ringtones_directory}/*.pcm
-%endif
 
 %files devel
 %{_includedir}/*
