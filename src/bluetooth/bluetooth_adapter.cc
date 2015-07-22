@@ -516,7 +516,6 @@ void BluetoothAdapter::SetPowered(const picojson::value& data, picojson::object&
   bool cur_powered = this->get_powered();
 
   if (ret.IsSuccess() && new_powered != cur_powered) {
-
 #ifdef APP_CONTROL_SETTINGS_SUPPORT
     app_control_h service;
     int err = 0;
@@ -603,68 +602,132 @@ void BluetoothAdapter::SetVisible(const picojson::value& data, picojson::object&
   const auto& args = util::GetArguments(data);
   const auto visible = FromJson<bool>(args, "visible");
 
-  unsigned short timeout = kTimeout;
+  unsigned short new_timeout = kTimeout;
   if (visible) {
-    timeout = static_cast<unsigned short>(FromJson<double>(args, "timeout"));
+    new_timeout = static_cast<unsigned short>(FromJson<double>(args, "timeout"));
   }
 
-  PlatformResult result = PlatformResult(ErrorCode::NO_ERROR);
+  PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
 
   if (!this->is_initialized()) {
-    result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Bluetooth service is not initialized.");
+    ret = PlatformResult(ErrorCode::UNKNOWN_ERR, "Bluetooth service is not initialized.");
   }
 
-  if (result.IsSuccess() && this->user_request_list_[SET_VISIBLE]) {
-    result = PlatformResult(ErrorCode::SERVICE_NOT_AVAILABLE_ERR, "Already requested");
+  if (ret.IsSuccess() && this->user_request_list_[SET_VISIBLE]) {
+    ret = PlatformResult(ErrorCode::SERVICE_NOT_AVAILABLE_ERR, "Already requested");
   }
 
-  if (result.IsSuccess() && this->get_powered()) {
-    bt_adapter_visibility_mode_e mode = BT_ADAPTER_VISIBILITY_MODE_NON_DISCOVERABLE;
+  if (ret.IsSuccess() && this->get_powered()) {
+
+    bt_adapter_visibility_mode_e new_mode = BT_ADAPTER_VISIBILITY_MODE_NON_DISCOVERABLE;
     if (visible) {
-      if (0 == timeout) {
-        mode = BT_ADAPTER_VISIBILITY_MODE_GENERAL_DISCOVERABLE;
+      if (0 == new_timeout) {
+        new_mode = BT_ADAPTER_VISIBILITY_MODE_GENERAL_DISCOVERABLE;
       } else {
-        mode = BT_ADAPTER_VISIBILITY_MODE_LIMITED_DISCOVERABLE;
+        new_mode = BT_ADAPTER_VISIBILITY_MODE_LIMITED_DISCOVERABLE;
       }
     }
 
-    bt_adapter_visibility_mode_e current = BT_ADAPTER_VISIBILITY_MODE_NON_DISCOVERABLE;
-    int time = 0;
-    if (BT_ERROR_NONE != bt_adapter_get_visibility(&current , &time)) {
-      result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown exception");
-      instance_.AsyncResponse(callback_handle, result);
-      return;
+    bt_adapter_visibility_mode_e cur_mode = BT_ADAPTER_VISIBILITY_MODE_NON_DISCOVERABLE;
+    int cur_timeout = 0;
+    if (BT_ERROR_NONE != bt_adapter_get_visibility(&cur_mode , &cur_timeout)) {
+      ret = PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown exception");
     }
 
-    if (mode == current) {
-      if (BT_ADAPTER_VISIBILITY_MODE_LIMITED_DISCOVERABLE != mode ||
-          (unsigned int)time != timeout) {
-        instance_.AsyncResponse(callback_handle, result);
+    if (ret.IsSuccess() && new_mode == cur_mode) {
+      if (BT_ADAPTER_VISIBILITY_MODE_LIMITED_DISCOVERABLE != new_mode ||
+          (unsigned int) cur_timeout == new_timeout) {
+        instance_.AsyncResponse(callback_handle, ret);
         return;
       }
     }
 
-    this->requested_visibility_ = mode;
-    this->user_request_list_[SET_VISIBLE] = true;
-    this->user_request_callback_[SET_VISIBLE] = callback_handle;
-    int ret = bt_adapter_set_visibility(mode, timeout);
+    if (ret.IsSuccess()) {
+#ifdef APP_CONTROL_SETTINGS_SUPPORT
+      app_control_h service;
+      int err = 0;
 
-    switch(ret) {
-      case BT_ERROR_NONE:
-        //bt_adapter_visibility_mode_changed_cb() will be invoked
-        //if this function returns #BT_ERROR_NONE
-        break;
-      case BT_ERROR_INVALID_PARAMETER:
-        result = PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid value");
-        break;
-      default:
-        result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown exception");
+      if ((err = app_control_create(&service)) != APP_CONTROL_ERROR_NONE) {
+        LoggerE("app control create failed: %d", err);
+        ret = PlatformResult(ErrorCode::UNKNOWN_ERR, "app control create failed");
+      }
+
+      if (ret.IsSuccess()) {
+        err = app_control_set_operation(service, "http://tizen.org/appcontrol/operation/edit");
+        if (err != APP_CONTROL_ERROR_NONE) {
+          LoggerE("app control set operation failed: %d", err);
+          ret = PlatformResult(ErrorCode::UNKNOWN_ERR, "app control set operation failed");
+        }
+      }
+
+      if (ret.IsSuccess()) {
+        err = app_control_set_mime(service, "application/x-bluetooth-visibility");
+        if (err != APP_CONTROL_ERROR_NONE) {
+          LoggerE("app control set mime failed: %d", err);
+          ret = PlatformResult(ErrorCode::UNKNOWN_ERR, "app control set mime failed");
+        }
+      }
+
+      if (ret.IsSuccess()) {
+        const void* t_param[] = { this, &ret, &new_mode, &callback_handle };
+
+        err = app_control_send_launch_request(service, [](
+                app_control_h request, app_control_h reply,
+                app_control_result_e r, void* user_data) {
+          BluetoothAdapter* self = static_cast<BluetoothAdapter*>(((void**) user_data)[0]);
+          PlatformResult* p_ret = static_cast<PlatformResult*>(((void**) user_data)[1]);
+          bt_adapter_visibility_mode_e* p_new_mode = static_cast<bt_adapter_visibility_mode_e*>(((void**) user_data)[2]);
+          double* p_callback_handle = static_cast<double*>(((void**) user_data)[3]);
+
+          char* result = nullptr;
+          app_control_get_extra_data(reply, "result", &result);
+          LoggerD("bt visibility onoff: %s", result);
+
+          if (strcmp(result, "success") == 0) {
+            self->requested_visibility_ = *p_new_mode;
+            self->user_request_list_[SET_VISIBLE] = true;
+            self->user_request_callback_[SET_VISIBLE] = *p_callback_handle;
+          } else {
+            LoggerE("app control setVisible failed");
+            *p_ret = PlatformResult(ErrorCode::UNKNOWN_ERR, "app control setVisible failed");
+          }
+        }, t_param);
+
+        if (err != APP_CONTROL_ERROR_NONE) {
+          LoggerE("app control set launch request failed: %d", err);
+          ret = PlatformResult(ErrorCode::UNKNOWN_ERR, "app control set launch request failed");
+        }
+      }
+
+      err = app_control_destroy(service);
+      if (err != APP_CONTROL_ERROR_NONE) {
+        LoggerE("app control destroy failed: %d", err);
+        ret = PlatformResult(ErrorCode::UNKNOWN_ERR, "app control destroy failed");
+      }
+#else
+      this->requested_visibility_ = new_mode;
+      this->user_request_list_[SET_VISIBLE] = true;
+      this->user_request_callback_[SET_VISIBLE] = callback_handle;
+      int ret = bt_adapter_set_visibility(new_mode, new_timeout);
+
+      switch(ret) {
+        case BT_ERROR_NONE:
+          //bt_adapter_visibility_mode_changed_cb() will be invoked
+          //if this function returns #BT_ERROR_NONE
+          break;
+        case BT_ERROR_INVALID_PARAMETER:
+          ret = PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid value");
+          break;
+        default:
+          ret = PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown exception");
+      }
+#endif
     }
-  } else if (result.IsSuccess()){
-    result = PlatformResult(ErrorCode::SERVICE_NOT_AVAILABLE_ERR, "Bluetooth device is turned off");
+  } else if (ret.IsSuccess()){
+    ret = PlatformResult(ErrorCode::SERVICE_NOT_AVAILABLE_ERR, "Bluetooth device is turned off");
   }
 
-  instance_.AsyncResponse(callback_handle, result);
+  instance_.AsyncResponse(callback_handle, ret);
 }
 
 void BluetoothAdapter::DiscoverDevices(const picojson::value& /* data */, picojson::object& out) {
