@@ -146,7 +146,7 @@ CallHistory.prototype.find = function() {
 
     var callback = function(result) {
         if (native_.isFailure(result)) {
-            native_.callIfPossible(args.errorCallback(result.error));
+            native_.callIfPossible(args.errorCallback, native.getErrorObject(result));
         } else {
             var entries = _createCallHistoryEntries(result);
             args.successCallback(entries);
@@ -210,9 +210,9 @@ CallHistory.prototype.removeBatch = function() {
 
     var callback = function(result) {
         if (native_.isFailure(result)) {
-            native_.callIfPossible(args.errorCallback(result.error));
+            native_.callIfPossible(args.errorCallback, native.getErrorObject(result));
         } else {
-            native_.callIfPossible(args.successCallback());
+            native_.callIfPossible(args.successCallback);
         }
     };
 
@@ -243,9 +243,9 @@ CallHistory.prototype.removeAll = function() {
 
     var callback = function(result) {
         if (native_.isFailure(result)) {
-            native_.callIfPossible(args.errorCallback(result.error));
+            native_.callIfPossible(args.errorCallback, native.getErrorObject(result));
         } else {
-            native_.callIfPossible(args.successCallback());
+            native_.callIfPossible(args.successCallback);
         }
     };
 
