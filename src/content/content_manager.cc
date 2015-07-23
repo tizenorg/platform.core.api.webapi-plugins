@@ -508,6 +508,7 @@ static void FolderToJson(media_folder_h folder, picojson::object* out) {
   {
     LoggerE("Failed: media_folder_get_name");
     common::tools::ReportError(ContentManager::convertError(ret), out);
+    free(id);
     return;
   }
 
@@ -516,6 +517,8 @@ static void FolderToJson(media_folder_h folder, picojson::object* out) {
   {
     LoggerE("Failed: media_folder_get_path");
     common::tools::ReportError(ContentManager::convertError(ret), out);
+    free(id);
+    free(name);
     return;
   }
 
@@ -524,12 +527,18 @@ static void FolderToJson(media_folder_h folder, picojson::object* out) {
   {
     LoggerE("Failed: media_folder_get_path");
     common::tools::ReportError(ContentManager::convertError(ret), out);
+    free(id);
+    free(name);
+    free(path);
     return;
   }
 
   ret = media_folder_get_storage_type(folder, &storageType);
   if(ret!=MEDIA_CONTENT_ERROR_NONE)
   {
+    free(id);
+    free(name);
+    free(path);
     LoggerE("Failed: media_folder_get_storage_type");
     common::tools::ReportError(ContentManager::convertError(ret), out);
     return;
