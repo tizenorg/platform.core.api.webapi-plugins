@@ -220,6 +220,29 @@ ContentManager.prototype.scanDirectory = function(contentDirURI, recursive, succ
   }
 };
 
+ContentManager.prototype.cancelScanDirectory = function(contentDirURI) {
+  xwalk.utils.checkPrivilegeAccess(privilege_.CONTENT_WRITE);
+
+  var args = validator_.validateArgs(arguments, [
+    {name: 'contentDirURI', type: types_.STRING}
+  ]);
+
+  var path = args.contentDirURI.trim();
+  if (!path.length) {
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR, 'Directory path is not valid.');
+  }
+
+  var data = {
+    contentDirURI: convertUriToPath_(path)
+  };
+
+  var result = native_.callSync('ContentManager_cancelScanDirectory', data);
+
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
+  }
+};
+
 ContentManager.prototype.setChangeListener = function(changeCallback) {
   xwalk.utils.checkPrivilegeAccess(privilege_.CONTENT_READ);
 

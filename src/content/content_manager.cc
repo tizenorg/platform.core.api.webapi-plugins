@@ -814,6 +814,17 @@ PlatformResult ContentManager::scanDirectory(media_scan_completed_cb callback, R
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
+PlatformResult ContentManager::cancelScanDirectory(const std::string& content_dir_uri) {
+  LoggerD("Enter");
+
+  int ret = media_content_cancel_scan_folder(content_dir_uri.c_str());
+  if (ret != MEDIA_CONTENT_ERROR_NONE) {
+    LoggerE("Cancel scan folder failed in platform: %d", ret);
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cancel scan content directory failed");
+  }
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
 PlatformResult ContentManager::setChangeListener(media_content_db_update_cb callback, void *user_data) {
   LoggerD("Enter");
   int ret = media_content_set_db_updated_cb(callback, user_data);

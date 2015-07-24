@@ -46,6 +46,7 @@ ContentInstance::ContentInstance() {
   REGISTER_SYNC("ContentManager_update", ContentManagerUpdate);
   REGISTER_SYNC("ContentManager_scanFile", ContentManagerScanfile);
   REGISTER_SYNC("ContentManager_scanDirectory", ContentManagerScanDirectory);
+  REGISTER_SYNC("ContentManager_cancelScanDirectory", ContentManagerCancelScanDirectory);
   REGISTER_SYNC("ContentManager_unsetChangeListener", ContentManagerUnsetchangelistener);
   REGISTER_SYNC("ContentManager_setChangeListener", ContentManagerSetchangelistener);
   REGISTER_SYNC("ContentManager_getDirectories", ContentManagerGetdirectories);
@@ -385,6 +386,17 @@ void ContentInstance::ContentManagerScanDirectory(const picojson::value& args, p
 
   if (ContentManager::getInstance()->scanDirectory(ScanDirectoryCallback, cbData).IsError()) {
     ReportError(common::PlatformResult(common::ErrorCode::UNKNOWN_ERR, "Scan directory failed"), &out);
+  }
+}
+
+
+void ContentInstance::ContentManagerCancelScanDirectory(const picojson::value& args, picojson::object& out) {
+  LoggerD("Enter");
+  CHECK_EXIST(args, "contentDirURI", out)
+  const std::string& content_dir_uri = args.get("contentDirURI").get<std::string>();
+
+  if (ContentManager::getInstance()->cancelScanDirectory(content_dir_uri).IsError()) {
+    ReportError(common::PlatformResult(common::ErrorCode::UNKNOWN_ERR, "Cancel scan directory failed"), &out);
   }
 }
 
