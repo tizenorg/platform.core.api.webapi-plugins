@@ -460,7 +460,7 @@ void ApplicationManager::LaunchAppControl(const picojson::value& args) {
     launch_mode_str = launch_mode.get<std::string>();
   }
 
-  app_control_h app_control;
+  app_control_h app_control = nullptr;
   result = ApplicationUtils::ApplicationControlToService(app_control_obj, &app_control);
   std::shared_ptr<std::remove_pointer<app_control_h>::type>
   app_control_ptr(app_control, &app_control_destroy); // automatically release the memory
