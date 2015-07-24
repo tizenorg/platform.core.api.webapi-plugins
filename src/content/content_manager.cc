@@ -1330,16 +1330,15 @@ int ContentManager::getLyrics(const picojson::value& args, picojson::object& res
     result["timestamps"] = picojson::value(timestamps);
     ret = METADATA_EXTRACTOR_ERROR_NONE;
   } else {
-    char* unSyncText;
-    ret = metadata_extractor_get_metadata(extractor,
-        METADATA_UNSYNCLYRICS, &unSyncText);
+    char* unSyncText = nullptr;
+    ret = metadata_extractor_get_metadata(extractor, METADATA_UNSYNCLYRICS,
+                                          &unSyncText);
     if (ret == METADATA_EXTRACTOR_ERROR_NONE) {
       result["type"] = picojson::value(std::string("UNSYNCHRONIZED"));
-      if (unSyncText == NULL) {
+      if (nullptr == unSyncText) {
         LOGGER(ERROR) << "Unsynchronized lyrics text is NULL";
-        unSyncText = strdup(""); // prevents picojson assert
       }
-      texts.push_back(picojson::value(std::string(unSyncText)));
+      texts.push_back(picojson::value(unSyncText ? unSyncText : ""));
       result["texts"] = picojson::value(texts);
       free(unSyncText);
     }
