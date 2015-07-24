@@ -713,7 +713,6 @@ void ContentManager::find(const std::shared_ptr<ReplyCallbackData>& user_data) {
   int ret;
   int count, offset;
   std::string dirId;
-  media_content_order_e order;
 
   picojson::value::array arrayContent;
   filter_h filter = nullptr;
@@ -749,6 +748,8 @@ void ContentManager::find(const std::shared_ptr<ReplyCallbackData>& user_data) {
 
       sortModeOrder = vSortMode.get("order").to_str();
       if (!sortModeOrder.empty()) {
+        media_content_order_e order = MEDIA_CONTENT_ORDER_ASC;
+
         if (sortModeOrder == "ASC") {
           order = MEDIA_CONTENT_ORDER_ASC;
         } else if (sortModeOrder == "DESC") {
