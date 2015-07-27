@@ -406,6 +406,7 @@ void ApplicationManager::Launch(const picojson::value& args) {
       switch (ret) {
         case AUL_R_EINVAL:
         case AUL_R_ERROR:
+        case AUL_R_ENOAPP:
           LoggerE("aul_open_app returns Not Found error");
           result = PlatformResult(ErrorCode::NOT_FOUND_ERR, "Launchpad returns not found error.");
           break;
