@@ -49,9 +49,13 @@ DateConverter.prototype.fromTZDate = function(v) {
     return v;
   }
 
-  var utc = v.toUTC();
-  var timestamp = new Date(utc.getFullYear(), utc.getMonth(), utc.getDate(), utc.getHours(),
-      utc.getMinutes(), utc.getSeconds()) / 1000;
+  var timestamp = Date.UTC(v.date_.getUTCFullYear(),
+                           v.date_.getUTCMonth(),
+                           v.date_.getUTCDate(),
+                           v.date_.getUTCHours(),
+                           v.date_.getUTCMinutes(),
+                           v.date_.getUTCSeconds(),
+                           v.date_.getUTCMilliseconds()) / 1000;
 
   return {
     year: v.getFullYear(),
