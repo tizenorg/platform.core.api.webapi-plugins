@@ -772,7 +772,7 @@ void ApplicationManager::GetAppContext(const picojson::value& args, picojson::ob
       pid = std::stoi(context_id.get<std::string>());
     } catch(...) {
       LoggerE("Failed to convert context id.");
-      ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to convert context id."), out);
+      ReportError(PlatformResult(ErrorCode::NOT_FOUND_ERR, "Failed to convert context id."), out);
       return;
     }
   } else {
