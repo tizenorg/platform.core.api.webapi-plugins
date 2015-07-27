@@ -121,8 +121,8 @@ PlatformResult SystemSettingInstance::getPlatformPropertyValue(
       result_obj.insert(std::make_pair("value", picojson::value(value ? value : "")));
       free(value);
       return PlatformResult(ErrorCode::NO_ERROR);
-    case SYSTEM_SETTINGS_ERROR_CALL_UNSUPPORTED_API:
-      LoggerD("ret == SYSTEM_SETTINGS_ERROR_CALL_UNSUPPORTED_API");
+    case SYSTEM_SETTINGS_ERROR_NOT_SUPPORTED:
+      LoggerD("ret == SYSTEM_SETTINGS_ERROR_NOT_SUPPORTED");
       return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR,
                             "This property is not supported.");
     default:
@@ -192,8 +192,8 @@ PlatformResult SystemSettingInstance::setPlatformPropertyValue(
     case SYSTEM_SETTINGS_ERROR_NONE:
       LoggerD("ret == SYSTEM_SETTINGS_ERROR_NONE");
       return PlatformResult(ErrorCode::NO_ERROR);
-    case SYSTEM_SETTINGS_ERROR_CALL_UNSUPPORTED_API:
-      LoggerD("ret == SYSTEM_SETTINGS_ERROR_CALL_UNSUPPORTED_API");
+    case SYSTEM_SETTINGS_ERROR_NOT_SUPPORTED:
+      LoggerD("ret == SYSTEM_SETTINGS_ERROR_NOT_SUPPORTED");
       return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR,
                             "This property is not supported.");
     default:
