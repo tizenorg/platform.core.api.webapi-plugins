@@ -222,7 +222,7 @@ ApplicationManager.prototype.launchAppControl = function() {
   if (args.has.id) {
     callArgs.id = args.id;
   }
-  if (args.has.replyCallback) {
+  if (args.has.replyCallback && args.replyCallback) {
     callArgs.replyCallback = replyCallbackId;
     native.addListener(replyCallbackId, registeredReplyCallback);
   }
