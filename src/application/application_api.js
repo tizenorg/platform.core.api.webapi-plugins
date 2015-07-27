@@ -529,6 +529,8 @@ ListenerManager.prototype.addListener = function(callback) {
 ListenerManager.prototype.removeListener = function(watchId) {
   if (this.listeners.hasOwnProperty(watchId)) {
     delete this.listeners[watchId];
+  } else {
+    throw new WebAPIException(WebAPIException.NOT_FOUND_ERR, 'Specified listener does not exist');
   }
 
   if (this.nativeSet && T.isEmptyObject(this.listeners)) {
