@@ -162,7 +162,7 @@ void MessageportInstance::
     args.get("localMessagePortName").get<std::string>();
 
   portId = message_port_register_trusted_local_port
-    (localMessagePortName.c_str(), OnReceiveLocalMessage, NULL);
+    (localMessagePortName.c_str(), OnReceiveLocalMessage, this);
 
   LoggerD("Registering trusted local port %s:%s", localMessagePortName.c_str(),
     portId < 0 ? "false" : "true");
