@@ -113,6 +113,12 @@ MessagePortManager.prototype.requestLocalMessagePort = function(localMessagePort
   var args = validator_.validateArgs(arguments, [
     {'name' : 'localMessagePortName', 'type': types_.STRING}
   ]);
+
+  if ('' === args.localMessagePortName) {
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
+                              'Port name cannot be empty.');
+  }
+
   var localPortId;
   var nativeParam = {
     'localMessagePortName': args.localMessagePortName
@@ -136,6 +142,11 @@ MessagePortManager.prototype.requestTrustedLocalMessagePort = function(localMess
   var args = validator_.validateArgs(arguments, [
     {'name' : 'localMessagePortName', 'type': types_.STRING}
   ]);
+
+  if ('' === args.localMessagePortName) {
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
+                              'Port name cannot be empty.');
+  }
 
   var nativeParam = {
     'localMessagePortName': args.localMessagePortName
