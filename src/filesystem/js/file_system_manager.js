@@ -52,6 +52,18 @@ FileSystemManager.prototype.resolve = function(location, onsuccess, onerror, mod
     }, 0);
     return;
   }
+
+  // resolving a path on unmounted storage should result in exception
+  var storage = commonFS_.getStorage(args.location.split('/')[0]);
+  if (storage && FileSystemStorageState.MOUNTED !== storage.state) {
+    setTimeout(function() {
+      native_.callIfPossible(args.onerror,
+          new WebAPIException(WebAPIException.NOT_FOUND_ERR,
+          'Storage is not mounted.'));
+    }, 0);
+    return;
+  }
+
   var _realPath = commonFS_.toRealPath(args.location);
   var _isLocationAllowed = commonFS_.isLocationAllowed(_realPath);
 
