@@ -74,14 +74,20 @@ class ContentInstance : public common::ParsedInstance {
   void PlaylistSetThumbnailUri(const picojson::value& args, picojson::object& out);
 };
 
-typedef struct _ReplyCallbackData{
+typedef struct _ReplyCallbackData {
+  _ReplyCallbackData()
+      : instance(nullptr),
+        cbType(ContentManagerFindCallback),
+        callbackId(-1.0),
+        isSuccess(common::ErrorCode::NO_ERROR) {
+  }
   ContentInstance* instance;
   ContentCallbacks cbType;
   double callbackId;
-  bool isSuccess;
   picojson::value args;
   picojson::value result;
-}ReplyCallbackData;
+  common::PlatformResult isSuccess;
+} ReplyCallbackData;
 
 
 } // namespace content
