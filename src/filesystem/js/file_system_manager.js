@@ -145,7 +145,7 @@ var callbackId = 0;
 var callbacks = {};
 
 function nextCallbackId() {
-  return callbackId++;
+  return ++callbackId;
 }
 
 function _StorageStateChangeListener(result) {
