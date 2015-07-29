@@ -2390,7 +2390,8 @@ PlatformResult ImportContactFromContactsRecord(
       return status;
     }
 
-    std::make_pair("photoURI", value ? JsonValue{value} : JsonValue{});
+    out.insert(std::make_pair("photoURI", value ?
+        JsonValue{ConvertPathToUri(value)} : JsonValue{}));
 
     status = ContactUtil::GetStrFromRecord(
         contacts_record, _contacts_contact.ringtone_path, &value);
@@ -2399,7 +2400,8 @@ PlatformResult ImportContactFromContactsRecord(
       return status;
     }
 
-    std::make_pair("ringtoneURI", value ? JsonValue{value} : JsonValue{});
+    out.insert(std::make_pair("ringtoneURI", value ?
+        JsonValue{ConvertPathToUri(value)} : JsonValue{}));
     value = nullptr;
     status = ContactUtil::GetStrFromRecord(
         contacts_record, _contacts_contact.message_alert, &value);
