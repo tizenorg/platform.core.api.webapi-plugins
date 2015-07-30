@@ -65,6 +65,17 @@ FileSystemManager.prototype.resolve = function(location, onsuccess, onerror, mod
   }
 
   var _realPath = commonFS_.toRealPath(args.location);
+
+  if (!_realPath) {
+    // invalid real path means that virtual root does not exist
+    setTimeout(function() {
+      native_.callIfPossible(args.onerror,
+          new WebAPIException(WebAPIException.NOT_FOUND_ERR,
+          'Specified virtual root does not exist.'));
+    }, 0);
+    return;
+  }
+
   var _isLocationAllowed = commonFS_.isLocationAllowed(_realPath);
 
   if (args.mode !== 'r' && !_isLocationAllowed) {
