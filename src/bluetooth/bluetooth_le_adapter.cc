@@ -106,11 +106,10 @@ class BluetoothLEServiceData : public ParsedDataHolder {
 class BluetoothLEManufacturerData : public ParsedDataHolder {
  public:
   BluetoothLEManufacturerData()
-      : ParsedDataHolder(),
-        id_(-1) {
+      : ParsedDataHolder() {
   }
 
-  int id() const {
+  const std::string& id() const {
     return id_;
   }
 
@@ -138,12 +137,7 @@ class BluetoothLEManufacturerData : public ParsedDataHolder {
     LoggerD("Entered");
     const auto& id = obj.get("id");
     if (id.is<std::string>()) {
-      try {
-        out->id_ = std::stoi(id.get<std::string>());
-      } catch (...) {
-        LoggerE("Failed to convert string to int: %s", id.get<std::string>().c_str());
-        return false;
-      }
+      out->id_ = id.get<std::string>();
     } else {
       return false;
     }
@@ -164,7 +158,7 @@ class BluetoothLEManufacturerData : public ParsedDataHolder {
     return true;
   }
 
-  int id_;
+  std::string id_;
   std::string data_;
 };
 
@@ -509,13 +503,14 @@ void BluetoothLEAdapter::StartAdvertise(const picojson::value& data, picojson::o
       int (*)(bt_advertiser_h)> advertiser_ptr(advertiser, &bt_adapter_le_destroy_advertiser);  // automatically release the memory
 
   // configure advertiser
-
-  ret = bt_adapter_le_set_advertising_device_name(advertiser, packet_type,
-                                                  advertise_data.include_name());
-  if (BT_ERROR_NONE != ret) {
-    LoggerE("bt_adapter_le_set_advertising_device_name() failed with: %d", ret);
-    ReportError(util::GetBluetoothError(ret, "Failed to create advertiser"), &out);
-    return;
+  if (advertise_data.include_name()) {
+    ret = bt_adapter_le_set_advertising_device_name(advertiser, packet_type,
+                                                advertise_data.include_name());
+    if (BT_ERROR_NONE != ret) {
+      LoggerE("bt_adapter_le_set_advertising_device_name() failed with: %d", ret);
+      ReportError(util::GetBluetoothError(ret, "Failed to create advertiser"), &out);
+      return;
+    }
   }
 
   for (const auto& i : advertise_data.service_uuids()) {
@@ -547,36 +542,46 @@ void BluetoothLEAdapter::StartAdvertise(const picojson::value& data, picojson::o
     return;
   }
 
-  ret = bt_adapter_le_set_advertising_tx_power_level(advertiser, packet_type,
-                                                     advertise_data.include_tx_power_level());
-  if (BT_ERROR_NONE != ret) {
-    LoggerE("bt_adapter_le_set_advertising_tx_power_level() failed with: %d", ret);
-    ReportError(util::GetBluetoothError(ret, "Failed to create advertiser"), &out);
-    return;
+  if (advertise_data.include_tx_power_level()) {
+    ret = bt_adapter_le_set_advertising_tx_power_level(advertiser, packet_type,
+                                                       advertise_data.include_tx_power_level());
+    if (BT_ERROR_NONE != ret) {
+      LoggerE("bt_adapter_le_set_advertising_tx_power_level() failed with: %d", ret);
+      ReportError(util::GetBluetoothError(ret, "Failed to create advertiser"), &out);
+      return;
+    }
   }
 
   const auto& service_data = advertise_data.service_data();
-  ret = bt_adapter_le_add_advertising_service_data(advertiser, packet_type,
-                                                   service_data.uuid().c_str(),
-                                                   service_data.data().c_str(),
-                                                   service_data.data().length());
-  if (BT_ERROR_NONE != ret) {
-    LoggerE("bt_adapter_le_add_advertising_service_data() failed with: %d", ret);
-    ReportError(util::GetBluetoothError(ret, "Failed to create advertiser"), &out);
-    return;
+  if (service_data.uuid().empty() && service_data.data().empty()) {
+    LoggerD("service data is empty");
+  } else {
+    ret = bt_adapter_le_add_advertising_service_data(advertiser, packet_type,
+                                                     service_data.uuid().c_str(),
+                                                     service_data.data().c_str(),
+                                                     service_data.data().length());
+    if (BT_ERROR_NONE != ret) {
+      LoggerE("bt_adapter_le_add_advertising_service_data() failed with: %d", ret);
+      ReportError(util::GetBluetoothError(ret, "Failed to create advertiser"), &out);
+      return;
+    }
   }
 
   const auto& manufacturer_data = advertise_data.manufacturer_data();
-  if (manufacturer_data.valid()) {
-    ret = bt_adapter_le_add_advertising_manufacturer_data(advertiser,
-                                                          packet_type,
-                                                          manufacturer_data.id(),
-                                                          manufacturer_data.data().c_str(),
-                                                          manufacturer_data.data().length());
-    if (BT_ERROR_NONE != ret) {
-      LoggerE("bt_adapter_le_add_advertising_manufacturer_data() failed with: %d", ret);
-      ReportError(util::GetBluetoothError(ret, "Failed to create advertiser"), &out);
-      return;
+  if (manufacturer_data.id().empty() && manufacturer_data.data().empty()) {
+    LoggerD("manufacturerData is empty");
+  } else {
+      if (manufacturer_data.valid()) {
+      ret = bt_adapter_le_add_advertising_manufacturer_data(advertiser,
+                                                            packet_type,
+                                                            atoi(manufacturer_data.id().c_str()),
+                                                            manufacturer_data.data().c_str(),
+                                                            manufacturer_data.data().length());
+      if (BT_ERROR_NONE != ret) {
+        LoggerE("bt_adapter_le_add_advertising_manufacturer_data() failed with: %d", ret);
+        ReportError(util::GetBluetoothError(ret, "Failed to create advertiser"), &out);
+        return;
+      }
     }
   }
 
