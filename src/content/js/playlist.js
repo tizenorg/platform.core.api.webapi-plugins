@@ -52,13 +52,13 @@ function Playlist(data) {
     },
     numberOfTracks: {
       get: function() {
-        return numberOfTracks;
-      },
-      set: function(v) {
-        if (edit_.isAllowed) {
-          numberOfTracks = converter_.toUnsignedLong(v, false);
+        var result = native_.callSync('ContentPlaylist_getNumberOfTracks', {'id' : Number(id)});
+        if (native_.isFailure(result)) {
+          throw native_.getErrorObject(result);
         }
+        return native_.getResultObject(result);
       },
+      set: function() {},
       enumerable: true
     },
     thumbnailURI: {

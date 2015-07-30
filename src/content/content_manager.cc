@@ -1464,6 +1464,22 @@ int ContentManager::setThumbnailUri(int id, const std::string& thb_uri)
   return ret;
 }
 
+int ContentManager::getNumberOfTracks(int id, int* result) {
+  LoggerD("Entered");
+
+  int count = 0;
+  const int ret_code = media_playlist_get_media_count_from_db(id, nullptr,
+                                                              &count);
+
+  if (MEDIA_CONTENT_ERROR_NONE != ret_code) {
+    LoggerE("media_playlist_get_media_count_from_db failed");
+    return TIZEN_ERROR_UNKNOWN;
+  }
+
+  *result = count;
+  return MEDIA_CONTENT_ERROR_NONE;
+}
+
 PlatformResult ContentManager::convertError(int err) {
   switch (err) {
     case MEDIA_CONTENT_ERROR_INVALID_PARAMETER :

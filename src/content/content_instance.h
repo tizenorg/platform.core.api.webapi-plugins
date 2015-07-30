@@ -72,6 +72,7 @@ class ContentInstance : public common::ParsedInstance {
   void PlaylistSetName(const picojson::value& args, picojson::object& out);
   void PlaylistGetThumbnailUri(const picojson::value& args, picojson::object& out);
   void PlaylistSetThumbnailUri(const picojson::value& args, picojson::object& out);
+  void PlaylistGetNumberOfTracks(const picojson::value& args, picojson::object& out);
 };
 
 typedef struct _ReplyCallbackData {

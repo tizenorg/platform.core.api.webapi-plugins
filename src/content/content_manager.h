@@ -76,6 +76,8 @@ class ContentManager {
   int getThumbnailUri(int id, std::string* result);
   int setThumbnailUri(int id, const std::string& thb_uri);
 
+  int getNumberOfTracks(int id, int* result);
+
 //playlistSetOrder
   static common::PlatformResult convertError(int err);
  private:

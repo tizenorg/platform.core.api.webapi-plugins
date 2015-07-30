@@ -67,6 +67,7 @@ ContentInstance::ContentInstance() {
   REGISTER_SYNC("ContentPlaylist_setName", PlaylistSetName);
   REGISTER_SYNC("ContentPlaylist_getThumbnailUri", PlaylistGetThumbnailUri);
   REGISTER_SYNC("ContentPlaylist_setThumbnailUri", PlaylistSetThumbnailUri);
+  REGISTER_SYNC("ContentPlaylist_getNumberOfTracks", PlaylistGetNumberOfTracks);
   #undef REGISTER_SYNC
 }
 
@@ -688,6 +689,20 @@ void ContentInstance::PlaylistSetThumbnailUri(const picojson::value& args, picoj
     ReportError(ContentManager::getInstance()->convertError(ret), &out);
   } else {
     ReportSuccess(out);
+  }
+}
+
+void ContentInstance::PlaylistGetNumberOfTracks(const picojson::value& args,
+                                                picojson::object& out) {
+  LoggerD("entered");
+  CHECK_EXIST(args, "id", out)
+  int id = static_cast<int>(args.get("id").get<double>());
+  int count = 0;
+  int ret = ContentManager::getInstance()->getNumberOfTracks(id, &count);
+  if (ret != MEDIA_CONTENT_ERROR_NONE) {
+    ReportError(ContentManager::getInstance()->convertError(ret), &out);
+  } else {
+    ReportSuccess(picojson::value(static_cast<double>(count)), out);
   }
 }
 
