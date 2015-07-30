@@ -20,6 +20,7 @@
 #include <list>
 #include <string>
 #include <vector>
+#include <mutex>
 
 #include <radio.h>
 #include <runtime_info.h>
@@ -63,9 +64,13 @@ class FMRadioManager {
   void PostResultCallbackSuccess(double callbackId) const;
   void PostResultFailure(double callbackId, const common::PlatformResult& result) const;
 
+  static bool CheckInstance(const FMRadioManager* instance);
  private:
   RadioInstance& instance_;
   radio_h radio_instance_;
+
+  static std::mutex managers_mutex_;
+  static std::vector<FMRadioManager*> managers_;
 };
 
 } // namespace radio
