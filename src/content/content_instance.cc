@@ -84,7 +84,7 @@ static gboolean CompletedCallback(const std::shared_ptr<ReplyCallbackData>& user
     ReportSuccess(user_data->result, out);
   } else {
     LoggerE("Failed: user_data->isSuccess");
-    ReportError(out);
+    ReportError(user_data->isSuccess, &out);
   }
 
   user_data->instance->PostMessage(picojson::value(out).serialize().c_str());
@@ -95,7 +95,6 @@ static gboolean CompletedCallback(const std::shared_ptr<ReplyCallbackData>& user
 static void* WorkThread(const std::shared_ptr<ReplyCallbackData>& user_data) {
   LoggerD("entered");
 
-  user_data->isSuccess = true;
   ContentCallbacks cbType = user_data->cbType;
   switch(cbType) {
     case ContentManagerUpdatebatchCallback: {
@@ -115,7 +114,8 @@ static void* WorkThread(const std::shared_ptr<ReplyCallbackData>& user_data) {
       int res = ContentManager::getInstance()->scanFile(contentURI);
       if (res != MEDIA_CONTENT_ERROR_NONE) {
         LOGGER(ERROR) << "Scan file failed, error: " << res;
-        user_data->isSuccess = false;
+        common::PlatformResult err(common::ErrorCode::UNKNOWN_ERR, "Scan file failed.");
+        user_data->isSuccess = err;
       }
       break;
     }
@@ -126,7 +126,6 @@ static void* WorkThread(const std::shared_ptr<ReplyCallbackData>& user_data) {
     case ContentManagerCreateplaylistCallback: {
       if (user_data->args.contains("sourcePlaylist")) {
         picojson::object playlist = user_data->args.get("sourcePlaylist").get<picojson::object>();
-        user_data->isSuccess = true;
         user_data->result = picojson::value(playlist);
       }
       else{
@@ -164,8 +163,7 @@ static void* WorkThread(const std::shared_ptr<ReplyCallbackData>& user_data) {
     }
     case ContentManagerErrorCallback: {
       common::PlatformResult err(common::ErrorCode::UNKNOWN_ERR, "DB Connection is failed.");
-      user_data->isSuccess = false;
-      user_data->result = err.ToJSON();
+      user_data->isSuccess = err;
       break;
     }
     default: {

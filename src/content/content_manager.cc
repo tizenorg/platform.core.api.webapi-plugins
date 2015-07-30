@@ -698,12 +698,10 @@ void ContentManager::getDirectories(const std::shared_ptr<ReplyCallbackData>& us
   if (ret != MEDIA_CONTENT_ERROR_NONE) {
     LoggerE("Failed: Getting the directories failed");
     PlatformResult err(ErrorCode::UNKNOWN_ERR, "Getting the directories failed.");
-    user_data->isSuccess = false;
-    user_data->result = err.ToJSON();
+    user_data->isSuccess = err;
     return;
   }
 
-  user_data->isSuccess = true;
   user_data->result = picojson::value(pico_dirs);
 }
 
@@ -787,13 +785,11 @@ void ContentManager::find(const std::shared_ptr<ReplyCallbackData>& user_data) {
   }
 
   if (ret == MEDIA_CONTENT_ERROR_NONE) {
-    user_data->isSuccess = true;
     user_data->result = picojson::value(arrayContent);
   } else {
     LoggerE("The iteration failed in platform: %d", ret);
     PlatformResult err(ErrorCode::UNKNOWN_ERR, "The iteration failed in platform");
-    user_data->isSuccess = false;
-    user_data->result = err.ToJSON();
+    user_data->isSuccess = err;
   }
 }
 
@@ -855,10 +851,10 @@ void ContentManager::createPlaylist(std::string name,
   std::unique_ptr<std::remove_pointer<media_playlist_h>::type, int(*)(media_playlist_h)>
       playlist_ptr(playlist, &media_playlist_destroy); // automatically release the memory
   if(ret != MEDIA_CONTENT_ERROR_NONE) {
-    LoggerE("Failed: creation of playlist is failed");
-    PlatformResult err(ErrorCode::UNKNOWN_ERR, "creation of playlist is failed.");
-    user_data->isSuccess = false;
-    user_data->result = err.ToJSON();
+    LoggerE("Failed: creation of playlist is failed: %d", ret);
+    // MEDIA_CONTENT_ERROR_DB_FAILED means that playlist probably already exists
+    PlatformResult err(MEDIA_CONTENT_ERROR_DB_FAILED == ret ? ErrorCode::INVALID_VALUES_ERR : ErrorCode::UNKNOWN_ERR, "Creation of playlist has failed.");
+    user_data->isSuccess = err;
     return;
   }
   picojson::value::object o;
@@ -874,8 +870,7 @@ void ContentManager::createPlaylist(std::string name,
     else {
       LoggerE("Failed: loading of playlist is failed");
       PlatformResult err(ErrorCode::UNKNOWN_ERR, "loading of playlist is failed.");
-      user_data->isSuccess = false;
-      user_data->result = err.ToJSON();
+      user_data->isSuccess = err;
       return;
     }
     if( media_playlist_get_thumbnail_path(playlist, &thumb_path) == MEDIA_CONTENT_ERROR_NONE) {
@@ -908,9 +903,8 @@ void ContentManager::createPlaylist(std::string name,
       LoggerE("Invalid count for playlist.");
     }
   }
-  user_data->isSuccess = true;
-  user_data->result = picojson::value(o);
 
+  user_data->result = picojson::value(o);
 }
 
 void ContentManager::getPlaylists(const std::shared_ptr<ReplyCallbackData>& user_data) {
@@ -928,10 +922,9 @@ void ContentManager::getPlaylists(const std::shared_ptr<ReplyCallbackData>& user
   if(ret != MEDIA_CONTENT_ERROR_NONE) {
     LoggerE("Failed: Getting playlist is failed");
     PlatformResult err(ErrorCode::UNKNOWN_ERR, "Getting playlist is failed.");
-    user_data->isSuccess = false;
-    user_data->result = err.ToJSON();
+    user_data->isSuccess = err;
   }
-  user_data->isSuccess = true;
+
   user_data->result = picojson::value(playlists);
 }
 
@@ -943,8 +936,7 @@ void ContentManager::removePlaylist(std::string playlistId,
   if(id == 0) {
     LoggerE("Failed: PlaylistId is wrong");
     PlatformResult err(ErrorCode::UNKNOWN_ERR, "PlaylistId is wrong.");
-    user_data->isSuccess = false;
-    user_data->result = err.ToJSON();
+    user_data->isSuccess = err;
     return;
   }
 
@@ -952,8 +944,7 @@ void ContentManager::removePlaylist(std::string playlistId,
   if(ret != MEDIA_CONTENT_ERROR_NONE) {
     LoggerE("Failed: Removal of playlist is failed");
     PlatformResult err(ErrorCode::UNKNOWN_ERR, "Removal of playlist is failed.");
-    user_data->isSuccess = false;
-    user_data->result = err.ToJSON();
+    user_data->isSuccess = err;
   }
 }
 
@@ -1058,8 +1049,7 @@ void ContentManager::playlistAddbatch(const std::shared_ptr<ReplyCallbackData>& 
 
   if(ret != MEDIA_CONTENT_ERROR_NONE && playlist == NULL) {
     PlatformResult err(ErrorCode::UNKNOWN_ERR, "Getting playlist is failed.");
-    user_data->isSuccess = false;
-    user_data->result = err.ToJSON();
+    user_data->isSuccess = err;
     return;
   }
 
@@ -1076,8 +1066,7 @@ void ContentManager::playlistAddbatch(const std::shared_ptr<ReplyCallbackData>& 
   ret = media_playlist_update_to_db(playlist);
   if(ret != MEDIA_CONTENT_ERROR_NONE ) {
     PlatformResult err(ErrorCode::UNKNOWN_ERR, "Adding playlist is failed.");
-    user_data->isSuccess = false;
-    user_data->result = err.ToJSON();
+    user_data->isSuccess = err;
   }
   media_playlist_destroy(playlist);
 }
@@ -1095,8 +1084,7 @@ void ContentManager::playlistGet(const std::shared_ptr<ReplyCallbackData>& user_
   if(ret != MEDIA_CONTENT_ERROR_NONE && playlist == NULL) {
     LoggerE("Failed: Getting playlist is failed");
     PlatformResult err(ErrorCode::UNKNOWN_ERR, "Getting playlist is failed.");
-    user_data->isSuccess = false;
-    user_data->result = err.ToJSON();
+    user_data->isSuccess = err;
     return;
   }
 
@@ -1105,8 +1093,7 @@ void ContentManager::playlistGet(const std::shared_ptr<ReplyCallbackData>& user_
   if (ret != MEDIA_CONTENT_ERROR_NONE) {
     LoggerE("Failed: Creating a filter is failed");
     PlatformResult err(ErrorCode::UNKNOWN_ERR, "Creating a filter is failed.");
-    user_data->isSuccess = false;
-    user_data->result = err.ToJSON();
+    user_data->isSuccess = err;
     return;
   }
 
@@ -1127,14 +1114,12 @@ void ContentManager::playlistGet(const std::shared_ptr<ReplyCallbackData>& user_
 
   media_filter_destroy(filter);
   if (ret == MEDIA_CONTENT_ERROR_NONE) {
-    user_data->isSuccess = true;
     user_data->result = picojson::value(arrayContent);
   }
   else {
     LoggerE("Failed: Creating a filter is failed");
     PlatformResult err(ErrorCode::UNKNOWN_ERR, "Creating a filter is failed.");
-    user_data->isSuccess = false;
-    user_data->result = err.ToJSON();
+    user_data->isSuccess = err;
   }
 }
 
@@ -1148,8 +1133,7 @@ void ContentManager::playlistRemovebatch(const std::shared_ptr<ReplyCallbackData
   ret = media_playlist_get_playlist_from_db(std::stoi(playlist_id), &playlist);
   if(ret != MEDIA_CONTENT_ERROR_NONE && playlist == NULL) {
     PlatformResult err(ErrorCode::UNKNOWN_ERR, "Getting playlist is failed.");
-    user_data->isSuccess = false;
-    user_data->result = err.ToJSON();
+    user_data->isSuccess = err;
     return;
   }
 
@@ -1168,11 +1152,7 @@ void ContentManager::playlistRemovebatch(const std::shared_ptr<ReplyCallbackData
   if (ret != MEDIA_CONTENT_ERROR_NONE) {
     LoggerE("Failed: Removing the contents is failed");
     PlatformResult err(ErrorCode::UNKNOWN_ERR, "Removing the contents is failed.");
-    user_data->isSuccess = false;
-    user_data->result = err.ToJSON();
-  }
-  else {
-    user_data->isSuccess = true;
+    user_data->isSuccess = err;
   }
 }
 
@@ -1186,8 +1166,7 @@ void ContentManager::playlistSetOrder(const std::shared_ptr<ReplyCallbackData>& 
   ret = media_playlist_get_playlist_from_db(std::stoi(playlist_id), &playlist);
   if(ret != MEDIA_CONTENT_ERROR_NONE && playlist == NULL) {
     PlatformResult err(ErrorCode::UNKNOWN_ERR, "Getting playlist is failed.");
-    user_data->isSuccess = false;
-    user_data->result = err.ToJSON();
+    user_data->isSuccess = err;
     return;
   }
 
@@ -1199,16 +1178,14 @@ void ContentManager::playlistSetOrder(const std::shared_ptr<ReplyCallbackData>& 
   {
     LoggerE("Failed: media_playlist_get_media_count_from_db");
     PlatformResult err = convertError(ret);
-    user_data->isSuccess = false;
-    user_data->result = err.ToJSON();
+    user_data->isSuccess = err;
     return;
   }
   std::size_t members_size = members.size();
   if (cnt < 0 || static_cast<size_t>(cnt) != members_size ) {
     LoggerE("Failed: The items array does not contain all items from the playlist");
     PlatformResult err(ErrorCode::INVALID_VALUES_ERR, "The items array does not contain all items from the playlist.");
-    user_data->isSuccess = false;
-    user_data->result = err.ToJSON();
+    user_data->isSuccess = err;
     return;
   }
 
@@ -1224,11 +1201,7 @@ void ContentManager::playlistSetOrder(const std::shared_ptr<ReplyCallbackData>& 
   if (ret != MEDIA_CONTENT_ERROR_NONE) {
     LoggerE("Failed: Removing the contents is failed");
     PlatformResult err(ErrorCode::UNKNOWN_ERR, "Removing the contents is failed.");
-    user_data->isSuccess = false;
-    user_data->result = err.ToJSON();
-  }
-  else {
-    user_data->isSuccess = true;
+    user_data->isSuccess = err;
   }
 }
 
@@ -1241,8 +1214,7 @@ void ContentManager::playlistMove(const std::shared_ptr<ReplyCallbackData>& user
   if(ret != MEDIA_CONTENT_ERROR_NONE && playlist == NULL) {
     LoggerE("Failed: Getting playlist is failed");
     PlatformResult err(ErrorCode::UNKNOWN_ERR, "Getting playlist is failed.");
-    user_data->isSuccess = false;
-    user_data->result = err.ToJSON();
+    user_data->isSuccess = err;
     return;
   }
   int old_order;
@@ -1252,8 +1224,7 @@ void ContentManager::playlistMove(const std::shared_ptr<ReplyCallbackData>& user
   if (ret != MEDIA_CONTENT_ERROR_NONE) {
     LoggerE("Failed: The content can't find form playlist");
     PlatformResult err(ErrorCode::UNKNOWN_ERR, "The content can't find form playlist.");
-    user_data->isSuccess = false;
-    user_data->result = err.ToJSON();
+    user_data->isSuccess = err;
     return;
   }
   int new_order = static_cast<int>(old_order) + static_cast<int>(delta);
@@ -1261,19 +1232,14 @@ void ContentManager::playlistMove(const std::shared_ptr<ReplyCallbackData>& user
   if (ret != MEDIA_CONTENT_ERROR_NONE) {
     LoggerE("Failed: The content can't update play_order");
     PlatformResult err(ErrorCode::UNKNOWN_ERR, "The content can't update play_order.");
-    user_data->isSuccess = false;
-    user_data->result = err.ToJSON();
+    user_data->isSuccess = err;
     return;
   }
   ret = media_playlist_update_to_db(playlist);
   if (ret != MEDIA_CONTENT_ERROR_NONE) {
     LoggerE("Failed: Updateing play_order is failed");
     PlatformResult err(ErrorCode::UNKNOWN_ERR, "Updateing play_order is failed.");
-    user_data->isSuccess = false;
-    user_data->result = err.ToJSON();
-  }
-  else {
-    user_data->isSuccess = true;
+    user_data->isSuccess = err;
   }
 }
 
