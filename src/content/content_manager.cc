@@ -1370,7 +1370,7 @@ int updatePlaylistInDB(media_playlist_h playlist_handle)
   int ret_code = media_playlist_update_to_db(playlist_handle);
   if(MEDIA_CONTENT_ERROR_NONE != ret_code) {
     LoggerE("media_playlist_update_to_db failed");
-    return TIZEN_ERROR_UNKNOWN;
+    return ret_code;
   }
   return MEDIA_CONTENT_ERROR_NONE;
 }
@@ -1397,10 +1397,11 @@ int ContentManager::setPlaylistName(int id, const std::string& name)
   int ret = updatePlaylistInDB(playlist_handle);
   if (MEDIA_CONTENT_ERROR_NONE != ret) {
     LoggerE("Error while updating playlist: %d", ret);
-    if (MEDIA_CONTENT_ERROR_INVALID_OPERATION == ret) {
+    if (MEDIA_CONTENT_ERROR_DB_FAILED == ret) {
       //We could fetch list of playlists and check if other playlist is using this
       //name, but that seems to be to much work in synchronous method
       LoggerE("Playlist name: %s is probably already used", name.c_str());
+      return MEDIA_CONTENT_ERROR_INVALID_PARAMETER;
     }
     return ret;
   }
