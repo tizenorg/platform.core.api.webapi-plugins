@@ -149,7 +149,7 @@ tizen.BluetoothLEServiceData = function(d) {
   var data_ = '';
 
   Object.defineProperties(this, {
-    serviceuuid: {
+    uuid: {
       enumerable: true,
       get: function() {
         return uuid_;
@@ -170,10 +170,10 @@ tizen.BluetoothLEServiceData = function(d) {
   });
 
   if (arguments.length >= 2) {  // public constructor
-    this.serviceuuid = arguments[0];
+    this.uuid = arguments[0];
     this.data = arguments[1];
   } else if (d && T.isObject(d)) {  // internal constructor
-    this.serviceuuid = d.serviceuuid;
+    this.uuid = d.uuid;
     this.data = d.data;
   } else {
     uuid_ = undefined;
@@ -579,7 +579,7 @@ var BluetoothLEDevice = function(data) {
         address = data.address;
         name = data.name;
         txpowerLevel = data.txpowerLevel;
-        apperance = data.appearance;
+        appearance = data.appearance;
         uuids = data.uuids;
         solicitationuuids = data.solicitationuuids;
         data.serviceData.forEach(function(d) {
@@ -1324,6 +1324,7 @@ function _singleListenerBuilder(name, callback) {
 
 var _bleScanListener = _singleListenerBuilder('BluetoothLEScanCallback',
     function(event, successCallback, errorCallback) {
+
   var d;
   var ret = true;
 
@@ -1342,9 +1343,8 @@ var _bleScanListener = _singleListenerBuilder('BluetoothLEScanCallback',
       console.log('Unknown mode: ' + event.action);
       return ret;
   }
-
-  if (successCallback && successCallback[event.action]) {
-    successCallback[event.action](d);
+  if (successCallback) {
+    successCallback(d);
   }
 
   return ret;
