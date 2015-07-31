@@ -679,6 +679,11 @@ void TimeInstance::TimeGetMsUTC(const JsonValue& args, JsonObject& out) {
   LoggerD("Entered");
 
   std::unique_ptr<UnicodeString> id(new UnicodeString(args.get("timezone").to_str().c_str()));
+  if (id == NULL) {
+    LoggerE("Allocation error");
+    ReportError(out);
+    return;
+  }
   UDate dateInMs = strtod(args.get("value").to_str().c_str(), NULL);
   if (errno == ERANGE) {
     LoggerE("Value out of range");
