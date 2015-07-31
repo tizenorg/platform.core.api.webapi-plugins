@@ -141,16 +141,8 @@ FileStream.prototype.readBytes = function() {
   _checkClosed(this);
   _checkReadAccess(this._mode);
 
-  if (!arguments.length) {
-    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
-        'Argument "byteCount" missing');
-  }
-  if (!type_.isNumber(args.byteCount)) {
-    throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR,
-        'Argument "byteCount" must be a number');
-  }
   if (args.byteCount <= 0) {
-    throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR,
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
         'Argument "byteCount" must be greater than 0');
   }
 

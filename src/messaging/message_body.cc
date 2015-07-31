@@ -115,7 +115,7 @@ PlatformResult MessageBody::updateBody(email_mail_data_t& mail)
     setLoaded(mail.body_download_status);
 
     if (mail.file_path_plain) {
-      LoggerD("Plain body");
+      SLoggerD("Plain body: %s", mail.file_path_plain);
       std::string result = "";
       PlatformResult ret = MessagingUtil::loadFileContentToString(mail.file_path_plain,
                                                                   &result);
@@ -128,6 +128,7 @@ PlatformResult MessageBody::updateBody(email_mail_data_t& mail)
     }
 
     if (mail.file_path_html) {
+      SLoggerD("HTML body: %s", mail.file_path_html);
       std::string result = "";
       PlatformResult ret = MessagingUtil::loadFileContentToString(mail.file_path_html,
                                                                   &result);

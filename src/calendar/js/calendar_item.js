@@ -30,14 +30,16 @@ var CalendarItemVisibility = {
 var CalendarItemPriority = {
   HIGH: 'HIGH',
   MEDIUM: 'MEDIUM',
-  LOW: 'LOW' //default
+  LOW: 'LOW',
+  NONE: 'NONE' //default
 };
 
 var CalendarItemStatus = {
   TENTATIVE: 'TENTATIVE',
-  CONFIRMED: 'CONFIRMED', //default for CalendarEvent
+  CONFIRMED: 'CONFIRMED',
   CANCELLED: 'CANCELLED',
-  NEEDS_ACTION: 'NEEDS_ACTION', //default for CalendarTask
+  NONE: 'NONE', //default for both CalendarEvent and CalendarTask
+  NEEDS_ACTION: 'NEEDS_ACTION',
   IN_PROCESS: 'IN_PROCESS',
   COMPLETED: 'COMPLETED'
 };
@@ -89,8 +91,8 @@ var CalendarItem = function(data) {
   var _geolocation = null;
   var _organizer = '';
   var _visibility = CalendarItemVisibility.PUBLIC;
-  var _status = CalendarItemStatus.CONFIRMED;
-  var _priority = CalendarItemPriority.LOW;
+  var _status = CalendarItemStatus.NONE;
+  var _priority = CalendarItemPriority.NONE;
   var _alarms = [];
   var _categories = [];
   var _attendees = [];
@@ -285,11 +287,11 @@ var CalendarItem = function(data) {
           return;
         }
         if (this instanceof tizen.CalendarEvent) {
-          _status = v ? converter_.toEnum(v, Object.keys(CalendarItemStatus).slice(0, 3), false) :
-                        CalendarItemStatus.CONFIRMED;
+          _status = v ? converter_.toEnum(v, Object.keys(CalendarItemStatus).slice(0, 4), false) :
+                        CalendarItemStatus.NONE;
         } else {
           _status = v ? converter_.toEnum(v, Object.keys(CalendarItemStatus).slice(2), false) :
-                        CalendarItemStatus.NEEDS_ACTION;
+                        CalendarItemStatus.NONE;
         }
       },
       enumerable: true
@@ -527,7 +529,7 @@ function _convertFromStringToItem(str) {
 
 var CalendarTaskInit = function(data) {
   CalendarItem.call(this, {
-    status: CalendarItemStatus.NEEDS_ACTION
+    status: CalendarItemStatus.NONE
   });
 
   var _dueDate = null;
@@ -596,7 +598,7 @@ CalendarTask.prototype.constructor = CalendarTask;
 
 var CalendarEventInit = function(data) {
   CalendarItem.call(this, {
-    status: CalendarItemStatus.CONFIRMED
+    status: CalendarItemStatus.NONE
   });
 
   var _isDetached = false;

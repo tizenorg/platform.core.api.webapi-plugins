@@ -117,9 +117,7 @@ var commonFS_ = (function() {
 
       var _pathTokens = aPath.split('/');
 
-      if (cacheVirtualToReal[_pathTokens[0]] && (
-          cacheVirtualToReal[_pathTokens[0]].state === undefined ||
-          cacheVirtualToReal[_pathTokens[0]].state === FileSystemStorageState.MOUNTED)) {
+      if (cacheVirtualToReal[_pathTokens[0]]) {
         _fileRealPath = cacheVirtualToReal[_pathTokens[0]].path;
         for (var i = 1; i < _pathTokens.length; ++i) {
           _fileRealPath += '/' + _pathTokens[i];
@@ -129,9 +127,7 @@ var commonFS_ = (function() {
         _fileRealPath = undefined;
         // check storages
         for (var j = 0; j < cacheStorages.length; ++j) {
-          if (cacheStorages[j].label === _pathTokens[0] && (
-            cacheStorages[j].state === undefined ||
-            cacheStorages[j].state === FileSystemStorageState.MOUNTED)) {
+          if (cacheStorages[j].label === _pathTokens[0]) {
             _fileRealPath = cacheStorages[j].path;
             for (var i = 1; i < _pathTokens.length; ++i) {
               _fileRealPath += '/' + _pathTokens[i];

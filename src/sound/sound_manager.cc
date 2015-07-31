@@ -420,14 +420,13 @@ PlatformResult SoundManager::UnsetVolumeChangeListener() {
 void SoundManager::GetDeviceList(sound_device_mask_e mask, picojson::object& out) {
   LoggerD("Entered");
 
-  int ret = SOUND_MANAGER_ERROR_NONE;
   sound_device_list_h device_list = nullptr;
   sound_device_h device = nullptr;
 
   picojson::value response = picojson::value(picojson::array());
   picojson::array& response_array = response.get<picojson::array>();
 
-  ret = sound_manager_get_current_device_list(mask, &device_list);
+  int ret = sound_manager_get_current_device_list(mask, &device_list);
   if (SOUND_MANAGER_ERROR_NONE != ret) {
     ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Getting device list failed"), &out);
     return;
@@ -454,11 +453,9 @@ PlatformResult SoundManager::GetDeviceInfo(sound_device_h device,
                                            picojson::object* obj) {
   LoggerD("Entered");
 
-  int ret = SOUND_MANAGER_ERROR_NONE;
-
   //get id
   int id = 0;
-  ret = sound_manager_get_device_id(device, &id);
+  int ret = sound_manager_get_device_id(device, &id);
   if (SOUND_MANAGER_ERROR_NONE != ret) {
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Getting device id failed");
   }
@@ -526,12 +523,11 @@ PlatformResult SoundManager::IsDeviceConnected(sound_device_type_e type,
       return PlatformResult(ErrorCode::UNKNOWN_ERR, "Invalid IO type");
   }
 
-  int ret = SOUND_MANAGER_ERROR_NONE;
   sound_device_list_h device_list = nullptr;
   sound_device_h device = nullptr;
   sound_device_type_e device_type = SOUND_DEVICE_BUILTIN_SPEAKER;
 
-  ret = sound_manager_get_current_device_list(mask, &device_list);
+  int ret = sound_manager_get_current_device_list(mask, &device_list);
   if (SOUND_MANAGER_ERROR_NONE != ret) {
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Getting device list failed");
   }

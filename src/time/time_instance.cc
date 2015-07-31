@@ -74,6 +74,7 @@ TimeInstance::TimeInstance() {
                 TimeSetTimezoneChangeListener);
   REGISTER_SYNC("Time_unsetTimezoneChangeListener",
                 TimeUnsetTimezoneChangeListener);
+  REGISTER_SYNC("Time_getMsUTC", TimeGetMsUTC);
 
 #undef REGISTER_SYNC
 #undef REGISTER_ASYNC
@@ -149,27 +150,17 @@ void TimeInstance::TimeGetTimeZoneOffset(const JsonValue& args,
 
   UErrorCode ec = U_ZERO_ERROR;
   std::unique_ptr<TimeZone> timezone(TimeZone::createTimeZone(*id));
-  std::unique_ptr<Calendar> cal(Calendar::createInstance(*timezone, ec));
+
+  int32_t rawOffset = 0;
+  int32_t dstOffset = 0;
+  timezone->getOffset(dateInMs, false, rawOffset, dstOffset, ec);
   if (U_FAILURE(ec)) {
-    LoggerE("Failed to create Calendar instance");
+    LoggerE("Failed to get timezone offset");
     ReportError(out);
     return;
   }
-
-  cal->setTime(dateInMs, ec);
-  if (U_FAILURE(ec)) {
-    LoggerE("Failed to set time");
-    ReportError(out);
-    return;
-  }
-
-  int32_t offset = timezone->getRawOffset();
-
-  if (cal->inDaylightTime(ec)) offset += _hourInMilliseconds;
-
   std::stringstream offsetStr;
-  offsetStr << offset;
-
+  offsetStr << (rawOffset + dstOffset);
   ReportSuccess(JsonValue(offsetStr.str()), out);
 }
 
@@ -188,8 +179,8 @@ void TimeInstance::TimeGetTimeZoneAbbreviation(const JsonValue& args,
   }
 
   UErrorCode ec = U_ZERO_ERROR;
-  std::unique_ptr<Calendar> cal(
-      Calendar::createInstance(TimeZone::createTimeZone(*id), ec));
+  std::unique_ptr<TimeZone> timezone(TimeZone::createTimeZone(*id));
+  std::unique_ptr<Calendar> cal(Calendar::createInstance(*timezone, ec));
   if (U_FAILURE(ec)) {
     LoggerE("Failed to create Calendar instance");
     ReportError(out);
@@ -232,7 +223,6 @@ void TimeInstance::TimeIsDST(const JsonValue& args, JsonObject& out) {
   std::unique_ptr<UnicodeString> id(
       new UnicodeString(args.get("timezone").to_str().c_str()));
   UDate dateInMs = strtod(args.get("value").to_str().c_str(), NULL);
-  dateInMs -= _hourInMilliseconds;
 
   if (errno == ERANGE) {
     LoggerE("Value out of range");
@@ -241,22 +231,17 @@ void TimeInstance::TimeIsDST(const JsonValue& args, JsonObject& out) {
   }
 
   UErrorCode ec = U_ZERO_ERROR;
-  std::unique_ptr<Calendar> cal(
-      Calendar::createInstance(TimeZone::createTimeZone(*id), ec));
+  std::unique_ptr<TimeZone> timezone(TimeZone::createTimeZone(*id));
+
+  int32_t rawOffset = 0;
+  int32_t dstOffset = 0;
+  timezone->getOffset(dateInMs, false, rawOffset, dstOffset, ec);
   if (U_FAILURE(ec)) {
-    LoggerE("Failed to create Calendar instance");
+    LoggerE("Failed to get timezone offset");
     ReportError(out);
     return;
   }
-
-  cal->setTime(dateInMs, ec);
-  if (U_FAILURE(ec)) {
-    LoggerE("Failed to set time");
-    ReportError(out);
-    return;
-  }
-
-  ReportSuccess(JsonValue{static_cast<bool>(cal->inDaylightTime(ec))}, out);
+  ReportSuccess(JsonValue{static_cast<bool>(dstOffset)}, out);
 }
 
 void TimeInstance::TimeGetDSTTransition(const JsonValue& args,
@@ -348,8 +333,8 @@ bool TimeInstance::toStringByFormat(const JsonValue& args, JsonValue& out,
   }
 
   UErrorCode ec = U_ZERO_ERROR;
-  std::unique_ptr<Calendar> cal(
-      Calendar::createInstance(TimeZone::createTimeZone(*id), ec));
+  std::unique_ptr<TimeZone> timezone(TimeZone::createTimeZone(*id));
+  std::unique_ptr<Calendar> cal(Calendar::createInstance(*timezone, ec));
   if (U_FAILURE(ec)) {
     LoggerE("Failed to create Calendar instance");
     return false;
@@ -688,6 +673,34 @@ void TimeInstance::TimeUnsetTimezoneChangeListener(const JsonValue& /*args*/,
   }
   else
     ReportSuccess(out);
+}
+
+void TimeInstance::TimeGetMsUTC(const JsonValue& args, JsonObject& out) {
+  LoggerD("Entered");
+
+  std::unique_ptr<UnicodeString> id(new UnicodeString(args.get("timezone").to_str().c_str()));
+  UDate dateInMs = strtod(args.get("value").to_str().c_str(), NULL);
+  if (errno == ERANGE) {
+    LoggerE("Value out of range");
+    ReportError(out);
+    return;
+  }
+
+  UErrorCode ec = U_ZERO_ERROR;
+  std::unique_ptr<TimeZone> timezone(TimeZone::createTimeZone(*id));
+
+  int32_t rawOffset = 0;
+  int32_t dstOffset = 0;
+  timezone->getOffset(dateInMs, true, rawOffset, dstOffset, ec);
+  if (U_FAILURE(ec)) {
+    LoggerE("Failed to get timezone offset");
+    ReportError(out);
+    return;
+  }
+
+  dateInMs -= (rawOffset + dstOffset);
+
+  ReportSuccess(JsonValue{static_cast<double>(dateInMs)}, out);
 }
 
 }  // namespace time

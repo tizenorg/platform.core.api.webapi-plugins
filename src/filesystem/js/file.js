@@ -218,16 +218,19 @@ File.prototype.listFiles = function(onsuccess, onerror, filter) {
 
 var Encoding = {
   'utf-8': 'utf-8',
-  'iso-8859-1': 'iso-8859-1'
+  'iso-8859-1': 'iso-8859-1',
+  'sjis': 'sjis',  // backward compatibility
+  'null': 'utf-8',
+  'undefined': 'utf-8'
 };
 
 function _checkEncoding(encoding) {
-  if (encoding) {
-    var _validEncoding = Object.keys(Encoding);
-    if (_validEncoding.indexOf((encoding.toLowerCase())) < 0) {
-      throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR,
-          'Argument "encoding" has invalid value');
-    }
+  encoding = String(encoding).toLowerCase();
+  if (undefined === Encoding[encoding]) {
+    throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR,
+        'Argument "encoding" has invalid value: ' + encoding);
+  } else {
+    return Encoding[encoding];
   }
 }
 
@@ -262,7 +265,7 @@ File.prototype.openStream = function(mode, onsuccess, onerror, encoding) {
     return;
   }
 
-  _checkEncoding(args.encoding);
+  args.encoding = _checkEncoding(args.encoding);
 
   var _realPath = commonFS_.toRealPath(this.fullPath);
   var _result = native_.callSync('File_statSync', {location: _realPath});
@@ -302,7 +305,7 @@ File.prototype.readAsText = function(onsuccess, onerror, encoding) {
     return;
   }
 
-  _checkEncoding(args.encoding);
+  args.encoding = _checkEncoding(args.encoding);
 
   var data = {
     location: commonFS_.toRealPath(this.fullPath),
@@ -403,6 +406,35 @@ File.prototype.copyTo = function(originFilePath, destinationFilePath, overwrite,
 
   if (_oldNode.isFile && addFilenameToPath) {
     _realDestinationPath = _realDestinationPath + _realOriginalPath.split('/').pop();
+  }
+
+  if (!args.overwrite) {
+    var resultNewPath = native_.callSync('File_statSync', {location: _realDestinationPath});
+    if (native_.isSuccess(resultNewPath)) {
+      setTimeout(function() {
+        native_.callIfPossible(args.onerror,
+            new WebAPIException(WebAPIException.IO_ERR, 'Overwrite is not allowed'));
+      }, 0);
+      return;
+    }
+  }
+
+  if (!commonFS_.f_isSubDir(_realOriginalPath, this.fullPath)) {
+    var m1 = 'Source file should be subdirectory of: ' + this.fullPath;
+    setTimeout(function() {
+      native_.callIfPossible(args.onerror,
+          new WebAPIException(WebAPIException.INVALID_VALUES_ERR, m1));
+    }, 0);
+    return;
+  }
+
+  if (!commonFS_.isLocationAllowed(_realDestinationPath)) {
+    var m2 = 'Destination is read only folder: ' + this.fullPath;
+    setTimeout(function() {
+      native_.callIfPossible(args.onerror,
+          new WebAPIException(WebAPIException.INVALID_VALUES_ERR, m2));
+    }, 0);
+    return;
   }
 
   var data = {

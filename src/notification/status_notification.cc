@@ -111,7 +111,7 @@ static bool ServiceExtraDataCb(app_control_h service,
                                const char* key,
                                void* user_data) {
   LoggerD("Enter");
-  if (user_data != NULL && key != NULL) {
+  if (nullptr == user_data || nullptr == key) {
     LoggerE("User data or key not exist");
     return true;
   }

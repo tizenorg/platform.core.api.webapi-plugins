@@ -24,7 +24,6 @@
             'packages': [
               'aul',
               'badge',
-              'capi-appfw-package-manager',
               'vconf',
             ]
           },

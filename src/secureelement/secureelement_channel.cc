@@ -35,8 +35,9 @@ ByteArray SEChannel::transmit(const picojson::array& v_command) {
     LoggerD("Entered");
     ByteArray response;
     if ( m_channel_ptr) {
-        uint8_t* command = new uint8_t[v_command.size()];
-        for ( int i = 0; i < v_command.size(); i++) {
+        size_t v_command_size = v_command.size();
+        uint8_t* command = new uint8_t[v_command_size];
+        for (size_t i = 0; i < v_command_size; i++) {
             command[i] = (uint8_t) static_cast<long>(v_command[i].get<double>());
         }
         ByteArray ba_command(command, v_command.size());

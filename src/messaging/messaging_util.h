@@ -185,6 +185,8 @@ private:
                                                          tizen::AbstractFilterPtr* result);
     static common::PlatformResult jsonFilterToCompositeFilter(const picojson::object& json,
                                                          tizen::AbstractFilterPtr* result);
+
+    static std::string ConvertToUtf8(const std::string& file_path, const std::string& contents);
 };
 
 enum PostPriority {
