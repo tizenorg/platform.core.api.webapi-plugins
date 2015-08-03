@@ -571,42 +571,45 @@ BluetoothSocket.prototype.close = function() {
 
 //class BluetoothLEDevice ////////////////////////////////////////////////////
 var BluetoothLEDevice = function(data) {
-
-    var address = "", name = "", txpowerLevel = null, appearance = null, uuids = [],
-        solicitationuuids = [], serviceData = [], manufacturerData = null;
+    var address = "", name = null, txpowerlevel = null, appearance = null, uuids = null,
+        solicitationuuids = null, serviceData = null, manufacturerData = null;
 
     if (data) {
-        address = data.address;
-        name = data.name;
-        txpowerLevel = data.txpowerLevel;
-        appearance = data.appearance;
-        uuids = data.uuids;
-        solicitationuuids = data.solicitationuuids;
+      address = data.address;
+      name = data.name || null;
+      txpowerlevel = data.txpowerlevel || null;
+      appearance = data.appearance || null;
+      uuids = data.uuids || null;
+      solicitationuuids = data.solicitationuuids || null;
+      if (data.serviceData) {
         data.serviceData.forEach(function(d) {
             serviceData.push(new tizen.BluetoothLEServiceData(d));
         });
+      }
+      if (data.manufacturerData) {
         manufacturerData = new tizen.BluetoothLEManufacturerData(data.manufacturerData);
+      }
     }
 
     Object.defineProperties(this, {
         address : {value: address, writable: false, enumerable: true},
         name : {value: name, writable: false, enumerable: true},
-        txpowerLevel : {value: txpowerLevel, writable: false, enumerable: true},
+        txpowerlevel : {value: txpowerlevel, writable: false, enumerable: true},
         appearance : {value: appearance, writable: false, enumerable: true},
         uuids : {
             enumerable: true,
             set : function(){},
-            get : function(){ return uuids.slice(); }
+            get : function(){ return uuids ? uuids.slice() : null; }
         },
         solicitationuuids : {
             enumerable: true,
             set : function(){},
-            get : function(){ return solicitationuuids.slice(); }
+            get : function(){ return solicitationuuids ? solicitationuuids.slice() : null; }
         },
         serviceData : {
             enumerable: true,
             set : function(){},
-            get : function(){ return serviceData.slice(); }
+            get : function(){ return serviceData ? serviceData.slice() : null; }
         },
         manufacturerData : {
             value: manufacturerData,

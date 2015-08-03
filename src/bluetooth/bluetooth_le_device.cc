@@ -22,11 +22,13 @@
 
 #include "common/converter.h"
 #include "common/logger.h"
+#include "common/tools.h"
 
 using common::ErrorCode;
 using common::PlatformResult;
 using common::tools::ReportError;
 using common::tools::ReportSuccess;
+using common::tools::BinToHex;
 
 namespace extension {
 namespace bluetooth {
@@ -35,7 +37,7 @@ namespace {
 //le_device
 const std::string kDeviceName = "name";
 const std::string kDeviceAddress = "address";
-const std::string kTxPowerLevel = "txpowerLevel";
+const std::string kTxPowerLevel = "txpowerlevel";
 const std::string kAppearance = "appearance";
 const std::string kDeviceUuids = "uuids";
 const std::string kSolicitationUuids = "solicitationuuids";
@@ -107,7 +109,8 @@ static void ServiceDataToJson(bt_adapter_le_service_data_s *service_data_list,
   }
 }
 
-static void ManufacturerToJson(int manufacturer_id, char *manufacturer_data,
+static void ManufacturerToJson(int manufacturer_id,
+                               char *manufacturer_data,
                                int manufacturer_count,
                                picojson::object* le_device) {
   LoggerD("Entered");
@@ -115,8 +118,16 @@ static void ManufacturerToJson(int manufacturer_id, char *manufacturer_data,
   picojson::value response = picojson::value(picojson::object());
   picojson::object& response_obj = response.get<picojson::object>();
   response_obj[kId] = picojson::value(std::to_string(manufacturer_id));
-  response_obj[kData] = picojson::value(
-      std::string(manufacturer_data, manufacturer_count));
+
+  char manuf_data_hex[manufacturer_count * 2 + 1];
+  BinToHex((const unsigned char*) manufacturer_data,
+           manufacturer_count,
+           manuf_data_hex,
+           sizeof(manuf_data_hex) - 1);
+  manuf_data_hex[manufacturer_count * 2] = 0;
+  response_obj[kData] = picojson::value(std::string(manuf_data_hex));
+
+  le_device->insert(std::make_pair(kManufacturerData, response));
 }
 
 PlatformResult BluetoothLEDevice::ToJson(
@@ -147,12 +158,11 @@ PlatformResult BluetoothLEDevice::ToJson(
     }
   }
 
-  if (found) {
-    le_device->insert(
-        std::make_pair(kDeviceName, picojson::value(std::string(device_name))));
+  le_device->insert(
+      std::make_pair(kDeviceName, picojson::value(std::string(device_name))));
 
-    g_free(device_name);
-  }
+  g_free(device_name);
+
   int power_level = 0;
   found = false;
   for (size_t i = 0; i < types.size() && !found; ++i) {
@@ -165,11 +175,10 @@ PlatformResult BluetoothLEDevice::ToJson(
     }
   }
 
-  if (found) {
-    le_device->insert(
+  le_device->insert(
       std::make_pair(kTxPowerLevel,
                      picojson::value(static_cast<double>(power_level))));
-  }
+
   int appearance = 0;
   found = false;
   for (size_t i = 0; i < types.size() && !found; ++i) {
@@ -181,11 +190,9 @@ PlatformResult BluetoothLEDevice::ToJson(
     }
   }
 
-  if (found) {
-    le_device->insert(
+  le_device->insert(
         std::make_pair(kAppearance,
                        picojson::value(static_cast<double>(appearance))));
-  }
 
   char **uuids = nullptr;
   int count = 0;
@@ -200,13 +207,11 @@ PlatformResult BluetoothLEDevice::ToJson(
     }
   }
 
-  if (found) {
-    UUIDsToJson(uuids, count, kDeviceUuids, le_device);
-    for (int i = 0; i < count; ++i) {
-      g_free(uuids[i]);
-    }
-    g_free(uuids);
+  UUIDsToJson(uuids, count, kDeviceUuids, le_device);
+  for (int i = 0; i < count; ++i) {
+    g_free(uuids[i]);
   }
+  g_free(uuids);
 
   char** service_solicitation_uuids = nullptr;
   int service_solicitation_uuids_count = 0;
@@ -224,14 +229,12 @@ PlatformResult BluetoothLEDevice::ToJson(
     }
   }
 
-  if (found) {
-    UUIDsToJson(service_solicitation_uuids, service_solicitation_uuids_count,
-                kSolicitationUuids, le_device);
-    for (int i = 0; i < service_solicitation_uuids_count; ++i) {
-      g_free(service_solicitation_uuids[i]);
-    }
-    g_free(service_solicitation_uuids);
+  UUIDsToJson(service_solicitation_uuids, service_solicitation_uuids_count,
+              kSolicitationUuids, le_device);
+  for (int i = 0; i < service_solicitation_uuids_count; ++i) {
+    g_free(service_solicitation_uuids[i]);
   }
+  g_free(service_solicitation_uuids);
 
   bt_adapter_le_service_data_s *serviceDataList = nullptr;
   int service_data_list_count = 0;
@@ -248,13 +251,11 @@ PlatformResult BluetoothLEDevice::ToJson(
     }
   }
 
-  if (found) {
-    ServiceDataToJson(serviceDataList, service_data_list_count, le_device);
-    ret = bt_adapter_le_free_service_data_list(serviceDataList,
+  ServiceDataToJson(serviceDataList, service_data_list_count, le_device);
+  ret = bt_adapter_le_free_service_data_list(serviceDataList,
                                              service_data_list_count);
-    if (BT_ERROR_NONE != ret) {
-      LoggerW("Failed to free service data list: %d", ret);
-    }
+  if (BT_ERROR_NONE != ret) {
+    LoggerW("Failed to free service data list: %d", ret);
   }
 
   int manufacturer_id = 0;
@@ -278,6 +279,8 @@ PlatformResult BluetoothLEDevice::ToJson(
     ManufacturerToJson(manufacturer_id, manufacturer_data,
                        manufacturer_data_count, le_device);
     g_free(manufacturer_data);
+  } else {
+    ManufacturerToJson(-1, "XX", 2, le_device);
   }
   return PlatformResult(ErrorCode::NO_ERROR);
 }
