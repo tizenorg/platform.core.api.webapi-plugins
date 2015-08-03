@@ -187,7 +187,7 @@ PlatformResult MessageConversation::convertMsgConversationToObject(
 
     msg_get_str_value(msg_thread, MSG_THREAD_MSG_DATA_STR, msgData, MAX_THREAD_DATA_LEN);
 
-    conversation->m_preview = msgData;
+    conversation->setPreview(msgData);
 
     err = msg_get_conversation_view_list(handle, conversation->m_conversation_id,
                                          &convViewList);
@@ -265,7 +265,7 @@ PlatformResult MessageConversation::convertMsgConversationToObject(
     char strTemp[MAX_SUBJECT_LEN] = {0};
     msg_get_str_value(msgInfo, MSG_MESSAGE_SUBJECT_STR, strTemp, MAX_SUBJECT_LEN);
 
-    conversation->m_conversation_subject = strTemp;
+    conversation->setSubject(strTemp);
 
     *result = conversation;
     return PlatformResult(ErrorCode::NO_ERROR);
@@ -335,12 +335,12 @@ PlatformResult MessageConversation::convertEmailConversationToObject(
 
         if (resultMail->preview_text[0] != '\0')
         {
-            conversation->m_preview = resultMail->preview_text;
+            conversation->setPreview(resultMail->preview_text);
         }
 
         if (resultMail->subject[0] != '\0')
         {
-            conversation->m_conversation_subject = resultMail->subject;
+            conversation->setSubject(resultMail->subject);
         }
 
         conversation->m_is_read = (bool)resultMail->flags_seen_field;
@@ -413,12 +413,12 @@ void MessageConversation::setUnreadMessages(int unread_messages)
 
 void MessageConversation::setPreview(std::string preview)
 {
-    m_preview = preview;
+    m_preview = SanitizeUtf8String(preview);
 }
 
 void MessageConversation::setSubject(std::string conversation_subject)
 {
-    m_conversation_subject = conversation_subject;
+    m_conversation_subject = SanitizeUtf8String(conversation_subject);
 }
 
 void MessageConversation::setIsRead(bool is_read)
@@ -539,6 +539,19 @@ bool MessageConversation::isMatchingAttributeRange(const std::string& attribute_
         LoggerD("attribute:%s is NOT SUPPORTED", attribute_name.c_str());
     }
     return false;
+}
+
+std::string MessageConversation::SanitizeUtf8String(const std::string& input) {
+  LoggerD("Entered");
+
+  std::string result = input;
+  const gchar* end = nullptr;
+
+  while (FALSE == g_utf8_validate(result.c_str(), -1, &end)) {
+    result = result.substr(0, end - result.c_str());
+  }
+
+  return result;
 }
 
 }    //messaging
