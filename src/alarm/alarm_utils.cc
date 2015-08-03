@@ -36,9 +36,8 @@ PlatformResult AppControlToService(const picojson::object& obj, app_control_h *a
   }
 
   app_control_create(app_control);
-  int ret = APP_CONTROL_ERROR_NONE;
 
-  ret = app_control_set_operation(*app_control, it_operation->second.get<std::string>().c_str());
+  int ret = app_control_set_operation(*app_control, it_operation->second.get<std::string>().c_str());
   if (APP_CONTROL_ERROR_NONE != ret) {
     LoggerE("Failed app_control_set_operation() (%d)", ret);
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Error while setting operation.");

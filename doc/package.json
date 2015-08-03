@@ -1,0 +1,10 @@
+{
+  "name": "WebApiGuidelines",
+  "version": "0.3.0",
+  "dependencies": {
+    "doctor-md": "git://github.com/Hagith/doctor.git#print-css"
+  },
+  "scripts": {
+    "generate": "doctor -i src/index.md -o html --title 'Tizen Avengers - WebApi Guidelines' --images src/assets/images --logo images/tizen-logo_32h.png"
+  }
+}

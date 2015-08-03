@@ -406,6 +406,7 @@ void ApplicationManager::Launch(const picojson::value& args) {
       switch (ret) {
         case AUL_R_EINVAL:
         case AUL_R_ERROR:
+        case AUL_R_ENOAPP:
           LoggerE("aul_open_app returns Not Found error");
           result = PlatformResult(ErrorCode::NOT_FOUND_ERR, "Launchpad returns not found error.");
           break;
@@ -460,7 +461,7 @@ void ApplicationManager::LaunchAppControl(const picojson::value& args) {
     launch_mode_str = launch_mode.get<std::string>();
   }
 
-  app_control_h app_control;
+  app_control_h app_control = nullptr;
   result = ApplicationUtils::ApplicationControlToService(app_control_obj, &app_control);
   std::shared_ptr<std::remove_pointer<app_control_h>::type>
   app_control_ptr(app_control, &app_control_destroy); // automatically release the memory
@@ -772,7 +773,7 @@ void ApplicationManager::GetAppContext(const picojson::value& args, picojson::ob
       pid = std::stoi(context_id.get<std::string>());
     } catch(...) {
       LoggerE("Failed to convert context id.");
-      ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to convert context id."), out);
+      ReportError(PlatformResult(ErrorCode::NOT_FOUND_ERR, "Failed to convert context id."), out);
       return;
     }
   } else {
@@ -1079,6 +1080,7 @@ void ApplicationManager::GetAppMetaData(const std::string& app_id, picojson::obj
 
 class ApplicationListChangedBroker {
  public:
+    ApplicationListChangedBroker(){}
   enum class Event {
     kInstalled,
     kUpdated,
@@ -1095,8 +1097,7 @@ class ApplicationListChangedBroker {
 
     if (0 == strcasecmp(key, kStartKey)) {
       that->HandleStart(val, package);
-    } else if (0 == strcasecmp(key, kEndKey) &&
-               0 == strcasecmp(val, kOkValue)) {
+    } else if (0 == strcasecmp(key, kEndKey) && 0 == strcasecmp(val, kOkValue)) {
       that->HandleEnd(package);
     } else {
       LoggerD("Ignored key: %s", key);

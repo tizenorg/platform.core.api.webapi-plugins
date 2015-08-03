@@ -145,7 +145,8 @@ void SecureElementInstance::GetSelectResponse( const picojson::value& args, pico
     ByteArray select_response = seChannel.getSelectResponse();
     picojson::value result = picojson::value(picojson::array());
     picojson::array& arr = result.get<picojson::array>();
-    for ( int i = 0; i < select_response.size(); i++) {
+    size_t select_response_size = select_response.size();
+    for (size_t i = 0; i < select_response_size; i++) {
         arr.push_back(picojson::value(static_cast<double>(select_response[i])));
     }
     ReportSuccess( result, out);
@@ -290,7 +291,8 @@ void SecureElementInstance::GetATR( const picojson::value& args, picojson::objec
     ByteArray atr_result = seSession.getATR();
     picojson::value result = picojson::value(picojson::array());
     picojson::array& arr = result.get<picojson::array>();
-    for ( int i = 0; i < atr_result.size(); i++) {
+    size_t atr_result_size = atr_result.size();
+    for (size_t i = 0; i < atr_result_size; i++) {
         arr.push_back(picojson::value(static_cast<double>(atr_result[i])));
     }
     ReportSuccess( result, out);
@@ -336,7 +338,8 @@ void SecureElementInstance::Transmit( const picojson::value& args, picojson::obj
             ByteArray transmit_response = seChannel.transmit(v_command);
             picojson::value result = picojson::value(picojson::array());
             picojson::array& arr = result.get<picojson::array>();
-            for ( int i = 0; i < transmit_response.size(); i++) {
+            size_t transmit_response_size = transmit_response.size();
+            for (size_t i = 0; i < transmit_response_size; i++) {
                 arr.push_back(picojson::value(static_cast<double>(transmit_response[i])));
             }
             ReportSuccess( result, response->get<picojson::object>());

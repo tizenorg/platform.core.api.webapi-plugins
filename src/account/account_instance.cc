@@ -276,10 +276,9 @@ void AccountInstance::AccountManagerAddAccountListener(
     const picojson::value& args, picojson::object& out) {
   LoggerD("Enter");
 
-  int ret = 0;
   if (!subscribe_) {
     LoggerD("Creating subscription");
-    ret = account_subscribe_create(&subscribe_);
+    int ret = account_subscribe_create(&subscribe_);
     if (ret != ACCOUNT_ERROR_NONE) {
       LoggerE("Failed to create account subscribe");
       ReportError(UnknownException(manager_->GetErrorMsg(ret)), out);

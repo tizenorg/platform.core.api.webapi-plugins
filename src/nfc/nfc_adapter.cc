@@ -1106,7 +1106,8 @@ PlatformResult NFCAdapter::TagReadNDEF(int tag_id,
     picojson::value event = CreateEventError(callbackId, result);
     NFCAdapter::GetInstance()->RespondAsync(event.serialize().c_str());
   }
-
+  delete callbackIdPointer;
+  callbackIdPointer = NULL;
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
@@ -1270,6 +1271,11 @@ PlatformResult NFCAdapter::TagTransceive(int tag_id, const picojson::value& args
     picojson::value event = CreateEventError(callback_id, result);
     NFCAdapter::GetInstance()->RespondAsync(event.serialize().c_str());
   }
+  delete callback_id_pointer;
+  callback_id_pointer = nullptr;
+  delete[] buffer;
+  buffer = nullptr;
+
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 

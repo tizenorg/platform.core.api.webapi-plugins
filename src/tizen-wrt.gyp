@@ -267,44 +267,9 @@
           },
         ],
         [
-          'tizen_feature_tv_display_support==1', {
-            'dependencies': [
-              'tvdisplay/tvdisplay.gyp:*',
-            ],
-          },
-        ],
-        [
-          'tizen_feature_tvaudio_support==1', {
-            'dependencies': [
-              'tvaudio/tvaudio.gyp:*',
-            ],
-          },
-        ],
-        [
-          'tizen_feature_tvinputdevice_support==1', {
-            'dependencies': [
-              'tvinputdevice/tvinputdevice.gyp:*'
-            ],
-          },
-        ],
-        [
           'tizen_feature_inputdevice_support==1', {
             'dependencies': [
               'inputdevice/inputdevice.gyp:*'
-            ],
-          },
-        ],
-        [
-          'tizen_feature_tvchannel_support==1', {
-            'dependencies': [
-              'tvchannel/tvchannel.gyp:*',
-            ],
-          },
-        ],
-        [
-          'tizen_feature_tvwindow_support==1', {
-            'dependencies': [
-              'tvwindow/tvwindow.gyp:*',
             ],
           },
         ],

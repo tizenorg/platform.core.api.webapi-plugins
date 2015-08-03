@@ -2399,7 +2399,7 @@ static PlatformResult FetchBasicSimProperties(TapiHandle *tapi_handle,
   int tapi_res = TAPI_API_SUCCESS;
   tapi_res = tel_get_property_int(tapi_handle, TAPI_PROP_NETWORK_PLMN, &result_value);
   if (TAPI_API_SUCCESS != tapi_res) {
-    std::string error_msg = "Cannot get mcc value, error: " + tapi_res;
+    std::string error_msg = "Cannot get mcc value, error: " + std::to_string(tapi_res);
     LoggerE("%s", error_msg.c_str());
     return PlatformResult(ErrorCode::UNKNOWN_ERR, error_msg);
   }
@@ -2408,7 +2408,7 @@ static PlatformResult FetchBasicSimProperties(TapiHandle *tapi_handle,
 
   tapi_res = tel_get_property_int(tapi_handle, TAPI_PROP_NETWORK_CELLID, &result_value);
   if (TAPI_API_SUCCESS != tapi_res) {
-    std::string error_msg = "Cannot get cell_id value, error: " + tapi_res;
+    std::string error_msg = "Cannot get cell_id value, error: " + std::to_string(tapi_res);
     LoggerE("%s", error_msg.c_str());
     return PlatformResult(ErrorCode::UNKNOWN_ERR, error_msg);
   }
@@ -2416,7 +2416,7 @@ static PlatformResult FetchBasicSimProperties(TapiHandle *tapi_handle,
 
   tapi_res = tel_get_property_int(tapi_handle, TAPI_PROP_NETWORK_LAC, &result_value);
   if (TAPI_API_SUCCESS != tapi_res) {
-    std::string error_msg = "Cannot get lac value, error: " + tapi_res;
+    std::string error_msg = "Cannot get lac value, error: " + std::to_string(tapi_res);
     LoggerE("%s", error_msg.c_str());
     return PlatformResult(ErrorCode::UNKNOWN_ERR, error_msg);
   }
@@ -2424,7 +2424,7 @@ static PlatformResult FetchBasicSimProperties(TapiHandle *tapi_handle,
 
   tapi_res = tel_get_property_int(tapi_handle, TAPI_PROP_NETWORK_ROAMING_STATUS, &result_value);
   if (TAPI_API_SUCCESS != tapi_res) {
-    std::string error_msg = "Cannot get is_roaming value, error: " + tapi_res;
+    std::string error_msg = "Cannot get is_roaming value, error: " + std::to_string(tapi_res);
     LoggerE("%s", error_msg.c_str());
     return PlatformResult(ErrorCode::UNKNOWN_ERR, error_msg);
   }

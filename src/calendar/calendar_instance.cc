@@ -96,9 +96,9 @@ void CalendarInstance::CalendarAdd(const JsonValue& args, JsonObject& out) {
   PlatformResult status = calendar_.Add(common::JsonCast<JsonObject>(args),
                                         val.get<JsonObject>());
 
-  if (status.IsSuccess())
+  if (status.IsSuccess()) {
     ReportSuccess(val, out);
-  else{
+  } else{
     LoggerE("Failed");
     ReportError(status, &out);
   }

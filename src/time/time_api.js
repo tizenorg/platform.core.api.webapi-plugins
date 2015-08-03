@@ -281,33 +281,6 @@ tizen.TimeDuration.prototype.toString = function() {
   return this.length + ' ' + this.unit;
 };
 
-tizen.TZDate = function(year, month, day, hours, minutes, seconds, milliseconds, timezone) {
-  validator_.isConstructorCall(this, tizen.TZDate);
-
-  this.timezone_ = timezone || tizen.time.getLocalTimezone();
-
-  var hours = hours || 0;
-  var minutes = minutes || 0;
-  var seconds = seconds || 0;
-  var milliseconds = milliseconds || 0;
-
-  if (!arguments.length)
-    this.date_ = new Date();
-  else if (arguments.length === 1 || arguments.length === 2) {
-    if (arguments[0] instanceof Date)
-      this.date_ = arguments[0];
-    else
-      this.date_ = new Date();
-    if (arguments[1])
-      this.timezone_ = arguments[1];
-  }
-  else
-    this.date_ = new Date(year, month, day, hours, minutes, seconds, milliseconds);
-
-  if (tizen.time.getAvailableTimezones().indexOf(this.timezone_) < 0)
-    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR);
-};
-
 function getTimezoneOffset(_timezone, _timeInMs) {
   var result = native_.callSync('Time_getTimeZoneOffset', {
     timezone: _timezone,
@@ -320,10 +293,78 @@ function getTimezoneOffset(_timezone, _timeInMs) {
   return native_.getResultObject(result);
 }
 
-function _getTimeWithOffset(date) {
-  var OffsetInMilliseconds = date.getTimezoneOffset() * _minuteInMilliseconds * -1;
-  return date.getTime() + OffsetInMilliseconds;
+function getMsUTC(date, timezone) {
+  var ms_utc = Date.UTC(date.getUTCFullYear(),
+                        date.getUTCMonth(),
+                        date.getUTCDate(),
+                        date.getUTCHours(),
+                        date.getUTCMinutes(),
+                        date.getUTCSeconds(),
+                        date.getUTCMilliseconds());
+  if (arguments.length === 2) {
+    var result = native_.callSync('Time_getMsUTC', {
+      timezone: timezone,
+      value: ms_utc
+    });
+    if (native_.isFailure(result)) {
+      throw native_.getErrorObject(result);
+    }
+
+    ms_utc = native_.getResultObject(result);
+  }
+
+  return ms_utc;
 }
+
+tizen.TZDate = function(year, month, day, hours, minutes, seconds, milliseconds, timezone) {
+  validator_.isConstructorCall(this, tizen.TZDate);
+
+  if (timezone) {
+    if (tizen.time.getAvailableTimezones().indexOf(timezone) < 0) {
+      throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR);
+    }
+
+    this.timezone_ = timezone;
+  } else {
+    this.timezone_ = tizen.time.getLocalTimezone();
+  }
+
+  var hours = hours || 0;
+  var minutes = minutes || 0;
+  var seconds = seconds || 0;
+  var milliseconds = milliseconds || 0;
+
+  if (!arguments.length) {
+    this.date_ = new Date();
+  } else if (arguments.length === 1 || arguments.length === 2) {
+    if (arguments[0] instanceof Date) {
+      this.date_ = arguments[0];
+    } else {
+      this.date_ = new Date();
+    }
+    if (arguments[1]) {
+      if (tizen.time.getAvailableTimezones().indexOf(arguments[1]) < 0) {
+        throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR);
+      }
+      this.timezone_ = arguments[1];
+    }
+  } else {
+    this.date_ = {};
+    if (timezone) {
+      var d = new Date();
+      d.setUTCFullYear(year);
+      d.setUTCMonth(month);
+      d.setUTCDate(day);
+      d.setUTCHours(hours);
+      d.setUTCMinutes(minutes);
+      d.setUTCSeconds(seconds);
+      d.setUTCMilliseconds(milliseconds);
+      this.date_ = new Date(getMsUTC(d, timezone));
+    } else {
+      this.date_ = new Date(year, month, day, hours, minutes, seconds, milliseconds);
+    }
+  }
+};
 
 tizen.TZDate.prototype.getDate = function() {
   return this.date_.getDate();
@@ -356,7 +397,9 @@ tizen.TZDate.prototype.setFullYear = function() {
 };
 
 tizen.TZDate.prototype.getHours = function() {
-  return this.date_.getHours();
+  var d = this.addDuration(new tizen.TimeDuration(getTimezoneOffset(this.timezone_,
+                                           getMsUTC(this.date_))));
+  return d.date_.getUTCHours();
 };
 
 tizen.TZDate.prototype.setHours = function() {
@@ -422,7 +465,7 @@ tizen.TZDate.prototype.setSeconds = function() {
 
 tizen.TZDate.prototype.getUTCDate = function() {
   var d = this.addDuration(new tizen.TimeDuration(getTimezoneOffset(this.timezone_,
-                                          _getTimeWithOffset(this.date_)) * -1));
+                                          getMsUTC(this.date_)) * -1));
   return d.getDate();
 };
 
@@ -437,13 +480,13 @@ tizen.TZDate.prototype.setUTCDate = function() {
 
 tizen.TZDate.prototype.getUTCDay = function() {
   var d = this.addDuration(new tizen.TimeDuration(getTimezoneOffset(this.timezone_,
-                                         _getTimeWithOffset(this.date_)) * -1));
+                                         getMsUTC(this.date_)) * -1));
   return d.getDay();
 };
 
 tizen.TZDate.prototype.getUTCFullYear = function() {
   var d = this.addDuration(new tizen.TimeDuration(getTimezoneOffset(this.timezone_,
-                                          _getTimeWithOffset(this.date_)) * -1));
+                                          getMsUTC(this.date_)) * -1));
   return d.getFullYear();
 };
 
@@ -457,9 +500,7 @@ tizen.TZDate.prototype.setUTCFullYear = function() {
 };
 
 tizen.TZDate.prototype.getUTCHours = function() {
-  var d = this.addDuration(new tizen.TimeDuration(getTimezoneOffset(this.timezone_,
-                                           _getTimeWithOffset(this.date_)) * -1));
-  return d.getHours();
+  return this.date_.getUTCHours();
 };
 
 tizen.TZDate.prototype.setUTCHours = function() {
@@ -468,14 +509,14 @@ tizen.TZDate.prototype.setUTCHours = function() {
     type: types_.LONG
   }]);
 
-  var offset_hours = getTimezoneOffset(this.timezone_, _getTimeWithOffset(this.date_)) /
+  var offset_hours = getTimezoneOffset(this.timezone_, getMsUTC(this.date_)) /
                      _hourInMilliseconds;
   this.date_.setHours(args.hours + offset_hours);
 };
 
 tizen.TZDate.prototype.getUTCMilliseconds = function() {
   var d = this.addDuration(new tizen.TimeDuration(getTimezoneOffset(this.timezone_,
-                                              _getTimeWithOffset(this.date_)) * -1));
+                                              getMsUTC(this.date_)) * -1));
   return d.getMilliseconds();
 };
 
@@ -490,7 +531,7 @@ tizen.TZDate.prototype.setUTCMilliseconds = function() {
 
 tizen.TZDate.prototype.getUTCMinutes = function() {
   var d = this.addDuration(new tizen.TimeDuration(getTimezoneOffset(this.timezone_,
-                                             _getTimeWithOffset(this.date_)) * -1));
+                                             getMsUTC(this.date_)) * -1));
   return d.getMinutes();
 };
 
@@ -505,7 +546,7 @@ tizen.TZDate.prototype.setUTCMinutes = function() {
 
 tizen.TZDate.prototype.getUTCMonth = function() {
   var d = this.addDuration(new tizen.TimeDuration(getTimezoneOffset(this.timezone_,
-                                           _getTimeWithOffset(this.date_)) * -1));
+                                           getMsUTC(this.date_)) * -1));
   return d.getMonth();
 };
 
@@ -520,7 +561,7 @@ tizen.TZDate.prototype.setUTCMonth = function() {
 
 tizen.TZDate.prototype.getUTCSeconds = function() {
   var d = this.addDuration(new tizen.TimeDuration(getTimezoneOffset(this.timezone_,
-                                         _getTimeWithOffset(this.date_)) * -1));
+                                         getMsUTC(this.date_)) * -1));
   return d.getSeconds();
 };
 
@@ -736,7 +777,7 @@ tizen.TZDate.prototype.secondsFromUTC = function() {
 tizen.TZDate.prototype.isDST = function() {
   var result = native_.callSync('Time_isDST', {
     timezone: this.timezone_,
-    value: _getTimeWithOffset(this.date_)
+    value: getMsUTC(this.date_)
   });
   if (native_.isFailure(result)) {
     return false;
@@ -748,7 +789,7 @@ tizen.TZDate.prototype.isDST = function() {
 tizen.TZDate.prototype.getPreviousDSTTransition = function() {
   var result = native_.callSync('Time_getDSTTransition', {
     'timezone': this.timezone_,
-    'value': _getTimeWithOffset(this.date_),
+    'value': getMsUTC(this.date_),
     'trans': 'NEXT_TRANSITION'
   });
   if (native_.isFailure(result)) {
@@ -764,7 +805,7 @@ tizen.TZDate.prototype.getPreviousDSTTransition = function() {
 tizen.TZDate.prototype.getNextDSTTransition = function() {
   var result = native_.callSync('Time_getDSTTransition', {
     timezone: this.timezone_,
-    value: _getTimeWithOffset(this.date_),
+    value: getMsUTC(this.date_),
     trans: 'PREV_TRANSITION'
   });
   if (native_.isFailure(result)) {
