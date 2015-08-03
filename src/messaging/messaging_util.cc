@@ -310,6 +310,110 @@ std::string GetFilename(const std::string& file_path) {
   return basename.substr(0, basename.find_last_of("."));
 }
 
+std::string PerformConversion(const std::string& input, const gchar* from_charset) {
+  LoggerD("Entered");
+
+  GIConv cd = g_iconv_open("UTF-8//IGNORE", from_charset);
+
+  if ((GIConv)-1 == cd) {
+    LoggerE("Failed to open iconv.");
+    return "";
+  }
+
+  // copied from glib/gconvert.c, g_convert does not handle "//IGNORE" properly
+  static const gsize kNulTerminatorLength = 4;
+  const gchar* str = input.c_str();
+  gssize len = input.size();
+
+  gchar* p = const_cast<gchar*>(str);
+  gsize inbytes_remaining = len;
+  gsize outbuf_size = len + kNulTerminatorLength;
+  gsize outbytes_remaining = outbuf_size - kNulTerminatorLength;
+  gchar* dest = nullptr;
+  gchar* outp = nullptr;
+  gboolean have_error = FALSE;
+  gboolean done = FALSE;
+  gboolean reset = FALSE;
+
+  outp = dest = static_cast<gchar*>(g_malloc(outbuf_size));
+
+  while (!done && !have_error) {
+    gsize err = 0;
+
+    if (reset) {
+      err = g_iconv(cd, nullptr, &inbytes_remaining, &outp, &outbytes_remaining);
+    } else {
+      err = g_iconv(cd, &p, &inbytes_remaining, &outp, &outbytes_remaining);
+    }
+
+    if (static_cast<gsize>(-1) == err) {
+      switch (errno) {
+        case EINVAL:
+          LoggerD("EINVAL");
+          // Incomplete text, do not report an error
+          done = TRUE;
+          break;
+
+        case E2BIG:
+          {
+            LoggerD("E2BIG");
+            gsize used = outp - dest;
+
+            outbuf_size *= 2;
+            dest = static_cast<gchar*>(g_realloc(dest, outbuf_size));
+
+            outp = dest + used;
+            outbytes_remaining = outbuf_size - used - kNulTerminatorLength;
+          }
+          break;
+
+        case EILSEQ:
+          if (0 == inbytes_remaining) {
+            LoggerD("EILSEQ reported, but whole input buffer was processed, assuming it's OK");
+          } else {
+            LoggerE("EILSEQ");
+            have_error = TRUE;
+          }
+          break;
+
+        default:
+          LoggerE("Conversion error: %d", errno);
+          have_error = TRUE;
+          break;
+      }
+    } else {
+      if (!reset) {
+        // call g_iconv with NULL inbuf to cleanup shift state
+        reset = TRUE;
+        inbytes_remaining = 0;
+      } else {
+        done = TRUE;
+      }
+    }
+  }
+
+  memset(outp, 0, kNulTerminatorLength);
+
+  if ((p - str) != len) {
+    LoggerE("Partial character sequence at end of input");
+    have_error = TRUE;
+  }
+
+  g_iconv_close(cd);
+
+  std::string result;
+
+  if (!have_error) {
+    result = dest;
+  } else {
+    LoggerE("Conversion error");
+  }
+
+  g_free(dest);
+
+  return result;
+}
+
 }  // namespace
 
 std::string MessagingUtil::ConvertToUtf8(const std::string& file_path, const std::string& contents) {
@@ -345,57 +449,22 @@ std::string MessagingUtil::ConvertToUtf8(const std::string& file_path, const std
 
   std::string output;
 
-  // if charset is unknown or it's UTF-8, conversion is not needed
-  if ((0 != g_ascii_strcasecmp(from_charset, UNKNOWN_CHARSET_PLAIN_TEXT_FILE)) &&
-      (0 != g_ascii_strcasecmp(from_charset, "UTF-8"))) {
+  // if charset is unknown, conversion is not needed
+  if ((0 != g_ascii_strcasecmp(from_charset, UNKNOWN_CHARSET_PLAIN_TEXT_FILE))) {
+    // we're performing UTF-8 to UTF-8 conversion to remove malformed data
     LoggerD("performing conversion");
 
-    GError* error = nullptr;
-    const gchar* to_charset = "UTF-8//IGNORE";  // convert to UTF-8, ignore unknown characters
+    output = PerformConversion(contents, from_charset);
 
-    gchar* result = g_convert(contents.c_str(),  // the string to convert
-                              -1,  // string is null terminated
-                              to_charset,  // target encoding
-                              from_charset,  // source encoding
-                              nullptr,  // ignore bytes read
-                              nullptr,  // ignore bytes written
-                              &error);  // store error
-    if ((nullptr == result || nullptr != error) &&
-        0 == g_ascii_strcasecmp(from_charset, "CP949")) {
-      if (nullptr != error) {
-        g_error_free(error);
-      }
-
-      if (nullptr != result) {
-        g_free(result);
-      }
-
+    if ("" == output && 0 == g_ascii_strcasecmp(from_charset, "CP949")) {
       LoggerD("change: CP949 ===> EUC-KR, try again");
-      result = g_convert(contents.c_str(),  // the string to convert
-                         -1,  // string is null terminated
-                         to_charset,  // target encoding
-                         "EUC-KR",  // source encoding
-                         nullptr,  // ignore bytes read
-                         nullptr,  // ignore bytes written
-                         &error);  // store error
+      output = PerformConversion(contents, "EUC-KR");
     }
 
-    if (nullptr == result || nullptr != error) {
-      LoggerE("g_convert() failed!");
-      if (nullptr != error) {
-        LoggerE("error_code: [%d], msg: [%s]", error->code, error->message);
-        g_error_free(error);
-      }
-
-      if (nullptr != result) {
-        g_free(result);
-      }
-
+    if ("" == output) {
+      LoggerE("Conversion failed");
       // conversion failed, use original contents
       output = contents;
-    } else {
-      output = result;
-      g_free(result);
     }
   } else {
     // no conversion
