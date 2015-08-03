@@ -262,14 +262,7 @@ tizen.BluetoothLEAdvertiseData = function(dict) {
         return serviceData_;
       },
       set: function(v) {
-        if (T.isNull(v)) {
-          serviceData_ = v;
-        } else if (T.isArray(v)) {
-          for (var i = 0; i < v.length; ++i) {
-            if (!(v[i] instanceof tizen.BluetoothLEServiceData)) {
-              return;
-            }
-          }
+        if (T.isNull(v) || (v instanceof tizen.BluetoothLEServiceData)) {
           serviceData_ = v;
         }
       }
@@ -340,14 +333,7 @@ tizen.BluetoothLEAdvertiseData = function(dict) {
     }
 
     // serviceData
-    if (T.isNull(dict.serviceData)) {
-      o.serviceData = dict.serviceData;
-    } else if (T.isArray(dict.serviceData)) {
-      for (var i = 0; i < dict.serviceData.length; ++i) {
-        if (!(dict.serviceData[i] instanceof tizen.BluetoothLEServiceData)) {
-          return;
-        }
-      }
+    if (T.isNull(dict.serviceData) || dict.serviceData instanceof tizen.BluetoothLEServiceData) {
       o.serviceData = dict.serviceData;
     } else if (!T.isUndefined(dict.serviceData)) {
       return;
