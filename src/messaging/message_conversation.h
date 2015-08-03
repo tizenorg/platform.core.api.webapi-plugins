@@ -97,6 +97,8 @@ public:
             tizen::AnyPtr end_value) const;
 
 private:
+    std::string SanitizeUtf8String(const std::string& input);
+
     int m_conversation_id;
     MessageType m_conversation_type;
     time_t m_timestamp;
