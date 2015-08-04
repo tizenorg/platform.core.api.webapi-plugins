@@ -87,5 +87,10 @@ int PowerPlatformProxy::GetBrightness() {
   return dbus_op_.InvokeSyncGetInt("CurrentBrightness", NULL);
 }
 
+int PowerPlatformProxy::IsCustomBrightness() {
+  LoggerD("Entered");
+  return dbus_op_.InvokeSyncGetInt("CustomBrightness", NULL);
+}
+
 } // namespace power
 } // namespace extension

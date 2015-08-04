@@ -392,8 +392,7 @@ int PowerManager::GetPlatformBrightness(){
 
   int brightness = 0;
 
-  int is_custom_mode = 0;
-  vconf_get_int(VCONFKEY_PM_CUSTOM_BRIGHTNESS_STATUS, &is_custom_mode);
+  int is_custom_mode = PowerPlatformProxy::GetInstance().IsCustomBrightness();
   if ((is_custom_mode && current_brightness_ != -1) || should_be_read_from_cache_) {
     LoggerD("return custom brightness %d", current_brightness_);
     return current_brightness_;
