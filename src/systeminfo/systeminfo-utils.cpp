@@ -2184,18 +2184,6 @@ PlatformResult SysteminfoUtils::ReportWifiNetwork(picojson::object& out) {
   connection_handle_ptr(connection_handle, &connection_destroy);
   // automatically release the memory
 
-  char* mac = nullptr;
-  error = connection_get_mac_address(connection_handle, CONNECTION_TYPE_WIFI, &mac);
-  if (CONNECTION_ERROR_NONE == error && nullptr != mac) {
-    SLoggerD("MAC address fetched: %s", mac);
-    result_mac_address = mac;
-    free(mac);
-  } else {
-    std::string log_msg = "Failed to get mac address: " + std::to_string(error);
-    LoggerE("%s", log_msg.c_str());
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
-  }
-
   error = connection_get_type(connection_handle, &connection_type);
   if (CONNECTION_ERROR_NONE != error) {
     std::string log_msg = "Cannot get connection type: " + std::to_string(error);
@@ -2203,7 +2191,19 @@ PlatformResult SysteminfoUtils::ReportWifiNetwork(picojson::object& out) {
     return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
   }
   if (CONNECTION_TYPE_WIFI == connection_type) {
+    char* mac = nullptr;
+    error = connection_get_mac_address(connection_handle, CONNECTION_TYPE_WIFI, &mac);
+    if (CONNECTION_ERROR_NONE == error && nullptr != mac) {
+      SLoggerD("MAC address fetched: %s", mac);
+      result_mac_address = mac;
+      free(mac);
+    } else {
+      std::string log_msg = "Failed to get mac address: " + std::to_string(error);
+      LoggerE("%s", log_msg.c_str());
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
+    }
     result_status = true;
+
     //gathering profile
     error = connection_get_current_profile(connection_handle, &profile_handle);
     if (CONNECTION_ERROR_NONE != error) {
@@ -2246,8 +2246,7 @@ PlatformResult SysteminfoUtils::ReportWifiNetwork(picojson::object& out) {
       LoggerE("%s", log_msg.c_str());
       return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
     }
-  }
-  else {
+  } else {
     LoggerD("Connection type = %d. WIFI is disabled", connection_type);
   }
 
@@ -2336,18 +2335,6 @@ PlatformResult SysteminfoUtils::ReportEthernetNetwork(picojson::object& out) {
       break;
   }
 
-  char* mac = nullptr;
-  error = connection_get_mac_address(connection_handle, CONNECTION_TYPE_ETHERNET, &mac);
-  if (CONNECTION_ERROR_NONE == error && nullptr != mac) {
-    SLoggerD("MAC address fetched: %s", mac);
-    result_mac_address = mac;
-    free(mac);
-  } else {
-    std::string log_msg = "Failed to get mac address: " + std::to_string(error);
-    LoggerE("%s", log_msg.c_str());
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
-  }
-
   error = connection_get_type(connection_handle, &connection_type);
   if (CONNECTION_ERROR_NONE != error) {
     std::string log_msg = "Cannot get connection type: " + std::to_string(error);
@@ -2356,6 +2343,18 @@ PlatformResult SysteminfoUtils::ReportEthernetNetwork(picojson::object& out) {
   }
 
   if (CONNECTION_TYPE_ETHERNET == connection_type) {
+    char* mac = nullptr;
+    error = connection_get_mac_address(connection_handle, CONNECTION_TYPE_ETHERNET, &mac);
+    if (CONNECTION_ERROR_NONE == error && nullptr != mac) {
+      SLoggerD("MAC address fetched: %s", mac);
+      result_mac_address = mac;
+      free(mac);
+    } else {
+      std::string log_msg = "Failed to get mac address: " + std::to_string(error);
+      LoggerE("%s", log_msg.c_str());
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
+    }
+
     //gathering profile
     error = connection_get_current_profile(connection_handle, &profile_handle);
     if (CONNECTION_ERROR_NONE != error) {
