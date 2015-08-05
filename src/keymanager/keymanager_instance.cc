@@ -1057,7 +1057,7 @@ void KeyManagerInstance::AllowAccessControl(const picojson::value& args,
     //as ckmc_allow_access does not check if package id exists
     //it has to be done before allowing access
     pkgmgrinfo_pkginfo_h handle = nullptr;
-    int ret = pkgmgrinfo_pkginfo_get_usr_pkginfo(id.c_str(), &handle);
+    int ret = pkgmgrinfo_pkginfo_get_usr_pkginfo(id.c_str(), getuid(), &handle);
     if (PMINFO_R_OK != ret) {
       LoggerE("Package id not found.");
       common::tools::ReportError(PlatformResult(
