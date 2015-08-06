@@ -221,27 +221,46 @@ void ApplicationInstance::GetAppsInfo(const picojson::value& args, picojson::obj
 void ApplicationInstance::BroadcastEvent(const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
 
-  bool trusted = false;
-  manager_.BroadcastEventHelper(args, out, trusted);
+  manager_.BroadcastEventHelper(args, out, false);
 }
 
 void ApplicationInstance::BroadcastTrustedEvent(const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
 
-  bool trusted = true;
-  manager_.BroadcastEventHelper(args, out, trusted);
+  manager_.BroadcastEventHelper(args, out, true);
 }
 
 void ApplicationInstance::AddEventListener(const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
 
-  manager_.StartEventListener(&out);
+  const std::string& event_name = args.get("name").get<std::string>();
+
+  LOGGER(DEBUG) << "event_name: " << event_name;
+
+  JsonCallback cb = [this, args](picojson::value* event) -> void {
+   picojson::object& event_o = event->get<picojson::object>();
+   event_o["listenerId"] = args.get("listenerId");
+   LOGGER(DEBUG) << event->serialize().c_str();
+   PostMessage(event->serialize().c_str());
+   LOGGER(DEBUG) << event->serialize().c_str();
+  };
+
+  PlatformResult result = manager_.StartEventListener(event_name, cb);
+  if (result) {
+    ReportSuccess(out);
+  } else {
+    ReportError(result, &out);
+  }
 }
 
 void ApplicationInstance::RemoveEventListener(const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
 
-  manager_.StopEventListener();
+  const std::string& event_name = args.get("name").get<std::string>();
+
+  LOGGER(DEBUG) << "event_name: " << event_name;
+
+  manager_.StopEventListener(event_name);
 }
 
 }  // namespace application

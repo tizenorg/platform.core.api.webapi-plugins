@@ -25,7 +25,6 @@
 #include <aul.h>
 #include <package_manager.h>
 #include <pkgmgr-info.h>
-#include <app_event.h>
 #include <bundle.h>
 #include <bundle_internal.h>
 
@@ -61,6 +60,31 @@ const std::string kOnInstalled = "oninstalled";
 const std::string kOnUpdated = "onupdated";
 const std::string kOnUninstalled = "onuninstalled";
 const std::string kData = "data";
+
+const std::map<std::string, std::string> event_map_ = {
+  {SYSTEM_EVENT_BATTERY_CHARGER_STATUS, EVENT_KEY_BATTERY_CHARGER_STATUS},
+  {SYSTEM_EVENT_BATTERY_LEVEL_STATUS, EVENT_KEY_BATTERY_LEVEL_STATUS},
+  {SYSTEM_EVENT_USB_STATUS, EVENT_KEY_USB_STATUS},
+  {SYSTEM_EVENT_EARJACK_STATUS, EVENT_KEY_EARJACK_STATUS},
+  {SYSTEM_EVENT_DISPLAY_STATE, EVENT_KEY_DISPLAY_STATE},
+  {SYSTEM_EVENT_LOW_MEMORY, EVENT_KEY_LOW_MEMORY},
+  {SYSTEM_EVENT_WIFI_STATE, EVENT_KEY_WIFI_STATE},
+  {SYSTEM_EVENT_BT_STATE, EVENT_KEY_BT_STATE},
+  {SYSTEM_EVENT_LOCATION_ENABLE_STATE, EVENT_KEY_LOCATION_ENABLE_STATE},
+  {SYSTEM_EVENT_GPS_ENABLE_STATE, EVENT_KEY_GPS_ENABLE_STATE},
+  {SYSTEM_EVENT_NPS_ENABLE_STATE, EVENT_KEY_NPS_ENABLE_STATE},
+  {SYSTEM_EVENT_INCOMMING_MSG, EVENT_KEY_MSG_TYPE},
+  {SYSTEM_EVENT_TIME_ZONE, EVENT_KEY_TIME_ZONE},
+  {SYSTEM_EVENT_HOUR_FORMAT, EVENT_KEY_HOUR_FORMAT},
+  {SYSTEM_EVENT_LANGUAGE_SET, EVENT_KEY_LANGUAGE_SET},
+  {SYSTEM_EVENT_REGION_FORMAT, EVENT_KEY_REGION_FORMAT},
+  {SYSTEM_EVENT_SILENT_MODE, EVENT_KEY_SILENT_MODE},
+  {SYSTEM_EVENT_VIBRATION_STATE, EVENT_KEY_VIBRATION_STATE},
+  {SYSTEM_EVENT_SCREEN_AUTOROTATE_STATE, EVENT_KEY_SCREEN_AUTOROTATE_STATE},
+  {SYSTEM_EVENT_MOBILE_DATA_STATE, EVENT_KEY_MOBILE_DATA_STATE},
+  {SYSTEM_EVENT_DATA_ROAMING_STATE, EVENT_KEY_DATA_ROAMING_STATE},
+  {SYSTEM_EVENT_FONT_SET, EVENT_KEY_FONT_SET}
+};
 }
 
 ApplicationManager::ApplicationManager(ApplicationInstance& instance) :
@@ -1348,16 +1372,106 @@ void ApplicationManager::BroadcastEventHelper(
   }
 }
 
-void ApplicationManager::StartEventListener(picojson::object* out) {
+void ApplicationManager::OnEvent(const char* event_name,
+                                 bundle* event_data,
+                                 void* user_data) {
   LoggerD("Entered");
+  LOGGER(DEBUG) << event_name;
 
-  //TODO: please implement
+  ApplicationManager* manager = static_cast<ApplicationManager*>(user_data);
+
+  if (!manager->event_callback_) {
+    LOGGER(DEBUG) << "No event listener registered, skipping.";
+    return;
+  }
+
+  picojson::value event = picojson::value(picojson::object());
+  picojson::object& event_o = event.get<picojson::object>();
+
+  int ret;
+  char* val = nullptr;
+
+  if (event_map_.count(event_name)) { // system event
+    const std::string& key = event_map_.at(event_name);
+    std::string state = "true";
+    if (key != "") {
+      ret = bundle_get_str(event_data, key.c_str(), &val);
+      if (EVENT_ERROR_NONE != ret) {
+        LOGGER(ERROR) << "failed to read bundle data, error: " << ret;
+        return;
+      }
+
+      state = std::string(val);
+    }
+
+    LOGGER(DEBUG) << "state is: " << state;
+    event_o["value"] = picojson::value(state);
+
+  } else { // user event
+    ret = bundle_get_str(event_data, "data", &val);
+    if (EVENT_ERROR_NONE != ret) {
+      LOGGER(ERROR) << "failed to read bundle data, error: " << ret;
+      return;
+    }
+
+    picojson::value data;
+    std::string err;
+    picojson::parse(data, val, val + strlen(val), &err);
+    if (!err.empty()) {
+      LOGGER(ERROR) << "Failed to parse bundle data: " << err;
+      return;
+    }
+
+    event_o["data"] = data;
+  }
+
+  LOGGER(DEBUG) << "event_name is: " << event_name;
+  event_o["name"] = picojson::value(event_name);
+
+  manager->event_callback_(&event);
 }
 
-void ApplicationManager::StopEventListener() {
+PlatformResult ApplicationManager::StartEventListener(const std::string& event_name,
+                                                      const JsonCallback& callback) {
   LoggerD("Entered");
 
-  //TODO: please implement
+  int ret;
+  event_handler_h event_handler;
+
+  ret = event_add_event_handler(event_name.c_str(), OnEvent, this, &event_handler);
+  LOGGER(DEBUG) << "event_add_event_handler() result: " << ret;
+  if (EVENT_ERROR_PERMISSION_DENIED == ret) {
+    LOGGER(ERROR) << "event_add_event_handler failed, error: " << ret;
+    return PlatformResult(ErrorCode::SECURITY_ERR, "The privilege is required");
+  } else if (EVENT_ERROR_NONE != ret) {
+    LOGGER(ERROR) << "event_add_event_handler failed, error: " << ret;
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Error setting event listener");
+  }
+
+  event_handler_map_[event_name] = event_handler;
+
+  event_callback_ = callback;
+  LOGGER(DEBUG) << "event_add_event_handler success";
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+void ApplicationManager::StopEventListener(const std::string& event_name) {
+  LoggerD("Entered");
+
+  int ret;
+  event_handler_h event_handler;
+
+  if (event_handler_map_.find(event_name) != event_handler_map_.end()) {
+    event_handler = event_handler_map_[event_name];
+
+    ret = event_remove_event_handler(event_handler);
+    if (EVENT_ERROR_NONE != ret) {
+      LOGGER(ERROR) << "event_remove_event_handler failed, error: " << ret;
+      return;
+    }
+
+    event_handler_map_.erase(event_name);
+  }
 }
 
 } // namespace application

@@ -17,13 +17,17 @@
 #ifndef SRC_APPLICATION_APPLICATION_MANAGER_H__
 #define SRC_APPLICATION_APPLICATION_MANAGER_H__
 
-#include <string>
+#include <app_event.h>
+#include <bundle.h>
+#include <functional>
 #include <memory>
-
 #include <package-manager.h>
+#include <string>
 
 #include "common/picojson.h"
 #include "common/platform_result.h"
+
+typedef std::function<void(picojson::value*)> JsonCallback;
 
 namespace extension {
 namespace application {
@@ -51,15 +55,23 @@ class ApplicationManager {
   void StopAppInfoEventListener();
   void GetApplicationInformationSize(const picojson::value& args, picojson::object* out);
   void AsyncResponse(common::PlatformResult& result, std::shared_ptr<picojson::value>* response);
+
   void BroadcastEventHelper(const picojson::value& args, picojson::object& out, bool trusted);
-  void StartEventListener(picojson::object* out);
-  void StopEventListener();
+  common::PlatformResult StartEventListener(const std::string& event_name,
+                                            const JsonCallback& callback);
+  void StopEventListener(const std::string& event_name);
 
  private:
   char* GetPackageId(const std::string& app_id);
 
   pkgmgr_client* pkgmgr_client_handle_;
   ApplicationInstance& instance_;
+
+  JsonCallback event_callback_;
+  std::map<std::string, event_handler_h> event_handler_map_;
+  static void OnEvent(const char* event_name,
+                      bundle* event_data,
+                      void* user_data);
 };
 
 } // namespace application

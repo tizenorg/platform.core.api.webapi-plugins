@@ -44,7 +44,7 @@ var SystemEvent = {
   LOCATION_ENABLE_STATE: 'LOCATION_ENABLE_STATE',
   GPS_ENABLE_STATE: 'GPS_ENABLE_STATE',
   NPS_ENABLE_STATE: 'NPS_ENABLE_STATE',
-  INCOMMING_MSG: 'INCOMMING_MSG',
+  INCOMING_MSG: 'INCOMING_MSG',
   TIME_CHANGED: 'TIME_CHANGED',
   TIME_ZONE: 'TIME_ZONE',
   HOUR_FORMAT: 'HOUR_FORMAT',
@@ -637,6 +637,7 @@ Application.prototype.getRequestedAppControl = function() {
 };
 
 function _checkEventName(name) {
+  var name = name || '';
   if (!(/^([a-zA-Z_]){1}([a-zA-Z0-9_]){0,126}$/.test(name))) {
     throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
         'Invalid event name');
@@ -650,50 +651,111 @@ function _checkAppId(appId) {
   }
 }
 
-Application.prototype.addEventListener = function(name, callback) {
-  var args = AV.validateMethod(arguments, [
-    {name: 'name', type: AV.Types.STRING},
+var event_listeners_ = {};
+var watchId_ = 0;
+function nextWatchId() {
+  return ++watchId_;
+}
+
+Application.prototype.addEventListener = function(event, callback) {
+  var args = AV.validateArgs(arguments, [
+    {name: 'event', type: AV.Types.DICTIONARY},
     {name: 'callback', type: AV.Types.FUNCTION}
   ]);
 
-  var data = {
-    listenerId: 'AppEventListener'
-  };
+  var data = {};
 
-  if (Object.keys(SystemEvent).indexOf(args.name) > -1) {
-    data.name = 'tizen.system.event.' + args.name.toLowerCase();
+  if (Object.keys(SystemEvent).indexOf(args.event.name) > -1) {
+    data.name = 'tizen.system.event.' + args.event.name.toLowerCase();
   } else {
-    var _arr = args.name.split('.');
-    var _event_name = _arr.pop();
-    var _appid = _arr.join('.');
+    _checkEventName(args.event.name);
+    _checkAppId(args.event.appId);
 
-    _checkEventName(_event_name);
-    _checkAppId(_appid);
-
-    data.name = 'event.' + _appid + '.' + _event_name;
+    data.name = 'event.' + args.event.appId + '.' + args.event.name;
   }
 
-  // @TODO: register eventListener
+  var watchId = nextWatchId();
+  data.listenerId = data.name;
+  event_listeners_[data.name] = !T.isObject(event_listeners_[data.name])
+                                ? {} : event_listeners_[data.name];
+
+  if (!Object.keys(event_listeners_[data.name]).length) {
+    native.addListener(data.name, function(msg) {
+      var eventName = msg.name;
+      var event = eventName.split('.').pop();
+      for (var id in event_listeners_[eventName]) {
+        if (event_listeners_[eventName].hasOwnProperty(id)) {
+          if (msg.data) {
+            event_listeners_[eventName][id](event, msg.data);
+          } else {
+            delete msg.name;
+            msg.type = event; //TODO: type should come from native site
+            event_listeners_[eventName][id](event.toUpperCase(), msg);
+          }
+        }
+      }
+    });
+
+    var result = native.callSync('Application_addEventListener', data);
+    if (native.isFailure(result)) {
+      throw native.getErrorObject(result);
+    }
+  }
+
+  event_listeners_[data.name][watchId] = args.callback;
+  return watchId;
 };
 
+function getEventNameById(watchId) {
+  var eventName;
+  for (var event in event_listeners_) {
+    if (event_listeners_.hasOwnProperty(event)) {
+      for (var id in event_listeners_[event]) {
+        if (event_listeners_[event].hasOwnProperty(id) && Converter.toLong(id) === watchId) {
+            eventName = event;
+        }
+      }
+    }
+  }
+  return eventName;
+}
+
 Application.prototype.removeEventListener = function(watchId) {
-  var args = AV.validateMethod(arguments, [
+  var args = AV.validateArgs(arguments, [
     {name: 'watchId', type: AV.Types.LONG}
   ]);
 
-  // @TODO: remove eventListener
+  var eventName = getEventNameById(args.watchId);
+
+  if (!eventName) {
+    return;
+  }
+
+  delete event_listeners_[eventName][args.watchId];
+
+  if (!Object.keys(event_listeners_[eventName]).length) {
+    native.removeListener(eventName);
+    var result = native.callSync('Application_removeEventListener', {name: eventName});
+    if (native.isFailure(result)) {
+      throw native.getErrorObject(result);
+    }
+  }
 };
 
-Application.prototype.broadcastEvent = function(name, data) {
+Application.prototype.broadcastEvent = function(event, data) {
   var args = AV.validateMethod(arguments, [
-    {name: 'name', type: AV.Types.STRING},
+    {name: 'event', type: AV.Types.DICTIONARY},
     {name: 'data', type: AV.Types.DICTIONARY}
   ]);
 
-  _checkEventName(args.name);
+  _checkEventName(args.event.name);
+
+  if (this.appInfo.id !== args.event.appId) {
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR, 'Invalid appId');
+  }
 
   var nativeData = {
-    name: 'event.' + this.appInfo.id + '.' + args.name,
+    name: 'event.' + this.appInfo.id + '.' + args.event.name,
     data: args.data
   };
 
@@ -704,16 +766,20 @@ Application.prototype.broadcastEvent = function(name, data) {
   }
 };
 
-Application.prototype.broadcastTrustedEvent = function(name, data) {
+Application.prototype.broadcastTrustedEvent = function(event, data) {
   var args = AV.validateMethod(arguments, [
-    {name: 'name', type: AV.Types.STRING},
+    {name: 'event', type: AV.Types.DICTIONARY},
     {name: 'data', type: AV.Types.DICTIONARY}
   ]);
 
-  _checkEventName(args.name);
+  _checkEventName(args.event.name);
+
+  if (this.appInfo.id !== args.event.appId) {
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR, 'Invalid appId');
+  }
 
   var nativeData = {
-    name: 'event.' + this.appInfo.id + '.' + args.name,
+    name: 'event.' + this.appInfo.id + '.' + args.event.name,
     data: args.data
   };
 
