@@ -685,7 +685,7 @@ BluetoothLEDevice.prototype.getService = function() {
     if (native.isFailure(result)) {
         throw native.getErrorObject(result);
     } else {
-        return BluetoothGATTService(native.getResultObject(result));
+        return new BluetoothGATTService(native.getResultObject(result));
     }
 };
 
