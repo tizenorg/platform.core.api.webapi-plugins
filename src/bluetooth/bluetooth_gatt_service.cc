@@ -148,11 +148,10 @@ void BluetoothGATTService::GetServices(const picojson::value& args,
   LoggerD("Entered");
 
   bt_gatt_h handle = (bt_gatt_h) static_cast<long>(args.get("handle").get<double>());
-  const std::string& uuid = args.get("uuid").get<std::string>();
   const std::string& address = args.get("address").get<std::string>();
 
   picojson::array array;
-  PlatformResult ret = GetServicesHelper(handle, address, uuid, &array);
+  PlatformResult ret = GetServicesHelper(handle, address, &array);
   if (ret.IsError()) {
     LoggerE("Error while getting services");
     ReportError(ret, &out);
@@ -163,7 +162,6 @@ void BluetoothGATTService::GetServices(const picojson::value& args,
 
 PlatformResult BluetoothGATTService::GetServicesHelper(bt_gatt_h handle,
                                                        const std::string& address,
-                                                       const std::string& uuid,
                                                        picojson::array* array) {
   LoggerD("Entered");
 
@@ -173,27 +171,28 @@ PlatformResult BluetoothGATTService::GetServicesHelper(bt_gatt_h handle,
                           "Device is not connected");
   }
 
-  struct Data {
-    const std::string& uuid;
-    picojson::array* array;
-  };
-  Data user_data {uuid, array};
-
   int ret = bt_gatt_service_foreach_included_services(
       handle,
       [](int total, int index, bt_gatt_h gatt_handle, void *data) {
         LoggerD("Enter");
-        Data user_data = *(static_cast<Data*>(data));
 
         picojson::value result = picojson::value(picojson::object());
         picojson::object& result_obj = result.get<picojson::object>();
 
-        result_obj.insert(std::make_pair(kUuid, picojson::value(user_data.uuid)));
+        char* uuid = nullptr;
+
+        if (BT_ERROR_NONE == bt_gatt_get_uuid(gatt_handle, &uuid) && nullptr != uuid) {
+          result_obj.insert(std::make_pair(kUuid, picojson::value(uuid)));
+          free(uuid);
+        } else {
+          result_obj.insert(std::make_pair(kUuid, picojson::value("FFFF")));
+        }
+
         //handle is passed to upper layer because there is no need of deletion
         result_obj.insert(std::make_pair(kHandle, picojson::value((double)(long)gatt_handle)));
-        user_data.array->push_back(result);
+        static_cast<picojson::array*>(data)->push_back(result);
         return true;
-      }, static_cast<void*>(&user_data));
+      }, array);
   if (BT_ERROR_NONE != ret) {
     LoggerE("Failed bt_gatt_service_foreach_included_services() (%d)", ret);
     return util::GetBluetoothError(ret, "Failed to set a service's GATT callback");

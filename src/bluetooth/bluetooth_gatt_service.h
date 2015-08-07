@@ -57,7 +57,6 @@ class BluetoothGATTService {
   bt_gatt_client_h GetGattClient(const std::string& address);
 
   common::PlatformResult GetServicesHelper(bt_gatt_h handle, const std::string& address,
-                                                  const std::string& uuid,
                                                   picojson::array* array);
   common::PlatformResult GetCharacteristicsHelper(bt_gatt_h handle,
                                                   const std::string& address,
