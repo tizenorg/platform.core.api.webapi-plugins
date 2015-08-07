@@ -1528,6 +1528,15 @@ var BluetoothGATTService = function(data, address) {
     });
 };
 
+var toByteArray = function(array) {
+    var d = [];
+
+    array.forEach(function(b) {
+        d.push(Converter.toOctet(b));
+    });
+    return d;
+};
+
 //class BluetoothGATTCharacteristic ////////////////////////////////////////////////////
 var BluetoothGATTCharacteristic = function(data, address) {
   var handle_ = data.handle;
@@ -1631,15 +1640,6 @@ var BluetoothGATTCharacteristic = function(data, address) {
       }
     }
   });
-
-  var toByteArray = function(array) {
-      var d = [];
-
-      array.forEach(function(b) {
-          d.push(Converter.toOctet(b));
-      });
-      return d;
-  };
 
   BluetoothGATTCharacteristic.prototype.readValue = function() {
       console.log('Entered BluetoothGATTCharacteristic.readValue()');
