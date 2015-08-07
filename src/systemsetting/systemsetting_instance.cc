@@ -196,9 +196,14 @@ PlatformResult SystemSettingInstance::setPlatformPropertyValue(
       LoggerD("ret == SYSTEM_SETTINGS_ERROR_NOT_SUPPORTED");
       return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR,
                             "This property is not supported.");
+    case SYSTEM_SETTINGS_ERROR_INVALID_PARAMETER:
+      LoggerD("ret == SYSTEM_SETTINGS_ERROR_INVALID_PARAMETER");
+      return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
+                            "Invalid parameter passed.");
     default:
       LoggerD("Other error");
-      return PlatformResult(ErrorCode::UNKNOWN_ERR);
+      return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                            "unknown error");
   }
 }
 
