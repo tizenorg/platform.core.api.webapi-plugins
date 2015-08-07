@@ -78,6 +78,28 @@ bool BluetoothGATTService::IsStillConnected(const std::string& address) {
   return gatt_clients_.end() != it;
 }
 
+bt_gatt_client_h BluetoothGATTService::GetGattClient(const std::string& address) {
+  LoggerD("Entered");
+
+  bt_gatt_client_h client = nullptr;
+
+  const auto it = gatt_clients_.find(address);
+
+  if (gatt_clients_.end() == it) {
+    int ret = bt_gatt_client_create(address.c_str(), &client);
+    if (BT_ERROR_NONE != ret) {
+      LoggerE("Failed to create GATT client, error: %d", ret);
+    } else {
+      gatt_clients_.insert(std::make_pair(address, client));
+    }
+  } else {
+    LoggerD("Client already created");
+    client = it->second;
+  }
+
+  return client;
+}
+
 // this method should be used to inform this object that some device was disconnected
 void BluetoothGATTService::TryDestroyClient(const std::string &address) {
   auto it = gatt_clients_.find(address);
@@ -96,23 +118,14 @@ PlatformResult BluetoothGATTService::GetSpecifiedGATTService(const std::string &
                                                              picojson::object* result) {
   LoggerD("Entered");
 
-  bt_gatt_client_h client = nullptr;
-  auto it = gatt_clients_.find(address);
-  int ret = BT_ERROR_NONE;
-  if (gatt_clients_.end() == it) {
-    ret = bt_gatt_client_create(address.c_str(), &client);
-    if (BT_ERROR_NONE != ret) {
-      LoggerE("%d", ret);
-      return util::GetBluetoothError(ret, "Failed to create the GATT client's handle");
-    }
-    gatt_clients_.insert(std::make_pair(address, client));
-  } else {
-    LoggerD("Client already created");
-    client = it->second;
+  bt_gatt_client_h client = GetGattClient(address);
+
+  if (nullptr == client) {
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to create the GATT client's handle");
   }
 
   bt_gatt_h service = nullptr;
-  ret = bt_gatt_client_get_service(client, uuid.c_str(), &service);
+  int ret = bt_gatt_client_get_service(client, uuid.c_str(), &service);
   if (BT_ERROR_NONE != ret) {
     LoggerE("%d", ret);
     return util::GetBluetoothError(ret, "Failed to get a service's GATT handle");
@@ -488,6 +501,42 @@ void BluetoothGATTService::RemoveValueChangeListener(
     ReportError(util::GetBluetoothError(ret, "Failed to unregister listener"), &out);
   } else {
     ReportSuccess(out);
+  }
+}
+
+common::PlatformResult BluetoothGATTService::GetServiceUuids(
+    const std::string& address, picojson::array* array) {
+  LoggerD("Entered");
+
+  bt_gatt_client_h client = GetGattClient(address);
+
+  if (nullptr == client) {
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Unable to create client");
+  }
+
+  auto foreach_callback = [](int total, int index, bt_gatt_h gatt_handle, void* user_data) -> bool {
+    LoggerD("Entered foreach_callback, total: %d, index: %d", total, index);
+
+    char* uuid = nullptr;
+    int ret = bt_gatt_get_uuid(gatt_handle, &uuid);
+
+    if (BT_ERROR_NONE != ret || nullptr == uuid) {
+      LoggerE("Failed to get UUID: %d", ret);
+    } else {
+      static_cast<picojson::array*>(user_data)->push_back(picojson::value(uuid));
+      free(uuid);
+    }
+
+    return true;
+  };
+
+  int ret = bt_gatt_client_foreach_services(client, foreach_callback, array);
+
+  if (BT_ERROR_NONE == ret) {
+    return PlatformResult(ErrorCode::NO_ERROR);
+  } else {
+    LoggerE("Failed to get UUIDS: %d", ret);
+    return util::GetBluetoothError(ret, "Failed to get UUIDS");
   }
 }
 

@@ -407,6 +407,25 @@ void BluetoothLEDevice::RemoveConnectStateChangeListener(
   ReportSuccess(out);
 }
 
+void BluetoothLEDevice::GetServiceUuids(const picojson::value& data,
+                                        picojson::object& out) {
+  LoggerD("Entered");
+
+  const auto& args = util::GetArguments(data);
+  const auto& address = common::FromJson<std::string>(args, "address");
+
+  picojson::value response = picojson::value(picojson::array());
+  picojson::array *data_obj = &response.get<picojson::array>();
+
+  PlatformResult result = service_.GetServiceUuids(address, data_obj);
+
+  if (result) {
+    ReportSuccess(response, out);
+  } else {
+    ReportError(result, &out);
+  }
+}
+
 void BluetoothLEDevice::GattConnectionState(int result, bool connected,
                                             const char* remote_address,
                                             void* user_data) {

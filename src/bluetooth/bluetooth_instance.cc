@@ -141,6 +141,10 @@ BluetoothInstance::BluetoothInstance() :
       "BluetoothLEDevice_removeConnectStateChangeListener",
       std::bind(&BluetoothLEDevice::RemoveConnectStateChangeListener,
                 &bluetooth_le_device_, _1, _2));
+  REGISTER_SYNC(
+        "BluetoothLEDevice_getServiceUuids",
+        std::bind(&BluetoothLEDevice::GetServiceUuids,
+                  &bluetooth_le_device_, _1, _2));
 
   // BluetoothGATTService
   REGISTER_SYNC("BluetoothGATTService_getServices",
