@@ -313,14 +313,28 @@ void BluetoothLEDevice::Disconnect(const picojson::value& data,
 
   const auto callback_handle = util::GetAsyncCallbackHandle(data);
   const auto& args = util::GetArguments(data);
-
   const auto& address = common::FromJson<std::string>(args, "address");
 
-  int ret = bt_gatt_disconnect(address.c_str());
+  bool connected = false;
+  int ret = bt_device_is_profile_connected(address.c_str(), BT_PROFILE_GATT, &connected);
   if (BT_ERROR_NONE != ret) {
     instance_.AsyncResponse(
         callback_handle,
-        PlatformResult(util::GetBluetoothError(ret, "Failed to disconnect.")));
+        PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to disconnect."));
+    return;
+  }
+  if (!connected) {
+    ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
+                               "Bluetooth low energy device is not connected"),
+                &out);
+    return;
+  }
+
+  ret = bt_gatt_disconnect(address.c_str());
+  if (BT_ERROR_NONE != ret) {
+    instance_.AsyncResponse(
+        callback_handle,
+        PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to disconnect."));
     return;
   }
 

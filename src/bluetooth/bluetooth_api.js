@@ -652,7 +652,7 @@ BluetoothLEDevice.prototype.disconnect = function() {
             nullable : true
         }
     ]);
-     var callback = function(result) {
+    var callback = function(result) {
         if (native.isFailure(result)) {
             native.callIfPossible(args.errorCallback, native.getErrorObject(result));
         } else {
@@ -660,7 +660,10 @@ BluetoothLEDevice.prototype.disconnect = function() {
         }
     };
 
-    native.call('BluetoothLEDevice_disconnect', {address : this.address}, callback);
+    var result = native.call('BluetoothLEDevice_disconnect', {address : this.address}, callback);
+    if (native.isFailure(result)) {
+        throw native.getErrorObject(result);
+    }
 };
 
 BluetoothLEDevice.prototype.getService = function() {
