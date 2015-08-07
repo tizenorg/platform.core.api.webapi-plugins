@@ -85,7 +85,7 @@
     ],
     'libraries' : [
       '-L .',
-      '-Wl,-rpath=/usr/lib/tizen-extensions-crosswalk',
+      '-Wl,-rpath=<(crosswalk_extensions_path)',
     ],
   },
 }

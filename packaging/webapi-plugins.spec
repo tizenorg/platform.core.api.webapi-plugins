@@ -7,6 +7,8 @@
 
 %define crosswalk_extensions tizen-extensions-crosswalk
 
+%define crosswalk_extensions_path %{_libdir}/%{crosswalk_extensions}
+
 Name:       webapi-plugins
 Version:    0.21
 Release:    0
@@ -450,6 +452,7 @@ webapi-plugins development headers
 export GYP_GENERATORS='ninja'
 GYP_OPTIONS="--depth=. -Dtizen=1 -Dextension_build_type=Debug -Dextension_host_os=%{profile} -Dprivilege_engine=%{tizen_privilege_engine}"
 GYP_OPTIONS="$GYP_OPTIONS -Ddisplay_type=%{display_type}"
+GYP_OPTIONS="$GYP_OPTIONS -Dcrosswalk_extensions_path=%{crosswalk_extensions_path}"
 
 # feature flags
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_is_emulator=%{?tizen_is_emulator}"
@@ -492,7 +495,7 @@ GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_sound_support=%{?tizen_feature_sound_s
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_system_info_support=%{?tizen_feature_system_info_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_system_setting_support=%{?tizen_feature_system_setting_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_telephony_support=%{?tizen_feature_telephony_support}"
-GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_time_support=%{tizen_feature_time_support}"
+GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_time_support=%{?tizen_feature_time_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_inputdevice_support=%{?tizen_feature_inputdevice_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_web_setting_support=%{?tizen_feature_web_setting_support}"
 GYP_OPTIONS="$GYP_OPTIONS -Dtizen_feature_wi_fi_support=%{?tizen_feature_wi_fi_support}"
@@ -507,8 +510,8 @@ cp LICENSE %{buildroot}/usr/share/license/%{name}
 cat LICENSE.BSD-2.0 >> %{buildroot}/usr/share/license/%{name}
 
 # Extensions.
-mkdir -p %{buildroot}%{_libdir}/%{crosswalk_extensions}
-install -p -m 644 out/Default/libtizen*.so %{buildroot}%{_libdir}/%{crosswalk_extensions}
+mkdir -p %{buildroot}%{crosswalk_extensions_path}
+install -p -m 644 out/Default/libtizen*.so %{buildroot}%{crosswalk_extensions_path}
 
 # devel files
 mkdir -p %{buildroot}%{_libdir}/pkgconfig
@@ -525,15 +528,17 @@ cp -a tools/gyp %{buildroot}%{_includedir}/%{name}/tools/gyp
 cp -a tools/slimit %{buildroot}%{_includedir}/%{name}/tools/slimit
 
 # execute desc_gentool
-LD_LIBRARY_PATH=$LD_LIBRARY_PATH:%{buildroot}%{_libdir}/%{crosswalk_extensions} out/Default/desc_gentool %{buildroot}%{_libdir}/%{crosswalk_extensions} > plugins.json
+LD_LIBRARY_PATH=$LD_LIBRARY_PATH:%{buildroot}%{crosswalk_extensions_path} out/Default/desc_gentool \
+	%{crosswalk_extensions_path} \
+	%{buildroot}%{crosswalk_extensions_path} > plugins.json
 
 # temporary plugins description for lazy loading
-install -p -m 644 plugins.json %{buildroot}%{_libdir}/%{crosswalk_extensions}/plugins.json
+install -p -m 644 plugins.json %{buildroot}%{crosswalk_extensions_path}/plugins.json
 
 
 %files
-%{_libdir}/%{crosswalk_extensions}/libtizen*.so
-%{_libdir}/%{crosswalk_extensions}/plugins.json
+%{crosswalk_extensions_path}/libtizen*.so
+%{crosswalk_extensions_path}/plugins.json
 %{_datadir}/license/%{name}
 %manifest webapi-plugins.manifest
 
