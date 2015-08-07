@@ -82,7 +82,7 @@ void UtilsInstance::GetPkgApiVersion(const picojson::value& args, picojson::obje
     return;
   }
 
-  ret = pkgmgrinfo_pkginfo_get_pkginfo(pkgid, &pkginfo_handle);
+  ret = pkgmgrinfo_pkginfo_get_usr_pkginfo(pkgid, getuid(), &pkginfo_handle);
   if (ret != PMINFO_R_OK) {
     LoggerE("Fail to get pkginfo_h");
     ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Fail to get pkginfo_h"), &out);

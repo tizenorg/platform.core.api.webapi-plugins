@@ -12,7 +12,6 @@
 
 static std::string prefix_ = "libtizen";
 static std::string postfix_ = ".so";
-static std::string target_path_ = "/usr/lib/tizen-extensions-crosswalk/";
 static std::vector<std::string> apinamespaces = {"tizen", "xwalk"};
 
 typedef common::Extension *(*CreateExtensionFunc)(void);
@@ -148,20 +147,25 @@ const void* get_interface(const char* name) {
 }
 
 int main(int argc, char* argv[]) {
-  if (argc < 2) {
+  if (argc < 3) {
     std::cerr << "Need tizen crosswalk path" << std::endl;
     return -1;
   }
-  std::string tce_path = argv[1];
-  
-  if (tce_path.empty()) {
+  std::string lib_path = argv[1];
+  if (lib_path.empty()) {
+    std::cerr << "Invalid libpath for tec." << std::endl;
+    return -1;
+  }
+
+  std::string tec_path = argv[2];
+  if (tec_path.empty()) {
     std::cerr << "Invalid tizen crosswalk path" << std::endl;
     return -1;
   }
 
   DIR * dir;
   struct dirent *ent;
-  if ((dir = opendir(tce_path.c_str())) != NULL) {
+  if ((dir = opendir(tec_path.c_str())) != NULL) {
     while ((ent = readdir(dir)) != NULL) {
       std::string fname = ent->d_name;
 
@@ -169,7 +173,7 @@ int main(int argc, char* argv[]) {
           !fname.compare(0, prefix_.size(), prefix_) &&
           !fname.compare(fname.size() - postfix_.size(), postfix_.size(),
                         postfix_)) {
-        std::string so_path = tce_path + "/" + fname;
+        std::string so_path = tec_path + "/" + fname;
         char* error;
         void *handle = dlopen(so_path.c_str(), RTLD_LAZY);
         if ((error = dlerror()) != NULL) {
@@ -186,7 +190,7 @@ int main(int argc, char* argv[]) {
         } else {
           ext++;
           descriptions[ext] = module_description();
-          descriptions[ext].lib = target_path_ + fname;
+          descriptions[ext].lib = lib_path + "/" + fname;
           int ret = initialize(ext, get_interface);
           if (ret != XW_OK) {
             std::cerr << "Error loading extension " << fname << std::endl;
@@ -206,7 +210,7 @@ int main(int argc, char* argv[]) {
 
     print_json();
   } else {
-    std::cerr << "path not exist : " << tce_path << std::endl;
+    std::cerr << "path not exist : " << tec_path << std::endl;
     return -1;
   }
 
