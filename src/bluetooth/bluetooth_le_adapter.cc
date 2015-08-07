@@ -116,8 +116,8 @@ class BluetoothLEManufacturerData : public ParsedDataHolder {
     return id_;
   }
 
-  const char* const data() const {
-    return (const char*) data_;
+  const unsigned char* const data() const {
+    return data_;
   }
 
   const int data_length() const {
@@ -601,7 +601,7 @@ void BluetoothLEAdapter::StartAdvertise(const picojson::value& data, picojson::o
       ret = bt_adapter_le_add_advertising_manufacturer_data(advertiser,
                                                             packet_type,
                                                             atoi(manufacturer_data.id().c_str()),
-                                                            manufacturer_data.data(),
+                                                            (const char*)manufacturer_data.data(),
                                                             manufacturer_data.data_length());
       if (BT_ERROR_NONE != ret) {
         LoggerE("bt_adapter_le_add_advertising_manufacturer_data() failed with: %d", ret);
