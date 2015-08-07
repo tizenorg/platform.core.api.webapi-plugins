@@ -65,9 +65,12 @@ BluetoothGATTService::BluetoothGATTService(BluetoothInstance& instance) :
 BluetoothGATTService::~BluetoothGATTService() {
   LoggerD("Entered");
 
-  for (auto it : gatt_clients_) {
+  for (auto it : gatt_characteristic_) {
     // unregister callback, ignore errors
-    bt_gatt_client_unset_characteristic_value_changed_cb(it.second);
+    bt_gatt_client_unset_characteristic_value_changed_cb(it);
+  }
+
+  for (auto it : gatt_clients_) {
     LoggerD("destroying client for address: %s", it.first.c_str());
     bt_gatt_client_destroy(it.second);
   }
@@ -477,6 +480,7 @@ void BluetoothGATTService::AddValueChangeListener(const picojson::value& args,
     LoggerE("bt_gatt_client_set_characteristic_value_changed_cb() failed with: %d", ret);
     ReportError(util::GetBluetoothError(ret, "Failed to register listener"), &out);
   } else {
+    gatt_characteristic_.push_back(handle);
     ReportSuccess(out);
   }
 }
@@ -500,6 +504,7 @@ void BluetoothGATTService::RemoveValueChangeListener(
     LoggerE("bt_gatt_client_unset_characteristic_value_changed_cb() failed with: %d", ret);
     ReportError(util::GetBluetoothError(ret, "Failed to unregister listener"), &out);
   } else {
+    gatt_characteristic_.erase(std::remove(gatt_characteristic_.begin(), gatt_characteristic_.end(), handle), gatt_characteristic_.end());
     ReportSuccess(out);
   }
 }
