@@ -1847,7 +1847,7 @@ var _bleConnectChangeListener = _multipleListenerBuilder(
 );
 
 //class BluetoothGATTDescriptor ////////////////////////////////////////////////////
-var BluetoothGATTDescriptor = function(address) {
+var BluetoothGATTDescriptor = function(data, address) {
   var handle_ = data.handle;
   //address_ is needed to control if device is still connected
   var address_ = address;
