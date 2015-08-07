@@ -329,8 +329,11 @@ void BluetoothLEDevice::Disconnect(const picojson::value& data,
   const auto& args = util::GetArguments(data);
   const auto& address = common::FromJson<std::string>(args, "address");
 
+  int ret = BT_ERROR_NONE;
+
+/* TODO uncomment when bt_device_is_profile_connected will be fixed
   bool connected = false;
-  int ret = bt_device_is_profile_connected(address.c_str(), BT_PROFILE_GATT, &connected);
+  ret = bt_device_is_profile_connected(address.c_str(), BT_PROFILE_GATT, &connected);
   if (BT_ERROR_NONE != ret) {
     instance_.AsyncResponse(
         callback_handle,
@@ -343,6 +346,7 @@ void BluetoothLEDevice::Disconnect(const picojson::value& data,
                 &out);
     return;
   }
+*/
 
   ret = bt_gatt_disconnect(address.c_str());
   if (BT_ERROR_NONE != ret) {
