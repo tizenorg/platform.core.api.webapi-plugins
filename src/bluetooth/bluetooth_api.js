@@ -1500,7 +1500,7 @@ var BluetoothGATTService = function(data, address) {
     function servicesGetter() {
         var services = [];
         var result = native.callSync('BluetoothGATTService_getServices',
-                {handle: handle_, uuid: uuid_, address : address_});
+                {handle: handle_, address : address_});
         if (native.isSuccess(result)) {
             var resultObject = native.getResultObject(result);
             resultObject.forEach(function(s) {
