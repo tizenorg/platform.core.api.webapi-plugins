@@ -26,35 +26,36 @@ var ApplicationControlLaunchMode = {
   GROUP: 'GROUP'
 };
 
-var SystemEvent = {
-  BATTERY_CHARGER_STATUS: 'BATTERY_CHARGER_STATUS',
-  BATTERY_LEVEL_STATUS: 'BATTERY_LEVEL_STATUS',
-  USB_STATUS: 'USB_STATUS',
-  USBHOST_STATUS: 'USBHOST_STATUS',
-  EARJACK_STATUS: 'EARJACK_STATUS',
-  DISPLAY_STATE: 'DISPLAY_STATE',
-  BOOT_COMPLETED: 'BOOT_COMPLETED',
-  SYSTEM_SHUTDOWN: 'SYSTEM_SHUTDOWN',
-  LOW_MEMORY: 'LOW_MEMORY',
-  WIFI_STATE: 'WIFI_STATE',
-  BT_STATE: 'BT_STATE',
-  BT_TRANSFERING_STATE: 'BT_TRANSFERING_STATE',
-  MOBILE_DATA_STATE: 'MOBILE_DATA_STATE',
-  DATA_ROAMING_STATE: 'DATA_ROAMING_STATE',
-  LOCATION_ENABLE_STATE: 'LOCATION_ENABLE_STATE',
-  GPS_ENABLE_STATE: 'GPS_ENABLE_STATE',
-  NPS_ENABLE_STATE: 'NPS_ENABLE_STATE',
-  INCOMING_MSG: 'INCOMING_MSG',
-  TIME_CHANGED: 'TIME_CHANGED',
-  TIME_ZONE: 'TIME_ZONE',
-  HOUR_FORMAT: 'HOUR_FORMAT',
-  LANGUAGE_SET: 'LANGUAGE_SET',
-  REGION_FORMAT: 'REGION_FORMAT',
-  SILENT_MODE: 'SILENT_MODE',
-  VIBRATION_STATE: 'VIBRATION_STATE',
-  SCREEN_AUTOROTATE_STATE: 'SCREEN_AUTOROTATE_STATE',
-  FONT_SET: 'FONT_SET'
-};
+//  TODO: Please uncomment below lines when system events is ready
+//var SystemEvent = {
+//  BATTERY_CHARGER_STATUS: 'BATTERY_CHARGER_STATUS',
+//  BATTERY_LEVEL_STATUS: 'BATTERY_LEVEL_STATUS',
+//  USB_STATUS: 'USB_STATUS',
+//  USBHOST_STATUS: 'USBHOST_STATUS',
+//  EARJACK_STATUS: 'EARJACK_STATUS',
+//  DISPLAY_STATE: 'DISPLAY_STATE',
+//  BOOT_COMPLETED: 'BOOT_COMPLETED',
+//  SYSTEM_SHUTDOWN: 'SYSTEM_SHUTDOWN',
+//  LOW_MEMORY: 'LOW_MEMORY',
+//  WIFI_STATE: 'WIFI_STATE',
+//  BT_STATE: 'BT_STATE',
+//  BT_TRANSFERING_STATE: 'BT_TRANSFERING_STATE',
+//  MOBILE_DATA_STATE: 'MOBILE_DATA_STATE',
+//  DATA_ROAMING_STATE: 'DATA_ROAMING_STATE',
+//  LOCATION_ENABLE_STATE: 'LOCATION_ENABLE_STATE',
+//  GPS_ENABLE_STATE: 'GPS_ENABLE_STATE',
+//  NPS_ENABLE_STATE: 'NPS_ENABLE_STATE',
+//  INCOMING_MSG: 'INCOMING_MSG',
+//  TIME_CHANGED: 'TIME_CHANGED',
+//  TIME_ZONE: 'TIME_ZONE',
+//  HOUR_FORMAT: 'HOUR_FORMAT',
+//  LANGUAGE_SET: 'LANGUAGE_SET',
+//  REGION_FORMAT: 'REGION_FORMAT',
+//  SILENT_MODE: 'SILENT_MODE',
+//  VIBRATION_STATE: 'VIBRATION_STATE',
+//  SCREEN_AUTOROTATE_STATE: 'SCREEN_AUTOROTATE_STATE',
+//  FONT_SET: 'FONT_SET'
+//};
 
 // helper functions ////////////////////////////////////////////////////
 function _createApplicationControlData(object) {
@@ -665,14 +666,15 @@ Application.prototype.addEventListener = function(event, callback) {
 
   var data = {};
 
-  if (Object.keys(SystemEvent).indexOf(args.event.name) > -1) {
-    data.name = 'tizen.system.event.' + args.event.name.toLowerCase();
-  } else {
+//  TODO: Please uncomment below lines when system events is ready
+//  if (Object.keys(SystemEvent).indexOf(args.event.name) > -1) {
+//    data.name = 'tizen.system.event.' + args.event.name.toLowerCase();
+//  } else {
     _checkEventName(args.event.name);
     _checkAppId(args.event.appId);
 
     data.name = 'event.' + args.event.appId + '.' + args.event.name;
-  }
+//  }
 
   var watchId = nextWatchId();
   data.listenerId = data.name;
