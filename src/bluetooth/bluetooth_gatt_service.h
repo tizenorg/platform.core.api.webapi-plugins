@@ -69,6 +69,7 @@ class BluetoothGATTService {
                                            void* user_data);
 
   std::map<std::string, bt_gatt_client_h> gatt_clients_;
+  std::vector<bt_gatt_h> gatt_characteristic_;
 
   BluetoothInstance& instance_;
 };
