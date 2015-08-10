@@ -52,7 +52,7 @@ const std::string kWriteNoResponse = "isWriteNoResponse";
 const std::string kOnValueChanged = "BluetoothGATTCharacteristicValueChangeListener";
 
 bool IsProperty (int propertyBits, bt_gatt_property_e property) {
-  return (propertyBits & property) == 0;
+  return (propertyBits & property) != 0;
 }
 }
 
