@@ -260,6 +260,7 @@ var commonFS_ = (function() {
   }
 
   return {
+    clearCache: clearCache,
     toRealPath: toRealPath,
     toVirtualPath: toVirtualPath,
     getFileInfo: getFileInfo,
