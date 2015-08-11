@@ -168,7 +168,7 @@ void AlarmManager::Add(const picojson::value& args, picojson::object& out) {
         app_control, kAlarmAbsoluteRecurrenceTypeKey, kAlarmAbsoluteRecurrenceTypeNone);
 
     const auto it_period = alarm.find("period");
-    const auto it_daysOfWeek = alarm.find("daysOfWeek");
+    const auto it_daysOfTheWeek = alarm.find("daysOfTheWeek");
 
     long long int seconds = 0;
     if (args.contains("seconds")) {
@@ -199,10 +199,11 @@ void AlarmManager::Add(const picojson::value& args, picojson::object& out) {
     if (it_period->second.is<double>()) {
       int period = static_cast<int>(it_period->second.get<double>());
       ret = alarm_schedule_at_date(app_control, &start_date, period, &alarm_id);
-    } else if (it_daysOfWeek->second.is<picojson::array>()) {
-      picojson::array days_of_week = it_daysOfWeek->second.get<picojson::array>();
+    } else if (it_daysOfTheWeek->second.is<picojson::array>() &&
+        !(it_daysOfTheWeek->second.get<picojson::array>()).empty()) {
+      picojson::array days_of_the_week = it_daysOfTheWeek->second.get<picojson::array>();
       int repeat_value = 0;
-      for (auto iter = days_of_week.begin(); iter != days_of_week.end(); ++iter) {
+      for (auto iter = days_of_the_week.begin(); iter != days_of_the_week.end(); ++iter) {
         auto day = (*iter).get<std::string>();
         if (kSundayShort == day) {
           repeat_value |= ALARM_WEEK_FLAG_SUNDAY;
