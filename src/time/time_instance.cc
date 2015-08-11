@@ -423,14 +423,47 @@ void TimeInstance::TimeGetDateFormat(const JsonValue& args, JsonObject& out) {
   ReportSuccess(JsonValue(result), out);
 }
 
+Locale* TimeInstance::getDefaultLocale() {
+   char *tempstr = vconf_get_str(VCONFKEY_REGIONFORMAT);
+   if (NULL == tempstr){
+        return NULL;
+      }
+
+   Locale *defaultLocale = NULL;
+
+   char *str_region = NULL;
+   char* p = strchr(tempstr, '.');
+   int len = strlen(tempstr) - strlen(".UTF-8");
+   if (p && len > 0) {
+          str_region = strndup(tempstr, len); //.UTF8 => 5
+          defaultLocale = new Locale(str_region);
+   }
+
+   free(tempstr);
+   free(str_region);
+
+   if (defaultLocale) {
+       if (defaultLocale->isBogus()) {
+           delete defaultLocale;
+           defaultLocale = NULL;
+       }
+   }
+
+   return defaultLocale;
+}
+
 UnicodeString TimeInstance::getDateTimeFormat(DateTimeFormatType type,
                                               bool bLocale) {
   LoggerD("Entered");
+  LoggerD("bLocale %d", bLocale);
 
   UErrorCode ec = U_ZERO_ERROR;
+  Locale *defaultLocale = getDefaultLocale();
   std::unique_ptr<DateTimePatternGenerator> dateTimepattern(
       DateTimePatternGenerator::createInstance(
-          (bLocale ? Locale::getDefault() : Locale::getEnglish()), ec));
+          ((bLocale && defaultLocale) ? *defaultLocale : Locale::getEnglish()), ec));
+
+  delete defaultLocale;
 
   if (U_FAILURE(ec)) {
     LoggerE("Failed to create Calendar instance");

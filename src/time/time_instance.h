@@ -50,6 +50,7 @@ class TimeInstance : public common::ParsedInstance {
   void TimeUnsetTimezoneChangeListener(const JsonValue& args, JsonObject& out);
   void TimeGetMsUTC(const JsonValue& args, JsonObject& out);
 
+  Locale* getDefaultLocale();
   UnicodeString getDateTimeFormat(DateTimeFormatType type, bool bLocale);
   bool toStringByFormat(const JsonValue& args, JsonValue& out,
                         DateTimeFormatType format);
