@@ -93,13 +93,14 @@ class FilesystemManager {
   void FileRead(const std::string& path,
                 size_t offset,
                 size_t length,
-                const std::function<void(const std::string&)>& success_cb,
+                const std::function<void(const std::string&, uint8_t*, size_t)>& success_cb,
                 const std::function<void(FilesystemError)>& error_cb);
 
   void FileWrite(const std::string& path,
-                 const std::string& data,
+                 uint8_t* data_p,
+                 size_t data_size,
                  size_t offset,
-                 const std::function<void()>& success_cb,
+                 const std::function<void(size_t data_size)>& success_cb,
                  const std::function<void(FilesystemError)>& error_cb);
 
 void CopyTo(const std::string& originFilePath,

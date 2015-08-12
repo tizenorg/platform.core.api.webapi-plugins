@@ -16,6 +16,7 @@
 
 #include "filesystem/filesystem_instance.h"
 
+#include <glib.h>
 #include <functional>
 
 #include "common/picojson.h"
@@ -51,9 +52,7 @@ FilesystemInstance::FilesystemInstance() {
   REGISTER_SYNC("File_createSync", FileCreateSync);
   REGISTER_ASYNC("File_readDir", ReadDir);
   REGISTER_ASYNC("File_rename", FileRename);
-  REGISTER_ASYNC("File_read", FileRead);
   REGISTER_SYNC("File_readSync", FileReadSync);
-  REGISTER_ASYNC("File_write", FileWrite);
   REGISTER_SYNC("File_writeSync", FileWriteSync);
   REGISTER_SYNC("Filesystem_fetchVirtualRoots", FilesystemFetchVirtualRoots);
   REGISTER_SYNC("FileSystemManager_addStorageStateChangeListener",
@@ -139,50 +138,11 @@ void FilesystemInstance::FileRename(const picojson::value& args,
       &FilesystemManager::Rename, &fsm, oldPath, newPath, onSuccess, onError));
 }
 
-void FilesystemInstance::FileRead(const picojson::value& args,
-                                  picojson::object& out) {
+void FilesystemInstance::FileReadSync(const common::ParsedDataRequest& req,
+                                      common::ParsedDataResponse& res) {
   LoggerD("enter");
-  CHECK_EXIST(args, "callbackId", out)
-  CHECK_EXIST(args, "location", out)
-  CHECK_EXIST(args, "offset", out)
-  CHECK_EXIST(args, "length", out)
-
-  double callback_id = args.get("callbackId").get<double>();
-  const std::string& location = args.get("location").get<std::string>();
-  size_t offset = static_cast<size_t>(args.get("offset").get<double>());
-  size_t length = static_cast<size_t>(args.get("length").get<double>());
-
-  auto onSuccess = [this, callback_id](const std::string& data) {
-    LoggerD("enter");
-    picojson::value response = picojson::value(picojson::object());
-    picojson::object& obj = response.get<picojson::object>();
-    obj["callbackId"] = picojson::value(callback_id);
-    ReportSuccess(picojson::value(data), obj);
-    Instance::PostMessage(this, response.serialize().c_str());
-  };
-
-  auto onError = [this, callback_id](FilesystemError e) {
-    LoggerD("enter");
-    picojson::value response = picojson::value(picojson::object());
-    picojson::object& obj = response.get<picojson::object>();
-    obj["callbackId"] = picojson::value(callback_id);
-    PrepareError(e, obj);
-    Instance::PostMessage(this, response.serialize().c_str());
-  };
-
-  FilesystemManager& fsm = FilesystemManager::GetInstance();
-  common::TaskQueue::GetInstance().Async(std::bind(&FilesystemManager::FileRead,
-                                                   &fsm,
-                                                   location,
-                                                   offset,
-                                                   length,
-                                                   onSuccess,
-                                                   onError));
-}
-
-void FilesystemInstance::FileReadSync(const picojson::value& args,
-                                      picojson::object& out) {
-  LoggerD("enter");
+  const picojson::value& args = req.args();
+  picojson::object& out = res.object();
   CHECK_EXIST(args, "location", out)
   CHECK_EXIST(args, "offset", out)
   CHECK_EXIST(args, "length", out)
@@ -190,10 +150,22 @@ void FilesystemInstance::FileReadSync(const picojson::value& args,
   const std::string& location = args.get("location").get<std::string>();
   size_t offset = static_cast<size_t>(args.get("offset").get<double>());
   size_t length = static_cast<size_t>(args.get("length").get<double>());
+  const bool is_base64 = args.get("is_base64").get<bool>();
 
-  auto onSuccess = [this, &out](const std::string& data) {
+  auto onSuccess = [this, &out, &length, &res, is_base64](const std::string& data, uint8_t* data_p, size_t readed) {
     LoggerD("enter");
-    ReportSuccess(picojson::value(data), out);
+    if (data_p) {
+      if (is_base64) {
+        gchar* encoded = g_base64_encode(data_p, length);
+        free(data_p);
+        // encoded will be freeed by runtime.
+        res.SetBuffer(reinterpret_cast<uint8_t*>(encoded), strlen(encoded) + 1);
+      } else {
+        res.SetBuffer(data_p, length);
+      }
+      out["data_size"] = picojson::value(static_cast<double>(readed));
+      ReportSuccess(out);
+    }
   };
 
   auto onError = [this, &out](FilesystemError e) {
@@ -205,61 +177,20 @@ void FilesystemInstance::FileReadSync(const picojson::value& args,
       location, offset, length, onSuccess, onError);
 }
 
-void FilesystemInstance::FileWrite(const picojson::value& args,
-                                   picojson::object& out) {
+void FilesystemInstance::FileWriteSync(const common::ParsedDataRequest& req, common::ParsedDataResponse& res) {
   LoggerD("enter");
-  CHECK_EXIST(args, "callbackId", out)
+  const picojson::value& args = req.args();
+  picojson::object& out = res.object();
   CHECK_EXIST(args, "location", out)
-  CHECK_EXIST(args, "data", out)
-  CHECK_EXIST(args, "offset", out)
-
-  double callback_id = args.get("callbackId").get<double>();
-  const std::string& location = args.get("location").get<std::string>();
-  const std::string& data = args.get("data").get<std::string>();
-  size_t offset = static_cast<size_t>(args.get("location").get<double>());
-
-  auto onSuccess = [this, callback_id]() {
-    LoggerD("enter");
-    picojson::value response = picojson::value(picojson::object());
-    picojson::object& obj = response.get<picojson::object>();
-    obj["callbackId"] = picojson::value(callback_id);
-    ReportSuccess(obj);
-    Instance::PostMessage(this, response.serialize().c_str());
-  };
-
-  auto onError = [this, callback_id](FilesystemError e) {
-    LoggerD("enter");
-    picojson::value response = picojson::value(picojson::object());
-    picojson::object& obj = response.get<picojson::object>();
-    obj["callbackId"] = picojson::value(callback_id);
-    PrepareError(e, obj);
-    Instance::PostMessage(this, response.serialize().c_str());
-  };
-
-  FilesystemManager& fsm = FilesystemManager::GetInstance();
-  common::TaskQueue::GetInstance().Async(
-      std::bind(&FilesystemManager::FileWrite,
-                &fsm,
-                location,
-                data,
-                offset,
-                onSuccess,
-                onError));
-}
-
-void FilesystemInstance::FileWriteSync(const picojson::value& args,
-                                       picojson::object& out) {
-  LoggerD("enter");
-  CHECK_EXIST(args, "location", out)
-  CHECK_EXIST(args, "data", out)
   CHECK_EXIST(args, "offset", out)
 
   const std::string& location = args.get("location").get<std::string>();
-  const std::string& data = args.get("data").get<std::string>();
+  const bool is_base64 = args.get("is_base64").get<bool>();
   size_t offset = static_cast<size_t>(args.get("offset").get<double>());
 
-  auto onSuccess = [this, &out]() {
+  auto onSuccess = [this, &out](size_t written) {
     LoggerD("enter");
+    out["data_size"] = picojson::value(static_cast<double>(written));
     ReportSuccess(out);
   };
 
@@ -267,9 +198,21 @@ void FilesystemInstance::FileWriteSync(const picojson::value& args,
     LoggerD("enter");
     PrepareError(e, out);
   };
-
-  FilesystemManager::GetInstance().FileWrite(
-      location, data, offset, onSuccess, onError);
+  uint8_t* data_p = NULL;
+  size_t data_size = 0;
+  if (is_base64) {
+    data_p = g_base64_decode(reinterpret_cast<char*>(req.buffer()),
+                             &data_size);
+  } else {
+    data_p = req.buffer();
+    data_size = req.buffer_length();
+  }
+  if (data_size > 0)
+    FilesystemManager::GetInstance().FileWrite(
+        location, data_p, data_size, offset, onSuccess, onError);
+  if (is_base64 && data_p) {
+    free(data_p);
+  }
 }
 
 void FilesystemInstance::FileStat(const picojson::value& args,

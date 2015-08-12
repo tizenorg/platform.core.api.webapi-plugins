@@ -937,7 +937,6 @@ var NativeManager = function(extension) {
       !_type.isFunction(extension.postMessage) ||
       !_type.isFunction(extension.internal.sendSyncMessage) ||
       !_type.isFunction(extension.sendSyncData) ||
-      !_type.isFunction(extension.setDataListener) ||
       !_type.isFunction(extension.sendRuntimeMessage) ||
       !_type.isFunction(extension.sendRuntimeAsyncMessage) ||
       !_type.isFunction(extension.sendRuntimeSyncMessage) ||
@@ -1013,44 +1012,6 @@ var NativeManager = function(extension) {
     console.error('Missing callback or listener identifier. Ignoring message.');
 
   }.bind(this));
-
-  extension_.setDataListener(function(msg, chunk_id) {
-    var msg = JSON.parse(msg);
-    msg.chunk_id = chunk_id;
-    var id;
-
-    if (msg.hasOwnProperty(this.CALLBACK_ID_KEY)) {
-      id = msg[this.CALLBACK_ID_KEY];
-      delete msg[this.CALLBACK_ID_KEY];
-
-      if (!_type.isFunction(this.callbacks_[id])) {
-        console.error('Wrong callback identifier. Ignoring message.');
-        return;
-      }
-
-      this.callbacks_[id](msg);
-      delete this.callbacks_[id];
-
-      return;
-    }
-
-    if (msg.hasOwnProperty(this.LISTENER_ID_KEY)) {
-      id = msg[this.LISTENER_ID_KEY];
-      delete msg[this.LISTENER_ID_KEY];
-
-      if (!_type.isFunction(this.listeners_[id])) {
-        console.error('Wrong listener identifier. Ignoring message.');
-        return;
-      }
-
-      this.listeners_[id](msg);
-
-      return;
-    }
-
-    console.error('Missing callback or listener identifier. Ignoring message.');
-
-  }.bind(this));
 };
 
 NativeManager.prototype.call = function(cmd, args, callback) {
@@ -1082,13 +1043,15 @@ NativeManager.prototype.callSync = function(cmd, args) {
   return JSON.parse(this.extension.internal.sendSyncMessage(request));
 };
 
-NativeManager.prototype.callSyncData = function(cmd, args, chunk) {
+NativeManager.prototype.callSyncData = function(cmd, args, type, chunk) {
+  if (!type) type = "string";
   var request = JSON.stringify({
     cmd: cmd,
     args: args || {}
   });
   var response = this.extension.sendSyncData(request, chunk);
   response.reply = JSON.parse(response.reply);
+  response.output = this.extension.receiveChunkData(response.chunk_id, "string");
   return response;
 };
 

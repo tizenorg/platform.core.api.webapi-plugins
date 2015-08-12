@@ -19,12 +19,14 @@
 
 #include "common/extension.h"
 #include "filesystem_utils.h"
+#include <thread>
+#include <mutex>
 #include "filesystem_manager.h"
 
 namespace extension {
 namespace filesystem {
 
-class FilesystemInstance : public common::ParsedInstance,
+class FilesystemInstance : public common::ParsedDataInstance,
                            FilesystemStateChangeListener {
  public:
   FilesystemInstance();
@@ -36,9 +38,9 @@ class FilesystemInstance : public common::ParsedInstance,
   void FileStat(const picojson::value& args, picojson::object& out);
   void FileStatSync(const picojson::value& args, picojson::object& out);
   void FileRead(const picojson::value& args, picojson::object& out);
-  void FileReadSync(const picojson::value& args, picojson::object& out);
+  void FileReadSync(const common::ParsedDataRequest& req, common::ParsedDataResponse& res);
   void FileWrite(const picojson::value& args, picojson::object& out);
-  void FileWriteSync(const picojson::value& args, picojson::object& out);
+  void FileWriteSync(const common::ParsedDataRequest& req, common::ParsedDataResponse& res);
   void FilesystemFetchVirtualRoots(const picojson::value& args,
                                    picojson::object& out);
   void FileSystemManagerFetchStorages(const picojson::value& args,

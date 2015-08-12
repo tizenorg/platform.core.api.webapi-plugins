@@ -115,17 +115,17 @@ FileStream.prototype.read = function() {
   var data = {
     location: commonFS_.toRealPath(this._file.fullPath),
     offset: this.position || 0,
-    length: args.charCount > _count ? _count : args.charCount
+    length: args.charCount > _count ? _count : args.charCount,
+    is_base64: false,
   };
 
-  var result = native_.callSync('File_readSync', data);
-  if (native_.isFailure(result)) {
+  var result = native_.callSyncData('File_readSync', data);
+  if (native_.isFailure(result.reply)) {
     throw new WebAPIException(WebAPIException.IO_ERR, 'Could not read');
   }
-  var encoded = native_.getResultObject(result);
-  var decoded = Base64.decode(encoded);
+  this.position = this.position + result.reply.data_size;
 
-  return decoded;
+  return result.output;
 };
 
 FileStream.prototype.readBytes = function() {
@@ -151,20 +151,19 @@ FileStream.prototype.readBytes = function() {
   var data = {
     location: commonFS_.toRealPath(this._file.fullPath),
     offset: this.position || 0,
-    length: args.byteCount > _count ? _count : args.byteCount
+    length: args.byteCount > _count ? _count : args.byteCount,
+    is_base64: false,
   };
 
-  var result = native_.callSync('File_readSync', data);
-  if (native_.isFailure(result)) {
+  var result = native_.callSyncData('File_readSync', data, "octet");
+  if (native_.isFailure(result.reply)) {
     throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR, 'Could not read');
   }
-  var encoded = native_.getResultObject(result);
-  var decoded = Base64.decode(encoded);
   var bytes = [];
-
-  for (var i = 0; i < decoded.length; ++i) {
-    bytes.push(decoded.charCodeAt(i));
+  for (var i = 0; i < result.output.length; ++i) {
+    bytes.push(result.output.charCodeAt(i));
   }
+  this.position = this.position + result.reply.data_size;
 
   return bytes;
 };
@@ -204,16 +203,17 @@ FileStream.prototype.readBase64 = function() {
   var data = {
     location: commonFS_.toRealPath(this._file.fullPath),
     offset: this.position || 0,
-    length: args.byteCount > _count ? _count : args.byteCount
+    length: args.byteCount > _count ? _count : args.byteCount,
+    is_base64: true
   };
 
-  var result = native_.callSync('File_readSync', data);
-  if (native_.isFailure(result)) {
+  var result = native_.callSyncData('File_readSync', data);
+  if (native_.isFailure(result.reply)) {
     throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR, 'Could not read');
   }
-  var encoded = native_.getResultObject(result);
+  this.position = this.position + result.reply.data_size;
 
-  return encoded;
+  return result.output;
 };
 
 FileStream.prototype.write = function() {
@@ -228,7 +228,6 @@ FileStream.prototype.write = function() {
 
   _checkClosed(this);
   _checkWriteAccess(this._mode);
-
   if (!arguments.length) {
     throw new WebAPIException(WebAPIException.NOT_FOUND_ERR,
         'Argument "stringData" missing');
@@ -237,15 +236,14 @@ FileStream.prototype.write = function() {
   var data = {
     location: commonFS_.toRealPath(this._file.fullPath),
     offset: this.position,
-    data: Base64.encode(args.stringData)
+    length: args.stringData.length,
+    is_base64: false,
   };
-
-  var result = native_.callSync('File_writeSync', data);
-
-  if (native_.isFailure(result)) {
+  var result = native_.callSyncData('File_writeSync', data, "string", args.stringData);
+  if (native_.isFailure(result.reply)) {
     throw new WebAPIException(WebAPIException.IO_ERR, 'Could not write');
   }
-  this.position = args.stringData.length;
+  this.position = this.position + result.reply.data_size;
 };
 
 FileStream.prototype.writeBytes = function() {
@@ -254,14 +252,11 @@ FileStream.prototype.writeBytes = function() {
   var args = validator_.validateArgs(arguments, [
     {
       name: 'byteData',
-      type: types_.ARRAY,
-      values: types_.OCTET
+      type: types_.ARRAY
     }
   ]);
-
   _checkClosed(this);
   _checkWriteAccess(this._mode);
-
   if (!arguments.length) {
     throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR,
         'Argument "byteData" missing');
@@ -270,14 +265,17 @@ FileStream.prototype.writeBytes = function() {
   var data = {
     location: commonFS_.toRealPath(this._file.fullPath),
     offset: this.position,
-    data: Base64.encode(String.fromCharCode.apply(String, args.byteData))
+    length: args.byteData.length,
+    is_base64: false,
   };
 
-  var result = native_.callSync('File_writeSync', data);
+  var result = native_.callSyncData('File_writeSync', data, "octet", args.byteData);
 
-  if (native_.isFailure(result)) {
+  if (native_.isFailure(result.reply)) {
     throw new WebAPIException(WebAPIException.IO_ERR, 'Could not write');
   }
+  this.position = this.position + result.reply.data_size;
+
 };
 
 function _isBase64(str) {
@@ -310,12 +308,13 @@ FileStream.prototype.writeBase64 = function() {
   var data = {
     location: commonFS_.toRealPath(this._file.fullPath),
     offset: this.position,
-    data: args.base64Data
+    is_base64: true
   };
 
-  var result = native_.callSync('File_writeSync', data);
+  var result = native_.callSyncData('File_writeSync', data, "string", args.base64Data);
 
   if (native_.isFailure(result)) {
     throw new WebAPIException(WebAPIException.IO_ERR, 'Could not write');
   }
+  this.position = this.position + result.reply.data_size;
 };

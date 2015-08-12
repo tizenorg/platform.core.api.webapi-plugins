@@ -9,7 +9,6 @@
 #include <vector>
 #include <string>
 #include <map>
-
 #include "common/logger.h"
 #include "common/assert.h"
 

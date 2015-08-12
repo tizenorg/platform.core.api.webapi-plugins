@@ -138,7 +138,6 @@ class ParsedInstance : public Instance {
  public:
   ParsedInstance();
   virtual ~ParsedInstance();
-
  protected:
   void RegisterHandler(const std::string& name, const NativeHandler& func);
   void RegisterSyncHandler(const std::string& name, const NativeHandler& func);
@@ -201,6 +200,7 @@ typedef std::function<void(const ParsedDataRequest&, ParsedDataResponse&)>
 
 class ParsedDataInstance : public ParsedInstance {
  public:
+  using ParsedInstance::RegisterSyncHandler;
   void RegisterHandler(const std::string& name, const NativeDataHandler& func);
   void RegisterSyncHandler(const std::string& name, const NativeDataHandler& func);
  private:

@@ -163,16 +163,15 @@ std::string FilesystemBuffer::EncodeData() const {
 FilesystemFile::FilesystemFile(const std::string& path_)
     : path(path_) {}
 
-bool FilesystemFile::Read(FilesystemBuffer* data,
+bool FilesystemFile::Read(uint8_t* data_p,
                                size_t offset,
-                               size_t length) {
-  LoggerD("Enter");
-  if (!data) {
-    LoggerE("Missing output buffer");
-    return false;
+                               size_t length,
+                               size_t* readed) {
+  LoggerE("entered");
+  size_t temp_read = 0;
+  if (!readed) {
+    readed = &temp_read;
   }
-
-  data->resize(length);
   FILE* file = fopen(path.c_str(), "r");
   if (!file) {
     LoggerE("Cannot open file %s to read!", path.c_str());
@@ -191,17 +190,15 @@ bool FilesystemFile::Read(FilesystemBuffer* data,
     return false;
   }
 
-  size_t readed = 0;
-  uint8_t* data_p = data->data();
   size_t data_size = length;
-  while (readed < data->size()) {
-    size_t part = fread(data_p, 1, data_size, file);
+  while (*readed < data_size) {
+    size_t part = fread(data_p, 1, length, file);
 
-    readed += part;
+    *readed += part;
     data_p += part;
     data_size -= part;
 
-    LoggerD("Readed part %li bytes", readed);
+    LoggerD("Readed part %li bytes", *readed);
 
     if (ferror(file)) {
       LoggerE("Error during file write!");
@@ -213,13 +210,13 @@ bool FilesystemFile::Read(FilesystemBuffer* data,
       break;
     }
   }
-  LoggerD("Readed %li bytes", readed);
-  data->resize(readed);
+  LoggerD("Readed %li bytes", *readed);
   return true;
 }
 
-bool FilesystemFile::Write(const FilesystemBuffer& data, size_t offset) {
-  LoggerD("Enter");
+bool FilesystemFile::Write(uint8_t* data_p, size_t data_size, size_t offset,
+                           size_t* written) {
+  LoggerD("Enter %s", path.c_str());
   FILE* file = fopen(path.c_str(), "r+");
   if (!file) {
     LoggerE("Cannot open file %s to write!", path.c_str());
@@ -235,16 +232,13 @@ bool FilesystemFile::Write(const FilesystemBuffer& data, size_t offset) {
 
   int status;
   status = fseek(file, offset, SEEK_SET);
-  LoggerD("Offset is %li, writing %i bytes", offset, data.size());
+  LoggerD("Offset is %li, writing %i bytes", offset, data_size);
   if (status) {
     LoggerE("Cannot perform seek!");
     return false;
   }
 
-  size_t written = 0;
-  uint8_t* data_p = const_cast<uint8_t*>(data.data());
-  size_t data_size = data.size();
-  while (written < data.size()) {
+  while (*written < data_size) {
     size_t part = fwrite(data_p, 1, data_size, file);
 
     if (ferror(file)) {
@@ -252,7 +246,7 @@ bool FilesystemFile::Write(const FilesystemBuffer& data, size_t offset) {
       return false;
     }
 
-    written += part;
+    *written += part;
     data_p += part;
     data_size -= part;
   }
@@ -268,9 +262,11 @@ bool FilesystemFile::Write(const FilesystemBuffer& data, size_t offset) {
     LoggerE("Cannot sync file!");
     return false;
   }
-  LoggerD("Written %li bytes", written);
+  LoggerD("Written %li bytes", *written);
 
   return true;
 }
+
+
 }  // namespace filesystem
 }  // namespace extension

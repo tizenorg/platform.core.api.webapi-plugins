@@ -421,41 +421,34 @@ void FilesystemManager::FileRead(
     const std::string& path,
     size_t offset,
     size_t length,
-    const std::function<void(const std::string&)>& success_cb,
+    const std::function<void(const std::string&, uint8_t*, size_t)>& success_cb,
     const std::function<void(FilesystemError)>& error_cb) {
 
   LoggerD("enter");
+  uint8_t* data_p = nullptr;
   FilesystemFile file(path);
-  FilesystemBuffer buffer;
-  if (!file.Read(&buffer, offset, length)) {
+  std::string out_data;
+  size_t readed = 0;
+  data_p = (uint8_t*)calloc(1, sizeof(uint8_t) * length + 1);
+  if (!data_p || !file.Read(data_p, offset, length, &readed)) {
     LoggerE("Cannot read file %s", path.c_str());
     error_cb(FilesystemError::Other);
     return;
   }
-
-  std::string out_data = buffer.EncodeData();
-  success_cb(out_data);
+  success_cb(out_data, data_p, readed);
 }
 
-void FilesystemManager::FileWrite(
-    const std::string& path,
-    const std::string& data,
-    size_t offset,
-    const std::function<void()>& success_cb,
-    const std::function<void(FilesystemError)>& error_cb) {
-
+void FilesystemManager::FileWrite(const std::string& path,
+               uint8_t* data_p,
+               size_t data_size,
+               size_t offset,
+               const std::function<void(size_t written)>& success_cb,
+               const std::function<void(FilesystemError)>& error_cb) {
   LoggerD("enter");
   FilesystemFile file(path);
-  FilesystemBuffer buffer;
-  // Decode buffer data
-  if (!buffer.DecodeData(data)) {
-    LoggerE("Cannot decode file data!");
-    error_cb(FilesystemError::Other);
-    return;
-  }
-
-  if (file.Write(buffer, offset)) {
-    success_cb();
+  size_t written = 0;
+  if (file.Write(data_p, data_size, offset, &written)) {
+    success_cb(written);
   } else {
     LoggerE("Cannot write to file %s!", path.c_str());
     error_cb(FilesystemError::Other);

@@ -44,8 +44,9 @@ class FilesystemFile {
  public:
   FilesystemFile(const std::string& path_);
 
-  bool Read(FilesystemBuffer* data, size_t offset, size_t length);
-  bool Write(const FilesystemBuffer& data, size_t offset);
+  bool Read(u_int8_t* data_p, size_t offset, size_t length,
+            size_t* readed);
+  bool Write(uint8_t* data_p, size_t data_size, size_t offset, size_t* written);
 };
 
 }  // namespace filesystem

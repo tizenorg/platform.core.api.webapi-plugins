@@ -311,26 +311,24 @@ File.prototype.readAsText = function(onsuccess, onerror, encoding) {
     location: commonFS_.toRealPath(this.fullPath),
     offset: 0,
     length: 1024,
-    encoding: args.encoding
+    encoding: args.encoding,
+    is_base64: false
   };
 
   function readFile() {
     var result, encoded, str = '';
 
     do {
-      result = native_.callSync('File_readSync', data);
+      result = native_.callSyncData('File_readSync', data);
       if (native_.isFailure(result)) {
         setTimeout(function() {
           native_.callIfPossible(args.onerror, native_.getErrorObject(result));
         }, 0);
         return;
       }
-      encoded = native_.getResultObject(result);
-      if (encoded.length) {
-        str += Base64.decode(encoded);
-        data.offset += data.length;
-      }
-    } while (encoded.length);
+      str += result.output;
+      data.offset += result.data_size;
+    } while (result.data_size);
 
     setTimeout(function() {
       native_.callIfPossible(args.onsuccess, str);
