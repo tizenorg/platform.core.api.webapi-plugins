@@ -10,14 +10,14 @@
 %define crosswalk_extensions_path %{_libdir}/%{crosswalk_extensions}
 
 Name:       webapi-plugins
-Version:    0.21
+Version:    0.22
 Release:    0
 License:    Apache-2.0 and BSD-2.0 and MIT
 Group:      Development/Libraries
 Summary:    Tizen Web APIs implemented
 Source0:    %{name}-%{version}.tar.gz
 
-%ifarch %{arm}
+%ifarch %{arm} aarch64
 # ARM
 %define tizen_is_emulator           0
 %else
@@ -38,12 +38,10 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_application_support             1
 %define tizen_feature_archive_support                 1
 %define tizen_feature_badge_support                   1
-%ifarch %{arm}
-# ARM
-%define tizen_feature_bluetooth_support               1
-%else
-# I586
+%if 0%{?tizen_is_emulator}
 %define tizen_feature_bluetooth_support               0
+%else
+%define tizen_feature_bluetooth_support               1
 %endif
 %define tizen_feature_bookmark_support                1
 %define tizen_feature_calendar_support                1
@@ -55,22 +53,18 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_exif_support                    1
 %define tizen_feature_filesystem_support              1
 %define tizen_feature_fm_radio_support                1
-%ifarch %{arm}
-# ARM
-%define tizen_feature_ham_support                     0
-%else
-# I586
+%if 0%{?tizen_is_emulator}
 %define tizen_feature_ham_support                     1
+%else
+%define tizen_feature_ham_support                     0
 %endif
 %define tizen_feature_location_batch                  0
 %define tizen_feature_key_manager_support             0
 %define tizen_feature_media_controller_support        1
-%ifarch %{arm}
-# ARM
-%define tizen_feature_media_key_support               1
-%else
-# I586
+%if 0%{?tizen_is_emulator}
 %define tizen_feature_media_key_support               0
+%else
+%define tizen_feature_media_key_support               1
 %endif
 %define tizen_feature_message_port_support            1
 %define tizen_feature_messaging_support               1
@@ -86,32 +80,26 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_package_support                 1
 %define tizen_feature_power_support                   1
 %define tizen_feature_push_support                    0
-%ifarch %{arm}
-# ARM
-%define tizen_feature_se_support                      1
-%else
-# I586
+%if 0%{?tizen_is_emulator}
 %define tizen_feature_se_support                      0
+%else
+%define tizen_feature_se_support                      1
 %endif
 %define tizen_feature_sensor_support                  1
 %define tizen_feature_sound_support                   1
 %define tizen_feature_system_info_support             1
 %define tizen_feature_system_setting_support          1
-%ifarch %{arm}
-# ARM
-%define tizen_feature_telephony_support               1
-%else
-# I586
+%if 0%{?tizen_is_emulator}
 %define tizen_feature_telephony_support               0
+%else
+%define tizen_feature_telephony_support               1
 %endif
 %define tizen_feature_time_support                    1
 %define tizen_feature_web_setting_support             1
-%ifarch %{arm}
-# ARM
-%define tizen_feature_wi_fi_support                   1
-%else
-# I586
+%if 0%{?tizen_is_emulator}
 %define tizen_feature_wi_fi_support                   0
+%else
+%define tizen_feature_wi_fi_support                   1
 %endif
 %define tizen_feature_inputdevice_support             1
 
@@ -156,10 +144,10 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_content_support                 1
 %define tizen_feature_datacontrol_support             0
 %define tizen_feature_datasync_support                0
-%ifarch %{arm}
-%define tizen_feature_download_support                0
-%else
+%if 0%{?tizen_is_emulator}
 %define tizen_feature_download_support                1
+%else
+%define tizen_feature_download_support                0
 %endif
 %define tizen_feature_exif_support                    1
 %define tizen_feature_filesystem_support              1
@@ -170,12 +158,10 @@ Source0:    %{name}-%{version}.tar.gz
 
 # MediayKey API is optional in Tizen Wearable Profile.
 # tizen.org/feature/network.bluetooth.audio.media is required for MediayKey API
-%ifarch %{arm}
-# ARM
-%define tizen_feature_media_key_support               1
-%else
-# I586
+%if 0%{?tizen_is_emulator}
 %define tizen_feature_media_key_support               0
+%else
+%define tizen_feature_media_key_support               1
 %endif
 %define tizen_feature_key_manager_support             0
 %define tizen_feature_message_port_support            1
@@ -191,7 +177,7 @@ Source0:    %{name}-%{version}.tar.gz
 %define tizen_feature_notification_support            1
 %define tizen_feature_package_support                 1
 %define tizen_feature_power_support                   1
-%define tizen_feature_push_support                    0
+%define tizen_feature_push_support                    1
 %if 0%{?model_build_feature_smartcard }
 %define tizen_feature_se_support                      1
 %else
