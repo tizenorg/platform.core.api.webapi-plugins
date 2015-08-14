@@ -239,7 +239,14 @@ bool BadgeManager::IsAppInstalled(const std::string &app_id) {
   }
 
   pkgmgrinfo_appinfo_h pkgmgrinfo_appinfo = nullptr;
-  int ret = pkgmgrinfo_appinfo_get_appinfo(app_id.c_str(), &pkgmgrinfo_appinfo);
+
+  //  if app information is hold in global database:
+  //  /usr/dbspace/.pkgmgr_parser.db below line should be used
+  //int ret = pkgmgrinfo_appinfo_get_appinfo(app_id.c_str(), &pkgmgrinfo_appinfo);
+
+  //  if app information is hold in users database like:
+  //  /home/app/.applications/dbspace/.pkgmgr_parser.db below line should be used
+  int ret = pkgmgrinfo_appinfo_get_usr_appinfo(app_id.c_str(), getuid(), &pkgmgrinfo_appinfo);
 
   return (ret == PMINFO_R_OK);
 }
