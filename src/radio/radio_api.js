@@ -73,16 +73,16 @@ FMRadioScanCallbackManager.prototype.FMRadioScanUnset = function() {
 
 function FMRadioAntennaChangeCallbackManager() {
 
-    this.onchange;
+    this.onchanged;
 
 };
 
 FMRadioAntennaChangeCallbackManager.prototype.FMRadioAntennaCBSwitch = function(args) {
-    this.onchange(args.connected);
+    this.onchanged(args.connected);
 };
 
 FMRadioAntennaChangeCallbackManager.prototype.FMRadioAntennaChangeSet = function(cb) {
-    this.onchange = cb;
+    this.onchanged = cb;
     native_.addListener('FMRadio_Antenna', this.FMRadioAntennaCBSwitch
             .bind(this));
 };
