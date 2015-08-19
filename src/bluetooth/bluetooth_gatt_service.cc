@@ -131,10 +131,15 @@ PlatformResult BluetoothGATTService::GetSpecifiedGATTService(const std::string &
   int ret = bt_gatt_client_get_service(client, uuid.c_str(), &service);
   if (BT_ERROR_NONE != ret) {
     LoggerE("bt_gatt_client_get_service() error: %d", ret);
-    if (BT_ERROR_NO_DATA == ret) {
-      return PlatformResult(ErrorCode::NOT_FOUND_ERR, "Service not found");
-    } else {
-      return util::GetBluetoothError(ret, "Failed to get a service's GATT handle");
+    switch (ret) {
+      case BT_ERROR_NO_DATA:
+        return PlatformResult(ErrorCode::NOT_FOUND_ERR, "Service not found");
+
+      case BT_ERROR_INVALID_PARAMETER:
+        return PlatformResult(ErrorCode::NOT_FOUND_ERR, "Service UUID is invalid");
+
+      default:
+        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to get a service's GATT handle");
     }
   }
 
