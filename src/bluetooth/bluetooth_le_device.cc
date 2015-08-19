@@ -308,7 +308,6 @@ void BluetoothLEDevice::Connect(const picojson::value& data,
 
   const auto& address = common::FromJson<std::string>(args, "address");
 
-/* TODO uncomment when bt_device_is_profile_connected function will be fixed
   bool connected = false;
   int ret = bt_device_is_profile_connected(address.c_str(), BT_PROFILE_GATT, &connected);
   if (BT_ERROR_NONE != ret) {
@@ -330,18 +329,6 @@ void BluetoothLEDevice::Connect(const picojson::value& data,
     }
     connecting_[address] = callback_handle;
   }
-*/
-
-  // TODO remove when the code above will be uncommented
-  int ret = bt_gatt_connect(address.c_str(), true);
-  if (BT_ERROR_NONE != ret) {
-    instance_.AsyncResponse(
-        callback_handle,
-        PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to connect."));
-    return;
-  }
-  connecting_[address] = callback_handle;
-  // ---
 
   ReportSuccess(out);
 }
@@ -356,7 +343,6 @@ void BluetoothLEDevice::Disconnect(const picojson::value& data,
 
   int ret = BT_ERROR_NONE;
 
-/* TODO uncomment when bt_device_is_profile_connected will be fixed
   bool connected = false;
   ret = bt_device_is_profile_connected(address.c_str(), BT_PROFILE_GATT, &connected);
   if (BT_ERROR_NONE != ret) {
@@ -371,7 +357,6 @@ void BluetoothLEDevice::Disconnect(const picojson::value& data,
                 &out);
     return;
   }
-*/
 
   ret = bt_gatt_disconnect(address.c_str());
   if (BT_ERROR_NONE != ret) {
