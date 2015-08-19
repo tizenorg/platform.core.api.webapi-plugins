@@ -32,6 +32,7 @@
             'capi-network-connection',
             'capi-system-device',
             'capi-system-system-settings',
+            'capi-network-wifi',
             'tapi',
             'sensor',
             ]
