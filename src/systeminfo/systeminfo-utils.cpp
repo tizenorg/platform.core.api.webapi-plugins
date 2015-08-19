@@ -36,10 +36,12 @@
 #include <device/callback.h>
 #include <device/device-error.h>
 #include <sensor_internal.h>
+#include <wifi.h>
 
 #include "common/logger.h"
 #include "common/platform_exception.h"
 #include "common/dbus_operation.h"
+#include "common/scope_exit.h"
 
 // TODO:: hardcoded value, only for IsBluetoothAlwaysOn
 #define PROFILE_MOBILE 1
@@ -79,6 +81,7 @@ static void OnCellularNetworkValueChangedCb(keynode_t *node, void *event_ptr);
 static void OnPeripheralChangedCb(keynode_t* node, void* event_ptr);
 static void OnMemoryChangedCb(keynode_t* node, void* event_ptr);
 static void OnBrightnessChangedCb(device_callback_e type, void *value, void *user_data);
+static void OnWifiLevelChangedCb (wifi_rssi_level_e rssi_level, void *user_data);
 
 static void SimCphsValueCallback(TapiHandle *handle, int result, void *data, void *user_data);
 static void SimMsisdnValueCallback(TapiHandle *handle, int result, void *data, void *user_data);
@@ -190,6 +193,28 @@ const char* kTizenFeatureCpuFrequency = "http://tizen.org/feature/platform.core.
 const char* kTizenFeaturePlatformNativeApiVersion = "tizen.org/feature/platform.native.api.version";
 const char* kTizenFeaturePlatformNativeOspCompatible = "tizen.org/feature/platform.native.osp_compatible";
 const char* kTizenFeaturePlatformVersionName = "http://tizen.org/feature/platform.version.name";
+
+static std::string parseWifiNetworkError(int error) {
+  switch (error) {
+    case WIFI_ERROR_NONE : return "WIFI_ERROR_NONE";
+    case WIFI_ERROR_INVALID_PARAMETER : return "WIFI_ERROR_INVALID_PARAMETER";
+    case WIFI_ERROR_OUT_OF_MEMORY : return "WIFI_ERROR_OUT_OF_MEMORY";
+    case WIFI_ERROR_INVALID_OPERATION : return "WIFI_ERROR_INVALID_OPERATION";
+    case WIFI_ERROR_ADDRESS_FAMILY_NOT_SUPPORTED : return "WIFI_ERROR_ADDRESS_FAMILY_NOT_SUPPORTED";
+    case WIFI_ERROR_OPERATION_FAILED : return "WIFI_ERROR_OPERATION_FAILED";
+    case WIFI_ERROR_NO_CONNECTION : return "WIFI_ERROR_NO_CONNECTION";
+    case WIFI_ERROR_NOW_IN_PROGRESS : return "WIFI_ERROR_NOW_IN_PROGRESS";
+    case WIFI_ERROR_ALREADY_EXISTS : return "WIFI_ERROR_ALREADY_EXISTS";
+    case WIFI_ERROR_OPERATION_ABORTED : return "WIFI_ERROR_OPERATION_ABORTED";
+    case WIFI_ERROR_DHCP_FAILED : return "WIFI_ERROR_DHCP_FAILED";
+    case WIFI_ERROR_INVALID_KEY : return "WIFI_ERROR_INVALID_KEY";
+    case WIFI_ERROR_NO_REPLY : return "WIFI_ERROR_NO_REPLY";
+    case WIFI_ERROR_SECURITY_RESTRICTED : return "WIFI_ERROR_SECURITY_RESTRICTED";
+    case WIFI_ERROR_PERMISSION_DENIED : return "WIFI_ERROR_PERMISSION_DENIED";
+    case WIFI_ERROR_NOT_SUPPORTED : return "WIFI_ERROR_NOT_SUPPORTED";
+  }
+}
+
 }
 
 /////////////////////////// SimDetailsManager ////////////////////////////////
@@ -512,6 +537,8 @@ class SystemInfoListeners {
   int GetSensorHandle();
   PlatformResult ConnectSensor(int* result);
   void DisconnectSensor(int handle_orientation);
+  wifi_rssi_level_e GetWifiLevel();
+  void SetWifiLevel(wifi_rssi_level_e level);
  private:
   static PlatformResult RegisterVconfCallback(const char *in_key, vconf_callback_fn cb,
                                               SysteminfoInstance& instance);
@@ -530,6 +557,7 @@ class SystemInfoListeners {
   unsigned long long m_available_capacity_mmc;
   unsigned long long m_last_available_capacity_internal;
   unsigned long long m_last_available_capacity_mmc;
+  wifi_rssi_level_e m_wifi_level;
 
   SysteminfoUtilsCallback m_battery_listener;
   SysteminfoUtilsCallback m_cpu_listener;
@@ -551,7 +579,6 @@ class SystemInfoListeners {
   //! Sensor handle for DeviceOrientation purposes
   int m_sensor_handle;
 };
-
 SystemInfoListeners::SystemInfoListeners():
             m_cpu_event_id(0),
             m_storage_event_id(0),
@@ -561,6 +588,7 @@ SystemInfoListeners::SystemInfoListeners():
             m_available_capacity_mmc(0),
             m_last_available_capacity_internal(0),
             m_last_available_capacity_mmc(0),
+            m_wifi_level(WIFI_RSSI_LEVEL_0),
             m_battery_listener(nullptr),
             m_cpu_listener(nullptr),
             m_storage_listener(nullptr),
@@ -579,6 +607,21 @@ SystemInfoListeners::SystemInfoListeners():
             m_sensor_handle(-1)
 {
   LoggerD("Entered");
+  int error = wifi_initialize();
+  if (WIFI_ERROR_NONE != error) {
+    std::string log_msg = "Initialize failed: " + parseWifiNetworkError(error);
+    LoggerE("%s", log_msg.c_str());
+  } else {
+    LoggerD("WIFI initialization succeed");
+  }
+
+  error = wifi_set_rssi_level_changed_cb(OnWifiLevelChangedCb, nullptr);
+  if (WIFI_ERROR_NONE != error) {
+    std::string log_msg = "Setting wifi listener failed: " + parseWifiNetworkError(error);
+    LoggerE("%s", log_msg.c_str());
+  } else {
+    LoggerD("Setting wifi listener succeed");
+  }
 }
 
 SystemInfoListeners::~SystemInfoListeners(){
@@ -605,6 +648,8 @@ SystemInfoListeners::~SystemInfoListeners(){
   if (nullptr != m_connection_handle) {
     connection_destroy(m_connection_handle);
   }
+
+  wifi_deinitialize();
 }
 
 #define CHECK_LISTENER_ERROR(method) \
@@ -655,6 +700,16 @@ void SystemInfoListeners::DisconnectSensor(int handle_orientation)
   } else {
     LoggerD("sensor already disconnected - no action needed");
   }
+}
+
+wifi_rssi_level_e SystemInfoListeners::GetWifiLevel()
+{
+  return m_wifi_level;
+}
+
+void SystemInfoListeners::SetWifiLevel(wifi_rssi_level_e level)
+{
+  m_wifi_level = level;
 }
 
 PlatformResult SystemInfoListeners::RegisterBatteryListener(const SysteminfoUtilsCallback& callback,
@@ -1538,6 +1593,13 @@ void OnBrightnessChangedCb(device_callback_e type, void* value, void* user_data)
   }
 }
 
+void OnWifiLevelChangedCb (wifi_rssi_level_e rssi_level, void *user_data)
+{
+  LoggerD("Entered");
+  LoggerD("Level %d", rssi_level);
+  system_info_listeners.SetWifiLevel(rssi_level);
+}
+
 /////////////////////////// SysteminfoUtils ////////////////////////////////
 
 PlatformResult SystemInfoDeviceCapability::GetValueBool(const char *key, bool* value) {
@@ -2145,14 +2207,14 @@ PlatformResult SysteminfoUtils::ReportNetwork(picojson::object& out) {
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-static PlatformResult GetIps(connection_profile_h profile_handle, std::string* ip_addr_str,
+static PlatformResult GetIps(wifi_ap_h wifi_ap_handle, std::string* ip_addr_str,
                    std::string* ipv6_addr_str){
   //getting ipv4 address
   char* ip_addr = nullptr;
-  int error = connection_profile_get_ip_address(profile_handle,
-                                                CONNECTION_ADDRESS_FAMILY_IPV4,
-                                                &ip_addr);
-  if (CONNECTION_ERROR_NONE != error) {
+  int error = wifi_ap_get_ip_address(wifi_ap_handle,
+                                     WIFI_ADDRESS_FAMILY_IPV4,
+                                     &ip_addr);
+  if (WIFI_ERROR_NONE != error) {
     LoggerE("Failed to get ip address: %d", error);
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get ip address");
   }
@@ -2161,18 +2223,15 @@ static PlatformResult GetIps(connection_profile_h profile_handle, std::string* i
 
   //getting ipv6 address
   ip_addr = nullptr;
-  error = connection_profile_get_ip_address(profile_handle,
-                                            CONNECTION_ADDRESS_FAMILY_IPV6,
-                                            &ip_addr);
-  if (CONNECTION_ERROR_NONE == error) {
-    *ipv6_addr_str = ip_addr;
-    free(ip_addr);
-  } else if (CONNECTION_ERROR_ADDRESS_FAMILY_NOT_SUPPORTED != error) {
-    //core api returns error -97 = CONNECTION_ERROR_ADDRESS_FAMILY_NOT_SUPPORTED
-    //it will be supported in the future. For now let's ignore this error
+  error = wifi_ap_get_ip_address(wifi_ap_handle,
+                                 WIFI_ADDRESS_FAMILY_IPV6,
+                                 &ip_addr);
+  if (WIFI_ERROR_NONE != error) {
     LoggerE("Failed to get ipv6 address: %d", error);
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get ipv6 address");
   }
+  *ipv6_addr_str = ip_addr;
+  free(ip_addr);
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
@@ -2186,94 +2245,104 @@ PlatformResult SysteminfoUtils::ReportWifiNetwork(picojson::object& out) {
   std::string result_mac_address;
   double result_signal_strength = 0;
 
-  connection_h connection_handle = nullptr;
-  connection_type_e connection_type = CONNECTION_TYPE_DISCONNECTED;
-  connection_profile_h profile_handle = nullptr;
-
-  //connection must be created in every call, in other case error occurs
-  int error = connection_create(&connection_handle);
-  if (CONNECTION_ERROR_NONE != error) {
-    std::string log_msg = "Cannot create connection: " + std::to_string(error);
+  // wifi_initialize() must be called in each thread
+  int error = wifi_initialize();
+  if (WIFI_ERROR_NONE != error) {
+    std::string log_msg = "Initialize failed: " + parseWifiNetworkError(error);
     LoggerE("%s", log_msg.c_str());
     return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
-  }
-  std::unique_ptr<std::remove_pointer<connection_h>::type, int(*)(connection_h)>
-  connection_handle_ptr(connection_handle, &connection_destroy);
-  // automatically release the memory
-
-  char* mac = nullptr;
-  error = connection_get_mac_address(connection_handle, CONNECTION_TYPE_WIFI, &mac);
-  if (CONNECTION_ERROR_NONE == error && nullptr != mac) {
-    SLoggerD("MAC address fetched: %s", mac);
-    result_mac_address = mac;
-    free(mac);
   } else {
-    std::string log_msg = "Failed to get mac address: " + std::to_string(error);
-    LoggerE("%s", log_msg.c_str());
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
+    LoggerD("WIFI initializatino succeed");
   }
+  SCOPE_EXIT {
+    wifi_deinitialize();
+  };
 
-  error = connection_get_type(connection_handle, &connection_type);
-  if (CONNECTION_ERROR_NONE != error) {
-    std::string log_msg = "Cannot get connection type: " + std::to_string(error);
-    LoggerE("%s", log_msg.c_str());
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
-  }
-  if (CONNECTION_TYPE_WIFI == connection_type) {
-    result_status = true;
-
-    //gathering profile
-    error = connection_get_current_profile(connection_handle, &profile_handle);
-    if (CONNECTION_ERROR_NONE != error) {
-      std::string log_msg = "Cannot get connection profile: " + std::to_string(error);
+  wifi_ap_h wifi_ap_handle = nullptr;
+  error = wifi_get_connected_ap(&wifi_ap_handle);
+  if (WIFI_ERROR_NONE != error) {
+    LoggerD("Error while wifi_get_connnected_ap: %s", parseWifiNetworkError(error).c_str());
+    // in case of no connection, ignore error and leave status as false
+    if (WIFI_ERROR_NO_CONNECTION != error) {
+      std::string log_msg = "Cannot get connected access point handle: " + parseWifiNetworkError(error);
       LoggerE("%s", log_msg.c_str());
       return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
     }
-    std::unique_ptr
-    <std::remove_pointer<connection_profile_h>::type, int(*)(connection_profile_h)>
-    profile_handle_ptr(profile_handle, &connection_profile_destroy);
+  } else {
+    //if getting connected AP succeed, set status on true
+    result_status = true;
+  }
+
+  if (result_status) {
+    std::unique_ptr<std::remove_pointer<wifi_ap_h>::type, int(*)(wifi_ap_h)>
+    wifi_ap_handle_ptr(wifi_ap_handle, &wifi_ap_destroy);
     // automatically release the memory
+
+    //gathering mac address
+    char* mac = nullptr;
+    error = wifi_get_mac_address(&mac);
+    if (WIFI_ERROR_NONE == error && nullptr != mac) {
+      SLoggerD("MAC address fetched: %s", mac);
+      result_mac_address = mac;
+      free(mac);
+    } else {
+      std::string log_msg = "Failed to get mac address: " + parseWifiNetworkError(error);
+      LoggerE("%s", log_msg.c_str());
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
+    }
+
+    //refreshing access point information
+    error = wifi_ap_refresh(wifi_ap_handle);
+    if (WIFI_ERROR_NONE != error) {
+      std::string log_msg = "Failed to refresh access point information: " + parseWifiNetworkError(error);
+      LoggerE("%s", log_msg.c_str());
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
+    }
 
     //gathering ssid
     char* essid = nullptr;
-    error = connection_profile_get_wifi_essid(profile_handle, &essid);
-    if (CONNECTION_ERROR_NONE == error) {
+    error = wifi_ap_get_essid(wifi_ap_handle, &essid);
+    if (WIFI_ERROR_NONE == error) {
       result_ssid = essid;
       free(essid);
-    }
-    else {
-      std::string log_msg = "Failed to get network ssid: " + std::to_string(error);
+    } else {
+      std::string log_msg = "Failed to get network ssid: " + parseWifiNetworkError(error);
       LoggerE("%s", log_msg.c_str());
       return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
     }
 
     //gathering ips
-    PlatformResult ret = GetIps(profile_handle, &result_ip_address, &result_ipv6_address);
+    PlatformResult ret = GetIps(wifi_ap_handle, &result_ip_address, &result_ipv6_address);
     if (ret.IsError()) {
       return ret;
     }
 
     //gathering strength
-    int rssi = 0;
-    error = connection_profile_get_wifi_rssi(profile_handle, &rssi);
-    if (CONNECTION_ERROR_NONE == error) {
-      result_signal_strength = (double) rssi/kWifiSignalStrengthDivideValue;
+    wifi_rssi_level_e rssi_level = system_info_listeners.GetWifiLevel();
+    // this mean that level was not initialized or wifi not connected
+    if (WIFI_RSSI_LEVEL_0 == rssi_level) {
+      // so try to gather rssi level with dedicated function
+      int rssi = 0;
+      error = wifi_ap_get_rssi(wifi_ap_handle, &rssi);
+      if (WIFI_ERROR_NONE == error) {
+        result_signal_strength = ((double) abs(rssi))/kWifiSignalStrengthDivideValue;
+      } else {
+        std::string log_msg = "Failed to get signal strength: " + parseWifiNetworkError(error);
+        LoggerE("%s", log_msg.c_str());
+        return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
+      }
+    } else {
+      result_signal_strength = ((double) rssi_level)/WIFI_RSSI_LEVEL_4;
     }
-    else {
-      std::string log_msg = "Failed to get signal strength: " + std::to_string(error);
-      LoggerE("%s", log_msg.c_str());
-      return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
-    }
-  } else {
-    LoggerD("Connection type = %d. WIFI is disabled", connection_type);
   }
-
+  //building result object
   out.insert(std::make_pair("status", picojson::value(result_status ? kWifiStatusOn : kWifiStatusOff)));
   out.insert(std::make_pair("ssid", picojson::value(result_ssid)));
   out.insert(std::make_pair("ipAddress", picojson::value(result_ip_address)));
   out.insert(std::make_pair("ipv6Address", picojson::value(result_ipv6_address)));
   out.insert(std::make_pair("macAddress", picojson::value(result_mac_address)));
   out.insert(std::make_pair("signalStrength", picojson::value(std::to_string(result_signal_strength))));
+
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
