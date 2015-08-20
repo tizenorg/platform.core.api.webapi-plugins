@@ -544,34 +544,41 @@ void BluetoothAdapter::SetPowered(const picojson::value& data, picojson::object&
     }
 
     if (ret.IsSuccess()) {
-      const void* t_param[] = { this, &ret, &new_powered, &callback_handle };
+      struct UserData {
+        BluetoothAdapter* adapter;
+        double callback_handle;
+      };
+
+      UserData* user_data = new UserData{ this, callback_handle };
 
       err = app_control_send_launch_request(service, [](
               app_control_h request, app_control_h reply,
               app_control_result_e r, void* user_data) {
+        LoggerD("app_control_send_launch_request() callback");
 
-        BluetoothAdapter* self = static_cast<BluetoothAdapter*>(((void**) user_data)[0]);
-        PlatformResult* p_ret = static_cast<PlatformResult*>(((void**) user_data)[1]);
-        bool* p_new_powered = static_cast<bool*>(((void**) user_data)[2]);
-        double* p_callback_handle = static_cast<double*>(((void**) user_data)[3]);
+        UserData* data = static_cast<UserData*>(user_data);
 
         char* result = nullptr;
         app_control_get_extra_data(reply, "result", &result);
-        LoggerD("bt onoff: %s", result);
 
-        if (strcmp(result, "success") == 0) {
-          self->requested_powered_ = *p_new_powered;
-          self->user_request_list_[SET_POWERED] = true;
-          self->user_request_callback_[SET_POWERED] = *p_callback_handle;
+        if (result && strcmp(result, "success") == 0) {
+          LoggerD("bt onoff: %s", result);
+          free(result);
         } else {
           LoggerE("app control setPowered failed");
-          *p_ret = PlatformResult(ErrorCode::UNKNOWN_ERR, "app control setPowered failed");
+          data->adapter->instance_.AsyncResponse(data->callback_handle, PlatformResult(ErrorCode::UNKNOWN_ERR, "app control setPowered failed"));
         }
-      }, t_param);
+
+        delete data;
+      }, user_data);
 
       if (err != APP_CONTROL_ERROR_NONE) {
         LoggerE("app control set launch request failed: %d", err);
         ret = PlatformResult(ErrorCode::UNKNOWN_ERR, "app control set launch request failed");
+      } else {
+        this->requested_powered_ = new_powered;
+        this->user_request_list_[SET_POWERED] = true;
+        this->user_request_callback_[SET_POWERED] = callback_handle;
       }
     }
 
@@ -579,6 +586,10 @@ void BluetoothAdapter::SetPowered(const picojson::value& data, picojson::object&
     if (err != APP_CONTROL_ERROR_NONE) {
       LoggerE("app control destroy failed: %d", err);
       ret = PlatformResult(ErrorCode::UNKNOWN_ERR, "app control destroy failed");
+    }
+
+    if (!ret) {
+      instance_.AsyncResponse(callback_handle, ret);
     }
 #else
     this->requested_powered_ = new_powered;
@@ -590,11 +601,10 @@ void BluetoothAdapter::SetPowered(const picojson::value& data, picojson::object&
     } else {
       bt_adapter_disable();
     }
-    return;
 #endif
+  } else {
+    instance_.AsyncResponse(callback_handle, ret);
   }
-
-  instance_.AsyncResponse(callback_handle, ret);
 }
 
 void BluetoothAdapter::SetVisible(const picojson::value& data, picojson::object& out) {
