@@ -67,7 +67,7 @@ function ContentDirectory(data) {
       },
       set: function(v) {
         if (edit_.isAllowed) {
-          directoryURI = converter_.toString(v, false);
+          directoryURI = convertPathToUri_(converter_.toString(v, false));
         }
       },
       enumerable: true
