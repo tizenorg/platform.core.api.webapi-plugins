@@ -33,6 +33,7 @@
 #include "common/XW_Extension_Permissions.h"
 #include "common/XW_Extension_Runtime.h"
 #include "common/XW_Extension_SyncMessage.h"
+#include "common/XW_Extension_Data.h"
 
 namespace common {
 
@@ -86,6 +87,10 @@ class Extension {
   static void OnInstanceDestroyed(XW_Instance xw_instance);
   static void HandleMessage(XW_Instance xw_instance, const char* msg);
   static void HandleSyncMessage(XW_Instance xw_instance, const char* msg);
+  static void HandleData(XW_Instance xw_instance, const char* msg,
+                         uint8_t* buffer, size_t len);
+  static void HandleSyncData(XW_Instance xw_instance, const char* msg,
+                             uint8_t* buffer, size_t len);
 
   XW_Extension xw_extension_;
 
@@ -98,11 +103,17 @@ class Instance {
   virtual ~Instance();
 
   void PostMessage(const char* msg);
+  void PostData(const char* msg, uint8_t* buffer, size_t len);
   void SendSyncReply(const char* reply);
+  void SendSyncReply(const char* reply, uint8_t* buffer, size_t len);
 
   virtual void Initialize() {}
+
   virtual void HandleMessage(const char* msg) = 0;
   virtual void HandleSyncMessage(const char* msg) {}
+
+  virtual void HandleData(const char* msg, uint8_t* buffer, size_t len) {}
+  virtual void HandleSyncData(const char* msg, uint8_t* buffer, size_t len) {}
 
   XW_Instance xw_instance() const { return xw_instance_; }
 
@@ -130,15 +141,66 @@ class ParsedInstance : public Instance {
   void ReportError(const PlatformException& ex, picojson::object& out);
   void ReportError(const PlatformResult& error, picojson::object* out);
 
- private:
-  void HandleMessage(const char* msg);
-  void HandleSyncMessage(const char* msg);
-
-  void HandleMessage(const char* msg, bool is_sync);
   void HandleException(const PlatformException& ex);
   void HandleError(const PlatformResult& error);
 
+ private:
+  void HandleMessage(const char* msg);
+  void HandleSyncMessage(const char* msg);
+  void HandleMessage(const char* msg, bool is_sync);
+
   std::map<std::string, NativeHandler> handler_map_;
+};
+
+class ParsedDataStruct {
+ public:
+  ParsedDataStruct();
+  ParsedDataStruct(uint8_t* buffer, size_t len);
+
+  void SetBuffer(uint8_t* buffer, size_t len);
+
+  uint8_t* buffer() const { return buffer_; }
+  size_t buffer_length() const { return buffer_len_; }
+ private:
+  uint8_t* buffer_;
+  size_t buffer_len_;
+};
+
+class ParsedDataRequest : public ParsedDataStruct {
+ public:
+  ParsedDataRequest(uint8_t* buffer, size_t len);
+
+  bool Parse(const char* msg);
+  std::string cmd() const;
+  const picojson::value& args() const;
+  const picojson::value& value() const { return value_; }
+ private:
+  picojson::value value_;
+};
+
+class ParsedDataResponse : public ParsedDataStruct {
+ public:
+  ParsedDataResponse();
+
+  const picojson::value& value() const { return value_; }
+  picojson::object& object();
+ private:
+  picojson::value value_;
+};
+
+typedef std::function<void(const ParsedDataRequest&, ParsedDataResponse&)>
+    NativeDataHandler;
+
+class ParsedDataInstance : public ParsedInstance {
+ public:
+  void RegisterHandler(const std::string& name, const NativeDataHandler& func);
+  void RegisterSyncHandler(const std::string& name, const NativeDataHandler& func);
+ private:
+  void HandleData(const char* msg, uint8_t* buffer, size_t len);
+  void HandleSyncData(const char* msg, uint8_t* buffer, size_t len);
+  void HandleData(const char* msg, uint8_t* buffer, size_t len, bool is_sync);
+
+  std::map<std::string, NativeDataHandler> data_handler_map_;
 };
 
 }  // namespace common

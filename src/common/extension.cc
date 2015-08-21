@@ -33,6 +33,7 @@ const XW_Internal_SyncMessagingInterface* g_sync_messaging = NULL;
 const XW_Internal_EntryPointsInterface* g_entry_points = NULL;
 const XW_Internal_RuntimeInterface* g_runtime = NULL;
 const XW_Internal_PermissionsInterface* g_permission = NULL;
+const XW_Internal_DataInterface* g_data = NULL;
 
 bool InitializeInterfaces(XW_GetInterface get_interface) {
   LoggerD("Enter");
@@ -67,21 +68,28 @@ bool InitializeInterfaces(XW_GetInterface get_interface) {
         get_interface(XW_INTERNAL_ENTRY_POINTS_INTERFACE));
     if (!g_entry_points) {
       std::cerr << "NOTE: Entry points interface not available in this version "
-                << "of Crosswalk, ignoring entry point data for extensions.\n";
+                << "of runtime, ignoring entry point data for extensions.\n";
     }
 
     g_runtime = reinterpret_cast<const XW_Internal_RuntimeInterface*>(
         get_interface(XW_INTERNAL_RUNTIME_INTERFACE));
     if (!g_runtime) {
       std::cerr << "NOTE: runtime interface not available in this version "
-                << "of Crosswalk, ignoring runtime variables for extensions.\n";
+                << "of runtime, ignoring runtime variables for extensions.\n";
     }
 
     g_permission = reinterpret_cast<const XW_Internal_PermissionsInterface*>(
         get_interface(XW_INTERNAL_PERMISSIONS_INTERFACE));
     if (!g_permission) {
       std::cerr << "NOTE: permission interface not available in this version "
-        << "of Crosswalk, ignoring permission for extensions.\n";
+        << "of runtime, ignoring permission for extensions.\n";
+    }
+
+    g_data = reinterpret_cast<const XW_Internal_DataInterface*>(
+        get_interface(XW_INTERNAL_DATA_INTERFACE));
+    if (!g_data) {
+      std::cerr << "NOTE: data interface not available in this version of "
+        << "runtime, ignoring data for extensions.\n";
     }
 
     initialized = true;
@@ -189,6 +197,28 @@ void Extension::HandleSyncMessage(XW_Instance xw_instance, const char* msg) {
   instance->HandleSyncMessage(msg);
 }
 
+// static
+void Extension::HandleData(XW_Instance xw_instance, const char* msg,
+                           uint8_t* buffer, size_t len) {
+  LoggerD("Enter");
+  Instance* instance =
+      reinterpret_cast<Instance*>(g_core->GetInstanceData(xw_instance));
+  if (!instance)
+    return;
+  instance->HandleData(msg, buffer, len);
+}
+
+// static
+void Extension::HandleSyncData(XW_Instance xw_instance, const char* msg,
+                               uint8_t* buffer, size_t len) {
+  LoggerD("Enter");
+  Instance* instance =
+      reinterpret_cast<Instance*>(g_core->GetInstanceData(xw_instance));
+  if (!instance)
+    return;
+  instance->HandleSyncData(msg, buffer, len);
+}
+
 //static
 int32_t Extension::XW_Initialize(XW_Extension extension,
                                  XW_GetInterface get_interface,
@@ -216,6 +246,12 @@ int32_t Extension::XW_Initialize(XW_Extension extension,
                                     Extension::OnInstanceDestroyed);
   g_messaging->Register(extension, Extension::HandleMessage);
   g_sync_messaging->Register(extension, Extension::HandleSyncMessage);
+
+  if (g_data) {
+    g_data->RegisterSync(extension, Extension::HandleSyncData);
+    g_data->RegisterAsync(extension, Extension::HandleData);
+  }
+
   return XW_OK;
 }
 
@@ -241,6 +277,18 @@ void Instance::PostMessage(const char* msg) {
   g_messaging->PostMessage(xw_instance_, msg);
 }
 
+
+void Instance::PostData(const char* msg, uint8_t* buffer, size_t len) {
+  LoggerD("Enter");
+  if (!xw_instance_) {
+    std::cerr << "Ignoring PostData() in the constructor or after the "
+              << "instance was destroyed.";
+    return;
+  }
+  g_data->PostData(xw_instance_, msg, buffer, len);
+}
+
+
 void Instance::SendSyncReply(const char* reply) {
   LoggerD("Enter");
   if (!xw_instance_) {
@@ -251,6 +299,18 @@ void Instance::SendSyncReply(const char* reply) {
   g_sync_messaging->SetSyncReply(xw_instance_, reply);
 }
 
+void Instance::SendSyncReply(const char* reply, uint8_t* buffer, size_t len) {
+  LoggerD("Enter");
+  if (!xw_instance_) {
+    std::cerr << "Ignoring SendSyncReply() in the constructor or after the "
+              << "instance was destroyed.";
+    return;
+  }
+  g_data->SetSyncReply(xw_instance_, reply, buffer, len);
+}
+
+
+// ParsedInstance //////////////////////////////////////////////////////////////
 
 ParsedInstance::ParsedInstance() {
   LoggerD("Enter");
@@ -369,5 +429,125 @@ void ParsedInstance::HandleError(const PlatformResult& e) {
   ReportError(e, &result.get<picojson::object>());
   SendSyncReply(result.serialize().c_str());
 }
+
+// ParsedDataStruct ////////////////////////////////////////////////////////////
+
+ParsedDataStruct::ParsedDataStruct()
+    : buffer_(NULL), buffer_len_(0) {
+}
+
+ParsedDataStruct::ParsedDataStruct(uint8_t* buffer, size_t len)
+    : buffer_(buffer), buffer_len_(len) {
+}
+
+void ParsedDataStruct::SetBuffer(uint8_t* buffer, size_t len) {
+  buffer_ = buffer;
+  buffer_len_ = len;
+}
+
+ParsedDataRequest::ParsedDataRequest(uint8_t* buffer, size_t len)
+    : ParsedDataStruct(buffer, len) {
+}
+
+bool ParsedDataRequest::Parse(const char* msg) {
+  std::string err;
+  picojson::parse(value_, msg, msg + strlen(msg), &err);
+  if (!err.empty()) {
+    std::cerr << "Ignoring message. " << err;
+    return false;
+  }
+
+  if (!value_.is<picojson::object>()) {
+    std::cerr << "Ignoring message. It is not an object.";
+    return false;
+  }
+
+  return true;
+}
+
+std::string ParsedDataRequest::cmd() const {
+  return value_.get("cmd").to_str();
+}
+
+const picojson::value& ParsedDataRequest::args() const {
+  return value_.get("args");
+}
+
+ParsedDataResponse::ParsedDataResponse()
+    : value_(picojson::value(picojson::object())) {
+}
+
+picojson::object& ParsedDataResponse::object() {
+  return value_.get<picojson::object>();
+}
+
+// ParsedDataInstance //////////////////////////////////////////////////////////
+
+void ParsedDataInstance::RegisterHandler(const std::string& name,
+                                         const NativeDataHandler& func) {
+  LoggerD("Enter");
+  data_handler_map_.insert(std::make_pair(name, func));
+}
+
+void ParsedDataInstance::RegisterSyncHandler(const std::string& name,
+                                             const NativeDataHandler& func) {
+  LoggerD("Enter");
+  data_handler_map_.insert(std::make_pair("#SYNC#" + name, func));
+}
+
+void ParsedDataInstance::HandleData(const char* msg,
+                                    uint8_t* buffer, size_t len) {
+  LoggerD("Enter");
+  HandleData(msg, buffer, len, false);
+}
+
+void ParsedDataInstance::HandleSyncData(const char* msg,
+                                        uint8_t* buffer, size_t len) {
+  LoggerD("Enter");
+  HandleData(msg, buffer, len, true);
+}
+
+void ParsedDataInstance::HandleData(const char* msg,
+                                    uint8_t* buffer, size_t len, bool is_sync) {
+  LoggerD("Enter");
+  try {
+    ParsedDataRequest request(buffer, len);
+    if (!request.Parse(msg)) {
+      return;
+    }
+
+    // check for args in JSON message
+    const picojson::value& args = request.args();
+    if (!args.is<picojson::object>()) {
+      throw InvalidValuesException("No \"args\" field in message");
+    }
+
+    std::string cmd = (is_sync ? "#SYNC#" : "") + request.cmd();
+    auto it = data_handler_map_.find(cmd);
+    if (data_handler_map_.end() == it) {
+      throw UnknownException("Unknown command.");
+    }
+    NativeDataHandler func = it->second;
+
+    ParsedDataResponse response;
+    func(request, response);
+    if (is_sync) {
+      SendSyncReply(response.value().serialize().c_str(),
+                    response.buffer(), response.buffer_length());
+    }
+  } catch (const PlatformException& e) {
+    return HandleException(e);
+  } catch (const PlatformException* e) {
+    return HandleException(*e);
+  } catch (const std::exception& e) {
+    return HandleException(UnknownException(e.what()));
+  } catch (const std::exception* e) {
+    return HandleException(UnknownException(e->what()));
+  } catch (...) {
+    return HandleException(UnknownException("Unknown exception"));
+  }
+}
+
+
 
 }  // namespace common
