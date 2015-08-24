@@ -212,6 +212,7 @@ static std::string parseWifiNetworkError(int error) {
     case WIFI_ERROR_SECURITY_RESTRICTED : return "WIFI_ERROR_SECURITY_RESTRICTED";
     case WIFI_ERROR_PERMISSION_DENIED : return "WIFI_ERROR_PERMISSION_DENIED";
     case WIFI_ERROR_NOT_SUPPORTED : return "WIFI_ERROR_NOT_SUPPORTED";
+    default : return "Unknown Wi-Fi error";
   }
 }
 
