@@ -234,7 +234,7 @@ std::string MessagingUtil::ltrim(const std::string& input)
     LoggerD("Entered");
     std::string str = input;
     std::string::iterator i;
-    for (i = str.begin(); i != str.end(); i++) {
+    for (i = str.begin(); i != str.end(); ++i) {
         if (!isspace(*i)) {
             break;
         }
@@ -1211,7 +1211,7 @@ PostQueue::~PostQueue()
     EmailManager::getInstance().RemoveCallbacksByQueue(*this);
 }
 
-void PostQueue::addAndResolve(const long cid, PostPriority priority, const std::string json)
+void PostQueue::addAndResolve(const long cid, PostPriority priority, const std::string &json)
 {
     LoggerD("Entered");
 
@@ -1237,7 +1237,7 @@ void PostQueue::add(const long cid, PostPriority priority)
     return;
 }
 
-void PostQueue::resolve(const long cid, const std::string json)
+void PostQueue::resolve(const long cid, const std::string &json)
 {
     LoggerD("Entered: [%p]", this);
 
@@ -1320,7 +1320,7 @@ PostQueue::PostTask::~PostTask()
     LoggerD("Entered");
 }
 
-void PostQueue::PostTask::attach(const std::string j)
+void PostQueue::PostTask::attach(const std::string &j)
 {
     LoggerD("Entered");
     if (TaskState::DONE == state_) {

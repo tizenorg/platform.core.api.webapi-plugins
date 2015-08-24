@@ -75,7 +75,7 @@ bool CompositeFilter::isMatching(const FilterableObject* const filtered_object) 
     else {
         AbstractFilterPtrVector::const_iterator it = src_filters.begin();
         AbstractFilterPtrVector::const_iterator end_it = src_filters.end();
-        for(;it != end_it; it++) {
+        for(;it != end_it; ++it) {
 
             const bool last_result = (*it)->isMatching(filtered_object);
             if(INTERSECTION == m_type) {

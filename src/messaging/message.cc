@@ -371,6 +371,8 @@ PlatformResult saveToTempFile(const std::string &data, std::string* file_name)
     }
     if (fprintf(file, "%s", data.c_str()) < 0) {
         LoggerE("Failed to write data into file");
+        fclose(file);
+        remove(tmp_name.c_str());
         return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to write data into file");
     }
     fflush(file);
@@ -737,7 +739,7 @@ PlatformResult Message::addMMSRecipientsToStruct(const std::vector<std::string> 
     return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-PlatformResult Message::addMMSBodyAndAttachmentsToStruct(const AttachmentPtrVector attach,
+PlatformResult Message::addMMSBodyAndAttachmentsToStruct(const AttachmentPtrVector &attach,
         msg_struct_t &mms_struct, Message* message)
 {
     LoggerD("Entered with %d attachments", attach.size());

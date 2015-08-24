@@ -131,8 +131,6 @@ PlatformResult MessageConversation::convertMsgConversationToObject(
     msg_list_handle_t addr_list = NULL;
     msg_struct_t addr_info = NULL;
 
-    msg_error_t err = MSG_SUCCESS;
-
     int tempInt;
     bool tempBool;
     int nToCnt;
@@ -154,7 +152,7 @@ PlatformResult MessageConversation::convertMsgConversationToObject(
     std::unique_ptr<std::remove_pointer<msg_struct_t*>::type, int(*)(msg_struct_t*)>
         msg_thread_ptr(&msg_thread, &msg_release_struct);
         // automatically release the memory
-    err = msg_get_thread(handle, conversation->m_conversation_id, msg_thread);
+    msg_error_t err = msg_get_thread(handle, conversation->m_conversation_id, msg_thread);
     if (err != MSG_SUCCESS)
     {
       LoggerE("Failed to retrieve thread.");
