@@ -27,6 +27,7 @@
 #include <functional>
 
 #include "common/logger.h"
+#include "common/scope_exit.h"
 #include "common/tools.h"
 
 namespace extension {
@@ -218,6 +219,12 @@ bool PackageInfoProvider:: ConvertToPackageToObject(
     return false;
   }
 
+  SCOPE_EXIT {
+    if (PACKAGE_MANAGER_ERROR_NONE != package_info_destroy(package_info)) {
+      LoggerE("Failed to destroy package info");
+    }
+  };
+
   picojson::array array_data;
   ret = package_info_foreach_app_from_package(package_info,
       PACKAGE_INFO_ALLAPP, PackageAppInfoCb, &array_data);
@@ -226,11 +233,6 @@ bool PackageInfoProvider:: ConvertToPackageToObject(
     return false;
   }
   out["appIds"] = picojson::value(array_data);
-
-  ret = package_info_destroy(package_info);
-  if ( ret != PACKAGE_MANAGER_ERROR_NONE ) {
-    LoggerE("Failed to destroy package info");
-  }
 
   return true;
 }
