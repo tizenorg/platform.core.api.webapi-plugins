@@ -222,8 +222,8 @@ var commonFS_ = (function() {
   };
 
   function f_isCorrectRelativePath(relativePath) {
-    return ((-1 === relativePath.indexOf('/')) &&
-        (-1 === relativePath.indexOf('\\')) &&
+    return ((0 !== relativePath.indexOf('/')) &&
+        (0 !== relativePath.indexOf('\\')) &&
         (-1 === relativePath.indexOf('?')) &&
         (-1 === relativePath.indexOf('*')) &&
         (-1 === relativePath.indexOf(':')) &&
