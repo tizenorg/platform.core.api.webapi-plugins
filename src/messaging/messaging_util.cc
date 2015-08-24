@@ -337,6 +337,11 @@ std::string PerformConversion(const std::string& input, const gchar* from_charse
 
   outp = dest = static_cast<gchar*>(g_malloc(outbuf_size));
 
+  if (!outp) {
+    LoggerE("Failed to allocate memory.");
+    return input;
+  }
+
   while (!done && !have_error) {
     gsize err = 0;
 
