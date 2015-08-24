@@ -84,7 +84,7 @@ int PowerPlatformProxy::SetBrightness(int val)
 
 int PowerPlatformProxy::GetBrightness() {
   LoggerD("Entered");
-  return dbus_op_.InvokeSyncGetInt("CurrentBrightness", NULL);
+  return dbus_op_.InvokeSyncGetInt("GetBrightness", NULL);
 }
 
 } // namespace power
