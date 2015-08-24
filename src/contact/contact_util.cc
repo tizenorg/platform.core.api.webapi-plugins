@@ -1090,8 +1090,10 @@ PlatformResult ImportContactOrganizationFromContactsRecord(
     return status;
   }
 
-  out.insert(std::make_pair("logoURI",
-                            char_value ? JsonValue{char_value} : JsonValue{}));
+  out.insert(
+      std::make_pair(
+          "logoURI",
+          char_value ? JsonValue{ConvertPathToUri(char_value)} : JsonValue{}));
 
   return PlatformResult(ErrorCode::NO_ERROR);
 }
@@ -1208,8 +1210,9 @@ PlatformResult ImportContactWebSiteFromContactsRecord(
     return status;
   }
 
-  out.insert(std::make_pair(std::string("logoURI"),
-                            picojson::value(char_value ? char_value : "")));
+  out.insert(
+      std::make_pair(std::string("url"),
+                     picojson::value(char_value ? char_value : "")));
 
   int type = 0;
   status =
@@ -1219,7 +1222,7 @@ PlatformResult ImportContactWebSiteFromContactsRecord(
     return status;
   }
 
-  out.insert(std::make_pair(std::string("logoURI"),
+  out.insert(std::make_pair(std::string("type"),
                             picojson::value((CONTACTS_URL_TYPE_HOME == type)
                                             ? kContactWebSiteTypeHomePage
                                                 : kContactWebSiteTypeBlog)));
@@ -2364,15 +2367,18 @@ PlatformResult ImportContactFromContactsRecord(
   //### m_ringtone_uri ###
   {
     char* value = nullptr;
+
     status = ContactUtil::GetStrFromRecord(
         contacts_record, _contacts_contact.image_thumbnail_path, &value);
     if (status.IsError()) {
       LoggerE("Error: %s", status.message().c_str());
       return status;
     }
-
-    out.insert(std::make_pair("photoURI", value ?
-        JsonValue{ConvertPathToUri(value)} : JsonValue{}));
+    out.insert(
+        std::make_pair(
+            "photoURI",
+            value ? JsonValue{ConvertPathToUri(value)} : JsonValue{}));
+    value = nullptr;
 
     status = ContactUtil::GetStrFromRecord(
         contacts_record, _contacts_contact.ringtone_path, &value);
@@ -2380,31 +2386,35 @@ PlatformResult ImportContactFromContactsRecord(
       LoggerE("Error: %s", status.message().c_str());
       return status;
     }
-
-    out.insert(std::make_pair("ringtoneURI", value ?
-        JsonValue{ConvertPathToUri(value)} : JsonValue{}));
+    out.insert(
+        std::make_pair(
+            "ringtoneURI",
+            value ? JsonValue{ConvertPathToUri(value)} : JsonValue{}));
     value = nullptr;
+
     status = ContactUtil::GetStrFromRecord(
         contacts_record, _contacts_contact.message_alert, &value);
     if (status.IsError()) {
       LoggerE("Error: %s", status.message().c_str());
       return status;
     }
-
-    out.insert(std::make_pair(
-        "messageAlertURI",
-        value ? JsonValue{ConvertPathToUri(value)} : JsonValue{}));
+    out.insert(
+        std::make_pair(
+            "messageAlertURI",
+            value ? JsonValue{ConvertPathToUri(value)} : JsonValue{}));
     value = nullptr;
+
     status = ContactUtil::GetStrFromRecord(contacts_record,
                                            _contacts_contact.vibration, &value);
     if (status.IsError()) {
       LoggerE("Error: %s", status.message().c_str());
       return status;
     }
-
-    out.insert(std::make_pair(
-        "vibrationURI",
-        value ? JsonValue{ConvertPathToUri(value)} : JsonValue{}));
+    out.insert(
+        std::make_pair(
+            "vibrationURI",
+            value ? JsonValue{ConvertPathToUri(value)} : JsonValue{}));
+    value = nullptr;
   }
 
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -2653,7 +2663,9 @@ PlatformResult ImportContactGroupFromContactsRecord(
   }
 
   out.insert(
-      std::make_pair("photoURI", value ? JsonValue{value} : JsonValue{}));
+      std::make_pair(
+          "photoURI",
+          value ? JsonValue{ConvertPathToUri(value)} : JsonValue{}));
 
   // ringtoneURI
   value = nullptr;
@@ -2665,7 +2677,9 @@ PlatformResult ImportContactGroupFromContactsRecord(
   }
 
   out.insert(
-      std::make_pair("ringtoneURI", value ? JsonValue{value} : JsonValue{}));
+      std::make_pair(
+          "ringtoneURI",
+          value ? JsonValue{ConvertPathToUri(value)} : JsonValue{}));
 
   // is_read_only
   bool bool_value = false;
@@ -2807,8 +2821,10 @@ PlatformResult ImportPersonFromContactsRecord(contacts_record_h record,
     return status;
   }
 
-  arguments_obj.insert(std::make_pair(
-      "photoURI", char_value ? JsonValue(char_value) : JsonValue{}));
+  arguments_obj.insert(
+      std::make_pair(
+          "photoURI",
+          char_value ? JsonValue(ConvertPathToUri(char_value)) : JsonValue{}));
 
   // ringtoneURI
   status = ContactUtil::GetStrFromRecord(record, _contacts_person.ringtone_path,
@@ -2818,8 +2834,10 @@ PlatformResult ImportPersonFromContactsRecord(contacts_record_h record,
     return status;
   }
 
-  arguments_obj.insert(std::make_pair(
-      "ringtoneURI", char_value ? JsonValue(char_value) : JsonValue{}));
+  arguments_obj.insert(
+      std::make_pair(
+          "ringtoneURI",
+          char_value ? JsonValue(ConvertPathToUri(char_value)) : JsonValue{}));
 
   // displayContactId
   status = ContactUtil::GetIntFromRecord(
@@ -2859,7 +2877,7 @@ PlatformResult ExportPersonToContactsRecord(contacts_record_h record,
       !FromJson<JsonString>(args, "photoURI").empty()) {
     PlatformResult status = ContactUtil::SetStrInRecord(
         record, _contacts_person.image_thumbnail_path,
-        FromJson<JsonString>(args, "photoURI").c_str());
+        ConvertUriToPath(FromJson<JsonString>(args, "photoURI")).c_str());
     if (status.IsError()) {
       LoggerE("Try updating read only attribute photoURI");
       return status;
@@ -2871,7 +2889,7 @@ PlatformResult ExportPersonToContactsRecord(contacts_record_h record,
   if (!IsNull(args, "ringtoneURI")) {
     PlatformResult status = ContactUtil::SetStrInRecord(
         record, _contacts_person.ringtone_path,
-        FromJson<JsonString>(args, "ringtoneURI").c_str());
+        ConvertUriToPath(FromJson<JsonString>(args, "ringtoneURI")).c_str());
     if (status.IsError()) {
       LoggerE("Error: %s", status.message().c_str());
       return status;
