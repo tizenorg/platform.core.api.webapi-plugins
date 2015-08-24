@@ -977,6 +977,7 @@ int ContentManager::updateBatch(picojson::value args) {
     if (media != NULL && ret == MEDIA_CONTENT_ERROR_NONE) {
       setContent(media, content);
       ret = media_info_update_to_db(media);
+      media_info_destroy(media);
     } else {
       return ret;
     }
@@ -1073,6 +1074,12 @@ void ContentManager::playlistGet(const std::shared_ptr<ReplyCallbackData>& user_
   media_content_order_e order = MEDIA_CONTENT_ORDER_ASC;
   const std::string playOrder("play_order");
 
+  SCOPE_EXIT {
+    if (playlist) {
+      media_playlist_destroy(playlist);
+    }
+  };
+
   std::string playlist_id = user_data->args.get("playlistId").get<std::string>();
   int ret = media_playlist_get_playlist_from_db(std::stoi(playlist_id), &playlist);
   if(ret != MEDIA_CONTENT_ERROR_NONE && playlist == NULL) {
@@ -1122,6 +1129,12 @@ void ContentManager::playlistRemovebatch(const std::shared_ptr<ReplyCallbackData
   LoggerD("Enter");
   media_playlist_h playlist = NULL;
 
+  SCOPE_EXIT {
+    if (playlist) {
+      media_playlist_destroy(playlist);
+    }
+  };
+
   std::string playlist_id = user_data->args.get("playlistId").get<std::string>();
   int ret = media_playlist_get_playlist_from_db(std::stoi(playlist_id), &playlist);
   if(ret != MEDIA_CONTENT_ERROR_NONE && playlist == NULL) {
@@ -1153,6 +1166,12 @@ void ContentManager::playlistSetOrder(const std::shared_ptr<ReplyCallbackData>& 
 
   LoggerD("Enter");
   media_playlist_h playlist = NULL;
+
+  SCOPE_EXIT {
+    if (playlist) {
+      media_playlist_destroy(playlist);
+    }
+  };
 
   std::string playlist_id = user_data->args.get("playlistId").get<std::string>();
   int ret = media_playlist_get_playlist_from_db(std::stoi(playlist_id), &playlist);
@@ -1200,6 +1219,13 @@ void ContentManager::playlistSetOrder(const std::shared_ptr<ReplyCallbackData>& 
 void ContentManager::playlistMove(const std::shared_ptr<ReplyCallbackData>& user_data) {
   LoggerD("Enter");
   media_playlist_h playlist = NULL;
+
+  SCOPE_EXIT {
+    if (playlist) {
+      media_playlist_destroy(playlist);
+    }
+  };
+
   std::string playlist_id = user_data->args.get("playlistId").get<std::string>();
   int ret = media_playlist_get_playlist_from_db(std::stoi(playlist_id), &playlist);
   if(ret != MEDIA_CONTENT_ERROR_NONE && playlist == NULL) {
