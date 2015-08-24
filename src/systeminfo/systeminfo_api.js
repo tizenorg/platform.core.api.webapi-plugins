@@ -654,7 +654,7 @@ function SystemInfoSIM(data) {
             },
             set: function() {},
             enumerable: true
-        },
+        }
     });
 }
 
@@ -674,30 +674,40 @@ function SystemInfoMemory(data) {
 
 function SystemInfoCameraFlash(data) {
   var getBrightness = function() {
-      xwalk.utils.checkPrivilegeAccess(privilege_.LED);
+    xwalk.utils.checkPrivilegeAccess(privilege_.LED);
 
-      var result = native_.callSync('SystemInfo_getBrightness', {});
-      if (native_.isSuccess(result)) {
-        return Converter_.toLong(native_.getResultObject(result)) / this.levels;
-      }
-      return null;
-    };
+    var result = native_.callSync('SystemInfo_getBrightness', {});
+    if (native_.isSuccess(result)) {
+      return Converter_.toLong(native_.getResultObject(result)) / this.levels;
+    }
+    return null;
+  };
 
   var getLevels = function() {
-      xwalk.utils.checkPrivilegeAccess(privilege_.LED);
+    xwalk.utils.checkPrivilegeAccess(privilege_.LED);
 
-      var result = native_.callSync('SystemInfo_getMaxBrightness', {});
-      if (native_.isSuccess(result)) {
-        return Converter_.toLong(native_.getResultObject(result));
-      }
-      return null;
-    };
+    var result = native_.callSync('SystemInfo_getMaxBrightness', {});
+    if (native_.isSuccess(result)) {
+      return Converter_.toLong(native_.getResultObject(result));
+    }
+    return null;
+  };
+
+  var getCamera = function() {
+    var camera = 'FRONT';
+    // TODO: get native value for camera
+//    var result = native_.callSync('SystemInfo_getCamera', {});
+//    if (native_.isSuccess(result)) {
+//      camera = native_.getResultObject(result);
+//    }
+    return camera;
+  };
 
   Object.defineProperties(this, {
-        brightness : {get: getBrightness, enumerable: true},
-        camera : {value: null, enumerable: true},
-        levels : {get: getLevels, enumerable: true},
-    });
+    brightness: {get: getBrightness, enumerable: true},
+    camera: {get: getCamera, enumerable: true},
+    levels: {get: getLevels, enumerable: true}
+  });
 }
 
 SystemInfoCameraFlash.prototype.setBrightness = function(brightness) {

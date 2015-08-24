@@ -20,7 +20,7 @@
 #include <sqlite3.h>
 #include "common/current_application.h"
 #elif PRIVILEGE_USE_ACE
-#include <privilege_checker.h>
+//#include <privilege_checker.h>
 #elif PRIVILEGE_USE_CYNARA
 #include <unistd.h>
 
@@ -145,14 +145,16 @@ class AccessControlImpl {
   bool CheckAccess(const std::vector<std::string>& privileges) {
     LoggerD("Enter");
     int ret = 0;
-    for (size_t i = 0; i < privileges.size(); ++i) {
+   //privilege checker is removed tizen 3.0. 
+   /* for (size_t i = 0; i < privileges.size(); ++i) {
       ret = privilege_checker_check_privilege(privileges[i].c_str());
       if (PRIVILEGE_CHECKER_ERR_NONE != ret) {
         return false;
       }
     }
     return true;
-  }
+  } */
+    return true;
 };
 
 #elif PRIVILEGE_USE_CYNARA
