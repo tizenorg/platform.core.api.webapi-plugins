@@ -1520,9 +1520,19 @@ PlatformResult CalendarItem::FromJson(int type, calendar_record_h rec,
   }
 
   int is_all_day = common::FromJson<bool>(in, "isAllDay");
+  const std::string& start_property = "startDate";
+  const std::string& end_property =
+      (type == CALENDAR_BOOK_TYPE_EVENT) ? "endDate" : "dueDate";
 
-  if (!common::IsNull(in, "startDate")) {
-    Date start = DateFromJson(in, "startDate");
+  std::string start_label = start_property;
+  if (common::IsNull(in, start_property.c_str())
+      && !common::IsNull(in, end_property.c_str())) {
+    // start date is not set, but end date is present, use it instead
+    start_label = end_property;
+  }
+
+  if (!common::IsNull(in, start_label.c_str())) {
+    Date start = DateFromJson(in, start_label.c_str());
 
     status = SetCaltime(type, rec, "startDate_time",
                         DateToPlatform(start, is_all_day));
@@ -1538,19 +1548,24 @@ PlatformResult CalendarItem::FromJson(int type, calendar_record_h rec,
     }
   }
 
-  const std::string& endProperty =
-      (type == CALENDAR_BOOK_TYPE_EVENT) ? "endDate" : "dueDate";
-  if (!common::IsNull(in, endProperty.c_str())) {
-    Date end = DateFromJson(in, endProperty.c_str());
+  std::string end_label = end_property;
+  if (!common::IsNull(in, start_property.c_str())
+        && common::IsNull(in, end_property.c_str())) {
+    // end date is not set, but start date is present, use it instead
+    end_label = start_property;
+  }
 
-    status = SetCaltime(type, rec, endProperty + "_time",
+  if (!common::IsNull(in, end_label.c_str())) {
+    Date end = DateFromJson(in, end_label.c_str());
+
+    status = SetCaltime(type, rec, end_property + "_time",
                         DateToPlatform(end, is_all_day));
     if (status.IsError()) {
       LoggerE("Error: %s", status.message().c_str());
       return status;
     }
 
-    status = SetString(type, rec, endProperty + "_tzid", end.time_zone_);
+    status = SetString(type, rec, end_property + "_tzid", end.time_zone_);
     if (status.IsError()) {
       LoggerE("Error: %s", status.message().c_str());
       return status;
