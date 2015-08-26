@@ -71,7 +71,7 @@
               'defines': ['PRIVILEGE_USE_ACE'],
               'variables': {
                 'packages': [
-                  'capi-security-privilege-manager',
+                  'security-privilege-checker',
                 ],
               },
             }],

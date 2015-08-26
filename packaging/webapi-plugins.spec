@@ -321,7 +321,7 @@ BuildRequires: pkgconfig(capi-content-media-content)
 BuildRequires: pkgconfig(capi-media-metadata-extractor)
 
 %if "%{?tizen_privilege_engine}" == "ACE"
-BuildRequires: pkgconfig(capi-security-privilege-manager)
+BuildRequires: pkgconfig(security-privilege-checker)
 %endif
 
 %if "%{?tizen_privilege_engine}" == "CYNARA"
