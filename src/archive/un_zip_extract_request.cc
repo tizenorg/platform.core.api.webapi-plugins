@@ -421,7 +421,6 @@ PlatformResult UnZipExtractRequest::handleFileEntry()
     }
     m_delete_output_file = true;
 
-    int read_size = 0;
     bool marked_as_finished = false;
 
     LoggerD("Started extracting: [%s] uncompressed size: %d - %s", m_filename_inzip,
@@ -448,7 +447,7 @@ PlatformResult UnZipExtractRequest::handleFileEntry()
             return PlatformResult(ErrorCode::OPERATION_CANCELED_ERR);
         }
 
-        read_size = unzReadCurrentFile(m_owner.m_unzip, m_buffer, buffer_size);
+        int read_size = unzReadCurrentFile(m_owner.m_unzip, m_buffer, buffer_size);
         if (read_size < 0) {
             LoggerE("unzReadCurrentFile failed with error code:%d for file:%s", read_size,
                     m_filename_inzip);
