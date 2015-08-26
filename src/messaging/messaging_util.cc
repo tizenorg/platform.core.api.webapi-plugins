@@ -35,6 +35,7 @@
 #include "tizen/tizen.h"
 #include "common/logger.h"
 #include "common/platform_exception.h"
+#include "common/scope_exit.h"
 #include "common/assert.h"
 
 using common::ErrorCode;
@@ -317,8 +318,12 @@ std::string PerformConversion(const std::string& input, const gchar* from_charse
 
   if ((GIConv)-1 == cd) {
     LoggerE("Failed to open iconv.");
-    return "";
+    return input;
   }
+
+  SCOPE_EXIT {
+    g_iconv_close(cd);
+  };
 
   // copied from glib/gconvert.c, g_convert does not handle "//IGNORE" properly
   static const gsize kNulTerminatorLength = 4;
@@ -337,10 +342,14 @@ std::string PerformConversion(const std::string& input, const gchar* from_charse
 
   outp = dest = static_cast<gchar*>(g_malloc(outbuf_size));
 
-  if (!outp) {
+  if (!dest) {
     LoggerE("Failed to allocate memory.");
     return input;
   }
+
+  SCOPE_EXIT {
+    g_free(dest);
+  };
 
   while (!done && !have_error) {
     gsize err = 0;
@@ -404,8 +413,6 @@ std::string PerformConversion(const std::string& input, const gchar* from_charse
     have_error = TRUE;
   }
 
-  g_iconv_close(cd);
-
   std::string result;
 
   if (!have_error) {
@@ -413,8 +420,6 @@ std::string PerformConversion(const std::string& input, const gchar* from_charse
   } else {
     LoggerE("Conversion error");
   }
-
-  g_free(dest);
 
   return result;
 }
