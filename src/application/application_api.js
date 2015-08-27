@@ -673,6 +673,7 @@ Application.prototype.addEventListener = function(event, callback) {
     _checkEventName(args.event.name);
     _checkAppId(args.event.appId);
 
+    // the 'event.' prefix is required by platform
     data.name = 'event.' + args.event.appId + '.' + args.event.name;
 //  }
 
@@ -684,7 +685,11 @@ Application.prototype.addEventListener = function(event, callback) {
   if (!Object.keys(event_listeners_[data.name]).length) {
     native.addListener(data.name, function(msg) {
       var eventName = msg.name;
-      var event = eventName.split('.').pop();
+      var event = eventName.split('.');
+      event = {
+        appId: event.slice(1, -1).join('.'), // app ID is everything besides the 'event' prefix and event name
+        name: event[event.length - 1]  // event name cannot contain '.', so it's always the last element in array
+      };
       for (var id in event_listeners_[eventName]) {
         if (event_listeners_[eventName].hasOwnProperty(id)) {
           if (msg.data) {
@@ -692,7 +697,7 @@ Application.prototype.addEventListener = function(event, callback) {
           } else {
             delete msg.name;
             msg.type = event; //TODO: type should come from native site
-            event_listeners_[eventName][id](event.toUpperCase(), msg);
+            event_listeners_[eventName][id](event, msg);
           }
         }
       }
