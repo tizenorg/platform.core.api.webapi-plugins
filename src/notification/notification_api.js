@@ -226,6 +226,8 @@ NotificationManager.prototype.getAll = function() {
  * @param flags Array
  */
 NotificationManager.prototype.playLEDCustomEffect = function(timeOn, timeOff, color, flags) {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.LED);
+
   var args = validator_.validateArgs(arguments, [
     {name: 'timeOn', type: types_.LONG},
     {name: 'timeOff', type: types_.LONG},
@@ -250,6 +252,8 @@ NotificationManager.prototype.playLEDCustomEffect = function(timeOn, timeOff, co
  * Stops the custom effect of the service LED that is located to the front of a device.
  */
 NotificationManager.prototype.stopLEDCustomEffect = function() {
+  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.LED);
+
   var result = native_.callSync('NotificationManager_stopLEDCustomEffect');
   if (native_.isFailure(result)) {
     throw native_.getErrorObject(result);
