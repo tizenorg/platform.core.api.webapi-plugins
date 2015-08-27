@@ -364,15 +364,6 @@ File.prototype.copyTo = function(originFilePath, destinationFilePath, overwrite,
     return;
   }
 
-  var lastChar;
-  var addFilenameToPath = false;
-  if (args.destinationFilePath.length) {
-    lastChar = args.destinationFilePath.substr(args.destinationFilePath.length - 1);
-    if (lastChar === '/') {
-      addFilenameToPath = true;
-    }
-  }
-
   var _realOriginalPath = commonFS_.toRealPath(args.originFilePath);
   var _realDestinationPath = commonFS_.toRealPath(args.destinationFilePath);
 
@@ -403,13 +394,45 @@ File.prototype.copyTo = function(originFilePath, destinationFilePath, overwrite,
   }
   var _oldNode = native_.getResultObject(resultOldPath);
 
-  if (_oldNode.isFile && addFilenameToPath) {
-    _realDestinationPath = _realDestinationPath + _realOriginalPath.split('/').pop();
+  var addFileName = false;
+  var lastChar = _realDestinationPath.substr(_realDestinationPath.length -1);
+
+  var resultNewPath = native_.callSync('File_statSync', {location: _realDestinationPath});
+  if (native_.isSuccess(resultNewPath)) {
+    var _newNode = native_.getResultObject(resultNewPath);
+    if (_newNode.isDirectory) {
+      if (lastChar !== '/') {
+        _realDestinationPath += '/';
+      }
+      addFileName = true;
+    }
+  } else {
+    var destinationFileName, destinationDirectoryPath;
+    if (lastChar !== '/') {
+      destinationFileName = _realDestinationPath.split('/').pop();
+    }
+    destinationDirectoryPath = _realDestinationPath.substr(0, _realDestinationPath.lastIndexOf('/') + 1);
+
+    var resultDestinationDirectory = native_.callSync('File_statSync', {location: destinationDirectoryPath});
+    if (native_.isFailure(resultDestinationDirectory)) {
+      setTimeout(function() {
+        native_.callIfPossible(args.onerror, native_.getErrorObject(resultDestinationDirectory));
+      }, 0);
+      return;
+    }
+
+    if (destinationFileName.length == 0) {
+      addFileName = true;
+    }
+  }
+
+  if (_oldNode.isFile && addFileName) {
+    _realDestinationPath += _realOriginalPath.split('/').pop();
   }
 
   if (!args.overwrite) {
-    var resultNewPath = native_.callSync('File_statSync', {location: _realDestinationPath});
-    if (native_.isSuccess(resultNewPath)) {
+    var resultPath = native_.callSync('File_statSync', {location: _realDestinationPath});
+    if (native_.isSuccess(resultPath)) {
       setTimeout(function() {
         native_.callIfPossible(args.onerror,
             new WebAPIException(WebAPIException.IO_ERR, 'Overwrite is not allowed'));
