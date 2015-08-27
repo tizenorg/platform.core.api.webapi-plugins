@@ -39,7 +39,7 @@ function convertColorToInt(rgbaColor) {
   }
 
   if (!isLengthOk || !isHash || !isHex) {
-    throw new tizen.WebAPIException(tizen.WebAPIException.INVALID_VALUES_ERR, 'invalid value');
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR, 'invalid value');
   }
 
   return parseInt('0x' + c);
