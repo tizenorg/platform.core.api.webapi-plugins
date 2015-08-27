@@ -21,7 +21,9 @@
 
 #include <string>
 #include <map>
+#include <mutex>
 #include <functional>
+#include <unordered_set>
 
 #include "common/platform_exception.h"
 #include "common/platform_result.h"
@@ -102,6 +104,8 @@ class Instance {
   Instance();
   virtual ~Instance();
 
+  static void PostMessage(Instance* that, const char* msg);
+
   void PostMessage(const char* msg);
   void PostData(const char* msg, uint8_t* buffer, size_t len);
   void SendSyncReply(const char* reply);
@@ -119,6 +123,9 @@ class Instance {
 
  private:
   friend class Extension;
+
+  static std::mutex instance_mutex_;
+  static std::unordered_set<Instance*> all_instances_;
 
   XW_Instance xw_instance_;
 };

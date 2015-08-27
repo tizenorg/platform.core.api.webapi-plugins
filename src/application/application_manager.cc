@@ -453,7 +453,7 @@ void ApplicationManager::Launch(const picojson::value& args) {
   };
 
   auto launch_response = [this](const std::shared_ptr<picojson::value>& response) -> void {
-    this->instance_.PostMessage(response->serialize().c_str());
+    Instance::PostMessage(&this->instance_, response->serialize().c_str());
   };
 
   TaskQueue::GetInstance().Queue<picojson::value>(launch, launch_response, response);
