@@ -31,8 +31,9 @@
 namespace extension {
 namespace systeminfo {
 
-using namespace common;
-using namespace extension::systeminfo;
+using common::PlatformResult;
+using common::ErrorCode;
+using common::TypeMismatchException;
 
 //Callback functions declarations
 static void OnBatteryChangedCallback(SysteminfoInstance& instance);
@@ -178,33 +179,7 @@ void SysteminfoInstance::GetPropertyValue(const picojson::value& args, picojson:
 
 void SysteminfoInstance::GetPropertyValueArray(const picojson::value& args, picojson::object& out) {
   LoggerD("Enter");
-  CHECK_EXIST(args, "callbackId", out)
-  CHECK_EXIST(args, "property", out)
-  const double callback_id = args.get("callbackId").get<double>();
-  const std::string& prop_id = args.get("property").get<std::string>();
-  LoggerD("Getting property arrray with id: %s ", prop_id.c_str());
-
-  auto get = [this, prop_id, callback_id](const std::shared_ptr<picojson::value>& response) -> void {
-    LoggerD("Getting");
-    picojson::value result = picojson::value(picojson::object());
-    PlatformResult ret = SysteminfoUtils::GetPropertyValue(prop_id, true, result);
-    if (ret.IsError()) {
-      LoggerE("Failed: GetPropertyValue()");
-      ReportError(ret,&(response->get<picojson::object>()));
-      return;
-    }
-    ReportSuccess(result, response->get<picojson::object>());
-  };
-
-  auto get_response = [this, callback_id](const std::shared_ptr<picojson::value>& response) -> void {
-    LoggerD("Getting response");
-    picojson::object& obj = response->get<picojson::object>();
-    obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
-    Instance::PostMessage(this, response->serialize().c_str());
-  };
-
-  TaskQueue::GetInstance().Queue<picojson::value>
-  (get, get_response, std::shared_ptr<picojson::value>(new picojson::value(picojson::object())));
+  manager_.GetPropertyValueArray(args, &out);
 }
 
 void SysteminfoInstance::AddPropertyValueChangeListener(const picojson::value& args, picojson::object& out) {
@@ -261,66 +236,6 @@ void SysteminfoInstance::AddPropertyValueChangeListener(const picojson::value& a
   ReportError(ret, &out);
 }
 
-void SysteminfoInstance::GetTotalMemory(const picojson::value& args, picojson::object& out) {
-  LoggerD("Enter");
-  picojson::value result = picojson::value(picojson::object());
-  picojson::object& result_obj = result.get<picojson::object>();
-
-  long long return_value = 0;
-  PlatformResult ret = SysteminfoUtils::GetTotalMemory(return_value);
-  if (ret.IsError()) {
-    LoggerD("Error");
-    ReportError(ret, &out);
-    return;
-  }
-  result_obj.insert(std::make_pair("totalMemory",
-                                   picojson::value(static_cast<double>(return_value))));
-
-  ReportSuccess(result, out);
-  LoggerD("Success");
-}
-
-void SysteminfoInstance::GetAvailableMemory(const picojson::value& args, picojson::object& out) {
-  LoggerD("Enter");
-  picojson::value result = picojson::value(picojson::object());
-  picojson::object& result_obj = result.get<picojson::object>();
-
-  long long return_value = 0;
-  PlatformResult ret = SysteminfoUtils::GetAvailableMemory(return_value);
-  if (ret.IsError()) {
-    LoggerD("Error");
-    ReportError(ret, &out);
-    return;
-  }
-  result_obj.insert(std::make_pair("availableMemory",
-                                   picojson::value(static_cast<double>(return_value))));
-
-  ReportSuccess(result, out);
-  LoggerD("Success");
-}
-
-void SysteminfoInstance::GetCount(const picojson::value& args, picojson::object& out) {
-
-  LoggerD("Enter");
-  CHECK_EXIST(args, "property", out)
-  const std::string& property = args.get("property").get<std::string>();
-  LoggerD("Getting count of property with id: %s ", property.c_str());
-
-  picojson::value result = picojson::value(picojson::object());
-  picojson::object& result_obj = result.get<picojson::object>();
-  unsigned long count = 0;
-  PlatformResult ret = SysteminfoUtils::GetCount(property, count);
-  if (ret.IsError()) {
-    LoggerE("Failed: GetCount()");
-    ReportError(ret, &out);
-    return;
-  }
-  result_obj.insert(std::make_pair("count", picojson::value(static_cast<double>(count))));
-
-  ReportSuccess(result, out);
-  LoggerD("Success");
-}
-
 void SysteminfoInstance::RemovePropertyValueChangeListener(const picojson::value& args, picojson::object& out) {
   LoggerD("Enter");
 
@@ -375,9 +290,20 @@ void SysteminfoInstance::RemovePropertyValueChangeListener(const picojson::value
   ReportError(ret, &out);
 }
 
-static void ReportSuccess(const picojson::value& result, picojson::object& out) {
-  out.insert(std::make_pair("status", picojson::value("success")));
-  out.insert(std::make_pair("result",  picojson::value(result)));
+void SysteminfoInstance::GetTotalMemory(const picojson::value& args, picojson::object& out) {
+  LoggerD("Enter");
+  manager_.GetTotalMemory(args, &out);
+}
+
+void SysteminfoInstance::GetAvailableMemory(const picojson::value& args, picojson::object& out) {
+  LoggerD("Enter");
+  manager_.GetAvailableMemory(args, &out);
+}
+
+void SysteminfoInstance::GetCount(const picojson::value& args, picojson::object& out) {
+
+  LoggerD("Enter");
+  manager_.GetCount(args, &out);
 }
 
 void SysteminfoInstance::SetBrightness(const picojson::value& args, picojson::object& out) {
@@ -437,11 +363,11 @@ void OnBatteryChangedCallback(SysteminfoInstance& instance)
   response->get<picojson::object>()[kListenerIdString] = picojson::value(kListenerConstValue);
 
   picojson::value result = picojson::value(picojson::object());
-  PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdBattery, true, result);
-  if (ret.IsSuccess()) {
-    ReportSuccess(result,response->get<picojson::object>());
-    Instance::PostMessage(&instance, response->serialize().c_str());
-  }
+//  PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdBattery, true, result);
+//  if (ret.IsSuccess()) {
+//    ReportSuccess(result,response->get<picojson::object>());
+//    Instance::PostMessage(&instance, response->serialize().c_str());
+//  }
 }
 
 void OnCpuChangedCallback(SysteminfoInstance& instance)
@@ -453,11 +379,11 @@ void OnCpuChangedCallback(SysteminfoInstance& instance)
   response->get<picojson::object>()[kListenerIdString] = picojson::value(kListenerConstValue);
 
   picojson::value result = picojson::value(picojson::object());
-  PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdCpu, true, result);
-  if (ret.IsSuccess()) {
-    ReportSuccess(result,response->get<picojson::object>());
-    Instance::PostMessage(&instance, response->serialize().c_str());
-  }
+//  PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdCpu, true, result);
+//  if (ret.IsSuccess()) {
+//    ReportSuccess(result,response->get<picojson::object>());
+//    Instance::PostMessage(&instance, response->serialize().c_str());
+//  }
 }
 
 void OnStorageChangedCallback(SysteminfoInstance& instance)
@@ -469,11 +395,11 @@ void OnStorageChangedCallback(SysteminfoInstance& instance)
   response->get<picojson::object>()[kListenerIdString] = picojson::value(kListenerConstValue);
 
   picojson::value result = picojson::value(picojson::object());
-  PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdStorage, true, result);
-  if (ret.IsSuccess()) {
-    ReportSuccess(result,response->get<picojson::object>());
-    Instance::PostMessage(&instance, response->serialize().c_str());
-  }
+//  PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdStorage, true, result);
+//  if (ret.IsSuccess()) {
+//    ReportSuccess(result,response->get<picojson::object>());
+//    Instance::PostMessage(&instance, response->serialize().c_str());
+//  }
 }
 
 void OnDisplayChangedCallback(SysteminfoInstance& instance)
@@ -485,11 +411,11 @@ void OnDisplayChangedCallback(SysteminfoInstance& instance)
   response->get<picojson::object>()[kListenerIdString] = picojson::value(kListenerConstValue);
 
   picojson::value result = picojson::value(picojson::object());
-  PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdDisplay, true, result);
-  if (ret.IsSuccess()) {
-    ReportSuccess(result,response->get<picojson::object>());
-    Instance::PostMessage(&instance, response->serialize().c_str());
-  }
+//  PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdDisplay, true, result);
+//  if (ret.IsSuccess()) {
+//    ReportSuccess(result,response->get<picojson::object>());
+//    Instance::PostMessage(&instance, response->serialize().c_str());
+//  }
 }
 
 void OnDeviceOrientationChangedCallback(SysteminfoInstance& instance)
@@ -501,11 +427,11 @@ void OnDeviceOrientationChangedCallback(SysteminfoInstance& instance)
   response->get<picojson::object>()[kListenerIdString] = picojson::value(kListenerConstValue);
 
   picojson::value result = picojson::value(picojson::object());
-  PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdDeviceOrientation, true, result);
-  if (ret.IsSuccess()) {
-    ReportSuccess(result,response->get<picojson::object>());
-    Instance::PostMessage(&instance, response->serialize().c_str());
-  }
+//  PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdDeviceOrientation, true, result);
+//  if (ret.IsSuccess()) {
+//    ReportSuccess(result,response->get<picojson::object>());
+//    Instance::PostMessage(&instance, response->serialize().c_str());
+//  }
 }
 
 void OnLocaleChangedCallback(SysteminfoInstance& instance)
@@ -517,11 +443,11 @@ void OnLocaleChangedCallback(SysteminfoInstance& instance)
   response->get<picojson::object>()[kListenerIdString] = picojson::value(kListenerConstValue);
 
   picojson::value result = picojson::value(picojson::object());
-  PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdLocale, true, result);
-  if (ret.IsSuccess()) {
-    ReportSuccess(result,response->get<picojson::object>());
-    Instance::PostMessage(&instance, response->serialize().c_str());
-  }
+//  PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdLocale, true, result);
+//  if (ret.IsSuccess()) {
+//    ReportSuccess(result,response->get<picojson::object>());
+//    Instance::PostMessage(&instance, response->serialize().c_str());
+//  }
 }
 
 void OnNetworkChangedCallback(SysteminfoInstance& instance)
@@ -533,11 +459,11 @@ void OnNetworkChangedCallback(SysteminfoInstance& instance)
   response->get<picojson::object>()[kListenerIdString] = picojson::value(kListenerConstValue);
 
   picojson::value result = picojson::value(picojson::object());
-  PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdNetwork, true, result);
-  if (ret.IsSuccess()) {
-    ReportSuccess(result,response->get<picojson::object>());
-    Instance::PostMessage(&instance, response->serialize().c_str());
-  }
+//  PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdNetwork, true, result);
+//  if (ret.IsSuccess()) {
+//    ReportSuccess(result,response->get<picojson::object>());
+//    Instance::PostMessage(&instance, response->serialize().c_str());
+//  }
 }
 
 void OnWifiNetworkChangedCallback(SysteminfoInstance& instance)
@@ -549,11 +475,11 @@ void OnWifiNetworkChangedCallback(SysteminfoInstance& instance)
   response->get<picojson::object>()[kListenerIdString] = picojson::value(kListenerConstValue);
 
   picojson::value result = picojson::value(picojson::object());
-  PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdWifiNetwork, true, result);
-  if (ret.IsSuccess()) {
-    ReportSuccess(result,response->get<picojson::object>());
-    Instance::PostMessage(&instance, response->serialize().c_str());
-  }
+//  PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdWifiNetwork, true, result);
+//  if (ret.IsSuccess()) {
+//    ReportSuccess(result,response->get<picojson::object>());
+//    Instance::PostMessage(&instance, response->serialize().c_str());
+//  }
 }
 
 void OnEthernetNetworkChangedCallback(SysteminfoInstance& instance)
@@ -565,11 +491,11 @@ void OnEthernetNetworkChangedCallback(SysteminfoInstance& instance)
   response->get<picojson::object>()[kListenerIdString] = picojson::value(kListenerConstValue);
 
   picojson::value result = picojson::value(picojson::object());
-  PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdEthernetNetwork, true, result);
-  if (ret.IsSuccess()) {
-    ReportSuccess(result,response->get<picojson::object>());
-    Instance::PostMessage(&instance, response->serialize().c_str());
-  }
+//  PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdEthernetNetwork, true, result);
+//  if (ret.IsSuccess()) {
+//    ReportSuccess(result,response->get<picojson::object>());
+//    Instance::PostMessage(&instance, response->serialize().c_str());
+//  }
 }
 
 void OnCellularNetworkChangedCallback(SysteminfoInstance& instance)
@@ -581,11 +507,11 @@ void OnCellularNetworkChangedCallback(SysteminfoInstance& instance)
   response->get<picojson::object>()[kListenerIdString] = picojson::value(kListenerConstValue);
 
   picojson::value result = picojson::value(picojson::object());
-  PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdCellularNetwork, true, result);
-  if (ret.IsSuccess()) {
-    ReportSuccess(result,response->get<picojson::object>());
-    Instance::PostMessage(&instance, response->serialize().c_str());
-  }
+//  PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdCellularNetwork, true, result);
+//  if (ret.IsSuccess()) {
+//    ReportSuccess(result,response->get<picojson::object>());
+//    Instance::PostMessage(&instance, response->serialize().c_str());
+//  }
 }
 
 void OnPeripheralChangedCallback(SysteminfoInstance& instance)
@@ -597,11 +523,11 @@ void OnPeripheralChangedCallback(SysteminfoInstance& instance)
   response->get<picojson::object>()[kListenerIdString] = picojson::value(kListenerConstValue);
 
   picojson::value result = picojson::value(picojson::object());
-  PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdPeripheral, true, result);
-  if (ret.IsSuccess()) {
-    ReportSuccess(result,response->get<picojson::object>());
-    Instance::PostMessage(&instance, response->serialize().c_str());
-  }
+//  PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdPeripheral, true, result);
+//  if (ret.IsSuccess()) {
+//    ReportSuccess(result,response->get<picojson::object>());
+//    Instance::PostMessage(&instance, response->serialize().c_str());
+//  }
 }
 
 void OnMemoryChangedCallback(SysteminfoInstance& instance)
@@ -613,11 +539,11 @@ void OnMemoryChangedCallback(SysteminfoInstance& instance)
   response->get<picojson::object>()[kListenerIdString] = picojson::value(kListenerConstValue);
 
   picojson::value result = picojson::value(picojson::object());
-  PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdMemory, true, result);
-  if (ret.IsSuccess()) {
-    ReportSuccess(result,response->get<picojson::object>());
-    Instance::PostMessage(&instance, response->serialize().c_str());
-  }
+//  PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdMemory, true, result);
+//  if (ret.IsSuccess()) {
+//    ReportSuccess(result,response->get<picojson::object>());
+//    Instance::PostMessage(&instance, response->serialize().c_str());
+//  }
 }
 
 void OnBrigthnessChangedCallback(SysteminfoInstance &instance)
@@ -629,11 +555,11 @@ void OnBrigthnessChangedCallback(SysteminfoInstance &instance)
     response->get<picojson::object>()[kListenerIdString] = picojson::value(kListenerConstValue);
 
     picojson::value result = picojson::value(picojson::object());
-    PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdCameraFlash, true, result);
-    if (ret.IsSuccess()) {
-      ReportSuccess(result,response->get<picojson::object>());
-      Instance::PostMessage(&instance, response->serialize().c_str());
-    }
+//    PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdCameraFlash, true, result);
+//    if (ret.IsSuccess()) {
+//      ReportSuccess(result,response->get<picojson::object>());
+//      Instance::PostMessage(&instance, response->serialize().c_str());
+//    }
 }
 
 } // namespace systeminfo
