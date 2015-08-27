@@ -757,10 +757,6 @@ Application.prototype.broadcastEvent = function(event, data) {
 
   _checkEventName(args.event.name);
 
-  if (this.appInfo.id !== args.event.appId) {
-    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR, 'Invalid appId');
-  }
-
   var nativeData = {
     name: 'event.' + this.appInfo.id + '.' + args.event.name,
     data: args.data
@@ -780,10 +776,6 @@ Application.prototype.broadcastTrustedEvent = function(event, data) {
   ]);
 
   _checkEventName(args.event.name);
-
-  if (this.appInfo.id !== args.event.appId) {
-    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR, 'Invalid appId');
-  }
 
   var nativeData = {
     name: 'event.' + this.appInfo.id + '.' + args.event.name,
