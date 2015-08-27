@@ -21,6 +21,8 @@
         'systeminfo_manager.h',
         'systeminfo_device_capability.cc',
         'systeminfo_device_capability.h',
+        'systeminfo_properties_manager.cc',
+        'systeminfo_properties_manager.h',
       ],
       'includes': [
         '../common/pkg-config.gypi',
