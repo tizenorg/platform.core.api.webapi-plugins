@@ -61,24 +61,6 @@ const char* kThuesdayShort = "TH";
 const char* kFridayShort = "FR";
 const char* kSaturdayShort = "SA";
 
-int AlarmScheduleExactAfterDelay(app_control_h app_control, int delay,
-                                  int period, int *alarm_id) {
-  bundle* bundle_data = nullptr;
-
-  if (nullptr == app_control) {
-    LoggerE("app_control is invalid");
-    return ALARM_ERROR_INVALID_PARAMETER;
-  }
-
-  if (APP_CONTROL_ERROR_NONE != app_control_to_bundle(app_control, &bundle_data)) {
-    LoggerE("Failed to conver app control to bundle");
-    return ALARM_ERROR_INVALID_PARAMETER;
-  }
-
-  int result = alarmmgr_add_alarm_appsvc(ALARM_TYPE_DEFAULT, delay, period, bundle_data, alarm_id);
-  return (ALARMMGR_RESULT_SUCCESS == result) ? ALARM_ERROR_NONE : ALARM_ERROR_INVALID_PARAMETER;
-}
-
 }
 
 AlarmManager::AlarmManager() {
@@ -156,7 +138,7 @@ void AlarmManager::Add(const picojson::value& args, picojson::object& out) {
       return;
     }
 
-    ret = AlarmScheduleExactAfterDelay(app_control, delay, period, &alarm_id);
+    ret = alarm_schedule_after_delay(app_control, delay, period, &alarm_id);
     if (ALARM_ERROR_NONE != ret) {
       LoggerE("Error while add alarm to server.");
       ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Error while add alarm to server."), &out);
