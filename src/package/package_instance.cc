@@ -85,7 +85,7 @@ static gboolean PackageAfterWork(
   userData->data_["callbackId"] =
       picojson::value(static_cast<double>(userData->callback_id_));
   picojson::value result = picojson::value(userData->data_);
-  userData->instance_->PostMessage(result.serialize().c_str());
+  common::Instance::PostMessage(userData->instance_, result.serialize().c_str());
 
   return FALSE;
 }
@@ -287,7 +287,7 @@ void PackageInstance::InvokeCallback(
   param["callbackId"] = picojson::value(
       static_cast<double>(callback_id));
   picojson::value result = picojson::value(param);
-  PostMessage(result.serialize().c_str());
+  Instance::PostMessage(this, result.serialize().c_str());
 }
 
 void PackageInstance::PackageManagerInstall(
@@ -430,7 +430,7 @@ void PackageInstance::PackageManagerGetDataSize(const picojson::value& args,
 void PackageInstance::InvokeListener(picojson::object& param) {
   LoggerD("Enter");
   picojson::value result = picojson::value(param);
-  PostMessage(result.serialize().c_str());
+  Instance::PostMessage(this, result.serialize().c_str());
 }
 
 void PackageInstance::

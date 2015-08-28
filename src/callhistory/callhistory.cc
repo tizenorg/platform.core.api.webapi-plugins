@@ -633,7 +633,7 @@ void CallHistory::PostMessage(const CallHistory* instance, const std::string& ms
 
   for (auto it = instances_.begin(); it != instances_.end(); ++it) {
     if (*it == instance) {
-      instance->instance_.PostMessage(msg.c_str());
+      Instance::PostMessage(&instance->instance_, msg.c_str());
       return;
     }
   }

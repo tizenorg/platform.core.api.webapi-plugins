@@ -112,7 +112,7 @@ void AccountInstance::AccountGetExtendedData(const picojson::value& args,
 
   auto get_extended_data_result = [this, callback_id](const std::shared_ptr<picojson::value>& result) {
     result->get<picojson::object>()["callbackId"] = picojson::value{static_cast<double>(callback_id)};
-    this->PostMessage(result->serialize().c_str());
+    Instance::PostMessage(this, result->serialize().c_str());
   };
 
   TaskQueue::GetInstance().Queue<picojson::value>(
@@ -180,7 +180,7 @@ void AccountInstance::AccountManagerGetAccounts(const picojson::value& args,
 
   auto get_accounts_result = [this, callback_id](const std::shared_ptr<picojson::value>& result) {
     result->get<picojson::object>()["callbackId"] = picojson::value{static_cast<double>(callback_id)};
-    this->PostMessage(result->serialize().c_str());
+    Instance::PostMessage(this, result->serialize().c_str());
   };
 
   TaskQueue::GetInstance().Queue<picojson::value>(
@@ -219,7 +219,7 @@ void AccountInstance::AccountManagerGetProviders(const picojson::value& args,
 
   auto get_providers_result = [this, callback_id](const std::shared_ptr<picojson::value>& result) {
     result->get<picojson::object>()["callbackId"] = picojson::value{static_cast<double>(callback_id)};
-    this->PostMessage(result->serialize().c_str());
+    Instance::PostMessage(this, result->serialize().c_str());
   };
 
   TaskQueue::GetInstance().Queue<picojson::value>(
@@ -233,7 +233,7 @@ void AccountInstance::AccountManagerGetProviders(const picojson::value& args,
 void AccountInstance::InvokeListener(picojson::object& param) {
   LoggerD("Enter");
   picojson::value result = picojson::value(param);
-  PostMessage(result.serialize().c_str());
+  Instance::PostMessage(this, result.serialize().c_str());
 }
 
 static bool AccountEventCb(const char *event_type, int account_id,

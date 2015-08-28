@@ -88,7 +88,7 @@ static gboolean CompletedCallback(const std::shared_ptr<ReplyCallbackData>& user
     ReportError(user_data->isSuccess, &out);
   }
 
-  user_data->instance->PostMessage(picojson::value(out).serialize().c_str());
+  common::Instance::PostMessage(user_data->instance, picojson::value(out).serialize().c_str());
 
   return false;
 }
@@ -191,7 +191,7 @@ static void ScanDirectoryCallback(media_content_error_e error, void* user_data) 
     ReportError(out);
   }
 
-  cbData->instance->PostMessage(picojson::value(out).serialize().c_str());
+  common::Instance::PostMessage(cbData->instance, picojson::value(out).serialize().c_str());
 }
 
 
@@ -269,7 +269,7 @@ static void changedContentCallback(media_content_error_e error,
   }
 
   obj["listenerId"] = cbData->args.get("listenerId");
-  cbData->instance->PostMessage(result.serialize().c_str());
+  common::Instance::PostMessage(cbData->instance, result.serialize().c_str());
 }
 
 

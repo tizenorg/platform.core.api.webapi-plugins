@@ -82,7 +82,7 @@ void SystemSettingInstance::getProperty(const picojson::value& args, picojson::o
     LoggerD("Getting response");
     picojson::object& obj = response->get<picojson::object>();
     obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
-    PostMessage(response->serialize().c_str());
+    Instance::PostMessage(this, response->serialize().c_str());
   };
 
   TaskQueue::GetInstance().Queue<picojson::value>
@@ -158,7 +158,7 @@ void SystemSettingInstance::setProperty(const picojson::value& args, picojson::o
     LoggerD("Getting response");
     picojson::object& obj = response->get<picojson::object>();
     obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
-    PostMessage(response->serialize().c_str());
+    Instance::PostMessage(this, response->serialize().c_str());
   };
 
   TaskQueue::GetInstance().Queue<picojson::value>

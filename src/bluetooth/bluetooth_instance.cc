@@ -205,14 +205,14 @@ void BluetoothInstance::SyncResponse(double callback_handle, const std::shared_p
   LoggerD("Entered");
   auto& obj = response->get<picojson::object>();
   obj[JSON_CALLBACK_ID] = picojson::value(callback_handle);
-  PostMessage(response->serialize().c_str());
+  Instance::PostMessage(this, response->serialize().c_str());
 }
 
 void BluetoothInstance::FireEvent(const std::string& event, picojson::value& value) {
   LoggerD("Entered");
   auto& obj = value.get<picojson::object>();
   obj[JSON_LISTENER_ID] = picojson::value(event);
-  PostMessage(value.serialize().c_str());
+  Instance::PostMessage(this, value.serialize().c_str());
 }
 
 void BluetoothInstance::FireEvent(const std::string& event, const picojson::value& value) {

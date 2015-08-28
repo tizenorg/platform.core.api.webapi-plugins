@@ -105,7 +105,7 @@ static void OnReceiveLocalMessage(int local_port_id,
 
   o["message"] = picojson::value(data);
 
-  object->PostMessage(picojson::value(o).serialize().c_str());
+  common::Instance::PostMessage(object, picojson::value(o).serialize().c_str());
 }
 
 

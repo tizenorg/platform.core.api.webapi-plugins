@@ -636,7 +636,7 @@ static void PostMessage(const char* message, TimeInstance& instance) {
   JsonValue result{JsonObject{}};
   JsonObject& result_obj = result.get<JsonObject>();
   result_obj.insert(std::make_pair("listenerId", picojson::value(message)));
-  instance.PostMessage(result.serialize().c_str());
+  Instance::PostMessage(&instance, result.serialize().c_str());
 }
 
 static void OnTimeChangedCallback(keynode_t* /*node*/, void* user_data) {

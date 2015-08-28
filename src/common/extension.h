@@ -106,7 +106,6 @@ class Instance {
 
   static void PostMessage(Instance* that, const char* msg);
 
-  void PostMessage(const char* msg);
   void PostData(const char* msg, uint8_t* buffer, size_t len);
   void SendSyncReply(const char* reply);
   void SendSyncReply(const char* reply, uint8_t* buffer, size_t len);
@@ -122,6 +121,8 @@ class Instance {
   XW_Instance xw_instance() const { return xw_instance_; }
 
  private:
+  void PostMessage(const char* msg);
+
   friend class Extension;
 
   static std::mutex instance_mutex_;

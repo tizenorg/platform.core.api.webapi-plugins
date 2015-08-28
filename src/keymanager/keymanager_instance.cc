@@ -380,7 +380,7 @@ void KeyManagerInstance::SaveKey(const picojson::value& args,
     LoggerD("Enter save_key_result");
     picojson::object& obj = response->get<picojson::object>();
     obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
-    this->PostMessage(response->serialize().c_str());
+    Instance::PostMessage(this, response->serialize().c_str());
   };
 
   TaskQueue::GetInstance().Queue<picojson::value>(
@@ -488,7 +488,7 @@ void KeyManagerInstance::GenerateKeyPair(const picojson::value& args,
     LoggerD("Enter generate_response");
     picojson::object& obj = response->get<picojson::object>();
     obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
-    this->PostMessage(response->serialize().c_str());
+    Instance::PostMessage(this, response->serialize().c_str());
   };
 
   TaskQueue::GetInstance().Queue<picojson::value>(
@@ -603,7 +603,7 @@ void KeyManagerInstance::SaveCertificate(const picojson::value& args,
   auto save_certificate_result = [this, callback_id](const std::shared_ptr<picojson::value>& result) {
     LoggerD("Enter save_certificate_result");
     result->get<picojson::object>()["callbackId"] = picojson::value{callback_id};
-    this->PostMessage(result->serialize().c_str());
+    Instance::PostMessage(this, result->serialize().c_str());
   };
 
   TaskQueue::GetInstance().Queue<picojson::value>(
@@ -681,7 +681,7 @@ void KeyManagerInstance::LoadCertificateFromFile(const picojson::value& args,
   auto load_certificate_result = [this, callback_id](const std::shared_ptr<picojson::value>& result) {
     LoggerD("Enter load_certificate_result");
     result->get<picojson::object>()["callbackId"] = picojson::value{callback_id};
-    this->PostMessage(result->serialize().c_str());
+    Instance::PostMessage(this, result->serialize().c_str());
   };
 
   TaskQueue::GetInstance().Queue<picojson::value>(
@@ -748,7 +748,7 @@ void KeyManagerInstance::SaveData(const picojson::value& args,
   auto save_data_result = [this, callback_id](const std::shared_ptr<picojson::value>& result) {
     LoggerD("Enter save_data_result");
     result->get<picojson::object>()["callbackId"] = picojson::value{callback_id};
-    this->PostMessage(result->serialize().c_str());
+    Instance::PostMessage(this, result->serialize().c_str());
   };
 
   TaskQueue::GetInstance().Queue<picojson::value>(
@@ -862,7 +862,7 @@ void KeyManagerInstance::CreateSignature(const picojson::value& args,
   auto create_certificate_result = [this, callback_id](const std::shared_ptr<picojson::value>& result) {
     LoggerD("Enter create_certificate_result");
     result->get<picojson::object>()["callbackId"] = picojson::value{callback_id};
-    this->PostMessage(result->serialize().c_str());
+    Instance::PostMessage(this, result->serialize().c_str());
   };
 
   TaskQueue::GetInstance().Queue<picojson::value>(
@@ -932,7 +932,7 @@ void KeyManagerInstance::VerifySignature(const picojson::value& args,
   auto verify_certificate_result = [this, callback_id](const std::shared_ptr<picojson::value>& result) {
     LoggerD("Enter verify_certificate_result");
     result->get<picojson::object>()["callbackId"] = picojson::value{callback_id};
-    this->PostMessage(result->serialize().c_str());
+    Instance::PostMessage(this, result->serialize().c_str());
   };
 
   TaskQueue::GetInstance().Queue<picojson::value>(
@@ -1029,7 +1029,7 @@ void KeyManagerInstance::LoadFromPKCS12File(const picojson::value& args,
   auto load_file_result = [this, callback_id](const std::shared_ptr<picojson::value>& result) {
     LoggerD("Enter load_file_result");
     result->get<picojson::object>()["callbackId"] = picojson::value{callback_id};
-    this->PostMessage(result->serialize().c_str());
+    Instance::PostMessage(this, result->serialize().c_str());
   };
 
   TaskQueue::GetInstance().Queue<picojson::value>(
@@ -1083,7 +1083,7 @@ void KeyManagerInstance::AllowAccessControl(const picojson::value& args,
   auto allow_response = [this, callback_id](const std::shared_ptr<picojson::value>& response) -> void {
     picojson::object& obj = response->get<picojson::object>();
     obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
-    this->PostMessage(response->serialize().c_str());
+    Instance::PostMessage(this, response->serialize().c_str());
   };
 
   TaskQueue::GetInstance().Queue<picojson::value>(
@@ -1118,7 +1118,7 @@ void KeyManagerInstance::DenyAccessControl(const picojson::value& args,
   auto deny_response = [this, callback_id](const std::shared_ptr<picojson::value>& response) -> void {
     picojson::object& obj = response->get<picojson::object>();
     obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
-    this->PostMessage(response->serialize().c_str());
+    Instance::PostMessage(this, response->serialize().c_str());
   };
 
   TaskQueue::GetInstance().Queue<picojson::value>(

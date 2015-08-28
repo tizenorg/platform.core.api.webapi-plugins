@@ -1147,7 +1147,8 @@ void Calendar::ChangeCallback(const char* view_uri, void* user_data) {
     return;
   }
   c->current_db_version_ = updated_version;
-  c->instance_.PostMessage(response.serialize().c_str());
+  LoggerD("-> Calendar::ChangeCallback");
+  Instance::PostMessage(&c->instance_, response.serialize().c_str());
 }
 
 PlatformResult Calendar::ErrorChecker(int errorCode) {

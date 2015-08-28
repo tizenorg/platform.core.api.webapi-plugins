@@ -219,7 +219,7 @@ void SoundManager::VolumeChangeCallback(sound_type_e type, unsigned int value) {
       "volume",
       picojson::value(ConvertToSystemVolume(max_volume, value))));
 
-  instance_.PostMessage(response.serialize().c_str());
+  Instance::PostMessage(&instance_, response.serialize().c_str());
 }
 
 PlatformResult SoundManager::GetSoundMode(std::string* sound_mode_type) {
@@ -561,7 +561,7 @@ void SoundManager::DeviceChangeCB(sound_device_h device, bool is_connected, bool
         "listenerId", picojson::value("SoundDeviceStateChangeCallback")));
 
     auto call_response = [this, response]()->void {
-      instance_.PostMessage(response.serialize().c_str());
+      Instance::PostMessage(&instance_, response.serialize().c_str());
     };
 
     TaskQueue::GetInstance().Async(call_response);

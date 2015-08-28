@@ -189,7 +189,7 @@ void TVAudioInstance::onVolumeChangeCallback(u_int16_t volume) {
     picojson::object& obj = event.get<picojson::object>();
     obj["listenerId"] = picojson::value("VolumeChangeCallback");
     obj["volume"] = picojson::value(static_cast<double>(volume));
-    PostMessage(event.serialize().c_str());
+    Instance::PostMessage(this, event.serialize().c_str());
 }
 
 void TVAudioInstance::playSound(const picojson::value& args,

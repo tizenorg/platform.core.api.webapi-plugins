@@ -123,7 +123,7 @@ void OperationCallbackData::setIsCanceled(bool canceled)
 
 void OperationCallbackData::PostMessage(const char* msg) {
   LoggerD("Enter");
-  instance_.PostMessage(msg);
+  Instance::PostMessage(&instance_, msg);
 }
 
 const ErrorCode& OperationCallbackData::getErrorCode() const
@@ -416,7 +416,7 @@ gboolean BaseProgressCallback::callSuccessCallbackCB(void* data)
 
         LoggerD("%s", val.serialize().c_str());
 
-        callback->instance_.PostMessage(val.serialize().c_str());
+        Instance::PostMessage(&callback->instance_, val.serialize().c_str());
     } else {
         LoggerW("Not calling error callback in such case");
     }
@@ -449,7 +449,7 @@ void BaseProgressCallback::callProgressCallback(long operationId,
 
     LoggerD("%s", val.serialize().c_str());
 
-    instance_.PostMessage(val.serialize().c_str());
+    Instance::PostMessage(&instance_, val.serialize().c_str());
 }
 
 void BaseProgressCallback::callProgressCallbackOnMainThread(const double progress,

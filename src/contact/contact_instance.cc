@@ -131,7 +131,7 @@ void ContactInstance::AddressBookAddBatch(const JsonValue& args,
       [this, callback_id](const std::shared_ptr<JsonValue>& response) {
     JsonObject& obj = response->get<JsonObject>();
     obj["callbackId"] = picojson::value(static_cast<double>(callback_id));
-    PostMessage(response->serialize().c_str());
+    Instance::PostMessage(this, response->serialize().c_str());
   };
 
   TaskQueue::GetInstance().Queue<JsonValue>(
@@ -163,7 +163,7 @@ void ContactInstance::AddressBookRemoveBatch(const JsonValue& args,
       [this, callback_id](const std::shared_ptr<JsonValue>& response) {
     JsonObject& obj = response->get<JsonObject>();
     obj["callbackId"] = picojson::value(static_cast<double>(callback_id));
-    PostMessage(response->serialize().c_str());
+    Instance::PostMessage(this, response->serialize().c_str());
   };
 
   TaskQueue::GetInstance().Queue<JsonValue>(
@@ -195,7 +195,7 @@ void ContactInstance::AddressBookUpdateBatch(const JsonValue& args,
       [this, callback_id](const std::shared_ptr<JsonValue>& response) {
     JsonObject& obj = response->get<JsonObject>();
     obj["callbackId"] = picojson::value(static_cast<double>(callback_id));
-    PostMessage(response->serialize().c_str());
+    Instance::PostMessage(this, response->serialize().c_str());
   };
 
   TaskQueue::GetInstance().Queue<JsonValue>(
@@ -244,7 +244,7 @@ void ContactInstance::AddressBookFind(const JsonValue& args, JsonObject& out) {
       [this, callback_id](const std::shared_ptr<JsonValue>& response) {
     JsonObject& obj = response->get<JsonObject>();
     obj["callbackId"] = picojson::value(static_cast<double>(callback_id));
-    PostMessage(response->serialize().c_str());
+    Instance::PostMessage(this, response->serialize().c_str());
   };
 
   TaskQueue::GetInstance().Queue<JsonValue>(
@@ -326,7 +326,7 @@ void ContactInstance::ContactManagerGetAddressBooks(const JsonValue& args,
       [this, callback_id](const std::shared_ptr<JsonValue>& response) {
     JsonObject& obj = response->get<JsonObject>();
     obj["callbackId"] = picojson::value(static_cast<double>(callback_id));
-    PostMessage(response->serialize().c_str());
+    Instance::PostMessage(this, response->serialize().c_str());
   };
 
   TaskQueue::GetInstance().Queue<JsonValue>(
@@ -434,7 +434,7 @@ void ContactInstance::ContactManagerUpdateBatch(const JsonValue& args,
       [this, callback_id](const std::shared_ptr<JsonValue>& response) {
     JsonObject& obj = response->get<JsonObject>();
     obj["callbackId"] = picojson::value(static_cast<double>(callback_id));
-    PostMessage(response->serialize().c_str());
+    Instance::PostMessage(this, response->serialize().c_str());
   };
 
   TaskQueue::GetInstance().Queue<JsonValue>(
@@ -477,7 +477,7 @@ void ContactInstance::ContactManagerRemoveBatch(const JsonValue& args,
       [this, callback_id](const std::shared_ptr<JsonValue>& response) {
     JsonObject& obj = response->get<JsonObject>();
     obj["callbackId"] = picojson::value(static_cast<double>(callback_id));
-    PostMessage(response->serialize().c_str());
+    Instance::PostMessage(this, response->serialize().c_str());
   };
 
   TaskQueue::GetInstance().Queue<JsonValue>(
@@ -505,7 +505,7 @@ void ContactInstance::ContactManagerFind(const JsonValue& args,
       [this, callback_id](const std::shared_ptr<JsonValue>& response) {
     JsonObject& obj = response->get<JsonObject>();
     obj["callbackId"] = picojson::value(static_cast<double>(callback_id));
-    PostMessage(response->serialize().c_str());
+    Instance::PostMessage(this, response->serialize().c_str());
   };
 
   TaskQueue::GetInstance().Queue<JsonValue>(

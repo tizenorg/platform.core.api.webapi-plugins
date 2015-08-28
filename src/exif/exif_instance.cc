@@ -75,7 +75,7 @@ void ExifInstance::ExifManagerGetExifInfo(const picojson::value& args, picojson:
   auto get_response = [callback_id, this](const std::shared_ptr<JsonValue>& response)->void {
       picojson::object& obj = response->get<picojson::object>();
       obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
-      PostMessage(response->serialize().c_str());
+      Instance::PostMessage(this, response->serialize().c_str());
   };
 
   common::TaskQueue::GetInstance().Queue<JsonValue>(
@@ -108,7 +108,7 @@ void ExifInstance::ExifManagerSaveExifInfo(const picojson::value& args,
   auto get_response = [callback_id, this](const std::shared_ptr<JsonValue>& response) -> void {
       picojson::object& obj = response->get<picojson::object>();
       obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
-      PostMessage(response->serialize().c_str());
+      Instance::PostMessage(this, response->serialize().c_str());
   };
 
   common::TaskQueue::GetInstance().Queue<JsonValue>(get, get_response,
@@ -178,7 +178,7 @@ void ExifInstance::ExifManagerGetThumbnail(const picojson::value& args,
   auto get_response = [callback_id, this](const std::shared_ptr<JsonValue>& response)->void {
       picojson::object& obj = response->get<picojson::object>();
       obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
-      PostMessage(response->serialize().c_str());
+      Instance::PostMessage(this, response->serialize().c_str());
   };
 
   common::TaskQueue::GetInstance().Queue<JsonValue>(

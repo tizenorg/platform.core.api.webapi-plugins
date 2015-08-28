@@ -37,7 +37,7 @@ using namespace extension::nfc;
 
 void NFCInstance::RespondAsync(const char* msg) {
   LoggerD("Entered");
-  PostMessage(msg);
+  Instance::PostMessage(this, msg);
 }
 
 static bool isTagSupported(){
@@ -883,7 +883,7 @@ void NFCInstance::SendHostAPDUResponse(const picojson::value& args,
     picojson::object& response_obj = response.get<picojson::object>();
     response_obj[JSON_CALLBACK_ID] = picojson::value(callback_id);
     ReportSuccess(response_obj);
-    PostMessage(response.serialize().c_str());
+    Instance::PostMessage(this, response.serialize().c_str());
   };
 
   auto error_cb = [this, callback_id](const PlatformResult& error) -> void {
@@ -892,7 +892,7 @@ void NFCInstance::SendHostAPDUResponse(const picojson::value& args,
     picojson::object& response_obj = response.get<picojson::object>();
     response_obj[JSON_CALLBACK_ID] = picojson::value(callback_id);
     ReportError(error, &response_obj);
-    PostMessage(response.serialize().c_str());
+    Instance::PostMessage(this, response.serialize().c_str());
   };
 
   common::TaskQueue::GetInstance().Async(
@@ -1010,7 +1010,7 @@ void NFCInstance::GetAIDsForCategory(const picojson::value& args,
     picojson::object& response_obj = response.get<picojson::object>();
     response_obj[JSON_CALLBACK_ID] = picojson::value(callback_id);
     ReportSuccess(picojson::value(aids), response_obj);
-    PostMessage(response.serialize().c_str());
+    Instance::PostMessage(this, response.serialize().c_str());
   };
 
   auto error_cb = [this, callback_id](const PlatformResult& error) -> void {
@@ -1019,7 +1019,7 @@ void NFCInstance::GetAIDsForCategory(const picojson::value& args,
     picojson::object& response_obj = response.get<picojson::object>();
     response_obj[JSON_CALLBACK_ID] = picojson::value(callback_id);
     ReportError(error, &response_obj);
-    PostMessage(response.serialize().c_str());
+    Instance::PostMessage(this, response.serialize().c_str());
   };
 
   common::TaskQueue::GetInstance().Async(

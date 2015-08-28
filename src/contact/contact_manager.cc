@@ -919,7 +919,7 @@ void ContactManagerListenerCallback(const char* view_uri, char* changes,
   }
 
   ContactInstance* instance = static_cast<ContactInstance*>(user_data);
-  instance->PostMessage(result.serialize().c_str());
+  Instance::PostMessage(instance, result.serialize().c_str());
 }
 }
 

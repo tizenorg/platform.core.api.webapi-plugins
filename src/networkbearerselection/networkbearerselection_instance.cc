@@ -102,7 +102,7 @@ void NetworkBearerSelectionInstance::NetworkBearerSelectionReleaseRouteToHost(
     else
       ReportError(UnknownException("PLATFORM ERROR"), obj);
     obj["callbackId"] = picojson::value(callback_id);
-    PostMessage(response.serialize().c_str());
+    Instance::PostMessage(this, response.serialize().c_str());
   };
 
   auto reply = [=](bool status)->void {
@@ -135,7 +135,7 @@ void NetworkBearerSelectionInstance::onNBSSuccess(
                                         std::to_string(listenerId));
     obj["id"] = picojson::value(static_cast<double>(listenerId));
     LoggerD("Posting: %s", event.serialize().c_str());
-    PostMessage(event.serialize().c_str());
+    Instance::PostMessage(this, event.serialize().c_str());
   }
 }
 
@@ -155,7 +155,7 @@ void NetworkBearerSelectionInstance::onNBSError(const std::string& domain_name,
                                         std::to_string(listenerId));
     obj["id"] = picojson::value(static_cast<double>(listenerId));
     LoggerD("Posting: %s", event.serialize().c_str());
-    PostMessage(event.serialize().c_str());
+    Instance::PostMessage(this, event.serialize().c_str());
   }
   listenerMap.erase(domain_name);
 }
@@ -175,7 +175,7 @@ void NetworkBearerSelectionInstance::onNBSDisconnect(
                                         std::to_string(listenerId));
     obj["id"] = picojson::value(static_cast<double>(listenerId));
     LoggerD("Posting: %s", event.serialize().c_str());
-    PostMessage(event.serialize().c_str());
+    Instance::PostMessage(this, event.serialize().c_str());
   }
   listenerMap.erase(domain_name);
 }
