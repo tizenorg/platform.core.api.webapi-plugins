@@ -694,8 +694,8 @@ function SystemInfoCameraFlash(data) {
     };
 
   Object.defineProperties(this, {
-        brightness : {get: getBrightness, enumerable: true},
-        camera : {value: null, enumerable: true},
+        brightness : {set : function(){}, get: getBrightness, enumerable: true},
+        camera : {value: data.camera, enumerable: true},
         levels : {get: getLevels, enumerable: true},
     });
 }
@@ -704,7 +704,7 @@ SystemInfoCameraFlash.prototype.setBrightness = function(brightness) {
   xwalk.utils.checkPrivilegeAccess(privilege_.LED);
 
   var args = validator_.validateArgs(arguments, [
-    {name: 'brightness', type: types_.LONG}
+    {name: 'brightness', type: types_.DOUBLE}
   ]);
   args.brightness = args.brightness * this.levels;
 

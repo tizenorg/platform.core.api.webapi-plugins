@@ -540,6 +540,8 @@ class SystemInfoListeners {
   void DisconnectSensor(int handle_orientation);
   wifi_rssi_level_e GetWifiLevel();
   void SetWifiLevel(wifi_rssi_level_e level);
+  std::string GetCameraTypes(int index);
+  int GetCameraTypesCount();
  private:
   static PlatformResult RegisterVconfCallback(const char *in_key, vconf_callback_fn cb,
                                               SysteminfoInstance& instance);
@@ -548,6 +550,7 @@ class SystemInfoListeners {
   PlatformResult UnregisterIpChangeCallback();
   bool IsIpChangeCallbackInvalid();
   void InitTapiHandles();
+  void InitCameraTypes();
 
   guint m_cpu_event_id;
   guint m_storage_event_id;
@@ -579,6 +582,7 @@ class SystemInfoListeners {
   connection_h m_connection_handle;
   //! Sensor handle for DeviceOrientation purposes
   int m_sensor_handle;
+  std::vector<std::string> m_camera_types;
 };
 SystemInfoListeners::SystemInfoListeners():
             m_cpu_event_id(0),
@@ -623,6 +627,7 @@ SystemInfoListeners::SystemInfoListeners():
   } else {
     LoggerD("Setting wifi listener succeed");
   }
+  InitCameraTypes();
 }
 
 SystemInfoListeners::~SystemInfoListeners(){
@@ -713,9 +718,19 @@ void SystemInfoListeners::SetWifiLevel(wifi_rssi_level_e level)
   m_wifi_level = level;
 }
 
-PlatformResult SystemInfoListeners::RegisterBatteryListener(const SysteminfoUtilsCallback& callback,
-                                                            SysteminfoInstance& instance)
-{
+std::string SystemInfoListeners::GetCameraTypes(int index) {
+  if (index >= m_camera_types.size()) {
+    return "";
+  }
+  return m_camera_types[index];
+}
+
+int SystemInfoListeners::GetCameraTypesCount() {
+  return m_camera_types.size();
+}
+
+PlatformResult SystemInfoListeners::RegisterBatteryListener(
+    const SysteminfoUtilsCallback& callback, SysteminfoInstance& instance) {
   LoggerD("Entered");
   if (nullptr == m_battery_listener) {
     PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
@@ -1412,8 +1427,25 @@ void SystemInfoListeners::InitTapiHandles()
   }
 }
 
-TapiHandle* SystemInfoListeners::GetTapiHandle()
-{
+void SystemInfoListeners::InitCameraTypes() {
+  bool supported = false;
+  PlatformResult ret = SystemInfoDeviceCapability::GetValueBool(
+      "tizen.org/feature/camera.back.flash", &supported);
+  if (ret.IsSuccess()) {
+    if (supported) {
+      m_camera_types.push_back("BACK");
+    }
+  }
+  ret = SystemInfoDeviceCapability::GetValueBool(
+      "tizen.org/feature/camera.front.flash", &supported);
+  if (ret.IsSuccess()) {
+    if (supported) {
+      m_camera_types.push_back("FRONT");
+    }
+  }
+}
+
+TapiHandle* SystemInfoListeners::GetTapiHandle() {
 
   LoggerD("Entered");
   InitTapiHandles();
@@ -1748,10 +1780,7 @@ PlatformResult SysteminfoUtils::GetCount(const std::string& property, unsigned l
       count = sim_mgr.GetSimCount(system_info_listeners.GetTapiHandles());
     }
   } else if ("CAMERA_FLASH" == property) {
-    const int numberOfCameraFlashProperties = 3;
-    PlatformResult ret = CheckCameraFlashSupport();
-    if (ret.IsError()) count = 0;
-    else count = numberOfCameraFlashProperties;
+    count = system_info_listeners.GetCameraTypesCount();
   } else if ("ETHERNET_NETWORK" == property) {
     PlatformResult ret = CheckIfEthernetNetworkSupported();
     if (ret.IsError()) count = 0;
@@ -1794,7 +1823,7 @@ PlatformResult SysteminfoUtils::ReportProperty(const std::string& property, int 
   } else if ("MEMORY" == property) {
     return ReportMemory(res_obj);
   } else if ("CAMERA_FLASH" == property) {
-    return ReportCameraFlash(res_obj);
+    return ReportCameraFlash(res_obj, index);
   }
   LoggerD("Property with given id is not supported");
   return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR, "Property with given id is not supported");
@@ -2822,12 +2851,19 @@ PlatformResult SysteminfoUtils::ReportStorage(picojson::object& out) {
   out.insert(std::make_pair("storages", picojson::value(result)));
   return PlatformResult(ErrorCode::NO_ERROR);
 }
-PlatformResult SysteminfoUtils::ReportCameraFlash(picojson::object& out) {
-    PlatformResult ret = CheckCameraFlashSupport();
-    if (ret.IsError()) {
-      return ret;
-    }
-    return PlatformResult(ErrorCode::NO_ERROR);
+PlatformResult SysteminfoUtils::ReportCameraFlash(picojson::object& out,
+                                                  unsigned long index) {
+
+  if (index < system_info_listeners.GetCameraTypesCount()) {
+    std::string camera = system_info_listeners.GetCameraTypes(index);
+    out.insert(std::make_pair("camera", picojson::value(camera)));
+  } else {
+    return PlatformResult(
+        ErrorCode::NOT_SUPPORTED_ERR,
+        "Camera is not supported on this device");
+  }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 PlatformResult SysteminfoUtils::RegisterBatteryListener(const SysteminfoUtilsCallback& callback,

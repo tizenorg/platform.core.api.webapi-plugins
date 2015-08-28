@@ -505,9 +505,14 @@ void SysteminfoInstance::SetBrightness(const picojson::value& args, picojson::ob
   int result = device_flash_set_brightness(brightness);
   if (result != DEVICE_ERROR_NONE) {
     LoggerE("Error occured");
-    ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Error occured"), &out);
+    if (DEVICE_ERROR_INVALID_PARAMETER == result) {
+      ReportError(PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Error occured"), &out);
+    } else {
+      ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Error occured"), &out);
+    }
     return;
   }
+
   ReportSuccess(out);
 }
 
@@ -521,6 +526,7 @@ void SysteminfoInstance::GetBrightness(const picojson::value& args, picojson::ob
     ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Error occured"), &out);
     return;
   }
+
   ReportSuccess(picojson::value(std::to_string(brightness)), out);
 }
 

@@ -103,7 +103,7 @@ class SysteminfoUtils {
   static common::PlatformResult ReportSim(picojson::object& out, unsigned long count);
   static common::PlatformResult ReportPeripheral(picojson::object& out);
   static common::PlatformResult ReportMemory(picojson::object& out);
-  static common::PlatformResult ReportCameraFlash(picojson::object& out);
+  static common::PlatformResult ReportCameraFlash(picojson::object& out, unsigned long count);
 
   static common::PlatformResult ReportStorage(picojson::object& out);
 };
