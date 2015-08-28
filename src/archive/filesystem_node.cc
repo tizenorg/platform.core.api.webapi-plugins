@@ -147,7 +147,7 @@ PlatformResult Node::resolve(const PathPtr& path, NodePtr* node)
         }
     }
 
-    if (!S_ISDIR(info.st_mode) & !S_ISREG(info.st_mode) && !S_ISLNK(info.st_mode)) {
+    if ((!S_ISDIR(info.st_mode)) & (!S_ISREG(info.st_mode)) && !S_ISLNK(info.st_mode)) {
         LoggerE("throw IOException for file:[%s]", path->getFullPath().c_str());
         return PlatformResult(ErrorCode::IO_ERR, "Platform node is of unsupported type.");
     }
@@ -599,11 +599,10 @@ PlatformResult Node::removeAsDirectory(const PathPtr& path, bool recursive)
             LoggerE("throw IOException");
             return PlatformResult(ErrorCode::IO_ERR, "Node does not exist or access denied.");
         }
-        int err = 0;
         struct dirent entry = {0};
         struct dirent* result = nullptr;
         PlatformResult platform_result(ErrorCode::NO_ERROR);
-        while ((0 == (err = readdir_r(dir, &entry, &result))) && result) {
+        while ((0 == (readdir_r(dir, &entry, &result))) && result) {
             if (!strcmp(entry.d_name, ".") || !strncmp(entry.d_name, "..", 2)) {
                 continue;
             }

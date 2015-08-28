@@ -83,7 +83,7 @@ private:
 
     PlatformResult updateCallbackWithArchiveStatistics(ExtractAllProgressCallback* callback,
             unz_global_info& out_global_info,
-            const std::string optional_filter = std::string());
+            const std::string& optional_filter = std::string());
 
     std::string m_zipfile_name;
     unzFile m_unzip;

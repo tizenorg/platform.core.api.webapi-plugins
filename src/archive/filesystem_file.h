@@ -38,7 +38,7 @@ public:
 
     File(NodePtr node,
             const PermissionList &parentPermissions,
-            const std::string original_location = std::string());
+            const std::string& original_location = std::string());
     virtual ~File();
 
     NodePtr getNode() const;
