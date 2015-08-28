@@ -974,7 +974,15 @@ var NativeManager = function(extension) {
         return;
       }
 
-      this.callbacks_[id](msg);
+      var f = this.callbacks_[id];
+      setTimeout(function() {
+        try {
+          f(msg);
+        } catch (e) {
+          console.error('########## exception');
+          console.error(e);
+        }
+      }, 0);
       delete this.callbacks_[id];
 
       return;
@@ -989,7 +997,15 @@ var NativeManager = function(extension) {
         return;
       }
 
-      this.listeners_[id](msg);
+      var f = this.listeners_[id];
+      setTimeout(function() {
+        try {
+          f(msg);
+        } catch (e) {
+          console.error('########## exception');
+          console.error(e);
+        }
+      }, 0);
 
       return;
     }
@@ -1208,7 +1224,7 @@ var NativeBridge = (function (extension, debug) {
 
         CallbackManager.prototype = {
             add: function (/*callbacks, cid?*/) {
-                if (debug) console.log('bridge', 'CallbackManager', 'add');
+                if (debug) console.log('bridge.CallbackManager.add');
                 var args = Array.prototype.slice.call(arguments);
                 var c = args.shift();
                 var cid = args.pop();
@@ -1225,11 +1241,11 @@ var NativeBridge = (function (extension, debug) {
                 return cid;
             },
             remove: function (cid) {
-                if (debug)  console.log('bridge', 'CallbackManager', 'remove', cid);
+                if (debug)  console.log('bridge.CallbackManager.remove, cid: ' + cid);
                 if (_collection[cid]) delete _collection[cid];
             },
             call: function (cid, key, args, keep) {
-                if (debug) console.log('bridge', 'CallbackManager', 'call', cid, key);
+                if (debug) console.log('bridge.CallbackManager.call, cid: '+ cid + ', key: ' + key);
                 var callbacks = _collection[cid];
                 keep = !!keep;
                 if (callbacks) {
@@ -1261,13 +1277,13 @@ var NativeBridge = (function (extension, debug) {
 
         ListenerManager.prototype = {
             add: function (l) {
-                if (debug) console.log('bridge', 'ListenerManager', 'add');
+                if (debug) console.log('bridge.ListenerManager.add');
                 var id = _next();
                 _listeners[id] = l;
                 return id;
             },
             resolve: function (id, action, data, keep) {
-                if (debug) console.log('bridge', 'ListenerManager', 'resolve', id, action);
+                if (debug) console.log('bridge.ListenerManager.resolve, id: ' + id + ', action: ' + action);
                 keep = !!keep;
                 var l = _listeners[id];
                 if (l) {
@@ -1277,7 +1293,7 @@ var NativeBridge = (function (extension, debug) {
                 return l;
             },
             remove: function (id) {
-                if (debug) console.log('bridge', 'ListenerManager', 'remove', id);
+                if (debug) console.log('bridge.ListenerManager.remove, id: ' + id);
                 var l = _listeners[id];
                 if (l) {
                     var cm = Callbacks.getInstance();
@@ -1312,12 +1328,12 @@ var NativeBridge = (function (extension, debug) {
     })();
 
     var Listener = function () {
-        if (debug) console.log('bridge', 'Listener constructor');
+        if (debug) console.log('bridge: Listener constructor');
         this.cid = null;
     };
     Listener.prototype = {
         then: function (c) {
-            if (debug) console.log('bridge', 'Listener', 'then');
+            if (debug) console.log('bridge.Listener.then');
             var cm = Callbacks.getInstance();
             this.cid = cm.add(c, this.cid);
             return this;
@@ -1331,7 +1347,7 @@ var NativeBridge = (function (extension, debug) {
               cmd: data.cmd,
               args: data
             });
-            if (debug) console.log('bridge', 'sync', json);
+            if (debug) console.log('bridge.sync, json: ' + json);
             var result = extension.internal.sendSyncMessage(json);
             var obj = JSON.parse(result);
             if (obj.error)
@@ -1345,7 +1361,7 @@ var NativeBridge = (function (extension, debug) {
                 cmd: data.cmd,
                 args: data
             });
-            if (debug) console.log('bridge', 'async', json);
+            if (debug) console.log('bridge.async, json: ' + json);
             setTimeout(function () {
                 extension.postMessage(json);
             });
@@ -1378,10 +1394,12 @@ var NativeBridge = (function (extension, debug) {
          *}
          */
 
-        if (debug) console.log('bridge', 'setMessageListener', json);
+        if (debug) console.log('bridge.setMessageListener, json: ' + json);
         var data = JSON.parse(json);
         if (data.cid && data.action) {
-            Listeners.getInstance().resolve(data.cid, data.action, data.args, data.keep);
+            setTimeout(function() {
+                Listeners.getInstance().resolve(data.cid, data.action, data.args, data.keep);
+            }, 0);
         }
     });
 
