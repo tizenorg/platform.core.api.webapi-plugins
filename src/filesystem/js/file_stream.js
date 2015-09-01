@@ -159,13 +159,10 @@ FileStream.prototype.readBytes = function() {
   if (native_.isFailure(result.reply)) {
     throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR, 'Could not read');
   }
-  var bytes = [];
-  for (var i = 0; i < result.output.length; ++i) {
-    bytes.push(result.output.charCodeAt(i));
-  }
+
   this.position = this.position + result.reply.data_size;
 
-  return bytes;
+  return result.output;
 };
 
 FileStream.prototype.readBase64 = function() {

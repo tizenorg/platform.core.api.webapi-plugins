@@ -1051,7 +1051,7 @@ NativeManager.prototype.callSyncData = function(cmd, args, type, chunk) {
   });
   var response = this.extension.sendSyncData(request, chunk);
   response.reply = JSON.parse(response.reply);
-  response.output = this.extension.receiveChunkData(response.chunk_id, "string");
+  response.output = this.extension.receiveChunkData(response.chunk_id, type);
   return response;
 };
 
