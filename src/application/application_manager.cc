@@ -675,10 +675,16 @@ void ApplicationManager::FindAppControl(const picojson::value& args) {
 
   const picojson::object& app_control_obj = control.get<picojson::object>();
 
-  app_control_h app_control;
+  app_control_h app_control = nullptr;
   result = ApplicationUtils::ApplicationControlToService(app_control_obj, &app_control);
   std::shared_ptr<std::remove_pointer<app_control_h>::type>
   app_control_ptr(app_control, &app_control_destroy); // automatically release the memory
+
+  if (result.IsError()) {
+    LoggerE("Application control to service failed.");
+    AsyncResponse(result, &response);
+    return;
+  }
 
   auto find = [app_control_ptr](const std::shared_ptr<picojson::value>& response) -> void {
     auto app_control_matched = [](app_control_h app_control, const char* appid, void* user_data) -> bool {
