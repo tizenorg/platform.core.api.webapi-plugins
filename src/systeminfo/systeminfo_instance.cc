@@ -285,7 +285,7 @@ void SysteminfoInstance::GetPropertyValue(const picojson::value& args, picojson:
     picojson::object& obj = response->get<picojson::object>();
     obj.insert(std::make_pair("callbackId", picojson::value{static_cast<double>(callback_id)}));
     LoggerD("message: %s", response->serialize().c_str());
-    PostMessage(response->serialize().c_str());
+    Instance::PostMessage(this, response->serialize().c_str());
   };
 
   TaskQueue::GetInstance().Queue<picojson::value>
@@ -316,7 +316,7 @@ void SysteminfoInstance::GetPropertyValueArray(const picojson::value& args, pico
     LoggerD("Getting response");
     picojson::object& obj = response->get<picojson::object>();
     obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
-    PostMessage(response->serialize().c_str());
+    Instance::PostMessage(this, response->serialize().c_str());
   };
 
   TaskQueue::GetInstance().Queue<picojson::value>
@@ -556,7 +556,7 @@ void OnBatteryChangedCallback(SysteminfoInstance& instance)
   PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdBattery, true, result);
   if (ret.IsSuccess()) {
     ReportSuccess(result,response->get<picojson::object>());
-    instance.PostMessage(response->serialize().c_str());
+    Instance::PostMessage(&instance, response->serialize().c_str());
   }
 }
 
@@ -572,7 +572,7 @@ void OnCpuChangedCallback(SysteminfoInstance& instance)
   PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdCpu, true, result);
   if (ret.IsSuccess()) {
     ReportSuccess(result,response->get<picojson::object>());
-    instance.PostMessage(response->serialize().c_str());
+    Instance::PostMessage(&instance, response->serialize().c_str());
   }
 }
 
@@ -588,7 +588,7 @@ void OnStorageChangedCallback(SysteminfoInstance& instance)
   PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdStorage, true, result);
   if (ret.IsSuccess()) {
     ReportSuccess(result,response->get<picojson::object>());
-    instance.PostMessage(response->serialize().c_str());
+    Instance::PostMessage(&instance, response->serialize().c_str());
   }
 }
 
@@ -604,7 +604,7 @@ void OnDisplayChangedCallback(SysteminfoInstance& instance)
   PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdDisplay, true, result);
   if (ret.IsSuccess()) {
     ReportSuccess(result,response->get<picojson::object>());
-    instance.PostMessage(response->serialize().c_str());
+    Instance::PostMessage(&instance, response->serialize().c_str());
   }
 }
 
@@ -620,7 +620,7 @@ void OnDeviceOrientationChangedCallback(SysteminfoInstance& instance)
   PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdDeviceOrientation, true, result);
   if (ret.IsSuccess()) {
     ReportSuccess(result,response->get<picojson::object>());
-    instance.PostMessage(response->serialize().c_str());
+    Instance::PostMessage(&instance, response->serialize().c_str());
   }
 }
 
@@ -636,7 +636,7 @@ void OnLocaleChangedCallback(SysteminfoInstance& instance)
   PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdLocale, true, result);
   if (ret.IsSuccess()) {
     ReportSuccess(result,response->get<picojson::object>());
-    instance.PostMessage(response->serialize().c_str());
+    Instance::PostMessage(&instance, response->serialize().c_str());
   }
 }
 
@@ -652,7 +652,7 @@ void OnNetworkChangedCallback(SysteminfoInstance& instance)
   PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdNetwork, true, result);
   if (ret.IsSuccess()) {
     ReportSuccess(result,response->get<picojson::object>());
-    instance.PostMessage(response->serialize().c_str());
+    Instance::PostMessage(&instance, response->serialize().c_str());
   }
 }
 
@@ -668,7 +668,7 @@ void OnWifiNetworkChangedCallback(SysteminfoInstance& instance)
   PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdWifiNetwork, true, result);
   if (ret.IsSuccess()) {
     ReportSuccess(result,response->get<picojson::object>());
-    instance.PostMessage(response->serialize().c_str());
+    Instance::PostMessage(&instance, response->serialize().c_str());
   }
 }
 
@@ -684,7 +684,7 @@ void OnEthernetNetworkChangedCallback(SysteminfoInstance& instance)
   PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdEthernetNetwork, true, result);
   if (ret.IsSuccess()) {
     ReportSuccess(result,response->get<picojson::object>());
-    instance.PostMessage(response->serialize().c_str());
+    Instance::PostMessage(&instance, response->serialize().c_str());
   }
 }
 
@@ -700,7 +700,7 @@ void OnCellularNetworkChangedCallback(SysteminfoInstance& instance)
   PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdCellularNetwork, true, result);
   if (ret.IsSuccess()) {
     ReportSuccess(result,response->get<picojson::object>());
-    instance.PostMessage(response->serialize().c_str());
+    Instance::PostMessage(&instance, response->serialize().c_str());
   }
 }
 
@@ -716,7 +716,7 @@ void OnPeripheralChangedCallback(SysteminfoInstance& instance)
   PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdPeripheral, true, result);
   if (ret.IsSuccess()) {
     ReportSuccess(result,response->get<picojson::object>());
-    instance.PostMessage(response->serialize().c_str());
+    Instance::PostMessage(&instance, response->serialize().c_str());
   }
 }
 
@@ -732,7 +732,7 @@ void OnMemoryChangedCallback(SysteminfoInstance& instance)
   PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdMemory, true, result);
   if (ret.IsSuccess()) {
     ReportSuccess(result,response->get<picojson::object>());
-    instance.PostMessage(response->serialize().c_str());
+    Instance::PostMessage(&instance, response->serialize().c_str());
   }
 }
 
@@ -748,7 +748,7 @@ void OnBrigthnessChangedCallback(SysteminfoInstance &instance)
     PlatformResult ret = SysteminfoUtils::GetPropertyValue(kPropertyIdCameraFlash, true, result);
     if (ret.IsSuccess()) {
       ReportSuccess(result,response->get<picojson::object>());
-      instance.PostMessage(response->serialize().c_str());
+      Instance::PostMessage(&instance, response->serialize().c_str());
     }
 }
 

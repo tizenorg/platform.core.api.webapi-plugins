@@ -227,7 +227,7 @@ void TVDisplayInstance::GetSupported3DEffectModeListTaskAfter(
     LOGD("Enter");
     picojson::value out(*data);
     std::string serialized(out.serialize());
-    PostMessage(serialized.c_str());
+    Instance::PostMessage(this, serialized.c_str());
 }
 
 }  // namespace tvdisplay

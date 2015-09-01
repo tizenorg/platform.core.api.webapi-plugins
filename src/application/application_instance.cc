@@ -241,7 +241,7 @@ void ApplicationInstance::AddEventListener(const picojson::value& args, picojson
    picojson::object& event_o = event->get<picojson::object>();
    event_o["listenerId"] = args.get("listenerId");
    LOGGER(DEBUG) << event->serialize().c_str();
-   PostMessage(event->serialize().c_str());
+   Instance::PostMessage(this, event->serialize().c_str());
    LOGGER(DEBUG) << event->serialize().c_str();
   };
 

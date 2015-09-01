@@ -232,7 +232,7 @@ void SensorData::SensorCallback(sensor_h sensor, sensor_event_s* event, void* us
   picojson::value result = picojson::value(picojson::object());
   picojson::object& object = result.get<picojson::object>();
   ReportSensorData(that->type(), event, &object);
-  that->instance_.PostMessage(result.serialize().c_str());
+  Instance::PostMessage(&that->instance_, result.serialize().c_str());
 }
 
 bool SensorData::DefaultEventComparator(sensor_event_s* l, sensor_event_s* r) {
@@ -603,7 +603,7 @@ void SensorService::SensorStart(const picojson::value& args, picojson::object& o
   };
   auto start_result = [this, callback_id](const std::shared_ptr<picojson::value>& result) {
     result->get<picojson::object>()["callbackId"] = picojson::value{static_cast<double>(callback_id)};
-    instance_.PostMessage(result->serialize().c_str());
+    Instance::PostMessage(&instance_, result->serialize().c_str());
   };
 
   TaskQueue::GetInstance().Queue<picojson::value>(
@@ -732,7 +732,7 @@ void SensorService::GetSensorData(const picojson::value& args, picojson::object&
   auto get_data_result = [this, callback_id](const std::shared_ptr<picojson::value>& result) {
     result->get<picojson::object>()["callbackId"] = picojson::value{static_cast<double>(callback_id)};
 
-    instance_.PostMessage(result->serialize().c_str());
+    Instance::PostMessage(&instance_, result->serialize().c_str());
   };
 
   TaskQueue::GetInstance().Queue<picojson::value>(

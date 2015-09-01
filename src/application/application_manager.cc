@@ -161,7 +161,7 @@ class TerminateHandler {
         const std::shared_ptr<picojson::value>& response) {
       picojson::object& obj = response->get<picojson::object>();
       obj.insert(std::make_pair(kCallbackId, picojson::value(static_cast<double>(callback_id))));
-      app_instance->PostMessage(response->serialize().c_str());
+      Instance::PostMessage(app_instance, response->serialize().c_str());
     }, response);
   }
 
@@ -223,7 +223,7 @@ void ApplicationManager::AsyncResponse(PlatformResult& result,
 
   TaskQueue::GetInstance().Async<picojson::value>([this](
       const std::shared_ptr<picojson::value>& response) {
-        this->instance_.PostMessage(response->serialize().c_str());
+        Instance::PostMessage(&this->instance_, response->serialize().c_str());
       }, *response);
 }
 
@@ -587,7 +587,7 @@ void ApplicationManager::LaunchAppControl(const picojson::value& args) {
 
         return_value_obj.insert(
             std::make_pair("listenerId", picojson::value(reply_callback->reply_callback)));
-        reply_callback->app_instance->PostMessage(return_value.serialize().c_str());
+        Instance::PostMessage(reply_callback->app_instance, return_value.serialize().c_str());
         delete reply_callback;
       };
     }
@@ -644,7 +644,7 @@ void ApplicationManager::LaunchAppControl(const picojson::value& args) {
   };
 
   auto launch_response = [this](const std::shared_ptr<picojson::value>& response) -> void {
-    this->instance_.PostMessage(response->serialize().c_str());
+    Instance::PostMessage(&this->instance_, response->serialize().c_str());
   };
 
   TaskQueue::GetInstance().Queue<picojson::value>(launch, launch_response, response);
@@ -729,7 +729,7 @@ void ApplicationManager::FindAppControl(const picojson::value& args) {
   };
 
   auto find_response = [this](const std::shared_ptr<picojson::value>& response) -> void {
-    this->instance_.PostMessage(response->serialize().c_str());
+    Instance::PostMessage(&this->instance_, response->serialize().c_str());
   };
 
   // prepare result object, we need to do that here, as input parameter is passed to result callback
@@ -788,7 +788,7 @@ void ApplicationManager::GetAppsContext(const picojson::value& args) {
       const std::shared_ptr<picojson::value>& response) -> void {
     picojson::object& obj = response->get<picojson::object>();
     obj.insert(std::make_pair(kCallbackId, picojson::value(static_cast<double>(callback_id))));
-    this->instance_.PostMessage(response->serialize().c_str());
+    Instance::PostMessage(&this->instance_, response->serialize().c_str());
   };
 
   TaskQueue::GetInstance().Queue<picojson::value>(
@@ -889,7 +889,7 @@ void ApplicationManager::GetAppsInfo(const picojson::value& args) {
       const std::shared_ptr<picojson::value>& response) -> void {
     picojson::object& obj = response->get<picojson::object>();
     obj.insert(std::make_pair(kCallbackId, picojson::value(static_cast<double>(callback_id))));
-    this->instance_.PostMessage(response->serialize().c_str());
+    Instance::PostMessage(&this->instance_, response->serialize().c_str());
   };
 
   TaskQueue::GetInstance().Queue<picojson::value>(
@@ -1220,7 +1220,7 @@ class ApplicationListChangedBroker {
       data_obj["listenerId"] = picojson::value("ApplicationEventListener");
 
       for (auto instance : app_instance_list_) {
-        instance->PostMessage(value.serialize().c_str());
+        Instance::PostMessage(instance, value.serialize().c_str());
       }
     }
   }
@@ -1294,7 +1294,7 @@ class ApplicationListChangedBroker {
       data_obj["listenerId"] = picojson::value("ApplicationEventListener");
 
       for (auto instance : app_instance_list_) {
-        instance->PostMessage(value.serialize().c_str());
+        Instance::PostMessage(instance, value.serialize().c_str());
       }
     }
   }

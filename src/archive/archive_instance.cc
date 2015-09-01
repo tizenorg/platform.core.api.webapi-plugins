@@ -92,7 +92,7 @@ void ArchiveInstance::PostError(const PlatformResult& e, double callback_id) {
     args[ERROR_CALLBACK_CODE] = picojson::value(static_cast<double>(e.error_code()));
     args[ERROR_CALLBACK_MESSAGE] = picojson::value(e.message());
 
-    PostMessage(val.serialize().c_str());
+    Instance::PostMessage(this, val.serialize().c_str());
 }
 
 void ArchiveInstance::Open(const picojson::value& args, picojson::object& out) {

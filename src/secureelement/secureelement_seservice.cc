@@ -110,7 +110,7 @@ void SEService::GetReaders(double callback_id) {
       const std::shared_ptr<picojson::value>& response) -> void {
     picojson::object& obj = response->get<picojson::object>();
     obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
-    instance_.PostMessage(response->serialize().c_str());
+    Instance::PostMessage(&instance_, response->serialize().c_str());
   };
 
   if (is_error_) {
@@ -185,7 +185,7 @@ void SEService::ServiceConnected() {
       obj.insert(std::make_pair("action", picojson::value("onSEReady")));
       obj.insert(std::make_pair("handle", picojson::value((double) (long) readers[i])));
 
-      instance_.PostMessage(result.serialize().c_str());
+      Instance::PostMessage(&instance_, result.serialize().c_str());
     }
   }
 }
@@ -215,7 +215,7 @@ void SEService::EventHandler(char *se_name, int event) {
         }
 
         obj.insert(std::make_pair("handle", picojson::value((double) (long) readers[i])));
-        instance_.PostMessage(result.serialize().c_str());
+        Instance::PostMessage(&instance_, result.serialize().c_str());
         return;
       }
     }

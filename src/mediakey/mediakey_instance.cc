@@ -98,7 +98,7 @@ void MediaKeyInstance::PostEvent(const std::string& eventCallback,
     picojson::object& obj = event.get<picojson::object>();
     obj["listenerId"] = picojson::value(eventCallback);
     obj["type"] = picojson::value((k->second).c_str());
-    PostMessage(event.serialize().c_str());
+    Instance::PostMessage(this, event.serialize().c_str());
   }
   else {
     LoggerD("Unsupported key");

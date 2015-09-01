@@ -107,7 +107,7 @@ void TVChannelInstance::tuneTaskAfter(
         obj.insert(std::make_pair("callbackId", picojson::value(
             _tuneData->callbackId)));
         obj.insert(std::make_pair("error", _tuneData->pError->ToJSON()));
-        PostMessage(event.serialize().c_str());
+        Instance::PostMessage(this, event.serialize().c_str());
     }
 }
 
@@ -303,12 +303,12 @@ void TVChannelInstance::onChannelChange(double callbackId) {
         dict["windowType"] = picojson::value("MAIN");
         dict["success"] = picojson::value(true);
         picojson::value resultListener(dict);
-        PostMessage(resultListener.serialize().c_str());
+        Instance::PostMessage(this, resultListener.serialize().c_str());
         if (callbackId !=- 1) {
             dict.erase("listenerId");
             dict["callbackId"] = picojson::value(callbackId);
             picojson::value resultCallback(dict);
-            PostMessage(resultCallback.serialize().c_str());
+            Instance::PostMessage(this, resultCallback.serialize().c_str());
         }
     } catch (common::PlatformException& e) {
         LoggerW("Failed to post message: %s", e.message().c_str());
@@ -326,7 +326,7 @@ void TVChannelInstance::onEPGReceived(double callbackId) {
             TVChannelManager::getInstance()->getCurrentProgram(MAIN));
         dict["program"] = programInfoToJson(pInfo);
         picojson::value result(dict);
-        PostMessage(result.serialize().c_str());
+        Instance::PostMessage(this, result.serialize().c_str());
     } catch (common::PlatformException& e) {
         LoggerW("Failed to post message: %s", e.message().c_str());
     } catch (...) {
@@ -340,7 +340,7 @@ void TVChannelInstance::onNoSignal(double callbackId) {
         dict["callbackId"] = picojson::value(callbackId);
         dict["nosignal"] = picojson::value(true);
         picojson::value result(dict);
-        PostMessage(result.serialize().c_str());
+        Instance::PostMessage(this, result.serialize().c_str());
     } catch (common::PlatformException& e) {
         LoggerW("Failed to post message: %s", e.message().c_str());
     } catch (...) {
@@ -392,7 +392,7 @@ void TVChannelInstance::findChannelResult(
         dict["channelInfos"] = picojson::value(channels);
     }
     picojson::value result(dict);
-    PostMessage(result.serialize().c_str());
+    Instance::PostMessage(this, result.serialize().c_str());
 }
 
 void TVChannelInstance::getChannelList(const picojson::value& args,
@@ -457,7 +457,7 @@ void TVChannelInstance::getChannelListResult(
         dict["channelInfos"] = picojson::value(channels);
     }
     picojson::value result(dict);
-    PostMessage(result.serialize().c_str());
+    Instance::PostMessage(this, result.serialize().c_str());
 }
 
 void TVChannelInstance::getProgramList(
@@ -511,7 +511,7 @@ void TVChannelInstance::getProgramListResult(
         dict["programInfos"] = picojson::value(programs);
     }
     picojson::value result(dict);
-    PostMessage(result.serialize().c_str());
+    Instance::PostMessage(this, result.serialize().c_str());
 }
 
 }  // namespace tvchannel

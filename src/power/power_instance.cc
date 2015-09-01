@@ -191,7 +191,7 @@ void PowerInstance::OnScreenStateChanged(PowerState prev_state, PowerState new_s
     }
   }
 
-  PostMessage(event.serialize().c_str());
+  Instance::PostMessage(this, event.serialize().c_str());
 }
 
 #undef CHECK_EXIST

@@ -175,7 +175,7 @@ gboolean DownloadInstance::OnProgressChanged(void* user_data) {
     downCbPtr->callbackId, downCbPtr->received);
 
   picojson::value v = picojson::value(out);
-  downCbPtr->instance->PostMessage(v.serialize().c_str());
+  Instance::PostMessage(downCbPtr->instance, v.serialize().c_str());
 
   return FALSE;
 }
@@ -225,7 +225,7 @@ gboolean DownloadInstance::OnFinished(void* user_data) {
     picojson::value(static_cast<double>(downCbPtr->callbackId));
   out["fullPath"] = picojson::value(fullPath);
 
-  downCbPtr->instance->PostMessage(picojson::value(out).serialize().c_str());
+  Instance::PostMessage(downCbPtr->instance, picojson::value(out).serialize().c_str());
   downCbPtr->instance->downCbMap.erase(downCbPtr->callbackId);
   delete (downCbPtr);
 
@@ -251,7 +251,7 @@ gboolean DownloadInstance::OnPaused(void* user_data) {
   out["callbackId"] =
     picojson::value(static_cast<double>(downCbPtr->callbackId));
 
-  downCbPtr->instance->PostMessage(picojson::value(out).serialize().c_str());
+  Instance::PostMessage(downCbPtr->instance, picojson::value(out).serialize().c_str());
   return FALSE;
 }
 
@@ -276,7 +276,7 @@ gboolean DownloadInstance::OnCanceled(void* user_data) {
   out["callbackId"] =
     picojson::value(static_cast<double>(downCbPtr->callbackId));
 
-  downCbPtr->instance->PostMessage(picojson::value(out).serialize().c_str());
+  Instance::PostMessage(downCbPtr->instance, picojson::value(out).serialize().c_str());
   downCbPtr->instance->downCbMap.erase(downCbPtr->callbackId);
   delete (downCbPtr);
 
@@ -404,7 +404,7 @@ gboolean DownloadInstance::OnFailed(void* user_data) {
   out["callbackId"] =
     picojson::value(static_cast<double>(downCbPtr->callbackId));
 
-  downCbPtr->instance->PostMessage(picojson::value(out).serialize().c_str());
+  Instance::PostMessage(downCbPtr->instance, picojson::value(out).serialize().c_str());
   return FALSE;
 }
 

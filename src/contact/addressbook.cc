@@ -834,7 +834,7 @@ void AddressBookListenerCallback(const char* view_uri, void* user_data) {
       }
     }
 
-    instance->PostMessage(result.serialize().c_str());
+    Instance::PostMessage(instance, result.serialize().c_str());
   }
 
   instance->set_current_state(current_version);

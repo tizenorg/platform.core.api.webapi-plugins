@@ -1300,7 +1300,7 @@ void PostQueue::resolve(PostPriority p)
         i = tasks_.erase(i);
         tasks_mutex_.unlock();
 
-        instance_.PostMessage(json.c_str());
+        Instance::PostMessage(&instance_, json.c_str());
     } else if (TaskState::NEW == i->second->state()) {
         tasks_mutex_.unlock();
 

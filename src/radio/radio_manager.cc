@@ -35,9 +35,6 @@ using namespace std;
 namespace extension {
 namespace radio {
 
-std::vector<FMRadioManager*> FMRadioManager::managers_;
-std::mutex FMRadioManager::managers_mutex_;
-
 namespace {
 
 const int kLowestFrequency = 87500;
@@ -341,11 +338,7 @@ FMRadioManager::FMRadioManager(RadioInstance& instance)
   if (RADIO_ERROR_NONE != err) {
     LoggerE("radio_create() failed: %d", err);
     radio_instance_ = nullptr;
-  } else {
-    std::lock_guard<std::mutex> lock(managers_mutex_);
-    managers_.push_back(this);
   }
-
 }
 
 FMRadioManager::~FMRadioManager() {
@@ -360,23 +353,6 @@ FMRadioManager::~FMRadioManager() {
 
     radio_instance_ = nullptr;
   }
-  std::lock_guard<std::mutex> lock(managers_mutex_);
-  for (auto it = managers_.begin(); it != managers_.end(); it++) {
-    if (*it == this) {
-      managers_.erase(it);
-      break;
-    }
-  }
-}
-
-bool FMRadioManager::CheckInstance(const FMRadioManager* manager) {
-  LoggerD("Entered");
-  for (auto vec_manager : managers_) {
-    if (vec_manager == manager) {
-      return true;
-    }
-  }
-  return false;
 }
 
 PlatformResult FMRadioManager::Start(double frequency) {
@@ -509,10 +485,7 @@ common::PlatformResult FMRadioManager::UnsetAntennaChangeListener() {
 void FMRadioManager::PostMessage(const std::string& msg) const {
   LoggerD("Enter");
 
-  if (!CheckInstance(this)) {
-    return;
-  }
-  instance_.PostMessage(msg.c_str());
+  Instance::PostMessage(&instance_, msg.c_str());
 }
 void FMRadioManager::PostResultSuccess(double callbackId, picojson::value* event) const {
   auto& obj = event->get<picojson::object>();
