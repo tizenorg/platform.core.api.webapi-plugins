@@ -149,8 +149,8 @@ PlatformResult Types::ConvertPlaybackState(mc_playback_h playback_h,
     return PlatformResult(ErrorCode::UNKNOWN_ERR,
                           "Error getting playback state");
   }
-  if (state_e == MEDIA_PLAYBACK_STATE_NONE) {
-    state_e = MEDIA_PLAYBACK_STATE_STOPPED;
+  if (state_e == MC_PLAYBACK_STATE_NONE) {
+    state_e = MC_PLAYBACK_STATE_STOPPED;
   }
 
   PlatformResult result = Types::PlatformEnumToString(
