@@ -31,6 +31,7 @@
 #include "common/current_application.h"
 #include "common/logger.h"
 #include "common/platform_result.h"
+#include "common/scope_exit.h"
 #include "common/task-queue.h"
 
 using namespace common;
@@ -1286,21 +1287,24 @@ void ApplicationManager::GetApplicationInformationSize(const picojson::value& ar
 
   const std::string& package_id_str = package_id.get<std::string>();
 
-  // get installed size from package server (to solve smack issue)
-  pkgmgr_client* pc = pkgmgr_client_new(PC_REQUEST);
   int size = -1;
+  pkgmgrinfo_pkginfo_h handle;
+  int ret = pkgmgrinfo_pkginfo_get_usr_pkginfo(package_id_str.c_str(), getuid(), &handle);
+  if (ret != PMINFO_R_OK) {
+    LoggerE("Failed to create package handler");
+    ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to create package handler"), out);
+    return;
+  }
 
-  if (nullptr == pc) {
-    LoggerE("Failed to create pkgmgr client");
-  } else {
-    size = pkgmgr_client_request_service(PM_REQUEST_GET_SIZE, PM_GET_TOTAL_SIZE, pc, NULL,
-                                         package_id_str.c_str(), NULL, NULL, NULL);
+  SCOPE_EXIT {
+    pkgmgrinfo_pkginfo_destroy_pkginfo(handle);
+  };
 
-    if (size < 0) {
-      LoggerE("Failed to get installed size");
-    }
-
-    pkgmgr_client_free(pc);
+  ret = pkgmgrinfo_pkginfo_get_package_size(handle, &size);
+  if (ret != PMINFO_R_OK) {
+    LoggerE("Failed to get package size");
+    ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to get package size"), out);
+    return;
   }
 
   picojson::value result = picojson::value(picojson::object());
