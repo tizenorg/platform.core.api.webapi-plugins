@@ -433,6 +433,10 @@ void FilesystemManager::FileRead(
   if (!data_p || !file.Read(data_p, offset, length, &readed)) {
     LoggerE("Cannot read file %s", path.c_str());
     error_cb(FilesystemError::Other);
+    if (data_p) {
+      free (data_p);
+      data_p = nullptr;
+    }
     return;
   }
   success_cb(out_data, data_p, readed);
