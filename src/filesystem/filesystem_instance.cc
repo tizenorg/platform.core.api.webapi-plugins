@@ -198,7 +198,7 @@ void FilesystemInstance::FileWriteSync(const common::ParsedDataRequest& req, com
     LoggerD("enter");
     PrepareError(e, out);
   };
-  uint8_t* data_p = NULL;
+  uint8_t* data_p = nullptr;
   size_t data_size = 0;
   if (is_base64) {
     data_p = g_base64_decode(reinterpret_cast<char*>(req.buffer()),
@@ -207,9 +207,10 @@ void FilesystemInstance::FileWriteSync(const common::ParsedDataRequest& req, com
     data_p = req.buffer();
     data_size = req.buffer_length();
   }
-  if (data_size > 0)
+  if (data_size > 0 && data_p) {
     FilesystemManager::GetInstance().FileWrite(
         location, data_p, data_size, offset, onSuccess, onError);
+  }
   if (is_base64 && data_p) {
     free(data_p);
   }
