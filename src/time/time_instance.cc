@@ -433,8 +433,8 @@ Locale* TimeInstance::getDefaultLocale() {
 
    char *str_region = NULL;
    char* p = strchr(tempstr, '.');
-   int len = strlen(tempstr) - strlen(".UTF-8");
-   if (p && len > 0) {
+   int len = strlen(tempstr) - (p != nullptr ? strlen(p) : 0);
+   if (len > 0) {
           str_region = strndup(tempstr, len); //.UTF8 => 5
           defaultLocale = new Locale(str_region);
    }
