@@ -1092,9 +1092,15 @@ PlatformResult CalendarItem::AlarmsFromJson(int type, calendar_record_h rec,
       }
     }
 
+    const auto it_method = obj.find("method");
+    std::string method = "unknown";
+
+    if (obj.end() != it_method && it_method->second.is<std::string>()) {
+      method = it_method->second.get<std::string>();
+    }
+
     PlatformResult status =
-        SetEnum(alarm, _calendar_alarm.action, kAlarmMethod,
-                common::FromJson<std::string>(obj, "method"));
+        SetEnum(alarm, _calendar_alarm.action, kAlarmMethod, method);
     if (status.IsError()) {
       LoggerE("Error: %s", status.message().c_str());
       return status;
