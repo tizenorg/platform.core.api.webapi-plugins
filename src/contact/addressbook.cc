@@ -642,6 +642,10 @@ PlatformResult AddressBookGetGroups(const JsonObject& args, JsonArray& out) {
         err, "Fail to get contacts_db_get_records_with_query ");
     if (status.IsError()) return status;
 
+    // deleter to release the memory in case of an error
+    ContactUtil::ContactsListHPtr group_list_ptr(
+        &groups_list, ContactUtil::ContactsListDeleter);
+
     err = contacts_filter_destroy(filter);
     status =
         ContactUtil::ErrorChecker(err, "Fail to get contacts_filter_destroy ");
@@ -651,7 +655,15 @@ PlatformResult AddressBookGetGroups(const JsonObject& args, JsonArray& out) {
     status =
         ContactUtil::ErrorChecker(err, "Fail to get contacts_query_destroy ");
     if (status.IsError()) return status;
+
+    // release the ownership, pass it back to the outer scope
+    group_list_ptr.release();
   }
+
+  // groups_list has been initialized, take the ownership
+  ContactUtil::ContactsListHPtr group_list_ptr(
+      &groups_list, ContactUtil::ContactsListDeleter);
+
   int record_count = 0;
   err = contacts_list_get_count(groups_list, &record_count);
   status =
