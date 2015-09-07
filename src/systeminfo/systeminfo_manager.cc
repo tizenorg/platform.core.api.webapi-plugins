@@ -20,7 +20,10 @@
 #include <memory>
 
 #include <device.h>
+#include <device/callback.h>
+#include <device/device-error.h>
 #include <sensor_internal.h>
+#include <wifi.h>
 
 #include "systeminfo/systeminfo_instance.h"
 #include "systeminfo/systeminfo_device_capability.h"
@@ -42,6 +45,28 @@ namespace systeminfo {
 
 namespace {
 const int kDefaultPropertyCount = 1;
+const int BASE_GATHERING_INTERVAL = 100;
+const double kPropertyWatcherTime = 1;
+
+const std::string kPropertyIdString = "propertyId";
+const std::string kListenerIdString = "listenerId";
+const std::string kListenerConstValue = "SysteminfoCommonListenerLabel";
+
+const std::string kPropertyIdBattery = "BATTERY";
+const std::string kPropertyIdCpu = "CPU";
+const std::string kPropertyIdStorage = "STORAGE";
+const std::string kPropertyIdDisplay = "DISPLAY";
+const std::string kPropertyIdDeviceOrientation = "DEVICE_ORIENTATION";
+const std::string kPropertyIdBuild = "BUILD";
+const std::string kPropertyIdLocale = "LOCALE";
+const std::string kPropertyIdNetwork = "NETWORK";
+const std::string kPropertyIdWifiNetwork = "WIFI_NETWORK";
+const std::string kPropertyIdEthernetNetwork = "ETHERNET_NETWORK";
+const std::string kPropertyIdCellularNetwork = "CELLULAR_NETWORK";
+const std::string kPropertyIdSim = "SIM";
+const std::string kPropertyIdPeripheral = "PERIPHERAL";
+const std::string kPropertyIdMemory= "MEMORY";
+const std::string kPropertyIdCameraFlash= "CAMERA_FLASH";
 
 #define CHECK_EXIST(args, name, out) \
   if (!args.contains(name)) {\
@@ -89,6 +114,106 @@ const int kDefaultPropertyCount = 1;
   } \
   result_obj.insert(std::make_pair(str_name, picojson::value(str_value)));
 
+//Callback static functions
+static void OnBatteryChangedCb(keynode_t* node, void* event_ptr) {
+  LoggerD("Enter");
+  SysteminfoManager* manager = static_cast<SysteminfoManager*>(event_ptr);
+  manager->CallListenerCallback(kPropertyIdBattery);
+}
+
+static gboolean OnCpuChangedCb(gpointer event_ptr) {
+  LoggerD("Enter");
+  SysteminfoManager* manager = static_cast<SysteminfoManager*>(event_ptr);
+  manager->CallListenerCallback(kPropertyIdCpu);
+  return G_SOURCE_CONTINUE;
+}
+
+static gboolean OnStorageChangedCb(gpointer event_ptr) {
+  LoggerD("Enter");
+  SysteminfoManager* manager = static_cast<SysteminfoManager*>(event_ptr);
+  manager->CallListenerCallback(kPropertyIdStorage);
+  return G_SOURCE_CONTINUE;
+}
+
+static void OnMmcChangedCb(keynode_t* node, void* event_ptr) {
+  LoggerD("Enter");
+  SysteminfoManager* manager = static_cast<SysteminfoManager*>(event_ptr);
+  manager->CallListenerCallback(kPropertyIdStorage);
+}
+
+static void OnDisplayChangedCb(keynode_t* node, void* event_ptr) {
+  LoggerD("Enter");
+  SysteminfoManager* manager = static_cast<SysteminfoManager*>(event_ptr);
+  manager->CallListenerCallback(kPropertyIdDisplay);
+}
+
+static void OnDeviceAutoRotationChangedCb(keynode_t* node, void* event_ptr) {
+  LoggerD("Enter");
+  SysteminfoManager* manager = static_cast<SysteminfoManager*>(event_ptr);
+  manager->CallListenerCallback(kPropertyIdDeviceOrientation);
+}
+
+static void OnDeviceOrientationChangedCb(sensor_t sensor, unsigned int event_type,
+                                  sensor_data_t *data, void *user_data) {
+  LoggerD("Enter");
+  SysteminfoManager* manager = static_cast<SysteminfoManager*>(user_data);
+  manager->CallListenerCallback(kPropertyIdDeviceOrientation);
+}
+
+static void OnLocaleChangedCb(system_settings_key_e key, void* event_ptr) {
+  LoggerD("Enter");
+  SysteminfoManager* manager = static_cast<SysteminfoManager*>(event_ptr);
+  manager->CallListenerCallback(kPropertyIdLocale);
+}
+
+static void OnNetworkChangedCb(connection_type_e type, void* event_ptr) {
+  LoggerD("Enter");
+  SysteminfoManager* manager = static_cast<SysteminfoManager*>(event_ptr);
+  manager->CallListenerCallback(kPropertyIdNetwork);
+}
+
+static void OnNetworkValueChangedCb(const char* ipv4_address,
+                             const char* ipv6_address, void* event_ptr) {
+  LoggerD("Enter");
+  SysteminfoManager* manager = static_cast<SysteminfoManager*>(event_ptr);
+  manager->CallListenerCallback(kPropertyIdWifiNetwork);
+  manager->CallListenerCallback(kPropertyIdEthernetNetwork);
+  manager->CallListenerCallback(kPropertyIdCellularNetwork);
+}
+
+static void OnCellularNetworkValueChangedCb(keynode_t *node, void *event_ptr) {
+  LoggerD("Enter");
+  SysteminfoManager* manager = static_cast<SysteminfoManager*>(event_ptr);
+  manager->CallListenerCallback(kPropertyIdCellularNetwork);
+}
+
+static void OnPeripheralChangedCb(keynode_t* node, void* event_ptr) {
+  LoggerD("Enter");
+  SysteminfoManager* manager = static_cast<SysteminfoManager*>(event_ptr);
+  manager->CallListenerCallback(kPropertyIdPeripheral);
+}
+
+static void OnMemoryChangedCb(keynode_t* node, void* event_ptr) {
+  LoggerD("Enter");
+  SysteminfoManager* manager = static_cast<SysteminfoManager*>(event_ptr);
+  manager->CallListenerCallback(kPropertyIdMemory);
+}
+
+static void OnBrightnessChangedCb(device_callback_e type, void* value, void* user_data) {
+  LoggerD("Entered");
+  if (type == DEVICE_CALLBACK_FLASH_BRIGHTNESS) {
+    SysteminfoManager* manager = static_cast<SysteminfoManager*>(user_data);
+    manager->CallListenerCallback(kPropertyIdCameraFlash);
+  }
+}
+
+static void OnWifiLevelChangedCb (wifi_rssi_level_e rssi_level, void *user_data) {
+  LoggerD("Entered");
+  LoggerD("Level %d", rssi_level);
+  SysteminfoManager* manager = static_cast<SysteminfoManager*>(user_data);
+  manager->SetWifiLevel(rssi_level);
+}
+
 } //namespace
 
 SysteminfoManager::SysteminfoManager(SysteminfoInstance* instance)
@@ -100,41 +225,57 @@ SysteminfoManager::SysteminfoManager(SysteminfoInstance* instance)
       available_capacity_internal_(0),
       available_capacity_mmc_(0),
       sim_count_(0),
-      tapi_handles_{nullptr} {
-  LoggerD("Entered");
-    int error = wifi_initialize();
-    if (WIFI_ERROR_NONE != error) {
-      std::string log_msg = "Initialize failed: " + std::string(get_error_message(error));
-      LoggerE("%s", log_msg.c_str());
-    } else {
-      LoggerD("WIFI initialization succeed");
-    }
+      tapi_handles_{nullptr},
+      cpu_event_id_(0),
+      storage_event_id_(0),
+      connection_handle_(nullptr) {
+        LoggerD("Entered");
+        int error = wifi_initialize();
+        if (WIFI_ERROR_NONE != error) {
+          std::string log_msg = "Initialize failed: " + std::string(get_error_message(error));
+          LoggerE("%s", log_msg.c_str());
+        } else {
+          LoggerD("WIFI initialization succeed");
+        }
 
-    //TODO
-//    error = wifi_set_rssi_level_changed_cb(OnWifiLevelChangedCb, nullptr);
-//    if (WIFI_ERROR_NONE != error) {
-//      std::string log_msg = "Setting wifi listener failed: " + parseWifiNetworkError(error);
-//      LoggerE("%s", log_msg.c_str());
-//    } else {
-//      LoggerD("Setting wifi listener succeed");
-//    }
-    InitCameraTypes();
-}
+        error = wifi_set_rssi_level_changed_cb(OnWifiLevelChangedCb, this);
+        if (WIFI_ERROR_NONE != error) {
+          std::string log_msg = "Setting wifi listener failed: " +
+              std::string(get_error_message(error));
+          LoggerE("%s", log_msg.c_str());
+        } else {
+          LoggerD("Setting wifi listener succeed");
+        }
+        InitCameraTypes();
+      }
 
 SysteminfoManager::~SysteminfoManager() {
   LoggerD("Enter");
   DisconnectSensor(sensor_handle_);
 
+  if (IsListenerRegistered(kPropertyIdBattery)) { UnregisterBatteryListener(); }
+  if (IsListenerRegistered(kPropertyIdCpu)) { UnregisterCpuListener(); }
+  if (IsListenerRegistered(kPropertyIdStorage)) { UnregisterStorageListener(); }
+  if (IsListenerRegistered(kPropertyIdDisplay)) { UnregisterDisplayListener(); }
+  if (IsListenerRegistered(kPropertyIdDeviceOrientation)) { UnregisterDeviceOrientationListener(); }
+  if (IsListenerRegistered(kPropertyIdLocale)) { UnregisterLocaleListener(); }
+  if (IsListenerRegistered(kPropertyIdNetwork)) { UnregisterNetworkListener(); }
+  if (IsListenerRegistered(kPropertyIdWifiNetwork)) { UnregisterWifiNetworkListener(); }
+  if (IsListenerRegistered(kPropertyIdEthernetNetwork)) { UnregisterEthernetNetworkListener(); }
+  if (IsListenerRegistered(kPropertyIdCellularNetwork)) { UnregisterCellularNetworkListener(); }
+  if (IsListenerRegistered(kPropertyIdPeripheral)) { UnregisterPeripheralListener(); }
+  if (IsListenerRegistered(kPropertyIdMemory)) { UnregisterMemoryListener(); }
+  if (IsListenerRegistered(kPropertyIdCameraFlash)) { UnregisterCameraFlashListener(); }
 
   unsigned int i = 0;
   while(tapi_handles_[i]) {
     tel_deinit(tapi_handles_[i]);
     i++;
   }
-//TODO
-//  if (nullptr != m_connection_handle) {
-//    connection_destroy(m_connection_handle);
-//  }
+
+  if (nullptr != connection_handle_) {
+    connection_destroy(connection_handle_);
+  }
 
   wifi_deinitialize();
 }
@@ -362,112 +503,542 @@ void SysteminfoManager::GetCount(const picojson::value& args, picojson::object* 
   LoggerD("Success");
 }
 
-void SysteminfoManager::AddPropertyValueChangeListener(const picojson::value& args, picojson::object* out) {
+void SysteminfoManager::AddPropertyValueChangeListener(const picojson::value& args,
+                                                       picojson::object* out) {
   LoggerD("Enter");
   // Check type of property for which listener should be registered
   CHECK_EXIST(args, "property", out)
   const std::string& property_name = args.get("property").get<std::string>();
 
-  LoggerD("Adding listener for property with id: %s ", property_name.c_str());
-//  PlatformResult ret(ErrorCode::NO_ERROR);
-//  if (property_name == kPropertyIdBattery) {
-//    ret = SysteminfoUtils::RegisterBatteryListener(OnBatteryChangedCallback, *this);
-//  } else if (property_name == kPropertyIdCpu) {
-//    ret = SysteminfoUtils::RegisterCpuListener(OnCpuChangedCallback, *this);
-//  } else if (property_name == kPropertyIdStorage) {
-//    ret = SysteminfoUtils::RegisterStorageListener(OnStorageChangedCallback, *this);
-//  } else if (property_name == kPropertyIdDisplay) {
-//    ret = SysteminfoUtils::RegisterDisplayListener(OnDisplayChangedCallback, *this);
-//  } else if (property_name == kPropertyIdDeviceOrientation) {
-//    ret = SysteminfoUtils::RegisterDeviceOrientationListener(OnDeviceOrientationChangedCallback, *this);
-//  } else if (property_name == kPropertyIdBuild) {
-//    LoggerW("BUILD property's value is a fixed value");
-//    //should be accepted, but no registration is needed
-//    //ret = PlatformResult(ErrorCode::NOT_SUPPORTED_ERR, "BUILD property's value is a fixed value");
-//  } else if (property_name == kPropertyIdLocale) {
-//    ret = SysteminfoUtils::RegisterLocaleListener(OnLocaleChangedCallback, *this);
-//  } else if (property_name == kPropertyIdNetwork) {
-//    ret = SysteminfoUtils::RegisterNetworkListener(OnNetworkChangedCallback, *this);
-//  } else if (property_name == kPropertyIdWifiNetwork) {
-//    ret = SysteminfoUtils::RegisterWifiNetworkListener(OnWifiNetworkChangedCallback, *this);
-//  } else if (property_name == kPropertyIdEthernetNetwork) {
-//    ret = SysteminfoUtils::RegisterEthernetNetworkListener(OnEthernetNetworkChangedCallback, *this);
-//  } else if (property_name == kPropertyIdCellularNetwork) {
-//    ret = SysteminfoUtils::RegisterCellularNetworkListener(OnCellularNetworkChangedCallback, *this);
-//  } else if (property_name == kPropertyIdSim) {
-//    //SIM listeners are not supported by core API, so we just pass over
-//    LoggerW("SIM listener is not supported by Core API - ignoring");
-//  } else if (property_name == kPropertyIdPeripheral) {
-//    ret = SysteminfoUtils::RegisterPeripheralListener(OnPeripheralChangedCallback, *this);
-//  } else if (property_name == kPropertyIdMemory) {
-//    ret = SysteminfoUtils::RegisterMemoryListener(OnMemoryChangedCallback, *this);
-//  } else if (property_name == kPropertyIdCameraFlash) {
-//    ret = SysteminfoUtils::RegisterCameraFlashListener(OnBrigthnessChangedCallback, *this);
-//  } else {
-//    LoggerE("Not supported property");
-//    ret = PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Not supported property");
-//  }
-//  if (ret.IsSuccess()) {
-//    ReportSuccess(out);
-//    LoggerD("Success");
-//    return;
-//  }
-//  LoggerD("Error");
-//  ReportError(ret, &out);
+  PlatformResult ret(ErrorCode::NO_ERROR);
+  if (!IsListenerRegistered(property_name)){
+    LoggerD("Adding listener for property with id: %s ", property_name.c_str());
+    if (property_name == kPropertyIdBattery) {
+      ret = RegisterBatteryListener();
+    } else if (property_name == kPropertyIdCpu) {
+      ret = RegisterCpuListener();
+    } else if (property_name == kPropertyIdStorage) {
+      ret = RegisterStorageListener();
+    } else if (property_name == kPropertyIdDisplay) {
+      ret = RegisterDisplayListener();
+    } else if (property_name == kPropertyIdDeviceOrientation) {
+      ret = RegisterDeviceOrientationListener();
+    } else if (property_name == kPropertyIdBuild) {
+      LoggerW("BUILD property's value is a fixed value");
+      //should be accepted, but no registration is needed
+      ret = PlatformResult(ErrorCode::NOT_SUPPORTED_ERR, "BUILD property's value is a fixed value");
+    } else if (property_name == kPropertyIdLocale) {
+      ret = RegisterLocaleListener();
+    } else if (property_name == kPropertyIdNetwork) {
+      ret = RegisterNetworkListener();
+    } else if (property_name == kPropertyIdWifiNetwork) {
+      ret = RegisterWifiNetworkListener();
+    } else if (property_name == kPropertyIdEthernetNetwork) {
+      ret = RegisterEthernetNetworkListener();
+    } else if (property_name == kPropertyIdCellularNetwork) {
+      ret = RegisterCellularNetworkListener();
+    } else if (property_name == kPropertyIdSim) {
+      //SIM listeners are not supported by core API, so we just pass over
+      LoggerW("SIM listener is not supported by Core API - ignoring");
+    } else if (property_name == kPropertyIdPeripheral) {
+      ret = RegisterPeripheralListener();
+    } else if (property_name == kPropertyIdMemory) {
+      ret = RegisterMemoryListener();
+    } else if (property_name == kPropertyIdCameraFlash) {
+      ret = RegisterCameraFlashListener();
+    } else {
+      LoggerE("Not supported property");
+      ret = PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Not supported property");
+    }
+    if (ret.IsSuccess()) {
+      registered_listeners_.insert(property_name);
+    }
+  } else {
+    LoggerD("Adding listener for property with id: %s is not needed, already registered",
+            property_name.c_str());
+  }
+  if (ret.IsSuccess()) {
+    ReportSuccess(*out);
+    LoggerD("Success");
+    return;
+  }
+  LoggerD("Error");
+  ReportError(ret, out);
 }
 
-void SysteminfoManager::RemovePropertyValueChangeListener(const picojson::value& args, picojson::object* out) {
+void SysteminfoManager::RemovePropertyValueChangeListener(const picojson::value& args,
+                                                          picojson::object* out) {
   LoggerD("Enter");
 
   // Check type of property for which listener should be removed
   CHECK_EXIST(args, "property", out)
   const std::string& property_name = args.get("property").get<std::string>();
-  LoggerD("Removing listener for property with id: %s ", property_name.c_str());
+
   PlatformResult ret(ErrorCode::NO_ERROR);
-//  if (property_name == kPropertyIdBattery) {
-//    ret = SysteminfoUtils::UnregisterBatteryListener();
-//  } else if (property_name == kPropertyIdCpu) {
-//    ret = SysteminfoUtils::UnregisterCpuListener();
-//  } else if (property_name == kPropertyIdStorage) {
-//    ret = SysteminfoUtils::UnregisterStorageListener();
-//  } else if (property_name == kPropertyIdDisplay) {
-//    ret = SysteminfoUtils::UnregisterDisplayListener();
-//  } else if (property_name == kPropertyIdDeviceOrientation) {
-//    ret = SysteminfoUtils::UnregisterDeviceOrientationListener();
-//  } else if (property_name == kPropertyIdBuild) {
-//    LoggerW("BUILD property's value is a fixed value");
-//    //should be accepted, but no unregistration is needed
-//    //ret = PlatformResult(ErrorCode::NOT_SUPPORTED_ERR, "BUILD property's value is a fixed value");
-//  } else if (property_name == kPropertyIdLocale) {
-//    ret = SysteminfoUtils::UnregisterLocaleListener();
-//  } else if (property_name == kPropertyIdNetwork) {
-//    ret = SysteminfoUtils::UnregisterNetworkListener();
-//  } else if (property_name == kPropertyIdWifiNetwork) {
-//    ret = SysteminfoUtils::UnregisterWifiNetworkListener();
-//  } else if (property_name == kPropertyIdEthernetNetwork) {
-//    ret = SysteminfoUtils::UnregisterEthernetNetworkListener();
-//  } else if (property_name == kPropertyIdCellularNetwork) {
-//    ret = SysteminfoUtils::UnregisterCellularNetworkListener();
-//  } else if (property_name == kPropertyIdSim) {
-//    //SIM listeners are not supported by core API, so we just pass over
-//    LoggerW("SIM listener is not supported by Core API - ignoring");
-//  } else if (property_name == kPropertyIdPeripheral) {
-//    ret = SysteminfoUtils::UnregisterPeripheralListener();
-//  } else if (property_name == kPropertyIdMemory) {
-//    ret = SysteminfoUtils::UnregisterMemoryListener();
-//  } else if (property_name == kPropertyIdCameraFlash) {
-//    ret = SysteminfoUtils::UnregisterCameraFlashListener();
-//  } else {
-//    LoggerE("Not supported property");
-//    ret = PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Not supported property");
-//  }
-//  if (ret.IsSuccess()) {
-//    ReportSuccess(out);
-//    LoggerD("Success");
-//    return;
-//  }
-//  LoggerD("Error");
-//  ReportError(ret, &out);
+  if (IsListenerRegistered(property_name)){
+    LoggerD("Removing listener for property with id: %s ", property_name.c_str());
+    registered_listeners_.erase(property_name);
+    if (property_name == kPropertyIdBattery) {
+      ret = UnregisterBatteryListener();
+    } else if (property_name == kPropertyIdCpu) {
+      ret = UnregisterCpuListener();
+    } else if (property_name == kPropertyIdStorage) {
+      ret = UnregisterStorageListener();
+    } else if (property_name == kPropertyIdDisplay) {
+      ret = UnregisterDisplayListener();
+    } else if (property_name == kPropertyIdDeviceOrientation) {
+      ret = UnregisterDeviceOrientationListener();
+    } else if (property_name == kPropertyIdBuild) {
+      LoggerW("BUILD property's value is a fixed value");
+      //should be accepted, but no unregistration is needed
+      //ret = PlatformResult(ErrorCode::NOT_SUPPORTED_ERR, "BUILD property's value is a fixed value");
+    } else if (property_name == kPropertyIdLocale) {
+      ret = UnregisterLocaleListener();
+    } else if (property_name == kPropertyIdNetwork) {
+      ret = UnregisterNetworkListener();
+    } else if (property_name == kPropertyIdWifiNetwork) {
+      ret = UnregisterWifiNetworkListener();
+    } else if (property_name == kPropertyIdEthernetNetwork) {
+      ret = UnregisterEthernetNetworkListener();
+    } else if (property_name == kPropertyIdCellularNetwork) {
+      ret = UnregisterCellularNetworkListener();
+    } else if (property_name == kPropertyIdSim) {
+      //SIM listeners are not supported by core API, so we just pass over
+      LoggerW("SIM listener is not supported by Core API - ignoring");
+    } else if (property_name == kPropertyIdPeripheral) {
+      ret = UnregisterPeripheralListener();
+    } else if (property_name == kPropertyIdMemory) {
+      ret = UnregisterMemoryListener();
+    } else if (property_name == kPropertyIdCameraFlash) {
+      ret = UnregisterCameraFlashListener();
+    } else {
+      LoggerE("Not supported property");
+      ret = PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Not supported property");
+    }
+  } else {
+    LoggerD("Removing listener for property with id: %s is not needed, not registered",
+            property_name.c_str());
+  }
+  if (ret.IsSuccess()) {
+    ReportSuccess(*out);
+    LoggerD("Success");
+    return;
+  }
+  LoggerD("Error");
+  ReportError(ret, out);
+}
+
+#define CHECK_LISTENER_ERROR(method) \
+  ret = method; \
+  if (ret.IsError()) { \
+    return ret; \
+  }
+
+bool SysteminfoManager::IsIpChangeCallbackNotRegistered() {
+  LoggerD("Entered");
+  return !(IsListenerRegistered(kPropertyIdWifiNetwork) ||
+      IsListenerRegistered(kPropertyIdEthernetNetwork) ||
+      IsListenerRegistered(kPropertyIdCellularNetwork));
+}
+
+PlatformResult SysteminfoManager::RegisterIpChangeCallback() {
+  LoggerD("Entered");
+  connection_h handle;
+  PlatformResult ret(ErrorCode::NO_ERROR);
+  CHECK_LISTENER_ERROR(GetConnectionHandle(handle))
+  int error = connection_set_ip_address_changed_cb(handle,
+                                                   OnNetworkValueChangedCb,
+                                                   static_cast<void*>(this));
+  if (CONNECTION_ERROR_NONE != error) {
+    LoggerE("Failed to register ip change callback: %d", error);
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot register ip change callback");
+  }
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult SysteminfoManager::UnregisterIpChangeCallback() {
+  LoggerD("Entered");
+  connection_h handle;
+  PlatformResult ret(ErrorCode::NO_ERROR);
+  CHECK_LISTENER_ERROR(GetConnectionHandle(handle))
+  int error = connection_unset_ip_address_changed_cb(handle);
+  if (CONNECTION_ERROR_NONE != error) {
+    LoggerE("Failed to unregister ip change callback: %d", error);
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot unregister ip change callback");
+  }
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult SysteminfoManager::RegisterBatteryListener() {
+  LoggerD("Entered");
+  PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
+  CHECK_LISTENER_ERROR(
+      SysteminfoUtils::RegisterVconfCallback(VCONFKEY_SYSMAN_BATTERY_CAPACITY,
+                                             OnBatteryChangedCb, this))
+  CHECK_LISTENER_ERROR(
+      SysteminfoUtils::RegisterVconfCallback(VCONFKEY_SYSMAN_BATTERY_CHARGE_NOW,
+                                             OnBatteryChangedCb, this))
+                                             LoggerD("Added callback for BATTERY");
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult SysteminfoManager::UnregisterBatteryListener() {
+  LoggerD("Entered");
+  PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
+  CHECK_LISTENER_ERROR(
+      SysteminfoUtils::UnregisterVconfCallback(VCONFKEY_SYSMAN_BATTERY_CAPACITY,
+                                               OnBatteryChangedCb))
+  CHECK_LISTENER_ERROR(
+      SysteminfoUtils::UnregisterVconfCallback(VCONFKEY_SYSMAN_BATTERY_CHARGE_NOW,
+                                               OnBatteryChangedCb))
+                                               LoggerD("Removed callback for BATTERY");
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult SysteminfoManager::RegisterCpuListener() {
+  LoggerD("Entered");
+  cpu_event_id_ = g_timeout_add_seconds(kPropertyWatcherTime, OnCpuChangedCb, static_cast<void*>(this));
+  LoggerD("Added callback for CPU");
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult SysteminfoManager::UnregisterCpuListener() {
+  LoggerD("Entered");
+  g_source_remove(cpu_event_id_);
+  cpu_event_id_ = 0;
+  LoggerD("Removed callback for CPU");
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult SysteminfoManager::RegisterStorageListener() {
+  LoggerD("Entered");
+  PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
+  CHECK_LISTENER_ERROR(
+      SysteminfoUtils::RegisterVconfCallback(VCONFKEY_SYSMAN_MMC_STATUS,
+                                             OnMmcChangedCb, this))
+
+  storage_event_id_ = g_timeout_add_seconds(kPropertyWatcherTime,
+                                             OnStorageChangedCb, static_cast<void*>(this));
+  LoggerD("Added callback for STORAGE");
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult SysteminfoManager::UnregisterStorageListener() {
+  LoggerD("Entered");
+  PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
+  CHECK_LISTENER_ERROR(
+      SysteminfoUtils::UnregisterVconfCallback(VCONFKEY_SYSMAN_MMC_STATUS, OnMmcChangedCb))
+
+  g_source_remove(storage_event_id_);
+  storage_event_id_ = 0;
+  LoggerD("Removed callback for STORAGE");
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult SysteminfoManager::RegisterDisplayListener() {
+  LoggerD("Entered");
+  PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
+  CHECK_LISTENER_ERROR(
+      SysteminfoUtils::RegisterVconfCallback(VCONFKEY_SETAPPL_LCD_BRIGHTNESS,
+                                             OnDisplayChangedCb, this))
+  LoggerD("Added callback for DISPLAY");
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult SysteminfoManager::UnregisterDisplayListener() {
+  LoggerD("Entered");
+  PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
+  CHECK_LISTENER_ERROR(
+      SysteminfoUtils::UnregisterVconfCallback(VCONFKEY_SETAPPL_LCD_BRIGHTNESS,
+                                               OnDisplayChangedCb))
+  LoggerD("Removed callback for DISPLAY");
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult SysteminfoManager::RegisterDeviceOrientationListener() {
+  LoggerD("Entered");
+  PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
+  CHECK_LISTENER_ERROR(
+      SysteminfoUtils::RegisterVconfCallback(VCONFKEY_SETAPPL_AUTO_ROTATE_SCREEN_BOOL,
+                                             OnDeviceAutoRotationChangedCb, this))
+
+  bool sensor_ret = sensord_register_event(GetSensorHandle(), AUTO_ROTATION_EVENT_CHANGE_STATE,
+                                           BASE_GATHERING_INTERVAL, 0,
+                                           OnDeviceOrientationChangedCb, this);
+  if (!sensor_ret) {
+    LoggerE("Failed to register orientation change event listener");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                          "Failed to register orientation change event listener");
+  }
+
+  LoggerD("Added callback for DEVICE_ORIENTATION");
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult SysteminfoManager::UnregisterDeviceOrientationListener() {
+  LoggerD("Entered");
+  PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
+  CHECK_LISTENER_ERROR(
+      SysteminfoUtils::UnregisterVconfCallback(VCONFKEY_SETAPPL_AUTO_ROTATE_SCREEN_BOOL,
+                                               OnDeviceAutoRotationChangedCb))
+  bool sensor_ret = sensord_unregister_event(GetSensorHandle(), AUTO_ROTATION_EVENT_CHANGE_STATE);
+  if (!sensor_ret) {
+    LoggerE("Failed to unregister orientation change event listener");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to unregister"
+                          " orientation change event listener");
+  }
+
+  LoggerD("Removed callback for DEVICE_ORIENTATION");
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult SysteminfoManager::RegisterLocaleListener() {
+  LoggerD("Entered");
+  if (SYSTEM_SETTINGS_ERROR_NONE !=
+      system_settings_set_changed_cb(SYSTEM_SETTINGS_KEY_LOCALE_COUNTRY,
+                                     OnLocaleChangedCb, static_cast<void*>(this)) ) {
+    LoggerE("Country change callback registration failed");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Country change callback registration failed");
+  }
+  if (SYSTEM_SETTINGS_ERROR_NONE !=
+      system_settings_set_changed_cb(SYSTEM_SETTINGS_KEY_LOCALE_LANGUAGE,
+                                     OnLocaleChangedCb, static_cast<void*>(this)) ) {
+    LoggerE("Language change callback registration failed");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Language change callback registration failed");
+  }
+  LoggerD("Added callback for LOCALE");
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult SysteminfoManager::UnregisterLocaleListener() {
+  LoggerD("Entered");
+  if (SYSTEM_SETTINGS_ERROR_NONE !=
+      system_settings_unset_changed_cb(SYSTEM_SETTINGS_KEY_LOCALE_LANGUAGE) ) {
+    LoggerE("Unregistration of language change callback failed");
+  }
+  if (SYSTEM_SETTINGS_ERROR_NONE !=
+      system_settings_unset_changed_cb(SYSTEM_SETTINGS_KEY_LOCALE_COUNTRY) ) {
+    LoggerE("Unregistration of country change callback failed");
+  }
+  LoggerD("Removed callback for LOCALE");
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult SysteminfoManager::RegisterNetworkListener() {
+  LoggerD("Entered");
+  connection_h handle;
+  PlatformResult ret(ErrorCode::NO_ERROR);
+  CHECK_LISTENER_ERROR(GetConnectionHandle(handle))
+  if (CONNECTION_ERROR_NONE !=
+      connection_set_type_changed_cb(handle, OnNetworkChangedCb, static_cast<void*>(this))) {
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Registration of listener failed");
+  }
+  LoggerD("Added callback for NETWORK");
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult SysteminfoManager::UnregisterNetworkListener() {
+  LoggerD("Entered");
+  connection_h handle;
+  PlatformResult ret(ErrorCode::NO_ERROR);
+  CHECK_LISTENER_ERROR(GetConnectionHandle(handle))
+  if (CONNECTION_ERROR_NONE != connection_unset_type_changed_cb(handle)) {
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Unregistration of listener failed");
+  }
+  LoggerD("Removed callback for NETWORK");
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult SysteminfoManager::RegisterWifiNetworkListener() {
+  LoggerD("Entered");
+
+  if (IsIpChangeCallbackNotRegistered()) {
+    PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
+    CHECK_LISTENER_ERROR(RegisterIpChangeCallback());
+    LoggerD("Registered IP change listener");
+  } else {
+    LoggerD("No need to register IP listener on platform, already registered");
+  }
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult SysteminfoManager::UnregisterWifiNetworkListener() {
+  LoggerD("Entered");
+  // if there is no other ip-relateded listeners left, unregister
+  if (IsIpChangeCallbackNotRegistered()) {
+    PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
+    CHECK_LISTENER_ERROR(UnregisterIpChangeCallback());
+    LoggerD("Removed IP change listener");
+  } else {
+    LoggerD("Removed callback for WIFI_NETWORK, but IP change listener still works");
+  }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult SysteminfoManager::RegisterEthernetNetworkListener() {
+  LoggerD("Entered");
+  PlatformResult ret = SysteminfoUtils::CheckIfEthernetNetworkSupported();
+  if (ret.IsError()){
+    return ret;
+  }
+
+  if (IsIpChangeCallbackNotRegistered()) {
+    PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
+    CHECK_LISTENER_ERROR(RegisterIpChangeCallback());
+    LoggerD("Registered IP change listener");
+  } else {
+    LoggerD("No need to register IP listener on platform, already registered");
+  }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult SysteminfoManager::UnregisterEthernetNetworkListener() {
+  LoggerD("Entered");
+
+  if (IsIpChangeCallbackNotRegistered()) {
+    PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
+    CHECK_LISTENER_ERROR(UnregisterIpChangeCallback());
+    LoggerD("Removed IP change listener");
+  } else {
+    LoggerD("Removed callback for ETHERNET_NETWORK, but IP change listener still works");
+  }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult SysteminfoManager::RegisterCellularNetworkListener() {
+  LoggerD("Entered");
+  PlatformResult ret = SysteminfoUtils::CheckTelephonySupport();
+  if (ret.IsError()) {
+      return ret;
+  }
+
+  if (IsIpChangeCallbackNotRegistered()) {
+    CHECK_LISTENER_ERROR(RegisterIpChangeCallback());
+    LoggerD("Registered IP change listener");
+  } else {
+    LoggerD("No need to register IP listener on platform, already registered");
+  }
+
+  if (!IsListenerRegistered(kPropertyIdCellularNetwork)) {
+    CHECK_LISTENER_ERROR(SysteminfoUtils::RegisterVconfCallback(VCONFKEY_TELEPHONY_FLIGHT_MODE,
+                          OnCellularNetworkValueChangedCb, this))
+    CHECK_LISTENER_ERROR(SysteminfoUtils::RegisterVconfCallback(VCONFKEY_TELEPHONY_CELLID,
+                          OnCellularNetworkValueChangedCb, this))
+    CHECK_LISTENER_ERROR(SysteminfoUtils::RegisterVconfCallback(VCONFKEY_TELEPHONY_LAC,
+                          OnCellularNetworkValueChangedCb, this))
+    CHECK_LISTENER_ERROR(SysteminfoUtils::RegisterVconfCallback(VCONFKEY_TELEPHONY_SVC_ROAM,
+                          OnCellularNetworkValueChangedCb, this))
+    LoggerD("Added callback for CELLULAR_NETWORK");
+  }
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult SysteminfoManager::UnregisterCellularNetworkListener() {
+  LoggerD("Entered");
+
+  // if there is no other ip-relateded listeners left, unregister
+  if (!IsListenerRegistered(kPropertyIdCellularNetwork)) {
+    PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
+    CHECK_LISTENER_ERROR(SysteminfoUtils::UnregisterVconfCallback(VCONFKEY_TELEPHONY_FLIGHT_MODE,
+                            OnCellularNetworkValueChangedCb))
+    CHECK_LISTENER_ERROR(SysteminfoUtils::UnregisterVconfCallback(VCONFKEY_TELEPHONY_CELLID,
+                            OnCellularNetworkValueChangedCb))
+    CHECK_LISTENER_ERROR(SysteminfoUtils::UnregisterVconfCallback(VCONFKEY_TELEPHONY_LAC,
+                            OnCellularNetworkValueChangedCb))
+    CHECK_LISTENER_ERROR(SysteminfoUtils::UnregisterVconfCallback(VCONFKEY_TELEPHONY_SVC_ROAM,
+                            OnCellularNetworkValueChangedCb))
+  }
+
+  if (IsIpChangeCallbackNotRegistered()) {
+    PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
+    CHECK_LISTENER_ERROR(UnregisterIpChangeCallback());
+    LoggerD("Removed IP change listener");
+  } else {
+    LoggerD("Removed callback for CELLULAR_NETWORK, but IP change listener still works");
+  }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult SysteminfoManager::RegisterPeripheralListener() {
+  LoggerD("Entered");
+  PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
+  int value = 0;
+/*  if (-1 != vconf_get_int(VCONFKEY_MIRACAST_WFD_SOURCE_STATUS, &value)) {
+    CHECK_LISTENER_ERROR(RegisterVconfCallback(VCONFKEY_MIRACAST_WFD_SOURCE_STATUS,
+                                               OnPeripheralChangedCb, instance))
+  }*/
+  if (-1 != vconf_get_int(VCONFKEY_SYSMAN_HDMI, &value)) {
+    CHECK_LISTENER_ERROR(SysteminfoUtils::RegisterVconfCallback(VCONFKEY_SYSMAN_HDMI,
+                                               OnPeripheralChangedCb, this))
+  }
+
+  LoggerD("Added callback for PERIPHERAL");
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult SysteminfoManager::UnregisterPeripheralListener() {
+  LoggerD("Entered");
+  PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
+  int value = 0;
+/*  if (-1 != vconf_get_int(VCONFKEY_MIRACAST_WFD_SOURCE_STATUS, &value)) {
+    CHECK_LISTENER_ERROR(SysteminfoUtils::UnregisterVconfCallback(VCONFKEY_MIRACAST_WFD_SOURCE_STATUS,
+                                                 OnPeripheralChangedCb))
+  }*/
+  if (-1 != vconf_get_int(VCONFKEY_SYSMAN_HDMI, &value)) {
+    CHECK_LISTENER_ERROR(SysteminfoUtils::UnregisterVconfCallback(VCONFKEY_SYSMAN_HDMI,
+                                                 OnPeripheralChangedCb))
+  }
+
+  LoggerD("Removed callback for PERIPHERAL");
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult SysteminfoManager::RegisterMemoryListener() {
+  LoggerD("Entered");
+  PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
+  int value = 0;
+  if (-1 != vconf_get_int(VCONFKEY_SYSMAN_LOW_MEMORY, &value)) {
+    CHECK_LISTENER_ERROR(SysteminfoUtils::RegisterVconfCallback(VCONFKEY_SYSMAN_LOW_MEMORY,
+                                                                OnMemoryChangedCb, this))
+  }
+  LoggerD("Added callback for MEMORY");
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult SysteminfoManager::UnregisterMemoryListener() {
+  LoggerD("Entered");
+  PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
+  int value = 0;
+  if (-1 != vconf_get_int(VCONFKEY_SYSMAN_LOW_MEMORY, &value)) {
+    CHECK_LISTENER_ERROR(SysteminfoUtils::UnregisterVconfCallback(VCONFKEY_SYSMAN_LOW_MEMORY,
+                                                                  OnMemoryChangedCb))
+  }
+  LoggerD("Removed callback for MEMORY");
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult SysteminfoManager::RegisterCameraFlashListener() {
+  LoggerD("Entered");
+  if (DEVICE_ERROR_NONE != device_add_callback(DEVICE_CALLBACK_FLASH_BRIGHTNESS,
+                                               OnBrightnessChangedCb, this)) {
+    return PlatformResult(ErrorCode::UNKNOWN_ERR);
+  }
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult SysteminfoManager::UnregisterCameraFlashListener() {
+  LoggerD("Entered");
+  PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
+  if (DEVICE_ERROR_NONE != device_remove_callback(DEVICE_CALLBACK_FLASH_BRIGHTNESS,
+                                                  OnBrightnessChangedCb)) {
+    return PlatformResult(ErrorCode::UNKNOWN_ERR);
+  }
+  LoggerD("Removed callback for camera_flash");
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 void SysteminfoManager::SetBrightness(const picojson::value& args, picojson::object* out) {
@@ -512,8 +1083,7 @@ void SysteminfoManager::GetMaxBrightness(const picojson::value& args, picojson::
 }
 
 PlatformResult SysteminfoManager::GetPropertyCount(const std::string& property,
-                                                   unsigned long* count)
-{
+                                                   unsigned long* count) {
   LoggerD("Enter");
 
   if ("BATTERY" == property || "CPU" == property || "STORAGE" == property ||
@@ -555,6 +1125,11 @@ PlatformResult SysteminfoManager::GetPropertyCount(const std::string& property,
 wifi_rssi_level_e SysteminfoManager::GetWifiLevel() {
   LoggerD("Enter");
   return wifi_level_;
+}
+
+void SysteminfoManager::SetWifiLevel(wifi_rssi_level_e level) {
+  LoggerD("Entered");
+  wifi_level_ = level;
 }
 
 int SysteminfoManager::GetSensorHandle() {
@@ -602,18 +1177,33 @@ void SysteminfoManager::DisconnectSensor(int handle_orientation) {
   }
 }
 
+double SysteminfoManager::GetCpuInfoLoad() {
+  LoggerD("Enter");
+  return cpu_load_;
+}
+
 void SysteminfoManager::SetCpuInfoLoad(double load) {
   LoggerD("Enter");
   cpu_load_ = load;
 }
 
+unsigned long long SysteminfoManager::GetAvailableCapacityInternal() {
+  LoggerD("Entered");
+  return available_capacity_internal_;
+}
+
 void SysteminfoManager::SetAvailableCapacityInternal(unsigned long long capacity) {
-  LoggerD("Enter");
+  LoggerD("Entered");
   available_capacity_internal_ = capacity;
 }
 
+unsigned long long SysteminfoManager::GetAvailableCapacityMmc() {
+  LoggerD("Entered");
+  return available_capacity_mmc_;
+}
+
 void SysteminfoManager::SetAvailableCapacityMmc(unsigned long long capacity) {
-  LoggerD("Enter");
+  LoggerD("Entered");
   available_capacity_mmc_ = capacity;
 }
 
@@ -688,6 +1278,93 @@ std::string SysteminfoManager::GetCameraTypes(int index) {
 int SysteminfoManager::GetCameraTypesCount() {
   LoggerD("Enter");
   return camera_types_.size();
+}
+
+PlatformResult SysteminfoManager::GetConnectionHandle(connection_h& handle) {
+  LoggerD("Entered");
+  if (nullptr == connection_handle_) {
+    int error = connection_create(&connection_handle_);
+    if (CONNECTION_ERROR_NONE != error) {
+      LoggerE("Failed to create connection: %d", error);
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot create connection");
+    }
+  }
+  handle = connection_handle_;
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+bool SysteminfoManager::IsListenerRegistered(const std::string& property_id) {
+  LoggerD("Entered");
+  return (registered_listeners_.find(property_id) != registered_listeners_.end());
+}
+
+void SysteminfoManager::CallListenerCallback(const std::string& property_id) {
+  LoggerD("Enter");
+  if(IsListenerRegistered(property_id)) {
+    LoggerD("listener for %s property is registered, calling it", property_id.c_str());
+    const std::shared_ptr<picojson::value>& response =
+        std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
+    response->get<picojson::object>()[kPropertyIdString] = picojson::value(property_id);
+    response->get<picojson::object>()[kListenerIdString] = picojson::value(kListenerConstValue);
+
+    picojson::value result = picojson::value(picojson::object());
+    PlatformResult ret = GetPropertiesManager().GetPropertyValue(
+        property_id, true, &result);
+    if (ret.IsSuccess()) {
+      ReportSuccess(result,response->get<picojson::object>());
+      Instance::PostMessage(instance_, response->serialize().c_str());
+    }
+  } else {
+    LoggerD("listener for %s property is not registered, ignoring", property_id.c_str());
+  }
+}
+
+void SysteminfoManager::CallCpuListenerCallback() {
+  LoggerD("Enter");
+  std::string property_id = kPropertyIdCpu;
+  if(IsListenerRegistered(property_id)) {
+    LoggerD("listener for %s property is registered, calling it", property_id.c_str());
+    const std::shared_ptr<picojson::value>& response =
+        std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
+    response->get<picojson::object>()[kPropertyIdString] = picojson::value(property_id);
+    response->get<picojson::object>()[kListenerIdString] = picojson::value(kListenerConstValue);
+
+    picojson::value result = picojson::value(picojson::object());
+    PlatformResult ret = GetPropertiesManager().GetPropertyValue(
+        property_id, true, &result);
+    if (ret.IsSuccess()) {
+      ReportSuccess(result,response->get<picojson::object>());
+      Instance::PostMessage(instance_, response->serialize().c_str());
+    }
+  } else {
+    LoggerD("listener for %s property is not registered, ignoring", property_id.c_str());
+  }
+}
+
+void SysteminfoManager::CallStorageListenerCallback() {
+  LoggerD("Enter");
+  std::string property_id = kPropertyIdStorage;
+  if(IsListenerRegistered(property_id)) {
+    LoggerD("listener for %s property is registered, calling it", property_id.c_str());
+    const std::shared_ptr<picojson::value>& response =
+        std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
+    response->get<picojson::object>()[kPropertyIdString] = picojson::value(property_id);
+    response->get<picojson::object>()[kListenerIdString] = picojson::value(kListenerConstValue);
+
+    picojson::value result = picojson::value(picojson::object());
+    PlatformResult ret = GetPropertiesManager().GetPropertyValue(
+        property_id, true, &result);
+    if (ret.IsSuccess()) {
+      if (available_capacity_internal_ == last_available_capacity_internal_) {
+        return;
+      }
+      last_available_capacity_internal_ = available_capacity_internal_;
+      ReportSuccess(result,response->get<picojson::object>());
+      Instance::PostMessage(instance_, response->serialize().c_str());
+    }
+  } else {
+    LoggerD("listener for %s property is not registered, ignoring", property_id.c_str());
+  }
 }
 
 }  // namespace systeminfo

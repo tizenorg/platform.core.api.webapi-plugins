@@ -18,8 +18,9 @@
 #define WEBAPI_PLUGINS_SYSTEMINFO_SYSTEMINFO_UTILS_H__
 
 #include <string>
-#include <functional>
 #include <system_settings.h>
+#include <vconf.h>
+#include <vconf-internal-keys.h>
 #include "common/picojson.h"
 #include "common/platform_result.h"
 #include "systeminfo/systeminfo_device_capability.h"
@@ -35,10 +36,6 @@ struct CpuInfo {
   double load;
 };
 
-class SysteminfoInstance;
-
-typedef std::function<void(SysteminfoInstance& instance)> SysteminfoUtilsCallback;
-
 class SysteminfoUtils {
  public:
   static common::PlatformResult GetVconfInt(const char *key, int *value);
@@ -49,48 +46,9 @@ class SysteminfoUtils {
   static common::PlatformResult CheckIfEthernetNetworkSupported();
   static common::PlatformResult GetTotalMemory(long long* result);
   static common::PlatformResult GetAvailableMemory(long long* result);
-
-  static common::PlatformResult RegisterBatteryListener(const SysteminfoUtilsCallback& callback,
-                                                        SysteminfoInstance& instance);
-  static common::PlatformResult UnregisterBatteryListener();
-  static common::PlatformResult RegisterCpuListener(const SysteminfoUtilsCallback& callback,
-                                                    SysteminfoInstance& instance);
-  static common::PlatformResult UnregisterCpuListener();
-  static common::PlatformResult RegisterStorageListener(const SysteminfoUtilsCallback& callback,
-                                                        SysteminfoInstance& instance);
-  static common::PlatformResult UnregisterStorageListener();
-  static common::PlatformResult RegisterDisplayListener(const SysteminfoUtilsCallback& callback,
-                                                        SysteminfoInstance& instance);
-  static common::PlatformResult UnregisterDisplayListener();
-  static common::PlatformResult RegisterDeviceOrientationListener(const SysteminfoUtilsCallback& callback,
-                                                                  SysteminfoInstance& instance);
-  static common::PlatformResult UnregisterDeviceOrientationListener();
-  static common::PlatformResult RegisterLocaleListener(const SysteminfoUtilsCallback& callback,
-                                                       SysteminfoInstance& instance);
-  static common::PlatformResult UnregisterLocaleListener();
-  static common::PlatformResult RegisterNetworkListener(const SysteminfoUtilsCallback& callback,
-                                                        SysteminfoInstance& instance);
-  static common::PlatformResult UnregisterNetworkListener();
-  static common::PlatformResult RegisterWifiNetworkListener(const SysteminfoUtilsCallback& callback,
-                                                            SysteminfoInstance& instance);
-  static common::PlatformResult UnregisterWifiNetworkListener();
-  static common::PlatformResult RegisterEthernetNetworkListener(const SysteminfoUtilsCallback& callback,
-                                                                SysteminfoInstance& instance);
-  static common::PlatformResult UnregisterEthernetNetworkListener();
-  static common::PlatformResult RegisterCellularNetworkListener(const SysteminfoUtilsCallback& callback,
-                                                                SysteminfoInstance& instance);
-  static common::PlatformResult UnregisterCellularNetworkListener();
-  static common::PlatformResult RegisterPeripheralListener(const SysteminfoUtilsCallback& callback,
-                                                           SysteminfoInstance& instance);
-  static common::PlatformResult UnregisterPeripheralListener();
-  static common::PlatformResult RegisterMemoryListener(const SysteminfoUtilsCallback& callback,
-                                                       SysteminfoInstance& instance);
-  static common::PlatformResult UnregisterMemoryListener();
-  static common::PlatformResult RegisterCameraFlashListener(const SysteminfoUtilsCallback& callback,
-                                                       SysteminfoInstance& instance);
-  static common::PlatformResult UnregisterCameraFlashListener();
-
- private:
+  static common::PlatformResult RegisterVconfCallback(const char *in_key, vconf_callback_fn cb,
+                                                            void* event_ptr);
+  static common::PlatformResult UnregisterVconfCallback(const char *in_key, vconf_callback_fn cb);
 };
 
 typedef unsigned char byte;
