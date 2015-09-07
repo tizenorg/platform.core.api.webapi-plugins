@@ -382,8 +382,9 @@ void ContentInstance::ContentManagerScanDirectory(const picojson::value& args, p
   cbData->instance = this;
   cbData->args = args;
 
-  if (ContentManager::getInstance()->scanDirectory(ScanDirectoryCallback, cbData).IsError()) {
-    ReportError(common::PlatformResult(common::ErrorCode::UNKNOWN_ERR, "Scan directory failed"), &out);
+  common::PlatformResult result = ContentManager::getInstance()->scanDirectory(ScanDirectoryCallback, cbData);
+  if (result.IsError()) {
+    ReportError(result, &out);
   }
 }
 

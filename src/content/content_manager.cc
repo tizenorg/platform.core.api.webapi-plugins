@@ -804,7 +804,11 @@ PlatformResult ContentManager::scanDirectory(media_scan_completed_cb callback, R
   int ret = media_content_scan_folder(contentDirURI.c_str(), recursive, callback, (void*) cbData);
   if (ret != MEDIA_CONTENT_ERROR_NONE) {
     LoggerE("Scan folder failed in platform: %d", ret);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Scanning content directory failed");
+    if (MEDIA_CONTENT_ERROR_INVALID_PARAMETER == ret) {
+      return PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Scanning content directory failed");
+    } else {
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Scanning content directory failed");
+    }
   }
   return PlatformResult(ErrorCode::NO_ERROR);
 }
