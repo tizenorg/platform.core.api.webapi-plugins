@@ -117,7 +117,7 @@ const std::string kPropertyIdCameraFlash= "CAMERA_FLASH";
   result_obj.insert(std::make_pair(str_name, picojson::value(str_value)));
 }
 
-SysteminfoInstance::SysteminfoInstance() : manager_(*this) {
+SysteminfoInstance::SysteminfoInstance() : manager_(this) {
   LoggerD("Enter");
   using std::placeholders::_1;
   using std::placeholders::_2;
@@ -173,33 +173,7 @@ void SysteminfoInstance::GetCapability(const picojson::value& args, picojson::ob
 
 void SysteminfoInstance::GetPropertyValue(const picojson::value& args, picojson::object& out) {
   LoggerD("Enter");
-  CHECK_EXIST(args, "callbackId", out)
-  CHECK_EXIST(args, "property", out)
-  const double callback_id = args.get("callbackId").get<double>();
-  const std::string& prop_id = args.get("property").get<std::string>();
-  LoggerD("Getting property with id: %s ", prop_id.c_str());
-
-  auto get = [this, prop_id, callback_id](const std::shared_ptr<picojson::value>& response) -> void {
-    LoggerD("Getting");
-    picojson::value result = picojson::value(picojson::object());
-    PlatformResult ret = SysteminfoUtils::GetPropertyValue(prop_id, false, result);
-    if (ret.IsError()) {
-      ReportError(ret,&(response->get<picojson::object>()));
-      return;
-    }
-    ReportSuccess(result, response->get<picojson::object>());
-  };
-
-  auto get_response = [this, callback_id](const std::shared_ptr<picojson::value>& response) -> void {
-    LoggerD("Getting response");
-    picojson::object& obj = response->get<picojson::object>();
-    obj.insert(std::make_pair("callbackId", picojson::value{static_cast<double>(callback_id)}));
-    LoggerD("message: %s", response->serialize().c_str());
-    Instance::PostMessage(this, response->serialize().c_str());
-  };
-
-  TaskQueue::GetInstance().Queue<picojson::value>
-  (get, get_response, std::shared_ptr<picojson::value>(new picojson::value(picojson::object())));
+  manager_.GetPropertyValue(args, &out);
 }
 
 void SysteminfoInstance::GetPropertyValueArray(const picojson::value& args, picojson::object& out) {

@@ -16,16 +16,22 @@
 
 #include "systeminfo/systeminfo_manager.h"
 
+#include <functional>
+#include <memory>
+
 #include "systeminfo/systeminfo_instance.h"
 #include "systeminfo/systeminfo_device_capability.h"
 #include "common/logger.h"
 #include "common/converter.h"
+#include "common/task-queue.h"
 
 using common::PlatformResult;
 using common::ErrorCode;
 using common::TypeMismatchException;
 using common::tools::ReportError;
 using common::tools::ReportSuccess;
+using common::Instance;
+using common::TaskQueue;
 
 namespace extension {
 namespace systeminfo {
@@ -79,7 +85,7 @@ namespace {
 
 } //namespace
 
-SysteminfoManager::SysteminfoManager(SysteminfoInstance& instance)
+SysteminfoManager::SysteminfoManager(SysteminfoInstance* instance)
     : instance_(instance){
 }
 
@@ -196,27 +202,27 @@ void SysteminfoManager::GetPropertyValue(const picojson::value& args, picojson::
   const std::string& prop_id = args.get("property").get<std::string>();
   LoggerD("Getting property with id: %s ", prop_id.c_str());
 
-//  auto get = [this, prop_id, callback_id](const std::shared_ptr<picojson::value>& response) -> void {
-//    LoggerD("Getting");
-//    picojson::value result = picojson::value(picojson::object());
-//    PlatformResult ret = SysteminfoUtils::GetPropertyValue(prop_id, false, result);
-//    if (ret.IsError()) {
-//      ReportError(ret,&(response->get<picojson::object>()));
-//      return;
-//    }
-//    ReportSuccess(result, response->get<picojson::object>());
-//  };
-//
-//  auto get_response = [this, callback_id](const std::shared_ptr<picojson::value>& response) -> void {
-//    LoggerD("Getting response");
-//    picojson::object& obj = response->get<picojson::object>();
-//    obj.insert(std::make_pair("callbackId", picojson::value{static_cast<double>(callback_id)}));
-//    LoggerD("message: %s", response->serialize().c_str());
-//    PostMessage(response->serialize().c_str());
-//  };
-//
-//  TaskQueue::GetInstance().Queue<picojson::value>
-//  (get, get_response, std::shared_ptr<picojson::value>(new picojson::value(picojson::object())));
+  auto get = [this, prop_id, callback_id](const std::shared_ptr<picojson::value>& response) -> void {
+    LoggerD("Getting");
+    picojson::value result = picojson::value(picojson::object());
+    PlatformResult ret = prop_manager_.GetPropertyValue(prop_id, false, &result);
+    if (ret.IsError()) {
+      ReportError(ret,&(response->get<picojson::object>()));
+      return;
+    }
+    ReportSuccess(result, response->get<picojson::object>());
+  };
+
+  auto get_response = [this, callback_id](const std::shared_ptr<picojson::value>& response) -> void {
+    LoggerD("Getting response");
+    picojson::object& obj = response->get<picojson::object>();
+    obj.insert(std::make_pair("callbackId", picojson::value{static_cast<double>(callback_id)}));
+    LoggerD("message: %s", response->serialize().c_str());
+    Instance::PostMessage(instance_, response->serialize().c_str());
+  };
+
+  TaskQueue::GetInstance().Queue<picojson::value>
+  (get, get_response, std::shared_ptr<picojson::value>(new picojson::value(picojson::object())));
 }
 
 void SysteminfoManager::GetPropertyValueArray(const picojson::value& args, picojson::object* out) {

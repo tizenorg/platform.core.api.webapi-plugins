@@ -19,6 +19,7 @@
 
 #include "common/picojson.h"
 #include "common/platform_result.h"
+#include "systeminfo/systeminfo_properties_manager.h"
 
 namespace extension {
 namespace systeminfo {
@@ -27,7 +28,7 @@ class SysteminfoInstance;
 
 class SysteminfoManager {
  public:
-  SysteminfoManager(SysteminfoInstance& instance);
+  SysteminfoManager(SysteminfoInstance* instance);
   ~SysteminfoManager();
 
   void GetCapabilities(const picojson::value& args, picojson::object* out);
@@ -44,7 +45,8 @@ class SysteminfoManager {
   void GetCount(const picojson::value& args, picojson::object* out);
 
  private:
-  SysteminfoInstance& instance_;
+  SysteminfoInstance* instance_;
+  SystemInfoPropertiesManager prop_manager_;
 
 };
 } // namespace systeminfo
