@@ -18,6 +18,7 @@
 
 #include <sstream>
 #include <stdexcept>
+#include <system_info.h>
 
 #include "common/logger.h"
 
@@ -221,11 +222,18 @@ void MessagingInstance::MessageServiceSendMessage(const picojson::value& args,
     simIndex = static_cast<long>
       (MessagingUtil::getValueFromJSONObject<double>(data,SEND_MESSAGE_ARGS_SIMINDEX));
 
-    if (!callback->setSimIndex(simIndex)) {
-      delete callback;
-      callback = nullptr;
-      POST_AND_RETURN(PlatformResult(ErrorCode::UNKNOWN_ERR, "set sim index failed"),
-                      json, obj, JSON_CALLBACK_ERROR)
+    bool cell_support = false;
+    system_info_get_platform_bool("http://tizen.org/feature/network.telephony", &cell_support);
+    if (cell_support) {
+      LoggerD("cell_support is true");
+      if (!callback->setSimIndex(simIndex)) {
+        delete callback;
+        callback = nullptr;
+        POST_AND_RETURN(PlatformResult(ErrorCode::UNKNOWN_ERR, "set sim index failed"),
+                        json, obj, JSON_CALLBACK_ERROR)
+      }
+    } else {
+      LoggerD("cell_support is false");
     }
 
     queue_.add(static_cast<long>(callbackId), PostPriority::HIGH);
