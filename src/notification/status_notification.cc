@@ -23,6 +23,7 @@
 #include "common/converter.h"
 #include "common/logger.h"
 #include "common/scope_exit.h"
+#include "common/virtual_fs.h"
 
 namespace extension {
 namespace notification {
@@ -535,7 +536,7 @@ PlatformResult StatusNotification::GetThumbnails(notification_h noti_handle,
     if (!text.length())
       break;
 
-    out->push_back(picojson::value(text));
+    out->push_back(picojson::value(VirtualFs::GetInstance().GetVirtualPath(text)));
   }
 
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -549,9 +550,10 @@ PlatformResult StatusNotification::SetThumbnails(notification_h noti_handle,
   size_t thumbnails_map_size = thumbnails_map_.size();
   for (auto& item : value) {
     const std::string& text = JsonCast<std::string>(item);
+    std::string real_path = VirtualFs::GetInstance().GetRealPath(text);
 
     PlatformResult status =
-        SetImage(noti_handle, thumbnails_map_.at(idx), text);
+        SetImage(noti_handle, thumbnails_map_.at(idx), real_path);
     if (status.IsError())
       return status;
 
@@ -1032,14 +1034,14 @@ PlatformResult StatusNotification::ToJson(int id,
   if (status.IsError())
     return status;
   if (value_str.length()) {
-    out["iconPath"] = picojson::value(value_str);
+    out["iconPath"] = picojson::value(VirtualFs::GetInstance().GetVirtualPath(value_str));
   }
 
   status = GetImage(noti_handle, NOTIFICATION_IMAGE_TYPE_ICON_SUB, &value_str);
   if (status.IsError())
     return status;
   if (value_str.length()) {
-    out["subIconPath"] = picojson::value(value_str);
+    out["subIconPath"] = picojson::value(VirtualFs::GetInstance().GetVirtualPath(value_str));
   }
 
   long number;
@@ -1078,7 +1080,7 @@ PlatformResult StatusNotification::ToJson(int id,
   if (status.IsError())
     return status;
   if (value_str.length()) {
-    out["backgroundImagePath"] = picojson::value(value_str);
+    out["backgroundImagePath"] = picojson::value(VirtualFs::GetInstance().GetVirtualPath(value_str));
   }
 
   picojson::array thumbnails = picojson::array();
@@ -1093,7 +1095,7 @@ PlatformResult StatusNotification::ToJson(int id,
   if (status.IsError())
     return status;
   if (value_str.length()) {
-    out["soundPath"] = picojson::value(value_str);
+    out["soundPath"] = picojson::value(VirtualFs::GetInstance().GetVirtualPath(value_str));
   }
 
   bool vibration;
@@ -1199,9 +1201,10 @@ PlatformResult StatusNotification::FromJson(const picojson::object& args,
 
   picojson::value val(noti_obj);
   if (val.contains("iconPath") && !IsNull(noti_obj, "iconPath")) {
-    const std::string& value_str =
-        common::FromJson<std::string>(noti_obj, "iconPath");
-    status = SetImage(noti_handle, NOTIFICATION_IMAGE_TYPE_ICON, value_str);
+    const std::string& value_str = common::FromJson<std::string>(noti_obj, "iconPath");
+    std::string real_path = VirtualFs::GetInstance().GetRealPath(value_str);
+
+    status = SetImage(noti_handle, NOTIFICATION_IMAGE_TYPE_ICON, real_path);
     if (status.IsError()) {
       return status;
     }
@@ -1210,7 +1213,9 @@ PlatformResult StatusNotification::FromJson(const picojson::object& args,
   if (val.contains("subIconPath") && !IsNull(noti_obj, "subIconPath")) {
     const std::string& value_str =
         common::FromJson<std::string>(noti_obj, "subIconPath");
-    status = SetImage(noti_handle, NOTIFICATION_IMAGE_TYPE_ICON_SUB, value_str);
+    std::string real_path = VirtualFs::GetInstance().GetRealPath(value_str);
+
+    status = SetImage(noti_handle, NOTIFICATION_IMAGE_TYPE_ICON_SUB, real_path);
     if (status.IsError()) {
       return status;
     }
@@ -1258,10 +1263,10 @@ PlatformResult StatusNotification::FromJson(const picojson::object& args,
 
   if (val.contains("backgroundImagePath")
       && !IsNull(noti_obj, "backgroundImagePath")) {
-    const std::string& value_str =
-        common::FromJson<std::string>(noti_obj, "backgroundImagePath");
-    status = SetImage(noti_handle, NOTIFICATION_IMAGE_TYPE_BACKGROUND,
-        value_str);
+    const std::string& value_str = common::FromJson<std::string>(noti_obj, "backgroundImagePath");
+    std::string real_path = VirtualFs::GetInstance().GetRealPath(value_str);
+
+    status = SetImage(noti_handle, NOTIFICATION_IMAGE_TYPE_BACKGROUND, real_path);
     if (status.IsError()) {
       return status;
     }
@@ -1276,8 +1281,10 @@ PlatformResult StatusNotification::FromJson(const picojson::object& args,
   }
 
   if (val.contains("soundPath") && !IsNull(noti_obj, "soundPath")) {
-    status = SetSoundPath(noti_handle,
-                          common::FromJson<std::string>(noti_obj, "soundPath"));
+    const std::string& value_str = common::FromJson<std::string>(noti_obj, "soundPath");
+    std::string real_path = VirtualFs::GetInstance().GetRealPath(value_str);
+
+    status = SetSoundPath(noti_handle, real_path);
     if (status.IsError()) {
       return status;
     }
