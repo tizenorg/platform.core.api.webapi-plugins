@@ -553,7 +553,7 @@ PlatformResult SysteminfoPropertiesManager::ReportNetwork(picojson::object* out)
 }
 
 /// WIFI_NETWORK
-static PlatformResult GetIps(wifi_ap_h wifi_ap_handle, std::string* ip_addr_str,
+static PlatformResult GetIpsWifi(wifi_ap_h wifi_ap_handle, std::string* ip_addr_str,
                    std::string* ipv6_addr_str) {
   //getting ipv4 address
   char* ip_addr = nullptr;
@@ -578,6 +578,37 @@ static PlatformResult GetIps(wifi_ap_h wifi_ap_handle, std::string* ip_addr_str,
   }
   *ipv6_addr_str = ip_addr;
   free(ip_addr);
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+/// CELLULAR_NETWORK and ETHERNET_NETWORK
+static PlatformResult GetIpsFromProfile(connection_profile_h profile_handle, std::string* ip_addr_str,
+                             std::string* ipv6_addr_str){
+  //getting ipv4 address
+  char* ip_addr = nullptr;
+  int error = connection_profile_get_ip_address(profile_handle,
+                                                CONNECTION_ADDRESS_FAMILY_IPV4,
+                                                &ip_addr);
+  if (CONNECTION_ERROR_NONE != error) {
+    LoggerE("Failed to get ip address: %d", error);
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get ip address");
+  }
+  *ip_addr_str = ip_addr;
+  free(ip_addr);
+  //getting ipv6 address
+  ip_addr = nullptr;
+  error = connection_profile_get_ip_address(profile_handle,
+                                            CONNECTION_ADDRESS_FAMILY_IPV6,
+                                            &ip_addr);
+  if (CONNECTION_ERROR_NONE == error) {
+    *ipv6_addr_str = ip_addr;
+    free(ip_addr);
+  } else if (CONNECTION_ERROR_ADDRESS_FAMILY_NOT_SUPPORTED != error) {
+    //core api returns error -97 = CONNECTION_ERROR_ADDRESS_FAMILY_NOT_SUPPORTED
+    //it will be supported in the future. For now let's ignore this error
+    LoggerE("Failed to get ipv6 address: %d", error);
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get ipv6 address");
+  }
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
@@ -675,7 +706,7 @@ PlatformResult SysteminfoPropertiesManager::ReportWifiNetwork(picojson::object* 
     }
 
     //gathering ips
-    PlatformResult ret = GetIps(wifi_ap_handle, &result_ip_address, &result_ipv6_address);
+    PlatformResult ret = GetIpsWifi(wifi_ap_handle, &result_ip_address, &result_ipv6_address);
     if (ret.IsError()) {
       return ret;
     }
@@ -819,7 +850,8 @@ PlatformResult SysteminfoPropertiesManager::ReportEthernetNetwork(picojson::obje
         profile_handle, &connection_profile_destroy); // automatically release the memory
 
     //gathering ips
-    PlatformResult ret = GetIps(profile_handle, &result_ip_address, &result_ipv6_address);
+    PlatformResult ret = GetIpsFromProfile(profile_handle, &result_ip_address,
+                                           &result_ipv6_address);
     if (ret.IsError()) {
       return ret;
     }
@@ -935,7 +967,8 @@ static PlatformResult FetchConnection(TapiHandle *tapi_handle, std::string* resu
     *result_apn = apn;
     free(apn);
 
-    PlatformResult ret = GetIps(profile_handle, result_ip_address, result_ipv6_address);
+    PlatformResult ret = GetIpsFromProfile(profile_handle, result_ip_address,
+                                           result_ipv6_address);
     if (ret.IsError()) {
       return ret;
     }
