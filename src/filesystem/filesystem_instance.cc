@@ -541,31 +541,40 @@ void FilesystemInstance::PrepareError(const FilesystemError& error, picojson::ob
   LoggerD("enter");
   switch (error) {
     case FilesystemError::None:
+      LoggerE("UnknownException - PLATFORM ERROR");
       ReportError(UnknownException("PLATFORM ERROR"), out);
       break;
     case FilesystemError::NotFound:
+      LoggerE("NotFoundException - PLATFORM ERROR");
       ReportError(NotFoundException("PLATFORM ERROR"), out);
       break;
     case FilesystemError::FileExists:
+      LoggerE("IOException - File already exists");
       ReportError(IOException("File already exists"), out);
       break;
     case FilesystemError::DirectoryExists:
+      LoggerE("IOException - Directory already exists");
       ReportError(IOException("Directory already exists"), out);
       break;
     case FilesystemError::PermissionDenied:
+      LoggerE("IOException - Permission denied");
       ReportError(IOException("Permission denied"), out);
       break;
     case FilesystemError::IOError:
+      LoggerE("IOException - IO Error");
       ReportError(IOException("IO Error"), out);
       break;
     case FilesystemError::Other:
-      ReportError(UnknownException("PLATFORM ERROR"), out);
+      LoggerE("UnknownException - PLATFORM ERROR other");
+      ReportError(UnknownException("PLATFORM ERROR other"), out);
       break;
     case FilesystemError::InvalidValue:
+      LoggerE("InvalidValuesException - PLATFORM ERROR");
       ReportError(InvalidValuesException("PLATFORM ERROR"), out);
       break;
     default:
-      ReportError(UnknownException("PLATFORM ERROR"), out);
+      LoggerE("UnknownException - PLATFORM ERROR default");
+      ReportError(UnknownException("PLATFORM ERROR default"), out);
       break;
   }
 }
