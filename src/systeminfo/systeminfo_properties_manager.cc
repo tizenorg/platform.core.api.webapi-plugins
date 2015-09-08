@@ -101,8 +101,8 @@ SysteminfoPropertiesManager::~SysteminfoPropertiesManager() {
 }
 
 PlatformResult SysteminfoPropertiesManager::GetPropertyValue(const std::string& property,
-                                                             bool is_array_type, picojson::value* res)
-{
+                                                             bool is_array_type,
+                                                             picojson::value* res) {
   LoggerD("Entered getPropertyValue");
 
   if (!is_array_type) {
@@ -323,8 +323,7 @@ PlatformResult SysteminfoPropertiesManager::ReportDisplay(picojson::object* out)
 }
 
 /// DEVICE_ORIENTATION
-PlatformResult SysteminfoPropertiesManager::FetchIsAutoRotation(bool* result)
-{
+PlatformResult SysteminfoPropertiesManager::FetchIsAutoRotation(bool* result) {
   LoggerD("Entered");
   int is_auto_rotation = 0;
 
@@ -344,8 +343,7 @@ PlatformResult SysteminfoPropertiesManager::FetchIsAutoRotation(bool* result)
   }
 }
 
-PlatformResult SysteminfoPropertiesManager::FetchStatus(std::string* result)
-{
+PlatformResult SysteminfoPropertiesManager::FetchStatus(std::string* result) {
   LoggerD("Entered");
   int rotation = 0;
   std::string status = kOrientationPortraitPrimary;
@@ -455,8 +453,7 @@ PlatformResult SysteminfoPropertiesManager::ReportLocale(picojson::object* out) 
 }
 
 /// NETWORK
-static PlatformResult GetNetworkTypeString(NetworkType type, std::string& type_string)
-{
+static PlatformResult GetNetworkTypeString(NetworkType type, std::string& type_string) {
   switch (type) {
     case kNone:
       type_string = kNetworkTypeNone;
@@ -557,7 +554,7 @@ PlatformResult SysteminfoPropertiesManager::ReportNetwork(picojson::object* out)
 
 /// WIFI_NETWORK
 static PlatformResult GetIps(wifi_ap_h wifi_ap_handle, std::string* ip_addr_str,
-                   std::string* ipv6_addr_str){
+                   std::string* ipv6_addr_str) {
   //getting ipv4 address
   char* ip_addr = nullptr;
   int error = wifi_ap_get_ip_address(wifi_ap_handle,
@@ -830,8 +827,7 @@ static PlatformResult FetchBasicSimProperties(TapiHandle *tapi_handle,
     unsigned short *result_cell_id,
     unsigned short *result_lac,
     bool *result_is_roaming,
-    bool *result_is_flight_mode)
-{
+    bool *result_is_flight_mode) {
   LoggerD("Entered");
   int result_value = 0;
   int tapi_res = TAPI_API_SUCCESS;
@@ -878,8 +874,7 @@ static PlatformResult FetchBasicSimProperties(TapiHandle *tapi_handle,
 
 static PlatformResult FetchConnection(TapiHandle *tapi_handle, std::string* result_status,
                             std::string* result_apn, std::string* result_ip_address,
-                            std::string* result_ipv6_address, std::string* result_imei)
-{
+                            std::string* result_ipv6_address, std::string* result_imei) {
   LoggerD("Entered");
   connection_type_e connection_type = CONNECTION_TYPE_DISCONNECTED;
   connection_profile_h profile_handle = nullptr;

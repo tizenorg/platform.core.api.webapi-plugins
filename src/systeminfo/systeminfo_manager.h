@@ -17,7 +17,10 @@
 #ifndef WEBAPI_PLUGINS_SYSTEMINFO_SYSTEMINFO_MANAGER_H__
 #define WEBAPI_PLUGINS_SYSTEMINFO_SYSTEMINFO_MANAGER_H__
 
+#include <set>
+
 #include <wifi.h>
+#include <net_connection.h>
 
 #include "common/picojson.h"
 #include "common/platform_result.h"
@@ -50,21 +53,65 @@ class SysteminfoManager {
 
   common::PlatformResult GetPropertyCount(const std::string& property, unsigned long* count);
   wifi_rssi_level_e GetWifiLevel();
+  void SetWifiLevel(wifi_rssi_level_e level);
   int GetSensorHandle();
   TapiHandle* GetTapiHandle();
   TapiHandle** GetTapiHandles();
+  common::PlatformResult GetConnectionHandle(connection_h& handle);
 
+  SysteminfoInstance* GetInstance() { return instance_;};
+  SysteminfoPropertiesManager& GetPropertiesManager() { return prop_manager_;};
+
+  double GetCpuInfoLoad();
   void SetCpuInfoLoad(double load);
+  unsigned long long GetAvailableCapacityInternal();
   void SetAvailableCapacityInternal(unsigned long long capacity);
+  unsigned long long GetAvailableCapacityMmc();
   void SetAvailableCapacityMmc(unsigned long long capacity);
   std::string GetCameraTypes(int index);
   int GetCameraTypesCount();
+
+  bool IsListenerRegistered(const std::string& property_id);
+  void CallListenerCallback(const std::string& property_id);
+  void CallCpuListenerCallback();
+  void CallStorageListenerCallback();
  private:
   common::PlatformResult ConnectSensor(int* result);
   void DisconnectSensor(int handle_orientation);
   void InitTapiHandles();
   void InitCameraTypes();
   int GetSimCount();
+
+  bool IsIpChangeCallbackNotRegistered();
+  common::PlatformResult RegisterIpChangeCallback();
+  common::PlatformResult UnregisterIpChangeCallback();
+
+  common::PlatformResult RegisterBatteryListener();
+  common::PlatformResult UnregisterBatteryListener();
+  common::PlatformResult RegisterCpuListener();
+  common::PlatformResult UnregisterCpuListener();
+  common::PlatformResult RegisterStorageListener();
+  common::PlatformResult UnregisterStorageListener();
+  common::PlatformResult RegisterDisplayListener();
+  common::PlatformResult UnregisterDisplayListener();
+  common::PlatformResult RegisterDeviceOrientationListener();
+  common::PlatformResult UnregisterDeviceOrientationListener();
+  common::PlatformResult RegisterLocaleListener();
+  common::PlatformResult UnregisterLocaleListener();
+  common::PlatformResult RegisterNetworkListener();
+  common::PlatformResult UnregisterNetworkListener();
+  common::PlatformResult RegisterWifiNetworkListener();
+  common::PlatformResult UnregisterWifiNetworkListener();
+  common::PlatformResult RegisterEthernetNetworkListener();
+  common::PlatformResult UnregisterEthernetNetworkListener();
+  common::PlatformResult RegisterCellularNetworkListener();
+  common::PlatformResult UnregisterCellularNetworkListener();
+  common::PlatformResult RegisterPeripheralListener();
+  common::PlatformResult UnregisterPeripheralListener();
+  common::PlatformResult RegisterMemoryListener();
+  common::PlatformResult UnregisterMemoryListener();
+  common::PlatformResult RegisterCameraFlashListener();
+  common::PlatformResult UnregisterCameraFlashListener();
 
   SysteminfoInstance* instance_;
   SysteminfoPropertiesManager prop_manager_;
@@ -76,10 +123,20 @@ class SysteminfoManager {
   wifi_rssi_level_e wifi_level_;
   double cpu_load_;
   unsigned long long available_capacity_internal_;
+  unsigned long long last_available_capacity_internal_;
   unsigned long long available_capacity_mmc_;
+  unsigned long long last_available_capacity_mmc_;
 
   int sim_count_;
   TapiHandle *tapi_handles_[kTapiMaxHandle+1];
+
+  std::set<std::string> registered_listeners_;
+
+  guint cpu_event_id_;
+  guint storage_event_id_;
+
+  connection_h connection_handle_;
+
 };
 } // namespace systeminfo
 } // namespace webapi
