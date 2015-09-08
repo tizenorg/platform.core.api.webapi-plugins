@@ -17,12 +17,16 @@
 #ifndef WEBAPI_PLUGINS_SYSTEMINFO_SYSTEMINFO_MANAGER_H__
 #define WEBAPI_PLUGINS_SYSTEMINFO_SYSTEMINFO_MANAGER_H__
 
+#include <wifi.h>
+
 #include "common/picojson.h"
 #include "common/platform_result.h"
 #include "systeminfo/systeminfo_properties_manager.h"
 
 namespace extension {
 namespace systeminfo {
+
+const int kTapiMaxHandle = 2;
 
 class SysteminfoInstance;
 
@@ -44,10 +48,38 @@ class SysteminfoManager {
   void GetAvailableMemory(const picojson::value& args, picojson::object* out);
   void GetCount(const picojson::value& args, picojson::object* out);
 
- private:
-  SysteminfoInstance* instance_;
-  SystemInfoPropertiesManager prop_manager_;
+  common::PlatformResult GetPropertyCount(const std::string& property, unsigned long* count);
+  wifi_rssi_level_e GetWifiLevel();
+  int GetSensorHandle();
+  TapiHandle* GetTapiHandle();
+  TapiHandle** GetTapiHandles();
 
+  void SetCpuInfoLoad(double load);
+  void SetAvailableCapacityInternal(unsigned long long capacity);
+  void SetAvailableCapacityMmc(unsigned long long capacity);
+  std::string GetCameraTypes(int index);
+  int GetCameraTypesCount();
+ private:
+  common::PlatformResult ConnectSensor(int* result);
+  void DisconnectSensor(int handle_orientation);
+  void InitTapiHandles();
+  void InitCameraTypes();
+  int GetSimCount();
+
+  SysteminfoInstance* instance_;
+  SysteminfoPropertiesManager prop_manager_;
+
+  //! Sensor handle for DeviceOrientation purposes
+  int sensor_handle_;
+
+  std::vector<std::string> camera_types_;
+  wifi_rssi_level_e wifi_level_;
+  double cpu_load_;
+  unsigned long long available_capacity_internal_;
+  unsigned long long available_capacity_mmc_;
+
+  int sim_count_;
+  TapiHandle *tapi_handles_[kTapiMaxHandle+1];
 };
 } // namespace systeminfo
 } // namespace webapi

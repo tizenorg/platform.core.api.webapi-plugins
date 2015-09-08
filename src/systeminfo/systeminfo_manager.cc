@@ -19,8 +19,12 @@
 #include <functional>
 #include <memory>
 
+#include <device.h>
+#include <sensor_internal.h>
+
 #include "systeminfo/systeminfo_instance.h"
 #include "systeminfo/systeminfo_device_capability.h"
+#include "systeminfo/systeminfo-utils.h"
 #include "common/logger.h"
 #include "common/converter.h"
 #include "common/task-queue.h"
@@ -37,6 +41,8 @@ namespace extension {
 namespace systeminfo {
 
 namespace {
+const int kDefaultPropertyCount = 1;
+
 #define CHECK_EXIST(args, name, out) \
   if (!args.contains(name)) {\
     ReportError(TypeMismatchException(name" is required argument"), *out);\
@@ -86,11 +92,51 @@ namespace {
 } //namespace
 
 SysteminfoManager::SysteminfoManager(SysteminfoInstance* instance)
-    : instance_(instance){
+    : instance_(instance),
+      prop_manager_(*this),
+      sensor_handle_(-1),
+      wifi_level_(WIFI_RSSI_LEVEL_0),
+      cpu_load_(0),
+      available_capacity_internal_(0),
+      available_capacity_mmc_(0),
+      sim_count_(0),
+      tapi_handles_{nullptr} {
+  LoggerD("Entered");
+    int error = wifi_initialize();
+    if (WIFI_ERROR_NONE != error) {
+      std::string log_msg = "Initialize failed: " + std::string(get_error_message(error));
+      LoggerE("%s", log_msg.c_str());
+    } else {
+      LoggerD("WIFI initialization succeed");
+    }
+
+    //TODO
+//    error = wifi_set_rssi_level_changed_cb(OnWifiLevelChangedCb, nullptr);
+//    if (WIFI_ERROR_NONE != error) {
+//      std::string log_msg = "Setting wifi listener failed: " + parseWifiNetworkError(error);
+//      LoggerE("%s", log_msg.c_str());
+//    } else {
+//      LoggerD("Setting wifi listener succeed");
+//    }
+    InitCameraTypes();
 }
 
 SysteminfoManager::~SysteminfoManager() {
   LoggerD("Enter");
+  DisconnectSensor(sensor_handle_);
+
+
+  unsigned int i = 0;
+  while(tapi_handles_[i]) {
+    tel_deinit(tapi_handles_[i]);
+    i++;
+  }
+//TODO
+//  if (nullptr != m_connection_handle) {
+//    connection_destroy(m_connection_handle);
+//  }
+
+  wifi_deinitialize();
 }
 
 void SysteminfoManager::GetCapabilities(const picojson::value& args, picojson::object* out) {
@@ -233,27 +279,87 @@ void SysteminfoManager::GetPropertyValueArray(const picojson::value& args, picoj
   const std::string& prop_id = args.get("property").get<std::string>();
   LoggerD("Getting property arrray with id: %s ", prop_id.c_str());
 
-//  auto get = [this, prop_id, callback_id](const std::shared_ptr<picojson::value>& response) -> void {
-//    LoggerD("Getting");
-//    picojson::value result = picojson::value(picojson::object());
-//    PlatformResult ret = SysteminfoUtils::GetPropertyValue(prop_id, true, result);
-//    if (ret.IsError()) {
-//      LoggerE("Failed: GetPropertyValue()");
-//      ReportError(ret,&(response->get<picojson::object>()));
-//      return;
-//    }
-//    ReportSuccess(result, response->get<picojson::object>());
-//  };
-//
-//  auto get_response = [this, callback_id](const std::shared_ptr<picojson::value>& response) -> void {
-//    LoggerD("Getting response");
-//    picojson::object& obj = response->get<picojson::object>();
-//    obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
-//    PostMessage(response->serialize().c_str());
-//  };
-//
-//  TaskQueue::GetInstance().Queue<picojson::value>
-//  (get, get_response, std::shared_ptr<picojson::value>(new picojson::value(picojson::object())));
+  auto get = [this, prop_id, callback_id](const std::shared_ptr<picojson::value>& response) -> void {
+    LoggerD("Getting");
+    picojson::value result = picojson::value(picojson::object());
+
+    PlatformResult ret = prop_manager_.GetPropertyValue(prop_id, true, &result);
+    if (ret.IsError()) {
+      LoggerE("Failed: GetPropertyValue()");
+      ReportError(ret,&(response->get<picojson::object>()));
+      return;
+    }
+    ReportSuccess(result, response->get<picojson::object>());
+  };
+
+  auto get_response = [this, callback_id](const std::shared_ptr<picojson::value>& response) -> void {
+    LoggerD("Getting response");
+    picojson::object& obj = response->get<picojson::object>();
+    obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
+    Instance::PostMessage(instance_, response->serialize().c_str());
+  };
+
+  TaskQueue::GetInstance().Queue<picojson::value>
+  (get, get_response, std::shared_ptr<picojson::value>(new picojson::value(picojson::object())));
+}
+
+void SysteminfoManager::GetTotalMemory(const picojson::value& args, picojson::object* out) {
+  LoggerD("Enter");
+  picojson::value result = picojson::value(picojson::object());
+  picojson::object& result_obj = result.get<picojson::object>();
+
+  long long return_value = 0;
+  PlatformResult ret = SysteminfoUtils::GetTotalMemory(&return_value);
+  if (ret.IsError()) {
+    LoggerD("Error");
+    ReportError(ret, out);
+    return;
+  }
+  result_obj.insert(std::make_pair("totalMemory",
+                                   picojson::value(static_cast<double>(return_value))));
+
+  ReportSuccess(result, *out);
+  LoggerD("Success");
+}
+
+void SysteminfoManager::GetAvailableMemory(const picojson::value& args, picojson::object* out) {
+  LoggerD("Enter");
+  picojson::value result = picojson::value(picojson::object());
+  picojson::object& result_obj = result.get<picojson::object>();
+
+  long long return_value = 0;
+  PlatformResult ret = SysteminfoUtils::GetAvailableMemory(&return_value);
+  if (ret.IsError()) {
+    LoggerD("Error");
+    ReportError(ret, out);
+    return;
+  }
+  result_obj.insert(std::make_pair("availableMemory",
+                                   picojson::value(static_cast<double>(return_value))));
+
+  ReportSuccess(result, *out);
+  LoggerD("Success");
+}
+
+void SysteminfoManager::GetCount(const picojson::value& args, picojson::object* out) {
+  LoggerD("Enter");
+  CHECK_EXIST(args, "property", out)
+  const std::string& property = args.get("property").get<std::string>();
+  LoggerD("Getting count of property with id: %s ", property.c_str());
+
+  picojson::value result = picojson::value(picojson::object());
+  picojson::object& result_obj = result.get<picojson::object>();
+  unsigned long count = 0;
+  PlatformResult ret = GetPropertyCount(property, &count);
+  if (ret.IsError()) {
+    LoggerE("Failed: GetCount()");
+    ReportError(ret, out);
+    return;
+  }
+  result_obj.insert(std::make_pair("count", picojson::value(static_cast<double>(count))));
+
+  ReportSuccess(result, *out);
+  LoggerD("Success");
 }
 
 void SysteminfoManager::AddPropertyValueChangeListener(const picojson::value& args, picojson::object* out) {
@@ -308,66 +414,6 @@ void SysteminfoManager::AddPropertyValueChangeListener(const picojson::value& ar
 //  }
 //  LoggerD("Error");
 //  ReportError(ret, &out);
-}
-
-void SysteminfoManager::GetTotalMemory(const picojson::value& args, picojson::object* out) {
-  LoggerD("Enter");
-  picojson::value result = picojson::value(picojson::object());
-  picojson::object& result_obj = result.get<picojson::object>();
-
-  long long return_value = 0;
-//  PlatformResult ret = SysteminfoUtils::GetTotalMemory(return_value);
-//  if (ret.IsError()) {
-//    LoggerD("Error");
-//    ReportError(ret, &out);
-//    return;
-//  }
-//  result_obj.insert(std::make_pair("totalMemory",
-//                                   picojson::value(static_cast<double>(return_value))));
-//
-//  ReportSuccess(result, out);
-//  LoggerD("Success");
-}
-
-void SysteminfoManager::GetAvailableMemory(const picojson::value& args, picojson::object* out) {
-  LoggerD("Enter");
-  picojson::value result = picojson::value(picojson::object());
-  picojson::object& result_obj = result.get<picojson::object>();
-
-  long long return_value = 0;
-//  PlatformResult ret = SysteminfoUtils::GetAvailableMemory(return_value);
-//  if (ret.IsError()) {
-//    LoggerD("Error");
-//    ReportError(ret, &out);
-//    return;
-//  }
-//  result_obj.insert(std::make_pair("availableMemory",
-//                                   picojson::value(static_cast<double>(return_value))));
-//
-//  ReportSuccess(result, out);
-//  LoggerD("Success");
-}
-
-void SysteminfoManager::GetCount(const picojson::value& args, picojson::object* out) {
-
-  LoggerD("Enter");
-  CHECK_EXIST(args, "property", out)
-  const std::string& property = args.get("property").get<std::string>();
-  LoggerD("Getting count of property with id: %s ", property.c_str());
-
-  picojson::value result = picojson::value(picojson::object());
-  picojson::object& result_obj = result.get<picojson::object>();
-  unsigned long count = 0;
-//  PlatformResult ret = SysteminfoUtils::GetCount(property, count);
-//  if (ret.IsError()) {
-//    LoggerE("Failed: GetCount()");
-//    ReportError(ret, &out);
-//    return;
-//  }
-//  result_obj.insert(std::make_pair("count", picojson::value(static_cast<double>(count))));
-//
-//  ReportSuccess(result, out);
-//  LoggerD("Success");
 }
 
 void SysteminfoManager::RemovePropertyValueChangeListener(const picojson::value& args, picojson::object* out) {
@@ -430,39 +476,218 @@ void SysteminfoManager::SetBrightness(const picojson::value& args, picojson::obj
   CHECK_EXIST(args, "brightness", out)
 
   const double brightness = args.get("brightness").get<double>();
-//  int result = device_flash_set_brightness(brightness);
-//  if (result != DEVICE_ERROR_NONE) {
-//    LoggerE("Error occured");
-//    ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Error occured"), &out);
-//    return;
-//  }
-//  ReportSuccess(out);
+  int result = device_flash_set_brightness(brightness);
+  if (result != DEVICE_ERROR_NONE) {
+    LoggerE("Error occured");
+    ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Error occured"), out);
+    return;
+  }
+  ReportSuccess(*out);
 }
 
 void SysteminfoManager::GetBrightness(const picojson::value& args, picojson::object* out) {
   LoggerD("entered");
 
   int brightness = 0;
-//  int result = device_flash_get_brightness(&brightness);
-//  if (result != DEVICE_ERROR_NONE) {
-//    LoggerE("Error occured");
-//    ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Error occured"), &out);
-//    return;
-//  }
-//  ReportSuccess(picojson::value(std::to_string(brightness)), out);
+  int result = device_flash_get_brightness(&brightness);
+  if (result != DEVICE_ERROR_NONE) {
+    LoggerE("Error occured");
+    ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Error occured"), out);
+    return;
+  }
+  ReportSuccess(picojson::value(std::to_string(brightness)), *out);
 }
 
 void SysteminfoManager::GetMaxBrightness(const picojson::value& args, picojson::object* out) {
   LoggerD("entered");
 
   int brightness = 0;
-//  int result = device_flash_get_max_brightness(&brightness);
-//  if (result != DEVICE_ERROR_NONE) {
-//    LoggerE("Error occured");
-//    ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Not supported property"), &out);
-//    return;
-//  }
-//  ReportSuccess(picojson::value(std::to_string(brightness)), out);
+  int result = device_flash_get_max_brightness(&brightness);
+  if (result != DEVICE_ERROR_NONE) {
+    LoggerE("Error occured");
+    ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Not supported property"), out);
+    return;
+  }
+  ReportSuccess(picojson::value(std::to_string(brightness)), *out);
+}
+
+PlatformResult SysteminfoManager::GetPropertyCount(const std::string& property,
+                                                   unsigned long* count)
+{
+  LoggerD("Enter");
+
+  if ("BATTERY" == property || "CPU" == property || "STORAGE" == property ||
+      "DISPLAY" == property || "DEVICE_ORIENTATION" == property ||
+      "BUILD" == property || "LOCALE" == property || "NETWORK" == property ||
+      "WIFI_NETWORK" == property || "PERIPHERAL" == property ||
+      "MEMORY" == property) {
+    *count = kDefaultPropertyCount;
+  } else if ("CELLULAR_NETWORK" == property) {
+    PlatformResult ret = SysteminfoUtils::CheckTelephonySupport();
+    if (ret.IsError()) {
+      *count = 0;
+    } else {
+      *count = GetSimCount();
+    }
+  } else if ("SIM" == property) {
+    PlatformResult ret = SysteminfoUtils::CheckTelephonySupport();
+    if (ret.IsError()) {
+      *count = 0;
+    } else {
+      *count = GetSimCount();
+    }
+  } else if ("CAMERA_FLASH" == property) {
+    *count = GetCameraTypesCount();
+  } else if ("ETHERNET_NETWORK" == property) {
+    PlatformResult ret = SysteminfoUtils::CheckIfEthernetNetworkSupported();
+    if (ret.IsError()) {
+      *count = 0;
+    } else {
+      *count = kDefaultPropertyCount;
+    }
+  } else {
+    LoggerD("Property with given id is not supported");
+    return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR, "Property with given id is not supported");
+  }
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+wifi_rssi_level_e SysteminfoManager::GetWifiLevel() {
+  LoggerD("Enter");
+  return wifi_level_;
+}
+
+int SysteminfoManager::GetSensorHandle() {
+  LoggerD("Enter");
+  if (sensor_handle_ < 0) {
+    LoggerD("Connecting to sensor");
+    ConnectSensor(&sensor_handle_);
+  } else {
+    LoggerD("Sensor already connected");
+  }
+  return sensor_handle_;
+}
+
+PlatformResult SysteminfoManager::ConnectSensor(int* result) {
+  LoggerD("Entered");
+  sensor_t sensor = sensord_get_sensor(AUTO_ROTATION_SENSOR);
+  int handle_orientation = sensord_connect(sensor);
+  if (handle_orientation < 0) {
+    std::string log_msg = "Failed to connect auto rotation sensor";
+    LoggerE("%s", log_msg.c_str());
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
+  }
+  bool ret = sensord_start(handle_orientation, 0);
+  if(!ret) {
+    sensord_disconnect(handle_orientation);
+    std::string log_msg = "Failed to start auto rotation sensor";
+    LoggerE("%s", log_msg.c_str());
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
+  }
+  LoggerD("Sensor starts successfully = %d", handle_orientation);
+  *result = handle_orientation;
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+void SysteminfoManager::DisconnectSensor(int handle_orientation) {
+  LoggerD("Enter");
+  if (handle_orientation >= 0) {
+    LoggerD("Entered");
+    bool state = sensord_stop(handle_orientation);
+    LoggerD("sensord_stop() returned state = %d", state);
+    state = sensord_disconnect(handle_orientation);
+    LoggerD("sensord_disconnect() returned state %d", state);
+  } else {
+    LoggerD("sensor already disconnected - no action needed");
+  }
+}
+
+void SysteminfoManager::SetCpuInfoLoad(double load) {
+  LoggerD("Enter");
+  cpu_load_ = load;
+}
+
+void SysteminfoManager::SetAvailableCapacityInternal(unsigned long long capacity) {
+  LoggerD("Enter");
+  available_capacity_internal_ = capacity;
+}
+
+void SysteminfoManager::SetAvailableCapacityMmc(unsigned long long capacity) {
+  LoggerD("Enter");
+  available_capacity_mmc_ = capacity;
+}
+
+int SysteminfoManager::GetSimCount() {
+  LoggerD("Entered");
+  InitTapiHandles();
+  return sim_count_;
+}
+
+void SysteminfoManager::InitTapiHandles() {
+  LoggerD("Entered");
+  if (nullptr == tapi_handles_[0]){  //check if anything is in table
+    sim_count_ = 0;
+    char **cp_list = tel_get_cp_name_list();
+    if (nullptr != cp_list) {
+      while (cp_list[sim_count_]) {
+        tapi_handles_[sim_count_] = tel_init(cp_list[sim_count_]);
+        if (nullptr == tapi_handles_[sim_count_]) {
+          LoggerE("Failed to connect with tapi, handle is null");
+          break;
+        }
+        sim_count_++;
+        LoggerD("%d modem: %s", sim_count_, cp_list[sim_count_]);
+      }
+    } else {
+      LoggerE("Failed to get cp list");
+      sim_count_ = kTapiMaxHandle;
+    }
+    g_strfreev(cp_list);
+  }
+}
+
+TapiHandle* SysteminfoManager::GetTapiHandle() {
+  LoggerD("Entered");
+  InitTapiHandles();
+  return tapi_handles_[0];
+}
+
+TapiHandle** SysteminfoManager::GetTapiHandles() {
+  LoggerD("Enter");
+  InitTapiHandles();
+  return tapi_handles_;
+}
+
+void SysteminfoManager::InitCameraTypes() {
+  LoggerD("Enter");
+  bool supported = false;
+  PlatformResult ret = SystemInfoDeviceCapability::GetValueBool(
+      "tizen.org/feature/camera.back.flash", &supported);
+  if (ret.IsSuccess()) {
+    if (supported) {
+      camera_types_.push_back("BACK");
+    }
+  }
+  ret = SystemInfoDeviceCapability::GetValueBool(
+      "tizen.org/feature/camera.front.flash", &supported);
+  if (ret.IsSuccess()) {
+    if (supported) {
+      camera_types_.push_back("FRONT");
+    }
+  }
+}
+
+std::string SysteminfoManager::GetCameraTypes(int index) {
+  LoggerD("Enter");
+  if (index >= camera_types_.size()) {
+    return "";
+  }
+  return camera_types_[index];
+}
+
+int SysteminfoManager::GetCameraTypesCount() {
+  LoggerD("Enter");
+  return camera_types_.size();
 }
 
 }  // namespace systeminfo

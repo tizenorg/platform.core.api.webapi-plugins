@@ -20,14 +20,17 @@
 #include <string>
 #include "common/picojson.h"
 #include "common/platform_result.h"
+#include "systeminfo/systeminfo_sim_details_manager.h"
 
 namespace extension {
 namespace systeminfo {
 
-class SystemInfoPropertiesManager {
+class SysteminfoManager;
+
+class SysteminfoPropertiesManager {
  public:
-  SystemInfoPropertiesManager();
-  ~SystemInfoPropertiesManager();
+  SysteminfoPropertiesManager(SysteminfoManager& manager);
+  ~SysteminfoPropertiesManager();
 
   common::PlatformResult GetPropertyValue(
       const std::string& prop, bool is_array_type, picojson::value* res);
@@ -47,8 +50,15 @@ class SystemInfoPropertiesManager {
   common::PlatformResult ReportCellularNetwork(picojson::object* out, unsigned long count);
   common::PlatformResult ReportSim(picojson::object* out, unsigned long count);
   common::PlatformResult ReportPeripheral(picojson::object* out);
-  common::PlatformResult ReportCameraFlash(picojson::object* out);
+  common::PlatformResult ReportCameraFlash(picojson::object* out, unsigned long count);
+  common::PlatformResult ReportMemory(picojson::object* out);
   common::PlatformResult ReportStorage(picojson::object* out);
+
+  common::PlatformResult FetchIsAutoRotation(bool* result);
+  common::PlatformResult FetchStatus(std::string* result);
+
+  SysteminfoManager& manager_;
+  SimDetailsManager sim_manager_;
 };
 
 } // namespace systeminfo
