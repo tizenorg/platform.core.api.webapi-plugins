@@ -124,14 +124,14 @@ static void OnBatteryChangedCb(keynode_t* node, void* event_ptr) {
 static gboolean OnCpuChangedCb(gpointer event_ptr) {
   LoggerD("Enter");
   SysteminfoManager* manager = static_cast<SysteminfoManager*>(event_ptr);
-  manager->CallListenerCallback(kPropertyIdCpu);
+  manager->CallCpuListenerCallback();
   return G_SOURCE_CONTINUE;
 }
 
 static gboolean OnStorageChangedCb(gpointer event_ptr) {
   LoggerD("Enter");
   SysteminfoManager* manager = static_cast<SysteminfoManager*>(event_ptr);
-  manager->CallListenerCallback(kPropertyIdStorage);
+  manager->CallStorageListenerCallback();
   return G_SOURCE_CONTINUE;
 }
 
@@ -222,8 +222,11 @@ SysteminfoManager::SysteminfoManager(SysteminfoInstance* instance)
       sensor_handle_(-1),
       wifi_level_(WIFI_RSSI_LEVEL_0),
       cpu_load_(0),
+      last_cpu_load_(0),
       available_capacity_internal_(0),
+      last_available_capacity_internal_(0),
       available_capacity_mmc_(0),
+      last_available_capacity_mmc_(0),
       sim_count_(0),
       tapi_handles_{nullptr},
       cpu_event_id_(0),
@@ -1177,29 +1180,14 @@ void SysteminfoManager::DisconnectSensor(int handle_orientation) {
   }
 }
 
-double SysteminfoManager::GetCpuInfoLoad() {
-  LoggerD("Enter");
-  return cpu_load_;
-}
-
 void SysteminfoManager::SetCpuInfoLoad(double load) {
   LoggerD("Enter");
   cpu_load_ = load;
 }
 
-unsigned long long SysteminfoManager::GetAvailableCapacityInternal() {
-  LoggerD("Entered");
-  return available_capacity_internal_;
-}
-
 void SysteminfoManager::SetAvailableCapacityInternal(unsigned long long capacity) {
   LoggerD("Entered");
   available_capacity_internal_ = capacity;
-}
-
-unsigned long long SysteminfoManager::GetAvailableCapacityMmc() {
-  LoggerD("Entered");
-  return available_capacity_mmc_;
 }
 
 void SysteminfoManager::SetAvailableCapacityMmc(unsigned long long capacity) {
@@ -1298,21 +1286,29 @@ bool SysteminfoManager::IsListenerRegistered(const std::string& property_id) {
   return (registered_listeners_.find(property_id) != registered_listeners_.end());
 }
 
+void SysteminfoManager::PostListenerResponse(const std::string& property_id,
+                                     const picojson::value& result) {
+  LoggerD("Entered");
+  const std::shared_ptr<picojson::value>& response =
+      std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
+  response->get<picojson::object>()[kPropertyIdString] = picojson::value(property_id);
+  response->get<picojson::object>()[kListenerIdString] = picojson::value(kListenerConstValue);
+
+  ReportSuccess(result,response->get<picojson::object>());
+  Instance::PostMessage(instance_, response->serialize().c_str());
+}
+
+
 void SysteminfoManager::CallListenerCallback(const std::string& property_id) {
   LoggerD("Enter");
   if(IsListenerRegistered(property_id)) {
     LoggerD("listener for %s property is registered, calling it", property_id.c_str());
-    const std::shared_ptr<picojson::value>& response =
-        std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
-    response->get<picojson::object>()[kPropertyIdString] = picojson::value(property_id);
-    response->get<picojson::object>()[kListenerIdString] = picojson::value(kListenerConstValue);
 
     picojson::value result = picojson::value(picojson::object());
     PlatformResult ret = GetPropertiesManager().GetPropertyValue(
         property_id, true, &result);
     if (ret.IsSuccess()) {
-      ReportSuccess(result,response->get<picojson::object>());
-      Instance::PostMessage(instance_, response->serialize().c_str());
+      PostListenerResponse(property_id, result);
     }
   } else {
     LoggerD("listener for %s property is not registered, ignoring", property_id.c_str());
@@ -1324,17 +1320,16 @@ void SysteminfoManager::CallCpuListenerCallback() {
   std::string property_id = kPropertyIdCpu;
   if(IsListenerRegistered(property_id)) {
     LoggerD("listener for %s property is registered, calling it", property_id.c_str());
-    const std::shared_ptr<picojson::value>& response =
-        std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
-    response->get<picojson::object>()[kPropertyIdString] = picojson::value(property_id);
-    response->get<picojson::object>()[kListenerIdString] = picojson::value(kListenerConstValue);
-
     picojson::value result = picojson::value(picojson::object());
     PlatformResult ret = GetPropertiesManager().GetPropertyValue(
         property_id, true, &result);
     if (ret.IsSuccess()) {
-      ReportSuccess(result,response->get<picojson::object>());
-      Instance::PostMessage(instance_, response->serialize().c_str());
+      if (cpu_load_ == last_cpu_load_) {
+        LoggerD("Cpu load didn't change, ignoring");
+        return;
+      }
+      last_cpu_load_ = cpu_load_;
+      PostListenerResponse(property_id, result);
     }
   } else {
     LoggerD("listener for %s property is not registered, ignoring", property_id.c_str());
@@ -1346,21 +1341,22 @@ void SysteminfoManager::CallStorageListenerCallback() {
   std::string property_id = kPropertyIdStorage;
   if(IsListenerRegistered(property_id)) {
     LoggerD("listener for %s property is registered, calling it", property_id.c_str());
-    const std::shared_ptr<picojson::value>& response =
-        std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
-    response->get<picojson::object>()[kPropertyIdString] = picojson::value(property_id);
-    response->get<picojson::object>()[kListenerIdString] = picojson::value(kListenerConstValue);
 
     picojson::value result = picojson::value(picojson::object());
     PlatformResult ret = GetPropertiesManager().GetPropertyValue(
         property_id, true, &result);
     if (ret.IsSuccess()) {
-      if (available_capacity_internal_ == last_available_capacity_internal_) {
+      // check if anything changed
+      if (available_capacity_internal_ == last_available_capacity_internal_ &&
+          available_capacity_mmc_ == last_available_capacity_mmc_) {
+        LoggerD("Storage state didn't change, ignoring");
         return;
       }
+      // refresh previous values
       last_available_capacity_internal_ = available_capacity_internal_;
-      ReportSuccess(result,response->get<picojson::object>());
-      Instance::PostMessage(instance_, response->serialize().c_str());
+      last_available_capacity_mmc_ = available_capacity_mmc_;
+
+      PostListenerResponse(property_id, result);
     }
   } else {
     LoggerD("listener for %s property is not registered, ignoring", property_id.c_str());

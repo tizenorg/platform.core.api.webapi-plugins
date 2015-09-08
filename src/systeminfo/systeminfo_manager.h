@@ -62,11 +62,8 @@ class SysteminfoManager {
   SysteminfoInstance* GetInstance() { return instance_;};
   SysteminfoPropertiesManager& GetPropertiesManager() { return prop_manager_;};
 
-  double GetCpuInfoLoad();
   void SetCpuInfoLoad(double load);
-  unsigned long long GetAvailableCapacityInternal();
   void SetAvailableCapacityInternal(unsigned long long capacity);
-  unsigned long long GetAvailableCapacityMmc();
   void SetAvailableCapacityMmc(unsigned long long capacity);
   std::string GetCameraTypes(int index);
   int GetCameraTypesCount();
@@ -76,6 +73,7 @@ class SysteminfoManager {
   void CallCpuListenerCallback();
   void CallStorageListenerCallback();
  private:
+  void PostListenerResponse(const std::string& property_id, const picojson::value& result);
   common::PlatformResult ConnectSensor(int* result);
   void DisconnectSensor(int handle_orientation);
   void InitTapiHandles();
@@ -122,6 +120,7 @@ class SysteminfoManager {
   std::vector<std::string> camera_types_;
   wifi_rssi_level_e wifi_level_;
   double cpu_load_;
+  double last_cpu_load_;
   unsigned long long available_capacity_internal_;
   unsigned long long last_available_capacity_internal_;
   unsigned long long available_capacity_mmc_;

@@ -598,26 +598,41 @@ PlatformResult SysteminfoPropertiesManager::ReportWifiNetwork(picojson::object* 
     LoggerE("%s", log_msg.c_str());
     return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
   } else {
-    LoggerD("WIFI initializatino succeed");
+    LoggerD("WIFI initialization succeed");
   }
   SCOPE_EXIT {
     wifi_deinitialize();
   };
 
-  wifi_ap_h wifi_ap_handle = nullptr;
-  error = wifi_get_connected_ap(&wifi_ap_handle);
+  // check if wifi activated
+  bool activated = false;
+  error = wifi_is_activated(&activated);
   if (WIFI_ERROR_NONE != error) {
-    LoggerD("Error while wifi_get_connnected_ap: %s", get_error_message(error));
-    // in case of no connection, ignore error and leave status as false
-    if (WIFI_ERROR_NO_CONNECTION != error) {
-      std::string log_msg = "Cannot get connected access point handle: " +
-          std::string(get_error_message(error));
-      LoggerE("%s", log_msg.c_str());
-      return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
-    }
+    std::string log_msg = "Checking if wifi is activated failed: " +
+        std::string(get_error_message(error));
+    LoggerE("%s", log_msg.c_str());
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
   } else {
-    //if getting connected AP succeed, set status on true
-    result_status = true;
+    LoggerD("WIFI activated check succeed");
+  }
+
+  wifi_ap_h wifi_ap_handle = nullptr;
+  if (activated) {
+    LoggerD("Wifi is activated");
+    error = wifi_get_connected_ap(&wifi_ap_handle);
+    if (WIFI_ERROR_NONE != error) {
+      LoggerD("Error while wifi_get_connnected_ap: %s", get_error_message(error));
+      // in case of no connection, ignore error and leave status as false
+      if (WIFI_ERROR_NO_CONNECTION != error) {
+        std::string log_msg = "Cannot get connected access point handle: " +
+            std::string(get_error_message(error));
+        LoggerE("%s", log_msg.c_str());
+        return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
+      }
+    } else {
+      //if getting connected AP succeed, set status on true
+      result_status = true;
+    }
   }
 
   if (result_status) {
