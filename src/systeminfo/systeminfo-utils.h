@@ -21,6 +21,7 @@
 #include <functional>
 #include "common/picojson.h"
 #include "common/platform_result.h"
+#include "systeminfo/systeminfo_device_capability.h"
 
 namespace extension {
 namespace systeminfo {
@@ -109,26 +110,6 @@ class SysteminfoUtils {
 };
 
 typedef unsigned char byte;
-
-class SystemInfoDeviceCapability {
- public:
-  static common::PlatformResult GetCapability(const std::string& key, picojson::value& result);
-  static common::PlatformResult GetValueBool(const char *key, bool* value);
-  static common::PlatformResult GetValueInt(const char *key, int* value);
-  static common::PlatformResult GetValueString(const char *key, std::string* str_value);
-
-  static common::PlatformResult IsInputKeyboardLayout(bool* result);
-  static common::PlatformResult GetOpenglesTextureFormat(std::string* result);
-  static common::PlatformResult GetPlatfomCoreCpuArch(std::string* return_value);
-  static common::PlatformResult GetPlatfomCoreFpuArch(std::string* return_value);
-  static common::PlatformResult GetProfile(std::string* return_value);
-  static common::PlatformResult GetPlatformCoreCpuFrequency(int* return_value);
-  static common::PlatformResult IsNativeOspCompatible(bool* result);
-  static common::PlatformResult GetNativeAPIVersion(std::string* return_value);
-  static common::PlatformResult GetPlatformVersionName(std::string* result);
-  static bool IsBluetoothAlwaysOn();
-  static bool IsScreen();
-};
 
 } // namespace systeminfo
 } // namespace webapi

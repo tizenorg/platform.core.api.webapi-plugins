@@ -17,6 +17,10 @@
         'systeminfo_instance.h',
         'systeminfo-utils.cpp',
         'systeminfo-utils.h',
+        'systeminfo_manager.cc',
+        'systeminfo_manager.h',
+        'systeminfo_device_capability.cc',
+        'systeminfo_device_capability.h',
       ],
       'includes': [
         '../common/pkg-config.gypi',
