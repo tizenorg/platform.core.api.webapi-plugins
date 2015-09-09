@@ -168,9 +168,16 @@ PlatformResult NotificationManager::GetAll(picojson::array& out) {
                               "Cannot get notification id error");
       }
 
-      app_control_h app_control;
+      app_control_h app_control = nullptr;
       PlatformResult status =
           StatusNotification::GetAppControl(noti, &app_control);
+
+      SCOPE_EXIT {
+          if (app_control) {
+              app_control_destroy(app_control);
+          }
+      };
+
       if (status.IsError())
         return status;
 
