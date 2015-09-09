@@ -145,9 +145,14 @@ void PowerInstance::PowerManagerSetscreenbrightness(const picojson::value& args,
 
 void PowerInstance::PowerManagerIsscreenon(const picojson::value& args, picojson::object& out) {
   LoggerD("Enter");
-  bool ret = PowerManager::GetInstance()->IsScreenOn();
-  ReportSuccess(picojson::value(ret), out);
+  bool state = false;
+  PlatformResult result = PowerManager::GetInstance()->IsScreenOn(&state);
+  if (result.IsError())
+    ReportError(result, &out);
+  else
+    ReportSuccess(picojson::value(state), out);
 }
+
 void PowerInstance::PowerManagerRestorescreenbrightness(const picojson::value& args, picojson::object& out) {
   LoggerD("Enter");
   PlatformResult result =
