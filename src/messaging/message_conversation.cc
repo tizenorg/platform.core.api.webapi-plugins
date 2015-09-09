@@ -279,6 +279,15 @@ PlatformResult MessageConversation::convertEmailConversationToObject(
 
     if(email_get_thread_information_ex(threadId, &resultMail) != EMAIL_ERROR_NONE)
     {
+        if (resultMail)
+        {
+            if(resultMail->eas_data)
+            {
+                free(resultMail->eas_data);
+            }
+            free(resultMail);
+        }
+
         LoggerE("Couldn't get conversation");
         return PlatformResult(ErrorCode::UNKNOWN_ERR, "Couldn't get conversation.");
     } else {
