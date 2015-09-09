@@ -143,26 +143,22 @@ void SystemSettingInstance::setProperty(const picojson::value& args, picojson::o
   const std::string& value = args.get("value").get<std::string>();
   LoggerD("Value to set: %s ", value.c_str());
 
-  auto get = [this, type, value](const std::shared_ptr<picojson::value>& response) -> void {
+  auto get = [this, type, value, callback_id](const std::shared_ptr<picojson::value>& response) -> void {
     LoggerD("Setting platform value");
     PlatformResult status = setPlatformPropertyValue(type, value);
+    picojson::object& obj = response->get<picojson::object>();
     if (status.IsSuccess()) {
-      ReportSuccess(response->get<picojson::object>());
+      ReportSuccess(obj);
     } else {
       LoggerE("Failed: setPlatformPropertyValue()");
-      ReportError(status, &response->get<picojson::object>());
+      ReportError(status, &obj);
     }
-  };
-
-  auto get_response = [this, callback_id](const std::shared_ptr<picojson::value>& response) -> void {
-    LoggerD("Getting response");
-    picojson::object& obj = response->get<picojson::object>();
     obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
     Instance::PostMessage(this, response->serialize().c_str());
   };
 
-  TaskQueue::GetInstance().Queue<picojson::value>
-  (get, get_response, std::shared_ptr<picojson::value>(new picojson::value(picojson::object())));
+  TaskQueue::GetInstance().Async<picojson::value>
+  (get, std::shared_ptr<picojson::value>(new picojson::value(picojson::object())));
 }
 
 PlatformResult SystemSettingInstance::setPlatformPropertyValue(
