@@ -97,7 +97,11 @@ void ContentToJson(media_info_h info, picojson::object& o) {
       std::unique_ptr<std::remove_pointer<image_meta_h>::type, int(*)(image_meta_h)>
           img_ptr(img, &image_meta_destroy); // automatically release the memory
       if (MEDIA_CONTENT_ERROR_NONE == image_meta_get_date_taken(img, &tmpStr)) {
-        o["releaseDate"] = picojson::value(get_date(tmpStr));
+        if (tmpStr) {
+          o["releaseDate"] = picojson::value(get_date(tmpStr));
+          free(tmpStr);
+          tmpStr = NULL;
+        }
       }
       if (MEDIA_CONTENT_ERROR_NONE == image_meta_get_width(img, &tmpInt)) {
         o["width"] = picojson::value(static_cast<double>(tmpInt));
@@ -146,7 +150,6 @@ void ContentToJson(media_info_h info, picojson::object& o) {
         o["orientation"] = picojson::value(ori);
       }
     }
-
   } else if (type == MEDIA_CONTENT_TYPE_VIDEO) {
     o["type"] = picojson::value(std::string("VIDEO"));
     video_meta_h video;
@@ -164,19 +167,27 @@ void ContentToJson(media_info_h info, picojson::object& o) {
         picojson::array artists;
         if (tmpStr) {
           artists.push_back(picojson::value(std::string(tmpStr)));
+          free(tmpStr);
+          tmpStr = NULL;
         }
         o["artists"] = picojson::value(artists);
       }
       if (MEDIA_CONTENT_ERROR_NONE == video_meta_get_album(video, &tmpStr)) {
         if (tmpStr) {
           o["album"] = picojson::value(tmpStr);
+          free(tmpStr);
+          tmpStr = NULL;
         }
       }
       if (MEDIA_CONTENT_ERROR_NONE == video_meta_get_duration(video, &tmpInt)) {
         o["duration"] = picojson::value(static_cast<double>(tmpInt));
       }
       if (MEDIA_CONTENT_ERROR_NONE == video_meta_get_recorded_date(video, &tmpStr)) {
-        o["releaseDate"] = picojson::value(get_date(tmpStr));
+        if (tmpStr) {
+          o["releaseDate"] = picojson::value(get_date(tmpStr));
+          free(tmpStr);
+          tmpStr = NULL;
+        }
       }
     }
     picojson::object geo;
@@ -187,7 +198,6 @@ void ContentToJson(media_info_h info, picojson::object& o) {
       geo["longitude"] = picojson::value(tmpDouble);
     }
     o["geolocation"] = picojson::value(geo);
-
   } else if (type == MEDIA_CONTENT_TYPE_SOUND || type == MEDIA_CONTENT_TYPE_MUSIC) {
     o["type"] = picojson::value(std::string("AUDIO"));
     audio_meta_h audio;
@@ -195,7 +205,11 @@ void ContentToJson(media_info_h info, picojson::object& o) {
       std::unique_ptr<std::remove_pointer<audio_meta_h>::type, int(*)(audio_meta_h)>
           audio_ptr(audio, &audio_meta_destroy); // automatically release the memory
       if (MEDIA_CONTENT_ERROR_NONE == audio_meta_get_recorded_date(audio, &tmpStr)) {
-        o["releaseDate"] = picojson::value(get_date(tmpStr));
+        if(tmpStr) {
+          o["releaseDate"] = picojson::value(get_date(tmpStr));
+          free(tmpStr);
+          tmpStr = NULL;
+        }
       }
       if (MEDIA_CONTENT_ERROR_NONE == audio_meta_get_album(audio, &tmpStr)) {
         if (tmpStr) {
@@ -207,9 +221,7 @@ void ContentToJson(media_info_h info, picojson::object& o) {
       if (MEDIA_CONTENT_ERROR_NONE == audio_meta_get_artist(audio, &tmpStr)) {
         if (tmpStr) {
           picojson::array artists;
-          if (tmpStr) {
-            artists.push_back(picojson::value(std::string(tmpStr)));
-          }
+          artists.push_back(picojson::value(std::string(tmpStr)));
           o["artists"] = picojson::value(artists);
           free(tmpStr);
           tmpStr = NULL;
@@ -218,9 +230,7 @@ void ContentToJson(media_info_h info, picojson::object& o) {
       if (MEDIA_CONTENT_ERROR_NONE == audio_meta_get_genre(audio, &tmpStr)) {
         if (tmpStr) {
           picojson::array genres;
-          if (tmpStr) {
-            genres.push_back(picojson::value(std::string(tmpStr)));
-          }
+          genres.push_back(picojson::value(std::string(tmpStr)));
           o["genres"] = picojson::value(genres);
           free(tmpStr);
           tmpStr = NULL;
@@ -229,9 +239,7 @@ void ContentToJson(media_info_h info, picojson::object& o) {
       if (MEDIA_CONTENT_ERROR_NONE == audio_meta_get_composer(audio, &tmpStr)) {
         if (tmpStr) {
           picojson::array composers;
-          if (tmpStr) {
-            composers.push_back(picojson::value(std::string(tmpStr)));
-          }
+          composers.push_back(picojson::value(std::string(tmpStr)));
           o["composers"] = picojson::value(composers);
           free(tmpStr);
           tmpStr = NULL;
