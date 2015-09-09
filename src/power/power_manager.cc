@@ -319,13 +319,18 @@ PlatformResult PowerManager::SetScreenBrightness(double brightness) {
   return set_result;
 }
 
-bool PowerManager::IsScreenOn() {
+PlatformResult PowerManager::IsScreenOn(bool* state) {
   LoggerD("Enter");
   display_state_e platform_state = DISPLAY_STATE_NORMAL;
+
   int ret = device_display_get_state(&platform_state);
-  if (DEVICE_ERROR_NONE != ret)
+  if (DEVICE_ERROR_NONE != ret) {
     LoggerE("device_display_get_state failed (%d)", ret);
-  return DISPLAY_STATE_SCREEN_OFF != platform_state;
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Error while getting screen state.");
+  }
+
+  *state = (DISPLAY_STATE_SCREEN_OFF != platform_state);
+  return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 PlatformResult PowerManager::SetScreenState(bool onoff) {
@@ -338,10 +343,17 @@ PlatformResult PowerManager::SetScreenState(bool onoff) {
   }
 
   int timeout = 100;
+  bool state = false;
   while (timeout--) {
-    if (IsScreenOn() == onoff) {
+    PlatformResult result = IsScreenOn(&state);
+    if (result.IsError()) {
+      return result;
+    }
+
+    if (state == onoff) {
       break;
     }
+
     struct timespec sleep_time = { 0, 100L * 1000L * 1000L };
     nanosleep(&sleep_time, nullptr);
   }
