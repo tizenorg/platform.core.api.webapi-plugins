@@ -146,8 +146,6 @@ void SyncProxy::handleEmailSignal(const int status,
         }
         break;
 
-        default:
-            break;
     }
 
     if (callback) {
