@@ -218,8 +218,7 @@ var commonFS_ = (function() {
   }
 
   function f_isSubDir(fullPathToCheck, fullPath) {
-    var realFullPath = toRealPath(fullPath);
-    return ((-1 !== fullPathToCheck.indexOf(realFullPath)) && (fullPathToCheck !== realFullPath));
+    return (-1 !== fullPathToCheck.indexOf(toRealPath(fullPath)));
   };
 
   function f_isCorrectRelativePath(relativePath) {
