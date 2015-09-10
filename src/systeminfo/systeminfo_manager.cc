@@ -187,6 +187,14 @@ static void OnCellularNetworkValueChangedCb(keynode_t *node, void *event_ptr) {
   manager->CallListenerCallback(kPropertyIdCellularNetwork);
 }
 
+static void OnTapiValueChangedCb(TapiHandle *handle, const char *noti_id,
+                                 void *data, void *user_data) {
+  LoggerD("Enter");
+  LoggerD("Changed key: %s", noti_id);
+  SysteminfoManager* manager = static_cast<SysteminfoManager*>(user_data);
+  manager->CallListenerCallback(kPropertyIdCellularNetwork);
+}
+
 static void OnPeripheralChangedCb(keynode_t* node, void* event_ptr) {
   LoggerD("Enter");
   SysteminfoManager* manager = static_cast<SysteminfoManager*>(event_ptr);
@@ -926,14 +934,18 @@ PlatformResult SysteminfoManager::RegisterCellularNetworkListener() {
   }
 
   if (!IsListenerRegistered(kPropertyIdCellularNetwork)) {
-    CHECK_LISTENER_ERROR(SysteminfoUtils::RegisterVconfCallback(VCONFKEY_TELEPHONY_FLIGHT_MODE,
-                          OnCellularNetworkValueChangedCb, this))
-    CHECK_LISTENER_ERROR(SysteminfoUtils::RegisterVconfCallback(VCONFKEY_TELEPHONY_CELLID,
-                          OnCellularNetworkValueChangedCb, this))
-    CHECK_LISTENER_ERROR(SysteminfoUtils::RegisterVconfCallback(VCONFKEY_TELEPHONY_LAC,
-                          OnCellularNetworkValueChangedCb, this))
-    CHECK_LISTENER_ERROR(SysteminfoUtils::RegisterVconfCallback(VCONFKEY_TELEPHONY_SVC_ROAM,
-                          OnCellularNetworkValueChangedCb, this))
+    CHECK_LISTENER_ERROR(SysteminfoUtils::RegisterVconfCallback(
+        VCONFKEY_TELEPHONY_FLIGHT_MODE, OnCellularNetworkValueChangedCb, this))
+    int sim_count = GetSimCount();
+    TapiHandle **tapis = GetTapiHandles();
+    for (int i = 0; i < sim_count; ++i) {
+      CHECK_LISTENER_ERROR(SysteminfoUtils::RegisterTapiChangeCallback(
+          tapis[i], TAPI_PROP_NETWORK_CELLID, OnTapiValueChangedCb, this))
+      CHECK_LISTENER_ERROR(SysteminfoUtils::RegisterTapiChangeCallback(
+          tapis[i], TAPI_PROP_NETWORK_LAC, OnTapiValueChangedCb, this))
+      CHECK_LISTENER_ERROR(SysteminfoUtils::RegisterTapiChangeCallback(
+          tapis[i], TAPI_PROP_NETWORK_ROAMING_STATUS, OnTapiValueChangedCb, this))
+    }
     LoggerD("Added callback for CELLULAR_NETWORK");
   }
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -945,14 +957,18 @@ PlatformResult SysteminfoManager::UnregisterCellularNetworkListener() {
   // if there is no other ip-relateded listeners left, unregister
   if (!IsListenerRegistered(kPropertyIdCellularNetwork)) {
     PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
-    CHECK_LISTENER_ERROR(SysteminfoUtils::UnregisterVconfCallback(VCONFKEY_TELEPHONY_FLIGHT_MODE,
-                            OnCellularNetworkValueChangedCb))
-    CHECK_LISTENER_ERROR(SysteminfoUtils::UnregisterVconfCallback(VCONFKEY_TELEPHONY_CELLID,
-                            OnCellularNetworkValueChangedCb))
-    CHECK_LISTENER_ERROR(SysteminfoUtils::UnregisterVconfCallback(VCONFKEY_TELEPHONY_LAC,
-                            OnCellularNetworkValueChangedCb))
-    CHECK_LISTENER_ERROR(SysteminfoUtils::UnregisterVconfCallback(VCONFKEY_TELEPHONY_SVC_ROAM,
-                            OnCellularNetworkValueChangedCb))
+    CHECK_LISTENER_ERROR(SysteminfoUtils::UnregisterVconfCallback(
+        VCONFKEY_TELEPHONY_FLIGHT_MODE, OnCellularNetworkValueChangedCb))
+    int sim_count = GetSimCount();
+    TapiHandle **tapis = GetTapiHandles();
+    for (int i = 0; i < sim_count; ++i) {
+      CHECK_LISTENER_ERROR(SysteminfoUtils::UnregisterTapiChangeCallback(
+          tapis[i], TAPI_PROP_NETWORK_CELLID))
+      CHECK_LISTENER_ERROR(SysteminfoUtils::UnregisterTapiChangeCallback(
+          tapis[i], TAPI_PROP_NETWORK_LAC))
+      CHECK_LISTENER_ERROR(SysteminfoUtils::UnregisterTapiChangeCallback(
+          tapis[i], TAPI_PROP_NETWORK_ROAMING_STATUS))
+    }
   }
 
   if (IsIpChangeCallbackNotRegistered()) {
@@ -1091,18 +1107,10 @@ PlatformResult SysteminfoManager::GetPropertyCount(const std::string& property,
 
   if ("BATTERY" == property || "CPU" == property || "STORAGE" == property ||
       "DISPLAY" == property || "DEVICE_ORIENTATION" == property ||
-      "BUILD" == property || "LOCALE" == property || "NETWORK" == property ||
-      "WIFI_NETWORK" == property || "PERIPHERAL" == property ||
-      "MEMORY" == property) {
+      "BUILD" == property || "LOCALE" == property || "WIFI_NETWORK" == property ||
+      "PERIPHERAL" == property || "MEMORY" == property) {
     *count = kDefaultPropertyCount;
-  } else if ("CELLULAR_NETWORK" == property) {
-    PlatformResult ret = SysteminfoUtils::CheckTelephonySupport();
-    if (ret.IsError()) {
-      *count = 0;
-    } else {
-      *count = GetSimCount();
-    }
-  } else if ("SIM" == property) {
+  } else if ("CELLULAR_NETWORK" == property || "SIM" == property || "NETWORK" == property) {
     PlatformResult ret = SysteminfoUtils::CheckTelephonySupport();
     if (ret.IsError()) {
       *count = 0;

@@ -159,7 +159,7 @@ PlatformResult SysteminfoPropertiesManager::ReportProperty(const std::string& pr
   } else if ("LOCALE" == property) {
     return ReportLocale(res_obj);
   } else if ("NETWORK" == property) {
-    return ReportNetwork(res_obj);
+    return ReportNetwork(res_obj, index);
   } else if ("WIFI_NETWORK" == property) {
     return ReportWifiNetwork(res_obj);
   } else if ("ETHERNET_NETWORK" == property) {
@@ -486,7 +486,7 @@ static PlatformResult GetNetworkTypeString(NetworkType type, std::string& type_s
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-PlatformResult SysteminfoPropertiesManager::ReportNetwork(picojson::object* out) {
+PlatformResult SysteminfoPropertiesManager::ReportNetwork(picojson::object* out, unsigned long count) {
   connection_h connection_handle = nullptr;
   connection_type_e connection_type = CONNECTION_TYPE_DISCONNECTED;
   int networkType = 0;
@@ -518,18 +518,19 @@ PlatformResult SysteminfoPropertiesManager::ReportNetwork(picojson::object* out)
       type =  kWifi;
       break;
     case CONNECTION_TYPE_CELLULAR :
-      if (vconf_get_int(VCONFKEY_TELEPHONY_SVCTYPE, &networkType) == 0) {
-        if (networkType < VCONFKEY_TELEPHONY_SVCTYPE_2G) {
+      if (TAPI_API_SUCCESS == tel_get_property_int(manager_.GetTapiHandles()[count],
+                                                   TAPI_PROP_NETWORK_SERVICE_TYPE, &networkType)) {
+        if (networkType < TAPI_NETWORK_SERVICE_TYPE_2G) {
           type =  kNone;
-        } else if (networkType == VCONFKEY_TELEPHONY_SVCTYPE_2G) {
+        } else if (networkType == TAPI_NETWORK_SERVICE_TYPE_2G) {
           type =  kType2G;
-        } else if (networkType == VCONFKEY_TELEPHONY_SVCTYPE_2G
-            || networkType == VCONFKEY_TELEPHONY_SVCTYPE_2_5G_EDGE) {
+        } else if (networkType == TAPI_NETWORK_SERVICE_TYPE_2_5G
+            || networkType == TAPI_NETWORK_SERVICE_TYPE_2_5G_EDGE) {
           type =  kType2_5G;
-        } else if (networkType == VCONFKEY_TELEPHONY_SVCTYPE_3G
-            || networkType == VCONFKEY_TELEPHONY_SVCTYPE_HSDPA) {
+        } else if (networkType == TAPI_NETWORK_SERVICE_TYPE_3G
+            || networkType == TAPI_NETWORK_SERVICE_TYPE_HSDPA) {
           type =  kType3G;
-        } else if (networkType == VCONFKEY_TELEPHONY_SVCTYPE_LTE) {
+        } else if (networkType == TAPI_NETWORK_SERVICE_TYPE_LTE) {
           type =  kType4G;
         } else {
           type =  kNone;

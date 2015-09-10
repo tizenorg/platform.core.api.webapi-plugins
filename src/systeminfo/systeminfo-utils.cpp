@@ -165,6 +165,25 @@ PlatformResult SysteminfoUtils::UnregisterVconfCallback(const char *in_key, vcon
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
+PlatformResult SysteminfoUtils::RegisterTapiChangeCallback(TapiHandle *handle,
+                                                           const char *noti_id,
+                                                           tapi_notification_cb callback,
+                                                           void *user_data) {
+  if (TAPI_API_SUCCESS != tel_register_noti_event(handle, noti_id, callback, user_data)) {
+    LoggerE("Failed to register tapi callback with key: %s", noti_id);
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to register tapi callback");
+  }
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult SysteminfoUtils::UnregisterTapiChangeCallback(TapiHandle *handle,
+                                                             const char *noti_id) {
+  if (TAPI_API_SUCCESS != tel_deregister_noti_event(handle, noti_id)) {
+    LoggerE("Failed to unregister tapi callback with key: %s", noti_id);
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to unregister tapi callback");
+  }
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
 
 } // namespace systeminfo
 } // namespace webapi

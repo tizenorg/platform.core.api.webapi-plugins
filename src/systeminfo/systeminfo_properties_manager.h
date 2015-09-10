@@ -44,7 +44,7 @@ class SysteminfoPropertiesManager {
   common::PlatformResult ReportDeviceOrientation(picojson::object* out);
   common::PlatformResult ReportBuild(picojson::object* out);
   common::PlatformResult ReportLocale(picojson::object* out);
-  common::PlatformResult ReportNetwork(picojson::object* out);
+  common::PlatformResult ReportNetwork(picojson::object* out, unsigned long count);
   common::PlatformResult ReportWifiNetwork(picojson::object* out);
   common::PlatformResult ReportEthernetNetwork(picojson::object* out);
   common::PlatformResult ReportCellularNetwork(picojson::object* out, unsigned long count);
