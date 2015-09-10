@@ -1172,8 +1172,16 @@ PlatformResult StatusNotification::FromJson(const picojson::object& args,
   int id = NOTIFICATION_PRIV_ID_NONE;
   int ret;
 
-  notification_h noti_handle;
+  notification_h noti_handle = nullptr;
   app_control_h app_control = NULL;
+
+  SCOPE_EXIT {
+    if (app_control) {
+      app_control_destroy(app_control);
+    }
+    free(noti_handle);
+  };
+
   if (is_update) {
     id = std::stoi(common::FromJson<std::string>(noti_obj, "id"));
 
@@ -1186,13 +1194,6 @@ PlatformResult StatusNotification::FromJson(const picojson::object& args,
     if (status.IsError())
       return status;
   }
-
-  SCOPE_EXIT {
-    if (app_control) {
-      app_control_destroy(app_control);
-    }
-    free(noti_handle);
-  };
 
   status = SetLayout(noti_handle, status_type);
   if (status.IsError()) {
