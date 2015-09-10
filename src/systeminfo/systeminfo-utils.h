@@ -21,6 +21,8 @@
 #include <system_settings.h>
 #include <vconf.h>
 #include <vconf-internal-keys.h>
+#include <ITapiSim.h>
+#include <TelNetwork.h>
 #include "common/picojson.h"
 #include "common/platform_result.h"
 #include "systeminfo/systeminfo_device_capability.h"
@@ -49,6 +51,11 @@ class SysteminfoUtils {
   static common::PlatformResult RegisterVconfCallback(const char *in_key, vconf_callback_fn cb,
                                                             void* event_ptr);
   static common::PlatformResult UnregisterVconfCallback(const char *in_key, vconf_callback_fn cb);
+  static common::PlatformResult RegisterTapiChangeCallback(TapiHandle *handle, const char *noti_id,
+                                                           tapi_notification_cb callback,
+                                                           void *user_data);
+  static common::PlatformResult UnregisterTapiChangeCallback(TapiHandle *handle,
+                                                             const char *noti_id);
 };
 
 typedef unsigned char byte;
