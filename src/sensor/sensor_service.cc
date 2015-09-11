@@ -329,6 +329,7 @@ PlatformResult SensorData::Start() {
     return res;
   }
 
+  sensor_listener_set_option(listener_, SENSOR_OPTION_ALWAYS_ON);
   int ret = sensor_listener_start(listener_);
   if (SENSOR_ERROR_NONE != ret) {
     LoggerE("sensor_listener_start : %d", ret);
