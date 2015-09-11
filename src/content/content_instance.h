@@ -17,6 +17,7 @@
 #ifndef CONTENT_CONTENT_INSTANCE_H_
 #define CONTENT_CONTENT_INSTANCE_H_
 
+#include <media_content_internal.h>
 #include "common/extension.h"
 
 namespace extension {
@@ -73,6 +74,8 @@ class ContentInstance : public common::ParsedInstance {
   void PlaylistGetThumbnailUri(const picojson::value& args, picojson::object& out);
   void PlaylistSetThumbnailUri(const picojson::value& args, picojson::object& out);
   void PlaylistGetNumberOfTracks(const picojson::value& args, picojson::object& out);
+
+  media_content_noti_h noti_handle_;
 };
 
 typedef struct _ReplyCallbackData {

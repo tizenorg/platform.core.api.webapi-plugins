@@ -28,6 +28,7 @@
 #include "common/converter.h"
 #include "common/logger.h"
 #include "common/scope_exit.h"
+#include "common/virtual_fs.h"
 #include "content/content_filter.h"
 
 using namespace std;
@@ -807,9 +808,11 @@ int ContentManager::scanFile(std::string& uri) {
 PlatformResult ContentManager::scanDirectory(media_scan_completed_cb callback, ReplyCallbackData* cbData) {
   LoggerD("Enter");
   const std::string& contentDirURI = cbData->args.get("contentDirURI").get<std::string>();
+  std::string real_path = common::VirtualFs::GetInstance().GetRealPath(contentDirURI);
   const bool recursive = cbData->args.get("recursive").get<bool>();
 
-  int ret = media_content_scan_folder(contentDirURI.c_str(), recursive, callback, (void*) cbData);
+  int ret = media_content_scan_folder(real_path.c_str(), recursive, callback, (void*) cbData);
+
   if (ret != MEDIA_CONTENT_ERROR_NONE) {
     LoggerE("Scan folder failed in platform: %d", ret);
     if (MEDIA_CONTENT_ERROR_INVALID_PARAMETER == ret) {
@@ -832,23 +835,42 @@ PlatformResult ContentManager::cancelScanDirectory(const std::string& content_di
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-PlatformResult ContentManager::setChangeListener(media_content_db_update_cb callback, void *user_data) {
+PlatformResult ContentManager::setChangeListener(media_content_noti_h* noti_handle,
+                                                 media_content_db_update_cb callback,
+                                                 void *user_data) {
   LoggerD("Enter");
+
   int ret = media_content_set_db_updated_cb(callback, user_data);
   if(ret != MEDIA_CONTENT_ERROR_NONE) {
     LoggerE("Failed: registering the listener is failed");
     return PlatformResult(ErrorCode::UNKNOWN_ERR, ("registering the listener is failed."));
   }
+
+  ret = media_content_set_db_updated_cb_v2(noti_handle, callback, user_data);
+  if(ret != MEDIA_CONTENT_ERROR_NONE) {
+    LoggerE("Failed: registering the listener of cb_v2 is failed");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, ("registering the listener is failed."));
+  }
+
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-PlatformResult ContentManager::unSetChangeListener() {
+PlatformResult ContentManager::unSetChangeListener(media_content_noti_h* noti_handle) {
   LoggerD("Enter");
+
   int ret = media_content_unset_db_updated_cb();
   if(ret != MEDIA_CONTENT_ERROR_NONE) {
     LoggerE("Failed: unregistering the listener is failed");
     return PlatformResult(ErrorCode::UNKNOWN_ERR, ("unregistering the listener is failed."));
   }
+
+  ret = media_content_unset_db_updated_cb_v2(*noti_handle);
+  if(ret != MEDIA_CONTENT_ERROR_NONE) {
+    LoggerE("Failed: unregistering the listener of cb_v2 is failed");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, ("unregistering the listener is failed."));
+  }
+  *noti_handle = nullptr;
+
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 

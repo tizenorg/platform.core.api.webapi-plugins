@@ -52,8 +52,10 @@ class ContentManager {
   int scanFile(std::string& uri);
   common::PlatformResult scanDirectory(media_scan_completed_cb callback, ReplyCallbackData* cbData);
   common::PlatformResult cancelScanDirectory(const std::string& content_dir_uri);
-  common::PlatformResult setChangeListener(media_content_db_update_cb callback, void *user_data);
-  common::PlatformResult unSetChangeListener();
+  common::PlatformResult setChangeListener(media_content_noti_h* noti_handler,
+                                           media_content_db_update_cb callback,
+                                           void *user_data);
+  common::PlatformResult unSetChangeListener(media_content_noti_h* noti_handler);
 
 //Lyrics
   int getLyrics(const picojson::value& args,picojson::object& result);
