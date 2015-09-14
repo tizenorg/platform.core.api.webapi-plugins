@@ -530,17 +530,23 @@ void AccountManager::AddAccount(const picojson::value& data, picojson::object& o
   LoggerD("Enter");
   account_h account_handle = NULL;
   int account_id;
-  const std::string& user_name = data.get("userName").get<std::string>();
-  const std::string& icon_uri = data.get("iconUri").get<std::string>();
-  const std::string& application_id = data.get("applicationId").get<std::string>();
+
+  const picojson::object& obj = data.get<picojson::object>();
 
   int ret = account_create(&account_handle);
   if (!ret) {
-    ret = account_set_user_name(account_handle, user_name.c_str());
-    if (!ret) {
-      ret = account_set_icon_path(account_handle, icon_uri.c_str());
+    const auto it = obj.find("userName");
+    if (obj.end() != it && !(it->second.is<picojson::null>())) {
+      ret = account_set_user_name(account_handle, it->second.get<std::string>().c_str());
     }
     if (!ret) {
+      const auto it = obj.find("iconUri");
+      if (obj.end() != it && !(it->second.is<picojson::null>())) {
+        ret = account_set_icon_path(account_handle, it->second.get<std::string>().c_str());
+      }
+    }
+    if (!ret) {
+      const std::string& application_id = data.get("applicationId").get<std::string>();
       ret = account_set_package_name(account_handle, application_id.c_str());
     }
     if (!ret) {
