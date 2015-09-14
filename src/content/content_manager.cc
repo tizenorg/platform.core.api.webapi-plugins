@@ -29,6 +29,7 @@
 #include "common/logger.h"
 #include "common/scope_exit.h"
 #include "content/content_filter.h"
+#include "common/virtual_fs.h"
 
 using namespace std;
 using namespace common;
@@ -606,7 +607,11 @@ static bool playlist_foreach_cb(media_playlist_h playlist, void *user_data) {
     }
     if( media_playlist_get_thumbnail_path(playlist, &thumb_path) == MEDIA_CONTENT_ERROR_NONE) {
       if (thumb_path != NULL) {
-        o["thumbnailURI"] = picojson::value(std::string(thumb_path));
+        std::string thumbnail_uri (thumb_path);
+        if (thumbnail_uri != " ") {
+          thumbnail_uri = uri_prefix + thumbnail_uri;
+        }
+        o["thumbnailURI"] = picojson::value(thumbnail_uri);
         free(thumb_path);
       }
       else {
@@ -1458,6 +1463,10 @@ int ContentManager::getThumbnailUri(int id, std::string* result)
     tmp_playlist_thb_path = nullptr;
   }
 
+  if (playlist_thb_path != " ") {
+    playlist_thb_path = uri_prefix + playlist_thb_path;
+  }
+
   *result = playlist_thb_path;
   return MEDIA_CONTENT_ERROR_NONE;
 }
@@ -1469,19 +1478,18 @@ int ContentManager::setThumbnailUri(int id, const std::string& thb_uri)
   //Allow setting empty URI, unfortunately Core API does not allow to set empty
   //path so we need to set one empty space. This is probably issue of Core API.
   if(!thb_uri.empty() && " " != thb_uri) {
-    /// TODO what if uri holds virtual path
     if(thb_uri.find(uri_absolute_prefix) != 0) {
       LoggerE("thumbnail URI is not valid: [%s]", thb_uri.c_str());
       return MEDIA_CONTENT_ERROR_INVALID_PARAMETER;
     }
-    /// TODO check if uri points an existing file
   }
 
   media_playlist_h playlist_handle = getPlaylistHandle(id);
   PlaylistUniquePtr playlist_ptr(playlist_handle, destroyMediaPlaylistHandle);
 
+  std::string real_path = VirtualFs::GetInstance().GetRealPath(thb_uri);
   const int ret_code = media_playlist_set_thumbnail_path(playlist_handle,
-                                                         thb_uri.c_str());
+                                                         real_path.c_str());
   if(MEDIA_CONTENT_ERROR_NONE != ret_code) {
     LoggerE("media_playlist_set_thumbnail_path failed");
     return TIZEN_ERROR_UNKNOWN;
