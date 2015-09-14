@@ -18,6 +18,7 @@
 #define SYSTEMINFO_INSTANCE_H_
 
 #include "common/extension.h"
+#include "systeminfo/systeminfo_manager.h"
 
 namespace extension {
 namespace systeminfo {
@@ -41,6 +42,8 @@ class SysteminfoInstance
   void GetTotalMemory(const picojson::value& args, picojson::object& out);
   void GetAvailableMemory(const picojson::value& args, picojson::object& out);
   void GetCount(const picojson::value& args, picojson::object& out);
+
+  SysteminfoManager manager_;
 };
 
 } // namespace systeminfo

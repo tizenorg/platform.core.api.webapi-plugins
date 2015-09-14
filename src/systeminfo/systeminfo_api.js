@@ -21,6 +21,9 @@ var T_ = xwalk.utils.type;
 var Converter_ = xwalk.utils.converter;
 var native_ = new xwalk.utils.NativeManager(extension);
 
+// index of default property for sim-related callbacks
+var defaultListenerIndex = 0;
+
 //enumeration SystemInfoPropertyId ////////////////////////////////////////////////////
 var SystemInfoPropertyId = {
         BATTERY : 'BATTERY',
@@ -654,7 +657,7 @@ function SystemInfoSIM(data) {
             },
             set: function() {},
             enumerable: true
-        }
+        },
     });
 }
 
@@ -674,47 +677,37 @@ function SystemInfoMemory(data) {
 
 function SystemInfoCameraFlash(data) {
   var getBrightness = function() {
-    xwalk.utils.checkPrivilegeAccess(privilege_.LED);
+      xwalk.utils.checkPrivilegeAccess(privilege_.LED);
 
-    var result = native_.callSync('SystemInfo_getBrightness', {});
-    if (native_.isSuccess(result)) {
-      return Converter_.toLong(native_.getResultObject(result)) / this.levels;
-    }
-    return null;
-  };
+      var result = native_.callSync('SystemInfo_getBrightness', {});
+      if (native_.isSuccess(result)) {
+        return Converter_.toLong(native_.getResultObject(result)) / this.levels;
+      }
+      return null;
+    };
 
   var getLevels = function() {
-    xwalk.utils.checkPrivilegeAccess(privilege_.LED);
+      xwalk.utils.checkPrivilegeAccess(privilege_.LED);
 
-    var result = native_.callSync('SystemInfo_getMaxBrightness', {});
-    if (native_.isSuccess(result)) {
-      return Converter_.toLong(native_.getResultObject(result));
-    }
-    return null;
-  };
-
-  var getCamera = function() {
-    var camera = 'FRONT';
-    // TODO: get native value for camera
-//    var result = native_.callSync('SystemInfo_getCamera', {});
-//    if (native_.isSuccess(result)) {
-//      camera = native_.getResultObject(result);
-//    }
-    return camera;
-  };
+      var result = native_.callSync('SystemInfo_getMaxBrightness', {});
+      if (native_.isSuccess(result)) {
+        return Converter_.toLong(native_.getResultObject(result));
+      }
+      return null;
+    };
 
   Object.defineProperties(this, {
-    brightness: {get: getBrightness, enumerable: true},
-    camera: {get: getCamera, enumerable: true},
-    levels: {get: getLevels, enumerable: true}
-  });
+        brightness : {set : function(){}, get: getBrightness, enumerable: true},
+        camera : {value: data.camera, enumerable: true},
+        levels : {get: getLevels, enumerable: true},
+    });
 }
 
 SystemInfoCameraFlash.prototype.setBrightness = function(brightness) {
   xwalk.utils.checkPrivilegeAccess(privilege_.LED);
 
   var args = validator_.validateArgs(arguments, [
-    {name: 'brightness', type: types_.LONG}
+    {name: 'brightness', type: types_.DOUBLE}
   ]);
   args.brightness = args.brightness * this.levels;
 
@@ -1010,6 +1003,11 @@ function _systeminfoCellularNetworkListenerCallback(eventObj) {
     for (var watchId in callbacks) {
         if (callbacks.hasOwnProperty(watchId)) {
             var listener = callbacks[watchId];
+            if (!listener.isArrayType && eventObj.changedPropertyIndex != defaultListenerIndex) {
+                // if this is not arrayListener, ignore events of non-default SIM
+                return;
+            }
+
             var propObj = !listener.isArrayType ?
                     _createProperty(property, eventObj.result.array[0]) :
                         _createPropertyArray(property, eventObj.result);
