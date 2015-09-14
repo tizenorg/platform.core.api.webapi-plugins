@@ -1150,6 +1150,7 @@ void SysteminfoManager::SetWifiLevel(wifi_rssi_level_e level) {
 
 int SysteminfoManager::GetSensorHandle() {
   LoggerD("Enter");
+  std::lock_guard<std::mutex> lock(sensor_mutex_);
   if (sensor_handle_ < 0) {
     LoggerD("Connecting to sensor");
     ConnectSensor(&sensor_handle_);
@@ -1216,6 +1217,7 @@ int SysteminfoManager::GetSimCount() {
 
 void SysteminfoManager::InitTapiHandles() {
   LoggerD("Entered");
+  std::lock_guard<std::mutex> lock(tapi_mutex_);
   if (nullptr == tapi_handles_[0]){  //check if anything is in table
     sim_count_ = 0;
     char **cp_list = tel_get_cp_name_list();
@@ -1226,8 +1228,8 @@ void SysteminfoManager::InitTapiHandles() {
           LoggerE("Failed to connect with tapi, handle is null");
           break;
         }
-        sim_count_++;
         LoggerD("%d modem: %s", sim_count_, cp_list[sim_count_]);
+        sim_count_++;
       }
     } else {
       LoggerE("Failed to get cp list");
@@ -1294,6 +1296,7 @@ int SysteminfoManager::GetCameraTypesCount() {
 
 PlatformResult SysteminfoManager::GetConnectionHandle(connection_h& handle) {
   LoggerD("Entered");
+  std::lock_guard<std::mutex> lock(connection_mutex_);
   if (nullptr == connection_handle_) {
     int error = connection_create(&connection_handle_);
     if (CONNECTION_ERROR_NONE != error) {

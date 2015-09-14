@@ -181,6 +181,7 @@ PlatformResult SysteminfoPropertiesManager::ReportProperty(const std::string& pr
 
 /// BATTERY
 PlatformResult SysteminfoPropertiesManager::ReportBattery(picojson::object* out) {
+  LoggerD("Entered");
   int value = 0;
   int ret = vconf_get_int(VCONFKEY_SYSMAN_BATTERY_CAPACITY, &value);
   if (kVconfErrorNone != ret) {
@@ -253,6 +254,7 @@ PlatformResult SysteminfoPropertiesManager::ReportCpu(picojson::object* out) {
 
 /// DISPLAY
 PlatformResult SysteminfoPropertiesManager::ReportDisplay(picojson::object* out) {
+  LoggerD("Entered");
   int screenWidth = 0;
   int screenHeight = 0;
   int dotsPerInchWidth = 0;
@@ -391,6 +393,7 @@ PlatformResult SysteminfoPropertiesManager::FetchStatus(std::string* result) {
 }
 
 PlatformResult SysteminfoPropertiesManager::ReportDeviceOrientation(picojson::object* out) {
+  LoggerD("Entered");
   bool is_auto_rotation = false;
   std::string status = "";
 
@@ -407,6 +410,7 @@ PlatformResult SysteminfoPropertiesManager::ReportDeviceOrientation(picojson::ob
 
 /// BUILD
 PlatformResult SysteminfoPropertiesManager::ReportBuild(picojson::object* out) {
+  LoggerD("Entered");
   std::string model = "";
   PlatformResult ret = SystemInfoDeviceCapability::GetValueString(
       "tizen.org/system/model_name", &model);
@@ -434,6 +438,7 @@ PlatformResult SysteminfoPropertiesManager::ReportBuild(picojson::object* out) {
 
 /// LOCALE
 PlatformResult SysteminfoPropertiesManager::ReportLocale(picojson::object* out) {
+  LoggerD("Entered");
   std::string str_language = "";
   PlatformResult ret = SysteminfoUtils::GetRuntimeInfoString(
       SYSTEM_SETTINGS_KEY_LOCALE_LANGUAGE, &str_language);
@@ -454,6 +459,7 @@ PlatformResult SysteminfoPropertiesManager::ReportLocale(picojson::object* out) 
 
 /// NETWORK
 static PlatformResult GetNetworkTypeString(NetworkType type, std::string& type_string) {
+  LoggerD("Entered");
   switch (type) {
     case kNone:
       type_string = kNetworkTypeNone;
@@ -487,6 +493,7 @@ static PlatformResult GetNetworkTypeString(NetworkType type, std::string& type_s
 }
 
 PlatformResult SysteminfoPropertiesManager::ReportNetwork(picojson::object* out, unsigned long count) {
+  LoggerD("Entered with index property %d", count);
   connection_h connection_handle = nullptr;
   connection_type_e connection_type = CONNECTION_TYPE_DISCONNECTED;
   int networkType = 0;
@@ -556,6 +563,7 @@ PlatformResult SysteminfoPropertiesManager::ReportNetwork(picojson::object* out,
 /// WIFI_NETWORK
 static PlatformResult GetIpsWifi(wifi_ap_h wifi_ap_handle, std::string* ip_addr_str,
                    std::string* ipv6_addr_str) {
+  LoggerD("Entered");
   //getting ipv4 address
   char* ip_addr = nullptr;
   int error = wifi_ap_get_ip_address(wifi_ap_handle,
@@ -585,6 +593,7 @@ static PlatformResult GetIpsWifi(wifi_ap_h wifi_ap_handle, std::string* ip_addr_
 /// CELLULAR_NETWORK and ETHERNET_NETWORK
 static PlatformResult GetIpsFromProfile(connection_profile_h profile_handle, std::string* ip_addr_str,
                              std::string* ipv6_addr_str){
+  LoggerD("Entered");
   //getting ipv4 address
   char* ip_addr = nullptr;
   int error = connection_profile_get_ip_address(profile_handle,
@@ -1015,6 +1024,7 @@ static PlatformResult FetchConnection(TapiHandle *tapi_handle, std::string* resu
 
 PlatformResult SysteminfoPropertiesManager::ReportCellularNetwork(picojson::object* out,
                                                                   unsigned long count) {
+  LoggerD("Entered with index property %d", count);
   PlatformResult ret = SysteminfoUtils::CheckTelephonySupport();
   if (ret.IsError()) {
     return ret;
@@ -1062,6 +1072,7 @@ PlatformResult SysteminfoPropertiesManager::ReportCellularNetwork(picojson::obje
 
 /// SIM
 PlatformResult SysteminfoPropertiesManager::ReportSim(picojson::object* out, unsigned long count) {
+  LoggerD("Entered");
   PlatformResult ret = SysteminfoUtils::CheckTelephonySupport();
   if (ret.IsError()) {
     return ret;
@@ -1072,7 +1083,7 @@ PlatformResult SysteminfoPropertiesManager::ReportSim(picojson::object* out, uns
 
 /// PERIPHERAL
 PlatformResult SysteminfoPropertiesManager::ReportPeripheral(picojson::object* out) {
-
+  LoggerD("Entered");
 /*  int wireless_display_status = 0;
   PlatformResult ret = GetVconfInt(VCONFKEY_MIRACAST_WFD_SOURCE_STATUS, &wireless_display_status);
   if (ret.IsSuccess()) {
@@ -1096,6 +1107,7 @@ PlatformResult SysteminfoPropertiesManager::ReportPeripheral(picojson::object* o
 
 /// MEMORY
 PlatformResult SysteminfoPropertiesManager::ReportMemory(picojson::object* out) {
+  LoggerD("Entered");
   std::string state = kMemoryStateNormal;
   int status = 0;
   PlatformResult ret = SysteminfoUtils::GetVconfInt(VCONFKEY_SYSMAN_LOW_MEMORY, &status);
@@ -1116,6 +1128,7 @@ PlatformResult SysteminfoPropertiesManager::ReportMemory(picojson::object* out) 
 }
 
 static void CreateStorageInfo(const std::string& type, struct statfs& fs, picojson::object* out) {
+  LoggerD("Entered");
   out->insert(std::make_pair("type", picojson::value(type)));
   out->insert(std::make_pair("capacity", picojson::value(std::to_string(
       static_cast<unsigned long long>(fs.f_bsize) *
@@ -1128,6 +1141,7 @@ static void CreateStorageInfo(const std::string& type, struct statfs& fs, picojs
 }
 
 PlatformResult SysteminfoPropertiesManager::ReportStorage(picojson::object* out) {
+  LoggerD("Entered");
   int sdcardState = 0;
   struct statfs fs;
 
@@ -1163,6 +1177,7 @@ PlatformResult SysteminfoPropertiesManager::ReportStorage(picojson::object* out)
 
 PlatformResult SysteminfoPropertiesManager::ReportCameraFlash(picojson::object* out,
                                                               unsigned long index) {
+  LoggerD("Entered");
   if (index < manager_.GetCameraTypesCount()) {
     std::string camera = manager_.GetCameraTypes(index);
     out->insert(std::make_pair("camera", picojson::value(camera)));
