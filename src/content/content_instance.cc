@@ -27,6 +27,7 @@
 #include "common/picojson.h"
 #include "common/platform_result.h"
 #include "common/task-queue.h"
+#include "common/virtual_fs.h"
 #include "content/content_manager.h"
 
 namespace extension {
@@ -35,7 +36,7 @@ namespace content {
 using common::tools::ReportSuccess;
 using common::tools::ReportError;
 
-ContentInstance::ContentInstance() {
+ContentInstance::ContentInstance() : noti_handle_(nullptr) {
   using std::placeholders::_1;
   using std::placeholders::_2;
 
@@ -73,6 +74,10 @@ ContentInstance::ContentInstance() {
 
 ContentInstance::~ContentInstance() {
   LoggerD("entered");
+  if (noti_handle_) {
+    media_content_unset_db_updated_cb_v2(noti_handle_);
+    noti_handle_ = nullptr;
+  }
 }
 
 static gboolean CompletedCallback(const std::shared_ptr<ReplyCallbackData>& user_data) {
@@ -112,7 +117,8 @@ static void* WorkThread(const std::shared_ptr<ReplyCallbackData>& user_data) {
     }
     case ContentManagerScanfileCallback: {
       std::string contentURI = user_data->args.get("contentURI").get<std::string>();
-      int res = ContentManager::getInstance()->scanFile(contentURI);
+      std::string real_path = common::VirtualFs::GetInstance().GetRealPath(contentURI);
+      int res = ContentManager::getInstance()->scanFile(real_path);
       if (res != MEDIA_CONTENT_ERROR_NONE) {
         LOGGER(ERROR) << "Scan file failed, error: " << res;
         common::PlatformResult err(common::ErrorCode::UNKNOWN_ERR, "Scan file failed.");
@@ -260,7 +266,7 @@ static void changedContentCallback(media_content_error_e error,
       }
     } else {
       ReportSuccess(picojson::value(std::string(uuid)), obj);
-      obj["state"] = picojson::value("oncontendirremoved");
+      obj["state"] = picojson::value("oncontentdirremoved");
     }
   } else {
     LOGGER(DEBUG) << "Media item is not a file and not directory, skipping.";
@@ -415,14 +421,16 @@ void ContentInstance::ContentManagerSetchangelistener(const picojson::value& arg
     cbData->cbType = ContentManagerErrorCallback;
   }
 
-  if (ContentManager::getInstance()->setChangeListener(changedContentCallback, static_cast<void*>(cbData)).IsError()) {
+  if (ContentManager::getInstance()->setChangeListener(&noti_handle_,
+                                                       changedContentCallback,
+                                                       static_cast<void*>(cbData)).IsError()) {
     ReportError(common::PlatformResult(common::ErrorCode::UNKNOWN_ERR, "The callback did not register properly"), &out);
   }
 }
 
 void ContentInstance::ContentManagerUnsetchangelistener(const picojson::value& args, picojson::object& out) {
   LoggerD("entered");
-  if (ContentManager::getInstance()->unSetChangeListener().IsError()) {
+  if (ContentManager::getInstance()->unSetChangeListener(&noti_handle_).IsError()) {
     LoggerD("unsuccesfull deregistering of callback");
   }
 }
