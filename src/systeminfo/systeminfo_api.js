@@ -21,6 +21,9 @@ var T_ = xwalk.utils.type;
 var Converter_ = xwalk.utils.converter;
 var native_ = new xwalk.utils.NativeManager(extension);
 
+// index of default property for sim-related callbacks
+var defaultListenerIndex = 0;
+
 //enumeration SystemInfoPropertyId ////////////////////////////////////////////////////
 var SystemInfoPropertyId = {
         BATTERY : 'BATTERY',
@@ -1000,6 +1003,11 @@ function _systeminfoCellularNetworkListenerCallback(eventObj) {
     for (var watchId in callbacks) {
         if (callbacks.hasOwnProperty(watchId)) {
             var listener = callbacks[watchId];
+            if (!listener.isArrayType && eventObj.changedPropertyIndex != defaultListenerIndex) {
+                // if this is not arrayListener, ignore events of non-default SIM
+                return;
+            }
+
             var propObj = !listener.isArrayType ?
                     _createProperty(property, eventObj.result.array[0]) :
                         _createPropertyArray(property, eventObj.result);

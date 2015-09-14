@@ -47,9 +47,12 @@ namespace {
 const int kDefaultPropertyCount = 1;
 const int BASE_GATHERING_INTERVAL = 100;
 const double kPropertyWatcherTime = 1;
+// index of default property for sim-related callbacks
+const int kDefaultListenerIndex = 0;
 
 const std::string kPropertyIdString = "propertyId";
 const std::string kListenerIdString = "listenerId";
+const std::string kChangedPropertyIndexString = "changedPropertyIndex";
 const std::string kListenerConstValue = "SysteminfoCommonListenerLabel";
 
 const std::string kPropertyIdBattery = "BATTERY";
@@ -184,7 +187,7 @@ static void OnNetworkValueChangedCb(const char* ipv4_address,
 static void OnCellularNetworkValueChangedCb(keynode_t *node, void *event_ptr) {
   LoggerD("Enter");
   SysteminfoManager* manager = static_cast<SysteminfoManager*>(event_ptr);
-  manager->CallListenerCallback(kPropertyIdCellularNetwork);
+  manager->CallListenerCallback(kPropertyIdCellularNetwork, kDefaultListenerIndex);
 }
 
 static void OnTapiValueChangedCb(TapiHandle *handle, const char *noti_id,
@@ -192,7 +195,9 @@ static void OnTapiValueChangedCb(TapiHandle *handle, const char *noti_id,
   LoggerD("Enter");
   LoggerD("Changed key: %s", noti_id);
   SysteminfoManager* manager = static_cast<SysteminfoManager*>(user_data);
-  manager->CallListenerCallback(kPropertyIdCellularNetwork);
+  int index = manager->GetChangedTapiIndex(handle);
+  LoggerD("Changed SIM index is: %d", index);
+  manager->CallListenerCallback(kPropertyIdCellularNetwork, index);
 }
 
 static void OnPeripheralChangedCb(keynode_t* node, void* event_ptr) {
@@ -1244,6 +1249,17 @@ TapiHandle** SysteminfoManager::GetTapiHandles() {
   return tapi_handles_;
 }
 
+int SysteminfoManager::GetChangedTapiIndex(TapiHandle* tapi) {
+  LoggerD("Enter");
+  TapiHandle** handles = GetTapiHandles();
+  for (int i = 0; i < sim_count_; ++i) {
+    if (handles[i] == tapi) {
+      return i;
+    }
+  }
+  return -1;
+}
+
 void SysteminfoManager::InitCameraTypes() {
   LoggerD("Enter");
   bool supported = false;
@@ -1295,19 +1311,24 @@ bool SysteminfoManager::IsListenerRegistered(const std::string& property_id) {
 }
 
 void SysteminfoManager::PostListenerResponse(const std::string& property_id,
-                                     const picojson::value& result) {
+                                     const picojson::value& result,
+                                     int property_index) {
   LoggerD("Entered");
   const std::shared_ptr<picojson::value>& response =
       std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
   response->get<picojson::object>()[kPropertyIdString] = picojson::value(property_id);
   response->get<picojson::object>()[kListenerIdString] = picojson::value(kListenerConstValue);
+  // Added pushing index of property to handle only default for signle-property listeners in js
+  response->get<picojson::object>()[kChangedPropertyIndexString] =
+      picojson::value(static_cast<double>(property_index));
 
   ReportSuccess(result,response->get<picojson::object>());
   Instance::PostMessage(instance_, response->serialize().c_str());
 }
 
 
-void SysteminfoManager::CallListenerCallback(const std::string& property_id) {
+void SysteminfoManager::CallListenerCallback(const std::string& property_id,
+                                             int property_index) {
   LoggerD("Enter");
   if(IsListenerRegistered(property_id)) {
     LoggerD("listener for %s property is registered, calling it", property_id.c_str());
@@ -1316,7 +1337,7 @@ void SysteminfoManager::CallListenerCallback(const std::string& property_id) {
     PlatformResult ret = GetPropertiesManager().GetPropertyValue(
         property_id, true, &result);
     if (ret.IsSuccess()) {
-      PostListenerResponse(property_id, result);
+      PostListenerResponse(property_id, result, property_index);
     }
   } else {
     LoggerD("listener for %s property is not registered, ignoring", property_id.c_str());

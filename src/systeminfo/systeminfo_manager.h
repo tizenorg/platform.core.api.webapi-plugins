@@ -57,6 +57,7 @@ class SysteminfoManager {
   int GetSensorHandle();
   TapiHandle* GetTapiHandle();
   TapiHandle** GetTapiHandles();
+  int GetChangedTapiIndex(TapiHandle* tapi);
   common::PlatformResult GetConnectionHandle(connection_h& handle);
 
   SysteminfoInstance* GetInstance() { return instance_;};
@@ -69,11 +70,12 @@ class SysteminfoManager {
   int GetCameraTypesCount();
 
   bool IsListenerRegistered(const std::string& property_id);
-  void CallListenerCallback(const std::string& property_id);
+  void CallListenerCallback(const std::string& property_id, int property_index = 0);
   void CallCpuListenerCallback();
   void CallStorageListenerCallback();
  private:
-  void PostListenerResponse(const std::string& property_id, const picojson::value& result);
+  void PostListenerResponse(const std::string& property_id, const picojson::value& result,
+                            int property_index = 0);
   common::PlatformResult ConnectSensor(int* result);
   void DisconnectSensor(int handle_orientation);
   void InitTapiHandles();
