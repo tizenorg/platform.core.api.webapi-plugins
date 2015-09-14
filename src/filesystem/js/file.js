@@ -726,6 +726,16 @@ File.prototype.deleteDirectory = function(directoryPath, recursive, onsuccess, o
   }
 
   var _myPath = commonFS_.toRealPath(args.directoryPath);
+
+  if (_myPath !== undefined && !commonFS_.f_isSubDir(_myPath, this.fullPath)) {
+    var m1 = 'Deleted directory should be under the current directory: ' + this.fullPath;
+    setTimeout(function() {
+      native_.callIfPossible(args.onerror,
+          new WebAPIException(WebAPIException.INVALID_VALUES_ERR, m1));
+    }, 0);
+    return;
+  }
+
   var _result = native_.callSync('File_statSync', {location: _myPath});
   if (native_.isFailure(_result)) {
     setTimeout(function() {
