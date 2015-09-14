@@ -709,6 +709,9 @@ SystemInfoCameraFlash.prototype.setBrightness = function(brightness) {
   var args = validator_.validateArgs(arguments, [
     {name: 'brightness', type: types_.DOUBLE}
   ]);
+  if (args.brightness < 0 || args.brightness > 1)
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
+                              'Value is not between 0 and 1');
   args.brightness = args.brightness * this.levels;
 
   var result = native_.callSync('SystemInfo_setBrightness', args);
