@@ -427,7 +427,7 @@ void SoundManager::GetDeviceList(sound_device_mask_e mask, picojson::object& out
   picojson::array& response_array = response.get<picojson::array>();
 
   int ret = sound_manager_get_current_device_list(mask, &device_list);
-  if (SOUND_MANAGER_ERROR_NONE != ret) {
+  if (SOUND_MANAGER_ERROR_NONE != ret && SOUND_MANAGER_ERROR_NO_DATA != ret) {
     ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Getting device list failed"), &out);
     return;
   }
