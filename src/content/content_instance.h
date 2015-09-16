@@ -41,6 +41,22 @@ enum ContentCallbacks {
   ContentManagerErrorCallback
 };
 
+class ContentInstance;
+
+typedef struct _ReplyCallbackData {
+  _ReplyCallbackData()
+      : instance(nullptr),
+        cbType(ContentManagerFindCallback),
+        callbackId(-1.0),
+        isSuccess(common::ErrorCode::NO_ERROR) {
+  }
+  ContentInstance* instance;
+  ContentCallbacks cbType;
+  double callbackId;
+  picojson::value args;
+  picojson::value result;
+  common::PlatformResult isSuccess;
+} ReplyCallbackData;
 
 class ContentInstance : public common::ParsedInstance {
  public:
@@ -76,22 +92,8 @@ class ContentInstance : public common::ParsedInstance {
   void PlaylistGetNumberOfTracks(const picojson::value& args, picojson::object& out);
 
   media_content_noti_h noti_handle_;
+  ReplyCallbackData* listener_data_;
 };
-
-typedef struct _ReplyCallbackData {
-  _ReplyCallbackData()
-      : instance(nullptr),
-        cbType(ContentManagerFindCallback),
-        callbackId(-1.0),
-        isSuccess(common::ErrorCode::NO_ERROR) {
-  }
-  ContentInstance* instance;
-  ContentCallbacks cbType;
-  double callbackId;
-  picojson::value args;
-  picojson::value result;
-  common::PlatformResult isSuccess;
-} ReplyCallbackData;
 
 
 } // namespace content

@@ -36,7 +36,9 @@ namespace content {
 using common::tools::ReportSuccess;
 using common::tools::ReportError;
 
-ContentInstance::ContentInstance() : noti_handle_(nullptr) {
+ContentInstance::ContentInstance() :
+    noti_handle_(nullptr),
+    listener_data_(nullptr) {
   using std::placeholders::_1;
   using std::placeholders::_2;
 
@@ -77,6 +79,10 @@ ContentInstance::~ContentInstance() {
   if (noti_handle_) {
     media_content_unset_db_updated_cb_v2(noti_handle_);
     noti_handle_ = nullptr;
+  }
+  if (listener_data_) {
+    delete listener_data_;
+    listener_data_ = nullptr;
   }
 }
 
@@ -214,9 +220,13 @@ static void changedContentCallback(media_content_error_e error,
 
   ReplyCallbackData* cbData = static_cast<ReplyCallbackData*>(user_data);
 
+  if (!uuid) {
+    LOGGER(ERROR) << "Provided uuid is NULL, ignoring";
+    return;
+  }
+
   if (error != MEDIA_CONTENT_ERROR_NONE) {
     LOGGER(ERROR) << "Media content changed callback error: " << error;
-    delete cbData;
     return;
   }
 
@@ -270,7 +280,6 @@ static void changedContentCallback(media_content_error_e error,
     }
   } else {
     LOGGER(DEBUG) << "Media item is not a file and not directory, skipping.";
-    delete cbData;
     return;
   }
 
@@ -411,19 +420,21 @@ void ContentInstance::ContentManagerSetchangelistener(const picojson::value& arg
   LoggerD("entered");
   CHECK_EXIST(args, "listenerId", out)
 
-  ReplyCallbackData* cbData = new ReplyCallbackData();
+  if (!listener_data_) {
+    listener_data_ = new ReplyCallbackData();
+  }
 
-  cbData->instance = this;
-  cbData->args = args;
+  listener_data_->instance = this;
+  listener_data_->args = args;
   if (ContentManager::getInstance()->isConnected()) {
-    cbData->cbType = ContentManagerSetchangelistenerCallback;
+    listener_data_->cbType = ContentManagerSetchangelistenerCallback;
   } else {
-    cbData->cbType = ContentManagerErrorCallback;
+    listener_data_->cbType = ContentManagerErrorCallback;
   }
 
   if (ContentManager::getInstance()->setChangeListener(&noti_handle_,
                                                        changedContentCallback,
-                                                       static_cast<void*>(cbData)).IsError()) {
+                                                       static_cast<void*>(listener_data_)).IsError()) {
     ReportError(common::PlatformResult(common::ErrorCode::UNKNOWN_ERR, "The callback did not register properly"), &out);
   }
 }
