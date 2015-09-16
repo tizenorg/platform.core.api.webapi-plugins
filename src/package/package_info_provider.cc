@@ -240,10 +240,11 @@ namespace {
 void GetSize(const std::string& id, int service_mode, picojson::object* out) {
   LoggerD("Enter");
   pkgmgr_client* pc = pkgmgr_client_new(PC_REQUEST);
-  int size = pkgmgr_client_request_service(PM_REQUEST_GET_SIZE, service_mode,
+  int size = pkgmgr_client_usr_request_service(PM_REQUEST_GET_SIZE, service_mode,
                                            pc,
                                            NULL,
-                                           id.c_str(), NULL, NULL, NULL);
+                                           id.c_str(),
+                                           getuid(), NULL, NULL, NULL);
   pkgmgr_client_free(pc);
 
   if (size < 0) {
