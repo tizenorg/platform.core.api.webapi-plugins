@@ -23,6 +23,7 @@
 #include <app_manager.h>
 #include <app_manager_extension.h>
 #include <aul.h>
+#include <pkgmgr_installer.h>
 #include <package_manager.h>
 #include <pkgmgr-info.h>
 
@@ -45,12 +46,12 @@ const std::string kTizenApisFileScheme = "file://";
 const std::string kTizenApisAppSlash = "/";
 const std::string kTizenApisAppShared = "shared";
 
-const char* kStartKey = "start";
-const char* kEndKey = "end";
-const char* kOkValue = "ok";
-const char* kInstallEvent = "install";
-const char* kUpdateEvent = "update";
-const char* kUninstallEvent = "uninstall";
+const char* kStartKey = PKGMGR_INSTALLER_START_KEY_STR;
+const char* kEndKey = PKGMGR_INSTALLER_END_KEY_STR;
+const char* kOkValue = PKGMGR_INSTALLER_OK_EVENT_STR;
+const char* kInstallEvent = PKGMGR_INSTALLER_INSTALL_EVENT_STR;
+const char* kUpdateEvent = PKGMGR_INSTALLER_UPGRADE_EVENT_STR;
+const char* kUninstallEvent = PKGMGR_INSTALLER_UNINSTALL_EVENT_STR;
 
 const std::string kAction = "action";
 const std::string kCallbackId = "callbackId";
