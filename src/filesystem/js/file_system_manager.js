@@ -44,15 +44,6 @@ FileSystemManager.prototype.resolve = function(location, onsuccess, onerror, mod
     args.mode = 'rw';
   }
 
-  if (args.location[0] === '/') {
-    setTimeout(function() {
-      native_.callIfPossible(args.onerror,
-          new WebAPIException(WebAPIException.NOT_FOUND_ERR,
-          'Global path without \'file://\' prefix is not valid.'));
-    }, 0);
-    return;
-  }
-
   // resolving a path on unmounted storage should result in exception
   var storage = commonFS_.getStorage(args.location.split('/')[0]);
   if (storage && FileSystemStorageState.MOUNTED !== storage.state) {
