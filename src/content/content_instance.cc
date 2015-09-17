@@ -216,25 +216,25 @@ static void changedContentCallback(media_content_error_e error,
                                    char* path,
                                    char* mime_type,
                                    void* user_data) {
-  LoggerD("Enter");
-
-  ReplyCallbackData* cbData = static_cast<ReplyCallbackData*>(user_data);
-
-  if (!uuid) {
-    LOGGER(ERROR) << "Provided uuid is NULL, ignoring";
-    return;
-  }
+  LoggerD("Entered file change callback");
 
   if (error != MEDIA_CONTENT_ERROR_NONE) {
     LOGGER(ERROR) << "Media content changed callback error: " << error;
     return;
   }
 
-  int ret;
-  picojson::value result = picojson::value(picojson::object());
-  picojson::object& obj = result.get<picojson::object>();
-
   if (update_item == MEDIA_ITEM_FILE) {
+    if (!uuid) {
+      LOGGER(ERROR) << "Provided uuid is NULL, ignoring";
+      return;
+    }
+
+    ReplyCallbackData* cbData = static_cast<ReplyCallbackData*>(user_data);
+
+    int ret;
+    picojson::value result = picojson::value(picojson::object());
+    picojson::object& obj = result.get<picojson::object>();
+
     if (update_type == MEDIA_CONTENT_INSERT || update_type == MEDIA_CONTENT_UPDATE) {
       media_info_h media = NULL;
       ret = media_info_get_media_from_db(uuid, &media);
@@ -256,7 +256,43 @@ static void changedContentCallback(media_content_error_e error,
       ReportSuccess(picojson::value(std::string(uuid)), obj);
       obj["state"] = picojson::value("oncontentremoved");
     }
-  } else if (update_item == MEDIA_ITEM_DIRECTORY) {
+
+    obj["listenerId"] = cbData->args.get("listenerId");
+    common::Instance::PostMessage(cbData->instance, result.serialize().c_str());
+  } else {
+    LOGGER(DEBUG) << "Media item is not a file, skipping.";
+    return;
+  }
+}
+
+static void changedContentV2Callback(media_content_error_e error,
+                                   int pid,
+                                   media_content_db_update_item_type_e update_item,
+                                   media_content_db_update_type_e update_type,
+                                   media_content_type_e media_type,
+                                   char* uuid,
+                                   char* path,
+                                   char* mime_type,
+                                   void* user_data) {
+  LoggerD("Entered directory change callback");
+
+  if (error != MEDIA_CONTENT_ERROR_NONE) {
+    LOGGER(ERROR) << "Media content changed v2 callback error: " << error;
+    return;
+  }
+
+  if (update_item == MEDIA_ITEM_DIRECTORY) {
+    if (!uuid) {
+      LOGGER(ERROR) << "Provided uuid is NULL, ignoring";
+      return;
+    }
+
+    ReplyCallbackData* cbData = static_cast<ReplyCallbackData*>(user_data);
+
+    int ret;
+    picojson::value result = picojson::value(picojson::object());
+    picojson::object& obj = result.get<picojson::object>();
+
     if (update_type == MEDIA_CONTENT_INSERT || update_type == MEDIA_CONTENT_UPDATE) {
       media_folder_h folder = NULL;
       ret = media_folder_get_folder_from_db(uuid, &folder);
@@ -278,15 +314,14 @@ static void changedContentCallback(media_content_error_e error,
       ReportSuccess(picojson::value(std::string(uuid)), obj);
       obj["state"] = picojson::value("oncontentdirremoved");
     }
+
+    obj["listenerId"] = cbData->args.get("listenerId");
+    common::Instance::PostMessage(cbData->instance, result.serialize().c_str());
   } else {
-    LOGGER(DEBUG) << "Media item is not a file and not directory, skipping.";
+    LOGGER(DEBUG) << "Media item is not directory, skipping.";
     return;
   }
-
-  obj["listenerId"] = cbData->args.get("listenerId");
-  common::Instance::PostMessage(cbData->instance, result.serialize().c_str());
 }
-
 
 #define CHECK_EXIST(args, name, out) \
   if (!args.contains(name)) {\
@@ -432,8 +467,12 @@ void ContentInstance::ContentManagerSetchangelistener(const picojson::value& arg
     listener_data_->cbType = ContentManagerErrorCallback;
   }
 
-  if (ContentManager::getInstance()->setChangeListener(&noti_handle_,
-                                                       changedContentCallback,
+  if (ContentManager::getInstance()->setChangeListener(changedContentCallback,
+                                                       static_cast<void*>(listener_data_)).IsError()) {
+    ReportError(common::PlatformResult(common::ErrorCode::UNKNOWN_ERR, "The callback did not register properly"), &out);
+  }
+  if (ContentManager::getInstance()->setV2ChangeListener(&noti_handle_,
+                                                       changedContentV2Callback,
                                                        static_cast<void*>(listener_data_)).IsError()) {
     ReportError(common::PlatformResult(common::ErrorCode::UNKNOWN_ERR, "The callback did not register properly"), &out);
   }
@@ -441,7 +480,10 @@ void ContentInstance::ContentManagerSetchangelistener(const picojson::value& arg
 
 void ContentInstance::ContentManagerUnsetchangelistener(const picojson::value& args, picojson::object& out) {
   LoggerD("entered");
-  if (ContentManager::getInstance()->unSetChangeListener(&noti_handle_).IsError()) {
+  if (ContentManager::getInstance()->unSetChangeListener().IsError()) {
+    LoggerD("unsuccesfull deregistering of callback");
+  }
+  if (ContentManager::getInstance()->unSetV2ChangeListener(&noti_handle_).IsError()) {
     LoggerD("unsuccesfull deregistering of callback");
   }
 }
