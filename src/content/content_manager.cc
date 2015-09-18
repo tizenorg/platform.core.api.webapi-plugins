@@ -840,8 +840,7 @@ PlatformResult ContentManager::cancelScanDirectory(const std::string& content_di
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-PlatformResult ContentManager::setChangeListener(media_content_noti_h* noti_handle,
-                                                 media_content_db_update_cb callback,
+PlatformResult ContentManager::setChangeListener(media_content_db_update_cb callback,
                                                  void *user_data) {
   LoggerD("Enter");
 
@@ -850,8 +849,26 @@ PlatformResult ContentManager::setChangeListener(media_content_noti_h* noti_hand
     LoggerE("Failed: registering the listener is failed");
     return PlatformResult(ErrorCode::UNKNOWN_ERR, ("registering the listener is failed."));
   }
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
 
-  ret = media_content_set_db_updated_cb_v2(noti_handle, callback, user_data);
+PlatformResult ContentManager::unSetChangeListener() {
+  LoggerD("Enter");
+
+  int ret = media_content_unset_db_updated_cb();
+  if(ret != MEDIA_CONTENT_ERROR_NONE) {
+    LoggerE("Failed: unregistering the listener is failed");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, ("unregistering the listener is failed."));
+  }
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult ContentManager::setV2ChangeListener(media_content_noti_h* noti_handle,
+                                                 media_content_db_update_cb callback,
+                                                 void *user_data) {
+  LoggerD("Enter");
+
+  int ret = media_content_set_db_updated_cb_v2(noti_handle, callback, user_data);
   if(ret != MEDIA_CONTENT_ERROR_NONE) {
     LoggerE("Failed: registering the listener of cb_v2 is failed");
     return PlatformResult(ErrorCode::UNKNOWN_ERR, ("registering the listener is failed."));
@@ -860,16 +877,10 @@ PlatformResult ContentManager::setChangeListener(media_content_noti_h* noti_hand
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-PlatformResult ContentManager::unSetChangeListener(media_content_noti_h* noti_handle) {
+PlatformResult ContentManager::unSetV2ChangeListener(media_content_noti_h* noti_handle) {
   LoggerD("Enter");
 
-  int ret = media_content_unset_db_updated_cb();
-  if(ret != MEDIA_CONTENT_ERROR_NONE) {
-    LoggerE("Failed: unregistering the listener is failed");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, ("unregistering the listener is failed."));
-  }
-
-  ret = media_content_unset_db_updated_cb_v2(*noti_handle);
+  int ret = media_content_unset_db_updated_cb_v2(*noti_handle);
   if(ret != MEDIA_CONTENT_ERROR_NONE) {
     LoggerE("Failed: unregistering the listener of cb_v2 is failed");
     return PlatformResult(ErrorCode::UNKNOWN_ERR, ("unregistering the listener is failed."));
@@ -878,6 +889,7 @@ PlatformResult ContentManager::unSetChangeListener(media_content_noti_h* noti_ha
 
   return PlatformResult(ErrorCode::NO_ERROR);
 }
+
 
 void ContentManager::createPlaylist(std::string name,
   const std::shared_ptr<ReplyCallbackData>& user_data) {
