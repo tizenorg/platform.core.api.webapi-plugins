@@ -867,13 +867,13 @@ PlatformResult ContentManager::setV2ChangeListener(media_content_noti_h* noti_ha
                                                  media_content_db_update_cb callback,
                                                  void *user_data) {
   LoggerD("Enter");
-
-  int ret = media_content_set_db_updated_cb_v2(noti_handle, callback, user_data);
-  if(ret != MEDIA_CONTENT_ERROR_NONE) {
-    LoggerE("Failed: registering the listener of cb_v2 is failed");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, ("registering the listener is failed."));
+  if (nullptr == *noti_handle) {
+    int ret = media_content_set_db_updated_cb_v2(noti_handle, callback, user_data);
+    if(ret != MEDIA_CONTENT_ERROR_NONE) {
+      LoggerE("Failed: registering the listener of cb_v2 is failed");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, ("registering the listener is failed."));
+    }
   }
-
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
