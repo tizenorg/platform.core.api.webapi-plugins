@@ -320,6 +320,7 @@ File.prototype.readAsText = function(onsuccess, onerror, encoding) {
 
     do {
       result = native_.callSyncData('File_readSync', data);
+
       if (native_.isFailure(result)) {
         setTimeout(function() {
           native_.callIfPossible(args.onerror, native_.getErrorObject(result));
@@ -327,8 +328,8 @@ File.prototype.readAsText = function(onsuccess, onerror, encoding) {
         return;
       }
       str += result.output;
-      data.offset += result.data_size;
-    } while (result.data_size);
+      data.offset += result.reply.data_size;
+    } while (result.reply.data_size);
 
     setTimeout(function() {
       native_.callIfPossible(args.onsuccess, str);
