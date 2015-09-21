@@ -320,7 +320,7 @@ void BluetoothLEDevice::Connect(const picojson::value& data,
       instance_.AsyncResponse(callback_handle,
                               PlatformResult(ErrorCode::NO_ERROR));
   } else {  // not connected yet
-    ret = bt_gatt_connect(address.c_str(), true);
+    ret = bt_gatt_connect(address.c_str(), false);
     if (BT_ERROR_NONE != ret) {
       instance_.AsyncResponse(
           callback_handle,
