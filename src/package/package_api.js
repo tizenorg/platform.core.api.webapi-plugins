@@ -34,7 +34,9 @@ extension.setMessageListener(function(json) {
   var result = JSON.parse(json);
 
   if (result.hasOwnProperty('listener')) {
-    invokeListener(result);
+    setTimeout(function() {
+      invokeListener(result);
+    }, 0);
   } else {
     var callback = callbacks[result['callbackId']];
     setTimeout(function() {
