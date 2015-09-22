@@ -37,7 +37,9 @@ extension.setMessageListener(function(json) {
     invokeListener(result);
   } else {
     var callback = callbacks[result['callbackId']];
-    callback(result);
+    setTimeout(function() {
+      callback(result);
+    }, 0);
   }
 });
 
