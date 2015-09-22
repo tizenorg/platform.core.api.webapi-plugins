@@ -587,10 +587,6 @@ var BluetoothLEDevice = function(data) {
             set : function(){},
             get : function(){
               var service_uuids = uuids ? uuids.slice() : null;
-              var result = native.callSync('BluetoothLEDevice_getServiceUuids', {address : address});
-              if (native.isSuccess(result)) {
-                service_uuids = native.getResultObject(result);
-              }
               return service_uuids;
             }
         },

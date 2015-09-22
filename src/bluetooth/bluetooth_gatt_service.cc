@@ -536,8 +536,12 @@ common::PlatformResult BluetoothGATTService::GetServiceUuids(
     if (BT_ERROR_NONE != ret || nullptr == uuid) {
       LoggerE("Failed to get UUID: %d", ret);
     } else {
-      static_cast<picojson::array*>(user_data)->push_back(picojson::value(uuid));
+      std::string u = std::string(uuid);
       free(uuid);
+      if (u.length() > 4) {  // 128-bit UUID, needs to be converted to 16-bit
+        u = u.substr(4, 4);
+      }
+      static_cast<picojson::array*>(user_data)->push_back(picojson::value(u));
     }
 
     return true;
