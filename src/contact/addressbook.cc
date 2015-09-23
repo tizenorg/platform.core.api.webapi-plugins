@@ -721,6 +721,10 @@ void AddressBookListenerCallback(const char* view_uri, void* user_data) {
   }
 
   ContactInstance* instance = static_cast<ContactInstance*>(user_data);
+  if (!instance) {
+    LoggerE("instance is NULL");
+    return;
+  }
 
   for (int version = instance->current_state(); version < current_version; ++version) {
     int latest_version = 0;
