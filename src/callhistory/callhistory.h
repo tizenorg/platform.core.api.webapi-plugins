@@ -53,7 +53,6 @@ class CallHistory
 
  private:
   static void changeListenerCB(const char* view_uri, char *changes, void* user_data);
-  static void PostMessage(const CallHistory* instance, const std::string& msg);
   static void FindThread(const picojson::object& args, CallHistory* call_history);
   static void LoadPhoneNumbers(const picojson::object& args, CallHistory* call_history);
 
@@ -61,9 +60,6 @@ class CallHistory
   std::vector<std::string> m_phone_numbers;
   CallHistoryInstance& instance_;
   CallHistoryUtils utils_;
-
-  static std::vector<CallHistory*> instances_;
-  static std::mutex instances_mutex_;
 };
 
 } // namespace callhistory

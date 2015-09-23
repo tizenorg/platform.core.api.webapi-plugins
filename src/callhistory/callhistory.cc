@@ -35,9 +35,6 @@ using namespace tools;
 namespace extension {
 namespace callhistory {
 
-std::vector<CallHistory*> CallHistory::instances_;
-std::mutex CallHistory::instances_mutex_;
-
 namespace {
 static void get_sim_msisdn_cb(TapiHandle *handle, int result, void *data, void *user_data)
 {
@@ -72,11 +69,6 @@ CallHistory::CallHistory(CallHistoryInstance& instance)
   } else {
     LoggerD("Failed to connect Call history DB");
   }
-
-  {
-    std::lock_guard<std::mutex> lock(instances_mutex_);
-    instances_.push_back(this);
-  }
 }
 
 CallHistory::~CallHistory()
@@ -96,16 +88,6 @@ CallHistory::~CallHistory()
     LoggerD("Successful to disconnect Call history DB");
   } else {
     LoggerD("Failed to disconnect Call history DB");
-  }
-
-  {
-    std::lock_guard<std::mutex> lock(instances_mutex_);
-    for (auto it = instances_.begin(); it != instances_.end(); ++it) {
-      if (*it == this) {
-        instances_.erase(it);
-        break;
-      }
-    }
   }
 }
 
@@ -255,7 +237,7 @@ void CallHistory::FindThread(const picojson::object& args, CallHistory* call_his
   auto find_response = [call_history, callback_id](const std::shared_ptr<picojson::value>& response) -> void {
     picojson::object& obj = response->get<picojson::object>();
     obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
-    CallHistory::PostMessage(call_history, response->serialize());
+    Instance::PostMessage(&call_history->instance_, response->serialize().c_str());
   };
 
   TaskQueue::GetInstance().Async<picojson::value>(find_response, response);
@@ -395,7 +377,7 @@ common::PlatformResult CallHistory::removeBatch(const picojson::object& args)
   auto remove_batch_response = [this, callback_id](const std::shared_ptr<picojson::value>& response) -> void {
     picojson::object& obj = response->get<picojson::object>();
     obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
-    CallHistory::PostMessage(this, response->serialize());
+    Instance::PostMessage(&this->instance_, response->serialize().c_str());
   };
 
   TaskQueue::GetInstance().Queue<picojson::value>(
@@ -508,7 +490,7 @@ void CallHistory::removeAll(const picojson::object& args)
   auto remove_all_response = [this, callback_id](const std::shared_ptr<picojson::value>& response) -> void {
     picojson::object& obj = response->get<picojson::object>();
     obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
-    CallHistory::PostMessage(this, response->serialize());
+    Instance::PostMessage(&this->instance_, response->serialize().c_str());
   };
 
   TaskQueue::GetInstance().Queue<picojson::value>(
@@ -625,20 +607,6 @@ void CallHistory::changeListenerCB(const char* view_uri, char *changes, void* us
     removed_obj[STR_ACTION] = picojson::value("onremoved");
     h->instance_.CallHistoryChange(removed_obj);
   }
-}
-
-void CallHistory::PostMessage(const CallHistory* instance, const std::string& msg) {
-  LoggerD("Entered");
-  std::lock_guard<std::mutex> lock(instances_mutex_);
-
-  for (auto it = instances_.begin(); it != instances_.end(); ++it) {
-    if (*it == instance) {
-      Instance::PostMessage(&instance->instance_, msg.c_str());
-      return;
-    }
-  }
-
-  LoggerE("Instance [%p] not found, ignoring message", instance);
 }
 
 PlatformResult CallHistory::startCallHistoryChangeListener()
