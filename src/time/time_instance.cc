@@ -643,6 +643,11 @@ static void OnTimeChangedCallback(keynode_t* /*node*/, void* user_data) {
   LoggerD("Entered");
 
   TimeInstance *that = static_cast<TimeInstance*>(user_data);
+  if (!that) {
+    LoggerE("instance is NULL");
+    return;
+  }
+
   std::string defaultTimezone = GetDefaultTimezone();
 
   if (g_time_util_listeners_obj.GetCurrentTimezone() != defaultTimezone) {
