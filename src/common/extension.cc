@@ -252,7 +252,6 @@ int32_t Extension::XW_Initialize(XW_Extension extension,
   return XW_OK;
 }
 
-std::mutex Instance::instance_mutex_;
 std::unordered_set<Instance*> Instance::all_instances_;
 
 Instance::Instance() :
@@ -260,7 +259,6 @@ Instance::Instance() :
 {
   LoggerD("Enter");
   {
-    std::lock_guard<std::mutex> lock(instance_mutex_);
     all_instances_.insert(this);
   }
 }
@@ -268,7 +266,6 @@ Instance::Instance() :
 Instance::~Instance() {
   LoggerD("Enter");
   {
-    std::lock_guard<std::mutex> lock(instance_mutex_);
     all_instances_.erase(this);
   }
   Assert(xw_instance_ == 0);
@@ -276,7 +273,6 @@ Instance::~Instance() {
 
 void Instance::PostMessage(Instance* that, const char* msg) {
   LoggerD("Enter");
-  std::lock_guard<std::mutex> lock(instance_mutex_);
   if (that && all_instances_.end() != all_instances_.find(that)) {
     that->PostMessage(msg);
   } else {
