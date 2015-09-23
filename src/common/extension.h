@@ -21,7 +21,6 @@
 
 #include <string>
 #include <map>
-#include <mutex>
 #include <functional>
 #include <unordered_set>
 
@@ -125,7 +124,6 @@ class Instance {
 
   friend class Extension;
 
-  static std::mutex instance_mutex_;
   static std::unordered_set<Instance*> all_instances_;
 
   XW_Instance xw_instance_;
