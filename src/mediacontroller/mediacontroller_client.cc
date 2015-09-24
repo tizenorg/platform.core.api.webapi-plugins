@@ -219,8 +219,8 @@ PlatformResult MediaControllerClient::GetPlaybackInfo(
   // fill return object
   (*playback_info)["state"] = picojson::value(state);
   (*playback_info)["position"] = picojson::value(position);
-  (*playback_info)["shuffleMode"] = picojson::value(shuffle == SHUFFLE_MODE_ON);
-  (*playback_info)["repeatMode"] = picojson::value(repeat == REPEAT_MODE_ON);
+  (*playback_info)["shuffleMode"] = picojson::value(shuffle == MC_SHUFFLE_MODE_ON);
+  (*playback_info)["repeatMode"] = picojson::value(repeat == MC_REPEAT_MODE_ON);
   (*playback_info)["metadata"] = metadata;
 
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -450,7 +450,7 @@ void MediaControllerClient::OnShuffleModeUpdate(const char *server_name,
   picojson::object& data_o = data.get<picojson::object>();
 
   data_o["action"] = picojson::value(std::string("onshufflemodechanged"));
-  data_o["mode"] = picojson::value(mode == SHUFFLE_MODE_ON);
+  data_o["mode"] = picojson::value(mode == MC_SHUFFLE_MODE_ON);
 
   client->playback_info_listener_(&data);
 }
@@ -471,7 +471,7 @@ void MediaControllerClient::OnRepeatModeUpdate(const char *server_name,
   picojson::object& data_o = data.get<picojson::object>();
 
   data_o["action"] = picojson::value(std::string("onrepeatmodechanged"));
-  data_o["mode"] = picojson::value(mode == REPEAT_MODE_ON);
+  data_o["mode"] = picojson::value(mode == MC_REPEAT_MODE_ON);
 
   client->playback_info_listener_(&data);
 }

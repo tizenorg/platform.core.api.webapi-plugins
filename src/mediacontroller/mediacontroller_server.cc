@@ -143,8 +143,8 @@ PlatformResult MediaControllerServer::SetShuffleMode(bool mode) {
   LoggerD("Enter");
 
   int ret = mc_server_update_shuffle_mode(handle_,
-                                          mode ? SHUFFLE_MODE_ON
-                                               : SHUFFLE_MODE_OFF);
+                                          mode ? MC_SHUFFLE_MODE_ON
+                                               : MC_SHUFFLE_MODE_OFF);
   if (ret != MEDIA_CONTROLLER_ERROR_NONE) {
     LOGGER(ERROR) << "mc_server_update_shuffle_mode failed, error: " << ret;
     return PlatformResult(ErrorCode::UNKNOWN_ERR,
@@ -159,8 +159,8 @@ PlatformResult MediaControllerServer::SetRepeatMode(bool mode) {
   LoggerD("Enter");
 
   int ret = mc_server_update_repeat_mode(handle_,
-                                         mode ? REPEAT_MODE_ON
-                                              : REPEAT_MODE_OFF);
+                                         mode ? MC_REPEAT_MODE_ON
+                                              : MC_REPEAT_MODE_OFF);
   if (ret != MEDIA_CONTROLLER_ERROR_NONE) {
     LOGGER(ERROR) << "mc_server_update_repeat_mode failed, error: " << ret;
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Error updating repeat mode");
@@ -256,7 +256,7 @@ void MediaControllerServer::OnCommandReceived(const char* client_name,
     bool mode = data.get("mode").get<bool>();
     server->SetShuffleMode(mode);
     server->OnShuffleModeCommand(client_name,
-                                 mode ? SHUFFLE_MODE_ON : SHUFFLE_MODE_OFF,
+                                 mode ? MC_SHUFFLE_MODE_ON : MC_SHUFFLE_MODE_OFF,
                                  server);
     server->CommandReply(client_name, reply_id_str, data);
     return;
@@ -265,7 +265,7 @@ void MediaControllerServer::OnCommandReceived(const char* client_name,
     bool mode = data.get("mode").get<bool>();
     server->SetRepeatMode(mode);
     server->OnRepeatModeCommand(client_name,
-                                mode ? REPEAT_MODE_ON : REPEAT_MODE_OFF,
+                                mode ? MC_REPEAT_MODE_ON : MC_REPEAT_MODE_OFF,
                                 server);
     server->CommandReply(client_name, reply_id_str, data);
     return;
@@ -426,7 +426,7 @@ void MediaControllerServer::OnShuffleModeCommand(const char* client_name,
   picojson::object& data_o = data.get<picojson::object>();
 
   data_o["action"] = picojson::value(std::string("onshufflemoderequest"));
-  data_o["mode"] = picojson::value(mode == SHUFFLE_MODE_ON);
+  data_o["mode"] = picojson::value(mode == MC_SHUFFLE_MODE_ON);
 
   server->change_request_playback_info_listener_(&data);
 }
@@ -448,7 +448,7 @@ void MediaControllerServer::OnRepeatModeCommand(const char* client_name,
   picojson::object& data_o = data.get<picojson::object>();
 
   data_o["action"] = picojson::value(std::string("onrepeatmoderequest"));
-  data_o["mode"] = picojson::value(mode == REPEAT_MODE_ON);
+  data_o["mode"] = picojson::value(mode == MC_REPEAT_MODE_ON);
 
   server->change_request_playback_info_listener_(&data);
 }

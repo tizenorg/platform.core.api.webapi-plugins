@@ -40,25 +40,25 @@ const PlatformEnumMap Types::platform_enum_map_ = {
         {"ACTIVE", MC_SERVER_STATE_ACTIVATE},
         {"INACTIVE", MC_SERVER_STATE_DEACTIVATE}}},
     {kMediaControllerPlaybackState, {
-        {"PLAY", MEDIA_PLAYBACK_STATE_PLAYING},
-        {"PAUSE", MEDIA_PLAYBACK_STATE_PAUSED},
-        {"STOP", MEDIA_PLAYBACK_STATE_STOPPED},
-        {"NEXT", MEDIA_PLAYBACK_STATE_NEXT_FILE},
-        {"PREV", MEDIA_PLAYBACK_STATE_PREV_FILE},
-        {"FORWARD", MEDIA_PLAYBACK_STATE_FAST_FORWARD},
-        {"REWIND", MEDIA_PLAYBACK_STATE_REWIND}}},
+        {"PLAY", MC_PLAYBACK_STATE_PLAYING},
+        {"PAUSE", MC_PLAYBACK_STATE_PAUSED},
+        {"STOP", MC_PLAYBACK_STATE_STOPPED},
+        {"NEXT", MC_PLAYBACK_STATE_NEXT_FILE},
+        {"PREV", MC_PLAYBACK_STATE_PREV_FILE},
+        {"FORWARD", MC_PLAYBACK_STATE_FAST_FORWARD},
+        {"REWIND", MC_PLAYBACK_STATE_REWIND}}},
     {kMediaControllerMetadataAttribute, {
-        {"title", MEDIA_TITLE},
-        {"artist", MEDIA_ARTIST},
-        {"album", MEDIA_ALBUM},
-        {"author", MEDIA_AUTHOR},
-        {"genre", MEDIA_GENRE},
-        {"duration", MEDIA_DURATION},
-        {"date", MEDIA_DATE},
-        {"copyright", MEDIA_COPYRIGHT},
-        {"description", MEDIA_DESCRIPTION},
-        {"trackNum", MEDIA_TRACK_NUM},
-        {"picture", MEDIA_PICTURE}
+        {"title", MC_META_MEDIA_TITLE},
+        {"artist", MC_META_MEDIA_ARTIST},
+        {"album", MC_META_MEDIA_ALBUM},
+        {"author", MC_META_MEDIA_AUTHOR},
+        {"genre", MC_META_MEDIA_GENRE},
+        {"duration", MC_META_MEDIA_DURATION},
+        {"date", MC_META_MEDIA_DATE},
+        {"copyright", MC_META_MEDIA_COPYRIGHT},
+        {"description", MC_META_MEDIA_DESCRIPTION},
+        {"trackNum", MC_META_MEDIA_TRACK_NUM},
+        {"picture", MC_META_MEDIA_PICTURE}
     }}
 };
 
@@ -149,8 +149,8 @@ PlatformResult Types::ConvertPlaybackState(mc_playback_h playback_h,
     return PlatformResult(ErrorCode::UNKNOWN_ERR,
                           "Error getting playback state");
   }
-  if (state_e == MEDIA_PLAYBACK_STATE_NONE) {
-    state_e = MEDIA_PLAYBACK_STATE_STOPPED;
+  if (state_e == MC_PLAYBACK_STATE_NONE) {
+    state_e = MC_PLAYBACK_STATE_STOPPED;
   }
 
   PlatformResult result = Types::PlatformEnumToString(
