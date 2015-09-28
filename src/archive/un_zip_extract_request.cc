@@ -96,7 +96,7 @@ void createMissingDirectories(const std::string& path, bool check_first = true)
 
             if(FPS_DIRECTORY != status) {
                 //TODO investigate 0775 (mode) - filesystem assumed that file should have parent mode
-                if(mkdir(left_part.c_str(), 0775) == -1) {
+                if(mkdir(left_part.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) == -1) {
                     LoggerE("Couldn't create new directory: %s errno: %s",
                             left_part.c_str(), GetErrorString(errno).c_str());
                //TODO check why mkdir return -1 but directory is successfully created
@@ -306,7 +306,7 @@ PlatformResult UnZipExtractRequest::handleDirectoryEntry()
         }
 
         //Try to create new directory in output directory
-        if(mkdir(m_new_dir_path.c_str(), 0775) == -1) {
+        if(mkdir(m_new_dir_path.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) == -1) {
             LoggerE("Couldn't create new directory: %s errno: %s",
                     m_new_dir_path.c_str(), GetErrorString(errno).c_str());
             return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not create new directory in extract output directory");
@@ -343,7 +343,7 @@ PlatformResult UnZipExtractRequest::prepareOutputSubdirectory()
 
         //Try to create new directory in output directory
         //TODO investigate 0775 (mode) - filesystem assumed that file should have parent mode
-        if(mkdir(m_new_dir_path.c_str(), 0775) == -1) {
+        if(mkdir(m_new_dir_path.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) == -1) {
             LoggerW("couldn't create new directory: %s errno: %s",
                     m_new_dir_path.c_str(), GetErrorString(errno).c_str());
             //TODO check why mkdir return -1 but directory is successfully created
