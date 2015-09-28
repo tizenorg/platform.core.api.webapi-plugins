@@ -115,10 +115,12 @@ void AccountInstance::AccountGetExtendedData(const picojson::value& args,
     Instance::PostMessage(this, result->serialize().c_str());
   };
 
+  auto data = std::shared_ptr<picojson::value>{new picojson::value{picojson::object()}};
+
   TaskQueue::GetInstance().Queue<picojson::value>(
       get_extended_data,
       get_extended_data_result,
-      std::shared_ptr<picojson::value>{new picojson::value{picojson::object()}});
+      data);
 
   ReportSuccess(out);
 }
@@ -183,10 +185,12 @@ void AccountInstance::AccountManagerGetAccounts(const picojson::value& args,
     Instance::PostMessage(this, result->serialize().c_str());
   };
 
+  auto data = std::shared_ptr<picojson::value>{new picojson::value{picojson::object()}};
+
   TaskQueue::GetInstance().Queue<picojson::value>(
       get_accounts,
       get_accounts_result,
-      std::shared_ptr<picojson::value>{new picojson::value{picojson::object()}});
+      data);
 
   ReportSuccess(out);
 }
@@ -222,10 +226,12 @@ void AccountInstance::AccountManagerGetProviders(const picojson::value& args,
     Instance::PostMessage(this, result->serialize().c_str());
   };
 
+  auto data = std::shared_ptr<picojson::value>{new picojson::value{picojson::object()}};
+
   TaskQueue::GetInstance().Queue<picojson::value>(
       get_providers,
       get_providers_result,
-      std::shared_ptr<picojson::value>{new picojson::value{picojson::object()}});
+      data);
 
   ReportSuccess(out);
 }

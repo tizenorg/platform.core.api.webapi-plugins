@@ -78,8 +78,9 @@ void ExifInstance::ExifManagerGetExifInfo(const picojson::value& args, picojson:
       Instance::PostMessage(this, response->serialize().c_str());
   };
 
-  common::TaskQueue::GetInstance().Queue<JsonValue>(
-      get, get_response, std::shared_ptr<JsonValue>(new JsonValue(JsonObject())));
+  auto data = std::shared_ptr<JsonValue>(new JsonValue(JsonObject()));
+
+  common::TaskQueue::GetInstance().Queue<JsonValue>(get, get_response, data);
 
   LoggerD("exit");
 }
@@ -111,8 +112,9 @@ void ExifInstance::ExifManagerSaveExifInfo(const picojson::value& args,
       Instance::PostMessage(this, response->serialize().c_str());
   };
 
-  common::TaskQueue::GetInstance().Queue<JsonValue>(get, get_response,
-      std::shared_ptr<JsonValue>(new JsonValue(JsonObject())));
+  auto data = std::shared_ptr<JsonValue>(new JsonValue(JsonObject()));
+
+  common::TaskQueue::GetInstance().Queue<JsonValue>(get, get_response, data);
 }
 
 void ExifInstance::ExifManagerGetThumbnail(const picojson::value& args,
@@ -181,8 +183,9 @@ void ExifInstance::ExifManagerGetThumbnail(const picojson::value& args,
       Instance::PostMessage(this, response->serialize().c_str());
   };
 
-  common::TaskQueue::GetInstance().Queue<JsonValue>(
-      get, get_response, std::shared_ptr<JsonValue>(new JsonValue(JsonObject())));
+  auto data = std::shared_ptr<JsonValue>(new JsonValue(JsonObject()));
+
+  common::TaskQueue::GetInstance().Queue<JsonValue>(get, get_response, data);
 }
 
 }  // namespace exif

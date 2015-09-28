@@ -190,10 +190,12 @@ void SecureElementInstance::OpenSession(
         Instance::PostMessage(this, response->serialize().c_str());
     };
 
+    auto data = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
+
     TaskQueue::GetInstance().Queue<picojson::value>(
             open_session,
             open_session_response,
-            std::shared_ptr<picojson::value>(new picojson::value(picojson::object())));
+            data);
 }
 
 // Session functions
@@ -235,8 +237,9 @@ void SecureElementInstance::OpenBasicChannel( const picojson::value& args, picoj
         Instance::PostMessage(this, response->serialize().c_str());
     };
 
-    TaskQueue::GetInstance().Queue<picojson::value>
-        ( open, get_response, std::shared_ptr<picojson::value>(new picojson::value(picojson::object())));
+    auto data = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
+
+    TaskQueue::GetInstance().Queue<picojson::value>(open, get_response, data);
 }
 
 
@@ -277,8 +280,9 @@ void SecureElementInstance::OpenLogicalChannel( const picojson::value& args, pic
         Instance::PostMessage(this, response->serialize().c_str());
     };
 
-    TaskQueue::GetInstance().Queue<picojson::value>
-        ( open, get_response, std::shared_ptr<picojson::value>(new picojson::value(picojson::object())));
+    auto data = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
+
+    TaskQueue::GetInstance().Queue<picojson::value>(open, get_response, data);
 }
 
 
@@ -368,8 +372,9 @@ void SecureElementInstance::Transmit( const picojson::value& args, picojson::obj
         Instance::PostMessage(this, response->serialize().c_str());
     };
 
-    TaskQueue::GetInstance().Queue<picojson::value>
-        ( open, get_response, std::shared_ptr<picojson::value>(new picojson::value(picojson::object())));
+    auto data = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
+
+    TaskQueue::GetInstance().Queue<picojson::value>(open, get_response, data);
 }
 
 } // namespace secureelement

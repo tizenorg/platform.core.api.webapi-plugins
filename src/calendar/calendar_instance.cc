@@ -133,9 +133,10 @@ void CalendarInstance::CalendarAddBatch(const JsonValue& args,
     Instance::PostMessage(this, response->serialize().c_str());
   };
 
+  auto data = std::shared_ptr<JsonValue>(new JsonValue(JsonObject()));
+
   TaskQueue::GetInstance().Queue<JsonValue>(
-      get, get_response,
-      std::shared_ptr<JsonValue>(new JsonValue(JsonObject())));
+      get, get_response, data);
 }
 
 void CalendarInstance::CalendarUpdate(const JsonValue& args, JsonObject& out) {
@@ -183,9 +184,10 @@ void CalendarInstance::CalendarUpdateBatch(const JsonValue& args,
     Instance::PostMessage(this, response->serialize().c_str());
   };
 
+  auto data = std::shared_ptr<JsonValue>(new JsonValue(JsonObject()));
+
   TaskQueue::GetInstance().Queue<JsonValue>(
-      get, get_response,
-      std::shared_ptr<JsonValue>(new JsonValue(JsonObject())));
+      get, get_response, data);
 }
 
 void CalendarInstance::CalendarRemove(const JsonValue& args, JsonObject& out) {
@@ -233,9 +235,10 @@ void CalendarInstance::CalendarRemoveBatch(const JsonValue& args,
     Instance::PostMessage(this, response->serialize().c_str());
   };
 
+  auto data = std::shared_ptr<JsonValue>(new JsonValue(JsonObject()));
+
   TaskQueue::GetInstance().Queue<JsonValue>(
-      get, get_response,
-      std::shared_ptr<JsonValue>(new JsonValue(JsonObject())));
+      get, get_response, data);
 }
 
 void CalendarInstance::CalendarFind(const JsonValue& args, JsonObject& out) {
@@ -266,9 +269,10 @@ void CalendarInstance::CalendarFind(const JsonValue& args, JsonObject& out) {
     Instance::PostMessage(this, response->serialize().c_str());
   };
 
+  auto data = std::shared_ptr<JsonValue>(new JsonValue(JsonObject()));
+
   TaskQueue::GetInstance().Queue<JsonValue>(
-      get, get_response,
-      std::shared_ptr<JsonValue>(new JsonValue(JsonObject())));
+      get, get_response, data);
 }
 
 void CalendarInstance::CalendarAddChangeListener(const JsonValue& args,
@@ -368,9 +372,10 @@ void CalendarInstance::CalendarManagerGetCalendars(const JsonValue& args,
     Instance::PostMessage(this, response->serialize().c_str());
   };
 
+  auto data = std::shared_ptr<JsonValue>(new JsonValue(JsonObject()));
+
   TaskQueue::GetInstance().Queue<JsonValue>(
-      get, get_response,
-      std::shared_ptr<JsonValue>(new JsonValue(JsonObject())));
+      get, get_response, data);
 }
 
 void CalendarInstance::CalendarManagerRemoveCalendar(const JsonValue& args,

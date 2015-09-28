@@ -424,8 +424,9 @@ void SysteminfoManager::GetPropertyValue(const picojson::value& args, picojson::
     Instance::PostMessage(instance_, response->serialize().c_str());
   };
 
-  TaskQueue::GetInstance().Queue<picojson::value>
-  (get, get_response, std::shared_ptr<picojson::value>(new picojson::value(picojson::object())));
+  auto data = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
+
+  TaskQueue::GetInstance().Queue<picojson::value>(get, get_response, data);
 }
 
 void SysteminfoManager::GetPropertyValueArray(const picojson::value& args, picojson::object* out) {
@@ -456,8 +457,9 @@ void SysteminfoManager::GetPropertyValueArray(const picojson::value& args, picoj
     Instance::PostMessage(instance_, response->serialize().c_str());
   };
 
-  TaskQueue::GetInstance().Queue<picojson::value>
-  (get, get_response, std::shared_ptr<picojson::value>(new picojson::value(picojson::object())));
+  auto data = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
+
+  TaskQueue::GetInstance().Queue<picojson::value>(get, get_response, data);
 }
 
 void SysteminfoManager::GetTotalMemory(const picojson::value& args, picojson::object* out) {

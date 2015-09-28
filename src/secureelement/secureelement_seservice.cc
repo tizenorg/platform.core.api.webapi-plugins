@@ -131,11 +131,13 @@ void SEService::GetReaders(double callback_id) {
     return;
   }
 
+  auto data = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
+
   // everything's fine, get the readers, send the response
   TaskQueue::GetInstance().Queue<picojson::value>(
       get_readers,
       get_readers_response,
-      std::shared_ptr<picojson::value>(new picojson::value(picojson::object())));
+      data);
 }
 
 void SEService::RegisterSEListener() {

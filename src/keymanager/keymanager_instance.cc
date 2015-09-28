@@ -383,10 +383,12 @@ void KeyManagerInstance::SaveKey(const picojson::value& args,
     Instance::PostMessage(this, response->serialize().c_str());
   };
 
+  auto data = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
+
   TaskQueue::GetInstance().Queue<picojson::value>(
       save,
       save_response,
-      std::shared_ptr<picojson::value>(new picojson::value(picojson::object())));
+      data);
 }
 
 void KeyManagerInstance::RemoveAlias(const picojson::value& args,
@@ -491,10 +493,12 @@ void KeyManagerInstance::GenerateKeyPair(const picojson::value& args,
     Instance::PostMessage(this, response->serialize().c_str());
   };
 
+  auto data = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
+
   TaskQueue::GetInstance().Queue<picojson::value>(
       generate,
       generate_response,
-      std::shared_ptr<picojson::value>(new picojson::value(picojson::object())));
+      data);
 
   ReportSuccess(out);
 }
@@ -606,10 +610,12 @@ void KeyManagerInstance::SaveCertificate(const picojson::value& args,
     Instance::PostMessage(this, result->serialize().c_str());
   };
 
+  auto data = std::shared_ptr<picojson::value>{new picojson::value{picojson::object()}};
+
   TaskQueue::GetInstance().Queue<picojson::value>(
       save_certificate,
       save_certificate_result,
-      std::shared_ptr<picojson::value>{new picojson::value{picojson::object()}});
+      data);
 
   ReportSuccess(out);
 }
@@ -684,10 +690,12 @@ void KeyManagerInstance::LoadCertificateFromFile(const picojson::value& args,
     Instance::PostMessage(this, result->serialize().c_str());
   };
 
+  auto data = std::shared_ptr<picojson::value>{new picojson::value{picojson::object()}};
+
   TaskQueue::GetInstance().Queue<picojson::value>(
       load_certificate,
       load_certificate_result,
-      std::shared_ptr<picojson::value>{new picojson::value{picojson::object()}});
+      data);
 
   ReportSuccess(out);
 }
@@ -751,10 +759,12 @@ void KeyManagerInstance::SaveData(const picojson::value& args,
     Instance::PostMessage(this, result->serialize().c_str());
   };
 
+  auto queue_data = std::shared_ptr<picojson::value>{new picojson::value{picojson::object()}};
+
   TaskQueue::GetInstance().Queue<picojson::value>(
       save_data,
       save_data_result,
-      std::shared_ptr<picojson::value>{new picojson::value{picojson::object()}});
+      queue_data);
 
   ReportSuccess(out);
 }
@@ -865,10 +875,12 @@ void KeyManagerInstance::CreateSignature(const picojson::value& args,
     Instance::PostMessage(this, result->serialize().c_str());
   };
 
+  auto data = std::shared_ptr<picojson::value>{new picojson::value{picojson::object()}};
+
   TaskQueue::GetInstance().Queue<picojson::value>(
       create_certificate,
       create_certificate_result,
-      std::shared_ptr<picojson::value>{new picojson::value{picojson::object()}});
+      data);
 
   ReportSuccess(out);
 }
@@ -935,10 +947,12 @@ void KeyManagerInstance::VerifySignature(const picojson::value& args,
     Instance::PostMessage(this, result->serialize().c_str());
   };
 
+  auto data = std::shared_ptr<picojson::value>{new picojson::value{picojson::object()}};
+
   TaskQueue::GetInstance().Queue<picojson::value>(
       verify_certificate,
       verify_certificate_result,
-      std::shared_ptr<picojson::value>{new picojson::value{picojson::object()}});
+      data);
 
   ReportSuccess(out);
 }
@@ -1032,10 +1046,12 @@ void KeyManagerInstance::LoadFromPKCS12File(const picojson::value& args,
     Instance::PostMessage(this, result->serialize().c_str());
   };
 
+  auto data = std::shared_ptr<picojson::value>{new picojson::value{picojson::object()}};
+
   TaskQueue::GetInstance().Queue<picojson::value>(
       load_file,
       load_file_result,
-      std::shared_ptr<picojson::value>{new picojson::value{picojson::object()}});
+      data);
 
   ReportSuccess(out);
 }
@@ -1086,10 +1102,12 @@ void KeyManagerInstance::AllowAccessControl(const picojson::value& args,
     Instance::PostMessage(this, response->serialize().c_str());
   };
 
+  auto data = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
+
   TaskQueue::GetInstance().Queue<picojson::value>(
       allow,
       allow_response,
-      std::shared_ptr<picojson::value>(new picojson::value(picojson::object())));
+      data);
 }
 
 void KeyManagerInstance::DenyAccessControl(const picojson::value& args,
@@ -1121,10 +1139,12 @@ void KeyManagerInstance::DenyAccessControl(const picojson::value& args,
     Instance::PostMessage(this, response->serialize().c_str());
   };
 
+  auto data = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
+
   TaskQueue::GetInstance().Queue<picojson::value>(
       deny,
       deny_response,
-      std::shared_ptr<picojson::value>(new picojson::value(picojson::object())));
+      data);
 }
 
 void KeyManagerInstance::IsDataNameFound(const picojson::value& args,

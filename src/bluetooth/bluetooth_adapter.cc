@@ -859,10 +859,12 @@ void BluetoothAdapter::GetKnownDevices(const picojson::value& data, picojson::ob
     instance_.SyncResponse(callback_handle, response);
   };
 
+  auto queue_data = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
+
   TaskQueue::GetInstance().Queue<picojson::value>(
       get_known_devices,
       get_known_devices_response,
-      std::shared_ptr<picojson::value>(new picojson::value(picojson::object())));
+      queue_data);
 
   ReportSuccess(out);
 }
@@ -926,10 +928,12 @@ void BluetoothAdapter::GetDevice(const picojson::value& data, picojson::object& 
     instance_.SyncResponse(callback_handle, response);
   };
 
+  auto queue_data = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
+
   TaskQueue::GetInstance().Queue<picojson::value>(
       get_device,
       get_device_response,
-      std::shared_ptr<picojson::value>(new picojson::value(picojson::object())));
+      queue_data);
 
   ReportSuccess(out);
 }
@@ -1266,10 +1270,12 @@ void BluetoothAdapter::RegisterRFCOMMServiceByUUID(const picojson::value& data, 
     instance_.SyncResponse(callback_handle, response);
   };
 
+  auto queue_data = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
+
   TaskQueue::GetInstance().Queue<picojson::value>(
       rfcomm,
       rfcomm_response,
-      std::shared_ptr<picojson::value>(new picojson::value(picojson::object())));
+      queue_data);
 
   ReportSuccess(out);
 }

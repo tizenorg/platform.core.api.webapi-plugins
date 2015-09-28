@@ -791,10 +791,12 @@ void ApplicationManager::GetAppsContext(const picojson::value& args) {
     Instance::PostMessage(&this->instance_, response->serialize().c_str());
   };
 
+  auto data = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
+
   TaskQueue::GetInstance().Queue<picojson::value>(
       get_apps_context,
       get_apps_context_response,
-      std::shared_ptr<picojson::value>(new picojson::value(picojson::object())));
+      data);
 }
 
 void ApplicationManager::GetAppContext(const picojson::value& args, picojson::object* out) {
@@ -892,10 +894,12 @@ void ApplicationManager::GetAppsInfo(const picojson::value& args) {
     Instance::PostMessage(&this->instance_, response->serialize().c_str());
   };
 
+  auto data = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
+
   TaskQueue::GetInstance().Queue<picojson::value>(
       get_apps_info,
       get_apps_info_response,
-      std::shared_ptr<picojson::value>(new picojson::value(picojson::object())));
+      data);
 }
 
 void ApplicationManager::GetAppInfo(const std::string& app_id, picojson::object* out) {

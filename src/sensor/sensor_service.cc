@@ -607,10 +607,12 @@ void SensorService::SensorStart(const picojson::value& args, picojson::object& o
     Instance::PostMessage(&instance_, result->serialize().c_str());
   };
 
+  auto data = std::shared_ptr<picojson::value>{new picojson::value{picojson::object()}};
+
   TaskQueue::GetInstance().Queue<picojson::value>(
       start,
       start_result,
-      std::shared_ptr<picojson::value>{new picojson::value{picojson::object()}});
+      data);
   ReportSuccess(out);
 }
 
@@ -736,10 +738,12 @@ void SensorService::GetSensorData(const picojson::value& args, picojson::object&
     Instance::PostMessage(&instance_, result->serialize().c_str());
   };
 
+  auto data = std::shared_ptr<picojson::value>{new picojson::value{picojson::object()}};
+
   TaskQueue::GetInstance().Queue<picojson::value>(
       get_data,
       get_data_result,
-      std::shared_ptr<picojson::value>{new picojson::value{picojson::object()}});
+      data);
 
   ReportSuccess(out);
 }

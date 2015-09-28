@@ -134,9 +134,10 @@ void ContactInstance::AddressBookAddBatch(const JsonValue& args,
     Instance::PostMessage(this, response->serialize().c_str());
   };
 
+  auto data = std::shared_ptr<JsonValue>(new JsonValue(JsonObject()));
+
   TaskQueue::GetInstance().Queue<JsonValue>(
-      get, get_response,
-      std::shared_ptr<JsonValue>(new JsonValue(JsonObject())));
+      get, get_response, data);
 }
 
 void ContactInstance::AddressBookRemoveBatch(const JsonValue& args,
@@ -166,9 +167,10 @@ void ContactInstance::AddressBookRemoveBatch(const JsonValue& args,
     Instance::PostMessage(this, response->serialize().c_str());
   };
 
+  auto data = std::shared_ptr<JsonValue>(new JsonValue(JsonObject()));
+
   TaskQueue::GetInstance().Queue<JsonValue>(
-      get, get_response,
-      std::shared_ptr<JsonValue>(new JsonValue(JsonObject())));
+      get, get_response, data);
 }
 
 void ContactInstance::AddressBookUpdateBatch(const JsonValue& args,
@@ -198,9 +200,10 @@ void ContactInstance::AddressBookUpdateBatch(const JsonValue& args,
     Instance::PostMessage(this, response->serialize().c_str());
   };
 
+  auto data = std::shared_ptr<JsonValue>(new JsonValue(JsonObject()));
+
   TaskQueue::GetInstance().Queue<JsonValue>(
-      get, get_response,
-      std::shared_ptr<JsonValue>(new JsonValue(JsonObject())));
+      get, get_response, data);
 }
 
 void ContactInstance::AddressBookUpdate(const JsonValue& args,
@@ -247,9 +250,10 @@ void ContactInstance::AddressBookFind(const JsonValue& args, JsonObject& out) {
     Instance::PostMessage(this, response->serialize().c_str());
   };
 
+  auto data = std::shared_ptr<JsonValue>(new JsonValue(JsonObject()));
+
   TaskQueue::GetInstance().Queue<JsonValue>(
-      get, get_response,
-      std::shared_ptr<JsonValue>(new JsonValue(JsonObject())));
+      get, get_response, data);
 }
 
 void ContactInstance::AddressBookAddGroup(const JsonValue& args,
@@ -329,9 +333,10 @@ void ContactInstance::ContactManagerGetAddressBooks(const JsonValue& args,
     Instance::PostMessage(this, response->serialize().c_str());
   };
 
+  auto data = std::shared_ptr<JsonValue>(new JsonValue(JsonObject()));
+
   TaskQueue::GetInstance().Queue<JsonValue>(
-      get, get_response,
-      std::shared_ptr<JsonValue>(new JsonValue(JsonObject())));
+      get, get_response, data);
 }
 
 void ContactInstance::ContactManagerGetAddressBook(const JsonValue& args,
@@ -437,9 +442,10 @@ void ContactInstance::ContactManagerUpdateBatch(const JsonValue& args,
     Instance::PostMessage(this, response->serialize().c_str());
   };
 
+  auto data = std::shared_ptr<JsonValue>(new JsonValue(JsonObject()));
+
   TaskQueue::GetInstance().Queue<JsonValue>(
-      get, get_response,
-      std::shared_ptr<JsonValue>(new JsonValue(JsonObject())));
+      get, get_response, data);
 }
 
 void ContactInstance::ContactManagerRemove(const JsonValue& args,
@@ -480,9 +486,10 @@ void ContactInstance::ContactManagerRemoveBatch(const JsonValue& args,
     Instance::PostMessage(this, response->serialize().c_str());
   };
 
+  auto data = std::shared_ptr<JsonValue>(new JsonValue(JsonObject()));
+
   TaskQueue::GetInstance().Queue<JsonValue>(
-      get, get_response,
-      std::shared_ptr<JsonValue>(new JsonValue(JsonObject())));
+      get, get_response, data);
 }
 
 void ContactInstance::ContactManagerFind(const JsonValue& args,
@@ -508,9 +515,10 @@ void ContactInstance::ContactManagerFind(const JsonValue& args,
     Instance::PostMessage(this, response->serialize().c_str());
   };
 
+  auto data = std::shared_ptr<JsonValue>(new JsonValue(JsonObject()));
+
   TaskQueue::GetInstance().Queue<JsonValue>(
-      get, get_response,
-      std::shared_ptr<JsonValue>(new JsonValue(JsonObject())));
+      get, get_response, data);
 }
 
 void ContactInstance::ContactManagerImportFromVCard(const JsonValue& args,

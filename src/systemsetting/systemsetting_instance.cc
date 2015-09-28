@@ -86,8 +86,9 @@ void SystemSettingInstance::getProperty(const picojson::value& args, picojson::o
     Instance::PostMessage(this, response->serialize().c_str());
   };
 
-  TaskQueue::GetInstance().Queue<picojson::value>
-  (get, get_response, std::shared_ptr<picojson::value>(new picojson::value(picojson::object())));
+  auto data = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
+
+  TaskQueue::GetInstance().Queue<picojson::value>(get, get_response, data);
 }
 
 PlatformResult SystemSettingInstance::getPlatformPropertyValue(
@@ -159,8 +160,9 @@ void SystemSettingInstance::setProperty(const picojson::value& args, picojson::o
     Instance::PostMessage(this, response->serialize().c_str());
   };
 
-  TaskQueue::GetInstance().Async<picojson::value>
-  (get, std::shared_ptr<picojson::value>(new picojson::value(picojson::object())));
+  auto data = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
+
+  TaskQueue::GetInstance().Async<picojson::value>(get, data);
 }
 
 PlatformResult SystemSettingInstance::setPlatformPropertyValue(

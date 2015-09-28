@@ -380,10 +380,12 @@ common::PlatformResult CallHistory::removeBatch(const picojson::object& args)
     Instance::PostMessage(&this->instance_, response->serialize().c_str());
   };
 
+  auto data = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
+
   TaskQueue::GetInstance().Queue<picojson::value>(
       remove_batch,
       remove_batch_response,
-      std::shared_ptr<picojson::value>(new picojson::value(picojson::object())));
+      data);
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
@@ -493,10 +495,12 @@ void CallHistory::removeAll(const picojson::object& args)
     Instance::PostMessage(&this->instance_, response->serialize().c_str());
   };
 
+  auto data = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
+
   TaskQueue::GetInstance().Queue<picojson::value>(
       remove_all,
       remove_all_response,
-      std::shared_ptr<picojson::value>(new picojson::value(picojson::object())));
+      data);
 }
 
 std::vector<std::string>& CallHistory::getPhoneNumbers()
