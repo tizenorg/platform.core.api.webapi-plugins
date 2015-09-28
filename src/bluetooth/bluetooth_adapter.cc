@@ -349,6 +349,7 @@ BluetoothAdapter::BluetoothAdapter(BluetoothInstance& instance) :
     user_request_list_(),
     user_request_callback_(),
     requested_powered_(),
+    requested_visibility_(),
     instance_(instance)
 {
   LoggerD("Entered");

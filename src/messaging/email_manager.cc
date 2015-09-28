@@ -71,7 +71,7 @@ const int ACCOUNT_ID_NOT_INITIALIZED = -1;
 const std::string FIND_FOLDERS_ATTRIBUTE_ACCOUNTID_NAME  = "serviceId";
 } //anonymous namespace
 
-EmailManager::EmailManager() : m_is_initialized(false)
+EmailManager::EmailManager() : m_slot_size(-1), m_is_initialized(false)
 {
     LoggerD("Entered");
 }

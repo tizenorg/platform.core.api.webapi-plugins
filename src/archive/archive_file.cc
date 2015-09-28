@@ -52,6 +52,7 @@ PermissionMap ArchiveFile::s_permission_map = {
 
 ArchiveFile::ArchiveFile() :
         enable_shared_from_this<ArchiveFile>(),
+        m_file_mode(),
         m_decompressed_size(0),
         m_is_open(false),
         m_overwrite(false),
@@ -64,7 +65,8 @@ ArchiveFile::ArchiveFile(FileMode file_mode) :
         enable_shared_from_this<ArchiveFile>(),
         m_decompressed_size(0),
         m_is_open(false),
-        m_overwrite(false)
+        m_overwrite(false),
+        m_created_as_new_empty_archive(false)
 {
     LoggerD("Enter");
     m_file_mode = file_mode;

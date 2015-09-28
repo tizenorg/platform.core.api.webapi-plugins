@@ -118,7 +118,8 @@ std::string SoundManager::SoundIOTypeToString(sound_device_io_direction_e type) 
 }
 
 SoundManager::SoundManager(SoundInstance& instance)
-    : soundModeChangeListening(false),
+    : is_volume_change_listener_(false),
+      soundModeChangeListening(false),
       sound_device_change_listener_(false),
       instance_(instance),
       soundModeListener(nullptr) {

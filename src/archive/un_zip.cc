@@ -40,7 +40,8 @@ using namespace common;
 UnZip::UnZip(const std::string& filename) :
         m_zipfile_name(filename),
         m_unzip(NULL),
-        m_default_buffer_size(1024 * 1024)
+        m_default_buffer_size(1024 * 1024),
+        m_is_open(false)
 {
     LoggerD("Entered");
     m_unzip = unzOpen(filename.c_str());

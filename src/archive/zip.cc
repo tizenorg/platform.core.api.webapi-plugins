@@ -70,7 +70,8 @@ void Zip::generateZipFileInfo(const std::string& filename, zip_fileinfo& out_zi)
 Zip::Zip(const std::string& filename, ZipOpenMode open_mode) :
         m_zipfile_name(filename),
         m_zip(NULL),
-        m_default_buffer_size(1024 * 1024)
+        m_default_buffer_size(1024 * 1024),
+        m_is_open(false)
 {
     LoggerD("Entered");
 

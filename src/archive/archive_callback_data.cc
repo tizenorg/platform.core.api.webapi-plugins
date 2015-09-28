@@ -42,7 +42,8 @@ OperationCallbackData::OperationCallbackData(ArchiveCallbackType callback_type, 
     m_handle(-1),
     instance_(instance),
     m_is_error(false),
-    m_is_canceled(false)
+    m_is_canceled(false),
+    m_err_code(ErrorCode::NO_ERROR)
 {
     LoggerD("Entered");
 }

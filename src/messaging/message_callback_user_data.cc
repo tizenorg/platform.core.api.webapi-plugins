@@ -23,7 +23,8 @@ namespace messaging {
 MessageCallbackUserData::MessageCallbackUserData(PostQueue& queue):
         common::CallbackUserData(),
         m_is_error(false),
-        queue_(queue)
+        queue_(queue),
+        m_account_id(-1)
 {
     LoggerD("Entered");
 }

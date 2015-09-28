@@ -26,7 +26,10 @@ namespace secureelement {
 
 class SESession {
 public:
-    SESession(smartcard_service_api::Session* session_ptr) : m_session_ptr(session_ptr) {};
+    SESession(smartcard_service_api::Session* session_ptr)
+        : m_session_ptr(session_ptr) {
+    }
+
     ~SESession() {};
     picojson::value openBasicChannel( const picojson::array& v_aid);
     picojson::value openLogicalChannel( const picojson::array& v_aid);
@@ -36,7 +39,6 @@ public:
     void closeChannels();
 private:
     smartcard_service_api::Session* m_session_ptr;
-    void* m_user_data;
 };
 
 } // secureelement

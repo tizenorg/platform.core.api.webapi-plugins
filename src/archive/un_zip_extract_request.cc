@@ -164,6 +164,7 @@ UnZipExtractRequest::UnZipExtractRequest(UnZip& owner,
         m_is_directory_entry(false)
 {
     LoggerD("Enter");
+    m_filename_inzip[0] = '\0';
 }
 
 PlatformResult UnZipExtractRequest::run()

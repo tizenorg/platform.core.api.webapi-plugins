@@ -35,9 +35,11 @@ using namespace tizen;
 MessageConversation::MessageConversation():
     m_conversation_id(-1),
     m_conversation_type(UNDEFINED),
+    m_timestamp(-1),
     m_count(0),
     m_unread_messages(0),
-    m_is_read(false)
+    m_is_read(false),
+    m_last_message_id(-1)
 {
     LoggerD("Message Conversation constructor.");
 }
