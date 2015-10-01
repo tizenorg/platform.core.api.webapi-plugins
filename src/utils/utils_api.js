@@ -551,7 +551,8 @@ var Validator = function() {
     PLATFORM_OBJECT: 'PLATFORM_OBJECT',
     LISTENER: 'LISTENER',
     ARRAY: 'ARRAY',
-    ENUM: 'ENUM'
+    ENUM: 'ENUM',
+    FILE_REFERENCE: 'FILE_REFERENCE'
   };
 };
 
@@ -804,6 +805,13 @@ Validator.prototype.validateArgs = function(a, d) {
 
         case this.Types.ENUM:
           val = _converter.toEnum(val, values, nullable);
+          break;
+
+        case this.Types.FILE_REFERENCE:
+          if (_type.isObject(val) && 'File' === val.constructor.name && val.fullPath) {
+            val = val.fullPath;
+          }
+          val = _converter.toString(val, nullable);
           break;
 
         default:
