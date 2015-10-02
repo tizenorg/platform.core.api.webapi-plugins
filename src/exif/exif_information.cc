@@ -708,52 +708,79 @@ void ExifInformation::removeNulledAttributesFromExifData(ExifData* exif_data) {
   }
 }
 
-void ExifInformation::updateAttributesInExifData(ExifData* exif_data) {
+PlatformResult ExifInformation::updateAttributesInExifData(ExifData* exif_data) {
   LoggerD("Entered");
+
+  common::PlatformResult ret(common::ErrorCode::NO_ERROR);
+
   AssertMsg(exif_data, "exif_data is NULL");
 
   if (isSet(EXIF_INFORMATION_ATTRIBUTE_WIDTH)) {
     LoggerD("Saving width: %d", getWidth());
-    ExifTagSaver::saveToExif(getWidth(),
-        EXIF_TAG_IMAGE_WIDTH, exif_data);
+    ret = ExifTagSaver::saveToExif(getWidth(), 
+                                   EXIF_TAG_IMAGE_WIDTH, exif_data);
+    if (!ret) {
+      return ret;
+    }
   }
   if (isSet(EXIF_INFORMATION_ATTRIBUTE_HEIGHT)) {
     LoggerD("Saving height: %d", getHeight());
-    ExifTagSaver::saveToExif(getHeight(),
-        EXIF_TAG_IMAGE_LENGTH, exif_data);
+    ret = ExifTagSaver::saveToExif(getHeight(),
+                                   EXIF_TAG_IMAGE_LENGTH, exif_data);
+    if (!ret) {
+      return ret;
+    }
   }
   if (isSet(EXIF_INFORMATION_ATTRIBUTE_DEVICE_MAKER)) {
     LoggerD("Saving device maker: %s", getDeviceMaker().c_str());
-    ExifTagSaver::saveToExif(getDeviceMaker(),
-        EXIF_TAG_MAKE, exif_data);
+    ret = ExifTagSaver::saveToExif(getDeviceMaker(),
+                                   EXIF_TAG_MAKE, exif_data);
+    if (!ret) {
+      return ret;
+    }
   }
   if (isSet(EXIF_INFORMATION_ATTRIBUTE_ORIENTATION)) {
     LoggerD("Saving orientation: %d", static_cast<int>(getOrientation()));
-    ExifTagSaver::saveToExif(static_cast<long int>(getOrientation()),
-        EXIF_TAG_ORIENTATION, exif_data);
+    ret = ExifTagSaver::saveToExif(static_cast<long int>(getOrientation()),
+                                   EXIF_TAG_ORIENTATION, exif_data);
+    if (!ret) {
+      return ret;
+    }
   }
   if (isSet(EXIF_INFORMATION_ATTRIBUTE_EXPOSURE_PROGRAM)) {
     LoggerD("Saving exposure program: %d",
         static_cast<int>(getExposureProgram()));
-    ExifTagSaver::saveToExif(getExposureProgram(),
-        EXIF_TAG_EXPOSURE_PROGRAM, exif_data);
+    ret = ExifTagSaver::saveToExif(getExposureProgram(),
+                                   EXIF_TAG_EXPOSURE_PROGRAM, exif_data);
+    if (!ret) {
+      return ret;
+    }
   }
   if (isSet(EXIF_INFORMATION_ATTRIBUTE_ISO_SPEED_RATINGS)) {
     std::vector<long long int> iso_ratings = getIsoSpeedRatings();
     LoggerD("Saving iso speed ratings count:%d", iso_ratings.size());
-    ExifTagSaver::saveToExif(iso_ratings, EXIF_FORMAT_SHORT,
-       EXIF_TAG_ISO_SPEED_RATINGS, exif_data);
+    ret = ExifTagSaver::saveToExif(iso_ratings, EXIF_FORMAT_SHORT,
+                                   EXIF_TAG_ISO_SPEED_RATINGS, exif_data);
+    if (!ret) {
+      return ret;
+    }
   }
   if (isSet(EXIF_INFORMATION_ATTRIBUTE_WHITE_BALANCE)) {
     LoggerD("Saving white balance: %d",
         static_cast<int>(getWhiteBalanceMode()));
-    ExifTagSaver::saveToExif(getWhiteBalanceMode(),
-        EXIF_TAG_WHITE_BALANCE, exif_data);
+    ret = ExifTagSaver::saveToExif(getWhiteBalanceMode(),
+                                   EXIF_TAG_WHITE_BALANCE, exif_data);
+    if (!ret) {
+      return ret;
+    }
   }
   if (isSet(EXIF_INFORMATION_ATTRIBUTE_DEVICE_MODEL)) {
     LoggerD("Saving device model: %s", getDeviceModel().c_str());
-    ExifTagSaver::saveToExif(getDeviceModel(),
-        EXIF_TAG_MODEL, exif_data);
+    ret = ExifTagSaver::saveToExif(getDeviceModel(),
+                                   EXIF_TAG_MODEL, exif_data);
+    if (!ret) {
+      return ret;
+    }
   }
   if (isSet(EXIF_INFORMATION_ATTRIBUTE_ORIGINAL_TIME)) {
     const time_t o_time = getOriginalTime();
@@ -762,8 +789,11 @@ void ExifInformation::updateAttributesInExifData(ExifData* exif_data) {
     LoggerD("Saving original time time_t:%d, format:%s",
         static_cast<int>(o_time), o_time_str.c_str());
 
-    ExifTagSaver::saveToExif(o_time_str,
-        EXIF_TAG_DATE_TIME_ORIGINAL, exif_data);
+    ret = ExifTagSaver::saveToExif(o_time_str,
+                                   EXIF_TAG_DATE_TIME_ORIGINAL, exif_data);
+    if (!ret) {
+      return ret;
+    }
   }
   if (isSet(EXIF_INFORMATION_ATTRIBUTE_EXPOSURE_TIME)) {
     Rational exposure_time = getExposureTime();
@@ -772,38 +802,56 @@ void ExifInformation::updateAttributesInExifData(ExifData* exif_data) {
           exposure_time.toString().c_str(),
           exposure_time.toExposureTimeString().c_str());
 
-      ExifTagSaver::saveToExif(exposure_time,
-          EXIF_TAG_EXPOSURE_TIME, exif_data);
+      ret = ExifTagSaver::saveToExif(exposure_time,
+                                     EXIF_TAG_EXPOSURE_TIME, exif_data);
+      if (!ret) {
+        return ret;
+      }
     }
   }
   if (isSet(EXIF_INFORMATION_ATTRIBUTE_FNUMBER)) {
     auto f_number = getFNumber();
     LoggerD("Saving f-number: %f (%s)", f_number.toDouble(),
         f_number.toString().c_str());
-    ExifTagSaver::saveToExif(f_number,
-        EXIF_TAG_FNUMBER, exif_data);
+    ret = ExifTagSaver::saveToExif(f_number,
+                                   EXIF_TAG_FNUMBER, exif_data);
+    if (!ret) {
+      return ret;
+    }
   }
   if (isSet(EXIF_INFORMATION_ATTRIBUTE_FLASH)) {
     LoggerD("Saving flash: %s", getFlash() ? "ON" : "OFF");
-    ExifTagSaver::saveToExif(getFlash(),
-        EXIF_TAG_FLASH, exif_data);
+    ret = ExifTagSaver::saveToExif(getFlash(),
+                                   EXIF_TAG_FLASH, exif_data);
+    if (!ret) {
+      return ret;
+    }
   }
   if (isSet(EXIF_INFORMATION_ATTRIBUTE_FOCAL_LENGTH)) {
     auto f_length = getFocalLength();
     LoggerD("Saving focal length:%f (%s)", f_length.toDouble(),
         f_length.toString().c_str());
-    ExifTagSaver::saveToExif(f_length,
-        EXIF_TAG_FOCAL_LENGTH, exif_data);
+    ret = ExifTagSaver::saveToExif(f_length,
+                                   EXIF_TAG_FOCAL_LENGTH, exif_data);
+    if (!ret) {
+      return ret;
+    }
   }
   if (isSet(EXIF_INFORMATION_ATTRIBUTE_GPS_LOCATION)) {
     LoggerD("Saving gps location");
-    ExifTagSaver::saveGpsLocationToExif(m_gps_location, exif_data);
+    ret = ExifTagSaver::saveGpsLocationToExif(m_gps_location, exif_data);
+    if (!ret) {
+      return ret;
+    }
   }
   if (isSet(EXIF_INFORMATION_ATTRIBUTE_GPS_ALTITUDE)) {
     LoggerD("Saving gps altitude:%f (%s)", m_gps_altitude.toDouble(),
          m_gps_altitude.toString().c_str());
-    ExifTagSaver::saveToExif(m_gps_altitude,
-        static_cast<ExifTag>(EXIF_TAG_GPS_ALTITUDE), exif_data);
+    ret = ExifTagSaver::saveToExif(m_gps_altitude,
+                                   static_cast<ExifTag>(EXIF_TAG_GPS_ALTITUDE), exif_data);
+    if (!ret) {
+      return ret;
+    }
   }
   if (isSet(EXIF_INFORMATION_ATTRIBUTE_GPS_ALTITUDE_REF)) {
     // Exif spec:
@@ -815,8 +863,11 @@ void ExifInformation::updateAttributesInExifData(ExifData* exif_data) {
     std::vector<long long int> value = {
       static_cast<long long int>(m_gps_altitude_ref)
     };
-    ExifTagSaver::saveToExif(value, EXIF_FORMAT_BYTE,
-        static_cast<ExifTag>(EXIF_TAG_GPS_ALTITUDE_REF), exif_data);
+    ret = ExifTagSaver::saveToExif(value, EXIF_FORMAT_BYTE,
+                                   static_cast<ExifTag>(EXIF_TAG_GPS_ALTITUDE_REF), exif_data);
+    if (!ret) {
+      return ret;
+    }
   }
   if (isSet(EXIF_INFORMATION_ATTRIBUTE_GPS_PROCESSING_METHOD)) {
     LoggerD("Saving gps processing method: [%s] type:%s",
@@ -826,9 +877,12 @@ void ExifInformation::updateAttributesInExifData(ExifData* exif_data) {
         getGpsProcessingMethod();
     LoggerD("joined: [%s]", joined.c_str());
 
-    ExifTagSaver::saveToExif(joined,
-        static_cast<ExifTag>(EXIF_TAG_GPS_PROCESSING_METHOD), exif_data,
-        EXIF_FORMAT_UNDEFINED, false);
+    ret = ExifTagSaver::saveToExif(joined,
+                                   static_cast<ExifTag>(EXIF_TAG_GPS_PROCESSING_METHOD), exif_data,
+                                   EXIF_FORMAT_UNDEFINED, false);
+    if (!ret) {
+      return ret;
+    }
   }
   if (isSet(EXIF_INFORMATION_ATTRIBUTE_GPS_TIME)) {
     const time_t gps_time = getGpsTime();
@@ -837,14 +891,20 @@ void ExifInformation::updateAttributesInExifData(ExifData* exif_data) {
         ExifUtil::timeTToExifGpsDateStamp(gps_time);
     LoggerD("Saving gps time stamp time_t: %d", static_cast<int>(gps_time));
 
-    ExifTagSaver::saveToExif(gps_time_vec,
-        static_cast<ExifTag>(EXIF_TAG_GPS_TIME_STAMP), exif_data);
+    ret = ExifTagSaver::saveToExif(gps_time_vec,
+                                   static_cast<ExifTag>(EXIF_TAG_GPS_TIME_STAMP), exif_data);
+    if (!ret) {
+      return ret;
+    }
 
     LoggerD("Saving gps date stamp: %s", gps_date_str.c_str());
 
-    ExifTagSaver::saveToExif(gps_date_str,
-        static_cast<ExifTag>(EXIF_TAG_GPS_DATE_STAMP), exif_data,
-        EXIF_FORMAT_ASCII, false);
+    ret = ExifTagSaver::saveToExif(gps_date_str,
+                                   static_cast<ExifTag>(EXIF_TAG_GPS_DATE_STAMP), exif_data,
+                                   EXIF_FORMAT_ASCII, false);
+    if (!ret) {
+      return ret;
+    }
   }
   if (isSet(EXIF_INFORMATION_ATTRIBUTE_USER_COMMENT)) {
     LoggerD("Saving user comment: %s (type:%s)", getUserComment().c_str(),
@@ -853,9 +913,14 @@ void ExifInformation::updateAttributesInExifData(ExifData* exif_data) {
     const std::string& joined = getUserCommentType() + getUserComment();
     LoggerD("joined: [%s]", joined.c_str());
 
-    ExifTagSaver::saveToExif(joined,
-        EXIF_TAG_USER_COMMENT, exif_data, EXIF_FORMAT_UNDEFINED, false);
+    ret = ExifTagSaver::saveToExif(joined,
+                                   EXIF_TAG_USER_COMMENT, exif_data, EXIF_FORMAT_UNDEFINED, false);
+    if (!ret) {
+      return ret;
+    }
   }
+
+  return ret;
 }
 
 PlatformResult ExifInformation::saveToFile(const std::string& file_path) {
@@ -897,7 +962,11 @@ PlatformResult ExifInformation::saveToFile(const std::string& file_path) {
     // Remove attributes that have been nulled
     removeNulledAttributesFromExifData(exif_data);
   }
-  updateAttributesInExifData(exif_data);
+  result = updateAttributesInExifData(exif_data);
+  if (!result) {
+    exif_data_unref(exif_data);
+    return result;
+  }
 
   LoggerD("Using JpegFile to save new Exif in: [%s]", file_path.c_str());
   if (exif_data_is_new) {

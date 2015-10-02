@@ -39,14 +39,14 @@ void ExifTagSaver::removeExifEntryWithTag(const ExifTag tag,
   exif_content_remove_entry(exif_entry->parent, exif_entry);
 }
 
-void ExifTagSaver::saveToExif(long int value, ExifTag tag,
-                              ExifData* exif_data) {
+common::PlatformResult ExifTagSaver::saveToExif(long int value, ExifTag tag,
+                                                ExifData* exif_data) {
   LoggerD("Entered");
+
   ExifEntry* entry = prepareEntry(exif_data, tag);
   if (!entry) {
-    // TODO return PlatformResult and handle error
     LoggerE("Exif entry is null");
-    return;
+    return common::PlatformResult(common::ErrorCode::UNKNOWN_ERR, "Exif entry is null");
   }
 
   ExifByteOrder order = exif_data_get_byte_order(exif_data);
@@ -73,19 +73,20 @@ void ExifTagSaver::saveToExif(long int value, ExifTag tag,
     }
     default: {
       LoggerE("Error: wrong format: %d \n", entry->format);
+      return common::PlatformResult(common::ErrorCode::UNKNOWN_ERR, "Wrong format");
     }
   }
+  return common::PlatformResult(common::ErrorCode::NO_ERROR);
 }
 
-void ExifTagSaver::saveToExif(const std::string& value, ExifTag tag,
-                              ExifData* exif_data, ExifFormat format,
-                              bool add_zero_character) {
+common::PlatformResult ExifTagSaver::saveToExif(const std::string& value, ExifTag tag,
+                                                ExifData* exif_data, ExifFormat format,
+                                                bool add_zero_character) {
   LoggerD("Entered");
   ExifEntry* entry = prepareEntry(exif_data, tag);
   if (!entry) {
-    // TODO return PlatformResult and handle error
     LoggerE("Exif entry is null");
-    return;
+    return common::PlatformResult(common::ErrorCode::UNKNOWN_ERR, "Exif entry is null");
   }
 
   if (!value.empty()) {
@@ -106,7 +107,7 @@ void ExifTagSaver::saveToExif(const std::string& value, ExifTag tag,
     entry->data = static_cast<unsigned char*>(malloc(entry->size));
     if (entry->data == nullptr) {
       LoggerE("Function malloc returned nullptr");
-      return;
+      return common::PlatformResult(common::ErrorCode::UNKNOWN_ERR, "Function malloc returned nullptr");
     }
 
     memcpy(entry->data, value.c_str(), value.length());
@@ -114,16 +115,16 @@ void ExifTagSaver::saveToExif(const std::string& value, ExifTag tag,
       entry->data[value.length()] = '\0';
     }
   }
+  return common::PlatformResult(common::ErrorCode::NO_ERROR);
 }
 
-void ExifTagSaver::saveToExif(const Rational& value, ExifTag tag,
-                              ExifData* exif_data) {
+common::PlatformResult ExifTagSaver::saveToExif(const Rational& value, ExifTag tag,
+                                                ExifData* exif_data) {
   LoggerD("Entered");
   ExifEntry* entry = prepareEntry(exif_data, tag);
   if (!entry) {
-    // TODO return PlatformResult and handle error
     LoggerE("Exif entry is null");
-    return;
+    return common::PlatformResult(common::ErrorCode::UNKNOWN_ERR, "Exif entry is null");
   }
   entry->format = EXIF_FORMAT_RATIONAL;
 
@@ -137,7 +138,7 @@ void ExifTagSaver::saveToExif(const Rational& value, ExifTag tag,
     entry->data = static_cast<unsigned char*>(malloc(entry->size));
     if (entry->data == nullptr) {
       LoggerE("Function malloc returned nullptr");
-      return;
+      return common::PlatformResult(common::ErrorCode::UNKNOWN_ERR, "Function malloc returned nullptr");
     }
     memset(entry->data, 0, entry->size);
   }
@@ -149,16 +150,17 @@ void ExifTagSaver::saveToExif(const Rational& value, ExifTag tag,
   r.numerator = value.nominator;
   r.denominator = value.denominator;
   exif_set_rational(entry->data, order, r);
+
+  return common::PlatformResult(common::ErrorCode::NO_ERROR);
 }
 
-void ExifTagSaver::saveToExif(const Rationals& value, ExifTag tag,
+common::PlatformResult ExifTagSaver::saveToExif(const Rationals& value, ExifTag tag,
                               ExifData* exif_data) {
   LoggerD("Entered");
   ExifEntry* entry = prepareEntry(exif_data, tag);
   if (!entry) {
-    // TODO return PlatformResult and handle error
     LoggerE("Exif entry is null");
-    return;
+    return common::PlatformResult(common::ErrorCode::UNKNOWN_ERR, "Exif entry is null");
   }
   ExifByteOrder order = exif_data_get_byte_order(exif_data);
   entry->format = EXIF_FORMAT_RATIONAL;
@@ -174,7 +176,7 @@ void ExifTagSaver::saveToExif(const Rationals& value, ExifTag tag,
     entry->data = static_cast<unsigned char*>(malloc(entry->size));
     if (entry->data == nullptr) {
       LoggerE("Function malloc returned nullptr");
-      return;
+      return common::PlatformResult(common::ErrorCode::UNKNOWN_ERR, "Function malloc returned nullptr");
     }
     memset(entry->data, 0, entry->size);
   }
@@ -186,17 +188,18 @@ void ExifTagSaver::saveToExif(const Rationals& value, ExifTag tag,
     r.denominator = value[i].denominator;
     exif_set_rational(entry->data + i * ExifTypeInfo::RationalSize, order, r);
   }
+
+  return common::PlatformResult(common::ErrorCode::NO_ERROR);
 }
 
-void ExifTagSaver::saveToExif(std::vector<long long int>& value,
-                              ExifFormat store_as,
-                              ExifTag tag, ExifData* exif_data) {
+common::PlatformResult ExifTagSaver::saveToExif(std::vector<long long int>& value,
+                                                ExifFormat store_as,
+                                                ExifTag tag, ExifData* exif_data) {
   LoggerD("Entered");
   ExifEntry* entry = prepareEntry(exif_data, tag);
   if (!entry) {
-    // TODO return PlatformResult and handle error
     LoggerE("Exif entry is null");
-    return;
+    return common::PlatformResult(common::ErrorCode::UNKNOWN_ERR, "Exif entry is null");
   }
   const ExifByteOrder order = exif_data_get_byte_order(exif_data);
 
@@ -210,7 +213,7 @@ void ExifTagSaver::saveToExif(std::vector<long long int>& value,
       break;
     default:
       LoggerE("output ExifFormat: %d is not supported!", store_as);
-      return;
+      return common::PlatformResult(common::ErrorCode::UNKNOWN_ERR, "ExifFormat is not supported!");
   }
   entry->format = store_as;
 
@@ -226,7 +229,7 @@ void ExifTagSaver::saveToExif(std::vector<long long int>& value,
     entry->data = static_cast<unsigned char*>(malloc(entry->size));
     if (entry->data == nullptr) {
       LoggerE("Function malloc returned nullptr");
-      return;
+      return common::PlatformResult(common::ErrorCode::UNKNOWN_ERR, "Function malloc returned nullptr");
     }
     memset(entry->data, 0, entry->size);
   }
@@ -272,40 +275,58 @@ void ExifTagSaver::saveToExif(std::vector<long long int>& value,
 
   LoggerD("entry after save:");
   ExifUtil::printExifEntryInfo(entry, exif_data);
+
+  return common::PlatformResult(common::ErrorCode::NO_ERROR);
 }
 
-void ExifTagSaver::saveGpsLocationToExif(const ExifGPSLocation& gps_info,
-                                         ExifData* exif_data) {
+common::PlatformResult ExifTagSaver::saveGpsLocationToExif(const ExifGPSLocation& gps_info,
+                                                           ExifData* exif_data) {
+  common::PlatformResult ret(common::ErrorCode::NO_ERROR);
+
   LoggerD("Entered");
   if (gps_info.isSet(EXIF_GPS_LOCATION_ATTRIBUTE_LATITUDE)) {
     auto latitude = gps_info.getLatitude();
     LoggerD("Saving latitude: %s", latitude.toDebugString().c_str());
-    saveToExif(latitude.toRationalsVector(),
-        static_cast<ExifTag>(EXIF_TAG_GPS_LATITUDE), exif_data);
+    ret = saveToExif(latitude.toRationalsVector(),
+                     static_cast<ExifTag>(EXIF_TAG_GPS_LATITUDE), exif_data);
+    if (!ret) {
+      return ret;
+    }
   }
 
   if (gps_info.isSet(EXIF_GPS_LOCATION_ATTRIBUTE_LATITUDE_REF)) {
     std::string lat_ref =
         (gps_info.getLatitudeRef() == GPS_LOCATION_NORTH) ? "N" : "S";
     LoggerD("Saving latitude ref: %s", lat_ref.c_str());
-    saveToExif(lat_ref, static_cast<ExifTag>(EXIF_TAG_GPS_LATITUDE_REF),
-        exif_data, EXIF_FORMAT_ASCII, false);
+    ret = saveToExif(lat_ref, static_cast<ExifTag>(EXIF_TAG_GPS_LATITUDE_REF),
+                     exif_data, EXIF_FORMAT_ASCII, false);
+    if (!ret) {
+      return ret;
+    }
   }
 
   if (gps_info.isSet(EXIF_GPS_LOCATION_ATTRIBUTE_LONGITUDE)) {
     auto longitude = gps_info.getLongitude();
     LoggerD("Saving longitude: %s", longitude.toDebugString().c_str());
-    saveToExif(longitude.toRationalsVector(),
-        static_cast<ExifTag>(EXIF_TAG_GPS_LONGITUDE), exif_data);
+    ret = saveToExif(longitude.toRationalsVector(),
+                     static_cast<ExifTag>(EXIF_TAG_GPS_LONGITUDE), exif_data);
+    if (!ret) {
+      return ret;
+    }
   }
 
   if (gps_info.isSet(EXIF_GPS_LOCATION_ATTRIBUTE_LONGITUDE_REF)) {
     std::string long_ref =
         (gps_info.getLongitudeRef() == GPS_LOCATION_WEST) ? "W" : "E";
     LoggerD("Saving longitude ref: %s", long_ref.c_str());
-    saveToExif(long_ref, static_cast<ExifTag>(EXIF_TAG_GPS_LONGITUDE_REF),
-        exif_data, EXIF_FORMAT_ASCII, false);
+    ret = saveToExif(long_ref, static_cast<ExifTag>(EXIF_TAG_GPS_LONGITUDE_REF),
+                     exif_data, EXIF_FORMAT_ASCII, false);
+    if (!ret) {
+      return ret;
+    }
   }
+
+  return ret;
 }
 
 ExifEntry* ExifTagSaver::prepareEntry(ExifData* exif_data, ExifTag tag) {
@@ -357,8 +378,6 @@ ExifEntry* ExifTagSaver::createNewTag(ExifData* exif_data, ExifIfd ifd,
 
 common::PlatformResult ExifTagSaver::deduceIfdSection(ExifTag tag, ExifIfd* exif_ifd) {
   LoggerD("Entered");
-  // TODO EXIF_TAG_* and EXIF_TAG_GPS_* are sharing same values,
-  // they shouldn't be used in one switch statement.
 
   switch (static_cast<unsigned int>(tag)) {
     // Tags in IFD_0 Section
@@ -407,8 +426,6 @@ common::PlatformResult ExifTagSaver::deduceIfdSection(ExifTag tag, ExifIfd* exif
 
 common::PlatformResult ExifTagSaver::deduceDataFormat(ExifTag tag, ExifFormat* exif_format) {
   LoggerD("Entered");
-  // TODO EXIF_TAG_* and EXIF_TAG_GPS_* are sharing same values,
-  // they shouldn't be used in one switch statement.
 
   switch (static_cast<unsigned int>(tag)) {
     // Tags with byte type:

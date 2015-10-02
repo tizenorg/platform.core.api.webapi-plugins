@@ -409,6 +409,22 @@ Converter.prototype.toUnsignedLongLong = function(val, nullable) {
   return _nullableGeneric(_toUnsignedLongLong, nullable, val);
 };
 
+function _toShort(val) {
+  return ((_toLong(val) + 32768) & 0xFFFF) - 32768;
+}
+
+Converter.prototype.toShort = function(val, nullable) {
+  return _nullableGeneric(_toShort, nullable, val);
+};
+
+function _toUnsignedShort(val) {
+  return (Math.abs(_toLong(val)) & 0xFFFF);
+}
+
+Converter.prototype.toUnsignedShort = function(val, nullable) {
+  return _nullableGeneric(_toUnsignedShort, nullable, val);
+};
+
 function _toByte(val) {
   return ((_toLong(val) + 128) & 0xFF) - 128;
 }

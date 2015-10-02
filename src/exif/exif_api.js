@@ -359,21 +359,6 @@ tizen.ExifInformation = function() {
       gpsTime_ = null,
       userComment_ = null;
 
-  function _validateISOSpeedRatings(v) {
-    var valid = false;
-    if (type_.isArray(v)) {
-      for (var i = 0; i < v.length; i++) {
-        var data = v[i]; // todo: uncomment when array conversion is implemented.
-        //if (!type_.isNumber(data)) {
-        //  return false;
-        //}
-      }
-      valid = true;
-    }
-    return valid;
-  }
-
-
   var exifInitDict = args.ExifInitDict;
   if (exifInitDict) {
     if (exifInitDict.uri === null) {
@@ -465,9 +450,15 @@ tizen.ExifInformation = function() {
         return isoSpeedRatings_;
       },
       set: function(v) {
-        // todo: convert string array into unsigned short array
         if (!type_.isUndefined(v)) {
-          if (v === null || _validateISOSpeedRatings(v)) isoSpeedRatings_ = v;
+          if (v === null) {
+            isoSpeedRatings_ = null;
+          } else if (type_.isArray(v)) {
+            for (var i = 0; i < v.length; i++) {
+              v[i] = converter_.toUnsignedShort(v[i], false);
+            }
+            isoSpeedRatings_ = v;
+          }
         }
       },
       enumerable: true
