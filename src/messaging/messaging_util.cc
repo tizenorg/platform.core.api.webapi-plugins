@@ -605,9 +605,6 @@ picojson::value MessagingUtil::messageToJson(std::shared_ptr<Message> message)
             ? picojson::value(std::to_string(message->getInResponseTo()))
             : picojson::value();
 
-    // TODO MessageStatus has type MessageStatus
-    //o[MESSAGE_ATTRIBUTE_MESSAGE_STATUS] = picojson::value(message->getMessageStatus());
-
     std::shared_ptr<MessageBody> body = message->getBody();
     o[MESSAGE_ATTRIBUTE_BODY] = MessagingUtil::messageBodyToJson(body);
 
