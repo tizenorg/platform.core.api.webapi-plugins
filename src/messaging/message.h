@@ -63,6 +63,7 @@ public:
     int getOldId() const;
     int getConversationId() const;
     int getFolderId() const;
+    virtual int getFolderIdForUser() const;
     MessageType getType() const;
     std::string getTypeString() const;
     time_t getTimestamp() const;

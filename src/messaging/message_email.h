@@ -29,6 +29,8 @@ public:
     ~MessageEmail();
 
 //overrided base class functions
+    virtual int getFolderIdForUser() const override;
+
     void setCC(std::vector<std::string> &cc);
     void setBCC(std::vector<std::string> &bcc);
     void setSubject(std::string subject);

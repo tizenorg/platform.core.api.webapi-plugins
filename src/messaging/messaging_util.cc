@@ -582,7 +582,7 @@ picojson::value MessagingUtil::messageToJson(std::shared_ptr<Message> message)
             : picojson::value();
     o[MESSAGE_ATTRIBUTE_FOLDER_ID] =
             message->is_folder_id_set()
-            ? picojson::value(std::to_string(message->getFolderId()))
+            ? picojson::value(std::to_string(message->getFolderIdForUser()))
             : picojson::value();
     o[MESSAGE_ATTRIBUTE_TYPE] = picojson::value(message->getTypeString());
     o[MESSAGE_ATTRIBUTE_TIMESTAMP] =

@@ -77,10 +77,37 @@ int Message::getConversationId() const
     return m_conversation_id;
 }
 
-int Message::getFolderId() const
-{
-    // TODO: folderId is supported different way in SMS/MMS and email
-    return m_folder_id;
+int Message::getFolderId() const {
+  LoggerD("Entered");
+  return m_folder_id;
+}
+
+int Message::getFolderIdForUser() const {
+  LoggerD("Entered");
+  // WIDL states:
+  // For SMS and MMS, folderId can be one of these values:
+  //   - INBOX = 1,
+  //   - OUTBOX = 2,
+  //   - DRAFTS = 3,
+  //   - SENTBOX = 4
+
+  switch (m_folder_id) {
+    case MSG_INBOX_ID:
+      return 1;
+
+    case MSG_OUTBOX_ID:
+      return 2;
+
+    case MSG_DRAFT_ID:
+      return 3;
+
+    case MSG_SENTBOX_ID:
+      return 4;
+
+    default:
+      LoggerE("Unexpected folder id: %d", m_folder_id);
+      return -1;
+  }
 }
 
 MessageType Message::getType() const
@@ -1685,7 +1712,7 @@ bool Message::isMatchingAttribute(const std::string& attribute_name,
         }
     }
     else if (FOLDER_ID == attribute_name) {
-        return FilterUtils::isStringMatching(key, std::to_string(getFolderId()),
+        return FilterUtils::isStringMatching(key, std::to_string(getFolderIdForUser()),
                 match_flag);
     }
     else if (TYPE == attribute_name) {
