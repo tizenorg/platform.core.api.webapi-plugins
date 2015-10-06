@@ -84,6 +84,12 @@ void FoldersChangeCallback::added(const FolderPtrVector& folders)
 
     FolderPtrVector filtered = filterFolders(m_filter, folders);
 
+    //if filter is set but there is no folder matched just return;
+    if (!filtered.size()) {
+      LoggerD("There is no matched result.");
+      return;
+    }
+
     picojson::array array;
     auto each = [&array] (std::shared_ptr<MessageFolder> f)->void {
         array.push_back(MessagingUtil::folderToJson(f));
@@ -115,6 +121,12 @@ void FoldersChangeCallback::updated(const FolderPtrVector& folders)
 
     FolderPtrVector filtered = filterFolders(m_filter, folders);
 
+    //if filter is set but there is no folder matched just return;
+    if (!filtered.size()) {
+      LoggerD("There is no matched result.");
+      return;
+    }
+
     picojson::array array;
     auto each = [&array] (std::shared_ptr<MessageFolder> f)->void {
         array.push_back(MessagingUtil::folderToJson(f));
@@ -145,6 +157,12 @@ void FoldersChangeCallback::removed(const FolderPtrVector& folders)
     }
 
     FolderPtrVector filtered = filterFolders(m_filter, folders);
+
+    //if filter is set but there is no folder matched just return;
+    if (!filtered.size()) {
+      LoggerD("There is no matched result.");
+      return;
+    }
 
     picojson::array array;
     auto each = [&array] (std::shared_ptr<MessageFolder> f)->void {
