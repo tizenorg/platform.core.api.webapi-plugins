@@ -21,6 +21,7 @@
 
 #include "common/platform_exception.h"
 #include "common/logger.h"
+#include "common/scope_exit.h"
 
 #include "messaging_util.h"
 #include "messaging_instance.h"
@@ -1271,6 +1272,78 @@ ShortMsgManager::~ShortMsgManager()
             m_mms_removed_msg_id_conv_id_map.size());
     LoggerD("m_mms_removed_conv_id_object_map.size() = %d",
             m_mms_removed_conv_id_object_map.size());
+}
+std::string ShortMsgManager::getMessageStatus(int id) {
+  LoggerD("Entered");
+
+  msg_struct_t send_opt = nullptr;
+  msg_struct_t msg = nullptr;
+
+  SCOPE_EXIT {
+    if (send_opt) {
+      msg_release_struct(&send_opt);
+    }
+    if (msg) {
+      msg_release_struct(&msg);
+    }
+  };
+
+  send_opt = msg_create_struct(MSG_STRUCT_SENDOPT);
+  msg = msg_create_struct(MSG_STRUCT_MESSAGE_INFO);
+  if (!msg || !send_opt) {
+    LoggerD("Failed to create message struct");
+    return "";
+  }
+
+  int ret = msg_get_message(m_msg_handle, id, msg, send_opt);
+  if (MSG_SUCCESS != ret) {
+      LoggerE("Couldn't retrieve message from service, id: %d, error:%d", id, ret);
+      return "";
+  }
+
+  int status_int;
+  MessageStatus status = MessageStatus::STATUS_UNDEFINED;
+
+  ret = msg_get_int_value(msg, MSG_MESSAGE_FOLDER_ID_INT, &status_int);
+  if (MSG_SUCCESS == ret) {
+    switch (status_int) {
+      case MSG_OUTBOX_ID:
+        status = MessageStatus::STATUS_SENDING;
+        break;
+      case MSG_SENTBOX_ID:
+        status = MessageStatus::STATUS_SENT;
+        break;
+      case MSG_DRAFT_ID:
+        status = MessageStatus::STATUS_DRAFT;
+        break;
+      default:
+        status = MessageStatus::STATUS_UNDEFINED;
+        break;
+    }
+  } else {
+    ret = msg_get_int_value(msg, MSG_SENT_STATUS_NETWORK_STATUS_INT, &status_int);
+    if (MSG_SUCCESS == ret) {
+      switch(status_int) {
+        case MSG_NETWORK_SEND_SUCCESS:
+          status = MessageStatus::STATUS_SENT;
+          break;
+        case MSG_NETWORK_SENDING:
+          status = MessageStatus::STATUS_SENDING;
+          break;
+        case MSG_NETWORK_NOT_SEND:
+          status = MessageStatus::STATUS_DRAFT;
+          break;
+        case MSG_NETWORK_SEND_FAIL:
+          status = MessageStatus::STATUS_FAILED;
+          break;
+        default:
+          status = MessageStatus::STATUS_UNDEFINED;
+          break;
+      }
+    }
+  }
+
+  return MessagingUtil::messageStatusToString(status);
 }
 
 } // messaging

@@ -1487,5 +1487,43 @@ void EmailManager::removeConversations(ConversationCallbackData* callback)
     callback = NULL;
 }
 
+std::string EmailManager::getMessageStatus(int id) {
+  LoggerD("Entered");
+
+  email_mail_data_t *mail = nullptr;
+  MessageStatus status = MessageStatus::STATUS_UNDEFINED;
+
+  int ret = email_get_mail_data(id, &mail);
+  if (EMAIL_ERROR_NONE != ret ) {
+    LoggerD("Failed to get data.");
+    return "";
+  }
+
+  switch(mail->save_status) {
+    case EMAIL_MAIL_STATUS_SENT:
+      status = MessageStatus::STATUS_SENT;
+      break;
+    case EMAIL_MAIL_STATUS_SENDING:
+      status = MessageStatus::STATUS_SENDING;
+      break;
+    case EMAIL_MAIL_STATUS_SAVED:
+      status = MessageStatus::STATUS_DRAFT;
+      break;
+    case EMAIL_MAIL_STATUS_SEND_FAILURE:
+      status = MessageStatus::STATUS_FAILED;
+      break;
+    default:
+      status = MessageStatus::STATUS_UNDEFINED;
+      break;
+  }
+
+  ret = email_free_mail_data(&mail, 1);
+  if (EMAIL_ERROR_NONE != ret ) {
+    LoggerD("Failed to free mail data.");
+  }
+
+  return MessagingUtil::messageStatusToString(status);
+}
+
 } // Messaging
 } // DeviceAPI

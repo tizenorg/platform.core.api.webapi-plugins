@@ -32,6 +32,8 @@
 #include "messaging_util.h"
 #include "message_storage.h"
 #include "message.h"
+#include "short_message_manager.h"
+#include "email_manager.h"
 
 using common::ErrorCode;
 using common::PlatformResult;
@@ -100,6 +102,8 @@ const char* FUN_MESSAGE_STORAGE_REMOVE_CHANGE_LISTENER = "MessageStorage_removeC
 const char* REMOVE_CHANGE_LISTENER_ARGS_WATCHID = "watchId";
 
 const char* FUNCTIONS_HIDDEN_ARGS_SERVICE_ID = "serviceId";
+const char* FUN_MESSAGE_GET_MESSAGE_STATUS = "Message_messageStatus";
+const char* FUN_MESSAGE_MESSAGING_EMAIL = "messaging.email";
 
 auto getServiceIdFromJSON = [](picojson::object& data) -> int {
     std::string serviceStrId;
@@ -145,6 +149,7 @@ MessagingInstance::MessagingInstance():
       REGISTER_SYNC(FUN_MESSAGE_STORAGE_ADD_CONVERSATIONS_CHANGE_LISTENER, MessageStorageAddConversationsChangeListener);
       REGISTER_SYNC(FUN_MESSAGE_STORAGE_ADD_FOLDER_CHANGE_LISTENER, MessageStorageAddFolderChangeListener);
       REGISTER_SYNC(FUN_MESSAGE_STORAGE_REMOVE_CHANGE_LISTENER, MessageStorageRemoveChangeListener);
+      REGISTER_SYNC(FUN_MESSAGE_GET_MESSAGE_STATUS, MessageGetMessageStatus);
     #undef REGISTER_SYNC
 }
 
@@ -864,6 +869,31 @@ void MessagingInstance::MessageStorageRemoveChangeListener(const picojson::value
 
     service->getMsgStorage()->removeChangeListener(watchId);
     ReportSuccess(out);
+}
+
+void MessagingInstance::MessageGetMessageStatus(const picojson::value& args,
+        picojson::object& out)
+{
+    LoggerD("Entered");
+
+    if (!args.contains(JSON_DATA)) {
+      LoggerE("json is incorrect - missing required member");
+      ReportSuccess(picojson::value(""), out);
+      return;
+    }
+
+    picojson::object data = args.get(JSON_DATA).get<picojson::object>();
+    const int id = stoi(data.at("id").get<std::string>());
+    const std::string& type = data.at("type").get<std::string>();
+
+    std::string status;
+    if (FUN_MESSAGE_MESSAGING_EMAIL == type) {
+      status = EmailManager::getInstance().getMessageStatus(id);
+    } else {
+      status = ShortMsgManager::getInstance().getMessageStatus(id);
+    }
+
+    ReportSuccess(picojson::value(status), out);
 }
 
 } // namespace messaging

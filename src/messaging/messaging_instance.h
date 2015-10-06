@@ -66,6 +66,8 @@ private:
             picojson::object& out);
     void MessageStorageRemoveChangeListener(const picojson::value& args,
             picojson::object& out);
+    void MessageGetMessageStatus(const picojson::value& args,
+            picojson::object& out);
 
     MessagingManager manager_;
     PostQueue queue_;

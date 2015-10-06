@@ -55,6 +55,7 @@ public:
     void removeMessages(MessagesCallbackUserData* callback);
     void updateMessages(MessagesCallbackUserData* callback);
     common::PlatformResult getMessage(int msg_id, msg_struct_t* out_msg);
+    std::string getMessageStatus(int id);
 private:
     ShortMsgManager();
     ShortMsgManager(const ShortMsgManager &);

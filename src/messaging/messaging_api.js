@@ -388,16 +388,13 @@ function Message(type, data) {
         {
             get: function () {
                 if (_internal.id) {
-                    // TODO create CPP layer
-                    /*
-                     *return bridge.sync({
-                     *    cmd: 'Message_messageStatus',
-                     *    args: {
-                     *        id: _internal.id
-                     *    }
-                     *});
-                     */
-                    return _internal.messageStatus;
+                    return bridge.sync({
+                        cmd: 'Message_messageStatus',
+                        args: {
+                            id: _internal.id,
+                            type: _internal.type
+                        }
+                    });
                 } else {
                     return '';
                 }
