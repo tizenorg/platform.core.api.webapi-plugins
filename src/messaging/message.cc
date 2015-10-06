@@ -23,6 +23,7 @@
 #include "common/logger.h"
 #include "common/platform_exception.h"
 #include "common/scope_exit.h"
+#include "common/virtual_fs.h"
 
 #include "Ecore_File.h"
 #include "message_email.h"
@@ -397,9 +398,7 @@ PlatformResult copyFileToTemp(const std::string& sourcePath, std::string* result
     std::string dirPath = "/tmp/" + std::string(buf);
 
     if ( sourcePath[0] != '/' ) {
-//  FIXME When filesystem will be available
-//         attPath = sourcePath; change to attPath = Filesystem::External::fromVirtualPath(sourcePath);
-        attPath = sourcePath;
+        attPath = common::VirtualFs::GetInstance().GetRealPath(sourcePath);
     } else { // Assuming that the path is a real path
         attPath = sourcePath;
     }
@@ -760,16 +759,9 @@ PlatformResult Message::addMMSBodyAndAttachmentsToStruct(const AttachmentPtrVect
             if (attach.at(i)->isFilePathSet()) {
                 std::string filepath = attach.at(i)->getFilePath();
                 LoggerD("att[%d]: org filepath: %s", i, filepath.c_str());
-// TODO uncomment when filesystem will be available
-//                if(Filesystem::External::isVirtualPath(filepath)) {
-//                    // TODO
-//                    // When introducing below line fromVirtualPath() function
-//                    // needed context, but never used it - allowing for null
-//                    // context pointer. If it appears to need a real context
-//                    // it will need a fix here.
-//                    filepath = Filesystem::External::fromVirtualPath(filepath);
-//                    LoggerD("att[%d]: org virtual filepath: %s", i, filepath.c_str());
-//                }
+                filepath = common::VirtualFs::GetInstance().GetRealPath(filepath);
+                LoggerD("att[%d]: org virtual filepath: %s", i, filepath.c_str());
+
                 msg_set_str_value(tmpAtt, MSG_MMS_ATTACH_FILEPATH_STR,
                         const_cast<char*>(filepath.c_str()), filepath.size());
                 const size_t last_slash_idx = filepath.find_last_of("\\/");
