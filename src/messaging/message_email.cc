@@ -36,7 +36,14 @@ MessageEmail::~MessageEmail()
     LoggerD("MessageEmail destructor.");
 }
 
-// *** overrided methods
+// *** overridden methods
+
+int MessageEmail::getFolderIdForUser() const {
+  LoggerD("Entered");
+  // in case of e-mails we're using platform IDs directly
+  return m_folder_id;
+}
+
 void MessageEmail::setCC(std::vector<std::string> &cc)
 {
     LoggerD("Entered");
