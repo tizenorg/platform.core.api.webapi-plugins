@@ -50,6 +50,7 @@ private:
     PlatformResult handleDirectoryEntry();
     PlatformResult handleFileEntry();
     PlatformResult prepareOutputSubdirectory();
+    void storePermissions();
 
     //-----------------------------------------------------------------------------
     //Input request variables

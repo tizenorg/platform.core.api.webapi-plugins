@@ -535,7 +535,7 @@ void AddProgressCallback::setBasePath(const std::string& path)
 {
     LoggerD("Entered");
     m_base_path = path;
-    m_base_virt_path = filesystem::External::toVirtualPath(m_base_path);
+    m_base_virt_path = filesystem::External::cutVirtualRoot(m_base_path);
     std::string::size_type pos = m_base_virt_path.find(filesystem::Path::getSeparator());
     if (pos != std::string::npos)
     {

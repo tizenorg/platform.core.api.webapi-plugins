@@ -58,7 +58,7 @@ private:
 
 class External {
 public:
-    static std::string toVirtualPath(const std::string& path);
+    static std::string cutVirtualRoot(const std::string& path);
 };
 
 

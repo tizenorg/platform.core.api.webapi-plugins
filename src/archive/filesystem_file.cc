@@ -21,6 +21,11 @@ using namespace common;
 namespace extension {
 namespace filesystem {
 
+namespace {
+const std::string kVirtualRootsDirectory = "/opt/usr/media/";
+const std::string kSlash = "/";
+}
+
 File::File(NodePtr node, const File::PermissionList &parentPermissions,
         const std::string& original_location) :
     m_node(node),
@@ -65,11 +70,11 @@ const std::string& File::getOriginalFullPath() const
     return m_original_fullpath;
 }
 
-std::string External::toVirtualPath(const std::string& path)
+std::string External::cutVirtualRoot(const std::string& path)
 {
-    //TODO::implement this method
-    LoggerW("Just STUB");
-    return path;
+    LoggerD("Enter path %s", path.c_str());
+    std::string tmp_path = path.substr(kVirtualRootsDirectory.length());
+    return tmp_path.substr(tmp_path.find(kSlash));
 }
 
 } // filesystem

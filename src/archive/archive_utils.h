@@ -30,9 +30,6 @@ std::string bytesToReadableString(const size_t num_bytes);
 common::PlatformResult fileModeToString(FileMode fm, std::string* fm_str);
 common::PlatformResult stringToFileMode(std::string fmString, FileMode* fm);
 
-//extern Filesystem::FilePtr fileReferenceToFile(
-//    JSContextRef context, JSValueRef fileReference);
-
 /**
  * Gets base path and name from full path string, example cases:
  * full path             |  base path        | name
