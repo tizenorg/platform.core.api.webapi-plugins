@@ -19,7 +19,9 @@
 
 #include <string>
 #include <list>
+#include <vector>
 #include <mutex>
+#include <memory>
 #include <functional>
 #include <device/callback.h>
 #include <net_connection.h>
@@ -40,6 +42,12 @@ enum class NetworkType {
   Cellular,
   Unknown
 };
+
+struct NetworkBearerSelectionRequestEvent;
+struct NetworkBearerSelectionReleaseEvent;
+
+typedef std::shared_ptr<NetworkBearerSelectionRequestEvent> RequestEventPtr;
+typedef std::shared_ptr<NetworkBearerSelectionReleaseEvent> ReleaseEventPtr;
 
 class NetworkBearerSelectionListener {
  public:
@@ -73,8 +81,6 @@ class NetworkBearerSelectionManager {
                                                  void* user_data);
   static void connection_closed_callback(connection_error_e result,
                                          void* user_data);
-  static void connection_closed_callback2(connection_error_e result,
-                                          void* user_data);
 
   void registStateChangeListener(const std::string& domain_name);
   void deregistStateChangeListener(const std::string& domain_name);
@@ -84,18 +90,26 @@ class NetworkBearerSelectionManager {
   void makeErrorCallback(const std::string& domain_name,
                          const std::string& info);
   void makeDisconnectCallback(const std::string& domain_name);
+  void destroyProfileHandle();
+  RequestEventPtr getRequestEvent(NetworkBearerSelectionRequestEvent* event);
+  ReleaseEventPtr getReleaseEvent(NetworkBearerSelectionReleaseEvent* event);
 
   NetworkBearerSelectionManager();
   ~NetworkBearerSelectionManager();
 
-  std::list<NetworkBearerSelectionListener*> m_listeners;
+  std::list<NetworkBearerSelectionListener*> m_listeners_;
 
-  connection_h m_connectionHandle;
-  connection_profile_h m_profileHandle;
-  std::list<std::string> m_domainNames;
-  ConnectionState m_connectionState;
-  bool m_isConnectionOpen;
-  std::mutex m_mutex;
+  connection_h m_connection_handle_;
+  connection_profile_h m_profile_handle_;
+  std::list<std::string> m_domain_names_;
+  std::vector<RequestEventPtr> m_request_events_;
+  std::vector<ReleaseEventPtr> m_release_events_;
+  ConnectionState m_connection_state_;
+  bool m_is_connection_open_;
+
+  std::mutex m_mutex_;
+  std::mutex m_request_mutex_;
+  std::mutex m_release_mutex_;
 };
 
 }  // namespace networkbearerselection
