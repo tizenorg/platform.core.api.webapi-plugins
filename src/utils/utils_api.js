@@ -27,8 +27,8 @@ var DateConverter = function() {};
 DateConverter.prototype.toTZDate = function(v, isAllDay) {
   if (typeof v === 'number') {
     v = {
-      UTCTimestamp: v
-        };
+        UTCTimestamp: v
+    };
     isAllDay = false;
   }
 
@@ -40,7 +40,7 @@ DateConverter.prototype.toTZDate = function(v, isAllDay) {
     return new tizen.TZDate(v.year, v.month - 1, v.day,
         null, null, null, null, v.timezone || null);
   } else {
-    return new tizen.TZDate(new Date(v.UTCTimestamp * 1000), 'UTC').toLocalTimezone();
+    return new tizen.TZDate(new Date(v.UTCTimestamp * 1000));
   }
 };
 
@@ -49,20 +49,12 @@ DateConverter.prototype.fromTZDate = function(v) {
     return v;
   }
 
-  var timestamp = Date.UTC(v.date_.getUTCFullYear(),
-                           v.date_.getUTCMonth(),
-                           v.date_.getUTCDate(),
-                           v.date_.getUTCHours(),
-                           v.date_.getUTCMinutes(),
-                           v.date_.getUTCSeconds(),
-                           v.date_.getUTCMilliseconds()) / 1000;
-
   return {
     year: v.getFullYear(),
     month: v.getMonth(),
     day: v.getDate(),
     timezone: v.getTimezone(),
-    UTCTimestamp: timestamp
+    UTCTimestamp: v._utcTimestamp / 1000
   };
 
 };
