@@ -829,8 +829,8 @@ BluetoothDevice.prototype.connectToServiceByUUID = function() {
         }
     };
 
-    // native.call does not inform if call results in failure
-    // TODO: what to do in this case?
+    // The native function BluetoothDevice_connectToServiceByUUID always returns success
+    // Errors are handled by error callback
     native.call('BluetoothDevice_connectToServiceByUUID', callArgs, callback);
 };
 
