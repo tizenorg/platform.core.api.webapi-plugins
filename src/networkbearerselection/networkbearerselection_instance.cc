@@ -110,13 +110,12 @@ void NetworkBearerSelectionInstance::NetworkBearerSelectionReleaseRouteToHost(
     common::TaskQueue::GetInstance().Async(std::bind(get, status));
   };
 
-  bool status =
-      NetworkBearerSelectionManager::GetInstance()->releaseRouteToHost(
-          domainName, reply);
+  const auto status = NetworkBearerSelectionManager::GetInstance()
+                                        ->releaseRouteToHost(domainName, reply);
   if (status) {
     ReportSuccess(out);
   } else {
-    ReportError(out);
+    ReportError(status, &out);
   }
 }
 

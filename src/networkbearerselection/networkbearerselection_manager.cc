@@ -266,21 +266,18 @@ void NetworkBearerSelectionManager::requestRouteToHost(
   }
 }
 
-bool NetworkBearerSelectionManager::releaseRouteToHost(
-    const std::string& domain_name,
-    const ReleaseReplyCallback& reply_cb) {
+common::PlatformResult NetworkBearerSelectionManager::releaseRouteToHost(
+    const std::string& domain_name, const ReleaseReplyCallback& reply_cb) {
   LoggerD("enter");
-  for (std::list<std::string>::iterator it = m_domainNames.begin();
-       it != m_domainNames.end();
-       it++) {
-    if (*it == domain_name) {
+
+  for (const auto& name : m_domainNames) {
+    if (name == domain_name) {
       LoggerD("Same domain name is exist in list.");
       m_domainNames.remove(domain_name);
       LoggerD("list size : %i", m_domainNames.size());
       if (m_domainNames.size() == 0) {
         if (!m_profileHandle) {
-          // TODO: ALREADY_IN_USE EXCEPTION
-          return false;
+          return common::PlatformResult(common::ErrorCode::UNKNOWN_ERR, "Already in use");
         }
 
         if (connection_profile_unset_state_changed_cb(m_profileHandle) !=
@@ -290,7 +287,7 @@ bool NetworkBearerSelectionManager::releaseRouteToHost(
             connection_profile_destroy(m_profileHandle);
             m_profileHandle = NULL;
           }
-          return true;
+          return common::PlatformResult(common::ErrorCode::NO_ERROR);
         }
 
         if (m_isConnectionOpen) {
@@ -311,12 +308,11 @@ bool NetworkBearerSelectionManager::releaseRouteToHost(
           reply_cb(true);
         }
       }
-      return true;
+      return common::PlatformResult(common::ErrorCode::NO_ERROR);
     }
   }
 
-  // TODO: INVALID_ARGUMENT_EXCEPTION
-  return false;
+  return common::PlatformResult(common::ErrorCode::UNKNOWN_ERR, "Invalid argument");
 }
 
 void NetworkBearerSelectionManager::registStateChangeListener(

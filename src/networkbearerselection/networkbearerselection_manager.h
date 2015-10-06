@@ -24,6 +24,8 @@
 #include <device/callback.h>
 #include <net_connection.h>
 
+#include "common/platform_result.h"
+
 namespace extension {
 namespace networkbearerselection {
 
@@ -54,8 +56,8 @@ class NetworkBearerSelectionManager {
   void RemoveListener(NetworkBearerSelectionListener* listener);
 
   void requestRouteToHost(const std::string& domain_name);
-  bool releaseRouteToHost(const std::string& domain_name,
-                          const ReleaseReplyCallback& reply_cb);
+  common::PlatformResult releaseRouteToHost(const std::string& domain_name,
+                                            const ReleaseReplyCallback& reply_cb);
 
   static NetworkBearerSelectionManager* GetInstance();
 
