@@ -125,7 +125,6 @@ static void* getMsgServicesThread(const std::shared_ptr<MsgManagerCallbackData>&
           } else {
             *(user_data->sms_service) = std::make_pair(service->getMsgServiceId(), service);
 
-            // TODO FIXME
             picojson::array array;
             array.push_back(picojson::value(service->toPicoJS()));
             obj[JSON_DATA] = picojson::value(array);
@@ -169,7 +168,6 @@ static void* getMsgServicesThread(const std::shared_ptr<MsgManagerCallbackData>&
           email_account_t* email_accounts = nullptr;
           int count = 0;
 
-          // TODO FIXME need to work on readability of that case
           if (email_get_account_list(&email_accounts, &count) != EMAIL_ERROR_NONE) {
             LoggerE("Method failed: email_get_account_list()");
             platform_result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Error during getting account list");

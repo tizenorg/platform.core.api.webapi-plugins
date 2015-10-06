@@ -79,7 +79,6 @@ void MessageMMS::setMessageAttachments(AttachmentPtrVector &attachments)
 bool MessageMMS::getHasAttachment() const
 {
     LoggerD("MessageMMS::getHasAttachment()");
-    // TODO: Analyze relation between hasAttachment flag and inlineAttachments
     return m_has_attachment;
 }
 

@@ -154,34 +154,13 @@ void LoadBodyProxy::handleEmailSignal(const int status,
                 email_mail_data_t* mail_data = EmailManager::loadMessage(
                          callback->getMessage()->getId());
                 if (mail_data) {
+                    //attachments are updated indirectly by updateEmailMessage()
                     ret = callback->getMessage()->updateEmailMessage(*mail_data);
                     if (!ret.IsError()) {
                         EmailManager::freeMessage(mail_data);
                         mail_data = NULL;
                     }
                 }
-
-                //TODO: this should be reviewed when attachments and
-                //      loadAttachments have been completed.
-                //TODO: see old implementation lines 608-635 in MailSync.cpp
-                //
-                // This is original Messaging implementation:
-                //
-                // std::vector<IAttachmentPtr> attachments = mail->getAttachments();
-                // std::vector<IAttachmentPtr> inlineAttachments = mail->getInlineAttachments();
-                //
-                // for (unsigned int idx = 0; idx < attachments.size() ; idx++ )
-                // {
-                //   LoggerD("set Attachment ID = " << attachments[idx]->getAttachmentID());
-                //   attachments[idx]->setMessage(event->m_message);
-                //
-                // }
-                // for (unsigned int idx = 0; idx < inlineAttachments.size() ; idx++ )
-                // {
-                //   LoggerD("set inline Attachment ID = " << inlineAttachments[idx]->getAttachmentID());
-                //   inlineAttachments[idx]->setMessage(event->m_message);
-                // }
-                //
             }
 
             if (!ret.IsError()) {

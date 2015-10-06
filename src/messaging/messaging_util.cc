@@ -751,7 +751,6 @@ PlatformResult MessagingUtil::jsonToMessage(const picojson::value& json,
             int mail_id = std::atoi(mid.c_str());
             email_mail_data_t* mail = NULL;
             if (EMAIL_ERROR_NONE != email_get_mail_data(mail_id, &mail)) {
-                // TODO what should happen?
                 LoggerE("Fatal error: message not found: %d!", mail_id);
                 return PlatformResult(ErrorCode::TYPE_MISMATCH_ERR,
                                       "Failed to find specified email.");
