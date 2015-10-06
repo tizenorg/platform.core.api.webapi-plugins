@@ -314,6 +314,57 @@ PlatformResult ContactManagerUpdate(const JsonObject& args, JsonObject&) {
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
+PlatformResult ContactManagerUpdateBatch(const JsonObject& args) {
+  LoggerD("Enter");
+
+  PlatformResult status = ContactUtil::CheckDBConnection();
+  if (status.IsError()) return status;
+
+  const JsonArray& batch_args = FromJson<JsonArray>(args, "batchArgs");
+
+  contacts_list_h contacts_list = NULL;
+  int err = 0;
+  err = contacts_list_create(&contacts_list);
+  if (CONTACTS_ERROR_NONE != err) {
+    LoggerE("list creation failed, code: %d", err);
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "list creation failed");
+  }
+  ContactUtil::ContactsListHPtr contacts_list_ptr(
+      &contacts_list, ContactUtil::ContactsListDeleter);
+
+  for (auto& item : batch_args) {
+    const JsonObject& person = JsonCast<JsonObject>(item);
+    long personId = common::stol(FromJson<JsonString>(person, "id"));
+
+    contacts_record_h to_update = nullptr;
+    err = contacts_db_get_record(_contacts_person._uri, personId, &to_update);
+    if (CONTACTS_ERROR_NONE != err) {
+      return PlatformResult(ErrorCode::NOT_FOUND_ERR, "Person not found");
+    }
+    ContactUtil::ContactsRecordHPtr x(&to_update,
+                                      ContactUtil::ContactsDeleter);
+
+    status = ContactUtil::ExportPersonToContactsRecord(to_update, person);
+    if (status.IsError()) return status;
+
+    err = contacts_list_add(*contacts_list_ptr, *(x.release()));
+    if (CONTACTS_ERROR_NONE != err) {
+      LoggerE("error during add record to list, code: %d", err);
+      return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                            "error during add record to list");
+    }
+  }
+
+  err = contacts_db_update_records(*contacts_list_ptr);
+  if (CONTACTS_ERROR_NONE != err) {
+    LoggerE("error code: %d", err);
+    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                          "Error during executing contacts_db_update_record()");
+  }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
 PlatformResult ContactManagerRemove(const JsonObject& args, JsonObject&) {
   LoggerD("Enter");
   PlatformResult status = ContactUtil::CheckDBConnection();
@@ -328,6 +379,34 @@ PlatformResult ContactManagerRemove(const JsonObject& args, JsonObject&) {
   int error_code = contacts_db_delete_record(_contacts_person._uri, person_id);
   if (CONTACTS_ERROR_NONE != error_code) {
     LoggerE("Error during removing contact, error: %d", error_code);
+    return PlatformResult(ErrorCode::NOT_FOUND_ERR,
+                          "Error during removing contact");
+  }
+
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult ContactManagerRemoveBatch(const JsonObject& args) {
+  LoggerD("Enter");
+  PlatformResult status = ContactUtil::CheckDBConnection();
+  if (status.IsError()) return status;
+
+  const JsonArray& batch_args = FromJson<JsonArray>(args, "batchArgs");
+  int length = static_cast<int>(batch_args.size());
+  int ids[length], i=0;
+
+  for (auto& item : batch_args) {
+    long person_id = common::stol(item.get<std::string>());
+    if (person_id < 0) {
+      return PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Nagative contact id");
+    }
+    ids[i] = person_id;
+    i++;
+  }
+
+  int err = contacts_db_delete_records(_contacts_person._uri, ids, length);
+  if (CONTACTS_ERROR_NONE != err) {
+    LoggerE("Error during removing contact, error: %d", err);
     return PlatformResult(ErrorCode::NOT_FOUND_ERR,
                           "Error during removing contact");
   }

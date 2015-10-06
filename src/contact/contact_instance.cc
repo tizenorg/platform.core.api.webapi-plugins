@@ -147,15 +147,11 @@ void ContactInstance::AddressBookRemoveBatch(const JsonValue& args,
   const double callback_id = args.get("callbackId").get<double>();
 
   auto get = [=](const std::shared_ptr<JsonValue>& response) -> void {
-    JsonValue result = JsonValue(JsonArray());
-    // TODO all batch operations should be implemented using CAPI batch
-    // functions
-    PlatformResult status = AddressBook::AddressBookBatchFunc(
-        AddressBook::AddressBookRemove, "id",
-        common::JsonCast<JsonObject>(args), result.get<JsonArray>());
+    PlatformResult status = AddressBook::AddressBookRemoveBatch(
+                    common::JsonCast<JsonObject>(args));
 
     if (status.IsSuccess())
-      ReportSuccess(result, response->get<JsonObject>());
+      ReportSuccess(response->get<JsonObject>());
     else
       ReportError(status, &response->get<JsonObject>());
   };
@@ -181,12 +177,8 @@ void ContactInstance::AddressBookUpdateBatch(const JsonValue& args,
 
   auto get = [=](const std::shared_ptr<JsonValue>& response) -> void {
     JsonValue result = JsonValue(JsonArray());
-    // TODO all batch operations should be implemented using CAPI batch
-    // functions
-    PlatformResult status = AddressBook::AddressBookBatchFunc(
-        AddressBook::AddressBookUpdate, "contact",
-        common::JsonCast<JsonObject>(args), result.get<JsonArray>());
-
+    PlatformResult status = AddressBook::AddressBookUpdateBatch(
+                common::JsonCast<JsonObject>(args), result.get<JsonArray>());
     if (status.IsSuccess())
       ReportSuccess(result, response->get<JsonObject>());
     else
@@ -422,15 +414,11 @@ void ContactInstance::ContactManagerUpdateBatch(const JsonValue& args,
   const double callback_id = args.get("callbackId").get<double>();
 
   auto get = [=](const std::shared_ptr<JsonValue>& response) -> void {
-    JsonValue result = JsonValue(JsonArray());
-    // TODO all batch operations should be implemented using CAPI batch
-    // functions
-    PlatformResult status = AddressBook::AddressBookBatchFunc(
-        ContactManager::ContactManagerUpdate, "person",
-        common::JsonCast<JsonObject>(args), result.get<JsonArray>());
+    PlatformResult status = ContactManager::ContactManagerUpdateBatch(
+        common::JsonCast<JsonObject>(args));
 
     if (status.IsSuccess())
-      ReportSuccess(result, response->get<JsonObject>());
+      ReportSuccess(response->get<JsonObject>());
     else
       ReportError(status, &response->get<JsonObject>());
   };
@@ -466,15 +454,11 @@ void ContactInstance::ContactManagerRemoveBatch(const JsonValue& args,
   const double callback_id = args.get("callbackId").get<double>();
 
   auto get = [=](const std::shared_ptr<JsonValue>& response) -> void {
-    JsonValue result = JsonValue(JsonArray());
-    // TODO all batch operations should be implemented using CAPI batch
-    // functions
-    PlatformResult status = AddressBook::AddressBookBatchFunc(
-        ContactManager::ContactManagerRemove, "personId",
-        common::JsonCast<JsonObject>(args), result.get<JsonArray>());
+    PlatformResult status = ContactManager::ContactManagerRemoveBatch(
+           common::JsonCast<JsonObject>(args));
 
     if (status.IsSuccess())
-      ReportSuccess(result, response->get<JsonObject>());
+      ReportSuccess(response->get<JsonObject>());
     else
       ReportError(status, &response->get<JsonObject>());
   };

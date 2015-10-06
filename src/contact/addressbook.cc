@@ -245,7 +245,7 @@ PlatformResult AddressBookAddBatch(const JsonObject& args, JsonArray& out) {
     }
     ContactUtil::ContactsRecordHPtr x(&contacts_record,
                                       ContactUtil::ContactsDeleter);
-    PlatformResult status = ContactUtil::ExportContactToContactsRecord(
+    status = ContactUtil::ExportContactToContactsRecord(
         contacts_record, JsonCast<JsonObject>(item));
     if (status.IsError()) return status;
 
@@ -289,7 +289,7 @@ PlatformResult AddressBookAddBatch(const JsonObject& args, JsonArray& out) {
       return PlatformResult(ErrorCode::UNKNOWN_ERR,
                             "Contacts record get error");
     }
-    PlatformResult status = ContactUtil::ImportContactFromContactsRecord(
+    status = ContactUtil::ImportContactFromContactsRecord(
         contact_record, &out_object);
     if (status.IsError()) return status;
 
@@ -299,31 +299,109 @@ PlatformResult AddressBookAddBatch(const JsonObject& args, JsonArray& out) {
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-// TODO all batch operations should be implemented using CAPI batch functions
-PlatformResult AddressBookBatchFunc(NativeFunction impl,
-                                    const char* single_arg_name,
-                                    const JsonObject& args, JsonArray& out) {
+PlatformResult AddressBookUpdateBatch(const JsonObject& args, JsonArray& out) {
   LoggerD("Enter");
+
+  PlatformResult status = ContactUtil::CheckDBConnection();
+  if (status.IsError()) return status;
+
   const JsonArray& batch_args = FromJson<JsonArray>(args, "batchArgs");
-  const JsonObject& address_book = FromJson<JsonObject>(args, "addressBook");
-
-  int i = 0;
+  const JsonObject& addressBook = FromJson<JsonObject>(args, "addressBook");
+  if (IsNull(addressBook, "id")) {
+    LoggerE("Contact is not saved in database");
+    return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
+                          "Contact is not saved in database");
+  }
+  contacts_list_h contacts_list = NULL;
+  int err = 0;
+  err = contacts_list_create(&contacts_list);
+  if (CONTACTS_ERROR_NONE != err) {
+    LoggerE("list creation failed, code: %d", err);
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "list creation failed");
+  }
+  ContactUtil::ContactsListHPtr contacts_list_ptr(
+      &contacts_list, ContactUtil::ContactsListDeleter);
   for (auto& item : batch_args) {
-    ++i;
-    JsonObject single_args{};
-
-    single_args["addressBook"] = picojson::value(address_book);
-    single_args[single_arg_name] = picojson::value(item);
-
-    JsonObject single_out;
-    PlatformResult status = impl(single_args, single_out);
+    const JsonObject& contact = JsonCast<JsonObject>(item);
+    long contactId = common::stol(FromJson<JsonString>(contact, "id"));
+    if (IsNull(contact, "id")) {
+      LoggerW("Contact doesn't exist");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Contact doesn't exist");
+    }
+    contacts_record_h to_update = nullptr;
+    err = contacts_db_get_record(_contacts_contact._uri, contactId, &to_update);
+    if (CONTACTS_ERROR_NONE != err) {
+      LoggerW("Problem with getting contact. Error: %d", err);
+      return PlatformResult(ErrorCode::NOT_FOUND_ERR,
+                            "Problem with getting contact");
+    }
+    ContactUtil::ContactsRecordHPtr x(&to_update,
+                                      ContactUtil::ContactsDeleter);
+    status = ContactUtil::ExportContactToContactsRecord(
+        to_update, JsonCast<JsonObject>(item));
     if (status.IsError()) return status;
+    JsonObject out_object;
+    status = ContactUtil::UpdateAdditionalInformation(x, &out_object);
+    if (status.IsError()) return status;
+    out.push_back(JsonValue{out_object});
 
-    if (!single_out.empty()) {
-      out.push_back(JsonValue{single_out});
+    err = contacts_list_add(*contacts_list_ptr, *(x.release()));
+    if (CONTACTS_ERROR_NONE != err) {
+      LoggerE("error during add record to list, code: %d", err);
+      return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                            "error during add record to list");
     }
   }
+  err = contacts_db_update_records(*contacts_list_ptr);
+  if (CONTACTS_ERROR_NONE != err) {
+    if (CONTACTS_ERROR_INVALID_PARAMETER == err) {
+      LoggerE("Error during executing contacts_db_update_record(). Error: %d",
+              err);
+      return PlatformResult(
+          ErrorCode::NOT_FOUND_ERR,
+          "Error during executing contacts_db_update_record().");
+    }
+    if (CONTACTS_ERROR_DB == err) {
+      LoggerE("Error during executing contacts_db_update_record(). Error: %d",
+              err);
+      return PlatformResult(
+          ErrorCode::UNKNOWN_ERR,
+          "Error during executing contacts_db_update_record().");
+    }
+  }
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
 
+PlatformResult AddressBookRemoveBatch(const JsonObject& args) {
+  LoggerD("Enter");
+
+  PlatformResult status = ContactUtil::CheckDBConnection();
+  if (status.IsError()) return status;
+  const JsonArray& batch_args = FromJson<JsonArray>(args, "batchArgs");
+  const JsonObject& addressBook = FromJson<JsonObject>(args, "addressBook");
+  if (IsNull(addressBook, "id")) {
+    LoggerE("Contact is not saved in database");
+    return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
+                          "Contact is not saved in database");
+  }
+  int length = static_cast<int>(batch_args.size());
+  int ids[length], i=0;
+  for (auto& item : batch_args) {
+    long contact_id = common::stol(item.get<std::string>());
+    if (contact_id < 0) {
+      return PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Nagative contact id");
+    }
+    ids[i] = contact_id;
+    i++;
+  }
+  int err = contacts_db_delete_records(_contacts_contact._uri, ids, length);
+  if (CONTACTS_ERROR_NO_DATA == err) {
+    return PlatformResult(ErrorCode::NOT_FOUND_ERR,
+                          "Remove failed: contact not found");
+  } else if (CONTACTS_ERROR_NONE != err) {
+    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                          "Contacts record delete error");
+  }
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
