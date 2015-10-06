@@ -20,6 +20,9 @@ class UtilsInstance : public common::ParsedInstance {
   void GetPkgApiVersion(const picojson::value& args, picojson::object& out);
   void CheckPrivilegeAccess(const picojson::value& args, picojson::object& out);
   void CheckBackwardCompabilityPrivilegeAccess(const picojson::value& args, picojson::object& out);
+
+  void ToLongLong(const picojson::value& args, picojson::object& out);
+  void ToUnsignedLongLong(const picojson::value& args, picojson::object& out);
 };
 }  // namespace utils
 }  // namespace extension

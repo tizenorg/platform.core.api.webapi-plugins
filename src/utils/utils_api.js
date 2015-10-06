@@ -376,8 +376,12 @@ Converter.prototype.toLong = function(val, nullable) {
 };
 
 function _toLongLong(val) {
-  // TODO: how to implement this?
-  return _toLong(val);
+  // According to WebIDL specification this will not be a precise representation
+  // of requested val. We're converting the val to signed long and then pass it
+  // to C++ to get the value in required range.
+  return native_.getResultObject(native_.callSync('Utils_toLongLong', {
+    n : _toLong(val)
+  }));
 }
 
 Converter.prototype.toLongLong = function(val, nullable) {
@@ -393,8 +397,12 @@ Converter.prototype.toUnsignedLong = function(val, nullable) {
 };
 
 function _toUnsignedLongLong(val) {
-  // TODO: how to implement this?
-  return _toUnsignedLong(val);
+  // According to WebIDL specification this will not be a precise representation
+  // of requested val. We're converting the val to signed long and then pass it
+  // to C++ to get the value in required range.
+  return native_.getResultObject(native_.callSync('Utils_toUnsignedLongLong', {
+    n : _toLong(val)
+  }));
 }
 
 Converter.prototype.toUnsignedLongLong = function(val, nullable) {

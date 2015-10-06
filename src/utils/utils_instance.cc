@@ -31,6 +31,8 @@ UtilsInstance::UtilsInstance() {
   REGISTER_SYNC("Utils_getPkgApiVersion", GetPkgApiVersion);
   REGISTER_SYNC("Utils_checkPrivilegeAccess", CheckPrivilegeAccess);
   REGISTER_SYNC("Utils_checkBackwardCompabilityPrivilegeAccess", CheckBackwardCompabilityPrivilegeAccess);
+  REGISTER_SYNC("Utils_toLongLong", ToLongLong);
+  REGISTER_SYNC("Utils_toUnsignedLongLong", ToUnsignedLongLong);
 
 #undef REGISTER_SYNC
 #undef REGISTER_ASYNC
@@ -114,6 +116,57 @@ void UtilsInstance::CheckBackwardCompabilityPrivilegeAccess(const picojson::valu
 
   CHECK_BACKWARD_COMPABILITY_PRIVILEGE_ACCESS(current_priv, prev_priv, &out);
   ReportSuccess(out);
+}
+
+namespace {
+
+template <typename T> int sgn(T val) {
+    return (T(0) < val) - (val < T(0));
+}
+
+const double kTwoPow63 = 9223372036854775808.0;
+const double kTwoPow64 = 18446744073709551616.0;
+
+}  // namespace
+
+void UtilsInstance::ToLongLong(const picojson::value& args,
+                               picojson::object& out) {
+  LoggerD("Entered");
+
+  const auto& n = args.get("n");
+  long long output = 0;
+
+  if (n.is<double>()) {
+    auto d = n.get<double>();
+    d = sgn<double>(d) * std::floor(std::fabs(d));
+    d = std::fmod(d, kTwoPow64);
+    if (d > kTwoPow63) {
+      d -= kTwoPow64;
+    }
+    output = static_cast<long long>(d);
+  }
+
+  ReportSuccess(picojson::value(static_cast<double>(output)), out);
+}
+
+void UtilsInstance::ToUnsignedLongLong(const picojson::value& args,
+                                       picojson::object& out) {
+  LoggerD("Entered");
+
+  const auto& n = args.get("n");
+  unsigned long long output = 0;
+
+  if (n.is<double>()) {
+    auto d = n.get<double>();
+    d = sgn<double>(d) * std::floor(std::fabs(d));
+    d = std::fmod(d, kTwoPow64);
+    if (d < 0.0) {
+      d += kTwoPow64;
+    }
+    output = static_cast<unsigned long long>(d);
+  }
+
+  ReportSuccess(picojson::value(static_cast<double>(output)), out);
 }
 
 }  // namespace utils
