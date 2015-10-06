@@ -39,6 +39,14 @@ ChangeListenerContainer::ChangeListenerContainer():
     getNextId();
 }
 
+bool ChangeListenerContainer::isEmailListenerRegistered()
+{
+  LoggerD("isEmailListenerRegistered(): message_callbacks.empty() %d, "
+      "conversation_callbacks.empty() %d", m_email_message_callbacks.empty(),
+      m_email_conversation_callbacks.empty());
+  return !(m_email_message_callbacks.empty() && m_email_conversation_callbacks.empty());
+}
+
 // --- Listeners registration functions ---
 long ChangeListenerContainer::addMessageChangeListener(
         std::shared_ptr<MessagesChangeCallback> callback)

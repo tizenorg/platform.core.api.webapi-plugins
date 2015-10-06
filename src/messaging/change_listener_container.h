@@ -104,6 +104,8 @@ class ChangeListenerContainer {
         void callFolderUpdated(EventFolders* event);
         void callFolderRemoved(EventFolders* event);
 
+        bool isEmailListenerRegistered();
+
     private:
         //! Highest used id (in most cases id of last registered listener)
         long m_current_id;
