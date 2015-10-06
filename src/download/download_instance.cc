@@ -434,7 +434,6 @@ void DownloadInstance::DownloadManagerStart
   if (!args.get("destination").is<picojson::null>()) {
     if (args.get("destination").get<std::string>() != "") {
       diPtr->destination = args.get("destination").get<std::string>();
-      // TODO: move conversion to JS
       diPtr->destination = common::VirtualFs::GetInstance().GetRealPath(diPtr->destination);
     }
   }
