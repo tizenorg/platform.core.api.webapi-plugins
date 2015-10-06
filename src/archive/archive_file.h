@@ -156,7 +156,7 @@ private:
     static gboolean getEntriesTaskCompleteCB(void *data);
     static gboolean getEntryByNameTaskCompleteCB(void *data);
 
-    static void* taskManagerThread(void *data);
+    static void taskManagerThread(gpointer data, gpointer user_data);
     common::PlatformResult addOperation(OperationCallbackData* callback);
     static gboolean callErrorCallback(void* data);
 
