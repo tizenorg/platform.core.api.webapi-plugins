@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 Samsung Electronics Co., Ltd All Rights Reserved
+ * Copyright (c) 2014 Samsung Electronics Co., Ltd All Rights Reserved
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -37,6 +37,17 @@ namespace {
 
 static const std::string kSchema("file://");
 
+PlatformResult VerifyLocalPath(const std::string& path) {
+  // path should be either empty or point to existing local path
+  bool result = path.length() == 0
+      || (path.length() > 0 && path[0] == '/'
+          && (access(path.c_str(), F_OK) == 0));
+  return PlatformResult(
+      result ? ErrorCode::NO_ERROR : ErrorCode::INVALID_VALUES_ERR);
+}
+
+}  // namespace
+
 std::string ConvertUriToPath(const std::string& str) {
   if (str.substr(0, kSchema.size()) == kSchema) {
     return str.substr(kSchema.size());
@@ -53,16 +64,7 @@ std::string ConvertPathToUri(const std::string& str) {
   return kSchema + str;
 }
 
-PlatformResult VerifyLocalPath(const std::string& path) {
-  // path should be either empty or point to existing local path
-  bool result = path.length() == 0
-      || (path.length() > 0 && path[0] == '/'
-          && (access(path.c_str(), F_OK) == 0));
-  return PlatformResult(
-      result ? ErrorCode::NO_ERROR : ErrorCode::INVALID_VALUES_ERR);
-}
 
-}  // namespace
 
 void ContactsDeleter(contacts_record_h* contacts_record) {
   if (CONTACTS_ERROR_NONE != contacts_record_destroy(*contacts_record, true)) {
@@ -87,6 +89,8 @@ void ContactsQueryDeleter(contacts_query_h* contacts_query) {
     LoggerE("failed to destroy contacts_query_h");
   }
 }
+
+using namespace common;
 
 namespace {
 static const char kContactPhoneTypeHome[] = "HOME";

@@ -35,6 +35,9 @@ typedef std::string JsonString;
 
 namespace ContactUtil {
 
+std::string ConvertUriToPath(const std::string& str);
+std::string ConvertPathToUri(const std::string& str);
+
 void ContactsDeleter(contacts_record_h *contacts_record);
 typedef std::unique_ptr<contacts_record_h, void (*)(contacts_record_h *)>
     ContactsRecordHPtr;
