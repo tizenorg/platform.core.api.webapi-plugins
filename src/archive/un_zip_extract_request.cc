@@ -95,13 +95,11 @@ void createMissingDirectories(const std::string& path, bool check_first = true)
             //LoggerD("left_part: [%s] status:%d", left_part.c_str(), status);
 
             if(FPS_DIRECTORY != status) {
-                //TODO investigate 0775 (mode) - filesystem assumed that file should have parent mode
+                // permissions would be changed after extract process would be finished,
+                // for now using default 0775
                 if(mkdir(left_part.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) == -1) {
                     LoggerE("Couldn't create new directory: %s errno: %s",
                             left_part.c_str(), GetErrorString(errno).c_str());
-               //TODO check why mkdir return -1 but directory is successfully created
-               //     throw UnknownException(
-               //             "Could not create new directory");
                 }
             }
         }
@@ -321,6 +319,8 @@ PlatformResult UnZipExtractRequest::handleDirectoryEntry()
             m_file_info.tmu_date.tm_min,
             m_file_info.tmu_date.tm_sec);
 
+    // change modify date and store permission for later update
+    storePermissions();
     // Directory already exists we only need to update time
     changeFileAccessAndModifyDate(m_new_dir_path, m_file_info.tmu_date);
 
@@ -341,14 +341,11 @@ PlatformResult UnZipExtractRequest::prepareOutputSubdirectory()
                                   "output path is invalid");
         }
 
-        //Try to create new directory in output directory
-        //TODO investigate 0775 (mode) - filesystem assumed that file should have parent mode
+        // permissions would be changed after extract process would be finished,
+        // for now using default 0775
         if(mkdir(m_new_dir_path.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) == -1) {
             LoggerW("couldn't create new directory: %s errno: %s",
                     m_new_dir_path.c_str(), GetErrorString(errno).c_str());
-            //TODO check why mkdir return -1 but directory is successfully created
-            //     throw UnknownException(
-            //     "Could not create new directory in extract output directory");
         }
     }
 
@@ -363,8 +360,6 @@ PlatformResult UnZipExtractRequest::prepareOutputSubdirectory()
             LoggerW("%s exists at output path: [%s], overwrite is set to FALSE",
                     (FPS_DIRECTORY == output_fstatus ? "Directory" : "File"),
                     m_output_filepath.c_str());
-
-            //Just skip this file - TODO: this should be documented in WIDL
             return PlatformResult(ErrorCode::INVALID_MODIFICATION_ERR, "file already exists.");
         } else {
             if(FPS_DIRECTORY == output_fstatus) {
@@ -511,9 +506,22 @@ PlatformResult UnZipExtractRequest::handleFileEntry()
         m_output_file = NULL;
     }
 
+    // change modify date and store permission for later update
+    storePermissions();
     changeFileAccessAndModifyDate(m_output_filepath, m_file_info.tmu_date);
 
     return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+void UnZipExtractRequest::storePermissions() {
+  // hold access information for later set
+  // The high 16 bits of the external file attributes seem to be used for OS-specific permissions
+  __mode_t mode = m_file_info.external_fa >> 16;
+  // check if proper permission mode is provided, if not use default 0775
+  if (mode == 0) {
+    mode = S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH;
+  }
+  m_owner.path_access_map[m_output_filepath.c_str()] = mode;
 }
 
 } //namespace archive

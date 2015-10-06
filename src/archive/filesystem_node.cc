@@ -429,7 +429,6 @@ PlatformResult Node::getModified(std::time_t* time) const
     return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-// TODO Optimize it, maybe store a flag indicating that node is a root.
 PlatformResult Node::getParent(NodePtr* node) const
 {
     LoggerD("Enter");
@@ -636,13 +635,6 @@ PlatformResult Node::removeAsDirectory(const PathPtr& path, bool recursive)
     }
 
     return PlatformResult(ErrorCode::NO_ERROR);
-}
-
-std::string Node::toUri(int /*widgetId*/) const
-{
-    LoggerD("Enter");
-    // TODO I believe moving this feature to WrtWrapper would make more sense.
-    return "file://" + m_path->getFullPath();
 }
 
 bool Node::isSubPath(std::string aDirPath, PathPtr aFilePath)

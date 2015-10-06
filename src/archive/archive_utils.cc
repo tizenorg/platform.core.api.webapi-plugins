@@ -19,9 +19,6 @@
 #include <iomanip>
 #include "common/logger.h"
 
-//TODO:
-//#include <FilesystemExternalUtils.h>
-
 using namespace common;
 
 namespace extension {
@@ -95,34 +92,6 @@ PlatformResult stringToFileMode(std::string fmString, FileMode* fm)
     LoggerE("Invalid FileMode");
     return PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, "Invalid FileMode");
 }
-
-// FilePtr fileReferenceToFile(JSContextRef context, JSValueRef fileReference)
-// {
-//     auto g_ctx = GlobalContextManager::getInstance()->getGlobalContext(context);
-//
-//     FilePtr file_ptr;
-//     try {
-//         file_ptr = JSFile::getPrivateObject(context, fileReference);
-//     } catch (const TypeMismatchException &tme) {
-//         LOGD("Use virtual path.");
-//         std::string virtual_path =
-//             JSUtil::JSValueToString(context, fileReference);
-//         if (!External::isVirtualPath(virtual_path)) {
-//             LOGE("FileReference can be File object or a virtual path");
-//             throw TypeMismatchException(
-//                 "FileReference can be File object or a virtual path");
-//         }
-//         std::string string_path =
-//             External::fromVirtualPath(virtual_path, g_ctx);
-//         LOGD("Path: %s", string_path.c_str());
-//
-//         PathPtr path = Path::create(string_path);
-//         NodePtr node_ptr = Node::resolve(path);
-//         file_ptr = FilePtr(new File(node_ptr, File::PermissionList()));
-//     }
-//
-//     return file_ptr;
-// }
 
 void getBasePathAndName(const std::string& filepath,
         std::string& out_basepath,
