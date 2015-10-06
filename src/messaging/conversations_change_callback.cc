@@ -101,6 +101,12 @@ void ConversationsChangeCallback::added(
 
     ConversationPtrVector filtered = filterConversations(m_filter, conversations);
 
+    //if filter is set but there is no conversation matched just return;
+    if (!filtered.size()) {
+      LoggerD("There is no matched result.");
+      return;
+    }
+
     picojson::array array;
     auto each = [&array] (std::shared_ptr<MessageConversation> c)->void {
         array.push_back(MessagingUtil::conversationToJson(c));
@@ -129,6 +135,12 @@ void ConversationsChangeCallback::updated(
 
     ConversationPtrVector filtered = filterConversations(m_filter, conversations);
 
+    //if filter is set but there is no conversation matched just return;
+    if (!filtered.size()) {
+      LoggerD("There is no matched result.");
+      return;
+    }
+
     picojson::array array;
     auto each = [&array] (std::shared_ptr<MessageConversation> c)->void {
         array.push_back(MessagingUtil::conversationToJson(c));
@@ -156,6 +168,12 @@ void ConversationsChangeCallback::removed(
     }
 
     ConversationPtrVector filtered = filterConversations(m_filter, conversations);
+
+    //if filter is set but there is no conversation matched just return;
+    if (!filtered.size()) {
+      LoggerD("There is no matched result.");
+      return;
+    }
 
     picojson::array array;
     auto each = [&array] (std::shared_ptr<MessageConversation> c)->void {

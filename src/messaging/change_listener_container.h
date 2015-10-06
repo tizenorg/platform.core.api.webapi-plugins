@@ -44,7 +44,6 @@ struct EventMessages {
     MessageType service_type;
     MessagePtrVector items;
     ConversationPtrVector removed_conversations;
-    // TODO: Filtering support
 };
 
 //! Data related to ConversationChange event passed to add/update/remove callbacks
@@ -52,7 +51,6 @@ struct EventConversations {
     int service_id;
     MessageType service_type;
     ConversationPtrVector items;
-    // TODO: Filtering support
 };
 
 //! Data related to FolderChange event passed to add/update/remove callbacks
@@ -60,7 +58,6 @@ struct EventFolders {
     int service_id;
     MessageType service_type;
     FolderPtrVector items;
-    // TODO: Filtering support
 };
 
 template <class T > struct CallbackDataHolder {
@@ -165,7 +162,6 @@ class ChangeListenerContainer {
                             && callback->getServiceId() == event->service_id) {
                         LoggerD("Found callback for given service id (%d) and type (%d)",
                                 event->service_id, event->service_type);
-                        //@todo filter msgs
                         callback->added(event->items);
                     }
                 }
@@ -194,7 +190,6 @@ class ChangeListenerContainer {
                             && callback->getServiceId() == event->service_id) {
                         LoggerD("Found callback for given service id (%d) and type (%d)",
                                 event->service_id, event->service_type);
-                        //@todo filter msgs
                         callback->updated(event->items);
                     }
                 }
@@ -224,7 +219,6 @@ class ChangeListenerContainer {
                             && callback->getServiceId() == event->service_id) {
                         LoggerD("Found callback for given service id (%d) and type (%d)",
                                 event->service_id, event->service_type);
-                        //@todo filter msgs
                         callback->removed(event->items);
                     }
                 }
