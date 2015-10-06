@@ -1469,90 +1469,79 @@ PlatformResult ImportContactRelationshipFromContactsRecord(
     return status;
   }
 
-  // TODO Move out.insert outside of switch statement.
+  std::pair <std::string, picojson::value> value_pair;
   switch (type) {
     case CONTACTS_RELATIONSHIP_TYPE_CUSTOM:
-      out.insert(
-          std::make_pair(std::string("type"),
-                         picojson::value(JsonString{kContactRelationshipTypeCustom})));
+      value_pair = std::make_pair(std::string("type"),
+                         picojson::value(JsonString{kContactRelationshipTypeCustom}));
       break;
     case CONTACTS_RELATIONSHIP_TYPE_ASSISTANT:
-      out.insert(std::make_pair(std::string("type"),
-                                picojson::value(JsonString{kContactRelationshipTypeAssistant})));
+      value_pair = std::make_pair(std::string("type"),
+                                picojson::value(JsonString{kContactRelationshipTypeAssistant}));
       break;
     case CONTACTS_RELATIONSHIP_TYPE_BROTHER:
-      out.insert(
-          std::make_pair(std::string("type"),
-                         picojson::value(JsonString{kContactRelationshipTypeBrother})));
+      value_pair = std::make_pair(std::string("type"),
+                         picojson::value(JsonString{kContactRelationshipTypeBrother}));
       break;
     case CONTACTS_RELATIONSHIP_TYPE_CHILD:
-      out.insert(
-          std::make_pair(std::string("type"),
-                         picojson::value(JsonString{kContactRelationshipTypeChild})));
+      value_pair = std::make_pair(std::string("type"),
+                         picojson::value(JsonString{kContactRelationshipTypeChild}));
       break;
     case CONTACTS_RELATIONSHIP_TYPE_DOMESTIC_PARTNER:
-      out.insert(std::make_pair(
+      value_pair = std::make_pair(
           std::string("type"),
           picojson::value(
-              JsonString{kContactRelationshipTypeDomesticPartner})));
+              JsonString{kContactRelationshipTypeDomesticPartner}));
       break;
     case CONTACTS_RELATIONSHIP_TYPE_FATHER:
-      out.insert(
-          std::make_pair(std::string("type"),
-                         picojson::value(JsonString{kContactRelationshipTypeFather})));
+      value_pair = std::make_pair(std::string("type"),
+                         picojson::value(JsonString{kContactRelationshipTypeFather}));
       break;
     case CONTACTS_RELATIONSHIP_TYPE_FRIEND:
-      out.insert(
-          std::make_pair(std::string("type"),
-                         picojson::value(JsonString{kContactRelationshipTypeFriend})));
+      value_pair = std::make_pair(std::string("type"),
+                         picojson::value(JsonString{kContactRelationshipTypeFriend}));
       break;
     case CONTACTS_RELATIONSHIP_TYPE_MANAGER:
-      out.insert(
-          std::make_pair(std::string("type"),
-                         picojson::value(JsonString{kContactRelationshipTypeManager})));
+      value_pair = std::make_pair(std::string("type"),
+                         picojson::value(JsonString{kContactRelationshipTypeManager}));
       break;
     case CONTACTS_RELATIONSHIP_TYPE_MOTHER:
-      out.insert(
-          std::make_pair(std::string("type"),
-                         picojson::value(JsonString{kContactRelationshipTypeMother})));
+      value_pair = std::make_pair(std::string("type"),
+                         picojson::value(JsonString{kContactRelationshipTypeMother}));
       break;
     case CONTACTS_RELATIONSHIP_TYPE_PARENT:
-      out.insert(
-          std::make_pair(std::string("type"),
-                         picojson::value(JsonString{kContactRelationshipTypeParent})));
+      value_pair = std::make_pair(std::string("type"),
+                         picojson::value(JsonString{kContactRelationshipTypeParent}));
       break;
     case CONTACTS_RELATIONSHIP_TYPE_PARTNER:
-      out.insert(
-          std::make_pair(std::string("type"),
-                         picojson::value(JsonString{kContactRelationshipTypePartner})));
+      value_pair = std::make_pair(std::string("type"),
+                         picojson::value(JsonString{kContactRelationshipTypePartner}));
       break;
     case CONTACTS_RELATIONSHIP_TYPE_REFERRED_BY:
-      out.insert(std::make_pair(
+      value_pair = std::make_pair(
           std::string("type"),
-          picojson::value(JsonString{kContactRelationshipTypeReferredBy})));
+          picojson::value(JsonString{kContactRelationshipTypeReferredBy}));
       break;
     case CONTACTS_RELATIONSHIP_TYPE_RELATIVE:
-      out.insert(
-          std::make_pair(std::string("type"),
-                         picojson::value(JsonString{kContactRelationshipTypeRelative})));
+      value_pair = std::make_pair(std::string("type"),
+                         picojson::value(JsonString{kContactRelationshipTypeRelative}));
       break;
     case CONTACTS_RELATIONSHIP_TYPE_SISTER:
-      out.insert(
-          std::make_pair(std::string("type"),
-                         picojson::value(JsonString{kContactRelationshipTypeSister})));
+      value_pair = std::make_pair(std::string("type"),
+                         picojson::value(JsonString{kContactRelationshipTypeSister}));
       break;
     case CONTACTS_RELATIONSHIP_TYPE_SPOUSE:
-      out.insert(
-          std::make_pair(std::string("type"),
-                         picojson::value(JsonString{kContactRelationshipTypeSpouse})));
+      value_pair = std::make_pair(std::string("type"),
+                         picojson::value(JsonString{kContactRelationshipTypeSpouse}));
       break;
     case CONTACTS_RELATIONSHIP_TYPE_OTHER:
     default:
-      out.insert(
-          std::make_pair(std::string("type"),
-                         picojson::value(JsonString{kContactRelationshipTypeOther})));
+      value_pair = std::make_pair(std::string("type"),
+                         picojson::value(JsonString{kContactRelationshipTypeOther}));
       break;
   }
+
+  out.insert(value_pair);
 
   char* label = nullptr;
   status = ContactUtil::GetStrFromRecord(child_record,
@@ -1710,56 +1699,45 @@ PlatformResult ImportContactInstantMessengerFromContactsRecord(
     return status;
   }
 
-  // TODO Move out.insert outside of switch statement.
+  std::pair <std::string, picojson::value> value_pair;
   switch (type) {
     case CONTACTS_MESSENGER_TYPE_CUSTOM:
-      out.insert(
-          std::make_pair("type", JsonValue{kContactInstantMessageTypeCustom}));
+      value_pair = std::make_pair("type", JsonValue{kContactInstantMessageTypeCustom});
       break;
     case CONTACTS_MESSENGER_TYPE_GOOGLE:
-      out.insert(
-          std::make_pair("type", JsonValue{kContactInstantMessageTypeGoogle}));
+      value_pair = std::make_pair("type", JsonValue{kContactInstantMessageTypeGoogle});
       break;
     case CONTACTS_MESSENGER_TYPE_WLM:
-      out.insert(
-          std::make_pair("type", JsonValue{kContactInstantMessageTypeWlm}));
+      value_pair = std::make_pair("type", JsonValue{kContactInstantMessageTypeWlm});
       break;
     case CONTACTS_MESSENGER_TYPE_YAHOO:
-      out.insert(
-          std::make_pair("type", JsonValue{kContactInstantMessageTypeYahoo}));
+      value_pair = std::make_pair("type", JsonValue{kContactInstantMessageTypeYahoo});
       break;
     case CONTACTS_MESSENGER_TYPE_FACEBOOK:
-      out.insert(std::make_pair("type",
-                                JsonValue{kContactInstantMessageTypeFacebook}));
+      value_pair = std::make_pair("type",
+                                JsonValue{kContactInstantMessageTypeFacebook});
       break;
     case CONTACTS_MESSENGER_TYPE_ICQ:
-      out.insert(
-          std::make_pair("type", JsonValue{kContactInstantMessageTypeIcq}));
+      value_pair = std::make_pair("type", JsonValue{kContactInstantMessageTypeIcq});
       break;
     case CONTACTS_MESSENGER_TYPE_AIM:
-      out.insert(
-          std::make_pair("type", JsonValue{kContactInstantMessageTypeAim}));
+      value_pair = std::make_pair("type", JsonValue{kContactInstantMessageTypeAim});
       break;
     case CONTACTS_MESSENGER_TYPE_QQ:
-      out.insert(
-          std::make_pair("type", JsonValue{kContactInstantMessageTypeQq}));
+      value_pair = std::make_pair("type", JsonValue{kContactInstantMessageTypeQq});
       break;
     case CONTACTS_MESSENGER_TYPE_JABBER:
-      out.insert(
-          std::make_pair("type", JsonValue{kContactInstantMessageTypeJabber}));
+      value_pair = std::make_pair("type", JsonValue{kContactInstantMessageTypeJabber});
       break;
     case CONTACTS_MESSENGER_TYPE_SKYPE:
-      out.insert(
-          std::make_pair("type", JsonValue{kContactInstantMessageTypeSkype}));
+      value_pair = std::make_pair("type", JsonValue{kContactInstantMessageTypeSkype});
       break;
     case CONTACTS_MESSENGER_TYPE_IRC:
-      out.insert(
-          std::make_pair("type", JsonValue{kContactInstantMessageTypeIrc}));
+      value_pair = std::make_pair("type", JsonValue{kContactInstantMessageTypeIrc});
       break;
     case CONTACTS_MESSENGER_TYPE_OTHER:
     default:
-      out.insert(
-          std::make_pair("type", JsonValue{kContactInstantMessageTypeOther}));
+      value_pair = std::make_pair("type", JsonValue{kContactInstantMessageTypeOther});
       break;
   }
 
@@ -2539,10 +2517,6 @@ PlatformResult ExportContactToContactsRecord(contacts_record_h contacts_record,
       is_first = true;
     }
     ContactsRecordHPtr record(&child_record, ContactsDeleter);
-    // TODO this was never used anywhere in the old module. Can this be removed?
-    // char *old_value_str = nullptr;
-    // ContactUtil::getStrFromRecord(child_record, _contacts_image.path,
-    // &old_value_str);
 
     std::string real_path;
     if (!IsNull(in, "photoURI")) {
