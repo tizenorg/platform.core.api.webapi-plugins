@@ -499,7 +499,6 @@ void GetExifInfo::DataForeachFunction(ExifContent *content, void *user_data) {
 PlatformResult GetExifInfo::LoadFromURI(const std::string& uri,
                                         JsonValue* result) {
   LoggerD("Entered");
-  // TODO(r.galka) it can be done on JS side
   const std::string& file_path = ExifUtil::convertUriToPath(uri);
   ExifData* ed = exif_data_new_from_file(file_path.c_str());
   if (!ed) {

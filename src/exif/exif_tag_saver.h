@@ -32,17 +32,17 @@ class ExifTagSaver {
  public:
   static void removeExifEntryWithTag(const ExifTag tag, ExifData* exif_data);
 
-  static void saveToExif(long int value, ExifTag tag, ExifData* exif_data);
-  static void saveToExif(const std::string& value, ExifTag tag,
+  static common::PlatformResult saveToExif(long int value, ExifTag tag, ExifData* exif_data);
+  static common::PlatformResult saveToExif(const std::string& value, ExifTag tag,
       ExifData* exif_data, ExifFormat format = EXIF_FORMAT_ASCII,
       bool add_zero_character = true);
-  static void saveToExif(const Rational& value, ExifTag tag,
+  static common::PlatformResult saveToExif(const Rational& value, ExifTag tag,
       ExifData* exif_data);
-  static void saveToExif(const Rationals& value, ExifTag tag,
+  static common::PlatformResult saveToExif(const Rationals& value, ExifTag tag,
       ExifData* exif_data);
-  static void saveToExif(std::vector<long long int>& value, ExifFormat store_as,
+  static common::PlatformResult saveToExif(std::vector<long long int>& value, ExifFormat store_as,
       ExifTag tag, ExifData* exif_data);
-  static void saveGpsLocationToExif(const ExifGPSLocation& gps_info,
+  static common::PlatformResult saveGpsLocationToExif(const ExifGPSLocation& gps_info,
       ExifData* exif_data);
 
  private:
