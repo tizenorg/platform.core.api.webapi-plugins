@@ -633,7 +633,7 @@ BluetoothLEDevice.prototype.connect = function() {
             native.callIfPossible(args.successCallback);
         }
     };
-
+    // Errors are handled by error callback
     native.call('BluetoothLEDevice_connect', {address : this.address}, callback);
 };
 
@@ -930,7 +930,7 @@ BluetoothServiceHandler.prototype.unregister = function() {
     };
 
     // native.call does not inform if call results in failure
-    // TODO: what to do in this case?
+    // Errors are handled by error callback
     native.call('BluetoothServiceHandler_unregister', callArgs, callback);
 
     _bluetoothServiceListeners.removeListener(this.uuid);
@@ -1025,7 +1025,7 @@ BluetoothHealthApplication.prototype.unregister = function() {
     };
 
     // native.call does not inform if call results in failure
-    // TODO: what to do in this case?
+    // Errors are handled by error callback
     native.call('BluetoothHealthApplication_unregister', callArgs, callback);
 
     _bluetoothHealthApplicationListeners.removeListener(this._id);
@@ -1092,7 +1092,7 @@ BluetoothHealthProfileHandler.prototype.registerSinkApplication = function() {
     };
 
     // native.call does not inform if call results in failure
-    // TODO: what to do in this case?
+    // Errors are handled by error callback
     native.call('BluetoothHealthProfileHandler_registerSinkApp', callArgs, callback);
 };
 
@@ -1140,7 +1140,7 @@ BluetoothHealthProfileHandler.prototype.connectToSource = function() {
     };
 
     // native.call does not inform if call results in failure
-    // TODO: what to do in this case?
+    // Errors are handled by error callback
     native.call('BluetoothHealthProfileHandler_connectToSource', callArgs, callback);
 };
 
@@ -1477,12 +1477,10 @@ BluetoothLEAdapter.prototype.stopAdvertise = function() {
 
   xwalk.utils.checkPrivilegeAccess4Ver("2.4", Privilege.BLUETOOTH, Privilege.BLUETOOTH_ADMIN);
 
-  // TODO: when should we call _bleAdvertiseListener.removeListener()?
-
+  _bleAdvertiseListener.removeListener();
   var result = native.callSync('BluetoothLEAdapter_stopAdvertise', {});
 
   if (native.isFailure(result)) {
-    _bleAdvertiseListener.removeListener();
     throw native.getErrorObject(result);
   }
 };
@@ -2031,7 +2029,7 @@ BluetoothAdapter.prototype.setName = function() {
     };
 
     // native.call does not inform if call results in failure
-    // TODO: what to do in this case?
+    // Errors are handled by error callback
     native.call('BluetoothAdapter_setName', callArgs, callback);
 };
 
@@ -2071,7 +2069,7 @@ BluetoothAdapter.prototype.setPowered = function() {
     };
 
     // native.call does not inform if call results in failure
-    // TODO: what to do in this case?
+    // Errors are handled by error callback
     native.call('BluetoothAdapter_setPowered', callArgs, callback);
 };
 
@@ -2127,7 +2125,7 @@ BluetoothAdapter.prototype.setVisible = function() {
     };
 
     // native.call does not inform if call results in failure
-    // TODO: what to do in this case?
+    // Errors are handled by error callback
     native.call('BluetoothAdapter_setVisible', callArgs, callback);
 };
 
@@ -2300,7 +2298,7 @@ BluetoothAdapter.prototype.stopDiscovery = function() {
     };
 
     // native.call does not inform if call results in failure
-    // TODO: what to do in this case?
+    // Errors are handled by error callback
     native.call('BluetoothAdapter_stopDiscovery', {}, callback);
 };
 
@@ -2335,7 +2333,7 @@ BluetoothAdapter.prototype.getKnownDevices = function() {
     };
 
     // native.call does not inform if call results in failure
-    // TODO: what to do in this case?
+    // Errors are handled by error callback
     native.call('BluetoothAdapter_getKnownDevices', {}, callback);
 };
 
@@ -2369,7 +2367,7 @@ BluetoothAdapter.prototype.getDevice = function() {
     };
 
     // native.call does not inform if call results in failure
-    // TODO: what to do in this case?
+    // Errors are handled by error callback
     native.call('BluetoothAdapter_getDevice', {address : args.address}, callback);
 };
 
@@ -2409,7 +2407,7 @@ BluetoothAdapter.prototype.createBonding = function() {
     };
 
     // native.call does not inform if call results in failure
-    // TODO: what to do in this case?
+    // Errors are handled by error callback
     native.call('BluetoothAdapter_createBonding', callArgs, callback);
 };
 
@@ -2449,7 +2447,7 @@ BluetoothAdapter.prototype.destroyBonding = function() {
     };
 
     // native.call does not inform if call results in failure
-    // TODO: what to do in this case?
+    // Errors are handled by error callback
     native.call('BluetoothAdapter_destroyBonding', callArgs, callback);
 };
 
@@ -2494,7 +2492,7 @@ BluetoothAdapter.prototype.registerRFCOMMServiceByUUID = function() {
     };
 
     // native.call does not inform if call results in failure
-    // TODO: what to do in this case?
+    // Errors are handled by error callback
     native.call('BluetoothAdapter_registerRFCOMMServiceByUUID', callArgs, callback);
 };
 

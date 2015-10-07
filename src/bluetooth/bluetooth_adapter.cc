@@ -300,7 +300,6 @@ void BluetoothAdapter::DiscoveryStateChangedCB(
 
           data_obj->insert(std::make_pair(kData, picojson::value(adapter->discovered_devices_)));
 
-          //TODO Consider if all events during scanning shouldn't be called asynchronously
           adapter->user_request_list_[DISCOVER_DEVICES] = false;
           adapter->instance_.FireEvent(kAdapterDiscoverSuccessEvent, value);
         }

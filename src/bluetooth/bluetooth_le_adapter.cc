@@ -704,7 +704,7 @@ void BluetoothLEAdapter::OnScanResult(
     ReportError(util::GetBluetoothError(result, "Error during scanning"), data_obj);
     data_obj->insert(std::make_pair(kAction, picojson::value(kOnScanError)));
   } else {
-    // TODO: this is probably capi-network-bluetooth error: when scan is stopped info has 0x1 value
+    // this is probably capi-network-bluetooth error: when scan is stopped info has 0x1 value
     if (nullptr != info && reinterpret_cast<void*>(0x1) != info) {
       // device found
       LoggerD("Device found");
