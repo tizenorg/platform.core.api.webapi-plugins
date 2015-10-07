@@ -17,6 +17,7 @@
 #include "account/account_manager.h"
 
 #include <functional>
+#include <locale>
 
 #include "common/logger.h"
 #include "common/scope_exit.h"
@@ -335,8 +336,13 @@ bool AccountManager::ConvertProviderToObject(account_type_h provider,
   out["applicationId"] = picojson::value(provider_id);
   free(provider_id);
 
-  // TODO: Which label should be returned?
-  ret = account_type_get_label_by_locale(provider, "default", &display_name);
+  std::string language("default");
+  std::locale loc("");
+  if (loc.name().length() >= 5) {
+    language = loc.name().substr(0, 5);
+  }
+
+  ret = account_type_get_label_by_locale(provider, language.c_str(), &display_name);
   if (ret == ACCOUNT_ERROR_NONE) {
     out["displayName"] = picojson::value(display_name);
     free(display_name);
