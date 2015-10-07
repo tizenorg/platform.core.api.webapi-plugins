@@ -20,6 +20,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <glib.h>
 
 #include "archive_file.h"
 #include "archive_callback_data.h"
@@ -41,6 +42,7 @@ public:
     long addPrivData(ArchiveFilePtr archive_file_ptr);
     common::PlatformResult getPrivData(long handle, ArchiveFilePtr* archive_file);
     common::PlatformResult open(OpenCallbackData* callback);
+    GThreadPool* getThreadPool();
 
 private:
     ArchiveManager();
@@ -51,6 +53,9 @@ private:
     ArchiveFileMap m_priv_map;
 
     long m_next_unique_id;
+
+    //! Handler for thread pool
+    GThreadPool* m_pool;
 };
 
 } // archive

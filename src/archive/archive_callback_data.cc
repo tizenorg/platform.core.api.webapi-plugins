@@ -603,9 +603,6 @@ PlatformResult AddProgressCallback::executeOperation(ArchiveFilePtr archive_file
 
     LoggerD("Update decompressed size and entry list");
     // update informations about decompressed size and entry list
-    // TODO FIXME need to resolve problem with access to file by
-    // more than one thread
-
     return archive_file_ptr->updateListOfEntries();
 }
 

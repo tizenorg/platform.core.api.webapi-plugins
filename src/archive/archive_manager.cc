@@ -28,11 +28,16 @@ ArchiveManager::ArchiveManager():
         m_next_unique_id(0)
 {
     LoggerD("Initialize ArchiveManager");
+    // create thread pool with max threads = 1 to make API calls async but
+    // only one call at time
+    m_pool = g_thread_pool_new(ArchiveFile::taskManagerThread, NULL, 1, true, NULL);
 }
 
 ArchiveManager::~ArchiveManager()
 {
     LoggerD("Deinitialize ArchiveManager");
+    //finish only current task and wait for thread to stop
+    g_thread_pool_free(m_pool, true, true);
 }
 
 ArchiveManager& ArchiveManager::getInstance()
@@ -40,6 +45,11 @@ ArchiveManager& ArchiveManager::getInstance()
     LoggerD("Entered");
     static ArchiveManager instance;
     return instance;
+}
+
+GThreadPool* ArchiveManager::getThreadPool()
+{
+  return m_pool;
 }
 
 void ArchiveManager::abort(long operation_id)
