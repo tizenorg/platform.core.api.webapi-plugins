@@ -45,7 +45,7 @@ PowerPlatformProxy& PowerPlatformProxy::GetInstance()
   return instance;
 }
 
-int PowerPlatformProxy::LockState()
+common::PlatformResult PowerPlatformProxy::LockState(int* result)
 {
   LoggerD("Entered");
   DBusOperationArguments args;
@@ -54,42 +54,42 @@ int PowerPlatformProxy::LockState()
   args.AddArgumentString("NULL");
   args.AddArgumentInt32(0);
 
-  return dbus_op_.InvokeSyncGetInt("lockstate", &args);
+  return dbus_op_.InvokeSyncGetInt("lockstate", &args, result);
 }
 
-int PowerPlatformProxy::UnlockState()
+common::PlatformResult PowerPlatformProxy::UnlockState(int* result)
 {
   LoggerD("Entered");
   DBusOperationArguments args;
   args.AddArgumentString("lcddim");
   args.AddArgumentString("keeptimer");
 
-  return dbus_op_.InvokeSyncGetInt("unlockstate", &args);
+  return dbus_op_.InvokeSyncGetInt("unlockstate", &args, result);
 }
 
-int PowerPlatformProxy::SetBrightnessFromSettings()
+common::PlatformResult PowerPlatformProxy::SetBrightnessFromSettings(int* result)
 {
   LoggerD("Entered");
-  return dbus_op_.InvokeSyncGetInt("ReleaseBrightness", NULL);
+  return dbus_op_.InvokeSyncGetInt("ReleaseBrightness", nullptr, result);
 }
 
-int PowerPlatformProxy::SetBrightness(int val)
+common::PlatformResult PowerPlatformProxy::SetBrightness(int val, int* result)
 {
   LoggerD("Entered");
   DBusOperationArguments args;
   args.AddArgumentInt32(val);
 
-  return dbus_op_.InvokeSyncGetInt("HoldBrightness", &args);
+  return dbus_op_.InvokeSyncGetInt("HoldBrightness", &args, result);
 }
 
-int PowerPlatformProxy::GetBrightness() {
+common::PlatformResult PowerPlatformProxy::GetBrightness(int* result) {
   LoggerD("Entered");
-  return dbus_op_.InvokeSyncGetInt("CurrentBrightness", NULL);
+  return dbus_op_.InvokeSyncGetInt("CurrentBrightness", nullptr, result);
 }
 
-int PowerPlatformProxy::IsCustomBrightness() {
+common::PlatformResult PowerPlatformProxy::IsCustomBrightness(int* result) {
   LoggerD("Entered");
-  return dbus_op_.InvokeSyncGetInt("CustomBrightness", NULL);
+  return dbus_op_.InvokeSyncGetInt("CustomBrightness", nullptr, result);
 }
 
 } // namespace power

@@ -59,7 +59,7 @@ class PowerManager {
 
   static PowerManager* GetInstance();
  private:
-  int GetPlatformBrightness();
+  common::PlatformResult GetPlatformBrightness(int* result);
   common::PlatformResult SetPlatformBrightness(int brightness);
   common::PlatformResult RestoreSettedBrightness();
 
