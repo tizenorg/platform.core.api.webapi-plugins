@@ -108,7 +108,6 @@ PlatformResult Types::PlatformEnumToString(const std::string& type,
                                            std::string* platform_str) {
   LoggerD("Enter");
 
-  // TODO(r.galka) can be replaced by Boost.Bimap
   if (platform_enum_reverse_map_.empty()) {
     for (auto& def : platform_enum_map_) {
       platform_enum_reverse_map_[def.first] = {};
