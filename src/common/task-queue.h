@@ -73,9 +73,6 @@ public:
      */
     void Async(const std::function<void()>& work);
 
-    //TODO not needed now, but maybe in future
-//    void AsyncResponse(int callback_handle, const std::shared_ptr<picojson::value>& response);
-
 private:
     TaskQueue() {}
 
