@@ -206,19 +206,12 @@ void LoadAttachmentProxy::handleEmailSignal(const int status,
         if (!ret.IsError()) {
             LoggerD("Updated Message attachment object");
 
-            auto json = callback->getJson();
-            picojson::object& obj = json->get<picojson::object>();
-            obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
-
             picojson::object args;
             args[JSON_DATA_MESSAGE_ATTACHMENT] = MessagingUtil::messageAttachmentToJson(
                     callback->getMessageAttachment());
-            obj[JSON_DATA] = picojson::value(args);
 
-            callback->getQueue().resolve(
-                    obj.at(JSON_CALLBACK_ID).get<double>(),
-                    json->serialize()
-            );
+            callback->SetSuccess(picojson::value(args));
+            callback->Post();
         }
     } else if(NOTI_DOWNLOAD_ATTACH_FAIL) {
         LoggerD("Load message attachment failed!");
@@ -226,11 +219,8 @@ void LoadAttachmentProxy::handleEmailSignal(const int status,
     }
     if (ret.IsError()) {
         LoggerE("Exception in signal callback");
-        callback->setError(ret);
-        callback->getQueue().resolve(
-                callback->getJson()->get<picojson::object>().at(JSON_CALLBACK_ID).get<double>(),
-                callback->getJson()->serialize()
-        );
+        callback->SetError(ret);
+        callback->Post();
     }
 
     if(callback) {

@@ -41,15 +41,12 @@ const char* JSON_SERVICE_NAME = "name";
 
 //#################### MessageRecipientsCallbackData ####################
 
-MessageRecipientsCallbackData::MessageRecipientsCallbackData(PostQueue& queue):
-        m_is_error(false),
-        m_account_id(-1),
-        m_sim_index(TAPI_NETWORK_DEFAULT_DATA_SUBS_UNKNOWN),
-        m_default_sim_index(TAPI_NETWORK_DEFAULT_DATA_SUBS_UNKNOWN),
-        queue_(queue)
-{
-    LoggerD("Entered");
-    m_msg_recipients = std::vector<std::string>();
+MessageRecipientsCallbackData::MessageRecipientsCallbackData(PostQueue& queue, long cid) :
+    CallbackUserData(queue, cid),
+    m_account_id(-1),
+    m_sim_index(TAPI_NETWORK_DEFAULT_DATA_SUBS_UNKNOWN),
+    m_default_sim_index(TAPI_NETWORK_DEFAULT_DATA_SUBS_UNKNOWN) {
+  LoggerD("Entered");
 }
 
 MessageRecipientsCallbackData::~MessageRecipientsCallbackData()
@@ -76,50 +73,6 @@ void MessageRecipientsCallbackData::setMessageRecipients(
 const std::vector<std::string>& MessageRecipientsCallbackData::getMessageRecipients() const
 {
     return m_msg_recipients;
-}
-
-void MessageRecipientsCallbackData::setError(const std::string& err_name,
-        const std::string& err_message)
-{
-    LoggerD("Entered");
-    // keep only first error in chain
-    if (!m_is_error) {
-        LoggerD("Error has not been set yet");
-        m_is_error = true;
-
-        picojson::object& obj = m_json->get<picojson::object>();
-        obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_ERROR);
-        auto obj_error = picojson::object();
-
-        obj_error[JSON_ERROR_NAME] = picojson::value(err_name);
-        obj_error[JSON_ERROR_MESSAGE] = picojson::value(err_message);
-
-        obj[JSON_DATA] = picojson::value(obj_error);
-    }
-}
-
-void MessageRecipientsCallbackData::setError(const PlatformResult& error)
-{
-  LoggerD("Entered");
-  // keep only first error in chain
-  if (!m_is_error) {
-    LoggerD("Error has not been set yet");
-    m_is_error = true;
-
-    picojson::object& obj = m_json->get<picojson::object>();
-    obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_ERROR);
-    auto obj_error = picojson::object();
-
-    obj_error[JSON_ERROR_CODE] = picojson::value(static_cast<double>(error.error_code()));
-    obj_error[JSON_ERROR_MESSAGE] = picojson::value(error.message());
-
-    obj[JSON_DATA] = picojson::value(obj_error);
-  }
-}
-
-bool MessageRecipientsCallbackData::isError() const
-{
-    return m_is_error;
 }
 
 void MessageRecipientsCallbackData::setAccountId(int account_id){
@@ -149,8 +102,7 @@ bool MessageRecipientsCallbackData::setSimIndex(
     sim_index--;
     if (sim_index >= sim_count || sim_index < -1) {
         LoggerE("Sim index out of bound %d : %d", sim_index, sim_count);
-        common::InvalidValuesException err("The index of sim is out of bound");
-        this->setError(err.name(), err.message());
+        this->SetError(PlatformResult(ErrorCode::INVALID_VALUES_ERR, "The index of sim is out of bound"));
         return false;
     }
 
@@ -182,61 +134,15 @@ TelNetworkDefaultDataSubs_t MessageRecipientsCallbackData::getDefaultSimIndex() 
 
 //#################### BaseMessageServiceCallbackData ####################
 
-BaseMessageServiceCallbackData::BaseMessageServiceCallbackData():
-//        CallbackUserData(globalCtx),
-        m_is_error(false),
-        m_op_handle(-1),
-        m_callback_id(-1)
-{
-    LoggerD("Entered");
+BaseMessageServiceCallbackData::BaseMessageServiceCallbackData(PostQueue& queue, long cid) :
+    CallbackUserData(queue, cid),
+    m_op_handle(-1) {
+  LoggerD("Entered");
 }
 
 BaseMessageServiceCallbackData::~BaseMessageServiceCallbackData()
 {
     LoggerD("Entered");
-}
-
-void BaseMessageServiceCallbackData::setError(const std::string& err_name,
-        const std::string& err_message)
-{
-    LoggerD("Entered");
-    // keep only first error in chain
-    if (!m_is_error) {
-        LoggerD("Error has not been set yet");
-        m_is_error = true;
-
-        picojson::object& obj = m_json->get<picojson::object>();
-        obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_ERROR);
-
-        auto obj_error = picojson::object();
-        obj_error[JSON_ERROR_NAME] = picojson::value(err_name);
-        obj_error[JSON_ERROR_MESSAGE] = picojson::value(err_message);
-        obj[JSON_DATA] = picojson::value(obj_error);
-    }
-}
-
-void BaseMessageServiceCallbackData::setError(const PlatformResult& error)
-{
-  LoggerD("Entered");
-  // keep only first error in chain
-  if (!m_is_error) {
-    LoggerD("Error has not been set yet");
-    m_is_error = true;
-
-    picojson::object& obj = m_json->get<picojson::object>();
-    obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_ERROR);
-    auto obj_error = picojson::object();
-
-    obj_error[JSON_ERROR_CODE] = picojson::value(static_cast<double>(error.error_code()));
-    obj_error[JSON_ERROR_MESSAGE] = picojson::value(error.message());
-
-    obj[JSON_DATA] = picojson::value(obj_error);
-  }
-}
-
-bool BaseMessageServiceCallbackData::isError() const
-{
-    return m_is_error;
 }
 
 void BaseMessageServiceCallbackData::setOperationHandle(const int op_handle)
@@ -249,23 +155,7 @@ int BaseMessageServiceCallbackData::getOperationHandle() const
     return m_op_handle;
 }
 
-void BaseMessageServiceCallbackData::setCallbackId(const double callback_id)
-{
-    m_callback_id = callback_id;
-}
-
-double BaseMessageServiceCallbackData::getCallbackId() const
-{
-    return m_callback_id;
-}
-
 //#################### MessageBodyCallbackData ####################
-
-MessageBodyCallbackData::MessageBodyCallbackData(PostQueue& queue):
-    queue_(queue)
-{
-    LoggerD("Entered");
-}
 
 MessageBodyCallbackData::~MessageBodyCallbackData()
 {
@@ -284,11 +174,10 @@ std::shared_ptr<Message> MessageBodyCallbackData::getMessage() const
 
 //#################### MessageAttachmentCallbackData ####################
 
-MessageAttachmentCallbackData::MessageAttachmentCallbackData(PostQueue& queue):
-        m_nth(0),
-        queue_(queue)
-{
-    LoggerD("Entered");
+MessageAttachmentCallbackData::MessageAttachmentCallbackData(PostQueue& queue, long cid) :
+    BaseMessageServiceCallbackData(queue, cid),
+    m_nth(0) {
+  LoggerD("Entered");
 }
 
 MessageAttachmentCallbackData::~MessageAttachmentCallbackData()
@@ -320,15 +209,14 @@ int MessageAttachmentCallbackData::getNth() const
 
 //#################### SyncCallbackData ####################
 
-SyncCallbackData::SyncCallbackData(PostQueue& queue):
-//        BaseMessageServiceCallbackData(globalCtx),
-        m_is_limit(false),
-        m_limit(0),
-        m_op_id(-1),
-        m_account_id(-1),
-        queue_(queue)
-{
-    LoggerD("Entered");
+
+SyncCallbackData::SyncCallbackData(PostQueue& queue, long cid) :
+    BaseMessageServiceCallbackData(queue, cid),
+    m_is_limit(false),
+    m_limit(0),
+    m_op_id(-1),
+    m_account_id(-1) {
+  LoggerD("Entered");
 }
 
 SyncCallbackData::~SyncCallbackData()
@@ -373,12 +261,6 @@ int SyncCallbackData::getAccountId() const
 }
 
 //#################### SyncFolderCallbackData ####################
-
-SyncFolderCallbackData::SyncFolderCallbackData(PostQueue& queue):
-    SyncCallbackData(queue)
-{
-    LoggerD("Entered");
-}
 
 SyncFolderCallbackData::~SyncFolderCallbackData()
 {

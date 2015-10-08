@@ -215,11 +215,10 @@ void MessagingInstance::MessageServiceSendMessage(const picojson::value& args,
       POST_AND_RETURN(ret, json, obj, JSON_CALLBACK_ERROR)
     }
 
-    MessageRecipientsCallbackData* callback = new MessageRecipientsCallbackData(queue_);
+    MessageRecipientsCallbackData* callback = new MessageRecipientsCallbackData(queue_, callbackId);
     long simIndex = 0;
     int serviceId = 0;
 
-    callback->setJson(json);
     callback->setMessage(message);
     serviceId = getServiceIdFromJSON(data);
     callback->setAccountId(serviceId);
@@ -233,7 +232,7 @@ void MessagingInstance::MessageServiceSendMessage(const picojson::value& args,
                       json, obj, JSON_CALLBACK_ERROR)
     }
 
-    queue_.add(static_cast<long>(callbackId), PostPriority::HIGH);
+    callback->AddToQueue();
     auto service = manager_.getMessageService(serviceId);
 
     ret = service->sendMessage(callback);
@@ -268,12 +267,11 @@ void MessagingInstance::MessageServiceLoadMessageBody(const picojson::value& arg
       POST_AND_RETURN(ret, json, obj, JSON_CALLBACK_ERROR)
     }
 
-    MessageBodyCallbackData* callback = new MessageBodyCallbackData(queue_);
+    MessageBodyCallbackData* callback = new MessageBodyCallbackData(queue_, callbackId);
 
-    callback->setJson(json);
     callback->setMessage(message);
 
-    queue_.add(static_cast<long>(callbackId), PostPriority::HIGH);
+    callback->AddToQueue();
     auto service = manager_.getMessageService(getServiceIdFromJSON(data));
     ret = service->loadMessageBody(callback);
     if (ret.IsError()) {
@@ -296,18 +294,16 @@ void MessagingInstance::MessageServiceLoadMessageAttachment(const picojson::valu
     picojson::value attachment = data.at(LOAD_MESSAGE_ATTACHMENT_ARGS_ATTACHMENT);
     const double callbackId = args.get(JSON_CALLBACK_ID).get<double>();
 
-    MessageAttachmentCallbackData* callback = new MessageAttachmentCallbackData(queue_);
+    MessageAttachmentCallbackData* callback = new MessageAttachmentCallbackData(queue_, callbackId);
     callback->setMessageAttachment(MessagingUtil::jsonToMessageAttachment(attachment));
 
-    auto json = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
-    picojson::object& obj = json->get<picojson::object>();
-    obj[JSON_CALLBACK_ID] = picojson::value(callbackId);
-    callback->setJson(json);
-
-    queue_.add(static_cast<long>(callbackId), PostPriority::HIGH);
+    callback->AddToQueue();
     auto service = manager_.getMessageService(getServiceIdFromJSON(data));
     const auto result = service->loadMessageAttachment(callback);
     if (result.IsError()) {
+      auto json = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
+      picojson::object& obj = json->get<picojson::object>();
+      obj[JSON_CALLBACK_ID] = picojson::value(callbackId);
       POST_AND_RETURN(result, json, obj, JSON_CALLBACK_ERROR)
     }
 }
@@ -341,16 +337,11 @@ void MessagingInstance::MessageServiceSync(const picojson::value& args,
         limit = static_cast<long>(v_limit.get<double>());
     }
 
-    auto json = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
-    picojson::object& obj = json->get<picojson::object>();
-    obj[JSON_CALLBACK_ID] = picojson::value(callbackId);
-
-    SyncCallbackData *callback = new SyncCallbackData(queue_);
-    callback->setJson(json);
+    SyncCallbackData *callback = new SyncCallbackData(queue_, callbackId);
     callback->setAccountId(id);
     callback->setLimit(limit);
 
-    queue_.add(static_cast<long>(callbackId), PostPriority::HIGH);
+    callback->AddToQueue();
     long op_id = -1;
 
     const auto result = manager_.getMessageService(id)->sync(callback, &op_id);
@@ -393,17 +384,12 @@ void MessagingInstance::MessageServiceSyncFolder(const picojson::value& args,
         limit = static_cast<long>(v_limit.get<double>());
     }
 
-    auto json = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
-    picojson::object& obj = json->get<picojson::object>();
-    obj[JSON_CALLBACK_ID] = picojson::value(callbackId);
-
-    SyncFolderCallbackData *callback = new SyncFolderCallbackData(queue_);
-    callback->setJson(json);
+    SyncFolderCallbackData *callback = new SyncFolderCallbackData(queue_, callbackId);
     callback->setAccountId(id);
     callback->setMessageFolder(MessagingUtil::jsonToMessageFolder(v_folder));
     callback->setLimit(limit);
 
-    queue_.add(static_cast<long>(callbackId), PostPriority::HIGH);
+    callback->AddToQueue();
     long op_id = -1;
 
     const auto result = manager_.getMessageService(id)->syncFolder(callback, &op_id);
@@ -483,15 +469,13 @@ void MessagingInstance::MessageStorageAddDraft(const picojson::value& args,
       POST_AND_RETURN(ret, json, obj, JSON_CALLBACK_ERROR)
     }
 
-    MessageCallbackUserData* callback = new MessageCallbackUserData(queue_);
+    MessageCallbackUserData* callback = new MessageCallbackUserData(queue_, callbackId);
     callback->setMessage(message);
 
     int serviceId = getServiceIdFromJSON(data);
     callback->setAccountId(serviceId);
 
-    callback->setJson(json);
-
-    queue_.add(static_cast<long>(callbackId), PostPriority::HIGH);
+    callback->AddToQueue();
     auto service = manager_.getMessageService(serviceId);
     service->getMsgStorage()->addDraftMessage(callback);
 }
@@ -530,15 +514,14 @@ void MessagingInstance::MessageStorageFindMessages(const picojson::value& args,
     int serviceId = getServiceIdFromJSON(data);
     auto storage = manager_.getMessageService(serviceId)->getMsgStorage();
 
-    FindMsgCallbackUserData* callback = new FindMsgCallbackUserData(queue_);
+    FindMsgCallbackUserData* callback = new FindMsgCallbackUserData(queue_, callbackId);
     callback->setFilter(filter);
     callback->setLimit(limit);
     callback->setOffset(offset);
     callback->setAccountId(serviceId);
     callback->setSortMode(sortMode);
-    callback->setJson(json);
 
-    queue_.add(static_cast<long>(callbackId), PostPriority::HIGH);
+    callback->AddToQueue();
     storage->findMessages(callback);
 }
 
@@ -557,7 +540,7 @@ void MessagingInstance::MessageStorageRemoveMessages(const picojson::value& args
     picojson::array messages = data.at(REMOVE_MESSAGES_ARGS_MESSAGES).get<picojson::array>();
     const double callbackId = args.get(JSON_CALLBACK_ID).get<double>();
 
-    MessagesCallbackUserData* callback = new MessagesCallbackUserData(queue_);
+    MessagesCallbackUserData* callback = new MessagesCallbackUserData(queue_, callbackId);
 
     auto each = [callback] (picojson::value& v)->void {
       std::shared_ptr<Message> message;
@@ -569,14 +552,9 @@ void MessagingInstance::MessageStorageRemoveMessages(const picojson::value& args
 
     for_each(messages.begin(), messages.end(), each);
 
-    auto json = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
-    picojson::object& obj = json->get<picojson::object>();
-    obj[JSON_CALLBACK_ID] = picojson::value(callbackId);
-    callback->setJson(json);
-
     auto service = manager_.getMessageService(getServiceIdFromJSON(data));
 
-    queue_.add(static_cast<long>(callbackId), PostPriority::HIGH);
+    callback->AddToQueue();
     service->getMsgStorage()->removeMessages(callback);
 }
 
@@ -596,7 +574,7 @@ void MessagingInstance::MessageStorageUpdateMessages(const picojson::value& args
     auto pico_array = pico_messages.get<picojson::array>();
     const double callbackId = args.get(JSON_CALLBACK_ID).get<double>();
 
-    auto callback = new MessagesCallbackUserData(queue_);
+    auto callback = new MessagesCallbackUserData(queue_, callbackId);
 
     std::for_each(pico_array.begin(), pico_array.end(), [&callback](picojson::value& v)->void {
        std::shared_ptr<Message> message;
@@ -606,14 +584,9 @@ void MessagingInstance::MessageStorageUpdateMessages(const picojson::value& args
        }
     });
 
-    auto json = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
-    picojson::object& obj = json->get<picojson::object>();
-    obj[JSON_CALLBACK_ID] = picojson::value(callbackId);
-    callback->setJson(json);
-
     auto service = manager_.getMessageService(getServiceIdFromJSON(data));
 
-    queue_.add(static_cast<long>(callbackId), PostPriority::HIGH);
+    callback->AddToQueue();
     service->getMsgStorage()->updateMessages(callback);
 }
 
@@ -648,15 +621,14 @@ void MessagingInstance::MessageStorageFindConversations(const picojson::value& a
 
     int serviceId = getServiceIdFromJSON(data);
 
-    ConversationCallbackData* callback = new ConversationCallbackData(queue_);
+    ConversationCallbackData* callback = new ConversationCallbackData(queue_, callbackId);
     callback->setFilter(filter);
     callback->setLimit(limit);
     callback->setOffset(offset);
     callback->setAccountId(serviceId);
     callback->setSortMode(sortMode);
-    callback->setJson(json);
 
-    queue_.add(static_cast<long>(callbackId), PostPriority::HIGH);
+    callback->AddToQueue();
     auto storage = manager_.getMessageService(serviceId)->getMsgStorage();
     storage->findConversations(callback);
 }
@@ -680,7 +652,7 @@ void MessagingInstance::MessageStorageRemoveConversations(const picojson::value&
     picojson::object& obj = json->get<picojson::object>();
     obj[JSON_CALLBACK_ID] = picojson::value(callbackId);
 
-    ConversationCallbackData* callback = new ConversationCallbackData(queue_);
+    ConversationCallbackData* callback = new ConversationCallbackData(queue_, callbackId);
 
     PlatformResult ret(ErrorCode::NO_ERROR);
     for (auto it = conversations.begin(); it != conversations.end(); ++it) {
@@ -693,11 +665,9 @@ void MessagingInstance::MessageStorageRemoveConversations(const picojson::value&
       callback->addConversation(conversation);
     }
 
-    callback->setJson(json);
-
     auto service = manager_.getMessageService(getServiceIdFromJSON(data));
 
-    queue_.add(static_cast<long>(callbackId), PostPriority::HIGH);
+    callback->AddToQueue();
     service->getMsgStorage()->removeConversations(callback);
 }
 
@@ -725,11 +695,10 @@ void MessagingInstance::MessageStorageFindFolders(const picojson::value& args,
       POST_AND_RETURN(ret, json, obj, JSON_CALLBACK_ERROR)
     }
 
-    FoldersCallbackData* callback = new FoldersCallbackData(queue_);
+    FoldersCallbackData* callback = new FoldersCallbackData(queue_, callbackId);
     callback->setFilter(filter);
-    callback->setJson(json);
 
-    queue_.add(static_cast<long>(callbackId), PostPriority::HIGH);
+    callback->AddToQueue();
     auto service = manager_.getMessageService(getServiceIdFromJSON(data));
     service->getMsgStorage()->findFolders(callback);
 }
