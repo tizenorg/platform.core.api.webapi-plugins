@@ -28,9 +28,10 @@
 #include "common/converter.h"
 #include "common/logger.h"
 #include "common/scope_exit.h"
+#include "common/tools.h"
 #include "common/virtual_fs.h"
+
 #include "content/content_filter.h"
-#include "common/virtual_fs.h"
 
 using namespace std;
 using namespace common;

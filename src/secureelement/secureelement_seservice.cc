@@ -17,8 +17,9 @@
 #include "secureelement/secureelement_seservice.h"
 
 #include "common/logger.h"
-#include "common/task-queue.h"
 #include "common/platform_result.h"
+#include "common/task-queue.h"
+#include "common/tools.h"
 
 
 #include "secureelement/secureelement_instance.h"

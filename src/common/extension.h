@@ -26,9 +26,6 @@
 
 #include "common/platform_exception.h"
 #include "common/platform_result.h"
-// TODO: this include should be moved to source file
-//       it's here, so we don't break other modules using it implicitly
-#include "common/tools.h"
 #include "common/XW_Extension.h"
 #include "common/XW_Extension_EntryPoints.h"
 #include "common/XW_Extension_Permissions.h"

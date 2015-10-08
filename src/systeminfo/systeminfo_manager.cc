@@ -25,12 +25,14 @@
 #include <sensor_internal.h>
 #include <wifi.h>
 
+#include "common/converter.h"
+#include "common/logger.h"
+#include "common/task-queue.h"
+#include "common/tools.h"
+
 #include "systeminfo/systeminfo_instance.h"
 #include "systeminfo/systeminfo_device_capability.h"
 #include "systeminfo/systeminfo-utils.h"
-#include "common/logger.h"
-#include "common/converter.h"
-#include "common/task-queue.h"
 
 using common::PlatformResult;
 using common::ErrorCode;

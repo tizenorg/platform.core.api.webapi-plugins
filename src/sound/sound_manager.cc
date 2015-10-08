@@ -20,7 +20,10 @@
 #include <vconf.h>
 #include <vconf-keys.h>
 
+#include "common/converter.h"
+#include "common/logger.h"
 #include "common/task-queue.h"
+#include "common/tools.h"
 
 //This constant was originally defined in vconf.h. However, in tizen 3, it
 //appears, it is removed (or defined only in vconf-internals.h)
@@ -30,8 +33,6 @@
 #endif
 
 #include "sound/sound_instance.h"
-#include "common/logger.h"
-#include "common/converter.h"
 
 namespace extension {
 namespace sound {

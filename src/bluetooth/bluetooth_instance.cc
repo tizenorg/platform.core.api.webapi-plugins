@@ -19,6 +19,7 @@
 #include "common/converter.h"
 #include "common/logger.h"
 #include "common/task-queue.h"
+#include "common/tools.h"
 
 namespace extension {
 namespace bluetooth {

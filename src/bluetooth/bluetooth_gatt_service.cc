@@ -18,10 +18,11 @@
 
 #include <sstream>
 
+#include "common/extension.h"
 #include "common/logger.h"
 #include "common/platform_result.h"
-#include "common/extension.h"
 #include "common/task-queue.h"
+#include "common/tools.h"
 
 #include "bluetooth/bluetooth_instance.h"
 #include "bluetooth/bluetooth_util.h"

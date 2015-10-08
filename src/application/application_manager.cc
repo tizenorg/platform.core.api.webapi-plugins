@@ -28,13 +28,15 @@
 #include <bundle.h>
 #include <bundle_internal.h>
 
-#include "application/application_instance.h"
-#include "application/application_utils.h"
 #include "common/current_application.h"
 #include "common/logger.h"
 #include "common/platform_result.h"
-#include "common/task-queue.h"
 #include "common/scope_exit.h"
+#include "common/task-queue.h"
+#include "common/tools.h"
+
+#include "application/application_instance.h"
+#include "application/application_utils.h"
 
 using namespace common;
 using namespace tools;

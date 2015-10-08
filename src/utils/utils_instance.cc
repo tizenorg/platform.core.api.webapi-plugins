@@ -8,8 +8,11 @@
 #include <unistd.h>
 #include <app_manager.h>
 #include <pkgmgr-info.h>
-#include "common/scope_exit.h"
+
 #include "common/logger.h"
+#include "common/scope_exit.h"
+#include "common/tools.h"
+
 #include "utils/utils_instance.h"
 
 using common::PlatformResult;

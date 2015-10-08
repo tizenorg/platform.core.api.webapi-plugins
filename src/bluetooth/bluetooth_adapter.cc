@@ -30,10 +30,11 @@
 #include "bluetooth_internal.h"
 
 #include "common/converter.h"
+#include "common/extension.h"
 #include "common/logger.h"
 #include "common/platform_result.h"
-#include "common/extension.h"
 #include "common/task-queue.h"
+#include "common/tools.h"
 
 #include "bluetooth/bluetooth_class.h"
 #include "bluetooth/bluetooth_device.h"

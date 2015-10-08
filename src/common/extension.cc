@@ -9,8 +9,10 @@
 #include <vector>
 #include <string>
 #include <map>
-#include "common/logger.h"
+
 #include "common/assert.h"
+#include "common/logger.h"
+#include "common/tools.h"
 
 // This function is hidden, because each plugin needs to have own implementation.
 __attribute__ ((visibility ("hidden"))) common::Extension* CreateExtension() {

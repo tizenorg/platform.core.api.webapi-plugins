@@ -24,6 +24,7 @@
 #include "common/logger.h"
 #include "common/converter.h"
 #include "common/scope_exit.h"
+#include "common/tools.h"
 
 #include "alarm_instance.h"
 #include "alarm_utils.h"

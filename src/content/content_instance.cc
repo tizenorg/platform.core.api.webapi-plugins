@@ -27,7 +27,9 @@
 #include "common/picojson.h"
 #include "common/platform_result.h"
 #include "common/task-queue.h"
+#include "common/tools.h"
 #include "common/virtual_fs.h"
+
 #include "content/content_manager.h"
 
 namespace extension {

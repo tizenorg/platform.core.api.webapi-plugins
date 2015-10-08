@@ -20,10 +20,12 @@
 #include <memory>
 #include <mutex>
 
-#include "common/task-queue.h"
 #include "common/logger.h"
 #include "common/optional.h"
 #include "common/platform_exception.h"
+#include "common/task-queue.h"
+#include "common/tools.h"
+
 #include "sensor_instance.h"
 
 using namespace common;

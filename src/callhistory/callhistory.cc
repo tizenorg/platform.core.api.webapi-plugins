@@ -24,8 +24,10 @@
 
 #include "common/logger.h"
 #include "common/platform_exception.h"
-#include "common/task-queue.h"
 #include "common/scope_exit.h"
+#include "common/task-queue.h"
+#include "common/tools.h"
+
 #include "callhistory_instance.h"
 #include "callhistory_types.h"
 

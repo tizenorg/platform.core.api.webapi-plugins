@@ -22,6 +22,8 @@
 #include <bundle_internal.h>
 
 #include "common/logger.h"
+#include "common/tools.h"
+
 #include "application/application_utils.h"
 
 using namespace common;

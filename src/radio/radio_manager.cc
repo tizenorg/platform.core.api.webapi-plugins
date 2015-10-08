@@ -23,9 +23,10 @@
 #include <runtime_info.h>
 #include <vconf.h>
 
-#include "common/logger.h"
 #include "common/extension.h"
+#include "common/logger.h"
 #include "common/task-queue.h"
+#include "common/tools.h"
 
 #include "radio/radio_instance.h"
 
