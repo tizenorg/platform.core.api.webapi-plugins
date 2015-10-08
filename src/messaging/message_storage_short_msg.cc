@@ -206,29 +206,17 @@ static gboolean findFoldersCB(void* data)
 
     FoldersCallbackData *callback = static_cast<FoldersCallbackData*>(data);
 
-    auto json = callback->getJson();
-    picojson::object& obj = json->get<picojson::object>();
+    picojson::array array;
+    auto each = [&array](std::shared_ptr<MessageFolder> folder)->void {
+      array.push_back(MessagingUtil::folderToJson(folder));
+    };
 
-    if (json->contains(JSON_CALLBACK_ID) && obj.at(JSON_CALLBACK_ID).is<double>()) {
-      picojson::array array;
-      auto each = [&array](std::shared_ptr<MessageFolder> folder)->void {
-        array.push_back(MessagingUtil::folderToJson(folder));
-      };
+    auto folders = callback->getFolders();
+    for_each(folders.begin(), folders.end(), each);
 
-      auto folders = callback->getFolders();
-      for_each(folders.begin(), folders.end(), each);
+    callback->SetSuccess(picojson::value(array));
+    callback->Post();
 
-      obj[JSON_DATA] = picojson::value(array);
-      obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
-
-
-     callback->getQueue().resolve(
-          obj.at(JSON_CALLBACK_ID).get<double>(),
-          json->serialize()
-      );
-    } else {
-      LoggerE("json is incorrect - missing required member");
-    }
     delete callback;
     callback = NULL;
 

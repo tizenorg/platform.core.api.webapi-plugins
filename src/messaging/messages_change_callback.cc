@@ -53,7 +53,7 @@ MessagesChangeCallback::MessagesChangeCallback(
         int service_id,
         MessageType service_type,
         PostQueue& queue) :
-        m_callback_data(cid, queue, true),
+        m_callback_data(queue, cid, true),
         m_service_id(service_id),
         m_msg_type(service_type),
         m_is_act(true)
@@ -136,17 +136,8 @@ void MessagesChangeCallback::added(const MessagePtrVector& msgs)
     LoggerD("Calling:%s with:%d added messages", MESSAGESADDED,
         filtered_msgs.size());
 
-    auto json = m_callback_data.getJson();
-    picojson::object& obj = json->get<picojson::object>();
-    if (json->contains(JSON_CALLBACK_ID) && obj.at(JSON_CALLBACK_ID).is<double>()) {
-      obj[JSON_ACTION] = picojson::value(MESSAGESADDED);
-      obj[JSON_DATA] = picojson::value(array);
-
-      m_callback_data.getQueue().addAndResolve(obj.at(
-          JSON_CALLBACK_ID).get<double>(), PostPriority::MEDIUM, json->serialize());
-    } else {
-      LoggerE("json is incorrect - missing required member");
-    }
+    m_callback_data.SetAction(MESSAGESADDED, picojson::value(array));
+    m_callback_data.AddAndPost(PostPriority::MEDIUM);
 }
 
 void MessagesChangeCallback::updated(const MessagePtrVector& msgs)
@@ -173,17 +164,8 @@ void MessagesChangeCallback::updated(const MessagePtrVector& msgs)
     LoggerD("Calling:%s with:%d updated messages", MESSAGESUPDATED,
         filtered_msgs.size());
 
-    auto json = m_callback_data.getJson();
-    picojson::object& obj = json->get<picojson::object>();
-    if (json->contains(JSON_CALLBACK_ID) && obj.at(JSON_CALLBACK_ID).is<double>()) {
-      obj[JSON_ACTION] = picojson::value(MESSAGESUPDATED);
-      obj[JSON_DATA] = picojson::value(array);
-
-      m_callback_data.getQueue().addAndResolve(obj.at(
-          JSON_CALLBACK_ID).get<double>(), PostPriority::LOW, json->serialize());
-    } else {
-      LoggerE("json is incorrect - missing required member");
-    }
+    m_callback_data.SetAction(MESSAGESUPDATED, picojson::value(array));
+    m_callback_data.AddAndPost(PostPriority::LOW);
 }
 
 void MessagesChangeCallback::removed(const MessagePtrVector& msgs)
@@ -211,18 +193,8 @@ void MessagesChangeCallback::removed(const MessagePtrVector& msgs)
     LoggerD("Calling:%s with:%d removed messages", MESSAGESREMOVED,
         filtered_msgs.size());
 
-    auto json = m_callback_data.getJson();
-    picojson::object& obj = json->get<picojson::object>();
-    if (json->contains(JSON_CALLBACK_ID) && obj.at(JSON_CALLBACK_ID).is<double>()) {
-      obj[JSON_ACTION] = picojson::value(MESSAGESREMOVED);
-      LoggerD("MESSAGES: %s", picojson::value(array).serialize().c_str());
-      obj[JSON_DATA] = picojson::value(array);
-
-      m_callback_data.getQueue().addAndResolve(obj.at(
-          JSON_CALLBACK_ID).get<double>(), PostPriority::LAST, json->serialize());
-    } else {
-      LoggerE("json is incorrect - missing required member");
-    }
+    m_callback_data.SetAction(MESSAGESREMOVED, picojson::value(array));
+    m_callback_data.AddAndPost(PostPriority::LAST);
 }
 
 void MessagesChangeCallback::setFilter(tizen::AbstractFilterPtr filter)

@@ -17,13 +17,13 @@
 #ifndef __TIZEN_FOLDERS_CALLBACK_DATA_H__
 #define __TIZEN_FOLDERS_CALLBACK_DATA_H__
 
-#include "common/callback_user_data.h"
 #include "common/platform_result.h"
 
 #include <memory>
 #include <vector>
 #include <string>
 
+#include "messaging/callback_user_data.h"
 #include "MsgCommon/AbstractFilter.h"
 
 #include "message_folder.h"
@@ -34,10 +34,9 @@ namespace messaging {
 
 class MessageFolder;
 
-class FoldersCallbackData: public common::CallbackUserData {
+class FoldersCallbackData : public CallbackUserData {
 public:
-    FoldersCallbackData(PostQueue& queue);
-    FoldersCallbackData(long cid, PostQueue& queue, bool keep = false);
+    using CallbackUserData::CallbackUserData;
     virtual ~FoldersCallbackData();
 
     void addFolder(std::shared_ptr<MessageFolder> folder);
@@ -46,22 +45,9 @@ public:
     void setFilter(tizen::AbstractFilterPtr filter);
     tizen::AbstractFilterPtr getFilter() const;
 
-    void setError(const std::string& err_name,
-            const std::string& err_message);
-    void SetError(const common::PlatformResult& error);
-    bool isError() const;
-    std::string getErrorName() const;
-    std::string getErrorMessage() const;
-
-    PostQueue& getQueue() { return queue_;};
 private:
     std::vector<std::shared_ptr<MessageFolder>> m_folders;
     tizen::AbstractFilterPtr m_filter;
-    bool m_is_error;
-    std::string m_err_name;
-    std::string m_err_message;
-    PostQueue& queue_;
-
 };
 
 }//messaging

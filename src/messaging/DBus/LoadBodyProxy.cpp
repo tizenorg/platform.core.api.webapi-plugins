@@ -166,19 +166,12 @@ void LoadBodyProxy::handleEmailSignal(const int status,
             if (!ret.IsError()) {
                 LoggerD("Calling success callback");
 
-                auto json = callback->getJson();
-                picojson::object& obj = json->get<picojson::object>();
-                obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
-
                 picojson::object args;
                 args[JSON_DATA_MESSAGE_BODY] = MessagingUtil::messageBodyToJson(
                         callback->getMessage()->getBody());
-                obj[JSON_DATA] = picojson::value(args);
 
-                callback->getQueue().resolve(
-                        obj.at(JSON_CALLBACK_ID).get<double>(),
-                        json->serialize()
-                );
+                callback->SetSuccess(picojson::value(args));
+                callback->Post();
             }
         } else if(NOTI_DOWNLOAD_BODY_FAIL == status) {
             LoggerD("Load message body failed!");
@@ -186,11 +179,8 @@ void LoadBodyProxy::handleEmailSignal(const int status,
         }
 
         if (ret.IsError()) {
-            callback->setError(ret);
-            callback->getQueue().resolve(
-                    callback->getJson()->get<picojson::object>().at(JSON_CALLBACK_ID).get<double>(),
-                    callback->getJson()->serialize()
-            );
+            callback->SetError(ret);
+            callback->Post();
         }
 
         removeCallback(callback);

@@ -57,13 +57,13 @@ PlatformResult SyncProxy::create(const std::string& path,
     }
 }
 
-void SyncProxy::addCallback(long op_id, common::CallbackUserData* callbackOwned)
+void SyncProxy::addCallback(long op_id, CallbackUserData* callbackOwned)
 {
     m_callback_map.insert(std::make_pair(op_id, callbackOwned));
 }
 
-common::CallbackUserData* SyncProxy::getCallback(long op_id) {
-  common::CallbackUserData* cb = nullptr;
+CallbackUserData* SyncProxy::getCallback(long op_id) {
+  CallbackUserData* cb = nullptr;
   const auto it = m_callback_map.find(op_id);
 
   if (it != m_callback_map.end()) {
@@ -123,28 +123,18 @@ void SyncProxy::handleEmailSignal(const int status,
         return;
     }
 
-    std::shared_ptr<picojson::value> response = callback->getJson();
-    picojson::object& obj = response->get<picojson::object>();
     switch (status) {
         case NOTI_DOWNLOAD_FINISH:
             LoggerD("Sync finished!");
-            obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
-            callback->getQueue().resolve(
-                    obj.at(JSON_CALLBACK_ID).get<double>(),
-                    response->serialize()
-            );
+            callback->SetSuccess();
+            callback->Post();
             break;
 
         case NOTI_DOWNLOAD_FAIL:
-        {
             LoggerD("Sync failed!");
-            callback->setError("UnknownError", "Sync failed!");
-            callback->getQueue().resolve(
-                    obj.at(JSON_CALLBACK_ID).get<double>(),
-                    response->serialize()
-            );
-        }
-        break;
+            callback->SetError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Sync failed!"));
+            callback->Post();
+            break;
 
     }
 

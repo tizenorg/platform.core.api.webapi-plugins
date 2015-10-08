@@ -32,7 +32,7 @@
 #include "email-api-mail.h"
 #include "email-api-mailbox.h"
 
-#include "common/callback_user_data.h"
+#include "messaging/callback_user_data.h"
 #include "common/GDBus/connection.h"
 #include "common/platform_exception.h"
 #include "common/platform_result.h"

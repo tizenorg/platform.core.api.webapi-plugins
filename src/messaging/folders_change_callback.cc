@@ -32,7 +32,7 @@ FoldersChangeCallback::FoldersChangeCallback(
         int service_id,
         MessageType service_type,
         PostQueue& queue):
-    m_callback_data(cid, queue, true),
+    m_callback_data(queue, cid, true),
     m_id(service_id),
     m_msg_type(service_type),
     m_is_act(true)
@@ -99,17 +99,8 @@ void FoldersChangeCallback::added(const FolderPtrVector& folders)
     LoggerD("Calling:%s with:%d added folders", FOLDERSADDED,
             filtered.size());
 
-    auto json = m_callback_data.getJson();
-    picojson::object& obj = json->get<picojson::object>();
-    obj[JSON_ACTION] = picojson::value(FOLDERSADDED);
-    obj[JSON_DATA] = picojson::value(array);
-
-    if (json->contains(JSON_CALLBACK_ID) && obj.at(JSON_CALLBACK_ID).is<double>()) {
-      m_callback_data.getQueue().addAndResolve(obj.at(
-          JSON_CALLBACK_ID).get<double>(), PostPriority::MEDIUM, json->serialize());
-    } else {
-      LoggerE("Callback id is missing");
-    }
+    m_callback_data.SetAction(FOLDERSADDED, picojson::value(array));
+    m_callback_data.AddAndPost(PostPriority::MEDIUM);
 }
 
 void FoldersChangeCallback::updated(const FolderPtrVector& folders)
@@ -136,17 +127,8 @@ void FoldersChangeCallback::updated(const FolderPtrVector& folders)
     LoggerD("Calling:%s with:%d updated folders", FOLDERSUPDATED,
             filtered.size());
 
-    auto json = m_callback_data.getJson();
-    picojson::object& obj = json->get<picojson::object>();
-    obj[JSON_ACTION] = picojson::value(FOLDERSUPDATED);
-    obj[JSON_DATA] = picojson::value(array);
-
-    if (json->contains(JSON_CALLBACK_ID) && obj.at(JSON_CALLBACK_ID).is<double>()) {
-      m_callback_data.getQueue().addAndResolve(obj.at(
-          JSON_CALLBACK_ID).get<double>(), PostPriority::LOW, json->serialize());
-    } else {
-      LoggerE("Callback id is missing");
-    }
+    m_callback_data.SetAction(FOLDERSUPDATED, picojson::value(array));
+    m_callback_data.AddAndPost(PostPriority::LOW);
 }
 
 void FoldersChangeCallback::removed(const FolderPtrVector& folders)
@@ -173,17 +155,8 @@ void FoldersChangeCallback::removed(const FolderPtrVector& folders)
     LoggerD("Calling:%s with:%d removed folders", FOLDERSREMOVED,
             filtered.size());
 
-    auto json = m_callback_data.getJson();
-    picojson::object& obj = json->get<picojson::object>();
-    obj[JSON_ACTION] = picojson::value(FOLDERSREMOVED);
-    obj[JSON_DATA] = picojson::value(array);
-
-    if (json->contains(JSON_CALLBACK_ID) && obj.at(JSON_CALLBACK_ID).is<double>()) {
-      m_callback_data.getQueue().addAndResolve(obj.at(
-          JSON_CALLBACK_ID).get<double>(), PostPriority::LAST, json->serialize());
-    } else {
-      LoggerE("Callback id is missing");
-    }
+    m_callback_data.SetAction(FOLDERSREMOVED, picojson::value(array));
+    m_callback_data.AddAndPost(PostPriority::LAST);
 }
 
 void FoldersChangeCallback::setFilter(tizen::AbstractFilterPtr filter)
