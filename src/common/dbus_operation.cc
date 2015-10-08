@@ -104,7 +104,8 @@ void DBusOperationArguments::AddArgumentString(const std::string& val) {
     const int length = val.length();
 
     char* p_val = new char[length+1];
-    strncpy(p_val, val.c_str(), length+1); // TODO: is it safe?
+    // copy 'length' characters and add a NULL-character at 'length+1' position
+    strncpy(p_val, val.c_str(), length+1);
 
     arguments_.push_back(ArgumentElement(ArgType::kTypeString, p_val));
 }
