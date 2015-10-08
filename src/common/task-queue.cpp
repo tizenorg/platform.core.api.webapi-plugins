@@ -64,11 +64,4 @@ void TaskQueue::Async(const std::function<void()>& work) {
     g_idle_add(AfterWorkCallback<void>, d);
 }
 
-//TODO check if it would be needed in future
-//void TaskQueue::AsyncResponse(int callback_handle, const std::shared_ptr<picojson::value>& response) {
-//    Async<picojson::value>([callback_handle](const std::shared_ptr<picojson::value>& response) {
-//        wrt::common::NativeContext::GetInstance()->InvokeCallback(callback_handle,
-//                                                                 response->serialize());
-//    }, response);
-//}
 } // namespace common
