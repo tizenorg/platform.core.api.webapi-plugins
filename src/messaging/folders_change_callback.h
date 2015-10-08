@@ -36,6 +36,8 @@ extern const char* FOLDERSREMOVED;
 
 class FoldersChangeCallback {
 public:
+    typedef void(FoldersChangeCallback::*Signature)(const FolderPtrVector& conversations);
+
     FoldersChangeCallback(
             long cid,
             int service_id,

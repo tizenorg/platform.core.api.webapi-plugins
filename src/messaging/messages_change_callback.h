@@ -36,6 +36,8 @@ extern const char* MESSAGESREMOVED;
 
 class MessagesChangeCallback {
 public:
+    typedef void(MessagesChangeCallback::*Signature)(const MessagePtrVector& conversations);
+
     MessagesChangeCallback(
             long cid,
             int service_id,
