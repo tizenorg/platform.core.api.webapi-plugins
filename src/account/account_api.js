@@ -115,8 +115,6 @@ Account.prototype.getExtendedData = function() {
             }
         ]);
 
-        // TODO handling exceptions
-
         native_.call('Account_getExtendedData', { accountId: this.id },
             function(result) {
                 if (native_.isFailure(result)) {
@@ -256,8 +254,6 @@ AccountManager.prototype.getAccounts = function() {
         { name: 'applicationId', type: types_.STRING, optional: true, nullable: true }
     ]);
 
-    // TODO handling exceptions
-
     native_.call('AccountManager_getAccounts',
         {
             applicationId: args.applicationId
@@ -314,8 +310,6 @@ AccountManager.prototype.getProviders = function() {
         { name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true },
         { name: 'capability', type: types_.STRING, optional: true, nullable: true }
     ]);
-
-    // TODO handling exceptions
 
     native_.call( 'AccountManager_getProviders',
         {
