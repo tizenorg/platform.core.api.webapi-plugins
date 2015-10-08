@@ -627,8 +627,6 @@ PlatformResult ExportContactNameToContactsRecord(
     nickname_ptr.release();
   }
 
-  // TODO update displayName in JS!
-
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 

@@ -800,6 +800,26 @@ PlatformResult ContactManagerFind(const JsonObject& args, JsonArray& out) {
     if (status.IsError()) return status;
   }
 
+  const auto sort_mode_it = args.find("sortMode");
+  if (args.end() != sort_mode_it) {
+    if (!sort_mode_it->second.is<picojson::object>()) {
+      LoggerD("Failed to set sort mode.");
+      return PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, "Failed to set sort mode");
+    }
+    const auto sort_mode = sort_mode_it->second;
+    std::string attribute = sort_mode.get("attributeName").to_str();
+
+    Person::PersonProperty property;
+    status = Person::PersonPropertyFromString(attribute, &property);
+    if (status.IsError()) return status;
+
+    bool is_asc = sort_mode.get("order").to_str() == "ASC";
+    error_code = contacts_query_set_sort(contacts_query, property.propertyId, is_asc);
+    status = ContactUtil::ErrorChecker(error_code,
+                                       "Failed contacts_query_set_sort");
+    if (status.IsError()) return status;
+  }
+
   contacts_list_h person_list = nullptr;
   error_code =
       contacts_db_get_records_with_query(contacts_query, 0, 0, &person_list);

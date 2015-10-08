@@ -44,7 +44,7 @@ PlatformResult PersonLink(const JsonObject& args, JsonObject&) {
   if (status.IsError()) return status;
 
   long id = common::stol(FromJson<JsonString>(args, "id"));
-  long person_id = common::stol(FromJson<JsonString>(args, "person", "id"));
+  long person_id = common::stol(FromJson<JsonString>(args, "personId"));
 
   contacts_record_h contacts_record = nullptr;
 
@@ -94,7 +94,7 @@ PlatformResult PersonUnlink(const JsonObject& args, JsonObject& out) {
                                      "Contact is not a member of person");
   if (status.IsError()) return status;
 
-  long person_id = common::stol(FromJson<JsonString>(args, "person", "id"));
+  long person_id = common::stol(FromJson<JsonString>(args, "personId"));
   if (contacts_person_id != person_id) {
     LoggerW("Contact is not a member of person (wrong id's)");
     return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
