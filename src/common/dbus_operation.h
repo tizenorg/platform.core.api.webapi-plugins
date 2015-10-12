@@ -22,7 +22,8 @@
 #include <set>
 
 #include <dbus/dbus.h>
-#include "platform_result.h"
+
+#include "common/platform_result.h"
 
 namespace common {
 
@@ -73,9 +74,6 @@ class DBusOperation {
           const std::string& interface);
   virtual ~DBusOperation();
 
-  int InvokeSyncGetInt(const std::string& method,
-             DBusOperationArguments* args);
-  //TODO remove throwing methods when they would be not needed any more.
   common::PlatformResult InvokeSyncGetInt(const std::string& method,
              DBusOperationArguments* args, int* result);
 
