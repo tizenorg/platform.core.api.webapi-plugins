@@ -1204,6 +1204,9 @@ class ApplicationListChangedBroker {
         case Event::kUpdated:
           data_obj.insert(std::make_pair(kAction, picojson::value(kOnUpdated)));
           break;
+        case Event::kUninstalled:
+          LoggerD("Uninstalled called");
+          break;
       }
 
       switch (event_type_) {
@@ -1221,6 +1224,9 @@ class ApplicationListChangedBroker {
           pkgmgrinfo_appinfo_destroy_appinfo(handle);
         }
         break;
+        case Event::kUninstalled:
+          LoggerD("Uninstalled called");
+          break;
       }
 
       data_obj["listenerId"] = picojson::value("ApplicationEventListener");
