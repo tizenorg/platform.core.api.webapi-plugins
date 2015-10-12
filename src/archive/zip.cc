@@ -27,7 +27,6 @@
 #include "filesystem_file.h"
 #include "archive_file.h"
 #include "archive_utils.h"
-#include "crypt.h"
 #include "zip_add_request.h"
 
 namespace extension {
