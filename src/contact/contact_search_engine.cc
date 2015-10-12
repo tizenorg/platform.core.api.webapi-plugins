@@ -127,9 +127,6 @@ ContactSearchEngine::PropertiesMap ContactSearchEngine::s_properties_map_ = {
 };
 
 // implementation ported from wrt-plugins-tizen
-// TODO: instead of executing multiple queries and combining the results,
-//       create multiple filters, combine them into one, add sorting and
-//       execute a single query
 
 ContactSearchEngine::ContactSearchEngine()
     : addressbook_id_(0),
@@ -224,7 +221,7 @@ PlatformResult ContactSearchEngine::SetSortMode(const picojson::value& sort_mode
 
   is_sort_mode_set_ = true;
   sort_mode_attribute_ = attribute;
-  is_sort_mode_asc_ = sort_mode.get("attributeName").to_str() == "ASC";
+  is_sort_mode_asc_ = sort_mode.get("order").to_str() == "ASC";
 
   return PlatformResult(ErrorCode::NO_ERROR);
 }
@@ -1052,7 +1049,6 @@ PlatformResult ContactSearchEngine::QueryAttributeRangeString(
     ContactUtil::ContactsFilterPtr sub_filter_ptr(sub_filter,
                                                   ContactUtil::ContactsFilterDeleter);
 
-    // TODO To be supported: start
     error_code = contacts_filter_add_str(sub_filter, property_id,
                                          CONTACTS_MATCH_STARTSWITH,
                                          initial_value);

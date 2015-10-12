@@ -85,6 +85,7 @@ PlatformResult AddressBookAdd(const JsonObject& args, JsonObject& out) {
   if (status.IsError()) return status;
 
   const JsonObject& contact = FromJson<JsonObject>(args, "contact");
+  long addressBookId = common::stol(FromJson<JsonString>(args, "addressBookId"));
 
   if (!IsNull(contact, "id")) {
     LoggerW("Contact already exists");
@@ -105,6 +106,10 @@ PlatformResult AddressBookAdd(const JsonObject& args, JsonObject& out) {
       &contacts_record, ContactUtil::ContactsDeleter);
   status =
       ContactUtil::ExportContactToContactsRecord(*contacts_record_ptr, contact);
+  if (status.IsError()) return status;
+
+  status = ContactUtil::SetIntInRecord(
+      contacts_record, _contacts_contact.address_book_id, addressBookId);
   if (status.IsError()) return status;
 
   int id = -1;
@@ -139,18 +144,11 @@ PlatformResult AddressBookUpdate(const JsonObject& args, JsonObject& out) {
   if (status.IsError()) return status;
 
   const JsonObject& contact = FromJson<JsonObject>(args, "contact");
-  const JsonObject& addressbook = FromJson<JsonObject>(args, "addressBook");
   long contactId = common::stol(FromJson<JsonString>(contact, "id"));
 
   if (IsNull(contact, "id")) {
     LoggerW("Contact doesn't exist");
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Contact doesn't exist");
-  }
-
-  if (IsNull(addressbook, "id")) {
-    LoggerE("Contact is not saved in database");
-    return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
-                          "Contact is not saved in database");
   }
 
   contacts_record_h to_update = nullptr;
@@ -306,12 +304,6 @@ PlatformResult AddressBookUpdateBatch(const JsonObject& args, JsonArray& out) {
   if (status.IsError()) return status;
 
   const JsonArray& batch_args = FromJson<JsonArray>(args, "batchArgs");
-  const JsonObject& addressBook = FromJson<JsonObject>(args, "addressBook");
-  if (IsNull(addressBook, "id")) {
-    LoggerE("Contact is not saved in database");
-    return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
-                          "Contact is not saved in database");
-  }
   contacts_list_h contacts_list = NULL;
   int err = 0;
   err = contacts_list_create(&contacts_list);
@@ -378,12 +370,6 @@ PlatformResult AddressBookRemoveBatch(const JsonObject& args) {
   PlatformResult status = ContactUtil::CheckDBConnection();
   if (status.IsError()) return status;
   const JsonArray& batch_args = FromJson<JsonArray>(args, "batchArgs");
-  const JsonObject& addressBook = FromJson<JsonObject>(args, "addressBook");
-  if (IsNull(addressBook, "id")) {
-    LoggerE("Contact is not saved in database");
-    return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
-                          "Contact is not saved in database");
-  }
   int length = static_cast<int>(batch_args.size());
   int ids[length], i=0;
   for (auto& item : batch_args) {
@@ -497,9 +483,7 @@ PlatformResult AddressBookGetGroup(const JsonObject& args, JsonObject& out) {
 
   ContactUtil::ContactsRecordHPtr record(&contacts_record,
                                          ContactUtil::ContactsDeleter);
-
-  long addressbook_id =
-      common::stol(FromJson<JsonString>(args, "addressBook", "id"));
+  long addressbook_id = common::stol(FromJson<std::string>(args, "addressBookId"));
   if (IsUnified(addressbook_id)) {
     int address_book_id = 0;
     status = ContactUtil::GetIntFromRecord(
@@ -593,7 +577,7 @@ PlatformResult AddressBookRemoveGroup(const JsonObject& args, JsonObject&) {
   }
 
   int err;
-  long addressbook_id = AddressBookId(args);
+  long addressbook_id = common::stol(FromJson<std::string>(args, "addressBookId"));
   if (!IsUnified(addressbook_id)) {
     contacts_record_h contacts_record = nullptr;
     err = contacts_db_get_record(_contacts_group._uri, id, &contacts_record);
