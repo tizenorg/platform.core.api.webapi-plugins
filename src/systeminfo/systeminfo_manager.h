@@ -66,8 +66,8 @@ class SysteminfoManager {
   void SetCpuInfoLoad(double load);
   void SetAvailableCapacityInternal(unsigned long long capacity);
   void SetAvailableCapacityMmc(unsigned long long capacity);
-  std::string GetCameraTypes(int index);
-  int GetCameraTypesCount();
+  std::string GetCameraTypes(unsigned int index);
+  unsigned int GetCameraTypesCount();
 
   bool IsListenerRegistered(const std::string& property_id);
   void CallListenerCallback(const std::string& property_id, int property_index = 0);

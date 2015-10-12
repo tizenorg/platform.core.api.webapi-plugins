@@ -1285,7 +1285,7 @@ void SysteminfoManager::InitCameraTypes() {
   }
 }
 
-std::string SysteminfoManager::GetCameraTypes(int index) {
+std::string SysteminfoManager::GetCameraTypes(unsigned int index) {
   LoggerD("Enter");
   if (index >= camera_types_.size()) {
     return "";
@@ -1293,7 +1293,7 @@ std::string SysteminfoManager::GetCameraTypes(int index) {
   return camera_types_[index];
 }
 
-int SysteminfoManager::GetCameraTypesCount() {
+unsigned int SysteminfoManager::GetCameraTypesCount() {
   LoggerD("Enter");
   return camera_types_.size();
 }
