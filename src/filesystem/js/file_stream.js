@@ -13,6 +13,23 @@
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
  */
+function _checkClosed(stream) {
+  if (stream._closed) {
+    throw new WebAPIException(WebAPIException.IO_ERR, 'Stream is closed.');
+  }
+}
+
+function _checkReadAccess(mode) {
+  if (mode !== 'r' && mode !== 'rw') {
+    throw new WebAPIException(WebAPIException.IO_ERR, 'Stream is not in read mode.');
+  }
+}
+
+function _checkWriteAccess(mode) {
+  if (mode !== 'a' && mode !== 'w' && mode !== 'rw') {
+    throw new WebAPIException(WebAPIException.IO_ERR, 'Stream is not in write mode.');
+  }
+}
 
 function FileStream(data, mode, encoding) {
   var _totalBytes = data.fileSize || 0;
@@ -20,9 +37,12 @@ function FileStream(data, mode, encoding) {
 
   Object.defineProperties(this, {
     eof: {
-      value: false,
-      enumerable: true,
-      writable: false
+      get: function() {
+        return _totalBytes < _position;
+      },
+      set: function(v) {
+      },
+      enumerable: true
     },
     position: {
       get: function() {
@@ -34,9 +54,12 @@ function FileStream(data, mode, encoding) {
       enumerable: true
     },
     bytesAvailable: {
-      value: this.eof ? -1 : Math.max(0, _totalBytes - _position),
-      enumerable: true,
-      writable: false
+      get: function() {
+        return this.eof ? -1 : Math.max(0, _totalBytes - _position);
+      },
+      set: function(v) {
+      },
+      enumerable: true
     },
     _mode: {
       value: mode,
@@ -59,30 +82,75 @@ function FileStream(data, mode, encoding) {
       enumerable: false
     }
   });
-}
 
-function _checkClosed(stream) {
-  if (stream._closed) {
-    throw new WebAPIException(WebAPIException.IO_ERR, 'Stream is closed.');
-  }
+  this.write = function() {
+    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_WRITE);
+
+    var args = validator_.validateArgs(arguments, [
+      {
+        name: 'stringData',
+        type: types_.STRING
+      }
+    ]);
+
+    _checkClosed(this);
+    _checkWriteAccess(this._mode);
+    if (!arguments.length) {
+      throw new WebAPIException(WebAPIException.NOT_FOUND_ERR,
+          'Argument "stringData" missing');
+    }
+
+    var data = {
+      location: commonFS_.toRealPath(this._file.fullPath),
+      offset: this.position,
+      length: args.stringData.length,
+      is_base64: false,
+    };
+    var result = native_.callSyncData('File_writeSync', data, "string", args.stringData);
+    if (native_.isFailure(result.reply)) {
+      throw new WebAPIException(WebAPIException.IO_ERR, 'Could not write');
+    }
+    this.position = this.position + result.reply.data_size;
+    _totalBytes = Math.max(this.position, _totalBytes);
+  };
+
+  this.writeBytes = function() {
+    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_WRITE);
+
+    var args = validator_.validateArgs(arguments, [
+      {
+        name: 'byteData',
+        type: types_.ARRAY
+      }
+    ]);
+    _checkClosed(this);
+    _checkWriteAccess(this._mode);
+    if (!arguments.length) {
+      throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR,
+          'Argument "byteData" missing');
+    }
+
+    var data = {
+      location: commonFS_.toRealPath(this._file.fullPath),
+      offset: this.position,
+      length: args.byteData.length,
+      is_base64: false,
+    };
+
+    var result = native_.callSyncData('File_writeSync', data, "octet", args.byteData);
+
+    if (native_.isFailure(result.reply)) {
+      throw new WebAPIException(WebAPIException.IO_ERR, 'Could not write');
+    }
+    this.position = this.position + result.reply.data_size;
+    _totalBytes = Math.max(this.position, _totalBytes);
+  };
 }
 
 FileStream.prototype.close = function() {
   xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_READ);
   this._closed = true;
 };
-
-function _checkReadAccess(mode) {
-  if (mode !== 'r' && mode !== 'rw') {
-    throw new WebAPIException(WebAPIException.IO_ERR, 'Stream is not in read mode.');
-  }
-}
-
-function _checkWriteAccess(mode) {
-  if (mode !== 'a' && mode !== 'w' && mode !== 'rw') {
-    throw new WebAPIException(WebAPIException.IO_ERR, 'Stream is not in write mode.');
-  }
-}
 
 FileStream.prototype.read = function() {
   xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_READ);
@@ -211,68 +279,6 @@ FileStream.prototype.readBase64 = function() {
   this.position = this.position + result.reply.data_size;
 
   return result.output;
-};
-
-FileStream.prototype.write = function() {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_WRITE);
-
-  var args = validator_.validateArgs(arguments, [
-    {
-      name: 'stringData',
-      type: types_.STRING
-    }
-  ]);
-
-  _checkClosed(this);
-  _checkWriteAccess(this._mode);
-  if (!arguments.length) {
-    throw new WebAPIException(WebAPIException.NOT_FOUND_ERR,
-        'Argument "stringData" missing');
-  }
-
-  var data = {
-    location: commonFS_.toRealPath(this._file.fullPath),
-    offset: this.position,
-    length: args.stringData.length,
-    is_base64: false,
-  };
-  var result = native_.callSyncData('File_writeSync', data, "string", args.stringData);
-  if (native_.isFailure(result.reply)) {
-    throw new WebAPIException(WebAPIException.IO_ERR, 'Could not write');
-  }
-  this.position = this.position + result.reply.data_size;
-};
-
-FileStream.prototype.writeBytes = function() {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_WRITE);
-
-  var args = validator_.validateArgs(arguments, [
-    {
-      name: 'byteData',
-      type: types_.ARRAY
-    }
-  ]);
-  _checkClosed(this);
-  _checkWriteAccess(this._mode);
-  if (!arguments.length) {
-    throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR,
-        'Argument "byteData" missing');
-  }
-
-  var data = {
-    location: commonFS_.toRealPath(this._file.fullPath),
-    offset: this.position,
-    length: args.byteData.length,
-    is_base64: false,
-  };
-
-  var result = native_.callSyncData('File_writeSync', data, "octet", args.byteData);
-
-  if (native_.isFailure(result.reply)) {
-    throw new WebAPIException(WebAPIException.IO_ERR, 'Could not write');
-  }
-  this.position = this.position + result.reply.data_size;
-
 };
 
 function _isBase64(str) {
