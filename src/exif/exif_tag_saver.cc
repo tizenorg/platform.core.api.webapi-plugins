@@ -271,6 +271,12 @@ common::PlatformResult ExifTagSaver::saveToExif(std::vector<long long int>& valu
       }
       break;
     }
+    default: {
+      LoggerE("output ExifFormat: %d is not supported!", store_as);
+      free(entry->data);
+      entry->data = nullptr;
+      return common::PlatformResult(common::ErrorCode::UNKNOWN_ERR, "ExifFormat is not supported!");
+    }
   }
 
   LoggerD("entry after save:");
