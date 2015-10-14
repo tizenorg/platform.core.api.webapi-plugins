@@ -48,10 +48,6 @@ void ApplicationUtils::CreateApplicationInformation(const pkgmgrinfo_appinfo_h h
   ret = pkgmgrinfo_appinfo_get_label(handle, &tmp_str);
   if ((PMINFO_R_OK != ret) || (nullptr == tmp_str)) {
     LoggerE("Failed to get label");
-    if (PMINFO_R_ERROR == ret) {
-      tmp_str = "(NULL)";
-      app_info->insert(std::make_pair("name", picojson::value(tmp_str)));
-    }
   } else {
     app_info->insert(std::make_pair("name", picojson::value(tmp_str)));
   }
@@ -61,10 +57,6 @@ void ApplicationUtils::CreateApplicationInformation(const pkgmgrinfo_appinfo_h h
   ret = pkgmgrinfo_appinfo_get_icon(handle, &tmp_str);
   if ((PMINFO_R_OK != ret) || (nullptr == tmp_str)) {
     LoggerE("Failed to get icon path");
-    if (PMINFO_R_ERROR == ret) {
-      tmp_str = "(NULL)";
-      app_info->insert(std::make_pair("iconPath", picojson::value(tmp_str)));
-    }
   } else {
     app_info->insert(std::make_pair("iconPath", picojson::value(tmp_str)));
   }
@@ -119,10 +111,6 @@ void ApplicationUtils::CreateApplicationInformation(const pkgmgrinfo_appinfo_h h
     ret = pkgmgrinfo_pkginfo_get_version(pkginfo, &tmp_str);
     if ((PMINFO_R_OK != ret) || (nullptr == tmp_str)) {
       LoggerE("Failed to get version");
-      if (PMINFO_R_ERROR == ret) {
-        tmp_str = "(NULL)";
-        app_info->insert(std::make_pair("version", picojson::value(tmp_str)));
-      }
     } else {
       app_info->insert(std::make_pair("version", picojson::value(tmp_str)));
     }
