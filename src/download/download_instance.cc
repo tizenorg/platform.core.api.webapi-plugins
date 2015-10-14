@@ -223,7 +223,7 @@ gboolean DownloadInstance::OnFinished(void* user_data) {
   out["status"] = picojson::value("completed");
   out["callbackId"] =
     picojson::value(static_cast<double>(downCbPtr->callbackId));
-  out["fullPath"] = picojson::value(fullPath);
+  out["fullPath"] = picojson::value(common::VirtualFs::GetInstance().GetVirtualPath(fullPath));
 
   Instance::PostMessage(downCbPtr->instance, picojson::value(out).serialize().c_str());
   downCbPtr->instance->downCbMap.erase(downCbPtr->callbackId);
