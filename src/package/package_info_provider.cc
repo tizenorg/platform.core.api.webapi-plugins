@@ -165,10 +165,7 @@ bool PackageInfoProvider:: ConvertToPackageToObject(
   ret = pkgmgrinfo_pkginfo_get_label(info, &name);
   if ( (ret != PMINFO_R_OK) || (name == NULL) ) {
     LoggerE("[%s] Failed to get package name", id);
-    if (PMINFO_R_ERROR != ret) {
-      return false;
-    }
-    name = "(NULL)";
+    return false;
   }
   out["name"] = picojson::value(name);
 
@@ -176,10 +173,7 @@ bool PackageInfoProvider:: ConvertToPackageToObject(
   ret = pkgmgrinfo_pkginfo_get_icon(info, &iconPath);
   if ( (ret != PMINFO_R_OK) || (iconPath == NULL) ) {
     LoggerE("[%s] Failed to get package iconPath", id);
-    if (PMINFO_R_ERROR != ret) {
-      return false;
-    }
-    iconPath = "(NULL)";
+    return false;
   }
   out["iconPath"] = picojson::value(iconPath);
 
@@ -187,10 +181,7 @@ bool PackageInfoProvider:: ConvertToPackageToObject(
   ret = pkgmgrinfo_pkginfo_get_version(info, &version);
   if ( (ret != PMINFO_R_OK) || (version == NULL) ) {
     LoggerE("[%s] Failed to get package version", id);
-    if (PMINFO_R_ERROR != ret) {
-      return false;
-    }
-    version = "(NULL)";
+    return false;
   }
   out["version"] = picojson::value(version);
 
@@ -208,10 +199,7 @@ bool PackageInfoProvider:: ConvertToPackageToObject(
   ret = pkgmgrinfo_pkginfo_get_author_name(info, &author);
   if ( (ret != PMINFO_R_OK) || (author == NULL) ) {
     LoggerE("[%s] Failed to get package author", id);
-    if (PMINFO_R_ERROR != ret) {
-      return false;
-    }
-    author = "(NULL)";
+    return false;
   }
   out["author"] = picojson::value(author);
 
@@ -219,10 +207,7 @@ bool PackageInfoProvider:: ConvertToPackageToObject(
   ret = pkgmgrinfo_pkginfo_get_description(info, &description);
   if ( (ret != PMINFO_R_OK) || (description == NULL) ) {
     LoggerE("[%s] Failed to get package description", id);
-    if (PMINFO_R_ERROR != ret) {
-      return false;
-    }
-    description = "(NULL)";
+    return false;
   }
   out["description"] = picojson::value(description);
 
