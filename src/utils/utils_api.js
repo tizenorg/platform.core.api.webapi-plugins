@@ -1598,3 +1598,8 @@ Utils.prototype.NativeBridge = NativeBridge;
 var native_ = new NativeManager(extension);
 
 exports = new Utils();
+
+Object.freeze(Utils.prototype);
+Object.freeze(NativeManager.prototype);
+Object.freeze(NativeBridge.prototype);
+Object.freeze(exports);
