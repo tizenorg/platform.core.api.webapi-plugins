@@ -427,7 +427,7 @@ File.prototype.copyTo = function(originFilePath, destinationFilePath, overwrite,
   }
 
   if (_oldNode.isFile && addFileName) {
-    _realDestinationPath += _realOriginalPath.split('/').pop();
+    _realDestinationPath += '/' + _realOriginalPath.split('/').pop();
   }
 
   if (!args.overwrite) {
