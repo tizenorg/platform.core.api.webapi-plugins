@@ -111,6 +111,18 @@ var commonFS_ = (function() {
     cacheReady = true;
   }
 
+  function mergeMultipleSlashes(str) {
+    var s = str[0];
+    var resStr = s;
+    for (var i=1; i < str.length; ++i ) {
+      if (!(str[i] === s && str[i] === '/')) {
+        s = str[i];
+        resStr+=str[i];
+      }
+    }
+    return resStr;
+  }
+
   function toRealPath(aPath) {
     var _fileRealPath = '';
 
@@ -144,7 +156,14 @@ var commonFS_ = (function() {
     } else {
       _fileRealPath = aPath;
     }
-
+    // if path is valid try to cut last '/' if it is present
+    if (_fileRealPath) {
+      _fileRealPath = mergeMultipleSlashes(_fileRealPath);
+      var lastCharIndex = _fileRealPath.length-1;
+      if (_fileRealPath[lastCharIndex] === '/') {
+        _fileRealPath = _fileRealPath.substr(0,lastCharIndex);
+      }
+    }
     return _fileRealPath;
   }
 
@@ -163,7 +182,12 @@ var commonFS_ = (function() {
       }
     }
 
-    return aPath;
+    // cutting of last '/' if it is present
+    var lastCharIndex = aPath.length-1;
+    if (aPath[lastCharIndex] === '/') {
+      aPath = aPath.substr(0,lastCharIndex);
+    }
+    return mergeMultipleSlashes(aPath);
   }
 
   function getFileInfo(aStatObj, secondIter, aMode) {
