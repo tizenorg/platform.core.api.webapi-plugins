@@ -685,19 +685,22 @@ Application.prototype.addEventListener = function(event, callback) {
   if (!Object.keys(event_listeners_[data.name]).length) {
     native.addListener(data.name, function(msg) {
       var eventName = msg.name;
-      var event = eventName.split('.');
-      event = {
-        appId: event.slice(1, -1).join('.'), // app ID is everything besides the 'event' prefix and event name
-        name: event[event.length - 1]  // event name cannot contain '.', so it's always the last element in array
-      };
+      var parsedName = eventName.split('.');
+      var eventInfo = {};
+      if (parsedName.length < 3) {
+        console.logd('Invalid event name returned' + eventName);
+      }
       for (var id in event_listeners_[eventName]) {
         if (event_listeners_[eventName].hasOwnProperty(id)) {
           if (msg.data) {
-            event_listeners_[eventName][id](event, msg.data);
+            eventInfo.appId = parsedName[1];
+            eventInfo.name = parsedName[2];
+            event_listeners_[eventName][id](eventInfo, msg.data);
           } else {
             delete msg.name;
-            msg.type = event; //TODO: type should come from native site
-            event_listeners_[eventName][id](event, msg);
+            msg.type = parsedName[2]; //TODO: type should come from native site
+            eventInfo.name = parsedName[2].toUpperCase();
+            event_listeners_[eventName][id](eventInfo, msg);
           }
         }
       }
