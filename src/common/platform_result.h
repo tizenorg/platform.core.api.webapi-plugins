@@ -64,6 +64,7 @@ enum class ErrorCode : int {
   PERMISSION_DENIED_ERR = 102,
   SERVICE_NOT_AVAILABLE_ERR = 103,
   DATABASE_ERR = 104,
+  VERIFICATION_ERR = 105,
 
   // Error codes specific for plugins
   OPERATION_CANCELED_ERR = 200,

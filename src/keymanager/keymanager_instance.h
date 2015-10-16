@@ -28,27 +28,16 @@ class KeyManagerInstance : public common::ParsedInstance {
   virtual ~KeyManagerInstance();
 
  private:
-  void GetKeyAliasList(picojson::value const& args, picojson::object& out);
-  void GetCertificateAliasList(picojson::value const& args,
-                               picojson::object& out);
+
   void GetDataAliasList(picojson::value const& args, picojson::object& out);
-  void GetKey(const picojson::value& args, picojson::object& out);
-  void SaveKey(const picojson::value& args, picojson::object& out);
-  void RemoveAlias(const picojson::value& args, picojson::object& out);
-  void GenerateKeyPair(const picojson::value& args, picojson::object& out);
-  void GetCertificate(const picojson::value& args, picojson::object& out);
-  void SaveCertificate(const picojson::value& args, picojson::object& out);
-  void LoadCertificateFromFile(const picojson::value& args,
-                               picojson::object& out);
+
   void SaveData(const picojson::value& args, picojson::object& out);
   void GetData(const picojson::value& args, picojson::object& out);
-  void CreateSignature(const picojson::value& args, picojson::object& out);
-  void VerifySignature(const picojson::value& args, picojson::object& out);
-  void LoadFromPKCS12File(const picojson::value& args, picojson::object& out);
-  void AllowAccessControl(const picojson::value& args, picojson::object& out);
-  void DenyAccessControl(const picojson::value& args, picojson::object& out);
+  void RemoveAlias(const picojson::value& args, picojson::object& out);
 
-  void IsDataNameFound(const picojson::value& args, picojson::object& out);
+  void SetPermission(const picojson::value& args, picojson::object& out);
+
+  static common::PlatformResult GetError(int ret);
 };
 
 } // namespace keymanager
