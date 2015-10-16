@@ -111,9 +111,7 @@ PlatformResult AppControlToServiceExtraData(const picojson::object& app_obj,
   size_t i = 0;
 
   for (auto iter = values.begin(); iter != values.end(); ++iter, ++i) {
-    if (iter->is<std::string>()) {
-      arr[i] = iter->get<std::string>().c_str();
-    }
+    arr[i] = iter->to_str().c_str();
   }
 
   int ret = APP_CONTROL_ERROR_NONE;
