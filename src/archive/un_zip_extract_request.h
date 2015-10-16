@@ -45,6 +45,11 @@ private:
             const std::string& extract_path,
             const std::string& base_strip_path,
             BaseProgressCallback* callback);
+
+    //Not copyable, assignable
+    UnZipExtractRequest(UnZipExtractRequest const&) = delete;
+    UnZipExtractRequest& operator=(UnZipExtractRequest const&) = delete;
+
     PlatformResult run();
     PlatformResult getCurrentFileInfo();
     PlatformResult handleDirectoryEntry();

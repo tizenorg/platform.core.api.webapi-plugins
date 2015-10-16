@@ -312,7 +312,6 @@ PlatformResult ArchiveFile::extractAllTask(ExtractAllProgressCallback* callback)
         if(m_created_as_new_empty_archive) {
             //We do not call progress callback since we do not have any ArchiveFileEntry
             callback->callSuccessCallbackOnMainThread();
-            callback = NULL;
             return PlatformResult(ErrorCode::NO_ERROR);
         }
         else {
