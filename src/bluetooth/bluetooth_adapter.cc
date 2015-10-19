@@ -30,10 +30,11 @@
 #include "bluetooth_internal.h"
 
 #include "common/converter.h"
+#include "common/extension.h"
 #include "common/logger.h"
 #include "common/platform_result.h"
-#include "common/extension.h"
 #include "common/task-queue.h"
+#include "common/tools.h"
 
 #include "bluetooth/bluetooth_class.h"
 #include "bluetooth/bluetooth_device.h"
@@ -300,7 +301,6 @@ void BluetoothAdapter::DiscoveryStateChangedCB(
 
           data_obj->insert(std::make_pair(kData, picojson::value(adapter->discovered_devices_)));
 
-          //TODO Consider if all events during scanning shouldn't be called asynchronously
           adapter->user_request_list_[DISCOVER_DEVICES] = false;
           adapter->instance_.FireEvent(kAdapterDiscoverSuccessEvent, value);
         }
@@ -347,6 +347,9 @@ BluetoothAdapter::BluetoothAdapter(BluetoothInstance& instance) :
     is_powered_(false),
     is_initialized_(false),
     user_request_list_(),
+    user_request_callback_(),
+    requested_powered_(),
+    requested_visibility_(),
     instance_(instance)
 {
   LoggerD("Entered");
@@ -542,34 +545,41 @@ void BluetoothAdapter::SetPowered(const picojson::value& data, picojson::object&
     }
 
     if (ret.IsSuccess()) {
-      const void* t_param[] = { this, &ret, &new_powered, &callback_handle };
+      struct UserData {
+        BluetoothAdapter* adapter;
+        double callback_handle;
+      };
+
+      UserData* user_data = new UserData{ this, callback_handle };
 
       err = app_control_send_launch_request(service, [](
               app_control_h request, app_control_h reply,
               app_control_result_e r, void* user_data) {
+        LoggerD("app_control_send_launch_request() callback");
 
-        BluetoothAdapter* self = static_cast<BluetoothAdapter*>(((void**) user_data)[0]);
-        PlatformResult* p_ret = static_cast<PlatformResult*>(((void**) user_data)[1]);
-        bool* p_new_powered = static_cast<bool*>(((void**) user_data)[2]);
-        double* p_callback_handle = static_cast<double*>(((void**) user_data)[3]);
+        UserData* data = static_cast<UserData*>(user_data);
 
         char* result = nullptr;
         app_control_get_extra_data(reply, "result", &result);
-        LoggerD("bt onoff: %s", result);
 
-        if (strcmp(result, "success") == 0) {
-          self->requested_powered_ = *p_new_powered;
-          self->user_request_list_[SET_POWERED] = true;
-          self->user_request_callback_[SET_POWERED] = *p_callback_handle;
+        if (result && strcmp(result, "success") == 0) {
+          LoggerD("bt onoff: %s", result);
+          free(result);
         } else {
           LoggerE("app control setPowered failed");
-          *p_ret = PlatformResult(ErrorCode::UNKNOWN_ERR, "app control setPowered failed");
+          data->adapter->instance_.AsyncResponse(data->callback_handle, PlatformResult(ErrorCode::UNKNOWN_ERR, "app control setPowered failed"));
         }
-      }, t_param);
+
+        delete data;
+      }, user_data);
 
       if (err != APP_CONTROL_ERROR_NONE) {
         LoggerE("app control set launch request failed: %d", err);
         ret = PlatformResult(ErrorCode::UNKNOWN_ERR, "app control set launch request failed");
+      } else {
+        this->requested_powered_ = new_powered;
+        this->user_request_list_[SET_POWERED] = true;
+        this->user_request_callback_[SET_POWERED] = callback_handle;
       }
     }
 
@@ -577,6 +587,10 @@ void BluetoothAdapter::SetPowered(const picojson::value& data, picojson::object&
     if (err != APP_CONTROL_ERROR_NONE) {
       LoggerE("app control destroy failed: %d", err);
       ret = PlatformResult(ErrorCode::UNKNOWN_ERR, "app control destroy failed");
+    }
+
+    if (!ret) {
+      instance_.AsyncResponse(callback_handle, ret);
     }
 #else
     this->requested_powered_ = new_powered;
@@ -588,11 +602,10 @@ void BluetoothAdapter::SetPowered(const picojson::value& data, picojson::object&
     } else {
       bt_adapter_disable();
     }
-    return;
 #endif
+  } else {
+    instance_.AsyncResponse(callback_handle, ret);
   }
-
-  instance_.AsyncResponse(callback_handle, ret);
 }
 
 void BluetoothAdapter::SetVisible(const picojson::value& data, picojson::object& out) {
@@ -847,10 +860,12 @@ void BluetoothAdapter::GetKnownDevices(const picojson::value& data, picojson::ob
     instance_.SyncResponse(callback_handle, response);
   };
 
+  auto queue_data = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
+
   TaskQueue::GetInstance().Queue<picojson::value>(
       get_known_devices,
       get_known_devices_response,
-      std::shared_ptr<picojson::value>(new picojson::value(picojson::object())));
+      queue_data);
 
   ReportSuccess(out);
 }
@@ -914,10 +929,12 @@ void BluetoothAdapter::GetDevice(const picojson::value& data, picojson::object& 
     instance_.SyncResponse(callback_handle, response);
   };
 
+  auto queue_data = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
+
   TaskQueue::GetInstance().Queue<picojson::value>(
       get_device,
       get_device_response,
-      std::shared_ptr<picojson::value>(new picojson::value(picojson::object())));
+      queue_data);
 
   ReportSuccess(out);
 }
@@ -1254,10 +1271,12 @@ void BluetoothAdapter::RegisterRFCOMMServiceByUUID(const picojson::value& data, 
     instance_.SyncResponse(callback_handle, response);
   };
 
+  auto queue_data = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
+
   TaskQueue::GetInstance().Queue<picojson::value>(
       rfcomm,
       rfcomm_response,
-      std::shared_ptr<picojson::value>(new picojson::value(picojson::object())));
+      queue_data);
 
   ReportSuccess(out);
 }
@@ -1280,9 +1299,9 @@ void BluetoothAdapter::UnregisterUUID(const std::string& uuid, int callback_hand
       }
     }
 
-    if (registered_uuids_.size() == 0 &&
-        connection_requests_.size() == 0 &&
-        connected_sockets_.size() == 0) {
+    if (registered_uuids_.empty() &&
+        connection_requests_.empty() &&
+        connected_sockets_.empty()) {
       bt_socket_unset_connection_state_changed_cb();
     }
   } else if (result.IsSuccess()){
@@ -1466,13 +1485,13 @@ void BluetoothAdapter::OnSocketConnected(
     return;
   }
 
-  if (object->connected_sockets_.size() == 0) {
+  if (object->connected_sockets_.empty()) {
     bt_socket_unset_data_received_cb();
   }
 
-  if (object->registered_uuids_.size() == 0 &&
-      object->connection_requests_.size() == 0 &&
-      object->connected_sockets_.size() == 0) {
+  if (object->registered_uuids_.empty() &&
+      object->connection_requests_.empty() &&
+      object->connected_sockets_.empty()) {
     bt_socket_unset_connection_state_changed_cb();
   }
 }

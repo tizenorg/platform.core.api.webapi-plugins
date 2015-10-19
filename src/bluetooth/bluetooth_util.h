@@ -34,8 +34,8 @@ const picojson::object& GetArguments(const picojson::value& data);
 common::PlatformResult GetBluetoothError(int error_code, const std::string& hint);
 std::string GetBluetoothErrorMessage(int error_code);
 
-}  // namespace util
-}  // namespace bluetooth
-}  // namespace extension
+} // util
+} // bluetooth
+} // extension
 
 #endif // BLUETOOTH_BLUETOOTH_UTIL_H_
