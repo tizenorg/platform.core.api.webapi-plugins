@@ -141,7 +141,7 @@ void MessageportInstance::MessagePortManagerRequestlocalmessageport
         ReportError(UnknownException("Internal I/O error ocurred."), out);
         break;
       default:
-        LoggerE("Unknown Exception");
+        LoggerE("Unknown Exception: %d (%s)", portId, get_error_message(portId));
         ReportError(UnknownException("Unknown Exception"), out);
         break;
       }
@@ -183,7 +183,7 @@ void MessageportInstance::
         ReportError(UnknownException("Internal I/O error ocurred."), out);
         break;
       default:
-        LoggerE("Unknown Exception");
+        LoggerE("Unknown Exception: %d (%s)", portId, get_error_message(portId));
         ReportError(UnknownException("Unknown Exception"), out);
         break;
       }
@@ -210,7 +210,7 @@ void MessageportInstance::
 
   LoggerD("Checking remote port of %s: %s", remoteMessagePortName.c_str(),
     portCheck ? "true" : "false");
-  LoggerD("Error code: -0x%X", -ret);
+  LoggerD("Error code: %d (%s)", ret, get_error_message(ret));
 
   if (ret == MESSAGE_PORT_ERROR_NONE) {
     if (portCheck)  {
@@ -263,7 +263,7 @@ void MessageportInstance::
 
   LoggerD("Checking trusted remote port of %s: %s",
     remoteMessagePortName.c_str(), portCheck ? "true":"false");
-  LoggerD("Error code: -0x%X", -ret);
+  LoggerD("Error code: %d (%s)", ret, get_error_message(ret));
 
   if (ret == MESSAGE_PORT_ERROR_NONE) {
     if (portCheck) {
@@ -353,6 +353,7 @@ void MessageportInstance::RemoteMessagePortSendmessage
 
   bundle_free(bundle);
 
+  LoggerD("Error code: %d (%s)", result, get_error_message(result));
   if (result == MESSAGE_PORT_ERROR_NONE)
     ReportSuccess(out);
   else if (result == MESSAGE_PORT_ERROR_INVALID_PARAMETER)
