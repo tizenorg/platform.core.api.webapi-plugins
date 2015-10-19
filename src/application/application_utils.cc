@@ -38,7 +38,7 @@ void ApplicationUtils::CreateApplicationInformation(const pkgmgrinfo_appinfo_h h
   // application ID
   ret = pkgmgrinfo_appinfo_get_appid(handle, &tmp_str);
   if ((PMINFO_R_OK != ret) || (nullptr == tmp_str)) {
-    LoggerE("Failed to get appid");
+    LoggerE("Failed to get appid: %d (%s)", ret, get_error_message(ret));
   } else {
     app_info->insert(std::make_pair("id", picojson::value(tmp_str)));
   }
@@ -47,7 +47,7 @@ void ApplicationUtils::CreateApplicationInformation(const pkgmgrinfo_appinfo_h h
   // name
   ret = pkgmgrinfo_appinfo_get_label(handle, &tmp_str);
   if ((PMINFO_R_OK != ret) || (nullptr == tmp_str)) {
-    LoggerE("Failed to get label");
+    LoggerE("Failed to get label: %d (%s)", ret, get_error_message(ret));
   } else {
     app_info->insert(std::make_pair("name", picojson::value(tmp_str)));
   }
@@ -56,7 +56,7 @@ void ApplicationUtils::CreateApplicationInformation(const pkgmgrinfo_appinfo_h h
   // icon path
   ret = pkgmgrinfo_appinfo_get_icon(handle, &tmp_str);
   if ((PMINFO_R_OK != ret) || (nullptr == tmp_str)) {
-    LoggerE("Failed to get icon path");
+    LoggerE("Failed to get icon path: %d (%s)", ret, get_error_message(ret));
   } else {
     app_info->insert(std::make_pair("iconPath", picojson::value(tmp_str)));
   }
@@ -66,7 +66,7 @@ void ApplicationUtils::CreateApplicationInformation(const pkgmgrinfo_appinfo_h h
   bool no_display = false;
   ret = pkgmgrinfo_appinfo_is_nodisplay(handle, &no_display);
   if (PMINFO_R_OK != ret) {
-    LoggerE("Failed to get nodisplay");
+    LoggerE("Failed to get nodisplay: %d (%s)", ret, get_error_message(ret));
   } else {
     app_info->insert(std::make_pair("show", picojson::value(!no_display)));
   }
@@ -90,13 +90,13 @@ void ApplicationUtils::CreateApplicationInformation(const pkgmgrinfo_appinfo_h h
   &categories_array);
 
   if (PMINFO_R_OK != ret) {
-    LoggerE("Failed to get categories");
+    LoggerE("Failed to get categories: %d (%s)", ret, get_error_message(ret));
   }
 
   // package ID
   ret = pkgmgrinfo_appinfo_get_pkgid(handle, &tmp_str);
   if ((PMINFO_R_OK != ret) || (nullptr == tmp_str)) {
-    LoggerE("Failed to get pkgid");
+    LoggerE("Failed to get pkgid: %d (%s)", ret, get_error_message(ret));
   } else {
     app_info->insert(std::make_pair("packageId", picojson::value(tmp_str)));
   }
@@ -104,13 +104,13 @@ void ApplicationUtils::CreateApplicationInformation(const pkgmgrinfo_appinfo_h h
   pkgmgrinfo_pkginfo_h pkginfo;
   ret = pkgmgrinfo_pkginfo_get_pkginfo(tmp_str, &pkginfo);
   if (PMINFO_R_OK != ret) {
-    LoggerE("Failed to get package info");
+    LoggerE("Failed to get package info: %d (%s)", ret, get_error_message(ret));
   } else {
     // version
     tmp_str = nullptr;
     ret = pkgmgrinfo_pkginfo_get_version(pkginfo, &tmp_str);
     if ((PMINFO_R_OK != ret) || (nullptr == tmp_str)) {
-      LoggerE("Failed to get version");
+      LoggerE("Failed to get version: %d (%s)", ret, get_error_message(ret));
     } else {
       app_info->insert(std::make_pair("version", picojson::value(tmp_str)));
     }
@@ -119,7 +119,7 @@ void ApplicationUtils::CreateApplicationInformation(const pkgmgrinfo_appinfo_h h
     int installed_time = 0;
     ret = pkgmgrinfo_pkginfo_get_installed_time(pkginfo, &installed_time);
     if (ret != PMINFO_R_OK) {
-      LoggerE("Fail to get installed date");
+      LoggerE("Fail to get installed date: %d (%s)", ret, get_error_message(ret));
     } else {
       app_info->insert(std::make_pair("installDate", picojson::value(1000.0 * installed_time)));
     }
@@ -139,7 +139,7 @@ bool ApplicationUtils::CreateApplicationContext(const app_context_h handle,
   std::unique_ptr<char, void(*)(void*)> app_id_ptr(app_id, &std::free);
 
   if ((APP_MANAGER_ERROR_NONE != ret) || (nullptr == app_id)) {
-    LoggerD("Failed to get application ID from context.");
+    LoggerD("Failed to get application ID from context: %d (%s)", ret, get_error_message(ret));
     return false;
   }
 
@@ -147,7 +147,7 @@ bool ApplicationUtils::CreateApplicationContext(const app_context_h handle,
   ret = app_context_get_pid(handle, &pid);
 
   if(ret != APP_MANAGER_ERROR_NONE) {
-    LoggerD("Failed to get pid from context.");
+    LoggerD("Failed to get pid from context: %d (%s)", ret, get_error_message(ret));
     return false;
   }
 
@@ -296,6 +296,8 @@ void ApplicationUtils::ServiceToApplicationControl(app_control_h app_control,
   if ((APP_CONTROL_ERROR_NONE == ret) && (nullptr != tmp_str)) {
     LoggerD("operation: %s", tmp_str);
     app_control_obj->insert(std::make_pair("operation", picojson::value(std::string(tmp_str))));
+  } else {
+    LoggerE("Get operation failed: %d (%s)", ret, get_error_message(ret));
   }
   clear(tmp_str);
 
@@ -310,6 +312,8 @@ void ApplicationUtils::ServiceToApplicationControl(app_control_h app_control,
   if ((APP_CONTROL_ERROR_NONE == ret) && (nullptr != tmp_str)) {
     LoggerD("MIME: %s", tmp_str);
     app_control_obj->insert(std::make_pair("mime", picojson::value(std::string(tmp_str))));
+  } else {
+    LoggerE("Get mime failed: %d (%s)", ret, get_error_message(ret));
   }
   clear(tmp_str);
 
@@ -317,6 +321,8 @@ void ApplicationUtils::ServiceToApplicationControl(app_control_h app_control,
   if ((APP_CONTROL_ERROR_NONE == ret) && (nullptr != tmp_str)) {
     LoggerD("category: %s", tmp_str);
     app_control_obj->insert(std::make_pair("category", picojson::value(std::string(tmp_str))));
+  } else {
+    LoggerE("Get category failed: %d (%s)", ret, get_error_message(ret));
   }
   clear(tmp_str);
 
@@ -336,7 +342,8 @@ void ApplicationUtils::ServiceExtraDataToApplicationControlData(app_control_h ap
   ret = app_control_is_extra_data_array(app_control, key.c_str(), &is_array);
 
   if (APP_CONTROL_ERROR_NONE != ret) {
-    LoggerE("Failed to check whether extra data is array or not");
+    LoggerE("Failed to check whether extra data is array or not: %d (%s)", ret,
+            get_error_message(ret));
     return;
   }
 
@@ -358,7 +365,7 @@ void ApplicationUtils::ServiceExtraDataToApplicationControlData(app_control_h ap
       }
       free(value);
     } else {
-      LoggerE("Failed to get extra data array, errno: %d", ret);
+      LoggerE("Failed to get extra data array, errno: %d (%s)", ret, get_error_message(ret));
     }
   } else {
     char* value = nullptr;
@@ -369,7 +376,7 @@ void ApplicationUtils::ServiceExtraDataToApplicationControlData(app_control_h ap
       value_array.push_back(picojson::value(value));
       free(value);
     } else {
-      LoggerE("Failed to get extra data, errno: %d", ret);
+      LoggerE("Failed to get extra data, errno: %d (%s)", ret, get_error_message(ret));
     }
   }
 
