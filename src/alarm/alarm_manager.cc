@@ -179,10 +179,10 @@ void AlarmManager::Add(const picojson::value& args, picojson::object& out) {
     app_control_add_extra_data(app_control, kAlarmAbsoluteDateKey, str_date);
 
     int ret = 0;
-    if (it_period->second.is<double>()) {
+    if (alarm.end() != it_period && it_period->second.is<double>()) {
       int period = static_cast<int>(it_period->second.get<double>());
       ret = alarm_schedule_at_date(app_control, &start_date, period, &alarm_id);
-    } else if (it_daysOfTheWeek->second.is<picojson::array>() &&
+    } else if (alarm.end() != it_daysOfTheWeek && it_daysOfTheWeek->second.is<picojson::array>() &&
         !(it_daysOfTheWeek->second.get<picojson::array>()).empty()) {
       picojson::array days_of_the_week = it_daysOfTheWeek->second.get<picojson::array>();
       int repeat_value = 0;
