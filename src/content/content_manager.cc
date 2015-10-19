@@ -1551,25 +1551,26 @@ int ContentManager::getNumberOfTracks(int id, int* result) {
 }
 
 PlatformResult ContentManager::convertError(int err) {
+  char* error_msg = get_error_message(err);
   switch (err) {
     case MEDIA_CONTENT_ERROR_INVALID_PARAMETER :
-      return PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid parameter.");
+      return PlatformResult(ErrorCode::INVALID_VALUES_ERR, error_msg);
     case MEDIA_CONTENT_ERROR_OUT_OF_MEMORY :
-      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Out of memory.");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, error_msg);
     case MEDIA_CONTENT_ERROR_INVALID_OPERATION :
-      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Invalid Operation.");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, error_msg);
     case MEDIA_CONTENT_FILE_NO_SPACE_ON_DEVICE :
-      return PlatformResult(ErrorCode::UNKNOWN_ERR, "No space left on device.");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, error_msg);
     case MEDIA_CONTENT_ERROR_PERMISSION_DENIED :
-      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Permission denied.");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, error_msg);
     case MEDIA_CONTENT_ERROR_DB_FAILED :
-      return PlatformResult(ErrorCode::UNKNOWN_ERR, "DB operation failed.");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, error_msg);
     case MEDIA_CONTENT_ERROR_DB_BUSY :
-      return PlatformResult(ErrorCode::UNKNOWN_ERR, "DB operation BUSY.");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, error_msg);
     case MEDIA_CONTENT_ERROR_NETWORK :
-      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Network Fail.");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, error_msg);
     case MEDIA_CONTENT_ERROR_UNSUPPORTED_CONTENT :
-      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Unsupported Content.");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, error_msg);
     default:
       return PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown error.");
   }
