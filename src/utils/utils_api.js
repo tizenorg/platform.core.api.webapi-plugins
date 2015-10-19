@@ -1449,7 +1449,8 @@ var errors = {
   IO_ERR: 101,
   PERMISSION_DENIED_ERR: 102,
   SERVICE_NOT_AVAILABLE_ERR: 103,
-  DATABASE_ERR: 104
+  DATABASE_ERR: 104,
+  VERIFICATION_ERR: 105
 };
 
 var code_to_name = {};
@@ -1486,6 +1487,7 @@ code_to_name[errors['IO_ERR']] = 'IOError';
 code_to_name[errors['PERMISSION_DENIED_ERR']] = 'PermissionDeniedError';
 code_to_name[errors['SERVICE_NOT_AVAILABLE_ERR']] = 'ServiceNotAvailableError';
 code_to_name[errors['DATABASE_ERR']] = 'DatabaseError';
+code_to_name[errors['VERIFICATION_ERR']] = 'VerificationError';
 
 var name_to_code = {};
 Object.keys(errors).forEach(function(key) {
