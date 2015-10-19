@@ -72,9 +72,9 @@ void PackageInfoProvider::GetPackagesInfo(
   start_time = clock();
 
   picojson::array array_data;
-  if ( pkgmgrinfo_pkginfo_get_list(PackageInfoGetListCb, &array_data)
-      != PMINFO_R_OK ) {
-    LoggerE("Failed to get package information");
+  int ret = pkgmgrinfo_pkginfo_get_list(PackageInfoGetListCb, &array_data);
+  if (ret != PMINFO_R_OK ) {
+    LoggerE("Failed to get package information: %d (%s)", ret, get_error_message(ret));
     REPORT_ERROR(out, UnknownException("Any other platform error occurs"));
     return;
   }
@@ -112,9 +112,9 @@ void PackageInfoProvider::GetPackageInfo(
   }
 
   pkgmgrinfo_pkginfo_h info;
-  if ( pkgmgrinfo_pkginfo_get_pkginfo(package_id, &info)
-      != PMINFO_R_OK ) {
-    LoggerE("Failed to get pkginfo");
+  int ret = pkgmgrinfo_pkginfo_get_pkginfo(package_id, &info);
+  if (ret != PMINFO_R_OK ) {
+    LoggerE("Failed to get pkginfo: %d (%s)", ret, get_error_message(ret));
     REPORT_ERROR(out, NotFoundException("The package with the specified ID is not found"));
     return;
   }
@@ -157,7 +157,7 @@ bool PackageInfoProvider:: ConvertToPackageToObject(
   char* id = NULL;
   ret = pkgmgrinfo_pkginfo_get_pkgid(info, &id);
   if ( (ret != PMINFO_R_OK) || (id == NULL) ) {
-    LoggerE("Failed to get package id");
+    LoggerE("Failed to get package id: %d (%s)", ret, get_error_message(ret));
     return false;
   }
   out["id"] = picojson::value(id);
@@ -165,7 +165,7 @@ bool PackageInfoProvider:: ConvertToPackageToObject(
   char* name = NULL;
   ret = pkgmgrinfo_pkginfo_get_label(info, &name);
   if ( (ret != PMINFO_R_OK) || (name == NULL) ) {
-    LoggerE("[%s] Failed to get package name", id);
+    LoggerE("[%s] Failed to get package name: %d (%s)", id, ret, get_error_message(ret));
     return false;
   }
   out["name"] = picojson::value(name);
@@ -173,7 +173,7 @@ bool PackageInfoProvider:: ConvertToPackageToObject(
   char* iconPath = NULL;
   ret = pkgmgrinfo_pkginfo_get_icon(info, &iconPath);
   if ( (ret != PMINFO_R_OK) || (iconPath == NULL) ) {
-    LoggerE("[%s] Failed to get package iconPath", id);
+    LoggerE("[%s] Failed to get package iconPath: %d (%s)", id, ret, get_error_message(ret));
     return false;
   }
   out["iconPath"] = picojson::value(iconPath);
@@ -181,7 +181,7 @@ bool PackageInfoProvider:: ConvertToPackageToObject(
   char* version = NULL;
   ret = pkgmgrinfo_pkginfo_get_version(info, &version);
   if ( (ret != PMINFO_R_OK) || (version == NULL) ) {
-    LoggerE("[%s] Failed to get package version", id);
+    LoggerE("[%s] Failed to get package version: %d (%s)", id, ret, get_error_message(ret));
     return false;
   }
   out["version"] = picojson::value(version);
@@ -189,7 +189,7 @@ bool PackageInfoProvider:: ConvertToPackageToObject(
   int lastModified = 0;
   ret = pkgmgrinfo_pkginfo_get_installed_time(info, &lastModified);
   if ( (ret != PMINFO_R_OK) ) {
-    LoggerE("[%s] Failed to get package lastModified", id);
+    LoggerE("[%s] Failed to get package lastModified: %d (%s)", id, ret, get_error_message(ret));
     return false;
   }
   // This value will be converted into JavaScript Date object
@@ -199,7 +199,7 @@ bool PackageInfoProvider:: ConvertToPackageToObject(
   char* author = NULL;
   ret = pkgmgrinfo_pkginfo_get_author_name(info, &author);
   if ( (ret != PMINFO_R_OK) || (author == NULL) ) {
-    LoggerE("[%s] Failed to get package author", id);
+    LoggerE("[%s] Failed to get package author: %d (%s)", id, ret, get_error_message(ret));
     return false;
   }
   out["author"] = picojson::value(author);
@@ -207,7 +207,7 @@ bool PackageInfoProvider:: ConvertToPackageToObject(
   char* description = NULL;
   ret = pkgmgrinfo_pkginfo_get_description(info, &description);
   if ( (ret != PMINFO_R_OK) || (description == NULL) ) {
-    LoggerE("[%s] Failed to get package description", id);
+    LoggerE("[%s] Failed to get package description: %d (%s)", id, ret, get_error_message(ret));
     return false;
   }
   out["description"] = picojson::value(description);
@@ -215,13 +215,13 @@ bool PackageInfoProvider:: ConvertToPackageToObject(
   package_info_h package_info;
   ret = package_info_create(id, &package_info);
   if ( ret != PACKAGE_MANAGER_ERROR_NONE ) {
-    LoggerE("Failed to create package info");
+    LoggerE("Failed to create package info: %d (%s)", ret, get_error_message(ret));
     return false;
   }
 
   SCOPE_EXIT {
     if (PACKAGE_MANAGER_ERROR_NONE != package_info_destroy(package_info)) {
-      LoggerE("Failed to destroy package info");
+      LoggerE("Failed to destroy package info: %d (%s)", ret, get_error_message(ret));
     }
   };
 
@@ -229,7 +229,7 @@ bool PackageInfoProvider:: ConvertToPackageToObject(
   ret = package_info_foreach_app_from_package(package_info,
       PACKAGE_INFO_ALLAPP, PackageAppInfoCb, &array_data);
   if ( ret != PACKAGE_MANAGER_ERROR_NONE ) {
-    LoggerE("Failed to get app info");
+    LoggerE("Failed to get app info: %d (%s)", ret, get_error_message(ret));
     return false;
   }
   out["appIds"] = picojson::value(array_data);
@@ -249,6 +249,7 @@ void GetSize(const std::string& id, int service_mode, picojson::object* out) {
   pkgmgr_client_free(pc);
 
   if (size < 0) {
+    LoggerE("Request service failed: %d (%s)", size, get_error_message(size));
     ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to get size"),
                 out);
   } else {
@@ -280,7 +281,7 @@ bool PackageInfoProvider::GetCurrentPackageId(
   int pid = getpid();
   ret = app_manager_get_app_id(pid, &app_id);
   if ( ret != APP_MANAGER_ERROR_NONE ) {
-    LoggerE("Failed to get app id");
+    LoggerE("Failed to get app id: %d (%s)", ret, get_error_message(ret));
     return false;
   }
 
@@ -288,14 +289,14 @@ bool PackageInfoProvider::GetCurrentPackageId(
   ret = app_info_create(app_id, &handle);
   free(app_id);
   if ( ret != APP_MANAGER_ERROR_NONE ) {
-    LoggerE("Fail to get app info");
+    LoggerE("Fail to get app info: %d (%s)", ret, get_error_message(ret));
     return false;
   }
 
   ret = app_info_get_package(handle, package_id);
   app_info_destroy(handle);
   if ( (ret != APP_MANAGER_ERROR_NONE) || (*package_id == NULL) ) {
-    LoggerE("Fail to get pkg id");
+    LoggerE("Fail to get pkg id: %d (%s)", ret, get_error_message(ret));
     return false;
   }
 

@@ -213,19 +213,21 @@ static std::string convertUriToPath(const std::string& uri) {
 PackageInstance::PackageInstance() {
   LoggerD("Enter");
 
-  if ( package_manager_request_create(&request_)
-      != PACKAGE_MANAGER_ERROR_NONE ) {
-    LoggerE("Failed to created package manager request");
+  int ret = package_manager_request_create(&request_);
+  if (ret != PACKAGE_MANAGER_ERROR_NONE ) {
+    LoggerE("Failed to created package manager request: %d (%s)", ret, get_error_message(ret));
     request_ = NULL;
   }
 
-  if ( package_manager_request_set_event_cb(request_, PackageRequestCb,
-      static_cast<void*>(this)) != PACKAGE_MANAGER_ERROR_NONE ) {
-    LoggerE("Failed to set request event callback");
+  ret = package_manager_request_set_event_cb(request_, PackageRequestCb,
+                                             static_cast<void*>(this));
+  if (ret != PACKAGE_MANAGER_ERROR_NONE ) {
+    LoggerE("Failed to set request event callback: %d (%s)", ret, get_error_message(ret));
   }
 
-  if ( package_manager_create(&manager_) != PACKAGE_MANAGER_ERROR_NONE ) {
-    LoggerE("Failed to created package manager");
+  ret = package_manager_create(&manager_);
+  if (ret != PACKAGE_MANAGER_ERROR_NONE ) {
+    LoggerE("Failed to created package manager: %d (%s)", ret, get_error_message(ret));
     manager_ = NULL;
   }
 
@@ -320,8 +322,7 @@ void PackageInstance::PackageManagerInstall(
           NotFoundException(
           "The package is not found at the specified location"));
     } else {
-      LoggerE("It is not allowed to install the package by " \
-          "the platform or any other platform error occurs");
+      LoggerE("Failed to install package: %d (%s)", ret, get_error_message(ret));
       InvokeErrorCallbackAsync(callback_id,
           UnknownException("It is not allowed to install the package by " \
           "the platform or any other platform error occurs"));
@@ -361,8 +362,7 @@ void PackageInstance::PackageManagerUninstall(
         NotFoundException(
             "The package is not found at the specified location"));
     } else {
-      LoggerE("It is not allowed to install the package by the " \
-          "platform or any other platform error occurs");
+      LoggerE("Failed to uninstall package: %d (%s)", ret, get_error_message(ret));
       InvokeErrorCallbackAsync(callback_id, UnknownException(
           "It is not allowed to install the package by the platform or " \
           "any other platform error occurs"));
@@ -455,10 +455,10 @@ void PackageInstance::
     return;
   }
 
-  if ( package_manager_set_event_cb(
-      manager_, PackageListenerCb, static_cast<void*>(this))
-      != PACKAGE_MANAGER_ERROR_NONE ) {
-    LoggerE("Failed to set event callback");
+  int ret = package_manager_set_event_cb(
+                  manager_, PackageListenerCb, static_cast<void*>(this));
+  if (ret != PACKAGE_MANAGER_ERROR_NONE ) {
+    LoggerE("Failed to set event callback: %d (%s)", ret, get_error_message(ret));
     ReportError(
         UnknownException("The package list change event cannot be " \
         "generated because of a platform error"),
@@ -490,9 +490,9 @@ void PackageInstance::
     return;
   }
 
-  if ( package_manager_unset_event_cb(manager_)
-      != PACKAGE_MANAGER_ERROR_NONE ) {
-    LoggerE("Failed to unset event callback");
+  int ret = package_manager_unset_event_cb(manager_);
+  if (ret != PACKAGE_MANAGER_ERROR_NONE ) {
+    LoggerE("Failed to unset event callback: %d (%s)", ret, get_error_message(ret));
     ReportError(
         UnknownException("The listener removal request fails" \
         "because of a platform error"),
