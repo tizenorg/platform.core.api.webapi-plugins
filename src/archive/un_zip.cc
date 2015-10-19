@@ -222,7 +222,6 @@ PlatformResult UnZip::extractAllFilesTo(const std::string& extract_path,
     }
 
     callback->callSuccessCallbackOnMainThread();
-    callback = NULL;
 
     return PlatformResult(ErrorCode::NO_ERROR);
 }
@@ -307,7 +306,6 @@ PlatformResult UnZip::extractTo(ExtractEntryProgressCallback* callback)
 
     // after finish extracting success callback will be called
     callback->callSuccessCallbackOnMainThread();
-    callback = NULL;
 
     return PlatformResult(ErrorCode::NO_ERROR);
 }

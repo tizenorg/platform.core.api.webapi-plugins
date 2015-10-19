@@ -42,6 +42,9 @@ public:
 
 private:
     ZipAddRequest(Zip& owner, AddProgressCallback*& callback);
+    ZipAddRequest(ZipAddRequest const&) = delete;
+    ZipAddRequest& operator=(ZipAddRequest const&) = delete;
+
     PlatformResult run();
 
     void addNodeAndSubdirsToList(filesystem::NodePtr src_node,
