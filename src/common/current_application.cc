@@ -62,7 +62,7 @@ std::string CurrentApplication::FetchApplicationId() const {
   if ((APP_MANAGER_ERROR_NONE == ret) && (nullptr != tmp_str)) {
     app_id = tmp_str;
   } else {
-    LoggerE("Failed to get application ID.");
+    LoggerE("Failed to get application ID: %d (%s)", ret, get_error_message(ret));
   }
 
   free(tmp_str);
@@ -81,7 +81,7 @@ std::string CurrentApplication::FetchPackageId() const {
   if ((PACKAGE_MANAGER_ERROR_NONE == ret) && (nullptr != tmp_str)) {
     package_id = tmp_str;
   } else {
-    LoggerE("Failed to get package ID.");
+    LoggerE("Can't get package name from app info: %d (%s)", ret, get_error_message(ret));
   }
 
   free(tmp_str);
