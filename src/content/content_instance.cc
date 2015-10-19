@@ -109,10 +109,15 @@ static gboolean CompletedCallback(const std::shared_ptr<ReplyCallbackData>& user
 static void* WorkThread(const std::shared_ptr<ReplyCallbackData>& user_data) {
   LoggerD("entered");
 
+  int ret = MEDIA_CONTENT_ERROR_NONE;
   ContentCallbacks cbType = user_data->cbType;
   switch(cbType) {
     case ContentManagerUpdatebatchCallback: {
-      ContentManager::getInstance()->updateBatch(user_data->args);
+      ret = ContentManager::getInstance()->updateBatch(user_data->args);
+      if(ret != MEDIA_CONTENT_ERROR_NONE){
+        LoggerD("UpdateBatch Failed");
+        user_data->isSuccess = ContentManager::getInstance()->convertError(ret);
+      }
       break;
     }
     case ContentManagerGetdirectoriesCallback: {
@@ -126,9 +131,9 @@ static void* WorkThread(const std::shared_ptr<ReplyCallbackData>& user_data) {
     case ContentManagerScanfileCallback: {
       std::string contentURI = user_data->args.get("contentURI").get<std::string>();
       std::string real_path = common::VirtualFs::GetInstance().GetRealPath(contentURI);
-      int res = ContentManager::getInstance()->scanFile(real_path);
-      if (res != MEDIA_CONTENT_ERROR_NONE) {
-        LOGGER(ERROR) << "Scan file failed, error: " << res;
+      ret = ContentManager::getInstance()->scanFile(real_path);
+      if (ret != MEDIA_CONTENT_ERROR_NONE) {
+        LOGGER(ERROR) << "Scan file failed, error: " << ret;
         common::PlatformResult err(common::ErrorCode::UNKNOWN_ERR, "Scan file failed.");
         user_data->isSuccess = err;
       }

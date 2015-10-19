@@ -895,7 +895,7 @@ PlatformResult ContentManager::unSetV2ChangeListener(media_content_noti_h* noti_
 void ContentManager::createPlaylist(std::string name,
   const std::shared_ptr<ReplyCallbackData>& user_data) {
   LoggerD("Enter");
-  media_playlist_h	playlist = NULL;
+  media_playlist_h playlist = NULL;
 
   int ret = media_playlist_insert_to_db(name.c_str(),&playlist);
   std::unique_ptr<std::remove_pointer<media_playlist_h>::type, int(*)(media_playlist_h)>
@@ -961,7 +961,7 @@ void ContentManager::getPlaylists(const std::shared_ptr<ReplyCallbackData>& user
 
   LoggerD("Enter");
   int ret;
-  filter_h 	filter = nullptr;
+  filter_h filter = nullptr;
   media_filter_create(&filter);
   std::unique_ptr<std::remove_pointer<filter_h>::type, int(*)(filter_h)>
       filter_ptr(filter, &media_filter_destroy); // automatically release the memory
@@ -1027,8 +1027,16 @@ int ContentManager::updateBatch(picojson::value args) {
     media_info_h media = NULL;
     ret = media_info_get_media_from_db(id.c_str(), &media);
     if (media != NULL && ret == MEDIA_CONTENT_ERROR_NONE) {
-      setContent(media, content);
+      ret = setContent(media, content);
+      if(ret != MEDIA_CONTENT_ERROR_NONE){
+        LoggerE("setContent failed");
+        return ret;
+      }
+			
       ret = media_info_update_to_db(media);
+      if(ret != MEDIA_CONTENT_ERROR_NONE){
+        LoggerE("update to db failed");
+      }
       media_info_destroy(media);
     } else {
       return ret;
