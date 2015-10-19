@@ -114,7 +114,6 @@ void ApplicationUtils::CreateApplicationInformation(const pkgmgrinfo_appinfo_h h
     } else {
       app_info->insert(std::make_pair("version", picojson::value(tmp_str)));
     }
-    tmp_str = nullptr;
 
     // installation date
     int installed_time = 0;
@@ -269,9 +268,7 @@ PlatformResult ApplicationUtils::ApplicationControlDataToServiceExtraData(
   size_t i = 0;
 
   for (auto iter = value.begin(); iter != value.end(); ++iter, ++i) {
-    if (iter->is<std::string>()) {
-      arr[i] = iter->get<std::string>().c_str();
-    }
+    arr[i] = iter->to_str().c_str();
   }
 
   if (1 == size) {
