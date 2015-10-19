@@ -24,8 +24,9 @@ std::string get_storage_dir_path(int id, storage_directory_e typeToCheck) {
   LoggerD("Enter");
   char* platformPath = NULL;
   int result = storage_get_directory(id, typeToCheck, &platformPath);
-  if (result != STORAGE_ERROR_NONE) {
-    LoggerD("Cannot retrieve path for type %i", typeToCheck);
+  if (STORAGE_ERROR_NONE != result) {
+    LoggerD("Cannot retrieve path for type %i: %d (%s)", typeToCheck, result,
+            get_error_message(result));
     return std::string();
   }
   std::string path = std::string(platformPath);
