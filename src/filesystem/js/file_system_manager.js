@@ -160,6 +160,7 @@ function nextCallbackId() {
 }
 
 function _StorageStateChangeListener(result) {
+  commonFS_.clearCache();
   var storage = new FileSystemStorage(result);
   for (var id in callbacks) {
     native_.callIfPossible(callbacks[id], storage);
