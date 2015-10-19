@@ -86,6 +86,9 @@ class JpegFile {
 
  private:
   JpegFile();
+  //not copyable, not assignable
+  JpegFile(JpegFile const&) = delete;
+  JpegFile& operator=(JpegFile const&) = delete;
 
   common::PlatformResult load(const std::string &path);
 
