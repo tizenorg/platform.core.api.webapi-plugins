@@ -201,7 +201,7 @@ var CalendarItem = function(data) {
         return _isAllDay;
       },
       set: function(v) {
-        _isAllDay = v ? converter_.toBoolean(v) : _isAllDay;
+        _isAllDay = converter_.toBoolean(v);
       },
       enumerable: true
     },
