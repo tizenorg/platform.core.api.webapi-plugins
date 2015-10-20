@@ -488,7 +488,7 @@ tizen.ExifInformation = function() {
         return flash_;
       },
       set: function(v) {
-        flash_ = (!type_.isUndefined(v)) ? converter_.toBoolean(v, true) : flash_;
+        flash_ = converter_.toBoolean(v, true);
       },
       enumerable: true
     },
