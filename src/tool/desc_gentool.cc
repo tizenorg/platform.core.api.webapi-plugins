@@ -176,9 +176,10 @@ int main(int argc, char* argv[]) {
         std::string so_path = tec_path + "/" + fname;
         char* error;
         void *handle = dlopen(so_path.c_str(), RTLD_LAZY);
-        if ((error = dlerror()) != NULL) {
+        if (handle == NULL) {
           std::cerr << "cannot open " << so_path << std::endl;
-          std::cerr << "Error >>" << error << std::endl;
+          char* error = dlerror();
+          std::cerr << "Error >>" << ((error == NULL) ? "NULL" : error) << std::endl;
           return -1;
         }
 
@@ -216,6 +217,4 @@ int main(int argc, char* argv[]) {
 
   // it would be need for ignore loaded libraries destructor
   _exit(0);
-
-  return 0;
 }

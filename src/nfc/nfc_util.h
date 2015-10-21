@@ -53,7 +53,7 @@ const std::string INVALID_VALUES_ERROR_NAME_STR = "InvalidValuesError";
 const std::string TIMEOUT_ERROR_NAME_STR = "TimeoutError";
 const std::string SERVICE_NOT_AVAILABLE_ERROR_NAME_STR = "ServiceNotAvailableError";
 const std::string NOT_SUPPORTED_ERROR_NAME_STR = "NotSupportedError";
-}  // namespace
+}
 
 typedef std::vector<unsigned char> UCharVector;
 
@@ -84,7 +84,7 @@ class NFCUtil
   static picojson::array FromUCharArray(unsigned char* array, unsigned int apdu_len);
 };
 
-}  // namespace nfc
-}  // namespace extension
+} // nfc
+} // extension
 
 #endif // __TIZEN_NFC_NFCUTIL_H_

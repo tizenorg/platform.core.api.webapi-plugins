@@ -35,7 +35,9 @@ extension.setMessageListener(function(json) {
     rmp = new RemoteMessagePort(msg.remotePort, msg.remoteAppId, msg.trusted);
   for (var i = 0; i < listeners.length; i++) {
     var func = listeners[i][0];
-    func(msg.message, rmp);
+    setTimeout(function() {
+      func(msg.message, rmp);
+    }, 0);
   }
 
 });

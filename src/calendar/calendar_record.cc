@@ -355,9 +355,8 @@ PlatformResult CalendarRecord::CalendarToJson(calendar_record_h rec,
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Calendar record is null");
   }
 
-  int id;
+  int id = 0;
   PlatformResult status = GetInt(rec, _calendar_book.id, &id);
-
   int account_id;
   GetInt(rec, _calendar_book.account_id, &account_id);
 

@@ -56,6 +56,10 @@ ApplicationInstance::ApplicationInstance() :
 
   //Application
   REGISTER_SYNC("Application_getRequestedAppControl", GetRequestedAppControl);
+  REGISTER_SYNC("Application_broadcastEvent", BroadcastEvent);
+  REGISTER_SYNC("Application_broadcastTrustedEvent", BroadcastTrustedEvent);
+  REGISTER_SYNC("Application_addEventListener", AddEventListener);
+  REGISTER_SYNC("Application_removeEventListener", RemoveEventListener);
 
   //RequestedApplicationControl
   REGISTER_SYNC("RequestedApplicationControl_replyResult", ReplyResult);
@@ -212,6 +216,51 @@ void ApplicationInstance::GetAppsInfo(const picojson::value& args, picojson::obj
   LoggerD("Entered");
 
   manager_.GetAppsInfo(args);
+}
+
+void ApplicationInstance::BroadcastEvent(const picojson::value& args, picojson::object& out) {
+  LoggerD("Entered");
+
+  manager_.BroadcastEventHelper(args, out, false);
+}
+
+void ApplicationInstance::BroadcastTrustedEvent(const picojson::value& args, picojson::object& out) {
+  LoggerD("Entered");
+
+  manager_.BroadcastEventHelper(args, out, true);
+}
+
+void ApplicationInstance::AddEventListener(const picojson::value& args, picojson::object& out) {
+  LoggerD("Entered");
+
+  const std::string& event_name = args.get("name").get<std::string>();
+
+  LOGGER(DEBUG) << "event_name: " << event_name;
+
+  JsonCallback cb = [this, args](picojson::value* event) -> void {
+   picojson::object& event_o = event->get<picojson::object>();
+   event_o["listenerId"] = args.get("listenerId");
+   LOGGER(DEBUG) << event->serialize().c_str();
+   Instance::PostMessage(this, event->serialize().c_str());
+   LOGGER(DEBUG) << event->serialize().c_str();
+  };
+
+  PlatformResult result = manager_.StartEventListener(event_name, cb);
+  if (result) {
+    ReportSuccess(out);
+  } else {
+    ReportError(result, &out);
+  }
+}
+
+void ApplicationInstance::RemoveEventListener(const picojson::value& args, picojson::object& out) {
+  LoggerD("Entered");
+
+  const std::string& event_name = args.get("name").get<std::string>();
+
+  LOGGER(DEBUG) << "event_name: " << event_name;
+
+  manager_.StopEventListener(event_name);
 }
 
 }  // namespace application

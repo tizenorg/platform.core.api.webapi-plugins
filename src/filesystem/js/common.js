@@ -218,12 +218,13 @@ var commonFS_ = (function() {
   }
 
   function f_isSubDir(fullPathToCheck, fullPath) {
-    return (-1 !== fullPathToCheck.indexOf(toRealPath(fullPath)));
+    var realFullPath = toRealPath(fullPath);
+    return ((-1 !== fullPathToCheck.indexOf(realFullPath)) && (fullPathToCheck !== realFullPath));
   };
 
   function f_isCorrectRelativePath(relativePath) {
-    return ((-1 === relativePath.indexOf('/')) &&
-        (-1 === relativePath.indexOf('\\')) &&
+    return ((0 !== relativePath.indexOf('/')) &&
+        (0 !== relativePath.indexOf('\\')) &&
         (-1 === relativePath.indexOf('?')) &&
         (-1 === relativePath.indexOf('*')) &&
         (-1 === relativePath.indexOf(':')) &&
@@ -260,6 +261,7 @@ var commonFS_ = (function() {
   }
 
   return {
+    clearCache: clearCache,
     toRealPath: toRealPath,
     toVirtualPath: toVirtualPath,
     getFileInfo: getFileInfo,

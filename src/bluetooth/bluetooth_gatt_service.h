@@ -48,10 +48,15 @@ class BluetoothGATTService {
   void RemoveValueChangeListener(const picojson::value& args,
                                  picojson::object& out);
 
+  common::PlatformResult GetServiceUuids(const std::string& address,
+                                         picojson::array* array);
+
  private:
   bool IsStillConnected(const std::string& address);
+
+  bt_gatt_client_h GetGattClient(const std::string& address);
+
   common::PlatformResult GetServicesHelper(bt_gatt_h handle, const std::string& address,
-                                                  const std::string& uuid,
                                                   picojson::array* array);
   common::PlatformResult GetCharacteristicsHelper(bt_gatt_h handle,
                                                   const std::string& address,
@@ -63,6 +68,7 @@ class BluetoothGATTService {
                                            void* user_data);
 
   std::map<std::string, bt_gatt_client_h> gatt_clients_;
+  std::vector<bt_gatt_h> gatt_characteristic_;
 
   BluetoothInstance& instance_;
 };

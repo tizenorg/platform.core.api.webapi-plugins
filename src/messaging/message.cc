@@ -23,6 +23,7 @@
 #include "common/logger.h"
 #include "common/platform_exception.h"
 #include "common/scope_exit.h"
+#include "common/virtual_fs.h"
 
 #include "Ecore_File.h"
 #include "message_email.h"
@@ -43,8 +44,8 @@ using namespace common;
 Message::Message():
     m_id(-1), m_old_id(-1), m_id_set(false), m_conversation_id(-1),
     m_conversation_id_set(false), m_folder_id(-1), m_folder_id_set(false),
-    m_type(UNDEFINED), m_timestamp_set(false), m_from_set(false),
-    m_body(new(std::nothrow) MessageBody()),
+    m_type(UNDEFINED), m_timestamp(-1), m_timestamp_set(false),
+    m_from_set(false), m_body(new(std::nothrow) MessageBody()),
     m_service_id(0), m_is_read(false), m_has_attachment(false),
     m_high_priority(false), m_in_response(-1), m_in_response_set(false),
     m_service_id_set(false), m_status(STATUS_UNDEFINED),
@@ -77,10 +78,37 @@ int Message::getConversationId() const
     return m_conversation_id;
 }
 
-int Message::getFolderId() const
-{
-    // TODO: folderId is supported different way in SMS/MMS and email
-    return m_folder_id;
+int Message::getFolderId() const {
+  LoggerD("Entered");
+  return m_folder_id;
+}
+
+int Message::getFolderIdForUser() const {
+  LoggerD("Entered");
+  // WIDL states:
+  // For SMS and MMS, folderId can be one of these values:
+  //   - INBOX = 1,
+  //   - OUTBOX = 2,
+  //   - DRAFTS = 3,
+  //   - SENTBOX = 4
+
+  switch (m_folder_id) {
+    case MSG_INBOX_ID:
+      return 1;
+
+    case MSG_OUTBOX_ID:
+      return 2;
+
+    case MSG_DRAFT_ID:
+      return 3;
+
+    case MSG_SENTBOX_ID:
+      return 4;
+
+    default:
+      LoggerE("Unexpected folder id: %d", m_folder_id);
+      return -1;
+  }
 }
 
 MessageType Message::getType() const
@@ -371,6 +399,8 @@ PlatformResult saveToTempFile(const std::string &data, std::string* file_name)
     }
     if (fprintf(file, "%s", data.c_str()) < 0) {
         LoggerE("Failed to write data into file");
+        fclose(file);
+        remove(tmp_name.c_str());
         return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to write data into file");
     }
     fflush(file);
@@ -395,9 +425,7 @@ PlatformResult copyFileToTemp(const std::string& sourcePath, std::string* result
     std::string dirPath = "/tmp/" + std::string(buf);
 
     if ( sourcePath[0] != '/' ) {
-//  FIXME When filesystem will be available
-//         attPath = sourcePath; change to attPath = Filesystem::External::fromVirtualPath(sourcePath);
-        attPath = sourcePath;
+        attPath = common::VirtualFs::GetInstance().GetRealPath(sourcePath);
     } else { // Assuming that the path is a real path
         attPath = sourcePath;
     }
@@ -737,7 +765,7 @@ PlatformResult Message::addMMSRecipientsToStruct(const std::vector<std::string> 
     return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-PlatformResult Message::addMMSBodyAndAttachmentsToStruct(const AttachmentPtrVector attach,
+PlatformResult Message::addMMSBodyAndAttachmentsToStruct(const AttachmentPtrVector &attach,
         msg_struct_t &mms_struct, Message* message)
 {
     LoggerD("Entered with %d attachments", attach.size());
@@ -758,16 +786,9 @@ PlatformResult Message::addMMSBodyAndAttachmentsToStruct(const AttachmentPtrVect
             if (attach.at(i)->isFilePathSet()) {
                 std::string filepath = attach.at(i)->getFilePath();
                 LoggerD("att[%d]: org filepath: %s", i, filepath.c_str());
-// TODO uncomment when filesystem will be available
-//                if(Filesystem::External::isVirtualPath(filepath)) {
-//                    // TODO
-//                    // When introducing below line fromVirtualPath() function
-//                    // needed context, but never used it - allowing for null
-//                    // context pointer. If it appears to need a real context
-//                    // it will need a fix here.
-//                    filepath = Filesystem::External::fromVirtualPath(filepath);
-//                    LoggerD("att[%d]: org virtual filepath: %s", i, filepath.c_str());
-//                }
+                filepath = common::VirtualFs::GetInstance().GetRealPath(filepath);
+                LoggerD("att[%d]: org virtual filepath: %s", i, filepath.c_str());
+
                 msg_set_str_value(tmpAtt, MSG_MMS_ATTACH_FILEPATH_STR,
                         const_cast<char*>(filepath.c_str()), filepath.size());
                 const size_t last_slash_idx = filepath.find_last_of("\\/");
@@ -1683,7 +1704,7 @@ bool Message::isMatchingAttribute(const std::string& attribute_name,
         }
     }
     else if (FOLDER_ID == attribute_name) {
-        return FilterUtils::isStringMatching(key, std::to_string(getFolderId()),
+        return FilterUtils::isStringMatching(key, std::to_string(getFolderIdForUser()),
                 match_flag);
     }
     else if (TYPE == attribute_name) {

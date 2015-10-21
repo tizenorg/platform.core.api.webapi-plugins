@@ -332,10 +332,6 @@ common::PlatformResult JpegFile::generateListOfSections() {
       }
 
       if (JPEG_MARKER_APP1 == cur_marker) {
-        // TODO(Unknown): verify this
-        // -4 --> 0xFF(1 byte)+Marker Number(1 byte)+Data size(2 bytes))
-        // const unsigned int exif_data_size = section_length - 4;
-
         const unsigned int exif_data_size = total_section_len + 2;
         section->exif_data = exif_data_new_from_data(section_begin,
             exif_data_size);

@@ -24,8 +24,7 @@
 #include <dbus/dbus.h>
 #include <dbus/dbus-glib-lowlevel.h>
 
-#include "logger.h"
-#include "platform_exception.h"
+#include "common/logger.h"
 
 #define DBUS_REPLY_TIMEOUT (-1)
 
@@ -105,7 +104,8 @@ void DBusOperationArguments::AddArgumentString(const std::string& val) {
     const int length = val.length();
 
     char* p_val = new char[length+1];
-    strncpy(p_val, val.c_str(), length+1); // TODO: is it safe?
+    // copy 'length' characters and add a NULL-character at 'length+1' position
+    strncpy(p_val, val.c_str(), length+1);
 
     arguments_.push_back(ArgumentElement(ArgType::kTypeString, p_val));
 }
@@ -177,73 +177,6 @@ DBusOperation::~DBusOperation() {
     } else {
         LoggerE("Object is not existing in the static pool");
     }
-}
-
-int DBusOperation::InvokeSyncGetInt(const std::string& method,
-                                    DBusOperationArguments* args) {
-
-    LoggerD("Enter");
-    if (!connection_) {
-        connection_ = dbus_bus_get_private(DBUS_BUS_SYSTEM, nullptr);
-    }
-
-    if (!connection_) {
-        LoggerE("dbus_bus_get_private error");
-        throw UnknownException("Failed to get dbus connection");
-    }
-
-    DBusMessage* msg = dbus_message_new_method_call(destination_.c_str(),
-                                                    path_.c_str(),
-                                                    interface_.c_str(),
-                                                    method.c_str());
-
-    if (!msg) {
-        LoggerE("dbus_message_new_method_call error");
-        throw UnknownException("Failed to create dbus message");
-    }
-
-    DBusMessageIter iter;
-    dbus_message_iter_init_append(msg, &iter);
-
-    if (nullptr != args) {
-        try {
-            args->AppendVariant(&iter);
-        } catch (const UnknownException& ex) {
-            LoggerE("append_variant error");
-            dbus_message_unref(msg);
-            throw UnknownException("Failed to append dbus variable");
-        }
-    }
-
-    DBusError err;
-    dbus_error_init(&err);
-    DBusMessage* reply = dbus_connection_send_with_reply_and_block(connection_,
-                                                                   msg,
-                                                                   DBUS_REPLY_TIMEOUT,
-                                                                   &err);
-    dbus_message_unref(msg);
-
-    if (!reply) {
-        LoggerE("dbus_connection_send_with_reply_and_block error %s: %s", err.name, err.message);
-        dbus_error_free(&err);
-        throw UnknownException("Failed to send request via dbus");
-    }
-
-    int result = 0;
-    dbus_bool_t ret = dbus_message_get_args(reply,
-                                            &err,
-                                            DBUS_TYPE_INT32,
-                                            &result,
-                                            DBUS_TYPE_INVALID);
-    dbus_message_unref(reply);
-
-    if (!ret) {
-        LoggerE("dbus_message_get_args error %s: %s", err.name, err.message);
-        dbus_error_free(&err);
-        throw UnknownException("Failed to get reply from dbus");
-    }
-
-    return result;
 }
 
 PlatformResult DBusOperation::InvokeSyncGetInt(const std::string& method,
@@ -342,7 +275,7 @@ PlatformResult DBusOperation::UnregisterSignalListener(const std::string& signal
         return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to find signal handler");
     }
 
-    if (listeners_.size() == 0) {
+    if (listeners_.empty()) {
         return RemoveDBusSignalFilter();
     }
     return PlatformResult(ErrorCode::NO_ERROR);

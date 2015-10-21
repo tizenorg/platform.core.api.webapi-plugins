@@ -58,8 +58,8 @@ protected:
 private:
 };
 
-}  // namespace DBus
-}  // namespace messaging
-}  // namespace extension
+} //namespace DBus
+} //namespace Messaging
+} //namespace DeviceAPI
 
 #endif // __TIZEN_DBUS_EMAIL_SIGNAL_PROXY_H__

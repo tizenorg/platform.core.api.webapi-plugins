@@ -110,7 +110,7 @@ void HumanActivityMonitorInstance::HumanActivityMonitorManagerGetHumanActivityDa
       ReportError(result, &response_obj);
     }
 
-    PostMessage(response.serialize().c_str());
+    Instance::PostMessage(this, response.serialize().c_str());
   };
 
   TaskQueue::GetInstance().Async(get);
@@ -139,7 +139,7 @@ void HumanActivityMonitorInstance::HumanActivityMonitorManagerStart(
     picojson::object& data_o = data->get<picojson::object>();
     data_o["listenerId"] = args.get("listenerId");
 
-    PostMessage(data->serialize().c_str());
+    Instance::PostMessage(this, data->serialize().c_str());
   };
 
   result = manager_->SetListener(args.get("type").get<std::string>(), cb);

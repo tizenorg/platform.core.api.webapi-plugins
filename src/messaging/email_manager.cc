@@ -71,7 +71,7 @@ const int ACCOUNT_ID_NOT_INITIALIZED = -1;
 const std::string FIND_FOLDERS_ATTRIBUTE_ACCOUNTID_NAME  = "serviceId";
 } //anonymous namespace
 
-EmailManager::EmailManager() : m_is_initialized(false)
+EmailManager::EmailManager() : m_slot_size(-1), m_is_initialized(false)
 {
     LoggerD("Entered");
 }
@@ -304,32 +304,18 @@ static gboolean addDraftMessageCompleteCB(void *data)
         return false;
     }
 
-    auto json = callback->getJson();
-    picojson::object& obj = json->get<picojson::object>();
-    if (json->contains(JSON_CALLBACK_ID) && obj.at(JSON_CALLBACK_ID).is<double>()) {
-        if (callback->isError()) {
-            LoggerD("Calling error callback");
-            callback->getQueue().resolve(obj.at(JSON_CALLBACK_ID).get<double>(),
-                                             json->serialize()
-            );
-            callback->getMessage()->setMessageStatus(MessageStatus::STATUS_FAILED);
-        } else {
-            LoggerD("Calling success callback");
-            obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
-
-            picojson::object args;
-            args[JSON_DATA_MESSAGE] = MessagingUtil::messageToJson(callback->getMessage());
-            obj[JSON_DATA] = picojson::value(args);
-
-            callback->getQueue().resolve(
-                    obj.at(JSON_CALLBACK_ID).get<double>(),
-                    json->serialize()
-            );
-        }
-    } else {
-        LoggerE("Callback id is missing");
+    if (callback->IsError()) {
+        LoggerD("Calling error callback");
         callback->getMessage()->setMessageStatus(MessageStatus::STATUS_FAILED);
+    } else {
+        LoggerD("Calling success callback");
+
+        picojson::object args;
+        args[JSON_DATA_MESSAGE] = MessagingUtil::messageToJson(callback->getMessage());
+        callback->SetSuccess(picojson::value(args));
     }
+
+    callback->Post();
 
     delete callback;
     callback = NULL;
@@ -351,7 +337,7 @@ void EmailManager::addDraftMessage(MessageCallbackUserData* callback)
     PlatformResult ret = addDraftMessagePlatform(callback->getAccountId(), message);
     if (ret.IsError()) {
       LoggerE("%d (%s)", ret.error_code(), ret.message().c_str());
-      callback->setError(ret);
+      callback->SetError(ret);
     }
   }
   //Complete task
@@ -374,48 +360,36 @@ static gboolean sendEmailCompleteCB(void* data)
         return false;
     }
 
-    auto json = callback->getJson();
-    picojson::object& obj = json->get<picojson::object>();
-    if (json->contains(JSON_CALLBACK_ID) && obj.at(JSON_CALLBACK_ID).is<double>()) {
-        if (callback->isError()) {
-            LoggerD("Calling error callback");
-            callback->getQueue().resolve(obj.at(JSON_CALLBACK_ID).get<double>(),
-                                             json->serialize()
-            );
-            callback->getMessage()->setMessageStatus(MessageStatus::STATUS_FAILED);
-        }
-        else {
-            LoggerD("Calling success callback");
-            obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
-
-            std::vector<picojson::value> recipients;
-            auto addToRecipients = [&recipients](std::string& e)->void {
-                recipients.push_back(picojson::value(e));
-            };
-
-            auto toVect = callback->getMessage()->getTO();
-            std::for_each(toVect.begin(), toVect.end(), addToRecipients);
-
-            auto ccVect = callback->getMessage()->getCC();
-            std::for_each(ccVect.begin(), ccVect.end(), addToRecipients);
-
-            auto bccVect = callback->getMessage()->getBCC();
-            std::for_each(bccVect.begin(), bccVect.end(), addToRecipients);
-
-            picojson::object data;
-            data[JSON_DATA_RECIPIENTS] = picojson::value(recipients);
-            data[JSON_DATA_MESSAGE] = MessagingUtil::messageToJson(callback->getMessage());
-            obj[JSON_DATA] = picojson::value(data);
-
-            callback->getQueue().resolve(
-                    obj.at(JSON_CALLBACK_ID).get<double>(),
-                    json->serialize()
-            );
-            callback->getMessage()->setMessageStatus(MessageStatus::STATUS_SENT);
-        }
-    } else {
-        LoggerE("Callback id is missing");
+    if (callback->IsError()) {
+        LoggerD("Calling error callback");
+        callback->getMessage()->setMessageStatus(MessageStatus::STATUS_FAILED);
     }
+    else {
+        LoggerD("Calling success callback");
+
+        std::vector<picojson::value> recipients;
+        auto addToRecipients = [&recipients](std::string& e)->void {
+            recipients.push_back(picojson::value(e));
+        };
+
+        auto toVect = callback->getMessage()->getTO();
+        std::for_each(toVect.begin(), toVect.end(), addToRecipients);
+
+        auto ccVect = callback->getMessage()->getCC();
+        std::for_each(ccVect.begin(), ccVect.end(), addToRecipients);
+
+        auto bccVect = callback->getMessage()->getBCC();
+        std::for_each(bccVect.begin(), bccVect.end(), addToRecipients);
+
+        picojson::object data;
+        data[JSON_DATA_RECIPIENTS] = picojson::value(recipients);
+        data[JSON_DATA_MESSAGE] = MessagingUtil::messageToJson(callback->getMessage());
+
+        callback->SetSuccess(picojson::value(data));
+        callback->getMessage()->setMessageStatus(MessageStatus::STATUS_SENT);
+    }
+
+    callback->Post();
 
     delete callback;
     callback = NULL;
@@ -476,7 +450,7 @@ PlatformResult EmailManager::sendMessage(MessageRecipientsCallbackData* callback
   if (!platform_result) {
     LoggerE("Message send failed");
 
-    callback->setError(platform_result);
+    callback->SetError(platform_result);
 
     if (!g_idle_add(sendEmailCompleteCB, static_cast<void*>(callback))) {
       LoggerE("g_idle addition failed");
@@ -523,14 +497,12 @@ void EmailManager::sendStatusCallback(int mail_id,
                 case EMAIL_ERROR_NO_RESPONSE:
                 {
                     LoggerE("Network error %d", error_code);
-                    common::NetworkException e("Failed to send message");
-                    callback->setError(e.name(), e.message());
+                    callback->SetError(PlatformResult(ErrorCode::NETWORK_ERR, "Failed to send message"));
                     break;
                 }
                 default:
                     LoggerE("Unknown error %d", error_code);
-                    common::UnknownException ex("Failed to send message");
-                    callback->setError(ex.name(),ex.message());
+                    callback->SetError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to send message"));
                     break;
             }
         } else if (NOTI_SEND_FINISH == status) {
@@ -551,8 +523,7 @@ email_mail_data_t* EmailManager::loadMessage(int msg_id)
 {
     LoggerD("Entered");
     email_mail_data_t* mail_data = NULL;
-    int err = EMAIL_ERROR_NONE;
-    err = email_get_mail_data(msg_id, &mail_data);
+    int err = email_get_mail_data(msg_id, &mail_data);
     if (EMAIL_ERROR_NONE != err) {
         LoggerE("email_get_mail_data failed. [%d]", err);
     } else {
@@ -601,10 +572,9 @@ void EmailManager::loadMessageBody(MessageBodyCallbackData* callback)
     m_proxy_load_body->addCallback(callback);
 
     const int mailId = callback->getMessage()->getId();
-    int err = EMAIL_ERROR_NONE;
 
     int op_handle = -1;
-    err = email_download_body(mailId, 0, &op_handle);
+    int err = email_download_body(mailId, 0, &op_handle);
     if(EMAIL_ERROR_NONE != err){
         LoggerE("Email download body failed, %d", err);
         m_proxy_load_body->removeCallback(callback);
@@ -754,15 +724,13 @@ void EmailManager::syncFolder(SyncFolderCallbackData* callback)
     return;
   }
 
-  int err = EMAIL_ERROR_NONE;
-
   email_mailbox_t* mailbox = NULL;
 
   const std::string folder_id_str = callback->getMessageFolder()->getId();
   int folder_id = 0;
   std::istringstream(folder_id_str) >> folder_id;
 
-  err = email_get_mailbox_by_mailbox_id(folder_id, &mailbox);
+  int err = email_get_mailbox_by_mailbox_id(folder_id, &mailbox);
 
   if (EMAIL_ERROR_NONE != err || NULL == mailbox) {
     LoggerE("Couldn't get mailbox, error code: %d", err);
@@ -820,8 +788,7 @@ void EmailManager::stopSync(long op_id)
     return;
   }
 
-  int err = EMAIL_ERROR_NONE;
-  err = email_cancel_job(callback->getAccountId(),
+  int err = email_cancel_job(callback->getAccountId(),
                          callback->getOperationHandle(),
                          EMAIL_CANCELED_BY_USER);
 
@@ -829,18 +796,10 @@ void EmailManager::stopSync(long op_id)
     LoggerE("Email cancel job failed, %d", err);
   }
 
-  std::shared_ptr<picojson::value> response = callback->getJson();
-  picojson::object& obj = response->get<picojson::object>();
+  callback->SetError(PlatformResult(ErrorCode::ABORT_ERR, "Sync aborted by user"));
 
-  if (response->contains(JSON_CALLBACK_ID) && obj.at(JSON_CALLBACK_ID).is<double>()) {
-    callback->setError(PlatformResult(ErrorCode::ABORT_ERR, "Sync aborted by user"));
-
-    callback->getQueue().resolve(obj.at(JSON_CALLBACK_ID).get<double>(),
-                                     response->serialize());
-    m_proxy_sync->removeCallback(op_id);
-  } else {
-    LoggerE("Callback id is missing");
-  }
+  callback->Post();
+  m_proxy_sync->removeCallback(op_id);
 }
 
 //################################## ^stopSync #################################
@@ -854,7 +813,7 @@ void EmailManager::RemoveCallbacksByQueue(const PostQueue& q) {
   LoggerD("Entered");
 
   for (auto it = m_sendRequests.begin(); it != m_sendRequests.end();) {
-    if (&it->second->getQueue() == &q) {
+    if (it->second->HasQueue(q)) {
       delete it->second;
       m_sendRequests.erase(it++);
     } else {
@@ -871,25 +830,17 @@ void removeEmailCompleteCB(MessagesCallbackUserData* callback)
     return;
   }
 
-  auto json = callback->getJson();
-  picojson::object& obj = json->get<picojson::object>();
-  if (json->contains(JSON_CALLBACK_ID) && obj.at(JSON_CALLBACK_ID).is<double>()) {
-    if (callback->isError()) {
-      LoggerD("Calling error callback");
-      callback->getQueue().resolve(obj.at(JSON_CALLBACK_ID).get<double>(),
-                                       json->serialize()
-      );
-    } else {
-      LoggerD("Calling success callback");
 
-      obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
-      callback->getQueue().resolve(obj.at(JSON_CALLBACK_ID).get<double>(),
-                                       json->serialize()
-      );
-    }
+  if (callback->IsError()) {
+    LoggerD("Calling error callback");
+
   } else {
-    LoggerE("Callback id is missing");
+    LoggerD("Calling success callback");
+
+    callback->SetSuccess();
   }
+
+  callback->Post();
 
   delete callback;
   callback = NULL;
@@ -927,8 +878,7 @@ void EmailManager::removeStatusCallback(const std::vector<int> &ids,
         MessagesCallbackUserData* callback = it->callback;
         if (NOTI_MAIL_DELETE_FAIL == status) {
             LoggerD("Failed to remove mail");
-            UnknownException e("Messages remove failed");
-            callback->setError(e.name(), e.message());
+            callback->SetError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Messages remove failed"));
         }
         //if one of mails failed, call error callback
         //if all mails are deleted, call success.
@@ -1082,32 +1032,23 @@ void EmailManager::updateMessages(MessagesCallbackUserData* callback)
       callback->SetError(ret);
     }
 
-    auto json = callback->getJson();
-    picojson::object& obj = json->get<picojson::object>();
-    if (json->contains(JSON_CALLBACK_ID) && obj.at(JSON_CALLBACK_ID).is<double>()) {
-      if (callback->isError()) {
-        LoggerD("Calling error callback");
-        callback->getQueue().resolve(obj.at(JSON_CALLBACK_ID).get<double>(),
-                                         json->serialize());
-      } else {
-        LoggerD("Calling success callback");
-        obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
-
-        picojson::array array;
-        auto messages = callback->getMessages();
-        size_t messages_size = messages.size();
-        for (size_t i = 0 ; i < messages_size; ++i) {
-          array.push_back(MessagingUtil::messageToJson(messages[i]));
-        }
-        obj[JSON_DATA] = picojson::value(array);
-
-        callback->getQueue().resolve(obj.at(JSON_CALLBACK_ID).get<double>(),
-                                         json->serialize()
-        );
-      }
+    if (callback->IsError()) {
+      LoggerD("Calling error callback");
     } else {
-      LoggerE("Callback id is missing");
+      LoggerD("Calling success callback");
+
+      picojson::array array;
+      auto messages = callback->getMessages();
+      size_t messages_size = messages.size();
+      for (size_t i = 0 ; i < messages_size; ++i) {
+        array.push_back(MessagingUtil::messageToJson(messages[i]));
+      }
+
+      callback->SetSuccess(picojson::value(array));
     }
+
+    callback->Post();
+
     delete callback;
     callback = NULL;
 }
@@ -1162,32 +1103,24 @@ void EmailManager::findMessages(FindMsgCallbackUserData* callback)
   }
 
   //Complete task
-  LoggerD("callback: %p error: %d messages.size() = %d", callback, callback->isError(),
+  LoggerD("callback: %p error: %d messages.size() = %d", callback, callback->IsError(),
           callback->getMessages().size());
 
-  auto json = callback->getJson();
-  picojson::object& obj = json->get<picojson::object>();
-  if (json->contains(JSON_CALLBACK_ID) && obj.at(JSON_CALLBACK_ID).is<double>()) {
-    if (callback->isError()) {
-      LoggerD("Calling error callback");
-      callback->getQueue().resolve( obj.at(JSON_CALLBACK_ID).get<double>(),
-                                        json->serialize());
-    } else {
-      LoggerD("Calling success callback");
-      std::vector<picojson::value> response;
-      auto messages = callback->getMessages();
-      std::for_each(messages.begin(), messages.end(), [&response](MessagePtr &message){
-        response.push_back(MessagingUtil::messageToJson(message));
-      });
-      obj[JSON_DATA] = picojson::value(response);
-      obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
+  if (callback->IsError()) {
+    LoggerD("Calling error callback");
 
-      callback->getQueue().resolve(obj.at(JSON_CALLBACK_ID).get<double>(),
-                                       json->serialize());
-    }
   } else {
-    LoggerE("Failed to call findMessages callback.");
+    LoggerD("Calling success callback");
+    std::vector<picojson::value> response;
+    auto messages = callback->getMessages();
+    std::for_each(messages.begin(), messages.end(), [&response](MessagePtr &message){
+      response.push_back(MessagingUtil::messageToJson(message));
+    });
+
+    callback->SetSuccess(picojson::value(response));
   }
+
+  callback->Post();
 
   delete callback;
   callback = NULL;
@@ -1234,36 +1167,26 @@ void EmailManager::findConversations(ConversationCallbackData* callback)
     }
 
     //Complete task
-    LoggerD("callback: %p error:%d conversations.size()=%d", callback, callback->isError(),
+    LoggerD("callback: %p error:%d conversations.size()=%d", callback, callback->IsError(),
             callback->getConversations().size());
 
-    auto json = callback->getJson();
-    picojson::object& obj = json->get<picojson::object>();
-    if (json->contains(JSON_CALLBACK_ID) && obj.at(JSON_CALLBACK_ID).is<double>()) {
-      if (callback->isError()) {
-        LoggerD("Calling error callback");
-        callback->getQueue().resolve(obj.at(JSON_CALLBACK_ID).get<double>(),
-                                         json->serialize());
-      } else {
-        LoggerD("Calling success callback");
-
-        std::vector<picojson::value> response;
-        auto messages = callback->getConversations();
-        std::for_each(messages.begin(), messages.end(),
-                      [&response](std::shared_ptr<MessageConversation> &conversation) {
-          response.push_back(MessagingUtil::conversationToJson(conversation));
-        }
-        );
-        obj[JSON_DATA] = picojson::value(response);
-        obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
-
-        callback->getQueue().resolve(obj.at(JSON_CALLBACK_ID).get<double>(),
-                                         json->serialize()
-        );
-      }
+    if (callback->IsError()) {
+      LoggerD("Calling error callback");
     } else {
-      LoggerE("Failed to call findConversations callback.");
+      LoggerD("Calling success callback");
+
+      std::vector<picojson::value> response;
+      auto messages = callback->getConversations();
+      std::for_each(messages.begin(), messages.end(),
+                    [&response](std::shared_ptr<MessageConversation> &conversation) {
+        response.push_back(MessagingUtil::conversationToJson(conversation));
+      }
+      );
+
+      callback->SetSuccess(picojson::value(response));
     }
+
+    callback->Post();
 
     delete callback;
     callback = NULL;
@@ -1375,35 +1298,26 @@ void EmailManager::findFolders(FoldersCallbackData* callback)
     }
 
     //Complete task
-    LoggerD("callback: %p error:%d folders.size()=%d", callback, callback->isError(),
+    LoggerD("callback: %p error:%d folders.size()=%d", callback, callback->IsError(),
             callback->getFolders().size());
 
-    auto json = callback->getJson();
-    picojson::object& obj = json->get<picojson::object>();
-    if (json->contains(JSON_CALLBACK_ID) && obj.at(JSON_CALLBACK_ID).is<double>()) {
-      if (callback->isError()) {
-        LoggerD("Calling error callback");
-        callback->getQueue().resolve(obj.at(JSON_CALLBACK_ID).get<double>(),
-                                         json->serialize());
-      } else {
-        LoggerD("Calling success callback");
-
-        std::vector<picojson::value> response;
-        auto folders = callback->getFolders();
-        std::for_each(folders.begin(), folders.end(),
-                      [&response](std::shared_ptr<MessageFolder> &folder) {
-          response.push_back(MessagingUtil::folderToJson(folder));
-        }
-        );
-        obj[JSON_DATA] = picojson::value(response);
-        obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
-
-        callback->getQueue().resolve(obj.at(JSON_CALLBACK_ID).get<double>(),
-                                         json->serialize());
-      }
+    if (callback->IsError()) {
+      LoggerD("Calling error callback");
     } else {
-      LoggerE("Unknown error when calling findFolders callback.");
+      LoggerD("Calling success callback");
+
+      std::vector<picojson::value> response;
+      auto folders = callback->getFolders();
+      std::for_each(folders.begin(), folders.end(),
+                    [&response](std::shared_ptr<MessageFolder> &folder) {
+        response.push_back(MessagingUtil::folderToJson(folder));
+      }
+      );
+
+      callback->SetSuccess(picojson::value(response));
     }
+
+    callback->Post();
 
     delete callback;
     callback = NULL;
@@ -1470,26 +1384,56 @@ void EmailManager::removeConversations(ConversationCallbackData* callback)
       callback->SetError(ret);
     }
 
-    auto json = callback->getJson();
-    picojson::object& obj = json->get<picojson::object>();
-    if (json->contains(JSON_CALLBACK_ID) && obj.at(JSON_CALLBACK_ID).is<double>()) {
-      if (callback->isError()) {
-        LoggerD("Calling error callback");
-        callback->getQueue().resolve(obj.at(JSON_CALLBACK_ID).get<double>(),
-                                         json->serialize());
-      } else {
-        LoggerD("Calling success callback");
-        obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
-
-        callback->getQueue().resolve(obj.at(JSON_CALLBACK_ID).get<double>(),
-                                         json->serialize());
-      }
+    if (callback->IsError()) {
+      LoggerD("Calling error callback");
     } else {
-      LoggerE("Unknown error when calling removeConversations callback.");
+      LoggerD("Calling success callback");
+
+      callback->SetSuccess();
     }
+
+    callback->Post();
 
     delete callback;
     callback = NULL;
+}
+
+std::string EmailManager::getMessageStatus(int id) {
+  LoggerD("Entered");
+
+  email_mail_data_t *mail = nullptr;
+  MessageStatus status = MessageStatus::STATUS_UNDEFINED;
+
+  int ret = email_get_mail_data(id, &mail);
+  if (EMAIL_ERROR_NONE != ret ) {
+    LoggerD("Failed to get data.");
+    return "";
+  }
+
+  switch(mail->save_status) {
+    case EMAIL_MAIL_STATUS_SENT:
+      status = MessageStatus::STATUS_SENT;
+      break;
+    case EMAIL_MAIL_STATUS_SENDING:
+      status = MessageStatus::STATUS_SENDING;
+      break;
+    case EMAIL_MAIL_STATUS_SAVED:
+      status = MessageStatus::STATUS_DRAFT;
+      break;
+    case EMAIL_MAIL_STATUS_SEND_FAILURE:
+      status = MessageStatus::STATUS_FAILED;
+      break;
+    default:
+      status = MessageStatus::STATUS_UNDEFINED;
+      break;
+  }
+
+  ret = email_free_mail_data(&mail, 1);
+  if (EMAIL_ERROR_NONE != ret ) {
+    LoggerD("Failed to free mail data.");
+  }
+
+  return MessagingUtil::messageStatusToString(status);
 }
 
 } // Messaging

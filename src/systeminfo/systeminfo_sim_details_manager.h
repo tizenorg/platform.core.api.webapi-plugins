@@ -40,6 +40,7 @@ class SimDetailsManager {
   void set_operator_name(const std::string& name);
   void set_msisdn(const std::string& msisdn);
   void set_spn(const std::string& spn);
+  void set_iccid(const std::string& iccid);
 
  private:
   void ResetSimHolder(picojson::object* out);

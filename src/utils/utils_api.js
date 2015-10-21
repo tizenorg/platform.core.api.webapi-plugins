@@ -27,8 +27,8 @@ var DateConverter = function() {};
 DateConverter.prototype.toTZDate = function(v, isAllDay) {
   if (typeof v === 'number') {
     v = {
-      UTCTimestamp: v
-        };
+        UTCTimestamp: v
+    };
     isAllDay = false;
   }
 
@@ -40,7 +40,7 @@ DateConverter.prototype.toTZDate = function(v, isAllDay) {
     return new tizen.TZDate(v.year, v.month - 1, v.day,
         null, null, null, null, v.timezone || null);
   } else {
-    return new tizen.TZDate(new Date(v.UTCTimestamp * 1000), 'UTC').toLocalTimezone();
+    return new tizen.TZDate(new Date(v.UTCTimestamp * 1000));
   }
 };
 
@@ -49,20 +49,12 @@ DateConverter.prototype.fromTZDate = function(v) {
     return v;
   }
 
-  var timestamp = Date.UTC(v.date_.getUTCFullYear(),
-                           v.date_.getUTCMonth(),
-                           v.date_.getUTCDate(),
-                           v.date_.getUTCHours(),
-                           v.date_.getUTCMinutes(),
-                           v.date_.getUTCSeconds(),
-                           v.date_.getUTCMilliseconds()) / 1000;
-
   return {
     year: v.getFullYear(),
     month: v.getMonth(),
     day: v.getDate(),
     timezone: v.getTimezone(),
-    UTCTimestamp: timestamp
+    UTCTimestamp: v._utcTimestamp / 1000
   };
 
 };
@@ -389,8 +381,12 @@ Converter.prototype.toLong = function(val, nullable) {
 };
 
 function _toLongLong(val) {
-  // TODO: how to implement this?
-  return _toLong(val);
+  // According to WebIDL specification this will not be a precise representation
+  // of requested val. We're converting the val to signed long and then pass it
+  // to C++ to get the value in required range.
+  return native_.getResultObject(native_.callSync('Utils_toLongLong', {
+    n : _toLong(val)
+  }));
 }
 
 Converter.prototype.toLongLong = function(val, nullable) {
@@ -406,12 +402,32 @@ Converter.prototype.toUnsignedLong = function(val, nullable) {
 };
 
 function _toUnsignedLongLong(val) {
-  // TODO: how to implement this?
-  return _toUnsignedLong(val);
+  // According to WebIDL specification this will not be a precise representation
+  // of requested val. We're converting the val to signed long and then pass it
+  // to C++ to get the value in required range.
+  return native_.getResultObject(native_.callSync('Utils_toUnsignedLongLong', {
+    n : _toLong(val)
+  }));
 }
 
 Converter.prototype.toUnsignedLongLong = function(val, nullable) {
   return _nullableGeneric(_toUnsignedLongLong, nullable, val);
+};
+
+function _toShort(val) {
+  return ((_toLong(val) + 32768) & 0xFFFF) - 32768;
+}
+
+Converter.prototype.toShort = function(val, nullable) {
+  return _nullableGeneric(_toShort, nullable, val);
+};
+
+function _toUnsignedShort(val) {
+  return (Math.abs(_toLong(val)) & 0xFFFF);
+}
+
+Converter.prototype.toUnsignedShort = function(val, nullable) {
+  return _nullableGeneric(_toUnsignedShort, nullable, val);
 };
 
 function _toByte(val) {
@@ -538,8 +554,6 @@ Converter.prototype.toEnum = function(val, e, nullable) {
 
 var _converter = new Converter();
 
-
-
 /////////////////////////////////////////////////////////////////////////////
 /** @constructor */
 var Validator = function() {
@@ -558,7 +572,8 @@ var Validator = function() {
     PLATFORM_OBJECT: 'PLATFORM_OBJECT',
     LISTENER: 'LISTENER',
     ARRAY: 'ARRAY',
-    ENUM: 'ENUM'
+    ENUM: 'ENUM',
+    FILE_REFERENCE: 'FILE_REFERENCE'
   };
 };
 
@@ -813,6 +828,13 @@ Validator.prototype.validateArgs = function(a, d) {
           val = _converter.toEnum(val, values, nullable);
           break;
 
+        case this.Types.FILE_REFERENCE:
+          if (_type.isObject(val) && 'File' === val.constructor.name && val.fullPath) {
+            val = val.fullPath;
+          }
+          val = _converter.toString(val, nullable);
+          break;
+
         default:
           throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR,
               'Unknown type: "' + type + '".');
@@ -979,7 +1001,15 @@ var NativeManager = function(extension) {
         return;
       }
 
-      this.callbacks_[id](msg);
+      var f = this.callbacks_[id];
+      setTimeout(function() {
+        try {
+          f(msg);
+        } catch (e) {
+          console.error('########## exception');
+          console.error(e);
+        }
+      }, 0);
       delete this.callbacks_[id];
 
       return;
@@ -994,7 +1024,15 @@ var NativeManager = function(extension) {
         return;
       }
 
-      this.listeners_[id](msg);
+      var f = this.listeners_[id];
+      setTimeout(function() {
+        try {
+          f(msg);
+        } catch (e) {
+          console.error('########## exception');
+          console.error(e);
+        }
+      }, 0);
 
       return;
     }
@@ -1155,7 +1193,7 @@ var NativeBridge = (function (extension, debug) {
 
         CallbackManager.prototype = {
             add: function (/*callbacks, cid?*/) {
-                if (debug) console.log('bridge', 'CallbackManager', 'add');
+                if (debug) console.log('bridge.CallbackManager.add');
                 var args = Array.prototype.slice.call(arguments);
                 var c = args.shift();
                 var cid = args.pop();
@@ -1172,11 +1210,11 @@ var NativeBridge = (function (extension, debug) {
                 return cid;
             },
             remove: function (cid) {
-                if (debug)  console.log('bridge', 'CallbackManager', 'remove', cid);
+                if (debug)  console.log('bridge.CallbackManager.remove, cid: ' + cid);
                 if (_collection[cid]) delete _collection[cid];
             },
             call: function (cid, key, args, keep) {
-                if (debug) console.log('bridge', 'CallbackManager', 'call', cid, key);
+                if (debug) console.log('bridge.CallbackManager.call, cid: '+ cid + ', key: ' + key);
                 var callbacks = _collection[cid];
                 keep = !!keep;
                 if (callbacks) {
@@ -1208,13 +1246,13 @@ var NativeBridge = (function (extension, debug) {
 
         ListenerManager.prototype = {
             add: function (l) {
-                if (debug) console.log('bridge', 'ListenerManager', 'add');
+                if (debug) console.log('bridge.ListenerManager.add');
                 var id = _next();
                 _listeners[id] = l;
                 return id;
             },
             resolve: function (id, action, data, keep) {
-                if (debug) console.log('bridge', 'ListenerManager', 'resolve', id, action);
+                if (debug) console.log('bridge.ListenerManager.resolve, id: ' + id + ', action: ' + action);
                 keep = !!keep;
                 var l = _listeners[id];
                 if (l) {
@@ -1224,7 +1262,7 @@ var NativeBridge = (function (extension, debug) {
                 return l;
             },
             remove: function (id) {
-                if (debug) console.log('bridge', 'ListenerManager', 'remove', id);
+                if (debug) console.log('bridge.ListenerManager.remove, id: ' + id);
                 var l = _listeners[id];
                 if (l) {
                     var cm = Callbacks.getInstance();
@@ -1259,12 +1297,12 @@ var NativeBridge = (function (extension, debug) {
     })();
 
     var Listener = function () {
-        if (debug) console.log('bridge', 'Listener constructor');
+        if (debug) console.log('bridge: Listener constructor');
         this.cid = null;
     };
     Listener.prototype = {
         then: function (c) {
-            if (debug) console.log('bridge', 'Listener', 'then');
+            if (debug) console.log('bridge.Listener.then');
             var cm = Callbacks.getInstance();
             this.cid = cm.add(c, this.cid);
             return this;
@@ -1278,7 +1316,7 @@ var NativeBridge = (function (extension, debug) {
               cmd: data.cmd,
               args: data
             });
-            if (debug) console.log('bridge', 'sync', json);
+            if (debug) console.log('bridge.sync, json: ' + json);
             var result = extension.internal.sendSyncMessage(json);
             var obj = JSON.parse(result);
             if (obj.error)
@@ -1292,7 +1330,7 @@ var NativeBridge = (function (extension, debug) {
                 cmd: data.cmd,
                 args: data
             });
-            if (debug) console.log('bridge', 'async', json);
+            if (debug) console.log('bridge.async, json: ' + json);
             setTimeout(function () {
                 extension.postMessage(json);
             });
@@ -1325,10 +1363,12 @@ var NativeBridge = (function (extension, debug) {
          *}
          */
 
-        if (debug) console.log('bridge', 'setMessageListener', json);
+        if (debug) console.log('bridge.setMessageListener, json: ' + json);
         var data = JSON.parse(json);
         if (data.cid && data.action) {
-            Listeners.getInstance().resolve(data.cid, data.action, data.args, data.keep);
+            setTimeout(function() {
+                Listeners.getInstance().resolve(data.cid, data.action, data.args, data.keep);
+            }, 0);
         }
     });
 
@@ -1391,7 +1431,8 @@ var errors = {
   IO_ERR: 101,
   PERMISSION_DENIED_ERR: 102,
   SERVICE_NOT_AVAILABLE_ERR: 103,
-  DATABASE_ERR: 104
+  DATABASE_ERR: 104,
+  VERIFICATION_ERR: 105
 };
 
 var code_to_name = {};
@@ -1428,6 +1469,7 @@ code_to_name[errors['IO_ERR']] = 'IOError';
 code_to_name[errors['PERMISSION_DENIED_ERR']] = 'PermissionDeniedError';
 code_to_name[errors['SERVICE_NOT_AVAILABLE_ERR']] = 'ServiceNotAvailableError';
 code_to_name[errors['DATABASE_ERR']] = 'DatabaseError';
+code_to_name[errors['VERIFICATION_ERR']] = 'VerificationError';
 
 var name_to_code = {};
 Object.keys(errors).forEach(function(key) {
@@ -1540,3 +1582,8 @@ Utils.prototype.NativeBridge = NativeBridge;
 var native_ = new NativeManager(extension);
 
 exports = new Utils();
+
+Object.freeze(Utils.prototype);
+Object.freeze(NativeManager.prototype);
+Object.freeze(NativeBridge.prototype);
+Object.freeze(exports);

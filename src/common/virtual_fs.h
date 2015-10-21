@@ -75,8 +75,6 @@ class VirtualFs {
 
   std::vector<VirtualStorage> GetStorages() const;
 
-  // TODO: add stat method
-
   static VirtualFs& GetInstance();
 
  private:

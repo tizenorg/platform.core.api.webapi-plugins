@@ -34,7 +34,7 @@ private:
     smartcard_service_api::ClientChannel* m_channel_ptr;
 };
 
-}  // namespace secureelement
-}  // namespace extension
+} // secureelement
+} // extension
 
 #endif // SECUREELEMENT_CHANNEL_H_

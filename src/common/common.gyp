@@ -33,8 +33,6 @@
         'task-queue.h',
         'tools.cc',
         'tools.h',
-        'callback_user_data.cc',
-        'callback_user_data.h',
         'optional.h',
         'platform_result.cc',
         'platform_result.h',
@@ -71,7 +69,7 @@
               'defines': ['PRIVILEGE_USE_ACE'],
               'variables': {
                 'packages': [
-                  'capi-security-privilege-manager',
+                  'security-privilege-checker',
                 ],
               },
             }],

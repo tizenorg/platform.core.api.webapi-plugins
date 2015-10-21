@@ -19,9 +19,9 @@
 #include "keymanager/keymanager_instance.h"
 
 namespace {
-const char* kKey = "tizen.Key";
-const char* kData = "tizen.Data";
-const char* kCertificate = "tizen.Certificate";
+const char* kKey = "tizen.KeyManagerKey";
+const char* kData = "tizen.KeyManagerData";
+const char* kCertificate = "tizen.KeyManagerCertificate";
 }
 
 // This will be generated from keymanager_api.js

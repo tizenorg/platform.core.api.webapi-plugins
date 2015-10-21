@@ -31,6 +31,8 @@ extern const char* CONVERSATIONSREMOVED;
 
 class ConversationsChangeCallback {
 public:
+    typedef void(ConversationsChangeCallback::*Signature)(const ConversationPtrVector& conversations);
+
     ConversationsChangeCallback(
             long cid,
             int service_id,
@@ -67,8 +69,8 @@ private:
 
 };
 
-}  // namespace messaging
-}  // namespace extension
+} //messaging
+} //extension
 
 
 

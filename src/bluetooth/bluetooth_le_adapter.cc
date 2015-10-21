@@ -16,6 +16,7 @@
 
 #include "bluetooth/bluetooth_le_adapter.h"
 
+#include "common/tools.h"
 #include "common/logger.h"
 
 #include "bluetooth/bluetooth_instance.h"
@@ -106,15 +107,21 @@ class BluetoothLEServiceData : public ParsedDataHolder {
 class BluetoothLEManufacturerData : public ParsedDataHolder {
  public:
   BluetoothLEManufacturerData()
-      : ParsedDataHolder() {
+      : ParsedDataHolder(),
+        data_(nullptr),
+        data_length_(0) {
   }
 
   const std::string& id() const {
     return id_;
   }
 
-  const std::string& data() const {
+  const unsigned char* const data() const {
     return data_;
+  }
+
+  const int data_length() const {
+    return data_length_;
   }
 
   static bool Construct(const picojson::value& obj,
@@ -129,6 +136,14 @@ class BluetoothLEManufacturerData : public ParsedDataHolder {
     out->set_valid();
 
     return true;
+  }
+
+  ~BluetoothLEManufacturerData() {
+    if (data_) {
+      delete [] data_;
+      data_ = nullptr;
+      data_length_ = 0;
+    }
   }
 
  private:
@@ -148,18 +163,29 @@ class BluetoothLEManufacturerData : public ParsedDataHolder {
   static bool ParseData(const picojson::value& obj,
                         BluetoothLEManufacturerData* out) {
     LoggerD("Entered");
-    const auto& data = obj.get("data");
-    if (data.is<std::string>()) {
-      out->data_ = data.get<std::string>();
+
+    const auto& val_data = obj.get("data");
+
+    if (val_data.is<std::string>()) {
+      const std::string& str_data = val_data.get<std::string>();
+      const char* p_data = str_data.c_str();
+      int size = str_data.length();
+      if (size > 2 && (str_data.find("0x", 0) == 0 || str_data.find("0X", 0) == 0)) {
+        p_data += 2;
+        size -= 2;
+      }
+      out->data_length_ = size / 2;
+      out->data_ = new unsigned char[out->data_length_];
+      common::tools::HexToBin(p_data, size, out->data_, out->data_length_);
+      return true;
     } else {
       return false;
     }
-
-    return true;
   }
 
   std::string id_;
-  std::string data_;
+  unsigned char* data_;
+  int data_length_;
 };
 
 class BluetoothLEAdvertiseData : public ParsedDataHolder {
@@ -568,15 +594,15 @@ void BluetoothLEAdapter::StartAdvertise(const picojson::value& data, picojson::o
   }
 
   const auto& manufacturer_data = advertise_data.manufacturer_data();
-  if (manufacturer_data.id().empty() && manufacturer_data.data().empty()) {
+  if (manufacturer_data.id().empty() && manufacturer_data.data() == nullptr) {
     LoggerD("manufacturerData is empty");
   } else {
-      if (manufacturer_data.valid()) {
+    if (manufacturer_data.valid()) {
       ret = bt_adapter_le_add_advertising_manufacturer_data(advertiser,
                                                             packet_type,
                                                             atoi(manufacturer_data.id().c_str()),
-                                                            manufacturer_data.data().c_str(),
-                                                            manufacturer_data.data().length());
+                                                            (const char*)manufacturer_data.data(),
+                                                            manufacturer_data.data_length());
       if (BT_ERROR_NONE != ret) {
         LoggerE("bt_adapter_le_add_advertising_manufacturer_data() failed with: %d", ret);
         ReportError(util::GetBluetoothError(ret, "Failed to create advertiser"), &out);
@@ -678,7 +704,7 @@ void BluetoothLEAdapter::OnScanResult(
     ReportError(util::GetBluetoothError(result, "Error during scanning"), data_obj);
     data_obj->insert(std::make_pair(kAction, picojson::value(kOnScanError)));
   } else {
-    // TODO: this is probably capi-network-bluetooth error: when scan is stopped info has 0x1 value
+    // this is probably capi-network-bluetooth error: when scan is stopped info has 0x1 value
     if (nullptr != info && reinterpret_cast<void*>(0x1) != info) {
       // device found
       LoggerD("Device found");

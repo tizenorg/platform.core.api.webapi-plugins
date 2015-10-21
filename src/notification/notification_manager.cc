@@ -98,13 +98,7 @@ PlatformResult NotificationManager::Get(const picojson::object& args,
   int id = std::stoi(FromJson<std::string>(args, "id"));
 
   app_control_h app_control = nullptr;
-  notification_h noti_handle;
-  PlatformResult status = StatusNotification::GetNotiHandle(id, &noti_handle);
-  if (status.IsError())
-  {
-    LoggerE("Failed: GetNotiHandle");
-    return status;
-  }
+  notification_h noti_handle = nullptr;
 
   SCOPE_EXIT {
     if (app_control) {
@@ -112,6 +106,13 @@ PlatformResult NotificationManager::Get(const picojson::object& args,
     }
     free(noti_handle);
   };
+
+  PlatformResult status = StatusNotification::GetNotiHandle(id, &noti_handle);
+  if (status.IsError())
+  {
+    LoggerE("Failed: GetNotiHandle");
+    return status;
+  }
 
   status = StatusNotification::GetAppControl(noti_handle, &app_control);
   if (status.IsError())
@@ -168,9 +169,16 @@ PlatformResult NotificationManager::GetAll(picojson::array& out) {
                               "Cannot get notification id error");
       }
 
-      app_control_h app_control;
+      app_control_h app_control = nullptr;
       PlatformResult status =
           StatusNotification::GetAppControl(noti, &app_control);
+
+      SCOPE_EXIT {
+          if (app_control) {
+              app_control_destroy(app_control);
+          }
+      };
+
       if (status.IsError())
         return status;
 

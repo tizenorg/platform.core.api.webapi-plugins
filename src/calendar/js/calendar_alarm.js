@@ -24,8 +24,15 @@ var CalendarAlarm = function(time, method, description) {
 
   var _absoluteDate = time instanceof tizen.TZDate && !this.before ? time : null;
   var _before = time instanceof tizen.TimeDuration && !this.absoluteDate ? time : null;
-  var _method = converter_.toEnum(method, Object.keys(AlarmMethod), false);
   var _description = (description) ? converter_.toString(description, true) : '';
+  var _method;
+
+  try {
+    _method = converter_.toEnum(method, Object.keys(AlarmMethod), false);
+  } catch (e) {
+    console.warn('Failed to convert method: "' + method + '" to enum AlarmMethod.');
+    _method = method;
+  }
 
   Object.defineProperties(this, {
     absoluteDate: {

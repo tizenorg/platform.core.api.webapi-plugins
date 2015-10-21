@@ -107,8 +107,10 @@ void CalendarInstance::CalendarAdd(const JsonValue& args, JsonObject& out) {
 void CalendarInstance::CalendarAddBatch(const JsonValue& args,
                                         JsonObject& out) {
   LoggerD("Enter");
+
   const double callback_id = args.get("callbackId").get<double>();
   auto get = [=](const std::shared_ptr<JsonValue>& response) -> void {
+    LoggerD("CalendarAddBatch->get");
     JsonValue result = JsonValue(JsonArray());
     PlatformResult status = calendar_.AddBatch(
         common::JsonCast<JsonObject>(args), result.get<JsonArray>());
@@ -124,15 +126,17 @@ void CalendarInstance::CalendarAddBatch(const JsonValue& args,
 
   auto get_response =
       [callback_id, this](const std::shared_ptr<JsonValue>& response) -> void {
+    LoggerD("CalendarAddBatch->get_response");
     picojson::object& obj = response->get<picojson::object>();
     obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
     LoggerD("callback is %s", response->serialize().c_str());
-    PostMessage(response->serialize().c_str());
+    Instance::PostMessage(this, response->serialize().c_str());
   };
 
+  auto data = std::shared_ptr<JsonValue>(new JsonValue(JsonObject()));
+
   TaskQueue::GetInstance().Queue<JsonValue>(
-      get, get_response,
-      std::shared_ptr<JsonValue>(new JsonValue(JsonObject())));
+      get, get_response, data);
 }
 
 void CalendarInstance::CalendarUpdate(const JsonValue& args, JsonObject& out) {
@@ -154,8 +158,10 @@ void CalendarInstance::CalendarUpdate(const JsonValue& args, JsonObject& out) {
 void CalendarInstance::CalendarUpdateBatch(const JsonValue& args,
                                            JsonObject& out) {
   LoggerD("Enter");
+
   const double callback_id = args.get("callbackId").get<double>();
   auto get = [=](const std::shared_ptr<JsonValue>& response) -> void {
+    LoggerD("CalendarUpdateBatch->get");
     JsonValue result = JsonValue(JsonArray());
     PlatformResult status = calendar_.UpdateBatch(
         common::JsonCast<JsonObject>(args), result.get<JsonArray>());
@@ -171,15 +177,17 @@ void CalendarInstance::CalendarUpdateBatch(const JsonValue& args,
 
   auto get_response =
       [callback_id, this](const std::shared_ptr<JsonValue>& response) -> void {
+    LoggerD("CalendarUpdateBatch->get_response");
     picojson::object& obj = response->get<picojson::object>();
     obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
     LoggerD("callback is %s", response->serialize().c_str());
-    PostMessage(response->serialize().c_str());
+    Instance::PostMessage(this, response->serialize().c_str());
   };
 
+  auto data = std::shared_ptr<JsonValue>(new JsonValue(JsonObject()));
+
   TaskQueue::GetInstance().Queue<JsonValue>(
-      get, get_response,
-      std::shared_ptr<JsonValue>(new JsonValue(JsonObject())));
+      get, get_response, data);
 }
 
 void CalendarInstance::CalendarRemove(const JsonValue& args, JsonObject& out) {
@@ -201,8 +209,10 @@ void CalendarInstance::CalendarRemove(const JsonValue& args, JsonObject& out) {
 void CalendarInstance::CalendarRemoveBatch(const JsonValue& args,
                                            JsonObject& out) {
   LoggerD("Enter");
+
   const double callback_id = args.get("callbackId").get<double>();
   auto get = [=](const std::shared_ptr<JsonValue>& response) -> void {
+    LoggerD("CalendarRemoveBatch->get");
     JsonValue result = JsonValue(JsonArray());
     PlatformResult status = calendar_.RemoveBatch(
         common::JsonCast<JsonObject>(args), result.get<JsonArray>());
@@ -218,21 +228,25 @@ void CalendarInstance::CalendarRemoveBatch(const JsonValue& args,
 
   auto get_response =
       [callback_id, this](const std::shared_ptr<JsonValue>& response) -> void {
+    LoggerD("CalendarRemoveBatch->get_response");
     picojson::object& obj = response->get<picojson::object>();
     obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
     LoggerD("callback is %s", response->serialize().c_str());
-    PostMessage(response->serialize().c_str());
+    Instance::PostMessage(this, response->serialize().c_str());
   };
 
+  auto data = std::shared_ptr<JsonValue>(new JsonValue(JsonObject()));
+
   TaskQueue::GetInstance().Queue<JsonValue>(
-      get, get_response,
-      std::shared_ptr<JsonValue>(new JsonValue(JsonObject())));
+      get, get_response, data);
 }
 
 void CalendarInstance::CalendarFind(const JsonValue& args, JsonObject& out) {
   LoggerD("Enter");
+
   const double callback_id = args.get("callbackId").get<double>();
   auto get = [=](const std::shared_ptr<JsonValue>& response) -> void {
+    LoggerD("CalendarFind->get");
     JsonValue result = JsonValue(JsonArray());
     PlatformResult status = calendar_.Find(
         common::JsonCast<JsonObject>(args), result.get<JsonArray>());
@@ -248,15 +262,17 @@ void CalendarInstance::CalendarFind(const JsonValue& args, JsonObject& out) {
 
   auto get_response =
       [callback_id, this](const std::shared_ptr<JsonValue>& response) -> void {
+    LoggerD("CalendarFind->get_response");
     picojson::object& obj = response->get<picojson::object>();
     obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
     LoggerD("callback isssssss %s", response->serialize().c_str());
-    PostMessage(response->serialize().c_str());
+    Instance::PostMessage(this, response->serialize().c_str());
   };
 
+  auto data = std::shared_ptr<JsonValue>(new JsonValue(JsonObject()));
+
   TaskQueue::GetInstance().Queue<JsonValue>(
-      get, get_response,
-      std::shared_ptr<JsonValue>(new JsonValue(JsonObject())));
+      get, get_response, data);
 }
 
 void CalendarInstance::CalendarAddChangeListener(const JsonValue& args,
@@ -329,8 +345,10 @@ void CalendarInstance::CalendarManagerGetCalendar(const JsonValue& args,
 void CalendarInstance::CalendarManagerGetCalendars(const JsonValue& args,
                                                    JsonObject& out) {
   LoggerD("Enter");
+
   const double callback_id = args.get("callbackId").get<double>();
   auto get = [=](const std::shared_ptr<JsonValue>& response) -> void {
+    LoggerD("CalendarManagerGetCalendars->get");
     JsonValue result = JsonValue(JsonArray());
 
     PlatformResult status = CalendarManager::GetInstance().GetCalendars(
@@ -347,15 +365,17 @@ void CalendarInstance::CalendarManagerGetCalendars(const JsonValue& args,
 
   auto get_response = [ callback_id, this ](const std::shared_ptr<JsonValue> &
                                             response)->void {
+    LoggerD("CalendarManagerGetCalendars->get_response");
     picojson::object& obj = response->get<picojson::object>();
     obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
     LoggerD("callback is %s", response->serialize().c_str());
-    PostMessage(response->serialize().c_str());
+    Instance::PostMessage(this, response->serialize().c_str());
   };
 
+  auto data = std::shared_ptr<JsonValue>(new JsonValue(JsonObject()));
+
   TaskQueue::GetInstance().Queue<JsonValue>(
-      get, get_response,
-      std::shared_ptr<JsonValue>(new JsonValue(JsonObject())));
+      get, get_response, data);
 }
 
 void CalendarInstance::CalendarManagerRemoveCalendar(const JsonValue& args,

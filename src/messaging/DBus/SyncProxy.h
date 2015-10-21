@@ -22,6 +22,7 @@
 #ifndef __TIZEN_DBUS_SYNC_PROXY_H__
 #define __TIZEN_DBUS_SYNC_PROXY_H__
 
+#include "messaging/callback_user_data.h"
 #include "EmailSignalProxy.h"
 #include "common/platform_result.h"
 
@@ -36,7 +37,7 @@ class SyncProxy : public EmailSignalProxy {
 public:
 
     // Callback is owned by this map
-    typedef std::map<long, common::CallbackUserData*> CallbackMap;
+    typedef std::map<long, CallbackUserData*> CallbackMap;
 
     virtual ~SyncProxy();
 
@@ -44,8 +45,8 @@ public:
                                          const std::string& iface,
                                          SyncProxyPtr* sync_proxy);
     //Passed callback will be owned by this proxy
-    void addCallback(long op_id, common::CallbackUserData* callbackOwned);
-    common::CallbackUserData* getCallback(long op_id);
+    void addCallback(long op_id, CallbackUserData* callbackOwned);
+    CallbackUserData* getCallback(long op_id);
     void removeCallback(long op_id);
 
 protected:
@@ -68,8 +69,8 @@ private:
     CallbackMap m_callback_map;
 };
 
-}  //namespace DBus
-}  //namespace messaging
-}  //namespace extension
+} //namespace DBus
+} //namespace Messaging
+} //namespace DeviceAPI
 
 #endif // __TIZEN_DBUS_SYNC_PROXY_H__

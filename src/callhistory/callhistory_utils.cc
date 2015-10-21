@@ -49,11 +49,10 @@ void CallHistoryUtils::parseRecordList(contacts_list_h *record_list, picojson::a
 {
   LoggerD("Entered");
 
-  int ret = CONTACTS_ERROR_NONE;
   contacts_record_h record = NULL;
   int total = 0;
 
-  ret = contacts_list_get_count(*record_list, &total);
+  int ret = contacts_list_get_count(*record_list, &total);
   if (CONTACTS_ERROR_NONE != ret) {
     LoggerW("Failed to get contacts list: %d", ret);
     return;
@@ -84,10 +83,9 @@ void CallHistoryUtils::parseRecord(contacts_record_h *record, picojson::object& 
 {
   LoggerD("Entered");
 
-  int ret = CONTACTS_ERROR_NONE;
   int int_data;
 
-  ret = contacts_record_get_int(*record, _contacts_phone_log.id, &int_data);
+  int ret = contacts_record_get_int(*record, _contacts_phone_log.id, &int_data);
   if (CONTACTS_ERROR_NONE != ret) {
     LoggerD("Failed to get contacts phone log id: %d", ret);
   } else {
@@ -201,7 +199,6 @@ void CallHistoryUtils::parseRemoteParties(contacts_record_h *record, picojson::o
 {
   LoggerD("Entered");
 
-  int ret = CONTACTS_ERROR_NONE;
   char * char_data = NULL;
   int int_data;
 
@@ -210,7 +207,7 @@ void CallHistoryUtils::parseRemoteParties(contacts_record_h *record, picojson::o
   remote_parties.push_back(picojson::value(picojson::object()));
   picojson::object& parties_obj = remote_parties.back().get<picojson::object>();
 
-  ret = contacts_record_get_int(*record, _contacts_phone_log.person_id, &int_data);
+  int ret = contacts_record_get_int(*record, _contacts_phone_log.person_id, &int_data);
   if (CONTACTS_ERROR_NONE != ret) {
     LoggerD("Failed to get contacts phone log person id: %d", ret);
   } else {
@@ -229,12 +226,11 @@ void CallHistoryUtils::parseCallingParty(contacts_record_h *record, picojson::ob
 {
   LoggerD("Entered");
 
-  int ret = CONTACTS_ERROR_NONE;
   const std::vector<std::string>& phone_numbers = history_.getPhoneNumbers();
   int sim_count = phone_numbers.size();
   int sim_index;
 
-  ret = contacts_record_get_int(*record, _contacts_phone_log.sim_slot_no, &sim_index);
+  int ret = contacts_record_get_int(*record, _contacts_phone_log.sim_slot_no, &sim_index);
   if (CONTACTS_ERROR_NONE != ret) {
     LoggerW("Failed to get sim slot no. %d", ret);
   }
@@ -246,7 +242,7 @@ void CallHistoryUtils::parseCallingParty(contacts_record_h *record, picojson::ob
   }
 }
 
-unsigned int CallHistoryUtils::convertAttributeName(const std::string attribute_name)
+unsigned int CallHistoryUtils::convertAttributeName(const std::string& attribute_name)
 {
   LoggerD("Entered");
 

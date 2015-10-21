@@ -152,8 +152,7 @@ Person.prototype.link = function() {
   }
 
   var result = native_.callSync('Person_link', {
-    // TODO move to only sending the person id (in all functions)
-    person: this,
+    personId: this.id,
     id: args.personId
   });
   if (native_.isFailure(result)) {
@@ -182,8 +181,7 @@ Person.prototype.unlink = function(contactId) {
   }
 
   var result = native_.callSync('Person_unlink', {
-    // TODO move to only sending the person id (in all functions)
-    person: this,
+    personId: this.id,
     id: args.contactId
   });
   if (native_.isFailure(result)) {

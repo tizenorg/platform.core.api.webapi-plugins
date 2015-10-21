@@ -36,7 +36,7 @@ class CallHistoryUtils {
   void parseLogType(contacts_phone_log_type_e log_type, picojson::object& obj);
   void parseRemoteParties(contacts_record_h *record, picojson::object& obj);
   void parseCallingParty(contacts_record_h *record, picojson::object& obj);
-  unsigned int convertAttributeName(const std::string attribute_name);
+  unsigned int convertAttributeName(const std::string& attribute_name);
   void createFilter(contacts_filter_h filter, const picojson::object filter_obj);
 
  private:

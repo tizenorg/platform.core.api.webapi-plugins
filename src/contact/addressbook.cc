@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 Samsung Electronics Co., Ltd All Rights Reserved
+ * Copyright (c) 2014 Samsung Electronics Co., Ltd All Rights Reserved
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@
 
 #include <contacts.h>
 #include "contact/contact_instance.h"
+#include "contact/contact_search_engine.h"
 
 namespace extension {
 namespace contact {
@@ -56,10 +57,9 @@ PlatformResult AddressBookGet(const JsonObject& args, JsonObject& out) {
 
   int contact_id = common::stol(FromJson<JsonString>(args, "id"));
 
-  int err = CONTACTS_ERROR_NONE;
   contacts_record_h contacts_record = nullptr;
-  err = contacts_db_get_record(_contacts_contact._uri, contact_id,
-                               &contacts_record);
+  int err = contacts_db_get_record(_contacts_contact._uri, contact_id,
+                                   &contacts_record);
   if (CONTACTS_ERROR_NONE != err) {
     LoggerW("Contacts record get error, error code: %d", err);
     return PlatformResult(ErrorCode::NOT_FOUND_ERR,
@@ -85,6 +85,7 @@ PlatformResult AddressBookAdd(const JsonObject& args, JsonObject& out) {
   if (status.IsError()) return status;
 
   const JsonObject& contact = FromJson<JsonObject>(args, "contact");
+  long addressBookId = common::stol(FromJson<JsonString>(args, "addressBookId"));
 
   if (!IsNull(contact, "id")) {
     LoggerW("Contact already exists");
@@ -105,6 +106,10 @@ PlatformResult AddressBookAdd(const JsonObject& args, JsonObject& out) {
       &contacts_record, ContactUtil::ContactsDeleter);
   status =
       ContactUtil::ExportContactToContactsRecord(*contacts_record_ptr, contact);
+  if (status.IsError()) return status;
+
+  status = ContactUtil::SetIntInRecord(
+      contacts_record, _contacts_contact.address_book_id, addressBookId);
   if (status.IsError()) return status;
 
   int id = -1;
@@ -139,7 +144,6 @@ PlatformResult AddressBookUpdate(const JsonObject& args, JsonObject& out) {
   if (status.IsError()) return status;
 
   const JsonObject& contact = FromJson<JsonObject>(args, "contact");
-  const JsonObject& addressbook = FromJson<JsonObject>(args, "addressBook");
   long contactId = common::stol(FromJson<JsonString>(contact, "id"));
 
   if (IsNull(contact, "id")) {
@@ -147,15 +151,8 @@ PlatformResult AddressBookUpdate(const JsonObject& args, JsonObject& out) {
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Contact doesn't exist");
   }
 
-  if (IsNull(addressbook, "id")) {
-    LoggerE("Contact is not saved in database");
-    return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
-                          "Contact is not saved in database");
-  }
-
-  int err = CONTACTS_ERROR_NONE;
   contacts_record_h to_update = nullptr;
-  err = contacts_db_get_record(_contacts_contact._uri, contactId, &to_update);
+  int err = contacts_db_get_record(_contacts_contact._uri, contactId, &to_update);
   if (CONTACTS_ERROR_NONE != err) {
     LoggerW("Problem with getting contact. Error: %d", err);
     return PlatformResult(ErrorCode::NOT_FOUND_ERR,
@@ -246,7 +243,7 @@ PlatformResult AddressBookAddBatch(const JsonObject& args, JsonArray& out) {
     }
     ContactUtil::ContactsRecordHPtr x(&contacts_record,
                                       ContactUtil::ContactsDeleter);
-    PlatformResult status = ContactUtil::ExportContactToContactsRecord(
+    status = ContactUtil::ExportContactToContactsRecord(
         contacts_record, JsonCast<JsonObject>(item));
     if (status.IsError()) return status;
 
@@ -290,7 +287,7 @@ PlatformResult AddressBookAddBatch(const JsonObject& args, JsonArray& out) {
       return PlatformResult(ErrorCode::UNKNOWN_ERR,
                             "Contacts record get error");
     }
-    PlatformResult status = ContactUtil::ImportContactFromContactsRecord(
+    status = ContactUtil::ImportContactFromContactsRecord(
         contact_record, &out_object);
     if (status.IsError()) return status;
 
@@ -300,115 +297,127 @@ PlatformResult AddressBookAddBatch(const JsonObject& args, JsonArray& out) {
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-// TODO all batch operations should be implemented using CAPI batch functions
-PlatformResult AddressBookBatchFunc(NativeFunction impl,
-                                    const char* single_arg_name,
-                                    const JsonObject& args, JsonArray& out) {
+PlatformResult AddressBookUpdateBatch(const JsonObject& args, JsonArray& out) {
   LoggerD("Enter");
+
+  PlatformResult status = ContactUtil::CheckDBConnection();
+  if (status.IsError()) return status;
+
   const JsonArray& batch_args = FromJson<JsonArray>(args, "batchArgs");
-  const JsonObject& address_book = FromJson<JsonObject>(args, "addressBook");
-
-  int i = 0;
+  contacts_list_h contacts_list = NULL;
+  int err = 0;
+  err = contacts_list_create(&contacts_list);
+  if (CONTACTS_ERROR_NONE != err) {
+    LoggerE("list creation failed, code: %d", err);
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, "list creation failed");
+  }
+  ContactUtil::ContactsListHPtr contacts_list_ptr(
+      &contacts_list, ContactUtil::ContactsListDeleter);
   for (auto& item : batch_args) {
-    ++i;
-    JsonObject single_args{};
-
-    single_args["addressBook"] = picojson::value(address_book);
-    single_args[single_arg_name] = picojson::value(item);
-
-    JsonObject single_out;
-    PlatformResult status = impl(single_args, single_out);
+    const JsonObject& contact = JsonCast<JsonObject>(item);
+    long contactId = common::stol(FromJson<JsonString>(contact, "id"));
+    if (IsNull(contact, "id")) {
+      LoggerW("Contact doesn't exist");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Contact doesn't exist");
+    }
+    contacts_record_h to_update = nullptr;
+    err = contacts_db_get_record(_contacts_contact._uri, contactId, &to_update);
+    if (CONTACTS_ERROR_NONE != err) {
+      LoggerW("Problem with getting contact. Error: %d", err);
+      return PlatformResult(ErrorCode::NOT_FOUND_ERR,
+                            "Problem with getting contact");
+    }
+    ContactUtil::ContactsRecordHPtr x(&to_update,
+                                      ContactUtil::ContactsDeleter);
+    status = ContactUtil::ExportContactToContactsRecord(
+        to_update, JsonCast<JsonObject>(item));
     if (status.IsError()) return status;
+    JsonObject out_object;
+    status = ContactUtil::UpdateAdditionalInformation(x, &out_object);
+    if (status.IsError()) return status;
+    out.push_back(JsonValue{out_object});
 
-    if (!single_out.empty()) {
-      out.push_back(JsonValue{single_out});
+    err = contacts_list_add(*contacts_list_ptr, *(x.release()));
+    if (CONTACTS_ERROR_NONE != err) {
+      LoggerE("error during add record to list, code: %d", err);
+      return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                            "error during add record to list");
     }
   }
+  err = contacts_db_update_records(*contacts_list_ptr);
+  if (CONTACTS_ERROR_NONE != err) {
+    if (CONTACTS_ERROR_INVALID_PARAMETER == err) {
+      LoggerE("Error during executing contacts_db_update_record(). Error: %d",
+              err);
+      return PlatformResult(
+          ErrorCode::NOT_FOUND_ERR,
+          "Error during executing contacts_db_update_record().");
+    }
+    if (CONTACTS_ERROR_DB == err) {
+      LoggerE("Error during executing contacts_db_update_record(). Error: %d",
+              err);
+      return PlatformResult(
+          ErrorCode::UNKNOWN_ERR,
+          "Error during executing contacts_db_update_record().");
+    }
+  }
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
 
+PlatformResult AddressBookRemoveBatch(const JsonObject& args) {
+  LoggerD("Enter");
+
+  PlatformResult status = ContactUtil::CheckDBConnection();
+  if (status.IsError()) return status;
+  const JsonArray& batch_args = FromJson<JsonArray>(args, "batchArgs");
+  int length = static_cast<int>(batch_args.size());
+  int ids[length], i=0;
+  for (auto& item : batch_args) {
+    long contact_id = common::stol(item.get<std::string>());
+    if (contact_id < 0) {
+      return PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Nagative contact id");
+    }
+    ids[i] = contact_id;
+    i++;
+  }
+  int err = contacts_db_delete_records(_contacts_contact._uri, ids, length);
+  if (CONTACTS_ERROR_NO_DATA == err) {
+    return PlatformResult(ErrorCode::NOT_FOUND_ERR,
+                          "Remove failed: contact not found");
+  } else if (CONTACTS_ERROR_NONE != err) {
+    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                          "Contacts record delete error");
+  }
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 PlatformResult AddressBookFind(const JsonObject& args, JsonArray& array) {
   LoggerD("Entered");
   PlatformResult status = ContactUtil::CheckDBConnection();
-  if (status.IsError()) return status;
+  if (!status) return status;
 
-  // TODO implement contact filter and sorting.
-  const JsonObject& address_book = FromJson<JsonObject>(args, "addressBook");
-  long addressbook_id = common::stol(FromJson<std::string>(address_book, "id"));
-  int error_code;
+  long address_book_id = common::stol(FromJson<std::string>(args, "addressBookId"));
 
-  contacts_list_h list = nullptr;
+  LoggerD("Searching in address book: %d", address_book_id);
 
-  if (IsUnified(addressbook_id)) {
-    LoggerD("calling contacts_db_get_all_records");
-    error_code = contacts_db_get_all_records(_contacts_contact._uri, 0, 0, &list);
-    status =
-        ContactUtil::ErrorChecker(error_code, "Failed contacts_db_get_all_records");
-    if (status.IsError())  {
-      LoggerD("contacts_db_get_all_records - exit with error");
-      return status;
-    }
-  } else {
-    contacts_query_h query = nullptr;
-    contacts_filter_h filter = nullptr;
-
-    error_code = contacts_query_create(_contacts_contact._uri, &query);
-    status =
-        ContactUtil::ErrorChecker(error_code, "Failed contacts_query_create");
-    if (status.IsError()) return status;
-    ContactUtil::ContactsQueryHPtr query_ptr(&query,
-                                             ContactUtil::ContactsQueryDeleter);
-    error_code = contacts_filter_create(_contacts_contact._uri, &filter);
-    status =
-        ContactUtil::ErrorChecker(error_code, "Failed contacts_filter_create");
-    if (status.IsError()) return status;
-    ContactUtil::ContactsFilterPtr filter_ptr(filter,
-                                              ContactUtil::ContactsFilterDeleter);
-    error_code =
-        contacts_filter_add_int(filter, _contacts_contact.address_book_id,
-                                CONTACTS_MATCH_EQUAL, addressbook_id);
-    status =
-        ContactUtil::ErrorChecker(error_code, "Failed contacts_filter_add_int");
-    if (status.IsError()) return status;
-    error_code = contacts_query_set_filter(query, filter);
-    status =
-        ContactUtil::ErrorChecker(error_code, "Failed contacts_query_set_filter");
-    if (status.IsError()) return status;
-    error_code = contacts_db_get_records_with_query(query, 0, 0, &list);
-    status = ContactUtil::ErrorChecker(
-        error_code, "Failed contacts_db_get_records_with_query");
-    if (status.IsError()) return status;
-  }
-  ContactUtil::ContactsListHPtr list_ptr(&list,
-                                         ContactUtil::ContactsListDeleter);
-
-  int record_count = 0;
-  error_code = contacts_list_get_count(list, &record_count);
-  status =
-      ContactUtil::ErrorChecker(error_code, "Failed contacts_list_get_count");
-  if (status.IsError()) return status;
-
-  contacts_list_first(list);
-  for (int i = 0; i < record_count; i++) {
-    contacts_record_h record;
-    error_code = contacts_list_get_current_record_p(list, &record);
-    status = ContactUtil::ErrorChecker(
-        error_code, "Failed contacts_list_get_current_record_p");
-    if (status.IsError()) return status;
-
-    int id_value = 0;
-    error_code =
-        contacts_record_get_int(record, _contacts_contact.id, &id_value);
-    status =
-        ContactUtil::ErrorChecker(error_code, "Failed contacts_record_get_int");
-    if (status.IsError()) return status;
-
-    array.push_back(JsonValue(static_cast<double>(id_value)));
-    contacts_list_next(list);
+  ContactSearchEngine engine;
+  if (!IsUnified(address_book_id)) {
+    engine.SetAddressBookId(address_book_id);
   }
 
-  return PlatformResult(ErrorCode::NO_ERROR);
+  const auto filter_it = args.find("filter");
+  if (args.end() != filter_it && filter_it->second.is<picojson::object>()) {
+    status = engine.ApplyFilter(filter_it->second);
+    if (!status) return status;
+  }
+
+  const auto sort_mode_it = args.find("sortMode");
+  if (args.end() != sort_mode_it && sort_mode_it->second.is<picojson::object>()) {
+    status = engine.SetSortMode(sort_mode_it->second);
+    if (!status) return status;
+  }
+
+  return engine.Find(&array);
 }
 
 PlatformResult AddressBookAddGroup(const JsonObject& args, JsonObject& out) {
@@ -423,9 +432,8 @@ PlatformResult AddressBookAddGroup(const JsonObject& args, JsonObject& out) {
                           "Group object is previously added");
   }
 
-  int err = CONTACTS_ERROR_NONE;
   contacts_record_h contacts_record = nullptr;
-  err = contacts_record_create(_contacts_group._uri, &contacts_record);
+  int err = contacts_record_create(_contacts_group._uri, &contacts_record);
   status = ContactUtil::ErrorChecker(
       err, "Error during executing contacts_record_create()");
   if (status.IsError()) return status;
@@ -466,9 +474,8 @@ PlatformResult AddressBookGetGroup(const JsonObject& args, JsonObject& out) {
     return PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Incorrect group id");
   }
 
-  int err = CONTACTS_ERROR_NONE;
   contacts_record_h contacts_record = nullptr;
-  err = contacts_db_get_record(_contacts_group._uri, id, &contacts_record);
+  int err = contacts_db_get_record(_contacts_group._uri, id, &contacts_record);
   if (CONTACTS_ERROR_NONE != err || nullptr == contacts_record) {
     LoggerE("Group not exist");
     return PlatformResult(ErrorCode::NOT_FOUND_ERR, "Group not exist");
@@ -476,9 +483,7 @@ PlatformResult AddressBookGetGroup(const JsonObject& args, JsonObject& out) {
 
   ContactUtil::ContactsRecordHPtr record(&contacts_record,
                                          ContactUtil::ContactsDeleter);
-
-  long addressbook_id =
-      common::stol(FromJson<JsonString>(args, "addressBook", "id"));
+  long addressbook_id = common::stol(FromJson<std::string>(args, "addressBookId"));
   if (IsUnified(addressbook_id)) {
     int address_book_id = 0;
     status = ContactUtil::GetIntFromRecord(
@@ -572,7 +577,7 @@ PlatformResult AddressBookRemoveGroup(const JsonObject& args, JsonObject&) {
   }
 
   int err;
-  long addressbook_id = AddressBookId(args);
+  long addressbook_id = common::stol(FromJson<std::string>(args, "addressBookId"));
   if (!IsUnified(addressbook_id)) {
     contacts_record_h contacts_record = nullptr;
     err = contacts_db_get_record(_contacts_group._uri, id, &contacts_record);
@@ -646,6 +651,10 @@ PlatformResult AddressBookGetGroups(const JsonObject& args, JsonArray& out) {
         err, "Fail to get contacts_db_get_records_with_query ");
     if (status.IsError()) return status;
 
+    // deleter to release the memory in case of an error
+    ContactUtil::ContactsListHPtr group_list_ptr(
+        &groups_list, ContactUtil::ContactsListDeleter);
+
     err = contacts_filter_destroy(filter);
     status =
         ContactUtil::ErrorChecker(err, "Fail to get contacts_filter_destroy ");
@@ -655,7 +664,15 @@ PlatformResult AddressBookGetGroups(const JsonObject& args, JsonArray& out) {
     status =
         ContactUtil::ErrorChecker(err, "Fail to get contacts_query_destroy ");
     if (status.IsError()) return status;
+
+    // release the ownership, pass it back to the outer scope
+    group_list_ptr.release();
   }
+
+  // groups_list has been initialized, take the ownership
+  ContactUtil::ContactsListHPtr group_list_ptr(
+      &groups_list, ContactUtil::ContactsListDeleter);
+
   int record_count = 0;
   err = contacts_list_get_count(groups_list, &record_count);
   status =
@@ -713,6 +730,10 @@ void AddressBookListenerCallback(const char* view_uri, void* user_data) {
   }
 
   ContactInstance* instance = static_cast<ContactInstance*>(user_data);
+  if (!instance) {
+    LoggerE("instance is NULL");
+    return;
+  }
 
   for (int version = instance->current_state(); version < current_version; ++version) {
     int latest_version = 0;
@@ -838,7 +859,7 @@ void AddressBookListenerCallback(const char* view_uri, void* user_data) {
       }
     }
 
-    instance->PostMessage(result.serialize().c_str());
+    Instance::PostMessage(instance, result.serialize().c_str());
   }
 
   instance->set_current_state(current_version);

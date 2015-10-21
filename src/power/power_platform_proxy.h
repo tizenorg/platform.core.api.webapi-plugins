@@ -24,12 +24,13 @@ namespace power {
 
 class PowerPlatformProxy {
  public:
-	int LockState();
-	int UnlockState();
-	int SetBrightnessFromSettings();
-	int SetBrightness(int val);
+  common::PlatformResult LockState(int* result);
+  common::PlatformResult UnlockState(int* result);
+  common::PlatformResult SetBrightnessFromSettings(int* result);
+  common::PlatformResult SetBrightness(int val, int* result);
 
-  int GetBrightness();
+  common::PlatformResult GetBrightness(int* result);
+  common::PlatformResult IsCustomBrightness(int* result);
 
   static PowerPlatformProxy& GetInstance();
 
@@ -37,7 +38,7 @@ class PowerPlatformProxy {
   PowerPlatformProxy();
   virtual ~PowerPlatformProxy();
 
-	common::DBusOperation dbus_op_;
+  common::DBusOperation dbus_op_;
 };
 
 } // namespace power

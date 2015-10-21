@@ -21,8 +21,8 @@
 #include <memory>
 #include <string>
 
+#include "messaging/callback_user_data.h"
 #include "common/picojson.h"
-#include "common/callback_user_data.h"
 #include "common/platform_result.h"
 
 #include "messaging_util.h"
@@ -39,9 +39,9 @@ enum MessageServiceAccountId
     MMS_ACCOUNT_ID = 102
 };
 
-class MessageRecipientsCallbackData : public common::CallbackUserData {
+class MessageRecipientsCallbackData : public CallbackUserData {
 public:
-    MessageRecipientsCallbackData(PostQueue& queue);
+    MessageRecipientsCallbackData(PostQueue& queue, long cid);
     virtual ~MessageRecipientsCallbackData();
 
     void setMessage(std::shared_ptr<Message> message);
@@ -49,11 +49,6 @@ public:
 
     void setMessageRecipients(const std::vector<std::string>& msgRecipients);
     const std::vector<std::string>& getMessageRecipients() const;
-
-    void setError(const std::string& err_name,
-            const std::string& err_message);
-    void setError(const common::PlatformResult& error);
-    bool isError() const;
 
     void setAccountId(int account_id);
     int getAccountId() const;
@@ -64,27 +59,18 @@ public:
     TelNetworkDefaultDataSubs_t getDefaultSimIndex() const;
     bool isSetSimIndex() const;
 
-    PostQueue& getQueue() { return queue_;};
-
 private:
     std::shared_ptr<Message> m_message;
-    bool m_is_error;
     std::vector<std::string> m_msg_recipients;
     int m_account_id;
     TelNetworkDefaultDataSubs_t m_sim_index;
     TelNetworkDefaultDataSubs_t m_default_sim_index;
-    PostQueue& queue_;
 };
 
-class BaseMessageServiceCallbackData : public common::CallbackUserData {
+class BaseMessageServiceCallbackData : public CallbackUserData {
 public:
-    BaseMessageServiceCallbackData();
+    BaseMessageServiceCallbackData(PostQueue& queue, long cid);
     virtual ~BaseMessageServiceCallbackData();
-
-    void setError(const std::string& err_name,
-            const std::string& err_message);
-    void setError(const common::PlatformResult& error);
-    bool isError() const;
 
     /**
      * This handle is returned from various native API functions:
@@ -96,33 +82,26 @@ public:
      */
     void setOperationHandle(const int op_handle);
     int getOperationHandle() const;
-    void setCallbackId(const double callback_id);
-    double getCallbackId() const;
 
 protected:
-    bool m_is_error;
-
     int m_op_handle;
-    double m_callback_id;
 };
 
 class MessageBodyCallbackData : public BaseMessageServiceCallbackData {
 public:
-    MessageBodyCallbackData(PostQueue& queue);
+    using BaseMessageServiceCallbackData::BaseMessageServiceCallbackData;
     virtual ~MessageBodyCallbackData();
 
     void setMessage(std::shared_ptr<Message> message);
     std::shared_ptr<Message> getMessage() const;
 
-    PostQueue& getQueue() { return queue_;};
 private:
     std::shared_ptr<Message> m_message;
-    PostQueue& queue_;
 };
 
 class MessageAttachmentCallbackData : public BaseMessageServiceCallbackData {
 public:
-    MessageAttachmentCallbackData(PostQueue& queue);
+    MessageAttachmentCallbackData(PostQueue& queue, long cid);
     virtual ~MessageAttachmentCallbackData();
 
     void setMessageAttachment(std::shared_ptr<MessageAttachment> messageAttachment);
@@ -138,16 +117,14 @@ public:
     void setNth(const int nth);
     int getNth() const;
 
-    PostQueue& getQueue() { return queue_;};
 private:
     std::shared_ptr<MessageAttachment> m_message_attachment;
     int m_nth;
-    PostQueue& queue_;
 };
 
 class SyncCallbackData : public BaseMessageServiceCallbackData {
 public:
-    SyncCallbackData(PostQueue& queue);
+    SyncCallbackData(PostQueue& queue, long cid);
     virtual ~SyncCallbackData();
 
     void setLimit(const unsigned long limit);
@@ -159,19 +136,17 @@ public:
     void setAccountId(int account_id);
     int getAccountId() const;
 
-    PostQueue& getQueue() { return queue_;};
 protected:
     bool m_is_limit;
     unsigned long m_limit;
 
     long m_op_id;
     int m_account_id;
-    PostQueue& queue_;
 };
 
 class SyncFolderCallbackData : public SyncCallbackData {
 public:
-    SyncFolderCallbackData(PostQueue& queue);
+    using SyncCallbackData::SyncCallbackData;
     virtual ~SyncFolderCallbackData();
 
     void setMessageFolder(std::shared_ptr<MessageFolder> message_folder);
@@ -218,6 +193,6 @@ protected:
     MessageStoragePtr m_storage;
 };
 
-}  // namespace messaging
-}  // namespace extension
+} // messaging
+} // extension
 #endif // MESSAGING_MESSAGE_SERVICE_EMAIL_H_

@@ -20,6 +20,10 @@
         'time_extension.h',
         'time_instance.cc',
         'time_instance.h',
+        'time_manager.cc',
+        'time_manager.h',
+        'time_utils.cc',
+        'time_utils.h',
       ],
       'conditions': [
         [ 'tizen == 1', {

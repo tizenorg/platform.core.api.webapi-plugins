@@ -27,6 +27,9 @@
 #include "common/picojson.h"
 #include "common/platform_result.h"
 #include "common/task-queue.h"
+#include "common/tools.h"
+#include "common/virtual_fs.h"
+
 #include "content/content_manager.h"
 
 namespace extension {
@@ -35,7 +38,9 @@ namespace content {
 using common::tools::ReportSuccess;
 using common::tools::ReportError;
 
-ContentInstance::ContentInstance() {
+ContentInstance::ContentInstance() :
+    noti_handle_(nullptr),
+    listener_data_(nullptr) {
   using std::placeholders::_1;
   using std::placeholders::_2;
 
@@ -73,6 +78,14 @@ ContentInstance::ContentInstance() {
 
 ContentInstance::~ContentInstance() {
   LoggerD("entered");
+  if (noti_handle_) {
+    media_content_unset_db_updated_cb_v2(noti_handle_);
+    noti_handle_ = nullptr;
+  }
+  if (listener_data_) {
+    delete listener_data_;
+    listener_data_ = nullptr;
+  }
 }
 
 static gboolean CompletedCallback(const std::shared_ptr<ReplyCallbackData>& user_data) {
@@ -88,7 +101,7 @@ static gboolean CompletedCallback(const std::shared_ptr<ReplyCallbackData>& user
     ReportError(user_data->isSuccess, &out);
   }
 
-  user_data->instance->PostMessage(picojson::value(out).serialize().c_str());
+  common::Instance::PostMessage(user_data->instance, picojson::value(out).serialize().c_str());
 
   return false;
 }
@@ -96,10 +109,15 @@ static gboolean CompletedCallback(const std::shared_ptr<ReplyCallbackData>& user
 static void* WorkThread(const std::shared_ptr<ReplyCallbackData>& user_data) {
   LoggerD("entered");
 
+  int ret = MEDIA_CONTENT_ERROR_NONE;
   ContentCallbacks cbType = user_data->cbType;
   switch(cbType) {
     case ContentManagerUpdatebatchCallback: {
-      ContentManager::getInstance()->updateBatch(user_data->args);
+      ret = ContentManager::getInstance()->updateBatch(user_data->args);
+      if(ret != MEDIA_CONTENT_ERROR_NONE){
+        LoggerD("UpdateBatch Failed");
+        user_data->isSuccess = ContentManager::getInstance()->convertError(ret);
+      }
       break;
     }
     case ContentManagerGetdirectoriesCallback: {
@@ -112,9 +130,10 @@ static void* WorkThread(const std::shared_ptr<ReplyCallbackData>& user_data) {
     }
     case ContentManagerScanfileCallback: {
       std::string contentURI = user_data->args.get("contentURI").get<std::string>();
-      int res = ContentManager::getInstance()->scanFile(contentURI);
-      if (res != MEDIA_CONTENT_ERROR_NONE) {
-        LOGGER(ERROR) << "Scan file failed, error: " << res;
+      std::string real_path = common::VirtualFs::GetInstance().GetRealPath(contentURI);
+      ret = ContentManager::getInstance()->scanFile(real_path);
+      if (ret != MEDIA_CONTENT_ERROR_NONE) {
+        LOGGER(ERROR) << "Scan file failed, error: " << ret;
         common::PlatformResult err(common::ErrorCode::UNKNOWN_ERR, "Scan file failed.");
         user_data->isSuccess = err;
       }
@@ -191,7 +210,7 @@ static void ScanDirectoryCallback(media_content_error_e error, void* user_data) 
     ReportError(out);
   }
 
-  cbData->instance->PostMessage(picojson::value(out).serialize().c_str());
+  common::Instance::PostMessage(cbData->instance, picojson::value(out).serialize().c_str());
 }
 
 
@@ -204,21 +223,25 @@ static void changedContentCallback(media_content_error_e error,
                                    char* path,
                                    char* mime_type,
                                    void* user_data) {
-  LoggerD("Enter");
-
-  ReplyCallbackData* cbData = static_cast<ReplyCallbackData*>(user_data);
+  LoggerD("Entered file change callback");
 
   if (error != MEDIA_CONTENT_ERROR_NONE) {
     LOGGER(ERROR) << "Media content changed callback error: " << error;
-    delete cbData;
     return;
   }
 
-  int ret;
-  picojson::value result = picojson::value(picojson::object());
-  picojson::object& obj = result.get<picojson::object>();
-
   if (update_item == MEDIA_ITEM_FILE) {
+    if (!uuid) {
+      LOGGER(ERROR) << "Provided uuid is NULL, ignoring";
+      return;
+    }
+
+    ReplyCallbackData* cbData = static_cast<ReplyCallbackData*>(user_data);
+
+    int ret;
+    picojson::value result = picojson::value(picojson::object());
+    picojson::object& obj = result.get<picojson::object>();
+
     if (update_type == MEDIA_CONTENT_INSERT || update_type == MEDIA_CONTENT_UPDATE) {
       media_info_h media = NULL;
       ret = media_info_get_media_from_db(uuid, &media);
@@ -240,7 +263,43 @@ static void changedContentCallback(media_content_error_e error,
       ReportSuccess(picojson::value(std::string(uuid)), obj);
       obj["state"] = picojson::value("oncontentremoved");
     }
-  } else if (update_item == MEDIA_ITEM_DIRECTORY) {
+
+    obj["listenerId"] = cbData->args.get("listenerId");
+    common::Instance::PostMessage(cbData->instance, result.serialize().c_str());
+  } else {
+    LOGGER(DEBUG) << "Media item is not a file, skipping.";
+    return;
+  }
+}
+
+static void changedContentV2Callback(media_content_error_e error,
+                                   int pid,
+                                   media_content_db_update_item_type_e update_item,
+                                   media_content_db_update_type_e update_type,
+                                   media_content_type_e media_type,
+                                   char* uuid,
+                                   char* path,
+                                   char* mime_type,
+                                   void* user_data) {
+  LoggerD("Entered directory change callback");
+
+  if (error != MEDIA_CONTENT_ERROR_NONE) {
+    LOGGER(ERROR) << "Media content changed v2 callback error: " << error;
+    return;
+  }
+
+  if (update_item == MEDIA_ITEM_DIRECTORY) {
+    if (!uuid) {
+      LOGGER(ERROR) << "Provided uuid is NULL, ignoring";
+      return;
+    }
+
+    ReplyCallbackData* cbData = static_cast<ReplyCallbackData*>(user_data);
+
+    int ret;
+    picojson::value result = picojson::value(picojson::object());
+    picojson::object& obj = result.get<picojson::object>();
+
     if (update_type == MEDIA_CONTENT_INSERT || update_type == MEDIA_CONTENT_UPDATE) {
       media_folder_h folder = NULL;
       ret = media_folder_get_folder_from_db(uuid, &folder);
@@ -260,18 +319,16 @@ static void changedContentCallback(media_content_error_e error,
       }
     } else {
       ReportSuccess(picojson::value(std::string(uuid)), obj);
-      obj["state"] = picojson::value("oncontendirremoved");
+      obj["state"] = picojson::value("oncontentdirremoved");
     }
+
+    obj["listenerId"] = cbData->args.get("listenerId");
+    common::Instance::PostMessage(cbData->instance, result.serialize().c_str());
   } else {
-    LOGGER(DEBUG) << "Media item is not a file and not directory, skipping.";
-    delete cbData;
+    LOGGER(DEBUG) << "Media item is not directory, skipping.";
     return;
   }
-
-  obj["listenerId"] = cbData->args.get("listenerId");
-  cbData->instance->PostMessage(result.serialize().c_str());
 }
-
 
 #define CHECK_EXIST(args, name, out) \
   if (!args.contains(name)) {\
@@ -282,9 +339,8 @@ static void changedContentCallback(media_content_error_e error,
 
 void ContentInstance::ContentManagerUpdate(const picojson::value& args, picojson::object& out) {
   LoggerD("entered");
-  int ret;
   if (ContentManager::getInstance()->isConnected()) {
-    ret = ContentManager::getInstance()->update(args);
+    int ret = ContentManager::getInstance()->update(args);
     if (ret != 0) {
       LoggerE("Failed: ContentManager::getInstance()");
       ReportError(ContentManager::getInstance()->convertError(ret), &out);
@@ -383,8 +439,9 @@ void ContentInstance::ContentManagerScanDirectory(const picojson::value& args, p
   cbData->instance = this;
   cbData->args = args;
 
-  if (ContentManager::getInstance()->scanDirectory(ScanDirectoryCallback, cbData).IsError()) {
-    ReportError(common::PlatformResult(common::ErrorCode::UNKNOWN_ERR, "Scan directory failed"), &out);
+  common::PlatformResult result = ContentManager::getInstance()->scanDirectory(ScanDirectoryCallback, cbData);
+  if (result.IsError()) {
+    ReportError(result, &out);
   }
 }
 
@@ -405,17 +462,25 @@ void ContentInstance::ContentManagerSetchangelistener(const picojson::value& arg
   LoggerD("entered");
   CHECK_EXIST(args, "listenerId", out)
 
-  ReplyCallbackData* cbData = new ReplyCallbackData();
-
-  cbData->instance = this;
-  cbData->args = args;
-  if (ContentManager::getInstance()->isConnected()) {
-    cbData->cbType = ContentManagerSetchangelistenerCallback;
-  } else {
-    cbData->cbType = ContentManagerErrorCallback;
+  if (!listener_data_) {
+    listener_data_ = new ReplyCallbackData();
   }
 
-  if (ContentManager::getInstance()->setChangeListener(changedContentCallback, static_cast<void*>(cbData)).IsError()) {
+  listener_data_->instance = this;
+  listener_data_->args = args;
+  if (ContentManager::getInstance()->isConnected()) {
+    listener_data_->cbType = ContentManagerSetchangelistenerCallback;
+  } else {
+    listener_data_->cbType = ContentManagerErrorCallback;
+  }
+
+  if (ContentManager::getInstance()->setChangeListener(changedContentCallback,
+                                                       static_cast<void*>(listener_data_)).IsError()) {
+    ReportError(common::PlatformResult(common::ErrorCode::UNKNOWN_ERR, "The callback did not register properly"), &out);
+  }
+  if (ContentManager::getInstance()->setV2ChangeListener(&noti_handle_,
+                                                       changedContentV2Callback,
+                                                       static_cast<void*>(listener_data_)).IsError()) {
     ReportError(common::PlatformResult(common::ErrorCode::UNKNOWN_ERR, "The callback did not register properly"), &out);
   }
 }
@@ -423,6 +488,9 @@ void ContentInstance::ContentManagerSetchangelistener(const picojson::value& arg
 void ContentInstance::ContentManagerUnsetchangelistener(const picojson::value& args, picojson::object& out) {
   LoggerD("entered");
   if (ContentManager::getInstance()->unSetChangeListener().IsError()) {
+    LoggerD("unsuccesfull deregistering of callback");
+  }
+  if (ContentManager::getInstance()->unSetV2ChangeListener(&noti_handle_).IsError()) {
     LoggerD("unsuccesfull deregistering of callback");
   }
 }
@@ -493,11 +561,10 @@ void ContentInstance::ContentManagerRemoveplaylist(const picojson::value& args, 
 
 void ContentInstance::ContentManagerPlaylistAdd(const picojson::value& args, picojson::object& out) {
   LoggerD("entered");
-  int ret;
   if(ContentManager::getInstance()->isConnected()) {
     std::string playlist_id = args.get("playlistId").get<std::string>();
     std::string content_id = args.get("contentId").get<std::string>();
-    ret = ContentManager::getInstance()->playlistAdd(playlist_id, content_id);
+    int ret = ContentManager::getInstance()->playlistAdd(playlist_id, content_id);
     if(ret != MEDIA_CONTENT_ERROR_NONE) {
       ReportError(ContentManager::getInstance()->convertError(ret),&out);
     }
@@ -546,11 +613,10 @@ void ContentInstance::ContentManagerPlaylistGet(const picojson::value& args, pic
 
 void ContentInstance::ContentManagerPlaylistRemove(const picojson::value& args, picojson::object& out) {
   LoggerD("entered");
-  int ret;
   if(ContentManager::getInstance()->isConnected()) {
     std::string playlist_id = args.get("playlistId").get<std::string>();
     int member_id = args.get("memberId").get<double>();
-    ret = ContentManager::getInstance()->playlistRemove(playlist_id, member_id);
+    int ret = ContentManager::getInstance()->playlistRemove(playlist_id, member_id);
     if(ret != MEDIA_CONTENT_ERROR_NONE) {
       ReportError(ContentManager::getInstance()->convertError(ret),&out);
     }
@@ -620,10 +686,9 @@ void ContentInstance::ContentManagerAudioGetLyrics(const picojson::value& args,
   LoggerD("entered");
   LOGGER(DEBUG) << "entered";
 
-  int ret;
   picojson::object lyrics;
   if (ContentManager::getInstance()->isConnected()) {
-    ret = ContentManager::getInstance()->getLyrics(args, lyrics);
+    int ret = ContentManager::getInstance()->getLyrics(args, lyrics);
     if (ret != MEDIA_CONTENT_ERROR_NONE) {
       ReportError(ContentManager::getInstance()->convertError(ret), &out);
     } else {

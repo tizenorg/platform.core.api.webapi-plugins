@@ -20,10 +20,12 @@
 #include <memory>
 #include <mutex>
 
-#include "common/task-queue.h"
 #include "common/logger.h"
 #include "common/optional.h"
 #include "common/platform_exception.h"
+#include "common/task-queue.h"
+#include "common/tools.h"
+
 #include "sensor_instance.h"
 
 using namespace common;
@@ -232,7 +234,7 @@ void SensorData::SensorCallback(sensor_h sensor, sensor_event_s* event, void* us
   picojson::value result = picojson::value(picojson::object());
   picojson::object& object = result.get<picojson::object>();
   ReportSensorData(that->type(), event, &object);
-  that->instance_.PostMessage(result.serialize().c_str());
+  Instance::PostMessage(&that->instance_, result.serialize().c_str());
 }
 
 bool SensorData::DefaultEventComparator(sensor_event_s* l, sensor_event_s* r) {
@@ -329,6 +331,7 @@ PlatformResult SensorData::Start() {
     return res;
   }
 
+  sensor_listener_set_option(listener_, SENSOR_OPTION_ALWAYS_ON);
   int ret = sensor_listener_start(listener_);
   if (SENSOR_ERROR_NONE != ret) {
     LoggerE("sensor_listener_start : %d", ret);
@@ -603,13 +606,15 @@ void SensorService::SensorStart(const picojson::value& args, picojson::object& o
   };
   auto start_result = [this, callback_id](const std::shared_ptr<picojson::value>& result) {
     result->get<picojson::object>()["callbackId"] = picojson::value{static_cast<double>(callback_id)};
-    instance_.PostMessage(result->serialize().c_str());
+    Instance::PostMessage(&instance_, result->serialize().c_str());
   };
+
+  auto data = std::shared_ptr<picojson::value>{new picojson::value{picojson::object()}};
 
   TaskQueue::GetInstance().Queue<picojson::value>(
       start,
       start_result,
-      std::shared_ptr<picojson::value>{new picojson::value{picojson::object()}});
+      data);
   ReportSuccess(out);
 }
 
@@ -732,13 +737,15 @@ void SensorService::GetSensorData(const picojson::value& args, picojson::object&
   auto get_data_result = [this, callback_id](const std::shared_ptr<picojson::value>& result) {
     result->get<picojson::object>()["callbackId"] = picojson::value{static_cast<double>(callback_id)};
 
-    instance_.PostMessage(result->serialize().c_str());
+    Instance::PostMessage(&instance_, result->serialize().c_str());
   };
+
+  auto data = std::shared_ptr<picojson::value>{new picojson::value{picojson::object()}};
 
   TaskQueue::GetInstance().Queue<picojson::value>(
       get_data,
       get_data_result,
-      std::shared_ptr<picojson::value>{new picojson::value{picojson::object()}});
+      data);
 
   ReportSuccess(out);
 }

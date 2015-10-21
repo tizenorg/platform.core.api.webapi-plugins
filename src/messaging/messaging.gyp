@@ -27,6 +27,8 @@
       },
       'sources': [
         'messaging_api.js',
+        'callback_user_data.cc',
+        'callback_user_data.h',
         'email_manager.cc',
         'email_manager.h',
         'messaging_instance.cc',

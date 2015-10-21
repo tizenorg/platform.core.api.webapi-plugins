@@ -13,7 +13,7 @@
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
  */
- 
+
 #ifndef _TIZEN_FILESYSTEM_FILE_H_
 #define _TIZEN_FILESYSTEM_FILE_H_
 
@@ -58,11 +58,11 @@ private:
 
 class External {
 public:
-    static std::string toVirtualPath(const std::string& path);
+    static std::string cutVirtualRoot(const std::string& path);
 };
 
 
-}  // namespace filesystem
-}  // namespace extension
+} // filesystem
+} // extension
 
 #endif /* _TIZEN_FILESYSTEM_FILE_H_ */

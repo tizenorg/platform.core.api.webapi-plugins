@@ -25,12 +25,14 @@
 #include <sensor_internal.h>
 #include <wifi.h>
 
+#include "common/converter.h"
+#include "common/logger.h"
+#include "common/task-queue.h"
+#include "common/tools.h"
+
 #include "systeminfo/systeminfo_instance.h"
 #include "systeminfo/systeminfo_device_capability.h"
 #include "systeminfo/systeminfo-utils.h"
-#include "common/logger.h"
-#include "common/converter.h"
-#include "common/task-queue.h"
 
 using common::PlatformResult;
 using common::ErrorCode;
@@ -424,8 +426,9 @@ void SysteminfoManager::GetPropertyValue(const picojson::value& args, picojson::
     Instance::PostMessage(instance_, response->serialize().c_str());
   };
 
-  TaskQueue::GetInstance().Queue<picojson::value>
-  (get, get_response, std::shared_ptr<picojson::value>(new picojson::value(picojson::object())));
+  auto data = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
+
+  TaskQueue::GetInstance().Queue<picojson::value>(get, get_response, data);
 }
 
 void SysteminfoManager::GetPropertyValueArray(const picojson::value& args, picojson::object* out) {
@@ -456,8 +459,9 @@ void SysteminfoManager::GetPropertyValueArray(const picojson::value& args, picoj
     Instance::PostMessage(instance_, response->serialize().c_str());
   };
 
-  TaskQueue::GetInstance().Queue<picojson::value>
-  (get, get_response, std::shared_ptr<picojson::value>(new picojson::value(picojson::object())));
+  auto data = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
+
+  TaskQueue::GetInstance().Queue<picojson::value>(get, get_response, data);
 }
 
 void SysteminfoManager::GetTotalMemory(const picojson::value& args, picojson::object* out) {
@@ -1150,6 +1154,7 @@ void SysteminfoManager::SetWifiLevel(wifi_rssi_level_e level) {
 
 int SysteminfoManager::GetSensorHandle() {
   LoggerD("Enter");
+  std::lock_guard<std::mutex> lock(sensor_mutex_);
   if (sensor_handle_ < 0) {
     LoggerD("Connecting to sensor");
     ConnectSensor(&sensor_handle_);
@@ -1216,6 +1221,7 @@ int SysteminfoManager::GetSimCount() {
 
 void SysteminfoManager::InitTapiHandles() {
   LoggerD("Entered");
+  std::lock_guard<std::mutex> lock(tapi_mutex_);
   if (nullptr == tapi_handles_[0]){  //check if anything is in table
     sim_count_ = 0;
     char **cp_list = tel_get_cp_name_list();
@@ -1226,8 +1232,8 @@ void SysteminfoManager::InitTapiHandles() {
           LoggerE("Failed to connect with tapi, handle is null");
           break;
         }
-        sim_count_++;
         LoggerD("%d modem: %s", sim_count_, cp_list[sim_count_]);
+        sim_count_++;
       }
     } else {
       LoggerE("Failed to get cp list");
@@ -1279,7 +1285,7 @@ void SysteminfoManager::InitCameraTypes() {
   }
 }
 
-std::string SysteminfoManager::GetCameraTypes(int index) {
+std::string SysteminfoManager::GetCameraTypes(unsigned int index) {
   LoggerD("Enter");
   if (index >= camera_types_.size()) {
     return "";
@@ -1287,13 +1293,14 @@ std::string SysteminfoManager::GetCameraTypes(int index) {
   return camera_types_[index];
 }
 
-int SysteminfoManager::GetCameraTypesCount() {
+unsigned int SysteminfoManager::GetCameraTypesCount() {
   LoggerD("Enter");
   return camera_types_.size();
 }
 
 PlatformResult SysteminfoManager::GetConnectionHandle(connection_h& handle) {
   LoggerD("Entered");
+  std::lock_guard<std::mutex> lock(connection_mutex_);
   if (nullptr == connection_handle_) {
     int error = connection_create(&connection_handle_);
     if (CONNECTION_ERROR_NONE != error) {

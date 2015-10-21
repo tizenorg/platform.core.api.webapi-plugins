@@ -26,6 +26,7 @@
 
 #include "common/logger.h"
 #include "common/platform_exception.h"
+#include "common/tools.h"
 #include "filesystem_file.h"
 
 #include "archive_file.h"
@@ -36,11 +37,13 @@ namespace extension {
 namespace archive {
 
 using namespace common;
+using common::tools::GetErrorString;
 
 UnZip::UnZip(const std::string& filename) :
         m_zipfile_name(filename),
         m_unzip(NULL),
-        m_default_buffer_size(1024 * 1024)
+        m_default_buffer_size(1024 * 1024),
+        m_is_open(false)
 {
     LoggerD("Entered");
     m_unzip = unzOpen(filename.c_str());
@@ -49,6 +52,13 @@ UnZip::UnZip(const std::string& filename) :
 UnZip::~UnZip()
 {
     LoggerD("Enter");
+    for (auto& x: path_access_map) {
+      LoggerD("Setting permission for path: %s  [%d] ", x.first.c_str(), x.second);
+      if(chmod(x.first.c_str(), x.second) == -1) {
+        LoggerE("Couldn't set permissions for: [%s] errno: %s", x.first.c_str(),
+                GetErrorString(errno).c_str());
+      }
+    }
     close();
 }
 
@@ -212,7 +222,6 @@ PlatformResult UnZip::extractAllFilesTo(const std::string& extract_path,
     }
 
     callback->callSuccessCallbackOnMainThread();
-    callback = NULL;
 
     return PlatformResult(ErrorCode::NO_ERROR);
 }
@@ -297,7 +306,6 @@ PlatformResult UnZip::extractTo(ExtractEntryProgressCallback* callback)
 
     // after finish extracting success callback will be called
     callback->callSuccessCallbackOnMainThread();
-    callback = NULL;
 
     return PlatformResult(ErrorCode::NO_ERROR);
 }
@@ -319,7 +327,6 @@ PlatformResult UnZip::extractItFunction(const std::string& file_name, unz_file_i
         LoggerE("Error: %s", result.message().c_str());
         return result;
     }
-
     return PlatformResult(ErrorCode::NO_ERROR);
 }
 

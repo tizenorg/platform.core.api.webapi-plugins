@@ -19,6 +19,8 @@
         'addressbook.h',
         'contact_manager.cc',
         'contact_manager.h',
+        'contact_search_engine.cc',
+        'contact_search_engine.h',
         'contact_util.cc',
         'contact_util.h',
         'person.cc',

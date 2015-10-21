@@ -86,7 +86,7 @@ public:
     void updateWithAttachmentData(const email_attachment_data_t& attachment_data);
 };
 
-}  // namespace messaging
-}  // namespace extension
+} // messaging
+} // extension
 
 #endif // MESSAGING_MESSAGE_ATTACHMENT_H_

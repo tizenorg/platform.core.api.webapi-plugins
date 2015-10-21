@@ -1092,9 +1092,15 @@ PlatformResult CalendarItem::AlarmsFromJson(int type, calendar_record_h rec,
       }
     }
 
+    const auto it_method = obj.find("method");
+    std::string method = "unknown";
+
+    if (obj.end() != it_method && it_method->second.is<std::string>()) {
+      method = it_method->second.get<std::string>();
+    }
+
     PlatformResult status =
-        SetEnum(alarm, _calendar_alarm.action, kAlarmMethod,
-                common::FromJson<std::string>(obj, "method"));
+        SetEnum(alarm, _calendar_alarm.action, kAlarmMethod, method);
     if (status.IsError()) {
       LoggerE("Error: %s", status.message().c_str());
       return status;
@@ -1373,16 +1379,6 @@ PlatformResult CalendarItem::RecurrenceRuleToJson(calendar_record_h rec,
   }
   out["interval"] = picojson::value(static_cast<double>(interval));
 
-  int occurrence_count;
-  status =
-      CalendarRecord::GetInt(rec, _calendar_event.count, &occurrence_count);
-  if (status.IsError()) {
-    LoggerE("Error: %s", status.message().c_str());
-    return status;
-  }
-  out["occurrenceCount"] =
-      picojson::value(static_cast<double>(occurrence_count));
-
   calendar_time_s cal = {CALENDAR_TIME_UTIME, {0}};
   calendar_record_get_caltime(rec, _calendar_event.until_time, &cal);
   if (cal.time.utime > 0 && CALENDAR_RECORD_NO_UNTIL != cal.time.utime) {
@@ -1520,9 +1516,19 @@ PlatformResult CalendarItem::FromJson(int type, calendar_record_h rec,
   }
 
   int is_all_day = common::FromJson<bool>(in, "isAllDay");
+  const std::string& start_property = "startDate";
+  const std::string& end_property =
+      (type == CALENDAR_BOOK_TYPE_EVENT) ? "endDate" : "dueDate";
 
-  if (!common::IsNull(in, "startDate")) {
-    Date start = DateFromJson(in, "startDate");
+  std::string start_label = start_property;
+  if (common::IsNull(in, start_property.c_str())
+      && !common::IsNull(in, end_property.c_str())) {
+    // start date is not set, but end date is present, use it instead
+    start_label = end_property;
+  }
+
+  if (!common::IsNull(in, start_label.c_str())) {
+    Date start = DateFromJson(in, start_label.c_str());
 
     status = SetCaltime(type, rec, "startDate_time",
                         DateToPlatform(start, is_all_day));
@@ -1538,19 +1544,24 @@ PlatformResult CalendarItem::FromJson(int type, calendar_record_h rec,
     }
   }
 
-  const std::string& endProperty =
-      (type == CALENDAR_BOOK_TYPE_EVENT) ? "endDate" : "dueDate";
-  if (!common::IsNull(in, endProperty.c_str())) {
-    Date end = DateFromJson(in, endProperty.c_str());
+  std::string end_label = end_property;
+  if (!common::IsNull(in, start_property.c_str())
+        && common::IsNull(in, end_property.c_str())) {
+    // end date is not set, but start date is present, use it instead
+    end_label = start_property;
+  }
 
-    status = SetCaltime(type, rec, endProperty + "_time",
+  if (!common::IsNull(in, end_label.c_str())) {
+    Date end = DateFromJson(in, end_label.c_str());
+
+    status = SetCaltime(type, rec, end_property + "_time",
                         DateToPlatform(end, is_all_day));
     if (status.IsError()) {
       LoggerE("Error: %s", status.message().c_str());
       return status;
     }
 
-    status = SetString(type, rec, endProperty + "_tzid", end.time_zone_);
+    status = SetString(type, rec, end_property + "_tzid", end.time_zone_);
     if (status.IsError()) {
       LoggerE("Error: %s", status.message().c_str());
       return status;
@@ -1845,13 +1856,25 @@ PlatformResult CalendarItem::ToJson(int type, calendar_record_h rec,
     }
     out["availability"] = picojson::value(enum_str);
 
-    picojson::object rec_rule = picojson::object();
-    status = RecurrenceRuleToJson(rec, &rec_rule);
+    //check if reccurence count is greater than 0
+    int occurrence_count;
+    status = CalendarRecord::GetInt(rec, _calendar_event.count, &occurrence_count);
     if (status.IsError()) {
       LoggerE("Error: %s", status.message().c_str());
       return status;
     }
-    out["recurrenceRule"] = picojson::value(rec_rule);
+
+    if (occurrence_count) {
+      picojson::object rec_rule = picojson::object();
+      rec_rule["occurrenceCount"] = picojson::value(static_cast<double>(occurrence_count));
+
+      status = RecurrenceRuleToJson(rec, &rec_rule);
+      if (status.IsError()) {
+        LoggerE("Error: %s", status.message().c_str());
+        return status;
+      }
+      out["recurrenceRule"] = picojson::value(rec_rule);
+    }
   } else {
     status = GetEnum(type, rec, "status", kTaskStatus, &enum_str);
     if (status.IsError()) {

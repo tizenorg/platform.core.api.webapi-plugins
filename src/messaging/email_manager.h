@@ -32,7 +32,7 @@
 #include "email-api-mail.h"
 #include "email-api-mailbox.h"
 
-#include "common/callback_user_data.h"
+#include "messaging/callback_user_data.h"
 #include "common/GDBus/connection.h"
 #include "common/platform_exception.h"
 #include "common/platform_result.h"
@@ -67,6 +67,7 @@ public:
     void findConversations(ConversationCallbackData* callback);
     void findFolders(FoldersCallbackData* callback);
     void removeConversations(ConversationCallbackData* callback);
+    std::string getMessageStatus(int id);
 
     common::PlatformResult sendMessage(MessageRecipientsCallbackData* callback);
     void sendStatusCallback(int mail_id, email_noti_on_network_event status,
@@ -142,6 +143,6 @@ private:
     bool m_is_initialized;
 };
 
-}  // namespace messaging
-}  // namespace extension
+} // Messaging
+} // DeviceAPI
 #endif // __TIZEN_EMAIL_MANAGER_H__

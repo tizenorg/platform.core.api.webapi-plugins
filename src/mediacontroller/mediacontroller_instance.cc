@@ -279,7 +279,7 @@ void MediaControllerInstance::MediaControllerServerAddChangeRequestPlaybackInfoL
     picojson::object& request_o = data->get<picojson::object>();
     request_o["listenerId"] = args.get("listenerId");
 
-    PostMessage(data->serialize().c_str());
+    Instance::PostMessage(this, data->serialize().c_str());
   };
 
   server_->SetChangeRequestPlaybackInfoListener(callback);
@@ -319,7 +319,7 @@ void MediaControllerInstance::MediaControllerServerAddCommandListener(
     picojson::object& request_o = request->get<picojson::object>();
     request_o["listenerId"] = args.get("listenerId");
 
-    PostMessage(request->serialize().c_str());
+    Instance::PostMessage(this, request->serialize().c_str());
   };
 
   server_->set_command_listener(on_command);
@@ -419,7 +419,7 @@ void MediaControllerInstance::MediaControllerClientFindServers(
       ReportError(result, &response_obj);
     }
 
-    PostMessage(response.serialize().c_str());
+    Instance::PostMessage(this, response.serialize().c_str());
   };
 
   TaskQueue::GetInstance().Async(search);
@@ -509,7 +509,7 @@ void MediaControllerInstance::MediaControllerServerInfoSendPlaybackState(
       ReportError(result, &response_obj);
     }
 
-    PostMessage(response.serialize().c_str());
+    Instance::PostMessage(this, response.serialize().c_str());
   };
 
   TaskQueue::GetInstance().Async(send);
@@ -548,7 +548,7 @@ void MediaControllerInstance::MediaControllerServerInfoSendPlaybackPosition(
       ReportError(result, &response_obj);
     }
 
-    PostMessage(response.serialize().c_str());
+    Instance::PostMessage(this, response.serialize().c_str());
   };
 
   TaskQueue::GetInstance().Async(send);
@@ -588,7 +588,7 @@ void MediaControllerInstance::MediaControllerServerInfoSendShuffleMode(
       ReportError(result, &response_obj);
     }
 
-    PostMessage(response.serialize().c_str());
+    Instance::PostMessage(this, response.serialize().c_str());
   };
 
   TaskQueue::GetInstance().Async(send);
@@ -627,7 +627,7 @@ void MediaControllerInstance::MediaControllerServerInfoSendRepeatMode(
       ReportError(result, &response_obj);
     }
 
-    PostMessage(response.serialize().c_str());
+    Instance::PostMessage(this, response.serialize().c_str());
   };
 
   TaskQueue::GetInstance().Async(send);
@@ -659,7 +659,7 @@ void MediaControllerInstance::MediaControllerServerInfoSendCommand(
 
     reply_obj["listenerId"] = args.get("listenerId");
 
-    PostMessage(reply->serialize().c_str());
+    Instance::PostMessage(this, reply->serialize().c_str());
   };
 
   PlatformResult result = client_->SendCommand(
@@ -699,7 +699,7 @@ void MediaControllerInstance::MediaControllerServerInfoAddServerStatusChangeList
     picojson::object& request_o = data->get<picojson::object>();
     request_o["listenerId"] = args.get("listenerId");
 
-    PostMessage(data->serialize().c_str());
+    Instance::PostMessage(this, data->serialize().c_str());
   };
 
   client_->SetServerStatusChangeListener(callback);
@@ -745,7 +745,7 @@ void MediaControllerInstance::MediaControllerServerInfoAddPlaybackInfoChangeList
     picojson::object& request_o = data->get<picojson::object>();
     request_o["listenerId"] = args.get("listenerId");
 
-    PostMessage(data->serialize().c_str());
+    Instance::PostMessage(this, data->serialize().c_str());
   };
 
   client_->SetPlaybackInfoListener(callback);

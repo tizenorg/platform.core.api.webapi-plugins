@@ -35,9 +35,11 @@ using namespace tizen;
 MessageConversation::MessageConversation():
     m_conversation_id(-1),
     m_conversation_type(UNDEFINED),
+    m_timestamp(-1),
     m_count(0),
     m_unread_messages(0),
-    m_is_read(false)
+    m_is_read(false),
+    m_last_message_id(-1)
 {
     LoggerD("Message Conversation constructor.");
 }
@@ -131,8 +133,6 @@ PlatformResult MessageConversation::convertMsgConversationToObject(
     msg_list_handle_t addr_list = NULL;
     msg_struct_t addr_info = NULL;
 
-    msg_error_t err = MSG_SUCCESS;
-
     int tempInt;
     bool tempBool;
     int nToCnt;
@@ -154,7 +154,7 @@ PlatformResult MessageConversation::convertMsgConversationToObject(
     std::unique_ptr<std::remove_pointer<msg_struct_t*>::type, int(*)(msg_struct_t*)>
         msg_thread_ptr(&msg_thread, &msg_release_struct);
         // automatically release the memory
-    err = msg_get_thread(handle, conversation->m_conversation_id, msg_thread);
+    msg_error_t err = msg_get_thread(handle, conversation->m_conversation_id, msg_thread);
     if (err != MSG_SUCCESS)
     {
       LoggerE("Failed to retrieve thread.");
@@ -281,6 +281,15 @@ PlatformResult MessageConversation::convertEmailConversationToObject(
 
     if(email_get_thread_information_ex(threadId, &resultMail) != EMAIL_ERROR_NONE)
     {
+        if (resultMail)
+        {
+            if(resultMail->eas_data)
+            {
+                free(resultMail->eas_data);
+            }
+            free(resultMail);
+        }
+
         LoggerE("Couldn't get conversation");
         return PlatformResult(ErrorCode::UNKNOWN_ERR, "Couldn't get conversation.");
     } else {

@@ -108,7 +108,6 @@ PlatformResult Types::PlatformEnumToString(const std::string& type,
                                            std::string* platform_str) {
   LoggerD("Enter");
 
-  // TODO(r.galka) can be replaced by Boost.Bimap
   if (platform_enum_reverse_map_.empty()) {
     for (auto& def : platform_enum_map_) {
       platform_enum_reverse_map_[def.first] = {};
@@ -200,9 +199,8 @@ PlatformResult Types::ConvertMetadata(mc_metadata_h metadata_h,
     free(value);
   };
 
-  int ret;
   for (auto& field : metadata_fields) {
-    ret = mc_client_get_metadata(metadata_h,
+    int ret = mc_client_get_metadata(metadata_h,
                                  static_cast<mc_meta_e>(field.second),
                                  &value);
     if (ret != MEDIA_CONTROLLER_ERROR_NONE) {

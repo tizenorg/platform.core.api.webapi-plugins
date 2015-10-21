@@ -136,22 +136,12 @@ static gboolean loadMessageBodyTask(void* data)
     }
 
     std::shared_ptr<MessageBody> body = callback->getMessage()->getBody();
-    auto json = callback->getJson();
-    picojson::object& obj = json->get<picojson::object>();
-    obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
+    picojson::object args;
+    args[JSON_DATA_MESSAGE_BODY] = MessagingUtil::messageBodyToJson(body);
 
-    if (json->contains(JSON_CALLBACK_ID) && obj.at(JSON_CALLBACK_ID).is<double>()) {
-      picojson::object args;
-      args[JSON_DATA_MESSAGE_BODY] = MessagingUtil::messageBodyToJson(body);
-      obj[JSON_DATA] = picojson::value(args);
+    callback->SetSuccess(picojson::value(args));
+    callback->Post();
 
-      callback->getQueue().resolve(
-          obj.at(JSON_CALLBACK_ID).get<double>(),
-          json->serialize()
-      );
-    } else {
-      LoggerE("json is incorrect - missing required member");
-    }
     return FALSE;
 }
 

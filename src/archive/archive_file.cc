@@ -52,6 +52,7 @@ PermissionMap ArchiveFile::s_permission_map = {
 
 ArchiveFile::ArchiveFile() :
         enable_shared_from_this<ArchiveFile>(),
+        m_file_mode(),
         m_decompressed_size(0),
         m_is_open(false),
         m_overwrite(false),
@@ -64,7 +65,8 @@ ArchiveFile::ArchiveFile(FileMode file_mode) :
         enable_shared_from_this<ArchiveFile>(),
         m_decompressed_size(0),
         m_is_open(false),
-        m_overwrite(false)
+        m_overwrite(false),
+        m_created_as_new_empty_archive(false)
 {
     LoggerD("Enter");
     m_file_mode = file_mode;
@@ -173,20 +175,20 @@ gboolean ArchiveFile::callErrorCallback(void* data)
     return false;
 }
 
-void* ArchiveFile::taskManagerThread(void *data)
+void ArchiveFile::taskManagerThread(gpointer data, gpointer user_data)
 {
     LoggerD("Entered");
     ArchiveFileHolder* archive_file_holder = static_cast<ArchiveFileHolder*>(data);
     if (!archive_file_holder) {
         LoggerE("archive_file_holder is null");
-        return NULL;
+        return;
     }
 
     if (!archive_file_holder->ptr){
         LoggerE("archive_file is null");
         delete archive_file_holder;
         archive_file_holder = NULL;
-        return NULL;
+        return;
     }
 
     PlatformResult result(ErrorCode::NO_ERROR);
@@ -233,7 +235,7 @@ void* ArchiveFile::taskManagerThread(void *data)
     delete archive_file_holder;
     archive_file_holder = NULL;
 
-    return NULL;
+    return;
 }
 
 PlatformResult ArchiveFile::addOperation(OperationCallbackData* callback)
@@ -249,23 +251,21 @@ PlatformResult ArchiveFile::addOperation(OperationCallbackData* callback)
         size = m_task_queue.size();
     }
     if(1 == size) {
-        pthread_t thread;
         ArchiveFileHolder* holder = new(std::nothrow) ArchiveFileHolder();
         if(!holder) {
             LoggerE("Memory allocation error");
             return PlatformResult(ErrorCode::UNKNOWN_ERR, "Memory allocation error");
         }
         holder->ptr = shared_from_this();
-        if (pthread_create(&thread, NULL, taskManagerThread,
-                static_cast<void*>(holder))) {
-            LoggerE("Thread creation failed");
-            delete holder;
-            holder = NULL;
-            return PlatformResult(ErrorCode::UNKNOWN_ERR, "Thread creation failed");
-        }
 
-        if (pthread_detach(thread)) {
-            LoggerE("Thread detachment failed");
+        // operations would be executed asynchronously on one background thread
+        // (no risk of parallel operations on file)
+        if (!g_thread_pool_push(ArchiveManager::getInstance().getThreadPool(),
+                                static_cast<gpointer>(holder), NULL)) {
+          LoggerE("Thread creation failed");
+          delete holder;
+          holder = NULL;
+          return PlatformResult(ErrorCode::UNKNOWN_ERR, "Thread creation failed");
         }
     }
     return PlatformResult(ErrorCode::NO_ERROR);
@@ -312,7 +312,6 @@ PlatformResult ArchiveFile::extractAllTask(ExtractAllProgressCallback* callback)
         if(m_created_as_new_empty_archive) {
             //We do not call progress callback since we do not have any ArchiveFileEntry
             callback->callSuccessCallbackOnMainThread();
-            callback = NULL;
             return PlatformResult(ErrorCode::NO_ERROR);
         }
         else {

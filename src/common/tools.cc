@@ -144,16 +144,7 @@ class AccessControlImpl {
 
   bool CheckAccess(const std::vector<std::string>& privileges) {
     LoggerD("Enter");
-    int ret = 0;
-   //privilege checker is removed tizen 3.0. 
-   /* for (size_t i = 0; i < privileges.size(); ++i) {
-      ret = privilege_checker_check_privilege(privileges[i].c_str());
-      if (PRIVILEGE_CHECKER_ERR_NONE != ret) {
-        return false;
-      }
-    }
-    return true;
-  } */
+
     return true;
 };
 
@@ -283,6 +274,34 @@ std::string GetErrorString(int error_code) {
   char msg[kSize] = {0};
   strerror_r(error_code, msg, kSize);
   return msg;
+}
+
+
+int HexToInt(char c) {
+  if (c >= '0' && c <= '9') {
+    return c - '0';
+  } else if (c >= 'A' && c <= 'Z') {
+    return c - 'A';
+  } else {
+    return c - 'a';
+  }
+}
+
+unsigned char* HexToBin(const char* hex, int size, unsigned char* bin, int bin_size) {
+  for (int i = 0; i < size - 1 && i / 2 < bin_size; i += 2) {
+    bin[i * 2] = HexToInt(hex[i]) << 4;
+    bin[i * 2] += HexToInt(hex[i + 1]);
+  }
+  return bin;
+}
+
+char* BinToHex(const unsigned char* bin, int size, char* hex, int hex_size) {
+  static const char * const digits = "0123456789ABCDEF";
+  for (int i = 0; i < size && i < hex_size / 2; i++) {
+    hex[i * 2] = digits[bin[i] >> 4];
+    hex[i * 2 + 1] = digits[bin[i] & 15];
+  }
+  return hex;
 }
 
 }  // namespace tools

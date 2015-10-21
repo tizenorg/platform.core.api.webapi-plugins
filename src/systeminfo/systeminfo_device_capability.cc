@@ -21,7 +21,7 @@
 
 #include "common/logger.h"
 
-// TODO:: hardcoded value, only for IsBluetoothAlwaysOn
+// hardcoded value, only for IsBluetoothAlwaysOn
 #define PROFILE_MOBILE 1
 
 namespace extension {
@@ -61,7 +61,7 @@ const char* kPlatformCoreVfpv3 = "vfpv3";
 
 /*API feature*/
 /*Network feature*/
-const char* kTizenFeatureBluetoothAlwaysOn = "http://tizen.org/capability/network.bluetooth.always_on"; //TODO mobile/wearable: false, tv: true
+const char* kTizenFeatureBluetoothAlwaysOn = "http://tizen.org/capability/network.bluetooth.always_on"; //hardcoded values for mobile/wearable: false, tv: true
 const char* kTizenFeatureOpenglesTextureFormat = "http://tizen.org/feature/opengles.texture_format";
 const char* kTizenFeatureCoreApiVersion = "http://tizen.org/feature/platform.core.api.version";
 const char* kTizenFeaturePlatfromCoreCpuArch = "http://tizen.org/feature/platform.core.cpu.arch";

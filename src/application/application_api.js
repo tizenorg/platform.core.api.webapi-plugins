@@ -26,6 +26,37 @@ var ApplicationControlLaunchMode = {
   GROUP: 'GROUP'
 };
 
+//  TODO: Please uncomment below lines when system events is ready
+//var SystemEvent = {
+//  BATTERY_CHARGER_STATUS: 'BATTERY_CHARGER_STATUS',
+//  BATTERY_LEVEL_STATUS: 'BATTERY_LEVEL_STATUS',
+//  USB_STATUS: 'USB_STATUS',
+//  USBHOST_STATUS: 'USBHOST_STATUS',
+//  EARJACK_STATUS: 'EARJACK_STATUS',
+//  DISPLAY_STATE: 'DISPLAY_STATE',
+//  BOOT_COMPLETED: 'BOOT_COMPLETED',
+//  SYSTEM_SHUTDOWN: 'SYSTEM_SHUTDOWN',
+//  LOW_MEMORY: 'LOW_MEMORY',
+//  WIFI_STATE: 'WIFI_STATE',
+//  BT_STATE: 'BT_STATE',
+//  BT_TRANSFERING_STATE: 'BT_TRANSFERING_STATE',
+//  MOBILE_DATA_STATE: 'MOBILE_DATA_STATE',
+//  DATA_ROAMING_STATE: 'DATA_ROAMING_STATE',
+//  LOCATION_ENABLE_STATE: 'LOCATION_ENABLE_STATE',
+//  GPS_ENABLE_STATE: 'GPS_ENABLE_STATE',
+//  NPS_ENABLE_STATE: 'NPS_ENABLE_STATE',
+//  INCOMING_MSG: 'INCOMING_MSG',
+//  TIME_CHANGED: 'TIME_CHANGED',
+//  TIME_ZONE: 'TIME_ZONE',
+//  HOUR_FORMAT: 'HOUR_FORMAT',
+//  LANGUAGE_SET: 'LANGUAGE_SET',
+//  REGION_FORMAT: 'REGION_FORMAT',
+//  SILENT_MODE: 'SILENT_MODE',
+//  VIBRATION_STATE: 'VIBRATION_STATE',
+//  SCREEN_AUTOROTATE_STATE: 'SCREEN_AUTOROTATE_STATE',
+//  FONT_SET: 'FONT_SET'
+//};
+
 // helper functions ////////////////////////////////////////////////////
 function _createApplicationControlData(object) {
   var ret;
@@ -603,6 +634,161 @@ Application.prototype.getRequestedAppControl = function() {
     } else {
       return null;
     }
+  }
+};
+
+function _checkEventName(name) {
+  var name = name || '';
+  if (!(/^([a-zA-Z_]){1}([a-zA-Z0-9_]){0,126}$/.test(name))) {
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
+        'Invalid event name');
+  }
+}
+
+function _checkAppId(appId) {
+  if (!(/^([a-zA-Z0-9]){10}([.]){1}([a-zA-Z0-9_]){1,52}$/.test(appId))) {
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
+        'Invalid appId');
+  }
+}
+
+var event_listeners_ = {};
+var watchId_ = 0;
+function nextWatchId() {
+  return ++watchId_;
+}
+
+Application.prototype.addEventListener = function(event, callback) {
+  var args = AV.validateArgs(arguments, [
+    {name: 'event', type: AV.Types.DICTIONARY},
+    {name: 'callback', type: AV.Types.FUNCTION}
+  ]);
+
+  var data = {};
+
+//  TODO: Please uncomment below lines when system events is ready
+//  if (Object.keys(SystemEvent).indexOf(args.event.name) > -1) {
+//    data.name = 'tizen.system.event.' + args.event.name.toLowerCase();
+//  } else {
+    _checkEventName(args.event.name);
+    _checkAppId(args.event.appId);
+
+    // the 'event.' prefix is required by platform
+    data.name = 'event.' + args.event.appId + '.' + args.event.name;
+//  }
+
+  var watchId = nextWatchId();
+  data.listenerId = data.name;
+  event_listeners_[data.name] = !T.isObject(event_listeners_[data.name])
+                                ? {} : event_listeners_[data.name];
+
+  if (!Object.keys(event_listeners_[data.name]).length) {
+    native.addListener(data.name, function(msg) {
+      var eventName = msg.name;
+      var parsedName = eventName.split('.');
+      var eventInfo = {};
+      if (parsedName.length < 3) {
+        console.logd('Invalid event name returned' + eventName);
+      }
+      for (var id in event_listeners_[eventName]) {
+        if (event_listeners_[eventName].hasOwnProperty(id)) {
+          if (msg.data) {
+            eventInfo.appId = parsedName[1];
+            eventInfo.name = parsedName[2];
+            event_listeners_[eventName][id](eventInfo, msg.data);
+          } else {
+            delete msg.name;
+            msg.type = parsedName[2]; //TODO: type should come from native site
+            eventInfo.name = parsedName[2].toUpperCase();
+            event_listeners_[eventName][id](eventInfo, msg);
+          }
+        }
+      }
+    });
+
+    var result = native.callSync('Application_addEventListener', data);
+    if (native.isFailure(result)) {
+      throw native.getErrorObject(result);
+    }
+  }
+
+  event_listeners_[data.name][watchId] = args.callback;
+  return watchId;
+};
+
+function getEventNameById(watchId) {
+  var eventName;
+  for (var event in event_listeners_) {
+    if (event_listeners_.hasOwnProperty(event)) {
+      for (var id in event_listeners_[event]) {
+        if (event_listeners_[event].hasOwnProperty(id) && Converter.toLong(id) === watchId) {
+            eventName = event;
+        }
+      }
+    }
+  }
+  return eventName;
+}
+
+Application.prototype.removeEventListener = function(watchId) {
+  var args = AV.validateArgs(arguments, [
+    {name: 'watchId', type: AV.Types.LONG}
+  ]);
+
+  var eventName = getEventNameById(args.watchId);
+
+  if (!eventName) {
+    return;
+  }
+
+  delete event_listeners_[eventName][args.watchId];
+
+  if (!Object.keys(event_listeners_[eventName]).length) {
+    native.removeListener(eventName);
+    var result = native.callSync('Application_removeEventListener', {name: eventName});
+    if (native.isFailure(result)) {
+      throw native.getErrorObject(result);
+    }
+  }
+};
+
+Application.prototype.broadcastEvent = function(event, data) {
+  var args = AV.validateMethod(arguments, [
+    {name: 'event', type: AV.Types.DICTIONARY},
+    {name: 'data', type: AV.Types.DICTIONARY}
+  ]);
+
+  _checkEventName(args.event.name);
+
+  var nativeData = {
+    name: 'event.' + this.appInfo.id + '.' + args.event.name,
+    data: args.data
+  };
+
+  var result = native.callSync('Application_broadcastEvent', nativeData);
+
+  if (native.isFailure(result)) {
+    throw native.getErrorObject(result);
+  }
+};
+
+Application.prototype.broadcastTrustedEvent = function(event, data) {
+  var args = AV.validateMethod(arguments, [
+    {name: 'event', type: AV.Types.DICTIONARY},
+    {name: 'data', type: AV.Types.DICTIONARY}
+  ]);
+
+  _checkEventName(args.event.name);
+
+  var nativeData = {
+    name: 'event.' + this.appInfo.id + '.' + args.event.name,
+    data: args.data
+  };
+
+  var result = native.callSync('Application_broadcastTrustedEvent', nativeData);
+
+  if (native.isFailure(result)) {
+    throw native.getErrorObject(result);
   }
 };
 

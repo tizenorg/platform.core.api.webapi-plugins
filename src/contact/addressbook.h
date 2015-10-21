@@ -53,17 +53,13 @@ common::PlatformResult AddressBookStartListening(ContactInstance& instance, cons
                                                  JsonObject& out);
 common::PlatformResult AddressBookStopListening(ContactInstance& instance);
 
-common::PlatformResult AddressBookBatchFunc(NativeFunction impl,
-                                            const char* single_arg_name,
-                                            const JsonObject& args,
-                                            JsonArray& out);
-
-// TODO all batch operations should be implemented using CAPI batch functions
 common::PlatformResult AddressBookAddBatch(const JsonObject& args,
                                            JsonArray& out);
-
-}  // namespace AddressBook
-}  // namespace contact
-}  // namespace extension
+common::PlatformResult AddressBookUpdateBatch(const JsonObject& args,
+                                           JsonArray& out);
+common::PlatformResult AddressBookRemoveBatch(const JsonObject& args);
+}  // AddressBook
+}  // contact
+}  // extension
 
 #endif  // CONTACT_ADDRESSBOOK_H_

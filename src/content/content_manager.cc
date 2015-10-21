@@ -13,7 +13,7 @@
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
  */
-
+ 
 #include "content/content_manager.h"
 
 #include <algorithm>
@@ -28,6 +28,9 @@
 #include "common/converter.h"
 #include "common/logger.h"
 #include "common/scope_exit.h"
+#include "common/tools.h"
+#include "common/virtual_fs.h"
+
 #include "content/content_filter.h"
 
 using namespace std;
@@ -97,7 +100,11 @@ void ContentToJson(media_info_h info, picojson::object& o) {
       std::unique_ptr<std::remove_pointer<image_meta_h>::type, int(*)(image_meta_h)>
           img_ptr(img, &image_meta_destroy); // automatically release the memory
       if (MEDIA_CONTENT_ERROR_NONE == image_meta_get_date_taken(img, &tmpStr)) {
-        o["releaseDate"] = picojson::value(get_date(tmpStr));
+        if (tmpStr) {
+          o["releaseDate"] = picojson::value(get_date(tmpStr));
+          free(tmpStr);
+          tmpStr = NULL;
+        }
       }
       if (MEDIA_CONTENT_ERROR_NONE == image_meta_get_width(img, &tmpInt)) {
         o["width"] = picojson::value(static_cast<double>(tmpInt));
@@ -106,11 +113,9 @@ void ContentToJson(media_info_h info, picojson::object& o) {
         o["height"] = picojson::value(static_cast<double>(tmpInt));
       }
       picojson::object geo;
-      std::string str_latitude;
       if (MEDIA_CONTENT_ERROR_NONE == media_info_get_latitude(info, &tmpDouble)) {
         geo["latitude"] = picojson::value(tmpDouble);
       }
-      std::string str_longitude;
       if (MEDIA_CONTENT_ERROR_NONE == media_info_get_longitude(info, &tmpDouble)) {
         geo["longitude"] = picojson::value(tmpDouble);
       }
@@ -148,7 +153,6 @@ void ContentToJson(media_info_h info, picojson::object& o) {
         o["orientation"] = picojson::value(ori);
       }
     }
-
   } else if (type == MEDIA_CONTENT_TYPE_VIDEO) {
     o["type"] = picojson::value(std::string("VIDEO"));
     video_meta_h video;
@@ -166,19 +170,27 @@ void ContentToJson(media_info_h info, picojson::object& o) {
         picojson::array artists;
         if (tmpStr) {
           artists.push_back(picojson::value(std::string(tmpStr)));
+          free(tmpStr);
+          tmpStr = NULL;
         }
         o["artists"] = picojson::value(artists);
       }
       if (MEDIA_CONTENT_ERROR_NONE == video_meta_get_album(video, &tmpStr)) {
         if (tmpStr) {
           o["album"] = picojson::value(tmpStr);
+          free(tmpStr);
+          tmpStr = NULL;
         }
       }
       if (MEDIA_CONTENT_ERROR_NONE == video_meta_get_duration(video, &tmpInt)) {
         o["duration"] = picojson::value(static_cast<double>(tmpInt));
       }
       if (MEDIA_CONTENT_ERROR_NONE == video_meta_get_recorded_date(video, &tmpStr)) {
-        o["releaseDate"] = picojson::value(get_date(tmpStr));
+        if (tmpStr) {
+          o["releaseDate"] = picojson::value(get_date(tmpStr));
+          free(tmpStr);
+          tmpStr = NULL;
+        }
       }
     }
     picojson::object geo;
@@ -189,7 +201,6 @@ void ContentToJson(media_info_h info, picojson::object& o) {
       geo["longitude"] = picojson::value(tmpDouble);
     }
     o["geolocation"] = picojson::value(geo);
-
   } else if (type == MEDIA_CONTENT_TYPE_SOUND || type == MEDIA_CONTENT_TYPE_MUSIC) {
     o["type"] = picojson::value(std::string("AUDIO"));
     audio_meta_h audio;
@@ -197,7 +208,11 @@ void ContentToJson(media_info_h info, picojson::object& o) {
       std::unique_ptr<std::remove_pointer<audio_meta_h>::type, int(*)(audio_meta_h)>
           audio_ptr(audio, &audio_meta_destroy); // automatically release the memory
       if (MEDIA_CONTENT_ERROR_NONE == audio_meta_get_recorded_date(audio, &tmpStr)) {
-        o["releaseDate"] = picojson::value(get_date(tmpStr));
+        if(tmpStr) {
+          o["releaseDate"] = picojson::value(get_date(tmpStr));
+          free(tmpStr);
+          tmpStr = NULL;
+        }
       }
       if (MEDIA_CONTENT_ERROR_NONE == audio_meta_get_album(audio, &tmpStr)) {
         if (tmpStr) {
@@ -209,9 +224,7 @@ void ContentToJson(media_info_h info, picojson::object& o) {
       if (MEDIA_CONTENT_ERROR_NONE == audio_meta_get_artist(audio, &tmpStr)) {
         if (tmpStr) {
           picojson::array artists;
-          if (tmpStr) {
-            artists.push_back(picojson::value(std::string(tmpStr)));
-          }
+          artists.push_back(picojson::value(std::string(tmpStr)));
           o["artists"] = picojson::value(artists);
           free(tmpStr);
           tmpStr = NULL;
@@ -220,9 +233,7 @@ void ContentToJson(media_info_h info, picojson::object& o) {
       if (MEDIA_CONTENT_ERROR_NONE == audio_meta_get_genre(audio, &tmpStr)) {
         if (tmpStr) {
           picojson::array genres;
-          if (tmpStr) {
-            genres.push_back(picojson::value(std::string(tmpStr)));
-          }
+          genres.push_back(picojson::value(std::string(tmpStr)));
           o["genres"] = picojson::value(genres);
           free(tmpStr);
           tmpStr = NULL;
@@ -231,9 +242,7 @@ void ContentToJson(media_info_h info, picojson::object& o) {
       if (MEDIA_CONTENT_ERROR_NONE == audio_meta_get_composer(audio, &tmpStr)) {
         if (tmpStr) {
           picojson::array composers;
-          if (tmpStr) {
-            composers.push_back(picojson::value(std::string(tmpStr)));
-          }
+          composers.push_back(picojson::value(std::string(tmpStr)));
           o["composers"] = picojson::value(composers);
           free(tmpStr);
           tmpStr = NULL;
@@ -388,11 +397,9 @@ void ContentDirToJson(media_folder_h folder, picojson::object& o) {
       o["storageType"] = picojson::value(std::string("INTERNAL"));
     } else if (storage_type == MEDIA_CONTENT_STORAGE_EXTERNAL) {
       o["storageType"] = picojson::value(std::string("EXTERNAL"));
-    }
-    /* TODO not defined in platform
-    else if (storage_type == MEDIA_CONTENT_STORAGE_CLOUD) {
+    } else if (storage_type == MEDIA_CONTENT_STORAGE_CLOUD) {
       o["storageType"] = picojson::value(std::string("CLOUD"));
-    }*/
+    }
   }
 
   // modifiedData
@@ -602,7 +609,11 @@ static bool playlist_foreach_cb(media_playlist_h playlist, void *user_data) {
     }
     if( media_playlist_get_thumbnail_path(playlist, &thumb_path) == MEDIA_CONTENT_ERROR_NONE) {
       if (thumb_path != NULL) {
-        o["thumbnailURI"] = picojson::value(std::string(thumb_path));
+        std::string thumbnail_uri (thumb_path);
+        if (thumbnail_uri != " ") {
+          thumbnail_uri = uri_prefix + thumbnail_uri;
+        }
+        o["thumbnailURI"] = picojson::value(thumbnail_uri);
         free(thumb_path);
       }
       else {
@@ -803,12 +814,18 @@ int ContentManager::scanFile(std::string& uri) {
 PlatformResult ContentManager::scanDirectory(media_scan_completed_cb callback, ReplyCallbackData* cbData) {
   LoggerD("Enter");
   const std::string& contentDirURI = cbData->args.get("contentDirURI").get<std::string>();
+  std::string real_path = common::VirtualFs::GetInstance().GetRealPath(contentDirURI);
   const bool recursive = cbData->args.get("recursive").get<bool>();
 
-  int ret = media_content_scan_folder(contentDirURI.c_str(), recursive, callback, (void*) cbData);
+  int ret = media_content_scan_folder(real_path.c_str(), recursive, callback, (void*) cbData);
+
   if (ret != MEDIA_CONTENT_ERROR_NONE) {
     LoggerE("Scan folder failed in platform: %d", ret);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Scanning content directory failed");
+    if (MEDIA_CONTENT_ERROR_INVALID_PARAMETER == ret) {
+      return PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Scanning content directory failed");
+    } else {
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Scanning content directory failed");
+    }
   }
   return PlatformResult(ErrorCode::NO_ERROR);
 }
@@ -824,8 +841,10 @@ PlatformResult ContentManager::cancelScanDirectory(const std::string& content_di
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
-PlatformResult ContentManager::setChangeListener(media_content_db_update_cb callback, void *user_data) {
+PlatformResult ContentManager::setChangeListener(media_content_db_update_cb callback,
+                                                 void *user_data) {
   LoggerD("Enter");
+
   int ret = media_content_set_db_updated_cb(callback, user_data);
   if(ret != MEDIA_CONTENT_ERROR_NONE) {
     LoggerE("Failed: registering the listener is failed");
@@ -836,6 +855,7 @@ PlatformResult ContentManager::setChangeListener(media_content_db_update_cb call
 
 PlatformResult ContentManager::unSetChangeListener() {
   LoggerD("Enter");
+
   int ret = media_content_unset_db_updated_cb();
   if(ret != MEDIA_CONTENT_ERROR_NONE) {
     LoggerE("Failed: unregistering the listener is failed");
@@ -844,10 +864,38 @@ PlatformResult ContentManager::unSetChangeListener() {
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
+PlatformResult ContentManager::setV2ChangeListener(media_content_noti_h* noti_handle,
+                                                 media_content_db_update_cb callback,
+                                                 void *user_data) {
+  LoggerD("Enter");
+  if (nullptr == *noti_handle) {
+    int ret = media_content_set_db_updated_cb_v2(noti_handle, callback, user_data);
+    if(ret != MEDIA_CONTENT_ERROR_NONE) {
+      LoggerE("Failed: registering the listener of cb_v2 is failed");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, ("registering the listener is failed."));
+    }
+  }
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+PlatformResult ContentManager::unSetV2ChangeListener(media_content_noti_h* noti_handle) {
+  LoggerD("Enter");
+
+  int ret = media_content_unset_db_updated_cb_v2(*noti_handle);
+  if(ret != MEDIA_CONTENT_ERROR_NONE) {
+    LoggerE("Failed: unregistering the listener of cb_v2 is failed");
+    return PlatformResult(ErrorCode::UNKNOWN_ERR, ("unregistering the listener is failed."));
+  }
+  *noti_handle = nullptr;
+
+  return PlatformResult(ErrorCode::NO_ERROR);
+}
+
+
 void ContentManager::createPlaylist(std::string name,
   const std::shared_ptr<ReplyCallbackData>& user_data) {
   LoggerD("Enter");
-  media_playlist_h	playlist = NULL;
+  media_playlist_h playlist = NULL;
 
   int ret = media_playlist_insert_to_db(name.c_str(),&playlist);
   std::unique_ptr<std::remove_pointer<media_playlist_h>::type, int(*)(media_playlist_h)>
@@ -913,7 +961,7 @@ void ContentManager::getPlaylists(const std::shared_ptr<ReplyCallbackData>& user
 
   LoggerD("Enter");
   int ret;
-  filter_h 	filter = nullptr;
+  filter_h filter = nullptr;
   media_filter_create(&filter);
   std::unique_ptr<std::remove_pointer<filter_h>::type, int(*)(filter_h)>
       filter_ptr(filter, &media_filter_destroy); // automatically release the memory
@@ -973,14 +1021,23 @@ int ContentManager::updateBatch(picojson::value args) {
   int ret = 0;
   std::vector<picojson::value> contents = args.get("contents").get<picojson::array>();
 
-  for (picojson::value::array::iterator it = contents.begin(); it != contents.end(); it++) {
+  for (picojson::value::array::iterator it = contents.begin(); it != contents.end(); ++it) {
     picojson::value content = *it;
     std::string id = content.get("id").to_str();
     media_info_h media = NULL;
     ret = media_info_get_media_from_db(id.c_str(), &media);
     if (media != NULL && ret == MEDIA_CONTENT_ERROR_NONE) {
-      setContent(media, content);
+      ret = setContent(media, content);
+      if(ret != MEDIA_CONTENT_ERROR_NONE){
+        LoggerE("setContent failed");
+        return ret;
+      }
+			
       ret = media_info_update_to_db(media);
+      if(ret != MEDIA_CONTENT_ERROR_NONE){
+        LoggerE("update to db failed");
+      }
+      media_info_destroy(media);
     } else {
       return ret;
     }
@@ -990,10 +1047,9 @@ int ContentManager::updateBatch(picojson::value args) {
 
 int ContentManager::playlistAdd(std::string playlist_id, std::string content_id) {
   LoggerD("Enter");
-  int ret = MEDIA_CONTENT_ERROR_NONE;
 
   media_playlist_h playlist = NULL;
-  ret = media_playlist_get_playlist_from_db(std::stoi(playlist_id), &playlist);
+  int ret = media_playlist_get_playlist_from_db(std::stoi(playlist_id), &playlist);
 
   if (playlist != NULL && ret == MEDIA_CONTENT_ERROR_NONE) {
     ret = media_playlist_add_media(playlist, content_id.c_str());
@@ -1016,10 +1072,9 @@ int ContentManager::playlistAdd(std::string playlist_id, std::string content_id)
 
 int ContentManager::playlistRemove(std::string playlist_id, int member_id) {
   LoggerD("Enter");
-  int ret = MEDIA_CONTENT_ERROR_NONE;
 
   media_playlist_h playlist = NULL;
-  ret = media_playlist_get_playlist_from_db(std::stoi(playlist_id), &playlist);
+  int ret = media_playlist_get_playlist_from_db(std::stoi(playlist_id), &playlist);
   if (playlist != NULL && ret == MEDIA_CONTENT_ERROR_NONE) {
     ret = media_playlist_remove_media(playlist, member_id);
     if (ret != MEDIA_CONTENT_ERROR_NONE) {
@@ -1043,11 +1098,10 @@ int ContentManager::playlistRemove(std::string playlist_id, int member_id) {
 void ContentManager::playlistAddbatch(const std::shared_ptr<ReplyCallbackData>& user_data) {
 
   LoggerD("Enter");
-  int ret = MEDIA_CONTENT_ERROR_NONE;
   std::string playlist_id = user_data->args.get("playlistId").get<std::string>();
 
   media_playlist_h playlist = NULL;
-  ret = media_playlist_get_playlist_from_db(std::stoi(playlist_id), &playlist);
+  int ret = media_playlist_get_playlist_from_db(std::stoi(playlist_id), &playlist);
 
   if(ret != MEDIA_CONTENT_ERROR_NONE && playlist == NULL) {
     PlatformResult err(ErrorCode::UNKNOWN_ERR, "Getting playlist is failed.");
@@ -1056,7 +1110,7 @@ void ContentManager::playlistAddbatch(const std::shared_ptr<ReplyCallbackData>& 
   }
 
   std::vector<picojson::value> contents = user_data->args.get("contents").get<picojson::array>();
-  for (picojson::value::array::iterator it = contents.begin(); it != contents.end(); it++) {
+  for (picojson::value::array::iterator it = contents.begin(); it != contents.end(); ++it) {
     picojson::value content = *it;
     std::string id = content.get("id").to_str();
     ret = media_playlist_add_media(playlist, id.c_str());
@@ -1076,13 +1130,18 @@ void ContentManager::playlistAddbatch(const std::shared_ptr<ReplyCallbackData>& 
 void ContentManager::playlistGet(const std::shared_ptr<ReplyCallbackData>& user_data) {
 
   LoggerD("Enter");
-  int ret = MEDIA_CONTENT_ERROR_NONE;
   media_playlist_h playlist = NULL;
   media_content_order_e order = MEDIA_CONTENT_ORDER_ASC;
   const std::string playOrder("play_order");
 
+  SCOPE_EXIT {
+    if (playlist) {
+      media_playlist_destroy(playlist);
+    }
+  };
+
   std::string playlist_id = user_data->args.get("playlistId").get<std::string>();
-  ret = media_playlist_get_playlist_from_db(std::stoi(playlist_id), &playlist);
+  int ret = media_playlist_get_playlist_from_db(std::stoi(playlist_id), &playlist);
   if(ret != MEDIA_CONTENT_ERROR_NONE && playlist == NULL) {
     LoggerE("Failed: Getting playlist is failed");
     PlatformResult err(ErrorCode::UNKNOWN_ERR, "Getting playlist is failed.");
@@ -1128,11 +1187,16 @@ void ContentManager::playlistGet(const std::shared_ptr<ReplyCallbackData>& user_
 void ContentManager::playlistRemovebatch(const std::shared_ptr<ReplyCallbackData>& user_data) {
 
   LoggerD("Enter");
-  int ret = MEDIA_CONTENT_ERROR_NONE;
   media_playlist_h playlist = NULL;
 
+  SCOPE_EXIT {
+    if (playlist) {
+      media_playlist_destroy(playlist);
+    }
+  };
+
   std::string playlist_id = user_data->args.get("playlistId").get<std::string>();
-  ret = media_playlist_get_playlist_from_db(std::stoi(playlist_id), &playlist);
+  int ret = media_playlist_get_playlist_from_db(std::stoi(playlist_id), &playlist);
   if(ret != MEDIA_CONTENT_ERROR_NONE && playlist == NULL) {
     PlatformResult err(ErrorCode::UNKNOWN_ERR, "Getting playlist is failed.");
     user_data->isSuccess = err;
@@ -1161,11 +1225,16 @@ void ContentManager::playlistRemovebatch(const std::shared_ptr<ReplyCallbackData
 void ContentManager::playlistSetOrder(const std::shared_ptr<ReplyCallbackData>& user_data) {
 
   LoggerD("Enter");
-  int ret = MEDIA_CONTENT_ERROR_NONE;
   media_playlist_h playlist = NULL;
 
+  SCOPE_EXIT {
+    if (playlist) {
+      media_playlist_destroy(playlist);
+    }
+  };
+
   std::string playlist_id = user_data->args.get("playlistId").get<std::string>();
-  ret = media_playlist_get_playlist_from_db(std::stoi(playlist_id), &playlist);
+  int ret = media_playlist_get_playlist_from_db(std::stoi(playlist_id), &playlist);
   if(ret != MEDIA_CONTENT_ERROR_NONE && playlist == NULL) {
     PlatformResult err(ErrorCode::UNKNOWN_ERR, "Getting playlist is failed.");
     user_data->isSuccess = err;
@@ -1209,10 +1278,16 @@ void ContentManager::playlistSetOrder(const std::shared_ptr<ReplyCallbackData>& 
 
 void ContentManager::playlistMove(const std::shared_ptr<ReplyCallbackData>& user_data) {
   LoggerD("Enter");
-  int ret = MEDIA_CONTENT_ERROR_NONE;
   media_playlist_h playlist = NULL;
+
+  SCOPE_EXIT {
+    if (playlist) {
+      media_playlist_destroy(playlist);
+    }
+  };
+
   std::string playlist_id = user_data->args.get("playlistId").get<std::string>();
-  ret = media_playlist_get_playlist_from_db(std::stoi(playlist_id), &playlist);
+  int ret = media_playlist_get_playlist_from_db(std::stoi(playlist_id), &playlist);
   if(ret != MEDIA_CONTENT_ERROR_NONE && playlist == NULL) {
     LoggerE("Failed: Getting playlist is failed");
     PlatformResult err(ErrorCode::UNKNOWN_ERR, "Getting playlist is failed.");
@@ -1431,6 +1506,10 @@ int ContentManager::getThumbnailUri(int id, std::string* result)
     tmp_playlist_thb_path = nullptr;
   }
 
+  if (playlist_thb_path != " ") {
+    playlist_thb_path = uri_prefix + playlist_thb_path;
+  }
+
   *result = playlist_thb_path;
   return MEDIA_CONTENT_ERROR_NONE;
 }
@@ -1442,21 +1521,18 @@ int ContentManager::setThumbnailUri(int id, const std::string& thb_uri)
   //Allow setting empty URI, unfortunately Core API does not allow to set empty
   //path so we need to set one empty space. This is probably issue of Core API.
   if(!thb_uri.empty() && " " != thb_uri) {
-    /// TODO what if uri holds virtual path
     if(thb_uri.find(uri_absolute_prefix) != 0) {
       LoggerE("thumbnail URI is not valid: [%s]", thb_uri.c_str());
       return MEDIA_CONTENT_ERROR_INVALID_PARAMETER;
     }
-
-    std::string absoulte_path = thb_uri.substr(uri_prefix.length());
-    /// TODO check if uri points an existing file
   }
 
   media_playlist_h playlist_handle = getPlaylistHandle(id);
   PlaylistUniquePtr playlist_ptr(playlist_handle, destroyMediaPlaylistHandle);
 
+  std::string real_path = VirtualFs::GetInstance().GetRealPath(thb_uri);
   const int ret_code = media_playlist_set_thumbnail_path(playlist_handle,
-                                                         thb_uri.c_str());
+                                                         real_path.c_str());
   if(MEDIA_CONTENT_ERROR_NONE != ret_code) {
     LoggerE("media_playlist_set_thumbnail_path failed");
     return TIZEN_ERROR_UNKNOWN;
@@ -1483,25 +1559,26 @@ int ContentManager::getNumberOfTracks(int id, int* result) {
 }
 
 PlatformResult ContentManager::convertError(int err) {
+  char* error_msg = get_error_message(err);
   switch (err) {
     case MEDIA_CONTENT_ERROR_INVALID_PARAMETER :
-      return PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid parameter.");
+      return PlatformResult(ErrorCode::INVALID_VALUES_ERR, error_msg);
     case MEDIA_CONTENT_ERROR_OUT_OF_MEMORY :
-      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Out of memory.");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, error_msg);
     case MEDIA_CONTENT_ERROR_INVALID_OPERATION :
-      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Invalid Operation.");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, error_msg);
     case MEDIA_CONTENT_FILE_NO_SPACE_ON_DEVICE :
-      return PlatformResult(ErrorCode::UNKNOWN_ERR, "No space left on device.");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, error_msg);
     case MEDIA_CONTENT_ERROR_PERMISSION_DENIED :
-      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Permission denied.");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, error_msg);
     case MEDIA_CONTENT_ERROR_DB_FAILED :
-      return PlatformResult(ErrorCode::UNKNOWN_ERR, "DB operation failed.");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, error_msg);
     case MEDIA_CONTENT_ERROR_DB_BUSY :
-      return PlatformResult(ErrorCode::UNKNOWN_ERR, "DB operation BUSY.");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, error_msg);
     case MEDIA_CONTENT_ERROR_NETWORK :
-      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Network Fail.");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, error_msg);
     case MEDIA_CONTENT_ERROR_UNSUPPORTED_CONTENT :
-      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Unsupported Content.");
+      return PlatformResult(ErrorCode::UNKNOWN_ERR, error_msg);
     default:
       return PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown error.");
   }
