@@ -19,7 +19,6 @@
 #include "common/converter.h"
 #include "common/logger.h"
 #include "common/task-queue.h"
-#include "common/tools.h"
 
 namespace extension {
 namespace bluetooth {
@@ -142,10 +141,6 @@ BluetoothInstance::BluetoothInstance() :
       "BluetoothLEDevice_removeConnectStateChangeListener",
       std::bind(&BluetoothLEDevice::RemoveConnectStateChangeListener,
                 &bluetooth_le_device_, _1, _2));
-  REGISTER_SYNC(
-        "BluetoothLEDevice_getServiceUuids",
-        std::bind(&BluetoothLEDevice::GetServiceUuids,
-                  &bluetooth_le_device_, _1, _2));
 
   // BluetoothGATTService
   REGISTER_SYNC("BluetoothGATTService_getServices",
@@ -206,14 +201,14 @@ void BluetoothInstance::SyncResponse(double callback_handle, const std::shared_p
   LoggerD("Entered");
   auto& obj = response->get<picojson::object>();
   obj[JSON_CALLBACK_ID] = picojson::value(callback_handle);
-  Instance::PostMessage(this, response->serialize().c_str());
+  PostMessage(response->serialize().c_str());
 }
 
 void BluetoothInstance::FireEvent(const std::string& event, picojson::value& value) {
   LoggerD("Entered");
   auto& obj = value.get<picojson::object>();
   obj[JSON_LISTENER_ID] = picojson::value(event);
-  Instance::PostMessage(this, value.serialize().c_str());
+  PostMessage(value.serialize().c_str());
 }
 
 void BluetoothInstance::FireEvent(const std::string& event, const picojson::value& value) {

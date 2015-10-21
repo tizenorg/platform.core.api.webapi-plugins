@@ -19,9 +19,8 @@
 #include <memory>
 
 #include "common/converter.h"
-#include "common/extension.h"
 #include "common/logger.h"
-#include "common/tools.h"
+#include "common/extension.h"
 
 #include "bluetooth_device.h"
 #include "bluetooth_util.h"

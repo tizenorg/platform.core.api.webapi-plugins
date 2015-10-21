@@ -17,10 +17,9 @@
 #include "bluetooth_health_profile_handler.h"
 
 #include "common/converter.h"
-#include "common/extension.h"
 #include "common/logger.h"
+#include "common/extension.h"
 #include "common/task-queue.h"
-#include "common/tools.h"
 
 #include "bluetooth/bluetooth_adapter.h"
 #include "bluetooth/bluetooth_instance.h"
@@ -276,12 +275,10 @@ void BluetoothHealthProfileHandler::RegisterSinkApp(const picojson::value& data,
     instance_.SyncResponse(callback_handle, response);
   };
 
-  auto queue_data = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
-
   TaskQueue::GetInstance().Queue<picojson::value>(
       register_app,
       register_app_response,
-      queue_data);
+      std::shared_ptr<picojson::value>(new picojson::value(picojson::object())));
 
   ReportSuccess(out);
 }
@@ -377,12 +374,10 @@ void BluetoothHealthProfileHandler::UnregisterSinkAppAsync(const std::string& ap
     instance_.SyncResponse(callback_handle, response);
   };
 
-  auto data = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
-
   TaskQueue::GetInstance().Queue<picojson::value>(
       unregister_app,
       unregister_app_response,
-      data);
+      std::shared_ptr<picojson::value>(new picojson::value(picojson::object())));
 }
 
 } // namespace bluetooth

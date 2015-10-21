@@ -17,9 +17,8 @@
 #include "bluetooth_health_application.h"
 
 #include "common/converter.h"
-#include "common/extension.h"
 #include "common/logger.h"
-#include "common/tools.h"
+#include "common/extension.h"
 
 #include "bluetooth_health_profile_handler.h"
 #include "bluetooth_util.h"

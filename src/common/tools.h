@@ -69,10 +69,6 @@ do { \
  */
 std::string GetErrorString(int error_code);
 
-int HexToInt(char c);
-unsigned char* HexToBin(const char* hex, int size, unsigned char* bin, int bin_size);
-char* BinToHex(const unsigned char* bin, int size, char* hex, int hex_size);
-
 }  // namespace tools
 }  // namespace common
 

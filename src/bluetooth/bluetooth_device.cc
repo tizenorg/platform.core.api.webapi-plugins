@@ -17,9 +17,8 @@
 #include "bluetooth_device.h"
 
 #include "common/converter.h"
-#include "common/extension.h"
 #include "common/logger.h"
-#include "common/tools.h"
+#include "common/extension.h"
 
 #include "bluetooth_adapter.h"
 #include "bluetooth_class.h"
