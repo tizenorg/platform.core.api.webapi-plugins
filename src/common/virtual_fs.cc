@@ -94,8 +94,7 @@ common::optional<std::string> GetRootDir() {
   app_info_h app_info;
   int err = app_info_create(app_id.c_str(), &app_info);
   if (APP_MANAGER_ERROR_NONE != err) {
-    LoggerE("Can't create app info handle from appId (%s): %d (%s)", app_id.c_str(), err,
-            get_error_message(err));
+    LoggerE("Can't create app info handle from appId (%s)", app_id.c_str());
     return nullptr;
   }
   SCOPE_EXIT {
@@ -233,8 +232,8 @@ VirtualFs::VirtualFs() : app_root_(GetRootDir()) {
 
   int err = storage_foreach_device_supported(OnStorageDeviceSupported, nullptr);
 
-  if (STORAGE_ERROR_NONE != err) {
-    LoggerE("Unknown Error on getting storage paths %d (%s)", err, get_error_message(err));
+  if (err != STORAGE_ERROR_NONE) {
+    LoggerE("Unknown Error on getting storage paths");
   }
 
   int id = -1;
