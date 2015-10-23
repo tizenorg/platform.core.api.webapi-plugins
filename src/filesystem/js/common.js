@@ -112,19 +112,14 @@ var commonFS_ = (function() {
   }
 
   function mergeMultipleSlashes(str) {
-    var s = str[0];
-    var resStr = s;
-    for (var i=1; i < str.length; ++i ) {
-      if (!(str[i] === s && str[i] === '/')) {
-        s = str[i];
-        resStr+=str[i];
-      }
-    }
-    return resStr;
+    var retStr = str.replace(/(^(file\:\/\/\/)|^(file\:\/\/)|\/)\/{0,}/g, '$1');
+    return retStr;
   }
 
   function toRealPath(aPath) {
     var _fileRealPath = '';
+
+    aPath = mergeMultipleSlashes(aPath);
 
     if (aPath.indexOf(uriPrefix) === 0) {
       _fileRealPath = aPath.substr(uriPrefix.length);
@@ -156,19 +151,14 @@ var commonFS_ = (function() {
     } else {
       _fileRealPath = aPath;
     }
-    // if path is valid try to cut last '/' if it is present
-    if (_fileRealPath) {
-      _fileRealPath = mergeMultipleSlashes(_fileRealPath);
-      var lastCharIndex = _fileRealPath.length-1;
-      if (_fileRealPath[lastCharIndex] === '/') {
-        _fileRealPath = _fileRealPath.substr(0,lastCharIndex);
-      }
-    }
+
     return _fileRealPath;
   }
 
   function toVirtualPath(aPath) {
+    aPath = mergeMultipleSlashes(aPath);
     var _virtualPath = aPath;
+
     if (_virtualPath.indexOf(uriPrefix) === 0) {
       _virtualPath = _virtualPath.substr(uriPrefix.length);
     }
@@ -177,17 +167,12 @@ var commonFS_ = (function() {
 
     for (var virtual_root in cacheVirtualToReal) {
       var real_root_path = cacheVirtualToReal[virtual_root].path;
-      if (aPath.indexOf(real_root_path, 0) === 0) {
-        return aPath.replace(real_root_path, virtual_root);
+      if (_virtualPath.indexOf(real_root_path, 0) === 0) {
+        return _virtualPath.replace(real_root_path, virtual_root);
       }
     }
 
-    // cutting of last '/' if it is present
-    var lastCharIndex = aPath.length-1;
-    if (aPath[lastCharIndex] === '/') {
-      aPath = aPath.substr(0,lastCharIndex);
-    }
-    return mergeMultipleSlashes(aPath);
+    return _virtualPath;
   }
 
   function getFileInfo(aStatObj, secondIter, aMode) {
