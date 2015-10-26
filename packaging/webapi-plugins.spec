@@ -10,7 +10,7 @@
 %define crosswalk_extensions_path %{_libdir}/%{crosswalk_extensions}
 
 Name:       webapi-plugins
-Version:    0.24
+Version:    0.25
 Release:    0
 License:    Apache-2.0 and BSD-2.0 and MIT
 Group:      Development/Libraries
@@ -303,7 +303,7 @@ BuildRequires: pkgconfig(xrandr)
 %endif
 
 %if "%{?tizen_privilege_engine}" == "ACE"
-BuildRequires: pkgconfig(capi-security-privilege-manager)
+BuildRequires: pkgconfig(security-privilege-checker)
 %endif
 
 %if "%{?tizen_privilege_engine}" == "CYNARA"

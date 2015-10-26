@@ -26,7 +26,7 @@
             'packages': [
               'capi-content-media-content',
               'capi-media-metadata-extractor',
-				      'capi-base-common',
+              'capi-base-common',
               'dlog',
             ]
           },

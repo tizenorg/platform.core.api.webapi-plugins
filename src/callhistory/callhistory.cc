@@ -24,8 +24,10 @@
 
 #include "common/logger.h"
 #include "common/platform_exception.h"
-#include "common/task-queue.h"
 #include "common/scope_exit.h"
+#include "common/task-queue.h"
+#include "common/tools.h"
+
 #include "callhistory_instance.h"
 #include "callhistory_types.h"
 
@@ -34,9 +36,6 @@ using namespace tools;
 
 namespace extension {
 namespace callhistory {
-
-std::vector<CallHistory*> CallHistory::instances_;
-std::mutex CallHistory::instances_mutex_;
 
 namespace {
 static void get_sim_msisdn_cb(TapiHandle *handle, int result, void *data, void *user_data)
@@ -72,11 +71,6 @@ CallHistory::CallHistory(CallHistoryInstance& instance)
   } else {
     LoggerD("Failed to connect Call history DB");
   }
-
-  {
-    std::lock_guard<std::mutex> lock(instances_mutex_);
-    instances_.push_back(this);
-  }
 }
 
 CallHistory::~CallHistory()
@@ -96,16 +90,6 @@ CallHistory::~CallHistory()
     LoggerD("Successful to disconnect Call history DB");
   } else {
     LoggerD("Failed to disconnect Call history DB");
-  }
-
-  {
-    std::lock_guard<std::mutex> lock(instances_mutex_);
-    for (auto it = instances_.begin(); it != instances_.end(); ++it) {
-      if (*it == this) {
-        instances_.erase(it);
-        break;
-      }
-    }
   }
 }
 
@@ -178,8 +162,7 @@ void CallHistory::FindThread(const picojson::object& args, CallHistory* call_his
       contacts_list_destroy(record_list, true);
     };
 
-    int ret = CONTACTS_ERROR_NONE;
-    ret = contacts_connect_on_thread();
+    int ret = contacts_connect_on_thread();
     if (CONTACTS_ERROR_NONE != ret) {
       LoggerW("contacts_connect_on_thread failed");
     }
@@ -256,7 +239,7 @@ void CallHistory::FindThread(const picojson::object& args, CallHistory* call_his
   auto find_response = [call_history, callback_id](const std::shared_ptr<picojson::value>& response) -> void {
     picojson::object& obj = response->get<picojson::object>();
     obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
-    CallHistory::PostMessage(call_history, response->serialize());
+    Instance::PostMessage(&call_history->instance_, response->serialize().c_str());
   };
 
   TaskQueue::GetInstance().Async<picojson::value>(find_response, response);
@@ -378,10 +361,9 @@ common::PlatformResult CallHistory::removeBatch(const picojson::object& args)
       return;
     }
 
-    int uid;
     int ret = CONTACTS_ERROR_NONE;
     for (unsigned int i = 0; i < uids.size(); ++i) {
-      uid = atoi(uids[i].get<std::string>().c_str());
+      int uid = atoi(uids[i].get<std::string>().c_str());
       ret = contacts_db_delete_record(_contacts_phone_log._uri, (int)uid);
       if (CONTACTS_ERROR_NONE != ret) {
         LoggerE("Failed to delete log [%d] with code %d", uid, ret);
@@ -397,13 +379,15 @@ common::PlatformResult CallHistory::removeBatch(const picojson::object& args)
   auto remove_batch_response = [this, callback_id](const std::shared_ptr<picojson::value>& response) -> void {
     picojson::object& obj = response->get<picojson::object>();
     obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
-    CallHistory::PostMessage(this, response->serialize());
+    Instance::PostMessage(&this->instance_, response->serialize().c_str());
   };
+
+  auto data = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
 
   TaskQueue::GetInstance().Queue<picojson::value>(
       remove_batch,
       remove_batch_response,
-      std::shared_ptr<picojson::value>(new picojson::value(picojson::object())));
+      data);
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
@@ -423,12 +407,11 @@ void CallHistory::removeAll(const picojson::object& args)
     };
 
     contacts_record_h record = NULL;
-    int ret = CONTACTS_ERROR_NONE;
     int total = 0;
     int value;
     unsigned int cnt = 0;
 
-    ret = contacts_connect_on_thread();
+    int ret = contacts_connect_on_thread();
     if (CONTACTS_ERROR_NONE != ret) {
       LoggerW("contacts_connect_on_thread failed");
     }
@@ -511,13 +494,15 @@ void CallHistory::removeAll(const picojson::object& args)
   auto remove_all_response = [this, callback_id](const std::shared_ptr<picojson::value>& response) -> void {
     picojson::object& obj = response->get<picojson::object>();
     obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
-    CallHistory::PostMessage(this, response->serialize());
+    Instance::PostMessage(&this->instance_, response->serialize().c_str());
   };
+
+  auto data = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
 
   TaskQueue::GetInstance().Queue<picojson::value>(
       remove_all,
       remove_all_response,
-      std::shared_ptr<picojson::value>(new picojson::value(picojson::object())));
+      data);
 }
 
 std::vector<std::string>& CallHistory::getPhoneNumbers()
@@ -547,8 +532,6 @@ void CallHistory::changeListenerCB(const char* view_uri, char *changes, void* us
 
   char seps[] = ",:";
   char* token_type = NULL;
-  char* token_id = NULL;
-  int change_type = 0;
   int change_id = 0;
 
   picojson::value added = picojson::value(picojson::object());
@@ -570,8 +553,8 @@ void CallHistory::changeListenerCB(const char* view_uri, char *changes, void* us
 
   token_type = strtok_r(changes, seps, &saveptr);
   while (NULL != token_type) {
-    token_id = strtok_r(NULL, seps, &saveptr);
-    change_type = atoi((const char*)token_type);
+    char* token_id = strtok_r(NULL, seps, &saveptr);
+    int change_type = atoi((const char*)token_type);
 
     if (NULL != token_id) {
       change_id = atoi((const char*)token_id);
@@ -583,14 +566,13 @@ void CallHistory::changeListenerCB(const char* view_uri, char *changes, void* us
     contacts_query_h query = NULL;
     contacts_filter_h filter = NULL;
     contacts_list_h record_list = NULL;
-    int ret = CONTACTS_ERROR_NONE;
 
     contacts_query_create(_contacts_phone_log._uri, &query);
     contacts_filter_create(_contacts_phone_log._uri, &filter);
     contacts_filter_add_int(filter, _contacts_phone_log.id, CONTACTS_MATCH_EQUAL, change_id);
 
     contacts_query_set_filter(query, filter);
-    ret = contacts_query_set_sort(query, _contacts_phone_log.id, false);
+    int ret = contacts_query_set_sort(query, _contacts_phone_log.id, false);
     if (CONTACTS_ERROR_NONE != ret) {
       LoggerD("Callhistory query error: %d", ret);
     }
@@ -631,20 +613,6 @@ void CallHistory::changeListenerCB(const char* view_uri, char *changes, void* us
     removed_obj[STR_ACTION] = picojson::value("onremoved");
     h->instance_.CallHistoryChange(removed_obj);
   }
-}
-
-void CallHistory::PostMessage(const CallHistory* instance, const std::string& msg) {
-  LoggerD("Entered");
-  std::lock_guard<std::mutex> lock(instances_mutex_);
-
-  for (auto it = instances_.begin(); it != instances_.end(); ++it) {
-    if (*it == instance) {
-      instance->instance_.PostMessage(msg.c_str());
-      return;
-    }
-  }
-
-  LoggerE("Instance [%p] not found, ignoring message", instance);
 }
 
 PlatformResult CallHistory::startCallHistoryChangeListener()
@@ -692,10 +660,9 @@ PlatformResult CallHistory::setMissedDirection(int uid)
     contacts_record_destroy(record, true);
   };
 
-  int ret = CONTACTS_ERROR_NONE;
   int log_type = CONTACTS_PLOG_TYPE_NONE;
 
-  ret = contacts_db_get_record(_contacts_phone_log._uri, uid, &record);
+  int ret = contacts_db_get_record(_contacts_phone_log._uri, uid, &record);
   if (CONTACTS_ERROR_NONE != ret) {
     LoggerE("Failed to get record [%d]", ret);
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to get record");

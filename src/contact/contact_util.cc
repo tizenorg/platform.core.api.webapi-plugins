@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 Samsung Electronics Co., Ltd All Rights Reserved
+ * Copyright (c) 2014 Samsung Electronics Co., Ltd All Rights Reserved
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -37,6 +37,17 @@ namespace {
 
 static const std::string kSchema("file://");
 
+PlatformResult VerifyLocalPath(const std::string& path) {
+  // path should be either empty or point to existing local path
+  bool result = path.length() == 0
+      || (path.length() > 0 && path[0] == '/'
+          && (access(path.c_str(), F_OK) == 0));
+  return PlatformResult(
+      result ? ErrorCode::NO_ERROR : ErrorCode::INVALID_VALUES_ERR);
+}
+
+}  // namespace
+
 std::string ConvertUriToPath(const std::string& str) {
   if (str.substr(0, kSchema.size()) == kSchema) {
     return str.substr(kSchema.size());
@@ -53,16 +64,7 @@ std::string ConvertPathToUri(const std::string& str) {
   return kSchema + str;
 }
 
-PlatformResult VerifyLocalPath(const std::string& path) {
-  // path should be either empty or point to existing local path
-  bool result = path.length() == 0
-      || (path.length() > 0 && path[0] == '/'
-          && (access(path.c_str(), F_OK) == 0));
-  return PlatformResult(
-      result ? ErrorCode::NO_ERROR : ErrorCode::INVALID_VALUES_ERR);
-}
 
-}  // namespace
 
 void ContactsDeleter(contacts_record_h* contacts_record) {
   if (CONTACTS_ERROR_NONE != contacts_record_destroy(*contacts_record, true)) {
@@ -87,6 +89,8 @@ void ContactsQueryDeleter(contacts_query_h* contacts_query) {
     LoggerE("failed to destroy contacts_query_h");
   }
 }
+
+using namespace common;
 
 namespace {
 static const char kContactPhoneTypeHome[] = "HOME";
@@ -289,9 +293,8 @@ PlatformResult GetNumberOfChildRecord(contacts_record_h contacts_record,
   LoggerD("Enter");
   Assert(child_count);
 
-  int err = CONTACTS_ERROR_NONE;
-  err = contacts_record_get_child_record_count(contacts_record, property_id,
-                                               child_count);
+  int err = contacts_record_get_child_record_count(contacts_record, property_id,
+                                                   child_count);
   if (CONTACTS_ERROR_NONE != err && CONTACTS_ERROR_NO_DATA != err) {
     return PlatformResult(ErrorCode::UNKNOWN_ERR,
                           "Problem during getting child count");
@@ -310,9 +313,8 @@ PlatformResult ImportContactNameFromContactsRecord(
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
   }
   int count = 0;
-  int err = CONTACTS_ERROR_NONE;
-  err = contacts_record_get_child_record_count(contacts_record,
-                                               _contacts_contact.name, &count);
+  int err = contacts_record_get_child_record_count(contacts_record,
+                                                   _contacts_contact.name, &count);
   PlatformResult status =
       ContactUtil::ErrorChecker(err, "Contacts child record get count error");
   if (status.IsError()) {
@@ -477,9 +479,8 @@ PlatformResult ExportContactNameToContactsRecord(
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
   }
 
-  int err = CONTACTS_ERROR_NONE;
   contacts_record_h contact_name = nullptr;
-  err = contacts_record_get_child_record_at_p(
+  int err = contacts_record_get_child_record_at_p(
       contacts_record, _contacts_contact.name, 0, &contact_name);
   bool update = true;
   if (CONTACTS_ERROR_NONE != err && nullptr == contact_name) {
@@ -626,8 +627,6 @@ PlatformResult ExportContactNameToContactsRecord(
     nickname_ptr.release();
   }
 
-  // TODO update displayName in JS!
-
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
@@ -644,9 +643,8 @@ PlatformResult ImportContactEmailAddressFromContactsRecord(
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
   }
 
-  int err = CONTACTS_ERROR_NONE;
   contacts_record_h child_record = nullptr;
-  err = contacts_record_get_child_record_at_p(
+  int err = contacts_record_get_child_record_at_p(
       contacts_record, _contacts_contact.email, index, &child_record);
   if (CONTACTS_ERROR_NONE != err && CONTACTS_ERROR_NO_DATA != err) {
     return PlatformResult(ErrorCode::NO_ERROR);
@@ -728,8 +726,7 @@ PlatformResult ExportContactEmailAddressToContactsRecord(
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
   }
 
-  int err = CONTACTS_ERROR_NONE;
-  err = contacts_record_create(_contacts_email._uri, &c_email_record_h);
+  int err = contacts_record_create(_contacts_email._uri, &c_email_record_h);
   PlatformResult status = ContactUtil::ErrorChecker(
       err, "Failed to create email record in database");
   if (status.IsError()) {
@@ -1040,9 +1037,8 @@ PlatformResult ImportContactOrganizationFromContactsRecord(
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
   }
 
-  int err = CONTACTS_ERROR_NONE;
   contacts_record_h child_record = nullptr;
-  err = contacts_record_get_child_record_at_p(
+  int err = contacts_record_get_child_record_at_p(
       contacts_record, _contacts_contact.company, index, &child_record);
   if (CONTACTS_ERROR_NONE != err && CONTACTS_ERROR_NO_DATA != err) {
     return PlatformResult(ErrorCode::NO_ERROR);
@@ -1096,8 +1092,10 @@ PlatformResult ImportContactOrganizationFromContactsRecord(
     return status;
   }
 
-  out.insert(std::make_pair("logoURI",
-                            char_value ? JsonValue{char_value} : JsonValue{}));
+  out.insert(
+      std::make_pair(
+          "logoURI",
+          char_value ? JsonValue{ConvertPathToUri(char_value)} : JsonValue{}));
 
   return PlatformResult(ErrorCode::NO_ERROR);
 }
@@ -1114,8 +1112,7 @@ PlatformResult ExportContactOrganizationToContactsRecord(
   }
 
   contacts_record_h organization_record = nullptr;
-  int err = CONTACTS_ERROR_NONE;
-  err = contacts_record_create(_contacts_company._uri, &organization_record);
+  int err = contacts_record_create(_contacts_company._uri, &organization_record);
   PlatformResult status = ContactUtil::ErrorChecker(
       err, "Failed to create organization record in database");
   if (status.IsError()) {
@@ -1200,9 +1197,8 @@ PlatformResult ImportContactWebSiteFromContactsRecord(
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
   }
 
-  int err = CONTACTS_ERROR_NONE;
   contacts_record_h child_record = nullptr;
-  err = contacts_record_get_child_record_at_p(
+  int err = contacts_record_get_child_record_at_p(
       contacts_record, _contacts_contact.url, index, &child_record);
   if (CONTACTS_ERROR_NONE != err && CONTACTS_ERROR_NO_DATA != err) {
     return PlatformResult(ErrorCode::NO_ERROR);
@@ -1216,8 +1212,9 @@ PlatformResult ImportContactWebSiteFromContactsRecord(
     return status;
   }
 
-  out.insert(std::make_pair(std::string("logoURI"),
-                            picojson::value(char_value ? char_value : "")));
+  out.insert(
+      std::make_pair(std::string("url"),
+                     picojson::value(char_value ? char_value : "")));
 
   int type = 0;
   status =
@@ -1227,7 +1224,7 @@ PlatformResult ImportContactWebSiteFromContactsRecord(
     return status;
   }
 
-  out.insert(std::make_pair(std::string("logoURI"),
+  out.insert(std::make_pair(std::string("type"),
                             picojson::value((CONTACTS_URL_TYPE_HOME == type)
                                             ? kContactWebSiteTypeHomePage
                                                 : kContactWebSiteTypeBlog)));
@@ -1257,9 +1254,8 @@ PlatformResult ExportContactWebSiteToContactsRecord(
     return PlatformResult(ErrorCode::NO_ERROR);
   }
 
-  int err = CONTACTS_ERROR_NONE;
   contacts_record_h website_record_h = nullptr;
-  err = contacts_record_create(_contacts_url._uri, &website_record_h);
+  int err = contacts_record_create(_contacts_url._uri, &website_record_h);
   PlatformResult status = ContactUtil::ErrorChecker(
       err, "Fail to create website record in database.");
   if (status.IsError()) {
@@ -1316,9 +1312,8 @@ PlatformResult ImportContactAnniversariesFromContactsRecord(
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
   }
 
-  int err = CONTACTS_ERROR_NONE;
   contacts_record_h child_record = nullptr;
-  err = contacts_record_get_child_record_at_p(
+  int err = contacts_record_get_child_record_at_p(
       contacts_record, _contacts_contact.event, index, &child_record);
   if (CONTACTS_ERROR_NONE != err && CONTACTS_ERROR_NO_DATA != err) {
     *ret = false;
@@ -1379,9 +1374,8 @@ PlatformResult ExportContactAnniversariesToContactsRecord(
     return PlatformResult(ErrorCode::NO_ERROR);
   }
 
-  int err = CONTACTS_ERROR_NONE;
   contacts_record_h anniversary_record = nullptr;
-  err = contacts_record_create(_contacts_event._uri, &anniversary_record);
+  int err = contacts_record_create(_contacts_event._uri, &anniversary_record);
   PlatformResult status = ContactUtil::ErrorChecker(
       err, "Failed to create anniversary record in database");
   if (status.IsError()) {
@@ -1443,9 +1437,8 @@ PlatformResult ImportContactRelationshipFromContactsRecord(
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
   }
 
-  int err = CONTACTS_ERROR_NONE;
   contacts_record_h child_record = nullptr;
-  err = contacts_record_get_child_record_at_p(
+  int err = contacts_record_get_child_record_at_p(
       contacts_record, _contacts_contact.relationship, index, &child_record);
   if (CONTACTS_ERROR_NONE != err && CONTACTS_ERROR_NO_DATA != err) {
     return PlatformResult(ErrorCode::NO_ERROR);
@@ -1474,90 +1467,79 @@ PlatformResult ImportContactRelationshipFromContactsRecord(
     return status;
   }
 
-  // TODO Move out.insert outside of switch statement.
+  std::pair <std::string, picojson::value> value_pair;
   switch (type) {
     case CONTACTS_RELATIONSHIP_TYPE_CUSTOM:
-      out.insert(
-          std::make_pair(std::string("type"),
-                         picojson::value(JsonString{kContactRelationshipTypeCustom})));
+      value_pair = std::make_pair(std::string("type"),
+                         picojson::value(JsonString{kContactRelationshipTypeCustom}));
       break;
     case CONTACTS_RELATIONSHIP_TYPE_ASSISTANT:
-      out.insert(std::make_pair(std::string("type"),
-                                picojson::value(JsonString{kContactRelationshipTypeAssistant})));
+      value_pair = std::make_pair(std::string("type"),
+                                picojson::value(JsonString{kContactRelationshipTypeAssistant}));
       break;
     case CONTACTS_RELATIONSHIP_TYPE_BROTHER:
-      out.insert(
-          std::make_pair(std::string("type"),
-                         picojson::value(JsonString{kContactRelationshipTypeBrother})));
+      value_pair = std::make_pair(std::string("type"),
+                         picojson::value(JsonString{kContactRelationshipTypeBrother}));
       break;
     case CONTACTS_RELATIONSHIP_TYPE_CHILD:
-      out.insert(
-          std::make_pair(std::string("type"),
-                         picojson::value(JsonString{kContactRelationshipTypeChild})));
+      value_pair = std::make_pair(std::string("type"),
+                         picojson::value(JsonString{kContactRelationshipTypeChild}));
       break;
     case CONTACTS_RELATIONSHIP_TYPE_DOMESTIC_PARTNER:
-      out.insert(std::make_pair(
+      value_pair = std::make_pair(
           std::string("type"),
           picojson::value(
-              JsonString{kContactRelationshipTypeDomesticPartner})));
+              JsonString{kContactRelationshipTypeDomesticPartner}));
       break;
     case CONTACTS_RELATIONSHIP_TYPE_FATHER:
-      out.insert(
-          std::make_pair(std::string("type"),
-                         picojson::value(JsonString{kContactRelationshipTypeFather})));
+      value_pair = std::make_pair(std::string("type"),
+                         picojson::value(JsonString{kContactRelationshipTypeFather}));
       break;
     case CONTACTS_RELATIONSHIP_TYPE_FRIEND:
-      out.insert(
-          std::make_pair(std::string("type"),
-                         picojson::value(JsonString{kContactRelationshipTypeFriend})));
+      value_pair = std::make_pair(std::string("type"),
+                         picojson::value(JsonString{kContactRelationshipTypeFriend}));
       break;
     case CONTACTS_RELATIONSHIP_TYPE_MANAGER:
-      out.insert(
-          std::make_pair(std::string("type"),
-                         picojson::value(JsonString{kContactRelationshipTypeManager})));
+      value_pair = std::make_pair(std::string("type"),
+                         picojson::value(JsonString{kContactRelationshipTypeManager}));
       break;
     case CONTACTS_RELATIONSHIP_TYPE_MOTHER:
-      out.insert(
-          std::make_pair(std::string("type"),
-                         picojson::value(JsonString{kContactRelationshipTypeMother})));
+      value_pair = std::make_pair(std::string("type"),
+                         picojson::value(JsonString{kContactRelationshipTypeMother}));
       break;
     case CONTACTS_RELATIONSHIP_TYPE_PARENT:
-      out.insert(
-          std::make_pair(std::string("type"),
-                         picojson::value(JsonString{kContactRelationshipTypeParent})));
+      value_pair = std::make_pair(std::string("type"),
+                         picojson::value(JsonString{kContactRelationshipTypeParent}));
       break;
     case CONTACTS_RELATIONSHIP_TYPE_PARTNER:
-      out.insert(
-          std::make_pair(std::string("type"),
-                         picojson::value(JsonString{kContactRelationshipTypePartner})));
+      value_pair = std::make_pair(std::string("type"),
+                         picojson::value(JsonString{kContactRelationshipTypePartner}));
       break;
     case CONTACTS_RELATIONSHIP_TYPE_REFERRED_BY:
-      out.insert(std::make_pair(
+      value_pair = std::make_pair(
           std::string("type"),
-          picojson::value(JsonString{kContactRelationshipTypeReferredBy})));
+          picojson::value(JsonString{kContactRelationshipTypeReferredBy}));
       break;
     case CONTACTS_RELATIONSHIP_TYPE_RELATIVE:
-      out.insert(
-          std::make_pair(std::string("type"),
-                         picojson::value(JsonString{kContactRelationshipTypeRelative})));
+      value_pair = std::make_pair(std::string("type"),
+                         picojson::value(JsonString{kContactRelationshipTypeRelative}));
       break;
     case CONTACTS_RELATIONSHIP_TYPE_SISTER:
-      out.insert(
-          std::make_pair(std::string("type"),
-                         picojson::value(JsonString{kContactRelationshipTypeSister})));
+      value_pair = std::make_pair(std::string("type"),
+                         picojson::value(JsonString{kContactRelationshipTypeSister}));
       break;
     case CONTACTS_RELATIONSHIP_TYPE_SPOUSE:
-      out.insert(
-          std::make_pair(std::string("type"),
-                         picojson::value(JsonString{kContactRelationshipTypeSpouse})));
+      value_pair = std::make_pair(std::string("type"),
+                         picojson::value(JsonString{kContactRelationshipTypeSpouse}));
       break;
     case CONTACTS_RELATIONSHIP_TYPE_OTHER:
     default:
-      out.insert(
-          std::make_pair(std::string("type"),
-                         picojson::value(JsonString{kContactRelationshipTypeOther})));
+      value_pair = std::make_pair(std::string("type"),
+                         picojson::value(JsonString{kContactRelationshipTypeOther}));
       break;
   }
+
+  out.insert(value_pair);
 
   char* label = nullptr;
   status = ContactUtil::GetStrFromRecord(child_record,
@@ -1585,9 +1567,8 @@ PlatformResult ExportContactRelationshipToContactsRecord(
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
   }
 
-  int err = CONTACTS_ERROR_NONE;
   contacts_record_h child_record = nullptr;
-  err = contacts_record_create(_contacts_relationship._uri, &child_record);
+  int err = contacts_record_create(_contacts_relationship._uri, &child_record);
   PlatformResult status =
       ContactUtil::ErrorChecker(err, "Fail to create child_record in database");
   if (status.IsError()) {
@@ -1685,9 +1666,8 @@ PlatformResult ImportContactInstantMessengerFromContactsRecord(
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
   }
 
-  int err = CONTACTS_ERROR_NONE;
   contacts_record_h child_record = nullptr;
-  err = contacts_record_get_child_record_at_p(
+  int err = contacts_record_get_child_record_at_p(
       contacts_record, _contacts_contact.messenger, index, &child_record);
   if (CONTACTS_ERROR_NONE != err && CONTACTS_ERROR_NO_DATA != err) {
     LoggerW("Skipping message with index %i. error code: %i", index, err);
@@ -1717,56 +1697,45 @@ PlatformResult ImportContactInstantMessengerFromContactsRecord(
     return status;
   }
 
-  // TODO Move out.insert outside of switch statement.
+  std::pair <std::string, picojson::value> value_pair;
   switch (type) {
     case CONTACTS_MESSENGER_TYPE_CUSTOM:
-      out.insert(
-          std::make_pair("type", JsonValue{kContactInstantMessageTypeCustom}));
+      value_pair = std::make_pair("type", JsonValue{kContactInstantMessageTypeCustom});
       break;
     case CONTACTS_MESSENGER_TYPE_GOOGLE:
-      out.insert(
-          std::make_pair("type", JsonValue{kContactInstantMessageTypeGoogle}));
+      value_pair = std::make_pair("type", JsonValue{kContactInstantMessageTypeGoogle});
       break;
     case CONTACTS_MESSENGER_TYPE_WLM:
-      out.insert(
-          std::make_pair("type", JsonValue{kContactInstantMessageTypeWlm}));
+      value_pair = std::make_pair("type", JsonValue{kContactInstantMessageTypeWlm});
       break;
     case CONTACTS_MESSENGER_TYPE_YAHOO:
-      out.insert(
-          std::make_pair("type", JsonValue{kContactInstantMessageTypeYahoo}));
+      value_pair = std::make_pair("type", JsonValue{kContactInstantMessageTypeYahoo});
       break;
     case CONTACTS_MESSENGER_TYPE_FACEBOOK:
-      out.insert(std::make_pair("type",
-                                JsonValue{kContactInstantMessageTypeFacebook}));
+      value_pair = std::make_pair("type",
+                                JsonValue{kContactInstantMessageTypeFacebook});
       break;
     case CONTACTS_MESSENGER_TYPE_ICQ:
-      out.insert(
-          std::make_pair("type", JsonValue{kContactInstantMessageTypeIcq}));
+      value_pair = std::make_pair("type", JsonValue{kContactInstantMessageTypeIcq});
       break;
     case CONTACTS_MESSENGER_TYPE_AIM:
-      out.insert(
-          std::make_pair("type", JsonValue{kContactInstantMessageTypeAim}));
+      value_pair = std::make_pair("type", JsonValue{kContactInstantMessageTypeAim});
       break;
     case CONTACTS_MESSENGER_TYPE_QQ:
-      out.insert(
-          std::make_pair("type", JsonValue{kContactInstantMessageTypeQq}));
+      value_pair = std::make_pair("type", JsonValue{kContactInstantMessageTypeQq});
       break;
     case CONTACTS_MESSENGER_TYPE_JABBER:
-      out.insert(
-          std::make_pair("type", JsonValue{kContactInstantMessageTypeJabber}));
+      value_pair = std::make_pair("type", JsonValue{kContactInstantMessageTypeJabber});
       break;
     case CONTACTS_MESSENGER_TYPE_SKYPE:
-      out.insert(
-          std::make_pair("type", JsonValue{kContactInstantMessageTypeSkype}));
+      value_pair = std::make_pair("type", JsonValue{kContactInstantMessageTypeSkype});
       break;
     case CONTACTS_MESSENGER_TYPE_IRC:
-      out.insert(
-          std::make_pair("type", JsonValue{kContactInstantMessageTypeIrc}));
+      value_pair = std::make_pair("type", JsonValue{kContactInstantMessageTypeIrc});
       break;
     case CONTACTS_MESSENGER_TYPE_OTHER:
     default:
-      out.insert(
-          std::make_pair("type", JsonValue{kContactInstantMessageTypeOther}));
+      value_pair = std::make_pair("type", JsonValue{kContactInstantMessageTypeOther});
       break;
   }
 
@@ -1794,9 +1763,8 @@ PlatformResult ExportContactInstantMessengerToContactsRecord(
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
   }
 
-  int err = CONTACTS_ERROR_NONE;
   contacts_record_h child_record = nullptr;
-  err = contacts_record_create(_contacts_messenger._uri, &child_record);
+  int err = contacts_record_create(_contacts_messenger._uri, &child_record);
   PlatformResult status =
       ContactUtil::ErrorChecker(err, "Fail to create child_record in database");
   if (status.IsError()) {
@@ -1886,9 +1854,8 @@ PlatformResult ImportContactAddressFromContactsRecord(
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
   }
 
-  int err = CONTACTS_ERROR_NONE;
   contacts_record_h child_record = nullptr;
-  err = contacts_record_get_child_record_at_p(
+  int err = contacts_record_get_child_record_at_p(
       contacts_record, _contacts_contact.address, index, &child_record);
   if (CONTACTS_ERROR_NONE != err && CONTACTS_ERROR_NO_DATA != err) {
     return PlatformResult(ErrorCode::NO_ERROR);
@@ -2006,9 +1973,8 @@ PlatformResult ExportContactAddressToContactsRecord(
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
   }
 
-  int err = CONTACTS_ERROR_NONE;
   contacts_record_h address_record = nullptr;
-  err = contacts_record_create(_contacts_address._uri, &address_record);
+  int err = contacts_record_create(_contacts_address._uri, &address_record);
   PlatformResult status = ContactUtil::ErrorChecker(
       err, "Failed to create address record in database");
   if (status.IsError()) {
@@ -2138,9 +2104,8 @@ PlatformResult ImportContactNotesFromContactsRecord(
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
   }
 
-  int err = CONTACTS_ERROR_NONE;
   contacts_record_h notes_record = nullptr;
-  err = contacts_record_get_child_record_at_p(
+  int err = contacts_record_get_child_record_at_p(
       contacts_record, _contacts_contact.note, index, &notes_record);
   if (CONTACTS_ERROR_NONE != err && CONTACTS_ERROR_NO_DATA != err) {
     return PlatformResult(ErrorCode::NO_ERROR);
@@ -2173,8 +2138,7 @@ PlatformResult ExportNotesToContactsRecord(contacts_record_h contacts_record,
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
   }
 
-  int err = CONTACTS_ERROR_NONE;
-  err = contacts_record_create(_contacts_note._uri, &notes_record);
+  int err = contacts_record_create(_contacts_note._uri, &notes_record);
   PlatformResult status =
       ContactUtil::ErrorChecker(err, "Fail to create note record in database");
   if (status.IsError()) {
@@ -2383,15 +2347,18 @@ PlatformResult ImportContactFromContactsRecord(
   //### m_ringtone_uri ###
   {
     char* value = nullptr;
+
     status = ContactUtil::GetStrFromRecord(
         contacts_record, _contacts_contact.image_thumbnail_path, &value);
     if (status.IsError()) {
       LoggerE("Error: %s", status.message().c_str());
       return status;
     }
-
-    out.insert(std::make_pair("photoURI", value ?
-        JsonValue{ConvertPathToUri(value)} : JsonValue{}));
+    out.insert(
+        std::make_pair(
+            "photoURI",
+            value ? JsonValue{ConvertPathToUri(value)} : JsonValue{}));
+    value = nullptr;
 
     status = ContactUtil::GetStrFromRecord(
         contacts_record, _contacts_contact.ringtone_path, &value);
@@ -2399,31 +2366,35 @@ PlatformResult ImportContactFromContactsRecord(
       LoggerE("Error: %s", status.message().c_str());
       return status;
     }
-
-    out.insert(std::make_pair("ringtoneURI", value ?
-        JsonValue{ConvertPathToUri(value)} : JsonValue{}));
+    out.insert(
+        std::make_pair(
+            "ringtoneURI",
+            value ? JsonValue{ConvertPathToUri(value)} : JsonValue{}));
     value = nullptr;
+
     status = ContactUtil::GetStrFromRecord(
         contacts_record, _contacts_contact.message_alert, &value);
     if (status.IsError()) {
       LoggerE("Error: %s", status.message().c_str());
       return status;
     }
-
-    out.insert(std::make_pair(
-        "messageAlertURI",
-        value ? JsonValue{ConvertPathToUri(value)} : JsonValue{}));
+    out.insert(
+        std::make_pair(
+            "messageAlertURI",
+            value ? JsonValue{ConvertPathToUri(value)} : JsonValue{}));
     value = nullptr;
+
     status = ContactUtil::GetStrFromRecord(contacts_record,
                                            _contacts_contact.vibration, &value);
     if (status.IsError()) {
       LoggerE("Error: %s", status.message().c_str());
       return status;
     }
-
-    out.insert(std::make_pair(
-        "vibrationURI",
-        value ? JsonValue{ConvertPathToUri(value)} : JsonValue{}));
+    out.insert(
+        std::make_pair(
+            "vibrationURI",
+            value ? JsonValue{ConvertPathToUri(value)} : JsonValue{}));
+    value = nullptr;
   }
 
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -2544,10 +2515,6 @@ PlatformResult ExportContactToContactsRecord(contacts_record_h contacts_record,
       is_first = true;
     }
     ContactsRecordHPtr record(&child_record, ContactsDeleter);
-    // TODO this was never used anywhere in the old module. Can this be removed?
-    // char *old_value_str = nullptr;
-    // ContactUtil::getStrFromRecord(child_record, _contacts_image.path,
-    // &old_value_str);
 
     std::string real_path;
     if (!IsNull(in, "photoURI")) {
@@ -2672,7 +2639,9 @@ PlatformResult ImportContactGroupFromContactsRecord(
   }
 
   out.insert(
-      std::make_pair("photoURI", value ? JsonValue{value} : JsonValue{}));
+      std::make_pair(
+          "photoURI",
+          value ? JsonValue{ConvertPathToUri(value)} : JsonValue{}));
 
   // ringtoneURI
   value = nullptr;
@@ -2684,7 +2653,9 @@ PlatformResult ImportContactGroupFromContactsRecord(
   }
 
   out.insert(
-      std::make_pair("ringtoneURI", value ? JsonValue{value} : JsonValue{}));
+      std::make_pair(
+          "ringtoneURI",
+          value ? JsonValue{ConvertPathToUri(value)} : JsonValue{}));
 
   // is_read_only
   bool bool_value = false;
@@ -2826,8 +2797,10 @@ PlatformResult ImportPersonFromContactsRecord(contacts_record_h record,
     return status;
   }
 
-  arguments_obj.insert(std::make_pair(
-      "photoURI", char_value ? JsonValue(char_value) : JsonValue{}));
+  arguments_obj.insert(
+      std::make_pair(
+          "photoURI",
+          char_value ? JsonValue(ConvertPathToUri(char_value)) : JsonValue{}));
 
   // ringtoneURI
   status = ContactUtil::GetStrFromRecord(record, _contacts_person.ringtone_path,
@@ -2837,8 +2810,10 @@ PlatformResult ImportPersonFromContactsRecord(contacts_record_h record,
     return status;
   }
 
-  arguments_obj.insert(std::make_pair(
-      "ringtoneURI", char_value ? JsonValue(char_value) : JsonValue{}));
+  arguments_obj.insert(
+      std::make_pair(
+          "ringtoneURI",
+          char_value ? JsonValue(ConvertPathToUri(char_value)) : JsonValue{}));
 
   // displayContactId
   status = ContactUtil::GetIntFromRecord(
@@ -2878,7 +2853,7 @@ PlatformResult ExportPersonToContactsRecord(contacts_record_h record,
       !FromJson<JsonString>(args, "photoURI").empty()) {
     PlatformResult status = ContactUtil::SetStrInRecord(
         record, _contacts_person.image_thumbnail_path,
-        FromJson<JsonString>(args, "photoURI").c_str());
+        ConvertUriToPath(FromJson<JsonString>(args, "photoURI")).c_str());
     if (status.IsError()) {
       LoggerE("Try updating read only attribute photoURI");
       return status;
@@ -2890,7 +2865,7 @@ PlatformResult ExportPersonToContactsRecord(contacts_record_h record,
   if (!IsNull(args, "ringtoneURI")) {
     PlatformResult status = ContactUtil::SetStrInRecord(
         record, _contacts_person.ringtone_path,
-        FromJson<JsonString>(args, "ringtoneURI").c_str());
+        ConvertUriToPath(FromJson<JsonString>(args, "ringtoneURI")).c_str());
     if (status.IsError()) {
       LoggerE("Error: %s", status.message().c_str());
       return status;

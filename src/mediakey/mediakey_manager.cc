@@ -33,7 +33,8 @@ MediaKeyManager& MediaKeyManager::GetInstance() {
 }
 
 MediaKeyManager::MediaKeyManager()
-    : m_media_key_listener_registered(false) {
+    : m_media_key_listener(nullptr),
+      m_media_key_listener_registered(false) {
   LoggerD("Enter");
 }
 

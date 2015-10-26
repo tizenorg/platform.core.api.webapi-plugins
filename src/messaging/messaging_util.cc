@@ -35,6 +35,7 @@
 #include "tizen/tizen.h"
 #include "common/logger.h"
 #include "common/platform_exception.h"
+#include "common/scope_exit.h"
 #include "common/assert.h"
 
 using common::ErrorCode;
@@ -234,7 +235,7 @@ std::string MessagingUtil::ltrim(const std::string& input)
     LoggerD("Entered");
     std::string str = input;
     std::string::iterator i;
-    for (i = str.begin(); i != str.end(); i++) {
+    for (i = str.begin(); i != str.end(); ++i) {
         if (!isspace(*i)) {
             break;
         }
@@ -317,8 +318,12 @@ std::string PerformConversion(const std::string& input, const gchar* from_charse
 
   if ((GIConv)-1 == cd) {
     LoggerE("Failed to open iconv.");
-    return "";
+    return input;
   }
+
+  SCOPE_EXIT {
+    g_iconv_close(cd);
+  };
 
   // copied from glib/gconvert.c, g_convert does not handle "//IGNORE" properly
   static const gsize kNulTerminatorLength = 4;
@@ -336,6 +341,15 @@ std::string PerformConversion(const std::string& input, const gchar* from_charse
   gboolean reset = FALSE;
 
   outp = dest = static_cast<gchar*>(g_malloc(outbuf_size));
+
+  if (!dest) {
+    LoggerE("Failed to allocate memory.");
+    return input;
+  }
+
+  SCOPE_EXIT {
+    g_free(dest);
+  };
 
   while (!done && !have_error) {
     gsize err = 0;
@@ -399,8 +413,6 @@ std::string PerformConversion(const std::string& input, const gchar* from_charse
     have_error = TRUE;
   }
 
-  g_iconv_close(cd);
-
   std::string result;
 
   if (!have_error) {
@@ -408,8 +420,6 @@ std::string PerformConversion(const std::string& input, const gchar* from_charse
   } else {
     LoggerE("Conversion error");
   }
-
-  g_free(dest);
 
   return result;
 }
@@ -572,7 +582,7 @@ picojson::value MessagingUtil::messageToJson(std::shared_ptr<Message> message)
             : picojson::value();
     o[MESSAGE_ATTRIBUTE_FOLDER_ID] =
             message->is_folder_id_set()
-            ? picojson::value(std::to_string(message->getFolderId()))
+            ? picojson::value(std::to_string(message->getFolderIdForUser()))
             : picojson::value();
     o[MESSAGE_ATTRIBUTE_TYPE] = picojson::value(message->getTypeString());
     o[MESSAGE_ATTRIBUTE_TIMESTAMP] =
@@ -594,9 +604,6 @@ picojson::value MessagingUtil::messageToJson(std::shared_ptr<Message> message)
             message->is_in_response_set()
             ? picojson::value(std::to_string(message->getInResponseTo()))
             : picojson::value();
-
-    // TODO MessageStatus has type MessageStatus
-    //o[MESSAGE_ATTRIBUTE_MESSAGE_STATUS] = picojson::value(message->getMessageStatus());
 
     std::shared_ptr<MessageBody> body = message->getBody();
     o[MESSAGE_ATTRIBUTE_BODY] = MessagingUtil::messageBodyToJson(body);
@@ -744,7 +751,6 @@ PlatformResult MessagingUtil::jsonToMessage(const picojson::value& json,
             int mail_id = std::atoi(mid.c_str());
             email_mail_data_t* mail = NULL;
             if (EMAIL_ERROR_NONE != email_get_mail_data(mail_id, &mail)) {
-                // TODO what should happen?
                 LoggerE("Fatal error: message not found: %d!", mail_id);
                 return PlatformResult(ErrorCode::TYPE_MISMATCH_ERR,
                                       "Failed to find specified email.");
@@ -1211,7 +1217,7 @@ PostQueue::~PostQueue()
     EmailManager::getInstance().RemoveCallbacksByQueue(*this);
 }
 
-void PostQueue::addAndResolve(const long cid, PostPriority priority, const std::string json)
+void PostQueue::addAndResolve(const long cid, PostPriority priority, const std::string &json)
 {
     LoggerD("Entered");
 
@@ -1237,7 +1243,7 @@ void PostQueue::add(const long cid, PostPriority priority)
     return;
 }
 
-void PostQueue::resolve(const long cid, const std::string json)
+void PostQueue::resolve(const long cid, const std::string &json)
 {
     LoggerD("Entered: [%p]", this);
 
@@ -1290,7 +1296,7 @@ void PostQueue::resolve(PostPriority p)
         i = tasks_.erase(i);
         tasks_mutex_.unlock();
 
-        instance_.PostMessage(json.c_str());
+        Instance::PostMessage(&instance_, json.c_str());
     } else if (TaskState::NEW == i->second->state()) {
         tasks_mutex_.unlock();
 
@@ -1320,7 +1326,7 @@ PostQueue::PostTask::~PostTask()
     LoggerD("Entered");
 }
 
-void PostQueue::PostTask::attach(const std::string j)
+void PostQueue::PostTask::attach(const std::string &j)
 {
     LoggerD("Entered");
     if (TaskState::DONE == state_) {

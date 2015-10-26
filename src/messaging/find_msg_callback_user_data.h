@@ -21,10 +21,11 @@
 #ifndef __TIZEN_FIND_MSG_CALLBACK_USER_DATA_H
 #define __TIZEN_FIND_MSG_CALLBACK_USER_DATA_H
 
-#include "common/callback_user_data.h"
 #include <memory>
 #include <string>
 #include <vector>
+
+#include "messaging/callback_user_data.h"
 #include "MsgCommon/AttributeFilter.h"
 #include "MsgCommon/SortMode.h"
 #include "messaging_util.h"
@@ -37,9 +38,9 @@ namespace messaging {
 
 class Message;
 
-class FindMsgCallbackUserData: public common::CallbackUserData {
+class FindMsgCallbackUserData : public CallbackUserData {
 public:
-    FindMsgCallbackUserData(PostQueue& queue);
+    FindMsgCallbackUserData(PostQueue& queue, long cid);
     virtual ~FindMsgCallbackUserData();
 
     void setFilter(AbstractFilterPtr filter);
@@ -48,13 +49,6 @@ public:
     void setOffset(long offset);
     void addMessage(std::shared_ptr<Message> msg);
     std::vector<std::shared_ptr<Message>> getMessages() const;
-
-    void setError(const std::string& err_name,
-            const std::string& err_message);
-    void SetError(const common::PlatformResult& error);
-    bool isError() const;
-    std::string getErrorName() const;
-    std::string getErrorMessage() const;
 
     void setAccountId(int account_id);
     int getAccountId() const;
@@ -66,22 +60,17 @@ public:
     long getLimit() const;
     long getOffset() const;
 
-    PostQueue& getQueue() { return queue_;};
 private:
     AbstractFilterPtr m_filter;
     SortModePtr m_sort;
     long m_limit;
     long m_offset;
-    bool m_is_error;
-    std::string m_err_name;
-    std::string m_err_message;
     std::vector<std::shared_ptr<Message>> m_messages;
     int m_account_id;
     MessageType m_service_type;
-    PostQueue& queue_;
 };
 
-}  // namespace messaging
-}  // namespace extension
+}//Messaging
+}//DeviceAPI
 
 #endif /* __TIZEN_FIND_MSG_CALLBACK_USER_DATA_H */

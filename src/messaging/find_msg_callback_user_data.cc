@@ -23,16 +23,13 @@
 namespace extension {
 namespace messaging {
 
-FindMsgCallbackUserData::FindMsgCallbackUserData(PostQueue& queue):
-        CallbackUserData(),
-        m_limit(0),
-        m_offset(0),
-        m_is_error(false),
-        m_account_id(0),
-        m_service_type(UNDEFINED),
-        queue_(queue)
-{
-    LoggerD("Entered");
+FindMsgCallbackUserData::FindMsgCallbackUserData(PostQueue& queue, long cid) :
+    CallbackUserData(queue, cid),
+    m_limit(0),
+    m_offset(0),
+    m_account_id(0),
+    m_service_type(UNDEFINED) {
+  LoggerD("Entered");
 }
 
 FindMsgCallbackUserData::~FindMsgCallbackUserData()
@@ -68,58 +65,6 @@ void FindMsgCallbackUserData::addMessage(std::shared_ptr<Message> msg)
 std::vector<std::shared_ptr<Message>> FindMsgCallbackUserData::getMessages() const
 {
     return m_messages;
-}
-
-void FindMsgCallbackUserData::setError(const std::string& err_name,
-        const std::string& err_message)
-{
-    LoggerD("Entered");
-    // keep only first error in chain
-    if (!m_is_error) {
-        LoggerD("Error has not been set yet");
-        m_is_error = true;
-        m_err_name = err_name;
-        m_err_message = err_message;
-
-        picojson::object& obj = m_json->get<picojson::object>();
-        obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_ERROR);
-
-        auto obj_error = picojson::object();
-        obj_error[JSON_ERROR_NAME] = picojson::value(err_name);
-        obj_error[JSON_ERROR_MESSAGE] = picojson::value(err_message);
-        obj[JSON_DATA] = picojson::value(obj_error);
-    }
-}
-
-void FindMsgCallbackUserData::SetError(const common::PlatformResult& error)
-{
-    LoggerD("Entered");
-    // keep only first error in chain
-    if (!m_is_error) {
-    LoggerD("Error has not been set yet");
-    m_is_error = true;
-    picojson::object& obj = m_json->get<picojson::object>();
-    obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_ERROR);
-    auto obj_data = picojson::object();
-    obj_data[JSON_ERROR_CODE] = picojson::value(static_cast<double>(error.error_code()));
-    obj_data[JSON_ERROR_MESSAGE] = picojson::value(error.message());
-    obj[JSON_DATA] = picojson::value(obj_data);
-  }
-}
-
-bool FindMsgCallbackUserData::isError() const
-{
-    return m_is_error;
-}
-
-std::string FindMsgCallbackUserData::getErrorName() const
-{
-    return m_err_name;
-}
-
-std::string FindMsgCallbackUserData::getErrorMessage() const
-{
-    return m_err_message;
 }
 
 void FindMsgCallbackUserData::setAccountId(int account_id){

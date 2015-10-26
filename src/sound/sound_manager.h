@@ -28,6 +28,7 @@ namespace sound {
 
 class SoundManagerSoundModeChangedListener {
  public:
+  virtual ~SoundManagerSoundModeChangedListener() {}
   virtual void OnSoundModeChange(const std::string& newmode) = 0;
 };
 

@@ -21,6 +21,7 @@
 #include "common/logger.h"
 #include "common/picojson.h"
 #include "common/task-queue.h"
+#include "common/virtual_fs.h"
 
 #include <system_settings.h>
 
@@ -82,11 +83,12 @@ void SystemSettingInstance::getProperty(const picojson::value& args, picojson::o
     LoggerD("Getting response");
     picojson::object& obj = response->get<picojson::object>();
     obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
-    PostMessage(response->serialize().c_str());
+    Instance::PostMessage(this, response->serialize().c_str());
   };
 
-  TaskQueue::GetInstance().Queue<picojson::value>
-  (get, get_response, std::shared_ptr<picojson::value>(new picojson::value(picojson::object())));
+  auto data = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
+
+  TaskQueue::GetInstance().Queue<picojson::value>(get, get_response, data);
 }
 
 PlatformResult SystemSettingInstance::getPlatformPropertyValue(
@@ -121,8 +123,8 @@ PlatformResult SystemSettingInstance::getPlatformPropertyValue(
       result_obj.insert(std::make_pair("value", picojson::value(value ? value : "")));
       free(value);
       return PlatformResult(ErrorCode::NO_ERROR);
-    case SYSTEM_SETTINGS_ERROR_CALL_UNSUPPORTED_API:
-      LoggerD("ret == SYSTEM_SETTINGS_ERROR_CALL_UNSUPPORTED_API");
+    case SYSTEM_SETTINGS_ERROR_NOT_SUPPORTED:
+      LoggerD("ret == SYSTEM_SETTINGS_ERROR_NOT_SUPPORTED");
       return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR,
                             "This property is not supported.");
     default:
@@ -143,26 +145,24 @@ void SystemSettingInstance::setProperty(const picojson::value& args, picojson::o
   const std::string& value = args.get("value").get<std::string>();
   LoggerD("Value to set: %s ", value.c_str());
 
-  auto get = [this, type, value](const std::shared_ptr<picojson::value>& response) -> void {
+  auto get = [this, type, value, callback_id](const std::shared_ptr<picojson::value>& response) -> void {
     LoggerD("Setting platform value");
-    PlatformResult status = setPlatformPropertyValue(type, value);
+    std::string real_path = VirtualFs::GetInstance().GetRealPath(value);
+    PlatformResult status = setPlatformPropertyValue(type, real_path);
+    picojson::object& obj = response->get<picojson::object>();
     if (status.IsSuccess()) {
-      ReportSuccess(response->get<picojson::object>());
+      ReportSuccess(obj);
     } else {
       LoggerE("Failed: setPlatformPropertyValue()");
-      ReportError(status, &response->get<picojson::object>());
+      ReportError(status, &obj);
     }
-  };
-
-  auto get_response = [this, callback_id](const std::shared_ptr<picojson::value>& response) -> void {
-    LoggerD("Getting response");
-    picojson::object& obj = response->get<picojson::object>();
     obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
-    PostMessage(response->serialize().c_str());
+    Instance::PostMessage(this, response->serialize().c_str());
   };
 
-  TaskQueue::GetInstance().Queue<picojson::value>
-  (get, get_response, std::shared_ptr<picojson::value>(new picojson::value(picojson::object())));
+  auto data = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
+
+  TaskQueue::GetInstance().Async<picojson::value>(get, data);
 }
 
 PlatformResult SystemSettingInstance::setPlatformPropertyValue(
@@ -192,13 +192,18 @@ PlatformResult SystemSettingInstance::setPlatformPropertyValue(
     case SYSTEM_SETTINGS_ERROR_NONE:
       LoggerD("ret == SYSTEM_SETTINGS_ERROR_NONE");
       return PlatformResult(ErrorCode::NO_ERROR);
-    case SYSTEM_SETTINGS_ERROR_CALL_UNSUPPORTED_API:
-      LoggerD("ret == SYSTEM_SETTINGS_ERROR_CALL_UNSUPPORTED_API");
+    case SYSTEM_SETTINGS_ERROR_NOT_SUPPORTED:
+      LoggerD("ret == SYSTEM_SETTINGS_ERROR_NOT_SUPPORTED");
       return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR,
                             "This property is not supported.");
+    case SYSTEM_SETTINGS_ERROR_INVALID_PARAMETER:
+      LoggerD("ret == SYSTEM_SETTINGS_ERROR_INVALID_PARAMETER");
+      return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
+                            "Invalid parameter passed.");
     default:
       LoggerD("Other error");
-      return PlatformResult(ErrorCode::UNKNOWN_ERR);
+      return PlatformResult(ErrorCode::UNKNOWN_ERR,
+                            "unknown error");
   }
 }
 

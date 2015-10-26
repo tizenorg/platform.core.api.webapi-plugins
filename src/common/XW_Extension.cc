@@ -38,8 +38,7 @@ int32_t Extension::Detail::XW_Initialize(XW_Extension extension, XW_GetInterface
   LoggerD("Enter");
   g_extension = CreateExtension();
   if (!g_extension) {
-    std::cerr << "Can't initialize extension: "
-              << "CreateExtension() returned NULL.\n";
+    LoggerE("Can't initialize extension: CreateExtension() returned NULL.");
     return XW_ERROR;
   }
   return XW_OK;

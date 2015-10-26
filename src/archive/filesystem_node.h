@@ -226,8 +226,6 @@ public:
     //! - OPT_RECURSIVE - remove node recursively.
     common::PlatformResult remove(int options);
 
-    std::string toUri(int widgetId) const;
-
     static bool isSubPath(std::string aDirPath, PathPtr aFilePath);
 
 private:
@@ -251,8 +249,8 @@ private:
 
 };
 
-}  // namespace extension
-}  // namespace filesystem
+} // extension
+} // filesystem
 
 #endif /* _FILESYSTEM_NODE_H_ */
 

@@ -66,8 +66,8 @@ class SysteminfoManager {
   void SetCpuInfoLoad(double load);
   void SetAvailableCapacityInternal(unsigned long long capacity);
   void SetAvailableCapacityMmc(unsigned long long capacity);
-  std::string GetCameraTypes(int index);
-  int GetCameraTypesCount();
+  std::string GetCameraTypes(unsigned int index);
+  unsigned int GetCameraTypesCount();
 
   bool IsListenerRegistered(const std::string& property_id);
   void CallListenerCallback(const std::string& property_id, int property_index = 0);
@@ -118,6 +118,7 @@ class SysteminfoManager {
 
   //! Sensor handle for DeviceOrientation purposes
   int sensor_handle_;
+  std::mutex sensor_mutex_;
 
   std::vector<std::string> camera_types_;
   wifi_rssi_level_e wifi_level_;
@@ -130,6 +131,7 @@ class SysteminfoManager {
 
   int sim_count_;
   TapiHandle *tapi_handles_[kTapiMaxHandle+1];
+  std::mutex tapi_mutex_;
 
   std::set<std::string> registered_listeners_;
 
@@ -137,6 +139,7 @@ class SysteminfoManager {
   guint storage_event_id_;
 
   connection_h connection_handle_;
+  std::mutex connection_mutex_;
 
 };
 } // namespace systeminfo

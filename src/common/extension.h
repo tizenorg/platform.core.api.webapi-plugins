@@ -23,13 +23,9 @@
 #include <map>
 #include <functional>
 #include <unordered_set>
-#include <mutex>
 
 #include "common/platform_exception.h"
 #include "common/platform_result.h"
-// TODO: this include should be moved to source file
-//       it's here, so we don't break other modules using it implicitly
-#include "common/tools.h"
 #include "common/XW_Extension.h"
 #include "common/XW_Extension_EntryPoints.h"
 #include "common/XW_Extension_Permissions.h"
@@ -111,7 +107,7 @@ class Instance {
 
  private:
   friend class Extension;
-  static std::mutex instance_mutex_;
+
   static std::unordered_set<Instance*> all_instances_;
 
   XW_Instance xw_instance_;

@@ -90,6 +90,13 @@ private:
     size_t m_default_buffer_size;
     bool m_is_open;
 
+    struct ComparePaths : public std::binary_function <bool, std::string, std::string> {
+      bool operator() (const std::string& lhs, const std::string& rhs) {
+        return lhs.length() > rhs.length();
+      }
+    };
+    std::map<std::string, __mode_t, ComparePaths> path_access_map;
+
     friend class UnZipExtractRequest;
 };
 

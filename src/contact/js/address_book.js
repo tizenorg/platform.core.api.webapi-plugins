@@ -177,8 +177,6 @@ AddressBook.prototype.get = function() {
   }
 
   var result = native_.callSync('AddressBook_get', {
-    // TODO move to only sending the address book id (in all functions)
-    addressBook: this,
     id: args.id
   });
 
@@ -224,8 +222,7 @@ AddressBook.prototype.add = function() {
   ]);
 
   var result = native_.callSync('AddressBook_add', {
-    // TODO move to only sending the address book id (in all functions)
-    addressBook: this,
+    addressBookId: this.id,
     contact: _toJsonObject(args.contact)
   });
 
@@ -323,8 +320,11 @@ AddressBook.prototype.update = function() {
     }
   ]);
 
+  if (args.contact.addressBookId !== this.id && UNIFIED_ADDRESSBOOK_ID !== this.id) {
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR);
+  }
+
   var result = native_.callSync('AddressBook_update', {
-    addressBook: this,
     contact: _toJsonObject(args.contact)
   });
 
@@ -387,8 +387,20 @@ AddressBook.prototype.updateBatch = function() {
     native_.callIfPossible(args.successCallback);
   };
 
+  var thatId = this.id;
+  args.contacts.forEach(function(c) {
+    if (c.addressBookId !== thatId && UNIFIED_ADDRESSBOOK_ID !== thatId) {
+      setTimeout(function() {
+        native_.callIfPossible(args.errorCallback, new WebAPIException(
+        WebAPIException.INVALID_VALUES_ERR,
+        'Contact is not saved in database'));
+      }, 0);
+
+      return;
+    }
+  });
+
   native_.call('AddressBook_updateBatch', {
-    addressBook: this,
     batchArgs: _toJsonObject(args.contacts)
   }, callback);
 };
@@ -409,7 +421,6 @@ AddressBook.prototype.remove = function() {
   }
 
   var result = native_.callSync('AddressBook_remove', {
-    addressBook: this,
     id: args.id
   });
 
@@ -453,7 +464,6 @@ AddressBook.prototype.removeBatch = function(ids, successCallback, errorCallback
   };
 
   native_.call('AddressBook_removeBatch', {
-    addressBook: this,
     batchArgs: args.ids
   }, callback);
 };
@@ -509,23 +519,12 @@ AddressBook.prototype.find = function(successCallback, errorCallback, filter, so
       } catch (e) {}
     });
 
-    //TODO: Move filtering to native code
-    try {
-      _contacts = C.filter(_contacts, args.filter);
-    } catch (e) {
-      native_.callIfPossible(errorCallback, e);
-      return;
-    }
-
-    //TODO: Move sorting to native code
-    _contacts = C.sort(_contacts, args.sortMode);
-
     native_.callIfPossible(successCallback, _contacts);
   };
 
   native_.call('AddressBook_find', {
-    addressBook: this,
-    filter: filter,
+    addressBookId: this.id,
+    filter: utils_.repackFilter(filter),
     sortMode: sortMode
   }, callback);
 };
@@ -630,7 +629,7 @@ AddressBook.prototype.getGroup = function() {
   }
 
   var result = native_.callSync('AddressBook_getGroup', {
-    addressBook: this,
+    addressBookId: this.id,
     id: args.groupId
   });
   if (native_.isFailure(result)) {
@@ -704,7 +703,7 @@ AddressBook.prototype.removeGroup = function() {
   }
 
   var result = native_.callSync('AddressBook_removeGroup',
-      {addressBook: this, id: args.groupId});
+      {addressBookId: this.id, id: args.groupId});
   if (native_.isFailure(result)) {
     throw native_.getErrorObject(result);
   }

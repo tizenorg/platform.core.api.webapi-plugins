@@ -22,11 +22,11 @@
 namespace FilesystemUtils {
 std::string get_storage_dir_path(int id, storage_directory_e typeToCheck) {
   LoggerD("Enter");
-  int result = STORAGE_ERROR_NONE;
   char* platformPath = NULL;
-  result = storage_get_directory(id, typeToCheck, &platformPath);
-  if (result != STORAGE_ERROR_NONE) {
-    LoggerD("Cannot retrieve path for type %i", typeToCheck);
+  int result = storage_get_directory(id, typeToCheck, &platformPath);
+  if (STORAGE_ERROR_NONE != result) {
+    LoggerD("Cannot retrieve path for type %i: %d (%s)", typeToCheck, result,
+            get_error_message(result));
     return std::string();
   }
   std::string path = std::string(platformPath);

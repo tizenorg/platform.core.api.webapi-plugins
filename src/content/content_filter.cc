@@ -105,12 +105,11 @@ PlatformResult ContentFilter::BuildQuery(const picojson::object& jsFilter,
                                    const picojson::value& match_value) {
     LoggerD("entered OnAttributeFilter");
 
-    PlatformResult result = PlatformResult(ErrorCode::NO_ERROR);
 
     std::string query;
     std::string matchValue;
 
-    result = MapField(name, &query);
+    PlatformResult result = MapField(name, &query);
     if (!result)
       return result;
 
@@ -212,10 +211,9 @@ PlatformResult ContentFilter::BuildQuery(const picojson::object& jsFilter,
                                         const picojson::value& end_value) {
     LoggerD("entered OnAttributeFilter");
 
-    PlatformResult result = PlatformResult(ErrorCode::NO_ERROR);
     std::string query = "";
     std::string paramName;
-    result = MapField(name, &paramName);
+    PlatformResult result = MapField(name, &paramName);
     if (!result)
       return result;
 

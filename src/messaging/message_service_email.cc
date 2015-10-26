@@ -115,22 +115,12 @@ static gboolean loadMessageAttachmentTask(void* data)
 
     // if the attachment is already saved, then it doesn't need to load again.
     if (att->isFilePathSet() && att->isSaved()) {
-      auto json = callback->getJson();
-      picojson::object& obj = json->get<picojson::object>();
-      obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
+      picojson::object args;
+      args[JSON_DATA_MESSAGE_ATTACHMENT] = MessagingUtil::messageAttachmentToJson(att);
 
-      if (json->contains(JSON_CALLBACK_ID) && obj.at(JSON_CALLBACK_ID).is<double>()) {
-        picojson::object args;
-        args[JSON_DATA_MESSAGE_ATTACHMENT] = MessagingUtil::messageAttachmentToJson(att);
-        obj[JSON_DATA] = picojson::value(args);
+      callback->SetSuccess(picojson::value(args));
+      callback->Post();
 
-        callback->getQueue().resolve(
-            obj.at(JSON_CALLBACK_ID).get<double>(),
-            json->serialize()
-        );
-      } else {
-        LoggerE("json is incorrect - missing required member");
-      }
       delete callback;
       callback = nullptr;
     } else {

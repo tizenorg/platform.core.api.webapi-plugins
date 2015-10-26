@@ -17,11 +17,11 @@
 #ifndef MESSAGING_MESSAGE_CALLBACK_USER_DATA_H_
 #define MESSAGING_MESSAGE_CALLBACK_USER_DATA_H_
 
-#include "common/callback_user_data.h"
 #include "common/platform_result.h"
 
 #include <memory>
 #include <string>
+#include "messaging/callback_user_data.h"
 
 namespace extension {
 namespace messaging {
@@ -29,9 +29,9 @@ namespace messaging {
 class Message;
 class PostQueue;
 
-class MessageCallbackUserData: public common::CallbackUserData {
+class MessageCallbackUserData : public CallbackUserData {
 public:
-    MessageCallbackUserData(PostQueue& queue);
+    MessageCallbackUserData(PostQueue& queue, long cid);
     virtual ~MessageCallbackUserData();
 
     void setMessage(std::shared_ptr<Message> message);
@@ -40,27 +40,13 @@ public:
     void setAccountId(int account_id);
     int getAccountId() const;
 
-    void setError(const std::string& err_name,
-            const std::string& err_message);
-    void setError(const common::PlatformResult& error);
-    bool isError() const;
-    std::string getErrorName() const;
-    std::string getErrorMessage() const;
-
-    PostQueue& getQueue() { return queue_;};
-
 private:
-    bool m_is_error;
-    PostQueue& queue_;
-    std::string m_err_name;
-    std::string m_err_message;
     std::shared_ptr<Message> m_message;
     int m_account_id;
-
 };
 
-}  // namespace messaging
-}  // namespace extension
+}//messaging
+}//extension
 
 #endif /* MESSAGING_MESSAGE_CALLBACK_USER_DATA_H_ */
 

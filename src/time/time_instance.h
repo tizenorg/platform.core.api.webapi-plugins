@@ -9,16 +9,13 @@
 #include "common/extension.h"
 #include "common/picojson.h"
 #include "unicode/unistr.h"
+#include "time/time_manager.h"
+#include "time/time_utils.h"
 
 #include <string>
 
 namespace extension {
 namespace time {
-
-typedef picojson::value JsonValue;
-typedef picojson::object JsonObject;
-typedef picojson::array JsonArray;
-typedef std::string JsonString;
 
 class TimeInstance : public common::ParsedInstance {
  public:
@@ -26,33 +23,29 @@ class TimeInstance : public common::ParsedInstance {
   virtual ~TimeInstance();
 
  private:
-  enum DateTimeFormatType {
-    TIME_FORMAT,
-    DATE_FORMAT,
-    DATE_SHORT_FORMAT,
-    DATETIME_FORMAT
-  };
+  void TimeUtil_getAvailableTimezones(const picojson::value& args, picojson::object& out);
+  void TimeUtil_getDateFormat(const picojson::value& args, picojson::object& out);
+  void TimeUtil_getTimeFormat(const picojson::value& args, picojson::object& out);
+  void TimeUtil_setDateTimeChangeListener(const picojson::value& args, picojson::object& out);
+  void TimeUtil_unsetDateTimeChangeListener(const picojson::value& args, picojson::object& out);
+  void TimeUtil_setTimezoneChangeListener(const picojson::value& args, picojson::object& out);
+  void TimeUtil_unsetTimezoneChangeListener(const picojson::value& args, picojson::object& out);
+  void TZDate_getTimezone(const picojson::value& args, picojson::object& out);
+  void TZDate_GetTimezoneOffset(const picojson::value& args, picojson::object& out);
+  void ToStringTemplate(const picojson::value& args, bool use_locale_fmt,
+                        TimeUtilTools::DateTimeFormatType type, picojson::object* out);
+  void TZDate_toLocaleDateString(const picojson::value& args, picojson::object& out);
+  void TZDate_toLocaleTimeString(const picojson::value& args, picojson::object& out);
+  void TZDate_toLocaleString(const picojson::value& args, picojson::object& out);
+  void TZDate_toDateString(const picojson::value& args, picojson::object& out);
+  void TZDate_toTimeString(const picojson::value& args, picojson::object& out);
+  void TZDate_toString(const picojson::value& args, picojson::object& out);
+  void TZDate_getTimezoneAbbreviation(const picojson::value& args, picojson::object& out);
+  void TZDate_isDST(const picojson::value& args, picojson::object& out);
+  void TZDate_getPreviousDSTTransition(const picojson::value& args, picojson::object& out);
+  void TZDate_getNextDSTTransition(const picojson::value& args, picojson::object& out);
 
-  void TimeGetAvailableTimeZones(const JsonValue& args, JsonObject& out);
-  void TimeGetDSTTransition(const JsonValue& args, JsonObject& out);
-  void TimeGetLocalTimeZone(const JsonValue& args, JsonObject& out);
-  void TimeGetTimeFormat(const JsonValue& args, JsonObject& out);
-  void TimeGetDateFormat(const JsonValue& args, JsonObject& out);
-  void TimeGetTimeZoneOffset(const JsonValue& args, JsonObject& out);
-  void TimeGetTimeZoneAbbreviation(const JsonValue& args, JsonObject& out);
-  void TimeIsDST(const JsonValue& args, JsonObject& out);
-  void TimeToString(const JsonValue& args, JsonObject& out);
-  void TimeToDateString(const JsonValue& args, JsonObject& out);
-  void TimeToTimeString(const JsonValue& args, JsonObject& out);
-  void TimeSetDateTimeChangeListener(const JsonValue& args, JsonObject& out);
-  void TimeUnsetDateTimeChangeListener(const JsonValue& args, JsonObject& out);
-  void TimeSetTimezoneChangeListener(const JsonValue& args, JsonObject& out);
-  void TimeUnsetTimezoneChangeListener(const JsonValue& args, JsonObject& out);
-  void TimeGetMsUTC(const JsonValue& args, JsonObject& out);
-
-  UnicodeString getDateTimeFormat(DateTimeFormatType type, bool bLocale);
-  bool toStringByFormat(const JsonValue& args, JsonValue& out,
-                        DateTimeFormatType format);
+  TimeManager manager_;
 };
 }  // namespace time
 }  // namespace extension

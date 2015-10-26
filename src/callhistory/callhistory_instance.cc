@@ -124,7 +124,7 @@ void CallHistoryInstance::CallHistoryChange(picojson::object& data) {
   picojson::object& obj = event.get<picojson::object>();
   obj["listenerId"] = picojson::value("CallHistoryChangeCallback");
 
-  PostMessage(event.serialize().c_str());
+  Instance::PostMessage(this, event.serialize().c_str());
 }
 
 } // namespace callhistory

@@ -51,10 +51,9 @@ void Any::setValue(picojson::value value)
 //    JSValueProtect(m_context, m_value);
 }
 
-bool Any::isNullOrUndefined() const
-{
-    //TODO is it check for undefined?
-    return m_value.is<picojson::null>();
+bool Any::isNullOrUndefined() const {
+  // JSON data format is only holding non-undefined values
+  return m_value.is<picojson::null>();
 }
 
 bool Any::toBool() const

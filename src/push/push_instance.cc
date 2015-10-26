@@ -166,7 +166,7 @@ void PushInstance::onPushRegister(double callbackId,
         dict["registrationId"] = picojson::value(id);
     }
     picojson::value res(dict);
-    PostMessage(res.serialize().c_str());
+    Instance::PostMessage(this, res.serialize().c_str());
 }
 
 void PushInstance::onPushNotify(const std::string& appData,
@@ -183,7 +183,7 @@ void PushInstance::onPushNotify(const std::string& appData,
     pushMessage["date"] = picojson::value(date);
     dict["pushMessage"] = picojson::value(pushMessage);
     picojson::value resultListener(dict);
-    PostMessage(resultListener.serialize().c_str());
+    Instance::PostMessage(this, resultListener.serialize().c_str());
 }
 
 void PushInstance::onDeregister(double callbackId,
@@ -195,7 +195,7 @@ void PushInstance::onDeregister(double callbackId,
         dict["error"] = result.ToJSON();
     }
     picojson::value res(dict);
-    PostMessage(res.serialize().c_str());
+    Instance::PostMessage(this, res.serialize().c_str());
 }
 
 PushInstance::~PushInstance() {

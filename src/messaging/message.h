@@ -63,6 +63,7 @@ public:
     int getOldId() const;
     int getConversationId() const;
     int getFolderId() const;
+    virtual int getFolderIdForUser() const;
     MessageType getType() const;
     std::string getTypeString() const;
     time_t getTimestamp() const;
@@ -146,7 +147,7 @@ public:
     // function for filling Message attributes
     static common::PlatformResult convertPlatformShortMessageToObject(msg_struct_t msg, Message** message);
     static common::PlatformResult findShortMessageById(const int id, MessagePtr* message);
-    static common::PlatformResult addMMSBodyAndAttachmentsToStruct(const AttachmentPtrVector attach,
+    static common::PlatformResult addMMSBodyAndAttachmentsToStruct(const AttachmentPtrVector &attach,
             msg_struct_t &mms_struct,
             Message* message);
     static common::PlatformResult setMMSBodyAndAttachmentsFromStruct(Message *message,
@@ -233,8 +234,8 @@ private:
             char delimiter);
 };
 
-}  // namespace messaging
-}  // namespace extension
+}    //messaging
+}    //extension
 
 #endif /* MESSAGING_MESSAGE_H_ */
 

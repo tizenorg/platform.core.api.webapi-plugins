@@ -22,6 +22,8 @@
 #include <bundle_internal.h>
 
 #include "common/logger.h"
+#include "common/tools.h"
+
 #include "application/application_utils.h"
 
 using namespace common;
@@ -43,7 +45,7 @@ PlatformResult RequestedApplicationControl::set_bundle(const std::string& encode
     bundle_free(bundle);
 
     if (APP_CONTROL_ERROR_NONE != ret) {
-      LoggerE("Failed to create app_control");
+      LoggerE("Failed to create app_control: %d (%s)", ret, get_error_message(ret));
       return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to create app_control.");
     }
 
@@ -64,7 +66,8 @@ void RequestedApplicationControl::set_app_control(app_control_h app_control) {
   if ((APP_CONTROL_ERROR_NONE == ret) && (nullptr != tmp_str)) {
     caller_app_id_ = tmp_str;
   } else {
-    LoggerW("Failed to get callerAppId because of platform error");
+    LoggerW("Failed to get callerAppId because of platform error: %d (%s)", ret,
+            get_error_message(ret));
     LoggerW("Please ignore if the application is launched in debug mode");
   }
 
@@ -134,9 +137,10 @@ void RequestedApplicationControl::ReplyResult(const picojson::value& args, picoj
   }
 
   // send reply
-  if (APP_CONTROL_ERROR_NONE !=
-      app_control_reply_to_launch_request(reply, app_control_.get(), APP_CONTROL_RESULT_SUCCEEDED)) {
-    LoggerE("Cannot find caller.");
+  int ret = app_control_reply_to_launch_request(
+      reply, app_control_.get(), APP_CONTROL_RESULT_SUCCEEDED);
+  if (APP_CONTROL_ERROR_NONE != ret) {
+    LoggerE("Cannot find caller: %d (%s)", ret, get_error_message(ret));
     ReportError(PlatformResult(ErrorCode::NOT_FOUND_ERR, "Cannot find caller."), out);
     return;
   }
@@ -174,7 +178,7 @@ void RequestedApplicationControl::ReplyFailure(picojson::object* out) {
   // send reply
   int ret = app_control_reply_to_launch_request(reply, app_control_.get(), APP_CONTROL_RESULT_FAILED);
   if (APP_CONTROL_ERROR_NONE != ret) {
-    LoggerE("Cannot find caller.");
+    LoggerE("Cannot find caller: %d (%s)", ret, get_error_message(ret));
     ReportError(PlatformResult(ErrorCode::NOT_FOUND_ERR, "Cannot find caller."), out);
     return;
   }
@@ -210,7 +214,7 @@ PlatformResult RequestedApplicationControl::VerifyCallerPresence() {
     int ret = app_manager_is_running(caller_app_id_.c_str(), &running);
 
     if ((APP_MANAGER_ERROR_NONE != ret) || !running) {
-      LoggerE("Caller is not running");
+      LoggerE("Caller is not running: %d (%s)", ret, get_error_message(ret));
       return PlatformResult(ErrorCode::NOT_FOUND_ERR, "Cannot find caller.");
     }
 

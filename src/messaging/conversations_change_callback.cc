@@ -44,7 +44,7 @@ ConversationsChangeCallback::ConversationsChangeCallback(
         int service_id,
         MessageType service_type,
         PostQueue& queue) :
-        m_callback_data(cid, queue, true),
+        m_callback_data(queue, cid, true),
         m_id(service_id),
         m_msg_type(service_type),
         m_is_act(true)
@@ -101,6 +101,12 @@ void ConversationsChangeCallback::added(
 
     ConversationPtrVector filtered = filterConversations(m_filter, conversations);
 
+    //if filter is set but there is no conversation matched just return;
+    if (!filtered.size()) {
+      LoggerD("There is no matched result.");
+      return;
+    }
+
     picojson::array array;
     auto each = [&array] (std::shared_ptr<MessageConversation> c)->void {
         array.push_back(MessagingUtil::conversationToJson(c));
@@ -110,13 +116,8 @@ void ConversationsChangeCallback::added(
     LoggerD("Calling:%s with:%d added conversations", CONVERSATIONSADDED,
         filtered.size());
 
-    auto json = m_callback_data.getJson();
-    picojson::object& obj = json->get<picojson::object>();
-    obj[JSON_ACTION] = picojson::value(CONVERSATIONSADDED);
-    obj[JSON_DATA] = picojson::value(array);
-
-    m_callback_data.getQueue().addAndResolve(obj.at(
-                JSON_CALLBACK_ID).get<double>(), PostPriority::MEDIUM, json->serialize());
+    m_callback_data.SetAction(CONVERSATIONSADDED, picojson::value(array));
+    m_callback_data.AddAndPost(PostPriority::MEDIUM);
 }
 
 void ConversationsChangeCallback::updated(
@@ -129,6 +130,12 @@ void ConversationsChangeCallback::updated(
 
     ConversationPtrVector filtered = filterConversations(m_filter, conversations);
 
+    //if filter is set but there is no conversation matched just return;
+    if (!filtered.size()) {
+      LoggerD("There is no matched result.");
+      return;
+    }
+
     picojson::array array;
     auto each = [&array] (std::shared_ptr<MessageConversation> c)->void {
         array.push_back(MessagingUtil::conversationToJson(c));
@@ -138,13 +145,8 @@ void ConversationsChangeCallback::updated(
     LoggerD("Calling:%s with:%d added conversations", CONVERSATIONSUPDATED,
         filtered.size());
 
-    auto json = m_callback_data.getJson();
-    picojson::object& obj = json->get<picojson::object>();
-    obj[JSON_ACTION] = picojson::value(CONVERSATIONSUPDATED);
-    obj[JSON_DATA] = picojson::value(array);
-
-    m_callback_data.getQueue().addAndResolve(obj.at(
-                JSON_CALLBACK_ID).get<double>(), PostPriority::LOW, json->serialize());
+    m_callback_data.SetAction(CONVERSATIONSUPDATED, picojson::value(array));
+    m_callback_data.AddAndPost(PostPriority::LOW);
 }
 
 void ConversationsChangeCallback::removed(
@@ -157,6 +159,12 @@ void ConversationsChangeCallback::removed(
 
     ConversationPtrVector filtered = filterConversations(m_filter, conversations);
 
+    //if filter is set but there is no conversation matched just return;
+    if (!filtered.size()) {
+      LoggerD("There is no matched result.");
+      return;
+    }
+
     picojson::array array;
     auto each = [&array] (std::shared_ptr<MessageConversation> c)->void {
         array.push_back(MessagingUtil::conversationToJson(c));
@@ -166,13 +174,8 @@ void ConversationsChangeCallback::removed(
     LoggerD("Calling:%s with:%d added conversations", CONVERSATIONSREMOVED,
         filtered.size());
 
-    auto json = m_callback_data.getJson();
-    picojson::object& obj = json->get<picojson::object>();
-    obj[JSON_ACTION] = picojson::value(CONVERSATIONSREMOVED);
-    obj[JSON_DATA] = picojson::value(array);
-
-    m_callback_data.getQueue().addAndResolve(obj.at(
-                JSON_CALLBACK_ID).get<double>(), PostPriority::LAST, json->serialize());
+    m_callback_data.SetAction(CONVERSATIONSREMOVED, picojson::value(array));
+    m_callback_data.AddAndPost(PostPriority::LAST);
 }
 
 void ConversationsChangeCallback::setFilter(tizen::AbstractFilterPtr filter)

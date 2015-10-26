@@ -211,7 +211,7 @@ class ExifInformation {
 
  private:
   void removeNulledAttributesFromExifData(ExifData* exif_data);
-  void updateAttributesInExifData(ExifData* exif_data);
+  common::PlatformResult updateAttributesInExifData(ExifData* exif_data);
 
   std::string m_uri;
   unsigned long m_width;

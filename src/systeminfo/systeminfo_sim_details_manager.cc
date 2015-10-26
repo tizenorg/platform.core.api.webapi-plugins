@@ -94,6 +94,24 @@ void SimSpnValueCallback(TapiHandle */*handle*/, int result, void *data, void *u
   sim_mgr->set_spn(result_spn);
   sim_mgr->TryReturn();
 }
+
+void SimIccidValueCallback(TapiHandle */*handle*/, int result, void *data, void *user_data) {
+  LoggerD("Entered");
+  SimDetailsManager* sim_mgr = static_cast<SimDetailsManager*>(user_data);
+  TelSimAccessResult_t access_rt = static_cast<TelSimAccessResult_t>(result);
+  TelSimIccIdInfo_t *iccid_info = static_cast<TelSimIccIdInfo_t*>(data);
+
+  std::string result_iccid;
+  if (TAPI_SIM_ACCESS_SUCCESS == access_rt) {
+    result_iccid = (char *)iccid_info->icc_num;
+  } else {
+    LoggerW("Failed to retrieve iccid_: %d", access_rt);
+  }
+
+  sim_mgr->set_iccid(result_iccid);
+  sim_mgr->TryReturn();
+}
+
 } //namespace
 
 using common::PlatformResult;
@@ -147,6 +165,13 @@ PlatformResult SimDetailsManager::GatherSimInformation(TapiHandle* handle, picoj
         ++to_process_;
       } else {
         LoggerE("Failed getting spn: %d", result);
+      }
+
+      result = tel_get_sim_iccid(handle, SimIccidValueCallback, this);
+      if (TAPI_API_SUCCESS == result) {
+        ++to_process_;
+      } else {
+        LoggerE("Failed getting iccid: %d", result);
       }
     }
     //prevent returning not filled result
@@ -217,8 +242,6 @@ PlatformResult SimDetailsManager::FetchSimSyncProps(TapiHandle *tapi_handle) {
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to get sim imsi");
   }
 
-  //TODO add code for iccid value fetching, when proper API would be ready
-  iccid_ = "";
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
@@ -287,6 +310,14 @@ void SimDetailsManager::set_spn(const std::string& spn) {
   this->spn_ = spn;
   --to_process_;
   LoggerD("SPN value: %s", this->spn_.c_str());
+};
+
+void SimDetailsManager::set_iccid(const std::string& iccid) {
+  LoggerD("Entered");
+  std::lock_guard<std::mutex> lock(sim_to_process_mutex_);
+  this->iccid_ = iccid;
+  --to_process_;
+  LoggerD("ICCID value: %s", this->iccid_.c_str());
 };
 
 } // namespace systeminfo

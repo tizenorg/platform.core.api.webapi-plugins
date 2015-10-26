@@ -50,6 +50,10 @@ class ApplicationInstance: public common::ParsedInstance {
   void FindAppControl(const picojson::value& args, picojson::object& out);
   void GetAppsContext(const picojson::value& args, picojson::object& out);
   void GetAppsInfo(const picojson::value& args, picojson::object& out);
+  void BroadcastEvent(const picojson::value& args, picojson::object& out);
+  void BroadcastTrustedEvent(const picojson::value& args, picojson::object& out);
+  void AddEventListener(const picojson::value& args, picojson::object& out);
+  void RemoveEventListener(const picojson::value& args, picojson::object& out);
 
   ApplicationManager manager_;
   Application current_application_;

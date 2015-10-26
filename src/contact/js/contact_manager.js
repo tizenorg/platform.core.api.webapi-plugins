@@ -68,6 +68,7 @@ ContactManager.prototype.getAddressBooks = function() {
         return _editGuard.run(function() {
           var addressBook = new AddressBook(result.accountId, result.name);
           addressBook.id = data.id;
+          addressBook.name = data.name;
           addressBook.readOnly = result.readOnly;
 
           tmp.push(addressBook);
@@ -395,7 +396,6 @@ ContactManager.prototype.find = function() {
     }
   ]);
 
-  // TODO implement contact filtering/sorting.
   var data = {
     filter: utils_.repackFilter(args.filter),
     sortMode: args.sortMode
@@ -410,8 +410,6 @@ ContactManager.prototype.find = function() {
       for (var i = 0; i < _result.length; ++i) {
         retval.push(self.get(String(_result[i])));
       }
-      //TODO: Move sorting to native code
-      retval = C.sort(retval, args.sortMode);
       args.successCallback(retval);
     } else {
       native_.callIfPossible(args.errorCallback, native_.getErrorObject(result));

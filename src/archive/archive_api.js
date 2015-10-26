@@ -175,7 +175,7 @@ function ArchiveFileEntry(data, priv) {
         xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_WRITE);
 
         var args = validator_.validateArgs(arguments, [
-            { name: "destinationDirectory", type: types_.STRING }, //TODO: add FileReferece validation
+            { name: "destinationDirectory", type: types_.FILE_REFERENCE },
             { name: "onsuccess", type: types_.FUNCTION, optional: true, nullable: true },
             { name: "onerror", type: types_.FUNCTION, optional: true, nullable: true },
             { name: "onprogress", type: types_.FUNCTION, optional: true, nullable: true },
@@ -184,7 +184,7 @@ function ArchiveFileEntry(data, priv) {
         ]),
         opId = getNextOpId();
 
-        if (!CommonFS.isVirtualPath(args.destinationDirectory)) //TODO: add FileReferece validation
+        if (!CommonFS.isVirtualPath(args.destinationDirectory))
             throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR,
                     "Destination directory should be virtual path or file.");
         bridge.async({
@@ -264,7 +264,7 @@ function ArchiveFile(data) {
         xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_WRITE);
 
         var args = validator_.validateArgs(arguments, [
-            { name: "sourceFile", type: types_.STRING }, //TODO: add FileReferece validation
+            { name: "sourceFile", type: types_.FILE_REFERENCE },
             { name: "onsuccess", type: types_.FUNCTION, optional: true, nullable: true },
             { name: "onerror", type: types_.FUNCTION, optional: true, nullable: true },
             { name: "onprogress", type: types_.FUNCTION, optional: true, nullable: true },
@@ -272,7 +272,7 @@ function ArchiveFile(data) {
         ]),
         opId = getNextOpId();
 
-        if (!CommonFS.isVirtualPath(args.sourceFile)) //TODO: add FileReferece validation
+        if (!CommonFS.isVirtualPath(args.sourceFile))
             throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR,
                     "sourceFile should be virtual path or file.");
 
@@ -330,7 +330,7 @@ function ArchiveFile(data) {
         xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_WRITE);
 
         var args = validator_.validateArgs(arguments, [
-            { name: "destinationDirectory", type: types_.STRING }, //TODO: add FileReferece validation
+            { name: "destinationDirectory", type: types_.FILE_REFERENCE },
             { name: "onsuccess", type: types_.FUNCTION, optional: true, nullable: true },
             { name: "onerror", type: types_.FUNCTION, optional: true, nullable: true },
             { name: "onprogress", type: types_.FUNCTION, optional: true, nullable: true },
@@ -338,7 +338,7 @@ function ArchiveFile(data) {
         ]),
         opId = getNextOpId();
 
-        if (!CommonFS.isVirtualPath(args.destinationDirectory)) //TODO: add FileReferece validation
+        if (!CommonFS.isVirtualPath(args.destinationDirectory))
             throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR,
                     "destinationDirectory should be virtual path or file.");
 
@@ -486,7 +486,7 @@ ArchiveManager.prototype.open = function () {
     xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_WRITE);
 
     var args = validator_.validateArgs(arguments, [
-        { name: "file", type: types_.STRING }, //TODO: add FileReferece validation
+        { name: "file", type: types_.FILE_REFERENCE },
         { name: "mode", type: types_.ENUM, values: ["r", "rw", "w", "a"] },
         { name: "onsuccess", type: types_.FUNCTION },
         { name: "onerror", type: types_.FUNCTION, optional: true, nullable: true },
@@ -503,7 +503,7 @@ ArchiveManager.prototype.open = function () {
         }
     }
 
-    if (!CommonFS.isVirtualPath(args.file)) //TODO: add FileReferece validation
+    if (!CommonFS.isVirtualPath(args.file))
         throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR,
                 "file should be virtual path or file.");
 

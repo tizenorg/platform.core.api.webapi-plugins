@@ -139,7 +139,7 @@ void SoundInstance::OnSoundModeChange(const std::string& newmode)
   ReportSuccess(result, obj);
   obj["listenerId"] = picojson::value("SoundModeChangeListener");
   LoggerD("Posting: %s", event.serialize().c_str());
-  PostMessage(event.serialize().c_str());
+  Instance::PostMessage(this, event.serialize().c_str());
 }
 
 

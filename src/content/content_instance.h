@@ -17,6 +17,7 @@
 #ifndef CONTENT_CONTENT_INSTANCE_H_
 #define CONTENT_CONTENT_INSTANCE_H_
 
+#include <media_content_internal.h>
 #include "common/extension.h"
 
 namespace extension {
@@ -40,6 +41,22 @@ enum ContentCallbacks {
   ContentManagerErrorCallback
 };
 
+class ContentInstance;
+
+typedef struct _ReplyCallbackData {
+  _ReplyCallbackData()
+      : instance(nullptr),
+        cbType(ContentManagerFindCallback),
+        callbackId(-1.0),
+        isSuccess(common::ErrorCode::NO_ERROR) {
+  }
+  ContentInstance* instance;
+  ContentCallbacks cbType;
+  double callbackId;
+  picojson::value args;
+  picojson::value result;
+  common::PlatformResult isSuccess;
+} ReplyCallbackData;
 
 class ContentInstance : public common::ParsedInstance {
  public:
@@ -73,22 +90,10 @@ class ContentInstance : public common::ParsedInstance {
   void PlaylistGetThumbnailUri(const picojson::value& args, picojson::object& out);
   void PlaylistSetThumbnailUri(const picojson::value& args, picojson::object& out);
   void PlaylistGetNumberOfTracks(const picojson::value& args, picojson::object& out);
-};
 
-typedef struct _ReplyCallbackData {
-  _ReplyCallbackData()
-      : instance(nullptr),
-        cbType(ContentManagerFindCallback),
-        callbackId(-1.0),
-        isSuccess(common::ErrorCode::NO_ERROR) {
-  }
-  ContentInstance* instance;
-  ContentCallbacks cbType;
-  double callbackId;
-  picojson::value args;
-  picojson::value result;
-  common::PlatformResult isSuccess;
-} ReplyCallbackData;
+  media_content_noti_h noti_handle_;
+  ReplyCallbackData* listener_data_;
+};
 
 
 } // namespace content

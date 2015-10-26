@@ -41,7 +41,7 @@ public:
     bool getHasAttachment() const;
 };
 
-}  // namespace messaging
-}  // namespace extension
+} // messaging
+} // extension
 
 #endif // __TIZEN_MESSAGE_MMS_H__

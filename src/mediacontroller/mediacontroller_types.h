@@ -57,7 +57,6 @@ class Types {
 
  private:
   static const PlatformEnumMap platform_enum_map_;
-  // TODO(r.galka) can be replaced by Boost.Bimap
   static PlatformEnumReverseMap platform_enum_reverse_map_;
 };
 

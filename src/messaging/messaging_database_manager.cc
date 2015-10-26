@@ -201,7 +201,6 @@ __thread sqlite3_stmt* stmt = NULL;
 msg_error_t MessagingDatabaseManager::connect()
 {
     LoggerD("Entered");
-    int err = 0;
     if (NULL == sqlHandle) {
         char strDBName[64];
 
@@ -209,7 +208,7 @@ msg_error_t MessagingDatabaseManager::connect()
         snprintf(strDBName, sizeof(strDBName), "%s/%s",
                  tzplatform_getenv(TZ_USER_DB), MSG_DB_NAME);
 
-        err = db_util_open(strDBName, &sqlHandle, DB_UTIL_REGISTER_HOOK_METHOD);
+        int err = db_util_open(strDBName, &sqlHandle, DB_UTIL_REGISTER_HOOK_METHOD);
 
         if (SQLITE_OK != err) {
             LoggerE("DB connecting fail [%d]", err);
@@ -475,6 +474,36 @@ PlatformResult MessagingDatabaseManager::getAttributeFilterQuery(AbstractFilterP
             } else if (ENDSWITH == match_flag) {
                 match_value = "%<%" + match_value + ">%";
             }
+        } else if ("folderId" == attribute_name &&
+                   (MessageType::SMS == msgType || MessageType::MMS == msgType)) {
+            LoggerD("Non-email folder ID");
+
+            // need to convert from values presented to user to _MSG_FOLDER_ID_E
+            auto folder_id = attr_filter->getMatchValue()->toLong();
+            switch (folder_id) {
+                case 1:
+                    folder_id = MSG_INBOX_ID;
+                    break;
+
+                case 2:
+                    folder_id = MSG_OUTBOX_ID;
+                    break;
+
+                case 3:
+                    folder_id = MSG_DRAFT_ID;
+                    break;
+
+                case 4:
+                    folder_id = MSG_SENTBOX_ID;
+                    break;
+
+                default:
+                    LoggerE("Unexpected folder ID: %d", folder_id);
+                    folder_id = -1;
+                    break;
+            }
+
+            match_value = std::to_string(folder_id);
         }
 
         switch (match_flag) {

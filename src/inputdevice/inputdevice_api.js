@@ -131,6 +131,87 @@ InputDeviceManager.prototype.unregisterKey = function(keyName) {
   }
 };
 
+InputDeviceManager.prototype.registerKeyBatch = function() {
+  var args = validator.validateMethod(arguments, [
+    {
+      name: 'keyNames',
+      type: types.ARRAY,
+      values: types.STRING
+    },
+    {
+      name: 'successCallback',
+      type: types.FUNCTION,
+      optional: true,
+      nullable: true
+    },
+    {
+      name: 'errorCallback',
+      type: types.FUNCTION,
+      optional: true,
+      nullable: true
+    }
+  ]);
+
+  var keysList = "";
+  for (var i = 0; i < args.keyNames.length; ++i) {
+    if (!map[args.keyNames[i]]) {
+      throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
+                                'Invalid key name: "' + args.keyNames[i] + '"');
+    }
+    keysList += map[args.keyNames[i]].keyName + ((i < args.keyNames.length - 1) ? "," : "");
+  }
+
+  setTimeout(function() {
+    var ret = native.sendRuntimeSyncMessage('tizen://api/inputdevice/registerKeyBatch', keysList);
+    if (ret === 'error') {
+      native.callIfPossible(args.errorCallback, new WebAPIException(
+          WebAPIException.UNKNOWN_ERR, 'Failed to register keys.'));
+    } else {
+      native.callIfPossible(args.successCallback);
+    }
+  }.bind(this), 0);
+};
+
+InputDeviceManager.prototype.unregisterKeyBatch = function() {
+  var args = validator.validateMethod(arguments, [
+    {
+      name: 'keyNames',
+      type: types.ARRAY,
+      values: types.STRING
+    },
+    {
+      name: 'successCallback',
+      type: types.FUNCTION,
+      optional: true,
+      nullable: true
+    },
+    {
+      name: 'errorCallback',
+      type: types.FUNCTION,
+      optional: true,
+      nullable: true
+    }
+  ]);
+
+  var keysList = "";
+  for (var i = 0; i < args.keyNames.length; ++i) {
+    if (!map[args.keyNames[i]]) {
+      throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
+                                'Invalid key name: "' + args.keyNames[i] + '"');
+    }
+    keysList += map[args.keyNames[i]].keyName + ((i < args.keyNames.length - 1) ? "," : "");
+  }
+
+  setTimeout(function() {
+    var ret = native.sendRuntimeSyncMessage('tizen://api/inputdevice/unregisterKeyBatch', keysList);
+    if (ret === 'error') {
+      native.callIfPossible(args.errorCallback, new WebAPIException(
+          WebAPIException.UNKNOWN_ERR, 'Failed to unregister keys.'));
+    } else {
+      native.callIfPossible(args.successCallback);
+    }
+  }.bind(this), 0);
+};
 
 // Exports
 exports = new InputDeviceManager();

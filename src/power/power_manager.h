@@ -54,12 +54,12 @@ class PowerManager {
   common::PlatformResult GetScreenBrightness(double* output);
   common::PlatformResult SetScreenBrightness(double brightness);
   common::PlatformResult RestoreScreenBrightness();
-  bool IsScreenOn();
+  common::PlatformResult IsScreenOn(bool* state);
   common::PlatformResult SetScreenState(bool onoff);
 
   static PowerManager* GetInstance();
  private:
-  int GetPlatformBrightness();
+  common::PlatformResult GetPlatformBrightness(int* result);
   common::PlatformResult SetPlatformBrightness(int brightness);
   common::PlatformResult RestoreSettedBrightness();
 

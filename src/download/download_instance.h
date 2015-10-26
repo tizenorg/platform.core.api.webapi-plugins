@@ -27,7 +27,6 @@
 #include <string>
 #include <vector>
 #include <mutex>
-
 #include "common/extension.h"
 
 template <class T>
@@ -65,6 +64,7 @@ class DownloadInstance : public common::ParsedInstance {
 
   bool GetDownloadID(const int callback_id, int& download_id);
 
+  static common::PlatformResult convertError(int err);
   static void OnStateChanged
     (int download_id, download_state_e state, void* user_data);
   static void progress_changed_cb
@@ -98,14 +98,15 @@ class DownloadInstance : public common::ParsedInstance {
     download_state_e state;
   };
 
-  typedef std::map<int, DownloadCallback*> DownloadCallbackMap;
+  typedef DownloadCallback* CallbackPtr;
+  typedef std::map<int, CallbackPtr> DownloadCallbackMap;
   typedef std::shared_ptr<DownloadInfo> DownloadInfoPtr;
   typedef std::map<int, DownloadInfoPtr> DownloadInfoMap;
 
   static std::mutex instances_mutex_;
   static std::vector<DownloadInstance*> instances_;
 
-  DownloadCallbackMap downCbMap;
+  DownloadCallbackMap download_callbacks;
   DownloadInfoMap diMap;
 };
 

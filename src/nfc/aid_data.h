@@ -39,7 +39,7 @@ class AIDData {
 
 typedef std::vector<AIDData> AIDDataVector;
 
-}  // namespace nfc
-}  // namespace extension
+}  // nfc
+}  // extension
 
 #endif  // NFC_AID_DATA_H_

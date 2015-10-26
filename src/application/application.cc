@@ -19,6 +19,7 @@
 #include "common/extension.h"
 #include "common/logger.h"
 #include "common/platform_result.h"
+#include "common/tools.h"
 
 using namespace common;
 using namespace tools;

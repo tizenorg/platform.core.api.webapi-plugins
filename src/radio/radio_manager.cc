@@ -23,9 +23,10 @@
 #include <runtime_info.h>
 #include <vconf.h>
 
-#include "common/logger.h"
 #include "common/extension.h"
+#include "common/logger.h"
 #include "common/task-queue.h"
+#include "common/tools.h"
 
 #include "radio/radio_instance.h"
 
@@ -34,9 +35,6 @@ using namespace std;
 
 namespace extension {
 namespace radio {
-
-std::vector<FMRadioManager*> FMRadioManager::managers_;
-std::mutex FMRadioManager::managers_mutex_;
 
 namespace {
 
@@ -341,11 +339,7 @@ FMRadioManager::FMRadioManager(RadioInstance& instance)
   if (RADIO_ERROR_NONE != err) {
     LoggerE("radio_create() failed: %d", err);
     radio_instance_ = nullptr;
-  } else {
-    std::lock_guard<std::mutex> lock(managers_mutex_);
-    managers_.push_back(this);
   }
-
 }
 
 FMRadioManager::~FMRadioManager() {
@@ -360,27 +354,22 @@ FMRadioManager::~FMRadioManager() {
 
     radio_instance_ = nullptr;
   }
-  std::lock_guard<std::mutex> lock(managers_mutex_);
-  for (auto it = managers_.begin(); it != managers_.end(); it++) {
-    if (*it == this) {
-      managers_.erase(it);
-      break;
-    }
-  }
-}
-
-bool FMRadioManager::CheckInstance(const FMRadioManager* manager) {
-  LoggerD("Entered");
-  for (auto vec_manager : managers_) {
-    if (vec_manager == manager) {
-      return true;
-    }
-  }
-  return false;
 }
 
 PlatformResult FMRadioManager::Start(double frequency) {
   LoggerD("Enter, frequency: %f", frequency);
+
+  radio_state_e state;
+  const auto err = radio_get_state(radio_instance_, &state);
+
+  if (RADIO_ERROR_NONE != err) {
+    LoggerE("radio_get_state() failed: %d", err);
+    return GetPlatformResult("radio_get_state() failed.", err);
+  }
+
+  if (RADIO_STATE_READY != state && RADIO_STATE_PLAYING != state) {
+    return PlatformResult(ErrorCode::INVALID_STATE_ERR, "Invalid radio state.");
+  }
 
   PlatformResult result = SetFrequency(frequency);
 
@@ -388,11 +377,27 @@ PlatformResult FMRadioManager::Start(double frequency) {
     return result;
   }
 
-  return CheckError("radio_start", radio_start(radio_instance_));
+  if (RADIO_STATE_READY == state) {
+    return CheckError("radio_start", radio_start(radio_instance_));
+  } else {
+    return result;
+  }
 }
 
 PlatformResult FMRadioManager::Stop() {
   LoggerD("Enter");
+
+  radio_state_e state;
+  const auto err = radio_get_state(radio_instance_, &state);
+
+  if (RADIO_ERROR_NONE != err) {
+    LoggerE("radio_get_state() failed: %d", err);
+    return GetPlatformResult("radio_get_state() failed.", err);
+  }
+
+  if (RADIO_STATE_PLAYING != state) {
+    return PlatformResult(ErrorCode::INVALID_STATE_ERR, "Invalid radio state.");
+  }
 
   return CheckError("radio_stop", radio_stop(radio_instance_));
 }
@@ -509,10 +514,7 @@ common::PlatformResult FMRadioManager::UnsetAntennaChangeListener() {
 void FMRadioManager::PostMessage(const std::string& msg) const {
   LoggerD("Enter");
 
-  if (!CheckInstance(this)) {
-    return;
-  }
-  instance_.PostMessage(msg.c_str());
+  Instance::PostMessage(&instance_, msg.c_str());
 }
 void FMRadioManager::PostResultSuccess(double callbackId, picojson::value* event) const {
   auto& obj = event->get<picojson::object>();

@@ -61,7 +61,6 @@ void ExifInstance::ExifManagerGetExifInfo(const picojson::value& args, picojson:
       JsonValue result = JsonValue(JsonObject());
       PlatformResult status(ErrorCode::NO_ERROR);
 
-      // TODO(r.galka) it can be done on JS side
       const std::string &file_path = ExifUtil::convertUriToPath(uri);
       LoggerD("file_path = %s", file_path.c_str());
 
@@ -75,11 +74,12 @@ void ExifInstance::ExifManagerGetExifInfo(const picojson::value& args, picojson:
   auto get_response = [callback_id, this](const std::shared_ptr<JsonValue>& response)->void {
       picojson::object& obj = response->get<picojson::object>();
       obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
-      PostMessage(response->serialize().c_str());
+      Instance::PostMessage(this, response->serialize().c_str());
   };
 
-  common::TaskQueue::GetInstance().Queue<JsonValue>(
-      get, get_response, std::shared_ptr<JsonValue>(new JsonValue(JsonObject())));
+  auto data = std::shared_ptr<JsonValue>(new JsonValue(JsonObject()));
+
+  common::TaskQueue::GetInstance().Queue<JsonValue>(get, get_response, data);
 
   LoggerD("exit");
 }
@@ -87,7 +87,6 @@ void ExifInstance::ExifManagerGetExifInfo(const picojson::value& args, picojson:
 void ExifInstance::ExifManagerSaveExifInfo(const picojson::value& args,
                                            picojson::object& out) {
   LoggerD("Entered");
-  const std::string& uri = args.get("uri").get<std::string>();
 
   const double callback_id = args.get("callbackId").get<double>();
   auto get = [=](const std::shared_ptr<JsonValue>& response) -> void {
@@ -96,7 +95,6 @@ void ExifInstance::ExifManagerSaveExifInfo(const picojson::value& args,
 
       ExifInformationPtr exifInfo(new ExifInformation(args));
       const std::string& uri = exifInfo->getUri();
-      // TODO(r.galka) it can be done on JS side
       const std::string& path = ExifUtil::convertUriToPath(uri);
       status = exifInfo->saveToFile(path);
 
@@ -109,11 +107,12 @@ void ExifInstance::ExifManagerSaveExifInfo(const picojson::value& args,
   auto get_response = [callback_id, this](const std::shared_ptr<JsonValue>& response) -> void {
       picojson::object& obj = response->get<picojson::object>();
       obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
-      PostMessage(response->serialize().c_str());
+      Instance::PostMessage(this, response->serialize().c_str());
   };
 
-  common::TaskQueue::GetInstance().Queue<JsonValue>(get, get_response,
-      std::shared_ptr<JsonValue>(new JsonValue(JsonObject())));
+  auto data = std::shared_ptr<JsonValue>(new JsonValue(JsonObject()));
+
+  common::TaskQueue::GetInstance().Queue<JsonValue>(get, get_response, data);
 }
 
 void ExifInstance::ExifManagerGetThumbnail(const picojson::value& args,
@@ -125,7 +124,6 @@ void ExifInstance::ExifManagerGetThumbnail(const picojson::value& args,
   auto get = [=](const std::shared_ptr<JsonValue> &response) -> void {
       PlatformResult status(ErrorCode::NO_ERROR);
 
-      // TODO(r.galka) it can be done on JS side
       const std::string &file_path = ExifUtil::convertUriToPath(uri);
       JsonValue result = JsonValue(JsonObject());
       JsonObject &result_obj = result.get<JsonObject>();
@@ -179,11 +177,12 @@ void ExifInstance::ExifManagerGetThumbnail(const picojson::value& args,
   auto get_response = [callback_id, this](const std::shared_ptr<JsonValue>& response)->void {
       picojson::object& obj = response->get<picojson::object>();
       obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
-      PostMessage(response->serialize().c_str());
+      Instance::PostMessage(this, response->serialize().c_str());
   };
 
-  common::TaskQueue::GetInstance().Queue<JsonValue>(
-      get, get_response, std::shared_ptr<JsonValue>(new JsonValue(JsonObject())));
+  auto data = std::shared_ptr<JsonValue>(new JsonValue(JsonObject()));
+
+  common::TaskQueue::GetInstance().Queue<JsonValue>(get, get_response, data);
 }
 
 }  // namespace exif

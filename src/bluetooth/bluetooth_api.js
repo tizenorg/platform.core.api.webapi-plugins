@@ -262,14 +262,7 @@ tizen.BluetoothLEAdvertiseData = function(dict) {
         return serviceData_;
       },
       set: function(v) {
-        if (T.isNull(v)) {
-          serviceData_ = v;
-        } else if (T.isArray(v)) {
-          for (var i = 0; i < v.length; ++i) {
-            if (!(v[i] instanceof tizen.BluetoothLEServiceData)) {
-              return;
-            }
-          }
+        if (T.isNull(v) || (v instanceof tizen.BluetoothLEServiceData)) {
           serviceData_ = v;
         }
       }
@@ -340,14 +333,7 @@ tizen.BluetoothLEAdvertiseData = function(dict) {
     }
 
     // serviceData
-    if (T.isNull(dict.serviceData)) {
-      o.serviceData = dict.serviceData;
-    } else if (T.isArray(dict.serviceData)) {
-      for (var i = 0; i < dict.serviceData.length; ++i) {
-        if (!(dict.serviceData[i] instanceof tizen.BluetoothLEServiceData)) {
-          return;
-        }
-      }
+    if (T.isNull(dict.serviceData) || dict.serviceData instanceof tizen.BluetoothLEServiceData) {
       o.serviceData = dict.serviceData;
     } else if (!T.isUndefined(dict.serviceData)) {
       return;
@@ -571,42 +557,48 @@ BluetoothSocket.prototype.close = function() {
 
 //class BluetoothLEDevice ////////////////////////////////////////////////////
 var BluetoothLEDevice = function(data) {
-
-    var address = "", name = "", txpowerLevel = null, appearance = null, uuids = [],
-        solicitationuuids = [], serviceData = [], manufacturerData = null;
+    var address = "", name = null, txpowerlevel = null, appearance = null, uuids = null,
+        solicitationuuids = null, serviceData = null, manufacturerData = null;
 
     if (data) {
-        address = data.address;
-        name = data.name;
-        txpowerLevel = data.txpowerLevel;
-        appearance = data.appearance;
-        uuids = data.uuids;
-        solicitationuuids = data.solicitationuuids;
+      address = data.address;
+      name = data.name || null;
+      txpowerlevel = data.txpowerlevel || null;
+      appearance = data.appearance || null;
+      uuids = data.uuids || null;
+      solicitationuuids = data.solicitationuuids || null;
+      if (data.serviceData) {
         data.serviceData.forEach(function(d) {
             serviceData.push(new tizen.BluetoothLEServiceData(d));
         });
+      }
+      if (data.manufacturerData) {
         manufacturerData = new tizen.BluetoothLEManufacturerData(data.manufacturerData);
+      }
     }
 
     Object.defineProperties(this, {
         address : {value: address, writable: false, enumerable: true},
         name : {value: name, writable: false, enumerable: true},
-        txpowerLevel : {value: txpowerLevel, writable: false, enumerable: true},
+        txpowerlevel : {value: txpowerlevel, writable: false, enumerable: true},
         appearance : {value: appearance, writable: false, enumerable: true},
         uuids : {
             enumerable: true,
             set : function(){},
-            get : function(){ return uuids.slice(); }
+            get : function(){
+              var service_uuids = uuids ? uuids.slice() : null;
+              return service_uuids;
+            }
         },
         solicitationuuids : {
             enumerable: true,
             set : function(){},
-            get : function(){ return solicitationuuids.slice(); }
+            get : function(){ return solicitationuuids ? solicitationuuids.slice() : null; }
         },
         serviceData : {
             enumerable: true,
             set : function(){},
-            get : function(){ return serviceData.slice(); }
+            get : function(){ return serviceData ? serviceData.slice() : null; }
         },
         manufacturerData : {
             value: manufacturerData,
@@ -641,7 +633,7 @@ BluetoothLEDevice.prototype.connect = function() {
             native.callIfPossible(args.successCallback);
         }
     };
-
+    // Errors are handled by error callback
     native.call('BluetoothLEDevice_connect', {address : this.address}, callback);
 };
 
@@ -663,7 +655,7 @@ BluetoothLEDevice.prototype.disconnect = function() {
             nullable : true
         }
     ]);
-     var callback = function(result) {
+    var callback = function(result) {
         if (native.isFailure(result)) {
             native.callIfPossible(args.errorCallback, native.getErrorObject(result));
         } else {
@@ -671,7 +663,10 @@ BluetoothLEDevice.prototype.disconnect = function() {
         }
     };
 
-    native.call('BluetoothLEDevice_disconnect', {address : this.address}, callback);
+    var result = native.call('BluetoothLEDevice_disconnect', {address : this.address}, callback);
+    if (native.isFailure(result)) {
+        throw native.getErrorObject(result);
+    }
 };
 
 BluetoothLEDevice.prototype.getService = function() {
@@ -696,7 +691,7 @@ BluetoothLEDevice.prototype.getService = function() {
     if (native.isFailure(result)) {
         throw native.getErrorObject(result);
     } else {
-        return BluetoothGATTService(native.getResultObject(result));
+        return new BluetoothGATTService(native.getResultObject(result));
     }
 };
 
@@ -834,8 +829,8 @@ BluetoothDevice.prototype.connectToServiceByUUID = function() {
         }
     };
 
-    // native.call does not inform if call results in failure
-    // TODO: what to do in this case?
+    // The native function BluetoothDevice_connectToServiceByUUID always returns success
+    // Errors are handled by error callback
     native.call('BluetoothDevice_connectToServiceByUUID', callArgs, callback);
 };
 
@@ -935,7 +930,7 @@ BluetoothServiceHandler.prototype.unregister = function() {
     };
 
     // native.call does not inform if call results in failure
-    // TODO: what to do in this case?
+    // Errors are handled by error callback
     native.call('BluetoothServiceHandler_unregister', callArgs, callback);
 
     _bluetoothServiceListeners.removeListener(this.uuid);
@@ -1030,7 +1025,7 @@ BluetoothHealthApplication.prototype.unregister = function() {
     };
 
     // native.call does not inform if call results in failure
-    // TODO: what to do in this case?
+    // Errors are handled by error callback
     native.call('BluetoothHealthApplication_unregister', callArgs, callback);
 
     _bluetoothHealthApplicationListeners.removeListener(this._id);
@@ -1097,7 +1092,7 @@ BluetoothHealthProfileHandler.prototype.registerSinkApplication = function() {
     };
 
     // native.call does not inform if call results in failure
-    // TODO: what to do in this case?
+    // Errors are handled by error callback
     native.call('BluetoothHealthProfileHandler_registerSinkApp', callArgs, callback);
 };
 
@@ -1145,7 +1140,7 @@ BluetoothHealthProfileHandler.prototype.connectToSource = function() {
     };
 
     // native.call does not inform if call results in failure
-    // TODO: what to do in this case?
+    // Errors are handled by error callback
     native.call('BluetoothHealthProfileHandler_connectToSource', callArgs, callback);
 };
 
@@ -1482,12 +1477,10 @@ BluetoothLEAdapter.prototype.stopAdvertise = function() {
 
   xwalk.utils.checkPrivilegeAccess4Ver("2.4", Privilege.BLUETOOTH, Privilege.BLUETOOTH_ADMIN);
 
-  // TODO: when should we call _bleAdvertiseListener.removeListener()?
-
+  _bleAdvertiseListener.removeListener();
   var result = native.callSync('BluetoothLEAdapter_stopAdvertise', {});
 
   if (native.isFailure(result)) {
-    _bleAdvertiseListener.removeListener();
     throw native.getErrorObject(result);
   }
 };
@@ -1501,7 +1494,7 @@ var BluetoothGATTService = function(data, address) {
     function servicesGetter() {
         var services = [];
         var result = native.callSync('BluetoothGATTService_getServices',
-                {handle: handle_, uuid: uuid_, address : address_});
+                {handle: handle_, address : address_});
         if (native.isSuccess(result)) {
             var resultObject = native.getResultObject(result);
             resultObject.forEach(function(s) {
@@ -1527,6 +1520,15 @@ var BluetoothGATTService = function(data, address) {
         services : {enumerable: true, set : function() {}, get : servicesGetter},
         characteristics : {enumerable: true, set : function() {}, get : characteristicsGetter}
     });
+};
+
+var toByteArray = function(array) {
+    var d = [];
+
+    array.forEach(function(b) {
+        d.push(Converter.toOctet(b));
+    });
+    return d;
 };
 
 //class BluetoothGATTCharacteristic ////////////////////////////////////////////////////
@@ -1633,16 +1635,7 @@ var BluetoothGATTCharacteristic = function(data, address) {
     }
   });
 
-  var toByteArray = function(array) {
-      var d = [];
-
-      array.forEach(function(b) {
-          d.push(Converter.toOctet(b));
-      });
-      return d;
-  };
-
-  BluetoothGATTCharacteristic.prototype.readValue = function() {
+  this.readValue = function() {
       console.log('Entered BluetoothGATTCharacteristic.readValue()');
 
       xwalk.utils.checkPrivilegeAccess4Ver("2.4", Privilege.BLUETOOTH, Privilege.BLUETOOTH_ADMIN);
@@ -1675,7 +1668,7 @@ var BluetoothGATTCharacteristic = function(data, address) {
       }
     };
 
-    BluetoothGATTCharacteristic.prototype.writeValue = function() {
+    this.writeValue = function() {
       console.log('Entered BluetoothGATTCharacteristic.writeValue()');
 
       xwalk.utils.checkPrivilegeAccess4Ver("2.4", Privilege.BLUETOOTH, Privilege.BLUETOOTH_ADMIN);
@@ -1713,7 +1706,7 @@ var BluetoothGATTCharacteristic = function(data, address) {
       }
     };
 
-  BluetoothGATTCharacteristic.prototype.addValueChangeListener = function() {
+  this.addValueChangeListener = function() {
     console.log('Entered BluetoothGATTCharacteristic.addValueChangeListener()');
 
     xwalk.utils.checkPrivilegeAccess4Ver("2.4", Privilege.BLUETOOTH, Privilege.BLUETOOTH_ADMIN);
@@ -1734,7 +1727,7 @@ var BluetoothGATTCharacteristic = function(data, address) {
     return _bluetoothGATTCharacteristicListener.addListener(callback, callArgs);
   };
 
-  BluetoothGATTCharacteristic.prototype.removeValueChangeListener = function() {
+  this.removeValueChangeListener = function() {
     console.log('Entered BluetoothGATTCharacteristic.removeValueChangeListener()');
 
     var args = AV.validateMethod(arguments, [{
@@ -1855,12 +1848,12 @@ var _bleConnectChangeListener = _multipleListenerBuilder(
 );
 
 //class BluetoothGATTDescriptor ////////////////////////////////////////////////////
-var BluetoothGATTDescriptor = function(address) {
+var BluetoothGATTDescriptor = function(data, address) {
   var handle_ = data.handle;
   //address_ is needed to control if device is still connected
   var address_ = address;
 
-  BluetoothGATTDescriptor.prototype.readValue = function() {
+  this.readValue = function() {
     console.log('Entered BluetoothGATTDescriptor.readValue()');
 
     xwalk.utils.checkPrivilegeAccess4Ver("2.4", Privilege.BLUETOOTH, Privilege.BLUETOOTH_ADMIN);
@@ -1893,7 +1886,7 @@ var BluetoothGATTDescriptor = function(address) {
     }
   };
 
-  BluetoothGATTDescriptor.prototype.writeValue = function() {
+  this.writeValue = function() {
     console.log('Entered BluetoothGATTDescriptor.writeValue()');
 
     xwalk.utils.checkPrivilegeAccess4Ver("2.4", Privilege.BLUETOOTH, Privilege.BLUETOOTH_ADMIN);
@@ -2036,7 +2029,7 @@ BluetoothAdapter.prototype.setName = function() {
     };
 
     // native.call does not inform if call results in failure
-    // TODO: what to do in this case?
+    // Errors are handled by error callback
     native.call('BluetoothAdapter_setName', callArgs, callback);
 };
 
@@ -2076,7 +2069,7 @@ BluetoothAdapter.prototype.setPowered = function() {
     };
 
     // native.call does not inform if call results in failure
-    // TODO: what to do in this case?
+    // Errors are handled by error callback
     native.call('BluetoothAdapter_setPowered', callArgs, callback);
 };
 
@@ -2132,7 +2125,7 @@ BluetoothAdapter.prototype.setVisible = function() {
     };
 
     // native.call does not inform if call results in failure
-    // TODO: what to do in this case?
+    // Errors are handled by error callback
     native.call('BluetoothAdapter_setVisible', callArgs, callback);
 };
 
@@ -2305,7 +2298,7 @@ BluetoothAdapter.prototype.stopDiscovery = function() {
     };
 
     // native.call does not inform if call results in failure
-    // TODO: what to do in this case?
+    // Errors are handled by error callback
     native.call('BluetoothAdapter_stopDiscovery', {}, callback);
 };
 
@@ -2340,7 +2333,7 @@ BluetoothAdapter.prototype.getKnownDevices = function() {
     };
 
     // native.call does not inform if call results in failure
-    // TODO: what to do in this case?
+    // Errors are handled by error callback
     native.call('BluetoothAdapter_getKnownDevices', {}, callback);
 };
 
@@ -2374,7 +2367,7 @@ BluetoothAdapter.prototype.getDevice = function() {
     };
 
     // native.call does not inform if call results in failure
-    // TODO: what to do in this case?
+    // Errors are handled by error callback
     native.call('BluetoothAdapter_getDevice', {address : args.address}, callback);
 };
 
@@ -2414,7 +2407,7 @@ BluetoothAdapter.prototype.createBonding = function() {
     };
 
     // native.call does not inform if call results in failure
-    // TODO: what to do in this case?
+    // Errors are handled by error callback
     native.call('BluetoothAdapter_createBonding', callArgs, callback);
 };
 
@@ -2454,7 +2447,7 @@ BluetoothAdapter.prototype.destroyBonding = function() {
     };
 
     // native.call does not inform if call results in failure
-    // TODO: what to do in this case?
+    // Errors are handled by error callback
     native.call('BluetoothAdapter_destroyBonding', callArgs, callback);
 };
 
@@ -2499,7 +2492,7 @@ BluetoothAdapter.prototype.registerRFCOMMServiceByUUID = function() {
     };
 
     // native.call does not inform if call results in failure
-    // TODO: what to do in this case?
+    // Errors are handled by error callback
     native.call('BluetoothAdapter_registerRFCOMMServiceByUUID', callArgs, callback);
 };
 

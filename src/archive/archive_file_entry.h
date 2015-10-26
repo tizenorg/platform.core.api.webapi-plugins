@@ -73,7 +73,7 @@ private:
     unsigned int m_compression_level;
 };
 
-}  // namespace archive
-}  // namespace extension
+} // archive
+} // extension
 
 #endif /* _TIZEN_ARCHIVE_FILE_ENTRY_H_ */

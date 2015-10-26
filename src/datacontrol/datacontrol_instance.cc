@@ -49,7 +49,7 @@ struct DatacontrolInformation {
   int requestId;
   int userDefinedRequestId;
 };
-static DatacontrolInstance *Self = NULL;
+
 static std::map<int, DatacontrolInformation*> IdMap;
 
 DatacontrolInstance::DatacontrolInstance() {
@@ -73,27 +73,20 @@ DatacontrolInstance::DatacontrolInstance() {
   REGISTER_SYNC("MappedDataControlConsumer_getValue",
                 MappedDataControlConsumerGetvalue);
   #undef REGISTER_SYNC
-
-  Self = this;
 }
 
 DatacontrolInstance::~DatacontrolInstance() {
-  Self = NULL;
 }
 
-static void ReplyAsync(int callbackId, bool isSuccess,
-                       picojson::object* param) {
+static void ReplyAsync(DatacontrolInstance* instance, int callbackId,
+                       bool isSuccess, picojson::object* param) {
   LoggerD("Enter");
   (*param)["callbackId"] = picojson::value(static_cast<double>(callbackId));
   (*param)["status"] = picojson::value(isSuccess ? "success" : "error");
 
   picojson::value result = picojson::value(*param);
 
-  if (Self) {
-    Self->PostMessage(result.serialize().c_str());
-  } else {
-    LoggerE("Current Instance is not registed");
-  }
+  common::Instance::PostMessage(instance, result.serialize().c_str());
 }
 
 static bool SQLColumnName(result_set_cursor cursor, int columnIndex,
@@ -195,7 +188,8 @@ static void MAPAddResponseCallback(int requestId, data_control_h handle,
     obj["result"] = InvalidValuesException(error).ToJSON();
   }
 
-  ReplyAsync(info->callbackId, providerResult, &obj);
+  ReplyAsync(static_cast<DatacontrolInstance*>(user_data), info->callbackId,
+             providerResult, &obj);
   delete info;
   IdMap.erase(requestId);
 }
@@ -217,7 +211,7 @@ static void MAPSetResponseCallback(int requestId, data_control_h handle,
     obj["result"] = NotFoundException(error).ToJSON();
   }
 
-  ReplyAsync(info->callbackId, providerResult, &obj);
+  ReplyAsync(static_cast<DatacontrolInstance*>(user_data), info->callbackId, providerResult, &obj);
   delete info;
   IdMap.erase(requestId);
 }
@@ -247,7 +241,8 @@ static void MAPGetResponseCallback(int requestId, data_control_h handle,
     obj["result"] = picojson::value(result);
   }
 
-  ReplyAsync(info->callbackId, providerResult, &obj);
+  ReplyAsync(static_cast<DatacontrolInstance*>(user_data), info->callbackId,
+             providerResult, &obj);
   delete info;
   IdMap.erase(requestId);
 }
@@ -269,7 +264,8 @@ static void MAPRemoveReponseCallback(int requestId, data_control_h handle,
     obj["result"] = NotFoundException(error).ToJSON();
   }
 
-  ReplyAsync(info->callbackId, providerResult, &obj);
+  ReplyAsync(static_cast<DatacontrolInstance*>(user_data), info->callbackId,
+             providerResult, &obj);
   delete info;
   IdMap.erase(requestId);
 }
@@ -304,8 +300,6 @@ static void SQLSelectResponseCallback(int requestId, data_control_h handle,
         picojson::value value;
         if (SQLColumnName(cursor, i, column) &&
             SQLColumnValue(cursor, i, value)) {
-          std::string& name = column.get<std::string>();
-          std::string& val = value.get<std::string>();
           columns.push_back(column);
           values.push_back(value);
         }
@@ -316,7 +310,8 @@ static void SQLSelectResponseCallback(int requestId, data_control_h handle,
     }
     obj["result"] = picojson::value(result);
   }
-  ReplyAsync(info->callbackId, providerResult, &obj);
+  ReplyAsync(static_cast<DatacontrolInstance*>(user_data), info->callbackId,
+             providerResult, &obj);
   delete info;
   IdMap.erase(requestId);
 }
@@ -341,7 +336,8 @@ static void SQLInsertResponseCallback(int requestId, data_control_h handle,
     obj["result"] = picojson::value(static_cast<double>(inserted_row_id));
   }
 
-  ReplyAsync(info->callbackId, providerResult, &obj);
+  ReplyAsync(static_cast<DatacontrolInstance*>(user_data), info->callbackId,
+             providerResult, &obj);
   delete info;
   IdMap.erase(requestId);
 }
@@ -363,7 +359,8 @@ static void SQLUpdateResponseCallback(int requestId, data_control_h handle,
     obj["result"] = InvalidValuesException(error).ToJSON();
   }
 
-  ReplyAsync(info->callbackId, providerResult, &obj);
+  ReplyAsync(static_cast<DatacontrolInstance*>(user_data), info->callbackId,
+             providerResult, &obj);
   delete info;
   IdMap.erase(requestId);
 }
@@ -385,7 +382,8 @@ static void SQLDeleteResponseCallback(int requestId, data_control_h handle,
     obj["result"] = InvalidValuesException(error).ToJSON();
   }
 
-  ReplyAsync(info->callbackId, providerResult, &obj);
+  ReplyAsync(static_cast<DatacontrolInstance*>(user_data), info->callbackId,
+             providerResult, &obj);
   delete info;
   IdMap.erase(requestId);
 }
@@ -441,7 +439,7 @@ int DatacontrolInstance::RunMAPDataControlJob(const std::string& providerId,
 
   result =
       ::data_control_map_register_response_cb(handle, &mapResponseCallback,
-                                              NULL);
+                                              this);
   RETURN_IF_FAIL(result, "Setting result Callback failed with error");
 
   result = job(handle, &info->requestId);
@@ -481,7 +479,7 @@ int DatacontrolInstance::RunSQLDataControlJob(const std::string& providerId,
 
   result =
       ::data_control_sql_register_response_cb(handle, &sqlResponseCallback,
-                                              NULL);
+                                              this);
   RETURN_IF_FAIL(result, "Setting result Callback failed with error");
 
   result = job(handle, &info->requestId);
@@ -505,9 +503,6 @@ void DatacontrolInstance::DataControlManagerGetdatacontrolconsumer(
   LoggerD("Enter");
   CHECK_EXIST(args, "providerId", out)
   CHECK_EXIST(args, "dataId", out)
-
-  const std::string& providerId = args.get("providerId").get<std::string>();
-  const std::string& dataId = args.get("dataId").get<std::string>();
 }
 void DatacontrolInstance::SQLDataControlConsumerInsert(
     const picojson::value& args, picojson::object& out) {

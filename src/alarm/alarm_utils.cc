@@ -39,7 +39,7 @@ PlatformResult AppControlToService(const picojson::object& obj, app_control_h *a
 
   int ret = app_control_set_operation(*app_control, it_operation->second.get<std::string>().c_str());
   if (APP_CONTROL_ERROR_NONE != ret) {
-    LoggerE("Failed app_control_set_operation() (%d)", ret);
+    LoggerE("Failed app_control_set_operation(): %d (%s)", ret, get_error_message(ret));
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Error while setting operation.");
   }
 
@@ -47,7 +47,7 @@ PlatformResult AppControlToService(const picojson::object& obj, app_control_h *a
   if (it_end != it_uri && it_uri->second.is<std::string>()) {
     ret = app_control_set_uri(*app_control, it_uri->second.get<std::string>().c_str());
     if (APP_CONTROL_ERROR_NONE != ret) {
-      LoggerE("Failed app_control_set_uri() (%d)", ret);
+      LoggerE("Failed app_control_set_uri(): %d (%s)", ret, get_error_message(ret));
       return PlatformResult(ErrorCode::UNKNOWN_ERR, "Error while setting uri.");
     }
   }
@@ -56,7 +56,7 @@ PlatformResult AppControlToService(const picojson::object& obj, app_control_h *a
   if (it_end != it_mime && it_mime->second.is<std::string>()) {
     ret = app_control_set_mime(*app_control, it_mime->second.get<std::string>().c_str());
     if (APP_CONTROL_ERROR_NONE != ret) {
-      LoggerE("Failed app_control_set_mime() (%d)", ret);
+      LoggerE("Failed app_control_set_mime(): %d (%s)", ret, get_error_message(ret));
       return PlatformResult(ErrorCode::UNKNOWN_ERR, "Error while setting mime.");
     }
   }
@@ -65,7 +65,7 @@ PlatformResult AppControlToService(const picojson::object& obj, app_control_h *a
   if (it_end != it_category && it_category->second.is<std::string>()) {
     ret = app_control_set_category(*app_control, it_category->second.get<std::string>().c_str());
     if (APP_CONTROL_ERROR_NONE != ret) {
-      LoggerE("Failed app_control_set_category() (%d)", ret);
+      LoggerE("Failed app_control_set_category(): %d (%s)", ret, get_error_message(ret));
       return PlatformResult(ErrorCode::UNKNOWN_ERR, "Error while setting category.");
     }
   }
@@ -111,9 +111,7 @@ PlatformResult AppControlToServiceExtraData(const picojson::object& app_obj,
   size_t i = 0;
 
   for (auto iter = values.begin(); iter != values.end(); ++iter, ++i) {
-    if (iter->is<std::string>()) {
-      arr[i] = iter->get<std::string>().c_str();
-    }
+    arr[i] = iter->to_str().c_str();
   }
 
   int ret = APP_CONTROL_ERROR_NONE;
@@ -125,7 +123,7 @@ PlatformResult AppControlToServiceExtraData(const picojson::object& app_obj,
   delete[] arr;
 
   if (APP_CONTROL_ERROR_NONE != ret) {
-    LoggerD("Error while setting data.");
+    LoggerD("Error while setting data: %d (%s)", ret, get_error_message(ret));
     return PlatformResult(ErrorCode::UNKNOWN_ERR, "Error while setting data.");
   }
 

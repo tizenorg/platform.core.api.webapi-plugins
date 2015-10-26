@@ -122,7 +122,7 @@ void FilesystemInstance::FileRename(const picojson::value& args,
     picojson::object& obj = response.get<picojson::object>();
     obj["callbackId"] = picojson::value(callback_id);
     ReportSuccess(data.toJSON(), obj);
-    PostMessage(response.serialize().c_str());
+    Instance::PostMessage(this, response.serialize().c_str());
   };
 
   auto onError = [this, callback_id](FilesystemError e) {
@@ -131,7 +131,7 @@ void FilesystemInstance::FileRename(const picojson::value& args,
     picojson::object& obj = response.get<picojson::object>();
     obj["callbackId"] = picojson::value(callback_id);
     PrepareError(e, obj);
-    PostMessage(response.serialize().c_str());
+    Instance::PostMessage(this, response.serialize().c_str());
   };
 
   FilesystemManager& fsm = FilesystemManager::GetInstance();
@@ -287,7 +287,7 @@ void FilesystemInstance::FileStat(const picojson::value& args,
     picojson::object& obj = response.get<picojson::object>();
     obj["callbackId"] = picojson::value(callback_id);
     ReportSuccess(data.toJSON(), obj);
-    PostMessage(response.serialize().c_str());
+    Instance::PostMessage(this, response.serialize().c_str());
   };
 
   auto onError = [this, callback_id](FilesystemError e) {
@@ -296,7 +296,7 @@ void FilesystemInstance::FileStat(const picojson::value& args,
     picojson::object& obj = response.get<picojson::object>();
     obj["callbackId"] = picojson::value(callback_id);
     PrepareError(e, obj);
-    PostMessage(response.serialize().c_str());
+    Instance::PostMessage(this, response.serialize().c_str());
   };
 
   FilesystemManager& fsm = FilesystemManager::GetInstance();
@@ -392,7 +392,7 @@ void FilesystemInstance::onFilesystemStateChangeSuccessCallback(const common::Vi
   obj["type"] = picojson::value(common::to_string(storage.type_));
   obj["state"] = picojson::value(common::to_string(storage.state_));
   obj["listenerId"] = picojson::value("StorageStateChangeListener");
-  PostMessage(event.serialize().c_str());
+  Instance::PostMessage(this, event.serialize().c_str());
 }
 
 void FilesystemInstance::onFilesystemStateChangeErrorCallback() {
@@ -402,7 +402,7 @@ void FilesystemInstance::onFilesystemStateChangeErrorCallback() {
   ReportError(UnknownException(std::string("Failed to registerd listener")), obj);
   obj["listenerId"] = picojson::value("StorageStateChangeListener");
   LoggerD("Posting: %s", event.serialize().c_str());
-  PostMessage(event.serialize().c_str());
+  Instance::PostMessage(this, event.serialize().c_str());
 }
 
 void FilesystemInstance::FileSystemManagerMakeDirectory(
@@ -424,7 +424,7 @@ void FilesystemInstance::FileSystemManagerMakeDirectory(
       ReportSuccess(obj);
     else
       PrepareError(e, obj);
-    PostMessage(response.serialize().c_str());
+    Instance::PostMessage(this, response.serialize().c_str());
   };
 
   auto onAction = [location, onResult]() {
@@ -474,7 +474,7 @@ void FilesystemInstance::ReadDir(const picojson::value& args,
       statPaths.push_back(stat.toJSON());
     }
     ReportSuccess(result, obj);
-    PostMessage(response.serialize().c_str());
+    Instance::PostMessage(this, response.serialize().c_str());
   };
 
   auto onError = [this, callback_id](FilesystemError e) {
@@ -483,7 +483,7 @@ void FilesystemInstance::ReadDir(const picojson::value& args,
     picojson::object& obj = response.get<picojson::object>();
     obj["callbackId"] = picojson::value(callback_id);
     PrepareError(e, obj);
-    PostMessage(response.serialize().c_str());
+    Instance::PostMessage(this, response.serialize().c_str());
   };
 
   FilesystemManager& fm = FilesystemManager::GetInstance();
@@ -506,7 +506,7 @@ void FilesystemInstance::UnlinkFile(const picojson::value& args,
     picojson::object& obj = response.get<picojson::object>();
     obj["callbackId"] = picojson::value(callback_id);
     ReportSuccess(result, obj);
-    PostMessage(response.serialize().c_str());
+    Instance::PostMessage(this, response.serialize().c_str());
   };
 
   auto onError = [this, callback_id](FilesystemError e) {
@@ -515,7 +515,7 @@ void FilesystemInstance::UnlinkFile(const picojson::value& args,
     picojson::object& obj = response.get<picojson::object>();
     obj["callbackId"] = picojson::value(callback_id);
     PrepareError(e, obj);
-    PostMessage(response.serialize().c_str());
+    Instance::PostMessage(this, response.serialize().c_str());
   };
 
   FilesystemManager& fm = FilesystemManager::GetInstance();
@@ -538,7 +538,7 @@ void FilesystemInstance::RemoveDirectory(const picojson::value& args,
     picojson::object& obj = response.get<picojson::object>();
     obj["callbackId"] = picojson::value(callback_id);
     ReportSuccess(result, obj);
-    PostMessage(response.serialize().c_str());
+    Instance::PostMessage(this, response.serialize().c_str());
   };
 
   auto onError = [this, callback_id](FilesystemError e) {
@@ -547,7 +547,7 @@ void FilesystemInstance::RemoveDirectory(const picojson::value& args,
     picojson::object& obj = response.get<picojson::object>();
     obj["callbackId"] = picojson::value(callback_id);
     PrepareError(e, obj);
-    PostMessage(response.serialize().c_str());
+    Instance::PostMessage(this, response.serialize().c_str());
   };
 
   FilesystemManager& fm = FilesystemManager::GetInstance();
@@ -575,7 +575,7 @@ void FilesystemInstance::CopyTo(const picojson::value& args,
     picojson::object& obj = response.get<picojson::object>();
     obj["callbackId"] = picojson::value(callback_id);
     ReportSuccess(result, obj);
-    PostMessage(response.serialize().c_str());
+    Instance::PostMessage(this, response.serialize().c_str());
   };
 
   auto onError = [this, callback_id](FilesystemError e) {
@@ -584,7 +584,7 @@ void FilesystemInstance::CopyTo(const picojson::value& args,
     picojson::object& obj = response.get<picojson::object>();
     obj["callbackId"] = picojson::value(callback_id);
     PrepareError(e, obj);
-    PostMessage(response.serialize().c_str());
+    Instance::PostMessage(this, response.serialize().c_str());
   };
 
   FilesystemManager& fm = FilesystemManager::GetInstance();
@@ -597,31 +597,40 @@ void FilesystemInstance::PrepareError(const FilesystemError& error, picojson::ob
   LoggerD("enter");
   switch (error) {
     case FilesystemError::None:
+      LoggerE("UnknownException - PLATFORM ERROR");
       ReportError(UnknownException("PLATFORM ERROR"), out);
       break;
     case FilesystemError::NotFound:
+      LoggerE("NotFoundException - PLATFORM ERROR");
       ReportError(NotFoundException("PLATFORM ERROR"), out);
       break;
     case FilesystemError::FileExists:
+      LoggerE("IOException - File already exists");
       ReportError(IOException("File already exists"), out);
       break;
     case FilesystemError::DirectoryExists:
+      LoggerE("IOException - Directory already exists");
       ReportError(IOException("Directory already exists"), out);
       break;
     case FilesystemError::PermissionDenied:
+      LoggerE("IOException - Permission denied");
       ReportError(IOException("Permission denied"), out);
       break;
     case FilesystemError::IOError:
+      LoggerE("IOException - IO Error");
       ReportError(IOException("IO Error"), out);
       break;
     case FilesystemError::Other:
-      ReportError(UnknownException("PLATFORM ERROR"), out);
+      LoggerE("UnknownException - PLATFORM ERROR other");
+      ReportError(UnknownException("PLATFORM ERROR other"), out);
       break;
     case FilesystemError::InvalidValue:
+      LoggerE("InvalidValuesException - PLATFORM ERROR");
       ReportError(InvalidValuesException("PLATFORM ERROR"), out);
       break;
     default:
-      ReportError(UnknownException("PLATFORM ERROR"), out);
+      LoggerE("UnknownException - PLATFORM ERROR default");
+      ReportError(UnknownException("PLATFORM ERROR default"), out);
       break;
   }
 }

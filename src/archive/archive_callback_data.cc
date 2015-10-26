@@ -13,7 +13,7 @@
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
  */
- 
+
 #include "archive_callback_data.h"
 
 #include "common/logger.h"
@@ -42,7 +42,8 @@ OperationCallbackData::OperationCallbackData(ArchiveCallbackType callback_type, 
     m_handle(-1),
     instance_(instance),
     m_is_error(false),
-    m_is_canceled(false)
+    m_is_canceled(false),
+    m_err_code(ErrorCode::NO_ERROR)
 {
     LoggerD("Entered");
 }
@@ -123,7 +124,7 @@ void OperationCallbackData::setIsCanceled(bool canceled)
 
 void OperationCallbackData::PostMessage(const char* msg) {
   LoggerD("Enter");
-  instance_.PostMessage(msg);
+  Instance::PostMessage(&instance_, msg);
 }
 
 const ErrorCode& OperationCallbackData::getErrorCode() const
@@ -416,7 +417,7 @@ gboolean BaseProgressCallback::callSuccessCallbackCB(void* data)
 
         LoggerD("%s", val.serialize().c_str());
 
-        callback->instance_.PostMessage(val.serialize().c_str());
+        Instance::PostMessage(&callback->instance_, val.serialize().c_str());
     } else {
         LoggerW("Not calling error callback in such case");
     }
@@ -449,7 +450,7 @@ void BaseProgressCallback::callProgressCallback(long operationId,
 
     LoggerD("%s", val.serialize().c_str());
 
-    instance_.PostMessage(val.serialize().c_str());
+    Instance::PostMessage(&instance_, val.serialize().c_str());
 }
 
 void BaseProgressCallback::callProgressCallbackOnMainThread(const double progress,
@@ -534,7 +535,7 @@ void AddProgressCallback::setBasePath(const std::string& path)
 {
     LoggerD("Entered");
     m_base_path = path;
-    m_base_virt_path = filesystem::External::toVirtualPath(m_base_path);
+    m_base_virt_path = filesystem::External::cutVirtualRoot(m_base_path);
     std::string::size_type pos = m_base_virt_path.find(filesystem::Path::getSeparator());
     if (pos != std::string::npos)
     {
@@ -602,9 +603,6 @@ PlatformResult AddProgressCallback::executeOperation(ArchiveFilePtr archive_file
 
     LoggerD("Update decompressed size and entry list");
     // update informations about decompressed size and entry list
-    // TODO FIXME need to resolve problem with access to file by
-    // more than one thread
-
     return archive_file_ptr->updateListOfEntries();
 }
 

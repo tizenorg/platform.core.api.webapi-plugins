@@ -10,8 +10,9 @@
 #include <string>
 #include <map>
 
-#include "common/logger.h"
 #include "common/assert.h"
+#include "common/logger.h"
+#include "common/tools.h"
 
 // This function is hidden, because each plugin needs to have own implementation.
 __attribute__ ((visibility ("hidden"))) common::Extension* CreateExtension() {
@@ -42,15 +43,14 @@ bool InitializeInterfaces(XW_GetInterface get_interface) {
     g_core = reinterpret_cast<const XW_CoreInterface*>(
         get_interface(XW_CORE_INTERFACE));
     if (!g_core) {
-      std::cerr << "Can't initialize extension: error getting Core interface.\n";
+      LoggerE("Can't initialize extension: error getting Core interface.");
       return false;
     }
 
     g_messaging = reinterpret_cast<const XW_MessagingInterface*>(
         get_interface(XW_MESSAGING_INTERFACE));
     if (!g_messaging) {
-      std::cerr <<
-          "Can't initialize extension: error getting Messaging interface.\n";
+      LoggerE("Can't initialize extension: error getting Messaging interface.");
       return false;
     }
 
@@ -58,30 +58,29 @@ bool InitializeInterfaces(XW_GetInterface get_interface) {
         reinterpret_cast<const XW_Internal_SyncMessagingInterface*>(
             get_interface(XW_INTERNAL_SYNC_MESSAGING_INTERFACE));
     if (!g_sync_messaging) {
-      std::cerr <<
-          "Can't initialize extension: error getting SyncMessaging interface.\n";
+      LoggerE("Can't initialize extension: error getting SyncMessaging interface.");
       return false;
     }
 
     g_entry_points = reinterpret_cast<const XW_Internal_EntryPointsInterface*>(
         get_interface(XW_INTERNAL_ENTRY_POINTS_INTERFACE));
     if (!g_entry_points) {
-      std::cerr << "NOTE: Entry points interface not available in this version "
-                << "of Crosswalk, ignoring entry point data for extensions.\n";
+      LoggerE("NOTE: Entry points interface not available in this version "
+              "of runtime, ignoring entry point data for extensions.");
     }
 
     g_runtime = reinterpret_cast<const XW_Internal_RuntimeInterface*>(
         get_interface(XW_INTERNAL_RUNTIME_INTERFACE));
     if (!g_runtime) {
-      std::cerr << "NOTE: runtime interface not available in this version "
-                << "of Crosswalk, ignoring runtime variables for extensions.\n";
+      LoggerE("NOTE: runtime interface not available in this version "
+              "of runtime, ignoring runtime variables for extensions.");
     }
 
     g_permission = reinterpret_cast<const XW_Internal_PermissionsInterface*>(
         get_interface(XW_INTERNAL_PERMISSIONS_INTERFACE));
     if (!g_permission) {
-      std::cerr << "NOTE: permission interface not available in this version "
-        << "of Crosswalk, ignoring permission for extensions.\n";
+      LoggerE("NOTE: permission interface not available in this version "
+              "of runtime, ignoring permission for extensions.");
     }
 
     initialized = true;
@@ -232,7 +231,6 @@ int32_t Extension::XW_Initialize(XW_Extension extension,
   return XW_OK;
 }
 
-std::mutex Instance::instance_mutex_;
 std::unordered_set<Instance*> Instance::all_instances_;
 
 Instance::Instance() :
@@ -240,7 +238,6 @@ Instance::Instance() :
 {
   LoggerD("Enter");
   {
-    std::lock_guard<std::mutex> lock(instance_mutex_);
     all_instances_.insert(this);
   }
 }
@@ -248,7 +245,6 @@ Instance::Instance() :
 Instance::~Instance() {
   LoggerD("Enter");
   {
-    std::lock_guard<std::mutex> lock(instance_mutex_);
     all_instances_.erase(this);
   }
   Assert(xw_instance_ == 0);
@@ -256,7 +252,6 @@ Instance::~Instance() {
 
 void Instance::PostMessage(Instance* that, const char* msg) {
   LoggerD("Enter");
-  std::lock_guard<std::mutex> lock(instance_mutex_);
   if (that && all_instances_.end() != all_instances_.find(that)) {
     that->PostMessage(msg);
   } else {
@@ -268,8 +263,8 @@ void Instance::PostMessage(Instance* that, const char* msg) {
 void Instance::PostMessage(const char* msg) {
   LoggerD("Enter");
   if (!xw_instance_) {
-    std::cerr << "Ignoring PostMessage() in the constructor or after the "
-              << "instance was destroyed.";
+    LoggerE("Ignoring PostMessage() in the constructor or after the "
+            "instance was destroyed.");
     return;
   }
   g_messaging->PostMessage(xw_instance_, msg);
@@ -278,8 +273,8 @@ void Instance::PostMessage(const char* msg) {
 void Instance::SendSyncReply(const char* reply) {
   LoggerD("Enter");
   if (!xw_instance_) {
-    std::cerr << "Ignoring SendSyncReply() in the constructor or after the "
-              << "instance was destroyed.";
+    LoggerE("Ignoring SendSyncReply() in the constructor or after the "
+            "instance was destroyed.");
     return;
   }
   g_sync_messaging->SetSyncReply(xw_instance_, reply);
@@ -346,12 +341,12 @@ void ParsedInstance::HandleMessage(const char* msg, bool is_sync) {
     std::string err;
     picojson::parse(value, msg, msg + strlen(msg), &err);
     if (!err.empty()) {
-      std::cerr << "Ignoring message. " << err;
+      LoggerE("Ignoring message, error: %s", err.c_str());
       return;
     }
 
     if (!value.is<picojson::object>()) {
-      std::cerr << "Ignoring message. It is not an object.";
+      LoggerE("Ignoring message. It is not an object.");
       return;
     }
 
@@ -391,7 +386,7 @@ void ParsedInstance::HandleMessage(const char* msg, bool is_sync) {
 
 void ParsedInstance::HandleException(const PlatformException& ex) {
   LoggerD("Enter");
-  std::cerr << "Exception: " << ex.message();
+  LoggerE("Exception: %s", ex.message().c_str());
   picojson::value result = picojson::value(picojson::object());
   ReportError(ex, result.get<picojson::object>());
   SendSyncReply(result.serialize().c_str());

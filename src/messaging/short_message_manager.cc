@@ -21,6 +21,7 @@
 
 #include "common/platform_exception.h"
 #include "common/logger.h"
+#include "common/scope_exit.h"
 
 #include "messaging_util.h"
 #include "messaging_instance.h"
@@ -57,21 +58,13 @@ static gboolean sendMessageCompleteCB(void* data)
         return false;
     }
 
-    if (callback->isError()) {
-      callback->getQueue().resolve(
-                callback->getJson()->get<picojson::object>().at(JSON_CALLBACK_ID).get<double>(),
-                callback->getJson()->serialize()
-        );
+    if (callback->IsError()) {
         callback->getMessage()->setMessageStatus(MessageStatus::STATUS_FAILED);
     }
     else {
         std::shared_ptr<Message> message = callback->getMessage();
 
         LoggerD("Calling success callback with: %d recipients", message->getTO().size());
-
-        auto json = callback->getJson();
-        picojson::object& obj = json->get<picojson::object>();
-        obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
 
         std::vector<picojson::value> recipients;
         auto addToRecipients = [&recipients](std::string& e)->void {
@@ -84,14 +77,12 @@ static gboolean sendMessageCompleteCB(void* data)
         picojson::object data;
         data[JSON_DATA_RECIPIENTS] = picojson::value(recipients);
         data[JSON_DATA_MESSAGE] = MessagingUtil::messageToJson(message);
-        obj[JSON_DATA] = picojson::value(data);
 
-        callback->getQueue().resolve(
-                obj.at(JSON_CALLBACK_ID).get<double>(),
-                json->serialize()
-        );
+        callback->SetSuccess(picojson::value(data));
         callback->getMessage()->setMessageStatus(MessageStatus::STATUS_SENT);
     }
+
+    callback->Post();
 
     delete callback;
     callback = NULL;
@@ -108,30 +99,20 @@ static gboolean addDraftMessageCompleteCB(void *data)
         return FALSE;
     }
 
-    if (callback->isError()) {
+    if (callback->IsError()) {
         LoggerD("Calling error callback");
 
-        callback->getQueue().resolve(
-                callback->getJson()->get<picojson::object>().at(JSON_CALLBACK_ID).get<double>(),
-                callback->getJson()->serialize()
-        );
         callback->getMessage()->setMessageStatus(MessageStatus::STATUS_FAILED);
     } else {
         LoggerD("Calling success callback");
 
-        auto json = callback->getJson();
-        picojson::object& obj = json->get<picojson::object>();
-        obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
-
         picojson::object args;
         args[JSON_DATA_MESSAGE] = MessagingUtil::messageToJson(callback->getMessage());
-        obj[JSON_DATA] = picojson::value(args);
 
-        callback->getQueue().resolve(
-                obj.at(JSON_CALLBACK_ID).get<double>(),
-                json->serialize()
-        );
+        callback->SetSuccess(picojson::value(args));
     }
+
+    callback->Post();
 
     delete callback;
     callback = NULL;
@@ -363,7 +344,7 @@ PlatformResult ShortMsgManager::sendMessage(MessageRecipientsCallbackData* callb
   if (!platform_result) {
     LoggerE("Message send failed");
 
-    callback->setError(platform_result);
+    callback->SetError(platform_result);
 
     if (!g_idle_add(sendMessageCompleteCB, static_cast<void*>(callback))) {
       LoggerE("g_idle addition failed");
@@ -409,8 +390,7 @@ void ShortMsgManager::sendStatusCallback(msg_struct_t sent_status)
                 callback->getMessage()->getId(),
                 (MSG_NETWORK_SEND_FAIL == status ? "FAIL" : "TIMEOUT"));
 
-            common::UnknownException e("Send message failed");
-            callback->setError(e.name(), e.message());
+            callback->SetError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Send message failed"));
         }
 
         if (!g_idle_add(sendMessageCompleteCB, static_cast<void*>(callback))) {
@@ -469,7 +449,7 @@ PlatformResult ShortMsgManager::callProperEventMessages(EventMessages* event,
                 ConversationPtrVector updated_conv;
 
                 for(ConversationPtrVector::iterator it = eventConv->items.begin();
-                        it != eventConv->items.end(); it++) {
+                        it != eventConv->items.end(); ++it) {
                     ConversationPtr cur_conv = *it;
                     const bool new_conv = (cur_conv->getMessageCount() <= 1);
                     if(new_conv) {
@@ -741,7 +721,7 @@ void ShortMsgManager::addDraftMessage(MessageCallbackUserData* callback)
       PlatformResult ret = addDraftMessagePlatform(message);
       if (ret.IsError()) {
         LoggerE("%d (%s)", ret.error_code(), ret.message().c_str());
-        callback->setError(ret);
+        callback->SetError(ret);
       }
     }
 
@@ -762,7 +742,6 @@ void ShortMsgManager::removeMessages(MessagesCallbackUserData* callback)
         return;
     }
 
-    int error;
     std::vector<std::shared_ptr<Message>> messages;
 
     {
@@ -777,7 +756,7 @@ void ShortMsgManager::removeMessages(MessagesCallbackUserData* callback)
             }
         }
 
-        if (!callback->isError()) {
+        if (!callback->IsError()) {
             for (auto it = messages.begin() ; it != messages.end(); ++it) {
                 const int id = (*it)->getId();
 
@@ -792,7 +771,7 @@ void ShortMsgManager::removeMessages(MessagesCallbackUserData* callback)
                         break;
                 }
 
-                error = msg_delete_message(m_msg_handle, id);
+               int error = msg_delete_message(m_msg_handle, id);
                 if (MSG_SUCCESS != error) {
                     LoggerE("Error while deleting message");
                     callback->SetError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Error while deleting message"));
@@ -802,24 +781,14 @@ void ShortMsgManager::removeMessages(MessagesCallbackUserData* callback)
         }
     }
 
-    if (callback->isError()) {
+    if (callback->IsError()) {
         LoggerD("Calling error callback");
-        callback->getQueue().resolve(
-                callback->getJson()->get<picojson::object>().at(JSON_CALLBACK_ID).get<double>(),
-                callback->getJson()->serialize()
-        );
     } else {
         LoggerD("Calling success callback");
-
-        auto json = callback->getJson();
-        picojson::object& obj = json->get<picojson::object>();
-        obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
-
-        callback->getQueue().resolve(
-                obj.at(JSON_CALLBACK_ID).get<double>(),
-                json->serialize()
-        );
+        callback->SetSuccess();
     }
+
+    callback->Post();
 
     delete callback;
     callback = NULL;
@@ -847,7 +816,7 @@ void ShortMsgManager::updateMessages(MessagesCallbackUserData* callback)
                 break;
             }
         }
-        if (!callback->isError()) {
+        if (!callback->IsError()) {
             for (auto it = messages.begin() ; it != messages.end(); ++it) {
                 LoggerD("updating Message(%p) msg_id:%d", (*it).get(), (*it)->getId());
 
@@ -876,18 +845,10 @@ void ShortMsgManager::updateMessages(MessagesCallbackUserData* callback)
         }
     }
 
-    if (callback->isError()) {
+    if (callback->IsError()) {
         LoggerD("Calling error callback");
-
-        callback->getQueue().resolve(
-                callback->getJson()->get<picojson::object>().at(JSON_CALLBACK_ID).get<double>(),
-                callback->getJson()->serialize()
-        );
     } else {
         LoggerD("Calling success callback");
-
-        auto json = callback->getJson();
-        picojson::object& obj = json->get<picojson::object>();
 
         auto messages = callback->getMessages();
         picojson::array array;
@@ -897,15 +858,10 @@ void ShortMsgManager::updateMessages(MessagesCallbackUserData* callback)
 
         for_each(messages.begin(), messages.end(), each);
 
-        obj[JSON_DATA] = picojson::value(array);
-
-        obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
-
-        callback->getQueue().resolve(
-                obj.at(JSON_CALLBACK_ID).get<double>(),
-                json->serialize()
-        );
+        callback->SetSuccess(picojson::value(array));
     }
+
+    callback->Post();
 
     delete callback;
     callback = NULL;
@@ -982,7 +938,7 @@ void ShortMsgManager::findMessages(FindMsgCallbackUserData* callback)
             callback->SetError(ret);
         }
 
-        if (!callback->isError()) {
+        if (!callback->IsError()) {
             int msgListCount = messagesIds.size();
             LoggerD("Found %d messages", msgListCount);
 
@@ -1014,7 +970,7 @@ void ShortMsgManager::findMessages(FindMsgCallbackUserData* callback)
                     callback->SetError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get platform Message structure"));
                     break;
                 }
-                if (!callback->isError()) {
+                if (!callback->IsError()) {
                     callback->addMessage(std::shared_ptr<Message>{message});
                     LoggerD("Created message with id %d:", messagesIds[i]);
                 }
@@ -1022,18 +978,11 @@ void ShortMsgManager::findMessages(FindMsgCallbackUserData* callback)
         }
     }
 
-    if (callback->isError()) {
+    if (callback->IsError()) {
         LoggerD("Calling error callback");
-        callback->getQueue().resolve(
-                callback->getJson()->get<picojson::object>().at(JSON_CALLBACK_ID).get<double>(),
-                callback->getJson()->serialize()
-        );
     } else {
         LoggerD("Calling success callback with %d messages:",
                 callback->getMessages().size());
-
-        auto json = callback->getJson();
-        picojson::object& obj = json->get<picojson::object>();
 
         std::vector<picojson::value> response;
         auto messages = callback->getMessages();
@@ -1041,14 +990,10 @@ void ShortMsgManager::findMessages(FindMsgCallbackUserData* callback)
             response.push_back(MessagingUtil::messageToJson(message));
         });
 
-        obj[JSON_DATA] = picojson::value(response);
-        obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
-
-        callback->getQueue().resolve(
-                obj.at(JSON_CALLBACK_ID).get<double>(),
-                json->serialize()
-        );
+        callback->SetSuccess(picojson::value(response));
     }
+
+    callback->Post();
 
     delete callback;
     callback = NULL;
@@ -1073,7 +1018,7 @@ void ShortMsgManager::findConversations(ConversationCallbackData* callback)
             callback->SetError(ret);
         }
 
-        if (!callback->isError()) {
+        if (!callback->IsError()) {
             int convListCount = conversationsIds.size();
             LoggerD("Found %d conversations", convListCount);
 
@@ -1090,16 +1035,10 @@ void ShortMsgManager::findConversations(ConversationCallbackData* callback)
         }
     }
 
-    if (callback->isError()) {
+    if (callback->IsError()) {
         LoggerD("Calling error callback");
-        callback->getQueue().resolve(
-                callback->getJson()->get<picojson::object>().at(JSON_CALLBACK_ID).get<double>(),
-                callback->getJson()->serialize()
-        );
     } else {
         LoggerD("Calling success callback");
-        auto json = callback->getJson();
-        picojson::object& obj = json->get<picojson::object>();
 
         std::vector<picojson::value> response;
         auto conversations = callback->getConversations();
@@ -1108,14 +1047,11 @@ void ShortMsgManager::findConversations(ConversationCallbackData* callback)
                     response.push_back(MessagingUtil::conversationToJson(conversation));
                 }
         );
-        obj[JSON_DATA] = picojson::value(response);
-        obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
 
-        callback->getQueue().resolve(
-                obj.at(JSON_CALLBACK_ID).get<double>(),
-                json->serialize()
-        );
+        callback->SetSuccess(picojson::value(response));
     }
+
+    callback->Post();
 
     delete callback;
     callback = NULL;
@@ -1147,7 +1083,7 @@ void ShortMsgManager::removeConversations(ConversationCallbackData* callback)
             callback->SetError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Error while creatng message handle"));
         }
 
-        if (!callback->isError()) {
+        if (!callback->IsError()) {
           for(auto it = conversations.begin() ; it != conversations.end(); ++it) {
               if((*it)->getType() != type) {
                   LoggerE("Invalid message type");
@@ -1158,7 +1094,7 @@ void ShortMsgManager::removeConversations(ConversationCallbackData* callback)
           }
         }
 
-        if (!callback->isError()) {
+        if (!callback->IsError()) {
             if(MessageType::SMS == type) {
                 msg_id_conv_id_map = &m_sms_removed_msg_id_conv_id_map;
                 conv_id_object_map = &m_sms_removed_conv_id_object_map;
@@ -1171,7 +1107,7 @@ void ShortMsgManager::removeConversations(ConversationCallbackData* callback)
             }
         }
 
-        if (!callback->isError()) {
+        if (!callback->IsError()) {
             int conv_index = 0;
             for (auto it = conversations.begin() ; it != conversations.end();
                         ++it, ++conv_index) {
@@ -1222,31 +1158,22 @@ void ShortMsgManager::removeConversations(ConversationCallbackData* callback)
         }
     }
 
-    if (!callback->isError()) {
+    if (!callback->IsError()) {
         error = msg_close_msg_handle(&handle);
         if (MSG_SUCCESS != error) {
             LoggerW("Cannot close message handle: %d", error);
         }
     }
 
-    if (callback->isError()) {
+    if (callback->IsError()) {
         LoggerD("Calling error callback");
-        callback->getQueue().resolve(
-                callback->getJson()->get<picojson::object>().at(JSON_CALLBACK_ID).get<double>(),
-                callback->getJson()->serialize()
-        );
     } else {
         LoggerD("Calling success callback");
 
-        auto json = callback->getJson();
-        picojson::object& obj = json->get<picojson::object>();
-        obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
-
-        callback->getQueue().resolve(
-                obj.at(JSON_CALLBACK_ID).get<double>(),
-                json->serialize()
-        );
+        callback->SetSuccess();
     }
+
+    callback->Post();
 
     delete callback;
     callback = NULL;
@@ -1272,6 +1199,78 @@ ShortMsgManager::~ShortMsgManager()
             m_mms_removed_msg_id_conv_id_map.size());
     LoggerD("m_mms_removed_conv_id_object_map.size() = %d",
             m_mms_removed_conv_id_object_map.size());
+}
+std::string ShortMsgManager::getMessageStatus(int id) {
+  LoggerD("Entered");
+
+  msg_struct_t send_opt = nullptr;
+  msg_struct_t msg = nullptr;
+
+  SCOPE_EXIT {
+    if (send_opt) {
+      msg_release_struct(&send_opt);
+    }
+    if (msg) {
+      msg_release_struct(&msg);
+    }
+  };
+
+  send_opt = msg_create_struct(MSG_STRUCT_SENDOPT);
+  msg = msg_create_struct(MSG_STRUCT_MESSAGE_INFO);
+  if (!msg || !send_opt) {
+    LoggerD("Failed to create message struct");
+    return "";
+  }
+
+  int ret = msg_get_message(m_msg_handle, id, msg, send_opt);
+  if (MSG_SUCCESS != ret) {
+      LoggerE("Couldn't retrieve message from service, id: %d, error:%d", id, ret);
+      return "";
+  }
+
+  int status_int;
+  MessageStatus status = MessageStatus::STATUS_UNDEFINED;
+
+  ret = msg_get_int_value(msg, MSG_MESSAGE_FOLDER_ID_INT, &status_int);
+  if (MSG_SUCCESS == ret) {
+    switch (status_int) {
+      case MSG_OUTBOX_ID:
+        status = MessageStatus::STATUS_SENDING;
+        break;
+      case MSG_SENTBOX_ID:
+        status = MessageStatus::STATUS_SENT;
+        break;
+      case MSG_DRAFT_ID:
+        status = MessageStatus::STATUS_DRAFT;
+        break;
+      default:
+        status = MessageStatus::STATUS_UNDEFINED;
+        break;
+    }
+  } else {
+    ret = msg_get_int_value(msg, MSG_SENT_STATUS_NETWORK_STATUS_INT, &status_int);
+    if (MSG_SUCCESS == ret) {
+      switch(status_int) {
+        case MSG_NETWORK_SEND_SUCCESS:
+          status = MessageStatus::STATUS_SENT;
+          break;
+        case MSG_NETWORK_SENDING:
+          status = MessageStatus::STATUS_SENDING;
+          break;
+        case MSG_NETWORK_NOT_SEND:
+          status = MessageStatus::STATUS_DRAFT;
+          break;
+        case MSG_NETWORK_SEND_FAIL:
+          status = MessageStatus::STATUS_FAILED;
+          break;
+        default:
+          status = MessageStatus::STATUS_UNDEFINED;
+          break;
+      }
+    }
+  }
+
+  return MessagingUtil::messageStatusToString(status);
 }
 
 } // messaging
