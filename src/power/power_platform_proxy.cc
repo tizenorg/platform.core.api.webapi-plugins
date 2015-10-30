@@ -84,7 +84,7 @@ common::PlatformResult PowerPlatformProxy::SetBrightness(int val, int* result)
 
 common::PlatformResult PowerPlatformProxy::GetBrightness(int* result) {
   LoggerD("Entered");
-  return dbus_op_.InvokeSyncGetInt("GetBrightness", nullptr, result);
+  return dbus_op_.InvokeSyncGetInt("CurrentBrightness", nullptr, result);
 }
 
 common::PlatformResult PowerPlatformProxy::IsCustomBrightness(int* result) {
