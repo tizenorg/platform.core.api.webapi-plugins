@@ -199,12 +199,26 @@ var commonFS_ = (function() {
 
     _pathTokens = aPath.split('/');
     if (_pathTokens.length > 1) {
-      for (i = 0; i < _pathTokens.length - 1; ++i) {
+      var last = _pathTokens.length - 1;
+      var lastToken = '';
+      if (_pathTokens[last] === '') {
+        // 'abc/d/e/' case with trailing '/' sign
+        last = _pathTokens.length - 2;
+        lastToken = '/';
+      }
+      for (i = 0; i < last; ++i) {
         _fileParentPath += _pathTokens[i] + '/';
       }
-      _result.path = _fileParentPath;
-      _result.name = _pathTokens[_pathTokens.length - 1];
-      _result.parent = (secondIter) ? null : _fileParentPath;
+      if (last > 0) {
+        _result.path = _fileParentPath;
+        _result.name = (secondIter) ? _pathTokens[last] : _pathTokens[last] + lastToken;
+        _result.parent = (secondIter) ? null : _fileParentPath;
+      } else {
+        // '/' dir case
+        _result.path = _pathTokens[last] + lastToken;;
+        _result.name = '';
+        _result.parent = (secondIter) ? null : _fileParentPath;
+      }
     } else {
       _result.parent = null;
       _result.path = aPath;
