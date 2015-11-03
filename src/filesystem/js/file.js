@@ -27,7 +27,7 @@ function File(data) {
       value: (function(data) {
         try {
           if (data.parent) { // prevent recursive - only one parent
-            var _parentPath = data.path.substr(0, data.path.length - 1);
+            var _parentPath = data.path;
             var _location = {location: commonFS_.toRealPath(_parentPath)};
             var _result = native_.callSync('File_statSync', _location);
             var _statObj = native_.getResultObject(_result);
