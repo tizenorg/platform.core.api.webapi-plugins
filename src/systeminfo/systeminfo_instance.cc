@@ -24,6 +24,7 @@
 #include "common/logger.h"
 #include "common/platform_exception.h"
 #include "common/task-queue.h"
+#include "common/tools.h"
 
 #include "systeminfo-utils.h"
 #include "systeminfo_device_capability.h"
@@ -38,6 +39,8 @@ using common::TypeMismatchException;
 namespace {
 const std::string kPropertyIdString = "propertyId";
 const std::string kListenerIdString = "listenerId";
+
+const std::string kPrivilegeLED = "http://tizen.org/privilege/led";
 
 #define CHECK_EXIST(args, name, out) \
   if (!args.contains(name)) {\
@@ -124,6 +127,7 @@ void SysteminfoInstance::GetCount(const picojson::value& args, picojson::object&
 
 void SysteminfoInstance::SetBrightness(const picojson::value& args, picojson::object& out) {
   LoggerD("entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeLED, &out);
 
   CHECK_EXIST(args, "brightness", out)
 
@@ -147,6 +151,7 @@ void SysteminfoInstance::SetBrightness(const picojson::value& args, picojson::ob
 
 void SysteminfoInstance::GetBrightness(const picojson::value& args, picojson::object& out) {
   LoggerD("entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeLED, &out);
 
   int brightness = 0;
   int result = device_flash_get_brightness(&brightness);
@@ -162,6 +167,7 @@ void SysteminfoInstance::GetBrightness(const picojson::value& args, picojson::ob
 
 void SysteminfoInstance::GetMaxBrightness(const picojson::value& args, picojson::object& out) {
   LoggerD("entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeLED, &out);
 
   int brightness = 0;
   int result = device_flash_get_max_brightness(&brightness);
@@ -173,7 +179,6 @@ void SysteminfoInstance::GetMaxBrightness(const picojson::value& args, picojson:
   }
   ReportSuccess(picojson::value(std::to_string(brightness)), out);
 }
-
 
 } // namespace systeminfo
 } // namespace extension
