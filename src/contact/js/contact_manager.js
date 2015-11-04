@@ -40,8 +40,6 @@ var ContactManager = function() {};
 
 // Gets the available address books
 ContactManager.prototype.getAddressBooks = function() {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CONTACT_READ);
-
   var args = validator_.validateArgs(arguments, [
     {
       name: 'successCallback',
@@ -85,8 +83,8 @@ ContactManager.prototype.getAddressBooks = function() {
 };
 
 // Gets the aggregation of all address books.
-ContactManager.prototype.getUnifiedAddressBook = function() {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CONTACT_READ);
+var ContactManager_getUnifiedAddressBook = function() {
+  utils_.checkPrivilegeAccess(privilege_.CONTACT_READ);
 
   return _editGuard.run(function() {
     var addressBook = new AddressBook(0, 'Unified address book');
@@ -97,6 +95,10 @@ ContactManager.prototype.getUnifiedAddressBook = function() {
   });
 };
 
+ContactManager.prototype.getUnifiedAddressBook = function() {
+  return ContactManager_getUnifiedAddressBook.apply(this, arguments);
+};
+
 // Gets the default address book.
 ContactManager.prototype.getDefaultAddressBook = function() {
   //privileges are checked in getAddressBook function
@@ -105,8 +107,6 @@ ContactManager.prototype.getDefaultAddressBook = function() {
 
 // Gets the address book with the specified identifier.
 ContactManager.prototype.getAddressBook = function() {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CONTACT_READ);
-
   var args = validator_.validateArgs(arguments, [{
     name: 'addressBookId',
     type: types_.STRING,
@@ -139,8 +139,6 @@ ContactManager.prototype.getAddressBook = function() {
 };
 
 ContactManager.prototype.addAddressBook = function() {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CONTACT_WRITE);
-
   var args = validator_.validateArgs(arguments, [{
     name: 'addressBook',
     type: types_.PLATFORM_OBJECT,
@@ -168,8 +166,6 @@ ContactManager.prototype.addAddressBook = function() {
 };
 
 ContactManager.prototype.removeAddressBook = function() {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CONTACT_WRITE);
-
   // TCT: ContactManager_removeAddressBook_misarg
   if (type_.isNullOrUndefined(arguments[0])) {
     throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR);
@@ -203,8 +199,6 @@ ContactManager.prototype.removeAddressBook = function() {
 
 // Gets the person with the specified identifier.
 ContactManager.prototype.get = function() {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CONTACT_READ);
-
   // validation
   var args = validator_.validateArgs(arguments, [
     {
@@ -232,8 +226,6 @@ ContactManager.prototype.get = function() {
 
 // Updates a person in the address book synchronously.
 ContactManager.prototype.update = function() {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CONTACT_WRITE);
-
   // validation
   var args = validator_.validateArgs(arguments, [{
     name: 'person',
@@ -255,8 +247,6 @@ ContactManager.prototype.update = function() {
 
 // Updates several existing persons in the contact DB asynchronously.
 ContactManager.prototype.updateBatch = function() {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CONTACT_WRITE);
-
   var args = validator_.validateArgs(arguments, [
     {
       name: 'persons',
@@ -298,8 +288,6 @@ ContactManager.prototype.updateBatch = function() {
 
 // Removes a person from the contact DB synchronously.
 ContactManager.prototype.remove = function() {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CONTACT_WRITE);
-
   // validation
   var args = validator_.validateArgs(arguments, [{
     name: 'personId',
@@ -319,8 +307,6 @@ ContactManager.prototype.remove = function() {
 
 // Removes persons from contact DB asynchronously.
 ContactManager.prototype.removeBatch = function() {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CONTACT_WRITE);
-
   var args = validator_.validateArgs(arguments, [
     {
       name: 'personIds',
@@ -363,8 +349,6 @@ ContactManager.prototype.removeBatch = function() {
 // Gets an array of all Person objects from the contact DB or the ones that match the
 // optionally supplied filter.
 ContactManager.prototype.find = function() {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CONTACT_READ);
-
   var args = validator_.validateArgs(arguments, [
     {
       name: 'successCallback',
@@ -423,8 +407,6 @@ ContactManager.prototype.find = function() {
 
 // Subscribes to receive notifications about persons' changes.
 ContactManager.prototype.addChangeListener = function() {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CONTACT_READ);
-
   var args = validator_.validateArgs(arguments, [
     {
       name: 'successCallback',
@@ -456,8 +438,10 @@ ContactManager.prototype.addChangeListener = function() {
 };
 
 // Unsubscribes a persons' changes watch operation.
-ContactManager.prototype.removeChangeListener = function() {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CONTACT_READ);
+var ContactManager_removeChangeListener = function() {
+  if (type_.isEmptyObject(_personCallbackMap)) {
+    utils_.checkPrivilegeAccess(privilege_.CONTACT_READ);
+  }
 
   var args = validator_.validateArgs(arguments, [
     {
@@ -497,6 +481,10 @@ ContactManager.prototype.removeChangeListener = function() {
       throw native_.getErrorObject(result);
     }
   }
+};
+
+ContactManager.prototype.removeChangeListener = function() {
+  ContactManager_removeChangeListener.apply(this, arguments);
 };
 
 // exports /////////////////////////////////////////////////////////////////
