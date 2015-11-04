@@ -17,7 +17,6 @@
 // class CalendarManager
 var CalendarManager = function() {};
 
-var _PRIVILEGE_CALENDAR_READ = "http://tizen.org/privilege/calendar.read";
 // IDs defined in C-API calendar_types2.h
 var DefaultCalendarId = {
   EVENT: 1, // DEFAULT_EVENT_CALENDAR_BOOK_ID
@@ -25,8 +24,6 @@ var DefaultCalendarId = {
 };
 
 CalendarManager.prototype.getCalendars = function() {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CALENDAR_READ);
-
   var args = validator_.validateArgs(arguments, [{
     name: 'type',
     type: types_.ENUM,
@@ -60,12 +57,14 @@ CalendarManager.prototype.getCalendars = function() {
     }
   };
 
-  native_.call('CalendarManager_getCalendars', callArgs, callback);
+  var result = native_.call('CalendarManager_getCalendars', callArgs, callback);
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
+  }
 };
 
-CalendarManager.prototype.getUnifiedCalendar = function() {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CALENDAR_READ);
-
+var CalendarManager_getUnifiedCalendar = function() {
+  utils_.checkPrivilegeAccess(privilege_.CALENDAR_READ);
   var args = validator_.validateArgs(arguments, [{
     name: 'type',
     type: types_.ENUM,
@@ -78,9 +77,12 @@ CalendarManager.prototype.getUnifiedCalendar = function() {
   }));
 };
 
-CalendarManager.prototype.getDefaultCalendar = function() {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CALENDAR_READ);
+CalendarManager.prototype.getUnifiedCalendar = function() {
+  return CalendarManager_getUnifiedCalendar.apply(this, arguments);
+};
 
+var CalendarManager_getDefaultCalendar = function() {
+  utils_.checkPrivilegeAccess(privilege_.CALENDAR_READ);
   var args = validator_.validateArgs(arguments, [{
     name: 'type',
     type: types_.ENUM,
@@ -91,8 +93,11 @@ CalendarManager.prototype.getDefaultCalendar = function() {
   return this.getCalendar(args.type, DefaultCalendarId[args.type]);
 };
 
+CalendarManager.prototype.getDefaultCalendar = function() {
+  return CalendarManager_getDefaultCalendar.apply(this, arguments);
+};
+
 CalendarManager.prototype.getCalendar = function() {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CALENDAR_READ);
 
   var args = validator_.validateArgs(arguments, [{
     name: 'type',
@@ -125,7 +130,6 @@ CalendarManager.prototype.getCalendar = function() {
 };
 
 CalendarManager.prototype.addCalendar = function() {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CALENDAR_WRITE);
 
   var args = validator_.validateArgs(arguments, [{
     name: 'calendar',
@@ -149,7 +153,6 @@ CalendarManager.prototype.addCalendar = function() {
 };
 
 CalendarManager.prototype.removeCalendar = function() {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CALENDAR_WRITE);
 
   var args = validator_.validateArgs(arguments, [{
     name: 'type',
