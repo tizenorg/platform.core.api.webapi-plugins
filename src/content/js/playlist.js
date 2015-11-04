@@ -38,7 +38,6 @@ function Playlist(data) {
         return native_.getResultObject(result);
       },
       set: function(v) {
-        xwalk.utils.checkPrivilegeAccess(privilege_.CONTENT_WRITE);
         if (!type_.isNull(v)) {
           var name = converter_.toString(v, false);
           var result = native_.callSync('ContentPlaylist_setName',
@@ -72,7 +71,6 @@ function Playlist(data) {
         return res === " " ? null : res;
       },
       set: function(v) {
-        xwalk.utils.checkPrivilegeAccess(privilege_.CONTENT_WRITE);
         var thumbnailURI = converter_.toString(v, true);
         if (type_.isNullOrUndefined(thumbnailURI)) {
           //CoreAPI not support empty thumbnail, so one space must be used instead null thumbnail
@@ -102,8 +100,6 @@ function Playlist(data) {
 }
 
 Playlist.prototype.add = function (item) {
-  xwalk.utils.checkPrivilegeAccess(privilege_.CONTENT_WRITE);
-
   var args = validator_.validateArgs(arguments, [
     {name: 'item', type: types_.PLATFORM_OBJECT, values: Content}
   ]);
@@ -120,8 +116,6 @@ Playlist.prototype.add = function (item) {
 };
 
 Playlist.prototype.addBatch = function (items, successCallback, errorCallback) {
-  xwalk.utils.checkPrivilegeAccess(privilege_.CONTENT_WRITE);
-
   var args = validator_.validateArgs(arguments, [
     {name: 'items', type: types_.ARRAY, values: Content},
     {name: 'successCallback', type: types_.FUNCTION, optional: true, nullable: true},
@@ -141,12 +135,14 @@ Playlist.prototype.addBatch = function (items, successCallback, errorCallback) {
     native_.callIfPossible(args.successCallback);
   };
 
-  native_.call('ContentPlaylist_addBatch', data, callback);
+  var result = native_.call('ContentPlaylist_addBatch', data, callback);
+
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
+  }
 };
 
 Playlist.prototype.remove = function (item) {
-  xwalk.utils.checkPrivilegeAccess(privilege_.CONTENT_WRITE);
-
   var args = validator_.validateArgs(arguments, [
     {name: 'item', type: types_.PLATFORM_OBJECT, values: PlaylistItem}
   ]);
@@ -163,8 +159,6 @@ Playlist.prototype.remove = function (item) {
 };
 
 Playlist.prototype.removeBatch = function (items, successCallback, errorCallback) {
-  xwalk.utils.checkPrivilegeAccess(privilege_.CONTENT_WRITE);
-
   var args = validator_.validateArgs(arguments, [
     {name: 'items', type: types_.ARRAY, values: PlaylistItem},
     {name: 'successCallback', type: types_.FUNCTION, optional: true, nullable: true},
@@ -189,12 +183,14 @@ Playlist.prototype.removeBatch = function (items, successCallback, errorCallback
     native_.callIfPossible(args.successCallback);
   };
 
-  native_.call('ContentPlaylist_removeBatch', data, callback);
+  var result = native_.call('ContentPlaylist_removeBatch', data, callback);
+
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
+  }
 };
 
 Playlist.prototype.get = function (successCallback, errorCallback, count, offset) {
-  xwalk.utils.checkPrivilegeAccess(privilege_.CONTENT_READ);
-
   var args = validator_.validateArgs(arguments, [
     {name: 'successCallback', type: types_.FUNCTION},
     {name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true},
@@ -230,12 +226,14 @@ Playlist.prototype.get = function (successCallback, errorCallback, count, offset
     native_.callIfPossible(args.successCallback, out);
   };
 
-  native_.call('ContentPlaylist_get', data, callback);
+  var result = native_.call('ContentPlaylist_get', data, callback);
+
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
+  }
 };
 
 Playlist.prototype.setOrder = function (items, successCallback, errorCallback) {
-  xwalk.utils.checkPrivilegeAccess(privilege_.CONTENT_WRITE);
-
   var args = validator_.validateArgs(arguments, [
     {name: 'items', type: types_.ARRAY, values: PlaylistItem},
     {name: 'successCallback', type: types_.FUNCTION, optional: true, nullable: true},
@@ -267,12 +265,14 @@ Playlist.prototype.setOrder = function (items, successCallback, errorCallback) {
     native_.callIfPossible(args.successCallback);
   };
 
-  native_.call('ContentPlaylist_setOrder', data, callback);
+  var result = native_.call('ContentPlaylist_setOrder', data, callback);
+
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
+  }
 };
 
 Playlist.prototype.move = function (item, delta, successCallback, errorCallback) {
-  xwalk.utils.checkPrivilegeAccess(privilege_.CONTENT_WRITE);
-
   var args = validator_.validateArgs(arguments, [
     {name: 'item', type: types_.PLATFORM_OBJECT, values: PlaylistItem},
     {name: 'delta', type: types_.LONG},
@@ -293,5 +293,10 @@ Playlist.prototype.move = function (item, delta, successCallback, errorCallback)
     }
     native_.callIfPossible(args.successCallback);
   };
-  native_.call('ContentPlaylist_move', data, callback);
+
+  var result = native_.call('ContentPlaylist_move', data, callback);
+
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
+  }
 };
