@@ -14,10 +14,12 @@
  *    limitations under the License.
  */
 
-var validator_ = xwalk.utils.validator;
-var converter_ = xwalk.utils.converter;
+var privUtils_ = xwalk.utils;
+var privilege_ = privUtils_.privilege;
+var validator_ = privUtils_.validator;
+var converter_ = privUtils_.converter;
 var types_ = validator_.Types;
-var T_ = xwalk.utils.type;
+var T_ = privUtils_.type;
 var native_ = new xwalk.utils.NativeManager(extension);
 
 function _createCallHistoryEntries(e) {
@@ -101,8 +103,6 @@ function CallHistory() {
 };
 
 CallHistory.prototype.find = function() {
-    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CALLHISTORY_READ);
-
     var args = validator_.validateArgs(arguments, [
         {
             name : 'successCallback',
@@ -159,12 +159,13 @@ CallHistory.prototype.find = function() {
     callArgs.limit = args.limit;
     callArgs.offset = args.offset;
 
-    native_.call('CallHistory_find', callArgs, callback);
+    var result = native_.call('CallHistory_find', callArgs, callback);
+    if (native_.isFailure(result)) {
+      throw native_.getErrorObject(result);
+    }
 };
 
 CallHistory.prototype.remove = function() {
-    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CALLHISTORY_WRITE);
-
     var args = validator_.validateArgs(arguments, [
         {
             name : 'entry',
@@ -178,16 +179,13 @@ CallHistory.prototype.remove = function() {
 
     var result = native_.callSync('CallHistory_remove', callArgs);
     if (native_.isFailure(result)) {
-        throw new WebAPIException(
-                WebAPIException.INVALID_VALUES_ERR, 'Watch id not found.');
+      throw native_.getErrorObject(result);
     }
 
     return;
 };
 
 CallHistory.prototype.removeBatch = function() {
-    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CALLHISTORY_WRITE);
-
     var args = validator_.validateArgs(arguments, [
         {
             name : 'entries',
@@ -220,12 +218,13 @@ CallHistory.prototype.removeBatch = function() {
     var callArgs = {};
     callArgs.uid = uid;
 
-    native_.call('CallHistory_removeBatch', callArgs, callback);
+    var result = native_.call('CallHistory_removeBatch', callArgs, callback);
+    if (native_.isFailure(result)) {
+      throw native_.getErrorObject(result);
+    }
 };
 
 CallHistory.prototype.removeAll = function() {
-    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CALLHISTORY_WRITE);
-
     var args = validator_.validateArgs(arguments, [
         {
             name : 'successCallback',
@@ -249,12 +248,13 @@ CallHistory.prototype.removeAll = function() {
         }
     };
 
-    native_.call('CallHistory_removeAll', {}, callback);
+    var result = native_.call('CallHistory_removeAll', {}, callback);
+    if (native_.isFailure(result)) {
+      throw native_.getErrorObject(result);
+    }
 };
 
 CallHistory.prototype.addChangeListener = function() {
-    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CALLHISTORY_READ);
-
     var args = validator_.validateArgs(arguments, [
         {
             name : 'eventCallback',
@@ -264,14 +264,19 @@ CallHistory.prototype.addChangeListener = function() {
     ]);
 
     if (T_.isEmptyObject(callHistoryChangeListener.listeners)) {
-        native_.callSync('CallHistory_addChangeListener');
+        var result = native_.callSync('CallHistory_addChangeListener');
+        if (native_.isFailure(result)) {
+          throw native_.getErrorObject(result);
+        }
     }
 
     return callHistoryChangeListener.addListener(args.eventCallback);
 };
 
-CallHistory.prototype.removeChangeListener = function() {
-    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.CALLHISTORY_READ);
+function removeChangeListener() {
+    if (T_.isEmptyObject(callHistoryChangeListener.listeners)) {
+        privUtils_.checkPrivilegeAccess(privilege_.CALLHISTORY_READ);
+    }
 
     var args = validator_.validateArgs(arguments, [
         {
@@ -283,8 +288,15 @@ CallHistory.prototype.removeChangeListener = function() {
     callHistoryChangeListener.removeListener(args.watchId);
 
     if (T_.isEmptyObject(callHistoryChangeListener.listeners)) {
-        native_.callSync('CallHistory_removeChangeListener');
+        var result = native_.callSync('CallHistory_removeChangeListener');
+        if (native_.isFailure(result)) {
+          throw native_.getErrorObject(result);
+        }
     }
+};
+
+CallHistory.prototype.removeChangeListener = function() {
+  removeChangeListener.apply(this, arguments);
 };
 
 function RemoteParty(data) {
