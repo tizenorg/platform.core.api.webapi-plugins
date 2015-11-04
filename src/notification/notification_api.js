@@ -21,7 +21,6 @@ var type_ = utils_.type;
 var converter_ = utils_.converter;
 var validator_ = utils_.validator;
 var types_ = validator_.Types;
-var privilege_ = xwalk.utils.privilege;
 var native_ = new xwalk.utils.NativeManager(extension);
 
 function convertColorToInt(rgbaColor) {
@@ -84,8 +83,6 @@ function NotificationManager() {}
 
 
 NotificationManager.prototype.post = function(notification) {
-  xwalk.utils.checkPrivilegeAccess(privilege_.NOTIFICATION);
-
   var args = validator_.validateArgs(arguments, [
     {name: 'notification', type: types_.PLATFORM_OBJECT, values: StatusNotification}
   ]);
@@ -97,7 +94,7 @@ NotificationManager.prototype.post = function(notification) {
   var result = native_.callSync('NotificationManager_post', data);
 
   if (native_.isFailure(result)) {
-    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR);
+    throw native_.getErrorObject(result);
   }
 
   _edit.allow();
@@ -109,8 +106,6 @@ NotificationManager.prototype.post = function(notification) {
 };
 
 NotificationManager.prototype.update = function(notification) {
-  xwalk.utils.checkPrivilegeAccess(privilege_.NOTIFICATION);
-
   var args = validator_.validateArgs(arguments, [
     {name: 'notification', type: types_.PLATFORM_OBJECT, values: StatusNotification}
   ]);
@@ -129,14 +124,11 @@ NotificationManager.prototype.update = function(notification) {
   var result = native_.callSync('NotificationManager_update', data);
 
   if (native_.isFailure(result)) {
-    throw new WebAPIException(WebAPIException.NOT_FOUND_ERR,
-        native_.getErrorObject(result));
+    throw native_.getErrorObject(result);
   }
 };
 
 NotificationManager.prototype.remove = function(id) {
-  xwalk.utils.checkPrivilegeAccess(privilege_.NOTIFICATION);
-
   var args = validator_.validateArgs(arguments, [
     {name: 'id', type: types_.STRING}
   ]);
@@ -152,19 +144,15 @@ NotificationManager.prototype.remove = function(id) {
   var result = native_.callSync('NotificationManager_remove', data);
 
   if (native_.isFailure(result)) {
-    throw new WebAPIException(WebAPIException.NOT_FOUND_ERR,
-        native_.getErrorObject(result));
+    throw native_.getErrorObject(result);
   }
 };
 
 NotificationManager.prototype.removeAll = function() {
-  xwalk.utils.checkPrivilegeAccess(privilege_.NOTIFICATION);
-
   var result = native_.callSync('NotificationManager_removeAll', {});
 
   if (native_.isFailure(result)) {
-    throw new WebAPIException(WebAPIException.UNKNOWN_ERR,
-        native_.getErrorObject(result));
+    throw native_.getErrorObject(result);
   }
 };
 
@@ -184,8 +172,7 @@ NotificationManager.prototype.get = function(id) {
   var result = native_.callSync('NotificationManager_get', data);
 
   if (native_.isFailure(result)) {
-    throw new WebAPIException(WebAPIException.NOT_FOUND_ERR,
-        native_.getErrorObject(result));
+    throw native_.getErrorObject(result);
   }
 
   var n = native_.getResultObject(result);
@@ -201,8 +188,7 @@ NotificationManager.prototype.getAll = function() {
   var result = native_.callSync('NotificationManager_getAll', {});
 
   if (native_.isFailure(result)) {
-    throw new WebAPIException(WebAPIException.NOT_FOUND_ERR,
-        native_.getErrorObject(result));
+    throw native_.getErrorObject(result);
   }
 
   var n = native_.getResultObject(result);
@@ -226,8 +212,6 @@ NotificationManager.prototype.getAll = function() {
  * @param flags Array
  */
 NotificationManager.prototype.playLEDCustomEffect = function(timeOn, timeOff, color, flags) {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.LED);
-
   var args = validator_.validateArgs(arguments, [
     {name: 'timeOn', type: types_.LONG},
     {name: 'timeOff', type: types_.LONG},
@@ -252,8 +236,6 @@ NotificationManager.prototype.playLEDCustomEffect = function(timeOn, timeOff, co
  * Stops the custom effect of the service LED that is located to the front of a device.
  */
 NotificationManager.prototype.stopLEDCustomEffect = function() {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.LED);
-
   var result = native_.callSync('NotificationManager_stopLEDCustomEffect');
   if (native_.isFailure(result)) {
     throw native_.getErrorObject(result);

@@ -95,7 +95,13 @@ PlatformResult NotificationManager::RemoveAll() {
 PlatformResult NotificationManager::Get(const picojson::object& args,
                                         picojson::object& out) {
   LoggerD("Enter");
-  int id = std::stoi(FromJson<std::string>(args, "id"));
+  int id;
+  try {
+    id = std::stoi(FromJson<std::string>(args, "id"));
+  } catch (...) {
+    LoggerE("Failed to convert string to int");
+    return PlatformResult(ErrorCode::NOT_FOUND_ERR, "Failed to convert string to int.");
+  }
 
   app_control_h app_control = nullptr;
   notification_h noti_handle = nullptr;
