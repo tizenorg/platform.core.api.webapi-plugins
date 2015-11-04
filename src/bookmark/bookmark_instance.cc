@@ -22,6 +22,7 @@
 #include "common/platform_exception.h"
 #include "common/converter.h"
 #include "common/logger.h"
+#include "common/tools.h"
 
 using common::ErrorCode;
 using common::PlatformResult;
@@ -35,6 +36,9 @@ namespace {
   const char kType[] = "type";
   const char kParentId[] = "parentId";
   const char kUrl[] = "url";
+
+  const std::string kPrivilegeBookmarkRead = "http://tizen.org/privilege/bookmark.read";
+  const std::string kPrivilegeBookmarkWrite = "http://tizen.org/privilege/bookmark.write";
 }  // namespace
 
 BookmarkInstance::BookmarkInstance() {
@@ -193,6 +197,7 @@ PlatformResult BookmarkInstance::BookmarkTitleExistsInParent(const char* title,
 
 void BookmarkInstance::BookmarkGet(
     const picojson::value& arg, picojson::object& o) {
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeBookmarkRead, &o);
 
   LoggerD("Enter");
   Context ctx = {0};
@@ -203,8 +208,7 @@ void BookmarkInstance::BookmarkGet(
   ctx.id             = arg.get(kId).get<double>();
 
   if (!bookmark_foreach(ctx, info)) {
-    LoggerE("BookmarkGet error");
-    ReportError(o);
+    LogAndReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to get bookmark"), &o);
     return;
   }
 
@@ -228,6 +232,7 @@ void BookmarkInstance::BookmarkGet(
 
 void BookmarkInstance::BookmarkAdd(
     const picojson::value& arg, picojson::object& o) {
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeBookmarkWrite, &o);
 
   LoggerD("Enter");
   int saved_id =-1;
@@ -244,7 +249,7 @@ void BookmarkInstance::BookmarkAdd(
       LogAndReportError(result, &o);
       return;
     } else if (exists) {
-      LogAndReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Bookmark already exists"), &o);
+      LogAndReportError(PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Bookmark already exists"), &o);
       return;
     }
   }
@@ -256,7 +261,7 @@ void BookmarkInstance::BookmarkAdd(
       LogAndReportError(result, &o);
       return;
     } else if (exists) {
-      LogAndReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Bookmark already exists"), &o);
+      LogAndReportError(PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Bookmark already exists"), &o);
       return;
     }
   }
@@ -265,40 +270,35 @@ void BookmarkInstance::BookmarkAdd(
 
   ntv_ret = bp_bookmark_adaptor_create(&saved_id);
   if (ntv_ret < 0) {
-    LoggerE("bp_bookmark_adaptor_create error: %d (%s)", ntv_ret, get_error_message(ntv_ret));
-    ReportError(o);
+    LogAndReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to create adaptor"), &o);
     return;
   }
 
   ntv_ret = bp_bookmark_adaptor_set_title(saved_id, title.c_str());
   if (ntv_ret < 0) {
     bp_bookmark_adaptor_delete(saved_id);
-    LoggerE("bp_bookmark_adaptor_set_title error: %d (%s)", ntv_ret, get_error_message(ntv_ret));
-    ReportError(o);
+    LogAndReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to set title"), &o);
     return;
   }
 
   ntv_ret = bp_bookmark_adaptor_set_parent_id(saved_id, parent);
   if (ntv_ret < 0) {
     bp_bookmark_adaptor_delete(saved_id);
-    LoggerE("bp_bookmark_adaptor_set_parent_id error: %d (%s)", ntv_ret, get_error_message(ntv_ret));
-    ReportError(o);
+    LogAndReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to set parent id"), &o);
     return;
   }
 
   ntv_ret = bp_bookmark_adaptor_set_type(saved_id, type);
   if (ntv_ret < 0) {
     bp_bookmark_adaptor_delete(saved_id);
-    LoggerE("bp_bookmark_adaptor_set_type error: %d (%s)", ntv_ret, get_error_message(ntv_ret));
-    ReportError(o);
+    LogAndReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to set type"), &o);
     return;
   }
 
   ntv_ret = bp_bookmark_adaptor_set_url(saved_id, url.c_str());
   if (ntv_ret < 0) {
     bp_bookmark_adaptor_delete(saved_id);
-    LoggerE("bp_bookmark_adaptor_set_url error: %d (%s)", ntv_ret, get_error_message(ntv_ret));
-    ReportError(o);
+    LogAndReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to set url"), &o);
     return;
   }
   ReportSuccess(picojson::value(std::to_string(saved_id)), o);
@@ -306,6 +306,7 @@ void BookmarkInstance::BookmarkAdd(
 
 void BookmarkInstance::BookmarkRemove(
     const picojson::value& arg, picojson::object& o) {
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeBookmarkWrite, &o);
 
   LoggerD("Enter");
   int id = common::stol(
@@ -313,8 +314,7 @@ void BookmarkInstance::BookmarkRemove(
 
   int ntv_ret = bp_bookmark_adaptor_delete(id);
   if (ntv_ret < 0) {
-    LoggerE("bp_bookmark_adaptor_delete error: %d (%s)", ntv_ret, get_error_message(ntv_ret));
-    ReportError(o);
+    LogAndReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to remove bookmark"), &o);
     return;
   }
   ReportSuccess(o);
@@ -322,12 +322,12 @@ void BookmarkInstance::BookmarkRemove(
 
 void BookmarkInstance::BookmarkRemoveAll(
     const picojson::value& msg, picojson::object& o) {
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeBookmarkWrite, &o);
 
   LoggerD("Enter");
   int ntv_ret = bp_bookmark_adaptor_reset();
   if (ntv_ret < 0) {
-    LoggerE("bp_bookmark_adaptor_reset error: %d (%s)", ntv_ret, get_error_message(ntv_ret));
-    ReportError(o);
+    LogAndReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to remove bookmark"), &o);
     return;
   }
   ReportSuccess(o);
@@ -340,8 +340,7 @@ void BookmarkInstance::BookmarkGetRootId(
   int rootId(0);
   int ntv_ret = bp_bookmark_adaptor_get_root(&rootId);
   if (ntv_ret < 0) {
-    LoggerE("bp_bookmark_adaptor_get_root error: %d (%s)", ntv_ret, get_error_message(ntv_ret));
-    ReportError(o);
+    LogAndReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to remove bookmark"), &o);
     return;
   }
   ReportSuccess(picojson::value(std::to_string(rootId)), o);
