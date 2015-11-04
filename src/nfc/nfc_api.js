@@ -14,10 +14,12 @@
  *    limitations under the License.
  */
 
-var validator_ = xwalk.utils.validator;
+var privUtils_ = xwalk.utils;
+var privilege_ = privUtils_.privilege;
+var validator_ = privUtils_.validator;
 var types_ = validator_.Types;
-var type_ = xwalk.utils.type;
-var converter_ = xwalk.utils.converter;
+var type_ = privUtils_.type;
+var converter_ = privUtils_.converter;
 var native_ = new xwalk.utils.NativeManager(extension);
 
 
@@ -157,8 +159,6 @@ function NFCManager() {
 }
 
 NFCManager.prototype.getDefaultAdapter = function() {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NFC_COMMON);
-
   // First check NFC suppor on C++ level
   var result = native_.callSync(
       'NFCManager_getDefaultAdapter',
@@ -173,7 +173,6 @@ NFCManager.prototype.getDefaultAdapter = function() {
 };
 
 NFCManager.prototype.setExclusiveMode = function() {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NFC_COMMON);
 
   var args = validator_.validateArgs(arguments, [
     {name: 'exclusiveMode', type: types_.BOOLEAN}
@@ -202,8 +201,6 @@ function NFCAdapter() {
   }
 
   function cardEmulationModeGetter() {
-    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NFC_CARDEMULATION);
-
     var result = native_.callSync('NFCAdapter_cardEmulationModeGetter');
 
     if (native_.isFailure(result)) {
@@ -214,7 +211,6 @@ function NFCAdapter() {
   }
 
   function cardEmulationModeSetter(cem) {
-    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NFC_CARDEMULATION);
 
     var args = validator_.validateArgs(arguments, [
       {name: 'emulationMode', type: types_.STRING}
@@ -232,7 +228,6 @@ function NFCAdapter() {
   }
 
   function activeSecureElementGetter() {
-    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NFC_CARDEMULATION);
 
     var result = native_.callSync('NFCAdapter_activeSecureElementGetter');
 
@@ -244,7 +239,6 @@ function NFCAdapter() {
   }
 
   function activeSecureElementSetter(ase) {
-    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NFC_CARDEMULATION);
 
     var args = validator_.validateArgs(arguments, [
       {name: 'secureElement', type: types_.STRING}
@@ -278,8 +272,6 @@ function NFCAdapter() {
 }
 
 NFCAdapter.prototype.setPowered = function() {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NFC_ADMIN);
-
   var args = validator_.validateArgs(arguments, [
     {
       name: 'powered',
@@ -299,7 +291,7 @@ NFCAdapter.prototype.setPowered = function() {
     }
   ]);
 
-  native_.call('NFCAdapter_setPowered', {
+  var result = native_.call('NFCAdapter_setPowered', {
     powered: args.powered
   }, function(result) {
     if (native_.isFailure(result)) {
@@ -308,11 +300,13 @@ NFCAdapter.prototype.setPowered = function() {
       args.successCallback();
     }
   });
+
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
+  }
 };
 
-NFCAdapter.prototype.setTagListener = function() {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NFC_TAG);
-
+function setTagListener() {
   var args = validator_.validateArgs(arguments, [
     {
       name: 'listener',
@@ -365,9 +359,11 @@ NFCAdapter.prototype.setTagListener = function() {
   return;
 };
 
-NFCAdapter.prototype.setPeerListener = function() {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NFC_P2P);
+NFCAdapter.prototype.setTagListener = function() {
+  setTagListener.apply(this, arguments);
+}
 
+function setPeerListener() {
   var args = validator_.validateArgs(arguments, [
     {
       name: 'listener',
@@ -395,8 +391,11 @@ NFCAdapter.prototype.setPeerListener = function() {
   return;
 };
 
+NFCAdapter.prototype.setPeerListener = function() {
+  setPeerListener.apply(this, arguments);
+};
+
 NFCAdapter.prototype.unsetTagListener = function() {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NFC_TAG);
 
   native_.removeListener(TAG_LISTENER);
 
@@ -409,8 +408,6 @@ NFCAdapter.prototype.unsetTagListener = function() {
 };
 
 NFCAdapter.prototype.unsetPeerListener = function() {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NFC_P2P);
-
   native_.removeListener(PEER_LISTENER);
 
   var result = native_.callSync('NFCAdapter_unsetPeerListener');
@@ -421,9 +418,7 @@ NFCAdapter.prototype.unsetPeerListener = function() {
   return;
 };
 
-NFCAdapter.prototype.addCardEmulationModeChangeListener = function() {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NFC_CARDEMULATION);
-
+function addCardEmulationModeChangeListener() {
   var args = validator_.validateArgs(arguments, [
     {
       name: 'callback',
@@ -443,8 +438,14 @@ NFCAdapter.prototype.addCardEmulationModeChangeListener = function() {
   return cardEmulationModeListener.addListener(args.callback);
 };
 
-NFCAdapter.prototype.removeCardEmulationModeChangeListener = function() {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NFC_CARDEMULATION);
+NFCAdapter.prototype.addCardEmulationModeChangeListener = function()_ {
+  return addCardEmulationModeChangeListener.apply(this, arguments);
+};
+
+function removeCardEmulationModeChangeListener() {
+  if (type_.isEmptyObject(cardEmulationModeListener.listeners)) {
+    privUtils_.checkPrivilegeAccess(privilege_.NFC_CARDEMULATION);
+  }
 
   var args = validator_.validateArgs(arguments, [
     {
@@ -456,13 +457,19 @@ NFCAdapter.prototype.removeCardEmulationModeChangeListener = function() {
 
   if (type_.isEmptyObject(cardEmulationModeListener.listeners) &&
       type_.isEmptyObject(activeSecureElementChangeListener.listeners)) {
-    native_.callSync('NFCAdapter_removeCardEmulationModeChangeListener');
+    var result = native_.callSync('NFCAdapter_removeCardEmulationModeChangeListener');
+
+    if (native_.isFailure(result)) {
+      throw native_.getErrorObject(result);
+    }
   }
 };
 
-NFCAdapter.prototype.addTransactionEventListener = function() {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NFC_CARDEMULATION);
+NFCAdapter.prototype.removeCardEmulationModeChangeListener = function() {
+  removeCardEmulationModeChangeListener.apply(this, arguments);
+};
 
+function addTransactionEventListener() {
   var args = validator_.validateArgs(arguments, [
     {
       name: 'type',
@@ -498,8 +505,17 @@ NFCAdapter.prototype.addTransactionEventListener = function() {
   }
 };
 
-NFCAdapter.prototype.removeTransactionEventListener = function() {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NFC_CARDEMULATION);
+NFCAdapter.prototype.addTransactionEventListener = function() {
+  return addTransactionEventListener.apply(this, arguments);
+};
+
+function removeTransactionEventListener() {
+  var ese_empty = type_.isEmptyObject(transactionEventListenerEse.listeners);
+  var uicc_empty = type_.isEmptyObject(transactionEventListenerUicc.listeners);
+
+  if (!ese_empty || !uicc_empty) {
+    privUtils_.checkPrivilegeAccess(privilege_.NFC_CARDEMULATION);
+  }
 
   var args = validator_.validateArgs(arguments, [
     {
@@ -508,28 +524,35 @@ NFCAdapter.prototype.removeTransactionEventListener = function() {
     }
   ]);
 
-  var ese_empty = type_.isEmptyObject(transactionEventListenerEse.listeners);
-  var uicc_empty = type_.isEmptyObject(transactionEventListenerUicc.listeners);
-
   transactionEventListenerEse.removeListener(args.watchId);
   transactionEventListenerUicc.removeListener(args.watchId);
 
   if (type_.isEmptyObject(transactionEventListenerEse.listeners) && !ese_empty) {
-    native_.callSync('NFCAdapter_removeTransactionEventListener', {
+    var result = native_.callSync('NFCAdapter_removeTransactionEventListener', {
       type: SecureElementType.ESE});
+
+    if (native_.isFailure(result)) {
+      throw native_.getErrorObject(result);
+    }
   }
 
   if (type_.isEmptyObject(transactionEventListenerUicc.listeners)
             && !uicc_empty) {
-    native_.callSync('NFCAdapter_removeTransactionEventListener', {
+    var result = native_.callSync('NFCAdapter_removeTransactionEventListener', {
       type: SecureElementType.UICC});
+
+    if (native_.isFailure(result)) {
+      throw native_.getErrorObject(result);
+    }
   }
 
 };
 
-NFCAdapter.prototype.addActiveSecureElementChangeListener = function() {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NFC_CARDEMULATION);
+NFCAdapter.prototype.removeTransactionEventListener = function() {
+  removeTransactionEventListener.apply(this, arguments);
+};
 
+function addActiveSecureElementChangeListener() {
   var args = validator_.validateArgs(arguments, [
     {
       name: 'callback',
@@ -549,8 +572,14 @@ NFCAdapter.prototype.addActiveSecureElementChangeListener = function() {
   return activeSecureElementChangeListener.addListener(args.callback);
 };
 
-NFCAdapter.prototype.removeActiveSecureElementChangeListener = function() {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NFC_CARDEMULATION);
+NFCAdapter.prototype.addActiveSecureElementChangeListener = function() {
+  return addActiveSecureElementChangeListener.apply(this, arguments);
+};
+
+function removeActiveSecureElementChangeListener() {
+  if (type_.isEmptyObject(activeSecureElementChangeListener.listeners)) {
+    privUtils_.checkPrivilegeAccess(privilege_.NFC_CARDEMULATION);
+  }
 
   var args = validator_.validateArgs(arguments, [
     {
@@ -562,13 +591,19 @@ NFCAdapter.prototype.removeActiveSecureElementChangeListener = function() {
 
   if (type_.isEmptyObject(cardEmulationModeListener.listeners) &&
       type_.isEmptyObject(activeSecureElementChangeListener.listeners)) {
-    native_.callSync('NFCAdapter_removeCardEmulationModeChangeListener');
+    var result = native_.callSync('NFCAdapter_removeCardEmulationModeChangeListener');
+
+    if (native_.isFailure(result)) {
+      throw native_.getErrorObject(result);
+    }
   }
 };
 
-NFCAdapter.prototype.getCachedMessage = function() {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NFC_COMMON);
+NFCAdapter.prototype.removeActiveSecureElementChangeListener = function() {
+  removeActiveSecureElementChangeListener.apply(this, arguments);
+};
 
+NFCAdapter.prototype.getCachedMessage = function() {
   var result = native_.callSync('NFCAdapter_getCachedMessage');
 
   if (native_.isFailure(result)) {
@@ -583,7 +618,6 @@ NFCAdapter.prototype.getCachedMessage = function() {
 };
 
 NFCAdapter.prototype.setExclusiveModeForTransaction = function() {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NFC_CARDEMULATION);
 
   var args = validator_.validateArgs(arguments, [
     {
@@ -603,9 +637,7 @@ NFCAdapter.prototype.setExclusiveModeForTransaction = function() {
   return;
 };
 
-NFCAdapter.prototype.addHCEEventListener = function(eventCallback) {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NFC_CARDEMULATION);
-
+function addHCEEventListener() {
   var args = validator_.validateArgs(arguments, [
     {name: 'eventCallback', type: types_.FUNCTION}
   ]);
@@ -624,8 +656,14 @@ NFCAdapter.prototype.addHCEEventListener = function(eventCallback) {
   return HCEEventListener.addListener(args.eventCallback);
 };
 
-NFCAdapter.prototype.removeHCEEventListener = function(watchId) {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NFC_CARDEMULATION);
+NFCAdapter.prototype.addHCEEventListener = function() {
+  return addHCEEventListener.apply(this, arguments);
+}
+
+function removeHCEEventListener() {
+  if (type_.isEmptyObject(HCEEventListener.listeners)) {
+    privUtils_.checkPrivilegeAccess(privilege_.NFC_CARDEMULATION);
+  }
 
   var args = validator_.validateArgs(arguments, [
     {name: 'watchId', type: types_.LONG}
@@ -645,9 +683,11 @@ NFCAdapter.prototype.removeHCEEventListener = function(watchId) {
   }
 };
 
-NFCAdapter.prototype.sendHostAPDUResponse = function(apdu, successCallback, errorCallback) {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NFC_CARDEMULATION);
+NFCAdapter.prototype.removeHCEEventListener = function() {
+  removeHCEEventListener.apply(this, arguments);
+};
 
+NFCAdapter.prototype.sendHostAPDUResponse = function(apdu, successCallback, errorCallback) {
   var args = validator_.validateArgs(arguments, [
     {name: 'apdu', type: types_.ARRAY, values: types_.BYTE},
     {name: 'successCallback', type: types_.FUNCTION, optional: true, nullable: true},
@@ -670,11 +710,14 @@ NFCAdapter.prototype.sendHostAPDUResponse = function(apdu, successCallback, erro
     native_.callIfPossible(args.successCallback);
   };
 
-  native_.call('NFCAdapter_sendHostAPDUResponse', data, callback);
+  var result = native_.call('NFCAdapter_sendHostAPDUResponse', data, callback);
+
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
+  }
 };
 
 NFCAdapter.prototype.isActivatedHandlerForAID = function(type, aid) {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NFC_CARDEMULATION);
 
   var args = validator_.validateArgs(arguments, [
     {
@@ -703,7 +746,6 @@ NFCAdapter.prototype.isActivatedHandlerForAID = function(type, aid) {
 };
 
 NFCAdapter.prototype.isActivatedHandlerForCategory = function(type, category) {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NFC_CARDEMULATION);
 
   var args = validator_.validateArgs(arguments, [{
     name: 'type',
@@ -733,7 +775,6 @@ NFCAdapter.prototype.isActivatedHandlerForCategory = function(type, category) {
 };
 
 NFCAdapter.prototype.registerAID = function(type, aid, category) {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NFC_CARDEMULATION);
 
   var args = validator_.validateArgs(arguments, [{
     name: 'type',
@@ -766,7 +807,6 @@ NFCAdapter.prototype.registerAID = function(type, aid, category) {
 };
 
 NFCAdapter.prototype.unregisterAID = function(type, aid, category) {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NFC_CARDEMULATION);
 
   var args = validator_.validateArgs(arguments, [
     {
@@ -816,7 +856,6 @@ function AIDData(data) {
 }
 
 NFCAdapter.prototype.getAIDsForCategory = function(type, category, successCallback, errorCallback) {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NFC_CARDEMULATION);
 
   var args = validator_.validateArgs(arguments, [{
     name: 'type',
@@ -858,7 +897,11 @@ NFCAdapter.prototype.getAIDsForCategory = function(type, category, successCallba
     native_.callIfPossible(args.successCallback, aids);
   };
 
-  native_.call('NFCAdapter_getAIDsForCategory', data, callback);
+  var result = native_.call('NFCAdapter_getAIDsForCategory', data, callback);
+
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
+  }
 };
 
 function InternalRecordData(tnf, type, payload, id) {
@@ -987,7 +1030,7 @@ function NFCTag(tagid) {
       }
     ]);
 
-    native_.call('NFCTag_readNDEF', {'id' : _my_id},
+    var result = native_.call('NFCTag_readNDEF', {'id' : _my_id},
         function(result) {
           if (native_.isFailure(result)) {
             if (!type_.isNullOrUndefined(args.errorCallback)) {
@@ -999,6 +1042,9 @@ function NFCTag(tagid) {
           }
         });
 
+    if (native_.isFailure(result)) {
+      throw native_.getErrorObject(result);
+    }
   };
 
   NFCTag.prototype.writeNDEF = function() {
@@ -1024,7 +1070,7 @@ function NFCTag(tagid) {
       }
     ]);
 
-    native_.call('NFCTag_writeNDEF',
+    var result = native_.call('NFCTag_writeNDEF',
         {
           'id' : _my_id,
           'records' : args.message.records,
@@ -1042,6 +1088,9 @@ function NFCTag(tagid) {
           }
         });
 
+    if (native_.isFailure(result)) {
+      throw native_.getErrorObject(result);
+    }
   };
 
   NFCTag.prototype.transceive = function() {
@@ -1064,7 +1113,7 @@ function NFCTag(tagid) {
       }
     ]);
 
-    native_.call('NFCTag_transceive',
+    var result = native_.call('NFCTag_transceive',
         {
           'id' : _my_id,
           'data' : args.data
@@ -1081,6 +1130,9 @@ function NFCTag(tagid) {
           }
         });
 
+    if (native_.isFailure(result)) {
+      throw native_.getErrorObject(result);
+    }
   };
 
   Object.defineProperties(this, {
@@ -1149,7 +1201,7 @@ function NFCPeer(peerid) {
       }
     ]);
 
-    native_.call('NFCPeer_sendNDEF', {
+    var result = native_.call('NFCPeer_sendNDEF', {
       'id' : _my_id,
       'records' : args.message.records,
       'recordsSize' : args.message.recordCount
@@ -1160,6 +1212,10 @@ function NFCPeer(peerid) {
         args.successCallback();
       }
     });
+
+    if (native_.isFailure(result)) {
+      throw native_.getErrorObject(result);
+    }
   };
 
   NFCPeer.prototype.setReceiveNDEFListener = function() {
@@ -1264,6 +1320,11 @@ tizen.NDEFMessage = function(data) {
                                 'rawDataSize' : raw_data_.length
               }
               );
+
+          if (native_.isFailure(result)) {
+            throw native_.getErrorObject(result);
+          }
+
           var records_array = result.result.records;
           for (var i = 0; i < records_array.length; i++) {
             records_.push(new tizen.NDEFRecord(records_array[i].tnf,
