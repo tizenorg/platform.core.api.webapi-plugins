@@ -17,7 +17,7 @@
 var validator_ = xwalk.utils.validator;
 var types_ = validator_.Types;
 var T_ = xwalk.utils.type;
-var bridge = xwalk.utils.NativeBridge(extension, true);
+var native = new xwalk.utils.NativeManager(extension);
 
 function throwException_(err) {
     throw new WebAPIException(err.code, err.name, err.message);
@@ -388,16 +388,16 @@ function Message(type, data) {
         {
             get: function () {
                 if (_internal.id) {
-                    return bridge.sync({
-                        cmd: 'Message_messageStatus',
-                        args: {
-                            id: _internal.id,
-                            type: _internal.type
-                        }
-                    });
-                } else {
-                    return '';
+                  var callArgs = {
+                      id: _internal.id,
+                      type: _internal.type
+                  };
+                  var result = native.callSync('Message_messageStatus', callArgs);
+                  if (native.isSuccess(result)) {
+                    return native.getResultObject(result);
+                  }
                 }
+                return '';
             },
             set: function (value) {return;},
             enumerable: true
@@ -679,29 +679,25 @@ Messaging.prototype.getMessageServices = function () {
         {name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true}
     ]);
 
-    bridge.async({
-        cmd: 'Messaging_getMessageServices',
-        args: {
-            messageServiceType: args.messageServiceType
-        }
-    }).then({
-        success: function (data) {
-            var servicesArr = [];
-            data.forEach(function(e){
-                servicesArr.push(new MessageService(e));
-            });
-            args.successCallback.call(null, servicesArr);
-        },
-        error: function (e) {
-            if (args.errorCallback) {
-                args.errorCallback.call(
-                    null,
-                    new WebAPIException(e.error)
-                )
-            }
-        }
-    });
+    var callArgs = {messageServiceType: args.messageServiceType};
+    var callback = function(result) {
+      if (native.isFailure(result)) {
+        native.callIfPossible(args.errorCallback, native.getErrorObject(result));
+      } else {
+        var data = native.getResultObject(result);
+        var servicesArr = [];
+        data.forEach(function(e){
+            servicesArr.push(new MessageService(e));
+        });
+        args.successCallback(servicesArr);
+      }
+    };
+    var result = native.call('Messaging_getMessageServices', callArgs, callback);
+    if (native.isFailure(result)) {
+      throw native.getErrorObject(result);
+    }
 }
+
 function MessageStorage(){};
 function MessageService(data) {
     propertyFactory_(this, 'id', data.id, Property.E);
@@ -711,8 +707,6 @@ function MessageService(data) {
 };
 
 MessageService.prototype.sendMessage = function () {
-    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.MESSAGING_WRITE);
-
     var args = validator_.validateArgs(arguments, [
         {name: 'message', type: types_.PLATFORM_OBJECT, values: tizen.Message},
         {name: 'successCallback', type: types_.FUNCTION, optional: true, nullable: true},
@@ -721,47 +715,40 @@ MessageService.prototype.sendMessage = function () {
     ]);
 
     if (args.message.type != this.type) {
-        throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR);
+        throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR);
     }
 
     var self = this;
-    bridge.async({
-        cmd: 'MessageService_sendMessage',
-        args: {
-            message: args.message,
-            simIndex: args.simIndex || 1,
-            serviceId: self.id
-        }
-    }).then({
-        success: function (data) {
-            var message = data.message;
-            if (message) {
-                var body = message.body;
-                if (body) {
-                    updateInternal_(args.message.body, body)
-                    delete message.body;
-                }
-                updateInternal_(args.message, message);
-            }
 
-            if (args.successCallback) {
-                args.successCallback.call(null, data.recipients);
+    var callArgs = {
+        message: args.message,
+        simIndex: args.simIndex || 1,
+        serviceId: self.id
+    };
+    var callback = function(result) {
+      if (native.isFailure(result)) {
+        native.callIfPossible(args.errorCallback, native.getErrorObject(result));
+      } else {
+        var data = native.getResultObject(result);
+        var message = data.message;
+        if (message) {
+            var body = message.body;
+            if (body) {
+                updateInternal_(args.message.body, body)
+                delete message.body;
             }
-        },
-        error: function (e) {
-            if (args.errorCallback) {
-                args.errorCallback.call(
-                    null,
-                    new WebAPIException(e.error)
-                )
-            }
+            updateInternal_(args.message, message);
         }
-    });
+        native.callIfPossible(args.successCallback, data.recipients);
+      }
+    };
+    var result = native.call('MessageService_sendMessage', callArgs, callback);
+    if (native.isFailure(result)) {
+      throw native.getErrorObject(result);
+    }
 };
 
 MessageService.prototype.loadMessageBody = function () {
-    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.MESSAGING_WRITE);
-
     var args = validator_.validateArgs(arguments, [
         {name: 'message', type: types_.PLATFORM_OBJECT, values: tizen.Message},
         {name: 'successCallback', type: types_.FUNCTION},
@@ -769,42 +756,38 @@ MessageService.prototype.loadMessageBody = function () {
     ]);
 
     if (args.message.type != this.type) {
-        throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR);
+        throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR);
     }
 
     var self = this;
 
-    bridge.async({
-        cmd: 'MessageService_loadMessageBody',
-        args: {
-            message: args.message,
-            serviceId: self.id
-        }
-    }).then({
-        success: function (data) {
-            var body = data.messageBody;
-            if (body) {
-                updateInternal_(args.message.body, body)
-            }
+    var callArgs = {
+        message: args.message,
+        serviceId: self.id
+    };
 
-            args.successCallback.call(
-                null,
-                args.message
-            );
-        },
-        error: function (e) {
-            if (args.errorCallback) {
-                args.errorCallback.call(
-                    null,
-                    new WebAPIException(e.error)
-                )
-            }
+    var callback = function(result) {
+      if (native.isFailure(result)) {
+        native.callIfPossible(args.errorCallback, native.getErrorObject(result));
+      } else {
+        var data = native.getResultObject(result);
+        var body = data.messageBody;
+        if (body) {
+          updateInternal_(args.message.body, body)
         }
-    });
+
+        args.successCallback(args.message);
+      }
+    };
+
+    var result = native.call('MessageService_loadMessageBody', callArgs, callback);
+
+    if (native.isFailure(result)) {
+      throw native.getErrorObject(result);
+    }
+
 };
 MessageService.prototype.loadMessageAttachment = function () {
-    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.MESSAGING_WRITE);
-
     var args = validator_.validateArgs(arguments, [
         {name: 'attachment', type: types_.PLATFORM_OBJECT, values: MessageAttachment},
         {name: 'successCallback', type: types_.FUNCTION},
@@ -818,43 +801,34 @@ MessageService.prototype.loadMessageAttachment = function () {
         messageAttachmentsLoaded[args.attachment.id] = true;
     }
 
-    bridge.async({
-        cmd: 'MessageService_loadMessageAttachment',
-        args: {
-            attachment: args.attachment,
-            serviceId: self.id
-        }
-    }).then({
-        success: function (data) {
-            if (args.successCallback) {
-                var messageAttachment = data.messageAttachment;
-                if (messageAttachment) {
-                    updateInternal_(args.attachment, messageAttachment);
-                }
+    var callArgs = {
+        attachment: args.attachment,
+        serviceId: self.id
+    };
 
-                args.successCallback.call(
-                    null,
-                    args.attachment
-                );
-            }
-        },
-        error: function (e) {
-            if (firstCall) {
-                messageAttachmentsLoaded[args.attachment.id] = false;
-            }
-            if (args.errorCallback) {
-                args.errorCallback.call(
-                    null,
-                    new WebAPIException(e.error)
-                )
-            }
+    var callback = function(result) {
+      if (native.isFailure(result)) {
+        native.callIfPossible(args.errorCallback, native.getErrorObject(result));
+      } else {
+        var data = native.getResultObject(result);
+        var messageAttachment = data.messageAttachment;
+        if (messageAttachment) {
+          updateInternal_(args.attachment, messageAttachment);
         }
-    });
+
+        args.successCallback(args.attachment);
+      }
+    };
+
+    var result = native.call('MessageService_loadMessageAttachment', callArgs, callback);
+
+    if (native.isFailure(result)) {
+      throw native.getErrorObject(result);
+    }
+
 };
 
 MessageService.prototype.sync = function () {
-    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.MESSAGING_WRITE);
-
     var args = validator_.validateArgs(arguments, [
         {name: 'successCallback', type: types_.FUNCTION, optional: true, nullable: true},
         {name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true},
@@ -862,37 +836,30 @@ MessageService.prototype.sync = function () {
     ]);
 
     var self = this;
-    var cid = bridge.listener({
-        success: function () {
-            if (args.successCallback) {
-                args.successCallback.call(null);
-            }
-        },
-        error: function (e) {
-            if (args.errorCallback) {
-                args.errorCallback.call(
-                    null,
-                    new WebAPIException(e.error)
-                )
-            }
-        }
-    });
 
-    var result = bridge.sync({
-        cmd: 'MessageService_sync',
-        cid: cid,
-        args: {
-            id: self.id,
-            limit: args.limit || null
-        }
-    });
+    var callArgs = {
+        id: self.id,
+        limit: args.limit || null
+    };
 
-    return result;
+    var callback = function(result) {
+      if (native.isFailure(result)) {
+        native.callIfPossible(args.errorCallback, native.getErrorObject(result));
+      } else {
+        native.callIfPossible(args.successCallback);
+      }
+    };
+
+    var result = native.call('MessageService_sync', callArgs, callback);
+
+    if (native.isFailure(result)) {
+      throw native.getErrorObject(result);
+    }
+
+    return native.getResultObject(result);
 };
 
 MessageService.prototype.syncFolder = function () {
-    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.MESSAGING_WRITE);
-
     var args = validator_.validateArgs(arguments, [
         {name: 'folder', type: types_.PLATFORM_OBJECT, values: MessageFolder},
         {name: 'successCallback', type: types_.FUNCTION, optional: true, nullable: true},
@@ -901,33 +868,29 @@ MessageService.prototype.syncFolder = function () {
     ]);
 
     var self = this;
-    var cid = bridge.listener({
-        success: function () {
-            if (args.successCallback) {
-                args.successCallback.call(null);
-            }
-        },
-        error: function (e) {
-            if (args.errorCallback) {
-                args.errorCallback.call(
-                    null,
-                    new WebAPIException(e.error)
-                )
-            }
-        }
-    });
 
-    var result = bridge.sync({
-        cmd: 'MessageService_syncFolder',
-        cid: cid,
-        args: {
-            id: self.id,
-            folder: args.folder,
-            limit: args.limit || null
-        }
-    });
+    var callArgs = {
+        id: self.id,
+        folder: args.folder,
+        limit: args.limit || null
+    };
 
-    return result;
+    var callback = function(result) {
+      if (native.isFailure(result)) {
+        native.callIfPossible(args.errorCallback, native.getErrorObject(result));
+      } else {
+        native.callIfPossible(args.successCallback);
+      }
+    };
+
+    var result = native.call('MessageService_syncFolder', callArgs, callback);
+
+    if (native.isFailure(result)) {
+      throw native.getErrorObject(result);
+    }
+
+    return native.getResultObject(result);
+
 };
 
 MessageService.prototype.stopSync = function () {
@@ -936,13 +899,14 @@ MessageService.prototype.stopSync = function () {
     ]);
 
     var self = this;
-    bridge.sync({
-        cmd: 'MessageService_stopSync',
-        args: {
-            id: self.id,
-            opId: args.opId
-        }
-    });
+    var callArgs = {
+        id: self.id,
+        opId: args.opId
+    };
+    var result = native.callSync('MessageService_stopSync', callArgs);
+    if (native.isFailure(result)) {
+        throw native.getErrorObject(result);
+    }
 };
 
 function MessageStorage(service) {
@@ -950,8 +914,6 @@ function MessageStorage(service) {
 };
 
 MessageStorage.prototype.addDraftMessage = function () {
-    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.MESSAGING_WRITE);
-
     var args = validator_.validateArgs(arguments, [
         {name: 'message', type: types_.PLATFORM_OBJECT, values: tizen.Message},
         {name: 'successCallback', type: types_.FUNCTION, optional: true, nullable: true},
@@ -959,52 +921,45 @@ MessageStorage.prototype.addDraftMessage = function () {
     ]);
 
     if (args.message.type != this.service.type) {
-        throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR);
+        throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR);
     }
 
     var self = this;
-    bridge.async({
-        cmd: 'MessageStorage_addDraftMessage',
-        args: {
-            message: args.message,
-            serviceId: self.service.id
-        }
-    }).then({
-        success: function (data) {
-            var message = data.message;
-            if (message) {
-                var body = message.body;
-                if (body) {
-                    updateInternal_(args.message.body, body)
-                    delete message.body;
-                }
-                var attachments = message.attachments;
-                if (attachments) {
-                    for (var i = 0; i < attachments.length; i++) {
-                        messageAttachmentsLoaded[attachments[i].id] = true;
-                    }
-                }
-                updateInternal_(args.message, message);
-            }
 
-            if (args.successCallback) {
-                args.successCallback.call(null);
+    var callArgs = {
+        message: args.message,
+        serviceId: self.service.id
+    };
+    var callback = function(result) {
+      if (native.isFailure(result)) {
+        native.callIfPossible(args.errorCallback, native.getErrorObject(result));
+      } else {
+        var data = native.getResultObject(result);
+        var message = data.message;
+        if (message) {
+            var body = message.body;
+            if (body) {
+                updateInternal_(args.message.body, body)
+                delete message.body;
             }
-        },
-        error: function (e) {
-            if (args.errorCallback) {
-                args.errorCallback.call(
-                    null,
-                    new WebAPIException(e.error)
-                )
+            var attachments = message.attachments;
+            if (attachments) {
+                for (var i = 0; i < attachments.length; i++) {
+                    messageAttachmentsLoaded[attachments[i].id] = true;
+                }
             }
+            updateInternal_(args.message, message);
         }
-    });
+        native.callIfPossible(args.successCallback, data.recipients);
+      }
+    };
+    var result = native.call('MessageStorage_addDraftMessage', callArgs, callback);
+    if (native.isFailure(result)) {
+      throw native.getErrorObject(result);
+    }
 };
 
 MessageStorage.prototype.findMessages = function () {
-    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.MESSAGING_READ);
-
     var args = validator_.validateArgs(arguments, [
         {
             name: 'filter',
@@ -1021,38 +976,33 @@ MessageStorage.prototype.findMessages = function () {
 
     var self = this;
 
-    bridge.async({
-        cmd: 'MessageStorage_findMessages',
-        args: {
-            filter: addTypeToFilter_(args.filter) || null,
-            sort: args.sort || null,
-            limit: args.limit || null,
-            offset: args.offset || null,
-            serviceId: self.service.id,
-            type: self.service.type
-        }
-    }).then({
-        success: function (data) {
-            var messages = [];
-            data.forEach(function (el) {
-                messages.push(new tizen.Message(el.type, new MessageInit_(el)));
-            });
-            args.successCallback.call(null, messages);
-        },
-        error: function (e) {
-            if (args.errorCallback) {
-                args.errorCallback.call(
-                    null,
-                    new WebAPIException(e.error)
-                )
-            }
-        }
-    });
+    var callArgs = {
+        filter: addTypeToFilter_(args.filter) || null,
+        sort: args.sort || null,
+        limit: args.limit || null,
+        offset: args.offset || null,
+        serviceId: self.service.id,
+        type: self.service.type
+    };
+    var callback = function(result) {
+      if (native.isFailure(result)) {
+        native.callIfPossible(args.errorCallback, native.getErrorObject(result));
+      } else {
+        var data = native.getResultObject(result);
+        var messages = [];
+        data.forEach(function (el) {
+            messages.push(new tizen.Message(el.type, new MessageInit_(el)));
+        });
+        native.callIfPossible(args.successCallback, messages);
+      }
+    };
+    var result = native.call('MessageStorage_findMessages', callArgs, callback);
+    if (native.isFailure(result)) {
+      throw native.getErrorObject(result);
+    }
 };
 
 MessageStorage.prototype.removeMessages = function () {
-    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.MESSAGING_WRITE);
-
     var args = validator_.validateArgs(arguments, [
         {name: 'messages', type: types_.ARRAY, values: Message},
         {name: 'successCallback', type: types_.FUNCTION, optional: true, nullable: true},
@@ -1063,37 +1013,29 @@ MessageStorage.prototype.removeMessages = function () {
 
     args.messages.forEach(function(msg) {
         if (msg.type != self.service.type) {
-            throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR);
+            throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR);
         }
     });
 
-    bridge.async({
-        cmd: 'MessageStorage_removeMessages',
-        args: {
-            messages: args.messages,
-            serviceId: self.service.id,
-            type: self.service.type
-        }
-    }).then({
-        success: function () {
-            if (args.successCallback) {
-                args.successCallback.call(null);
-            }
-        },
-        error: function (e) {
-            if (args.errorCallback) {
-                args.errorCallback.call(
-                    null,
-                    new WebAPIException(e.error)
-                )
-            }
-        }
-    });
+    var callArgs = {
+        messages: args.messages,
+        serviceId: self.service.id,
+        type: self.service.type
+    };
+    var callback = function(result) {
+      if (native.isFailure(result)) {
+        native.callIfPossible(args.errorCallback, native.getErrorObject(result));
+      } else {
+        native.callIfPossible(args.successCallback);
+      }
+    };
+    var result = native.call('MessageStorage_removeMessages', callArgs, callback);
+    if (native.isFailure(result)) {
+      throw native.getErrorObject(result);
+    }
 };
 
 MessageStorage.prototype.updateMessages = function () {
-    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.MESSAGING_WRITE);
-
     var args = validator_.validateArgs(arguments, [
         {name: 'messages', type: types_.ARRAY, values: Message},
         {name: 'successCallback', type: types_.FUNCTION, optional: true, nullable: true},
@@ -1104,59 +1046,52 @@ MessageStorage.prototype.updateMessages = function () {
 
     args.messages.forEach(function(msg) {
         if (msg.type != self.service.type) {
-            throw new tizen.WebAPIException(tizen.WebAPIException.TYPE_MISMATCH_ERR);
+            throw new WebAPIException(WebAPIException.TYPE_MISMATCH_ERR);
         }
     });
 
-    bridge.async({
-        cmd: 'MessageStorage_updateMessages',
-        args: {
-            messages: args.messages,
-            serviceId: self.service.id
+    var callArgs = {
+        messages: args.messages,
+        serviceId: self.service.id
+    };
+    var callback = function(result) {
+      if (native.isFailure(result)) {
+        native.callIfPossible(args.errorCallback, native.getErrorObject(result));
+      } else {
+        var data = native.getResultObject(result);
+        var originals = {},
+        i = args.messages.length,
+        m;
+        while (i--) {
+          m = args.messages[i];
+          if (m.id) {
+            originals[m.id] = m;
+          }
         }
-    }).then({
-        success: function (data) {
-            var originals = {},
-                    i = args.messages.length,
-                    m;
-            while (i--) {
-                m = args.messages[i];
-                if (m.id) {
-                    originals[m.id] = m;
-                }
-            }
 
-            i = data.length;
-            while (i--) {
-                m = data[i];
-                if (originals[m.oldId]) {
-                    var body = m.body;
-                    if (body) {
-                        updateInternal_(originals[m.oldId].body, body)
-                        delete m.body;
-                    }
-                    updateInternal_(originals[m.oldId], m);
-                }
+        i = data.length;
+        while (i--) {
+          m = data[i];
+          if (originals[m.oldId]) {
+            var body = m.body;
+            if (body) {
+              updateInternal_(originals[m.oldId].body, body)
+              delete m.body;
             }
-
-            if (args.successCallback) {
-                args.successCallback.call(null);
-            }
-        },
-        error: function (e) {
-            if (args.errorCallback) {
-                args.errorCallback.call(
-                    null,
-                    new WebAPIException(e.error)
-                )
-            }
+            updateInternal_(originals[m.oldId], m);
+          }
         }
-    });
+
+        native.callIfPossible(args.successCallback);
+      }
+    };
+    var result = native.call('MessageStorage_updateMessages', callArgs, callback);
+    if (native.isFailure(result)) {
+      throw native.getErrorObject(result);
+    }
 };
 
 MessageStorage.prototype.findConversations = function () {
-    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.MESSAGING_READ);
-
     var args = validator_.validateArgs(arguments, [
         {
             name: 'filter',
@@ -1173,37 +1108,32 @@ MessageStorage.prototype.findConversations = function () {
 
     var self = this;
 
-    bridge.async({
-        cmd: 'MessageStorage_findConversations',
-        args: {
-            filter: addTypeToFilter_(args.filter),
-            sort: args.sort || null,
-            limit: args.limit || null,
-            offset: args.offset || null,
-            serviceId: self.service.id
-        }
-    }).then({
-        success: function (data) {
-            var conversations = [];
-            data.forEach(function (el) {
-                conversations.push(new MessageConversation(el));
-            });
-            args.successCallback.call(null, conversations);
-        },
-        error: function (e) {
-            if (args.errorCallback) {
-                args.errorCallback.call(
-                    null,
-                    new WebAPIException(e.error)
-                )
-            }
-        }
-    });
+    var callArgs = {
+        filter: addTypeToFilter_(args.filter),
+        sort: args.sort || null,
+        limit: args.limit || null,
+        offset: args.offset || null,
+        serviceId: self.service.id
+    };
+    var callback = function(result) {
+      if (native.isFailure(result)) {
+        native.callIfPossible(args.errorCallback, native.getErrorObject(result));
+      } else {
+        var data = native.getResultObject(result);
+        var conversations = [];
+        data.forEach(function (el) {
+            conversations.push(new MessageConversation(el));
+        });
+        args.successCallback(conversations);
+      }
+    };
+    var result = native.call('MessageStorage_findConversations', callArgs, callback);
+    if (native.isFailure(result)) {
+      throw native.getErrorObject(result);
+    }
 };
 
 MessageStorage.prototype.removeConversations = function () {
-    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.MESSAGING_WRITE);
-
     var args = validator_.validateArgs(arguments, [
         {name: 'conversations', type: types_.ARRAY},
         {name: 'successCallback', type: types_.FUNCTION, optional: true, nullable: true},
@@ -1218,33 +1148,25 @@ MessageStorage.prototype.removeConversations = function () {
 
     var self = this;
 
-    bridge.async({
-        cmd: 'MessageStorage_removeConversations',
-        args: {
-            conversations: args.conversations,
-            serviceId: self.service.id,
-            type: self.service.type
-        }
-    }).then({
-        success: function () {
-            if (args.successCallback) {
-                args.successCallback.call(null);
-            }
-        },
-        error: function (e) {
-            if (args.errorCallback) {
-                args.errorCallback.call(
-                    null,
-                    new WebAPIException(e.error)
-                )
-            }
-        }
-    });
+    var callArgs = {
+        conversations: args.conversations,
+        serviceId: self.service.id,
+        type: self.service.type
+    };
+    var callback = function(result) {
+      if (native.isFailure(result)) {
+        native.callIfPossible(args.errorCallback, native.getErrorObject(result));
+      } else {
+        native.callIfPossible(args.successCallback);
+      }
+    };
+    var result = native.call('MessageStorage_removeConversations', callArgs, callback);
+    if (native.isFailure(result)) {
+      throw native.getErrorObject(result);
+    }
 };
 
 MessageStorage.prototype.findFolders = function () {
-    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.MESSAGING_READ);
-
     var args = validator_.validateArgs(arguments, [
         {
             name: 'filter',
@@ -1257,38 +1179,77 @@ MessageStorage.prototype.findFolders = function () {
 
     var self = this;
 
-    bridge.async({
-        cmd: 'MessageStorage_findFolders',
-        args: {
-            filter: addTypeToFilter_(args.filter),
-            sort: args.sort || null,
-            limit: args.limit || null,
-            offset: args.offset || null,
-            serviceId: self.service.id
-        }
-    }).then({
-        success: function (data) {
-            var folders = [];
-            data.forEach(function (el) {
-                folders.push(new MessageFolder(el));
-            });
-            args.successCallback.call(null, folders);
-        },
-        error: function (e) {
-            if (args.errorCallback) {
-                args.errorCallback.call(
-                    null,
-                    new WebAPIException(e.error)
-                )
-            }
-        }
-    });
+    var callArgs = {
+        filter: addTypeToFilter_(args.filter),
+        sort: args.sort || null,
+        limit: args.limit || null,
+        offset: args.offset || null,
+        serviceId: self.service.id
+    };
+    var callback = function(result) {
+      if (native.isFailure(result)) {
+        native.callIfPossible(args.errorCallback, native.getErrorObject(result));
+      } else {
+        var data = native.getResultObject(result);
+        var folders = [];
+        data.forEach(function (el) {
+            folders.push(new MessageFolder(el));
+        });
+        args.successCallback(folders);
+      }
+    };
+    var result = native.call('MessageStorage_findFolders', callArgs, callback);
+    if (native.isFailure(result)) {
+      throw native.getErrorObject(result);
+    }
 };
 
-MessageStorage.prototype.addMessagesChangeListener = function () {
-    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.MESSAGING_READ);
+function pushMessage(messages, el) {
+  messages.push(new tizen.Message(el.type, new MessageInit_(el)));
+};
 
-    var args = validator_.validateArgs(arguments, [
+function pushConversation(conversations, el) {
+  conversations.push(new MessageConversation(el));
+};
+
+function pushFolder(folders, el) {
+  folders.push(new MessageFolder(el));
+};
+
+function getListenerFunction(listenerMap, pushMethod) {
+  return function(msg) {
+    var action = msg.action;
+    var data = native.getResultObject(msg);
+    var messages = [];
+    data.forEach(function (el) {
+      pushMethod(messages, el);
+    });
+
+    for (var key in listenerMap) {
+      if (listenerMap.hasOwnProperty(key)) {
+        native.callIfPossible(listenerMap[key][action], messages);
+      }
+    }
+  }
+};
+
+var MESSAGES_CHANGE_LISTENER = 'MessagesChangeListener';
+var MessagesChangeListeners = {};
+native.addListener(MESSAGES_CHANGE_LISTENER,
+    getListenerFunction(MessagesChangeListeners, pushMessage));
+
+var CONVERSATIONS_CHANGE_LISTENER = 'ConversationsChangeListener';
+var ConversationsChangeListeners = {};
+native.addListener(CONVERSATIONS_CHANGE_LISTENER,
+    getListenerFunction(ConversationsChangeListeners, pushConversation));
+
+var FOLDERS_CHANGE_LISTENER = 'FoldersChangeListener';
+var FoldersChangeListeners = {};
+native.addListener(FOLDERS_CHANGE_LISTENER,
+    getListenerFunction(FoldersChangeListeners, pushFolder));
+
+MessageStorage.prototype.addMessagesChangeListener = function () {
+     var args = validator_.validateArgs(arguments, [
         {name: 'messagesChangeCallback', type: types_.LISTENER,
                 values: ['messagesadded', 'messagesupdated', 'messagesremoved']},
         {
@@ -1302,52 +1263,21 @@ MessageStorage.prototype.addMessagesChangeListener = function () {
 
     var self = this;
 
-    var cid = bridge.listener({
-        messagesadded: function (data) {
-            if (args.messagesChangeCallback.messagesadded) {
-                var messages = [];
-                data.forEach(function (el) {
-                    messages.push(new tizen.Message(el.type, new MessageInit_(el)));
-                });
-                args.messagesChangeCallback.messagesadded.call(null, messages);
-            }
-        },
-        messagesupdated: function (data) {
-            if (args.messagesChangeCallback.messagesupdated) {
-                var messages = [];
-                data.forEach(function (el) {
-                    messages.push(new tizen.Message(el.type, new MessageInit_(el)));
-                });
-                args.messagesChangeCallback.messagesupdated.call(null, messages);
-            }
-        },
-        messagesremoved: function (data) {
-            if (args.messagesChangeCallback.messagesremoved) {
-                var messages = [];
-                data.forEach(function (el) {
-                    messages.push(new tizen.Message(el.type, new MessageInit_(el)));
-                });
-                args.messagesChangeCallback.messagesremoved.call(null, messages);
-            }
-        }
-    });
-
-    var result = bridge.sync({
-        cmd: 'MessageStorage_addMessagesChangeListener',
-        cid: cid,
-        args: {
-            filter: args.filter ? addTypeToFilter_(args.filter) : null,
-            serviceId: self.service.id
-        }
-    });
-
-    bridge.attach(cid, 'watchId', result);
-    return result;
+    var callArgs = {
+        filter: args.filter ? addTypeToFilter_(args.filter) : null,
+        serviceId: self.service.id
+    };
+    var result = native.callSync('MessageStorage_addMessagesChangeListener', callArgs);
+    if (native.isFailure(result)) {
+      throw native.getErrorObject(result);
+    } else {
+      var opId = native.getResultObject(result);
+      MessagesChangeListeners[opId] = args.messagesChangeCallback;
+      return opId;
+    }
 };
 
 MessageStorage.prototype.addConversationsChangeListener = function () {
-    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.MESSAGING_READ);
-
     var args = validator_.validateArgs(arguments, [
         {name: 'conversationsChangeCallback', type: types_.LISTENER,
                 values: ['conversationsadded', 'conversationsupdated', 'conversationsremoved']},
@@ -1362,52 +1292,21 @@ MessageStorage.prototype.addConversationsChangeListener = function () {
 
     var self = this;
 
-    var cid = bridge.listener({
-        conversationsadded: function (data) {
-            if (args.conversationsChangeCallback.conversationsadded) {
-                var conversations = [];
-                data.forEach(function (el) {
-                    conversations.push(new MessageConversation(el));
-                });
-                args.conversationsChangeCallback.conversationsadded.call(null, conversations);
-            }
-        },
-        conversationsupdated: function (data) {
-            if (args.conversationsChangeCallback.conversationsupdated) {
-                var conversations = [];
-                data.forEach(function (el) {
-                   conversations.push(new MessageConversation(el));
-                });
-                args.conversationsChangeCallback.conversationsupdated.call(null, conversations);
-            }
-        },
-        conversationsremoved: function (data) {
-            if (args.conversationsChangeCallback.conversationsremoved) {
-                var conversations = [];
-                data.forEach(function (el) {
-                    conversations.push(new MessageConversation(el));
-                });
-                args.conversationsChangeCallback.conversationsremoved.call(null, conversations);
-            }
-        }
-    });
-
-    var result = bridge.sync({
-        cmd: 'MessageStorage_addConversationsChangeListener',
-        cid: cid,
-        args: {
-            filter: args.filter ? addTypeToFilter_(args.filter) : null,
-            serviceId: self.service.id
-        }
-    });
-
-    bridge.attach(cid, 'watchId', result);
-    return result;
+    var callArgs = {
+        filter: args.filter ? addTypeToFilter_(args.filter) : null,
+        serviceId: self.service.id
+    };
+    var result = native.callSync('MessageStorage_addConversationsChangeListener', callArgs);
+    if (native.isFailure(result)) {
+      throw native.getErrorObject(result);
+    } else {
+      var opId = native.getResultObject(result);
+      ConversationsChangeListeners[opId] = args.conversationsChangeCallback;
+      return opId;
+    }
 };
 
 MessageStorage.prototype.addFoldersChangeListener = function () {
-    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.MESSAGING_READ);
-
     var args = validator_.validateArgs(arguments, [
         {name: 'foldersChangeCallback', type: types_.LISTENER,
                 values: ['foldersadded', 'foldersupdated', 'foldersremoved']},
@@ -1422,70 +1321,43 @@ MessageStorage.prototype.addFoldersChangeListener = function () {
 
     var self = this;
 
-    var cid = bridge.listener({
-        foldersadded: function (data) {
-            if (args.foldersChangeCallback.foldersadded) {
-                var folders = [];
-                data.forEach(function (el) {
-                    folders.push(new MessageFolder(el));
-                });
-                args.foldersChangeCallback.foldersadded.call(null, folders);
-            }
-        },
-        foldersupdated: function (data) {
-            if (args.foldersChangeCallback.foldersupdated) {
-                var folders = [];
-                data.forEach(function (el) {
-                    folders.push(new MessageFolder(el));
-                });
-                args.foldersChangeCallback.foldersupdated.call(null, folders);
-            }
-        },
-        foldersremoved: function (data) {
-            if (args.foldersChangeCallback.foldersremoved) {
-                var folders = [];
-                data.forEach(function (el) {
-                    folders.push(new MessageFolder(el));
-                });
-                args.foldersChangeCallback.foldersremoved.call(null, folders);
-            }
-        }
-    });
-
-    var result = bridge.sync({
-        cmd: 'MessageStorage_addFoldersChangeListener',
-        cid: cid,
-        args: {
-            filter: args.filter ? addTypeToFilter_(args.filter) : null,
-            serviceId: self.service.id
-        }
-    });
-
-    bridge.attach(cid, 'watchId', result);
-    return result;
+    var callArgs = {
+        filter: args.filter ? addTypeToFilter_(args.filter) : null,
+        serviceId: self.service.id
+    };
+    var result = native.callSync('MessageStorage_addFoldersChangeListener', callArgs);
+    if (native.isFailure(result)) {
+      throw native.getErrorObject(result);
+    } else {
+      var opId = native.getResultObject(result);
+      FoldersChangeListeners[opId] = args.foldersChangeCallback;
+      return opId;
+    }
 };
 
 MessageStorage.prototype.removeChangeListener = function () {
-    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.MESSAGING_READ);
-
     var args = validator_.validateArgs(arguments, [
         {name: 'watchId', type: types_.LONG}
     ]);
 
     var self = this;
 
-    var result = bridge.sync({
-        cmd: 'MessageStorage_removeChangeListener',
-        args: {
-            watchId: args.watchId,
-            serviceId: self.service.id
-        }
-    });
-
-    bridge.find('watchId', args.watchId).forEach(function (e) {
-        bridge.remove(e.id);
-    });
-    return result;
+    var callArgs = {
+        watchId: args.watchId,
+        serviceId: self.service.id
+    };
+    var result = native.callSync('MessageStorage_removeChangeListener', callArgs);
+    if (native.isFailure(result)) {
+      throw native.getErrorObject(result);
+    } else {
+      if (MessagesChangeListeners.hasOwnProperty(args.watchId)) {
+        delete MessagesChangeListeners[args.watchId];
+      } else if (ConversationsChangeListeners.hasOwnProperty(args.watchId)) {
+        delete ConversationsChangeListeners[args.watchId];
+      } else if (FoldersChangeListeners.hasOwnProperty(args.watchId)) {
+        delete FoldersChangeListeners[args.watchId];
+      }
+    }
 };
 
 function MessageConversation(data) {

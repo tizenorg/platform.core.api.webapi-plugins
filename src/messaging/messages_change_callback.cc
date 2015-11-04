@@ -59,6 +59,7 @@ MessagesChangeCallback::MessagesChangeCallback(
         m_is_act(true)
 {
     LoggerD("Entered");
+    m_callback_data.SetListenerId("MessagesChangeListener");
 }
 
 MessagesChangeCallback::~MessagesChangeCallback()

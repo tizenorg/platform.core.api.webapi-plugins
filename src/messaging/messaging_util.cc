@@ -45,20 +45,14 @@ namespace extension {
 namespace messaging {
 using namespace common;
 
+const char* JSON_LISTENER_ID = "listenerId";
+const char* JSON_CALLBACK_ID = "callbackId";
 const char* JSON_ACTION = "action";
-const char* JSON_CALLBACK_ID = "cid";
-const char* JSON_CALLBACK_SUCCCESS = "success";
-const char* JSON_CALLBACK_ERROR = "error";
-const char* JSON_CALLBACK_PROGRESS = "progress";
-const char* JSON_CALLBACK_KEEP = "keep";
-const char* JSON_DATA = "args";
+const char* JSON_RESULT = "result";
 const char* JSON_DATA_MESSAGE = "message";
 const char* JSON_DATA_MESSAGE_BODY = "messageBody";
 const char* JSON_DATA_MESSAGE_ATTACHMENT = "messageAttachment";
 const char* JSON_DATA_RECIPIENTS = "recipients";
-const char* JSON_ERROR_MESSAGE = "message";
-const char* JSON_ERROR_NAME = "name";
-const char* JSON_ERROR_CODE = "code";
 
 const char* MESSAGE_ATTRIBUTE_ID = "id";
 const char* MESSAGE_ATTRIBUTE_OLD_ID = "oldId";

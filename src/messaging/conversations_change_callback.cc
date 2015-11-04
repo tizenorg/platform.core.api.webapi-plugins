@@ -50,6 +50,7 @@ ConversationsChangeCallback::ConversationsChangeCallback(
         m_is_act(true)
 {
     LoggerD("Entered");
+    m_callback_data.SetListenerId("ConversationsChangeListener");
 }
 
 ConversationsChangeCallback::~ConversationsChangeCallback()
