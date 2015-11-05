@@ -67,9 +67,13 @@ function _checkClosed(stream) {
   }
 }
 
-FileStream.prototype.close = function() {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_READ);
+function closeFileStream() {
+  privUtils_.checkPrivilegeAccess(privilege_.FILESYSTEM_READ);
   this._closed = true;
+};
+
+FileStream.prototype.close = function() {
+  closeFileStream.apply(this, arguments);
 };
 
 function _checkReadAccess(mode) {
@@ -84,8 +88,8 @@ function _checkWriteAccess(mode) {
   }
 }
 
-FileStream.prototype.read = function() {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_READ);
+function read() {
+  privUtils_.checkPrivilegeAccess(privilege_.FILESYSTEM_READ);
 
   var args = validator_.validateArgs(arguments, [
     {
@@ -128,8 +132,12 @@ FileStream.prototype.read = function() {
   return decoded;
 };
 
-FileStream.prototype.readBytes = function() {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_READ);
+FileStream.prototype.read = function() {
+  return read.apply(this, arguments);
+};
+
+function readBytes() {
+  privUtils_.checkPrivilegeAccess(privilege_.FILESYSTEM_READ);
 
   var args = validator_.validateArgs(arguments, [
     {
@@ -169,8 +177,12 @@ FileStream.prototype.readBytes = function() {
   return bytes;
 };
 
-FileStream.prototype.readBase64 = function() {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_READ);
+FileStream.prototype.readBytes = function() {
+  return readBytes.apply(this, arguments);
+};
+
+function readBase64() {
+  privUtils_.checkPrivilegeAccess(privilege_.FILESYSTEM_READ);
 
   var args = validator_.validateArgs(arguments, [
     {
@@ -216,8 +228,12 @@ FileStream.prototype.readBase64 = function() {
   return encoded;
 };
 
-FileStream.prototype.write = function() {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_WRITE);
+FileStream.prototype.readBase64 = function() {
+  return readBase64.apply(this, arguments);
+}
+
+function write() {
+  privUtils_.checkPrivilegeAccess(privilege_.FILESYSTEM_WRITE);
 
   var args = validator_.validateArgs(arguments, [
     {
@@ -248,8 +264,12 @@ FileStream.prototype.write = function() {
   this.position = args.stringData.length;
 };
 
-FileStream.prototype.writeBytes = function() {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_WRITE);
+FileStream.prototype.write = function() {
+  write.apply(this, arguments);
+};
+
+function writeBytes() {
+  privUtils_.checkPrivilegeAccess(privilege_.FILESYSTEM_WRITE);
 
   var args = validator_.validateArgs(arguments, [
     {
@@ -280,13 +300,17 @@ FileStream.prototype.writeBytes = function() {
   }
 };
 
+FileStream.prototype.writeBytes = function() {
+  writeBytes.apply(this, arguments);
+};
+
 function _isBase64(str) {
   var base64 = new RegExp('^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$');
   return base64.test(str);
 }
 
-FileStream.prototype.writeBase64 = function() {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_WRITE);
+function writeBase64() {
+  privUtils_.checkPrivilegeAccess(privilege_.FILESYSTEM_WRITE);
 
   var args = validator_.validateArgs(arguments, [
     {
@@ -318,4 +342,8 @@ FileStream.prototype.writeBase64 = function() {
   if (native_.isFailure(result)) {
     throw new WebAPIException(WebAPIException.IO_ERR, 'Could not write');
   }
+};
+
+FileStream.prototype.writeBase64 = function() {
+  writeBase64.apply(this, arguments);
 };
