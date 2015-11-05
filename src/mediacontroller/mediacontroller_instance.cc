@@ -20,11 +20,19 @@
 #include "common/picojson.h"
 #include "common/platform_result.h"
 #include "common/task-queue.h"
+#include "common/tools.h"
 
 #include "mediacontroller/mediacontroller_types.h"
 
 namespace extension {
 namespace mediacontroller {
+
+namespace {
+
+const std::string kPrivilegeMediaControllerClient = "http://tizen.org/privilege/mediacontroller.client";
+const std::string kPrivilegeMediaControllerServer = "http://tizen.org/privilege/mediacontroller.server";
+
+}  // namespace
 
 using common::ErrorCode;
 using common::PlatformResult;
@@ -110,8 +118,10 @@ MediaControllerInstance::~MediaControllerInstance() {
 void MediaControllerInstance::MediaControllerManagerCreateServer(
     const picojson::value& args,
     picojson::object& out) {
-
   LoggerD("Enter");
+
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeMediaControllerServer, &out);
+
   if (server_) {
     ReportSuccess(out);
     return;
@@ -356,8 +366,10 @@ void MediaControllerInstance::MediaControllerServerRemoveCommandListener(
 void MediaControllerInstance::MediaControllerManagerGetClient(
     const picojson::value& args,
     picojson::object& out) {
-
   LoggerD("Enter");
+
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeMediaControllerClient, &out);
+
   if (client_) {
     ReportSuccess(out);
     return;
