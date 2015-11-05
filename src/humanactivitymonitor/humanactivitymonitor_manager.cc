@@ -26,7 +26,10 @@ namespace humanactivitymonitor {
 using common::PlatformResult;
 using common::ErrorCode;
 
-HumanActivityMonitorManager::HumanActivityMonitorManager() {
+HumanActivityMonitorManager::HumanActivityMonitorManager()
+    : gesture_handle_(nullptr),
+      hrm_sensor_listener_(nullptr),
+      location_handle_(nullptr) {
   LoggerD("Enter");
 }
 
