@@ -22,6 +22,7 @@
 #include "common/tools.h"
 
 #include "bluetooth_health_profile_handler.h"
+#include "bluetooth_privilege.h"
 #include "bluetooth_util.h"
 
 namespace extension {
@@ -42,6 +43,9 @@ BluetoothHealthApplication::BluetoothHealthApplication(
 
 void BluetoothHealthApplication::Unregister(const picojson::value& data, picojson::object& out) {
   LoggerD("Entered");
+
+  CHECK_BACKWARD_COMPABILITY_PRIVILEGE_ACCESS(Privilege::kBluetooth,
+                                              Privilege::kBluetoothHealth, &out);
 
   const auto& args = util::GetArguments(data);
 

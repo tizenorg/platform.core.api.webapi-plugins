@@ -27,6 +27,8 @@
         'bluetooth_health_profile_handler.h',
         'bluetooth_instance.cc',
         'bluetooth_instance.h',
+        'bluetooth_privilege.cc',
+        'bluetooth_privilege.h',
         'bluetooth_le_adapter.cc',
         'bluetooth_le_adapter.h',
         'bluetooth_service_handler.cc',

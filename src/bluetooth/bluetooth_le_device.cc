@@ -19,6 +19,7 @@
 
 #include "bluetooth/bluetooth_instance.h"
 #include "bluetooth/bluetooth_util.h"
+#include "bluetooth/bluetooth_privilege.h"
 
 #include "common/converter.h"
 #include "common/logger.h"
@@ -302,6 +303,8 @@ PlatformResult BluetoothLEDevice::ToJson(
 void BluetoothLEDevice::Connect(const picojson::value& data,
                                 picojson::object& out) {
   LoggerD("Entered");
+  CHECK_BACKWARD_COMPABILITY_PRIVILEGE_ACCESS(Privilege::kBluetooth,
+                                              Privilege::kBluetoothAdmin, &out);
 
   const auto callback_handle = util::GetAsyncCallbackHandle(data);
   const auto& args = util::GetArguments(data);
@@ -342,6 +345,8 @@ void BluetoothLEDevice::Connect(const picojson::value& data,
 void BluetoothLEDevice::Disconnect(const picojson::value& data,
                                    picojson::object& out) {
   LoggerD("Entered");
+  CHECK_BACKWARD_COMPABILITY_PRIVILEGE_ACCESS(Privilege::kBluetooth,
+                                              Privilege::kBluetoothAdmin, &out);
 
   const auto callback_handle = util::GetAsyncCallbackHandle(data);
   const auto& args = util::GetArguments(data);
@@ -386,6 +391,8 @@ void BluetoothLEDevice::Disconnect(const picojson::value& data,
 void BluetoothLEDevice::GetService(const picojson::value& data,
                                    picojson::object& out) {
   LoggerD("Entered");
+  CHECK_BACKWARD_COMPABILITY_PRIVILEGE_ACCESS(Privilege::kBluetooth,
+                                              Privilege::kBluetoothAdmin, &out);
 
   const auto& args = util::GetArguments(data);
 

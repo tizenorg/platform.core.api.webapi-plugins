@@ -26,6 +26,7 @@
 #include "bluetooth/bluetooth_instance.h"
 #include "bluetooth/bluetooth_health_application.h"
 #include "bluetooth/bluetooth_health_channel.h"
+#include "bluetooth/bluetooth_privilege.h"
 #include "bluetooth/bluetooth_util.h"
 
 namespace extension {
@@ -228,6 +229,9 @@ void BluetoothHealthProfileHandler::OnDataReceived(unsigned int channel,
 void BluetoothHealthProfileHandler::RegisterSinkApp(const picojson::value& data, picojson::object& out) {
   LoggerD("Entered");
 
+  CHECK_BACKWARD_COMPABILITY_PRIVILEGE_ACCESS(Privilege::kBluetooth,
+                                              Privilege::kBluetoothHealth, &out);
+
   const auto& args = util::GetArguments(data);
   const auto data_type = static_cast<short>(FromJson<double>(args, "dataType"));
   const auto& name = FromJson<std::string>(args, "name");
@@ -289,6 +293,9 @@ void BluetoothHealthProfileHandler::RegisterSinkApp(const picojson::value& data,
 
 void BluetoothHealthProfileHandler::ConnectToSource(const picojson::value& data, picojson::object& out) {
   LoggerD("Entered");
+
+  CHECK_BACKWARD_COMPABILITY_PRIVILEGE_ACCESS(Privilege::kBluetooth,
+                                              Privilege::kBluetoothHealth, &out);
 
   const auto& args = util::GetArguments(data);
   const auto& address = FromJson<std::string>(args, "address");

@@ -26,6 +26,7 @@
 
 #include "bluetooth/bluetooth_instance.h"
 #include "bluetooth/bluetooth_util.h"
+#include "bluetooth/bluetooth_privilege.h"
 
 namespace extension {
 namespace bluetooth {
@@ -333,6 +334,8 @@ PlatformResult BluetoothGATTService::GetCharacteristicsHelper(bt_gatt_h handle,
 void BluetoothGATTService::ReadValue(const picojson::value& args,
                                      picojson::object& out) {
   LoggerD("Entered");
+  CHECK_BACKWARD_COMPABILITY_PRIVILEGE_ACCESS(Privilege::kBluetooth,
+                                              Privilege::kBluetoothAdmin, &out);
 
   const std::string& address = args.get("address").get<std::string>();
   if (!IsStillConnected(address)) {
@@ -405,6 +408,8 @@ void BluetoothGATTService::ReadValue(const picojson::value& args,
 void BluetoothGATTService::WriteValue(const picojson::value& args,
                                      picojson::object& out) {
   LoggerD("Entered");
+  CHECK_BACKWARD_COMPABILITY_PRIVILEGE_ACCESS(Privilege::kBluetooth,
+                                              Privilege::kBluetoothAdmin, &out);
 
   const std::string& address = args.get("address").get<std::string>();
   if (!IsStillConnected(address)) {
