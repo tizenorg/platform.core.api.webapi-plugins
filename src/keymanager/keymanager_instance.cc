@@ -38,6 +38,9 @@ using common::TaskQueue;
 
 namespace {
 
+// Privileges required in KeyManager API
+const std::string kPrivilegeKeyManager = "http://tizen.org/privilege/keymanager";
+
 typedef std::vector<unsigned char> RawBuffer;
 
 typedef int (*AliasListFunction)(ckmc_alias_list_s**);
@@ -104,6 +107,8 @@ KeyManagerInstance::KeyManagerInstance() {
 void KeyManagerInstance::GetDataAliasList(const picojson::value& args,
                                           picojson::object& out) {
   LoggerD("Enter");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeKeyManager, out);
+
   GetGenericAliasList(ckmc_get_data_alias_list, &out);
 }
 
@@ -133,6 +138,7 @@ PlatformResult KeyManagerInstance::GetError(int ret) {
 void KeyManagerInstance::SaveData(const picojson::value& args,
                                   picojson::object& out) {
   LoggerD("Enter");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeKeyManager, out);
 
   std::string data_raw = args.get("rawData").get<std::string>();
   std::string alias = args.get("aliasName").get<std::string>();
@@ -187,6 +193,7 @@ void KeyManagerInstance::SaveData(const picojson::value& args,
 void KeyManagerInstance::GetData(const picojson::value& args,
                                  picojson::object& out) {
   LoggerD("Enter");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeKeyManager, out);
 
   const auto& data_alias = args.get("name").get<std::string>();
   const auto& password_value = args.get("password");
@@ -225,6 +232,7 @@ KeyManagerInstance::~KeyManagerInstance() {
 void KeyManagerInstance::RemoveAlias(const picojson::value& args,
                                    picojson::object& out) {
   LoggerD("Enter");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeKeyManager, out);
 
   const std::string& alias = args.get("aliasName").get<std::string>();
   int ret = ckmc_remove_alias(alias.c_str());
@@ -241,6 +249,7 @@ void KeyManagerInstance::RemoveAlias(const picojson::value& args,
 void KeyManagerInstance::SetPermission(const picojson::value& args,
                                             picojson::object& out) {
   LoggerD("Enter");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeKeyManager, out);
 
   const std::string& data_name = args.get("aliasName").get<std::string>();
   const std::string& id = args.get("packageId").get<std::string>();
