@@ -373,6 +373,19 @@ function copyTo() {
     return;
   }
 
+  // Validation against '.' and '..' directories used in path - not allowed
+  var resultSource = commonFS_.checkPathWithoutDots(args.originFilePath);
+  var resultDestination = commonFS_.checkPathWithoutDots(args.destinationFilePath);
+  if (!resultSource || !resultDestination) {
+    // path contains dots - it is not allowed - return InvalidValuesError
+    setTimeout(function() {
+      native_.callIfPossible(args.onerror,
+          new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
+          'Path contains \'.\' or \'..\' - it is not allowed.'));
+    }, 0);
+    return;
+  }
+
   var _realOriginalPath = commonFS_.toRealPath(args.originFilePath);
   var _realDestinationPath = commonFS_.toRealPath(args.destinationFilePath);
 
@@ -512,6 +525,19 @@ function moveTo() {
     return;
   }
 
+  // Validation against '.' and '..' directories used in path - not allowed
+  var resultSource = commonFS_.checkPathWithoutDots(args.originFilePath);
+  var resultDestination = commonFS_.checkPathWithoutDots(args.destinationFilePath);
+  if (!resultSource || !resultDestination) {
+    // path contains dots - it is not allowed - return InvalidValuesError
+    setTimeout(function() {
+      native_.callIfPossible(args.onerror,
+          new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
+          'Path contains \'.\' or \'..\' - it is not allowed.'));
+    }, 0);
+    return;
+  }
+
   var _realOriginalPath = commonFS_.toRealPath(args.originFilePath);
   var _realDestinationPath = commonFS_.toRealPath(args.destinationFilePath);
 
@@ -609,8 +635,17 @@ function createDirectory() {
 
   var _newPath = this.fullPath + '/' + args.dirPath,
           _statObj,
-          _fileInfo,
-          _realNewPath = commonFS_.toRealPath(_newPath);
+          _fileInfo;
+
+  // Validation against '.' and '..' directories used in path - not allowed
+  var result = commonFS_.checkPathWithoutDots(_newPath);
+  if (!result) {
+    // path contains dots - it is not allowed - return InvalidValuesError
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
+          'Path contains \'.\' or \'..\' - it is not allowed.');
+  }
+
+  var _realNewPath = commonFS_.toRealPath(_newPath);
 
   if (!_realNewPath) {
     throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR, 'Path is not valid');
@@ -668,6 +703,15 @@ function createFile() {
   }
 
   var _outputPath = this.fullPath + '/' + args.relativeFilePath;
+
+  // Validation against '.' and '..' directories used in path - not allowed
+  var result = commonFS_.checkPathWithoutDots(_outputPath);
+  if (!result) {
+    // path contains dots - it is not allowed - return InvalidValuesError
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
+          'Path contains \'.\' or \'..\' - it is not allowed.');
+  }
+
   var _outputRealPath = commonFS_.toRealPath(_outputPath);
   if (!_outputRealPath) {
     throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR, 'Path is not valid');
@@ -714,6 +758,15 @@ function resolveFile() {
   }
 
   var _newPath = this.fullPath + '/' + args.filePath;
+
+  // Validation against '.' and '..' directories used in path - not allowed
+  var result = commonFS_.checkPathWithoutDots(_newPath);
+  if (!result) {
+    // path contains dots - it is not allowed - return InvalidValuesError
+    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
+          'Path contains \'.\' or \'..\' - it is not allowed.');
+  }
+
   var _realPath = commonFS_.toRealPath(_newPath);
 
   if (!_realPath) {
@@ -751,6 +804,18 @@ function deleteDirectory() {
       native_.callIfPossible(args.onerror,
           new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
               'Invalid path or readonly access'));
+    }, 0);
+    return;
+  }
+
+  // Validation against '.' and '..' directories used in path - not allowed
+  var result = commonFS_.checkPathWithoutDots(args.directoryPath);
+  if (!result) {
+    // path contains dots - it is not allowed - return InvalidValuesError
+    setTimeout(function() {
+      native_.callIfPossible(args.onerror,
+          new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
+          'Path contains \'.\' or \'..\' - it is not allowed.'));
     }, 0);
     return;
   }
@@ -838,6 +903,18 @@ function deleteFile() {
       native_.callIfPossible(args.onerror,
           new WebAPIException(WebAPIException.IO_ERR,
           'File object which call this method is not directory'));
+    }, 0);
+    return;
+  }
+
+  // Validation against '.' and '..' directories used in path - not allowed
+  var result = commonFS_.checkPathWithoutDots(args.filePath);
+  if (!result) {
+    // path contains dots - it is not allowed - return InvalidValuesError
+    setTimeout(function() {
+      native_.callIfPossible(args.onerror,
+          new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
+          'Path contains \'.\' or \'..\' - it is not allowed.'));
     }, 0);
     return;
   }

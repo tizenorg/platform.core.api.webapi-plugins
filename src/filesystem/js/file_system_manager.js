@@ -53,6 +53,18 @@ function resolve() {
     return;
   }
 
+  // Validation against '.' and '..' directories used in path - not allowed
+  var result = commonFS_.checkPathWithoutDots(args.location);
+  if (!result) {
+    // path contains dots - it is not allowed - return InvalidValuesError
+    setTimeout(function() {
+      native_.callIfPossible(args.onerror,
+          new WebAPIException(WebAPIException.INVALID_VALUES_ERR,
+          'Path contains \'.\' or \'..\' - it is not allowed.'));
+    }, 0);
+    return;
+  }
+
   var _realPath = commonFS_.toRealPath(args.location);
 
   if (!_realPath) {
