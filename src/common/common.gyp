@@ -21,8 +21,6 @@
         'logger.h',
         'platform_exception.cc',
         'platform_exception.h',
-        'dbus_operation.cc',
-        'dbus_operation.h',
         'XW_Extension.h',
         'XW_Extension_EntryPoints.h',
         'XW_Extension_Permissions.h',
@@ -38,11 +36,16 @@
         'platform_result.h',
         'assert.h',
         'virtual_fs.cc',
-        'virtual_fs.h',
-        'GDBus/connection.cpp',
+        'virtual_fs.h',        
+	'GDBus/connection.cpp',
         'GDBus/connection.h',
         'GDBus/proxy.cpp',
         'GDBus/proxy.h',
+	'GDBus/gdbuswrapper.cpp',
+	'GDBus/gdbuswrapper.h',
+	'GDBus/auto_gen_interface.c',
+	'GDBus/auto_gen_interface.h'
+
       ],
       'cflags': [
         '-fvisibility=default',
@@ -91,7 +94,7 @@
         ],
         'variables': {
           'packages': [
-            'storage',
+            'storage'
           ],
         },
       },
