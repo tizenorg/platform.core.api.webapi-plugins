@@ -24,8 +24,6 @@
         'logger.h',
         'platform_exception.cc',
         'platform_exception.h',
-        'dbus_operation.cc',
-        'dbus_operation.h',
         'XW_Extension.h',
         'XW_Extension_EntryPoints.h',
         'XW_Extension_Permissions.h',
@@ -46,6 +44,11 @@
         'GDBus/connection.h',
         'GDBus/proxy.cpp',
         'GDBus/proxy.h',
+        'GDBus/gdbus_powerwrapper.cc',
+        'GDBus/gdbus_powerwrapper.h',
+        'GDBus/auto_gen_interface.c',
+        'GDBus/auto_gen_interface.h'
+
       ],
       'cflags': [
         '-fvisibility=default',

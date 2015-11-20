@@ -16,7 +16,6 @@
 //
 
 #include "MessageProxy.h"
-#include "common/GDBus/connection.h"
 #include "common/logger.h"
 #include "../message.h"
 #include "../message_email.h"
