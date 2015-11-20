@@ -28,9 +28,9 @@
         'defines': ['TIZEN'],
         'variables': {
           'packages': [
-            'dbus-1',
             'dlog',
             'glib-2.0',
+            'gio-unix-2.0',
           ]
         },
       }, {
