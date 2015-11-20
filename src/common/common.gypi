@@ -28,9 +28,9 @@
         'defines': ['TIZEN'],
         'variables': {
           'packages': [
-            'dbus-1',
             'dlog',
             'glib-2.0',
+	    'gio-unix-2.0',
           ]
         },
       }, {
@@ -66,7 +66,7 @@
         'sources/': [['exclude', '_x11\\.cc$|x11/']],
       }],
     ],
-    'includes': [
+    'includes': [      
       'xwalk_js2c.gypi',
       'pkg-config.gypi',
     ],
