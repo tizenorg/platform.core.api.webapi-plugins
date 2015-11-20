@@ -1,0 +1,50 @@
+<node>
+    <interface name="org.tizen.system.deviced.display">
+    <!-- arg method named get from service daemon -->
+
+        <method name="lockstate">
+            <!-- default value : lcddim -->
+            <arg name="state"      	direction="in"  type="s" />
+            <!-- default value : staycurstate -->
+            <arg name="option1"    	direction="in"  type="s" />
+            <!-- default value : NULL -> dummy value -->
+            <arg name="option2"     	direction="in"  type="s" />
+            <!-- default value : 0 -->
+            <arg name="timeout"         direction="in" type="i" />
+            <arg name="result"          direction="out"  type="i" />
+        </method>
+
+        <method name="unlockstate">
+            <!-- default value : lcddim -->
+            <arg name="state"           direction="in"  type="s" />
+            <!-- default value : keeptimer -->
+            <arg name="option"       	direction="in"  type="s" />
+            <arg name="result"          direction="out"   type="i" />
+        </method>
+
+        <method name="ReleaseBrightness">
+            <arg name="result"          direction="out" type="i" />
+        </method>
+
+        <method name="HoldBrightness">
+            <!-- default value : value by user -->
+            <arg name="brightness"      direction="in"  type="i" />
+            <arg name="result"          direction="out" 	type="i" />
+        </method>
+
+        <method name="CurrentBrightness">
+            <arg name="result"           direction="out" type="i" />
+        </method>
+
+        <method name="CustomBrightness">
+            <arg name="result"           direction="out" type="i" />
+        </method>
+
+        <!-- add new method here
+        <method name="method name">
+            <arg name="arg name"           direction="directory" type="i" />
+        </method>
+        -->
+
+    </interface>
+</node>
