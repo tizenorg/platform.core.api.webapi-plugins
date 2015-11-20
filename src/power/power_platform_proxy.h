@@ -17,7 +17,8 @@
 #ifndef POWER_POWER_PLATFORM_PROXY_H_
 #define POWER_POWER_PLATFORM_PROXY_H_
 
-#include "common/dbus_operation.h"
+#include "common/GDBus/gdbuswrapper.h"
+#include "common/platform_result.h"
 
 namespace extension {
 namespace power {
@@ -38,10 +39,10 @@ class PowerPlatformProxy {
   PowerPlatformProxy();
   virtual ~PowerPlatformProxy();
 
-  common::DBusOperation dbus_op_;
+  GDBusWrapper gdbus_op_;
 };
 
-} // namespace power
-} // namespace extension
+}  // namespace power
+}  // namespace extension
 
-#endif // POWER_POWER_PLATFORM_PROXY_H_
+#endif  // POWER_POWER_PLATFORM_PROXY_H_
