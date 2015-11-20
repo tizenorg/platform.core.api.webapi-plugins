@@ -24,7 +24,6 @@
 
 #include "common/logger.h"
 #include "common/platform_exception.h"
-#include "common/dbus_operation.h"
 #include "common/scope_exit.h"
 
 namespace extension {

@@ -259,10 +259,9 @@ Source0:    %{name}-%{version}.tar.gz
 
 BuildRequires: ninja
 BuildRequires: pkgconfig(appcore-common)
-BuildRequires: pkgconfig(dbus-1)
-BuildRequires: pkgconfig(dbus-glib-1)
 BuildRequires: pkgconfig(dlog)
 BuildRequires: pkgconfig(evas)
+BuildRequires: pkgconfig(gio-unix-2.0)
 BuildRequires: pkgconfig(gio-2.0)
 BuildRequires: pkgconfig(glib-2.0)
 BuildRequires: pkgconfig(libudev)
