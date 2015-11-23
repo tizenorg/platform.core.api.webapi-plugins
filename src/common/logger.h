@@ -6,6 +6,37 @@
 #define COMMON_LOGGER_H_
 
 #include <dlog.h>
+
+// Tizen 3.0 uses different debug flag (DLOG_DEBUG_ENABLE) which is always
+// enabled, following code allows to disable logs with DLOG_DEBUG priority if
+// TIZEN_DEBUG_ENABLE is not set.
+// This code should be removed when DLOG_DEBUG_ENABLE flag is no longer set
+// by default in dlog.h file.
+#undef LOG_
+#ifdef TIZEN_DEBUG_ENABLE
+#define LOG_(id, prio, tag, fmt, arg...) \
+  ({ do { \
+    __dlog_print(id, prio, tag, "%s: %s(%d) > " fmt, __MODULE__, __func__, __LINE__, ##arg); \
+  } while (0); })
+#else  // TIZEN_DEBUG_ENABLE
+#define LOG_(id, prio, tag, fmt, arg...) \
+  ({ do { \
+    if ((int)prio != DLOG_DEBUG) { \
+      __dlog_print(id, prio, tag, "%s: %s(%d) > " fmt, __MODULE__, __func__, __LINE__, ##arg); \
+    } \
+  } while (0); })
+#endif  // TIZEN_DEBUG_ENABLE
+
+#undef SECURE_LOG_
+#ifdef TIZEN_DEBUG_ENABLE
+#define SECURE_LOG_(id, prio, tag, fmt, arg...) \
+  ({ do { \
+    __dlog_print(id, prio, tag, "%s: %s(%d) > [SECURE_LOG] " fmt, __MODULE__, __func__, __LINE__, ##arg); \
+  } while (0); })
+#else  // TIZEN_DEBUG_ENABLE
+#define SECURE_LOG_(id, prio, tag, fmt, arg...) NOP(fmt, ##arg)
+#endif  // TIZEN_DEBUG_ENABLE
+
 #include <string>
 #include <cstring>
 #include <sstream>

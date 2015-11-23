@@ -18,7 +18,6 @@
 
 #include <functional>
 #include <string>
-#include <dlog.h>
 #include <glib.h>
 #include <memory>
 #include <media_content.h>
