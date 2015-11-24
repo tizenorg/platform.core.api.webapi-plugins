@@ -31,24 +31,23 @@ PlatformResult AppControlToService(const picojson::object& obj, app_control_h *a
 
   const auto it_operation = obj.find("operation");
   if (it_operation == it_end || !it_operation->second.is<std::string>()) {
-    LoggerE("Invalid parameter passed.");
-    return PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid parameter passed.");
+    return LogAndCreateResult(ErrorCode::INVALID_VALUES_ERR, "Invalid parameter passed.");
   }
 
   app_control_create(app_control);
 
   int ret = app_control_set_operation(*app_control, it_operation->second.get<std::string>().c_str());
   if (APP_CONTROL_ERROR_NONE != ret) {
-    LoggerE("Failed app_control_set_operation(): %d (%s)", ret, get_error_message(ret));
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Error while setting operation.");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Error while setting operation.",
+                              ("Failed app_control_set_operation(): %d (%s)", ret, get_error_message(ret)));
   }
 
   const auto it_uri = obj.find("uri");
   if (it_end != it_uri && it_uri->second.is<std::string>()) {
     ret = app_control_set_uri(*app_control, it_uri->second.get<std::string>().c_str());
     if (APP_CONTROL_ERROR_NONE != ret) {
-      LoggerE("Failed app_control_set_uri(): %d (%s)", ret, get_error_message(ret));
-      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Error while setting uri.");
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Error while setting uri.",
+                                ("Failed app_control_set_uri(): %d (%s)", ret, get_error_message(ret)));
     }
   }
 
@@ -56,8 +55,8 @@ PlatformResult AppControlToService(const picojson::object& obj, app_control_h *a
   if (it_end != it_mime && it_mime->second.is<std::string>()) {
     ret = app_control_set_mime(*app_control, it_mime->second.get<std::string>().c_str());
     if (APP_CONTROL_ERROR_NONE != ret) {
-      LoggerE("Failed app_control_set_mime(): %d (%s)", ret, get_error_message(ret));
-      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Error while setting mime.");
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Error while setting mime.",
+                                ("Failed app_control_set_mime(): %d (%s)", ret, get_error_message(ret)));
     }
   }
 
@@ -65,8 +64,8 @@ PlatformResult AppControlToService(const picojson::object& obj, app_control_h *a
   if (it_end != it_category && it_category->second.is<std::string>()) {
     ret = app_control_set_category(*app_control, it_category->second.get<std::string>().c_str());
     if (APP_CONTROL_ERROR_NONE != ret) {
-      LoggerE("Failed app_control_set_category(): %d (%s)", ret, get_error_message(ret));
-      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Error while setting category.");
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Error while setting category.",
+                                ("Failed app_control_set_category(): %d (%s)", ret, get_error_message(ret)));
     }
   }
 
@@ -99,8 +98,7 @@ PlatformResult AppControlToServiceExtraData(const picojson::object& app_obj,
       it_value == it_end ||
       !it_key->second.is<std::string>() ||
       !it_value->second.is<picojson::array>()) {
-    LoggerE("Problem with key or value.");
-    return PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Problem with key or value.");
+    return LogAndCreateResult(ErrorCode::INVALID_VALUES_ERR, "Problem with key or value.");
   }
 
   const std::string& key = it_key->second.get<std::string>();
@@ -123,8 +121,8 @@ PlatformResult AppControlToServiceExtraData(const picojson::object& app_obj,
   delete[] arr;
 
   if (APP_CONTROL_ERROR_NONE != ret) {
-    LoggerD("Error while setting data: %d (%s)", ret, get_error_message(ret));
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Error while setting data.");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Error while setting data.",
+                              ("Error while setting data: %d (%s)", ret, get_error_message(ret)));
   }
 
   return PlatformResult(ErrorCode::NO_ERROR);
