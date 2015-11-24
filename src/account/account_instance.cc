@@ -35,7 +35,7 @@ using common::SecurityException;
 
 #define CHECK_EXIST(args, name, out) \
     if (!args.contains(name)) {\
-      ReportError(TypeMismatchException(name" is required argument"), out);\
+      LogAndReportError(TypeMismatchException(name" is required argument"), out);\
       return;\
     }
 
@@ -286,16 +286,16 @@ void AccountInstance::AccountManagerAddAccountListener(
     LoggerD("Creating subscription");
     int ret = account_subscribe_create(&subscribe_);
     if (ret != ACCOUNT_ERROR_NONE) {
-      LoggerE("Failed to create account subscribe");
-      ReportError(UnknownException(manager_->GetErrorMsg(ret)), out);
+      LogAndReportError(UnknownException(manager_->GetErrorMsg(ret)), out,
+                        ("Failed to create account subscribe"));
       return;
     }
 
     LoggerD("Subscribing for notification");
     ret = account_subscribe_notification(subscribe_, AccountEventCb, this);
     if (ret != ACCOUNT_ERROR_NONE) {
-      LoggerE("Failed to subscribe notification");
-      ReportError(UnknownException(manager_->GetErrorMsg(ret)), out);
+      LogAndReportError(UnknownException(manager_->GetErrorMsg(ret)), out,
+                        ("Failed to subscribe notification"));
       return;
     }
 
