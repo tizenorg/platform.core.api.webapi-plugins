@@ -148,10 +148,14 @@ void BluetoothAdapter::StateChangedCB(int result, bt_adapter_state_e state, void
         //do nothing
         break;
       case BT_ERROR_NOW_IN_PROGRESS:
-        ret = PlatformResult(ErrorCode::SERVICE_NOT_AVAILABLE_ERR, "Bluetooth device is busy");
+        ret = LogAndCreateResult(
+                  ErrorCode::SERVICE_NOT_AVAILABLE_ERR, "Bluetooth device is busy",
+                  ("StateChangedCB result: %d (%s)", result, get_error_message(result)));
         break;
       default:
-        ret = PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown exception");
+        ret = LogAndCreateResult(
+                  ErrorCode::UNKNOWN_ERR, "Unknown exception",
+                  ("StateChangedCB result: %d (%s)", result, get_error_message(result)));
     }
 
     adapter->instance_.AsyncResponse(adapter->user_request_callback_[SET_POWERED], ret);
@@ -211,7 +215,9 @@ void BluetoothAdapter::VisibilityChangedCB(int result, bt_adapter_visibility_mod
     PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
 
     if (BT_ERROR_NONE != result) {
-      ret = PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown exception");
+      ret = LogAndCreateResult(
+                ErrorCode::UNKNOWN_ERR, "Unknown exception",
+                ("VisibilityChangedCB error: %d (%s)", result, get_error_message(result)));
     }
 
     adapter->instance_.AsyncResponse(adapter->user_request_callback_[SET_VISIBLE], ret);
@@ -276,7 +282,8 @@ void BluetoothAdapter::DiscoveryStateChangedCB(
           data_obj->insert(std::make_pair(kAction, picojson::value(kOnDiscoverStarted)));
           adapter->instance_.FireEvent(kAdapterDiscoverSuccessEvent, value);
         } else {
-          ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown error"), data_obj);
+          LogAndReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown error"), data_obj,
+                            ("Wrong discovery state: %d", discovery_state));
           adapter->instance_.FireEvent(kAdapterDiscoverErrorEvent, value);
           adapter->user_request_list_[DISCOVER_DEVICES] = false;
         }
@@ -455,7 +462,7 @@ void BluetoothAdapter::SetName(const picojson::value& data, picojson::object& ou
 
   PlatformResult result = PlatformResult(ErrorCode::NO_ERROR);
   if (!this->is_initialized()) {
-    result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Bluetooth service is not initialized.");
+    result = LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Bluetooth service is not initialized.");
     instance_.AsyncResponse(callback_handle, result);
     return;
   }
@@ -467,7 +474,7 @@ void BluetoothAdapter::SetName(const picojson::value& data, picojson::object& ou
     }
 
     if (this->user_request_list_[SET_NAME]) {
-      result = PlatformResult(ErrorCode::SERVICE_NOT_AVAILABLE_ERR, "Already requested");
+      result = LogAndCreateResult(ErrorCode::SERVICE_NOT_AVAILABLE_ERR, "Already requested");
       instance_.AsyncResponse(callback_handle, result);
       return;
     }
@@ -483,13 +490,17 @@ void BluetoothAdapter::SetName(const picojson::value& data, picojson::object& ou
         this->requested_name_ = name;
         break;
       case BT_ERROR_INVALID_PARAMETER:
-        result = PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid value");
+        result = LogAndCreateResult(
+                    ErrorCode::INVALID_VALUES_ERR, "Invalid value",
+                    ("bt_adapter_set_name error: %d (%s)", ret, get_error_message(ret)));
         break;
       default:
-        result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown exception");
+        result = LogAndCreateResult(
+                    ErrorCode::UNKNOWN_ERR, "Unknown exception",
+                    ("bt_adapter_set_name error: %d (%s)", ret, get_error_message(ret)));
     }
   } else {
-    result = PlatformResult(ErrorCode::SERVICE_NOT_AVAILABLE_ERR, "Bluetooth device is turned off");
+    result = LogAndCreateResult(ErrorCode::SERVICE_NOT_AVAILABLE_ERR, "Bluetooth device is turned off");
   }
 
   if (result.IsError()) {
@@ -509,11 +520,11 @@ void BluetoothAdapter::SetPowered(const picojson::value& data, picojson::object&
   PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
 
   if (!this->is_initialized()) {
-    ret = PlatformResult(ErrorCode::UNKNOWN_ERR, "Bluetooth service is not initialized.");
+    ret = LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Bluetooth service is not initialized.");
   }
 
   if (ret.IsSuccess() && this->user_request_list_[SET_POWERED]) {
-    ret = PlatformResult(ErrorCode::SERVICE_NOT_AVAILABLE_ERR, "Already requested");
+    ret = LogAndCreateResult(ErrorCode::SERVICE_NOT_AVAILABLE_ERR, "Already requested");
   }
 
   bool cur_powered = this->get_powered();
@@ -524,23 +535,26 @@ void BluetoothAdapter::SetPowered(const picojson::value& data, picojson::object&
     int err = 0;
 
     if ((err = app_control_create(&service)) != APP_CONTROL_ERROR_NONE) {
-      LoggerE("app control create failed: %d", err);
-      ret = PlatformResult(ErrorCode::UNKNOWN_ERR, "app control create failed");
+      ret = LogAndCreateResult(
+                ErrorCode::UNKNOWN_ERR, "app control create failed",
+                ("app control create failed: %d", err));
     }
 
     if (ret.IsSuccess()) {
       err = app_control_set_operation(service, "http://tizen.org/appcontrol/operation/edit");
       if (err != APP_CONTROL_ERROR_NONE) {
-        LoggerE("app control set operation failed: %d", err);
-        ret = PlatformResult(ErrorCode::UNKNOWN_ERR, "app control set operation failed");
+        ret = LogAndCreateResult(
+                  ErrorCode::UNKNOWN_ERR, "app control set operation failed",
+                  ("app control set operation failed: %d", err));
       }
     }
 
     if (ret.IsSuccess()) {
       err = app_control_set_mime(service, "application/x-bluetooth-on-off");
       if (err != APP_CONTROL_ERROR_NONE) {
-        LoggerE("app control set mime failed: %d", err);
-        ret = PlatformResult(ErrorCode::UNKNOWN_ERR, "app control set mime failed");
+        ret = LogAndCreateResult(
+                  ErrorCode::UNKNOWN_ERR, "app control set mime failed",
+                  ("app control set mime failed: %d", err));
       }
     }
 
@@ -567,15 +581,18 @@ void BluetoothAdapter::SetPowered(const picojson::value& data, picojson::object&
           free(result);
         } else {
           LoggerE("app control setPowered failed");
-          data->adapter->instance_.AsyncResponse(data->callback_handle, PlatformResult(ErrorCode::UNKNOWN_ERR, "app control setPowered failed"));
+          data->adapter->instance_.AsyncResponse(
+                data->callback_handle,
+                LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "app control setPowered failed"));
         }
 
         delete data;
       }, user_data);
 
       if (err != APP_CONTROL_ERROR_NONE) {
-        LoggerE("app control set launch request failed: %d", err);
-        ret = PlatformResult(ErrorCode::UNKNOWN_ERR, "app control set launch request failed");
+        ret = LogAndCreateResult(
+                  ErrorCode::UNKNOWN_ERR, "app control set launch request failed",
+                  ("app control set launch request failed: %d", err));
       } else {
         this->requested_powered_ = new_powered;
         this->user_request_list_[SET_POWERED] = true;
@@ -585,8 +602,9 @@ void BluetoothAdapter::SetPowered(const picojson::value& data, picojson::object&
 
     err = app_control_destroy(service);
     if (err != APP_CONTROL_ERROR_NONE) {
-      LoggerE("app control destroy failed: %d", err);
-      ret = PlatformResult(ErrorCode::UNKNOWN_ERR, "app control destroy failed");
+      ret = LogAndCreateResult(
+                ErrorCode::UNKNOWN_ERR, "app control destroy failed",
+                ("app control destroy failed: %d", err));
     }
 
     if (!ret) {
@@ -623,11 +641,11 @@ void BluetoothAdapter::SetVisible(const picojson::value& data, picojson::object&
   PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
 
   if (!this->is_initialized()) {
-    ret = PlatformResult(ErrorCode::UNKNOWN_ERR, "Bluetooth service is not initialized.");
+    ret = LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Bluetooth service is not initialized.");
   }
 
   if (ret.IsSuccess() && this->user_request_list_[SET_VISIBLE]) {
-    ret = PlatformResult(ErrorCode::SERVICE_NOT_AVAILABLE_ERR, "Already requested");
+    ret = LogAndCreateResult(ErrorCode::SERVICE_NOT_AVAILABLE_ERR, "Already requested");
   }
 
   if (ret.IsSuccess() && this->get_powered()) {
@@ -643,8 +661,11 @@ void BluetoothAdapter::SetVisible(const picojson::value& data, picojson::object&
 
     bt_adapter_visibility_mode_e cur_mode = BT_ADAPTER_VISIBILITY_MODE_NON_DISCOVERABLE;
     int cur_timeout = 0;
-    if (BT_ERROR_NONE != bt_adapter_get_visibility(&cur_mode , &cur_timeout)) {
-      ret = PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown exception");
+    int ntv_ret = bt_adapter_get_visibility(&cur_mode , &cur_timeout);
+    if (BT_ERROR_NONE != ntv_ret) {
+      ret = LogAndCreateResult(
+                ErrorCode::UNKNOWN_ERR, "Unknown exception",
+                ("bt_adapter_get_visibility error: %d (%s)", ntv_ret, get_error_message(ntv_ret)));
     }
 
     if (ret.IsSuccess() && new_mode == cur_mode) {
@@ -661,23 +682,23 @@ void BluetoothAdapter::SetVisible(const picojson::value& data, picojson::object&
       int err = 0;
 
       if ((err = app_control_create(&service)) != APP_CONTROL_ERROR_NONE) {
-        LoggerE("app control create failed: %d", err);
-        ret = PlatformResult(ErrorCode::UNKNOWN_ERR, "app control create failed");
+        ret = LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "app control create failed",
+                                 ("app control create failed: %d (%s)", err, get_error_message(err)));
       }
 
       if (ret.IsSuccess()) {
         err = app_control_set_operation(service, "http://tizen.org/appcontrol/operation/edit");
         if (err != APP_CONTROL_ERROR_NONE) {
-          LoggerE("app control set operation failed: %d", err);
-          ret = PlatformResult(ErrorCode::UNKNOWN_ERR, "app control set operation failed");
+          ret = LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "app control set operation failed",
+                                   ("app control set operation failed: %d (%s)", err, get_error_message(err)));
         }
       }
 
       if (ret.IsSuccess()) {
         err = app_control_set_mime(service, "application/x-bluetooth-visibility");
         if (err != APP_CONTROL_ERROR_NONE) {
-          LoggerE("app control set mime failed: %d", err);
-          ret = PlatformResult(ErrorCode::UNKNOWN_ERR, "app control set mime failed");
+          ret = LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "app control set mime failed",
+                                   ("app control set mime failed: %d (%s)", err, get_error_message(err)));
         }
       }
 
@@ -701,43 +722,47 @@ void BluetoothAdapter::SetVisible(const picojson::value& data, picojson::object&
             self->user_request_list_[SET_VISIBLE] = true;
             self->user_request_callback_[SET_VISIBLE] = *p_callback_handle;
           } else {
-            LoggerE("app control setVisible failed");
-            *p_ret = PlatformResult(ErrorCode::UNKNOWN_ERR, "app control setVisible failed");
+            *p_ret = LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "app control setVisible failed");
           }
         }, t_param);
 
         if (err != APP_CONTROL_ERROR_NONE) {
-          LoggerE("app control set launch request failed: %d", err);
-          ret = PlatformResult(ErrorCode::UNKNOWN_ERR, "app control set launch request failed");
+          ret = LogAndCreateResult(
+                    ErrorCode::UNKNOWN_ERR, "app control set launch request failed",
+                    ("app control set launch request failed: %d (%s)", err, get_error_message(err)));
         }
       }
 
       err = app_control_destroy(service);
       if (err != APP_CONTROL_ERROR_NONE) {
-        LoggerE("app control destroy failed: %d", err);
-        ret = PlatformResult(ErrorCode::UNKNOWN_ERR, "app control destroy failed");
+        ret = LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "app control destroy failed",
+                                 ("app control destroy failed: %d (%s)", err, get_error_message(err)));
       }
 #else
       this->requested_visibility_ = new_mode;
       this->user_request_list_[SET_VISIBLE] = true;
       this->user_request_callback_[SET_VISIBLE] = callback_handle;
-      int ret = bt_adapter_set_visibility(new_mode, new_timeout);
+      int ntv_ret = bt_adapter_set_visibility(new_mode, new_timeout);
 
-      switch(ret) {
+      switch(ntv_ret) {
         case BT_ERROR_NONE:
           //bt_adapter_visibility_mode_changed_cb() will be invoked
           //if this function returns #BT_ERROR_NONE
           break;
         case BT_ERROR_INVALID_PARAMETER:
-          ret = PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid value");
+          ret = LogAndCreateResult(
+                    ErrorCode::INVALID_VALUES_ERR, "Invalid value",
+                    ("bt_adapter_set_visibility error: %d (%s)", ntv_ret, get_error_message(ntv_ret)));
           break;
         default:
-          ret = PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown exception");
+          ret = LogAndCreateResult(
+                    ErrorCode::UNKNOWN_ERR, "Unknown exception",
+                    ("bt_adapter_set_visibility error: %d (%s)", ntv_ret, get_error_message(ntv_ret)));
       }
 #endif
     }
   } else if (ret.IsSuccess()){
-    ret = PlatformResult(ErrorCode::SERVICE_NOT_AVAILABLE_ERR, "Bluetooth device is turned off");
+    ret = LogAndCreateResult(ErrorCode::SERVICE_NOT_AVAILABLE_ERR, "Bluetooth device is turned off");
   }
 
   instance_.AsyncResponse(callback_handle, ret);
@@ -749,15 +774,15 @@ void BluetoothAdapter::DiscoverDevices(const picojson::value& /* data */, picojs
   PlatformResult result = PlatformResult(ErrorCode::NO_ERROR);
 
   if (!is_initialized_) {
-    result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Bluetooth service is not initialized.");
+    result = LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Bluetooth service is not initialized.");
   }
 
   if (result.IsSuccess() && this->user_request_list_[DISCOVER_DEVICES]) {
-    result = PlatformResult(ErrorCode::SERVICE_NOT_AVAILABLE_ERR, "Already requested");
+    result = LogAndCreateResult(ErrorCode::SERVICE_NOT_AVAILABLE_ERR, "Already requested");
   }
 
   if (result.IsSuccess() && !get_powered()) {
-    result = PlatformResult(
+    result = LogAndCreateResult(
         ErrorCode::SERVICE_NOT_AVAILABLE_ERR, "Bluetooth device is turned off");
   }
 
@@ -768,7 +793,7 @@ void BluetoothAdapter::DiscoverDevices(const picojson::value& /* data */, picojs
     std::shared_ptr<picojson::value> response =
         std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
 
-    ReportError(result, &response->get<picojson::object>());
+    LogAndReportError(result, &response->get<picojson::object>());
     TaskQueue::GetInstance().Async<picojson::value>([this](const std::shared_ptr<picojson::value>& result) {
       instance_.FireEvent(kAdapterDiscoverErrorEvent, result);
     }, response);
@@ -783,11 +808,11 @@ void BluetoothAdapter::StopDiscovery(const picojson::value& data, picojson::obje
   PlatformResult result = PlatformResult(ErrorCode::NO_ERROR);
 
   if (!this->is_initialized()) {
-    result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Bluetooth service is not initialized.");
+    result = LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Bluetooth service is not initialized.");
   }
 
   if (result.IsSuccess() && this->user_request_list_[STOP_DISCOVERY]) {
-    result = PlatformResult(ErrorCode::SERVICE_NOT_AVAILABLE_ERR, "Already requested");
+    result = LogAndCreateResult(ErrorCode::SERVICE_NOT_AVAILABLE_ERR, "Already requested");
   }
 
   if (result.IsSuccess() && this->get_powered()) {
@@ -809,11 +834,13 @@ void BluetoothAdapter::StopDiscovery(const picojson::value& data, picojson::obje
       }
       default: {
         this->user_request_list_[STOP_DISCOVERY] = false;
-        result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown exception");
+        result = LogAndCreateResult(
+                    ErrorCode::UNKNOWN_ERR, "Unknown exception",
+                    ("bt_adapter_stop_device_discovery error: %d (%s)", ret, get_error_message(ret)));
       }
     }
   } else if (result.IsSuccess()) {
-    result = PlatformResult(ErrorCode::SERVICE_NOT_AVAILABLE_ERR, "Bluetooth device is turned off");
+    result = LogAndCreateResult(ErrorCode::SERVICE_NOT_AVAILABLE_ERR, "Bluetooth device is turned off");
   }
 
   if (result.IsError()) {
@@ -830,7 +857,7 @@ void BluetoothAdapter::GetKnownDevices(const picojson::value& data, picojson::ob
     PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
 
     if (!this->is_initialized()) {
-      ret = PlatformResult(ErrorCode::UNKNOWN_ERR, "Bluetooth service is not initialized.");
+      ret = LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Bluetooth service is not initialized.");
     }
 
     if (ret.IsSuccess() && this->get_powered()) {
@@ -842,17 +869,20 @@ void BluetoothAdapter::GetKnownDevices(const picojson::value& data, picojson::ob
 
       array = discovered_devices_;
 
-      if (BT_ERROR_NONE == bt_adapter_foreach_bonded_device(ForeachBondedDevicesCB, &array)) {
+      int ntv_ret = bt_adapter_foreach_bonded_device(ForeachBondedDevicesCB, &array);
+      if (BT_ERROR_NONE == ntv_ret) {
         ReportSuccess(result, response_obj);
       } else {
-        ret = PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown exception");
+        ret = LogAndCreateResult(
+                ErrorCode::UNKNOWN_ERR, "Unknown exception",
+                ("bt_adapter_foreach_bonded_device error %d (%s)", ntv_ret, get_error_message(ntv_ret)));
       }
     } else if (ret.IsSuccess()) {
-      ret = PlatformResult(ErrorCode::SERVICE_NOT_AVAILABLE_ERR, "Bluetooth device is turned off");
+      ret = LogAndCreateResult(ErrorCode::SERVICE_NOT_AVAILABLE_ERR, "Bluetooth device is turned off");
     }
 
     if (ret.IsError()) {
-      ReportError(ret, &response->get<picojson::object>());
+      LogAndReportError(ret, &response->get<picojson::object>());
     }
   };
   auto get_known_devices_response = [this, callback_handle](
@@ -881,11 +911,11 @@ void BluetoothAdapter::GetDevice(const picojson::value& data, picojson::object& 
   auto get_device = [this, address](const std::shared_ptr<picojson::value>& response) -> void {
     PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
     if (!IsValidAddress(address)) {
-      ret = PlatformResult(ErrorCode::NOT_FOUND_ERR, "Wrong address");
+      ret = LogAndCreateResult(ErrorCode::NOT_FOUND_ERR, "Wrong address");
     }
 
     if (ret.IsSuccess() && !this->is_initialized()) {
-      ret = PlatformResult(ErrorCode::UNKNOWN_ERR, "Bluetooth service is not initialized.");
+      ret = LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Bluetooth service is not initialized.");
     }
     if (ret.IsSuccess() && this->get_powered()) {
       picojson::object& response_obj = response->get<picojson::object>();
@@ -913,14 +943,16 @@ void BluetoothAdapter::GetDevice(const picojson::value& data, picojson::object& 
           }
         }
       } else {
-        ret = PlatformResult(ErrorCode::NOT_FOUND_ERR, "There is no device with the given address");
+        ret = LogAndCreateResult(
+                  ErrorCode::NOT_FOUND_ERR, "There is no device with the given address",
+                  ("There is no device with the given address: %s", address.c_str()));
       }
     } else if (ret.IsSuccess()) {
-      ret = PlatformResult(ErrorCode::SERVICE_NOT_AVAILABLE_ERR, "Bluetooth device is turned off");
+      ret = LogAndCreateResult(ErrorCode::SERVICE_NOT_AVAILABLE_ERR, "Bluetooth device is turned off");
     }
 
     if (ret.IsError()) {
-      ReportError(ret, &response->get<picojson::object>());
+      LogAndReportError(ret, &response->get<picojson::object>());
     }
   };
 
@@ -956,7 +988,7 @@ class BondingHandler {
     LoggerD("Entered");
 
     if (result.IsError()) {
-      ReportError(result, &response->get<picojson::object>());
+      LogAndReportError(result, &response->get<picojson::object>());
     } else {
       ReportSuccess(response->get<picojson::object>());
     }
@@ -981,11 +1013,13 @@ void BluetoothAdapter::CreateBonding(const picojson::value& data, picojson::obje
   auto create_bonding = [address, callback_handle, this]() -> void {
     PlatformResult result = PlatformResult(ErrorCode::NO_ERROR);
     if(!IsValidAddress(address)) {
-      result = PlatformResult(ErrorCode::NOT_FOUND_ERR, "Wrong address");
+      result = LogAndCreateResult(
+                  ErrorCode::NOT_FOUND_ERR, "Wrong address",
+                  ("Wrong address: %s", address.c_str()));
     }
 
     if (result.IsSuccess() && !this->is_initialized()) {
-      result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Bluetooth service is not initialized.");
+      result = LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Bluetooth service is not initialized.");
     }
 
     if (result.IsSuccess() && this->get_powered()) {
@@ -1029,11 +1063,15 @@ void BluetoothAdapter::CreateBonding(const picojson::value& data, picojson::obje
             result_obj["address"] = picojson::value(handler->address());
             ReportSuccess(result, response_obj);
           } else if (BT_ERROR_REMOTE_DEVICE_NOT_FOUND == callback_result) {
-            LoggerE("Not found");
-            ret = PlatformResult(ErrorCode::SERVICE_NOT_AVAILABLE_ERR, "Not found");
+            ret = LogAndCreateResult(
+                      ErrorCode::SERVICE_NOT_AVAILABLE_ERR, "Not found",
+                      ("bond_create_callback result: %d (%s)", callback_result,
+                        get_error_message(callback_result)));
           } else {
-            LoggerE("Unknown exception");
-            ret = PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown exception");
+            ret = LogAndCreateResult(
+                      ErrorCode::UNKNOWN_ERR, "Unknown exception",
+                      ("bond_create_callback result: %d (%s)", callback_result,
+                        get_error_message(callback_result)));
           }
 
           handler->Invoke(ret, response);
@@ -1056,24 +1094,25 @@ void BluetoothAdapter::CreateBonding(const picojson::value& data, picojson::obje
         }
         case BT_ERROR_INVALID_PARAMETER:
         {
-          LoggerE("Not found");
           bt_device_unset_bond_created_cb();
           delete handler;
-          result = PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid value");
+          result = LogAndCreateResult(
+                      ErrorCode::INVALID_VALUES_ERR, "Invalid value",
+                      ("bt_device_create_bond error: %d (%s)", ret, get_error_message(ret)));
           break;
         }
         default:
         {
-          LoggerE("Unknown exception");
           bt_device_unset_bond_created_cb();
           delete handler;
-          result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown exception");
+          result = LogAndCreateResult(
+                      ErrorCode::UNKNOWN_ERR, "Unknown exception",
+                      ("bt_device_create_bond error: %d (%s)", ret, get_error_message(ret)));
         }
       }
     } else if (result.IsSuccess()) {
-      LoggerE("Bluetooth device is turned off");
-      result = PlatformResult(
-          ErrorCode::SERVICE_NOT_AVAILABLE_ERR, "Bluetooth device is turned off");
+      result = LogAndCreateResult(ErrorCode::SERVICE_NOT_AVAILABLE_ERR,
+                                  "Bluetooth device is turned off");
     }
 
     if (result.IsError()) {
@@ -1096,10 +1135,12 @@ void BluetoothAdapter::DestroyBonding(const picojson::value& data, picojson::obj
   auto destroy_bonding = [address, callback_handle, this]() -> void {
     PlatformResult result = PlatformResult(ErrorCode::NO_ERROR);
     if(!IsValidAddress(address)) {
-      result = PlatformResult(ErrorCode::NOT_FOUND_ERR, "Wrong address");
+      result = LogAndCreateResult(
+                  ErrorCode::NOT_FOUND_ERR, "Wrong address",
+                  ("Wrong address: %s", address.c_str()));
     }
     if (result.IsSuccess() && !this->is_initialized()) {
-      result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Bluetooth service is not initialized.");
+      result = LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Bluetooth service is not initialized.");
     }
 
     if (result.IsSuccess() && this->get_powered()) {
@@ -1107,8 +1148,9 @@ void BluetoothAdapter::DestroyBonding(const picojson::value& data, picojson::obj
       int ret = bt_adapter_get_bonded_device_info(address.c_str(), &device_info);
 
       if (BT_ERROR_NONE != ret || nullptr == device_info) {
-        LoggerD("There is no bonding");
-        result = PlatformResult(ErrorCode::NOT_FOUND_ERR, "Not found");
+        result = LogAndCreateResult(
+                    ErrorCode::NOT_FOUND_ERR, "Not found",
+                    ("There is no bonding %d (%s)", ret, get_error_message(ret)));
       } else {
         bt_adapter_free_device_info(device_info);
 
@@ -1139,8 +1181,11 @@ void BluetoothAdapter::DestroyBonding(const picojson::value& data, picojson::obj
 
           if (!strcmp(address.c_str(), r_address.c_str())) {  // requested event
             if (BT_ERROR_NONE != callback_result) {
-              LoggerE("Unknown exception");
-              ret = PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown exception");
+              ret = LogAndCreateResult(
+                        ErrorCode::UNKNOWN_ERR, "Unknown exception",
+                        ("bond_destroy_callback result error: %d (%s)",
+                          callback_result,
+                          get_error_message(callback_result)));
             }
 
             handler->Invoke(ret, response);
@@ -1164,24 +1209,25 @@ void BluetoothAdapter::DestroyBonding(const picojson::value& data, picojson::obj
           }
           case BT_ERROR_INVALID_PARAMETER:
           {
-            LoggerE("Not found");
             bt_device_unset_bond_destroyed_cb();
             delete handler;
-            result = PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid value");
+            result = LogAndCreateResult(
+                        ErrorCode::INVALID_VALUES_ERR, "Invalid value",
+                        ("bt_device_destroy_bond error: %d (%s)", ret, get_error_message(ret)));
             break;
           }
           default:
           {
-            LoggerE("Unknown exception");
             bt_device_unset_bond_destroyed_cb();
             delete handler;
-            result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown exception");
+            result = LogAndCreateResult(
+                        ErrorCode::UNKNOWN_ERR, "Unknown exception",
+                        ("bt_device_destroy_bond error: %d (%s)", ret, get_error_message(ret)));
           }
         }
       }
     } else  if (result.IsSuccess()) {
-      LoggerE("Bluetooth device is turned off");
-      result = PlatformResult(
+      result = LogAndCreateResult(
           ErrorCode::SERVICE_NOT_AVAILABLE_ERR, "Bluetooth device is turned off");
     }
 
@@ -1205,11 +1251,13 @@ void BluetoothAdapter::RegisterRFCOMMServiceByUUID(const picojson::value& data, 
   auto rfcomm = [this, uuid, name](const std::shared_ptr<picojson::value>& response) -> void {
     PlatformResult result = PlatformResult(ErrorCode::NO_ERROR);
     if (!this->is_initialized()) {
-      result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Bluetooth service is not initialized.");
+      result = LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Bluetooth service is not initialized.");
     }
 
     if (result.IsSuccess() && !IsValidUUID(uuid)) {
-      result = PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Wrong UUID");
+      result = LogAndCreateResult(
+                  ErrorCode::INVALID_VALUES_ERR, "Wrong UUID",
+                  ("Wrong UUID: %s", uuid.c_str()));
     }
 
     if (result.IsSuccess() && this->get_powered()) {
@@ -1217,7 +1265,9 @@ void BluetoothAdapter::RegisterRFCOMMServiceByUUID(const picojson::value& data, 
       int ret = bt_adapter_is_service_used(uuid.c_str(), &is_registered);
 
       if (BT_ERROR_NONE == ret && is_registered) {
-        result = PlatformResult(ErrorCode::SERVICE_NOT_AVAILABLE_ERR, "Already requested");
+        result = LogAndCreateResult(
+                    ErrorCode::SERVICE_NOT_AVAILABLE_ERR, "Already requested",
+                    ("bt_adapter_is_service_used error: %d (%s)", ret, get_error_message(ret)));
       } else {
         int socket = -1;
         ret = bt_socket_create_rfcomm(uuid.c_str(), &socket);
@@ -1238,32 +1288,40 @@ void BluetoothAdapter::RegisterRFCOMMServiceByUUID(const picojson::value& data, 
               }
 
               case BT_ERROR_INVALID_PARAMETER: {
-                result = PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid value");
+                result = LogAndCreateResult(
+                            ErrorCode::INVALID_VALUES_ERR, "Invalid value",
+                            ("bt_socket_listen_and_accept_rfcomm error: %d (%s)", ret_in, get_error_message(ret_in)));
                 break;
               }
 
               default: {
-                result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown error");
+                result = LogAndCreateResult(
+                            ErrorCode::UNKNOWN_ERR, "Unknown error",
+                            ("bt_socket_listen_and_accept_rfcomm error: %d (%s)", ret_in, get_error_message(ret_in)));
                 break;
               }
             }
             break;
           }
           case BT_ERROR_INVALID_PARAMETER:
-            result = PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid value");
+            result = LogAndCreateResult(
+                        ErrorCode::INVALID_VALUES_ERR, "Invalid value",
+                        ("bt_socket_create_rfcomm error: %d (%s)", ret, get_error_message(ret)));
             break;
           default:
-            result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown error");
+            result = LogAndCreateResult(
+                        ErrorCode::UNKNOWN_ERR, "Unknown error",
+                        ("bt_socket_create_rfcomm error: %d (%s)", ret, get_error_message(ret)));
             break;
         }
       }
     } else if (result.IsSuccess()) {
-      result = PlatformResult(
+      result = LogAndCreateResult(
           ErrorCode::SERVICE_NOT_AVAILABLE_ERR, "Bluetooth device is turned off");
     }
 
     if (result.IsError()) {
-      ReportError(result, &response->get<picojson::object>());
+      LogAndReportError(result, &response->get<picojson::object>());
     }
   };
 
@@ -1286,16 +1344,21 @@ void BluetoothAdapter::UnregisterUUID(const std::string& uuid, int callback_hand
 
   PlatformResult result = PlatformResult(ErrorCode::NO_ERROR);
   if (!IsValidUUID(uuid)) {
-    result = PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Wrong UUID");
+    result = LogAndCreateResult(
+                ErrorCode::INVALID_VALUES_ERR, "Wrong UUID",
+                ("Wrong UUID: %s", uuid.c_str()));
   }
 
   if (result.IsSuccess() && is_powered_) {
     auto iter = registered_uuids_.find(uuid);
     if (iter != registered_uuids_.end()) {
-      if (BT_ERROR_NONE == bt_socket_destroy_rfcomm(iter->second.first)) {
+      int ntv_ret = bt_socket_destroy_rfcomm(iter->second.first);
+      if (BT_ERROR_NONE == ntv_ret) {
         registered_uuids_.erase(iter);
       } else {
-        result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown exception");
+        result = LogAndCreateResult(
+                    ErrorCode::UNKNOWN_ERR, "Unknown exception",
+                    ("bt_socket_destroy_rfcomm error: %d (%s)", ntv_ret, get_error_message(ntv_ret)));
       }
     }
 
@@ -1305,7 +1368,7 @@ void BluetoothAdapter::UnregisterUUID(const std::string& uuid, int callback_hand
       bt_socket_unset_connection_state_changed_cb();
     }
   } else if (result.IsSuccess()){
-    result = PlatformResult(ErrorCode::SERVICE_NOT_AVAILABLE_ERR, "Bluetooth device is turned off");
+    result = LogAndCreateResult(ErrorCode::SERVICE_NOT_AVAILABLE_ERR, "Bluetooth device is turned off");
   }
 
   instance_.AsyncResponse(callback_handle, result);
@@ -1328,19 +1391,19 @@ void BluetoothAdapter::GetBluetoothProfileHandler(const picojson::value& data,
     }
 
     if (!supported) {
-      result = PlatformResult(
+      result = LogAndCreateResult(
           ErrorCode::NOT_SUPPORTED_ERR, "Bluetooth health profile is not supported");
     } else {
       LoggerD("BT health profile is supported");
     }
   } else {
-    result = PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, "Wrong profile type.");
+    result = LogAndCreateResult(ErrorCode::TYPE_MISMATCH_ERR, "Wrong profile type.");
   }
 
   if (result.IsSuccess()) {
     ReportSuccess(out);
   } else {
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   }
 }
 
@@ -1354,7 +1417,7 @@ void BluetoothAdapter::GetAddress(const picojson::value& /* data */, picojson::o
   LoggerD("Entered");
 
   if (!is_initialized_) {
-    ReportError(PlatformResult(
+    LogAndReportError(PlatformResult(
         ErrorCode::UNKNOWN_ERR, "Bluetooth service is not initialized."), &out);
     return;
   }
@@ -1465,7 +1528,7 @@ void BluetoothAdapter::OnSocketConnected(
 
         ReportSuccess(BluetoothSocket::ToJson(connection), response->get<picojson::object>());
       } else {
-        ReportError(PlatformResult(
+        LogAndReportError(PlatformResult(
             ErrorCode::NOT_FOUND_ERR, "Not found"), &response->get<picojson::object>());
       }
 
@@ -1535,7 +1598,9 @@ void BluetoothAdapter::ConnectToServiceByUUID(
   PlatformResult result = PlatformResult(ErrorCode::NO_ERROR);
 
   if (!IsValidUUID(uuid)) {
-    result = PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Wrong UUID");
+    result = LogAndCreateResult(
+                ErrorCode::INVALID_VALUES_ERR, "Wrong UUID",
+                ("Wrong UUID: %s", uuid.c_str()));
   }
 
   if (result.IsSuccess() && is_powered_) {
@@ -1561,14 +1626,19 @@ void BluetoothAdapter::ConnectToServiceByUUID(
 
       case BT_ERROR_INVALID_PARAMETER:
       case BT_ERROR_REMOTE_DEVICE_NOT_BONDED:
-        result = PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid value");
+        result = LogAndCreateResult(
+                    ErrorCode::INVALID_VALUES_ERR, "Invalid value",
+                    ("bt_socket_connect_rfcomm error: %d (%s)", ret, get_error_message(ret)));
         break;
       default:
-        result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown error");
+        result = LogAndCreateResult(
+                    ErrorCode::UNKNOWN_ERR, "Unknown error",
+                    ("bt_socket_connect_rfcomm error: %d (%s)", ret, get_error_message(ret)));
         break;
     }
   } else if (result.IsSuccess()) {
-    result = PlatformResult(ErrorCode::SERVICE_NOT_AVAILABLE_ERR, "Bluetooth device is turned off");
+    result = LogAndCreateResult(ErrorCode::SERVICE_NOT_AVAILABLE_ERR,
+                                "Bluetooth device is turned off");
   }
 
   if (result.IsError()) {
@@ -1648,8 +1718,9 @@ void BluetoothAdapter::IsServiceConnected(const picojson::value& data, picojson:
 
   auto iter = registered_uuids_.find(uuid);
   if (iter == registered_uuids_.end()) {
-    ReportError(PlatformResult(
-        ErrorCode::INVALID_VALUES_ERR, "Invalid parameter was passed."), &out);
+    LogAndReportError(PlatformResult(
+        ErrorCode::INVALID_VALUES_ERR, "Invalid parameter was passed."), &out,
+        ("Invalid uuid was passed: %s", uuid.c_str()));
     return;
   }
 

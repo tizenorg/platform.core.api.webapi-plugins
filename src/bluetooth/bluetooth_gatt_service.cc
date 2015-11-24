@@ -125,7 +125,8 @@ PlatformResult BluetoothGATTService::GetSpecifiedGATTService(const std::string &
   bt_gatt_client_h client = GetGattClient(address);
 
   if (nullptr == client) {
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to create the GATT client's handle");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                              "Failed to create the GATT client's handle");
   }
 
   bt_gatt_h service = nullptr;
@@ -134,13 +135,19 @@ PlatformResult BluetoothGATTService::GetSpecifiedGATTService(const std::string &
     LoggerE("bt_gatt_client_get_service() error: %d", ret);
     switch (ret) {
       case BT_ERROR_NO_DATA:
-        return PlatformResult(ErrorCode::NOT_FOUND_ERR, "Service not found");
+        return LogAndCreateResult(
+                  ErrorCode::NOT_FOUND_ERR, "Service not found",
+                  ("bt_gatt_client_get_service error: %d (%s)", ret, get_error_message(ret)));
 
       case BT_ERROR_INVALID_PARAMETER:
-        return PlatformResult(ErrorCode::NOT_FOUND_ERR, "Service UUID is invalid");
+        return LogAndCreateResult(
+                  ErrorCode::NOT_FOUND_ERR, "Service UUID is invalid",
+                  ("bt_gatt_client_get_service error: %d (%s)", ret, get_error_message(ret)));
 
       default:
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to get a service's GATT handle");
+        return LogAndCreateResult(
+                  ErrorCode::UNKNOWN_ERR, "Failed to get a service's GATT handle",
+                  ("bt_gatt_client_get_service error: %d (%s)", ret, get_error_message(ret)));
     }
   }
 
@@ -163,8 +170,7 @@ void BluetoothGATTService::GetServices(const picojson::value& args,
   picojson::array array;
   PlatformResult ret = GetServicesHelper(handle, address, &array);
   if (ret.IsError()) {
-    LoggerE("Error while getting services");
-    ReportError(ret, &out);
+    LogAndReportError(ret, &out, ("Error while getting services"));
   } else {
     ReportSuccess(picojson::value(array), out);
   }
@@ -176,9 +182,9 @@ PlatformResult BluetoothGATTService::GetServicesHelper(bt_gatt_h handle,
   LoggerD("Entered");
 
   if (!IsStillConnected(address)) {
-    LoggerE("Device with address %s is no longer connected", address.c_str());
-    return PlatformResult(ErrorCode::INVALID_STATE_ERR,
-                          "Device is not connected");
+    return LogAndCreateResult(
+              ErrorCode::INVALID_STATE_ERR, "Device is not connected",
+              ("Device with address %s is no longer connected", address.c_str()));
   }
 
   int ret = bt_gatt_service_foreach_included_services(
@@ -222,8 +228,7 @@ void BluetoothGATTService::GetCharacteristics(const picojson::value& args,
   picojson::array array;
   PlatformResult ret = GetCharacteristicsHelper(handle, address, uuid, &array);
   if (ret.IsError()) {
-    LoggerE("Error while getting characteristics");
-    ReportError(ret, &out);
+    LogAndReportError(ret, &out, ("Error while getting characteristics"));
   } else {
     ReportSuccess(picojson::value(array), out);
   }
@@ -236,9 +241,9 @@ PlatformResult BluetoothGATTService::GetCharacteristicsHelper(bt_gatt_h handle,
   LoggerD("Entered");
 
   if (!IsStillConnected(address)) {
-    LoggerE("Device with address %s is no longer connected", address.c_str());
-    return PlatformResult(ErrorCode::INVALID_STATE_ERR,
-                          "Device is not connected");
+    return LogAndCreateResult(
+              ErrorCode::INVALID_STATE_ERR, "Device is not connected",
+              ("Device with address %s is no longer connected", address.c_str()));
   }
 
   struct Data {
@@ -331,9 +336,9 @@ void BluetoothGATTService::ReadValue(const picojson::value& args,
 
   const std::string& address = args.get("address").get<std::string>();
   if (!IsStillConnected(address)) {
-    LoggerE("Device with address %s is no longer connected", address.c_str());
-    ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
-                               "Device is not connected"), &out);
+    LogAndReportError(
+        PlatformResult(ErrorCode::INVALID_STATE_ERR, "Device is not connected"), &out,
+        ("Device with address %s is no longer connected", address.c_str()));
     return;
   }
 
@@ -381,7 +386,7 @@ void BluetoothGATTService::ReadValue(const picojson::value& args,
     if (plarform_res.IsSuccess()) {
       ReportSuccess(byte_array, response->get<picojson::object>());
     } else {
-      ReportError(plarform_res, &response->get<picojson::object>());
+      LogAndReportError(plarform_res, &response->get<picojson::object>());
     }
     TaskQueue::GetInstance().Async<picojson::value>(
         [service, callback_handle](const std::shared_ptr<picojson::value>& response) {
@@ -390,7 +395,8 @@ void BluetoothGATTService::ReadValue(const picojson::value& args,
   };
   int ret = bt_gatt_client_read_value(handle, read_value, (void*)user_data);
   if (BT_ERROR_NONE != ret) {
-    LOGE("Couldn't register callback for read value");
+    LoggerE("Couldn't register callback for read value %d (%s)",
+            ret, get_error_message(ret));
   }
   ReportSuccess(out);
 }
@@ -402,9 +408,9 @@ void BluetoothGATTService::WriteValue(const picojson::value& args,
 
   const std::string& address = args.get("address").get<std::string>();
   if (!IsStillConnected(address)) {
-    LoggerE("Device with address %s is no longer connected", address.c_str());
-    ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
-                               "Device is not connected"), &out);
+    LogAndReportError(
+        PlatformResult(ErrorCode::INVALID_STATE_ERR, "Device is not connected"), &out,
+        ("Device with address %s is no longer connected", address.c_str()));
     return;
   }
 
@@ -440,7 +446,7 @@ void BluetoothGATTService::WriteValue(const picojson::value& args,
     if (ret.IsSuccess()) {
       ReportSuccess(response->get<picojson::object>());
     } else {
-      ReportError(ret, &response->get<picojson::object>());
+      LogAndReportError(ret, &response->get<picojson::object>());
     }
     TaskQueue::GetInstance().Async<picojson::value>(
         [service, callback_handle](const std::shared_ptr<picojson::value>& response) {
@@ -451,11 +457,12 @@ void BluetoothGATTService::WriteValue(const picojson::value& args,
   int ret = bt_gatt_set_value(handle, value_data.get(), value_size);
 
   if (BT_ERROR_NONE != ret) {
-    LoggerE("Couldn't set value");
     std::shared_ptr<picojson::value> response =
         std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
-    ReportError(util::GetBluetoothError(ret, "Failed to set value"),
-                &response->get<picojson::object>());
+    LogAndReportError(
+        util::GetBluetoothError(ret, "Failed to set value"),
+        &response->get<picojson::object>(),
+        ("bt_gatt_set_value error: %d (%s)", ret, get_error_message(ret)));
     TaskQueue::GetInstance().Async<picojson::value>(
         [this, callback_handle](const std::shared_ptr<picojson::value>& response) {
       instance_.SyncResponse(callback_handle, response);
@@ -465,7 +472,8 @@ void BluetoothGATTService::WriteValue(const picojson::value& args,
     ret = bt_gatt_client_write_value(handle, write_value, user_data);
     if (BT_ERROR_NONE != ret) {
       delete user_data;
-      LoggerE("Couldn't register callback for write value");
+      LoggerE("Couldn't register callback for write value %d (%s)",
+              ret, get_error_message(ret));
     }
   }
   ReportSuccess(out);
@@ -476,9 +484,9 @@ void BluetoothGATTService::AddValueChangeListener(const picojson::value& args,
   LoggerD("Entered");
   const auto& address = args.get("address").get<std::string>();
   if (!IsStillConnected(address)) {
-    LoggerE("Device with address %s is no longer connected", address.c_str());
-    ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
-                               "Device is not connected"), &out);
+    LogAndReportError(
+        PlatformResult(ErrorCode::INVALID_STATE_ERR, "Device is not connected"), &out,
+        ("Device with address %s is no longer connected", address.c_str()));
     return;
   }
 
@@ -486,8 +494,10 @@ void BluetoothGATTService::AddValueChangeListener(const picojson::value& args,
 
   int ret = bt_gatt_client_set_characteristic_value_changed_cb(handle, OnCharacteristicValueChanged, this);
   if (BT_ERROR_NONE != ret) {
-    LoggerE("bt_gatt_client_set_characteristic_value_changed_cb() failed with: %d", ret);
-    ReportError(util::GetBluetoothError(ret, "Failed to register listener"), &out);
+    LogAndReportError(
+        util::GetBluetoothError(ret, "Failed to register listener"), &out,
+        ("bt_gatt_client_set_characteristic_value_changed_cb() failed with: %d (%s)",
+        ret, get_error_message(ret)));
   } else {
     gatt_characteristic_.push_back(handle);
     ReportSuccess(out);
@@ -499,9 +509,9 @@ void BluetoothGATTService::RemoveValueChangeListener(
   LoggerD("Entered");
   const auto& address = args.get("address").get<std::string>();
   if (!IsStillConnected(address)) {
-    LoggerE("Device with address %s is no longer connected", address.c_str());
-    ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
-                               "Device is not connected"), &out);
+    LogAndReportError(
+        PlatformResult(ErrorCode::INVALID_STATE_ERR, "Device is not connected"), &out,
+        ("Device with address %s is no longer connected", address.c_str()));
     return;
   }
 
@@ -510,8 +520,10 @@ void BluetoothGATTService::RemoveValueChangeListener(
   int ret = bt_gatt_client_unset_characteristic_value_changed_cb(handle);
 
   if (BT_ERROR_NONE != ret) {
-    LoggerE("bt_gatt_client_unset_characteristic_value_changed_cb() failed with: %d", ret);
-    ReportError(util::GetBluetoothError(ret, "Failed to unregister listener"), &out);
+    LogAndReportError(
+        util::GetBluetoothError(ret, "Failed to unregister listener"), &out,
+        ("bt_gatt_client_unset_characteristic_value_changed_cb() failed with: %d (%s)",
+          ret, get_error_message(ret)));
   } else {
     gatt_characteristic_.erase(std::remove(gatt_characteristic_.begin(), gatt_characteristic_.end(), handle), gatt_characteristic_.end());
     ReportSuccess(out);
@@ -525,7 +537,7 @@ common::PlatformResult BluetoothGATTService::GetServiceUuids(
   bt_gatt_client_h client = GetGattClient(address);
 
   if (nullptr == client) {
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Unable to create client");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Unable to create client");
   }
 
   auto foreach_callback = [](int total, int index, bt_gatt_h gatt_handle, void* user_data) -> bool {
@@ -553,7 +565,6 @@ common::PlatformResult BluetoothGATTService::GetServiceUuids(
   if (BT_ERROR_NONE == ret) {
     return PlatformResult(ErrorCode::NO_ERROR);
   } else {
-    LoggerE("Failed to get UUIDS: %d", ret);
     return util::GetBluetoothError(ret, "Failed to get UUIDS");
   }
 }
