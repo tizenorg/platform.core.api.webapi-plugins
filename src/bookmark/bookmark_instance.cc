@@ -90,27 +90,32 @@ PlatformResult BookmarkInstance::BookmarkUrlExists(const char* url,
   int* ids = nullptr;
   char* compare_url = nullptr;
 
-  if (bp_bookmark_adaptor_get_ids_p(&ids,  // ids
-                                    &ids_count,  // count
-                                    -1,  //limit
-                                    0,  // offset
-                                    -1,  //parent
-                                    -1,  //type
-                                    -1,  // is_operator
-                                    -1,  // is_editable
-                                    BP_BOOKMARK_O_DATE_CREATED,  // order_offset
-                                    0  // ordering ASC
-                                    ) < 0) {
-    LoggerE("Failed to obtain bookmarks");
-    return PlatformResult{ErrorCode::UNKNOWN_ERR, "Failed to obtain bookmarks"};
+  int ntv_ret = bp_bookmark_adaptor_get_ids_p(
+                    &ids,  // ids
+                    &ids_count,  // count
+                    -1,  //limit
+                    0,  // offset
+                    -1,  //parent
+                    -1,  //type
+                    -1,  // is_operator
+                    -1,  // is_editable
+                    BP_BOOKMARK_O_DATE_CREATED,  // order_offset
+                    0  // ordering ASC
+                    );
+  if (ntv_ret < 0) {
+    return LogAndCreateResult(
+                ErrorCode::UNKNOWN_ERR, "Failed to obtain bookmarks",
+                ("bp_bookmark_adaptor_get_ids_p error: %d (%s)", ntv_ret, get_error_message(ntv_ret)));
   }
 
   PlatformResult result{ErrorCode::NO_ERROR};
   bool url_found = false;
   for (int i = 0; (i < ids_count) && result && !url_found; ++i) {
-    if (bp_bookmark_adaptor_get_url(ids[i], &compare_url) < 0) {
-      LoggerE("Failed to obtain URL");
-      result = PlatformResult{ErrorCode::UNKNOWN_ERR, "Failed to obtain URL"};
+    ntv_ret = bp_bookmark_adaptor_get_url(ids[i], &compare_url);
+    if (ntv_ret < 0) {
+      result = LogAndCreateResult(
+                    ErrorCode::UNKNOWN_ERR, "Failed to obtain URL",
+                    ("bp_bookmark_adaptor_get_url error: %d (%s)", ntv_ret, get_error_message(ntv_ret)));
     } else {
       url_found = (0 == strcmp(url, compare_url));
       free(compare_url);
@@ -137,30 +142,38 @@ PlatformResult BookmarkInstance::BookmarkTitleExistsInParent(const char* title,
   int* ids = nullptr;
   char* compare_title = nullptr;
 
-  if (bp_bookmark_adaptor_get_ids_p(&ids,  // ids
-                                    &ids_count,  // count
-                                    -1,  //limit
-                                    0,  // offset
-                                    -1,  //parent
-                                    -1,  //type
-                                    -1,  // is_operator
-                                    -1,  // is_editable
-                                    BP_BOOKMARK_O_DATE_CREATED,  // order_offset
-                                    0  // ordering ASC
-                                    ) < 0) {
-    LoggerE("Failed to obtain bookmarks");
-    return PlatformResult{ErrorCode::UNKNOWN_ERR, "Failed to obtain bookmarks"};
+  int ntv_ret = bp_bookmark_adaptor_get_ids_p(
+                    &ids,  // ids
+                    &ids_count,  // count
+                    -1,  //limit
+                    0,  // offset
+                    -1,  //parent
+                    -1,  //type
+                    -1,  // is_operator
+                    -1,  // is_editable
+                    BP_BOOKMARK_O_DATE_CREATED,  // order_offset
+                    0  // ordering ASC
+                    );
+  if (ntv_ret < 0) {
+    return LogAndCreateResult(
+                ErrorCode::UNKNOWN_ERR, "Failed to obtain bookmarks",
+                ("bp_bookmark_adaptor_get_ids_p error: %d (%s)",
+                    ntv_ret, get_error_message(ntv_ret)));
   }
 
   PlatformResult result{ErrorCode::NO_ERROR};
   bool title_found = false;
   for (int i = 0; (i < ids_count) && result && !title_found; ++i) {
-    if (bp_bookmark_adaptor_get_parent_id(ids[i], &compare_parent) < 0) {
-      LoggerE("Failed to obtain parent ID");
-      result = PlatformResult{ErrorCode::UNKNOWN_ERR, "Failed to obtain parent ID"};
-    } else if (bp_bookmark_adaptor_get_title(ids[i], &compare_title) < 0) {
-      LoggerE("Failed to obtain title");
-      result = PlatformResult{ErrorCode::UNKNOWN_ERR, "Failed to obtain title"};
+    if ((ntv_ret = bp_bookmark_adaptor_get_parent_id(ids[i], &compare_parent)) < 0) {
+      result = LogAndCreateResult(
+                    ErrorCode::UNKNOWN_ERR, "Failed to obtain parent ID",
+                    ("bp_bookmark_adaptor_get_parent_id error: %d (%s)",
+                        ntv_ret, get_error_message(ntv_ret)));
+    } else if ((ntv_ret = bp_bookmark_adaptor_get_title(ids[i], &compare_title)) < 0) {
+      result = LogAndCreateResult(
+                    ErrorCode::UNKNOWN_ERR, "Failed to obtain title",
+                    ("bp_bookmark_adaptor_get_title error: %d (%s)",
+                        ntv_ret, get_error_message(ntv_ret)));
     } else {
       title_found = (parent == compare_parent) && (0 == strcmp(title, compare_title));
       free(compare_title);
@@ -190,6 +203,7 @@ void BookmarkInstance::BookmarkGet(
   ctx.id             = arg.get(kId).get<double>();
 
   if (!bookmark_foreach(ctx, info)) {
+    LoggerE("BookmarkGet error");
     ReportError(o);
     return;
   }
@@ -227,10 +241,10 @@ void BookmarkInstance::BookmarkAdd(
     bool exists = false;
     auto result = BookmarkUrlExists(url.c_str(), &exists);
     if (!result) {
-      ReportError(result, &o);
+      LogAndReportError(result, &o);
       return;
     } else if (exists) {
-      ReportError(PlatformResult{ErrorCode::UNKNOWN_ERR, "Bookmark already exists"}, &o);
+      LogAndReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Bookmark already exists"), &o);
       return;
     }
   }
@@ -239,35 +253,51 @@ void BookmarkInstance::BookmarkAdd(
     bool exists = false;
     auto result = BookmarkTitleExistsInParent(title.c_str(), parent, &exists);
     if (!result) {
-      ReportError(result, &o);
+      LogAndReportError(result, &o);
       return;
     } else if (exists) {
-      ReportError(PlatformResult{ErrorCode::UNKNOWN_ERR, "Bookmark already exists"}, &o);
+      LogAndReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Bookmark already exists"), &o);
       return;
     }
   }
 
-  if (bp_bookmark_adaptor_create(&saved_id) < 0) {
+  int ntv_ret;
+
+  ntv_ret = bp_bookmark_adaptor_create(&saved_id);
+  if (ntv_ret < 0) {
+    LoggerE("bp_bookmark_adaptor_create error: %d (%s)", ntv_ret, get_error_message(ntv_ret));
     ReportError(o);
     return;
   }
-  if (bp_bookmark_adaptor_set_title(saved_id, title.c_str()) < 0) {
+
+  ntv_ret = bp_bookmark_adaptor_set_title(saved_id, title.c_str());
+  if (ntv_ret < 0) {
     bp_bookmark_adaptor_delete(saved_id);
+    LoggerE("bp_bookmark_adaptor_set_title error: %d (%s)", ntv_ret, get_error_message(ntv_ret));
     ReportError(o);
     return;
   }
-  if (bp_bookmark_adaptor_set_parent_id(saved_id, parent) < 0) {
+
+  ntv_ret = bp_bookmark_adaptor_set_parent_id(saved_id, parent);
+  if (ntv_ret < 0) {
     bp_bookmark_adaptor_delete(saved_id);
+    LoggerE("bp_bookmark_adaptor_set_parent_id error: %d (%s)", ntv_ret, get_error_message(ntv_ret));
     ReportError(o);
     return;
   }
-  if (bp_bookmark_adaptor_set_type(saved_id, type) < 0) {
+
+  ntv_ret = bp_bookmark_adaptor_set_type(saved_id, type);
+  if (ntv_ret < 0) {
     bp_bookmark_adaptor_delete(saved_id);
+    LoggerE("bp_bookmark_adaptor_set_type error: %d (%s)", ntv_ret, get_error_message(ntv_ret));
     ReportError(o);
     return;
   }
-  if (bp_bookmark_adaptor_set_url(saved_id, url.c_str()) < 0) {
+
+  ntv_ret = bp_bookmark_adaptor_set_url(saved_id, url.c_str());
+  if (ntv_ret < 0) {
     bp_bookmark_adaptor_delete(saved_id);
+    LoggerE("bp_bookmark_adaptor_set_url error: %d (%s)", ntv_ret, get_error_message(ntv_ret));
     ReportError(o);
     return;
   }
@@ -280,7 +310,10 @@ void BookmarkInstance::BookmarkRemove(
   LoggerD("Enter");
   int id = common::stol(
       common::FromJson<std::string>(arg.get<picojson::object>(), kId));
-  if (bp_bookmark_adaptor_delete(id) < 0) {
+
+  int ntv_ret = bp_bookmark_adaptor_delete(id);
+  if (ntv_ret < 0) {
+    LoggerE("bp_bookmark_adaptor_delete error: %d (%s)", ntv_ret, get_error_message(ntv_ret));
     ReportError(o);
     return;
   }
@@ -291,7 +324,9 @@ void BookmarkInstance::BookmarkRemoveAll(
     const picojson::value& msg, picojson::object& o) {
 
   LoggerD("Enter");
-  if (bp_bookmark_adaptor_reset() < 0) {
+  int ntv_ret = bp_bookmark_adaptor_reset();
+  if (ntv_ret < 0) {
+    LoggerE("bp_bookmark_adaptor_reset error: %d (%s)", ntv_ret, get_error_message(ntv_ret));
     ReportError(o);
     return;
   }
@@ -303,7 +338,9 @@ void BookmarkInstance::BookmarkGetRootId(
 
   LoggerD("Enter");
   int rootId(0);
-  if (bp_bookmark_adaptor_get_root(&rootId) < 0) {
+  int ntv_ret = bp_bookmark_adaptor_get_root(&rootId);
+  if (ntv_ret < 0) {
+    LoggerE("bp_bookmark_adaptor_get_root error: %d (%s)", ntv_ret, get_error_message(ntv_ret));
     ReportError(o);
     return;
   }
