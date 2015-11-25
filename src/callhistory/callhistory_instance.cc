@@ -59,7 +59,7 @@ void CallHistoryInstance::Remove(const picojson::value& args, picojson::object& 
   if (result.IsSuccess()) {
     ReportSuccess(out);
   } else {
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   }
 }
 
@@ -69,7 +69,7 @@ void CallHistoryInstance::RemoveBatch(const picojson::value& args, picojson::obj
   if (result.IsSuccess()) {
     ReportSuccess(out);
   } else {
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   }
 }
 
@@ -85,7 +85,7 @@ void CallHistoryInstance::AddChangeListener(const picojson::value& args, picojso
   if (result.IsSuccess()) {
     ReportSuccess(out);
   } else {
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   }
 }
 
@@ -95,7 +95,7 @@ void CallHistoryInstance::RemoveChangeListener(const picojson::value& args, pico
   if (result.IsSuccess()) {
     ReportSuccess(out);
   } else {
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   }
 }
 
