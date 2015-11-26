@@ -31,6 +31,7 @@
 #include "radio/radio_instance.h"
 
 using namespace common;
+using namespace common::tools;
 using namespace std;
 
 namespace extension {
@@ -60,16 +61,16 @@ PlatformResult GetPlatformResult(const std::string& str, int err) {
 
   switch (err) {
     case RADIO_ERROR_INVALID_PARAMETER:
-      return PlatformResult(ErrorCode::INVALID_VALUES_ERR, message);
+      return LogAndCreateResult(ErrorCode::INVALID_VALUES_ERR, message);
 
     case RADIO_ERROR_INVALID_STATE:
-      return PlatformResult(ErrorCode::INVALID_STATE_ERR, message);
+      return LogAndCreateResult(ErrorCode::INVALID_STATE_ERR, message);
 
     case RADIO_ERROR_NOT_SUPPORTED:
-      return PlatformResult(ErrorCode::SERVICE_NOT_AVAILABLE_ERR, message);
+      return LogAndCreateResult(ErrorCode::SERVICE_NOT_AVAILABLE_ERR, message);
 
     default:
-      return PlatformResult(ErrorCode::UNKNOWN_ERR, message);
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, message);
   }
 }
 
@@ -368,7 +369,7 @@ PlatformResult FMRadioManager::Start(double frequency) {
   }
 
   if (RADIO_STATE_READY != state && RADIO_STATE_PLAYING != state) {
-    return PlatformResult(ErrorCode::INVALID_STATE_ERR, "Invalid radio state.");
+    return LogAndCreateResult(ErrorCode::INVALID_STATE_ERR, "Invalid radio state.");
   }
 
   PlatformResult result = SetFrequency(frequency);
@@ -396,7 +397,7 @@ PlatformResult FMRadioManager::Stop() {
   }
 
   if (RADIO_STATE_PLAYING != state) {
-    return PlatformResult(ErrorCode::INVALID_STATE_ERR, "Invalid radio state.");
+    return LogAndCreateResult(ErrorCode::INVALID_STATE_ERR, "Invalid radio state.");
   }
 
   return CheckError("radio_stop", radio_stop(radio_instance_));
@@ -535,7 +536,7 @@ void FMRadioManager::PostResultFailure(double callbackId, const PlatformResult& 
   picojson::value event{picojson::object()};
   auto& obj = event.get<picojson::object>();
 
-  tools::ReportError(result, &obj);
+  LogAndReportError(result, &obj);
   AddCallbackID(callbackId, &obj);
 
   PostMessage(event.serialize());
