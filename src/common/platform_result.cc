@@ -24,6 +24,10 @@ PlatformResult::PlatformResult(const ErrorCode& error_code, const std::string& m
     message_(message)
 {
   LoggerD("Enter");
+
+  if (ErrorCode::NO_ERROR != error_code) {
+    LoggerE("PlatformResult: %d, message: %s", error_code, message.c_str());
+  }
 }
 
 picojson::value PlatformResult::ToJSON() const {
