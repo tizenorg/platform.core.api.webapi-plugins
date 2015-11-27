@@ -57,9 +57,9 @@ PlatformResult BadgeManager::SetBadgeCount(const std::string& app_id,
   SLoggerD("app_id : %s ", app_id.c_str());
 
   if (!IsAppInstalled(app_id)) {
-    LoggerE("Application is not installed");
-    return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
-                          "InvalidValues error : app_id");
+    return LogAndCreateResult(ErrorCode::INVALID_VALUES_ERR,
+                              "InvalidValues error : app_id",
+                              ("Application is not installed"));
   }
 
   bool badge_exist = false;
@@ -67,53 +67,45 @@ PlatformResult BadgeManager::SetBadgeCount(const std::string& app_id,
   int ret = badge_is_existing(app_id_str, &badge_exist);
 
   if (ret != BADGE_ERROR_NONE) {
-    LoggerE("Unknown error : %d", ret);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown error");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Unknown error", ("Unknown error: %d, %s", ret, get_error_message(ret)));
   }
 
   LoggerD("badge exist : %d", badge_exist);
 
   if (!badge_exist) {
     ret = badge_create(app_id_str, app_id_str);
-    LoggerD("badge_create() ret : %d", ret);
+    LoggerD("badge_create() ret : %d, %s", ret, get_error_message(ret));
 
     if (ret == BADGE_ERROR_PERMISSION_DENIED) {
-      LoggerE("Security error");
-      return PlatformResult(ErrorCode::SECURITY_ERR, "Security error");
+      return LogAndCreateResult(ErrorCode::SECURITY_ERR, "Security error");
 #ifdef PROFILE_WEARABLE
     } else if (ret == BADGE_ERROR_INVALID_DATA) {
 #else
     } else if (ret == BADGE_ERROR_INVALID_PARAMETER) {
 #endif
-      LoggerE("Invalid values error");
-      return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
-                            "Invalid values error");
+      return LogAndCreateResult(ErrorCode::INVALID_VALUES_ERR,
+                                "Invalid values error");
     } else if (ret != BADGE_ERROR_NONE && ret != BADGE_ERROR_ALREADY_EXIST) {
-      LoggerE("Unknown error");
-      return PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Unknown error");
+      return LogAndCreateResult(ErrorCode::INVALID_VALUES_ERR, "Unknown error");
     }
   }
 
   ret = badge_set_count(app_id_str, count);
-  LoggerE("badge_set_count() ret : %d count : %d ", ret, count);
+  LoggerD("badge_set_count() ret : %d, %s, count : %d ", ret, get_error_message(ret), count);
 
   if (ret == BADGE_ERROR_PERMISSION_DENIED) {
-    LoggerE("Security error");
-    return PlatformResult(ErrorCode::SECURITY_ERR, "Security error");
+    return LogAndCreateResult(ErrorCode::SECURITY_ERR, "Security error");
   } else if (ret == BADGE_ERROR_NOT_EXIST) {
-    LoggerE("Application is not installed");
-    return PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Application is not installed");
+    return LogAndCreateResult(ErrorCode::INVALID_VALUES_ERR, "Application is not installed");
 #ifdef PROFILE_WEARABLE
   } else if (ret == BADGE_ERROR_INVALID_DATA) {
 #else
   } else if (ret == BADGE_ERROR_INVALID_PARAMETER) {
 #endif
-    LoggerE("Invalid values error");
-    return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
-                          "Invalid values error");
+    return LogAndCreateResult(ErrorCode::INVALID_VALUES_ERR,
+                              "Invalid values error");
   } else if (ret != BADGE_ERROR_NONE) {
-    LoggerE("Unknown error : %d", ret);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown error");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Unknown error", ("Unknown error : %d, %s", ret, get_error_message(ret)));
   }
 
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -127,25 +119,25 @@ PlatformResult BadgeManager::GetBadgeCount(const std::string& app_id,
   Assert(count);
 
   if (!IsAppInstalled(app_id)) {
-    LoggerE("Application is not installed");
-    return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
-                          "InvalidValues error : app_id");
+    return LogAndCreateResult(ErrorCode::INVALID_VALUES_ERR,
+                              "InvalidValues error : app_id",
+                              ("Application is not installed"));
   }
 
   bool badge_exist = false;
   int ret = badge_is_existing(app_id.c_str(), &badge_exist);
 
   if (ret != BADGE_ERROR_NONE) {
-    LoggerE("Unknown error : %d", ret);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Platform error while checking badge.");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                              "Platform error while checking badge.",
+                              ("Unknown error : %d, %s", ret, get_error_message(ret)));
   }
 
   LoggerD("badge exist : %d", badge_exist);
 
   if (!badge_exist) {
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "badge not exist. app_id: " + app_id);
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                              "badge not exist. app_id: " + app_id);
   }
 
   *count = 0;
@@ -157,22 +149,19 @@ PlatformResult BadgeManager::GetBadgeCount(const std::string& app_id,
     case BADGE_ERROR_NONE:
       return PlatformResult(ErrorCode::NO_ERROR);
     case BADGE_ERROR_PERMISSION_DENIED:
-      LoggerE("Security error");
-      return PlatformResult(ErrorCode::SECURITY_ERR, "Security error.");
+      return LogAndCreateResult(ErrorCode::SECURITY_ERR, "Security error.");
     case BADGE_ERROR_NOT_EXIST:
-      LoggerE("Application is not installed");
-      return PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Application is not installed");
+      return LogAndCreateResult(ErrorCode::INVALID_VALUES_ERR, "Application is not installed");
 #ifdef PROFILE_WEARABLE
     case BADGE_ERROR_INVALID_DATA:
 #else
     case BADGE_ERROR_INVALID_PARAMETER:
 #endif
-      LoggerE("Invalid values error");
-      return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
-                            "InvalidValues error : app_id");
+      return LogAndCreateResult(ErrorCode::INVALID_VALUES_ERR,
+                                "InvalidValues error : app_id");
     default:
-      LoggerE("Unknown error : %d", ret);
-      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown error");
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Unknown error",
+                                ("Unknown error : %d, %s", ret, get_error_message(ret)));
   }
 }
 
@@ -186,9 +175,9 @@ PlatformResult BadgeManager::AddChangeListener(const JsonObject &obj) {
   if (!is_cb_registered_) {
     ret = badge_register_changed_cb(badge_changed_cb, this);
     if (ret != BADGE_ERROR_NONE) {
-      LoggerE("Unknown error %d:", ret);
-      return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                            "Platform error while adding listener.");
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                                "Platform error while adding listener.",
+                                ("Unknown error: %d, %s", ret, get_error_message(ret)));
     }
     is_cb_registered_ = true;
   }
@@ -205,9 +194,9 @@ PlatformResult BadgeManager::RemoveChangeListener(const JsonObject &obj) {
   if (watched_applications_.empty() && is_cb_registered_) {
     int ret = badge_unregister_changed_cb(badge_changed_cb);
     if (ret != BADGE_ERROR_NONE) {
-      LoggerE("Unknown error : %d", ret);
-      return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                            "Platform error while removing listener.");
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                                "Platform error while removing listener.",
+                                ("Unknown error : %d, %s", ret, get_error_message(ret)));
     }
     is_cb_registered_ = false;
   }

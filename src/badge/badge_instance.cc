@@ -53,10 +53,11 @@ void BadgeInstance::BadgeManagerSetBadgeCount(const JsonValue& args,
 
   PlatformResult status = manager_.SetBadgeCount(
       app_id, static_cast<unsigned int>(count));
-  if (status.IsSuccess())
+  if (status.IsSuccess()) {
     ReportSuccess(out);
-  else
-    ReportError(status, &out);
+  } else {
+    LogAndReportError(status, &out, ("Failed to set badge count."));
+  }
 }
 
 void BadgeInstance::BadgeManagerGetBadgeCount(const JsonValue& args,
@@ -68,10 +69,11 @@ void BadgeInstance::BadgeManagerGetBadgeCount(const JsonValue& args,
   unsigned int count = 0;
   PlatformResult status =
       manager_.GetBadgeCount(app_id, &count);
-  if (status.IsSuccess())
+  if (status.IsSuccess()) {
     ReportSuccess(JsonValue(std::to_string(count)), out);
-  else
-    ReportError(status, &out);
+  } else {
+    LogAndReportError(status, &out, ("Failed to get badge count."));
+  }
 }
 
 void BadgeInstance::BadgeManagerAddChangeListener(const JsonValue& args,
@@ -80,10 +82,11 @@ void BadgeInstance::BadgeManagerAddChangeListener(const JsonValue& args,
   PlatformResult status =
       manager_.AddChangeListener(args.get<JsonObject>());
 
-  if (status.IsSuccess())
+  if (status.IsSuccess()) {
     ReportSuccess(out);
-  else
-    ReportError(status, &out);
+  } else {
+    LogAndReportError(status, &out, ("Failed to add change listener."));
+  }
 }
 
 void BadgeInstance::BadgeManagerRemoveChangeListener(const JsonValue& args,
@@ -92,10 +95,11 @@ void BadgeInstance::BadgeManagerRemoveChangeListener(const JsonValue& args,
   PlatformResult status =
       manager_.RemoveChangeListener(args.get<JsonObject>());
 
-  if (status.IsSuccess())
+  if (status.IsSuccess()) {
     ReportSuccess(out);
-  else
-    ReportError(status, &out);
+  } else {
+    LogAndReportError(status, &out, ("Failed to remove change listener."));
+  }
 }
 
 }  // namespace badge
