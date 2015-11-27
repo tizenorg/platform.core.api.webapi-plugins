@@ -56,7 +56,7 @@ NotificationInstance::~NotificationInstance() {
 
 #define CHECK_EXIST(args, name, out)                                       \
   if (!args.contains(name)) {                                              \
-    ReportError(TypeMismatchException(name " is required argument"), out); \
+    LogAndReportError(TypeMismatchException(name " is required argument"), out); \
     return;                                                                \
   }
 
@@ -71,8 +71,7 @@ void NotificationInstance::NotificationManagerPost(const picojson::value& args,
   if (status.IsSuccess()) {
     ReportSuccess(val, out);
   } else {
-    LoggerE("Failed");
-    ReportError(status, &out);
+    LogAndReportError(status, &out);
   }
 }
 
@@ -86,8 +85,7 @@ void NotificationInstance::NotificationManagerUpdate(
   if (status.IsSuccess()) {
     ReportSuccess(out);
   } else {
-    LoggerE("Failed");
-    ReportError(status, &out);
+    LogAndReportError(status, &out);
   }
 }
 
@@ -101,8 +99,7 @@ void NotificationInstance::NotificationManagerRemove(
   if (status.IsSuccess()) {
     ReportSuccess(out);
   } else {
-    LoggerE("Failed");
-    ReportError(status, &out);
+    LogAndReportError(status, &out);
   }
 }
 
@@ -116,8 +113,7 @@ void NotificationInstance::NotificationManagerRemoveAll(
   if (status.IsSuccess()) {
     ReportSuccess(out);
   } else {
-    LoggerE("Failed");
-    ReportError(status, &out);
+    LogAndReportError(status, &out);
   }
 }
 
@@ -132,8 +128,7 @@ void NotificationInstance::NotificationManagerGet(const picojson::value& args,
   if (status.IsSuccess()) {
     ReportSuccess(val, out);
   } else {
-    LoggerE("Failed");
-    ReportError(status, &out);
+    LogAndReportError(status, &out);
   }
 }
 
@@ -148,8 +143,7 @@ void NotificationInstance::NotificationManagerGetAll(
   if (status.IsSuccess()) {
     ReportSuccess(val, out);
   } else {
-    LoggerE("Failed");
-    ReportError(status, &out);
+    LogAndReportError(status, &out);
   }
 }
 
@@ -163,8 +157,7 @@ void NotificationInstance::NotificationManagerPlayLEDCustomEffect(
   if (status.IsSuccess()) {
     ReportSuccess(out);
   } else {
-    LoggerE("Failed");
-    ReportError(status, &out);
+    LogAndReportError(status, &out);
   }
 }
 
@@ -178,8 +171,7 @@ void NotificationInstance::NotificationManagerStopLEDCustomEffect(
   if (status.IsSuccess()) {
     ReportSuccess(out);
   } else {
-    LoggerE("Failed");
-    ReportError(status, &out);
+    LogAndReportError(status, &out);
   }
 }
 

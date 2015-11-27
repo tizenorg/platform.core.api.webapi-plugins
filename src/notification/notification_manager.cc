@@ -65,9 +65,9 @@ PlatformResult NotificationManager::Remove(const picojson::object& args) {
 
   int ret = notification_delete_by_priv_id(NULL, NOTIFICATION_TYPE_NONE, id);
   if (ret != NOTIFICATION_ERROR_NONE) {
-    LoggerE("Cannot remove notification error: %d", ret);
-    return PlatformResult(ErrorCode::NOT_FOUND_ERR,
-                          "Cannot remove notification error");
+    return LogAndCreateResult(ErrorCode::NOT_FOUND_ERR,
+                          "Cannot remove notification error",
+                          ("Cannot remove notification error: %d", ret));
   }
 
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -77,16 +77,16 @@ PlatformResult NotificationManager::RemoveAll() {
   LoggerD("Enter");
   int ret = notification_delete_all(NOTIFICATION_TYPE_NOTI);
   if (ret != NOTIFICATION_ERROR_NONE) {
-    LoggerE("Notification remove all failed: %d", ret);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Notification noti remove all failed");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                          "Notification noti remove all failed",
+                          ("Notification remove all failed: %d", ret));
   }
 
   ret = notification_delete_all(NOTIFICATION_TYPE_ONGOING);
   if (ret != NOTIFICATION_ERROR_NONE) {
-    LoggerE("Notification remove all failed: %d", ret);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Notification ongoing remove all failed");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                          "Notification ongoing remove all failed",
+                          ("Notification remove all failed: %d", ret));
   }
 
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -139,8 +139,7 @@ PlatformResult NotificationManager::GetAll(picojson::array& out) {
   if (APP_ERROR_NONE == app_get_id(&package)) {
     LoggerD("Package id: %s", package);
   } else {
-    LoggerD("Could not get package id");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
                           "Could not get package id");
   }
   const std::string package_str = package;
@@ -149,9 +148,9 @@ PlatformResult NotificationManager::GetAll(picojson::array& out) {
   int ret = notification_get_detail_list(package_str.c_str(), NOTIFICATION_GROUP_ID_NONE,
                                          NOTIFICATION_PRIV_ID_NONE, -1, &noti_list);
   if (NOTIFICATION_ERROR_NONE != ret) {
-    LoggerD("Get notification list error: %d", ret);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Get notification list error");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                          "Get notification list error",
+                          ("Get notification list error: %d", ret));
   }
 
   SCOPE_EXIT { notification_free_list(noti_list); };
@@ -164,9 +163,9 @@ PlatformResult NotificationManager::GetAll(picojson::array& out) {
       int noti_priv = -1;
       ret = notification_get_id(noti, NULL, &noti_priv);
       if (NOTIFICATION_ERROR_NONE != ret) {
-        LoggerE("Cannot get notification id, error: %d", ret);
-        return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                              "Cannot get notification id error");
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                              "Cannot get notification id error",
+                              ("Cannot get notification id, error: %d", ret));
       }
 
       app_control_h app_control = nullptr;
@@ -219,8 +218,8 @@ PlatformResult NotificationManager::PlayLEDCustomEffect(
   int ret;
   ret = device_led_play_custom(timeOn, timeOff, color, platformFlags);
   if (ret != DEVICE_ERROR_NONE) {
-    LOGGER(ERROR) << "Cannot play LED custom effect: " << ret;
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot play LED custom effect");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Cannot play LED custom effect",
+                              ("Cannot play LED custom effect: ",ret));
   }
 
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -231,8 +230,8 @@ PlatformResult NotificationManager::StopLEDCustomEffect() {
 
   int ret = device_led_stop_custom();
   if (ret != DEVICE_ERROR_NONE) {
-    LOGGER(ERROR) << "Cannot stop LED custom effect: " << ret;
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot stop LED custom effect");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Cannot stop LED custom effect",
+                              ("Cannot stop LED custom effect: ",ret));
   }
 
   return PlatformResult(ErrorCode::NO_ERROR);
