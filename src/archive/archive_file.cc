@@ -253,8 +253,7 @@ PlatformResult ArchiveFile::addOperation(OperationCallbackData* callback)
     if(1 == size) {
         ArchiveFileHolder* holder = new(std::nothrow) ArchiveFileHolder();
         if(!holder) {
-            LoggerE("Memory allocation error");
-            return PlatformResult(ErrorCode::UNKNOWN_ERR, "Memory allocation error");
+            return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Memory allocation error");
         }
         holder->ptr = shared_from_this();
 
@@ -262,10 +261,9 @@ PlatformResult ArchiveFile::addOperation(OperationCallbackData* callback)
         // (no risk of parallel operations on file)
         if (!g_thread_pool_push(ArchiveManager::getInstance().getThreadPool(),
                                 static_cast<gpointer>(holder), NULL)) {
-          LoggerE("Thread creation failed");
           delete holder;
           holder = NULL;
-          return PlatformResult(ErrorCode::UNKNOWN_ERR, "Thread creation failed");
+          return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Thread creation failed");
         }
     }
     return PlatformResult(ErrorCode::NO_ERROR);
@@ -277,22 +275,18 @@ PlatformResult ArchiveFile::extractAllTask(ExtractAllProgressCallback* callback)
     filesystem::FilePtr directory = callback->getDirectory();
 
     if(!directory) {
-        LoggerE("Directory is null");
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Directory is null");
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Directory is null");
     } else {
         if(!directory->getNode()){
-            LoggerE("Node in directory is null");
-            return PlatformResult(ErrorCode::UNKNOWN_ERR, "Node is null");
+            return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Node in directory is null");
         }
     }
 
     if(!m_file) {
-        LoggerE("File is null");
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "File is null");
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "File is null");
     } else {
         if(!m_file->getNode()){
-            LoggerE("Node in file is null");
-            return PlatformResult(ErrorCode::UNKNOWN_ERR, "Node in file is null");
+            return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Node in file is null");
         }
     }
 
@@ -315,9 +309,7 @@ PlatformResult ArchiveFile::extractAllTask(ExtractAllProgressCallback* callback)
             return PlatformResult(ErrorCode::NO_ERROR);
         }
         else {
-            LoggerW("m_created_as_new_empty_archive is false");
-            LoggerE("Throwing InvalidStateException: File is not valid ZIP archive");
-            return PlatformResult(ErrorCode::INVALID_STATE_ERR, "File is not valid ZIP archive");
+            return LogAndCreateResult(ErrorCode::INVALID_STATE_ERR, "File is not valid ZIP archive", ("m_created_as_new_empty_archive is false"));
         }
     }
 
@@ -335,13 +327,11 @@ PlatformResult ArchiveFile::getEntries(GetEntriesCallbackData* callback)
 {
     LoggerD("Entered");
     if(!callback) {
-        LoggerE("callback is NULL");
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not get list of files in archive");
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Could not get list of files in archive", ("callback is NULL"));
     }
 
     if(!m_is_open){
-        LoggerE("ArchiveFile closed - operation not permitted");
-        return PlatformResult(ErrorCode::INVALID_STATE_ERR, "ArchiveFile closed - operation not permitted");
+        return LogAndCreateResult(ErrorCode::INVALID_STATE_ERR, "ArchiveFile closed - operation not permitted");
     }
 
     return addOperation(callback);
@@ -408,13 +398,11 @@ PlatformResult ArchiveFile::extractAll(ExtractAllProgressCallback *callback)
 {
     LoggerD("Entered");
     if(!callback) {
-        LoggerE("callback is NULL");
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not extract all files from archive");
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Could not extract all files from archive", ("callback is NULL"));
     }
 
     if(!m_is_open){
-        LoggerE("ArchiveFile closed - operation not permitted");
-        return PlatformResult(ErrorCode::INVALID_STATE_ERR, "ArchiveFile closed - operation not permitted");
+        return LogAndCreateResult(ErrorCode::INVALID_STATE_ERR, "ArchiveFile closed - operation not permitted");
     }
 
     return addOperation(callback);
@@ -424,8 +412,7 @@ PlatformResult ArchiveFile::extractEntryTo(ExtractEntryProgressCallback* callbac
 {
     LoggerD("Entered");
     if(!callback) {
-        LoggerE("callback is NULL");
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not extract archive file entry");
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Could not extract archive file entry", ("callback is NULL"));
     }
 
     // FIXME according to documentation:
@@ -434,8 +421,7 @@ PlatformResult ArchiveFile::extractEntryTo(ExtractEntryProgressCallback* callbac
 
     // uncomment in case when this method have permission to throwing InvalidStateError
     if(!m_is_open) {
-        LoggerE("Archive is not opened");
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Archive is not opened");
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Archive is not opened");
     }
 
     return addOperation(callback);
@@ -446,17 +432,14 @@ PlatformResult ArchiveFile::add(AddProgressCallback *callback)
 {
     LoggerD("Entered");
     if(!callback) {
-        LoggerE("callback is NULL");
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not add file to archive");
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Could not add file to archive", ("callback is NULL"));
     }
     if(FileMode::READ == m_file_mode) {
-        LoggerE("Trying to add file when READ access mode selected");
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Add not allowed for \"r\" access mode");
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Add not allowed for \"r\" access mode", ("Trying to add file when READ access mode selected"));
     }
 
     if(!m_is_open){
-        LoggerE("ArchiveFile closed - operation not permitted");
-        return PlatformResult(ErrorCode::INVALID_STATE_ERR, "ArchiveFile closed - operation not permitted");
+        return LogAndCreateResult(ErrorCode::INVALID_STATE_ERR, "ArchiveFile closed - operation not permitted");
     }
 
     return addOperation(callback);
@@ -478,13 +461,11 @@ PlatformResult ArchiveFile::getEntryByName(GetEntryByNameCallbackData* callback)
 {
     LoggerD("Entered");
     if(!callback) {
-        LoggerE("callback is NULL");
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not get archive file entries by name");
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Could not get archive file entries by name", ("callback is NULL"));
     }
 
     if(!m_is_open){
-        LoggerE("ArchiveFile closed - operation not permitted");
-        return PlatformResult(ErrorCode::INVALID_STATE_ERR, "ArchiveFile closed - operation not permitted");
+        return LogAndCreateResult(ErrorCode::INVALID_STATE_ERR, "ArchiveFile closed - operation not permitted");
     }
 
     return addOperation(callback);
@@ -618,19 +599,16 @@ PlatformResult ArchiveFile::createUnZipObject(UnZipPtr* unzip)
 {
     LoggerD("Entered");
     if(!m_is_open) {
-        LoggerE("File is not opened");
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "File is not opened");
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "File is not opened");
     }
 
     if (!m_file) {
-        LoggerE("m_file is null");
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "File is null");
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "File is null", ("m_file is null"));
     }
 
     filesystem::NodePtr node = m_file->getNode();
     if(!node) {
-        LoggerE("Node is null");
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "File is null");
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "File is null", ("Node is null"));
     }
 
     return UnZip::open(m_file->getNode()->getPath()->getFullPath(), unzip);
@@ -640,19 +618,16 @@ PlatformResult ArchiveFile::createZipObject(ZipPtr* zip)
 {
     LoggerD("Entered");
     if(!m_is_open) {
-        LoggerE("File is not opened");
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "File is not opened");
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "File is not opened");
     }
 
     if (!m_file) {
-        LoggerE("m_file is null");
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "File is null");
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "File is null", ("m_file is null"));
     }
 
     filesystem::NodePtr node = m_file->getNode();
     if(!node) {
-        LoggerE("Node is null");
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Node is null");
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Node is null");
     }
 
     return Zip::open(m_file->getNode()->getPath()->getFullPath(), zip);
@@ -713,9 +688,7 @@ PlatformResult ArchiveFile::updateListOfEntries()
             return PlatformResult(ErrorCode::NO_ERROR);
         }
         else {
-            LoggerW("m_created_as_new_empty_archive is false");
-            LoggerE("Throwing InvalidStateException: File is not valid ZIP archive");
-            return PlatformResult(ErrorCode::INVALID_STATE_ERR, "File is not valid ZIP archive");
+            return LogAndCreateResult(ErrorCode::INVALID_STATE_ERR, "File is not valid ZIP archive", ("m_created_as_new_empty_archive is false"));
         }
     }
 

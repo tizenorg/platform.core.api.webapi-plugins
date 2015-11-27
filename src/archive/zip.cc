@@ -104,8 +104,7 @@ PlatformResult Zip::close()
     m_zip = NULL;
 
     if (errclose != ZIP_OK) {
-        LoggerE("ret: %d", errclose);
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, getArchiveLogMessage(errclose, "zipClose()"));
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, getArchiveLogMessage(errclose, "zipClose()"), ("ret: %d", errclose));
     }
     m_is_open = false;
     return PlatformResult(ErrorCode::NO_ERROR);
@@ -116,8 +115,7 @@ PlatformResult Zip::createNew(const std::string& filename, ZipPtr* out_zip)
     LoggerD("Entered");
     ZipPtr zip = ZipPtr(new Zip(filename, ZOM_CREATE));
     if(!zip->m_zip) {
-        LoggerE("zipOpen returned NULL!");
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Opening/creating zip file failed");
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Opening/creating zip file failed", ("zipOpen returned NULL!"));
     }
     zip->m_is_open = true;
     *out_zip = zip;
@@ -129,8 +127,7 @@ PlatformResult Zip::open(const std::string& filename, ZipPtr* out_zip)
     LoggerD("Entered");
     ZipPtr zip = ZipPtr(new Zip(filename, ZOM_ADDINZIP));
     if(!zip->m_zip) {
-        LoggerE("zipOpen returned NULL!");
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Opening/creating zip file failed");
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Opening/creating zip file failed", ("zipOpen returned NULL!"));
     }
     zip->m_is_open = true;
     *out_zip = zip;
@@ -141,12 +138,10 @@ PlatformResult Zip::addFile(AddProgressCallback*& callback)
 {
     LoggerD("Entered");
     if(!callback) {
-        LoggerE("callback is NULL!");
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not add file(-s) to archive");
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Could not add file(-s) to archive", ("callback is NULL!"));
     }
     if(!m_is_open) {
-        LoggerE("Zip file not opened - exiting");
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not add file(-s) to archive - zip file closed");
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Could not add file(-s) to archive - zip file closed");
     }
 
     return ZipAddRequest::execute(*this, callback);
