@@ -101,7 +101,7 @@ MediaControllerInstance::~MediaControllerInstance() {
 
 #define CHECK_EXIST(args, name, out) \
     if (!args.contains(name)) { \
-      ReportError(PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, \
+      LogAndReportError(PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, \
           name" is required argument"), &out); \
       return; \
     }
@@ -121,7 +121,7 @@ void MediaControllerInstance::MediaControllerManagerCreateServer(
   const PlatformResult& result = server_->Init();
   if (!result) {
     server_.reset();
-    ReportError(result, &out);
+    LogAndReportError(result, &out, ("Failed to create server."));
   }
 
   ReportSuccess(out);
@@ -134,16 +134,15 @@ void MediaControllerInstance::MediaControllerServerUpdatePlaybackState(
   CHECK_EXIST(args, "state", out)
 
   if (!server_) {
-    ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
-        "Server not initialized."), &out);
+    LogAndReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
+        "Server not initialized."), &out, ("Failed: server_"));
     return;
   }
 
   const std::string& state = args.get("state").get<std::string>();
   const PlatformResult& result = server_->SetPlaybackState(state);
   if (!result) {
-    LoggerE("Failed server_->SetPlaybackState()");
-    ReportError(result, &out);
+    LogAndReportError(result, &out, ("Failed server_->SetPlaybackState()"));
     return;
   }
 
@@ -156,9 +155,8 @@ void MediaControllerInstance::MediaControllerServerUpdatePlaybackPosition(
 
   LoggerD("Enter");
   if (!server_) {
-    LoggerE("Failed: server_");
-    ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
-        "Server not initialized."), &out);
+    LogAndReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
+        "Server not initialized."), &out, ("Failed: server_"));
     return;
   }
 
@@ -167,8 +165,7 @@ void MediaControllerInstance::MediaControllerServerUpdatePlaybackPosition(
   double position = args.get("position").get<double>();
   const PlatformResult& result = server_->SetPlaybackPosition(position);
   if (!result) {
-    LoggerE("Failed: server_->SetPlaybackPosition()");
-    ReportError(result, &out);
+    LogAndReportError(result, &out, ("Failed: server_->SetPlaybackPosition()"));
     return;
   }
 
@@ -181,9 +178,8 @@ void MediaControllerInstance::MediaControllerServerUpdateShuffleMode(
 
   LoggerD("Enter");
   if (!server_) {
-    LoggerE("Failed: server_");
-    ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
-        "Server not initialized."), &out);
+    LogAndReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
+        "Server not initialized."), &out, ("Failed: server_"));
     return;
   }
 
@@ -193,8 +189,7 @@ void MediaControllerInstance::MediaControllerServerUpdateShuffleMode(
 
   const PlatformResult& result = server_->SetShuffleMode(mode);
   if (!result) {
-    LoggerE("Failed: server_->SetShuffleMode()");
-    ReportError(result, &out);
+    LogAndReportError(result, &out, ("Failed: server_->SetShuffleMode()"));
     return;
   }
 
@@ -208,9 +203,8 @@ void MediaControllerInstance::MediaControllerServerUpdateRepeatMode(
   LoggerD("Enter");
 
   if (!server_) {
-    LoggerE("Failed: server_");
-    ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
-        "Server not initialized."), &out);
+    LogAndReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
+        "Server not initialized."), &out, ("Failed: server_"));
     return;
   }
 
@@ -220,8 +214,7 @@ void MediaControllerInstance::MediaControllerServerUpdateRepeatMode(
 
   const PlatformResult& result = server_->SetRepeatMode(mode);
   if (!result) {
-    LoggerE("Failed: server_->SetRepeatMode()");
-    ReportError(result, &out);
+    LogAndReportError(result, &out, ("Failed: server_->SetRepeatMode()"));
     return;
   }
 
@@ -234,9 +227,8 @@ void MediaControllerInstance::MediaControllerServerUpdateMetadata(
 
   LoggerD("Enter");
   if (!server_) {
-    LoggerE("Failed: server_");
-    ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
-        "Server not initialized."), &out);
+    LogAndReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
+        "Server not initialized."), &out, ("Failed: server_"));
     return;
   }
 
@@ -247,8 +239,7 @@ void MediaControllerInstance::MediaControllerServerUpdateMetadata(
 
   const PlatformResult& result = server_->SetMetadata(metadata);
   if (!result) {
-    LoggerE("Failed: server_->SetMetadata()");
-    ReportError(result, &out);
+    LogAndReportError(result, &out, ("Failed: server_->SetMetadata()"));
     return;
   }
 
@@ -261,9 +252,8 @@ void MediaControllerInstance::MediaControllerServerAddChangeRequestPlaybackInfoL
 
   LoggerD("Enter");
   if (!server_) {
-    LoggerE("Failed: server_");
-    ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
-                               "Server not initialized."), &out);
+    LogAndReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
+                               "Server not initialized."), &out, ("Failed: server_"));
     return;
   }
 
@@ -293,9 +283,8 @@ void MediaControllerInstance::MediaControllerServerRemoveChangeRequestPlaybackIn
 
   LoggerD("Enter");
   if (!server_) {
-    LoggerE("Failed: server_");
-    ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
-                               "Server not initialized."), &out);
+    LogAndReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
+                               "Server not initialized."), &out, ("Failed: server_"));
     return;
   }
 
@@ -308,9 +297,8 @@ void MediaControllerInstance::MediaControllerServerAddCommandListener(
 
   LoggerD("Enter");
   if (!server_) {
-    LoggerE("Failed: server_");
-    ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
-                               "Server not initialized."), &out);
+    LogAndReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
+                               "Server not initialized."), &out, ("Failed: server_"));
     return;
   }
 
@@ -333,9 +321,8 @@ void MediaControllerInstance::MediaControllerServerReplyCommand(
 
   LoggerD("Enter");
   if (!server_) {
-    LoggerE("Failed: server_");
-    ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
-                               "Server not initialized."), &out);
+    LogAndReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
+                               "Server not initialized."), &out, ("Failed: server_"));
     return;
   }
 
@@ -356,9 +343,8 @@ void MediaControllerInstance::MediaControllerServerRemoveCommandListener(
 
   LoggerD("Enter");
   if (!server_) {
-    LoggerE("Failed: server_");
-    ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
-                               "Server not initialized."), &out);
+    LogAndReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
+                               "Server not initialized."), &out, ("Failed: server_"));
     return;
   }
 
@@ -381,8 +367,7 @@ void MediaControllerInstance::MediaControllerManagerGetClient(
   const PlatformResult& result = client_->Init();
   if (!result) {
     client_.reset();
-    LoggerE("Failed: client_->Init()");
-    ReportError(result, &out);
+    LogAndReportError(result, &out, ("Failed: client_->Init()"));
   }
 
   ReportSuccess(out);
@@ -394,10 +379,8 @@ void MediaControllerInstance::MediaControllerClientFindServers(
 
   LoggerD("Enter");
   if (!client_) {
-    LoggerE("Failed: client_");
-
-    ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
-                               "Client not initialized."), &out);
+    LogAndReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
+                               "Client not initialized."), &out, ("Failed: client_"));
     return;
   }
 
@@ -416,7 +399,7 @@ void MediaControllerInstance::MediaControllerClientFindServers(
     if (result) {
       ReportSuccess(servers, response_obj);
     } else {
-      ReportError(result, &response_obj);
+      LogAndReportError(result, &response_obj, ("Failed to find servers"));
     }
 
     Instance::PostMessage(this, response.serialize().c_str());
@@ -433,17 +416,15 @@ void MediaControllerInstance::MediaControllerClientGetLatestServerInfo(
 
   LoggerD("Enter");
   if (!client_) {
-    LoggerE("Failed: client_");
-    ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
-                               "Client not initialized."), &out);
+    LogAndReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
+                               "Client not initialized."), &out, ("Failed: client_"));
     return;
   }
 
   picojson::value server_info = picojson::value();
   PlatformResult result = client_->GetLatestServerInfo(&server_info);
   if (!result) {
-    LoggerE("Failed: client_->GetLatestServerInfo");
-    ReportError(result, &out);
+    LogAndReportError(result, &out, ("Failed: client_->GetLatestServerInfo"));
     return;
   }
 
@@ -456,8 +437,8 @@ void MediaControllerInstance::MediaControllerClientGetPlaybackInfo(
 
   LoggerD("Enter");
   if (!client_) {
-    ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
-                               "Client not initialized."), &out);
+    LogAndReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
+                               "Client not initialized."), &out, ("Failed: client_"));
     return;
   }
 
@@ -469,8 +450,7 @@ void MediaControllerInstance::MediaControllerClientGetPlaybackInfo(
       &playback_info.get<picojson::object>());
 
   if (!result) {
-    LoggerE("Failed: client_->GetPlaybackInfo");
-    ReportError(result, &out);
+    LogAndReportError(result, &out, ("Failed: client_->GetPlaybackInfo"));
     return;
   }
 
@@ -483,9 +463,8 @@ void MediaControllerInstance::MediaControllerServerInfoSendPlaybackState(
 
   LoggerD("Enter");
   if (!client_) {
-    LoggerE("Failed: client_");
-    ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
-                               "Client not initialized."), &out);
+    LogAndReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
+                               "Client not initialized."), &out, ("Failed: client_"));
     return;
   }
 
@@ -505,8 +484,7 @@ void MediaControllerInstance::MediaControllerServerInfoSendPlaybackState(
     if (result) {
       ReportSuccess(response_obj);
     } else {
-      LoggerE("Failed: client_->SendPlaybackState");
-      ReportError(result, &response_obj);
+      LogAndReportError(result, &response_obj, ("Failed: client_->SendPlaybackState"));
     }
 
     Instance::PostMessage(this, response.serialize().c_str());
@@ -523,8 +501,8 @@ void MediaControllerInstance::MediaControllerServerInfoSendPlaybackPosition(
 
   LoggerD("Enter");
   if (!client_) {
-    ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
-                               "Client not initialized."), &out);
+    LogAndReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
+                               "Client not initialized."), &out, ("Failed: client_"));
     return;
   }
 
@@ -544,8 +522,7 @@ void MediaControllerInstance::MediaControllerServerInfoSendPlaybackPosition(
     if (result) {
       ReportSuccess(response_obj);
     } else {
-      LoggerE("Failed: client_->SendPlaybackPosition");
-      ReportError(result, &response_obj);
+      LogAndReportError(result, &response_obj, ("Failed: client_->SendPlaybackPosition"));
     }
 
     Instance::PostMessage(this, response.serialize().c_str());
@@ -563,9 +540,8 @@ void MediaControllerInstance::MediaControllerServerInfoSendShuffleMode(
   LoggerD("Enter");
 
   if (!client_) {
-    LOGGER(ERROR) << "Client not initialized.";
-    ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
-                               "Client not initialized."), &out);
+    LogAndReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
+                               "Client not initialized."), &out, ("Failed: client_"));
     return;
   }
 
@@ -585,7 +561,7 @@ void MediaControllerInstance::MediaControllerServerInfoSendShuffleMode(
     if (result) {
       ReportSuccess(response_obj);
     } else {
-      ReportError(result, &response_obj);
+      LogAndReportError(result, &response_obj, ("Failed to send shuffle mode."));
     }
 
     Instance::PostMessage(this, response.serialize().c_str());
@@ -602,9 +578,8 @@ void MediaControllerInstance::MediaControllerServerInfoSendRepeatMode(
 
   LoggerD("Enter");
   if (!client_) {
-    LOGGER(ERROR) << "Client not initialized.";
-    ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
-                               "Client not initialized."), &out);
+    LogAndReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
+                               "Client not initialized."), &out, ("Failed: client_"));
     return;
   }
 
@@ -624,7 +599,7 @@ void MediaControllerInstance::MediaControllerServerInfoSendRepeatMode(
     if (result) {
       ReportSuccess(response_obj);
     } else {
-      ReportError(result, &response_obj);
+      LogAndReportError(result, &response_obj, ("Failed to send repeat mode."));
     }
 
     Instance::PostMessage(this, response.serialize().c_str());
@@ -641,9 +616,8 @@ void MediaControllerInstance::MediaControllerServerInfoSendCommand(
 
   LoggerD("Enter");
   if (!client_) {
-    LOGGER(ERROR) << "Client not initialized.";
-    ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
-                               "Client not initialized."), &out);
+    LogAndReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
+                               "Client not initialized."), &out, ("Failed: client_"));
     return;
   }
 
@@ -672,7 +646,7 @@ void MediaControllerInstance::MediaControllerServerInfoSendCommand(
   if (result) {
     ReportSuccess(out);
   } else {
-    ReportError(result, &out);
+    LogAndReportError(result, &out, ("Failed to send command."));
   }
 }
 
@@ -682,8 +656,8 @@ void MediaControllerInstance::MediaControllerServerInfoAddServerStatusChangeList
 
   LoggerD("Enter");
   if (!client_) {
-    ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
-                               "Client not initialized."), &out);
+    LogAndReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
+                               "Client not initialized."), &out, ("Failed: client_"));
     return;
   }
 
@@ -713,8 +687,8 @@ void MediaControllerInstance::MediaControllerServerInfoRemoveServerStatusChangeL
 
   LoggerD("Enter");
   if (!client_) {
-    ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
-                               "Client not initialized."), &out);
+    LogAndReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
+                               "Client not initialized."), &out, ("Failed: client_"));
     return;
   }
 
@@ -727,9 +701,8 @@ void MediaControllerInstance::MediaControllerServerInfoAddPlaybackInfoChangeList
 
   LoggerD("Enter");
   if (!client_) {
-    LoggerE("client_");
-    ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
-                               "Client not initialized."), &out);
+    LogAndReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
+                               "Client not initialized."), &out, ("Failed: client_"));
     return;
   }
 
@@ -758,9 +731,8 @@ void MediaControllerInstance::MediaControllerServerInfoRemovePlaybackInfoChangeL
     picojson::object& out) {
 
   if (!client_) {
-    LoggerE("client_");
-    ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
-                               "Client not initialized."), &out);
+    LogAndReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
+                               "Client not initialized."), &out, ("Failed: client_"));
     return;
   }
 

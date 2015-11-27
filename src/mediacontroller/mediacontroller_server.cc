@@ -68,18 +68,18 @@ PlatformResult MediaControllerServer::Init() {
 
   int ret = mc_server_create(&handle_);
   if (ret != MEDIA_CONTROLLER_ERROR_NONE) {
-    LOGGER(ERROR) << "Unable to create media controller server, error: " << ret;
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Unable to create media controller server");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                              "Unable to create media controller server",
+                              ("mc_server_create() error: %d, message: %s", ret, get_error_message(ret)));
   }
 
   ret = mc_server_set_custom_command_received_cb(handle_,
                                                  OnCommandReceived,
                                                  this);
   if (ret != MEDIA_CONTROLLER_ERROR_NONE) {
-    LOGGER(ERROR) << "Unable to set command callback, error: " << ret;
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Unable to set command callback");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                              "Unable to set command callback",
+                              ("mc_server_set_custom_command_received_cb() error: %d, message: %s", ret, get_error_message(ret)));
   }
 
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -101,16 +101,16 @@ PlatformResult MediaControllerServer::SetPlaybackState(
   int ret = mc_server_set_playback_state(
       handle_, static_cast<mc_playback_states_e>(state_int));
   if (ret != MEDIA_CONTROLLER_ERROR_NONE) {
-    LOGGER(ERROR) << "mc_server_set_playback_state failed, error: " << ret;
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Error setting playback state");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                              "Error setting playback state",
+                              ("mc_server_set_playback_state() error: %d, message: %s", ret, get_error_message(ret)));
   }
 
   ret = mc_server_update_playback_info(handle_);
   if (ret != MEDIA_CONTROLLER_ERROR_NONE) {
-    LOGGER(ERROR) << "mc_server_update_playback_info failed, error: " << ret;
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Error updating playback info");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                              "Error updating playback info",
+                              ("mc_server_update_playback_info() error: %d, message: %s", ret, get_error_message(ret)));
   }
 
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -123,16 +123,16 @@ PlatformResult MediaControllerServer::SetPlaybackPosition(double position) {
   int ret = mc_server_set_playback_position(
       handle_, static_cast<unsigned long long>(position));
   if (ret != MEDIA_CONTROLLER_ERROR_NONE) {
-    LOGGER(ERROR) << "mc_server_set_playback_position failed, error: " << ret;
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Error setting playback position");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                              "Error setting playback position",
+                              ("mc_server_set_playback_position() error: %d, message: %s", ret, get_error_message(ret)));
   }
 
   ret = mc_server_update_playback_info(handle_);
   if (ret != MEDIA_CONTROLLER_ERROR_NONE) {
-    LOGGER(ERROR) << "mc_server_update_playback_info failed, error: " << ret;
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Error updating playback info");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                              "Error updating playback info",
+                              ("mc_server_update_playback_info() error: %d, message: %s", ret, get_error_message(ret)));
   }
 
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -146,9 +146,9 @@ PlatformResult MediaControllerServer::SetShuffleMode(bool mode) {
                                           mode ? MC_SHUFFLE_MODE_ON
                                                : MC_SHUFFLE_MODE_OFF);
   if (ret != MEDIA_CONTROLLER_ERROR_NONE) {
-    LOGGER(ERROR) << "mc_server_update_shuffle_mode failed, error: " << ret;
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Error updating shuffle mode");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                              "Error updating shuffle mode",
+                              ("mc_server_update_shuffle_mode() error: %d, message: %s", ret, get_error_message(ret)));
   }
 
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -162,8 +162,9 @@ PlatformResult MediaControllerServer::SetRepeatMode(bool mode) {
                                          mode ? MC_REPEAT_MODE_ON
                                               : MC_REPEAT_MODE_OFF);
   if (ret != MEDIA_CONTROLLER_ERROR_NONE) {
-    LOGGER(ERROR) << "mc_server_update_repeat_mode failed, error: " << ret;
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Error updating repeat mode");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                              "Error updating repeat mode",
+                              ("mc_server_update_repeat_mode() error: %d, message: %s", ret, get_error_message(ret)));
   }
 
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -188,16 +189,17 @@ PlatformResult MediaControllerServer::SetMetadata(
     ret = mc_server_set_metadata(handle_, static_cast<mc_meta_e>(attribute_int),
                                  i->second.to_str().c_str());
     if (ret != MEDIA_CONTROLLER_ERROR_NONE) {
-      LOGGER(ERROR) << "set_metadata failed for '" << i->first
-                    << "', error: " << ret;
-      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Error setting metadata");
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                                "Error setting metadata",
+                                ("mc_server_set_metadata(%s) error: %d, message: %s", i->first.c_str(), ret, get_error_message(ret)));
     }
   }
 
   ret = mc_server_update_metadata(handle_);
   if (ret != MEDIA_CONTROLLER_ERROR_NONE) {
-    LOGGER(ERROR) << "mc_server_update_metadata failed, error: " << ret;
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Error updating metadata");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                              "Error updating metadata",
+                              ("mc_server_update_metadata() error: %d, message: %s", ret, get_error_message(ret)));
   }
 
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -300,22 +302,23 @@ PlatformResult MediaControllerServer::CommandReply(
 
   ret = bundle_add(bundle, "replyId", reply_id.c_str());
   if (ret != MEDIA_CONTROLLER_ERROR_NONE) {
-    LOGGER(ERROR) << "bundle_add(replyId) failed, error: " << ret;
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Unable to add replyId to bundle");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                              "Unable to add replyId to bundle",
+                              ("bundle_add(replyId) error: %d, message: %s", ret, get_error_message(ret)));
   }
 
   ret = bundle_add(bundle, "data", data.serialize().c_str());
   if (ret != MEDIA_CONTROLLER_ERROR_NONE) {
-    LOGGER(ERROR) << "bundle_add(data) failed, error: " << ret;
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Unable to add data to bundle");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                              "Unable to add data to bundle",
+                              ("bundle_add(data) error: %d, message: %s", ret, get_error_message(ret)));
   }
 
   ret = mc_server_send_command_reply(handle_, client_name.c_str(), 0, bundle);
   if (ret != MEDIA_CONTROLLER_ERROR_NONE) {
-    LOGGER(ERROR) << "mc_server_send_command_reply failed, error: " << ret;
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Error sending command reply");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                              "Error sending command reply",
+                              ("mc_server_send_command_reply() error: %d, message: %s", ret, get_error_message(ret)));
   }
 
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -327,9 +330,8 @@ PlatformResult MediaControllerServer::SetChangeRequestPlaybackInfoListener(
   LoggerD("Enter");
 
   if (callback && change_request_playback_info_listener_) {
-    LOGGER(ERROR) << "Listener already registered";
-    return PlatformResult(ErrorCode::INVALID_STATE_ERR,
-                          "Listener already registered");
+    return LogAndCreateResult(ErrorCode::INVALID_STATE_ERR,
+                              "Listener already registered");
   }
 
   change_request_playback_info_listener_ = callback;
@@ -339,16 +341,16 @@ PlatformResult MediaControllerServer::SetChangeRequestPlaybackInfoListener(
     ret = mc_server_set_playback_state_command_received_cb(
         handle_, OnPlaybackStateCommand, this);
     if (ret != MEDIA_CONTROLLER_ERROR_NONE) {
-      LOGGER(ERROR) << "Unable to set playback state command listener, error: " << ret;
-      return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                            "Unable to set playback state command listener");
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                                "Unable to set playback state command listener",
+                                ("mc_server_set_playback_state_command_received_cb() error: %d, message: %s", ret, get_error_message(ret)));
     }
   } else { // unset platform callbacks
     ret = mc_server_unset_playback_state_command_received_cb(handle_);
     if (ret != MEDIA_CONTROLLER_ERROR_NONE) {
-      LOGGER(ERROR) << "Unable to unset playback state command listener, error: " << ret;
-      return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                            "Unable to unset playback state command listener");
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                                "Unable to unset playback state command listener",
+                                ("mc_server_unset_playback_state_command_received_cb() error: %d, message: %s", ret, get_error_message(ret)));
     }
   }
 
