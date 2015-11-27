@@ -59,8 +59,7 @@ void MediaKeyInstance::SetMediaKeyEventListener(const picojson::value& args,
   common::PlatformResult result = MediaKeyManager::GetInstance()
       .RegisterMediaKeyEventListener(this);
   if (result.IsError()) {
-    LOGD("Error occured");
-    ReportError(result, &out);
+    LogAndReportError(result, &out, ("Failed to set media key event listener"));
   } else {
     ReportSuccess(out);
   }
@@ -72,8 +71,7 @@ void MediaKeyInstance::UnsetMediaKeyEventListener(const picojson::value& args,
   common::PlatformResult result = MediaKeyManager::GetInstance()
       .UnregisterMediaKeyEventListener();
   if (result.IsError()) {
-    LOGD("Error occured");
-    ReportError(result, &out);
+    LogAndReportError(result, &out, ("Failed to remove media key event listener"));
   } else {
     ReportSuccess(out);
   }
