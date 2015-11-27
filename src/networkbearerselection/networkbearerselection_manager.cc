@@ -289,7 +289,7 @@ common::PlatformResult NetworkBearerSelectionManager::releaseRouteToHost(
       LoggerD("list size : %i", m_domain_names_.size());
       if (m_domain_names_.size() == 0) {
         if (!m_profile_handle_) {
-          return common::PlatformResult(common::ErrorCode::UNKNOWN_ERR, "Already in use");
+          return LogAndCreateResult(common::ErrorCode::UNKNOWN_ERR, "Already in use");
         }
 
         if (connection_profile_unset_state_changed_cb(m_profile_handle_) !=
@@ -323,7 +323,7 @@ common::PlatformResult NetworkBearerSelectionManager::releaseRouteToHost(
     }
   }
 
-  return common::PlatformResult(common::ErrorCode::UNKNOWN_ERR, "Invalid argument");
+  return LogAndCreateResult(common::ErrorCode::UNKNOWN_ERR, "Invalid argument");
 }
 
 void NetworkBearerSelectionManager::registStateChangeListener(

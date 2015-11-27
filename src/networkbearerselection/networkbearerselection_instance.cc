@@ -55,10 +55,10 @@ NetworkBearerSelectionInstance::~NetworkBearerSelectionInstance() {
   NetworkBearerSelectionManager::GetInstance()->RemoveListener(this);
 }
 
-#define CHECK_EXIST(args, name, out)                                       \
-  if (!args.contains(name)) {                                              \
-    ReportError(TypeMismatchException(name " is required argument"), out); \
-    return;                                                                \
+#define CHECK_EXIST(args, name, out)                                             \
+  if (!args.contains(name)) {                                                    \
+    LogAndReportError(TypeMismatchException(name " is required argument"), out); \
+    return;                                                                      \
   }
 
 void NetworkBearerSelectionInstance::NetworkBearerSelectionRequestRouteToHost(
@@ -97,10 +97,11 @@ void NetworkBearerSelectionInstance::NetworkBearerSelectionReleaseRouteToHost(
     LoggerD("enter");
     picojson::value response = picojson::value(picojson::object());
     picojson::object& obj = response.get<picojson::object>();
-    if (status)
+    if (status) {
       ReportSuccess(obj);
-    else
-      ReportError(UnknownException("PLATFORM ERROR"), obj);
+    } else {
+      LogAndReportError(UnknownException("PLATFORM ERROR"), obj, ("Failed to release route to host (callback)"));
+    }
     obj["callbackId"] = picojson::value(callback_id);
     Instance::PostMessage(this, response.serialize().c_str());
   };
@@ -115,7 +116,7 @@ void NetworkBearerSelectionInstance::NetworkBearerSelectionReleaseRouteToHost(
   if (status) {
     ReportSuccess(out);
   } else {
-    ReportError(status, &out);
+    LogAndReportError(status, &out, ("Failed to release route to host"));
   }
 }
 
@@ -143,7 +144,7 @@ void NetworkBearerSelectionInstance::onNBSError(const std::string& domain_name,
   LoggerD("enter");
   picojson::value event = picojson::value(picojson::object());
   picojson::object& obj = event.get<picojson::object>();
-  ReportError(UnknownException(info), obj);
+  LogAndReportError(UnknownException(info), obj);
   obj["domainName"] = picojson::value(domain_name);
   obj["state"] = picojson::value("Error");
 
