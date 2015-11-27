@@ -88,7 +88,7 @@ enum PowerCallbacks {
 
 #define CHECK_EXIST(args, name, out) \
     if (!args.contains(name)) {\
-      ReportError(TypeMismatchException(name" is required argument"), out);\
+      LogAndReportError(TypeMismatchException(name" is required argument"), out);\
       return;\
     }
 
@@ -101,7 +101,7 @@ void PowerInstance::PowerManagerRequest(const picojson::value& args, picojson::o
       PowerManager::GetInstance()->Request(kPowerResourceMap.at(resource),
                                            kPowerStateMap.at(state));
   if (result.IsError())
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   else
     ReportSuccess(out);
 }
@@ -112,7 +112,7 @@ void PowerInstance::PowerManagerRelease(const picojson::value& args, picojson::o
   PlatformResult result =
       PowerManager::GetInstance()->Release(kPowerResourceMap.at(resource));
   if (result.IsError())
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   else
     ReportSuccess(out);
 }
@@ -124,7 +124,7 @@ void PowerInstance::PowerManagerGetscreenbrightness(const picojson::value& args,
   PlatformResult result =
       PowerManager::GetInstance()->GetScreenBrightness(&brightness);
   if (result.IsError())
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   else
     ReportSuccess(picojson::value(brightness), out);
 }
@@ -138,7 +138,7 @@ void PowerInstance::PowerManagerSetscreenbrightness(const picojson::value& args,
   PlatformResult result =
       PowerManager::GetInstance()->SetScreenBrightness(brightness);
   if (result.IsError())
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   else
     ReportSuccess(out);
 }
@@ -148,7 +148,7 @@ void PowerInstance::PowerManagerIsscreenon(const picojson::value& args, picojson
   bool state = false;
   PlatformResult result = PowerManager::GetInstance()->IsScreenOn(&state);
   if (result.IsError())
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   else
     ReportSuccess(picojson::value(state), out);
 }
@@ -158,7 +158,7 @@ void PowerInstance::PowerManagerRestorescreenbrightness(const picojson::value& a
   PlatformResult result =
       PowerManager::GetInstance()->RestoreScreenBrightness();
   if (result.IsError())
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   else
     ReportSuccess(out);
 }
@@ -167,7 +167,7 @@ void PowerInstance::PowerManagerTurnscreenon(const picojson::value& args, picojs
   LoggerD("Enter");
   PlatformResult result = PowerManager::GetInstance()->SetScreenState(true);
   if (result.IsError())
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   else
     ReportSuccess(out);
 }
@@ -176,7 +176,7 @@ void PowerInstance::PowerManagerTurnscreenoff(const picojson::value& args, picoj
   LoggerD("Enter");
   PlatformResult result = PowerManager::GetInstance()->SetScreenState(false);
   if (result.IsError())
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   else
     ReportSuccess(out);
 }
