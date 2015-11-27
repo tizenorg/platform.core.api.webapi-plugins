@@ -41,12 +41,12 @@ PlatformResult NFCUtil::CodeToResult(const int errorCode,
     case NFC_ERROR_INVALID_NDEF_MESSAGE:
     case NFC_ERROR_INVALID_RECORD_TYPE:
     case NFC_ERROR_NOT_NDEF_FORMAT:
-      return PlatformResult(ErrorCode::INVALID_VALUES_ERR, message);
+      return LogAndCreateResult(ErrorCode::INVALID_VALUES_ERR, message);
     case NFC_ERROR_SECURITY_RESTRICTED:
     case NFC_ERROR_PERMISSION_DENIED:
-      return PlatformResult(ErrorCode::SECURITY_ERR, message);
+      return LogAndCreateResult(ErrorCode::SECURITY_ERR, message);
     case NFC_ERROR_NOT_SUPPORTED:
-      return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR, message);
+      return LogAndCreateResult(ErrorCode::NOT_SUPPORTED_ERR, message);
     case NFC_ERROR_NOT_ACTIVATED:
     case NFC_ERROR_OPERATION_FAILED:
     case NFC_ERROR_DEVICE_BUSY:
@@ -55,7 +55,7 @@ PlatformResult NFCUtil::CodeToResult(const int errorCode,
     case NFC_ERROR_OUT_OF_MEMORY:
     case NFC_ERROR_NOT_INITIALIZED:
     default:
-      return PlatformResult(ErrorCode::UNKNOWN_ERR, message);
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, message);
   }
 }
 
@@ -219,7 +219,7 @@ PlatformResult NFCUtil::ToNfcTagString(const std::string& type_string, nfc_tag_t
     *tag_type = NFC_UNKNOWN_TARGET;
   }
   else {
-    return PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, "No Match Tag Type");
+    return LogAndCreateResult(ErrorCode::TYPE_MISMATCH_ERR, "No Match Tag Type");
   }
   return PlatformResult(ErrorCode::NO_ERROR);
 }
@@ -237,8 +237,9 @@ PlatformResult NFCUtil::ToStringCardEmulationMode(
       *mode = ALWAYS_ON;
       break;
     default:
-      LoggerE("No Match Card Emulation mode: %x", card_mode);
-      return PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, "No Match Card Emulation mode");
+      return LogAndCreateResult(ErrorCode::TYPE_MISMATCH_ERR,
+                                "No Match Card Emulation mode",
+                                ("No Match Card Emulation mode: %x", card_mode));
   }
   return PlatformResult(ErrorCode::NO_ERROR);
 }
@@ -252,8 +253,9 @@ PlatformResult NFCUtil::ToCardEmulationMode(
   } else if (mode_string == OFF) {
     *mode = NFC_SE_CARD_EMULATION_MODE_OFF;
   } else {
-    LoggerE("No Match Card Emulation mode: %s", mode_string.c_str());
-    return PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, "No Match Card Emulation mode");
+    return LogAndCreateResult(ErrorCode::TYPE_MISMATCH_ERR,
+                              "No Match Card Emulation mode",
+                              ("No Match Card Emulation mode: %s", mode_string.c_str()));
   }
   return PlatformResult(ErrorCode::NO_ERROR);
 }
@@ -272,8 +274,9 @@ PlatformResult NFCUtil::ToStringSecureElementType(const nfc_se_type_e se_type,
       *type = DATA_NFC_SE_TYPE_HCE;
       break;
     default:
-      LoggerE("No Match Secure Element Type: %x", se_type);
-      return PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, "No Match Secure Element Type");
+      return LogAndCreateResult(ErrorCode::TYPE_MISMATCH_ERR,
+                                "No Match Secure Element Type",
+                                ("No Match Secure Element Type: %x", se_type));
   }
   return PlatformResult(ErrorCode::NO_ERROR);
 }
@@ -288,8 +291,9 @@ PlatformResult NFCUtil::ToSecureElementType(const std::string& type_string,
   } else if (type_string == DATA_NFC_SE_TYPE_HCE) {
     *type = NFC_SE_TYPE_HCE;
   } else {
-    LoggerE("No Match Secure Element Type: %s", type_string.c_str());
-    return PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, "No Match Secure Element Type");
+    return LogAndCreateResult(ErrorCode::TYPE_MISMATCH_ERR,
+                              "No Match Secure Element Type",
+                              ("No Match Secure Element Type: %s", type_string.c_str()));
   }
   return PlatformResult(ErrorCode::NO_ERROR);
 }
