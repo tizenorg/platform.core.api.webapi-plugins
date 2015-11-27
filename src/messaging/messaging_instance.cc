@@ -160,9 +160,8 @@ MessagingInstance::~MessagingInstance()
 }
 
 #define POST_AND_RETURN(ret, json, obj, action) \
-    LoggerE("Error occured: (%s)", ret.message().c_str()); \
     picojson::object args; \
-    ReportError(ret, &args); \
+    LogAndReportError(ret, &args); \
     obj[JSON_DATA] = picojson::value(args); \
     obj[JSON_ACTION] = picojson::value(action); \
     queue_.addAndResolve( \
@@ -336,8 +335,8 @@ void MessagingInstance::MessageServiceSync(const picojson::value& args,
     try {
         id = std::stoi(v_id.get<std::string>());
     } catch(...) {
-        LoggerE("Problem with MessageService");
-        ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR), &out);
+        LogAndReportError(PlatformResult(ErrorCode::UNKNOWN_ERR), &out,
+                          ("Problem with MessageService"));
         return;
     }
     long limit = 0;
@@ -357,7 +356,7 @@ void MessagingInstance::MessageServiceSync(const picojson::value& args,
     if (result) {
       ReportSuccess(picojson::value(static_cast<double>(op_id)), out);
     } else {
-      ReportError(result, &out);
+      LogAndReportError(result, &out);
     }
 }
 
@@ -382,8 +381,8 @@ void MessagingInstance::MessageServiceSyncFolder(const picojson::value& args,
     try {
         id = std::stoi(v_id.get<std::string>());
     } catch(...) {
-        LoggerE("Problem with MessageService");
-        ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR), &out);
+        LogAndReportError(PlatformResult(ErrorCode::UNKNOWN_ERR), &out,
+                          ("Problem with MessageService"));
         return;
     }
 
@@ -404,7 +403,7 @@ void MessagingInstance::MessageServiceSyncFolder(const picojson::value& args,
     if (result) {
         ReportSuccess(picojson::value(static_cast<double>(op_id)), out);
     } else {
-        ReportError(result, &out);
+        LogAndReportError(result, &out);
     }
 }
 
@@ -429,8 +428,8 @@ void MessagingInstance::MessageServiceStopSync(const picojson::value& args,
         try {
             id = std::stoi(v_id.get<std::string>());
         } catch(...) {
-            LoggerD("Problem with MessageService");
-            ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR), &out);
+            LogAndReportError(PlatformResult(ErrorCode::UNKNOWN_ERR), &out,
+                              ("Problem with MessageService"));
             return;
         }
 
@@ -444,11 +443,11 @@ void MessagingInstance::MessageServiceStopSync(const picojson::value& args,
         if (result) {
             ReportSuccess(out);
         } else {
-            ReportError(result, &out);
+            LogAndReportError(result, &out);
         }
     } else {
-        LoggerE("Unknown error");
-        ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR), &out);
+        LogAndReportError(PlatformResult(ErrorCode::UNKNOWN_ERR), &out,
+                          ("Unknown error"));
     }
 }
 

@@ -49,9 +49,8 @@ PlatformResult SyncProxy::create(const std::string& path,
                                  SyncProxyPtr* sync_proxy) {
     sync_proxy->reset(new SyncProxy(path, iface));
     if ((*sync_proxy)->isNotProxyGot()) {
-        LoggerE("Could not get sync proxy");
         sync_proxy->reset();
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not get sync proxy");
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Could not get sync proxy");
     } else {
         return PlatformResult(ErrorCode::NO_ERROR);
     }
@@ -131,8 +130,7 @@ void SyncProxy::handleEmailSignal(const int status,
             break;
 
         case NOTI_DOWNLOAD_FAIL:
-            LoggerD("Sync failed!");
-            callback->SetError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Sync failed!"));
+            callback->SetError(LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Sync failed!"));
             callback->Post();
             break;
 
@@ -160,8 +158,9 @@ PlatformResult SyncProxy::findSyncCallbackByOpHandle(const int op_handle,
     // map with specified opId (for example stopSync() has
     // removed it), but sync() was already started - only
     // warning here:
-    LoggerW("Could not find callback with op_handle: %d", op_handle);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not find callback");
+    return LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, "Could not find callback",
+              ("Could not find callback with op_handle: %d", op_handle));
 }
 
 } //namespace DBus

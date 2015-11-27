@@ -101,8 +101,9 @@ bool MessageRecipientsCallbackData::setSimIndex(
 
     sim_index--;
     if (sim_index >= sim_count || sim_index < -1) {
-        LoggerE("Sim index out of bound %d : %d", sim_index, sim_count);
-        this->SetError(PlatformResult(ErrorCode::INVALID_VALUES_ERR, "The index of sim is out of bound"));
+        this->SetError(LogAndCreateResult(
+                          ErrorCode::INVALID_VALUES_ERR, "The index of sim is out of bound",
+                          ("Sim index out of bound %d : %d", sim_index, sim_count)));
         return false;
     }
 
@@ -350,52 +351,48 @@ MessageStoragePtr MessageService::getMsgStorage() const
 common::PlatformResult MessageService::sendMessage(MessageRecipientsCallbackData *callback)
 {
     // this method should be overwritten be specific services
-    LoggerE("Cannot send message");
     delete callback;
-    return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR, "Unable to send message.");
+    return LogAndCreateResult(ErrorCode::NOT_SUPPORTED_ERR, "Unable to send message.");
 }
 
 PlatformResult MessageService::loadMessageBody(MessageBodyCallbackData* callback)
 {
     // this method should be overwritten by specific services
-    LoggerE("Cannot load message body");
     delete callback;
-    return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR, "Cannot load message body");
+    return LogAndCreateResult(ErrorCode::NOT_SUPPORTED_ERR, "Cannot load message body");
 }
 
 PlatformResult MessageService::loadMessageAttachment(MessageAttachmentCallbackData* callback)
 {
     // this method should be overwritten by email service
     // for MMS and SMS this function is not supported
-    LoggerE("Cannot load message attachment");
     delete callback;
-    return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR, "Cannot load message attachment");
+    return LogAndCreateResult(ErrorCode::NOT_SUPPORTED_ERR, "Cannot load message attachment");
 }
 
 PlatformResult MessageService::sync(SyncCallbackData *callback, long* operation_id)
 {
     // this method should be overwritten by email service
     // for MMS and SMS this function is not supported
-    LoggerE("Cannot sync with external server");
     delete callback;
-    return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR, "Cannot sync with external server");
+    return LogAndCreateResult(ErrorCode::NOT_SUPPORTED_ERR, "Cannot sync with external server");
 }
 
 PlatformResult MessageService::syncFolder(SyncFolderCallbackData *callback, long* operation_id)
 {
     // this method should be overwritten by email service
     // for MMS and SMS this function is not supported
-    LoggerE("Cannot sync folder with external server");
     delete callback;
-    return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR, "Cannot sync folder with external server");
+    return LogAndCreateResult(ErrorCode::NOT_SUPPORTED_ERR,
+                              "Cannot sync folder with external server");
 }
 
 PlatformResult MessageService::stopSync(long op_id)
 {
     // this method should be overwritten by email service
     // for MMS and SMS this function is not supported
-    LoggerE("Cannot stop sync with external server");
-    return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR, "Cannot stop sync with external server");
+    return LogAndCreateResult(ErrorCode::NOT_SUPPORTED_ERR,
+                              "Cannot stop sync with external server");
 }
 
 } // messaging

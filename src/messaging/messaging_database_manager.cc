@@ -365,9 +365,9 @@ PlatformResult MessagingDatabaseManager::getAttributeFilterQuery(AbstractFilterP
     std::ostringstream sqlQuery;
     AttributeFilterPtr attr_filter = castToAttributeFilter(filter);
     if(!attr_filter) {
-        LoggerE("passed filter is not valid AttributeFilter!");
-        return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                              "Wrong filter type - not attribute filter");
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                                  "Wrong filter type - not attribute filter",
+                                  ("passed filter is not valid AttributeFilter!"));
     }
 
     const std::string attribute_name = attr_filter->getAttributeName();
@@ -376,9 +376,9 @@ PlatformResult MessagingDatabaseManager::getAttributeFilterQuery(AbstractFilterP
     if (it != attribute_map.end()) {
         sqlQuery << "(" << attribute_map[attribute_name].sql_name << " ";
     } else {
-        LoggerE("The attribute: %s does not exist.", attribute_name.c_str());
-        return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
-                              "The attribute does not exist.");
+        return LogAndCreateResult(
+                  ErrorCode::INVALID_VALUES_ERR, "The attribute does not exist.",
+                  ("The attribute: %s does not exist.", attribute_name.c_str()));
     }
 
     AnyPtr match_value_any_ptr = attr_filter->getMatchValue();
@@ -419,13 +419,13 @@ PlatformResult MessagingDatabaseManager::getAttributeFilterQuery(AbstractFilterP
         } else if ("messaging.email" == match_value && MessageType::EMAIL == msgType) {
             sqlQuery << "= " << attr_info.sql_name;
         } else {
-            LoggerE("attribute \"type\" matchValue:%s "
-                    "does not match messaging.sms/mms/email\n"
-                    "msgType:%d does not match SMS(%d), MMS(%d) nor EMAIL(%d)!",
-                    match_value.c_str(), msgType, MessageType::SMS, MessageType::MMS,
-                    MessageType::EMAIL);
-            return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                                  "The value does not match service type.");
+            return LogAndCreateResult(
+                      ErrorCode::UNKNOWN_ERR, "The value does not match service type.",
+                      ("attribute \"type\" matchValue:%s "
+                       "does not match messaging.sms/mms/email\n"
+                       "msgType:%d does not match SMS(%d), MMS(%d) nor EMAIL(%d)!",
+                       match_value.c_str(), msgType, MessageType::SMS, MessageType::MMS,
+                       MessageType::EMAIL));
         }
     }
     else if ("isRead" == attribute_name || "hasAttachment" == attribute_name) {
@@ -547,8 +547,9 @@ PlatformResult MessagingDatabaseManager::getAttributeFilterQuery(AbstractFilterP
                 break;
             }
             default:
-              return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                                    "The match flag is incorrect.");
+              return LogAndCreateResult(
+                        ErrorCode::UNKNOWN_ERR, "The match flag is incorrect.",
+                        ("The match flag is incorrect: %d", match_flag));
         }
 
         if (MessageType::SMS == msgType || MessageType::MMS == msgType) {
@@ -579,9 +580,9 @@ PlatformResult MessagingDatabaseManager::getAttributeRangeFilterQuery(AbstractFi
 
     AttributeRangeFilterPtr attr_range_filter = castToAttributeRangeFilter(filter);
     if(!attr_range_filter) {
-        LoggerE("passed filter is not valid AttributeRangeFilter!");
-        return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                              "Wrong filter type - not attribute range filter");
+        return LogAndCreateResult(
+                  ErrorCode::UNKNOWN_ERR, "Wrong filter type - not attribute range filter",
+                  ("passed filter is not valid AttributeRangeFilter!"));
     }
 
     converter << attr_range_filter->getInitialValue()->toTimeT();
@@ -604,9 +605,9 @@ PlatformResult MessagingDatabaseManager::getCompositeFilterQuery(AbstractFilterP
 
     CompositeFilterPtr comp_filter = castToCompositeFilter(filter);
     if(!comp_filter) {
-        LoggerE("passed filter is not valid CompositeFilter!");
-        return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                              "Wrong filter type - not composite filter");
+        return LogAndCreateResult(
+                  ErrorCode::UNKNOWN_ERR, "Wrong filter type - not composite filter",
+                  ("passed filter is not valid CompositeFilter!"));
     }
 
     AbstractFilterPtrVector filters_arr = comp_filter->getFilters();
@@ -655,10 +656,9 @@ PlatformResult MessagingDatabaseManager::getCompositeFilterQuery(AbstractFilterP
               break;
             }
             default:
-                LoggerE("Error while querying message - unsupported filter type: %d",
-                        filter_type);
-                return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                                      "Error while querying message.");
+                return LogAndCreateResult(
+                          ErrorCode::UNKNOWN_ERR, "Error while querying message.",
+                          ("Error while querying message - unsupported filter type: %d", filter_type));
         }
 
         if (i != (size - 1)) {
@@ -683,8 +683,9 @@ PlatformResult MessagingDatabaseManager::addFilters(AbstractFilterPtr filter,
         if (UNDEFINED != msg_type) {
             sql_query << attribute_map["type"].sql_name << " = " << msg_type << " AND ";
         } else {
-            LoggerE("The service type is incorrect - msg_type is UNDEFINED");
-            return PlatformResult(ErrorCode::UNKNOWN_ERR, "The service type is incorrect.");
+            return LogAndCreateResult(
+                      ErrorCode::UNKNOWN_ERR, "The service type is incorrect.",
+                      ("The service type is incorrect - %d", msg_type));
         }
     }
 
@@ -722,8 +723,9 @@ PlatformResult MessagingDatabaseManager::addFilters(AbstractFilterPtr filter,
               break;
             }
             default:
-                LoggerE("The filter type is incorrect: %d", filter->getFilterType());
-                return PlatformResult(ErrorCode::UNKNOWN_ERR, "The filter type is incorrect.");
+                return LogAndCreateResult(
+                          ErrorCode::UNKNOWN_ERR, "The filter type is incorrect.",
+                          ("The filter type is incorrect: %d", filter->getFilterType()));
         }
     }
 
@@ -733,8 +735,7 @@ PlatformResult MessagingDatabaseManager::addFilters(AbstractFilterPtr filter,
             sql_query << "ORDER BY "
                     << attribute_map[sort_mode->getAttributeName()].sql_name << " ";
         } else {
-            LoggerE("The attribute does not exist.");
-            return PlatformResult(ErrorCode::UNKNOWN_ERR, "The attribute does not exist.");
+            return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "The attribute does not exist.");
         }
 
         if (ASC == sort_mode->getOrder()) {
@@ -807,10 +808,10 @@ PlatformResult MessagingDatabaseManager::findShortMessages(
     // Getting results from database
     msg_error_t err = getTable(sqlQuery.str(), &results, &resultsCount);
     if (MSG_SUCCESS != err) {
-        LoggerE("Getting results from database failed [%d]", err);
         freeTable(&results);
-        return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                              "Error while getting data from database.");
+        return LogAndCreateResult(
+                  ErrorCode::UNKNOWN_ERR, "Error while getting data from database.",
+                  ("getTable error: %d (%s)", err, get_error_message(err)));
     }
 
     for (int i = 0; i < resultsCount; ++i) {
@@ -860,8 +861,9 @@ PlatformResult MessagingDatabaseManager::findEmails(
         if (EMAIL_ERROR_MAIL_NOT_FOUND == err) {
             resultsCount = 0;
         } else {
-          return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                                "Error while getting data from database.");
+          return LogAndCreateResult(
+                    ErrorCode::UNKNOWN_ERR, "Error while getting data from database.",
+                    ("email_query_mails error: %d (%s)", err, get_error_message(err)));
         }
     }
 
@@ -908,10 +910,10 @@ PlatformResult MessagingDatabaseManager::findShortMessageConversations(
     // Getting results from database
     msg_error_t err = getTable(sqlQuery.str(), &results, &resultsCount);
     if (MSG_SUCCESS != err) {
-        LoggerE("Getting results from database failed [%d]", err);
         freeTable(&results);
-        return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                              "Error while getting data from database.");
+        return LogAndCreateResult(
+                  ErrorCode::UNKNOWN_ERR, "Error while getting data from database.",
+                  ("getTable error: %d (%s)", err, get_error_message(err)));
     }
 
     for (int i = 0; i < resultsCount; ++i) {
@@ -963,8 +965,9 @@ PlatformResult MessagingDatabaseManager::findEmailConversations(
         if (EMAIL_ERROR_MAIL_NOT_FOUND == err) {
             resultsCount = 0;
         } else {
-          return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                                "Error while getting data from database.");
+          return LogAndCreateResult(
+                    ErrorCode::UNKNOWN_ERR, "Error while getting data from database.",
+                    ("email_query_mails error: %d (%s)", err, get_error_message(err)));
         }
     }
 

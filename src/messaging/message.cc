@@ -394,14 +394,12 @@ PlatformResult saveToTempFile(const std::string &data, std::string* file_name)
     umask(old_mask);
 
     if (NULL == file) {
-        LoggerE("Failed to create file");
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to create file");
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Failed to create file");
     }
     if (fprintf(file, "%s", data.c_str()) < 0) {
-        LoggerE("Failed to write data into file");
         fclose(file);
         remove(tmp_name.c_str());
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to write data into file");
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Failed to write data into file");
     }
     fflush(file);
     fclose(file);
@@ -433,7 +431,8 @@ PlatformResult copyFileToTemp(const std::string& sourcePath, std::string* result
     // Looking for the last occurrence of slash in source path
     std::size_t slashPos;
     if ((slashPos = attPath.find_last_of('/')) == std::string::npos) {
-      return PlatformResult(ErrorCode::UNKNOWN_ERR,
+      return LogAndCreateResult(
+                ErrorCode::UNKNOWN_ERR,
                 "Error while copying file to temp: the source path is invalid.");
     }
 
@@ -442,8 +441,8 @@ PlatformResult copyFileToTemp(const std::string& sourcePath, std::string* result
 
     LoggerD("attPath: %s, tmpPath: %s", attPath.c_str(), tmpPath.c_str());
     if(EINA_TRUE != ecore_file_mkdir(dirPath.c_str())) {
-      return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                            "Unknown error while creating temp directory.");
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                                "Unknown error while creating temp directory.");
     }
 
     FILE *f1, *f2;
@@ -452,14 +451,12 @@ PlatformResult copyFileToTemp(const std::string& sourcePath, std::string* result
 
     f1 = fopen(attPath.c_str(), "rb");
     if (!f1) {
-        LoggerE("Fail open attPath");
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Fail open attPath");
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Fail open attPath");
     }
     f2 = fopen(tmpPath.c_str(), "wb");
     if (!f2) {
-        LoggerE("Fail open tmpPath");
         fclose (f1);
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Fail open tmpPath");
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Fail open tmpPath");
     }
 
     while ((num = fread(buf, 1, sizeof(buf), f1)) > 0) {
@@ -471,8 +468,8 @@ PlatformResult copyFileToTemp(const std::string& sourcePath, std::string* result
     fclose (f2);
 
     if(EINA_TRUE != ret /*ecore_file_cp(attPath.c_str(), tmpPath.c_str())*/) {
-        std::string error = "Unknown error while copying file to temp. ";
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, error.c_str());
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                                  "Unknown error while copying file to temp.");
     }
 
     *result_path = dirPath;
@@ -483,7 +480,8 @@ PlatformResult removeDirFromTemp(const std::string& dirPath)
 {
     LoggerD("Entered");
     if(EINA_TRUE != ecore_file_recursive_rm(dirPath.c_str())) {
-      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown error while deleting temp directory.");
+      return LogAndCreateResult(
+                ErrorCode::UNKNOWN_ERR, "Unknown error while deleting temp directory.");
     }
     return PlatformResult(ErrorCode::NO_ERROR);
 }
@@ -494,8 +492,7 @@ PlatformResult Message::convertPlatformEmail(std::shared_ptr<Message> message,
     LoggerD("Entered");
     email_mail_data_t* mail_data = nullptr;
     if(EMAIL != message->getType()) {
-        LoggerE("Invalid type");
-        return PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid type.");
+        return LogAndCreateResult(ErrorCode::INVALID_VALUES_ERR, "Invalid type.");
     }
 
     if(message->is_id_set()) {
@@ -503,8 +500,7 @@ PlatformResult Message::convertPlatformEmail(std::shared_ptr<Message> message,
     } else {
         mail_data = (email_mail_data_t*)malloc(sizeof(email_mail_data_t));
         if (!mail_data) {
-          LoggerE("malloc failure");
-          return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to allocate memory.");
+          return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Failed to allocate memory.");
         }
         memset(mail_data, 0x00, sizeof(email_mail_data_t));
     }
@@ -548,8 +544,7 @@ PlatformResult Message::convertPlatformEmail(std::shared_ptr<Message> message,
             mail_data->file_path_plain = strdup(body_file_path.c_str());
             if(!mail_data->file_path_plain)
             {
-                LoggerE("Plain Body file is NULL.");
-                return PlatformResult(ErrorCode::UNKNOWN_ERR, "Plain Body file is NULL.");
+                return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Plain Body file is NULL.");
             }
         }
 
@@ -559,8 +554,7 @@ PlatformResult Message::convertPlatformEmail(std::shared_ptr<Message> message,
             mail_data->file_path_html = strdup(html_file_path.c_str());
             if(!mail_data->file_path_html)
             {
-                LoggerE("Html Body file is NULL.");
-                return PlatformResult(ErrorCode::UNKNOWN_ERR, "Html Body file is NULL.");
+                return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Html Body file is NULL.");
             }
         } else if(!body->getPlainBody().empty()) {
             // check html data is exist if not exist copy plain body to html body
@@ -569,8 +563,7 @@ PlatformResult Message::convertPlatformEmail(std::shared_ptr<Message> message,
             mail_data->file_path_html = strdup(html_file_path.c_str());
             if(!mail_data->file_path_html)
             {
-                LoggerE("Plain Body file is NULL.");
-                return PlatformResult(ErrorCode::UNKNOWN_ERR, "Plain Body file is NULL.");
+                return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Plain Body file is NULL.");
             }
         }
     }
@@ -608,19 +601,20 @@ PlatformResult addSingleEmailAttachment(std::shared_ptr<Message> message,
     int id = message->getId();
     int err = email_add_attachment(id, tmp);
     if(EMAIL_ERROR_NONE != err) {
-        LoggerE("Error while adding attachment %d", err);
-        err = email_free_attachment_data(&tmp, 1);
-        if (EMAIL_ERROR_NONE != err) {
-            LoggerW("Failed to free attachment data");
+        int ntv_ret = email_free_attachment_data(&tmp, 1);
+        if (EMAIL_ERROR_NONE != ntv_ret) {
+            LoggerW("Failed to free attachment data: %d (%s)", ntv_ret, get_error_message(ntv_ret));
         }
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown error while adding attachment");
+        return LogAndCreateResult(
+                  ErrorCode::UNKNOWN_ERR, "Unknown error while adding attachment",
+                  ("email_add_attachment error: %d (%s)", err, get_error_message(err)));
     }
 
     att->setId(tmp->attachment_id);
     att->setMessageId(id);
     err = email_free_attachment_data(&tmp, 1);
     if (EMAIL_ERROR_NONE != err) {
-        LoggerW("Failed to free attachment data");
+        LoggerW("Failed to free attachment data %d (%s)", err, get_error_message(err));
     }
 
     return removeDirFromTemp(dirPath);
@@ -664,9 +658,11 @@ PlatformResult Message::addEmailAttachments(std::shared_ptr<Message> message)
     if (EMAIL_ERROR_NONE != error) {
         email_free_mail_data(&mail, 1);
         email_free_attachment_data(&attachment_data_list,attachment_data_count);
-        LoggerE("Error while adding attachments. Failed to get attachment list.");
-        return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                              "Error while adding attachments. Failed to get attachment list.");
+        return LogAndCreateResult(
+                  ErrorCode::UNKNOWN_ERR,
+                  "Error while adding attachments. Failed to get attachment list.",
+                  ("Error %d while adding attachments. Failed to get attachment list. (%s)",
+                      error, get_error_message(error)));
     }
 
     //save mail without attachments id
@@ -677,8 +673,9 @@ PlatformResult Message::addEmailAttachments(std::shared_ptr<Message> message)
     if (EMAIL_ERROR_NONE != error) {
         email_free_mail_data(&mail, 1);
         email_free_attachment_data(&attachment_data_list,attachment_data_count);
-        LoggerE("Error while re-adding mail: %d", error);
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Error while re-adding mail");
+        return LogAndCreateResult(
+                  ErrorCode::UNKNOWN_ERR, "Error while re-adding mail",
+                  ("Error %d while re-adding mail (%s)", error, get_error_message(error)));
     }
     LoggerD("mail added - new id = [%d]\n", mail->mail_id);
 
@@ -697,8 +694,9 @@ PlatformResult Message::addEmailAttachments(std::shared_ptr<Message> message)
     error = email_delete_mail(mail->mailbox_id,&tmp_id,1,1);
     if (EMAIL_ERROR_NONE != error) {
         email_free_mail_data(&mail, 1);
-        LoggerE("Error while deleting mail from server: %d", error);
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Error while deleting mail from server");
+        return LogAndCreateResult(
+                  ErrorCode::UNKNOWN_ERR, "Error while deleting mail from server",
+                  ("email_delete_mail error: %d (%s)", error, get_error_message(error)));
     }
     email_free_mail_data(&mail, 1);
     return PlatformResult(ErrorCode::NO_ERROR);
@@ -724,8 +722,9 @@ PlatformResult Message::addSMSRecipientsToStruct(const std::vector<std::string> 
                     address, strlen(address));
         }
         else {
-            LoggerE("failed to add address[%d] %s", i, address);
-            return PlatformResult(ErrorCode::UNKNOWN_ERR, "failed to add address");
+            return LogAndCreateResult(
+                      ErrorCode::UNKNOWN_ERR, "failed to add address",
+                      ("failed to add address[%d] %s", i, address));
         }
     }
     return PlatformResult(ErrorCode::NO_ERROR);
@@ -758,8 +757,9 @@ PlatformResult Message::addMMSRecipientsToStruct(const std::vector<std::string> 
                     address, strlen(address));
         }
         else {
-            LoggerE("[%d] failed to add address: [%s], error: %d", i, address, error);
-            return PlatformResult (ErrorCode::UNKNOWN_ERR, "failed to add address");
+            return LogAndCreateResult(
+                      ErrorCode::UNKNOWN_ERR, "failed to add address",
+                      ("[%d] failed to add address: [%s], error: %d", i, address, error));
         }
     }
     return PlatformResult(ErrorCode::NO_ERROR);
@@ -822,8 +822,9 @@ PlatformResult Message::addMMSBodyAndAttachmentsToStruct(const AttachmentPtrVect
                     attach.at(i)->getMimeType().c_str());
             }
         } else {
-            LoggerE("att[%d]: failed to add attachment");
-            return PlatformResult(ErrorCode::UNKNOWN_ERR, "failed to add attachment");
+            return LogAndCreateResult(
+                      ErrorCode::UNKNOWN_ERR, "failed to add attachment",
+                      ("att[%d]: failed to add attachment"));
         }
     }
     return PlatformResult(ErrorCode::NO_ERROR);
@@ -834,9 +835,12 @@ PlatformResult Message::convertPlatformShortMessageToStruct(Message* message,
 {
     LoggerD("Entered");
 
+    int ntv_ret = 0;
+
     if (message->getType() != SMS && message->getType() != MMS) {
-        LoggerD("Invalid type");
-        return PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid type");
+        return LogAndCreateResult(
+                  ErrorCode::INVALID_VALUES_ERR, "Invalid type",
+                  ("Invalid type: %d", message->getType()));
     }
 
     msg_error_t err = MSG_SUCCESS;
@@ -850,25 +854,28 @@ PlatformResult Message::convertPlatformShortMessageToStruct(Message* message,
         std::unique_ptr<msg_struct_t, int (*)(msg_struct_t*)> send_opt_ptr(&send_opt, msg_release_struct);
         err = msg_get_message(handle, id, msg, send_opt);
         if (err != MSG_SUCCESS) {
-            LoggerD("msg_get_message() Fail [%d]", err);
-            return PlatformResult(ErrorCode::UNKNOWN_ERR, "msg_get_message() Fail");
+            return LogAndCreateResult(
+                      ErrorCode::UNKNOWN_ERR, "msg_get_message() Fail",
+                      ("msg_get_message() Fail [%d] (%s)", err, get_error_message(err)));
         }
         LoggerD("Using existing msg for id: %d", id);
     } else { // id is not set - the message does not exist in database
         MessageType msgType = message->getType();
         if (msgType == MessageType::SMS) {
             // Set message type to SMS
-            if (MSG_SUCCESS
-                    != msg_set_int_value(msg, MSG_MESSAGE_TYPE_INT, MSG_TYPE_SMS)) {
-                LoggerE("Set SMS type error");
-                return PlatformResult(ErrorCode::UNKNOWN_ERR, "Set SMS type error");
+            ntv_ret = msg_set_int_value(msg, MSG_MESSAGE_TYPE_INT, MSG_TYPE_SMS);
+            if (MSG_SUCCESS != ntv_ret) {
+                return LogAndCreateResult(
+                          ErrorCode::UNKNOWN_ERR, "Set SMS type error",
+                          ("msg_set_int_value error: %d (%s)", ntv_ret, get_error_message(ntv_ret)));
             }
         } else {
             // Set message type to MMS
-            if (MSG_SUCCESS
-                    != msg_set_int_value(msg, MSG_MESSAGE_TYPE_INT, MSG_TYPE_MMS)) {
-                LoggerE("Set MMS type error");
-                return PlatformResult(ErrorCode::UNKNOWN_ERR, "Set MMS type error");
+            ntv_ret = msg_set_int_value(msg, MSG_MESSAGE_TYPE_INT, MSG_TYPE_MMS);
+            if (MSG_SUCCESS != ntv_ret) {
+                return LogAndCreateResult(
+                          ErrorCode::UNKNOWN_ERR, "Set MMS type error",
+                          ("msg_set_int_value error: %d (%s)", ntv_ret, get_error_message(ntv_ret)));
             }
         }
     }
@@ -889,8 +896,9 @@ PlatformResult Message::convertPlatformShortMessageToStruct(Message* message,
         // Reset SMS recipients
         int error = msg_list_clear(msg, MSG_MESSAGE_ADDR_LIST_HND);
         if( MSG_SUCCESS != error) {
-            LoggerE("Failed to clear address list, error: %d", error);
-            return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to clear address list");
+            return LogAndCreateResult(
+                      ErrorCode::UNKNOWN_ERR, "Failed to clear address list",
+                      ("msg_list_clear error: %d (%s)", error, get_error_message(error)));
         }
 
         // Set SMS recipients
@@ -902,26 +910,29 @@ PlatformResult Message::convertPlatformShortMessageToStruct(Message* message,
 
     } else if (type == MSG_TYPE_MMS) {
         // Set message type to MMS
-        if (MSG_SUCCESS
-                != msg_set_int_value(msg, MSG_MESSAGE_TYPE_INT, MSG_TYPE_MMS)) {
-            LoggerE("Message(%p): Set MMS type error", message);
-            return PlatformResult(ErrorCode::UNKNOWN_ERR, "Set MMS type error");
+        ntv_ret = msg_set_int_value(msg, MSG_MESSAGE_TYPE_INT, MSG_TYPE_MMS);
+        if (MSG_SUCCESS != ntv_ret) {
+            return LogAndCreateResult(
+                      ErrorCode::UNKNOWN_ERR, "Set MMS type error",
+                      ("Message(%p): Set MMS type error %d (%s)", message, ntv_ret, get_error_message(ntv_ret)));
         }
         // Create MMS data
         msg_struct_t mms_data = msg_create_struct(MSG_STRUCT_MMS);
         if (mms_data == NULL) {
-            LoggerE("Message(%p): Set MMS data error", message);
-            return PlatformResult(ErrorCode::UNKNOWN_ERR, "Set MMS data error");
+            return LogAndCreateResult(
+                      ErrorCode::UNKNOWN_ERR, "Set MMS data error",
+                      ("Message(%p): Set MMS data error", message));
         } else {
             std::unique_ptr<msg_struct_t, int (*)(msg_struct_t*)> mms_data_ptr(&mms_data, msg_release_struct);
             // Set MMS message subject
             std::string subject = message->getSubject();
             if (subject != "") {
-                int r = msg_set_str_value(msg, MSG_MESSAGE_SUBJECT_STR,
-                        const_cast<char*>(subject.c_str()), subject.size());
-                if (r != MSG_SUCCESS) {
-                    LoggerE("Message(%p): Set MMS subject error: %d", message, r);
-                    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Set MMS subject error");
+                ntv_ret = msg_set_str_value(msg, MSG_MESSAGE_SUBJECT_STR,
+                          const_cast<char*>(subject.c_str()), subject.size());
+                if (ntv_ret != MSG_SUCCESS) {
+                    return LogAndCreateResult(
+                              ErrorCode::UNKNOWN_ERR, "Set MMS subject error",
+                              ("Message(%p): Set MMS subject error: %d (%s)", message, ntv_ret, get_error_message(ntv_ret)));
                 }
             }
             // Set MMS message text
@@ -977,8 +988,10 @@ PlatformResult Message::convertPlatformShortMessageToStruct(Message* message,
                         const_cast<char*>(body_file_path.c_str()),
                         body_file_path.size());
                 if (error != MSG_SUCCESS) {
-                    LoggerE("Message(%p): Failed to set mms body filepath", message);
-                    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to set mms body filepath");
+                    return LogAndCreateResult(
+                              ErrorCode::UNKNOWN_ERR, "Failed to set mms body filepath",
+                              ("Message(%p): Failed to set mms body filepath %d (%s)",
+                                  message, error, get_error_message(error)));
                 }
                 msg_set_str_value(media, MSG_MMS_MEDIA_CONTENT_TYPE_STR,
                                   const_cast<char*>("text/plain"), 10);
@@ -1007,10 +1020,12 @@ PlatformResult Message::convertPlatformShortMessageToStruct(Message* message,
                 if (ret.IsError()) return ret;
             }
             // Set MMS body
-            int r = msg_set_mms_struct(msg, mms_data);
-            if (r != MSG_SUCCESS) {
-                LoggerE("Message(%p): Set MMS body error: %d", message, r);
-                return PlatformResult (ErrorCode::UNKNOWN_ERR, "Set MMS body error");
+            ntv_ret = msg_set_mms_struct(msg, mms_data);
+            if (ntv_ret != MSG_SUCCESS) {
+                return LogAndCreateResult(
+                          ErrorCode::UNKNOWN_ERR, "Set MMS body error",
+                          ("Message(%p): Set MMS body error: %d (%s)",
+                              message, ntv_ret, get_error_message(ntv_ret)));
             }
         }
 
@@ -1030,8 +1045,9 @@ PlatformResult Message::convertPlatformShortMessageToStruct(Message* message,
         if (ret.IsError()) return ret;
     }
     else {
-        LoggerE("Message(%p): Invalid message type", message);
-        return PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid message type");
+        return LogAndCreateResult(
+                  ErrorCode::INVALID_VALUES_ERR, "Invalid message type",
+                  ("Message(%p): Invalid message type", message));
     }
 
     // set common attributes for SMS and MMS
@@ -1061,11 +1077,11 @@ PlatformResult Message::convertPlatformShortMessageToStruct(Message* message,
     // -1 means unknown - so do not set simindex in that case.
     int sim_index = static_cast<int>(message->getSimIndex());
     if (sim_index != -1) {
-        int error =
-            msg_set_int_value(msg, MSG_MESSAGE_SIM_INDEX_INT, sim_index+1);
-        if ( MSG_SUCCESS != error) {
-            LoggerE("Failed to set sim index, error: %d", error);
-            return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to set sim index");
+        int error = msg_set_int_value(msg, MSG_MESSAGE_SIM_INDEX_INT, sim_index+1);
+        if (MSG_SUCCESS != error) {
+            return LogAndCreateResult(
+                      ErrorCode::UNKNOWN_ERR, "Failed to set sim index",
+                      ("msg_set_int_value error: %d (%s)", error, get_error_message(error)));
         }
     }
 
@@ -1119,9 +1135,8 @@ PlatformResult Message::getSMSRecipientsFromStruct(msg_struct_t &msg,
     LoggerD("Entered");
     std::vector<std::string> address;
     msg_list_handle_t addr_list = NULL;
-    if (MSG_SUCCESS
-            == msg_get_list_handle(msg, MSG_MESSAGE_ADDR_LIST_HND,
-                    (void **) &addr_list)) {
+    int ntv_ret = msg_get_list_handle(msg, MSG_MESSAGE_ADDR_LIST_HND, (void **) &addr_list);
+    if (MSG_SUCCESS == ntv_ret) {
         int size = msg_list_length(addr_list);
         for (int i = 0; i < size; i++) {
             msg_struct_t addr_info = NULL;
@@ -1133,8 +1148,10 @@ PlatformResult Message::getSMSRecipientsFromStruct(msg_struct_t &msg,
             address.push_back(std::string(infoStr));
         }
     } else {
+        return LogAndCreateResult(
+                  ErrorCode::UNKNOWN_ERR, "failed to add recipients",
+                  ("msg_get_list_handle error: %d (%s)", ntv_ret, get_error_message(ntv_ret)));
         LoggerE("failed to get recipients");
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "failed to add recipients");
     }
     *result_address = address;
     return PlatformResult(ErrorCode::NO_ERROR);
@@ -1146,9 +1163,8 @@ PlatformResult Message::getMMSRecipientsFromStruct(msg_struct_t &msg,
     LoggerD("Entered");
     std::vector<std::string> address;
     msg_list_handle_t addr_list = NULL;
-    if (MSG_SUCCESS
-            == msg_get_list_handle(msg, MSG_MESSAGE_ADDR_LIST_HND,
-                    (void **) &addr_list)) {
+    int ntv_ret = msg_get_list_handle(msg, MSG_MESSAGE_ADDR_LIST_HND, (void **) &addr_list);
+    if (MSG_SUCCESS == ntv_ret) {
         int size = msg_list_length(addr_list);
         for (int i = 0; i < size; i++) {
             msg_struct_t addr_info = NULL;
@@ -1165,8 +1181,9 @@ PlatformResult Message::getMMSRecipientsFromStruct(msg_struct_t &msg,
             }
         }
     } else {
-        LoggerE("failed to get recipients");
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "failed to add recipients");
+        return LogAndCreateResult(
+                  ErrorCode::UNKNOWN_ERR, "failed to add recipients",
+                  ("msg_get_list_handle error: %d (%s)", ntv_ret, get_error_message(ntv_ret)));
     }
     *result_address = address;
     return PlatformResult(ErrorCode::NO_ERROR);
@@ -1182,9 +1199,10 @@ PlatformResult Message::setMMSBodyAndAttachmentsFromStruct(Message* message,
     msg_struct_t mms_struct = msg_create_struct(MSG_STRUCT_MMS);
     int error = msg_get_mms_struct(msg, mms_struct);
     if (MSG_SUCCESS != error) {
-        LoggerE("Cannot get mms struct, error:%d", error);
         msg_release_struct(&mms_struct);
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "cannot get mms struct");
+        return LogAndCreateResult(
+                  ErrorCode::UNKNOWN_ERR, "cannot get mms struct",
+                  ("msg_get_mms_struct error: %d (%s)", error, get_error_message(error)));
     }
 
     bool body_has_been_set = false;
@@ -1276,15 +1294,17 @@ PlatformResult Message::setMMSBodyAndAttachmentsFromStruct(Message* message,
                 }
             } else {
                 msg_release_struct(&mms_struct);
-                LoggerE("failed to get attachment");
-                return PlatformResult(ErrorCode::UNKNOWN_ERR, "failed to get attachment");
+                return LogAndCreateResult(
+                          ErrorCode::UNKNOWN_ERR, "failed to get attachment",
+                          ("msg_get_list_handle error: %d (%s)", error, get_error_message(error)));
             }
             msg_release_struct(&page);
         }
     } else {
         msg_release_struct(&mms_struct);
-        LoggerE("failed to get attachment");
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "failed to get attachment");
+        return LogAndCreateResult(
+                  ErrorCode::UNKNOWN_ERR, "failed to get attachment",
+                  ("msg_get_list_handle error: %d (%s)", error, get_error_message(error)));
     }
 
     if(false == body_has_been_set) {
@@ -1341,8 +1361,9 @@ PlatformResult Message::setMMSBodyAndAttachmentsFromStruct(Message* message,
         }
     } else {
         msg_release_struct(&mms_struct);
-        LoggerE("failed to get attachment");
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "failed to add attachment");
+        return LogAndCreateResult(
+                  ErrorCode::UNKNOWN_ERR, "failed to add attachment",
+                  ("msg_get_list_handle error: %d (%s)", error, get_error_message(error)));
     }
 
     LoggerD("after MSG_MMS_ATTACH_LIST attachments count is:%d",
@@ -1371,7 +1392,7 @@ PlatformResult Message::convertPlatformShortMessageToObject(msg_struct_t msg, Me
         std::vector<std::string> recp_list;
         PlatformResult ret = message->getSMSRecipientsFromStruct(msg, &recp_list);
         if (ret.IsError()) {
-          LoggerE("failed to get SMS recipients from struct");
+          LoggerE("failed to get SMS recipients from struct (%s)", ret.message().c_str());
           return ret;
         }
 
@@ -1445,8 +1466,9 @@ PlatformResult Message::convertPlatformShortMessageToObject(msg_struct_t msg, Me
           return ret;
         }
     } else {
-        LoggerE("Invalid Message type: %d", infoInt);
-        return PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid Message type");
+        return LogAndCreateResult(
+                  ErrorCode::INVALID_VALUES_ERR, "Invalid Message type",
+                  ("Invalid Message type: %d", infoInt));
     }
 
     // get id
@@ -1602,9 +1624,14 @@ PlatformResult Message::convertEmailToMessageAttachment(email_mail_data_t& mail,
   email_attachment_data_t* attachment = NULL;
   int attachmentCount = 0;
 
-  if (EMAIL_ERROR_NONE != email_get_attachment_data_list(mail.mail_id,
-                                                         &attachment, &attachmentCount)) {
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Couldn't get attachment.");
+  int ntv_ret = email_get_attachment_data_list(
+                    mail.mail_id,
+                    &attachment,
+                    &attachmentCount);
+  if (EMAIL_ERROR_NONE != ntv_ret) {
+    return LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, "Couldn't get attachment.",
+              ("email_get_attachment_data_list error: %d (%s)", ntv_ret, get_error_message(ntv_ret)));
   }
   if ( attachment && attachmentCount > 0) {
     for (int i = 0; i < attachmentCount; i++) {
@@ -1634,9 +1661,8 @@ PlatformResult Message::convertPlatformEmailToObject(
 
 PlatformResult Message::updateEmailMessage(email_mail_data_t& mail)
 {
-    LoggerW("This should be called on MessageEmail instance");
-    return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR,
-                          "This should be called on MessageEmail instance");
+    return LogAndCreateResult(ErrorCode::NOT_SUPPORTED_ERR,
+                              "This should be called on MessageEmail instance");
 }
 
 /**

@@ -135,18 +135,18 @@ PlatformResult ShortMsgManager::addDraftMessagePlatform(std::shared_ptr<Message>
     }
 
     if (NULL == platform_msg) {
-        LoggerE("Failed to prepare platform message");
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot prepare platform message");
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Cannot prepare platform message");
     }
 
     msg_struct_t send_opt = msg_create_struct(MSG_STRUCT_SENDOPT);
     msg_set_bool_value(send_opt, MSG_SEND_OPT_SETTING_BOOL, false);
     const int msg_id = msg_add_message(m_msg_handle, platform_msg, send_opt);
     if (msg_id < MSG_SUCCESS) {
-        LoggerE("Message(%p): Failed to add draft, error: %d", message.get(), msg_id);
         msg_release_struct(&send_opt);
         msg_release_struct(&platform_msg);
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot add message to draft");
+        return LogAndCreateResult(
+                  ErrorCode::UNKNOWN_ERR, "Cannot add message to draft",
+                  ("Message(%p): Failed to add draft, error: %d", message.get(), msg_id));
     }
 
     LoggerD("Message(%p): New message ID: %d", message.get(), msg_id);
@@ -161,7 +161,7 @@ PlatformResult ShortMsgManager::addDraftMessagePlatform(std::shared_ptr<Message>
         msg_get_int_value(msg_conv, MSG_CONV_MSG_THREAD_ID_INT, &conversationId);
         message->setConversationId(conversationId);
     } else {
-        LoggerE("Message(%p): Failed to get conv", message.get());
+        LoggerE("Message(%p): Failed to get conv: %d (%s)", message.get(), err, get_error_message(err));
     }
     Message* msgInfo = nullptr;
     ret = Message::convertPlatformShortMessageToObject(
@@ -232,8 +232,9 @@ PlatformResult ShortMsgManager::SendMessagePlatform(MessageRecipientsCallbackDat
     msg_conv = msg_create_struct(MSG_STRUCT_CONV_INFO);
     ret = msg_get_message(m_msg_handle, msg_id, platform_msg, send_opt);
     if (MSG_SUCCESS != ret) {
-      LoggerE("Failed to get platform message structure: %d", ret);
-      platform_result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get platform Message structure");
+      platform_result = LogAndCreateResult(
+                            ErrorCode::UNKNOWN_ERR, "Cannot get platform Message structure",
+                            ("msg_get_message error: %d (%s)", ret, get_error_message(ret)));
     } else {
       // Send message
       message->setMessageStatus(MessageStatus::STATUS_SENDING);
@@ -243,8 +244,9 @@ PlatformResult ShortMsgManager::SendMessagePlatform(MessageRecipientsCallbackDat
       int req_id = -1;
       ret = msg_get_int_value(req, MSG_REQUEST_REQUESTID_INT, &req_id);
       if (MSG_SUCCESS != ret) {
-        LoggerE("Failed to get send request ID: %d", ret);
-        platform_result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to get send request ID");
+        platform_result = LogAndCreateResult(
+                              ErrorCode::UNKNOWN_ERR, "Failed to get send request ID",
+                              ("msg_get_int_value error: %d (%s)", ret, get_error_message(ret)));
       } else {
         if (MessageType::MMS == message->getType()) {
           LoggerD("Send MMS message");
@@ -255,19 +257,22 @@ PlatformResult ShortMsgManager::SendMessagePlatform(MessageRecipientsCallbackDat
           ret = msg_sms_send_message(m_msg_handle, req);
         }
         else {
-          LoggerE("Invalid message type: %d", message->getType());
-          platform_result = PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, "Invalid message type");
+          platform_result = LogAndCreateResult(
+                                ErrorCode::TYPE_MISMATCH_ERR, "Invalid message type",
+                                ("Invalid message type: %d", message->getType()));
         }
 
         if (platform_result) {
           if (ret != MSG_SUCCESS) {
-            LoggerE("Failed to send message: %d", ret);
-            platform_result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to send message");
+            platform_result = LogAndCreateResult(
+                                  ErrorCode::UNKNOWN_ERR, "Failed to send message",
+                                  ("Failed to send message: %d (%s)", ret, get_error_message(ret)));
           } else {
             ret = msg_get_int_value(req, MSG_REQUEST_REQUESTID_INT, &req_id);
             if (ret != MSG_SUCCESS) {
-              LoggerE("Failed to get message request ID: %d", ret);
-              platform_result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to get send request");
+              platform_result = LogAndCreateResult(
+                                    ErrorCode::UNKNOWN_ERR, "Failed to get send request",
+                                    ("Failed to get message request ID: %d (%s)", ret, get_error_message(ret)));
             }
             if (platform_result.IsSuccess()) {
               LoggerD("req_id: %d", req_id);
@@ -333,8 +338,7 @@ PlatformResult ShortMsgManager::sendMessage(MessageRecipientsCallbackData* callb
   LoggerD("Entered");
 
   if (!callback){
-    LoggerE("Callback is null");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Callback is null");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Callback is null");
   }
 
   PlatformResult platform_result(ErrorCode::NO_ERROR);
@@ -384,13 +388,14 @@ void ShortMsgManager::sendStatusCallback(msg_struct_t sent_status)
 
         if (MSG_NETWORK_SEND_FAIL == status
                 || MSG_NETWORK_SEND_TIMEOUT == status) {
-            LoggerE("req_id:%d : Failed sending Message(%p) with msg_id:%d msg status is: %s",
-                reqId,
-                callback->getMessage().get(),
-                callback->getMessage()->getId(),
-                (MSG_NETWORK_SEND_FAIL == status ? "FAIL" : "TIMEOUT"));
+            callback->SetError(LogAndCreateResult(
+                                  ErrorCode::UNKNOWN_ERR, "Send message failed",
+                                  ("req_id:%d : Failed sending Message(%p) with msg_id:%d msg status is: %s",
+                                    reqId,
+                                    callback->getMessage().get(),
+                                    callback->getMessage()->getId(),
+                                    (MSG_NETWORK_SEND_FAIL == status ? "FAIL" : "TIMEOUT"))));
 
-            callback->SetError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Send message failed"));
         }
 
         if (!g_idle_add(sendMessageCompleteCB, static_cast<void*>(callback))) {
@@ -750,8 +755,9 @@ void ShortMsgManager::removeMessages(MessagesCallbackUserData* callback)
         MessageType type = callback->getMessageServiceType();
         for(auto it = messages.begin() ; it != messages.end(); ++it) {
             if((*it)->getType() != type) {
-                LoggerE("Invalid message type: %d", (*it)->getType());
-                callback->SetError(PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, "Error while deleting message"));
+                callback->SetError(LogAndCreateResult(
+                                      ErrorCode::TYPE_MISMATCH_ERR, "Error while deleting message",
+                                      ("Invalid message type: %d", (*it)->getType())));
                 break;
             }
         }
@@ -773,8 +779,9 @@ void ShortMsgManager::removeMessages(MessagesCallbackUserData* callback)
 
                int error = msg_delete_message(m_msg_handle, id);
                 if (MSG_SUCCESS != error) {
-                    LoggerE("Error while deleting message");
-                    callback->SetError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Error while deleting message"));
+                    callback->SetError(LogAndCreateResult(
+                                          ErrorCode::UNKNOWN_ERR, "Error while deleting message",
+                                          ("msg_delete_message error: %d (%s)", error, get_error_message(error))));
                     break;
                 }
             }
@@ -811,8 +818,9 @@ void ShortMsgManager::updateMessages(MessagesCallbackUserData* callback)
         MessageType type = callback->getMessageServiceType();
         for (auto it = messages.begin() ; it != messages.end(); ++it) {
             if ((*it)->getType() != type) {
-                LoggerE("Invalid message type");
-                callback->SetError(PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, "Error while updating message"));
+                callback->SetError(LogAndCreateResult(
+                                      ErrorCode::TYPE_MISMATCH_ERR, "Error while updating message",
+                                      ("Invalid message type %d", (*it)->getType())));
                 break;
             }
         }
@@ -828,8 +836,7 @@ void ShortMsgManager::updateMessages(MessagesCallbackUserData* callback)
                     break;
                 }
                 if (NULL == platform_msg) {
-                    LoggerE("Failed to prepare platform message");
-                    callback->SetError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot prepare platform message"));
+                    callback->SetError(LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Cannot prepare platform message"));
                     break;
                 }
                 msg_struct_t sendOpt = msg_create_struct(MSG_STRUCT_SENDOPT);
@@ -837,8 +844,9 @@ void ShortMsgManager::updateMessages(MessagesCallbackUserData* callback)
                 msg_release_struct(&platform_msg);
                 msg_release_struct(&sendOpt);
                 if (error != MSG_SUCCESS) {
-                    LoggerE("Failed to update message %d", (*it)->getId());
-                    callback->SetError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Error while updating message"));
+                    callback->SetError(LogAndCreateResult(
+                                          ErrorCode::UNKNOWN_ERR, "Error while updating message",
+                                          ("Failed to update message %d", (*it)->getId())));
                     break;
                 }
             }
@@ -875,10 +883,11 @@ PlatformResult ShortMsgManager::getMessage(int msg_id, msg_struct_t* out_msg)
 
     int error = msg_get_message(m_msg_handle, msg_id, msg, sendOpt);
     if (MSG_SUCCESS != error) {
-        LoggerE("Couldn't retrieve message from service, msgId: %d, error:%d", msg_id, error);
         msg_release_struct(&sendOpt);
         msg_release_struct(&msg);
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Couldn't retrieve message from service");
+        return LogAndCreateResult(
+                  ErrorCode::UNKNOWN_ERR, "Couldn't retrieve message from service",
+                  ("Couldn't retrieve message from service, msgId: %d, error:%d", msg_id, error));
     }
     msg_release_struct(&sendOpt);
     *out_msg = msg;
@@ -954,8 +963,9 @@ void ShortMsgManager::findMessages(FindMsgCallbackUserData* callback)
                 err = msg_get_message(m_msg_handle, messagesIds.at(i), msg, send_opt);
 
                 if (MSG_SUCCESS != err) {
-                    LoggerE("Failed to get platform message structure: %d", err);
-                    callback->SetError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get platform Message structure"));
+                    callback->SetError(LogAndCreateResult(
+                                          ErrorCode::UNKNOWN_ERR, "Cannot get platform Message structure",
+                                          ("Failed to get platform message structure: %d (%s)", err, get_error_message(err))));
                     break;
                 }
 
@@ -966,8 +976,8 @@ void ShortMsgManager::findMessages(FindMsgCallbackUserData* callback)
                       LoggerW("Ignore messages with not supported/unrecognized type");
                       continue;
                     }
-                    LoggerE("Cannot get platform Message structure");
-                    callback->SetError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get platform Message structure"));
+                    callback->SetError(LogAndCreateResult(
+                                          ErrorCode::UNKNOWN_ERR, "Cannot get platform Message structure"));
                     break;
                 }
                 if (!callback->IsError()) {
@@ -1079,16 +1089,17 @@ void ShortMsgManager::removeConversations(ConversationCallbackData* callback)
 
         error = msg_open_msg_handle(&handle);
         if (MSG_SUCCESS != error) {
-            LoggerE("Open message handle error: %d", error);
-            callback->SetError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Error while creatng message handle"));
+            callback->SetError(LogAndCreateResult(
+                                  ErrorCode::UNKNOWN_ERR, "Error while creatng message handle",
+                                  ("Open message handle error: %d (%s)", error, get_error_message(error))));
         }
 
         if (!callback->IsError()) {
           for(auto it = conversations.begin() ; it != conversations.end(); ++it) {
               if((*it)->getType() != type) {
-                  LoggerE("Invalid message type");
-                  callback->SetError(PlatformResult(ErrorCode::TYPE_MISMATCH_ERR,
-                                     "Error while deleting message conversation"));
+                  callback->SetError(LogAndCreateResult(
+                                        ErrorCode::TYPE_MISMATCH_ERR, "Error while deleting message conversation",
+                                        ("Invalid message type %d", (*it)->getType())));
                   break;
               }
           }
@@ -1102,8 +1113,9 @@ void ShortMsgManager::removeConversations(ConversationCallbackData* callback)
                 msg_id_conv_id_map = &m_mms_removed_msg_id_conv_id_map;
                 conv_id_object_map = &m_mms_removed_conv_id_object_map;
             } else {
-                LoggerE("Invalid message type:%d for ShortMsgManager!", type);
-                callback->SetError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Invalid message type for ShortMsgManager!"));
+                callback->SetError(LogAndCreateResult(
+                                      ErrorCode::UNKNOWN_ERR, "Invalid message type for ShortMsgManager!",
+                                      ("Invalid message type:%d for ShortMsgManager!", type)));
             }
         }
 
@@ -1149,9 +1161,10 @@ void ShortMsgManager::removeConversations(ConversationCallbackData* callback)
                 error = msg_delete_thread_message_list(handle, (msg_thread_id_t) conv_id,
                         FALSE);
                 if (MSG_SUCCESS != error) {
-                    LoggerE("Error while deleting message conversation");
-                    callback->SetError(PlatformResult(ErrorCode::UNKNOWN_ERR,
-                                                      "Error while deleting message conversation"));
+                    callback->SetError(LogAndCreateResult(
+                                          ErrorCode::UNKNOWN_ERR, "Error while deleting message conversation",
+                                          ("msg_delete_thread_message_list error: %d (%s)",
+                                              error, get_error_message(error))));
                     break;
                 }
             }

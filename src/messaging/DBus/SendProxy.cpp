@@ -42,9 +42,8 @@ SendProxy::~SendProxy()
 PlatformResult SendProxy::create(SendProxyPtr* send_proxy) {
     send_proxy->reset(new SendProxy());
     if ((*send_proxy)->isNotProxyGot()) {
-        LoggerE("Could not get send proxy");
         send_proxy->reset();
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not get send proxy");
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Could not get send proxy");
     } else {
         return PlatformResult(ErrorCode::NO_ERROR);
     }
