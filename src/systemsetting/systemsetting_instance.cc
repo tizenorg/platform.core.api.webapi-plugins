@@ -74,8 +74,7 @@ void SystemSettingInstance::getProperty(const picojson::value& args, picojson::o
     if(status.IsSuccess()) {
       ReportSuccess(result, response->get<picojson::object>());
     } else {
-      LoggerE("Failed: getPlatformPropertyValue()");
-      ReportError(status, &response->get<picojson::object>());
+      LogAndReportError(status, &response->get<picojson::object>(), ("Failed: getPlatformPropertyValue()"));
     }
   };
 
@@ -124,12 +123,13 @@ PlatformResult SystemSettingInstance::getPlatformPropertyValue(
       free(value);
       return PlatformResult(ErrorCode::NO_ERROR);
     case SYSTEM_SETTINGS_ERROR_NOT_SUPPORTED:
-      LoggerD("ret == SYSTEM_SETTINGS_ERROR_NOT_SUPPORTED");
-      return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR,
-                            "This property is not supported.");
+      return LogAndCreateResult(ErrorCode::NOT_SUPPORTED_ERR,
+                                "This property is not supported.",
+                                ("SYSTEM_SETTINGS_ERROR_NOT_SUPPORTED: %s", get_error_message(ret)));
     default:
-      LoggerD("Other error");
-      return PlatformResult(ErrorCode::UNKNOWN_ERR);
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                                "Unknown error",
+                                ("error: %d, message: %s", ret, get_error_message(ret)));
   }
 }
 
@@ -153,8 +153,7 @@ void SystemSettingInstance::setProperty(const picojson::value& args, picojson::o
     if (status.IsSuccess()) {
       ReportSuccess(obj);
     } else {
-      LoggerE("Failed: setPlatformPropertyValue()");
-      ReportError(status, &obj);
+      LogAndReportError(status, &obj, ("Failed: setPlatformPropertyValue()"));
     }
     obj.insert(std::make_pair("callbackId", picojson::value(callback_id)));
     Instance::PostMessage(this, response->serialize().c_str());
@@ -193,17 +192,17 @@ PlatformResult SystemSettingInstance::setPlatformPropertyValue(
       LoggerD("ret == SYSTEM_SETTINGS_ERROR_NONE");
       return PlatformResult(ErrorCode::NO_ERROR);
     case SYSTEM_SETTINGS_ERROR_NOT_SUPPORTED:
-      LoggerD("ret == SYSTEM_SETTINGS_ERROR_NOT_SUPPORTED");
-      return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR,
-                            "This property is not supported.");
+      return LogAndCreateResult(ErrorCode::NOT_SUPPORTED_ERR,
+                                "This property is not supported.",
+                                ("SYSTEM_SETTINGS_ERROR_NOT_SUPPORTED: %s", get_error_message(ret)));
     case SYSTEM_SETTINGS_ERROR_INVALID_PARAMETER:
-      LoggerD("ret == SYSTEM_SETTINGS_ERROR_INVALID_PARAMETER");
-      return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
-                            "Invalid parameter passed.");
+      return LogAndCreateResult(ErrorCode::INVALID_VALUES_ERR,
+                                "Invalid parameter passed.",
+                                ("SYSTEM_SETTINGS_ERROR_INVALID_PARAMETER: %s", get_error_message(ret)));
     default:
-      LoggerD("Other error");
-      return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                            "unknown error");
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                                "Unknown error",
+                                ("error: %d, message: %s", ret, get_error_message(ret)));
   }
 }
 
