@@ -37,9 +37,9 @@ namespace sensor {
 namespace {
 #define CHECK_EXIST(args, name, out) \
   if (!args.contains(name)) {\
-    ReportError(TypeMismatchException(name" is required argument"), out);\
-      return;\
-    }
+    LogAndReportError(TypeMismatchException(name" is required argument"), out);\
+    return;\
+  }
 
 static std::map<sensor_type_e, std::string> type_to_string_map;
 static std::map<std::string, sensor_type_e> string_to_type_map;
@@ -101,7 +101,7 @@ void ReportSensorData(sensor_type_e sensor_type, sensor_event_s* sensor_event,
       break;
     }
     default: {
-      ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Unsupported type"), out);
+      LogAndReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Unsupported type"), out);
       return;
     }
   }
@@ -137,11 +137,13 @@ PlatformResult GetSensorPlatformResult(const int error_code, const std::string &
 
   std::string message = hint + " : " + GetSensorErrorMessage(error_code);
 
+  LoggerE("Reporting error: %d, message: %s", error_code, get_error_message(error_code));
+
   switch (error_code) {
     case SENSOR_ERROR_NOT_SUPPORTED:
-      return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR, message);
+      return LogAndCreateResult(ErrorCode::NOT_SUPPORTED_ERR, message);
     default:
-      return PlatformResult(ErrorCode::UNKNOWN_ERR, message);
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, message);
   }
 }
 
@@ -248,14 +250,16 @@ PlatformResult SensorData::CheckInitialization() {
     LoggerD("initialization of handle and listener");
     int ret = sensor_get_default_sensor(type_enum_, &handle_);
     if (SENSOR_ERROR_NONE != ret) {
-      LoggerE("sensor_get_default_sensor : %d", ret);
-      return PlatformResult(ErrorCode::UNKNOWN_ERR, "sensor_get_default_sensor");
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                                "Failed to get default sensor.",
+                                ("sensor_get_default_sensor() error: %d, message: %s", ret, get_error_message(ret)));
     }
 
     ret = sensor_create_listener(handle_, &listener_);
     if (SENSOR_ERROR_NONE != ret) {
-      LoggerE("sensor_create_listener : %d", ret);
-      return PlatformResult(ErrorCode::UNKNOWN_ERR, "sensor_create_listener");
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                                "Failed to create listener.",
+                                ("sensor_create_listener() error: %d, message: %s", ret, get_error_message(ret)));
     }
   }
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -564,8 +568,7 @@ void SensorService::GetAvailableSensors(picojson::object& out) {
   for (const auto& sensor : sensors_) {
     auto res = sensor.second->IsSupported(&is_supported);
     if (!res) {
-      LoggerE("Failed to check if sensor is supported: %s", type_to_string_map[sensor.first].c_str());
-      ReportError(res, &out);
+      LogAndReportError(res, &out, ("Failed to check if sensor is supported: %s", type_to_string_map[sensor.first].c_str()));
       return;
     }
 
@@ -590,16 +593,14 @@ void SensorService::SensorStart(const picojson::value& args, picojson::object& o
   auto start = [this, type_enum, type_str](const std::shared_ptr<picojson::value>& result) {
     auto sensor_data = GetSensor(type_enum);
     if (!sensor_data) {
-      LoggerD("Sensor data is null");
-      ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Sensor data is null"),
+      LogAndReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Sensor data is null"),
                          &(result->get<picojson::object>()));
       return;
     }
 
     PlatformResult res = sensor_data->Start();
     if (!res) {
-      LoggerE("Failed to start sensor: %s", type_str.c_str());
-      ReportError(res, &(result->get<picojson::object>()));
+      LogAndReportError(res, &(result->get<picojson::object>()), ("Failed to start sensor: %s", type_str.c_str()));
     } else {
       ReportSuccess(result->get<picojson::object>());
     }
@@ -628,15 +629,13 @@ void SensorService::SensorStop(const picojson::value& args, picojson::object& ou
 
   auto sensor_data = GetSensor(type_enum);
   if (!sensor_data) {
-    LoggerD("Sensor data is null");
-    ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Sensor data is null"), &out);
+    LogAndReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Sensor data is null"), &out);
     return;
   }
 
   PlatformResult res = sensor_data->Stop();
   if (!res) {
-    LoggerE("Failed to stop sensor: %s", type_str.c_str());
-    ReportError(res, &out);
+    LogAndReportError(res, &out, ("Failed to stop sensor: %s", type_str.c_str()));
   } else {
     ReportSuccess(out);
   }
@@ -652,15 +651,13 @@ void SensorService::SensorSetChangeListener(const picojson::value& args, picojso
 
   auto sensor_data = GetSensor(type_enum);
   if (!sensor_data) {
-    LoggerD("Sensor data is null");
-    ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Sensor data is null"), &out);
+    LogAndReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Sensor data is null"), &out);
     return;
   }
 
   PlatformResult res = sensor_data->SetChangeListener();
   if (!res) {
-    LoggerE("Failed to set change listener for sensor: %s", type_str.c_str());
-    ReportError(res, &out);
+    LogAndReportError(res, &out, ("Failed to set change listener for sensor: %s", type_str.c_str()));
   } else {
     ReportSuccess(out);
   }
@@ -676,15 +673,13 @@ void SensorService::SensorUnsetChangeListener(const picojson::value& args, picoj
 
   auto sensor_data = GetSensor(type_enum);
   if (!sensor_data) {
-    LoggerD("Sensor data is null");
-    ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Sensor data is null"), &out);
+    LogAndReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Sensor data is null"), &out);
     return;
   }
 
   PlatformResult res = sensor_data->UnsetChangeListener();
   if (!res) {
-    LoggerE("Failed to remove change listener for sensor: %s", type_str.c_str());
-    ReportError(res, &out);
+    LogAndReportError(res, &out, ("Failed to remove change listener for sensor: %s", type_str.c_str()));
   } else {
     ReportSuccess(out);
   }
@@ -720,15 +715,13 @@ void SensorService::GetSensorData(const picojson::value& args, picojson::object&
     auto sensor_data = this->GetSensor(sensor_type);
 
     if (!sensor_data) {
-      LoggerD("Sensor data is null");
-      ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Sensor data is null"), &object);
+      LogAndReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Sensor data is null"), &object);
       return;
     }
 
     PlatformResult res = sensor_data->GetSensorData(&object);
     if (!res) {
-      LoggerE("Failed to read data for sensor: %s", type_to_string_map[sensor_type].c_str());
-      ReportError(res, &object);
+      LogAndReportError(res, &object, ("Failed to read data for sensor: %s", type_to_string_map[sensor_type].c_str()));
     } else {
       ReportSuccess(object);
     }
