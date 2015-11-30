@@ -41,7 +41,7 @@ const std::string kListenerIdString = "listenerId";
 
 #define CHECK_EXIST(args, name, out) \
   if (!args.contains(name)) {\
-    ReportError(TypeMismatchException(name" is required argument"), out);\
+    LogAndReportError(TypeMismatchException(name" is required argument"), out);\
       return;\
     }
 }
@@ -130,11 +130,14 @@ void SysteminfoInstance::SetBrightness(const picojson::value& args, picojson::ob
   const double brightness = args.get("brightness").get<double>();
   int result = device_flash_set_brightness(brightness);
   if (result != DEVICE_ERROR_NONE) {
-    LoggerE("Error occured");
     if (DEVICE_ERROR_INVALID_PARAMETER == result) {
-      ReportError(PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Error occured"), &out);
+      LogAndReportError(
+          PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Error occured"), &out,
+          ("device_flash_set_brightness error: %d (%s)", result, get_error_message(result)));
     } else {
-      ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Error occured"), &out);
+      LogAndReportError(
+          PlatformResult(ErrorCode::UNKNOWN_ERR, "Error occured"), &out,
+          ("device_flash_set_brightness error: %d (%s)", result, get_error_message(result)));
     }
     return;
   }
@@ -148,8 +151,9 @@ void SysteminfoInstance::GetBrightness(const picojson::value& args, picojson::ob
   int brightness = 0;
   int result = device_flash_get_brightness(&brightness);
   if (result != DEVICE_ERROR_NONE) {
-    LoggerE("Error occured");
-    ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Error occured"), &out);
+    LogAndReportError(
+        PlatformResult(ErrorCode::UNKNOWN_ERR, "Error occured"), &out,
+        ("device_flash_get_brightness error: %d (%s)", result, get_error_message(result)));
     return;
   }
 
@@ -162,8 +166,9 @@ void SysteminfoInstance::GetMaxBrightness(const picojson::value& args, picojson:
   int brightness = 0;
   int result = device_flash_get_max_brightness(&brightness);
   if (result != DEVICE_ERROR_NONE) {
-    LoggerE("Error occured");
-    ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Not supported property"), &out);
+    LogAndReportError(
+        PlatformResult(ErrorCode::UNKNOWN_ERR, "Not supported property"), &out,
+        ("device_flash_get_max_brightness error: %d (%s)", result, get_error_message(result)));
     return;
   }
   ReportSuccess(picojson::value(std::to_string(brightness)), out);

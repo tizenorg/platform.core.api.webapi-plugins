@@ -43,8 +43,7 @@ PlatformResult SysteminfoUtils::GetVconfInt(const char *key, int *value) {
     return PlatformResult(ErrorCode::NO_ERROR);
   }
   const std::string error_msg = "Could not get " + std::string(key);
-  LoggerD("%s",error_msg.c_str());
-  return PlatformResult(ErrorCode::UNKNOWN_ERR, error_msg);
+  return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, error_msg);
 }
 
 PlatformResult SysteminfoUtils::GetRuntimeInfoString(system_settings_key_e key, std::string* platform_string) {
@@ -59,8 +58,7 @@ PlatformResult SysteminfoUtils::GetRuntimeInfoString(system_settings_key_e key, 
   }
   const std::string error_msg = "Error when retrieving system setting information: "
       + std::to_string(err);
-  LoggerE("%s", error_msg.c_str());
-  return PlatformResult(ErrorCode::UNKNOWN_ERR, error_msg);
+  return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, error_msg);
 }
 
 PlatformResult SysteminfoUtils::CheckTelephonySupport() {
@@ -71,9 +69,8 @@ PlatformResult SysteminfoUtils::CheckTelephonySupport() {
     return ret;
   }
   if (!supported) {
-    LoggerD("Telephony is not supported on this device");
-    return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR,
-        "Telephony is not supported on this device");
+    return LogAndCreateResult(ErrorCode::NOT_SUPPORTED_ERR,
+                              "Telephony is not supported on this device");
   }
   return PlatformResult(ErrorCode::NO_ERROR);
 }
@@ -86,9 +83,9 @@ PlatformResult SysteminfoUtils::CheckCameraFlashSupport() {
     return ret;
   }
   if (!supported) {
-    LoggerD("Back-facing camera with a flash is not supported on this device");
-    return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR,
-        "Back-facing camera with a flash is not supported on this device");
+    return LogAndCreateResult(
+              ErrorCode::NOT_SUPPORTED_ERR,
+              "Back-facing camera with a flash is not supported on this device");
   }
   return PlatformResult(ErrorCode::NO_ERROR);
 }
@@ -101,8 +98,9 @@ PlatformResult SysteminfoUtils::CheckIfEthernetNetworkSupported() {
   int error = connection_create(&connection_handle);
   if (CONNECTION_ERROR_NONE != error) {
     std::string log_msg = "Cannot create connection: " + std::to_string(error);
-    LoggerE("%s", log_msg.c_str());
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
+    return LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, log_msg,
+              ("connection_create error: %d (%s)", error, get_error_message(error)));
   }
   std::unique_ptr<std::remove_pointer<connection_h>::type, int (*)(connection_h)> connection_handle_ptr(
     connection_handle, &connection_destroy);  // automatically release the memory
@@ -110,8 +108,9 @@ PlatformResult SysteminfoUtils::CheckIfEthernetNetworkSupported() {
   error = connection_get_ethernet_state(connection_handle, &connection_state);
   if (CONNECTION_ERROR_NOT_SUPPORTED == error) {
     std::string log_msg = "Cannot get ethernet connection state: Not supported";
-    LoggerE("%s", log_msg.c_str());
-    return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR, log_msg);
+    return LogAndCreateResult(
+              ErrorCode::NOT_SUPPORTED_ERR, log_msg,
+              ("connection_get_ethernet_state error: %d (%s)", error, get_error_message(error)));
   }
   return PlatformResult(ErrorCode::NO_ERROR);
 }
@@ -124,8 +123,9 @@ PlatformResult SysteminfoUtils::GetTotalMemory(long long* result) {
   int ret = device_memory_get_total(&value);
   if (ret != DEVICE_ERROR_NONE) {
     std::string log_msg = "Failed to get total memory: " + std::to_string(ret);
-    LoggerE("%s", log_msg.c_str());
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
+    return LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, log_msg,
+              ("device_memory_get_total error: %d (%s)", ret, get_error_message(ret)));
   }
 
   *result = static_cast<long long>(value*MEMORY_TO_BYTE);
@@ -140,8 +140,9 @@ PlatformResult SysteminfoUtils::GetAvailableMemory(long long* result) {
   int ret = device_memory_get_available(&value);
   if (ret != DEVICE_ERROR_NONE) {
     std::string log_msg = "Failed to get total memory: " + std::to_string(ret);
-    LoggerE("%s", log_msg.c_str());
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
+    return LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, log_msg,
+              ("device_memory_get_available error: %d (%s)", ret, get_error_message(ret)));
   }
 
   *result = static_cast<long long>(value*MEMORY_TO_BYTE);
@@ -151,16 +152,18 @@ PlatformResult SysteminfoUtils::GetAvailableMemory(long long* result) {
 PlatformResult SysteminfoUtils::RegisterVconfCallback(const char *in_key, vconf_callback_fn cb,
                                                           void* event_ptr) {
   if (0 != vconf_notify_key_changed(in_key, cb, event_ptr)) {
-    LoggerE("Failed to register vconf callback: %s", in_key);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to register vconf callback");
+    return LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, "Failed to register vconf callback",
+              ("Failed to register vconf callback: %s", in_key));
   }
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 PlatformResult SysteminfoUtils::UnregisterVconfCallback(const char *in_key, vconf_callback_fn cb) {
   if (0 != vconf_ignore_key_changed(in_key, cb)) {
-    LoggerE("Failed to unregister vconf callback: %s", in_key);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to unregister vconf callback");
+    return LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, "Failed to unregister vconf callback",
+              ("Failed to unregister vconf callback: %s", in_key));
   }
   return PlatformResult(ErrorCode::NO_ERROR);
 }
@@ -169,18 +172,24 @@ PlatformResult SysteminfoUtils::RegisterTapiChangeCallback(TapiHandle *handle,
                                                            const char *noti_id,
                                                            tapi_notification_cb callback,
                                                            void *user_data) {
-  if (TAPI_API_SUCCESS != tel_register_noti_event(handle, noti_id, callback, user_data)) {
-    LoggerE("Failed to register tapi callback with key: %s", noti_id);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to register tapi callback");
+  int ntv_ret = tel_register_noti_event(handle, noti_id, callback, user_data);
+  if (TAPI_API_SUCCESS != ntv_ret) {
+    return LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, "Failed to register tapi callback",
+              ("Failed to register tapi callback with key: %s - %d (%s)",
+                  noti_id, ntv_ret, get_error_message(ntv_ret)));
   }
   return PlatformResult(ErrorCode::NO_ERROR);
 }
 
 PlatformResult SysteminfoUtils::UnregisterTapiChangeCallback(TapiHandle *handle,
                                                              const char *noti_id) {
-  if (TAPI_API_SUCCESS != tel_deregister_noti_event(handle, noti_id)) {
-    LoggerE("Failed to unregister tapi callback with key: %s", noti_id);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to unregister tapi callback");
+  int ntv_ret = tel_deregister_noti_event(handle, noti_id);
+  if (TAPI_API_SUCCESS != ntv_ret) {
+    return LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, "Failed to unregister tapi callback",
+              ("Failed to unregister tapi callback with key: %s - %d (%s)",
+                  noti_id, ntv_ret, get_error_message(ntv_ret)));
   }
   return PlatformResult(ErrorCode::NO_ERROR);
 }
