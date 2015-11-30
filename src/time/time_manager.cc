@@ -57,7 +57,9 @@ PlatformResult TimeManager::GetTimezoneOffset(const std::string& timezone_id,
   std::unique_ptr<TimeZone> tz (TimeZone::createTimeZone(*unicode_id));
 
   if (TimeZone::getUnknown() == *tz) {
-    return PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid parameter passed.");
+    return LogAndCreateResult(ErrorCode::INVALID_VALUES_ERR,
+                              "Invalid parameter passed.",
+                              ("Unknown timezone"));
   }
 
   const int32_t oneHour = 3600000;
@@ -97,8 +99,7 @@ PlatformResult TimeManager::RegisterVconfCallback(ListenerType type) {
     LOGD("registering listener on platform");
     if (0 != vconf_notify_key_changed(
         VCONFKEY_SYSTEM_TIME_CHANGED, OnTimeChangedCallback, this)) {
-      LOGE("Failed to register vconf callback");
-      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to register vconf callback");
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Failed to register vconf callback");
     }
   } else {
     LOGD("not registering listener on platform - already registered");
@@ -113,8 +114,7 @@ PlatformResult TimeManager::RegisterVconfCallback(ListenerType type) {
       LOGD("time zone change listener registered");
       break;
     default :
-      LOGE("Unknown type of listener");
-      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown type of listener");
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Unknown type of listener");
   }
   return PlatformResult(ErrorCode::NO_ERROR);
 }
@@ -131,14 +131,14 @@ PlatformResult TimeManager::UnregisterVconfCallback(ListenerType type) {
       LOGD("time zone change listener unregistered");
       break;
     default :
-      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown type of listener");
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Unknown type of listener");
   }
   if (!is_time_listener_registered_ && !is_timezone_listener_registered_) {
     LOGD("unregistering listener on platform");
     if (0 != vconf_ignore_key_changed(VCONFKEY_SYSTEM_TIME_CHANGED, OnTimeChangedCallback)) {
       LOGE("Failed to unregister vconf callback");
       // silent fail
-      //return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to unregister vconf callback");
+      //return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Failed to unregister vconf callback");
     }
   }
   return PlatformResult(ErrorCode::NO_ERROR);

@@ -63,7 +63,7 @@ void TimeInstance::TimeUtil_getAvailableTimezones(const picojson::value& /*args*
   PlatformResult res = TimeUtilTools::GetAvailableTimezones(
       &array.first->second.get<picojson::array>());
   if (res.IsError()) {
-    ReportError(res, &out);
+    LogAndReportError(res, &out, ("Failed to get available timezones"));
     return;
   }
   ReportSuccess(result, out);
@@ -72,8 +72,8 @@ void TimeInstance::TimeUtil_getAvailableTimezones(const picojson::value& /*args*
 void TimeInstance::TimeUtil_getDateFormat(const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
   if (!args.contains("shortformat")) {
-    LoggerE("Invalid parameter passed.");
-    ReportError(PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid parameter passed."), &out);
+    LogAndReportError(PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid parameter passed."), &out,
+                      ("Required parameter \"shortformat\" is missing"));
     return;
   }
 
@@ -81,7 +81,7 @@ void TimeInstance::TimeUtil_getDateFormat(const picojson::value& args, picojson:
   std::string format;
   PlatformResult res = TimeUtilTools::GetDateFormat(shortformat, &format);
   if (res.IsError()) {
-    ReportError(res, &out);
+    LogAndReportError(res, &out, ("Failed to get date format."));
     return;
   }
 
@@ -98,7 +98,7 @@ void TimeInstance::TimeUtil_getTimeFormat(const picojson::value& /* args */,
   std::string format;
   PlatformResult res = TimeUtilTools::GetTimeFormat(&format);
   if (res.IsError()) {
-    ReportError(res, &out);
+    LogAndReportError(res, &out, ("Failed to get time format."));
     return;
   }
 
@@ -114,7 +114,7 @@ void TimeInstance::TimeUtil_setDateTimeChangeListener(const picojson::value& /*a
   LoggerD("Entered");
   PlatformResult res = manager_.RegisterVconfCallback(kTimeChange);
   if (res.IsError()) {
-    ReportError(res, &out);
+    LogAndReportError(res, &out, ("Failed to set date-time change listener."));
   }
   ReportSuccess(out);
 }
@@ -124,7 +124,7 @@ void TimeInstance::TimeUtil_unsetDateTimeChangeListener(const picojson::value& /
   LoggerD("Entered");
   PlatformResult res = manager_.UnregisterVconfCallback(kTimeChange);
   if (res.IsError()) {
-    ReportError(res, &out);
+    LogAndReportError(res, &out, ("Failed to remove date-time change listener."));
   }
   ReportSuccess(out);
 }
@@ -134,7 +134,7 @@ void TimeInstance::TimeUtil_setTimezoneChangeListener(const picojson::value& /*a
   LoggerD("Entered");
   PlatformResult res = manager_.RegisterVconfCallback(kTimezoneChange);
   if (res.IsError()) {
-    ReportError(res, &out);
+    LogAndReportError(res, &out, ("Failed to set timezone change listener."));
   }
   ReportSuccess(out);
 }
@@ -144,7 +144,7 @@ void TimeInstance::TimeUtil_unsetTimezoneChangeListener(const picojson::value& /
   LoggerD("Entered");
   PlatformResult res = manager_.UnregisterVconfCallback(kTimezoneChange);
   if (res.IsError()) {
-    ReportError(res, &out);
+    LogAndReportError(res, &out, ("Failed to remove timezone change listener."));
   }
   ReportSuccess(out);
 }
@@ -165,8 +165,8 @@ void TimeInstance::TZDate_GetTimezoneOffset(const picojson::value& args,
                                             picojson::object& out) {
   LoggerD("Entered");
   if (!args.contains("timezone") || !args.contains("timestamp")) {
-    LoggerE("Invalid parameter passed.");
-    ReportError(PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid parameter passed."), &out);
+    LogAndReportError(PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid parameter passed."), &out,
+                      ("Required parameters are missing: \"timezone\", \"timestamp\""));
     return;
   }
   const std::string& timezone_id = args.get("timezone").get<std::string>();
@@ -186,7 +186,7 @@ void TimeInstance::TZDate_GetTimezoneOffset(const picojson::value& args,
     result_obj.insert(std::make_pair("modifier", picojson::value(modifier)));
     ReportSuccess(result, out);
   } else {
-    ReportError(res, &out);
+    LogAndReportError(res, &out, ("Failed to get timezone offset."));
   }
 }
 
@@ -196,8 +196,8 @@ void TimeInstance::ToStringTemplate(const picojson::value& args,
                                     picojson::object* out) {
   LoggerD("Entered");
   if (!args.contains("timezone") || !args.contains("timestamp")) {
-    LoggerE("Invalid parameter passed.");
-    ReportError(PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid parameter passed."), out);
+    LogAndReportError(PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid parameter passed."), out,
+                      ("Required parameters are missing: \"timezone\", \"timestamp\""));
     return;
   }
   const std::string& timezone_id = args.get("timezone").get<std::string>();
@@ -211,7 +211,7 @@ void TimeInstance::ToStringTemplate(const picojson::value& args,
   PlatformResult res = TimeUtilTools::ToStringHelper(date, unicode_id, use_locale_fmt,
                                                      type, &result_string);
   if (res.IsError()) {
-    ReportError(res, out);
+    LogAndReportError(res, out, ("Failed to convert to string."));
     return;
   }
 
@@ -257,8 +257,8 @@ void TimeInstance::TZDate_getTimezoneAbbreviation(const picojson::value& args,
                                                   picojson::object& out) {
   LoggerD("Entered");
   if (!args.contains("timezone") || !args.contains("timestamp")) {
-    LoggerE("Invalid parameter passed.");
-    ReportError(PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid parameter passed."), &out);
+    LogAndReportError(PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid parameter passed."), &out,
+                      ("Required parameters are missing: \"timezone\", \"timestamp\""));
     return;
   }
   const std::string& timezone_id = args.get("timezone").get<std::string>();
@@ -270,7 +270,7 @@ void TimeInstance::TZDate_getTimezoneAbbreviation(const picojson::value& args,
   std::string result_string;
   PlatformResult res = TimeUtilTools::GetTimezoneAbbreviation(date, unicode_id, &result_string);
   if (res.IsError()) {
-    ReportError(res, &out);
+    LogAndReportError(res, &out, ("Failed to get timezone abbreviation."));
     return;
   }
 
@@ -284,8 +284,8 @@ void TimeInstance::TZDate_getTimezoneAbbreviation(const picojson::value& args,
 void TimeInstance::TZDate_isDST(const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
   if (!args.contains("timezone") || !args.contains("timestamp")) {
-    LoggerE("Invalid parameter passed.");
-    ReportError(PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid parameter passed."), &out);
+    LogAndReportError(PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid parameter passed."), &out,
+                      ("Required parameters are missing: \"timezone\", \"timestamp\""));
     return;
   }
   const std::string& timezone_id = args.get("timezone").get<std::string>();
@@ -297,7 +297,7 @@ void TimeInstance::TZDate_isDST(const picojson::value& args, picojson::object& o
   bool is_dst = false;
   PlatformResult res = TimeUtilTools::IsDST(date, unicode_id, &is_dst);
   if (res.IsError()) {
-    ReportError(res, &out);
+    LogAndReportError(res, &out, ("Failed to check DST."));
     return;
   }
   picojson::value result = picojson::value(picojson::object());
@@ -311,8 +311,8 @@ void TimeInstance::TZDate_getPreviousDSTTransition(const picojson::value& args,
                                                    picojson::object& out) {
   LoggerD("Entered");
   if (!args.contains("timezone") || !args.contains("timestamp")) {
-    LoggerE("Invalid parameter passed.");
-    ReportError(PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid parameter passed."), &out);
+    LogAndReportError(PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid parameter passed."), &out,
+                      ("Required parameters are missing: \"timezone\", \"timestamp\""));
     return;
   }
   const std::string& timezone_id = args.get("timezone").get<std::string>();
@@ -333,8 +333,8 @@ void TimeInstance::TZDate_getPreviousDSTTransition(const picojson::value& args,
 void TimeInstance::TZDate_getNextDSTTransition(const picojson::value& args, picojson::object& out) {
   LoggerD("Entered");
   if (!args.contains("timezone") || !args.contains("timestamp")) {
-    LoggerE("Invalid parameter passed.");
-    ReportError(PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid parameter passed."), &out);
+    LogAndReportError(PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid parameter passed."), &out,
+                      ("Required parameters are missing: \"timezone\", \"timestamp\""));
     return;
   }
   const std::string& timezone_id = args.get("timezone").get<std::string>();

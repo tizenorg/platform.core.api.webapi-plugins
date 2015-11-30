@@ -67,18 +67,21 @@ PlatformResult TimeUtilTools::IsDST(UDate timestamp,
   std::unique_ptr<icu::Calendar> calendar (Calendar::createInstance(*tz, ec));
 
   if (U_FAILURE(ec)){
-    LoggerE("Failed to create calendar instance: %d", ec);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to create calendar instance");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                              "Failed to create calendar instance",
+                              ("Failed to create calendar instance: %d", ec));
   }
   calendar->setTime(timestamp, ec);
   if (U_FAILURE(ec)){
-    LoggerE("Failed to set calendar date: %d", ec);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to set calendar date");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                              "Failed to set calendar date",
+                              ("Failed to set calendar date: %d", ec));
   }
   bool result = static_cast<bool>(calendar->inDaylightTime(ec));
   if (U_FAILURE(ec)){
-    LoggerE("Failed to get day light boolean: %d", ec);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to get day light boolean");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                              "Failed to get day light boolean",
+                              ("Failed to get day light boolean: %d", ec));
   }
   *result_bool = result;
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -108,9 +111,9 @@ PlatformResult TimeUtilTools::GetTimezoneAbbreviation(UDate date,
 
     return TimeUtilTools::ToUTF8String(str, result_string);
   }
-  LOGE("can't make SimpleDateFormat or can't get time");
-  return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                        "can't make SimpleDateFormat or can't get time");
+
+  return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                            "Can't make SimpleDateFormat or can't get time");
 }
 
 PlatformResult TimeUtilTools::ToStringHelper(UDate date,
@@ -138,8 +141,7 @@ PlatformResult TimeUtilTools::ToStringHelper(UDate date,
     return TimeUtilTools::ToUTF8String(str, result_string);
   }
 
-  LOGE("can't make SimpleDateFormat or can't get time");
-  return PlatformResult(ErrorCode::UNKNOWN_ERR, "can't make SimpleDateFormat or can't get time");
+  return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Can't make SimpleDateFormat or can't get time");
 }
 
 PlatformResult TimeUtilTools::ToUTF8String(const UnicodeString& uni_str,
@@ -151,8 +153,7 @@ PlatformResult TimeUtilTools::ToUTF8String(const UnicodeString& uni_str,
                                                       &std::free);
 
   if (!result_buffer) {
-    LOGE("memory allocation error");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "memory allocation error");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Memory allocation error");
   }
 
   memset(result_buffer.get(), 0, buffer_len);
@@ -160,8 +161,7 @@ PlatformResult TimeUtilTools::ToUTF8String(const UnicodeString& uni_str,
   uni_str.toUTF8(sink);
 
   if (sink.Overflowed()) {
-    LOGE("Converting error");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Converting error");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Converting error");
   }
 
   *result_string = result_buffer.get();
@@ -354,14 +354,14 @@ PlatformResult TimeUtilTools::GetAvailableTimezones(picojson::array* available_t
         available_timezones->push_back(picojson::value(str));
         ++i;
       } else {
-        LOGE("An error occurred");
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "An error occurred");
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                                  "An error occurred",
+                                  ("An error occurred: %d", ec));
       }
     } while ((str != nullptr) && (i < count));
   }
   else {
-    LOGE("Can't get timezones list");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Can't get timezones list");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Can't get timezones list");
   }
   return PlatformResult(ErrorCode::NO_ERROR);
 }
