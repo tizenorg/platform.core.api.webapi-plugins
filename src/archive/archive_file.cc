@@ -18,6 +18,7 @@
 
 #include "common/picojson.h"
 #include "common/logger.h"
+#include "common/tools.h"
 
 #include "archive_manager.h"
 #include "archive_utils.h"
@@ -26,7 +27,8 @@
 #include "zip.h"
 #include "archive_instance.h"
 
-using namespace common;
+using common::tools::ReportError;
+using common::tools::ReportSuccess;
 
 namespace extension {
 namespace archive {
@@ -101,14 +103,9 @@ gboolean ArchiveFile::openTaskCompleteCB(void *data)
     picojson::value val = picojson::value(picojson::object());
     picojson::object& obj = val.get<picojson::object>();
     obj[JSON_CALLBACK_ID] = picojson::value(callback->getCallbackId());
-    obj[JSON_DATA] = picojson::value(picojson::object());
-
-    picojson::object& args = obj[JSON_DATA].get<picojson::object>();
 
     if (!callback->isError()) {
         long handle = ArchiveManager::getInstance().addPrivData(archive_file);
-
-        obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
 
         std::string fm_str;
         PlatformResult result = fileModeToString(archive_file->getFileMode(), &fm_str);
@@ -119,14 +116,17 @@ gboolean ArchiveFile::openTaskCompleteCB(void *data)
             return false;
         }
 
-        args[ARCHIVE_FILE_ATTR_MODE] = picojson::value(fm_str);
-        args[ARCHIVE_FILE_ATTR_DECOMPRESSED_SIZE] = picojson::value();
-        args[ARCHIVE_FILE_HANDLE] = picojson::value(static_cast<double>(handle));
-    } else {
-        obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_ERROR);
+        picojson::value ret_val = picojson::value(picojson::object());
+        picojson::object& ret = ret_val.get<picojson::object>();
 
-        args[ERROR_CALLBACK_CODE] = picojson::value(static_cast<double>(callback->getErrorCode()));
-        args[ERROR_CALLBACK_MESSAGE] = picojson::value(callback->getErrorMessage());
+        ret[ARCHIVE_FILE_ATTR_MODE] = picojson::value(fm_str);
+        ret[ARCHIVE_FILE_ATTR_DECOMPRESSED_SIZE] = picojson::value();
+        ret[ARCHIVE_FILE_HANDLE] = picojson::value(static_cast<double>(handle));
+
+        ReportSuccess(ret_val, obj);
+    } else {
+        PlatformResult ret = PlatformResult(callback->getErrorCode(), callback->getErrorMessage());
+        ReportError(ret, &obj);
     }
 
     LoggerD("%s", val.serialize().c_str());
@@ -152,17 +152,12 @@ gboolean ArchiveFile::callErrorCallback(void* data)
     picojson::value val = picojson::value(picojson::object());
     picojson::object& obj = val.get<picojson::object>();
     obj[JSON_CALLBACK_ID] = picojson::value(callback->getCallbackId());
-    obj[JSON_DATA] = picojson::value(picojson::object());
-
-    picojson::object& args = obj[JSON_DATA].get<picojson::object>();
 
     if (!callback->isError()) {
         LoggerW("The success callback should be not be called in this case");
     } else {
-        obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_ERROR);
-
-        args[ERROR_CALLBACK_CODE] = picojson::value(static_cast<double>(callback->getErrorCode()));
-        args[ERROR_CALLBACK_MESSAGE] = picojson::value(callback->getErrorMessage());
+        PlatformResult ret = PlatformResult(callback->getErrorCode(), callback->getErrorMessage());
+        ReportError(ret, &obj);
     }
 
     LoggerD("%s", val.serialize().c_str());
@@ -353,9 +348,8 @@ gboolean ArchiveFile::getEntriesTaskCompleteCB(void *data)
     obj[JSON_CALLBACK_ID] = picojson::value(callback->getCallbackId());
 
     if (!callback->isError()) {
-        obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
-        obj[JSON_DATA] = picojson::value(picojson::array());
-        picojson::array &arr = obj[JSON_DATA].get<picojson::array>();
+        picojson::value arr_val = picojson::value(picojson::array());
+        picojson::array& arr = arr_val.get<picojson::array>();
 
         ArchiveFileEntryPtrMapPtr entries = callback->getEntries();
         for(auto it = entries->begin(); it != entries->end(); it++) {
@@ -375,13 +369,11 @@ gboolean ArchiveFile::getEntriesTaskCompleteCB(void *data)
 
             arr.push_back(val);
         }
-    } else {
-        obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_ERROR);
-        obj[JSON_DATA] = picojson::value(picojson::object());
-        picojson::object& args = obj[JSON_DATA].get<picojson::object>();
 
-        args[ERROR_CALLBACK_CODE] = picojson::value(static_cast<double>(callback->getErrorCode()));
-        args[ERROR_CALLBACK_MESSAGE] = picojson::value(callback->getErrorMessage());
+        ReportSuccess(arr_val, obj);
+    } else {
+        PlatformResult ret = PlatformResult(callback->getErrorCode(), callback->getErrorMessage());
+        ReportError(ret, &obj);
     }
 
     LoggerD("%s", val.serialize().c_str());
@@ -484,28 +476,27 @@ gboolean ArchiveFile::getEntryByNameTaskCompleteCB(void *data)
     picojson::value val = picojson::value(picojson::object());
     picojson::object& obj = val.get<picojson::object>();
     obj[JSON_CALLBACK_ID] = picojson::value(callback->getCallbackId());
-    obj[JSON_DATA] = picojson::value(picojson::object());
-    picojson::object& args = obj[JSON_DATA].get<picojson::object>();
 
     if (!callback->isError()) {
-        obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
-
         ArchiveFileEntryPtr ent = callback->getFileEntry();
 
-        args[ARCHIVE_FILE_ENTRY_ATTR_NAME] = picojson::value(ent->getName());
-        args[ARCHIVE_FILE_ENTRY_ATTR_SIZE] = picojson::value(
-                static_cast<double>(ent->getSize()));
-        args[ARCHIVE_FILE_ENTRY_ATTR_MODIFIED] = picojson::value(
-                static_cast<double>(ent->getModified()));
-        args[ARCHIVE_FILE_ENTRY_ATTR_COMPRESSED_SIZE] = picojson::value(
-                static_cast<double>(ent->getCompressedSize()));
-        args[ARCHIVE_FILE_HANDLE] = picojson::value(
-                static_cast<double>(callback->getHandle()));
-    } else {
-        obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_ERROR);
+        picojson::value ret_val = picojson::value(picojson::object());
+        picojson::object& ret = ret_val.get<picojson::object>();
 
-        args[ERROR_CALLBACK_CODE] = picojson::value(static_cast<double>(callback->getErrorCode()));
-        args[ERROR_CALLBACK_MESSAGE] = picojson::value(callback->getErrorMessage());
+        ret[ARCHIVE_FILE_ENTRY_ATTR_NAME] = picojson::value(ent->getName());
+        ret[ARCHIVE_FILE_ENTRY_ATTR_SIZE] = picojson::value(
+                static_cast<double>(ent->getSize()));
+        ret[ARCHIVE_FILE_ENTRY_ATTR_MODIFIED] = picojson::value(
+                static_cast<double>(ent->getModified()));
+        ret[ARCHIVE_FILE_ENTRY_ATTR_COMPRESSED_SIZE] = picojson::value(
+                static_cast<double>(ent->getCompressedSize()));
+        ret[ARCHIVE_FILE_HANDLE] = picojson::value(
+                static_cast<double>(callback->getHandle()));
+
+        ReportSuccess(ret_val, obj);
+    } else {
+        PlatformResult ret = PlatformResult(callback->getErrorCode(), callback->getErrorMessage());
+        ReportError(ret, &obj);
     }
 
     LoggerD("%s", val.serialize().c_str());
