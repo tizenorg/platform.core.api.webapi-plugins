@@ -45,8 +45,7 @@ common::PlatformResult ExifTagSaver::saveToExif(long int value, ExifTag tag,
 
   ExifEntry* entry = prepareEntry(exif_data, tag);
   if (!entry) {
-    LoggerE("Exif entry is null");
-    return common::PlatformResult(common::ErrorCode::UNKNOWN_ERR, "Exif entry is null");
+    return LogAndCreateResult(common::ErrorCode::UNKNOWN_ERR, "Exif entry is null");
   }
 
   ExifByteOrder order = exif_data_get_byte_order(exif_data);
@@ -72,8 +71,8 @@ common::PlatformResult ExifTagSaver::saveToExif(long int value, ExifTag tag,
       break;
     }
     default: {
-      LoggerE("Error: wrong format: %d \n", entry->format);
-      return common::PlatformResult(common::ErrorCode::UNKNOWN_ERR, "Wrong format");
+      return LogAndCreateResult(common::ErrorCode::UNKNOWN_ERR, "Wrong format",
+                                    ("Error: wrong format: %d \n", entry->format));
     }
   }
   return common::PlatformResult(common::ErrorCode::NO_ERROR);
@@ -85,8 +84,7 @@ common::PlatformResult ExifTagSaver::saveToExif(const std::string& value, ExifTa
   LoggerD("Entered");
   ExifEntry* entry = prepareEntry(exif_data, tag);
   if (!entry) {
-    LoggerE("Exif entry is null");
-    return common::PlatformResult(common::ErrorCode::UNKNOWN_ERR, "Exif entry is null");
+    return LogAndCreateResult(common::ErrorCode::UNKNOWN_ERR, "Exif entry is null");
   }
 
   if (!value.empty()) {
@@ -106,8 +104,7 @@ common::PlatformResult ExifTagSaver::saveToExif(const std::string& value, ExifTa
 
     entry->data = static_cast<unsigned char*>(malloc(entry->size));
     if (entry->data == nullptr) {
-      LoggerE("Function malloc returned nullptr");
-      return common::PlatformResult(common::ErrorCode::UNKNOWN_ERR, "Function malloc returned nullptr");
+      return LogAndCreateResult(common::ErrorCode::UNKNOWN_ERR, "Function malloc returned nullptr");
     }
 
     memcpy(entry->data, value.c_str(), value.length());
@@ -123,8 +120,7 @@ common::PlatformResult ExifTagSaver::saveToExif(const Rational& value, ExifTag t
   LoggerD("Entered");
   ExifEntry* entry = prepareEntry(exif_data, tag);
   if (!entry) {
-    LoggerE("Exif entry is null");
-    return common::PlatformResult(common::ErrorCode::UNKNOWN_ERR, "Exif entry is null");
+    return LogAndCreateResult(common::ErrorCode::UNKNOWN_ERR, "Exif entry is null");
   }
   entry->format = EXIF_FORMAT_RATIONAL;
 
@@ -137,8 +133,7 @@ common::PlatformResult ExifTagSaver::saveToExif(const Rational& value, ExifTag t
     entry->size = ExifTypeInfo::RationalSize;
     entry->data = static_cast<unsigned char*>(malloc(entry->size));
     if (entry->data == nullptr) {
-      LoggerE("Function malloc returned nullptr");
-      return common::PlatformResult(common::ErrorCode::UNKNOWN_ERR, "Function malloc returned nullptr");
+      return LogAndCreateResult(common::ErrorCode::UNKNOWN_ERR, "Function malloc returned nullptr");
     }
     memset(entry->data, 0, entry->size);
   }
@@ -159,8 +154,7 @@ common::PlatformResult ExifTagSaver::saveToExif(const Rationals& value, ExifTag 
   LoggerD("Entered");
   ExifEntry* entry = prepareEntry(exif_data, tag);
   if (!entry) {
-    LoggerE("Exif entry is null");
-    return common::PlatformResult(common::ErrorCode::UNKNOWN_ERR, "Exif entry is null");
+    return LogAndCreateResult(common::ErrorCode::UNKNOWN_ERR, "Exif entry is null");
   }
   ExifByteOrder order = exif_data_get_byte_order(exif_data);
   entry->format = EXIF_FORMAT_RATIONAL;
@@ -175,8 +169,7 @@ common::PlatformResult ExifTagSaver::saveToExif(const Rationals& value, ExifTag 
     entry->size = required_size;
     entry->data = static_cast<unsigned char*>(malloc(entry->size));
     if (entry->data == nullptr) {
-      LoggerE("Function malloc returned nullptr");
-      return common::PlatformResult(common::ErrorCode::UNKNOWN_ERR, "Function malloc returned nullptr");
+      return LogAndCreateResult(common::ErrorCode::UNKNOWN_ERR, "Function malloc returned nullptr");
     }
     memset(entry->data, 0, entry->size);
   }
@@ -198,8 +191,7 @@ common::PlatformResult ExifTagSaver::saveToExif(std::vector<long long int>& valu
   LoggerD("Entered");
   ExifEntry* entry = prepareEntry(exif_data, tag);
   if (!entry) {
-    LoggerE("Exif entry is null");
-    return common::PlatformResult(common::ErrorCode::UNKNOWN_ERR, "Exif entry is null");
+    return LogAndCreateResult(common::ErrorCode::UNKNOWN_ERR, "Exif entry is null");
   }
   const ExifByteOrder order = exif_data_get_byte_order(exif_data);
 
@@ -212,8 +204,8 @@ common::PlatformResult ExifTagSaver::saveToExif(std::vector<long long int>& valu
     case EXIF_FORMAT_SLONG:
       break;
     default:
-      LoggerE("output ExifFormat: %d is not supported!", store_as);
-      return common::PlatformResult(common::ErrorCode::UNKNOWN_ERR, "ExifFormat is not supported!");
+      return LogAndCreateResult(common::ErrorCode::UNKNOWN_ERR, "ExifFormat is not supported!",
+                                    ("output ExifFormat: %d is not supported!", store_as));
   }
   entry->format = store_as;
 
@@ -228,8 +220,7 @@ common::PlatformResult ExifTagSaver::saveToExif(std::vector<long long int>& valu
     entry->size = required_size;
     entry->data = static_cast<unsigned char*>(malloc(entry->size));
     if (entry->data == nullptr) {
-      LoggerE("Function malloc returned nullptr");
-      return common::PlatformResult(common::ErrorCode::UNKNOWN_ERR, "Function malloc returned nullptr");
+      return LogAndCreateResult(common::ErrorCode::UNKNOWN_ERR, "Function malloc returned nullptr");
     }
     memset(entry->data, 0, entry->size);
   }
@@ -275,7 +266,7 @@ common::PlatformResult ExifTagSaver::saveToExif(std::vector<long long int>& valu
       LoggerE("output ExifFormat: %d is not supported!", store_as);
       free(entry->data);
       entry->data = nullptr;
-      return common::PlatformResult(common::ErrorCode::UNKNOWN_ERR, "ExifFormat is not supported!");
+      return LogAndCreateResult(common::ErrorCode::UNKNOWN_ERR, "ExifFormat is not supported!");
     }
   }
 
@@ -423,8 +414,8 @@ common::PlatformResult ExifTagSaver::deduceIfdSection(ExifTag tag, ExifIfd* exif
 
     // Tags in other sections
     default:
-      LoggerE("Unsupported tag: %d", tag);
-      return common::PlatformResult(common::ErrorCode::UNKNOWN_ERR, "Unsupported tag");
+      return LogAndCreateResult(common::ErrorCode::UNKNOWN_ERR, "Unsupported tag",
+                                        ("Unsupported tag: %d", tag));
   }
 
   return common::PlatformResult(common::ErrorCode::NO_ERROR);
@@ -483,8 +474,8 @@ common::PlatformResult ExifTagSaver::deduceDataFormat(ExifTag tag, ExifFormat* e
 
     // Unsupported tags:
     default:
-      LoggerE("Unsupported tag: %d", tag);
-      return common::PlatformResult(common::ErrorCode::UNKNOWN_ERR, "Unsupported tag");
+      return LogAndCreateResult(common::ErrorCode::UNKNOWN_ERR, "Unsupported tag",
+                                    ("Unsupported tag: %d", tag));
   }
 
   return common::PlatformResult(common::ErrorCode::NO_ERROR);
