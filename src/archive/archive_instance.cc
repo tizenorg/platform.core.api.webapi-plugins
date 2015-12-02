@@ -81,6 +81,10 @@ ArchiveInstance::~ArchiveInstance() {
 }
 
 void ArchiveInstance::PostError(const PlatformResult& e, double callback_id) {
+    LoggerD("Entered");
+
+    LoggerE("Posting an error: %d, message: %s", e.error_code(), e.message().c_str());
+
     picojson::value val = picojson::value(picojson::object());
     picojson::object& obj = val.get<picojson::object>();
     obj[JSON_CALLBACK_ID] = picojson::value(callback_id);
@@ -157,8 +161,8 @@ void ArchiveInstance::Open(const picojson::value& args, picojson::object& out) {
                 }
                 file_ptr.reset();   //We need to create new empty file
             } else if (FileMode::WRITE == fm) {
-                LoggerE("open: %s with mode: \"w\" file exists and overwrite is FALSE!"
-                        " throwing InvalidModificationException", location_full_path.c_str());
+                SLoggerE("open: %s with mode: \"w\" file exists and overwrite is FALSE!",
+                         location_full_path.c_str());
                 PostError(PlatformResult(ErrorCode::INVALID_MODIFICATION_ERR,
                                          "Zip archive already exists"), callbackId);
                 delete callback;
@@ -204,7 +208,6 @@ void ArchiveInstance::Open(const picojson::value& args, picojson::object& out) {
             }
         } else {
             LoggerE("Archive file not found");
-            LoggerE("Filesystem exception - calling error callback");
             PostError(PlatformResult(ErrorCode::NOT_FOUND_ERR, "Archive file not found"), callbackId);
             delete callback;
             callback = NULL;
@@ -223,7 +226,7 @@ void ArchiveInstance::Open(const picojson::value& args, picojson::object& out) {
     if (result) {
         ReportSuccess(out);
     } else {
-        ReportError(result, &out);
+        LogAndReportError(result, &out, ("Failed to open archive."));
     }
 }
 

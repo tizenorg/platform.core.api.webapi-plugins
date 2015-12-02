@@ -62,8 +62,7 @@ PlatformResult fileModeToString(FileMode fm, std::string* fm_str)
             *fm_str = "a";
             break;
         default:
-            LoggerE("Unknown file mode");
-            return PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown file mode");
+            return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Unknown file mode");
     }
     return PlatformResult(ErrorCode::NO_ERROR);
 }
@@ -89,8 +88,7 @@ PlatformResult stringToFileMode(std::string fmString, FileMode* fm)
     }
     // In widl it's "TypeMismatchError" so this exception used
     // instead of InvalidValues
-    LoggerE("Invalid FileMode");
-    return PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, "Invalid FileMode");
+    return LogAndCreateResult(ErrorCode::TYPE_MISMATCH_ERR, "Invalid FileMode");
 }
 
 void getBasePathAndName(const std::string& filepath,

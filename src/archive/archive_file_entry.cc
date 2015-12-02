@@ -140,8 +140,7 @@ ArchiveFile* ArchiveFileEntry::getArchiveFileNonProtectPtr()
 PlatformResult ArchiveFileEntry::extractTo(ExtractEntryProgressCallback* callback)
 {
     if(!m_archive) {
-        LOGE("m_archive is NULL");
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not extract archive file entry");
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Could not extract archive file entry", ("m_archive is NULL"));
     }
 
     //Callback should be associated with this instance of ArchiveFileEntry

@@ -137,8 +137,7 @@ PlatformResult UnZipExtractRequest::execute(UnZip& owner, const std::string& ext
     LoggerD("Enter");
     UnZipExtractRequest req(owner, extract_path, base_strip_path, callback);
     if(!req.m_callback){
-        LoggerE("Callback is null");
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Problem with callback functionality");
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Problem with callback functionality", ("Callback is null"));
     }
     return req.run();
 }
@@ -218,8 +217,7 @@ PlatformResult UnZipExtractRequest::getCurrentFileInfo()
     int err = unzGetCurrentFileInfo(m_owner.m_unzip, &m_file_info,
             m_filename_inzip, sizeof(m_filename_inzip), NULL, 0, NULL, 0);
     if (err != UNZ_OK) {
-        LoggerE("ret: %d", err);
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, getArchiveLogMessage(err, "unzGetCurrentFileInfo()"));
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, getArchiveLogMessage(err, "unzGetCurrentFileInfo()"), ("ret: %d", err));
     }
 
     LoggerD("Input from ZIP: m_filename_inzip: [%s]", m_filename_inzip);
@@ -291,23 +289,21 @@ PlatformResult UnZipExtractRequest::handleDirectoryEntry()
             if(m_callback->getOverwrite()) {    //Is a file & overwrite is set:
                 std::string fn = removeTrailingDirectorySlashFromPath(m_new_dir_path);
                 if(std::remove(fn.c_str()) != 0) {
-                    LoggerE("std::remove(\"%s\") failed with errno: %s",
-                            m_new_dir_path.c_str(), GetErrorString(errno).c_str());
-                    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not overwrite file in output directory");
+                    SLoggerE("std::remove(\"%s\") failed with errno: %s",
+                             m_new_dir_path.c_str(), GetErrorString(errno).c_str());
+                    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Could not overwrite file in output directory");
                 }
             } else {                            //Is a file & overwrite is not set:
-                LoggerE("Failed to extract directory, "
-                        "file with the same name exists in output directory");
-                return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to extract directory, "
-                                      "file with the same name exists in output directory");
+                return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Failed to extract directory, "
+                                          "file with the same name exists in output directory");
             }
         }
 
         //Try to create new directory in output directory
         if(mkdir(m_new_dir_path.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) == -1) {
-            LoggerE("Couldn't create new directory: %s errno: %s",
-                    m_new_dir_path.c_str(), GetErrorString(errno).c_str());
-            return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not create new directory in extract output directory");
+            SLoggerE("Couldn't create new directory: %s errno: %s",
+                     m_new_dir_path.c_str(), GetErrorString(errno).c_str());
+            return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Could not create new directory in extract output directory");
         }
     }
 
@@ -335,10 +331,10 @@ PlatformResult UnZipExtractRequest::prepareOutputSubdirectory()
     //This zip entry points to file - verify that parent directory in output dir exists
     if(FPS_DIRECTORY != m_new_dir_status) {
         if(FPS_FILE == m_new_dir_status) {
-            LoggerE("Path: %s is pointing to file not directory!",
-                    m_new_dir_path.c_str());
-            return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to extract file from zip archive, "
-                                  "output path is invalid");
+            SLoggerE("Path: %s is pointing to file not directory!",
+                     m_new_dir_path.c_str());
+            return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Failed to extract file from zip archive, "
+                                      "output path is invalid");
         }
 
         // permissions would be changed after extract process would be finished,
@@ -350,17 +346,16 @@ PlatformResult UnZipExtractRequest::prepareOutputSubdirectory()
     }
 
     if(m_callback->isCanceled()) {
-        LoggerD("Operation cancelled");
-        return PlatformResult(ErrorCode::OPERATION_CANCELED_ERR);
+        return LogAndCreateResult(ErrorCode::OPERATION_CANCELED_ERR, "Operation canceled");
     }
 
     const FilePathStatus output_fstatus = getPathStatus(m_output_filepath);
     if(FPS_NOT_EXIST != output_fstatus) {
         if(!m_callback->getOverwrite()) {
-            LoggerW("%s exists at output path: [%s], overwrite is set to FALSE",
-                    (FPS_DIRECTORY == output_fstatus ? "Directory" : "File"),
-                    m_output_filepath.c_str());
-            return PlatformResult(ErrorCode::INVALID_MODIFICATION_ERR, "file already exists.");
+            SLoggerE("%s exists at output path: [%s], overwrite is set to FALSE",
+                     (FPS_DIRECTORY == output_fstatus ? "Directory" : "File"),
+                     m_output_filepath.c_str());
+            return LogAndCreateResult(ErrorCode::INVALID_MODIFICATION_ERR, "File already exists.");
         } else {
             if(FPS_DIRECTORY == output_fstatus) {
                 filesystem::PathPtr path = filesystem::Path::create(m_output_filepath);
@@ -395,8 +390,7 @@ PlatformResult UnZipExtractRequest::handleFileEntry()
     int err = unzOpenCurrentFilePassword(m_owner.m_unzip,
         NULL); //password is not supported yet therefore passing NULL
     if (UNZ_OK != err) {
-        LoggerE("ret: %d", err);
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, getArchiveLogMessage(err, "unzOpenCurrentFilePassword()"));
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, getArchiveLogMessage(err, "unzOpenCurrentFilePassword()"), ("ret: %d", err));
     }
 
     //We have successfully opened curent file, therefore we should close it later
@@ -405,15 +399,14 @@ PlatformResult UnZipExtractRequest::handleFileEntry()
     const size_t buffer_size = m_owner.m_default_buffer_size;
     m_buffer = new(std::nothrow) char[buffer_size];
     if(!m_buffer) {
-        LoggerE("Couldn't allocate buffer with size: %s",
-                bytesToReadableString(buffer_size).c_str());
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Memory allocation failed");
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Memory allocation failed", ("Couldn't allocate buffer with size: %s",
+            bytesToReadableString(buffer_size).c_str()));
     }
 
     m_output_file = fopen(m_output_filepath.c_str(), "wb");
     if(!m_output_file) {
-        LoggerE("Couldn't open output file: %s", m_output_filepath.c_str());
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not create extracted file");
+        SLoggerE("Couldn't open output file: %s", m_output_filepath.c_str());
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Could not create extracted file");
     }
     m_delete_output_file = true;
 
@@ -433,21 +426,19 @@ PlatformResult UnZipExtractRequest::handleFileEntry()
     ArchiveFileEntryPtrMapPtr entries = m_callback->getArchiveFile()->getEntryMap();
     auto it = entries->find(m_filename_inzip);
     if (it == entries->end()) {
-        LoggerE("Entry not found");
-        return PlatformResult(ErrorCode::NOT_FOUND_ERR, "Entry not found");
+        return LogAndCreateResult(ErrorCode::NOT_FOUND_ERR, "Entry not found");
     }
 
     while(true) {
         if(m_callback->isCanceled()) {
-            LoggerD("Operation cancelled");
-            return PlatformResult(ErrorCode::OPERATION_CANCELED_ERR);
+            return LogAndCreateResult(ErrorCode::OPERATION_CANCELED_ERR, "Operation canceled");
         }
 
         int read_size = unzReadCurrentFile(m_owner.m_unzip, m_buffer, buffer_size);
         if (read_size < 0) {
-            LoggerE("unzReadCurrentFile failed with error code:%d for file:%s", read_size,
-                    m_filename_inzip);
-            return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to extract file from zip archive");
+            SLoggerE("unzReadCurrentFile failed with error code: %d for file: %s", read_size,
+                     m_filename_inzip);
+            return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Failed to extract file from zip archive");
         }
         else if(0 == read_size) {
 
@@ -471,9 +462,7 @@ PlatformResult UnZipExtractRequest::handleFileEntry()
         }
 
         if (fwrite(m_buffer, read_size, 1, m_output_file) != 1) {
-            LoggerE("Couldn't write extracted data to output file:%s",
-                    m_output_filepath.c_str());
-            return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not write extract file into output file");
+            return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Could not write extract file into output file");
         }
 
         if(extract_callback) {
