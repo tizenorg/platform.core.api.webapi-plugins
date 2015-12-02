@@ -68,7 +68,7 @@ void ExifInstance::ExifManagerGetExifInfo(const picojson::value& args, picojson:
       if (status)
         ReportSuccess(result, response->get<picojson::object>());
       else
-        ReportError(status, &response->get<picojson::object>());
+        LogAndReportError(status, &response->get<picojson::object>());
   };
 
   auto get_response = [callback_id, this](const std::shared_ptr<JsonValue>& response)->void {
@@ -101,7 +101,7 @@ void ExifInstance::ExifManagerSaveExifInfo(const picojson::value& args,
       if (status)
         ReportSuccess(result, response->get<picojson::object>());
       else
-        ReportError(status, &response->get<picojson::object>());
+        LogAndReportError(status, &response->get<picojson::object>());
   };
 
   auto get_response = [callback_id, this](const std::shared_ptr<JsonValue>& response) -> void {
@@ -136,30 +136,29 @@ void ExifInstance::ExifManagerGetThumbnail(const picojson::value& args,
       }
 
       if ("jpeg" != ext && "png" != ext && "gif" != ext) {
-        LoggerE("extension: %s is not valid (jpeg/jpg/png/gif is supported)",
-            ext.c_str());
         status = PlatformResult(ErrorCode::INVALID_VALUES_ERR,
             "getThumbnail support only jpeg/jpg/png/gif");
-        ReportError(status, &response->get<picojson::object>());
+        LogAndReportError(status, &response->get<picojson::object>(),
+                          ("extension: %s is not valid (jpeg/jpg/png/gif is supported)", ext.c_str()));
         return;
       }
 
       LoggerD("Get thumbnail from Exif in file: [%s]", file_path.c_str());
       ExifData *exif_data = exif_data_new_from_file(file_path.c_str());
       if (!exif_data) {
-        LoggerE("Error reading from file [%s]", file_path.c_str());
         status = PlatformResult(ErrorCode::UNKNOWN_ERR,
             "Error reading from file");
-        ReportError(status, &response->get<picojson::object>());
+        LogAndReportError(status, &response->get<picojson::object>(),
+                    ("Error reading from file [%s]", file_path.c_str()));
         return;
       }
 
       if (!exif_data->data || !exif_data->size) {
         exif_data_unref(exif_data);
-        LoggerE("File [%s] doesn't contain thumbnail", file_path.c_str());
         status = PlatformResult(ErrorCode::UNKNOWN_ERR,
             "File doesn't contain thumbnail");
-        ReportError(status, &response->get<picojson::object>());
+        LogAndReportError(status, &response->get<picojson::object>(),
+                    ("File [%s] doesn't contain thumbnail", file_path.c_str()));
         return;
       }
 

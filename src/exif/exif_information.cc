@@ -943,8 +943,8 @@ PlatformResult ExifInformation::saveToFile(const std::string& file_path) {
 
     exif_data = exif_data_new();
     if (!exif_data) {
-      LoggerE("Couldn't allocate new ExifData");
-      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Memory allocation failed");
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Memory allocation failed",
+                                ("Couldn't allocate new ExifData"));
     }
 
     exif_data_set_option(exif_data, EXIF_DATA_OPTION_FOLLOW_SPECIFICATION);

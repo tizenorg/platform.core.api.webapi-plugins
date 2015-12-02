@@ -221,8 +221,7 @@ PlatformResult GetExifInfo::ProcessEntry(ExifEntry* entry,
         pair = std::make_pair("isoSpeedRatings", JsonValue(array));
         result_obj->insert(pair);
       } else {
-        LoggerE("iso speed ratings: format or components count is invalid!");
-        return PlatformResult(ErrorCode::TYPE_MISMATCH_ERR,
+        return LogAndCreateResult(ErrorCode::TYPE_MISMATCH_ERR,
             "iso speed ratings: format or components count is invalid!");
       }
       break;
@@ -246,8 +245,7 @@ PlatformResult GetExifInfo::ProcessEntry(ExifEntry* entry,
               exp_time.toString().c_str());
         }
       } else {
-        LoggerE("exposure time: format or components count is invalid!");
-        return PlatformResult(ErrorCode::TYPE_MISMATCH_ERR,
+        return LogAndCreateResult(ErrorCode::TYPE_MISMATCH_ERR,
             "exposure time: format or components count is invalid!");
       }
       break;
@@ -502,9 +500,9 @@ PlatformResult GetExifInfo::LoadFromURI(const std::string& uri,
   const std::string& file_path = ExifUtil::convertUriToPath(uri);
   ExifData* ed = exif_data_new_from_file(file_path.c_str());
   if (!ed) {
-    LoggerE("Error reading exif from file %s", file_path.c_str());
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-            "Error reading exif from file");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+            "Error reading exif from file",
+            ("Error reading exif from file %s", file_path.c_str()));
   }
 
   LoggerD("loadFromURI_into_json exif_data_foreach_content START");
