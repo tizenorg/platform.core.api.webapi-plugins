@@ -191,7 +191,7 @@ PlatformResult SoundManager::GetMaxVolume(sound_type_e type, int* max_volume) {
 
 double SoundManager::ConvertToSystemVolume(int max_volume, int volume) {
   LoggerD("Enter");
-  return round(static_cast<double>(volume) * 10 / max_volume) / 10;
+  return round(static_cast<double>(volume) * 100 / max_volume) / 100;
 }
 
 void SoundManager::VolumeChangeCallback(sound_type_e type, unsigned int value) {
