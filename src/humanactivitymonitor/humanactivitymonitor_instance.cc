@@ -75,7 +75,7 @@ PlatformResult HumanActivityMonitorInstance::Init() {
 
 #define CHECK_EXIST(args, name, out) \
     if (!args.contains(name)) { \
-      ReportError(PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, \
+      LogAndReportError(PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, \
           name" is required argument"), &out); \
       return; \
     }
@@ -88,8 +88,7 @@ void HumanActivityMonitorInstance::HumanActivityMonitorManagerGetHumanActivityDa
 
   PlatformResult result = Init();
   if (!result) {
-    LoggerE("Failed: Init()");
-    ReportError(result, &out);
+    LogAndReportError(result, &out, ("Failed: Init()"));
     return;
   }
 
@@ -106,8 +105,7 @@ void HumanActivityMonitorInstance::HumanActivityMonitorManagerGetHumanActivityDa
     if (result) {
       ReportSuccess(data, response_obj);
     } else {
-      LoggerE("Failed: manager_->GetHumanActivityData()");
-      ReportError(result, &response_obj);
+      LogAndReportError(result, &response_obj, ("Failed: manager_->GetHumanActivityData()"));
     }
 
     Instance::PostMessage(this, response.serialize().c_str());
@@ -125,8 +123,7 @@ void HumanActivityMonitorInstance::HumanActivityMonitorManagerStart(
 
   PlatformResult result = Init();
   if (!result) {
-    LoggerE("Failed: Init()");
-    ReportError(result, &out);
+    LogAndReportError(result, &out, ("Failed: Init()"));
     return;
   }
 
@@ -146,8 +143,7 @@ void HumanActivityMonitorInstance::HumanActivityMonitorManagerStart(
   if (result) {
     ReportSuccess(out);
   } else {
-    LoggerE("Failed: manager_->SetListener()");
-    ReportError(result, &out);
+    LogAndReportError(result, &out, ("Failed: manager_->SetListener()"));
   }
 }
 
@@ -158,8 +154,7 @@ void HumanActivityMonitorInstance::HumanActivityMonitorManagerStop(
 
   PlatformResult result = Init();
   if (!result) {
-    LoggerE("Failed: Init()");
-    ReportError(result, &out);
+    LogAndReportError(result, &out, ("Failed: Init()"));
     return;
   }
 
@@ -167,8 +162,7 @@ void HumanActivityMonitorInstance::HumanActivityMonitorManagerStop(
   if (result) {
     ReportSuccess(out);
   } else {
-    LoggerE("Failed: manager_->UnsetListener()");
-    ReportError(result, &out);
+    LogAndReportError(result, &out, ("Failed: manager_->UnsetListener()"));
   }
 }
 
