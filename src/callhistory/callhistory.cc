@@ -102,8 +102,7 @@ void CallHistory::FindThread(const picojson::object& args, CallHistory* call_his
   const double callback_id = args.find("callbackId")->second.get<double>();
 
   if (phone_numbers == 0) {
-    LoggerE("Phone numbers list is empty.");
-    ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Phone numbers list is empty."),
+    LogAndReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Phone numbers list is empty."),
                 &response->get<picojson::object>());
   } else {
     const auto it_args_end = args.end();
@@ -322,17 +321,16 @@ PlatformResult CallHistory::remove(const picojson::object& args)
 
   if (it_uid == it_args_end ||
       !it_uid->second.is<std::string>()) {
-    LoggerE("Invalid parameter was passed.");
-    return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
+    return LogAndCreateResult(ErrorCode::INVALID_VALUES_ERR,
                           "Invalid parameter was passed.");
   }
 
   int uid = atoi((it_uid->second.get<std::string>()).c_str());
   int ret = contacts_db_delete_record(_contacts_phone_log._uri, (int)uid);
   if (CONTACTS_ERROR_NONE != ret) {
-    LoggerE("Failed to delete log record [%d] with error: %d", uid, ret);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Failed to delete log record.");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                          "Failed to delete log record.",
+                          ("Failed to delete log record [%d] with error: %d", uid, ret));
   }
   return PlatformResult(ErrorCode::NO_ERROR);
 }
@@ -346,8 +344,7 @@ common::PlatformResult CallHistory::removeBatch(const picojson::object& args)
 
   if (it_uid == it_args_end ||
       !it_uid->second.is<picojson::array>()) {
-    LoggerE("Invalid parameter was passed.");
-    return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
+    return LogAndCreateResult(ErrorCode::INVALID_VALUES_ERR,
                           "Invalid parameter was passed.");
   }
   const picojson::array& uids = it_uid->second.get<picojson::array>();
@@ -355,7 +352,7 @@ common::PlatformResult CallHistory::removeBatch(const picojson::object& args)
 
   auto remove_batch = [uids](const std::shared_ptr<picojson::value>& response) -> void {
     if (uids.size() == 0) {
-      ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR,
+      LogAndReportError(PlatformResult(ErrorCode::UNKNOWN_ERR,
                                  "Object is null."),
                   &response->get<picojson::object>());
       return;
@@ -366,10 +363,10 @@ common::PlatformResult CallHistory::removeBatch(const picojson::object& args)
       int uid = atoi(uids[i].get<std::string>().c_str());
       ret = contacts_db_delete_record(_contacts_phone_log._uri, (int)uid);
       if (CONTACTS_ERROR_NONE != ret) {
-        LoggerE("Failed to delete log [%d] with code %d", uid, ret);
-        ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR,
+        LogAndReportError(PlatformResult(ErrorCode::UNKNOWN_ERR,
                                    "Remove record failed."),
-                    &response->get<picojson::object>());
+                    &response->get<picojson::object>()
+                    ("Failed to delete log [%d] with code %d", uid, ret));
         return;
       }
     }
@@ -418,8 +415,7 @@ void CallHistory::removeAll(const picojson::object& args)
 
     ret = contacts_db_get_all_records(_contacts_phone_log._uri, 0, 0, &record_list);
     if (CONTACTS_ERROR_NONE != ret || !record_list) {
-      LoggerE("Failed to get all records list");
-      ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR,
+      LogAndReportError(PlatformResult(ErrorCode::UNKNOWN_ERR,
                                  "Failed to get all records list."),
                   &response->get<picojson::object>());
       return;
@@ -441,10 +437,10 @@ void CallHistory::removeAll(const picojson::object& args)
       if (!record) {
         ret = contacts_list_next(record_list);
         if (CONTACTS_ERROR_NONE != ret && CONTACTS_ERROR_NO_DATA != ret) {
-          LoggerE("contacts_list_next function failed");
-          ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR,
+          LogAndReportError(PlatformResult(ErrorCode::UNKNOWN_ERR,
                                      "Get next record from list failed."),
-                      &response->get<picojson::object>());
+                      &response->get<picojson::object>(),\
+                      ("contacts_list_next function failed"));
           return;
         }
         continue;
@@ -460,10 +456,10 @@ void CallHistory::removeAll(const picojson::object& args)
       value = 0;
       ret = contacts_list_next(record_list);
       if (CONTACTS_ERROR_NONE != ret && CONTACTS_ERROR_NO_DATA != ret) {
-        LoggerE("contacts_list_next function failed");
-        ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR,
+        LogAndReportError(PlatformResult(ErrorCode::UNKNOWN_ERR,
                                    "Get next record from list failed."),
-                    &response->get<picojson::object>());
+                    &response->get<picojson::object>(),
+                    ("contacts_list_next function failed"));
         return;
       }
     }
@@ -471,10 +467,10 @@ void CallHistory::removeAll(const picojson::object& args)
     if (cnt > 0) {
       ret = contacts_db_delete_records(_contacts_phone_log._uri, list, cnt);
       if (CONTACTS_ERROR_NONE != ret) {
-        LoggerE("contacts_db_delete_records function failed");
-        ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR,
+        LogAndReportError(PlatformResult(ErrorCode::UNKNOWN_ERR,
                                    "Delete records function failed."),
-                    &response->get<picojson::object>());
+                    &response->get<picojson::object>(),
+                    ("contacts_db_delete_records function failed"));
         return;
       }
     }
@@ -624,8 +620,7 @@ PlatformResult CallHistory::startCallHistoryChangeListener()
                                                    changeListenerCB, this);
 
     if (CONTACTS_ERROR_NONE != ret) {
-      LoggerE("Failed to add ChangeListener");
-      return PlatformResult(ErrorCode::UNKNOWN_ERR,
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
                             "Failed to add ChangeListener");
     }
   }
@@ -642,8 +637,7 @@ PlatformResult CallHistory::stopCallHistoryChangeListener()
                                                       changeListenerCB, this);
 
     if (CONTACTS_ERROR_NONE != ret) {
-      LoggerE("Failed to remove ChangeListener");
-      return PlatformResult(ErrorCode::UNKNOWN_ERR,
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
                             "Failed to remove ChangeListener");
     }
   }
@@ -664,14 +658,14 @@ PlatformResult CallHistory::setMissedDirection(int uid)
 
   int ret = contacts_db_get_record(_contacts_phone_log._uri, uid, &record);
   if (CONTACTS_ERROR_NONE != ret) {
-    LoggerE("Failed to get record [%d]", ret);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to get record");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Failed to get record",
+                              ("Failed to get record [%d]", ret));
   }
 
   ret = contacts_record_get_int(record, _contacts_phone_log.log_type, &log_type);
   if (CONTACTS_ERROR_NONE != ret) {
-    LoggerE("Failed to get log type [%d]", ret);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to get log type");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Failed to get log type",
+                          ("Failed to get log type [%d]", ret));
   }
 
   if (CONTACTS_PLOG_TYPE_VOICE_INCOMMING_UNSEEN == log_type) {
@@ -685,14 +679,14 @@ PlatformResult CallHistory::setMissedDirection(int uid)
   }
 
   if (CONTACTS_ERROR_NONE != ret) {
-    LoggerE("Failed to set direction [%d]", ret);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to set direction");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Failed to set direction",
+                              ("Failed to set direction [%d]", ret));
   }
 
   ret = contacts_db_update_record(record);
   if (CONTACTS_ERROR_NONE != ret) {
-    LoggerE("Failed to update record [%d]", ret);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to update record");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Failed to update record",
+                          ("Failed to update record [%d]", ret));
   }
 
   return PlatformResult(ErrorCode::NO_ERROR);
