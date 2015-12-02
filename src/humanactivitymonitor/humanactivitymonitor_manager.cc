@@ -47,7 +47,7 @@ PlatformResult HumanActivityMonitorManager::IsSupported(
 
   // check cache first
   if (supported_.count(type)) {
-    return PlatformResult(supported_[type]
+    return LogAndCreateResult(supported_[type]
         ? ErrorCode::NO_ERROR
         : ErrorCode::NOT_SUPPORTED_ERR);
   }
@@ -60,26 +60,26 @@ PlatformResult HumanActivityMonitorManager::IsSupported(
   } else if (type == kActivityTypeWristUp) {
     ret = gesture_is_supported(GESTURE_WRIST_UP, &supported);
     if (ret != SENSOR_ERROR_NONE) {
-      LOGGER(ERROR) << "gesture_is_supported(GESTURE_WRIST_UP), error: " << ret;
-      return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                            "WRIST_UP gesture check failed");
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                            "WRIST_UP gesture check failed",
+                            ("gesture_is_supported(GESTURE_WRIST_UP), error: %d",ret));
     }
   } else if (type == kActivityTypeHrm) {
     ret = sensor_is_supported(SENSOR_HRM, &supported);
     if (ret != SENSOR_ERROR_NONE) {
-      LOGGER(ERROR) << "sensor_is_supported(HRM), error: " << ret;
-      return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                            "HRM sensor check failed");
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                            "HRM sensor check failed",
+                            ("sensor_is_supported(HRM), error: %d",ret));
     }
   } else if (type == kActivityTypeGps) {
     supported = location_manager_is_supported_method(LOCATIONS_METHOD_GPS);
   } else {
-    return PlatformResult(ErrorCode::TYPE_MISMATCH_ERR);
+    return LogAndCreateResult(ErrorCode::TYPE_MISMATCH_ERR);
   }
 
   supported_[type] = supported;
 
-  return PlatformResult(supported_[type]
+  return LogAndCreateResult(supported_[type]
       ? ErrorCode::NO_ERROR
       : ErrorCode::NOT_SUPPORTED_ERR);
 }
@@ -108,7 +108,7 @@ PlatformResult HumanActivityMonitorManager::SetListener(
     return SetGpsListener(callback);
   }
 
-  return PlatformResult(ErrorCode::UNKNOWN_ERR, "Undefined activity type");
+  return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Undefined activity type");
 }
 
 PlatformResult HumanActivityMonitorManager::UnsetListener(
@@ -135,7 +135,7 @@ PlatformResult HumanActivityMonitorManager::UnsetListener(
     return UnsetGpsListener();
   }
 
-  return PlatformResult(ErrorCode::UNKNOWN_ERR, "Undefined activity type");
+  return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Undefined activity type");
 }
 
 PlatformResult HumanActivityMonitorManager::GetHumanActivityData(
@@ -148,7 +148,7 @@ PlatformResult HumanActivityMonitorManager::GetHumanActivityData(
   }
 
   if (type == kActivityTypeWristUp) {
-    return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR);
+    return LogAndCreateResult(ErrorCode::NOT_SUPPORTED_ERR);
   }
 
   if (type == kActivityTypeHrm) {
@@ -159,7 +159,7 @@ PlatformResult HumanActivityMonitorManager::GetHumanActivityData(
     return GetGpsData(data);
   }
 
-  return PlatformResult(ErrorCode::UNKNOWN_ERR, "Undefined activity type");
+  return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Undefined activity type");
 }
 
 // WRIST_UP
@@ -170,9 +170,9 @@ PlatformResult HumanActivityMonitorManager::SetWristUpListener(
 
   ret = gesture_create(&gesture_handle_);
   if (ret != GESTURE_ERROR_NONE) {
-    LOGGER(ERROR) << "Failed to create WRIST_UP handle, error: " << ret;
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Failed to create WRIST_UP listener");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                          "Failed to create WRIST_UP listener",
+                          ("Failed to create WRIST_UP handle, error: %d",ret));
   }
 
   ret = gesture_start_recognition(gesture_handle_,
@@ -181,9 +181,9 @@ PlatformResult HumanActivityMonitorManager::SetWristUpListener(
                                   OnWristUpEvent,
                                   this);
   if (ret != GESTURE_ERROR_NONE) {
-    LOGGER(ERROR) << "Failed to start WRIST_UP listener, error: " << ret;
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Failed to start WRIST_UP listener");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                          "Failed to start WRIST_UP listener",
+                          ("Failed to start WRIST_UP listener, error: %d",ret));
   }
 
   wrist_up_event_callback_ = callback;
@@ -238,16 +238,16 @@ PlatformResult HumanActivityMonitorManager::SetHrmListener(
 
   ret = sensor_get_default_sensor(SENSOR_HRM, &hrm_sensor);
   if (ret != SENSOR_ERROR_NONE) {
-    LOGGER(ERROR) << "Failed to get HRM sensor, error: " << ret;
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Failed to get HRM sensor");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                          "Failed to get HRM sensor",
+                          ("Failed to get HRM sensor, error: %d",ret));
   }
 
   ret = sensor_create_listener(hrm_sensor, &hrm_sensor_listener_);
   if (ret != SENSOR_ERROR_NONE) {
-    LOGGER(ERROR) << "Failed to create HRM sensor listener, error: " << ret;
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Failed to create HRM sensor listener");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                          "Failed to create HRM sensor listener",
+                          ("Failed to create HRM sensor listener, error: %d",ret));
   }
 
   ret = sensor_listener_set_event_cb(hrm_sensor_listener_,
@@ -255,16 +255,16 @@ PlatformResult HumanActivityMonitorManager::SetHrmListener(
                                      OnHrmSensorEvent,
                                      this);
   if (ret != SENSOR_ERROR_NONE) {
-    LOGGER(ERROR) << "Failed to set HRM sensor listener, error: " << ret;
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Failed to set HRM sensor listener");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                          "Failed to set HRM sensor listener",
+                          ("Failed to set HRM sensor listener, error: %d",ret));
   }
 
   ret = sensor_listener_start(hrm_sensor_listener_);
   if (ret != SENSOR_ERROR_NONE) {
-    LOGGER(ERROR) << "Failed to start HRM sensor listener, error: " << ret;
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Failed to start HRM sensor listener");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                          "Failed to start HRM sensor listener",
+                          ("Failed to start HRM sensor listener, error: %d",ret));
   }
 
   hrm_event_callback_ = callback;
@@ -278,23 +278,23 @@ PlatformResult HumanActivityMonitorManager::UnsetHrmListener() {
   if (hrm_sensor_listener_) {
     int ret = sensor_listener_stop(hrm_sensor_listener_);
     if (ret != SENSOR_ERROR_NONE) {
-      LOGGER(ERROR) << "Failed to stop HRM sensor, error: " << ret;
-      return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                            "Failed to stop HRM sensor");
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                            "Failed to stop HRM sensor",
+                            ("Failed to stop HRM sensor, error: "%d,ret));
     }
 
     ret = sensor_listener_unset_event_cb(hrm_sensor_listener_);
     if (ret != SENSOR_ERROR_NONE) {
-      LOGGER(ERROR) << "Failed to unset HRM sensor listener, error: " << ret;
-      return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                            "Failed to unset HRM sensor listener");
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                            "Failed to unset HRM sensor listener",
+                            ("Failed to unset HRM sensor listener, error: %d",ret));
     }
 
     ret = sensor_destroy_listener(hrm_sensor_listener_);
     if (ret != SENSOR_ERROR_NONE) {
-      LOGGER(ERROR) << "Failed to destroy HRM sensor listener, error: " << ret;
-      return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                            "Failed to destroy HRM sensor listener");
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                            "Failed to destroy HRM sensor listener",
+                            ("Failed to destroy HRM sensor listener, error: %d",ret));
     }
   }
 
@@ -311,8 +311,7 @@ static PlatformResult ConvertHrmEvent(sensor_event_s* event,
   LOGGER(DEBUG) << "  |- value_count: " << event->value_count;
 
   if (event->value_count < 2) {
-    LOGGER(ERROR) << "To few values of HRM event";
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "To few values of HRM event");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "To few values of HRM event");
   }
 
   LOGGER(DEBUG) << "  |- values[0]: " << event->values[0];
@@ -358,7 +357,7 @@ void HumanActivityMonitorManager::OnHrmSensorEvent(
 PlatformResult HumanActivityMonitorManager::GetHrmData(picojson::value* data) {
   LoggerD("Enter");
   if (!hrm_sensor_listener_) {
-    return PlatformResult(ErrorCode::SERVICE_NOT_AVAILABLE_ERR);
+    return LogAndCreateResult(ErrorCode::SERVICE_NOT_AVAILABLE_ERR);
   }
 
   int ret;
@@ -366,9 +365,9 @@ PlatformResult HumanActivityMonitorManager::GetHrmData(picojson::value* data) {
   sensor_event_s event;
   ret = sensor_listener_read_data(hrm_sensor_listener_, &event);
   if (ret != SENSOR_ERROR_NONE) {
-    LOGGER(ERROR) << "Failed to get HRM sensor data, error: " << ret;
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Failed to get HRM sensor data");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                          "Failed to get HRM sensor data",
+                          ("Failed to get HRM sensor data, error: %d",ret));
   }
 
   *data = picojson::value(picojson::object());
@@ -389,9 +388,9 @@ PlatformResult HumanActivityMonitorManager::SetGpsListener(
 
   ret = location_manager_create(LOCATIONS_METHOD_GPS, &location_handle_);
   if (ret != LOCATIONS_ERROR_NONE) {
-    LOGGER(ERROR) << "Failed to create location manager, error: " << ret;
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Failed to create location manager");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                          "Failed to create location manager",
+                          ("Failed to create location manager, error: %d",ret));
   }
 
   ret = location_manager_set_location_batch_cb(location_handle_,
@@ -400,16 +399,16 @@ PlatformResult HumanActivityMonitorManager::SetGpsListener(
                                                120, // batch_period
                                                this);
   if (ret != LOCATIONS_ERROR_NONE) {
-    LOGGER(ERROR) << "Failed to set location listener, error: " << ret;
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Failed to set location listener");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                          "Failed to set location listener",
+                          ("Failed to set location listener, error: %d",ret));
   }
 
   ret = location_manager_start_batch(location_handle_);
   if (ret != LOCATIONS_ERROR_NONE) {
-    LOGGER(ERROR) << "Failed to start location manager, error: " << ret;
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Failed to start location manager");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                          "Failed to start location manager",
+                          ("Failed to start location manager, error: %d",ret));
   }
 
   gps_event_callback_ = callback;
@@ -423,23 +422,23 @@ PlatformResult HumanActivityMonitorManager::UnsetGpsListener() {
   if (location_handle_) {
     int ret = location_manager_stop_batch(location_handle_);
     if (ret != LOCATIONS_ERROR_NONE) {
-      LOGGER(ERROR) << "Failed to stop location manager, error: " << ret;
-      return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                            "Failed to stop location manager");
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                            "Failed to stop location manager",
+                            ("Failed to stop location manager, error: %d",ret));
     }
 
     ret = location_manager_unset_location_batch_cb(location_handle_);
     if (ret != LOCATIONS_ERROR_NONE) {
-      LOGGER(ERROR) << "Failed to unset location listener, error: " << ret;
-      return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                            "Failed to unset location listener");
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                            "Failed to unset location listener",
+                            ("Failed to unset location listener, error: %d",ret));
     }
 
     ret = location_manager_destroy(location_handle_);
     if (ret != LOCATIONS_ERROR_NONE) {
-      LOGGER(ERROR) << "Failed to destroy location manager, error: " << ret;
-      return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                            "Failed to destroy location manager");
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                            "Failed to destroy location manager",
+                            ("Failed to destroy location manager, error: %d",ret));
     }
   }
 
@@ -503,7 +502,7 @@ void HumanActivityMonitorManager::OnGpsEvent(int num_of_location,
 PlatformResult HumanActivityMonitorManager::GetGpsData(picojson::value* data) {
   LoggerD("Enter");
   if (!location_handle_) {
-    return PlatformResult(ErrorCode::SERVICE_NOT_AVAILABLE_ERR);
+    return LogAndCreateResult(ErrorCode::SERVICE_NOT_AVAILABLE_ERR);
   }
 
   int ret;
@@ -516,8 +515,8 @@ PlatformResult HumanActivityMonitorManager::GetGpsData(picojson::value* data) {
                                       &level, &horizontal, &vertical,
                                       &timestamp);
   if (ret != LOCATIONS_ERROR_NONE) {
-    LOGGER(ERROR) << "Failed to get location, error: " << ret;
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to get location");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Failed to get location",
+                              ("Failed to get location, error: %d",ret));
   }
 
   *data = picojson::value(picojson::array());
