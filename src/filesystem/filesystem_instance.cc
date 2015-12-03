@@ -81,7 +81,7 @@ FilesystemInstance::~FilesystemInstance() {
 
 #define CHECK_EXIST(args, name, out)                                       \
   if (!args.contains(name)) {                                              \
-    ReportError(TypeMismatchException(name " is required argument"), out); \
+    LogAndReportError(TypeMismatchException(name " is required argument"), out); \
     return;                                                                \
   }
 
@@ -399,7 +399,7 @@ void FilesystemInstance::onFilesystemStateChangeErrorCallback() {
   LoggerD("enter");
   picojson::value event = picojson::value(picojson::object());
   picojson::object& obj = event.get<picojson::object>();
-  ReportError(UnknownException(std::string("Failed to registerd listener")), obj);
+  LogAndReportError(UnknownException(std::string("Failed to registerd listener")), obj);
   obj["listenerId"] = picojson::value("StorageStateChangeListener");
   LoggerD("Posting: %s", event.serialize().c_str());
   Instance::PostMessage(this, event.serialize().c_str());
@@ -597,40 +597,39 @@ void FilesystemInstance::PrepareError(const FilesystemError& error, picojson::ob
   LoggerD("enter");
   switch (error) {
     case FilesystemError::None:
-      LoggerE("UnknownException - PLATFORM ERROR");
-      ReportError(UnknownException("PLATFORM ERROR"), out);
+      LogAndReportError(UnknownException("PLATFORM ERROR"), out);
       break;
     case FilesystemError::NotFound:
-      LoggerE("NotFoundException - PLATFORM ERROR");
-      ReportError(NotFoundException("PLATFORM ERROR"), out);
+      LogAndReportError(NotFoundException("PLATFORM ERROR"), out,
+                        ("NotFoundException - PLATFORM ERROR"));
       break;
     case FilesystemError::FileExists:
-      LoggerE("IOException - File already exists");
-      ReportError(IOException("File already exists"), out);
+      LogAndReportError(IOException("File already exists"), out,
+                        ("IOException - File already exists"));
       break;
     case FilesystemError::DirectoryExists:
-      LoggerE("IOException - Directory already exists");
-      ReportError(IOException("Directory already exists"), out);
+      LogAndReportError(IOException("Directory already exists"), out,
+                        ("IOException - Directory already exists"));
       break;
     case FilesystemError::PermissionDenied:
-      LoggerE("IOException - Permission denied");
-      ReportError(IOException("Permission denied"), out);
+      LogAndReportError(IOException("Permission denied"), out,
+                        ("IOException - Permission denied"));
       break;
     case FilesystemError::IOError:
-      LoggerE("IOException - IO Error");
-      ReportError(IOException("IO Error"), out);
+      LogAndReportError(IOException("IO Error"), out,
+                        ("IOException - IO Error"));
       break;
     case FilesystemError::Other:
-      LoggerE("UnknownException - PLATFORM ERROR other");
-      ReportError(UnknownException("PLATFORM ERROR other"), out);
+      LogAndReportError(UnknownException("PLATFORM ERROR other"), out,
+                        ("UnknownException - PLATFORM ERROR other"));
       break;
     case FilesystemError::InvalidValue:
-      LoggerE("InvalidValuesException - PLATFORM ERROR");
-      ReportError(InvalidValuesException("PLATFORM ERROR"), out);
+      LogAndReportError(InvalidValuesException("PLATFORM ERROR"), out,
+                        ("InvalidValuesException - PLATFORM ERROR"));
       break;
     default:
-      LoggerE("UnknownException - PLATFORM ERROR default");
-      ReportError(UnknownException("PLATFORM ERROR default"), out);
+      LogAndReportError(UnknownException("PLATFORM ERROR default"), out,
+                        ("UnknownException - PLATFORM ERROR default"));
       break;
   }
 }
