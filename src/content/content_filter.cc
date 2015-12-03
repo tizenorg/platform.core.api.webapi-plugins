@@ -88,8 +88,7 @@ PlatformResult ContentFilter::MapField(const std::string& name,
     *result = it->second;
   else
   {
-    LoggerE("INVALID_VALUES_ERR");
-    return PlatformResult(ErrorCode::INVALID_VALUES_ERR);
+    return LogAndCreateResult(ErrorCode::INVALID_VALUES_ERR);
   }
   return PlatformResult(ErrorCode::NO_ERROR);
 }
@@ -123,8 +122,7 @@ PlatformResult ContentFilter::BuildQuery(const picojson::object& jsFilter,
     } else if (AttributeMatchFlag::kExists == match_flag) {
       query += " IS NOT NULL ";
     } else {
-      LoggerE("INVALID_VALUES_ERR");
-      return PlatformResult(ErrorCode::INVALID_VALUES_ERR);
+      return LogAndCreateResult(ErrorCode::INVALID_VALUES_ERR);
     }
     if (AttributeMatchFlag::kExists != match_flag) {
       query.append("\"");
@@ -233,13 +231,11 @@ PlatformResult ContentFilter::BuildQuery(const picojson::object& jsFilter,
   });
 
   if (!visitor.Visit(jsFilter)) {
-    LoggerE("INVALID_VALUES_ERR");
-    return PlatformResult(ErrorCode::INVALID_VALUES_ERR);
+    return LogAndCreateResult(ErrorCode::INVALID_VALUES_ERR);
   }
 
   if (partialqueries.empty()) {
-    LoggerE("Filter parsing error!");
-    return PlatformResult(ErrorCode::SYNTAX_ERR);
+    return LogAndCreateResult(ErrorCode::SYNTAX_ERR);
   }
   if (partialqueries.back().empty()) {
     LoggerD("Resolved to empty string!");

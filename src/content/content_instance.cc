@@ -36,6 +36,7 @@ namespace content {
 
 using common::tools::ReportSuccess;
 using common::tools::ReportError;
+using common::PlatformResult;
 
 ContentInstance::ContentInstance() :
     noti_handle_(nullptr),
@@ -96,8 +97,8 @@ static gboolean CompletedCallback(const std::shared_ptr<ReplyCallbackData>& user
   if (user_data->isSuccess) {
     ReportSuccess(user_data->result, out);
   } else {
-    LoggerE("Failed: user_data->isSuccess");
-    ReportError(user_data->isSuccess, &out);
+    LogAndReportError(user_data->isSuccess, &out,
+                      ("Failed: user_data->isSuccess"));
   }
 
   common::Instance::PostMessage(user_data->instance, picojson::value(out).serialize().c_str());
@@ -132,8 +133,9 @@ static void* WorkThread(const std::shared_ptr<ReplyCallbackData>& user_data) {
       std::string real_path = common::VirtualFs::GetInstance().GetRealPath(contentURI);
       ret = ContentManager::getInstance()->scanFile(real_path);
       if (ret != MEDIA_CONTENT_ERROR_NONE) {
-        LOGGER(ERROR) << "Scan file failed, error: " << ret;
-        common::PlatformResult err(common::ErrorCode::UNKNOWN_ERR, "Scan file failed.");
+        PlatformResult err = LogAndCreateResult(
+                                  common::ErrorCode::UNKNOWN_ERR, "Scan file failed.",
+                                  ("Scan file failed, error: %d (%s)", ret, get_error_message(ret)));
         user_data->isSuccess = err;
       }
       break;
@@ -181,7 +183,8 @@ static void* WorkThread(const std::shared_ptr<ReplyCallbackData>& user_data) {
       break;
     }
     case ContentManagerErrorCallback: {
-      common::PlatformResult err(common::ErrorCode::UNKNOWN_ERR, "DB Connection is failed.");
+      common::PlatformResult err = LogAndCreateResult(
+                                      common::ErrorCode::UNKNOWN_ERR, "DB Connection is failed.");
       user_data->isSuccess = err;
       break;
     }
@@ -205,7 +208,7 @@ static void ScanDirectoryCallback(media_content_error_e error, void* user_data) 
   if (error == MEDIA_CONTENT_ERROR_NONE) {
     ReportSuccess(out);
   } else {
-    LoggerE("Scanning directory failed (error = %d)", error);
+    LoggerE("Scanning directory failed error: %d (%s)", error, get_error_message(error));
     ReportError(out);
   }
 
@@ -331,7 +334,7 @@ static void changedContentV2Callback(media_content_error_e error,
 
 #define CHECK_EXIST(args, name, out) \
   if (!args.contains(name)) {\
-    ReportError(common::PlatformResult(common::ErrorCode::TYPE_MISMATCH_ERR, (name" is required argument")), &out);\
+    LogAndReportError(common::PlatformResult(common::ErrorCode::TYPE_MISMATCH_ERR, (name" is required argument")), &out);\
     return;\
   }
 
@@ -341,12 +344,11 @@ void ContentInstance::ContentManagerUpdate(const picojson::value& args, picojson
   if (ContentManager::getInstance()->isConnected()) {
     int ret = ContentManager::getInstance()->update(args);
     if (ret != 0) {
-      LoggerE("Failed: ContentManager::getInstance()");
-      ReportError(ContentManager::getInstance()->convertError(ret), &out);
+      LogAndReportError(ContentManager::getInstance()->convertError(ret), &out);
     }
   } else {
-    LoggerE("Failed: DB connection is failed");
-    ReportError(common::PlatformResult(common::ErrorCode::UNKNOWN_ERR, "DB connection is failed."), &out);
+    LogAndReportError(
+        common::PlatformResult(common::ErrorCode::UNKNOWN_ERR, "DB connection is failed."), &out);
   }
 }
 
@@ -440,7 +442,7 @@ void ContentInstance::ContentManagerScanDirectory(const picojson::value& args, p
 
   common::PlatformResult result = ContentManager::getInstance()->scanDirectory(ScanDirectoryCallback, cbData);
   if (result.IsError()) {
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   }
 }
 
@@ -451,7 +453,8 @@ void ContentInstance::ContentManagerCancelScanDirectory(const picojson::value& a
   const std::string& content_dir_uri = args.get("contentDirURI").get<std::string>();
 
   if (ContentManager::getInstance()->cancelScanDirectory(content_dir_uri).IsError()) {
-    ReportError(common::PlatformResult(common::ErrorCode::UNKNOWN_ERR, "Cancel scan directory failed"), &out);
+    LogAndReportError(
+        common::PlatformResult(common::ErrorCode::UNKNOWN_ERR, "Cancel scan directory failed"), &out);
   }
 }
 
@@ -475,12 +478,14 @@ void ContentInstance::ContentManagerSetchangelistener(const picojson::value& arg
 
   if (ContentManager::getInstance()->setChangeListener(changedContentCallback,
                                                        static_cast<void*>(listener_data_)).IsError()) {
-    ReportError(common::PlatformResult(common::ErrorCode::UNKNOWN_ERR, "The callback did not register properly"), &out);
+    LogAndReportError(
+        common::PlatformResult(common::ErrorCode::UNKNOWN_ERR, "The callback did not register properly"), &out);
   }
   if (ContentManager::getInstance()->setV2ChangeListener(&noti_handle_,
                                                        changedContentV2Callback,
                                                        static_cast<void*>(listener_data_)).IsError()) {
-    ReportError(common::PlatformResult(common::ErrorCode::UNKNOWN_ERR, "The callback did not register properly"), &out);
+    LogAndReportError(
+        common::PlatformResult(common::ErrorCode::UNKNOWN_ERR, "The callback did not register properly"), &out);
   }
 }
 
@@ -565,11 +570,12 @@ void ContentInstance::ContentManagerPlaylistAdd(const picojson::value& args, pic
     std::string content_id = args.get("contentId").get<std::string>();
     int ret = ContentManager::getInstance()->playlistAdd(playlist_id, content_id);
     if(ret != MEDIA_CONTENT_ERROR_NONE) {
-      ReportError(ContentManager::getInstance()->convertError(ret),&out);
+      LogAndReportError(ContentManager::getInstance()->convertError(ret),&out);
     }
   }
   else {
-    ReportError(common::PlatformResult(common::ErrorCode::UNKNOWN_ERR, "DB connection is failed."), &out);
+    LogAndReportError(
+        common::PlatformResult(common::ErrorCode::UNKNOWN_ERR, "DB connection is failed."), &out);
   }
 }
 
@@ -617,11 +623,12 @@ void ContentInstance::ContentManagerPlaylistRemove(const picojson::value& args, 
     int member_id = args.get("memberId").get<double>();
     int ret = ContentManager::getInstance()->playlistRemove(playlist_id, member_id);
     if(ret != MEDIA_CONTENT_ERROR_NONE) {
-      ReportError(ContentManager::getInstance()->convertError(ret),&out);
+      LogAndReportError(ContentManager::getInstance()->convertError(ret),&out);
     }
   }
   else {
-    ReportError(common::PlatformResult(common::ErrorCode::UNKNOWN_ERR, "DB connection is failed."), &out);
+    LogAndReportError(
+        common::PlatformResult(common::ErrorCode::UNKNOWN_ERR, "DB connection is failed."), &out);
   }
 }
 
@@ -689,12 +696,13 @@ void ContentInstance::ContentManagerAudioGetLyrics(const picojson::value& args,
   if (ContentManager::getInstance()->isConnected()) {
     int ret = ContentManager::getInstance()->getLyrics(args, lyrics);
     if (ret != MEDIA_CONTENT_ERROR_NONE) {
-      ReportError(ContentManager::getInstance()->convertError(ret), &out);
+      LogAndReportError(ContentManager::getInstance()->convertError(ret), &out);
     } else {
       ReportSuccess(picojson::value(lyrics), out);
     }
   } else {
-    ReportError(common::PlatformResult(common::ErrorCode::UNKNOWN_ERR, "DB connection is failed."), &out);
+    LogAndReportError(
+        common::PlatformResult(common::ErrorCode::UNKNOWN_ERR, "DB connection is failed."), &out);
   }
 }
 
@@ -706,7 +714,7 @@ void ContentInstance::PlaylistGetName(const picojson::value& args, picojson::obj
   std::string name;
   ret = ContentManager::getInstance()->getPlaylistName(id, &name);
   if(ret != MEDIA_CONTENT_ERROR_NONE) {
-    ReportError(ContentManager::getInstance()->convertError(ret), &out);
+    LogAndReportError(ContentManager::getInstance()->convertError(ret), &out);
   } else {
     ReportSuccess(picojson::value(name),out);
   }
@@ -721,7 +729,7 @@ void ContentInstance::PlaylistSetName(const picojson::value& args, picojson::obj
   std::string name = args.get("name").get<std::string>();
   ret = ContentManager::getInstance()->setPlaylistName(id, name);
   if(ret != MEDIA_CONTENT_ERROR_NONE) {
-    ReportError(ContentManager::getInstance()->convertError(ret), &out);
+    LogAndReportError(ContentManager::getInstance()->convertError(ret), &out);
   } else {
     ReportSuccess(out);
   }
@@ -735,7 +743,7 @@ void ContentInstance::PlaylistGetThumbnailUri(const picojson::value& args, picoj
   std::string uri;
   ret = ContentManager::getInstance()->getThumbnailUri(id, &uri);
   if(ret != MEDIA_CONTENT_ERROR_NONE) {
-    ReportError(ContentManager::getInstance()->convertError(ret), &out);
+    LogAndReportError(ContentManager::getInstance()->convertError(ret), &out);
   } else {
     ReportSuccess(picojson::value(uri),out);
   }
@@ -750,7 +758,7 @@ void ContentInstance::PlaylistSetThumbnailUri(const picojson::value& args, picoj
   std::string uri = args.get("uri").get<std::string>();
   ret = ContentManager::getInstance()->setThumbnailUri(id, uri);
   if(ret != MEDIA_CONTENT_ERROR_NONE) {
-    ReportError(ContentManager::getInstance()->convertError(ret), &out);
+    LogAndReportError(ContentManager::getInstance()->convertError(ret), &out);
   } else {
     ReportSuccess(out);
   }
@@ -764,7 +772,7 @@ void ContentInstance::PlaylistGetNumberOfTracks(const picojson::value& args,
   int count = 0;
   int ret = ContentManager::getInstance()->getNumberOfTracks(id, &count);
   if (ret != MEDIA_CONTENT_ERROR_NONE) {
-    ReportError(ContentManager::getInstance()->convertError(ret), &out);
+    LogAndReportError(ContentManager::getInstance()->convertError(ret), &out);
   } else {
     ReportSuccess(picojson::value(static_cast<double>(count)), out);
   }
