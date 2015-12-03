@@ -251,9 +251,9 @@ void GetSize(const std::string& id, int service_mode, picojson::object* out) {
   pkgmgr_client_free(pc);
 
   if (size < 0) {
-    LoggerE("Request service failed: %d (%s)", size, get_error_message(size));
-    ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to get size"),
-                out);
+    LogAndReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to get size"),
+                out,
+                ("Request service failed: %d (%s)", size, get_error_message(size)));
   } else {
     ReportSuccess(picojson::value(static_cast<double>(size)), *out);
   }

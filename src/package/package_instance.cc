@@ -265,7 +265,7 @@ PackageInstance::~PackageInstance() {
 
 #define CHECK_EXIST(args, name, out) \
     if (  !args.contains(name) ) {\
-      ReportError(TypeMismatchException(name" is required argument"), out);\
+      LogAndReportError(TypeMismatchException(name" is required argument"), out);\
       return;\
     }
 
@@ -408,7 +408,7 @@ void PackageInstance::PackageManagerGetTotalSize(const picojson::value& args,
   if (id.is<std::string>()) {
     PackageInfoProvider::GetTotalSize(id.get<std::string>(), &out);
   } else {
-    ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Missing id parameter"),
+    LogAndReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Missing id parameter"),
                 &out);
   }
 }
@@ -422,7 +422,7 @@ void PackageInstance::PackageManagerGetDataSize(const picojson::value& args,
   if (id.is<std::string>()) {
     PackageInfoProvider::GetDataSize(id.get<std::string>(), &out);
   } else {
-    ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Missing id parameter"),
+    LogAndReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Missing id parameter"),
                 &out);
   }
 }
@@ -447,22 +447,22 @@ void PackageInstance::
   }
 
   if ( !manager_ ) {
-    LoggerE("package_manager_h is NULL");
-    ReportError(
+    LogAndReportError(
         UnknownException("The package list change event cannot be " \
         "generated because of a platform error"),
-        out);
+        out,
+        ("package_manager_h is NULL"));
     return;
   }
 
   int ret = package_manager_set_event_cb(
                   manager_, PackageListenerCb, static_cast<void*>(this));
   if (ret != PACKAGE_MANAGER_ERROR_NONE ) {
-    LoggerE("Failed to set event callback: %d (%s)", ret, get_error_message(ret));
-    ReportError(
+    LogAndReportError(
         UnknownException("The package list change event cannot be " \
         "generated because of a platform error"),
-        out);
+        out,
+        ("Failed to set event callback: %d (%s)", ret, get_error_message(ret)));
     return;
   }
 
@@ -482,21 +482,21 @@ void PackageInstance::
   }
 
   if ( !manager_ ) {
-    LoggerE("package_manager_h is NULL");
-    ReportError(
+    LogAndReportError(
         UnknownException("The listener removal request fails" \
         "because of a platform error"),
-        out);
+        out,
+        ("package_manager_h is NULL"));
     return;
   }
 
   int ret = package_manager_unset_event_cb(manager_);
   if (ret != PACKAGE_MANAGER_ERROR_NONE ) {
-    LoggerE("Failed to unset event callback: %d (%s)", ret, get_error_message(ret));
-    ReportError(
+    LogAndReportError(
         UnknownException("The listener removal request fails" \
         "because of a platform error"),
-        out);
+        out,
+        ("Failed to unset event callback: %d (%s)", ret, get_error_message(ret)));
     return;
   }
 
@@ -509,7 +509,7 @@ void PackageInstance::InvokeErrorCallbackAsync(
   LoggerD("Enter");
 
   picojson::object param;
-  ReportError(ex, param);
+  LogAndReportError(ex, param);
   PackageUserDataPtr userData(new PackageUserData(
       this, callback_id, PackageThreadWorkNone));
   userData->data_ = param;
