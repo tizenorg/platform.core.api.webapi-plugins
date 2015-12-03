@@ -494,7 +494,7 @@ int DatacontrolInstance::RunSQLDataControlJob(const std::string& providerId,
 
 #define CHECK_EXIST(args, name, out) \
     if (!args.contains(name)) {\
-      ReportError(TypeMismatchException(name" is required argument"), out);\
+      LogAndReportError(TypeMismatchException(name" is required argument"), out);\
       return;\
     }
 
@@ -521,14 +521,14 @@ void DatacontrolInstance::SQLDataControlConsumerInsert(
       args.get("insertionData").get<picojson::object>();
 
   if (!insertionData.count("columns") || !insertionData.count("values")) {
-    ReportError(TypeMismatchException(
+    LogAndReportError(TypeMismatchException(
             "columns and values is required insertionData argument"), out);
     return;
   }
   if (!insertionData["columns"].is<picojson::array>() ||
       !insertionData["values"].is<picojson::array>()) {
-    ReportError(TypeMismatchException("columns and values type must be array"),
-                out);
+    LogAndReportError(TypeMismatchException("columns and values type must be array"),
+                      out);
     return;
   }
 
@@ -568,11 +568,16 @@ void DatacontrolInstance::SQLDataControlConsumerInsert(
     ReportSuccess(out);
   } else {
     if (result == DATA_CONTROL_ERROR_IO_ERROR) {
-      ReportError(IOException(get_error_message(result)), out);
+      LogAndReportError(
+          IOException(get_error_message(result)), out,
+          ("RunSQLDataControlJob error: %d (%s)", result, get_error_message(result)));
     } else if (result == DATA_CONTROL_ERROR_PERMISSION_DENIED) {
-      ReportError(SecurityException(get_error_message(result)), out);
+      LogAndReportError(
+          SecurityException(get_error_message(result)), out,
+          ("RunSQLDataControlJob error: %d (%s)", result, get_error_message(result)));
     } else {
-      ReportError(UnknownException(get_error_message(result)), out);
+      LogAndReportError(UnknownException(get_error_message(result)), out,
+          ("RunSQLDataControlJob error: %d (%s)", result, get_error_message(result)));
     }
   }
 }
@@ -594,14 +599,14 @@ void DatacontrolInstance::SQLDataControlConsumerUpdate(
   picojson::object updateData = args.get("updateData").get<picojson::object>();
 
   if (!updateData.count("columns") || !updateData.count("values")) {
-    ReportError(TypeMismatchException(
+    LogAndReportError(TypeMismatchException(
             "columns and values is required updateData argument"), out);
     return;
   }
 
   if (!updateData["columns"].is<picojson::array>() ||
       !updateData["values"].is<picojson::array>()) {
-    ReportError(TypeMismatchException(
+    LogAndReportError(TypeMismatchException(
             "columns and values type must be array"), out);
     return;
   }
@@ -644,11 +649,17 @@ void DatacontrolInstance::SQLDataControlConsumerUpdate(
     ReportSuccess(out);
   } else {
     if (result == DATA_CONTROL_ERROR_IO_ERROR) {
-      ReportError(IOException(get_error_message(result)), out);
+      LogAndReportError(
+          IOException(get_error_message(result)), out,
+          ("RunSQLDataControlJob error: %d (%s)", result, get_error_message(result)));
     } else if (result == DATA_CONTROL_ERROR_PERMISSION_DENIED) {
-      ReportError(SecurityException(get_error_message(result)), out);
+      LogAndReportError(
+          SecurityException(get_error_message(result)), out,
+          ("RunSQLDataControlJob error: %d (%s)", result, get_error_message(result)));
     } else {
-      ReportError(UnknownException(get_error_message(result)), out);
+      LogAndReportError(
+          UnknownException(get_error_message(result)), out,
+          ("RunSQLDataControlJob error: %d (%s)", result, get_error_message(result)));
     }
   }
 }
@@ -677,11 +688,16 @@ void DatacontrolInstance::SQLDataControlConsumerRemove(
     ReportSuccess(out);
   } else {
     if (result == DATA_CONTROL_ERROR_IO_ERROR) {
-      ReportError(IOException(get_error_message(result)), out);
+      LogAndReportError(
+          IOException(get_error_message(result)), out,
+          ("RunSQLDataControlJob error: %d (%s)", result, get_error_message(result)));
     } else if (result == DATA_CONTROL_ERROR_PERMISSION_DENIED) {
-      ReportError(SecurityException(get_error_message(result)), out);
+      LogAndReportError(
+          SecurityException(get_error_message(result)), out,
+          ("RunSQLDataControlJob error: %d (%s)", result, get_error_message(result)));
     } else {
-      ReportError(UnknownException(get_error_message(result)), out);
+      LogAndReportError(UnknownException(get_error_message(result)), out,
+          ("RunSQLDataControlJob error: %d (%s)", result, get_error_message(result)));
     }
   }
 }
@@ -739,11 +755,17 @@ void DatacontrolInstance::SQLDataControlConsumerSelect(
     ReportSuccess(out);
   } else {
     if (result == DATA_CONTROL_ERROR_IO_ERROR) {
-      ReportError(IOException(get_error_message(result)), out);
+      LogAndReportError(
+          IOException(get_error_message(result)), out,
+          ("RunSQLDataControlJob error: %d (%s)", result, get_error_message(result)));
     } else if (result == DATA_CONTROL_ERROR_PERMISSION_DENIED) {
-      ReportError(SecurityException(get_error_message(result)), out);
+      LogAndReportError(
+          SecurityException(get_error_message(result)), out,
+          ("RunSQLDataControlJob error: %d (%s)", result, get_error_message(result)));
     } else {
-      ReportError(UnknownException(get_error_message(result)), out);
+      LogAndReportError(
+          UnknownException(get_error_message(result)), out,
+          ("RunSQLDataControlJob error: %d (%s)", result, get_error_message(result)));
     }
   }
 }
@@ -776,11 +798,18 @@ void DatacontrolInstance::MappedDataControlConsumerAddvalue(
     ReportSuccess(out);
   } else {
     if (result == DATA_CONTROL_ERROR_IO_ERROR) {
-      ReportError(IOException(get_error_message(result)), out);
+      LogAndReportError(
+          IOException(get_error_message(result)), out,
+          ("RunMAPDataControlJob error: %d (%s)", result, get_error_message(result)));
+
     } else if (result == DATA_CONTROL_ERROR_PERMISSION_DENIED) {
-      ReportError(SecurityException(get_error_message(result)), out);
+      LogAndReportError(
+          SecurityException(get_error_message(result)), out,
+          ("RunMAPDataControlJob error: %d (%s)", result, get_error_message(result)));
     } else {
-      ReportError(UnknownException(get_error_message(result)), out);
+      LogAndReportError(
+          UnknownException(get_error_message(result)), out,
+          ("RunMAPDataControlJob error: %d (%s)", result, get_error_message(result)));
     }
   }
 }
@@ -812,11 +841,17 @@ void DatacontrolInstance::MappedDataControlConsumerRemovevalue(
     ReportSuccess(out);
   } else {
     if (result == DATA_CONTROL_ERROR_IO_ERROR) {
-      ReportError(IOException(get_error_message(result)), out);
+      LogAndReportError(
+          IOException(get_error_message(result)), out,
+          ("RunMAPDataControlJob error: %d (%s)", result, get_error_message(result)));
     } else if (result == DATA_CONTROL_ERROR_PERMISSION_DENIED) {
-      ReportError(SecurityException(get_error_message(result)), out);
+      LogAndReportError(
+          SecurityException(get_error_message(result)), out,
+          ("RunMAPDataControlJob error: %d (%s)", result, get_error_message(result)));
     } else {
-      ReportError(UnknownException(get_error_message(result)), out);
+      LogAndReportError(
+          UnknownException(get_error_message(result)), out,
+          ("RunMAPDataControlJob error: %d (%s)", result, get_error_message(result)));
     }
   }
 }
@@ -845,11 +880,17 @@ void DatacontrolInstance::MappedDataControlConsumerGetvalue(
     ReportSuccess(out);
   } else {
     if (result == DATA_CONTROL_ERROR_IO_ERROR) {
-      ReportError(IOException(get_error_message(result)), out);
+      LogAndReportError(
+          IOException(get_error_message(result)), out,
+          ("RunMAPDataControlJob error: %d (%s)", result, get_error_message(result)));
     } else if (result == DATA_CONTROL_ERROR_PERMISSION_DENIED) {
-      ReportError(SecurityException(get_error_message(result)), out);
+      LogAndReportError(
+          SecurityException(get_error_message(result)), out,
+          ("RunMAPDataControlJob error: %d (%s)", result, get_error_message(result)));
     } else {
-      ReportError(UnknownException(get_error_message(result)), out);
+      LogAndReportError(
+          UnknownException(get_error_message(result)), out,
+          ("RunMAPDataControlJob error: %d (%s)", result, get_error_message(result)));
     }
   }
 }
@@ -885,11 +926,17 @@ void DatacontrolInstance::MappedDataControlConsumerUpdatevalue(
     ReportSuccess(out);
   } else {
     if (result == DATA_CONTROL_ERROR_IO_ERROR) {
-      ReportError(IOException(get_error_message(result)), out);
+      LogAndReportError(
+          IOException(get_error_message(result)), out,
+          ("RunMAPDataControlJob error: %d (%s)", result, get_error_message(result)));
     } else if (result == DATA_CONTROL_ERROR_PERMISSION_DENIED) {
-      ReportError(SecurityException(get_error_message(result)), out);
+      LogAndReportError(
+          SecurityException(get_error_message(result)), out,
+          ("RunMAPDataControlJob error: %d (%s)", result, get_error_message(result)));
     } else {
-      ReportError(UnknownException(get_error_message(result)), out);
+      LogAndReportError(
+          UnknownException(get_error_message(result)), out,
+          ("RunMAPDataControlJob error: %d (%s)", result, get_error_message(result)));
     }
   }
 }
