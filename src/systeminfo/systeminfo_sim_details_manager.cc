@@ -238,8 +238,9 @@ PlatformResult SimDetailsManager::FetchSimSyncProps(TapiHandle *tapi_handle) {
     msin_ = imsi.szMsin;
   }
   else {
-    LoggerE("Failed to get sim imsi: %d", error);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to get sim imsi");
+    return LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, "Failed to get sim imsi",
+              ("Failed to get sim imsi: %d (%s)", error, get_error_message(error)));
   }
 
   return PlatformResult(ErrorCode::NO_ERROR);

@@ -135,7 +135,8 @@ PlatformResult SysteminfoPropertiesManager::GetPropertyValue(const std::string& 
       array.push_back(result);
     }
     if (property_count == 0) {
-      return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR, "Property with given id is not supported");
+      return LogAndCreateResult(
+                ErrorCode::NOT_SUPPORTED_ERR, "Property with given id is not supported");
     }
   }
 
@@ -176,8 +177,8 @@ PlatformResult SysteminfoPropertiesManager::ReportProperty(const std::string& pr
   } else if ("CAMERA_FLASH" == property) {
     return ReportCameraFlash(res_obj, index);
   }
-  LoggerD("Property with given id is not supported");
-  return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR, "Property with given id is not supported");
+  return LogAndCreateResult(
+            ErrorCode::NOT_SUPPORTED_ERR, "Property with given id is not supported");
 }
 
 /// BATTERY
@@ -187,8 +188,9 @@ PlatformResult SysteminfoPropertiesManager::ReportBattery(picojson::object* out)
   int ret = vconf_get_int(VCONFKEY_SYSMAN_BATTERY_CAPACITY, &value);
   if (kVconfErrorNone != ret) {
     std::string log_msg = "Platform error while getting battery detail: ";
-    LoggerE("%s%d", log_msg.c_str(), ret);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, (log_msg + std::to_string(ret)));
+    return LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, (log_msg + std::to_string(ret)),
+              ("vconf_get_int error: %d (%s)", ret, get_error_message(ret)));
   }
 
   out->insert(std::make_pair("level", picojson::value(static_cast<double>(value)/kRemainingBatteryChargeMax)));
@@ -196,8 +198,9 @@ PlatformResult SysteminfoPropertiesManager::ReportBattery(picojson::object* out)
   ret = vconf_get_int(VCONFKEY_SYSMAN_BATTERY_CHARGE_NOW, &value);
   if (kVconfErrorNone != ret) {
     std::string log_msg =  "Platform error while getting battery charging: ";
-    LoggerE("%s%d",log_msg.c_str(), ret);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, (log_msg + std::to_string(ret)));
+    return LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, (log_msg + std::to_string(ret)),
+              ("vconf_get_int error: %d (%s)", ret, get_error_message(ret)));
   }
   out->insert(std::make_pair("isCharging", picojson::value(0 != value)));
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -211,8 +214,7 @@ PlatformResult SysteminfoPropertiesManager::ReportCpu(picojson::object* out) {
   fp = fopen("/proc/stat", "r");
   if (nullptr == fp) {
     std::string error_msg("Can not open /proc/stat for reading");
-    LoggerE( "%s", error_msg.c_str() );
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, error_msg);
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, error_msg);
   }
 
   long long usr = 0;
@@ -241,8 +243,7 @@ PlatformResult SysteminfoPropertiesManager::ReportCpu(picojson::object* out) {
     }
   } else {
     std::string error_msg( "Could not read /proc/stat" );
-    LoggerE( "%s", error_msg.c_str() );
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, error_msg);
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, error_msg);
   }
 
   manager_.SetCpuInfoLoad(cpu_info.load);
@@ -265,27 +266,35 @@ PlatformResult SysteminfoPropertiesManager::ReportDisplay(picojson::object* out)
   double scaledBrightness;
 
   // FETCH RESOLUTION
-  if (SYSTEM_INFO_ERROR_NONE != system_info_get_platform_int(
-      "tizen.org/feature/screen.width", &screenWidth)) {
-    LoggerE("Cannot get value of screen width");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get value of screen width");
+  int ntv_ret = system_info_get_platform_int("tizen.org/feature/screen.width",
+                                             &screenWidth);
+  if (SYSTEM_INFO_ERROR_NONE != ntv_ret) {
+    return LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, "Cannot get value of screen width",
+              ("system_info_get_platform_int error: %d (%s)",
+                  ntv_ret, get_error_message(ntv_ret)));
   }
-  if (SYSTEM_INFO_ERROR_NONE != system_info_get_platform_int(
-      "tizen.org/feature/screen.height", &screenHeight)) {
-    LoggerE("Cannot get value of screen height");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get value of screen height");
+  ntv_ret = system_info_get_platform_int("tizen.org/feature/screen.height",
+                                         &screenHeight);
+  if (SYSTEM_INFO_ERROR_NONE != ntv_ret) {
+    return LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, "Cannot get value of screen height",
+              ("system_info_get_platform_int error: %d (%s)",
+                  ntv_ret, get_error_message(ntv_ret)));
   }
 
   //FETCH DOTS PER INCH
   int dots_per_inch=0;
-  if (SYSTEM_INFO_ERROR_NONE == system_info_get_platform_int(
-      "tizen.org/feature/screen.dpi", &dots_per_inch)) {
+  ntv_ret = system_info_get_platform_int("tizen.org/feature/screen.dpi",
+                                         &dots_per_inch);
+  if (SYSTEM_INFO_ERROR_NONE == ntv_ret) {
     dotsPerInchWidth = dots_per_inch;
     dotsPerInchHeight = dots_per_inch;
   } else {
-    LoggerE("Cannot get 'tizen.org/feature/screen.dpi' value");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Cannot get 'tizen.org/feature/screen.dpi' value");
+    return LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, "Cannot get 'tizen.org/feature/screen.dpi' value",
+              ("system_info_get_platform_int error: %d (%s)",
+                  ntv_ret, get_error_message(ntv_ret)));
   }
 
   //FETCH PHYSICAL WIDTH
@@ -308,11 +317,13 @@ PlatformResult SysteminfoPropertiesManager::ReportDisplay(picojson::object* out)
 
   //FETCH BRIGHTNESS
   int brightness;
-  if (kVconfErrorNone == vconf_get_int(VCONFKEY_SETAPPL_LCD_BRIGHTNESS, &brightness)) {
+  ntv_ret = vconf_get_int(VCONFKEY_SETAPPL_LCD_BRIGHTNESS, &brightness);
+  if (kVconfErrorNone == ntv_ret) {
     scaledBrightness = static_cast<double>(brightness)/kDisplayBrightnessDivideValue;
   } else {
-    LoggerE("Cannot get brightness value of display");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get brightness value of display");
+    return LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, "Cannot get brightness value of display",
+              ("vconf_get_int error: %d (%s)", ntv_ret, get_error_message(ntv_ret)));
   }
 
   out->insert(std::make_pair("resolutionWidth", picojson::value(std::to_string(screenWidth))));
@@ -340,9 +351,8 @@ PlatformResult SysteminfoPropertiesManager::FetchIsAutoRotation(bool* result) {
     return PlatformResult(ErrorCode::NO_ERROR);
   }
   else {
-    LoggerE("VCONFKEY_SETAPPL_AUTO_ROTATE_SCREEN_BOOL check failed");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "VCONFKEY_SETAPPL_AUTO_ROTATE_SCREEN_BOOL check failed");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                              "VCONFKEY_SETAPPL_AUTO_ROTATE_SCREEN_BOOL check failed");
   }
 }
 
@@ -386,8 +396,9 @@ PlatformResult SysteminfoPropertiesManager::FetchStatus(std::string* result) {
       status = kOrientationLandscapeSecondary;
       break;
     default:
-      LoggerE("Received unexpected data: %u", rotation);
-      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Received unexpected data");
+      return LogAndCreateResult(
+                ErrorCode::UNKNOWN_ERR, "Received unexpected data",
+                ("Received unexpected data: %u", rotation));
   }
   *result = status;
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -487,8 +498,9 @@ static PlatformResult GetNetworkTypeString(NetworkType type, std::string& type_s
       type_string = kNetworkTypeUnknown;
       break;
     default:
-      LoggerE("Incorrect type: %d", type);
-      return PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, "Incorrect type");
+      return LogAndCreateResult(
+                ErrorCode::TYPE_MISMATCH_ERR, "Incorrect type",
+                ("Incorrect type: %d", type));
   }
   return PlatformResult(ErrorCode::NO_ERROR);
 }
@@ -504,8 +516,9 @@ PlatformResult SysteminfoPropertiesManager::ReportNetwork(picojson::object* out,
   int error = connection_create(&connection_handle);
   if (CONNECTION_ERROR_NONE != error) {
     std::string log_msg = "Cannot create connection: " + std::to_string(error);
-    LoggerE("%s", log_msg.c_str());
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
+    return LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, log_msg,
+              ("connection_create error: %d (%s)", error, get_error_message(error)));
   }
   std::unique_ptr<std::remove_pointer<connection_h>::type, int(*)(connection_h)>
   connection_handle_ptr(connection_handle, &connection_destroy);
@@ -514,8 +527,9 @@ PlatformResult SysteminfoPropertiesManager::ReportNetwork(picojson::object* out,
   error = connection_get_type(connection_handle, &connection_type);
   if (CONNECTION_ERROR_NONE != error) {
     std::string log_msg = "Cannot get connection type: " + std::to_string(error);
-    LoggerE("%s", log_msg.c_str());
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
+    return LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, log_msg,
+              ("connection_get_type error: %d (%s)", error, get_error_message(error)));
   }
 
   switch (connection_type) {
@@ -549,8 +563,9 @@ PlatformResult SysteminfoPropertiesManager::ReportNetwork(picojson::object* out,
       type =  kEthernet;
       break;
     default:
-      LoggerE("Incorrect type: %d", connection_type);
-      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Incorrect type");
+      return LogAndCreateResult(
+                ErrorCode::UNKNOWN_ERR, "Incorrect type",
+                ("Incorrect type: %d", connection_type));
   }
   std::string type_str = "";
   PlatformResult ret = GetNetworkTypeString(type, type_str);
@@ -571,8 +586,9 @@ static PlatformResult GetIpsWifi(wifi_ap_h wifi_ap_handle, std::string* ip_addr_
                                      WIFI_ADDRESS_FAMILY_IPV4,
                                      &ip_addr);
   if (WIFI_ERROR_NONE != error) {
-    LoggerE("Failed to get ip address: %d", error);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get ip address");
+    return LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, "Cannot get ip address",
+              ("wifi_ap_get_ip_address error: %d (%s)", error, get_error_message(error)));
   }
   *ip_addr_str = ip_addr;
   free(ip_addr);
@@ -583,8 +599,9 @@ static PlatformResult GetIpsWifi(wifi_ap_h wifi_ap_handle, std::string* ip_addr_
                                  WIFI_ADDRESS_FAMILY_IPV6,
                                  &ip_addr);
   if (WIFI_ERROR_NONE != error) {
-    LoggerE("Failed to get ipv6 address: %d", error);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get ipv6 address");
+    return LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, "Cannot get ipv6 address",
+              ("Failed to get ipv6 address: %d (%s)", error, get_error_message(error)));
   }
   *ipv6_addr_str = ip_addr;
   free(ip_addr);
@@ -601,8 +618,9 @@ static PlatformResult GetIpsFromProfile(connection_profile_h profile_handle, std
                                                 CONNECTION_ADDRESS_FAMILY_IPV4,
                                                 &ip_addr);
   if (CONNECTION_ERROR_NONE != error) {
-    LoggerE("Failed to get ip address: %d", error);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get ip address");
+    return LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, "Cannot get ip address",
+              ("Failed to get ip address: %d (%s)", error, get_error_message(error)));
   }
   *ip_addr_str = ip_addr;
   free(ip_addr);
@@ -617,8 +635,9 @@ static PlatformResult GetIpsFromProfile(connection_profile_h profile_handle, std
   } else if (CONNECTION_ERROR_ADDRESS_FAMILY_NOT_SUPPORTED != error) {
     //core api returns error -97 = CONNECTION_ERROR_ADDRESS_FAMILY_NOT_SUPPORTED
     //it will be supported in the future. For now let's ignore this error
-    LoggerE("Failed to get ipv6 address: %d", error);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get ipv6 address");
+    return LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, "Cannot get ipv6 address",
+              ("Failed to get ipv6 address: %d (%s)", error, get_error_message(error)));
   }
   return PlatformResult(ErrorCode::NO_ERROR);
 }
@@ -637,8 +656,9 @@ PlatformResult SysteminfoPropertiesManager::ReportWifiNetwork(picojson::object* 
   int error = wifi_initialize();
   if (WIFI_ERROR_NONE != error) {
     std::string log_msg = "Initialize failed: " + std::string(get_error_message(error));
-    LoggerE("%s", log_msg.c_str());
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
+    return LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, log_msg,
+              ("wifi_initialize error: %d (%s)", error, get_error_message(error)));
   } else {
     LoggerD("WIFI initialization succeed");
   }
@@ -652,8 +672,9 @@ PlatformResult SysteminfoPropertiesManager::ReportWifiNetwork(picojson::object* 
   if (WIFI_ERROR_NONE != error) {
     std::string log_msg = "Checking if wifi is activated failed: " +
         std::string(get_error_message(error));
-    LoggerE("%s", log_msg.c_str());
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
+    return LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, log_msg,
+              ("wifi_is_activated error: %d (%s)", error, get_error_message(error)));
   } else {
     LoggerD("WIFI activated check succeed");
   }
@@ -668,8 +689,9 @@ PlatformResult SysteminfoPropertiesManager::ReportWifiNetwork(picojson::object* 
       if (WIFI_ERROR_NO_CONNECTION != error) {
         std::string log_msg = "Cannot get connected access point handle: " +
             std::string(get_error_message(error));
-        LoggerE("%s", log_msg.c_str());
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
+        return LogAndCreateResult(
+                  ErrorCode::UNKNOWN_ERR, log_msg,
+                  ("wifi_get_connected_ap error: %d (%s)", error, get_error_message(error)));
       }
     } else {
       //if getting connected AP succeed, set status on true
@@ -691,8 +713,9 @@ PlatformResult SysteminfoPropertiesManager::ReportWifiNetwork(picojson::object* 
       free(mac);
     } else {
       std::string log_msg = "Failed to get mac address: " + std::string(get_error_message(error));
-      LoggerE("%s", log_msg.c_str());
-      return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
+      return LogAndCreateResult(
+                ErrorCode::UNKNOWN_ERR, log_msg,
+                ("wifi_get_mac_address error: %d (%s)", error, get_error_message(error)));
     }
 
     //refreshing access point information
@@ -700,8 +723,9 @@ PlatformResult SysteminfoPropertiesManager::ReportWifiNetwork(picojson::object* 
     if (WIFI_ERROR_NONE != error) {
       std::string log_msg = "Failed to refresh access point information: " +
           std::string(get_error_message(error));
-      LoggerE("%s", log_msg.c_str());
-      return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
+      return LogAndCreateResult(
+                ErrorCode::UNKNOWN_ERR, log_msg,
+                ("wifi_ap_refresh error: %d (%s)", error, get_error_message(error)));
     }
 
     //gathering ssid
@@ -712,8 +736,9 @@ PlatformResult SysteminfoPropertiesManager::ReportWifiNetwork(picojson::object* 
       free(essid);
     } else {
       std::string log_msg = "Failed to get network ssid: " + std::string(get_error_message(error));
-      LoggerE("%s", log_msg.c_str());
-      return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
+      return LogAndCreateResult(
+                ErrorCode::UNKNOWN_ERR, log_msg,
+                ("wifi_ap_get_essid error: %d (%s)", error, get_error_message(error)));
     }
 
     //gathering ips
@@ -734,8 +759,9 @@ PlatformResult SysteminfoPropertiesManager::ReportWifiNetwork(picojson::object* 
       } else {
         std::string log_msg = "Failed to get signal strength: " +
             std::string(get_error_message(error));
-        LoggerE("%s", log_msg.c_str());
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
+        return LogAndCreateResult(
+                  ErrorCode::UNKNOWN_ERR, log_msg,
+                  ("wifi_ap_get_rssi error: %d (%s)", error, get_error_message(error)));
       }
     } else {
       result_signal_strength = ((double) rssi_level)/WIFI_RSSI_LEVEL_4;
@@ -771,8 +797,9 @@ PlatformResult SysteminfoPropertiesManager::ReportEthernetNetwork(picojson::obje
   int error = connection_create(&connection_handle);
   if (CONNECTION_ERROR_NONE != error) {
     std::string log_msg = "Cannot create connection: " + std::to_string(error);
-    LoggerE("%s", log_msg.c_str());
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
+    return LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, log_msg,
+              ("connection_create error: %d (%s)", error, get_error_message(error)));
   }
   std::unique_ptr<std::remove_pointer<connection_h>::type, int (*)(connection_h)> connection_handle_ptr(
       connection_handle, &connection_destroy);  // automatically release the memory
@@ -781,12 +808,14 @@ PlatformResult SysteminfoPropertiesManager::ReportEthernetNetwork(picojson::obje
   if (CONNECTION_ERROR_NONE != error) {
     if (CONNECTION_ERROR_NOT_SUPPORTED == error) {
       std::string log_msg = "Cannot get ethernet connection state: Not supported";
-      LoggerE("%s", log_msg.c_str());
-      return PlatformResult(ErrorCode::NOT_SUPPORTED_ERR, log_msg);
+      return LogAndCreateResult(
+                ErrorCode::NOT_SUPPORTED_ERR, log_msg,
+                ("connection_get_ethernet_state error: %d (%s)", error, get_error_message(error)));
     }
     std::string log_msg = "Cannot get ethernet connection state: " + std::to_string(error);
-    LoggerE("%s", log_msg.c_str());
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
+    return LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, log_msg,
+              ("connection_get_ethernet_state error: %d (%s)", error, get_error_message(error)));
   }
 
   switch (connection_state) {
@@ -811,8 +840,10 @@ PlatformResult SysteminfoPropertiesManager::ReportEthernetNetwork(picojson::obje
   error = connection_get_ethernet_cable_state(connection_handle, &cable_state);
   if (CONNECTION_ERROR_NONE != error) {
     std::string log_msg = "Cannot get ethernet cable state: " + std::to_string(error);
-    LoggerE("%s", log_msg.c_str());
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
+    return LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, log_msg,
+              ("connection_get_ethernet_cable_state error: %d (%s)",
+                  error, get_error_message(error)));
   }
 
   switch (cable_state) {
@@ -837,15 +868,17 @@ PlatformResult SysteminfoPropertiesManager::ReportEthernetNetwork(picojson::obje
     free(mac);
   } else {
     std::string log_msg = "Failed to get mac address: " + std::to_string(error);
-    LoggerE("%s", log_msg.c_str());
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
+    return LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, log_msg,
+              ("connection_get_mac_address error: %d (%s)", error, get_error_message(error)));
   }
 
   error = connection_get_type(connection_handle, &connection_type);
   if (CONNECTION_ERROR_NONE != error) {
     std::string log_msg = "Cannot get connection type: " + std::to_string(error);
-    LoggerE("%s", log_msg.c_str());
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
+    return LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, log_msg,
+              ("connection_get_type error: %d (%s)", error, get_error_message(error)));
   }
 
   if (CONNECTION_TYPE_ETHERNET == connection_type) {
@@ -853,8 +886,9 @@ PlatformResult SysteminfoPropertiesManager::ReportEthernetNetwork(picojson::obje
     error = connection_get_current_profile(connection_handle, &profile_handle);
     if (CONNECTION_ERROR_NONE != error) {
       std::string log_msg = "Cannot get connection profile: " + std::to_string(error);
-      LoggerE("%s", log_msg.c_str());
-      return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
+      return LogAndCreateResult(
+                ErrorCode::UNKNOWN_ERR, log_msg,
+                ("connection_get_current_profile %d (%s)", error, get_error_message(error)));
     }
     std::unique_ptr<std::remove_pointer<connection_profile_h>::type,
         int (*)(connection_profile_h)> profile_handle_ptr(
@@ -892,8 +926,7 @@ static PlatformResult FetchBasicSimProperties(TapiHandle *tapi_handle,
   tapi_res = tel_get_property_int(tapi_handle, TAPI_PROP_NETWORK_PLMN, &result_value);
   if (TAPI_API_SUCCESS != tapi_res) {
     std::string error_msg = "Cannot get mcc value, error: " + std::to_string(tapi_res);
-    LoggerE("%s", error_msg.c_str());
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, error_msg);
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, error_msg);
   }
   *result_mcc = static_cast<unsigned short>(result_value) / kMccDivider;
   *result_mnc = static_cast<unsigned short>(result_value) % kMccDivider;
@@ -901,30 +934,26 @@ static PlatformResult FetchBasicSimProperties(TapiHandle *tapi_handle,
   tapi_res = tel_get_property_int(tapi_handle, TAPI_PROP_NETWORK_CELLID, &result_value);
   if (TAPI_API_SUCCESS != tapi_res) {
     std::string error_msg = "Cannot get cell_id value, error: " + std::to_string(tapi_res);
-    LoggerE("%s", error_msg.c_str());
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, error_msg);
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, error_msg);
   }
   *result_cell_id = static_cast<unsigned short>(result_value);
 
   tapi_res = tel_get_property_int(tapi_handle, TAPI_PROP_NETWORK_LAC, &result_value);
   if (TAPI_API_SUCCESS != tapi_res) {
     std::string error_msg = "Cannot get lac value, error: " + std::to_string(tapi_res);
-    LoggerE("%s", error_msg.c_str());
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, error_msg);
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, error_msg);
   }
   *result_lac = static_cast<unsigned short>(result_value);
 
   tapi_res = tel_get_property_int(tapi_handle, TAPI_PROP_NETWORK_ROAMING_STATUS, &result_value);
   if (TAPI_API_SUCCESS != tapi_res) {
     std::string error_msg = "Cannot get is_roaming value, error: " + std::to_string(tapi_res);
-    LoggerE("%s", error_msg.c_str());
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, error_msg);
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, error_msg);
   }
   *result_is_roaming = (0 != result_value) ? true : false;
 
   if (0 != vconf_get_bool(VCONFKEY_TELEPHONY_FLIGHT_MODE, &result_value)) {
-    LoggerE("Cannot get is_flight_mode value");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get is_flight_mode value");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Cannot get is_flight_mode value");
   }
   *result_is_flight_mode = (0 != result_value) ? true : false;
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -942,8 +971,9 @@ static PlatformResult FetchConnection(TapiHandle *tapi_handle, std::string* resu
   int error = connection_create(&connection_handle);
   if (CONNECTION_ERROR_NONE != error) {
     std::string log_msg = "Cannot create connection: " + std::to_string(error);
-    LoggerE("%s", log_msg.c_str());
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, log_msg);
+    return LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, log_msg,
+              ("connection_create error: %d (%s)", error, get_error_message(error)));
   }
   std::unique_ptr<std::remove_pointer<connection_h>::type, int(*)(connection_h)>
   connection_handle_ptr(connection_handle, &connection_destroy);
@@ -951,8 +981,9 @@ static PlatformResult FetchConnection(TapiHandle *tapi_handle, std::string* resu
 
   error = connection_get_type(connection_handle, &connection_type);
   if (CONNECTION_ERROR_NONE != error) {
-    LoggerE("Failed to get connection type: %d", error);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get connection type");
+    return LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, "Cannot get connection type",
+              ("Failed to get connection type: %d (%s)", error, get_error_message(error)));
   }
 
   char* apn = nullptr;
@@ -966,14 +997,16 @@ static PlatformResult FetchConnection(TapiHandle *tapi_handle, std::string* resu
     profile_handle_ptr(profile_handle, &connection_profile_destroy);
     // automatically release the memory
     if (CONNECTION_ERROR_NONE != error) {
-      LoggerE("Failed to get profile: %d", error);
-      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get profile");
+      return LogAndCreateResult(
+                ErrorCode::UNKNOWN_ERR, "Cannot get profile",
+                ("Failed to get profile: %d (%s)", error, get_error_message(error)));
     }
 
     error = connection_profile_get_cellular_apn(profile_handle, &apn);
     if (CONNECTION_ERROR_NONE != error) {
-      LoggerE("Failed to get apn name: %d", error);
-      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Cannot get apn name");
+      return LogAndCreateResult(
+                ErrorCode::UNKNOWN_ERR, "Cannot get apn name",
+                ("Failed to get apn name: %d (%s)", error, get_error_message(error)));
     }
     *result_apn = apn;
     free(apn);
@@ -1154,8 +1187,8 @@ PlatformResult SysteminfoPropertiesManager::ReportStorage(picojson::object* out)
 
 
   if (statfs(kStorageInternalPath.c_str(), &fs) < 0) {
-    LoggerE("There are no storage units detected");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "There are no storage units detected");
+    return LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, "There are no storage units detected");
   }
   CreateStorageInfo(kTypeInternal, fs, &internal_obj);
   manager_.SetAvailableCapacityInternal(fs.f_bavail);
@@ -1163,8 +1196,8 @@ PlatformResult SysteminfoPropertiesManager::ReportStorage(picojson::object* out)
   if (0 == vconf_get_int(VCONFKEY_SYSMAN_MMC_STATUS, &sdcardState)) {
     if (VCONFKEY_SYSMAN_MMC_MOUNTED == sdcardState){
       if (statfs(kStorageSdcardPath.c_str(), &fs) < 0) {
-        LoggerE("MMC mounted, but not accessible");
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "MMC mounted, but not accessible");
+        return LogAndCreateResult(
+                  ErrorCode::UNKNOWN_ERR, "MMC mounted, but not accessible");
       }
       array.push_back(picojson::value(picojson::object()));
       picojson::object& external_obj = array.back().get<picojson::object>();
@@ -1184,9 +1217,8 @@ PlatformResult SysteminfoPropertiesManager::ReportCameraFlash(picojson::object* 
     std::string camera = manager_.GetCameraTypes(index);
     out->insert(std::make_pair("camera", picojson::value(camera)));
   } else {
-    return PlatformResult(
-        ErrorCode::NOT_SUPPORTED_ERR,
-        "Camera is not supported on this device");
+    return LogAndCreateResult(
+              ErrorCode::NOT_SUPPORTED_ERR, "Camera is not supported on this device");
   }
 
   return PlatformResult(ErrorCode::NO_ERROR);
