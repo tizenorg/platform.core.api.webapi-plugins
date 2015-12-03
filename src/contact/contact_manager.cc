@@ -51,9 +51,9 @@ PlatformResult ContactManagerGetAddressBooks(const JsonObject& args,
   int error_code = contacts_db_get_all_records(_contacts_address_book._uri, 0,
                                                0, &address_book_list);
   if (CONTACTS_ERROR_NONE != error_code) {
-    LoggerE("Fail to get address book list, error: %d", error_code);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Fail to get address book list");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                          "Fail to get address book list",
+                          ("Fail to get address book list, error: %d", error_code));
   }
 
   ContactUtil::ContactsListHPtr contacts_list_ptr(
@@ -62,16 +62,16 @@ PlatformResult ContactManagerGetAddressBooks(const JsonObject& args,
   int record_count = 0;
   error_code = contacts_list_get_count(*contacts_list_ptr, &record_count);
   if (CONTACTS_ERROR_NONE != error_code) {
-    LoggerE("Fail to get address book list count, error: %d", error_code);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Fail to get address book list count");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                          "Fail to get address book list count",
+                          ("Fail to get address book list count, error: %d", error_code));
   }
 
   error_code = contacts_list_first(*contacts_list_ptr);
   if (CONTACTS_ERROR_NONE != error_code) {
-    LoggerE("Fail to get address book from list, error: %d", error_code);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Fail to get address book from list");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                          "Fail to get address book from list",
+                          ("Fail to get address book from list, error: %d", error_code));
   }
 
   for (int i = 0; i < record_count; i++) {
@@ -134,9 +134,9 @@ PlatformResult ContactManagerGetAddressBook(const JsonObject& args,
                                           static_cast<int>(address_book_id),
                                           &contacts_record);
   if (CONTACTS_ERROR_NONE != error_code || nullptr == contacts_record) {
-    LoggerE("Fail to get addressbook record, error code: %d", error_code);
-    return PlatformResult(ErrorCode::NOT_FOUND_ERR,
-                          "Fail to get address book with given id");
+    return LogAndCreateResult(ErrorCode::NOT_FOUND_ERR,
+                          "Fail to get address book with given id",
+                          ("Fail to get addressbook record, error code: %d", error_code));
   }
 
   ContactUtil::ContactsRecordHPtr contacts_record_ptr(
@@ -173,8 +173,8 @@ PlatformResult ContactManagerGetInternal(int person_id, JsonObject* out) {
   int error_code = contacts_db_get_record(_contacts_person._uri, person_id,
                                           &contacts_record);
   if (CONTACTS_ERROR_NONE != error_code) {
-    LoggerE("Person with id: %d, not found, error: %d", person_id, error_code);
-    return PlatformResult(ErrorCode::NOT_FOUND_ERR, "Person not found");
+    return LogAndCreateResult(ErrorCode::NOT_FOUND_ERR, "Person not found",
+                              ("Person with id: %d, not found, error: %d", person_id, error_code));
   }
 
   ContactUtil::ContactsRecordHPtr contacts_record_ptr(
@@ -197,17 +197,16 @@ PlatformResult ContactManagerAddAddressBook(const JsonObject& args,
   const JsonObject& addressBook = FromJson<JsonObject>(args, "addressBook");
 
   if (!IsNull(addressBook, "id")) {
-    LoggerW("AddressBook already exists");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "AddressBook already exists");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "AddressBook already exists");
   }
 
   contacts_record_h contacts_record;
   int ret =
       contacts_record_create(_contacts_address_book._uri, &contacts_record);
   if (CONTACTS_ERROR_NONE != ret) {
-    LoggerE("Failed to create address book record, error code : %d", ret);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Failed to create address book record");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                          "Failed to create address book record",
+                          ("Failed to create address book record, error code : %d", ret));
   }
   ContactUtil::ContactsRecordHPtr contacts_record_ptr(
       &contacts_record, ContactUtil::ContactsDeleter);
@@ -233,9 +232,9 @@ PlatformResult ContactManagerAddAddressBook(const JsonObject& args,
   int address_book_id;
   ret = contacts_db_insert_record(*contacts_record_ptr, &address_book_id);
   if (CONTACTS_ERROR_NONE != ret) {
-    LoggerE("Failed to insert address book record, error code: %d", ret);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Failed to insert address book record");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                          "Failed to insert address book record",
+                          ("Failed to insert address book record, error code: %d", ret));
   }
 
   out["id"] = picojson::value(std::to_string(address_book_id));
@@ -257,17 +256,17 @@ PlatformResult ContactManagerRemoveAddressBook(const JsonObject& args,
                                           static_cast<int>(address_book_id),
                                           &contacts_record);
   if (CONTACTS_ERROR_NONE != error_code || nullptr == contacts_record) {
-    LoggerE("Fail to get addressbook record, error code: %d", error_code);
-    return PlatformResult(ErrorCode::NOT_FOUND_ERR,
-                          "Fail to get address book with given id");
+    return LogAndCreateResult(ErrorCode::NOT_FOUND_ERR,
+                          "Fail to get address book with given id",
+                          ("Fail to get addressbook record, error code: %d", error_code));
   }
 
   int ret = contacts_db_delete_record(_contacts_address_book._uri,
                                       static_cast<int>(address_book_id));
   if (CONTACTS_ERROR_NONE != ret) {
-    LOGE("Failed to delete address book record, error code : %d", ret);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Failed to delete address book record");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                          "Failed to delete address book record",
+                          ("Failed to delete address book record, error code : %d", ret));
   }
 
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -295,7 +294,7 @@ PlatformResult ContactManagerUpdate(const JsonObject& args, JsonObject&) {
                                           &contacts_record);
 
   if (CONTACTS_ERROR_NONE != error_code) {
-    return PlatformResult(ErrorCode::NOT_FOUND_ERR, "Person not found");
+    return LogAndCreateResult(ErrorCode::NOT_FOUND_ERR, "Person not found");
   }
 
   status = ContactUtil::ExportPersonToContactsRecord(contacts_record, person);
@@ -306,9 +305,9 @@ PlatformResult ContactManagerUpdate(const JsonObject& args, JsonObject&) {
 
   error_code = contacts_db_update_record(*contacts_record_ptr);
   if (CONTACTS_ERROR_NONE != error_code) {
-    LoggerE("error code: %d", error_code);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Error during executing contacts_db_update_record()");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                          "Error during executing contacts_db_update_record()",
+                          ("error code: %d", error_code));
   }
 
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -326,8 +325,8 @@ PlatformResult ContactManagerUpdateBatch(const JsonObject& args) {
   int err = 0;
   err = contacts_list_create(&contacts_list);
   if (CONTACTS_ERROR_NONE != err) {
-    LoggerE("list creation failed, code: %d", err);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "list creation failed");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "list creation failed",
+                              ("list creation failed, code: %d", err));
   }
   ContactUtil::ContactsListHPtr contacts_list_ptr(
       &contacts_list, ContactUtil::ContactsListDeleter);
@@ -339,7 +338,7 @@ PlatformResult ContactManagerUpdateBatch(const JsonObject& args) {
     contacts_record_h to_update = nullptr;
     err = contacts_db_get_record(_contacts_person._uri, personId, &to_update);
     if (CONTACTS_ERROR_NONE != err) {
-      return PlatformResult(ErrorCode::NOT_FOUND_ERR, "Person not found");
+      return LogAndCreateResult(ErrorCode::NOT_FOUND_ERR, "Person not found");
     }
     ContactUtil::ContactsRecordHPtr x(&to_update,
                                       ContactUtil::ContactsDeleter);
@@ -349,17 +348,17 @@ PlatformResult ContactManagerUpdateBatch(const JsonObject& args) {
 
     err = contacts_list_add(*contacts_list_ptr, *(x.release()));
     if (CONTACTS_ERROR_NONE != err) {
-      LoggerE("error during add record to list, code: %d", err);
-      return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                            "error during add record to list");
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                            "error during add record to list",
+                            ("error during add record to list, code: %d", err));
     }
   }
 
   err = contacts_db_update_records(*contacts_list_ptr);
   if (CONTACTS_ERROR_NONE != err) {
-    LoggerE("error code: %d", err);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Error during executing contacts_db_update_record()");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                          "Error during executing contacts_db_update_record()",
+                          ("error code: %d", err));
   }
 
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -373,14 +372,14 @@ PlatformResult ContactManagerRemove(const JsonObject& args, JsonObject&) {
   long person_id = common::stol(FromJson<JsonString>(args, "personId"));
 
   if (person_id < 0) {
-    return PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Negative person id");
+    return LogAndCreateResult(ErrorCode::INVALID_VALUES_ERR, "Negative person id");
   }
 
   int error_code = contacts_db_delete_record(_contacts_person._uri, person_id);
   if (CONTACTS_ERROR_NONE != error_code) {
-    LoggerE("Error during removing contact, error: %d", error_code);
-    return PlatformResult(ErrorCode::NOT_FOUND_ERR,
-                          "Error during removing contact");
+    return LogAndCreateResult(ErrorCode::NOT_FOUND_ERR,
+                          "Error during removing contact",
+                          ("Error during removing contact, error: %d", error_code));
   }
 
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -398,7 +397,7 @@ PlatformResult ContactManagerRemoveBatch(const JsonObject& args) {
   for (auto& item : batch_args) {
     long person_id = common::stol(item.get<std::string>());
     if (person_id < 0) {
-      return PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Nagative contact id");
+      return LogAndCreateResult(ErrorCode::INVALID_VALUES_ERR, "Nagative contact id");
     }
     ids[i] = person_id;
     i++;
@@ -406,9 +405,9 @@ PlatformResult ContactManagerRemoveBatch(const JsonObject& args) {
 
   int err = contacts_db_delete_records(_contacts_person._uri, ids, length);
   if (CONTACTS_ERROR_NONE != err) {
-    LoggerE("Error during removing contact, error: %d", err);
-    return PlatformResult(ErrorCode::NOT_FOUND_ERR,
-                          "Error during removing contact");
+    return LogAndCreateResult(ErrorCode::NOT_FOUND_ERR,
+                          "Error during removing contact",
+                          ("Error during removing contact, error: %d", err));
   }
 
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -494,7 +493,7 @@ PlatformResult ContactManagerFind(const JsonObject& args, JsonArray& out) {
           value = common::stol(JsonCast<std::string>(match_value));
         }
         if (value < 0) {
-          return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
+          return LogAndCreateResult(ErrorCode::INVALID_VALUES_ERR,
                                 "Match value cannot be less than 0");
         }
         contacts_match_int_flag_e flag;
@@ -516,8 +515,7 @@ PlatformResult ContactManagerFind(const JsonObject& args, JsonArray& out) {
                                            "Failed contacts_filter_add_str");
         if (status.IsError()) return status;
       } else {
-        LoggerE("Invalid primitive type!");
-        return PlatformResult(ErrorCode::UNKNOWN_ERR,
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
                               "Invalid primitive type!");
       }
       intermediate_filters[intermediate_filters.size() - 1].push_back(
@@ -720,7 +718,7 @@ PlatformResult ContactManagerFind(const JsonObject& args, JsonArray& out) {
           if (status.IsError()) return status;
         }
       } else {
-        return PlatformResult(ErrorCode::UNKNOWN_ERR,
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
                               "Invalid primitive type!");
       }
       intermediate_filters[intermediate_filters.size() - 1].push_back(
@@ -738,7 +736,7 @@ PlatformResult ContactManagerFind(const JsonObject& args, JsonArray& out) {
 
     visitor.SetOnCompositeFilterEnd([&](CompositeFilterType type) {
       if (intermediate_filters.size() == 0) {
-        return PlatformResult(ErrorCode::UNKNOWN_ERR,
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
                               "Reached stack size equal to 0!");
       }
 
@@ -772,7 +770,7 @@ PlatformResult ContactManagerFind(const JsonObject& args, JsonArray& out) {
               error_code, "Failed contacts_query_set_filter");
           if (status.IsError()) return status;
         } else {
-          return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
+          return LogAndCreateResult(ErrorCode::INVALID_VALUES_ERR,
                                 "Invalid union type!");
         }
       }
@@ -789,8 +787,7 @@ PlatformResult ContactManagerFind(const JsonObject& args, JsonArray& out) {
     // Should compute only one filter always.
     if ((intermediate_filters.size() != 1) ||
         (intermediate_filters[0].size() != 1)) {
-      LoggerE("Bad filter evaluation!");
-      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Bad filter evaluation!");
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Bad filter evaluation!");
     }
     // Filter is generated
     error_code = contacts_query_set_filter(contacts_query,
@@ -803,8 +800,7 @@ PlatformResult ContactManagerFind(const JsonObject& args, JsonArray& out) {
   const auto sort_mode_it = args.find("sortMode");
   if (args.end() != sort_mode_it) {
     if (!sort_mode_it->second.is<picojson::object>()) {
-      LoggerD("Failed to set sort mode.");
-      return PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, "Failed to set sort mode");
+      return LogAndCreateResult(ErrorCode::TYPE_MISMATCH_ERR, "Failed to set sort mode");
     }
     const auto sort_mode = sort_mode_it->second;
     std::string attribute = sort_mode.get("attributeName").to_str();
@@ -877,11 +873,9 @@ PlatformResult ContactManagerImportFromVCard(const JsonObject& args,
 
   int err = contacts_vcard_parse_to_contacts(vcard_char_ptr, &contacts_list);
   if (CONTACTS_ERROR_INVALID_PARAMETER == err) {
-    LoggerE("Invalid vCard string");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Invalid vCard string");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Invalid vCard string");
   } else if (CONTACTS_ERROR_NONE != err) {
-    LoggerE("Fail to convert vCard from string");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
                           "Fail to convert vCard from string");
   }
 
@@ -892,16 +886,14 @@ PlatformResult ContactManagerImportFromVCard(const JsonObject& args,
   int record_count = 0;
   err = contacts_list_get_count(contacts_list, &record_count);
   if (CONTACTS_ERROR_NONE != err || 0 == record_count) {
-    LoggerE("Invalid vCard string.");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Invalid vCard string.");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Invalid vCard string.");
   }
 
   contacts_record_h contacts_record;
   contacts_list_first(contacts_list);
   err = contacts_list_get_current_record_p(contacts_list, &contacts_record);
   if (CONTACTS_ERROR_NONE != err || nullptr == contacts_record) {
-    LoggerE("Invalid vCard string.");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Invalid vCard string.");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Invalid vCard string.");
   }
 
   status = ContactUtil::ImportContactFromContactsRecord(contacts_record, &out);
@@ -1032,9 +1024,9 @@ PlatformResult ContactManagerStartListening(ContactInstance& instance, const Jso
       _contacts_person._uri, ContactManagerListenerCallback, &instance);
 
   if (CONTACTS_ERROR_NONE != error_code) {
-    LoggerE("contacts_db_add_changed_cb(_contacts_person._uri) error: %d",
-            error_code);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to start listening");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Failed to start listening",
+                          ("contacts_db_add_changed_cb(_contacts_person._uri) error: %d",
+                                      error_code));
   }
 
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -1050,9 +1042,9 @@ PlatformResult ContactManagerStopListening(ContactInstance& instance, const Json
       _contacts_person._uri, ContactManagerListenerCallback, &instance);
 
   if (CONTACTS_ERROR_NONE != error_code) {
-    LoggerE("contacts_db_remove_changed_cb(_contacts_person._uri) error: %d",
-            error_code);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to stop listening");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Failed to stop listening",
+                          ("contacts_db_remove_changed_cb(_contacts_person._uri) error: %d",
+                                      error_code));
   }
 
   return PlatformResult(ErrorCode::NO_ERROR);

@@ -158,8 +158,7 @@ static const char kContactInstantMessageTypeCustom[] = "CUSTOM";
 PlatformResult ErrorChecker(int err, const char* message) {
   LoggerD("Enter");
   if (CONTACTS_ERROR_NONE != err) {
-    LoggerE("%s, error code: %i", message, err);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, message);
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, message);
   }
 
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -170,9 +169,9 @@ PlatformResult GetStrFromRecord(contacts_record_h record,
   LoggerD("Enter");
   int err = contacts_record_get_str_p(record, property_id, value);
   if (CONTACTS_ERROR_NONE != err) {
-    LoggerE("Error during getting contact record, error code: %i", err);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Error during getting contact record");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                          "Error during getting contact record",
+                          ("Error during getting contact record, error code: %i", err));
   }
 
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -183,9 +182,9 @@ PlatformResult GetIntFromRecord(contacts_record_h record,
   LoggerD("Enter");
   int err = contacts_record_get_int(record, property_id, value);
   if (CONTACTS_ERROR_NONE != err) {
-    LoggerE("Error during getting contact record, error code: %i", err);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Error during getting contact record");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                          "Error during getting contact record",
+                          ("Error during getting contact record, error code: %i", err));
   }
 
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -196,9 +195,9 @@ PlatformResult GetBoolFromRecord(contacts_record_h record,
   LoggerD("Enter");
   int err = contacts_record_get_bool(record, property_id, value);
   if (CONTACTS_ERROR_NONE != err) {
-    LoggerE("Error during getting contact record, error code: %i", err);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Error during getting contact record");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                          "Error during getting contact record",
+                          ("Error during getting contact record, error code: %i", err));
   }
 
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -209,10 +208,9 @@ PlatformResult SetStrInRecord(contacts_record_h record,
   LoggerD("Enter");
   int err = contacts_record_set_str(record, property_id, value);
   if (CONTACTS_ERROR_NONE != err) {
-    LoggerE("Error during setting str contact record property, error code: %i",
-            err);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Error during setting contact record");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                          "Error during setting contact record",
+                          ("Error during setting str contact record property, error code: %i", err));
   }
 
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -223,9 +221,9 @@ PlatformResult SetIntInRecord(contacts_record_h record,
   LoggerD("Enter");
   int err = contacts_record_set_int(record, property_id, value);
   if (CONTACTS_ERROR_NONE != err) {
-    LoggerE("Error during getting contact record, error code: %i", err);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Error during setting contact record");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                          "Error during setting contact record",
+                          ("Error during getting contact record, error code: %i", err));
   }
 
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -236,9 +234,9 @@ PlatformResult SetBoolInRecord(contacts_record_h record,
   LoggerD("Enter");
   int err = contacts_record_set_bool(record, property_id, value);
   if (CONTACTS_ERROR_NONE != err) {
-    LoggerE("Error during getting contact record, error code: %i", err);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Error during setting contact record");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                          "Error during setting contact record",
+                          ("Error during getting contact record, error code: %i", err));
   }
 
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -250,8 +248,7 @@ PlatformResult ClearAllContactRecord(contacts_record_h contacts_record,
   // contacts_record is protected by unique_ptr and its ownership is not passed
   // here
   if (!contacts_record) {
-    LoggerE("Contacts record is null");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
   }
 
   int record_count;
@@ -296,7 +293,7 @@ PlatformResult GetNumberOfChildRecord(contacts_record_h contacts_record,
   int err = contacts_record_get_child_record_count(contacts_record, property_id,
                                                    child_count);
   if (CONTACTS_ERROR_NONE != err && CONTACTS_ERROR_NO_DATA != err) {
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
                           "Problem during getting child count");
   }
 
@@ -309,8 +306,7 @@ PlatformResult ImportContactNameFromContactsRecord(
   LoggerD("Enter");
   JsonObject& out = *out_ptr;
   if (!contacts_record) {
-    LoggerW("Contacts record is null");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
   }
   int count = 0;
   int err = contacts_record_get_child_record_count(contacts_record,
@@ -323,8 +319,7 @@ PlatformResult ImportContactNameFromContactsRecord(
   }
 
   if (count > 1) {
-    LoggerE("More than one ContactName for one Contact");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
                           "More than one ContactName for one Contact");
   }
   LoggerD("Contact name record count: %i", count);
@@ -475,8 +470,7 @@ PlatformResult ExportContactNameToContactsRecord(
   // contacts_record is protected by unique_ptr and its ownership is not passed
   // here
   if (!contacts_record) {
-    LoggerW("Contacts record is null");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
   }
 
   contacts_record_h contact_name = nullptr;
@@ -639,8 +633,7 @@ PlatformResult ImportContactEmailAddressFromContactsRecord(
   // contacts_record is protected by unique_ptr and its ownership is not passed
   // here
   if (!contacts_record) {
-    LoggerE("Contacts record is null");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
   }
 
   contacts_record_h child_record = nullptr;
@@ -722,8 +715,7 @@ PlatformResult ExportContactEmailAddressToContactsRecord(
   // contacts_record is protected by unique_ptr and its ownership is not passed
   // here
   if (!contacts_record) {
-    LoggerE("Contacts record is null");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
   }
 
   int err = contacts_record_create(_contacts_email._uri, &c_email_record_h);
@@ -809,8 +801,7 @@ PlatformResult ImportContactPhoneNumberFromContactsRecord(
   // contacts_record is protected by unique_ptr and its ownership is not passed
   // here
   if (!contacts_record) {
-    LoggerE("Contacts record is null");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
   }
 
   int err = contacts_record_get_child_record_at_p(
@@ -921,8 +912,7 @@ PlatformResult ExportContactPhoneNumberToContactsRecord(
   // contacts_record is protected by unique_ptr and its ownership is not passed
   // here
   if (!contacts_record) {
-    LoggerE("Contacts record is null");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
   }
 
   int err = contacts_record_create(_contacts_number._uri, &phone_record);
@@ -1033,8 +1023,7 @@ PlatformResult ImportContactOrganizationFromContactsRecord(
   // contacts_record is protected by unique_ptr and its ownership is not passed
   // here
   if (!contacts_record) {
-    LoggerE("Contacts record is null");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
   }
 
   contacts_record_h child_record = nullptr;
@@ -1107,8 +1096,7 @@ PlatformResult ExportContactOrganizationToContactsRecord(
   // contacts_record is protected by unique_ptr and its ownership is not passed
   // here
   if (!contacts_record) {
-    LoggerE("Contacts record is null");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
   }
 
   contacts_record_h organization_record = nullptr;
@@ -1193,8 +1181,7 @@ PlatformResult ImportContactWebSiteFromContactsRecord(
   // contacts_record is protected by unique_ptr and its ownership is not passed
   // here
   if (!contacts_record) {
-    LoggerE("Contacts record is null");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
   }
 
   contacts_record_h child_record = nullptr;
@@ -1239,8 +1226,7 @@ PlatformResult ExportContactWebSiteToContactsRecord(
   // contacts_record is protected by unique_ptr and its ownership is not passed
   // here
   if (!contacts_record) {
-    LoggerE("Contacts record is null");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
   }
 
   if (IsNull(in, "url")) {
@@ -1308,8 +1294,7 @@ PlatformResult ImportContactAnniversariesFromContactsRecord(
   // contacts_record is protected by unique_ptr and its ownership is not passed
   // here
   if (!contacts_record) {
-    LoggerE("Contacts record is null");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
   }
 
   contacts_record_h child_record = nullptr;
@@ -1365,8 +1350,7 @@ PlatformResult ExportContactAnniversariesToContactsRecord(
   // contacts_record is protected by unique_ptr and its ownership is not passed
   // here
   if (!contacts_record) {
-    LoggerE("Contacts record is null");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
   }
 
   int date = static_cast<int>(FromJson<double>(in, "date"));
@@ -1433,8 +1417,7 @@ PlatformResult ImportContactRelationshipFromContactsRecord(
   // contacts_record is protected by unique_ptr and its ownership is not passed
   // here
   if (!contacts_record) {
-    LoggerE("Contacts record is null");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
   }
 
   contacts_record_h child_record = nullptr;
@@ -1563,8 +1546,7 @@ PlatformResult ExportContactRelationshipToContactsRecord(
   // contacts_record is protected by unique_ptr and its ownership is not passed
   // here
   if (!contacts_record) {
-    LoggerE("Contacts record is null");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
   }
 
   contacts_record_h child_record = nullptr;
@@ -1662,8 +1644,7 @@ PlatformResult ImportContactInstantMessengerFromContactsRecord(
   // contacts_record is protected by unique_ptr and its ownership is not passed
   // here
   if (!contacts_record) {
-    LoggerE("Contacts record is null");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
   }
 
   contacts_record_h child_record = nullptr;
@@ -1759,8 +1740,7 @@ PlatformResult ExportContactInstantMessengerToContactsRecord(
   // contacts_record is protected by unique_ptr and its ownership is not passed
   // here
   if (!contacts_record) {
-    LoggerE("Contacts record is null");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
   }
 
   contacts_record_h child_record = nullptr;
@@ -1850,8 +1830,7 @@ PlatformResult ImportContactAddressFromContactsRecord(
   // contacts_record is protected by unique_ptr and its ownership is not passed
   // here
   if (!contacts_record) {
-    LoggerE("Contacts record is null");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
   }
 
   contacts_record_h child_record = nullptr;
@@ -1969,8 +1948,7 @@ PlatformResult ExportContactAddressToContactsRecord(
   // contacts_record is protected by unique_ptr and its ownership is not passed
   // here
   if (!contacts_record) {
-    LoggerE("Contacts record is null");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
   }
 
   contacts_record_h address_record = nullptr;
@@ -2100,8 +2078,7 @@ PlatformResult ImportContactNotesFromContactsRecord(
   // contacts_record is protected by unique_ptr and its ownership is not passed
   // here
   if (!contacts_record) {
-    LoggerE("Contacts record is null");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
   }
 
   contacts_record_h notes_record = nullptr;
@@ -2134,8 +2111,7 @@ PlatformResult ExportNotesToContactsRecord(contacts_record_h contacts_record,
   // contacts_record is protected by unique_ptr and its ownership is not passed
   // here
   if (!contacts_record) {
-    LoggerE("Contacts record is null");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
   }
 
   int err = contacts_record_create(_contacts_note._uri, &notes_record);
@@ -2178,8 +2154,7 @@ PlatformResult ImportContactFromContactsRecord(
   // contacts_record is protected by unique_ptr and its ownership is not passed
   // here
   if (!contacts_record) {
-    LoggerE("Contacts record is null");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
   }
 
   int id = 0;
@@ -2405,8 +2380,7 @@ PlatformResult ExportContactToContactsRecord(contacts_record_h contacts_record,
   // contacts_record is protected by unique_ptr and its ownership is not passed
   // here
   if (!contacts_record) {
-    LoggerW("Contacts record is null");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
   }
 
   //### ContactName: ###
@@ -2592,8 +2566,7 @@ PlatformResult ImportContactGroupFromContactsRecord(
   // contacts_record is protected by unique_ptr and its ownership is not passed
   // here
   if (!contacts_record) {
-    LoggerE("Contacts record is null");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Contacts record is null");
   }
 
   // id
@@ -2716,8 +2689,7 @@ PlatformResult ExportContactGroupToContactsRecord(
 PlatformResult ImportPersonFromContactsRecord(contacts_record_h record,
                                               JsonObject* out_ptr) {
   if (nullptr == record) {
-    LoggerW("Platform person record did not set");
-    return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
+    return LogAndCreateResult(ErrorCode::INVALID_VALUES_ERR,
                           "Platform person record did not set");
   }
 
@@ -2837,8 +2809,7 @@ PlatformResult ImportPersonFromContactsRecord(contacts_record_h record,
 PlatformResult ExportPersonToContactsRecord(contacts_record_h record,
                                             const JsonObject& args) {
   if (nullptr == record) {
-    LoggerE("Platform person object did not set");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
                           "Platform person object did not set");
   }
 
@@ -2943,8 +2914,7 @@ PlatformResult CheckDBConnection() {
     LoggerI("Connection established!");
     _connected = true;
   } else {
-    LoggerE("DB connection error occured: %s", std::to_string(err).c_str());
-    return PlatformResult(
+    return LogAndCreateResult(
         ErrorCode::UNKNOWN_ERR,
         "DB connection error occured: " + std::to_string(err));
   }

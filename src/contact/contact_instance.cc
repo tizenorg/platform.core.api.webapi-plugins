@@ -98,7 +98,7 @@ void ContactInstance::AddressBookGet(const JsonValue& args, JsonObject& out) {
   if (status.IsSuccess())
     ReportSuccess(val, out);
   else
-    ReportError(status, &out);
+    LogAndReportError(status, &out);
 }
 
 void ContactInstance::AddressBookAdd(const JsonValue& args, JsonObject& out) {
@@ -108,7 +108,7 @@ void ContactInstance::AddressBookAdd(const JsonValue& args, JsonObject& out) {
   if (status.IsSuccess())
     ReportSuccess(val, out);
   else
-    ReportError(status, &out);
+    LogAndReportError(status, &out);
 }
 
 void ContactInstance::AddressBookAddBatch(const JsonValue& args,
@@ -124,7 +124,7 @@ void ContactInstance::AddressBookAddBatch(const JsonValue& args,
     if (status.IsSuccess())
       ReportSuccess(result, response->get<JsonObject>());
     else
-      ReportError(status, &response->get<JsonObject>());
+      LogAndReportError(status, &response->get<JsonObject>());
   };
 
   auto get_response =
@@ -153,7 +153,7 @@ void ContactInstance::AddressBookRemoveBatch(const JsonValue& args,
     if (status.IsSuccess())
       ReportSuccess(response->get<JsonObject>());
     else
-      ReportError(status, &response->get<JsonObject>());
+      LogAndReportError(status, &response->get<JsonObject>());
   };
 
   auto get_response =
@@ -182,7 +182,7 @@ void ContactInstance::AddressBookUpdateBatch(const JsonValue& args,
     if (status.IsSuccess())
       ReportSuccess(result, response->get<JsonObject>());
     else
-      ReportError(status, &response->get<JsonObject>());
+      LogAndReportError(status, &response->get<JsonObject>());
   };
 
   auto get_response =
@@ -206,7 +206,7 @@ void ContactInstance::AddressBookUpdate(const JsonValue& args,
   if (status.IsSuccess())
     ReportSuccess(val, out);
   else
-    ReportError(status, &out);
+    LogAndReportError(status, &out);
 }
 
 void ContactInstance::AddressBookRemove(const JsonValue& args,
@@ -217,7 +217,7 @@ void ContactInstance::AddressBookRemove(const JsonValue& args,
   if (status.IsSuccess())
     ReportSuccess(out);
   else
-    ReportError(status, &out);
+    LogAndReportError(status, &out);
 }
 
 void ContactInstance::AddressBookFind(const JsonValue& args, JsonObject& out) {
@@ -232,7 +232,7 @@ void ContactInstance::AddressBookFind(const JsonValue& args, JsonObject& out) {
     if (status.IsSuccess())
       ReportSuccess(result, response->get<JsonObject>());
     else
-      ReportError(status, &response->get<JsonObject>());
+      LogAndReportError(status, &response->get<JsonObject>());
   };
 
   auto get_response =
@@ -256,7 +256,7 @@ void ContactInstance::AddressBookAddGroup(const JsonValue& args,
   if (status.IsSuccess())
     ReportSuccess(val, out);
   else
-    ReportError(status, &out);
+    LogAndReportError(status, &out);
 }
 
 void ContactInstance::AddressBookGetGroup(const JsonValue& args,
@@ -267,7 +267,7 @@ void ContactInstance::AddressBookGetGroup(const JsonValue& args,
   if (status.IsSuccess())
     ReportSuccess(val, out);
   else
-    ReportError(status, &out);
+    LogAndReportError(status, &out);
 }
 
 void ContactInstance::AddressBookUpdateGroup(const JsonValue& args,
@@ -278,7 +278,7 @@ void ContactInstance::AddressBookUpdateGroup(const JsonValue& args,
   if (status.IsSuccess())
     ReportSuccess(out);
   else
-    ReportError(status, &out);
+    LogAndReportError(status, &out);
 }
 
 void ContactInstance::AddressBookRemoveGroup(const JsonValue& args,
@@ -289,7 +289,7 @@ void ContactInstance::AddressBookRemoveGroup(const JsonValue& args,
   if (status.IsSuccess())
     ReportSuccess(out);
   else
-    ReportError(status, &out);
+    LogAndReportError(status, &out);
 }
 
 void ContactInstance::AddressBookGetGroups(const JsonValue& args,
@@ -300,7 +300,7 @@ void ContactInstance::AddressBookGetGroups(const JsonValue& args,
   if (status.IsSuccess())
     ReportSuccess(val, out);
   else
-    ReportError(status, &out);
+    LogAndReportError(status, &out);
 }
 
 void ContactInstance::ContactManagerGetAddressBooks(const JsonValue& args,
@@ -315,7 +315,7 @@ void ContactInstance::ContactManagerGetAddressBooks(const JsonValue& args,
     if (status.IsSuccess())
       ReportSuccess(result, response->get<JsonObject>());
     else
-      ReportError(status, &response->get<JsonObject>());
+      LogAndReportError(status, &response->get<JsonObject>());
   };
 
   auto get_response =
@@ -339,7 +339,7 @@ void ContactInstance::ContactManagerGetAddressBook(const JsonValue& args,
   if (status.IsSuccess())
     ReportSuccess(val, out);
   else
-    ReportError(status, &out);
+    LogAndReportError(status, &out);
 }
 
 void ContactInstance::ContactManagerAddAddressBook(const JsonValue& args,
@@ -350,7 +350,7 @@ void ContactInstance::ContactManagerAddAddressBook(const JsonValue& args,
   if (status.IsSuccess())
     ReportSuccess(val, out);
   else
-    ReportError(status, &out);
+    LogAndReportError(status, &out);
 }
 
 void ContactInstance::ContactManagerRemoveAddressBook(const JsonValue& args,
@@ -361,7 +361,7 @@ void ContactInstance::ContactManagerRemoveAddressBook(const JsonValue& args,
   if (status.IsSuccess())
     ReportSuccess(val, out);
   else
-    ReportError(status, &out);
+    LogAndReportError(status, &out);
 }
 
 void ContactInstance::AddressBookStartListening(const JsonValue& args,
@@ -372,7 +372,7 @@ void ContactInstance::AddressBookStartListening(const JsonValue& args,
   if (status.IsSuccess())
     ReportSuccess(val, out);
   else
-    ReportError(status, &out);
+    LogAndReportError(status, &out);
 }
 
 void ContactInstance::AddressBookStopListening(const JsonValue& args,
@@ -382,7 +382,7 @@ void ContactInstance::AddressBookStopListening(const JsonValue& args,
   if (status.IsSuccess())
     ReportSuccess(val, out);
   else
-    ReportError(status, &out);
+    LogAndReportError(status, &out);
 }
 
 void ContactInstance::ContactManagerGet(const JsonValue& args,
@@ -393,7 +393,7 @@ void ContactInstance::ContactManagerGet(const JsonValue& args,
   if (status.IsSuccess())
     ReportSuccess(val, out);
   else
-    ReportError(status, &out);
+    LogAndReportError(status, &out);
 }
 
 void ContactInstance::ContactManagerUpdate(const JsonValue& args,
@@ -404,7 +404,7 @@ void ContactInstance::ContactManagerUpdate(const JsonValue& args,
   if (status.IsSuccess())
     ReportSuccess(out);
   else
-    ReportError(status, &out);
+    LogAndReportError(status, &out);
 }
 
 void ContactInstance::ContactManagerUpdateBatch(const JsonValue& args,
@@ -420,7 +420,7 @@ void ContactInstance::ContactManagerUpdateBatch(const JsonValue& args,
     if (status.IsSuccess())
       ReportSuccess(response->get<JsonObject>());
     else
-      ReportError(status, &response->get<JsonObject>());
+      LogAndReportError(status, &response->get<JsonObject>());
   };
 
   auto get_response =
@@ -444,7 +444,7 @@ void ContactInstance::ContactManagerRemove(const JsonValue& args,
   if (status.IsSuccess())
     ReportSuccess(out);
   else
-    ReportError(status, &out);
+    LogAndReportError(status, &out);
 }
 
 void ContactInstance::ContactManagerRemoveBatch(const JsonValue& args,
@@ -460,7 +460,7 @@ void ContactInstance::ContactManagerRemoveBatch(const JsonValue& args,
     if (status.IsSuccess())
       ReportSuccess(response->get<JsonObject>());
     else
-      ReportError(status, &response->get<JsonObject>());
+      LogAndReportError(status, &response->get<JsonObject>());
   };
 
   auto get_response =
@@ -488,7 +488,7 @@ void ContactInstance::ContactManagerFind(const JsonValue& args,
     if (status.IsSuccess()) {
       ReportSuccess(result, response->get<JsonObject>());
     } else {
-      ReportError(status, &response->get<JsonObject>());
+      LogAndReportError(status, &response->get<JsonObject>());
     }
   };
 
@@ -513,7 +513,7 @@ void ContactInstance::ContactManagerImportFromVCard(const JsonValue& args,
   if (status.IsSuccess())
     ReportSuccess(val, out);
   else
-    ReportError(status, &out);
+    LogAndReportError(status, &out);
 }
 
 void ContactInstance::ContactManagerStartListening(const JsonValue& args,
@@ -524,7 +524,7 @@ void ContactInstance::ContactManagerStartListening(const JsonValue& args,
   if (status.IsSuccess())
     ReportSuccess(val, out);
   else
-    ReportError(status, &out);
+    LogAndReportError(status, &out);
 }
 
 void ContactInstance::ContactManagerStopListening(const JsonValue& args,
@@ -535,7 +535,7 @@ void ContactInstance::ContactManagerStopListening(const JsonValue& args,
   if (status.IsSuccess())
     ReportSuccess(val, out);
   else
-    ReportError(status, &out);
+    LogAndReportError(status, &out);
 }
 
 void ContactInstance::PersonLink(const JsonValue& args, JsonObject& out) {
@@ -545,7 +545,7 @@ void ContactInstance::PersonLink(const JsonValue& args, JsonObject& out) {
   if (status.IsSuccess())
     ReportSuccess(out);
   else
-    ReportError(status, &out);
+    LogAndReportError(status, &out);
 }
 
 void ContactInstance::PersonUnlink(const JsonValue& args, JsonObject& out) {
@@ -555,7 +555,7 @@ void ContactInstance::PersonUnlink(const JsonValue& args, JsonObject& out) {
   if (status.IsSuccess())
     ReportSuccess(val, out);
   else
-    ReportError(status, &out);
+    LogAndReportError(status, &out);
 }
 
 }  // namespace contact
