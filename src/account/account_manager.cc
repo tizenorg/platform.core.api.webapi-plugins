@@ -20,6 +20,7 @@
 
 #include "common/logger.h"
 #include "common/scope_exit.h"
+#include "common/tools.h"
 
 namespace extension {
 namespace account {
@@ -27,11 +28,7 @@ namespace account {
 using common::ScopeExit;
 using common::UnknownException;
 using common::NotFoundException;
-
-#define REPORT_ERROR(out, exception) \
-  out["status"] = picojson::value("error"); \
-  out["error"] = exception.ToJSON();
-
+using common::tools::ReportError;
 namespace {
 
 static bool ProviderCapabilitiesCb(char *app_id, char *key, void *user_data) {
@@ -173,8 +170,8 @@ void AccountManager::GetAccountsInfo(const std::string& application_id,
     out["status"] = picojson::value("success");
     out["result"] = picojson::value(array_data);
   } else {
-    LoggerE("Failed to get accounts information");
-    REPORT_ERROR(out, UnknownException(GetErrorMsg(ret)));
+    LogAndReportError(UnknownException(GetErrorMsg(ret)), out,
+                      ("Failed to get accounts information"));
   }
 }
 
@@ -188,8 +185,8 @@ void AccountManager::GetAccountInfo(int account_id, picojson::object& out) {
 
   int ret = account_create(&account);
   if (ret != ACCOUNT_ERROR_NONE) {
-    LoggerE("Failed to create account info");
-    REPORT_ERROR(out, UnknownException(GetErrorMsg(ret)));
+    LogAndReportError(UnknownException(GetErrorMsg(ret)), out,
+                      ("Failed to create account info"));
     return;
   }
 
@@ -199,15 +196,15 @@ void AccountManager::GetAccountInfo(int account_id, picojson::object& out) {
     out["result"] = picojson::value();
     return;
   } else if (ret != ACCOUNT_ERROR_NONE) {
-    LoggerE("Failed to get account info");
-    REPORT_ERROR(out, UnknownException(GetErrorMsg(ret)));
+    LogAndReportError(UnknownException(GetErrorMsg(ret)), out,
+                      ("Failed to get account info"));
     return;
   }
 
   picojson::object info;
   if (!ConvertAccountToObject(account, info)) {
-    LoggerE("Failed to convert account_h into object");
-    REPORT_ERROR(out, UnknownException("Unknown error occurs"));
+    LogAndReportError(UnknownException("Unknown error occurs"), out,
+                      ("Failed to convert account_h into object"));
     return;
   }
 
@@ -228,8 +225,8 @@ bool AccountManager::GetProviderInfo(const std::string& provider_id,
 
   int ret = account_type_create(&provider);
   if (ret != ACCOUNT_ERROR_NONE) {
-    LoggerE("Failed to create provider info");
-    REPORT_ERROR(out, UnknownException(GetErrorMsg(ret)));
+    LogAndReportError(UnknownException(GetErrorMsg(ret)), out,
+                      ("Failed to create provider info"));
     return false;
   }
 
@@ -239,15 +236,15 @@ bool AccountManager::GetProviderInfo(const std::string& provider_id,
     out["result"] = picojson::value();
     return true;
   } else if (ret != ACCOUNT_ERROR_NONE) {
-    LoggerE("Failed to get provider info");
-    REPORT_ERROR(out, UnknownException(GetErrorMsg(ret)));
+    LogAndReportError(UnknownException(GetErrorMsg(ret)), out,
+                      ("Failed to get provider info"));
     return false;
   }
 
   picojson::object info;
   if (!ConvertProviderToObject(provider, info)) {
-    LoggerE("Failed to convert account_type_h into object");
-    REPORT_ERROR(out, UnknownException("Unknown error occurs"));
+    LogAndReportError(UnknownException("Unknown error occurs"), out,
+                      ("Failed to convert account_type_h into object"));
     return false;
   }
 
@@ -274,16 +271,16 @@ bool AccountManager::ConvertAccountToObject(account_h account,
   int account_id = -1;
   int ret = account_get_account_id(account, &account_id);
   if (ret != ACCOUNT_ERROR_NONE) {
-    LoggerE("Failed to get account ID");
-    REPORT_ERROR(out, UnknownException(GetErrorMsg(ret)));
+    LogAndReportError(UnknownException(GetErrorMsg(ret)), out,
+                      ("Failed to get account ID"));
     return false;
   }
   out["id"] = picojson::value(static_cast<double>(account_id));
 
   ret = account_get_package_name(account, &provider_id);
   if (ret != ACCOUNT_ERROR_NONE) {
-    LoggerE("Failed to get provider name");
-    REPORT_ERROR(out, UnknownException(GetErrorMsg(ret)));
+    LogAndReportError(UnknownException(GetErrorMsg(ret)), out,
+                      ("Failed to get provider name"));
     return false;
   }
 
@@ -297,16 +294,16 @@ bool AccountManager::ConvertAccountToObject(account_h account,
   picojson::object account_init;
   ret = account_get_icon_path(account, &icon_path);
   if (ret != ACCOUNT_ERROR_NONE) {
-    LoggerE("Failed to get icon path");
-    REPORT_ERROR(out, UnknownException(GetErrorMsg(ret)));
+    LogAndReportError(UnknownException(GetErrorMsg(ret)), out,
+                      ("Failed to get icon path"));
     return false;
   }
   account_init["iconUri"] = icon_path ? picojson::value(icon_path) : picojson::value();
 
   ret = account_get_user_name(account, &user_name);
   if (ret != ACCOUNT_ERROR_NONE) {
-    LoggerE("Failed to get user name");
-    REPORT_ERROR(out, UnknownException(GetErrorMsg(ret)));
+    LogAndReportError(UnknownException(GetErrorMsg(ret)), out,
+                      ("Failed to get user name"));
     return false;
   }
   account_init["userName"] = user_name ? picojson::value(user_name) : picojson::value();
@@ -328,8 +325,8 @@ bool AccountManager::ConvertProviderToObject(account_type_h provider,
 
   int ret = account_type_get_app_id(provider, &provider_id);
   if (ret != ACCOUNT_ERROR_NONE) {
-    LoggerE("Failed to get application id");
-    REPORT_ERROR(out, UnknownException(GetErrorMsg(ret)));
+    LogAndReportError(UnknownException(GetErrorMsg(ret)), out,
+                      ("Failed to get application id"));
     return false;
   }
   out["applicationId"] = picojson::value(provider_id);
@@ -344,15 +341,15 @@ bool AccountManager::ConvertProviderToObject(account_type_h provider,
     LoggerD("There is no label");
     out["displayName"] = picojson::value("");
   } else {
-    LoggerE("Failed to get label");
-    REPORT_ERROR(out, UnknownException(GetErrorMsg(ret)));
+    LogAndReportError(UnknownException(GetErrorMsg(ret)), out,
+                      ("Failed to get label"));
     return false;
   }
 
   ret = account_type_get_icon_path(provider, &icon_uri);
   if (ret != ACCOUNT_ERROR_NONE) {
-    LoggerE("Failed to get icon");
-    REPORT_ERROR(out, UnknownException(GetErrorMsg(ret)));
+    LogAndReportError(UnknownException(GetErrorMsg(ret)), out,
+                      ("Failed to get icon"));
     return false;
   }
   out["iconUri"] = picojson::value(icon_uri);
@@ -360,8 +357,8 @@ bool AccountManager::ConvertProviderToObject(account_type_h provider,
 
   ret = account_type_get_small_icon_path(provider, &small_icon_uri);
   if (ret != ACCOUNT_ERROR_NONE) {
-    LoggerE("Failed to get small icon");
-    REPORT_ERROR(out, UnknownException(GetErrorMsg(ret)));
+    LogAndReportError(UnknownException(GetErrorMsg(ret)), out,
+                      ("Failed to get small icon"));
     return false;
   }
   out["smallIconUri"] = picojson::value(small_icon_uri);
@@ -370,8 +367,8 @@ bool AccountManager::ConvertProviderToObject(account_type_h provider,
   ret = account_type_get_provider_feature_all(provider, ProviderCapabilitiesCb,
                                               &capabilities);
   if (ret != ACCOUNT_ERROR_NONE) {
-    LoggerE("Failed to get capabilities");
-    REPORT_ERROR(out, UnknownException(GetErrorMsg(ret)));
+    LogAndReportError(UnknownException(GetErrorMsg(ret)), out,
+                      ("Failed to get capabilities"));
     return false;
   }
   out["capabilities"] = picojson::value(capabilities);
@@ -379,8 +376,8 @@ bool AccountManager::ConvertProviderToObject(account_type_h provider,
   int supported = 0;
   ret = account_type_get_multiple_account_support(provider, &supported);
   if (ret != ACCOUNT_ERROR_NONE) {
-    LoggerE("Failed to get small icon");
-    REPORT_ERROR(out, UnknownException(GetErrorMsg(ret)));
+    LogAndReportError(UnknownException(GetErrorMsg(ret)), out,
+                      ("Failed to get small icon"));
     return false;
   }
   is_multiple_account_supported = (supported != 0);
@@ -410,8 +407,8 @@ void AccountManager::GetProvidersInfo(const std::string& capability,
     out["status"] = picojson::value("success");
     out["result"] = picojson::value(array_data);
   } else {
-    LoggerE("Failed to get providers information");
-    REPORT_ERROR(out, UnknownException(GetErrorMsg(ret)));
+    LogAndReportError(UnknownException(GetErrorMsg(ret)), out,
+                      ("Failed to get providers information"));
   }
 }
 
@@ -425,15 +422,15 @@ void AccountManager::GetExtendedData(int account_id, const std::string& key, pic
 
   int ret = account_create(&account);
   if (ret != ACCOUNT_ERROR_NONE) {
-    LoggerE("Failed to create account info");
-    REPORT_ERROR(out, UnknownException(GetErrorMsg(ret)));
+    LogAndReportError(UnknownException(GetErrorMsg(ret)), out,
+                      ("Failed to create account info"));
     return;
   }
 
   ret = account_query_account_by_account_id(account_id, &account);
   if (ret != ACCOUNT_ERROR_NONE) {
-    LoggerE("Failed to get account info");
-    REPORT_ERROR(out, UnknownException(GetErrorMsg(ret)));
+    LogAndReportError(UnknownException(GetErrorMsg(ret)), out,
+                      ("Failed to get account info"));
     return;
   }
 
@@ -445,8 +442,8 @@ void AccountManager::GetExtendedData(int account_id, const std::string& key, pic
       out["status"] = picojson::value("success");
       out["result"] = picojson::value();
     } else {
-      LoggerE("Failed to get custom field");
-      REPORT_ERROR(out, UnknownException(GetErrorMsg(ret)));
+      LogAndReportError(UnknownException(GetErrorMsg(ret)), out,
+                        ("Failed to get custom field"));
     }
   } else {
     out["status"] = picojson::value("success");
@@ -465,23 +462,23 @@ void AccountManager::GetExtendedData(int account_id, picojson::object& out) {
 
   int ret = account_create(&account);
   if (ret != ACCOUNT_ERROR_NONE) {
-    LoggerE("Failed to create account info");
-    REPORT_ERROR(out, UnknownException(GetErrorMsg(ret)));
+    LogAndReportError(UnknownException(GetErrorMsg(ret)), out,
+                      ("Failed to create account info"));
     return;
   }
 
   ret = account_query_account_by_account_id(account_id, &account);
   if (ret != ACCOUNT_ERROR_NONE) {
-    LoggerE("Failed to get account info");
-    REPORT_ERROR(out, UnknownException(GetErrorMsg(ret)));
+    LogAndReportError(UnknownException(GetErrorMsg(ret)), out,
+                      ("Failed to get account info"));
     return;
   }
 
   picojson::array array_data;
   ret = account_get_custom_all(account, GetCustomAllCallback, &array_data);
   if (ACCOUNT_ERROR_NONE != ret) {
-    LoggerE("Failed to get custom fields");
-    REPORT_ERROR(out, UnknownException(GetErrorMsg(ret)));
+    LogAndReportError(UnknownException(GetErrorMsg(ret)), out,
+                      ("Failed to get custom fields"));
   } else {
     out["status"] = picojson::value("success");
     out["result"] = picojson::value(array_data);
@@ -498,29 +495,29 @@ void AccountManager::SetExtendedData(int account_id, const std::string& key, con
 
   int ret = account_create(&account);
   if (ret != ACCOUNT_ERROR_NONE) {
-    LoggerE("Failed to create account info");
-    REPORT_ERROR(out, UnknownException(GetErrorMsg(ret)));
+    LogAndReportError(UnknownException(GetErrorMsg(ret)), out,
+                      ("Failed to create account info") );
     return;
   }
 
   ret = account_query_account_by_account_id(account_id, &account);
   if (ret != ACCOUNT_ERROR_NONE) {
-    LoggerE("Failed to get account info");
-    REPORT_ERROR(out, UnknownException(GetErrorMsg(ret)));
+    LogAndReportError(UnknownException(GetErrorMsg(ret)), out,
+                      ("Failed to get account info"));
     return;
   }
 
   ret = account_set_custom(account, key.c_str(), value.c_str());
   if (ACCOUNT_ERROR_NONE != ret) {
-    LoggerE("Failed to set custom field");
-    REPORT_ERROR(out, UnknownException(GetErrorMsg(ret)));
+    LogAndReportError(UnknownException(GetErrorMsg(ret)), out,
+                      ("Failed to set custom field"));
     return;
   }
 
   ret = account_update_to_db_by_id(account, account_id);
   if (ACCOUNT_ERROR_NONE != ret) {
-    LoggerE("Failed to update account in database");
-    REPORT_ERROR(out, UnknownException(GetErrorMsg(ret)));
+    LogAndReportError(UnknownException(GetErrorMsg(ret)), out,
+                      ("Failed to update account in database"));
   } else {
     out["status"] = picojson::value("success");
   }
@@ -558,8 +555,8 @@ void AccountManager::AddAccount(const picojson::value& data, picojson::object& o
     out["status"] = picojson::value("success");
     out["result"] = picojson::value(static_cast<double>(account_id));
   } else {
-    LoggerE("Failed to create account");
-    REPORT_ERROR(out, UnknownException(GetErrorMsg(ret)));
+    LogAndReportError(UnknownException(GetErrorMsg(ret)), out,
+                      ("Failed to create account"));
   }
 }
 
@@ -572,8 +569,8 @@ void AccountManager::RemoveAccount(const picojson::value& data, picojson::object
   if (!ret || ret == ACCOUNT_ERROR_INVALID_PARAMETER) {
     out["status"] = picojson::value("success");
   } else {
-    LoggerE("Failed to create account");
-    REPORT_ERROR(out, UnknownException(GetErrorMsg(ret)));
+    LogAndReportError(UnknownException(GetErrorMsg(ret)), out,
+                      ("Failed to create account"));
   }
 }
 
@@ -603,12 +600,11 @@ void AccountManager::UpdateAccount(const picojson::value& data, picojson::object
   if (!ret) {
     out["status"] = picojson::value("success");
   } else {
-    LoggerE("Failed to create account");
-    REPORT_ERROR(out, UnknownException(GetErrorMsg(ret)));
+    LogAndReportError(UnknownException(GetErrorMsg(ret)), out,
+                      ("Failed to create account"));
   }
 }
 
-#undef REPORT_ERROR
 
 } // namespace account
 } // namespace extension
