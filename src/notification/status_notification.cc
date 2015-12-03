@@ -100,9 +100,9 @@ PlatformResult StatusNotification::SetLayout(notification_h noti_handle,
   }
   int ret = notification_set_layout(noti_handle, noti_layout);
   if (ret != NOTIFICATION_ERROR_NONE) {
-    LoggerE("Set notification layout error: %d", ret);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Set notification layout error");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                          "Set notification layout error",
+                          ("Set notification layout error: %d", ret));
   }
 
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -153,8 +153,7 @@ PlatformResult StatusNotification::Create(notification_type_e noti_type,
   LoggerD("Enter");
   *noti_handle = notification_create(noti_type);
   if (!noti_handle) {
-    LoggerE("Cannot make new notification object");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
                           "Cannot make new notification object");
   }
 
@@ -164,9 +163,9 @@ PlatformResult StatusNotification::Create(notification_type_e noti_type,
         NOTIFICATION_DISPLAY_APP_NOTIFICATION_TRAY |
             NOTIFICATION_DISPLAY_APP_INDICATOR);
     if (ret != NOTIFICATION_ERROR_NONE) {
-      LoggerE("Cannot make new notification object: %d", ret);
-      return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                            "Cannot set notification display applist");
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                            "Cannot set notification display applist",
+                            ("Cannot make new notification object: %d", ret));
     }
   }
 
@@ -192,8 +191,7 @@ PlatformResult StatusNotification::StatusTypeFromPlatform(
       *type = "PROGRESS";
     }
   } else {
-    LoggerE("Notification type not found");
-    return PlatformResult(ErrorCode::NOT_FOUND_ERR,
+    return LogAndCreateResult(ErrorCode::NOT_FOUND_ERR,
                           "Notification type not found");
   }
 
@@ -209,9 +207,9 @@ PlatformResult StatusNotification::StatusTypeToPlatform(
   } else if (type == "ONGOING" || type == "PROGRESS") {
     *noti_type = NOTIFICATION_TYPE_ONGOING;
   } else {
-    LoggerI("Invalide noti type: %s", type.c_str());
-    return PlatformResult(ErrorCode::TYPE_MISMATCH_ERR,
-                          "Invalide notification type");
+    return LogAndCreateResult(ErrorCode::TYPE_MISMATCH_ERR,
+                          "Invalide notification type",
+                          ("Invalide noti type: %s", type.c_str()));
   }
 
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -228,9 +226,9 @@ PlatformResult StatusNotification::GetImage(
 
   if (notification_get_image(noti_handle, image_type, &path) !=
       NOTIFICATION_ERROR_NONE) {
-    LoggerE("Get notification image error, image_type: %d", image_type);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Get notification image error");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                          "Get notification image error",
+                          ("Get notification image error, image_type: %d", image_type));
   }
   if (path) {
     *image_path = path;
@@ -246,11 +244,10 @@ PlatformResult StatusNotification::SetImage(
   LoggerD("Enter");
   int ret = notification_set_image(noti_handle, image_type, image_path.c_str());
   if (ret != NOTIFICATION_ERROR_NONE) {
-    LoggerE("Set notification image error, image_type: %d, error: %d",
-            image_type,
-            ret);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Set notification image error");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                          "Set notification image error",
+                          ("Set notification image error, image_type: %d, error: %d",
+                                      image_type, ret));
   }
 
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -266,9 +263,9 @@ PlatformResult StatusNotification::GetText(notification_h noti_handle,
 
   if (notification_get_text(noti_handle, text_type, &text) !=
       NOTIFICATION_ERROR_NONE) {
-    LoggerE("Get notification text error, text_type: %d", text_type);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Get notification text error");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                          "Get notification text error",
+                          ("Get notification text error, text_type: %d", text_type));
   }
 
   if (text)
@@ -287,11 +284,10 @@ PlatformResult StatusNotification::SetText(notification_h noti_handle,
                                   NULL,
                                   NOTIFICATION_VARIABLE_TYPE_NONE);
   if (ret != NOTIFICATION_ERROR_NONE) {
-    LoggerE("Set notification text error, text_type: %d, error: %d",
-            text_type,
-            ret);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Set notification text error");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                          "Set notification text error",
+                          ("Set notification text error, text_type: %d, error: %d",
+                                      text_type, ret));
   }
 
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -318,8 +314,7 @@ PlatformResult StatusNotification::GetDetailInfos(notification_h noti_handle,
                                                   picojson::array* out) {
   LoggerD("Enter");
   if (info_map_.size() != info_sub_map_.size()) {
-    LoggerE("Different notification information types element size");
-    return PlatformResult(
+    return LogAndCreateResult(
         ErrorCode::VALIDATION_ERR,
         "Different notification information types element size");
   }
@@ -382,8 +377,7 @@ PlatformResult StatusNotification::SetDetailInfos(
     ++idx;
 
     if (idx > info_map_size) {
-      LoggerE("Too many values in notification detailInfo array");
-      return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
+      return LogAndCreateResult(ErrorCode::INVALID_VALUES_ERR,
                             "Too many values in notification detailInfo array");
     }
   }
@@ -399,8 +393,7 @@ PlatformResult StatusNotification::GetLedColor(notification_h noti_handle,
 
   if (notification_get_led(noti_handle, &type, (int*)&color) !=
       NOTIFICATION_ERROR_NONE) {
-    LoggerE("Get notification led displaying option error");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
                           "Get notification led displaying option error");
   }
 
@@ -433,9 +426,9 @@ PlatformResult StatusNotification::SetLedColor(notification_h noti_handle,
       color_str.begin(), color_str.end(), color_str.begin(), ::tolower);
 
   if (!IsColorFormatNumberic(color_str)) {
-    LoggerE("Led color is not numeric value: %s", color_str.c_str());
-    return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
-                          "Led color is not numeric value");
+    return LogAndCreateResult(ErrorCode::INVALID_VALUES_ERR,
+                          "Led color is not numeric value",
+                          ("Led color is not numeric value: %s", color_str.c_str()));
   }
 
   std::stringstream stream;
@@ -454,9 +447,9 @@ PlatformResult StatusNotification::SetLedColor(notification_h noti_handle,
 
   int ret = notification_set_led(noti_handle, type, static_cast<int>(color));
   if (ret != NOTIFICATION_ERROR_NONE) {
-    LoggerE("Set notification led color eror: %d", ret);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Set notification led color eror");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                          "Set notification led color eror",
+                          ("Set notification led color eror: %d", ret));
   }
 
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -471,8 +464,7 @@ PlatformResult StatusNotification::GetLedPeriod(notification_h noti_handle,
 
   if (notification_get_led_time_period(noti_handle, &on_time, &off_time) !=
       NOTIFICATION_ERROR_NONE) {
-    LoggerE("Get notification led on/off period error");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
                           "Get notification led on/off period error");
   }
 
@@ -495,9 +487,9 @@ PlatformResult StatusNotification::SetLedOnPeriod(notification_h noti_handle,
   int ret =
       notification_set_led_time_period(noti_handle, on_period, off_period);
   if (ret != NOTIFICATION_ERROR_NONE) {
-    LoggerE("Set notification led on period error: %d", ret);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Set notification led on period error");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                          "Set notification led on period error",
+                          ("Set notification led on period error: %d", ret));
   }
 
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -514,9 +506,9 @@ PlatformResult StatusNotification::SetLedOffPeriod(notification_h noti_handle,
   int ret =
       notification_set_led_time_period(noti_handle, on_period, off_period);
   if (ret != NOTIFICATION_ERROR_NONE) {
-    LoggerE("Set notification led off period error: %d", ret);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Set notification led off period error");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                          "Set notification led off period error",
+                          ("Set notification led off period error: %d", ret));
   }
 
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -560,8 +552,7 @@ PlatformResult StatusNotification::SetThumbnails(notification_h noti_handle,
     ++idx;
 
     if (idx > thumbnails_map_size) {
-      LoggerE("Too many values in notification thumbnail array");
-      return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
+      return LogAndCreateResult(ErrorCode::INVALID_VALUES_ERR,
                             "Too many values in notification thumbnail array");
     }
   }
@@ -579,8 +570,7 @@ PlatformResult StatusNotification::GetSoundPath(notification_h noti_handle,
 
   if (notification_get_sound(noti_handle, &type, &path) !=
       NOTIFICATION_ERROR_NONE) {
-    LoggerE("Get notification sound error");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
                           "Get notification sound error");
   }
 
@@ -601,9 +591,9 @@ PlatformResult StatusNotification::SetSoundPath(notification_h noti_handle,
   int ret = notification_set_sound(
       noti_handle, NOTIFICATION_SOUND_TYPE_USER_DATA, sound_path.c_str());
   if (ret != NOTIFICATION_ERROR_NONE) {
-    LoggerE("Set notification sound error: %d", ret);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Set notification sound error");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                          "Set notification sound error",
+                          ("Set notification sound error: %d", ret));
   }
 
   LoggerD("Sound path = %s", sound_path.c_str());
@@ -618,8 +608,7 @@ PlatformResult StatusNotification::GetVibration(notification_h noti_handle,
 
   if (notification_get_vibration(noti_handle, &vib_type, NULL) !=
       NOTIFICATION_ERROR_NONE) {
-    LoggerE("Get notification vibration error");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
                           "Get notification vibration error");
   }
 
@@ -650,9 +639,9 @@ PlatformResult StatusNotification::SetVibration(notification_h noti_handle,
 
     int ret = notification_set_vibration(noti_handle, vib_type, NULL);
     if (ret != NOTIFICATION_ERROR_NONE) {
-      LoggerE("Set notification vibration error: %d", ret);
-      return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                            "Set notification vibration error");
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                            "Set notification vibration error",
+                            ("Set notification vibration error: %d", ret));
     }
   }
 
@@ -678,9 +667,9 @@ PlatformResult StatusNotification::GetApplicationControl(
 
   int ret = app_control_get_operation(app_handle, &operation);
   if (ret != APP_CONTROL_ERROR_NONE) {
-    LoggerE("Get application control operation error: %d", ret);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Get application control operation error");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                          "Get application control operation error",
+                          ("Get application control operation error: %d", ret));
   }
   if (operation) {
     out["operation"] = picojson::value(operation);
@@ -688,8 +677,7 @@ PlatformResult StatusNotification::GetApplicationControl(
   }
 
   if (app_control_get_uri(app_handle, &uri) != APP_CONTROL_ERROR_NONE) {
-    LoggerE("Get application control uri error");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
                           "Get application control uri error");
   }
   if (uri) {
@@ -698,8 +686,7 @@ PlatformResult StatusNotification::GetApplicationControl(
   }
 
   if (app_control_get_mime(app_handle, &mime) != APP_CONTROL_ERROR_NONE) {
-    LoggerE("Get application control mime error");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
                           "Get application control mime error");
   }
   if (mime) {
@@ -709,8 +696,7 @@ PlatformResult StatusNotification::GetApplicationControl(
 
   if (app_control_get_category(app_handle, &category) !=
       APP_CONTROL_ERROR_NONE) {
-    LoggerE("Get application control category error");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
                           "Get application control category error");
   }
   if (category) {
@@ -722,8 +708,7 @@ PlatformResult StatusNotification::GetApplicationControl(
   if (app_control_foreach_extra_data(
           app_handle, ServiceExtraDataCb, (void*)&app_control_data) !=
       APP_CONTROL_ERROR_NONE) {
-    LoggerE("Get application control data error");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
                           "Get application control data error");
   }
   out["data"] = picojson::value(app_control_data);
@@ -746,18 +731,18 @@ PlatformResult StatusNotification::SetApplicationControl(
     ret = app_control_set_operation(app_handle, APP_CONTROL_OPERATION_DEFAULT);
   }
   if (ret != APP_CONTROL_ERROR_NONE) {
-    LoggerE("Set application control operation error: %d", ret);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Set application control operation error");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                          "Set application control operation error",
+                          ("Set application control operation error: %d", ret));
   }
 
   if (val.contains("uri") && !IsNull(app_ctrl, "uri")) {
     const std::string& uri = common::FromJson<std::string>(app_ctrl, "uri");
     ret = app_control_set_uri(app_handle, uri.c_str());
     if (ret != APP_CONTROL_ERROR_NONE) {
-      LoggerE("Set application control uri error: %d", ret);
-      return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                            "Set application control uri error");
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                            "Set application control uri error",
+                            ("Set application control uri error: %d", ret));
     }
   }
 
@@ -765,9 +750,9 @@ PlatformResult StatusNotification::SetApplicationControl(
     const std::string& mime = common::FromJson<std::string>(app_ctrl, "mime");
     ret = app_control_set_mime(app_handle, mime.c_str());
     if (ret != APP_CONTROL_ERROR_NONE) {
-      LoggerE("Set application control mime error: %d", ret);
-      return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                            "Set application control mime error");
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                            "Set application control mime error",
+                            ("Set application control mime error: %d", ret));
     }
   }
 
@@ -776,9 +761,9 @@ PlatformResult StatusNotification::SetApplicationControl(
         common::FromJson<std::string>(app_ctrl, "category");
     ret = app_control_set_category(app_handle, category.c_str());
     if (ret != APP_CONTROL_ERROR_NONE) {
-      LoggerE("Set application control category error: %d", ret);
-      return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                            "Set application control category error");
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                            "Set application control category error",
+                            ("Set application control category error: %d", ret));
     }
   }
 
@@ -806,9 +791,9 @@ PlatformResult StatusNotification::SetApplicationControl(
     ret = app_control_add_extra_data_array(
         app_handle, key.c_str(), arrayValue, values.size());
     if (ret != APP_CONTROL_ERROR_NONE) {
-      LoggerE("Set application control extra data error: %d", ret);
-      return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                            "Set application control extra data error");
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                            "Set application control extra data error",
+                            ("Set application control extra data error: %d", ret));
     }
   }
 
@@ -825,8 +810,7 @@ PlatformResult StatusNotification::GetApplicationId(app_control_h app_handle,
 
   if (app_control_get_app_id(app_handle, &app_id_str) !=
       APP_CONTROL_ERROR_NONE) {
-    LoggerE("Get applicaiton ID failed");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Get applicaiton ID failed");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Get applicaiton ID failed");
   }
 
   if (app_id_str != NULL) {
@@ -843,8 +827,8 @@ PlatformResult StatusNotification::SetApplicationId(app_control_h app_handle,
   LoggerD("Enter");
   int ret = app_control_set_app_id(app_handle, app_id.c_str());
   if (ret != APP_CONTROL_ERROR_NONE) {
-    LoggerE("Set applicaiton ID error: %d", ret);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Set applicaiton ID error");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Set applicaiton ID error",
+                              ("Set applicaiton ID error: %d", ret));
   }
 
   LoggerD("Set appId = %s", app_id.c_str());
@@ -862,21 +846,19 @@ PlatformResult StatusNotification::GetProgressValue(
   if (progess_type == kProgressTypeByte) {
     if (notification_get_size(noti_handle, &tmp_progress_value) !=
         NOTIFICATION_ERROR_NONE) {
-      LoggerE("Get notification size error");
-      return PlatformResult(ErrorCode::UNKNOWN_ERR,
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
                             "Get notification size error");
     }
   } else if (progess_type == kProgressTypePercentage) {
     if (notification_get_progress(noti_handle, &tmp_progress_value) !=
         NOTIFICATION_ERROR_NONE) {
-      LoggerE("Get notification progress error");
-      return PlatformResult(ErrorCode::UNKNOWN_ERR,
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
                             "Get notification progress error");
     }
   } else {
-    LoggerE("Unknown notification progress type: %s ", progess_type.c_str());
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Unknown notification progress type");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                          "Unknown notification progress type",
+                          ("Unknown notification progress type: %s ", progess_type.c_str()));
   }
 
   LOGGER(DEBUG) << "Progress " << progess_type << " = " << tmp_progress_value;
@@ -908,15 +890,15 @@ PlatformResult StatusNotification::SetProgressValue(
           progress_value);
     }
   } else {
-    LoggerE("Unknown notification progress type: %s ", progress_type.c_str());
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Unknown notification progress type");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                          "Unknown notification progress type",
+                          ("Unknown notification progress type: %s ", progress_type.c_str()));
   }
 
   if (ret != NOTIFICATION_ERROR_NONE) {
-    LoggerE("Set notification progress/size error: %d", ret);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Set notification progress/size error");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                          "Set notification progress/size error",
+                          ("Set notification progress/size error: %d", ret));
   }
 
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -929,8 +911,7 @@ PlatformResult StatusNotification::GetPostedTime(notification_h noti_handle,
 
   if (notification_get_insert_time(noti_handle, posted_time) !=
       NOTIFICATION_ERROR_NONE) {
-    LoggerE("Get notification posted time error");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
                           "Get notification posted time error");
   }
 
@@ -942,8 +923,7 @@ PlatformResult StatusNotification::GetNotiHandle(int id,
   LoggerD("Enter");
   *noti_handle = notification_load(NULL, id);
   if (NULL == *noti_handle) {
-    LoggerE("Not found or removed notification id");
-    return PlatformResult(ErrorCode::NOT_FOUND_ERR,
+    return LogAndCreateResult(ErrorCode::NOT_FOUND_ERR,
                           "Not found or removed notification id");
   }
 
@@ -958,9 +938,9 @@ PlatformResult StatusNotification::GetAppControl(notification_h noti_handle,
                                      NOTIFICATION_LAUNCH_OPTION_APP_CONTROL,
                                      static_cast<void*>(app_control));
   if (ret != NOTIFICATION_ERROR_NONE) {
-    LoggerE("Notification get launch option error: %d", ret);
-    return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
-                          "Notification get launch option error");
+    return LogAndCreateResult(ErrorCode::INVALID_VALUES_ERR,
+                          "Notification get launch option error",
+                          ("Notification get launch option error: %d", ret));
   }
 
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -971,9 +951,9 @@ PlatformResult StatusNotification::CreateAppControl(
   LoggerD("Enter");
   int ret = app_control_create(app_control);
   if (ret != APP_CONTROL_ERROR_NONE) {
-    LoggerE("Application create error: %d", ret);
-    return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
-                          "Application create error");
+    return LogAndCreateResult(ErrorCode::INVALID_VALUES_ERR,
+                          "Application create error",
+                          ("Application create error: %d", ret));
   }
 
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -987,9 +967,9 @@ PlatformResult StatusNotification::SetAppControl(notification_h noti_handle,
                                      NOTIFICATION_LAUNCH_OPTION_APP_CONTROL,
                                      static_cast<void*>(app_control));
   if (ret != APP_CONTROL_ERROR_NONE) {
-    LoggerE("Notification set launch option error: %d", ret);
-    return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
-                          "Notification set launch option error");
+    return LogAndCreateResult(ErrorCode::INVALID_VALUES_ERR,
+                          "Notification set launch option error",
+                          ("Notification set launch option error: %d", ret));
   }
 
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -1009,17 +989,17 @@ PlatformResult StatusNotification::ToJson(int id,
   notification_type_e noti_type = NOTIFICATION_TYPE_NONE;
   int ret = notification_get_type(noti_handle, &noti_type);
   if (ret != NOTIFICATION_ERROR_NONE) {
-    LoggerE("Notification get type error: %d", ret);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Notification get type error");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                          "Notification get type error",
+                          ("Notification get type error: %d", ret));
   }
 
   notification_ly_type_e noti_layout = NOTIFICATION_LY_NONE;
   ret = notification_get_layout(noti_handle, &noti_layout);
   if (ret != NOTIFICATION_ERROR_NONE) {
-    LoggerE("Notification get layout error: %d", ret);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Notification get layout error");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                          "Notification get layout error",
+                          ("Notification get layout error: %d", ret));
   }
 
   std::string noti_type_str;
@@ -1360,14 +1340,14 @@ PlatformResult StatusNotification::FromJson(const picojson::object& args,
   } else {
     ret = notification_insert(noti_handle, &id);
     if (NOTIFICATION_ERROR_NONE != ret) {
-      return PlatformResult(ErrorCode::UNKNOWN_ERR,
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
           "Cannot insert notification");
     }
   }
   if (ret != NOTIFICATION_ERROR_NONE) {
-    LoggerE("Post/Update notification error: %d", ret);
-    return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
-                          "Post/Update notification error");
+    return LogAndCreateResult(ErrorCode::INVALID_VALUES_ERR,
+                          "Post/Update notification error",
+                          ("Post/Update notification error: %d", ret));
   }
 
   time_t posted_time;
