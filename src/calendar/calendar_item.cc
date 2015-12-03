@@ -195,7 +195,6 @@ PlatformResult CalendarItem::Create(int type, calendar_record_h* handle) {
   std::string value_str;
   PlatformResult status = CalendarRecord::TypeToUri(type, &value_str);
   if (status.IsError()) {
-    LoggerE("Error: %s", status.message().c_str());
     return status;
   }
 
@@ -207,14 +206,12 @@ PlatformResult CalendarItem::Remove(int type, int id) {
   std::string view_uri;
   PlatformResult status = CalendarRecord::TypeToUri(type, &view_uri);
   if (status.IsError()) {
-    LoggerE("Error: %s", status.message().c_str());
     return status;
   }
 
   calendar_record_h handle = nullptr;
   status = GetById(id, view_uri.c_str(), &handle);
   if (status.IsError()) {
-    LoggerE("Error: %s", status.message().c_str());
     return status;
   }
 
@@ -225,21 +222,22 @@ PlatformResult CalendarItem::Remove(int type, int id) {
     PlatformResult status =
         GetString(type, record.get(), "recurrence_id", &rid);
     if (status.IsError()) {
-      LoggerE("Error: %s", status.message().c_str());
       return status;
     }
 
     if (rid.length() > 0) {
       // @todo remove all occurrences
-      LoggerE("Error: TODO: remove all occurrences");
-      return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                            "TODO: remove all occurrences");
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR,
+                                "TODO: remove all occurrences");
     }
   }
 
-  if (CALENDAR_ERROR_NONE != calendar_db_delete_record(view_uri.c_str(), id)) {
+  int ret = calendar_db_delete_record(view_uri.c_str(), id);
+  if (CALENDAR_ERROR_NONE != ret) {
     LOGE("Calendar record delete error");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Record deletion error");
+    return LogAndCreateResult(
+                ErrorCode::UNKNOWN_ERR, "Record deletion error",
+                ("calendar_db_delete_record error: %d (%s)", ret, get_error_message(ret)));
   }
 
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -251,17 +249,15 @@ PlatformResult CalendarItem::GetPlatformProperty(int type,
   LoggerD("Enter");
   if (platform_property_map_.find(property) == platform_property_map_.end()) {
     std::string message = std::string("Undefined property ") + property;
-    LoggerE("Error: %s", message.c_str());
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, message);
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, message);
   }
 
   auto prop = platform_property_map_.at(property);
   if (prop.find(type) == prop.end()) {
-    LoggerE("Property %s not defined for type %d", property.c_str(), type);
-    return PlatformResult(
-        ErrorCode::INVALID_VALUES_ERR,
-        std::string("Property %s not defined for type ", property.c_str()) +
-        std::to_string(type));
+    return LogAndCreateResult(
+              ErrorCode::INVALID_VALUES_ERR,
+              std::string("Property %s not defined for type ", property.c_str()) +
+              std::to_string(type));
   }
 
   *value = prop.at(type);
@@ -276,8 +272,7 @@ PlatformResult CalendarItem::StringToPlatformEnum(const std::string& field,
   auto iter = platform_enum_map_.find(field);
   if (iter == platform_enum_map_.end()) {
     std::string message = std::string("Undefined platform enum type ") + field;
-    LoggerE("Error: %s", message.c_str());
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, message);
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, message);
   }
 
   auto def = platform_enum_map_.at(field);
@@ -296,8 +291,7 @@ PlatformResult CalendarItem::StringToPlatformEnum(const std::string& field,
 
   std::string message =
       "Platform enum value " + value + " not found for " + field;
-  LoggerE("Error: %s", message.c_str());
-  return PlatformResult(ErrorCode::INVALID_VALUES_ERR, message);
+  return LogAndCreateResult(ErrorCode::INVALID_VALUES_ERR, message);
 }
 
 PlatformResult CalendarItem::PlatformEnumToString(const std::string& field,
@@ -320,8 +314,7 @@ PlatformResult CalendarItem::PlatformEnumToString(const std::string& field,
   auto iter = platform_enum_reverse_map_.find(field);
   if (iter == platform_enum_reverse_map_.end()) {
     std::string message = std::string("Undefined platform enum type ") + field;
-    LoggerE("Error: %s", message.c_str());
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, message);
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, message);
   }
 
   auto def = platform_enum_reverse_map_.at(field);
@@ -333,8 +326,7 @@ PlatformResult CalendarItem::PlatformEnumToString(const std::string& field,
 
   std::string message = "Platform enum value " + std::to_string(value) +
       " not found for " + field;
-  LoggerE("Error: %s", message.c_str());
-  return PlatformResult(ErrorCode::INVALID_VALUES_ERR, message);
+  return LogAndCreateResult(ErrorCode::INVALID_VALUES_ERR, message);
 }
 
 PlatformResult CalendarItem::SetString(int type, calendar_record_h rec,
@@ -361,14 +353,12 @@ PlatformResult CalendarItem::SetString(int type, calendar_record_h rec,
   unsigned int prop;
   PlatformResult status = GetPlatformProperty(type, property, &prop);
   if (status.IsError()) {
-    LoggerE("Error: %s", status.message().c_str());
     return status;
   }
 
   if (prop != -1u) {
     PlatformResult status = CalendarRecord::SetString(rec, prop, value);
     if (status.IsError()) {
-      LoggerE("Error: %s", status.message().c_str());
       return status;
     }
   }
@@ -384,7 +374,6 @@ PlatformResult CalendarItem::GetString(int type, calendar_record_h rec,
   unsigned int prop;
   PlatformResult status = GetPlatformProperty(type, property, &prop);
   if (status.IsError()) {
-    LoggerE("Error: %s", status.message().c_str());
     return status;
   }
 
@@ -412,7 +401,6 @@ PlatformResult CalendarItem::SetInt(int type, calendar_record_h rec,
   unsigned int prop;
   PlatformResult status = GetPlatformProperty(type, property, &prop);
   if (status.IsError()) {
-    LoggerE("Error: %s", status.message().c_str());
     return status;
   }
 
@@ -426,7 +414,6 @@ PlatformResult CalendarItem::GetInt(int type, calendar_record_h rec,
   unsigned int prop;
   PlatformResult status = GetPlatformProperty(type, property, &prop);
   if (status.IsError()) {
-    LoggerE("Error: %s", status.message().c_str());
     return status;
   }
 
@@ -443,13 +430,11 @@ PlatformResult CalendarItem::SetEnum(int type, calendar_record_h rec,
   int value_int;
   PlatformResult status = StringToPlatformEnum(enum_name, value, &value_int);
   if (status.IsError()) {
-    LoggerE("Error: %s", status.message().c_str());
     return status;
   }
 
   status = SetInt(type, rec, property, value_int);
   if (status.IsError()) {
-    LoggerE("Error: %s", status.message().c_str());
     return status;
   }
 
@@ -464,13 +449,11 @@ PlatformResult CalendarItem::SetEnum(calendar_record_h rec,
   int value_int;
   PlatformResult status = StringToPlatformEnum(enum_name, value, &value_int);
   if (status.IsError()) {
-    LoggerE("Error: %s", status.message().c_str());
     return status;
   }
 
   status = CalendarRecord::SetInt(rec, property, value_int);
   if (status.IsError()) {
-    LoggerE("Error: %s", status.message().c_str());
     return status;
   }
 
@@ -484,7 +467,6 @@ PlatformResult CalendarItem::GetEnum(int type, calendar_record_h rec,
   int value;
   PlatformResult status = GetInt(type, rec, property, &value);
   if (status.IsError()) {
-    LoggerE("Error: %s", status.message().c_str());
     return status;
   }
 
@@ -499,7 +481,6 @@ PlatformResult CalendarItem::GetEnum(calendar_record_h rec,
   int value;
   PlatformResult status = CalendarRecord::GetInt(rec, property, &value);
   if (status.IsError()) {
-    LoggerE("Error: %s", status.message().c_str());
     return status;
   }
 
@@ -513,15 +494,14 @@ PlatformResult CalendarItem::SetDouble(int type, calendar_record_h rec,
   unsigned int prop;
   PlatformResult status = GetPlatformProperty(type, property, &prop);
   if (status.IsError()) {
-    LoggerE("Error: %s", status.message().c_str());
     return status;
   }
 
   int ret = calendar_record_set_double(rec, prop, value);
-
   if (CALENDAR_ERROR_NONE != ret) {
-    LoggerW("Can't set double value to record: %d", ret);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Set double to record failed.");
+    return LogAndCreateResult(
+                ErrorCode::UNKNOWN_ERR, "Set double to record failed.",
+                ("calendar_record_set_double error: %d (%s)", ret, get_error_message(ret)));
   }
 
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -535,15 +515,14 @@ PlatformResult CalendarItem::GetDouble(int type, calendar_record_h rec,
   unsigned int prop;
   PlatformResult status = GetPlatformProperty(type, property, &prop);
   if (status.IsError()) {
-    LoggerE("Error: %s", status.message().c_str());
     return status;
   }
 
   int ret = calendar_record_get_double(rec, prop, value);
   if (CALENDAR_ERROR_NONE != ret) {
-    LoggerW("Can't get double value form record: %d", ret);
-    return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                          "Get int from record failed.");
+    return LogAndCreateResult(
+                ErrorCode::UNKNOWN_ERR, "Get int from record failed.",
+                ("calendar_record_get_double error: %d (%s)", ret, get_error_message(ret)));
   }
 
   return PlatformResult(ErrorCode::NO_ERROR);
@@ -557,7 +536,6 @@ PlatformResult CalendarItem::SetCaltime(int type, calendar_record_h rec,
   unsigned int prop;
   PlatformResult status = GetPlatformProperty(type, property, &prop);
   if (status.IsError()) {
-    LoggerE("Error: %s", status.message().c_str());
     return status;
   }
 
@@ -572,12 +550,11 @@ PlatformResult CalendarItem::SetCaltime(calendar_record_h rec,
   int ret = calendar_record_set_caltime(rec, property, value);
 
   if (CALENDAR_ERROR_NONE != ret) {
-    LoggerW("Can't set caltime value to record: %d", ret);
+    LoggerW("Can't set caltime value to record: %d (%s)", ret, get_error_message(ret));
 
     if (throw_on_error) {
       std::string message = "Set caltime to record failed.";
-      LoggerE("Error: %s", message.c_str());
-      return PlatformResult(ErrorCode::UNKNOWN_ERR, message);
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, message);
     }
   }
 
@@ -593,7 +570,6 @@ PlatformResult CalendarItem::GetCaltime(int type, calendar_record_h rec,
   unsigned int prop;
   PlatformResult status = GetPlatformProperty(type, property, &prop);
   if (status.IsError()) {
-    LoggerE("Error: %s", status.message().c_str());
     return status;
   }
 
@@ -611,8 +587,7 @@ PlatformResult CalendarItem::GetCaltime(calendar_record_h rec,
       LoggerW("Can't get calendar_time value form record: %d", ret);
       if (throw_on_error) {
         std::string message = "Can't get calendar_time value form record";
-        LoggerE("Error: %s", message.c_str());
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, message);
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, message);
       }
     }
   }
@@ -631,8 +606,7 @@ PlatformResult CalendarItem::SetLli(calendar_record_h rec,
 
     if (throw_on_error) {
       std::string message = "Set long long int to record failed.";
-      LoggerE("Error: %s", message.c_str());
-      return PlatformResult(ErrorCode::UNKNOWN_ERR, message);
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, message);
     }
   }
 
@@ -647,7 +621,6 @@ PlatformResult CalendarItem::GetLli(int type, calendar_record_h rec,
   unsigned int prop;
   PlatformResult status = GetPlatformProperty(type, property, &prop);
   if (status.IsError()) {
-    LoggerE("Error: %s", status.message().c_str());
     return status;
   }
 
@@ -663,8 +636,7 @@ PlatformResult CalendarItem::GetLli(calendar_record_h rec,
     LoggerW("Can't get lli value form record: %d", ret);
     if (throw_on_error) {
       std::string message = "Get lli from record failed.";
-      LoggerE("Error: %s", message.c_str());
-      return PlatformResult(ErrorCode::UNKNOWN_ERR, message);
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, message);
     }
   }
 
@@ -718,7 +690,6 @@ PlatformResult CalendarItem::CategoriesFromJson(int type, calendar_record_h rec,
 
   PlatformResult status = SetString(type, rec, "categories", categories);
   if (status.IsError()) {
-    LoggerE("Error: %s", status.message().c_str());
     return status;
   }
 
@@ -731,7 +702,6 @@ PlatformResult CalendarItem::CategoriesToJson(int type, calendar_record_h rec,
   std::string categories;
   PlatformResult status = GetString(type, rec, "categories", &categories);
   if (status.IsError()) {
-    LoggerE("Error: %s", status.message().c_str());
     return status;
   }
 
@@ -758,15 +728,16 @@ PlatformResult CalendarItem::AttendeesFromJson(int type, calendar_record_h rec,
 
     int ret = calendar_record_create(_calendar_attendee._uri, &attendee);
     if (CALENDAR_ERROR_NONE != ret) {
-      LoggerE("Fail to create attendee record, error code: %d", ret);
-      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Fail to create attendee record");
+      return LogAndCreateResult(
+                  ErrorCode::UNKNOWN_ERR, "Fail to create attendee record",
+                  ("Fail to create attendee record, error code: %d (%s)",
+                      ret, get_error_message(ret)));
     }
 
     PlatformResult status =
         CalendarRecord::SetString(attendee, _calendar_attendee.email,
                                   common::FromJson<std::string>(obj, "uri"));
     if (status.IsError()) {
-      LoggerE("Error: %s", status.message().c_str());
       return status;
     }
 
@@ -775,7 +746,6 @@ PlatformResult CalendarItem::AttendeesFromJson(int type, calendar_record_h rec,
           CalendarRecord::SetString(attendee, _calendar_attendee.name,
                                     common::FromJson<std::string>(obj, "name"));
       if (status.IsError()) {
-        LoggerE("Error: %s", status.message().c_str());
         return status;
       }
     }
@@ -783,28 +753,24 @@ PlatformResult CalendarItem::AttendeesFromJson(int type, calendar_record_h rec,
     status = SetEnum(attendee, _calendar_attendee.role, kAttendeeRole,
                      common::FromJson<std::string>(obj, "role"));
     if (status.IsError()) {
-      LoggerE("Error: %s", status.message().c_str());
       return status;
     }
 
     status = SetEnum(attendee, _calendar_attendee.status, kAttendeeStatus,
                      common::FromJson<std::string>(obj, "status"));
     if (status.IsError()) {
-      LoggerE("Error: %s", status.message().c_str());
       return status;
     }
 
     status = CalendarRecord::SetInt(attendee, _calendar_attendee.rsvp,
                                     common::FromJson<bool>(obj, "RSVP"));
     if (status.IsError()) {
-      LoggerE("Error: %s", status.message().c_str());
       return status;
     }
 
     status = SetEnum(attendee, _calendar_attendee.cutype, kAttendeeType,
                      common::FromJson<std::string>(obj, "type"));
     if (status.IsError()) {
-      LoggerE("Error: %s", status.message().c_str());
       return status;
     }
 
@@ -812,7 +778,6 @@ PlatformResult CalendarItem::AttendeesFromJson(int type, calendar_record_h rec,
       status = CalendarRecord::SetString(attendee, _calendar_attendee.group,
                                          common::FromJson<std::string>(obj, "group"));
       if (status.IsError()) {
-        LoggerE("Error: %s", status.message().c_str());
         return status;
       }
     }
@@ -821,7 +786,6 @@ PlatformResult CalendarItem::AttendeesFromJson(int type, calendar_record_h rec,
           attendee, _calendar_attendee.delegator_uri,
           common::FromJson<std::string>(obj, "delegatorURI"));
       if (status.IsError()) {
-        LoggerE("Error: %s", status.message().c_str());
         return status;
       }
     }
@@ -830,7 +794,6 @@ PlatformResult CalendarItem::AttendeesFromJson(int type, calendar_record_h rec,
           attendee, _calendar_attendee.delegatee_uri,
           common::FromJson<std::string>(obj, "delegateURI"));
       if (status.IsError()) {
-        LoggerE("Error: %s", status.message().c_str());
         return status;
       }
     }
@@ -840,7 +803,6 @@ PlatformResult CalendarItem::AttendeesFromJson(int type, calendar_record_h rec,
           attendee, _calendar_attendee.uid,
           common::FromJson<std::string>(obj, "contactRef", "contactId"));
       if (status.IsError()) {
-        LoggerE("Error: %s", status.message().c_str());
         return status;
       }
 
@@ -850,7 +812,6 @@ PlatformResult CalendarItem::AttendeesFromJson(int type, calendar_record_h rec,
       status = CalendarRecord::SetInt(attendee, _calendar_attendee.person_id,
                                       common::stol(address_book));
       if (status.IsError()) {
-        LoggerE("Error: %s", status.message().c_str());
         return status;
       }
     } else {
@@ -859,7 +820,6 @@ PlatformResult CalendarItem::AttendeesFromJson(int type, calendar_record_h rec,
 
     status = AddChildRecord(rec, property, attendee);
     if (status.IsError()) {
-      LoggerE("Error: %s", status.message().c_str());
       return status;
     }
   }
@@ -880,7 +840,6 @@ PlatformResult CalendarItem::AttendeesToJson(int type, calendar_record_h rec,
   unsigned int count = 0;
   PlatformResult status = GetChildRecordCount(rec, property, true, &count);
   if (status.IsError()) {
-    LoggerE("Error: %s", status.message().c_str());
     return status;
   }
   if (!count) {
@@ -889,10 +848,12 @@ PlatformResult CalendarItem::AttendeesToJson(int type, calendar_record_h rec,
   }
 
   calendar_list_h list;
-  if (CALENDAR_ERROR_NONE !=
-      calendar_record_clone_child_record_list(rec, property, &list)) {
-    LoggerE("Can't get attendee list");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Can't get attendee list");
+  int ret = calendar_record_clone_child_record_list(rec, property, &list);
+  if (CALENDAR_ERROR_NONE != ret) {
+    return LogAndCreateResult(
+                ErrorCode::UNKNOWN_ERR, "Can't get attendee list",
+                ("calendar_record_clone_child_record_list error: %d (%s)",
+                    ret, get_error_message(ret)));
   }
   CalendarListPtr(list, CalendarRecord::ListDeleter);
 
@@ -912,7 +873,6 @@ PlatformResult CalendarItem::AttendeesToJson(int type, calendar_record_h rec,
     PlatformResult status = CalendarRecord::GetString(
         attendee, _calendar_attendee.email, &value_str);
     if (status.IsError()) {
-      LoggerE("Error: %s", status.message().c_str());
       return status;
     }
     attendee_obj["uri"] = picojson::value(value_str);
@@ -920,7 +880,6 @@ PlatformResult CalendarItem::AttendeesToJson(int type, calendar_record_h rec,
     status = CalendarRecord::GetString(attendee, _calendar_attendee.name,
                                        &value_str);
     if (status.IsError()) {
-      LoggerE("Error: %s", status.message().c_str());
       return status;
     }
     attendee_obj["name"] = picojson::value(value_str);
@@ -929,7 +888,6 @@ PlatformResult CalendarItem::AttendeesToJson(int type, calendar_record_h rec,
     status =
         GetEnum(attendee, _calendar_attendee.role, kAttendeeRole, &enum_str);
     if (status.IsError()) {
-      LoggerE("Error: %s", status.message().c_str());
       return status;
     }
     attendee_obj["role"] = picojson::value(enum_str);
@@ -937,7 +895,6 @@ PlatformResult CalendarItem::AttendeesToJson(int type, calendar_record_h rec,
     status = GetEnum(attendee, _calendar_attendee.status, kAttendeeStatus,
                      &enum_str);
     if (status.IsError()) {
-      LoggerE("Error: %s", status.message().c_str());
       return status;
     }
     attendee_obj["status"] = picojson::value(enum_str);
@@ -946,7 +903,6 @@ PlatformResult CalendarItem::AttendeesToJson(int type, calendar_record_h rec,
     status =
         CalendarRecord::GetInt(attendee, _calendar_attendee.rsvp, &value_int);
     if (status.IsError()) {
-      LoggerE("Error: %s", status.message().c_str());
       return status;
     }
     attendee_obj["RSVP"] = picojson::value(static_cast<bool>(value_int));
@@ -954,7 +910,6 @@ PlatformResult CalendarItem::AttendeesToJson(int type, calendar_record_h rec,
     status =
         GetEnum(attendee, _calendar_attendee.cutype, kAttendeeType, &enum_str);
     if (status.IsError()) {
-      LoggerE("Error: %s", status.message().c_str());
       return status;
     }
     attendee_obj["type"] = picojson::value(enum_str);
@@ -962,7 +917,6 @@ PlatformResult CalendarItem::AttendeesToJson(int type, calendar_record_h rec,
     status = CalendarRecord::GetString(attendee, _calendar_attendee.group,
                                        &value_str);
     if (status.IsError()) {
-      LoggerE("Error: %s", status.message().c_str());
       return status;
     }
     attendee_obj["group"] = picojson::value(value_str);
@@ -970,7 +924,6 @@ PlatformResult CalendarItem::AttendeesToJson(int type, calendar_record_h rec,
     status = CalendarRecord::GetString(
         attendee, _calendar_attendee.delegator_uri, &value_str);
     if (status.IsError()) {
-      LoggerE("Error: %s", status.message().c_str());
       return status;
     }
     attendee_obj["delegatorURI"] = picojson::value(value_str);
@@ -978,7 +931,6 @@ PlatformResult CalendarItem::AttendeesToJson(int type, calendar_record_h rec,
     status = CalendarRecord::GetString(
         attendee, _calendar_attendee.delegatee_uri, &value_str);
     if (status.IsError()) {
-      LoggerE("Error: %s", status.message().c_str());
       return status;
     }
     attendee_obj["delegateURI"] = picojson::value(value_str);
@@ -988,7 +940,6 @@ PlatformResult CalendarItem::AttendeesToJson(int type, calendar_record_h rec,
     status = CalendarRecord::GetString(attendee, _calendar_attendee.uid,
                                        &contact_id);
     if (status.IsError()) {
-      LoggerE("Error: %s", status.message().c_str());
       return status;
     }
 
@@ -996,7 +947,6 @@ PlatformResult CalendarItem::AttendeesToJson(int type, calendar_record_h rec,
     status = CalendarRecord::GetInt(attendee, _calendar_attendee.person_id,
                                     &book_id);
     if (status.IsError()) {
-      LoggerE("Error: %s", status.message().c_str());
       return status;
     }
 
@@ -1028,9 +978,10 @@ PlatformResult CalendarItem::AlarmsFromJson(int type, calendar_record_h rec,
 
     int ret = calendar_record_create(_calendar_alarm._uri, &alarm);
     if (CALENDAR_ERROR_NONE != ret) {
-      LoggerE("Fail to create attendee record, error code: %d", ret);
-      return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                            "Fail to create attendee record");
+      return LogAndCreateResult(
+                  ErrorCode::UNKNOWN_ERR, "Fail to create attendee record",
+                  ("Fail to create attendee record, error: %d (%s)",
+                      ret, get_error_message(ret)));
     }
 
     int tick_unit = CALENDAR_ALARM_TIME_UNIT_SPECIFIC;
@@ -1040,14 +991,12 @@ PlatformResult CalendarItem::AlarmsFromJson(int type, calendar_record_h rec,
       PlatformResult status =
           SetCaltime(alarm, _calendar_alarm.alarm_time, absolute_date);
       if (status.IsError()) {
-        LoggerE("Error: %s", status.message().c_str());
         return status;
       }
 
       status =
           CalendarRecord::SetInt(alarm, _calendar_alarm.tick_unit, tick_unit);
       if (status.IsError()) {
-        LoggerE("Error: %s", status.message().c_str());
         return status;
       }
     }
@@ -1080,14 +1029,12 @@ PlatformResult CalendarItem::AlarmsFromJson(int type, calendar_record_h rec,
       PlatformResult status =
           CalendarRecord::SetInt(alarm, _calendar_alarm.tick, tick);
       if (status.IsError()) {
-        LoggerE("Error: %s", status.message().c_str());
         return status;
       }
 
       status =
           CalendarRecord::SetInt(alarm, _calendar_alarm.tick_unit, tick_unit);
       if (status.IsError()) {
-        LoggerE("Error: %s", status.message().c_str());
         return status;
       }
     }
@@ -1102,7 +1049,6 @@ PlatformResult CalendarItem::AlarmsFromJson(int type, calendar_record_h rec,
     PlatformResult status =
         SetEnum(alarm, _calendar_alarm.action, kAlarmMethod, method);
     if (status.IsError()) {
-      LoggerE("Error: %s", status.message().c_str());
       return status;
     }
 
@@ -1110,13 +1056,11 @@ PlatformResult CalendarItem::AlarmsFromJson(int type, calendar_record_h rec,
         alarm, _calendar_alarm.description,
         common::FromJson<std::string>(obj, "description"));
     if (status.IsError()) {
-      LoggerE("Error: %s", status.message().c_str());
       return status;
     }
 
     status = AddChildRecord(rec, property, alarm);
     if (status.IsError()) {
-      LoggerE("Error: %s", status.message().c_str());
       return status;
     }
   }
@@ -1137,7 +1081,6 @@ PlatformResult CalendarItem::AlarmsToJson(int type, calendar_record_h rec,
   unsigned int count = 0;
   PlatformResult status = GetChildRecordCount(rec, property, true, &count);
   if (status.IsError()) {
-    LoggerE("Error: %s", status.message().c_str());
     return status;
   }
   if (!count) {
@@ -1146,10 +1089,11 @@ PlatformResult CalendarItem::AlarmsToJson(int type, calendar_record_h rec,
   }
 
   calendar_list_h list;
-  if (CALENDAR_ERROR_NONE !=
-      calendar_record_clone_child_record_list(rec, property, &list)) {
-    LoggerW("Can't get alarms list");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Can't get alarms list");
+  int ret = calendar_record_clone_child_record_list(rec, property, &list);
+  if (CALENDAR_ERROR_NONE != ret) {
+    return LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, "Can't get alarms list",
+              ("Can't get alarms list %d (%s)", ret, get_error_message(ret)));
   }
   CalendarListPtr(list, CalendarRecord::ListDeleter);
 
@@ -1169,7 +1113,6 @@ PlatformResult CalendarItem::AlarmsToJson(int type, calendar_record_h rec,
     PlatformResult status =
         CalendarRecord::GetInt(alarm, _calendar_alarm.tick_unit, &tick_unit);
     if (status.IsError()) {
-      LoggerE("Error: %s", status.message().c_str());
       return status;
     }
 
@@ -1177,7 +1120,6 @@ PlatformResult CalendarItem::AlarmsToJson(int type, calendar_record_h rec,
       calendar_time_s result;
       status = GetCaltime(alarm, _calendar_alarm.alarm_time, &result);
       if (status.IsError()) {
-        LoggerE("Error: %s", status.message().c_str());
         return status;
       }
 
@@ -1185,7 +1127,6 @@ PlatformResult CalendarItem::AlarmsToJson(int type, calendar_record_h rec,
     } else {
       status = CalendarRecord::GetInt(alarm, _calendar_alarm.tick, &tick);
       if (status.IsError()) {
-        LoggerE("Error: %s", status.message().c_str());
         return status;
       }
 
@@ -1215,7 +1156,6 @@ PlatformResult CalendarItem::AlarmsToJson(int type, calendar_record_h rec,
     std::string enum_str;
     status = GetEnum(alarm, _calendar_alarm.action, kAlarmMethod, &enum_str);
     if (status.IsError()) {
-      LoggerE("Error: %s", status.message().c_str());
       return status;
     }
     alarm_obj["method"] = picojson::value(enum_str);
@@ -1225,7 +1165,6 @@ PlatformResult CalendarItem::AlarmsToJson(int type, calendar_record_h rec,
                                        &value_str);
     alarm_obj["description"] = picojson::value(value_str);
     if (status.IsError()) {
-      LoggerE("Error: %s", status.message().c_str());
       return status;
     }
 
@@ -1244,14 +1183,12 @@ PlatformResult CalendarItem::RecurrenceRuleFromJson(
   PlatformResult status =
       SetEnum(rec, _calendar_event.freq, kRecurrenceRuleFrequency, frequency);
   if (status.IsError()) {
-    LoggerE("Error: %s", status.message().c_str());
     return status;
   }
 
   const unsigned short interval = common::FromJson<double>(rrule, "interval");
   status = CalendarRecord::SetInt(rec, _calendar_event.interval, interval);
   if (status.IsError()) {
-    LoggerE("Error: %s", status.message().c_str());
     return status;
   }
 
@@ -1261,14 +1198,12 @@ PlatformResult CalendarItem::RecurrenceRuleFromJson(
     status =
         CalendarRecord::SetInt(rec, _calendar_event.count, occurrence_count);
     if (status.IsError()) {
-      LoggerE("Error: %s", status.message().c_str());
       return status;
     }
 
     status = CalendarRecord::SetInt(rec, _calendar_event.range_type,
                                     CALENDAR_RANGE_COUNT);
     if (status.IsError()) {
-      LoggerE("Error: %s", status.message().c_str());
       return status;
     }
   }
@@ -1278,14 +1213,12 @@ PlatformResult CalendarItem::RecurrenceRuleFromJson(
     status = SetCaltime(rec, _calendar_event.until_time,
                         DateToPlatform(until, false));
     if (status.IsError()) {
-      LoggerE("Error: %s", status.message().c_str());
       return status;
     }
 
     status = CalendarRecord::SetInt(rec, _calendar_event.range_type,
                                     CALENDAR_RANGE_UNTIL);
     if (status.IsError()) {
-      LoggerE("Error: %s", status.message().c_str());
       return status;
     }
   }
@@ -1302,7 +1235,6 @@ PlatformResult CalendarItem::RecurrenceRuleFromJson(
   }
   status = CalendarRecord::SetString(rec, _calendar_event.byday, byday);
   if (status.IsError()) {
-    LoggerE("Error: %s", status.message().c_str());
     return status;
   }
 
@@ -1319,7 +1251,6 @@ PlatformResult CalendarItem::RecurrenceRuleFromJson(
   }
   status = CalendarRecord::SetString(rec, _calendar_event.bysetpos, bysetpos);
   if (status.IsError()) {
-    LoggerE("Error: %s", status.message().c_str());
     return status;
   }
 
@@ -1328,7 +1259,6 @@ PlatformResult CalendarItem::RecurrenceRuleFromJson(
       ExceptionsFromJson(
           common::FromJson<picojson::array>(rrule, "exceptions")));
   if (status.IsError()) {
-    LoggerE("Error: %s", status.message().c_str());
     return status;
   }
 
@@ -1365,7 +1295,6 @@ PlatformResult CalendarItem::RecurrenceRuleToJson(calendar_record_h rec,
   PlatformResult status =
       GetEnum(rec, _calendar_event.freq, kRecurrenceRuleFrequency, &enum_str);
   if (status.IsError()) {
-    LoggerE("Error: %s", status.message().c_str());
     return status;
   }
   out["frequency"] = picojson::value(enum_str);
@@ -1374,7 +1303,6 @@ PlatformResult CalendarItem::RecurrenceRuleToJson(calendar_record_h rec,
   status =
       CalendarRecord::GetInt(rec, _calendar_event.interval, &interval);
   if (status.IsError()) {
-    LoggerE("Error: %s", status.message().c_str());
     return status;
   }
   out["interval"] = picojson::value(static_cast<double>(interval));
@@ -1391,21 +1319,18 @@ PlatformResult CalendarItem::RecurrenceRuleToJson(calendar_record_h rec,
   std::string value_str;
   status = CalendarRecord::GetString(rec, _calendar_event.byday, &value_str);
   if (status.IsError()) {
-    LoggerE("Error: %s", status.message().c_str());
     return status;
   }
   out["daysOfTheWeek"] = picojson::value(StringToArray(value_str));
 
   status = CalendarRecord::GetString(rec, _calendar_event.bysetpos, &value_str);
   if (status.IsError()) {
-    LoggerE("Error: %s", status.message().c_str());
     return status;
   }
   out["setPositions"] = picojson::value(StringToArray(value_str));
 
   status = CalendarRecord::GetString(rec, _calendar_event.exdate, &value_str);
   if (status.IsError()) {
-    LoggerE("Error: %s", status.message().c_str());
     return status;
   }
   const picojson::array& exceptions = StringToArray(value_str);
@@ -1442,14 +1367,12 @@ PlatformResult CalendarItem::DateFromPlatform(int type, calendar_record_h rec,
   calendar_time_s cal;
   PlatformResult status = GetCaltime(type, rec, property + "_time", &cal);
   if (status.IsError()) {
-    LoggerE("Error: %s", status.message().c_str());
     return status;
   }
 
   std::string tzid;
   status = GetString(type, rec, property + "_tzid", &tzid);
   if (status.IsError()) {
-    LoggerE("Error: %s", status.message().c_str());
     return status;
   }
 
@@ -1469,7 +1392,6 @@ PlatformResult CalendarItem::DateFromPlatform(calendar_record_h rec,
   calendar_time_s cal;
   PlatformResult status = GetCaltime(rec, property, &cal);
   if (status.IsError()) {
-    LoggerE("Error: %s", status.message().c_str());
     return status;
   }
 
@@ -1486,32 +1408,27 @@ PlatformResult CalendarItem::FromJson(int type, calendar_record_h rec,
                                       const picojson::object& in) {
   LoggerD("Enter");
   if (in.empty()) {
-    LoggerE("Empty CalendarItem object.");
-    return PlatformResult(ErrorCode::INVALID_VALUES_ERR,
-                          "Empty Calendar object.");
+    return LogAndCreateResult(ErrorCode::INVALID_VALUES_ERR,
+                              "Empty Calendar object.");
   }
 
   PlatformResult status = SetString(type, rec, "description", in, true);
   if (status.IsError()) {
-    LoggerE("Error: %s", status.message().c_str());
     return status;
   }
 
   status = SetString(type, rec, "summary", in, true);
   if (status.IsError()) {
-    LoggerE("Error: %s", status.message().c_str());
     return status;
   }
 
   status = SetString(type, rec, "location", in, true);
   if (status.IsError()) {
-    LoggerE("Error: %s", status.message().c_str());
     return status;
   }
 
   status = SetString(type, rec, "organizer", in, true);
   if (status.IsError()) {
-    LoggerE("Error: %s", status.message().c_str());
     return status;
   }
 
@@ -1533,13 +1450,11 @@ PlatformResult CalendarItem::FromJson(int type, calendar_record_h rec,
     status = SetCaltime(type, rec, "startDate_time",
                         DateToPlatform(start, is_all_day));
     if (status.IsError()) {
-      LoggerE("Error: %s", status.message().c_str());
       return status;
     }
 
     status = SetString(type, rec, "startDate_tzid", start.time_zone_);
     if (status.IsError()) {
-      LoggerE("Error: %s", status.message().c_str());
       return status;
     }
   }
@@ -1557,20 +1472,17 @@ PlatformResult CalendarItem::FromJson(int type, calendar_record_h rec,
     status = SetCaltime(type, rec, end_property + "_time",
                         DateToPlatform(end, is_all_day));
     if (status.IsError()) {
-      LoggerE("Error: %s", status.message().c_str());
       return status;
     }
 
     status = SetString(type, rec, end_property + "_tzid", end.time_zone_);
     if (status.IsError()) {
-      LoggerE("Error: %s", status.message().c_str());
       return status;
     }
   }
 
   status = SetEnum(type, rec, "visibility", in, kItemVisibility);
   if (status.IsError()) {
-    LoggerE("Error: %s", status.message().c_str());
     return status;
   }
 
@@ -1579,7 +1491,6 @@ PlatformResult CalendarItem::FromJson(int type, calendar_record_h rec,
         SetDouble(type, rec, "latitude",
                   common::FromJson<double>(in, "geolocation", "latitude"));
     if (status.IsError()) {
-      LoggerE("Error: %s", status.message().c_str());
       return status;
     }
 
@@ -1587,7 +1498,6 @@ PlatformResult CalendarItem::FromJson(int type, calendar_record_h rec,
         SetDouble(type, rec, "longitude",
                   common::FromJson<double>(in, "geolocation", "longitude"));
     if (status.IsError()) {
-      LoggerE("Error: %s", status.message().c_str());
       return status;
     }
   }
@@ -1595,40 +1505,34 @@ PlatformResult CalendarItem::FromJson(int type, calendar_record_h rec,
   status = CategoriesFromJson(
       type, rec, common::FromJson<picojson::array>(in, "categories"));
   if (status.IsError()) {
-    LoggerE("Error: %s", status.message().c_str());
     return status;
   }
 
   status = AttendeesFromJson(
       type, rec, common::FromJson<picojson::array>(in, "attendees"));
   if (status.IsError()) {
-    LoggerE("Error: %s", status.message().c_str());
     return status;
   }
 
   status = AlarmsFromJson(type, rec,
                           common::FromJson<picojson::array>(in, "alarms"));
   if (status.IsError()) {
-    LoggerE("Error: %s", status.message().c_str());
     return status;
   }
 
   if (type == CALENDAR_BOOK_TYPE_EVENT) {
     status = SetEnum(type, rec, "priority", in, kEventPriority);
     if (status.IsError()) {
-      LoggerE("Error: %s", status.message().c_str());
       return status;
     }
 
     status = SetEnum(type, rec, "status", in, kEventStatus);
     if (status.IsError()) {
-      LoggerE("Error: %s", status.message().c_str());
       return status;
     }
 
     status = SetEnum(type, rec, "availability", in, kEventAvailability);
     if (status.IsError()) {
-      LoggerE("Error: %s", status.message().c_str());
       return status;
     }
 
@@ -1636,7 +1540,6 @@ PlatformResult CalendarItem::FromJson(int type, calendar_record_h rec,
       status = RecurrenceRuleFromJson(
           rec, common::FromJson<picojson::object>(in, "recurrenceRule"));
       if (status.IsError()) {
-        LoggerE("Error: %s", status.message().c_str());
         return status;
       }
     }
@@ -1644,13 +1547,11 @@ PlatformResult CalendarItem::FromJson(int type, calendar_record_h rec,
   } else {
     status = SetEnum(type, rec, "priority", in, kTaskPriority);
     if (status.IsError()) {
-      LoggerE("Error: %s", status.message().c_str());
       return status;
     }
 
     status = SetEnum(type, rec, "status", in, kTaskStatus);
     if (status.IsError()) {
-      LoggerE("Error: %s", status.message().c_str());
       return status;
     }
 
@@ -1659,14 +1560,12 @@ PlatformResult CalendarItem::FromJson(int type, calendar_record_h rec,
           SetLli(rec, _calendar_todo.completed_time,
                  DateFromJson(in, "completedDate").utc_timestamp_);
       if (status.IsError()) {
-        LoggerE("Error: %s", status.message().c_str());
         return status;
       }
     }
 
     PlatformResult status = SetInt(type, rec, "progress", in);
     if (status.IsError()) {
-      LoggerE("Error: %s", status.message().c_str());
       return status;
     }
   }
@@ -1678,8 +1577,7 @@ PlatformResult CalendarItem::ToJson(int type, calendar_record_h rec,
                                     picojson::object* out_ptr) {
   LoggerD("Enter");
   if (NULL == rec) {
-    LoggerE("Calendar record is null");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Calendar record is null");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Calendar record is null");
   }
 
   picojson::object& out = *out_ptr;
@@ -1687,7 +1585,6 @@ PlatformResult CalendarItem::ToJson(int type, calendar_record_h rec,
   int id;
   PlatformResult status = GetInt(type, rec, "id", &id);
   if (status.IsError()) {
-    LoggerE("Error: %s", status.message().c_str());
     return status;
   }
 
@@ -1700,7 +1597,6 @@ PlatformResult CalendarItem::ToJson(int type, calendar_record_h rec,
     std::string rid;
     status = GetString(type, rec, "recurrence_id", &rid);
     if (status.IsError()) {
-      LoggerE("Error: %s", status.message().c_str());
       return status;
     }
 
@@ -1718,7 +1614,6 @@ PlatformResult CalendarItem::ToJson(int type, calendar_record_h rec,
   int calendar_id;
   status = GetInt(type, rec, "calendar_id", &calendar_id);
   if (status.IsError()) {
-    LoggerE("Error: %s", status.message().c_str());
     return status;
   }
   out["calendarId"] = picojson::value(std::to_string(calendar_id));
@@ -1726,28 +1621,24 @@ PlatformResult CalendarItem::ToJson(int type, calendar_record_h rec,
   std::string value_str;
   status = GetString(type, rec, "description", &value_str);
   if (status.IsError()) {
-    LoggerE("Error: %s", status.message().c_str());
     return status;
   }
   out["description"] = picojson::value(value_str);
 
   status = GetString(type, rec, "summary", &value_str);
   if (status.IsError()) {
-    LoggerE("Error: %s", status.message().c_str());
     return status;
   }
   out["summary"] = picojson::value(value_str);
 
   status = GetString(type, rec, "location", &value_str);
   if (status.IsError()) {
-    LoggerE("Error: %s", status.message().c_str());
     return status;
   }
   out["location"] = picojson::value(value_str);
 
   status = GetString(type, rec, "organizer", &value_str);
   if (status.IsError()) {
-    LoggerE("Error: %s", status.message().c_str());
     return status;
   }
   out["organizer"] = picojson::value(value_str);
@@ -1755,7 +1646,6 @@ PlatformResult CalendarItem::ToJson(int type, calendar_record_h rec,
   int value_int;
   status = GetInt(type, rec, "isAllDay", &value_int);
   if (status.IsError()) {
-    LoggerE("Error: %s", status.message().c_str());
     return status;
   }
   out["isAllDay"] = picojson::value(static_cast<bool>(value_int));
@@ -1771,7 +1661,6 @@ PlatformResult CalendarItem::ToJson(int type, calendar_record_h rec,
       (type == CALENDAR_BOOK_TYPE_EVENT) ? "endDate" : "dueDate";
   status = DateFromPlatform(type, rec, endProperty, &date_from_platform);
   if (status.IsError()) {
-    LoggerE("Error: %s", status.message().c_str());
     return status;
   }
   out[endProperty] = DateToJson(&date_from_platform);
@@ -1779,7 +1668,6 @@ PlatformResult CalendarItem::ToJson(int type, calendar_record_h rec,
   long long int lli;
   status = GetLli(type, rec, "lastModificationDate", &lli);
   if (status.IsError()) {
-    LoggerE("Error: %s", status.message().c_str());
     return status;
   }
   out["lastModificationDate"] = picojson::value(static_cast<double>(lli));
@@ -1787,14 +1675,12 @@ PlatformResult CalendarItem::ToJson(int type, calendar_record_h rec,
   double latitude;
   status = GetDouble(type, rec, "latitude", &latitude);
   if (status.IsError()) {
-    LoggerE("Error: %s", status.message().c_str());
     return status;
   }
 
   double longitude;
   status = GetDouble(type, rec, "longitude", &longitude);
   if (status.IsError()) {
-    LoggerE("Error: %s", status.message().c_str());
     return status;
   }
 
@@ -1805,7 +1691,6 @@ PlatformResult CalendarItem::ToJson(int type, calendar_record_h rec,
   std::string enum_str;
   status = GetEnum(type, rec, "visibility", kItemVisibility, &enum_str);
   if (status.IsError()) {
-    LoggerE("Error: %s", status.message().c_str());
     return status;
   }
   out["visibility"] = picojson::value(enum_str);
@@ -1813,7 +1698,6 @@ PlatformResult CalendarItem::ToJson(int type, calendar_record_h rec,
   picojson::array attendees = picojson::array();
   status = AttendeesToJson(type, rec, &attendees);
   if (status.IsError()) {
-    LoggerE("Error: %s", status.message().c_str());
     return status;
   }
   out["attendees"] = picojson::value(attendees);
@@ -1821,7 +1705,6 @@ PlatformResult CalendarItem::ToJson(int type, calendar_record_h rec,
   picojson::array categories = picojson::array();
   status = CategoriesToJson(type, rec, &categories);
   if (status.IsError()) {
-    LoggerE("Error: %s", status.message().c_str());
     return status;
   }
   out["categories"] = picojson::value(categories);
@@ -1829,7 +1712,6 @@ PlatformResult CalendarItem::ToJson(int type, calendar_record_h rec,
   picojson::array alarms = picojson::array();
   status = AlarmsToJson(type, rec, &alarms);
   if (status.IsError()) {
-    LoggerE("Error: %s", status.message().c_str());
     return status;
   }
   out["alarms"] = picojson::value(alarms);
@@ -1837,21 +1719,18 @@ PlatformResult CalendarItem::ToJson(int type, calendar_record_h rec,
   if (type == CALENDAR_BOOK_TYPE_EVENT) {
     status = GetEnum(type, rec, "status", kEventStatus, &enum_str);
     if (status.IsError()) {
-      LoggerE("Error: %s", status.message().c_str());
       return status;
     }
     out["status"] = picojson::value(enum_str);
 
     status = GetEnum(type, rec, "priority", kEventPriority, &enum_str);
     if (status.IsError()) {
-      LoggerE("Error: %s", status.message().c_str());
       return status;
     }
     out["priority"] = picojson::value(enum_str);
 
     status = GetEnum(type, rec, "availability", kEventAvailability, &enum_str);
     if (status.IsError()) {
-      LoggerE("Error: %s", status.message().c_str());
       return status;
     }
     out["availability"] = picojson::value(enum_str);
@@ -1860,7 +1739,6 @@ PlatformResult CalendarItem::ToJson(int type, calendar_record_h rec,
     int occurrence_count;
     status = CalendarRecord::GetInt(rec, _calendar_event.count, &occurrence_count);
     if (status.IsError()) {
-      LoggerE("Error: %s", status.message().c_str());
       return status;
     }
 
@@ -1870,7 +1748,6 @@ PlatformResult CalendarItem::ToJson(int type, calendar_record_h rec,
 
       status = RecurrenceRuleToJson(rec, &rec_rule);
       if (status.IsError()) {
-        LoggerE("Error: %s", status.message().c_str());
         return status;
       }
       out["recurrenceRule"] = picojson::value(rec_rule);
@@ -1878,14 +1755,12 @@ PlatformResult CalendarItem::ToJson(int type, calendar_record_h rec,
   } else {
     status = GetEnum(type, rec, "status", kTaskStatus, &enum_str);
     if (status.IsError()) {
-      LoggerE("Error: %s", status.message().c_str());
       return status;
     }
     out["status"] = picojson::value(enum_str);
 
     status = GetEnum(type, rec, "priority", kTaskPriority, &enum_str);
     if (status.IsError()) {
-      LoggerE("Error: %s", status.message().c_str());
       return status;
     }
     out["priority"] =  picojson::value(enum_str);
@@ -1893,14 +1768,12 @@ PlatformResult CalendarItem::ToJson(int type, calendar_record_h rec,
     long long int lli;
     status = GetLli(rec, _calendar_todo.completed_time, &lli);
     if (status.IsError()) {
-      LoggerE("Error: %s", status.message().c_str());
       return status;
     }
     out["completedDate"] = picojson::value(static_cast<double>(lli));
 
     status = GetInt(type, rec, "progress", &value_int);
     if (status.IsError()) {
-      LoggerE("Error: %s", status.message().c_str());
       return status;
     }
     out["progress"] = picojson::value(static_cast<double>(value_int));

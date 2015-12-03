@@ -84,8 +84,7 @@ void CalendarInstance::CalendarGet(const JsonValue& args, JsonObject& out) {
     ReportSuccess(val, out);
   else
   {
-    LoggerE("Failed");
-    ReportError(status, &out);
+    LogAndReportError(status, &out);
   }
 }
 
@@ -99,8 +98,7 @@ void CalendarInstance::CalendarAdd(const JsonValue& args, JsonObject& out) {
   if (status.IsSuccess()) {
     ReportSuccess(val, out);
   } else{
-    LoggerE("Failed");
-    ReportError(status, &out);
+    LogAndReportError(status, &out);
   }
 }
 
@@ -119,8 +117,7 @@ void CalendarInstance::CalendarAddBatch(const JsonValue& args,
       ReportSuccess(result, response->get<picojson::object>());
     else
     {
-      LoggerE("Failed");
-      ReportError(status, &response->get<picojson::object>());
+      LogAndReportError(status, &response->get<picojson::object>());
     }
   };
 
@@ -150,8 +147,7 @@ void CalendarInstance::CalendarUpdate(const JsonValue& args, JsonObject& out) {
     ReportSuccess(val, out);
   else
   {
-    LoggerE("Failed");
-    ReportError(status, &out);
+    LogAndReportError(status, &out);
   }
 }
 
@@ -170,8 +166,7 @@ void CalendarInstance::CalendarUpdateBatch(const JsonValue& args,
       ReportSuccess(result, response->get<picojson::object>());
     else
     {
-      LoggerE("Failed");
-      ReportError(status, &response->get<picojson::object>());
+      LogAndReportError(status, &response->get<picojson::object>());
     }
   };
 
@@ -201,8 +196,7 @@ void CalendarInstance::CalendarRemove(const JsonValue& args, JsonObject& out) {
     ReportSuccess(out);
   else
   {
-    LoggerE("Failed");
-    ReportError(status, &val.get<JsonObject>());
+    LogAndReportError(status, &val.get<JsonObject>());
   }
 }
 
@@ -221,8 +215,7 @@ void CalendarInstance::CalendarRemoveBatch(const JsonValue& args,
       ReportSuccess(result, response->get<picojson::object>());
     else
     {
-      LoggerE("Failed");
-      ReportError(status, &response->get<picojson::object>());
+      LogAndReportError(status, &response->get<picojson::object>());
     }
   };
 
@@ -255,8 +248,7 @@ void CalendarInstance::CalendarFind(const JsonValue& args, JsonObject& out) {
       ReportSuccess(result, response->get<picojson::object>());
     else
     {
-      LoggerE("Failed");
-      ReportError(status, &response->get<picojson::object>());
+      LogAndReportError(status, &response->get<picojson::object>());
     }
   };
 
@@ -287,8 +279,7 @@ void CalendarInstance::CalendarAddChangeListener(const JsonValue& args,
     ReportSuccess(out);
   else
   {
-    LoggerE("Failed");
-    ReportError(status, &val.get<JsonObject>());
+    LogAndReportError(status, &val.get<JsonObject>());
   }
 }
 
@@ -304,8 +295,7 @@ void CalendarInstance::CalendarRemoveChangeListener(const JsonValue& args,
     ReportSuccess(out);
   else
   {
-    LoggerE("Failed");
-    ReportError(status, &val.get<JsonObject>());
+    LogAndReportError(status, &val.get<JsonObject>());
   }
 }
 
@@ -321,8 +311,7 @@ void CalendarInstance::CalendarManagerAddCalendar(const JsonValue& args,
     ReportSuccess(val, out);
   else
   {
-    LoggerE("Failed");
-    ReportError(status, &out);
+    LogAndReportError(status, &out);
   }
 }
 
@@ -337,8 +326,7 @@ void CalendarInstance::CalendarManagerGetCalendar(const JsonValue& args,
     ReportSuccess(val, out);
   else
   {
-    LoggerE("Failed");
-    ReportError(status, &out);
+    LogAndReportError(status, &out);
   }
 }
 
@@ -358,8 +346,7 @@ void CalendarInstance::CalendarManagerGetCalendars(const JsonValue& args,
       ReportSuccess(result, response->get<picojson::object>());
     else
     {
-      LoggerE("Failed");
-      ReportError(status, &response->get<JsonObject>());
+      LogAndReportError(status, &response->get<JsonObject>());
     }
   };
 
@@ -389,8 +376,7 @@ void CalendarInstance::CalendarManagerRemoveCalendar(const JsonValue& args,
     ReportSuccess(val, out);
   else
   {
-    LoggerE("Failed");
-    ReportError(status, &out);
+    LogAndReportError(status, &out);
   }
 }
 
