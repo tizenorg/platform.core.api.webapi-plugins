@@ -152,10 +152,10 @@ void BluetoothHealthProfileHandler::OnConnected(int result,
 
       ReportSuccess(result, response->get<picojson::object>());
     } else {
-      LoggerE("Failed to establish a connection with health profile");
-      ReportError(PlatformResult(
-          ErrorCode::UNKNOWN_ERR, "Failed to establish a connection with health profile"),
-                  &response->get<picojson::object>());
+      LogAndReportError(
+          PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to establish a connection with health profile"),
+          &response->get<picojson::object>(),
+          ("OnConnected result: %d (%s)", result, get_error_message(result)));
     }
 
     object->instance_.AsyncResponse(request->second, response);
@@ -258,18 +258,19 @@ void BluetoothHealthProfileHandler::RegisterSinkApp(const picojson::value& data,
       }
 
       case BT_ERROR_NOT_ENABLED:
-        LoggerE("Bluetooth device is turned off");
-        platform_result = PlatformResult(
-            ErrorCode::SERVICE_NOT_AVAILABLE_ERR, "Bluetooth device is turned off");
+        platform_result = LogAndCreateResult(
+          ErrorCode::SERVICE_NOT_AVAILABLE_ERR, "Bluetooth device is turned off",
+          ("bt_hdp_register_sink_app error %d (%s)", ret, get_error_message(ret)));
         break;
 
       default:
-        LoggerE("bt_hdp_register_sink_app() failed: %d", ret);
-        platform_result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown error");
+        platform_result = LogAndCreateResult(
+                              ErrorCode::UNKNOWN_ERR, "Unknown error",
+                              ("bt_hdp_register_sink_app() failed: %d (%s)", ret, get_error_message(ret)));
         break;
     }
 
-    ReportError(platform_result, &response->get<picojson::object>());
+    LogAndReportError(platform_result, &response->get<picojson::object>());
   };
 
   auto register_app_response = [this, callback_handle](const std::shared_ptr<picojson::value>& response) -> void {
@@ -310,17 +311,22 @@ void BluetoothHealthProfileHandler::ConnectToSource(const picojson::value& data,
     }
 
     case BT_ERROR_NOT_ENABLED:
-      result = PlatformResult(
-          ErrorCode::SERVICE_NOT_AVAILABLE_ERR, "Bluetooth device is turned off");
+      result = LogAndCreateResult(
+          ErrorCode::SERVICE_NOT_AVAILABLE_ERR, "Bluetooth device is turned off",
+          ("bt_hdp_connect_to_source error: %d (%s)", ret, get_error_message(ret)));
       break;
 
     case BT_ERROR_INVALID_PARAMETER:
     case BT_ERROR_REMOTE_DEVICE_NOT_BONDED:
-      result = PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid value");
+      result = LogAndCreateResult(
+          ErrorCode::INVALID_VALUES_ERR, "Invalid value",
+          ("bt_hdp_connect_to_source error: %d (%s)", ret, get_error_message(ret)));
       break;
 
     default:
-      result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown exception");
+      result = LogAndCreateResult(
+          ErrorCode::UNKNOWN_ERR, "Unknown exception",
+          ("bt_hdp_connect_to_source error: %d (%s)", ret, get_error_message(ret)));
       break;
   }
 
@@ -352,14 +358,16 @@ void BluetoothHealthProfileHandler::UnregisterSinkAppAsync(const std::string& ap
           break;
 
         case BT_ERROR_NOT_ENABLED:
-          LoggerE("Bluetooth device is turned off");
-          result = PlatformResult(
-              ErrorCode::SERVICE_NOT_AVAILABLE_ERR, "Bluetooth device is turned off");
+          result = LogAndCreateResult(
+              ErrorCode::SERVICE_NOT_AVAILABLE_ERR, "Bluetooth device is turned off",
+              ("Bluetooth device is turned off %d (%s)", ret, get_error_message(ret)));
           break;
 
         default:
           LoggerE("bt_hdp_unregister_sink_app() failed: %d", ret);
-          result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown exception");
+          result = LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, "Unknown exception",
+              ("Bluetooth device is turned off %d (%s)", ret, get_error_message(ret)));
           break;
       }
     } else {
@@ -369,7 +377,7 @@ void BluetoothHealthProfileHandler::UnregisterSinkAppAsync(const std::string& ap
     if (result.IsSuccess()) {
       ReportSuccess(response->get<picojson::object>());
     } else {
-      ReportError(result, &response->get<picojson::object>());
+      LogAndReportError(result, &response->get<picojson::object>());
     }
   };
 

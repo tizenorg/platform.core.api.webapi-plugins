@@ -64,8 +64,11 @@ PlatformResult GetBluetoothError(int error_code,
       break;
   }
 
-  return PlatformResult(error,
-                        hint + " : " + GetBluetoothErrorMessage(error_code));
+  std::string message = hint + " : " + GetBluetoothErrorMessage(error_code);
+
+  return LogAndCreateResult(
+            error, message.c_str(),
+            ("%s %d (%s)", message.c_str(), error_code, get_error_message(error_code)));
 }
 
 std::string GetBluetoothErrorMessage(int error_code) {

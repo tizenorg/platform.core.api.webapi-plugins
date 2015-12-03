@@ -311,20 +311,26 @@ void BluetoothLEDevice::Connect(const picojson::value& data,
   bool connected = false;
   int ret = bt_device_is_profile_connected(address.c_str(), BT_PROFILE_GATT, &connected);
   if (BT_ERROR_NONE != ret) {
-    instance_.AsyncResponse(callback_handle,
-                            PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to disconnect."));
+    instance_.AsyncResponse(
+          callback_handle,
+          LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, "Failed to disconnect.",
+              ("bt_device_is_profile_connected error: %d (%s)", ret, get_error_message(ret))));
     return;
   }
 
   if (connected) {
-      instance_.AsyncResponse(callback_handle,
-                              PlatformResult(ErrorCode::NO_ERROR));
+      instance_.AsyncResponse(
+          callback_handle,
+          PlatformResult(ErrorCode::NO_ERROR));
   } else {  // not connected yet
     ret = bt_gatt_connect(address.c_str(), false);
     if (BT_ERROR_NONE != ret) {
       instance_.AsyncResponse(
           callback_handle,
-          PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to connect."));
+          LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, "Failed to connect.",
+              ("bt_gatt_connect error: %d (%s)", ret, get_error_message(ret))));
       return;
     }
     connecting_[address] = callback_handle;
@@ -348,13 +354,17 @@ void BluetoothLEDevice::Disconnect(const picojson::value& data,
   if (BT_ERROR_NONE != ret) {
     instance_.AsyncResponse(
         callback_handle,
-        PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to disconnect."));
+        LogAndCreateResult(
+            ErrorCode::UNKNOWN_ERR, "Failed to disconnect.",
+            ("bt_device_is_profile_connected error: %d (%s)", ret, get_error_message(ret))));
     return;
   }
   if (!connected) {
-    ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR,
-                               "Bluetooth low energy device is not connected"),
-                &out);
+    LogAndReportError(
+        PlatformResult(ErrorCode::INVALID_STATE_ERR,
+                       "Bluetooth low energy device is not connected"),
+        &out,
+        ("bt_device_is_profile_connected error: %d (%s)", ret, get_error_message(ret)));
     return;
   }
 
@@ -362,7 +372,9 @@ void BluetoothLEDevice::Disconnect(const picojson::value& data,
   if (BT_ERROR_NONE != ret) {
     instance_.AsyncResponse(
         callback_handle,
-        PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to disconnect."));
+        LogAndCreateResult(
+            ErrorCode::UNKNOWN_ERR, "Failed to disconnect.",
+            ("bt_gatt_disconnect error: %d (%s)", ret, get_error_message(ret))));
     return;
   }
 
@@ -382,8 +394,7 @@ void BluetoothLEDevice::GetService(const picojson::value& data,
 
   auto it = is_connected_.find(address);
   if (it == is_connected_.end()) {
-    LoggerE("Bluetooth low energy device is not connected");
-    ReportError(
+    LogAndReportError(
         PlatformResult(ErrorCode::INVALID_STATE_ERR,
                        "Bluetooth low energy device is not connected"),
         &out);
@@ -397,7 +408,7 @@ void BluetoothLEDevice::GetService(const picojson::value& data,
                                                            data_obj);
 
   if (result.IsError()) {
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   } else {
     ReportSuccess(response, out);
   }
@@ -436,7 +447,7 @@ void BluetoothLEDevice::GetServiceUuids(const picojson::value& data,
   if (result) {
     ReportSuccess(response, out);
   } else {
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   }
 }
 
@@ -486,8 +497,9 @@ void BluetoothLEDevice::GattConnectionState(int result, bool connected,
 
   PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
   if (BT_ERROR_NONE != result) {
-    ret = PlatformResult(ErrorCode::UNKNOWN_ERR,
-                         "Failed to get connection state");
+    ret = LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, "Failed to get connection state",
+              ("GattConnectionState error: %d (%s)", result, get_error_message(result)));
   }
 
   le_device->instance_.AsyncResponse(it->second, ret);

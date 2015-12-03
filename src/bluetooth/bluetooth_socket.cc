@@ -63,8 +63,9 @@ void BluetoothSocket::WriteData(const picojson::value& data, picojson::object& o
   }
 
   if (kBluetoothError == bt_socket_send_data(socket, data_ptr.get(), data_size)) {
-    LoggerE("bt_socket_send_data() failed");
-    ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown error"), &out);
+    LogAndReportError(
+        PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown error"), &out,
+        ("bt_socket_send_data() failed"));
     return;
   }
 
@@ -99,8 +100,9 @@ void BluetoothSocket::Close(const picojson::value& data, picojson::object& out) 
   int socket = common::stol(FromJson<std::string>(args, "id"));
 
   if (BT_ERROR_NONE != bt_socket_disconnect_rfcomm(socket)) {
-    LoggerE("bt_socket_disconnect_rfcomm() failed");
-    ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown error"), &out);
+    LogAndReportError(
+        PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown error"), &out,
+        ("bt_socket_disconnect_rfcomm() failed"));
     return;
   }
 

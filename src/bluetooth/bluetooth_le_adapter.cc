@@ -427,16 +427,18 @@ void BluetoothLEAdapter::StartScan(const picojson::value& data, picojson::object
 
   if (BT_ERROR_NONE != ret) {
     if (BT_ERROR_NOW_IN_PROGRESS == ret) {
-      LoggerE("Scan in progress");
-      ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR, "Scan already in progress"), &out);
+      LogAndReportError(
+          PlatformResult(ErrorCode::INVALID_STATE_ERR, "Scan already in progress"), &out,
+          ("Scan in progress %d (%s)", ret, get_error_message(ret)));
     } else {
-      LoggerE("Failed to start scan: %d", ret);
 
       // other errors are reported asynchronously
       picojson::value value = picojson::value(picojson::object());
       picojson::object* data_obj = &value.get<picojson::object>();
       data_obj->insert(std::make_pair(kAction, picojson::value(kOnScanError)));
-      ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to start scan"), data_obj);
+      LogAndReportError(
+          PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to start scan"), data_obj,
+          ("Failed to start scan: %d (%s)", ret, get_error_message(ret)));
       instance_.FireEvent(kScanEvent, value);
     }
   } else {
@@ -451,8 +453,9 @@ void BluetoothLEAdapter::StopScan(const picojson::value& data, picojson::object&
   int ret = bt_adapter_le_stop_scan();
 
   if (BT_ERROR_NONE != ret && BT_ERROR_NOT_IN_PROGRESS != ret) {
-    LoggerE("Failed to stop scan: %d", ret);
-    ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to stop scan"), &out);
+    LogAndReportError(
+        PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to stop scan"), &out,
+        ("Failed to stop scan: %d (%s)", ret, get_error_message(ret)));
   } else {
     scanning_ = false;
     ReportSuccess(out);
@@ -471,13 +474,15 @@ void BluetoothLEAdapter::StartAdvertise(const picojson::value& data, picojson::o
       !json_packet_type.is<std::string>() ||
       !json_mode.is<std::string>() ||
       !json_connectable.is<bool>()) {
-    ReportError(PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, "Unexpected parameter type"), &out);
+    LogAndReportError(
+        PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, "Unexpected parameter type"), &out);
     return;
   }
 
   BluetoothLEAdvertiseData advertise_data;
   if (!BluetoothLEAdvertiseData::Construct(json_advertise_data, &advertise_data)) {
-    ReportError(PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, "Unexpected value of advertise data"), &out);
+    LogAndReportError(
+        PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, "Unexpected value of advertise data"), &out);
     return;
   }
 
@@ -489,8 +494,9 @@ void BluetoothLEAdapter::StartAdvertise(const picojson::value& data, picojson::o
     } else if ("SCAN_RESPONSE" == str_packet_type) {
       packet_type = BT_ADAPTER_LE_PACKET_SCAN_RESPONSE;
     } else {
-      LoggerE("Fail: json_packet_type.get");
-      ReportError(PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, "Unexpected value of packet type"), &out);
+      LogAndReportError(
+          PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, "Unexpected value of packet type"), &out,
+          ("Wrong packet_type: %s", str_packet_type.c_str()));
       return;
     }
   }
@@ -505,14 +511,16 @@ void BluetoothLEAdapter::StartAdvertise(const picojson::value& data, picojson::o
     } else if ("LOW_ENERGY" == str_mode) {
       mode = BT_ADAPTER_LE_ADVERTISING_MODE_LOW_ENERGY;
     } else {
-      ReportError(PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, "Unexpected value of mode"), &out);
+      LogAndReportError(
+          PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, "Unexpected value of mode"), &out,
+          ("Wrong mode: %s", str_mode.c_str()));
       return;
     }
   }
 
   if (nullptr != bt_advertiser_) {
-    LoggerE("Advertise in progress");
-    ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR, "Advertise already in progress"), &out);
+    LogAndReportError(
+        PlatformResult(ErrorCode::INVALID_STATE_ERR, "Advertise already in progress"), &out);
     return;
   }
 
@@ -520,8 +528,9 @@ void BluetoothLEAdapter::StartAdvertise(const picojson::value& data, picojson::o
 
   int ret = bt_adapter_le_create_advertiser(&advertiser);
   if (BT_ERROR_NONE != ret) {
-    LoggerE("bt_adapter_le_create_advertiser() failed with: %d", ret);
-    ReportError(util::GetBluetoothError(ret, "Failed to create advertiser"), &out);
+    LogAndReportError(
+        util::GetBluetoothError(ret, "Failed to create advertiser"), &out,
+        ("bt_adapter_le_create_advertiser() failed with: %d, (%s)", ret, get_error_message(ret)));
     return;
   }
 
@@ -533,8 +542,9 @@ void BluetoothLEAdapter::StartAdvertise(const picojson::value& data, picojson::o
     ret = bt_adapter_le_set_advertising_device_name(advertiser, packet_type,
                                                 advertise_data.include_name());
     if (BT_ERROR_NONE != ret) {
-      LoggerE("bt_adapter_le_set_advertising_device_name() failed with: %d", ret);
-      ReportError(util::GetBluetoothError(ret, "Failed to create advertiser"), &out);
+      LogAndReportError(
+          util::GetBluetoothError(ret, "Failed to create advertiser"), &out,
+          ("bt_adapter_le_set_advertising_device_name() failed with: %d (%s)", ret, get_error_message(ret)));
       return;
     }
   }
@@ -543,8 +553,9 @@ void BluetoothLEAdapter::StartAdvertise(const picojson::value& data, picojson::o
     ret = bt_adapter_le_add_advertising_service_uuid(advertiser, packet_type,
                                                      i.c_str());
     if (BT_ERROR_NONE != ret) {
-      LoggerE("bt_adapter_le_add_advertising_service_uuid() failed with: %d", ret);
-      ReportError(util::GetBluetoothError(ret, "Failed to create advertiser"), &out);
+      LogAndReportError(
+          util::GetBluetoothError(ret, "Failed to create advertiser"), &out,
+          ("bt_adapter_le_add_advertising_service_uuid() failed with: %d (%s)", ret, get_error_message(ret)));
       return;
     }
   }
@@ -554,8 +565,10 @@ void BluetoothLEAdapter::StartAdvertise(const picojson::value& data, picojson::o
                                                                   packet_type,
                                                                   i.c_str());
     if (BT_ERROR_NONE != ret) {
-      LoggerE("bt_adapter_le_add_advertising_service_solicitation_uuid() failed with: %d", ret);
-      ReportError(util::GetBluetoothError(ret, "Failed to create advertiser"), &out);
+      LogAndReportError(
+          util::GetBluetoothError(ret, "Failed to create advertiser"), &out,
+          ("bt_adapter_le_add_advertising_service_solicitation_uuid() failed with: %d (%s)",
+            ret, get_error_message(ret)));
       return;
     }
   }
@@ -563,8 +576,10 @@ void BluetoothLEAdapter::StartAdvertise(const picojson::value& data, picojson::o
   ret = bt_adapter_le_set_advertising_appearance(advertiser, packet_type,
                                                  advertise_data.appearance());
   if (BT_ERROR_NONE != ret) {
-    LoggerE("bt_adapter_le_set_advertising_appearance() failed with: %d", ret);
-    ReportError(util::GetBluetoothError(ret, "Failed to create advertiser"), &out);
+    LogAndReportError(
+        util::GetBluetoothError(ret, "Failed to create advertiser"), &out,
+        ("bt_adapter_le_set_advertising_appearance() failed with: %d (%s)",
+          ret, get_error_message(ret)));
     return;
   }
 
@@ -572,8 +587,10 @@ void BluetoothLEAdapter::StartAdvertise(const picojson::value& data, picojson::o
     ret = bt_adapter_le_set_advertising_tx_power_level(advertiser, packet_type,
                                                        advertise_data.include_tx_power_level());
     if (BT_ERROR_NONE != ret) {
-      LoggerE("bt_adapter_le_set_advertising_tx_power_level() failed with: %d", ret);
-      ReportError(util::GetBluetoothError(ret, "Failed to create advertiser"), &out);
+      LogAndReportError(
+          util::GetBluetoothError(ret, "Failed to create advertiser"), &out,
+          ("bt_adapter_le_set_advertising_tx_power_level() failed with: %d (%s)",
+            ret, get_error_message(ret)));
       return;
     }
   }
@@ -587,8 +604,10 @@ void BluetoothLEAdapter::StartAdvertise(const picojson::value& data, picojson::o
                                                      service_data.data().c_str(),
                                                      service_data.data().length());
     if (BT_ERROR_NONE != ret) {
-      LoggerE("bt_adapter_le_add_advertising_service_data() failed with: %d", ret);
-      ReportError(util::GetBluetoothError(ret, "Failed to create advertiser"), &out);
+      LogAndReportError(
+          util::GetBluetoothError(ret, "Failed to create advertiser"), &out,
+          ("bt_adapter_le_add_advertising_service_data() failed with: %d (%s)",
+            ret, get_error_message(ret)));
       return;
     }
   }
@@ -604,8 +623,10 @@ void BluetoothLEAdapter::StartAdvertise(const picojson::value& data, picojson::o
                                                             (const char*)manufacturer_data.data(),
                                                             manufacturer_data.data_length());
       if (BT_ERROR_NONE != ret) {
-        LoggerE("bt_adapter_le_add_advertising_manufacturer_data() failed with: %d", ret);
-        ReportError(util::GetBluetoothError(ret, "Failed to create advertiser"), &out);
+        LogAndReportError(
+            util::GetBluetoothError(ret, "Failed to create advertiser"), &out,
+            ("bt_adapter_le_add_advertising_manufacturer_data() failed with: %d (%s)",
+              ret, get_error_message(ret)));
         return;
       }
     }
@@ -613,15 +634,19 @@ void BluetoothLEAdapter::StartAdvertise(const picojson::value& data, picojson::o
 
   ret = bt_adapter_le_set_advertising_mode(advertiser, mode);
   if (BT_ERROR_NONE != ret) {
-    LoggerE("bt_adapter_le_set_advertising_mode() failed with: %d", ret);
-    ReportError(util::GetBluetoothError(ret, "Failed to create advertiser"), &out);
+    LogAndReportError(
+        util::GetBluetoothError(ret, "Failed to create advertiser"), &out,
+        ("bt_adapter_le_set_advertising_mode() failed with: %d (%s)",
+          ret, get_error_message(ret)));
     return;
   }
 
   ret = bt_adapter_le_set_advertising_connectable(advertiser, json_connectable.get<bool>());
   if (BT_ERROR_NONE != ret) {
-    LoggerE("bt_adapter_le_set_advertising_connectable() failed with: %d", ret);
-    ReportError(util::GetBluetoothError(ret, "Failed to create advertiser"), &out);
+    LogAndReportError(
+        util::GetBluetoothError(ret, "Failed to create advertiser"), &out,
+        ("bt_adapter_le_set_advertising_connectable() failed with: %d (%s)",
+          ret, get_error_message(ret)));
     return;
   }
 
@@ -629,12 +654,16 @@ void BluetoothLEAdapter::StartAdvertise(const picojson::value& data, picojson::o
   ret = bt_adapter_le_start_advertising_new(advertiser, OnAdvertiseResult, this);
   if (BT_ERROR_NONE != ret) {
     if (BT_ERROR_NOW_IN_PROGRESS == ret) {
-      ReportError(PlatformResult(ErrorCode::INVALID_STATE_ERR, "Advertise already in progress"), &out);
+      LogAndReportError(
+          PlatformResult(ErrorCode::INVALID_STATE_ERR, "Advertise already in progress"), &out,
+          ("bt_adapter_le_start_advertising_new error: %d (%s)", ret, get_error_message(ret)));
       return;
     }
 
-    LoggerE("bt_adapter_le_start_advertising_new() failed with: %d", ret);
-    ReportError(util::GetBluetoothError(ret, "Failed to start advertising"), &out);
+    LogAndReportError(
+        util::GetBluetoothError(ret, "Failed to start advertising"), &out,
+        ("bt_adapter_le_start_advertising_new() failed with: %d (%s)",
+          ret, get_error_message(ret)));
     return;
   }
 
@@ -649,15 +678,19 @@ void BluetoothLEAdapter::StopAdvertise(const picojson::value& data, picojson::ob
   if (nullptr != bt_advertiser_) {
     int ret = bt_adapter_le_stop_advertising(bt_advertiser_);
     if (BT_ERROR_NONE != ret && BT_ERROR_NOT_IN_PROGRESS != ret) {
-      LoggerE("bt_adapter_le_stop_advertising() failed with: %d", ret);
-      ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to stop advertising"), &out);
+      LogAndReportError(
+          PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to stop advertising"), &out,
+          ("bt_adapter_le_stop_advertising() failed with: %d (%s)",
+            ret, get_error_message(ret)));
       return;
     }
 
     ret = bt_adapter_le_destroy_advertiser(bt_advertiser_);
     if (BT_ERROR_NONE != ret && BT_ERROR_NOT_IN_PROGRESS != ret) {
-      LoggerE("bt_adapter_le_destroy_advertiser() failed with: %d", ret);
-      ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to destroy advertiser"), &out);
+      LogAndReportError(
+          PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to destroy advertiser"), &out,
+          ("bt_adapter_le_destroy_advertiser() failed with: %d (%s)",
+            ret, get_error_message(ret)));
       return;
     }
 
@@ -700,8 +733,9 @@ void BluetoothLEAdapter::OnScanResult(
   picojson::object* data_obj = &value.get<picojson::object>();
 
   if (BT_ERROR_NONE != result) {
-    LoggerE("Error during scanning: %d", result);
-    ReportError(util::GetBluetoothError(result, "Error during scanning"), data_obj);
+    LogAndReportError(
+        util::GetBluetoothError(result, "Error during scanning"), data_obj,
+        ("Error during scanning: %d (%s)", result, get_error_message(result)));
     data_obj->insert(std::make_pair(kAction, picojson::value(kOnScanError)));
   } else {
     // this is probably capi-network-bluetooth error: when scan is stopped info has 0x1 value
@@ -714,8 +748,7 @@ void BluetoothLEAdapter::OnScanResult(
         data_obj->insert(std::make_pair(kAction, picojson::value(kOnScanSuccess)));
         data_obj->insert(std::make_pair(kData, data));
       } else {
-        LoggerE("Failed to parse Bluetooth LE device");
-        ReportError(r, data_obj);
+        LogAndReportError(r, data_obj, ("Failed to parse Bluetooth LE device"));
         data_obj->insert(std::make_pair(kAction, picojson::value(kOnScanError)));
       }
     }
@@ -740,8 +773,9 @@ void BluetoothLEAdapter::OnAdvertiseResult(
   picojson::object* data_obj = &value.get<picojson::object>();
 
   if (BT_ERROR_NONE != result) {
-    LoggerE("Error during advertising: %d", result);
-    ReportError(util::GetBluetoothError(result, "Error during advertising"), data_obj);
+    LogAndReportError(
+        util::GetBluetoothError(result, "Error during advertising"), data_obj,
+        ("Error during advertising: %d (%s)", result, get_error_message(result)));
     data_obj->insert(std::make_pair(kAction, picojson::value(kOnAdvertiseError)));
   } else {
     const char* state = (BT_ADAPTER_LE_ADVERTISING_STARTED == adv_state) ? "STARTED" : "STOPPED";
