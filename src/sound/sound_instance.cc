@@ -58,7 +58,7 @@ SoundInstance::~SoundInstance() {
 
 #define CHECK_EXIST(args, name, out) \
     if (!args.contains(name)) {\
-      ReportError(TypeMismatchException(name" is required argument"), out);\
+      LogAndReportError(TypeMismatchException(name" is required argument"), out);\
       return;\
     }
 
@@ -71,8 +71,7 @@ void SoundInstance::SoundManagerGetSoundMode(const picojson::value& args,
   if (status.IsSuccess()) {
     ReportSuccess(picojson::value(sound_mode_type), out);
   } else {
-    LoggerE("Failed");
-    ReportError(status, &out);
+    LogAndReportError(status, &out);
   }
 }
 
@@ -84,8 +83,7 @@ void SoundInstance::SoundManagerSetVolume(const picojson::value& args,
   if (status.IsSuccess()) {
     ReportSuccess(out);
   } else {
-    LoggerE("Failed");
-    ReportError(status, &out);
+    LogAndReportError(status, &out);
   }
 }
 
@@ -100,8 +98,7 @@ void SoundInstance::SoundManagerGetVolume(const picojson::value& args,
   if (status.IsSuccess()) {
     ReportSuccess(picojson::value(volume), out);
   } else {
-    LoggerE("Failed");
-    ReportError(status, &out);
+    LogAndReportError(status, &out);
   }
 }
 
@@ -112,8 +109,7 @@ void SoundInstance::SoundManagerSetSoundModeChangeListener(const picojson::value
   if (status.IsSuccess()) {
     ReportSuccess(out);
   } else {
-    LoggerE("Failed");
-    ReportError(status, &out);
+    LogAndReportError(status, &out);
   }
 }
 
@@ -125,8 +121,7 @@ void SoundInstance::SoundManagerUnsetSoundModeChangeListener(const picojson::val
   if (status.IsSuccess()) {
     ReportSuccess(out);
   } else {
-    LoggerE("Failed");
-    ReportError(status, &out);
+    LogAndReportError(status, &out);
   }
 }
 
@@ -151,8 +146,7 @@ void SoundInstance::SoundManagerSetVolumeChangeListener(
   if (status.IsSuccess()) {
     ReportSuccess(out);
   } else {
-    LoggerE("Failed");
-    ReportError(status, &out);
+    LogAndReportError(status, &out);
   }
 }
 
@@ -164,8 +158,7 @@ void SoundInstance::SoundManagerUnsetVolumeChangeListener(
   if (status.IsSuccess()) {
     ReportSuccess(out);
   } else {
-    LoggerE("Failed");
-    ReportError(status, &out);
+    LogAndReportError(status, &out);
   }
 }
 
@@ -192,8 +185,7 @@ void SoundInstance::SoundManagerAddDeviceStateChangeListener(
   if (result.IsSuccess()) {
     ReportSuccess(out);
   } else {
-    LoggerE("Failed");
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   }
 }
 
@@ -206,8 +198,7 @@ void SoundInstance::SoundManagerRemoveDeviceStateChangeListener(
   if (result.IsSuccess()) {
     ReportSuccess(out);
   } else {
-    LoggerE("Failed");
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   }
 }
 
