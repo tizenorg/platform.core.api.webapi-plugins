@@ -36,7 +36,6 @@ ApplicationInstance::ApplicationInstance() :
 
   if (app_id_.empty()) {
     LoggerE("app_id_ is empty. Application instance will not be created.");
-    //return PlatformResult(ErrorCode::NOT_FOUND_ERR, "Cannot find caller.");
   }
 
   using std::placeholders::_1;
@@ -249,7 +248,7 @@ void ApplicationInstance::AddEventListener(const picojson::value& args, picojson
   if (result) {
     ReportSuccess(out);
   } else {
-    ReportError(result, &out);
+    LogAndReportError(result, &out);
   }
 }
 

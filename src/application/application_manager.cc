@@ -113,8 +113,8 @@ void ApplicationManager::GetCurrentApplication(const std::string& app_id,
   pkgmgrinfo_appinfo_h handle;
   int ret = pkgmgrinfo_appinfo_get_usr_appinfo(app_id.c_str(), getuid(), &handle);
   if (PMINFO_R_OK != ret) {
-    LoggerE("Failed to get app info: %d (%s)", ret, get_error_message(ret));
-    ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to get app info."), out);
+    LogAndReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to get app info."), out,
+                      ("Failed to get app info: %d (%s)", ret, get_error_message(ret)));
     return;
   }
 
@@ -191,11 +191,11 @@ class TerminateHandler {
     LoggerD("checking if application is still alive");
     int ret = app_manager_get_app_id(that->pid_, &app_id);
     if (APP_MANAGER_ERROR_NONE == ret) {
-        LoggerD("application is alive - failure");
         free(app_id);
         // context is still alive, report error
-        ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to kill application."),
-                    &response->get<picojson::object>());
+        LogAndReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to kill application."),
+                    &response->get<picojson::object>(),
+                    ("application is alive - failure"));
     } else {
       LoggerD("application is dead - success: %d (%s)", ret, get_error_message(ret));
         ReportSuccess(response->get<picojson::object>());
@@ -215,7 +215,7 @@ class TerminateHandler {
 
 #define CHECK_RESULT(result, response, handler) \
   if (result.IsError()) { \
-    ReportError(result, &response->get<picojson::object>()); \
+    LogAndReportError(result, &response->get<picojson::object>()); \
     handler->Invoke(response); \
     delete handler; \
     return; \
@@ -225,7 +225,7 @@ void ApplicationManager::AsyncResponse(PlatformResult& result,
                                        std::shared_ptr<picojson::value>* response) {
 
   LoggerD("Enter");
-  ReportError(result, &(*response)->get<picojson::object>());
+  LogAndReportError(result, &(*response)->get<picojson::object>());
 
   TaskQueue::GetInstance().Async<picojson::value>([this](
       const std::shared_ptr<picojson::value>& response) {
@@ -246,15 +246,13 @@ void ApplicationManager::Kill(const picojson::value& args) {
 
   const auto& context = args.get("contextId");
   if (!context.is<std::string>()) {
-    LoggerE("Invalid parameter passed.");
-    result = PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid parameter passed.");
+    result = LogAndCreateResult(ErrorCode::INVALID_VALUES_ERR, "Invalid parameter passed.");
   }
 
   const std::string& context_id = context.get<std::string>();
 
   if (context_id.empty() && result.IsSuccess()) {
-    LoggerE("Context ID is empty.");
-    result = PlatformResult(ErrorCode::NOT_FOUND_ERR, "Context ID is empty.");
+    result = LogAndCreateResult(ErrorCode::NOT_FOUND_ERR, "Context ID is empty.");
   }
 
   std::shared_ptr<picojson::value> response(new picojson::value(picojson::object()));
@@ -280,21 +278,18 @@ void ApplicationManager::Kill(const picojson::value& args) {
     try {
       pid = std::stoi(context_id);
     } catch (...) {
-      LoggerE("Failed to convert string to int");
-      result = PlatformResult(ErrorCode::NOT_FOUND_ERR, "Failed to convert string to int.");
+      result = LogAndCreateResult(ErrorCode::NOT_FOUND_ERR, "Failed to convert string to int.");
       CHECK_RESULT(result, response, handler)
     }
 
     if (pid <= 0) {
-      LoggerE("Context ID cannot be negative value");
-      result = PlatformResult(ErrorCode::NOT_FOUND_ERR, "Context ID cannot be negative value.");
+      result = LogAndCreateResult(ErrorCode::NOT_FOUND_ERR, "Context ID cannot be negative value.");
       CHECK_RESULT(result, response, handler)
     }
 
     // if kill request comes for current context, throw InvalidValuesException
     if (CurrentApplication::GetInstance().GetProcessId() == pid) {
-      LoggerE("Cannot kill current application.");
-      result = PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Cannot kill current application.");
+      result = LogAndCreateResult(ErrorCode::INVALID_VALUES_ERR, "Cannot kill current application.");
       CHECK_RESULT(result, response, handler)
     }
 
@@ -306,8 +301,8 @@ void ApplicationManager::Kill(const picojson::value& args) {
     std::unique_ptr<char, void(*)(void*)> app_id_ptr(app_id, &std::free);
 
     if (APP_MANAGER_ERROR_NONE != ret) {
-      LoggerE("Failed to get application ID, error: %d (%s)", ret, get_error_message(ret));
-      result = PlatformResult(ErrorCode::NOT_FOUND_ERR, "Failed to get application ID.");
+      result = LogAndCreateResult(ErrorCode::NOT_FOUND_ERR, "Failed to get application ID.",
+                              ("Failed to get application ID, error: %d (%s)", ret, get_error_message(ret)));
       CHECK_RESULT(result, response, handler)
     }
 
@@ -321,8 +316,8 @@ void ApplicationManager::Kill(const picojson::value& args) {
     app_context_ptr(app_context, &app_context_destroy); // automatically release the memory
 
     if (APP_MANAGER_ERROR_NONE != ret) {
-      LoggerE("Failed to get application context handle: %d (%s)", ret, get_error_message(ret));
-      result = PlatformResult(ErrorCode::NOT_FOUND_ERR, "Failed to get application ID.");
+      result = LogAndCreateResult(ErrorCode::NOT_FOUND_ERR, "Failed to get application ID.",
+                                  ("Failed to get application context handle: %d (%s)", ret, get_error_message(ret)));
       CHECK_RESULT(result, response, handler)
     }
 
@@ -362,8 +357,8 @@ void ApplicationManager::Kill(const picojson::value& args) {
     ret = app_manager_set_app_context_event_cb(terminate_callback, handler);
 
     if (APP_MANAGER_ERROR_NONE != ret) {
-      LoggerE("Error while registering app context event: %d (%s)", ret, get_error_message(ret));
-      result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to register termination callback.");
+      result = LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Failed to register termination callback.",
+                              ("Error while registering app context event: %d (%s)", ret, get_error_message(ret)));
       CHECK_RESULT(result, response, handler)
     }
 
@@ -378,8 +373,8 @@ void ApplicationManager::Kill(const picojson::value& args) {
     ret = app_manager_terminate_app(app_context);
 
     if (APP_MANAGER_ERROR_NONE != ret) {
-      LoggerE("Failed to terminate application: %d (%s)", ret, get_error_message(ret));
-      result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to terminate application.");
+      result = LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Failed to terminate application.",
+                              ("Failed to terminate application: %d (%s)", ret, get_error_message(ret)));
       CHECK_RESULT(result, response, handler)
     }
 
@@ -404,8 +399,7 @@ void ApplicationManager::Launch(const picojson::value& args) {
 
   const auto& app_id = args.get("id");
   if (!app_id.is<std::string>()) {
-    LoggerE("Invalid parameter passed.");
-    PlatformResult ret = PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid parameter passed.");
+    PlatformResult ret = LogAndCreateResult(ErrorCode::INVALID_VALUES_ERR, "Invalid parameter passed.");
     AsyncResponse(ret, &response);
     return;
   }
@@ -435,24 +429,24 @@ void ApplicationManager::Launch(const picojson::value& args) {
     }
 
     if (ret < 0) {
-      result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown error has occurred.");
+      result = LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Unknown error has occurred.");
 
       LoggerD("Aul open return: %d (%s)", ret, get_error_message(ret));
       switch (ret) {
         case AUL_R_EINVAL:
         case AUL_R_ERROR:
         case AUL_R_ENOAPP:
-          LoggerE("aul_open_app returns Not Found error");
-          result = PlatformResult(ErrorCode::NOT_FOUND_ERR, "Launchpad returns not found error.");
+          result = LogAndCreateResult(ErrorCode::NOT_FOUND_ERR, "Launchpad returns not found error.",
+                                      ("aul_open_app returns Not Found error"));
           break;
 
         case AUL_R_ECOMM:
-          LoggerE("aul_open_app returns internal IPC error");
-          result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Internal IPC error has occurred.");
+          result = LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Internal IPC error has occurred.",
+                                  ("aul_open_app returns internal IPC error"));
           break;
       }
 
-      ReportError(result, &response->get<picojson::object>());
+      LogAndReportError(result, &response->get<picojson::object>());
     } else {
       LoggerD("Launch request success");
       ReportSuccess(response->get<picojson::object>());
@@ -483,8 +477,7 @@ void ApplicationManager::LaunchAppControl(const picojson::value& args) {
   PlatformResult result = PlatformResult(ErrorCode::NO_ERROR);
   const auto& control = args.get("appControl");
   if (!control.is<picojson::object>()) {
-    LoggerE("Invalid parameter passed.");
-    result = PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid parameter passed.");
+    result = LogAndCreateResult(ErrorCode::INVALID_VALUES_ERR, "Invalid parameter passed.");
     AsyncResponse(result, &response);
     return;
   }
@@ -529,9 +522,9 @@ void ApplicationManager::LaunchAppControl(const picojson::value& args) {
       int ret = app_control_set_app_id(app_control_ptr.get(), app_id.c_str());
 
       if (APP_CONTROL_ERROR_NONE != ret) {
-        LoggerE("Failed to set app id: %d (%s)", ret, get_error_message(ret));
-        ReportError(PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid parameter passed."),
-                    &response->get<picojson::object>());
+        LogAndReportError(PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid parameter passed."),
+                    &response->get<picojson::object>(),
+                    ("Failed to set app id: %d (%s)", ret, get_error_message(ret)));
         return;
       }
     }
@@ -544,7 +537,6 @@ void ApplicationManager::LaunchAppControl(const picojson::value& args) {
       } else if ("GROUP" == launch_mode_str) {
         launch_mode = APP_CONTROL_LAUNCH_MODE_GROUP;
       } else {
-        LoggerE("Invalid parameter passed.");
         ReportError(PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid parameter passed."),
                     &response->get<picojson::object>());
         return;
@@ -552,9 +544,9 @@ void ApplicationManager::LaunchAppControl(const picojson::value& args) {
 
       int ret = app_control_set_launch_mode(app_control_ptr.get(), launch_mode);
       if (APP_CONTROL_ERROR_NONE != ret) {
-        LoggerE("Setting launch mode failed: %d (%s)", ret, get_error_message(ret));
-        ReportError(PlatformResult(ErrorCode::NOT_FOUND_ERR, "Setting launch mode failed."),
-                    &response->get<picojson::object>());
+        LogAndReportError(PlatformResult(ErrorCode::NOT_FOUND_ERR, "Setting launch mode failed."),
+                    &response->get<picojson::object>(),
+                    ("Setting launch mode failed: %d (%s)", ret, get_error_message(ret)));
         return;
       }
     }
@@ -624,25 +616,25 @@ void ApplicationManager::LaunchAppControl(const picojson::value& args) {
 
       switch (ret) {
         case APP_CONTROL_ERROR_INVALID_PARAMETER:
-          LoggerE("app_control_send_launch_request returns APP_CONTROL_ERROR_INVALID_PARAMETER");
-          ReportError(PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid parameter returned."),
-                      &response->get<picojson::object>());
+          LogAndReportError(PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid parameter returned."),
+                      &response->get<picojson::object>(),
+                      ("app_control_send_launch_request returns APP_CONTROL_ERROR_INVALID_PARAMETER"));
           return;
         case APP_CONTROL_ERROR_OUT_OF_MEMORY:
-          LoggerE("app_control_send_launch_request returns APP_CONTROL_ERROR_OUT_OF_MEMORY");
-          ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Out of memory."),
-                      &response->get<picojson::object>());
+          LogAndReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Out of memory."),
+                      &response->get<picojson::object>(),
+                      ("app_control_send_launch_request returns APP_CONTROL_ERROR_OUT_OF_MEMORY"));
           return;
         case APP_CONTROL_ERROR_LAUNCH_REJECTED:
         case APP_CONTROL_ERROR_APP_NOT_FOUND:
-          LoggerE("app_control_send_launch_request returns APP_CONTROL_ERROR_APP_NOT_FOUND");
-          ReportError(PlatformResult(ErrorCode::NOT_FOUND_ERR, "No matched application found."),
-                      &response->get<picojson::object>());
+          LogAndReportError(PlatformResult(ErrorCode::NOT_FOUND_ERR, "No matched application found."),
+                      &response->get<picojson::object>(),
+                      ("app_control_send_launch_request returns APP_CONTROL_ERROR_APP_NOT_FOUND"));
           return;
         default:
-          LoggerE("app_control_send_launch_request returns: %d (%s)", ret, get_error_message(ret));
-          ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown error."),
-                      &response->get<picojson::object>());
+          LogAndReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown error."),
+                      &response->get<picojson::object>(),
+                      ("app_control_send_launch_request returns: %d (%s)", ret, get_error_message(ret)));
           return;
       }
     }
@@ -674,8 +666,7 @@ void ApplicationManager::FindAppControl(const picojson::value& args) {
   PlatformResult result = PlatformResult(ErrorCode::NO_ERROR);
   const auto& control = args.get("appControl");
   if (!control.is<picojson::object>()) {
-    LoggerE("Invalid parameter passed.");
-    result = PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid parameter passed.");
+    result = LogAndCreateResult(ErrorCode::INVALID_VALUES_ERR, "Invalid parameter passed.");
     AsyncResponse(result, &response);
     return;
   }
@@ -725,9 +716,8 @@ void ApplicationManager::FindAppControl(const picojson::value& args) {
         app_control_ptr.get(), app_control_matched, &array.first->second.get<picojson::array>());
 
     if (APP_CONTROL_ERROR_NONE != ret) {
-      LoggerE("app_control_foreach_app_matched error: %d (%s)", ret, get_error_message(ret));
-
-      ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR,"Unknown error"), &response_obj);
+      LogAndReportError(PlatformResult(ErrorCode::UNKNOWN_ERR,"Unknown error"), &response_obj,
+                        ("app_control_foreach_app_matched error: %d (%s)", ret, get_error_message(ret)));
       // remove copied ApplicationControl from result
       response_obj.erase(it_result);
     } else {
@@ -784,8 +774,8 @@ void ApplicationManager::GetAppsContext(const picojson::value& args) {
     int ret = app_manager_foreach_app_context(app_context_cb, &array);
 
     if (APP_MANAGER_ERROR_NONE != ret) {
-      LoggerE("app_manager_foreach_app_context error: %d (%s)", ret, get_error_message(ret));
-      ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown error."), &response_obj);
+      LogAndReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown error."), &response_obj,
+                        ("app_manager_foreach_app_context error: %d (%s)", ret, get_error_message(ret)));
     } else {
       ReportSuccess(result, response_obj);
     }
@@ -815,8 +805,7 @@ void ApplicationManager::GetAppContext(const picojson::value& args, picojson::ob
     try {
       pid = std::stoi(context_id.get<std::string>());
     } catch(...) {
-      LoggerE("Failed to convert context id.");
-      ReportError(PlatformResult(ErrorCode::NOT_FOUND_ERR, "Failed to convert context id."), out);
+      LogAndReportError(PlatformResult(ErrorCode::NOT_FOUND_ERR, "Failed to convert context id."), out);
       return;
     }
   } else {
@@ -832,18 +821,18 @@ void ApplicationManager::GetAppContext(const picojson::value& args, picojson::ob
   if (APP_MANAGER_ERROR_NONE != ret || nullptr == app_id) {
     switch(ret) {
       case APP_MANAGER_ERROR_NO_SUCH_APP:
-        LoggerE("app_manager_get_app_id returned: APP_MANAGER_ERROR_NO_SUCH_APP");
-        ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "No such application exist."), out);
+        LogAndReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "No such application exist."), out,
+                    ("app_manager_get_app_id returned: APP_MANAGER_ERROR_NO_SUCH_APP"));
         return;
 
       case APP_MANAGER_ERROR_INVALID_PARAMETER:
-        LoggerE("app_manager_get_app_id returned: APP_MANAGER_ERROR_INVALID_PARAMETER");
-        ReportError(PlatformResult(ErrorCode::NOT_FOUND_ERR, "Application not found."), out);
+        LogAndReportError(PlatformResult(ErrorCode::NOT_FOUND_ERR, "Application not found."), out,
+                    ("app_manager_get_app_id returned: APP_MANAGER_ERROR_INVALID_PARAMETER"));
         return;
 
       default:
-        LoggerE("app_manager_get_app_id returned: %d (%s)", ret, get_error_message(ret));
-        ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown error."), out);
+        LogAndReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown error."), out,
+                          ("app_manager_get_app_id returned: %d (%s)", ret, get_error_message(ret)));
         return;
     }
   }
@@ -887,8 +876,8 @@ void ApplicationManager::GetAppsInfo(const picojson::value& args) {
     int ret = pkgmgrinfo_appinfo_get_usr_installed_list(app_info_cb, getuid(), &array);
 
     if (APP_MANAGER_ERROR_NONE != ret) {
-      LoggerE("pkgmgrinfo_appinfo_get_usr_installed_list error");
-      ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown error."), &response_obj);
+      LogAndReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Unknown error."), &response_obj,
+                        ("pkgmgrinfo_appinfo_get_usr_installed_list error"));
     } else {
       ReportSuccess(result, response_obj);
     }
@@ -915,8 +904,7 @@ void ApplicationManager::GetAppInfo(const std::string& app_id, picojson::object*
   pkgmgrinfo_appinfo_h handle = nullptr;
 
   if (PMINFO_R_OK != pkgmgrinfo_appinfo_get_usr_appinfo(app_id.c_str(), getuid(), &handle)) {
-    LoggerE("Failed to get app info");
-    ReportError(PlatformResult(ErrorCode::NOT_FOUND_ERR, "Failed to get app info."), out);
+    LogAndReportError(PlatformResult(ErrorCode::NOT_FOUND_ERR, "Failed to get app info."), out);
     return;
   }
 
@@ -962,8 +950,7 @@ void ApplicationManager::GetAppCerts(const std::string& app_id, picojson::object
   std::unique_ptr<char, void(*)(void*)> package_id_ptr(package_id, &std::free);
 
   if (!package_id) {
-    LoggerE("Failed to get package.");
-    ReportError(PlatformResult(ErrorCode::NOT_FOUND_ERR, "Failed to get package."), out);
+    LogAndReportError(PlatformResult(ErrorCode::NOT_FOUND_ERR, "Failed to get package."), out);
     return;
   }
 
@@ -974,8 +961,8 @@ void ApplicationManager::GetAppCerts(const std::string& app_id, picojson::object
   pkg_info_ptr(pkg_info, &package_info_destroy); // automatically release the memory
 
   if (PACKAGE_MANAGER_ERROR_NONE != ret) {
-    LoggerE("Failed to get package info: %d (%s)", ret, get_error_message(ret));
-    ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to get package info."), out);
+    LogAndReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to get package info."), out,
+                ("Failed to get package info: %d (%s)", ret, get_error_message(ret)));
     return;
   }
 
@@ -1030,8 +1017,8 @@ void ApplicationManager::GetAppCerts(const std::string& app_id, picojson::object
   ret = package_info_foreach_cert_info(pkg_info, cert_info_cb, &result.get<picojson::array>());
 
   if ((PACKAGE_MANAGER_ERROR_NONE != ret) && (PACKAGE_MANAGER_ERROR_IO_ERROR != ret)) {
-    LoggerE("Failed to get certificates info: %d (%s)", ret, get_error_message(ret));
-    ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to get certificates info."), out);
+    LogAndReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to get certificates info."), out,
+                ("Failed to get certificates info: %d (%s)", ret, get_error_message(ret)));
     return;
   }
 
@@ -1048,8 +1035,7 @@ void ApplicationManager::GetAppSharedUri(const std::string& app_id, picojson::ob
   std::unique_ptr<char, void(*)(void*)> package_id_ptr(package_id, &std::free);
 
   if (!package_id) {
-    LoggerE("Failed to get package.");
-    ReportError(PlatformResult(ErrorCode::NOT_FOUND_ERR, "Failed to get package."), out);
+    LogAndReportError(PlatformResult(ErrorCode::NOT_FOUND_ERR, "Failed to get package."), out);
     return;
   }
 
@@ -1060,8 +1046,8 @@ void ApplicationManager::GetAppSharedUri(const std::string& app_id, picojson::ob
   pkg_info_ptr(pkg_info, &pkgmgrinfo_pkginfo_destroy_pkginfo); // automatically release the memory
 
   if (PMINFO_R_OK != ret) {
-    LoggerE("Failed to get package info: %d (%s)", ret, get_error_message(ret));
-    ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to get package info."), out);
+    LogAndReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to get package info."), out,
+                ("Failed to get package info: %d (%s)", ret, get_error_message(ret)));
     return;
   }
 
@@ -1069,8 +1055,8 @@ void ApplicationManager::GetAppSharedUri(const std::string& app_id, picojson::ob
   ret = pkgmgrinfo_pkginfo_get_root_path(pkg_info, &root_path);
 
   if (PMINFO_R_OK != ret || nullptr == root_path) {
-    LoggerE("Failed to get root path: %d (%s)", ret, get_error_message(ret));
-    ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to get root path."), out);
+    LogAndReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to get root path."), out,
+                ("Failed to get root path: %d (%s)", ret, get_error_message(ret)));
     return;
   }
 
@@ -1092,8 +1078,8 @@ void ApplicationManager::GetAppMetaData(const std::string& app_id, picojson::obj
   pkg_info_ptr(handle, &pkgmgrinfo_appinfo_destroy_appinfo); // automatically release the memory
 
   if (PMINFO_R_OK != ret) {
-    LoggerE("Failed to get app info: %d (%s)", ret, get_error_message(ret));
-    ReportError(PlatformResult(ErrorCode::NOT_FOUND_ERR, "Failed to get app info."), out);
+    LogAndReportError(PlatformResult(ErrorCode::NOT_FOUND_ERR, "Failed to get app info."), out,
+                ("Failed to get app info: %d (%s)", ret, get_error_message(ret)));
     return;
   }
 
@@ -1115,8 +1101,8 @@ void ApplicationManager::GetAppMetaData(const std::string& app_id, picojson::obj
   ret = pkgmgrinfo_appinfo_foreach_metadata(handle, meta_data_cb, &result.get<picojson::array>());
 
   if (PMINFO_R_OK != ret) {
-    LoggerE("Failed to get metadata: %d (%s)", ret, get_error_message(ret));
-    ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to get metadata."), out);
+    LogAndReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to get metadata."), out,
+                      ("Failed to get metadata: %d (%s)", ret, get_error_message(ret)));
     return;
   }
 
@@ -1348,7 +1334,7 @@ void ApplicationManager::StartAppInfoEventListener(picojson::object* out) {
         pkgmgrinfo_client_free(pkgmgrinfo_client_handle_);
         pkgmgrinfo_client_handle_ = nullptr;
       }
-      ReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to register listener."), out);
+      LogAndReportError(PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to register listener."), out);
       return;
     }
 
@@ -1393,8 +1379,7 @@ void ApplicationManager::GetApplicationInformationSize(const picojson::value& ar
 
   const auto& package_id = args.get("packageId");
   if (!package_id.is<std::string>()) {
-    LoggerE("Invalid parameter passed.");
-    ReportError(PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid parameter passed."), out);
+    LogAndReportError(PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid parameter passed."), out);
     return;
   }
 
@@ -1531,11 +1516,11 @@ PlatformResult ApplicationManager::StartEventListener(const std::string& event_n
   ret = event_add_event_handler(event_name.c_str(), OnEvent, this, &event_handler);
   LoggerD("event_add_event_handler() result: %d (%s)", ret, get_error_message(ret));
   if (EVENT_ERROR_PERMISSION_DENIED == ret) {
-    LOGGER(ERROR) << "event_add_event_handler failed, error: " << ret;
-    return PlatformResult(ErrorCode::SECURITY_ERR, "The privilege is required");
+    return LogAndCreateResult(ErrorCode::SECURITY_ERR, "The privilege is required",
+                              ("event_add_event_handler failed, error: %d", ret));
   } else if (EVENT_ERROR_NONE != ret) {
-    LOGGER(ERROR) << "event_add_event_handler failed, error: " << ret;
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Error setting event listener");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Error setting event listener",
+                              ("event_add_event_handler failed, error: %d", ret));
   }
 
   event_handler_map_[event_name] = event_handler;
