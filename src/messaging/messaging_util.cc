@@ -200,8 +200,9 @@ PlatformResult MessagingUtil::stringToMessageType(const std::string& str, Messag
   const auto it = stringToTypeMap.find(str);
 
   if (it == stringToTypeMap.end()) {
-    LoggerE("Not supported type: %s", str.c_str());
-    return PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, "Not supported type: " + str);
+    return LogAndCreateResult(
+              ErrorCode::TYPE_MISMATCH_ERR, "Not supported type: " + str,
+              ("Not supported type: %s", str.c_str()));
   } else {
     *out = it->second;
     return PlatformResult(ErrorCode::NO_ERROR);
@@ -214,8 +215,9 @@ common::PlatformResult MessagingUtil::messageTypeToString(MessageType type, std:
   const auto it = typeToStringMap.find(type);
 
   if (it == typeToStringMap.end()) {
-    LoggerE("Invalid MessageType: %d", type);
-    return PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, "Invalid MessageType");
+    return LogAndCreateResult(
+              ErrorCode::TYPE_MISMATCH_ERR, "Invalid MessageType",
+              ("Invalid MessageType: %d", type));
   } else {
     *out = it->second;
     return PlatformResult(ErrorCode::NO_ERROR);
@@ -297,7 +299,7 @@ PlatformResult MessagingUtil::loadFileContentToString(const std::string& file_pa
     } else {
         std::stringstream ss_error_msg;
         ss_error_msg << "Failed to open file: " << file_path;
-        return PlatformResult(ErrorCode::IO_ERR, ss_error_msg.str().c_str());
+        return LogAndCreateResult(ErrorCode::IO_ERR, ss_error_msg.str().c_str());
     }
     return PlatformResult(ErrorCode::NO_ERROR);
 }
@@ -751,9 +753,9 @@ PlatformResult MessagingUtil::jsonToMessage(const picojson::value& json,
             int mail_id = std::atoi(mid.c_str());
             email_mail_data_t* mail = NULL;
             if (EMAIL_ERROR_NONE != email_get_mail_data(mail_id, &mail)) {
-                LoggerE("Fatal error: message not found: %d!", mail_id);
-                return PlatformResult(ErrorCode::TYPE_MISMATCH_ERR,
-                                      "Failed to find specified email.");
+                return LogAndCreateResult(
+                            ErrorCode::TYPE_MISMATCH_ERR, "Failed to find specified email.",
+                            ("Fatal error: message not found: %d!", mail_id));
             } else {
                 platform_result = Message::convertPlatformEmailToObject(*mail, &message);
                 email_free_mail_data(&mail,1);
@@ -774,8 +776,7 @@ PlatformResult MessagingUtil::jsonToMessage(const picojson::value& json,
       if (!v.is<std::string>()) {
         const std::string message = "Passed array holds incorrect values "
             + v.serialize() + " is not a correct string value";
-        LoggerE("Error: %s", message.c_str());
-        conv_res = PlatformResult(ErrorCode::INVALID_VALUES_ERR, message);
+        conv_res = LogAndCreateResult(ErrorCode::INVALID_VALUES_ERR, message);
       }
       if (conv_res.IsError()) {
         return;
@@ -979,8 +980,9 @@ PlatformResult MessagingUtil::jsonFilterToAbstractFilter(const picojson::object&
         return jsonFilterToCompositeFilter(filter, result);
     }
 
-    LoggerE("Unsupported filter type: %s", type.c_str());
-    return PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, "Unsupported filter type");
+    return LogAndCreateResult(
+              ErrorCode::TYPE_MISMATCH_ERR, "Unsupported filter type",
+              ("Unsupported filter type: %s", type.c_str()));
 }
 
 PlatformResult MessagingUtil::jsonFilterToAttributeFilter(const picojson::object& filter,
@@ -1014,8 +1016,9 @@ PlatformResult MessagingUtil::jsonFilterToAttributeFilter(const picojson::object
         filterMatch = FilterMatchFlag::EXISTS;
     }
     else {
-        LoggerE("Filter name is not recognized: %s", matchFlagStr.c_str());
-        return PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, "Filter name is not recognized");
+        return LogAndCreateResult(
+                  ErrorCode::TYPE_MISMATCH_ERR, "Filter name is not recognized",
+                  ("Filter name is not recognized: %s", matchFlagStr.c_str()));
     }
 
     auto attributePtr = new AttributeFilter(name);
@@ -1058,9 +1061,9 @@ PlatformResult MessagingUtil::jsonFilterToCompositeFilter(const picojson::object
         filterType = CompositeFilterType::INTERSECTION;
     }
     else {
-        LoggerE("Composite filter type is not recognized: %s", type.c_str());
-        return PlatformResult(ErrorCode::TYPE_MISMATCH_ERR,
-                              "Composite filter type is not recognized");
+        return LogAndCreateResult(
+                  ErrorCode::TYPE_MISMATCH_ERR, "Composite filter type is not recognized",
+                  ("Composite filter type is not recognized: %s", type.c_str()));
     }
 
     auto compositeFilter = new CompositeFilter(filterType);

@@ -157,8 +157,9 @@ PlatformResult MessageConversation::convertMsgConversationToObject(
     msg_error_t err = msg_get_thread(handle, conversation->m_conversation_id, msg_thread);
     if (err != MSG_SUCCESS)
     {
-      LoggerE("Failed to retrieve thread.");
-      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to retrieve thread.");
+      return LogAndCreateResult(
+                ErrorCode::UNKNOWN_ERR, "Failed to retrieve thread.",
+                ("msg_get_thread error: %d (%s)", err, get_error_message(err)));
     }
     msg_get_int_value(msg_thread, MSG_THREAD_MSG_TYPE_INT, &tempInt);
     switch(tempInt)
@@ -196,8 +197,9 @@ PlatformResult MessageConversation::convertMsgConversationToObject(
         // automatically release the memory
     if (err != MSG_SUCCESS)
     {
-      LoggerE("Get conversation(msg) view list fail.");
-      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Get conversation(msg) view list fail.");
+      return LogAndCreateResult(
+                ErrorCode::UNKNOWN_ERR, "Get conversation(msg) view list fail.",
+                ("msg_get_conversation_view_list error: %d (%s)", err, get_error_message(err)));
     }
 
     lastMsgIndex = convViewList.nCount - 1;
@@ -209,11 +211,12 @@ PlatformResult MessageConversation::convertMsgConversationToObject(
     msg_get_int_value(convViewList.msg_struct_info[lastMsgIndex], MSG_CONV_MSG_ID_INT, &tempInt);
     conversation->m_last_message_id = tempInt;
 
-    if (msg_get_message(handle, conversation->m_last_message_id, msgInfo,
-                        sendOpt) != MSG_SUCCESS)
+    err = msg_get_message(handle, conversation->m_last_message_id, msgInfo, sendOpt);
+    if (err != MSG_SUCCESS)
     {
-      LoggerE("Get message fail.");
-      return PlatformResult(ErrorCode::UNKNOWN_ERR, "get message fail.");
+      return LogAndCreateResult(
+                ErrorCode::UNKNOWN_ERR, "get message fail.",
+                ("msg_get_message error: %d (%s)", err, get_error_message(err)));
     }
 
     msg_get_int_value(convViewList.msg_struct_info[lastMsgIndex], MSG_CONV_MSG_DIRECTION_INT, &tempInt);
@@ -279,7 +282,8 @@ PlatformResult MessageConversation::convertEmailConversationToObject(
 
     email_mail_list_item_t *resultMail = NULL;
 
-    if(email_get_thread_information_ex(threadId, &resultMail) != EMAIL_ERROR_NONE)
+    int ntv_ret = email_get_thread_information_ex(threadId, &resultMail);
+    if(ntv_ret != EMAIL_ERROR_NONE)
     {
         if (resultMail)
         {
@@ -290,27 +294,31 @@ PlatformResult MessageConversation::convertEmailConversationToObject(
             free(resultMail);
         }
 
-        LoggerE("Couldn't get conversation");
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Couldn't get conversation.");
+        return LogAndCreateResult(
+                  ErrorCode::UNKNOWN_ERR, "Couldn't get conversation.",
+                  ("email_get_thread_information_ex error: %d (%s)", ntv_ret, get_error_message(ntv_ret)));
     } else {
         if (!resultMail)
         {
-            LoggerE("Data is null");
-            return PlatformResult(ErrorCode::UNKNOWN_ERR, "Get email data fail.");
+            return LogAndCreateResult(
+                      ErrorCode::UNKNOWN_ERR, "Get email data fail.",
+                      ("Data is null"));
         }
 
         email_mail_data_t* mailData = NULL;
 
-        if (email_get_mail_data(resultMail->mail_id,
-                &mailData) != EMAIL_ERROR_NONE)
+        ntv_ret = email_get_mail_data(resultMail->mail_id, &mailData);
+        if (ntv_ret != EMAIL_ERROR_NONE)
         {
             free(resultMail);
-            return PlatformResult(ErrorCode::UNKNOWN_ERR, "Get email data fail.");
+            return LogAndCreateResult(
+                      ErrorCode::UNKNOWN_ERR, "Get email data fail.",
+                      ("email_get_mail_data error: %d (%s)", ntv_ret, get_error_message(ntv_ret)));
         }
 
         if (!mailData) {
             free(resultMail);
-            return PlatformResult(ErrorCode::UNKNOWN_ERR, "Get email data fail.");
+            return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Get email data fail.");
         }
 
         int index = 0;
@@ -318,13 +326,17 @@ PlatformResult MessageConversation::convertEmailConversationToObject(
         conversation->m_unread_messages = 0;
         email_mail_list_item_t *mailList = NULL;
 
-        if (email_get_mail_list(mailData->account_id, 0, threadId, 0,
-            resultMail->thread_item_count, EMAIL_SORT_DATETIME_HIGH, &mailList,
-            &count) != EMAIL_ERROR_NONE)
+        ntv_ret = email_get_mail_list(
+                      mailData->account_id, 0, threadId, 0,
+                      resultMail->thread_item_count, EMAIL_SORT_DATETIME_HIGH, &mailList,
+                      &count);
+        if (ntv_ret != EMAIL_ERROR_NONE)
         {
             email_free_mail_data(&mailData , 1);
             free(resultMail);
-            return PlatformResult(ErrorCode::UNKNOWN_ERR, "Get email data list fail.");
+            return LogAndCreateResult(
+                      ErrorCode::UNKNOWN_ERR, "Get email data list fail.",
+                      ("email_get_mail_list error: %d (%s)", ntv_ret, get_error_message(ntv_ret)));
         }
 
         for (index = 0; index < count; index++)

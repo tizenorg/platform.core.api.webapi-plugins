@@ -61,17 +61,17 @@ PlatformResult MessageServiceEmail::sendMessage(MessageRecipientsCallbackData *c
     LoggerD("Entered");
 
     if (!callback) {
-        LoggerE("Callback is null");
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Callback is null");
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Callback is null");
     }
 
     callback->setAccountId(m_id);
 
     guint id = g_idle_add(sendMessageTask, static_cast<void*>(callback));
     if (!id) {
-        LoggerE("g_idle_add fails");
         delete callback;
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not add task");
+        return LogAndCreateResult(
+                  ErrorCode::UNKNOWN_ERR, "Could not add task",
+                  ("g_idle_add fails"));
     }
 
     return PlatformResult(ErrorCode::NO_ERROR);
@@ -90,15 +90,15 @@ PlatformResult MessageServiceEmail::loadMessageBody(MessageBodyCallbackData* cal
 {
     LoggerD("Entered");
     if (!callback) {
-        LoggerE("Callback is null");
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Callback is null");
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Callback is null");
     }
 
     guint id = g_idle_add(loadMessageBodyTask, static_cast<void*>(callback));
     if (!id) {
-        LoggerE("g_idle_add failed");
         delete callback;
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not add task");
+        return LogAndCreateResult(
+                  ErrorCode::UNKNOWN_ERR, "Could not add task",
+                  ("g_idle_add failed"));
     }
 
     return PlatformResult(ErrorCode::NO_ERROR);
@@ -142,9 +142,10 @@ PlatformResult MessageServiceEmail::loadMessageAttachment(MessageAttachmentCallb
   LoggerD("Entered");
   guint id = g_idle_add(loadMessageAttachmentTask, static_cast<void*>(callback));
   if (!id) {
-    LoggerE("g_idle_add failed");
     delete callback;
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not add task");
+    return LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, "Could not add task",
+              ("g_idle_add failed"));
   }
   return PlatformResult(ErrorCode::NO_ERROR);
 }
@@ -163,8 +164,7 @@ PlatformResult MessageServiceEmail::sync(SyncCallbackData *callback, long* opera
   LoggerD("Entered");
 
   if (!callback) {
-    LoggerE("Callback is null");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Callback is null");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Callback is null");
   }
 
   long op_id = EmailManager::getInstance().getUniqueOpId();
@@ -172,9 +172,10 @@ PlatformResult MessageServiceEmail::sync(SyncCallbackData *callback, long* opera
 
   guint id = g_idle_add(syncTask, static_cast<void*>(callback));
   if (!id) {
-    LoggerE("g_idle_add failed");
     delete callback;
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not add task");
+    return LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, "Could not add task",
+              ("g_idle_add failed"));
   }
   *operation_id = op_id;
   registered_callbacks_.insert(op_id);
@@ -194,14 +195,12 @@ PlatformResult MessageServiceEmail::syncFolder(SyncFolderCallbackData *callback,
 {
   LoggerD("Entered");
   if (!callback) {
-    LoggerE("Callback is null");
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Callback is null");
+    return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Callback is null");
   }
 
   if (!callback->getMessageFolder()) {
-    LoggerE("Message folder is null");
     delete callback;
-    return PlatformResult(ErrorCode::TYPE_MISMATCH_ERR, "Message folder is null");
+    return LogAndCreateResult(ErrorCode::TYPE_MISMATCH_ERR, "Message folder is null");
   }
 
   long op_id = EmailManager::getInstance().getUniqueOpId();
@@ -209,9 +208,10 @@ PlatformResult MessageServiceEmail::syncFolder(SyncFolderCallbackData *callback,
 
   guint id = g_idle_add(syncFolderTask, callback);
   if (!id) {
-    LoggerE("g_idle_add fails");
     delete callback;
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not add task");
+    return LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, "Could not add task",
+              ("g_idle_add fails"));
   }
   *operation_id = op_id;
   registered_callbacks_.insert(op_id);
@@ -244,10 +244,11 @@ PlatformResult MessageServiceEmail::stopSync(long op_id)
   guint id = g_idle_add(stopSyncTask, static_cast<void*>(data));
 
   if (!id) {
-    LoggerE("g_idle_add failed");
     delete data;
     data = NULL;
-    return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not add task");
+    return LogAndCreateResult(
+              ErrorCode::UNKNOWN_ERR, "Could not add task",
+              ("g_idle_add failed"));
   }
   return PlatformResult(ErrorCode::NO_ERROR);
 }

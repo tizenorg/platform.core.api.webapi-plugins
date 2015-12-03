@@ -120,9 +120,9 @@ PlatformResult MessageBody::updateBody(email_mail_data_t& mail)
       PlatformResult ret = MessagingUtil::loadFileContentToString(mail.file_path_plain,
                                                                   &result);
       if (ret.IsError()) {
-        LoggerE("Fail to open plain body.");
-        return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                              "Fail to open plain body.");
+        return LogAndCreateResult(
+                  ErrorCode::UNKNOWN_ERR, "Fail to open plain body.",
+                  ("%s", ret.message().c_str()));
       }
       setPlainBody(result);
     }
@@ -133,9 +133,9 @@ PlatformResult MessageBody::updateBody(email_mail_data_t& mail)
       PlatformResult ret = MessagingUtil::loadFileContentToString(mail.file_path_html,
                                                                   &result);
       if (ret.IsError()) {
-        LoggerE("Fail to open html body.");
-        return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                              "Fail to open html body.");
+        return LogAndCreateResult(
+                  ErrorCode::UNKNOWN_ERR, "Fail to open html body.",
+                  ("%s", ret.message().c_str()));
       }
       setHtmlBody(result);
     }

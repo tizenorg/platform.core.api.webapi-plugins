@@ -73,8 +73,9 @@ PlatformResult updateAttachmentDataWithEmailGetAttachmentData(
     int err = email_get_attachment_data(attachment->getId(), &attachment_data_holder.data);
     if (EMAIL_ERROR_NONE != err ||
         NULL == attachment_data_holder.data) {
-        LoggerE("Couldn't get attachment data for attachmentId:%d", attachment->getId());
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Couldn't get attachment.");
+        return LogAndCreateResult(
+                  ErrorCode::UNKNOWN_ERR, "Couldn't get attachment.",
+                  ("Couldn't get attachment data for attachmentId:%d", attachment->getId()));
     }
 
     LoggerD("attachment name : %s", attachment_data_holder->attachment_name);
@@ -111,9 +112,8 @@ PlatformResult LoadAttachmentProxy::create(const std::string& path,
                                            LoadAttachmentProxyPtr* load_attachment_proxy) {
     load_attachment_proxy->reset(new LoadAttachmentProxy(path, iface));
     if ((*load_attachment_proxy)->isNotProxyGot()) {
-        LoggerE("Could not get load attachment proxy");
         load_attachment_proxy->reset();
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not get load attachment proxy");
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Could not get load attachment proxy");
     } else {
         return PlatformResult(ErrorCode::NO_ERROR);
     }
@@ -198,7 +198,7 @@ void LoadAttachmentProxy::handleEmailSignal(const int status,
     LoggerD("Found callback for pair mailId:%d nth:%d", mail_id, nth);
 
     PlatformResult ret = PlatformResult(ErrorCode::NO_ERROR);
-    if(NOTI_DOWNLOAD_ATTACH_FINISH == status) {
+    if (NOTI_DOWNLOAD_ATTACH_FINISH == status) {
         LoggerD("Message attachment downloaded!");
 
         std::shared_ptr<MessageAttachment> att = callback->getMessageAttachment();
@@ -213,9 +213,8 @@ void LoadAttachmentProxy::handleEmailSignal(const int status,
             callback->SetSuccess(picojson::value(args));
             callback->Post();
         }
-    } else if(NOTI_DOWNLOAD_ATTACH_FAIL) {
-        LoggerD("Load message attachment failed!");
-        ret = PlatformResult(ErrorCode::UNKNOWN_ERR, "Load message attachment failed!");
+    } else if (NOTI_DOWNLOAD_ATTACH_FAIL == status) {
+        ret = LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Load message attachment failed!");
     }
     if (ret.IsError()) {
         LoggerE("Exception in signal callback");

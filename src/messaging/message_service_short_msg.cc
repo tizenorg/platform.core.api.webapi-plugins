@@ -67,8 +67,7 @@ PlatformResult MessageServiceShortMsg::sendMessage(MessageRecipientsCallbackData
 {
     LoggerD("Entered");
     if (!callback) {
-        LoggerE("Callback is null");
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Callback is null");
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Callback is null");
     }
 
     /*
@@ -107,9 +106,10 @@ PlatformResult MessageServiceShortMsg::sendMessage(MessageRecipientsCallbackData
         }
 
         if (sim_index >= sim_count) {
-            LoggerE("Sim index out of count %d : %d", sim_index, sim_count);
             delete callback;
-            return PlatformResult(ErrorCode::INVALID_VALUES_ERR, "The index of sim is out of bound");
+            return LogAndCreateResult(
+                      ErrorCode::INVALID_VALUES_ERR, "The index of sim is out of bound",
+                      ("Sim index out of count %d : %d", sim_index, sim_count));
         }
 
         callback->getMessage()->setSimIndex(sim_index);
@@ -118,9 +118,10 @@ PlatformResult MessageServiceShortMsg::sendMessage(MessageRecipientsCallbackData
     }
 
     if(!g_idle_add(sendMessageThread, static_cast<void*>(callback))) {
-        LoggerE("g_idle_add fails");
         delete callback;
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not add task");
+        return LogAndCreateResult(
+                  ErrorCode::UNKNOWN_ERR, "Could not add task",
+                  ("g_idle_add fails"));
     }
 
     return PlatformResult(ErrorCode::NO_ERROR);
@@ -149,15 +150,15 @@ PlatformResult MessageServiceShortMsg::loadMessageBody(MessageBodyCallbackData *
 {
     LoggerD("Entered");
     if (!callback) {
-        LoggerE("Callback is null");
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Callback is null");
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Callback is null");
     }
 
     guint id = g_idle_add(loadMessageBodyTask, static_cast<void*>(callback));
     if (!id) {
-        LoggerE("g_idle_add fails");
         delete callback;
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not add task");
+        return LogAndCreateResult(
+                  ErrorCode::UNKNOWN_ERR, "Could not add task",
+                  ("g_idle_add fails"));
     }
 
     return PlatformResult(ErrorCode::NO_ERROR);

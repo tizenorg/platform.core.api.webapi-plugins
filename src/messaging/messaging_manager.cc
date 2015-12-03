@@ -120,8 +120,8 @@ static void* getMsgServicesThread(const std::shared_ptr<MsgManagerCallbackData>&
           MessageService* service = MessageServiceShortMsg::GetSmsMessageService();
 
           if (!service) {
-            LoggerE("MessageService for SMS creation failed");
-            platform_result = PlatformResult(ErrorCode::UNKNOWN_ERR, "MessageService for SMS creation failed");
+            platform_result = LogAndCreateResult(
+                                  ErrorCode::UNKNOWN_ERR, "MessageService for SMS creation failed");
           } else {
             *(user_data->sms_service) = std::make_pair(service->getMsgServiceId(), service);
 
@@ -146,8 +146,8 @@ static void* getMsgServicesThread(const std::shared_ptr<MsgManagerCallbackData>&
           MessageService* service = MessageServiceShortMsg::GetMmsMessageService();
 
           if (!service) {
-            LoggerE("MessageService for MMS creation failed");
-            platform_result = PlatformResult(ErrorCode::UNKNOWN_ERR, "MessageService for SMS creation failed");
+            platform_result = LogAndCreateResult(
+                                  ErrorCode::UNKNOWN_ERR, "MessageService for SMS creation failed");
           } else {
             *(user_data->mms_service) = std::make_pair(service->getMsgServiceId(), service);
 
@@ -168,9 +168,11 @@ static void* getMsgServicesThread(const std::shared_ptr<MsgManagerCallbackData>&
           email_account_t* email_accounts = nullptr;
           int count = 0;
 
-          if (email_get_account_list(&email_accounts, &count) != EMAIL_ERROR_NONE) {
-            LoggerE("Method failed: email_get_account_list()");
-            platform_result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Error during getting account list");
+          int ntv_ret = email_get_account_list(&email_accounts, &count);
+          if (ntv_ret != EMAIL_ERROR_NONE) {
+            platform_result = LogAndCreateResult(
+                                  ErrorCode::UNKNOWN_ERR, "Error during getting account list",
+                                  ("email_get_account_list error: %d (%s)", ntv_ret, get_error_message(ntv_ret)));
           } else {
             std::vector<MessageService*> msgServices;
 
@@ -193,8 +195,8 @@ static void* getMsgServicesThread(const std::shared_ptr<MsgManagerCallbackData>&
                                 delete service;
                               });
                 msgServices.clear();
-                LoggerE("MessageService for email creation failed");
-                platform_result = PlatformResult(ErrorCode::UNKNOWN_ERR, "MessageService for email creation failed");
+                platform_result = LogAndCreateResult(
+                                     ErrorCode::UNKNOWN_ERR, "MessageService for email creation failed");
               } else {
                 msgServices.push_back(service);
               }
@@ -226,11 +228,10 @@ static void* getMsgServicesThread(const std::shared_ptr<MsgManagerCallbackData>&
         }
         break;
       default:
-        platform_result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Service type is undefined");
+        platform_result = LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Service type is undefined");
     }
   } else {
-    LoggerE("Unsupported service type");
-    platform_result = PlatformResult(ErrorCode::UNKNOWN_ERR, "Unsupported service type");
+    platform_result = LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Unsupported service type");
   }
 
   if (!platform_result) {

@@ -48,9 +48,8 @@ MessageProxy::~MessageProxy()
 PlatformResult MessageProxy::create(MessageProxyPtr* message_proxy) {
     message_proxy->reset(new MessageProxy());
     if ((*message_proxy)->isNotProxyGot()) {
-        LoggerE("Could not get proxy");
         message_proxy->reset();
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Could not get proxy");
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Could not get proxy");
     } else {
         return PlatformResult(ErrorCode::NO_ERROR);
     }
@@ -123,13 +122,15 @@ PlatformResult MessageProxy::handleEmailEvent(int account_id, int mail_id, int t
         //getting thread_id from message
         email_mail_data_t *mail_data = NULL;
 
-        if(EMAIL_ERROR_NONE != email_get_mail_data(mail_id, &mail_data)) {
+        int ntv_ret = email_get_mail_data(mail_id, &mail_data);
+        if(EMAIL_ERROR_NONE != ntv_ret) {
           if (mail_data) email_free_mail_data(&mail_data, 1);
 
-          LoggerE("Failed to get mail data during setting conversation id in MessageProxy.");
-          return PlatformResult(ErrorCode::UNKNOWN_ERR,
-                                "Failed to get mail data during setting"
-                                " conversation id in MessageProxy.");
+          return LogAndCreateResult(
+                    ErrorCode::UNKNOWN_ERR,
+                    "Failed to get mail data during setting"
+                       " conversation id in MessageProxy.",
+                    ("email_get_mail_data error: %d (%s)", ntv_ret, get_error_message(ntv_ret)));
         }
 
         thread_id = mail_data->thread_id;
@@ -141,7 +142,7 @@ PlatformResult MessageProxy::handleEmailEvent(int account_id, int mail_id, int t
 
       email_mail_data_t* mail_data = EmailManager::getInstance().loadMessage(mail_id);
       if (mail_data == NULL) {
-        return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to load email");
+        return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Failed to load email");
       }
       std::shared_ptr<Message> msg;
       PlatformResult ret = Message::convertPlatformEmailToObject(*mail_data, &msg);
@@ -280,10 +281,13 @@ PlatformResult MessageProxy::handleMailboxEvent(int account_id, int mailbox_id, 
                 false));
     } else {
         email_mailbox_t* mail_box = NULL;
-        if (EMAIL_ERROR_NONE != email_get_mailbox_by_mailbox_id(mailbox_id, &mail_box)) {
-            LoggerE("Mailbox not retrieved");
+        int ntv_ret = email_get_mailbox_by_mailbox_id(mailbox_id, &mail_box);
+        if (EMAIL_ERROR_NONE != ntv_ret) {
             delete eventFolder;
-            return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to load mailbox");
+            return LogAndCreateResult(
+                      ErrorCode::UNKNOWN_ERR, "Failed to load mailbox",
+                      ("email_get_mailbox_by_mailbox_id error: %d (%s)",
+                          ntv_ret, get_error_message(ntv_ret)));
         }
         folder.reset(new MessageFolder(*mail_box));
         if (EMAIL_ERROR_NONE != email_free_mailbox(&mail_box, 1)) {
