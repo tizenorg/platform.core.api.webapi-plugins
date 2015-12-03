@@ -82,8 +82,7 @@ void PushInstance::registerService(const picojson::value& args,
             appControl,
             args.get("callbackId").get<double>());
     if (result.IsError()) {
-        LoggerE("Error occured");
-        ReportError(result, &out);
+        LogAndReportError(result, &out, ("Error occured"));
     } else {
         picojson::value result;
         ReportSuccess(result, out);
@@ -97,8 +96,7 @@ void PushInstance::unregisterService(const picojson::value& args,
     common::PlatformResult result = PushManager::getInstance()
             .unregisterService(args.get("callbackId").get<double>());
     if (result.IsError()) {
-        LoggerE("Error occured");
-        ReportError(result, &out);
+        LogAndReportError(result, &out, ("Error occured"));
     } else {
         picojson::value res;
         ReportSuccess(res, out);
@@ -147,8 +145,7 @@ void PushInstance::getUnreadNotifications(const picojson::value& args,
     common::PlatformResult result = PushManager::getInstance()
             .getUnreadNotifications();
     if (result.IsError()) {
-        LoggerE("Error occured");
-        ReportError(result, &out);
+        LogAndReportError(result, &out, ("Error occured"));
     } else {
         picojson::value res;
         ReportSuccess(res, out);
