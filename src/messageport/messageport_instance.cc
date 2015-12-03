@@ -77,7 +77,7 @@ static void BundleJsonIterator(const char *k, const char *v, void *d) {
 
 #define CHECK_EXIST(args, name, out) \
     if (!args.contains(name)) {\
-      ReportError(TypeMismatchException(name" is required argument"), out);\
+      LogAndReportError(TypeMismatchException(name" is required argument"), out);\
       return;\
     }
 
@@ -128,21 +128,24 @@ void MessageportInstance::MessagePortManagerRequestlocalmessageport
   if (portId < 0) {
     switch (portId) {
       case MESSAGE_PORT_ERROR_INVALID_PARAMETER:
-        LoggerE("The input parameter contains an invalid value");
-        ReportError(InvalidValuesException
-          ("The input parameter contains an invalid value."), out);
+        LogAndReportError(
+            InvalidValuesException("The input parameter contains an invalid value."), out,
+            ("message_port_register_local_port error: %d (%s)", portId, get_error_message(portId)));
         break;
       case MESSAGE_PORT_ERROR_OUT_OF_MEMORY:
-        LoggerE("Out of memory");
-        ReportError(UnknownException("Out of memory."), out);
+        LogAndReportError(
+            UnknownException("Out of memory."), out,
+            ("message_port_register_local_port error: %d (%s)", portId, get_error_message(portId)));
         break;
       case MESSAGE_PORT_ERROR_IO_ERROR:
-        LoggerE("Internal I/O error ocurred");
-        ReportError(UnknownException("Internal I/O error ocurred."), out);
+        LogAndReportError(
+            UnknownException("Internal I/O error ocurred."), out,
+            ("message_port_register_local_port error: %d (%s)", portId, get_error_message(portId)));
         break;
       default:
-        LoggerE("Unknown Exception: %d (%s)", portId, get_error_message(portId));
-        ReportError(UnknownException("Unknown Exception"), out);
+        LogAndReportError(
+            UnknownException("Unknown Exception"), out,
+            ("message_port_register_local_port error: %d (%s)", portId, get_error_message(portId)));
         break;
       }
   } else {
@@ -170,21 +173,24 @@ void MessageportInstance::
   if (portId < 0) {
     switch (portId) {
       case MESSAGE_PORT_ERROR_INVALID_PARAMETER:
-        LoggerE("The input parameter contains an invalid value");
-        ReportError(InvalidValuesException
-          ("The input parameter contains an invalid value."), out);
+        LogAndReportError(
+            InvalidValuesException("The input parameter contains an invalid value."), out,
+            ("message_port_register_trusted_local_port error: %d (%s)", portId, get_error_message(portId)));
         break;
       case MESSAGE_PORT_ERROR_OUT_OF_MEMORY:
-        LoggerE("Out of memory");
-        ReportError(UnknownException("Out of memory."), out);
+        LogAndReportError(
+            UnknownException("Out of memory."), out,
+            ("message_port_register_trusted_local_port error: %d (%s)", portId, get_error_message(portId)));
         break;
       case MESSAGE_PORT_ERROR_IO_ERROR:
-        LoggerE("Internal I/O error ocurred");
-        ReportError(UnknownException("Internal I/O error ocurred."), out);
+        LogAndReportError(
+            UnknownException("Internal I/O error ocurred."), out,
+            ("message_port_register_trusted_local_port error: %d (%s)", portId, get_error_message(portId)));
         break;
       default:
-        LoggerE("Unknown Exception: %d (%s)", portId, get_error_message(portId));
-        ReportError(UnknownException("Unknown Exception"), out);
+        LogAndReportError(
+            UnknownException("Unknown Exception"), out,
+            ("message_port_register_trusted_local_port error: %d (%s)", portId, get_error_message(portId)));
         break;
       }
   } else {
@@ -216,32 +222,29 @@ void MessageportInstance::
     if (portCheck)  {
       ReportSuccess(out);
     } else {
-      LoggerE("The port of the target application is not found");
-      ReportError(
-          NotFoundException("The port of the target application is not found"),
-          out);
+      LogAndReportError(NotFoundException("The port of the target application is not found"), out);
     }
   } else if (ret == MESSAGE_PORT_ERROR_INVALID_PARAMETER) {
-    LoggerE("An input parameter contains an invalid value");
-    ReportError(
-        InvalidValuesException("An input parameter contains an invalid value."),
-        out);
+    LogAndReportError(
+          InvalidValuesException("An input parameter contains an invalid value."), out,
+          ("message_port_check_remote_port error: %d (%s)", ret, get_error_message(ret)));
   } else if (ret == MESSAGE_PORT_ERROR_OUT_OF_MEMORY) {
-    LoggerE("Out of memory");
-    ReportError(UnknownException("Out of memory."), out);
+    LogAndReportError(
+          UnknownException("Out of memory."), out,
+          ("message_port_check_remote_port error: %d (%s)", ret, get_error_message(ret)));
   } else if (ret == MESSAGE_PORT_ERROR_IO_ERROR) {
     // IO error means that remote port does not exist
-    LoggerE("The port of the target application is not found");
-    ReportError(
-        NotFoundException("The port of the target application is not found"),
-        out);
+    LogAndReportError(
+          NotFoundException("The port of the target application is not found"), out,
+          ("message_port_check_remote_port error: %d (%s)", ret, get_error_message(ret)));
   } else if (ret == MESSAGE_PORT_ERROR_PORT_NOT_FOUND) {
-    ReportError(
-        NotFoundException("The port of the target application is not found"),
-        out);
+    LogAndReportError(
+          NotFoundException("The port of the target application is not found"), out,
+          ("message_port_check_remote_port error: %d (%s)", ret, get_error_message(ret)));
   } else {
-    LoggerE("Unknown Error");
-    ReportError(UnknownException("Unknown Error"), out);
+    LogAndReportError(
+          UnknownException("Unknown Error"), out,
+          ("message_port_check_remote_port error: %d (%s)", ret, get_error_message(ret)));
   }
 }
 
@@ -269,39 +272,34 @@ void MessageportInstance::
     if (portCheck) {
       ReportSuccess(out);
     } else {
-
-      LoggerE("The port of the target application is not found");
-      ReportError(
-          NotFoundException("The port of the target application is not found"),
-          out);
+      LogAndReportError(
+          NotFoundException("The port of the target application is not found"), out);
     }
   } else if (ret == MESSAGE_PORT_ERROR_INVALID_PARAMETER) {
-    LoggerE("An input parameter contains an invalid value");
-    ReportError(
-        InvalidValuesException("An input parameter contains an invalid value."),
-        out);
+    LogAndReportError(
+        InvalidValuesException("An input parameter contains an invalid value."), out,
+        ("message_port_check_trusted_remote_port error: %d (%s)", ret, get_error_message(ret)));
   } else if (ret == MESSAGE_PORT_ERROR_OUT_OF_MEMORY) {
-    LoggerE("Out of memory");
-    ReportError(UnknownException("Out of memory."), out);
+    LogAndReportError(
+        UnknownException("Out of memory."), out,
+        ("message_port_check_trusted_remote_port error: %d (%s)", ret, get_error_message(ret)));
   } else if (ret == MESSAGE_PORT_ERROR_IO_ERROR) {
     // IO error means that remote port does not exist
-    LoggerE("The port of the target application is not found");
-    ReportError(
-        NotFoundException("The port of the target application is not found"),
-        out);
+    LogAndReportError(
+        NotFoundException("The port of the target application is not found"), out,
+        ("message_port_check_trusted_remote_port error: %d (%s)", ret, get_error_message(ret)));
   } else if (ret == MESSAGE_PORT_ERROR_PORT_NOT_FOUND) {
-    ReportError(
-        NotFoundException("The port of the target application is not found"),
-        out);
+    LogAndReportError(
+        NotFoundException("The port of the target application is not found"), out,
+        ("message_port_check_trusted_remote_port error: %d (%s)", ret, get_error_message(ret)));
   } else if (ret == MESSAGE_PORT_ERROR_CERTIFICATE_NOT_MATCH) {
-    LoggerE("The remote application is not signed with the same certificate");
-    ReportError(
-        UnknownException(
-            "The remote application is not signed with the same certificate"),
-        out);
+    LogAndReportError(
+        UnknownException("The remote application is not signed with the same certificate"), out,
+        ("message_port_check_trusted_remote_port error: %d (%s)", ret, get_error_message(ret)));
   } else {
-    LoggerE("Unknown Error");
-    ReportError(UnknownException("Unknown Error"), out);
+    LogAndReportError(
+        UnknownException("Unknown Error"), out,
+        ("message_port_check_trusted_remote_port error: %d (%s)", ret, get_error_message(ret)));
   }
 }
 
@@ -353,29 +351,47 @@ void MessageportInstance::RemoteMessagePortSendmessage
 
   bundle_free(bundle);
 
-  LoggerD("Error code: %d (%s)", result, get_error_message(result));
-  if (result == MESSAGE_PORT_ERROR_NONE)
+  if (result == MESSAGE_PORT_ERROR_NONE) {
     ReportSuccess(out);
-  else if (result == MESSAGE_PORT_ERROR_INVALID_PARAMETER)
-    ReportError(InvalidValuesException
-      ("An input parameter contains an invalid value.") , out);
-  else if (result == MESSAGE_PORT_ERROR_PORT_NOT_FOUND)
-    ReportError(NotFoundException
-      ("The port of the target application is not found"), out);
-  else if (result == MESSAGE_PORT_ERROR_MAX_EXCEEDED)
-    ReportError(QuotaExceededException
-      ("The size of message has exceeded the maximum limit."), out);
-  else if (result == MESSAGE_PORT_ERROR_RESOURCE_UNAVAILABLE)
-    ReportError(UnknownException("A resource is temporarily unavailable"), out);
-  else if (result == MESSAGE_PORT_ERROR_OUT_OF_MEMORY)
-    ReportError(UnknownException("Out of memory."), out);
-  else if (result == MESSAGE_PORT_ERROR_IO_ERROR)
-    ReportError(UnknownException("Internal I/O error ocurred."), out);
-  else if (result == MESSAGE_PORT_ERROR_CERTIFICATE_NOT_MATCH)
-    ReportError(UnknownException
-      ("The remote application is not signed with the same certificate") , out);
-  else
-    ReportError(UnknownException("Unknown Exception"), out);
+  } else if (result == MESSAGE_PORT_ERROR_INVALID_PARAMETER) {
+    LogAndReportError(
+        InvalidValuesException("An input parameter contains an invalid value."), out,
+        ("An input parameter contains an invalid value %d (%s)",
+            result, get_error_message(result)));
+  } else if (result == MESSAGE_PORT_ERROR_PORT_NOT_FOUND) {
+    LogAndReportError(
+        NotFoundException("The port of the target application is not found"), out,
+        ("The port of the target application is not found: %d (%s)",
+            result, get_error_message(result)));
+  } else if (result == MESSAGE_PORT_ERROR_MAX_EXCEEDED) {
+    LogAndReportError(
+        QuotaExceededException("The size of message has exceeded the maximum limit."), out,
+        ("The size of message has exceeded the maximum limit: %d (%s)",
+            result, get_error_message(result)));
+  } else if (result == MESSAGE_PORT_ERROR_RESOURCE_UNAVAILABLE) {
+    LogAndReportError(
+        UnknownException("A resource is temporarily unavailable"), out,
+        ("A resource is temporarily unavailable: %d (%s)",
+            result, get_error_message(result)));
+  } else if (result == MESSAGE_PORT_ERROR_OUT_OF_MEMORY) {
+    LogAndReportError(
+        UnknownException("Out of memory."), out,
+        ("Out of memory: %d (%s)", result, get_error_message(result)));
+  } else if (result == MESSAGE_PORT_ERROR_IO_ERROR) {
+    LogAndReportError(
+        UnknownException("Internal I/O error ocurred."), out,
+        ("Internal I/O error ocurred: %d (%s)",
+            result, get_error_message(result)));
+  } else if (result == MESSAGE_PORT_ERROR_CERTIFICATE_NOT_MATCH) {
+    LogAndReportError(
+        UnknownException("The remote application is not signed with the same certificate") , out,
+        ("The remote application is not signed with the same certificate: %d (%s)",
+            result, get_error_message(result)));
+  } else {
+    LogAndReportError(
+        UnknownException("Unknown Exception"), out,
+        ("Unknown Exception: %d (%s)", result, get_error_message(result)));
+  }
 }
 
 
