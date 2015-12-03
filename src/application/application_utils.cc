@@ -201,8 +201,7 @@ PlatformResult ApplicationUtils::ApplicationControlToService(
       it_data == it_app_control_end ||
       !it_operation->second.is<std::string>() ||
       !it_data->second.is<picojson::array>()) {
-    LoggerE("Invalid parameter was passed.");
-    return PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid parameter was passed.");
+    return LogAndCreateResult(ErrorCode::INVALID_VALUES_ERR, "Invalid parameter was passed.");
   }
 
   app_control_create(app_control);
@@ -256,8 +255,8 @@ PlatformResult ApplicationUtils::ApplicationControlDataToServiceExtraData(
       it_value == it_app_control_data_end ||
       !it_key->second.is<std::string>() ||
       !it_value->second.is<picojson::array>()) {
-    LoggerE("Problem with key or value.");
-    return PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid parameter was passed.");
+    return LogAndCreateResult(ErrorCode::INVALID_VALUES_ERR, "Invalid parameter was passed.",
+                              ("Problem with key or value."));
   }
 
   const std::string& key = it_key->second.get<std::string>();

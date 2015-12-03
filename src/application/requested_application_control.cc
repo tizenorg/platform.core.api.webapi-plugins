@@ -45,8 +45,8 @@ PlatformResult RequestedApplicationControl::set_bundle(const std::string& encode
     bundle_free(bundle);
 
     if (APP_CONTROL_ERROR_NONE != ret) {
-      LoggerE("Failed to create app_control: %d (%s)", ret, get_error_message(ret));
-      return PlatformResult(ErrorCode::UNKNOWN_ERR, "Failed to create app_control.");
+      return LogAndCreateResult(ErrorCode::UNKNOWN_ERR, "Failed to create app_control.",
+                                ("Failed to create app_control: %d (%s)", ret, get_error_message(ret)));
     }
 
     set_app_control(app_control);
@@ -91,8 +91,7 @@ void RequestedApplicationControl::ReplyResult(const picojson::value& args, picoj
 
   const auto& data_arr = args.get("data");
   if (!data_arr.is<picojson::array>()) {
-    LoggerE("Invalid parameter passed.");
-    ReportError(PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid parameter passed."), out);
+    LogAndReportError(PlatformResult(ErrorCode::INVALID_VALUES_ERR, "Invalid parameter passed."), out);
     return;
   }
 
@@ -103,16 +102,16 @@ void RequestedApplicationControl::ReplyResult(const picojson::value& args, picoj
 
   PlatformResult result = set_bundle(encoded_bundle);
   if (result.IsError()) {
-    LoggerE("Failed set_bundle()");
-    ReportError(result, out);
+    LogAndReportError(result, out,
+                      ("Failed set_bundle()"));
     return;
   }
 
   // code to check caller liveness
   result = VerifyCallerPresence();
   if (result.IsError()) {
-    LoggerE("Failed VerifyCallerPresence()");
-    ReportError(result, out);
+    LogAndReportError(result, out,
+                      ("Failed VerifyCallerPresence()"));
     return;
   }
 
@@ -127,8 +126,8 @@ void RequestedApplicationControl::ReplyResult(const picojson::value& args, picoj
       result = ApplicationUtils::ApplicationControlDataToServiceExtraData(
           iter->get<picojson::object>(), reply);
       if (result.IsError()) {
-        LoggerE("Failed ApplicationControlDataToServiceExtraData()");
-        ReportError(result, out);
+        LogAndReportError(result, out,
+                    ("Failed ApplicationControlDataToServiceExtraData()"));
         return;
       }
     }
@@ -140,8 +139,8 @@ void RequestedApplicationControl::ReplyResult(const picojson::value& args, picoj
   int ret = app_control_reply_to_launch_request(
       reply, app_control_.get(), APP_CONTROL_RESULT_SUCCEEDED);
   if (APP_CONTROL_ERROR_NONE != ret) {
-    LoggerE("Cannot find caller: %d (%s)", ret, get_error_message(ret));
-    ReportError(PlatformResult(ErrorCode::NOT_FOUND_ERR, "Cannot find caller."), out);
+    LogAndReportError(PlatformResult(ErrorCode::NOT_FOUND_ERR, "Cannot find caller."), out,
+                ("Cannot find caller: %d (%s)", ret, get_error_message(ret)));
     return;
   }
 
@@ -156,16 +155,14 @@ void RequestedApplicationControl::ReplyFailure(picojson::object* out) {
 
   PlatformResult result = set_bundle(encoded_bundle);
   if (result.IsError()) {
-    LoggerE("Failed set_bundle()");
-    ReportError(result, out);
+    LogAndReportError(result, out, ("Failed set_bundle()"));
     return;
   }
 
   // code to check caller liveness
   result = VerifyCallerPresence();
   if (result.IsError()) {
-    LoggerE("Failed VerifyCallerPresence()");
-    ReportError(result, out);
+    LogAndReportError(result, out, ("Failed VerifyCallerPresence()"));
     return;
   }
 
@@ -178,8 +175,8 @@ void RequestedApplicationControl::ReplyFailure(picojson::object* out) {
   // send reply
   int ret = app_control_reply_to_launch_request(reply, app_control_.get(), APP_CONTROL_RESULT_FAILED);
   if (APP_CONTROL_ERROR_NONE != ret) {
-    LoggerE("Cannot find caller: %d (%s)", ret, get_error_message(ret));
-    ReportError(PlatformResult(ErrorCode::NOT_FOUND_ERR, "Cannot find caller."), out);
+    LogAndReportError(PlatformResult(ErrorCode::NOT_FOUND_ERR, "Cannot find caller."), out,
+                ("Cannot find caller: %d (%s)", ret, get_error_message(ret)));
     return;
   }
 
@@ -206,16 +203,16 @@ PlatformResult RequestedApplicationControl::VerifyCallerPresence() {
   LoggerD("Entered");
 
   if (caller_app_id_.empty()) {
-    LoggerE("caller_app_id_ is empty. This means caller is dead.");
-    return PlatformResult(ErrorCode::NOT_FOUND_ERR, "Cannot find caller.");
+    return LogAndCreateResult(ErrorCode::NOT_FOUND_ERR, "Cannot find caller.",
+                              ("caller_app_id_ is empty. This means caller is dead."));
   } else {
     bool running = false;
 
     int ret = app_manager_is_running(caller_app_id_.c_str(), &running);
 
     if ((APP_MANAGER_ERROR_NONE != ret) || !running) {
-      LoggerE("Caller is not running: %d (%s)", ret, get_error_message(ret));
-      return PlatformResult(ErrorCode::NOT_FOUND_ERR, "Cannot find caller.");
+      return LogAndCreateResult(ErrorCode::NOT_FOUND_ERR, "Cannot find caller.",
+                                ("Caller is not running: %d (%s)", ret, get_error_message(ret)));
     }
 
     return PlatformResult(ErrorCode::NO_ERROR);
