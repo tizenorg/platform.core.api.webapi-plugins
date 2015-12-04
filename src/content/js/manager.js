@@ -30,8 +30,6 @@ function ContentManager() {
 }
 
 ContentManager.prototype.update = function(content) {
-  xwalk.utils.checkPrivilegeAccess(privilege_.CONTENT_WRITE);
-
   var args = validator_.validateArgs(arguments, [
     {name: 'content', type: types_.PLATFORM_OBJECT, values: Content}
   ]);
@@ -48,8 +46,6 @@ ContentManager.prototype.update = function(content) {
 };
 
 ContentManager.prototype.updateBatch = function(contents, successCallback, errorCallback) {
-  xwalk.utils.checkPrivilegeAccess(privilege_.CONTENT_WRITE);
-
   var args = validator_.validateArgs(arguments, [
     {name: 'contents', type: types_.ARRAY, values: Content},
     {name: 'successCallback', type: types_.FUNCTION, optional: true, nullable: true},
@@ -95,12 +91,14 @@ ContentManager.prototype.getDirectories = function(successCallback, errorCallbac
     native_.callIfPossible(args.successCallback, out);
   };
 
-  native_.call('ContentManager_getDirectories', null, callback);
+  var result = native_.call('ContentManager_getDirectories', null, callback);
+
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
+  }
 };
 
 ContentManager.prototype.find = function(successCallback, errorCallback, directoryId, filter, sortMode, count, offset) {
-  xwalk.utils.checkPrivilegeAccess(privilege_.CONTENT_READ);
-
   var args = validator_.validateArgs(arguments, [
     {name: 'successCallback', type: types_.FUNCTION},
     {name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true},
@@ -153,8 +151,6 @@ ContentManager.prototype.find = function(successCallback, errorCallback, directo
 };
 
 ContentManager.prototype.scanFile = function(contentURI, successCallback, errorCallback) {
-  xwalk.utils.checkPrivilegeAccess(privilege_.CONTENT_WRITE);
-
   var args = validator_.validateArgs(arguments, [
     {name: 'contentURI', type: types_.STRING},
     {name: 'successCallback', type: types_.FUNCTION, optional: true, nullable: true},
@@ -186,8 +182,6 @@ ContentManager.prototype.scanFile = function(contentURI, successCallback, errorC
 };
 
 ContentManager.prototype.scanDirectory = function(contentDirURI, recursive, successCallback, errorCallback) {
-  xwalk.utils.checkPrivilegeAccess(privilege_.CONTENT_WRITE);
-
   var args = validator_.validateArgs(arguments, [
     {name: 'contentDirURI', type: types_.STRING},
     {name: 'recursive', type: types_.BOOLEAN},
@@ -221,8 +215,6 @@ ContentManager.prototype.scanDirectory = function(contentDirURI, recursive, succ
 };
 
 ContentManager.prototype.cancelScanDirectory = function(contentDirURI) {
-  xwalk.utils.checkPrivilegeAccess(privilege_.CONTENT_WRITE);
-
   var args = validator_.validateArgs(arguments, [
     {name: 'contentDirURI', type: types_.STRING}
   ]);
@@ -244,8 +236,6 @@ ContentManager.prototype.cancelScanDirectory = function(contentDirURI) {
 };
 
 ContentManager.prototype.setChangeListener = function(changeCallback) {
-  xwalk.utils.checkPrivilegeAccess(privilege_.CONTENT_READ);
-
   var args = validator_.validateArgs(arguments, [{
     name: 'changeCallback',
     type: types_.LISTENER,
@@ -278,8 +268,6 @@ ContentManager.prototype.setChangeListener = function(changeCallback) {
 };
 
 ContentManager.prototype.unsetChangeListener = function() {
-  xwalk.utils.checkPrivilegeAccess(privilege_.CONTENT_READ);
-
   var data = {};
 
   var result = native_.callSync('ContentManager_unsetChangeListener', data);
@@ -290,8 +278,6 @@ ContentManager.prototype.unsetChangeListener = function() {
 };
 
 ContentManager.prototype.getPlaylists = function(successCallback, errorCallback) {
-  xwalk.utils.checkPrivilegeAccess(privilege_.CONTENT_READ);
-
   var args = validator_.validateArgs(arguments, [
     {name: 'successCallback', type: types_.FUNCTION},
     {name: 'errorCallback', type: types_.FUNCTION, optional: true, nullable: true}
@@ -312,12 +298,14 @@ ContentManager.prototype.getPlaylists = function(successCallback, errorCallback)
     native_.callIfPossible(args.successCallback, out);
   };
 
-  native_.call('ContentManager_getPlaylists', data, callback);
+  var result = native_.call('ContentManager_getPlaylists', data, callback);
+
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
+  }
 };
 
 ContentManager.prototype.createPlaylist = function(name, successCallback, errorCallback, sourcePlaylist) {
-  xwalk.utils.checkPrivilegeAccess(privilege_.CONTENT_WRITE);
-
   var args = validator_.validateArgs(arguments, [
     {name: 'name', type: types_.STRING},
     {name: 'successCallback', type: types_.FUNCTION},
@@ -346,12 +334,14 @@ ContentManager.prototype.createPlaylist = function(name, successCallback, errorC
     native_.callIfPossible(args.successCallback, new Playlist(native_.getResultObject(result)));
   };
 
-  native_.call('ContentManager_createPlaylist', data, callback);
+  var result = native_.call('ContentManager_createPlaylist', data, callback);
+
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
+  }
 };
 
 ContentManager.prototype.removePlaylist = function(id, successCallback, errorCallback) {
-  xwalk.utils.checkPrivilegeAccess(privilege_.CONTENT_WRITE);
-
   var args = validator_.validateArgs(arguments, [
     {name: 'id', type: types_.STRING},
     {name: 'successCallback', type: types_.FUNCTION, optional: true, nullable: true},
@@ -370,7 +360,11 @@ ContentManager.prototype.removePlaylist = function(id, successCallback, errorCal
     native_.callIfPossible(args.successCallback);
   };
 
-  native_.call('ContentManager_removePlaylist', data, callback);
+  var result = native_.call('ContentManager_removePlaylist', data, callback);
+
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
+  }
 };
 
 exports = new ContentManager();

@@ -34,6 +34,13 @@
 namespace extension {
 namespace content {
 
+namespace {
+// The privileges that required in Content API
+const std::string kPrivilegeContentRead = "http://tizen.org/privilege/content.read";
+const std::string kPrivilegeContentWrite = "http://tizen.org/privilege/content.write";
+
+} // namespace
+
 using common::tools::ReportSuccess;
 using common::tools::ReportError;
 using common::PlatformResult;
@@ -341,6 +348,8 @@ static void changedContentV2Callback(media_content_error_e error,
 
 void ContentInstance::ContentManagerUpdate(const picojson::value& args, picojson::object& out) {
   LoggerD("entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeContentWrite, &out);
+
   if (ContentManager::getInstance()->isConnected()) {
     int ret = ContentManager::getInstance()->update(args);
     if (ret != 0) {
@@ -354,6 +363,8 @@ void ContentInstance::ContentManagerUpdate(const picojson::value& args, picojson
 
 void ContentInstance::ContentManagerUpdatebatch(const picojson::value& args, picojson::object& out) {
   LoggerD("entered");
+  LoggerE("entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeContentWrite, &out);
   double callbackId = args.get("callbackId").get<double>();
 
   auto cbData = std::shared_ptr<ReplyCallbackData>(new ReplyCallbackData);
@@ -391,6 +402,8 @@ void ContentInstance::ContentManagerGetdirectories(const picojson::value& args, 
 }
 void ContentInstance::ContentManagerFind(const picojson::value& args, picojson::object& out) {
   LoggerD("entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeContentRead, &out);
+
   CHECK_EXIST(args, "callbackId", out)
 
   double callbackId = args.get("callbackId").get<double>();
@@ -411,6 +424,8 @@ void ContentInstance::ContentManagerFind(const picojson::value& args, picojson::
 
 void ContentInstance::ContentManagerScanfile(const picojson::value& args, picojson::object& out) {
   LoggerD("entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeContentWrite, &out);
+
   CHECK_EXIST(args, "callbackId", out)
   CHECK_EXIST(args, "contentURI", out)
 
@@ -431,6 +446,8 @@ void ContentInstance::ContentManagerScanfile(const picojson::value& args, picojs
 
 void ContentInstance::ContentManagerScanDirectory(const picojson::value& args, picojson::object& out) {
   LoggerD("Enter");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeContentWrite, &out);
+
   CHECK_EXIST(args, "callbackId", out)
   CHECK_EXIST(args, "contentDirURI", out)
   CHECK_EXIST(args, "recursive", out)
@@ -449,6 +466,8 @@ void ContentInstance::ContentManagerScanDirectory(const picojson::value& args, p
 
 void ContentInstance::ContentManagerCancelScanDirectory(const picojson::value& args, picojson::object& out) {
   LoggerD("Enter");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeContentWrite, &out);
+
   CHECK_EXIST(args, "contentDirURI", out)
   const std::string& content_dir_uri = args.get("contentDirURI").get<std::string>();
 
@@ -462,6 +481,8 @@ void ContentInstance::ContentManagerCancelScanDirectory(const picojson::value& a
 void ContentInstance::ContentManagerSetchangelistener(const picojson::value& args,
                                                       picojson::object& out) {
   LoggerD("entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeContentRead, &out);
+
   CHECK_EXIST(args, "listenerId", out)
 
   if (!listener_data_) {
@@ -491,6 +512,8 @@ void ContentInstance::ContentManagerSetchangelistener(const picojson::value& arg
 
 void ContentInstance::ContentManagerUnsetchangelistener(const picojson::value& args, picojson::object& out) {
   LoggerD("entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeContentRead, &out);
+
   if (ContentManager::getInstance()->unSetChangeListener().IsError()) {
     LoggerD("unsuccesfull deregistering of callback");
   }
@@ -501,6 +524,8 @@ void ContentInstance::ContentManagerUnsetchangelistener(const picojson::value& a
 
 void ContentInstance::ContentManagerGetplaylists(const picojson::value& args, picojson::object& out) {
   LoggerD("entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeContentRead, &out);
+
   CHECK_EXIST(args, "callbackId", out)
 
   double callbackId = args.get("callbackId").get<double>();
@@ -523,6 +548,8 @@ void ContentInstance::ContentManagerGetplaylists(const picojson::value& args, pi
 }
 void ContentInstance::ContentManagerCreateplaylist(const picojson::value& args, picojson::object& out) {
   LoggerD("entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeContentWrite, &out);
+
   CHECK_EXIST(args, "callbackId", out)
   CHECK_EXIST(args, "name", out)
 
@@ -544,6 +571,8 @@ void ContentInstance::ContentManagerCreateplaylist(const picojson::value& args, 
 }
 void ContentInstance::ContentManagerRemoveplaylist(const picojson::value& args, picojson::object& out) {
   LoggerD("entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeContentWrite, &out);
+
   double callbackId = args.get("callbackId").get<double>();
 
   auto cbData = std::shared_ptr<ReplyCallbackData>(new ReplyCallbackData);
@@ -565,6 +594,8 @@ void ContentInstance::ContentManagerRemoveplaylist(const picojson::value& args, 
 
 void ContentInstance::ContentManagerPlaylistAdd(const picojson::value& args, picojson::object& out) {
   LoggerD("entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeContentWrite, &out);
+
   if(ContentManager::getInstance()->isConnected()) {
     std::string playlist_id = args.get("playlistId").get<std::string>();
     std::string content_id = args.get("contentId").get<std::string>();
@@ -581,6 +612,8 @@ void ContentInstance::ContentManagerPlaylistAdd(const picojson::value& args, pic
 
 void ContentInstance::ContentManagerPlaylistAddbatch(const picojson::value& args, picojson::object& out) {
   LoggerD("entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeContentWrite, &out);
+
   double callbackId = args.get("callbackId").get<double>();
 
   auto cbData = std::shared_ptr<ReplyCallbackData>(new ReplyCallbackData);
@@ -600,6 +633,8 @@ void ContentInstance::ContentManagerPlaylistAddbatch(const picojson::value& args
 
 void ContentInstance::ContentManagerPlaylistGet(const picojson::value& args, picojson::object& out) {
   LoggerD("entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeContentRead, &out);
+
   double callbackId = args.get("callbackId").get<double>();
 
   auto cbData = std::shared_ptr<ReplyCallbackData>(new ReplyCallbackData);
@@ -618,6 +653,8 @@ void ContentInstance::ContentManagerPlaylistGet(const picojson::value& args, pic
 
 void ContentInstance::ContentManagerPlaylistRemove(const picojson::value& args, picojson::object& out) {
   LoggerD("entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeContentWrite, &out);
+
   if(ContentManager::getInstance()->isConnected()) {
     std::string playlist_id = args.get("playlistId").get<std::string>();
     int member_id = args.get("memberId").get<double>();
@@ -634,6 +671,8 @@ void ContentInstance::ContentManagerPlaylistRemove(const picojson::value& args, 
 
 void ContentInstance::ContentManagerPlaylistRemovebatch(const picojson::value& args, picojson::object& out) {
   LoggerD("entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeContentWrite, &out);
+
   double callbackId = args.get("callbackId").get<double>();
 
   auto cbData = std::shared_ptr<ReplyCallbackData>(new ReplyCallbackData);
@@ -653,6 +692,8 @@ void ContentInstance::ContentManagerPlaylistRemovebatch(const picojson::value& a
 
 void ContentInstance::ContentManagerPlaylistSetorder(const picojson::value& args, picojson::object& out) {
   LoggerD("entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeContentWrite, &out);
+
   double callbackId = args.get("callbackId").get<double>();
 
   auto cbData = std::shared_ptr<ReplyCallbackData>(new ReplyCallbackData);
@@ -671,6 +712,8 @@ void ContentInstance::ContentManagerPlaylistSetorder(const picojson::value& args
 
 void ContentInstance::ContentManagerPlaylistMove(const picojson::value& args, picojson::object& out) {
   LoggerD("entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeContentWrite, &out);
+
   double callbackId = args.get("callbackId").get<double>();
 
   auto cbData = std::shared_ptr<ReplyCallbackData>(new ReplyCallbackData);
@@ -722,6 +765,8 @@ void ContentInstance::PlaylistGetName(const picojson::value& args, picojson::obj
 
 void ContentInstance::PlaylistSetName(const picojson::value& args, picojson::object& out) {
   LoggerD("entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeContentWrite, &out);
+
   int ret;
   CHECK_EXIST(args, "id", out)
   CHECK_EXIST(args, "name", out)
@@ -751,6 +796,8 @@ void ContentInstance::PlaylistGetThumbnailUri(const picojson::value& args, picoj
 
 void ContentInstance::PlaylistSetThumbnailUri(const picojson::value& args, picojson::object& out) {
   LoggerD("entered");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeContentWrite, &out);
+
   int ret;
   CHECK_EXIST(args, "id", out)
   CHECK_EXIST(args, "uri", out)
