@@ -56,8 +56,6 @@ function BadgeManager() {
  * Sets the badge count for the designated application.
  */
 BadgeManager.prototype.setBadgeCount = function() {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NOTIFICATION);
-
   var args = validator_.validateArgs(arguments, [
     {name: 'appId', type: types_.STRING},
     {name: 'count', type: types_.LONG}
@@ -84,8 +82,6 @@ BadgeManager.prototype.setBadgeCount = function() {
  * @return {number} long Count of the badge
  */
 BadgeManager.prototype.getBadgeCount = function() {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NOTIFICATION);
-
   var args = validator_.validateArgs(arguments, [
     {name: 'appId', type: types_.STRING}
   ]);
@@ -106,8 +102,6 @@ BadgeManager.prototype.getBadgeCount = function() {
  * Gets the badge count for the designated application.
  */
 BadgeManager.prototype.addChangeListener = function() {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NOTIFICATION);
-
   var args = validator_.validateArgs(arguments, [
     {
       name: 'appIdList',
@@ -147,8 +141,6 @@ BadgeManager.prototype.addChangeListener = function() {
  * Gets the badge count for the designated application.
  */
 BadgeManager.prototype.removeChangeListener = function() {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.NOTIFICATION);
-
   var args = validator_.validateArgs(arguments, [
     {
       name: 'appIdList',
