@@ -30,8 +30,8 @@ function FileSystemManager() {
   });
 }
 
-FileSystemManager.prototype.resolve = function(location, onsuccess, onerror, mode) {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_READ);
+function resolve() {
+  privUtils_.checkPrivilegeAccess(privilege_.FILESYSTEM_READ);
 
   var args = validator_.validateArgs(arguments, [
     {name: 'location', type: types_.STRING},
@@ -103,8 +103,12 @@ FileSystemManager.prototype.resolve = function(location, onsuccess, onerror, mod
   }
 };
 
-FileSystemManager.prototype.getStorage = function(label, onsuccess, onerror) {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_READ);
+FileSystemManager.prototype.resolve = function() {
+  resolve.apply(this, arguments);
+};
+
+function getStorage() {
+  privUtils_.checkPrivilegeAccess(privilege_.FILESYSTEM_READ);
 
   var args = validator_.validateArgs(arguments, [
     {name: 'label', type: types_.STRING},
@@ -124,8 +128,12 @@ FileSystemManager.prototype.getStorage = function(label, onsuccess, onerror) {
   }, 0);
 };
 
-FileSystemManager.prototype.listStorages = function(onsuccess, onerror) {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_READ);
+FileSystemManager.prototype.getStorage = function() {
+  getStorage.apply(this, arguments);
+};
+
+function listStorages() {
+  privUtils_.checkPrivilegeAccess(privilege_.FILESYSTEM_READ);
 
   var args = validator_.validateArgs(arguments, [
     {name: 'onsuccess', type: types_.FUNCTION},
@@ -143,6 +151,10 @@ FileSystemManager.prototype.listStorages = function(onsuccess, onerror) {
   }, 0);
 };
 
+FileSystemManager.prototype.listStorages = function() {
+  listStorages.apply(this, arguments);
+};
+
 var callbackId = 0;
 var callbacks = {};
 
@@ -158,8 +170,8 @@ function _StorageStateChangeListener(result) {
   }
 }
 
-FileSystemManager.prototype.addStorageStateChangeListener = function(onsuccess, onerror) {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_WRITE);
+function addStorageStateChangeListener() {
+  privUtils_.checkPrivilegeAccess(privilege_.FILESYSTEM_WRITE);
 
   var args = validator_.validateArgs(arguments, [
     {name: 'onsuccess', type: types_.FUNCTION},
@@ -179,16 +191,19 @@ FileSystemManager.prototype.addStorageStateChangeListener = function(onsuccess, 
     var result = native_.callSync('FileSystemManager_addStorageStateChangeListener', {});
 
     if (native_.isFailure(result)) {
-      native_.callIfPossible(args.onerror, native_.getErrorObject(result));
-      return;
+      throw native_.getErrorObject(result);
     }
   }
 
   return id;
 };
 
-FileSystemManager.prototype.removeStorageStateChangeListener = function(watchId) {
-  xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.FILESYSTEM_WRITE);
+FileSystemManager.prototype.addStorageStateChangeListener = function() {
+  return addStorageStateChangeListener.apply(this, arguments);
+};
+
+function removeStorageStateChangeListener() {
+  privUtils_.checkPrivilegeAccess(privilege_.FILESYSTEM_WRITE);
 
   var args = validator_.validateArgs(arguments, [
     {name: 'watchId', type: types_.LONG}
@@ -207,8 +222,15 @@ FileSystemManager.prototype.removeStorageStateChangeListener = function(watchId)
   delete callbacks[id];
 
   if (type_.isEmptyObject(callbacks)) {
-    native_.callSync('FileSystemManager_removeStorageStateChangeListener', {});
+    var result = native_.callSync('FileSystemManager_removeStorageStateChangeListener', {});
+    if (native_.isFailure(result)) {
+      throw native_.getErrorObject(result);
+    }
   }
+};
+
+FileSystemManager.prototype.removeStorageStateChangeListener = function() {
+  removeStorageStateChangeListener.apply(this, arguments);
 };
 
 exports = new FileSystemManager();

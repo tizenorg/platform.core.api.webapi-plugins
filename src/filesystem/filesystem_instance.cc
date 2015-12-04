@@ -27,12 +27,6 @@
 namespace extension {
 namespace filesystem {
 
-namespace {
-// The privileges that required in Filesystem API
-const std::string kPrivilegeFilesystem = "";
-
-}  // namespace
-
 using namespace common;
 using namespace extension::filesystem;
 
@@ -633,7 +627,6 @@ void FilesystemInstance::PrepareError(const FilesystemError& error, picojson::ob
       break;
   }
 }
-
 
 #undef CHECK_EXIST
 
