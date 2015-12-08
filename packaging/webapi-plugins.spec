@@ -511,6 +511,7 @@ install -p -m 644 tools/mergejs.py %{buildroot}%{_includedir}/%{name}/tools
 install -p -m 644 tools/js_minimize.py %{buildroot}%{_includedir}/%{name}/tools
 cp -a tools/gyp %{buildroot}%{_includedir}/%{name}/tools/gyp
 cp -a tools/slimit %{buildroot}%{_includedir}/%{name}/tools/slimit
+cp -a out/Default/desc_gentool %{buildroot}%{_includedir}/%{name}/tools/desc_gentool
 
 # execute desc_gentool
 LD_LIBRARY_PATH=$LD_LIBRARY_PATH:%{buildroot}%{crosswalk_extensions_path} out/Default/desc_gentool \
