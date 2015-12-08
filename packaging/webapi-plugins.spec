@@ -500,7 +500,9 @@ install -p -m 644 out/Default/libtizen*.so %{buildroot}%{crosswalk_extensions_pa
 
 # devel files
 mkdir -p %{buildroot}%{_libdir}/pkgconfig
-cp packaging/%{name}.pc %{buildroot}%{_libdir}/pkgconfig
+sed -i s,__LIB_DIR__,%{crosswalk_extensions_path},g packaging/%{name}.pc.in
+sed -i s,__INCLUDE_DIR__,%{_includedir}/%{name}/src,g packaging/%{name}.pc.in
+cp packaging/%{name}.pc.in %{buildroot}%{_libdir}/pkgconfig/%{name}.pc
 mkdir -p %{buildroot}%{_includedir}/%{name}/src/common
 install -p -m 644 src/common/*.h %{buildroot}%{_includedir}/%{name}/src/common
 install -p -m 644 src/common/*.gypi %{buildroot}%{_includedir}/%{name}/src/common
