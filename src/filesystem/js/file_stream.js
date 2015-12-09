@@ -14,15 +14,20 @@
  *    limitations under the License.
  */
 
+var can_change_size = false;
+
 function FileStream(data, mode, encoding) {
   var _totalBytes = data.fileSize || 0;
   var _position = mode === 'a' ? _totalBytes : 0;
 
   Object.defineProperties(this, {
     eof: {
-      value: false,
-      enumerable: true,
-      writable: false
+      get: function() {
+        return _totalBytes < _position;
+      },
+      set: function(v) {
+      },
+      enumerable: true
     },
     position: {
       get: function() {
@@ -30,13 +35,19 @@ function FileStream(data, mode, encoding) {
       },
       set: function(v) {
         _position = Math.max(0, v);
+        if (can_change_size) {
+          _totalBytes = Math.max(_position, _totalBytes);
+        }
       },
       enumerable: true
     },
     bytesAvailable: {
-      value: this.eof ? -1 : Math.max(0, _totalBytes - _position),
-      enumerable: true,
-      writable: false
+      get: function() {
+        return this.eof ? -1 : Math.max(0, _totalBytes - _position);
+      },
+      set: function(v) {
+      },
+      enumerable: true
     },
     _mode: {
       value: mode,
@@ -127,9 +138,8 @@ function read() {
     throw new WebAPIException(WebAPIException.IO_ERR, 'Could not read');
   }
   var encoded = native_.getResultObject(result);
-  var decoded = Base64.decode(encoded);
 
-  return decoded;
+  return Base64.decodeString(encoded);
 };
 
 FileStream.prototype.read = function() {
@@ -167,14 +177,8 @@ function readBytes() {
     throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR, 'Could not read');
   }
   var encoded = native_.getResultObject(result);
-  var decoded = Base64.decode(encoded);
-  var bytes = [];
 
-  for (var i = 0; i < decoded.length; ++i) {
-    bytes.push(decoded.charCodeAt(i));
-  }
-
-  return bytes;
+  return Base64.decode(encoded);
 };
 
 FileStream.prototype.readBytes = function() {
@@ -253,7 +257,7 @@ function write() {
   var data = {
     location: commonFS_.toRealPath(this._file.fullPath),
     offset: this.position,
-    data: Base64.encode(args.stringData)
+    data: Base64.encodeString(args.stringData)
   };
 
   var result = native_.callSync('File_writeSync', data);
@@ -261,7 +265,9 @@ function write() {
   if (native_.isFailure(result)) {
     throw new WebAPIException(WebAPIException.IO_ERR, 'Could not write');
   }
-  this.position = args.stringData.length;
+  can_change_size = true;
+  this.position = this.position + args.stringData.length;
+  can_change_size = false;
 };
 
 FileStream.prototype.write = function() {
@@ -290,7 +296,7 @@ function writeBytes() {
   var data = {
     location: commonFS_.toRealPath(this._file.fullPath),
     offset: this.position,
-    data: Base64.encode(String.fromCharCode.apply(String, args.byteData))
+    data: Base64.encode(args.byteData)
   };
 
   var result = native_.callSync('File_writeSync', data);
@@ -298,6 +304,9 @@ function writeBytes() {
   if (native_.isFailure(result)) {
     throw new WebAPIException(WebAPIException.IO_ERR, 'Could not write');
   }
+  can_change_size = true;
+  this.position = this.position + args.byteData.length;
+  can_change_size = false;
 };
 
 FileStream.prototype.writeBytes = function() {

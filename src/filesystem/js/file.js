@@ -339,7 +339,7 @@ function readAsText() {
       }
       encoded = native_.getResultObject(result);
       if (encoded.length) {
-        str += Base64.decode(encoded);
+        str += Base64.decodeString(encoded);
         data.offset += data.length;
       }
     } while (encoded.length);
