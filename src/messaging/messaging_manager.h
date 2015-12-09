@@ -32,6 +32,7 @@ class MessagingInstance;
 class MsgManagerCallbackData {
 public:
     explicit MsgManagerCallbackData(MessagingInstance& instance_);
+    std::string type;
     std::shared_ptr<picojson::value> json;
     std::map<int, MessageService*>* services_map;
     std::pair<int, MessageService*>* sms_service;

@@ -35,6 +35,7 @@ class CallbackUserData {
   void SetError(const common::PlatformResult& error);
   void SetSuccess(const picojson::value& data = picojson::value());
   void SetAction(const char* action, const picojson::value& data);
+  void SetListenerId(const char* id);
 
   void AddToQueue();
   void Post();

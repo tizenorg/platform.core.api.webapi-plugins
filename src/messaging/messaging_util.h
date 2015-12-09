@@ -38,20 +38,14 @@
 namespace extension {
 namespace messaging {
 
-extern const char* JSON_ACTION;
+extern const char* JSON_LISTENER_ID;
 extern const char* JSON_CALLBACK_ID;
-extern const char* JSON_CALLBACK_SUCCCESS;
-extern const char* JSON_CALLBACK_ERROR;
-extern const char* JSON_CALLBACK_PROGRESS;
-extern const char* JSON_CALLBACK_KEEP;
-extern const char* JSON_DATA;
+extern const char* JSON_ACTION;
+extern const char* JSON_RESULT;
 extern const char* JSON_DATA_MESSAGE;
 extern const char* JSON_DATA_MESSAGE_BODY;
 extern const char* JSON_DATA_MESSAGE_ATTACHMENT;
 extern const char* JSON_DATA_RECIPIENTS;
-extern const char* JSON_ERROR_MESSAGE;
-extern const char* JSON_ERROR_NAME;
-extern const char* JSON_ERROR_CODE;
 
 extern const char* MESSAGE_ATTRIBUTE_ID;
 extern const char* MESSAGE_ATTRIBUTE_CONVERSATION_ID;

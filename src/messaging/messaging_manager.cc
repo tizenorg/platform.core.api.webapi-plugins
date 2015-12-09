@@ -28,6 +28,7 @@
 #include "common/picojson.h"
 #include "common/platform_exception.h"
 #include "common/task-queue.h"
+#include "common/tools.h"
 
 #include "messaging_instance.h"
 #include "short_message_manager.h"
@@ -35,6 +36,8 @@
 
 using common::ErrorCode;
 using common::PlatformResult;
+using common::tools::ReportSuccess;
+using common::tools::ReportError;
 
 namespace extension {
 namespace messaging {
@@ -106,7 +109,8 @@ static void* getMsgServicesThread(const std::shared_ptr<MsgManagerCallbackData>&
   picojson::object& obj = response->get<picojson::object>();
   MessageType type = MessageType::UNDEFINED;
 
-  auto platform_result = MessagingUtil::stringToMessageType(response->get(JSON_DATA).get<std::string>(), &type);
+  auto platform_result = MessagingUtil::stringToMessageType(user_data->type, &type);
+  //after extraction of input data, remove it
 
   if (platform_result) {
     switch (type) {
@@ -127,8 +131,7 @@ static void* getMsgServicesThread(const std::shared_ptr<MsgManagerCallbackData>&
 
             picojson::array array;
             array.push_back(picojson::value(service->toPicoJS()));
-            obj[JSON_DATA] = picojson::value(array);
-            obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
+            ReportSuccess(picojson::value(array), obj);
 
             // service is stored, so it cannot be deleted
             service = nullptr;
@@ -153,8 +156,7 @@ static void* getMsgServicesThread(const std::shared_ptr<MsgManagerCallbackData>&
 
             picojson::array array;
             array.push_back(picojson::value(service->toPicoJS()));
-            obj[JSON_DATA] = picojson::value(array);
-            obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
+            ReportSuccess(picojson::value(array), obj);
 
             // service is stored, so it cannot be deleted
             service = nullptr;
@@ -221,8 +223,7 @@ static void* getMsgServicesThread(const std::shared_ptr<MsgManagerCallbackData>&
                               response.push_back(picojson::value(service->toPicoJS()));
                               email_services.insert(std::pair<int, MessageService*>(service->getMsgServiceId(), service));
                             });
-              obj[JSON_DATA] = picojson::value(response);
-              obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_SUCCCESS);
+              ReportSuccess(picojson::value(response), obj);
             }
           }
         }
@@ -236,8 +237,7 @@ static void* getMsgServicesThread(const std::shared_ptr<MsgManagerCallbackData>&
 
   if (!platform_result) {
     LoggerE("Unknown error");
-    obj[JSON_DATA] = platform_result.ToJSON();
-    obj[JSON_ACTION] = picojson::value(JSON_CALLBACK_ERROR);
+    ReportError(platform_result, &obj);
   }
 
   return nullptr;
@@ -250,9 +250,9 @@ void MessagingManager::getMessageServices(const std::string& type, double callba
     auto json = std::shared_ptr<picojson::value>(new picojson::value(picojson::object()));
     picojson::object& obj = json->get<picojson::object>();
     obj[JSON_CALLBACK_ID] = picojson::value(callbackId);
-    obj[JSON_DATA] = picojson::value(type);
 
     auto user_data = std::shared_ptr<MsgManagerCallbackData>(new MsgManagerCallbackData(instance_));
+    user_data->type = type;
     user_data->json = json;
     user_data->services_map = &m_email_services;
     user_data->sms_service = &m_sms_service;
