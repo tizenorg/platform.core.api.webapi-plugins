@@ -34,7 +34,7 @@ namespace power {
 
 namespace {
 // The privileges that required in Power API
-const std::string kPrivilegePower = "http://tizen.org/privilege/power";
+const std::string kPrivilegePower = "http://tizen.org/privilege/display";
 
 const std::map<std::string, PowerResource> kPowerResourceMap = {
     {"SCREEN", POWER_RESOURCE_SCREEN},

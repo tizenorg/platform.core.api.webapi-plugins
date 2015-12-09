@@ -40,8 +40,8 @@ using common::PlatformResult;
 
 namespace {
 // The privileges that required in Package API
-const std::string kPrivilegePackageInstall = "http://tizen.org/privilege/packagemanager.install";
-const std::string kPrivilegePackageInfo = "http://tizen.org/privilege/package.info";
+const std::string kPrivilegePackageInstall = "http://tizen.org/privilege/packagemanager.admin";
+const std::string kPrivilegePackageInfo = "http://tizen.org/privilege/packagemanager.info";
 }  // namespace
 
 typedef enum _PackageThreadWorkType {

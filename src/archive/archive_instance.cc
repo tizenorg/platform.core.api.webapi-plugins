@@ -37,8 +37,8 @@ namespace archive {
 using namespace common;
 
 namespace {
-const std::string kPrivilegeFilesystemRead  = "http://tizen.org/privilege/filesystem.read";
-const std::string kPrivilegeFilesystemWrite  = "http://tizen.org/privilege/filesystem.write";
+const std::string kPrivilegeFilesystemRead  = "http://tizen.org/privilege/systemsettings.admin";
+const std::string kPrivilegeFilesystemWrite  = "http://tizen.org/privilege/systemsettings.admin";
 
 const std::string kArchiveFileEntryOptDest = "destination";
 const std::string kArchiveFileEntryOptStrip = "stripSourceDirectory";

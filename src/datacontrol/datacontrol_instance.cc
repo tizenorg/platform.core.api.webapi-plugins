@@ -37,7 +37,7 @@ namespace datacontrol {
 
 namespace {
 // The privileges that required in Datacontrol API
-const std::string kPrivilegeDatacontrol = "http://tizen.org/privilege/datacontrol.consumer";
+const std::string kPrivilegeDatacontrol = "http://tizen.org/privilege/datasharing";
 
 }  // namespace
 

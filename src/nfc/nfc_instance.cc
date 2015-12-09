@@ -40,9 +40,9 @@ namespace {
 
 const std::string kPrivilegeNfcAdmin = "http://tizen.org/privilege/nfc.admin";
 const std::string kPrivilegeNfcCardEmulation = "http://tizen.org/privilege/nfc.cardemulation";
-const std::string kPrivilegeNfcCommon = "http://tizen.org/privilege/nfc.common";
-const std::string kPrivilegeNfcP2P = "http://tizen.org/privilege/nfc.p2p";
-const std::string kPrivilegeNfcTag = "http://tizen.org/privilege/nfc.tag";
+const std::string kPrivilegeNfcCommon = "http://tizen.org/privilege/nfc";
+const std::string kPrivilegeNfcP2P = "http://tizen.org/privilege/nfc";
+const std::string kPrivilegeNfcTag = "http://tizen.org/privilege/nfc";
 
 } // namespace
 

@@ -36,7 +36,7 @@ const std::string SETTING_LOCK_SCREEN = "LOCK_SCREEN";
 const std::string SETTING_INCOMING_CALL = "INCOMING_CALL";
 const std::string SETTING_NOTIFICATION_EMAIL = "NOTIFICATION_EMAIL";
 
-const std::string kPrivilegeSetting = "http://tizen.org/privilege/setting";
+const std::string kPrivilegeSetting = "http://tizen.org/privilege/systemsettings.admin";
 }
 
 using namespace common;
