@@ -15,7 +15,6 @@
  */
 
 var validator_ = xwalk.utils.validator;
-var privilege_ = xwalk.utils.privilege;
 var types_ = validator_.Types;
 var native_ = new xwalk.utils.NativeManager(extension);
 
@@ -36,8 +35,6 @@ var _edit = new EditManager();
 function BookmarkManager() {}
 
 BookmarkManager.prototype.get = function() {
-  xwalk.utils.checkPrivilegeAccess(privilege_.BOOKMARK_READ);
-
   var args = validator_.validateArgs(arguments, [
     {
       name: 'parentFolder',
@@ -71,8 +68,6 @@ BookmarkManager.prototype.get = function() {
 };
 
 BookmarkManager.prototype.add = function() {
-  xwalk.utils.checkPrivilegeAccess(privilege_.BOOKMARK_WRITE);
-
   var args = validator_.validateArgs(arguments, [
     {
       name: 'bookmark',
@@ -93,22 +88,18 @@ BookmarkManager.prototype.add = function() {
     if (args.bookmark.id) {
       throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR);
     }
-    if (!provider.addToFolder(args.bookmark, provider.getRootId())) {
-      throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR);
-    }
+
+    provider.addToFolder(args.bookmark, provider.getRootId());
     return;
   }
   if (!args.parentFolder.id) {
     throw new WebAPIException(WebAPIException.NOT_FOUND_ERR);
   }
-  if (!provider.addToFolder(args.bookmark, args.parentFolder.id)) {
-    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR);
-  }
+
+  provider.addToFolder(args.bookmark, args.parentFolder.id);
 };
 
 BookmarkManager.prototype.remove = function() {
-  xwalk.utils.checkPrivilegeAccess(privilege_.BOOKMARK_WRITE);
-
   var args = validator_.validateArgs(arguments, [
     {
       name: 'bookmark',
@@ -120,15 +111,22 @@ BookmarkManager.prototype.remove = function() {
   ]);
 
   if (!arguments.length || args.bookmark === null) {
-    if (native_.isFailure(native_.callSync('Bookmark_removeAll')))
-      throw new WebAPIException(WebAPIException.SECURITY_ERR);
+    var result = native_.callSync('Bookmark_removeAll');
+    if (native_.isFailure(result)) {
+      throw native_.getErrorObject(result);
+    }
+
     return;
   }
-  if (!args.bookmark.id)
-    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR);
-  if (native_.isFailure(native_.callSync('Bookmark_remove', {
-    id: args.bookmark.id})))
-    throw new WebAPIException(WebAPIException.SECURITY_ERR);
+
+  if (!args.bookmark.id) {
+    throw new WebAPIException(WebAPIException.UNKNOWN_ERR);
+  }
+
+  var result = native_.isFailure(native_.callSync('Bookmark_remove', {id: args.bookmark.id}));
+  if (native_.isFailure(result)) {
+    throw native_.getErrorObject(result);
+  }
 
   _edit.allow();
   args.bookmark.id = null;
@@ -161,15 +159,16 @@ BookmarkProvider.prototype.addToFolder = function() {
       type: args.bookmark instanceof tizen.BookmarkFolder ? 1 : 0
     }
   );
+
   if (native_.isFailure(ret)) {
-    return false;
+    throw native_.getErrorObject(ret);
   }
+
   var ret_id = native_.getResultObject(ret);
   _edit.allow();
   args.bookmark.id = ret_id;
   args.bookmark.parent = this.getFolder(args.parentId);
   _edit.disallow();
-  return true;
 };
 
 BookmarkProvider.prototype.getFolder = function() {
@@ -192,12 +191,13 @@ BookmarkProvider.prototype.getFolder = function() {
   });
 
   if (native_.isFailure(ret)) {
-    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR);
+    throw native_.getErrorObject(ret);
   }
 
   var folder = native_.getResultObject(ret);
-  if (folder === undefined || folder === null)
-    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR);
+  if (folder === undefined || folder === null) {
+    throw new WebAPIException(WebAPIException.UNKNOWN_ERR);
+  }
 
   var obj = new tizen.BookmarkFolder(folder[0].title);
   obj.id = folder[0].id;
@@ -227,12 +227,13 @@ BookmarkProvider.prototype.getFolderItems = function() {
   });
 
   if (native_.isFailure(ret)) {
-    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR);
+    throw native_.getErrorObject(ret);
   }
 
   var folder = native_.getResultObject(ret);
-  if (folder === undefined)
-    throw new WebAPIException(WebAPIException.INVALID_VALUES_ERR);
+  if (folder === undefined) {
+    throw new WebAPIException(WebAPIException.UNKNOWN_ERR);
+  }
 
   var item;
   var obj;
