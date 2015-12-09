@@ -22,9 +22,18 @@
 #include "common/logger.h"
 #include "common/platform_exception.h"
 #include "common/task-queue.h"
+#include "common/tools.h"
 
 namespace extension {
 namespace networkbearerselection {
+
+namespace {
+// The privileges that required in NetworkBearerSelection API
+const std::string kPrivilegeNetworkBearerSelection = "http://tizen.org/privilege/networkbearerselection";
+const std::string kPrivilegeInternet = "http://tizen.org/privilege/internet";
+const std::vector<std::string> kNbsPrivileges{kPrivilegeNetworkBearerSelection, kPrivilegeInternet};
+
+}  // namespace
 
 using namespace common;
 using namespace extension::networkbearerselection;
@@ -66,6 +75,8 @@ void NetworkBearerSelectionInstance::NetworkBearerSelectionRequestRouteToHost(
     picojson::object& out) {
   LoggerD("enter");
 
+  CHECK_PRIVILEGE_ACCESS(kNbsPrivileges, &out);
+
   CHECK_EXIST(args, "domainName", out)
   CHECK_EXIST(args, "id", out)
 
@@ -87,6 +98,8 @@ void NetworkBearerSelectionInstance::NetworkBearerSelectionReleaseRouteToHost(
     const picojson::value& args,
     picojson::object& out) {
   LoggerD("enter");
+
+  CHECK_PRIVILEGE_ACCESS(kNbsPrivileges, &out);
 
   CHECK_EXIST(args, "callbackId", out)
   CHECK_EXIST(args, "domainName", out)
