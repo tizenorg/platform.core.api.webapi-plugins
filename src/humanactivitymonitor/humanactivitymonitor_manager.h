@@ -53,12 +53,9 @@ class HumanActivityMonitorManager {
                                               picojson::value* data);
 
  private:
-  std::map<std::string, bool> supported_;
+  // common
   common::PlatformResult IsSupported(const std::string& type);
-
   // WRIST_UP
-  gesture_h gesture_handle_;
-  JsonCallback wrist_up_event_callback_;
   common::PlatformResult SetWristUpListener(JsonCallback callback);
   common::PlatformResult UnsetWristUpListener();
   static void OnWristUpEvent(gesture_type_e gesture,
@@ -66,24 +63,30 @@ class HumanActivityMonitorManager {
                              double timestamp,
                              gesture_error_e error,
                              void* user_data);
-
   // HRM
-  sensor_listener_h hrm_sensor_listener_;
-  JsonCallback hrm_event_callback_;
   common::PlatformResult SetHrmListener(JsonCallback callback);
   common::PlatformResult UnsetHrmListener();
   static void OnHrmSensorEvent(sensor_h sensor,
                                sensor_event_s *event,
                                void *user_data);
   common::PlatformResult GetHrmData(picojson::value* data);
-
   // GPS
-  location_manager_h location_handle_;
-  JsonCallback gps_event_callback_;
   common::PlatformResult SetGpsListener(JsonCallback callback);
   common::PlatformResult UnsetGpsListener();
   static void OnGpsEvent(int num_of_location, void *user_data);
   common::PlatformResult GetGpsData(picojson::value* data);
+
+  // common
+  std::map<std::string, bool> supported_;
+  // WRIST_UP
+  gesture_h gesture_handle_;
+  JsonCallback wrist_up_event_callback_;
+  // HRM
+  sensor_listener_h hrm_sensor_listener_;
+  JsonCallback hrm_event_callback_;
+  // GPS
+  location_manager_h location_handle_;
+  JsonCallback gps_event_callback_;
 };
 
 } // namespace humanactivitymonitor
