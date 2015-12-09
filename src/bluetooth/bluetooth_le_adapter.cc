@@ -22,6 +22,7 @@
 #include "bluetooth/bluetooth_instance.h"
 #include "bluetooth/bluetooth_le_device.h"
 #include "bluetooth/bluetooth_util.h"
+#include "bluetooth/bluetooth_privilege.h"
 
 namespace extension {
 namespace bluetooth {
@@ -422,6 +423,8 @@ BluetoothLEAdapter::~BluetoothLEAdapter() {
 
 void BluetoothLEAdapter::StartScan(const picojson::value& data, picojson::object& out) {
   LoggerD("Entered");
+  CHECK_BACKWARD_COMPABILITY_PRIVILEGE_ACCESS(Privilege::kBluetooth,
+                                              Privilege::kBluetoothAdmin, &out);
 
   int ret = bt_adapter_le_start_scan(OnScanResult, this);
 
@@ -449,6 +452,8 @@ void BluetoothLEAdapter::StartScan(const picojson::value& data, picojson::object
 
 void BluetoothLEAdapter::StopScan(const picojson::value& data, picojson::object& out) {
   LoggerD("Entered");
+  CHECK_BACKWARD_COMPABILITY_PRIVILEGE_ACCESS(Privilege::kBluetooth,
+                                              Privilege::kBluetoothAdmin, &out);
 
   int ret = bt_adapter_le_stop_scan();
 
@@ -464,6 +469,8 @@ void BluetoothLEAdapter::StopScan(const picojson::value& data, picojson::object&
 
 void BluetoothLEAdapter::StartAdvertise(const picojson::value& data, picojson::object& out) {
   LoggerD("Entered");
+  CHECK_BACKWARD_COMPABILITY_PRIVILEGE_ACCESS(Privilege::kBluetooth,
+                                              Privilege::kBluetoothAdmin, &out);
 
   const auto& json_advertise_data = data.get("advertiseData");
   const auto& json_packet_type = data.get("packetType");
@@ -674,6 +681,8 @@ void BluetoothLEAdapter::StartAdvertise(const picojson::value& data, picojson::o
 
 void BluetoothLEAdapter::StopAdvertise(const picojson::value& data, picojson::object& out) {
   LoggerD("Entered");
+  CHECK_BACKWARD_COMPABILITY_PRIVILEGE_ACCESS(Privilege::kBluetooth,
+                                              Privilege::kBluetoothAdmin, &out);
 
   if (nullptr != bt_advertiser_) {
     int ret = bt_adapter_le_stop_advertising(bt_advertiser_);

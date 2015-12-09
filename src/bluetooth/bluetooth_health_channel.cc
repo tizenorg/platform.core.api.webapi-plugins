@@ -24,6 +24,7 @@
 #include "common/tools.h"
 
 #include "bluetooth_device.h"
+#include "bluetooth_privilege.h"
 #include "bluetooth_util.h"
 
 namespace extension {
@@ -43,6 +44,9 @@ const std::string kId = "_id";
 void BluetoothHealthChannel::Close(const picojson::value& data , picojson::object& out) {
   LoggerD("Entered");
 
+  CHECK_BACKWARD_COMPABILITY_PRIVILEGE_ACCESS(Privilege::kBluetooth,
+                                              Privilege::kBluetoothHealth, &out);
+
   const auto& args = util::GetArguments(data);
 
   unsigned int channel = common::stol(FromJson<std::string>(args, "channel"));
@@ -61,6 +65,9 @@ void BluetoothHealthChannel::Close(const picojson::value& data , picojson::objec
 
 void BluetoothHealthChannel::SendData(const picojson::value& data, picojson::object& out) {
   LoggerD("Entered");
+
+  CHECK_BACKWARD_COMPABILITY_PRIVILEGE_ACCESS(Privilege::kBluetooth,
+                                              Privilege::kBluetoothHealth, &out);
 
   const auto& args = util::GetArguments(data);
 

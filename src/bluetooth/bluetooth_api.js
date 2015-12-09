@@ -18,7 +18,7 @@ var T = xwalk.utils.type;
 var Converter = xwalk.utils.converter;
 var AV = xwalk.utils.validator;
 var Privilege = xwalk.utils.privilege;
-
+var privUtils_ = xwalk.utils;
 var native = new xwalk.utils.NativeManager(extension);
 
 // class BluetoothClassDeviceMajor /////////////////////////////////////////
@@ -412,24 +412,28 @@ var BluetoothClass = function(data) {
     });
 };
 
+var BluetoothClass_hasService = function() {
+  console.log('Entered BluetoothClass.hasService()');
+  privUtils_.checkPrivilegeAccess4Ver("2.4", Privilege.BLUETOOTH, Privilege.BLUETOOTH_GAP);
+
+  var args = AV.validateMethod(arguments, [
+      {
+          name : 'service',
+          type : AV.Types.UNSIGNED_LONG
+      }
+  ]);
+
+  var size = this.services.length;
+  for (var i = 0; i < size; i++) {
+      if (this.services[i] === args.service) {
+          return true;
+      }
+  }
+  return false;
+};
+
 BluetoothClass.prototype.hasService = function() {
-    console.log('Entered BluetoothClass.hasService()');
-    xwalk.utils.checkPrivilegeAccess4Ver("2.4", Privilege.BLUETOOTH, Privilege.BLUETOOTH_GAP);
-
-    var args = AV.validateMethod(arguments, [
-        {
-            name : 'service',
-            type : AV.Types.UNSIGNED_LONG
-        }
-    ]);
-
-    var size = this.services.length;
-    for (var i = 0; i < size; i++) {
-        if (this.services[i] === args.service) {
-            return true;
-        }
-    }
-    return false;
+    return BluetoothClass_hasService.apply(this, arguments);
 };
 
 // class BluetoothSocket ////////////////////////////////////////////////////
@@ -494,7 +498,6 @@ var BluetoothSocket = function(data) {
 
 BluetoothSocket.prototype.writeData = function() {
     console.log('Entered BluetoothSocket.writeData()');
-    xwalk.utils.checkPrivilegeAccess4Ver("2.4", Privilege.BLUETOOTH, Privilege.BLUETOOTH_SPP);
 
     var args = AV.validateMethod(arguments, [
         {
@@ -520,7 +523,6 @@ BluetoothSocket.prototype.writeData = function() {
 
 BluetoothSocket.prototype.readData = function() {
     console.log('Entered BluetoothSocket.readData()');
-    xwalk.utils.checkPrivilegeAccess4Ver("2.4", Privilege.BLUETOOTH, Privilege.BLUETOOTH_SPP);
 
     var callArgs = {
         id : this._id
@@ -537,7 +539,6 @@ BluetoothSocket.prototype.readData = function() {
 
 BluetoothSocket.prototype.close = function() {
     console.log('Entered BluetoothSocket.close()');
-    xwalk.utils.checkPrivilegeAccess4Ver("2.4", Privilege.BLUETOOTH, Privilege.BLUETOOTH_SPP);
 
     if (_BLUETOOTH_SOCKET_STATE_CLOSED !== this.state) {
         var callArgs = {
@@ -609,8 +610,6 @@ var BluetoothLEDevice = function(data) {
 
 BluetoothLEDevice.prototype.connect = function() {
     console.log('Entered BluetoothLEDevice.connect()');
-
-    xwalk.utils.checkPrivilegeAccess4Ver("2.4", Privilege.BLUETOOTH, Privilege.BLUETOOTH_ADMIN);
     var args = AV.validateMethod(arguments, [
     {
         name : 'successCallback',
@@ -634,13 +633,14 @@ BluetoothLEDevice.prototype.connect = function() {
         }
     };
     // Errors are handled by error callback
-    native.call('BluetoothLEDevice_connect', {address : this.address}, callback);
+    var result = native.call('BluetoothLEDevice_connect', {address : this.address}, callback);
+    if (native.isFailure(result)) {
+      throw native.getErrorObject(result);
+    }
 };
 
 BluetoothLEDevice.prototype.disconnect = function() {
     console.log('Entered BluetoothLEDevice.disconnect()');
-
-    xwalk.utils.checkPrivilegeAccess4Ver("2.4", Privilege.BLUETOOTH, Privilege.BLUETOOTH_ADMIN);
     var args = AV.validateMethod(arguments, [
     {
         name : 'successCallback',
@@ -671,9 +671,6 @@ BluetoothLEDevice.prototype.disconnect = function() {
 
 BluetoothLEDevice.prototype.getService = function() {
     console.log('Entered BluetoothLEDevice.getService()');
-
-    xwalk.utils.checkPrivilegeAccess4Ver("2.4", Privilege.BLUETOOTH, Privilege.BLUETOOTH_ADMIN);
-
     var args = AV.validateMethod(arguments, [
         {
             name: 'uuid',
@@ -687,7 +684,6 @@ BluetoothLEDevice.prototype.getService = function() {
     };
 
     var result = native.callSync('BluetoothLEDevice_getService', callArgs);
-
     if (native.isFailure(result)) {
         throw native.getErrorObject(result);
     } else {
@@ -697,7 +693,6 @@ BluetoothLEDevice.prototype.getService = function() {
 
 BluetoothLEDevice.prototype.addConnectStateChangeListener = function() {
     console.log('Entered BluetoothLEDevice.addConnectStateChangeListener()');
-
     var args = AV.validateMethod(arguments, [
         {
             name: 'listener',
@@ -798,7 +793,6 @@ var BluetoothDevice = function(data) {
 
 BluetoothDevice.prototype.connectToServiceByUUID = function() {
     console.log('Entered BluetoothDevice.connectToServiceByUUID()');
-    xwalk.utils.checkPrivilegeAccess4Ver("2.4", Privilege.BLUETOOTH, Privilege.BLUETOOTH_SPP);
 
     var args = AV.validateMethod(arguments, [
         {
@@ -829,9 +823,10 @@ BluetoothDevice.prototype.connectToServiceByUUID = function() {
         }
     };
 
-    // The native function BluetoothDevice_connectToServiceByUUID always returns success
-    // Errors are handled by error callback
-    native.call('BluetoothDevice_connectToServiceByUUID', callArgs, callback);
+    var result = native.call('BluetoothDevice_connectToServiceByUUID', callArgs, callback);
+    if (native.isFailure(result)) {
+      throw native.getErrorObject(result);
+    }
 };
 
 // class BluetoothServiceHandler ////////////////////////////////////////////////////
@@ -900,8 +895,6 @@ var BluetoothServiceHandler = function(data) {
 
 BluetoothServiceHandler.prototype.unregister = function() {
     console.log('Entered BluetoothServiceHandler.unregister()');
-    xwalk.utils.checkPrivilegeAccess4Ver("2.4", Privilege.BLUETOOTH, Privilege.BLUETOOTH_SPP);
-
     var args = AV.validateMethod(arguments, [
         {
             name : 'successCallback',
@@ -929,9 +922,10 @@ BluetoothServiceHandler.prototype.unregister = function() {
         }
     };
 
-    // native.call does not inform if call results in failure
-    // Errors are handled by error callback
-    native.call('BluetoothServiceHandler_unregister', callArgs, callback);
+    var result = native.call('BluetoothServiceHandler_unregister', callArgs, callback);
+    if (native.isFailure(result)) {
+      throw native.getErrorObject(result);
+    }
 
     _bluetoothServiceListeners.removeListener(this.uuid);
 };
@@ -997,8 +991,6 @@ var BluetoothHealthApplication = function(data) {
 
 BluetoothHealthApplication.prototype.unregister = function() {
     console.log('Entered BluetoothHealthApplication.unregister()');
-    xwalk.utils.checkPrivilegeAccess4Ver("2.4", Privilege.BLUETOOTH, Privilege.BLUETOOTH_HEALTH);
-
     var args = AV.validateMethod(arguments, [
         {
             name : 'successCallback',
@@ -1024,9 +1016,10 @@ BluetoothHealthApplication.prototype.unregister = function() {
         }
     };
 
-    // native.call does not inform if call results in failure
-    // Errors are handled by error callback
-    native.call('BluetoothHealthApplication_unregister', callArgs, callback);
+    var result = native.call('BluetoothHealthApplication_unregister', callArgs, callback);
+    if (native.isFailure(result)) {
+      throw native.getErrorObject(result);
+    }
 
     _bluetoothHealthApplicationListeners.removeListener(this._id);
 };
@@ -1055,7 +1048,6 @@ BluetoothHealthProfileHandler.prototype.constructor = BluetoothProfileHandler;
 
 BluetoothHealthProfileHandler.prototype.registerSinkApplication = function() {
     console.log('Entered BluetoothHealthProfileHandler.registerSinkApplication()');
-    xwalk.utils.checkPrivilegeAccess4Ver("2.4", Privilege.BLUETOOTH, Privilege.BLUETOOTH_HEALTH);
 
     var args = AV.validateMethod(arguments, [
         {
@@ -1091,14 +1083,14 @@ BluetoothHealthProfileHandler.prototype.registerSinkApplication = function() {
         }
     };
 
-    // native.call does not inform if call results in failure
-    // Errors are handled by error callback
-    native.call('BluetoothHealthProfileHandler_registerSinkApp', callArgs, callback);
+    var result = native.call('BluetoothHealthProfileHandler_registerSinkApp', callArgs, callback);
+    if (native.isFailure(result)) {
+      throw native.getErrorObject(result);
+    }
 };
 
 BluetoothHealthProfileHandler.prototype.connectToSource = function() {
     console.log('Entered BluetoothHealthProfileHandler.connectToSource()');
-    xwalk.utils.checkPrivilegeAccess4Ver("2.4", Privilege.BLUETOOTH, Privilege.BLUETOOTH_HEALTH);
 
     var args = AV.validateMethod(arguments, [
         {
@@ -1139,9 +1131,10 @@ BluetoothHealthProfileHandler.prototype.connectToSource = function() {
         }
     };
 
-    // native.call does not inform if call results in failure
-    // Errors are handled by error callback
-    native.call('BluetoothHealthProfileHandler_connectToSource', callArgs, callback);
+    var result = native.call('BluetoothHealthProfileHandler_connectToSource', callArgs, callback);
+    if (native.isFailure(result)) {
+      throw native.getErrorObject(result);
+    }
 };
 
 // class BluetoothHealthChannel ////////////////////////////////////////////////////
@@ -1165,7 +1158,6 @@ var BluetoothHealthChannel = function(data) {
 
 BluetoothHealthChannel.prototype.close = function() {
     console.log('Entered BluetoothHealthChannel.close()');
-    xwalk.utils.checkPrivilegeAccess4Ver("2.4", Privilege.BLUETOOTH, Privilege.BLUETOOTH_HEALTH);
 
     if (this.isConnected) {
         var callArgs = {
@@ -1185,8 +1177,6 @@ BluetoothHealthChannel.prototype.close = function() {
 
 BluetoothHealthChannel.prototype.sendData = function() {
     console.log('Entered BluetoothHealthChannel.sendData()');
-    xwalk.utils.checkPrivilegeAccess4Ver("2.4", Privilege.BLUETOOTH, Privilege.BLUETOOTH_HEALTH);
-
     var args = AV.validateMethod(arguments, [
         {
             name : 'data',
@@ -1234,35 +1224,45 @@ function _BluetoothHealthChannelChangeCallback(event) {
     }
 }
 
+var BluetoothHealthChannel_setListener = function() {
+  console.log('Entered BluetoothHealthChannel.setListener()');
+  privUtils_.checkPrivilegeAccess4Ver("2.4", Privilege.BLUETOOTH, Privilege.BLUETOOTH_HEALTH);
+  var args = AV.validateMethod(arguments, [
+      {
+          name : 'changeCallback',
+          type : AV.Types.LISTENER,
+          values : ['onmessage', 'onclose']
+      }
+  ]);
+
+  if (T.isEmptyObject(_healthListeners)) {
+      native.addListener('BluetoothHealthChannelChangeCallback',
+              _BluetoothHealthChannelChangeCallback);
+  }
+  _healthListeners[this._id] = args.changeCallback;
+};
+
+
 BluetoothHealthChannel.prototype.setListener = function() {
-    console.log('Entered BluetoothHealthChannel.setListener()');
-    xwalk.utils.checkPrivilegeAccess4Ver("2.4", Privilege.BLUETOOTH, Privilege.BLUETOOTH_HEALTH);
+    BluetoothHealthChannel_setListener.apply(this, arguments);
+};
 
-    var args = AV.validateMethod(arguments, [
-        {
-            name : 'changeCallback',
-            type : AV.Types.LISTENER,
-            values : ['onmessage', 'onclose']
-        }
-    ]);
+var BluetoothHealthChannel_unsetListener  = function() {
+  console.log('Entered BluetoothHealthChannel.unsetListener ()');
+  if (T.isEmptyObject(_healthListeners)) {
+    privUtils_.checkPrivilegeAccess4Ver("2.4", Privilege.BLUETOOTH, Privilege.BLUETOOTH_HEALTH);
+  }
 
-    if (T.isEmptyObject(_healthListeners)) {
-        native.addListener('BluetoothHealthChannelChangeCallback',
-                _BluetoothHealthChannelChangeCallback);
-    }
-    _healthListeners[this._id] = args.changeCallback;
+  delete _healthListeners[this._id];
+
+  if (T.isEmptyObject(_healthListeners)) {
+      native.removeListener('BluetoothHealthChannelChangeCallback',
+              _BluetoothHealthChannelChangeCallback);
+  }
 };
 
 BluetoothHealthChannel.prototype.unsetListener  = function() {
-    console.log('Entered BluetoothHealthChannel.unsetListener ()');
-    xwalk.utils.checkPrivilegeAccess4Ver("2.4", Privilege.BLUETOOTH, Privilege.BLUETOOTH_HEALTH);
-
-    delete _healthListeners[this._id];
-
-    if (T.isEmptyObject(_healthListeners)) {
-        native.removeListener('BluetoothHealthChannelChangeCallback',
-                _BluetoothHealthChannelChangeCallback);
-    }
+  BluetoothHealthChannel_unsetListener.apply(this, arguments);
 };
 
 
@@ -1375,9 +1375,6 @@ var BluetoothLEAdapter = function() {
 
 BluetoothLEAdapter.prototype.startScan = function() {
   console.log('Entered BluetoothLEAdapter.startScan()');
-
-  xwalk.utils.checkPrivilegeAccess4Ver("2.4", Privilege.BLUETOOTH, Privilege.BLUETOOTH_ADMIN);
-
   var args = AV.validateMethod(arguments, [{
     name: 'successCallback',
     type: AV.Types.FUNCTION
@@ -1389,7 +1386,6 @@ BluetoothLEAdapter.prototype.startScan = function() {
   }]);
 
   var result = native.callSync('BluetoothLEAdapter_startScan', {});
-
   if (native.isFailure(result)) {
     throw native.getErrorObject(result);
   }
@@ -1400,12 +1396,9 @@ BluetoothLEAdapter.prototype.startScan = function() {
 BluetoothLEAdapter.prototype.stopScan = function() {
   console.log('Entered BluetoothLEAdapter.stopScan()');
 
-  xwalk.utils.checkPrivilegeAccess4Ver("2.4", Privilege.BLUETOOTH, Privilege.BLUETOOTH_ADMIN);
-
   _bleScanListener.removeListener();
 
   var result = native.callSync('BluetoothLEAdapter_stopScan', {});
-
   if (native.isFailure(result)) {
     throw native.getErrorObject(result);
   }
@@ -1424,9 +1417,6 @@ var _BluetoothAdvertisingMode = {
 
 BluetoothLEAdapter.prototype.startAdvertise = function() {
   console.log('Entered BluetoothLEAdapter.startAdvertise()');
-
-  xwalk.utils.checkPrivilegeAccess4Ver("2.4", Privilege.BLUETOOTH, Privilege.BLUETOOTH_ADMIN);
-
   var args = AV.validateMethod(arguments, [{
     name: 'advertiseData',
     type: AV.Types.PLATFORM_OBJECT,
@@ -1474,8 +1464,6 @@ BluetoothLEAdapter.prototype.startAdvertise = function() {
 
 BluetoothLEAdapter.prototype.stopAdvertise = function() {
   console.log('Entered BluetoothLEAdapter.stopAdvertise()');
-
-  xwalk.utils.checkPrivilegeAccess4Ver("2.4", Privilege.BLUETOOTH, Privilege.BLUETOOTH_ADMIN);
 
   _bleAdvertiseListener.removeListener();
   var result = native.callSync('BluetoothLEAdapter_stopAdvertise', {});
@@ -1637,9 +1625,6 @@ var BluetoothGATTCharacteristic = function(data, address) {
 
   this.readValue = function() {
       console.log('Entered BluetoothGATTCharacteristic.readValue()');
-
-      xwalk.utils.checkPrivilegeAccess4Ver("2.4", Privilege.BLUETOOTH, Privilege.BLUETOOTH_ADMIN);
-
       var args = AV.validateMethod(arguments, [{
         name: 'successCallback',
         type: AV.Types.FUNCTION
@@ -1670,9 +1655,6 @@ var BluetoothGATTCharacteristic = function(data, address) {
 
     this.writeValue = function() {
       console.log('Entered BluetoothGATTCharacteristic.writeValue()');
-
-      xwalk.utils.checkPrivilegeAccess4Ver("2.4", Privilege.BLUETOOTH, Privilege.BLUETOOTH_ADMIN);
-
       var args = AV.validateMethod(arguments, [{
         name: 'value',
         type: AV.Types.ARRAY,
@@ -1706,39 +1688,41 @@ var BluetoothGATTCharacteristic = function(data, address) {
       }
     };
 
-  this.addValueChangeListener = function() {
-    console.log('Entered BluetoothGATTCharacteristic.addValueChangeListener()');
+    var addValueChangeListener = function() {
+      console.log('Entered BluetoothGATTCharacteristic.addValueChangeListener()');
+      privUtils_.checkPrivilegeAccess4Ver("2.4", Privilege.BLUETOOTH, Privilege.BLUETOOTH_ADMIN);
+      var args = AV.validateMethod(arguments, [{
+        name: 'callback',
+        type: AV.Types.FUNCTION
+      }]);
 
-    xwalk.utils.checkPrivilegeAccess4Ver("2.4", Privilege.BLUETOOTH, Privilege.BLUETOOTH_ADMIN);
+      var callArgs = { handle: handle_, address : address_ };
 
-    var args = AV.validateMethod(arguments, [{
-      name: 'callback',
-      type: AV.Types.FUNCTION
-    }]);
+      var callback = function(event) {
+        if (event.handle === handle_) {
+          args.callback(toByteArray(native.getResultObject(event)));
+        }
+      };
 
-    var callArgs = { handle: handle_, address : address_ };
-
-    var callback = function(event) {
-      if (event.handle === handle_) {
-        args.callback(toByteArray(native.getResultObject(event)));
-      }
+      return _bluetoothGATTCharacteristicListener.addListener(callback, callArgs);
     };
 
-    return _bluetoothGATTCharacteristicListener.addListener(callback, callArgs);
-  };
+    this.addValueChangeListener = function() {
+      return addValueChangeListener.apply(this, arguments);
+    };
 
-  this.removeValueChangeListener = function() {
-    console.log('Entered BluetoothGATTCharacteristic.removeValueChangeListener()');
+    this.removeValueChangeListener = function() {
+      console.log('Entered BluetoothGATTCharacteristic.removeValueChangeListener()');
 
-    var args = AV.validateMethod(arguments, [{
-      name: 'watchID',
-      type: AV.Types.LONG
-    }]);
+      var args = AV.validateMethod(arguments, [{
+        name: 'watchID',
+        type: AV.Types.LONG
+      }]);
 
-    var callArgs = { handle: handle_, address : address_ };
+      var callArgs = { handle: handle_, address : address_ };
 
-    return _bluetoothGATTCharacteristicListener.removeListener(args.watchID, callArgs);
-  };
+      return _bluetoothGATTCharacteristicListener.removeListener(args.watchID, callArgs);
+    };
 };
 
 
@@ -1855,9 +1839,6 @@ var BluetoothGATTDescriptor = function(data, address) {
 
   this.readValue = function() {
     console.log('Entered BluetoothGATTDescriptor.readValue()');
-
-    xwalk.utils.checkPrivilegeAccess4Ver("2.4", Privilege.BLUETOOTH, Privilege.BLUETOOTH_ADMIN);
-
     var args = AV.validateMethod(arguments, [{
       name: 'successCallback',
       type: AV.Types.FUNCTION
@@ -1888,9 +1869,6 @@ var BluetoothGATTDescriptor = function(data, address) {
 
   this.writeValue = function() {
     console.log('Entered BluetoothGATTDescriptor.writeValue()');
-
-    xwalk.utils.checkPrivilegeAccess4Ver("2.4", Privilege.BLUETOOTH, Privilege.BLUETOOTH_ADMIN);
-
     var args = AV.validateMethod(arguments, [{
       name: 'value',
       type: AV.Types.ARRAY,
@@ -1995,8 +1973,6 @@ var BluetoothAdapter = function() {
 
 BluetoothAdapter.prototype.setName = function() {
     console.log('Entered BluetoothAdapter.setName()');
-    xwalk.utils.checkPrivilegeAccess4Ver("2.4", Privilege.BLUETOOTH, Privilege.BLUETOOTH_ADMIN);
-
     var args = AV.validateMethod(arguments, [
         {
             name : 'name',
@@ -2028,15 +2004,14 @@ BluetoothAdapter.prototype.setName = function() {
         }
     };
 
-    // native.call does not inform if call results in failure
-    // Errors are handled by error callback
-    native.call('BluetoothAdapter_setName', callArgs, callback);
+    var result = native.call('BluetoothAdapter_setName', callArgs, callback);
+    if (native.isFailure(result)) {
+      throw native.getErrorObject(result);
+    }
 };
 
 BluetoothAdapter.prototype.setPowered = function() {
     console.log('Entered BluetoothAdapter.setPowered()');
-    xwalk.utils.checkPrivilegeAccess4Ver("2.4", Privilege.BLUETOOTH, Privilege.BLUETOOTH_ADMIN);
-
     var args = AV.validateMethod(arguments, [
         {
             name : 'powered',
@@ -2068,17 +2043,16 @@ BluetoothAdapter.prototype.setPowered = function() {
         }
     };
 
-    // native.call does not inform if call results in failure
-    // Errors are handled by error callback
-    native.call('BluetoothAdapter_setPowered', callArgs, callback);
+    var result = native.call('BluetoothAdapter_setPowered', callArgs, callback);
+    if (native.isFailure(result)) {
+      throw native.getErrorObject(result);
+    }
 };
 
 
 // This method is deprecated since Tizen 2.3 and will be removed in Tizen 3.0.
 BluetoothAdapter.prototype.setVisible = function() {
     console.log('Entered BluetoothAdapter.setVisible()');
-    xwalk.utils.checkPrivilegeAccess4Ver("2.4", Privilege.BLUETOOTH, Privilege.BLUETOOTHMANAGER);
-
     var args = AV.validateMethod(arguments, [
         {
             name : 'visible',
@@ -2124,9 +2098,10 @@ BluetoothAdapter.prototype.setVisible = function() {
         }
     };
 
-    // native.call does not inform if call results in failure
-    // Errors are handled by error callback
-    native.call('BluetoothAdapter_setVisible', callArgs, callback);
+    var result = native.call('BluetoothAdapter_setVisible', callArgs, callback);
+    if (native.isFailure(result)) {
+      throw native.getErrorObject(result);
+    }
 };
 
 var _listener;
@@ -2236,8 +2211,6 @@ function _BluetoothDiscoverDevicesErrorCallback(event) {
 
 BluetoothAdapter.prototype.discoverDevices = function() {
     console.log('Entered BluetoothAdapter.discoverDevices()');
-    xwalk.utils.checkPrivilegeAccess4Ver("2.4", Privilege.BLUETOOTH, Privilege.BLUETOOTH_GAP);
-
     var args = AV.validateMethod(arguments, [
         {
             name : 'successCallback',
@@ -2272,8 +2245,6 @@ BluetoothAdapter.prototype.discoverDevices = function() {
 
 BluetoothAdapter.prototype.stopDiscovery = function() {
     console.log('Entered BluetoothAdapter.stopDiscovery()');
-    xwalk.utils.checkPrivilegeAccess4Ver("2.4", Privilege.BLUETOOTH, Privilege.BLUETOOTH_GAP);
-
     var args = AV.validateMethod(arguments, [
         {
             name : 'successCallback',
@@ -2297,15 +2268,14 @@ BluetoothAdapter.prototype.stopDiscovery = function() {
         }
     };
 
-    // native.call does not inform if call results in failure
-    // Errors are handled by error callback
-    native.call('BluetoothAdapter_stopDiscovery', {}, callback);
+    var result = native.call('BluetoothAdapter_stopDiscovery', {}, callback);
+    if (native.isFailure(result)) {
+      throw native.getErrorObject(result);
+    }
 };
 
 BluetoothAdapter.prototype.getKnownDevices = function() {
     console.log('Entered BluetoothAdapter.getKnownDevices()');
-    xwalk.utils.checkPrivilegeAccess4Ver("2.4", Privilege.BLUETOOTH, Privilege.BLUETOOTH_GAP);
-
     var args = AV.validateMethod(arguments, [
         {
             name : 'successCallback',
@@ -2332,15 +2302,14 @@ BluetoothAdapter.prototype.getKnownDevices = function() {
         }
     };
 
-    // native.call does not inform if call results in failure
-    // Errors are handled by error callback
-    native.call('BluetoothAdapter_getKnownDevices', {}, callback);
+    var result = native.call('BluetoothAdapter_getKnownDevices', {}, callback);
+    if (native.isFailure(result)) {
+      throw native.getErrorObject(result);
+    }
 };
 
 BluetoothAdapter.prototype.getDevice = function() {
     console.log('Entered BluetoothAdapter.getDevice()');
-    xwalk.utils.checkPrivilegeAccess4Ver("2.4", Privilege.BLUETOOTH, Privilege.BLUETOOTH_GAP);
-
     var args = AV.validateMethod(arguments, [
         {
             name : 'address',
@@ -2366,15 +2335,14 @@ BluetoothAdapter.prototype.getDevice = function() {
         }
     };
 
-    // native.call does not inform if call results in failure
-    // Errors are handled by error callback
-    native.call('BluetoothAdapter_getDevice', {address : args.address}, callback);
+    var result = native.call('BluetoothAdapter_getDevice', {address : args.address}, callback);
+    if (native.isFailure(result)) {
+      throw native.getErrorObject(result);
+    }
 };
 
 BluetoothAdapter.prototype.createBonding = function() {
     console.log('Entered BluetoothAdapter.createBonding()');
-    xwalk.utils.checkPrivilegeAccess4Ver("2.4", Privilege.BLUETOOTH, Privilege.BLUETOOTH_GAP);
-
     var args = AV.validateMethod(arguments, [
         {
             name : 'address',
@@ -2406,15 +2374,14 @@ BluetoothAdapter.prototype.createBonding = function() {
         }
     };
 
-    // native.call does not inform if call results in failure
-    // Errors are handled by error callback
-    native.call('BluetoothAdapter_createBonding', callArgs, callback);
+    var result = native.call('BluetoothAdapter_createBonding', callArgs, callback);
+    if (native.isFailure(result)) {
+      throw native.getErrorObject(result);
+    }
 };
 
 BluetoothAdapter.prototype.destroyBonding = function() {
     console.log('Entered BluetoothAdapter.destroyBonding()');
-    xwalk.utils.checkPrivilegeAccess4Ver("2.4", Privilege.BLUETOOTH, Privilege.BLUETOOTH_GAP);
-
     var args = AV.validateMethod(arguments, [
         {
             name : 'address',
@@ -2446,15 +2413,14 @@ BluetoothAdapter.prototype.destroyBonding = function() {
         }
     };
 
-    // native.call does not inform if call results in failure
-    // Errors are handled by error callback
-    native.call('BluetoothAdapter_destroyBonding', callArgs, callback);
+    var result = native.call('BluetoothAdapter_destroyBonding', callArgs, callback);
+    if (native.isFailure(result)) {
+      throw native.getErrorObject(result);
+    }
 };
 
 BluetoothAdapter.prototype.registerRFCOMMServiceByUUID = function() {
     console.log('Entered BluetoothAdapter.registerRFCOMMServiceByUUID()');
-    xwalk.utils.checkPrivilegeAccess4Ver("2.4", Privilege.BLUETOOTH, Privilege.BLUETOOTH_SPP);
-
     var args = AV.validateMethod(arguments, [
         {
             name : 'uuid',
@@ -2491,9 +2457,10 @@ BluetoothAdapter.prototype.registerRFCOMMServiceByUUID = function() {
         }
     };
 
-    // native.call does not inform if call results in failure
-    // Errors are handled by error callback
-    native.call('BluetoothAdapter_registerRFCOMMServiceByUUID', callArgs, callback);
+    var result = native.call('BluetoothAdapter_registerRFCOMMServiceByUUID', callArgs, callback);
+    if (native.isFailure(result)) {
+      throw native.getErrorObject(result);
+    }
 };
 
 BluetoothAdapter.prototype.getBluetoothProfileHandler = function() {
@@ -2545,20 +2512,27 @@ var BluetoothManager = function() {
     });
 };
 
+var BluetoothManager_getDefaultAdapter = function() {
+  privUtils_.checkPrivilegeAccess4Ver("2.4", Privilege.BLUETOOTH, Privilege.BLUETOOTH_GAP);
+
+  return new BluetoothAdapter();
+};
+
+
 BluetoothManager.prototype.getDefaultAdapter = function() {
     console.log('Entered BluetoothManager.getDefaultAdapter()');
+    return BluetoothManager_getDefaultAdapter();
+};
 
-    xwalk.utils.checkPrivilegeAccess4Ver("2.4", Privilege.BLUETOOTH, Privilege.BLUETOOTH_GAP);
+var BluetoothManager_getLEAdapter = function() {
+  privUtils_.checkPrivilegeAccess4Ver("2.4", Privilege.BLUETOOTH, Privilege.BLUETOOTH_ADMIN);
 
-    return new BluetoothAdapter();
+  return new BluetoothLEAdapter();
 };
 
 BluetoothManager.prototype.getLEAdapter = function() {
     console.log('Entered BluetoothManager.getLEAdapter()');
-
-    xwalk.utils.checkPrivilegeAccess4Ver("2.4", Privilege.BLUETOOTH, Privilege.BLUETOOTH_ADMIN);
-
-    return new BluetoothLEAdapter();
+    return BluetoothManager_getLEAdapter();
 };
 // exports ///////////////////////////////////////////////////////////////////
 exports = new BluetoothManager();
