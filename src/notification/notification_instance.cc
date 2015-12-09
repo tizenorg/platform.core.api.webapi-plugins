@@ -21,11 +21,18 @@
 #include "common/logger.h"
 #include "common/picojson.h"
 #include "common/platform_result.h"
+#include "common/tools.h"
 
 #include "notification/notification_manager.h"
 
 namespace extension {
 namespace notification {
+
+namespace {
+// The privileges that required in Notification API
+const std::string kPrivilegeNotification = "http://tizen.org/privilege/notification";
+const std::string kPrivilegeLED = "http://tizen.org/privilege/led";
+}  // namespace
 
 using namespace common;
 
@@ -62,6 +69,7 @@ NotificationInstance::~NotificationInstance() {
 
 void NotificationInstance::NotificationManagerPost(const picojson::value& args,
                                                    picojson::object& out) {
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeNotification, &out);
 
   LoggerD("Enter");
   picojson::value val{picojson::object{}};
@@ -78,6 +86,7 @@ void NotificationInstance::NotificationManagerPost(const picojson::value& args,
 void NotificationInstance::NotificationManagerUpdate(
     const picojson::value& args,
     picojson::object& out) {
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeNotification, &out);
 
   LoggerD("Enter");
   PlatformResult status = manager_->Update(args.get<picojson::object>());
@@ -92,6 +101,7 @@ void NotificationInstance::NotificationManagerUpdate(
 void NotificationInstance::NotificationManagerRemove(
     const picojson::value& args,
     picojson::object& out) {
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeNotification, &out);
 
   LoggerD("Enter");
   PlatformResult status = manager_->Remove(args.get<picojson::object>());
@@ -106,6 +116,7 @@ void NotificationInstance::NotificationManagerRemove(
 void NotificationInstance::NotificationManagerRemoveAll(
     const picojson::value& args,
     picojson::object& out) {
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeNotification, &out);
 
   LoggerD("Enter");
   PlatformResult status = manager_->RemoveAll();
@@ -151,6 +162,7 @@ void NotificationInstance::NotificationManagerPlayLEDCustomEffect(
     const picojson::value& args, picojson::object& out) {
 
   LoggerD("Enter");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeLED, &out);
 
   PlatformResult status = manager_->PlayLEDCustomEffect(args.get<picojson::object>());
 
@@ -165,6 +177,7 @@ void NotificationInstance::NotificationManagerStopLEDCustomEffect(
     const picojson::value& /*args*/, picojson::object& out) {
 
   LoggerD("Enter");
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeLED, &out);
 
   PlatformResult status = manager_->StopLEDCustomEffect();
 
