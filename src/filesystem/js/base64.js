@@ -16,18 +16,24 @@
 
 var Base64 = {
   _b64: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=',
+  encodeString: function(data) {
+    data = this._utf8_encode(data);
+    var input = [];
+    for (var i = 0; i < data.length; ++i) {
+      input.push(data.charCodeAt(i));
+    }
+    return this.encode(input);
+  },
   encode: function(data) {
     var output = '';
     var chr1, chr2, chr3, enc1, enc2, enc3, enc4;
     var i = 0;
 
-    data = this._utf8_encode(data);
-
     while (i < data.length) {
 
-      chr1 = data.charCodeAt(i++);
-      chr2 = data.charCodeAt(i++);
-      chr3 = data.charCodeAt(i++);
+      chr1 = data[i++];
+      chr2 = data[i++];
+      chr3 = data[i++];
 
       enc1 = chr1 >> 2;
       enc2 = ((chr1 & 3) << 4) | (chr2 >> 4);
@@ -47,8 +53,16 @@ var Base64 = {
 
     return output;
   },
-  decode: function(data) {
+  decodeString: function(data) {
+    data = this.decode(data);
     var output = '';
+    for (var i = 0; i < data.length; ++i) {
+      output += String.fromCharCode(data[i]);
+    }
+    return this._utf8_decode(output);
+  },
+  decode: function(data) {
+    var output = [];
     var chr1, chr2, chr3;
     var enc1, enc2, enc3, enc4;
     var i = 0;
@@ -66,18 +80,16 @@ var Base64 = {
       chr2 = ((enc2 & 15) << 4) | (enc3 >> 2);
       chr3 = ((enc3 & 3) << 6) | enc4;
 
-      output += String.fromCharCode(chr1);
+      output.push(chr1);
 
       if (enc3 !== 64) {
-        output += String.fromCharCode(chr2);
+        output.push(chr2);
       }
       if (enc4 !== 64) {
-        output += String.fromCharCode(chr3);
+        output.push(chr3);
       }
 
     }
-
-    output = this._utf8_decode(output);
 
     return output;
   },
