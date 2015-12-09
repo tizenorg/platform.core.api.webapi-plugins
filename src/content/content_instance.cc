@@ -86,7 +86,7 @@ ContentInstance::ContentInstance() :
 ContentInstance::~ContentInstance() {
   LoggerD("entered");
   if (noti_handle_) {
-    media_content_unset_db_updated_cb_v2(noti_handle_);
+    media_content_remove_db_updated_cb(noti_handle_);
     noti_handle_ = nullptr;
   }
   if (listener_data_) {

@@ -882,7 +882,7 @@ PlatformResult ContentManager::setV2ChangeListener(media_content_noti_h* noti_ha
                                                  void *user_data) {
   LoggerD("Enter");
   if (nullptr == *noti_handle) {
-    int ret = media_content_set_db_updated_cb_v2(noti_handle, callback, user_data);
+    int ret = media_content_add_db_updated_cb(callback, user_data, noti_handle);
     if(ret != MEDIA_CONTENT_ERROR_NONE) {
       return LogAndCreateResult(
                 ErrorCode::UNKNOWN_ERR, "registering the listener is failed.",
@@ -896,7 +896,7 @@ PlatformResult ContentManager::setV2ChangeListener(media_content_noti_h* noti_ha
 PlatformResult ContentManager::unSetV2ChangeListener(media_content_noti_h* noti_handle) {
   LoggerD("Enter");
 
-  int ret = media_content_unset_db_updated_cb_v2(*noti_handle);
+  int ret = media_content_remove_db_updated_cb(*noti_handle);
   if(ret != MEDIA_CONTENT_ERROR_NONE) {
     return LogAndCreateResult(
               ErrorCode::UNKNOWN_ERR, "unregistering the listener is failed.",
