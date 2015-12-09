@@ -14,11 +14,13 @@
  *    limitations under the License.
  */
 
-var validator_ = xwalk.utils.validator;
-var converter_ = xwalk.utils.converter;
+var utils_ = xwalk.utils;
+var privilege_ = utils_.privilege;
+var validator_ = utils_.validator;
+var converter_ = utils_.converter;
+var T_ = utils_.type;
 var types_ = validator_.Types;
-var T_ = xwalk.utils.type;
-var native_ = new xwalk.utils.NativeManager(extension);
+var native_ = new utils_.NativeManager(extension);
 
 // Enums
 var SensorType = {
@@ -165,7 +167,7 @@ function getAvailableSensors() {
 function SensorService() {
 };
 
-SensorService.prototype.getDefaultSensor = function() {
+function getDefaultSensor() {
     var args = validator_.validateArgs(arguments, [
         {
             name : 'type',
@@ -192,9 +194,13 @@ SensorService.prototype.getDefaultSensor = function() {
     } else if (_supportedSensors[index] === SensorType.ULTRAVIOLET) {
         return new UltravioletSensor();
     } else if (_supportedSensors[index] === SensorType.HRM_RAW) {
-        xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.HEALTHINFO);
+        utils_.checkPrivilegeAccess(privilege_.HEALTHINFO);
         return new HRMRawSensor();
     }
+};
+
+SensorService.prototype.getDefaultSensor = function() {
+  return getDefaultSensor.apply(this, arguments);
 };
 
 SensorService.prototype.getAvailableSensors = function() {
@@ -388,7 +394,7 @@ HRMRawSensor.prototype = new Sensor();
 
 HRMRawSensor.prototype.constructor = Sensor;
 
-HRMRawSensor.prototype.getHRMRawSensorData = function() {
+function getHRMRawSensorData() {
     var args = validator_.validateArgs(arguments, [
        {
            name : 'successCallback',
@@ -402,9 +408,13 @@ HRMRawSensor.prototype.getHRMRawSensorData = function() {
        }
     ]);
 
-    xwalk.utils.checkPrivilegeAccess(xwalk.utils.privilege.HEALTHINFO);
+    utils_.checkPrivilegeAccess(privilege_.HEALTHINFO);
 
     _sensorListeners[this.sensorType].getData(args.successCallback, args.errorCallback);
+};
+
+HRMRawSensor.prototype.getHRMRawSensorData = function() {
+  getHRMRawSensorData.apply(this, arguments);
 };
 
 ////////////////////// Sensor Data classes/////////////////////////////////////////////////////
