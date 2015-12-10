@@ -402,7 +402,8 @@ void ContentInstance::ContentManagerGetdirectories(const picojson::value& args, 
 }
 void ContentInstance::ContentManagerFind(const picojson::value& args, picojson::object& out) {
   LoggerD("entered");
-  CHECK_PRIVILEGE_ACCESS(kPrivilegeContentRead, &out);
+  //CHECK_PRIVILEGE_ACCESS(kPrivilegeContentRead, &out);
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeContentWrite, &out);
 
   CHECK_EXIST(args, "callbackId", out)
 
@@ -481,7 +482,8 @@ void ContentInstance::ContentManagerCancelScanDirectory(const picojson::value& a
 void ContentInstance::ContentManagerSetchangelistener(const picojson::value& args,
                                                       picojson::object& out) {
   LoggerD("entered");
-  CHECK_PRIVILEGE_ACCESS(kPrivilegeContentRead, &out);
+  //CHECK_PRIVILEGE_ACCESS(kPrivilegeContentRead, &out);
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeContentWrite, &out);
 
   CHECK_EXIST(args, "listenerId", out)
 
@@ -512,7 +514,8 @@ void ContentInstance::ContentManagerSetchangelistener(const picojson::value& arg
 
 void ContentInstance::ContentManagerUnsetchangelistener(const picojson::value& args, picojson::object& out) {
   LoggerD("entered");
-  CHECK_PRIVILEGE_ACCESS(kPrivilegeContentRead, &out);
+  //CHECK_PRIVILEGE_ACCESS(kPrivilegeContentRead, &out);
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeContentWrite, &out);
 
   if (ContentManager::getInstance()->unSetChangeListener().IsError()) {
     LoggerD("unsuccesfull deregistering of callback");
@@ -524,7 +527,8 @@ void ContentInstance::ContentManagerUnsetchangelistener(const picojson::value& a
 
 void ContentInstance::ContentManagerGetplaylists(const picojson::value& args, picojson::object& out) {
   LoggerD("entered");
-  CHECK_PRIVILEGE_ACCESS(kPrivilegeContentRead, &out);
+  //CHECK_PRIVILEGE_ACCESS(kPrivilegeContentRead, &out);
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeContentWrite, &out);
 
   CHECK_EXIST(args, "callbackId", out)
 
@@ -633,7 +637,8 @@ void ContentInstance::ContentManagerPlaylistAddbatch(const picojson::value& args
 
 void ContentInstance::ContentManagerPlaylistGet(const picojson::value& args, picojson::object& out) {
   LoggerD("entered");
-  CHECK_PRIVILEGE_ACCESS(kPrivilegeContentRead, &out);
+  //CHECK_PRIVILEGE_ACCESS(kPrivilegeContentRead, &out);
+  CHECK_PRIVILEGE_ACCESS(kPrivilegeContentWrite, &out);
 
   double callbackId = args.get("callbackId").get<double>();
 
