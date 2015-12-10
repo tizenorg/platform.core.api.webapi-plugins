@@ -292,7 +292,7 @@ void KeyManagerInstance::SetPermission(const picojson::value& args,
   TaskQueue::GetInstance().Queue<picojson::value>(
       set_permissions,
       set_permissions_response,
-      std::shared_ptr<picojson::value>(new picojson::value(picojson::object())));
+      data);
 }
 
 } // namespace keymanager
