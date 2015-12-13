@@ -23,7 +23,10 @@ var types_ = validator_.Types;
 var native_ = new xwalk.utils.NativeManager(extension);
 
 function SetReadOnlyProperty(obj, n, v) {
-  Object.defineProperty(obj, n, {value: v, writable: false});
+  Object.defineProperty(obj, n, {
+    value: v,
+    writable: false
+  });
 }
 
 var FileSystemStorageType = {
@@ -71,6 +74,7 @@ var commonFS_ = (function() {
     for (var i = 0; i < virtualRoots.length; ++i) {
       cacheVirtualToReal[virtualRoots[i].name] = {
         path: virtualRoots[i].path,
+        label: virtualRoots[i].name,
         type: FileSystemStorageType.INTERNAL,
         state: FileSystemStorageState.MOUNTED
       };
@@ -99,8 +103,8 @@ var commonFS_ = (function() {
         });
         listenerRegistered = true;
       } catch (e) {
-        console.log('Failed to register storage change listener, ' +
-                    'storage information may be corrupted: ' + e.message);
+        console.log('Failed to register storage change listener, '
+            + 'storage information may be corrupted: ' + e.message);
       }
     }
 
@@ -113,7 +117,7 @@ var commonFS_ = (function() {
     if (aPath.indexOf(uriPrefix) === 0) {
       _fileRealPath = aPath.substr(uriPrefix.length);
     } else if (aPath[0] !== '/') {
-      //virtual path
+      // virtual path
       initCache();
 
       var _pathTokens = aPath.split('/');
@@ -124,7 +128,7 @@ var commonFS_ = (function() {
           _fileRealPath += '/' + _pathTokens[i];
         }
       } else {
-        //If path token is not present in cache then it is invalid
+        // If path token is not present in cache then it is invalid
         _fileRealPath = undefined;
         // check storages
         for (var j = 0; j < cacheStorages.length; ++j) {
@@ -163,10 +167,7 @@ var commonFS_ = (function() {
   }
 
   function getFileInfo(aStatObj, secondIter, aMode) {
-    var _result = {},
-        _pathTokens,
-        _fileParentPath = '',
-        i;
+    var _result = {}, _pathTokens, _fileParentPath = '', i;
     var aPath = toVirtualPath(aStatObj.path);
 
     _result.readOnly = aStatObj.readOnly;
@@ -224,14 +225,14 @@ var commonFS_ = (function() {
   };
 
   function f_isCorrectRelativePath(relativePath) {
-    return ((0 !== relativePath.indexOf('/')) &&
-        (0 !== relativePath.indexOf('\\')) &&
-        (-1 === relativePath.indexOf('?')) &&
-        (-1 === relativePath.indexOf('*')) &&
-        (-1 === relativePath.indexOf(':')) &&
-        (-1 === relativePath.indexOf('"')) &&
-        (-1 === relativePath.indexOf('<')) &&
-        (-1 === relativePath.indexOf('>')));
+    return ((0 !== relativePath.indexOf('/'))
+        && (0 !== relativePath.indexOf('\\'))
+        && (-1 === relativePath.indexOf('?'))
+        && (-1 === relativePath.indexOf('*'))
+        && (-1 === relativePath.indexOf(':'))
+        && (-1 === relativePath.indexOf('"'))
+        && (-1 === relativePath.indexOf('<')) && (-1 === relativePath
+        .indexOf('>')));
   };
 
   function cloneStorage(storage) {
@@ -249,6 +250,15 @@ var commonFS_ = (function() {
         return cloneStorage(cacheStorages[i]);
       }
     }
+
+    for (var key in cacheVirtualToReal) {
+      if (cacheVirtualToReal.hasOwnProperty(key)) {
+        if (cacheVirtualToReal[key].label === label) {
+          return cloneStorage(cacheVirtualToReal[key]);
+        }
+      }
+    }
+
     return null;
   }
 
@@ -258,6 +268,13 @@ var commonFS_ = (function() {
     for (var i = 0; i < cacheStorages.length; ++i) {
       ret.push(cloneStorage(cacheStorages[i]));
     }
+
+    for (var key in cacheVirtualToReal) {
+      if (cacheVirtualToReal.hasOwnProperty(key)) {
+        ret.push(cloneStorage(cacheVirtualToReal[key]));
+      }
+    }
+
     return ret;
   }
 

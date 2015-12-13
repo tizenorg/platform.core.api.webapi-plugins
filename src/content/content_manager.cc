@@ -29,7 +29,7 @@
 #include "common/logger.h"
 #include "common/scope_exit.h"
 #include "common/tools.h"
-#include "common/virtual_fs.h"
+#include "common/filesystem/filesystem_provider_storage.h"
 
 #include "content/content_filter.h"
 
@@ -820,7 +820,7 @@ int ContentManager::scanFile(std::string& uri) {
 PlatformResult ContentManager::scanDirectory(media_scan_completed_cb callback, ReplyCallbackData* cbData) {
   LoggerD("Enter");
   const std::string& contentDirURI = cbData->args.get("contentDirURI").get<std::string>();
-  std::string real_path = common::VirtualFs::GetInstance().GetRealPath(contentDirURI);
+  std::string real_path = common::FilesystemProviderStorage::Create().GetRealPath(contentDirURI);
   const bool recursive = cbData->args.get("recursive").get<bool>();
 
   int ret = media_content_scan_folder(real_path.c_str(), recursive, callback, (void*) cbData);
@@ -1568,7 +1568,7 @@ int ContentManager::setThumbnailUri(int id, const std::string& thb_uri)
   media_playlist_h playlist_handle = getPlaylistHandle(id);
   PlaylistUniquePtr playlist_ptr(playlist_handle, destroyMediaPlaylistHandle);
 
-  std::string real_path = VirtualFs::GetInstance().GetRealPath(thb_uri);
+  std::string real_path = common::FilesystemProviderStorage::Create().GetRealPath(thb_uri);
   const int ret_code = media_playlist_set_thumbnail_path(playlist_handle,
                                                          real_path.c_str());
   if(MEDIA_CONTENT_ERROR_NONE != ret_code) {

@@ -21,6 +21,7 @@
 #include <unistd.h>
 
 #include "common/logger.h"
+#include "common/scope_exit.h"
 
 namespace common {
 
@@ -45,10 +46,16 @@ std::string CurrentApplication::GetPackageId() const {
   return package_id_;
 }
 
+std::string CurrentApplication::GetRoot() const {
+  LoggerD("Enter");
+  return root_;
+}
+
 CurrentApplication::CurrentApplication() :
     pid_(getpid()),
     app_id_(FetchApplicationId()),
-    package_id_(FetchPackageId()) {
+    package_id_(FetchPackageId()),
+    root_(FetchRoot()) {
   LoggerD("Enter");
 }
 
@@ -73,20 +80,61 @@ std::string CurrentApplication::FetchApplicationId() const {
 std::string CurrentApplication::FetchPackageId() const {
   LoggerD("Enter");
   std::string package_id;
-  char* tmp_str = nullptr;
+  app_info_h app_info;
+  int err = app_info_create(app_id_.c_str(), &app_info);
+  if (APP_MANAGER_ERROR_NONE != err) {
+    LoggerE("Can't create app info handle from appId %s: %d (%s)",
+            app_id_.c_str(), err, get_error_message(err));
+    return std::string();
+  }
+  SCOPE_EXIT {
+    app_info_destroy(app_info);
+  };
 
-  const int ret = package_manager_get_package_id_by_app_id(app_id_.c_str(),
-                                                           &tmp_str);
-
-  if ((PACKAGE_MANAGER_ERROR_NONE == ret) && (nullptr != tmp_str)) {
-    package_id = tmp_str;
+  char* package = nullptr;
+  err = app_info_get_package(app_info, &package);
+  if (APP_MANAGER_ERROR_NONE != err) {
+    LoggerE("Can't get package name from app info: %d (%s)", err,
+            get_error_message(err));
   } else {
-    LoggerE("Can't get package name from app info: %d (%s)", ret, get_error_message(ret));
+    package_id = package;
   }
 
-  free(tmp_str);
+  free(package);
 
   return package_id;
+}
+
+std::string CurrentApplication::FetchRoot() const {
+  LoggerD("Enter");
+
+  if(package_id_.empty()) {
+    LoggerE("Can't get package id, no root path can be obtained");
+    return std::string();
+  }
+
+  package_info_h pkg_info;
+  int err = package_info_create(package_id_.c_str(), &pkg_info);
+  if (PACKAGE_MANAGER_ERROR_NONE != err) {
+    LoggerE("Can't create package info handle from pkg (%s)", get_error_message(err));
+    return std::string();
+  }
+  SCOPE_EXIT {
+    package_info_destroy(pkg_info);
+  };
+
+  char* root = nullptr;
+  err = package_info_get_root_path(pkg_info, &root);
+  if (PACKAGE_MANAGER_ERROR_NONE != err || nullptr == root) {
+    LoggerE("Can't get root_ path from package info (%s)", get_error_message(err));
+    return std::string();
+  }
+
+  std::string ret(root);
+  free(root);
+
+  LoggerD("Exit");
+  return ret;
 }
 
 }  // namespace common
